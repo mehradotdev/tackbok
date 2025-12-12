@@ -1,12 +1,16 @@
 {
   "expo": {
-    "scheme": "acme",
+    "name": "tackbok",
+    "slug": "tackbok",
+    "scheme": "tackbok",
     "userInterfaceStyle": "automatic",
     "orientation": "default",
     "web": {
       "output": "static"
     },
-    "name": "tackbok",
-    "slug": "tackbok"
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
   }
 }
