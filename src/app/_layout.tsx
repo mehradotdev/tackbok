@@ -1,8 +1,9 @@
-import "../global.css";
+import '../global.css';
 
-import { Text } from "react-native";
-import { Stack } from "expo-router";
-import { useCSSVariable } from "uniwind";
+import { Stack } from 'expo-router';
+import { useCSSVariable } from 'uniwind';
+import { PortalHost } from '~/components/primitives/portal';
+import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
 
 export default function Layout() {
   const [primaryColor, primaryForeground] = useCSSVariable([
@@ -11,21 +12,32 @@ export default function Layout() {
   ]);
 
   return (
-    <Stack screenOptions={{ 
-      headerShown: true, 
-      headerTitleAlign: 'center', 
-      headerTintColor: primaryForeground as string, 
-      headerStyle: { backgroundColor: primaryColor as string },
-      headerTitleStyle: { fontWeight: 'bold' }
-    }}>
-      <Stack.Screen name="index" options={{
-         title: 'Tackbok',
-         headerRight: () => <Text>Menu</Text>,
-         }} />
-      <Stack.Screen name="settings" options={{ 
-        title: 'Settings',
-        headerShown: false,
-      }} />
-    </Stack>
+    <>
+      <Stack
+        screenOptions={{
+          headerShown: true,
+          headerTitleAlign: 'center',
+          headerTintColor: primaryForeground as string,
+          headerStyle: { backgroundColor: primaryColor as string },
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      >
+        <Stack.Screen
+          name="index"
+          options={{
+            title: 'Tackbok',
+            headerRight: () => <SettingsDropdownMenu />,
+          }}
+        />
+        <Stack.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+            headerShown: false,
+          }}
+        />
+      </Stack>
+      <PortalHost />
+    </>
   );
 }
