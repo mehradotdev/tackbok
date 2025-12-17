@@ -10,6 +10,14 @@ import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
 
 const queryClient = new QueryClient();
 
+/**
+ * Application layout that initializes local storage and provides query, navigation, and portal contexts.
+ *
+ * On mount this component initializes the app database and reads CSS variables to drive header colors; it also
+ * supplies a QueryClientProvider, a navigation Stack with three configured screens, and a PortalHost.
+ *
+ * @returns The top-level React element containing the QueryClientProvider, the configured navigation Stack, and a PortalHost
+ */
 export default function Layout() {
   const [primaryColor, primaryForeground] = useCSSVariable([
     '--color-primary',
