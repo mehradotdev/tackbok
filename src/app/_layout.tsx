@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { initDB } from '~/database';
 import { PortalHost } from '~/components/primitives/portal';
 import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
+import { Toaster, toast } from '~/components/ui/toast';
 
 const queryClient = new QueryClient();
 
@@ -17,7 +18,12 @@ export default function Layout() {
   ]);
 
   useEffect(() => {
-    initDB(); // Initialize DB on boot
+    try {
+      initDB(); // Initialize DB on boot
+    } catch (error) {
+      console.error('Failed to initialize database:', error);
+      toast.error('Failed to initialize database');
+    }
   }, []);
 
   return (
@@ -54,6 +60,7 @@ export default function Layout() {
             }}
           />
         </Stack>
+        <Toaster />
         <PortalHost />
       </QueryClientProvider>
     </>

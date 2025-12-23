@@ -5,56 +5,29 @@ import { useGratitudeLogs } from '~/hooks/useGratitude';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GratitudeLog } from '~/types';
 
-// const DATA = [
-//   {
-//     id: '1',
-//     date: 'February 16, 2019',
-//     text: 'What are you grateful for today?',
-//     filled: true,
-//   },
-//   {
-//     id: '2',
-//     date: 'February 15, 2019',
-//     text: 'Sesame seeds and sushi rice',
-//     filled: false,
-//   },
-//   {
-//     id: '3',
-//     date: 'February 14, 2019',
-//     text: 'Puppy kisses and getting to see Lily again. This text is longer to show how the line stretches automatically!',
-//     filled: false,
-//   },
-// ];
-
-// export function TimelineScreenz() {
-//   return (
-//     // Ensure the main container is flex-1 and full width
-//     <View className="flex-1 bg-[#EBE5da] pt-14 w-full">
-//       <Text className="text-2xl font-bold text-center mb-5 text-black font-serif">
-//         Presently
-//       </Text>
-
-//       <FlatList
-//         data={DATA}
-//         keyExtractor={(item) => item.id}
-//         renderItem={({ item }) => <TimelineItemz item={item} />}
-//         // contentContainerStyle needs to be passed via props or standard style object in some versions of NativeWind,
-//         // but className usually works for the outer wrapper.
-//         contentContainerClassName="pb-12"
-//       />
-//     </View>
-//   );
-// }
-
 interface GratitudeTimelineProps {
   onEntryPress: (entry: GratitudeLog) => void;
   onNewPress: () => void;
 }
 
-export const GratitudeTimeline: React.FC<GratitudeTimelineProps> = ({ onEntryPress, onNewPress }) => {
-  const { data: logs, isLoading } = useGratitudeLogs();
+export const GratitudeTimeline: React.FC<GratitudeTimelineProps> = ({
+  onEntryPress,
+  onNewPress,
+}) => {
+  const { data: logs, isLoading, isError, error } = useGratitudeLogs();
 
   if (isLoading) return <ActivityIndicator size="large" className="mt-20" />;
+  if (isError) {
+    // TODO: remove hardcoded styles, make it dynamic
+    return (
+      <View className="flex-1 items-center justify-center px-4">
+        <Text className="text-center text-red-600 mb-2">Failed to load entries</Text>
+        <Text className="text-center text-gray-500">
+          {error?.message || 'Unknown error'}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-[#EBE5da] w-full">

@@ -14,12 +14,12 @@ export const GratitudeEntry: React.FC<GratitudeEntryProps> = ({ entry }) => {
   const router = useRouter();
   const [text, setText] = useState<string>(entry.entryContent || '');
   const saveMutation = useSaveGratitudeLog();
+  const isExistingEntry = !!entry.entryContent;
+  const isNowEmpty = text.trim() === '';
 
   const handleSave = () => {
     // Safety check for accidental delete of EXISTING entry
     // (If it was a new empty entry, we can just discard it without warning)
-    const isExistingEntry = !!entry.entryContent;
-    const isNowEmpty = text.trim() === '';
 
     if (isExistingEntry && isNowEmpty) {
       Alert.alert('Delete Entry?', 'Clearing the text will delete this entry entirely.', [
@@ -48,7 +48,9 @@ export const GratitudeEntry: React.FC<GratitudeEntryProps> = ({ entry }) => {
         </TouchableOpacity>
         <Text className="font-bold text-lg text-[#333]">{entry.entryDate}</Text>
         <TouchableOpacity onPress={handleSave}>
-          <Text className="text-lg font-bold text-[#333]">Done</Text>
+          <Text className="text-lg font-bold text-[#333]">
+            {(isExistingEntry && isNowEmpty) ? 'Delete' : 'Done'}
+          </Text>
         </TouchableOpacity>
       </View>
 
