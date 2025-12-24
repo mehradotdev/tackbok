@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { useGratitudeLogs } from '~/hooks/useGratitude';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { GratitudeLog } from '~/types';
 
 interface GratitudeTimelineProps {
