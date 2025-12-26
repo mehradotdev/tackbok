@@ -18,7 +18,7 @@ import {
   getMonth,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 
 // ============================================================================
@@ -51,8 +51,7 @@ export interface DatePickerProps {
   containerClassName?: string;
   /** Theme accent color (tailwind class like 'bg-primary') */
   themeColor?: string;
-  /** Disable future dates - hides future years in year picker */
-  disableFutureDates?: boolean;
+  scrollToBottomYearsView?: boolean;
   /** Callback when the visible month changes */
   onMonthChange?: (date: Date) => void;
 }
@@ -182,11 +181,13 @@ export function DatePicker({
   renderDay,
   containerClassName,
   themeColor = 'bg-primary',
-  disableFutureDates = false,
+  scrollToBottomYearsView = false,
   onMonthChange,
 }: DatePickerProps) {
   const [viewDate, setViewDate] = useState(value);
   const [viewMode, setViewMode] = useState<ViewMode>('days');
+  const yearsScrollRef = useRef<ScrollView>(null);
+  const hasAutoScrolledYearsRef = useRef(false);
 
   // Generate calendar days for current view month
   const calendarDays = useMemo(() => {
@@ -200,17 +201,15 @@ export function DatePicker({
 
   // Generate years for year selection
   const years = useMemo(() => {
-    const currentYear = getYear(viewDate);
     const thisYear = getYear(new Date());
-    const startYear = currentYear - 50;
-    // Cap at current year if disableFutureDates is true
-    const endYear = disableFutureDates ? thisYear : currentYear + 10;
+    const startYear = minDate ? getYear(minDate) : thisYear - 100;
+    const endYear = maxDate ? getYear(maxDate) : thisYear + 10;
     const yearsArray: number[] = [];
     for (let year = startYear; year <= endYear; year++) {
       yearsArray.push(year);
     }
     return yearsArray;
-  }, [viewDate, disableFutureDates]);
+  }, [minDate, maxDate]);
 
   const canGoBack = useMemo(() => {
     if (!minDate) return true;
@@ -267,6 +266,27 @@ export function DatePicker({
     setViewDate((prev) => setYear(prev, year));
     setViewMode('months');
   }, []);
+
+  const maybeAutoScrollYearsToBottom = useCallback(() => {
+    if (viewMode !== 'years') return;
+    if (!scrollToBottomYearsView) return;
+    if (hasAutoScrolledYearsRef.current) return;
+
+    requestAnimationFrame(() => {
+      yearsScrollRef.current?.scrollToEnd({ animated: false });
+      hasAutoScrolledYearsRef.current = true;
+    });
+  }, [viewMode, scrollToBottomYearsView]);
+
+  useEffect(() => {
+    maybeAutoScrollYearsToBottom();
+  }, [maybeAutoScrollYearsToBottom]);
+
+  useEffect(() => {
+    if (viewMode !== 'years') {
+      hasAutoScrolledYearsRef.current = false;
+    }
+  }, [viewMode]);
 
   const openMonthsView = useCallback(() => {
     setViewMode((prev) => (prev === 'months' ? 'days' : 'months'));
@@ -411,9 +431,13 @@ export function DatePicker({
 
     return (
       <ScrollView
+        ref={yearsScrollRef}
         className="max-h-72"
         showsVerticalScrollIndicator={true}
-        contentContainerClassName="flex-row flex-wrap">
+        contentContainerClassName="flex-row flex-wrap"
+        onContentSizeChange={() => {
+          maybeAutoScrollYearsToBottom();
+        }}>
         {years.map((year) => {
           const isCurrentYear = year === currentYear;
           return (

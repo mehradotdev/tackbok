@@ -71,25 +71,19 @@ export function GratitudeDatepicker({
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
     // Reset selected date to today when modal is dismissed
-    setSelectedDate(new Date());
+    setSelectedDate(today);
     setCurrentMonthYear({
-      year: new Date().getFullYear(),
-      month: new Date().getMonth() + 1,
+      year: today.getFullYear(),
+      month: today.getMonth() + 1,
     });
-  }, []);
+  }, [today]);
 
   const handleDateChange = useCallback(
     (date: Date) => {
       setSelectedDate(date);
 
-      // TODO: Navigate to gratitude entry screen
-      // Log selected date (placeholder for navigation)
-      console.log('Selected date:', format(date, 'yyyy-MM-dd'));
-
       // Trigger callback if provided
-      if (onDateSelect) {
-        onDateSelect(date);
-      }
+      if (onDateSelect) onDateSelect(date);
 
       // Close modal after selection
       handleCloseModal();
@@ -131,14 +125,6 @@ export function GratitudeDatepicker({
       );
     },
     [today, existingEntryDates, entryMarkerColor],
-  );
-
-  // Check if a date should be disabled (future dates)
-  const isDateDisabled = useCallback(
-    (date: Date) => {
-      return isAfter(startOfDay(date), today);
-    },
-    [today],
   );
 
   return (
@@ -189,7 +175,7 @@ export function GratitudeDatepicker({
               markedDates={markedDates}
               renderDay={renderDay}
               containerClassName="shadow-xl"
-              disableFutureDates
+              scrollToBottomYearsView={true}
               onMonthChange={handleMonthChange}
             />
 
