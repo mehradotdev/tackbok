@@ -1,20 +1,18 @@
 import { useLocalSearchParams } from 'expo-router';
 import { GratitudeEntry } from '~/components/GratitudeEntry';
+import { getGratitudeLogByDate } from '~/database';
 
 export default function GratitudeEntryScreen() {
-  // Provide defaults for new entries
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const { entryDate, entryContent } = useLocalSearchParams<{
+  let { entryDate, entryContent } = useLocalSearchParams<{
     entryDate: string;
     entryContent: string;
   }>();
 
-  return (
-    <GratitudeEntry
-      entry={{
-        entryDate: (entryDate as string) || today,
-        entryContent: (entryContent as string) || '',
-      }}
-    />
-  );
+  if (!entryDate) entryDate = today;
+  if (!entryContent) {
+    entryContent = getGratitudeLogByDate(entryDate)?.entryContent || '';
+  }
+
+  return <GratitudeEntry entry={{ entryDate, entryContent }} />;
 }
