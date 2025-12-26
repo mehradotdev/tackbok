@@ -37,7 +37,8 @@ export function GratitudeDatepicker({
   const [existingEntryDates, setExistingEntryDates] = useState<string[]>([]);
 
   // Today at start of day for comparison
-  const today = startOfDay(new Date());
+  // EDGE CASE BUG: today memo may become stale if app stays open past midnight.
+  const today = useMemo(() => startOfDay(new Date()), []);
 
   // Fetch entry dates for the current visible month
   useEffect(() => {
@@ -155,6 +156,7 @@ export function GratitudeDatepicker({
           {/* Modal Content Container - stop propagation */}
           <Pressable onPress={(e) => e.stopPropagation()} className="w-full max-w-sm">
             {/* Header with close button */}
+            {/* TODO: Uncomment when design finalized */}
             {/* <View className="mb-2 flex-row items-center justify-between">
               <Text className="text-lg font-semibold text-white">
                 Select Date
