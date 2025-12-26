@@ -37,11 +37,10 @@ export function GratitudeDatepicker({
   const [existingEntryDates, setExistingEntryDates] = useState<string[]>([]);
 
   // Today at start of day for comparison
-  const today = useMemo(() => startOfDay(new Date()), []);
+  const today = startOfDay(new Date());
 
   // Fetch entry dates for the current visible month
   useEffect(() => {
-    console.log('Fetching entry dates for month:', currentMonthYear);
     const entryDates = getGratitudeEntryDatesForMonth(
       currentMonthYear.year,
       currentMonthYear.month,

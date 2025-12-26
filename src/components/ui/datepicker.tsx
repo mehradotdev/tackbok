@@ -90,6 +90,7 @@ function NavButton({ onPress, disabled, children }: NavButtonProps) {
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
       className={cn(
         'h-10 w-10 items-center justify-center rounded-full',
         'active:bg-muted',
