@@ -9,7 +9,18 @@ import { PortalHost } from '~/components/primitives/portal';
 import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
 import { Toaster, toast } from '~/components/ui/toast';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Refetch on mount if data is stale (includes after invalidation)
+      refetchOnMount: true,
+      // Refetch when app comes to foreground
+      refetchOnWindowFocus: true,
+      // Consider data stale after 0ms (always refetch if invalidated)
+      staleTime: 0,
+    },
+  },
+});
 
 export default function Layout() {
   const [primaryColor, primaryForeground] = useCSSVariable([
@@ -36,8 +47,7 @@ export default function Layout() {
             headerTintColor: primaryForeground as string,
             headerStyle: { backgroundColor: primaryColor as string },
             headerTitleStyle: { fontWeight: 'bold' },
-          }}
-        >
+          }}>
           <Stack.Screen
             name="index"
             options={{

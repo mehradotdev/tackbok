@@ -22,6 +22,38 @@ export const getGratitudeLogs = async (): Promise<GratitudeLog[]> => {
   return allRows;
 };
 
+// Fetch GratitudeLog by date
+export const getGratitudeLogByDate = (
+  date?: string, // Format: YYYY-MM-DD
+): GratitudeLog | undefined => {
+  if (!date) return undefined;
+  const row = db.getFirstSync<GratitudeLog>(
+    'SELECT * FROM gratitudeLogs WHERE entryDate = ?',
+    [date],
+  );
+
+  if (!row) return undefined;
+  return row;
+};
+
+// Fetch all entry dates for a specific month (YYYY-MM format)
+// Returns an array of date strings in YYYY-MM-DD format
+export const getGratitudeEntryDatesForMonth = (
+  year: number,
+  month: number, // 1-based month (1 = January, 12 = December)
+): string[] => {
+  // Format month as YYYY-MM for SQL LIKE pattern
+  const monthStr = month.toString().padStart(2, '0');
+  const yearMonthPattern = `${year}-${monthStr}-%`;
+
+  const rows = db.getAllSync<{ entryDate: string }>(
+    'SELECT entryDate FROM gratitudeLogs WHERE entryDate LIKE ?',
+    [yearMonthPattern],
+  );
+
+  return rows.map((row) => row.entryDate);
+};
+
 // The "Smart" Save function
 export const saveGratitudeLog = async (
   date: string,
@@ -35,7 +67,6 @@ export const saveGratitudeLog = async (
     return { type: 'delete', result };
   }
 
-  // TODO: Use prepared statements to prevent SQL injection
   // 2. UPSERT (Insert or Update) if content exists
   const result = await db.runAsync(
     'INSERT OR REPLACE INTO gratitudeLogs (entryDate, entryContent) VALUES (?, ?)',

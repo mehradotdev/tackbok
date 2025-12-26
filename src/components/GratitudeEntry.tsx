@@ -49,7 +49,7 @@ export const GratitudeEntry: React.FC<GratitudeEntryProps> = ({ entry }) => {
         <Text className="font-bold text-lg text-[#333]">{entry.entryDate}</Text>
         <TouchableOpacity onPress={handleSave}>
           <Text className="text-lg font-bold text-[#333]">
-            {(isExistingEntry && isNowEmpty) ? 'Delete' : 'Done'}
+            {isExistingEntry && isNowEmpty ? 'Delete' : 'Done'}
           </Text>
         </TouchableOpacity>
       </View>
