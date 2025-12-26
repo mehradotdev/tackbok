@@ -42,11 +42,16 @@ export function GratitudeDatepicker({
 
   // Fetch entry dates for the current visible month
   useEffect(() => {
-    const entryDates = getGratitudeEntryDatesForMonth(
-      currentMonthYear.year,
-      currentMonthYear.month,
-    );
-    setExistingEntryDates(entryDates);
+    try {
+      const entryDates = getGratitudeEntryDatesForMonth(
+        currentMonthYear.year,
+        currentMonthYear.month,
+      );
+      setExistingEntryDates(entryDates);
+    } catch (error) {
+      console.error('Failed to fetch entry dates: ', error);
+      setExistingEntryDates([]);
+    }
   }, [currentMonthYear]);
 
   // Track when the user navigates to a different month
