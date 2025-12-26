@@ -35,10 +35,7 @@ export function GratitudeDatepicker({
     return { year: now.getFullYear(), month: now.getMonth() + 1 };
   });
   const [existingEntryDates, setExistingEntryDates] = useState<string[]>([]);
-
-  // Today at start of day for comparison
-  // EDGE CASE BUG: today memo may become stale if app stays open past midnight.
-  const today = useMemo(() => startOfDay(new Date()), []);
+  const [today, setToday] = useState(() => startOfDay(new Date()));
 
   // Fetch entry dates for the current visible month
   useEffect(() => {
@@ -71,18 +68,20 @@ export function GratitudeDatepicker({
   }, [existingEntryDates, entryMarkerColor]);
 
   const handleOpenModal = useCallback(() => {
+    // Recalculate today on modal open to handle apps staying open past midnight
+    const freshToday = startOfDay(new Date());
+    setToday(freshToday);
+    setSelectedDate(freshToday);
+    setCurrentMonthYear({
+      year: freshToday.getFullYear(),
+      month: freshToday.getMonth() + 1,
+    });
     setIsModalVisible(true);
   }, []);
 
   const handleCloseModal = useCallback(() => {
     setIsModalVisible(false);
-    // Reset selected date to today when modal is dismissed
-    setSelectedDate(today);
-    setCurrentMonthYear({
-      year: today.getFullYear(),
-      month: today.getMonth() + 1,
-    });
-  }, [today]);
+  }, []);
 
   const handleDateChange = useCallback(
     (date: Date) => {
