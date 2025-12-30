@@ -5,6 +5,7 @@
     "scheme": "tackbok",
     "userInterfaceStyle": "automatic",
     "orientation": "default",
+    "icon": "./assets/images/icon.png",
     "web": {
       "output": "static"
     },
@@ -15,6 +16,23 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3cba8280-4616-4cf9-8309-62ce7d14da81"
+      }
+    },
+    "owner": "mehradotdev",
+    "android": {
+      "package": "dev.mehra.tackbok"
+    },
+    "ios": {
+      "bundleIdentifier": "dev.mehra.tackbok",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     }
   }
 }
