@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, TouchableOpacity, View, Text } from 'react-native';
+import { Alert, Pressable, View, Text } from 'react-native';
 import { IGratitudeDBLog } from '~/types';
 import { useSaveGratitudeLog } from '~/hooks/useGratitude';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
@@ -43,15 +43,15 @@ export const GratitudeEntry: React.FC<IGratitudeEntryProps> = ({ entry }) => {
     <SafeAreaView className="flex-1 bg-[#EBE5da]">
       {/* Header */}
       <View className="flex-row justify-between items-center px-4 py-4 border-b border-[#dcd6cc]">
-        <TouchableOpacity onPress={() => router.back()}>
+        <Pressable onPress={() => router.back()}>
           <Text className="text-lg text-[#555]">Cancel</Text>
-        </TouchableOpacity>
+        </Pressable>
         <Text className="font-bold text-lg text-[#333]">{entry.entryDate}</Text>
-        <TouchableOpacity onPress={handleSave}>
+        <Pressable onPress={handleSave}>
           <Text className="text-lg font-bold text-[#333]">
             {isExistingEntry && isNowEmpty ? 'Delete' : 'Done'}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* TODO: multiline not working; using h-[50%] */}

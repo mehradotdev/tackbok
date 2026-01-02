@@ -5,6 +5,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, Modal } from 'react-native';
 import { getGratitudeEntryDatesForMonth } from '~/database';
 import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
+import { Icon } from '~/components/ui/icon';
 
 // ============================================================================
 // Types
@@ -39,6 +40,7 @@ export function GratitudeDatepicker({
 
   // Fetch entry dates for the current visible month
   useEffect(() => {
+    if (!isModalVisible) return;
     try {
       const entryDates = getGratitudeEntryDatesForMonth(
         currentMonthYear.year,
@@ -49,7 +51,7 @@ export function GratitudeDatepicker({
       console.error('Failed to fetch entry dates: ', error);
       setExistingEntryDates([]);
     }
-  }, [currentMonthYear]);
+  }, [currentMonthYear, isModalVisible]);
 
   // Track when the user navigates to a different month
   const handleMonthChange = useCallback((date: Date) => {
@@ -138,13 +140,13 @@ export function GratitudeDatepicker({
       <Pressable
         onPress={handleOpenModal}
         className={cn(
-          'absolute bottom-6 right-6 z-50',
+          'absolute bottom-12 right-6 z-50',
           'h-14 w-14 items-center justify-center rounded-full',
           'bg-primary shadow-lg shadow-black/25',
           'active:bg-primary/90 active:scale-95',
           fabClassName,
         )}>
-        <Calendar size={24} color="white" />
+        <Icon as={Calendar} />
       </Pressable>
 
       {/* Modal */}

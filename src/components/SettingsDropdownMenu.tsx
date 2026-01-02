@@ -15,8 +15,8 @@ export function SettingsDropdownMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Icon as={EllipsisVertical} className="text-primary-foreground" />
+      <DropdownMenuTrigger hitSlop={12}>
+        <Icon as={EllipsisVertical} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem onPress={() => router.navigate('/settings')}>

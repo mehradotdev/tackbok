@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { GratitudeTimeline } from '~/components/GratitudeTimeline';
 import { GratitudeDatepicker } from '~/components/GratitudeDatepicker';
 import { format } from 'date-fns';
+import { Header } from '~/components/Header';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -18,7 +19,8 @@ export default function HomeScreen() {
   };
 
   return (
-    <View className="flex-1 bg-background items-center justify-center px-2">
+    <SafeAreaView className="flex-1 bg-primary items-center justify-center">
+      <Header />
       <GratitudeTimeline
         onEntryPress={(item) =>
           router.push({
@@ -29,10 +31,9 @@ export default function HomeScreen() {
             },
           })
         }
-        onNewPress={() => router.push('/gratitudeEntry')}
       />
       <GratitudeDatepicker onDateSelect={handleGratitudeDatepickerPress} />
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaView>
   );
 }
