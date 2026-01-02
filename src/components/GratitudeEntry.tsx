@@ -1,16 +1,16 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, TouchableOpacity, View, Text } from 'react-native';
-import { GratitudeLog } from '~/types';
+import { IGratitudeDBLog } from '~/types';
 import { useSaveGratitudeLog } from '~/hooks/useGratitude';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Textarea } from '~/components/ui/textarea';
 
-interface GratitudeEntryProps {
-  entry: GratitudeLog;
+interface IGratitudeEntryProps {
+  entry: IGratitudeDBLog;
 }
 
-export const GratitudeEntry: React.FC<GratitudeEntryProps> = ({ entry }) => {
+export const GratitudeEntry: React.FC<IGratitudeEntryProps> = ({ entry }) => {
   const router = useRouter();
   const [text, setText] = useState<string>(entry.entryContent || '');
   const saveMutation = useSaveGratitudeLog();

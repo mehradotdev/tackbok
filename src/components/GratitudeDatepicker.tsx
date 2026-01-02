@@ -10,7 +10,7 @@ import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
 // Types
 // ============================================================================
 
-export interface GratitudeDatepickerProps {
+export interface IGratitudeDatepickerProps {
   /** Callback when a date is selected */
   onDateSelect?: (date: Date) => void;
   /** Color for marking dates with entries */
@@ -27,7 +27,7 @@ export function GratitudeDatepicker({
   onDateSelect,
   entryMarkerColor = '#22c55e', // green-500
   fabClassName,
-}: GratitudeDatepickerProps) {
+}: IGratitudeDatepickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonthYear, setCurrentMonthYear] = useState(() => {

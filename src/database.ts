@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { GratitudeLog, SaveGratitudeLogResult } from './types';
+import { IGratitudeDBLog, ISaveGratitudeLogResult } from './types';
 
 // Open database synchronously
 export const db = SQLite.openDatabaseSync('gratitude.db');
@@ -14,9 +14,9 @@ export const initDB = (): void => {
 };
 
 // Fetch GratitudeLogs sorted by date descending
-export const getGratitudeLogs = async (): Promise<GratitudeLog[]> => {
+export const getGratitudeLogs = async (): Promise<IGratitudeDBLog[]> => {
   // We cast the result because we know the schema matches our interface
-  const allRows = await db.getAllAsync<GratitudeLog>(
+  const allRows = await db.getAllAsync<IGratitudeDBLog>(
     'SELECT * FROM gratitudeLogs ORDER BY entryDate DESC',
   );
   return allRows;
@@ -25,9 +25,9 @@ export const getGratitudeLogs = async (): Promise<GratitudeLog[]> => {
 // Fetch GratitudeLog by date
 export const getGratitudeLogByDate = (
   date?: string, // Format: YYYY-MM-DD
-): GratitudeLog | undefined => {
+): IGratitudeDBLog | undefined => {
   if (!date) return undefined;
-  const row = db.getFirstSync<GratitudeLog>(
+  const row = db.getFirstSync<IGratitudeDBLog>(
     'SELECT * FROM gratitudeLogs WHERE entryDate = ?',
     [date],
   );
@@ -58,7 +58,7 @@ export const getGratitudeEntryDatesForMonth = (
 export const saveGratitudeLog = async (
   date: string,
   content: string,
-): Promise<SaveGratitudeLogResult> => {
+): Promise<ISaveGratitudeLogResult> => {
   // 1. DELETE if content is empty or just whitespace
   if (!content || content.trim() === '') {
     const result = await db.runAsync('DELETE FROM gratitudeLogs WHERE entryDate = ?', [

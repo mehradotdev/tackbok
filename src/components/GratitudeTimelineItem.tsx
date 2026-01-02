@@ -1,14 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { GratitudeLog } from '~/types';
+import { IGratitudeLogItem } from '~/types';
 
-interface TimelineItemProps {
-  item: GratitudeLog;
+interface ITimelineItemProps {
+  item: IGratitudeLogItem;
   onPress: () => void;
 }
 
-export const TimelineItem: React.FC<TimelineItemProps> = ({ item, onPress }) => {
-  // Convert YYYY-MM-DD to a pretty format
+export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) => {
   const dateObj = new Date(item.entryDate);
   const formattedDate = dateObj.toLocaleDateString('en-US', {
     month: 'long',

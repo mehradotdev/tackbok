@@ -3,14 +3,13 @@ import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react
 import { TimelineItem } from './GratitudeTimelineItem';
 import { useGratitudeLogs } from '~/hooks/useGratitude';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
-import { GratitudeLog } from '~/types';
+import { IGratitudeDBLog, IGratitudeLogItem } from '~/types';
 
-interface GratitudeTimelineProps {
-  onEntryPress: (entry: GratitudeLog) => void;
-  onNewPress: () => void;
+interface IGratitudeTimelineProps {
+  onEntryPress: (entry: IGratitudeDBLog) => void;
 }
 
-export const GratitudeTimeline: React.FC<GratitudeTimelineProps> = ({
+export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   onEntryPress,
   onNewPress,
 }) => {
