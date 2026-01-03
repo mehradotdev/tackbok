@@ -5,9 +5,9 @@ import {
   UseQueryResult,
 } from '@tanstack/react-query';
 import { getGratitudeLogs, saveGratitudeLog } from '~/database';
-import { GratitudeLog } from '~/types';
+import { IGratitudeDBLog } from '~/types';
 
-export const useGratitudeLogs = (): UseQueryResult<GratitudeLog[], Error> => {
+export const useGratitudeLogs = (): UseQueryResult<IGratitudeDBLog[], Error> => {
   return useQuery({
     queryKey: ['gratitude-logs'],
     queryFn: getGratitudeLogs,

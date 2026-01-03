@@ -1,16 +1,17 @@
 import { cn } from '~/lib/utils';
 import { format, isAfter, startOfDay } from 'date-fns';
-import { Calendar, X } from 'lucide-react-native';
+import { Calendar } from 'lucide-react-native';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, Modal } from 'react-native';
 import { getGratitudeEntryDatesForMonth } from '~/database';
 import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
+import { Icon } from '~/components/ui/icon';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface GratitudeDatepickerProps {
+export interface IGratitudeDatepickerProps {
   /** Callback when a date is selected */
   onDateSelect?: (date: Date) => void;
   /** Color for marking dates with entries */
@@ -27,7 +28,7 @@ export function GratitudeDatepicker({
   onDateSelect,
   entryMarkerColor = '#22c55e', // green-500
   fabClassName,
-}: GratitudeDatepickerProps) {
+}: IGratitudeDatepickerProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonthYear, setCurrentMonthYear] = useState(() => {
@@ -39,6 +40,7 @@ export function GratitudeDatepicker({
 
   // Fetch entry dates for the current visible month
   useEffect(() => {
+    if (!isModalVisible) return;
     try {
       const entryDates = getGratitudeEntryDatesForMonth(
         currentMonthYear.year,
@@ -49,7 +51,7 @@ export function GratitudeDatepicker({
       console.error('Failed to fetch entry dates: ', error);
       setExistingEntryDates([]);
     }
-  }, [currentMonthYear]);
+  }, [currentMonthYear, isModalVisible]);
 
   // Track when the user navigates to a different month
   const handleMonthChange = useCallback((date: Date) => {
@@ -138,13 +140,13 @@ export function GratitudeDatepicker({
       <Pressable
         onPress={handleOpenModal}
         className={cn(
-          'absolute bottom-6 right-6 z-50',
+          'absolute bottom-12 right-6 z-50',
           'h-14 w-14 items-center justify-center rounded-full',
           'bg-primary shadow-lg shadow-black/25',
           'active:bg-primary/90 active:scale-95',
           fabClassName,
         )}>
-        <Calendar size={24} color="white" />
+        <Icon as={Calendar} />
       </Pressable>
 
       {/* Modal */}
@@ -180,7 +182,7 @@ export function GratitudeDatepicker({
               maxDate={today}
               markedDates={markedDates}
               renderDay={renderDay}
-              containerClassName="shadow-xl"
+              containerClassName="shadow-xl bg-background"
               scrollToBottomYearsView={true}
               onMonthChange={handleMonthChange}
             />

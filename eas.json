@@ -8,8 +8,9 @@
       "developmentClient": true,
       "distribution": "internal"
     },
-    "ios-simulator": {
+    "development-simulator": {
       "extends": "development",
+      "environment": "development",
       "ios": {
         "simulator": true
       }
@@ -19,14 +20,6 @@
     },
     "production": {
       "autoIncrement": true
-    },
-    "development-simulator": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "ios": {
-        "simulator": true
-      },
-      "environment": "development"
     }
   },
   "submit": {

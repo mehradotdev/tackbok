@@ -9,7 +9,7 @@ const textVariants = cva('text-foreground text-base', {
     variant: {
       default: '',
       h1: 'text-center text-4xl font-extrabold tracking-tight',
-      h2: 'border-border border-b pb-2 text-3xl font-semibold tracking-tight',
+      h2: 'text-3xl font-semibold tracking-tight',
       h3: 'text-2xl font-semibold tracking-tight',
       h4: 'text-xl font-semibold tracking-tight',
       p: 'mt-3 leading-7 sm:mt-6',

@@ -42,7 +42,7 @@ export default function Layout() {
       <QueryClientProvider client={queryClient}>
         <Stack
           screenOptions={{
-            headerShown: true,
+            headerShown: false,
             headerTitleAlign: 'center',
             headerTintColor: primaryForeground as string,
             headerStyle: { backgroundColor: primaryColor as string },
