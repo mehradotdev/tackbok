@@ -1,14 +1,14 @@
-import { Text } from 'react-native';
 import React from 'react';
+import { useRouter } from 'expo-router';
+import { EllipsisVertical } from 'lucide-react-native';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
+import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
-import { EllipsisVertical } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
 
 export function SettingsDropdownMenu() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export function SettingsDropdownMenu() {
       <DropdownMenuTrigger hitSlop={12}>
         <Icon as={EllipsisVertical} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent className="bg-background border-0">
         <DropdownMenuItem onPress={() => router.navigate('/settings')}>
           <Text>Settings</Text>
         </DropdownMenuItem>

@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Pressable, Image } from 'react-native';
+import { useUniwind } from 'uniwind';
+import { format } from 'date-fns';
 import { IGratitudeLogItem } from '~/types';
 import { Text } from '~/components/ui/text';
-import { format } from 'date-fns';
 
 interface ITimelineItemProps {
   item: IGratitudeLogItem;
@@ -10,6 +11,7 @@ interface ITimelineItemProps {
 }
 
 export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) => {
+  const { theme } = useUniwind();
   const dateObj = new Date(item.entryDate);
   const formattedDate = format(dateObj, 'MMMM d, yyyy');
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -34,24 +36,31 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) =>
 
       {/* --- Right Column: Content --- */}
       <View className="flex-1 py-4 pr-4">
-        <Text className="text-lg font-bold text-[#333] mb-1 font-serif">
+        <Text className="text-lg font-bold text-foreground/80 mb-1 font-serif">
           {formattedDate}
         </Text>
         {item.entryContent ? (
-          <Text className="text-base text-[#555] leading-6" numberOfLines={3}>
+          <Text className="text-base text-foreground leading-6" numberOfLines={3}>
             {item.entryContent}
           </Text>
         ) : (
-          <Text className="text-base text-[#555] leading-6">
+          <Text className="text-base text-muted-foreground leading-6">
             {item?.placeholderText || 'What are you grateful for?'}
           </Text>
         )}
         {item.isLast && (
           <View className="items-center">
-            <Image
-              source={require('~/../assets/images/icon_transparent.png')}
-              className="w-28 h-28 opacity-80"
-            />
+            {theme === 'dark' ? (
+              <Image
+                source={require('~/../assets/images/logo_transparent_dark.png')}
+                className="w-28 h-28 opacity-80"
+              />
+            ) : (
+              <Image
+                source={require('~/../assets/images/logo_transparent_light.png')}
+                className="w-28 h-28 opacity-80"
+              />
+            )}
           </View>
         )}
       </View>

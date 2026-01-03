@@ -1,4 +1,4 @@
-import { cn } from '~/lib/utils';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   addMonths,
   subMonths,
@@ -18,8 +18,9 @@ import {
   getMonth,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
+import { Icon } from '~/components/ui/icon';
+import { cn } from '~/lib/utils';
 
 // ============================================================================
 // Types
@@ -92,7 +93,7 @@ function NavButton({ onPress, disabled, children }: NavButtonProps) {
       accessibilityRole="button"
       className={cn(
         'h-10 w-10 items-center justify-center rounded-full',
-        'active:bg-muted',
+        'active:bg-foreground/20',
         disabled && 'opacity-30',
       )}>
       {children}
@@ -320,15 +321,15 @@ export function DatePicker({
   const renderHeader = () => (
     <View className="mb-4 flex-row items-center justify-between">
       <NavButton onPress={handlePrevMonth} disabled={!canGoBack}>
-        <ChevronLeft size={24} className="text-foreground" />
+        <Icon as={ChevronLeft} />
       </NavButton>
 
       <View className="flex-row items-center gap-1">
         <Pressable
           onPress={openMonthsView}
           className={cn(
-            'rounded-lg px-2 py-2 active:bg-muted',
-            viewMode === 'months' && 'bg-muted',
+            'rounded-lg px-2 py-2 active:bg-foreground/20',
+            viewMode === 'months' && 'bg-foreground/15',
           )}>
           <Text className="text-lg font-semibold text-foreground">
             {format(viewDate, 'MMMM')}
@@ -337,8 +338,8 @@ export function DatePicker({
         <Pressable
           onPress={openYearsView}
           className={cn(
-            'rounded-lg px-2 py-2 active:bg-muted',
-            viewMode === 'years' && 'bg-muted',
+            'rounded-lg px-2 py-2 active:bg-foreground/20',
+            viewMode === 'years' && 'bg-foreground/15',
           )}>
           <Text className="text-lg font-semibold text-foreground">
             {format(viewDate, 'yyyy')}
@@ -347,7 +348,7 @@ export function DatePicker({
       </View>
 
       <NavButton onPress={handleNextMonth} disabled={!canGoForward}>
-        <ChevronRight size={24} className="text-foreground" />
+        <Icon as={ChevronRight} />
       </NavButton>
     </View>
   );
@@ -400,6 +401,7 @@ export function DatePicker({
     );
   };
 
+  // TODO: Disable months that are not in range i.e. months after maxDate and months before minDate
   const renderMonthsView = () => (
     <View className="flex-row flex-wrap">
       {MONTHS.map((month, index) => {
@@ -410,7 +412,7 @@ export function DatePicker({
             onPress={() => handleMonthSelect(index)}
             className={cn(
               'w-1/3 items-center justify-center rounded-lg py-4',
-              'active:bg-muted',
+              'active:bg-primary/50',
               isCurrentMonth && themeColor,
             )}>
             <Text
@@ -446,7 +448,7 @@ export function DatePicker({
               onPress={() => handleYearSelect(year)}
               className={cn(
                 'w-1/4 items-center justify-center rounded-lg py-3',
-                'active:bg-muted',
+                'active:bg-primary/50',
                 isCurrentYear && themeColor,
               )}>
               <Text

@@ -8,6 +8,7 @@ import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
 export const Header = () => {
   return (
     <View className="flex-row w-full items-center justify-between px-4 py-2 bg-primary">
+      {/* TODO: Implement search functionality */}
       <Pressable className="p-1">
         <Icon as={Search} />
       </Pressable>

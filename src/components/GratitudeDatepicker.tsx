@@ -1,6 +1,6 @@
 import { cn } from '~/lib/utils';
 import { format, isAfter, startOfDay } from 'date-fns';
-import { Calendar, X } from 'lucide-react-native';
+import { Calendar } from 'lucide-react-native';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, Modal } from 'react-native';
 import { getGratitudeEntryDatesForMonth } from '~/database';
@@ -182,7 +182,7 @@ export function GratitudeDatepicker({
               maxDate={today}
               markedDates={markedDates}
               renderDay={renderDay}
-              containerClassName="shadow-xl"
+              containerClassName="shadow-xl bg-background"
               scrollToBottomYearsView={true}
               onMonthChange={handleMonthChange}
             />
