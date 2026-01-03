@@ -401,24 +401,36 @@ export function DatePicker({
     );
   };
 
-  // TODO: Disable months that are not in range i.e. months after maxDate and months before minDate
   const renderMonthsView = () => (
     <View className="flex-row flex-wrap">
       {MONTHS.map((month, index) => {
         const isCurrentMonth = index === getMonth(viewDate);
+
+        // Check if month is disabled
+        const monthDate = setMonth(viewDate, index);
+        const monthStart = startOfMonth(monthDate);
+        const monthEnd = endOfMonth(monthDate);
+
+        const isDisabled =
+          (minDate && isBefore(monthEnd, minDate)) ||
+          (maxDate && isAfter(monthStart, maxDate));
+
         return (
           <Pressable
             key={month}
-            onPress={() => handleMonthSelect(index)}
+            onPress={() => !isDisabled && handleMonthSelect(index)}
+            disabled={isDisabled}
             className={cn(
               'w-1/3 items-center justify-center rounded-lg py-4',
-              'active:bg-primary/50',
+              !isDisabled && 'active:bg-primary/50',
               isCurrentMonth && themeColor,
+              isDisabled && 'opacity-30',
             )}>
             <Text
               className={cn(
                 'text-base font-medium text-foreground',
                 isCurrentMonth && 'text-primary-foreground',
+                isDisabled && 'text-muted-foreground',
               )}>
               {month.slice(0, 3)}
             </Text>
