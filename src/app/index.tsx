@@ -1,13 +1,17 @@
+import { useState } from 'react';
+import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
+import { SearchResults } from '~/components/SearchResults';
 import { GratitudeTimeline } from '~/components/GratitudeTimeline';
 import { GratitudeDatepicker } from '~/components/GratitudeDatepicker';
-import { format } from 'date-fns';
 import { Header } from '~/components/Header';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleGratitudeDatepickerPress = (date: Date) => {
     router.push({
@@ -18,21 +22,54 @@ export default function HomeScreen() {
     });
   };
 
+  const handleSearchPress = () => {
+    setIsSearchMode(true);
+    setSearchQuery('');
+  };
+
+  const handleBackPress = () => {
+    setIsSearchMode(false);
+    setSearchQuery('');
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-primary items-center justify-center">
-      <Header />
-      <GratitudeTimeline
-        onEntryPress={(item) =>
-          router.push({
-            pathname: '/gratitudeEntry',
-            params: {
-              entryDate: item.entryDate,
-              entryContent: item.entryContent,
-            },
-          })
-        }
+      <Header
+        isSearchMode={isSearchMode}
+        onSearchPress={handleSearchPress}
+        onBackPress={handleBackPress}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
       />
-      <GratitudeDatepicker onDateSelect={handleGratitudeDatepickerPress} />
+      {isSearchMode ? (
+        <SearchResults
+          searchQuery={searchQuery}
+          onEntryPress={(item) =>
+            router.push({
+              pathname: '/gratitudeEntry',
+              params: {
+                entryDate: item.entryDate,
+                entryContent: item.entryContent,
+              },
+            })
+          }
+        />
+      ) : (
+        <>
+          <GratitudeTimeline
+            onEntryPress={(item) =>
+              router.push({
+                pathname: '/gratitudeEntry',
+                params: {
+                  entryDate: item.entryDate,
+                  entryContent: item.entryContent,
+                },
+              })
+            }
+          />
+          <GratitudeDatepicker onDateSelect={handleGratitudeDatepickerPress} />
+        </>
+      )}
       <StatusBar style="auto" />
     </SafeAreaView>
   );

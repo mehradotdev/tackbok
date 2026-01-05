@@ -54,6 +54,20 @@ export const getGratitudeEntryDatesForMonth = (
   return rows.map((row) => row.entryDate);
 };
 
+// Search gratitude logs by content
+export const searchGratitudeLogs = async (
+  searchTerm: string,
+): Promise<IGratitudeDBLog[]> => {
+  if (!searchTerm.trim()) return [];
+
+  const pattern = `%${searchTerm}%`;
+  const rows = await db.getAllAsync<IGratitudeDBLog>(
+    'SELECT * FROM gratitudeLogs WHERE entryContent LIKE ? ORDER BY entryDate DESC',
+    [pattern],
+  );
+  return rows;
+};
+
 // The "Smart" Save function
 export const saveGratitudeLog = async (
   date: string,
