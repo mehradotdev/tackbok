@@ -32,6 +32,16 @@ export default function HomeScreen() {
     setSearchQuery('');
   };
 
+  const handleEntryPress = (item: { entryDate: string; entryContent: string }) => {
+    router.push({
+      pathname: '/gratitudeEntry',
+      params: {
+        entryDate: item.entryDate,
+        entryContent: item.entryContent,
+      },
+    });
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-primary items-center justify-center">
       <Header
@@ -42,31 +52,10 @@ export default function HomeScreen() {
         onSearchQueryChange={setSearchQuery}
       />
       {isSearchMode ? (
-        <SearchResults
-          searchQuery={searchQuery}
-          onEntryPress={(item) =>
-            router.push({
-              pathname: '/gratitudeEntry',
-              params: {
-                entryDate: item.entryDate,
-                entryContent: item.entryContent,
-              },
-            })
-          }
-        />
+        <SearchResults searchQuery={searchQuery} onEntryPress={handleEntryPress} />
       ) : (
         <>
-          <GratitudeTimeline
-            onEntryPress={(item) =>
-              router.push({
-                pathname: '/gratitudeEntry',
-                params: {
-                  entryDate: item.entryDate,
-                  entryContent: item.entryContent,
-                },
-              })
-            }
-          />
+          <GratitudeTimeline onEntryPress={handleEntryPress} />
           <GratitudeDatepicker onDateSelect={handleGratitudeDatepickerPress} />
         </>
       )}

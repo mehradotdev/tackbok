@@ -24,7 +24,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) =>
         {/* Continuous Line */}
         <View
           className={cn(
-            'w-[2px] bg-foreground absolute top-0 bottom-3',
+            'w-[2px] bg-foreground absolute top-0',
             item.isLast ? 'bottom-4' : 'bottom-0',
           )}
         />

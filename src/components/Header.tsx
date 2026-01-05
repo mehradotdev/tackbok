@@ -8,10 +8,10 @@ import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
 
 interface IHeaderProps {
   isSearchMode?: boolean;
-  onSearchPress?: () => void;
-  onBackPress?: () => void;
+  onSearchPress: () => void;
+  onBackPress: () => void;
   searchQuery?: string;
-  onSearchQueryChange?: (text: string) => void;
+  onSearchQueryChange: (text: string) => void;
 }
 
 export const Header: React.FC<IHeaderProps> = ({
