@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { IGratitudeDBLog } from '~/types';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Header } from '~/components/Header';
 import { SearchResults } from '~/components/SearchResults';
@@ -32,7 +33,7 @@ export default function HomeScreen() {
     setSearchQuery('');
   };
 
-  const handleEntryPress = (item: { entryDate: string; entryContent: string }) => {
+  const handleEntryPress = (item: IGratitudeDBLog) => {
     router.push({
       pathname: '/gratitudeEntry',
       params: {

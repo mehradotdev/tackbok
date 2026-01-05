@@ -3,7 +3,6 @@ import { format, subDays } from 'date-fns';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { useGratitudeLogs } from '~/hooks/useGratitude';
-import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { IGratitudeDBLog, IGratitudeLogItem } from '~/types';
 
 interface IGratitudeTimelineProps {
