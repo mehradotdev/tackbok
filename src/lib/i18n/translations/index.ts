@@ -26,6 +26,7 @@ import { kn } from './kn';
 import { ml } from './ml';
 import { mr } from './mr';
 import { bn } from './bn';
+import { sv } from './sv';
 
 /**
  * All translations indexed by locale code
@@ -57,6 +58,7 @@ export const translations: Record<SupportedLocale, Translations> = {
   ml,
   mr,
   bn,
+  sv,
 };
 
 /**
@@ -95,6 +97,7 @@ export const languages: LanguageInfo[] = [
   { code: 'pt', displayName: 'Portuguese', nativeName: 'Português', isRTL: false },
   { code: 'ru', displayName: 'Russian', nativeName: 'Русский', isRTL: false },
   { code: 'es', displayName: 'Spanish', nativeName: 'Español', isRTL: false },
+  { code: 'sv', displayName: 'Swedish', nativeName: 'Svenska', isRTL: false },
   { code: 'ta', displayName: 'Tamil', nativeName: 'தமிழ்', isRTL: false },
   { code: 'te', displayName: 'Telugu', nativeName: 'తెలుగు', isRTL: false },
   { code: 'tr', displayName: 'Turkish', nativeName: 'Türkçe', isRTL: false },

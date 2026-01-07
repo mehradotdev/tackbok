@@ -26,6 +26,7 @@ export const SUPPORTED_LANG_CODES = [
   'ml',
   'mr',
   'bn',
+  'sv',
 ] as const;
 
 /**
