@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Pressable } from 'react-native';
 import { format } from 'date-fns';
 import { IGratitudeDBLog } from '~/types';
+import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 
 interface ISearchResultItemProps {
@@ -10,9 +11,10 @@ interface ISearchResultItemProps {
 }
 
 export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPress }) => {
+  const { t } = useTranslation();
   const dateObj = new Date(item.entryDate);
   const day = format(dateObj, 'd');
-  const month = format(dateObj, 'MMM');
+  const month = t(format(dateObj, 'MMM')); // Translate month abbreviation
   const year = format(dateObj, 'yyyy');
 
   return (

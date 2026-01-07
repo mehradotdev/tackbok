@@ -17,10 +17,11 @@ import {
   getYear,
   getMonth,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { View, Text, Pressable, ScrollView } from 'react-native';
-import { Icon } from '~/components/ui/icon';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { cn } from '~/lib/utils';
+import { useTranslation } from '~/lib/i18n';
+import { Icon } from '~/components/ui/icon';
 
 // ============================================================================
 // Types
@@ -59,8 +60,9 @@ export interface DatePickerProps {
 
 type ViewMode = 'days' | 'months' | 'years';
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = [
+// Keys for translation - these match the keys in translation files
+const WEEKDAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_KEYS = [
   'January',
   'February',
   'March',
@@ -73,6 +75,20 @@ const MONTHS = [
   'October',
   'November',
   'December',
+];
+const MONTH_SHORT_KEYS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 // ============================================================================
@@ -185,6 +201,7 @@ export function DatePicker({
   scrollToBottomYearsView = false,
   onMonthChange,
 }: DatePickerProps) {
+  const { t, isRTL } = useTranslation();
   const [viewDate, setViewDate] = useState(value);
   const [viewMode, setViewMode] = useState<ViewMode>('days');
   const yearsScrollRef = useRef<ScrollView>(null);
@@ -318,46 +335,55 @@ export function DatePicker({
   // Render Functions
   // ============================================================================
 
-  const renderHeader = () => (
-    <View className="mb-4 flex-row items-center justify-between">
-      <NavButton onPress={handlePrevMonth} disabled={!canGoBack}>
-        <Icon as={ChevronLeft} />
-      </NavButton>
+  const renderHeader = () => {
+    const currentMonthIndex = getMonth(viewDate);
+    const translatedMonth = t(MONTH_KEYS[currentMonthIndex]);
 
-      <View className="flex-row items-center gap-1">
-        <Pressable
-          onPress={openMonthsView}
-          className={cn(
-            'rounded-lg px-2 py-2 active:bg-foreground/20',
-            viewMode === 'months' && 'bg-foreground/15',
-          )}>
-          <Text className="text-lg font-semibold text-foreground">
-            {format(viewDate, 'MMMM')}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={openYearsView}
-          className={cn(
-            'rounded-lg px-2 py-2 active:bg-foreground/20',
-            viewMode === 'years' && 'bg-foreground/15',
-          )}>
-          <Text className="text-lg font-semibold text-foreground">
-            {format(viewDate, 'yyyy')}
-          </Text>
-        </Pressable>
+    return (
+      <View
+        className={cn(
+          'mb-4 flex-row items-center justify-between',
+          isRTL && 'flex-row-reverse',
+        )}>
+        <NavButton onPress={handlePrevMonth} disabled={!canGoBack}>
+          <Icon as={ChevronLeft} />
+        </NavButton>
+
+        <View className="flex-row items-center gap-1">
+          <Pressable
+            onPress={openMonthsView}
+            className={cn(
+              'rounded-lg px-2 py-2 active:bg-foreground/20',
+              viewMode === 'months' && 'bg-foreground/15',
+            )}>
+            <Text className="text-lg font-semibold text-foreground">
+              {translatedMonth}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={openYearsView}
+            className={cn(
+              'rounded-lg px-2 py-2 active:bg-foreground/20',
+              viewMode === 'years' && 'bg-foreground/15',
+            )}>
+            <Text className="text-lg font-semibold text-foreground">
+              {format(viewDate, 'yyyy')}
+            </Text>
+          </Pressable>
+        </View>
+
+        <NavButton onPress={handleNextMonth} disabled={!canGoForward}>
+          <Icon as={ChevronRight} />
+        </NavButton>
       </View>
-
-      <NavButton onPress={handleNextMonth} disabled={!canGoForward}>
-        <Icon as={ChevronRight} />
-      </NavButton>
-    </View>
-  );
+    );
+  };
 
   const renderWeekdayLabels = () => (
     <View className="mb-2 flex-row">
-      {WEEKDAYS.map((day) => (
-        <View key={day} className="h-10 flex-1 items-center justify-center">
-          <Text className="text-xs font-medium text-muted-foreground">{day}</Text>
+      {WEEKDAY_KEYS.map((dayKey) => (
+        <View key={dayKey} className="h-10 flex-1 items-center justify-center">
+          <Text className="text-xs font-medium text-muted-foreground">{t(dayKey)}</Text>
         </View>
       ))}
     </View>
@@ -403,7 +429,7 @@ export function DatePicker({
 
   const renderMonthsView = () => (
     <View className="flex-row flex-wrap">
-      {MONTHS.map((month, index) => {
+      {MONTH_SHORT_KEYS.map((monthKey, index) => {
         const isCurrentMonth = index === getMonth(viewDate);
 
         // Check if month is disabled
@@ -417,7 +443,7 @@ export function DatePicker({
 
         return (
           <Pressable
-            key={month}
+            key={monthKey}
             onPress={() => !isDisabled && handleMonthSelect(index)}
             disabled={isDisabled}
             className={cn(
@@ -432,7 +458,7 @@ export function DatePicker({
                 isCurrentMonth && 'text-primary-foreground',
                 isDisabled && 'text-muted-foreground',
               )}>
-              {month.slice(0, 3)}
+              {t(monthKey)}
             </Text>
           </Pressable>
         );

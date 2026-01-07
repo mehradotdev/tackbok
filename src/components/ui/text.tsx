@@ -1,10 +1,10 @@
-import { cn } from '~/lib/utils';
-import * as Slot from '~/components/primitives/slot';
-import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 import { Text as RNText, type Role } from 'react-native';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '~/lib/utils';
+import * as Slot from '~/components/primitives/slot';
 
-const textVariants = cva('text-foreground text-base', {
+const textVariants = cva('text-foreground text-base text-left', {
   variants: {
     variant: {
       default: '',
@@ -60,6 +60,7 @@ function Text({
   }) {
   const textClass = React.useContext(TextClassContext);
   const Component = asChild ? Slot.Text : RNText;
+
   return (
     <Component
       className={cn(textVariants({ variant }), textClass, className)}

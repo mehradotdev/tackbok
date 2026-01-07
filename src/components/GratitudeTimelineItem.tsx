@@ -4,6 +4,7 @@ import { useUniwind } from 'uniwind';
 import { format } from 'date-fns';
 import { IGratitudeLogItem } from '~/types';
 import { cn } from '~/lib/utils';
+import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 
 interface ITimelineItemProps {
@@ -13,13 +14,13 @@ interface ITimelineItemProps {
 
 export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) => {
   const { theme } = useUniwind();
-  const dateObj = new Date(item.entryDate);
-  const formattedDate = format(dateObj, 'MMMM d, yyyy');
+  const { t } = useTranslation();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const formattedDate = formatLocalizedDate(item.entryDate, t);
 
   return (
     <Pressable onPress={onPress} className="flex-row w-full active:bg-muted">
-      {/* --- Left Column: Timeline --- */}
+      {/* --- Timeline Column --- */}
       <View className="w-14 items-center">
         {/* Continuous Line */}
         <View
@@ -41,7 +42,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) =>
         )}
       </View>
 
-      {/* --- Right Column: Content --- */}
+      {/* --- Content Column --- */}
       <View className="flex-1 py-4 pr-4">
         <Text className="text-lg font-bold text-foreground/80 mb-1 font-serif">
           {formattedDate}
@@ -52,7 +53,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) =>
           </Text>
         ) : (
           <Text className="text-base text-muted-foreground leading-6">
-            {item?.placeholderText || 'What are you grateful for?'}
+            {item?.placeholderText || t('What are you grateful for?')}
           </Text>
         )}
         {item.isLast && (

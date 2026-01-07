@@ -1,10 +1,5 @@
-import { Icon } from '~/components/ui/icon';
-import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
-import { TextClassContext } from '~/components/ui/text';
-import { cn } from '~/lib/utils';
-import * as DropdownMenuPrimitive from '~/components/primitives/dropdown-menu';
-import { Check, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react-native';
 import * as React from 'react';
+import { Check, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react-native';
 import {
   Platform,
   type StyleProp,
@@ -16,6 +11,12 @@ import {
 } from 'react-native';
 import { FadeIn } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { cn } from '~/lib/utils';
+import { useTranslation } from '~/lib/i18n';
+import { Icon } from '~/components/ui/icon';
+import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
+import { TextClassContext } from '~/components/ui/text';
+import * as DropdownMenuPrimitive from '~/components/primitives/dropdown-menu';
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 
@@ -104,6 +105,8 @@ function DropdownMenuContent({
     overlayClassName?: string;
     portalHost?: string;
   }) {
+  const { isRTL } = useTranslation();
+
   return (
     <DropdownMenuPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
@@ -125,6 +128,8 @@ function DropdownMenuContent({
                   'bg-popover border-border min-w-32 overflow-hidden rounded-md border p-1 shadow-lg shadow-black/5',
                   className,
                 )}
+                // TODO: alignOffset is hard-coded but it should be calculated to align to the left side when in RTL
+                alignOffset={isRTL ? 500 : 0}
                 {...props}
               />
             </TextClassContext.Provider>
@@ -155,13 +160,6 @@ function DropdownMenuItem({
       <DropdownMenuPrimitive.Item
         className={cn(
           'active:bg-accent group relative flex flex-row items-center gap-2 rounded-sm px-2 py-2 sm:py-1.5',
-          Platform.select({
-            web: cn(
-              'focus:bg-accent focus:text-accent-foreground cursor-default outline-none data-disabled:pointer-events-none',
-              variant === 'destructive' &&
-                'focus:bg-destructive/10 dark:focus:bg-destructive/20',
-            ),
-          }),
           variant === 'destructive' &&
             'active:bg-destructive/10 dark:active:bg-destructive/20',
           props.disabled && 'opacity-50',

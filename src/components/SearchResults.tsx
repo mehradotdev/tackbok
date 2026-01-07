@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, FlatList, ActivityIndicator } from 'react-native';
-import { SearchResultItem } from './SearchResultItem';
-import { useSearchGratitudeLogs } from '~/hooks/useGratitude';
 import { IGratitudeDBLog } from '~/types';
+import { useTranslation } from '~/lib/i18n';
+import { useSearchGratitudeLogs } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
+import { SearchResultItem } from './SearchResultItem';
 
 interface ISearchResultsProps {
   searchQuery: string;
@@ -14,6 +15,7 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
   searchQuery,
   onEntryPress,
 }) => {
+  const { t } = useTranslation();
   const {
     data: results,
     isLoading,
@@ -27,7 +29,7 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
     return (
       <View className="flex-1 bg-background w-full items-center justify-center px-4">
         <Text className="text-muted-foreground text-center">
-          Start typing to search your gratitude logs
+          {t('Start typing to search your gratitude logs')}
         </Text>
       </View>
     );
@@ -44,9 +46,9 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
   if (isError) {
     return (
       <View className="flex-1 bg-background w-full items-center justify-center px-4">
-        <Text className="text-center text-red-600 mb-2">Search failed</Text>
+        <Text className="text-center text-red-600 mb-2">{t('Search failed')}</Text>
         <Text className="text-center text-muted-foreground">
-          {error?.message || 'Unknown error'}
+          {error?.message || t('Unknown error')}
         </Text>
       </View>
     );
@@ -55,7 +57,7 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
   if (safeResults.length === 0) {
     return (
       <View className="flex-1 bg-background w-full items-center justify-center px-4">
-        <Text className="text-muted-foreground text-center">No results</Text>
+        <Text className="text-muted-foreground text-center">{t('No results')}</Text>
       </View>
     );
   }

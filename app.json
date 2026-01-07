@@ -20,13 +20,22 @@
     "web": {
       "output": "static"
     },
-    "plugins": ["expo-router", ["expo-sqlite", { "enableFTS": true }]],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "extra": {
       "router": {},
+      "supportsRTL": true,
       "eas": {
         "projectId": "3cba8280-4616-4cf9-8309-62ce7d14da81"
       }

@@ -1,9 +1,10 @@
 import React from 'react';
 import { format, subDays } from 'date-fns';
 import { View, Text, FlatList, ActivityIndicator } from 'react-native';
-import { TimelineItem } from './GratitudeTimelineItem';
-import { useGratitudeLogs } from '~/hooks/useGratitude';
 import { IGratitudeDBLog, IGratitudeLogItem } from '~/types';
+import { useTranslation } from '~/lib/i18n';
+import { useGratitudeLogs } from '~/hooks/useGratitude';
+import { TimelineItem } from './GratitudeTimelineItem';
 
 interface IGratitudeTimelineProps {
   onEntryPress: (entry: IGratitudeDBLog) => void;
@@ -12,6 +13,7 @@ interface IGratitudeTimelineProps {
 export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   onEntryPress,
 }) => {
+  const { t } = useTranslation();
   const today = new Date();
   const yesterday = subDays(today, 1);
   const todayStr = format(today, 'yyyy-MM-dd');
@@ -27,7 +29,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     updatedLogs.unshift({
       entryDate: todayStr,
       entryContent: '',
-      placeholderText: 'What are you grateful for today?',
+      placeholderText: t('What are you grateful for today?'),
     });
   }
 
@@ -38,7 +40,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     updatedLogs.splice(1, 0, {
       entryDate: yesterdayStr,
       entryContent: '',
-      placeholderText: 'What were you grateful for yesterday?',
+      placeholderText: t('What were you grateful for yesterday?'),
     });
   }
 
@@ -54,9 +56,11 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   if (isError) {
     return (
       <View className="flex-1 items-center justify-center px-4">
-        <Text className="text-center text-red-600 mb-2">Failed to load entries</Text>
+        <Text className="text-center text-red-600 mb-2">
+          {t('Failed to load entries')}
+        </Text>
         <Text className="text-center text-gray-500">
-          {error?.message || 'Unknown error'}
+          {error?.message || t('Unknown error')}
         </Text>
       </View>
     );
