@@ -8,6 +8,7 @@ import {
   type TextProps,
   View,
   type ViewStyle,
+  ScrollView,
 } from 'react-native';
 import { FadeIn } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
@@ -98,14 +99,22 @@ function DropdownMenuContent({
   overlayClassName,
   overlayStyle,
   portalHost,
+  scrollable = false,
+  maxHeight = 400,
+  children,
   ...props
 }: DropdownMenuPrimitive.ContentProps &
   React.RefAttributes<DropdownMenuPrimitive.ContentRef> & {
     overlayStyle?: StyleProp<ViewStyle>;
     overlayClassName?: string;
     portalHost?: string;
+    scrollable?: boolean;
+    maxHeight?: number;
   }) {
   const { isRTL } = useTranslation();
+
+  // Cast children to ReactNode for ScrollView compatibility
+  const content = children as React.ReactNode;
 
   return (
     <DropdownMenuPrimitive.Portal hostName={portalHost}>
@@ -130,8 +139,18 @@ function DropdownMenuContent({
                 )}
                 // TODO: alignOffset is hard-coded but it should be calculated to align to the left side when in RTL
                 alignOffset={isRTL ? 500 : 0}
-                {...props}
-              />
+                {...props}>
+                {scrollable ? (
+                  <ScrollView
+                    style={{ maxHeight }}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled={true}>
+                    {content}
+                  </ScrollView>
+                ) : (
+                  children
+                )}
+              </DropdownMenuPrimitive.Content>
             </TextClassContext.Provider>
           </NativeOnlyAnimatedView>
         </DropdownMenuPrimitive.Overlay>

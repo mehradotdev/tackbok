@@ -54,7 +54,10 @@ export default function SettingsScreen() {
                 <Icon as={ChevronDown} size={16} className="text-muted-foreground" />
               </View>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-background min-w-[180px]">
+            <DropdownMenuContent
+              className="bg-background min-w-[180px]"
+              scrollable
+              maxHeight={300}>
               {/* Device Default Option */}
               <DropdownMenuItem onPress={() => handleLanguageSelect('device')}>
                 <View className="flex-row items-center justify-between flex-1">
