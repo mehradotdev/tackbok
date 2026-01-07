@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from 'expo-sqlite/kv-store';
 import type { LocalePreference, SupportedLocale } from './types';
-import { DEFAULT_LOCALE } from './types';
+import { DEFAULT_LOCALE, SUPPORTED_LANG_CODES } from './types';
 
 interface LocaleState {
   /**
@@ -59,11 +59,28 @@ export function getEffectiveLocale(
     return preference;
   }
 
+  if (!deviceLocale) {
+    return DEFAULT_LOCALE;
+  }
+
+  const normalizedLocale = deviceLocale.toLowerCase();
+
+  // Handle Chinese locale variants as special cases (need full locale code with region)
+  if (normalizedLocale.startsWith('zh-cn') || normalizedLocale === 'zh-hans') {
+    return 'zh-CN';
+  }
+  if (normalizedLocale.startsWith('zh-tw') || normalizedLocale === 'zh-hant') {
+    return 'zh-TW';
+  }
+  if (normalizedLocale.startsWith('zh-hk')) {
+    return 'zh-HK';
+  }
+
   // Extract language code from device locale (e.g., 'en-US' -> 'en')
-  const langCode = deviceLocale?.split('-')[0]?.toLowerCase();
+  const langCode = normalizedLocale.split('-')[0];
 
   // Check if device language is supported
-  if (langCode === 'en' || langCode === 'es' || langCode === 'ur') {
+  if (SUPPORTED_LANG_CODES.includes(langCode as (typeof SUPPORTED_LANG_CODES)[number])) {
     return langCode as SupportedLocale;
   }
 

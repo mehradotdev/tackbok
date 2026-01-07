@@ -10,7 +10,7 @@ export function formatLocalizedDate(date: string | Date, t: TranslationFunction)
   const dateObj = typeof date === 'string' ? new Date(date) : date;
 
   const day = format(dateObj, 'd');
-  const month = t(format(dateObj, 'MMM', { locale: enUS })); // Translate month abbreviation
+  const month = t(format(dateObj, 'MMMM', { locale: enUS })); // Translate month abbreviation
   const year = format(dateObj, 'yyyy');
 
   let formattedDate = `${month} ${day}, ${year}`;

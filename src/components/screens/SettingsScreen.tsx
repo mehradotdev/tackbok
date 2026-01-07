@@ -36,7 +36,7 @@ export default function SettingsScreen() {
         <Pressable onPress={() => router.back()} className="p-1 mr-3">
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Pressable>
-        <Text variant="h2" className="text-foreground">
+        <Text variant="h2" className="text-foreground pt-2">
           {t('Settings')}
         </Text>
       </View>
@@ -55,7 +55,7 @@ export default function SettingsScreen() {
               </View>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="bg-background min-w-[180px]"
+              className="bg-background min-w-[220px]"
               scrollable
               maxHeight={300}>
               {/* Device Default Option */}

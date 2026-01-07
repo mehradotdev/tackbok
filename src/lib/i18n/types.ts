@@ -1,34 +1,57 @@
 /**
- * Supported locale codes
+ * List of supported language codes (excluding Chinese variants)
+ * Chinese variants (zh-CN, zh-TW, zh-HK) require special handling with full locale codes
+ */
+export const SUPPORTED_LANG_CODES = [
+  'en',
+  'es',
+  'ur',
+  'ar',
+  'fa',
+  'he',
+  'fr',
+  'de',
+  'nl',
+  'pl',
+  'ru',
+  'pt',
+  'it',
+  'hi',
+  'ko',
+  'ja',
+  'tr',
+  'ta',
+  'te',
+  'kn',
+  'ml',
+  'mr',
+  'bn',
+] as const;
+
+/**
+ * Chinese locale variants that require full locale code with region
+ */
+export const CHINESE_LOCALE_VARIANTS = ['zh-CN', 'zh-TW', 'zh-HK'] as const;
+
+/**
+ * All supported locale codes
+ * Derived from SUPPORTED_LANG_CODES and CHINESE_LOCALE_VARIANTS
+ */
+export const ALL_SUPPORTED_LOCALES = [
+  ...SUPPORTED_LANG_CODES,
+  ...CHINESE_LOCALE_VARIANTS,
+] as const;
+
+/**
+ * Supported locale codes type
+ * Automatically inferred from ALL_SUPPORTED_LOCALES constant
+ */
+export type SupportedLocale = (typeof ALL_SUPPORTED_LOCALES)[number];
+
+/**
+ * Locale preference type
  * 'device' represents using the device's default language
  */
-export type SupportedLocale =
-  | 'en'
-  | 'es'
-  | 'ur'
-  | 'ar'
-  | 'fa'
-  | 'he'
-  | 'fr'
-  | 'de'
-  | 'nl'
-  | 'pl'
-  | 'ru'
-  | 'pt'
-  | 'it'
-  | 'hi'
-  | 'ko'
-  | 'ja'
-  | 'zh-CN'
-  | 'zh-TW'
-  | 'zh-HK'
-  | 'tr'
-  | 'ta'
-  | 'te'
-  | 'kn'
-  | 'ml'
-  | 'mr'
-  | 'bn';
 export type LocalePreference = SupportedLocale | 'device';
 
 /**
