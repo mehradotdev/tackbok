@@ -2,13 +2,39 @@
  * Supported locale codes
  * 'device' represents using the device's default language
  */
-export type SupportedLocale = 'en' | 'es' | 'ur';
+export type SupportedLocale =
+  | 'en'
+  | 'es'
+  | 'ur'
+  | 'ar'
+  | 'fa'
+  | 'he'
+  | 'fr'
+  | 'de'
+  | 'nl'
+  | 'pl'
+  | 'ru'
+  | 'pt'
+  | 'it'
+  | 'hi'
+  | 'ko'
+  | 'ja'
+  | 'zh-CN'
+  | 'zh-TW'
+  | 'zh-HK'
+  | 'tr'
+  | 'ta'
+  | 'te'
+  | 'kn'
+  | 'ml'
+  | 'mr'
+  | 'bn';
 export type LocalePreference = SupportedLocale | 'device';
 
 /**
  * List of RTL (Right-to-Left) locales
  */
-export const RTL_LOCALES: SupportedLocale[] = ['ur'];
+export const RTL_LOCALES: SupportedLocale[] = ['ur', 'ar', 'fa', 'he'];
 
 /**
  * Default fallback locale when device locale is not supported
