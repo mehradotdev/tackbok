@@ -124,15 +124,30 @@ function Portal({ forceMount, hostName, children }: PortalProps) {
 const Overlay = ({
   asChild,
   forceMount,
+  dismissOnOutsidePress = true,
+  onPress: onPressProp,
   ref,
   ...props
 }: OverlayProps & { ref?: React.Ref<OverlayRef> }) => {
-  const { open: value } = useRootContext();
+  const { open: value, onOpenChange } = useRootContext();
 
   if (!forceMount) {
     if (!value) {
       return null;
     }
+  }
+
+  function onPress(ev: GestureResponderEvent) {
+    if (dismissOnOutsidePress) {
+      onOpenChange(false);
+    }
+    onPressProp?.(ev);
+  }
+
+  // Use Pressable if we want tap-to-dismiss, otherwise use View
+  if (dismissOnOutsidePress) {
+    const Component = asChild ? Slot.Pressable : Pressable;
+    return <Component ref={ref as any} onPress={onPress} {...props} />;
   }
 
   const Component = asChild ? Slot.View : View;

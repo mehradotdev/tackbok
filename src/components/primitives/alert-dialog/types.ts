@@ -30,7 +30,18 @@ interface PortalProps extends ForceMountable {
    */
   container?: HTMLElement | null | undefined;
 }
-type OverlayProps = ForceMountable & SlottableViewProps;
+type OverlayProps = ForceMountable &
+  SlottableViewProps & {
+    /**
+     * Whether tapping outside the dialog should dismiss it
+     * @default true
+     */
+    dismissOnOutsidePress?: boolean;
+    /**
+     * Optional press handler for the overlay
+     */
+    onPress?: (ev: any) => void;
+  };
 
 type ContentProps = ForceMountable &
   SlottableViewProps & {
