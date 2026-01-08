@@ -4,35 +4,39 @@
  */
 export const SUPPORTED_LANG_CODES = [
   'en',
-  'es',
-  'ur',
+  // 'es',
+  // 'ur',
   'ar',
-  'fa',
+  // 'fa',
   'he',
-  'fr',
-  'de',
-  'nl',
-  'pl',
-  'ru',
-  'pt',
-  'it',
-  'hi',
-  'ko',
-  'ja',
-  'tr',
-  'ta',
-  'te',
-  'kn',
-  'ml',
-  'mr',
-  'bn',
-  'sv',
+  // 'fr',
+  // 'de',
+  // 'nl',
+  // 'pl',
+  // 'ru',
+  // 'pt',
+  // 'it',
+  // 'hi',
+  // 'ko',
+  // 'ja',
+  // 'tr',
+  // 'ta',
+  // 'te',
+  // 'kn',
+  // 'ml',
+  // 'mr',
+  // 'bn',
+  // 'sv',
 ] as const;
 
 /**
  * Chinese locale variants that require full locale code with region
  */
-export const CHINESE_LOCALE_VARIANTS = ['zh-CN', 'zh-TW', 'zh-HK'] as const;
+export const CHINESE_LOCALE_VARIANTS = [
+  'zh-CN',
+  'zh-TW',
+  // 'zh-HK'
+] as const;
 
 /**
  * All supported locale codes
@@ -58,7 +62,12 @@ export type LocalePreference = SupportedLocale | 'device';
 /**
  * List of RTL (Right-to-Left) locales
  */
-export const RTL_LOCALES: SupportedLocale[] = ['ur', 'ar', 'fa', 'he'];
+export const RTL_LOCALES: SupportedLocale[] = [
+  'ar',
+  // 'fa',
+  'he',
+  // 'ur',
+];
 
 /**
  * Default fallback locale when device locale is not supported

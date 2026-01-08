@@ -73,9 +73,9 @@ export function getEffectiveLocale(
   if (normalizedLocale.startsWith('zh-tw') || normalizedLocale === 'zh-hant') {
     return 'zh-TW';
   }
-  if (normalizedLocale.startsWith('zh-hk')) {
-    return 'zh-HK';
-  }
+  // if (normalizedLocale.startsWith('zh-hk')) {
+  //   return 'zh-HK';
+  // }
 
   // Extract language code from device locale (e.g., 'en-US' -> 'en')
   const langCode = normalizedLocale.split('-')[0];
