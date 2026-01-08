@@ -1,8 +1,12 @@
 import { useMemo, useCallback } from 'react';
 import { getLocales } from 'expo-localization';
-import { useLocaleStore, getEffectiveLocale } from './store';
+import { useLocaleStore, getEffectiveLocale, getEffectiveSupportedLocale } from './store';
 import { translate, isRTLLocale } from './translations';
-import type { SupportedLocale, LocalePreference, TranslationFunction } from './types';
+import {
+  type SupportedLocale,
+  type LocalePreference,
+  type TranslationFunction,
+} from './types';
 
 interface UseTranslationResult {
   /**
@@ -15,6 +19,16 @@ interface UseTranslationResult {
    * Current active locale code
    */
   locale: SupportedLocale;
+
+  /**
+   * Device default locale code
+   */
+  deviceDefaultLocale: SupportedLocale | null;
+
+  /**
+   * Whether the device default locale is supported by the app
+   */
+  isDeviceDefaultLocaleSupported: boolean;
 
   /**
    * Whether the current locale is RTL
@@ -49,9 +63,15 @@ export function useTranslation(): UseTranslationResult {
     return locales[0]?.languageTag ?? null;
   }, []);
 
+  // Calculate device default locale
+  const deviceDefaultLocale = useMemo(
+    () => getEffectiveLocale(deviceLocale, 'device'),
+    [deviceLocale],
+  );
+
   // Calculate effective locale
   const locale = useMemo(
-    () => getEffectiveLocale(localePreference, deviceLocale),
+    () => getEffectiveSupportedLocale(deviceLocale, localePreference),
     [localePreference, deviceLocale],
   );
 
@@ -61,10 +81,18 @@ export function useTranslation(): UseTranslationResult {
   // Check if RTL
   const isRTL = useMemo(() => isRTLLocale(locale), [locale]);
 
+  // Check if Device default locale is supported by the app
+  const isDeviceDefaultLocaleSupported = useMemo(
+    () => deviceDefaultLocale !== null,
+    [deviceDefaultLocale],
+  );
+
   return {
     t,
     locale,
     isRTL,
+    isDeviceDefaultLocaleSupported,
+    deviceDefaultLocale,
     localePreference,
     setLocale: setLocalePreference,
     isReady: _hasHydrated,

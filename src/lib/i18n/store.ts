@@ -49,12 +49,13 @@ export const useLocaleStore = create<LocaleState>()(
 );
 
 /**
- * Get the effective locale based on user preference and device settings
+ * Get the effective locale based on user preference and device locale.
+ * If device ocale is not supported, returns null
  */
 export function getEffectiveLocale(
-  preference: LocalePreference,
   deviceLocale: string | null,
-): SupportedLocale {
+  preference: LocalePreference = 'device',
+): SupportedLocale | null {
   if (preference !== 'device') {
     return preference;
   }
@@ -85,4 +86,14 @@ export function getEffectiveLocale(
   }
 
   return DEFAULT_LOCALE;
+}
+
+/**
+ * Get the effective supported locale based on user preference and device settings
+ */
+export function getEffectiveSupportedLocale(
+  deviceLocale: string | null,
+  preference: LocalePreference,
+): SupportedLocale {
+  return getEffectiveLocale(deviceLocale, preference) ?? DEFAULT_LOCALE;
 }

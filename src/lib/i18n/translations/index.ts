@@ -71,13 +71,13 @@ export const languages: LanguageInfo[] = [
   { code: 'zh-HK', displayName: 'Cantonese', nativeName: '廣東話', isRTL: false },
   {
     code: 'zh-CN',
-    displayName: 'Simplified',
+    displayName: 'CN Simplified',
     nativeName: '简体中文',
     isRTL: false,
   },
   {
     code: 'zh-TW',
-    displayName: 'Traditional',
+    displayName: 'CN Traditional',
     nativeName: '繁體中文',
     isRTL: false,
   },

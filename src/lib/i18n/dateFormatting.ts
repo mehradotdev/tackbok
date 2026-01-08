@@ -9,13 +9,15 @@ import type { TranslationFunction } from './types';
 export function formatLocalizedDate(date: string | Date, t: TranslationFunction): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
 
-  const day = format(dateObj, 'd');
-  const month = t(format(dateObj, 'MMMM', { locale: enUS })); // Translate month abbreviation
-  const year = format(dateObj, 'yyyy');
+  // Validate the date object
+  if (isNaN(dateObj.getTime())) {
+    throw new Error(`Invalid date provided: ${date}`);
+  }
 
-  let formattedDate = `${month} ${day}, ${year}`;
-  // Capitalize first letter of month
-  formattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+  const day = format(dateObj, 'd');
+  const month = t(format(dateObj, 'MMMM', { locale: enUS })); // Translate month name
+  const year = format(dateObj, 'yyyy');
+  const formattedDate = `${month} ${day}, ${year}`;
 
   return formattedDate;
 }

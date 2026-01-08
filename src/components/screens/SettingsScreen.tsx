@@ -1,7 +1,9 @@
-import { View, Pressable } from 'react-native';
+import { useState } from 'react';
+import { View, Pressable, I18nManager, Platform } from 'react-native';
+import { reloadAppAsync } from 'expo';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, ChevronDown, Check } from 'lucide-react-native';
-import { useTranslation, languages, type LocalePreference } from '~/lib/i18n';
+import { useTranslation, languages, type LanguageInfo } from '~/lib/i18n';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
@@ -11,10 +13,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { t, localePreference, setLocale, isRTL } = useTranslation();
+  const {
+    t,
+    localePreference,
+    setLocale,
+    isRTL,
+    deviceDefaultLocale,
+    isDeviceDefaultLocaleSupported,
+  } = useTranslation();
+
+  // State for confirmation dialog
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingLanguage, setPendingLanguage] = useState<LanguageInfo | null>(null);
 
   // Get display name for current preference
   const getCurrentLanguageDisplay = () => {
@@ -25,8 +48,46 @@ export default function SettingsScreen() {
     return lang?.nativeName || 'English';
   };
 
-  const handleLanguageSelect = (preference: LocalePreference) => {
-    setLocale(preference);
+  // Check if changing to this language would require an app restart (RTL change)
+  const willRequireRestart = (lang: LanguageInfo): boolean => {
+    const currentIsRTL = I18nManager.isRTL;
+    return lang.isRTL !== currentIsRTL;
+  };
+
+  const handleLanguageSelect = (lang: LanguageInfo) => {
+    // Check if this change requires a restart
+    if (willRequireRestart(lang)) {
+      // Show confirmation dialog
+      setPendingLanguage(lang);
+      setShowConfirmDialog(true);
+    } else {
+      // Apply change immediately
+      setLocale(lang.code);
+    }
+  };
+
+  const handleConfirmLanguageChange = () => {
+    if (!pendingLanguage) return;
+    // Update the locale preference
+    setLocale(pendingLanguage.code);
+
+    // Configure I18nManager for RTL if needed (only on native platforms)
+    if (Platform.OS === 'web') return;
+    const shouldBeRTL = pendingLanguage.isRTL;
+    I18nManager.allowRTL(shouldBeRTL);
+    I18nManager.forceRTL(shouldBeRTL);
+
+    // Reload app for RTL changes to take effect
+    // Note: Per Expo docs, I18nManager changes require app restart
+    reloadAppAsync('Language change confirmed');
+
+    setShowConfirmDialog(false);
+    setPendingLanguage(null);
+  };
+
+  const handleCancelLanguageChange = () => {
+    setShowConfirmDialog(false);
+    setPendingLanguage(null);
   };
 
   return (
@@ -58,21 +119,29 @@ export default function SettingsScreen() {
               className="bg-background min-w-[220px]"
               scrollable
               maxHeight={300}>
-              {/* Device Default Option */}
-              <DropdownMenuItem onPress={() => handleLanguageSelect('device')}>
-                <View className="flex-row items-center justify-between flex-1">
-                  <Text className="text-foreground">{t('Device Default')}</Text>
-                  {localePreference === 'device' && (
-                    <Icon as={Check} size={16} className="text-primary-foreground" />
-                  )}
-                </View>
-              </DropdownMenuItem>
+              {/* Device Default Option - only show if device language is supported */}
+              {isDeviceDefaultLocaleSupported && deviceDefaultLocale && (
+                <DropdownMenuItem
+                  onPress={() => {
+                    const deviceLangInfo = languages.find(
+                      (l) => l.code === deviceDefaultLocale,
+                    );
+                    if (deviceLangInfo) handleLanguageSelect(deviceLangInfo);
+                  }}>
+                  <View className="flex-row items-center justify-between flex-1">
+                    <Text className="text-foreground">{t('Device Default')}</Text>
+                    {localePreference === 'device' && (
+                      <Icon as={Check} size={16} className="text-primary-foreground" />
+                    )}
+                  </View>
+                </DropdownMenuItem>
+              )}
 
               {/* Language Options */}
               {languages.map((lang) => (
                 <DropdownMenuItem
                   key={lang.code}
-                  onPress={() => handleLanguageSelect(lang.code)}>
+                  onPress={() => handleLanguageSelect(lang)}>
                   <View className="flex-row items-center justify-between flex-1">
                     <View className="flex-row items-center gap-2">
                       <Text className="text-foreground">{lang.nativeName}</Text>
@@ -90,6 +159,26 @@ export default function SettingsScreen() {
           </DropdownMenu>
         </View>
       </View>
+
+      {/* Language Change Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('Restart Required')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('Language change requires app restart. Proceed?')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onPress={handleCancelLanguageChange}>
+              <Text>{t('Cancel')}</Text>
+            </AlertDialogCancel>
+            <AlertDialogAction onPress={handleConfirmLanguageChange}>
+              <Text>{t('Proceed')}</Text>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SafeAreaView>
   );
 }

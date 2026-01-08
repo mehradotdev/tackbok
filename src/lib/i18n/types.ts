@@ -69,6 +69,12 @@ export const DEFAULT_LOCALE: SupportedLocale = 'en';
  * Flat translation dictionary
  * Keys are the English text, values are translations
  * If a key is missing for a locale, the key itself is used as fallback
+ *
+ * Known issue:
+ * Unlike October which could be written as "Oct" or "October",
+ * Month "May" is written as "May" in both abbreviation and full name in English but this might be
+ * not true for other languages. However, due to object key constraints,
+ * we are using only full "May" name for all languages.
  */
 export type Translations = Record<string, string>;
 
