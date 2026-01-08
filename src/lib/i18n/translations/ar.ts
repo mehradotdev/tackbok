@@ -31,6 +31,10 @@ export const ar: Translations = {
   // Settings
   Language: 'اللغة',
   'Device Default': 'افتراضي الجهاز',
+  'Restart Required': 'إعادة التشغيل مطلوبة',
+  'Language change requires app restart. Proceed?':
+    'تغيير اللغة يتطلب إعادة تشغيل التطبيق. هل تريد المتابعة؟',
+  Proceed: 'متابعة',
 
   // Date Picker
   'Select Date': 'اختر تاريخاً',

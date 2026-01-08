@@ -31,6 +31,10 @@ export const he: Translations = {
   // Settings
   Language: 'שפה',
   'Device Default': 'ברירת מחדל של המכשיר',
+  'Restart Required': 'נדרש אתחול מחדש',
+  'Language change requires app restart. Proceed?':
+    'שינוי השפה דורש אתחול מחדש של האפליקציה. להמשיך?',
+  Proceed: 'המשך',
 
   // Date Picker
   'Select Date': 'בחר תאריך',

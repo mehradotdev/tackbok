@@ -30,6 +30,10 @@ export const zhTW: Translations = {
   // Settings
   Language: '語言',
   'Device Default': '裝置預設',
+  'Restart Required': '需要重新啟動',
+  'Language change requires app restart. Proceed?':
+    '更改語言需要重新啟動應用程式。是否繼續？',
+  Proceed: '繼續',
 
   // Date Picker
   'Select Date': '選擇日期',
