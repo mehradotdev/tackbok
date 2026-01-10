@@ -1,6 +1,11 @@
 import type { Insets } from '~/components/primitives/types';
 import * as React from 'react';
-import { Dimensions, type LayoutRectangle, type ScaledSize } from 'react-native';
+import {
+  Dimensions,
+  I18nManager,
+  type LayoutRectangle,
+  type ScaledSize,
+} from 'react-native';
 
 type UseRelativePositionArgs = Omit<
   GetContentStyleArgs,
@@ -36,6 +41,7 @@ export function useRelativePosition({
         zIndex: -9999999,
       } as const;
     }
+
     return getContentStyle({
       align,
       avoidCollisions,
@@ -104,7 +110,7 @@ function getSidePosition({
     return {
       top: Math.min(
         Math.max(insetTop, positionTop),
-        dimensions.height - insetBottom - contentLayout.height
+        dimensions.height - insetBottom - contentLayout.height,
       ),
     };
   }
@@ -142,7 +148,7 @@ function getAlignPosition({
     alignOffset,
     insetLeft,
     insetRight,
-    dimensions
+    dimensions,
   );
 
   if (avoidCollisions) {
@@ -159,11 +165,17 @@ function getAlignPosition({
       } else {
         const centeredPosition = Math.max(
           insetLeft,
-          (dimensions.width - contentWidth - insetRight) / 2
+          (dimensions.width - contentWidth - insetRight) / 2,
         );
         left = centeredPosition;
       }
     }
+  }
+
+  if (I18nManager.isRTL) {
+    // To account for the RTL layout, we calculate the distance from the right edge:
+    const leftRTL = dimensions.width - left - contentWidth;
+    return { left: leftRTL, maxWidth: maxContentWidth };
   }
 
   return { left, maxWidth: maxContentWidth };
@@ -177,7 +189,7 @@ function getLeftPosition(
   alignOffset: number,
   insetLeft: number,
   insetRight: number,
-  dimensions: ScaledSize
+  dimensions: ScaledSize,
 ) {
   let left = 0;
   if (align === 'start') {
@@ -191,7 +203,7 @@ function getLeftPosition(
   }
   return Math.max(
     insetLeft,
-    Math.min(left + alignOffset, dimensions.width - contentWidth - insetRight)
+    Math.min(left + alignOffset, dimensions.width - contentWidth - insetRight),
   );
 }
 
@@ -227,6 +239,6 @@ function getContentStyle({
       alignOffset,
       insets,
       dimensions,
-    })
+    }),
   );
 }

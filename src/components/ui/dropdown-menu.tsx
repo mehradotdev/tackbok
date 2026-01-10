@@ -13,7 +13,6 @@ import {
 import { FadeIn } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 import { cn } from '~/lib/utils';
-import { useTranslation } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
 import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
 import { TextClassContext } from '~/components/ui/text';
@@ -100,7 +99,7 @@ function DropdownMenuContent({
   overlayStyle,
   portalHost,
   scrollable = false,
-  maxHeight = 400,
+  maxScrollableHeight = 400,
   children,
   ...props
 }: DropdownMenuPrimitive.ContentProps &
@@ -109,13 +108,8 @@ function DropdownMenuContent({
     overlayClassName?: string;
     portalHost?: string;
     scrollable?: boolean;
-    maxHeight?: number;
+    maxScrollableHeight?: number;
   }) {
-  const { isRTL } = useTranslation();
-
-  // Cast children to ReactNode for ScrollView compatibility
-  const content = children as React.ReactNode;
-
   return (
     <DropdownMenuPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
@@ -137,15 +131,13 @@ function DropdownMenuContent({
                   'bg-popover border-border min-w-32 overflow-hidden rounded-md border p-1 shadow-lg shadow-black/5',
                   className,
                 )}
-                // TODO: alignOffset is hard-coded but it should be calculated to align to the left side when in RTL
-                alignOffset={isRTL ? 500 : 0}
                 {...props}>
                 {scrollable ? (
                   <ScrollView
-                    style={{ maxHeight }}
+                    style={{ maxHeight: maxScrollableHeight }}
                     showsVerticalScrollIndicator={true}
                     nestedScrollEnabled={true}>
-                    {content}
+                    {children as React.ReactNode}
                   </ScrollView>
                 ) : (
                   children

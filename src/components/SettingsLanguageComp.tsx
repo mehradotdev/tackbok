@@ -114,7 +114,7 @@ export default function SettingsLanguageComp() {
           <DropdownMenuContent
             className="bg-background min-w-[220px]"
             scrollable
-            maxHeight={300}>
+            maxScrollableHeight={300}>
             {/* Device Default Option - only show if device language is supported */}
             {isDeviceDefaultLocaleSupported && deviceDefaultLocale && (
               <DropdownMenuItem
