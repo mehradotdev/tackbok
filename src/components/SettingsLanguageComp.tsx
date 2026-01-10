@@ -44,6 +44,20 @@ export default function SettingsLanguageComp() {
     return lang?.nativeName || 'English';
   };
 
+  // Get display name for device default. If not supported, use English.
+  const deviceDefaultLangInfo = (): LanguageInfo => {
+    const baseLang =
+      languages.find((l) => l.code === deviceDefaultLocale) ||
+      ({
+        code: 'en',
+        displayName: 'English',
+        nativeName: 'English',
+        isRTL: false,
+      } as LanguageInfo);
+
+    return { ...baseLang, code: 'device' };
+  };
+
   // Check if changing to this language would require an app restart (RTL change)
   const willRequireRestart = (lang: LanguageInfo): boolean => {
     const currentIsRTL = I18nManager.isRTL;
@@ -66,6 +80,8 @@ export default function SettingsLanguageComp() {
     if (!pendingLanguage) return;
     // Update the locale preference
     setLocale(pendingLanguage.code);
+    setShowConfirmDialog(false);
+    setPendingLanguage(null);
 
     // Configure I18nManager for RTL if needed (only on native platforms)
     if (Platform.OS === 'web') return;
@@ -76,9 +92,6 @@ export default function SettingsLanguageComp() {
     // Reload app for RTL changes to take effect
     // Note: Per Expo docs, I18nManager changes require app restart
     reloadAppAsync('Language change confirmed');
-
-    setShowConfirmDialog(false);
-    setPendingLanguage(null);
   };
 
   const handleCancelLanguageChange = () => {
@@ -105,12 +118,7 @@ export default function SettingsLanguageComp() {
             {/* Device Default Option - only show if device language is supported */}
             {isDeviceDefaultLocaleSupported && deviceDefaultLocale && (
               <DropdownMenuItem
-                onPress={() => {
-                  const deviceLangInfo = languages.find(
-                    (l) => l.code === deviceDefaultLocale,
-                  );
-                  if (deviceLangInfo) handleLanguageSelect(deviceLangInfo);
-                }}>
+                onPress={() => handleLanguageSelect(deviceDefaultLangInfo())}>
                 <View className="flex-row items-center justify-between flex-1">
                   <Text className="text-foreground">{t('Device Default')}</Text>
                   {localePreference === 'device' && (

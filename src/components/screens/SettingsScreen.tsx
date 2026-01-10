@@ -15,10 +15,10 @@ export default function SettingsScreen() {
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-border">
-        <Pressable onPress={() => router.back()} className="p-1 mr-3">
+        <Pressable onPress={() => router.back()} className="mr-3">
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Pressable>
-        <Text variant="h2" className="text-foreground pt-2">
+        <Text variant="h2" className="text-foreground py-1">
           {t('Settings')}
         </Text>
       </View>

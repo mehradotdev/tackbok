@@ -22,6 +22,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
+import { MONTH_ABBREVIATED_KEYS } from '~/lib/i18n/dateFormatting';
 
 // ============================================================================
 // Types
@@ -76,20 +77,7 @@ const MONTH_KEYS = [
   'November',
   'December',
 ];
-const MONTH_SHORT_KEYS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+const MONTH_SHORT_KEYS = MONTH_ABBREVIATED_KEYS;
 
 // ============================================================================
 // Helper Components

@@ -1,6 +1,35 @@
 import { format } from 'date-fns';
-import { enUS } from 'date-fns/locale';
 import type { TranslationFunction } from './types';
+
+export const MONTH_KEYS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+export const MONTH_ABBREVIATED_KEYS = [
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
+] as const;
 
 /**
  * Format a date string (YYYY-MM-DD) or Date object to a localized format
@@ -11,11 +40,12 @@ export function formatLocalizedDate(date: string | Date, t: TranslationFunction)
 
   // Validate the date object
   if (isNaN(dateObj.getTime())) {
-    throw new Error(`Invalid date provided: ${date}`);
+    console.error(`Invalid date provided: ${date}`);
+    return String(date); // Return the original date string if invalid
   }
 
   const day = format(dateObj, 'd');
-  const month = t(format(dateObj, 'MMMM', { locale: enUS })); // Translate month name
+  const month = t(MONTH_KEYS[dateObj.getMonth()]); // Translate month name
   const year = format(dateObj, 'yyyy');
   const formattedDate = `${month} ${day}, ${year}`;
 

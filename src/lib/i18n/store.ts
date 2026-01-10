@@ -50,7 +50,7 @@ export const useLocaleStore = create<LocaleState>()(
 
 /**
  * Get the effective locale based on user preference and device locale.
- * If device ocale is not supported, returns null
+ * If device locale is not supported, returns null
  */
 export function getEffectiveLocale(
   deviceLocale: string | null,
@@ -61,7 +61,7 @@ export function getEffectiveLocale(
   }
 
   if (!deviceLocale) {
-    return DEFAULT_LOCALE;
+    return null;
   }
 
   const normalizedLocale = deviceLocale.toLowerCase();
@@ -85,7 +85,7 @@ export function getEffectiveLocale(
     return langCode as SupportedLocale;
   }
 
-  return DEFAULT_LOCALE;
+  return null;
 }
 
 /**
