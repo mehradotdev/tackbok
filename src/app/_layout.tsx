@@ -2,7 +2,8 @@ import '../global.css';
 
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { useCSSVariable } from 'uniwind';
+import { Uniwind, useCSSVariable } from 'uniwind';
+import { SafeAreaListener } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { initDB } from '~/database';
 import { PortalHost } from '~/components/primitives/portal';
@@ -40,38 +41,43 @@ export default function Layout() {
   return (
     <>
       <QueryClientProvider client={queryClient}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            headerTitleAlign: 'center',
-            headerTintColor: primaryForeground as string,
-            headerStyle: { backgroundColor: primaryColor as string },
-            headerTitleStyle: { fontWeight: 'bold' },
+        <SafeAreaListener
+          onChange={({ insets }) => {
+            Uniwind.updateInsets(insets);
           }}>
-          <Stack.Screen
-            name="index"
-            options={{
-              title: 'Tackbok',
-              headerRight: () => <SettingsDropdownMenu />,
-            }}
-          />
-          <Stack.Screen
-            name="gratitudeEntry"
-            options={{
-              title: 'Gratitude Entry',
+          <Stack
+            screenOptions={{
               headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="settings"
-            options={{
-              title: 'Settings',
-              headerShown: false,
-            }}
-          />
-        </Stack>
-        <Toaster />
-        <PortalHost />
+              headerTitleAlign: 'center',
+              headerTintColor: primaryForeground as string,
+              headerStyle: { backgroundColor: primaryColor as string },
+              headerTitleStyle: { fontWeight: 'bold' },
+            }}>
+            <Stack.Screen
+              name="index"
+              options={{
+                title: 'Tackbok',
+                headerRight: () => <SettingsDropdownMenu />,
+              }}
+            />
+            <Stack.Screen
+              name="gratitudeEntry"
+              options={{
+                title: 'Gratitude Entry',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="settings"
+              options={{
+                title: 'Settings',
+                headerShown: false,
+              }}
+            />
+          </Stack>
+          <Toaster />
+          <PortalHost />
+        </SafeAreaListener>
       </QueryClientProvider>
     </>
   );

@@ -67,7 +67,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   }
 
   return (
-    <View className="flex-1 bg-background w-full">
+    <View className="flex-1 bg-background w-full px-safe mb-safe">
       <FlatList
         data={updatedLogs}
         keyExtractor={(item) => item.entryDate}

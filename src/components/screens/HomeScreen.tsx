@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { IGratitudeDBLog } from '~/types';
-import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Header } from '~/components/Header';
 import { SearchResults } from '~/components/SearchResults';
 import { GratitudeTimeline } from '~/components/GratitudeTimeline';
@@ -44,7 +44,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary items-center justify-center">
+    <View className="flex-1 bg-primary items-center justify-center pt-safe">
       <Header
         isSearchMode={isSearchMode}
         onSearchPress={handleSearchPress}
@@ -61,6 +61,6 @@ export default function HomeScreen() {
         </>
       )}
       <StatusBar style="auto" />
-    </SafeAreaView>
+    </View>
   );
 }

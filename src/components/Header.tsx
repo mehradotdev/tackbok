@@ -53,7 +53,7 @@ export const Header: React.FC<IHeaderProps> = ({
   }
 
   return (
-    <View className="flex-row w-full items-center justify-between px-4 py-2 bg-primary">
+    <View className="flex-row w-full items-center justify-between px-safe-or-4 py-2 bg-primary">
       {/* Search Button */}
       <Pressable className="p-1" onPress={onSearchPress}>
         <Icon as={Search} />
