@@ -1,5 +1,9 @@
 import type { Translations } from '../types';
 
+/**
+ * Hebrew (he) translations
+ * Contains translations for all UI strings used in the application
+ */
 export const he: Translations = {
   // Common
   Tackbok: 'טאקבוק',

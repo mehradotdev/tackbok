@@ -1,5 +1,9 @@
 import type { Translations } from '../types';
 
+/**
+ * Simplified Chinese (zh-CN) translations
+ * Contains translations for all UI strings used in the application
+ */
 export const zhCN: Translations = {
   // Common
   Tackbok: '塔克博克',

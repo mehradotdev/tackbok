@@ -1,5 +1,9 @@
 import type { Translations } from '../types';
 
+/**
+ * Arabic (ar) translations
+ * Contains translations for all UI strings used in the application
+ */
 export const ar: Translations = {
   // Common
   Tackbok: 'تاكبوك',
