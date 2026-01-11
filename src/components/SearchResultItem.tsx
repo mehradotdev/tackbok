@@ -20,7 +20,7 @@ export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPre
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row w-full px-4 py-3 border-b border-border active:bg-muted">
+      className="flex-row w-full px-safe-or-4 py-3 border-b border-border active:bg-muted">
       {/* Column 1: Date */}
       <View className="w-16 items-center justify-center mr-3">
         <Text className="text-sm font-semibold text-foreground">{month}</Text>

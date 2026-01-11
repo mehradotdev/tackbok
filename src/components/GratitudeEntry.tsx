@@ -69,6 +69,7 @@ export const GratitudeEntry: React.FC<IGratitudeEntryProps> = ({ entry }) => {
       </View>
 
       {/* TODO: multiline not working; using h-[50%] */}
+      {/* TODO: use KeyboardAvoidingView */}
       {/* Input Area */}
       <Textarea
         className="h-[50%] px-5 py-5 text-lg text-foreground leading-7"

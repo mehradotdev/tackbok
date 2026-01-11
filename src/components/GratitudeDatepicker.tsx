@@ -155,7 +155,8 @@ export function GratitudeDatepicker({
         transparent
         animationType="fade"
         onRequestClose={handleCloseModal}
-        statusBarTranslucent>
+        statusBarTranslucent
+        supportedOrientations={['portrait', 'landscape']}>
         <Pressable
           onPress={handleCloseModal}
           className="flex-1 items-center justify-center bg-black/50 px-6">

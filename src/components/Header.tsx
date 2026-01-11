@@ -26,12 +26,13 @@ export const Header: React.FC<IHeaderProps> = ({
 
   if (isSearchMode) {
     return (
-      <View className="flex-row w-full items-center justify-between px-4 py-2 bg-primary">
+      <View className="flex-row w-full items-center justify-between px-safe-or-4 py-2 bg-primary">
         {/* Back Button */}
         <Pressable className="p-1" onPress={onBackPress}>
           <Icon as={isRTL ? ArrowRight : ArrowLeft} />
         </Pressable>
 
+        {/* TODO: use KeyboardAvoidingView? */}
         {/* Search Input */}
         <View className="flex-1 mx-3">
           <Input
