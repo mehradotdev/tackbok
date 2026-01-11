@@ -12,11 +12,13 @@ type RootProps = {
   open?: boolean;
   onOpenChange?: (value: boolean) => void;
   defaultOpen?: boolean;
+  dismissOnOutsidePress?: boolean;
 } & SlottableViewProps;
 
 interface RootContext {
   open: boolean;
   onOpenChange: (value: boolean) => void;
+  dismissOnOutsidePress?: boolean;
 }
 
 interface PortalProps extends ForceMountable {
@@ -32,11 +34,6 @@ interface PortalProps extends ForceMountable {
 }
 type OverlayProps = ForceMountable &
   SlottableViewProps & {
-    /**
-     * Whether tapping outside the dialog should dismiss it
-     * @default true
-     */
-    dismissOnOutsidePress?: boolean;
     /**
      * Optional press handler for the overlay
      */

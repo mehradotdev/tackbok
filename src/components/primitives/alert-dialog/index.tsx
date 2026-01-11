@@ -55,6 +55,7 @@ const Root = ({
         open,
         onOpenChange,
         nativeID,
+        dismissOnOutsidePress: viewProps.dismissOnOutsidePress,
       }}>
       <Component ref={ref} {...viewProps} />
     </AlertDialogContext.Provider>
@@ -124,12 +125,11 @@ function Portal({ forceMount, hostName, children }: PortalProps) {
 const Overlay = ({
   asChild,
   forceMount,
-  dismissOnOutsidePress = true,
   onPress: onPressProp,
   ref,
   ...props
 }: OverlayProps & { ref?: React.Ref<OverlayRef> }) => {
-  const { open: value, onOpenChange } = useRootContext();
+  const { open: value, onOpenChange, dismissOnOutsidePress = true } = useRootContext();
 
   if (!forceMount) {
     if (!value) {

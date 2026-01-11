@@ -151,7 +151,10 @@ export default function SettingsLanguageComp() {
       </View>
 
       {/* Language Change Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        dismissOnOutsidePress={true}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Restart Required')}</AlertDialogTitle>

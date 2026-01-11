@@ -19,7 +19,6 @@ const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fr
 function AlertDialogOverlay({
   className,
   children,
-  dismissOnOutsidePress = true,
   ref,
   ...props
 }: Omit<AlertDialogPrimitive.OverlayProps, 'asChild'> & {
@@ -30,7 +29,6 @@ function AlertDialogOverlay({
     <FullWindowOverlay>
       <AlertDialogPrimitive.Overlay
         ref={ref}
-        dismissOnOutsidePress={dismissOnOutsidePress}
         className={cn(
           'absolute bottom-0 left-0 right-0 top-0 z-50 flex items-center justify-center bg-black/50 p-2',
           Platform.select({
@@ -52,17 +50,15 @@ function AlertDialogOverlay({
 function AlertDialogContent({
   className,
   portalHost,
-  dismissOnOutsidePress = true,
   ref,
   ...props
 }: AlertDialogPrimitive.ContentProps & {
   portalHost?: string;
-  dismissOnOutsidePress?: boolean;
   ref?: React.Ref<AlertDialogPrimitive.ContentRef>;
 }) {
   return (
     <AlertDialogPortal hostName={portalHost}>
-      <AlertDialogOverlay dismissOnOutsidePress={dismissOnOutsidePress}>
+      <AlertDialogOverlay>
         <AlertDialogPrimitive.Content
           ref={ref}
           className={cn(
