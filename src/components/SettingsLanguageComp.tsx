@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { View, I18nManager, Platform } from 'react-native';
 import { reloadAppAsync } from 'expo';
-import { ChevronDown, Check } from 'lucide-react-native';
 import { useTranslation, languages, type LanguageInfo } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
-import { Icon } from '~/components/ui/icon';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  NativeSelectScrollView,
+  type Option,
+} from '~/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +37,7 @@ export default function SettingsLanguageComp() {
   const [pendingLanguage, setPendingLanguage] = useState<LanguageInfo | null>(null);
 
   // Get display name for current preference
-  const getCurrentLanguageDisplay = () => {
+  const getCurrentLanguageLabel = (): string => {
     if (localePreference === 'device') {
       return t('Device Default');
     }
@@ -44,18 +45,27 @@ export default function SettingsLanguageComp() {
     return lang?.nativeName || 'English';
   };
 
-  // Get display name for device default. If not supported, use English.
-  const deviceDefaultLangInfo = (): LanguageInfo => {
-    const baseLang =
-      languages.find((l) => l.code === deviceDefaultLocale) ||
-      ({
-        code: 'en',
-        displayName: 'English',
-        nativeName: 'English',
-        isRTL: false,
-      } as LanguageInfo);
+  // Get LanguageInfo from a language code
+  const getLanguageInfo = (code: string): LanguageInfo | null => {
+    if (code === 'device') {
+      // Return device default lang info
+      const baseLang =
+        languages.find((l) => l.code === deviceDefaultLocale) ||
+        ({
+          code: 'en',
+          displayName: 'English',
+          nativeName: 'English',
+          isRTL: false,
+        } as LanguageInfo);
+      return { ...baseLang, code: 'device' };
+    }
+    return languages.find((l) => l.code === code) || null;
+  };
 
-    return { ...baseLang, code: 'device' };
+  // Current value for the Select component
+  const currentValue: Option = {
+    value: localePreference,
+    label: getCurrentLanguageLabel(),
   };
 
   // Check if changing to this language would require an app restart (RTL change)
@@ -64,7 +74,12 @@ export default function SettingsLanguageComp() {
     return lang.isRTL !== currentIsRTL;
   };
 
-  const handleLanguageSelect = (lang: LanguageInfo) => {
+  const handleLanguageSelect = (option: Option) => {
+    if (!option) return;
+
+    const lang = getLanguageInfo(option.value);
+    if (!lang) return;
+
     // Check if this change requires a restart
     if (willRequireRestart(lang)) {
       // Show confirmation dialog
@@ -104,50 +119,28 @@ export default function SettingsLanguageComp() {
       <View className="flex-row items-center justify-between py-3">
         <Text className="text-base text-foreground">{t('Language')}</Text>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger>
-            <View className="flex-row items-center gap-2 px-3 py-2 rounded-lg bg-muted">
-              <Text className="text-foreground">{getCurrentLanguageDisplay()}</Text>
-              <Icon as={ChevronDown} size={16} className="text-muted-foreground" />
-            </View>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="bg-background min-w-[220px]"
-            scrollable
-            maxScrollableHeight={300}>
-            {/* Device Default Option - only show if device language is supported */}
-            {isDeviceDefaultLocaleSupported && deviceDefaultLocale && (
-              <DropdownMenuItem
-                onPress={() => handleLanguageSelect(deviceDefaultLangInfo())}>
-                <View className="flex-row items-center justify-between flex-1">
-                  <Text className="text-foreground">{t('Device Default')}</Text>
-                  {localePreference === 'device' && (
-                    <Icon as={Check} size={16} className="text-primary-foreground" />
-                  )}
-                </View>
-              </DropdownMenuItem>
-            )}
+        <Select value={currentValue} onValueChange={handleLanguageSelect}>
+          <SelectTrigger className="min-w-[180px]">
+            <SelectValue placeholder={t('Select language')} />
+          </SelectTrigger>
+          <SelectContent className="min-w-[220px]">
+            <NativeSelectScrollView className="max-h-72">
+              {/* Device Default Option - only show if device language is supported */}
+              {isDeviceDefaultLocaleSupported && deviceDefaultLocale && (
+                <SelectItem value="device" label={t('Device Default')} />
+              )}
 
-            {/* Language Options */}
-            {languages.map((lang) => (
-              <DropdownMenuItem
-                key={lang.code}
-                onPress={() => handleLanguageSelect(lang)}>
-                <View className="flex-row items-center justify-between flex-1">
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-foreground">{lang.nativeName}</Text>
-                    <Text className="text-muted-foreground text-sm">
-                      ({lang.displayName})
-                    </Text>
-                  </View>
-                  {localePreference === lang.code && (
-                    <Icon as={Check} size={16} className="text-primary-foreground" />
-                  )}
-                </View>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {/* Language Options */}
+              {languages.map((lang) => (
+                <SelectItem
+                  key={lang.code}
+                  value={lang.code}
+                  label={`${lang.nativeName} (${lang.displayName})`}
+                />
+              ))}
+            </NativeSelectScrollView>
+          </SelectContent>
+        </Select>
       </View>
 
       {/* Language Change Confirmation Dialog */}
