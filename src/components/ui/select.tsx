@@ -16,17 +16,14 @@ const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 
 function SelectValue({
-  ref,
   className,
   ...props
-}: SelectPrimitive.ValueProps &
-  React.RefAttributes<SelectPrimitive.ValueRef> & {
-    className?: string;
-  }) {
+}: SelectPrimitive.ValueProps & {
+  className?: string;
+}) {
   const { value } = SelectPrimitive.useRootContext();
   return (
     <SelectPrimitive.Value
-      ref={ref}
       className={cn(
         'text-foreground line-clamp-1 flex flex-row items-center gap-2 text-sm',
         !value && 'text-muted-foreground',
@@ -38,19 +35,16 @@ function SelectValue({
 }
 
 function SelectTrigger({
-  ref,
   className,
   children,
   size = 'default',
   ...props
-}: SelectPrimitive.TriggerProps &
-  React.RefAttributes<SelectPrimitive.TriggerRef> & {
-    children?: React.ReactNode;
-    size?: 'default' | 'sm';
-  }) {
+}: SelectPrimitive.TriggerProps & {
+  children?: React.ReactNode;
+  size?: 'default' | 'sm';
+}) {
   return (
     <SelectPrimitive.Trigger
-      ref={ref}
       className={cn(
         'border-input dark:bg-input/30 dark:active:bg-input/50 bg-background flex h-10 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9',
         props.disabled && 'opacity-50',
@@ -58,7 +52,7 @@ function SelectTrigger({
         className,
       )}
       {...props}>
-      <>{children}</>
+      {children}
       <Icon
         as={ChevronDown}
         aria-hidden={true}
@@ -76,11 +70,10 @@ function SelectContent({
   position = 'popper',
   portalHost,
   ...props
-}: SelectPrimitive.ContentProps &
-  React.RefAttributes<SelectPrimitive.ContentRef> & {
-    className?: string;
-    portalHost?: string;
-  }) {
+}: SelectPrimitive.ContentProps & {
+  className?: string;
+  portalHost?: string;
+}) {
   return (
     <SelectPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
@@ -110,7 +103,9 @@ function SelectContent({
 function SelectLabel({
   className,
   ...props
-}: SelectPrimitive.LabelProps & React.RefAttributes<SelectPrimitive.LabelRef>) {
+}: SelectPrimitive.LabelProps & {
+  className?: string;
+}) {
   return (
     <SelectPrimitive.Label
       className={cn('text-muted-foreground px-2 py-2 text-xs sm:py-1.5', className)}
@@ -121,9 +116,10 @@ function SelectLabel({
 
 function SelectItem({
   className,
-  children,
   ...props
-}: SelectPrimitive.ItemProps & React.RefAttributes<SelectPrimitive.ItemRef>) {
+}: SelectPrimitive.ItemProps & {
+  className?: string;
+}) {
   return (
     <SelectPrimitive.Item
       className={cn(
@@ -145,7 +141,9 @@ function SelectItem({
 function SelectSeparator({
   className,
   ...props
-}: SelectPrimitive.SeparatorProps & React.RefAttributes<SelectPrimitive.SeparatorRef>) {
+}: SelectPrimitive.SeparatorProps & {
+  className?: string;
+}) {
   return (
     <SelectPrimitive.Separator
       className={cn('bg-border -mx-1 my-1 h-px', className)}
