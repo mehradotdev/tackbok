@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, FlatList, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
+import { LegendList } from '@legendapp/list';
 import { IGratitudeDBLog } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useSearchGratitudeLogs } from '~/hooks/useGratitude';
@@ -64,13 +65,14 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
 
   return (
     <View className="flex-1 bg-background w-full">
-      <FlatList
+      <LegendList
         data={safeResults}
         keyExtractor={(item) => item.entryDate}
         renderItem={({ item }) => (
           <SearchResultItem item={item} onPress={() => onEntryPress(item)} />
         )}
         contentContainerClassName="pb-4"
+        recycleItems
       />
     </View>
   );

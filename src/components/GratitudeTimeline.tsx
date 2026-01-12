@@ -1,6 +1,7 @@
 import React from 'react';
 import { format, subDays } from 'date-fns';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
+import { LegendList } from '@legendapp/list';
 import { IGratitudeDBLog, IGratitudeLogItem } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useGratitudeLogs } from '~/hooks/useGratitude';
@@ -68,13 +69,14 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
 
   return (
     <View className="flex-1 bg-background w-full px-safe mb-safe">
-      <FlatList
+      <LegendList
         data={updatedLogs}
         keyExtractor={(item) => item.entryDate}
         renderItem={({ item }) => (
           <TimelineItem item={item} onPress={() => onEntryPress(item)} />
         )}
         contentContainerClassName="pb-4"
+        recycleItems
       />
     </View>
   );
