@@ -34,6 +34,9 @@ export const en: Translations = {
   'Clearing the text will delete this entry entirely.':
     'Clearing the text will delete this entry entirely.',
 
+  // Milestones
+  'days of gratitude': 'days of gratitude',
+
   // Settings
   Language: 'Language',
   'Select Language': 'Select Language',

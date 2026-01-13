@@ -31,6 +31,9 @@ export const zhTW: Translations = {
   'Delete Entry?': '刪除條目？',
   'Clearing the text will delete this entry entirely.': '清除文字將完全刪除此條目。',
 
+  // Milestones
+  'days of gratitude': '感恩天數',
+
   // Settings
   Language: '語言',
   'Select Language': '選擇語言',

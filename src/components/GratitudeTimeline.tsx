@@ -6,9 +6,18 @@ import { IGratitudeDBLog, IGratitudeLogItem } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useGratitudeLogs } from '~/hooks/useGratitude';
 import { TimelineItem } from './GratitudeTimelineItem';
+import { GratitudeMilestone, IMilestoneItem, isMilestone } from './GratitudeMilestone';
 
 interface IGratitudeTimelineProps {
   onEntryPress: (entry: IGratitudeDBLog) => void;
+}
+
+// Union type for all items that can appear in the timeline
+type TimelineListItem = IGratitudeLogItem | IMilestoneItem;
+
+// Type guard to check if an item is a milestone
+function isMilestoneItem(item: TimelineListItem): item is IMilestoneItem {
+  return 'type' in item && item.type === 'milestone';
 }
 
 export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
@@ -45,11 +54,43 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     });
   }
 
-  // 3. Mark the last item as isLast
-  if (updatedLogs.length > 0) {
-    const lastIndex = updatedLogs.length - 1;
-    // Clone the last item to avoid mutating the original object from the hook
-    updatedLogs[lastIndex] = { ...updatedLogs[lastIndex], isLast: true };
+  // 3. Insert milestones into the timeline
+  // Count only entries that have actual content (not placeholders)
+  const entriesWithContent = safeLogs.filter((log) => log.entryContent);
+  const totalEntriesCount = entriesWithContent.length;
+
+  // Build the final list with milestones interspersed
+  const finalList: TimelineListItem[] = [];
+  let entriesProcessed = 0;
+
+  for (let i = 0; i < updatedLogs.length; i++) {
+    const log = updatedLogs[i];
+
+    // Check if we should insert a milestone before this entry
+    // Milestones appear after X entries, so we check remaining entries count
+    // Only insert milestone if the current log is a real entry (has content)
+    // to avoid duplicates for placeholder entries
+    const remainingEntries = totalEntriesCount - entriesProcessed;
+    if (log.entryContent && isMilestone(remainingEntries)) {
+      finalList.push({
+        type: 'milestone',
+        milestoneDays: remainingEntries,
+      });
+    }
+
+    finalList.push(log);
+
+    // Only count entries that have content
+    if (log.entryContent) {
+      entriesProcessed++;
+    }
+  }
+
+  // 4. Mark the last item as isLast
+  if (finalList.length > 0) {
+    const lastIndex = finalList.length - 1;
+    const lastItem = finalList[lastIndex];
+    finalList[lastIndex] = { ...lastItem, isLast: true };
   }
 
   if (isLoading) return <ActivityIndicator size="large" className="mt-20" />;
@@ -70,11 +111,17 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   return (
     <View className="flex-1 bg-background w-full px-safe mb-safe">
       <LegendList
-        data={updatedLogs}
-        keyExtractor={(item) => item.entryDate}
-        renderItem={({ item }) => (
-          <TimelineItem item={item} onPress={() => onEntryPress(item)} />
-        )}
+        data={finalList}
+        keyExtractor={(item) =>
+          isMilestoneItem(item) ? `milestone-${item.milestoneDays}` : item.entryDate
+        }
+        renderItem={({ item }) =>
+          isMilestoneItem(item) ? (
+            <GratitudeMilestone milestone={item} />
+          ) : (
+            <TimelineItem item={item} onPress={() => onEntryPress(item)} />
+          )
+        }
         contentContainerClassName="pb-4"
         recycleItems
       />

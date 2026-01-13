@@ -31,6 +31,9 @@ export const zhCN: Translations = {
   'Delete Entry?': '删除条目？',
   'Clearing the text will delete this entry entirely.': '清除文本将完全删除此条目。',
 
+  // Milestones
+  'days of gratitude': '感恩天数',
+
   // Settings
   Language: '语言',
   'Select Language': '选择语言',
