@@ -13,6 +13,7 @@ function Input({ className, ...props }: TextInputProps) {
         isRTL && 'text-right',
         className,
       )}
+      clearButtonMode="while-editing"
       {...props}
     />
   );

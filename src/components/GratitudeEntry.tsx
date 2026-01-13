@@ -1,6 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, View, Text } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  View,
+  Text,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useCSSVariable } from 'uniwind';
 import { IGratitudeDBLog } from '~/types';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
@@ -50,38 +57,40 @@ export const GratitudeEntry: React.FC<IGratitudeEntryProps> = ({ entry }) => {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row justify-between items-center px-4 py-4 border-b border-border">
-        <Pressable onPress={() => router.back()}>
-          <Text className="text-lg text-foreground/70">{t('Cancel')}</Text>
-        </Pressable>
-        <View className="flex-col items-center">
-          <Text className="font-bold text-lg text-foreground">{formattedDate}</Text>
-          <Text className="font-bold text-lg text-foreground">
-            {t('I was grateful for')}
-          </Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1">
+        {/* Header */}
+        <View className="flex-row justify-between items-center px-4 py-4 border-b border-border">
+          <Pressable onPress={() => router.back()}>
+            <Text className="text-lg text-foreground/70">{t('Cancel')}</Text>
+          </Pressable>
+          <View className="flex-col items-center">
+            <Text className="font-bold text-lg text-foreground">{formattedDate}</Text>
+            <Text className="font-bold text-lg text-foreground">
+              {t('I was grateful for')}
+            </Text>
+          </View>
+          <Pressable onPress={handleSave}>
+            <Text className="text-lg font-bold text-foreground">
+              {isExistingEntry && isNowEmpty ? t('Delete') : t('Done')}
+            </Text>
+          </Pressable>
         </View>
-        <Pressable onPress={handleSave}>
-          <Text className="text-lg font-bold text-foreground">
-            {isExistingEntry && isNowEmpty ? t('Delete') : t('Done')}
-          </Text>
-        </Pressable>
-      </View>
 
-      {/* TODO: multiline not working; using h-[50%] */}
-      {/* TODO: use KeyboardAvoidingView */}
-      {/* Input Area */}
-      <Textarea
-        className="h-[50%] px-5 py-5 text-lg text-foreground leading-7"
-        textAlignVertical="top"
-        placeholder={t('What are you grateful for?')}
-        placeholderTextColor={mutedForeground as string}
-        value={text}
-        onChangeText={setText}
-        autoFocus={!entry.entryContent}
-        multiline={true}
-        numberOfLines={45}
-      />
+        {/* Input Area */}
+        <Textarea
+          className="flex-1 px-5 py-5 text-lg text-foreground leading-7"
+          textAlignVertical="top"
+          placeholder={t('What are you grateful for?')}
+          placeholderTextColor={mutedForeground as string}
+          value={text}
+          onChangeText={setText}
+          autoFocus={!entry.entryContent}
+          multiline={true}
+          // numberOfLines={45}
+        />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

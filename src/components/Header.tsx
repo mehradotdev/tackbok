@@ -32,7 +32,6 @@ export const Header: React.FC<IHeaderProps> = ({
           <Icon as={isRTL ? ArrowRight : ArrowLeft} />
         </Pressable>
 
-        {/* TODO: use KeyboardAvoidingView? */}
         {/* Search Input */}
         <View className="flex-1 mx-3">
           <Input
