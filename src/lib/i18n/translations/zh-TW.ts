@@ -33,6 +33,7 @@ export const zhTW: Translations = {
 
   // Settings
   Language: '語言',
+  'Select Language': '選擇語言',
   'Device Default': '裝置預設',
   'Restart Required': '需要重新啟動',
   'Language change requires app restart. Proceed?':

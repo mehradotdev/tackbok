@@ -74,7 +74,7 @@ export const GratitudeEntry: React.FC<IGratitudeEntryProps> = ({ entry }) => {
       <Textarea
         className="h-[50%] px-5 py-5 text-lg text-foreground leading-7"
         textAlignVertical="top"
-        placeholder={t('What are you grateful for today?')}
+        placeholder={t('What are you grateful for?')}
         placeholderTextColor={mutedForeground as string}
         value={text}
         onChangeText={setText}

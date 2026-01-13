@@ -110,7 +110,16 @@ export const languages: LanguageInfo[] = [
  */
 export function translate(locale: SupportedLocale, key: string): string {
   const localeTranslations = translations[locale];
-  return localeTranslations?.[key] ?? key;
+  const translation = localeTranslations?.[key];
+
+  if (translation === undefined) {
+    if (__DEV__) {
+      console.warn(`[i18n] Missing translation for key: "${key}" in locale: "${locale}"`);
+    }
+    return key;
+  }
+
+  return translation;
 }
 
 /**

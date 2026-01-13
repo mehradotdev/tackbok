@@ -34,6 +34,7 @@ export const ar: Translations = {
 
   // Settings
   Language: 'اللغة',
+  'Select Language': 'اختر اللغة',
   'Device Default': 'افتراضي الجهاز',
   'Restart Required': 'إعادة التشغيل مطلوبة',
   'Language change requires app restart. Proceed?':

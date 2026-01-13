@@ -121,7 +121,7 @@ export default function SettingsLanguageComp() {
 
         <Select value={currentValue} onValueChange={handleLanguageSelect}>
           <SelectTrigger className="min-w-[180px]">
-            <SelectValue placeholder={t('Select language')} />
+            <SelectValue placeholder={t('Select Language')} />
           </SelectTrigger>
           <SelectContent className="min-w-[220px]">
             <NativeSelectScrollView className="max-h-72">

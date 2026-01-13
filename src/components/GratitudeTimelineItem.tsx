@@ -48,7 +48,8 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) =>
           {formattedDate}
         </Text>
         {item.entryContent ? (
-          <Text className="text-base text-foreground leading-6" numberOfLines={4}>
+          // TODO: Make numberOfLines dynamic based on a Setting
+          <Text className="text-base text-foreground leading-6" numberOfLines={10}>
             {item.entryContent}
           </Text>
         ) : (

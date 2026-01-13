@@ -33,6 +33,7 @@ export const zhCN: Translations = {
 
   // Settings
   Language: '语言',
+  'Select Language': '选择语言',
   'Device Default': '设备默认',
   'Restart Required': '需要重启',
   'Language change requires app restart. Proceed?': '更改语言需要重启应用。是否继续？',

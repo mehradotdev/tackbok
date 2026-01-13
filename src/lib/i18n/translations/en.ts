@@ -36,6 +36,7 @@ export const en: Translations = {
 
   // Settings
   Language: 'Language',
+  'Select Language': 'Select Language',
   'Device Default': 'Device Default',
   'Restart Required': 'Restart Required',
   'Language change requires app restart. Proceed?':

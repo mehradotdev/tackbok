@@ -34,6 +34,7 @@ export const he: Translations = {
 
   // Settings
   Language: 'שפה',
+  'Select Language': 'בחר שפה',
   'Device Default': 'ברירת מחדל של המכשיר',
   'Restart Required': 'נדרש אתחול מחדש',
   'Language change requires app restart. Proceed?':
