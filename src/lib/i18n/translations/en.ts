@@ -10,6 +10,8 @@ export const en: Translations = {
   Tackbok: 'Tackbok',
   Cancel: 'Cancel',
   Done: 'Done',
+  Save: 'Save',
+  Continue: 'Continue',
   Delete: 'Delete',
   Settings: 'Settings',
   'Contact Us': 'Contact Us',
@@ -33,6 +35,9 @@ export const en: Translations = {
   'Delete Entry?': 'Delete Entry?',
   'Clearing the text will delete this entry entirely.':
     'Clearing the text will delete this entry entirely.',
+  'Are you sure you want to go back?': 'Are you sure you want to go back?',
+  'Your entry is unsaved and your changes will be lost!':
+    'Your entry is unsaved and your changes will be lost!',
 
   // Milestones
   'days of gratitude': 'days of gratitude',

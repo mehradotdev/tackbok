@@ -9,6 +9,8 @@ export const zhCN: Translations = {
   Tackbok: '塔克博克',
   Cancel: '取消',
   Done: '完成',
+  Save: '保存',
+  Continue: '继续',
   Delete: '删除',
   Settings: '设置',
   'Contact Us': '联系我们',
@@ -30,6 +32,9 @@ export const zhCN: Translations = {
   // Gratitude Entry
   'Delete Entry?': '删除条目？',
   'Clearing the text will delete this entry entirely.': '清除文本将完全删除此条目。',
+  'Are you sure you want to go back?': '你确定要返回吗？',
+  'Your entry is unsaved and your changes will be lost!':
+    '您的条目未保存，更改将会丢失！',
 
   // Milestones
   'days of gratitude': '感恩天数',

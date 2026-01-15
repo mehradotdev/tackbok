@@ -1,7 +1,7 @@
-import { TextClassContext } from '~/components/ui/text';
-import { cn } from '~/lib/utils';
-import { cva, type VariantProps } from 'class-variance-authority';
 import { Pressable } from 'react-native';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '~/lib/utils';
+import { TextClassContext } from '~/components/ui/text';
 
 const buttonVariants = cva(
   'group shrink-0 flex-row items-center justify-center gap-2 rounded-md shadow-none',
@@ -18,7 +18,7 @@ const buttonVariants = cva(
         link: '',
       },
       size: {
-        default: 'h-10 px-4 py-2 sm:h-9',
+        default: 'h-10 px-4 sm:h-9',
         sm: 'h-9 gap-1.5 rounded-md px-3 sm:h-8',
         lg: 'h-11 rounded-md px-6 sm:h-10',
         icon: 'h-10 w-10 sm:h-9 sm:w-9',
@@ -28,18 +28,18 @@ const buttonVariants = cva(
       variant: 'default',
       size: 'default',
     },
-  }
+  },
 );
 
-const buttonTextVariants = cva('text-foreground text-sm font-medium', {
+const buttonTextVariants = cva('text-foreground text-base font-bold', {
   variants: {
     variant: {
       default: 'text-primary-foreground',
-      destructive: 'text-white',
+      destructive: 'text-destructive-foreground',
       outline: 'group-active:text-accent-foreground',
       secondary: 'text-secondary-foreground',
-      ghost: 'group-active:text-accent-foreground',
-      link: 'text-primary group-active:underline',
+      ghost: 'group-active:text-accent-foreground font-medium',
+      link: 'text-primary underline font-medium',
     },
     size: {
       default: '',
@@ -65,7 +65,7 @@ function Button({ className, variant, size, ...props }: ButtonProps) {
         className={cn(
           props.disabled && 'opacity-50',
           buttonVariants({ variant, size }),
-          className
+          className,
         )}
         role="button"
         {...props}

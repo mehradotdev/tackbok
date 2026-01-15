@@ -25,16 +25,12 @@ export function SettingsSlider({
   className,
   disabled = false,
 }: SettingsSliderProps) {
-  const [primary, muted, background] = useCSSVariable([
-    '--color-primary',
-    '--color-muted',
-    '--color-background',
-  ]);
+  const [primaryColor, inputColor] = useCSSVariable(['--color-primary', '--color-input']);
 
   // Color values based on theme
-  const minimumTrackTintColor = primary as string;
-  const maximumTrackTintColor = muted as string;
-  // const thumbTintColor = background as string;
+  const minimumTrackTintColor = primaryColor as string;
+  const maximumTrackTintColor = inputColor as string;
+  const thumbTintColor = primaryColor as string;
 
   return (
     <View className={cn('flex-row items-center', className)}>
@@ -48,7 +44,7 @@ export function SettingsSlider({
         disabled={disabled}
         minimumTrackTintColor={minimumTrackTintColor}
         maximumTrackTintColor={maximumTrackTintColor}
-        // thumbTintColor={thumbTintColor}
+        thumbTintColor={thumbTintColor}
       />
       {showValue && (
         <Text className="text-sm text-muted-foreground ml-3 min-w-[28px] text-right">

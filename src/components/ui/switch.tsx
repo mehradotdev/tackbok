@@ -1,5 +1,5 @@
 import { Switch as RNSwitch, SwitchProps as RNSwitchProps } from 'react-native';
-import { useUniwind, useCSSVariable } from 'uniwind';
+import { useCSSVariable } from 'uniwind';
 
 interface SwitchProps extends Omit<RNSwitchProps, 'value' | 'onValueChange'> {
   checked?: boolean;
@@ -7,8 +7,11 @@ interface SwitchProps extends Omit<RNSwitchProps, 'value' | 'onValueChange'> {
 }
 
 function Switch({ checked, onCheckedChange, disabled, ...props }: SwitchProps) {
-  const { theme } = useUniwind();
-  const [primary, input] = useCSSVariable(['--color-primary', '--color-input']);
+  const [primaryColor, backgroundColor, inputColor] = useCSSVariable([
+    '--color-primary',
+    '--color-background',
+    '--color-input',
+  ]);
 
   return (
     <RNSwitch
@@ -17,13 +20,13 @@ function Switch({ checked, onCheckedChange, disabled, ...props }: SwitchProps) {
       disabled={disabled}
       // Track color (background when switch is on)
       trackColor={{
-        false: input as string,
-        true: primary as string,
+        false: inputColor as string,
+        true: primaryColor as string,
       }}
       // Thumb color (the button that slides)
-      // thumbColor={theme === 'dark' ? '#ffffff' : '#ffffff'}
+      thumbColor={backgroundColor as string}
       // iOS specific style
-      ios_backgroundColor={input as string}
+      ios_backgroundColor={inputColor as string}
       {...props}
     />
   );

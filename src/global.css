@@ -4,47 +4,47 @@
 @layer theme {
   :root {
     @variant dark {
-      --color-background: var(--color-stone-950);
-      --color-foreground: var(--color-stone-50);
-      --color-card: var(--color-stone-900);
-      --color-card-foreground: var(--color-stone-50);
-      --color-popover: var(--color-stone-900);
-      --color-popover-foreground: var(--color-stone-50);
-      --color-primary: oklch(0.6657 0.105 118.9078);
-      --color-primary-foreground: var(--color-white);
-      --color-secondary: var(--color-stone-800);
-      --color-secondary-foreground: var(--color-stone-50);
-      --color-muted: var(--color-stone-800);
-      --color-muted-foreground: var(--color-stone-400);
-      --color-accent: var(--color-stone-800);
-      --color-accent-foreground: var(--color-amber-500);
-      --color-destructive: var(--color-red-900);
-      --color-destructive-foreground: var(--color-red-50);
-      --color-border: var(--color-stone-800);
-      --color-input: var(--color-stone-800);
-      --color-ring: var(--color-amber-500);
+      --color-background: #3a3529;
+      --color-foreground: #ede4d4;
+      --color-card: #413c33;
+      --color-card-foreground: #ede4d4;
+      --color-popover: #413c33;
+      --color-popover-foreground: #ede4d4;
+      --color-primary: #8a9f7b;
+      --color-primary-foreground: #ede4d4;
+      --color-secondary: #5a5345;
+      --color-secondary-foreground: #ede4d4;
+      --color-muted: #4a4439;
+      --color-muted-foreground: #a8a096;
+      --color-accent: #a18f5c;
+      --color-accent-foreground: #2a2521;
+      --color-destructive: #b5766a;
+      --color-destructive-foreground: #f0e9db;
+      --color-border: #5a5345;
+      --color-input: #5a5345;
+      --color-ring: #8a9f7b;
     }
 
     @variant light {
-      --color-background: oklch(0.8798 0.0534 91.7893);
-      --color-foreground: var(--color-stone-900);
-      --color-card: var(--color-white);
-      --color-card-foreground: var(--color-stone-900);
-      --color-popover: var(--color-white);
-      --color-popover-foreground: var(--color-stone-900);
-      --color-primary: oklch(0.7951 0.105 118.9078);
-      --color-primary-foreground: var(--color-stone-950);
-      --color-secondary: var(--color-stone-100);
-      --color-secondary-foreground: var(--color-stone-900);
-      --color-muted: var(--color-stone-100);
-      --color-muted-foreground: var(--color-stone-500);
-      --color-accent: var(--color-amber-100);
-      --color-accent-foreground: var(--color-amber-900);
-      --color-destructive: var(--color-red-600);
-      --color-destructive-foreground: var(--color-white);
-      --color-border: var(--color-stone-200);
-      --color-input: var(--color-stone-200);
-      --color-ring: var(--color-amber-600);
+      --color-background: #e4d7b0;
+      --color-foreground: #44362c;
+      --color-card: #e7dbbf;
+      --color-card-foreground: #44362c;
+      --color-popover: #f3ead2;
+      --color-popover-foreground: #44362c;
+      --color-primary: #a0af64;
+      --color-primary-foreground: #44362c;
+      --color-secondary: #decea0;
+      --color-secondary-foreground: #44362c;
+      --color-muted: #decea0;
+      --color-muted-foreground: #85766a;
+      --color-accent: #dbc894;
+      --color-accent-foreground: #44362c;
+      --color-destructive: #d98b7e;
+      --color-destructive-foreground: #faf8f2;
+      --color-border: #b19681;
+      --color-input: #dbc894;
+      --color-ring: #9db18c;
     }
   }
 }

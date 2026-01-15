@@ -9,6 +9,8 @@ export const he: Translations = {
   Tackbok: 'טאקבוק',
   Cancel: 'ביטול',
   Done: 'בוצע',
+  Save: 'حفظ',
+  Continue: 'המשך',
   Delete: 'מחק',
   Settings: 'הגדרות',
   'Contact Us': 'צור קשר',
@@ -31,6 +33,9 @@ export const he: Translations = {
   'Delete Entry?': 'מחק רשומה?',
   'Clearing the text will delete this entry entirely.':
     'ניקוי הטקסט ימחק את הרשומה הזו לחלוטין.',
+  'Are you sure you want to go back?': 'האם אתה בטוח שברצונך לחזור אחורה?',
+  'Your entry is unsaved and your changes will be lost!':
+    'הערך שלך לא נשמר והשינויים שלך יאבדו!',
 
   // Milestones
   'days of gratitude': 'ימים של הכרת טובה',

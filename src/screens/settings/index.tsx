@@ -144,10 +144,10 @@ export default function SettingsScreen() {
             showChevron
           />
           <View className="px-4 py-3 border-b border-border">
-            <Text className="text-base text-foreground">
+            <Text className="text-base font-medium text-foreground">
               {t('Timeline Entry Length')}
             </Text>
-            <Text className="text-xs text-muted-foreground mt-0.5 mb-2">
+            <Text className="text-sm text-foreground mt-0.5 mb-2">
               {t('Number of lines shown in the timeline')}
             </Text>
             <SettingsSlider

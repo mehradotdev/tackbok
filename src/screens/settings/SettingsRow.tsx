@@ -36,9 +36,9 @@ export function SettingsRow({
         disabled && 'opacity-50',
       )}>
       <View className="flex-1 mr-3">
-        <Text className="text-base text-foreground">{label}</Text>
+        <Text className="text-base text-foreground font-medium">{label}</Text>
         {description && (
-          <Text className="text-xs text-muted-foreground mt-0.5">{description}</Text>
+          <Text className="text-sm text-foreground mt-0.5">{description}</Text>
         )}
       </View>
       <View className="flex-row items-center">

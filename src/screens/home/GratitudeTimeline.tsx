@@ -122,6 +122,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
             <TimelineItem item={item} onPress={() => onEntryPress(item)} />
           )
         }
+        ListFooterComponent={<View className="h-8" />}
         contentContainerClassName="pb-4"
         recycleItems
       />

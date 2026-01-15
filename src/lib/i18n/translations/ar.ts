@@ -9,6 +9,8 @@ export const ar: Translations = {
   Tackbok: 'تاكبوك',
   Cancel: 'إلغاء',
   Done: 'تم',
+  Save: 'حفظ',
+  Continue: 'متابعة',
   Delete: 'حذف',
   Settings: 'الإعدادات',
   'Contact Us': 'اتصل بنا',
@@ -31,6 +33,9 @@ export const ar: Translations = {
   'Delete Entry?': 'حذف السجل؟',
   'Clearing the text will delete this entry entirely.':
     'مسح النص سيؤدي إلى حذف هذا السجل تماماً.',
+  'Are you sure you want to go back?': 'هل أنت متأكد أنك تريد الرجوع؟',
+  'Your entry is unsaved and your changes will be lost!':
+    'لم يتم حفظ إدخالك وسوف تضيع تغييراتك!',
 
   // Milestones
   'days of gratitude': 'أيام من الامتنان',

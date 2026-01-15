@@ -45,7 +45,7 @@ function Icon({ as: IconComponent, className, ...props }: IconProps) {
   return (
     <StyledIcon
       as={IconComponent}
-      strokeWidth={2}
+      strokeWidth={3}
       className={cn('text-foreground size-6', className)}
       {...props}
     />

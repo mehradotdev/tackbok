@@ -118,7 +118,7 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
     <>
       <View
         className={`flex-row items-center justify-between px-4 py-3 ${!isLast ? 'border-b border-border' : ''}`}>
-        <Text className="text-base text-foreground">{t('Language')}</Text>
+        <Text className="text-base text-foreground font-medium">{t('Language')}</Text>
 
         <Select value={currentValue} onValueChange={handleLanguageSelect}>
           <SelectTrigger className="min-w-[180px]">
