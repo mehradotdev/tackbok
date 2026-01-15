@@ -5,7 +5,7 @@ import { useTranslation } from '~/lib/i18n';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
-import SettingsLanguageComp from '~/components/SettingsLanguageComp';
+import SettingsLanguageComp from '~/screens/settings/SettingsLanguageComp';
 
 export default function SettingsScreen() {
   const router = useRouter();

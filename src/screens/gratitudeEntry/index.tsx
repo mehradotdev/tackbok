@@ -19,7 +19,7 @@ interface IGratitudeEntryProps {
   entry: IGratitudeDBLog;
 }
 
-export const GratitudeEntry: React.FC<IGratitudeEntryProps> = ({ entry }) => {
+export default function GratitudeEntryScreen({ entry }: IGratitudeEntryProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const [mutedForeground] = useCSSVariable(['--color-muted-foreground']);
@@ -93,4 +93,4 @@ export const GratitudeEntry: React.FC<IGratitudeEntryProps> = ({ entry }) => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
+}
