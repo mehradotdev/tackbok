@@ -4,9 +4,9 @@ import { View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { IGratitudeDBLog } from '~/types';
-import { Header } from '~/components/Header';
-import { SearchResults } from '~/components/SearchResults';
-import { GratitudeTimeline } from '~/components/GratitudeTimeline';
+import { Header } from './Header';
+import { SearchResults } from './SearchResults';
+import { GratitudeTimeline } from './GratitudeTimeline';
 import { GratitudeDatepicker } from '~/components/GratitudeDatepicker';
 
 export default function HomeScreen() {
