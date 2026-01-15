@@ -42,6 +42,66 @@ export const zhCN: Translations = {
   'Language change requires app restart. Proceed?': '更改语言需要重启应用。是否继续？',
   Proceed: '继续',
 
+  // Settings - Notifications
+  Notifications: '通知',
+  'Daily Reminder Notifications': '每日提醒通知',
+  'Daily reminder notifications are on': '每日提醒通知已开启',
+  'Daily reminder notifications are off': '每日提醒通知已关闭',
+  'Adjust Reminder Time': '调整提醒时间',
+  'Change your daily reminder time': '更改您的每日提醒时间',
+
+  // Settings - Appearance
+  Appearance: '外观',
+  Theme: '主题',
+  'Choose from over 40 different themes and color schemes':
+    '从40多种不同的主题和配色方案中选择',
+  'Timeline Entry Length': '时间线条目长度',
+  'Number of lines shown in the timeline': '时间线中显示的行数。点击条目可查看完整文本',
+  'Inspirational Quotes': '励志名言',
+  'Gratitude quotes will be shown on entry page': '感恩名言将在条目页面显示',
+  'Date Style': '日期样式',
+  'Date includes day of the week': '日期包含星期几',
+  'First Day of Week': '一周的第一天',
+  'Set the first day of the week in the calendar view': '设置日历视图中一周的第一天',
+  Saturday: '星期六',
+  Sunday: '星期日',
+  Monday: '星期一',
+
+  // Settings - Security
+  Security: '安全',
+  'Unlock Tackbok': '解锁塔克博克',
+  'Lock with biometric scanner if supported':
+    '塔克博克可使用设备的生物识别扫描仪锁定（如果设备支持）',
+
+  // Settings - Backup & Restore
+  'Backup & Restore': '备份与恢复',
+  'Google Drive Backup': 'Google Drive 备份',
+  'Automatically back up your entries with Google Drive':
+    '登录您的 Google Drive 账户以自动备份您的条目',
+  'Backup Frequency': '备份频率',
+  Daily: '每天',
+  Weekly: '每周',
+  'On Every Change': '每次更改时',
+  'Export to CSV': '导出到 CSV',
+  'Manually export your entries to CSV format': '手动将您的条目以 CSV 格式导出到设备',
+  'Import from Backup': '从备份导入',
+  'Select a backed up CSV file to import': '选择要导入的备份 CSV 文件',
+
+  // Settings - App Information
+  'App Information': '应用信息',
+  FAQ: '常见问题',
+  'Read frequently asked questions': '阅读塔克博克的常见问题',
+  'Share Tackbok': '分享塔克博克',
+  'Share the app with friends and family': '喜欢塔克博克吗？与您的朋友和家人分享这个应用',
+  'Privacy Policy': '隐私政策',
+  'Read our privacy policy': '阅读塔克博克的隐私政策',
+  'Terms & Conditions': '条款和条件',
+  'Read our terms and conditions': '阅读我们的条款和条件',
+  Analytics: '分析数据收集',
+  'Collecting anonymized analytics to help diagnose problems':
+    '塔克博克正在收集匿名分析信息以帮助诊断问题和监控趋势',
+  Version: '版本号',
+
   // Date Picker
   'Select Date': '选择日期',
   'Has entry': '有条目',

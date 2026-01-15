@@ -44,6 +44,71 @@ export const ar: Translations = {
     'تغيير اللغة يتطلب إعادة تشغيل التطبيق. هل تريد المتابعة؟',
   Proceed: 'متابعة',
 
+  // Settings - Notifications
+  Notifications: 'الإشعارات',
+  'Daily Reminder Notifications': 'إشعارات التذكير اليومية',
+  'Daily reminder notifications are on': 'إشعارات التذكير اليومية مفعلة',
+  'Daily reminder notifications are off': 'إشعارات التذكير اليومية معطلة',
+  'Adjust Reminder Time': 'ضبط وقت التذكير',
+  'Change your daily reminder time': 'غيّر وقت التذكير اليومي',
+
+  // Settings - Appearance
+  Appearance: 'المظهر',
+  Theme: 'السمة',
+  'Choose from over 40 different themes and color schemes':
+    'اختر من بين أكثر من 40 سمة ونظام ألوان مختلف',
+  'Timeline Entry Length': 'طول إدخال الجدول الزمني',
+  'Number of lines shown in the timeline':
+    'عدد الأسطر المعروضة في الجدول الزمني. النص الكامل يظهر عند النقر على الإدخال',
+  'Inspirational Quotes': 'اقتباسات ملهمة',
+  'Gratitude quotes will be shown on entry page':
+    'ستظهر اقتباسات الامتنان في صفحة الإدخال',
+  'Date Style': 'نمط التاريخ',
+  'Date includes day of the week': 'التاريخ يتضمن يوم الأسبوع',
+  'First Day of Week': 'أول يوم في الأسبوع',
+  'Set the first day of the week in the calendar view':
+    'حدد أول يوم في الأسبوع في عرض التقويم',
+  Saturday: 'السبت',
+  Sunday: 'الأحد',
+  Monday: 'الاثنين',
+
+  // Settings - Security
+  Security: 'الأمان',
+  'Unlock Tackbok': 'فتح تاكبوك',
+  'Lock with biometric scanner if supported':
+    'يمكن لتاكبوك القفل باستخدام الماسح البيومتري لجهازك (إذا كان مدعوماً)',
+
+  // Settings - Backup & Restore
+  'Backup & Restore': 'النسخ الاحتياطي والاستعادة',
+  'Google Drive Backup': 'نسخ احتياطي على Google Drive',
+  'Automatically back up your entries with Google Drive':
+    'سجّل الدخول باستخدام حساب Google Drive لإجراء نسخ احتياطي تلقائي لإدخالاتك',
+  'Backup Frequency': 'تكرار النسخ الاحتياطي',
+  Daily: 'يومياً',
+  Weekly: 'أسبوعياً',
+  'On Every Change': 'عند كل تغيير',
+  'Export to CSV': 'تصدير إلى CSV',
+  'Manually export your entries to CSV format':
+    'صدّر إدخالاتك يدوياً بتنسيق CSV إلى جهازك',
+  'Import from Backup': 'استيراد من نسخة احتياطية',
+  'Select a backed up CSV file to import': 'حدد ملف CSV محفوظ للاستيراد',
+
+  // Settings - App Information
+  'App Information': 'معلومات التطبيق',
+  FAQ: 'الأسئلة الشائعة',
+  'Read frequently asked questions': 'اقرأ الأسئلة الشائعة عن تاكبوك',
+  'Share Tackbok': 'شارك تاكبوك',
+  'Share the app with friends and family':
+    'هل تستمتع بتاكبوك؟ شارك التطبيق مع أصدقائك وعائلتك',
+  'Privacy Policy': 'سياسة الخصوصية',
+  'Read our privacy policy': 'اقرأ سياسة خصوصية تاكبوك',
+  'Terms & Conditions': 'الشروط والأحكام',
+  'Read our terms and conditions': 'اقرأ الشروط والأحكام',
+  Analytics: 'جمع بيانات التحليلات',
+  'Collecting anonymized analytics to help diagnose problems':
+    'يقوم تاكبوك بجمع معلومات تحليلية مجهولة للمساعدة في تشخيص المشاكل ومراقبة الاتجاهات',
+  Version: 'رقم الإصدار',
+
   // Date Picker
   'Select Date': 'اختر تاريخاً',
   'Has entry': 'يحتوي على مدخل',

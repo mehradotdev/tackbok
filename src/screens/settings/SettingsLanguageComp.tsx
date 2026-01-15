@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 
-export default function SettingsLanguageComp() {
+export default function SettingsLanguageComp({ isLast = false }: { isLast?: boolean }) {
   const {
     t,
     localePreference,
@@ -116,7 +116,8 @@ export default function SettingsLanguageComp() {
 
   return (
     <>
-      <View className="flex-row items-center justify-between py-3">
+      <View
+        className={`flex-row items-center justify-between px-4 py-3 ${!isLast ? 'border-b border-border' : ''}`}>
         <Text className="text-base text-foreground">{t('Language')}</Text>
 
         <Select value={currentValue} onValueChange={handleLanguageSelect}>
