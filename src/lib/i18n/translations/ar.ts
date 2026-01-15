@@ -32,6 +32,9 @@ export const ar: Translations = {
   'Clearing the text will delete this entry entirely.':
     'مسح النص سيؤدي إلى حذف هذا السجل تماماً.',
 
+  // Milestones
+  'days of gratitude': 'أيام من الامتنان',
+
   // Settings
   Language: 'اللغة',
   'Select Language': 'اختر اللغة',

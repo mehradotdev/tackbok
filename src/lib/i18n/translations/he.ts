@@ -32,6 +32,9 @@ export const he: Translations = {
   'Clearing the text will delete this entry entirely.':
     'ניקוי הטקסט ימחק את הרשומה הזו לחלוטין.',
 
+  // Milestones
+  'days of gratitude': 'ימים של הכרת טובה',
+
   // Settings
   Language: 'שפה',
   'Select Language': 'בחר שפה',
