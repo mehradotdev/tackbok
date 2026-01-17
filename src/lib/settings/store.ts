@@ -59,7 +59,7 @@ export const useSettingsStore = create<SettingsState>()(
       biometricUnlockEnabled: false,
       googleDriveBackupEnabled: false,
       backupFrequency: 'daily',
-      analyticsEnabled: true,
+      analyticsEnabled: false,
       _hasHydrated: false,
 
       // Actions

@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Modal, Pressable } from 'react-native';
-import { Circle, CircleDot } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
-import { Icon } from '~/components/ui/icon';
+import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group';
+import { Label } from '~/components/ui/label';
 
 type BackupFrequencyOption = 'daily' | 'weekly' | 'on_change';
 
@@ -23,7 +23,14 @@ export function SettingsBackupFrequencyModal({
   onValueChange,
 }: SettingsBackupFrequencyModalProps) {
   const { t } = useTranslation();
-  const [tempValue, setTempValue] = useState(value);
+  const [tempValue, setTempValue] = useState<BackupFrequencyOption>(value);
+
+  // Sync local state when modal opens
+  useEffect(() => {
+    if (visible) {
+      setTempValue(value);
+    }
+  }, [visible, value]);
 
   const options: { value: BackupFrequencyOption; label: string }[] = [
     { value: 'daily', label: t('Daily') },
@@ -48,20 +55,25 @@ export function SettingsBackupFrequencyModal({
             {t('Backup Frequency')}
           </Text>
 
-          <View className="mb-6">
+          <RadioGroup
+            value={tempValue}
+            onValueChange={(val) => setTempValue(val as BackupFrequencyOption)}
+            className="mb-6 gap-0">
             {options.map((option) => (
-              <Pressable
-                key={option.value}
-                className="flex-row items-center py-3 border-b border-border last:border-b-0"
-                onPress={() => setTempValue(option.value)}>
-                <Icon
-                  as={tempValue === option.value ? CircleDot : Circle}
-                  className={`mr-3 size-5 ${tempValue === option.value ? 'text-primary' : 'text-muted-foreground'}`}
+              <View key={option.value} className="flex-row items-center py-3 gap-3">
+                <RadioGroupItem
+                  value={option.value}
+                  aria-labelledby={`label-${option.value}`}
                 />
-                <Text className="text-base text-foreground">{option.label}</Text>
-              </Pressable>
+                <Label
+                  nativeID={`label-${option.value}`}
+                  onPress={() => setTempValue(option.value)}
+                  className="text-base text-foreground font-normal flex-1">
+                  {option.label}
+                </Label>
+              </View>
             ))}
-          </View>
+          </RadioGroup>
 
           <View className="flex-row gap-3">
             <Button variant="outline" className="flex-1" onPress={onClose}>

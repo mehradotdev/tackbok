@@ -67,7 +67,7 @@ export default function SettingsScreen() {
       sunday: t('Sunday'),
       monday: t('Monday'),
     };
-    return labels[firstDayOfWeek];
+    return labels[firstDayOfWeek] ?? t('Monday');
   };
 
   // Helper to get backup frequency label
@@ -77,7 +77,7 @@ export default function SettingsScreen() {
       weekly: t('Weekly'),
       on_change: t('On Every Change'),
     };
-    return labels[backupFrequency];
+    return labels[backupFrequency] ?? t('Daily');
   };
 
   // App version

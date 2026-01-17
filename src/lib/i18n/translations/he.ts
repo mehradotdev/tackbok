@@ -9,7 +9,7 @@ export const he: Translations = {
   Tackbok: 'טאקבוק',
   Cancel: 'ביטול',
   Done: 'בוצע',
-  Save: 'حفظ',
+  Save: 'שמור',
   Continue: 'המשך',
   Delete: 'מחק',
   Settings: 'הגדרות',
