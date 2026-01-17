@@ -53,7 +53,7 @@ export const en: Translations = {
 
   // Settings - Notifications
   Notifications: 'Notifications',
-  'Daily Reminder Notifications': 'Daily Reminder Notifications',
+  'Daily Reminder': 'Daily Reminder',
   'Daily reminder notifications are on': 'Daily reminder notifications are on',
   'Daily reminder notifications are off': 'Daily reminder notifications are off',
   'Adjust Reminder Time': 'Adjust Reminder Time',

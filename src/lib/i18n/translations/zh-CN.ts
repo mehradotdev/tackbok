@@ -49,7 +49,7 @@ export const zhCN: Translations = {
 
   // Settings - Notifications
   Notifications: '通知',
-  'Daily Reminder Notifications': '每日提醒通知',
+  'Daily Reminder': '每日提醒',
   'Daily reminder notifications are on': '每日提醒通知已开启',
   'Daily reminder notifications are off': '每日提醒通知已关闭',
   'Adjust Reminder Time': '调整提醒时间',

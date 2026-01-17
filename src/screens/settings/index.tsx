@@ -2,7 +2,28 @@ import { useState } from 'react';
 import { View, Pressable, ScrollView, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
-import { ArrowLeft, ArrowRight, Clock } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bell,
+  Clock,
+  Palette,
+  AlignLeft,
+  Quote,
+  Calendar,
+  CalendarDays,
+  Fingerprint,
+  CloudUpload,
+  RefreshCw,
+  Share2,
+  HelpCircle,
+  FileText,
+  Shield,
+  BarChart3,
+  Info,
+  FileOutput,
+  FileInput,
+} from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
@@ -100,12 +121,13 @@ export default function SettingsScreen() {
         {/* Notifications Section */}
         <SettingsSection title={t('Notifications')} className="pt-4">
           <SettingsRow
-            label={t('Daily Reminder Notifications')}
+            label={t('Daily Reminder')}
             description={
               dailyReminderEnabled
                 ? t('Daily reminder notifications are on')
                 : t('Daily reminder notifications are off')
             }
+            icon={Bell}
             onPress={() => setDailyReminderEnabled(!dailyReminderEnabled)}
             rightElement={
               // pointerEvents="none" to prevent the switch from being interactable by touch
@@ -117,13 +139,13 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Adjust Reminder Time')}
             description={t('Change your daily reminder time')}
+            icon={Clock}
             onPress={() => setShowTimePickerModal(true)}
             showChevron
             disabled={!dailyReminderEnabled}
             isLast
             rightElement={
               <View className="flex-row items-center">
-                {/* <Icon as={Clock} className="text-muted-foreground size-4 mr-1" /> */}
                 <Text className="text-base text-muted-foreground">
                   {formatTime(reminderTime)}
                 </Text>
@@ -138,29 +160,38 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Theme')}
             description={t('Choose from over 40 different themes and color schemes')}
+            icon={Palette}
             onPress={() => {
               // TODO: Navigate to theme selection page
             }}
             showChevron
           />
-          <View className="px-4 py-3 border-b border-border">
-            <Text className="text-base font-medium text-foreground">
-              {t('Timeline Entry Length')}
-            </Text>
-            <Text className="text-sm text-foreground/80 mt-0.5 mb-2">
-              {t('Number of lines shown in the timeline')}
-            </Text>
-            <SettingsSlider
-              value={timelineEntryLength}
-              onValueChange={setTimelineEntryLength}
-              minimumValue={1}
-              maximumValue={50}
-              step={1}
-            />
+          <View className="px-3 py-3 border-b border-border">
+            <View className="flex-row items-start">
+              <View className="mr-3 mt-0.5">
+                <Icon as={AlignLeft} strokeWidth={2} className="text-foreground size-5" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-base font-medium text-foreground">
+                  {t('Timeline Entry Length')}
+                </Text>
+                <Text className="text-sm text-foreground/80 mt-0.5 mb-2">
+                  {t('Number of lines shown in the timeline')}
+                </Text>
+                <SettingsSlider
+                  value={timelineEntryLength}
+                  onValueChange={setTimelineEntryLength}
+                  minimumValue={1}
+                  maximumValue={50}
+                  step={1}
+                />
+              </View>
+            </View>
           </View>
           <SettingsRow
             label={t('Inspirational Quotes')}
             description={t('Gratitude quotes will be shown on entry page')}
+            icon={Quote}
             onPress={() => setInspirationalQuotesEnabled(!inspirationalQuotesEnabled)}
             rightElement={
               <View pointerEvents="none">
@@ -171,6 +202,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Date Style')}
             description={t('Date includes day of the week')}
+            icon={Calendar}
             onPress={() => setDateIncludesDayOfWeek(!dateIncludesDayOfWeek)}
             rightElement={
               <View pointerEvents="none">
@@ -181,6 +213,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('First Day of Week')}
             description={t('Set the first day of the week in the calendar view')}
+            icon={CalendarDays}
             onPress={() => setShowFirstDayModal(true)}
             showChevron
             rightElement={
@@ -197,6 +230,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Unlock Tackbok')}
             description={t('Lock with biometric scanner if supported')}
+            icon={Fingerprint}
             isLast
             onPress={() => setBiometricUnlockEnabled(!biometricUnlockEnabled)}
             rightElement={
@@ -212,6 +246,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Google Drive Backup')}
             description={t('Automatically back up your entries with Google Drive')}
+            icon={CloudUpload}
             onPress={() => setGoogleDriveBackupEnabled(!googleDriveBackupEnabled)}
             rightElement={
               <View pointerEvents="none">
@@ -222,6 +257,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Backup Frequency')}
             description={getBackupFrequencyLabel()}
+            icon={RefreshCw}
             onPress={() => setShowBackupFrequencyModal(true)}
             showChevron
             disabled={!googleDriveBackupEnabled}
@@ -229,6 +265,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Export to CSV')}
             description={t('Manually export your entries to CSV format')}
+            icon={FileOutput}
             onPress={() => {
               // TODO: Implement CSV export
             }}
@@ -237,6 +274,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Import from Backup')}
             description={t('Select a backed up CSV file to import')}
+            icon={FileInput}
             onPress={() => {
               // TODO: Implement import functionality
             }}
@@ -250,6 +288,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Share Tackbok')}
             description={t('Share the app with friends and family')}
+            icon={Share2}
             onPress={() => {
               // TODO: Implement share functionality
             }}
@@ -258,6 +297,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('FAQ')}
             description={t('Read frequently asked questions')}
+            icon={HelpCircle}
             onPress={() => {
               // TODO: Navigate to FAQ
               Linking.openURL('https://tackbok.app/faq');
@@ -267,6 +307,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Terms & Conditions')}
             description={t('Read our terms and conditions')}
+            icon={FileText}
             onPress={() => {
               // TODO: Navigate to Terms
               Linking.openURL('https://tackbok.app/terms');
@@ -276,6 +317,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Privacy Policy')}
             description={t('Read our privacy policy')}
+            icon={Shield}
             onPress={() => {
               // TODO: Navigate to Privacy Policy
               Linking.openURL('https://tackbok.app/privacy');
@@ -285,6 +327,7 @@ export default function SettingsScreen() {
           <SettingsRow
             label={t('Analytics')}
             description={t('Collecting anonymized analytics to help diagnose problems')}
+            icon={BarChart3}
             onPress={() => setAnalyticsEnabled(!analyticsEnabled)}
             rightElement={
               <View pointerEvents="none">
@@ -292,7 +335,7 @@ export default function SettingsScreen() {
               </View>
             }
           />
-          <SettingsRow label={t('Version')} description={appVersion} isLast />
+          <SettingsRow label={t('Version')} description={appVersion} icon={Info} isLast />
         </SettingsSection>
 
         {/* Bottom spacing */}

@@ -50,7 +50,7 @@ export const zhTW: Translations = {
 
   // Settings - Notifications
   Notifications: '通知',
-  'Daily Reminder Notifications': '每日提醒通知',
+  'Daily Reminder': '每日提醒',
   'Daily reminder notifications are on': '每日提醒通知已開啟',
   'Daily reminder notifications are off': '每日提醒通知已關閉',
   'Adjust Reminder Time': '調整提醒時間',
