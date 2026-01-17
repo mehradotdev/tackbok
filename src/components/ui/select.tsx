@@ -56,7 +56,8 @@ function SelectTrigger({
       <Icon
         as={ChevronDown}
         aria-hidden={true}
-        className="text-muted-foreground size-4"
+        strokeWidth={2}
+        className="text-foreground size-4"
       />
     </SelectPrimitive.Trigger>
   );

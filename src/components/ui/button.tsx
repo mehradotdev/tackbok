@@ -9,12 +9,11 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary active:bg-primary/90 shadow-sm shadow-black/5',
-        destructive:
-          'bg-destructive active:bg-destructive/90 dark:bg-destructive/60 shadow-sm shadow-black/5',
+        destructive: 'bg-destructive active:bg-destructive/90 shadow-sm shadow-black/5',
         outline:
-          'border-border bg-background active:bg-accent dark:bg-input/30 dark:border-input dark:active:bg-input/50 border shadow-sm shadow-black/5',
+          'border-border bg-background active:bg-accent border shadow-sm shadow-black/5',
         secondary: 'bg-secondary active:bg-secondary/80 shadow-sm shadow-black/5',
-        ghost: 'active:bg-accent dark:active:bg-accent/50',
+        ghost: 'active:bg-accent',
         link: '',
       },
       size: {
@@ -22,6 +21,7 @@ const buttonVariants = cva(
         sm: 'h-9 gap-1.5 rounded-md px-3 sm:h-8',
         lg: 'h-11 rounded-md px-6 sm:h-10',
         icon: 'h-10 w-10 sm:h-9 sm:w-9',
+        flex: 'flex-1 h-auto',
       },
     },
     defaultVariants: {
@@ -46,6 +46,7 @@ const buttonTextVariants = cva('text-foreground text-base font-bold', {
       sm: '',
       lg: '',
       icon: '',
+      flex: '',
     },
   },
   defaultVariants: {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, I18nManager, Platform } from 'react-native';
 import { reloadAppAsync } from 'expo';
+import { cn } from '~/lib/utils';
 import { useTranslation, languages, type LanguageInfo } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import {
@@ -93,6 +94,7 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
 
   const handleConfirmLanguageChange = () => {
     if (!pendingLanguage) return;
+    const shouldBeRTL = pendingLanguage.isRTL;
     // Update the locale preference
     setLocale(pendingLanguage.code);
     setShowConfirmDialog(false);
@@ -100,7 +102,6 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
 
     // Configure I18nManager for RTL if needed (only on native platforms)
     if (Platform.OS === 'web') return;
-    const shouldBeRTL = pendingLanguage.isRTL;
     I18nManager.allowRTL(shouldBeRTL);
     I18nManager.forceRTL(shouldBeRTL);
 
@@ -117,7 +118,10 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
   return (
     <>
       <View
-        className={`flex-row items-center justify-between px-4 py-3 ${!isLast ? 'border-b border-border' : ''}`}>
+        className={cn(
+          'flex-row items-center justify-between px-3 py-3',
+          !isLast && 'border-b border-border',
+        )}>
         <Text className="text-base text-foreground font-medium">{t('Language')}</Text>
 
         <Select value={currentValue} onValueChange={handleLanguageSelect}>

@@ -66,7 +66,10 @@ export const useSettingsStore = create<SettingsState>()(
       setDailyReminderEnabled: (enabled) => set({ dailyReminderEnabled: enabled }),
       setReminderTime: (time) => set({ reminderTime: time }),
       setTheme: (theme) => set({ theme }),
-      setTimelineEntryLength: (length) => set({ timelineEntryLength: length }),
+      setTimelineEntryLength: (length) => {
+        const safeLength = Math.max(1, Math.min(50, length));
+        set({ timelineEntryLength: safeLength });
+      },
       setInspirationalQuotesEnabled: (enabled) =>
         set({ inspirationalQuotesEnabled: enabled }),
       setDateIncludesDayOfWeek: (enabled) => set({ dateIncludesDayOfWeek: enabled }),
@@ -82,7 +85,11 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'tackbok-settings',
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
+        if (state) {
+          state.setHasHydrated(true);
+        } else {
+          console.warn('Settings store rehydration failed');
+        }
       },
       partialize: (state) => ({
         dailyReminderEnabled: state.dailyReminderEnabled,

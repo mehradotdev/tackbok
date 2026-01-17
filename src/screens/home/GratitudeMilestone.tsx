@@ -41,7 +41,7 @@ export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milesto
             <Text variant="h2">{milestone.milestoneDays}</Text> {t('days of gratitude')}
           </Text>
           {/* TODO: Make a separate component for Tackbok Image */}
-          <View className="items-center pb-2">
+          <View className="items-center">
             {theme === 'dark' ? (
               <Image
                 source={require('~/../assets/images/logo_transparent_dark.png')}

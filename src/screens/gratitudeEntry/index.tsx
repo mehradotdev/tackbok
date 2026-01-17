@@ -43,6 +43,7 @@ export default function GratitudeEntryScreen({ entry }: IGratitudeEntryProps) {
 
   // Calculate derive state for unsaved changes
   const originalContent = entry.entryContent || '';
+  // Empty text doesn't count as unsaved - it triggers the delete flow instead
   const hasUnsavedChanges = text !== originalContent && !isNowEmpty;
 
   // Disable Swipe on iOS when dirty to prevent native stack crash
@@ -126,9 +127,7 @@ export default function GratitudeEntryScreen({ entry }: IGratitudeEntryProps) {
           <Button
             onPress={onSave}
             variant={isExistingEntry && isNowEmpty ? 'destructive' : 'default'}>
-            <Text className="">
-              {isExistingEntry && isNowEmpty ? t('Delete') : t('Save')}
-            </Text>
+            <Text>{isExistingEntry && isNowEmpty ? t('Delete') : t('Save')}</Text>
           </Button>
         </View>
 

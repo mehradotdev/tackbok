@@ -7,6 +7,7 @@ import { Text } from '~/components/ui/text';
 interface SettingsSliderProps {
   value: number;
   onValueChange: (value: number) => void;
+  onSlidingComplete?: (value: number) => void;
   minimumValue: number;
   maximumValue: number;
   step?: number;
@@ -47,7 +48,7 @@ export function SettingsSlider({
         thumbTintColor={thumbTintColor}
       />
       {showValue && (
-        <Text className="text-sm text-muted-foreground ml-3 min-w-[28px] text-right">
+        <Text className="text-base text-foreground ml-3 min-w-[28px] text-right">
           {Math.round(value)}
         </Text>
       )}

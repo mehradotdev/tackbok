@@ -46,9 +46,9 @@ export const Header: React.FC<IHeaderProps> = ({
         </View>
 
         {/* Search Icon (decorative) */}
-        <Button className="p-1" variant="ghost">
+        <View className="p-1">
           <Icon as={Search} className="text-primary-foreground" />
-        </Button>
+        </View>
       </View>
     );
   }
