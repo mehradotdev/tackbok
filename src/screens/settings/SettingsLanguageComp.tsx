@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, I18nManager, Platform } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
 import { reloadAppAsync } from 'expo';
+import { Globe } from 'lucide-react-native';
 import { useTranslation, languages, type LanguageInfo } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import {
@@ -22,8 +23,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
+import { SettingsRow } from './SettingsRow';
 
-export default function SettingsLanguageComp() {
+export default function SettingsLanguageComp({ isLast = false }: { isLast?: boolean }) {
   const {
     t,
     localePreference,
@@ -93,6 +95,7 @@ export default function SettingsLanguageComp() {
 
   const handleConfirmLanguageChange = () => {
     if (!pendingLanguage) return;
+    const shouldBeRTL = pendingLanguage.isRTL;
     // Update the locale preference
     setLocale(pendingLanguage.code);
     setShowConfirmDialog(false);
@@ -100,7 +103,6 @@ export default function SettingsLanguageComp() {
 
     // Configure I18nManager for RTL if needed (only on native platforms)
     if (Platform.OS === 'web') return;
-    const shouldBeRTL = pendingLanguage.isRTL;
     I18nManager.allowRTL(shouldBeRTL);
     I18nManager.forceRTL(shouldBeRTL);
 
@@ -116,32 +118,35 @@ export default function SettingsLanguageComp() {
 
   return (
     <>
-      <View className="flex-row items-center justify-between py-3">
-        <Text className="text-base text-foreground">{t('Language')}</Text>
+      <SettingsRow
+        label={t('Language')}
+        icon={Globe}
+        isLast={isLast}
+        rightElement={
+          <Select value={currentValue} onValueChange={handleLanguageSelect}>
+            <SelectTrigger className="min-w-[180px]">
+              <SelectValue placeholder={t('Select Language')} />
+            </SelectTrigger>
+            <SelectContent className="min-w-[220px]">
+              <NativeSelectScrollView className="max-h-72">
+                {/* Device Default Option - only show if device language is supported */}
+                {isDeviceDefaultLocaleSupported && deviceDefaultLocale && (
+                  <SelectItem value="device" label={t('Device Default')} />
+                )}
 
-        <Select value={currentValue} onValueChange={handleLanguageSelect}>
-          <SelectTrigger className="min-w-[180px]">
-            <SelectValue placeholder={t('Select Language')} />
-          </SelectTrigger>
-          <SelectContent className="min-w-[220px]">
-            <NativeSelectScrollView className="max-h-72">
-              {/* Device Default Option - only show if device language is supported */}
-              {isDeviceDefaultLocaleSupported && deviceDefaultLocale && (
-                <SelectItem value="device" label={t('Device Default')} />
-              )}
-
-              {/* Language Options */}
-              {languages.map((lang) => (
-                <SelectItem
-                  key={lang.code}
-                  value={lang.code}
-                  label={`${lang.nativeName} (${lang.displayName})`}
-                />
-              ))}
-            </NativeSelectScrollView>
-          </SelectContent>
-        </Select>
-      </View>
+                {/* Language Options */}
+                {languages.map((lang) => (
+                  <SelectItem
+                    key={lang.code}
+                    value={lang.code}
+                    label={`${lang.nativeName} (${lang.displayName})`}
+                  />
+                ))}
+              </NativeSelectScrollView>
+            </SelectContent>
+          </Select>
+        }
+      />
 
       {/* Language Change Confirmation Dialog */}
       <AlertDialog

@@ -46,7 +46,7 @@ function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'border-input dark:bg-input/30 dark:active:bg-input/50 bg-background flex h-10 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9',
+        'border-border bg-background flex h-10 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9',
         props.disabled && 'opacity-50',
         size === 'sm' && 'h-8 py-2 sm:py-1.5',
         className,
@@ -56,7 +56,8 @@ function SelectTrigger({
       <Icon
         as={ChevronDown}
         aria-hidden={true}
-        className="text-muted-foreground size-4"
+        strokeWidth={2}
+        className="text-foreground size-4"
       />
     </SelectPrimitive.Trigger>
   );
@@ -123,7 +124,7 @@ function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'active:bg-accent group relative flex w-full flex-row items-center gap-2 rounded-sm py-2 pl-2 pr-8 sm:py-1.5',
+        'active:bg-accent/50 group relative flex w-full flex-row items-center gap-2 rounded-sm py-2 pl-2 pr-8 sm:py-1.5',
         props.disabled && 'opacity-50',
         className,
       )}

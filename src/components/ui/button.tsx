@@ -1,7 +1,7 @@
-import { TextClassContext } from '~/components/ui/text';
-import { cn } from '~/lib/utils';
-import { cva, type VariantProps } from 'class-variance-authority';
 import { Pressable } from 'react-native';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '~/lib/utils';
+import { TextClassContext } from '~/components/ui/text';
 
 const buttonVariants = cva(
   'group shrink-0 flex-row items-center justify-center gap-2 rounded-md shadow-none',
@@ -9,43 +9,44 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary active:bg-primary/90 shadow-sm shadow-black/5',
-        destructive:
-          'bg-destructive active:bg-destructive/90 dark:bg-destructive/60 shadow-sm shadow-black/5',
+        destructive: 'bg-destructive active:bg-destructive/90 shadow-sm shadow-black/5',
         outline:
-          'border-border bg-background active:bg-accent dark:bg-input/30 dark:border-input dark:active:bg-input/50 border shadow-sm shadow-black/5',
+          'border-border bg-background active:bg-accent border shadow-sm shadow-black/5',
         secondary: 'bg-secondary active:bg-secondary/80 shadow-sm shadow-black/5',
-        ghost: 'active:bg-accent dark:active:bg-accent/50',
+        ghost: 'active:bg-accent',
         link: '',
       },
       size: {
-        default: 'h-10 px-4 py-2 sm:h-9',
+        default: 'h-10 px-4 sm:h-9',
         sm: 'h-9 gap-1.5 rounded-md px-3 sm:h-8',
         lg: 'h-11 rounded-md px-6 sm:h-10',
         icon: 'h-10 w-10 sm:h-9 sm:w-9',
+        flex: 'flex-1 h-auto',
       },
     },
     defaultVariants: {
       variant: 'default',
       size: 'default',
     },
-  }
+  },
 );
 
-const buttonTextVariants = cva('text-foreground text-sm font-medium', {
+const buttonTextVariants = cva('text-foreground text-base font-bold', {
   variants: {
     variant: {
       default: 'text-primary-foreground',
-      destructive: 'text-white',
+      destructive: 'text-destructive-foreground',
       outline: 'group-active:text-accent-foreground',
       secondary: 'text-secondary-foreground',
-      ghost: 'group-active:text-accent-foreground',
-      link: 'text-primary group-active:underline',
+      ghost: 'group-active:text-accent-foreground font-medium',
+      link: 'text-primary underline font-medium',
     },
     size: {
       default: '',
       sm: '',
       lg: '',
       icon: '',
+      flex: '',
     },
   },
   defaultVariants: {
@@ -65,7 +66,7 @@ function Button({ className, variant, size, ...props }: ButtonProps) {
         className={cn(
           props.disabled && 'opacity-50',
           buttonVariants({ variant, size }),
-          className
+          className,
         )}
         role="button"
         {...props}

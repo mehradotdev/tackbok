@@ -1,4 +1,5 @@
 import React from 'react';
+import { reloadAppAsync } from 'expo';
 import { useRouter } from 'expo-router';
 import { EllipsisVertical } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
@@ -17,8 +18,8 @@ export function SettingsDropdownMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger hitSlop={12}>
-        <Icon as={EllipsisVertical} />
+      <DropdownMenuTrigger hitSlop={12} className="py-2 active:bg-accent">
+        <Icon as={EllipsisVertical} className="text-primary-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-background border-0">
         <DropdownMenuItem onPress={() => router.navigate('/settings')}>
@@ -27,6 +28,10 @@ export function SettingsDropdownMenu() {
         <DropdownMenuItem>
           {/* TODO: Open email client with pre-filled subject and body */}
           <Text>{t('Contact Us')}</Text>
+        </DropdownMenuItem>
+        {/* TODO: Remove this before production */}
+        <DropdownMenuItem onPress={() => reloadAppAsync()}>
+          <Text>Reload App</Text>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

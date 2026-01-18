@@ -28,10 +28,10 @@ export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milesto
       {/* --- Timeline Column --- */}
       <View className="w-14 items-center">
         {/* Continuous Line */}
-        <View className={cn('w-[2px] bg-foreground absolute top-0 bottom-0')} />
+        <View className={cn('w-[4px] bg-foreground absolute top-0 bottom-0')} />
 
         {/* The Star/Diamond marker for milestones */}
-        <View className="w-5 h-5 rounded-sm border-2 border-foreground bg-background z-10 mt-6 rotate-45" />
+        <View className="w-5 h-5 rounded-sm border-3 border-foreground bg-background z-10 mt-6 rotate-45" />
       </View>
 
       {/* --- Milestone Content Column --- */}
@@ -41,7 +41,7 @@ export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milesto
             <Text variant="h2">{milestone.milestoneDays}</Text> {t('days of gratitude')}
           </Text>
           {/* TODO: Make a separate component for Tackbok Image */}
-          <View className="items-center pb-2">
+          <View className="items-center">
             {theme === 'dark' ? (
               <Image
                 source={require('~/../assets/images/logo_transparent_dark.png')}

@@ -146,7 +146,7 @@ export function GratitudeDatepicker({
           'active:bg-primary/90 active:scale-95',
           fabClassName,
         )}>
-        <Icon as={Calendar} />
+        <Icon as={Calendar} className="text-primary-foreground" />
       </Pressable>
 
       {/* Modal */}

@@ -25,7 +25,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) =>
         {/* Continuous Line */}
         <View
           className={cn(
-            'w-[2px] bg-foreground absolute top-0',
+            'w-[4px] bg-foreground absolute top-0',
             item.isLast ? 'bottom-4' : 'bottom-0',
           )}
         />
@@ -33,18 +33,18 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({ item, onPress }) =>
         {/* The Dot: z-10 puts it above the line */}
         <View
           className={cn(
-            'w-[14px] h-[14px] rounded-full border-2 border-foreground z-10 mt-6',
+            'w-[14px] h-[14px] rounded-full border-3 border-foreground z-10 mt-6',
             item.entryDate === todayStr ? 'bg-foreground' : 'bg-background',
           )}
         />
         {item.isLast && (
-          <View className="w-[14px] h-[14px] rounded-full bg-foreground border-2 border-foreground z-10 absolute bottom-4" />
+          <View className="w-[14px] h-[14px] rounded-full bg-foreground border-3 border-foreground z-10 absolute bottom-4" />
         )}
       </View>
 
       {/* --- Content Column --- */}
       <View className="flex-1 py-4 pr-4">
-        <Text className="text-lg font-bold text-foreground/80 mb-1 font-serif">
+        <Text className="text-lg font-bold text-foreground mb-1 font-serif">
           {formattedDate}
         </Text>
         {item.entryContent ? (

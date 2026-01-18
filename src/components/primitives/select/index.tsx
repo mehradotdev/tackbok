@@ -1,11 +1,3 @@
-import {
-  useAugmentedRef,
-  useControllableState,
-  useRelativePosition,
-  type LayoutPosition,
-} from '~/components/primitives/hooks';
-import { Portal as RNPPortal } from '~/components/primitives/portal';
-import * as Slot from '~/components/primitives/slot';
 import * as React from 'react';
 import {
   BackHandler,
@@ -16,6 +8,15 @@ import {
   type LayoutChangeEvent,
   type LayoutRectangle,
 } from 'react-native';
+import { cn } from '~/lib/utils';
+import * as Slot from '~/components/primitives/slot';
+import {
+  useAugmentedRef,
+  useControllableState,
+  useRelativePosition,
+  type LayoutPosition,
+} from '~/components/primitives/hooks';
+import { Portal as RNPPortal } from '~/components/primitives/portal';
 import type {
   ContentProps,
   ContentRef,
@@ -339,10 +340,14 @@ function Item({
   onPress: onPressProp,
   disabled = false,
   closeOnPress = true,
+  className,
   ...props
 }: ItemProps & React.RefAttributes<ItemRef>) {
   const { onOpenChange, value, onValueChange, setTriggerPosition, setContentLayout } =
     useRootContext();
+
+  const isSelected = value?.value === itemValue;
+
   function onPress(ev: GestureResponderEvent) {
     if (closeOnPress) {
       setTriggerPosition(null);
@@ -362,13 +367,14 @@ function Item({
         role="option"
         onPress={onPress}
         disabled={disabled}
-        aria-checked={value?.value === itemValue}
+        aria-checked={isSelected}
         aria-valuetext={label}
         aria-disabled={!!disabled}
         accessibilityState={{
           disabled: !!disabled,
-          checked: value?.value === itemValue,
+          checked: isSelected,
         }}
+        className={cn(className, isSelected && 'bg-accent')}
         {...props}
       />
     </ItemContext.Provider>

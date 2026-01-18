@@ -5,6 +5,7 @@ import { useTranslation } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Input } from '~/components/ui/input';
+import { Button } from '~/components/ui/button';
 import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
 
 interface IHeaderProps {
@@ -28,9 +29,9 @@ export const Header: React.FC<IHeaderProps> = ({
     return (
       <View className="flex-row w-full items-center justify-between px-safe-or-4 py-2 bg-primary">
         {/* Back Button */}
-        <Pressable className="p-1" onPress={onBackPress}>
-          <Icon as={isRTL ? ArrowRight : ArrowLeft} />
-        </Pressable>
+        <Button className="p-1" onPress={onBackPress} variant="ghost">
+          <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-primary-foreground" />
+        </Button>
 
         {/* Search Input */}
         <View className="flex-1 mx-3">
@@ -46,7 +47,7 @@ export const Header: React.FC<IHeaderProps> = ({
 
         {/* Search Icon (decorative) */}
         <View className="p-1">
-          <Icon as={Search} />
+          <Icon as={Search} className="text-primary-foreground" />
         </View>
       </View>
     );
@@ -55,11 +56,13 @@ export const Header: React.FC<IHeaderProps> = ({
   return (
     <View className="flex-row w-full items-center justify-between px-safe-or-4 py-2 bg-primary">
       {/* Search Button */}
-      <Pressable className="p-1" onPress={onSearchPress}>
-        <Icon as={Search} />
-      </Pressable>
+      <Button className="p-1" onPress={onSearchPress} variant="ghost">
+        <Icon as={Search} className="text-primary-foreground" />
+      </Button>
 
-      <Text variant="h2">{t('Tackbok')}</Text>
+      <Text variant="h2" className="text-primary-foreground">
+        {t('Tackbok')}
+      </Text>
 
       <SettingsDropdownMenu />
     </View>
