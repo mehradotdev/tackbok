@@ -7,7 +7,6 @@ import { Text } from '~/components/ui/text';
 interface SettingsSliderProps {
   value: number;
   onValueChange: (value: number) => void;
-  onSlidingComplete?: (value: number) => void;
   minimumValue: number;
   maximumValue: number;
   step?: number;

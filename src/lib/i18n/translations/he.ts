@@ -51,7 +51,7 @@ export const he: Translations = {
 
   // Settings - Notifications
   Notifications: 'התראות',
-  'Daily Reminder': 'תזכורת יומיות',
+  'Daily Reminder': 'תזכורת יומית',
   'Daily reminder notifications are on': 'התראות תזכורת יומיות מופעלות',
   'Daily reminder notifications are off': 'התראות תזכורת יומיות כבויות',
   'Adjust Reminder Time': 'התאמת זמן התזכורת',

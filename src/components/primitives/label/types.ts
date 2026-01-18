@@ -1,3 +1,4 @@
+import * as React from 'react';
 import type { ViewStyle } from 'react-native';
 import type {
   PressableRef,

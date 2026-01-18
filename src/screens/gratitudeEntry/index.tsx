@@ -24,6 +24,9 @@ interface IGratitudeEntryProps {
   entry: IGratitudeDBLog;
 }
 
+// Delay needed to allow modal close animation before navigation to prevent crashes on Android
+const MODAL_CLOSE_DELAY = 200;
+
 export default function GratitudeEntryScreen({ entry }: IGratitudeEntryProps) {
   const router = useRouter();
   const navigation = useNavigation();
@@ -93,10 +96,9 @@ export default function GratitudeEntryScreen({ entry }: IGratitudeEntryProps) {
     isSaving.current = true;
     saveMutation.mutate({ date: entry.entryDate, text: text });
     setShowDeleteConfirm(false);
-    // Timeout to allow the modal to close otherwise app crashes in Android
     setTimeout(() => {
       router.back();
-    }, 200);
+    }, MODAL_CLOSE_DELAY);
   };
 
   const handleDiscardChanges = () => {
@@ -105,7 +107,7 @@ export default function GratitudeEntryScreen({ entry }: IGratitudeEntryProps) {
     isSaving.current = true;
     setTimeout(() => {
       router.back();
-    }, 200);
+    }, MODAL_CLOSE_DELAY);
   };
 
   return (

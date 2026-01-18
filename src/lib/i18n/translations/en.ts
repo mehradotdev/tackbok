@@ -93,7 +93,7 @@ export const en: Translations = {
   'Backup Frequency': 'Backup Frequency',
   Daily: 'Daily',
   Weekly: 'Weekly',
-  'On Every Change': 'On every change',
+  'On Every Change': 'On Every Change',
   'Export to CSV': 'Export entries to CSV',
   'Manually export your entries to CSV format':
     'Manually export your entries to CSV format to your device',
