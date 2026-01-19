@@ -91,6 +91,14 @@ export const zhCN: Translations = {
   'Manually export your entries to CSV format': '手动将您的条目以 CSV 格式导出到设备',
   'Import from Backup': '从备份导入',
   'Select a backed up CSV file to import': '选择要导入的备份 CSV 文件',
+  'Entries exported successfully': '条目导出成功',
+  'Export failed': '导出失败',
+  Imported: '已导入',
+  entries: '条条目',
+  'Import failed': '导入失败',
+  'Are you sure you want to import?': '您确定要导入吗？',
+  'Imported data could overwrite existing entries.': '导入的数据可能会覆盖现有条目。',
+  Import: '导入',
 
   // Settings - App Information
   'App Information': '应用信息',
@@ -106,6 +114,16 @@ export const zhCN: Translations = {
   'Collecting anonymized analytics to help diagnose problems':
     '塔克博克正在收集匿名分析信息以帮助诊断问题和监控趋势',
   Version: '版本号',
+
+  // Settings - Danger Zone
+  'Danger Zone': '危险区域',
+  'Delete All Data': '删除所有数据',
+  'Permanently delete all your entries': '永久删除您的所有条目',
+  'Delete all data?': '删除所有数据？',
+  'This action cannot be undone. All your entries will be permanently deleted.':
+    '此操作无法撤销。您的所有条目将被永久删除。',
+  'All data deleted': '所有数据已删除',
+  'Delete failed': '删除失败',
 
   // Date Picker
   'Select Date': '选择日期',

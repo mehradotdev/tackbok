@@ -140,7 +140,7 @@ export function GratitudeDatepicker({
       <Pressable
         onPress={handleOpenModal}
         className={cn(
-          'absolute bottom-12 right-safe-or-6 z-50',
+          'absolute bottom-safe-or-12 right-safe-or-6 z-50',
           'h-14 w-14 items-center justify-center rounded-full',
           'bg-primary shadow-lg shadow-black/25',
           'active:bg-primary/90 active:scale-95',

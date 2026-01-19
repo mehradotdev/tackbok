@@ -111,7 +111,7 @@ function AlertDialogDescription({
   return (
     <AlertDialogPrimitive.Description
       ref={ref}
-      className={cn('text-muted-foreground text-base text-left', className)}
+      className={cn('text-foreground text-base text-left', className)}
       {...props}
     />
   );

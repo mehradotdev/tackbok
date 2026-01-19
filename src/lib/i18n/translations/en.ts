@@ -99,6 +99,15 @@ export const en: Translations = {
     'Manually export your entries to CSV format to your device',
   'Import from Backup': 'Import entries from backup',
   'Select a backed up CSV file to import': 'Select a backed up CSV file to import',
+  'Entries exported successfully': 'Entries exported successfully',
+  'Export failed': 'Export failed',
+  Imported: 'Imported',
+  entries: 'entries',
+  'Import failed': 'Import failed',
+  'Are you sure you want to import?': 'Are you sure you want to import?',
+  'Imported data could overwrite existing entries.':
+    'Imported data could overwrite existing entries.',
+  Import: 'Import',
 
   // Settings - App Information
   'App Information': 'App Information',
@@ -115,6 +124,16 @@ export const en: Translations = {
   'Collecting anonymized analytics to help diagnose problems':
     'Tackbok is collecting anonymized analytics information to help diagnose problems and monitor trends',
   Version: 'Version Number',
+
+  // Settings - Danger Zone
+  'Danger Zone': 'Danger Zone',
+  'Delete All Data': 'Delete All Data',
+  'Permanently delete all your entries': 'Permanently delete all your entries',
+  'Delete all data?': 'Delete all data?',
+  'This action cannot be undone. All your entries will be permanently deleted.':
+    'This action cannot be undone. All your entries will be permanently deleted.',
+  'All data deleted': 'All data deleted',
+  'Delete failed': 'Delete failed',
 
   // Date Picker
   'Select Date': 'Select Date',

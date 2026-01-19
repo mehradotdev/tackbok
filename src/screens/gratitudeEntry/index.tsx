@@ -112,9 +112,7 @@ export default function GratitudeEntryScreen({ entry }: IGratitudeEntryProps) {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1">
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         {/* Header */}
         <View className="flex-row justify-between items-center px-4 py-4 border-b border-border">
           <Button onPress={() => router.back()} variant="link" className="p-0">

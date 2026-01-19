@@ -21,7 +21,7 @@ export function SettingsDropdownMenu() {
       <DropdownMenuTrigger hitSlop={12} className="py-2 active:bg-accent">
         <Icon as={EllipsisVertical} className="text-primary-foreground" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-background border-0">
+      <DropdownMenuContent>
         <DropdownMenuItem onPress={() => router.navigate('/settings')}>
           <Text>{t('Settings')}</Text>
         </DropdownMenuItem>

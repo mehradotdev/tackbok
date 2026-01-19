@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { IGratitudeDBLog } from '~/types';
 import { Header } from './Header';
 import { SearchResults } from './SearchResults';
@@ -52,20 +51,20 @@ export default function HomeScreen() {
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
       />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 w-full"
-        keyboardVerticalOffset={0}>
-        {isSearchMode ? (
+
+      {isSearchMode ? (
+        <KeyboardAvoidingView
+          keyboardVerticalOffset={0}
+          behavior="padding"
+          className="flex-1 w-full">
           <SearchResults searchQuery={searchQuery} onEntryPress={handleEntryPress} />
-        ) : (
-          <>
-            <GratitudeTimeline onEntryPress={handleEntryPress} />
-            <GratitudeDatepicker onDateSelect={handleGratitudeDatepickerPress} />
-          </>
-        )}
-      </KeyboardAvoidingView>
-      <StatusBar style="auto" />
+        </KeyboardAvoidingView>
+      ) : (
+        <>
+          <GratitudeTimeline onEntryPress={handleEntryPress} />
+          <GratitudeDatepicker onDateSelect={handleGratitudeDatepickerPress} />
+        </>
+      )}
     </View>
   );
 }

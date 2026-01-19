@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
+import { cn } from '~/lib/utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -134,6 +135,7 @@ const useToastStore = create<ToastState>((set, get) => ({
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
+// TODO: Add swipe to dismiss
 
 function toast(title: string, opts?: Partial<Omit<ToastData, 'id' | 'title' | 'type'>>) {
   return useToastStore.getState().add({ title, type: 'default', ...opts });
@@ -295,7 +297,10 @@ export function Toaster({
                 if (!open) dismiss(t.id);
               }}
               // Added border-l-4 and dynamic color class
-              className={`bg-background border-border shadow-foreground/5 flex-row items-center justify-between rounded-xl border border-l-4 p-4 shadow-xl ${getTypeStyles(t.type)}`}>
+              className={cn(
+                'bg-popover border-border shadow-foreground/5 flex-row items-center justify-between rounded-xl border border-l-4 p-4 shadow-xl',
+                getTypeStyles(t.type),
+              )}>
               <View className="flex-1 flex-row items-center gap-3">
                 <View>
                   {t.type === 'success' && (
