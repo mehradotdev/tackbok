@@ -96,6 +96,15 @@ export const he: Translations = {
     'ייצא ידנית את הרשומות שלך לפורמט CSV למכשיר',
   'Import from Backup': 'ייבוא מגיבוי',
   'Select a backed up CSV file to import': 'בחר קובץ CSV מגובה לייבוא',
+  'Entries exported successfully': 'הרשומות יוצאו בהצלחה',
+  'Export failed': 'הייצוא נכשל',
+  Imported: 'יובאו',
+  entries: 'רשומות',
+  'Import failed': 'הייבוא נכשל',
+  'Are you sure you want to import?': 'האם אתה בטוח שברצונך לייבא?',
+  'Imported data could overwrite existing entries.':
+    'נתונים מיובאים עלולים לדרוס רשומות קיימות.',
+  Import: 'ייבוא',
 
   // Settings - App Information
   'App Information': 'מידע על האפליקציה',
@@ -112,6 +121,16 @@ export const he: Translations = {
   'Collecting anonymized analytics to help diagnose problems':
     'טאקבוק אוסף מידע אנליטי אנונימי כדי לעזור באבחון בעיות ומעקב אחר מגמות',
   Version: 'מספר גרסה',
+
+  // Settings - Danger Zone
+  'Danger Zone': 'אזור מסוכן',
+  'Delete All Data': 'מחק את כל הנתונים',
+  'Permanently delete all your entries': 'מחק את כל הרשומות שלך לצמיתות',
+  'Delete all data?': 'למחוק את כל הנתונים?',
+  'This action cannot be undone. All your entries will be permanently deleted.':
+    'לא ניתן לבטל פעולה זו. כל הרשומות שלך יימחקו לצמיתות.',
+  'All data deleted': 'כל הנתונים נמחקו',
+  'Delete failed': 'המחיקה נכשלה',
 
   // Date Picker
   'Select Date': 'בחר תאריך',

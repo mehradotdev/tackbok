@@ -1,8 +1,10 @@
 import * as SQLite from 'expo-sqlite';
 import { IGratitudeDBLog, ISaveGratitudeLogResult } from './types';
 
+const DATABASE_NAME = 'tackbok.db';
+
 // Open database synchronously
-export const db = SQLite.openDatabaseSync('gratitude.db');
+export const db = SQLite.openDatabaseSync(DATABASE_NAME);
 
 export const initDB = (): void => {
   // Create main table
@@ -129,13 +131,13 @@ export const searchGratitudeLogs = async (
     .join(' ');
 
   // Use FTS5 MATCH for fast full-text search
-  // The query searches the entryContent column and orders by BM25 relevance score
+  // The query searches the entryContent column and orders by entryDate DESC
   const rows = await db.getAllAsync<IGratitudeDBLog>(
     `SELECT gratitudeLogs.entryDate, gratitudeLogs.entryContent
      FROM gratitudeLogs_fts
      JOIN gratitudeLogs ON gratitudeLogs.rowid = gratitudeLogs_fts.rowid
      WHERE gratitudeLogs_fts MATCH ?
-     ORDER BY bm25(gratitudeLogs_fts), gratitudeLogs.entryDate DESC`,
+     ORDER BY gratitudeLogs.entryDate DESC`,
     [prefixQuery],
   );
   return rows;
@@ -161,6 +163,33 @@ export const saveGratitudeLog = async (
   );
   return { type: 'save', result };
 };
+
+/**
+ * Completely resets the database by dropping all tables and recreating the schema.
+ * This is a destructive operation - all data will be permanently lost.
+ */
+export async function deleteAllData(): Promise<void> {
+  db.execSync('BEGIN');
+  try {
+    // Drop triggers first (they depend on tables)
+    db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_ai');
+    db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_ad');
+    db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_au');
+
+    // Drop FTS virtual table
+    db.execSync('DROP TABLE IF EXISTS gratitudeLogs_fts');
+
+    // Drop main table
+    db.execSync('DROP TABLE IF EXISTS gratitudeLogs');
+
+    // Recreate the schema from scratch
+    initDB();
+    db.execSync('COMMIT');
+  } catch (err) {
+    db.execSync('ROLLBACK');
+    throw err;
+  }
+}
 
 export const generateMockData = async (): Promise<void> => {
   const today = new Date();

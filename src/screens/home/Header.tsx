@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { Search, ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';

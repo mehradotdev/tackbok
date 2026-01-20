@@ -2,6 +2,7 @@ import '../global.css';
 
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Uniwind, useCSSVariable } from 'uniwind';
 import { SafeAreaListener } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -75,6 +76,7 @@ export default function Layout() {
               }}
             />
           </Stack>
+          <StatusBar style="auto" />
           <Toaster />
           <PortalHost />
         </SafeAreaListener>

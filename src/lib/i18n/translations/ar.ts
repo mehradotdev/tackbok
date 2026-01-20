@@ -51,7 +51,7 @@ export const ar: Translations = {
 
   // Settings - Notifications
   Notifications: 'الإشعارات',
-  'Daily Reminder Notifications': 'إشعارات التذكير اليومية',
+  'Daily Reminder': 'التذكير اليومي',
   'Daily reminder notifications are on': 'إشعارات التذكير اليومية مفعلة',
   'Daily reminder notifications are off': 'إشعارات التذكير اليومية معطلة',
   'Adjust Reminder Time': 'ضبط وقت التذكير',
@@ -97,6 +97,15 @@ export const ar: Translations = {
     'صدّر إدخالاتك يدوياً بتنسيق CSV إلى جهازك',
   'Import from Backup': 'استيراد من نسخة احتياطية',
   'Select a backed up CSV file to import': 'حدد ملف CSV محفوظ للاستيراد',
+  'Entries exported successfully': 'تم تصدير السجلات بنجاح',
+  'Export failed': 'فشل التصدير',
+  Imported: 'تم استيراد',
+  entries: 'سجلات',
+  'Import failed': 'فشل الاستيراد',
+  'Are you sure you want to import?': 'هل أنت متأكد أنك تريد الاستيراد؟',
+  'Imported data could overwrite existing entries.':
+    'قد تحل البيانات المستوردة محل السجلات الموجودة.',
+  Import: 'استيراد',
 
   // Settings - App Information
   'App Information': 'معلومات التطبيق',
@@ -113,6 +122,16 @@ export const ar: Translations = {
   'Collecting anonymized analytics to help diagnose problems':
     'يقوم تاكبوك بجمع معلومات تحليلية مجهولة للمساعدة في تشخيص المشاكل ومراقبة الاتجاهات',
   Version: 'رقم الإصدار',
+
+  // Settings - Danger Zone
+  'Danger Zone': 'منطقة الخطر',
+  'Delete All Data': 'حذف جميع البيانات',
+  'Permanently delete all your entries': 'حذف جميع سجلاتك بشكل دائم',
+  'Delete all data?': 'حذف جميع البيانات؟',
+  'This action cannot be undone. All your entries will be permanently deleted.':
+    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك بشكل دائم.',
+  'All data deleted': 'تم حذف جميع البيانات',
+  'Delete failed': 'فشل الحذف',
 
   // Date Picker
   'Select Date': 'اختر تاريخاً',

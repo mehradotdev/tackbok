@@ -128,7 +128,7 @@ function DropdownMenuContent({
             <TextClassContext.Provider value="text-popover-foreground">
               <DropdownMenuPrimitive.Content
                 className={cn(
-                  'bg-popover border-border min-w-32 overflow-hidden rounded-md border p-1 shadow-lg shadow-black/5',
+                  'bg-card border-border min-w-32 overflow-hidden rounded-md border p-1 shadow-lg shadow-black/5',
                   className,
                 )}
                 {...props}>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Pressable, ScrollView, Linking } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, ScrollView, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import {
@@ -23,15 +23,28 @@ import {
   Info,
   FileOutput,
   FileInput,
+  Trash2,
 } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
-import { SafeAreaView } from '~/components/ui/safe-area-view';
+import { exportToCSV, pickCSVFile } from '~/lib/backup';
+import { useDeleteAllData, useImportFromCSV } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
 import { Switch } from '~/components/ui/switch';
 import { SettingsSlider } from '~/components/ui/slider';
+import { toast } from '~/components/ui/toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
 import { SettingsSection } from './SettingsSection';
 import { SettingsRow } from './SettingsRow';
 import { SettingsTimePickerModal } from './SettingsTimePickerModal';
@@ -74,6 +87,61 @@ export default function SettingsScreen() {
   const [showTimePickerModal, setShowTimePickerModal] = useState(false);
   const [showFirstDayModal, setShowFirstDayModal] = useState(false);
   const [showBackupFrequencyModal, setShowBackupFrequencyModal] = useState(false);
+  const [showImportConfirmDialog, setShowImportConfirmDialog] = useState(false);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+
+  // Delete all data mutation
+  const deleteAllMutation = useDeleteAllData();
+
+  // Import from CSV mutation
+  const importMutation = useImportFromCSV();
+
+  // Export to CSV handler
+  const handleExportToCSV = useCallback(async () => {
+    try {
+      await exportToCSV();
+      toast.success(t('Entries exported successfully'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('Export failed');
+      toast.error(message);
+    }
+  }, [t]);
+
+  // Import from CSV handler
+  const handleImportFromCSV = useCallback(async () => {
+    setShowImportConfirmDialog(false);
+    try {
+      const result = await pickCSVFile();
+      if (!result) {
+        return; // User cancelled
+      }
+
+      const asset = result.assets[0];
+      const count = await importMutation.mutateAsync(asset.uri);
+
+      toast.success(`${t('Imported')} ${count} ${t('entries')}`);
+
+      // Navigate to home screen
+      router.replace('/');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('Import failed');
+      toast.error(message);
+    }
+  }, [t, importMutation, router]);
+
+  // Delete all data handler
+  const handleDeleteAllData = useCallback(async () => {
+    setShowDeleteConfirmDialog(false);
+    try {
+      await deleteAllMutation.mutateAsync();
+      toast.success(t('All data deleted'));
+      // Navigate to home screen
+      router.replace('/');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('Delete failed');
+      toast.error(message);
+    }
+  }, [t, deleteAllMutation, router]);
 
   // Helper to format time for display in 24-hour format
   const formatTime = (time: string) => {
@@ -105,9 +173,9 @@ export default function SettingsScreen() {
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <View className="flex-1 bg-background">
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border">
+      <View className="flex-row items-center px-safe-or-4 pt-safe-or-3 pb-3 border-b border-border">
         <Button onPress={() => router.back()} variant="ghost" className="p-1 mr-1">
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Button>
@@ -117,7 +185,7 @@ export default function SettingsScreen() {
       </View>
 
       {/* Settings Content */}
-      <ScrollView>
+      <ScrollView className="px-safe">
         {/* Notifications Section */}
         <SettingsSection title={t('Notifications')} className="pt-4">
           <SettingsRow
@@ -266,18 +334,14 @@ export default function SettingsScreen() {
             label={t('Export to CSV')}
             description={t('Manually export your entries to CSV format')}
             icon={FileOutput}
-            onPress={() => {
-              // TODO: Implement CSV export
-            }}
+            onPress={handleExportToCSV}
             showChevron
           />
           <SettingsRow
             label={t('Import from Backup')}
             description={t('Select a backed up CSV file to import')}
             icon={FileInput}
-            onPress={() => {
-              // TODO: Implement import functionality
-            }}
+            onPress={() => setShowImportConfirmDialog(true)}
             showChevron
             isLast
           />
@@ -338,6 +402,18 @@ export default function SettingsScreen() {
           <SettingsRow label={t('Version')} description={appVersion} icon={Info} isLast />
         </SettingsSection>
 
+        {/* Danger Zone Section */}
+        <SettingsSection title={t('Danger Zone')}>
+          <SettingsRow
+            label={t('Delete All Data')}
+            description={t('Permanently delete all your entries')}
+            icon={Trash2}
+            onPress={() => setShowDeleteConfirmDialog(true)}
+            showChevron
+            isLast
+          />
+        </SettingsSection>
+
         {/* Bottom spacing */}
         <View className="h-8" />
       </ScrollView>
@@ -361,6 +437,56 @@ export default function SettingsScreen() {
         value={backupFrequency}
         onValueChange={setBackupFrequency}
       />
-    </SafeAreaView>
+
+      {/* Import Confirmation Dialog */}
+      <AlertDialog
+        open={showImportConfirmDialog}
+        onOpenChange={setShowImportConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('Are you sure you want to import?')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('Imported data could overwrite existing entries.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <Text>{t('Cancel')}</Text>
+            </AlertDialogCancel>
+            <AlertDialogAction onPress={handleImportFromCSV}>
+              <Text>{t('Import')}</Text>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={showDeleteConfirmDialog}
+        onOpenChange={setShowDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('Delete all data?')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                'This action cannot be undone. All your entries will be permanently deleted.',
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <Text>{t('Cancel')}</Text>
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onPress={handleDeleteAllData}
+              className="bg-destructive active:bg-destructive/90">
+              <Text className="text-destructive-foreground font-bold">
+                {t('Delete All Data')}
+              </Text>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </View>
   );
 }
