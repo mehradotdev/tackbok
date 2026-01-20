@@ -152,11 +152,16 @@ export async function exportToCSV(): Promise<void> {
     });
 
     // Open share sheet
-    await Sharing.shareAsync(fileUri, {
-      mimeType: 'text/csv',
-      dialogTitle: 'Export Gratitude Entries',
-      UTI: 'public.comma-separated-values-text',
-    });
+    try {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Export Gratitude Entries',
+        UTI: 'public.comma-separated-values-text',
+      });
+    } finally {
+      // Best‑effort cleanup of the temp file
+      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+    }
   }
 }
 
@@ -196,7 +201,10 @@ export async function importFromCSV(uri: string): Promise<number> {
   }
 
   // Check header
-  const header = rows[0].map((h) => h.toLowerCase().trim());
+  // Strip UTF-8 BOM from first cell if present (Excel and some tools add this)
+  const header = rows[0].map((h, idx) =>
+    (idx === 0 ? h.replace(/^\uFEFF/, '') : h).toLowerCase().trim(),
+  );
   if (!header.includes('entrydate') || !header.includes('entrycontent')) {
     throw new Error('Invalid CSV format: missing entryDate or entryContent columns');
   }

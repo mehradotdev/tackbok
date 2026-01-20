@@ -123,7 +123,6 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         }
         ListFooterComponent={<View className="h-8" />}
         contentContainerClassName="pb-4"
-        // recycleItems
       />
     </View>
   );

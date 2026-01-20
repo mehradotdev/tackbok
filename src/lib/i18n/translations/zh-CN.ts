@@ -94,7 +94,7 @@ export const zhCN: Translations = {
   'Entries exported successfully': '条目导出成功',
   'Export failed': '导出失败',
   Imported: '已导入',
-  entries: '条条目',
+  entries: '条目',
   'Import failed': '导入失败',
   'Are you sure you want to import?': '您确定要导入吗？',
   'Imported data could overwrite existing entries.': '导入的数据可能会覆盖现有条目。',

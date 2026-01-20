@@ -169,19 +169,26 @@ export const saveGratitudeLog = async (
  * This is a destructive operation - all data will be permanently lost.
  */
 export async function deleteAllData(): Promise<void> {
-  // Drop triggers first (they depend on tables)
-  db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_ai');
-  db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_ad');
-  db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_au');
+  db.execSync('BEGIN');
+  try {
+    // Drop triggers first (they depend on tables)
+    db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_ai');
+    db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_ad');
+    db.execSync('DROP TRIGGER IF EXISTS gratitudeLogs_au');
 
-  // Drop FTS virtual table
-  db.execSync('DROP TABLE IF EXISTS gratitudeLogs_fts');
+    // Drop FTS virtual table
+    db.execSync('DROP TABLE IF EXISTS gratitudeLogs_fts');
 
-  // Drop main table
-  db.execSync('DROP TABLE IF EXISTS gratitudeLogs');
+    // Drop main table
+    db.execSync('DROP TABLE IF EXISTS gratitudeLogs');
 
-  // Recreate the schema from scratch
-  initDB();
+    // Recreate the schema from scratch
+    initDB();
+    db.execSync('COMMIT');
+  } catch (err) {
+    db.execSync('ROLLBACK');
+    throw err;
+  }
 }
 
 export const generateMockData = async (): Promise<void> => {

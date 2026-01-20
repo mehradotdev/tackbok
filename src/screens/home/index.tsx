@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { View, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { IGratitudeDBLog } from '~/types';
 import { Header } from './Header';

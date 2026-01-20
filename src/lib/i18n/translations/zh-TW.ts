@@ -95,7 +95,7 @@ export const zhTW: Translations = {
   'Entries exported successfully': '條目匯出成功',
   'Export failed': '匯出失敗',
   Imported: '已匯入',
-  entries: '條條目',
+  entries: '條目',
   'Import failed': '匯入失敗',
   'Are you sure you want to import?': '您確定要匯入嗎？',
   'Imported data could overwrite existing entries.': '匯入的資料可能會覆蓋現有條目。',

@@ -71,7 +71,6 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
           <SearchResultItem item={item} onPress={() => onEntryPress(item)} />
         )}
         contentContainerClassName="pb-4"
-        // recycleItems
       />
     </View>
   );
