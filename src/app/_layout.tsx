@@ -1,15 +1,17 @@
 import '../global.css';
 
-import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { SafeAreaListener } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Uniwind, useCSSVariable } from 'uniwind';
-import { SafeAreaListener } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { initDB } from '~/database';
+import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
+import { db } from '~/db';
+import migrations from '~/drizzle/migrations';
 import { PortalHost } from '~/components/primitives/portal';
 import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
-import { Toaster, toast } from '~/components/ui/toast';
+import { Toaster } from '~/components/ui/toast';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,19 +27,31 @@ const queryClient = new QueryClient({
 });
 
 export default function Layout() {
+  const { success, error } = useMigrations(db, migrations);
   const [primaryColor, primaryForeground] = useCSSVariable([
     '--color-primary',
     '--color-primary-foreground',
   ]);
 
-  useEffect(() => {
-    try {
-      initDB(); // Initialize DB on boot
-    } catch (error) {
-      console.error('Failed to initialize database:', error);
-      toast.error('Failed to initialize database');
-    }
-  }, []);
+  // Show migration error
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background p-4">
+        <Text className="text-destructive text-center">
+          Database migration error: {error.message}
+        </Text>
+      </View>
+    );
+  }
+
+  // Show loading while migrating
+  if (!success) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <Text className="text-muted-foreground">Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -65,6 +79,13 @@ export default function Layout() {
               name="gratitudeEntry"
               options={{
                 title: 'Gratitude Entry',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="dateEntries"
+              options={{
+                title: 'Date Entries',
                 headerShown: false,
               }}
             />

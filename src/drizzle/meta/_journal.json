@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1769118997586,
+      "tag": "0000_small_roughhouse",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1769121909091,
+      "tag": "0001_yellow_omega_flight",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1769203831586,
+      "tag": "0002_good_hercules",
+      "breakpoints": true
+    }
+  ]
+}
