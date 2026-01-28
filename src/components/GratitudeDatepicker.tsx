@@ -3,7 +3,7 @@ import { format, isAfter, startOfDay } from 'date-fns';
 import { Calendar } from 'lucide-react-native';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, Modal } from 'react-native';
-import { getGratitudeEntryDatesForMonth } from '~/database';
+import { getEntryDatesForMonth } from '~/db/queries';
 import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
 import { Icon } from '~/components/ui/icon';
 
@@ -42,7 +42,7 @@ export function GratitudeDatepicker({
   useEffect(() => {
     if (!isModalVisible) return;
     try {
-      const entryDates = getGratitudeEntryDatesForMonth(
+      const entryDates = getEntryDatesForMonth(
         currentMonthYear.year,
         currentMonthYear.month,
       );
@@ -162,20 +162,6 @@ export function GratitudeDatepicker({
           className="flex-1 items-center justify-center bg-black/50 px-6">
           {/* Modal Content Container - stop propagation */}
           <Pressable onPress={(e) => e.stopPropagation()} className="w-full max-w-sm">
-            {/* Header with close button */}
-            {/* TODO: Uncomment when design finalized */}
-            {/* <View className="mb-2 flex-row items-center justify-between">
-              <Text className="text-lg font-semibold text-white">
-                Select Date
-              </Text>
-              <Pressable
-                onPress={handleCloseModal}
-                className="h-8 w-8 items-center justify-center rounded-full active:bg-white/10"
-              >
-                <X size={20} color="white" />
-              </Pressable>
-            </View> */}
-
             {/* DatePicker */}
             <DatePicker
               value={selectedDate}
@@ -187,21 +173,6 @@ export function GratitudeDatepicker({
               scrollToBottomYearsView={true}
               onMonthChange={handleMonthChange}
             />
-
-            {/* Legend */}
-            {/* <View className="mt-3 flex-row items-center justify-center gap-4">
-              <View className="flex-row items-center gap-2">
-                <View
-                  className="h-3 w-3 rounded-full"
-                  style={{ backgroundColor: entryMarkerColor }}
-                />
-                <Text className="text-sm text-white/80">Has entry</Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <View className="bg-primary h-3 w-3 rounded-full" />
-                <Text className="text-sm text-white/80">Selected</Text>
-              </View>
-            </View> */}
           </Pressable>
         </Pressable>
       </Modal>

@@ -16,6 +16,7 @@ interface SettingsState {
   inspirationalQuotesEnabled: boolean;
   dateIncludesDayOfWeek: boolean;
   firstDayOfWeek: 'saturday' | 'sunday' | 'monday';
+  showTimelineBorders: boolean;
 
   // Security
   biometricUnlockEnabled: boolean;
@@ -38,6 +39,7 @@ interface SettingsState {
   setInspirationalQuotesEnabled: (enabled: boolean) => void;
   setDateIncludesDayOfWeek: (enabled: boolean) => void;
   setFirstDayOfWeek: (day: 'saturday' | 'sunday' | 'monday') => void;
+  setShowTimelineBorders: (enabled: boolean) => void;
   setBiometricUnlockEnabled: (enabled: boolean) => void;
   setGoogleDriveBackupEnabled: (enabled: boolean) => void;
   setBackupFrequency: (frequency: 'daily' | 'weekly' | 'on_change') => void;
@@ -56,6 +58,7 @@ export const useSettingsStore = create<SettingsState>()(
       inspirationalQuotesEnabled: true,
       dateIncludesDayOfWeek: false,
       firstDayOfWeek: 'sunday',
+      showTimelineBorders: false,
       biometricUnlockEnabled: false,
       googleDriveBackupEnabled: false,
       backupFrequency: 'daily',
@@ -74,6 +77,7 @@ export const useSettingsStore = create<SettingsState>()(
         set({ inspirationalQuotesEnabled: enabled }),
       setDateIncludesDayOfWeek: (enabled) => set({ dateIncludesDayOfWeek: enabled }),
       setFirstDayOfWeek: (day) => set({ firstDayOfWeek: day }),
+      setShowTimelineBorders: (enabled) => set({ showTimelineBorders: enabled }),
       setBiometricUnlockEnabled: (enabled) => set({ biometricUnlockEnabled: enabled }),
       setGoogleDriveBackupEnabled: (enabled) =>
         set({ googleDriveBackupEnabled: enabled }),
@@ -99,6 +103,7 @@ export const useSettingsStore = create<SettingsState>()(
         inspirationalQuotesEnabled: state.inspirationalQuotesEnabled,
         dateIncludesDayOfWeek: state.dateIncludesDayOfWeek,
         firstDayOfWeek: state.firstDayOfWeek,
+        showTimelineBorders: state.showTimelineBorders,
         biometricUnlockEnabled: state.biometricUnlockEnabled,
         googleDriveBackupEnabled: state.googleDriveBackupEnabled,
         backupFrequency: state.backupFrequency,

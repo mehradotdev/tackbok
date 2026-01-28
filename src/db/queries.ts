@@ -1,33 +1,17 @@
-import { desc, like, or, and, gte, lt, eq } from 'drizzle-orm';
+import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
 import { startOfDay } from 'date-fns';
+import { generateUUID } from '~/lib/utils';
 import {
   db,
   entries,
   tags,
-  entryTags,
   type Entry,
   type NewEntry,
   type Tag,
 } from './index';
 
-// ============================================================================
-// Entry Queries
-// ============================================================================
-
 /**
- * Generate a UUID v4 for new entries
- */
-// TODO: Move this to a utils file
-export function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-/**
- * Get all entries sorted by created_at DESC
+ * Get all entries (with raw CSV tags string) sorted by created_at DESC
  */
 export async function getAllEntries(): Promise<Entry[]> {
   return db.select().from(entries).orderBy(desc(entries.created_at));
@@ -88,7 +72,7 @@ export async function getEntryForDate(dateMs: number): Promise<Entry | undefined
 /**
  * Get all dates (as YYYY-MM-DD strings) that have entries for a given month
  */
-export function getEntryDatesForMonth(year: number, month: number): string[] {
+export function getEntryDatesForMonth(year: number, month: number) {
   // Calculate start and end of month in milliseconds
   const startOfMonth = new Date(year, month - 1, 1).getTime();
   const startOfNextMonth = new Date(year, month, 1).getTime();
@@ -122,47 +106,46 @@ export async function searchEntries(
   searchTerm: string,
   tagIds: string[] = [],
 ): Promise<Entry[]> {
-  if (!searchTerm.trim()) return [];
+  if (!searchTerm.trim() && tagIds.length === 0) return [];
 
   const likePattern = `%${searchTerm}%`;
+  
+  // Base query
+  let query = db
+    .select()
+    .from(entries)
+    .orderBy(desc(entries.created_at));
+    
+  const conditions = [];
 
-  if (tagIds.length === 0) {
-    return db
-      .select()
-      .from(entries)
-      .where(
+  // Text search
+  if (searchTerm.trim()) {
+      conditions.push(
         or(
           like(entries.text_title, likePattern),
           like(entries.text_content, likePattern),
-        ),
-      )
-      .orderBy(desc(entries.created_at));
+        )
+      );
   }
 
-  // With tag filtering - need to join with entry_tags
-  const result = await db
-    .selectDistinct()
-    .from(entries)
-    .leftJoin(entryTags, eq(entries.note_id, entryTags.entry_id))
-    .where(
-      and(
-        or(
-          like(entries.text_title, likePattern),
-          like(entries.text_content, likePattern),
-        ),
-        // Note: For proper IN clause, we'd need to use inArray from drizzle-orm
-        // For now, this is a simplified version
-      ),
-    )
-    .orderBy(desc(entries.created_at));
+  // Tag search (OR logic - if entry has any of the tags)
+  if (tagIds.length > 0) {
+     const tagConditions = tagIds.map(tagId => like(entries.tags, `%${tagId}%`));
+     conditions.push(or(...tagConditions));
+  }
+  
+  if (conditions.length > 0) {
+      // @ts-ignore
+      query = query.where(and(...conditions));
+  }
 
-  return result.map((r) => r.entries);
+  return query;
 }
 
 /**
  * Insert or update an entry
  */
-export async function upsertEntry(entry: NewEntry): Promise<void> {
+export async function upsertEntry(entry: NewEntry) {
   const now = Date.now();
   await db
     .insert(entries)
@@ -178,9 +161,9 @@ export async function upsertEntry(entry: NewEntry): Promise<void> {
         text_content: entry.text_content,
         mood: entry.mood,
         assets: entry.assets,
-        is_favorite: entry.is_favorite,
+        tags: entry.tags,
         updated_at: now,
-        created_at: entry.created_at ?? 'previous value', // TODO: use actual previous value timeMs
+        created_at: entry.created_at ?? sql`${entries.created_at}`, // use previous value if new value is undefined
       },
     });
 }
@@ -188,9 +171,17 @@ export async function upsertEntry(entry: NewEntry): Promise<void> {
 /**
  * Delete an entry by its note_id
  */
-export async function deleteEntry(noteId: string): Promise<void> {
+export async function deleteEntry(noteId: string) {
   await db.delete(entries).where(eq(entries.note_id, noteId));
 }
+
+/**
+ * Completely resets the database by deleting all entries.
+ */
+export async function deleteAllData() {
+  await db.delete(entries);
+}
+
 
 // ============================================================================
 // Tag Queries
@@ -217,33 +208,60 @@ export async function createTag(title: string): Promise<void> {
 }
 
 /**
- * Add a tag to an entry
+ * Add a tag to an entry (updates the CSV string)
  */
 export async function addTagToEntry(entryId: string, tagId: string): Promise<void> {
+  const entry = await getEntryById(entryId);
+  if (!entry) return;
+
+  const currentTagsStr = entry.tags || '';
+  const currentTags = currentTagsStr.split(',').filter(t => t.length > 0);
+  
+  if (currentTags.includes(tagId)) return; // Already exists
+
+  const newTags = [...currentTags, tagId];
+  const newTagsStr = newTags.join(',');
+
   await db
-    .insert(entryTags)
-    .values({ entry_id: entryId, tag_id: tagId })
-    .onConflictDoNothing();
+    .update(entries)
+    .set({ tags: newTagsStr, updated_at: Date.now() })
+    .where(eq(entries.note_id, entryId));
 }
 
 /**
- * Remove a tag from an entry
+ * Remove a tag from an entry (updates the CSV string)
  */
 export async function removeTagFromEntry(entryId: string, tagId: string): Promise<void> {
+  const entry = await getEntryById(entryId);
+  if (!entry) return;
+
+  const currentTagsStr = entry.tags || '';
+  const currentTags = currentTagsStr.split(',').filter(t => t.length > 0);
+  
+  const newTags = currentTags.filter((id) => id !== tagId);
+
+  if (newTags.length === currentTags.length) return; // Nothing changed
+  
+  const newTagsStr = newTags.join(',');
+
   await db
-    .delete(entryTags)
-    .where(and(eq(entryTags.entry_id, entryId), eq(entryTags.tag_id, tagId)));
+    .update(entries)
+    .set({ tags: newTagsStr, updated_at: Date.now() })
+    .where(eq(entries.note_id, entryId));
 }
 
 /**
- * Get all tags for an entry
+ * Get all tags for an entry (hydrated)
  */
+// TODO: Do we even need this?
 export async function getTagsForEntry(entryId: string): Promise<Tag[]> {
-  const result = await db
-    .select({ tag: tags })
-    .from(entryTags)
-    .innerJoin(tags, eq(entryTags.tag_id, tags.tag_id))
-    .where(eq(entryTags.entry_id, entryId));
+  const entry = await getEntryById(entryId);
+  if (!entry || !entry.tags) return [];
 
-  return result.map((r) => r.tag);
+  const entryTagIds = entry.tags.split(',').filter(t => t.length > 0);
+  if (entryTagIds.length === 0) return [];
+
+  const allTags = await getAllTags();
+  
+  return allTags.filter(tag => entryTagIds.includes(tag.tag_id));
 }

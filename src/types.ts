@@ -1,13 +1,8 @@
-import type { Entry, Tag, EntryTag, Asset, Mood, NewEntry, NewTag } from './db/schema';
+import type { Entry, Tag, Asset, Mood, NewEntry, NewTag } from './db/schema';
 
 // Re-export schema types for convenience
-export type { Entry, Tag, EntryTag, Asset, Mood, NewEntry, NewTag };
+export type { Entry, Tag, Asset, Mood, NewEntry, NewTag };
 
-// Extended entry for UI display (timeline items)
-export interface EntryListItem extends Entry {
-  isLast?: boolean;
-  placeholderText?: string;
-}
 
 // Milestone item for timeline display
 export interface MilestoneItem {

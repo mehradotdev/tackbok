@@ -13,7 +13,7 @@ const buttonVariants = cva(
         outline:
           'border-border bg-background active:bg-accent border shadow-sm shadow-black/5',
         secondary: 'bg-secondary active:bg-secondary/80 shadow-sm shadow-black/5',
-        ghost: 'active:bg-accent',
+        ghost: 'active:bg-accent gap-0',
         link: '',
       },
       size: {

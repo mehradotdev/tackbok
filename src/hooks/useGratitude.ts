@@ -1,9 +1,11 @@
+import React from 'react';
 import {
   useQuery,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { db, entryTags } from '~/db';
+import { sql } from 'drizzle-orm';
+import { db, entries } from '~/db';
 import { type NewEntry, type Entry } from '~/types';
 import {
   getAllEntries,
@@ -17,10 +19,6 @@ import {
   getAllEntriesGroupByDate,
 } from '~/db/queries';
 
-// ============================================================================
-// Query Keys
-// ============================================================================
-
 export const QUERY_KEYS = {
   entries: 'entries',
   entriesForDate: 'entriesForDate',
@@ -31,7 +29,7 @@ export const QUERY_KEYS = {
 };
 
 // ============================================================================
-// Entry Hooks
+// Queries
 // ============================================================================
 
 /**
@@ -73,13 +71,9 @@ export function useSearchEntries(searchTerm: string, selectedTagIds: string[] = 
   return useQuery({
     queryKey: [QUERY_KEYS.search, trimmed, selectedTagIds],
     queryFn: () => searchEntries(trimmed, selectedTagIds),
-    enabled: trimmed.length > 0,
+    enabled: trimmed.length > 0 || selectedTagIds.length > 0,
   });
 }
-
-// ============================================================================
-// Tag Hooks
-// ============================================================================
 
 /**
  * Hook for all tags
@@ -92,14 +86,32 @@ export function useTags() {
 }
 
 /**
+ * Hook for mapping of all tags (id -> Tag)
+ */
+export function useTagMapping() {
+  const { data: tags = [] } = useTags();
+  
+  return React.useMemo(() => {
+    const map = new Map<string, typeof tags[0]>();
+    tags.forEach((tag) => map.set(tag.tag_id, tag));
+    return map;
+  }, [tags]);
+}
+
+/**
  * Hook to check if any entries have tags
  */
-// TODO: Move the query to db/queries.ts?
+// TODO: Do we even need this?
 export function useHasTaggedEntries() {
   return useQuery({
     queryKey: [QUERY_KEYS.hasTaggedEntries],
     queryFn: async () => {
-      const result = await db.select().from(entryTags).limit(1);
+      // Check if any entry has specific tags (tags is not empty string)
+      const result = await db
+        .select({ count: sql`1` })
+        .from(entries)
+        .where(sql`tags != ''`)
+        .limit(1);
       return result.length > 0;
     },
   });
@@ -118,7 +130,6 @@ export function useUpsertEntry() {
   return useMutation({
     mutationFn: (entry: NewEntry) => upsertEntry(entry),
     onSuccess: () => {
-      // TODO: Check if we need to invalidate useEntriesGroupByDate too
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
@@ -138,6 +149,7 @@ export function useDeleteEntry() {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.hasTaggedEntries] });
     },
   });
 }

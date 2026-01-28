@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 // ============================================================================
 // Types
@@ -30,9 +30,9 @@ export const entries = sqliteTable('entries', {
   text_content: text('text_content').notNull(),
   mood: text('mood').$type<Mood>(),
   assets: text('assets', { mode: 'json' }).$type<Asset[]>(),
+  tags: text('tags').notNull().default(''),
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
-  is_favorite: integer('is_favorite', { mode: 'boolean' }).default(false),
 });
 
 /**
@@ -46,25 +46,6 @@ export const tags = sqliteTable('tags', {
   updated_at: integer('updated_at').notNull(),
 });
 
-/**
- * Junction table for many-to-many relationship between entries and tags.
- */
-// TODO: Fix deprecation issue
-export const entryTags = sqliteTable(
-  'entry_tags',
-  {
-    entry_id: text('entry_id')
-      .notNull()
-      .references(() => entries.note_id, { onDelete: 'cascade' }),
-    tag_id: text('tag_id')
-      .notNull()
-      .references(() => tags.tag_id, { onDelete: 'cascade' }),
-  },
-  (t) => ({
-    pk: primaryKey({ columns: [t.entry_id, t.tag_id] }),
-  }),
-);
-
 // ============================================================================
 // Inferred Types
 // ============================================================================
@@ -73,4 +54,3 @@ export type Entry = typeof entries.$inferSelect;
 export type NewEntry = typeof entries.$inferInsert;
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
-export type EntryTag = typeof entryTags.$inferSelect;
