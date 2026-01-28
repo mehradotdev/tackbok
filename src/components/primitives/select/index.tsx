@@ -68,7 +68,7 @@ function Root({
   onOpenChange: onOpenChangeProp,
   disabled,
   ...viewProps
-}: RootProps & React.RefAttributes<RootRef>) {
+}: RootProps & { ref?: React.Ref<RootRef> }) {
   const nativeID = React.useId();
   const [value, onValueChange] = useControllableState({
     prop: valueProp,
@@ -124,7 +124,7 @@ function Trigger({
   onPress: onPressProp,
   disabled = false,
   ...props
-}: TriggerProps & React.RefAttributes<TriggerRef>) {
+}: TriggerProps & { ref?: React.Ref<TriggerRef> }) {
   const {
     open,
     onOpenChange,
@@ -178,7 +178,7 @@ function Value({
   asChild,
   placeholder,
   ...props
-}: ValueProps & React.RefAttributes<ValueRef>) {
+}: ValueProps & { ref?: React.Ref<ValueRef> }) {
   const { value } = useRootContext();
   const Component = asChild ? Slot.Text : Text;
   return (
@@ -220,7 +220,7 @@ function Overlay({
   onPress: OnPressProp,
   closeOnPress = true,
   ...props
-}: OverlayProps & React.RefAttributes<OverlayRef>) {
+}: OverlayProps & { ref?: React.Ref<OverlayRef> }) {
   const { open, onOpenChange, setTriggerPosition, setContentLayout } = useRootContext();
 
   function onPress(ev: GestureResponderEvent) {
@@ -262,7 +262,7 @@ function Content({
   disablePositioningStyle,
   position: _position,
   ...props
-}: ContentProps & React.RefAttributes<ContentRef>) {
+}: ContentProps & { ref?: React.Ref<ContentRef> }) {
   const {
     open,
     onOpenChange,
@@ -342,7 +342,7 @@ function Item({
   closeOnPress = true,
   className,
   ...props
-}: ItemProps & React.RefAttributes<ItemRef>) {
+}: ItemProps & { ref?: React.Ref<ItemRef> }) {
   const { onOpenChange, value, onValueChange, setTriggerPosition, setContentLayout } =
     useRootContext();
 
@@ -397,7 +397,7 @@ function ItemText({
   ref,
   asChild,
   ...props
-}: ItemTextProps & React.RefAttributes<ItemTextRef>) {
+}: ItemTextProps & { ref?: React.Ref<ItemTextRef> }) {
   const { label } = useItemContext();
 
   const Component = asChild ? Slot.Text : Text;
@@ -415,7 +415,7 @@ function ItemIndicator({
   asChild,
   forceMount,
   ...props
-}: ItemIndicatorProps & React.RefAttributes<ItemIndicatorRef>) {
+}: ItemIndicatorProps & { ref?: React.Ref<ItemIndicatorRef> }) {
   const { itemValue } = useItemContext();
   const { value } = useRootContext();
 
@@ -430,14 +430,14 @@ function ItemIndicator({
 
 ItemIndicator.displayName = 'ItemIndicatorNativeSelect';
 
-function Group({ ref, asChild, ...props }: GroupProps & React.RefAttributes<GroupRef>) {
+function Group({ ref, asChild, ...props }: GroupProps & { ref?: React.Ref<GroupRef> }) {
   const Component = asChild ? Slot.View : View;
   return <Component ref={ref} role="group" {...props} />;
 }
 
 Group.displayName = 'GroupNativeSelect';
 
-function Label({ ref, asChild, ...props }: LabelProps & React.RefAttributes<LabelRef>) {
+function Label({ ref, asChild, ...props }: LabelProps & { ref?: React.Ref<LabelRef> }) {
   const Component = asChild ? Slot.Text : Text;
   return <Component ref={ref} {...props} />;
 }
@@ -449,7 +449,7 @@ function Separator({
   asChild,
   decorative,
   ...props
-}: SeparatorProps & React.RefAttributes<SeparatorRef>) {
+}: SeparatorProps & { ref?: React.Ref<SeparatorRef> }) {
   const Component = asChild ? Slot.View : View;
   return (
     <Component role={decorative ? 'presentation' : 'separator'} ref={ref} {...props} />

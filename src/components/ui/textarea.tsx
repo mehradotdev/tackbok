@@ -6,12 +6,14 @@ export function Textarea({
   className,
   multiline = true,
   numberOfLines = 8,
+  ref,
   ...props
-}: TextInputProps & React.RefAttributes<TextInput>) {
+}: TextInputProps & { ref?: React.Ref<TextInput> }) {
   const { isRTL } = useTranslation();
 
   return (
     <TextInput
+      ref={ref}
       className={cn(
         'text-left text-foreground border-input dark:bg-input/30 flex min-h-16 w-full flex-row rounded-md border bg-transparent px-3 py-2 text-base shadow-sm shadow-black/5 md:text-sm',
         props.editable === false && 'opacity-50',

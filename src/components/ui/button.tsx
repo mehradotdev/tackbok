@@ -56,13 +56,15 @@ const buttonTextVariants = cva('text-foreground text-base font-bold', {
 });
 
 type ButtonProps = React.ComponentProps<typeof Pressable> &
-  React.RefAttributes<typeof Pressable> &
-  VariantProps<typeof buttonVariants>;
+  VariantProps<typeof buttonVariants> & {
+    ref?: React.Ref<React.ComponentRef<typeof Pressable>>;
+  };
 
-function Button({ className, variant, size, ...props }: ButtonProps) {
+function Button({ className, variant, size, ref, ...props }: ButtonProps) {
   return (
     <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
       <Pressable
+        ref={ref}
         className={cn(
           props.disabled && 'opacity-50',
           buttonVariants({ variant, size }),
