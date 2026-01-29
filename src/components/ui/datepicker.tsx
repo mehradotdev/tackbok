@@ -16,13 +16,26 @@ import {
   setYear,
   getYear,
   getMonth,
+  addDays,
 } from 'date-fns';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Pressable, ScrollView } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { FirstDayOfWeek } from '~/types';
 import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
+import { Text } from '~/components/ui/text';
+import { Button } from '~/components/ui/button';
 import { MONTH_ABBREVIATED_KEYS } from '~/lib/i18n/dateFormatting';
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Default minimum year when minDate is not provided */
+const DEFAULT_MIN_YEAR_OFFSET = 100;
+/** Default maximum year when maxDate is not provided */
+const DEFAULT_MAX_YEAR_OFFSET = 10;
 
 // ============================================================================
 // Types
@@ -31,6 +44,13 @@ import { MONTH_ABBREVIATED_KEYS } from '~/lib/i18n/dateFormatting';
 export interface MarkedDate {
   color?: string;
 }
+
+/** Maps firstDayOfWeek to date-fns weekStartsOn value */
+const WEEK_STARTS_ON_MAP: Record<FirstDayOfWeek, 0 | 1 | 6> = {
+  sunday: 0,
+  monday: 1,
+  saturday: 6,
+};
 
 export interface DatePickerProps {
   /** Currently selected date */
@@ -57,12 +77,24 @@ export interface DatePickerProps {
   scrollToBottomYearsView?: boolean;
   /** Callback when the visible month changes */
   onMonthChange?: (date: Date) => void;
+  /** First day of the week */
+  firstDayOfWeek?: FirstDayOfWeek;
 }
 
 type ViewMode = 'days' | 'months' | 'years';
 
 // Keys for translation - these match the keys in translation files
-const WEEKDAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Base order starting from Sunday (index 0)
+const WEEKDAY_KEYS_BASE = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Get weekday keys ordered by first day of week */
+function getOrderedWeekdayKeys(firstDayOfWeek: FirstDayOfWeek): string[] {
+  const startIndex = WEEK_STARTS_ON_MAP[firstDayOfWeek];
+  return [
+    ...WEEKDAY_KEYS_BASE.slice(startIndex),
+    ...WEEKDAY_KEYS_BASE.slice(0, startIndex),
+  ];
+}
 const MONTH_KEYS = [
   'January',
   'February',
@@ -87,21 +119,20 @@ interface NavButtonProps {
   onPress: () => void;
   disabled?: boolean;
   children: React.ReactNode;
+  accessibilityLabel: string;
 }
 
-function NavButton({ onPress, disabled, children }: NavButtonProps) {
+function NavButton({ onPress, disabled, children, accessibilityLabel }: NavButtonProps) {
   return (
-    <Pressable
+    <Button
       onPress={onPress}
       disabled={disabled}
-      accessibilityRole="button"
-      className={cn(
-        'h-10 w-10 items-center justify-center rounded-full',
-        'active:bg-foreground/20',
-        disabled && 'opacity-30',
-      )}>
+      variant="ghost"
+      size="icon"
+      accessibilityLabel={accessibilityLabel}
+      className="rounded-full">
       {children}
-    </Pressable>
+    </Button>
   );
 }
 
@@ -114,6 +145,7 @@ interface DayCellProps {
   themeColor: string;
   onPress: () => void;
   renderDay?: DatePickerProps['renderDay'];
+  accessibilityLabel: string;
 }
 
 function DayCell({
@@ -125,12 +157,16 @@ function DayCell({
   themeColor,
   onPress,
   renderDay,
+  accessibilityLabel,
 }: DayCellProps) {
   if (renderDay) {
     return (
       <Pressable
         onPress={onPress}
         disabled={isDisabled}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ selected: isSelected, disabled: isDisabled }}
         className="h-11 w-11 items-center justify-center">
         {renderDay(date, isSelected, isDisabled, isCurrentMonth)}
       </Pressable>
@@ -143,6 +179,9 @@ function DayCell({
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ selected: isSelected, disabled: isDisabled }}
       className={cn(
         'h-11 w-11 items-center justify-center rounded-full',
         !isDisabled && 'active:bg-muted',
@@ -185,9 +224,10 @@ export function DatePicker({
   markedDates = {},
   renderDay,
   containerClassName,
-  themeColor = 'bg-primary',
+  themeColor = 'bg-primary/60',
   scrollToBottomYearsView = false,
   onMonthChange,
+  firstDayOfWeek = 'monday',
 }: DatePickerProps) {
   const { t, isRTL } = useTranslation();
   const [viewDate, setViewDate] = useState(value);
@@ -195,21 +235,31 @@ export function DatePicker({
   const yearsScrollRef = useRef<ScrollView>(null);
   const hasAutoScrolledYearsRef = useRef(false);
 
+  // Get the weekStartsOn value for date-fns
+  const weekStartsOn = WEEK_STARTS_ON_MAP[firstDayOfWeek];
+
+  // Get ordered weekday keys based on first day of week
+  const orderedWeekdayKeys = useMemo(
+    () => getOrderedWeekdayKeys(firstDayOfWeek),
+    [firstDayOfWeek],
+  );
+
   // Generate calendar days for current view month
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(viewDate);
-    const monthEnd = endOfMonth(viewDate);
-    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
-    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+    // Ensure 6 rows (42 days) are always displayed to prevent layout shifts
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn });
+    const calendarEnd = addDays(calendarStart, 41);
 
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-  }, [viewDate]);
+  }, [viewDate, weekStartsOn]);
 
   // Generate years for year selection
+  // Uses minDate/maxDate as source of truth, with sensible defaults
   const years = useMemo(() => {
     const thisYear = getYear(new Date());
-    const startYear = minDate ? getYear(minDate) : thisYear - 100;
-    const endYear = maxDate ? getYear(maxDate) : thisYear + 10;
+    const startYear = minDate ? getYear(minDate) : thisYear - DEFAULT_MIN_YEAR_OFFSET;
+    const endYear = maxDate ? getYear(maxDate) : thisYear + DEFAULT_MAX_YEAR_OFFSET;
     const yearsArray: number[] = [];
     for (let year = startYear; year <= endYear; year++) {
       yearsArray.push(year);
@@ -328,40 +378,38 @@ export function DatePicker({
     const translatedMonth = t(MONTH_KEYS[currentMonthIndex]);
 
     return (
-      <View
-        className={cn(
-          'mb-4 flex-row items-center justify-between',
-          isRTL && 'flex-row-reverse',
-        )}>
-        <NavButton onPress={handlePrevMonth} disabled={!canGoBack}>
-          <Icon as={ChevronLeft} />
+      <View className={cn('mb-4 flex-row items-center justify-between')}>
+        <NavButton
+          onPress={handlePrevMonth}
+          disabled={!canGoBack}
+          accessibilityLabel={t('Previous month')}>
+          <Icon as={!isRTL ? ChevronLeft : ChevronRight} />
         </NavButton>
 
-        <View className="flex-row items-center gap-1">
-          <Pressable
+        <View className="flex-row items-center gap-0">
+          <Button
             onPress={openMonthsView}
-            className={cn(
-              'rounded-lg px-2 py-2 active:bg-foreground/20',
-              viewMode === 'months' && 'bg-foreground/15',
-            )}>
-            <Text className="text-lg font-semibold text-foreground">
-              {translatedMonth}
-            </Text>
-          </Pressable>
-          <Pressable
+            variant={viewMode === 'months' ? 'default' : 'outline'}
+            accessibilityLabel={t('Select month')}
+            accessibilityState={{ expanded: viewMode === 'months' }}
+            className="rounded-none px-2">
+            <Text className="text-lg font-semibold">{translatedMonth}</Text>
+          </Button>
+          <Button
             onPress={openYearsView}
-            className={cn(
-              'rounded-lg px-2 py-2 active:bg-foreground/20',
-              viewMode === 'years' && 'bg-foreground/15',
-            )}>
-            <Text className="text-lg font-semibold text-foreground">
-              {format(viewDate, 'yyyy')}
-            </Text>
-          </Pressable>
+            variant={viewMode === 'years' ? 'default' : 'outline'}
+            accessibilityLabel={t('Select year')}
+            accessibilityState={{ expanded: viewMode === 'years' }}
+            className="rounded-none px-2">
+            <Text className="text-lg font-semibold">{format(viewDate, 'yyyy')}</Text>
+          </Button>
         </View>
 
-        <NavButton onPress={handleNextMonth} disabled={!canGoForward}>
-          <Icon as={ChevronRight} />
+        <NavButton
+          onPress={handleNextMonth}
+          disabled={!canGoForward}
+          accessibilityLabel={t('Next month')}>
+          <Icon as={!isRTL ? ChevronRight : ChevronLeft} />
         </NavButton>
       </View>
     );
@@ -369,9 +417,9 @@ export function DatePicker({
 
   const renderWeekdayLabels = () => (
     <View className="mb-2 flex-row">
-      {WEEKDAY_KEYS.map((dayKey) => (
+      {orderedWeekdayKeys.map((dayKey) => (
         <View key={dayKey} className="h-10 flex-1 items-center justify-center">
-          <Text className="text-xs font-medium text-muted-foreground">{t(dayKey)}</Text>
+          <Text className="text-sm font-medium text-foreground/80">{t(dayKey)}</Text>
         </View>
       ))}
     </View>
@@ -391,8 +439,10 @@ export function DatePicker({
             {week.map((date) => {
               const isSelected = isSameDay(date, value);
               const isCurrentMonth = isSameMonth(date, viewDate);
-              const isDisabled = isDateDisabled(date);
+              const isDisabled = isDateDisabled(date) || !isCurrentMonth;
               const marker = getMarkerForDate(date);
+
+              const accessibilityLabel = format(date, 'EEEE, MMMM d, yyyy');
 
               return (
                 <View key={date.toISOString()} className="flex-1 items-center">
@@ -405,6 +455,7 @@ export function DatePicker({
                     themeColor={themeColor}
                     onPress={() => handleDayPress(date)}
                     renderDay={renderDay}
+                    accessibilityLabel={accessibilityLabel}
                   />
                 </View>
               );
@@ -429,11 +480,16 @@ export function DatePicker({
           (minDate && isBefore(monthEnd, minDate)) ||
           (maxDate && isAfter(monthStart, maxDate));
 
+        const translatedMonthName = t(monthKey);
+
         return (
           <Pressable
             key={monthKey}
             onPress={() => !isDisabled && handleMonthSelect(index)}
             disabled={isDisabled}
+            accessibilityRole="button"
+            accessibilityLabel={translatedMonthName}
+            accessibilityState={{ selected: isCurrentMonth, disabled: isDisabled }}
             className={cn(
               'w-1/3 items-center justify-center rounded-lg py-4',
               !isDisabled && 'active:bg-primary/50',
@@ -446,7 +502,7 @@ export function DatePicker({
                 isCurrentMonth && 'text-primary-foreground',
                 isDisabled && 'text-muted-foreground',
               )}>
-              {t(monthKey)}
+              {translatedMonthName}
             </Text>
           </Pressable>
         );
@@ -472,6 +528,9 @@ export function DatePicker({
             <Pressable
               key={year}
               onPress={() => handleYearSelect(year)}
+              accessibilityRole="button"
+              accessibilityLabel={String(year)}
+              accessibilityState={{ selected: isCurrentYear }}
               className={cn(
                 'w-1/4 items-center justify-center rounded-lg py-3',
                 'active:bg-primary/50',
@@ -492,7 +551,7 @@ export function DatePicker({
   };
 
   return (
-    <View className={cn('bg-card rounded-2xl p-4', containerClassName)}>
+    <View className={cn('w-80 bg-card rounded-2xl p-4', containerClassName)}>
       {renderHeader()}
       {viewMode === 'days' && renderDaysView()}
       {viewMode === 'months' && renderMonthsView()}

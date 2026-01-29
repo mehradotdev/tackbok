@@ -3,6 +3,8 @@ import type { Entry, Tag, Asset, Mood, NewEntry, NewTag } from './db/schema';
 // Re-export schema types for convenience
 export type { Entry, Tag, Asset, Mood, NewEntry, NewTag };
 
+/** First day of week options */
+export type FirstDayOfWeek = 'saturday' | 'sunday' | 'monday';
 
 // Milestone item for timeline display
 export interface MilestoneItem {

@@ -8,10 +8,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary active:bg-primary/90 shadow-sm shadow-black/5',
+        default: 'bg-foreground active:bg-foreground/90 shadow-sm shadow-black/5',
+        primary: 'bg-primary active:bg-primary/90 shadow-sm shadow-black/5',
         destructive: 'bg-destructive active:bg-destructive/90 shadow-sm shadow-black/5',
         outline:
-          'border-border bg-background active:bg-accent border shadow-sm shadow-black/5',
+          'border-border bg-transparent active:bg-accent border shadow-sm shadow-black/5',
         secondary: 'bg-secondary active:bg-secondary/80 shadow-sm shadow-black/5',
         ghost: 'active:bg-accent gap-0',
         link: '',
@@ -34,7 +35,8 @@ const buttonVariants = cva(
 const buttonTextVariants = cva('text-foreground text-base font-bold', {
   variants: {
     variant: {
-      default: 'text-primary-foreground',
+      default: 'text-background',
+      primary: 'text-primary-foreground',
       destructive: 'text-destructive-foreground',
       outline: 'group-active:text-accent-foreground',
       secondary: 'text-secondary-foreground',

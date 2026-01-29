@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from 'expo-sqlite/kv-store';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { FirstDayOfWeek } from '~/types';
 
 // TODO: Implement actual functionality for all settings
 // This is currently a mock store - all values are stored but not yet connected to real features
@@ -15,7 +16,7 @@ interface SettingsState {
   timelineEntryLength: number; // 1-50, default 10
   inspirationalQuotesEnabled: boolean;
   dateIncludesDayOfWeek: boolean;
-  firstDayOfWeek: 'saturday' | 'sunday' | 'monday';
+  firstDayOfWeek: FirstDayOfWeek;
   showTimelineBorders: boolean;
 
   // Security
@@ -38,7 +39,7 @@ interface SettingsState {
   setTimelineEntryLength: (length: number) => void;
   setInspirationalQuotesEnabled: (enabled: boolean) => void;
   setDateIncludesDayOfWeek: (enabled: boolean) => void;
-  setFirstDayOfWeek: (day: 'saturday' | 'sunday' | 'monday') => void;
+  setFirstDayOfWeek: (day: FirstDayOfWeek) => void;
   setShowTimelineBorders: (enabled: boolean) => void;
   setBiometricUnlockEnabled: (enabled: boolean) => void;
   setGoogleDriveBackupEnabled: (enabled: boolean) => void;
@@ -57,7 +58,7 @@ export const useSettingsStore = create<SettingsState>()(
       timelineEntryLength: 10,
       inspirationalQuotesEnabled: true,
       dateIncludesDayOfWeek: false,
-      firstDayOfWeek: 'sunday',
+      firstDayOfWeek: 'monday',
       showTimelineBorders: false,
       biometricUnlockEnabled: false,
       googleDriveBackupEnabled: false,

@@ -1,17 +1,21 @@
-import { cn } from '~/lib/utils';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { View, Pressable } from 'react-native';
 import { format, isAfter, startOfDay } from 'date-fns';
 import { Calendar } from 'lucide-react-native';
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, Text, Pressable, Modal } from 'react-native';
+import { cn } from '~/lib/utils';
+import { MODAL_CLOSE_DELAY } from '~/constants';
+import { useSettingsStore } from '~/lib/settings';
 import { getEntryDatesForMonth } from '~/db/queries';
-import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
+import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
+import { Dialog, DialogContent } from '~/components/ui/dialog';
+import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export interface IGratitudeDatepickerProps {
+export interface IDatepickerModalProps {
   /** Callback when a date is selected */
   onDateSelect?: (date: Date) => void;
   /** Color for marking dates with entries */
@@ -24,23 +28,24 @@ export interface IGratitudeDatepickerProps {
 // Main Component
 // ============================================================================
 
-export function GratitudeDatepicker({
+export function DatepickerModal({
   onDateSelect,
   entryMarkerColor = '#22c55e', // green-500
   fabClassName,
-}: IGratitudeDatepickerProps) {
-  const [isModalVisible, setIsModalVisible] = useState(false);
+}: IDatepickerModalProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [existingEntryDates, setExistingEntryDates] = useState<string[]>([]);
   const [currentMonthYear, setCurrentMonthYear] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() + 1 };
   });
-  const [existingEntryDates, setExistingEntryDates] = useState<string[]>([]);
   const [today, setToday] = useState(() => startOfDay(new Date()));
+  const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek);
 
   // Fetch entry dates for the current visible month
   useEffect(() => {
-    if (!isModalVisible) return;
+    if (!isDialogOpen) return;
     try {
       const entryDates = getEntryDatesForMonth(
         currentMonthYear.year,
@@ -51,7 +56,7 @@ export function GratitudeDatepicker({
       console.error('Failed to fetch entry dates: ', error);
       setExistingEntryDates([]);
     }
-  }, [currentMonthYear, isModalVisible]);
+  }, [currentMonthYear, isDialogOpen]);
 
   // Track when the user navigates to a different month
   const handleMonthChange = useCallback((date: Date) => {
@@ -69,8 +74,8 @@ export function GratitudeDatepicker({
     return marks;
   }, [existingEntryDates, entryMarkerColor]);
 
-  const handleOpenModal = useCallback(() => {
-    // Recalculate today on modal open to handle apps staying open past midnight
+  const handleOpenDialog = useCallback(() => {
+    // Recalculate today on dialog open to handle apps staying open past midnight
     const freshToday = startOfDay(new Date());
     setToday(freshToday);
     setSelectedDate(freshToday);
@@ -78,24 +83,25 @@ export function GratitudeDatepicker({
       year: freshToday.getFullYear(),
       month: freshToday.getMonth() + 1,
     });
-    setIsModalVisible(true);
+    setIsDialogOpen(true);
   }, []);
 
-  const handleCloseModal = useCallback(() => {
-    setIsModalVisible(false);
+  const handleOpenChange = useCallback((open: boolean) => {
+    setIsDialogOpen(open);
   }, []);
 
   const handleDateChange = useCallback(
     (date: Date) => {
       setSelectedDate(date);
+      setIsDialogOpen(false);
 
-      // Trigger callback if provided
-      if (onDateSelect) onDateSelect(date);
-
-      // Close modal after selection
-      handleCloseModal();
+      // Wait for modal to close before triggering callback otherwise we get a crash on Android
+      setTimeout(() => {
+        // Trigger callback if provided
+        if (onDateSelect) onDateSelect(date);
+      }, MODAL_CLOSE_DELAY);
     },
-    [onDateSelect, handleCloseModal],
+    [onDateSelect],
   );
 
   // Custom day render to handle future dates visually
@@ -136,9 +142,9 @@ export function GratitudeDatepicker({
 
   return (
     <>
-      {/* FAB (Floating Action Button) */}
+      {/* FAB (Floating Action Button) - positioned independently */}
       <Pressable
-        onPress={handleOpenModal}
+        onPress={handleOpenDialog}
         className={cn(
           'absolute bottom-safe-or-12 right-safe-or-6 z-50',
           'h-14 w-14 items-center justify-center rounded-full',
@@ -149,35 +155,26 @@ export function GratitudeDatepicker({
         <Icon as={Calendar} className="text-primary-foreground" />
       </Pressable>
 
-      {/* Modal */}
-      <Modal
-        visible={isModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={handleCloseModal}
-        statusBarTranslucent
-        supportedOrientations={['portrait', 'landscape']}>
-        <Pressable
-          onPress={handleCloseModal}
-          className="flex-1 items-center justify-center bg-black/50 px-6">
-          {/* Modal Content Container - stop propagation */}
-          <Pressable onPress={(e) => e.stopPropagation()} className="w-full max-w-sm">
-            {/* DatePicker */}
-            <DatePicker
-              value={selectedDate}
-              onChange={handleDateChange}
-              maxDate={today}
-              markedDates={markedDates}
-              renderDay={renderDay}
-              containerClassName="shadow-xl bg-background"
-              scrollToBottomYearsView={true}
-              onMonthChange={handleMonthChange}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {/* Dialog - controlled separately */}
+      <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+        <DialogContent
+          showCloseButton={false}
+          className="w-full max-w-sm items-center border-0 bg-transparent p-0 shadow-none">
+          <DatePicker
+            value={selectedDate}
+            onChange={handleDateChange}
+            maxDate={today}
+            markedDates={markedDates}
+            renderDay={renderDay}
+            containerClassName="shadow-xl bg-background"
+            scrollToBottomYearsView={true}
+            onMonthChange={handleMonthChange}
+            firstDayOfWeek={firstDayOfWeek}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
-export default GratitudeDatepicker;
+export default DatepickerModal;
