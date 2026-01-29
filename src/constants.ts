@@ -15,3 +15,33 @@ export const MOOD_EMOJI: Record<Mood, string> = {
  * crash that happens when navigation/state updates occur simultaneously with exit animations.
  */
 export const MODAL_CLOSE_DELAY = 200;
+
+export const MONTH_KEYS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+export const MONTH_SHORT_KEYS = [
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
+] as const;

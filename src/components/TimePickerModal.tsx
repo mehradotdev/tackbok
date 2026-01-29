@@ -1,29 +1,43 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Modal, Pressable } from 'react-native';
-import { useTranslation } from '~/lib/i18n';
-import { Text } from '~/components/ui/text';
-import { Button } from '~/components/ui/button';
+import {
+  useState,
+  useRef,
+  useMemo,
+  useEffect,
+  cloneElement,
+  isValidElement,
+} from 'react';
+import { View } from 'react-native';
 import {
   LegendList,
   type LegendListRef,
   type LegendListRenderItemProps,
 } from '@legendapp/list';
+import { Text } from '~/components/ui/text';
+import { Button } from '~/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '~/components/ui/dialog';
+import { useTranslation } from '~/lib/i18n';
 
-interface SettingsTimePickerModalProps {
-  visible: boolean;
-  onClose: () => void;
+interface TimePickerModalProps {
   value: string; // HH:MM format
   onValueChange: (time: string) => void;
+  title?: string;
+  children: React.ReactNode;
 }
 
-// TODO: Implement actual time picker functionality and connect to notifications
-export function SettingsTimePickerModal({
-  visible,
-  onClose,
+export function TimePickerModal({
   value,
   onValueChange,
-}: SettingsTimePickerModalProps) {
+  title,
+  children,
+}: TimePickerModalProps) {
   const { t } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
 
   // Parse HH:MM
   const [hours, minutes] = value.split(':').map(Number);
@@ -34,12 +48,12 @@ export function SettingsTimePickerModal({
   const minutesListRef = useRef<LegendListRef>(null);
 
   useEffect(() => {
-    if (visible) {
+    if (isOpen) {
       // Reset non-saved values when modal opens
       setTempHours(hours);
       setTempMinutes(minutes);
 
-      // Delay scrolling to ensure list is ready
+      // Delay scrolling to ensure list is ready and layout is complete
       setTimeout(() => {
         hoursListRef.current?.scrollToIndex({
           index: hours,
@@ -53,14 +67,16 @@ export function SettingsTimePickerModal({
         });
       }, 200);
     }
-  }, [visible, hours, minutes]);
+  }, [isOpen, hours, minutes]);
 
   const handleConfirm = () => {
     const hh = tempHours.toString().padStart(2, '0');
     const mm = tempMinutes.toString().padStart(2, '0');
     onValueChange(`${hh}:${mm}`);
-    onClose();
+    setIsOpen(false);
   };
+
+  const handleOpen = () => setIsOpen(true);
 
   const hourOptions = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
   const minuteOptions = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
@@ -68,7 +84,9 @@ export function SettingsTimePickerModal({
   const renderHourItem = ({ item }: LegendListRenderItemProps<number>) => {
     const isSelected = item === tempHours;
     return (
-      <Pressable
+      <Button
+        variant="ghost"
+        size="flex"
         onPress={() => {
           setTempHours(item);
           hoursListRef.current?.scrollToIndex({
@@ -77,19 +95,21 @@ export function SettingsTimePickerModal({
             viewPosition: 0.5,
           });
         }}
-        className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/20 rounded' : ''}`}>
+        className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/20' : ''}`}>
         <Text
           className={`text-lg ${isSelected ? 'text-primary font-bold' : 'text-foreground/80'}`}>
           {item.toString().padStart(2, '0')}
         </Text>
-      </Pressable>
+      </Button>
     );
   };
 
   const renderMinuteItem = ({ item }: LegendListRenderItemProps<number>) => {
     const isSelected = item === tempMinutes;
     return (
-      <Pressable
+      <Button
+        variant="ghost"
+        size="flex"
         onPress={() => {
           setTempMinutes(item);
           minutesListRef.current?.scrollToIndex({
@@ -98,28 +118,29 @@ export function SettingsTimePickerModal({
             viewPosition: 0.5,
           });
         }}
-        className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/20 rounded' : ''}`}>
+        className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/20' : ''}`}>
         <Text
           className={`text-lg ${isSelected ? 'text-primary font-bold' : 'text-foreground/80'}`}>
           {item.toString().padStart(2, '0')}
         </Text>
-      </Pressable>
+      </Button>
     );
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        className="flex-1 bg-black/50 justify-center items-center"
-        onPress={onClose}>
-        <Pressable
-          className="bg-background rounded-lg p-6 mx-4 w-[90%] max-w-sm"
-          onPress={(e) => e.stopPropagation()}>
-          <Text className="text-lg font-semibold text-foreground mb-4 text-center">
-            {t('Adjust Reminder Time')}
-          </Text>
+    <>
+      {isValidElement(children) &&
+        cloneElement(children as React.ReactElement<{ onPress?: () => void }>, {
+          onPress: handleOpen,
+        })}
 
-          <View className="flex-row justify-center items-center mb-6">
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-[320px]" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="text-center">{title || t('Select Time')}</DialogTitle>
+          </DialogHeader>
+
+          <View className="flex-row justify-center items-center my-6">
             {/* Hours Picker */}
             <View className="h-32 w-16">
               <LegendList
@@ -151,16 +172,16 @@ export function SettingsTimePickerModal({
             </View>
           </View>
 
-          <View className="flex-row gap-3">
-            <Button variant="outline" className="flex-1" onPress={onClose}>
+          <DialogFooter className="flex-row gap-2 sm:justify-center">
+            <Button variant="outline" className="flex-1" onPress={() => setIsOpen(false)}>
               <Text>{t('Cancel')}</Text>
             </Button>
             <Button className="flex-1" onPress={handleConfirm}>
               <Text>{t('Done')}</Text>
             </Button>
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

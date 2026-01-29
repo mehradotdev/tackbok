@@ -5,7 +5,6 @@ import {
   startOfMonth,
   endOfMonth,
   startOfWeek,
-  endOfWeek,
   eachDayOfInterval,
   format,
   isSameMonth,
@@ -21,12 +20,12 @@ import {
 import { View, Pressable, ScrollView } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { FirstDayOfWeek } from '~/types';
+import { MONTH_SHORT_KEYS, MONTH_KEYS } from '~/constants';
 import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
-import { MONTH_ABBREVIATED_KEYS } from '~/lib/i18n/dateFormatting';
 
 // ============================================================================
 // Constants
@@ -95,21 +94,6 @@ function getOrderedWeekdayKeys(firstDayOfWeek: FirstDayOfWeek): string[] {
     ...WEEKDAY_KEYS_BASE.slice(0, startIndex),
   ];
 }
-const MONTH_KEYS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-const MONTH_SHORT_KEYS = MONTH_ABBREVIATED_KEYS;
 
 // ============================================================================
 // Helper Components

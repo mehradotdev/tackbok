@@ -1,35 +1,6 @@
 import { format } from 'date-fns';
 import type { TranslationFunction } from './types';
-
-export const MONTH_KEYS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const;
-
-export const MONTH_ABBREVIATED_KEYS = [
-  'JAN',
-  'FEB',
-  'MAR',
-  'APR',
-  'MAY',
-  'JUN',
-  'JUL',
-  'AUG',
-  'SEP',
-  'OCT',
-  'NOV',
-  'DEC',
-] as const;
+import { MONTH_KEYS } from '~/constants';
 
 /**
  * Format a date string (YYYY-MM-DD) or Date object to a localized format

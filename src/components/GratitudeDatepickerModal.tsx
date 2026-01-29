@@ -1,13 +1,18 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, Pressable } from 'react-native';
+import {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  cloneElement,
+  isValidElement,
+} from 'react';
+import { View } from 'react-native';
 import { format, isAfter, startOfDay } from 'date-fns';
-import { Calendar } from 'lucide-react-native';
-import { cn } from '~/lib/utils';
 import { MODAL_CLOSE_DELAY } from '~/constants';
-import { useSettingsStore } from '~/lib/settings';
 import { getEntryDatesForMonth } from '~/db/queries';
+import { cn } from '~/lib/utils';
+import { useSettingsStore } from '~/lib/settings';
 import { Text } from '~/components/ui/text';
-import { Icon } from '~/components/ui/icon';
 import { Dialog, DialogContent } from '~/components/ui/dialog';
 import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
 
@@ -15,24 +20,24 @@ import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
 // Types
 // ============================================================================
 
-export interface IDatepickerModalProps {
-  /** Callback when a date is selected */
-  onDateSelect?: (date: Date) => void;
+export interface IGratitudeDatepickerModalProps {
+  /** Component to trigger the modal (must accept onPress) */
+  children: React.ReactNode;
   /** Color for marking dates with entries */
   entryMarkerColor?: string;
-  /** FAB className override */
-  fabClassName?: string;
+  /** Callback when a date is selected */
+  onDateSelect?: (date: Date) => void;
 }
 
 // ============================================================================
 // Main Component
 // ============================================================================
 
-export function DatepickerModal({
-  onDateSelect,
+export function GratitudeDatepickerModal({
+  children,
   entryMarkerColor = '#22c55e', // green-500
-  fabClassName,
-}: IDatepickerModalProps) {
+  onDateSelect,
+}: IGratitudeDatepickerModalProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [existingEntryDates, setExistingEntryDates] = useState<string[]>([]);
@@ -142,18 +147,11 @@ export function DatepickerModal({
 
   return (
     <>
-      {/* FAB (Floating Action Button) - positioned independently */}
-      <Pressable
-        onPress={handleOpenDialog}
-        className={cn(
-          'absolute bottom-safe-or-12 right-safe-or-6 z-50',
-          'h-14 w-14 items-center justify-center rounded-full',
-          'bg-primary shadow-lg shadow-black/25',
-          'active:bg-primary/90 active:scale-95',
-          fabClassName,
-        )}>
-        <Icon as={Calendar} className="text-primary-foreground" />
-      </Pressable>
+      {/* Trigger Component */}
+      {isValidElement(children) &&
+        cloneElement(children as React.ReactElement<{ onPress?: () => void }>, {
+          onPress: handleOpenDialog,
+        })}
 
       {/* Dialog - controlled separately */}
       <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
@@ -177,4 +175,4 @@ export function DatepickerModal({
   );
 }
 
-export default DatepickerModal;
+export default GratitudeDatepickerModal;

@@ -1,125 +1,190 @@
-import React from 'react';
-import { format, subDays } from 'date-fns';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ActivityIndicator, FlatList } from 'react-native';
-import { IGratitudeDBLog, IGratitudeLogItem } from '~/types';
+import { format, subDays, startOfDay } from 'date-fns';
+import {
+  type DayGroup,
+  type MilestoneItem,
+  type TimelineListItem,
+  type Entry,
+} from '~/types';
 import { useTranslation } from '~/lib/i18n';
-import { useGratitudeLogs } from '~/hooks/useGratitude';
+import { useEntriesGroupByDate } from '~/hooks/useGratitude';
 import { TimelineItem } from './GratitudeTimelineItem';
-import { GratitudeMilestone, IMilestoneItem, isMilestone } from './GratitudeMilestone';
+import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
 
 interface IGratitudeTimelineProps {
-  onEntryPress: (entry: IGratitudeDBLog) => void;
+  onEntryPress: (entry: Entry) => void;
+  onAddEntry?: (dateMs: number) => void;
 }
 
-// Union type for all items that can appear in the timeline
-type TimelineListItem = IGratitudeLogItem | IMilestoneItem;
-
 // Type guard to check if an item is a milestone
-function isMilestoneItem(item: TimelineListItem): item is IMilestoneItem {
+function isMilestoneItem(item: TimelineListItem): item is MilestoneItem {
   return 'type' in item && item.type === 'milestone';
+}
+
+// Type guard to check if an item is a day group
+function isDayGroupItem(item: TimelineListItem): item is DayGroup {
+  return 'dateMs' in item && 'entries' in item;
 }
 
 export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   onEntryPress,
+  onAddEntry,
 }) => {
   const { t } = useTranslation();
-  const today = new Date();
+  const today = startOfDay(new Date());
   const yesterday = subDays(today, 1);
-  const todayStr = format(today, 'yyyy-MM-dd');
-  const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
-  const { data: logs, isLoading, isError, error } = useGratitudeLogs();
-  const safeLogs = logs || [];
+  const todayMs = today.getTime();
+  const yesterdayMs = yesterday.getTime();
+  const { data, error } = useEntriesGroupByDate();
 
-  // Create a shallow copy to manipulate
-  const updatedLogs: IGratitudeLogItem[] = [...safeLogs];
+  // Track expanded state for each day group
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(
+    new Set([todayMs, yesterdayMs]),
+  );
 
-  // 1. Check if first item is Today
-  if (updatedLogs.length === 0 || updatedLogs[0].entryDate !== todayStr) {
-    updatedLogs.unshift({
-      entryDate: todayStr,
-      entryContent: '',
-      placeholderText: t('What are you grateful for today?'),
-    });
+  if (!data) {
+    if (error) {
+      return (
+        <View className="flex-1 items-center justify-center px-4">
+          <Text className="text-center text-red-600 mb-2">
+            {t('Failed to load entries')}
+          </Text>
+          <Text className="text-center text-gray-500">
+            {error?.message || t('Unknown error')}
+          </Text>
+        </View>
+      );
+    }
+    return <ActivityIndicator size="large" className="mt-20" />;
   }
 
-  // 2. Check if second item is Yesterday
-  // After step 1, index 0 is guaranteed to be Today (either existing or added).
-  // So we check index 1.
-  if (updatedLogs.length < 2 || updatedLogs[1].entryDate !== yesterdayStr) {
-    updatedLogs.splice(1, 0, {
-      entryDate: yesterdayStr,
-      entryContent: '',
-      placeholderText: t('What were you grateful for yesterday?'),
-    });
-  }
+  const groups = data;
+  const totalContentDays = groups.size;
 
-  // 3. Insert milestones into the timeline
-  // Count only entries that have actual content (not placeholders)
-  const entriesWithContent = safeLogs.filter((log) => log.entryContent);
-  const totalEntriesCount = entriesWithContent.length;
+  // Convert to DayGroup array and apply view state
+  const dayGroups = useMemo<DayGroup[]>(() => {
+    return Array.from(groups).map(([dateMs, entries]) => ({
+      dateMs,
+      dateStr: format(new Date(dateMs), 'yyyy-MM-dd'),
+      entries,
+      isExpanded: expandedDays.has(dateMs),
+      isToday: dateMs === todayMs,
+      isYesterday: dateMs === yesterdayMs,
+    }));
+  }, [groups, expandedDays, todayMs, yesterdayMs]);
 
-  // Build the final list with milestones interspersed
-  const finalList: TimelineListItem[] = [];
-  let entriesProcessed = 0;
+  // Add placeholder groups for today and yesterday if they don't exist
+  const finalDayGroups = useMemo(() => {
+    const hasToday = groups.has(todayMs);
+    const hasYesterday = groups.has(yesterdayMs);
 
-  for (let i = 0; i < updatedLogs.length; i++) {
-    const log = updatedLogs[i];
+    // If we have both, no need to copy, just use dayGroups
+    if (hasToday && hasYesterday) {
+      return dayGroups;
+    }
 
-    // Check if we should insert a milestone before this entry
-    // Milestones appear after X entries, so we check remaining entries count
-    // Only insert milestone if the current log is a real entry (has content)
-    // to avoid duplicates for placeholder entries
-    const remainingEntries = totalEntriesCount - entriesProcessed;
-    if (log.entryContent && isMilestone(remainingEntries)) {
-      finalList.push({
-        type: 'milestone',
-        milestoneDays: remainingEntries,
+    const result = [...dayGroups];
+
+    if (!hasToday) {
+      result.unshift({
+        dateMs: todayMs,
+        dateStr: format(today, 'yyyy-MM-dd'),
+        entries: [],
+        isExpanded: expandedDays.has(todayMs),
+        isToday: true,
+        placeholderText: t('What are you grateful for today?'),
       });
     }
 
-    finalList.push(log);
-
-    // Only count entries that have content
-    if (log.entryContent) {
-      entriesProcessed++;
+    if (!hasYesterday) {
+      result.splice(1, 0, {
+        dateMs: yesterdayMs,
+        dateStr: format(yesterday, 'yyyy-MM-dd'),
+        entries: [],
+        isExpanded: expandedDays.has(yesterdayMs),
+        isYesterday: true,
+        placeholderText: t('What were you grateful for yesterday?'),
+      });
     }
-  }
 
-  // 4. Mark the last item as isLast
-  if (finalList.length > 0) {
-    const lastIndex = finalList.length - 1;
-    const lastItem = finalList[lastIndex];
-    finalList[lastIndex] = { ...lastItem, isLast: true };
-  }
+    return result;
+  }, [dayGroups, groups, todayMs, yesterdayMs, today, yesterday, expandedDays, t]);
 
-  if (isLoading) return <ActivityIndicator size="large" className="mt-20" />;
+  // Insert milestones
+  const finalList: TimelineListItem[] = useMemo(() => {
+    const result: TimelineListItem[] = [];
+    let processedDays = 0;
 
-  if (isError) {
-    return (
-      <View className="flex-1 items-center justify-center px-4">
-        <Text className="text-center text-red-600 mb-2">
-          {t('Failed to load entries')}
-        </Text>
-        <Text className="text-center text-gray-500">
-          {error?.message || t('Unknown error')}
-        </Text>
-      </View>
-    );
-  }
+    finalDayGroups.forEach((group) => {
+      // We know from DB that only entries with content are saved/returned usually,
+      // but if we have checks, we validate here.
+      // Placeholders have empty entries so hasContent is false.
+      const hasContent = group.entries.some((e) => e.text_content);
+
+      const remainingDays = totalContentDays - processedDays;
+
+      if (hasContent && isMilestone(remainingDays)) {
+        result.push({
+          type: 'milestone',
+          milestoneDays: remainingDays,
+        });
+      }
+
+      result.push(group);
+      if (hasContent) {
+        processedDays += 1;
+      }
+    });
+
+    // Add day 0 milestone at the end which is always last
+    result.push({
+      type: 'milestone',
+      milestoneDays: 0,
+      isLast: true,
+    });
+
+    return result;
+  }, [finalDayGroups, totalContentDays]);
+
+  const toggleDayExpanded = (dateMs: number) => {
+    setExpandedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(dateMs)) {
+        next.delete(dateMs);
+      } else {
+        next.add(dateMs);
+      }
+      return next;
+    });
+  };
 
   return (
     <View className="flex-1 bg-background w-full px-safe mb-safe">
       <FlatList
         data={finalList}
+        extraData={expandedDays}
+        // removeClippedSubviews={false}
+        // windowSize={5}
+        // initialNumToRender={10}
         keyExtractor={(item) =>
-          isMilestoneItem(item) ? `milestone-${item.milestoneDays}` : item.entryDate
+          isMilestoneItem(item)
+            ? `milestone-${item.milestoneDays}`
+            : isDayGroupItem(item)
+              ? `day-${item.dateMs}`
+              : 'unknown'
         }
         renderItem={({ item }) =>
           isMilestoneItem(item) ? (
             <GratitudeMilestone milestone={item} />
-          ) : (
-            <TimelineItem item={item} onPress={() => onEntryPress(item)} />
-          )
+          ) : isDayGroupItem(item) ? (
+            <TimelineItem
+              dayGroup={item}
+              onEntryPress={onEntryPress}
+              onToggleExpand={() => toggleDayExpanded(item.dateMs)}
+              onPlaceholderPress={() => onAddEntry?.(item.dateMs)}
+            />
+          ) : null
         }
         ListFooterComponent={<View className="h-8" />}
         contentContainerClassName="pb-4"
