@@ -31,6 +31,11 @@ export const en: Translations = {
   'Failed to load entries': 'Failed to load entries',
   'I was grateful for': 'I was grateful for',
 
+  // Date Entries
+  'Loading...': 'Loading...',
+  'No entries for this date': 'No entries for this date',
+  'Create Entry': 'Create Entry',
+
   // Gratitude Entry
   'Delete Entry?': 'Delete Entry?',
   'Clearing the text will delete this entry entirely.':
@@ -50,6 +55,7 @@ export const en: Translations = {
   'Language change requires app restart. Proceed?':
     'Language change requires app restart. Proceed?',
   Proceed: 'Proceed',
+  'Reload App': 'Reload App',
 
   // Settings - Notifications
   Notifications: 'Notifications',
@@ -67,6 +73,9 @@ export const en: Translations = {
   'Timeline Entry Length': 'Timeline Entry Length',
   'Number of lines shown in the timeline':
     'Number of lines shown in the timeline. The full text is visible when you click the entry',
+  'Show Timeline Borders': 'Show Timeline Borders',
+  'Show the borders in the timeline': 'Show the borders in the timeline',
+  'Hide the borders in the timeline': 'Hide the borders in the timeline',
   'Inspirational Quotes': 'Inspirational Quotes',
   'Gratitude quotes will be shown on entry page':
     'Gratitude quotes will be shown on entry page',

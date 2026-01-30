@@ -27,7 +27,9 @@ interface TimePickerModalProps {
   value: string; // HH:MM format
   onValueChange: (time: string) => void;
   title?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  visible?: boolean;
+  onClose?: () => void;
 }
 
 export function TimePickerModal({
@@ -35,9 +37,14 @@ export function TimePickerModal({
   onValueChange,
   title,
   children,
+  visible,
+  onClose,
 }: TimePickerModalProps) {
   const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isControlled = visible !== undefined;
+  const isOpen = isControlled ? visible : internalOpen;
 
   // Parse HH:MM
   const [hours, minutes] = value.split(':').map(Number);
@@ -69,14 +76,24 @@ export function TimePickerModal({
     }
   }, [isOpen, hours, minutes]);
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (isControlled) {
+      if (!newOpen && onClose) {
+        onClose();
+      }
+    } else {
+      setInternalOpen(newOpen);
+    }
+  };
+
   const handleConfirm = () => {
     const hh = tempHours.toString().padStart(2, '0');
     const mm = tempMinutes.toString().padStart(2, '0');
     onValueChange(`${hh}:${mm}`);
-    setIsOpen(false);
+    handleOpenChange(false);
   };
 
-  const handleOpen = () => setIsOpen(true);
+  const handleOpen = () => handleOpenChange(true);
 
   const hourOptions = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
   const minuteOptions = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
@@ -95,9 +112,9 @@ export function TimePickerModal({
             viewPosition: 0.5,
           });
         }}
-        className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/20' : ''}`}>
+        className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/60' : ''}`}>
         <Text
-          className={`text-lg ${isSelected ? 'text-primary font-bold' : 'text-foreground/80'}`}>
+          className={`text-lg ${isSelected ? 'text-primary-foreground/80 font-bold' : 'text-foreground/80'}`}>
           {item.toString().padStart(2, '0')}
         </Text>
       </Button>
@@ -118,9 +135,9 @@ export function TimePickerModal({
             viewPosition: 0.5,
           });
         }}
-        className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/20' : ''}`}>
+        className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/60' : ''}`}>
         <Text
-          className={`text-lg ${isSelected ? 'text-primary font-bold' : 'text-foreground/80'}`}>
+          className={`text-lg ${isSelected ? 'text-primary-foreground/80 font-bold' : 'text-foreground/80'}`}>
           {item.toString().padStart(2, '0')}
         </Text>
       </Button>
@@ -129,18 +146,19 @@ export function TimePickerModal({
 
   return (
     <>
-      {isValidElement(children) &&
+      {children &&
+        isValidElement(children) &&
         cloneElement(children as React.ReactElement<{ onPress?: () => void }>, {
           onPress: handleOpen,
         })}
 
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-[320px]" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle className="text-center">{title || t('Select Time')}</DialogTitle>
           </DialogHeader>
 
-          <View className="flex-row justify-center items-center my-6">
+          <View className="flex-row justify-center items-center my-4">
             {/* Hours Picker */}
             <View className="h-32 w-16">
               <LegendList
@@ -173,7 +191,10 @@ export function TimePickerModal({
           </View>
 
           <DialogFooter className="flex-row gap-2 sm:justify-center">
-            <Button variant="outline" className="flex-1" onPress={() => setIsOpen(false)}>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onPress={() => handleOpenChange(false)}>
               <Text>{t('Cancel')}</Text>
             </Button>
             <Button className="flex-1" onPress={handleConfirm}>

@@ -29,6 +29,11 @@ export const he: Translations = {
   'Failed to load entries': 'טעינת הרשומות נכשלה',
   'I was grateful for': 'הייתי אסיר תודה על',
 
+  // Date Entries
+  'Loading...': 'טוען...',
+  'No entries for this date': 'אין רשומות לתאריך זה',
+  'Create Entry': 'צור רשומה',
+
   // Gratitude Entry
   'Delete Entry?': 'מחק רשומה?',
   'Clearing the text will delete this entry entirely.':
@@ -48,6 +53,7 @@ export const he: Translations = {
   'Language change requires app restart. Proceed?':
     'שינוי השפה דורש אתחול מחדש של האפליקציה. להמשיך?',
   Proceed: 'המשך',
+  'Reload App': 'טען מחדש את האפליקציה',
 
   // Settings - Notifications
   Notifications: 'התראות',
@@ -65,6 +71,9 @@ export const he: Translations = {
   'Timeline Entry Length': 'אורך רשומה בציר הזמן',
   'Number of lines shown in the timeline':
     'מספר השורות המוצגות בציר הזמן. הטקסט המלא נראה בלחיצה על הרשומה',
+  'Show Timeline Borders': 'הצג גבולות ציר זמן',
+  'Show the borders in the timeline': 'הצג את הגבולות בציר הזמן',
+  'Hide the borders in the timeline': 'הסתר את הגבולות בציר הזמן',
   'Inspirational Quotes': 'ציטוטים מעוררי השראה',
   'Gratitude quotes will be shown on entry page': 'ציטוטי הכרת טובה יוצגו בדף הרשומה',
   'Date Style': 'סגנון תאריך',

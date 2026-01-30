@@ -31,7 +31,7 @@ export function SettingsDropdownMenu() {
         </DropdownMenuItem>
         {/* TODO: Remove this before production */}
         <DropdownMenuItem onPress={() => reloadAppAsync()}>
-          <Text>Reload App</Text>
+          <Text>{t('Reload App')}</Text>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

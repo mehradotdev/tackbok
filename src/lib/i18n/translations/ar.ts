@@ -29,6 +29,11 @@ export const ar: Translations = {
   'Failed to load entries': 'فشل تحميل السجلات',
   'I was grateful for': 'كنت ممتناً لـ',
 
+  // Date Entries
+  'Loading...': 'جاري التحميل...',
+  'No entries for this date': 'لا توجد إدخالات لهذا التاريخ',
+  'Create Entry': 'إنشاء إدخال',
+
   // Gratitude Entry
   'Delete Entry?': 'حذف السجل؟',
   'Clearing the text will delete this entry entirely.':
@@ -48,6 +53,7 @@ export const ar: Translations = {
   'Language change requires app restart. Proceed?':
     'تغيير اللغة يتطلب إعادة تشغيل التطبيق. هل تريد المتابعة؟',
   Proceed: 'متابعة',
+  'Reload App': 'إعادة تحميل التطبيق',
 
   // Settings - Notifications
   Notifications: 'الإشعارات',
@@ -65,6 +71,9 @@ export const ar: Translations = {
   'Timeline Entry Length': 'طول إدخال الجدول الزمني',
   'Number of lines shown in the timeline':
     'عدد الأسطر المعروضة في الجدول الزمني. النص الكامل يظهر عند النقر على الإدخال',
+  'Show Timeline Borders': 'إظهار حدود الجدول الزمني',
+  'Show the borders in the timeline': 'إظهار الحدود في الجدول الزمني',
+  'Hide the borders in the timeline': 'إخفاء الحدود من الجدول الزمني',
   'Inspirational Quotes': 'اقتباسات ملهمة',
   'Gratitude quotes will be shown on entry page':
     'ستظهر اقتباسات الامتنان في صفحة الإدخال',

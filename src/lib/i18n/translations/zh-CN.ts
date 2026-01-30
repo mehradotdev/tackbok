@@ -29,6 +29,11 @@ export const zhCN: Translations = {
   'Failed to load entries': '加载条目失败',
   'I was grateful for': '我感恩',
 
+  // Date Entries
+  'Loading...': '加载中...',
+  'No entries for this date': '此日期无条目',
+  'Create Entry': '创建条目',
+
   // Gratitude Entry
   'Delete Entry?': '删除条目？',
   'Clearing the text will delete this entry entirely.': '清除文本将完全删除此条目。',
@@ -46,6 +51,7 @@ export const zhCN: Translations = {
   'Restart Required': '需要重启',
   'Language change requires app restart. Proceed?': '更改语言需要重启应用。是否继续？',
   Proceed: '继续',
+  'Reload App': '重新加载应用',
 
   // Settings - Notifications
   Notifications: '通知',
@@ -62,6 +68,9 @@ export const zhCN: Translations = {
     '从40多种不同的主题和配色方案中选择',
   'Timeline Entry Length': '时间线条目长度',
   'Number of lines shown in the timeline': '时间线中显示的行数。点击条目可查看完整文本',
+  'Show Timeline Borders': '显示时间线边框',
+  'Show the borders in the timeline': '显示时间线中的边框',
+  'Hide the borders in the timeline': '隐藏时间线中的边框',
   'Inspirational Quotes': '励志名言',
   'Gratitude quotes will be shown on entry page': '感恩名言将在条目页面显示',
   'Date Style': '日期样式',

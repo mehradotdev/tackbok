@@ -29,6 +29,11 @@ export const zhTW: Translations = {
   'Failed to load entries': '載入條目失敗',
   'I was grateful for': '我感恩',
 
+  // Date Entries
+  'Loading...': '載入中...',
+  'No entries for this date': '此日期無項目',
+  'Create Entry': '建立項目',
+
   // Gratitude Entry
   'Delete Entry?': '刪除條目？',
   'Clearing the text will delete this entry entirely.': '清除文字將完全刪除此條目。',
@@ -47,6 +52,7 @@ export const zhTW: Translations = {
   'Language change requires app restart. Proceed?':
     '更改語言需要重新啟動應用程式。是否繼續？',
   Proceed: '繼續',
+  'Reload App': '重新載入應用程式',
 
   // Settings - Notifications
   Notifications: '通知',
@@ -63,6 +69,9 @@ export const zhTW: Translations = {
     '從40多種不同的主題和配色方案中選擇',
   'Timeline Entry Length': '時間軸條目長度',
   'Number of lines shown in the timeline': '時間軸中顯示的行數。點擊條目可查看完整文字',
+  'Show Timeline Borders': '顯示時間軸邊框',
+  'Show the borders in the timeline': '顯示時間軸中的邊框',
+  'Hide the borders in the timeline': '隱藏時間軸中的邊框',
   'Inspirational Quotes': '勵志名言',
   'Gratitude quotes will be shown on entry page': '感恩名言將在條目頁面顯示',
   'Date Style': '日期樣式',
