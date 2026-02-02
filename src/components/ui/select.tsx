@@ -6,7 +6,13 @@ import * as SelectPrimitive from '~/components/primitives/select';
 import { Check, ChevronDown } from 'lucide-react-native';
 import * as React from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 
 type Option = SelectPrimitive.Option;
@@ -38,27 +44,45 @@ function SelectTrigger({
   className,
   children,
   size = 'default',
+  triggerIcon,
   ...props
 }: SelectPrimitive.TriggerProps & {
   children?: React.ReactNode;
-  size?: 'default' | 'sm';
+  size?: 'default' | 'sm' | 'flex';
+  triggerIcon?: React.ReactNode;
 }) {
+  const { open } = SelectPrimitive.useRootContext();
+  const progress = useSharedValue(0);
+
+  React.useEffect(() => {
+    progress.value = withTiming(open ? 1 : 0);
+  }, [open]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${progress.value * 180}deg` }],
+  }));
+
   return (
     <SelectPrimitive.Trigger
       className={cn(
         'border-border bg-background flex h-10 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9',
         props.disabled && 'opacity-50',
         size === 'sm' && 'h-8 py-2 sm:py-1.5',
+        size === 'flex' && 'h-auto py-0',
         className,
       )}
       {...props}>
       {children}
-      <Icon
-        as={ChevronDown}
-        aria-hidden={true}
-        strokeWidth={2}
-        className="text-foreground size-4"
-      />
+      <Animated.View style={animatedStyle}>
+        {triggerIcon || (
+          <Icon
+            as={ChevronDown}
+            aria-hidden={true}
+            strokeWidth={2}
+            className="text-foreground size-4"
+          />
+        )}
+      </Animated.View>
     </SelectPrimitive.Trigger>
   );
 }

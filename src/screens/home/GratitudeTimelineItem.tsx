@@ -169,9 +169,6 @@ function ExpandedEntryRow({
               ))}
             </View>
           )}
-
-          {/* Mood */}
-          {/* {entry.mood && <Text className="text-base">{MOOD_EMOJI[entry.mood]}</Text>} */}
         </Button>
       </View>
     </View>

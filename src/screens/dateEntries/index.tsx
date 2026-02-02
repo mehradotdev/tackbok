@@ -2,7 +2,7 @@ import { View, FlatList, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { format, startOfDay } from 'date-fns';
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react-native';
-import { MOOD_EMOJI } from '~/constants';
+import { MOOD_OPTIONS } from '~/constants';
 import { type Entry } from '~/types';
 import { cn } from '~/lib/utils';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
@@ -11,6 +11,7 @@ import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
+import { Badge } from '~/components/ui/badge';
 
 interface IDateEntriesScreenProps {
   dateMs: number;
@@ -22,8 +23,11 @@ interface IEntryItemProps {
 }
 
 function EntryItem({ entry, onPress }: IEntryItemProps) {
+  const { t } = useTranslation();
   const time = format(new Date(entry.created_at), 'HH:mm');
   const tagMap = useTagMapping();
+
+  const moodOption = entry.mood ? MOOD_OPTIONS.find((o) => o.value === entry.mood) : null;
 
   const tags = (entry.tags ? entry.tags.split(',') : [])
     .filter((id) => id.trim().length > 0)
@@ -35,44 +39,55 @@ function EntryItem({ entry, onPress }: IEntryItemProps) {
     <Pressable
       onPress={onPress}
       className="flex-row w-full px-safe-or-3 py-3 border-b border-border active:bg-muted">
-      {/* Content Column */}
       <View className="flex-1 justify-center">
-        {/* Time + Mood + Tags */}
+        {/* Row 1: Time + Mood */}
         <View className="flex-row flex-wrap items-center gap-2 mb-2">
+          {/* Time Badge - Preserving "Current" style but removing mood */}
           <Text
             className={cn(
               'self-start font-black tracking-wider text-foreground/70',
-              'py-0.5 px-3 pr-2 bg-muted border border-border rounded-full',
+              'py-1 px-3 bg-muted border border-border rounded-full',
             )}>
-            {time}{' '}
-            {entry.mood && <Text className="text-base">{MOOD_EMOJI[entry.mood]}</Text>}
+            {time}
           </Text>
 
-          {/* Tags */}
-          {tags.length > 0 &&
-            tags.map((tag) => (
-              <View key={tag.tag_id}>
-                <Text className="text-sm text-foreground/70 font-medium">
-                  #{tag.title}
-                </Text>
-              </View>
-            ))}
+          {/* Mood Badge - New Style from GratitudeEntryEdit */}
+          {moodOption && (
+            <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-full border border-border">
+              <Text className="text-xl">{moodOption.emoji}</Text>
+              <Text className="text-sm tracking-wide font-medium text-primary-foreground">
+                {t(`Feeling ${moodOption.label}`)}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Title */}
         {entry.text_title && (
-          <Text
-            className="text-base font-semibold text-foreground flex-1 mb-1"
-            numberOfLines={1}>
+          <Text className="text-lg font-semibold text-foreground mb-1" numberOfLines={1}>
             {entry.text_title}
           </Text>
         )}
 
         {/* Content */}
         {entry.text_content && (
-          <Text className="text-base text-foreground leading-5" numberOfLines={2}>
+          <Text className="text-base text-foreground leading-6" numberOfLines={3}>
             {entry.text_content}
           </Text>
+        )}
+
+        {/* Tags - Last Row */}
+        {tags.length > 0 && (
+          <View className="flex-row flex-wrap gap-2 mt-8">
+            {tags.map((tag) => (
+              <Badge
+                key={tag.tag_id}
+                variant="secondary"
+                className="px-2 py-1 rounded-md">
+                <Text className="text-sm text-foreground/70 font-bold">#{tag.title}</Text>
+              </Badge>
+            ))}
+          </View>
         )}
       </View>
     </Pressable>
@@ -95,11 +110,8 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
 
   const handleEntryPress = (entry: Entry) => {
     router.push({
-      pathname: '/gratitudeEntry',
-      params: {
-        noteId: entry.note_id,
-        dateMs: entry.created_at.toString(),
-      },
+      pathname: '/gratitudeEntry/[noteId]',
+      params: { noteId: entry.note_id },
     });
   };
 
@@ -118,7 +130,7 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <Button onPress={() => router.back()} variant="ghost" className="p-1">
@@ -155,7 +167,7 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
           renderItem={({ item }) => (
             <EntryItem entry={item} onPress={() => handleEntryPress(item)} />
           )}
-          contentContainerClassName="pb-4"
+          contentContainerClassName="pb-safe-or-4"
         />
       )}
     </SafeAreaView>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, KeyboardAvoidingView } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { startOfDay } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { Calendar } from 'lucide-react-native';
@@ -7,6 +7,7 @@ import { type Entry } from '~/types';
 import { getEntriesForDate } from '~/db/queries';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
+import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { GratitudeDatepickerModal } from '~/components/GratitudeDatepickerModal';
 import { Icon } from '~/components/ui/icon';
 import { Header } from './Header';
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handleGratitudeDatepickerPress = useCallback(
     async (date: Date) => {
@@ -30,7 +32,7 @@ export default function HomeScreen() {
       if (entries.length > 0) {
         // Has entries - go to date entries page
         router.push({
-          pathname: '/dateEntries',
+          pathname: '/dateEntries/[dateMs]',
           params: { dateMs: dateMs.toString() },
         });
       } else {
@@ -65,11 +67,8 @@ export default function HomeScreen() {
 
   const handleEntryPress = (entry: Entry) => {
     router.push({
-      pathname: '/gratitudeEntry',
-      params: {
-        noteId: entry.note_id,
-        dateMs: entry.created_at.toString(),
-      },
+      pathname: '/gratitudeEntry/[noteId]',
+      params: { noteId: entry.note_id },
     });
   };
 
@@ -91,7 +90,9 @@ export default function HomeScreen() {
   );
 
   return (
-    <View className="flex-1 bg-primary items-center justify-center pt-safe">
+    <SafeAreaView
+      className="flex-1 bg-primary items-center justify-center"
+      edges={['top', 'left', 'right']}>
       <Header
         isSearchMode={isSearchMode}
         onSearchPress={handleSearchPress}
@@ -119,22 +120,27 @@ export default function HomeScreen() {
             onEntryPress={handleEntryPress}
             onAddEntry={handleAddEntry}
           />
-          <GratitudeDatepickerModal onDateSelect={handleGratitudeDatepickerPress}>
-            {/* FAB (Floating Action Button) - positioned independently */}
-            <Button
-              size="icon"
-              variant="primary"
-              className={cn(
-                'absolute bottom-safe-or-12 right-safe-or-6 z-50',
-                'h-14 w-14 items-center justify-center rounded-full',
-                'shadow-lg shadow-black/25',
-                'active:bg-primary/90 active:scale-125',
-              )}>
-              <Icon as={Calendar} className="text-primary-foreground" />
-            </Button>
-          </GratitudeDatepickerModal>
+          {/* FAB (Floating Action Button) - positioned independently */}
+          <Button
+            size="icon"
+            variant="primary"
+            onPress={() => setShowDatePicker(true)}
+            className={cn(
+              'absolute bottom-safe-or-12 right-safe-or-6 z-5',
+              'h-14 w-14 items-center justify-center rounded-full',
+              'shadow-lg shadow-black/25',
+              'active:bg-primary/90 active:scale-125',
+            )}>
+            <Icon as={Calendar} className="text-primary-foreground" />
+          </Button>
+
+          <GratitudeDatepickerModal
+            visible={showDatePicker}
+            onClose={() => setShowDatePicker(false)}
+            onDateSelect={handleGratitudeDatepickerPress}
+          />
         </>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

@@ -298,7 +298,7 @@ export function Toaster({
               }}
               // Added border-l-4 and dynamic color class
               className={cn(
-                'bg-popover border-border shadow-foreground/5 flex-row items-center justify-between rounded-xl border border-l-4 p-4 shadow-xl',
+                'bg-card border-border shadow-foreground/5 flex-row items-center justify-between rounded-xl border border-l-4 p-4 shadow-xl',
                 getTypeStyles(t.type),
               )}>
               <View className="flex-1 flex-row items-center gap-3">

@@ -1,6 +1,7 @@
 import '../global.css';
 
 import { Text, View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -54,12 +55,12 @@ export default function Layout() {
   }
 
   return (
-    <>
-      <QueryClientProvider client={queryClient}>
-        <SafeAreaListener
-          onChange={({ insets }) => {
-            Uniwind.updateInsets(insets);
-          }}>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaListener
+        onChange={({ insets }) => {
+          Uniwind.updateInsets(insets);
+        }}>
+        <KeyboardProvider>
           <Stack
             screenOptions={{
               headerShown: false,
@@ -76,14 +77,21 @@ export default function Layout() {
               }}
             />
             <Stack.Screen
-              name="gratitudeEntry"
+              name="gratitudeEntry/index"
               options={{
                 title: 'Gratitude Entry',
                 headerShown: false,
               }}
             />
             <Stack.Screen
-              name="dateEntries"
+              name="gratitudeEntry/[noteId]"
+              options={{
+                title: 'Gratitude Entry View',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="dateEntries/[dateMs]"
               options={{
                 title: 'Date Entries',
                 headerShown: false,
@@ -100,8 +108,8 @@ export default function Layout() {
           <StatusBar style="auto" />
           <Toaster />
           <PortalHost />
-        </SafeAreaListener>
-      </QueryClientProvider>
-    </>
+        </KeyboardProvider>
+      </SafeAreaListener>
+    </QueryClientProvider>
   );
 }

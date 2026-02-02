@@ -70,7 +70,7 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
         renderItem={({ item }) => (
           <SearchResultItem item={item} onPress={() => onEntryPress(item)} />
         )}
-        contentContainerClassName="pb-4"
+        contentContainerClassName="pb-2"
       />
     </View>
   );

@@ -1,17 +1,12 @@
-import {
-  useState,
-  useRef,
-  useMemo,
-  useEffect,
-  cloneElement,
-  isValidElement,
-} from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { View } from 'react-native';
 import {
   LegendList,
   type LegendListRef,
   type LegendListRenderItemProps,
 } from '@legendapp/list';
+import { cn } from '~/lib/utils';
+import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import {
@@ -21,30 +16,23 @@ import {
   DialogTitle,
   DialogFooter,
 } from '~/components/ui/dialog';
-import { useTranslation } from '~/lib/i18n';
 
 interface TimePickerModalProps {
   value: string; // HH:MM format
   onValueChange: (time: string) => void;
   title?: string;
-  children?: React.ReactNode;
-  visible?: boolean;
-  onClose?: () => void;
+  visible: boolean;
+  onClose: () => void;
 }
 
 export function TimePickerModal({
   value,
   onValueChange,
   title,
-  children,
   visible,
   onClose,
 }: TimePickerModalProps) {
   const { t } = useTranslation();
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  const isControlled = visible !== undefined;
-  const isOpen = isControlled ? visible : internalOpen;
 
   // Parse HH:MM
   const [hours, minutes] = value.split(':').map(Number);
@@ -55,7 +43,7 @@ export function TimePickerModal({
   const minutesListRef = useRef<LegendListRef>(null);
 
   useEffect(() => {
-    if (isOpen) {
+    if (visible) {
       // Reset non-saved values when modal opens
       setTempHours(hours);
       setTempMinutes(minutes);
@@ -74,15 +62,11 @@ export function TimePickerModal({
         });
       }, 200);
     }
-  }, [isOpen, hours, minutes]);
+  }, [visible, hours, minutes]);
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (isControlled) {
-      if (!newOpen && onClose) {
-        onClose();
-      }
-    } else {
-      setInternalOpen(newOpen);
+    if (!newOpen) {
+      onClose();
     }
   };
 
@@ -92,8 +76,6 @@ export function TimePickerModal({
     onValueChange(`${hh}:${mm}`);
     handleOpenChange(false);
   };
-
-  const handleOpen = () => handleOpenChange(true);
 
   const hourOptions = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
   const minuteOptions = useMemo(() => Array.from({ length: 60 }, (_, i) => i), []);
@@ -145,64 +127,56 @@ export function TimePickerModal({
   };
 
   return (
-    <>
-      {children &&
-        isValidElement(children) &&
-        cloneElement(children as React.ReactElement<{ onPress?: () => void }>, {
-          onPress: handleOpen,
-        })}
+    <Dialog open={visible} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-[320px]" showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle className="text-center">{title || t('Select Time')}</DialogTitle>
+        </DialogHeader>
 
-      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-[320px]" showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle className="text-center">{title || t('Select Time')}</DialogTitle>
-          </DialogHeader>
-
-          <View className="flex-row justify-center items-center my-4">
-            {/* Hours Picker */}
-            <View className="h-32 w-16">
-              <LegendList
-                data={hourOptions}
-                estimatedItemSize={40}
-                extraData={tempHours}
-                keyExtractor={(item) => item.toString()}
-                ref={hoursListRef}
-                renderItem={renderHourItem}
-                contentContainerStyle={{ paddingVertical: 48 }}
-                showsVerticalScrollIndicator={false}
-              />
-            </View>
-
-            <Text className="text-2xl text-foreground px-2">:</Text>
-
-            {/* Minutes Picker */}
-            <View className="h-32 w-16">
-              <LegendList
-                data={minuteOptions}
-                estimatedItemSize={40}
-                extraData={tempMinutes}
-                keyExtractor={(item) => item.toString()}
-                ref={minutesListRef}
-                renderItem={renderMinuteItem}
-                contentContainerStyle={{ paddingVertical: 48 }}
-                showsVerticalScrollIndicator={false}
-              />
-            </View>
+        <View className="flex-row justify-center items-center my-4">
+          {/* Hours Picker */}
+          <View className="h-32 w-16">
+            <LegendList
+              data={hourOptions}
+              estimatedItemSize={40}
+              extraData={tempHours}
+              keyExtractor={(item) => item.toString()}
+              ref={hoursListRef}
+              renderItem={renderHourItem}
+              contentContainerStyle={{ paddingVertical: 48 }}
+              showsVerticalScrollIndicator={false}
+            />
           </View>
 
-          <DialogFooter className="flex-row gap-2 sm:justify-center">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onPress={() => handleOpenChange(false)}>
-              <Text>{t('Cancel')}</Text>
-            </Button>
-            <Button className="flex-1" onPress={handleConfirm}>
-              <Text>{t('Done')}</Text>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          <Text className="text-2xl text-foreground px-2">:</Text>
+
+          {/* Minutes Picker */}
+          <View className="h-32 w-16">
+            <LegendList
+              data={minuteOptions}
+              estimatedItemSize={40}
+              extraData={tempMinutes}
+              keyExtractor={(item) => item.toString()}
+              ref={minutesListRef}
+              renderItem={renderMinuteItem}
+              contentContainerStyle={{ paddingVertical: 48 }}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </View>
+
+        <DialogFooter className="flex-row gap-2 sm:justify-center">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onPress={() => handleOpenChange(false)}>
+            <Text>{t('Cancel')}</Text>
+          </Button>
+          <Button className="flex-1" onPress={handleConfirm}>
+            <Text>{t('Done')}</Text>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -160,7 +160,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   };
 
   return (
-    <View className="flex-1 bg-background w-full px-safe mb-safe">
+    <View className="flex-1 bg-background w-full">
       <FlatList
         data={finalList}
         extraData={expandedDays}
