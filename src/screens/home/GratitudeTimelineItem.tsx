@@ -22,6 +22,7 @@ interface ITimelineItemProps {
   onEntryPress: (entry: Entry) => void;
   onToggleExpand: () => void;
   onPlaceholderPress?: () => void;
+  isExpanded?: boolean;
 }
 
 interface IEntryRowProps {
@@ -184,10 +185,13 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   onEntryPress,
   onToggleExpand,
   onPlaceholderPress,
+  isExpanded: isExpandedProp,
 }) => {
   const { t, isRTL } = useTranslation();
   const timelineEntryLength = useSettingsStore((state) => state.timelineEntryLength);
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
+
+  const isExpanded = isExpandedProp ?? dayGroup.isExpanded;
 
   const formattedDate = formatLocalizedDate(dayGroup.dateStr, t);
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -216,10 +220,10 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
           <Icon
             as={
               isToday
-                ? dayGroup.isExpanded
+                ? isExpanded
                   ? Minus
                   : Plus
-                : dayGroup.isExpanded
+                : isExpanded
                   ? CircleMinus
                   : CirclePlus
             }
@@ -248,7 +252,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
         </Button>
 
         {/* Placeholder (when expanded and no entries) */}
-        {dayGroup.isExpanded && !hasEntries && (
+        {isExpanded && !hasEntries && (
           <Button
             variant="ghost"
             size="flex"
@@ -261,7 +265,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
         )}
 
         {/* Entries List (when expanded) */}
-        {dayGroup.isExpanded && hasEntries && (
+        {isExpanded && hasEntries && (
           <View className="w-full p-0 m-0 flex-1">
             {dayGroup.entries.map((entry, index) => (
               <ExpandedEntryRow
@@ -278,7 +282,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
         )}
 
         {/* Entries List Collapsed View (when not expanded and has entries) */}
-        {!dayGroup.isExpanded && hasEntries && (
+        {!isExpanded && hasEntries && (
           <Text
             className="text-base px-4 pb-2 text-foreground"
             numberOfLines={timelineEntryLength}>

@@ -9,7 +9,7 @@ import {
   type Entry,
 } from '~/types';
 import { useTranslation } from '~/lib/i18n';
-import { useEntriesGroupByDate } from '~/hooks/useGratitude';
+import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
 
@@ -38,6 +38,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   const todayMs = today.getTime();
   const yesterdayMs = yesterday.getTime();
   const { data, error } = useEntriesGroupByDate();
+  const tagMap = useTagMapping();
 
   // Track expanded state for each day group
   const [expandedDays, setExpandedDays] = useState<Set<number>>(
@@ -69,11 +70,11 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
       dateMs,
       dateStr: format(new Date(dateMs), 'yyyy-MM-dd'),
       entries,
-      isExpanded: expandedDays.has(dateMs),
+      isExpanded: false, // Default to false, controlled via extraData
       isToday: dateMs === todayMs,
       isYesterday: dateMs === yesterdayMs,
     }));
-  }, [groups, expandedDays, todayMs, yesterdayMs]);
+  }, [groups, todayMs, yesterdayMs]);
 
   // Add placeholder groups for today and yesterday if they don't exist
   const finalDayGroups = useMemo(() => {
@@ -92,7 +93,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         dateMs: todayMs,
         dateStr: format(today, 'yyyy-MM-dd'),
         entries: [],
-        isExpanded: expandedDays.has(todayMs),
+        isExpanded: false,
         isToday: true,
         placeholderText: t('What are you grateful for today?'),
       });
@@ -103,14 +104,14 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         dateMs: yesterdayMs,
         dateStr: format(yesterday, 'yyyy-MM-dd'),
         entries: [],
-        isExpanded: expandedDays.has(yesterdayMs),
+        isExpanded: false,
         isYesterday: true,
         placeholderText: t('What were you grateful for yesterday?'),
       });
     }
 
     return result;
-  }, [dayGroups, groups, todayMs, yesterdayMs, today, yesterday, expandedDays, t]);
+  }, [dayGroups, groups, todayMs, yesterdayMs, today, yesterday, t]);
 
   // Insert milestones
   const finalList: TimelineListItem[] = useMemo(() => {
@@ -163,8 +164,21 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   return (
     <View className="flex-1 bg-background w-full">
       <LegendList
+        recycleItems={true}
         data={finalList}
-        estimatedItemSize={100}
+        getItemType={(item) => (isMilestoneItem(item) ? 'milestone' : 'dayGroup')}
+        getEstimatedItemSize={(_index, item, type) => {
+          if (type === 'milestone') return 80;
+          if (isDayGroupItem(item)) {
+            const isExpanded = expandedDays.has(item.dateMs);
+            const numEntries = item.entries.length;
+            // Collapsed: ~70px header + ~40px preview
+            // Expanded: ~70px header + ~150px per entry
+            return isExpanded ? 70 + numEntries * 150 : 110;
+          }
+          return 150;
+        }}
+        extraData={[expandedDays, tagMap]}
         keyExtractor={(item) =>
           isMilestoneItem(item)
             ? `milestone-${item.milestoneDays}`
@@ -181,6 +195,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
               onEntryPress={onEntryPress}
               onToggleExpand={() => toggleDayExpanded(item.dateMs)}
               onPlaceholderPress={() => onAddEntry?.(item.dateMs)}
+              isExpanded={expandedDays.has(item.dateMs)}
             />
           ) : null
         }
