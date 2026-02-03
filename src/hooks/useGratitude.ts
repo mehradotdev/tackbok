@@ -1,6 +1,5 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
 import { type NewEntry, type Entry } from '~/types';
 import {
   getAllEntries,
@@ -12,6 +11,10 @@ import {
   addTagToEntry,
   removeTagFromEntry,
   getAllEntriesGroupByDate,
+  updateTag,
+  deleteTag,
+  createTag,
+  getEntryById,
 } from '~/db/queries';
 
 export const QUERY_KEYS = {
@@ -53,6 +56,17 @@ export function useEntriesForDate(dateMs: number) {
   return useQuery({
     queryKey: [QUERY_KEYS.entriesForDate, dateMs],
     queryFn: () => getEntriesForDate(dateMs),
+  });
+}
+
+/**
+ * Hook for a single entry
+ */
+export function useEntry(noteId?: string) {
+  return useQuery({
+    queryKey: [QUERY_KEYS.entries, noteId],
+    queryFn: () => (noteId ? getEntryById(noteId) : Promise.resolve(undefined)),
+    enabled: !!noteId,
   });
 }
 
@@ -154,6 +168,52 @@ export function useRemoveTagFromEntry() {
       removeTagFromEntry(entryId, tagId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
+    },
+  });
+}
+
+/**
+ * Hook to update a tag's title
+ */
+export function useUpdateTag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ tagId, title }: { tagId: string; title: string }) =>
+      updateTag(tagId, title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] });
+    },
+  });
+}
+
+/**
+ * Hook to delete a tag
+ */
+export function useDeleteTag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (tagId: string) => deleteTag(tagId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
+    },
+  });
+}
+
+/**
+ * Hook to create a new tag
+ */
+export function useCreateTag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (title: string) => createTag(title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] });
     },
   });
 }

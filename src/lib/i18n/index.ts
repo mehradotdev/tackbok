@@ -9,7 +9,7 @@ export type {
 export { RTL_LOCALES, DEFAULT_LOCALE } from './types';
 
 // Store
-export { useLocaleStore, getEffectiveLocale } from './store';
+export { useLocaleStore, getEffectiveLocale, getEffectiveSupportedLocale } from './store';
 
 // Translations
 export { translations, languages, translate, isRTLLocale } from './translations';

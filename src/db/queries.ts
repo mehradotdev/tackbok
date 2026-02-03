@@ -1,14 +1,7 @@
 import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
 import { startOfDay } from 'date-fns';
 import { generateUUID } from '~/lib/utils';
-import {
-  db,
-  entries,
-  tags,
-  type Entry,
-  type NewEntry,
-  type Tag,
-} from './index';
+import { db, entries, tags, type Entry, type NewEntry, type Tag } from './index';
 
 /**
  * Get all entries (with raw CSV tags string) sorted by created_at DESC
@@ -109,34 +102,28 @@ export async function searchEntries(
   if (!searchTerm.trim() && tagIds.length === 0) return [];
 
   const likePattern = `%${searchTerm}%`;
-  
+
   // Base query
-  let query = db
-    .select()
-    .from(entries)
-    .orderBy(desc(entries.created_at));
-    
+  let query = db.select().from(entries).orderBy(desc(entries.created_at));
+
   const conditions = [];
 
   // Text search
   if (searchTerm.trim()) {
-      conditions.push(
-        or(
-          like(entries.text_title, likePattern),
-          like(entries.text_content, likePattern),
-        )
-      );
+    conditions.push(
+      or(like(entries.text_title, likePattern), like(entries.text_content, likePattern)),
+    );
   }
 
   // Tag search (OR logic - if entry has any of the tags)
   if (tagIds.length > 0) {
-     const tagConditions = tagIds.map(tagId => like(entries.tags, `%${tagId}%`));
-     conditions.push(or(...tagConditions));
+    const tagConditions = tagIds.map((tagId) => like(entries.tags, `%${tagId}%`));
+    conditions.push(or(...tagConditions));
   }
-  
+
   if (conditions.length > 0) {
-      // @ts-ignore
-      query = query.where(and(...conditions));
+    // @ts-ignore
+    query = query.where(and(...conditions));
   }
 
   return query;
@@ -182,7 +169,6 @@ export async function deleteAllData() {
   await db.delete(entries);
 }
 
-
 // ============================================================================
 // Tag Queries
 // ============================================================================
@@ -215,8 +201,8 @@ export async function addTagToEntry(entryId: string, tagId: string): Promise<voi
   if (!entry) return;
 
   const currentTagsStr = entry.tags || '';
-  const currentTags = currentTagsStr.split(',').filter(t => t.length > 0);
-  
+  const currentTags = currentTagsStr.split(',').filter((t) => t.length > 0);
+
   if (currentTags.includes(tagId)) return; // Already exists
 
   const newTags = [...currentTags, tagId];
@@ -236,12 +222,12 @@ export async function removeTagFromEntry(entryId: string, tagId: string): Promis
   if (!entry) return;
 
   const currentTagsStr = entry.tags || '';
-  const currentTags = currentTagsStr.split(',').filter(t => t.length > 0);
-  
+  const currentTags = currentTagsStr.split(',').filter((t) => t.length > 0);
+
   const newTags = currentTags.filter((id) => id !== tagId);
 
   if (newTags.length === currentTags.length) return; // Nothing changed
-  
+
   const newTagsStr = newTags.join(',');
 
   await db
@@ -251,17 +237,43 @@ export async function removeTagFromEntry(entryId: string, tagId: string): Promis
 }
 
 /**
- * Get all tags for an entry (hydrated)
+ * Update a tag's title
  */
-// TODO: Do we even need this?
-export async function getTagsForEntry(entryId: string): Promise<Tag[]> {
-  const entry = await getEntryById(entryId);
-  if (!entry || !entry.tags) return [];
+export async function updateTag(tagId: string, title: string): Promise<void> {
+  await db
+    .update(tags)
+    .set({ title, updated_at: Date.now() })
+    .where(eq(tags.tag_id, tagId));
+}
 
-  const entryTagIds = entry.tags.split(',').filter(t => t.length > 0);
-  if (entryTagIds.length === 0) return [];
+/**
+ * Delete a tag by its ID
+ * Removes the tag from all entries that reference it, then deletes the tag itself.
+ */
+export async function deleteTag(tagId: string): Promise<void> {
+  // 1. Find all entries that have this tag
+  // We use LIKE here. Note that unlike standard SQL, we might need to fetch and process
+  const entriesWithTag = await searchEntries('', [tagId]);
 
-  const allTags = await getAllTags();
-  
-  return allTags.filter(tag => entryTagIds.includes(tag.tag_id));
+  // 2. Remove the tag from each entry
+  const updates = entriesWithTag.map(async (entry) => {
+    if (!entry.tags) return;
+
+    const currentTags = entry.tags.split(',').filter((t) => t.length > 0);
+    const newTags = currentTags.filter((id) => id !== tagId);
+
+    // Only update if changed
+    if (newTags.length !== currentTags.length) {
+      const newTagsStr = newTags.join(',');
+      await db
+        .update(entries)
+        .set({ tags: newTagsStr, updated_at: Date.now() })
+        .where(eq(entries.note_id, entry.note_id));
+    }
+  });
+
+  await Promise.all(updates);
+
+  // 3. Delete the tag itself
+  await db.delete(tags).where(eq(tags.tag_id, tagId));
 }

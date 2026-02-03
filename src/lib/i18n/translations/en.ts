@@ -1,21 +1,24 @@
-import type { Translations } from '../types';
-
 /**
  * English translations
  * Keys are the default English text - no translation needed for English
  * This file serves as a reference for all available translation keys
  */
-export const en: Translations = {
+export const en = {
   // Common
   Tackbok: 'Tackbok',
   Cancel: 'Cancel',
   Done: 'Done',
   Save: 'Save',
+  Edit: 'Edit',
+  Add: 'Add',
+  Create: 'Create',
+  Discard: 'Discard',
   Continue: 'Continue',
   Delete: 'Delete',
   Settings: 'Settings',
   'Contact Us': 'Contact Us',
   'Unknown error': 'Unknown error',
+  at: 'at',
 
   // Header & Search
   'Search gratitude logs...': 'Search gratitude logs...',
@@ -40,9 +43,54 @@ export const en: Translations = {
   'Delete Entry?': 'Delete Entry?',
   'Clearing the text will delete this entry entirely.':
     'Clearing the text will delete this entry entirely.',
-  'Are you sure you want to go back?': 'Are you sure you want to go back?',
-  'Your entry is unsaved and your changes will be lost!':
-    'Your entry is unsaved and your changes will be lost!',
+  'This entry will be permanently deleted.': 'This entry will be permanently deleted.',
+  'Leave without saving?': 'Leave without saving?',
+  'Your entry is unsaved. Would you like to keep editing or discard them?':
+    'Your entry is unsaved. Would you like to keep editing or discard them?',
+  'Keep Editing': 'Keep Editing',
+
+  'Pick any date': 'Pick any date',
+  'Select date': 'Select date',
+  Mood: 'Mood',
+  Photo: 'Photo',
+  Voice: 'Voice',
+
+  'Title (optional)': 'Title (optional)',
+  // Moods
+  Amazing: 'Amazing',
+  Happy: 'Happy',
+  Okay: 'Okay',
+  Sad: 'Sad',
+  Awful: 'Awful',
+  'How are you feeling?': 'How are you feeling?',
+  'Feeling Amazing': 'Feeling Amazing',
+  'Feeling Happy': 'Feeling Happy',
+  'Feeling Okay': 'Feeling Okay',
+  'Feeling Sad': 'Feeling Sad',
+  'Feeling Awful': 'Feeling Awful',
+  'Add tags...': 'Add tags...',
+  'Entry saved successfully': 'Entry saved successfully',
+  'Failed to save entry': 'Failed to save entry',
+  'Tag already exists': 'Tag already exists',
+  'Tag created': 'Tag created',
+  'Failed to create tag': 'Failed to create tag',
+  'Tag updated': 'Tag updated',
+  'Failed to update tag': 'Failed to update tag',
+  'Tag deleted': 'Tag deleted',
+  'Failed to delete tag': 'Failed to delete tag',
+
+  // Tags
+  Tag: 'Tag',
+  Tags: 'Tags',
+  'Tag name': 'Tag name',
+  'Add a Tag': 'Add a Tag',
+  'Create New Tag': 'Create New Tag',
+  'New tag name...': 'New tag name...',
+  'No tags yet': 'No tags yet',
+  'Create your first tag': 'Create your first tag',
+  'Edit Tag': 'Edit Tag',
+  'Delete Tag': 'Delete Tag',
+  'Are you sure you want to delete the tag?': 'Are you sure you want to delete the tag?',
 
   // Milestones
   'days of gratitude': 'days of gratitude',
@@ -84,9 +132,6 @@ export const en: Translations = {
   'First Day of Week': 'First Day of Week',
   'Set the first day of the week in the calendar view':
     'Set the first day of the week in the calendar view',
-  Saturday: 'Saturday',
-  Sunday: 'Sunday',
-  Monday: 'Monday',
 
   // Settings - Security
   Security: 'Security',
@@ -144,7 +189,12 @@ export const en: Translations = {
   'All data deleted': 'All data deleted',
   'Delete failed': 'Delete failed',
 
+  // Time Picker
+  'Select Time': 'Select Time',
+
   // Date Picker
+  Today: 'Today',
+  Yesterday: 'Yesterday',
   'Select Date': 'Select Date',
   'Has entry': 'Has entry',
   Selected: 'Selected',
@@ -159,6 +209,13 @@ export const en: Translations = {
   Thu: 'Thu',
   Fri: 'Fri',
   Sat: 'Sat',
+  Sunday: 'Sunday',
+  Monday: 'Monday',
+  Tuesday: 'Tuesday',
+  Wednesday: 'Wednesday',
+  Thursday: 'Thursday',
+  Friday: 'Friday',
+  Saturday: 'Saturday',
   January: 'January',
   February: 'February',
   March: 'March',
@@ -183,4 +240,4 @@ export const en: Translations = {
   OCT: 'Oct',
   NOV: 'Nov',
   DEC: 'Dec',
-};
+} satisfies Record<string, string>;

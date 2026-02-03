@@ -1,17 +1,5 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-// Asset type for photos/audio stored in entries
-export type Asset = {
-  type: 'IMAGE' | 'AUDIO';
-  uri: string;
-};
-
-// Mood options
-export type Mood = 'RAD' | 'GOOD' | 'MEH' | 'BAD' | 'AWFUL';
+import type { Asset, Mood } from '~/types';
 
 // ============================================================================
 // Tables

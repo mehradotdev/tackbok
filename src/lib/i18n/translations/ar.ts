@@ -10,11 +10,16 @@ export const ar: Translations = {
   Cancel: 'إلغاء',
   Done: 'تم',
   Save: 'حفظ',
+  Edit: 'تعديل',
+  Add: 'إضافة',
+  Create: 'إنشاء',
+  Discard: 'تجاهل',
   Continue: 'متابعة',
   Delete: 'حذف',
   Settings: 'الإعدادات',
   'Contact Us': 'اتصل بنا',
   'Unknown error': 'خطأ غير معروف',
+  at: 'في',
 
   // Header & Search
   'Search gratitude logs...': 'بحث في سجلات الامتنان...',
@@ -38,9 +43,54 @@ export const ar: Translations = {
   'Delete Entry?': 'حذف السجل؟',
   'Clearing the text will delete this entry entirely.':
     'مسح النص سيؤدي إلى حذف هذا السجل تماماً.',
-  'Are you sure you want to go back?': 'هل أنت متأكد أنك تريد الرجوع؟',
-  'Your entry is unsaved and your changes will be lost!':
-    'لم يتم حفظ إدخالك وسوف تضيع تغييراتك!',
+  'This entry will be permanently deleted.': 'سيتم حذف هذا الإدخال نهائيًا.',
+  'Leave without saving?': 'المغادرة دون حفظ؟',
+  'Your entry is unsaved. Would you like to keep editing or discard them?':
+    'إدخالك غير محفوظ. هل تريد الاستمرار في التحرير أو تجاهله؟',
+  'Keep Editing': 'متابعة التحرير',
+
+  'Pick any date': 'اختر أي تاريخ',
+  'Select date': 'حدد التاريخ',
+  Mood: 'المزاج',
+  Photo: 'صورة',
+  Voice: 'صوت',
+
+  'Title (optional)': 'العنوان (اختياري)',
+  // Moods
+  Amazing: 'مذهل',
+  Happy: 'سعيد',
+  Okay: 'بخير',
+  Sad: 'حزين',
+  Awful: 'سيء جداً',
+  'How are you feeling?': 'كيف تشعر؟',
+  'Feeling Amazing': 'أشعر بالروعة',
+  'Feeling Happy': 'أشعر بالسعادة',
+  'Feeling Okay': 'أشعر بأنني بخير',
+  'Feeling Sad': 'أشعر بالحزن',
+  'Feeling Awful': 'أشعر بالسوء',
+  'Add tags...': 'أضف وسوم...',
+  'Entry saved successfully': 'تم حفظ الإدخال بنجاح',
+  'Failed to save entry': 'فشل حفظ الإدخال',
+  'Tag already exists': 'الوسم موجود بالفعل',
+  'Tag created': 'تم إنشاء الوسم',
+  'Failed to create tag': 'فشل إنشاء الوسم',
+  'Tag updated': 'تم تحديث الوسم',
+  'Failed to update tag': 'فشل تحديث الوسم',
+  'Tag deleted': 'تم حذف الوسم',
+  'Failed to delete tag': 'فشل حذف الوسم',
+
+  // Tags
+  Tag: 'وسم',
+  Tags: 'الوسوم',
+  'Tag name': 'اسم الوسم',
+  'Add a Tag': 'أضف وسماً',
+  'Create New Tag': 'إنشاء وسم جديد',
+  'New tag name...': 'اسم الوسم الجديد...',
+  'No tags yet': 'لا توجد وسوم بعد',
+  'Create your first tag': 'أنشئ وسمك الأول',
+  'Edit Tag': 'تعديل الوسم',
+  'Delete Tag': 'حذف الوسم',
+  'Are you sure you want to delete the tag?': 'هل أنت متأكد أنك تريد حذف الوسم؟',
 
   // Milestones
   'days of gratitude': 'أيام من الامتنان',
@@ -82,9 +132,6 @@ export const ar: Translations = {
   'First Day of Week': 'أول يوم في الأسبوع',
   'Set the first day of the week in the calendar view':
     'حدد أول يوم في الأسبوع في عرض التقويم',
-  Saturday: 'السبت',
-  Sunday: 'الأحد',
-  Monday: 'الاثنين',
 
   // Settings - Security
   Security: 'الأمان',
@@ -142,7 +189,12 @@ export const ar: Translations = {
   'All data deleted': 'تم حذف جميع البيانات',
   'Delete failed': 'فشل الحذف',
 
+  // Time Picker
+  'Select Time': 'حدد الوقت',
+
   // Date Picker
+  Today: 'اليوم',
+  Yesterday: 'أمس',
   'Select Date': 'اختر تاريخاً',
   'Has entry': 'يحتوي على مدخل',
   Selected: 'محدد',
@@ -157,6 +209,13 @@ export const ar: Translations = {
   Thu: 'خميس',
   Fri: 'جمعة',
   Sat: 'سبت',
+  Sunday: 'الأحد',
+  Monday: 'الاثنين',
+  Tuesday: 'الثلاثاء',
+  Wednesday: 'الأربعاء',
+  Thursday: 'الخميس',
+  Friday: 'الجمعة',
+  Saturday: 'السبت',
   January: 'يناير',
   February: 'فبراير',
   March: 'مارس',

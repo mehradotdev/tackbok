@@ -1,7 +1,16 @@
-import type { Entry, Tag, Asset, Mood, NewEntry, NewTag } from './db/schema';
+import type { Entry, Tag, NewEntry, NewTag } from './db/schema';
+
+// Asset type for photos/audio stored in entries
+export type Asset = {
+  type: 'IMAGE' | 'AUDIO';
+  uri: string;
+};
+
+// Mood options
+export type Mood = 'AMAZING' | 'HAPPY' | 'OKAY' | 'SAD' | 'AWFUL';
 
 // Re-export schema types for convenience
-export type { Entry, Tag, Asset, Mood, NewEntry, NewTag };
+export type { Entry, Tag, NewEntry, NewTag };
 
 /** First day of week options */
 export type FirstDayOfWeek = 'saturday' | 'sunday' | 'monday';

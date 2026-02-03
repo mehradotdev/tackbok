@@ -1,12 +1,20 @@
 import { type Mood } from './types';
 
 export const MOOD_EMOJI: Record<Mood, string> = {
-  RAD: '😄',
-  GOOD: '🙂',
-  MEH: '😐',
-  BAD: '😔',
+  AMAZING: '🤩',
+  HAPPY: '🙂',
+  OKAY: '😐',
+  SAD: '😔',
   AWFUL: '😢',
 };
+
+export const MOOD_OPTIONS = [
+  { value: 'AMAZING', emoji: MOOD_EMOJI.AMAZING, label: 'Amazing' },
+  { value: 'HAPPY', emoji: MOOD_EMOJI.HAPPY, label: 'Happy' },
+  { value: 'OKAY', emoji: MOOD_EMOJI.OKAY, label: 'Okay' },
+  { value: 'SAD', emoji: MOOD_EMOJI.SAD, label: 'Sad' },
+  { value: 'AWFUL', emoji: MOOD_EMOJI.AWFUL, label: 'Awful' },
+] as const;
 
 /*
  * Android crash fix:
@@ -44,4 +52,14 @@ export const MONTH_SHORT_KEYS = [
   'OCT',
   'NOV',
   'DEC',
+] as const;
+
+export const DAY_KEYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
 ] as const;

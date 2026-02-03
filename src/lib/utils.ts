@@ -1,13 +1,22 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { format, isToday, isYesterday } from 'date-fns';
+import { getLocales } from 'expo-localization';
 import { MONTH_SHORT_KEYS, DAY_KEYS } from '~/constants';
+import { useLocaleStore, translate, getEffectiveSupportedLocale } from '~/lib/i18n';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDateLabel(timestamp: number, t: (key: string) => string): string {
+function t(key: string): string {
+  const { localePreference } = useLocaleStore.getState();
+  const deviceLocale = getLocales()[0]?.languageTag ?? null;
+  const locale = getEffectiveSupportedLocale(deviceLocale, localePreference);
+  return translate(locale, key);
+}
+
+export function formatDateLabel(timestamp: number): string {
   const date = new Date(timestamp);
   if (isToday(date)) {
     return t('Today');
@@ -21,7 +30,7 @@ export function formatDateLabel(timestamp: number, t: (key: string) => string): 
   }
 }
 
-export function formatTimeLabel(timestamp: number, t: (key: string) => string): string {
+export function formatTimeLabel(timestamp: number): string {
   const date = new Date(timestamp);
   const dayName = t(DAY_KEYS[date.getDay()]);
   const time = format(date, 'HH:mm');
