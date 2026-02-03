@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { format, subDays, startOfDay } from 'date-fns';
+import { LegendList } from '@legendapp/list';
 import {
   type DayGroup,
   type MilestoneItem,
@@ -161,12 +162,9 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
 
   return (
     <View className="flex-1 bg-background w-full">
-      <FlatList
+      <LegendList
         data={finalList}
-        extraData={expandedDays}
-        // removeClippedSubviews={false}
-        // windowSize={5}
-        // initialNumToRender={10}
+        estimatedItemSize={100}
         keyExtractor={(item) =>
           isMilestoneItem(item)
             ? `milestone-${item.milestoneDays}`
