@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, ViewProps, Keyboard } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 import { format, startOfDay, subDays } from 'date-fns';
 import { MONTH_SHORT_KEYS } from '~/constants';
+import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
 import {
@@ -15,7 +16,6 @@ import {
 } from '~/components/ui/select';
 import { GratitudeDatepickerModal } from '~/components/GratitudeDatepickerModal';
 import { Text } from '~/components/ui/text';
-import { cn } from '~/lib/utils';
 
 // ============================================================================
 // Types
@@ -55,8 +55,8 @@ export function DateSelectDropdown({
   const { t } = useTranslation();
   const [showDatepicker, setShowDatepicker] = useState(false);
 
-  const today = useMemo(() => startOfDay(new Date()), []);
-  const yesterday = useMemo(() => subDays(today, 1), [today]);
+  const today = startOfDay(new Date());
+  const yesterday = subDays(today, 1);
 
   // Format options for display
   const todayLabel = `${t('Today')} - ${formatShortDate(today, t)}`;

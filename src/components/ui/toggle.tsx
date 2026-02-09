@@ -42,7 +42,6 @@ function Toggle({
       value={cn(
         'text-sm text-foreground font-medium',
         props.pressed && 'text-accent-foreground',
-        className,
       )}>
       <TogglePrimitive.Root
         ref={ref}

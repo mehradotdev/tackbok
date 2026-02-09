@@ -39,6 +39,7 @@ export const he: Translations = {
   'Loading...': 'טוען...',
   'No entries for this date': 'אין רשומות לתאריך זה',
   'Create Entry': 'צור רשומה',
+  'Something went wrong. Creating new entry.': 'משהו השתבש. יוצר רשומה חדשה.',
 
   // Gratitude Entry
   'Delete Entry?': 'מחק רשומה?',
@@ -240,4 +241,8 @@ export const he: Translations = {
   OCT: 'אוק׳',
   NOV: 'נוב׳',
   DEC: 'דצמ׳',
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{day} ב{month} {year}',
+  'dateFormat.full': 'יום {weekday}, {day} ב{month} {year}',
 };

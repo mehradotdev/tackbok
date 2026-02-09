@@ -72,7 +72,7 @@ export function GratitudeEntryEdit({
 
   // Initialize state
   const isNewEntry = !initialEntry;
-  const initialTimestamp = initialEntry?.created_at || initialDateMs || Date.now();
+  const initialTimestamp = initialEntry?.created_at ?? initialDateMs ?? Date.now();
   const initialTags = initialEntry?.tags
     ? initialEntry.tags.split(',').filter((t) => t.length > 0)
     : [];

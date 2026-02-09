@@ -113,7 +113,9 @@ export default function SettingsScreen() {
         return; // User cancelled
       }
 
-      const asset = result.assets[0];
+      const asset = result.assets?.[0];
+      if (!asset?.uri) throw new Error(t('Import failed'));
+
       const count = await importFromCSV(asset.uri);
 
       toast.success(`${t('Imported')} ${count} ${t('entries')}`);

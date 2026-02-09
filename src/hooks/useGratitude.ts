@@ -8,8 +8,6 @@ import {
   getAllTags,
   upsertEntry,
   deleteEntry,
-  addTagToEntry,
-  removeTagFromEntry,
   getAllEntriesGroupByDate,
   updateTag,
   deleteTag,
@@ -134,39 +132,11 @@ export function useDeleteEntry() {
 
   return useMutation({
     mutationFn: (noteId: string) => deleteEntry(noteId),
-    onSuccess: () => {
+    onSuccess: (_data, noteId) => {
+      // Remove the specific entry query from cache to prevent refetch returning undefined
+      queryClient.removeQueries({ queryKey: [QUERY_KEYS.entries, noteId] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
-    },
-  });
-}
-
-/**
- * Hook to add a tag to an entry
- */
-export function useAddTagToEntry() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ entryId, tagId }: { entryId: string; tagId: string }) =>
-      addTagToEntry(entryId, tagId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
-    },
-  });
-}
-
-/**
- * Hook to remove a tag from an entry
- */
-export function useRemoveTagFromEntry() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ entryId, tagId }: { entryId: string; tagId: string }) =>
-      removeTagFromEntry(entryId, tagId),
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
     },
   });

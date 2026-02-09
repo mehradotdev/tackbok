@@ -38,6 +38,7 @@ export const ar: Translations = {
   'Loading...': 'جاري التحميل...',
   'No entries for this date': 'لا توجد إدخالات لهذا التاريخ',
   'Create Entry': 'إنشاء إدخال',
+  'Something went wrong. Creating new entry.': 'حدث خطأ ما. جارٍ إنشاء إدخال جديد.',
 
   // Gratitude Entry
   'Delete Entry?': 'حذف السجل؟',
@@ -240,4 +241,8 @@ export const ar: Translations = {
   OCT: 'أكتوبر',
   NOV: 'نوفمبر',
   DEC: 'ديسمبر',
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{day} {month} {year}',
+  'dateFormat.full': '{weekday}، {day} {month} {year}',
 };

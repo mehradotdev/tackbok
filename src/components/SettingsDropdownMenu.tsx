@@ -29,7 +29,6 @@ export function SettingsDropdownMenu() {
           {/* TODO: Open email client with pre-filled subject and body */}
           <Text>{t('Contact Us')}</Text>
         </DropdownMenuItem>
-        {/* TODO: Remove this before production */}
         <DropdownMenuItem onPress={() => reloadAppAsync()}>
           <Text>{t('Reload App')}</Text>
         </DropdownMenuItem>

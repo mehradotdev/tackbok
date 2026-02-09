@@ -10,7 +10,7 @@ import type { Asset, Mood } from '~/types';
  * - Primary Key: UUID (note_id)
  * - Assets: Stored as a JSON column (denormalized)
  * - Mood: One of 5 constant values
- * - Nullable Fields: Title, Content, Mood, and Assets are all optional
+ * - Nullable Fields: Title, Mood, and Assets are all optional; Content is required
  */
 export const entries = sqliteTable('entries', {
   note_id: text('note_id').primaryKey().notNull(),

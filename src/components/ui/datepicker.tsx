@@ -23,6 +23,7 @@ import { FirstDayOfWeek } from '~/types';
 import { MONTH_SHORT_KEYS, MONTH_KEYS } from '~/constants';
 import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -426,7 +427,9 @@ export function DatePicker({
               const isDisabled = isDateDisabled(date) || !isCurrentMonth;
               const marker = getMarkerForDate(date);
 
-              const accessibilityLabel = format(date, 'EEEE, MMMM d, yyyy');
+              const accessibilityLabel = formatLocalizedDate(date, t, {
+                includeWeekday: true,
+              });
 
               return (
                 <View key={date.toISOString()} className="flex-1 items-center">

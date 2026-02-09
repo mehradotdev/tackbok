@@ -31,7 +31,7 @@ function EntryItem({ entry, onPress }: IEntryItemProps) {
 
   const tags = (entry.tags ? entry.tags.split(',') : [])
     .filter((id) => id.trim().length > 0)
-    .map((id) => tagMap.get(id))
+    .map((id) => tagMap.get(id.trim())) // Trim whitespace from tag IDs if present
     .filter((t): t is NonNullable<typeof t> => t !== undefined)
     .sort((a, b) => a.title.localeCompare(b.title));
 

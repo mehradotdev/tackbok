@@ -35,7 +35,7 @@ export function TimePickerModal({
   const { t } = useTranslation();
 
   // Parse HH:MM
-  const [hours, minutes] = value.split(':').map(Number);
+  const [hours, minutes] = value.split(':').map((v) => Number(v) || 0);
   const [tempHours, setTempHours] = useState(hours);
   const [tempMinutes, setTempMinutes] = useState(minutes);
 

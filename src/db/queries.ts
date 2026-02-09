@@ -54,15 +54,6 @@ export async function getEntriesForDate(dateMs: number): Promise<Entry[]> {
 }
 
 /**
- * Get the first entry for a specific date (for backward compatibility)
- * @param dateMs - Start of day in milliseconds
- */
-export async function getEntryForDate(dateMs: number): Promise<Entry | undefined> {
-  const result = await getEntriesForDate(dateMs);
-  return result[0];
-}
-
-/**
  * Get all dates (as YYYY-MM-DD strings) that have entries for a given month
  */
 export function getEntryDatesForMonth(year: number, month: number) {
@@ -167,6 +158,7 @@ export async function deleteEntry(noteId: string) {
  */
 export async function deleteAllData() {
   await db.delete(entries);
+  await db.delete(tags);
 }
 
 // ============================================================================
@@ -191,49 +183,6 @@ export async function createTag(title: string): Promise<void> {
     created_at: now,
     updated_at: now,
   });
-}
-
-/**
- * Add a tag to an entry (updates the CSV string)
- */
-export async function addTagToEntry(entryId: string, tagId: string): Promise<void> {
-  const entry = await getEntryById(entryId);
-  if (!entry) return;
-
-  const currentTagsStr = entry.tags || '';
-  const currentTags = currentTagsStr.split(',').filter((t) => t.length > 0);
-
-  if (currentTags.includes(tagId)) return; // Already exists
-
-  const newTags = [...currentTags, tagId];
-  const newTagsStr = newTags.join(',');
-
-  await db
-    .update(entries)
-    .set({ tags: newTagsStr, updated_at: Date.now() })
-    .where(eq(entries.note_id, entryId));
-}
-
-/**
- * Remove a tag from an entry (updates the CSV string)
- */
-export async function removeTagFromEntry(entryId: string, tagId: string): Promise<void> {
-  const entry = await getEntryById(entryId);
-  if (!entry) return;
-
-  const currentTagsStr = entry.tags || '';
-  const currentTags = currentTagsStr.split(',').filter((t) => t.length > 0);
-
-  const newTags = currentTags.filter((id) => id !== tagId);
-
-  if (newTags.length === currentTags.length) return; // Nothing changed
-
-  const newTagsStr = newTags.join(',');
-
-  await db
-    .update(entries)
-    .set({ tags: newTagsStr, updated_at: Date.now() })
-    .where(eq(entries.note_id, entryId));
 }
 
 /**

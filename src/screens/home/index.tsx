@@ -6,16 +6,19 @@ import { Calendar } from 'lucide-react-native';
 import { type Entry } from '~/types';
 import { getEntriesForDate } from '~/db/queries';
 import { cn } from '~/lib/utils';
+import { useTranslation } from '~/lib/i18n';
 import { Button } from '~/components/ui/button';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { GratitudeDatepickerModal } from '~/components/GratitudeDatepickerModal';
 import { Icon } from '~/components/ui/icon';
+import { toast } from '~/components/ui/toast';
 import { Header } from './Header';
 import { SearchResults } from './SearchResults';
 import { GratitudeTimeline } from './GratitudeTimeline';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -26,17 +29,8 @@ export default function HomeScreen() {
       const dateStart = startOfDay(date);
       const dateMs = dateStart.getTime();
 
-      // Check if entries exist for this date
-      const entries = await getEntriesForDate(dateMs);
-
-      if (entries.length > 0) {
-        // Has entries - go to date entries page
-        router.push({
-          pathname: '/dateEntries/[dateMs]',
-          params: { dateMs: dateMs.toString() },
-        });
-      } else {
-        // No entries - go directly to new entry with current time
+      // Helper to navigate to new entry with current time
+      const navigateToNewEntry = () => {
         const now = new Date();
         const entryDate = new Date(dateStart);
         // Combine selected date with current time of day.
@@ -48,6 +42,27 @@ export default function HomeScreen() {
           pathname: '/gratitudeEntry',
           params: { dateMs: entryDate.getTime().toString() },
         });
+      };
+
+      try {
+        // Check if entries exist for this date
+        const entries = await getEntriesForDate(dateMs);
+
+        if (entries.length > 0) {
+          // Has entries - go to date entries page
+          router.push({
+            pathname: '/dateEntries/[dateMs]',
+            params: { dateMs: dateMs.toString() },
+          });
+        } else {
+          // No entries - go directly to new entry
+          navigateToNewEntry();
+        }
+      } catch (error) {
+        console.error('Failed to fetch entries for date:', error);
+        toast.error(t('Something went wrong. Creating new entry.'));
+        // Fallback: navigate to new entry anyway so user isn't blocked
+        navigateToNewEntry();
       }
     },
     [router],

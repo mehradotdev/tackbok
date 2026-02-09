@@ -29,7 +29,7 @@ const badgeTextVariants = cva('text-xs font-medium', {
     variant: {
       default: 'text-primary-foreground',
       secondary: 'text-secondary-foreground',
-      destructive: 'text-white',
+      destructive: 'text-destructive-foreground',
       outline: 'text-foreground',
     },
   },

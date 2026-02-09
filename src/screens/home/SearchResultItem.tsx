@@ -19,7 +19,6 @@ interface ISearchResultItemProps {
 // ============================================================================
 // Component
 // ============================================================================
-// TODO: Show mood emoji and Title too?
 export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPress }) => {
   const { t } = useTranslation();
   const dateObj = new Date(item.created_at);

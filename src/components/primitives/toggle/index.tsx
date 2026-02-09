@@ -24,11 +24,11 @@ const Root = ({
     <Component
       ref={ref}
       aria-disabled={disabled}
-      role="switch"
-      aria-selected={pressed}
+      role="checkbox"
+      aria-checked={pressed}
       onPress={onPress}
       accessibilityState={{
-        selected: pressed,
+        checked: pressed,
         disabled,
       }}
       disabled={disabled}

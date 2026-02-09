@@ -38,6 +38,7 @@ export const zhTW: Translations = {
   'Loading...': '載入中...',
   'No entries for this date': '此日期無紀錄',
   'Create Entry': '新增紀錄',
+  'Something went wrong. Creating new entry.': '發生錯誤。正在建立新紀錄。',
 
   // Gratitude Entry
   'Delete Entry?': '刪除紀錄？',
@@ -232,4 +233,8 @@ export const zhTW: Translations = {
   OCT: '10月',
   NOV: '11月',
   DEC: '12月',
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{year}年{month}{day}日',
+  'dateFormat.full': '{year}年{month}{day}日 {weekday}',
 };

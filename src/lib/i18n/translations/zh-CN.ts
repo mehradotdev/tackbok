@@ -38,6 +38,7 @@ export const zhCN: Translations = {
   'Loading...': '加载中...',
   'No entries for this date': '此日期无条目',
   'Create Entry': '创建条目',
+  'Something went wrong. Creating new entry.': '出了点问题。正在创建新条目。',
 
   // Gratitude Entry
   'Delete Entry?': '删除条目？',
@@ -232,4 +233,8 @@ export const zhCN: Translations = {
   OCT: '10月',
   NOV: '11月',
   DEC: '12月',
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{year}年{month}{day}日',
+  'dateFormat.full': '{year}年{month}{day}日 {weekday}',
 };

@@ -38,6 +38,8 @@ export const en = {
   'Loading...': 'Loading...',
   'No entries for this date': 'No entries for this date',
   'Create Entry': 'Create Entry',
+  'Something went wrong. Creating new entry.':
+    'Something went wrong. Creating new entry.',
 
   // Gratitude Entry
   'Delete Entry?': 'Delete Entry?',
@@ -240,4 +242,8 @@ export const en = {
   OCT: 'Oct',
   NOV: 'Nov',
   DEC: 'Dec',
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{month} {day}, {year}',
+  'dateFormat.full': '{weekday}, {month} {day}, {year}',
 } satisfies Record<string, string>;

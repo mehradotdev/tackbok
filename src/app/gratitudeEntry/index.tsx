@@ -6,8 +6,10 @@ export default function NewGratitudeEntry() {
     dateMs?: string;
   }>();
 
-  // Parse dateMs if present, otherwise GratitudeEntryScreen will default to Date.now()
-  const initialDateMs = dateMs ? parseInt(dateMs, 10) : undefined;
+  // Parse dateMs, returning undefined for missing or invalid values (NaN).
+  // GratitudeEntryScreen will default to Date.now() if undefined.
+  const parsed = dateMs ? parseInt(dateMs, 10) : NaN;
+  const initialDateMs = isNaN(parsed) ? undefined : parsed;
 
   return <GratitudeEntryScreen initialDateMs={initialDateMs} />;
 }

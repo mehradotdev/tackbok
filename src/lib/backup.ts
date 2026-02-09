@@ -188,7 +188,7 @@ export async function pickCSVFile(): Promise<DocumentPicker.DocumentPickerSucces
 
 /**
  * Imports entries from a CSV file into the database.
- * Uses INSERT OR REPLACE to handle existing entries.
+ * Skips entries that already exist in the database.
  * Returns the number of entries imported.
  */
 export async function importFromCSV(uri: string): Promise<number> {

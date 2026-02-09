@@ -32,6 +32,7 @@ interface IEntryRowProps {
   isLast: boolean;
   isRTL: boolean;
   timelineEntryLength: number;
+  tagMap: ReturnType<typeof useTagMapping>;
 }
 
 // ============================================================================
@@ -45,10 +46,10 @@ function ExpandedEntryRow({
   isLast,
   isRTL = false,
   timelineEntryLength,
+  tagMap,
 }: IEntryRowProps) {
   const time = format(new Date(entry.created_at), 'HH:mm');
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
-  const tagMap = useTagMapping();
 
   const tags = (entry.tags ? entry.tags.split(',') : [])
     .filter((id) => id.trim().length > 0)
@@ -190,6 +191,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const { t, isRTL } = useTranslation();
   const timelineEntryLength = useSettingsStore((state) => state.timelineEntryLength);
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
+  const tagMap = useTagMapping();
 
   const isExpanded = isExpandedProp ?? dayGroup.isExpanded;
 
@@ -276,6 +278,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
                 isFirst={index === 0}
                 isLast={index === dayGroup.entries.length - 1}
                 timelineEntryLength={timelineEntryLength}
+                tagMap={tagMap}
               />
             ))}
           </View>
