@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, ScrollView, Linking } from 'react-native';
+import { View, ScrollView, Linking, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import {
@@ -92,6 +92,7 @@ export default function SettingsScreen() {
   const [showBackupFrequencyModal, setShowBackupFrequencyModal] = useState(false);
   const [showImportConfirmDialog, setShowImportConfirmDialog] = useState(false);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Export to CSV handler
   const handleExportToCSV = useCallback(async () => {
@@ -116,13 +117,16 @@ export default function SettingsScreen() {
       const asset = result.assets?.[0];
       if (!asset?.uri) throw new Error(t('Import failed'));
 
+      setIsImporting(true);
       const count = await importFromCSV(asset.uri);
+      setIsImporting(false);
 
       toast.success(`${t('Imported')} ${count} ${t('entries')}`);
 
       // Navigate to home screen
       router.replace('/');
     } catch (error) {
+      setIsImporting(false);
       const message = error instanceof Error ? error.message : t('Import failed');
       toast.error(message);
     }
@@ -502,6 +506,18 @@ export default function SettingsScreen() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Loading Overlay */}
+      {isImporting && (
+        <View className="absolute inset-0 bg-background/80 items-center justify-center z-50">
+          <View className="bg-card p-6 rounded-2xl items-center shadow-lg">
+            <ActivityIndicator size="large" className="mb-4" />
+            <Text className="text-foreground text-base font-medium">
+              {t('Importing entries...')}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

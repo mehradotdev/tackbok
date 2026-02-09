@@ -30,7 +30,7 @@ const Root = ({
         onCheckedChange,
         nativeID,
       }}>
-      <Trigger ref={ref} {...props} />
+      <Trigger ref={ref} asChild={asChild} {...props} />
     </CheckboxContext.Provider>
   );
 };

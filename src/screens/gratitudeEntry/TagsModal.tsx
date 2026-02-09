@@ -134,18 +134,19 @@ export function TagsModal({
   const handleDeleteTag = async () => {
     if (!tagToDelete) return;
 
-    // Remove from local selection if selected
-    if (selectedTagIds.includes(tagToDelete.tag_id)) {
-      onTagsChange(selectedTagIds.filter((id) => id !== tagToDelete.tag_id));
-    }
-
     try {
       await deleteTagMutation.mutateAsync(tagToDelete.tag_id);
       toast.success(t('Tag deleted'));
 
+      // Remove from local selection only after successful delete
+      if (selectedTagIds.includes(tagToDelete.tag_id)) {
+        onTagsChange(selectedTagIds.filter((id) => id !== tagToDelete.tag_id));
+      }
+
       // Clean up parent state if needed (e.g. originalValues)
       onTagDeleted?.(tagToDelete.tag_id);
     } catch (error) {
+      console.error('Failed to delete tag', error);
       toast.error(t('Failed to delete tag'));
     }
     setTagToDelete(null);

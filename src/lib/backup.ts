@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { format } from 'date-fns';
-import { desc } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy'; // TODO: Migrate from legacy FileSystem
@@ -231,17 +231,27 @@ export async function importFromCSV(uri: string): Promise<number> {
       if (/^\d{4}-\d{2}-\d{2}$/.test(entryDateStr) && entryContent) {
         // Convert date string to timestamp (start of day)
         const dateMs = new Date(entryDateStr + 'T00:00:00').getTime();
-        const now = Date.now();
 
-        await db
-          .insert(entries)
-          .values({
-            note_id: generateUUID(),
-            text_content: entryContent,
-            created_at: dateMs,
-            updated_at: now,
-          })
-          .onConflictDoNothing(); // Skip if duplicate
+        // Check if entry with same date and content already exists
+        const existing = await db
+          .select({ note_id: entries.note_id })
+          .from(entries)
+          .where(
+            and(eq(entries.created_at, dateMs), eq(entries.text_content, entryContent)),
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          continue; // Skip duplicate
+        }
+
+        const now = Date.now();
+        await db.insert(entries).values({
+          note_id: generateUUID(),
+          text_content: entryContent,
+          created_at: dateMs,
+          updated_at: now,
+        });
 
         importedCount++;
       }

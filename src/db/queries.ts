@@ -1,5 +1,5 @@
 import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
-import { startOfDay } from 'date-fns';
+import { startOfDay, format } from 'date-fns';
 import { generateUUID } from '~/lib/utils';
 import { db, entries, tags, type Entry, type NewEntry, type Tag } from './index';
 
@@ -56,12 +56,12 @@ export async function getEntriesForDate(dateMs: number): Promise<Entry[]> {
 /**
  * Get all dates (as YYYY-MM-DD strings) that have entries for a given month
  */
-export function getEntryDatesForMonth(year: number, month: number) {
+export async function getEntryDatesForMonth(year: number, month: number) {
   // Calculate start and end of month in milliseconds
   const startOfMonth = new Date(year, month - 1, 1).getTime();
   const startOfNextMonth = new Date(year, month, 1).getTime();
 
-  const result = db
+  const result = await db
     .select({ created_at: entries.created_at })
     .from(entries)
     .where(
@@ -69,14 +69,13 @@ export function getEntryDatesForMonth(year: number, month: number) {
         gte(entries.created_at, startOfMonth),
         lt(entries.created_at, startOfNextMonth),
       ),
-    )
-    .all();
+    );
 
   // Convert timestamps to YYYY-MM-DD strings and deduplicate
   const dateSet = new Set<string>();
   result.forEach((row) => {
     const date = new Date(row.created_at);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = format(date, 'yyyy-MM-dd');
     dateSet.add(dateStr);
   });
 

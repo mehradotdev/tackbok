@@ -45,23 +45,8 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     new Set([todayMs, yesterdayMs]),
   );
 
-  if (!data) {
-    if (error) {
-      return (
-        <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-center text-red-600 mb-2">
-            {t('Failed to load entries')}
-          </Text>
-          <Text className="text-center text-gray-500">
-            {error?.message || t('Unknown error')}
-          </Text>
-        </View>
-      );
-    }
-    return <ActivityIndicator size="large" className="mt-20" />;
-  }
-
-  const groups = data;
+  // Use safe defaults when data is null
+  const groups = data ?? new Map<number, Entry[]>();
   const totalContentDays = groups.size;
 
   // Convert to DayGroup array and apply view state
@@ -160,6 +145,22 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
       return next;
     });
   };
+
+  if (!data) {
+    if (error) {
+      return (
+        <View className="flex-1 items-center justify-center px-4">
+          <Text className="text-center text-red-600 mb-2">
+            {t('Failed to load entries')}
+          </Text>
+          <Text className="text-center text-gray-500">
+            {error?.message || t('Unknown error')}
+          </Text>
+        </View>
+      );
+    }
+    return <ActivityIndicator size="large" className="mt-20" />;
+  }
 
   return (
     <View className="flex-1 bg-background w-full">

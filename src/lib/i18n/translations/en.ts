@@ -73,6 +73,7 @@ export const en = {
   'Add tags...': 'Add tags...',
   'Entry saved successfully': 'Entry saved successfully',
   'Failed to save entry': 'Failed to save entry',
+  'Failed to delete entry': 'Failed to delete entry',
   'Tag already exists': 'Tag already exists',
   'Tag created': 'Tag created',
   'Failed to create tag': 'Failed to create tag',
@@ -160,6 +161,7 @@ export const en = {
   Imported: 'Imported',
   entries: 'entries',
   'Import failed': 'Import failed',
+  'Importing entries...': 'Importing entries...',
   'Are you sure you want to import?': 'Are you sure you want to import?',
   'Imported data could overwrite existing entries.':
     'Imported data could overwrite existing entries.',

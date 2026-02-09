@@ -128,7 +128,7 @@ const Overlay = ({
 
   function onPress(ev: GestureResponderEvent) {
     if (closeOnPress) {
-      onOpenChange(!open);
+      onOpenChange(false);
     }
     OnPressProp?.(ev);
   }

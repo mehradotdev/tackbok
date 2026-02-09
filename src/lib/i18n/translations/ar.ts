@@ -72,6 +72,7 @@ export const ar: Translations = {
   'Add tags...': 'أضف وسوم...',
   'Entry saved successfully': 'تم حفظ الإدخال بنجاح',
   'Failed to save entry': 'فشل حفظ الإدخال',
+  'Failed to delete entry': 'فشل حذف الإدخال',
   'Tag already exists': 'الوسم موجود بالفعل',
   'Tag created': 'تم إنشاء الوسم',
   'Failed to create tag': 'فشل إنشاء الوسم',
@@ -159,6 +160,7 @@ export const ar: Translations = {
   Imported: 'تم استيراد',
   entries: 'سجلات',
   'Import failed': 'فشل الاستيراد',
+  'Importing entries...': 'جارٍ استيراد السجلات...',
   'Are you sure you want to import?': 'هل أنت متأكد أنك تريد الاستيراد؟',
   'Imported data could overwrite existing entries.':
     'قد تحل البيانات المستوردة محل السجلات الموجودة.',

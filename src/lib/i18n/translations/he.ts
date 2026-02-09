@@ -73,6 +73,7 @@ export const he: Translations = {
   'Add tags...': 'הוסף תגיות...',
   'Entry saved successfully': 'הרשומה נשמרה בהצלחה',
   'Failed to save entry': 'שמירת הרשומה נכשלה',
+  'Failed to delete entry': 'מחיקת הרשומה נכשלה',
   'Tag already exists': 'התגית כבר קיימת',
   'Tag created': 'התגית נוצרה',
   'Failed to create tag': 'יצירת התגית נכשלה',
@@ -159,6 +160,7 @@ export const he: Translations = {
   Imported: 'יובאו',
   entries: 'רשומות',
   'Import failed': 'הייבוא נכשל',
+  'Importing entries...': 'מייבא רשומות...',
   'Are you sure you want to import?': 'האם אתה בטוח שברצונך לייבא?',
   'Imported data could overwrite existing entries.':
     'נתונים מיובאים עלולים לדרוס רשומות קיימות.',

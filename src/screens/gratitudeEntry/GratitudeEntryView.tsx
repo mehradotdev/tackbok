@@ -7,6 +7,7 @@ import { useTranslation } from '~/lib/i18n';
 import { formatDateLabel, formatTimeLabel } from '~/lib/utils';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
+import { toast } from '~/components/ui/toast';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import {
@@ -56,8 +57,14 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
     .filter((t): t is NonNullable<typeof t> => t !== undefined);
 
   const handleDelete = async () => {
-    if (entry.note_id) {
-      await deleteEntryMutation.mutateAsync(entry.note_id);
+    try {
+      if (entry.note_id) {
+        await deleteEntryMutation.mutateAsync(entry.note_id);
+      }
+    } catch (error) {
+      console.error('Failed to delete entry', error);
+      toast.error(t('Failed to delete entry'));
+      return;
     }
     setShowDeleteConfirm(false);
     setTimeout(() => onBack(), MODAL_CLOSE_DELAY);
