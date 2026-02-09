@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, ScrollView, Linking } from 'react-native';
+import { View, ScrollView, Linking, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import {
@@ -24,11 +24,12 @@ import {
   FileOutput,
   FileInput,
   Trash2,
+  Table2,
 } from 'lucide-react-native';
+import { deleteAllData } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
-import { exportToCSV, pickCSVFile } from '~/lib/backup';
-import { useDeleteAllData, useImportFromCSV } from '~/hooks/useGratitude';
+import { exportToCSV, pickCSVFile, importFromCSV } from '~/lib/backup';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
@@ -45,9 +46,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
+import { TimePickerModal } from '~/components/TimePickerModal';
 import { SettingsSection } from './SettingsSection';
 import { SettingsRow } from './SettingsRow';
-import { SettingsTimePickerModal } from './SettingsTimePickerModal';
 import { SettingsFirstDayModal } from './SettingsFirstDayModal';
 import { SettingsBackupFrequencyModal } from './SettingsBackupFrequencyModal';
 import SettingsLanguageComp from './SettingsLanguageComp';
@@ -69,6 +70,8 @@ export default function SettingsScreen() {
     setTimelineEntryLength,
     inspirationalQuotesEnabled,
     setInspirationalQuotesEnabled,
+    showTimelineBorders,
+    setShowTimelineBorders,
     dateIncludesDayOfWeek,
     setDateIncludesDayOfWeek,
     firstDayOfWeek,
@@ -84,17 +87,12 @@ export default function SettingsScreen() {
   } = useSettingsStore();
 
   // Modal visibility states
-  const [showTimePickerModal, setShowTimePickerModal] = useState(false);
   const [showFirstDayModal, setShowFirstDayModal] = useState(false);
+  const [showTimePickerModal, setShowTimePickerModal] = useState(false);
   const [showBackupFrequencyModal, setShowBackupFrequencyModal] = useState(false);
   const [showImportConfirmDialog, setShowImportConfirmDialog] = useState(false);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
-
-  // Delete all data mutation
-  const deleteAllMutation = useDeleteAllData();
-
-  // Import from CSV mutation
-  const importMutation = useImportFromCSV();
+  const [isImporting, setIsImporting] = useState(false);
 
   // Export to CSV handler
   const handleExportToCSV = useCallback(async () => {
@@ -116,24 +114,29 @@ export default function SettingsScreen() {
         return; // User cancelled
       }
 
-      const asset = result.assets[0];
-      const count = await importMutation.mutateAsync(asset.uri);
+      const asset = result.assets?.[0];
+      if (!asset?.uri) throw new Error(t('Import failed'));
+
+      setIsImporting(true);
+      const count = await importFromCSV(asset.uri);
+      setIsImporting(false);
 
       toast.success(`${t('Imported')} ${count} ${t('entries')}`);
 
       // Navigate to home screen
       router.replace('/');
     } catch (error) {
+      setIsImporting(false);
       const message = error instanceof Error ? error.message : t('Import failed');
       toast.error(message);
     }
-  }, [t, importMutation, router]);
+  }, [t, router]);
 
   // Delete all data handler
   const handleDeleteAllData = useCallback(async () => {
     setShowDeleteConfirmDialog(false);
     try {
-      await deleteAllMutation.mutateAsync();
+      await deleteAllData();
       toast.success(t('All data deleted'));
       // Navigate to home screen
       router.replace('/');
@@ -141,7 +144,7 @@ export default function SettingsScreen() {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
     }
-  }, [t, deleteAllMutation, router]);
+  }, [t, router]);
 
   // Helper to format time for display in 24-hour format
   const formatTime = (time: string) => {
@@ -233,6 +236,21 @@ export default function SettingsScreen() {
               // TODO: Navigate to theme selection page
             }}
             showChevron
+          />
+          <SettingsRow
+            label={t('Show Timeline Borders')}
+            description={
+              showTimelineBorders
+                ? t('Show the borders in the timeline')
+                : t('Hide the borders in the timeline')
+            }
+            icon={Table2}
+            onPress={() => setShowTimelineBorders(!showTimelineBorders)}
+            rightElement={
+              <View pointerEvents="none">
+                <Switch checked={showTimelineBorders} />
+              </View>
+            }
           />
           <View className="px-3 py-3 border-b border-border">
             <View className="flex-row items-start">
@@ -419,11 +437,12 @@ export default function SettingsScreen() {
       </ScrollView>
 
       {/* Modals */}
-      <SettingsTimePickerModal
+      <TimePickerModal
         visible={showTimePickerModal}
         onClose={() => setShowTimePickerModal(false)}
         value={reminderTime}
         onValueChange={setReminderTime}
+        title={t('Adjust Reminder Time')}
       />
       <SettingsFirstDayModal
         visible={showFirstDayModal}
@@ -487,6 +506,18 @@ export default function SettingsScreen() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Loading Overlay */}
+      {isImporting && (
+        <View className="absolute inset-0 bg-background/80 items-center justify-center z-50">
+          <View className="bg-card p-6 rounded-2xl items-center shadow-lg">
+            <ActivityIndicator size="large" className="mb-4" />
+            <Text className="text-foreground text-base font-medium">
+              {t('Importing entries...')}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

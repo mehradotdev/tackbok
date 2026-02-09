@@ -52,10 +52,10 @@ function Text({
   className,
   asChild = false,
   variant = 'default',
+  ref,
   ...props
 }: React.ComponentProps<typeof RNText> &
-  TextVariantProps &
-  React.RefAttributes<RNText> & {
+  TextVariantProps & { ref?: React.Ref<RNText> } & {
     asChild?: boolean;
   }) {
   const textClass = React.useContext(TextClassContext);
@@ -63,6 +63,7 @@ function Text({
 
   return (
     <Component
+      ref={ref}
       className={cn(textVariants({ variant }), textClass, className)}
       role={variant ? ROLE[variant] : undefined}
       aria-level={variant ? ARIA_LEVEL[variant] : undefined}

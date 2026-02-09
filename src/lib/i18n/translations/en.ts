@@ -1,21 +1,24 @@
-import type { Translations } from '../types';
-
 /**
  * English translations
  * Keys are the default English text - no translation needed for English
  * This file serves as a reference for all available translation keys
  */
-export const en: Translations = {
+export const en = {
   // Common
   Tackbok: 'Tackbok',
   Cancel: 'Cancel',
   Done: 'Done',
   Save: 'Save',
+  Edit: 'Edit',
+  Add: 'Add',
+  Create: 'Create',
+  Discard: 'Discard',
   Continue: 'Continue',
   Delete: 'Delete',
   Settings: 'Settings',
   'Contact Us': 'Contact Us',
   'Unknown error': 'Unknown error',
+  at: 'at',
 
   // Header & Search
   'Search gratitude logs...': 'Search gratitude logs...',
@@ -31,13 +34,66 @@ export const en: Translations = {
   'Failed to load entries': 'Failed to load entries',
   'I was grateful for': 'I was grateful for',
 
+  // Date Entries
+  'Loading...': 'Loading...',
+  'No entries for this date': 'No entries for this date',
+  'Create Entry': 'Create Entry',
+  'Something went wrong. Creating new entry.':
+    'Something went wrong. Creating new entry.',
+
   // Gratitude Entry
   'Delete Entry?': 'Delete Entry?',
   'Clearing the text will delete this entry entirely.':
     'Clearing the text will delete this entry entirely.',
-  'Are you sure you want to go back?': 'Are you sure you want to go back?',
-  'Your entry is unsaved and your changes will be lost!':
-    'Your entry is unsaved and your changes will be lost!',
+  'This entry will be permanently deleted.': 'This entry will be permanently deleted.',
+  'Leave without saving?': 'Leave without saving?',
+  'Your entry is unsaved. Would you like to keep editing or discard them?':
+    'Your entry is unsaved. Would you like to keep editing or discard them?',
+  'Keep Editing': 'Keep Editing',
+
+  'Pick any date': 'Pick any date',
+  'Select date': 'Select date',
+  Mood: 'Mood',
+  Photo: 'Photo',
+  Voice: 'Voice',
+
+  'Title (optional)': 'Title (optional)',
+  // Moods
+  Amazing: 'Amazing',
+  Happy: 'Happy',
+  Okay: 'Okay',
+  Sad: 'Sad',
+  Awful: 'Awful',
+  'How are you feeling?': 'How are you feeling?',
+  'Feeling Amazing': 'Feeling Amazing',
+  'Feeling Happy': 'Feeling Happy',
+  'Feeling Okay': 'Feeling Okay',
+  'Feeling Sad': 'Feeling Sad',
+  'Feeling Awful': 'Feeling Awful',
+  'Add tags...': 'Add tags...',
+  'Entry saved successfully': 'Entry saved successfully',
+  'Failed to save entry': 'Failed to save entry',
+  'Failed to delete entry': 'Failed to delete entry',
+  'Tag already exists': 'Tag already exists',
+  'Tag created': 'Tag created',
+  'Failed to create tag': 'Failed to create tag',
+  'Tag updated': 'Tag updated',
+  'Failed to update tag': 'Failed to update tag',
+  'Tag deleted': 'Tag deleted',
+  'Failed to delete tag': 'Failed to delete tag',
+
+  // Tags
+  Tag: 'Tag',
+  Tags: 'Tags',
+  'Tag name': 'Tag name',
+  'Add a Tag': 'Add a Tag',
+  'Create New Tag': 'Create New Tag',
+  'New tag name...': 'New tag name...',
+  'No tags yet': 'No tags yet',
+  'Create your first tag': 'Create your first tag',
+  'Edit Tag': 'Edit Tag',
+  'Delete Tag': 'Delete Tag',
+  'Are you sure you want to delete the tag?': 'Are you sure you want to delete the tag?',
 
   // Milestones
   'days of gratitude': 'days of gratitude',
@@ -50,6 +106,7 @@ export const en: Translations = {
   'Language change requires app restart. Proceed?':
     'Language change requires app restart. Proceed?',
   Proceed: 'Proceed',
+  'Reload App': 'Reload App',
 
   // Settings - Notifications
   Notifications: 'Notifications',
@@ -67,6 +124,9 @@ export const en: Translations = {
   'Timeline Entry Length': 'Timeline Entry Length',
   'Number of lines shown in the timeline':
     'Number of lines shown in the timeline. The full text is visible when you click the entry',
+  'Show Timeline Borders': 'Show Timeline Borders',
+  'Show the borders in the timeline': 'Show the borders in the timeline',
+  'Hide the borders in the timeline': 'Hide the borders in the timeline',
   'Inspirational Quotes': 'Inspirational Quotes',
   'Gratitude quotes will be shown on entry page':
     'Gratitude quotes will be shown on entry page',
@@ -75,9 +135,6 @@ export const en: Translations = {
   'First Day of Week': 'First Day of Week',
   'Set the first day of the week in the calendar view':
     'Set the first day of the week in the calendar view',
-  Saturday: 'Saturday',
-  Sunday: 'Sunday',
-  Monday: 'Monday',
 
   // Settings - Security
   Security: 'Security',
@@ -104,6 +161,7 @@ export const en: Translations = {
   Imported: 'Imported',
   entries: 'entries',
   'Import failed': 'Import failed',
+  'Importing entries...': 'Importing entries...',
   'Are you sure you want to import?': 'Are you sure you want to import?',
   'Imported data could overwrite existing entries.':
     'Imported data could overwrite existing entries.',
@@ -135,10 +193,19 @@ export const en: Translations = {
   'All data deleted': 'All data deleted',
   'Delete failed': 'Delete failed',
 
+  // Time Picker
+  'Select Time': 'Select Time',
+
   // Date Picker
+  Today: 'Today',
+  Yesterday: 'Yesterday',
   'Select Date': 'Select Date',
   'Has entry': 'Has entry',
   Selected: 'Selected',
+  'Previous month': 'Previous month',
+  'Next month': 'Next month',
+  'Select month': 'Select month',
+  'Select year': 'Select year',
   Sun: 'Sun',
   Mon: 'Mon',
   Tue: 'Tue',
@@ -146,6 +213,13 @@ export const en: Translations = {
   Thu: 'Thu',
   Fri: 'Fri',
   Sat: 'Sat',
+  Sunday: 'Sunday',
+  Monday: 'Monday',
+  Tuesday: 'Tuesday',
+  Wednesday: 'Wednesday',
+  Thursday: 'Thursday',
+  Friday: 'Friday',
+  Saturday: 'Saturday',
   January: 'January',
   February: 'February',
   March: 'March',
@@ -170,4 +244,8 @@ export const en: Translations = {
   OCT: 'Oct',
   NOV: 'Nov',
   DEC: 'Dec',
-};
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{month} {day}, {year}',
+  'dateFormat.full': '{weekday}, {month} {day}, {year}',
+} satisfies Record<string, string>;

@@ -10,11 +10,16 @@ export const zhCN: Translations = {
   Cancel: '取消',
   Done: '完成',
   Save: '保存',
+  Edit: '编辑',
+  Add: '添加',
+  Create: '创建',
+  Discard: '放弃',
   Continue: '继续',
   Delete: '删除',
   Settings: '设置',
   'Contact Us': '联系我们',
   'Unknown error': '未知错误',
+  at: '于',
 
   // Header & Search
   'Search gratitude logs...': '搜索感恩日志...',
@@ -29,12 +34,64 @@ export const zhCN: Translations = {
   'Failed to load entries': '加载条目失败',
   'I was grateful for': '我感恩',
 
+  // Date Entries
+  'Loading...': '加载中...',
+  'No entries for this date': '此日期无条目',
+  'Create Entry': '创建条目',
+  'Something went wrong. Creating new entry.': '出了点问题。正在创建新条目。',
+
   // Gratitude Entry
   'Delete Entry?': '删除条目？',
   'Clearing the text will delete this entry entirely.': '清除文本将完全删除此条目。',
-  'Are you sure you want to go back?': '你确定要返回吗？',
-  'Your entry is unsaved and your changes will be lost!':
-    '您的条目未保存，更改将会丢失！',
+  'This entry will be permanently deleted.': '此条目将被永久删除。',
+  'Leave without saving?': '不保存离开？',
+  'Your entry is unsaved. Would you like to keep editing or discard them?':
+    '您的条目未保存。您想继续编辑还是丢弃？',
+  'Keep Editing': '继续编辑',
+
+  'Pick any date': '选择任意日期',
+  'Select date': '选择日期',
+  Mood: '心情',
+  Photo: '照片',
+  Voice: '语音',
+
+  'Title (optional)': '标题（可选）',
+  // Moods
+  Amazing: '棒极了',
+  Happy: '很高兴',
+  Okay: '还行',
+  Sad: '难过',
+  Awful: '很糟糕',
+  'How are you feeling?': '你感觉如何？',
+  'Feeling Amazing': '感觉棒极了',
+  'Feeling Happy': '感觉很高兴',
+  'Feeling Okay': '感觉还行',
+  'Feeling Sad': '感觉难过',
+  'Feeling Awful': '感觉很糟糕',
+  'Add tags...': '添加标签...',
+  'Entry saved successfully': '条目保存成功',
+  'Failed to save entry': '保存条目失败',
+  'Failed to delete entry': '删除条目失败',
+  'Tag already exists': '标签已存在',
+  'Tag created': '标签已创建',
+  'Failed to create tag': '创建标签失败',
+  'Tag updated': '标签已更新',
+  'Failed to update tag': '更新标签失败',
+  'Tag deleted': '标签已删除',
+  'Failed to delete tag': '删除标签失败',
+
+  // Tags
+  Tag: '标签',
+  Tags: '标签',
+  'Tag name': '标签名称',
+  'Add a Tag': '添加标签',
+  'Create New Tag': '创建新标签',
+  'New tag name...': '新标签名称...',
+  'No tags yet': '暂无标签',
+  'Create your first tag': '创建您的第一个标签',
+  'Edit Tag': '编辑标签',
+  'Delete Tag': '删除标签',
+  'Are you sure you want to delete the tag?': '您确定要删除该标签吗？',
 
   // Milestones
   'days of gratitude': '感恩天数',
@@ -46,6 +103,7 @@ export const zhCN: Translations = {
   'Restart Required': '需要重启',
   'Language change requires app restart. Proceed?': '更改语言需要重启应用。是否继续？',
   Proceed: '继续',
+  'Reload App': '重新加载应用',
 
   // Settings - Notifications
   Notifications: '通知',
@@ -62,15 +120,15 @@ export const zhCN: Translations = {
     '从40多种不同的主题和配色方案中选择',
   'Timeline Entry Length': '时间线条目长度',
   'Number of lines shown in the timeline': '时间线中显示的行数。点击条目可查看完整文本',
+  'Show Timeline Borders': '显示时间线边框',
+  'Show the borders in the timeline': '显示时间线中的边框',
+  'Hide the borders in the timeline': '隐藏时间线中的边框',
   'Inspirational Quotes': '励志名言',
   'Gratitude quotes will be shown on entry page': '感恩名言将在条目页面显示',
   'Date Style': '日期样式',
   'Date includes day of the week': '日期包含星期几',
   'First Day of Week': '一周的第一天',
   'Set the first day of the week in the calendar view': '设置日历视图中一周的第一天',
-  Saturday: '星期六',
-  Sunday: '星期日',
-  Monday: '星期一',
 
   // Settings - Security
   Security: '安全',
@@ -96,6 +154,7 @@ export const zhCN: Translations = {
   Imported: '已导入',
   entries: '条目',
   'Import failed': '导入失败',
+  'Importing entries...': '正在导入条目...',
   'Are you sure you want to import?': '您确定要导入吗？',
   'Imported data could overwrite existing entries.': '导入的数据可能会覆盖现有条目。',
   Import: '导入',
@@ -125,10 +184,19 @@ export const zhCN: Translations = {
   'All data deleted': '所有数据已删除',
   'Delete failed': '删除失败',
 
+  // Time Picker
+  'Select Time': '选择时间',
+
   // Date Picker
+  Today: '今天',
+  Yesterday: '昨天',
   'Select Date': '选择日期',
   'Has entry': '有条目',
   Selected: '已选择',
+  'Previous month': '上个月',
+  'Next month': '下个月',
+  'Select month': '选择月份',
+  'Select year': '选择年份',
   Sun: '周日',
   Mon: '周一',
   Tue: '周二',
@@ -136,6 +204,13 @@ export const zhCN: Translations = {
   Thu: '周四',
   Fri: '周五',
   Sat: '周六',
+  Sunday: '星期日',
+  Monday: '星期一',
+  Tuesday: '星期二',
+  Wednesday: '星期三',
+  Thursday: '星期四',
+  Friday: '星期五',
+  Saturday: '星期六',
   January: '一月',
   February: '二月',
   March: '三月',
@@ -160,4 +235,8 @@ export const zhCN: Translations = {
   OCT: '10月',
   NOV: '11月',
   DEC: '12月',
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{year}年{month}{day}日',
+  'dateFormat.full': '{year}年{month}{day}日 {weekday}',
 };

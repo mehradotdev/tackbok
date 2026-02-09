@@ -1,71 +1,189 @@
+import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { type NewEntry, type Entry } from '~/types';
 import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  UseQueryResult,
-} from '@tanstack/react-query';
-import {
-  getGratitudeLogs,
-  saveGratitudeLog,
-  searchGratitudeLogs,
-  deleteAllData,
-} from '~/database';
-import { IGratitudeDBLog } from '~/types';
-import { importFromCSV } from '~/lib/backup';
+  getAllEntries,
+  getEntriesForDate,
+  searchEntries,
+  getAllTags,
+  upsertEntry,
+  deleteEntry,
+  getAllEntriesGroupByDate,
+  updateTag,
+  deleteTag,
+  createTag,
+  getEntryById,
+} from '~/db/queries';
 
-export const useGratitudeLogs = (): UseQueryResult<IGratitudeDBLog[], Error> => {
+export const QUERY_KEYS = {
+  entries: 'entries',
+  entriesForDate: 'entriesForDate',
+  search: 'search',
+  tags: 'tags',
+  timeline: 'timeline',
+};
+
+// ============================================================================
+// Queries
+// ============================================================================
+
+/**
+ * Hook for all entries sorted by created_at DESC
+ */
+export function useEntries() {
   return useQuery({
-    queryKey: ['gratitude-logs'],
-    queryFn: getGratitudeLogs,
+    queryKey: [QUERY_KEYS.entries],
+    queryFn: getAllEntries,
   });
-};
+}
 
-export const useSearchGratitudeLogs = (
-  searchTerm: string,
-): UseQueryResult<IGratitudeDBLog[], Error> => {
+/**
+ * Hook for entries grouped by date
+ */
+export function useEntriesGroupByDate() {
+  return useQuery<Map<number, Entry[]>>({
+    queryKey: [QUERY_KEYS.entries, 'timeline'],
+    queryFn: getAllEntriesGroupByDate,
+  });
+}
+
+/**
+ * Hook for entries on a specific date
+ */
+export function useEntriesForDate(dateMs: number) {
   return useQuery({
-    queryKey: ['gratitude-logs-search', searchTerm],
-    queryFn: () => searchGratitudeLogs(searchTerm),
-    enabled: searchTerm.trim().length > 0,
+    queryKey: [QUERY_KEYS.entriesForDate, dateMs],
+    queryFn: () => getEntriesForDate(dateMs),
   });
-};
+}
 
-export const useSaveGratitudeLog = () => {
+/**
+ * Hook for a single entry
+ */
+export function useEntry(noteId?: string) {
+  return useQuery({
+    queryKey: [QUERY_KEYS.entries, noteId],
+    queryFn: () => (noteId ? getEntryById(noteId) : Promise.resolve(undefined)),
+    enabled: !!noteId,
+  });
+}
+
+/**
+ * Hook for search using LIKE operator with optional tag filtering
+ */
+export function useSearchEntries(searchTerm: string, selectedTagIds: string[] = []) {
+  const trimmed = searchTerm.trim();
+
+  return useQuery({
+    queryKey: [QUERY_KEYS.search, trimmed, selectedTagIds],
+    queryFn: () => searchEntries(trimmed, selectedTagIds),
+    enabled: trimmed.length > 0 || selectedTagIds.length > 0,
+  });
+}
+
+/**
+ * Hook for all tags
+ */
+export function useTags() {
+  return useQuery({
+    queryKey: [QUERY_KEYS.tags],
+    queryFn: getAllTags,
+  });
+}
+
+/**
+ * Hook for mapping of all tags (id -> Tag)
+ */
+export function useTagMapping() {
+  const { data: tags = [] } = useTags();
+
+  return React.useMemo(() => {
+    const map = new Map<string, (typeof tags)[0]>();
+    tags.forEach((tag) => map.set(tag.tag_id, tag));
+    return map;
+  }, [tags]);
+}
+
+// ============================================================================
+// Mutations
+// ============================================================================
+
+/**
+ * Hook to upsert (create or update) an entry
+ */
+export function useUpsertEntry() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ date, text }: { date: string; text: string }) =>
-      saveGratitudeLog(date, text),
+    mutationFn: (entry: NewEntry) => upsertEntry(entry),
     onSuccess: () => {
-      // Refresh the list and search results automatically
-      queryClient.invalidateQueries({ queryKey: ['gratitude-logs'] });
-      queryClient.invalidateQueries({ queryKey: ['gratitude-logs-search'] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
     },
   });
-};
+}
 
-export const useDeleteAllData = () => {
+/**
+ * Hook to delete an entry
+ */
+export function useDeleteEntry() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteAllData,
-    onSuccess: () => {
-      // Refresh the list and search results automatically
-      queryClient.invalidateQueries({ queryKey: ['gratitude-logs'] });
-      queryClient.invalidateQueries({ queryKey: ['gratitude-logs-search'] });
+    mutationFn: (noteId: string) => deleteEntry(noteId),
+    onSuccess: (_data, noteId) => {
+      // Remove the specific entry query from cache to prevent refetch returning undefined
+      queryClient.removeQueries({ queryKey: [QUERY_KEYS.entries, noteId] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
     },
   });
-};
+}
 
-export const useImportFromCSV = () => {
+/**
+ * Hook to update a tag's title
+ */
+export function useUpdateTag() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (uri: string) => importFromCSV(uri),
+    mutationFn: ({ tagId, title }: { tagId: string; title: string }) =>
+      updateTag(tagId, title),
     onSuccess: () => {
-      // Refresh the list and search results automatically
-      queryClient.invalidateQueries({ queryKey: ['gratitude-logs'] });
-      queryClient.invalidateQueries({ queryKey: ['gratitude-logs-search'] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] });
     },
   });
-};
+}
+
+/**
+ * Hook to delete a tag
+ */
+export function useDeleteTag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (tagId: string) => deleteTag(tagId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
+    },
+  });
+}
+
+/**
+ * Hook to create a new tag
+ */
+export function useCreateTag() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (title: string) => createTag(title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] });
+    },
+  });
+}

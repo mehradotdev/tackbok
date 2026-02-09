@@ -10,15 +10,21 @@ export const he: Translations = {
   Cancel: 'ביטול',
   Done: 'בוצע',
   Save: 'שמור',
+  Edit: 'ערוך',
+  Add: 'הוסף',
+  Create: 'צור',
+  Discard: 'מחק',
   Continue: 'המשך',
   Delete: 'מחק',
   Settings: 'הגדרות',
   'Contact Us': 'צור קשר',
   'Unknown error': 'שגיאה לא ידועה',
+  at: 'בשעה',
 
   // Header & Search
   'Search gratitude logs...': 'חפש יומני הכרת טובה...',
-  'Start typing to search your gratitude logs': 'התחל להקליד כדי לחפש ביומני ההוקרה שלך',
+  'Start typing to search your gratitude logs':
+    'התחל להקליד כדי לחפש ביומני הכרת הטובה שלך',
   'Search failed': 'החיפוש נכשל',
   'No results': 'אין תוצאות',
 
@@ -29,13 +35,65 @@ export const he: Translations = {
   'Failed to load entries': 'טעינת הרשומות נכשלה',
   'I was grateful for': 'הייתי אסיר תודה על',
 
+  // Date Entries
+  'Loading...': 'טוען...',
+  'No entries for this date': 'אין רשומות לתאריך זה',
+  'Create Entry': 'צור רשומה',
+  'Something went wrong. Creating new entry.': 'משהו השתבש. יוצר רשומה חדשה.',
+
   // Gratitude Entry
   'Delete Entry?': 'מחק רשומה?',
   'Clearing the text will delete this entry entirely.':
     'ניקוי הטקסט ימחק את הרשומה הזו לחלוטין.',
-  'Are you sure you want to go back?': 'האם אתה בטוח שברצונך לחזור אחורה?',
-  'Your entry is unsaved and your changes will be lost!':
-    'הערך שלך לא נשמר והשינויים שלך יאבדו!',
+  'This entry will be permanently deleted.': 'רשומה זו תימחק לצמיתות.',
+  'Leave without saving?': 'לצאת ללא שמירה?',
+  'Your entry is unsaved. Would you like to keep editing or discard them?':
+    'הרשומה לא נשמרה. האם ברצונך להמשיך לערוך או למחוק?',
+  'Keep Editing': 'המשך לערוך',
+
+  'Pick any date': 'בחר תאריך כלשהו',
+  'Select date': 'בחר תאריך',
+  Mood: 'מצב רוח',
+  Photo: 'תמונה',
+  Voice: 'קול',
+
+  'Title (optional)': 'כותרת (אופציונלי)',
+  // Moods
+  Amazing: 'מדהים',
+  Happy: 'שמח',
+  Okay: 'בסדר',
+  Sad: 'עצוב',
+  Awful: 'נורא',
+  'How are you feeling?': 'איך אתה מרגיש?',
+  'Feeling Amazing': 'מרגיש נהדר',
+  'Feeling Happy': 'מרגיש שמח',
+  'Feeling Okay': 'מרגיש בסדר',
+  'Feeling Sad': 'מרגיש עצוב',
+  'Feeling Awful': 'מרגיש נורא',
+  'Add tags...': 'הוסף תגיות...',
+  'Entry saved successfully': 'הרשומה נשמרה בהצלחה',
+  'Failed to save entry': 'שמירת הרשומה נכשלה',
+  'Failed to delete entry': 'מחיקת הרשומה נכשלה',
+  'Tag already exists': 'התגית כבר קיימת',
+  'Tag created': 'התגית נוצרה',
+  'Failed to create tag': 'יצירת התגית נכשלה',
+  'Tag updated': 'התגית עודכנה',
+  'Failed to update tag': 'עדכון התגית נכשל',
+  'Tag deleted': 'התגית נמחקה',
+  'Failed to delete tag': 'מחיקת התגית נכשלה',
+
+  // Tags
+  Tag: 'תגית',
+  Tags: 'תגיות',
+  'Tag name': 'שם תגית',
+  'Add a Tag': 'הוסף תגית',
+  'Create New Tag': 'צור תגית חדשה',
+  'New tag name...': 'שם תגית חדשה...',
+  'No tags yet': 'אין תגיות עדיין',
+  'Create your first tag': 'צור את התגית הראשונה שלך',
+  'Edit Tag': 'ערוך תגית',
+  'Delete Tag': 'מחק תגית',
+  'Are you sure you want to delete the tag?': 'האם אתה בטוח שברצונך למחוק את התגית?',
 
   // Milestones
   'days of gratitude': 'ימים של הכרת טובה',
@@ -48,6 +106,7 @@ export const he: Translations = {
   'Language change requires app restart. Proceed?':
     'שינוי השפה דורש אתחול מחדש של האפליקציה. להמשיך?',
   Proceed: 'המשך',
+  'Reload App': 'טען מחדש את האפליקציה',
 
   // Settings - Notifications
   Notifications: 'התראות',
@@ -65,6 +124,9 @@ export const he: Translations = {
   'Timeline Entry Length': 'אורך רשומה בציר הזמן',
   'Number of lines shown in the timeline':
     'מספר השורות המוצגות בציר הזמן. הטקסט המלא נראה בלחיצה על הרשומה',
+  'Show Timeline Borders': 'הצג גבולות ציר זמן',
+  'Show the borders in the timeline': 'הצג את הגבולות בציר הזמן',
+  'Hide the borders in the timeline': 'הסתר את הגבולות בציר הזמן',
   'Inspirational Quotes': 'ציטוטים מעוררי השראה',
   'Gratitude quotes will be shown on entry page': 'ציטוטי הכרת טובה יוצגו בדף הרשומה',
   'Date Style': 'סגנון תאריך',
@@ -72,9 +134,6 @@ export const he: Translations = {
   'First Day of Week': 'היום הראשון בשבוע',
   'Set the first day of the week in the calendar view':
     'הגדר את היום הראשון בשבוע בתצוגת היומן',
-  Saturday: 'שבת',
-  Sunday: 'ראשון',
-  Monday: 'שני',
 
   // Settings - Security
   Security: 'אבטחה',
@@ -101,6 +160,7 @@ export const he: Translations = {
   Imported: 'יובאו',
   entries: 'רשומות',
   'Import failed': 'הייבוא נכשל',
+  'Importing entries...': 'מייבא רשומות...',
   'Are you sure you want to import?': 'האם אתה בטוח שברצונך לייבא?',
   'Imported data could overwrite existing entries.':
     'נתונים מיובאים עלולים לדרוס רשומות קיימות.',
@@ -132,10 +192,19 @@ export const he: Translations = {
   'All data deleted': 'כל הנתונים נמחקו',
   'Delete failed': 'המחיקה נכשלה',
 
+  // Time Picker
+  'Select Time': 'בחר שעה',
+
   // Date Picker
+  Today: 'היום',
+  Yesterday: 'אתמול',
   'Select Date': 'בחר תאריך',
   'Has entry': 'יש רשומה',
   Selected: 'נבחר',
+  'Previous month': 'החודש הקודם',
+  'Next month': 'החודש הבא',
+  'Select month': 'בחר חודש',
+  'Select year': 'בחר שנה',
   Sun: 'א',
   Mon: 'ב',
   Tue: 'ג',
@@ -143,6 +212,13 @@ export const he: Translations = {
   Thu: 'ה',
   Fri: 'ו',
   Sat: 'ש',
+  Sunday: 'ראשון',
+  Monday: 'שני',
+  Tuesday: 'שלישי',
+  Wednesday: 'רביעי',
+  Thursday: 'חמישי',
+  Friday: 'שישי',
+  Saturday: 'שבת',
   January: 'ינואר',
   February: 'פברואר',
   March: 'מרץ',
@@ -167,4 +243,8 @@ export const he: Translations = {
   OCT: 'אוק׳',
   NOV: 'נוב׳',
   DEC: 'דצמ׳',
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{day} ב{month} {year}',
+  'dateFormat.full': 'יום {weekday}, {day} ב{month} {year}',
 };

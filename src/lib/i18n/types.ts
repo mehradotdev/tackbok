@@ -1,3 +1,5 @@
+import { en } from './translations/en';
+
 /**
  * List of supported language codes (excluding Chinese variants)
  * Chinese variants (zh-CN, zh-TW, zh-HK) require special handling with full locale codes
@@ -79,7 +81,7 @@ export const DEFAULT_LOCALE = 'en' as const satisfies SupportedLocale;
  * Keys are the English text, values are translations
  * If a key is missing for a locale, the key itself is used as fallback
  */
-export type Translations = Record<string, string>;
+export type Translations = typeof en;
 
 /**
  * Translation function type

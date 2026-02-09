@@ -10,11 +10,16 @@ export const ar: Translations = {
   Cancel: 'إلغاء',
   Done: 'تم',
   Save: 'حفظ',
+  Edit: 'تعديل',
+  Add: 'إضافة',
+  Create: 'إنشاء',
+  Discard: 'تجاهل',
   Continue: 'متابعة',
   Delete: 'حذف',
   Settings: 'الإعدادات',
   'Contact Us': 'اتصل بنا',
   'Unknown error': 'خطأ غير معروف',
+  at: 'في',
 
   // Header & Search
   'Search gratitude logs...': 'بحث في سجلات الامتنان...',
@@ -29,13 +34,65 @@ export const ar: Translations = {
   'Failed to load entries': 'فشل تحميل السجلات',
   'I was grateful for': 'كنت ممتناً لـ',
 
+  // Date Entries
+  'Loading...': 'جاري التحميل...',
+  'No entries for this date': 'لا توجد إدخالات لهذا التاريخ',
+  'Create Entry': 'إنشاء إدخال',
+  'Something went wrong. Creating new entry.': 'حدث خطأ ما. جارٍ إنشاء إدخال جديد.',
+
   // Gratitude Entry
   'Delete Entry?': 'حذف السجل؟',
   'Clearing the text will delete this entry entirely.':
     'مسح النص سيؤدي إلى حذف هذا السجل تماماً.',
-  'Are you sure you want to go back?': 'هل أنت متأكد أنك تريد الرجوع؟',
-  'Your entry is unsaved and your changes will be lost!':
-    'لم يتم حفظ إدخالك وسوف تضيع تغييراتك!',
+  'This entry will be permanently deleted.': 'سيتم حذف هذا الإدخال نهائيًا.',
+  'Leave without saving?': 'المغادرة دون حفظ؟',
+  'Your entry is unsaved. Would you like to keep editing or discard them?':
+    'إدخالك غير محفوظ. هل تريد الاستمرار في التحرير أو تجاهله؟',
+  'Keep Editing': 'متابعة التحرير',
+
+  'Pick any date': 'اختر أي تاريخ',
+  'Select date': 'حدد التاريخ',
+  Mood: 'المزاج',
+  Photo: 'صورة',
+  Voice: 'صوت',
+
+  'Title (optional)': 'العنوان (اختياري)',
+  // Moods
+  Amazing: 'مذهل',
+  Happy: 'سعيد',
+  Okay: 'بخير',
+  Sad: 'حزين',
+  Awful: 'سيء جداً',
+  'How are you feeling?': 'كيف تشعر؟',
+  'Feeling Amazing': 'أشعر بالروعة',
+  'Feeling Happy': 'أشعر بالسعادة',
+  'Feeling Okay': 'أشعر بأنني بخير',
+  'Feeling Sad': 'أشعر بالحزن',
+  'Feeling Awful': 'أشعر بالسوء',
+  'Add tags...': 'أضف وسوم...',
+  'Entry saved successfully': 'تم حفظ الإدخال بنجاح',
+  'Failed to save entry': 'فشل حفظ الإدخال',
+  'Failed to delete entry': 'فشل حذف الإدخال',
+  'Tag already exists': 'الوسم موجود بالفعل',
+  'Tag created': 'تم إنشاء الوسم',
+  'Failed to create tag': 'فشل إنشاء الوسم',
+  'Tag updated': 'تم تحديث الوسم',
+  'Failed to update tag': 'فشل تحديث الوسم',
+  'Tag deleted': 'تم حذف الوسم',
+  'Failed to delete tag': 'فشل حذف الوسم',
+
+  // Tags
+  Tag: 'وسم',
+  Tags: 'الوسوم',
+  'Tag name': 'اسم الوسم',
+  'Add a Tag': 'أضف وسماً',
+  'Create New Tag': 'إنشاء وسم جديد',
+  'New tag name...': 'اسم الوسم الجديد...',
+  'No tags yet': 'لا توجد وسوم بعد',
+  'Create your first tag': 'أنشئ وسمك الأول',
+  'Edit Tag': 'تعديل الوسم',
+  'Delete Tag': 'حذف الوسم',
+  'Are you sure you want to delete the tag?': 'هل أنت متأكد أنك تريد حذف الوسم؟',
 
   // Milestones
   'days of gratitude': 'أيام من الامتنان',
@@ -48,6 +105,7 @@ export const ar: Translations = {
   'Language change requires app restart. Proceed?':
     'تغيير اللغة يتطلب إعادة تشغيل التطبيق. هل تريد المتابعة؟',
   Proceed: 'متابعة',
+  'Reload App': 'إعادة تحميل التطبيق',
 
   // Settings - Notifications
   Notifications: 'الإشعارات',
@@ -65,6 +123,9 @@ export const ar: Translations = {
   'Timeline Entry Length': 'طول إدخال الجدول الزمني',
   'Number of lines shown in the timeline':
     'عدد الأسطر المعروضة في الجدول الزمني. النص الكامل يظهر عند النقر على الإدخال',
+  'Show Timeline Borders': 'إظهار حدود الجدول الزمني',
+  'Show the borders in the timeline': 'إظهار الحدود في الجدول الزمني',
+  'Hide the borders in the timeline': 'إخفاء الحدود من الجدول الزمني',
   'Inspirational Quotes': 'اقتباسات ملهمة',
   'Gratitude quotes will be shown on entry page':
     'ستظهر اقتباسات الامتنان في صفحة الإدخال',
@@ -73,9 +134,6 @@ export const ar: Translations = {
   'First Day of Week': 'أول يوم في الأسبوع',
   'Set the first day of the week in the calendar view':
     'حدد أول يوم في الأسبوع في عرض التقويم',
-  Saturday: 'السبت',
-  Sunday: 'الأحد',
-  Monday: 'الاثنين',
 
   // Settings - Security
   Security: 'الأمان',
@@ -102,6 +160,7 @@ export const ar: Translations = {
   Imported: 'تم استيراد',
   entries: 'سجلات',
   'Import failed': 'فشل الاستيراد',
+  'Importing entries...': 'جارٍ استيراد السجلات...',
   'Are you sure you want to import?': 'هل أنت متأكد أنك تريد الاستيراد؟',
   'Imported data could overwrite existing entries.':
     'قد تحل البيانات المستوردة محل السجلات الموجودة.',
@@ -133,10 +192,19 @@ export const ar: Translations = {
   'All data deleted': 'تم حذف جميع البيانات',
   'Delete failed': 'فشل الحذف',
 
+  // Time Picker
+  'Select Time': 'حدد الوقت',
+
   // Date Picker
+  Today: 'اليوم',
+  Yesterday: 'أمس',
   'Select Date': 'اختر تاريخاً',
   'Has entry': 'يحتوي على مدخل',
   Selected: 'محدد',
+  'Previous month': 'الشهر السابق',
+  'Next month': 'الشهر التالي',
+  'Select month': 'اختر الشهر',
+  'Select year': 'اختر السنة',
   Sun: 'أحد',
   Mon: 'إثنين',
   Tue: 'ثلاثاء',
@@ -144,6 +212,13 @@ export const ar: Translations = {
   Thu: 'خميس',
   Fri: 'جمعة',
   Sat: 'سبت',
+  Sunday: 'الأحد',
+  Monday: 'الاثنين',
+  Tuesday: 'الثلاثاء',
+  Wednesday: 'الأربعاء',
+  Thursday: 'الخميس',
+  Friday: 'الجمعة',
+  Saturday: 'السبت',
   January: 'يناير',
   February: 'فبراير',
   March: 'مارس',
@@ -168,4 +243,8 @@ export const ar: Translations = {
   OCT: 'أكتوبر',
   NOV: 'نوفمبر',
   DEC: 'ديسمبر',
+
+  // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
+  'dateFormat.short': '{day} {month} {year}',
+  'dateFormat.full': '{weekday}، {day} {month} {year}',
 };
