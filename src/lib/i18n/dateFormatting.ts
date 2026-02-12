@@ -34,15 +34,8 @@ export function formatLocalizedDate(
   const year = format(dateObj, 'yyyy');
 
   if (options?.includeWeekday) {
-    return t('dateFormat.full')
-      .replace('{weekday}', weekday)
-      .replace('{month}', month)
-      .replace('{day}', day)
-      .replace('{year}', year);
+    return t('dateFormat.full', { weekday, month, day, year });
   }
 
-  return t('dateFormat.short')
-    .replace('{month}', month)
-    .replace('{day}', day)
-    .replace('{year}', year);
+  return t('dateFormat.short', { month, day, year });
 }

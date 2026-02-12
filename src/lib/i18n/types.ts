@@ -86,9 +86,13 @@ export type Translations = typeof en;
 /**
  * Translation function type
  * Takes a key (English text) and returns the translated string
+ * Optionally accepts interpolation params, e.g. t('importedCount', { count: 5 })
  * Falls back to the key itself if translation not found
  */
-export type TranslationFunction = (key: string) => string;
+export type TranslationFunction = (
+  key: string,
+  params?: Record<string, string | number>,
+) => string;
 
 /**
  * Language metadata for display in UI

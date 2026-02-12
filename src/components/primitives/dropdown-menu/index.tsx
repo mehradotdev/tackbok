@@ -75,10 +75,13 @@ const Root = ({
   const [contentLayout, setContentLayout] = React.useState<LayoutRectangle | null>(null);
   const [open, setOpen] = React.useState(false);
 
-  function onOpenChange(open: boolean) {
-    setOpen(open);
-    onOpenChangeProp?.(open);
-  }
+  const onOpenChange = React.useCallback(
+    (open: boolean) => {
+      setOpen(open);
+      onOpenChangeProp?.(open);
+    },
+    [onOpenChangeProp],
+  );
 
   const Component = asChild ? Slot.View : View;
   return (
@@ -625,7 +628,7 @@ const SubContent = ({
   return <Component ref={ref} role="group" aria-labelledby={nativeID} {...props} />;
 };
 
-Content.displayName = 'ContentNativeDropdownMenu';
+SubContent.displayName = 'SubContentNativeDropdownMenu';
 
 export {
   CheckboxItem,

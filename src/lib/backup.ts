@@ -379,6 +379,10 @@ export async function importFromCSV(uri: string): Promise<number> {
     for (const tag of allTags) {
       tagNameToIdCache.set(tag.title.trim().toLowerCase(), tag.tag_id);
     }
+
+    // Pre-load all existing note_ids for O(1) duplicate detection
+    const existingEntries = await tx.select({ note_id: entries.note_id }).from(entries);
+    const existingNoteIds = new Set(existingEntries.map((e) => e.note_id));
     for (const row of dataRows) {
       const noteId = row[cols.note_id]?.trim();
       const textContent = row[cols.text_content]?.trim();
@@ -396,16 +400,10 @@ export async function importFromCSV(uri: string): Promise<number> {
         continue; // Skip rows with invalid timestamps
       }
 
-      // Check for existing entry by note_id (exact match)
-      const existing = await tx
-        .select({ note_id: entries.note_id })
-        .from(entries)
-        .where(eq(entries.note_id, noteId))
-        .limit(1);
-
-      if (existing.length > 0) {
+      if (existingNoteIds.has(noteId)) {
         continue; // Skip duplicate
       }
+      existingNoteIds.add(noteId);
 
       // Parse optional fields
       const textTitle =

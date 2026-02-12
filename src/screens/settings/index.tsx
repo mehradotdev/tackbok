@@ -131,7 +131,7 @@ export default function SettingsScreen() {
         setIsImporting(false);
         await queryClient.invalidateQueries();
 
-        toast.success(`${t('Imported')} ${count} ${t('entries')}`);
+        toast.success(t('importedCount', { count }));
 
         // Navigate to home screen
         router.replace('/');
