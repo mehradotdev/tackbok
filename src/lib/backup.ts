@@ -6,7 +6,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy'; // TODO: Migrate from legacy FileSystem
 import { db, entries, tags, type Entry } from '~/db';
 import { generateUUID } from '~/lib/utils';
-import { TAG_SEPARATOR, TACKBOK_CSV_HEADER } from '~/constants';
+import { MOODS, TAG_SEPARATOR, TACKBOK_CSV_HEADER } from '~/constants';
+
+/** Set of valid mood values, derived from the MOODS const to stay in sync. */
+const VALID_MOODS: Set<string> = new Set(MOODS);
 
 // ============================================================================
 // CSV Utilities
@@ -52,8 +55,8 @@ function parseCSV(content: string): string[][] {
         currentField += char;
       }
     } else {
-      if (char === '"') {
-        // Start of quoted field
+      if (char === '"' && currentField.length === 0) {
+        // Start of quoted field (quote must be at field start per RFC 4180)
         inQuotes = true;
       } else if (char === ',') {
         // Field separator
@@ -290,33 +293,24 @@ async function resolveTagNamesToIds(
   for (const tagName of tagNames) {
     const cacheKey = tagName.toLowerCase();
 
-    // Check in-memory cache first
+    // Check in-memory cache (pre-warmed with all existing tags before import)
     const cachedId = tagNameToIdCache.get(cacheKey);
     if (cachedId) {
       tagIds.push(cachedId);
       continue;
     }
 
-    // Look up existing tag in DB (fetch all and compare case-insensitively)
-    const allTags = await tx.select().from(tags);
-    const existingTag = allTags.find((t) => t.title.trim().toLowerCase() === cacheKey);
-
-    if (existingTag) {
-      tagNameToIdCache.set(cacheKey, existingTag.tag_id);
-      tagIds.push(existingTag.tag_id);
-    } else {
-      // Create a new tag
-      const newTagId = generateUUID();
-      const now = Date.now();
-      await tx.insert(tags).values({
-        tag_id: newTagId,
-        title: tagName, // Preserve original casing
-        created_at: now,
-        updated_at: now,
-      });
-      tagNameToIdCache.set(cacheKey, newTagId);
-      tagIds.push(newTagId);
-    }
+    // Not in cache — create a new tag
+    const newTagId = generateUUID();
+    const now = Date.now();
+    await tx.insert(tags).values({
+      tag_id: newTagId,
+      title: tagName, // Preserve original casing
+      created_at: now,
+      updated_at: now,
+    });
+    tagNameToIdCache.set(cacheKey, newTagId);
+    tagIds.push(newTagId);
   }
 
   return tagIds.join(',');
@@ -380,6 +374,11 @@ export async function importFromCSV(uri: string): Promise<number> {
   const tagNameToIdCache = new Map<string, string>();
 
   await db.transaction(async (tx) => {
+    // Pre-load all existing tags into cache to avoid N+1 queries during import
+    const allTags = await tx.select().from(tags);
+    for (const tag of allTags) {
+      tagNameToIdCache.set(tag.title.trim().toLowerCase(), tag.tag_id);
+    }
     for (const row of dataRows) {
       const noteId = row[cols.note_id]?.trim();
       const textContent = row[cols.text_content]?.trim();
@@ -411,7 +410,10 @@ export async function importFromCSV(uri: string): Promise<number> {
       // Parse optional fields
       const textTitle =
         cols.text_title !== -1 ? row[cols.text_title]?.trim() || null : null;
-      const mood = cols.mood !== -1 ? row[cols.mood]?.trim() || null : null;
+      const rawMood = cols.mood !== -1 ? row[cols.mood]?.trim() || null : null;
+      const mood = (
+        rawMood && VALID_MOODS.has(rawMood) ? rawMood : null
+      ) as Entry['mood'];
       const assetsStr = cols.assets !== -1 ? row[cols.assets]?.trim() : '';
       const tagNamesStr = cols.tags !== -1 ? (row[cols.tags]?.trim() ?? '') : '';
 
@@ -433,7 +435,7 @@ export async function importFromCSV(uri: string): Promise<number> {
         note_id: noteId,
         text_title: textTitle,
         text_content: textContent,
-        mood: mood as Entry['mood'],
+        mood,
         assets,
         tags: tagsStr,
         created_at: createdAt,

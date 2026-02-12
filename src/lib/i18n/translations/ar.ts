@@ -153,7 +153,7 @@ export const ar: Translations = {
   'Export to CSV': 'تصدير إلى CSV',
   'Full backup of entries and tags': 'نسخ احتياطي كامل للسجلات والوسوم',
   'Import Entries from CSV': 'استيراد السجلات من CSV',
-  'Restore from a Tackbok backup file': 'واستعادة من ملف نسخ احتياطي لتاكبوك',
+  'Restore from a Tackbok backup file': 'استعادة من ملف نسخ احتياطي لتاكبوك',
   'Import from Presently App': 'استيراد من تطبيق Presently',
   'Import entries from a Presently CSV export':
     'استيراد السجلات من ملف CSV لتطبيق Presently',

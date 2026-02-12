@@ -1,4 +1,5 @@
-import { type Mood } from './types';
+export const MOODS = ['AMAZING', 'HAPPY', 'OKAY', 'SAD', 'AWFUL'] as const;
+export type Mood = (typeof MOODS)[number];
 
 export const MOOD_EMOJI: Record<Mood, string> = {
   AMAZING: '🤩',

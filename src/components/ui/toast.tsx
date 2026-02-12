@@ -9,7 +9,7 @@ import Animated, {
   LinearTransition,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AlertTriangle, Check, Info, X } from 'lucide-react-native';
+import { AlertTriangle, Check, Info, X, type LucideIcon } from 'lucide-react-native';
 import { create } from 'zustand';
 import { cn } from '~/lib/utils';
 import { Text } from '~/components/ui/text';
@@ -40,6 +40,15 @@ type ToastData = {
     label: string;
     onPress: () => void;
   };
+};
+
+// Map type to icon
+const TOAST_ICONS: Record<ToastType, { icon: LucideIcon; className: string }> = {
+  success: { icon: Check, className: 'text-green-500 size-5 stroke-[1.5px]' },
+  error: { icon: AlertTriangle, className: 'text-destructive size-5 stroke-[1.5px]' },
+  warning: { icon: AlertTriangle, className: 'text-amber-500 size-5 stroke-[1.5px]' },
+  info: { icon: Info, className: 'text-blue-500 size-5 stroke-[1.5px]' },
+  default: { icon: Info, className: 'text-foreground size-5 stroke-[1.5px]' },
 };
 
 interface ToastState {
@@ -148,7 +157,7 @@ toast.success = (
 ) => useToastStore.getState().add({ title, type: 'success', ...opts });
 
 toast.error = (title: string, opts?: Partial<Omit<ToastData, 'id' | 'title' | 'type'>>) =>
-  useToastStore.getState().add({ title, type: 'error', ...opts });
+  useToastStore.getState().add({ title, type: 'error', duration: 8000, ...opts });
 
 toast.info = (title: string, opts?: Partial<Omit<ToastData, 'id' | 'title' | 'type'>>) =>
   useToastStore.getState().add({ title, type: 'info', ...opts });
@@ -307,27 +316,10 @@ export function Toaster({
                 )}>
                 <View className="flex-1 flex-row items-center gap-3">
                   <View>
-                    {t.type === 'success' && (
-                      <Icon as={Check} className="text-green-500 size-5 stroke-[1.5px]" />
-                    )}
-                    {t.type === 'error' && (
-                      <Icon
-                        as={AlertTriangle}
-                        className="text-destructive size-5 stroke-[1.5px]"
-                      />
-                    )}
-                    {t.type === 'warning' && (
-                      <Icon
-                        as={AlertTriangle}
-                        className="text-amber-500 size-5 stroke-[1.5px]"
-                      />
-                    )}
-                    {t.type === 'info' && (
-                      <Icon as={Info} className="text-blue-500 size-5 stroke-[1.5px]" />
-                    )}
-                    {t.type === 'default' && (
-                      <Icon as={Info} className="text-foreground size-5 stroke-[1.5px]" />
-                    )}
+                    <Icon
+                      as={TOAST_ICONS[t.type].icon}
+                      className={TOAST_ICONS[t.type].className}
+                    />
                   </View>
 
                   <View className="flex-1 gap-1">
@@ -352,11 +344,9 @@ export function Toaster({
                   </ToastPrimitive.Action>
                 )}
 
-                {!t.action && (
-                  <ToastPrimitive.Close className="active:bg-secondary rounded-full p-1">
-                    <Icon as={X} className="text-foreground size-5 stroke-[1.5px]" />
-                  </ToastPrimitive.Close>
-                )}
+                <ToastPrimitive.Close className="active:bg-secondary rounded-full p-1">
+                  <Icon as={X} className="text-foreground size-5 stroke-[1.5px]" />
+                </ToastPrimitive.Close>
               </ToastPrimitive.Root>
             </Animated.View>
           ))}

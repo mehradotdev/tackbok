@@ -56,6 +56,11 @@ export function generateUUID() {
 export function combineDateWithCurrentTime(date: Date): Date {
   const now = new Date();
   const result = new Date(date);
-  result.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+  result.setHours(
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds(),
+  );
   return result;
 }

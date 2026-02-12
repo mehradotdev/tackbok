@@ -70,7 +70,7 @@ const Root = ({
 }: RootProps & { ref?: React.Ref<RootRef> }) => {
   const nativeID = React.useId();
   const [triggerPosition, setTriggerPosition] = React.useState<LayoutPosition | null>(
-    null
+    null,
   );
   const [contentLayout, setContentLayout] = React.useState<LayoutRectangle | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -91,8 +91,7 @@ const Root = ({
         nativeID,
         setTriggerPosition,
         triggerPosition,
-      }}
-    >
+      }}>
       <Component ref={ref} {...viewProps} />
     </RootContext.Provider>
   );
@@ -104,7 +103,7 @@ function useRootContext() {
   const context = React.useContext(RootContext);
   if (!context) {
     throw new Error(
-      'DropdownMenu compound components cannot be rendered outside the DropdownMenu component'
+      'DropdownMenu compound components cannot be rendered outside the DropdownMenu component',
     );
   }
   return context;
@@ -244,6 +243,7 @@ const Content = ({
   } = useRootContext();
 
   React.useEffect(() => {
+    if (!open) return;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       setTriggerPosition(null);
       setContentLayout(null);
@@ -255,7 +255,7 @@ const Content = ({
       setContentLayout(null);
       backHandler.remove();
     };
-  }, []);
+  }, [open, onOpenChange, setTriggerPosition, setContentLayout]);
 
   const positionStyle = useRelativePosition({
     align,
@@ -412,7 +412,7 @@ function useFormItemContext() {
   const context = React.useContext(FormItemContext);
   if (!context) {
     throw new Error(
-      'CheckboxItem or RadioItem compound components cannot be rendered outside of a CheckboxItem or RadioItem component'
+      'CheckboxItem or RadioItem compound components cannot be rendered outside of a CheckboxItem or RadioItem component',
     );
   }
   return context;
@@ -555,8 +555,7 @@ const Sub = ({
         nativeID,
         open,
         onOpenChange,
-      }}
-    >
+      }}>
       <Component ref={ref} {...props} />
     </SubContext.Provider>
   );
@@ -568,7 +567,7 @@ function useSubContext() {
   const context = React.useContext(SubContext);
   if (!context) {
     throw new Error(
-      'Sub compound components cannot be rendered outside of a Sub component'
+      'Sub compound components cannot be rendered outside of a Sub component',
     );
   }
   return context;

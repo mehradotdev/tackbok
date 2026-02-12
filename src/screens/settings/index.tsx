@@ -115,61 +115,48 @@ export default function SettingsScreen() {
     }
   }, [t]);
 
-  // Import Tackbok CSV handler
-  const handleImportFromCSV = useCallback(async () => {
-    setShowImportConfirmDialog(false);
-    try {
-      const result = await pickCSVFile();
-      if (!result) {
-        return; // User cancelled
+  // Shared import handler — parameterized by dialog dismissal and import function
+  const handleImport = useCallback(
+    async (dismissDialog: () => void, importFn: (uri: string) => Promise<number>) => {
+      dismissDialog();
+      try {
+        const result = await pickCSVFile();
+        if (!result) return; // User cancelled
+
+        const asset = result.assets?.[0];
+        if (!asset?.uri) throw new Error(t('Import failed'));
+
+        setIsImporting(true);
+        const count = await importFn(asset.uri);
+        setIsImporting(false);
+        await queryClient.invalidateQueries();
+
+        toast.success(`${t('Imported')} ${count} ${t('entries')}`);
+
+        // Navigate to home screen
+        router.replace('/');
+      } catch (error) {
+        setIsImporting(false);
+        const message = error instanceof Error ? error.message : t('Import failed');
+        toast.error(message);
       }
+    },
+    [t, router, queryClient],
+  );
 
-      const asset = result.assets?.[0];
-      if (!asset?.uri) throw new Error(t('Import failed'));
+  const handleImportFromCSV = useCallback(
+    () => handleImport(() => setShowImportConfirmDialog(false), importFromCSV),
+    [handleImport],
+  );
 
-      setIsImporting(true);
-      const count = await importFromCSV(asset.uri);
-      setIsImporting(false);
-      await queryClient.invalidateQueries();
-
-      toast.success(`${t('Imported')} ${count} ${t('entries')}`);
-
-      // Navigate to home screen
-      router.replace('/');
-    } catch (error) {
-      setIsImporting(false);
-      const message = error instanceof Error ? error.message : t('Import failed');
-      toast.error(message);
-    }
-  }, [t, router, queryClient]);
-
-  // Import Presently CSV handler
-  const handleImportFromPresentlyCSV = useCallback(async () => {
-    setShowPresentlyImportConfirmDialog(false);
-    try {
-      const result = await pickCSVFile();
-      if (!result) {
-        return; // User cancelled
-      }
-
-      const asset = result.assets?.[0];
-      if (!asset?.uri) throw new Error(t('Import failed'));
-
-      setIsImporting(true);
-      const count = await importFromPresentlyCSV(asset.uri);
-      setIsImporting(false);
-      await queryClient.invalidateQueries();
-
-      toast.success(`${t('Imported')} ${count} ${t('entries')}`);
-
-      // Navigate to home screen
-      router.replace('/');
-    } catch (error) {
-      setIsImporting(false);
-      const message = error instanceof Error ? error.message : t('Import failed');
-      toast.error(message);
-    }
-  }, [t, router, queryClient]);
+  const handleImportFromPresentlyCSV = useCallback(
+    () =>
+      handleImport(
+        () => setShowPresentlyImportConfirmDialog(false),
+        importFromPresentlyCSV,
+      ),
+    [handleImport],
+  );
 
   // Delete all data handler
   const handleDeleteAllData = useCallback(async () => {

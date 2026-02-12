@@ -274,6 +274,7 @@ function Content({
   } = useRootContext();
 
   React.useEffect(() => {
+    if (!open) return;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       setTriggerPosition(null);
       setContentLayout(null);
@@ -285,7 +286,7 @@ function Content({
       setContentLayout(null);
       backHandler.remove();
     };
-  }, []);
+  }, [open, onOpenChange, setTriggerPosition, setContentLayout]);
 
   const positionStyle = useRelativePosition({
     align,

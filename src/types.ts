@@ -6,8 +6,8 @@ export type Asset = {
   uri: string;
 };
 
-// Mood options
-export type Mood = 'AMAZING' | 'HAPPY' | 'OKAY' | 'SAD' | 'AWFUL';
+// Mood (defined in constants.ts alongside MOOD_EMOJI / MOOD_OPTIONS)
+export type { Mood } from './constants';
 
 // Re-export schema types for convenience
 export type { Entry, Tag, NewEntry, NewTag };
