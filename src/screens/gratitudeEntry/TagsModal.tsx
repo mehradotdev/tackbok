@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Pressable, ScrollView } from 'react-native';
 import { Plus, X, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react-native';
 import { type Tag } from '~/types';
+import { TAG_SEPARATOR } from '~/constants';
 import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { useUpdateTag, useDeleteTag, useTags, useCreateTag } from '~/hooks/useGratitude';
@@ -76,8 +77,10 @@ export function TagsModal({
   // ============================================================================
 
   const handleCreateTag = async () => {
-    // Sanitize: replace commas with spaces to avoid CSV issues
-    const trimmed = tagInputValue.replace(/,/g, ' ').trim();
+    // Sanitize: replace commas and pipes with spaces to avoid CSV/backup issues
+    const trimmed = tagInputValue
+      .replace(new RegExp(`[,${TAG_SEPARATOR}]`, 'g'), ' ')
+      .trim();
     if (!trimmed) return;
 
     // Check if tag already exists
@@ -104,8 +107,10 @@ export function TagsModal({
 
   const handleUpdateTag = async () => {
     if (!editingTag) return;
-    // Sanitize: replace commas with spaces to avoid CSV issues
-    const trimmed = tagInputValue.replace(/,/g, ' ').trim();
+    // Sanitize: replace commas and pipes with spaces to avoid CSV/backup issues
+    const trimmed = tagInputValue
+      .replace(new RegExp(`[,${TAG_SEPARATOR}]`, 'g'), ' ')
+      .trim();
     if (!trimmed) return;
 
     // Check if another tag already has this name

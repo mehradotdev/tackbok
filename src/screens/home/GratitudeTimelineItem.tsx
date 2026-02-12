@@ -53,7 +53,7 @@ function ExpandedEntryRow({
 
   const tags = (entry.tags ? entry.tags.split(',') : [])
     .filter((id) => id.trim().length > 0)
-    .map((id) => tagMap.get(id))
+    .map((id) => tagMap.get(id.trim()))
     .filter((t): t is NonNullable<typeof t> => t !== undefined)
     .sort((a, b) => a.title.localeCompare(b.title));
 
@@ -66,7 +66,7 @@ function ExpandedEntryRow({
       {/* Timeline Column */}
       <View
         className={cn(
-          'w-4 items-end h-full z-5',
+          'w-4 items-end h-full z-10',
           showTimelineBorders && 'border-muted-foreground/80',
           showTimelineBorders && 'border-r-2',
           showTimelineBorders &&

@@ -108,7 +108,9 @@ export function useTagMapping() {
 
   return React.useMemo(() => {
     const map = new Map<string, (typeof tags)[0]>();
-    tags.forEach((tag) => map.set(tag.tag_id, tag));
+    tags.forEach((tag) => {
+      map.set(tag.tag_id, tag);
+    });
     return map;
   }, [tags]);
 }

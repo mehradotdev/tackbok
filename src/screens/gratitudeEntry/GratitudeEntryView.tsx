@@ -52,8 +52,8 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
   // Resolve tags
   const tags = (tagsCsv || '')
     .split(',')
-    .filter((tag) => tag.length > 0)
-    .map((id) => tagMap.get(id))
+    .filter((tag) => tag.trim().length > 0)
+    .map((id) => tagMap.get(id.trim()))
     .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined);
 
   const handleDelete = async () => {
@@ -82,7 +82,7 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
         </View>
 
         {/* Date/Time display - centered absolutely via flex in parent or just flex-1 here */}
-        <View className="flex-1 flex-col items-center z-1">
+        <View className="flex-1 flex-col items-center">
           <Text className="font-bold text-lg text-foreground">{dateLabel}</Text>
           <Text className="text-sm text-muted-foreground">{timeLabel}</Text>
         </View>

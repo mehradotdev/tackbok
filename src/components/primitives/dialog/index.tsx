@@ -154,6 +154,7 @@ const Content = ({
   const { open, nativeID, onOpenChange } = useRootContext();
 
   React.useEffect(() => {
+    if (!open) return;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       onOpenChange(false);
       return true;
@@ -162,7 +163,7 @@ const Content = ({
     return () => {
       backHandler.remove();
     };
-  }, []);
+  }, [open, onOpenChange]);
 
   if (!forceMount) {
     if (!open) {

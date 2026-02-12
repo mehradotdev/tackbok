@@ -58,7 +58,7 @@ export default function HomeScreen() {
         navigateToNewEntry();
       }
     },
-    [router],
+    [router, t],
   );
 
   const handleSearchPress = () => {
@@ -128,7 +128,7 @@ export default function HomeScreen() {
             variant="primary"
             onPress={() => setShowDatePicker(true)}
             className={cn(
-              'absolute bottom-safe-or-12 right-safe-or-6 z-5',
+              'absolute bottom-safe-or-12 right-safe-or-6 z-10',
               'h-14 w-14 items-center justify-center rounded-full',
               'shadow-lg shadow-black/25',
               'active:bg-primary/90 active:scale-125',

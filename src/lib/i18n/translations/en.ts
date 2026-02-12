@@ -152,10 +152,15 @@ export const en = {
   Weekly: 'Weekly',
   'On Every Change': 'On Every Change',
   'Export to CSV': 'Export entries to CSV',
-  'Manually export your entries to CSV format':
-    'Manually export your entries to CSV format to your device',
-  'Import from Backup': 'Import entries from backup',
-  'Select a backed up CSV file to import': 'Select a backed up CSV file to import',
+  'Full backup of entries and tags': 'Full backup of entries and tags',
+  'Import Entries from CSV': 'Import Entries from CSV',
+  'Restore from a Tackbok backup file': 'Restore from a Tackbok backup file',
+  'Import from Presently App': 'Import from Presently App',
+  'Import entries from a Presently CSV export':
+    'Import entries from a Presently CSV export',
+  'Import from Presently?': 'Import from Presently?',
+  'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
+    'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.',
   'Entries exported successfully': 'Entries exported successfully',
   'Export failed': 'Export failed',
   Imported: 'Imported',
