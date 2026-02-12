@@ -52,9 +52,9 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
   // Resolve tags
   const tags = (tagsCsv || '')
     .split(',')
-    .filter((t) => t.length > 0)
+    .filter((tag) => tag.length > 0)
     .map((id) => tagMap.get(id))
-    .filter((t): t is NonNullable<typeof t> => t !== undefined);
+    .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined);
 
   const handleDelete = async () => {
     try {

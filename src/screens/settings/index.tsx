@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { View, ScrollView, Linking, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   ArrowRight,
@@ -59,6 +60,7 @@ import SettingsLanguageComp from './SettingsLanguageComp';
 export default function SettingsScreen() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
+  const queryClient = useQueryClient();
 
   // Settings store
   const {
@@ -120,6 +122,7 @@ export default function SettingsScreen() {
       setIsImporting(true);
       const count = await importFromCSV(asset.uri);
       setIsImporting(false);
+      await queryClient.invalidateQueries();
 
       toast.success(`${t('Imported')} ${count} ${t('entries')}`);
 
@@ -130,13 +133,14 @@ export default function SettingsScreen() {
       const message = error instanceof Error ? error.message : t('Import failed');
       toast.error(message);
     }
-  }, [t, router]);
+  }, [t, router, queryClient]);
 
   // Delete all data handler
   const handleDeleteAllData = useCallback(async () => {
     setShowDeleteConfirmDialog(false);
     try {
       await deleteAllData();
+      await queryClient.invalidateQueries();
       toast.success(t('All data deleted'));
       // Navigate to home screen
       router.replace('/');
@@ -144,7 +148,7 @@ export default function SettingsScreen() {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
     }
-  }, [t, router]);
+  }, [t, router, queryClient]);
 
   // Helper to format time for display in 24-hour format
   const formatTime = (time: string) => {

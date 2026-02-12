@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { View } from 'react-native';
-import { format, isAfter, startOfDay } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { MODAL_CLOSE_DELAY } from '~/constants';
-import { getEntryDatesForMonth } from '~/db/queries';
 import { cn } from '~/lib/utils';
 import { useSettingsStore } from '~/lib/settings';
+import { useEntryDatesForMonth } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { Dialog, DialogContent } from '~/components/ui/dialog';
 import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
@@ -35,13 +35,18 @@ export function GratitudeDatepickerModal({
   onClose,
 }: IGratitudeDatepickerModalProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [existingEntryDates, setExistingEntryDates] = useState<string[]>([]);
   const [currentMonthYear, setCurrentMonthYear] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() + 1 };
   });
   const [today, setToday] = useState(() => startOfDay(new Date()));
   const firstDayOfWeek = useSettingsStore((state) => state.firstDayOfWeek);
+
+  const { data: existingEntryDates = [] } = useEntryDatesForMonth(
+    currentMonthYear.year,
+    currentMonthYear.month,
+    visible,
+  );
 
   // Reset state when modal opens
   useEffect(() => {
@@ -55,24 +60,6 @@ export function GratitudeDatepickerModal({
       });
     }
   }, [visible]);
-
-  // Fetch entry dates for the current visible month
-  useEffect(() => {
-    if (!visible) return;
-
-    (async () => {
-      try {
-        const entryDates = await getEntryDatesForMonth(
-          currentMonthYear.year,
-          currentMonthYear.month,
-        );
-        setExistingEntryDates(entryDates);
-      } catch (error) {
-        console.error('Failed to fetch entry dates: ', error);
-        setExistingEntryDates([]);
-      }
-    })();
-  }, [currentMonthYear, visible]);
 
   // Track when the user navigates to a different month
   const handleMonthChange = useCallback((date: Date) => {
@@ -102,8 +89,8 @@ export function GratitudeDatepickerModal({
   const handleDateChange = useCallback(
     (date: Date) => {
       setSelectedDate(date);
-      // We don't close immediately to let the user see the selection if needed,
-      // but usually we want to confirm. The previous logic closed it.
+      // Close the modal immediately, then fire the onDateSelect callback after the
+      // close-animation completes to avoid potential crashes/animation issues.
       handleOpenChange(false);
 
       // Wait for modal to close before triggering callback to avoid potential crashes/animations issues
@@ -115,10 +102,9 @@ export function GratitudeDatepickerModal({
     [onDateSelect, handleOpenChange],
   );
 
-  // Custom day render to handle future dates visually
+  // Custom day render — uses isDisabled from DatePicker as the single source of truth
   const renderDay = useCallback(
     (date: Date, isSelected: boolean, isDisabled: boolean, isCurrentMonth: boolean) => {
-      const isFuture = isAfter(startOfDay(date), today);
       const dayNumber = format(date, 'd');
       const dateKey = format(date, 'yyyy-MM-dd');
       const hasEntry = existingEntryDates.includes(dateKey);
@@ -127,19 +113,19 @@ export function GratitudeDatepickerModal({
         <View
           className={cn(
             'h-9 w-9 items-center justify-center rounded-full',
-            isSelected && !isFuture && 'bg-primary shadow-sm',
-            isFuture && 'opacity-30',
+            isSelected && !isDisabled && 'bg-primary shadow-sm',
+            isDisabled && 'opacity-30',
           )}>
           <Text
             className={cn(
               'text-base font-medium',
               isCurrentMonth ? 'text-foreground' : 'text-muted-foreground/50',
-              isSelected && !isFuture && 'text-primary-foreground',
-              isFuture && 'text-muted-foreground',
+              isSelected && !isDisabled && 'text-primary-foreground',
+              isDisabled && 'text-muted-foreground',
             )}>
             {dayNumber}
           </Text>
-          {hasEntry && !isFuture && (
+          {hasEntry && !isDisabled && (
             <View
               className="absolute bottom-0 h-1.5 w-1.5 rounded-full"
               style={{ backgroundColor: entryMarkerColor }}
@@ -148,7 +134,7 @@ export function GratitudeDatepickerModal({
         </View>
       );
     },
-    [today, existingEntryDates, entryMarkerColor],
+    [existingEntryDates, entryMarkerColor],
   );
 
   return (
@@ -164,7 +150,7 @@ export function GratitudeDatepickerModal({
           renderDay={renderDay}
           containerClassName="shadow-xl bg-background"
           scrollToBottomYearsView={true}
-          onMonthChange={handleMonthChange}
+          onMonthYearChange={handleMonthChange}
           firstDayOfWeek={firstDayOfWeek}
         />
       </DialogContent>

@@ -196,8 +196,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const isExpanded = isExpandedProp ?? dayGroup.isExpanded;
 
   const formattedDate = formatLocalizedDate(dayGroup.dateStr, t);
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const isToday = dayGroup.dateStr === todayStr;
+  const isToday = dayGroup.isToday ?? false;
   const hasEntries = dayGroup.entries.length > 0;
 
   return (

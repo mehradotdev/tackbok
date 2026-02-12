@@ -266,7 +266,7 @@ export function TagsModal({
   const renderSelectView = () => (
     <View className="px-4 pt-2 pb-4">
       {allTags.length > 0 && (
-        <ScrollView className="max-h-80">
+        <ScrollView className="max-h-50" contentContainerClassName="pb-4">
           {allTags.map((tag) => renderTagItem(tag))}
         </ScrollView>
       )}
@@ -275,7 +275,7 @@ export function TagsModal({
       <Button
         variant="outline"
         onPress={handleCreateNewPress}
-        className="flex-row items-center justify-center gap-2 mt-4">
+        className="flex-row items-center justify-center gap-2 mt-0">
         <Icon as={Plus} className="text-foreground" size={18} />
         <Text>{t('Create New Tag')}</Text>
       </Button>
@@ -297,6 +297,8 @@ export function TagsModal({
           value={tagInputValue}
           onChangeText={setTagInputValue}
           autoFocus
+          autoCapitalize="none"
+          autoCorrect={false}
           returnKeyType="done"
           onSubmitEditing={isCreateView ? handleCreateTag : handleUpdateTag}
         />

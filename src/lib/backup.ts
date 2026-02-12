@@ -221,42 +221,45 @@ export async function importFromCSV(uri: string): Promise<number> {
   const dataRows = rows.slice(1);
   let importedCount = 0;
 
-  // Import entries using Drizzle
-  for (const row of dataRows) {
-    if (row.length > Math.max(dateIndex, contentIndex)) {
-      const entryDateStr = row[dateIndex].trim();
-      const entryContent = row[contentIndex].trim();
+  // Import entries using Drizzle — wrapped in a transaction for atomicity.
+  // If the process fails midway, all changes are rolled back.
+  await db.transaction(async (tx) => {
+    for (const row of dataRows) {
+      if (row.length > Math.max(dateIndex, contentIndex)) {
+        const entryDateStr = row[dateIndex].trim();
+        const entryContent = row[contentIndex].trim();
 
-      // Validate date format (YYYY-MM-DD)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(entryDateStr) && entryContent) {
-        // Convert date string to timestamp (start of day)
-        const dateMs = new Date(entryDateStr + 'T00:00:00').getTime();
+        // Validate date format (YYYY-MM-DD)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(entryDateStr) && entryContent) {
+          // Convert date string to timestamp (start of day)
+          const dateMs = new Date(entryDateStr + 'T00:00:00').getTime();
 
-        // Check if entry with same date and content already exists
-        const existing = await db
-          .select({ note_id: entries.note_id })
-          .from(entries)
-          .where(
-            and(eq(entries.created_at, dateMs), eq(entries.text_content, entryContent)),
-          )
-          .limit(1);
+          // Check if entry with same date and content already exists
+          const existing = await tx
+            .select({ note_id: entries.note_id })
+            .from(entries)
+            .where(
+              and(eq(entries.created_at, dateMs), eq(entries.text_content, entryContent)),
+            )
+            .limit(1);
 
-        if (existing.length > 0) {
-          continue; // Skip duplicate
+          if (existing.length > 0) {
+            continue; // Skip duplicate
+          }
+
+          const now = Date.now();
+          await tx.insert(entries).values({
+            note_id: generateUUID(),
+            text_content: entryContent,
+            created_at: dateMs,
+            updated_at: now,
+          });
+
+          importedCount++;
         }
-
-        const now = Date.now();
-        await db.insert(entries).values({
-          note_id: generateUUID(),
-          text_content: entryContent,
-          created_at: dateMs,
-          updated_at: now,
-        });
-
-        importedCount++;
       }
     }
-  }
+  });
 
   return importedCount;
 }

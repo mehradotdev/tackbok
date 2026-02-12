@@ -47,3 +47,15 @@ export function generateUUID() {
     return v.toString(16);
   });
 }
+
+/**
+ * Combine a calendar date with the current wall-clock time.
+ * Useful when back-dating an entry so it doesn't default to midnight (00:00:00),
+ * ensuring the entry captures "when" it was written on that specific day.
+ */
+export function combineDateWithCurrentTime(date: Date): Date {
+  const now = new Date();
+  const result = new Date(date);
+  result.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+  return result;
+}
