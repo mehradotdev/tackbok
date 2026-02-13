@@ -3,8 +3,7 @@ import { View, ScrollView } from 'react-native';
 import { ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-react-native';
 import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
 import { type Entry } from '~/types';
-import { useTranslation } from '~/lib/i18n';
-import { formatDateLabel, formatTimeLabel } from '~/lib/utils';
+import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
@@ -43,8 +42,8 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
   } = entry;
 
   // Format for display
-  const dateLabel = formatDateLabel(timestamp);
-  const timeLabel = formatTimeLabel(timestamp);
+  const dateLabel = formatLocalizedDate(timestamp, t, { relative: true });
+  const timeLabel = formatTimeLabel(timestamp, t);
 
   // Mood label
   const moodOption = mood ? MOOD_OPTIONS.find((o) => o.value === mood) : null;

@@ -135,11 +135,11 @@ export function translate(
           `[i18n] Unused interpolation param "${paramKey}" for key: "${key}" in locale: "${locale}"`,
         );
       }
-      result = result.replace(placeholder, String(value));
+      result = result.replaceAll(placeholder, String(value));
     }
 
     if (__DEV__) {
-      const unreplaced = result.match(/\{[a-zA-Z_]+\}/g);
+      const unreplaced = result.match(/\{[a-zA-Z_]\w*\}/g);
       if (unreplaced) {
         console.warn(
           `[i18n] Unreplaced placeholder(s) ${unreplaced.join(', ')} for key: "${key}" in locale: "${locale}"`,

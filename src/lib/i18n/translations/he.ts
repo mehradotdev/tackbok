@@ -19,7 +19,6 @@ export const he: Translations = {
   Settings: 'הגדרות',
   'Contact Us': 'צור קשר',
   'Unknown error': 'שגיאה לא ידועה',
-  at: 'בשעה',
 
   // Header & Search
   'Search gratitude logs...': 'חפש יומני הכרת טובה...',
@@ -162,11 +161,12 @@ export const he: Translations = {
   'Entries exported successfully': 'הרשומות יוצאו בהצלחה',
   'Export failed': 'הייצוא נכשל',
   importedCount: 'יובאו {count} רשומות',
+  importedCountSingular: 'יובאה {count} רשומה',
   'Import failed': 'הייבוא נכשל',
   'Importing entries...': 'מייבא רשומות...',
   'Are you sure you want to import?': 'האם אתה בטוח שברצונך לייבא?',
-  'Imported data could overwrite existing entries.':
-    'נתונים מיובאים עלולים לדרוס רשומות קיימות.',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    'פעולה זו תייבא רשומות מקובץ גיבוי של טאקבוק. רשומות כפולות ידלגו.',
   Import: 'ייבוא',
 
   // Settings - App Information
@@ -250,4 +250,5 @@ export const he: Translations = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day} ב{month} {year}',
   'dateFormat.full': 'יום {weekday}, {day} ב{month} {year}',
+  'dateFormat.timeLabel': '{weekday} בשעה {time}',
 };

@@ -19,7 +19,6 @@ export const zhCN: Translations = {
   Settings: '设置',
   'Contact Us': '联系我们',
   'Unknown error': '未知错误',
-  at: '于',
 
   // Header & Search
   'Search gratitude logs...': '搜索感恩日志...',
@@ -157,10 +156,12 @@ export const zhCN: Translations = {
   'Entries exported successfully': '条目导出成功',
   'Export failed': '导出失败',
   importedCount: '已导入 {count} 条目',
+  importedCountSingular: '已导入 {count} 条目',
   'Import failed': '导入失败',
   'Importing entries...': '正在导入条目...',
   'Are you sure you want to import?': '您确定要导入吗？',
-  'Imported data could overwrite existing entries.': '导入的数据可能会覆盖现有条目。',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    '这将从塔克博克备份文件导入条目。重复条目将被跳过。',
   Import: '导入',
 
   // Settings - App Information
@@ -243,4 +244,5 @@ export const zhCN: Translations = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{year}年{month}{day}日',
   'dateFormat.full': '{year}年{month}{day}日 {weekday}',
+  'dateFormat.timeLabel': '{weekday} 于 {time}',
 };

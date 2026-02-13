@@ -19,7 +19,6 @@ export const ar: Translations = {
   Settings: 'الإعدادات',
   'Contact Us': 'اتصل بنا',
   'Unknown error': 'خطأ غير معروف',
-  at: 'في',
 
   // Header & Search
   'Search gratitude logs...': 'بحث في سجلات الامتنان...',
@@ -163,11 +162,12 @@ export const ar: Translations = {
   'Entries exported successfully': 'تم تصدير السجلات بنجاح',
   'Export failed': 'فشل التصدير',
   importedCount: 'تم استيراد {count} سجلات',
+  importedCountSingular: 'تم استيراد {count} سجل',
   'Import failed': 'فشل الاستيراد',
   'Importing entries...': 'جارٍ استيراد السجلات...',
   'Are you sure you want to import?': 'هل أنت متأكد أنك تريد الاستيراد؟',
-  'Imported data could overwrite existing entries.':
-    'قد تحل البيانات المستوردة محل السجلات الموجودة.',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    'سيتم استيراد السجلات من ملف نسخ احتياطي لتاكبوك. سيتم تخطي السجلات المكررة.',
   Import: 'استيراد',
 
   // Settings - App Information
@@ -251,4 +251,5 @@ export const ar: Translations = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day} {month} {year}',
   'dateFormat.full': '{weekday}، {day} {month} {year}',
+  'dateFormat.timeLabel': '{weekday} في {time}',
 };

@@ -12,8 +12,8 @@ import { format } from 'date-fns';
 import { Clock, X } from 'lucide-react-native';
 import { MODAL_CLOSE_DELAY, MOOD_OPTIONS } from '~/constants';
 import { type Entry, type Mood } from '~/types';
-import { useTranslation } from '~/lib/i18n';
-import { generateUUID, formatDateLabel, formatTimeLabel } from '~/lib/utils';
+import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
+import { generateUUID } from '~/lib/utils';
 import { useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -96,8 +96,8 @@ export function GratitudeEntryEdit({
 
   // Derived states
   const isEmpty = !content.trim();
-  const dateLabel = formatDateLabel(timestamp);
-  const timeLabel = formatTimeLabel(timestamp);
+  const dateLabel = formatLocalizedDate(timestamp, t, { relative: true });
+  const timeLabel = formatTimeLabel(timestamp, t);
   const formattedTime = format(new Date(timestamp), 'HH:mm');
   const moodOption = mood ? MOOD_OPTIONS.find((o) => o.value === mood) : null;
 

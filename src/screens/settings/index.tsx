@@ -128,10 +128,18 @@ export default function SettingsScreen() {
 
         setIsImporting(true);
         const count = await importFn(asset.uri);
+        try {
+          await queryClient.invalidateQueries();
+        } catch (error) {
+          console.error('Failed to invalidate queries:', error);
+        }
         setIsImporting(false);
-        await queryClient.invalidateQueries();
 
-        toast.success(t('importedCount', { count }));
+        const message =
+          count === 1
+            ? t('importedCountSingular', { count })
+            : t('importedCount', { count });
+        toast.success(message);
 
         // Navigate to home screen
         router.replace('/');
@@ -163,7 +171,11 @@ export default function SettingsScreen() {
     setShowDeleteConfirmDialog(false);
     try {
       await deleteAllData();
-      await queryClient.invalidateQueries();
+      try {
+        await queryClient.invalidateQueries();
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
       toast.success(t('All data deleted'));
       // Navigate to home screen
       router.replace('/');
@@ -499,7 +511,9 @@ export default function SettingsScreen() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Are you sure you want to import?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('Imported data could overwrite existing entries.')}
+              {t(
+                'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.',
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

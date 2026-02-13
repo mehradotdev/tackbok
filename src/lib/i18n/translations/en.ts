@@ -18,7 +18,6 @@ export const en = {
   Settings: 'Settings',
   'Contact Us': 'Contact Us',
   'Unknown error': 'Unknown error',
-  at: 'at',
 
   // Header & Search
   'Search gratitude logs...': 'Search gratitude logs...',
@@ -164,11 +163,12 @@ export const en = {
   'Entries exported successfully': 'Entries exported successfully',
   'Export failed': 'Export failed',
   importedCount: 'Imported {count} entries',
+  importedCountSingular: 'Imported {count} entry',
   'Import failed': 'Import failed',
   'Importing entries...': 'Importing entries...',
   'Are you sure you want to import?': 'Are you sure you want to import?',
-  'Imported data could overwrite existing entries.':
-    'Imported data could overwrite existing entries.',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.',
   Import: 'Import',
 
   // Settings - App Information
@@ -252,4 +252,5 @@ export const en = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{month} {day}, {year}',
   'dateFormat.full': '{weekday}, {month} {day}, {year}',
+  'dateFormat.timeLabel': '{weekday} at {time}',
 } satisfies Record<string, string>;
