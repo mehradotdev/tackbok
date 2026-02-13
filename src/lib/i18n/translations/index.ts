@@ -107,18 +107,48 @@ export const languages: LanguageInfo[] = [
 /**
  * Get translation for a key in the specified locale
  * Falls back to the key itself if translation not found
+ * Supports interpolation: translate(locale, 'importedCount', { count: 5 })
+ * Placeholders use {name} syntax, e.g. "Imported {count} entries"
  */
-export function translate(locale: SupportedLocale, key: string): string {
+export function translate(
+  locale: SupportedLocale,
+  key: string,
+  params?: Record<string, string | number>,
+): string {
   const localeTranslations = translations[locale];
 
+  let result: string;
   if (key in localeTranslations) {
-    return localeTranslations[key as keyof Translations];
+    result = localeTranslations[key as keyof Translations];
+  } else {
+    if (__DEV__) {
+      console.warn(`[i18n] Missing translation for key: "${key}" in locale: "${locale}"`);
+    }
+    result = key;
   }
 
-  if (__DEV__) {
-    console.warn(`[i18n] Missing translation for key: "${key}" in locale: "${locale}"`);
+  if (params) {
+    for (const [paramKey, value] of Object.entries(params)) {
+      const placeholder = `{${paramKey}}`;
+      if (__DEV__ && !result.includes(placeholder)) {
+        console.warn(
+          `[i18n] Unused interpolation param "${paramKey}" for key: "${key}" in locale: "${locale}"`,
+        );
+      }
+      result = result.replaceAll(placeholder, String(value));
+    }
+
+    if (__DEV__) {
+      const unreplaced = result.match(/\{[a-zA-Z_]\w*\}/g);
+      if (unreplaced) {
+        console.warn(
+          `[i18n] Unreplaced placeholder(s) ${unreplaced.join(', ')} for key: "${key}" in locale: "${locale}"`,
+        );
+      }
+    }
   }
-  return key;
+
+  return result;
 }
 
 /**

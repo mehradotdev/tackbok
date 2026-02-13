@@ -36,6 +36,12 @@ import { Button } from '~/components/ui/button';
 const DEFAULT_MIN_YEAR_OFFSET = 100;
 /** Default maximum year when maxDate is not provided */
 const DEFAULT_MAX_YEAR_OFFSET = 10;
+/** Maps firstDayOfWeek to date-fns weekStartsOn value */
+const WEEK_STARTS_ON_MAP: Record<FirstDayOfWeek, 0 | 1 | 6> = {
+  sunday: 0,
+  monday: 1,
+  saturday: 6,
+};
 
 // ============================================================================
 // Types
@@ -44,13 +50,6 @@ const DEFAULT_MAX_YEAR_OFFSET = 10;
 export interface MarkedDate {
   color?: string;
 }
-
-/** Maps firstDayOfWeek to date-fns weekStartsOn value */
-const WEEK_STARTS_ON_MAP: Record<FirstDayOfWeek, 0 | 1 | 6> = {
-  sunday: 0,
-  monday: 1,
-  saturday: 6,
-};
 
 export interface DatePickerProps {
   /** Currently selected date */
@@ -75,8 +74,8 @@ export interface DatePickerProps {
   /** Theme accent color (tailwind class like 'bg-primary') */
   themeColor?: string;
   scrollToBottomYearsView?: boolean;
-  /** Callback when the visible month changes */
-  onMonthChange?: (date: Date) => void;
+  /** Callback when the visible month or year changes */
+  onMonthYearChange?: (date: Date) => void;
   /** First day of the week */
   firstDayOfWeek?: FirstDayOfWeek;
 }
@@ -211,7 +210,7 @@ export function DatePicker({
   containerClassName,
   themeColor = 'bg-primary/60',
   scrollToBottomYearsView = false,
-  onMonthChange,
+  onMonthYearChange,
   firstDayOfWeek = 'monday',
 }: DatePickerProps) {
   const { t, isRTL } = useTranslation();
@@ -268,21 +267,21 @@ export function DatePicker({
     if (canGoBack) {
       setViewDate((prev) => {
         const newDate = subMonths(prev, 1);
-        onMonthChange?.(newDate);
+        onMonthYearChange?.(newDate);
         return newDate;
       });
     }
-  }, [canGoBack, onMonthChange]);
+  }, [canGoBack, onMonthYearChange]);
 
   const handleNextMonth = useCallback(() => {
     if (canGoForward) {
       setViewDate((prev) => {
         const newDate = addMonths(prev, 1);
-        onMonthChange?.(newDate);
+        onMonthYearChange?.(newDate);
         return newDate;
       });
     }
-  }, [canGoForward, onMonthChange]);
+  }, [canGoForward, onMonthYearChange]);
 
   const handleDayPress = useCallback(
     (date: Date) => {
@@ -295,18 +294,25 @@ export function DatePicker({
     (monthIndex: number) => {
       setViewDate((prev) => {
         const newDate = setMonth(prev, monthIndex);
-        onMonthChange?.(newDate);
+        onMonthYearChange?.(newDate);
         return newDate;
       });
       setViewMode('days');
     },
-    [onMonthChange],
+    [onMonthYearChange],
   );
 
-  const handleYearSelect = useCallback((year: number) => {
-    setViewDate((prev) => setYear(prev, year));
-    setViewMode('months');
-  }, []);
+  const handleYearSelect = useCallback(
+    (year: number) => {
+      setViewDate((prev) => {
+        const newDate = setYear(prev, year);
+        onMonthYearChange?.(newDate);
+        return newDate;
+      });
+      setViewMode('months');
+    },
+    [onMonthYearChange],
+  );
 
   const maybeAutoScrollYearsToBottom = useCallback(() => {
     if (viewMode !== 'years') return;
@@ -464,8 +470,8 @@ export function DatePicker({
         const monthEnd = endOfMonth(monthDate);
 
         const isDisabled =
-          (minDate && isBefore(monthEnd, minDate)) ||
-          (maxDate && isAfter(monthStart, maxDate));
+          !!(minDate && isBefore(monthEnd, minDate)) ||
+          !!(maxDate && isAfter(monthStart, maxDate));
 
         const translatedMonthName = t(monthKey);
 

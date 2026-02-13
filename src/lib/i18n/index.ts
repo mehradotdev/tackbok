@@ -18,4 +18,4 @@ export { translations, languages, translate, isRTLLocale } from './translations'
 export { useTranslation } from './useTranslation';
 
 // Date Formatting
-export { formatLocalizedDate } from './dateFormatting';
+export { formatLocalizedDate, formatTimeLabel } from './dateFormatting';

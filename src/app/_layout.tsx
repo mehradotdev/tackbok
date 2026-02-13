@@ -17,12 +17,12 @@ import { Toaster } from '~/components/ui/toast';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Refetch on mount if data is stale (includes after invalidation)
-      refetchOnMount: true,
-      // Refetch when app comes to foreground
-      refetchOnWindowFocus: true,
-      // Consider data stale after 0ms (always refetch if invalidated)
-      staleTime: 0,
+      // Cache data indefinitely — all mutations and direct DB operations
+      // (import, delete-all) explicitly call invalidateQueries(), so the
+      // cache stays correct without time-based expiry.  This avoids
+      // redundant SQLite reads on every mount/focus and gives instant
+      // results for previously-fetched queries (search, timeline, etc.).
+      staleTime: Infinity,
     },
   },
 });

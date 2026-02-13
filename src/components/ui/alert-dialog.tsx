@@ -30,7 +30,7 @@ function AlertDialogOverlay({
       <NativeOnlyAnimatedView
         entering={FadeIn.duration(200)}
         exiting={FadeOut.duration(150)}
-        className="absolute bottom-0 left-0 right-0 top-0">
+        className="absolute bottom-0 left-0 right-0 top-0 z-50">
         <AlertDialogPrimitive.Overlay
           ref={ref}
           className={cn(

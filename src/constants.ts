@@ -1,4 +1,5 @@
-import { type Mood } from './types';
+export const MOODS = ['AMAZING', 'HAPPY', 'OKAY', 'SAD', 'AWFUL'] as const;
+export type Mood = (typeof MOODS)[number];
 
 export const MOOD_EMOJI: Record<Mood, string> = {
   AMAZING: '🤩',
@@ -63,3 +64,10 @@ export const DAY_KEYS = [
   'Friday',
   'Saturday',
 ] as const;
+
+/** Separator used for tag names in the CSV tags column */
+export const TAG_SEPARATOR = '|';
+
+/** Tackbok CSV header columns */
+export const TACKBOK_CSV_HEADER =
+  'note_id,text_title,text_content,mood,assets,tags,created_at,updated_at';

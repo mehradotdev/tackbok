@@ -1,6 +1,7 @@
 import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
 import { startOfDay, format } from 'date-fns';
 import { generateUUID } from '~/lib/utils';
+import { TAG_SEPARATOR } from '~/constants';
 import { db, entries, tags, type Entry, type NewEntry, type Tag } from './index';
 
 /**
@@ -44,7 +45,7 @@ export async function getEntryById(noteId: string): Promise<Entry | undefined> {
  * Get entries for a specific date (comparing timestamps)
  * @param dateMs - Start of day in milliseconds
  */
-export async function getEntriesForDate(dateMs: number): Promise<Entry[]> {
+export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
   const nextDayMs = dateMs + 24 * 60 * 60 * 1000;
   return db
     .select()
@@ -172,13 +173,24 @@ export async function getAllTags(): Promise<Tag[]> {
 }
 
 /**
+ * Sanitizes a tag name to ensure compatibility with CSV exports.
+ * Removes commas and tag separators (pipes).
+ */
+export function sanitizeTagName(name: string): string {
+  return name.replace(new RegExp(`[,${TAG_SEPARATOR}]`, 'g'), ' ').trim();
+}
+
+/**
  * Create a new tag
  */
 export async function createTag(title: string): Promise<void> {
+  const cleanTitle = sanitizeTagName(title);
+  if (!cleanTitle) throw new Error('Invalid tag title');
+
   const now = Date.now();
   await db.insert(tags).values({
     tag_id: generateUUID(),
-    title,
+    title: cleanTitle,
     created_at: now,
     updated_at: now,
   });
@@ -188,9 +200,12 @@ export async function createTag(title: string): Promise<void> {
  * Update a tag's title
  */
 export async function updateTag(tagId: string, title: string): Promise<void> {
+  const cleanTitle = sanitizeTagName(title);
+  if (!cleanTitle) throw new Error('Invalid tag title');
+
   await db
     .update(tags)
-    .set({ title, updated_at: Date.now() })
+    .set({ title: cleanTitle, updated_at: Date.now() })
     .where(eq(tags.tag_id, tagId));
 }
 
@@ -200,28 +215,29 @@ export async function updateTag(tagId: string, title: string): Promise<void> {
  */
 export async function deleteTag(tagId: string): Promise<void> {
   // 1. Find all entries that have this tag
-  // We use LIKE here. Note that unlike standard SQL, we might need to fetch and process
   const entriesWithTag = await searchEntries('', [tagId]);
 
-  // 2. Remove the tag from each entry
-  const updates = entriesWithTag.map(async (entry) => {
-    if (!entry.tags) return;
+  // 2. Remove the tag from entries and delete the tag itself — atomically
+  await db.transaction(async (tx) => {
+    const updates = entriesWithTag.map(async (entry) => {
+      if (!entry.tags) return;
 
-    const currentTags = entry.tags.split(',').filter((t) => t.length > 0);
-    const newTags = currentTags.filter((id) => id !== tagId);
+      const currentTags = entry.tags.split(',').filter((t) => t.length > 0);
+      const newTags = currentTags.filter((id) => id !== tagId);
 
-    // Only update if changed
-    if (newTags.length !== currentTags.length) {
-      const newTagsStr = newTags.join(',');
-      await db
-        .update(entries)
-        .set({ tags: newTagsStr, updated_at: Date.now() })
-        .where(eq(entries.note_id, entry.note_id));
-    }
+      // Only update if changed
+      if (newTags.length !== currentTags.length) {
+        const newTagsStr = newTags.join(',');
+        await tx
+          .update(entries)
+          .set({ tags: newTagsStr, updated_at: Date.now() })
+          .where(eq(entries.note_id, entry.note_id));
+      }
+    });
+
+    await Promise.all(updates);
+
+    // 3. Delete the tag itself
+    await tx.delete(tags).where(eq(tags.tag_id, tagId));
   });
-
-  await Promise.all(updates);
-
-  // 3. Delete the tag itself
-  await db.delete(tags).where(eq(tags.tag_id, tagId));
 }

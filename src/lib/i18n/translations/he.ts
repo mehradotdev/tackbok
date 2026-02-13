@@ -13,13 +13,12 @@ export const he: Translations = {
   Edit: 'ערוך',
   Add: 'הוסף',
   Create: 'צור',
-  Discard: 'מחק',
+  Discard: 'בטל שינויים',
   Continue: 'המשך',
   Delete: 'מחק',
   Settings: 'הגדרות',
   'Contact Us': 'צור קשר',
   'Unknown error': 'שגיאה לא ידועה',
-  at: 'בשעה',
 
   // Header & Search
   'Search gratitude logs...': 'חפש יומני הכרת טובה...',
@@ -151,19 +150,23 @@ export const he: Translations = {
   Weekly: 'שבועי',
   'On Every Change': 'בכל שינוי',
   'Export to CSV': 'ייצוא ל-CSV',
-  'Manually export your entries to CSV format':
-    'ייצא ידנית את הרשומות שלך לפורמט CSV למכשיר',
-  'Import from Backup': 'ייבוא מגיבוי',
-  'Select a backed up CSV file to import': 'בחר קובץ CSV מגובה לייבוא',
+  'Full backup of entries and tags': 'גיבוי מלא של רשומות ותגיות',
+  'Import Entries from CSV': 'ייבוא רשומות מ-CSV',
+  'Restore from a Tackbok backup file': 'שחזור מקובץ גיבוי של טאקבוק',
+  'Import from Presently App': 'ייבוא מאפליקציית Presently',
+  'Import entries from a Presently CSV export': 'ייבוא רשומות מייצוא CSV של Presently',
+  'Import from Presently?': 'ייבוא מ-Presently?',
+  'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
+    'פעולה זו תייבא רשומות מקובץ CSV של אפליקציית Presently. רשומות כפולות ידלגו.',
   'Entries exported successfully': 'הרשומות יוצאו בהצלחה',
   'Export failed': 'הייצוא נכשל',
-  Imported: 'יובאו',
-  entries: 'רשומות',
+  importedCount: 'יובאו {count} רשומות',
+  importedCountSingular: 'יובאה {count} רשומה',
   'Import failed': 'הייבוא נכשל',
   'Importing entries...': 'מייבא רשומות...',
   'Are you sure you want to import?': 'האם אתה בטוח שברצונך לייבא?',
-  'Imported data could overwrite existing entries.':
-    'נתונים מיובאים עלולים לדרוס רשומות קיימות.',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    'פעולה זו תייבא רשומות מקובץ גיבוי של טאקבוק. רשומות כפולות ידלגו.',
   Import: 'ייבוא',
 
   // Settings - App Information
@@ -247,4 +250,5 @@ export const he: Translations = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day} ב{month} {year}',
   'dateFormat.full': 'יום {weekday}, {day} ב{month} {year}',
+  'dateFormat.timeLabel': '{weekday} בשעה {time}',
 };

@@ -4,9 +4,9 @@ import { format, startOfDay } from 'date-fns';
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react-native';
 import { MOOD_OPTIONS } from '~/constants';
 import { type Entry } from '~/types';
-import { cn } from '~/lib/utils';
+import { cn, combineDateWithCurrentTime } from '~/lib/utils';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
-import { useEntriesForDate, useTagMapping } from '~/hooks/useGratitude';
+import { useEntriesForDay, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
@@ -20,19 +20,19 @@ interface IDateEntriesScreenProps {
 interface IEntryItemProps {
   entry: Entry;
   onPress: () => void;
+  tagMap: ReturnType<typeof useTagMapping>;
 }
 
-function EntryItem({ entry, onPress }: IEntryItemProps) {
+function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
   const { t } = useTranslation();
   const time = format(new Date(entry.created_at), 'HH:mm');
-  const tagMap = useTagMapping();
 
   const moodOption = entry.mood ? MOOD_OPTIONS.find((o) => o.value === entry.mood) : null;
 
   const tags = (entry.tags ? entry.tags.split(',') : [])
     .filter((id) => id.trim().length > 0)
     .map((id) => tagMap.get(id.trim())) // Trim whitespace from tag IDs if present
-    .filter((t): t is NonNullable<typeof t> => t !== undefined)
+    .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined)
     .sort((a, b) => a.title.localeCompare(b.title));
 
   return (
@@ -97,6 +97,7 @@ function EntryItem({ entry, onPress }: IEntryItemProps) {
 export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
+  const tagMap = useTagMapping();
 
   // Get date string for display
   const dateStart = startOfDay(new Date(dateMs));
@@ -104,7 +105,7 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
   const formattedDate = formatLocalizedDate(dateStr, t);
 
   // Load entries for this date
-  const { data, isLoading } = useEntriesForDate(dateStart.getTime());
+  const { data, isLoading } = useEntriesForDay(dateStart.getTime());
 
   const entries = data || [];
 
@@ -116,16 +117,10 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
   };
 
   const handleNewEntry = () => {
-    // Navigate to new entry with this date and current time
-    const now = new Date();
-    const entryDate = new Date(dateStart);
-    entryDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-
+    const entryDate = combineDateWithCurrentTime(dateStart);
     router.push({
       pathname: '/gratitudeEntry',
-      params: {
-        dateMs: entryDate.getTime().toString(),
-      },
+      params: { dateMs: entryDate.getTime().toString() },
     });
   };
 
@@ -165,7 +160,11 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
           data={entries}
           keyExtractor={(item) => item.note_id}
           renderItem={({ item }) => (
-            <EntryItem entry={item} onPress={() => handleEntryPress(item)} />
+            <EntryItem
+              entry={item}
+              onPress={() => handleEntryPress(item)}
+              tagMap={tagMap}
+            />
           )}
           contentContainerClassName="pb-safe-or-4"
         />

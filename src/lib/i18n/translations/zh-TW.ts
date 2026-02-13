@@ -19,7 +19,6 @@ export const zhTW: Translations = {
   Settings: '設定',
   'Contact Us': '聯絡我們',
   'Unknown error': '未知錯誤',
-  at: '於',
 
   // Header & Search
   'Search gratitude logs...': '搜尋感恩日誌...',
@@ -146,17 +145,23 @@ export const zhTW: Translations = {
   Weekly: '每週',
   'On Every Change': '每次變更時',
   'Export to CSV': '匯出為 CSV',
-  'Manually export your entries to CSV format': '手動將您的紀錄以 CSV 格式匯出至裝置',
-  'Import from Backup': '從備份匯入',
-  'Select a backed up CSV file to import': '選擇要匯入的備份 CSV 檔案',
+  'Full backup of entries and tags': '完整備份紀錄和標籤',
+  'Import Entries from CSV': '從 CSV 匯入紀錄',
+  'Restore from a Tackbok backup file': '從塔克博克備份檔案還原',
+  'Import from Presently App': '從 Presently 應用程式匯入',
+  'Import entries from a Presently CSV export': '從 Presently CSV 匯出檔匯入紀錄',
+  'Import from Presently?': '從 Presently 匯入？',
+  'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
+    '這將從 Presently 應用程式 CSV 檔案匯入紀錄。重複的紀錄將被略過。',
   'Entries exported successfully': '紀錄匯出成功',
   'Export failed': '匯出失敗',
-  Imported: '已匯入',
-  entries: '筆紀錄',
+  importedCount: '已匯入 {count} 筆紀錄',
+  importedCountSingular: '已匯入 {count} 筆紀錄',
   'Import failed': '匯入失敗',
-  'Importing entries...': '正在匯入條目...',
+  'Importing entries...': '正在匯入紀錄...',
   'Are you sure you want to import?': '您確定要匯入嗎？',
-  'Imported data could overwrite existing entries.': '匯入的資料可能會覆蓋現有的紀錄。',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    '這將從塔克博克備份檔案匯入紀錄。重複的紀錄將被略過。',
   Import: '匯入',
 
   // Settings - App Information
@@ -239,4 +244,5 @@ export const zhTW: Translations = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{year}年{month}{day}日',
   'dateFormat.full': '{year}年{month}{day}日 {weekday}',
+  'dateFormat.timeLabel': '{weekday} 於 {time}',
 };

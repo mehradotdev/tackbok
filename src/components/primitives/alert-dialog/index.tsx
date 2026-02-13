@@ -81,10 +81,10 @@ const Trigger = ({
   ref,
   ...props
 }: TriggerProps & { ref?: React.Ref<TriggerRef> }) => {
-  const { open: value, onOpenChange } = useRootContext();
+  const { open, onOpenChange } = useRootContext();
 
   function onPress(ev: GestureResponderEvent) {
-    onOpenChange(!value);
+    onOpenChange(!open);
     onPressProp?.(ev);
   }
 
@@ -129,10 +129,10 @@ const Overlay = ({
   ref,
   ...props
 }: OverlayProps & { ref?: React.Ref<OverlayRef> }) => {
-  const { open: value, onOpenChange, dismissOnOutsidePress = true } = useRootContext();
+  const { open, onOpenChange, dismissOnOutsidePress = true } = useRootContext();
 
   if (!forceMount) {
-    if (!value) {
+    if (!open) {
       return null;
     }
   }
@@ -162,9 +162,10 @@ const Content = ({
   ref,
   ...props
 }: ContentProps & { ref?: React.Ref<ContentRef> }) => {
-  const { open: value, nativeID, onOpenChange } = useRootContext();
+  const { open, nativeID, onOpenChange } = useRootContext();
 
   React.useEffect(() => {
+    if (!open) return;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       onOpenChange(false);
       return true;
@@ -173,10 +174,10 @@ const Content = ({
     return () => {
       backHandler.remove();
     };
-  }, []);
+  }, [open, onOpenChange]);
 
   if (!forceMount) {
-    if (!value) {
+    if (!open) {
       return null;
     }
   }

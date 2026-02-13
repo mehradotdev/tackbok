@@ -3,8 +3,7 @@ import { View, ScrollView } from 'react-native';
 import { ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-react-native';
 import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
 import { type Entry } from '~/types';
-import { useTranslation } from '~/lib/i18n';
-import { formatDateLabel, formatTimeLabel } from '~/lib/utils';
+import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
@@ -43,8 +42,8 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
   } = entry;
 
   // Format for display
-  const dateLabel = formatDateLabel(timestamp);
-  const timeLabel = formatTimeLabel(timestamp);
+  const dateLabel = formatLocalizedDate(timestamp, t, { relative: true });
+  const timeLabel = formatTimeLabel(timestamp, t);
 
   // Mood label
   const moodOption = mood ? MOOD_OPTIONS.find((o) => o.value === mood) : null;
@@ -52,9 +51,9 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
   // Resolve tags
   const tags = (tagsCsv || '')
     .split(',')
-    .filter((t) => t.length > 0)
-    .map((id) => tagMap.get(id))
-    .filter((t): t is NonNullable<typeof t> => t !== undefined);
+    .filter((tag) => tag.trim().length > 0)
+    .map((id) => tagMap.get(id.trim()))
+    .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined);
 
   const handleDelete = async () => {
     try {
@@ -82,7 +81,7 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
         </View>
 
         {/* Date/Time display - centered absolutely via flex in parent or just flex-1 here */}
-        <View className="flex-1 flex-col items-center z-1">
+        <View className="flex-1 flex-col items-center">
           <Text className="font-bold text-lg text-foreground">{dateLabel}</Text>
           <Text className="text-sm text-muted-foreground">{timeLabel}</Text>
         </View>

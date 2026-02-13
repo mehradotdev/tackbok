@@ -76,7 +76,11 @@ export function useTranslation(): UseTranslationResult {
   );
 
   // Create translation function
-  const t = useCallback((key: string): string => translate(locale, key), [locale]);
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number>): string =>
+      translate(locale, key, params),
+    [locale],
+  );
 
   // Check if RTL
   const isRTL = useMemo(() => isRTLLocale(locale), [locale]);

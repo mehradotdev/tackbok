@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { type NewEntry, type Entry } from '~/types';
 import {
   getAllEntries,
-  getEntriesForDate,
+  getEntriesForDay,
+  getEntryDatesForMonth,
   searchEntries,
   getAllTags,
   upsertEntry,
@@ -17,11 +18,8 @@ import {
 
 export const QUERY_KEYS = {
   entries: 'entries',
-  entriesForDate: 'entriesForDate',
-  search: 'search',
   tags: 'tags',
-  timeline: 'timeline',
-};
+} as const;
 
 // ============================================================================
 // Queries
@@ -50,10 +48,21 @@ export function useEntriesGroupByDate() {
 /**
  * Hook for entries on a specific date
  */
-export function useEntriesForDate(dateMs: number) {
+export function useEntriesForDay(dateMs: number) {
   return useQuery({
-    queryKey: [QUERY_KEYS.entriesForDate, dateMs],
-    queryFn: () => getEntriesForDate(dateMs),
+    queryKey: [QUERY_KEYS.entries, 'byDate', dateMs],
+    queryFn: () => getEntriesForDay(dateMs),
+  });
+}
+
+/**
+ * Hook for entry dates in a specific month (for calendar dot markers)
+ */
+export function useEntryDatesForMonth(year: number, month: number, enabled = true) {
+  return useQuery<string[]>({
+    queryKey: [QUERY_KEYS.entries, 'datesByMonth', year, month],
+    queryFn: () => getEntryDatesForMonth(year, month),
+    enabled,
   });
 }
 
@@ -62,7 +71,7 @@ export function useEntriesForDate(dateMs: number) {
  */
 export function useEntry(noteId?: string) {
   return useQuery({
-    queryKey: [QUERY_KEYS.entries, noteId],
+    queryKey: [QUERY_KEYS.entries, 'byEntry', noteId],
     queryFn: () => (noteId ? getEntryById(noteId) : Promise.resolve(undefined)),
     enabled: !!noteId,
   });
@@ -75,7 +84,7 @@ export function useSearchEntries(searchTerm: string, selectedTagIds: string[] = 
   const trimmed = searchTerm.trim();
 
   return useQuery({
-    queryKey: [QUERY_KEYS.search, trimmed, selectedTagIds],
+    queryKey: [QUERY_KEYS.entries, 'search', trimmed, selectedTagIds],
     queryFn: () => searchEntries(trimmed, selectedTagIds),
     enabled: trimmed.length > 0 || selectedTagIds.length > 0,
   });
@@ -99,7 +108,9 @@ export function useTagMapping() {
 
   return React.useMemo(() => {
     const map = new Map<string, (typeof tags)[0]>();
-    tags.forEach((tag) => map.set(tag.tag_id, tag));
+    tags.forEach((tag) => {
+      map.set(tag.tag_id, tag);
+    });
     return map;
   }, [tags]);
 }
@@ -118,8 +129,6 @@ export function useUpsertEntry() {
     mutationFn: (entry: NewEntry) => upsertEntry(entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
     },
   });
 }
@@ -134,10 +143,8 @@ export function useDeleteEntry() {
     mutationFn: (noteId: string) => deleteEntry(noteId),
     onSuccess: (_data, noteId) => {
       // Remove the specific entry query from cache to prevent refetch returning undefined
-      queryClient.removeQueries({ queryKey: [QUERY_KEYS.entries, noteId] });
+      queryClient.removeQueries({ queryKey: [QUERY_KEYS.entries, 'byEntry', noteId] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
     },
   });
 }
@@ -168,8 +175,6 @@ export function useDeleteTag() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entriesForDate] });
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.search] });
     },
   });
 }

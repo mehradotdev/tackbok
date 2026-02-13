@@ -4,8 +4,8 @@ import { startOfDay } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { Calendar } from 'lucide-react-native';
 import { type Entry } from '~/types';
-import { getEntriesForDate } from '~/db/queries';
-import { cn } from '~/lib/utils';
+import { getEntriesForDay } from '~/db/queries';
+import { cn, combineDateWithCurrentTime } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { Button } from '~/components/ui/button';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
@@ -29,15 +29,8 @@ export default function HomeScreen() {
       const dateStart = startOfDay(date);
       const dateMs = dateStart.getTime();
 
-      // Helper to navigate to new entry with current time
       const navigateToNewEntry = () => {
-        const now = new Date();
-        const entryDate = new Date(dateStart);
-        // Combine selected date with current time of day.
-        // We do this to avoid entries defaulting to midnight (00:00:00) when backdating,
-        // ensuring the entry captures "when" it was written on that specific day.
-        entryDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-
+        const entryDate = combineDateWithCurrentTime(dateStart);
         router.push({
           pathname: '/gratitudeEntry',
           params: { dateMs: entryDate.getTime().toString() },
@@ -46,7 +39,7 @@ export default function HomeScreen() {
 
       try {
         // Check if entries exist for this date
-        const entries = await getEntriesForDate(dateMs);
+        const entries = await getEntriesForDay(dateMs);
 
         if (entries.length > 0) {
           // Has entries - go to date entries page
@@ -65,7 +58,7 @@ export default function HomeScreen() {
         navigateToNewEntry();
       }
     },
-    [router],
+    [router, t],
   );
 
   const handleSearchPress = () => {
@@ -89,13 +82,7 @@ export default function HomeScreen() {
 
   const handleAddEntry = useCallback(
     (dateMs: number) => {
-      const now = new Date();
-      const entryDate = new Date(dateMs);
-      // Combine selected date with current time of day.
-      // We do this to avoid entries defaulting to midnight (00:00:00) when backdating,
-      // ensuring the entry captures "when" it was written on that specific day.
-      entryDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-
+      const entryDate = combineDateWithCurrentTime(new Date(dateMs));
       router.push({
         pathname: '/gratitudeEntry',
         params: { dateMs: entryDate.getTime().toString() },
@@ -141,7 +128,7 @@ export default function HomeScreen() {
             variant="primary"
             onPress={() => setShowDatePicker(true)}
             className={cn(
-              'absolute bottom-safe-or-12 right-safe-or-6 z-5',
+              'absolute bottom-safe-or-12 right-safe-or-6 z-10',
               'h-14 w-14 items-center justify-center rounded-full',
               'shadow-lg shadow-black/25',
               'active:bg-primary/90 active:scale-125',

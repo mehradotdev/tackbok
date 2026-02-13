@@ -98,6 +98,11 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
     const shouldBeRTL = pendingLanguage.isRTL;
     // Update the locale preference
     setLocale(pendingLanguage.code);
+
+    // Close the dialog first, then reload after a short delay.
+    // reloadAppAsync() fires synchronously, so if we call it before
+    // the native overlay has been dismissed, the dialog stays stuck
+    // on screen after reload and both buttons become unresponsive.
     setShowConfirmDialog(false);
     setPendingLanguage(null);
 
@@ -108,7 +113,10 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
 
     // Reload app for RTL changes to take effect
     // Note: Per Expo docs, I18nManager changes require app restart
-    reloadAppAsync('Language change confirmed');
+    // Give the dialog's native overlay time to fully dismiss before reloading
+    setTimeout(() => {
+      reloadAppAsync('Language change confirmed');
+    }, 500);
   };
 
   const handleCancelLanguageChange = () => {

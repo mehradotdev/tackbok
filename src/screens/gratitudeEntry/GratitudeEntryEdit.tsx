@@ -12,8 +12,8 @@ import { format } from 'date-fns';
 import { Clock, X } from 'lucide-react-native';
 import { MODAL_CLOSE_DELAY, MOOD_OPTIONS } from '~/constants';
 import { type Entry, type Mood } from '~/types';
-import { useTranslation } from '~/lib/i18n';
-import { generateUUID, formatDateLabel, formatTimeLabel } from '~/lib/utils';
+import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
+import { generateUUID } from '~/lib/utils';
 import { useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -74,7 +74,7 @@ export function GratitudeEntryEdit({
   const isNewEntry = !initialEntry;
   const initialTimestamp = initialEntry?.created_at ?? initialDateMs ?? Date.now();
   const initialTags = initialEntry?.tags
-    ? initialEntry.tags.split(',').filter((t) => t.length > 0)
+    ? initialEntry.tags.split(',').filter((tag) => tag.length > 0)
     : [];
 
   const [timestamp, setTimestamp] = useState(initialTimestamp);
@@ -96,8 +96,8 @@ export function GratitudeEntryEdit({
 
   // Derived states
   const isEmpty = !content.trim();
-  const dateLabel = formatDateLabel(timestamp);
-  const timeLabel = formatTimeLabel(timestamp);
+  const dateLabel = formatLocalizedDate(timestamp, t, { relative: true });
+  const timeLabel = formatTimeLabel(timestamp, t);
   const formattedTime = format(new Date(timestamp), 'HH:mm');
   const moodOption = mood ? MOOD_OPTIONS.find((o) => o.value === mood) : null;
 
@@ -111,7 +111,7 @@ export function GratitudeEntryEdit({
   const displayTags = useMemo(() => {
     return selectedTagIds
       .map((id) => tagMap.get(id))
-      .filter((t): t is NonNullable<typeof t> => t !== undefined)
+      .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined)
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [selectedTagIds, tagMap]);
 
@@ -252,7 +252,8 @@ export function GratitudeEntryEdit({
         </View>
 
         <KeyboardAwareScrollView
-          className="px-4 flex-1 pt-3"
+          className="flex-1"
+          contentContainerClassName="px-4 pt-3"
           keyboardShouldPersistTaps="handled"
           // bottomOffset so FloatingActionDock doesn't overlap with content behind
           bottomOffset={70}>

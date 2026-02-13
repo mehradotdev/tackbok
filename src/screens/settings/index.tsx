@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { View, ScrollView, Linking, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,13 +24,19 @@ import {
   Info,
   FileOutput,
   FileInput,
+  Upload,
   Trash2,
   Table2,
 } from 'lucide-react-native';
 import { deleteAllData } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
-import { exportToCSV, pickCSVFile, importFromCSV } from '~/lib/backup';
+import {
+  exportToCSV,
+  pickCSVFile,
+  importFromCSV,
+  importFromPresentlyCSV,
+} from '~/lib/backup';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
@@ -59,6 +66,7 @@ import SettingsLanguageComp from './SettingsLanguageComp';
 export default function SettingsScreen() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
+  const queryClient = useQueryClient();
 
   // Settings store
   const {
@@ -91,10 +99,12 @@ export default function SettingsScreen() {
   const [showTimePickerModal, setShowTimePickerModal] = useState(false);
   const [showBackupFrequencyModal, setShowBackupFrequencyModal] = useState(false);
   const [showImportConfirmDialog, setShowImportConfirmDialog] = useState(false);
+  const [showPresentlyImportConfirmDialog, setShowPresentlyImportConfirmDialog] =
+    useState(false);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
-  // Export to CSV handler
+  // Export to Tackbok CSV handler
   const handleExportToCSV = useCallback(async () => {
     try {
       await exportToCSV();
@@ -105,38 +115,67 @@ export default function SettingsScreen() {
     }
   }, [t]);
 
-  // Import from CSV handler
-  const handleImportFromCSV = useCallback(async () => {
-    setShowImportConfirmDialog(false);
-    try {
-      const result = await pickCSVFile();
-      if (!result) {
-        return; // User cancelled
+  // Shared import handler — parameterized by dialog dismissal and import function
+  const handleImport = useCallback(
+    async (dismissDialog: () => void, importFn: (uri: string) => Promise<number>) => {
+      dismissDialog();
+      try {
+        const result = await pickCSVFile();
+        if (!result) return; // User cancelled
+
+        const asset = result.assets?.[0];
+        if (!asset?.uri) throw new Error(t('Import failed'));
+
+        setIsImporting(true);
+        const count = await importFn(asset.uri);
+        try {
+          await queryClient.invalidateQueries();
+        } catch (error) {
+          console.error('Failed to invalidate queries:', error);
+        }
+        setIsImporting(false);
+
+        const message =
+          count === 1
+            ? t('importedCountSingular', { count })
+            : t('importedCount', { count });
+        toast.success(message);
+
+        // Navigate to home screen
+        router.replace('/');
+      } catch (error) {
+        setIsImporting(false);
+        const message = error instanceof Error ? error.message : t('Import failed');
+        toast.error(message);
       }
+    },
+    [t, router, queryClient],
+  );
 
-      const asset = result.assets?.[0];
-      if (!asset?.uri) throw new Error(t('Import failed'));
+  const handleImportFromCSV = useCallback(
+    () => handleImport(() => setShowImportConfirmDialog(false), importFromCSV),
+    [handleImport],
+  );
 
-      setIsImporting(true);
-      const count = await importFromCSV(asset.uri);
-      setIsImporting(false);
-
-      toast.success(`${t('Imported')} ${count} ${t('entries')}`);
-
-      // Navigate to home screen
-      router.replace('/');
-    } catch (error) {
-      setIsImporting(false);
-      const message = error instanceof Error ? error.message : t('Import failed');
-      toast.error(message);
-    }
-  }, [t, router]);
+  const handleImportFromPresentlyCSV = useCallback(
+    () =>
+      handleImport(
+        () => setShowPresentlyImportConfirmDialog(false),
+        importFromPresentlyCSV,
+      ),
+    [handleImport],
+  );
 
   // Delete all data handler
   const handleDeleteAllData = useCallback(async () => {
     setShowDeleteConfirmDialog(false);
     try {
       await deleteAllData();
+      try {
+        await queryClient.invalidateQueries();
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
       toast.success(t('All data deleted'));
       // Navigate to home screen
       router.replace('/');
@@ -144,7 +183,7 @@ export default function SettingsScreen() {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
     }
-  }, [t, router]);
+  }, [t, router, queryClient]);
 
   // Helper to format time for display in 24-hour format
   const formatTime = (time: string) => {
@@ -350,16 +389,23 @@ export default function SettingsScreen() {
           />
           <SettingsRow
             label={t('Export to CSV')}
-            description={t('Manually export your entries to CSV format')}
+            description={t('Full backup of entries and tags')}
             icon={FileOutput}
             onPress={handleExportToCSV}
             showChevron
           />
           <SettingsRow
-            label={t('Import from Backup')}
-            description={t('Select a backed up CSV file to import')}
+            label={t('Import Entries from CSV')}
+            description={t('Restore from a Tackbok backup file')}
             icon={FileInput}
             onPress={() => setShowImportConfirmDialog(true)}
+            showChevron
+          />
+          <SettingsRow
+            label={t('Import from Presently App')}
+            description={t('Import entries from a Presently CSV export')}
+            icon={Upload}
+            onPress={() => setShowPresentlyImportConfirmDialog(true)}
             showChevron
             isLast
           />
@@ -465,7 +511,9 @@ export default function SettingsScreen() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Are you sure you want to import?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('Imported data could overwrite existing entries.')}
+              {t(
+                'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.',
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -473,6 +521,30 @@ export default function SettingsScreen() {
               <Text>{t('Cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogAction onPress={handleImportFromCSV}>
+              <Text>{t('Import')}</Text>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Presently Import Confirmation Dialog */}
+      <AlertDialog
+        open={showPresentlyImportConfirmDialog}
+        onOpenChange={setShowPresentlyImportConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('Import from Presently?')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.',
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <Text>{t('Cancel')}</Text>
+            </AlertDialogCancel>
+            <AlertDialogAction onPress={handleImportFromPresentlyCSV}>
               <Text>{t('Import')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>

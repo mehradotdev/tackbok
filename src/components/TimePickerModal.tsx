@@ -49,7 +49,7 @@ export function TimePickerModal({
       setTempMinutes(minutes);
 
       // Delay scrolling to ensure list is ready and layout is complete
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         hoursListRef.current?.scrollToIndex({
           index: hours,
           animated: true,
@@ -61,6 +61,8 @@ export function TimePickerModal({
           viewPosition: 0.5,
         });
       }, 200);
+
+      return () => clearTimeout(timer);
     }
   }, [visible, hours, minutes]);
 

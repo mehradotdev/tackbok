@@ -19,7 +19,6 @@ export const zhCN: Translations = {
   Settings: '设置',
   'Contact Us': '联系我们',
   'Unknown error': '未知错误',
-  at: '于',
 
   // Header & Search
   'Search gratitude logs...': '搜索感恩日志...',
@@ -146,17 +145,23 @@ export const zhCN: Translations = {
   Weekly: '每周',
   'On Every Change': '每次更改时',
   'Export to CSV': '导出到 CSV',
-  'Manually export your entries to CSV format': '手动将您的条目以 CSV 格式导出到设备',
-  'Import from Backup': '从备份导入',
-  'Select a backed up CSV file to import': '选择要导入的备份 CSV 文件',
+  'Full backup of entries and tags': '完整备份条目和标签',
+  'Import Entries from CSV': '从 CSV 导入条目',
+  'Restore from a Tackbok backup file': '从塔克博克备份文件恢复',
+  'Import from Presently App': '从 Presently 应用导入',
+  'Import entries from a Presently CSV export': '从 Presently CSV 导出导入条目',
+  'Import from Presently?': '从 Presently 导入？',
+  'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
+    '这将从 Presently 应用 CSV 文件导入条目。重复条目将被跳过。',
   'Entries exported successfully': '条目导出成功',
   'Export failed': '导出失败',
-  Imported: '已导入',
-  entries: '条目',
+  importedCount: '已导入 {count} 条目',
+  importedCountSingular: '已导入 {count} 条目',
   'Import failed': '导入失败',
   'Importing entries...': '正在导入条目...',
   'Are you sure you want to import?': '您确定要导入吗？',
-  'Imported data could overwrite existing entries.': '导入的数据可能会覆盖现有条目。',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    '这将从塔克博克备份文件导入条目。重复条目将被跳过。',
   Import: '导入',
 
   // Settings - App Information
@@ -239,4 +244,5 @@ export const zhCN: Translations = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{year}年{month}{day}日',
   'dateFormat.full': '{year}年{month}{day}日 {weekday}',
+  'dateFormat.timeLabel': '{weekday} 于 {time}',
 };

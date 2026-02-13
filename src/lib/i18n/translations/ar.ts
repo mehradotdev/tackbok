@@ -19,7 +19,6 @@ export const ar: Translations = {
   Settings: 'الإعدادات',
   'Contact Us': 'اتصل بنا',
   'Unknown error': 'خطأ غير معروف',
-  at: 'في',
 
   // Header & Search
   'Search gratitude logs...': 'بحث في سجلات الامتنان...',
@@ -151,19 +150,24 @@ export const ar: Translations = {
   Weekly: 'أسبوعياً',
   'On Every Change': 'عند كل تغيير',
   'Export to CSV': 'تصدير إلى CSV',
-  'Manually export your entries to CSV format':
-    'صدّر إدخالاتك يدوياً بتنسيق CSV إلى جهازك',
-  'Import from Backup': 'استيراد من نسخة احتياطية',
-  'Select a backed up CSV file to import': 'حدد ملف CSV محفوظ للاستيراد',
+  'Full backup of entries and tags': 'نسخ احتياطي كامل للسجلات والوسوم',
+  'Import Entries from CSV': 'استيراد السجلات من CSV',
+  'Restore from a Tackbok backup file': 'استعادة من ملف نسخ احتياطي لتاكبوك',
+  'Import from Presently App': 'استيراد من تطبيق Presently',
+  'Import entries from a Presently CSV export':
+    'استيراد السجلات من ملف CSV لتطبيق Presently',
+  'Import from Presently?': 'استيراد من Presently؟',
+  'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
+    'سيتم استيراد السجلات من ملف CSV لتطبيق Presently. سيتم تخطي السجلات المكررة.',
   'Entries exported successfully': 'تم تصدير السجلات بنجاح',
   'Export failed': 'فشل التصدير',
-  Imported: 'تم استيراد',
-  entries: 'سجلات',
+  importedCount: 'تم استيراد {count} سجلات',
+  importedCountSingular: 'تم استيراد {count} سجل',
   'Import failed': 'فشل الاستيراد',
   'Importing entries...': 'جارٍ استيراد السجلات...',
   'Are you sure you want to import?': 'هل أنت متأكد أنك تريد الاستيراد؟',
-  'Imported data could overwrite existing entries.':
-    'قد تحل البيانات المستوردة محل السجلات الموجودة.',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    'سيتم استيراد السجلات من ملف نسخ احتياطي لتاكبوك. سيتم تخطي السجلات المكررة.',
   Import: 'استيراد',
 
   // Settings - App Information
@@ -247,4 +251,5 @@ export const ar: Translations = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day} {month} {year}',
   'dateFormat.full': '{weekday}، {day} {month} {year}',
+  'dateFormat.timeLabel': '{weekday} في {time}',
 };

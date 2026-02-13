@@ -18,7 +18,6 @@ export const en = {
   Settings: 'Settings',
   'Contact Us': 'Contact Us',
   'Unknown error': 'Unknown error',
-  at: 'at',
 
   // Header & Search
   'Search gratitude logs...': 'Search gratitude logs...',
@@ -152,19 +151,24 @@ export const en = {
   Weekly: 'Weekly',
   'On Every Change': 'On Every Change',
   'Export to CSV': 'Export entries to CSV',
-  'Manually export your entries to CSV format':
-    'Manually export your entries to CSV format to your device',
-  'Import from Backup': 'Import entries from backup',
-  'Select a backed up CSV file to import': 'Select a backed up CSV file to import',
+  'Full backup of entries and tags': 'Full backup of entries and tags',
+  'Import Entries from CSV': 'Import Entries from CSV',
+  'Restore from a Tackbok backup file': 'Restore from a Tackbok backup file',
+  'Import from Presently App': 'Import from Presently App',
+  'Import entries from a Presently CSV export':
+    'Import entries from a Presently CSV export',
+  'Import from Presently?': 'Import from Presently?',
+  'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
+    'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.',
   'Entries exported successfully': 'Entries exported successfully',
   'Export failed': 'Export failed',
-  Imported: 'Imported',
-  entries: 'entries',
+  importedCount: 'Imported {count} entries',
+  importedCountSingular: 'Imported {count} entry',
   'Import failed': 'Import failed',
   'Importing entries...': 'Importing entries...',
   'Are you sure you want to import?': 'Are you sure you want to import?',
-  'Imported data could overwrite existing entries.':
-    'Imported data could overwrite existing entries.',
+  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
+    'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.',
   Import: 'Import',
 
   // Settings - App Information
@@ -248,4 +252,5 @@ export const en = {
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{month} {day}, {year}',
   'dateFormat.full': '{weekday}, {month} {day}, {year}',
+  'dateFormat.timeLabel': '{weekday} at {time}',
 } satisfies Record<string, string>;

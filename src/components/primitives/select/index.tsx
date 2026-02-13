@@ -81,10 +81,13 @@ function Root({
   const [contentLayout, setContentLayout] = React.useState<LayoutRectangle | null>(null);
   const [open, setOpen] = React.useState(false);
 
-  function onOpenChange(value: boolean) {
-    setOpen(value);
-    onOpenChangeProp?.(value);
-  }
+  const onOpenChange = React.useCallback(
+    (value: boolean) => {
+      setOpen(value);
+      onOpenChangeProp?.(value);
+    },
+    [onOpenChangeProp],
+  );
 
   const Component = asChild ? Slot.View : View;
   return (
@@ -274,6 +277,7 @@ function Content({
   } = useRootContext();
 
   React.useEffect(() => {
+    if (!open) return;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       setTriggerPosition(null);
       setContentLayout(null);
@@ -285,7 +289,7 @@ function Content({
       setContentLayout(null);
       backHandler.remove();
     };
-  }, []);
+  }, [open, onOpenChange, setTriggerPosition, setContentLayout]);
 
   const positionStyle = useRelativePosition({
     align,
