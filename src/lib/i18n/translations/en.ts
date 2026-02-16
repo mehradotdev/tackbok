@@ -54,6 +54,17 @@ export const en = {
   'Select date': 'Select date',
   Mood: 'Mood',
   Photo: 'Photo',
+  'Add Photo': 'Add Photo',
+  'Take Photo': 'Take Photo',
+  'Choose from Library': 'Choose from Library',
+  'Maximum {count} photos per entry': 'Maximum {count} photos per entry',
+  'Camera Access Required': 'Camera Access Required',
+  'Photo Library Access Required': 'Photo Library Access Required',
+  'Please enable camera access in your device settings to take photos.':
+    'Please enable camera access in your device settings to take photos.',
+  'Please enable photo library access in your device settings to select photos.':
+    'Please enable photo library access in your device settings to select photos.',
+  'Open Settings': 'Open Settings',
   Voice: 'Voice',
 
   'Title (optional)': 'Title (optional)',
@@ -190,10 +201,11 @@ export const en = {
   // Settings - Danger Zone
   'Danger Zone': 'Danger Zone',
   'Delete All Data': 'Delete All Data',
-  'Permanently delete all your entries': 'Permanently delete all your entries',
+  'Permanently delete all your entries and photos':
+    'Permanently delete all your entries and photos',
   'Delete all data?': 'Delete all data?',
-  'This action cannot be undone. All your entries will be permanently deleted.':
-    'This action cannot be undone. All your entries will be permanently deleted.',
+  'This action cannot be undone. All your entries and photos will be permanently deleted.':
+    'This action cannot be undone. All your entries and photos will be permanently deleted.',
   'All data deleted': 'All data deleted',
   'Delete failed': 'Delete failed',
 

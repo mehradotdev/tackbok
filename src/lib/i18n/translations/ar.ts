@@ -53,6 +53,17 @@ export const ar: Translations = {
   'Select date': 'حدد التاريخ',
   Mood: 'المزاج',
   Photo: 'صورة',
+  'Add Photo': 'إضافة صورة',
+  'Take Photo': 'التقاط صورة',
+  'Choose from Library': 'اختيار من المكتبة',
+  'Maximum {count} photos per entry': 'الحد الأقصى {count} صور لكل إدخال',
+  'Camera Access Required': 'مطلوب الوصول إلى الكاميرا',
+  'Photo Library Access Required': 'مطلوب الوصول إلى مكتبة الصور',
+  'Please enable camera access in your device settings to take photos.':
+    'يرجى تمكين الوصول إلى الكاميرا في إعدادات جهازك لالتقاط الصور.',
+  'Please enable photo library access in your device settings to select photos.':
+    'يرجى تمكين الوصول إلى مكتبة الصور في إعدادات جهازك لاختيار الصور.',
+  'Open Settings': 'فتح الإعدادات',
   Voice: 'صوت',
 
   'Title (optional)': 'العنوان (اختياري)',
@@ -189,10 +200,10 @@ export const ar: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'منطقة الخطر',
   'Delete All Data': 'حذف جميع البيانات',
-  'Permanently delete all your entries': 'حذف جميع سجلاتك بشكل دائم',
+  'Permanently delete all your entries and photos': 'حذف جميع سجلاتك وصورك بشكل دائم',
   'Delete all data?': 'حذف جميع البيانات؟',
-  'This action cannot be undone. All your entries will be permanently deleted.':
-    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك بشكل دائم.',
+  'This action cannot be undone. All your entries and photos will be permanently deleted.':
+    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك وصورك بشكل دائم.',
   'All data deleted': 'تم حذف جميع البيانات',
   'Delete failed': 'فشل الحذف',
 

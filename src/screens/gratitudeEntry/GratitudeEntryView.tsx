@@ -3,15 +3,17 @@ import { View, ScrollView } from 'react-native';
 import { ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-react-native';
 import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
 import { type Entry } from '~/types';
+import { filterExistingPhotos } from '~/lib/photoUtils';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
+import { PolaroidPhoto } from '~/components/PolaroidPhoto';
 import {
   AlertDialog,
-  AlertDialogAction,
+  AlertDialogDestructiveAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -54,6 +56,9 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
     .filter((tag) => tag.trim().length > 0)
     .map((id) => tagMap.get(id.trim()))
     .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined);
+
+  // Extract photo assets (only those whose files exist on disk)
+  const photos = filterExistingPhotos(entry.assets ?? null);
 
   const handleDelete = async () => {
     try {
@@ -98,7 +103,7 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
       </View>
 
       {/* Content */}
-      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-4 pb-safe-or-20">
+      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-safe-or-20">
         {/* Mood label */}
         {moodOption && (
           <View className="flex-row items-center gap-2 mb-4">
@@ -113,25 +118,36 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
 
         {/* Title */}
         {title ? (
-          <Text className="text-lg font-semibold text-foreground mb-2">{title}</Text>
+          <Text className="text-lg font-semibold text-foreground mb-4">{title}</Text>
         ) : null}
 
         {/* Content */}
         {content ? (
-          <Text className="text-base text-foreground leading-6 mb-4">{content}</Text>
+          <Text className="text-base text-foreground leading-6 mb-2">{content}</Text>
         ) : null}
 
         {/* Tags */}
         {tags.length > 0 && (
-          <View className="flex-row flex-wrap gap-3">
-            {tags.map((tag) => (
-              <View
-                key={tag.tag_id}
-                className="relative flex-row items-center px-3 py-1.5 bg-muted rounded-full border border-border">
-                <Text className="text-sm font-semibold text-primary-foreground">
-                  #{tag.title}
-                </Text>
-              </View>
+          <View className="py-3">
+            <View className="flex-row flex-wrap gap-3">
+              {tags.map((tag) => (
+                <View
+                  key={tag.tag_id}
+                  className="relative flex-row items-center px-3 py-1.5 bg-muted rounded-full border border-border">
+                  <Text className="text-sm font-semibold text-primary-foreground">
+                    #{tag.title}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Photos — Polaroid / instant camera style */}
+        {photos.length > 0 && (
+          <View className="py-3 gap-4">
+            {photos.map((photo) => (
+              <PolaroidPhoto key={photo.uri} photo={photo} />
             ))}
           </View>
         )}
@@ -149,11 +165,9 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
             <AlertDialogCancel onPress={() => setShowDeleteConfirm(false)}>
               <Text>{t('Cancel')}</Text>
             </AlertDialogCancel>
-            <AlertDialogAction
-              onPress={handleDelete}
-              className="bg-destructive active:bg-destructive/90">
-              <Text className="text-destructive-foreground font-bold">{t('Delete')}</Text>
-            </AlertDialogAction>
+            <AlertDialogDestructiveAction onPress={handleDelete}>
+              <Text>{t('Delete')}</Text>
+            </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -5,7 +5,6 @@ import {
   type LegendListRef,
   type LegendListRenderItemProps,
 } from '@legendapp/list';
-import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';

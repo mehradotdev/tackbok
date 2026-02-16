@@ -3,10 +3,15 @@ import { format } from 'date-fns';
 import { and, desc, eq } from 'drizzle-orm';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy'; // TODO: Migrate from legacy FileSystem
+import { Directory, File, Paths } from 'expo-file-system';
+import { getTableColumns } from 'drizzle-orm/utils';
+import { MOODS, TAG_SEPARATOR } from '~/constants';
 import { db, entries, tags, type Entry } from '~/db';
 import { generateUUID } from '~/lib/utils';
-import { MOODS, TAG_SEPARATOR, TACKBOK_CSV_HEADER } from '~/constants';
+import { photoFileExists } from '~/lib/photoUtils';
+
+/** CSV header derived directly from the DB schema — stays in sync automatically. */
+const TACKBOK_CSV_HEADER = Object.keys(getTableColumns(entries)).join(',');
 
 /** Set of valid mood values, derived from the MOODS const to stay in sync. */
 const VALID_MOODS: Set<string> = new Set(MOODS);
@@ -167,25 +172,18 @@ function entriesToTackbokCSV(allEntries: Entry[], tagMap: Map<string, string>): 
  */
 async function saveCSVFile(csvContent: string, fileName: string): Promise<void> {
   if (Platform.OS === 'android') {
-    // Android: Use Storage Access Framework for direct save
-    const permissions =
-      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-
-    if (!permissions.granted) {
-      throw new Error('Storage permission denied');
+    // Android: Use native directory picker
+    try {
+      const directory = await Directory.pickDirectoryAsync();
+      // create() is synchronous and returns a File object
+      const file = directory.createFile(fileName, 'text/csv');
+      file.write(csvContent);
+    } catch {
+      // Ignore cancellation or errors for now, or let them bubble if critical
+      // The previous implementation threw "Storage permission denied" on !granted
+      // pickDirectoryAsync likely throws if cancelled/failed
+      throw new Error('Export cancelled or failed');
     }
-
-    // Create file in the selected directory
-    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-      permissions.directoryUri,
-      fileName,
-      'text/csv',
-    );
-
-    // Write content to the file
-    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
   } else {
     // iOS: Use share sheet
     const isAvailable = await Sharing.isAvailableAsync();
@@ -193,23 +191,21 @@ async function saveCSVFile(csvContent: string, fileName: string): Promise<void> 
       throw new Error('Sharing is not available on this device');
     }
 
-    const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-
-    // Write to temp file
-    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+    const file = new File(Paths.cache, fileName);
+    file.write(csvContent);
 
     // Open share sheet
     try {
-      await Sharing.shareAsync(fileUri, {
+      await Sharing.shareAsync(file.uri, {
         mimeType: 'text/csv',
         dialogTitle: 'Export Gratitude Entries',
         UTI: 'public.comma-separated-values-text',
       });
     } finally {
       // Best‑effort cleanup of the temp file
-      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      if (file.exists) {
+        file.delete();
+      }
     }
   }
 }
@@ -323,9 +319,8 @@ async function resolveTagNamesToIds(
  * Returns the number of entries imported.
  */
 export async function importFromCSV(uri: string): Promise<number> {
-  const content = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
+  const file = new File(uri);
+  const content = await file.text();
 
   const rows = parseCSV(content);
 
@@ -422,7 +417,16 @@ export async function importFromCSV(uri: string): Promise<number> {
       let assets = null;
       if (assetsStr) {
         try {
-          assets = JSON.parse(assetsStr);
+          const parsed = JSON.parse(assetsStr);
+          if (Array.isArray(parsed)) {
+            // Filter out IMAGE assets whose files don't exist on disk.
+            // Asset paths are device-specific, so they won't be valid on another device.
+            const existing = parsed.filter((a: { type?: string; uri?: string }) => {
+              if (a.type === 'IMAGE' && a.uri) return photoFileExists(a.uri);
+              return true; // keep non-image assets // TODO; update this when we have voice memo assets
+            });
+            assets = existing.length > 0 ? existing : null;
+          }
         } catch {
           // Invalid JSON — skip assets for this entry
           assets = null;
@@ -463,9 +467,8 @@ export async function importFromCSV(uri: string): Promise<number> {
  */
 export async function importFromPresentlyCSV(uri: string): Promise<number> {
   // Read file content
-  const content = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
+  const file = new File(uri);
+  const content = await file.text();
 
   // Parse CSV content (handles multi-line content in quoted fields)
   const rows = parseCSV(content);

@@ -358,14 +358,14 @@ const Label = ({
 
 Label.displayName = 'LabelNativeDropdownMenu';
 
-type FormItemContext =
+type IFormItemContext =
   | { checked: boolean }
   | {
       value: string | undefined;
       onValueChange: (value: string) => void;
     };
 
-const FormItemContext = React.createContext<FormItemContext | null>(null);
+const FormItemContext = React.createContext<IFormItemContext | null>(null);
 
 const CheckboxItem = ({
   asChild,
@@ -378,8 +378,7 @@ const CheckboxItem = ({
   ref,
   ...props
 }: CheckboxItemProps & { ref?: React.Ref<CheckboxItemRef> }) => {
-  const { onOpenChange, setContentLayout, setTriggerPosition, nativeID } =
-    useRootContext();
+  const { onOpenChange, setContentLayout, setTriggerPosition } = useRootContext();
 
   function onPress(ev: GestureResponderEvent) {
     onCheckedChange(!checked);
@@ -438,7 +437,7 @@ const RadioGroup = ({
 
 RadioGroup.displayName = 'RadioGroupNativeDropdownMenu';
 
-type BothFormItemContext = Exclude<FormItemContext, { checked: boolean }> & {
+type BothFormItemContext = Exclude<IFormItemContext, { checked: boolean }> & {
   checked: boolean;
 };
 

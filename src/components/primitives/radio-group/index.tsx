@@ -45,11 +45,11 @@ function useRadioGroupContext() {
   return context;
 }
 
-interface RadioItemContext {
+interface IRadioItemContext {
   itemValue: string | undefined;
 }
 
-const RadioItemContext = React.createContext<RadioItemContext | null>(null);
+const RadioItemContext = React.createContext<IRadioItemContext | null>(null);
 
 const Item = ({
   asChild,

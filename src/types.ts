@@ -4,6 +4,10 @@ import type { Entry, Tag, NewEntry, NewTag } from './db/schema';
 export type Asset = {
   type: 'IMAGE' | 'AUDIO';
   uri: string;
+  /** Pixel width of the image (may be absent for legacy entries) */
+  width?: number;
+  /** Pixel height of the image (may be absent for legacy entries) */
+  height?: number;
 };
 
 // Mood (defined in constants.ts alongside MOOD_EMOJI / MOOD_OPTIONS)

@@ -15,7 +15,7 @@ import { toast } from '~/components/ui/toast';
 import { BottomSheet } from '~/components/ui/BottomSheet';
 import {
   AlertDialog,
-  AlertDialogAction,
+  AlertDialogDestructiveAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -335,18 +335,17 @@ export function TagsModal({
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Delete Tag')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('Are you sure you want to delete the tag?')} "{tagToDelete?.title}"
+              {t('Are you sure you want to delete the tag?')} &ldquo;{tagToDelete?.title}
+              &rdquo;
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onPress={() => setDeleteDialogOpen(false)}>
               <Text>{t('Cancel')}</Text>
             </AlertDialogCancel>
-            <AlertDialogAction
-              onPress={handleDeleteTag}
-              className="bg-destructive active:bg-destructive/90">
-              <Text className="text-destructive-foreground">{t('Delete')}</Text>
-            </AlertDialogAction>
+            <AlertDialogDestructiveAction onPress={handleDeleteTag}>
+              <Text>{t('Delete')}</Text>
+            </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

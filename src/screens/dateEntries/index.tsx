@@ -1,10 +1,12 @@
-import { View, FlatList, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, FlatList, Pressable, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { format, startOfDay } from 'date-fns';
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react-native';
 import { MOOD_OPTIONS } from '~/constants';
 import { type Entry } from '~/types';
 import { cn, combineDateWithCurrentTime } from '~/lib/utils';
+import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
 import { useEntriesForDay, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
@@ -12,6 +14,7 @@ import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Badge } from '~/components/ui/badge';
+import { ImageViewerModal } from '~/components/ImageViewerModal';
 
 interface IDateEntriesScreenProps {
   dateMs: number;
@@ -35,10 +38,16 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
     .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined)
     .sort((a, b) => a.title.localeCompare(b.title));
 
+  // Extract photo assets (only those whose files exist on disk)
+  const photos = filterExistingPhotos(entry.assets ?? null);
+
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row w-full px-safe-or-3 py-3 border-b border-border active:bg-muted">
+      className="flex-col w-full px-safe-or-3 border-b border-border py-3 active:bg-muted">
       <View className="flex-1 justify-center">
         {/* Row 1: Time + Mood */}
         <View className="flex-row flex-wrap items-center gap-2 mb-2">
@@ -78,7 +87,7 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
 
         {/* Tags - Last Row */}
         {tags.length > 0 && (
-          <View className="flex-row flex-wrap gap-2 mt-8">
+          <View className="flex-row flex-wrap gap-2 mt-2">
             {tags.map((tag) => (
               <Badge
                 key={tag.tag_id}
@@ -90,6 +99,39 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
           </View>
         )}
       </View>
+
+      {/* Photos — horizontal scroll thumbnails */}
+      {photos.length > 0 && (
+        <View className="h-[88px]">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mt-2"
+            contentContainerClassName="gap-2">
+            {photos.map((photo, index) => (
+              <Pressable
+                key={photo.uri}
+                onPress={() => {
+                  setViewerIndex(index);
+                  setIsViewerVisible(true);
+                }}>
+                <Image
+                  source={{ uri: getFullPhotoUri(photo.uri) }}
+                  className="w-20 h-20 rounded-lg"
+                  resizeMode="cover"
+                />
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <ImageViewerModal
+            visible={isViewerVisible}
+            initialIndex={viewerIndex}
+            photos={photos}
+            onClose={() => setIsViewerVisible(false)}
+          />
+        </View>
+      )}
     </Pressable>
   );
 }

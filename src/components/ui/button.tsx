@@ -22,7 +22,7 @@ const buttonVariants = cva(
         sm: 'h-9 gap-1.5 rounded-md px-3 sm:h-8',
         lg: 'h-11 rounded-md px-6 sm:h-10',
         icon: 'h-10 w-10 sm:h-9 sm:w-9',
-        flex: 'flex-1 h-auto',
+        flex: 'h-auto',
       },
     },
     defaultVariants: {
@@ -37,7 +37,7 @@ const buttonTextVariants = cva('text-foreground text-base font-bold', {
     variant: {
       default: 'text-background',
       primary: 'text-primary-foreground',
-      destructive: 'text-destructive-foreground',
+      destructive: 'text-destructive-foreground tracking-wider',
       outline: 'group-active:text-accent-foreground',
       secondary: 'text-secondary-foreground',
       ghost: 'group-active:text-accent-foreground font-medium',

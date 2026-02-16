@@ -27,6 +27,13 @@
         {
           "enableFTS": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Tackbok needs access to your photos to attach them to your gratitude entries.",
+          "cameraPermission": "Tackbok needs access to your camera to take photos for your gratitude entries."
+        }
       ]
     ],
     "experiments": {

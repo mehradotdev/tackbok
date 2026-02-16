@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Keyboard, Pressable } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { View, Keyboard, Pressable, ActivityIndicator } from 'react-native';
 import {
   KeyboardAwareScrollView,
   useReanimatedKeyboardAnimation,
@@ -10,10 +10,16 @@ import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { format } from 'date-fns';
 import { Clock, X } from 'lucide-react-native';
-import { MODAL_CLOSE_DELAY, MOOD_OPTIONS } from '~/constants';
-import { type Entry, type Mood } from '~/types';
+import { MODAL_CLOSE_DELAY, MOOD_OPTIONS, MAX_PHOTOS_PER_ENTRY } from '~/constants';
+import type { Entry, Mood, Asset } from '~/types';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { generateUUID } from '~/lib/utils';
+import {
+  type PickPhotosResult,
+  compressAndSavePhoto,
+  deletePhotoFile,
+  filterExistingPhotos,
+} from '~/lib/photoUtils';
 import { useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -21,9 +27,10 @@ import { Icon } from '~/components/ui/icon';
 import { Textarea } from '~/components/ui/textarea';
 import { Badge } from '~/components/ui/badge';
 import { toast } from '~/components/ui/toast';
+import { PolaroidPhoto } from '~/components/PolaroidPhoto';
 import {
   AlertDialog,
-  AlertDialogAction,
+  AlertDialogDestructiveAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -59,7 +66,10 @@ export function GratitudeEntryEdit({
   const navigation = useNavigation();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const [mutedForeground] = useCSSVariable(['--color-muted-foreground']);
+  const [mutedForegroundColor, foregroundColor] = useCSSVariable([
+    '--color-muted-foreground',
+    '--color-foreground',
+  ]);
 
   // Mutations
   const upsertEntryMutation = useUpsertEntry();
@@ -76,14 +86,20 @@ export function GratitudeEntryEdit({
   const initialTags = initialEntry?.tags
     ? initialEntry.tags.split(',').filter((tag) => tag.length > 0)
     : [];
+  const initialPhotos = filterExistingPhotos(initialEntry?.assets ?? null);
 
   const [timestamp, setTimestamp] = useState(initialTimestamp);
   const [title, setTitle] = useState(initialEntry?.text_title || '');
   const [content, setContent] = useState(initialEntry?.text_content || '');
   const [mood, setMood] = useState<Mood | null>(initialEntry?.mood || null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTags);
+  const [photos, setPhotos] = useState<Asset[]>(initialPhotos);
+  const [isAddingPhotos, setIsAddingPhotos] = useState(false);
   const [showUnsavedChangesConfirm, setShowUnsavedChangesConfirm] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Track photos that were removed during editing so we can delete their files on save
+  const removedPhotosRef = useRef<Asset[]>([]);
 
   // Original values for change detection
   const [originalValues, setOriginalValues] = useState(() => ({
@@ -92,6 +108,7 @@ export function GratitudeEntryEdit({
     content: initialEntry?.text_content || '',
     mood: initialEntry?.mood || null,
     tagIds: initialTags,
+    photoUris: initialPhotos.map((p) => p.uri),
   }));
 
   // Derived states
@@ -106,7 +123,11 @@ export function GratitudeEntryEdit({
     content !== originalValues.content ||
     mood !== originalValues.mood ||
     timestamp !== originalValues.timestamp ||
-    !areArraysEqual(selectedTagIds, originalValues.tagIds);
+    !areArraysEqual(selectedTagIds, originalValues.tagIds) ||
+    !areArraysEqual(
+      photos.map((p) => p.uri),
+      originalValues.photoUris,
+    );
 
   const displayTags = useMemo(() => {
     return selectedTagIds
@@ -125,12 +146,15 @@ export function GratitudeEntryEdit({
     const id = initialEntry?.note_id || generateUUID();
 
     try {
+      // Clean up removed photo files
+      await Promise.all(removedPhotosRef.current.map((p) => deletePhotoFile(p.uri)));
+
       await upsertEntryMutation.mutateAsync({
         note_id: id,
         text_title: title.trim() || null,
         text_content: content.trim(),
         mood: mood,
-        assets: null,
+        assets: photos.length > 0 ? photos : null,
         tags: selectedTagIds.join(','),
         created_at: timestamp,
         updated_at: Date.now(),
@@ -157,6 +181,27 @@ export function GratitudeEntryEdit({
   const handleRemoveTag = (tagId: string) => {
     setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
   };
+
+  const handleRemovePhoto = (photoUri: string) => {
+    const removed = photos.find((p) => p.uri === photoUri);
+    if (removed) {
+      removedPhotosRef.current.push(removed);
+    }
+    setPhotos((prev) => prev.filter((p) => p.uri !== photoUri));
+  };
+
+  /** Process the result from pickPhotos — adds photos on success. Permission denied is handled by FloatingActionDock. */
+  const handlePhotosPicked = useCallback(async (result: PickPhotosResult) => {
+    if (result.status !== 'success' || result.uris.length === 0) return;
+
+    setIsAddingPhotos(true);
+    try {
+      const newAssets = await Promise.all(result.uris.map(compressAndSavePhoto));
+      setPhotos((prev) => [...prev, ...newAssets].slice(0, MAX_PHOTOS_PER_ENTRY));
+    } finally {
+      setIsAddingPhotos(false);
+    }
+  }, []);
 
   const handlePressCancel = () => {
     if (hasUnsavedChanges && !isEmpty) {
@@ -294,19 +339,19 @@ export function GratitudeEntryEdit({
 
           {/* Title Input */}
           <Textarea
-            className="px-0 text-lg font-semibold text-foreground border-0 shadow-none"
+            className="px-0 min-h-0 text-lg font-semibold text-foreground border-0 shadow-none"
             placeholder={t('Title (optional)')}
-            placeholderTextColor={mutedForeground as string}
+            placeholderTextColor={mutedForegroundColor as string}
             value={title}
             onChangeText={setTitle}
           />
 
           {/* Content Input */}
           <Textarea
-            className="text-base text-foreground leading-6 border-0 shadow-none px-0"
+            className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
             textAlignVertical="top"
             placeholder={t('What are you grateful for?')}
-            placeholderTextColor={mutedForeground as string}
+            placeholderTextColor={mutedForegroundColor as string}
             value={content}
             onChangeText={setContent}
             scrollEnabled={false}
@@ -339,6 +384,24 @@ export function GratitudeEntryEdit({
             </View>
           )}
 
+          {/* Photos */}
+          {(photos.length > 0 || isAddingPhotos) && (
+            <View className="py-3 gap-4">
+              {photos.map((photo) => (
+                <PolaroidPhoto
+                  key={photo.uri}
+                  photo={photo}
+                  onRemove={() => handleRemovePhoto(photo.uri)}
+                />
+              ))}
+              {isAddingPhotos && (
+                <View className="items-center py-4">
+                  <ActivityIndicator size="large" color={foregroundColor as string} />
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Bottom spacer to prevent content from being hidden behind FloatingActionDock */}
           {!isKeyboardVisible && <View className="h-28" />}
           {isKeyboardVisible && <View className="h-16" />}
@@ -349,6 +412,8 @@ export function GratitudeEntryEdit({
           className="absolute bottom-0 left-0 right-0">
           <FloatingActionDock
             isKeyboardVisible={isKeyboardVisible}
+            onPhotosPicked={handlePhotosPicked}
+            currentPhotoCount={photos.length}
             mood={mood}
             onMoodChange={setMood}
             autoOpenMoodSelector={isNewEntry}
@@ -388,13 +453,9 @@ export function GratitudeEntryEdit({
             <AlertDialogCancel onPress={() => setShowUnsavedChangesConfirm(false)}>
               <Text>{t('Keep Editing')}</Text>
             </AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive active:bg-destructive/90"
-              onPress={handleDiscardChanges}>
-              <Text className="text-destructive-foreground tracking-wider">
-                {t('Discard')}
-              </Text>
-            </AlertDialogAction>
+            <AlertDialogDestructiveAction onPress={handleDiscardChanges}>
+              <Text>{t('Discard')}</Text>
+            </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

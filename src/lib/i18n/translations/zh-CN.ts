@@ -52,6 +52,17 @@ export const zhCN: Translations = {
   'Select date': '选择日期',
   Mood: '心情',
   Photo: '照片',
+  'Add Photo': '添加照片',
+  'Take Photo': '拍照',
+  'Choose from Library': '从相册选择',
+  'Maximum {count} photos per entry': '每条记录最多 {count} 张照片',
+  'Camera Access Required': '需要相机访问权限',
+  'Photo Library Access Required': '需要照片库访问权限',
+  'Please enable camera access in your device settings to take photos.':
+    '请在设备设置中启用相机访问权限以拍摄照片。',
+  'Please enable photo library access in your device settings to select photos.':
+    '请在设备设置中启用照片库访问权限以选择照片。',
+  'Open Settings': '打开设置',
   Voice: '语音',
 
   'Title (optional)': '标题（可选）',
@@ -182,10 +193,10 @@ export const zhCN: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危险区域',
   'Delete All Data': '删除所有数据',
-  'Permanently delete all your entries': '永久删除您的所有条目',
+  'Permanently delete all your entries and photos': '永久删除您的所有条目和照片',
   'Delete all data?': '删除所有数据？',
-  'This action cannot be undone. All your entries will be permanently deleted.':
-    '此操作无法撤销。您的所有条目将被永久删除。',
+  'This action cannot be undone. All your entries and photos will be permanently deleted.':
+    '此操作无法撤销。您的所有条目和照片将被永久删除。',
   'All data deleted': '所有数据已删除',
   'Delete failed': '删除失败',
 

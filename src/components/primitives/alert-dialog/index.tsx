@@ -191,6 +191,7 @@ const Content = ({
       aria-labelledby={`${nativeID}_label`}
       aria-describedby={`${nativeID}_desc`}
       aria-modal={true}
+      onStartShouldSetResponder={() => true}
       {...props}
     />
   );

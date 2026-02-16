@@ -52,6 +52,17 @@ export const zhTW: Translations = {
   'Select date': '選擇日期',
   Mood: '心情',
   Photo: '照片',
+  'Add Photo': '新增照片',
+  'Take Photo': '拍照',
+  'Choose from Library': '從相簿選擇',
+  'Maximum {count} photos per entry': '每條記錄最多 {count} 張照片',
+  'Camera Access Required': '需要相機存取權限',
+  'Photo Library Access Required': '需要照片圖庫存取權限',
+  'Please enable camera access in your device settings to take photos.':
+    '請在裝置設定中啟用相機存取權限以拍攝照片。',
+  'Please enable photo library access in your device settings to select photos.':
+    '請在裝置設定中啟用照片圖庫存取權限以選取照片。',
+  'Open Settings': '開啟設定',
   Voice: '語音',
 
   'Title (optional)': '標題（選填）',
@@ -182,10 +193,10 @@ export const zhTW: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危險區域',
   'Delete All Data': '刪除所有資料',
-  'Permanently delete all your entries': '永久刪除您的所有紀錄',
+  'Permanently delete all your entries and photos': '永久刪除您的所有紀錄和照片',
   'Delete all data?': '刪除所有資料？',
-  'This action cannot be undone. All your entries will be permanently deleted.':
-    '此動作無法復原。您的所有紀錄將被永久刪除。',
+  'This action cannot be undone. All your entries and photos will be permanently deleted.':
+    '此動作無法復原。您的所有紀錄和照片將被永久刪除。',
   'All data deleted': '所有資料已刪除',
   'Delete failed': '刪除失敗',
 
