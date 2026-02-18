@@ -19,7 +19,7 @@ import {
 } from 'date-fns';
 import { View, Pressable, ScrollView } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { FirstDayOfWeek } from '~/types';
+import { FirstDay, type FirstDayOfWeek } from '~/types';
 import { MONTH_SHORT_KEYS, MONTH_KEYS } from '~/constants';
 import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
@@ -38,9 +38,9 @@ const DEFAULT_MIN_YEAR_OFFSET = 100;
 const DEFAULT_MAX_YEAR_OFFSET = 10;
 /** Maps firstDayOfWeek to date-fns weekStartsOn value */
 const WEEK_STARTS_ON_MAP: Record<FirstDayOfWeek, 0 | 1 | 6> = {
-  sunday: 0,
-  monday: 1,
-  saturday: 6,
+  [FirstDay.SUNDAY]: 0,
+  [FirstDay.MONDAY]: 1,
+  [FirstDay.SATURDAY]: 6,
 };
 
 // ============================================================================
@@ -211,7 +211,7 @@ export function DatePicker({
   themeColor = 'bg-primary/60',
   scrollToBottomYearsView = false,
   onMonthYearChange,
-  firstDayOfWeek = 'monday',
+  firstDayOfWeek = FirstDay.MONDAY,
 }: DatePickerProps) {
   const { t, isRTL } = useTranslation();
   const [viewDate, setViewDate] = useState(value);

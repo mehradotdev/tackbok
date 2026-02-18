@@ -60,9 +60,6 @@ export function AddPhotoModal({
               'Please enable photo library access in your device settings to select photos.',
             );
 
-      // Small delay to allow the first dialog to close smoothly?
-      // Actually standard React Native modals might conflict if one opens while another closes,
-      // but let's just set the state.
       setPermissionAlert({ isOpen: true, title, message });
     },
     [t, onClose],
@@ -96,23 +93,6 @@ export function AddPhotoModal({
               variant="outline"
               className="flex-1 bg-card aspect-square flex-col justify-center items-center gap-2 h-auto"
               onPress={async () => {
-                // We do NOT close immediately here because we wait for the pick result
-                // If we close immediately, the underlying pickPhotos might have context issues or UI flash
-                // But actually, usually you want to close the dialog before the camera opens?
-                // The original code passed `setShowAddPhotoDialog(false)` immediately.
-                // Replicating original behavior:
-                // onClose();
-                // Wait, if I close it, the component might unmount if it was conditionally rendered?
-                // But it's passed as prop `visible`. So it won't unmount, just hide.
-                // However, the original code had:
-                /*
-                onPress={async () => {
-                   setShowAddPhotoDialog(false);
-                   const result = await pickPhotos('camera', 1);
-                   await handlePickResult(result);
-                 }}
-                */
-                // So let's stick to that pattern.
                 onClose();
                 const result = await pickPhotos('camera', 1);
                 await handlePickResult(result);

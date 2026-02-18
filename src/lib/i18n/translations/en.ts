@@ -103,7 +103,8 @@ export const en = {
   'Create your first tag': 'Create your first tag',
   'Edit Tag': 'Edit Tag',
   'Delete Tag': 'Delete Tag',
-  'Are you sure you want to delete the tag?': 'Are you sure you want to delete the tag?',
+  'Are you sure you want to delete the tag "{title}"?':
+    'Are you sure you want to delete the tag "{title}"?',
 
   // Milestones
   'days of gratitude': 'days of gratitude',

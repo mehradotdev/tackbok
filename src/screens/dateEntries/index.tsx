@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { format, startOfDay } from 'date-fns';
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react-native';
 import { MOOD_OPTIONS } from '~/constants';
-import { type Entry } from '~/types';
+import { type Entry, type Asset } from '~/types';
 import { cn, combineDateWithCurrentTime } from '~/lib/utils';
 import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
@@ -24,9 +24,10 @@ interface IEntryItemProps {
   entry: Entry;
   onPress: () => void;
   tagMap: ReturnType<typeof useTagMapping>;
+  onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
-function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
+function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
   const { t } = useTranslation();
   const time = format(new Date(entry.created_at), 'HH:mm');
 
@@ -40,9 +41,6 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
 
   // Extract photo assets (only those whose files exist on disk)
   const photos = filterExistingPhotos(entry.assets ?? null);
-
-  const [isViewerVisible, setIsViewerVisible] = useState(false);
-  const [viewerIndex, setViewerIndex] = useState(0);
 
   return (
     <Pressable
@@ -109,12 +107,7 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
             className="mt-2"
             contentContainerClassName="gap-2">
             {photos.map((photo, index) => (
-              <Pressable
-                key={photo.uri}
-                onPress={() => {
-                  setViewerIndex(index);
-                  setIsViewerVisible(true);
-                }}>
+              <Pressable key={photo.uri} onPress={() => onPhotoPress(photos, index)}>
                 <Image
                   source={{ uri: getFullPhotoUri(photo.uri) }}
                   className="w-20 h-20 rounded-lg"
@@ -123,13 +116,6 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
               </Pressable>
             ))}
           </ScrollView>
-
-          <ImageViewerModal
-            visible={isViewerVisible}
-            initialIndex={viewerIndex}
-            photos={photos}
-            onClose={() => setIsViewerVisible(false)}
-          />
         </View>
       )}
     </Pressable>
@@ -140,6 +126,16 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
   const tagMap = useTagMapping();
+
+  const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  const handlePhotoPress = (photos: Asset[], index: number) => {
+    setViewerPhotos(photos);
+    setViewerIndex(index);
+    setIsViewerVisible(true);
+  };
 
   // Get date string for display
   const dateStart = startOfDay(new Date(dateMs));
@@ -206,11 +202,19 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
               entry={item}
               onPress={() => handleEntryPress(item)}
               tagMap={tagMap}
+              onPhotoPress={handlePhotoPress}
             />
           )}
           contentContainerClassName="pb-safe-or-4"
         />
       )}
+
+      <ImageViewerModal
+        visible={isViewerVisible}
+        initialIndex={viewerIndex}
+        photos={viewerPhotos}
+        onClose={() => setIsViewerVisible(false)}
+      />
     </SafeAreaView>
   );
 }

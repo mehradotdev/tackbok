@@ -103,7 +103,8 @@ export const he: Translations = {
   'Create your first tag': 'צור את התגית הראשונה שלך',
   'Edit Tag': 'ערוך תגית',
   'Delete Tag': 'מחק תגית',
-  'Are you sure you want to delete the tag?': 'האם אתה בטוח שברצונך למחוק את התגית?',
+  'Are you sure you want to delete the tag "{title}"?':
+    'האם אתה בטוח שברצונך למחוק את התגית "{title}"?',
 
   // Milestones
   'days of gratitude': 'ימים של הכרת טובה',

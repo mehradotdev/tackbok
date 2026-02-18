@@ -7,6 +7,7 @@ import {
   type MilestoneItem,
   type TimelineListItem,
   type Entry,
+  AssetType,
 } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';
@@ -175,7 +176,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
             const numEntries = item.entries.length;
             // Check if any entries have photos
             const hasPhotos = item.entries.some(
-              (e) => e.assets && e.assets.some((a) => a.type === 'IMAGE'),
+              (e) => e.assets && e.assets.some((a) => a.type === AssetType.IMAGE),
             );
             const photosExtra = hasPhotos ? 80 : 0; // ~80px for horizontal scroll row
             // Collapsed: ~70px header + ~40px preview + optional photos

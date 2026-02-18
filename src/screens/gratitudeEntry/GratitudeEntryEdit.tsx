@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Keyboard, Pressable, ActivityIndicator } from 'react-native';
 import {
   KeyboardAwareScrollView,
@@ -10,17 +10,13 @@ import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { format } from 'date-fns';
 import { Clock, X } from 'lucide-react-native';
-import { MODAL_CLOSE_DELAY, MOOD_OPTIONS, MAX_PHOTOS_PER_ENTRY } from '~/constants';
+import { MODAL_CLOSE_DELAY, MOOD_OPTIONS } from '~/constants';
 import type { Entry, Mood, Asset } from '~/types';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { generateUUID } from '~/lib/utils';
-import {
-  type PickPhotosResult,
-  compressAndSavePhoto,
-  deletePhotoFile,
-  filterExistingPhotos,
-} from '~/lib/photoUtils';
+import { filterExistingPhotos } from '~/lib/photoUtils';
 import { useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
+import { usePhotoSession } from '~/hooks/usePhotoSession';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
@@ -47,6 +43,7 @@ interface GratitudeEntryEditProps {
   initialDateMs?: number;
   onSaveSuccess: () => void;
   onCancel: () => void;
+  onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
 const areArraysEqual = (a: string[], b: string[]) => {
@@ -60,6 +57,7 @@ export function GratitudeEntryEdit({
   initialDateMs,
   onSaveSuccess,
   onCancel,
+  onPhotoPress,
 }: GratitudeEntryEditProps) {
   const tagMap = useTagMapping();
   const { t } = useTranslation();
@@ -93,13 +91,19 @@ export function GratitudeEntryEdit({
   const [content, setContent] = useState(initialEntry?.text_content || '');
   const [mood, setMood] = useState<Mood | null>(initialEntry?.mood || null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTags);
-  const [photos, setPhotos] = useState<Asset[]>(initialPhotos);
-  const [isAddingPhotos, setIsAddingPhotos] = useState(false);
   const [showUnsavedChangesConfirm, setShowUnsavedChangesConfirm] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  // Track photos that were removed during editing so we can delete their files on save
-  const removedPhotosRef = useRef<Asset[]>([]);
+  // Photo session: tracks additions/removals and handles disk cleanup
+  const {
+    photos,
+    isAddingPhotos,
+    photoUris,
+    handlePhotosPicked,
+    removePhoto,
+    commitRemovedPhotos,
+    discardAllChanges,
+  } = usePhotoSession(initialPhotos);
 
   // Original values for change detection
   const [originalValues, setOriginalValues] = useState(() => ({
@@ -124,10 +128,7 @@ export function GratitudeEntryEdit({
     mood !== originalValues.mood ||
     timestamp !== originalValues.timestamp ||
     !areArraysEqual(selectedTagIds, originalValues.tagIds) ||
-    !areArraysEqual(
-      photos.map((p) => p.uri),
-      originalValues.photoUris,
-    );
+    !areArraysEqual(photoUris, originalValues.photoUris);
 
   const displayTags = useMemo(() => {
     return selectedTagIds
@@ -146,8 +147,8 @@ export function GratitudeEntryEdit({
     const id = initialEntry?.note_id || generateUUID();
 
     try {
-      // Clean up removed photo files
-      await Promise.all(removedPhotosRef.current.map((p) => deletePhotoFile(p.uri)));
+      // Delete photo files that were removed during this editing session
+      await commitRemovedPhotos();
 
       await upsertEntryMutation.mutateAsync({
         note_id: id,
@@ -171,7 +172,10 @@ export function GratitudeEntryEdit({
     }
   };
 
-  const handleDiscardChanges = () => {
+  const handleDiscardChanges = async () => {
+    // Clean up all newly-added photo files; leave original photos untouched
+    await discardAllChanges();
+
     setShowUnsavedChangesConfirm(false);
     isSaving.current = true;
     // Delay closing to allow modal animation to finish or prevent race conditions
@@ -182,32 +186,14 @@ export function GratitudeEntryEdit({
     setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
   };
 
-  const handleRemovePhoto = (photoUri: string) => {
-    const removed = photos.find((p) => p.uri === photoUri);
-    if (removed) {
-      removedPhotosRef.current.push(removed);
-    }
-    setPhotos((prev) => prev.filter((p) => p.uri !== photoUri));
-  };
-
-  /** Process the result from pickPhotos — adds photos on success. Permission denied is handled by FloatingActionDock. */
-  const handlePhotosPicked = useCallback(async (result: PickPhotosResult) => {
-    if (result.status !== 'success' || result.uris.length === 0) return;
-
-    setIsAddingPhotos(true);
-    try {
-      const newAssets = await Promise.all(result.uris.map(compressAndSavePhoto));
-      setPhotos((prev) => [...prev, ...newAssets].slice(0, MAX_PHOTOS_PER_ENTRY));
-    } finally {
-      setIsAddingPhotos(false);
-    }
-  }, []);
-
-  const handlePressCancel = () => {
+  const handlePressCancel = async () => {
     if (hasUnsavedChanges && !isEmpty) {
       Keyboard.dismiss();
       setShowUnsavedChangesConfirm(true);
     } else {
+      // Even without unsaved text changes, clean up any added photo files
+      // (e.g. user added photos but left content empty)
+      await discardAllChanges();
       onCancel();
     }
   };
@@ -387,11 +373,12 @@ export function GratitudeEntryEdit({
           {/* Photos */}
           {(photos.length > 0 || isAddingPhotos) && (
             <View className="py-3 gap-4">
-              {photos.map((photo) => (
+              {photos.map((photo, index) => (
                 <PolaroidPhoto
                   key={photo.uri}
                   photo={photo}
-                  onRemove={() => handleRemovePhoto(photo.uri)}
+                  onRemove={() => removePhoto(photo.uri)}
+                  onPress={() => onPhotoPress(photos, index)}
                 />
               ))}
               {isAddingPhotos && (

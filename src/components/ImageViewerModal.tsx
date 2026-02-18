@@ -36,7 +36,7 @@ export function ImageViewerModal({
   onClose,
 }: ImageViewerModalProps) {
   const flatListRef = useRef<FlatList>(null);
-  const [isScrollEnabled, setScrollEnabled] = React.useState(true);
+  const [isScrollEnabled, setScrollEnabled] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 

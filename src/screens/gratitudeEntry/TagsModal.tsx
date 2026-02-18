@@ -335,8 +335,9 @@ export function TagsModal({
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Delete Tag')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('Are you sure you want to delete the tag?')} &ldquo;{tagToDelete?.title}
-              &rdquo;
+              {t('Are you sure you want to delete the tag "{title}"?', {
+                title: tagToDelete?.title ?? '',
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

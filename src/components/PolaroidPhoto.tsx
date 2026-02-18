@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, Pressable, Dimensions } from 'react-native';
+import { View, Image, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { getFullPhotoUri, getPhotoRotation } from '~/lib/photoUtils';
@@ -13,6 +13,7 @@ interface PolaroidPhotoProps {
     height?: number;
   };
   onRemove?: () => void;
+  onPress?: () => void;
   // Optional override for total horizontal padding (screen padding + component padding)
   // Default is 48 (px-4 = 32 + p-2 = 16)
   horizontalPadding?: number;
@@ -21,9 +22,10 @@ interface PolaroidPhotoProps {
 export function PolaroidPhoto({
   photo,
   onRemove,
+  onPress,
   horizontalPadding = 48,
 }: PolaroidPhotoProps) {
-  const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   const imageAspectRatio =
@@ -45,7 +47,7 @@ export function PolaroidPhoto({
     targetWidth = targetHeight * imageAspectRatio;
   }
 
-  return (
+  const inner = (
     <View
       className="bg-popover p-2 pb-6 shadow-lg shadow-foreground/50"
       style={{
@@ -76,4 +78,14 @@ export function PolaroidPhoto({
       )}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={{ alignSelf: 'center' }}>
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return inner;
 }

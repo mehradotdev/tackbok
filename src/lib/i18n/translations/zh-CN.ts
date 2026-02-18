@@ -101,7 +101,7 @@ export const zhCN: Translations = {
   'Create your first tag': '创建您的第一个标签',
   'Edit Tag': '编辑标签',
   'Delete Tag': '删除标签',
-  'Are you sure you want to delete the tag?': '您确定要删除该标签吗？',
+  'Are you sure you want to delete the tag "{title}"?': '您确定要删除标签“{title}”吗？',
 
   // Milestones
   'days of gratitude': '感恩天数',

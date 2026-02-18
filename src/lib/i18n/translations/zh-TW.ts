@@ -101,7 +101,7 @@ export const zhTW: Translations = {
   'Create your first tag': '建立您的第一個標籤',
   'Edit Tag': '編輯標籤',
   'Delete Tag': '刪除標籤',
-  'Are you sure you want to delete the tag?': '您確定要刪除此標籤嗎？',
+  'Are you sure you want to delete the tag "{title}"?': '您確定要刪除標籤「{title}」嗎？',
 
   // Milestones
   'days of gratitude': '感恩天數',

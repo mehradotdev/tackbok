@@ -3,7 +3,7 @@ import { Paths, File, Directory } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { PHOTO_MAX_DIMENSION, PHOTO_QUALITY, PHOTOS_DIR_NAME } from '~/constants';
-import { type Asset } from '~/types';
+import { type Asset, AssetType } from '~/types';
 import { generateUUID } from '~/lib/utils';
 
 /** Returns the photos directory (creates it if it doesn't exist). */
@@ -43,7 +43,7 @@ export function photoFileExists(relativeUri: string): boolean {
 export function filterExistingPhotos(assets: Asset[] | null): Asset[] {
   if (!assets || assets.length === 0) return [];
   return assets.filter((a) => {
-    if (a.type === 'IMAGE') return photoFileExists(a.uri);
+    if (a.type === AssetType.IMAGE) return photoFileExists(a.uri);
     return true;
   });
 }
@@ -169,10 +169,15 @@ export async function compressAndSavePhoto(sourceUri: string): Promise<Asset> {
   const srcFile = new File(saved.uri);
   const destFile = new File(photosDir, filename);
   srcFile.copy(destFile);
+  try {
+    srcFile.delete();
+  } catch {
+    /* ignore — temp file cleanup is best-effort */
+  }
 
   // 3. Return relative asset with dimensions for aspect-ratio preservation
   return {
-    type: 'IMAGE',
+    type: AssetType.IMAGE,
     uri: `${PHOTOS_DIR_NAME}/${filename}`,
     width: imageRef.width,
     height: imageRef.height,
@@ -187,7 +192,7 @@ export async function compressAndSavePhoto(sourceUri: string): Promise<Asset> {
  * Delete a photo file from the app's document storage.
  * Silently ignores errors (file might already be gone).
  */
-export async function deletePhotoFile(relativeUri: string): Promise<void> {
+export function deletePhotoFile(relativeUri: string) {
   try {
     const file = new File(Paths.document, relativeUri);
     if (file.exists) {
@@ -203,7 +208,7 @@ export async function deletePhotoFile(relativeUri: string): Promise<void> {
  * Used when the user chooses to delete all data.
  * Silently ignores errors (directory might not exist).
  */
-export async function deleteAllPhotos(): Promise<void> {
+export function deleteAllPhotos() {
   try {
     const dir = new Directory(Paths.document, PHOTOS_DIR_NAME);
     if (dir.exists) {

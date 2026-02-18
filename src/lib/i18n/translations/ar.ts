@@ -35,18 +35,18 @@ export const ar: Translations = {
 
   // Date Entries
   'Loading...': 'جاري التحميل...',
-  'No entries for this date': 'لا توجد إدخالات لهذا التاريخ',
-  'Create Entry': 'إنشاء إدخال',
-  'Something went wrong. Creating new entry.': 'حدث خطأ ما. جارٍ إنشاء إدخال جديد.',
+  'No entries for this date': 'لا توجد سجلات لهذا التاريخ',
+  'Create Entry': 'إنشاء سجل',
+  'Something went wrong. Creating new entry.': 'حدث خطأ ما. جارٍ إنشاء سجل جديد.',
 
   // Gratitude Entry
   'Delete Entry?': 'حذف السجل؟',
   'Clearing the text will delete this entry entirely.':
     'مسح النص سيؤدي إلى حذف هذا السجل تماماً.',
-  'This entry will be permanently deleted.': 'سيتم حذف هذا الإدخال نهائيًا.',
+  'This entry will be permanently deleted.': 'سيتم حذف هذا السجل نهائيًا.',
   'Leave without saving?': 'المغادرة دون حفظ؟',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
-    'إدخالك غير محفوظ. هل تريد الاستمرار في التحرير أو تجاهله؟',
+    'سجلك غير محفوظ. هل تريد الاستمرار في التحرير أو تجاهله؟',
   'Keep Editing': 'متابعة التحرير',
 
   'Pick any date': 'اختر أي تاريخ',
@@ -56,7 +56,7 @@ export const ar: Translations = {
   'Add Photo': 'إضافة صورة',
   'Take Photo': 'التقاط صورة',
   'Choose from Library': 'اختيار من المكتبة',
-  'Maximum {count} photos per entry': 'الحد الأقصى {count} صور لكل إدخال',
+  'Maximum {count} photos per entry': 'الحد الأقصى {count} صور لكل سجل',
   'Camera Access Required': 'مطلوب الوصول إلى الكاميرا',
   'Photo Library Access Required': 'مطلوب الوصول إلى مكتبة الصور',
   'Please enable camera access in your device settings to take photos.':
@@ -102,7 +102,8 @@ export const ar: Translations = {
   'Create your first tag': 'أنشئ وسمك الأول',
   'Edit Tag': 'تعديل الوسم',
   'Delete Tag': 'حذف الوسم',
-  'Are you sure you want to delete the tag?': 'هل أنت متأكد أنك تريد حذف الوسم؟',
+  'Are you sure you want to delete the tag "{title}"?':
+    'هل أنت متأكد أنك تريد حذف الوسم "{title}"؟',
 
   // Milestones
   'days of gratitude': 'أيام من الامتنان',
@@ -137,8 +138,7 @@ export const ar: Translations = {
   'Show the borders in the timeline': 'إظهار الحدود في الجدول الزمني',
   'Hide the borders in the timeline': 'إخفاء الحدود من الجدول الزمني',
   'Inspirational Quotes': 'اقتباسات ملهمة',
-  'Gratitude quotes will be shown on entry page':
-    'ستظهر اقتباسات الامتنان في صفحة الإدخال',
+  'Gratitude quotes will be shown on entry page': 'ستظهر اقتباسات الامتنان في صفحة السجل',
   'Date Style': 'نمط التاريخ',
   'Date includes day of the week': 'التاريخ يتضمن يوم الأسبوع',
   'First Day of Week': 'أول يوم في الأسبوع',

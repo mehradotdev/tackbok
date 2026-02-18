@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-react-native';
 import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
-import { type Entry } from '~/types';
+import type { Entry, Asset } from '~/types';
 import { filterExistingPhotos } from '~/lib/photoUtils';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
@@ -26,9 +26,15 @@ interface GratitudeEntryViewProps {
   entry: Entry;
   onEdit: () => void;
   onBack: () => void;
+  onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
-export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryViewProps) {
+export function GratitudeEntryView({
+  entry,
+  onEdit,
+  onBack,
+  onPhotoPress,
+}: GratitudeEntryViewProps) {
   const { t, isRTL } = useTranslation();
   const tagMap = useTagMapping();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -146,8 +152,12 @@ export function GratitudeEntryView({ entry, onEdit, onBack }: GratitudeEntryView
         {/* Photos — Polaroid / instant camera style */}
         {photos.length > 0 && (
           <View className="py-3 gap-4">
-            {photos.map((photo) => (
-              <PolaroidPhoto key={photo.uri} photo={photo} />
+            {photos.map((photo, index) => (
+              <PolaroidPhoto
+                key={photo.uri}
+                photo={photo}
+                onPress={() => onPhotoPress(photos, index)}
+              />
             ))}
           </View>
         )}

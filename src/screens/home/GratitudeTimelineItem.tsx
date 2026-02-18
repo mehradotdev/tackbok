@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Pressable, Platform, FlatList, Image, ScrollView } from 'react-native';
 import { format } from 'date-fns';
 import { MOOD_EMOJI } from '~/constants';
-import { type DayGroup, type Entry } from '~/types';
+import type { DayGroup, Entry, Asset } from '~/types';
 import { cn } from '~/lib/utils';
 import { useSettingsStore } from '~/lib/settings';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
@@ -35,6 +35,7 @@ interface IEntryRowProps {
   isRTL: boolean;
   timelineEntryLength: number;
   tagMap: ReturnType<typeof useTagMapping>;
+  onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
 // ============================================================================
@@ -49,6 +50,7 @@ function ExpandedEntryRow({
   isRTL = false,
   timelineEntryLength,
   tagMap,
+  onPhotoPress,
 }: IEntryRowProps) {
   const time = format(new Date(entry.created_at), 'HH:mm');
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
@@ -61,10 +63,6 @@ function ExpandedEntryRow({
 
   // Extract photo assets for this entry (only those whose files exist on disk)
   const photos = filterExistingPhotos(entry.assets ?? null);
-
-  // Image Viewer State
-  const [isViewerVisible, setIsViewerVisible] = useState(false);
-  const [viewerIndex, setViewerIndex] = useState(0);
 
   return (
     <View
@@ -189,12 +187,7 @@ function ExpandedEntryRow({
               showsHorizontalScrollIndicator={false}
               contentContainerClassName="pl-3 gap-2">
               {photos.map((photo, index) => (
-                <Pressable
-                  key={photo.uri}
-                  onPress={() => {
-                    setViewerIndex(index);
-                    setIsViewerVisible(true);
-                  }}>
+                <Pressable key={photo.uri} onPress={() => onPhotoPress(photos, index)}>
                   <Image
                     source={{ uri: getFullPhotoUri(photo.uri) }}
                     className="w-20 h-20 rounded-lg"
@@ -203,13 +196,6 @@ function ExpandedEntryRow({
                 </Pressable>
               ))}
             </ScrollView>
-
-            <ImageViewerModal
-              visible={isViewerVisible}
-              initialIndex={viewerIndex}
-              photos={photos}
-              onClose={() => setIsViewerVisible(false)}
-            />
           </View>
         )}
       </Pressable>
@@ -233,9 +219,16 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
   const tagMap = useTagMapping();
 
-  // Image Viewer State
-  const [isViewerVisible, setIsViewerVisible] = useState(false);
+  // Image Viewer State — single instance shared by both collapsed strip and expanded rows
+  const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  const handlePhotoPress = (photos: Asset[], index: number) => {
+    setViewerPhotos(photos);
+    setViewerIndex(index);
+    setIsViewerVisible(true);
+  };
 
   const isExpanded = isExpandedProp ?? dayGroup.isExpanded;
 
@@ -311,6 +304,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
                 isLast={index === dayGroup.entries.length - 1}
                 timelineEntryLength={timelineEntryLength}
                 tagMap={tagMap}
+                onPhotoPress={handlePhotoPress}
               />
             ))}
           </View>
@@ -342,11 +336,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
                   contentContainerClassName="gap-2 pb-2 pl-4"
                   onStartShouldSetResponder={() => true}
                   renderItem={({ item: photo, index }) => (
-                    <Pressable
-                      onPress={() => {
-                        setViewerIndex(index);
-                        setIsViewerVisible(true);
-                      }}>
+                    <Pressable onPress={() => handlePhotoPress(allPhotos, index)}>
                       <Image
                         source={{ uri: getFullPhotoUri(photo.uri) }}
                         className="w-16 h-16 rounded-lg"
@@ -355,17 +345,17 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
                     </Pressable>
                   )}
                 />
-
-                <ImageViewerModal
-                  visible={isViewerVisible}
-                  initialIndex={viewerIndex}
-                  photos={allPhotos}
-                  onClose={() => setIsViewerVisible(false)}
-                />
               </View>
             )}
           </Pressable>
         )}
+
+        <ImageViewerModal
+          visible={isViewerVisible}
+          initialIndex={viewerIndex}
+          photos={viewerPhotos}
+          onClose={() => setIsViewerVisible(false)}
+        />
       </View>
     </View>
   );

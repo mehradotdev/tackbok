@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEntry } from '~/hooks/useGratitude';
+import type { Asset } from '~/types';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
+import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { GratitudeEntryView } from './GratitudeEntryView';
 import { GratitudeEntryEdit } from './GratitudeEntryEdit';
 
@@ -18,6 +20,17 @@ export default function GratitudeEntryScreen({
   const [isEditMode, setIsEditMode] = useState(!noteId);
   const router = useRouter();
   const { data: entry } = useEntry(noteId);
+
+  // Image Viewer — single instance shared by both View and Edit modes
+  const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  const handlePhotoPress = (photos: Asset[], index: number) => {
+    setViewerPhotos(photos);
+    setViewerIndex(index);
+    setIsViewerVisible(true);
+  };
 
   const handleEditSaveSuccess = () => {
     if (noteId) {
@@ -43,6 +56,7 @@ export default function GratitudeEntryScreen({
               router.back();
             }
           }}
+          onPhotoPress={handlePhotoPress}
         />
       ) : !entry && noteId ? (
         <View className="flex-1 items-center justify-center">
@@ -56,9 +70,17 @@ export default function GratitudeEntryScreen({
             entry={entry}
             onEdit={() => setIsEditMode(true)}
             onBack={() => router.back()}
+            onPhotoPress={handlePhotoPress}
           />
         )
       )}
+
+      <ImageViewerModal
+        visible={isViewerVisible}
+        initialIndex={viewerIndex}
+        photos={viewerPhotos}
+        onClose={() => setIsViewerVisible(false)}
+      />
     </SafeAreaView>
   );
 }
