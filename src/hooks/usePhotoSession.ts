@@ -6,6 +6,8 @@ import {
   compressAndSavePhoto,
   deletePhotoFile,
 } from '~/lib/photoUtils';
+import { useTranslation } from '~/lib/i18n';
+import { toast } from '~/components/ui/toast';
 
 /**
  * Manages photo state throughout an editing session, tracking which photos
@@ -48,12 +50,13 @@ interface UsePhotoSessionReturn {
   /** Remove a photo from the visible list (queued for deletion on save) */
   removePhoto: (photoUri: string) => void;
   /** Commit: delete removed photos from disk. Call inside your save handler. */
-  commitRemovedPhotos: () => Promise<void>;
+  commitRemovedPhotos: () => void;
   /** Discard: delete all newly-added photos from disk, restore originals. */
-  discardAllChanges: () => Promise<void>;
+  discardAllChanges: () => void;
 }
 
 export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
+  const { t } = useTranslation();
   const [photos, setPhotos] = useState<Asset[]>(initialPhotos);
   const [isAddingPhotos, setIsAddingPhotos] = useState(false);
 
@@ -63,17 +66,23 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
   // Photos removed during this session (to be deleted on save, or selectively on discard)
   const removedPhotosRef = useRef<Asset[]>([]);
 
-  const handlePhotosPicked = useCallback(async (result: PickPhotosResult) => {
-    if (result.status !== 'success' || result.uris.length === 0) return;
+  const handlePhotosPicked = useCallback(
+    async (result: PickPhotosResult) => {
+      if (result.status !== 'success' || result.uris.length === 0) return;
 
-    setIsAddingPhotos(true);
-    try {
-      const newAssets = await Promise.all(result.uris.map(compressAndSavePhoto));
-      setPhotos((prev) => [...prev, ...newAssets].slice(0, MAX_PHOTOS_PER_ENTRY));
-    } finally {
-      setIsAddingPhotos(false);
-    }
-  }, []);
+      setIsAddingPhotos(true);
+      try {
+        const newAssets = await Promise.all(result.uris.map(compressAndSavePhoto));
+        setPhotos((prev) => [...prev, ...newAssets].slice(0, MAX_PHOTOS_PER_ENTRY));
+      } catch (error) {
+        console.error('Failed to add photos:', error);
+        toast.error(t('Failed to add photos'));
+      } finally {
+        setIsAddingPhotos(false);
+      }
+    },
+    [t],
+  );
 
   const removePhoto = useCallback((photoUri: string) => {
     setPhotos((prev) => {
@@ -90,11 +99,9 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
    * Delete every photo in the removal queue from disk.
    * This includes both originally-existing photos and newly-added-then-removed ones.
    */
-  const commitRemovedPhotos = useCallback(async () => {
-    if (removedPhotosRef.current.length > 0) {
-      await Promise.all(removedPhotosRef.current.map((p) => deletePhotoFile(p.uri)));
-      removedPhotosRef.current = [];
-    }
+  const commitRemovedPhotos = useCallback(() => {
+    removedPhotosRef.current.forEach((p) => deletePhotoFile(p.uri));
+    removedPhotosRef.current = [];
   }, []);
 
   /**
@@ -103,7 +110,7 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
    * visible in the editor or were subsequently removed by the user.
    * Original photos are left untouched on disk.
    */
-  const discardAllChanges = useCallback(async () => {
+  const discardAllChanges = useCallback(() => {
     const initialUris = initialUrisRef.current;
 
     // New photos still visible in the editor
@@ -114,12 +121,7 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
       (p) => !initialUris.has(p.uri),
     );
 
-    const toDelete = [...addedVisible, ...addedThenRemoved];
-
-    if (toDelete.length > 0) {
-      await Promise.all(toDelete.map((p) => deletePhotoFile(p.uri)));
-    }
-
+    [...addedVisible, ...addedThenRemoved].forEach((p) => deletePhotoFile(p.uri));
     removedPhotosRef.current = [];
   }, [photos]);
 

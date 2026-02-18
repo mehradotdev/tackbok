@@ -83,6 +83,7 @@ export const he: Translations = {
   'Add tags...': 'הוסף תגיות...',
   'Entry saved successfully': 'הרשומה נשמרה בהצלחה',
   'Failed to save entry': 'שמירת הרשומה נכשלה',
+  'Failed to add photos': 'הוספת התמונות נכשלה',
   'Failed to delete entry': 'מחיקת הרשומה נכשלה',
   'Tag already exists': 'התגית כבר קיימת',
   'Tag created': 'התגית נוצרה',

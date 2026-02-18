@@ -12,7 +12,6 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { PortalHost } from '~/components/primitives/portal';
-import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
 import { Toaster } from '~/components/ui/toast';
 
 const queryClient = new QueryClient({
@@ -71,13 +70,7 @@ export default function Layout() {
                 headerStyle: { backgroundColor: primaryColor as string },
                 headerTitleStyle: { fontWeight: 'bold' },
               }}>
-              <Stack.Screen
-                name="index"
-                options={{
-                  title: 'Tackbok',
-                  headerRight: () => <SettingsDropdownMenu />,
-                }}
-              />
+              <Stack.Screen name="index" />
               <Stack.Screen
                 name="gratitudeEntry/index"
                 options={{

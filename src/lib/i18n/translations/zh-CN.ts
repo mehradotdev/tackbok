@@ -81,6 +81,7 @@ export const zhCN: Translations = {
   'Add tags...': '添加标签...',
   'Entry saved successfully': '条目保存成功',
   'Failed to save entry': '保存条目失败',
+  'Failed to add photos': '添加照片失败',
   'Failed to delete entry': '删除条目失败',
   'Tag already exists': '标签已存在',
   'Tag created': '标签已创建',

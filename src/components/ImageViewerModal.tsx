@@ -47,11 +47,12 @@ export function ImageViewerModal({
   // Scroll to initial index when visible changes or component mounts
   useEffect(() => {
     if (visible && photos.length > 0) {
-      setCurrentIndex(initialIndex);
+      const safeIndex = Math.max(0, Math.min(initialIndex, photos.length - 1));
+      setCurrentIndex(safeIndex);
       // Use a small timeout to ensure FlatList is ready
       const timer = setTimeout(() => {
         flatListRef.current?.scrollToIndex({
-          index: initialIndex,
+          index: safeIndex,
           animated: false,
         });
       }, 50);

@@ -106,6 +106,7 @@ export function AddPhotoModal({
               onPress={async () => {
                 onClose();
                 const remaining = MAX_PHOTOS_PER_ENTRY - currentPhotoCount;
+                if (remaining <= 0) return;
                 const result = await pickPhotos('library', remaining);
                 await handlePickResult(result);
               }}>

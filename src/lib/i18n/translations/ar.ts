@@ -82,6 +82,7 @@ export const ar: Translations = {
   'Add tags...': 'أضف وسوم...',
   'Entry saved successfully': 'تم حفظ الإدخال بنجاح',
   'Failed to save entry': 'فشل حفظ الإدخال',
+  'Failed to add photos': 'فشل إضافة الصور',
   'Failed to delete entry': 'فشل حذف الإدخال',
   'Tag already exists': 'الوسم موجود بالفعل',
   'Tag created': 'تم إنشاء الوسم',

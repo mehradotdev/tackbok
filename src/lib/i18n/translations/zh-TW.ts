@@ -81,6 +81,7 @@ export const zhTW: Translations = {
   'Add tags...': '新增標籤...',
   'Entry saved successfully': '紀錄儲存成功',
   'Failed to save entry': '無法儲存紀錄',
+  'Failed to add photos': '無法新增照片',
   'Failed to delete entry': '無法刪除紀錄',
   'Tag already exists': '標籤已存在',
   'Tag created': '標籤已建立',

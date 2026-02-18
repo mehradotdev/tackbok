@@ -22,6 +22,7 @@ export function AnimatedButton({
   children,
   ...props
 }: AnimatedButtonProps) {
+  'use no memo';
   const translateY = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => {

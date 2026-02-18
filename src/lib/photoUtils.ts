@@ -38,7 +38,7 @@ export function photoFileExists(relativeUri: string): boolean {
 /**
  * Filter an array of assets to only those whose photo files actually exist on disk.
  * Non-IMAGE assets are kept as-is (future-proofing for other asset types).
- * Returns null if the filtered array is empty (matches DB convention).
+ * Returns an empty array if no assets remain after filtering.
  */
 export function filterExistingPhotos(assets: Asset[] | null): Asset[] {
   if (!assets || assets.length === 0) return [];
@@ -65,7 +65,7 @@ export function getPhotoRotation(uri: string, width?: number, height?: number): 
   }
 
   // Base rotation: roughly -3.5 to +3.5 degrees
-  const baseRotation = (hash % 700) / 100;
+  const baseRotation = (hash % 350) / 100;
 
   // Scale down for tall / narrow photos
   if (width && height && height > 0) {

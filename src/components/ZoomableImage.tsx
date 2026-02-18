@@ -30,6 +30,7 @@ export function ZoomableImage({
   onZoomChange,
   onClose,
 }: ZoomableImageProps) {
+  'use no memo';
   const [isZoomedState, setIsZoomedState] = useState(false);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);

@@ -83,6 +83,7 @@ export const en = {
   'Add tags...': 'Add tags...',
   'Entry saved successfully': 'Entry saved successfully',
   'Failed to save entry': 'Failed to save entry',
+  'Failed to add photos': 'Failed to add photos',
   'Failed to delete entry': 'Failed to delete entry',
   'Tag already exists': 'Tag already exists',
   'Tag created': 'Tag created',

@@ -16,6 +16,7 @@ interface TimelineDotProps {
 }
 
 export function TimelineDotAnimated({ isExpanded, isToday }: TimelineDotProps) {
+  'use no memo';
   // Determine icons based on state
   const CollapsedIcon = isToday ? Plus : CirclePlus;
   const ExpandedIcon = isToday ? Minus : CircleMinus;
