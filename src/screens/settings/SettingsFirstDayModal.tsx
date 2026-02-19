@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
 import { View, Modal, Pressable } from 'react-native';
+import { FirstDay, type FirstDayOfWeek } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group';
 import { Label } from '~/components/ui/label';
 
-type FirstDayOption = 'saturday' | 'sunday' | 'monday';
-
 interface SettingsFirstDayModalProps {
   visible: boolean;
   onClose: () => void;
-  value: FirstDayOption;
-  onValueChange: (day: FirstDayOption) => void;
+  value: FirstDayOfWeek;
+  onValueChange: (day: FirstDayOfWeek) => void;
 }
 
 // TODO: Implement actual calendar integration
@@ -32,10 +31,10 @@ export function SettingsFirstDayModal({
     }
   }, [visible, value]);
 
-  const options: { value: FirstDayOption; label: string }[] = [
-    { value: 'saturday', label: t('Saturday') },
-    { value: 'sunday', label: t('Sunday') },
-    { value: 'monday', label: t('Monday') },
+  const options: { value: FirstDayOfWeek; label: string }[] = [
+    { value: FirstDay.SATURDAY, label: t('Saturday') },
+    { value: FirstDay.SUNDAY, label: t('Sunday') },
+    { value: FirstDay.MONDAY, label: t('Monday') },
   ];
 
   const handleConfirm = () => {
@@ -57,7 +56,7 @@ export function SettingsFirstDayModal({
 
           <RadioGroup
             value={tempValue}
-            onValueChange={(val) => setTempValue(val as FirstDayOption)}
+            onValueChange={(val) => setTempValue(val as FirstDayOfWeek)}
             className="mb-6 gap-0">
             {options.map((option) => (
               <View key={option.value} className="flex-row items-center py-3 gap-3">

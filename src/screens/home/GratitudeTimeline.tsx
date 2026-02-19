@@ -7,6 +7,7 @@ import {
   type MilestoneItem,
   type TimelineListItem,
   type Entry,
+  AssetType,
 } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';
@@ -173,9 +174,14 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
           if (isDayGroupItem(item)) {
             const isExpanded = expandedDays.has(item.dateMs);
             const numEntries = item.entries.length;
-            // Collapsed: ~70px header + ~40px preview
-            // Expanded: ~70px header + ~150px per entry
-            return isExpanded ? 70 + numEntries * 150 : 110;
+            // Check if any entries have photos
+            const hasPhotos = item.entries.some(
+              (e) => e.assets && e.assets.some((a) => a.type === AssetType.IMAGE),
+            );
+            const photosExtra = hasPhotos ? 80 : 0; // ~80px for horizontal scroll row
+            // Collapsed: ~70px header + ~40px preview + optional photos
+            // Expanded: ~70px header + ~150px per entry + optional photos
+            return isExpanded ? 70 + numEntries * (150 + photosExtra) : 110 + photosExtra;
           }
           return 150;
         }}

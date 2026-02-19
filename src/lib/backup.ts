@@ -3,10 +3,17 @@ import { format } from 'date-fns';
 import { and, desc, eq } from 'drizzle-orm';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy'; // TODO: Migrate from legacy FileSystem
+import { Directory, File, Paths } from 'expo-file-system';
+import { getTableColumns } from 'drizzle-orm/utils';
+import { MOODS, TAG_SEPARATOR } from '~/constants';
+import { AssetType } from '~/types';
 import { db, entries, tags, type Entry } from '~/db';
 import { generateUUID } from '~/lib/utils';
-import { MOODS, TAG_SEPARATOR, TACKBOK_CSV_HEADER } from '~/constants';
+import { photoFileExists } from '~/lib/photoUtils';
+
+/** Column order for the Tackbok CSV export — drives both the header and each row's value order. */
+const TACKBOK_COLUMNS = Object.keys(getTableColumns(entries)) as Array<keyof Entry>;
+const TACKBOK_CSV_HEADER = TACKBOK_COLUMNS.join(',');
 
 /** Set of valid mood values, derived from the MOODS const to stay in sync. */
 const VALID_MOODS: Set<string> = new Set(MOODS);
@@ -145,18 +152,24 @@ function resolveTagIdsToNames(tagIds: string, tagMap: Map<string, string>): stri
  * These paths will NOT be valid on another device. Asset files are not included
  * in the CSV export — only the metadata is preserved for same-device restore.
  */
+/** Maps each DB column name to a function that serialises that field to a CSV string. */
+const columnGetters: Record<
+  keyof Entry,
+  (e: Entry, tagMap: Map<string, string>) => string
+> = {
+  note_id: (e) => e.note_id,
+  text_title: (e) => e.text_title ?? '',
+  text_content: (e) => e.text_content,
+  mood: (e) => e.mood ?? '',
+  assets: (e) => (e.assets ? JSON.stringify(e.assets) : ''),
+  tags: (e, tagMap) => resolveTagIdsToNames(e.tags, tagMap),
+  created_at: (e) => e.created_at.toString(),
+  updated_at: (e) => e.updated_at.toString(),
+};
+
 function entriesToTackbokCSV(allEntries: Entry[], tagMap: Map<string, string>): string {
   const rows = allEntries.map((entry) => {
-    const values = [
-      entry.note_id,
-      entry.text_title ?? '',
-      entry.text_content,
-      entry.mood ?? '',
-      entry.assets ? JSON.stringify(entry.assets) : '',
-      resolveTagIdsToNames(entry.tags, tagMap),
-      entry.created_at.toString(),
-      entry.updated_at.toString(),
-    ];
+    const values = TACKBOK_COLUMNS.map((col) => columnGetters[col](entry, tagMap));
     return values.map(escapeCSVValue).join(',');
   });
   return [TACKBOK_CSV_HEADER, ...rows].join('\n');
@@ -167,25 +180,16 @@ function entriesToTackbokCSV(allEntries: Entry[], tagMap: Map<string, string>): 
  */
 async function saveCSVFile(csvContent: string, fileName: string): Promise<void> {
   if (Platform.OS === 'android') {
-    // Android: Use Storage Access Framework for direct save
-    const permissions =
-      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-
-    if (!permissions.granted) {
-      throw new Error('Storage permission denied');
+    // Android: Use native directory picker
+    try {
+      const directory = await Directory.pickDirectoryAsync();
+      // create() is synchronous and returns a File object
+      const file = directory.createFile(fileName, 'text/csv');
+      file.write(csvContent);
+    } catch (err) {
+      // Preserve the original error so write failures vs. user cancellations are debuggable
+      throw new Error('Export cancelled or failed', { cause: err });
     }
-
-    // Create file in the selected directory
-    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-      permissions.directoryUri,
-      fileName,
-      'text/csv',
-    );
-
-    // Write content to the file
-    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
   } else {
     // iOS: Use share sheet
     const isAvailable = await Sharing.isAvailableAsync();
@@ -193,23 +197,21 @@ async function saveCSVFile(csvContent: string, fileName: string): Promise<void> 
       throw new Error('Sharing is not available on this device');
     }
 
-    const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-
-    // Write to temp file
-    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+    const file = new File(Paths.cache, fileName);
+    file.write(csvContent);
 
     // Open share sheet
     try {
-      await Sharing.shareAsync(fileUri, {
+      await Sharing.shareAsync(file.uri, {
         mimeType: 'text/csv',
         dialogTitle: 'Export Gratitude Entries',
         UTI: 'public.comma-separated-values-text',
       });
     } finally {
       // Best‑effort cleanup of the temp file
-      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      if (file.exists) {
+        file.delete();
+      }
     }
   }
 }
@@ -323,9 +325,8 @@ async function resolveTagNamesToIds(
  * Returns the number of entries imported.
  */
 export async function importFromCSV(uri: string): Promise<number> {
-  const content = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
+  const file = new File(uri);
+  const content = await file.text();
 
   const rows = parseCSV(content);
 
@@ -422,7 +423,16 @@ export async function importFromCSV(uri: string): Promise<number> {
       let assets = null;
       if (assetsStr) {
         try {
-          assets = JSON.parse(assetsStr);
+          const parsed = JSON.parse(assetsStr);
+          if (Array.isArray(parsed)) {
+            // Filter out IMAGE assets whose files don't exist on disk.
+            // Asset paths are device-specific, so they won't be valid on another device.
+            const existing = parsed.filter((a: { type?: string; uri?: string }) => {
+              if (a.type === AssetType.IMAGE && a.uri) return photoFileExists(a.uri);
+              return true; // keep non-image assets // TODO; update this when we have voice memo assets
+            });
+            assets = existing.length > 0 ? existing : null;
+          }
         } catch {
           // Invalid JSON — skip assets for this entry
           assets = null;
@@ -463,9 +473,8 @@ export async function importFromCSV(uri: string): Promise<number> {
  */
 export async function importFromPresentlyCSV(uri: string): Promise<number> {
   // Read file content
-  const content = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.UTF8,
-  });
+  const file = new File(uri);
+  const content = await file.text();
 
   // Parse CSV content (handles multi-line content in quoted fields)
   const rows = parseCSV(content);

@@ -54,6 +54,17 @@ export const he: Translations = {
   'Select date': 'בחר תאריך',
   Mood: 'מצב רוח',
   Photo: 'תמונה',
+  'Add Photo': 'הוסף תמונה',
+  'Take Photo': 'צלם תמונה',
+  'Choose from Library': 'בחר מהספרייה',
+  'Maximum {count} photos per entry': 'מקסימום {count} תמונות לרשומה',
+  'Camera Access Required': 'נדרשת גישה למצלמה',
+  'Photo Library Access Required': 'נדרשת גישה לספריית התמונות',
+  'Please enable camera access in your device settings to take photos.':
+    'אנא אפשר גישה למצלמה בהגדרות המכשיר שלך כדי לצלם תמונות.',
+  'Please enable photo library access in your device settings to select photos.':
+    'אנא אפשר גישה לספריית התמונות בהגדרות המכשיר שלך כדי לבחור תמונות.',
+  'Open Settings': 'פתח הגדרות',
   Voice: 'קול',
 
   'Title (optional)': 'כותרת (אופציונלי)',
@@ -72,6 +83,7 @@ export const he: Translations = {
   'Add tags...': 'הוסף תגיות...',
   'Entry saved successfully': 'הרשומה נשמרה בהצלחה',
   'Failed to save entry': 'שמירת הרשומה נכשלה',
+  'Failed to add photos': 'הוספת התמונות נכשלה',
   'Failed to delete entry': 'מחיקת הרשומה נכשלה',
   'Tag already exists': 'התגית כבר קיימת',
   'Tag created': 'התגית נוצרה',
@@ -92,7 +104,8 @@ export const he: Translations = {
   'Create your first tag': 'צור את התגית הראשונה שלך',
   'Edit Tag': 'ערוך תגית',
   'Delete Tag': 'מחק תגית',
-  'Are you sure you want to delete the tag?': 'האם אתה בטוח שברצונך למחוק את התגית?',
+  'Are you sure you want to delete the tag "{title}"?':
+    'האם אתה בטוח שברצונך למחוק את התגית "{title}"?',
 
   // Milestones
   'days of gratitude': 'ימים של הכרת טובה',
@@ -188,10 +201,11 @@ export const he: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'אזור מסוכן',
   'Delete All Data': 'מחק את כל הנתונים',
-  'Permanently delete all your entries': 'מחק את כל הרשומות שלך לצמיתות',
+  'Permanently delete all your entries and photos':
+    'מחק את כל הרשומות והתמונות שלך לצמיתות',
   'Delete all data?': 'למחוק את כל הנתונים?',
-  'This action cannot be undone. All your entries will be permanently deleted.':
-    'לא ניתן לבטל פעולה זו. כל הרשומות שלך יימחקו לצמיתות.',
+  'This action cannot be undone. All your entries and photos will be permanently deleted.':
+    'לא ניתן לבטל פעולה זו. כל הרשומות והתמונות שלך יימחקו לצמיתות.',
   'All data deleted': 'כל הנתונים נמחקו',
   'Delete failed': 'המחיקה נכשלה',
 

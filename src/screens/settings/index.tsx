@@ -28,7 +28,9 @@ import {
   Trash2,
   Table2,
 } from 'lucide-react-native';
+import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { deleteAllData } from '~/db/queries';
+import { deleteAllPhotos } from '~/lib/photoUtils';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import {
@@ -46,6 +48,7 @@ import { toast } from '~/components/ui/toast';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogDestructiveAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -170,6 +173,7 @@ export default function SettingsScreen() {
   const handleDeleteAllData = useCallback(async () => {
     setShowDeleteConfirmDialog(false);
     try {
+      await deleteAllPhotos();
       await deleteAllData();
       try {
         await queryClient.invalidateQueries();
@@ -470,7 +474,7 @@ export default function SettingsScreen() {
         <SettingsSection title={t('Danger Zone')}>
           <SettingsRow
             label={t('Delete All Data')}
-            description={t('Permanently delete all your entries')}
+            description={t('Permanently delete all your entries and photos')}
             icon={Trash2}
             onPress={() => setShowDeleteConfirmDialog(true)}
             showChevron
@@ -560,7 +564,7 @@ export default function SettingsScreen() {
             <AlertDialogTitle>{t('Delete all data?')}</AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                'This action cannot be undone. All your entries will be permanently deleted.',
+                'This action cannot be undone. All your entries and photos will be permanently deleted.',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -568,13 +572,11 @@ export default function SettingsScreen() {
             <AlertDialogCancel>
               <Text>{t('Cancel')}</Text>
             </AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogDestructiveAction
               onPress={handleDeleteAllData}
-              className="bg-destructive active:bg-destructive/90">
-              <Text className="text-destructive-foreground font-bold">
-                {t('Delete All Data')}
-              </Text>
-            </AlertDialogAction>
+              delaySeconds={DELETE_CONFIRM_DELAY_SECONDS}>
+              <Text>{t('Delete All Data')}</Text>
+            </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

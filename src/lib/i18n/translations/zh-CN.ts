@@ -52,6 +52,17 @@ export const zhCN: Translations = {
   'Select date': '选择日期',
   Mood: '心情',
   Photo: '照片',
+  'Add Photo': '添加照片',
+  'Take Photo': '拍照',
+  'Choose from Library': '从相册选择',
+  'Maximum {count} photos per entry': '每条记录最多 {count} 张照片',
+  'Camera Access Required': '需要相机访问权限',
+  'Photo Library Access Required': '需要照片库访问权限',
+  'Please enable camera access in your device settings to take photos.':
+    '请在设备设置中启用相机访问权限以拍摄照片。',
+  'Please enable photo library access in your device settings to select photos.':
+    '请在设备设置中启用照片库访问权限以选择照片。',
+  'Open Settings': '打开设置',
   Voice: '语音',
 
   'Title (optional)': '标题（可选）',
@@ -70,6 +81,7 @@ export const zhCN: Translations = {
   'Add tags...': '添加标签...',
   'Entry saved successfully': '条目保存成功',
   'Failed to save entry': '保存条目失败',
+  'Failed to add photos': '添加照片失败',
   'Failed to delete entry': '删除条目失败',
   'Tag already exists': '标签已存在',
   'Tag created': '标签已创建',
@@ -90,7 +102,7 @@ export const zhCN: Translations = {
   'Create your first tag': '创建您的第一个标签',
   'Edit Tag': '编辑标签',
   'Delete Tag': '删除标签',
-  'Are you sure you want to delete the tag?': '您确定要删除该标签吗？',
+  'Are you sure you want to delete the tag "{title}"?': '您确定要删除标签“{title}”吗？',
 
   // Milestones
   'days of gratitude': '感恩天数',
@@ -182,10 +194,10 @@ export const zhCN: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危险区域',
   'Delete All Data': '删除所有数据',
-  'Permanently delete all your entries': '永久删除您的所有条目',
+  'Permanently delete all your entries and photos': '永久删除您的所有条目和照片',
   'Delete all data?': '删除所有数据？',
-  'This action cannot be undone. All your entries will be permanently deleted.':
-    '此操作无法撤销。您的所有条目将被永久删除。',
+  'This action cannot be undone. All your entries and photos will be permanently deleted.':
+    '此操作无法撤销。您的所有条目和照片将被永久删除。',
   'All data deleted': '所有数据已删除',
   'Delete failed': '删除失败',
 

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from 'expo-sqlite/kv-store';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { FirstDayOfWeek } from '~/types';
+import { FirstDay, type FirstDayOfWeek } from '~/types';
 
 // TODO: Implement actual functionality for all settings
 // This is currently a mock store - all values are stored but not yet connected to real features
@@ -58,7 +58,7 @@ export const useSettingsStore = create<SettingsState>()(
       timelineEntryLength: 10,
       inspirationalQuotesEnabled: true,
       dateIncludesDayOfWeek: false,
-      firstDayOfWeek: 'monday',
+      firstDayOfWeek: FirstDay.MONDAY,
       showTimelineBorders: false,
       biometricUnlockEnabled: false,
       googleDriveBackupEnabled: false,

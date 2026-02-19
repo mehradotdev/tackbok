@@ -60,8 +60,10 @@ export function BottomSheet({
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: progress.value * 2 * height.value },
-      // Move sheet up when keyboard appears
-      { translateY: keyboardHeight.value },
+      // Move sheet up when keyboard appears — only while the sheet is
+      // visible (progress < 1). When fully closed (progress === 1) the
+      // keyboard offset would pull the off-screen sheet back into view.
+      { translateY: progress.value < 1 ? keyboardHeight.value : 0 },
     ],
   }));
 

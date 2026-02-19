@@ -35,24 +35,35 @@ export const ar: Translations = {
 
   // Date Entries
   'Loading...': 'جاري التحميل...',
-  'No entries for this date': 'لا توجد إدخالات لهذا التاريخ',
-  'Create Entry': 'إنشاء إدخال',
-  'Something went wrong. Creating new entry.': 'حدث خطأ ما. جارٍ إنشاء إدخال جديد.',
+  'No entries for this date': 'لا توجد سجلات لهذا التاريخ',
+  'Create Entry': 'إنشاء سجل',
+  'Something went wrong. Creating new entry.': 'حدث خطأ ما. جارٍ إنشاء سجل جديد.',
 
   // Gratitude Entry
   'Delete Entry?': 'حذف السجل؟',
   'Clearing the text will delete this entry entirely.':
     'مسح النص سيؤدي إلى حذف هذا السجل تماماً.',
-  'This entry will be permanently deleted.': 'سيتم حذف هذا الإدخال نهائيًا.',
+  'This entry will be permanently deleted.': 'سيتم حذف هذا السجل نهائيًا.',
   'Leave without saving?': 'المغادرة دون حفظ؟',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
-    'إدخالك غير محفوظ. هل تريد الاستمرار في التحرير أو تجاهله؟',
+    'سجلك غير محفوظ. هل تريد الاستمرار في التحرير أو تجاهله؟',
   'Keep Editing': 'متابعة التحرير',
 
   'Pick any date': 'اختر أي تاريخ',
   'Select date': 'حدد التاريخ',
   Mood: 'المزاج',
   Photo: 'صورة',
+  'Add Photo': 'إضافة صورة',
+  'Take Photo': 'التقاط صورة',
+  'Choose from Library': 'اختيار من المكتبة',
+  'Maximum {count} photos per entry': 'الحد الأقصى {count} صور لكل سجل',
+  'Camera Access Required': 'مطلوب الوصول إلى الكاميرا',
+  'Photo Library Access Required': 'مطلوب الوصول إلى مكتبة الصور',
+  'Please enable camera access in your device settings to take photos.':
+    'يرجى تمكين الوصول إلى الكاميرا في إعدادات جهازك لالتقاط الصور.',
+  'Please enable photo library access in your device settings to select photos.':
+    'يرجى تمكين الوصول إلى مكتبة الصور في إعدادات جهازك لاختيار الصور.',
+  'Open Settings': 'فتح الإعدادات',
   Voice: 'صوت',
 
   'Title (optional)': 'العنوان (اختياري)',
@@ -71,6 +82,7 @@ export const ar: Translations = {
   'Add tags...': 'أضف وسوم...',
   'Entry saved successfully': 'تم حفظ الإدخال بنجاح',
   'Failed to save entry': 'فشل حفظ الإدخال',
+  'Failed to add photos': 'فشل إضافة الصور',
   'Failed to delete entry': 'فشل حذف الإدخال',
   'Tag already exists': 'الوسم موجود بالفعل',
   'Tag created': 'تم إنشاء الوسم',
@@ -91,7 +103,8 @@ export const ar: Translations = {
   'Create your first tag': 'أنشئ وسمك الأول',
   'Edit Tag': 'تعديل الوسم',
   'Delete Tag': 'حذف الوسم',
-  'Are you sure you want to delete the tag?': 'هل أنت متأكد أنك تريد حذف الوسم؟',
+  'Are you sure you want to delete the tag "{title}"?':
+    'هل أنت متأكد أنك تريد حذف الوسم "{title}"؟',
 
   // Milestones
   'days of gratitude': 'أيام من الامتنان',
@@ -126,8 +139,7 @@ export const ar: Translations = {
   'Show the borders in the timeline': 'إظهار الحدود في الجدول الزمني',
   'Hide the borders in the timeline': 'إخفاء الحدود من الجدول الزمني',
   'Inspirational Quotes': 'اقتباسات ملهمة',
-  'Gratitude quotes will be shown on entry page':
-    'ستظهر اقتباسات الامتنان في صفحة الإدخال',
+  'Gratitude quotes will be shown on entry page': 'ستظهر اقتباسات الامتنان في صفحة السجل',
   'Date Style': 'نمط التاريخ',
   'Date includes day of the week': 'التاريخ يتضمن يوم الأسبوع',
   'First Day of Week': 'أول يوم في الأسبوع',
@@ -189,10 +201,10 @@ export const ar: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'منطقة الخطر',
   'Delete All Data': 'حذف جميع البيانات',
-  'Permanently delete all your entries': 'حذف جميع سجلاتك بشكل دائم',
+  'Permanently delete all your entries and photos': 'حذف جميع سجلاتك وصورك بشكل دائم',
   'Delete all data?': 'حذف جميع البيانات؟',
-  'This action cannot be undone. All your entries will be permanently deleted.':
-    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك بشكل دائم.',
+  'This action cannot be undone. All your entries and photos will be permanently deleted.':
+    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك وصورك بشكل دائم.',
   'All data deleted': 'تم حذف جميع البيانات',
   'Delete failed': 'فشل الحذف',
 

@@ -1,6 +1,7 @@
 import '../global.css';
 
 import { Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
@@ -11,7 +12,6 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { PortalHost } from '~/components/primitives/portal';
-import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
 import { Toaster } from '~/components/ui/toast';
 
 const queryClient = new QueryClient({
@@ -55,61 +55,57 @@ export default function Layout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaListener
-        onChange={({ insets }) => {
-          Uniwind.updateInsets(insets);
-        }}>
-        <KeyboardProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              headerTitleAlign: 'center',
-              headerTintColor: primaryForeground as string,
-              headerStyle: { backgroundColor: primaryColor as string },
-              headerTitleStyle: { fontWeight: 'bold' },
-            }}>
-            <Stack.Screen
-              name="index"
-              options={{
-                title: 'Tackbok',
-                headerRight: () => <SettingsDropdownMenu />,
-              }}
-            />
-            <Stack.Screen
-              name="gratitudeEntry/index"
-              options={{
-                title: 'Gratitude Entry',
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaListener
+          onChange={({ insets }) => {
+            Uniwind.updateInsets(insets);
+          }}>
+          <KeyboardProvider>
+            <Stack
+              screenOptions={{
                 headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="gratitudeEntry/[noteId]"
-              options={{
-                title: 'Gratitude Entry View',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="dateEntries/[dateMs]"
-              options={{
-                title: 'Date Entries',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="settings"
-              options={{
-                title: 'Settings',
-                headerShown: false,
-              }}
-            />
-          </Stack>
-          <StatusBar style="auto" />
-          <Toaster />
-          <PortalHost />
-        </KeyboardProvider>
-      </SafeAreaListener>
-    </QueryClientProvider>
+                headerTitleAlign: 'center',
+                headerTintColor: primaryForeground as string,
+                headerStyle: { backgroundColor: primaryColor as string },
+                headerTitleStyle: { fontWeight: 'bold' },
+              }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen
+                name="gratitudeEntry/index"
+                options={{
+                  title: 'Gratitude Entry',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="gratitudeEntry/[noteId]"
+                options={{
+                  title: 'Gratitude Entry View',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="dateEntries/[dateMs]"
+                options={{
+                  title: 'Date Entries',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="settings"
+                options={{
+                  title: 'Settings',
+                  headerShown: false,
+                }}
+              />
+            </Stack>
+            <StatusBar style="auto" />
+            <Toaster />
+            <PortalHost />
+          </KeyboardProvider>
+        </SafeAreaListener>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

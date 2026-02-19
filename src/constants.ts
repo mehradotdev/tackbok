@@ -65,9 +65,20 @@ export const DAY_KEYS = [
   'Saturday',
 ] as const;
 
+/** Directory within the app's document storage where photos are persisted */
+export const PHOTOS_DIR_NAME = 'photos';
+
+/** Maximum dimension (width or height) for compressed photos */
+export const PHOTO_MAX_DIMENSION = 1280;
+
+/** JPEG compression quality (0–1) for saved photos */
+export const PHOTO_QUALITY = 0.7;
+
+/** Maximum number of photos allowed per entry */
+export const MAX_PHOTOS_PER_ENTRY = 10;
+
 /** Separator used for tag names in the CSV tags column */
 export const TAG_SEPARATOR = '|';
 
-/** Tackbok CSV header columns */
-export const TACKBOK_CSV_HEADER =
-  'note_id,text_title,text_content,mood,assets,tags,created_at,updated_at';
+/** Number of seconds the "Delete All Data" button stays disabled after the dialog opens */
+export const DELETE_CONFIRM_DELAY_SECONDS = 11;

@@ -156,6 +156,10 @@ const Overlay = ({
 
 Overlay.displayName = 'OverlayNativeAlertDialog';
 
+function onStartShouldSetResponder() {
+  return true;
+}
+
 const Content = ({
   asChild,
   forceMount,
@@ -191,6 +195,7 @@ const Content = ({
       aria-labelledby={`${nativeID}_label`}
       aria-describedby={`${nativeID}_desc`}
       aria-modal={true}
+      onStartShouldSetResponder={onStartShouldSetResponder}
       {...props}
     />
   );

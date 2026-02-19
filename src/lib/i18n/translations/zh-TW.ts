@@ -52,6 +52,17 @@ export const zhTW: Translations = {
   'Select date': '選擇日期',
   Mood: '心情',
   Photo: '照片',
+  'Add Photo': '新增照片',
+  'Take Photo': '拍照',
+  'Choose from Library': '從相簿選擇',
+  'Maximum {count} photos per entry': '每條記錄最多 {count} 張照片',
+  'Camera Access Required': '需要相機存取權限',
+  'Photo Library Access Required': '需要照片圖庫存取權限',
+  'Please enable camera access in your device settings to take photos.':
+    '請在裝置設定中啟用相機存取權限以拍攝照片。',
+  'Please enable photo library access in your device settings to select photos.':
+    '請在裝置設定中啟用照片圖庫存取權限以選取照片。',
+  'Open Settings': '開啟設定',
   Voice: '語音',
 
   'Title (optional)': '標題（選填）',
@@ -70,6 +81,7 @@ export const zhTW: Translations = {
   'Add tags...': '新增標籤...',
   'Entry saved successfully': '紀錄儲存成功',
   'Failed to save entry': '無法儲存紀錄',
+  'Failed to add photos': '無法新增照片',
   'Failed to delete entry': '無法刪除紀錄',
   'Tag already exists': '標籤已存在',
   'Tag created': '標籤已建立',
@@ -90,7 +102,7 @@ export const zhTW: Translations = {
   'Create your first tag': '建立您的第一個標籤',
   'Edit Tag': '編輯標籤',
   'Delete Tag': '刪除標籤',
-  'Are you sure you want to delete the tag?': '您確定要刪除此標籤嗎？',
+  'Are you sure you want to delete the tag "{title}"?': '您確定要刪除標籤「{title}」嗎？',
 
   // Milestones
   'days of gratitude': '感恩天數',
@@ -182,10 +194,10 @@ export const zhTW: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危險區域',
   'Delete All Data': '刪除所有資料',
-  'Permanently delete all your entries': '永久刪除您的所有紀錄',
+  'Permanently delete all your entries and photos': '永久刪除您的所有紀錄和照片',
   'Delete all data?': '刪除所有資料？',
-  'This action cannot be undone. All your entries will be permanently deleted.':
-    '此動作無法復原。您的所有紀錄將被永久刪除。',
+  'This action cannot be undone. All your entries and photos will be permanently deleted.':
+    '此動作無法復原。您的所有紀錄和照片將被永久刪除。',
   'All data deleted': '所有資料已刪除',
   'Delete failed': '刪除失敗',
 

@@ -1,17 +1,19 @@
-import React from 'react';
-import { View, Pressable, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Pressable, Platform, FlatList, Image, ScrollView } from 'react-native';
 import { format } from 'date-fns';
-import { CircleMinus, CirclePlus, Minus, Plus } from 'lucide-react-native';
-import { type DayGroup, type Entry } from '~/types';
 import { MOOD_EMOJI } from '~/constants';
+import type { DayGroup, Entry, Asset } from '~/types';
 import { cn } from '~/lib/utils';
 import { useSettingsStore } from '~/lib/settings';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
+import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
-import { Icon } from '~/components/ui/icon';
+import { AnimatedButton } from '~/components/ui/animated-button';
+import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
+import { TimelineDotAnimated } from './TimelineDot';
 
 // ============================================================================
 // Types
@@ -33,6 +35,7 @@ interface IEntryRowProps {
   isRTL: boolean;
   timelineEntryLength: number;
   tagMap: ReturnType<typeof useTagMapping>;
+  onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
 // ============================================================================
@@ -47,6 +50,7 @@ function ExpandedEntryRow({
   isRTL = false,
   timelineEntryLength,
   tagMap,
+  onPhotoPress,
 }: IEntryRowProps) {
   const time = format(new Date(entry.created_at), 'HH:mm');
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
@@ -56,6 +60,9 @@ function ExpandedEntryRow({
     .map((id) => tagMap.get(id.trim()))
     .filter((t): t is NonNullable<typeof t> => t !== undefined)
     .sort((a, b) => a.title.localeCompare(b.title));
+
+  // Extract photo assets for this entry (only those whose files exist on disk)
+  const photos = filterExistingPhotos(entry.assets ?? null);
 
   return (
     <View
@@ -125,21 +132,20 @@ function ExpandedEntryRow({
       </View>
 
       {/* --- Content Column --- */}
-      <View className="flex-1 pt-2 pl-0">
-        {/* Heading Time & Mood */}
-        <Badge variant="outline" className="self-start py-0.5 mb-2 pl-3 pr-2 bg-muted">
-          <Text className="text-sm font-black tracking-wider text-foreground/80">
-            {time}
-          </Text>
-          {entry.mood && <Text className="text-base">{MOOD_EMOJI[entry.mood]}</Text>}
-        </Badge>
+      <Pressable
+        onPress={onPress}
+        className="flex-1 flex-col pt-2 pl-0 pb-2 active:bg-muted">
+        <View className="flex-col items-start pl-3 pr-2">
+          {/* Time & Mood */}
+          <Badge
+            variant="outline"
+            className="self-start -left-3 py-0.5 mb-2 pl-3 pr-2 bg-muted shadow-lg shadow-foreground/50">
+            <Text className="text-sm font-black tracking-wider text-foreground/80">
+              {time}
+            </Text>
+            {entry.mood && <Text className="text-base">{MOOD_EMOJI[entry.mood]}</Text>}
+          </Badge>
 
-        {/* Body Content */}
-        <Button
-          variant="ghost"
-          size="flex"
-          onPress={onPress}
-          className="flex-col items-start pl-3 pr-2 pb-2">
           {/* Title */}
           {entry.text_title && (
             <Text className="text-lg font-semibold text-foreground" numberOfLines={2}>
@@ -150,7 +156,7 @@ function ExpandedEntryRow({
           {/* Content preview */}
           {entry.text_content && (
             <Text
-              className="text-base text-foreground/80"
+              className="text-base text-foreground"
               numberOfLines={timelineEntryLength}>
               {entry.text_content}
             </Text>
@@ -171,8 +177,28 @@ function ExpandedEntryRow({
               ))}
             </View>
           )}
-        </Button>
-      </View>
+        </View>
+
+        {/* Photos — horizontal scroll thumbnails */}
+        {photos.length > 0 && (
+          <View className="h-[88px] mt-2 pr-3">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerClassName="pl-3 gap-2">
+              {photos.map((photo, index) => (
+                <Pressable key={photo.uri} onPress={() => onPhotoPress(photos, index)}>
+                  <Image
+                    source={{ uri: getFullPhotoUri(photo.uri) }}
+                    className="w-20 h-20 rounded-lg"
+                    resizeMode="cover"
+                  />
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </Pressable>
     </View>
   );
 }
@@ -193,11 +219,27 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
   const tagMap = useTagMapping();
 
+  // Image Viewer State — single instance shared by both collapsed strip and expanded rows
+  const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  const handlePhotoPress = (photos: Asset[], index: number) => {
+    setViewerPhotos(photos);
+    setViewerIndex(index);
+    setIsViewerVisible(true);
+  };
+
   const isExpanded = isExpandedProp ?? dayGroup.isExpanded;
 
   const formattedDate = formatLocalizedDate(dayGroup.dateStr, t);
   const isToday = dayGroup.isToday ?? false;
   const hasEntries = dayGroup.entries.length > 0;
+
+  // Pre-compute all photos across all entries for the collapsed view (only existing files)
+  const allPhotos = dayGroup.entries.flatMap((e) =>
+    filterExistingPhotos(e.assets ?? null),
+  );
 
   return (
     <View
@@ -211,36 +253,20 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
         <View className={cn('w-[4px] bg-foreground absolute top-0 bottom-0')} />
 
         {/* The Dot */}
-        <Pressable
-          onPress={onToggleExpand}
-          hitSlop={4}
-          className={cn(
-            'z-10 mt-3 bg-background rounded-full right-[-8px] active:scale-125',
-            isToday && 'bg-foreground p-0.5 mt-5',
-          )}>
-          <Icon
-            as={
-              isToday
-                ? isExpanded
-                  ? Minus
-                  : Plus
-                : isExpanded
-                  ? CircleMinus
-                  : CirclePlus
-            }
-            className={cn('text-foreground size-5', isToday && 'text-background size-4')}
-          />
-        </Pressable>
+        <View className={cn('absolute z-10 mt-5 right-[-8px]')}>
+          <TimelineDotAnimated isExpanded={isExpanded} isToday={isToday} />
+        </View>
       </View>
 
       {/* Content Column */}
       <View className="flex-1 flex-col items-start">
         {/* Date Header - Clickable to expand/collapse */}
-        <Button
-          variant="ghost"
+        <AnimatedButton
+          variant="outline"
           size="flex"
           onPress={onToggleExpand}
-          className={cn('pt-2 pb-1 px-4', isToday && 'pt-4')}>
+          containerClassName={cn('self-start mb-2', 'mt-2')}
+          className="bg-muted active:bg-muted py-0.5 pl-3 pr-2 rounded-full border-2 border-transparent shadow-none">
           <Text className="text-lg font-bold text-foreground font-serif">
             {formattedDate}
             {hasEntries && (
@@ -250,7 +276,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
               </Text>
             )}
           </Text>
-        </Button>
+        </AnimatedButton>
 
         {/* Placeholder (when expanded and no entries) */}
         {isExpanded && !hasEntries && (
@@ -278,6 +304,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
                 isLast={index === dayGroup.entries.length - 1}
                 timelineEntryLength={timelineEntryLength}
                 tagMap={tagMap}
+                onPhotoPress={handlePhotoPress}
               />
             ))}
           </View>
@@ -285,15 +312,50 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
 
         {/* Entries List Collapsed View (when not expanded and has entries) */}
         {!isExpanded && hasEntries && (
-          <Text
-            className="text-base px-4 pb-2 text-foreground"
-            numberOfLines={timelineEntryLength}>
-            {dayGroup.entries
-              .map((e) => e.text_content)
-              .filter((text) => text && text.trim().length > 0)
-              .join('\n')}
-          </Text>
+          <Pressable
+            onPress={onToggleExpand}
+            className="w-full active:bg-muted rounded-lg">
+            <Text
+              className="text-base px-4 pb-2 text-foreground"
+              numberOfLines={timelineEntryLength}>
+              {dayGroup.entries
+                .map((e) => e.text_content)
+                .filter((text) => text && text.trim().length > 0)
+                .join('\n')}
+            </Text>
+
+            {/* Collapsed photos — all photos from all entries for this day */}
+            {allPhotos.length > 0 && (
+              // h-18 needed to limit height of FlatList
+              <View className="h-18 pr-4">
+                <FlatList
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  data={allPhotos}
+                  keyExtractor={(item, idx) => `${item.uri}-${idx}`}
+                  contentContainerClassName="gap-2 pb-2 pl-4"
+                  onStartShouldSetResponder={() => true}
+                  renderItem={({ item: photo, index }) => (
+                    <Pressable onPress={() => handlePhotoPress(allPhotos, index)}>
+                      <Image
+                        source={{ uri: getFullPhotoUri(photo.uri) }}
+                        className="w-16 h-16 rounded-lg"
+                        resizeMode="cover"
+                      />
+                    </Pressable>
+                  )}
+                />
+              </View>
+            )}
+          </Pressable>
         )}
+
+        <ImageViewerModal
+          visible={isViewerVisible}
+          initialIndex={viewerIndex}
+          photos={viewerPhotos}
+          onClose={() => setIsViewerVisible(false)}
+        />
       </View>
     </View>
   );

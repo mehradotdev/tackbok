@@ -2,11 +2,13 @@ import * as React from 'react';
 import { Platform, View, type ViewProps } from 'react-native';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { Timer } from 'lucide-react-native';
 import { cn } from '~/lib/utils';
 import * as AlertDialogPrimitive from '~/components/primitives/alert-dialog';
-import { TextClassContext } from '~/components/ui/text';
+import { Text, TextClassContext } from '~/components/ui/text';
 import { buttonTextVariants, buttonVariants } from '~/components/ui/button';
 import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
+import { Icon } from './icon';
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
@@ -135,6 +137,77 @@ function AlertDialogAction({
   );
 }
 
+/**
+ * AlertDialogDestructiveAction with an optional `delaySeconds` prop.
+ *
+ * When `delaySeconds` is provided, the button is disabled for that many seconds
+ * after the dialog opens, showing a Timer icon and countdown alongside the
+ * children text. The timer resets automatically when the dialog is dismissed
+ * and reopened (component unmount/remount).
+ */
+function AlertDialogDestructiveAction({
+  className,
+  ref,
+  delaySeconds,
+  children,
+  disabled,
+  ...props
+}: Omit<AlertDialogPrimitive.ActionProps, 'children'> & {
+  children?: React.ReactNode;
+  ref?: React.Ref<AlertDialogPrimitive.ActionRef>;
+  delaySeconds?: number;
+}) {
+  const [countdown, setCountdown] = React.useState(delaySeconds ?? 0);
+
+  React.useEffect(() => {
+    if (!delaySeconds || delaySeconds <= 0) return;
+
+    setCountdown(delaySeconds);
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [delaySeconds]);
+
+  const isDelayed = delaySeconds != null && delaySeconds > 0 && countdown > 0;
+
+  return (
+    <TextClassContext.Provider value={buttonTextVariants({ variant: 'destructive' })}>
+      <AlertDialogPrimitive.Action
+        ref={ref}
+        className={cn(
+          buttonVariants({ variant: 'destructive' }),
+          (disabled || isDelayed) && 'opacity-50',
+          className,
+        )}
+        disabled={disabled || isDelayed}
+        {...props}>
+        {delaySeconds != null ? (
+          <View className="flex-row items-center justify-center gap-0.5">
+            {children}
+            {isDelayed && (
+              <>
+                <Text>(</Text>
+                <Icon as={Timer} size={14} className="text-destructive-foreground" />
+                <Text>{countdown})</Text>
+              </>
+            )}
+          </View>
+        ) : (
+          children
+        )}
+      </AlertDialogPrimitive.Action>
+    </TextClassContext.Provider>
+  );
+}
+
 function AlertDialogCancel({
   className,
   ref,
@@ -157,6 +230,7 @@ function AlertDialogCancel({
 export {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogDestructiveAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,

@@ -57,7 +57,7 @@ const Item = ({
   ref,
   ...props
 }: ItemProps & { ref?: React.Ref<ItemRef> }) => {
-  const id = React.useId();
+  // const id = React.useId();
   const { type, disabled, value, onValueChange } = useRootContext();
 
   function onPress(ev: GestureResponderEvent) {

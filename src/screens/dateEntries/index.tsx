@@ -1,10 +1,12 @@
-import { View, FlatList, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, FlatList, Pressable, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { format, startOfDay } from 'date-fns';
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react-native';
 import { MOOD_OPTIONS } from '~/constants';
-import { type Entry } from '~/types';
+import { type Entry, type Asset } from '~/types';
 import { cn, combineDateWithCurrentTime } from '~/lib/utils';
+import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
 import { useEntriesForDay, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
@@ -12,6 +14,7 @@ import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Badge } from '~/components/ui/badge';
+import { ImageViewerModal } from '~/components/ImageViewerModal';
 
 interface IDateEntriesScreenProps {
   dateMs: number;
@@ -21,9 +24,10 @@ interface IEntryItemProps {
   entry: Entry;
   onPress: () => void;
   tagMap: ReturnType<typeof useTagMapping>;
+  onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
-function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
+function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
   const { t } = useTranslation();
   const time = format(new Date(entry.created_at), 'HH:mm');
 
@@ -35,10 +39,13 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
     .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined)
     .sort((a, b) => a.title.localeCompare(b.title));
 
+  // Extract photo assets (only those whose files exist on disk)
+  const photos = filterExistingPhotos(entry.assets ?? null);
+
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row w-full px-safe-or-3 py-3 border-b border-border active:bg-muted">
+      className="flex-col w-full px-safe-or-3 border-b border-border py-3 active:bg-muted">
       <View className="flex-1 justify-center">
         {/* Row 1: Time + Mood */}
         <View className="flex-row flex-wrap items-center gap-2 mb-2">
@@ -78,7 +85,7 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
 
         {/* Tags - Last Row */}
         {tags.length > 0 && (
-          <View className="flex-row flex-wrap gap-2 mt-8">
+          <View className="flex-row flex-wrap gap-2 mt-2">
             {tags.map((tag) => (
               <Badge
                 key={tag.tag_id}
@@ -90,6 +97,27 @@ function EntryItem({ entry, onPress, tagMap }: IEntryItemProps) {
           </View>
         )}
       </View>
+
+      {/* Photos — horizontal scroll thumbnails */}
+      {photos.length > 0 && (
+        <View className="h-[88px]">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mt-2"
+            contentContainerClassName="gap-2">
+            {photos.map((photo, index) => (
+              <Pressable key={photo.uri} onPress={() => onPhotoPress(photos, index)}>
+                <Image
+                  source={{ uri: getFullPhotoUri(photo.uri) }}
+                  className="w-20 h-20 rounded-lg"
+                  resizeMode="cover"
+                />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -98,6 +126,16 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
   const tagMap = useTagMapping();
+
+  const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  const handlePhotoPress = (photos: Asset[], index: number) => {
+    setViewerPhotos(photos);
+    setViewerIndex(index);
+    setIsViewerVisible(true);
+  };
 
   // Get date string for display
   const dateStart = startOfDay(new Date(dateMs));
@@ -164,11 +202,19 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
               entry={item}
               onPress={() => handleEntryPress(item)}
               tagMap={tagMap}
+              onPhotoPress={handlePhotoPress}
             />
           )}
           contentContainerClassName="pb-safe-or-4"
         />
       )}
+
+      <ImageViewerModal
+        visible={isViewerVisible}
+        initialIndex={viewerIndex}
+        photos={viewerPhotos}
+        onClose={() => setIsViewerVisible(false)}
+      />
     </SafeAreaView>
   );
 }
