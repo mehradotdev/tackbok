@@ -186,11 +186,9 @@ async function saveCSVFile(csvContent: string, fileName: string): Promise<void> 
       // create() is synchronous and returns a File object
       const file = directory.createFile(fileName, 'text/csv');
       file.write(csvContent);
-    } catch {
-      // Ignore cancellation or errors for now, or let them bubble if critical
-      // The previous implementation threw "Storage permission denied" on !granted
-      // pickDirectoryAsync likely throws if cancelled/failed
-      throw new Error('Export cancelled or failed');
+    } catch (err) {
+      // Preserve the original error so write failures vs. user cancellations are debuggable
+      throw new Error('Export cancelled or failed', { cause: err });
     }
   } else {
     // iOS: Use share sheet

@@ -8,7 +8,7 @@ import Animated, {
 import { cn } from '~/lib/utils';
 import { Button, type ButtonProps } from '~/components/ui/button';
 
-interface AnimatedButtonProps extends ButtonProps {
+export interface AnimatedButtonProps extends ButtonProps {
   depthClassName?: string;
   containerClassName?: string;
 }

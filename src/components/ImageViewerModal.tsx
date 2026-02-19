@@ -18,8 +18,6 @@ export interface ImageViewerPhoto {
   uri: string;
   width?: number;
   height?: number;
-  // Allow other properties to be passed through if needed, though not used by this component
-  [key: string]: any;
 }
 
 interface ImageViewerModalProps {
@@ -36,7 +34,7 @@ export function ImageViewerModal({
   onClose,
 }: ImageViewerModalProps) {
   const flatListRef = useRef<FlatList>(null);
-  const hasRetriedScrollRef = useRef(false);
+
   const [isScrollEnabled, setScrollEnabled] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(() =>
     Math.max(0, Math.min(initialIndex, photos.length - 1)),
@@ -50,8 +48,6 @@ export function ImageViewerModal({
   // Scroll to initial index when visible changes or component mounts
   useEffect(() => {
     if (visible && photos.length > 0) {
-      // Reset the retry guard each time the modal opens
-      hasRetriedScrollRef.current = false;
       const safeIndex = Math.max(0, Math.min(initialIndex, photos.length - 1));
       setCurrentIndex(safeIndex);
       // Use a small timeout to ensure FlatList is ready
@@ -65,8 +61,6 @@ export function ImageViewerModal({
     }
   }, [visible, initialIndex, photos.length]);
 
-  if (!visible) return null;
-
   return (
     <Modal
       visible={visible}
@@ -78,81 +72,72 @@ export function ImageViewerModal({
       <GestureHandlerRootView className="flex-1 bg-black">
         <StatusBar barStyle="light-content" hidden />
 
-        <View className="flex-1 relative">
-          {/* Main Carousel */}
-          <FlatList
-            ref={flatListRef}
-            data={photos}
-            horizontal
-            pagingEnabled
-            // Force re-render on orientation change so getItemLayout uses correct dimensions
-            key={itemWidth}
-            scrollEnabled={isScrollEnabled}
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item, index) => `${item.uri}-${index}`}
-            getItemLayout={(_, index) => ({
-              length: itemWidth,
-              offset: itemWidth * index,
-              index,
-            })}
-            initialScrollIndex={currentIndex}
-            onMomentumScrollEnd={(ev) => {
-              const newIndex = Math.round(ev.nativeEvent.contentOffset.x / itemWidth);
-              setCurrentIndex(newIndex);
-            }}
-            // Handle initial scroll failure gracefully — limited to one retry
-            onScrollToIndexFailed={(info) => {
-              if (hasRetriedScrollRef.current) {
-                // Already retried; fall back to the start to avoid an infinite loop
+        {visible && (
+          <View className="flex-1 relative">
+            {/* Main Carousel */}
+            <FlatList
+              ref={flatListRef}
+              data={photos}
+              horizontal
+              pagingEnabled
+              // Force re-render on orientation change so getItemLayout uses correct dimensions
+              key={itemWidth}
+              scrollEnabled={isScrollEnabled}
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item, index) => `${item.uri}-${index}`}
+              getItemLayout={(_, index) => ({
+                length: itemWidth,
+                offset: itemWidth * index,
+                index,
+              })}
+              initialScrollIndex={currentIndex}
+              onMomentumScrollEnd={(ev) => {
+                const newIndex = Math.round(ev.nativeEvent.contentOffset.x / itemWidth);
+                setCurrentIndex(newIndex);
+              }}
+              // If scroll-to-index fails for any reason, fall back to the first photo
+              onScrollToIndexFailed={() => {
                 flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-                return;
-              }
-              hasRetriedScrollRef.current = true;
-              const wait = new Promise((resolve) => setTimeout(resolve, 100));
-              wait.then(() => {
-                flatListRef.current?.scrollToIndex({
-                  index: info.index,
-                  animated: false,
-                });
-              });
-            }}
-            renderItem={({ item }) => {
-              return (
-                <View style={{ width: itemWidth, height: itemHeight }}>
-                  <ZoomableImage
-                    uri={item.uri}
-                    width={item.width}
-                    height={item.height}
-                    containerWidth={itemWidth}
-                    containerHeight={itemHeight}
-                    onZoomChange={(isZoomed) => setScrollEnabled(!isZoomed)}
-                    onClose={onClose}
-                  />
-                </View>
-              );
-            }}
-          />
+                setCurrentIndex(0);
+              }}
+              renderItem={({ item }) => {
+                return (
+                  <View style={{ width: itemWidth, height: itemHeight }}>
+                    <ZoomableImage
+                      uri={item.uri}
+                      width={item.width}
+                      height={item.height}
+                      containerWidth={itemWidth}
+                      containerHeight={itemHeight}
+                      onZoomChange={(isZoomed) => setScrollEnabled(!isZoomed)}
+                      onClose={onClose}
+                    />
+                  </View>
+                );
+              }}
+            />
 
-          {/* Close Button - Positioned absolutely within the Safe Area */}
-          <View className="absolute top-safe-or-2 right-safe-or-2 z-10">
-            <Pressable
-              onPress={onClose}
-              className="w-11 h-11 rounded-full bg-black/50 justify-center items-center active:bg-white/20">
-              <Icon as={X} className="text-white size-7" />
-            </Pressable>
-          </View>
+            {/* Close Button - Positioned absolutely within the Safe Area */}
+            <View className="absolute top-safe-or-2 right-safe-or-2 z-10">
+              <Pressable
+                onPress={onClose}
+                className="w-11 h-11 rounded-full bg-black/50 justify-center items-center active:bg-white/20">
+                <Icon as={X} className="text-white size-7" />
+              </Pressable>
+            </View>
 
-          {/* Image Counter Pill - Positioned absolutely at bottom center */}
-          <View
-            className="absolute left-0 right-0 bottom-safe-or-6 z-10 items-center justify-center"
-            pointerEvents="box-none">
-            <View className="bg-black/50 px-4 py-2 rounded-full backdrop-blur-md">
-              <Text className="text-white font-bold">
-                {currentIndex + 1} / {photos.length}
-              </Text>
+            {/* Image Counter Pill - Positioned absolutely at bottom center */}
+            <View
+              className="absolute left-0 right-0 bottom-safe-or-6 z-10 items-center justify-center"
+              pointerEvents="box-none">
+              <View className="bg-black/50 px-4 py-2 rounded-full backdrop-blur-md">
+                <Text className="text-white font-bold">
+                  {currentIndex + 1} / {photos.length}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
       </GestureHandlerRootView>
     </Modal>
   );
