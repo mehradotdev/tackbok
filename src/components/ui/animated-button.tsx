@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, type GestureResponderEvent } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -31,12 +31,12 @@ export function AnimatedButton({
     };
   });
 
-  const handlePressIn = (event: any) => {
+  const handlePressIn = (event: GestureResponderEvent) => {
     translateY.value = withSpring(4, { damping: 50, stiffness: 500 });
     onPressIn?.(event);
   };
 
-  const handlePressOut = (event: any) => {
+  const handlePressOut = (event: GestureResponderEvent) => {
     translateY.value = withSpring(0, { damping: 50, stiffness: 500 });
     onPressOut?.(event);
   };

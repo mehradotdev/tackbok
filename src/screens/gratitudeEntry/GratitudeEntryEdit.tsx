@@ -147,9 +147,6 @@ export function GratitudeEntryEdit({
     const id = initialEntry?.note_id || generateUUID();
 
     try {
-      // Delete photo files that were removed during this editing session
-      await commitRemovedPhotos();
-
       await upsertEntryMutation.mutateAsync({
         note_id: id,
         text_title: title.trim() || null,
@@ -160,6 +157,11 @@ export function GratitudeEntryEdit({
         created_at: timestamp,
         updated_at: Date.now(),
       });
+
+      // Delete photo files that were removed during this editing session.
+      // Best-effort: runs only after a successful save to prevent data loss
+      // if the upsert fails (DB would still reference the files).
+      await commitRemovedPhotos();
 
       if (isNewEntry) {
         toast.success(t('Entry saved successfully'));
@@ -172,9 +174,10 @@ export function GratitudeEntryEdit({
     }
   };
 
-  const handleDiscardChanges = async () => {
-    // Clean up all newly-added photo files; leave original photos untouched
-    await discardAllChanges();
+  const handleDiscardChanges = () => {
+    // Clean up all newly-added photo files; leave original photos untouched.
+    // deletePhotoFile already swallows errors internally, so this is safe.
+    discardAllChanges();
 
     setShowUnsavedChangesConfirm(false);
     isSaving.current = true;

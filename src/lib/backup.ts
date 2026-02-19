@@ -11,8 +11,9 @@ import { db, entries, tags, type Entry } from '~/db';
 import { generateUUID } from '~/lib/utils';
 import { photoFileExists } from '~/lib/photoUtils';
 
-/** CSV header derived directly from the DB schema — stays in sync automatically. */
-const TACKBOK_CSV_HEADER = Object.keys(getTableColumns(entries)).join(',');
+/** Column order for the Tackbok CSV export — drives both the header and each row's value order. */
+const TACKBOK_COLUMNS = Object.keys(getTableColumns(entries)) as Array<keyof Entry>;
+const TACKBOK_CSV_HEADER = TACKBOK_COLUMNS.join(',');
 
 /** Set of valid mood values, derived from the MOODS const to stay in sync. */
 const VALID_MOODS: Set<string> = new Set(MOODS);
@@ -151,18 +152,24 @@ function resolveTagIdsToNames(tagIds: string, tagMap: Map<string, string>): stri
  * These paths will NOT be valid on another device. Asset files are not included
  * in the CSV export — only the metadata is preserved for same-device restore.
  */
+/** Maps each DB column name to a function that serialises that field to a CSV string. */
+const columnGetters: Record<
+  keyof Entry,
+  (e: Entry, tagMap: Map<string, string>) => string
+> = {
+  note_id: (e) => e.note_id,
+  text_title: (e) => e.text_title ?? '',
+  text_content: (e) => e.text_content,
+  mood: (e) => e.mood ?? '',
+  assets: (e) => (e.assets ? JSON.stringify(e.assets) : ''),
+  tags: (e, tagMap) => resolveTagIdsToNames(e.tags, tagMap),
+  created_at: (e) => e.created_at.toString(),
+  updated_at: (e) => e.updated_at.toString(),
+};
+
 function entriesToTackbokCSV(allEntries: Entry[], tagMap: Map<string, string>): string {
   const rows = allEntries.map((entry) => {
-    const values = [
-      entry.note_id,
-      entry.text_title ?? '',
-      entry.text_content,
-      entry.mood ?? '',
-      entry.assets ? JSON.stringify(entry.assets) : '',
-      resolveTagIdsToNames(entry.tags, tagMap),
-      entry.created_at.toString(),
-      entry.updated_at.toString(),
-    ];
+    const values = TACKBOK_COLUMNS.map((col) => columnGetters[col](entry, tagMap));
     return values.map(escapeCSVValue).join(',');
   });
   return [TACKBOK_CSV_HEADER, ...rows].join('\n');

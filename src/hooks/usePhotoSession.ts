@@ -72,11 +72,23 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
 
       setIsAddingPhotos(true);
       try {
-        const newAssets = await Promise.all(result.uris.map(compressAndSavePhoto));
-        setPhotos((prev) => [...prev, ...newAssets].slice(0, MAX_PHOTOS_PER_ENTRY));
-      } catch (error) {
-        console.error('Failed to add photos:', error);
-        toast.error(t('Failed to add photos'));
+        const results = await Promise.allSettled(result.uris.map(compressAndSavePhoto));
+        const succeeded: Asset[] = [];
+        let hadFailure = false;
+        for (const r of results) {
+          if (r.status === 'fulfilled') {
+            succeeded.push(r.value);
+          } else {
+            hadFailure = true;
+            console.error('Failed to add photo:', r.reason);
+          }
+        }
+        if (succeeded.length > 0) {
+          setPhotos((prev) => [...prev, ...succeeded].slice(0, MAX_PHOTOS_PER_ENTRY));
+        }
+        if (hadFailure) {
+          toast.error(t('Failed to add photos'));
+        }
       } finally {
         setIsAddingPhotos(false);
       }

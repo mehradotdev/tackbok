@@ -36,8 +36,11 @@ export function ImageViewerModal({
   onClose,
 }: ImageViewerModalProps) {
   const flatListRef = useRef<FlatList>(null);
+  const hasRetriedScrollRef = useRef(false);
   const [isScrollEnabled, setScrollEnabled] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [currentIndex, setCurrentIndex] = useState(() =>
+    Math.max(0, Math.min(initialIndex, photos.length - 1)),
+  );
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   // Use full screen dimensions for full bleed
@@ -47,6 +50,8 @@ export function ImageViewerModal({
   // Scroll to initial index when visible changes or component mounts
   useEffect(() => {
     if (visible && photos.length > 0) {
+      // Reset the retry guard each time the modal opens
+      hasRetriedScrollRef.current = false;
       const safeIndex = Math.max(0, Math.min(initialIndex, photos.length - 1));
       setCurrentIndex(safeIndex);
       // Use a small timeout to ensure FlatList is ready
@@ -95,8 +100,14 @@ export function ImageViewerModal({
               const newIndex = Math.round(ev.nativeEvent.contentOffset.x / itemWidth);
               setCurrentIndex(newIndex);
             }}
-            // Handle initial scroll failure gracefully
+            // Handle initial scroll failure gracefully — limited to one retry
             onScrollToIndexFailed={(info) => {
+              if (hasRetriedScrollRef.current) {
+                // Already retried; fall back to the start to avoid an infinite loop
+                flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+                return;
+              }
+              hasRetriedScrollRef.current = true;
               const wait = new Promise((resolve) => setTimeout(resolve, 100));
               wait.then(() => {
                 flatListRef.current?.scrollToIndex({
