@@ -58,6 +58,7 @@ export const en = {
   'Take Photo': 'Take Photo',
   'Choose from Library': 'Choose from Library',
   'Maximum {count} photos per entry': 'Maximum {count} photos per entry',
+  'Maximum {count} voice memos per entry': 'Maximum {count} voice memos per entry',
   'Camera Access Required': 'Camera Access Required',
   'Photo Library Access Required': 'Photo Library Access Required',
   'Please enable camera access in your device settings to take photos.':
@@ -66,6 +67,18 @@ export const en = {
     'Please enable photo library access in your device settings to select photos.',
   'Open Settings': 'Open Settings',
   Voice: 'Voice',
+  'Microphone Access Required': 'Microphone Access Required',
+  'Please enable microphone access in your device settings to record voice memos.':
+    'Please enable microphone access in your device settings to record voice memos.',
+  'Record Voice Note': 'Record Voice Note',
+  'Tap the button below when ready.': 'Tap the button below when ready.',
+  'Start Recording': 'Start Recording',
+  'Recording Voice Note...': 'Recording Voice Note...',
+  'Stop Recording': 'Stop Recording',
+  'Voice Note Recorded': 'Voice Note Recorded',
+  'Tap on the play button to listen.': 'Tap on the play button to listen.',
+  'Save Recording': 'Save Recording',
+  'Record Again': 'Record Again',
 
   'Title (optional)': 'Title (optional)',
   // Moods

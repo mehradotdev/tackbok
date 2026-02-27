@@ -68,6 +68,9 @@ export const DAY_KEYS = [
 /** Directory within the app's document storage where photos are persisted */
 export const PHOTOS_DIR_NAME = 'photos';
 
+/** Directory within the app's document storage where voice memos are persisted */
+export const VOICE_MEMOS_DIR_NAME = 'voice_memos';
+
 /** Maximum dimension (width or height) for compressed photos */
 export const PHOTO_MAX_DIMENSION = 1280;
 
@@ -76,6 +79,9 @@ export const PHOTO_QUALITY = 0.7;
 
 /** Maximum number of photos allowed per entry */
 export const MAX_PHOTOS_PER_ENTRY = 10;
+
+/** Maximum number of voice memos allowed per entry */
+export const MAX_VOICE_MEMOS_PER_ENTRY = 3;
 
 /** Separator used for tag names in the CSV tags column */
 export const TAG_SEPARATOR = '|';

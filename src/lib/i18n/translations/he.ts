@@ -58,6 +58,7 @@ export const he: Translations = {
   'Take Photo': 'צלם תמונה',
   'Choose from Library': 'בחר מהספרייה',
   'Maximum {count} photos per entry': 'מקסימום {count} תמונות לרשומה',
+  'Maximum {count} voice memos per entry': 'מקסימום {count} הקלטות קוליות לרשומה',
   'Camera Access Required': 'נדרשת גישה למצלמה',
   'Photo Library Access Required': 'נדרשת גישה לספריית התמונות',
   'Please enable camera access in your device settings to take photos.':
@@ -66,6 +67,18 @@ export const he: Translations = {
     'אנא אפשר גישה לספריית התמונות בהגדרות המכשיר שלך כדי לבחור תמונות.',
   'Open Settings': 'פתח הגדרות',
   Voice: 'קול',
+  'Microphone Access Required': 'נדרשת גישה למיקרופון',
+  'Please enable microphone access in your device settings to record voice memos.':
+    'אנא אפשר גישה למיקרופון בהגדרות המכשיר שלך כדי להקליט תזכורות קוליות.',
+  'Record Voice Note': 'הקלט תזכורת קולית',
+  'Tap the button below when ready.': 'הקש על הכפתור למטה כשאתה מוכן.',
+  'Start Recording': 'התחל הקלטה',
+  'Recording Voice Note...': 'מקליט תזכורת קולית...',
+  'Stop Recording': 'הפסק הקלטה',
+  'Voice Note Recorded': 'תזכורת קולית הוקלטה',
+  'Tap on the play button to listen.': 'הקש על כפתור ההפעלה כדי להאזין.',
+  'Save Recording': 'שמור הקלטה',
+  'Record Again': 'הקלט שוב',
 
   'Title (optional)': 'כותרת (אופציונלי)',
   // Moods

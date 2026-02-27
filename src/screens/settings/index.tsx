@@ -31,6 +31,7 @@ import {
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { deleteAllData } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
+import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import {
@@ -173,7 +174,8 @@ export default function SettingsScreen() {
   const handleDeleteAllData = useCallback(async () => {
     setShowDeleteConfirmDialog(false);
     try {
-      await deleteAllPhotos();
+      deleteAllPhotos();
+      deleteAllVoiceMemos();
       await deleteAllData();
       try {
         await queryClient.invalidateQueries();

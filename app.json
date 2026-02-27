@@ -34,6 +34,22 @@
           "photosPermission": "Tackbok needs access to your photos to attach them to your gratitude entries.",
           "cameraPermission": "Tackbok needs access to your camera to take photos for your gratitude entries."
         }
+      ],
+      [
+        "react-native-audio-api",
+        {
+          "iosBackgroundMode": true,
+          "iosMicrophonePermission": "Tackbok needs access to your microphone to record voice memos for your gratitude entries.",
+          "androidPermissions": [
+            "android.permission.RECORD_AUDIO",
+            "android.permission.MODIFY_AUDIO_SETTINGS",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+          ],
+          "androidForegroundService": true,
+          "androidFSTypes": ["microphone", "mediaPlayback"]
+        }
       ]
     ],
     "experiments": {

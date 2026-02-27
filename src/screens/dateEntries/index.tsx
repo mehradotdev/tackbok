@@ -7,6 +7,7 @@ import { MOOD_OPTIONS } from '~/constants';
 import { type Entry, type Asset } from '~/types';
 import { cn, combineDateWithCurrentTime } from '~/lib/utils';
 import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
+import { getVoiceMemoAssets, getFullVoiceMemoUri } from '~/lib/voiceMemoUtils';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
 import { useEntriesForDay, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
@@ -15,6 +16,7 @@ import { Icon } from '~/components/ui/icon';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Badge } from '~/components/ui/badge';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
+import { AudioPlayer } from '~/components/AudioPlayer';
 
 interface IDateEntriesScreenProps {
   dateMs: number;
@@ -41,6 +43,9 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
 
   // Extract photo assets (only those whose files exist on disk)
   const photos = filterExistingPhotos(entry.assets ?? null);
+
+  // Extract voice memo assets
+  const voiceMemos = getVoiceMemoAssets(entry.assets ?? null);
 
   return (
     <Pressable
@@ -97,6 +102,15 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
           </View>
         )}
       </View>
+
+      {/* Voice memo players */}
+      {voiceMemos.length > 0 && (
+        <View className="mt-2 gap-2">
+          {voiceMemos.map((memo) => (
+            <AudioPlayer key={memo.uri} uri={getFullVoiceMemoUri(memo.uri)} />
+          ))}
+        </View>
+      )}
 
       {/* Photos — horizontal scroll thumbnails */}
       {photos.length > 0 && (

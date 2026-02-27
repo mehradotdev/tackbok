@@ -36,16 +36,13 @@ export function photoFileExists(relativeUri: string): boolean {
 }
 
 /**
- * Filter an array of assets to only those whose photo files actually exist on disk.
- * Non-IMAGE assets are kept as-is (future-proofing for other asset types).
- * Returns an empty array if no assets remain after filtering.
+ * Filter an array of assets to only IMAGE assets whose files actually exist on disk.
+ * Non-IMAGE assets (e.g. AUDIO) are excluded.
+ * Returns an empty array if no photos remain after filtering.
  */
 export function filterExistingPhotos(assets: Asset[] | null): Asset[] {
   if (!assets || assets.length === 0) return [];
-  return assets.filter((a) => {
-    if (a.type === AssetType.IMAGE) return photoFileExists(a.uri);
-    return true;
-  });
+  return assets.filter((a) => a.type === AssetType.IMAGE && photoFileExists(a.uri));
 }
 
 /**

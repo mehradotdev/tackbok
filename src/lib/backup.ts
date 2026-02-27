@@ -10,6 +10,7 @@ import { AssetType } from '~/types';
 import { db, entries, tags, type Entry } from '~/db';
 import { generateUUID } from '~/lib/utils';
 import { photoFileExists } from '~/lib/photoUtils';
+import { voiceMemoFileExists } from '~/lib/voiceMemoUtils';
 
 /** Column order for the Tackbok CSV export — drives both the header and each row's value order. */
 const TACKBOK_COLUMNS = Object.keys(getTableColumns(entries)) as Array<keyof Entry>;
@@ -198,10 +199,10 @@ async function saveCSVFile(csvContent: string, fileName: string): Promise<void> 
     }
 
     const file = new File(Paths.cache, fileName);
-    file.write(csvContent);
 
     // Open share sheet
     try {
+      file.write(csvContent);
       await Sharing.shareAsync(file.uri, {
         mimeType: 'text/csv',
         dialogTitle: 'Export Gratitude Entries',
@@ -428,8 +429,10 @@ export async function importFromCSV(uri: string): Promise<number> {
             // Filter out IMAGE assets whose files don't exist on disk.
             // Asset paths are device-specific, so they won't be valid on another device.
             const existing = parsed.filter((a: { type?: string; uri?: string }) => {
-              if (a.type === AssetType.IMAGE && a.uri) return photoFileExists(a.uri);
-              return true; // keep non-image assets // TODO; update this when we have voice memo assets
+              if (a.type === AssetType.IMAGE) return !!a.uri && photoFileExists(a.uri);
+              if (a.type === AssetType.AUDIO)
+                return !!a.uri && voiceMemoFileExists(a.uri);
+              return true; // keep unknown asset types
             });
             assets = existing.length > 0 ? existing : null;
           }

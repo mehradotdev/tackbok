@@ -57,6 +57,7 @@ export const ar: Translations = {
   'Take Photo': 'التقاط صورة',
   'Choose from Library': 'اختيار من المكتبة',
   'Maximum {count} photos per entry': 'الحد الأقصى {count} صور لكل سجل',
+  'Maximum {count} voice memos per entry': 'الحد الأقصى {count} مذكرات صوتية لكل سجل',
   'Camera Access Required': 'مطلوب الوصول إلى الكاميرا',
   'Photo Library Access Required': 'مطلوب الوصول إلى مكتبة الصور',
   'Please enable camera access in your device settings to take photos.':
@@ -65,6 +66,18 @@ export const ar: Translations = {
     'يرجى تمكين الوصول إلى مكتبة الصور في إعدادات جهازك لاختيار الصور.',
   'Open Settings': 'فتح الإعدادات',
   Voice: 'صوت',
+  'Microphone Access Required': 'مطلوب الوصول للميكروفون',
+  'Please enable microphone access in your device settings to record voice memos.':
+    'يرجى تمكين الوصول إلى الميكروفون في إعدادات جهازك لتسجيل المذكرات الصوتية.',
+  'Record Voice Note': 'تسجيل ملاحظة صوتية',
+  'Tap the button below when ready.': 'اضغط على الزر أدناه عندما تكون جاهزًا.',
+  'Start Recording': 'بدء التسجيل',
+  'Recording Voice Note...': 'جاري تسجيل ملاحظة صوتية...',
+  'Stop Recording': 'إيقاف التسجيل',
+  'Voice Note Recorded': 'تم تسجيل الملاحظة الصوتية',
+  'Tap on the play button to listen.': 'اضغط على زر التشغيل للاستماع.',
+  'Save Recording': 'حفظ التسجيل',
+  'Record Again': 'تسجيل مرة أخرى',
 
   'Title (optional)': 'العنوان (اختياري)',
   // Moods
