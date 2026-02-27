@@ -51,7 +51,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
     <Pressable
       onPress={onPress}
       className="flex-col w-full px-safe-or-3 border-b border-border py-3 active:bg-muted">
-      <View className="flex-1 justify-center">
+      <View>
         {/* Row 1: Time + Mood */}
         <View className="flex-row flex-wrap items-center gap-2 mb-2">
           {/* Time Badge - Preserving "Current" style but removing mood */}
