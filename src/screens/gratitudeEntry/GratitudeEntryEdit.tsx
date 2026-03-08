@@ -254,14 +254,10 @@ export function GratitudeEntryEdit({
   };
 
   const handlePressCancel = async () => {
-    if (hasUnsavedChanges && !isEmpty) {
+    if (hasUnsavedChanges) {
       Keyboard.dismiss();
       setShowUnsavedChangesConfirm(true);
     } else {
-      // Even without unsaved text changes, clean up any added files
-      // (e.g. user added photos/memos but left content empty)
-      discardPhotoChanges();
-      discardVoiceMemoChanges();
       onCancel();
     }
   };
@@ -278,10 +274,10 @@ export function GratitudeEntryEdit({
     }));
   };
 
-  // Disable swipe on iOS when dirty to prevent accidental data loss
+  // Disable swipe on iOS whenever there are any unsaved changes
   useEffect(() => {
-    navigation.setOptions({ gestureEnabled: !hasUnsavedChanges || isEmpty });
-  }, [navigation, hasUnsavedChanges, isEmpty]);
+    navigation.setOptions({ gestureEnabled: !hasUnsavedChanges });
+  }, [navigation, hasUnsavedChanges]);
 
   /**
    * Handle Navigation & Back Actions.
@@ -302,12 +298,11 @@ export function GratitudeEntryEdit({
         return;
       }
 
-      // 2. New Entry: Only intercept if we need to warn about unsaved changes
-      if (!hasUnsavedChanges || isEmpty) return;
+      // 2. New Entry: Intercept only when there are unsaved changes
+      if (!hasUnsavedChanges) return;
 
       e.preventDefault();
-      Keyboard.dismiss();
-      setShowUnsavedChangesConfirm(true);
+      handlePressCancel();
     });
 
     return beforeRemoveListener;
@@ -315,7 +310,6 @@ export function GratitudeEntryEdit({
     navigation,
     hasUnsavedChanges,
     showUnsavedChangesConfirm,
-    isEmpty,
     isNewEntry,
     handlePressCancel,
   ]);

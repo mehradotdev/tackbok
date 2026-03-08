@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BackHandler, Pressable, View } from 'react-native';
+import { BackHandler, Dimensions, Pressable, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -31,6 +31,13 @@ interface BottomSheetProps {
   /** Whether tapping the backdrop dismisses the sheet (default: true) */
   dismissOnBackdropPress?: boolean;
 }
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+/** Pushes the sheet fully off-screen before the first onLayout measurement. */
+const OFFSCREEN_Y = Dimensions.get('window').height;
 
 // ============================================================================
 // Component
@@ -68,7 +75,9 @@ export function BottomSheet({
     // off-screen until we know the real height.
     opacity: height.value === 0 ? 0 : 1,
     transform: [
-      { translateY: height.value === 0 ? 9999 : progress.value * 2 * height.value },
+      {
+        translateY: height.value === 0 ? OFFSCREEN_Y : progress.value * 2 * height.value,
+      },
       // Move sheet up when keyboard appears — only while the sheet is
       // visible (progress < 1). When fully closed (progress === 1) the
       // keyboard offset would pull the off-screen sheet back into view.

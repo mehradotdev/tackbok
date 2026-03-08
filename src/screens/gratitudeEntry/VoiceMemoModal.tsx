@@ -143,20 +143,24 @@ export function VoiceMemoModal({
   }, []);
 
   // ── Recording (with permission check) ──────────────────────────────
+  const startRecording = useCallback(async (): Promise<boolean> => {
+    const result = await audioEngine.startRecording();
+    if (result.status === 'error') {
+      console.warn('Failed to start recording:', result.message);
+      return false;
+    }
+    setPhase('recording');
+    setRecordingDuration(0);
+    startDurationPoll();
+    return true;
+  }, [startDurationPoll]);
+
   const handleStartRecording = useCallback(async () => {
     // Check current permission status without prompting
     const currentStatus = await audioEngine.checkPermission();
 
     if (currentStatus === 'Granted') {
-      // Permission already granted — start recording
-      const result = await audioEngine.startRecording();
-      if (result.status === 'error') {
-        console.warn('Failed to start recording:', result.message);
-        return;
-      }
-      setPhase('recording');
-      setRecordingDuration(0);
-      startDurationPoll();
+      await startRecording();
       return;
     }
 
@@ -164,14 +168,7 @@ export function VoiceMemoModal({
       // Ask the OS for permission
       const requestResult = await audioEngine.requestPermission();
       if (requestResult === 'Granted') {
-        const result = await audioEngine.startRecording();
-        if (result.status === 'error') {
-          console.warn('Failed to start recording:', result.message);
-          return;
-        }
-        setPhase('recording');
-        setRecordingDuration(0);
-        startDurationPoll();
+        await startRecording();
         return;
       }
     }
@@ -179,7 +176,7 @@ export function VoiceMemoModal({
     // Permission denied — close sheet and show alert
     onClose();
     setPermissionAlertOpen(true);
-  }, [onClose, startDurationPoll]);
+  }, [onClose, startRecording]);
 
   const handleStopRecording = useCallback(() => {
     stopDurationPoll();
@@ -328,7 +325,6 @@ export function VoiceMemoModal({
                 <LiveWaveform
                   color={foregroundColor as string}
                   height={48}
-                  // TODO: do we need isActive?
                   isActive={phase === 'recording'}
                 />
               </View>

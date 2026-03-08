@@ -43,6 +43,7 @@ export default function Layout() {
 
   // Sync the native root view background color with the active theme
   // so that overscroll / bounce areas match the app's background.
+  // TODO: hardcoded colors should reference theme variables
   useEffect(() => {
     const bg = theme === 'dark' ? '#6A755A' : '#E4D7B0';
     SystemUI.setBackgroundColorAsync(bg);

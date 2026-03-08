@@ -238,7 +238,7 @@ export function AudioPlayer({ uri, onRemove }: AudioPlayerProps) {
         </View>
       </View>
 
-      {/* Remove button (edit mode only) — TODO: badge style matching PolaroidPhoto */}
+      {/* Remove button (edit mode only) */}
       {onRemove && (
         <Pressable
           onPress={onRemove}
