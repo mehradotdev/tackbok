@@ -80,7 +80,7 @@ export const he: Translations = {
   'Recording Voice Note...': 'מקליט הקלטה קולית...',
   'Stop Recording': 'הפסק הקלטה',
   'Voice Note Recorded': 'הקלטה קולית הוקלטה',
-  'Tap on the play button to listen.': "הקש על כפתור 'נגן' כדי להאזין.",
+  'Tap on the play button to listen.': 'הקש על כפתור ההשמעה כדי להאזין.',
   'Save Recording': 'שמור הקלטה',
   'Record Again': 'הקלט שוב',
 

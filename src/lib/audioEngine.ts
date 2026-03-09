@@ -62,6 +62,8 @@ class AudioEngine {
 
   // ── Recording ────────────────────────────────────────────────────────
   private _isRecording = false;
+  private recorderAdapter: ReturnType<AudioContext['createRecorderAdapter']> | null =
+    null;
 
   // ── Playback ─────────────────────────────────────────────────────────
   private sourceNode: AudioBufferSourceNode | null = null;
@@ -162,6 +164,7 @@ class AudioEngine {
 
     // Graph: recorder → adapter → analyser → gain(0) → destination
     const adapter = ctx.createRecorderAdapter();
+    this.recorderAdapter = adapter;
     adapter.connect(analyser);
     recorder.connect(adapter);
 
@@ -175,6 +178,7 @@ class AudioEngine {
       // half-initialised for the next attempt.
       recorder.disconnect();
       adapter.disconnect();
+      this.recorderAdapter = null;
       void ctx.suspend();
       void AudioManager.setAudioSessionActivity(false);
       this.unmuteOutput();
@@ -192,8 +196,10 @@ class AudioEngine {
     const result = recorder.stop();
     this._isRecording = false;
 
-    // Disconnect recorder from graph
+    // Disconnect recorder and adapter from graph
     recorder.disconnect();
+    this.recorderAdapter?.disconnect();
+    this.recorderAdapter = null;
 
     // Suspend context since we're done recording
     this.audioContext?.suspend();
