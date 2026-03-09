@@ -15,6 +15,10 @@ export const en = {
   Discard: 'Discard',
   Continue: 'Continue',
   Delete: 'Delete',
+  Remove: 'Remove',
+  Close: 'Close',
+  Play: 'Play',
+  Pause: 'Pause',
   Settings: 'Settings',
   'Contact Us': 'Contact Us',
   'Unknown error': 'Unknown error',
@@ -58,6 +62,7 @@ export const en = {
   'Take Photo': 'Take Photo',
   'Choose from Library': 'Choose from Library',
   'Maximum {count} photos per entry': 'Maximum {count} photos per entry',
+  'Maximum {count} voice memos per entry': 'Maximum {count} voice memos per entry',
   'Camera Access Required': 'Camera Access Required',
   'Photo Library Access Required': 'Photo Library Access Required',
   'Please enable camera access in your device settings to take photos.':
@@ -66,6 +71,18 @@ export const en = {
     'Please enable photo library access in your device settings to select photos.',
   'Open Settings': 'Open Settings',
   Voice: 'Voice',
+  'Microphone Access Required': 'Microphone Access Required',
+  'Please enable microphone access in your device settings to record voice memos.':
+    'Please enable microphone access in your device settings to record voice memos.',
+  'Record Voice Note': 'Record Voice Note',
+  'Tap the button below when ready.': 'Tap the button below when ready.',
+  'Start Recording': 'Start Recording',
+  'Recording Voice Note...': 'Recording Voice Note...',
+  'Stop Recording': 'Stop Recording',
+  'Voice Note Recorded': 'Voice Note Recorded',
+  'Tap on the play button to listen.': 'Tap on the play button to listen.',
+  'Save Recording': 'Save Recording',
+  'Record Again': 'Record Again',
 
   'Title (optional)': 'Title (optional)',
   // Moods
@@ -203,11 +220,11 @@ export const en = {
   // Settings - Danger Zone
   'Danger Zone': 'Danger Zone',
   'Delete All Data': 'Delete All Data',
-  'Permanently delete all your entries and photos':
-    'Permanently delete all your entries and photos',
+  'Permanently delete all your entries, photos, and voice memos':
+    'Permanently delete all your entries, photos, and voice memos',
   'Delete all data?': 'Delete all data?',
-  'This action cannot be undone. All your entries and photos will be permanently deleted.':
-    'This action cannot be undone. All your entries and photos will be permanently deleted.',
+  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
+    'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.',
   'All data deleted': 'All data deleted',
   'Delete failed': 'Delete failed',
 

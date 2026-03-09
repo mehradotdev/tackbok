@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, Keyboard, Pressable, ActivityIndicator } from 'react-native';
 import {
   KeyboardAwareScrollView,
@@ -10,13 +10,21 @@ import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { format } from 'date-fns';
 import { Clock, X } from 'lucide-react-native';
-import { MODAL_CLOSE_DELAY, MOOD_OPTIONS } from '~/constants';
+import {
+  MODAL_CLOSE_DELAY,
+  MOOD_OPTIONS,
+  MAX_PHOTOS_PER_ENTRY,
+  MAX_VOICE_MEMOS_PER_ENTRY,
+} from '~/constants';
 import type { Entry, Mood, Asset } from '~/types';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { generateUUID } from '~/lib/utils';
 import { filterExistingPhotos } from '~/lib/photoUtils';
+import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
 import { usePhotoSession } from '~/hooks/usePhotoSession';
+import { useVoiceMemoSession } from '~/hooks/useVoiceMemoSession';
+import { useModalOrchestrator } from '~/hooks/useModalOrchestrator';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
@@ -24,6 +32,7 @@ import { Textarea } from '~/components/ui/textarea';
 import { Badge } from '~/components/ui/badge';
 import { toast } from '~/components/ui/toast';
 import { PolaroidPhoto } from '~/components/PolaroidPhoto';
+import { AudioPlayer } from '~/components/AudioPlayer';
 import {
   AlertDialog,
   AlertDialogDestructiveAction,
@@ -37,6 +46,10 @@ import {
 import { DateSelectDropdown } from '~/components/DateSelectDropdown';
 import { TimePickerModal } from '~/components/TimePickerModal';
 import { FloatingActionDock } from './FloatingActionDock';
+import { MoodModal } from './MoodModal';
+import { TagsModal } from './TagsModal';
+import { VoiceMemoModal } from './VoiceMemoModal';
+import { AddPhotoModal } from './AddPhotoModal';
 
 interface GratitudeEntryEditProps {
   initialEntry?: Entry | null;
@@ -85,6 +98,7 @@ export function GratitudeEntryEdit({
     ? initialEntry.tags.split(',').filter((tag) => tag.length > 0)
     : [];
   const initialPhotos = filterExistingPhotos(initialEntry?.assets ?? null);
+  const initialVoiceMemos = filterExistingVoiceMemos(initialEntry?.assets ?? null);
 
   const [timestamp, setTimestamp] = useState(initialTimestamp);
   const [title, setTitle] = useState(initialEntry?.text_title || '');
@@ -92,7 +106,16 @@ export function GratitudeEntryEdit({
   const [mood, setMood] = useState<Mood | null>(initialEntry?.mood || null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTags);
   const [showUnsavedChangesConfirm, setShowUnsavedChangesConfirm] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Modal visibility state (consolidated in one hook)
+  const modals = useModalOrchestrator();
+
+  // Auto-open mood modal for new entries (run once on mount)
+  useEffect(() => {
+    if (isNewEntry) {
+      modals.mood.open();
+    }
+  }, [isNewEntry, modals.mood.open]);
 
   // Photo session: tracks additions/removals and handles disk cleanup
   const {
@@ -102,8 +125,43 @@ export function GratitudeEntryEdit({
     handlePhotosPicked,
     removePhoto,
     commitRemovedPhotos,
-    discardAllChanges,
+    discardAllChanges: discardPhotoChanges,
   } = usePhotoSession(initialPhotos);
+
+  // Voice memo session: same pattern as photos
+  const {
+    voiceMemos,
+    voiceMemoUris,
+    handleVoiceMemoSaved,
+    removeVoiceMemo,
+    commitRemovedVoiceMemos,
+    discardAllChanges: discardVoiceMemoChanges,
+  } = useVoiceMemoSession(initialVoiceMemos);
+
+  // Limit-check handlers — gate modal opening with max-count toasts
+  const handlePhotoRequest = useCallback(() => {
+    const remaining = MAX_PHOTOS_PER_ENTRY - photos.length;
+    if (remaining <= 0) {
+      toast.warning(
+        t('Maximum {count} photos per entry', { count: String(MAX_PHOTOS_PER_ENTRY) }),
+      );
+      return;
+    }
+    modals.addPhoto.open();
+  }, [photos.length, t, modals.addPhoto.open]);
+
+  const handleVoiceMemoRequest = useCallback(() => {
+    const remaining = MAX_VOICE_MEMOS_PER_ENTRY - voiceMemos.length;
+    if (remaining <= 0) {
+      toast.warning(
+        t('Maximum {count} voice memos per entry', {
+          count: String(MAX_VOICE_MEMOS_PER_ENTRY),
+        }),
+      );
+      return;
+    }
+    modals.voiceMemo.open();
+  }, [voiceMemos.length, t, modals.voiceMemo.open]);
 
   // Original values for change detection
   const [originalValues, setOriginalValues] = useState(() => ({
@@ -113,6 +171,7 @@ export function GratitudeEntryEdit({
     mood: initialEntry?.mood || null,
     tagIds: initialTags,
     photoUris: initialPhotos.map((p) => p.uri),
+    voiceMemoUris: initialVoiceMemos.map((m) => m.uri),
   }));
 
   // Derived states
@@ -128,7 +187,8 @@ export function GratitudeEntryEdit({
     mood !== originalValues.mood ||
     timestamp !== originalValues.timestamp ||
     !areArraysEqual(selectedTagIds, originalValues.tagIds) ||
-    !areArraysEqual(photoUris, originalValues.photoUris);
+    !areArraysEqual(photoUris, originalValues.photoUris) ||
+    !areArraysEqual(voiceMemoUris, originalValues.voiceMemoUris);
 
   const displayTags = useMemo(() => {
     return selectedTagIds
@@ -146,22 +206,26 @@ export function GratitudeEntryEdit({
     isSaving.current = true;
     const id = initialEntry?.note_id || generateUUID();
 
+    // Build the combined assets array (photos + voice memos)
+    const allAssets: Asset[] = [...photos, ...voiceMemos];
+
     try {
       await upsertEntryMutation.mutateAsync({
         note_id: id,
         text_title: title.trim() || null,
         text_content: content.trim(),
         mood: mood,
-        assets: photos.length > 0 ? photos : null,
+        assets: allAssets.length > 0 ? allAssets : null,
         tags: selectedTagIds.join(','),
         created_at: timestamp,
         updated_at: Date.now(),
       });
 
-      // Delete photo files that were removed during this editing session.
+      // Delete files that were removed during this editing session.
       // Best-effort: runs only after a successful save to prevent data loss
       // if the upsert fails (DB would still reference the files).
       await commitRemovedPhotos();
+      commitRemovedVoiceMemos();
 
       if (isNewEntry) {
         toast.success(t('Entry saved successfully'));
@@ -175,9 +239,9 @@ export function GratitudeEntryEdit({
   };
 
   const handleDiscardChanges = () => {
-    // Clean up all newly-added photo files; leave original photos untouched.
-    // deletePhotoFile already swallows errors internally, so this is safe.
-    discardAllChanges();
+    // Clean up all newly-added files; leave originals untouched.
+    discardPhotoChanges();
+    discardVoiceMemoChanges();
 
     setShowUnsavedChangesConfirm(false);
     isSaving.current = true;
@@ -190,13 +254,10 @@ export function GratitudeEntryEdit({
   };
 
   const handlePressCancel = async () => {
-    if (hasUnsavedChanges && !isEmpty) {
+    if (hasUnsavedChanges) {
       Keyboard.dismiss();
       setShowUnsavedChangesConfirm(true);
     } else {
-      // Even without unsaved text changes, clean up any added photo files
-      // (e.g. user added photos but left content empty)
-      await discardAllChanges();
       onCancel();
     }
   };
@@ -213,10 +274,10 @@ export function GratitudeEntryEdit({
     }));
   };
 
-  // Disable swipe on iOS when dirty to prevent accidental data loss
+  // Disable swipe on iOS whenever there are any unsaved changes
   useEffect(() => {
-    navigation.setOptions({ gestureEnabled: !hasUnsavedChanges || isEmpty });
-  }, [navigation, hasUnsavedChanges, isEmpty]);
+    navigation.setOptions({ gestureEnabled: !hasUnsavedChanges });
+  }, [navigation, hasUnsavedChanges]);
 
   /**
    * Handle Navigation & Back Actions.
@@ -237,12 +298,11 @@ export function GratitudeEntryEdit({
         return;
       }
 
-      // 2. New Entry: Only intercept if we need to warn about unsaved changes
-      if (!hasUnsavedChanges || isEmpty) return;
+      // 2. New Entry: Intercept only when there are unsaved changes
+      if (!hasUnsavedChanges) return;
 
       e.preventDefault();
-      Keyboard.dismiss();
-      setShowUnsavedChangesConfirm(true);
+      handlePressCancel();
     });
 
     return beforeRemoveListener;
@@ -250,7 +310,6 @@ export function GratitudeEntryEdit({
     navigation,
     hasUnsavedChanges,
     showUnsavedChangesConfirm,
-    isEmpty,
     isNewEntry,
     handlePressCancel,
   ]);
@@ -318,7 +377,7 @@ export function GratitudeEntryEdit({
             <Pressable
               onPress={() => {
                 Keyboard.dismiss();
-                setShowTimePicker(true);
+                modals.timePicker.open();
               }}
               className="flex-row items-center px-3 py-2 gap-2 bg-muted border border-border rounded-full active:bg-accent">
               <Icon as={Clock} className="text-muted-foreground size-5" />
@@ -373,6 +432,19 @@ export function GratitudeEntryEdit({
             </View>
           )}
 
+          {/* Voice memo players */}
+          {voiceMemos.length > 0 && (
+            <View className="py-3 gap-3">
+              {voiceMemos.map((memo) => (
+                <AudioPlayer
+                  key={memo.uri}
+                  uri={memo.uri}
+                  onRemove={() => removeVoiceMemo(memo.uri)}
+                />
+              ))}
+            </View>
+          )}
+
           {/* Photos */}
           {(photos.length > 0 || isAddingPhotos) && (
             <View className="py-3 gap-4">
@@ -402,22 +474,46 @@ export function GratitudeEntryEdit({
           className="absolute bottom-0 left-0 right-0">
           <FloatingActionDock
             isKeyboardVisible={isKeyboardVisible}
-            onPhotosPicked={handlePhotosPicked}
-            currentPhotoCount={photos.length}
-            mood={mood}
-            onMoodChange={setMood}
-            autoOpenMoodSelector={isNewEntry}
-            selectedTagIds={selectedTagIds}
-            onTagsChange={setSelectedTagIds}
-            onTagDeleted={handleTagDeleted}
+            onRequestMoodModal={modals.mood.open}
+            onRequestTagsModal={modals.tags.open}
+            onRequestVoiceMemoModal={handleVoiceMemoRequest}
+            onRequestAddPhotoModal={handlePhotoRequest}
           />
         </Animated.View>
       </View>
 
-      {/* Modals - TimePicker and AlertDialog are still here */}
+      {/* Modals — rendered at root level so BottomSheet backdrop covers full screen */}
+      <MoodModal
+        visible={modals.mood.visible}
+        onClose={modals.mood.close}
+        value={mood}
+        onChange={setMood}
+      />
+
+      <TagsModal
+        visible={modals.tags.visible}
+        onClose={modals.tags.close}
+        selectedTagIds={selectedTagIds}
+        onTagsChange={setSelectedTagIds}
+        onTagDeleted={handleTagDeleted}
+      />
+
+      <VoiceMemoModal
+        visible={modals.voiceMemo.visible}
+        onClose={modals.voiceMemo.close}
+        onVoiceMemoSaved={handleVoiceMemoSaved}
+      />
+
+      <AddPhotoModal
+        visible={modals.addPhoto.visible}
+        onClose={modals.addPhoto.close}
+        currentPhotoCount={photos.length}
+        onPhotosPicked={handlePhotosPicked}
+      />
+
       <TimePickerModal
-        visible={showTimePicker}
-        onClose={() => setShowTimePicker(false)}
+        visible={modals.timePicker.visible}
+        onClose={modals.timePicker.close}
         value={formattedTime}
         onValueChange={(time) => {
           const [hours, minutes] = time.split(':').map(Number);

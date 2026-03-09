@@ -16,6 +16,10 @@ export const zhTW: Translations = {
   Discard: '捨棄',
   Continue: '繼續',
   Delete: '刪除',
+  Remove: '移除',
+  Close: '關閉',
+  Play: '播放',
+  Pause: '暫停',
   Settings: '設定',
   'Contact Us': '聯絡我們',
   'Unknown error': '未知錯誤',
@@ -56,6 +60,7 @@ export const zhTW: Translations = {
   'Take Photo': '拍照',
   'Choose from Library': '從相簿選擇',
   'Maximum {count} photos per entry': '每條記錄最多 {count} 張照片',
+  'Maximum {count} voice memos per entry': '每條記錄最多 {count} 條語音備忘錄',
   'Camera Access Required': '需要相機存取權限',
   'Photo Library Access Required': '需要照片圖庫存取權限',
   'Please enable camera access in your device settings to take photos.':
@@ -64,6 +69,18 @@ export const zhTW: Translations = {
     '請在裝置設定中啟用照片圖庫存取權限以選取照片。',
   'Open Settings': '開啟設定',
   Voice: '語音',
+  'Microphone Access Required': '需要麥克風權限',
+  'Please enable microphone access in your device settings to record voice memos.':
+    '請在裝置設定中啟用麥克風權限以錄製語音備忘錄。',
+  'Record Voice Note': '錄製語音備忘錄',
+  'Tap the button below when ready.': '準備好後請點擊下方按鈕。',
+  'Start Recording': '開始錄音',
+  'Recording Voice Note...': '正在錄製語音備忘錄...',
+  'Stop Recording': '停止錄音',
+  'Voice Note Recorded': '語音備忘錄已錄製',
+  'Tap on the play button to listen.': '點擊播放按鈕即可收聽。',
+  'Save Recording': '儲存錄音',
+  'Record Again': '重新錄製',
 
   'Title (optional)': '標題（選填）',
   // Moods
@@ -194,10 +211,11 @@ export const zhTW: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危險區域',
   'Delete All Data': '刪除所有資料',
-  'Permanently delete all your entries and photos': '永久刪除您的所有紀錄和照片',
+  'Permanently delete all your entries, photos, and voice memos':
+    '永久刪除您的所有紀錄、照片和語音備忘錄',
   'Delete all data?': '刪除所有資料？',
-  'This action cannot be undone. All your entries and photos will be permanently deleted.':
-    '此動作無法復原。您的所有紀錄和照片將被永久刪除。',
+  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
+    '此動作無法復原。您的所有紀錄、照片和語音備忘錄將被永久刪除。',
   'All data deleted': '所有資料已刪除',
   'Delete failed': '刪除失敗',
 

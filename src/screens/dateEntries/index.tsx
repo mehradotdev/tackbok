@@ -7,6 +7,7 @@ import { MOOD_OPTIONS } from '~/constants';
 import { type Entry, type Asset } from '~/types';
 import { cn, combineDateWithCurrentTime } from '~/lib/utils';
 import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
+import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
 import { useEntriesForDay, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
@@ -15,6 +16,7 @@ import { Icon } from '~/components/ui/icon';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Badge } from '~/components/ui/badge';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
+import { AudioPlayer } from '~/components/AudioPlayer';
 
 interface IDateEntriesScreenProps {
   dateMs: number;
@@ -42,11 +44,14 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
   // Extract photo assets (only those whose files exist on disk)
   const photos = filterExistingPhotos(entry.assets ?? null);
 
+  // Extract voice memo assets (only those whose files still exist on disk)
+  const voiceMemos = filterExistingVoiceMemos(entry.assets ?? null);
+
   return (
     <Pressable
       onPress={onPress}
       className="flex-col w-full px-safe-or-3 border-b border-border py-3 active:bg-muted">
-      <View className="flex-1 justify-center">
+      <View>
         {/* Row 1: Time + Mood */}
         <View className="flex-row flex-wrap items-center gap-2 mb-2">
           {/* Time Badge - Preserving "Current" style but removing mood */}
@@ -97,6 +102,15 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
           </View>
         )}
       </View>
+
+      {/* Voice memo players */}
+      {voiceMemos.length > 0 && (
+        <View className="mt-2 gap-2">
+          {voiceMemos.map((memo) => (
+            <AudioPlayer key={memo.uri} uri={memo.uri} />
+          ))}
+        </View>
+      )}
 
       {/* Photos — horizontal scroll thumbnails */}
       {photos.length > 0 && (

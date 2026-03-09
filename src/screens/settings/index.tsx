@@ -31,6 +31,7 @@ import {
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { deleteAllData } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
+import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import {
@@ -173,12 +174,35 @@ export default function SettingsScreen() {
   const handleDeleteAllData = useCallback(async () => {
     setShowDeleteConfirmDialog(false);
     try {
-      await deleteAllPhotos();
+      // Wipe the DB first — if this throws, the files are still intact
+      // and the catch block will surface the error to the user.
       await deleteAllData();
+      // Remove all cached queries immediately after the DB wipe so React
+      // Query never serves entries that no longer exist, even if filesystem
+      // cleanup below throws. invalidateQueries() only marks stale — deleted
+      // data would remain visible until a background refetch completes.
+      // removeQueries() evicts the cache entirely.
       try {
-        await queryClient.invalidateQueries();
+        queryClient.removeQueries();
       } catch (error) {
-        console.error('Failed to invalidate queries:', error);
+        console.error('Failed to remove queries:', error);
+      }
+      // DB is gone; now clean up the filesystem directories.
+      // Attempt both cleanups regardless of individual failures so that a
+      // photos error never silently leaves voice memos on disk (and vice versa).
+      const cleanupErrors: string[] = [];
+      try {
+        deleteAllPhotos();
+      } catch (error) {
+        cleanupErrors.push(error instanceof Error ? error.message : String(error));
+      }
+      try {
+        deleteAllVoiceMemos();
+      } catch (error) {
+        cleanupErrors.push(error instanceof Error ? error.message : String(error));
+      }
+      if (cleanupErrors.length > 0) {
+        throw new Error(cleanupErrors.join('\n'));
       }
       toast.success(t('All data deleted'));
       // Navigate to home screen
@@ -474,7 +498,9 @@ export default function SettingsScreen() {
         <SettingsSection title={t('Danger Zone')}>
           <SettingsRow
             label={t('Delete All Data')}
-            description={t('Permanently delete all your entries and photos')}
+            description={t(
+              'Permanently delete all your entries, photos, and voice memos',
+            )}
             icon={Trash2}
             onPress={() => setShowDeleteConfirmDialog(true)}
             showChevron
@@ -564,7 +590,7 @@ export default function SettingsScreen() {
             <AlertDialogTitle>{t('Delete all data?')}</AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                'This action cannot be undone. All your entries and photos will be permanently deleted.',
+                'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

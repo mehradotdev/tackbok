@@ -16,6 +16,10 @@ export const he: Translations = {
   Discard: 'בטל שינויים',
   Continue: 'המשך',
   Delete: 'מחק',
+  Remove: 'הסר',
+  Close: 'סגור',
+  Play: 'נגן',
+  Pause: 'השהה',
   Settings: 'הגדרות',
   'Contact Us': 'צור קשר',
   'Unknown error': 'שגיאה לא ידועה',
@@ -58,6 +62,7 @@ export const he: Translations = {
   'Take Photo': 'צלם תמונה',
   'Choose from Library': 'בחר מהספרייה',
   'Maximum {count} photos per entry': 'מקסימום {count} תמונות לרשומה',
+  'Maximum {count} voice memos per entry': 'מקסימום {count} הקלטות קוליות לרשומה',
   'Camera Access Required': 'נדרשת גישה למצלמה',
   'Photo Library Access Required': 'נדרשת גישה לספריית התמונות',
   'Please enable camera access in your device settings to take photos.':
@@ -66,6 +71,18 @@ export const he: Translations = {
     'אנא אפשר גישה לספריית התמונות בהגדרות המכשיר שלך כדי לבחור תמונות.',
   'Open Settings': 'פתח הגדרות',
   Voice: 'קול',
+  'Microphone Access Required': 'נדרשת גישה למיקרופון',
+  'Please enable microphone access in your device settings to record voice memos.':
+    'אנא אפשר גישה למיקרופון בהגדרות המכשיר שלך כדי להקליט הקלטות קוליות.',
+  'Record Voice Note': 'הקלט הקלטה קולית',
+  'Tap the button below when ready.': 'הקש על הכפתור למטה כשאתה מוכן.',
+  'Start Recording': 'התחל הקלטה',
+  'Recording Voice Note...': 'מקליט הקלטה קולית...',
+  'Stop Recording': 'הפסק הקלטה',
+  'Voice Note Recorded': 'הקלטה קולית הוקלטה',
+  'Tap on the play button to listen.': 'הקש על כפתור ההשמעה כדי להאזין.',
+  'Save Recording': 'שמור הקלטה',
+  'Record Again': 'הקלט שוב',
 
   'Title (optional)': 'כותרת (אופציונלי)',
   // Moods
@@ -201,11 +218,11 @@ export const he: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'אזור מסוכן',
   'Delete All Data': 'מחק את כל הנתונים',
-  'Permanently delete all your entries and photos':
-    'מחק את כל הרשומות והתמונות שלך לצמיתות',
+  'Permanently delete all your entries, photos, and voice memos':
+    'מחק את כל הרשומות, התמונות וההקלטות הקוליות שלך לצמיתות',
   'Delete all data?': 'למחוק את כל הנתונים?',
-  'This action cannot be undone. All your entries and photos will be permanently deleted.':
-    'לא ניתן לבטל פעולה זו. כל הרשומות והתמונות שלך יימחקו לצמיתות.',
+  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
+    'לא ניתן לבטל פעולה זו. כל הרשומות, התמונות וההקלטות הקוליות שלך יימחקו לצמיתות.',
   'All data deleted': 'כל הנתונים נמחקו',
   'Delete failed': 'המחיקה נכשלה',
 
