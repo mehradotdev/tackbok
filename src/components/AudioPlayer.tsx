@@ -4,6 +4,7 @@ import { Play, Pause, X } from 'lucide-react-native';
 import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { audioEngine, type PlaybackState } from '~/lib/audioEngine';
+import { getFullVoiceMemoUri } from '~/lib/voiceMemoUtils';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Badge } from '~/components/ui/badge';
@@ -14,7 +15,7 @@ import { WaveformVisualizer } from '~/components/WaveformVisualizer';
 // ============================================================================
 
 interface AudioPlayerProps {
-  /** Full file URI of the audio to play */
+  /** Relative voice-memo URI as stored in the DB (resolved to a full path internally) */
   uri: string;
   /** If provided, shows an X button to remove the voice memo (edit mode only) */
   onRemove?: () => void;
@@ -48,7 +49,8 @@ const AMPLITUDE_SAMPLE_COUNT = 200;
 // Component
 // ============================================================================
 
-export function AudioPlayer({ uri, onRemove }: AudioPlayerProps) {
+export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
+  const uri = getFullVoiceMemoUri(relativeUri);
   const [foregroundColor, mutedForegroundColor] = useCSSVariable([
     '--color-foreground',
     '--color-border',
@@ -165,7 +167,7 @@ export function AudioPlayer({ uri, onRemove }: AudioPlayerProps) {
     }
 
     if (isThisActive && state === 'paused') {
-      audioEngine.resumePlayback();
+      await audioEngine.resumePlayback();
       setPlaybackState('playing');
       startPolling();
       return;

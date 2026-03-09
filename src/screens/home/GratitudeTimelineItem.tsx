@@ -8,7 +8,7 @@ import { cn } from '~/lib/utils';
 import { useSettingsStore } from '~/lib/settings';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
 import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
-import { getVoiceMemoAssets, getFullVoiceMemoUri } from '~/lib/voiceMemoUtils';
+import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { AnimatedButton } from '~/components/ui/animated-button';
@@ -68,8 +68,8 @@ function ExpandedEntryRow({
   // Extract photo assets for this entry (only those whose files exist on disk)
   const photos = filterExistingPhotos(entry.assets ?? null);
 
-  // Extract voice memo assets
-  const voiceMemos = getVoiceMemoAssets(entry.assets ?? null);
+  // Extract voice memo assets (only those whose files still exist on disk)
+  const voiceMemos = filterExistingVoiceMemos(entry.assets ?? null);
 
   return (
     <View
@@ -190,7 +190,7 @@ function ExpandedEntryRow({
         {voiceMemos.length > 0 && (
           <View className="mt-2 pl-3 pr-2 gap-2">
             {voiceMemos.map((memo) => (
-              <AudioPlayer key={memo.uri} uri={getFullVoiceMemoUri(memo.uri)} />
+              <AudioPlayer key={memo.uri} uri={memo.uri} />
             ))}
           </View>
         )}
@@ -252,7 +252,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const isToday = dayGroup.isToday ?? false;
   const hasEntries = dayGroup.entries.length > 0;
   const hasVoiceMemos = dayGroup.entries.some(
-    (e) => getVoiceMemoAssets(e.assets ?? null).length > 0,
+    (e) => filterExistingVoiceMemos(e.assets ?? null).length > 0,
   );
 
   // Pre-compute all photos across all entries for the collapsed view (only existing files)

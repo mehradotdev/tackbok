@@ -20,7 +20,7 @@ import type { Entry, Mood, Asset } from '~/types';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { generateUUID } from '~/lib/utils';
 import { filterExistingPhotos } from '~/lib/photoUtils';
-import { getVoiceMemoAssets, getFullVoiceMemoUri } from '~/lib/voiceMemoUtils';
+import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
 import { usePhotoSession } from '~/hooks/usePhotoSession';
 import { useVoiceMemoSession } from '~/hooks/useVoiceMemoSession';
@@ -98,7 +98,7 @@ export function GratitudeEntryEdit({
     ? initialEntry.tags.split(',').filter((tag) => tag.length > 0)
     : [];
   const initialPhotos = filterExistingPhotos(initialEntry?.assets ?? null);
-  const initialVoiceMemos = getVoiceMemoAssets(initialEntry?.assets ?? null);
+  const initialVoiceMemos = filterExistingVoiceMemos(initialEntry?.assets ?? null);
 
   const [timestamp, setTimestamp] = useState(initialTimestamp);
   const [title, setTitle] = useState(initialEntry?.text_title || '');
@@ -438,7 +438,7 @@ export function GratitudeEntryEdit({
               {voiceMemos.map((memo) => (
                 <AudioPlayer
                   key={memo.uri}
-                  uri={getFullVoiceMemoUri(memo.uri)}
+                  uri={memo.uri}
                   onRemove={() => removeVoiceMemo(memo.uri)}
                 />
               ))}

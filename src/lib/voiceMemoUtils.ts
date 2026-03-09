@@ -20,16 +20,31 @@ function getVoiceMemosDir(): Directory {
 // Helpers
 // ============================================================================
 
+/**
+ * Validates that a relative URI belongs to the voice-memo directory and
+ * contains no path-traversal segments. Throws if the URI is suspicious.
+ */
+function assertVoiceMemoRelativeUri(relativeUri: string): string {
+  if (
+    relativeUri.startsWith('/') ||
+    relativeUri.includes('..') ||
+    !relativeUri.startsWith(`${VOICE_MEMOS_DIR_NAME}/`)
+  ) {
+    throw new Error('Invalid voice memo URI');
+  }
+  return relativeUri;
+}
+
 /** Convert a relative asset URI (e.g. `voice_memos/abc.m4a`) to a full file URI. */
 export function getFullVoiceMemoUri(relativeUri: string): string {
-  const file = new File(Paths.document, relativeUri);
+  const file = new File(Paths.document, assertVoiceMemoRelativeUri(relativeUri));
   return file.uri;
 }
 
 /** Check whether a voice memo file exists on disk for the given relative URI. */
 export function voiceMemoFileExists(relativeUri: string): boolean {
   try {
-    const file = new File(Paths.document, relativeUri);
+    const file = new File(Paths.document, assertVoiceMemoRelativeUri(relativeUri));
     return file.exists;
   } catch {
     return false;
@@ -37,20 +52,13 @@ export function voiceMemoFileExists(relativeUri: string): boolean {
 }
 
 /**
- * Extract the first AUDIO asset from an entry's assets array.
- * Returns null if no audio asset exists.
+ * Filter an array of assets to only AUDIO assets whose files actually exist on disk.
+ * Non-AUDIO assets (e.g. IMAGE) are excluded.
+ * Returns an empty array if no voice memos remain after filtering.
  */
-// TODO: do we need this?
-export function getVoiceMemoAsset(assets: Asset[] | null): Asset | null {
-  return assets?.find((a) => a.type === AssetType.AUDIO) ?? null;
-}
-
-/**
- * Extract all AUDIO assets from an entry's assets array.
- * Returns an empty array if no audio assets exist.
- */
-export function getVoiceMemoAssets(assets: Asset[] | null): Asset[] {
-  return assets?.filter((a) => a.type === AssetType.AUDIO) ?? [];
+export function filterExistingVoiceMemos(assets: Asset[] | null): Asset[] {
+  if (!assets || assets.length === 0) return [];
+  return assets.filter((a) => a.type === AssetType.AUDIO && voiceMemoFileExists(a.uri));
 }
 
 // ============================================================================
@@ -85,27 +93,31 @@ export async function saveVoiceMemo(sourceUri: string): Promise<Asset> {
  */
 export function deleteVoiceMemoFile(relativeUri: string) {
   try {
-    const file = new File(Paths.document, relativeUri);
+    const file = new File(Paths.document, assertVoiceMemoRelativeUri(relativeUri));
     if (file.exists) {
       file.delete();
     }
   } catch {
-    // Silently ignore deletion errors
+    // Silently ignore deletion errors (includes invalid URI guard throws)
   }
 }
 
 /**
  * Delete the entire voice memos directory and all its contents.
  * Used when the user chooses to delete all data.
- * Silently ignores errors (directory might not exist).
+ * Throws if the directory cannot be deleted so the caller can abort and
+ * surface the failure instead of silently reporting success.
  */
 export function deleteAllVoiceMemos() {
-  try {
-    const dir = new Directory(Paths.document, VOICE_MEMOS_DIR_NAME);
-    if (dir.exists) {
+  const dir = new Directory(Paths.document, VOICE_MEMOS_DIR_NAME);
+  if (dir.exists) {
+    try {
       dir.delete();
+    } catch (cause) {
+      throw new Error(
+        `Failed to delete voice memos directory "${VOICE_MEMOS_DIR_NAME}": ${cause}`,
+        { cause },
+      );
     }
-  } catch {
-    // Silently ignore deletion errors
   }
 }

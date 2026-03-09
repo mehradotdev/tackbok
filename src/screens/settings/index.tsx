@@ -174,9 +174,13 @@ export default function SettingsScreen() {
   const handleDeleteAllData = useCallback(async () => {
     setShowDeleteConfirmDialog(false);
     try {
+      // Wipe the DB first — if this throws, the files are still intact
+      // and the catch block will surface the error to the user.
+      await deleteAllData();
+      // DB is gone; now clean up the filesystem directories.
+      // Both helpers throw on failure so any partial cleanup is surfaced.
       deleteAllPhotos();
       deleteAllVoiceMemos();
-      await deleteAllData();
       try {
         await queryClient.invalidateQueries();
       } catch (error) {

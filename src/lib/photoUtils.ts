@@ -19,16 +19,31 @@ function getPhotosDir(): Directory {
 // Helpers
 // ============================================================================
 
+/**
+ * Validates that a relative URI belongs to the photos directory and
+ * contains no path-traversal segments. Throws if the URI is suspicious.
+ */
+function assertPhotoRelativeUri(relativeUri: string): string {
+  if (
+    relativeUri.startsWith('/') ||
+    relativeUri.includes('..') ||
+    !relativeUri.startsWith(`${PHOTOS_DIR_NAME}/`)
+  ) {
+    throw new Error('Invalid photo URI');
+  }
+  return relativeUri;
+}
+
 /** Convert a relative asset URI (e.g. `photos/abc.jpg`) to a full file URI. */
 export function getFullPhotoUri(relativeUri: string): string {
-  const file = new File(Paths.document, relativeUri);
+  const file = new File(Paths.document, assertPhotoRelativeUri(relativeUri));
   return file.uri;
 }
 
 /** Check whether a photo file exists on disk for the given relative URI. */
 export function photoFileExists(relativeUri: string): boolean {
   try {
-    const file = new File(Paths.document, relativeUri);
+    const file = new File(Paths.document, assertPhotoRelativeUri(relativeUri));
     return file.exists;
   } catch {
     return false;
@@ -191,27 +206,31 @@ export async function compressAndSavePhoto(sourceUri: string): Promise<Asset> {
  */
 export function deletePhotoFile(relativeUri: string) {
   try {
-    const file = new File(Paths.document, relativeUri);
+    const file = new File(Paths.document, assertPhotoRelativeUri(relativeUri));
     if (file.exists) {
       file.delete();
     }
   } catch {
-    // Silently ignore deletion errors
+    // Silently ignore deletion errors (includes invalid URI guard throws)
   }
 }
 
 /**
  * Delete the entire photos directory and all its contents.
  * Used when the user chooses to delete all data.
- * Silently ignores errors (directory might not exist).
+ * Throws if the directory cannot be deleted so the caller can abort and
+ * surface the failure instead of silently reporting success.
  */
 export function deleteAllPhotos() {
-  try {
-    const dir = new Directory(Paths.document, PHOTOS_DIR_NAME);
-    if (dir.exists) {
+  const dir = new Directory(Paths.document, PHOTOS_DIR_NAME);
+  if (dir.exists) {
+    try {
       dir.delete();
+    } catch (cause) {
+      throw new Error(
+        `Failed to delete photos directory "${PHOTOS_DIR_NAME}": ${cause}`,
+        { cause },
+      );
     }
-  } catch {
-    // Silently ignore deletion errors
   }
 }

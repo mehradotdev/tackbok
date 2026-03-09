@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
-import { MAX_VOICE_MEMOS_PER_ENTRY } from '~/constants';
 import type { Asset } from '~/types';
 import { saveVoiceMemo, deleteVoiceMemoFile } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
@@ -58,7 +57,8 @@ export function useVoiceMemoSession(
     async (tempUri: string) => {
       try {
         const asset = await saveVoiceMemo(tempUri);
-        setVoiceMemos((prev) => [...prev, asset].slice(0, MAX_VOICE_MEMOS_PER_ENTRY));
+        // Capacity is enforced upstream in handleVoiceMemoRequest before the modal opens
+        setVoiceMemos((prev) => [...prev, asset]);
       } catch (error) {
         console.error('Failed to save voice memo:', error);
         toast.error(t('Failed to save voice memo'));
@@ -83,7 +83,9 @@ export function useVoiceMemoSession(
    * This includes both originally-existing memos and newly-added-then-removed ones.
    */
   const commitRemovedVoiceMemos = useCallback(() => {
-    removedMemosRef.current.forEach((m) => deleteVoiceMemoFile(m.uri));
+    removedMemosRef.current.forEach((m) => {
+      deleteVoiceMemoFile(m.uri);
+    });
     removedMemosRef.current = [];
   }, []);
 
@@ -104,7 +106,9 @@ export function useVoiceMemoSession(
       (m) => !initialUris.has(m.uri),
     );
 
-    [...addedVisible, ...addedThenRemoved].forEach((m) => deleteVoiceMemoFile(m.uri));
+    [...addedVisible, ...addedThenRemoved].forEach((m) => {
+      deleteVoiceMemoFile(m.uri);
+    });
     removedMemosRef.current = [];
   }, [voiceMemos]);
 

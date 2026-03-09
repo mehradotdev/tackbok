@@ -43,6 +43,7 @@ function DockButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityLabel={label}
       className={cn(
         'flex-1 items-center justify-center active:bg-muted rounded-lg',
         showLabel ? 'pt-1' : 'py-1.5',

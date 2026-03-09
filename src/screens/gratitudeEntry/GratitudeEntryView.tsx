@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-react-native';
 import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
 import type { Entry, Asset } from '~/types';
 import { filterExistingPhotos } from '~/lib/photoUtils';
-import { getVoiceMemoAssets, getFullVoiceMemoUri } from '~/lib/voiceMemoUtils';
+import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
@@ -68,8 +68,8 @@ export function GratitudeEntryView({
   // Extract photo assets (only those whose files exist on disk)
   const photos = filterExistingPhotos(entry.assets ?? null);
 
-  // Extract voice memo assets
-  const voiceMemos = getVoiceMemoAssets(entry.assets ?? null);
+  // Extract voice memo assets (only those whose files still exist on disk)
+  const voiceMemos = filterExistingVoiceMemos(entry.assets ?? null);
 
   const handleDelete = async () => {
     try {
@@ -158,7 +158,7 @@ export function GratitudeEntryView({
         {voiceMemos.length > 0 && (
           <View className="py-3 gap-3">
             {voiceMemos.map((memo) => (
-              <AudioPlayer key={memo.uri} uri={getFullVoiceMemoUri(memo.uri)} />
+              <AudioPlayer key={memo.uri} uri={memo.uri} />
             ))}
           </View>
         )}

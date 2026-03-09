@@ -210,7 +210,7 @@ export function VoiceMemoModal({
 
     const state = audioEngine.playbackState;
     if (audioEngine.currentUri === recordedUri && state === 'paused') {
-      audioEngine.resumePlayback();
+      await audioEngine.resumePlayback();
       setPreviewPlaying(true);
       startPlaybackPoll();
       return;

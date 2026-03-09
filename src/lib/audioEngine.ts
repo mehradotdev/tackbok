@@ -270,7 +270,7 @@ class AudioEngine {
     this._playbackState = 'paused';
   }
 
-  resumePlayback(): void {
+  async resumePlayback(): Promise<void> {
     if (this._playbackState !== 'paused' || !this.currentBuffer) return;
 
     const ctx = this.ensureContext();
@@ -280,7 +280,7 @@ class AudioEngine {
     this.unmuteOutput();
 
     if (ctx.state === 'suspended') {
-      ctx.resume();
+      await ctx.resume();
     }
 
     this.sourceNode = ctx.createBufferSource();
@@ -393,6 +393,7 @@ class AudioEngine {
     this.clearPlaybackEndTimer();
     this.playbackEndTimer = setTimeout(() => {
       this._playbackState = 'idle';
+      this._currentUri = null;
       this.playStartOffset = 0;
       this.sourceNode = null;
 
