@@ -211,10 +211,11 @@ export const zhTW: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危險區域',
   'Delete All Data': '刪除所有資料',
-  'Permanently delete all your entries and photos': '永久刪除您的所有紀錄和照片',
+  'Permanently delete all your entries, photos, and voice memos':
+    '永久刪除您的所有紀錄、照片和語音備忘錄',
   'Delete all data?': '刪除所有資料？',
-  'This action cannot be undone. All your entries and photos will be permanently deleted.':
-    '此動作無法復原。您的所有紀錄和照片將被永久刪除。',
+  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
+    '此動作無法復原。您的所有紀錄、照片和語音備忘錄將被永久刪除。',
   'All data deleted': '所有資料已刪除',
   'Delete failed': '刪除失敗',
 

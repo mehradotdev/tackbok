@@ -171,6 +171,13 @@ class AudioEngine {
 
     const result = recorder.start();
     if (result.status === 'error') {
+      // Tear down the partially-built graph so the singleton isn't left
+      // half-initialised for the next attempt.
+      recorder.disconnect();
+      adapter.disconnect();
+      void ctx.suspend();
+      void AudioManager.setAudioSessionActivity(false);
+      this.unmuteOutput();
       return { status: 'error', message: result.message };
     }
 

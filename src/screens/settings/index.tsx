@@ -186,9 +186,22 @@ export default function SettingsScreen() {
         console.error('Failed to invalidate queries:', error);
       }
       // DB is gone; now clean up the filesystem directories.
-      // Both helpers throw on failure so any partial cleanup is surfaced.
-      deleteAllPhotos();
-      deleteAllVoiceMemos();
+      // Attempt both cleanups regardless of individual failures so that a
+      // photos error never silently leaves voice memos on disk (and vice versa).
+      const cleanupErrors: string[] = [];
+      try {
+        deleteAllPhotos();
+      } catch (error) {
+        cleanupErrors.push(error instanceof Error ? error.message : String(error));
+      }
+      try {
+        deleteAllVoiceMemos();
+      } catch (error) {
+        cleanupErrors.push(error instanceof Error ? error.message : String(error));
+      }
+      if (cleanupErrors.length > 0) {
+        throw new Error(cleanupErrors.join('\n'));
+      }
       toast.success(t('All data deleted'));
       // Navigate to home screen
       router.replace('/');
@@ -483,7 +496,9 @@ export default function SettingsScreen() {
         <SettingsSection title={t('Danger Zone')}>
           <SettingsRow
             label={t('Delete All Data')}
-            description={t('Permanently delete all your entries and photos')}
+            description={t(
+              'Permanently delete all your entries, photos, and voice memos',
+            )}
             icon={Trash2}
             onPress={() => setShowDeleteConfirmDialog(true)}
             showChevron
@@ -573,7 +588,7 @@ export default function SettingsScreen() {
             <AlertDialogTitle>{t('Delete all data?')}</AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                'This action cannot be undone. All your entries and photos will be permanently deleted.',
+                'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

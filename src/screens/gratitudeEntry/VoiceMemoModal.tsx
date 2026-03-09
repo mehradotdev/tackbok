@@ -253,16 +253,29 @@ export function VoiceMemoModal({
     }
   }, [recordedUri, onClose, onVoiceMemoSaved, stopPlaybackPoll]);
 
-  const handleClose = useCallback(() => {
+  // ── Audio activity cleanup ────────────────────────────────────────
+  // Shared by handleClose (explicit dismissal) and the unmount effect
+  // (parent-driven unmount). Stops audio and clears all pollers without
+  // invoking any parent callbacks, so it's safe to call from both paths.
+  const stopAudioActivity = useCallback(() => {
     audioEngine.stopPlayback();
     if (audioEngine.isRecording) {
       audioEngine.stopRecording();
     }
     stopDurationPoll();
     stopPlaybackPoll();
+  }, [stopDurationPoll, stopPlaybackPoll]);
+
+  // ── Unmount cleanup ────────────────────────────────────────────────
+  useEffect(() => {
+    return stopAudioActivity;
+  }, [stopAudioActivity]);
+
+  const handleClose = useCallback(() => {
+    stopAudioActivity();
     setPreviewPlaying(false);
     onClose();
-  }, [onClose, stopDurationPoll, stopPlaybackPoll]);
+  }, [onClose, stopAudioActivity]);
 
   const previewProgress = previewDuration > 0 ? previewCurrentTime / previewDuration : 0;
 

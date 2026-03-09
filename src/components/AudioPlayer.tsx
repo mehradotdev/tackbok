@@ -47,6 +47,20 @@ const POLL_INTERVAL = 100; // ms
 const AMPLITUDE_SAMPLE_COUNT = 200;
 
 // ============================================================================
+// Amplitude cache
+// ============================================================================
+
+/**
+ * Module-level cache of extracted amplitudes keyed by full URI.
+ *
+ * Lives for the duration of the JS process (i.e. cleared on app restart).
+ * Stale entries for deleted memos are harmless — their AudioPlayers never
+ * render again, so cached values are simply never read.
+ */
+type AmplitudeResult = { amplitudes: number[]; duration: number };
+const amplitudeCache = new Map<string, AmplitudeResult>();
+
+// ============================================================================
 // Component
 // ============================================================================
 
@@ -67,12 +81,22 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
 
   // ── Extract amplitude data on mount / URI change ──────────────────
   useEffect(() => {
+    // Fast path: serve from cache, no decode needed.
+    const cached = amplitudeCache.get(uri);
+    if (cached) {
+      setAmplitudes(cached.amplitudes);
+      setDuration(cached.duration);
+      return;
+    }
+
+    // Slow path: decode once, cache the result for subsequent mounts.
     let cancelled = false;
 
     audioEngine
       .extractAmplitudes(uri, AMPLITUDE_SAMPLE_COUNT)
       .then((result) => {
         if (!cancelled) {
+          amplitudeCache.set(uri, result);
           setAmplitudes(result.amplitudes);
           setDuration(result.duration);
         }
@@ -169,18 +193,29 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
     }
 
     if (isThisActive && state === 'paused') {
-      await audioEngine.resumePlayback();
-      setPlaybackState('playing');
-      startPolling();
+      try {
+        await audioEngine.resumePlayback();
+        setPlaybackState('playing');
+        startPolling();
+      } catch {
+        setPlaybackState('paused');
+        stopPolling();
+      }
       return;
     }
 
     // Not active or idle: start fresh
     setPlaybackState('loading');
-    await audioEngine.loadAndPlay(uri);
-    setDuration(audioEngine.duration);
-    setPlaybackState(audioEngine.playbackState);
-    startPolling();
+    try {
+      await audioEngine.loadAndPlay(uri);
+      setDuration(audioEngine.duration);
+      setPlaybackState(audioEngine.playbackState);
+      startPolling();
+    } catch {
+      setPlaybackState('idle');
+      setCurrentTime(0);
+      stopPolling();
+    }
   }, [uri, startPolling, stopPolling]);
 
   // ── Seek ─────────────────────────────────────────────────────────
@@ -188,17 +223,23 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
     async (time: number) => {
       if (audioEngine.currentUri !== uri) {
         // Audio not loaded yet — load it and immediately pause at the seek position
-        await audioEngine.loadAndPlay(uri, time);
-        audioEngine.pausePlayback();
-        setDuration(audioEngine.duration);
-        setPlaybackState('paused');
-        setCurrentTime(time);
+        try {
+          await audioEngine.loadAndPlay(uri, time);
+          audioEngine.pausePlayback();
+          setDuration(audioEngine.duration);
+          setPlaybackState('paused');
+          setCurrentTime(time);
+        } catch {
+          setPlaybackState('idle');
+          setCurrentTime(0);
+          stopPolling();
+        }
         return;
       }
       audioEngine.seekTo(time);
       setCurrentTime(time);
     },
-    [uri],
+    [uri, stopPolling],
   );
 
   // ── Progress ratio ───────────────────────────────────────────────

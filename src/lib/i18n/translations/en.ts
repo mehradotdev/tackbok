@@ -220,11 +220,11 @@ export const en = {
   // Settings - Danger Zone
   'Danger Zone': 'Danger Zone',
   'Delete All Data': 'Delete All Data',
-  'Permanently delete all your entries and photos':
-    'Permanently delete all your entries and photos',
+  'Permanently delete all your entries, photos, and voice memos':
+    'Permanently delete all your entries, photos, and voice memos',
   'Delete all data?': 'Delete all data?',
-  'This action cannot be undone. All your entries and photos will be permanently deleted.':
-    'This action cannot be undone. All your entries and photos will be permanently deleted.',
+  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
+    'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.',
   'All data deleted': 'All data deleted',
   'Delete failed': 'Delete failed',
 
