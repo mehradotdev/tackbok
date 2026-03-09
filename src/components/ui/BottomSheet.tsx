@@ -28,8 +28,8 @@ interface BottomSheetProps {
   className?: string;
   /** Whether to show the grabber handle */
   showHandle?: boolean;
-  /** Whether tapping the backdrop dismisses the sheet (default: true) */
-  dismissOnBackdropPress?: boolean;
+  /** Whether the sheet can be dismissed by the user (backdrop tap or hardware back). Default: true */
+  dismissible?: boolean;
 }
 
 // ============================================================================
@@ -50,7 +50,7 @@ export function BottomSheet({
   children,
   className,
   showHandle = true,
-  dismissOnBackdropPress = true,
+  dismissible = true,
 }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
   const height = useSharedValue(0);
@@ -94,11 +94,13 @@ export function BottomSheet({
   useEffect(() => {
     if (!isOpen) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onClose();
+      if (dismissible) {
+        onClose();
+      }
       return true;
     });
     return () => sub.remove();
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, dismissible]);
 
   // Don't render anything until the sheet has been opened at least once
   if (!hasBeenOpen) return null;
@@ -107,16 +109,13 @@ export function BottomSheet({
     <>
       {/* Backdrop */}
       <Animated.View style={backdropStyle} className="absolute inset-0 bg-black/50">
-        <Pressable
-          className="flex-1"
-          onPress={dismissOnBackdropPress ? onClose : undefined}
-        />
+        <Pressable className="flex-1" onPress={dismissible ? onClose : undefined} />
       </Animated.View>
 
       {/* Sheet */}
       <Animated.View
         onLayout={(e) => {
-          height.value = e.nativeEvent.layout.height;
+          height.set(e.nativeEvent.layout.height);
         }}
         style={[sheetStyle, { paddingBottom: Math.max(insets.bottom, 16) }]}
         className={cn(

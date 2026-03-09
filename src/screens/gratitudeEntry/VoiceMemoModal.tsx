@@ -272,13 +272,14 @@ export function VoiceMemoModal({
         isOpen={visible}
         onClose={handleClose}
         showHandle={true}
-        dismissOnBackdropPress={phase === 'idle'}>
+        dismissible={phase === 'idle'}>
         <View className="px-6 pt-2 pb-4">
           {/* Close button */}
           {phase !== 'idle' && (
             <Pressable
               onPress={handleClose}
               hitSlop={8}
+              accessibilityLabel={t('Close')}
               className="absolute top-2 right-6 z-10 p-1">
               <Icon as={X} className="text-muted-foreground size-6" />
             </Pressable>
@@ -352,6 +353,8 @@ export function VoiceMemoModal({
               {/* Play/Pause button */}
               <Pressable
                 onPress={handlePlayPause}
+                accessibilityLabel={previewPlaying ? t('Pause') : t('Play')}
+                accessibilityState={{ selected: previewPlaying }}
                 className="self-center w-16 h-16 rounded-full bg-muted items-center justify-center mb-2">
                 <Icon
                   as={previewPlaying ? Pause : Play}

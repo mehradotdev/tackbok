@@ -68,6 +68,7 @@ class AudioEngine {
   private currentBuffer: AudioBuffer | null = null;
   private _playbackState: PlaybackState = 'idle';
   private _currentUri: string | null = null;
+  private loadRequestId = 0;
 
   // Timing for seek & progress
   private playStartContextTime = 0; // audioContext.currentTime when play() began
@@ -189,6 +190,9 @@ class AudioEngine {
 
     // Suspend context since we're done recording
     this.audioContext?.suspend();
+    // Fire-and-forget: nothing below depends on the session being deactivated
+    // before returning, so we don't need to await (same pattern as stopPlayback).
+    void AudioManager.setAudioSessionActivity(false);
 
     if (result.status === 'success') {
       return { path: result.path, duration: result.duration };
@@ -213,6 +217,8 @@ class AudioEngine {
     // Stop any previous playback
     this.stopPlayback();
 
+    const requestId = ++this.loadRequestId;
+
     const ctx = this.ensureContext();
     const analyser = this.ensureAnalyser();
 
@@ -229,17 +235,25 @@ class AudioEngine {
       iosOptions: [],
     });
 
-    await AudioManager.setAudioSessionActivity(true);
+    try {
+      await AudioManager.setAudioSessionActivity(true);
 
-    if (ctx.state === 'suspended') {
-      await ctx.resume();
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
+      // Guard: if we were stopped/replaced while loading
+      if (this._currentUri !== uri || requestId !== this.loadRequestId) return;
+
+      // Decode audio data from file URI
+      this.currentBuffer = await ctx.decodeAudioData(uri);
+
+      // Guard: if we were stopped/replaced while decoding
+      if (this._currentUri !== uri || requestId !== this.loadRequestId) return;
+    } catch (error) {
+      this.stopPlayback();
+      throw error;
     }
-
-    // Decode audio data from file URI
-    this.currentBuffer = await ctx.decodeAudioData(uri);
-
-    // Guard: if we were stopped/replaced while loading
-    if (this._currentUri !== uri) return;
 
     // Create source
     this.sourceNode = ctx.createBufferSource();
@@ -540,6 +554,9 @@ class AudioEngine {
     if (this._isRecording) {
       this.audioRecorder?.stop();
       this._isRecording = false;
+      // Fire-and-forget: cleanup() tears everything down immediately after this,
+      // so there's nothing to wait for.
+      void AudioManager.setAudioSessionActivity(false);
     }
     this.audioRecorder?.disconnect();
     this.audioContext?.close();

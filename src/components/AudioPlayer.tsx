@@ -5,6 +5,7 @@ import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { audioEngine, type PlaybackState } from '~/lib/audioEngine';
 import { getFullVoiceMemoUri } from '~/lib/voiceMemoUtils';
+import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Badge } from '~/components/ui/badge';
@@ -50,6 +51,7 @@ const AMPLITUDE_SAMPLE_COUNT = 200;
 // ============================================================================
 
 export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
+  const { t } = useTranslation();
   const uri = getFullVoiceMemoUri(relativeUri);
   const [foregroundColor, mutedForegroundColor] = useCSSVariable([
     '--color-foreground',
@@ -212,6 +214,7 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
         {/* Play/Pause button */}
         <Pressable
           onPress={handlePlayPause}
+          accessibilityLabel={isPlaying && isActiveUri ? t('Pause') : t('Play')}
           className="w-12 h-12 rounded-full bg-primary items-center justify-center">
           <Icon
             as={isPlaying && isActiveUri ? Pause : Play}
@@ -244,6 +247,7 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
       {onRemove && (
         <Pressable
           onPress={onRemove}
+          accessibilityLabel={t('Remove')}
           hitSlop={6}
           className="absolute -top-2 -right-2 z-10">
           <Badge
