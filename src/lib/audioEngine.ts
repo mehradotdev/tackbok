@@ -243,7 +243,10 @@ class AudioEngine {
     });
 
     try {
-      await AudioManager.setAudioSessionActivity(true);
+      const sessionOk = await AudioManager.setAudioSessionActivity(true);
+      if (!sessionOk) {
+        throw new Error('Could not activate audio session');
+      }
 
       if (ctx.state === 'suspended') {
         await ctx.resume();
@@ -351,6 +354,8 @@ class AudioEngine {
   }
 
   stopPlayback(): void {
+    const wasActive = this._playbackState !== 'idle';
+
     if (this.sourceNode) {
       try {
         this.sourceNode.stop();
@@ -370,6 +375,10 @@ class AudioEngine {
     if (!this._isRecording) {
       this.audioContext?.suspend();
       AudioManager.setAudioSessionActivity(false);
+    }
+
+    if (wasActive) {
+      this.notifyPlaybackStopped();
     }
   }
 
@@ -410,6 +419,16 @@ class AudioEngine {
     this.playbackEndListeners.delete(id);
   }
 
+  private notifyPlaybackStopped(): void {
+    this.playbackEndListeners.forEach((cb) => {
+      try {
+        cb();
+      } catch {
+        // Ignore listener errors
+      }
+    });
+  }
+
   private schedulePlaybackEnd(remainingSeconds: number): void {
     this.clearPlaybackEndTimer();
     this.playbackEndTimer = setTimeout(() => {
@@ -424,13 +443,7 @@ class AudioEngine {
         AudioManager.setAudioSessionActivity(false);
       }
 
-      this.playbackEndListeners.forEach((cb) => {
-        try {
-          cb();
-        } catch {
-          // Ignore listener errors
-        }
-      });
+      this.notifyPlaybackStopped();
     }, remainingSeconds * 1000);
   }
 

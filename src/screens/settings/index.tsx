@@ -177,13 +177,15 @@ export default function SettingsScreen() {
       // Wipe the DB first — if this throws, the files are still intact
       // and the catch block will surface the error to the user.
       await deleteAllData();
-      // Invalidate queries immediately after the DB wipe so React Query
-      // never serves entries that no longer exist, even if filesystem
-      // cleanup below throws.
+      // Remove all cached queries immediately after the DB wipe so React
+      // Query never serves entries that no longer exist, even if filesystem
+      // cleanup below throws. invalidateQueries() only marks stale — deleted
+      // data would remain visible until a background refetch completes.
+      // removeQueries() evicts the cache entirely.
       try {
-        await queryClient.invalidateQueries();
+        queryClient.removeQueries();
       } catch (error) {
-        console.error('Failed to invalidate queries:', error);
+        console.error('Failed to remove queries:', error);
       }
       // DB is gone; now clean up the filesystem directories.
       // Attempt both cleanups regardless of individual failures so that a

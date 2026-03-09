@@ -80,21 +80,6 @@ export function VoiceMemoModal({
     '--color-border',
   ]);
 
-  // ── Reset state when sheet closes ──────────────────────────────────
-  useEffect(() => {
-    if (!visible) {
-      const timer = setTimeout(() => {
-        setPhase('idle');
-        setRecordedUri(null);
-        setRecordingDuration(0);
-        setPreviewPlaying(false);
-        setPreviewCurrentTime(0);
-        setPreviewDuration(0);
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [visible]);
-
   // ── Playback end listener ──────────────────────────────────────────
   useEffect(() => {
     listenerIdRef.current = audioEngine.onPlaybackEnd(() => {
@@ -270,6 +255,23 @@ export function VoiceMemoModal({
   useEffect(() => {
     return stopAudioActivity;
   }, [stopAudioActivity]);
+
+  // ── Reset state when sheet closes ──────────────────────────────────
+  useEffect(() => {
+    if (!visible) {
+      stopAudioActivity();
+      const timer = setTimeout(() => {
+        setPhase('idle');
+        setRecordedUri(null);
+        setRecordingDuration(0);
+        setPreviewPlaying(false);
+        setPreviewCurrentTime(0);
+        setPreviewDuration(0);
+        setPreviewAmplitudes([]);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, stopAudioActivity]);
 
   const handleClose = useCallback(() => {
     stopAudioActivity();
