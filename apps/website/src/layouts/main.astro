@@ -1,0 +1,42 @@
+---
+import '~/styles/global.css';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+
+    <!-- Primary Meta Tags -->
+    <title>Tackbok</title>
+    <meta name="title" content="Tackbok" />
+    <meta
+      name="description"
+      content="A free and open-source gratitude journal app. Reflect on your day, simply and securely."
+    />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/icon.png" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tackbok" />
+    <meta
+      property="og:description"
+      content="A free and open-source gratitude journal app. Reflect on your day, simply and securely."
+    />
+    <meta property="og:image" content="/icon.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Tackbok" />
+    <meta
+      property="twitter:description"
+      content="A free and open-source gratitude journal app. Reflect on your day, simply and securely."
+    />
+    <meta property="twitter:image" content="/icon.png" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

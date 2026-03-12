@@ -1,0 +1,89 @@
+---
+import Layout from '~/layouts/main.astro';
+
+const lastUpdated = 'March 13, 2026';
+---
+
+<Layout>
+  <main
+    class="flex min-h-screen flex-col items-center bg-background p-6 text-foreground sm:p-12 lg:p-24"
+  >
+    <div class="flex w-full max-w-3xl flex-col gap-8">
+      <a
+        href="/"
+        class="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
+      >
+        &larr; Back to Home
+      </a>
+
+      <div>
+        <h1 class="mb-4 text-4xl font-bold tracking-tight">Privacy Policy</h1>
+        <p class="text-muted-foreground">
+          Last updated: {lastUpdated}
+        </p>
+      </div>
+
+      <div class="prose prose-neutral dark:prose-invert max-w-none">
+        <p>
+          At <strong>Mehra Dot Dev</strong>, we believe in transparency and honesty. We hope you will find this privacy policy clear and transparent. Do not hesitate to reach out to us at <strong>tackbok.support@mehra.dev</strong> if you have any questions.
+        </p>
+
+        <br />
+        <h2>Data Collection & Usage</h2>
+        <p>
+          The <strong>Tackbok</strong> application does not require you to create an account. Therefore, we neither store nor have access to your personal entries and data remotely. Your data is stored locally on your device, and all data processing is done locally.
+        </p>
+        <p>
+          We obtain your email address only when you explicitly request support via email. We use your email strictly to contact you to provide support, feedback, or important information.
+        </p>
+        <p>
+          Additionally, Tackbok features a donation system. Donations are processed via RevenueCat. When making a donation, you may choose to provide a display name (or remain anonymous) and an optional email address. The display name will be shown on our public donation leaderboard (where the top 3 donors of the past 90 days are highlighted at the top, and all other donors are listed below). If you provide an email address, it will be used solely to send you a donation acknowledgment and a thank-you note. Your email address will never be publicly displayed on the leaderboard.
+        </p>
+
+        <br />
+        <h2>Analytics</h2>
+        <p>
+          We use <strong>PostHog</strong> to collect and analyze usage data to understand usage patterns and to improve our application. The application does not collect any personal data that directly identifies you, such as your name, email, or anything you type within the app.
+        </p>
+        <p>
+          The analytics service automatically collects certain information that does not personally identify our end users, such as device state information, unique device identifiers, device hardware and OS information, or anonymized IP addresses.
+        </p>
+
+        <br />
+        <h2>Data Sharing and Disclosure</h2>
+        <p>
+          <strong>We do not sell your personal data.</strong> Any data that is transmitted from your device to our third-party service providers (such as PostHog or RevenueCat) is used strictly to provide, maintain, and improve the app's functionality (e.g., processing donations and analyzing app usage). We do not share your information with any third parties for their own marketing or advertising purposes.
+        </p>
+        <p>
+          Additionally, the <strong>Tackbok</strong> application is completely ad-free. We do not display any advertisements within the app, nor do we collect data to build advertising profiles.
+        </p>
+
+        <br />
+        <h2>Third-Party Services</h2>
+        <p>
+          We currently use the following third-party services for our app:
+        </p>
+        <ul>
+          <li>
+            <strong>PostHog</strong>: This service helps us collect and analyze usage data to improve our app. For more information, please view the <a href="https://posthog.com/privacy" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4">PostHog Privacy Policy</a>.
+          </li>
+          <li>
+            <strong>RevenueCat</strong>: This service manages and processes in-app purchases and donations. For more information, please view the <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4">RevenueCat Privacy Policy</a>.
+          </li>
+        </ul>
+
+        <br />
+        <h2>Changes to This Policy</h2>
+        <p>
+          We reserve the right, at our sole discretion, to modify or replace this Privacy Policy at any time. Any changes we may make to our privacy policy in the future will be posted on this page. You are advised to check this page from time to time and take note of any changes.
+        </p>
+
+        <br />
+        <h2>Contact Us</h2>
+        <p>
+          If you have any questions regarding privacy while using the Application, or have questions about our practices, please contact us via email at <strong>tackbok.support@mehra.dev</strong>.
+        </p>
+      </div>
+    </div>
+  </main>
+</Layout>
