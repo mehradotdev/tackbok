@@ -1,0 +1,26 @@
+# Expo
+.expo/
+dist/
+android/
+ios/
+web-build/
+expo-env.d.ts
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Build artifacts
+*.aab
+*.apk
+*.ipa
+
+# App example
+app-example
