@@ -7,19 +7,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const projectRoot = __dirname;
-const monorepoRoot = path.resolve(projectRoot, '../..');
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(projectRoot);
 
-// Watch all files in the monorepo
-config.watchFolders = [monorepoRoot];
+// Bun isolated linker: all deps are symlinks in apps/mobile/node_modules/ pointing
+// into root/node_modules/.bun/ — no hoisted deps at monorepo root to watch/resolve.
+config.resolver.nodeModulesPaths = [path.resolve(projectRoot, 'node_modules')];
 
-// Resolve modules from both the project and the monorepo root
-config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, 'node_modules'),
-  path.resolve(monorepoRoot, 'node_modules'),
-];
+// Allow Metro to follow symlinks into the .bun central store
+config.resolver.unstable_enableSymlinks = true;
 
 // Add SQL source extension for Drizzle
 config.resolver.sourceExts.push('sql');
