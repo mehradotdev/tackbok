@@ -63,22 +63,13 @@ const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
           >
             Join the Waitlist
           </a>
+
           <a
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
             title="View on GitHub"
-            class={buttonVariants({ variant: "outline", size: "icon", className: "hidden h-12 w-12 shrink-0 rounded-full shadow-sm transition-all hover:shadow-md sm:flex" })}
-          >
-            <span class="sr-only">GitHub</span>
-            <GithubIcon />
-          </a>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="View on GitHub"
-            class={buttonVariants({ variant: "outline", size: "lg", className: "flex h-12 w-full items-center gap-2 px-8 font-semibold shadow-sm transition-all hover:shadow-md sm:flex sm:hidden" })}
+            class={buttonVariants({ variant: "outline", size: "lg", className: "flex h-12 w-full items-center gap-2 px-8 font-semibold shadow-sm transition-all hover:shadow-md sm:w-auto" })}
           >
             <GithubIcon width="20" height="20" />
             GitHub
