@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import tackbokHomeSrc from '~/assets/tackbok_home_page.png';
 import tackbokEditSrc from '~/assets/tackbok_edit_page.png';
 import Layout from '~/layouts/main.astro';
@@ -98,20 +99,18 @@ const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
         class="perspective-1000 relative z-10 mt-8 flex aspect-square w-full items-center justify-center md:aspect-video lg:mt-0 lg:aspect-square"
       >
         {/* Main Phone (Home) */}
-        <img
-          src={tackbokHomeSrc.src}
+        <Image
+          src={tackbokHomeSrc}
           alt="Tackbok Home Screen"
-          width={tackbokHomeSrc.width}
-          height={tackbokHomeSrc.height}
+          loading="eager"
           class="absolute z-20 w-[240px] -translate-x-4 rotate-[-4deg] rounded-[3rem] shadow-[0_0_40px_rgba(0,0,0,0.1)] transition-transform duration-500 hover:scale-105 hover:rotate-0 sm:w-[280px] sm:-translate-x-6 lg:w-[320px] lg:-translate-x-10"
         />
 
         {/* Secondary Phone (Edit) */}
-        <img
-          src={tackbokEditSrc.src}
+        <Image
+          src={tackbokEditSrc}
           alt="Tackbok Edit Screen"
-          width={tackbokEditSrc.width}
-          height={tackbokEditSrc.height}
+          loading="lazy"
           class="absolute w-[240px] translate-x-10 translate-y-12 rotate-[8deg] rounded-[3rem] opacity-90 shadow-[0_0_30px_rgba(0,0,0,0.1)] transition-all duration-500 hover:z-30 hover:translate-y-0 hover:rotate-0 hover:opacity-100 sm:w-[280px] sm:translate-x-16 sm:translate-y-16 lg:w-[320px] lg:translate-x-22 lg:translate-y-20"
         />
       </div>
