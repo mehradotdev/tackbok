@@ -18,7 +18,7 @@ To use the components in your app, import them in an `.astro` file:
 
 ```astro
 ---
-import { Button } from "@/components/ui/button"
+import { Button } from '~/components/ui/button';
 ---
 
 <html lang="en">
