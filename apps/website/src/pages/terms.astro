@@ -1,10 +1,12 @@
 ---
 import Layout from '~/layouts/main.astro';
 
+const title = 'Terms of Service — Tackbok';
+const description = 'Read the terms of service for the Tackbok gratitude journal app.';
 const lastUpdated = 'March 13, 2026';
 ---
 
-<Layout>
+<Layout title={title} description={description}>
   <main
     class="flex min-h-screen flex-col items-center bg-background p-6 text-foreground sm:p-12 lg:p-24"
   >
@@ -47,11 +49,11 @@ const lastUpdated = 'March 13, 2026';
           what you're paying for.
         </p>
         <p>
-          The Tackbok app stores and processes personal data that you have provided to us
-          to provide our Service. It's your responsibility to keep your phone and access
-          to the app secure. We therefore recommend that you do not jailbreak or root your
-          phone, which could make your phone vulnerable to malware and compromise your
-          phone's security features.
+          The Tackbok app stores and processes your data only locally on your device.
+          We do not collect or store your journal entries on our servers. It's your
+          responsibility to keep your phone and access to the app secure. We therefore
+          recommend that you do not jailbreak or root your phone, which could make your
+          phone vulnerable to malware and compromise your phone's security features.
         </p>
 
         <br />

@@ -1,10 +1,12 @@
 ---
 import Layout from '~/layouts/main.astro';
 
+const title = 'Privacy Policy — Tackbok';
+const description = "Learn how Tackbok handles your data. Your journal entries stay on your device — we don't collect or store them.";
 const lastUpdated = 'March 13, 2026';
 ---
 
-<Layout>
+<Layout title={title} description={description}>
   <main
     class="flex min-h-screen flex-col items-center bg-background p-6 text-foreground sm:p-12 lg:p-24"
   >
@@ -41,6 +43,15 @@ const lastUpdated = 'March 13, 2026';
         </p>
 
         <br />
+        <h2>Google Drive Backup (Optional)</h2>
+        <p>
+          Tackbok offers an optional feature that allows you to securely back up and sync your journal entries across devices using your own <strong>Google Drive</strong> account. If you choose to enable this feature, the application will request access to your Google Drive strictly to upload and retrieve your backup files.
+        </p>
+        <p>
+          We want to be absolutely clear: <strong>we (the developers) do not have any access to your Google Drive data, your journal entries, or your backup files.</strong> All data is transferred directly between your device and your personal Google Drive account. We do not store your Google Drive credentials or any journal data on our servers, nor do we share your Google user data with any third parties. This integration is provided solely for your convenience to keep your data safe.
+        </p>
+
+        <br />
         <h2>Analytics</h2>
         <p>
           We use <strong>PostHog</strong> to collect and analyze usage data to understand usage patterns and to improve our application. The application does not collect any personal data that directly identifies you, such as your name, email, or anything you type within the app.
@@ -69,6 +80,9 @@ const lastUpdated = 'March 13, 2026';
           </li>
           <li>
             <strong>RevenueCat</strong>: This service manages and processes in-app purchases and donations. For more information, please view the <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4">RevenueCat Privacy Policy</a>.
+          </li>
+          <li>
+            <strong>Google Drive (Optional)</strong>: If you enable cloud backups, the app interacts with the Google Drive API to securely store and retrieve your data on your personal Google account. For more information, please view the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4">Google Privacy Policy</a>.
           </li>
         </ul>
 
