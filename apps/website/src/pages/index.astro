@@ -55,43 +55,31 @@ const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
         <div
           class="mx-auto mt-4 flex w-full max-w-md flex-col items-center justify-center gap-3 sm:flex-row lg:mx-0 lg:justify-start"
         >
-          <a
-            href={WAITLIST_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="w-full sm:w-auto"
+          <Button
+            size="lg"
+            className="h-12 w-full px-8 text-lg font-normal tracking-wider text-white shadow-lg transition-all hover:shadow-xl dark:text-white sm:w-auto"
+            render={<a href={WAITLIST_URL} target="_blank" rel="noopener noreferrer" />}
           >
-            <Button
-              size="lg"
-              className="h-12 w-full px-8 text-lg font-normal tracking-wider text-white shadow-lg transition-all hover:shadow-xl dark:text-white"
-            >
-              Join the Waitlist
-            </Button>
-          </a>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="View on GitHub"
-            class="w-full sm:w-auto"
+            Join the Waitlist
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="hidden h-12 w-12 shrink-0 rounded-full shadow-sm transition-all hover:shadow-md sm:flex"
+            render={<a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" title="View on GitHub" />}
           >
-            <Button
-              variant="outline"
-              size="icon"
-              className="hidden h-12 w-12 shrink-0 rounded-full shadow-sm transition-all hover:shadow-md sm:flex"
-            >
-              <span class="sr-only">GitHub</span>
-              <GithubIcon />
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="flex h-12 w-full items-center gap-2 px-8 font-semibold shadow-sm transition-all hover:shadow-md sm:hidden"
-            >
-              <GithubIcon width="20" height="20" />
-              GitHub
-            </Button>
-          </a>
+            <span class="sr-only">GitHub</span>
+            <GithubIcon />
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex h-12 w-full items-center gap-2 px-8 font-semibold shadow-sm transition-all hover:shadow-md sm:flex sm:hidden"
+            render={<a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" title="View on GitHub" />}
+          >
+            <GithubIcon width="20" height="20" />
+            GitHub
+          </Button>
         </div>
 
         <div
