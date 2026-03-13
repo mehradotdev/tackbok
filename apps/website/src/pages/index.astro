@@ -3,7 +3,7 @@ import { Image } from 'astro:assets';
 import tackbokHomeUrl from '~/assets/tackbok_home_page.png';
 import tackbokEditUrl from '~/assets/tackbok_edit_page.png';
 import Layout from '~/layouts/main.astro';
-import { Button } from '~/components/ui/button';
+import { buttonVariants } from '~/components/ui/button';
 import GithubIcon from '~/components/GithubIcon.astro';
 
 const WAITLIST_URL = 'https://forms.gle/A5bGfGJLoEipsauu6';
@@ -55,31 +55,34 @@ const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
         <div
           class="mx-auto mt-4 flex w-full max-w-md flex-col items-center justify-center gap-3 sm:flex-row lg:mx-0 lg:justify-start"
         >
-          <Button
-            size="lg"
-            className="h-12 w-full px-8 text-lg font-normal tracking-wider text-white shadow-lg transition-all hover:shadow-xl dark:text-white sm:w-auto"
-            render={<a href={WAITLIST_URL} target="_blank" rel="noopener noreferrer" />}
+          <a
+            href={WAITLIST_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            class={buttonVariants({ size: "lg", className: "h-12 w-full px-8 text-lg font-normal tracking-wider text-white shadow-lg transition-all hover:shadow-xl dark:text-white sm:w-auto" })}
           >
             Join the Waitlist
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="hidden h-12 w-12 shrink-0 rounded-full shadow-sm transition-all hover:shadow-md sm:flex"
-            render={<a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" title="View on GitHub" />}
+          </a>
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View on GitHub"
+            class={buttonVariants({ variant: "outline", size: "icon", className: "hidden h-12 w-12 shrink-0 rounded-full shadow-sm transition-all hover:shadow-md sm:flex" })}
           >
             <span class="sr-only">GitHub</span>
             <GithubIcon />
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="flex h-12 w-full items-center gap-2 px-8 font-semibold shadow-sm transition-all hover:shadow-md sm:flex sm:hidden"
-            render={<a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" title="View on GitHub" />}
+          </a>
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View on GitHub"
+            class={buttonVariants({ variant: "outline", size: "lg", className: "flex h-12 w-full items-center gap-2 px-8 font-semibold shadow-sm transition-all hover:shadow-md sm:flex sm:hidden" })}
           >
             <GithubIcon width="20" height="20" />
             GitHub
-          </Button>
+          </a>
         </div>
 
         <div
