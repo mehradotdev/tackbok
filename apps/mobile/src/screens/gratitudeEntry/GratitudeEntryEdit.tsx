@@ -10,11 +10,13 @@ import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { format } from 'date-fns';
 import { Clock, X } from 'lucide-react-native';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import {
   MODAL_CLOSE_DELAY,
   MOOD_OPTIONS,
   MAX_PHOTOS_PER_ENTRY,
   MAX_VOICE_MEMOS_PER_ENTRY,
+  SHEET_NAMES,
 } from '~/constants';
 import type { Entry, Mood, Asset } from '~/types';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
@@ -24,7 +26,6 @@ import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
 import { usePhotoSession } from '~/hooks/usePhotoSession';
 import { useVoiceMemoSession } from '~/hooks/useVoiceMemoSession';
-import { useModalOrchestrator } from '~/hooks/useModalOrchestrator';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
@@ -107,15 +108,15 @@ export function GratitudeEntryEdit({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTags);
   const [showUnsavedChangesConfirm, setShowUnsavedChangesConfirm] = useState(false);
 
-  // Modal visibility state (consolidated in one hook)
-  const modals = useModalOrchestrator();
+  const [isAddPhotoVisible, setIsAddPhotoVisible] = useState(false);
+  const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
 
   // Auto-open mood modal for new entries (run once on mount)
   useEffect(() => {
     if (isNewEntry) {
-      modals.mood.open();
+      setTimeout(() => TrueSheet.present(SHEET_NAMES.MOOD), 100);
     }
-  }, [isNewEntry, modals.mood.open]);
+  }, [isNewEntry]);
 
   // Photo session: tracks additions/removals and handles disk cleanup
   const {
@@ -147,8 +148,8 @@ export function GratitudeEntryEdit({
       );
       return;
     }
-    modals.addPhoto.open();
-  }, [photos.length, t, modals.addPhoto.open]);
+    setIsAddPhotoVisible(true);
+  }, [photos.length, t]);
 
   const handleVoiceMemoRequest = useCallback(() => {
     const remaining = MAX_VOICE_MEMOS_PER_ENTRY - voiceMemos.length;
@@ -160,8 +161,8 @@ export function GratitudeEntryEdit({
       );
       return;
     }
-    modals.voiceMemo.open();
-  }, [voiceMemos.length, t, modals.voiceMemo.open]);
+    TrueSheet.present(SHEET_NAMES.VOICE_MEMO);
+  }, [voiceMemos.length, t]);
 
   // Original values for change detection
   const [originalValues, setOriginalValues] = useState(() => ({
@@ -377,7 +378,7 @@ export function GratitudeEntryEdit({
             <Pressable
               onPress={() => {
                 Keyboard.dismiss();
-                modals.timePicker.open();
+                setIsTimePickerVisible(true);
               }}
               className="flex-row items-center px-3 py-2 gap-2 bg-muted border border-border rounded-full active:bg-accent">
               <Icon as={Clock} className="text-muted-foreground size-5" />
@@ -474,8 +475,8 @@ export function GratitudeEntryEdit({
           className="absolute bottom-0 left-0 right-0">
           <FloatingActionDock
             isKeyboardVisible={isKeyboardVisible}
-            onRequestMoodModal={modals.mood.open}
-            onRequestTagsModal={modals.tags.open}
+            onRequestMoodModal={() => TrueSheet.present(SHEET_NAMES.MOOD)}
+            onRequestTagsModal={() => TrueSheet.present(SHEET_NAMES.TAGS)}
             onRequestVoiceMemoModal={handleVoiceMemoRequest}
             onRequestAddPhotoModal={handlePhotoRequest}
           />
@@ -483,37 +484,26 @@ export function GratitudeEntryEdit({
       </View>
 
       {/* Modals — rendered at root level so BottomSheet backdrop covers full screen */}
-      <MoodModal
-        visible={modals.mood.visible}
-        onClose={modals.mood.close}
-        value={mood}
-        onChange={setMood}
-      />
+      <MoodModal value={mood} onChange={setMood} />
 
       <TagsModal
-        visible={modals.tags.visible}
-        onClose={modals.tags.close}
         selectedTagIds={selectedTagIds}
         onTagsChange={setSelectedTagIds}
         onTagDeleted={handleTagDeleted}
       />
 
-      <VoiceMemoModal
-        visible={modals.voiceMemo.visible}
-        onClose={modals.voiceMemo.close}
-        onVoiceMemoSaved={handleVoiceMemoSaved}
-      />
+      <VoiceMemoModal onVoiceMemoSaved={handleVoiceMemoSaved} />
 
       <AddPhotoModal
-        visible={modals.addPhoto.visible}
-        onClose={modals.addPhoto.close}
+        visible={isAddPhotoVisible}
+        onClose={() => setIsAddPhotoVisible(false)}
         currentPhotoCount={photos.length}
         onPhotosPicked={handlePhotosPicked}
       />
 
       <TimePickerModal
-        visible={modals.timePicker.visible}
-        onClose={modals.timePicker.close}
+        visible={isTimePickerVisible}
+        onClose={() => setIsTimePickerVisible(false)}
         value={formattedTime}
         onValueChange={(time) => {
           const [hours, minutes] = time.split(':').map(Number);

@@ -1,11 +1,10 @@
 import { useState, useCallback } from 'react';
-import { View, ScrollView, Linking, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Linking, ActivityIndicator, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft,
-  ArrowRight,
+  X,
   Bell,
   Clock,
   Palette,
@@ -243,19 +242,29 @@ export default function SettingsScreen() {
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
   return (
-    <View className="flex-1 bg-background">
+    <View collapsable={false} className="flex-1 bg-background">
+      {/* Android Grabber — MD3 drag handle (32×4dp, centered) */}
+      {Platform.OS === 'android' && (
+        <View className="items-center pt-2">
+          <View
+            style={{ width: 32, height: 4, borderRadius: 2 }}
+            className="bg-muted-foreground/60"
+          />
+        </View>
+      )}
+
       {/* Header */}
-      <View className="flex-row items-center px-safe-or-4 pt-safe-or-3 pb-3 border-b border-border">
-        <Button onPress={() => router.back()} variant="ghost" className="p-1 mr-1">
-          <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
-        </Button>
+      <View className="flex-row items-center justify-between px-safe-or-4 pt-2 ios:pt-4 pb-3 border-b border-border">
         <Text variant="h2" className="text-foreground py-1">
           {t('Settings')}
         </Text>
+        <Button onPress={() => router.back()} variant="ghost" className="p-1 ml-1">
+          <Icon as={X} className="text-foreground" />
+        </Button>
       </View>
 
       {/* Settings Content */}
-      <ScrollView className="px-safe">
+      <ScrollView className="px-safe" nestedScrollEnabled>
         {/* Notifications Section */}
         <SettingsSection title={t('Notifications')} className="pt-4">
           <SettingsRow

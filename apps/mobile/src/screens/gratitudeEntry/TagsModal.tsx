@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { View, Pressable, ScrollView } from 'react-native';
 import { Plus, X, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react-native';
+import { useCSSVariable } from 'uniwind';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { type Tag } from '~/types';
+import { SHEET_NAMES } from '~/constants';
 import { sanitizeTagName } from '~/db/queries';
 import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
@@ -12,7 +15,6 @@ import { Icon } from '~/components/ui/icon';
 import { Checkbox } from '~/components/ui/checkbox';
 import { Input } from '~/components/ui/input';
 import { toast } from '~/components/ui/toast';
-import { BottomSheet } from '~/components/ui/BottomSheet';
 import {
   AlertDialog,
   AlertDialogDestructiveAction,
@@ -29,8 +31,6 @@ import {
 // ============================================================================
 
 interface ITagsModalProps {
-  visible: boolean;
-  onClose: () => void;
   selectedTagIds: string[];
   onTagsChange: (tagIds: string[]) => void;
   onTagDeleted?: (tagId: string) => void;
@@ -43,14 +43,13 @@ type ViewState = 'select' | 'create' | 'edit';
 // ============================================================================
 
 export function TagsModal({
-  visible,
-  onClose,
   selectedTagIds,
   onTagsChange,
   onTagDeleted,
 }: ITagsModalProps) {
   const { t, isRTL } = useTranslation();
   const { data: allTags = [] } = useTags();
+  const [backgroundColor] = useCSSVariable(['--color-background']);
   const [viewState, setViewState] = useState<ViewState>('select');
   const [tagInputValue, setTagInputValue] = useState('');
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
@@ -61,16 +60,13 @@ export function TagsModal({
   const deleteTagMutation = useDeleteTag();
   const createTagMutation = useCreateTag();
 
-  // Reset state when modal closes
-  useEffect(() => {
-    if (!visible) {
-      setViewState('select');
-      setTagInputValue('');
-      setEditingTag(null);
-      setTagToDelete(null);
-      setDeleteDialogOpen(false);
-    }
-  }, [visible]);
+  const handleDismiss = () => {
+    setViewState('select');
+    setTagInputValue('');
+    setEditingTag(null);
+    setTagToDelete(null);
+    setDeleteDialogOpen(false);
+  };
 
   // ============================================================================
   // Handlers
@@ -217,13 +213,13 @@ export function TagsModal({
         </View>
 
         {/* Title */}
-        <Text className="text-foreground text-lg font-semibold leading-none flex-1 text-center">
+        <Text className="text-foreground text-lg font-semibold leading-tight flex-1 text-center">
           {title}
         </Text>
 
         {/* Right side: Close button */}
         <View className="w-10 items-end">
-          <Pressable onPress={onClose} hitSlop={10}>
+          <Pressable onPress={() => TrueSheet.dismiss(SHEET_NAMES.TAGS)} hitSlop={10}>
             <Icon as={X} className="text-muted-foreground" size={20} />
           </Pressable>
         </View>
@@ -267,7 +263,10 @@ export function TagsModal({
   const renderSelectView = () => (
     <View className="px-4 pt-2 pb-4">
       {allTags.length > 0 && (
-        <ScrollView className="max-h-50" contentContainerClassName="pb-4">
+        <ScrollView
+          className="max-h-50"
+          contentContainerClassName="pb-4"
+          nestedScrollEnabled>
           {allTags.map((tag) => renderTagItem(tag))}
         </ScrollView>
       )}
@@ -321,13 +320,22 @@ export function TagsModal({
 
   return (
     <>
-      <BottomSheet isOpen={visible} onClose={onClose}>
-        <View>
+      <TrueSheet
+        name={SHEET_NAMES.TAGS}
+        detents={['auto']}
+        cornerRadius={24}
+        grabber={true}
+        grabberOptions={{
+          topMargin: 8,
+        }}
+        backgroundColor={backgroundColor as string}
+        onDidDismiss={handleDismiss}>
+        <View className="pt-2">
           {renderHeader()}
 
           {viewState === 'select' ? renderSelectView() : renderFormView()}
         </View>
-      </BottomSheet>
+      </TrueSheet>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

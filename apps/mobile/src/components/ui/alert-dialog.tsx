@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Platform, View, type ViewProps } from 'react-native';
+import { Modal, Platform, View, type ViewProps } from 'react-native';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 import { Timer } from 'lucide-react-native';
@@ -16,7 +16,15 @@ const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment;
+function AndroidModalOverlay({ children }: { children: React.ReactNode }) {
+  return (
+    <Modal visible transparent statusBarTranslucent animationType="none">
+      {children}
+    </Modal>
+  );
+}
+
+const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : AndroidModalOverlay;
 
 function AlertDialogOverlay({
   className,
