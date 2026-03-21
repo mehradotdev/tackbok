@@ -111,12 +111,17 @@ export function GratitudeEntryEdit({
   const [isAddPhotoVisible, setIsAddPhotoVisible] = useState(false);
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
 
-  // Auto-open mood modal for new entries (run once on mount)
+  // Auto-open mood modal for new entries (run once on mount).
+  // We wait for 'transitionEnd' so iOS doesn't throw "No presenting view
+  // controller found" while the navigation push animation is still running.
   useEffect(() => {
-    if (isNewEntry) {
-      setTimeout(() => TrueSheet.present(SHEET_NAMES.MOOD), 100);
-    }
-  }, [isNewEntry]);
+    if (!isNewEntry) return;
+    const unsubscribe = navigation.addListener('transitionEnd' as any, () => {
+      TrueSheet.present(SHEET_NAMES.MOOD);
+      unsubscribe(); // fire once, then clean up
+    });
+    return unsubscribe;
+  }, [isNewEntry, navigation]);
 
   // Photo session: tracks additions/removals and handles disk cleanup
   const {
@@ -225,7 +230,7 @@ export function GratitudeEntryEdit({
       // Delete files that were removed during this editing session.
       // Best-effort: runs only after a successful save to prevent data loss
       // if the upsert fails (DB would still reference the files).
-      await commitRemovedPhotos();
+      commitRemovedPhotos();
       commitRemovedVoiceMemos();
 
       if (isNewEntry) {

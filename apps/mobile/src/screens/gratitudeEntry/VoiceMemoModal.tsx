@@ -155,7 +155,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     }
 
     // Permission denied — close sheet and show alert
-    TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
+    await TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
     setPermissionAlertOpen(true);
   }, [startRecording]);
 
@@ -251,19 +251,13 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   const handleDismiss = useCallback(() => {
     stopAudioActivity();
+    setPhase('idle');
+    setRecordedUri(null);
+    setRecordingDuration(0);
     setPreviewPlaying(false);
-
-    // reset state after sheet physically closes (approx duration 400ms)
-    const timer = setTimeout(() => {
-      setPhase('idle');
-      setRecordedUri(null);
-      setRecordingDuration(0);
-      setPreviewPlaying(false);
-      setPreviewCurrentTime(0);
-      setPreviewDuration(0);
-      setPreviewAmplitudes([]);
-    }, 400);
-    return () => clearTimeout(timer);
+    setPreviewCurrentTime(0);
+    setPreviewDuration(0);
+    setPreviewAmplitudes([]);
   }, [stopAudioActivity]);
 
   const previewProgress = previewDuration > 0 ? previewCurrentTime / previewDuration : 0;

@@ -258,7 +258,11 @@ export default function SettingsScreen() {
         <Text variant="h2" className="text-foreground py-1">
           {t('Settings')}
         </Text>
-        <Button onPress={() => router.back()} variant="ghost" className="p-1 ml-1">
+        <Button
+          onPress={() => router.back()}
+          variant="ghost"
+          className="p-1 ml-1"
+          accessibilityLabel={t('Close')}>
           <Icon as={X} className="text-foreground" />
         </Button>
       </View>

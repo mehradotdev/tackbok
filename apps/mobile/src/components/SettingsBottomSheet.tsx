@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
-import { Pressable, View } from 'react-native';
+import { Dimensions, Linking, Platform, Pressable, View } from 'react-native';
 import { reloadAppAsync } from 'expo';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 import { useRouter } from 'expo-router';
 import {
   EllipsisVertical,
@@ -49,6 +51,27 @@ function ActionRow({ label, onPress, isLast, isBold, icon, centered }: ActionRow
   );
 }
 
+function buildSupportBody(): string {
+  const appVersion = Constants.expoConfig?.version ?? 'Unknown';
+  const platform = Platform.OS === 'ios' ? 'iOS' : 'Android';
+  const osVersion = Platform.Version;
+  const device = Device.modelName ?? 'Unknown';
+  const { width, height } = Dimensions.get('screen');
+  const resolution = `${Math.round(width)}x${Math.round(height)}`;
+
+  return [
+    '',
+    '',
+    '',
+    '---',
+    `App Version: ${appVersion}`,
+    `Platform: ${platform}`,
+    `OS Version: ${osVersion}`,
+    `Device Model: ${device}`,
+    `Resolution: ${resolution}`,
+  ].join('\n');
+}
+
 export function SettingsBottomSheet() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -64,7 +87,14 @@ export function SettingsBottomSheet() {
 
   const handleContactUs = async () => {
     await dismiss();
-    // TODO: Open email client with pre-filled subject and body
+    const subject = encodeURIComponent('Tackbok - App Support');
+    const body = encodeURIComponent(buildSupportBody());
+    const url = `mailto:tackbok.support@mehra.dev?subject=${subject}&body=${body}`;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      // Silently fail if no email client is configured
+    }
   };
 
   const handleReloadApp = async () => {
@@ -74,7 +104,12 @@ export function SettingsBottomSheet() {
 
   return (
     <>
-      <Pressable onPress={present} hitSlop={12} className="py-2 active:opacity-70">
+      <Pressable
+        onPress={present}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel={t('Open Settings')}
+        className="py-2 active:opacity-70">
         <Icon as={EllipsisVertical} className="text-primary-foreground" />
       </Pressable>
 
