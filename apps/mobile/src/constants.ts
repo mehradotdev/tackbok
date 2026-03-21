@@ -17,6 +17,13 @@ export const MOOD_OPTIONS = [
   { value: 'AWFUL', emoji: MOOD_EMOJI.AWFUL, label: 'Awful' },
 ] as const;
 
+/** Global names for TrueSheet to allow invocation from anywhere */
+export const SHEET_NAMES = {
+  MOOD: 'mood-sheet',
+  TAGS: 'tags-sheet',
+  VOICE_MEMO: 'voice-memo-sheet',
+} as const;
+
 /*
  * Android crash fix:
  * We need to close the modal FIRST, wait for the exit animation to likely finish (or at least start),
@@ -77,10 +84,10 @@ export const PHOTO_MAX_DIMENSION = 1280;
 /** JPEG compression quality (0–1) for saved photos */
 export const PHOTO_QUALITY = 0.7;
 
-/** Maximum number of photos allowed per entry */
+/** Maximum number of photos allowed per entry for performance reasons */
 export const MAX_PHOTOS_PER_ENTRY = 10;
 
-/** Maximum number of voice memos allowed per entry */
+/** Maximum number of voice memos allowed per entry for performance reasons */
 export const MAX_VOICE_MEMOS_PER_ENTRY = 3;
 
 /** Separator used for tag names in the CSV tags column */

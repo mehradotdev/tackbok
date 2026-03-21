@@ -2,12 +2,13 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Pressable, Linking } from 'react-native';
 import { Headphones, X, Mic, Square, Play, Pause } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { SHEET_NAMES } from '~/constants';
 import { audioEngine } from '~/lib/audioEngine';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
-import { BottomSheet } from '~/components/ui/BottomSheet';
 import { WaveformVisualizer } from '~/components/WaveformVisualizer';
 import { LiveWaveform } from '~/components/LiveWaveform';
 import {
@@ -26,8 +27,6 @@ import {
 // ============================================================================
 
 interface IVoiceMemoModalProps {
-  visible: boolean;
-  onClose: () => void;
   onVoiceMemoSaved: (tempUri: string) => void;
 }
 
@@ -50,12 +49,9 @@ const POLL_INTERVAL = 200; // ms
 // Component
 // ============================================================================
 
-export function VoiceMemoModal({
-  visible,
-  onClose,
-  onVoiceMemoSaved,
-}: IVoiceMemoModalProps) {
+export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   const { t } = useTranslation();
+  const [backgroundColor] = useCSSVariable(['--color-background']);
 
   // Recorder state
   const [phase, setPhase] = useState<RecorderPhase>('idle');
@@ -159,9 +155,9 @@ export function VoiceMemoModal({
     }
 
     // Permission denied — close sheet and show alert
-    onClose();
+    await TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
     setPermissionAlertOpen(true);
-  }, [onClose, startRecording]);
+  }, [startRecording]);
 
   const handleStopRecording = useCallback(() => {
     stopDurationPoll();
@@ -233,15 +229,12 @@ export function VoiceMemoModal({
       audioEngine.stopPlayback();
       setPreviewPlaying(false);
       stopPlaybackPoll();
-      onClose();
+      TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
       onVoiceMemoSaved(recordedUri);
     }
-  }, [recordedUri, onClose, onVoiceMemoSaved, stopPlaybackPoll]);
+  }, [recordedUri, onVoiceMemoSaved, stopPlaybackPoll]);
 
   // ── Audio activity cleanup ────────────────────────────────────────
-  // Shared by handleClose (explicit dismissal) and the unmount effect
-  // (parent-driven unmount). Stops audio and clears all pollers without
-  // invoking any parent callbacks, so it's safe to call from both paths.
   const stopAudioActivity = useCallback(() => {
     audioEngine.stopPlayback();
     if (audioEngine.isRecording) {
@@ -256,46 +249,40 @@ export function VoiceMemoModal({
     return stopAudioActivity;
   }, [stopAudioActivity]);
 
-  // ── Reset state when sheet closes ──────────────────────────────────
-  useEffect(() => {
-    if (!visible) {
-      stopAudioActivity();
-      const timer = setTimeout(() => {
-        setPhase('idle');
-        setRecordedUri(null);
-        setRecordingDuration(0);
-        setPreviewPlaying(false);
-        setPreviewCurrentTime(0);
-        setPreviewDuration(0);
-        setPreviewAmplitudes([]);
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [visible, stopAudioActivity]);
-
-  const handleClose = useCallback(() => {
+  const handleDismiss = useCallback(() => {
     stopAudioActivity();
+    setPhase('idle');
+    setRecordedUri(null);
+    setRecordingDuration(0);
     setPreviewPlaying(false);
-    onClose();
-  }, [onClose, stopAudioActivity]);
+    setPreviewCurrentTime(0);
+    setPreviewDuration(0);
+    setPreviewAmplitudes([]);
+  }, [stopAudioActivity]);
 
   const previewProgress = previewDuration > 0 ? previewCurrentTime / previewDuration : 0;
 
   return (
     <>
-      <BottomSheet
-        isOpen={visible}
-        onClose={handleClose}
-        showHandle={true}
-        dismissible={phase === 'idle'}>
-        <View className="px-6 pt-2 pb-4">
+      <TrueSheet
+        name={SHEET_NAMES.VOICE_MEMO}
+        detents={['auto']}
+        cornerRadius={24}
+        grabber={phase === 'idle'}
+        grabberOptions={{
+          topMargin: 8,
+        }}
+        dismissible={phase === 'idle'}
+        backgroundColor={backgroundColor as string}
+        onDidDismiss={handleDismiss}>
+        <View className="px-6 pt-4 pb-4">
           {/* Close button */}
           {phase !== 'idle' && (
             <Pressable
-              onPress={handleClose}
+              onPress={() => TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO)}
               hitSlop={8}
               accessibilityLabel={t('Close')}
-              className="absolute top-2 right-6 z-10 p-1">
+              className="absolute top-4 right-6 z-10 p-1">
               <Icon as={X} className="text-muted-foreground size-6" />
             </Pressable>
           )}
@@ -419,7 +406,7 @@ export function VoiceMemoModal({
             </>
           )}
         </View>
-      </BottomSheet>
+      </TrueSheet>
 
       {/* Permission denied alert */}
       <AlertDialog open={permissionAlertOpen} onOpenChange={setPermissionAlertOpen}>

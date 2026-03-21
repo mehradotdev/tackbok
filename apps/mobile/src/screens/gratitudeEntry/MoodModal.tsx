@@ -1,20 +1,19 @@
 import { View, Pressable } from 'react-native';
 import { X } from 'lucide-react-native';
-import { MOOD_OPTIONS } from '~/constants';
+import { useCSSVariable } from 'uniwind';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { MOOD_OPTIONS, SHEET_NAMES } from '~/constants';
 import { type Mood } from '~/types';
 import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
-import { BottomSheet } from '~/components/ui/BottomSheet';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 interface IMoodModalProps {
-  visible: boolean;
-  onClose: () => void;
   value: Mood | null;
   onChange: (mood: Mood | null) => void;
 }
@@ -23,26 +22,35 @@ interface IMoodModalProps {
 // Component
 // ============================================================================
 
-export function MoodModal({ visible, onClose, value, onChange }: IMoodModalProps) {
+export function MoodModal({ value, onChange }: IMoodModalProps) {
   const { t } = useTranslation();
+  const [backgroundColor] = useCSSVariable(['--color-background']);
 
   const handlePress = (mood: Mood) => {
     if (value === mood) {
       onChange(null);
     } else {
       onChange(mood);
-      onClose();
+      TrueSheet.dismiss(SHEET_NAMES.MOOD);
     }
   };
 
   return (
-    <BottomSheet isOpen={visible} onClose={onClose}>
-      <View className="pb-4">
-        <View className="flex-row items-center justify-between px-4 py-2">
-          <Text className="text-foreground text-lg font-semibold leading-none">
+    <TrueSheet
+      name={SHEET_NAMES.MOOD}
+      detents={['auto']}
+      cornerRadius={24}
+      grabber={true}
+      grabberOptions={{
+        topMargin: 8,
+      }}
+      backgroundColor={backgroundColor as string}>
+      <View className="pb-4 pt-2">
+        <View className="flex-row items-center justify-between px-4 py-4">
+          <Text className="text-foreground text-lg font-semibold leading-tight">
             {t('How are you feeling?')}
           </Text>
-          <Pressable onPress={onClose} hitSlop={10}>
+          <Pressable onPress={() => TrueSheet.dismiss(SHEET_NAMES.MOOD)} hitSlop={10}>
             <Icon as={X} className="text-muted-foreground" size={20} />
           </Pressable>
         </View>
@@ -77,6 +85,6 @@ export function MoodModal({ visible, onClose, value, onChange }: IMoodModalProps
           </View>
         </View>
       </View>
-    </BottomSheet>
+    </TrueSheet>
   );
 }

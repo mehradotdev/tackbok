@@ -105,10 +105,11 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     let processedDays = 0;
 
     finalDayGroups.forEach((group) => {
-      // We know from DB that only entries with content are saved/returned usually,
-      // but if we have checks, we validate here.
-      // Placeholders have empty entries so hasContent is false.
-      const hasContent = group.entries.some((e) => e.text_content);
+      // Placeholders have an empty entries array, so hasContent is false.
+      // For real entries, check that at least one has substantive data.
+      const hasContent = group.entries.some(
+        (e) => e.text_content || e.text_title || e.mood || (e.assets && e.assets.length > 0),
+      );
 
       const remainingDays = totalContentDays - processedDays;
 

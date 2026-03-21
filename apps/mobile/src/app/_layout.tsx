@@ -1,7 +1,7 @@
 import '../global.css';
 
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener } from 'react-native-safe-area-context';
@@ -120,6 +120,12 @@ export default function Layout() {
                 options={{
                   title: 'Settings',
                   headerShown: false,
+                  presentation: 'formSheet',
+                  sheetAllowedDetents:
+                    Platform.OS === 'android' ? [0.7, 0.95] : [0.75, 1],
+                  sheetInitialDetentIndex: 0,
+                  sheetCornerRadius: 24,
+                  sheetGrabberVisible: true,
                 }}
               />
             </Stack>

@@ -9,7 +9,7 @@ import { Text } from '~/components/ui/text';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
-import { SettingsDropdownMenu } from '~/components/SettingsDropdownMenu';
+import { SettingsBottomSheet } from '~/components/SettingsBottomSheet';
 
 interface IHeaderProps {
   isSearchMode?: boolean;
@@ -120,7 +120,7 @@ export const Header: React.FC<IHeaderProps> = ({
         {t('Tackbok')}
       </Text>
 
-      <SettingsDropdownMenu />
+      <SettingsBottomSheet />
     </View>
   );
 };

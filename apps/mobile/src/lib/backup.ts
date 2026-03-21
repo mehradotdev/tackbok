@@ -160,7 +160,7 @@ const columnGetters: Record<
 > = {
   note_id: (e) => e.note_id,
   text_title: (e) => e.text_title ?? '',
-  text_content: (e) => e.text_content,
+  text_content: (e) => e.text_content ?? '',
   mood: (e) => e.mood ?? '',
   assets: (e) => (e.assets ? JSON.stringify(e.assets) : ''),
   tags: (e, tagMap) => resolveTagIdsToNames(e.tags, tagMap),
@@ -338,9 +338,9 @@ export async function importFromCSV(uri: string): Promise<number> {
   const header = normalizeHeader(rows[0]);
 
   // Validate Tackbok format
-  if (!header.includes('note_id') || !header.includes('text_content')) {
+  if (!header.includes('note_id')) {
     throw new Error(
-      'Invalid Tackbok CSV format. Expected headers: note_id, text_content, created_at, updated_at, …',
+      'Invalid Tackbok CSV format. Expected headers: note_id, created_at, updated_at, …',
     );
   }
 
@@ -361,12 +361,11 @@ export async function importFromCSV(uri: string): Promise<number> {
   // Validate required columns
   if (
     cols.note_id === -1 ||
-    cols.text_content === -1 ||
     cols.created_at === -1 ||
     cols.updated_at === -1
   ) {
     throw new Error(
-      'Invalid Tackbok CSV: missing required columns (note_id, text_content, created_at, updated_at)',
+      'Invalid Tackbok CSV: missing required columns (note_id, created_at, updated_at)',
     );
   }
 
@@ -391,7 +390,7 @@ export async function importFromCSV(uri: string): Promise<number> {
       const createdAtStr = row[cols.created_at]?.trim();
       const updatedAtStr = row[cols.updated_at]?.trim();
 
-      if (!noteId || !textContent || !createdAtStr || !updatedAtStr) {
+      if (!noteId || !createdAtStr || !updatedAtStr) {
         continue; // Skip rows with missing required fields
       }
 
@@ -442,10 +441,16 @@ export async function importFromCSV(uri: string): Promise<number> {
         }
       }
 
+      const hasSubstantiveContent =
+        !!textTitle || !!textContent || mood !== null || (assets?.length ?? 0) > 0;
+      if (!hasSubstantiveContent) {
+        continue;
+      }
+
       await tx.insert(entries).values({
         note_id: noteId,
         text_title: textTitle,
-        text_content: textContent,
+        text_content: textContent || null,
         mood,
         assets,
         tags: tagsStr,
