@@ -8,6 +8,13 @@
       "when": 1770062106274,
       "tag": "0000_public_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1774094767114,
+      "tag": "0001_clammy_winter_soldier",
+      "breakpoints": true
     }
   ]
 }

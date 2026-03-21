@@ -181,7 +181,14 @@ export function GratitudeEntryEdit({
   }));
 
   // Derived states
-  const isEmpty = !content.trim();
+  // Save is allowed when at least one substantive field has data.
+  // Tags alone are NOT sufficient — they need at least one other field.
+  const canSave =
+    !!title.trim() ||
+    !!content.trim() ||
+    mood !== null ||
+    photos.length > 0 ||
+    voiceMemos.length > 0;
   const dateLabel = formatLocalizedDate(timestamp, t, { relative: true });
   const timeLabel = formatTimeLabel(timestamp, t);
   const formattedTime = format(new Date(timestamp), 'HH:mm');
@@ -204,10 +211,7 @@ export function GratitudeEntryEdit({
   }, [selectedTagIds, tagMap]);
 
   const handleSave = async () => {
-    // Validate entry content
-    if (isEmpty) {
-      return;
-    }
+    if (!canSave) return;
 
     isSaving.current = true;
     const id = initialEntry?.note_id || generateUUID();
@@ -219,7 +223,7 @@ export function GratitudeEntryEdit({
       await upsertEntryMutation.mutateAsync({
         note_id: id,
         text_title: title.trim() || null,
-        text_content: content.trim(),
+        text_content: content.trim() || null,
         mood: mood,
         assets: allAssets.length > 0 ? allAssets : null,
         tags: selectedTagIds.join(','),
@@ -344,7 +348,7 @@ export function GratitudeEntryEdit({
 
           {/* Save button */}
           <View className="z-10">
-            <Button onPress={handleSave} disabled={isEmpty} variant="default">
+            <Button onPress={handleSave} disabled={!canSave} variant="default">
               <Text>{t('Save')}</Text>
             </Button>
           </View>
