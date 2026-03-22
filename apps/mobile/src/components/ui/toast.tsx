@@ -11,7 +11,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertTriangle, Check, Info, X, type LucideIcon } from 'lucide-react-native';
 import { create } from 'zustand';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Portal } from '~/components/primitives/portal';

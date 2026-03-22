@@ -1,5 +1,5 @@
 import { TextInput, type TextInputProps } from 'react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 
 function Input({ className, ...props }: TextInputProps) {

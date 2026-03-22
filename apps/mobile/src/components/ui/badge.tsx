@@ -1,30 +1,28 @@
 import { View, ViewProps } from 'react-native';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '~/lib/utils';
+import { cn, tv, type VariantProps } from 'tailwind-variants';
 import { TextClassContext } from '~/components/ui/text';
 import * as Slot from '~/components/primitives/slot';
 
-const badgeVariants = cva(
-  cn(
+const badgeVariants = tv({
+  base: cn(
     'border-border group shrink-0 flex-row items-center justify-center',
     'gap-1 overflow-hidden rounded-full border px-2 py-0.5',
   ),
-  {
-    variants: {
-      variant: {
-        default: cn('bg-primary border-transparent'),
-        secondary: cn('bg-secondary border-transparent'),
-        destructive: cn('bg-destructive border-transparent'),
-        outline: '',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
+  variants: {
+    variant: {
+      default: cn('bg-primary border-transparent'),
+      secondary: cn('bg-secondary border-transparent'),
+      destructive: cn('bg-destructive border-transparent'),
+      outline: '',
     },
   },
-);
+  defaultVariants: {
+    variant: 'default',
+  },
+});
 
-const badgeTextVariants = cva('text-xs font-medium', {
+const badgeTextVariants = tv({
+  base: 'text-xs font-medium',
   variants: {
     variant: {
       default: 'text-primary-foreground',

@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { Button, type ButtonProps } from '~/components/ui/button';
 
 export interface AnimatedButtonProps extends ButtonProps {

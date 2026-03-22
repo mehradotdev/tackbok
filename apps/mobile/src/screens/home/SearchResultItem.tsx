@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
 import { format } from 'date-fns';
+import { cn } from 'tailwind-variants';
 import { MOOD_EMOJI, MONTH_SHORT_KEYS } from '~/constants';
 import { type Entry } from '~/types';
-import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';

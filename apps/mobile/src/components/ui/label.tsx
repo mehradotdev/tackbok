@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Platform } from 'react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import * as LabelPrimitive from '~/components/primitives/label';
 
 function Label({

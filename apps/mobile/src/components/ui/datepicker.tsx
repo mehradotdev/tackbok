@@ -19,9 +19,9 @@ import {
 } from 'date-fns';
 import { View, Pressable, ScrollView } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { cn } from 'tailwind-variants';
 import { FirstDay, type FirstDayOfWeek } from '~/types';
 import { MONTH_SHORT_KEYS, MONTH_KEYS } from '~/constants';
-import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
 import { Icon } from '~/components/ui/icon';

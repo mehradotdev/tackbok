@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
 import { Search, ArrowLeft, ArrowRight } from 'lucide-react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 import { useTags } from '~/hooks/useGratitude';
 import { Icon } from '~/components/ui/icon';

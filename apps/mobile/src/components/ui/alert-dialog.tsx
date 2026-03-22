@@ -3,7 +3,7 @@ import { Modal, Platform, View, type ViewProps } from 'react-native';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 import { Timer } from 'lucide-react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import * as AlertDialogPrimitive from '~/components/primitives/alert-dialog';
 import { Text, TextClassContext } from '~/components/ui/text';
 import { buttonTextVariants, buttonVariants } from '~/components/ui/button';

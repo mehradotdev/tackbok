@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { FadeIn } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { Icon } from '~/components/ui/icon';
 import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
 import { TextClassContext } from '~/components/ui/text';

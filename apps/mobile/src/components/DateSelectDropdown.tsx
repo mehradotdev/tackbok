@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import { View, ViewProps, Keyboard } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 import { format, startOfDay, subDays } from 'date-fns';
+import { cn } from 'tailwind-variants';
 import { MONTH_SHORT_KEYS } from '~/constants';
-import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
 import {

@@ -1,5 +1,5 @@
 import { View, type ViewProps } from 'react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { Text, TextClassContext } from '~/components/ui/text';
 
 function Card({ className, ...props }: ViewProps & { ref?: React.Ref<View> }) {

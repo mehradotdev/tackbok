@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import * as CheckboxPrimitive from '~/components/primitives/checkbox';
 import { Icon } from '~/components/ui/icon';
 

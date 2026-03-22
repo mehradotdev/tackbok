@@ -7,7 +7,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { CircleMinus, CirclePlus, Minus, Plus } from 'lucide-react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { Icon } from '~/components/ui/icon';
 
 interface TimelineDotProps {

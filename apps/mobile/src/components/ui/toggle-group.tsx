@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Platform } from 'react-native';
-import type { VariantProps } from 'class-variance-authority';
-import { cn } from '~/lib/utils';
+import { cn, type VariantProps } from 'tailwind-variants';
 import { Icon } from '~/components/ui/icon';
 import { TextClassContext } from '~/components/ui/text';
 import { toggleVariants } from '~/components/ui/toggle';

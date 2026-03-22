@@ -12,7 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';

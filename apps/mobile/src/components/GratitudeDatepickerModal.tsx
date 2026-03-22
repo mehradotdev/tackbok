@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 import { format, startOfDay } from 'date-fns';
+import { cn } from 'tailwind-variants';
 import { MODAL_CLOSE_DELAY } from '~/constants';
-import { cn } from '~/lib/utils';
 import { useSettingsStore } from '~/lib/settings';
 import { useEntryDatesForMonth } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';

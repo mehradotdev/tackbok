@@ -1,4 +1,4 @@
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { TextInput, type TextInputProps } from 'react-native';
 import { useTranslation } from '~/lib/i18n';
 

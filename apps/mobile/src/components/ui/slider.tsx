@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { useCSSVariable } from 'uniwind';
 import Slider from '@react-native-community/slider';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import { Text } from '~/components/ui/text';
 
 interface SettingsSliderProps {

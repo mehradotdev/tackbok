@@ -1,6 +1,6 @@
 import { withUniwind } from 'uniwind';
 import type { LucideIcon, LucideProps } from 'lucide-react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 
 type IconProps = LucideProps & {
   as: LucideIcon;

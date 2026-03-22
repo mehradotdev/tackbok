@@ -8,7 +8,7 @@ import {
   type LayoutChangeEvent,
   type LayoutRectangle,
 } from 'react-native';
-import { cn } from '~/lib/utils';
+import { cn } from 'tailwind-variants';
 import * as Slot from '~/components/primitives/slot';
 import {
   useAugmentedRef,

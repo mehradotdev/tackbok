@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Pressable, Image } from 'react-native';
 import { useUniwind } from 'uniwind';
+import { cn } from 'tailwind-variants';
 import { type MilestoneItem } from '~/types';
-import { cn } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { Text } from '~/components/ui/text';

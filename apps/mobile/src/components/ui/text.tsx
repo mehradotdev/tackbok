@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { Text as RNText, type Role } from 'react-native';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '~/lib/utils';
+import { cn, tv, type VariantProps } from 'tailwind-variants';
 import * as Slot from '~/components/primitives/slot';
 
-const textVariants = cva('text-foreground text-base text-left', {
+const textVariants = tv({
+  base: 'text-foreground text-base text-left',
   variants: {
     variant: {
       default: '',
