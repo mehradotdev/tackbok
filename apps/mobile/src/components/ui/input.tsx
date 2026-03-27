@@ -8,7 +8,7 @@ function Input({ className, ...props }: TextInputProps) {
   return (
     <TextInput
       className={cn(
-        'text-left border-input bg-background text-foreground flex h-10 w-full min-w-0 flex-row items-center rounded-md border-theme px-3 py-1 text-base leading-5 shadow-theme sm:h-9 font-body',
+        'text-left bg-background text-foreground flex h-10 w-full min-w-0 flex-row items-center rounded-md border-theme px-3 py-1 text-base leading-5 shadow-theme sm:h-9 font-body',
         props.editable === false && 'opacity-50',
         isRTL && 'text-right',
         className,

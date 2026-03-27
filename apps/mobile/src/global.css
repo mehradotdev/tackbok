@@ -17,6 +17,7 @@
 
 @utility border-theme {
   border-width: var(--theme-border-width);
+  border-color: var(--color-border);
 }
 @utility shadow-theme {
   box-shadow: var(--theme-shadow);

@@ -39,7 +39,11 @@ export const THEME_IDS = THEMES.map((t) => t.id);
 
 /** Get config for a theme ID (falls back to default) */
 export function getThemeConfig(id: string): ThemeConfig {
-  return THEMES.find((t) => t.id === id) ?? THEMES[0]!;
+  return (
+    THEMES.find((t) => t.id === id) ??
+    THEMES.find((t) => t.id === DEFAULT_THEME_ID) ??
+    THEMES[0]!
+  );
 }
 
 /** Whether a theme ID maps to a dark variant */

@@ -50,6 +50,11 @@ export function AddPhotoModal({
     message: string;
   }>({ isOpen: false, title: '', message: '' });
 
+  const photoActionButtonClass = cn(
+    'flex-1 bg-card aspect-square flex-col justify-center items-center gap-2 h-auto',
+    isSharp && 'rounded-none',
+  );
+
   /** Show an alert guiding the user to enable permissions in device Settings. */
   const showPermissionDeniedAlert = useCallback(
     (source: 'camera' | 'library') => {
@@ -96,10 +101,7 @@ export function AddPhotoModal({
           <View className="flex-row gap-4 justify-center py-4">
             <Button
               variant="outline"
-              className={cn(
-                'flex-1 bg-card aspect-square flex-col justify-center items-center gap-2 h-auto',
-                isSharp && 'rounded-none',
-              )}
+              className={photoActionButtonClass}
               onPress={async () => {
                 onClose();
                 const result = await pickPhotos('camera', 1);
@@ -110,10 +112,7 @@ export function AddPhotoModal({
             </Button>
             <Button
               variant="outline"
-              className={cn(
-                'flex-1 bg-card aspect-square flex-col justify-center items-center gap-2 h-auto',
-                isSharp && 'rounded-none',
-              )}
+              className={photoActionButtonClass}
               onPress={async () => {
                 onClose();
                 const remaining = MAX_PHOTOS_PER_ENTRY - currentPhotoCount;

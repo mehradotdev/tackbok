@@ -77,6 +77,9 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   const durationPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playbackPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const listenerIdRef = useRef<number | null>(null);
+  // Prevent a dismiss->cleanup race: after Save we hand `recordedUri` to the parent to persist,
+  // but `onDidDismiss` still fires; we must not delete the temp file in that case.
+  const didSaveRef = useRef(false);
 
   const [foregroundColor, mutedForegroundColor] = useCSSVariable([
     '--color-foreground',
@@ -132,6 +135,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   // ── Recording (with permission check) ──────────────────────────────
   const startRecording = useCallback(async (): Promise<boolean> => {
+    didSaveRef.current = false;
     const result = await audioEngine.startRecording();
     if (result.status === 'error') {
       console.warn('Failed to start recording:', result.message);
@@ -222,6 +226,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   // ── Actions ────────────────────────────────────────────────────────
   const handleRecordAgain = useCallback(() => {
+    didSaveRef.current = false;
     audioEngine.stopPlayback();
     setPreviewPlaying(false);
     stopPlaybackPoll();
@@ -233,6 +238,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   const handleSave = useCallback(() => {
     if (recordedUri) {
+      didSaveRef.current = true;
       audioEngine.stopPlayback();
       setPreviewPlaying(false);
       stopPlaybackPoll();
@@ -260,7 +266,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     stopAudioActivity();
 
     // Clean up unsaved temp recording file (best-effort)
-    if (recordedUri) {
+    if (recordedUri && !didSaveRef.current) {
       try {
         const tempFile = new File(recordedUri);
         if (tempFile.exists) tempFile.delete();
