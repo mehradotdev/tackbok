@@ -179,7 +179,7 @@ function DayCell({
         )}>
         <Text
           className={cn(
-            'text-base font-medium',
+            'text-base font-body-medium',
             isCurrentMonth ? 'text-foreground' : 'text-muted-foreground/50',
             isSelected && 'text-primary-foreground',
           )}>
@@ -384,7 +384,7 @@ export function DatePicker({
             accessibilityLabel={t('Select month')}
             accessibilityState={{ expanded: viewMode === 'months' }}
             className="rounded-none px-2">
-            <Text className="text-lg font-semibold">{translatedMonth}</Text>
+            <Text className="text-lg font-body-semibold">{translatedMonth}</Text>
           </Button>
           <Button
             onPress={openYearsView}
@@ -392,7 +392,7 @@ export function DatePicker({
             accessibilityLabel={t('Select year')}
             accessibilityState={{ expanded: viewMode === 'years' }}
             className="rounded-none px-2">
-            <Text className="text-lg font-semibold">{format(viewDate, 'yyyy')}</Text>
+            <Text className="text-lg font-body-semibold">{format(viewDate, 'yyyy')}</Text>
           </Button>
         </View>
 
@@ -410,7 +410,7 @@ export function DatePicker({
     <View className="mb-2 flex-row">
       {orderedWeekdayKeys.map((dayKey) => (
         <View key={dayKey} className="h-10 flex-1 items-center justify-center">
-          <Text className="text-sm font-medium text-foreground/80">{t(dayKey)}</Text>
+          <Text className="text-sm font-body-medium text-foreground/80">{t(dayKey)}</Text>
         </View>
       ))}
     </View>
@@ -491,7 +491,7 @@ export function DatePicker({
             )}>
             <Text
               className={cn(
-                'text-base font-medium text-foreground',
+                'text-base font-body-medium text-foreground',
                 isCurrentMonth && 'text-primary-foreground',
                 isDisabled && 'text-muted-foreground',
               )}>
@@ -531,7 +531,7 @@ export function DatePicker({
               )}>
               <Text
                 className={cn(
-                  'text-base font-medium text-foreground',
+                  'text-base font-body-medium text-foreground',
                   isCurrentYear && 'text-primary-foreground',
                 )}>
                 {year}

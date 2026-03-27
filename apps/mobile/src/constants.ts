@@ -22,6 +22,7 @@ export const SHEET_NAMES = {
   MOOD: 'mood-sheet',
   TAGS: 'tags-sheet',
   VOICE_MEMO: 'voice-memo-sheet',
+  THEME_PICKER: 'theme-picker-sheet',
 } as const;
 
 /*

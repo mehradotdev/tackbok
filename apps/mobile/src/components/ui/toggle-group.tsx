@@ -78,7 +78,7 @@ function ToggleGroupItem({
   return (
     <TextClassContext.Provider
       value={cn(
-        'text-sm font-medium',
+        'text-sm font-body-medium',
         isSelected
           ? 'text-accent-foreground'
           : Platform.select({

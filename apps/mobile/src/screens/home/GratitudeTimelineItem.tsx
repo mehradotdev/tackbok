@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Pressable, Platform, FlatList, Image, ScrollView } from 'react-native';
 import { Mic } from 'lucide-react-native';
 import { format } from 'date-fns';
@@ -11,7 +11,7 @@ import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
-import { AnimatedButton } from '~/components/ui/animated-button';
+import { AnimatedButton, type AnimatedButtonHandle } from '~/components/ui/animated-button';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -146,8 +146,8 @@ function ExpandedEntryRow({
           {/* Time & Mood */}
           <Badge
             variant="outline"
-            className="self-start -left-3 py-0.5 mb-2 pl-3 pr-2 bg-muted shadow-lg shadow-foreground/50">
-            <Text className="text-sm font-black tracking-wider text-foreground/80">
+            className="self-start -left-3 py-0.5 mb-2 pl-3 pr-2 bg-muted shadow-theme border-theme border-border">
+            <Text className="text-sm font-body-bold tracking-wider text-foreground/80">
               {time}
             </Text>
             {entry.mood && <Text className="text-base">{MOOD_EMOJI[entry.mood]}</Text>}
@@ -155,7 +155,7 @@ function ExpandedEntryRow({
 
           {/* Title */}
           {entry.text_title && (
-            <Text className="text-lg font-semibold text-foreground" numberOfLines={2}>
+            <Text className="text-lg font-body-semibold text-foreground" numberOfLines={2}>
               {entry.text_title}
             </Text>
           )}
@@ -177,7 +177,7 @@ function ExpandedEntryRow({
                   key={tag.tag_id}
                   variant="secondary"
                   className="px-2 py-1 rounded-md">
-                  <Text className="text-sm text-foreground/70 font-bold">
+                  <Text className="text-sm text-foreground/70 font-body-bold">
                     #{tag.title}
                   </Text>
                 </Badge>
@@ -234,6 +234,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const timelineEntryLength = useSettingsStore((state) => state.timelineEntryLength);
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
   const tagMap = useTagMapping();
+  const animatedButtonRef = useRef<AnimatedButtonHandle>(null);
 
   // Image Viewer State — single instance shared by both collapsed strip and expanded rows
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
@@ -260,6 +261,12 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
     filterExistingPhotos(e.assets ?? null),
   );
 
+  const previewText = dayGroup.entries
+    .map((e) => e.text_content)
+    .filter((text) => text && text.trim().length > 0)
+    .join('\n')
+    .trim();
+
   return (
     <View
       className={cn(
@@ -281,15 +288,16 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
       <View className="flex-1 flex-col items-start">
         {/* Date Header - Clickable to expand/collapse */}
         <AnimatedButton
+          ref={animatedButtonRef}
           variant="outline"
           size="flex"
           onPress={onToggleExpand}
           containerClassName={cn('self-start mb-2', 'mt-2')}
           className="bg-muted active:bg-muted py-0.5 pl-3 pr-2 rounded-full border-2 border-transparent shadow-none">
-          <Text className="text-lg font-bold text-foreground font-serif">
+          <Text className="text-lg text-foreground font-heading">
             {formattedDate}
             {hasEntries && (
-              <Text className="text-sm text-muted-foreground font-bold">
+              <Text className="text-sm text-muted-foreground font-body-bold">
                 {' '}
                 ({dayGroup.entries.length})
               </Text>
@@ -334,16 +342,15 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
         {/* Entries List Collapsed View (when not expanded and has entries) */}
         {!isExpanded && hasEntries && (
           <Pressable
-            onPress={onToggleExpand}
+            onPress={() => animatedButtonRef.current?.simulatePress()}
             className="w-full active:bg-muted rounded-lg">
-            <Text
-              className="text-base px-4 pb-2 text-foreground"
-              numberOfLines={timelineEntryLength}>
-              {dayGroup.entries
-                .map((e) => e.text_content)
-                .filter((text) => text && text.trim().length > 0)
-                .join('\n')}
-            </Text>
+            {previewText ? (
+              <Text
+                className="text-base px-4 pb-2 text-foreground"
+                numberOfLines={timelineEntryLength}>
+                {previewText}
+              </Text>
+            ) : null}
 
             {/* Collapsed photos — all photos from all entries for this day */}
             {allPhotos.length > 0 && (

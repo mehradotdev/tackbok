@@ -97,7 +97,7 @@ export function TimePickerModal({
         }}
         className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/60' : ''}`}>
         <Text
-          className={`text-lg ${isSelected ? 'text-primary-foreground/80 font-bold' : 'text-foreground/80'}`}>
+          className={`text-lg ${isSelected ? 'text-primary-foreground/80 font-body-bold' : 'text-foreground/80'}`}>
           {item.toString().padStart(2, '0')}
         </Text>
       </Button>
@@ -120,7 +120,7 @@ export function TimePickerModal({
         }}
         className={`h-10 justify-center items-center ${isSelected ? 'bg-primary/60' : ''}`}>
         <Text
-          className={`text-lg ${isSelected ? 'text-primary-foreground/80 font-bold' : 'text-foreground/80'}`}>
+          className={`text-lg ${isSelected ? 'text-primary-foreground/80 font-body-bold' : 'text-foreground/80'}`}>
           {item.toString().padStart(2, '0')}
         </Text>
       </Button>

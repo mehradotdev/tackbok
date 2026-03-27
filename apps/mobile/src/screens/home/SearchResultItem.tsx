@@ -40,9 +40,9 @@ export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPre
       className="flex-row w-full px-safe-or-3 py-3 border-b border-border active:bg-muted">
       {/* Column 1: Date */}
       <View className="items-center justify-center pr-2 mr-3 border-r-2 border-border">
-        <Text className="text-sm font-semibold text-foreground">{month}</Text>
-        <Text className="text-xl font-semibold text-foreground">{day}</Text>
-        <Text className="text-xs font-semibold text-foreground">{year}</Text>
+        <Text className="text-sm font-body-semibold text-foreground">{month}</Text>
+        <Text className="text-xl font-body-semibold text-foreground">{day}</Text>
+        <Text className="text-xs font-body-semibold text-foreground">{year}</Text>
       </View>
 
       {/* Column 2: Content */}
@@ -51,7 +51,7 @@ export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPre
         <View className="flex-row flex-wrap items-center gap-2 mb-2">
           <Text
             className={cn(
-              'self-start font-black tracking-wider text-foreground/70',
+              'self-start font-body-bold tracking-wider text-foreground/70',
               'py-0.5 px-3 pr-2 bg-muted border border-border rounded-full',
             )}>
             {time}{' '}
@@ -62,7 +62,7 @@ export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPre
           {tags.length > 0 &&
             tags.map((tag) => (
               <View key={tag.tag_id}>
-                <Text className="text-sm text-foreground/70 font-medium">
+                <Text className="text-sm text-foreground/70 font-body-medium">
                   #{tag.title}
                 </Text>
               </View>
@@ -72,7 +72,7 @@ export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPre
         {/* Title */}
         {item.text_title && (
           <Text
-            className="text-base font-semibold text-foreground flex-1 mb-1"
+            className="text-base font-body-semibold text-foreground flex-1 mb-1"
             numberOfLines={1}>
             {item.text_title}
           </Text>

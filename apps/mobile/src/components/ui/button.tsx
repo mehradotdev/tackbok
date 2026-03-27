@@ -3,17 +3,16 @@ import { cn, tv, type VariantProps } from 'tailwind-variants';
 import { TextClassContext } from '~/components/ui/text';
 
 const buttonVariants = tv({
-  base: 'group shrink-0 flex-row items-center justify-center gap-2 rounded-md shadow-none',
+  base: 'group shrink-0 flex-row items-center justify-center gap-2 rounded-md border-theme border-transparent shadow-none active:shadow-none active:translate-y-0.5 active:scale-95',
   variants: {
     variant: {
-      default: 'bg-foreground active:bg-foreground/90 shadow-sm shadow-black/5',
-      primary: 'bg-primary active:bg-primary/90 shadow-sm shadow-black/5',
-      destructive: 'bg-destructive active:bg-destructive/90 shadow-sm shadow-black/5',
-      outline:
-        'border-border bg-transparent active:bg-accent border shadow-sm shadow-black/5',
-      secondary: 'bg-secondary active:bg-secondary/80 shadow-sm shadow-black/5',
-      ghost: 'active:bg-accent gap-0',
-      link: '',
+      default: 'bg-foreground shadow-theme active:opacity-80',
+      primary: 'bg-primary shadow-theme active:opacity-90',
+      destructive: 'bg-destructive shadow-theme active:opacity-90',
+      outline: 'border-theme bg-transparent shadow-theme active:bg-active-overlay',
+      secondary: 'bg-secondary shadow-theme active:opacity-80',
+      ghost: 'gap-0 active:bg-active-overlay',
+      link: 'active:opacity-80',
     },
     size: {
       default: 'h-10 px-4 sm:h-9',
@@ -21,6 +20,7 @@ const buttonVariants = tv({
       lg: 'h-11 rounded-md px-6 sm:h-10',
       icon: 'h-10 w-10 sm:h-9 sm:w-9',
       flex: 'h-auto',
+      none: 'p-0 h-auto w-auto',
     },
   },
   defaultVariants: {
@@ -30,7 +30,7 @@ const buttonVariants = tv({
 });
 
 const buttonTextVariants = tv({
-  base: 'text-foreground text-base font-bold',
+  base: 'text-foreground text-base font-body-bold',
   variants: {
     variant: {
       default: 'text-background',
@@ -38,8 +38,8 @@ const buttonTextVariants = tv({
       destructive: 'text-destructive-foreground tracking-wider',
       outline: 'group-active:text-accent-foreground',
       secondary: 'text-secondary-foreground',
-      ghost: 'group-active:text-accent-foreground font-medium',
-      link: 'text-primary underline font-medium',
+      ghost: 'group-active:text-accent-foreground font-body-medium',
+      link: 'text-primary underline font-body-medium',
     },
     size: {
       default: '',
@@ -47,6 +47,7 @@ const buttonTextVariants = tv({
       lg: '',
       icon: '',
       flex: '',
+      none: '',
     },
   },
   defaultVariants: {

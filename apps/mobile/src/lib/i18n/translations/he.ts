@@ -148,8 +148,9 @@ export const he: Translations = {
   // Settings - Appearance
   Appearance: 'מראה',
   Theme: 'ערכת נושא',
-  'Choose from over 40 different themes and color schemes':
-    'בחר מתוך יותר מ-40 ערכות נושא וסכמות צבע שונות',
+  'Select a theme': 'בחר ערכת נושא',
+  'Choose from over 10 different themes and color schemes':
+    'בחר מתוך יותר מ-10 ערכות נושא וסכמות צבע שונות',
   'Timeline Entry Length': 'אורך רשומה בציר הזמן',
   'Number of lines shown in the timeline':
     'מספר השורות המוצגות בציר הזמן. הטקסט המלא נראה בלחיצה על הרשומה',

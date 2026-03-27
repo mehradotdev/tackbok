@@ -24,7 +24,8 @@ function AndroidModalOverlay({ children }: { children: React.ReactNode }) {
   );
 }
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : AndroidModalOverlay;
+const FullWindowOverlay =
+  Platform.OS === 'ios' ? RNFullWindowOverlay : AndroidModalOverlay;
 
 function DialogOverlay({
   className,
@@ -71,7 +72,7 @@ function DialogContent({
         <DialogPrimitive.Content
           className={cn(
             'bg-background border-border z-50 mx-auto flex w-full flex-col',
-            'gap-4 rounded-lg border p-6 shadow-lg shadow-black/5 sm:max-w-lg',
+            'gap-4 rounded-xl border-theme p-6 shadow-theme sm:max-w-lg',
             className,
           )}
           {...props}>
@@ -82,7 +83,7 @@ function DialogContent({
                 'absolute right-4 top-4 rounded opacity-70 active:opacity-100',
               )}
               hitSlop={12}>
-              <Icon as={X} className={cn('text-accent-foreground size-4 shrink-0')} />
+              <Icon as={X} className={cn('text-foreground size-4 shrink-0')} />
               <Text className="sr-only">Close</Text>
             </DialogPrimitive.Close>
           )}
@@ -116,7 +117,7 @@ function DialogTitle({
 }: DialogPrimitive.TitleProps & { ref?: React.Ref<DialogPrimitive.TitleRef> }) {
   return (
     <DialogPrimitive.Title
-      className={cn('text-foreground text-lg font-semibold leading-none', className)}
+      className={cn('text-foreground text-lg font-body-semibold leading-none', className)}
       {...props}
     />
   );

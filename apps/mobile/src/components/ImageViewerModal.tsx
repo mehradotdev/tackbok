@@ -131,7 +131,7 @@ export function ImageViewerModal({
               className="absolute left-0 right-0 bottom-safe-or-6 z-10 items-center justify-center"
               pointerEvents="box-none">
               <View className="bg-black/50 px-4 py-2 rounded-full backdrop-blur-md">
-                <Text className="text-white font-bold">
+                <Text className="text-white font-body-bold">
                   {currentIndex + 1} / {photos.length}
                 </Text>
               </View>

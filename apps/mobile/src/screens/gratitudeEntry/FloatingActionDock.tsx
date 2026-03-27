@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Pressable, Keyboard } from 'react-native';
+import { View, Keyboard } from 'react-native';
 import { Smile, ImagePlus, Mic, Tag } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
+import { Button } from '~/components/ui/button';
 
 // ============================================================================
 // Types
@@ -40,20 +41,17 @@ function DockButton({
   showLabel = true,
 }: IDockButtonProps) {
   return (
-    <Pressable
+    <Button
+      variant="ghost"
       onPress={onPress}
       disabled={disabled}
       accessibilityLabel={label}
-      className={cn(
-        'flex-1 items-center justify-center active:bg-muted rounded-lg',
-        showLabel ? 'pt-1' : 'py-1.5',
-        disabled && 'opacity-40',
-      )}>
+      className={cn('flex-1 flex-col h-auto', showLabel ? 'pt-1 pb-1' : 'py-1.5')}>
       <Icon as={icon} className="text-foreground/70" size={22} />
       {showLabel && (
-        <Text className="text-sm font-medium text-foreground/70 mt-1">{label}</Text>
+        <Text className="text-sm font-body-medium text-foreground/70 mt-1">{label}</Text>
       )}
-    </Pressable>
+    </Button>
   );
 }
 
@@ -82,7 +80,7 @@ export function FloatingActionDock({
         // Pill shape when keyboard is closed, full-width when open
         isKeyboardVisible
           ? 'mx-0 rounded-none border-x-0 border-b-0 py-2 px-2'
-          : 'mx-4 mb-8 rounded-full shadow-md py-1.5 px-4',
+          : 'mx-4 mb-12 rounded-xl shadow-md py-1.5 px-4',
       )}>
       <DockButton
         icon={Smile}

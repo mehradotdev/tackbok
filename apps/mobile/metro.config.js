@@ -27,6 +27,20 @@ const uniwindConfig = withUniwindConfig(config, {
   cssEntryFile: './src/global.css',
   // optional: path to typings
   dtsFile: './src/uniwind-types.d.ts',
+  // Custom themes
+  extraThemes: [
+    'navy',
+    'sakura',
+    'forest',
+    'lavender',
+    'ember',
+    'ocean',
+    'slate',
+    'peach',
+    'kela',
+    'hecker',
+    'bubblegum',
+  ],
 });
 
 export default uniwindConfig;

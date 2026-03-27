@@ -22,7 +22,7 @@ const badgeVariants = tv({
 });
 
 const badgeTextVariants = tv({
-  base: 'text-xs font-medium',
+  base: 'text-xs font-body-medium',
   variants: {
     variant: {
       default: 'text-primary-foreground',

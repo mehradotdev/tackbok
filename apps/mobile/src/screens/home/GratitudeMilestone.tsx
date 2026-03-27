@@ -1,20 +1,21 @@
 import React from 'react';
-import { View, Pressable, Image } from 'react-native';
-import { useUniwind } from 'uniwind';
+import { View, Pressable } from 'react-native';
 import { cn } from 'tailwind-variants';
+import { useCSSVariable } from 'uniwind';
 import { type MilestoneItem } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { Text } from '~/components/ui/text';
+import { TackbokLogo } from '~/components/TackbokLogo';
 
 interface IGratitudeMilestoneProps {
   milestone: MilestoneItem;
 }
 
 export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milestone }) => {
-  const { theme } = useUniwind();
   const { t } = useTranslation();
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
+  const [foregroundColor] = useCSSVariable(['--color-foreground']);
 
   const handlePress = () => {
     // TODO: Implement Share Milestone functionality
@@ -56,24 +57,14 @@ export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milesto
       {/* --- Milestone Content Column --- */}
       <View className="flex-1 py-4 px-4">
         {milestone.milestoneDays !== 0 && (
-          <Text className="text-lg font-bold text-foreground font-serif">
+          <Text className="text-lg font-body-bold text-foreground">
             <Text variant="h2">{milestone.milestoneDays}</Text> {t('days of gratitude')}
           </Text>
         )}
 
-        {/* TODO: Make a separate component for Tackbok Image */}
+        {/* Tackbok Logo */}
         <View className="items-center">
-          {theme === 'dark' ? (
-            <Image
-              source={require('~/../assets/images/logo_transparent_dark.png')}
-              className="w-28 h-28 opacity-80"
-            />
-          ) : (
-            <Image
-              source={require('~/../assets/images/logo_transparent_light.png')}
-              className="w-28 h-28 opacity-80"
-            />
-          )}
+          <TackbokLogo size={112} color={foregroundColor as string} />
         </View>
       </View>
     </Pressable>

@@ -124,7 +124,7 @@ export function DateSelectDropdown({
           size="flex">
           {/* Date/Time display */}
           <View className="flex-col items-center">
-            <Text className="font-bold text-lg text-foreground">{dateLabel}</Text>
+            <Text className="font-body-bold text-lg text-foreground">{dateLabel}</Text>
             <Text className="text-sm text-foreground/80">{timeLabel}</Text>
           </View>
         </SelectTrigger>

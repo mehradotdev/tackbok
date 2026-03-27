@@ -39,7 +39,7 @@ function Toggle({
   return (
     <TextClassContext.Provider
       value={cn(
-        'text-sm text-foreground font-medium',
+        'text-sm text-foreground font-body-medium',
         props.pressed && 'text-accent-foreground',
       )}>
       <TogglePrimitive.Root

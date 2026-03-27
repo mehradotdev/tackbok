@@ -311,3 +311,70 @@ import type {
 - **`name` prop**: must be unique across your app for global methods to work.
 - **`grabber` auto-hides** when `draggable={false}`.
 - **iOS 26+**: omitting `backgroundColor` enables Liquid Glass effect.
+
+---
+
+## Scrolling Content
+
+Scrolling content within the sheet requires specific configuration for both iOS and Android.
+
+### Basic Setup
+
+Enable the `scrollable` prop on `TrueSheet` and set `nestedScrollEnabled` on your `ScrollView` or `FlatList` to appropriately manage scrolling.
+
+```tsx
+const App = () => {
+  const sheet = useRef<TrueSheet>(null);
+
+  return (
+    <TrueSheet ref={sheet} scrollable>
+      <View>{/* Header content */}</View>
+      <ScrollView nestedScrollEnabled>
+        <View />
+      </ScrollView>
+    </TrueSheet>
+  );
+};
+```
+
+> **Note**: By default, `scrollable` is `false`. Set it to `true` to enable automatic ScrollView fitting.
+>
+> **Warning**: The `'auto'` detent is not compatible with `scrollable`. Use fixed fractional detents (e.g., `0.5`, `0.8`, `1`) instead.
+
+### iOS
+
+On iOS, `scrollable` automatically pins scroll views (`ScrollView` or `FlatList`) to fit within the sheet's available space. The detection supports up to 2 levels deep in the view hierarchy.
+
+```tsx
+<TrueSheet scrollable>
+  <View style={{ flex: 1 }}>
+    <View>{/* Header content */}</View>
+    <FlatList nestedScrollEnabled data={data} renderItem={renderItem} />
+  </View>
+</TrueSheet>
+```
+
+### Android
+
+On Android, `scrollable` ensures the scroll view fills the available sheet space. `nestedScrollEnabled` is required for scrolling to work.
+
+> **Warning**: `RefreshControl` is incompatible with `nestedScrollEnabled` on Android due to nesting limitations with `SwipeRefreshLayout`. As a workaround, disable `nestedScrollEnabled` to use `RefreshControl`, but provide a separate draggable area (e.g., a header) for the sheet.
+
+### Using `scrollToEnd`
+
+When using `scrollable`, `scrollToEnd()` on lists may fail due to JS-side metric inconsistencies. Use `scrollToOffset` with a large value instead:
+
+```tsx
+const scrollRef = useRef<FlatList>(null);
+
+const scrollToEnd = () => {
+  // Clamped to max scrollable position
+  scrollRef.current?.scrollToOffset({ offset: 99999, animated: true });
+};
+
+return (
+  <TrueSheet scrollable onDidPresent={scrollToEnd}>
+    <FlatList ref={scrollRef} nestedScrollEnabled data={data} renderItem={renderItem} />
+  </TrueSheet>
+);
+```

@@ -148,8 +148,9 @@ export const en = {
   // Settings - Appearance
   Appearance: 'Appearance',
   Theme: 'Theme',
-  'Choose from over 40 different themes and color schemes':
-    'Choose from over 40 different themes and color schemes',
+  'Select a theme': 'Select a theme',
+  'Choose from over 10 different themes and color schemes':
+    'Choose from over 10 different themes and color schemes',
   'Timeline Entry Length': 'Timeline Entry Length',
   'Number of lines shown in the timeline':
     'Number of lines shown in the timeline. The full text is visible when you click the entry',

@@ -98,7 +98,7 @@ export function GratitudeEntryView({
 
         {/* Date/Time display - centered absolutely via flex in parent or just flex-1 here */}
         <View className="flex-1 flex-col items-center">
-          <Text className="font-bold text-lg text-foreground">{dateLabel}</Text>
+          <Text className="font-body-bold text-lg text-foreground">{dateLabel}</Text>
           <Text className="text-sm text-muted-foreground">{timeLabel}</Text>
         </View>
 
@@ -118,9 +118,9 @@ export function GratitudeEntryView({
         {/* Mood label */}
         {moodOption && (
           <View className="flex-row items-center gap-2 mb-4">
-            <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-full border border-border">
+            <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-lg border border-border">
               <Text className="text-2xl">{moodOption.emoji}</Text>
-              <Text className="text-sm tracking-wide font-medium text-primary-foreground">
+              <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
                 {t(`Feeling ${moodOption.label}`)}
               </Text>
             </View>
@@ -129,7 +129,7 @@ export function GratitudeEntryView({
 
         {/* Title */}
         {title ? (
-          <Text className="text-lg font-semibold text-foreground mb-4">{title}</Text>
+          <Text className="text-lg font-body-semibold text-foreground mb-4">{title}</Text>
         ) : null}
 
         {/* Content */}
@@ -144,8 +144,8 @@ export function GratitudeEntryView({
               {tags.map((tag) => (
                 <View
                   key={tag.tag_id}
-                  className="relative flex-row items-center px-3 py-1.5 bg-muted rounded-full border border-border">
-                  <Text className="text-sm font-semibold text-primary-foreground">
+                  className="relative flex-row items-center px-3 py-1.5 bg-muted rounded-lg border border-border">
+                  <Text className="text-sm font-body-semibold text-primary-foreground">
                     #{tag.title}
                   </Text>
                 </View>

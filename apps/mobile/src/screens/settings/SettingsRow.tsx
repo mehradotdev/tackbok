@@ -55,7 +55,7 @@ export function SettingsRow({
       )}
       <View className="flex-1 mr-3 items-start">
         <View className="flex-row items-center">
-          <Text className="text-base text-foreground font-medium mr-1">{label}</Text>
+          <Text className="text-base text-foreground font-body-medium mr-1">{label}</Text>
           {isExternalLink && (
             <Icon
               as={ExternalLink}
