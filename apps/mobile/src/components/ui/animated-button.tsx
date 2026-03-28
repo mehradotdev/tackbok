@@ -1,16 +1,24 @@
-import React from 'react';
+import React, { useCallback, useImperativeHandle } from 'react';
 import { View, type GestureResponderEvent } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 import { cn } from 'tailwind-variants';
 import { Button, type ButtonProps } from '~/components/ui/button';
 
-export interface AnimatedButtonProps extends ButtonProps {
+export interface AnimatedButtonHandle {
+  simulatePress: () => void;
+}
+
+export interface AnimatedButtonProps extends Omit<ButtonProps, 'ref'> {
   depthClassName?: string;
   containerClassName?: string;
+  /** Ref to receive a handle with simulatePress() */
+  ref?: React.Ref<AnimatedButtonHandle>;
 }
 
 export function AnimatedButton({
@@ -19,6 +27,8 @@ export function AnimatedButton({
   depthClassName,
   onPressIn,
   onPressOut,
+  onPress,
+  ref,
   children,
   ...props
 }: AnimatedButtonProps) {
@@ -41,6 +51,18 @@ export function AnimatedButton({
     onPressOut?.(event);
   };
 
+  const simulatePress = useCallback(() => {
+    translateY.value = withSequence(
+      withTiming(4, { duration: 250 }),
+      withTiming(0, { duration: 250 }),
+    );
+    onPress?.(null as unknown as GestureResponderEvent);
+  }, [onPress, translateY]);
+
+  useImperativeHandle(ref, () => ({
+    simulatePress
+  }), [simulatePress]);
+
   return (
     <View className={cn('relative', containerClassName)}>
       {/* Depth/Shadow Layer */}
@@ -54,6 +76,7 @@ export function AnimatedButton({
       <Animated.View style={animatedStyle}>
         <Button
           {...props}
+          onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           className={cn('active:scale-100 shadow-none border-b-0', className)}>

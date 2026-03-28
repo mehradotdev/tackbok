@@ -68,7 +68,8 @@
             "android.permission.MODIFY_AUDIO_SETTINGS"
           ]
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

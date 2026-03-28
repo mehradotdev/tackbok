@@ -364,40 +364,47 @@ export function GratitudeEntryEdit({
           <View className="flex-row flex-wrap items-center gap-2 mb-2">
             {/* Mood label with clear badge */}
             {moodOption && (
-              <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 mr-2 bg-primary/50 rounded-full border border-border">
+              <Button
+                variant="ghost"
+                size="none"
+                onPress={() => TrueSheet.present(SHEET_NAMES.MOOD)}
+                className="relative flex-row items-center px-3 py-0.5 gap-1.5 mr-2 bg-primary/50 active:bg-primary/60 transition-colors rounded-lg border border-border">
                 <Text className="text-2xl">{moodOption.emoji}</Text>
-                <Text className="text-sm tracking-wide font-medium text-primary-foreground">
+                <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
                   {t(`Feeling ${moodOption.label}`)}
                 </Text>
                 {/* Clear mood button */}
-                <Pressable
+                <Button
+                  variant="ghost"
+                  size="none"
                   onPress={() => setMood(null)}
                   hitSlop={6}
-                  className="absolute -top-0.5 -right-2 z-10">
+                  className="absolute -top-1 -right-2 z-10 rounded-full">
                   <Badge
                     variant="secondary"
                     className="h-4 w-4 bg-muted-foreground border border-border shadow-lg">
                     <Icon as={X} className="text-background size-3" strokeWidth={5} />
                   </Badge>
-                </Pressable>
-              </View>
+                </Button>
+              </Button>
             )}
 
             {/* Time picker button */}
-            <Pressable
+            <Button
+              variant="secondary"
               onPress={() => {
                 Keyboard.dismiss();
                 setIsTimePickerVisible(true);
               }}
-              className="flex-row items-center px-3 py-2 gap-2 bg-muted border border-border rounded-full active:bg-accent">
+              className="flex-row items-center px-3 h-9 gap-2">
               <Icon as={Clock} className="text-muted-foreground size-5" />
-              <Text className="text-sm font-medium text-foreground">{formattedTime}</Text>
-            </Pressable>
+              <Text className="text-sm font-body-medium text-foreground">{formattedTime}</Text>
+            </Button>
           </View>
 
           {/* Title Input */}
           <Textarea
-            className="px-0 min-h-0 text-lg font-semibold text-foreground border-0 shadow-none"
+            className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
             placeholder={t('Title (optional)')}
             placeholderTextColor={mutedForegroundColor as string}
             value={title}
@@ -422,20 +429,22 @@ export function GratitudeEntryEdit({
                 {displayTags.map((tag) => (
                   <View
                     key={tag.tag_id}
-                    className="relative flex-row items-center px-3 py-1.5 bg-muted rounded-full border border-border">
-                    <Text className="text-sm mr-1 font-semibold text-primary-foreground">
+                    className="relative flex-row items-center px-3 py-1.5 bg-muted rounded-lg border border-border">
+                    <Text className="text-sm mr-1 font-body-semibold text-primary-foreground">
                       #{tag.title}
                     </Text>
-                    <Pressable
+                    <Button
+                      variant="ghost"
+                      size="none"
                       onPress={() => handleRemoveTag(tag.tag_id)}
                       hitSlop={6}
-                      className="absolute -top-1 -right-1 z-10">
+                      className="absolute -top-1 -right-1 z-10 rounded-full">
                       <Badge
                         variant="secondary"
                         className="h-4 w-4 bg-muted-foreground border border-border shadow-lg">
                         <Icon as={X} className="text-background size-3" strokeWidth={5} />
                       </Badge>
-                    </Pressable>
+                    </Button>
                   </View>
                 ))}
               </View>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text } from 'react-native';
 import { format, subDays, startOfDay } from 'date-fns';
 import { LegendList } from '@legendapp/list';
 import {
@@ -11,6 +11,7 @@ import {
 } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';
+import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
 
@@ -108,7 +109,8 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
       // Placeholders have an empty entries array, so hasContent is false.
       // For real entries, check that at least one has substantive data.
       const hasContent = group.entries.some(
-        (e) => e.text_content || e.text_title || e.mood || (e.assets && e.assets.length > 0),
+        (e) =>
+          e.text_content || e.text_title || e.mood || (e.assets && e.assets.length > 0),
       );
 
       const remainingDays = totalContentDays - processedDays;
@@ -161,7 +163,11 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         </View>
       );
     }
-    return <ActivityIndicator size="large" className="mt-20" />;
+    return (
+      <View className="flex-1 w-full bg-background">
+        <AppLoadingScreen modal />
+      </View>
+    );
   }
 
   return (
@@ -179,10 +185,16 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
             const hasPhotos = item.entries.some(
               (e) => e.assets && e.assets.some((a) => a.type === AssetType.IMAGE),
             );
+            const hasText = item.entries.some(
+              (e) => e.text_content && e.text_content.trim().length > 0,
+            );
             const photosExtra = hasPhotos ? 80 : 0; // ~80px for horizontal scroll row
-            // Collapsed: ~70px header + ~40px preview + optional photos
+            const textExtra = hasText ? 40 : 0;
+            // Collapsed: ~70px header + (~40px preview if has text) + optional photos
             // Expanded: ~70px header + ~150px per entry + optional photos
-            return isExpanded ? 70 + numEntries * (150 + photosExtra) : 110 + photosExtra;
+            return isExpanded
+              ? 70 + numEntries * (150 + photosExtra)
+              : 70 + textExtra + photosExtra;
           }
           return 150;
         }}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Pressable, ScrollView } from 'react-native';
+import { View, ScrollView, Keyboard } from 'react-native';
 import { Plus, X, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -8,6 +8,7 @@ import { type Tag } from '~/types';
 import { SHEET_NAMES } from '~/constants';
 import { sanitizeTagName } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
+import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { useUpdateTag, useDeleteTag, useTags, useCreateTag } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -49,7 +50,12 @@ export function TagsModal({
 }: ITagsModalProps) {
   const { t, isRTL } = useTranslation();
   const { data: allTags = [] } = useTags();
-  const [backgroundColor] = useCSSVariable(['--color-background']);
+  const [backgroundColor, themeRadiusStr, mutedFgColor] = useCSSVariable([
+    '--color-background',
+    '--theme-radius',
+    '--color-muted-foreground',
+  ]);
+  const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
   const [viewState, setViewState] = useState<ViewState>('select');
   const [tagInputValue, setTagInputValue] = useState('');
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
@@ -174,6 +180,7 @@ export function TagsModal({
   };
 
   const handleBackPress = () => {
+    Keyboard.dismiss();
     setViewState('select');
     setTagInputValue('');
     setEditingTag(null);
@@ -202,36 +209,53 @@ export function TagsModal({
         {/* Left side: Back button (only in form views) or empty space */}
         <View className="w-10">
           {isFormView && (
-            <Pressable onPress={handleBackPress} hitSlop={10}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onPress={handleBackPress}
+              accessibilityLabel={t('Back')}
+              hitSlop={10}
+              className="w-8 h-8 px-0">
               <Icon
                 as={!isRTL ? ChevronLeft : ChevronRight}
                 className="text-foreground"
                 size={24}
               />
-            </Pressable>
+            </Button>
           )}
         </View>
 
         {/* Title */}
-        <Text className="text-foreground text-lg font-semibold leading-tight flex-1 text-center">
+        <Text className="text-foreground text-lg font-body-semibold leading-tight flex-1 text-center">
           {title}
         </Text>
 
         {/* Right side: Close button */}
         <View className="w-10 items-end">
-          <Pressable onPress={() => TrueSheet.dismiss(SHEET_NAMES.TAGS)} hitSlop={10}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onPress={() => TrueSheet.dismiss(SHEET_NAMES.TAGS)}
+            accessibilityLabel={t('Close')}
+            hitSlop={10}
+            className="w-8 h-8">
             <Icon as={X} className="text-muted-foreground" size={20} />
-          </Pressable>
+          </Button>
         </View>
       </View>
     );
   };
 
-  const renderTagItem = (tag: Tag) => {
+  const renderTagItem = (tag: Tag, isLast: boolean) => {
     const isSelected = selectedTagIds.includes(tag.tag_id);
 
     return (
-      <View key={tag.tag_id} className="flex-row items-center pt-2">
+      <View
+        key={tag.tag_id}
+        className={cn(
+          'flex-row items-center px-3 py-3',
+          !isLast && 'border-b border-border',
+        )}>
         {/* Checkbox */}
         <Checkbox
           checked={isSelected}
@@ -240,22 +264,38 @@ export function TagsModal({
         />
 
         {/* Tag name - takes remaining space */}
-        <Pressable onPress={() => handleTagToggle(tag)} className="flex-1">
-          <Text className="text-base text-foreground">#{tag.title}</Text>
-        </Pressable>
+        <Button
+          variant="ghost"
+          size="flex"
+          onPress={() => handleTagToggle(tag)}
+          className="flex-1 justify-start h-auto py-1">
+          <Text className="text-base text-foreground font-body-medium">#{tag.title}</Text>
+        </Button>
 
-        {/* Edit button */}
-        <Pressable onPress={() => handleEditPress(tag)} hitSlop={8} className="p-2 mr-4">
-          <Icon as={Pencil} className="text-muted-foreground" size={18} />
-        </Pressable>
+        {/* Actions */}
+        <View className="flex-row items-center ml-2">
+          {/* Edit button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onPress={() => handleEditPress(tag)}
+            accessibilityLabel={t('Edit Tag')}
+            hitSlop={8}
+            className="w-8 h-8 mr-1">
+            <Icon as={Pencil} className="text-muted-foreground" size={18} />
+          </Button>
 
-        {/* Delete button */}
-        <Pressable
-          onPress={() => handleDeletePress(tag)}
-          hitSlop={8}
-          className="p-2 pr-0">
-          <Icon as={Trash2} className="text-destructive" size={18} />
-        </Pressable>
+          {/* Delete button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onPress={() => handleDeletePress(tag)}
+            accessibilityLabel={t('Delete Tag')}
+            hitSlop={8}
+            className="w-8 h-8">
+            <Icon as={Trash2} className="text-destructive" size={18} />
+          </Button>
+        </View>
       </View>
     );
   };
@@ -263,12 +303,16 @@ export function TagsModal({
   const renderSelectView = () => (
     <View className="px-4 pt-2 pb-4">
       {allTags.length > 0 && (
-        <ScrollView
-          className="max-h-50"
-          contentContainerClassName="pb-4"
-          nestedScrollEnabled>
-          {allTags.map((tag) => renderTagItem(tag))}
-        </ScrollView>
+        <View className="bg-card rounded-lg border border-border overflow-hidden mb-4">
+          <ScrollView
+            className="max-h-50"
+            contentContainerClassName="p-0"
+            nestedScrollEnabled>
+            {allTags.map((tag, index) =>
+              renderTagItem(tag, index === allTags.length - 1),
+            )}
+          </ScrollView>
+        </View>
       )}
 
       {/* Create new tag button */}
@@ -323,10 +367,12 @@ export function TagsModal({
       <TrueSheet
         name={SHEET_NAMES.TAGS}
         detents={['auto']}
-        cornerRadius={24}
+        cornerRadius={sheetRadius}
         grabber={true}
         grabberOptions={{
           topMargin: 8,
+          color: mutedFgColor as string,
+          adaptive: false,
         }}
         backgroundColor={backgroundColor as string}
         onDidDismiss={handleDismiss}>
@@ -339,7 +385,7 @@ export function TagsModal({
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className={sheetRadius === 0 ? 'rounded-none' : ''}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Delete Tag')}</AlertDialogTitle>
             <AlertDialogDescription>

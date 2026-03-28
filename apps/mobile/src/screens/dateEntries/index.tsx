@@ -58,7 +58,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
           {/* Time Badge - Preserving "Current" style but removing mood */}
           <Text
             className={cn(
-              'self-start font-black tracking-wider text-foreground/70',
+              'self-start font-body-bold tracking-wider text-foreground/70',
               'py-1 px-3 bg-muted border border-border rounded-full',
             )}>
             {time}
@@ -68,7 +68,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
           {moodOption && (
             <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-full border border-border">
               <Text className="text-xl">{moodOption.emoji}</Text>
-              <Text className="text-sm tracking-wide font-medium text-primary-foreground">
+              <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
                 {t(`Feeling ${moodOption.label}`)}
               </Text>
             </View>
@@ -77,7 +77,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
 
         {/* Title */}
         {entry.text_title && (
-          <Text className="text-lg font-semibold text-foreground mb-1" numberOfLines={1}>
+          <Text className="text-lg font-body-semibold text-foreground mb-1" numberOfLines={1}>
             {entry.text_title}
           </Text>
         )}
@@ -97,7 +97,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
                 key={tag.tag_id}
                 variant="secondary"
                 className="px-2 py-1 rounded-md">
-                <Text className="text-sm text-foreground/70 font-bold">#{tag.title}</Text>
+                <Text className="text-sm text-foreground/70 font-body-bold">#{tag.title}</Text>
               </Badge>
             ))}
           </View>
@@ -185,7 +185,7 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Button>
 
-        <Text variant="h2" className="text-foreground">
+        <Text variant="h2" className="text-foreground font-heading">
           {formattedDate}
         </Text>
 

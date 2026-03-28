@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import AsyncStorage from 'expo-sqlite/kv-store';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { Uniwind } from 'uniwind';
 import { FirstDay, type FirstDayOfWeek } from '~/types';
+import { DEFAULT_THEME_ID, getThemeConfig } from '~/lib/theme';
 
 // TODO: Implement actual functionality for all settings
 // This is currently a mock store - all values are stored but not yet connected to real features
@@ -54,7 +56,7 @@ export const useSettingsStore = create<SettingsState>()(
       // Default values
       dailyReminderEnabled: false,
       reminderTime: '09:00',
-      theme: 'default',
+      theme: DEFAULT_THEME_ID,
       timelineEntryLength: 10,
       inspirationalQuotesEnabled: true,
       dateIncludesDayOfWeek: false,
@@ -69,7 +71,11 @@ export const useSettingsStore = create<SettingsState>()(
       // Actions
       setDailyReminderEnabled: (enabled) => set({ dailyReminderEnabled: enabled }),
       setReminderTime: (time) => set({ reminderTime: time }),
-      setTheme: (theme) => set({ theme }),
+      setTheme: (theme) => {
+        const id = getThemeConfig(theme).id;
+        Uniwind.setTheme(id);
+        set({ theme: id });
+      },
       setTimelineEntryLength: (length) => {
         const safeLength = Math.max(1, Math.min(50, length));
         set({ timelineEntryLength: safeLength });
@@ -92,8 +98,17 @@ export const useSettingsStore = create<SettingsState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
+          // If the persisted theme is no longer valid (e.g., 'default'), map it.
+          // Use setTheme (not direct mutation): a partial set above replaces the store
+          // object, so mutating this callback's `state` would not update subscribers
+          // or persist; setTheme also keeps Uniwind in sync.
+          const safeThemeId = getThemeConfig(state.theme).id;
+          state.setTheme(safeThemeId);
         } else {
           console.warn('Settings store rehydration failed');
+          // `state` is unavailable here (persisted merge failed), so we cannot call
+          // `state.setHasHydrated` — use the live store handle instead.
+          useSettingsStore.getState().setHasHydrated(true);
         }
       },
       partialize: (state) => ({

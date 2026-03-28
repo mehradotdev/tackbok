@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Dimensions, Linking, Platform, Pressable, View } from 'react-native';
+import { Dimensions, Linking, Platform, View } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
@@ -12,10 +12,13 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { useCSSVariable } from 'uniwind';
 import { cn } from 'tailwind-variants';
+import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
+import { Button } from '~/components/ui/button';
 
 interface ActionRowProps {
   label: string;
@@ -28,11 +31,12 @@ interface ActionRowProps {
 
 function ActionRow({ label, onPress, isLast, isBold, icon, centered }: ActionRowProps) {
   return (
-    <Pressable
+    <Button
+      variant="ghost"
       onPress={onPress}
       className={cn(
-        'py-[18px] px-5 w-full flex-row active:bg-muted',
-        centered ? 'justify-center items-center' : 'justify-start items-center',
+        'py-[18px] px-5 w-full h-auto rounded-none',
+        centered ? 'justify-center' : 'justify-start',
         !isLast && 'border-b border-border',
       )}>
       {icon && (
@@ -43,11 +47,11 @@ function ActionRow({ label, onPress, isLast, isBold, icon, centered }: ActionRow
       <Text
         className={cn(
           'text-lg text-foreground',
-          isBold ? 'font-semibold' : 'font-medium',
+          isBold ? 'font-body-semibold' : 'font-body-medium',
         )}>
         {label}
       </Text>
-    </Pressable>
+    </Button>
   );
 }
 
@@ -76,6 +80,8 @@ export function SettingsBottomSheet() {
   const router = useRouter();
   const { t } = useTranslation();
   const sheet = useRef<TrueSheet>(null);
+  const [themeRadiusStr] = useCSSVariable(['--theme-radius']);
+  const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
   const present = () => sheet.current?.present();
   const dismiss = () => sheet.current?.dismiss();
@@ -104,14 +110,15 @@ export function SettingsBottomSheet() {
 
   return (
     <>
-      <Pressable
+      <Button
+        variant="ghost"
         onPress={present}
         hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel={t('Open Settings')}
-        className="py-2 active:opacity-70">
+        className="py-2 px-2 w-auto h-auto">
         <Icon as={EllipsisVertical} className="text-primary-foreground" />
-      </Pressable>
+      </Button>
 
       <TrueSheet
         ref={sheet}
@@ -121,7 +128,11 @@ export function SettingsBottomSheet() {
         backgroundColor="transparent"
         maxContentWidth={400}>
         <View className="px-4 pb-8 items-center">
-          <View className="w-full bg-card rounded-2xl overflow-hidden mb-3">
+          <View
+            className={cn(
+              'w-full bg-card overflow-hidden mb-3',
+              sheetRadius === 0 ? 'rounded-none border-theme' : 'rounded-xl',
+            )}>
             <ActionRow label={t('Settings')} icon={Settings} onPress={handleSettings} />
             <ActionRow label={t('Contact Us')} icon={Mail} onPress={handleContactUs} />
             <ActionRow
@@ -132,7 +143,11 @@ export function SettingsBottomSheet() {
             />
           </View>
 
-          <View className="w-full bg-card rounded-2xl overflow-hidden">
+          <View
+            className={cn(
+              'w-full bg-card overflow-hidden',
+              sheetRadius === 0 ? 'rounded-none border-theme' : 'rounded-xl',
+            )}>
             <ActionRow label={t('Cancel')} onPress={dismiss} isBold centered isLast />
           </View>
         </View>

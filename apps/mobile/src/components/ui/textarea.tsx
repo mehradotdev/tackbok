@@ -15,7 +15,7 @@ export function Textarea({
     <TextInput
       ref={ref}
       className={cn(
-        'text-left text-foreground border-input flex min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-sm shadow-black/5 md:text-sm',
+        'text-left text-foreground flex min-h-16 w-full rounded-md border-theme bg-transparent px-3 py-2 text-base shadow-theme md:text-sm font-body',
         props.editable === false && 'opacity-50',
         isRTL && 'text-right',
         className,

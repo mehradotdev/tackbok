@@ -9,6 +9,7 @@ import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Badge } from '~/components/ui/badge';
+import { Button } from '~/components/ui/button';
 import { WaveformVisualizer } from '~/components/WaveformVisualizer';
 
 // ============================================================================
@@ -253,15 +254,17 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
       onStartShouldSetResponder={() => true}>
       <View className="flex-row items-center gap-3">
         {/* Play/Pause button */}
-        <Pressable
+        <Button
+          variant="ghost"
+          size="none"
           onPress={handlePlayPause}
           accessibilityLabel={isPlaying && isActiveUri ? t('Pause') : t('Play')}
-          className="w-12 h-12 rounded-full bg-primary items-center justify-center">
+          className="w-12 h-12 rounded-full bg-primary">
           <Icon
             as={isPlaying && isActiveUri ? Pause : Play}
             className="text-primary-foreground size-6"
           />
-        </Pressable>
+        </Button>
 
         {/* Duration label */}
         <Text className="text-sm text-foreground font-mono">
@@ -286,17 +289,19 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
 
       {/* Remove button (edit mode only) */}
       {onRemove && (
-        <Pressable
+        <Button
+          variant="ghost"
+          size="none"
           onPress={onRemove}
           accessibilityLabel={t('Remove')}
           hitSlop={6}
-          className="absolute -top-2 -right-2 z-10">
+          className="absolute -top-2 -right-2 z-10 rounded-full">
           <Badge
             variant="secondary"
             className="h-6 w-6 bg-muted-foreground border border-border shadow-lg">
             <Icon as={X} className="text-background size-4" strokeWidth={3} />
           </Badge>
-        </Pressable>
+        </Button>
       )}
     </View>
   );

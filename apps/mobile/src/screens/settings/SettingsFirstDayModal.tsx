@@ -50,7 +50,7 @@ export function SettingsFirstDayModal({
         <Pressable
           className="bg-background rounded-lg p-6 mx-4 w-[90%] max-w-sm"
           onPress={(e) => e.stopPropagation()}>
-          <Text className="text-lg font-semibold text-foreground mb-4 text-center">
+          <Text className="text-lg font-body-semibold text-foreground mb-4 text-center">
             {t('First Day of Week')}
           </Text>
 

@@ -2,9 +2,11 @@ import React from 'react';
 import { View, Image, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
+import { useTranslation } from '~/lib/i18n';
 import { getFullPhotoUri, getPhotoRotation } from '~/lib/photoUtils';
 import { Badge } from '~/components/ui/badge';
 import { Icon } from '~/components/ui/icon';
+import { Button } from '~/components/ui/button';
 
 interface PolaroidPhotoProps {
   photo: {
@@ -27,7 +29,7 @@ export function PolaroidPhoto({
 }: PolaroidPhotoProps) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-
+  const { t } = useTranslation();
   const imageAspectRatio =
     photo.width && photo.height ? photo.width / photo.height : 4 / 3;
 
@@ -49,7 +51,7 @@ export function PolaroidPhoto({
 
   const inner = (
     <View
-      className="bg-popover p-2 pb-6 shadow-lg shadow-foreground/50"
+      className="bg-popover p-2 pb-6 shadow-theme border-theme border-border"
       style={{
         alignSelf: 'center', // Center the polaroid if it's narrower than full width
         transform: [
@@ -68,13 +70,19 @@ export function PolaroidPhoto({
       />
       {/* Remove photo button */}
       {onRemove && (
-        <Pressable onPress={onRemove} hitSlop={6} className="absolute top-1 right-1 z-10">
+        <Button
+          variant="ghost"
+          size="none"
+          accessibilityLabel={t('Remove')}
+          onPress={onRemove}
+          hitSlop={6}
+          className="absolute top-1 right-1 z-10 rounded-full">
           <Badge
             variant="secondary"
             className="h-6 w-6 bg-black/60 border border-white/30 shadow-lg">
             <Icon as={X} className="text-white size-4" strokeWidth={3} />
           </Badge>
-        </Pressable>
+        </Button>
       )}
     </View>
   );

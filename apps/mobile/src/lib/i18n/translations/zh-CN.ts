@@ -12,6 +12,7 @@ export const zhCN: Translations = {
   Save: '保存',
   Edit: '编辑',
   Add: '添加',
+  Back: '返回',
   Create: '创建',
   Discard: '放弃',
   Continue: '继续',
@@ -144,8 +145,9 @@ export const zhCN: Translations = {
   // Settings - Appearance
   Appearance: '外观',
   Theme: '主题',
-  'Choose from over 40 different themes and color schemes':
-    '从40多种不同的主题和配色方案中选择',
+  'Select a theme': '选择主题',
+  'Choose from over 10 different themes and color schemes':
+    '从10多种不同的主题和配色方案中选择',
   'Timeline Entry Length': '时间线条目长度',
   'Number of lines shown in the timeline': '时间线中显示的行数。点击条目可查看完整文本',
   'Show Timeline Borders': '显示时间线边框',

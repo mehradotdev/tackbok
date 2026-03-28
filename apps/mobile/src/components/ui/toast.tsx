@@ -323,7 +323,7 @@ export function Toaster({
                   </View>
 
                   <View className="flex-1 gap-1">
-                    <ToastPrimitive.Title className="text-foreground text-sm font-semibold">
+                    <ToastPrimitive.Title className="text-foreground text-sm font-body-semibold">
                       {t.title}
                     </ToastPrimitive.Title>
                     {t.description && (
@@ -338,7 +338,7 @@ export function Toaster({
                   <ToastPrimitive.Action
                     className="bg-primary ml-3 rounded px-3 py-1.5"
                     onPress={t.action.onPress}>
-                    <Text className="text-primary-foreground text-xs font-semibold">
+                    <Text className="text-primary-foreground text-xs font-body-semibold">
                       {t.action.label}
                     </Text>
                   </ToastPrimitive.Action>

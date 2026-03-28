@@ -12,7 +12,7 @@ const toggleVariants = tv({
     variant: {
       default: 'bg-transparent',
       outline: cn(
-        'border-input active:bg-accent border bg-transparent shadow-sm shadow-black/5',
+        'active:bg-accent border border-theme bg-transparent shadow-sm shadow-black/5',
       ),
     },
     size: {
@@ -39,7 +39,7 @@ function Toggle({
   return (
     <TextClassContext.Provider
       value={cn(
-        'text-sm text-foreground font-medium',
+        'text-sm text-foreground font-body-medium',
         props.pressed && 'text-accent-foreground',
       )}>
       <TogglePrimitive.Root

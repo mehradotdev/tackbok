@@ -112,13 +112,13 @@ export function GratitudeDatepickerModal({
       return (
         <View
           className={cn(
-            'h-9 w-9 items-center justify-center rounded-full',
+            'h-9 w-9 items-center justify-center rounded-lg',
             isSelected && !isDisabled && 'bg-primary shadow-sm',
             isDisabled && 'opacity-30',
           )}>
           <Text
             className={cn(
-              'text-base font-medium',
+              'text-base font-body-medium',
               isCurrentMonth ? 'text-foreground' : 'text-muted-foreground/50',
               isSelected && !isDisabled && 'text-primary-foreground',
               isDisabled && 'text-muted-foreground',

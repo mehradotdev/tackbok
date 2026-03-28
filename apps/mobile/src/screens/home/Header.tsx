@@ -92,7 +92,7 @@ export const Header: React.FC<IHeaderProps> = ({
                     )}>
                     <Text
                       className={cn(
-                        'text-sm font-medium',
+                        'text-sm font-body-medium',
                         selectedTagIds.includes(tag.tag_id)
                           ? 'text-primary'
                           : 'text-primary-foreground',
@@ -116,7 +116,7 @@ export const Header: React.FC<IHeaderProps> = ({
         <Icon as={Search} className="text-primary-foreground" />
       </Button>
 
-      <Text variant="h2" className="text-primary-foreground">
+      <Text variant="h2" className="text-primary-foreground font-heading">
         {t('Tackbok')}
       </Text>
 

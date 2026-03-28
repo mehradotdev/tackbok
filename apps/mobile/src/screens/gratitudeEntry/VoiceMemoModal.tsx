@@ -1,11 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Pressable, Linking } from 'react-native';
+import { View, Linking } from 'react-native';
+import { File } from 'expo-file-system';
 import { Headphones, X, Mic, Square, Play, Pause } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { SHEET_NAMES } from '~/constants';
 import { audioEngine } from '~/lib/audioEngine';
 import { useTranslation } from '~/lib/i18n';
+import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
@@ -51,7 +53,12 @@ const POLL_INTERVAL = 200; // ms
 
 export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   const { t } = useTranslation();
-  const [backgroundColor] = useCSSVariable(['--color-background']);
+  const [backgroundColor, themeRadiusStr, mutedFgColor] = useCSSVariable([
+    '--color-background',
+    '--theme-radius',
+    '--color-muted-foreground',
+  ]);
+  const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
   // Recorder state
   const [phase, setPhase] = useState<RecorderPhase>('idle');
@@ -70,6 +77,9 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   const durationPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playbackPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const listenerIdRef = useRef<number | null>(null);
+  // Prevent a dismiss->cleanup race: after Save we hand `recordedUri` to the parent to persist,
+  // but `onDidDismiss` still fires; we must not delete the temp file in that case.
+  const didSaveRef = useRef(false);
 
   const [foregroundColor, mutedForegroundColor] = useCSSVariable([
     '--color-foreground',
@@ -125,6 +135,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   // ── Recording (with permission check) ──────────────────────────────
   const startRecording = useCallback(async (): Promise<boolean> => {
+    didSaveRef.current = false;
     const result = await audioEngine.startRecording();
     if (result.status === 'error') {
       console.warn('Failed to start recording:', result.message);
@@ -215,6 +226,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   // ── Actions ────────────────────────────────────────────────────────
   const handleRecordAgain = useCallback(() => {
+    didSaveRef.current = false;
     audioEngine.stopPlayback();
     setPreviewPlaying(false);
     stopPlaybackPoll();
@@ -226,6 +238,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   const handleSave = useCallback(() => {
     if (recordedUri) {
+      didSaveRef.current = true;
       audioEngine.stopPlayback();
       setPreviewPlaying(false);
       stopPlaybackPoll();
@@ -251,6 +264,17 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   const handleDismiss = useCallback(() => {
     stopAudioActivity();
+
+    // Clean up unsaved temp recording file (best-effort)
+    if (recordedUri && !didSaveRef.current) {
+      try {
+        const tempFile = new File(recordedUri);
+        if (tempFile.exists) tempFile.delete();
+      } catch {
+        // Ignore — temp dir cleanup is best-effort
+      }
+    }
+
     setPhase('idle');
     setRecordedUri(null);
     setRecordingDuration(0);
@@ -258,7 +282,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     setPreviewCurrentTime(0);
     setPreviewDuration(0);
     setPreviewAmplitudes([]);
-  }, [stopAudioActivity]);
+  }, [stopAudioActivity, recordedUri]);
 
   const previewProgress = previewDuration > 0 ? previewCurrentTime / previewDuration : 0;
 
@@ -267,24 +291,28 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
       <TrueSheet
         name={SHEET_NAMES.VOICE_MEMO}
         detents={['auto']}
-        cornerRadius={24}
+        cornerRadius={sheetRadius}
         grabber={phase === 'idle'}
         grabberOptions={{
           topMargin: 8,
+          color: mutedFgColor as string,
+          adaptive: false,
         }}
         dismissible={phase === 'idle'}
         backgroundColor={backgroundColor as string}
         onDidDismiss={handleDismiss}>
         <View className="px-6 pt-4 pb-4">
           {/* Close button */}
-          {phase !== 'idle' && (
-            <Pressable
+          {phase !== 'recording' && (
+            <Button
+              variant="ghost"
+              size="icon"
               onPress={() => TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO)}
               hitSlop={8}
               accessibilityLabel={t('Close')}
-              className="absolute top-4 right-6 z-10 p-1">
+              className="absolute top-4 right-6 z-10 w-8 h-8 px-0">
               <Icon as={X} className="text-muted-foreground size-6" />
-            </Pressable>
+            </Button>
           )}
 
           {/* Icon */}
@@ -297,7 +325,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
           {/* === IDLE PHASE === */}
           {phase === 'idle' && (
             <>
-              <Text className="text-xl font-bold text-foreground text-center mb-2">
+              <Text className="text-xl font-body-bold text-foreground text-center mb-2">
                 {t('Record Voice Note')}
               </Text>
               <Text className="text-base text-muted-foreground text-center mb-6">
@@ -305,7 +333,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
               </Text>
               <Button
                 variant="default"
-                className="w-full h-14 rounded-full"
+                className="w-full h-14"
                 onPress={handleStartRecording}>
                 <Icon as={Mic} className="text-background size-5" />
                 <Text>{t('Start Recording')}</Text>
@@ -316,10 +344,10 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
           {/* === RECORDING PHASE === */}
           {phase === 'recording' && (
             <>
-              <Text className="text-xl font-bold text-foreground text-center mb-2">
+              <Text className="text-xl font-body-bold text-foreground text-center mb-2">
                 {t('Recording Voice Note...')}
               </Text>
-              <Text className="text-4xl font-bold text-foreground text-center mb-4 font-mono">
+              <Text className="text-4xl font-body-bold text-foreground text-center mb-4">
                 {formatTime(recordingDuration)}
               </Text>
 
@@ -334,7 +362,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
               <Button
                 variant="default"
-                className="w-full h-14 rounded-full"
+                className="w-full h-14"
                 onPress={handleStopRecording}>
                 <Icon as={Square} className="text-background size-4" />
                 <Text>{t('Stop Recording')}</Text>
@@ -345,7 +373,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
           {/* === PREVIEW PHASE === */}
           {phase === 'preview' && (
             <>
-              <Text className="text-xl font-bold text-foreground text-center mb-2">
+              <Text className="text-xl font-body-bold text-foreground text-center mb-2">
                 {t('Voice Note Recorded')}
               </Text>
               <Text className="text-base text-muted-foreground text-center mb-4">
@@ -353,7 +381,9 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
               </Text>
 
               {/* Play/Pause button */}
-              <Pressable
+              <Button
+                variant="secondary"
+                size="icon"
                 onPress={handlePlayPause}
                 accessibilityLabel={previewPlaying ? t('Pause') : t('Play')}
                 accessibilityState={{ selected: previewPlaying }}
@@ -362,12 +392,12 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
                   as={previewPlaying ? Pause : Play}
                   className="text-foreground size-8"
                 />
-              </Pressable>
+              </Button>
 
               {/* Waveform + time labels */}
               <View className="mb-6">
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-sm text-foreground font-semibold w-10 text-right">
+                  <Text className="text-sm text-foreground font-body-semibold w-10 text-right">
                     {formatTime(previewCurrentTime)}
                   </Text>
                   <View className="flex-1">
@@ -381,7 +411,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
                       onSeek={handleSeek}
                     />
                   </View>
-                  <Text className="text-sm text-foreground font-semibold w-10">
+                  <Text className="text-sm text-foreground font-body-semibold w-10">
                     {formatTime(previewDuration)}
                   </Text>
                 </View>
@@ -389,15 +419,12 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
               {/* Save and Record Again buttons */}
               <View className="gap-3">
-                <Button
-                  variant="default"
-                  className="w-full h-14 rounded-full"
-                  onPress={handleSave}>
+                <Button variant="default" className="w-full h-14" onPress={handleSave}>
                   <Text>{t('Save Recording')}</Text>
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full h-14 rounded-full"
+                  className="w-full h-14"
                   onPress={handleRecordAgain}>
                   <Icon as={Mic} className="text-foreground size-5" />
                   <Text>{t('Record Again')}</Text>
@@ -410,7 +437,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
       {/* Permission denied alert */}
       <AlertDialog open={permissionAlertOpen} onOpenChange={setPermissionAlertOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className={sheetRadius === 0 ? 'rounded-none' : ''}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Microphone Access Required')}</AlertDialogTitle>
             <AlertDialogDescription>

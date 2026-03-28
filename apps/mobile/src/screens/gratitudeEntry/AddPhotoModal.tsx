@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { View, Linking } from 'react-native';
 import { Camera, ImagePlus } from 'lucide-react-native';
+import { useCSSVariable } from 'uniwind';
+import { cn } from 'tailwind-variants';
 import { MAX_PHOTOS_PER_ENTRY } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { pickPhotos, type PickPhotosResult } from '~/lib/photoUtils';
@@ -39,11 +41,19 @@ export function AddPhotoModal({
   currentPhotoCount,
 }: IAddPhotoModalProps) {
   const { t } = useTranslation();
+  const [themeRadiusStr] = useCSSVariable(['--theme-radius']);
+  const isSharp = String(themeRadiusStr) === '0';
+
   const [permissionAlert, setPermissionAlert] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
   }>({ isOpen: false, title: '', message: '' });
+
+  const photoActionButtonClass = cn(
+    'flex-1 bg-card aspect-square flex-col justify-center items-center gap-2 h-auto',
+    isSharp && 'rounded-none',
+  );
 
   /** Show an alert guiding the user to enable permissions in device Settings. */
   const showPermissionDeniedAlert = useCallback(
@@ -84,25 +94,25 @@ export function AddPhotoModal({
   return (
     <>
       <Dialog open={visible} onOpenChange={onClose}>
-        <DialogContent>
+        <DialogContent className={isSharp ? 'rounded-none' : ''}>
           <DialogHeader>
             <DialogTitle>{t('Add Photo')}</DialogTitle>
           </DialogHeader>
           <View className="flex-row gap-4 justify-center py-4">
             <Button
               variant="outline"
-              className="flex-1 bg-card aspect-square flex-col justify-center items-center gap-2 h-auto"
+              className={photoActionButtonClass}
               onPress={async () => {
                 onClose();
                 const result = await pickPhotos('camera', 1);
                 await handlePickResult(result);
               }}>
               <Icon as={Camera} className="size-8 text-foreground" strokeWidth={2} />
-              <Text className="text-center font-medium">{t('Take Photo')}</Text>
+              <Text className="text-center font-body-medium">{t('Take Photo')}</Text>
             </Button>
             <Button
               variant="outline"
-              className="flex-1 bg-card aspect-square flex-col justify-center items-center gap-2 h-auto"
+              className={photoActionButtonClass}
               onPress={async () => {
                 onClose();
                 const remaining = MAX_PHOTOS_PER_ENTRY - currentPhotoCount;
@@ -111,7 +121,9 @@ export function AddPhotoModal({
                 await handlePickResult(result);
               }}>
               <Icon as={ImagePlus} className="size-8 text-foreground" strokeWidth={2} />
-              <Text className="text-center font-medium">{t('Choose from Library')}</Text>
+              <Text className="text-center font-body-medium">
+                {t('Choose from Library')}
+              </Text>
             </Button>
           </View>
           <DialogFooter>
@@ -125,7 +137,7 @@ export function AddPhotoModal({
       <AlertDialog
         open={permissionAlert.isOpen}
         onOpenChange={(isOpen) => setPermissionAlert((prev) => ({ ...prev, isOpen }))}>
-        <AlertDialogContent>
+        <AlertDialogContent className={isSharp ? 'rounded-none' : ''}>
           <AlertDialogHeader>
             <AlertDialogTitle>{permissionAlert.title}</AlertDialogTitle>
             <AlertDialogDescription>{permissionAlert.message}</AlertDialogDescription>

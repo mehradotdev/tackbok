@@ -70,7 +70,7 @@ function AlertDialogContent({
         <AlertDialogPrimitive.Content
           ref={ref}
           className={cn(
-            'bg-background border-border z-50 flex flex-col gap-4 rounded-lg border p-6 shadow-lg shadow-black/5 sm:max-w-lg',
+            'bg-background border-border z-50 flex flex-col gap-4 rounded-xl border-theme p-6 shadow-theme sm:max-w-lg',
             className,
           )}
           {...props}
@@ -105,7 +105,7 @@ function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       ref={ref}
-      className={cn('text-foreground text-lg font-semibold text-left', className)}
+      className={cn('text-foreground text-lg font-body-semibold text-left', className)}
       {...props}
     />
   );
