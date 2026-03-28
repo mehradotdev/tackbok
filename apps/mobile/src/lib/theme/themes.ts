@@ -4,19 +4,19 @@
  * in metro.config.js extraThemes (plus light/dark).
  */
 export const THEMES = [
-  { id: 'light', name: 'Light', variant: 'light' },
-  { id: 'dark', name: 'Dark', variant: 'dark' },
-  { id: 'lavender', name: 'Lavender', variant: 'light' },
-  { id: 'forest', name: 'Forest', variant: 'dark' },
-  { id: 'bubblegum', name: 'Bubblegum', variant: 'light' },
-  { id: 'hecker', name: 'Hecker', variant: 'dark' },
-  { id: 'peach', name: 'Peach', variant: 'light' },
-  { id: 'ember', name: 'Ember', variant: 'dark' },
-  { id: 'ocean', name: 'Ocean', variant: 'light' },
-  { id: 'navy', name: 'Navy', variant: 'dark' },
-  { id: 'sakura', name: 'Sakura', variant: 'light' },
-  { id: 'slate', name: 'Slate', variant: 'dark' },
-  { id: 'kela', name: 'Kela', variant: 'light' },
+  { id: 'light', name: 'Light', variant: 'light', enableTimelineBorders: false },
+  { id: 'dark', name: 'Dark', variant: 'dark', enableTimelineBorders: false },
+  { id: 'lavender', name: 'Lavender', variant: 'light', enableTimelineBorders: false },
+  { id: 'forest', name: 'Forest', variant: 'dark', enableTimelineBorders: false },
+  { id: 'bubblegum', name: 'Bubblegum', variant: 'light', enableTimelineBorders: true },
+  { id: 'hecker', name: 'Hecker', variant: 'dark', enableTimelineBorders: true },
+  { id: 'peach', name: 'Peach', variant: 'light', enableTimelineBorders: false },
+  { id: 'ember', name: 'Ember', variant: 'dark', enableTimelineBorders: false },
+  { id: 'ocean', name: 'Ocean', variant: 'light', enableTimelineBorders: false },
+  { id: 'navy', name: 'Navy', variant: 'dark', enableTimelineBorders: false },
+  { id: 'sakura', name: 'Sakura', variant: 'light', enableTimelineBorders: false },
+  { id: 'slate', name: 'Slate', variant: 'dark', enableTimelineBorders: false },
+  { id: 'kela', name: 'Kela', variant: 'light', enableTimelineBorders: true },
 ] as const;
 
 /** Uniwind / ScopedTheme theme name — keep in sync with uniwind-types.d.ts */

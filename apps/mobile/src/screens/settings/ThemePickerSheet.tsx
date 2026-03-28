@@ -201,7 +201,7 @@ export function ThemePickerSheet() {
                 isActive={currentTheme === theme.id}
                 onSelect={() => {
                   setTheme(theme.id);
-                  setShowTimelineBorders(theme.id === 'kela' || theme.id === 'hecker');
+                  setShowTimelineBorders(theme.enableTimelineBorders);
                 }}
               />
             ))}

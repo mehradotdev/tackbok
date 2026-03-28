@@ -46,7 +46,11 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
-// Apply saved theme before React renders to avoid flash
+// Prime Uniwind before React mounts to limit flash. At module load,
+// `useSettingsStore.getState().theme` is still the persist default (`DEFAULT_THEME_ID`)
+// because Zustand rehydrates async from storage. After hydration,
+// `onRehydrateStorage` calls `setTheme(safeThemeId)`, which updates the store and
+// `Uniwind.setTheme` with the real persisted theme (and maps invalid ids).
 const rawSavedTheme = useSettingsStore.getState().theme || DEFAULT_THEME_ID;
 const activeThemeId = getThemeConfig(rawSavedTheme).id;
 
