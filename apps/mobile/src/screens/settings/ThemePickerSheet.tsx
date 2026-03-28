@@ -108,7 +108,7 @@ function ThemeCard({
       accessibilityRole="radio"
       accessibilityLabel={theme.name}
       accessibilityState={{ selected: isActive }}>
-      <ScopedTheme theme={theme.id as 'light' | 'dark'}>
+      <ScopedTheme theme={theme.id}>
         <ThemeCardContent theme={theme} isActive={isActive} />
       </ScopedTheme>
     </Button>

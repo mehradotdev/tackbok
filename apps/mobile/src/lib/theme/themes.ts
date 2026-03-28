@@ -1,18 +1,9 @@
-export interface ThemeConfig {
-  /** Uniwind variant name — used with Uniwind.setTheme() */
-  id: string;
-  /** Human-readable display name */
-  name: string;
-  /** Controls status bar style + button active overlay */
-  variant: 'light' | 'dark';
-}
-
 /**
  * All available themes.
  * Each must have a matching @variant block in global.css and be listed
- * in metro.config.js extraThemes.
+ * in metro.config.js extraThemes (plus light/dark).
  */
-export const THEMES: ThemeConfig[] = [
+export const THEMES = [
   { id: 'light', name: 'Light', variant: 'light' },
   { id: 'dark', name: 'Dark', variant: 'dark' },
   { id: 'lavender', name: 'Lavender', variant: 'light' },
@@ -26,10 +17,15 @@ export const THEMES: ThemeConfig[] = [
   { id: 'sakura', name: 'Sakura', variant: 'light' },
   { id: 'slate', name: 'Slate', variant: 'dark' },
   { id: 'kela', name: 'Kela', variant: 'light' },
-];
+] as const;
+
+/** Uniwind / ScopedTheme theme name — keep in sync with uniwind-types.d.ts */
+export type ThemeId = (typeof THEMES)[number]['id'];
+
+export type ThemeConfig = (typeof THEMES)[number];
 
 /** The theme applied on fresh install */
-export const DEFAULT_THEME_ID = 'light';
+export const DEFAULT_THEME_ID: ThemeId = 'light';
 
 /** Safe default for sheet corner radius when it isn't zero (e.g. brutalism) */
 export const DEFAULT_THEME_SHEET_RADIUS = 24;

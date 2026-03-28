@@ -5,4 +5,5 @@ export {
   getThemeConfig,
   isThemeDark,
   type ThemeConfig,
+  type ThemeId,
 } from './themes';
