@@ -32,7 +32,7 @@ function ThemeCardContent({
   theme: ThemeConfig;
   isActive: boolean;
 }) {
-  const [primaryFgColor] = useCSSVariable(['--color-primary-foreground']);
+  const [colorForeground] = useCSSVariable(['--color-foreground']);
 
   return (
     <View
@@ -81,7 +81,7 @@ function ThemeCardContent({
 
           {/* Mini logo preview */}
           <View className="items-center py-2 pr-4">
-            <TackbokLogo size={44} color={primaryFgColor as string} />
+            <TackbokLogo size={44} color={colorForeground as string} />
           </View>
         </View>
       </View>
@@ -104,7 +104,10 @@ function ThemeCard({
       size="none"
       onPress={onSelect}
       className="flex-1 min-w-[44%] max-w-[48%] flex-col items-stretch justify-start"
-      accessibilityLabel={theme.name}>
+      role="radio"
+      accessibilityRole="radio"
+      accessibilityLabel={theme.name}
+      accessibilityState={{ selected: isActive }}>
       <ScopedTheme theme={theme.id as 'light' | 'dark'}>
         <ThemeCardContent theme={theme} isActive={isActive} />
       </ScopedTheme>
@@ -187,7 +190,10 @@ export function ThemePickerSheet() {
           nestedScrollEnabled
           contentContainerClassName="px-4 pb-12 gap-3"
           showsVerticalScrollIndicator={false}>
-          <View className="flex-row flex-wrap gap-3 justify-between">
+          <View
+            className="flex-row flex-wrap gap-3 justify-between"
+            accessibilityRole="radiogroup"
+            accessibilityLabel={t('Select a theme')}>
             {THEMES.map((theme) => (
               <ThemeCard
                 key={theme.id}

@@ -11,6 +11,7 @@ export const en = {
   Save: 'Save',
   Edit: 'Edit',
   Add: 'Add',
+  Back: 'Back',
   Create: 'Create',
   Discard: 'Discard',
   Continue: 'Continue',

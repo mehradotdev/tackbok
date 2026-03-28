@@ -21,6 +21,7 @@ import {
   DEFAULT_THEME_ID,
   DEFAULT_THEME_SHEET_RADIUS,
 } from '~/lib/theme/themes';
+import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { PortalHost } from '~/components/primitives/portal';
 import { Toaster } from '~/components/ui/toast';
 
@@ -43,7 +44,6 @@ import {
   JetBrainsMono_700Bold,
 } from '@expo-google-fonts/jetbrains-mono';
 
-// Keep the splash screen visible while we load fonts + run DB migrations
 SplashScreen.preventAutoHideAsync();
 
 // Apply saved theme before React renders to avoid flash
@@ -69,9 +69,10 @@ const queryClient = new QueryClient({
 export default function Layout() {
   const { success, error } = useMigrations(db, migrations);
   const theme = useSettingsStore((s) => s.theme);
+  const hasHydrated = useSettingsStore((s) => s._hasHydrated);
   const themeConfig = getThemeConfig(theme);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontsError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
@@ -98,19 +99,22 @@ export default function Layout() {
   const sheetCornerRadius =
     String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
-  // Sync the native root view background color with the active theme
+  const isBootstrapLoading =
+    !error && (!success || (!fontsLoaded && !fontsError));
+
+  // Keep native splash until persisted settings (and Uniwind theme) are ready
   useEffect(() => {
-    if (backgroundColor) {
+    if (hasHydrated || error) {
+      SplashScreen.hideAsync();
+    }
+  }, [hasHydrated, error]);
+
+  // Sync native root background once theme is trustworthy (hydrated), or on migration error
+  useEffect(() => {
+    if ((hasHydrated || error) && backgroundColor) {
       SystemUI.setBackgroundColorAsync(backgroundColor as string);
     }
-  }, [backgroundColor]);
-
-  // Hide the splash screen once fonts + DB migration are both ready
-  useEffect(() => {
-    if ((success || error) && fontsLoaded) {
-      SplashScreen.hide();
-    }
-  }, [success, error, fontsLoaded]);
+  }, [hasHydrated, error, backgroundColor]);
 
   // Show migration error
   if (error) {
@@ -124,13 +128,12 @@ export default function Layout() {
   }
 
   // Keep the splash screen visible while loading
-  if (!success || !fontsLoaded) {
+  if (!hasHydrated) {
     return null;
-    // return (
-    //   <View className="flex-1 items-center justify-center bg-background">
-    //     <Text className="text-muted-foreground">Loading...</Text>
-    //   </View>
-    // );
+  }
+
+  if (isBootstrapLoading) {
+    return <AppLoadingScreen />;
   }
 
   return (
@@ -177,7 +180,7 @@ export default function Layout() {
                   title: 'Settings',
                   headerShown: false,
                   presentation: 'formSheet',
-                  sheetAllowedDetents: Platform.OS === 'android' ? [0.97] : [0.75, 1],
+                  sheetAllowedDetents: Platform.OS === 'android' ? [0.96] : [0.75, 1],
                   sheetCornerRadius: sheetCornerRadius,
                   sheetGrabberVisible: false,
                 }}

@@ -12,6 +12,7 @@ export const ar: Translations = {
   Save: 'حفظ',
   Edit: 'تعديل',
   Add: 'إضافة',
+  Back: 'رجوع',
   Create: 'إنشاء',
   Discard: 'تجاهل',
   Continue: 'متابعة',

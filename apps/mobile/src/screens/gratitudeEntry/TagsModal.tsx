@@ -213,6 +213,7 @@ export function TagsModal({
               variant="ghost"
               size="icon"
               onPress={handleBackPress}
+              accessibilityLabel={t('Back')}
               hitSlop={10}
               className="w-8 h-8 px-0">
               <Icon
@@ -235,6 +236,7 @@ export function TagsModal({
             variant="ghost"
             size="icon"
             onPress={() => TrueSheet.dismiss(SHEET_NAMES.TAGS)}
+            accessibilityLabel={t('Close')}
             hitSlop={10}
             className="w-8 h-8">
             <Icon as={X} className="text-muted-foreground" size={20} />
@@ -277,6 +279,7 @@ export function TagsModal({
             variant="ghost"
             size="icon"
             onPress={() => handleEditPress(tag)}
+            accessibilityLabel={t('Edit Tag')}
             hitSlop={8}
             className="w-8 h-8 mr-1">
             <Icon as={Pencil} className="text-muted-foreground" size={18} />
@@ -287,6 +290,7 @@ export function TagsModal({
             variant="ghost"
             size="icon"
             onPress={() => handleDeletePress(tag)}
+            accessibilityLabel={t('Delete Tag')}
             hitSlop={8}
             className="w-8 h-8">
             <Icon as={Trash2} className="text-destructive" size={18} />

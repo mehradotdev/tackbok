@@ -98,12 +98,17 @@ export const useSettingsStore = create<SettingsState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
-          // If the persisted theme is no longer valid (e.g., 'default'), map it
+          // If the persisted theme is no longer valid (e.g., 'default'), map it.
+          // Use setTheme (not direct mutation): a partial set above replaces the store
+          // object, so mutating this callback's `state` would not update subscribers
+          // or persist; setTheme also keeps Uniwind in sync.
           const safeThemeId = getThemeConfig(state.theme).id;
-          state.theme = safeThemeId;
-          Uniwind.setTheme(safeThemeId as Parameters<typeof Uniwind.setTheme>[0]);
+          state.setTheme(safeThemeId);
         } else {
           console.warn('Settings store rehydration failed');
+          // `state` is unavailable here (persisted merge failed), so we cannot call
+          // `state.setHasHydrated` — use the live store handle instead.
+          useSettingsStore.getState().setHasHydrated(true);
         }
       },
       partialize: (state) => ({

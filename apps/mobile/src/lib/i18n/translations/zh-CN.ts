@@ -12,6 +12,7 @@ export const zhCN: Translations = {
   Save: '保存',
   Edit: '编辑',
   Add: '添加',
+  Back: '返回',
   Create: '创建',
   Discard: '放弃',
   Continue: '继续',

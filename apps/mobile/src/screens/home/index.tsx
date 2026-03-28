@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { startOfDay } from 'date-fns';
 import { useRouter } from 'expo-router';
@@ -94,7 +95,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-primary items-center justify-center"
+      className="flex-1 w-full bg-primary"
       edges={['top', 'left', 'right']}>
       <Header
         isSearchMode={isSearchMode}
@@ -118,7 +119,7 @@ export default function HomeScreen() {
           />
         </KeyboardAvoidingView>
       ) : (
-        <>
+        <View className="relative flex-1 w-full">
           <GratitudeTimeline
             onEntryPress={handleEntryPress}
             onAddEntry={handleAddEntry}
@@ -141,7 +142,7 @@ export default function HomeScreen() {
             onClose={() => setShowDatePicker(false)}
             onDateSelect={handleGratitudeDatepickerPress}
           />
-        </>
+        </View>
       )}
     </SafeAreaView>
   );

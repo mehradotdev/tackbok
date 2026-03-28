@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -223,10 +223,14 @@ export function BackupRestoreSection() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Import Loading Overlay */}
-      {/* TODO: Fix Importing Overlay use React Native Modal */}
-      {isImporting && (
-        <View className="absolute inset-0 bg-background/80 items-center justify-center z-50">
+      <Modal
+        visible={isImporting}
+        transparent
+        presentationStyle="overFullScreen"
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {}}>
+        <View className="flex-1 bg-active-overlay items-center justify-center">
           <View className="bg-card p-6 rounded-2xl items-center shadow-lg">
             <ActivityIndicator size="large" className="mb-4" />
             <Text className="text-foreground text-base font-body-medium">
@@ -234,7 +238,7 @@ export function BackupRestoreSection() {
             </Text>
           </View>
         </View>
-      )}
+      </Modal>
     </>
   );
 }

@@ -12,6 +12,7 @@ export const zhTW: Translations = {
   Save: '儲存',
   Edit: '編輯',
   Add: '新增',
+  Back: '返回',
   Create: '建立',
   Discard: '捨棄',
   Continue: '繼續',

@@ -12,6 +12,7 @@ export const he: Translations = {
   Save: 'שמור',
   Edit: 'ערוך',
   Add: 'הוסף',
+  Back: 'חזור',
   Create: 'צור',
   Discard: 'בטל שינויים',
   Continue: 'המשך',
