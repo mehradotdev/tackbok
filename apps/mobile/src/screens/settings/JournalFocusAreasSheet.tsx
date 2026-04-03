@@ -119,6 +119,8 @@ export function JournalFocusAreasSheet() {
                     variant="ghost"
                     size="none"
                     onPress={() => handleToggle(category.id)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: isSelected }}
                     className={cn(
                       'w-full flex-row items-center justify-start h-auto px-4 py-3 rounded-none',
                       !isLast && 'border-b border-border',

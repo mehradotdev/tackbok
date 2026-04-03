@@ -350,11 +350,11 @@ export const ar: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'منطقة الخطر',
   'Delete All Data': 'حذف جميع البيانات',
-  'Permanently delete all your entries, photos, and voice memos':
-    'حذف جميع سجلاتك وصورك ومذكراتك الصوتية بشكل دائم',
+  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
+    'حذف جميع سجلاتك وصورك ومذكراتك الصوتية والمطالبات المخصصة وقالب ورقة العمل المخصص بشكل دائم',
   'Delete all data?': 'حذف جميع البيانات؟',
-  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
-    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك وصورك ومذكراتك الصوتية بشكل دائم.',
+  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
+    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك وصورك ومذكراتك الصوتية والمطالبات المخصصة وقالب ورقة العمل المخصص بشكل دائم.',
   'All data deleted': 'تم حذف جميع البيانات',
   'Delete failed': 'فشل الحذف',
 

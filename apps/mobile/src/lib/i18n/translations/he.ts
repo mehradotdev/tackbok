@@ -351,11 +351,11 @@ export const he: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'אזור מסוכן',
   'Delete All Data': 'מחק את כל הנתונים',
-  'Permanently delete all your entries, photos, and voice memos':
-    'מחק את כל הרשומות, התמונות וההקלטות הקוליות שלך לצמיתות',
+  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
+    'מחק את כל הרשומות, התמונות, ההקלטות הקוליות, ההנחיות המותאמות אישית ותבנית גליון העבודה המותאמת אישית שלך לצמיתות',
   'Delete all data?': 'למחוק את כל הנתונים?',
-  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
-    'לא ניתן לבטל פעולה זו. כל הרשומות, התמונות וההקלטות הקוליות שלך יימחקו לצמיתות.',
+  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
+    'לא ניתן לבטל פעולה זו. כל הרשומות, התמונות, ההקלטות הקוליות, ההנחיות המותאמות אישית ותבנית גליון העבודה המותאמת אישית שלך יימחקו לצמיתות.',
   'All data deleted': 'כל הנתונים נמחקו',
   'Delete failed': 'המחיקה נכשלה',
 

@@ -97,6 +97,8 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
   };
 
   const handleCreatePrompt = async () => {
+    if (createPromptMutation.isPending) return;
+
     const trimmed = sanitizePromptTitle(promptInputValue);
     if (!trimmed) return;
 
@@ -118,6 +120,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
   };
 
   const handleUpdatePrompt = async () => {
+    if (updatePromptMutation.isPending) return;
     if (!editingPrompt) return;
     const trimmed = sanitizePromptTitle(promptInputValue);
     if (!trimmed) return;
@@ -144,6 +147,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
   };
 
   const handleDeletePrompt = async () => {
+    if (deletePromptMutation.isPending) return;
     if (!promptToDelete) return;
 
     try {
@@ -370,7 +374,9 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
   const renderFormSheet = () => {
     const isCreateView = viewState !== 'edit';
     const title = isCreateView ? t('Create Prompt') : t('Edit Prompt');
-    const isDisabled = !sanitizePromptTitle(promptInputValue);
+    const isSubmitting =
+      createPromptMutation.isPending || updatePromptMutation.isPending;
+    const isDisabled = !sanitizePromptTitle(promptInputValue) || isSubmitting;
 
     return (
       <TrueSheet
@@ -428,6 +434,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
               placeholder={t('Prompt text')}
               value={promptInputValue}
               onChangeText={setPromptInputValue}
+              editable={!isSubmitting}
               autoFocus
               returnKeyType="done"
               onSubmitEditing={isCreateView ? handleCreatePrompt : handleUpdatePrompt}
@@ -478,7 +485,9 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
             <AlertDialogCancel onPress={() => setDeleteDialogOpen(false)}>
               <Text>{t('Cancel')}</Text>
             </AlertDialogCancel>
-            <AlertDialogDestructiveAction onPress={handleDeletePrompt}>
+            <AlertDialogDestructiveAction
+              onPress={handleDeletePrompt}
+              disabled={deletePromptMutation.isPending}>
               <Text>{t('Delete')}</Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>

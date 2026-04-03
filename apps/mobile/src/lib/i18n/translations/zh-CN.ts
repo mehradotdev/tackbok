@@ -341,11 +341,11 @@ export const zhCN: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危险区域',
   'Delete All Data': '删除所有数据',
-  'Permanently delete all your entries, photos, and voice memos':
-    '永久删除您的所有条目、照片和语音备忘录',
+  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
+    '永久删除您的所有条目、照片、语音备忘录、自定义提示词和自定义工作表模板',
   'Delete all data?': '删除所有数据？',
-  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
-    '此操作无法撤销。您的所有条目、照片和语音备忘录将被永久删除。',
+  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
+    '此操作无法撤销。您的所有条目、照片、语音备忘录、自定义提示词和自定义工作表模板将被永久删除。',
   'All data deleted': '所有数据已删除',
   'Delete failed': '删除失败',
 

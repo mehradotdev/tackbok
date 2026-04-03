@@ -302,6 +302,9 @@ export function Toaster({
   const sortedToasts = isBottom ? [...toasts] : [...toasts].reverse();
   const normalToasts = sortedToasts.filter((t) => !t.useModal);
   const modalToasts = sortedToasts.filter((t) => t.useModal);
+  const dismissModalToasts = () => {
+    modalToasts.forEach((t) => dismiss(t.id));
+  };
 
   const renderToastList = (list: ToastData[]) => (
     <View
@@ -379,9 +382,12 @@ export function Toaster({
       )}
 
       {modalToasts.length > 0 && (
-        <Modal visible={true} transparent={true} animationType="none">
-          <TouchableWithoutFeedback
-            onPress={() => modalToasts.forEach((t) => dismiss(t.id))}>
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="none"
+          onRequestClose={dismissModalToasts}>
+          <TouchableWithoutFeedback onPress={dismissModalToasts}>
             <View style={StyleSheet.absoluteFill} />
           </TouchableWithoutFeedback>
           {renderToastList(modalToasts)}

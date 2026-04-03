@@ -96,7 +96,9 @@ export function getJournalPromptTitlePool({
   }
 
   if (pool.length === 0) {
-    pool = [...getBuiltInJournalPromptTitles(t, focusAreas), ...customPromptTitles];
+    // Intentional: when the selected source is empty, manual prompt actions fall back
+    // to built-in prompts so they still have something to draw from.
+    pool = [...getBuiltInJournalPromptTitles(t, focusAreas)];
   }
 
   return Array.from(new Set(pool));

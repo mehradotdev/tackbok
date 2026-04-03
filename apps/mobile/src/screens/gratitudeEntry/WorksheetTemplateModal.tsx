@@ -34,6 +34,8 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
   const [draftTemplate, setDraftTemplate] = useState(resolvedWorksheetTemplate);
   const [isEditing, setIsEditing] = useState(false);
   const textareaRef = useRef<TextInput>(null);
+  const hasChanges = draftTemplate !== resolvedWorksheetTemplate;
+  const canSave = draftTemplate.length > 0 && hasChanges;
 
   useEffect(() => {
     setDraftTemplate(resolvedWorksheetTemplate);
@@ -46,7 +48,11 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
 
   const handleSave = () => {
     Keyboard.dismiss();
-    setCustomWorksheetTemplate(draftTemplate);
+    if (draftTemplate === defaultWorksheetTemplate) {
+      resetCustomWorksheetTemplate();
+    } else {
+      setCustomWorksheetTemplate(draftTemplate);
+    }
     setIsEditing(false);
   };
 
@@ -124,8 +130,8 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
         </Button>
         <Button
           onPress={handleSave}
-          disabled={!draftTemplate.trim()}
-          className={cn(!draftTemplate.trim() && 'opacity-50')}>
+          disabled={!canSave}
+          className={cn(!canSave && 'opacity-50')}>
           <Text>{t('Save')}</Text>
         </Button>
       </View>

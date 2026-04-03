@@ -112,9 +112,9 @@ export const zhTW: Translations = {
   'Create your first prompt': '建立您的第一則提示',
 
   // Prompts - Faith
-  prompt_faith_1: '你最早感受到上帝同在的記憶是什麼？',
-  prompt_faith_2: '你最近在生活中在哪裡看見了恩典？',
-  prompt_faith_3: '是哪一個禱告陪你走過艱難的時刻？',
+  prompt_faith_1: '您最早感受到上帝同在的記憶是什麼？',
+  prompt_faith_2: '您最近在生活中在哪裡看見了恩典？',
+  prompt_faith_3: '是哪一個禱告陪您走過艱難的時刻？',
   prompt_faith_4: '您的信仰如何改變了您看待挑戰的方式？',
   prompt_faith_5: '哪種精神實踐或習慣能為您帶來最大的平靜？',
   prompt_faith_6: '寫下一次您清楚地感受到被更高力量引導的經歷。',
@@ -123,9 +123,9 @@ export const zhTW: Translations = {
   prompt_faith_9: '回顧一個您的信仰在不確定時期為您帶來安慰的時刻。',
 
   // Prompts - Self
-  prompt_self_1: '你的生活裡還需要更多什麼？',
-  prompt_self_2: '有什麼事情雖然很難，但你還是做到了？',
-  prompt_self_3: '如果是今天，你會對年輕時的自己說什麼？',
+  prompt_self_1: '您的生活裡還需要更多什麼？',
+  prompt_self_2: '有什麼事情雖然很難，但您還是做到了？',
+  prompt_self_3: '如果是今天，您會對年輕時的自己說什麼？',
   prompt_self_4: '您最近有什麼還沒來得及好好慶祝的成就？',
   prompt_self_5: '寫下三件您喜歡自己性格的地方。',
   prompt_self_6: '您如何從最近犯的一個錯誤中獲得成長？',
@@ -134,9 +134,9 @@ export const zhTW: Translations = {
   prompt_self_9: '描述從早到晚您心目中完美的一天。',
 
   // Prompts - Health
-  prompt_health_1: '今天你最感謝身體的哪個部分？',
-  prompt_health_2: '最近休息是如何幫助你的？',
-  prompt_health_3: '你為自己持續保持哪個健康習慣而感到自豪？',
+  prompt_health_1: '今天您最感謝身體的哪個部分？',
+  prompt_health_2: '最近休息是如何幫助您的？',
+  prompt_health_3: '您為自己持續保持哪個健康習慣而感到自豪？',
   prompt_health_4: '哪一頓營養豐富的飯菜總是能讓您感覺良好？',
   prompt_health_5: '描述一項讓您感到快樂而不是像例行公事一樣的體育活動。',
   prompt_health_6: '當您的身體需要放慢腳步或休息時，它是如何告訴您的？',
@@ -145,9 +145,9 @@ export const zhTW: Translations = {
   prompt_health_9: '您可以做哪個小改變來改善睡眠品質？',
 
   // Prompts - Friends
-  prompt_friends_1: '最近是哪位朋友讓你的生活輕鬆了一些？',
-  prompt_friends_2: '和朋友之間哪段回憶至今還會讓你微笑？',
-  prompt_friends_3: '這週你想鼓勵誰？',
+  prompt_friends_1: '最近是哪位朋友讓您的生活輕鬆了一些？',
+  prompt_friends_2: '和朋友之間哪段回憶至今還會讓您微笑？',
+  prompt_friends_3: '這週您想鼓勵誰？',
   prompt_friends_4: '在您最親密的友誼中，您最看重什麼品質？',
   prompt_friends_5: '寫下一個幫助您從不同角度看問題的朋友。',
   prompt_friends_6: '您更喜歡如何向朋友表達您的感激和愛？',
@@ -156,9 +156,9 @@ export const zhTW: Translations = {
   prompt_friends_9: '您從一段友誼中學到了什麼教訓？',
 
   // Prompts - Family
-  prompt_family_1: '你感恩哪一個家庭傳統？',
-  prompt_family_2: '家裡是誰教會了你一件長久受用的事？',
-  prompt_family_3: '你想記住和家人在一起的哪個小瞬間？',
+  prompt_family_1: '您感恩哪一個家庭傳統？',
+  prompt_family_2: '家裡是誰教會了您一件長久受用的事？',
+  prompt_family_3: '您想記住和家人在一起的哪個小瞬間？',
   prompt_family_4: '您從家族歷史中發現了哪個鼓舞人心的故事？',
   prompt_family_5: '隨著時間的推移，您與某個家人的關係是如何演變的？',
   prompt_family_6: '寫下您家代代相傳的一項技能或食譜。',
@@ -167,9 +167,9 @@ export const zhTW: Translations = {
   prompt_family_9: '在困難時期，您的家人是如何互相支持的？',
 
   // Prompts - Little Things
-  prompt_littleThings_1: '今天什麼讓你微笑了？',
-  prompt_littleThings_2: '今天哪個小瞬間讓你停下來感受一下？',
-  prompt_littleThings_3: '如果失去，你最會想念哪一種日常安慰？',
+  prompt_littleThings_1: '今天什麼讓您微笑了？',
+  prompt_littleThings_2: '今天哪個小瞬間讓您停下來感受一下？',
+  prompt_littleThings_3: '如果失去，您最會想念哪一種日常安慰？',
   prompt_littleThings_4: '描述您周圍環境中一個平凡但美麗的小細節。',
   prompt_littleThings_5: '您早上醒來時最喜歡聽到的聲音是什麼？',
   prompt_littleThings_6: '寫下一件您每天都期待的簡單快樂。',
@@ -269,11 +269,11 @@ export const zhTW: Translations = {
     '使用此模板預先填入新感恩紀錄的正文',
   'Reset to Default': '恢復預設',
   'Journaling Worksheet': '書寫模板',
-  'A template for your daily journaling routine.': '適合你每日書寫練習的一份模板。',
+  'A template for your daily journaling routine.': '適合您每日書寫練習的一份模板。',
   'Start Writing': '開始書寫',
   'Journal Focus Areas': '日記關注領域',
-  'Personalize your journal prompts.': '個性化你的日記提示。',
-  'Pick the topics you want to write about.': '選擇你想寫的主題。',
+  'Personalize your journal prompts.': '個性化您的日記提示。',
+  'Pick the topics you want to write about.': '選擇您想寫的主題。',
   'Select at least 2 focus areas': '請至少選擇2個關注領域',
   'Journal Prompts': '日記提示',
   'Choose which prompts to show when starting a new journal entry.':
@@ -282,12 +282,12 @@ export const zhTW: Translations = {
   'All Prompts': '全部提示',
   'My Prompts': '我的提示',
   'Built In Prompts': '內建提示',
-  focusArea_self_desc: '反思你的愛好、興趣、經歷和生活。',
+  focusArea_self_desc: '反思您的愛好、興趣、經歷和生活。',
   focusArea_littleThings_desc: '珍惜那些常被忽視的日常小美好。',
   focusArea_health_desc: '感恩身體的健康和能力。',
   focusArea_family_desc: '感恩家人以及與他們共度的時光。',
-  focusArea_friends_desc: '珍惜那些關愛、支持和理解你的朋友。',
-  focusArea_faith_desc: '專注於感恩你的信仰、靈性和內心的平靜。',
+  focusArea_friends_desc: '珍惜那些關愛、支持和理解您的朋友。',
+  focusArea_faith_desc: '專注於感恩您的信仰、靈性和內心的平靜。',
 
   // Settings - Security
   Security: '安全性',
@@ -341,11 +341,11 @@ export const zhTW: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危險區域',
   'Delete All Data': '刪除所有資料',
-  'Permanently delete all your entries, photos, and voice memos':
-    '永久刪除您的所有紀錄、照片和語音備忘錄',
+  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
+    '永久刪除您的所有紀錄、照片、語音備忘錄、自訂提示詞和自訂工作表範本',
   'Delete all data?': '刪除所有資料？',
-  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
-    '此動作無法復原。您的所有紀錄、照片和語音備忘錄將被永久刪除。',
+  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
+    '此動作無法復原。您的所有紀錄、照片、語音備忘錄、自訂提示詞和自訂工作表範本將被永久刪除。',
   'All data deleted': '所有資料已刪除',
   'Delete failed': '刪除失敗',
 

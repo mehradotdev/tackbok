@@ -371,11 +371,11 @@ export const en = {
   // Settings - Danger Zone
   'Danger Zone': 'Danger Zone',
   'Delete All Data': 'Delete All Data',
-  'Permanently delete all your entries, photos, and voice memos':
-    'Permanently delete all your entries, photos, and voice memos',
+  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
+    'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template',
   'Delete all data?': 'Delete all data?',
-  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
-    'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.',
+  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
+    'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.',
   'All data deleted': 'All data deleted',
   'Delete failed': 'Delete failed',
 
