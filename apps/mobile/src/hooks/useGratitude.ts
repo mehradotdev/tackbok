@@ -14,11 +14,16 @@ import {
   deleteTag,
   createTag,
   getEntryById,
+  getAllCustomPrompts,
+  createCustomPrompt,
+  updateCustomPrompt,
+  deleteCustomPrompt,
 } from '~/db/queries';
 
 export const QUERY_KEYS = {
   entries: 'entries',
   tags: 'tags',
+  prompts: 'prompts',
 } as const;
 
 // ============================================================================
@@ -97,6 +102,16 @@ export function useTags() {
   return useQuery({
     queryKey: [QUERY_KEYS.tags],
     queryFn: getAllTags,
+  });
+}
+
+/**
+ * Hook for all custom prompts.
+ */
+export function useCustomPrompts() {
+  return useQuery({
+    queryKey: [QUERY_KEYS.prompts],
+    queryFn: getAllCustomPrompts,
   });
 }
 
@@ -189,6 +204,49 @@ export function useCreateTag() {
     mutationFn: (title: string) => createTag(title),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] });
+    },
+  });
+}
+
+/**
+ * Hook to create a new custom prompt.
+ */
+export function useCreateCustomPrompt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (title: string) => createCustomPrompt(title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.prompts] });
+    },
+  });
+}
+
+/**
+ * Hook to update a custom prompt title.
+ */
+export function useUpdateCustomPrompt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ promptId, title }: { promptId: string; title: string }) =>
+      updateCustomPrompt(promptId, title),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.prompts] });
+    },
+  });
+}
+
+/**
+ * Hook to delete a custom prompt.
+ */
+export function useDeleteCustomPrompt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (promptId: string) => deleteCustomPrompt(promptId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.prompts] });
     },
   });
 }

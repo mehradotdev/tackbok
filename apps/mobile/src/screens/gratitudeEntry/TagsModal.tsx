@@ -88,7 +88,7 @@ export function TagsModal({
       (tag) => tag.title.toLowerCase() === trimmed.toLowerCase(),
     );
     if (exists) {
-      toast.error(t('Tag already exists'));
+      toast.error(t('Tag already exists'), { useModal: true });
       setTagInputValue('');
       setViewState('select');
       return;
@@ -96,12 +96,12 @@ export function TagsModal({
 
     try {
       await createTagMutation.mutateAsync(trimmed);
-      toast.success(t('Tag created'));
+      toast.success(t('Tag created'), { useModal: true });
       setTagInputValue('');
       setViewState('select');
     } catch (error) {
       console.error('Failed to create tag', error);
-      toast.error(t('Failed to create tag'));
+      toast.error(t('Failed to create tag'), { useModal: true });
     }
   };
 
@@ -118,19 +118,19 @@ export function TagsModal({
         tag.title.toLowerCase() === trimmed.toLowerCase(),
     );
     if (exists) {
-      toast.error(t('Tag already exists'));
+      toast.error(t('Tag already exists'), { useModal: true });
       return;
     }
 
     try {
       await updateTagMutation.mutateAsync({ tagId: editingTag.tag_id, title: trimmed });
-      toast.success(t('Tag updated'));
+      toast.success(t('Tag updated'), { useModal: true });
       setTagInputValue('');
       setEditingTag(null);
       setViewState('select');
     } catch (error) {
       console.error('Failed to update tag', error);
-      toast.error(t('Failed to update tag'));
+      toast.error(t('Failed to update tag'), { useModal: true });
     }
   };
 
@@ -139,7 +139,7 @@ export function TagsModal({
 
     try {
       await deleteTagMutation.mutateAsync(tagToDelete.tag_id);
-      toast.success(t('Tag deleted'));
+      toast.success(t('Tag deleted'), { useModal: true });
 
       // Remove from local selection only after successful delete
       if (selectedTagIds.includes(tagToDelete.tag_id)) {
@@ -150,7 +150,7 @@ export function TagsModal({
       onTagDeleted?.(tagToDelete.tag_id);
     } catch (error) {
       console.error('Failed to delete tag', error);
-      toast.error(t('Failed to delete tag'));
+      toast.error(t('Failed to delete tag'), { useModal: true });
     }
     setTagToDelete(null);
     setDeleteDialogOpen(false);

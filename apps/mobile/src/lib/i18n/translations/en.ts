@@ -86,6 +86,118 @@ export const en = {
   'Record Again': 'Record Again',
 
   'Title (optional)': 'Title (optional)',
+  'Use Prompt': 'Use Prompt',
+  'New Prompt': 'New Prompt',
+  'Add Prompt': 'Add Prompt',
+  'Show All': 'Show All',
+  'Prompt text': 'Prompt text',
+  'Prompt already exists': 'Prompt already exists',
+  'Prompt created': 'Prompt created',
+  'Failed to create prompt': 'Failed to create prompt',
+  'Prompt updated': 'Prompt updated',
+  'Failed to update prompt': 'Failed to update prompt',
+  'Prompt deleted': 'Prompt deleted',
+  'Failed to delete prompt': 'Failed to delete prompt',
+  Faith: 'Faith',
+  Self: 'Self',
+  Health: 'Health',
+  Friends: 'Friends',
+  Family: 'Family',
+  'Little things': 'Little things',
+  'Create Prompt': 'Create Prompt',
+  'Create a Prompt': 'Create a Prompt',
+  'Edit Prompt': 'Edit Prompt',
+  'Delete Prompt': 'Delete Prompt',
+  'Delete Prompt?': 'Delete Prompt?',
+  'Are you sure you want to delete this prompt?':
+    'Are you sure you want to delete this prompt?',
+  'No prompts yet': 'No prompts yet',
+  'Create your first prompt': 'Create your first prompt',
+
+  // Prompts - Faith
+  prompt_faith_1: "What's your earliest memory of feeling God's presence?",
+  prompt_faith_2: 'Where have you seen grace in your life recently?',
+  prompt_faith_3: 'What prayer carried you through a hard season?',
+  prompt_faith_4: 'How has your faith changed the way you view challenges?',
+  prompt_faith_5: 'What spiritual practice or habit brings you the most peace?',
+  prompt_faith_6: 'Write about a time when you felt clearly guided by a higher power.',
+  prompt_faith_7: 'What is a specific teaching or quote that inspires your daily life?',
+  prompt_faith_8: 'How do you find spiritual connection in the midst of a busy week?',
+  prompt_faith_9:
+    'Reflect on a moment when your faith offered you comfort during uncertainty.',
+
+  // Prompts - Self
+  prompt_self_1: 'What do you need more of in your life?',
+  prompt_self_2: 'What is something that was hard to do but you did it anyway?',
+  prompt_self_3: 'What would you tell your younger self today?',
+  prompt_self_4: "What is a recent accomplishment that you haven't celebrated enough?",
+  prompt_self_5: 'Write down three things you love about your personality.',
+  prompt_self_6: 'How have you grown from a mistake you made recently?',
+  prompt_self_7: 'What boundary do you need to set to protect your energy?',
+  prompt_self_8: 'In what area of your life do you feel the most authentic?',
+  prompt_self_9: 'Describe your ideal, perfect day from morning to night.',
+
+  // Prompts - Health
+  prompt_health_1: 'What part of your body are you most thankful for today?',
+  prompt_health_2: 'How has rest helped you lately?',
+  prompt_health_3: 'What healthy habit are you proud of keeping?',
+  prompt_health_4: 'What is a nourishing meal that always makes you feel good?',
+  prompt_health_5:
+    'Describe a physical activity that brings you joy rather than feeling like a chore.',
+  prompt_health_6: 'How does your body tell you when it needs to slow down or rest?',
+  prompt_health_7: 'What are you doing today to care for your mental well-being?',
+  prompt_health_8: 'Write about a time you overcame a physical challenge or injury.',
+  prompt_health_9: 'What small change can you make to improve your sleep quality?',
+
+  // Prompts - Friends
+  prompt_friends_1: 'Which friend has made your life lighter recently?',
+  prompt_friends_2: 'What is a memory with a friend that still makes you smile?',
+  prompt_friends_3: 'Who do you want to encourage this week?',
+  prompt_friends_4: 'What quality do you value most in your closest friendships?',
+  prompt_friends_5:
+    'Write about a friend who helped you see things from a different perspective.',
+  prompt_friends_6:
+    'How do you prefer to show your appreciation and love to your friends?',
+  prompt_friends_7:
+    "Who is a friend you haven't spoken to in a while, and what would you say to them?",
+  prompt_friends_8: 'Describe a fun or unexpected adventure you had with a friend.',
+  prompt_friends_9: "What is a lesson you've learned from one of your friendships?",
+
+  // Prompts - Family
+  prompt_family_1: 'What family tradition are you grateful for?',
+  prompt_family_2: 'Who in your family taught you something lasting?',
+  prompt_family_3: 'What is a small moment with family you want to remember?',
+  prompt_family_4: "What is a story from your family's history that you find inspiring?",
+  prompt_family_5: 'How has your relationship with a family member evolved over time?',
+  prompt_family_6:
+    'Write about a skill or a recipe that has been passed down in your family.',
+  prompt_family_7:
+    'What is a specific personality trait you share with a parent or sibling?',
+  prompt_family_8: 'Describe a childhood memory that still brings you immense joy.',
+  prompt_family_9: 'How does your family support each other during difficult times?',
+
+  // Prompts - Little Things
+  prompt_littleThings_1: 'What made you smile today?',
+  prompt_littleThings_2: 'What small moment made you pause today?',
+  prompt_littleThings_3: 'What everyday comfort would you miss the most?',
+  prompt_littleThings_4:
+    'Describe a small, mundane detail in your surroundings that is beautiful.',
+  prompt_littleThings_5:
+    'What is your favorite sound to hear when you wake up in the morning?',
+  prompt_littleThings_6:
+    'Write about a simple pleasure that you look forward to every day.',
+  prompt_littleThings_7: 'What was the best part of your morning routine today?',
+  prompt_littleThings_8:
+    'Share a brief encounter with a stranger that warmed your heart.',
+  prompt_littleThings_9:
+    'What is an inexpensive item that brings a lot of value to your life?',
+
+  // Default Worksheet Template Keys
+  'What I am grateful for today...': 'What I am grateful for today...',
+  'My affirmation for today...': 'My affirmation for today...',
+  'One little thing that made me smile recently...':
+    'One little thing that made me smile recently...',
+
   // Moods
   Amazing: 'Amazing',
   Happy: 'Happy',
@@ -166,6 +278,43 @@ export const en = {
   'First Day of Week': 'First Day of Week',
   'Set the first day of the week in the calendar view':
     'Set the first day of the week in the calendar view',
+
+  // Settings - Journaling
+  Journaling: 'Journaling',
+  'Worksheet Template': 'Worksheet Template',
+  'Customize the default worksheet for new gratitude entries':
+    'Customize the default worksheet for new gratitude entries',
+  'Edit Worksheet Template': 'Edit Worksheet Template',
+  'Use this template to pre-fill the body of new gratitude entries':
+    'Use this template to pre-fill the body of new gratitude entries',
+  'Reset to Default': 'Reset to Default',
+  'Journaling Worksheet': 'Journaling Worksheet',
+  'A template for your daily journaling routine.':
+    'A template for your daily journaling routine.',
+  'Start Writing': 'Start Writing',
+  'Journal Focus Areas': 'Journal Focus Areas',
+  'Personalize your journal prompts.': 'Personalize your journal prompts.',
+  'Pick the topics you want to write about.': 'Pick the topics you want to write about.',
+  'Select at least 2 focus areas': 'Select at least 2 focus areas',
+  'Journal Prompts': 'Journal Prompts',
+  'Choose which prompts to show when starting a new journal entry.':
+    'Choose which prompts to show when starting a new journal entry.',
+  Off: 'Off',
+  'All Prompts': 'All Prompts',
+  'My Prompts': 'My Prompts',
+  'Built In Prompts': 'Built In Prompts',
+  focusArea_self_desc:
+    'Reflect on your hobbies, interests, experiences, and life in general.',
+  focusArea_littleThings_desc:
+    'Cherish the small, often overlooked blessings of everyday life.',
+  focusArea_health_desc:
+    'Appreciate the many blessings of your body and its capabilities.',
+  focusArea_family_desc:
+    'Appreciate your family members and moments shared with them.',
+  focusArea_friends_desc:
+    'Cherish your loving, supportive, and understanding friends.',
+  focusArea_faith_desc:
+    "Focus on appreciating your faith, spirituality, and inner peace.",
 
   // Settings - Security
   Security: 'Security',

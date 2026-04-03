@@ -1,4 +1,4 @@
-import { Platform, View, ScrollView } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
@@ -7,11 +7,13 @@ import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
 import { NotificationsSection } from './sections/NotificationsSection';
 import { AppearanceSection } from './sections/AppearanceSection';
+import { JournalingSection } from './sections/JournalingSection';
 import { SecuritySection } from './sections/SecuritySection';
 import { BackupRestoreSection } from './sections/BackupRestoreSection';
 import { AppInfoSection } from './sections/AppInfoSection';
 import { DangerZoneSection } from './sections/DangerZoneSection';
 import { ThemePickerSheet } from './ThemePickerSheet';
+import { JournalFocusAreasSheet } from './JournalFocusAreasSheet';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -46,6 +48,7 @@ export default function SettingsScreen() {
         <ScrollView className="px-safe" nestedScrollEnabled>
           <NotificationsSection />
           <AppearanceSection />
+          <JournalingSection />
           <SecuritySection />
           <BackupRestoreSection />
           <AppInfoSection />
@@ -57,6 +60,7 @@ export default function SettingsScreen() {
       </View>
 
       <ThemePickerSheet />
+      <JournalFocusAreasSheet />
     </>
   );
 }

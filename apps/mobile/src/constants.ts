@@ -22,7 +22,11 @@ export const SHEET_NAMES = {
   MOOD: 'mood-sheet',
   TAGS: 'tags-sheet',
   VOICE_MEMO: 'voice-memo-sheet',
+  PROMPT_LIBRARY: 'prompt-library-sheet',
+  PROMPT_FORM: 'prompt-form-sheet',
+  WORKSHEET_TEMPLATE: 'worksheet-template-sheet',
   THEME_PICKER: 'theme-picker-sheet',
+  JOURNAL_FOCUS_AREAS: 'journal-focus-areas-sheet',
 } as const;
 
 /*
