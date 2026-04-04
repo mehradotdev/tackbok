@@ -1,4 +1,11 @@
-import type { Entry, Tag, NewEntry, NewTag } from './db/schema';
+import type {
+  Entry,
+  Tag,
+  NewEntry,
+  NewTag,
+  CustomPrompt,
+  NewCustomPrompt,
+} from './db/schema';
 
 // Asset types — using `as const` (works with Expo's isolatedModules / Babel)
 export const AssetType = {
@@ -22,7 +29,7 @@ export type Asset = {
 export type { Mood } from './constants';
 
 // Re-export schema types for convenience
-export type { Entry, Tag, NewEntry, NewTag };
+export type { Entry, Tag, NewEntry, NewTag, CustomPrompt, NewCustomPrompt };
 
 /** First day of week options — using `as const` for a single source of truth */
 export const FirstDay = {

@@ -34,6 +34,17 @@ export const tags = sqliteTable('tags', {
   updated_at: integer('updated_at').notNull(),
 });
 
+/**
+ * User-created reusable journal title prompts.
+ * Built-in prompts remain static translation keys in code; only custom prompts live in DB.
+ */
+export const customPrompts = sqliteTable('custom_prompts', {
+  prompt_id: text('prompt_id').primaryKey().notNull(),
+  title: text('title').notNull().unique(),
+  created_at: integer('created_at').notNull(),
+  updated_at: integer('updated_at').notNull(),
+});
+
 // ============================================================================
 // Inferred Types
 // ============================================================================
@@ -42,3 +53,5 @@ export type Entry = typeof entries.$inferSelect;
 export type NewEntry = typeof entries.$inferInsert;
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
+export type CustomPrompt = typeof customPrompts.$inferSelect;
+export type NewCustomPrompt = typeof customPrompts.$inferInsert;

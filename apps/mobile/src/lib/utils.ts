@@ -1,3 +1,5 @@
+import { TAG_SEPARATOR } from '~/constants';
+
 /**
  * Generate a UUID v4
  */
@@ -24,4 +26,19 @@ export function combineDateWithCurrentTime(date: Date): Date {
     now.getMilliseconds(),
   );
   return result;
+}
+
+/**
+ * Sanitizes a tag name to ensure compatibility with CSV exports.
+ * Removes commas and tag separators (pipes).
+ */
+export function sanitizeTagName(name: string): string {
+  return name.replace(new RegExp(`[,${TAG_SEPARATOR}]`, 'g'), ' ').trim();
+}
+
+/**
+ * Sanitizes a custom prompt title for storage and duplicate comparison.
+ */
+export function sanitizePromptTitle(title: string): string {
+  return title.replace(/\s+/g, ' ').trim();
 }

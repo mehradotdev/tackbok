@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Keyboard, Pressable, ActivityIndicator } from 'react-native';
+import { View, Keyboard, ActivityIndicator, type TextInput } from 'react-native';
 import {
   KeyboardAwareScrollView,
   useReanimatedKeyboardAnimation,
@@ -9,7 +9,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { format } from 'date-fns';
-import { Clock, X } from 'lucide-react-native';
+import { Clock, FilePenLine, Plus, Shuffle, X } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import {
   MODAL_CLOSE_DELAY,
@@ -23,9 +23,12 @@ import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n
 import { generateUUID } from '~/lib/utils';
 import { filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
-import { useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
+import { useCustomPrompts, useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
 import { usePhotoSession } from '~/hooks/usePhotoSession';
 import { useVoiceMemoSession } from '~/hooks/useVoiceMemoSession';
+import { useWorksheetTemplate } from '~/hooks/useWorksheetTemplate';
+import { useSettingsStore } from '~/lib/settings';
+import { getJournalPromptTitlePool } from '~/lib/journalPrompts';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
@@ -48,9 +51,11 @@ import { DateSelectDropdown } from '~/components/DateSelectDropdown';
 import { TimePickerModal } from '~/components/TimePickerModal';
 import { FloatingActionDock } from './FloatingActionDock';
 import { MoodModal } from './MoodModal';
+import { PromptLibraryModal } from './PromptLibraryModal';
 import { TagsModal } from './TagsModal';
 import { VoiceMemoModal } from './VoiceMemoModal';
 import { AddPhotoModal } from './AddPhotoModal';
+import { WorksheetTemplateModal } from './WorksheetTemplateModal';
 
 interface GratitudeEntryEditProps {
   initialEntry?: Entry | null;
@@ -76,6 +81,14 @@ export function GratitudeEntryEdit({
   const tagMap = useTagMapping();
   const { t } = useTranslation();
   const navigation = useNavigation();
+  const { journalPromptsMode, journalFocusAreas } = useSettingsStore();
+  const { data: customPromptList = [], isSuccess: isCustomPromptsLoaded } =
+    useCustomPrompts();
+  const customPromptTitles = useMemo(
+    () => customPromptList.map((prompt) => prompt.title),
+    [customPromptList],
+  );
+  const { resolvedWorksheetTemplate } = useWorksheetTemplate();
   const isKeyboardVisible = useKeyboardState((state) => state.isVisible);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const [mutedForegroundColor, foregroundColor] = useCSSVariable([
@@ -110,6 +123,45 @@ export function GratitudeEntryEdit({
 
   const [isAddPhotoVisible, setIsAddPhotoVisible] = useState(false);
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isContentFocused, setIsContentFocused] = useState(false);
+  const titleInputRef = useRef<TextInput>(null);
+  const hasPromptTitle = title.length > 0;
+  const hasAttemptedAutoFill = useRef(false);
+
+  // Auto-fill prompt title for new entries based on settings
+  useEffect(() => {
+    if (!isNewEntry || hasAttemptedAutoFill.current || journalPromptsMode === 'off') {
+      return;
+    }
+
+    const needsCustom =
+      journalPromptsMode === 'custom' || journalPromptsMode === 'all';
+    if (needsCustom && !isCustomPromptsLoaded) {
+      return; // wait until custom prompts are loaded
+    }
+
+    const pool = getJournalPromptTitlePool({
+      mode: journalPromptsMode,
+      focusAreas: journalFocusAreas,
+      customPromptTitles,
+      t,
+    });
+
+    if (pool.length > 0) {
+      const randomPrompt = pool[Math.floor(Math.random() * pool.length)];
+      if (randomPrompt) setTitle(randomPrompt);
+    }
+
+    hasAttemptedAutoFill.current = true;
+  }, [
+    isNewEntry,
+    journalPromptsMode,
+    journalFocusAreas,
+    customPromptTitles,
+    isCustomPromptsLoaded,
+    t,
+  ]);
 
   // Auto-open mood modal for new entries (run once on mount).
   // We wait for 'transitionEnd' so iOS doesn't throw "No presenting view
@@ -210,6 +262,17 @@ export function GratitudeEntryEdit({
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [selectedTagIds, tagMap]);
 
+  const availablePromptTitles = useMemo(
+    () =>
+      getJournalPromptTitlePool({
+        mode: journalPromptsMode,
+        focusAreas: journalFocusAreas,
+        customPromptTitles,
+        t,
+      }),
+    [journalPromptsMode, journalFocusAreas, customPromptTitles, t],
+  );
+
   const handleSave = async () => {
     if (!canSave) return;
 
@@ -263,14 +326,14 @@ export function GratitudeEntryEdit({
     setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
   };
 
-  const handlePressCancel = async () => {
+  const handlePressCancel = useCallback(() => {
     if (hasUnsavedChanges) {
       Keyboard.dismiss();
       setShowUnsavedChangesConfirm(true);
     } else {
       onCancel();
     }
-  };
+  }, [hasUnsavedChanges, onCancel]);
 
   /**
    * Handle tag deletion in the database (via TagsModal).
@@ -288,6 +351,34 @@ export function GratitudeEntryEdit({
   useEffect(() => {
     navigation.setOptions({ gestureEnabled: !hasUnsavedChanges });
   }, [navigation, hasUnsavedChanges]);
+
+  const handleOpenPromptLibrary = () => {
+    Keyboard.dismiss();
+    TrueSheet.present(SHEET_NAMES.PROMPT_LIBRARY);
+  };
+
+  const handleRandomPrompt = useCallback(() => {
+    if (availablePromptTitles.length === 0) return;
+
+    const pool = availablePromptTitles.filter((promptTitle) => promptTitle !== title);
+    const candidatePool = pool.length > 0 ? pool : availablePromptTitles;
+    const nextPrompt =
+      candidatePool[Math.floor(Math.random() * candidatePool.length)] ?? candidatePool[0];
+
+    if (nextPrompt) {
+      // Focus the title input only on first prompt ("Add Prompt" state)
+      const shouldFocus = !title;
+      setTitle(nextPrompt);
+      if (shouldFocus) {
+        setTimeout(() => titleInputRef.current?.focus(), 100);
+      }
+    }
+  }, [availablePromptTitles, title]);
+
+  const handleOpenWorksheetModal = () => {
+    Keyboard.dismiss();
+    TrueSheet.present(SHEET_NAMES.WORKSHEET_TEMPLATE);
+  };
 
   /**
    * Handle Navigation & Back Actions.
@@ -398,18 +489,63 @@ export function GratitudeEntryEdit({
               }}
               className="flex-row items-center px-3 h-9 gap-2">
               <Icon as={Clock} className="text-muted-foreground size-5" />
-              <Text className="text-sm font-body-medium text-foreground">{formattedTime}</Text>
+              <Text className="text-sm font-body-medium text-foreground">
+                {formattedTime}
+              </Text>
             </Button>
           </View>
 
           {/* Title Input */}
           <Textarea
+            ref={titleInputRef}
             className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
             placeholder={t('Title (optional)')}
             placeholderTextColor={mutedForegroundColor as string}
             value={title}
             onChangeText={setTitle}
+            onFocus={() => setIsTitleFocused(true)}
+            onBlur={() => setIsTitleFocused(false)}
           />
+
+          {/* Prompt Actions — shown when title is focused, or content is focused with no text */}
+          {(isTitleFocused || (isContentFocused && content.length === 0)) && (
+            <View className="flex-row items-center gap-2 mt-0 mb-4">
+              {availablePromptTitles.length > 0 && (
+                <Button
+                  variant="secondary"
+                  onPress={handleRandomPrompt}
+                  className="h-10 rounded-full px-4 flex-row items-center gap-1.5">
+                  <Icon
+                    as={hasPromptTitle ? Shuffle : Plus}
+                    className="text-secondary-foreground size-4"
+                  />
+                  <Text className="text-secondary-foreground text-sm font-body-bold">
+                    {hasPromptTitle ? t('New Prompt') : t('Add Prompt')}
+                  </Text>
+                </Button>
+              )}
+
+              <Button
+                variant="secondary"
+                size="icon"
+                onPress={handleOpenWorksheetModal}
+                className="h-10 w-10 rounded-full">
+                <Icon as={FilePenLine} className="text-secondary-foreground size-4" />
+              </Button>
+
+              {hasPromptTitle && availablePromptTitles.length > 0 && (
+                <Button
+                  variant="link"
+                  size="none"
+                  onPress={handleOpenPromptLibrary}
+                  className="ml-auto">
+                  <Text className="text-base font-body text-foreground">
+                    {t('Show All')}
+                  </Text>
+                </Button>
+              )}
+            </View>
+          )}
 
           {/* Content Input */}
           <Textarea
@@ -419,6 +555,8 @@ export function GratitudeEntryEdit({
             placeholderTextColor={mutedForegroundColor as string}
             value={content}
             onChangeText={setContent}
+            onFocus={() => setIsContentFocused(true)}
+            onBlur={() => setIsContentFocused(false)}
             scrollEnabled={false}
           />
 
@@ -503,6 +641,17 @@ export function GratitudeEntryEdit({
 
       {/* Modals — rendered at root level so BottomSheet backdrop covers full screen */}
       <MoodModal value={mood} onChange={setMood} />
+
+      <PromptLibraryModal onPromptSelect={setTitle} />
+
+      <WorksheetTemplateModal
+        onApplyTemplate={() =>
+          setContent((prev) => {
+            if (!prev.trim()) return resolvedWorksheetTemplate;
+            return `${prev}\n${resolvedWorksheetTemplate}`;
+          })
+        }
+      />
 
       <TagsModal
         selectedTagIds={selectedTagIds}

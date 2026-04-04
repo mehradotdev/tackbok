@@ -15,6 +15,13 @@
       "when": 1774094767114,
       "tag": "0001_clammy_winter_soldier",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1774804691600,
+      "tag": "0002_marvelous_avengers",
+      "breakpoints": true
     }
   ]
 }

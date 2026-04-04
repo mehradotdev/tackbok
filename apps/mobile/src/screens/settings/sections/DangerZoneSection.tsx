@@ -7,6 +7,7 @@ import { deleteAllData } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
+import { useSettingsStore } from '~/lib/settings';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
 import {
@@ -26,6 +27,9 @@ export function DangerZoneSection() {
   const router = useRouter();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const resetCustomWorksheetTemplate = useSettingsStore(
+    (state) => state.resetCustomWorksheetTemplate,
+  );
 
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
 
@@ -35,6 +39,9 @@ export function DangerZoneSection() {
       // Wipe the DB first — if this throws, the files are still intact
       // and the catch block will surface the error to the user.
       await deleteAllData();
+      // Clear persisted journaling text alongside the DB wipe so "Delete All
+      // Data" removes user-authored worksheet content too.
+      resetCustomWorksheetTemplate();
       // Remove all cached queries immediately after the DB wipe so React
       // Query never serves entries that no longer exist, even if filesystem
       // cleanup below throws. invalidateQueries() only marks stale — deleted
@@ -69,7 +76,7 @@ export function DangerZoneSection() {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
     }
-  }, [t, router, queryClient]);
+  }, [t, router, queryClient, resetCustomWorksheetTemplate]);
 
   return (
     <>
@@ -77,7 +84,7 @@ export function DangerZoneSection() {
         <SettingsRow
           label={t('Delete All Data')}
           description={t(
-            'Permanently delete all your entries, photos, and voice memos',
+            'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template',
           )}
           icon={Trash2}
           onPress={() => setShowDeleteConfirmDialog(true)}
@@ -95,7 +102,7 @@ export function DangerZoneSection() {
             <AlertDialogTitle>{t('Delete all data?')}</AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.',
+                'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

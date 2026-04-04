@@ -4,6 +4,11 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { Uniwind } from 'uniwind';
 import { FirstDay, type FirstDayOfWeek } from '~/types';
 import { DEFAULT_THEME_ID, getThemeConfig } from '~/lib/theme';
+import {
+  DEFAULT_JOURNAL_FOCUS_AREAS,
+  type BuiltInJournalPromptCategoryId,
+  type JournalPromptsMode,
+} from '~/lib/journalPrompts';
 
 // TODO: Implement actual functionality for all settings
 // This is currently a mock store - all values are stored but not yet connected to real features
@@ -31,6 +36,11 @@ interface SettingsState {
   // Privacy
   analyticsEnabled: boolean;
 
+  // Journaling
+  customWorksheetTemplate: string | null;
+  journalFocusAreas: BuiltInJournalPromptCategoryId[];
+  journalPromptsMode: JournalPromptsMode;
+
   // Hydration status
   _hasHydrated: boolean;
 
@@ -47,6 +57,10 @@ interface SettingsState {
   setGoogleDriveBackupEnabled: (enabled: boolean) => void;
   setBackupFrequency: (frequency: 'daily' | 'weekly' | 'on_change') => void;
   setAnalyticsEnabled: (enabled: boolean) => void;
+  setCustomWorksheetTemplate: (template: string | null) => void;
+  resetCustomWorksheetTemplate: () => void;
+  setJournalFocusAreas: (areas: BuiltInJournalPromptCategoryId[]) => void;
+  setJournalPromptsMode: (mode: JournalPromptsMode) => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
 
@@ -66,6 +80,9 @@ export const useSettingsStore = create<SettingsState>()(
       googleDriveBackupEnabled: false,
       backupFrequency: 'daily',
       analyticsEnabled: false,
+      customWorksheetTemplate: null,
+      journalFocusAreas: DEFAULT_JOURNAL_FOCUS_AREAS,
+      journalPromptsMode: 'off',
       _hasHydrated: false,
 
       // Actions
@@ -90,6 +107,11 @@ export const useSettingsStore = create<SettingsState>()(
         set({ googleDriveBackupEnabled: enabled }),
       setBackupFrequency: (frequency) => set({ backupFrequency: frequency }),
       setAnalyticsEnabled: (enabled) => set({ analyticsEnabled: enabled }),
+      setCustomWorksheetTemplate: (template) =>
+        set({ customWorksheetTemplate: template?.trim() ? template : null }),
+      resetCustomWorksheetTemplate: () => set({ customWorksheetTemplate: null }),
+      setJournalFocusAreas: (areas) => set({ journalFocusAreas: areas }),
+      setJournalPromptsMode: (mode) => set({ journalPromptsMode: mode }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
     {
@@ -124,6 +146,9 @@ export const useSettingsStore = create<SettingsState>()(
         googleDriveBackupEnabled: state.googleDriveBackupEnabled,
         backupFrequency: state.backupFrequency,
         analyticsEnabled: state.analyticsEnabled,
+        customWorksheetTemplate: state.customWorksheetTemplate,
+        journalFocusAreas: state.journalFocusAreas,
+        journalPromptsMode: state.journalPromptsMode,
       }),
     },
   ),

@@ -45,7 +45,7 @@ export function LiveWaveform({
   const bufferRef = useRef<number[]>([]);
   const lastSampleTimeRef = useRef(0);
   const animFrameRef = useRef<number | null>(null);
-  const [renderTick, forceRender] = useState(0);
+  const [, forceRender] = useState(0); // render tick to trigger re-render when buffer updates
 
   // ── Layout ─────────────────────────────────────────────────────────
   const onLayout = useCallback((e: LayoutChangeEvent) => {
@@ -63,6 +63,7 @@ export function LiveWaveform({
     if (isActive) {
       bufferRef.current = [];
       lastSampleTimeRef.current = 0;
+      forceRender((n) => n + 1);
     }
   }, [isActive, barCount]);
 
@@ -111,7 +112,7 @@ export function LiveWaveform({
   }, [isActive, barCount]);
 
   // ── Build Skia path ────────────────────────────────────────────────
-  const skiaPath = useMemo(() => {
+  const skiaPath = (() => {
     const p = Skia.Path.Make();
     if (containerWidth <= 0 || barCount <= 0) return p;
 
@@ -136,8 +137,7 @@ export function LiveWaveform({
     }
 
     return p;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- renderTick triggers rebuild when buffer contents change
-  }, [renderTick, containerWidth, barCount, height, barWidth, barGap]);
+  })();
 
   // ── Render ─────────────────────────────────────────────────────────
   return (

@@ -1,10 +1,10 @@
 import type { Insets } from '~/components/primitives/types';
 import * as React from 'react';
 import {
-  Dimensions,
   I18nManager,
   type LayoutRectangle,
   type ScaledSize,
+  useWindowDimensions,
 } from 'react-native';
 
 type UseRelativePositionArgs = Omit<
@@ -27,9 +27,11 @@ export function useRelativePosition({
   side,
   disablePositioningStyle,
 }: UseRelativePositionArgs) {
-  const dimensions = Dimensions.get('screen');
+  const { width, height, scale, fontScale } = useWindowDimensions();
 
   return React.useMemo(() => {
+    const dimensions: ScaledSize = { width, height, scale, fontScale };
+
     if (disablePositioningStyle) {
       return {};
     }
@@ -59,10 +61,14 @@ export function useRelativePosition({
     side,
     alignOffset,
     insets,
+    sideOffset,
     triggerPosition,
     contentLayout,
-    dimensions.width,
-    dimensions.height,
+    disablePositioningStyle,
+    width,
+    height,
+    scale,
+    fontScale,
   ]);
 }
 

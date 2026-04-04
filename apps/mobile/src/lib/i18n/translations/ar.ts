@@ -85,6 +85,105 @@ export const ar: Translations = {
   'Record Again': 'تسجيل مرة أخرى',
 
   'Title (optional)': 'العنوان (اختياري)',
+  'Use Prompt': 'استخدم السؤال',
+  'New Prompt': 'سؤال جديد',
+  'Add Prompt': 'إضافة سؤال',
+  'Show All': 'عرض الكل',
+  'Prompt text': 'نص السؤال',
+  'Prompt already exists': 'السؤال موجود بالفعل',
+  'Prompt created': 'تم إنشاء السؤال',
+  'Failed to create prompt': 'فشل إنشاء السؤال',
+  'Prompt updated': 'تم تحديث السؤال',
+  'Failed to update prompt': 'فشل تحديث السؤال',
+  'Prompt deleted': 'تم حذف السؤال',
+  'Failed to delete prompt': 'فشل حذف السؤال',
+  Faith: 'الإيمان',
+  Self: 'الذات',
+  Health: 'الصحة',
+  Friends: 'الأصدقاء',
+  Family: 'العائلة',
+  'Little things': 'الأشياء الصغيرة',
+  'Create Prompt': 'إنشاء سؤال',
+  'Create a Prompt': 'إنشاء سؤال',
+  'Edit Prompt': 'تعديل السؤال',
+  'Delete Prompt': 'حذف السؤال',
+  'Delete Prompt?': 'حذف السؤال؟',
+  'Are you sure you want to delete this prompt?': 'هل أنت متأكد أنك تريد حذف هذا السؤال؟',
+  'No prompts yet': 'لا توجد أسئلة بعد',
+  'Create your first prompt': 'أنشئ سؤالك الأول',
+
+  // Prompts - Faith
+  prompt_faith_1: 'ما أول ذكرى لديك لشعورك بحضور الله؟',
+  prompt_faith_2: 'أين رأيت نعمة في حياتك مؤخراً؟',
+  prompt_faith_3: 'ما الصلاة التي حملتك خلال موسم صعب؟',
+  prompt_faith_4: 'كيف غير إيمانك نظرتك للتحديات؟',
+  prompt_faith_5: 'ما هي الممارسة أو العادة الروحية التي تجلب لك السلام الأكبر؟',
+  prompt_faith_6: 'اكتب عن وقت شعرت فيه بوضوح أنك موجه بقوة عليا.',
+  prompt_faith_7: 'ما هو التعليم أو الاقتباس المعين الذي يلهم حياتك اليومية؟',
+  prompt_faith_8: 'كيف تجد التواصل الروحي في خضم أسبوع مزدحم؟',
+  prompt_faith_9: 'تأمل في لحظة قدم لك فيها إيمانك الراحة أثناء عدم اليقين.',
+
+  // Prompts - Self
+  prompt_self_1: 'ما الشيء الذي تحتاج إلى المزيد منه في حياتك؟',
+  prompt_self_2: 'ما الشيء الذي كان صعباً عليك ومع ذلك فعلته؟',
+  prompt_self_3: 'ماذا ستقول لنسختك الأصغر سناً اليوم؟',
+  prompt_self_4: 'ما هو الإنجاز الأخير الذي لم تحتفل به بما فيه الكفاية؟',
+  prompt_self_5: 'اكتب ثلاثة أشياء تحبها في شخصيتك.',
+  prompt_self_6: 'كيف تطورت من خطأ ارتكبته مؤخراً؟',
+  prompt_self_7: 'ما هي الحدود التي تحتاج إلى وضعها لحماية طاقتك؟',
+  prompt_self_8: 'في أي مجال من مجالات حياتك تشعر فيها بأنك على طبيعتك؟',
+  prompt_self_9: 'صف يومك المثالي، من الصباح إلى المساء.',
+
+  // Prompts - Health
+  prompt_health_1: 'ما الجزء من جسدك الذي تشعر بأكبر امتنان له اليوم؟',
+  prompt_health_2: 'كيف ساعدتك الراحة مؤخراً؟',
+  prompt_health_3: 'ما العادة الصحية التي تفتخر بالحفاظ عليها؟',
+  prompt_health_4: 'ما هي الوجبة المغذية التي تجعلك تشعر بالرضا دائمًا؟',
+  prompt_health_5: 'صف نشاطًا بدنيًا يجلب لك الفرح بدلاً من الشعور بأنه عمل روتيني.',
+  prompt_health_6: 'كيف يخبرك جسدك عندما يحتاج إلى الإبطاء أو الراحة؟',
+  prompt_health_7: 'ما الذي تفعله اليوم للعناية بصحتك العقلية؟',
+  prompt_health_8: 'اكتب عن وقت تغلبت فيه على تحدٍ أو إصابة جسدية.',
+  prompt_health_9: 'ما هو التغيير الصغير الذي يمكنك إجراؤه لتحسين جودة نومك؟',
+
+  // Prompts - Friends
+  prompt_friends_1: 'أي صديق جعل حياتك أخف مؤخراً؟',
+  prompt_friends_2: 'ما الذكرى مع صديق التي ما زالت تجعلك تبتسم؟',
+  prompt_friends_3: 'من تريد أن تشجعه هذا الأسبوع؟',
+  prompt_friends_4: 'ما هي الجودة التي تقدرها أكثر في صداقاتك القريبة؟',
+  prompt_friends_5: 'اكتب عن صديق ساعدك على رؤية الأشياء من منظور مختلف.',
+  prompt_friends_6: 'كيف تفضل إظهار تقديرك وحبك لأصدقائك؟',
+  prompt_friends_7: 'من هو الصديق الذي لم تتحدث إليه منذ فترة، وماذا ستقول له؟',
+  prompt_friends_8: 'صف مغامرة ممتعة أو غير متوقعة قمت بها مع صديق.',
+  prompt_friends_9: 'ما هو الدرس الذي تعلمته من إحدى صداقاتك؟',
+
+  // Prompts - Family
+  prompt_family_1: 'ما التقليد العائلي الذي تشعر بالامتنان له؟',
+  prompt_family_2: 'من في عائلتك علّمك شيئاً باقياً؟',
+  prompt_family_3: 'ما اللحظة الصغيرة مع العائلة التي تريد أن تتذكرها؟',
+  prompt_family_4: 'ما هي القصة من تاريخ عائلتك التي تجدها ملهمة؟',
+  prompt_family_5: 'كيف تطورت علاقتك بأحد أفراد العائلة بمرور الوقت؟',
+  prompt_family_6: 'اكتب عن مهارة أو وصفة تم تناقلها في عائلتك.',
+  prompt_family_7: 'ما هي السمة الشخصية المحددة التي تشاركها مع أحد والديك أو إخوتك؟',
+  prompt_family_8: 'صف ذكرى من الطفولة لا تزال تجلب لك فرحًا هائلاً.',
+  prompt_family_9: 'كيف تدعم عائلتك بعضها البعض خلال الأوقات الصعبة؟',
+
+  // Prompts - Little Things
+  prompt_littleThings_1: 'ما الذي جعلك تبتسم اليوم؟',
+  prompt_littleThings_2: 'ما اللحظة الصغيرة التي جعلتك تتوقف اليوم؟',
+  prompt_littleThings_3: 'ما الراحة اليومية التي ستفتقدها أكثر من غيرها؟',
+  prompt_littleThings_4: 'صف تفصيلاً صغيراً ودنيويًا في محيطك يكون جميلًا.',
+  prompt_littleThings_5: 'ما هو صوتك المفضل الذي تسمعه عندما تستيقظ في الصباح؟',
+  prompt_littleThings_6: 'اكتب عن متعة بسيطة تتطلع إليها كل يوم.',
+  prompt_littleThings_7: 'ما هو أفضل جزء من روتينك الصباحي اليوم؟',
+  prompt_littleThings_8: 'شارك لقاءً قصيرًا مع شخص غريب دافئ قلبك.',
+  prompt_littleThings_9: 'ما هو العنصر غير المكلف الذي يجلب قيمة كبيرة لحياتك؟',
+
+  // Default Worksheet Template Keys
+  'What I am grateful for today...': 'ما الذي أشعر بالامتنان له اليوم...',
+  'My affirmation for today...': 'توكيدي لنفسي اليوم...',
+  'One little thing that made me smile recently...':
+    'شيء صغير واحد جعلني أبتسم مؤخراً...',
+
   // Moods
   Amazing: 'مذهل',
   Happy: 'سعيد',
@@ -165,6 +264,37 @@ export const ar: Translations = {
   'Set the first day of the week in the calendar view':
     'حدد أول يوم في الأسبوع في عرض التقويم',
 
+  // Settings - Journaling
+  Journaling: 'الكتابة اليومية',
+  'Worksheet Template': 'قالب ورقة الكتابة',
+  'Customize the default worksheet for new gratitude entries':
+    'خصّص ورقة الكتابة الافتراضية لإدخالات الامتنان الجديدة',
+  'Edit Worksheet Template': 'تعديل قالب ورقة الكتابة',
+  'Use this template to pre-fill the body of new gratitude entries':
+    'استخدم هذا القالب لملء نص الإدخالات الجديدة مسبقاً',
+  'Reset to Default': 'إعادة التعيين إلى الافتراضي',
+  'Journaling Worksheet': 'ورقة الكتابة اليومية',
+  'A template for your daily journaling routine.':
+    'قالب لروتينك اليومي في الكتابة والتأمل.',
+  'Start Writing': 'ابدأ الكتابة',
+  'Journal Focus Areas': 'مجالات التركيز في اليوميات',
+  'Personalize your journal prompts.': 'خصّص مطالبات يومياتك.',
+  'Pick the topics you want to write about.': 'اختر الموضوعات التي تريد الكتابة عنها.',
+  'Select at least 2 focus areas': 'اختر مجالين على الأقل',
+  'Journal Prompts': 'مطالبات اليوميات',
+  'Choose which prompts to show when starting a new journal entry.':
+    'اختر المطالبات التي تظهر عند بدء إدخال جديد.',
+  Off: 'إيقاف',
+  'All Prompts': 'كل الأسئلة',
+  'My Prompts': 'أسئلتي',
+  'Built In Prompts': 'المطالبات المدمجة',
+  focusArea_self_desc: 'تأمل في هواياتك واهتماماتك وتجاربك وحياتك بشكل عام.',
+  focusArea_littleThings_desc: 'قدّر الأشياء الصغيرة والنعم اليومية التي كثيرًا ما نغفل عنها.',
+  focusArea_health_desc: 'قدّر النعم الكثيرة لجسمك وقدراته.',
+  focusArea_family_desc: 'قدّر أفراد عائلتك واللحظات المشتركة معهم.',
+  focusArea_friends_desc: 'قدّر أصدقاءك المحبين والداعمين والمتفهمين.',
+  focusArea_faith_desc: 'ركّز على تقدير إيمانك وروحانيتك وسلامك الداخلي.',
+
   // Settings - Security
   Security: 'الأمان',
   'Unlock Tackbok': 'فتح تاكبوك',
@@ -220,11 +350,11 @@ export const ar: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'منطقة الخطر',
   'Delete All Data': 'حذف جميع البيانات',
-  'Permanently delete all your entries, photos, and voice memos':
-    'حذف جميع سجلاتك وصورك ومذكراتك الصوتية بشكل دائم',
+  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
+    'حذف جميع سجلاتك وصورك ومذكراتك الصوتية والمطالبات المخصصة وقالب ورقة العمل المخصص بشكل دائم',
   'Delete all data?': 'حذف جميع البيانات؟',
-  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
-    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك وصورك ومذكراتك الصوتية بشكل دائم.',
+  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
+    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك وصورك ومذكراتك الصوتية والمطالبات المخصصة وقالب ورقة العمل المخصص بشكل دائم.',
   'All data deleted': 'تم حذف جميع البيانات',
   'Delete failed': 'فشل الحذف',
 

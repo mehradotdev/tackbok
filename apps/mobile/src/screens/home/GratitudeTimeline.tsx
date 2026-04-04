@@ -20,6 +20,8 @@ interface IGratitudeTimelineProps {
   onAddEntry?: (dateMs: number) => void;
 }
 
+const EMPTY_GROUPS = new Map<number, Entry[]>();
+
 // Type guard to check if an item is a milestone
 function isMilestoneItem(item: TimelineListItem): item is MilestoneItem {
   return 'type' in item && item.type === 'milestone';
@@ -48,7 +50,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   );
 
   // Use safe defaults when data is null
-  const groups = data ?? new Map<number, Entry[]>();
+  const groups = data ?? EMPTY_GROUPS;
   const totalContentDays = groups.size;
 
   // Convert to DayGroup array and apply view state

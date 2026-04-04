@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { Platform, View } from 'react-native';
+import {
+  Platform,
+  View,
+  Modal,
+  TouchableWithoutFeedback,
+  StyleSheet,
+} from 'react-native';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 import Animated, {
   FadeInDown,
@@ -36,6 +42,15 @@ type ToastData = {
   description?: string;
   type: ToastType;
   duration?: number;
+  /**
+   * Set it to `true` when rendering toasts from within modal-like components (such as TrueSheet).
+   * This forces the toast to render inside a React Native `<Modal>` on Android, lifting
+   * it above native overlays (e.g., CoordinatorLayout) so it isn't hidden beneath the sheet.
+   */
+  useModal?: boolean;
+  /**
+   * Optional actionable button rendered inside the toast (e.g., an "Undo" operation).
+   */
   action?: {
     label: string;
     onPress: () => void;
@@ -284,74 +299,98 @@ export function Toaster({
   // Determine stack direction based on position (Top positions stack down, Bottom positions stack up)
   const isBottom = position.startsWith('bottom');
 
-  // Ensure we sort toasts correctly for the stack direction
-  // For bottom toasts, we often want the newest one at the bottom (visually closest to edge)
   const sortedToasts = isBottom ? [...toasts] : [...toasts].reverse();
+  const normalToasts = sortedToasts.filter((t) => !t.useModal);
+  const modalToasts = sortedToasts.filter((t) => t.useModal);
+  const dismissModalToasts = () => {
+    modalToasts.forEach((t) => dismiss(t.id));
+  };
 
-  const Wrapper = Platform.OS === 'ios' ? RNFullWindowOverlay : React.Fragment;
+  const renderToastList = (list: ToastData[]) => (
+    <View
+      pointerEvents="box-none"
+      // Use flex-col-reverse for bottom to make them stack upwards from the bottom edge
+      className={`absolute z-50 gap-2 ${isBottom ? 'flex-col-reverse' : 'flex-col'}`}
+      style={getPositionStyle(position, insets)}>
+      {list.map((t) => (
+        <Animated.View
+          key={t.id}
+          layout={LAYOUT_ANIMATION}
+          entering={isBottom ? ENTER_ANIMATION_UP : ENTER_ANIMATION_DOWN}
+          exiting={isBottom ? EXIT_ANIMATION_UP : EXIT_ANIMATION_DOWN}>
+          <ToastPrimitive.Root
+            open={true}
+            onOpenChange={(open) => {
+              if (!open) dismiss(t.id);
+            }}
+            // Added border-l-4 and dynamic color class
+            className={cn(
+              'bg-card border-border shadow-foreground/5 flex-row items-center justify-between rounded-xl border border-l-4 p-4 shadow-xl',
+              getTypeStyles(t.type),
+            )}>
+            <View className="flex-1 flex-row items-center gap-3">
+              <View>
+                <Icon
+                  as={TOAST_ICONS[t.type].icon}
+                  className={TOAST_ICONS[t.type].className}
+                />
+              </View>
+
+              <View className="flex-1 gap-1">
+                <ToastPrimitive.Title className="text-foreground text-sm font-body-semibold">
+                  {t.title}
+                </ToastPrimitive.Title>
+                {t.description && (
+                  <ToastPrimitive.Description className="text-muted-foreground text-sm">
+                    {t.description}
+                  </ToastPrimitive.Description>
+                )}
+              </View>
+            </View>
+
+            {t.action && (
+              <ToastPrimitive.Action
+                className="bg-primary ml-3 rounded px-3 py-1.5"
+                onPress={t.action.onPress}>
+                <Text className="text-primary-foreground text-xs font-body-semibold">
+                  {t.action.label}
+                </Text>
+              </ToastPrimitive.Action>
+            )}
+
+            <ToastPrimitive.Close className="active:bg-secondary rounded-full p-1">
+              <Icon as={X} className="text-foreground size-5 stroke-[1.5px]" />
+            </ToastPrimitive.Close>
+          </ToastPrimitive.Root>
+        </Animated.View>
+      ))}
+    </View>
+  );
+
+  if (Platform.OS === 'ios') {
+    return (
+      <Portal name="toast-portal">
+        <RNFullWindowOverlay>{renderToastList(sortedToasts)}</RNFullWindowOverlay>
+      </Portal>
+    );
+  }
 
   return (
     <Portal name="toast-portal">
-      <Wrapper>
-        <View
-          pointerEvents="box-none"
-          // Use flex-col-reverse for bottom to make them stack upwards from the bottom edge
-          className={`absolute z-50 gap-2 ${isBottom ? 'flex-col-reverse' : 'flex-col'}`}
-          style={getPositionStyle(position, insets)}>
-          {sortedToasts.map((t) => (
-            <Animated.View
-              key={t.id}
-              layout={LAYOUT_ANIMATION}
-              entering={isBottom ? ENTER_ANIMATION_UP : ENTER_ANIMATION_DOWN}
-              exiting={isBottom ? EXIT_ANIMATION_UP : EXIT_ANIMATION_DOWN}>
-              <ToastPrimitive.Root
-                open={true}
-                onOpenChange={(open) => {
-                  if (!open) dismiss(t.id);
-                }}
-                // Added border-l-4 and dynamic color class
-                className={cn(
-                  'bg-card border-border shadow-foreground/5 flex-row items-center justify-between rounded-xl border border-l-4 p-4 shadow-xl',
-                  getTypeStyles(t.type),
-                )}>
-                <View className="flex-1 flex-row items-center gap-3">
-                  <View>
-                    <Icon
-                      as={TOAST_ICONS[t.type].icon}
-                      className={TOAST_ICONS[t.type].className}
-                    />
-                  </View>
+      {normalToasts.length > 0 && renderToastList(normalToasts)}
 
-                  <View className="flex-1 gap-1">
-                    <ToastPrimitive.Title className="text-foreground text-sm font-body-semibold">
-                      {t.title}
-                    </ToastPrimitive.Title>
-                    {t.description && (
-                      <ToastPrimitive.Description className="text-muted-foreground text-sm">
-                        {t.description}
-                      </ToastPrimitive.Description>
-                    )}
-                  </View>
-                </View>
-
-                {t.action && (
-                  <ToastPrimitive.Action
-                    className="bg-primary ml-3 rounded px-3 py-1.5"
-                    onPress={t.action.onPress}>
-                    <Text className="text-primary-foreground text-xs font-body-semibold">
-                      {t.action.label}
-                    </Text>
-                  </ToastPrimitive.Action>
-                )}
-
-                <ToastPrimitive.Close className="active:bg-secondary rounded-full p-1">
-                  <Icon as={X} className="text-foreground size-5 stroke-[1.5px]" />
-                </ToastPrimitive.Close>
-              </ToastPrimitive.Root>
-            </Animated.View>
-          ))}
-        </View>
-      </Wrapper>
+      {modalToasts.length > 0 && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="none"
+          onRequestClose={dismissModalToasts}>
+          <TouchableWithoutFeedback onPress={dismissModalToasts}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+          {renderToastList(modalToasts)}
+        </Modal>
+      )}
     </Portal>
   );
 }

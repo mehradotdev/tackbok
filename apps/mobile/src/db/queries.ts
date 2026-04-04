@@ -1,8 +1,16 @@
 import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
 import { startOfDay, format } from 'date-fns';
-import { generateUUID } from '~/lib/utils';
-import { TAG_SEPARATOR } from '~/constants';
-import { db, entries, tags, type Entry, type NewEntry, type Tag } from './index';
+import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
+import {
+  db,
+  entries,
+  tags,
+  customPrompts,
+  type Entry,
+  type NewEntry,
+  type Tag,
+  type CustomPrompt,
+} from './index';
 
 /**
  * Get all entries (with raw CSV tags string) sorted by created_at DESC
@@ -157,8 +165,11 @@ export async function deleteEntry(noteId: string) {
  * Completely resets the database by deleting all entries.
  */
 export async function deleteAllData() {
-  await db.delete(entries);
-  await db.delete(tags);
+  await db.transaction(async (tx) => {
+    await tx.delete(entries);
+    await tx.delete(tags);
+    await tx.delete(customPrompts);
+  });
 }
 
 // ============================================================================
@@ -170,14 +181,6 @@ export async function deleteAllData() {
  */
 export async function getAllTags(): Promise<Tag[]> {
   return db.select().from(tags).orderBy(tags.title);
-}
-
-/**
- * Sanitizes a tag name to ensure compatibility with CSV exports.
- * Removes commas and tag separators (pipes).
- */
-export function sanitizeTagName(name: string): string {
-  return name.replace(new RegExp(`[,${TAG_SEPARATOR}]`, 'g'), ' ').trim();
 }
 
 /**
@@ -240,4 +243,78 @@ export async function deleteTag(tagId: string): Promise<void> {
     // 3. Delete the tag itself
     await tx.delete(tags).where(eq(tags.tag_id, tagId));
   });
+}
+
+// ============================================================================
+// Custom Prompt Queries
+// ============================================================================
+
+/**
+ * Get all user-created prompts sorted by most recently updated.
+ */
+export async function getAllCustomPrompts(): Promise<CustomPrompt[]> {
+  return db
+    .select()
+    .from(customPrompts)
+    .orderBy(desc(customPrompts.updated_at), desc(customPrompts.created_at));
+}
+
+/**
+ * Create a new reusable custom prompt.
+ */
+export async function createCustomPrompt(title: string): Promise<void> {
+  const cleanTitle = sanitizePromptTitle(title);
+  if (!cleanTitle) throw new Error('Invalid prompt title');
+
+  const now = Date.now();
+  try {
+    await db.insert(customPrompts).values({
+      prompt_id: generateUUID(),
+      title: cleanTitle,
+      created_at: now,
+      updated_at: now,
+    });
+  } catch (error) {
+    if (isDuplicateCustomPromptTitleError(error)) {
+      throw new Error('Prompt already exists');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Update an existing custom prompt.
+ */
+export async function updateCustomPrompt(promptId: string, title: string): Promise<void> {
+  const cleanTitle = sanitizePromptTitle(title);
+  if (!cleanTitle) throw new Error('Invalid prompt title');
+
+  try {
+    await db
+      .update(customPrompts)
+      .set({ title: cleanTitle, updated_at: Date.now() })
+      .where(eq(customPrompts.prompt_id, promptId));
+  } catch (error) {
+    if (isDuplicateCustomPromptTitleError(error)) {
+      throw new Error('Prompt already exists');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Delete a custom prompt by ID.
+ */
+export async function deleteCustomPrompt(promptId: string): Promise<void> {
+  await db.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
+}
+
+function isDuplicateCustomPromptTitleError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('unique constraint failed') &&
+    message.includes('custom_prompts.title')
+  );
 }

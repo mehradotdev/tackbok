@@ -86,6 +86,106 @@ export const he: Translations = {
   'Record Again': 'הקלט שוב',
 
   'Title (optional)': 'כותרת (אופציונלי)',
+  'Use Prompt': 'השתמש בהנחיה',
+  'New Prompt': 'הנחיה חדשה',
+  'Add Prompt': 'הוסף הנחיה',
+  'Show All': 'הצג הכל',
+  'Prompt text': 'טקסט ההנחיה',
+  'Prompt already exists': 'ההנחיה כבר קיימת',
+  'Prompt created': 'ההנחיה נוצרה',
+  'Failed to create prompt': 'יצירת ההנחיה נכשלה',
+  'Prompt updated': 'ההנחיה עודכנה',
+  'Failed to update prompt': 'עדכון ההנחיה נכשל',
+  'Prompt deleted': 'ההנחיה נמחקה',
+  'Failed to delete prompt': 'מחיקת ההנחיה נכשלה',
+  Faith: 'אמונה',
+  Self: 'עצמי',
+  Health: 'בריאות',
+  Friends: 'חברים',
+  Family: 'משפחה',
+  'Little things': 'דברים קטנים',
+  'Create Prompt': 'צור הנחיה',
+  'Create a Prompt': 'צור הנחיה',
+  'Edit Prompt': 'ערוך הנחיה',
+  'Delete Prompt': 'מחק הנחיה',
+  'Delete Prompt?': 'למחוק את ההנחיה?',
+  'Are you sure you want to delete this prompt?':
+    'האם אתה בטוח שברצונך למחוק את ההנחיה הזו?',
+  'No prompts yet': 'אין הנחיות עדיין',
+  'Create your first prompt': 'צור את ההנחיה הראשונה שלך',
+
+  // Prompts - Faith
+  prompt_faith_1: 'מה הזיכרון המוקדם ביותר שלך של תחושת נוכחותו של אלוהים?',
+  prompt_faith_2: 'איפה ראית חסד בחייך לאחרונה?',
+  prompt_faith_3: 'איזו תפילה נשאה אותך דרך תקופה קשה?',
+  prompt_faith_4: 'איך האמונה שלך שינתה את האופן שבו אתה מסתכל על אתגרים?',
+  prompt_faith_5: 'איזו פרקטיקה או הרגל רוחני מביא לך את מירב השלווה?',
+  prompt_faith_6: 'כתוב על זמן בו הרגשת שאתה מונחה בבירור על ידי כוח עליון.',
+  prompt_faith_7: 'איזה לימוד או ציטוט ספציפי נותן לך השראה בחיי היומיום?',
+  prompt_faith_8: 'איך אתה מוצא חיבור רוחני בעיצומו של שבוע עמוס?',
+  prompt_faith_9: 'הרהר ברגע בו האמונה שלך הציעה לך נחמה בזמן של חוסר ודאות.',
+
+  // Prompts - Self
+  prompt_self_1: 'ממה אתה צריך יותר בחיים שלך?',
+  prompt_self_2: 'מהו דבר שהיה קשה לעשות ובכל זאת עשית אותו?',
+  prompt_self_3: 'מה היית אומר לעצמך הצעיר היום?',
+  prompt_self_4: 'מהו הישג אחרון שלא חגגת מספיק?',
+  prompt_self_5: 'כתוב שלושה דברים שאתה אוהב באישיות שלך.',
+  prompt_self_6: 'איך צמחת מטעות שעשית לאחרונה?',
+  prompt_self_7: 'איזה גבול עליך להציב כדי להגן על האנרגיה שלך?',
+  prompt_self_8: 'באיזה תחום בחייך אתה מרגיש הכי אותנטי?',
+  prompt_self_9: 'תאר את היום המושלם והאידיאלי שלך מהבוקר ועד הלילה.',
+
+  // Prompts - Health
+  prompt_health_1: 'לאיזה חלק בגופך אתה הכי מודה היום?',
+  prompt_health_2: 'איך המנוחה עזרה לך לאחרונה?',
+  prompt_health_3: 'על איזה הרגל בריא אתה גאה שהצלחת לשמור?',
+  prompt_health_4: 'מהי ארוחה מזינה שתמיד גורמת לך להרגיש טוב?',
+  prompt_health_5: 'תאר פעילות גופנית שמביאה לך שמחה במקום להרגיש כמו מטלה.',
+  prompt_health_6: 'איך הגוף שלך מספר לך כשהוא צריך להאט או לנוח?',
+  prompt_health_7: 'מה אתה עושה היום כדי לדאוג לרווחה הנפשית שלך?',
+  prompt_health_8: 'כתוב על זמן בו התגברת על אתגר פיזי או פציעה.',
+  prompt_health_9: 'איזה שינוי קטן אתה יכול לעשות כדי לשפר את איכות השינה שלך?',
+
+  // Prompts - Friends
+  prompt_friends_1: 'איזה חבר הפך את חייך לקלים יותר לאחרונה?',
+  prompt_friends_2: 'איזה זיכרון עם חבר עדיין גורם לך לחייך?',
+  prompt_friends_3: 'את מי היית רוצה לעודד השבוע?',
+  prompt_friends_4: 'איזו תכונה אתה הכי מעריך בחברויות הקרובות שלך?',
+  prompt_friends_5: 'כתוב על חבר שעזר לך לראות דברים מנקודת מבט שונה.',
+  prompt_friends_6: 'איך אתה מעדיף להראות את ההערכה והאהבה שלך לחבריך?',
+  prompt_friends_7: 'מי הוא חבר שלא דיברת איתו זמן מה, ומה היית אומר לו?',
+  prompt_friends_8: 'תאר הרפתקה מהנה או בלתי צפויה שהייתה לך עם חבר.',
+  prompt_friends_9: 'מהו שיעור שלמדת מאחת החברויות שלך?',
+
+  // Prompts - Family
+  prompt_family_1: 'לאיזו מסורת משפחתית אתה אסיר תודה?',
+  prompt_family_2: 'מי במשפחתך לימד אותך משהו שנשאר איתך?',
+  prompt_family_3: 'מהו רגע קטן עם המשפחה שתרצה לזכור?',
+  prompt_family_4: 'מהו סיפור מההיסטוריה של המשפחה שלך שאתה מוצא בו השראה?',
+  prompt_family_5: 'איך מערכת היחסים שלך עם בן משפחה התפתחה לאורך זמן?',
+  prompt_family_6: 'כתוב על מיומנות או מתכון שעברו מדור לדור במשפחתך.',
+  prompt_family_7: 'איזו תכונת אופי ספציפית אתה חולק עם הורה או אח?',
+  prompt_family_8: 'תאר זיכרון ילדות שעדיין מביא לך שמחה עצומה.',
+  prompt_family_9: 'איך המשפחה שלך תומכת זה בזה בזמנים קשים?',
+
+  // Prompts - Little Things
+  prompt_littleThings_1: 'מה גרם לך לחייך היום?',
+  prompt_littleThings_2: 'איזה רגע קטן גרם לך לעצור היום?',
+  prompt_littleThings_3: 'איזו נחמה יומיומית היית הכי מתגעגע אליה?',
+  prompt_littleThings_4: 'תאר פרט קטן ויומיומי בסביבתך שהוא יפה.',
+  prompt_littleThings_5: 'מהו הצליל האהוב עליך לשמוע כשאתה מתעורר בבוקר?',
+  prompt_littleThings_6: 'כתוב על הנאה פשוטה שאתה מצפה לה כל יום.',
+  prompt_littleThings_7: 'מה היה החלק הטוב ביותר בשגרת הבוקר שלך היום?',
+  prompt_littleThings_8: 'שתף מפגש קצר עם זר שחימם את ליבך.',
+  prompt_littleThings_9: 'מהו פריט זול שמביא ערך רב לחייך?',
+
+  // Default Worksheet Template Keys
+  'What I am grateful for today...': 'על מה אני אסיר תודה היום...',
+  'My affirmation for today...': 'האמירה המחזקת שלי להיום...',
+  'One little thing that made me smile recently...':
+    'דבר קטן אחד שגרם לי לחייך לאחרונה...',
+
   // Moods
   Amazing: 'מדהים',
   Happy: 'שמח',
@@ -166,6 +266,37 @@ export const he: Translations = {
   'Set the first day of the week in the calendar view':
     'הגדר את היום הראשון בשבוע בתצוגת היומן',
 
+  // Settings - Journaling
+  Journaling: 'כתיבה יומית',
+  'Worksheet Template': 'תבנית דף כתיבה',
+  'Customize the default worksheet for new gratitude entries':
+    'התאם את דף הכתיבה ברירת המחדל לרשומות תודה חדשות',
+  'Edit Worksheet Template': 'ערוך את תבנית דף הכתיבה',
+  'Use this template to pre-fill the body of new gratitude entries':
+    'השתמש בתבנית הזו כדי למלא מראש את גוף רשומות התודה החדשות',
+  'Reset to Default': 'אפס לברירת המחדל',
+  'Journaling Worksheet': 'דף כתיבה יומי',
+  'A template for your daily journaling routine.':
+    'תבנית לשגרת הכתיבה וההתבוננות היומית שלך.',
+  'Start Writing': 'התחל לכתוב',
+  'Journal Focus Areas': 'תחומי התמקדות ביומן',
+  'Personalize your journal prompts.': 'התאם אישית את ההנחיות ביומן שלך.',
+  'Pick the topics you want to write about.': 'בחר את הנושאים שברצונך לכתוב עליהם.',
+  'Select at least 2 focus areas': 'בחר לפחות 2 תחומי התמקדות',
+  'Journal Prompts': 'הנחיות יומן',
+  'Choose which prompts to show when starting a new journal entry.':
+    'בחר אילו הנחיות להציג בעת התחלת רשומה חדשה.',
+  Off: 'כבוי',
+  'All Prompts': 'כל ההנחיות',
+  'My Prompts': 'ההנחיות שלי',
+  'Built In Prompts': 'הנחיות מובנות',
+  focusArea_self_desc: 'הרהר בתחביבים, תחומי עניין, חוויות וחיים בכלל.',
+  focusArea_littleThings_desc: 'הוקר את הדברים הקטנים והברכות היומיומיות שלעתים נעלמות מעינינו.',
+  focusArea_health_desc: 'הוקר את הברכות הרבות של גופך ויכולותיו.',
+  focusArea_family_desc: 'הוקר את בני משפחתך ואת הרגעים שחלקת עמם.',
+  focusArea_friends_desc: 'הוקר את חבריך האוהבים, התומכים והמבינים.',
+  focusArea_faith_desc: 'התמקד בהערכת האמונה, הרוחניות והשלווה הפנימית שלך.',
+
   // Settings - Security
   Security: 'אבטחה',
   'Unlock Tackbok': 'פתיחת טאקבוק',
@@ -220,11 +351,11 @@ export const he: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'אזור מסוכן',
   'Delete All Data': 'מחק את כל הנתונים',
-  'Permanently delete all your entries, photos, and voice memos':
-    'מחק את כל הרשומות, התמונות וההקלטות הקוליות שלך לצמיתות',
+  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
+    'מחק את כל הרשומות, התמונות, ההקלטות הקוליות, ההנחיות המותאמות אישית ותבנית גליון העבודה המותאמת אישית שלך לצמיתות',
   'Delete all data?': 'למחוק את כל הנתונים?',
-  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
-    'לא ניתן לבטל פעולה זו. כל הרשומות, התמונות וההקלטות הקוליות שלך יימחקו לצמיתות.',
+  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
+    'לא ניתן לבטל פעולה זו. כל הרשומות, התמונות, ההקלטות הקוליות, ההנחיות המותאמות אישית ותבנית גליון העבודה המותאמת אישית שלך יימחקו לצמיתות.',
   'All data deleted': 'כל הנתונים נמחקו',
   'Delete failed': 'המחיקה נכשלה',
 

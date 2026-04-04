@@ -13,6 +13,9 @@ function Input({ className, ...props }: TextInputProps) {
         isRTL && 'text-right',
         className,
       )}
+      // Uniwind uses the 'accent-' prefix to return raw color strings (like "#85766a") 
+      // instead of style objects for React Native non-style color props.
+      placeholderTextColorClassName="accent-muted-foreground"
       clearButtonMode="while-editing"
       {...props}
     />

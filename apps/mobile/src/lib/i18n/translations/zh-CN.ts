@@ -84,6 +84,104 @@ export const zhCN: Translations = {
   'Record Again': '重新录制',
 
   'Title (optional)': '标题（可选）',
+  'Use Prompt': '使用提示',
+  'New Prompt': '新提示',
+  'Add Prompt': '添加提示',
+  'Show All': '显示全部',
+  'Prompt text': '提示内容',
+  'Prompt already exists': '提示已存在',
+  'Prompt created': '提示已创建',
+  'Failed to create prompt': '创建提示失败',
+  'Prompt updated': '提示已更新',
+  'Failed to update prompt': '更新提示失败',
+  'Prompt deleted': '提示已删除',
+  'Failed to delete prompt': '删除提示失败',
+  Faith: '信仰',
+  Self: '自我',
+  Health: '健康',
+  Friends: '朋友',
+  Family: '家人',
+  'Little things': '小确幸',
+  'Create Prompt': '创建提示',
+  'Create a Prompt': '创建提示',
+  'Edit Prompt': '编辑提示',
+  'Delete Prompt': '删除提示',
+  'Delete Prompt?': '删除提示？',
+  'Are you sure you want to delete this prompt?': '您确定要删除这条提示吗？',
+  'No prompts yet': '还没有提示',
+  'Create your first prompt': '创建您的第一条提示',
+
+  // Prompts - Faith
+  prompt_faith_1: '你最早感受到上帝同在的记忆是什么？',
+  prompt_faith_2: '你最近在生活中在哪里看见了恩典？',
+  prompt_faith_3: '是哪一个祷告陪你度过了艰难时刻？',
+  prompt_faith_4: '你的信仰如何改变了你看待挑战的方式？',
+  prompt_faith_5: '哪种精神实践或习惯能给你带来最大的平静？',
+  prompt_faith_6: '写下一次你清楚地感觉到被更高力量引导的经历。',
+  prompt_faith_7: '什么是启发你日常生活的具体教导或名言？',
+  prompt_faith_8: '在忙碌的一周中，你如何找到精神上的连接？',
+  prompt_faith_9: '回顾一个你的信仰在不确定时期给你带来安慰的时刻。',
+
+  // Prompts - Self
+  prompt_self_1: '你的生活里还需要更多什么？',
+  prompt_self_2: '有什么事情虽然很难，但你还是做到了？',
+  prompt_self_3: '如果是今天，你会对年轻时的自己说什么？',
+  prompt_self_4: '你最近有什么还没来得及好好庆祝的成就？',
+  prompt_self_5: '写下三件你喜欢自己性格的地方。',
+  prompt_self_6: '你如何从最近犯的一个错误中获得成长？',
+  prompt_self_7: '你需要设定什么样的界限来保护你的能量？',
+  prompt_self_8: '在你生活的哪个领域，你觉得自己最真实？',
+  prompt_self_9: '描述从早到晚你心目中完美的一天。',
+
+  // Prompts - Health
+  prompt_health_1: '今天你最感谢身体的哪个部分？',
+  prompt_health_2: '最近休息是怎样帮助你的？',
+  prompt_health_3: '你为自己坚持了哪一个健康习惯而感到自豪？',
+  prompt_health_4: '哪一顿营养丰富的饭菜总是能让你感觉良好？',
+  prompt_health_5: '描述一项让你感到快乐而不是像例行公事一样的体育活动。',
+  prompt_health_6: '当你的身体需要放慢脚步或休息时，它是如何告诉你的？',
+  prompt_health_7: '你今天在做什么来照顾你的心理健康？',
+  prompt_health_8: '写下一次你克服身体挑战或受伤的经历。',
+  prompt_health_9: '你可以做哪个小改变来改善睡眠质量？',
+
+  // Prompts - Friends
+  prompt_friends_1: '最近是哪位朋友让你的生活轻松了一些？',
+  prompt_friends_2: '和朋友之间哪段回忆至今还会让你微笑？',
+  prompt_friends_3: '这周你想鼓励谁？',
+  prompt_friends_4: '在你最亲密的友谊中，你最看重什么品质？',
+  prompt_friends_5: '写下一个帮助你从不同角度看问题的朋友。',
+  prompt_friends_6: '你更喜欢如何向朋友展示你的感激和爱？',
+  prompt_friends_7: '你有一阵子没和哪个朋友说话了？你想告诉他们什么？',
+  prompt_friends_8: '描述一次你和朋友一起经历的有趣或意外的冒险。',
+  prompt_friends_9: '你从一段友谊中学到了什么教训？',
+
+  // Prompts - Family
+  prompt_family_1: '你感恩哪一个家庭传统？',
+  prompt_family_2: '家里是谁教会了你一件长久受用的事？',
+  prompt_family_3: '你想记住和家人在一起的哪个小瞬间？',
+  prompt_family_4: '你从家族历史中发现了哪个鼓舞人心的故事？',
+  prompt_family_5: '随着时间的推移，你与某个家人的关系是如何演变的？',
+  prompt_family_6: '写下你家代代相传的一项技能或食谱。',
+  prompt_family_7: '你和父母或兄弟姐妹共有哪种特定的性格特征？',
+  prompt_family_8: '描述一个至今仍能给你带来巨大快乐的童年记忆。',
+  prompt_family_9: '在困难时期，你的家人是如何互相支持的？',
+
+  // Prompts - Little Things
+  prompt_littleThings_1: '今天什么让你微笑了？',
+  prompt_littleThings_2: '今天哪个小瞬间让你停下来感受了一下？',
+  prompt_littleThings_3: '如果失去，你最会想念哪一种日常安慰？',
+  prompt_littleThings_4: '描述你周围环境中一个平凡但美丽的小细节。',
+  prompt_littleThings_5: '你早上醒来时最喜欢听到的声音是什么？',
+  prompt_littleThings_6: '写下一件你每天都期待的简单快乐。',
+  prompt_littleThings_7: '今天你早晨的例行活动中最好的一部分是什么？',
+  prompt_littleThings_8: '分享一次让你心生暖意的与陌生人的短暂接触。',
+  prompt_littleThings_9: '有什么不贵却给你生活带来很大价值的物品？',
+
+  // Default Worksheet Template Keys
+  'What I am grateful for today...': '今天我感恩的是……',
+  'My affirmation for today...': '今天给自己的肯定是……',
+  'One little thing that made me smile recently...': '最近让我微笑的一件小事是……',
+
   // Moods
   Amazing: '棒极了',
   Happy: '很高兴',
@@ -160,6 +258,36 @@ export const zhCN: Translations = {
   'First Day of Week': '一周的第一天',
   'Set the first day of the week in the calendar view': '设置日历视图中一周的第一天',
 
+  // Settings - Journaling
+  Journaling: '日记书写',
+  'Worksheet Template': '写作模板',
+  'Customize the default worksheet for new gratitude entries':
+    '自定义新感恩记录的默认写作模板',
+  'Edit Worksheet Template': '编辑写作模板',
+  'Use this template to pre-fill the body of new gratitude entries':
+    '使用此模板预填充新感恩记录的正文',
+  'Reset to Default': '恢复默认',
+  'Journaling Worksheet': '书写模板',
+  'A template for your daily journaling routine.': '适合你每日书写练习的一份模板。',
+  'Start Writing': '开始书写',
+  'Journal Focus Areas': '日记关注领域',
+  'Personalize your journal prompts.': '个性化你的日记提示。',
+  'Pick the topics you want to write about.': '选择你想写的主题。',
+  'Select at least 2 focus areas': '请至少选择2个关注领域',
+  'Journal Prompts': '日记提示',
+  'Choose which prompts to show when starting a new journal entry.':
+    '选择开始新日记时显示的提示。',
+  Off: '关闭',
+  'All Prompts': '全部提示',
+  'My Prompts': '我的提示',
+  'Built In Prompts': '内置提示',
+  focusArea_self_desc: '反思你的爱好、兴趣、经历和生活。',
+  focusArea_littleThings_desc: '珍惜那些常被忽视的日常小美好。',
+  focusArea_health_desc: '感恩身体的健康和能力。',
+  focusArea_family_desc: '感恩家人以及与他们共度的时光。',
+  focusArea_friends_desc: '珍惜那些关爱、支持和理解你的朋友。',
+  focusArea_faith_desc: '专注于感恩你的信仰、灵性和内心的平静。',
+
   // Settings - Security
   Security: '安全',
   'Unlock Tackbok': '解锁塔克博克',
@@ -213,11 +341,11 @@ export const zhCN: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危险区域',
   'Delete All Data': '删除所有数据',
-  'Permanently delete all your entries, photos, and voice memos':
-    '永久删除您的所有条目、照片和语音备忘录',
+  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
+    '永久删除您的所有条目、照片、语音备忘录、自定义提示词和自定义工作表模板',
   'Delete all data?': '删除所有数据？',
-  'This action cannot be undone. All your entries, photos, and voice memos will be permanently deleted.':
-    '此操作无法撤销。您的所有条目、照片和语音备忘录将被永久删除。',
+  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
+    '此操作无法撤销。您的所有条目、照片、语音备忘录、自定义提示词和自定义工作表模板将被永久删除。',
   'All data deleted': '所有数据已删除',
   'Delete failed': '删除失败',
 
