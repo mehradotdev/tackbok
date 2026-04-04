@@ -377,9 +377,7 @@ export function Toaster({
 
   return (
     <Portal name="toast-portal">
-      {normalToasts.length > 0 && (
-        <React.Fragment>{renderToastList(normalToasts)}</React.Fragment>
-      )}
+      {normalToasts.length > 0 && renderToastList(normalToasts)}
 
       {modalToasts.length > 0 && (
         <Modal

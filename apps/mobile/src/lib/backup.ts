@@ -13,7 +13,7 @@ import { photoFileExists } from '~/lib/photoUtils';
 import { voiceMemoFileExists } from '~/lib/voiceMemoUtils';
 
 /** Column order for the Tackbok CSV export — drives both the header and each row's value order. */
-const TACKBOK_COLUMNS = Object.keys(getTableColumns(entries)) as Array<keyof Entry>;
+const TACKBOK_COLUMNS = Object.keys(getTableColumns(entries)) as (keyof Entry)[];
 const TACKBOK_CSV_HEADER = TACKBOK_COLUMNS.join(',');
 
 /** Set of valid mood values, derived from the MOODS const to stay in sync. */

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { Play, Pause, X } from 'lucide-react-native';
 import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
@@ -112,6 +112,13 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
   }, [uri]);
 
   // ── Polling loop for progress ────────────────────────────────────
+  const stopPolling = useCallback(() => {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
   const startPolling = useCallback(() => {
     stopPolling();
     pollRef.current = setInterval(() => {
@@ -126,14 +133,7 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
         stopPolling();
       }
     }, POLL_INTERVAL);
-  }, [uri]);
-
-  const stopPolling = useCallback(() => {
-    if (pollRef.current !== null) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }, []);
+  }, [uri, stopPolling]);
 
   // ── Playback end listener ────────────────────────────────────────
   useEffect(() => {

@@ -1,7 +1,6 @@
 import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
 import { startOfDay, format } from 'date-fns';
-import { generateUUID } from '~/lib/utils';
-import { TAG_SEPARATOR } from '~/constants';
+import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import {
   db,
   entries,
@@ -180,21 +179,6 @@ export async function deleteAllData() {
  */
 export async function getAllTags(): Promise<Tag[]> {
   return db.select().from(tags).orderBy(tags.title);
-}
-
-/**
- * Sanitizes a tag name to ensure compatibility with CSV exports.
- * Removes commas and tag separators (pipes).
- */
-export function sanitizeTagName(name: string): string {
-  return name.replace(new RegExp(`[,${TAG_SEPARATOR}]`, 'g'), ' ').trim();
-}
-
-/**
- * Sanitizes a custom prompt title for storage and duplicate comparison.
- */
-export function sanitizePromptTitle(title: string): string {
-  return title.replace(/\s+/g, ' ').trim();
 }
 
 /**

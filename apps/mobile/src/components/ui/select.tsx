@@ -56,7 +56,7 @@ function SelectTrigger({
 
   React.useEffect(() => {
     progress.value = withTiming(open ? 1 : 0);
-  }, [open]);
+  }, [open, progress]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${progress.value * 180}deg` }],

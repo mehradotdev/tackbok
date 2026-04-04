@@ -27,9 +27,12 @@ export function useRelativePosition({
   side,
   disablePositioningStyle,
 }: UseRelativePositionArgs) {
-  const dimensions = Dimensions.get('screen');
+  const screenDimensions = Dimensions.get('screen');
+  const { width, height, scale, fontScale } = screenDimensions;
 
   return React.useMemo(() => {
+    const dimensions: ScaledSize = { width, height, scale, fontScale };
+
     if (disablePositioningStyle) {
       return {};
     }
@@ -59,10 +62,14 @@ export function useRelativePosition({
     side,
     alignOffset,
     insets,
+    sideOffset,
     triggerPosition,
     contentLayout,
-    dimensions.width,
-    dimensions.height,
+    disablePositioningStyle,
+    width,
+    height,
+    scale,
+    fontScale,
   ]);
 }
 

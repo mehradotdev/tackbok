@@ -86,6 +86,38 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     '--color-border',
   ]);
 
+  // ── Polling helpers ────────────────────────────────────────────────
+  const stopDurationPoll = useCallback(() => {
+    if (durationPollRef.current !== null) {
+      clearInterval(durationPollRef.current);
+      durationPollRef.current = null;
+    }
+  }, []);
+
+  const stopPlaybackPoll = useCallback(() => {
+    if (playbackPollRef.current !== null) {
+      clearInterval(playbackPollRef.current);
+      playbackPollRef.current = null;
+    }
+  }, []);
+
+  const startDurationPoll = useCallback(() => {
+    stopDurationPoll();
+    durationPollRef.current = setInterval(() => {
+      setRecordingDuration(audioEngine.getRecordingDuration());
+    }, POLL_INTERVAL);
+  }, [stopDurationPoll]);
+
+  const startPlaybackPoll = useCallback(() => {
+    stopPlaybackPoll();
+    playbackPollRef.current = setInterval(() => {
+      if (audioEngine.playbackState === 'playing') {
+        setPreviewCurrentTime(audioEngine.currentTime);
+        setPreviewDuration(audioEngine.duration);
+      }
+    }, POLL_INTERVAL);
+  }, [stopPlaybackPoll]);
+
   // ── Playback end listener ──────────────────────────────────────────
   useEffect(() => {
     listenerIdRef.current = audioEngine.onPlaybackEnd(() => {
@@ -99,39 +131,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
         audioEngine.removePlaybackEndListener(listenerIdRef.current);
       }
     };
-  }, []);
-
-  // ── Polling helpers ────────────────────────────────────────────────
-  const startDurationPoll = useCallback(() => {
-    stopDurationPoll();
-    durationPollRef.current = setInterval(() => {
-      setRecordingDuration(audioEngine.getRecordingDuration());
-    }, POLL_INTERVAL);
-  }, []);
-
-  const stopDurationPoll = useCallback(() => {
-    if (durationPollRef.current !== null) {
-      clearInterval(durationPollRef.current);
-      durationPollRef.current = null;
-    }
-  }, []);
-
-  const startPlaybackPoll = useCallback(() => {
-    stopPlaybackPoll();
-    playbackPollRef.current = setInterval(() => {
-      if (audioEngine.playbackState === 'playing') {
-        setPreviewCurrentTime(audioEngine.currentTime);
-        setPreviewDuration(audioEngine.duration);
-      }
-    }, POLL_INTERVAL);
-  }, []);
-
-  const stopPlaybackPoll = useCallback(() => {
-    if (playbackPollRef.current !== null) {
-      clearInterval(playbackPollRef.current);
-      playbackPollRef.current = null;
-    }
-  }, []);
+  }, [stopPlaybackPoll]);
 
   // ── Recording (with permission check) ──────────────────────────────
   const startRecording = useCallback(async (): Promise<boolean> => {
