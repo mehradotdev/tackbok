@@ -165,9 +165,11 @@ export async function deleteEntry(noteId: string) {
  * Completely resets the database by deleting all entries.
  */
 export async function deleteAllData() {
-  await db.delete(entries);
-  await db.delete(tags);
-  await db.delete(customPrompts);
+  await db.transaction(async (tx) => {
+    await tx.delete(entries);
+    await tx.delete(tags);
+    await tx.delete(customPrompts);
+  });
 }
 
 // ============================================================================
@@ -265,12 +267,19 @@ export async function createCustomPrompt(title: string): Promise<void> {
   if (!cleanTitle) throw new Error('Invalid prompt title');
 
   const now = Date.now();
-  await db.insert(customPrompts).values({
-    prompt_id: generateUUID(),
-    title: cleanTitle,
-    created_at: now,
-    updated_at: now,
-  });
+  try {
+    await db.insert(customPrompts).values({
+      prompt_id: generateUUID(),
+      title: cleanTitle,
+      created_at: now,
+      updated_at: now,
+    });
+  } catch (error) {
+    if (isDuplicateCustomPromptTitleError(error)) {
+      throw new Error('Prompt already exists');
+    }
+    throw error;
+  }
 }
 
 /**
@@ -280,10 +289,17 @@ export async function updateCustomPrompt(promptId: string, title: string): Promi
   const cleanTitle = sanitizePromptTitle(title);
   if (!cleanTitle) throw new Error('Invalid prompt title');
 
-  await db
-    .update(customPrompts)
-    .set({ title: cleanTitle, updated_at: Date.now() })
-    .where(eq(customPrompts.prompt_id, promptId));
+  try {
+    await db
+      .update(customPrompts)
+      .set({ title: cleanTitle, updated_at: Date.now() })
+      .where(eq(customPrompts.prompt_id, promptId));
+  } catch (error) {
+    if (isDuplicateCustomPromptTitleError(error)) {
+      throw new Error('Prompt already exists');
+    }
+    throw error;
+  }
 }
 
 /**
@@ -291,4 +307,14 @@ export async function updateCustomPrompt(promptId: string, title: string): Promi
  */
 export async function deleteCustomPrompt(promptId: string): Promise<void> {
   await db.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
+}
+
+function isDuplicateCustomPromptTitleError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('unique constraint failed') &&
+    message.includes('custom_prompts.title')
+  );
 }

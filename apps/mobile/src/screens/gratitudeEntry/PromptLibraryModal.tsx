@@ -115,6 +115,11 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
       TrueSheet.dismiss(SHEET_NAMES.PROMPT_FORM);
     } catch (error) {
       console.error('Failed to create prompt', error);
+      if (error instanceof Error && error.message === 'Prompt already exists') {
+        toast.error(t('Prompt already exists'), { useModal: true });
+        return;
+      }
+
       toast.error(t('Failed to create prompt'), { useModal: true });
     }
   };
@@ -142,6 +147,11 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
       TrueSheet.dismiss(SHEET_NAMES.PROMPT_FORM);
     } catch (error) {
       console.error('Failed to update prompt', error);
+      if (error instanceof Error && error.message === 'Prompt already exists') {
+        toast.error(t('Prompt already exists'), { useModal: true });
+        return;
+      }
+
       toast.error(t('Failed to update prompt'), { useModal: true });
     }
   };

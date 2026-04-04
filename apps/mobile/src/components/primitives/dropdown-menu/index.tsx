@@ -12,6 +12,7 @@ import {
   Pressable,
   Text,
   View,
+  useWindowDimensions,
   type GestureResponderEvent,
   type LayoutChangeEvent,
   type LayoutRectangle,
@@ -61,6 +62,15 @@ interface IRootContext {
 }
 
 const RootContext = React.createContext<IRootContext | null>(null);
+
+function measureTriggerPosition(
+  trigger: TriggerRef | null,
+  setTriggerPosition: (triggerPosition: LayoutPosition | null) => void,
+) {
+  trigger?.measure((_x, _y, width, height, pageX, pageY) => {
+    setTriggerPosition({ width, pageX, pageY, height });
+  });
+}
 
 const Root = ({
   asChild,
@@ -120,15 +130,14 @@ const Trigger = ({
   ...props
 }: TriggerProps & { ref?: React.Ref<TriggerRef> }) => {
   const { open, onOpenChange, setTriggerPosition } = useRootContext();
+  const { width, height } = useWindowDimensions();
 
   const augmentedRef = useAugmentedRef({
     ref,
     methods: {
       open: () => {
         onOpenChange(true);
-        augmentedRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
-          setTriggerPosition({ width, pageX, pageY: pageY, height });
-        });
+        measureTriggerPosition(augmentedRef.current, setTriggerPosition);
       },
       close: () => {
         setTriggerPosition(null);
@@ -137,11 +146,16 @@ const Trigger = ({
     },
   });
 
+  React.useEffect(() => {
+    if (!open) return;
+    // Rotation changes the window size and can also move the trigger itself,
+    // so we re-measure while the menu is open to keep the anchor coordinates fresh.
+    measureTriggerPosition(augmentedRef.current, setTriggerPosition);
+  }, [augmentedRef, height, open, setTriggerPosition, width]);
+
   function onPress(ev: GestureResponderEvent) {
     if (disabled) return;
-    augmentedRef.current?.measure((_x, _y, width, height, pageX, pageY) => {
-      setTriggerPosition({ width, pageX, pageY: pageY, height });
-    });
+    measureTriggerPosition(augmentedRef.current, setTriggerPosition);
     const newValue = !open;
     onOpenChange(newValue);
     onPressProp?.(ev);

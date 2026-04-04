@@ -1,10 +1,10 @@
 import type { Insets } from '~/components/primitives/types';
 import * as React from 'react';
 import {
-  Dimensions,
   I18nManager,
   type LayoutRectangle,
   type ScaledSize,
+  useWindowDimensions,
 } from 'react-native';
 
 type UseRelativePositionArgs = Omit<
@@ -27,8 +27,7 @@ export function useRelativePosition({
   side,
   disablePositioningStyle,
 }: UseRelativePositionArgs) {
-  const screenDimensions = Dimensions.get('screen');
-  const { width, height, scale, fontScale } = screenDimensions;
+  const { width, height, scale, fontScale } = useWindowDimensions();
 
   return React.useMemo(() => {
     const dimensions: ScaledSize = { width, height, scale, fontScale };

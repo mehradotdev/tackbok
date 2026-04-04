@@ -63,6 +63,7 @@ export function LiveWaveform({
     if (isActive) {
       bufferRef.current = [];
       lastSampleTimeRef.current = 0;
+      forceRender((n) => n + 1);
     }
   }, [isActive, barCount]);
 
