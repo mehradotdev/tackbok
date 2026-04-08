@@ -1,7 +1,7 @@
 import '../global.css';
 
 import { useEffect } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener } from 'react-native-safe-area-context';
@@ -16,11 +16,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { useSettingsStore } from '~/lib/settings';
-import {
-  getThemeConfig,
-  DEFAULT_THEME_ID,
-  DEFAULT_THEME_SHEET_RADIUS,
-} from '~/lib/theme/themes';
+import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { PortalHost } from '~/components/primitives/portal';
 import { Toaster } from '~/components/ui/toast';
@@ -91,19 +87,13 @@ export default function Layout() {
     JetBrainsMono_700Bold,
   });
 
-  const [primaryColor, primaryForeground, backgroundColor, themeRadiusStr] =
-    useCSSVariable([
-      '--color-primary',
-      '--color-primary-foreground',
-      '--color-background',
-      '--theme-radius',
-    ]);
+  const [primaryColor, primaryForeground, backgroundColor] = useCSSVariable([
+    '--color-primary',
+    '--color-primary-foreground',
+    '--color-background',
+  ]);
 
-  const sheetCornerRadius =
-    String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
-
-  const isBootstrapLoading =
-    !error && (!success || (!fontsLoaded && !fontsError));
+  const isBootstrapLoading = !error && (!success || (!fontsLoaded && !fontsError));
 
   // Keep native splash until persisted settings (and Uniwind theme) are ready
   useEffect(() => {
@@ -182,10 +172,6 @@ export default function Layout() {
                 options={{
                   title: 'Settings',
                   headerShown: false,
-                  presentation: 'formSheet',
-                  sheetAllowedDetents: Platform.OS === 'android' ? [0.96] : [0.75, 1],
-                  sheetCornerRadius: sheetCornerRadius,
-                  sheetGrabberVisible: false,
                 }}
               />
             </Stack>

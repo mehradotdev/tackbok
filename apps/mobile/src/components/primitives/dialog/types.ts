@@ -11,12 +11,14 @@ import type {
 type RootContext = {
   open: boolean;
   onOpenChange: (value: boolean) => void;
+  dismissible?: boolean;
 };
 
 type RootProps = SlottableViewProps & {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (value: boolean) => void;
+  dismissible?: boolean;
 };
 
 interface PortalProps extends ForceMountable {
@@ -31,12 +33,7 @@ interface PortalProps extends ForceMountable {
   container?: HTMLElement | null | undefined;
 }
 type OverlayProps = ForceMountable &
-  SlottablePressableProps & {
-    /**
-     * Platform: NATIVE ONLY - default: true
-     */
-    closeOnPress?: boolean;
-  };
+  SlottablePressableProps;
 type ContentProps = ForceMountable &
   SlottableViewProps & {
     /**

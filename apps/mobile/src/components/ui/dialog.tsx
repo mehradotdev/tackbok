@@ -8,6 +8,8 @@ import * as DialogPrimitive from '~/components/primitives/dialog';
 import { Icon } from '~/components/ui/icon';
 import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
 
+type AndroidOverlayStrategy = 'portal' | 'modal';
+
 const Dialog = DialogPrimitive.Root;
 
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -16,59 +18,103 @@ const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
 
-function AndroidModalOverlay({ children }: { children: React.ReactNode }) {
+function AndroidModalOverlay({
+  children,
+  onRequestClose,
+}: {
+  children: React.ReactNode;
+  onRequestClose: () => void;
+}) {
   return (
-    <Modal visible transparent statusBarTranslucent animationType="none">
+    <Modal
+      visible
+      transparent
+      statusBarTranslucent
+      animationType="none"
+      onRequestClose={onRequestClose}>
       {children}
     </Modal>
   );
 }
 
-const FullWindowOverlay =
-  Platform.OS === 'ios' ? RNFullWindowOverlay : AndroidModalOverlay;
+function OverlayContainer({
+  androidOverlayStrategy,
+  children,
+  onRequestClose,
+}: {
+  androidOverlayStrategy: AndroidOverlayStrategy;
+  children: React.ReactNode;
+  onRequestClose: () => void;
+}) {
+  if (Platform.OS === 'ios') {
+    return <RNFullWindowOverlay>{children}</RNFullWindowOverlay>;
+  }
+
+  if (Platform.OS === 'android' && androidOverlayStrategy === 'modal') {
+    return <AndroidModalOverlay onRequestClose={onRequestClose}>{children}</AndroidModalOverlay>;
+  }
+
+  return <>{children}</>;
+}
 
 function DialogOverlay({
+  androidOverlayStrategy = 'portal',
   className,
   children,
-  ref,
   ...props
-}: Omit<DialogPrimitive.OverlayProps, 'asChild'> & {
-  ref?: React.Ref<DialogPrimitive.OverlayRef>;
+}: Omit<React.ComponentProps<typeof DialogPrimitive.Overlay>, 'asChild'> & {
+  androidOverlayStrategy?: AndroidOverlayStrategy;
 } & {
   children?: React.ReactNode;
 }) {
+  const { dismissible = true, onOpenChange } = DialogPrimitive.useRootContext();
+
   return (
-    <FullWindowOverlay>
+    <OverlayContainer
+      androidOverlayStrategy={androidOverlayStrategy}
+      onRequestClose={() => {
+        if (dismissible) {
+          onOpenChange(false);
+        }
+      }}>
       <NativeOnlyAnimatedView
         entering={FadeIn.duration(200)}
         exiting={FadeOut.duration(150)}
         className="absolute bottom-0 left-0 right-0 top-0">
         <DialogPrimitive.Overlay
-          ref={ref}
           className={cn(
-            'absolute bottom-0 left-0 right-0 top-0 z-50 flex items-center justify-center bg-black/50 p-2',
+            'absolute bottom-0 left-0 right-0 top-0 z-40 bg-black/50',
             className,
           )}
-          {...props}>
-          {children}
-        </DialogPrimitive.Overlay>
+          {...props}
+        />
+        {children ? (
+          <View
+            pointerEvents="box-none"
+            className="absolute bottom-0 left-0 right-0 top-0 z-50 items-center justify-center p-2">
+            {/* Keep content outside the overlay pressable so nested scroll views can win touch gestures. */}
+            {children}
+          </View>
+        ) : null}
       </NativeOnlyAnimatedView>
-    </FullWindowOverlay>
+    </OverlayContainer>
   );
 }
 function DialogContent({
+  androidOverlayStrategy = 'portal',
   className,
   portalHost,
   children,
   showCloseButton = true,
   ...props
-}: DialogPrimitive.ContentProps & { ref?: React.Ref<DialogPrimitive.ContentRef> } & {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  androidOverlayStrategy?: AndroidOverlayStrategy;
   portalHost?: string;
   showCloseButton?: boolean;
 }) {
   return (
     <DialogPortal hostName={portalHost}>
-      <DialogOverlay>
+      <DialogOverlay androidOverlayStrategy={androidOverlayStrategy}>
         <DialogPrimitive.Content
           className={cn(
             'bg-background border-border z-50 mx-auto flex w-full flex-col',
@@ -114,7 +160,7 @@ function DialogFooter({ className, ...props }: ViewProps) {
 function DialogTitle({
   className,
   ...props
-}: DialogPrimitive.TitleProps & { ref?: React.Ref<DialogPrimitive.TitleRef> }) {
+}: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
       className={cn('text-foreground text-lg font-body-semibold leading-none', className)}
@@ -126,9 +172,7 @@ function DialogTitle({
 function DialogDescription({
   className,
   ...props
-}: DialogPrimitive.DescriptionProps & {
-  ref?: React.Ref<DialogPrimitive.DescriptionRef>;
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Description>) {
   return (
     <DialogPrimitive.Description
       className={cn('text-muted-foreground text-sm', className)}

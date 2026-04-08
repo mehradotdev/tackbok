@@ -107,7 +107,7 @@ function SelectContent({
             <NativeOnlyAnimatedView className="z-50" entering={FadeIn} exiting={FadeOut}>
               <SelectPrimitive.Content
                 className={cn(
-                  'bg-popover border-border relative z-50 min-w-[8rem] rounded-md border shadow-md shadow-black/5 p-1',
+                  'bg-popover border-border relative z-50 min-w-32 rounded-md border shadow-md shadow-black/5 p-1',
                   className,
                 )}
                 position={position}

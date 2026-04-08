@@ -12,13 +12,13 @@ type RootProps = {
   open?: boolean;
   onOpenChange?: (value: boolean) => void;
   defaultOpen?: boolean;
-  dismissOnOutsidePress?: boolean;
+  dismissible?: boolean;
 } & SlottableViewProps;
 
 interface RootContext {
   open: boolean;
   onOpenChange: (value: boolean) => void;
-  dismissOnOutsidePress?: boolean;
+  dismissible?: boolean;
 }
 
 interface PortalProps extends ForceMountable {

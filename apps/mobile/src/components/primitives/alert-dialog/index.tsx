@@ -39,6 +39,7 @@ const Root = ({
   open: openProp,
   defaultOpen,
   onOpenChange: onOpenChangeProp,
+  dismissible,
   ref,
   ...viewProps
 }: RootProps & { ref?: React.Ref<RootRef> }) => {
@@ -55,7 +56,7 @@ const Root = ({
         open,
         onOpenChange,
         nativeID,
-        dismissOnOutsidePress: viewProps.dismissOnOutsidePress,
+        dismissible,
       }}>
       <Component ref={ref} {...viewProps} />
     </AlertDialogContext.Provider>
@@ -129,7 +130,7 @@ const Overlay = ({
   ref,
   ...props
 }: OverlayProps & { ref?: React.Ref<OverlayRef> }) => {
-  const { open, onOpenChange, dismissOnOutsidePress = true } = useRootContext();
+  const { open, onOpenChange, dismissible = true } = useRootContext();
 
   if (!forceMount) {
     if (!open) {
@@ -138,14 +139,14 @@ const Overlay = ({
   }
 
   function onPress(ev: GestureResponderEvent) {
-    if (dismissOnOutsidePress) {
+    if (dismissible) {
       onOpenChange(false);
     }
     onPressProp?.(ev);
   }
 
   // Use Pressable if we want tap-to-dismiss, otherwise use View
-  if (dismissOnOutsidePress) {
+  if (dismissible) {
     const Component = asChild ? Slot.Pressable : Pressable;
     return <Component ref={ref as any} onPress={onPress} {...props} />;
   }
@@ -156,21 +157,20 @@ const Overlay = ({
 
 Overlay.displayName = 'OverlayNativeAlertDialog';
 
-function onStartShouldSetResponder() {
-  return true;
-}
-
 const Content = ({
   asChild,
   forceMount,
   ref,
   ...props
 }: ContentProps & { ref?: React.Ref<ContentRef> }) => {
-  const { open, nativeID, onOpenChange } = useRootContext();
+  const { open, nativeID, onOpenChange, dismissible = true } = useRootContext();
 
   React.useEffect(() => {
     if (!open) return;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!dismissible) {
+        return true;
+      }
       onOpenChange(false);
       return true;
     });
@@ -178,7 +178,7 @@ const Content = ({
     return () => {
       backHandler.remove();
     };
-  }, [open, onOpenChange]);
+  }, [dismissible, open, onOpenChange]);
 
   if (!forceMount) {
     if (!open) {
@@ -195,7 +195,6 @@ const Content = ({
       aria-labelledby={`${nativeID}_label`}
       aria-describedby={`${nativeID}_desc`}
       aria-modal={true}
-      onStartShouldSetResponder={onStartShouldSetResponder}
       {...props}
     />
   );
