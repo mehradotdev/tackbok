@@ -14,10 +14,13 @@ import {
   AudioContext,
   AudioRecorder,
   AudioManager,
+  FileFormat,
+  FilePreset,
   type AudioBuffer,
   type AudioBufferSourceNode,
   type AnalyserNode,
 } from 'react-native-audio-api';
+import { File } from 'expo-file-system';
 
 // ============================================================================
 // Constants
@@ -128,9 +131,28 @@ class AudioEngine {
   private ensureRecorder(): AudioRecorder {
     if (!this.audioRecorder) {
       this.audioRecorder = new AudioRecorder();
-      this.audioRecorder.enableFileOutput();
+      this.audioRecorder.enableFileOutput({
+        format: FileFormat.M4A,
+        preset: FilePreset.Medium,
+      });
     }
     return this.audioRecorder;
+  }
+
+  private async decodeAudioBuffer(uri: string): Promise<AudioBuffer> {
+    const ctx = this.ensureContext();
+
+    try {
+      return await ctx.decodeAudioData(uri);
+    } catch {
+      const file = new File(uri);
+      const bytes = await file.bytes();
+      const buffer = bytes.buffer.slice(
+        bytes.byteOffset,
+        bytes.byteOffset + bytes.byteLength,
+      );
+      return ctx.decodeAudioData(buffer);
+    }
   }
 
   // ====================================================================
@@ -261,8 +283,9 @@ class AudioEngine {
       // Guard: if we were stopped/replaced while loading
       if (this._currentUri !== uri || requestId !== this.loadRequestId) return;
 
-      // Decode audio data from file URI
-      this.currentBuffer = await ctx.decodeAudioData(uri);
+      // Decode audio data from file URI. Fallback to in-memory decode for
+      // formats that are more reliable through byte-based detection.
+      this.currentBuffer = await this.decodeAudioBuffer(uri);
 
       // Guard: if we were stopped/replaced while decoding
       if (this._currentUri !== uri || requestId !== this.loadRequestId) return;
@@ -532,10 +555,8 @@ class AudioEngine {
     uri: string,
     sampleCount: number,
   ): Promise<{ amplitudes: number[]; duration: number }> {
-    const ctx = this.ensureContext();
-
     // Decode the file into a buffer (read-only, doesn't affect playback)
-    const buffer = await ctx.decodeAudioData(uri);
+    const buffer = await this.decodeAudioBuffer(uri);
     const channelData = buffer.getChannelData(0); // mono or first channel
     const totalFrames = channelData.length;
     const audioDuration = buffer.duration;

@@ -14,7 +14,6 @@ export const en = {
   Back: 'Back',
   Create: 'Create',
   Discard: 'Discard',
-  Continue: 'Continue',
   Delete: 'Delete',
   Remove: 'Remove',
   Close: 'Close',
@@ -35,8 +34,8 @@ export const en = {
   'What are you grateful for today?': 'What are you grateful for today?',
   'What were you grateful for yesterday?': 'What were you grateful for yesterday?',
   'What are you grateful for?': 'What are you grateful for?',
+  'What were you grateful for?': 'What were you grateful for?',
   'Failed to load entries': 'Failed to load entries',
-  'I was grateful for': 'I was grateful for',
 
   // Date Entries
   'Loading...': 'Loading...',
@@ -47,8 +46,6 @@ export const en = {
 
   // Gratitude Entry
   'Delete Entry?': 'Delete Entry?',
-  'Clearing the text will delete this entry entirely.':
-    'Clearing the text will delete this entry entirely.',
   'This entry will be permanently deleted.': 'This entry will be permanently deleted.',
   'Leave without saving?': 'Leave without saving?',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
@@ -56,7 +53,6 @@ export const en = {
   'Keep Editing': 'Keep Editing',
 
   'Pick any date': 'Pick any date',
-  'Select date': 'Select date',
   Mood: 'Mood',
   Photo: 'Photo',
   'Add Photo': 'Add Photo',
@@ -210,9 +206,9 @@ export const en = {
   'Feeling Okay': 'Feeling Okay',
   'Feeling Sad': 'Feeling Sad',
   'Feeling Awful': 'Feeling Awful',
-  'Add tags...': 'Add tags...',
   'Entry saved successfully': 'Entry saved successfully',
   'Failed to save entry': 'Failed to save entry',
+  'Failed to save voice memo': 'Failed to save voice memo',
   'Failed to add photos': 'Failed to add photos',
   'Failed to delete entry': 'Failed to delete entry',
   'Tag already exists': 'Tag already exists',
@@ -229,9 +225,6 @@ export const en = {
   'Tag name': 'Tag name',
   'Add a Tag': 'Add a Tag',
   'Create New Tag': 'Create New Tag',
-  'New tag name...': 'New tag name...',
-  'No tags yet': 'No tags yet',
-  'Create your first tag': 'Create your first tag',
   'Edit Tag': 'Edit Tag',
   'Delete Tag': 'Delete Tag',
   'Are you sure you want to delete the tag "{title}"?':
@@ -282,15 +275,11 @@ export const en = {
   // Settings - Journaling
   Journaling: 'Journaling',
   'Worksheet Template': 'Worksheet Template',
-  'Customize the default worksheet for new gratitude entries':
-    'Customize the default worksheet for new gratitude entries',
   'Edit Worksheet Template': 'Edit Worksheet Template',
   'Use this template to pre-fill the body of new gratitude entries':
     'Use this template to pre-fill the body of new gratitude entries',
   'Reset to Default': 'Reset to Default',
   'Journaling Worksheet': 'Journaling Worksheet',
-  'A template for your daily journaling routine.':
-    'A template for your daily journaling routine.',
   'Start Writing': 'Start Writing',
   'Journal Focus Areas': 'Journal Focus Areas',
   'Personalize your journal prompts.': 'Personalize your journal prompts.',
@@ -309,12 +298,10 @@ export const en = {
     'Cherish the small, often overlooked blessings of everyday life.',
   focusArea_health_desc:
     'Appreciate the many blessings of your body and its capabilities.',
-  focusArea_family_desc:
-    'Appreciate your family members and moments shared with them.',
-  focusArea_friends_desc:
-    'Cherish your loving, supportive, and understanding friends.',
+  focusArea_family_desc: 'Appreciate your family members and moments shared with them.',
+  focusArea_friends_desc: 'Cherish your loving, supportive, and understanding friends.',
   focusArea_faith_desc:
-    "Focus on appreciating your faith, spirituality, and inner peace.",
+    'Focus on appreciating your faith, spirituality, and inner peace.',
 
   // Settings - Security
   Security: 'Security',
@@ -331,25 +318,75 @@ export const en = {
   Daily: 'Daily',
   Weekly: 'Weekly',
   'On Every Change': 'On Every Change',
-  'Export to CSV': 'Export entries to CSV',
-  'Full backup of entries and tags': 'Full backup of entries and tags',
-  'Import Entries from CSV': 'Import Entries from CSV',
-  'Restore from a Tackbok backup file': 'Restore from a Tackbok backup file',
+  'Export as .ZIP': 'Export as .ZIP',
+  'All of your data in a format that you can restore in the app later':
+    'All of your data in a format that you can restore in the app later',
+  'Import as .ZIP': 'Import as .ZIP',
+  'Restore your data from a .zip file': 'Restore your data from a .zip file',
+  'Import from Gratitude App': 'Import from Gratitude App',
+  'Importing from Gratitude App': 'Importing from Gratitude App',
+  'Import data from a Gratitude App .zip backup':
+    'Import data from a Gratitude App .zip backup',
+  'Choose Import Mode': 'Choose Import Mode',
+  'How should this import handle entries that already exist in Tackbok?':
+    'How should this import handle entries that already exist in Tackbok?',
+  'Skip Existing Entries': 'Skip Existing Entries',
+  'Skip Existing Entries (Recommended)': 'Skip Existing Entries (Recommended)',
+  'Only import entries with new note IDs': 'Only import entries with new note IDs',
+  'Overwrite Matching Entries': 'Overwrite Matching Entries',
+  'Replace existing entries when note IDs match':
+    'Replace existing entries when note IDs match',
   'Import from Presently App': 'Import from Presently App',
-  'Import entries from a Presently CSV export':
-    'Import entries from a Presently CSV export',
+  'Restore your data from a Presently .csv file':
+    'Restore your data from a Presently .csv file',
   'Import from Presently?': 'Import from Presently?',
   'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
     'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.',
-  'Entries exported successfully': 'Entries exported successfully',
+  'Backup exported successfully': 'Backup exported successfully',
   'Export failed': 'Export failed',
   importedCount: 'Imported {count} entries',
-  importedCountSingular: 'Imported {count} entry',
   'Import failed': 'Import failed',
-  'Importing entries...': 'Importing entries...',
-  'Are you sure you want to import?': 'Are you sure you want to import?',
-  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
-    'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.',
+  'Restoring Tackbok backup': 'Restoring Tackbok backup',
+  'Load Presently export': 'Load Presently export',
+  'Import journal entries': 'Import journal entries',
+  'Preparing import': 'Preparing import',
+  'Open backup file': 'Open backup file',
+  'Validate backup contents': 'Validate backup contents',
+  'Restore profile': 'Restore profile',
+  'Import tags and prompts': 'Import tags and prompts',
+  'Restore entries and media': 'Restore entries and media',
+  'Refresh journal data': 'Refresh journal data',
+  'Loading the selected import file.': 'Loading the selected import file.',
+  'Checking backup contents and file structure.':
+    'Checking backup contents and file structure.',
+  'Restoring profile details and profile photo if available.':
+    'Restoring profile details and profile photo if available.',
+  'Adding tags and prompts before entries are restored.':
+    'Adding tags and prompts before entries are restored.',
+  'Processing {processed} of {total} journal entries and attached media.':
+    'Processing {processed} of {total} journal entries and attached media.',
+  'No journal entries found in this backup.': 'No journal entries found in this backup.',
+  'Refreshing your journal so imported data appears everywhere.':
+    'Refreshing your journal so imported data appears everywhere.',
+  'Entries processed': 'Entries processed',
+  'Tags added': 'Tags added',
+  'Prompts added': 'Prompts added',
+  'Photos restored': 'Photos restored',
+  'Voice memos restored': 'Voice memos restored',
+  'Tackbok backup restored': 'Tackbok backup restored',
+  'Gratitude import complete': 'Gratitude import complete',
+  'Presently import complete': 'Presently import complete',
+  'Your journal data is ready to review.': 'Your journal data is ready to review.',
+  'This import finished, but everything already existed in Tackbok.':
+    'This import finished, but everything already existed in Tackbok.',
+  'This import finished successfully.': 'This import finished successfully.',
+  'Imported from Tackbok backup': 'Imported from Tackbok backup',
+  'Imported from Gratitude backup': 'Imported from Gratitude backup',
+  'Imported from Presently export': 'Imported from Presently export',
+  'New entries': 'New entries',
+  'Updated entries': 'Updated entries',
+  'Skipped duplicates': 'Skipped duplicates',
+  Warnings: 'Warnings',
   Import: 'Import',
 
   // Settings - App Information
@@ -371,11 +408,10 @@ export const en = {
   // Settings - Danger Zone
   'Danger Zone': 'Danger Zone',
   'Delete All Data': 'Delete All Data',
-  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
-    'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template',
+  'Permanently delete all your app data': 'Permanently delete all your app data',
   'Delete all data?': 'Delete all data?',
-  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
-    'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.',
+  'This action cannot be undone. All your app data will be permanently deleted.':
+    'This action cannot be undone. All your app data will be permanently deleted.',
   'All data deleted': 'All data deleted',
   'Delete failed': 'Delete failed',
 
@@ -385,8 +421,6 @@ export const en = {
   // Date Picker
   Today: 'Today',
   Yesterday: 'Yesterday',
-  'Select Date': 'Select Date',
-  'Has entry': 'Has entry',
   Selected: 'Selected',
   'Previous month': 'Previous month',
   'Next month': 'Next month',

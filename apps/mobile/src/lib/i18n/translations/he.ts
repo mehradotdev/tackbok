@@ -15,7 +15,6 @@ export const he: Translations = {
   Back: 'חזור',
   Create: 'צור',
   Discard: 'בטל שינויים',
-  Continue: 'המשך',
   Delete: 'מחק',
   Remove: 'הסר',
   Close: 'סגור',
@@ -36,8 +35,8 @@ export const he: Translations = {
   'What are you grateful for today?': 'על מה אתה אסיר תודה היום?',
   'What were you grateful for yesterday?': 'על מה היית אסיר תודה אתמול?',
   'What are you grateful for?': 'על מה אתה אסיר תודה?',
+  'What were you grateful for?': 'על מה היית אסיר תודה?',
   'Failed to load entries': 'טעינת הרשומות נכשלה',
-  'I was grateful for': 'הייתי אסיר תודה על',
 
   // Date Entries
   'Loading...': 'טוען...',
@@ -47,8 +46,6 @@ export const he: Translations = {
 
   // Gratitude Entry
   'Delete Entry?': 'מחק רשומה?',
-  'Clearing the text will delete this entry entirely.':
-    'ניקוי הטקסט ימחק את הרשומה הזו לחלוטין.',
   'This entry will be permanently deleted.': 'רשומה זו תימחק לצמיתות.',
   'Leave without saving?': 'לצאת ללא שמירה?',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
@@ -56,7 +53,6 @@ export const he: Translations = {
   'Keep Editing': 'המשך לערוך',
 
   'Pick any date': 'בחר תאריך כלשהו',
-  'Select date': 'בחר תאריך',
   Mood: 'מצב רוח',
   Photo: 'תמונה',
   'Add Photo': 'הוסף תמונה',
@@ -198,9 +194,9 @@ export const he: Translations = {
   'Feeling Okay': 'מרגיש בסדר',
   'Feeling Sad': 'מרגיש עצוב',
   'Feeling Awful': 'מרגיש נורא',
-  'Add tags...': 'הוסף תגיות...',
   'Entry saved successfully': 'הרשומה נשמרה בהצלחה',
   'Failed to save entry': 'שמירת הרשומה נכשלה',
+  'Failed to save voice memo': 'שמירת התזכורת הקולית נכשלה',
   'Failed to add photos': 'הוספת התמונות נכשלה',
   'Failed to delete entry': 'מחיקת הרשומה נכשלה',
   'Tag already exists': 'התגית כבר קיימת',
@@ -217,9 +213,6 @@ export const he: Translations = {
   'Tag name': 'שם תגית',
   'Add a Tag': 'הוסף תגית',
   'Create New Tag': 'צור תגית חדשה',
-  'New tag name...': 'שם תגית חדשה...',
-  'No tags yet': 'אין תגיות עדיין',
-  'Create your first tag': 'צור את התגית הראשונה שלך',
   'Edit Tag': 'ערוך תגית',
   'Delete Tag': 'מחק תגית',
   'Are you sure you want to delete the tag "{title}"?':
@@ -269,15 +262,11 @@ export const he: Translations = {
   // Settings - Journaling
   Journaling: 'כתיבה יומית',
   'Worksheet Template': 'תבנית דף כתיבה',
-  'Customize the default worksheet for new gratitude entries':
-    'התאם את דף הכתיבה ברירת המחדל לרשומות תודה חדשות',
   'Edit Worksheet Template': 'ערוך את תבנית דף הכתיבה',
   'Use this template to pre-fill the body of new gratitude entries':
     'השתמש בתבנית הזו כדי למלא מראש את גוף רשומות התודה החדשות',
   'Reset to Default': 'אפס לברירת המחדל',
   'Journaling Worksheet': 'דף כתיבה יומי',
-  'A template for your daily journaling routine.':
-    'תבנית לשגרת הכתיבה וההתבוננות היומית שלך.',
   'Start Writing': 'התחל לכתוב',
   'Journal Focus Areas': 'תחומי התמקדות ביומן',
   'Personalize your journal prompts.': 'התאם אישית את ההנחיות ביומן שלך.',
@@ -291,7 +280,8 @@ export const he: Translations = {
   'My Prompts': 'ההנחיות שלי',
   'Built In Prompts': 'הנחיות מובנות',
   focusArea_self_desc: 'הרהר בתחביבים, תחומי עניין, חוויות וחיים בכלל.',
-  focusArea_littleThings_desc: 'הוקר את הדברים הקטנים והברכות היומיומיות שלעתים נעלמות מעינינו.',
+  focusArea_littleThings_desc:
+    'הוקר את הדברים הקטנים והברכות היומיומיות שלעתים נעלמות מעינינו.',
   focusArea_health_desc: 'הוקר את הברכות הרבות של גופך ויכולותיו.',
   focusArea_family_desc: 'הוקר את בני משפחתך ואת הרגעים שחלקת עמם.',
   focusArea_friends_desc: 'הוקר את חבריך האוהבים, התומכים והמבינים.',
@@ -303,33 +293,84 @@ export const he: Translations = {
   'Lock with biometric scanner if supported':
     'טאקבוק יכול לנעול באמצעות הסורק הביומטרי של המכשיר (אם נתמך)',
 
-  // Settings - Backup & Restore
+    // Settings - Backup & Restore
   'Backup & Restore': 'גיבוי ושחזור',
   'Google Drive Backup': 'גיבוי ל-Google Drive',
   'Automatically back up your entries with Google Drive':
-    'התחבר עם חשבון Google Drive לגיבוי אוטומטי של הרשומות שלך',
+    'התחבר עם חשבון Google Drive שלך כדי לגבות אוטומטית את הרשומות שלך',
   'Backup Frequency': 'תדירות גיבוי',
   Daily: 'יומי',
   Weekly: 'שבועי',
   'On Every Change': 'בכל שינוי',
-  'Export to CSV': 'ייצוא ל-CSV',
-  'Full backup of entries and tags': 'גיבוי מלא של רשומות ותגיות',
-  'Import Entries from CSV': 'ייבוא רשומות מ-CSV',
-  'Restore from a Tackbok backup file': 'שחזור מקובץ גיבוי של טאקבוק',
+  'Export as .ZIP': 'ייצוא כקובץ .ZIP',
+  'All of your data in a format that you can restore in the app later':
+    'כל הנתונים שלך בפורמט שניתן לשחזר באפליקציה מאוחר יותר',
+  'Import as .ZIP': 'ייבוא כקובץ .ZIP',
+  'Restore your data from a .zip file': 'שחזר את הנתונים שלך מקובץ .zip',
+  'Import from Gratitude App': 'ייבוא מאפליקציית Gratitude',
+  'Importing from Gratitude App': 'מייבא מאפליקציית Gratitude',
+  'Import data from a Gratitude App .zip backup':
+    'ייבוא נתונים מקובץ .zip של אפליקציית Gratitude',
+  'Choose Import Mode': 'בחר מצב ייבוא',
+  'How should this import handle entries that already exist in Tackbok?':
+    'כיצד ייבוא זה צריך לטפל ברשומות שכבר קיימות בטאקבוק?',
+  'Skip Existing Entries': 'דלג על רשומות קיימות',
+  'Skip Existing Entries (Recommended)': 'דלג על רשומות קיימות (מומלץ)',
+  'Only import entries with new note IDs': 'ייבא רק רשומות עם מזהי הערות חדשים',
+  'Overwrite Matching Entries': 'החלף רשומות תואמות',
+  'Replace existing entries when note IDs match':
+    'החלף רשומות קיימות כאשר מזהי ההערות תואמים',
   'Import from Presently App': 'ייבוא מאפליקציית Presently',
-  'Import entries from a Presently CSV export': 'ייבוא רשומות מייצוא CSV של Presently',
+  'Restore your data from a Presently .csv file':
+    'שחזר את הנתונים שלך מקובץ .csv של Presently',
   'Import from Presently?': 'ייבוא מ-Presently?',
   'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
-    'פעולה זו תייבא רשומות מקובץ CSV של אפליקציית Presently. רשומות כפולות ידלגו.',
-  'Entries exported successfully': 'הרשומות יוצאו בהצלחה',
+    'פעולה זו תייבא רשומות מקובץ CSV של אפליקציית Presently. רשומות כפולות לא יובאו.',
+  'Backup exported successfully': 'הגיבוי יוצא בהצלחה',
   'Export failed': 'הייצוא נכשל',
   importedCount: 'יובאו {count} רשומות',
-  importedCountSingular: 'יובאה {count} רשומה',
   'Import failed': 'הייבוא נכשל',
-  'Importing entries...': 'מייבא רשומות...',
-  'Are you sure you want to import?': 'האם אתה בטוח שברצונך לייבא?',
-  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
-    'פעולה זו תייבא רשומות מקובץ גיבוי של טאקבוק. רשומות כפולות ידלגו.',
+  'Restoring Tackbok backup': 'משחזר גיבוי של טאקבוק',
+  'Load Presently export': 'טוען ייצוא של Presently',
+  'Import journal entries': 'מייבא רשומות יומן',
+  'Preparing import': 'מכין ייבוא',
+  'Open backup file': 'פותח קובץ גיבוי',
+  'Validate backup contents': 'מאמת תוכן גיבוי',
+  'Restore profile': 'משחזר פרופיל',
+  'Import tags and prompts': 'מייבא תגיות והנחיות',
+  'Restore entries and media': 'משחזר רשומות ומדיה',
+  'Refresh journal data': 'מרענן נתוני יומן',
+  'Loading the selected import file.': 'טוען את קובץ הייבוא שנבחר.',
+  'Checking backup contents and file structure.':
+    'בודק את תוכן הגיבוי ומבנה הקובץ.',
+  'Restoring profile details and profile photo if available.':
+    'משחזר פרטי פרופיל ותמונת פרופיל במידה וזמינה.',
+  'Adding tags and prompts before entries are restored.':
+    'מוסיף תגיות והנחיות לפני שחזור הרשומות.',
+  'Processing {processed} of {total} journal entries and attached media.':
+    'מעבד {processed} מתוך {total} רשומות יומן ומדיה מצורפת.',
+  'No journal entries found in this backup.': 'לא נמצאו רשומות יומן בגיבוי זה.',
+  'Refreshing your journal so imported data appears everywhere.':
+    'מרענן את היומן שלך כך שהנתונים המיובאים יופיעו בכל מקום.',
+  'Entries processed': 'רשומות שעובדו',
+  'Tags added': 'תגיות שנוספו',
+  'Prompts added': 'הנחיות שנוספו',
+  'Photos restored': 'תמונות ששוחזרו',
+  'Voice memos restored': 'תזכורות קוליות ששוחזרו',
+  'Tackbok backup restored': 'גיבוי טאקבוק שוחזר',
+  'Gratitude import complete': 'ייבוא מ-Gratitude הושלם',
+  'Presently import complete': 'ייבוא מ-Presently הושלם',
+  'Your journal data is ready to review.': 'נתוני היומן שלך מוכנים לבדיקה.',
+  'This import finished, but everything already existed in Tackbok.':
+    'הייבוא הסתיים, אך הכל כבר היה קיים בטאקבוק.',
+  'This import finished successfully.': 'הייבוא הסתיים בהצלחה.',
+  'Imported from Tackbok backup': 'יובא מגיבוי של טאקבוק',
+  'Imported from Gratitude backup': 'יובא מגיבוי של Gratitude',
+  'Imported from Presently export': 'יובא מייצוא של Presently',
+  'New entries': 'רשומות חדשות',
+  'Updated entries': 'רשומות מעודכנות',
+  'Skipped duplicates': 'דילג על כפילויות',
+  Warnings: 'אזהרות',
   Import: 'ייבוא',
 
   // Settings - App Information
@@ -351,11 +392,10 @@ export const he: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'אזור מסוכן',
   'Delete All Data': 'מחק את כל הנתונים',
-  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
-    'מחק את כל הרשומות, התמונות, ההקלטות הקוליות, ההנחיות המותאמות אישית ותבנית גליון העבודה המותאמת אישית שלך לצמיתות',
+  'Permanently delete all your app data': 'מחק את כל נתוני האפליקציה שלך לצמיתות',
   'Delete all data?': 'למחוק את כל הנתונים?',
-  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
-    'לא ניתן לבטל פעולה זו. כל הרשומות, התמונות, ההקלטות הקוליות, ההנחיות המותאמות אישית ותבנית גליון העבודה המותאמת אישית שלך יימחקו לצמיתות.',
+  'This action cannot be undone. All your app data will be permanently deleted.':
+    'לא ניתן לבטל פעולה זו. כל נתוני האפליקציה שלך יימחקו לצמיתות.',
   'All data deleted': 'כל הנתונים נמחקו',
   'Delete failed': 'המחיקה נכשלה',
 
@@ -365,8 +405,6 @@ export const he: Translations = {
   // Date Picker
   Today: 'היום',
   Yesterday: 'אתמול',
-  'Select Date': 'בחר תאריך',
-  'Has entry': 'יש רשומה',
   Selected: 'נבחר',
   'Previous month': 'החודש הקודם',
   'Next month': 'החודש הבא',

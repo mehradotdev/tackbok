@@ -15,7 +15,6 @@ export const ar: Translations = {
   Back: 'رجوع',
   Create: 'إنشاء',
   Discard: 'تجاهل',
-  Continue: 'متابعة',
   Delete: 'حذف',
   Remove: 'إزالة',
   Close: 'إغلاق',
@@ -35,8 +34,8 @@ export const ar: Translations = {
   'What are you grateful for today?': 'ما الذي تشعر بالامتنان له اليوم؟',
   'What were you grateful for yesterday?': 'ما الذي كنت ممتناً له بالأمس؟',
   'What are you grateful for?': 'ما الذي تشعر بالامتنان له؟',
+  'What were you grateful for?': 'ما الذي كنت ممتنًا له؟',
   'Failed to load entries': 'فشل تحميل السجلات',
-  'I was grateful for': 'كنت ممتناً لـ',
 
   // Date Entries
   'Loading...': 'جاري التحميل...',
@@ -46,8 +45,6 @@ export const ar: Translations = {
 
   // Gratitude Entry
   'Delete Entry?': 'حذف السجل؟',
-  'Clearing the text will delete this entry entirely.':
-    'مسح النص سيؤدي إلى حذف هذا السجل تماماً.',
   'This entry will be permanently deleted.': 'سيتم حذف هذا السجل نهائيًا.',
   'Leave without saving?': 'المغادرة دون حفظ؟',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
@@ -55,7 +52,6 @@ export const ar: Translations = {
   'Keep Editing': 'متابعة التحرير',
 
   'Pick any date': 'اختر أي تاريخ',
-  'Select date': 'حدد التاريخ',
   Mood: 'المزاج',
   Photo: 'صورة',
   'Add Photo': 'إضافة صورة',
@@ -196,9 +192,9 @@ export const ar: Translations = {
   'Feeling Okay': 'أشعر بأنني بخير',
   'Feeling Sad': 'أشعر بالحزن',
   'Feeling Awful': 'أشعر بالسوء',
-  'Add tags...': 'أضف وسوم...',
   'Entry saved successfully': 'تم حفظ الإدخال بنجاح',
   'Failed to save entry': 'فشل حفظ الإدخال',
+  'Failed to save voice memo': 'فشل حفظ المذكرة الصوتية',
   'Failed to add photos': 'فشل إضافة الصور',
   'Failed to delete entry': 'فشل حذف الإدخال',
   'Tag already exists': 'الوسم موجود بالفعل',
@@ -215,9 +211,6 @@ export const ar: Translations = {
   'Tag name': 'اسم الوسم',
   'Add a Tag': 'أضف وسماً',
   'Create New Tag': 'إنشاء وسم جديد',
-  'New tag name...': 'اسم الوسم الجديد...',
-  'No tags yet': 'لا توجد وسوم بعد',
-  'Create your first tag': 'أنشئ وسمك الأول',
   'Edit Tag': 'تعديل الوسم',
   'Delete Tag': 'حذف الوسم',
   'Are you sure you want to delete the tag "{title}"?':
@@ -267,15 +260,11 @@ export const ar: Translations = {
   // Settings - Journaling
   Journaling: 'الكتابة اليومية',
   'Worksheet Template': 'قالب ورقة الكتابة',
-  'Customize the default worksheet for new gratitude entries':
-    'خصّص ورقة الكتابة الافتراضية لإدخالات الامتنان الجديدة',
   'Edit Worksheet Template': 'تعديل قالب ورقة الكتابة',
   'Use this template to pre-fill the body of new gratitude entries':
     'استخدم هذا القالب لملء نص الإدخالات الجديدة مسبقاً',
   'Reset to Default': 'إعادة التعيين إلى الافتراضي',
   'Journaling Worksheet': 'ورقة الكتابة اليومية',
-  'A template for your daily journaling routine.':
-    'قالب لروتينك اليومي في الكتابة والتأمل.',
   'Start Writing': 'ابدأ الكتابة',
   'Journal Focus Areas': 'مجالات التركيز في اليوميات',
   'Personalize your journal prompts.': 'خصّص مطالبات يومياتك.',
@@ -289,7 +278,8 @@ export const ar: Translations = {
   'My Prompts': 'أسئلتي',
   'Built In Prompts': 'المطالبات المدمجة',
   focusArea_self_desc: 'تأمل في هواياتك واهتماماتك وتجاربك وحياتك بشكل عام.',
-  focusArea_littleThings_desc: 'قدّر الأشياء الصغيرة والنعم اليومية التي كثيرًا ما نغفل عنها.',
+  focusArea_littleThings_desc:
+    'قدّر الأشياء الصغيرة والنعم اليومية التي كثيرًا ما نغفل عنها.',
   focusArea_health_desc: 'قدّر النعم الكثيرة لجسمك وقدراته.',
   focusArea_family_desc: 'قدّر أفراد عائلتك واللحظات المشتركة معهم.',
   focusArea_friends_desc: 'قدّر أصدقاءك المحبين والداعمين والمتفهمين.',
@@ -301,34 +291,84 @@ export const ar: Translations = {
   'Lock with biometric scanner if supported':
     'يمكن لتاكبوك القفل باستخدام الماسح البيومتري لجهازك (إذا كان مدعوماً)',
 
-  // Settings - Backup & Restore
+    // Settings - Backup & Restore
   'Backup & Restore': 'النسخ الاحتياطي والاستعادة',
   'Google Drive Backup': 'نسخ احتياطي على Google Drive',
   'Automatically back up your entries with Google Drive':
-    'سجّل الدخول باستخدام حساب Google Drive لإجراء نسخ احتياطي تلقائي لإدخالاتك',
+    'قم بتسجيل الدخول بحساب Google Drive الخاص بك للنسخ الاحتياطي التلقائي لإدخالاتك',
   'Backup Frequency': 'تكرار النسخ الاحتياطي',
   Daily: 'يومياً',
   Weekly: 'أسبوعياً',
   'On Every Change': 'عند كل تغيير',
-  'Export to CSV': 'تصدير إلى CSV',
-  'Full backup of entries and tags': 'نسخ احتياطي كامل للسجلات والوسوم',
-  'Import Entries from CSV': 'استيراد السجلات من CSV',
-  'Restore from a Tackbok backup file': 'استعادة من ملف نسخ احتياطي لتاكبوك',
+  'Export as .ZIP': 'تصدير بصيغة .ZIP',
+  'All of your data in a format that you can restore in the app later':
+    'جميع بياناتك بتنسيق يمكنك استعادته في التطبيق لاحقاً',
+  'Import as .ZIP': 'استيراد بصيغة .ZIP',
+  'Restore your data from a .zip file': 'استعادة بياناتك من ملف .zip',
+  'Import from Gratitude App': 'استيراد من تطبيق Gratitude',
+  'Importing from Gratitude App': 'جاري الاستيراد من تطبيق Gratitude',
+  'Import data from a Gratitude App .zip backup':
+    'استيراد البيانات من نسخة .zip لتطبيق Gratitude',
+  'Choose Import Mode': 'اختر وضع الاستيراد',
+  'How should this import handle entries that already exist in Tackbok?':
+    'كيف يجب أن يتعامل هذا الاستيراد مع الإدخالات الموجودة بالفعل في تاكبوك؟',
+  'Skip Existing Entries': 'تخطي الإدخالات الحالية',
+  'Skip Existing Entries (Recommended)': 'تخطي الإدخالات الحالية (موصى به)',
+  'Only import entries with new note IDs': 'استيراد الإدخالات بمعرفات ملاحظات جديدة فقط',
+  'Overwrite Matching Entries': 'استبدال الإدخالات المطابقة',
+  'Replace existing entries when note IDs match':
+    'استبدال الإدخالات الحالية عند تطابق معرفات الملاحظات',
   'Import from Presently App': 'استيراد من تطبيق Presently',
-  'Import entries from a Presently CSV export':
-    'استيراد السجلات من ملف CSV لتطبيق Presently',
+  'Restore your data from a Presently .csv file':
+    'استعادة بياناتك من ملف .csv لتطبيق Presently',
   'Import from Presently?': 'استيراد من Presently؟',
   'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
-    'سيتم استيراد السجلات من ملف CSV لتطبيق Presently. سيتم تخطي السجلات المكررة.',
-  'Entries exported successfully': 'تم تصدير السجلات بنجاح',
+    'سيتم استيراد الإدخالات من ملف CSV لتطبيق Presently. سيتم تخطي الإدخالات المكررة.',
+  'Backup exported successfully': 'تم تصدير النسخة الاحتياطية بنجاح',
   'Export failed': 'فشل التصدير',
-  importedCount: 'تم استيراد {count} سجلات',
-  importedCountSingular: 'تم استيراد {count} سجل',
+  importedCount: 'تم استيراد {count} إدخال/إدخالات',
   'Import failed': 'فشل الاستيراد',
-  'Importing entries...': 'جارٍ استيراد السجلات...',
-  'Are you sure you want to import?': 'هل أنت متأكد أنك تريد الاستيراد؟',
-  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
-    'سيتم استيراد السجلات من ملف نسخ احتياطي لتاكبوك. سيتم تخطي السجلات المكررة.',
+  'Restoring Tackbok backup': 'جاري استعادة النسخة الاحتياطية لتاكبوك',
+  'Load Presently export': 'تحميل تصدير Presently',
+  'Import journal entries': 'استيراد إدخالات اليوميات',
+  'Preparing import': 'جاري التحضير للاستيراد',
+  'Open backup file': 'فتح ملف النسخة الاحتياطية',
+  'Validate backup contents': 'التحقق من محتويات النسخة الاحتياطية',
+  'Restore profile': 'استعادة الملف الشخصي',
+  'Import tags and prompts': 'استيراد الوسوم والمطالبات',
+  'Restore entries and media': 'استعادة الإدخالات والوسائط',
+  'Refresh journal data': 'تحديث بيانات اليوميات',
+  'Loading the selected import file.': 'جاري تحميل ملف الاستيراد المحدد.',
+  'Checking backup contents and file structure.':
+    'جاري التحقق من محتويات ملف النسخ الاحتياطي وهيكله.',
+  'Restoring profile details and profile photo if available.':
+    'جاري استعادة تفاصيل الملف الشخصي وصورة الملف الشخصي إن وجدت.',
+  'Adding tags and prompts before entries are restored.':
+    'جاري إضافة الوسوم والمطالبات قبل استعادة الإدخالات.',
+  'Processing {processed} of {total} journal entries and attached media.':
+    'جاري معالجة {processed} من {total} من إدخالات اليوميات والوسائط المرفقة.',
+  'No journal entries found in this backup.': 'لم يتم العثور على إدخالات يوميات في هذه النسخة الاحتياطية.',
+  'Refreshing your journal so imported data appears everywhere.':
+    'جاري تحديث يومياتك حتى تظهر البيانات المستوردة في كل مكان.',
+  'Entries processed': 'الإدخالات المعالجة',
+  'Tags added': 'الوسوم المضافة',
+  'Prompts added': 'المطالبات المضافة',
+  'Photos restored': 'الصور المستعادة',
+  'Voice memos restored': 'المذكرات الصوتية المستعادة',
+  'Tackbok backup restored': 'تمت استعادة النسخة الاحتياطية لتاكبوك',
+  'Gratitude import complete': 'اكتمل استيراد Gratitude',
+  'Presently import complete': 'اكتمل استيراد Presently',
+  'Your journal data is ready to review.': 'بيانات يومياتك جاهزة للمراجعة.',
+  'This import finished, but everything already existed in Tackbok.':
+    'انتهى الاستيراد، لكن كل شيء كان موجودًا بالفعل في تاكبوك.',
+  'This import finished successfully.': 'انتهى هذا الاستيراد بنجاح.',
+  'Imported from Tackbok backup': 'مستورد من نسخة تاكبوك الاحتياطية',
+  'Imported from Gratitude backup': 'مستورد من نسخة Gratitude الاحتياطية',
+  'Imported from Presently export': 'مستورد من تصدير Presently',
+  'New entries': 'إدخالات جديدة',
+  'Updated entries': 'إدخالات تم تحديثها',
+  'Skipped duplicates': 'تم تخطي المكررات',
+  Warnings: 'تحذيرات',
   Import: 'استيراد',
 
   // Settings - App Information
@@ -350,11 +390,10 @@ export const ar: Translations = {
   // Settings - Danger Zone
   'Danger Zone': 'منطقة الخطر',
   'Delete All Data': 'حذف جميع البيانات',
-  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
-    'حذف جميع سجلاتك وصورك ومذكراتك الصوتية والمطالبات المخصصة وقالب ورقة العمل المخصص بشكل دائم',
+  'Permanently delete all your app data': 'حذف جميع بيانات التطبيق الخاصة بك بشكل دائم',
   'Delete all data?': 'حذف جميع البيانات؟',
-  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
-    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع سجلاتك وصورك ومذكراتك الصوتية والمطالبات المخصصة وقالب ورقة العمل المخصص بشكل دائم.',
+  'This action cannot be undone. All your app data will be permanently deleted.':
+    'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات التطبيق الخاصة بك بشكل دائم.',
   'All data deleted': 'تم حذف جميع البيانات',
   'Delete failed': 'فشل الحذف',
 
@@ -364,8 +403,6 @@ export const ar: Translations = {
   // Date Picker
   Today: 'اليوم',
   Yesterday: 'أمس',
-  'Select Date': 'اختر تاريخاً',
-  'Has entry': 'يحتوي على مدخل',
   Selected: 'محدد',
   'Previous month': 'الشهر السابق',
   'Next month': 'الشهر التالي',

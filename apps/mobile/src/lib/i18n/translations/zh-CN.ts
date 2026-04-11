@@ -15,7 +15,6 @@ export const zhCN: Translations = {
   Back: '返回',
   Create: '创建',
   Discard: '放弃',
-  Continue: '继续',
   Delete: '删除',
   Remove: '移除',
   Close: '关闭',
@@ -35,8 +34,8 @@ export const zhCN: Translations = {
   'What are you grateful for today?': '今天你有什么值得感恩的？',
   'What were you grateful for yesterday?': '昨天你有什么值得感恩的？',
   'What are you grateful for?': '你有什么值得感恩的？',
+  'What were you grateful for?': '你曾为什么感激？',
   'Failed to load entries': '加载条目失败',
-  'I was grateful for': '我感恩',
 
   // Date Entries
   'Loading...': '加载中...',
@@ -46,7 +45,6 @@ export const zhCN: Translations = {
 
   // Gratitude Entry
   'Delete Entry?': '删除条目？',
-  'Clearing the text will delete this entry entirely.': '清除文本将完全删除此条目。',
   'This entry will be permanently deleted.': '此条目将被永久删除。',
   'Leave without saving?': '不保存离开？',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
@@ -54,7 +52,6 @@ export const zhCN: Translations = {
   'Keep Editing': '继续编辑',
 
   'Pick any date': '选择任意日期',
-  'Select date': '选择日期',
   Mood: '心情',
   Photo: '照片',
   'Add Photo': '添加照片',
@@ -194,9 +191,9 @@ export const zhCN: Translations = {
   'Feeling Okay': '感觉还行',
   'Feeling Sad': '感觉难过',
   'Feeling Awful': '感觉很糟糕',
-  'Add tags...': '添加标签...',
   'Entry saved successfully': '条目保存成功',
   'Failed to save entry': '保存条目失败',
+  'Failed to save voice memo': '保存语音备忘录失败',
   'Failed to add photos': '添加照片失败',
   'Failed to delete entry': '删除条目失败',
   'Tag already exists': '标签已存在',
@@ -213,9 +210,6 @@ export const zhCN: Translations = {
   'Tag name': '标签名称',
   'Add a Tag': '添加标签',
   'Create New Tag': '创建新标签',
-  'New tag name...': '新标签名称...',
-  'No tags yet': '暂无标签',
-  'Create your first tag': '创建您的第一个标签',
   'Edit Tag': '编辑标签',
   'Delete Tag': '删除标签',
   'Are you sure you want to delete the tag "{title}"?': '您确定要删除标签“{title}”吗？',
@@ -261,14 +255,11 @@ export const zhCN: Translations = {
   // Settings - Journaling
   Journaling: '日记书写',
   'Worksheet Template': '写作模板',
-  'Customize the default worksheet for new gratitude entries':
-    '自定义新感恩记录的默认写作模板',
   'Edit Worksheet Template': '编辑写作模板',
   'Use this template to pre-fill the body of new gratitude entries':
     '使用此模板预填充新感恩记录的正文',
   'Reset to Default': '恢复默认',
   'Journaling Worksheet': '书写模板',
-  'A template for your daily journaling routine.': '适合你每日书写练习的一份模板。',
   'Start Writing': '开始书写',
   'Journal Focus Areas': '日记关注领域',
   'Personalize your journal prompts.': '个性化你的日记提示。',
@@ -294,33 +285,84 @@ export const zhCN: Translations = {
   'Lock with biometric scanner if supported':
     '塔克博克可使用设备的生物识别扫描仪锁定（如果设备支持）',
 
-  // Settings - Backup & Restore
+    // Settings - Backup & Restore
   'Backup & Restore': '备份与恢复',
   'Google Drive Backup': 'Google Drive 备份',
   'Automatically back up your entries with Google Drive':
-    '登录您的 Google Drive 账户以自动备份您的条目',
+    '使用您的 Google Drive 账户登录以自动备份条目',
   'Backup Frequency': '备份频率',
   Daily: '每天',
   Weekly: '每周',
   'On Every Change': '每次更改时',
-  'Export to CSV': '导出到 CSV',
-  'Full backup of entries and tags': '完整备份条目和标签',
-  'Import Entries from CSV': '从 CSV 导入条目',
-  'Restore from a Tackbok backup file': '从塔克博克备份文件恢复',
+  'Export as .ZIP': '导出为 .ZIP',
+  'All of your data in a format that you can restore in the app later':
+    '以您稍后可在应用中恢复的格式备份您的所有数据',
+  'Import as .ZIP': '从 .ZIP 导入',
+  'Restore your data from a .zip file': '从 .zip 文件恢复您的数据',
+  'Import from Gratitude App': '从 Gratitude 应用导入',
+  'Importing from Gratitude App': '正在从 Gratitude 应用导入',
+  'Import data from a Gratitude App .zip backup':
+    '从 Gratitude 应用的 .zip 备份导入数据',
+  'Choose Import Mode': '选择导入模式',
+  'How should this import handle entries that already exist in Tackbok?':
+    '本次导入应如何处理 Tackbok 中已存在的条目？',
+  'Skip Existing Entries': '跳过现有条目',
+  'Skip Existing Entries (Recommended)': '跳过现有条目（推荐）',
+  'Only import entries with new note IDs': '仅导入具有新笔记 ID 的条目',
+  'Overwrite Matching Entries': '覆盖匹配的条目',
+  'Replace existing entries when note IDs match':
+    '当笔记 ID 匹配时替换现有条目',
   'Import from Presently App': '从 Presently 应用导入',
-  'Import entries from a Presently CSV export': '从 Presently CSV 导出导入条目',
+  'Restore your data from a Presently .csv file':
+    '从 Presently 的 .csv 文件恢复您的数据',
   'Import from Presently?': '从 Presently 导入？',
   'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
-    '这将从 Presently 应用 CSV 文件导入条目。重复条目将被跳过。',
-  'Entries exported successfully': '条目导出成功',
+    '这将从 Presently 应用的 CSV 文件导入条目。重复的条目将被跳过。',
+  'Backup exported successfully': '备份导出成功',
   'Export failed': '导出失败',
-  importedCount: '已导入 {count} 条目',
-  importedCountSingular: '已导入 {count} 条目',
+  importedCount: '已导入 {count} 个条目',
   'Import failed': '导入失败',
-  'Importing entries...': '正在导入条目...',
-  'Are you sure you want to import?': '您确定要导入吗？',
-  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
-    '这将从塔克博克备份文件导入条目。重复条目将被跳过。',
+  'Restoring Tackbok backup': '正在恢复 Tackbok 备份',
+  'Load Presently export': '加载 Presently 导出数据',
+  'Import journal entries': '导入日记条目',
+  'Preparing import': '正在准备导入',
+  'Open backup file': '打开备份文件',
+  'Validate backup contents': '验证备份内容',
+  'Restore profile': '恢复个人资料',
+  'Import tags and prompts': '导入标签和提示',
+  'Restore entries and media': '恢复条目和媒体',
+  'Refresh journal data': '刷新日记数据',
+  'Loading the selected import file.': '正在加载选定的导入文件。',
+  'Checking backup contents and file structure.':
+    '正在检查备份内容和文件结构。',
+  'Restoring profile details and profile photo if available.':
+    '正在恢复个人资料详情和头像（如果有）。',
+  'Adding tags and prompts before entries are restored.':
+    '在恢复条目之前添加标签和提示。',
+  'Processing {processed} of {total} journal entries and attached media.':
+    '正在处理 {processed}/{total} 个日记条目及附加媒体。',
+  'No journal entries found in this backup.': '在此备份中未找到日记条目。',
+  'Refreshing your journal so imported data appears everywhere.':
+    '正在刷新您的日记，以使导入的数据随处可见。',
+  'Entries processed': '条目已处理',
+  'Tags added': '标签已添加',
+  'Prompts added': '提示已添加',
+  'Photos restored': '照片已恢复',
+  'Voice memos restored': '语音备忘录已恢复',
+  'Tackbok backup restored': 'Tackbok 备份已恢复',
+  'Gratitude import complete': 'Gratitude 导入完成',
+  'Presently import complete': 'Presently 导入完成',
+  'Your journal data is ready to review.': '您的日记数据已准备好供查看。',
+  'This import finished, but everything already existed in Tackbok.':
+    '本次导入已完成，但是所有内容已存在于 Tackbok 中。',
+  'This import finished successfully.': '本次导入成功完成。',
+  'Imported from Tackbok backup': '从 Tackbok 备份导入',
+  'Imported from Gratitude backup': '从 Gratitude 备份导入',
+  'Imported from Presently export': '从 Presently 导出数据导入',
+  'New entries': '新条目',
+  'Updated entries': '已更新的条目',
+  'Skipped duplicates': '已跳过的重复项',
+  Warnings: '警告',
   Import: '导入',
 
   // Settings - App Information
@@ -341,11 +383,10 @@ export const zhCN: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危险区域',
   'Delete All Data': '删除所有数据',
-  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
-    '永久删除您的所有条目、照片、语音备忘录、自定义提示词和自定义工作表模板',
+  'Permanently delete all your app data': '永久删除您的所有应用数据',
   'Delete all data?': '删除所有数据？',
-  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
-    '此操作无法撤销。您的所有条目、照片、语音备忘录、自定义提示词和自定义工作表模板将被永久删除。',
+  'This action cannot be undone. All your app data will be permanently deleted.':
+    '此操作无法撤销。您的所有应用数据将被永久删除。',
   'All data deleted': '所有数据已删除',
   'Delete failed': '删除失败',
 
@@ -355,8 +396,6 @@ export const zhCN: Translations = {
   // Date Picker
   Today: '今天',
   Yesterday: '昨天',
-  'Select Date': '选择日期',
-  'Has entry': '有条目',
   Selected: '已选择',
   'Previous month': '上个月',
   'Next month': '下个月',
