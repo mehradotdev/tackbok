@@ -49,7 +49,7 @@ let cachedKeys = null;
 let cachedPath = null;
 
 function getTranslationKeys(enFilePath) {
-  // Invalidate cache if file has changed (mtime check)
+  // Cache keys by resolved path for the lifetime of the current ESLint process.
   try {
     const resolvedPath = path.resolve(enFilePath);
     if (cachedPath === resolvedPath && cachedKeys !== null) {

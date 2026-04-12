@@ -348,7 +348,7 @@ export const zhTW: Translations = {
   'Tags added': '標籤已新增',
   'Prompts added': '提示已新增',
   'Photos restored': '照片已還原',
-  'Voice memos restored': '語音備備忘錄已還原',
+  'Voice memos restored': '語音備忘錄已還原',
   'Tackbok backup restored': 'Tackbok 備份已還原',
   'Gratitude import complete': 'Gratitude 匯入完成',
   'Presently import complete': 'Presently 匯入完成',
