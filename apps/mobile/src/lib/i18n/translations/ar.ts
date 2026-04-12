@@ -331,7 +331,6 @@ export const ar: Translations = {
   'Restoring Tackbok backup': 'جاري استعادة النسخة الاحتياطية لتاكبوك',
   'Load Presently export': 'تحميل تصدير Presently',
   'Import journal entries': 'استيراد إدخالات اليوميات',
-  'Preparing import': 'جاري التحضير للاستيراد',
   'Open backup file': 'فتح ملف النسخة الاحتياطية',
   'Validate backup contents': 'التحقق من محتويات النسخة الاحتياطية',
   'Restore profile': 'استعادة الملف الشخصي',
@@ -368,7 +367,6 @@ export const ar: Translations = {
   'New entries': 'إدخالات جديدة',
   'Updated entries': 'إدخالات تم تحديثها',
   'Skipped duplicates': 'تم تخطي المكررات',
-  Warnings: 'تحذيرات',
   Import: 'استيراد',
 
   // Settings - App Information

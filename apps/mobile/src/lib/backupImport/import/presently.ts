@@ -1,0 +1,188 @@
+import { and, eq } from 'drizzle-orm';
+import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
+import { db, entries } from '~/db';
+import { generateUUID } from '~/lib/utils';
+import {
+  createBackupImportSummary,
+  type ImportProgressCallback,
+  reportImportProgress,
+} from '../progress';
+import {
+  type BackupImportSummary,
+} from '../types';
+
+/**
+ * Parses CSV content into rows while preserving quoted commas, newlines, and escaped quotes.
+ */
+function parseCSV(content: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentField = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const nextChar = content[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        currentField += char;
+      }
+    } else {
+      if (char === '"' && currentField.length === 0) {
+        inQuotes = true;
+      } else if (char === ',') {
+        currentRow.push(currentField);
+        currentField = '';
+      } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
+        if (char === '\r') i++;
+        currentRow.push(currentField);
+        if (currentRow.some((field) => field.trim() !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        currentField = '';
+      } else if (char !== '\r') {
+        currentField += char;
+      }
+    }
+  }
+
+  currentRow.push(currentField);
+  if (currentRow.some((field) => field.trim() !== '')) {
+    rows.push(currentRow);
+  }
+
+  return rows;
+}
+
+/**
+ * Normalizes the header row for format checks by stripping BOM, lowercasing, and trimming.
+ */
+function normalizeHeader(headerRow: string[]): string[] {
+  return headerRow.map((header, index) =>
+    (index === 0 ? header.replace(/^\uFEFF/, '') : header).toLowerCase().trim(),
+  );
+}
+
+/**
+ * Opens the document picker to select a Presently CSV file for import.
+ * Returns null if the picker is cancelled.
+ */
+export async function pickPresentlyImportFile(): Promise<DocumentPicker.DocumentPickerSuccessResult | null> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: ['text/csv', 'text/comma-separated-values', 'application/csv', '*/*'],
+    copyToCacheDirectory: true,
+  });
+
+  return result.canceled ? null : result;
+}
+
+/**
+ * Imports entries from a Presently-format CSV file.
+ * Only has entryDate (YYYY-MM-DD) and entryContent columns.
+ *
+ * Uses date + content matching for duplicate detection because
+ * the Presently format truncates timestamps to date-only.
+ * Presently entries always use midnight timestamps, so exact match is correct.
+ *
+ * Returns a shared import summary for the imported entries.
+ */
+export async function importFromPresentlyCSV(
+  uri: string,
+  onProgress?: ImportProgressCallback,
+): Promise<BackupImportSummary> {
+  reportImportProgress(onProgress, 'presently', 'reading', 0.1);
+
+  const file = new File(uri);
+  const content = await file.text();
+  reportImportProgress(onProgress, 'presently', 'reading', 1);
+
+  const rows = parseCSV(content);
+
+  if (rows.length < 2) {
+    throw new Error('CSV file is empty or has no data rows');
+  }
+
+  const header = normalizeHeader(rows[0]);
+  if (!header.includes('entrydate') || !header.includes('entrycontent')) {
+    throw new Error('Invalid CSV format: missing entryDate or entryContent columns');
+  }
+
+  const dateIndex = header.indexOf('entrydate');
+  const contentIndex = header.indexOf('entrycontent');
+  const dataRows = rows.slice(1);
+  const totalEntries = dataRows.length;
+  const summary = createBackupImportSummary();
+  let processedEntries = 0;
+
+  const reportEntriesProgress = () => {
+    reportImportProgress(
+      onProgress,
+      'presently',
+      'entries',
+      totalEntries === 0 ? 1 : processedEntries / Math.max(totalEntries, 1),
+      {
+        totalEntries,
+        processedEntries,
+      },
+    );
+  };
+
+  reportEntriesProgress();
+
+  await db.transaction(async (tx) => {
+    const advanceProgress = () => {
+      processedEntries++;
+      reportEntriesProgress();
+    };
+
+    for (const row of dataRows) {
+      if (row.length <= Math.max(dateIndex, contentIndex)) {
+        advanceProgress();
+        continue;
+      }
+
+      const entryDateStr = row[dateIndex].trim();
+      const entryContent = row[contentIndex].trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(entryDateStr) || !entryContent) {
+        advanceProgress();
+        continue;
+      }
+
+      const dateMs = new Date(`${entryDateStr}T00:00:00`).getTime();
+      const existing = await tx
+        .select({ note_id: entries.note_id })
+        .from(entries)
+        .where(
+          and(eq(entries.created_at, dateMs), eq(entries.text_content, entryContent)),
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        summary.skippedEntries++;
+        advanceProgress();
+        continue;
+      }
+
+      const now = Date.now();
+      await tx.insert(entries).values({
+        note_id: generateUUID(),
+        text_content: entryContent,
+        created_at: dateMs,
+        updated_at: now,
+      });
+
+      summary.importedEntries++;
+      advanceProgress();
+    }
+  });
+
+  return summary;
+}

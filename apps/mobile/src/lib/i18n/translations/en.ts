@@ -349,7 +349,6 @@ export const en = {
   'Restoring Tackbok backup': 'Restoring Tackbok backup',
   'Load Presently export': 'Load Presently export',
   'Import journal entries': 'Import journal entries',
-  'Preparing import': 'Preparing import',
   'Open backup file': 'Open backup file',
   'Validate backup contents': 'Validate backup contents',
   'Restore profile': 'Restore profile',
@@ -386,7 +385,6 @@ export const en = {
   'New entries': 'New entries',
   'Updated entries': 'Updated entries',
   'Skipped duplicates': 'Skipped duplicates',
-  Warnings: 'Warnings',
   Import: 'Import',
 
   // Settings - App Information

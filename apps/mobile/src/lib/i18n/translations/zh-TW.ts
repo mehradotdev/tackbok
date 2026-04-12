@@ -325,7 +325,6 @@ export const zhTW: Translations = {
   'Restoring Tackbok backup': '正在還原 Tackbok 備份',
   'Load Presently export': '載入 Presently 匯出資料',
   'Import journal entries': '匯入日記紀錄',
-  'Preparing import': '準備匯入',
   'Open backup file': '開啟備份檔案',
   'Validate backup contents': '驗證備份內容',
   'Restore profile': '還原個人檔案',
@@ -362,7 +361,6 @@ export const zhTW: Translations = {
   'New entries': '新紀錄',
   'Updated entries': '已更新的紀錄',
   'Skipped duplicates': '已略過的重複項',
-  Warnings: '警告',
   Import: '匯入',
 
   // Settings - App Information
