@@ -333,7 +333,6 @@ export const he: Translations = {
   'Restoring Tackbok backup': 'משחזר גיבוי של טאקבוק',
   'Load Presently export': 'טוען ייצוא של Presently',
   'Import journal entries': 'מייבא רשומות יומן',
-  'Preparing import': 'מכין ייבוא',
   'Open backup file': 'פותח קובץ גיבוי',
   'Validate backup contents': 'מאמת תוכן גיבוי',
   'Restore profile': 'משחזר פרופיל',
@@ -370,7 +369,6 @@ export const he: Translations = {
   'New entries': 'רשומות חדשות',
   'Updated entries': 'רשומות מעודכנות',
   'Skipped duplicates': 'דילג על כפילויות',
-  Warnings: 'אזהרות',
   Import: 'ייבוא',
 
   // Settings - App Information

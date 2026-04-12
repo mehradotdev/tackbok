@@ -325,7 +325,6 @@ export const zhCN: Translations = {
   'Restoring Tackbok backup': '正在恢复 Tackbok 备份',
   'Load Presently export': '加载 Presently 导出数据',
   'Import journal entries': '导入日记条目',
-  'Preparing import': '正在准备导入',
   'Open backup file': '打开备份文件',
   'Validate backup contents': '验证备份内容',
   'Restore profile': '恢复个人资料',
@@ -362,7 +361,6 @@ export const zhCN: Translations = {
   'New entries': '新条目',
   'Updated entries': '已更新的条目',
   'Skipped duplicates': '已跳过的重复项',
-  Warnings: '警告',
   Import: '导入',
 
   // Settings - App Information

@@ -1,25 +1,34 @@
 import { useState, useCallback } from 'react';
-import { View, ActivityIndicator, Modal } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  CloudUpload,
-  RefreshCw,
-  FileOutput,
-  FileInput,
-  Upload,
-} from 'lucide-react-native';
+import { CloudUpload, RefreshCw, FileOutput, FileInput } from 'lucide-react-native';
+import { QUERY_KEYS } from '~/hooks/useGratitude';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import {
-  exportToCSV,
-  pickCSVFile,
-  importFromCSV,
+  createBackupImportProgress,
+  createSummaryProgressMetrics,
+  getImportPhaseOrder,
+  importFromGratitudeAppBackup,
   importFromPresentlyCSV,
-} from '~/lib/backup';
+  importFromTackbokBackup,
+  pickPresentlyImportFile,
+  pickZipImportFile,
+  type BackupImportPhase,
+  type BackupImportProgress,
+  type BackupImportSource,
+  type BackupImportSummary,
+  type ImportMode,
+} from '~/lib/backupImport';
+import { exportToBackupZip } from '~/lib/backupExport';
 import { Text } from '~/components/ui/text';
 import { Switch } from '~/components/ui/switch';
 import { toast } from '~/components/ui/toast';
+import {
+  GratitudeJournalLogoIcon,
+  PresentlyLogoIcon,
+} from '~/components/ImportSourceIcons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +42,29 @@ import {
 import { SettingsSection } from '../SettingsSection';
 import { SettingsRow } from '../SettingsRow';
 import { SettingsBackupFrequencyModal } from '../SettingsBackupFrequencyModal';
+import { SettingsImportModeModal } from '../SettingsImportModeModal';
+import { SettingsImportProgressModal } from '../SettingsImportProgressModal';
+import { SettingsImportSummaryModal } from '../SettingsImportSummaryModal';
+
+type PendingImportSelection = {
+  source: 'tackbok' | 'gratitudeApp';
+  uri: string;
+};
+
+function createImportProgressForSource(
+  source: BackupImportSource,
+  phase: BackupImportPhase,
+  phaseProgress: number,
+  partial?: Partial<BackupImportProgress>,
+): BackupImportProgress {
+  return createBackupImportProgress(
+    source,
+    phase,
+    phaseProgress,
+    partial,
+    getImportPhaseOrder(source),
+  );
+}
 
 export function BackupRestoreSection() {
   const router = useRouter();
@@ -46,72 +78,135 @@ export function BackupRestoreSection() {
   } = useSettingsStore();
 
   const [showBackupFrequencyModal, setShowBackupFrequencyModal] = useState(false);
-  const [showImportConfirmDialog, setShowImportConfirmDialog] = useState(false);
   const [showPresentlyImportConfirmDialog, setShowPresentlyImportConfirmDialog] =
     useState(false);
-  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<BackupImportProgress | null>(null);
+  const [importSummary, setImportSummary] = useState<{
+    source: BackupImportSource;
+    summary: BackupImportSummary;
+  } | null>(null);
+  const [pendingImportSelection, setPendingImportSelection] =
+    useState<PendingImportSelection | null>(null);
 
-  // Export to Tackbok CSV handler
-  const handleExportToCSV = useCallback(async () => {
+  const handleExportBackup = useCallback(async () => {
     try {
-      await exportToCSV();
-      toast.success(t('Entries exported successfully'));
+      await exportToBackupZip();
+      toast.success(t('Backup exported successfully'));
     } catch (error) {
       const message = error instanceof Error ? error.message : t('Export failed');
       toast.error(message);
     }
   }, [t]);
 
-  // Shared import handler — parameterized by dialog dismissal and import function
-  const handleImport = useCallback(
-    async (dismissDialog: () => void, importFn: (uri: string) => Promise<number>) => {
-      dismissDialog();
+  const finishImport = useCallback(
+    async (source: BackupImportSource, summary: BackupImportSummary) => {
+      setImportProgress(
+        createImportProgressForSource(
+          source,
+          'finishing',
+          0.9,
+          createSummaryProgressMetrics(summary),
+        ),
+      );
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.prompts] }),
+      ]);
+
+      setImportProgress(null);
+      setImportSummary({ source, summary });
+    },
+    [queryClient],
+  );
+
+  const runImportFlow = useCallback(
+    async (
+      source: BackupImportSource,
+      executeImport: (
+        onProgress: (progress: BackupImportProgress) => void,
+      ) => Promise<BackupImportSummary>,
+      initialProgress?: BackupImportProgress,
+    ) => {
+      setImportSummary(null);
+      if (initialProgress) {
+        setImportProgress(initialProgress);
+      }
+
       try {
-        const result = await pickCSVFile();
-        if (!result) return; // User cancelled
-
-        const asset = result.assets?.[0];
-        if (!asset?.uri) throw new Error(t('Import failed'));
-
-        setIsImporting(true);
-        const count = await importFn(asset.uri);
-        try {
-          await queryClient.invalidateQueries();
-        } catch (error) {
-          console.error('Failed to invalidate queries:', error);
-        }
-        setIsImporting(false);
-
-        const message =
-          count === 1
-            ? t('importedCountSingular', { count })
-            : t('importedCount', { count });
-        toast.success(message);
-
-        // Navigate to home screen
-        router.replace('/');
+        const summary = await executeImport((progress) => {
+          setImportProgress(progress);
+        });
+        await finishImport(source, summary);
       } catch (error) {
-        setIsImporting(false);
+        setImportProgress(null);
         const message = error instanceof Error ? error.message : t('Import failed');
         toast.error(message);
       }
     },
-    [t, router, queryClient],
+    [finishImport, t],
   );
 
-  const handleImportFromCSV = useCallback(
-    () => handleImport(() => setShowImportConfirmDialog(false), importFromCSV),
-    [handleImport],
+  const handleSelectImportFile = useCallback(
+    async (source: PendingImportSelection['source']) => {
+      try {
+        const result = await pickZipImportFile();
+        if (!result) return;
+
+        const asset = result.assets?.[0];
+        if (!asset?.uri) {
+          throw new Error(t('Import failed'));
+        }
+
+        setPendingImportSelection({ source, uri: asset.uri });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : t('Import failed');
+        toast.error(message);
+      }
+    },
+    [t],
   );
 
-  const handleImportFromPresentlyCSV = useCallback(
-    () =>
-      handleImport(
-        () => setShowPresentlyImportConfirmDialog(false),
-        importFromPresentlyCSV,
-      ),
-    [handleImport],
+  const handleRunPendingImport = useCallback(
+    async (mode: ImportMode) => {
+      const selection = pendingImportSelection;
+      if (!selection) return;
+
+      const source = selection.source;
+      setPendingImportSelection(null);
+      const runImport =
+        source === 'tackbok' ? importFromTackbokBackup : importFromGratitudeAppBackup;
+
+      await runImportFlow(
+        source,
+        (onProgress) => runImport(selection.uri, mode, onProgress),
+        createImportProgressForSource(source, 'reading', 0.05),
+      );
+    },
+    [pendingImportSelection, runImportFlow],
   );
+
+  const handleImportFromPresentlyCSV = useCallback(async () => {
+    setShowPresentlyImportConfirmDialog(false);
+
+    try {
+      const result = await pickPresentlyImportFile();
+      if (!result) return;
+
+      const assetUri = result.assets?.[0]?.uri;
+      if (!assetUri) {
+        throw new Error(t('Import failed'));
+      }
+
+      await runImportFlow('presently', (onProgress) =>
+        importFromPresentlyCSV(assetUri, onProgress),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t('Import failed');
+      toast.error(message);
+    }
+  }, [runImportFlow, t]);
 
   const getBackupFrequencyLabel = () => {
     const labels: Record<string, string> = {
@@ -122,6 +217,11 @@ export function BackupRestoreSection() {
     return labels[backupFrequency] ?? t('Daily');
   };
 
+  const handleCloseImportSummary = useCallback(() => {
+    setImportSummary(null);
+    router.replace('/');
+  }, [router]);
+
   return (
     <>
       <SettingsSection title={t('Backup & Restore')}>
@@ -130,6 +230,7 @@ export function BackupRestoreSection() {
           description={t('Automatically back up your entries with Google Drive')}
           icon={CloudUpload}
           onPress={() => setGoogleDriveBackupEnabled(!googleDriveBackupEnabled)}
+          disabled
           rightElement={
             <View pointerEvents="none">
               <Switch checked={googleDriveBackupEnabled} />
@@ -145,23 +246,32 @@ export function BackupRestoreSection() {
           disabled={!googleDriveBackupEnabled}
         />
         <SettingsRow
-          label={t('Export to CSV')}
-          description={t('Full backup of entries and tags')}
+          label={t('Export as .ZIP')}
+          description={t(
+            'All of your data in a format that you can restore in the app later',
+          )}
           icon={FileOutput}
-          onPress={handleExportToCSV}
+          onPress={handleExportBackup}
           showChevron
         />
         <SettingsRow
-          label={t('Import Entries from CSV')}
-          description={t('Restore from a Tackbok backup file')}
+          label={t('Import as .ZIP')}
+          description={t('Restore your data from a .zip file')}
           icon={FileInput}
-          onPress={() => setShowImportConfirmDialog(true)}
+          onPress={() => handleSelectImportFile('tackbok')}
+          showChevron
+        />
+        <SettingsRow
+          label={t('Import from Gratitude App')}
+          description={t('Import data from a Gratitude App .zip backup')}
+          icon={GratitudeJournalLogoIcon}
+          onPress={() => handleSelectImportFile('gratitudeApp')}
           showChevron
         />
         <SettingsRow
           label={t('Import from Presently App')}
-          description={t('Import entries from a Presently CSV export')}
-          icon={Upload}
+          description={t('Restore your data from a Presently .csv file')}
+          icon={PresentlyLogoIcon}
           onPress={() => setShowPresentlyImportConfirmDialog(true)}
           showChevron
           isLast
@@ -175,29 +285,23 @@ export function BackupRestoreSection() {
         onValueChange={setBackupFrequency}
       />
 
-      {/* Import Confirmation Dialog */}
-      <AlertDialog
-        open={showImportConfirmDialog}
-        onOpenChange={setShowImportConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('Are you sure you want to import?')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t(
-                'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.',
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>
-              <Text>{t('Cancel')}</Text>
-            </AlertDialogCancel>
-            <AlertDialogAction onPress={handleImportFromCSV}>
-              <Text>{t('Import')}</Text>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SettingsImportModeModal
+        visible={pendingImportSelection !== null}
+        onClose={() => setPendingImportSelection(null)}
+        onSelectMode={handleRunPendingImport}
+      />
+
+      <SettingsImportProgressModal
+        visible={importProgress !== null}
+        progress={importProgress}
+      />
+
+      <SettingsImportSummaryModal
+        visible={importSummary !== null}
+        source={importSummary?.source ?? null}
+        summary={importSummary?.summary ?? null}
+        onDone={handleCloseImportSummary}
+      />
 
       {/* Presently Import Confirmation Dialog */}
       <AlertDialog
@@ -222,23 +326,6 @@ export function BackupRestoreSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Modal
-        visible={isImporting}
-        transparent
-        presentationStyle="overFullScreen"
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => {}}>
-        <View className="flex-1 bg-active-overlay items-center justify-center">
-          <View className="bg-card p-6 rounded-2xl items-center shadow-lg">
-            <ActivityIndicator size="large" className="mb-4" />
-            <Text className="text-foreground text-base font-body-medium">
-              {t('Importing entries...')}
-            </Text>
-          </View>
-        </View>
-      </Modal>
     </>
   );
 }
