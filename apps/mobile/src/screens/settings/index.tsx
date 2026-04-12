@@ -24,7 +24,11 @@ export default function SettingsScreen() {
       <View className="flex-1 bg-background">
         {/* Header */}
         <View className="flex-row items-center px-safe-or-4 pt-safe-or-3 pb-3 border-b border-border">
-          <Button onPress={() => router.back()} variant="ghost" className="p-1 mr-1">
+          <Button
+            onPress={() => router.back()}
+            variant="ghost"
+            className="p-1 mr-1"
+            accessibilityLabel={t('Back')}>
             <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
           </Button>
           <Text variant="h2" className="text-foreground py-1 font-heading">

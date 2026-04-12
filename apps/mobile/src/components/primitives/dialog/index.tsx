@@ -121,17 +121,15 @@ function Portal({ forceMount, hostName, children }: PortalProps) {
 const Overlay = ({
   asChild,
   forceMount,
-  onPress: OnPressProp,
   ref,
   ...props
 }: OverlayProps & { ref?: React.Ref<OverlayRef> }) => {
   const { open, onOpenChange, dismissible = true } = useRootContext();
 
-  function onPress(ev: GestureResponderEvent) {
+  function onPress() {
     if (dismissible) {
       onOpenChange(false);
     }
-    OnPressProp?.(ev);
   }
 
   if (!forceMount) {
@@ -267,4 +265,3 @@ export type {
   TriggerProps,
   TriggerRef,
 };
-

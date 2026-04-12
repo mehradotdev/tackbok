@@ -32,8 +32,7 @@ interface PortalProps extends ForceMountable {
    */
   container?: HTMLElement | null | undefined;
 }
-type OverlayProps = ForceMountable &
-  SlottablePressableProps;
+type OverlayProps = ForceMountable & Omit<SlottablePressableProps, 'onPress'>;
 type ContentProps = ForceMountable &
   SlottableViewProps & {
     /**

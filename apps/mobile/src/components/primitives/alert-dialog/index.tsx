@@ -126,7 +126,6 @@ function Portal({ forceMount, hostName, children }: PortalProps) {
 const Overlay = ({
   asChild,
   forceMount,
-  onPress: onPressProp,
   ref,
   ...props
 }: OverlayProps & { ref?: React.Ref<OverlayRef> }) => {
@@ -138,21 +137,14 @@ const Overlay = ({
     }
   }
 
-  function onPress(ev: GestureResponderEvent) {
+  function onPress() {
     if (dismissible) {
       onOpenChange(false);
     }
-    onPressProp?.(ev);
   }
 
-  // Use Pressable if we want tap-to-dismiss, otherwise use View
-  if (dismissible) {
-    const Component = asChild ? Slot.Pressable : Pressable;
-    return <Component ref={ref as any} onPress={onPress} {...props} />;
-  }
-
-  const Component = asChild ? Slot.View : View;
-  return <Component ref={ref} {...props} />;
+  const Component = asChild ? Slot.Pressable : Pressable;
+  return <Component ref={ref} onPress={onPress} {...props} />;
 };
 
 Overlay.displayName = 'OverlayNativeAlertDialog';
