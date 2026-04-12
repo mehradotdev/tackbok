@@ -11,7 +11,10 @@ import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
-import { AnimatedButton, type AnimatedButtonHandle } from '~/components/ui/animated-button';
+import {
+  AnimatedButton,
+  type AnimatedButtonHandle,
+} from '~/components/ui/animated-button';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -104,8 +107,8 @@ function ExpandedEntryRow({
               <View
                 className={cn(
                   'absolute left-0 w-4 h-4',
-                  'border-t-[2px] border-border rounded-tr-full border-r-[2px]',
-                  isRTL && Platform.OS === 'ios' && 'border-l-[2px] border-r-0',
+                  'border-t-2 border-border rounded-tr-full border-r-2',
+                  isRTL && Platform.OS === 'ios' && 'border-l-2 border-r-0',
                 )}
               />
             )}
@@ -113,7 +116,7 @@ function ExpandedEntryRow({
             {/* 2. Straight vertical line - dynamic top/bottom based on isFirst and isLast */}
             <View
               className={cn(
-                'w-[2px] bg-border absolute right-[-1px]',
+                'w-0.5 bg-border absolute -right-px',
                 // Top position: starts from top for non-first, below the curve for first
                 isFirst ? 'top-4' : 'top-0',
                 // Bottom position: extends to bottom for non-last, stops at dot for last
@@ -126,11 +129,11 @@ function ExpandedEntryRow({
               <View
                 className={cn(
                   'absolute top-6 bottom-0 w-3',
-                  'border-border border-b-[2px] left-4',
-                  'border-l-[2px] rounded-bl-full',
+                  'border-border border-b-2 left-4',
+                  'border-l-2 rounded-bl-full',
                   isRTL &&
                     Platform.OS === 'ios' &&
-                    'border-r-[2px] rounded-br-full border-l-0',
+                    'border-r-2 rounded-br-full border-l-0',
                 )}
               />
             )}
@@ -155,7 +158,9 @@ function ExpandedEntryRow({
 
           {/* Title */}
           {entry.text_title && (
-            <Text className="text-lg font-body-semibold text-foreground" numberOfLines={2}>
+            <Text
+              className="text-lg font-body-semibold text-foreground"
+              numberOfLines={2}>
               {entry.text_title}
             </Text>
           )}

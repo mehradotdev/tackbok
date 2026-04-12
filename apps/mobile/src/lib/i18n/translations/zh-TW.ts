@@ -15,7 +15,6 @@ export const zhTW: Translations = {
   Back: '返回',
   Create: '建立',
   Discard: '捨棄',
-  Continue: '繼續',
   Delete: '刪除',
   Remove: '移除',
   Close: '關閉',
@@ -35,8 +34,8 @@ export const zhTW: Translations = {
   'What are you grateful for today?': '今天您有什麼值得感恩的？',
   'What were you grateful for yesterday?': '昨天您有什麼值得感恩的？',
   'What are you grateful for?': '您有什麼值得感恩的？',
+  'What were you grateful for?': '您曾為什麼感恩？',
   'Failed to load entries': '無法載入紀錄',
-  'I was grateful for': '我感恩',
 
   // Date Entries
   'Loading...': '載入中...',
@@ -46,7 +45,6 @@ export const zhTW: Translations = {
 
   // Gratitude Entry
   'Delete Entry?': '刪除紀錄？',
-  'Clearing the text will delete this entry entirely.': '清除文字將會完全刪除此紀錄。',
   'This entry will be permanently deleted.': '此紀錄將被永久刪除。',
   'Leave without saving?': '離開而不儲存？',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
@@ -54,7 +52,6 @@ export const zhTW: Translations = {
   'Keep Editing': '繼續編輯',
 
   'Pick any date': '選擇任意日期',
-  'Select date': '選擇日期',
   Mood: '心情',
   Photo: '照片',
   'Add Photo': '新增照片',
@@ -194,9 +191,9 @@ export const zhTW: Translations = {
   'Feeling Okay': '感覺還可以',
   'Feeling Sad': '感覺難過',
   'Feeling Awful': '感覺很糟',
-  'Add tags...': '新增標籤...',
   'Entry saved successfully': '紀錄儲存成功',
   'Failed to save entry': '無法儲存紀錄',
+  'Failed to save voice memo': '無法儲存語音備忘錄',
   'Failed to add photos': '無法新增照片',
   'Failed to delete entry': '無法刪除紀錄',
   'Tag already exists': '標籤已存在',
@@ -213,9 +210,6 @@ export const zhTW: Translations = {
   'Tag name': '標籤名稱',
   'Add a Tag': '新增一個標籤',
   'Create New Tag': '建立新標籤',
-  'New tag name...': '新標籤名稱...',
-  'No tags yet': '尚無標籤',
-  'Create your first tag': '建立您的第一個標籤',
   'Edit Tag': '編輯標籤',
   'Delete Tag': '刪除標籤',
   'Are you sure you want to delete the tag "{title}"?': '您確定要刪除標籤「{title}」嗎？',
@@ -262,14 +256,11 @@ export const zhTW: Translations = {
   // Settings - Journaling
   Journaling: '日記書寫',
   'Worksheet Template': '寫作模板',
-  'Customize the default worksheet for new gratitude entries':
-    '自訂新感恩紀錄的預設寫作模板',
   'Edit Worksheet Template': '編輯寫作模板',
   'Use this template to pre-fill the body of new gratitude entries':
     '使用此模板預先填入新感恩紀錄的正文',
   'Reset to Default': '恢復預設',
   'Journaling Worksheet': '書寫模板',
-  'A template for your daily journaling routine.': '適合您每日書寫練習的一份模板。',
   'Start Writing': '開始書寫',
   'Journal Focus Areas': '日記關注領域',
   'Personalize your journal prompts.': '個性化您的日記提示。',
@@ -294,33 +285,84 @@ export const zhTW: Translations = {
   'Unlock Tackbok': '解鎖塔克博克',
   'Lock with biometric scanner if supported': '若裝置支援，使用生物辨識鎖定',
 
-  // Settings - Backup & Restore
+    // Settings - Backup & Restore
   'Backup & Restore': '備份與還原',
-  'Google Drive Backup': 'Google 雲端硬碟備份',
+  'Google Drive Backup': 'Google Drive 備份',
   'Automatically back up your entries with Google Drive':
-    '登入您的 Google 雲端硬碟帳號以自動備份您的紀錄',
+    '使用您的 Google Drive 帳戶登入以自動備份紀錄',
   'Backup Frequency': '備份頻率',
-  Daily: '每日',
+  Daily: '每天',
   Weekly: '每週',
   'On Every Change': '每次變更時',
-  'Export to CSV': '匯出為 CSV',
-  'Full backup of entries and tags': '完整備份紀錄和標籤',
-  'Import Entries from CSV': '從 CSV 匯入紀錄',
-  'Restore from a Tackbok backup file': '從塔克博克備份檔案還原',
+  'Export as .ZIP': '匯出為 .ZIP',
+  'All of your data in a format that you can restore in the app later':
+    '以您稍後可在應用程式中還原的格式備份您的所有資料',
+  'Import as .ZIP': '從 .ZIP 匯入',
+  'Restore your data from a .zip file': '從 .zip 檔案還原您的資料',
+  'Import from Gratitude App': '從 Gratitude 應用程式匯入',
+  'Importing from Gratitude App': '正在從 Gratitude 應用程式匯入',
+  'Import data from a Gratitude App .zip backup':
+    '從 Gratitude 應用程式的 .zip 備份匯入資料',
+  'Choose Import Mode': '選擇匯入模式',
+  'How should this import handle entries that already exist in Tackbok?':
+    '本次匯入應如何處理 Tackbok 中已存在的紀錄？',
+  'Skip Existing Entries': '略過現有紀錄',
+  'Skip Existing Entries (Recommended)': '略過現有紀錄（推薦）',
+  'Only import entries with new note IDs': '僅匯入具有新筆記 ID 的紀錄',
+  'Overwrite Matching Entries': '覆寫配對的紀錄',
+  'Replace existing entries when note IDs match':
+    '當筆記 ID 相符時取代現有紀錄',
   'Import from Presently App': '從 Presently 應用程式匯入',
-  'Import entries from a Presently CSV export': '從 Presently CSV 匯出檔匯入紀錄',
+  'Restore your data from a Presently .csv file':
+    '從 Presently 的 .csv 檔案還原您的資料',
   'Import from Presently?': '從 Presently 匯入？',
   'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
-    '這將從 Presently 應用程式 CSV 檔案匯入紀錄。重複的紀錄將被略過。',
-  'Entries exported successfully': '紀錄匯出成功',
+    '這將從 Presently 應用程式的 CSV 檔案匯入紀錄。重複的紀錄將被略過。',
+  'Backup exported successfully': '備份匯出成功',
   'Export failed': '匯出失敗',
-  importedCount: '已匯入 {count} 筆紀錄',
-  importedCountSingular: '已匯入 {count} 筆紀錄',
+  importedCount: '已匯入 {count} 個紀錄',
   'Import failed': '匯入失敗',
-  'Importing entries...': '正在匯入紀錄...',
-  'Are you sure you want to import?': '您確定要匯入嗎？',
-  'This will import entries from a Tackbok backup file. Duplicate entries will be skipped.':
-    '這將從塔克博克備份檔案匯入紀錄。重複的紀錄將被略過。',
+  'Restoring Tackbok backup': '正在還原 Tackbok 備份',
+  'Load Presently export': '載入 Presently 匯出資料',
+  'Import journal entries': '匯入日記紀錄',
+  'Preparing import': '準備匯入',
+  'Open backup file': '開啟備份檔案',
+  'Validate backup contents': '驗證備份內容',
+  'Restore profile': '還原個人檔案',
+  'Import tags and prompts': '匯入標籤和提示',
+  'Restore entries and media': '還原紀錄和媒體',
+  'Refresh journal data': '重整日記資料',
+  'Loading the selected import file.': '正在載入選定的匯入檔案。',
+  'Checking backup contents and file structure.':
+    '正在檢查備份內容和檔案結構。',
+  'Restoring profile details and profile photo if available.':
+    '正在還原個人檔案詳細資料和頭像（如果有）。',
+  'Adding tags and prompts before entries are restored.':
+    '在還原紀錄之前新增標籤和提示。',
+  'Processing {processed} of {total} journal entries and attached media.':
+    '正在處理 {processed}/{total} 個日記紀錄及附加媒體。',
+  'No journal entries found in this backup.': '在此備份中未找到日記紀錄。',
+  'Refreshing your journal so imported data appears everywhere.':
+    '正在重整您的日記，以使匯入的資料隨處可見。',
+  'Entries processed': '紀錄已處理',
+  'Tags added': '標籤已新增',
+  'Prompts added': '提示已新增',
+  'Photos restored': '照片已還原',
+  'Voice memos restored': '語音備忘錄已還原',
+  'Tackbok backup restored': 'Tackbok 備份已還原',
+  'Gratitude import complete': 'Gratitude 匯入完成',
+  'Presently import complete': 'Presently 匯入完成',
+  'Your journal data is ready to review.': '您的日記資料已準備好供查看。',
+  'This import finished, but everything already existed in Tackbok.':
+    '本次匯入已完成，但所有內容已存在於 Tackbok 中。',
+  'This import finished successfully.': '本次匯入成功完成。',
+  'Imported from Tackbok backup': '從 Tackbok 備份匯入',
+  'Imported from Gratitude backup': '從 Gratitude 備份匯入',
+  'Imported from Presently export': '從 Presently 匯出資料匯入',
+  'New entries': '新紀錄',
+  'Updated entries': '已更新的紀錄',
+  'Skipped duplicates': '已略過的重複項',
+  Warnings: '警告',
   Import: '匯入',
 
   // Settings - App Information
@@ -341,11 +383,10 @@ export const zhTW: Translations = {
   // Settings - Danger Zone
   'Danger Zone': '危險區域',
   'Delete All Data': '刪除所有資料',
-  'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template':
-    '永久刪除您的所有紀錄、照片、語音備忘錄、自訂提示詞和自訂工作表範本',
+  'Permanently delete all your app data': '永久刪除您的所有應用程式資料',
   'Delete all data?': '刪除所有資料？',
-  'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.':
-    '此動作無法復原。您的所有紀錄、照片、語音備忘錄、自訂提示詞和自訂工作表範本將被永久刪除。',
+  'This action cannot be undone. All your app data will be permanently deleted.':
+    '此動作無法復原。您的所有應用程式資料將被永久刪除。',
   'All data deleted': '所有資料已刪除',
   'Delete failed': '刪除失敗',
 
@@ -355,8 +396,6 @@ export const zhTW: Translations = {
   // Date Picker
   Today: '今天',
   Yesterday: '昨天',
-  'Select Date': '選擇日期',
-  'Has entry': '有紀錄',
   Selected: '已選擇',
   'Previous month': '上個月',
   'Next month': '下個月',

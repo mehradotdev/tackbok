@@ -84,7 +84,7 @@ export function DangerZoneSection() {
         <SettingsRow
           label={t('Delete All Data')}
           description={t(
-            'Permanently delete all your entries, photos, voice memos, custom prompts, and custom worksheet template',
+            'Permanently delete all your app data',
           )}
           icon={Trash2}
           onPress={() => setShowDeleteConfirmDialog(true)}
@@ -102,7 +102,7 @@ export function DangerZoneSection() {
             <AlertDialogTitle>{t('Delete all data?')}</AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                'This action cannot be undone. All your entries, photos, voice memos, custom prompts, and custom worksheet template will be permanently deleted.',
+                'This action cannot be undone. All your app data will be permanently deleted.',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

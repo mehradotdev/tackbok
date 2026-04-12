@@ -35,6 +35,12 @@ function assertVoiceMemoRelativeUri(relativeUri: string): string {
   return relativeUri;
 }
 
+function getVoiceMemoExtension(path: string | null | undefined, fallback = 'm4a'): string {
+  const match = path?.match(/\.([A-Za-z0-9]+)(?:$|\?)/);
+  const extension = match?.[1]?.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return extension || fallback;
+}
+
 /** Convert a relative asset URI (e.g. `voice_memos/abc.m4a`) to a full file URI. */
 export function getFullVoiceMemoUri(relativeUri: string): string {
   const file = new File(Paths.document, assertVoiceMemoRelativeUri(relativeUri));
@@ -72,7 +78,7 @@ export function filterExistingVoiceMemos(assets: Asset[] | null): Asset[] {
 export async function saveVoiceMemo(sourceUri: string): Promise<Asset> {
   const voiceMemosDir = getVoiceMemosDir();
 
-  const filename = `${generateUUID()}.m4a`;
+  const filename = `${generateUUID()}.${getVoiceMemoExtension(sourceUri)}`;
   const srcFile = new File(sourceUri);
   const destFile = new File(voiceMemosDir, filename);
   srcFile.copy(destFile);
