@@ -19,29 +19,144 @@ const path = require('path');
  */
 function parseTranslationKeys(enFilePath) {
   const content = fs.readFileSync(enFilePath, 'utf-8');
+  const enObjectBody = extractEnObjectBody(content);
 
   const keys = new Set();
 
   // Match unquoted identifier keys:  KeyName: '...'  or  KeyName: "..."
-  const identifierKeyRegex = /^\s+([a-zA-Z_]\w*)\s*:/gm;
+  const identifierKeyRegex = /^\s*([a-zA-Z_]\w*)\s*:/gm;
   let match;
-  while ((match = identifierKeyRegex.exec(content)) !== null) {
+  while ((match = identifierKeyRegex.exec(enObjectBody)) !== null) {
     keys.add(match[1]);
   }
 
   // Match single-quoted string keys:  'Some Key': '...'
-  const singleQuoteKeyRegex = /^\s+'([^']+)'\s*:/gm;
-  while ((match = singleQuoteKeyRegex.exec(content)) !== null) {
+  const singleQuoteKeyRegex = /^\s*'((?:\\.|[^'])*)'\s*:/gm;
+  while ((match = singleQuoteKeyRegex.exec(enObjectBody)) !== null) {
     keys.add(match[1]);
   }
 
   // Match double-quoted string keys:  "Some Key": "..."
-  const doubleQuoteKeyRegex = /^\s+"([^"]+)"\s*:/gm;
-  while ((match = doubleQuoteKeyRegex.exec(content)) !== null) {
+  const doubleQuoteKeyRegex = /^\s*"((?:\\.|[^"])*)"\s*:/gm;
+  while ((match = doubleQuoteKeyRegex.exec(enObjectBody)) !== null) {
     keys.add(match[1]);
   }
 
   return keys;
+}
+
+function extractEnObjectBody(content) {
+  const exportIndex = content.indexOf('export const en');
+  if (exportIndex === -1) {
+    throw new Error('Could not find `export const en` in en.ts');
+  }
+
+  const openBraceIndex = content.indexOf('{', exportIndex);
+  if (openBraceIndex === -1) {
+    throw new Error('Could not find opening brace for `export const en` in en.ts');
+  }
+
+  let depth = 0;
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let inTemplateString = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let isEscaped = false;
+
+  for (let i = openBraceIndex; i < content.length; i += 1) {
+    const char = content[i];
+    const nextChar = content[i + 1];
+
+    if (inLineComment) {
+      if (char === '\n') {
+        inLineComment = false;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && nextChar === '/') {
+        inBlockComment = false;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (inSingleQuote) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (char === '\\') {
+        isEscaped = true;
+      } else if (char === '\'') {
+        inSingleQuote = false;
+      }
+      continue;
+    }
+
+    if (inDoubleQuote) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (char === '\\') {
+        isEscaped = true;
+      } else if (char === '"') {
+        inDoubleQuote = false;
+      }
+      continue;
+    }
+
+    if (inTemplateString) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (char === '\\') {
+        isEscaped = true;
+      } else if (char === '`') {
+        inTemplateString = false;
+      }
+      continue;
+    }
+
+    if (char === '/' && nextChar === '/') {
+      inLineComment = true;
+      i += 1;
+      continue;
+    }
+
+    if (char === '/' && nextChar === '*') {
+      inBlockComment = true;
+      i += 1;
+      continue;
+    }
+
+    if (char === '\'') {
+      inSingleQuote = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inDoubleQuote = true;
+      continue;
+    }
+
+    if (char === '`') {
+      inTemplateString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return content.slice(openBraceIndex + 1, i);
+      }
+    }
+  }
+
+  throw new Error('Could not find closing brace for `export const en` in en.ts');
 }
 
 // Cache: resolved path -> Set<string>
