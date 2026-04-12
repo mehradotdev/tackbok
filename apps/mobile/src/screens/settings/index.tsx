@@ -1,6 +1,6 @@
 import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { X } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
@@ -17,35 +17,27 @@ import { JournalFocusAreasSheet } from './JournalFocusAreasSheet';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, isRTL } = useTranslation();
 
   return (
     <>
-      <View collapsable={false} className="flex-1 bg-background">
-        {/* Grabber — MD3 drag handle (32×4dp, centered) */}
-        <View className="items-center pt-2">
-          <View
-            style={{ width: 32, height: 4, borderRadius: 2 }}
-            className="bg-muted-foreground"
-          />
-        </View>
-
+      <View className="flex-1 bg-background">
         {/* Header */}
-        <View className="flex-row items-center justify-between px-safe-or-4 pt-4 pb-3 border-b border-border">
-          <Text variant="h2" className="text-foreground py-1 font-heading">
-            {t('Settings')}
-          </Text>
+        <View className="flex-row items-center px-safe-or-4 pt-safe-or-3 pb-3 border-b border-border">
           <Button
             onPress={() => router.back()}
             variant="ghost"
-            className="p-1 ml-1"
-            accessibilityLabel={t('Close')}>
-            <Icon as={X} className="text-foreground" />
+            className="p-1 mr-1"
+            accessibilityLabel={t('Back')}>
+            <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
           </Button>
+          <Text variant="h2" className="text-foreground py-1 font-heading">
+            {t('Settings')}
+          </Text>
         </View>
 
         {/* Settings Content */}
-        <ScrollView className="px-safe" nestedScrollEnabled>
+        <ScrollView className="px-safe">
           <NotificationsSection />
           <AppearanceSection />
           <JournalingSection />

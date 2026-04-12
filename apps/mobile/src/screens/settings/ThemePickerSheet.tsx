@@ -1,6 +1,5 @@
 import { useRef, useEffect } from 'react';
 import {
-  Platform,
   ScrollView,
   View,
   type NativeScrollEvent,
@@ -59,7 +58,7 @@ function ThemeCardContent({
         {/* Mini Timeline Column */}
         <View className="w-6 items-end">
           {/* Continuous Line */}
-          <View className="w-[3px] bg-foreground absolute top-0 bottom-0 right-0" />
+          <View className="w-0.75 bg-foreground absolute top-0 bottom-0 right-0" />
           {/* Timeline Dot */}
           <View className="w-2.5 h-2.5 rounded-full z-10 mt-4 right-[-3.5px] bg-background border-[1.5px] border-foreground" />
           {/* Timeline Dot */}
@@ -148,7 +147,7 @@ export function ThemePickerSheet() {
   return (
     <TrueSheet
       name={SHEET_NAMES.THEME_PICKER}
-      detents={Platform.OS === 'android' ? [0.65, 0.87] : [0.7, 0.85]}
+      detents={[0.7, 0.85]}
       cornerRadius={sheetRadius}
       grabber={true}
       grabberOptions={{

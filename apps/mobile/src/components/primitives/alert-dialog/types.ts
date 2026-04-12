@@ -12,13 +12,13 @@ type RootProps = {
   open?: boolean;
   onOpenChange?: (value: boolean) => void;
   defaultOpen?: boolean;
-  dismissOnOutsidePress?: boolean;
+  dismissible?: boolean;
 } & SlottableViewProps;
 
 interface RootContext {
   open: boolean;
   onOpenChange: (value: boolean) => void;
-  dismissOnOutsidePress?: boolean;
+  dismissible: boolean;
 }
 
 interface PortalProps extends ForceMountable {
@@ -32,13 +32,7 @@ interface PortalProps extends ForceMountable {
    */
   container?: HTMLElement | null | undefined;
 }
-type OverlayProps = ForceMountable &
-  SlottableViewProps & {
-    /**
-     * Optional press handler for the overlay
-     */
-    onPress?: (ev: any) => void;
-  };
+type OverlayProps = ForceMountable & Omit<SlottablePressableProps, 'onPress'>;
 
 type ContentProps = ForceMountable &
   SlottableViewProps & {
@@ -66,7 +60,7 @@ type ActionRef = PressableRef;
 type CancelRef = PressableRef;
 type ContentRef = ViewRef;
 type DescriptionRef = TextRef;
-type OverlayRef = ViewRef;
+type OverlayRef = PressableRef;
 type RootRef = ViewRef;
 type TitleRef = TextRef;
 type TriggerRef = PressableRef;

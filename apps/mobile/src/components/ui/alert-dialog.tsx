@@ -10,65 +10,113 @@ import { buttonTextVariants, buttonVariants } from '~/components/ui/button';
 import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
 import { Icon } from './icon';
 
+type AndroidOverlayStrategy = 'portal' | 'modal';
+
 const AlertDialog = AlertDialogPrimitive.Root;
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
-function AndroidModalOverlay({ children }: { children: React.ReactNode }) {
+function AndroidModalOverlay({
+  children,
+  onRequestClose,
+}: {
+  children: React.ReactNode;
+  onRequestClose: () => void;
+}) {
   return (
-    <Modal visible transparent statusBarTranslucent animationType="none">
+    <Modal
+      visible
+      transparent
+      statusBarTranslucent
+      animationType="none"
+      onRequestClose={onRequestClose}>
       {children}
     </Modal>
   );
 }
 
-const FullWindowOverlay = Platform.OS === 'ios' ? RNFullWindowOverlay : AndroidModalOverlay;
+function OverlayContainer({
+  androidOverlayStrategy,
+  children,
+  onRequestClose,
+}: {
+  androidOverlayStrategy: AndroidOverlayStrategy;
+  children: React.ReactNode;
+  onRequestClose: () => void;
+}) {
+  if (Platform.OS === 'ios') {
+    return <RNFullWindowOverlay>{children}</RNFullWindowOverlay>;
+  }
+
+  if (Platform.OS === 'android' && androidOverlayStrategy === 'modal') {
+    return (
+      <AndroidModalOverlay onRequestClose={onRequestClose}>
+        {children}
+      </AndroidModalOverlay>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 function AlertDialogOverlay({
+  androidOverlayStrategy = 'portal',
   className,
   children,
-  ref,
   ...props
-}: Omit<AlertDialogPrimitive.OverlayProps, 'asChild'> & {
+}: Omit<React.ComponentProps<typeof AlertDialogPrimitive.Overlay>, 'asChild'> & {
+  androidOverlayStrategy?: AndroidOverlayStrategy;
   children?: React.ReactNode;
-  ref?: React.Ref<AlertDialogPrimitive.OverlayRef>;
 }) {
+  const { dismissible = true, onOpenChange } = AlertDialogPrimitive.useRootContext();
+
   return (
-    <FullWindowOverlay>
+    <OverlayContainer
+      androidOverlayStrategy={androidOverlayStrategy}
+      onRequestClose={() => {
+        if (dismissible) {
+          onOpenChange(false);
+        }
+      }}>
       <NativeOnlyAnimatedView
         entering={FadeIn.duration(200)}
         exiting={FadeOut.duration(150)}
         className="absolute bottom-0 left-0 right-0 top-0 z-50">
         <AlertDialogPrimitive.Overlay
-          ref={ref}
           className={cn(
-            'absolute bottom-0 left-0 right-0 top-0 z-50 flex items-center justify-center bg-black/50 p-2',
+            'absolute bottom-0 left-0 right-0 top-0 z-40 bg-black/50',
             className,
           )}
-          {...props}>
-          {children}
-        </AlertDialogPrimitive.Overlay>
+          {...props}
+        />
+        {children ? (
+          <View
+            pointerEvents="box-none"
+            className="absolute bottom-0 left-0 right-0 top-0 z-50 items-center justify-center p-2">
+            {/* Keep content outside the overlay pressable so nested scroll views can win touch gestures. */}
+            {children}
+          </View>
+        ) : null}
       </NativeOnlyAnimatedView>
-    </FullWindowOverlay>
+    </OverlayContainer>
   );
 }
 
 function AlertDialogContent({
+  androidOverlayStrategy = 'portal',
   className,
   portalHost,
-  ref,
   ...props
-}: AlertDialogPrimitive.ContentProps & {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
+  androidOverlayStrategy?: AndroidOverlayStrategy;
   portalHost?: string;
-  ref?: React.Ref<AlertDialogPrimitive.ContentRef>;
 }) {
   return (
     <AlertDialogPortal hostName={portalHost}>
-      <AlertDialogOverlay>
+      <AlertDialogOverlay androidOverlayStrategy={androidOverlayStrategy}>
         <AlertDialogPrimitive.Content
-          ref={ref}
           className={cn(
             'bg-background border-border z-50 flex flex-col gap-4 rounded-xl border-theme p-6 shadow-theme sm:max-w-lg',
             className,
@@ -99,12 +147,10 @@ function AlertDialogFooter({ className, ...props }: ViewProps) {
 
 function AlertDialogTitle({
   className,
-  ref,
   ...props
-}: AlertDialogPrimitive.TitleProps & { ref?: React.Ref<AlertDialogPrimitive.TitleRef> }) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
   return (
     <AlertDialogPrimitive.Title
-      ref={ref}
       className={cn('text-foreground text-lg font-body-semibold text-left', className)}
       {...props}
     />
@@ -113,14 +159,10 @@ function AlertDialogTitle({
 
 function AlertDialogDescription({
   className,
-  ref,
   ...props
-}: AlertDialogPrimitive.DescriptionProps & {
-  ref?: React.Ref<AlertDialogPrimitive.DescriptionRef>;
-}) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Description>) {
   return (
     <AlertDialogPrimitive.Description
-      ref={ref}
       className={cn('text-foreground text-base text-left', className)}
       {...props}
     />
@@ -129,15 +171,11 @@ function AlertDialogDescription({
 
 function AlertDialogAction({
   className,
-  ref,
   ...props
-}: AlertDialogPrimitive.ActionProps & {
-  ref?: React.Ref<AlertDialogPrimitive.ActionRef>;
-}) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
   return (
     <TextClassContext.Provider value={buttonTextVariants({ className })}>
       <AlertDialogPrimitive.Action
-        ref={ref}
         className={cn(buttonVariants(), className)}
         {...props}
       />
@@ -155,14 +193,12 @@ function AlertDialogAction({
  */
 function AlertDialogDestructiveAction({
   className,
-  ref,
   delaySeconds,
   children,
   disabled,
   ...props
-}: Omit<AlertDialogPrimitive.ActionProps, 'children'> & {
+}: Omit<React.ComponentProps<typeof AlertDialogPrimitive.Action>, 'children'> & {
   children?: React.ReactNode;
-  ref?: React.Ref<AlertDialogPrimitive.ActionRef>;
   delaySeconds?: number;
 }) {
   const [countdown, setCountdown] = React.useState(delaySeconds ?? 0);
@@ -189,7 +225,6 @@ function AlertDialogDestructiveAction({
   return (
     <TextClassContext.Provider value={buttonTextVariants({ variant: 'destructive' })}>
       <AlertDialogPrimitive.Action
-        ref={ref}
         className={cn(
           buttonVariants({ variant: 'destructive' }),
           (disabled || isDelayed) && 'opacity-50',
@@ -218,16 +253,12 @@ function AlertDialogDestructiveAction({
 
 function AlertDialogCancel({
   className,
-  ref,
   ...props
-}: AlertDialogPrimitive.CancelProps & {
-  ref?: React.Ref<AlertDialogPrimitive.CancelRef>;
-}) {
+}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
   return (
     <TextClassContext.Provider
       value={buttonTextVariants({ className, variant: 'outline' })}>
       <AlertDialogPrimitive.Cancel
-        ref={ref}
         className={cn(buttonVariants({ variant: 'outline' }), className)}
         {...props}
       />

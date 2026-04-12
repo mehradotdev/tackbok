@@ -160,7 +160,7 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
       <AlertDialog
         open={showConfirmDialog}
         onOpenChange={setShowConfirmDialog}
-        dismissOnOutsidePress={true}>
+        dismissible={true}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Restart Required')}</AlertDialogTitle>
