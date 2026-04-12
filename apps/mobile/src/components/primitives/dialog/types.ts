@@ -11,7 +11,7 @@ import type {
 type RootContext = {
   open: boolean;
   onOpenChange: (value: boolean) => void;
-  dismissible?: boolean;
+  dismissible: boolean;
 };
 
 type RootProps = SlottableViewProps & {

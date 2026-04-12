@@ -18,7 +18,7 @@ type RootProps = {
 interface RootContext {
   open: boolean;
   onOpenChange: (value: boolean) => void;
-  dismissible?: boolean;
+  dismissible: boolean;
 }
 
 interface PortalProps extends ForceMountable {

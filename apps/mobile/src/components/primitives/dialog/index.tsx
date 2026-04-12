@@ -31,7 +31,7 @@ const Root = ({
   open: openProp,
   defaultOpen,
   onOpenChange: onOpenChangeProp,
-  dismissible,
+  dismissible = true,
   ref,
   ...viewProps
 }: RootProps & { ref?: React.Ref<RootRef> }) => {
@@ -124,7 +124,7 @@ const Overlay = ({
   ref,
   ...props
 }: OverlayProps & { ref?: React.Ref<OverlayRef> }) => {
-  const { open, onOpenChange, dismissible = true } = useRootContext();
+  const { open, onOpenChange, dismissible } = useRootContext();
 
   function onPress() {
     if (dismissible) {
@@ -150,7 +150,7 @@ const Content = ({
   ref,
   ...props
 }: ContentProps & { ref?: React.Ref<ContentRef> }) => {
-  const { open, nativeID, onOpenChange, dismissible = true } = useRootContext();
+  const { open, nativeID, onOpenChange, dismissible } = useRootContext();
 
   React.useEffect(() => {
     if (!open) return;
