@@ -10,6 +10,8 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { ParamListBase } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type {
   ActionProps,
   ActionRef,
@@ -31,9 +33,14 @@ import type {
   TriggerRef,
 } from './types';
 
-const AlertDialogContext = React.createContext<
-  (RootContext & { nativeID: string }) | null
->(null);
+type AlertDialogNavigation = NativeStackNavigationProp<ParamListBase>;
+
+type AlertDialogContextValue = RootContext & {
+  nativeID: string;
+  navigation: AlertDialogNavigation;
+};
+
+const AlertDialogContext = React.createContext<AlertDialogContextValue | null>(null);
 
 const Root = ({
   asChild,
@@ -45,6 +52,7 @@ const Root = ({
   ...viewProps
 }: RootProps & { ref?: React.Ref<RootRef> }) => {
   const nativeID = React.useId();
+  const navigation = useNavigation<AlertDialogNavigation>();
   const [open = false, onOpenChange] = useControllableState({
     prop: openProp,
     defaultProp: defaultOpen,
@@ -58,6 +66,7 @@ const Root = ({
         onOpenChange,
         nativeID,
         dismissible,
+        navigation,
       }}>
       <Component ref={ref} {...viewProps} />
     </AlertDialogContext.Provider>
@@ -156,9 +165,7 @@ const Content = ({
   ref,
   ...props
 }: ContentProps & { ref?: React.Ref<ContentRef> }) => {
-  const { open, nativeID, onOpenChange, dismissible } = useRootContext();
-
-  const navigation = useNavigation();
+  const { open, nativeID, onOpenChange, dismissible, navigation } = useRootContext();
 
   React.useEffect(() => {
     if (!open) return;
@@ -182,7 +189,7 @@ const Content = ({
     return () => {
       backHandler.remove();
       if (!dismissible) {
-        navigation.setOptions({ gestureEnabled: true });
+        navigation.setOptions({ gestureEnabled: undefined });
         unsubscribeBeforeRemove?.();
       }
     };

@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { BackHandler, GestureResponderEvent, Pressable, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { ParamListBase } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useControllableState } from '~/components/primitives/hooks';
 import { Portal as RNPPortal } from '~/components/primitives/portal';
 import * as Slot from '~/components/primitives/slot';
@@ -23,9 +25,14 @@ import type {
   TriggerRef,
 } from './types';
 
-const DialogContext = React.createContext<(RootContext & { nativeID: string }) | null>(
-  null,
-);
+type DialogNavigation = NativeStackNavigationProp<ParamListBase>;
+
+type DialogContextValue = RootContext & {
+  nativeID: string;
+  navigation: DialogNavigation;
+};
+
+const DialogContext = React.createContext<DialogContextValue | null>(null);
 
 const Root = ({
   asChild,
@@ -37,6 +44,7 @@ const Root = ({
   ...viewProps
 }: RootProps & { ref?: React.Ref<RootRef> }) => {
   const nativeID = React.useId();
+  const navigation = useNavigation<DialogNavigation>();
   const [open = false, onOpenChange] = useControllableState({
     prop: openProp,
     defaultProp: defaultOpen,
@@ -51,6 +59,7 @@ const Root = ({
         onOpenChange,
         nativeID,
         dismissible,
+        navigation,
       }}>
       <Component ref={ref} {...viewProps} />
     </DialogContext.Provider>
@@ -151,9 +160,7 @@ const Content = ({
   ref,
   ...props
 }: ContentProps & { ref?: React.Ref<ContentRef> }) => {
-  const { open, nativeID, onOpenChange, dismissible } = useRootContext();
-
-  const navigation = useNavigation();
+  const { open, nativeID, onOpenChange, dismissible, navigation } = useRootContext();
 
   React.useEffect(() => {
     if (!open) return;
@@ -177,7 +184,7 @@ const Content = ({
     return () => {
       backHandler.remove();
       if (!dismissible) {
-        navigation.setOptions({ gestureEnabled: true });
+        navigation.setOptions({ gestureEnabled: undefined });
         unsubscribeBeforeRemove?.();
       }
     };
