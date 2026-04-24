@@ -9,6 +9,7 @@ import {
   View,
   type GestureResponderEvent,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import type {
   ActionProps,
   ActionRef,
@@ -157,6 +158,8 @@ const Content = ({
 }: ContentProps & { ref?: React.Ref<ContentRef> }) => {
   const { open, nativeID, onOpenChange, dismissible } = useRootContext();
 
+  const navigation = useNavigation();
+
   React.useEffect(() => {
     if (!open) return;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -167,10 +170,23 @@ const Content = ({
       return true;
     });
 
+    // When non-dismissible, also block iOS swipe-back and navigation events
+    let unsubscribeBeforeRemove: (() => void) | undefined;
+    if (!dismissible) {
+      navigation.setOptions({ gestureEnabled: false });
+      unsubscribeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
+        e.preventDefault();
+      });
+    }
+
     return () => {
       backHandler.remove();
+      if (!dismissible) {
+        navigation.setOptions({ gestureEnabled: true });
+        unsubscribeBeforeRemove?.();
+      }
     };
-  }, [dismissible, open, onOpenChange]);
+  }, [dismissible, open, onOpenChange, navigation]);
 
   if (!forceMount) {
     if (!open) {

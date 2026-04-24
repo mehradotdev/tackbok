@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { BackHandler, GestureResponderEvent, Pressable, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useControllableState } from '~/components/primitives/hooks';
 import { Portal as RNPPortal } from '~/components/primitives/portal';
 import * as Slot from '~/components/primitives/slot';
@@ -152,6 +153,8 @@ const Content = ({
 }: ContentProps & { ref?: React.Ref<ContentRef> }) => {
   const { open, nativeID, onOpenChange, dismissible } = useRootContext();
 
+  const navigation = useNavigation();
+
   React.useEffect(() => {
     if (!open) return;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -162,10 +165,23 @@ const Content = ({
       return true;
     });
 
+    // When non-dismissible, also block iOS swipe-back and navigation events
+    let unsubscribeBeforeRemove: (() => void) | undefined;
+    if (!dismissible) {
+      navigation.setOptions({ gestureEnabled: false });
+      unsubscribeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
+        e.preventDefault();
+      });
+    }
+
     return () => {
       backHandler.remove();
+      if (!dismissible) {
+        navigation.setOptions({ gestureEnabled: true });
+        unsubscribeBeforeRemove?.();
+      }
     };
-  }, [dismissible, open, onOpenChange]);
+  }, [dismissible, open, onOpenChange, navigation]);
 
   if (!forceMount) {
     if (!open) {
