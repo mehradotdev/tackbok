@@ -1,0 +1,154 @@
+import { parseZipArchive, readZipEntryText } from './reader/memory-reader';
+import {
+  encodeZipArchiveBytes,
+  parseZipArchiveBytes,
+  readUint,
+  readUint64,
+  readUshort,
+  writeUshort,
+} from './core';
+import {
+  ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
+  ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
+  addCentralDirectoryZip64Extra,
+  addZip64EndOfCentralDirectory,
+  findEndOfCentralDirectoryOffset,
+  findZip64EndOfCentralDirectoryOffset,
+  toArrayBuffer,
+} from './test-utils';
+
+const textEncoder = new TextEncoder();
+
+function createArchiveEntries(count: number): Record<string, Uint8Array> {
+  const entries: Record<string, Uint8Array> = Object.create(null) as Record<
+    string,
+    Uint8Array
+  >;
+
+  for (let index = 0; index < count; index += 1) {
+    entries[`file-${index}.txt`] = new Uint8Array(0);
+  }
+
+  return entries;
+}
+
+describe('ZIP archive helpers', () => {
+  describe('parseZipArchive', () => {
+    test('round-trips a classic ZIP archive', () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({ 'notes/entry.json': textEncoder.encode('{"ok":true}') }),
+      );
+
+      const archive = parseZipArchive(bytes);
+
+      expect(readZipEntryText(archive, 'notes/entry.json')).toBe('{"ok":true}');
+    });
+
+    test('round-trips UTF-8 filenames with emoji and non-BMP code points', () => {
+      const unicodePath = 'notes/emoji-😀/music-𠮷-🧪.txt';
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({ [unicodePath]: textEncoder.encode('unicode-ok') }),
+      );
+
+      const archive = parseZipArchive(bytes);
+
+      expect(readZipEntryText(archive, unicodePath)).toBe('unicode-ok');
+    });
+
+    test('surfaces oversize in-memory ZIP entries with guidance', () => {
+      const base = new Uint8Array(
+        encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+      );
+      const zip64 = addCentralDirectoryZip64Extra(base, {
+        compressedSize: 5n,
+        uncompressedSize: 0x80000000n,
+        localHeaderOffset: 0n,
+      });
+
+      expect(() => parseZipArchive(zip64)).toThrow(
+        'ZIP entry is too large for the in-memory archive API; use openZipReader instead',
+      );
+    });
+  });
+
+  describe('parseZipArchiveBytes', () => {
+    test('supports ZIP64 extra fields in central directory entries', () => {
+      const base = new Uint8Array(
+        encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+      );
+      const zip64 = addCentralDirectoryZip64Extra(base, {
+        compressedSize: 5n,
+        uncompressedSize: 5n,
+        localHeaderOffset: 0n,
+      });
+
+      const archive = parseZipArchiveBytes(toArrayBuffer(zip64));
+
+      expect(new TextDecoder().decode(archive['sample.txt'])).toBe('hello');
+    });
+
+    test('supports ZIP64 EOCD metadata when classic EOCD fields are saturated', () => {
+      const base = new Uint8Array(
+        encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+      );
+      const zip64 = addZip64EndOfCentralDirectory(base);
+
+      const archive = parseZipArchiveBytes(toArrayBuffer(zip64));
+
+      expect(new TextDecoder().decode(archive['sample.txt'])).toBe('hello');
+    });
+
+    test('rejects malformed ZIP64 extra fields', () => {
+      const base = new Uint8Array(
+        encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+      );
+      const zip64 = addCentralDirectoryZip64Extra(base, {
+        compressedSize: 5n,
+        uncompressedSize: 5n,
+        localHeaderOffset: 0n,
+      });
+      const eocdOffset = findEndOfCentralDirectoryOffset(zip64);
+      const centralDirectoryOffset = readUint(zip64, eocdOffset + 16);
+      const nameLength = readUshort(zip64, centralDirectoryOffset + 28);
+      const extraOffset = centralDirectoryOffset + 46 + nameLength;
+
+      writeUshort(zip64, extraOffset + 2, 8);
+
+      expect(() => parseZipArchiveBytes(toArrayBuffer(zip64))).toThrow(
+        'Malformed ZIP64 extra field for central directory entry',
+      );
+    });
+  });
+
+  describe('encodeZipArchiveBytes', () => {
+    test('emits ZIP64 EOCD metadata when the entry count exceeds classic limits', () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes(createArchiveEntries(65536), true),
+      );
+      const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+      const locatorOffset = eocdOffset - 20;
+
+      expect(readUshort(bytes, eocdOffset + 8)).toBe(0xffff);
+      expect(readUshort(bytes, eocdOffset + 10)).toBe(0xffff);
+      expect(readUint(bytes, eocdOffset + 12)).toBe(0xffffffff);
+      expect(readUint(bytes, locatorOffset)).toBe(
+        ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
+      );
+
+      const zip64EocdOffset = findZip64EndOfCentralDirectoryOffset(bytes);
+
+      expect(readUint(bytes, zip64EocdOffset)).toBe(
+        ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
+      );
+      expect(readUint64(bytes, zip64EocdOffset + 32)).toBe(65536n);
+    });
+
+    test('stores already-compressed image formats without deflate', () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({ 'media/photo.heic': new Uint8Array([1, 2, 3, 4]) }),
+      );
+
+      expect(readUshort(bytes, 8)).toBe(0);
+    });
+  });
+});

@@ -1,7 +1,51 @@
-import type { CodecState, DeflateOptions, HuffmanNode } from './types';
+// ─── Internal types ─────────────────────────────────────────────────────────
+// These are implementation details of the DEFLATE codec and are not part of
+// the public ZIP API surface.
+
+interface HuffmanNode {
+  lit: number;
+  f: number;
+  d: number;
+  l?: HuffmanNode;
+  r?: HuffmanNode;
+}
+
+interface DeflateOptions {
+  level?: number;
+}
+
+interface CodecState {
+  nextCode: Uint16Array;
+  blCount: Uint16Array;
+  order: number[];
+  lengthBase: number[];
+  lengthExtra: number[];
+  lengthDefs: Uint16Array;
+  distanceBase: number[];
+  distanceExtra: number[];
+  distanceDefs: Uint32Array;
+  fixedLiteralMap: Uint16Array;
+  fixedLiteralTree: number[];
+  fixedDistanceMap: Uint16Array;
+  fixedDistanceTree: number[];
+  literalMap: Uint16Array;
+  literalTree: number[];
+  tempTree: number[];
+  distanceMap: Uint16Array;
+  distanceTree: number[];
+  codeLengthMap: Uint16Array;
+  codeLengthTree: number[];
+  rev15: Uint16Array;
+  literalHist: Uint32Array;
+  distanceHist: Uint32Array;
+  codeLengthHist: Uint32Array;
+  literals: Uint32Array;
+  starts: Uint16Array;
+  previous: Uint16Array;
+}
 
 /**
- * Shared DEFLATE tables and scratch space reused between parse and encode.
+ * Shared DEFLATE tables and scratch space reused by ZIP archive reading and writing.
  */
 const state: CodecState = {
   nextCode: new Uint16Array(16),
@@ -97,7 +141,26 @@ function reverseCodes(tree: number[], maxBits: number): void {
   }
 }
 
+function assertBitWriteCapacity(buffer: Uint8Array, position: number, byteCount: number): void {
+  const offset = position >>> 3;
+  if (offset + byteCount > buffer.length) {
+    throw new Error('DEFLATE output buffer is too small');
+  }
+}
+
+function requiredReadBytes(position: number, length: number): number {
+  return (((position & 7) + length + 7) >>> 3);
+}
+
+function assertBitReadCapacity(buffer: Uint8Array, position: number, length: number): void {
+  const offset = position >>> 3;
+  if (offset + requiredReadBytes(position, length) > buffer.length) {
+    throw new Error('Invalid DEFLATE data: truncated bitstream');
+  }
+}
+
 function putBitsExact(buffer: Uint8Array, position: number, value: number): void {
+  assertBitWriteCapacity(buffer, position, 2);
   const shifted = value << (position & 7);
   const offset = position >>> 3;
   buffer[offset] |= shifted;
@@ -105,6 +168,7 @@ function putBitsExact(buffer: Uint8Array, position: number, value: number): void
 }
 
 function putBitsFast(buffer: Uint8Array, position: number, value: number): void {
+  assertBitWriteCapacity(buffer, position, 3);
   const shifted = value << (position & 7);
   const offset = position >>> 3;
   buffer[offset] |= shifted;
@@ -113,6 +177,7 @@ function putBitsFast(buffer: Uint8Array, position: number, value: number): void 
 }
 
 function readBitsExact(buffer: Uint8Array, position: number, length: number): number {
+  assertBitReadCapacity(buffer, position, length);
   return (
     ((buffer[position >>> 3] | (buffer[(position >>> 3) + 1] << 8)) >>> (position & 7)) &
     ((1 << length) - 1)
@@ -120,6 +185,10 @@ function readBitsExact(buffer: Uint8Array, position: number, length: number): nu
 }
 
 function readBitsFast(buffer: Uint8Array, position: number, length: number): number {
+  if ((position >>> 3) + 3 > buffer.length) {
+    return readBitsExact(buffer, position, length);
+  }
+
   return (
     ((buffer[position >>> 3] |
       (buffer[(position >>> 3) + 1] << 8) |
@@ -130,11 +199,16 @@ function readBitsFast(buffer: Uint8Array, position: number, length: number): num
 }
 
 function read17Bits(buffer: Uint8Array, position: number): number {
+  const offset = position >>> 3;
+  if (offset >= buffer.length) {
+    throw new Error('Invalid DEFLATE data: truncated bitstream');
+  }
+
+  const first = buffer[offset];
+  const second = offset + 1 < buffer.length ? buffer[offset + 1] : 0;
+  const third = offset + 2 < buffer.length ? buffer[offset + 2] : 0;
   return (
-    (buffer[position >>> 3] |
-      (buffer[(position >>> 3) + 1] << 8) |
-      (buffer[(position >>> 3) + 2] << 16)) >>>
-    (position & 7)
+    (first | (second << 8) | (third << 16)) >>> (position & 7)
   );
 }
 
@@ -993,7 +1067,9 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
         output = ensureInflateBuffer(output!, offset + (1 << 17));
       }
 
-      while (offset < end) {
+      // Copy full 4-byte batches first, then finish any 1-3 byte remainder
+      // without writing past the logical match end.
+      while (offset + 3 < end) {
         output![offset] = output![offset - distance];
         offset += 1;
         output![offset] = output![offset - distance];
@@ -1003,7 +1079,10 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
         output![offset] = output![offset - distance];
         offset += 1;
       }
-      offset = end;
+      while (offset < end) {
+        output![offset] = output![offset - distance];
+        offset += 1;
+      }
     }
   }
 

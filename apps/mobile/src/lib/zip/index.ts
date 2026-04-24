@@ -1,15 +1,14 @@
+export * from './reader';
+export * from './writer';
+export * from './adapters/expo';
+
 export {
-  createZipArchiveBuilder,
-  findZipEntryPathByBasename,
-  hasZipEntry,
-  parseZipArchive,
-  readZipEntryBytes,
-  readZipEntryJson,
-  readZipEntryText,
-} from './archive';
+  encodeZipArchiveBytes,
+  parseZipArchiveBytes,
+  type ParsedLocalFileHeader,
+  type ParsedZipDirectory,
+  type ParsedZipEntryMeta,
+} from './core';
 
-export type { ZipArchive, ZipArchiveBuilder } from './archive';
-
-// Prefer parse and encode for ZIP archive work. Lower-level DEFLATE helpers
-// remain internal implementation details of uzipLib.
-export { encode, parse } from './uzipLib';
+// Keep the app-facing ZIP surface small: callers should prefer this facade
+// rather than importing deep internal modules.

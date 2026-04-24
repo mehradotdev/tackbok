@@ -1,44 +1,20 @@
 /**
- * Low-level helpers for ZIP container fields and UTF-8 filename encoding.
+ * ZIP filename encoding and decoding.
+ *
+ * ZIP filenames are either pure UTF-8 (when the UTF-8 general-purpose flag is
+ * set) or IBM code page 437 (the MS-DOS legacy encoding).  This module also
+ * provides the byte-level UTF-8 encode/decode helpers used when writing
+ * filename fields into ZIP binary structures — deliberately avoiding the
+ * platform TextEncoder/TextDecoder to keep the codec pure and deterministic.
  */
-
-export function readUshort(buffer: Uint8Array, offset: number): number {
-  return buffer[offset] | (buffer[offset + 1] << 8);
-}
-
-export function writeUshort(buffer: Uint8Array, offset: number, value: number): void {
-  buffer[offset] = value & 255;
-  buffer[offset + 1] = (value >> 8) & 255;
-}
-
-export function readUint(buffer: Uint8Array, offset: number): number {
-  return (
-    buffer[offset + 3] * (256 * 256 * 256) +
-    ((buffer[offset + 2] << 16) | (buffer[offset + 1] << 8) | buffer[offset])
-  );
-}
-
-export function writeUint(buffer: Uint8Array, offset: number, value: number): void {
-  buffer[offset] = value & 255;
-  buffer[offset + 1] = (value >> 8) & 255;
-  buffer[offset + 2] = (value >> 16) & 255;
-  buffer[offset + 3] = (value >> 24) & 255;
-}
-
-export function readASCII(buffer: Uint8Array, offset: number, length: number): string {
-  let value = '';
-  for (let index = 0; index < length; index += 1) {
-    value += String.fromCharCode(buffer[offset + index]);
-  }
-  return value;
-}
 
 function pad(value: string): string {
   return value.length < 2 ? `0${value}` : value;
 }
 
 /**
- * Decodes legacy IBM code page filenames when the UTF-8 flag is not set.
+ * Decodes legacy IBM code page 437 filenames when the UTF-8 flag is not set.
+ * Returns null for code points above 0xaf that are not covered by the table.
  */
 export function readIBM(
   buffer: Uint8Array,
@@ -76,8 +52,20 @@ export function readUTF8(buffer: Uint8Array, offset: number, length: number): st
   try {
     return decodeURIComponent(encoded);
   } catch {
-    return readASCII(buffer, offset, length);
+    return readASCIIFallback(buffer, offset, length);
   }
+}
+
+function readASCIIFallback(
+  buffer: Uint8Array,
+  offset: number,
+  length: number,
+): string {
+  let value = '';
+  for (let index = 0; index < length; index += 1) {
+    value += String.fromCharCode(buffer[offset + index]);
+  }
+  return value;
 }
 
 function readCodePoint(value: string, index: number): [number, number] {
@@ -98,7 +86,8 @@ function readCodePoint(value: string, index: number): [number, number] {
 }
 
 /**
- * Writes a JS string into a ZIP filename field using UTF-8 encoding.
+ * Writes a JS string into a ZIP filename field using byte-level UTF-8 encoding.
+ * Returns the number of bytes written.
  */
 export function writeUTF8(buffer: Uint8Array, offset: number, value: string): number {
   let written = 0;
@@ -134,7 +123,7 @@ export function writeUTF8(buffer: Uint8Array, offset: number, value: string): nu
 }
 
 /**
- * Measures how many bytes a string will take in a ZIP UTF-8 filename field.
+ * Returns the number of bytes a string will occupy in a ZIP filename field.
  */
 export function sizeUTF8(value: string): number {
   let size = 0;

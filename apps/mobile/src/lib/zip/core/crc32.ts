@@ -31,5 +31,6 @@ export function updateCrc32(
  * Computes the CRC32 checksum for a byte range.
  */
 export function computeCrc32(buffer: Uint8Array, offset: number, length: number): number {
-  return updateCrc32(0xffffffff, buffer, offset, length) ^ 0xffffffff;
+  // Normalize the finalized CRC to uint32 so comparisons stay consistent with ZIP field reads.
+  return (updateCrc32(0xffffffff, buffer, offset, length) ^ 0xffffffff) >>> 0;
 }
