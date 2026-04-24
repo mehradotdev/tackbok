@@ -1,8 +1,11 @@
 export {
   createBackupImportProgress,
-  createSummaryProgressMetrics,
   getImportPhaseOrder,
 } from './progress';
+export {
+  createBackupImportSummary,
+  createSummaryProgressMetrics,
+} from './summary';
 export { importFromTackbokBackup } from './import/tackbok';
 export { importFromGratitudeAppBackup } from './import/gratitudeApp';
 export { importFromPresentlyCSV, pickPresentlyImportFile } from './import/presently';
@@ -14,5 +17,6 @@ export type {
   BackupImportProgressMetrics,
   BackupImportSource,
   BackupImportSummary,
+  BackupImportWarning,
   ImportMode,
 } from './types';

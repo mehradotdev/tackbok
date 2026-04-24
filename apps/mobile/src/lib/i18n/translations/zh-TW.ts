@@ -344,16 +344,26 @@ export const zhTW: Translations = {
   'Refreshing your journal so imported data appears everywhere.':
     '正在重整您的日記，以使匯入的資料隨處可見。',
   'Entries processed': '紀錄已處理',
+  'Entries skipped due to errors': '因錯誤略過的紀錄',
+  'Please do not close or minimize the app while the import is in progress.':
+    '匯入過程中請勿關閉或最小化應用程式。',
   'Tags added': '標籤已新增',
   'Prompts added': '提示已新增',
   'Photos restored': '照片已還原',
   'Voice memos restored': '語音備忘錄已還原',
+  'Media skipped': '已略過的媒體',
   'Tackbok backup restored': 'Tackbok 備份已還原',
   'Gratitude import complete': 'Gratitude 匯入完成',
   'Presently import complete': 'Presently 匯入完成',
+  'Your journal data is ready to review, but some items could not be restored.':
+    '您的日記資料已準備好供查看，但部分項目無法還原。',
   'Your journal data is ready to review.': '您的日記資料已準備好供查看。',
+  'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.':
+    '本次匯入完成，但有警告。部分項目無法還原，而其他所有內容已存在於 Tackbok 中。',
   'This import finished, but everything already existed in Tackbok.':
     '本次匯入已完成，但所有內容已存在於 Tackbok 中。',
+  'This import finished with warnings. Some items could not be restored.':
+    '本次匯入完成，但有警告。部分項目無法還原。',
   'This import finished successfully.': '本次匯入成功完成。',
   'Imported from Tackbok backup': '從 Tackbok 備份匯入',
   'Imported from Gratitude backup': '從 Gratitude 備份匯入',

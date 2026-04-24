@@ -5,7 +5,11 @@
 
 import { db, customPrompts, entries, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
-import { findZipEntryPathByBasename, hasZipEntry, type ZipArchive } from '~/lib/zip';
+import {
+  findZipEntryPathByBasename,
+  hasZipEntry,
+  type ZipReader,
+} from '~/lib/zip';
 import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import type { ImportProgressCallback } from './progress';
 import { reportImportProgress } from './progress';
@@ -34,6 +38,7 @@ import {
 import {
   assertSafeArchivePath,
   buildSubstantiveCheck,
+  cleanupImportedFiles,
   deriveGratitudeTitle,
   normalizeOptionalText,
   readSafeZipBytes,
@@ -42,8 +47,94 @@ import {
   writeImportedAudio,
   writeImportedPhoto,
 } from './archiveUtils';
+import {
+  createSummaryCounterMetrics,
+  recordImportWarning,
+} from './summary';
 
 type BackupArchiveTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+function describeImportedAsset(type: Asset['type']): string {
+  return type === AssetType.IMAGE ? 'image' : 'voice memo';
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error && error.message ? error.message : 'Unknown import error';
+}
+
+function logImportWarning(
+  source: BackupImportSource,
+  message: string,
+  error?: unknown,
+): void {
+  if (error === undefined) {
+    console.warn(`[backupImport:${source}] ${message}`);
+    return;
+  }
+
+  console.warn(`[backupImport:${source}] ${message}`, error);
+}
+
+interface MaterializedPortableAssetsResult {
+  assets: Asset[];
+  createdFiles: string[];
+  hadFailures: boolean;
+}
+
+async function materializePortableEntryAssets(
+  portableEntry: PortableEntry,
+  zip: ZipReader,
+  summary: BackupImportSummary,
+  source: BackupImportSource,
+): Promise<MaterializedPortableAssetsResult> {
+  const assets: Asset[] = [];
+  const entryCreatedFiles: string[] = [];
+  let hadFailures = false;
+
+  for (const portableAsset of portableEntry.assets ?? []) {
+    try {
+      const archivePath = assertSafeArchivePath(portableAsset.path);
+      const bytes = await readSafeZipBytes(zip, archivePath);
+
+      if (portableAsset.type === AssetType.IMAGE) {
+        const photo = await writeImportedPhoto(bytes, archivePath);
+        entryCreatedFiles.push(photo.uri);
+        assets.push({
+          type: photo.type,
+          uri: photo.uri,
+          width: portableAsset.width ?? photo.width,
+          height: portableAsset.height ?? photo.height,
+        });
+        summary.importedPhotos++;
+        continue;
+      }
+
+      const audio = writeImportedAudio(bytes, archivePath);
+      entryCreatedFiles.push(audio.uri);
+      assets.push(audio);
+      summary.importedAudio++;
+    } catch (error) {
+      hadFailures = true;
+      const assetLabel = describeImportedAsset(portableAsset.type);
+      const message = `Could not restore ${assetLabel} "${portableAsset.path}" for entry "${portableEntry.noteId}".`;
+
+      recordImportWarning(summary, {
+        kind: 'entry-asset',
+        message: `${message} ${getErrorMessage(error)}`,
+        noteId: portableEntry.noteId,
+        assetPath: portableAsset.path,
+        assetType: portableAsset.type,
+      });
+      logImportWarning(source, message, error);
+    }
+  }
+
+  return {
+    assets,
+    createdFiles: entryCreatedFiles,
+    hadFailures,
+  };
+}
 
 export interface GratitudeAppPortablePayload {
   portableEntries: PortableEntry[];
@@ -140,11 +231,69 @@ function createPortableTagsFromGratitudeApp(
   });
 }
 
+function normalizeArchiveLookupPath(path: string | null | undefined): string | null {
+  const normalized = path?.trim().replace(/\\/g, '/').replace(/^\.?\/+/, '');
+  return normalized ? normalized : null;
+}
+
+function findZipEntryPathByDirectoryAndBasename(
+  zip: ZipReader,
+  dirName: string,
+  basename: string,
+): string | null {
+  const safeBasename = basename.trim();
+  if (!safeBasename) {
+    return null;
+  }
+
+  const match = zip
+    .listEntries()
+    .map((entry) => entry.path)
+    .find((path) => {
+      const segments = path.split('/');
+      return segments.at(-1) === safeBasename && segments.includes(dirName);
+    });
+
+  return match ?? null;
+}
+
+function resolveGratitudeArchiveAssetPath(
+  zip: ZipReader,
+  dirName: string,
+  rawPath: string | null | undefined,
+): string | null {
+  const normalizedPath = normalizeArchiveLookupPath(rawPath);
+  if (!normalizedPath) {
+    return null;
+  }
+
+  const candidates = new Set<string>([normalizedPath]);
+  if (!normalizedPath.startsWith(`${dirName}/`)) {
+    candidates.add(`${dirName}/${normalizedPath}`);
+  }
+
+  for (const candidatePath of candidates) {
+    if (hasZipEntry(zip, candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  const basename = normalizedPath.split('/').pop();
+  if (!basename) {
+    return null;
+  }
+
+  return (
+    findZipEntryPathByDirectoryAndBasename(zip, dirName, basename) ??
+    findZipEntryPathByBasename(zip, basename)
+  );
+}
+
 /**
  * Resolves all image and audio assets for a GratitudeApp entry from the imported ZIP archive.
  */
 function resolveGratitudeAppEntryAssets(
-  zip: ZipArchive,
+  zip: ZipReader,
   gratitudeEntry: GratitudeAppEntryRecord,
   groupedAssets: Map<string, GratitudeAppAssetRecord[]>,
   gratitudeRecordings: GratitudeAppRecordingRecord[],
@@ -166,8 +315,8 @@ function resolveGratitudeAppEntryAssets(
       asset.assetType === 'audio'
         ? GRATITUDE_APP_RECORDINGS_DIR
         : GRATITUDE_APP_IMAGES_DIR;
-    const candidatePath = `${dirName}/${asset.assetPath}`;
-    if (!hasZipEntry(zip, candidatePath)) continue;
+    const candidatePath = resolveGratitudeArchiveAssetPath(zip, dirName, asset.assetPath);
+    if (!candidatePath) continue;
 
     entryAssets.push({
       type: asset.assetType === 'audio' ? AssetType.AUDIO : AssetType.IMAGE,
@@ -182,8 +331,12 @@ function resolveGratitudeAppEntryAssets(
       .filter(Boolean);
 
     for (const imageName of fallbackImages) {
-      const candidatePath = `${GRATITUDE_APP_IMAGES_DIR}/${imageName}`;
-      if (!hasZipEntry(zip, candidatePath)) continue;
+      const candidatePath = resolveGratitudeArchiveAssetPath(
+        zip,
+        GRATITUDE_APP_IMAGES_DIR,
+        imageName,
+      );
+      if (!candidatePath) continue;
 
       entryAssets.push({
         type: AssetType.IMAGE,
@@ -196,8 +349,12 @@ function resolveGratitudeAppEntryAssets(
     for (const recording of gratitudeRecordings) {
       if (recording.noteId !== gratitudeEntry.noteId) continue;
 
-      const candidatePath = `${GRATITUDE_APP_RECORDINGS_DIR}/${recording.recordingPath}`;
-      if (!hasZipEntry(zip, candidatePath)) continue;
+      const candidatePath = resolveGratitudeArchiveAssetPath(
+        zip,
+        GRATITUDE_APP_RECORDINGS_DIR,
+        recording.recordingPath,
+      );
+      if (!candidatePath) continue;
 
       entryAssets.push({
         type: AssetType.AUDIO,
@@ -212,33 +369,24 @@ function resolveGratitudeAppEntryAssets(
 /**
  * Reads GratitudeApp backup records and converts them into the shared portable payload.
  */
-export function buildGratitudeAppPortablePayload(
-  zip: ZipArchive,
-): GratitudeAppPortablePayload {
-  const gratitudeEntries = readSafeZipJson<GratitudeAppEntryRecord[]>(
-    zip,
-    GRATITUDE_APP_ENTRIES_PATH,
-  );
-  const gratitudeAssets = readSafeZipJson<GratitudeAppAssetRecord[]>(
-    zip,
-    GRATITUDE_APP_ASSETS_PATH,
-  );
-  const gratitudePrompts = readSafeZipJson<GratitudeAppPromptRecord[]>(
-    zip,
-    GRATITUDE_APP_PROMPTS_PATH,
-  );
-  const gratitudeTags = readSafeZipJson<GratitudeAppTagRecord[]>(
-    zip,
-    GRATITUDE_APP_TAGS_PATH,
-  );
-  const gratitudeRecordings = readSafeZipJson<GratitudeAppRecordingRecord[]>(
-    zip,
-    GRATITUDE_APP_RECORDINGS_PATH,
-  );
-  const gratitudeConfigList = readSafeZipJson<GratitudeAppConfigRecord[]>(
-    zip,
-    GRATITUDE_APP_CONFIG_PATH,
-  );
+export async function buildGratitudeAppPortablePayload(
+  zip: ZipReader,
+): Promise<GratitudeAppPortablePayload> {
+  const [
+    gratitudeEntries,
+    gratitudeAssets,
+    gratitudePrompts,
+    gratitudeTags,
+    gratitudeRecordings,
+    gratitudeConfigList,
+  ] = await Promise.all([
+    readSafeZipJson<GratitudeAppEntryRecord[]>(zip, GRATITUDE_APP_ENTRIES_PATH),
+    readSafeZipJson<GratitudeAppAssetRecord[]>(zip, GRATITUDE_APP_ASSETS_PATH),
+    readSafeZipJson<GratitudeAppPromptRecord[]>(zip, GRATITUDE_APP_PROMPTS_PATH),
+    readSafeZipJson<GratitudeAppTagRecord[]>(zip, GRATITUDE_APP_TAGS_PATH),
+    readSafeZipJson<GratitudeAppRecordingRecord[]>(zip, GRATITUDE_APP_RECORDINGS_PATH),
+    readSafeZipJson<GratitudeAppConfigRecord[]>(zip, GRATITUDE_APP_CONFIG_PATH),
+  ]);
   const gratitudeConfig = gratitudeConfigList[0] ?? {};
   const groupedAssets = groupGratitudeAppAssets(gratitudeAssets);
   const promptTitles = buildGratitudeAppPromptMap(gratitudePrompts, gratitudeEntries);
@@ -369,7 +517,7 @@ export async function importPortableEntries(
   tagMap: Map<string, string>,
   summary: BackupImportSummary,
   mode: ImportMode,
-  zip: ZipArchive,
+  zip: ZipReader,
   createdFiles: string[],
   source: BackupImportSource,
   onProgress?: ImportProgressCallback,
@@ -386,10 +534,7 @@ export async function importPortableEntries(
       {
         totalEntries,
         processedEntries,
-        importedPhotos: summary.importedPhotos,
-        importedAudio: summary.importedAudio,
-        importedTags: summary.importedTags,
-        importedPrompts: summary.importedPrompts,
+        ...createSummaryCounterMetrics(summary),
       },
     );
   };
@@ -412,30 +557,6 @@ export async function importPortableEntries(
       continue;
     }
 
-    const assets: Asset[] = [];
-    for (const portableAsset of portableEntry.assets ?? []) {
-      const archivePath = assertSafeArchivePath(portableAsset.path);
-      const bytes = readSafeZipBytes(zip, archivePath);
-
-      if (portableAsset.type === AssetType.IMAGE) {
-        const photo = await writeImportedPhoto(bytes, archivePath);
-        createdFiles.push(photo.uri);
-        assets.push({
-          type: photo.type,
-          uri: photo.uri,
-          width: portableAsset.width ?? photo.width,
-          height: portableAsset.height ?? photo.height,
-        });
-        summary.importedPhotos++;
-        continue;
-      }
-
-      const audio = writeImportedAudio(bytes, archivePath);
-      createdFiles.push(audio.uri);
-      assets.push(audio);
-      summary.importedAudio++;
-    }
-
     const tagIds = (portableEntry.tagTitles ?? [])
       .map((title) => sanitizeTagName(title))
       .filter(Boolean)
@@ -456,27 +577,37 @@ export async function importPortableEntries(
       ? portableEntry.updatedAt
       : createdAt;
 
+    const {
+      assets,
+      createdFiles: entryCreatedFiles,
+      hadFailures,
+    } = await materializePortableEntryAssets(portableEntry, zip, summary, source);
+
+    if (
+      hadFailures &&
+      (portableEntry.assets?.length ?? 0) > 0 &&
+      !buildSubstantiveCheck({ textTitle, textContent, mood, assets })
+    ) {
+      const message = `Skipped entry "${noteId}" because none of its content could be restored after media import failures.`;
+      recordImportWarning(summary, {
+        kind: 'entry-skipped',
+        message,
+        noteId,
+      });
+      logImportWarning(source, message);
+    }
+
     if (!buildSubstantiveCheck({ textTitle, textContent, mood, assets })) {
       processedEntries++;
       reportEntryProgress();
       continue;
     }
 
-    await tx
-      .insert(entries)
-      .values({
-        note_id: noteId,
-        text_title: textTitle,
-        text_content: textContent,
-        mood,
-        assets: assets.length > 0 ? assets : null,
-        tags: tagIds,
-        created_at: createdAt,
-        updated_at: updatedAt,
-      })
-      .onConflictDoUpdate({
-        target: entries.note_id,
-        set: {
+    try {
+      await tx
+        .insert(entries)
+        .values({
+          note_id: noteId,
           text_title: textTitle,
           text_content: textContent,
           mood,
@@ -484,8 +615,25 @@ export async function importPortableEntries(
           tags: tagIds,
           created_at: createdAt,
           updated_at: updatedAt,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: entries.note_id,
+          set: {
+            text_title: textTitle,
+            text_content: textContent,
+            mood,
+            assets: assets.length > 0 ? assets : null,
+            tags: tagIds,
+            created_at: createdAt,
+            updated_at: updatedAt,
+          },
+        });
+    } catch (error) {
+      cleanupImportedFiles(entryCreatedFiles);
+      throw error;
+    }
+
+    createdFiles.push(...entryCreatedFiles);
 
     if (hasExisting) {
       summary.updatedEntries++;

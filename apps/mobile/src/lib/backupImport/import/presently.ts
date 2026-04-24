@@ -4,13 +4,11 @@ import { File } from 'expo-file-system';
 import { db, entries } from '~/db';
 import { generateUUID } from '~/lib/utils';
 import {
-  createBackupImportSummary,
   type ImportProgressCallback,
   reportImportProgress,
 } from '../progress';
-import {
-  type BackupImportSummary,
-} from '../types';
+import { createBackupImportSummary } from '../summary';
+import { type BackupImportSummary } from '../types';
 
 /**
  * Parses CSV content into rows while preserving quoted commas, newlines, and escaped quotes.
@@ -89,8 +87,10 @@ export async function pickPresentlyImportFile(): Promise<DocumentPicker.Document
  * Only has entryDate (YYYY-MM-DD) and entryContent columns.
  *
  * Uses date + content matching for duplicate detection because
- * the Presently format truncates timestamps to date-only.
- * Presently entries always use midnight timestamps, so exact match is correct.
+ * the Presently format truncates timestamps to date-only and supports only
+ * one entry per day. We intentionally normalize imported Presently entries to
+ * local midnight so duplicate detection can compare exact timestamps rather
+ * than scanning every entry in the day range.
  *
  * Returns a shared import summary for the imported entries.
  */
@@ -137,6 +137,10 @@ export async function importFromPresentlyCSV(
 
   reportEntriesProgress();
 
+  // TODO: Benchmark duplicate-check latency before optimizing this import path.
+  // If Presently imports become slow on larger datasets, preload existing
+  // created_at/text_content pairs for the imported dates and add an index on
+  // created_at so duplicate detection does not rely on repeated table scans.
   await db.transaction(async (tx) => {
     const advanceProgress = () => {
       processedEntries++;
@@ -156,6 +160,9 @@ export async function importFromPresentlyCSV(
         continue;
       }
 
+      // Intentionally use local midnight as the canonical timestamp for
+      // Presently imports. This preserves the expected calendar day in the UI
+      // and lets duplicate detection target only midnight entries.
       const dateMs = new Date(`${entryDateStr}T00:00:00`).getTime();
       const existing = await tx
         .select({ note_id: entries.note_id })

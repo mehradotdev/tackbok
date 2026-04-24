@@ -9,13 +9,23 @@ import { deletePhotoFile, photoFileExists } from '~/lib/photoUtils';
 import { deleteVoiceMemoFile, voiceMemoFileExists } from '~/lib/voiceMemoUtils';
 import { generateUUID, sanitizePromptTitle } from '~/lib/utils';
 import {
-  parseZipArchive,
-  readZipEntryBytes,
-  readZipEntryJson,
-  type ZipArchive,
+  createExpoZipReaderSource,
+  openZipReader,
+  type ZipReader,
 } from '~/lib/zip';
 
 export const VALID_MOODS = new Set<string>(MOODS);
+
+function readFilePrefixBytes(file: File, length: number): Uint8Array {
+  const safeLength = Math.min(length, file.size);
+  const handle = file.open();
+
+  try {
+    return handle.readBytes(safeLength);
+  } finally {
+    handle.close();
+  }
+}
 
 /**
  * Builds a filesystem-safe timestamp string for exported backup filenames.
@@ -98,7 +108,14 @@ export async function writeImportedPhoto(
   const extension = getSafeExtension(archivePath, 'jpg');
   const filename = `${generateUUID()}.${extension}`;
   const file = new File(dir, filename);
-  file.write(bytes);
+  try {
+    file.write(bytes);
+  } catch (error) {
+    if (file.exists) {
+      file.delete();
+    }
+    throw error;
+  }
 
   let width: number | undefined;
   let height: number | undefined;
@@ -127,7 +144,14 @@ export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asse
   const extension = getSafeExtension(archivePath, 'm4a');
   const filename = `${generateUUID()}.${extension}`;
   const file = new File(dir, filename);
-  file.write(bytes);
+  try {
+    file.write(bytes);
+  } catch (error) {
+    if (file.exists) {
+      file.delete();
+    }
+    throw error;
+  }
 
   return {
     type: AssetType.AUDIO,
@@ -171,26 +195,60 @@ export async function saveZipFile(zipBytes: Uint8Array, fileName: string): Promi
 }
 
 /**
+ * Saves or shares a ZIP file that has already been written to disk.
+ */
+export async function saveGeneratedZipFile(file: File, fileName: string): Promise<void> {
+  if (Platform.OS === 'android') {
+    try {
+      const directory = await Directory.pickDirectoryAsync();
+      const destination = new File(directory, fileName);
+      if (destination.exists) {
+        destination.delete();
+      }
+      file.copy(destination);
+      return;
+    } catch (error) {
+      throw new Error('Export cancelled or failed', { cause: error });
+    }
+  }
+
+  const isAvailable = await Sharing.isAvailableAsync();
+  if (!isAvailable) {
+    throw new Error('Sharing is not available on this device');
+  }
+
+  await Sharing.shareAsync(file.uri, {
+    mimeType: 'application/zip',
+    dialogTitle: 'Export Tackbok Backup',
+    UTI: 'public.zip-archive',
+  });
+}
+
+/**
  * Reads JSON from a ZIP entry after verifying the archive path is safe.
  */
-export function readSafeZipJson<T>(zip: ZipArchive, path: string): T {
-  return readZipEntryJson<T>(zip, assertSafeArchivePath(path));
+export async function readSafeZipJson<T>(
+  zip: ZipReader,
+  path: string,
+): Promise<T> {
+  return zip.readEntryJson<T>(assertSafeArchivePath(path));
 }
 
 /**
  * Reads raw bytes from a ZIP entry after verifying the archive path is safe.
  */
-export function readSafeZipBytes(zip: ZipArchive, path: string): Uint8Array {
-  return readZipEntryBytes(zip, assertSafeArchivePath(path));
+export async function readSafeZipBytes(
+  zip: ZipReader,
+  path: string,
+): Promise<Uint8Array> {
+  return zip.readEntryBytes(assertSafeArchivePath(path));
 }
 
 /**
  * Loads and parses a ZIP archive from a picked file URI.
  */
-export async function loadZipFromUri(uri: string): Promise<ZipArchive> {
-  const file = new File(uri);
-  const bytes = await file.bytes();
-  return parseZipArchive(bytes);
+export async function loadZipFromUri(uri: string): Promise<ZipReader> {
+  return openZipReader(createExpoZipReaderSource(uri));
 }
 
 /**
@@ -198,7 +256,7 @@ export async function loadZipFromUri(uri: string): Promise<ZipArchive> {
  */
 export async function isZipFile(uri: string): Promise<boolean> {
   const file = new File(uri);
-  const bytes = await file.bytes();
+  const bytes = readFilePrefixBytes(file, 4);
   return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b;
 }
 
@@ -227,7 +285,7 @@ export function resolveTagIdsToTitles(
 
   return tagIds
     .split(',')
-    .map((tagId) => tagMap.get(tagId))
+    .map((tagId) => tagMap.get(tagId.trim()))
     .filter((title): title is string => !!title);
 }
 

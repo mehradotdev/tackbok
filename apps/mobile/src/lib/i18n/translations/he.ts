@@ -352,16 +352,26 @@ export const he: Translations = {
   'Refreshing your journal so imported data appears everywhere.':
     'מרענן את היומן שלך כך שהנתונים המיובאים יופיעו בכל מקום.',
   'Entries processed': 'רשומות שעובדו',
+  'Entries skipped due to errors': 'רשומות שנדלגו עקב שגיאות',
+  'Please do not close or minimize the app while the import is in progress.':
+    'אנא אל תסגור או תמזער את האפליקציה בזמן שהייבוא בעיצומו.',
   'Tags added': 'תגיות שנוספו',
   'Prompts added': 'הנחיות שנוספו',
   'Photos restored': 'תמונות ששוחזרו',
   'Voice memos restored': 'תזכורות קוליות ששוחזרו',
+  'Media skipped': 'מדיה שנדלגה',
   'Tackbok backup restored': 'גיבוי טאקבוק שוחזר',
   'Gratitude import complete': 'ייבוא מ-Gratitude הושלם',
   'Presently import complete': 'ייבוא מ-Presently הושלם',
+  'Your journal data is ready to review, but some items could not be restored.':
+    'נתוני היומן שלך מוכנים לבדיקה, אך לא ניתן היה לשחזר פריטים מסוימים.',
   'Your journal data is ready to review.': 'נתוני היומן שלך מוכנים לבדיקה.',
+  'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.':
+    'הייבוא הסתיים עם אזהרות. לא ניתן היה לשחזר פריטים מסוימים, וכל השאר כבר היה קיים בטאקבוק.',
   'This import finished, but everything already existed in Tackbok.':
     'הייבוא הסתיים, אך הכל כבר היה קיים בטאקבוק.',
+  'This import finished with warnings. Some items could not be restored.':
+    'הייבוא הסתיים עם אזהרות. לא ניתן היה לשחזר פריטים מסוימים.',
   'This import finished successfully.': 'הייבוא הסתיים בהצלחה.',
   'Imported from Tackbok backup': 'יובא מגיבוי של טאקבוק',
   'Imported from Gratitude backup': 'יובא מגיבוי של Gratitude',

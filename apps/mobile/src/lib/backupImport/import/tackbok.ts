@@ -14,10 +14,14 @@ import {
   type TackbokBackupManifest,
 } from '../types';
 import {
-  createBackupImportSummary,
   type ImportProgressCallback,
   reportImportProgress,
 } from '../progress';
+import {
+  createBackupImportSummary,
+  createSummaryCounterMetrics,
+  recordImportWarning,
+} from '../summary';
 import {
   ensurePortablePromptTitles,
   importPortableEntries,
@@ -45,95 +49,105 @@ export async function importFromTackbokBackup(
   reportImportProgress(onProgress, 'tackbok', 'reading', 0.2);
 
   const zip = await loadZipFromUri(uri);
-  reportImportProgress(onProgress, 'tackbok', 'validating', 0.15);
-  const manifest = readSafeZipJson<TackbokBackupManifest>(zip, BACKUP_MANIFEST_PATH);
-
-  if (manifest.format !== 'tackbok-backup' || manifest.backupVersion !== 1) {
-    throw new Error('This Tackbok backup version is not supported');
-  }
-
-  const portableEntries = readSafeZipJson<PortableEntry[]>(zip, BACKUP_ENTRIES_PATH);
-  const portableTags = readSafeZipJson<PortableTag[]>(zip, BACKUP_TAGS_PATH);
-  const portablePrompts = readSafeZipJson<PortablePrompt[]>(zip, BACKUP_PROMPTS_PATH);
-  const portableProfile = readSafeZipJson<PortableProfile>(zip, BACKUP_PROFILE_PATH);
-  const summary = createBackupImportSummary();
-  const createdFiles: string[] = [];
-  let importedProfileImageUri: string | null = null;
-  const totals = getImportTotals(portableEntries, portableTags, portablePrompts);
-
-  reportImportProgress(
-    onProgress,
-    'tackbok',
-    'profile',
-    portableProfile.imagePath ? 0.2 : 1,
-    totals,
-  );
-
   try {
-    if (portableProfile.imagePath) {
-      const bytes = readSafeZipBytes(zip, portableProfile.imagePath);
-      const profileImage = await writeImportedPhoto(bytes, portableProfile.imagePath);
-      importedProfileImageUri = profileImage.uri;
-      createdFiles.push(profileImage.uri);
+    reportImportProgress(onProgress, 'tackbok', 'validating', 0.15);
+    const manifest = await readSafeZipJson<TackbokBackupManifest>(
+      zip,
+      BACKUP_MANIFEST_PATH,
+    );
+
+    if (manifest.format !== 'tackbok-backup' || manifest.backupVersion !== 1) {
+      throw new Error('This Tackbok backup version is not supported');
     }
 
-    reportImportProgress(onProgress, 'tackbok', 'taxonomy', 0.1, {
-      ...totals,
-      importedPhotos: summary.importedPhotos,
-      importedAudio: summary.importedAudio,
-    });
+    const [portableEntries, portableTags, portablePrompts, portableProfile] =
+      await Promise.all([
+        readSafeZipJson<PortableEntry[]>(zip, BACKUP_ENTRIES_PATH),
+        readSafeZipJson<PortableTag[]>(zip, BACKUP_TAGS_PATH),
+        readSafeZipJson<PortablePrompt[]>(zip, BACKUP_PROMPTS_PATH),
+        readSafeZipJson<PortableProfile>(zip, BACKUP_PROFILE_PATH),
+      ]);
+    const summary = createBackupImportSummary();
+    const createdFiles: string[] = [];
+    let importedProfileImageUri: string | null = null;
+    const totals = getImportTotals(portableEntries, portableTags, portablePrompts);
 
-    await db.transaction(async (tx) => {
-      const tagMap = await upsertPortableTags(tx, portableTags, summary);
-      await ensurePortablePromptTitles(tx, portablePrompts, summary);
-      reportImportProgress(onProgress, 'tackbok', 'taxonomy', 1, {
+    reportImportProgress(
+      onProgress,
+      'tackbok',
+      'profile',
+      portableProfile.imagePath ? 0.2 : 1,
+      totals,
+    );
+
+    try {
+      if (portableProfile.imagePath) {
+        try {
+          const bytes = await readSafeZipBytes(zip, portableProfile.imagePath);
+          const profileImage = await writeImportedPhoto(bytes, portableProfile.imagePath);
+          importedProfileImageUri = profileImage.uri;
+          createdFiles.push(profileImage.uri);
+        } catch (error) {
+          const message = `Could not restore profile image "${portableProfile.imagePath}".`;
+          recordImportWarning(summary, {
+            kind: 'profile-asset',
+            message,
+            assetPath: portableProfile.imagePath,
+          });
+          console.warn(`[backupImport:tackbok] ${message}`, error);
+        }
+      }
+
+      reportImportProgress(onProgress, 'tackbok', 'taxonomy', 0.1, {
         ...totals,
-        importedPhotos: summary.importedPhotos,
-        importedAudio: summary.importedAudio,
-        importedTags: summary.importedTags,
-        importedPrompts: summary.importedPrompts,
+        ...createSummaryCounterMetrics(summary),
       });
 
-      const existingEntries = await tx.select({ note_id: entries.note_id }).from(entries);
-      const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
+      await db.transaction(async (tx) => {
+        const tagMap = await upsertPortableTags(tx, portableTags, summary);
+        await ensurePortablePromptTitles(tx, portablePrompts, summary);
+        reportImportProgress(onProgress, 'tackbok', 'taxonomy', 1, {
+          ...totals,
+          ...createSummaryCounterMetrics(summary),
+        });
 
-      await importPortableEntries(
-        tx,
-        portableEntries,
-        existingNoteIds,
-        tagMap,
-        summary,
-        mode,
-        zip,
-        createdFiles,
-        'tackbok',
-        onProgress,
-      );
+        const existingEntries = await tx.select({ note_id: entries.note_id }).from(entries);
+        const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
+
+        await importPortableEntries(
+          tx,
+          portableEntries,
+          existingNoteIds,
+          tagMap,
+          summary,
+          mode,
+          zip,
+          createdFiles,
+          'tackbok',
+          onProgress,
+        );
+      });
+    } catch (error) {
+      cleanupImportedFiles(createdFiles);
+      throw error;
+    }
+
+    reportImportProgress(onProgress, 'tackbok', 'finishing', 0.7, {
+      ...totals,
+      processedEntries: portableEntries.length,
+      ...createSummaryCounterMetrics(summary),
     });
-  } catch (error) {
-    cleanupImportedFiles(createdFiles);
-    throw error;
+
+    applyImportedProfile(portableProfile, importedProfileImageUri);
+
+    reportImportProgress(onProgress, 'tackbok', 'finishing', 1, {
+      ...totals,
+      processedEntries: portableEntries.length,
+      ...createSummaryCounterMetrics(summary),
+    });
+
+    return summary;
+  } finally {
+    await zip.close();
   }
-
-  reportImportProgress(onProgress, 'tackbok', 'finishing', 0.7, {
-    ...totals,
-    processedEntries: portableEntries.length,
-    importedPhotos: summary.importedPhotos,
-    importedAudio: summary.importedAudio,
-    importedTags: summary.importedTags,
-    importedPrompts: summary.importedPrompts,
-  });
-
-  applyImportedProfile(portableProfile, importedProfileImageUri);
-
-  reportImportProgress(onProgress, 'tackbok', 'finishing', 1, {
-    ...totals,
-    processedEntries: portableEntries.length,
-    importedPhotos: summary.importedPhotos,
-    importedAudio: summary.importedAudio,
-    importedTags: summary.importedTags,
-    importedPrompts: summary.importedPrompts,
-  });
-
-  return summary;
 }

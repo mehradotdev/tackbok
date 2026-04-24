@@ -37,14 +37,18 @@ export function SettingsImportSummaryModal({
 
   if (!visible || !source || !summary) return null;
 
+  const skippedMediaCount = getSkippedMediaCount(summary);
+
   const rows = [
     { label: t('New entries'), value: summary.importedEntries, alwaysShow: true },
     { label: t('Updated entries'), value: summary.updatedEntries },
     { label: t('Skipped duplicates'), value: summary.skippedEntries },
+    { label: t('Entries skipped due to errors'), value: summary.failedEntries },
     { label: t('Tags added'), value: summary.importedTags },
     { label: t('Prompts added'), value: summary.importedPrompts },
     { label: t('Photos restored'), value: summary.importedPhotos },
     { label: t('Voice memos restored'), value: summary.importedAudio },
+    { label: t('Media skipped'), value: skippedMediaCount },
   ].filter((row) => row.alwaysShow || row.value > 0);
 
   return (
@@ -107,13 +111,34 @@ function getSummaryMessage(
   summary: BackupImportSummary,
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
+  const hasWarnings = summary.failedEntries > 0 || getSkippedMediaCount(summary) > 0;
+
   if (summary.importedEntries > 0 || summary.updatedEntries > 0) {
+    if (hasWarnings) {
+      return t('Your journal data is ready to review, but some items could not be restored.');
+    }
+
     return t('Your journal data is ready to review.');
   }
   if (summary.skippedEntries > 0) {
+    if (hasWarnings) {
+      return t(
+        'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.',
+      );
+    }
+
     return t('This import finished, but everything already existed in Tackbok.');
   }
+
+  if (hasWarnings) {
+    return t('This import finished with warnings. Some items could not be restored.');
+  }
+
   return t('This import finished successfully.');
+}
+
+function getSkippedMediaCount(summary: BackupImportSummary): number {
+  return summary.failedAssets + summary.failedProfileAssets;
 }
 
 function SummaryRow({ label, value }: { label: string; value: number }) {

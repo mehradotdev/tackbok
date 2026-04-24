@@ -10,6 +10,25 @@ export type BackupImportPhase =
   | 'entries'
   | 'finishing';
 
+export type BackupImportWarning =
+  | {
+      kind: 'entry-asset';
+      message: string;
+      noteId: string;
+      assetPath: string;
+      assetType: Asset['type'];
+    }
+  | {
+      kind: 'entry-skipped';
+      message: string;
+      noteId: string;
+    }
+  | {
+      kind: 'profile-asset';
+      message: string;
+      assetPath: string;
+    };
+
 export interface BackupImportSummary {
   importedEntries: number;
   updatedEntries: number;
@@ -18,6 +37,11 @@ export interface BackupImportSummary {
   importedTags: number;
   importedPhotos: number;
   importedAudio: number;
+  failedEntries: number;
+  failedAssets: number;
+  failedProfileAssets: number;
+  warnings: BackupImportWarning[];
+  warningsTruncated: boolean;
 }
 
 export interface BackupImportProgress {
@@ -33,6 +57,9 @@ export interface BackupImportProgress {
   importedAudio: number;
   importedTags: number;
   importedPrompts: number;
+  failedEntries: number;
+  failedAssets: number;
+  failedProfileAssets: number;
 }
 
 export type BackupImportProgressMetrics = Omit<

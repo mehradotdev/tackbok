@@ -27,6 +27,7 @@ import { File } from 'expo-file-system';
 // ============================================================================
 
 const FFT_SIZE = 256;
+const URI_DECODE_FALLBACK_EXTENSIONS = new Set(['mp3']);
 
 // ── Visual amplitude compression tuning ────────────────────────────────
 // These control the adaptive scaling curve in getCurrentAmplitude().
@@ -139,12 +140,14 @@ class AudioEngine {
     return this.audioRecorder;
   }
 
+  private shouldDecodeAudioFromBytes(uri: string): boolean {
+    const extension = uri.split('.').pop()?.toLowerCase();
+    return !!extension && URI_DECODE_FALLBACK_EXTENSIONS.has(extension);
+  }
+
   private async decodeAudioBuffer(uri: string): Promise<AudioBuffer> {
     const ctx = this.ensureContext();
-
-    try {
-      return await ctx.decodeAudioData(uri);
-    } catch {
+    const decodeFromBytes = async (): Promise<AudioBuffer> => {
       const file = new File(uri);
       const bytes = await file.bytes();
       const buffer = bytes.buffer.slice(
@@ -152,6 +155,16 @@ class AudioEngine {
         bytes.byteOffset + bytes.byteLength,
       );
       return ctx.decodeAudioData(buffer);
+    };
+
+    if (this.shouldDecodeAudioFromBytes(uri)) {
+      return decodeFromBytes();
+    }
+
+    try {
+      return await ctx.decodeAudioData(uri);
+    } catch {
+      return decodeFromBytes();
     }
   }
 

@@ -350,16 +350,26 @@ export const ar: Translations = {
   'Refreshing your journal so imported data appears everywhere.':
     'جاري تحديث يومياتك حتى تظهر البيانات المستوردة في كل مكان.',
   'Entries processed': 'الإدخالات المعالجة',
+  'Entries skipped due to errors': 'إدخالات تم تخطيها بسبب أخطاء',
+  'Please do not close or minimize the app while the import is in progress.':
+    'الرجاء عدم إغلاق التطبيق أو تصغيره أثناء تقدم عملية الاستيراد.',
   'Tags added': 'الوسوم المضافة',
   'Prompts added': 'المطالبات المضافة',
   'Photos restored': 'الصور المستعادة',
   'Voice memos restored': 'المذكرات الصوتية المستعادة',
+  'Media skipped': 'تم تخطي الوسائط',
   'Tackbok backup restored': 'تمت استعادة النسخة الاحتياطية لتاكبوك',
   'Gratitude import complete': 'اكتمل استيراد Gratitude',
   'Presently import complete': 'اكتمل استيراد Presently',
+  'Your journal data is ready to review, but some items could not be restored.':
+    'بيانات يومياتك جاهزة للمراجعة، ولكن لم يتم استعادة بعض العناصر.',
   'Your journal data is ready to review.': 'بيانات يومياتك جاهزة للمراجعة.',
+  'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.':
+    'انتهى الاستيراد مع تحذيرات. لم يتم استعادة بعض العناصر، وكل شيء آخر موجود بالفعل في تاكبوك.',
   'This import finished, but everything already existed in Tackbok.':
     'انتهى الاستيراد، لكن كل شيء كان موجودًا بالفعل في تاكبوك.',
+  'This import finished with warnings. Some items could not be restored.':
+    'انتهى هذا الاستيراد مع تحذيرات. لم يتم استعادة بعض العناصر.',
   'This import finished successfully.': 'انتهى هذا الاستيراد بنجاح.',
   'Imported from Tackbok backup': 'مستورد من نسخة تاكبوك الاحتياطية',
   'Imported from Gratitude backup': 'مستورد من نسخة Gratitude الاحتياطية',

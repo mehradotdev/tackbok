@@ -2,10 +2,14 @@ import { db, entries } from '~/db';
 import { useSettingsStore } from '~/lib/settings';
 import { type BackupImportSummary, type ImportMode } from '../types';
 import {
-  createBackupImportSummary,
   type ImportProgressCallback,
   reportImportProgress,
 } from '../progress';
+import {
+  createBackupImportSummary,
+  createSummaryCounterMetrics,
+  recordImportWarning,
+} from '../summary';
 import {
   buildGratitudeAppPortablePayload,
   ensurePortablePromptTitles,
@@ -33,91 +37,95 @@ export async function importFromGratitudeAppBackup(
   reportImportProgress(onProgress, 'gratitudeApp', 'reading', 0.2);
 
   const zip = await loadZipFromUri(uri);
-  reportImportProgress(onProgress, 'gratitudeApp', 'validating', 0.2);
-
-  const gratitudeAppPayload = buildGratitudeAppPortablePayload(zip);
-  const { portableEntries, portablePrompts, portableTags, profile } = gratitudeAppPayload;
-  const totals = getImportTotals(portableEntries, portableTags, portablePrompts);
-  const summary = createBackupImportSummary();
-  const createdFiles: string[] = [];
-  let importedProfileImageUri: string | null = null;
-
-  reportImportProgress(onProgress, 'gratitudeApp', 'profile', 0.1, totals);
-
   try {
-    if (profile.imagePath) {
-      const bytes = readSafeZipBytes(zip, profile.imagePath);
-      const profileImage = await writeImportedPhoto(bytes, profile.imagePath);
-      importedProfileImageUri = profileImage.uri;
-      createdFiles.push(profileImage.uri);
-    }
+    reportImportProgress(onProgress, 'gratitudeApp', 'validating', 0.2);
 
-    reportImportProgress(onProgress, 'gratitudeApp', 'taxonomy', 0.1, {
-      ...totals,
-      importedPhotos: summary.importedPhotos,
-      importedAudio: summary.importedAudio,
-    });
+    const gratitudeAppPayload = await buildGratitudeAppPortablePayload(zip);
+    const { portableEntries, portablePrompts, portableTags, profile } = gratitudeAppPayload;
+    const totals = getImportTotals(portableEntries, portableTags, portablePrompts);
+    const summary = createBackupImportSummary();
+    const createdFiles: string[] = [];
+    let importedProfileImageUri: string | null = null;
 
-    await db.transaction(async (tx) => {
-      const tagMap = await upsertPortableTags(tx, portableTags, summary);
-      await ensurePortablePromptTitles(tx, portablePrompts, summary);
-      reportImportProgress(onProgress, 'gratitudeApp', 'taxonomy', 1, {
+    reportImportProgress(onProgress, 'gratitudeApp', 'profile', 0.1, totals);
+
+    try {
+      if (profile.imagePath) {
+        try {
+          const bytes = await readSafeZipBytes(zip, profile.imagePath);
+          const profileImage = await writeImportedPhoto(bytes, profile.imagePath);
+          importedProfileImageUri = profileImage.uri;
+          createdFiles.push(profileImage.uri);
+        } catch (error) {
+          const message = `Could not restore profile image "${profile.imagePath}".`;
+          recordImportWarning(summary, {
+            kind: 'profile-asset',
+            message,
+            assetPath: profile.imagePath,
+          });
+          console.warn(`[backupImport:gratitudeApp] ${message}`, error);
+        }
+      }
+
+      reportImportProgress(onProgress, 'gratitudeApp', 'taxonomy', 0.1, {
         ...totals,
-        importedPhotos: summary.importedPhotos,
-        importedAudio: summary.importedAudio,
-        importedTags: summary.importedTags,
-        importedPrompts: summary.importedPrompts,
+        ...createSummaryCounterMetrics(summary),
       });
 
-      const existingEntries = await tx.select({ note_id: entries.note_id }).from(entries);
-      const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
+      await db.transaction(async (tx) => {
+        const tagMap = await upsertPortableTags(tx, portableTags, summary);
+        await ensurePortablePromptTitles(tx, portablePrompts, summary);
+        reportImportProgress(onProgress, 'gratitudeApp', 'taxonomy', 1, {
+          ...totals,
+          ...createSummaryCounterMetrics(summary),
+        });
 
-      await importPortableEntries(
-        tx,
-        portableEntries,
-        existingNoteIds,
-        tagMap,
-        summary,
-        mode,
-        zip,
-        createdFiles,
-        'gratitudeApp',
-        onProgress,
-      );
+        const existingEntries = await tx.select({ note_id: entries.note_id }).from(entries);
+        const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
+
+        await importPortableEntries(
+          tx,
+          portableEntries,
+          existingNoteIds,
+          tagMap,
+          summary,
+          mode,
+          zip,
+          createdFiles,
+          'gratitudeApp',
+          onProgress,
+        );
+      });
+    } catch (error) {
+      cleanupImportedFiles(createdFiles);
+      throw error;
+    }
+
+    reportImportProgress(onProgress, 'gratitudeApp', 'finishing', 0.7, {
+      ...totals,
+      processedEntries: portableEntries.length,
+      ...createSummaryCounterMetrics(summary),
     });
-  } catch (error) {
-    cleanupImportedFiles(createdFiles);
-    throw error;
-  }
 
-  reportImportProgress(onProgress, 'gratitudeApp', 'finishing', 0.7, {
-    ...totals,
-    processedEntries: portableEntries.length,
-    importedPhotos: summary.importedPhotos,
-    importedAudio: summary.importedAudio,
-    importedTags: summary.importedTags,
-    importedPrompts: summary.importedPrompts,
-  });
+    const settingsState = useSettingsStore.getState();
+    if (profile.name != null) {
+      settingsState.setProfileName(profile.name);
+    }
+    if (profile.hasEmail) {
+      settingsState.setProfileEmail(profile.email);
+    }
+    if (importedProfileImageUri) {
+      settingsState.setProfileImageUri(importedProfileImageUri);
+    }
 
-  const settingsState = useSettingsStore.getState();
-  if (profile.name != null) {
-    settingsState.setProfileName(profile.name);
-  }
-  if (profile.hasEmail) {
-    settingsState.setProfileEmail(profile.email);
-  }
-  if (importedProfileImageUri) {
-    settingsState.setProfileImageUri(importedProfileImageUri);
-  }
+    reportImportProgress(onProgress, 'gratitudeApp', 'finishing', 1, {
+      ...totals,
+      processedEntries: portableEntries.length,
+      ...createSummaryCounterMetrics(summary),
+    });
 
-  reportImportProgress(onProgress, 'gratitudeApp', 'finishing', 1, {
-    ...totals,
-    processedEntries: portableEntries.length,
-    importedPhotos: summary.importedPhotos,
-    importedAudio: summary.importedAudio,
-    importedTags: summary.importedTags,
-    importedPrompts: summary.importedPrompts,
-  });
-
-  return summary;
+    return summary;
+  } finally {
+    await zip.close();
+  }
 }

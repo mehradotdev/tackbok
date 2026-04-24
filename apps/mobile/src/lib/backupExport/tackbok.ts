@@ -1,8 +1,9 @@
 import { desc } from 'drizzle-orm';
+import { File, Paths } from 'expo-file-system';
 import { db, customPrompts, entries, tags } from '~/db';
 import { PHOTOS_DIR_NAME, VOICE_MEMOS_DIR_NAME } from '~/constants';
 import { useSettingsStore } from '~/lib/settings';
-import { createZipArchiveBuilder } from '~/lib/zip';
+import { createExpoZipWriter } from '~/lib/zip';
 import {
   BACKUP_ENTRIES_PATH,
   BACKUP_MANIFEST_PATH,
@@ -10,6 +11,7 @@ import {
   BACKUP_PROFILE_PATH,
   BACKUP_PROMPTS_PATH,
   BACKUP_TAGS_PATH,
+  type PortableEntry,
   type PortableProfile,
   type TackbokBackupManifest,
 } from '../backupImport/types';
@@ -18,7 +20,7 @@ import {
   generateTimestamp,
   getRelativeAssetFile,
   normalizeOptionalText,
-  saveZipFile,
+  saveGeneratedZipFile,
 } from '../backupImport/archiveUtils';
 import {
   createPortableEntries,
@@ -49,10 +51,7 @@ export async function exportToBackupZip(): Promise<void> {
   }
 
   const tagMap = await buildTagIdToNameMap();
-  const { portableEntries, photoCount, audioCount } = createPortableEntries(
-    allEntries,
-    tagMap,
-  );
+  const { portableEntries } = createPortableEntries(allEntries, tagMap);
   const portableTags = createPortableTags(allTags);
   const portablePrompts = createPortablePrompts(allPrompts);
   const profile: PortableProfile = {
@@ -60,50 +59,91 @@ export async function exportToBackupZip(): Promise<void> {
     email: profileEmail,
     imagePath: null,
   };
-  const zip = createZipArchiveBuilder();
+  const fileName = `TackbokBackup_${generateTimestamp()}.zip`;
+  const tempZipFile = new File(Paths.cache, fileName);
+  const zip = createExpoZipWriter(tempZipFile);
+  const exportedEntries: PortableEntry[] = [];
+  let exportedPhotoCount = 0;
+  let exportedAudioCount = 0;
 
-  for (const entry of portableEntries) {
-    for (const asset of entry.assets) {
-      const sourceFile = getRelativeAssetFile(
-        asset.path
-          .replace(`${BACKUP_MEDIA_PREFIX}/photos/`, `${PHOTOS_DIR_NAME}/`)
-          .replace(`${BACKUP_MEDIA_PREFIX}/voice-memos/`, `${VOICE_MEMOS_DIR_NAME}/`),
-      );
-      if (!sourceFile || !sourceFile.exists) {
-        continue;
+  try {
+    for (const entry of portableEntries) {
+      const exportedAssets: PortableEntry['assets'] = [];
+
+      for (const asset of entry.assets) {
+        const sourceFile = getRelativeAssetFile(
+          asset.path
+            .replace(`${BACKUP_MEDIA_PREFIX}/photos/`, `${PHOTOS_DIR_NAME}/`)
+            .replace(`${BACKUP_MEDIA_PREFIX}/voice-memos/`, `${VOICE_MEMOS_DIR_NAME}/`),
+        );
+        if (!sourceFile || !sourceFile.exists) {
+          continue;
+        }
+
+        try {
+          await zip.addFile(asset.path, sourceFile);
+          exportedAssets.push(asset);
+
+          if (asset.path.startsWith(`${BACKUP_MEDIA_PREFIX}/photos/`)) {
+            exportedPhotoCount++;
+          } else if (asset.path.startsWith(`${BACKUP_MEDIA_PREFIX}/voice-memos/`)) {
+            exportedAudioCount++;
+          }
+        } catch (error) {
+          console.warn(`Skipping unreadable backup asset: ${asset.path}`, error);
+        }
       }
 
-      zip.addBytes(asset.path, await sourceFile.bytes());
+      exportedEntries.push({
+        ...entry,
+        assets: exportedAssets,
+      });
+    }
+
+    if (profileImageUri) {
+      const profileFile = getRelativeAssetFile(profileImageUri);
+      if (profileFile?.exists) {
+        const profileArchivePath = `${BACKUP_MEDIA_PREFIX}/profile/${profileImageUri.split('/').pop()}`;
+        try {
+          await zip.addFile(profileArchivePath, profileFile);
+          profile.imagePath = profileArchivePath;
+          exportedPhotoCount++;
+        } catch (error) {
+          console.warn(
+            `Skipping unreadable backup profile image: ${profileImageUri}`,
+            error,
+          );
+        }
+      }
+    }
+
+    const manifest: TackbokBackupManifest = {
+      format: 'tackbok-backup',
+      backupVersion: 1,
+      exportedAt: new Date().toISOString(),
+      counts: {
+        entries: exportedEntries.length,
+        tags: portableTags.length,
+        customPrompts: portablePrompts.length,
+        photos: exportedPhotoCount,
+        voiceMemos: exportedAudioCount,
+      },
+    };
+
+    await zip.addText(BACKUP_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+    await zip.addText(BACKUP_ENTRIES_PATH, JSON.stringify(exportedEntries, null, 2));
+    await zip.addText(BACKUP_TAGS_PATH, JSON.stringify(portableTags, null, 2));
+    await zip.addText(BACKUP_PROMPTS_PATH, JSON.stringify(portablePrompts, null, 2));
+    await zip.addText(BACKUP_PROFILE_PATH, JSON.stringify(profile, null, 2));
+
+    await zip.close();
+    await saveGeneratedZipFile(tempZipFile, fileName);
+  } catch (error) {
+    await zip.abort();
+    throw error;
+  } finally {
+    if (tempZipFile.exists) {
+      tempZipFile.delete();
     }
   }
-
-  if (profileImageUri) {
-    const profileFile = getRelativeAssetFile(profileImageUri);
-    if (profileFile?.exists) {
-      const profileArchivePath = `${BACKUP_MEDIA_PREFIX}/profile/${profileImageUri.split('/').pop()}`;
-      zip.addBytes(profileArchivePath, await profileFile.bytes());
-      profile.imagePath = profileArchivePath;
-    }
-  }
-
-  const manifest: TackbokBackupManifest = {
-    format: 'tackbok-backup',
-    backupVersion: 1,
-    exportedAt: new Date().toISOString(),
-    counts: {
-      entries: portableEntries.length,
-      tags: portableTags.length,
-      customPrompts: portablePrompts.length,
-      photos: photoCount + (profile.imagePath ? 1 : 0),
-      voiceMemos: audioCount,
-    },
-  };
-
-  zip.addText(BACKUP_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
-  zip.addText(BACKUP_ENTRIES_PATH, JSON.stringify(portableEntries, null, 2));
-  zip.addText(BACKUP_TAGS_PATH, JSON.stringify(portableTags, null, 2));
-  zip.addText(BACKUP_PROMPTS_PATH, JSON.stringify(portablePrompts, null, 2));
-  zip.addText(BACKUP_PROFILE_PATH, JSON.stringify(profile, null, 2));
-
-  await saveZipFile(zip.toBytes(), `TackbokBackup_${generateTimestamp()}.zip`);
 }

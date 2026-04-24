@@ -1,4 +1,5 @@
 import { ActivityIndicator, View } from 'react-native';
+import { TriangleAlert } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { type BackupImportProgress } from '~/lib/backupImport';
 import { Text } from '~/components/ui/text';
@@ -18,6 +19,7 @@ export function SettingsImportProgressModal({
   if (!visible || !progress) return null;
 
   const percent = Math.max(6, Math.round(progress.progress * 100));
+  const skippedMediaCount = progress.failedAssets + progress.failedProfileAssets;
   const stats = [
     progress.totalEntries > 0
       ? {
@@ -36,6 +38,15 @@ export function SettingsImportProgressModal({
       : null,
     progress.importedAudio > 0
       ? { label: t('Voice memos restored'), value: String(progress.importedAudio) }
+      : null,
+    progress.failedEntries > 0
+      ? {
+          label: t('Entries skipped due to errors'),
+          value: String(progress.failedEntries),
+        }
+      : null,
+    skippedMediaCount > 0
+      ? { label: t('Media skipped'), value: String(skippedMediaCount) }
       : null,
   ].filter((stat): stat is { label: string; value: string } => stat !== null);
 
@@ -86,13 +97,13 @@ export function SettingsImportProgressModal({
             </View>
           ) : null}
 
-          {progress.phase === 'entries' && progress.totalEntries === 0 ? (
-            <View className="rounded-2xl bg-muted/50 px-4 py-3">
-              <Text className="text-sm text-muted-foreground">
-                {t('No journal entries found in this backup.')}
-              </Text>
-            </View>
-          ) : null}
+          <View className="flex-row items-start gap-2 rounded-xl bg-warning/10 px-3 py-2.5">
+            <TriangleAlert size={16} className="mt-0.5 text-warning" />
+            <Text className="flex-1 text-xs leading-[18px] text-muted-foreground">
+              {t('Please do not close or minimize the app while the import is in progress.')}
+            </Text>
+          </View>
+
         </View>
       </DialogContent>
     </Dialog>

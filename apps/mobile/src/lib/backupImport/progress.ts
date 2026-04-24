@@ -3,7 +3,6 @@ import type {
   BackupImportProgress,
   BackupImportProgressMetrics,
   BackupImportSource,
-  BackupImportSummary,
 } from './types';
 import {
   IMPORT_PHASE_ORDER,
@@ -15,18 +14,6 @@ export type ImportProgressCallback = (progress: BackupImportProgress) => void;
 function clampRatio(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(1, value));
-}
-
-export function createBackupImportSummary(): BackupImportSummary {
-  return {
-    importedEntries: 0,
-    updatedEntries: 0,
-    skippedEntries: 0,
-    importedPrompts: 0,
-    importedTags: 0,
-    importedPhotos: 0,
-    importedAudio: 0,
-  };
 }
 
 export function createBackupImportProgress<TSource extends string>(
@@ -56,22 +43,9 @@ export function createBackupImportProgress<TSource extends string>(
     importedAudio: metrics?.importedAudio ?? 0,
     importedTags: metrics?.importedTags ?? 0,
     importedPrompts: metrics?.importedPrompts ?? 0,
-  };
-}
-
-export function createSummaryProgressMetrics(
-  summary: BackupImportSummary,
-): Partial<BackupImportProgressMetrics> {
-  const totalEntries =
-    summary.importedEntries + summary.updatedEntries + summary.skippedEntries;
-
-  return {
-    totalEntries,
-    processedEntries: totalEntries,
-    importedPhotos: summary.importedPhotos,
-    importedAudio: summary.importedAudio,
-    importedTags: summary.importedTags,
-    importedPrompts: summary.importedPrompts,
+    failedEntries: metrics?.failedEntries ?? 0,
+    failedAssets: metrics?.failedAssets ?? 0,
+    failedProfileAssets: metrics?.failedProfileAssets ?? 0,
   };
 }
 
