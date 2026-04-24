@@ -2,6 +2,9 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // TODO: Move node/bun types into a dedicated test tsconfig so Node globals
+    // don't leak into Expo app code. Kept here for translations.test.ts for now.
+    "types": ["jest", "node", "bun"],
     "paths": {
       "~/*": ["./src/*"]
     }

@@ -5,12 +5,11 @@
  * Warns when t('...') is called with a string literal that is not defined in en.ts.
  * Dynamic keys (variables, member expressions, template literals) are silently skipped.
  */
-'use strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-/* global __dirname */
-
-const fs = require('fs');
-const path = require('path');
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * Parse en.ts and extract all translation keys.
@@ -88,7 +87,7 @@ function extractEnObjectBody(content) {
         isEscaped = false;
       } else if (char === '\\') {
         isEscaped = true;
-      } else if (char === '\'') {
+      } else if (char === "'") {
         inSingleQuote = false;
       }
       continue;
@@ -128,7 +127,7 @@ function extractEnObjectBody(content) {
       continue;
     }
 
-    if (char === '\'') {
+    if (char === "'") {
       inSingleQuote = true;
       continue;
     }
@@ -199,9 +198,9 @@ const plugin = {
         },
       },
       create(context) {
-        // Resolve the path to en.ts relative to the eslint config (project root)
+        // Resolve the path to en.ts relative to the plugin file.
         const enFilePath = path.resolve(
-          __dirname,
+          currentDir,
           '..',
           'src',
           'lib',
@@ -252,4 +251,4 @@ const plugin = {
   },
 };
 
-module.exports = plugin;
+export default plugin;
