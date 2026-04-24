@@ -9,9 +9,11 @@ import {
   View,
   type GestureResponderEvent,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { ParamListBase } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  NavigationContext,
+  usePreventRemove,
+} from '@react-navigation/native';
+import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import type {
   ActionProps,
   ActionRef,
@@ -33,14 +35,41 @@ import type {
   TriggerRef,
 } from './types';
 
-type AlertDialogNavigation = NativeStackNavigationProp<ParamListBase>;
+type AlertDialogNavigation = NavigationProp<ParamListBase>;
 
 type AlertDialogContextValue = RootContext & {
   nativeID: string;
-  navigation: AlertDialogNavigation;
+  navigation?: AlertDialogNavigation;
+  allowNavigationRemoval: boolean;
+  setAllowNavigationRemoval: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const AlertDialogContext = React.createContext<AlertDialogContextValue | null>(null);
+
+function PreventNavigationRemoval({
+  navigation,
+  enabled,
+  allowNavigationRemoval,
+  setAllowNavigationRemoval,
+}: {
+  navigation: AlertDialogNavigation;
+  enabled: boolean;
+  allowNavigationRemoval: boolean;
+  setAllowNavigationRemoval: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
+  // Guard route removal while a non-dismissible alert is open.
+  // This blocks iOS swipe-back and back navigation consistently.
+  usePreventRemove(enabled, ({ data }) => {
+    if (!allowNavigationRemoval) {
+      return;
+    }
+
+    setAllowNavigationRemoval(false);
+    navigation.dispatch(data.action);
+  });
+
+  return null;
+}
 
 const Root = ({
   asChild,
@@ -52,7 +81,11 @@ const Root = ({
   ...viewProps
 }: RootProps & { ref?: React.Ref<RootRef> }) => {
   const nativeID = React.useId();
-  const navigation = useNavigation<AlertDialogNavigation>();
+  // Optional so this primitive can also render in tests/Storybook without a navigator.
+  const navigation = React.useContext(NavigationContext) as
+    | AlertDialogNavigation
+    | undefined;
+  const [allowNavigationRemoval, setAllowNavigationRemoval] = React.useState(false);
   const [open = false, onOpenChange] = useControllableState({
     prop: openProp,
     defaultProp: defaultOpen,
@@ -67,6 +100,8 @@ const Root = ({
         nativeID,
         dismissible,
         navigation,
+        allowNavigationRemoval,
+        setAllowNavigationRemoval,
       }}>
       <Component ref={ref} {...viewProps} />
     </AlertDialogContext.Provider>
@@ -165,7 +200,15 @@ const Content = ({
   ref,
   ...props
 }: ContentProps & { ref?: React.Ref<ContentRef> }) => {
-  const { open, nativeID, onOpenChange, dismissible, navigation } = useRootContext();
+  const {
+    open,
+    nativeID,
+    onOpenChange,
+    dismissible,
+    navigation,
+    allowNavigationRemoval,
+    setAllowNavigationRemoval,
+  } = useRootContext();
 
   React.useEffect(() => {
     if (!open) return;
@@ -177,23 +220,16 @@ const Content = ({
       return true;
     });
 
-    // When non-dismissible, also block iOS swipe-back and navigation events
-    let unsubscribeBeforeRemove: (() => void) | undefined;
-    if (!dismissible) {
-      navigation.setOptions({ gestureEnabled: false });
-      unsubscribeBeforeRemove = navigation.addListener('beforeRemove', (e) => {
-        e.preventDefault();
-      });
-    }
-
     return () => {
       backHandler.remove();
-      if (!dismissible) {
-        navigation.setOptions({ gestureEnabled: undefined });
-        unsubscribeBeforeRemove?.();
-      }
     };
-  }, [dismissible, open, onOpenChange, navigation]);
+  }, [dismissible, open, onOpenChange]);
+
+  React.useEffect(() => {
+    if (!open) {
+      setAllowNavigationRemoval(false);
+    }
+  }, [open, setAllowNavigationRemoval]);
 
   if (!forceMount) {
     if (!open) {
@@ -203,15 +239,25 @@ const Content = ({
 
   const Component = asChild ? Slot.View : View;
   return (
-    <Component
-      ref={ref}
-      role="alertdialog"
-      nativeID={nativeID}
-      aria-labelledby={`${nativeID}_label`}
-      aria-describedby={`${nativeID}_desc`}
-      aria-modal={true}
-      {...props}
-    />
+    <>
+      {navigation ? (
+        <PreventNavigationRemoval
+          navigation={navigation}
+          enabled={open && !dismissible}
+          allowNavigationRemoval={allowNavigationRemoval}
+          setAllowNavigationRemoval={setAllowNavigationRemoval}
+        />
+      ) : null}
+      <Component
+        ref={ref}
+        role="alertdialog"
+        nativeID={nativeID}
+        aria-labelledby={`${nativeID}_label`}
+        aria-describedby={`${nativeID}_desc`}
+        aria-modal={true}
+        {...props}
+      />
+    </>
   );
 };
 
@@ -224,10 +270,12 @@ const Cancel = ({
   ref,
   ...props
 }: CancelProps & { ref?: React.Ref<CancelRef> }) => {
-  const { onOpenChange } = useRootContext();
+  const { onOpenChange, setAllowNavigationRemoval } = useRootContext();
 
   function onPress(ev: GestureResponderEvent) {
     if (disabled) return;
+    // Allow one intentional navigation initiated by the caller after close.
+    setAllowNavigationRemoval(true);
     onOpenChange(false);
     onPressProp?.(ev);
   }
@@ -254,10 +302,12 @@ const Action = ({
   ref,
   ...props
 }: ActionProps & { ref?: React.Ref<ActionRef> }) => {
-  const { onOpenChange } = useRootContext();
+  const { onOpenChange, setAllowNavigationRemoval } = useRootContext();
 
   function onPress(ev: GestureResponderEvent) {
     if (disabled) return;
+    // Allow one intentional navigation initiated by the caller after close.
+    setAllowNavigationRemoval(true);
     onOpenChange(false);
     onPressProp?.(ev);
   }
