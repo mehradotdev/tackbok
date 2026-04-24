@@ -1,9 +1,10 @@
+import React from 'react';
 import { withUniwind } from 'uniwind';
 import type { LucideIcon, LucideProps } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 
 type IconProps = LucideProps & {
-  as: LucideIcon;
+  as: LucideIcon | React.ComponentType<LucideProps>;
 };
 
 function IconImpl({ as: IconComponent, ...props }: IconProps) {
