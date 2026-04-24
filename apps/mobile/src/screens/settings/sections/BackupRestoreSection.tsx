@@ -219,7 +219,9 @@ export function BackupRestoreSection() {
 
   const handleCloseImportSummary = useCallback(() => {
     setImportSummary(null);
-    router.replace('/');
+    // Settings is pushed on top of home. dismissTo('/') returns to that existing
+    // home screen instead of replacing settings with a second '/' route.
+    router.dismissTo('/');
   }, [router]);
 
   return (

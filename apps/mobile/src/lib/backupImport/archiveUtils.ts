@@ -201,11 +201,14 @@ export async function saveGeneratedZipFile(file: File, fileName: string): Promis
   if (Platform.OS === 'android') {
     try {
       const directory = await Directory.pickDirectoryAsync();
-      const destination = new File(directory, fileName);
-      if (destination.exists) {
-        destination.delete();
+      const existing = new File(directory, fileName);
+      if (existing.exists) {
+        existing.delete();
       }
-      file.copy(destination);
+
+      const destination = directory.createFile(fileName, 'application/zip');
+      const bytes = await file.bytes();
+      destination.write(bytes);
       return;
     } catch (error) {
       throw new Error('Export cancelled or failed', { cause: error });

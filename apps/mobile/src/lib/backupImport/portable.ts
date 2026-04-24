@@ -51,6 +51,7 @@ import {
   createSummaryCounterMetrics,
   recordImportWarning,
 } from './summary';
+import { and, eq } from 'drizzle-orm';
 
 type BackupArchiveTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -570,12 +571,33 @@ export async function importPortableEntries(
       portableEntry.mood && VALID_MOODS.has(portableEntry.mood)
         ? portableEntry.mood
         : null;
-    const createdAt = Number.isFinite(portableEntry.createdAt)
-      ? portableEntry.createdAt
-      : Date.now();
+    const hasPortableCreatedAt = Number.isFinite(portableEntry.createdAt);
+    const createdAt = hasPortableCreatedAt ? portableEntry.createdAt : Date.now();
     const updatedAt = Number.isFinite(portableEntry.updatedAt)
       ? portableEntry.updatedAt
       : createdAt;
+
+    // Presently imports generate different note IDs, so note_id checks alone
+    // cannot detect cross-source duplicates. For new note IDs, use the same
+    // created_at + text_content key as Presently to skip equivalent entries.
+    // This path always skips on match, even in overwrite mode, to avoid
+    // unnecessary updated_at churn when content is already present.
+    if (!hasExisting && hasPortableCreatedAt && textContent) {
+      const duplicateByTimestampAndContent = await tx
+        .select({ note_id: entries.note_id })
+        .from(entries)
+        .where(
+          and(eq(entries.created_at, createdAt), eq(entries.text_content, textContent)),
+        )
+        .limit(1);
+
+      if (duplicateByTimestampAndContent.length > 0) {
+        summary.skippedEntries++;
+        processedEntries++;
+        reportEntryProgress();
+        continue;
+      }
+    }
 
     const {
       assets,
