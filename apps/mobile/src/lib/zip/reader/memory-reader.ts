@@ -49,11 +49,11 @@ export function parseZipArchive(bytes: Uint8Array): ZipArchive {
  * Checks whether the archive contains an entry at the exact path.
  */
 export function hasZipEntry(archive: ZipEntryLookupArchive, path: string): boolean {
-  if ('entries' in archive) {
-    return Object.prototype.hasOwnProperty.call(archive.entries, path);
+  if ('hasEntry' in archive) {
+    return archive.hasEntry(path);
   }
 
-  return archive.hasEntry(path);
+  return Object.prototype.hasOwnProperty.call(archive.entries, path);
 }
 
 /**
@@ -99,9 +99,9 @@ export function findZipEntryPathByBasename(
   }
 
   const paths =
-    'entries' in archive
-      ? Object.keys(archive.entries)
-      : archive.listEntries().map((entry) => entry.path);
+    'listEntries' in archive
+      ? archive.listEntries().map((entry) => entry.path)
+      : Object.keys(archive.entries);
   const match = paths.find((path) => path.split('/').pop() === safeBasename);
 
   return match ?? null;

@@ -443,7 +443,9 @@ export async function upsertPortableTags(
   const tagMap = new Map<string, string>();
 
   for (const tag of existingTags) {
-    tagMap.set(tag.title.trim().toLowerCase(), tag.tag_id);
+    const key = sanitizeTagName(tag.title).toLowerCase();
+    if (!key) continue;
+    tagMap.set(key, tag.tag_id);
   }
 
   for (const portableTag of portableTags) {

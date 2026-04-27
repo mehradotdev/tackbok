@@ -14,6 +14,8 @@ import {
   BACKUP_PROFILE_PATH,
 } from '../backupImport/types';
 
+(globalThis as { __DEV__?: boolean }).__DEV__ = false;
+
 let exportToBackupZip: () => Promise<void>;
 
 type PortableEntryMock = {
@@ -37,8 +39,12 @@ const mockAddText = mock(async (_path: string, _text: string): Promise<void> => 
 const mockClose = mock(async (): Promise<void> => {});
 const mockAbort = mock(async (): Promise<void> => {});
 const mockSaveGeneratedZipFile = mock(
-  async (_file: unknown, _name: string): Promise<void> => {},
+  async (
+    _file: unknown,
+    _name: string,
+  ): Promise<'delete-immediately' | 'defer-cleanup'> => 'delete-immediately',
 );
+const mockCleanupDeferredBackupZipFiles = mock((_minAgeMs?: number, _now?: number) => {});
 const mockGetRelativeAssetFile = mock((relativeUri: string) => ({
   exists: true,
   uri: relativeUri,
@@ -80,7 +86,7 @@ mock.module('expo-file-system', () => ({
   },
 }));
 
-mock.module('~/db', () => {
+const dbMockFactory = () => {
   const entries = { created_at: 'created_at' };
 
   return {
@@ -101,13 +107,24 @@ mock.module('~/db', () => {
     entries,
     tags: {},
   };
-});
+};
 
-mock.module('~/lib/settings', () => ({
+mock.module('~/db', dbMockFactory);
+mock.module('~/db/index.ts', dbMockFactory);
+mock.module('/Volumes/LocalDisk/proj/tackbok/apps/mobile/src/db/index.ts', dbMockFactory);
+
+const settingsMockFactory = () => ({
   useSettingsStore: {
     getState: () => mockGetState(),
   },
-}));
+});
+
+mock.module('~/lib/settings', settingsMockFactory);
+mock.module('~/lib/settings/index.ts', settingsMockFactory);
+mock.module(
+  '/Volumes/LocalDisk/proj/tackbok/apps/mobile/src/lib/settings/index.ts',
+  settingsMockFactory,
+);
 
 mock.module('~/lib/zip', () => ({
   createExpoZipWriter: (outputFile: unknown) => ({
@@ -197,6 +214,8 @@ mock.module('./utils', () => ({
   generateTimestamp: mock(() => '2026-04-22T10-00-00'),
   saveOrShareZipFile: (file: unknown, fileName: string) =>
     mockSaveGeneratedZipFile(file, fileName),
+  cleanupDeferredBackupZipFiles: (minAgeMs?: number, now?: number) =>
+    mockCleanupDeferredBackupZipFiles(minAgeMs, now),
   buildTagIdToNameMap: mock(async () => new Map()),
   resolveTagIdsToTitles: (_tagIds: string, _tagMap: Map<string, string>) => [],
   getRelativeAssetFile: (relativeUri: string) => mockGetRelativeAssetFile(relativeUri),
@@ -222,6 +241,7 @@ describe('exportToBackupZip', () => {
     mockClose.mockReset();
     mockAbort.mockReset();
     mockSaveGeneratedZipFile.mockReset();
+    mockCleanupDeferredBackupZipFiles.mockReset();
     mockGetRelativeAssetFile.mockReset();
     mockGetState.mockReset();
     mockCreatePortableEntries.mockReset();
@@ -268,7 +288,7 @@ describe('exportToBackupZip', () => {
     mockAddText.mockResolvedValue();
     mockClose.mockResolvedValue();
     mockAbort.mockResolvedValue();
-    mockSaveGeneratedZipFile.mockResolvedValue();
+    mockSaveGeneratedZipFile.mockResolvedValue('delete-immediately');
   });
 
   test('skips unreadable media files and keeps exported metadata consistent', async () => {
@@ -327,8 +347,19 @@ describe('exportToBackupZip', () => {
     expect(mockClose).toHaveBeenCalled();
     expect(mockAbort).not.toHaveBeenCalled();
     expect(mockSaveGeneratedZipFile).toHaveBeenCalled();
+    expect(mockCleanupDeferredBackupZipFiles).toHaveBeenCalledTimes(1);
 
     warnSpy.mockRestore();
+  });
+
+  test('keeps the temp zip file when sharing defers cleanup', async () => {
+    mockAddFile.mockImplementation(async () => {});
+    mockSaveGeneratedZipFile.mockResolvedValue('defer-cleanup');
+
+    await exportToBackupZip();
+
+    const sharedFile = mockSaveGeneratedZipFile.mock.calls[0]?.[0] as { exists: boolean };
+    expect(sharedFile.exists).toBe(true);
   });
 
   afterAll(() => {

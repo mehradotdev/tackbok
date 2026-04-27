@@ -71,6 +71,12 @@ function readLocalFile(
   );
 
   if (localFileHeader.compressionMethod === ZIP_COMPRESSION_METHOD_STORE) {
+    if (compressedSize !== uncompressedSize) {
+      throw new Error(
+        'Invalid ZIP archive: stored entry has mismatched compressed and uncompressed sizes',
+      );
+    }
+
     entries[entry.path] = file.slice();
     return;
   }

@@ -107,4 +107,29 @@ describe('importFromPresentlyCSV', () => {
       updated_at: expect.any(Number),
     });
   });
+
+  test('skips impossible calendar dates instead of rolling them over', async () => {
+    mockFileText.mockResolvedValue(
+      [
+        'entryDate,entryContent',
+        '2025-02-30,Invalid February date',
+        '2025-13-45,Invalid month and day',
+        '2025-02-29,Invalid non-leap day',
+        '2024-02-29,Valid leap day',
+      ].join('\n'),
+    );
+
+    const summary = await importFromPresentlyCSV('/tmp/presently.csv');
+
+    expect(summary.importedEntries).toBe(1);
+    expect(summary.skippedEntries).toBe(0);
+    expect(mockValues).toHaveBeenCalledTimes(1);
+    expect(mockValues).toHaveBeenCalledWith({
+      note_id: 'generated-note-id',
+      text_content: 'Valid leap day',
+      created_at: new Date(2024, 1, 29).getTime(),
+      updated_at: expect.any(Number),
+    });
+    expect(mockSelect).toHaveBeenCalledTimes(1);
+  });
 });

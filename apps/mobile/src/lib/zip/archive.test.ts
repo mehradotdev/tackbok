@@ -1,10 +1,16 @@
-import { parseZipArchive, readZipEntryText } from './reader/memory-reader';
+import {
+  findZipEntryPathByBasename,
+  hasZipEntry,
+  parseZipArchive,
+  readZipEntryText,
+} from './reader/memory-reader';
 import {
   encodeZipArchiveBytes,
   parseZipArchiveBytes,
   readUint,
   readUint64,
   readUshort,
+  writeUint,
   writeUshort,
 } from './core';
 import {
@@ -16,6 +22,10 @@ import {
   findZip64EndOfCentralDirectoryOffset,
   toArrayBuffer,
 } from './test-utils';
+import {
+  createMemoryZipReaderSource,
+  openZipReader,
+} from './reader/random-access-reader';
 
 const textEncoder = new TextEncoder();
 
@@ -69,6 +79,22 @@ describe('ZIP archive helpers', () => {
         'ZIP entry is too large for the in-memory archive API; use openZipReader instead',
       );
     });
+
+    test('supports helper lookups against ZipReader instances', async () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({
+          'nested/manifest.json': textEncoder.encode('{"ok":true}'),
+          'nested/assets/avatar.jpg': new Uint8Array([1, 2, 3]),
+        }),
+      );
+      const archive = await openZipReader(createMemoryZipReaderSource(bytes));
+
+      expect(hasZipEntry(archive, 'nested/manifest.json')).toBe(true);
+      expect(hasZipEntry(archive, 'manifest.json')).toBe(false);
+      expect(findZipEntryPathByBasename(archive, 'avatar.jpg')).toBe(
+        'nested/assets/avatar.jpg',
+      );
+    });
   });
 
   describe('parseZipArchiveBytes', () => {
@@ -116,6 +142,20 @@ describe('ZIP archive helpers', () => {
 
       expect(() => parseZipArchiveBytes(toArrayBuffer(zip64))).toThrow(
         'Malformed ZIP64 extra field for central directory entry',
+      );
+    });
+
+    test('rejects stored entries whose advertised sizes do not match', () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+      );
+      const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+      const centralDirectoryOffset = readUint(bytes, eocdOffset + 16);
+
+      writeUint(bytes, centralDirectoryOffset + 24, 6);
+
+      expect(() => parseZipArchiveBytes(toArrayBuffer(bytes))).toThrow(
+        'Invalid ZIP archive: stored entry has mismatched compressed and uncompressed sizes',
       );
     });
   });

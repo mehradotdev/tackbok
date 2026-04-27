@@ -17,6 +17,7 @@ import {
   ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
   ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIZE,
   ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
+  ZIP64_EOCD_RECORD_DATA_SIZE,
 } from '../core';
 import { cloneBytes } from '../shared/bytes';
 import { ensureTextDecoder } from '../shared/text-codec';
@@ -131,6 +132,11 @@ async function readZip64DirectoryRecord(
   }
 
   const recordSize = readUint64(headerBytes, 4);
+  if (recordSize < ZIP64_EOCD_RECORD_DATA_SIZE) {
+    throw new Error(
+      'Invalid ZIP archive: ZIP64 end of central directory record is malformed',
+    );
+  }
   const totalRecordLength = toSafeNumber(
     recordSize + 12n,
     'ZIP64 end of central directory size',
@@ -288,6 +294,10 @@ class ZipReaderImpl implements ZipReader {
       entry.compressedSize,
       `Compressed size for ${path}`,
     );
+    const uncompressedSize = toSafeNumber(
+      entry.uncompressedSize,
+      `Uncompressed size for ${path}`,
+    );
     const dataOffset = entry.localHeaderOffset + BigInt(localHeader.dataOffset);
     const compressedBytes = await readExact(
       this.reader,
@@ -300,13 +310,17 @@ class ZipReaderImpl implements ZipReader {
     // the ZIP metadata; structural parsing catches many archive issues already,
     // but read-time CRC validation would detect silent payload corruption too.
     if (localHeader.compressionMethod === ZIP_COMPRESSION_METHOD_STORE) {
+      if (compressedSize !== uncompressedSize) {
+        throw new Error(
+          'Invalid ZIP archive: stored entry has mismatched compressed and uncompressed sizes',
+        );
+      }
+
       return cloneBytes(compressedBytes);
     }
 
     if (localHeader.compressionMethod === ZIP_COMPRESSION_METHOD_DEFLATE) {
-      const output = new Uint8Array(
-        toSafeNumber(entry.uncompressedSize, `Uncompressed size for ${path}`),
-      );
+      const output = new Uint8Array(uncompressedSize);
       inflateRaw(compressedBytes, output);
       return output;
     }

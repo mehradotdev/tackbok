@@ -308,6 +308,22 @@ Main entry points:
 
 These are the preferred adapters for app code in this repo.
 
+`createExpoZipWriter(fileOrUri)` returns an `ExpoZipWriter`, which includes the
+standard writer methods:
+
+- `addText(path, text)`
+- `addBytes(path, bytes, noCompress?)`
+- `addStored(path, source)`
+
+It also adds the Expo-specific helper:
+
+- `addFile(path: string, fileOrUri: File | string): Promise<void>`
+
+`addFile()` is implemented in
+`adapters/expo/file-zip-writer.ts` and lets app code write an existing Expo
+`File` or file URI directly into the ZIP without first materializing the whole
+payload as a `Uint8Array`.
+
 ## Sample Usage
 
 ### Read a ZIP file via random-access from disk

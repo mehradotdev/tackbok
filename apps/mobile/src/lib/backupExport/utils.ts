@@ -11,6 +11,11 @@ import { voiceMemoFileExists } from '~/lib/voiceMemoUtils';
 const ZIP_MIME_TYPE = 'application/zip';
 const ZIP_DIALOG_TITLE = 'Export Tackbok Backup';
 const ZIP_UTI = 'public.zip-archive';
+const BACKUP_EXPORT_FILE_PREFIX = 'TackbokBackup_';
+const BACKUP_EXPORT_FILE_SUFFIX = '.zip';
+const STALE_SHARED_BACKUP_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+export type GeneratedZipCleanupStrategy = 'delete-immediately' | 'defer-cleanup';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) {
@@ -35,6 +40,13 @@ function createExportError(error: unknown): Error {
  */
 export function generateTimestamp(): string {
   return format(new Date(), "yyyy-MM-dd'T'HH-mm-ss");
+}
+
+function isDeferredBackupZipFile(file: File): boolean {
+  const fileName = file.uri.split('/').pop() ?? '';
+  return (
+    fileName.startsWith(BACKUP_EXPORT_FILE_PREFIX) && fileName.endsWith(BACKUP_EXPORT_FILE_SUFFIX)
+  );
 }
 
 /**
@@ -111,7 +123,10 @@ export function assetFileExists(asset: Asset): boolean {
 /**
  * Saves a generated ZIP backup using Android directory access or the native share sheet.
  */
-export async function saveOrShareZipFile(file: File, fileName: string): Promise<void> {
+export async function saveOrShareZipFile(
+  file: File,
+  fileName: string,
+): Promise<GeneratedZipCleanupStrategy> {
   if (Platform.OS === 'android') {
     try {
       const directory = await Directory.pickDirectoryAsync();
@@ -123,7 +138,8 @@ export async function saveOrShareZipFile(file: File, fileName: string): Promise<
       const destination = directory.createFile(fileName, ZIP_MIME_TYPE);
       const bytes = await file.bytes();
       destination.write(bytes);
-      return;
+      // Android writes a user-owned copy before we return, so the temp cache file can go away.
+      return 'delete-immediately';
     } catch (error) {
       throw createExportError(error);
     }
@@ -140,7 +156,42 @@ export async function saveOrShareZipFile(file: File, fileName: string): Promise<
       dialogTitle: ZIP_DIALOG_TITLE,
       UTI: ZIP_UTI,
     });
+    // On iOS the share sheet can dismiss before the destination app finishes copying the file.
+    return 'defer-cleanup';
   } catch (error) {
     throw createExportError(error);
+  }
+}
+
+/**
+ * Deletes deferred backup ZIPs from the cache directory once they are no longer needed.
+ */
+export function cleanupDeferredBackupZipFiles(
+  minAgeMs = STALE_SHARED_BACKUP_MAX_AGE_MS,
+  now = Date.now(),
+): void {
+  const cacheDirectory = new Directory(Paths.cache);
+  if (!cacheDirectory.exists) {
+    return;
+  }
+
+  for (const entry of cacheDirectory.list()) {
+    if (!(entry instanceof File) || !entry.exists || !isDeferredBackupZipFile(entry)) {
+      continue;
+    }
+
+    const modifiedAt = entry.modificationTime ?? entry.creationTime ?? 0;
+    // Keep recently shared ZIPs around long enough for the OS or target app to finish reading them.
+    if (now - modifiedAt < minAgeMs) {
+      continue;
+    }
+
+    try {
+      if (entry.exists) {
+        entry.delete();
+      }
+    } catch (error) {
+      console.warn(`Failed to delete deferred backup export: ${entry.uri}`, error);
+    }
   }
 }

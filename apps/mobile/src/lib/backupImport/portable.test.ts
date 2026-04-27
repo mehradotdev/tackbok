@@ -17,6 +17,7 @@ type PortableModule = typeof import('./portable');
 
 let buildGratitudeAppPortablePayload: PortableModule['buildGratitudeAppPortablePayload'];
 let importPortableEntries: PortableModule['importPortableEntries'];
+let upsertPortableTags: PortableModule['upsertPortableTags'];
 
 const mockReadSafeZipBytes = mock(
   async (_zip: ZipReader, _path: string) => new Uint8Array(),
@@ -222,6 +223,7 @@ beforeAll(async () => {
   const portableModule = await import('./portable');
   buildGratitudeAppPortablePayload = portableModule.buildGratitudeAppPortablePayload;
   importPortableEntries = portableModule.importPortableEntries;
+  upsertPortableTags = portableModule.upsertPortableTags;
 });
 
 beforeEach(() => {
@@ -424,6 +426,32 @@ describe('importPortableEntries', () => {
     ).rejects.toThrow('database write failed');
 
     expect(mockCleanupImportedFiles).toHaveBeenCalledWith(['photos/photo-3.jpg']);
+  });
+});
+
+describe('upsertPortableTags', () => {
+  test('reuses existing tags when portable titles normalize to the same key', async () => {
+    const existingTagId = 'existing-tag-id';
+    const insertedValues = mock(async (_value: unknown): Promise<void> => {});
+    const tx = {
+      select: () => ({
+        from: async () => [{ tag_id: existingTagId, title: 'Work,Focus' }],
+      }),
+      insert: () => ({
+        values: insertedValues,
+      }),
+    };
+    const summary = createBackupImportSummary();
+
+    const tagMap = await upsertPortableTags(
+      tx as never,
+      [{ title: 'Work|Focus', createdAt: 1, updatedAt: 2 }],
+      summary,
+    );
+
+    expect(insertedValues).not.toHaveBeenCalled();
+    expect(tagMap.get('work focus')).toBe(existingTagId);
+    expect(summary.importedTags).toBe(0);
   });
 });
 

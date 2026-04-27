@@ -24,6 +24,7 @@ import {
   createPortableTags,
 } from './portable';
 import {
+  cleanupDeferredBackupZipFiles,
   buildTagIdToNameMap,
   generateTimestamp,
   getRelativeAssetFile,
@@ -67,8 +68,13 @@ export async function exportToBackupZip(): Promise<void> {
   const exportedEntries: PortableEntry[] = [];
   let exportedPhotoCount = 0;
   let exportedAudioCount = 0;
+  // iOS share targets may still be reading the cached ZIP after `shareAsync` resolves.
+  let cleanupStrategy: 'delete-immediately' | 'defer-cleanup' = 'delete-immediately';
 
   try {
+    // Opportunistically remove older shared backups that were kept around to avoid the iOS share race.
+    cleanupDeferredBackupZipFiles();
+
     for (const entry of portableEntries) {
       const exportedAssets: PortableEntry['assets'] = [];
 
@@ -105,16 +111,21 @@ export async function exportToBackupZip(): Promise<void> {
     if (profileImageUri) {
       const profileFile = getRelativeAssetFile(profileImageUri);
       if (profileFile?.exists) {
-        const profileArchivePath = `${BACKUP_MEDIA_PREFIX}/profile/${profileImageUri.split('/').pop()}`;
-        try {
-          await zip.addFile(profileArchivePath, profileFile);
-          profile.imagePath = profileArchivePath;
-          exportedPhotoCount++;
-        } catch (error) {
-          console.warn(
-            `Skipping unreadable backup profile image: ${profileImageUri}`,
-            error,
-          );
+        const basename = profileImageUri.split('/').pop();
+        if (!basename) {
+          console.warn(`Skipping invalid profile image URI: ${profileImageUri}`);
+        } else {
+          const profileArchivePath = `${BACKUP_MEDIA_PREFIX}/profile/${basename}`;
+          try {
+            await zip.addFile(profileArchivePath, profileFile);
+            profile.imagePath = profileArchivePath;
+            exportedPhotoCount++;
+          } catch (error) {
+            console.warn(
+              `Skipping unreadable backup profile image: ${profileImageUri}`,
+              error,
+            );
+          }
         }
       }
     }
@@ -139,12 +150,13 @@ export async function exportToBackupZip(): Promise<void> {
     await zip.addText(BACKUP_PROFILE_PATH, JSON.stringify(profile, null, 2));
 
     await zip.close();
-    await saveOrShareZipFile(tempZipFile, fileName);
+    cleanupStrategy = await saveOrShareZipFile(tempZipFile, fileName);
   } catch (error) {
     await zip.abort();
     throw error;
   } finally {
-    if (tempZipFile.exists) {
+    // Only delete immediately when the exported file has already been copied somewhere permanent.
+    if (cleanupStrategy === 'delete-immediately' && tempZipFile.exists) {
       tempZipFile.delete();
     }
   }

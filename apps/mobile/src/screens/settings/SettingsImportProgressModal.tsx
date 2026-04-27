@@ -18,7 +18,9 @@ export function SettingsImportProgressModal({
 
   if (!visible || !progress) return null;
 
-  const percent = Math.max(6, Math.round(progress.progress * 100));
+  // Keep the text label truthful while giving the bar a small visible minimum once work starts.
+  const displayPercent = Math.min(100, Math.max(0, Math.round(progress.progress * 100)));
+  const barPercent = displayPercent > 0 ? Math.max(6, displayPercent) : 0;
   const skippedMediaCount = progress.failedAssets + progress.failedProfileAssets;
   const stats = [
     progress.totalEntries > 0
@@ -75,13 +77,13 @@ export function SettingsImportProgressModal({
             <View className="h-2 overflow-hidden rounded-full bg-muted">
               <View
                 className="h-full rounded-full bg-primary"
-                style={{ width: `${percent}%` }}
+                style={{ width: `${barPercent}%` }}
               />
             </View>
 
             <View className="flex-row items-center justify-between">
               <Text className="text-sm font-body-semibold text-foreground">
-                {percent}%
+                {displayPercent}%
               </Text>
               <Text className="text-sm text-muted-foreground">
                 {getPhaseLabel(progress, t)}
@@ -100,10 +102,11 @@ export function SettingsImportProgressModal({
           <View className="flex-row items-start gap-2 rounded-xl bg-warning/10 px-3 py-2.5">
             <TriangleAlert size={16} className="mt-0.5 text-warning" />
             <Text className="flex-1 text-xs leading-[18px] text-muted-foreground">
-              {t('Please do not close or minimize the app while the import is in progress.')}
+              {t(
+                'Please do not close or minimize the app while the import is in progress.',
+              )}
             </Text>
           </View>
-
         </View>
       </DialogContent>
     </Dialog>

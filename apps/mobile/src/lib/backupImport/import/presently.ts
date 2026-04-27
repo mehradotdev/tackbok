@@ -71,6 +71,34 @@ function normalizeHeader(headerRow: string[]): string[] {
 }
 
 /**
+ * Parses a YYYY-MM-DD string into a local-midnight timestamp.
+ * Returns null for impossible calendar dates such as 2025-02-30.
+ */
+function parsePresentlyDate(entryDateStr: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(entryDateStr);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  const day = Number.parseInt(match[3], 10);
+  const date = new Date(year, month - 1, day);
+  const dateMs = date.getTime();
+
+  if (
+    !Number.isFinite(dateMs) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return dateMs;
+}
+
+/**
  * Opens the document picker to select a Presently CSV file for import.
  * Returns null if the picker is cancelled.
  */
@@ -156,7 +184,7 @@ export async function importFromPresentlyCSV(
 
       const entryDateStr = row[dateIndex].trim();
       const entryContent = row[contentIndex].trim();
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(entryDateStr) || !entryContent) {
+      if (!entryContent) {
         advanceProgress();
         continue;
       }
@@ -164,7 +192,12 @@ export async function importFromPresentlyCSV(
       // Intentionally use local midnight as the canonical timestamp for
       // Presently imports. This preserves the expected calendar day in the UI
       // and lets duplicate detection target only midnight entries.
-      const dateMs = new Date(`${entryDateStr}T00:00:00`).getTime();
+      const dateMs = parsePresentlyDate(entryDateStr);
+      if (dateMs === null) {
+        advanceProgress();
+        continue;
+      }
+
       const existing = await tx
         .select({ note_id: entries.note_id })
         .from(entries)

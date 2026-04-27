@@ -1,5 +1,9 @@
-import { encodeZipArchiveBytes } from './core';
-import { addZip64EndOfCentralDirectory } from './test-utils';
+import { encodeZipArchiveBytes, readUint, writeUint, writeUint64 } from './core';
+import {
+  addZip64EndOfCentralDirectory,
+  findEndOfCentralDirectoryOffset,
+  findZip64EndOfCentralDirectoryOffset,
+} from './test-utils';
 import {
   createMemoryZipReaderSource,
   openZipReader,
@@ -62,5 +66,35 @@ describe('openZipReader', () => {
     );
 
     await expect(archive.readEntryText('sample.txt')).resolves.toBe('hello');
+  });
+
+  test('rejects malformed ZIP64 EOCD records that are smaller than the minimum size', async () => {
+    const base = new Uint8Array(
+      encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+    );
+    const zip64 = addZip64EndOfCentralDirectory(base);
+    const zip64EocdOffset = findZip64EndOfCentralDirectoryOffset(zip64);
+
+    writeUint64(zip64, zip64EocdOffset + 4, 43n);
+
+    await expect(openZipReader(createMemoryZipReaderSource(zip64))).rejects.toThrow(
+      'Invalid ZIP archive: ZIP64 end of central directory record is malformed',
+    );
+  });
+
+  test('rejects stored entries whose advertised sizes do not match', async () => {
+    const bytes = new Uint8Array(
+      encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+    );
+    const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+    const centralDirectoryOffset = readUint(bytes, eocdOffset + 16);
+
+    writeUint(bytes, centralDirectoryOffset + 24, 6);
+
+    const archive = await openZipReader(createMemoryZipReaderSource(bytes));
+
+    await expect(archive.readEntryText('sample.txt')).rejects.toThrow(
+      'Invalid ZIP archive: stored entry has mismatched compressed and uncompressed sizes',
+    );
   });
 });
