@@ -1,5 +1,6 @@
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -17,7 +18,9 @@ type PortableModule = typeof import('./portable');
 let buildGratitudeAppPortablePayload: PortableModule['buildGratitudeAppPortablePayload'];
 let importPortableEntries: PortableModule['importPortableEntries'];
 
-const mockReadSafeZipBytes = mock(async (_zip: ZipReader, _path: string) => new Uint8Array());
+const mockReadSafeZipBytes = mock(
+  async (_zip: ZipReader, _path: string) => new Uint8Array(),
+);
 const mockWriteImportedPhoto = mock(
   async (_bytes: Uint8Array, _path: string): Promise<Asset> => ({
     type: AssetType.IMAGE,
@@ -26,10 +29,12 @@ const mockWriteImportedPhoto = mock(
     height: 10,
   }),
 );
-const mockWriteImportedAudio = mock((_bytes: Uint8Array, _path: string): Asset => ({
-  type: AssetType.AUDIO,
-  uri: 'voice-memos/imported.m4a',
-}));
+const mockWriteImportedAudio = mock(
+  (_bytes: Uint8Array, _path: string): Asset => ({
+    type: AssetType.AUDIO,
+    uri: 'voice-memos/imported.m4a',
+  }),
+);
 const mockCleanupImportedFiles = mock((_relativeUris: string[]): void => {});
 
 mock.module('~/db', () => ({
@@ -105,19 +110,23 @@ const archiveUtilsMockFactory = () => ({
     mood?: string | null;
     assets?: Asset[];
   }) => Boolean(textTitle || textContent || mood || (assets?.length ?? 0) > 0),
-  cleanupImportedFiles: (relativeUris: string[]) => mockCleanupImportedFiles(relativeUris),
-  writeImportedPhoto: (bytes: Uint8Array, path: string) => mockWriteImportedPhoto(bytes, path),
-  writeImportedAudio: (bytes: Uint8Array, path: string) => mockWriteImportedAudio(bytes, path),
+  cleanupImportedFiles: (relativeUris: string[]) =>
+    mockCleanupImportedFiles(relativeUris),
+  writeImportedPhoto: (bytes: Uint8Array, path: string) =>
+    mockWriteImportedPhoto(bytes, path),
+  writeImportedAudio: (bytes: Uint8Array, path: string) =>
+    mockWriteImportedAudio(bytes, path),
   saveZipFile: async (_zipBytes: Uint8Array, _fileName: string) => {},
   saveGeneratedZipFile: async (_file: unknown, _fileName: string) => {},
   readSafeZipJson: <T>(zip: ZipReader, path: string) => zip.readEntryJson<T>(path),
   readSafeZipBytes: (zip: ZipReader, path: string) => mockReadSafeZipBytes(zip, path),
   loadZipFromUri: async (_uri: string) => createFakeStreamingZipArchive({}),
-  isZipFile: async (_uri: string) => true,
+  isZipFile: (_uri: string) => true,
   buildTagIdToNameMap: async () => new Map(),
   resolveTagIdsToTitles: (_tagIds: string, _tagMap: Map<string, string>) => [],
   getRelativeAssetFile: (_relativeUri: string) => null,
-  createArchiveAssetPath: (_type: string, relativeUri: string) => `media/photos/${relativeUri}`,
+  createArchiveAssetPath: (_type: string, relativeUri: string) =>
+    `media/photos/${relativeUri}`,
   assetFileExists: (_asset: unknown) => true,
   deriveGratitudeTitle: (title: string | null | undefined) => {
     const trimmed = title?.trim();
@@ -189,13 +198,21 @@ function createFakeStreamingZipArchive(
 }
 
 function createTransactionMock() {
+  const limit = mock(async (_count?: number): Promise<{ note_id: string }[]> => []);
+  const where = mock(() => ({ limit }));
+  const from = mock(() => ({ where, limit }));
+  const select = mock(() => ({ from }));
   const onConflictDoUpdate = mock(async (_value: unknown): Promise<void> => {});
   const values = mock(() => ({ onConflictDoUpdate }));
   const insert = mock(() => ({ values }));
 
   return {
-    tx: { insert },
+    tx: { insert, select },
     insert,
+    select,
+    from,
+    where,
+    limit,
     values,
     onConflictDoUpdate,
   };
@@ -264,13 +281,22 @@ describe('buildGratitudeAppPortablePayload', () => {
 });
 
 describe('importPortableEntries', () => {
+  let warnSpy: ReturnType<typeof spyOn> | undefined;
+
+  afterEach(() => {
+    warnSpy?.mockRestore();
+    warnSpy = undefined;
+  });
+
   test('continues importing textual entries when a media asset fails', async () => {
-    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     const { tx, insert, values } = createTransactionMock();
     const summary = createBackupImportSummary();
     const createdFiles: string[] = [];
 
-    mockReadSafeZipBytes.mockRejectedValueOnce(new Error('Missing entry: media/photos/photo-1.jpg'));
+    mockReadSafeZipBytes.mockRejectedValueOnce(
+      new Error('Missing entry: media/photos/photo-1.jpg'),
+    );
 
     await importPortableEntries(
       tx as never,
@@ -313,16 +339,16 @@ describe('importPortableEntries', () => {
       assetPath: 'media/photos/photo-1.jpg',
     });
     expect(createdFiles).toEqual([]);
-
-    warnSpy.mockRestore();
   });
 
   test('marks asset-only entries as failed when every media asset fails', async () => {
-    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     const { tx, insert } = createTransactionMock();
     const summary = createBackupImportSummary();
 
-    mockReadSafeZipBytes.mockRejectedValueOnce(new Error('Missing entry: media/photos/photo-2.jpg'));
+    mockReadSafeZipBytes.mockRejectedValueOnce(
+      new Error('Missing entry: media/photos/photo-2.jpg'),
+    );
 
     await importPortableEntries(
       tx as never,
@@ -357,8 +383,6 @@ describe('importPortableEntries', () => {
         expect.objectContaining({ kind: 'entry-skipped', noteId: 'entry-2' }),
       ]),
     );
-
-    warnSpy.mockRestore();
   });
 
   test('cleans up written entry files when the database write fails', async () => {

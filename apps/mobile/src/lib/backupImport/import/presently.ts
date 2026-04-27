@@ -38,8 +38,9 @@ function parseCSV(content: string): string[][] {
       } else if (char === ',') {
         currentRow.push(currentField);
         currentField = '';
-      } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
-        if (char === '\r') i++;
+      // Support LF, CRLF, and bare CR line endings when parsing exports.
+      } else if (char === '\n' || char === '\r') {
+        if (char === '\r' && nextChar === '\n') i++;
         currentRow.push(currentField);
         if (currentRow.some((field) => field.trim() !== '')) {
           rows.push(currentRow);

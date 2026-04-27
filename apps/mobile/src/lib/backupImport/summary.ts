@@ -57,12 +57,20 @@ export function recordImportWarning(
   summary: BackupImportSummary,
   warning: BackupImportWarning,
 ): void {
-  if (warning.kind === 'entry-asset') {
-    summary.failedAssets++;
-  } else if (warning.kind === 'entry-skipped') {
-    summary.failedEntries++;
-  } else {
-    summary.failedProfileAssets++;
+  switch (warning.kind) {
+    case 'entry-asset':
+      summary.failedAssets++;
+      break;
+    case 'entry-skipped':
+      summary.failedEntries++;
+      break;
+    case 'profile-asset':
+      summary.failedProfileAssets++;
+      break;
+    default: {
+      const exhaustiveWarning: never = warning;
+      return exhaustiveWarning;
+    }
   }
 
   if (summary.warnings.length < MAX_BACKUP_IMPORT_WARNINGS) {

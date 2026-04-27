@@ -63,8 +63,14 @@ function prepareEntries(
 ): PreparedZipWriteEntry[] {
   const preparedEntries: PreparedZipWriteEntry[] = [];
   let recordOffset = 0n;
+  const timestamp = Date.now();
 
   for (const path in entries) {
+    // Ignore inherited enumerable properties and only serialize actual ZIP entries.
+    if (!Object.hasOwn(entries, path)) {
+      continue;
+    }
+
     const bytes = entries[path];
     const shouldCompress = !shouldStoreWithoutCompression(path) && !noCompress;
     const file = shouldCompress ? deflateRaw(bytes) : bytes;
@@ -96,7 +102,7 @@ function prepareEntries(
       usesZip64Offset,
       versionNeeded:
         usesZip64Sizes || usesZip64Offset ? ZIP64_VERSION : ZIP_CLASSIC_VERSION,
-      timestamp: Date.now(),
+      timestamp,
     };
 
     preparedEntries.push(preparedEntry);

@@ -42,7 +42,7 @@ export async function importFromTackbokBackup(
   mode: ImportMode,
   onProgress?: ImportProgressCallback,
 ): Promise<BackupImportSummary> {
-  if (!(await isZipFile(uri))) {
+  if (!isZipFile(uri)) {
     throw new Error('Tackbok restore requires a ZIP backup');
   }
 
@@ -111,6 +111,9 @@ export async function importFromTackbokBackup(
           ...createSummaryCounterMetrics(summary),
         });
 
+        // TODO: If imports ever get slow on large journals, profile this query first.
+        // A chunked lookup by incoming portable note IDs may scale better than
+        // materializing every existing note_id up front.
         const existingEntries = await tx.select({ note_id: entries.note_id }).from(entries);
         const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
 
@@ -138,7 +141,17 @@ export async function importFromTackbokBackup(
       ...createSummaryCounterMetrics(summary),
     });
 
-    applyImportedProfile(portableProfile, importedProfileImageUri);
+    try {
+      applyImportedProfile(portableProfile, importedProfileImageUri);
+    } catch (error) {
+      if (importedProfileImageUri) {
+        cleanupImportedFiles([importedProfileImageUri]);
+      }
+      console.warn(
+        '[backupImport:tackbok] Imported entries, but could not apply imported profile settings.',
+        error,
+      );
+    }
 
     reportImportProgress(onProgress, 'tackbok', 'finishing', 1, {
       ...totals,

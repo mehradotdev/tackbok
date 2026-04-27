@@ -54,12 +54,8 @@ const mockCreatePortableEntries = mock(
     _tagMap: unknown,
   ): {
     portableEntries: PortableEntryMock[];
-    photoCount: number;
-    audioCount: number;
   } => ({
     portableEntries: [],
-    photoCount: 0,
-    audioCount: 0,
   }),
 );
 const mockCreatePortableTags = mock((_allTags: unknown): unknown[] => []);
@@ -149,7 +145,6 @@ mock.module('~/lib/zip', () => ({
 
 mock.module('../backupImport/archiveUtils', () => ({
   VALID_MOODS: new Set(['Joyful', 'Calm', 'Neutral', 'Anxious', 'Sad', 'Angry']),
-  generateTimestamp: mock(() => '2026-04-22T10-00-00'),
   normalizeOptionalText: mock((value: string | null | undefined) => {
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
@@ -166,9 +161,6 @@ mock.module('../backupImport/archiveUtils', () => ({
     type: 'AUDIO',
     uri: 'voice-memos/mock.m4a',
   }),
-  saveZipFile: async (_zipBytes: Uint8Array, _fileName: string) => {},
-  saveGeneratedZipFile: (file: unknown, fileName: string) =>
-    mockSaveGeneratedZipFile(file, fileName),
   readSafeZipJson: async <T>(_zip: unknown, _path: string): Promise<T> => {
     throw new Error('readSafeZipJson mock is not configured for this test');
   },
@@ -183,12 +175,7 @@ mock.module('../backupImport/archiveUtils', () => ({
     readEntryJson: async () => ({}),
     close: async () => {},
   }),
-  isZipFile: async (_uri: string) => true,
-  buildTagIdToNameMap: mock(async () => new Map()),
-  resolveTagIdsToTitles: (_tagIds: string, _tagMap: Map<string, string>) => [],
-  getRelativeAssetFile: (relativeUri: string) => mockGetRelativeAssetFile(relativeUri),
-  createArchiveAssetPath: (_type: string, relativeUri: string) => `media/photos/${relativeUri}`,
-  assetFileExists: (_asset: unknown) => true,
+  isZipFile: (_uri: string) => true,
   buildSubstantiveCheck: ({
     textTitle,
     textContent,
@@ -204,6 +191,17 @@ mock.module('../backupImport/archiveUtils', () => ({
     const trimmed = noteText?.trim();
     return trimmed ? trimmed : null;
   },
+}));
+
+mock.module('./utils', () => ({
+  generateTimestamp: mock(() => '2026-04-22T10-00-00'),
+  saveOrShareZipFile: (file: unknown, fileName: string) =>
+    mockSaveGeneratedZipFile(file, fileName),
+  buildTagIdToNameMap: mock(async () => new Map()),
+  resolveTagIdsToTitles: (_tagIds: string, _tagMap: Map<string, string>) => [],
+  getRelativeAssetFile: (relativeUri: string) => mockGetRelativeAssetFile(relativeUri),
+  createArchiveAssetPath: (_type: string, relativeUri: string) => `media/photos/${relativeUri}`,
+  assetFileExists: (_asset: unknown) => true,
 }));
 
 mock.module('./portable', () => ({
@@ -251,8 +249,6 @@ describe('exportToBackupZip', () => {
           ],
         },
       ],
-      photoCount: 1,
-      audioCount: 1,
     });
     mockCreatePortableTags.mockReturnValue([]);
     mockCreatePortablePrompts.mockReturnValue([]);

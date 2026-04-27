@@ -23,7 +23,7 @@ const tx = { select: txSelect };
 const mockTransaction = mock(
   async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx),
 );
-const mockIsZipFile = mock(async (_uri: string): Promise<boolean> => true);
+const mockIsZipFile = mock((_uri: string): boolean => true);
 const mockLoadZipFromUri = mock(
   async (_uri: string): Promise<{ close: () => Promise<void> }> => ({
     close: mock(async () => undefined),
@@ -238,7 +238,7 @@ describe('importFromTackbokBackup', () => {
     mockTransaction.mockImplementation(
       async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx),
     );
-    mockIsZipFile.mockResolvedValue(true);
+    mockIsZipFile.mockReturnValue(true);
     mockLoadZipFromUri.mockResolvedValue({
       close: mock(async () => undefined),
     });
@@ -271,6 +271,30 @@ describe('importFromTackbokBackup', () => {
       null,
     );
     expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  test('keeps imported data and cleans up the copied profile image when applying profile fails', async () => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
+    mockApplyImportedProfile.mockImplementationOnce(() => {
+      throw new Error('settings write failed');
+    });
+
+    const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
+
+    expect(summary.failedProfileAssets).toBe(0);
+    expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
+    expect(mockApplyImportedProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ imagePath: 'media/profile.jpg' }),
+      'photos/imported.jpg',
+    );
+    expect(mockCleanupImportedFiles).toHaveBeenCalledWith(['photos/imported.jpg']);
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[backupImport:tackbok] Imported entries, but could not apply imported profile settings.',
+      expect.any(Error),
+    );
 
     warnSpy.mockRestore();
   });

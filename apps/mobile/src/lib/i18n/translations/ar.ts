@@ -357,7 +357,7 @@ export const ar: Translations = {
   'Prompts added': 'المطالبات المضافة',
   'Photos restored': 'الصور المستعادة',
   'Voice memos restored': 'المذكرات الصوتية المستعادة',
-  'Media skipped': 'تم تخطي الوسائط',
+  'Media skipped': 'الوسائط المتخطاة',
   'Tackbok backup restored': 'تمت استعادة النسخة الاحتياطية لتاكبوك',
   'Gratitude import complete': 'اكتمل استيراد Gratitude',
   'Presently import complete': 'اكتمل استيراد Presently',

@@ -163,8 +163,14 @@ class AudioEngine {
 
     try {
       return await ctx.decodeAudioData(uri);
-    } catch {
-      return decodeFromBytes();
+    } catch (nativeError) {
+      try {
+        return await decodeFromBytes();
+      } catch (fallbackError) {
+        throw new Error(`Failed to decode audio for ${uri}`, {
+          cause: { nativeError, fallbackError },
+        });
+      }
     }
   }
 

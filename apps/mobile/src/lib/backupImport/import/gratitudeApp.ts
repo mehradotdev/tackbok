@@ -30,7 +30,7 @@ export async function importFromGratitudeAppBackup(
   mode: ImportMode,
   onProgress?: ImportProgressCallback,
 ): Promise<BackupImportSummary> {
-  if (!(await isZipFile(uri))) {
+  if (!isZipFile(uri)) {
     throw new Error('Gratitude import requires a ZIP backup');
   }
 
@@ -80,6 +80,9 @@ export async function importFromGratitudeAppBackup(
           ...createSummaryCounterMetrics(summary),
         });
 
+        // TODO: If imports ever get slow on large journals, profile this query first.
+        // A chunked lookup by incoming portable note IDs may scale better than
+        // materializing every existing note_id up front.
         const existingEntries = await tx.select({ note_id: entries.note_id }).from(entries);
         const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
 
@@ -107,15 +110,25 @@ export async function importFromGratitudeAppBackup(
       ...createSummaryCounterMetrics(summary),
     });
 
-    const settingsState = useSettingsStore.getState();
-    if (profile.name != null) {
-      settingsState.setProfileName(profile.name);
-    }
-    if (profile.hasEmail) {
-      settingsState.setProfileEmail(profile.email);
-    }
-    if (importedProfileImageUri) {
-      settingsState.setProfileImageUri(importedProfileImageUri);
+    try {
+      const settingsState = useSettingsStore.getState();
+      if (profile.name != null) {
+        settingsState.setProfileName(profile.name);
+      }
+      if (profile.hasEmail) {
+        settingsState.setProfileEmail(profile.email);
+      }
+      if (importedProfileImageUri) {
+        settingsState.setProfileImageUri(importedProfileImageUri);
+      }
+    } catch (error) {
+      if (importedProfileImageUri) {
+        cleanupImportedFiles([importedProfileImageUri]);
+      }
+      console.warn(
+        '[backupImport:gratitudeApp] Imported entries, but could not apply imported profile settings.',
+        error,
+      );
     }
 
     reportImportProgress(onProgress, 'gratitudeApp', 'finishing', 1, {

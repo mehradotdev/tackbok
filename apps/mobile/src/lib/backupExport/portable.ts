@@ -3,13 +3,12 @@
  */
 
 import { type CustomPrompt, type Entry, type Tag } from '~/db';
-import { AssetType } from '~/types';
 import type { PortableEntry, PortablePrompt, PortableTag } from '../backupImport/types';
 import {
   assetFileExists,
   createArchiveAssetPath,
   resolveTagIdsToTitles,
-} from '../backupImport/archiveUtils';
+} from './utils';
 
 /**
  * Maps stored tag records into portable tag objects for backup serialization.
@@ -34,15 +33,14 @@ export function createPortablePrompts(allPrompts: CustomPrompt[]): PortablePromp
 }
 
 /**
- * Converts entries and their assets into portable entries while counting exported media.
+ * Converts stored entries into portable backup entries and drops asset records
+ * whose underlying files no longer exist on disk.
  */
 export function createPortableEntries(
   allEntries: Entry[],
   tagMap: Map<string, string>,
-): { portableEntries: PortableEntry[]; photoCount: number; audioCount: number } {
+): { portableEntries: PortableEntry[] } {
   const portableEntries: PortableEntry[] = [];
-  let photoCount = 0;
-  let audioCount = 0;
 
   for (const entry of allEntries) {
     const portableAssets: PortableEntry['assets'] = [];
@@ -58,12 +56,6 @@ export function createPortableEntries(
         width: asset.width,
         height: asset.height,
       });
-
-      if (asset.type === AssetType.IMAGE) {
-        photoCount++;
-      } else {
-        audioCount++;
-      }
     }
 
     portableEntries.push({
@@ -78,5 +70,5 @@ export function createPortableEntries(
     });
   }
 
-  return { portableEntries, photoCount, audioCount };
+  return { portableEntries };
 }

@@ -16,17 +16,19 @@ import {
   type TackbokBackupManifest,
 } from '../backupImport/types';
 import {
-  buildTagIdToNameMap,
-  generateTimestamp,
-  getRelativeAssetFile,
   normalizeOptionalText,
-  saveGeneratedZipFile,
 } from '../backupImport/archiveUtils';
 import {
   createPortableEntries,
   createPortablePrompts,
   createPortableTags,
 } from './portable';
+import {
+  buildTagIdToNameMap,
+  generateTimestamp,
+  getRelativeAssetFile,
+  saveOrShareZipFile,
+} from './utils';
 
 export async function exportToBackupZip(): Promise<void> {
   const [allEntries, allTags, allPrompts] = await Promise.all([
@@ -137,7 +139,7 @@ export async function exportToBackupZip(): Promise<void> {
     await zip.addText(BACKUP_PROFILE_PATH, JSON.stringify(profile, null, 2));
 
     await zip.close();
-    await saveGeneratedZipFile(tempZipFile, fileName);
+    await saveOrShareZipFile(tempZipFile, fileName);
   } catch (error) {
     await zip.abort();
     throw error;

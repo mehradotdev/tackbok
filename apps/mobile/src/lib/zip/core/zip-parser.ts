@@ -227,7 +227,9 @@ function parseEndOfCentralDirectory(data: Uint8Array): ParsedZipDirectory {
     }
 
     if (zip64EntryCountOnDisk !== zip64EntryCount) {
-      throw new Error('Unsupported ZIP feature: multi-disk archives are not supported');
+      throw new Error(
+        `Invalid ZIP archive: ZIP64 end of central directory entry count mismatch (${zip64EntryCountOnDisk} on-disk vs ${zip64EntryCount} total)`,
+      );
     }
 
     validateClassicZip64Consistency(

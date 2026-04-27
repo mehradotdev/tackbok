@@ -1,12 +1,9 @@
-import { Image, Platform } from 'react-native';
-import { format } from 'date-fns';
+import { Image } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { MOODS, PHOTOS_DIR_NAME, VOICE_MEMOS_DIR_NAME } from '~/constants';
-import { db, tags } from '~/db';
 import { AssetType, type Asset, type Mood } from '~/types';
-import { deletePhotoFile, photoFileExists } from '~/lib/photoUtils';
-import { deleteVoiceMemoFile, voiceMemoFileExists } from '~/lib/voiceMemoUtils';
+import { deletePhotoFile } from '~/lib/photoUtils';
+import { deleteVoiceMemoFile } from '~/lib/voiceMemoUtils';
 import { generateUUID, sanitizePromptTitle } from '~/lib/utils';
 import {
   createExpoZipReaderSource,
@@ -28,13 +25,6 @@ function readFilePrefixBytes(file: File, length: number): Uint8Array {
 }
 
 /**
- * Builds a filesystem-safe timestamp string for exported backup filenames.
- */
-export function generateTimestamp(): string {
-  return format(new Date(), "yyyy-MM-dd'T'HH-mm-ss");
-}
-
-/**
  * Trims optional text values and normalizes empty strings to null.
  */
 export function normalizeOptionalText(value: string | null | undefined): string | null {
@@ -52,7 +42,7 @@ function getSafeExtension(filename: string | null | undefined, fallback: string)
 }
 
 /**
- * Ensures a document subdirectory exists before writing imported or exported assets.
+ * Ensures a document subdirectory exists before writing imported assets.
  */
 function ensureDirectory(dirName: string): Directory {
   const dir = new Directory(Paths.document, dirName);
@@ -160,74 +150,6 @@ export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asse
 }
 
 /**
- * Saves a generated ZIP backup using Android directory access or the native share sheet.
- */
-export async function saveZipFile(zipBytes: Uint8Array, fileName: string): Promise<void> {
-  if (Platform.OS === 'android') {
-    try {
-      const directory = await Directory.pickDirectoryAsync();
-      const file = directory.createFile(fileName, 'application/zip');
-      file.write(zipBytes);
-      return;
-    } catch (error) {
-      throw new Error('Export cancelled or failed', { cause: error });
-    }
-  }
-
-  const isAvailable = await Sharing.isAvailableAsync();
-  if (!isAvailable) {
-    throw new Error('Sharing is not available on this device');
-  }
-
-  const file = new File(Paths.cache, fileName);
-  try {
-    file.write(zipBytes);
-    await Sharing.shareAsync(file.uri, {
-      mimeType: 'application/zip',
-      dialogTitle: 'Export Tackbok Backup',
-      UTI: 'public.zip-archive',
-    });
-  } finally {
-    if (file.exists) {
-      file.delete();
-    }
-  }
-}
-
-/**
- * Saves or shares a ZIP file that has already been written to disk.
- */
-export async function saveGeneratedZipFile(file: File, fileName: string): Promise<void> {
-  if (Platform.OS === 'android') {
-    try {
-      const directory = await Directory.pickDirectoryAsync();
-      const existing = new File(directory, fileName);
-      if (existing.exists) {
-        existing.delete();
-      }
-
-      const destination = directory.createFile(fileName, 'application/zip');
-      const bytes = await file.bytes();
-      destination.write(bytes);
-      return;
-    } catch (error) {
-      throw new Error('Export cancelled or failed', { cause: error });
-    }
-  }
-
-  const isAvailable = await Sharing.isAvailableAsync();
-  if (!isAvailable) {
-    throw new Error('Sharing is not available on this device');
-  }
-
-  await Sharing.shareAsync(file.uri, {
-    mimeType: 'application/zip',
-    dialogTitle: 'Export Tackbok Backup',
-    UTI: 'public.zip-archive',
-  });
-}
-
-/**
  * Reads JSON from a ZIP entry after verifying the archive path is safe.
  */
 export async function readSafeZipJson<T>(
@@ -257,81 +179,10 @@ export async function loadZipFromUri(uri: string): Promise<ZipReader> {
 /**
  * Performs a lightweight signature check to determine whether a file looks like a ZIP archive.
  */
-export async function isZipFile(uri: string): Promise<boolean> {
+export function isZipFile(uri: string): boolean {
   const file = new File(uri);
   const bytes = readFilePrefixBytes(file, 4);
   return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b;
-}
-
-/**
- * Builds a lookup map from stored tag IDs to tag titles for export serialization.
- */
-export async function buildTagIdToNameMap(): Promise<Map<string, string>> {
-  const allTags = await db.select().from(tags);
-  const map = new Map<string, string>();
-
-  for (const tag of allTags) {
-    map.set(tag.tag_id, tag.title);
-  }
-
-  return map;
-}
-
-/**
- * Resolves a comma-separated tag ID list into tag titles using a prebuilt lookup map.
- */
-export function resolveTagIdsToTitles(
-  tagIds: string,
-  tagMap: Map<string, string>,
-): string[] {
-  if (!tagIds) return [];
-
-  return tagIds
-    .split(',')
-    .map((tagId) => tagMap.get(tagId.trim()))
-    .filter((title): title is string => !!title);
-}
-
-/**
- * Converts a stored relative asset URI into a document file reference when it points to managed media.
- */
-export function getRelativeAssetFile(relativeUri: string): File | null {
-  try {
-    if (
-      relativeUri.startsWith(`${PHOTOS_DIR_NAME}/`) ||
-      relativeUri.startsWith(`${VOICE_MEMOS_DIR_NAME}/`)
-    ) {
-      return new File(Paths.document, relativeUri);
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-/**
- * Maps a stored asset URI to the archive path used inside Tackbok backup ZIP files.
- */
-export function createArchiveAssetPath(type: Asset['type'], relativeUri: string): string {
-  const fileName = relativeUri.split('/').pop();
-  if (!fileName) {
-    throw new Error('Asset URI is invalid');
-  }
-
-  const dirName = type === AssetType.IMAGE ? 'photos' : 'voice-memos';
-  return `media/${dirName}/${fileName}`;
-}
-
-/**
- * Checks whether the underlying file for a stored asset still exists on disk.
- */
-export function assetFileExists(asset: Asset): boolean {
-  if (asset.type === AssetType.IMAGE) {
-    return photoFileExists(asset.uri);
-  }
-
-  return voiceMemoFileExists(asset.uri);
 }
 
 /**
