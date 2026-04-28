@@ -15,8 +15,9 @@ import {
   importFromTackbokBackup,
   pickPresentlyImportFile,
   pickZipImportFile,
-  type BackupImportPhase,
+  type BackupImportPhaseBySource,
   type BackupImportProgress,
+  type BackupImportProgressMetrics,
   type BackupImportSource,
   type BackupImportSummary,
   type ImportMode,
@@ -51,12 +52,12 @@ type PendingImportSelection = {
   uri: string;
 };
 
-function createImportProgressForSource(
-  source: BackupImportSource,
-  phase: BackupImportPhase,
+function createImportProgressForSource<TSource extends BackupImportSource>(
+  source: TSource,
+  phase: BackupImportPhaseBySource[TSource],
   phaseProgress: number,
-  partial?: Partial<BackupImportProgress>,
-): BackupImportProgress {
+  partial?: Partial<BackupImportProgressMetrics>,
+): BackupImportProgress<TSource> {
   return createBackupImportProgress(
     source,
     phase,

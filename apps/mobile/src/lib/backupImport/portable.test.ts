@@ -129,9 +129,21 @@ const archiveUtilsMockFactory = () => ({
   createArchiveAssetPath: (_type: string, relativeUri: string) =>
     `media/photos/${relativeUri}`,
   assetFileExists: (_asset: unknown) => true,
-  deriveGratitudeTitle: (title: string | null | undefined) => {
-    const trimmed = title?.trim();
-    return trimmed ? trimmed : null;
+  deriveGratitudeTitle: (
+    noteText: string | null | undefined,
+    prompt: string | null | undefined,
+  ) => {
+    const cleanPrompt = prompt?.replace(/\s+/g, ' ').trim();
+    if (cleanPrompt) {
+      return cleanPrompt;
+    }
+
+    const firstLine = noteText
+      ?.split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean);
+
+    return firstLine ? firstLine.slice(0, 120) : null;
   },
 });
 

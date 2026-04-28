@@ -67,6 +67,8 @@ export function recordImportWarning(
     case 'profile-asset':
       summary.failedProfileAssets++;
       break;
+    case 'profile-settings':
+      break;
     default: {
       const exhaustiveWarning: never = warning;
       return exhaustiveWarning;

@@ -125,6 +125,10 @@ export async function importFromGratitudeAppBackup(
       if (importedProfileImageUri) {
         cleanupImportedFiles([importedProfileImageUri]);
       }
+      recordImportWarning(summary, {
+        kind: 'profile-settings',
+        message: 'Imported entries, but could not apply imported profile settings.',
+      });
       console.warn(
         '[backupImport:gratitudeApp] Imported entries, but could not apply imported profile settings.',
         error,

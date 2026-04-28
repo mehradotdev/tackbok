@@ -1,13 +1,10 @@
 import type {
-  BackupImportPhase,
+  BackupImportPhaseBySource,
   BackupImportProgress,
   BackupImportProgressMetrics,
   BackupImportSource,
 } from './types';
-import {
-  IMPORT_PHASE_ORDER,
-  PRESENTLY_IMPORT_PHASE_ORDER,
-} from './types';
+import { IMPORT_PHASE_ORDER, PRESENTLY_IMPORT_PHASE_ORDER } from './types';
 
 export type ImportProgressCallback = (progress: BackupImportProgress) => void;
 
@@ -16,13 +13,13 @@ function clampRatio(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-export function createBackupImportProgress<TSource extends string>(
+export function createBackupImportProgress<TSource extends BackupImportSource>(
   source: TSource,
-  phase: BackupImportPhase,
+  phase: BackupImportPhaseBySource[TSource],
   phaseProgress: number,
   metrics?: Partial<BackupImportProgressMetrics>,
-  phaseOrder: readonly BackupImportPhase[] = IMPORT_PHASE_ORDER,
-): Omit<BackupImportProgress, 'source'> & { source: TSource } {
+  phaseOrder: readonly BackupImportPhaseBySource[TSource][] = getImportPhaseOrder(source),
+): BackupImportProgress<TSource> {
   const phaseIndex = phaseOrder.indexOf(phase);
   const safePhaseProgress = clampRatio(phaseProgress);
   const overallProgress =
@@ -46,22 +43,24 @@ export function createBackupImportProgress<TSource extends string>(
     failedEntries: metrics?.failedEntries ?? 0,
     failedAssets: metrics?.failedAssets ?? 0,
     failedProfileAssets: metrics?.failedProfileAssets ?? 0,
-  };
+  } as BackupImportProgress<TSource>;
 }
 
-export function getImportPhaseOrder(
-  source: BackupImportSource,
-): readonly BackupImportPhase[] {
-  return source === 'presently' ? PRESENTLY_IMPORT_PHASE_ORDER : IMPORT_PHASE_ORDER;
+export function getImportPhaseOrder<TSource extends BackupImportSource>(
+  source: TSource,
+): readonly BackupImportPhaseBySource[TSource][] {
+  return (
+    source === 'presently' ? PRESENTLY_IMPORT_PHASE_ORDER : IMPORT_PHASE_ORDER
+  ) as readonly BackupImportPhaseBySource[TSource][];
 }
 
-export function reportImportProgress(
+export function reportImportProgress<TSource extends BackupImportSource>(
   onProgress: ImportProgressCallback | undefined,
-  source: BackupImportSource,
-  phase: BackupImportPhase,
+  source: TSource,
+  phase: BackupImportPhaseBySource[TSource],
   phaseProgress: number,
   metrics?: Partial<BackupImportProgressMetrics>,
-  phaseOrder?: readonly BackupImportPhase[],
+  phaseOrder?: readonly BackupImportPhaseBySource[TSource][],
 ): void {
   if (!onProgress) return;
 

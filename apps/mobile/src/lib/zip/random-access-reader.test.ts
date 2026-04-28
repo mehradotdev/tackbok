@@ -1,4 +1,10 @@
-import { encodeZipArchiveBytes, readUint, writeUint, writeUint64 } from './core';
+import {
+  encodeZipArchiveBytes,
+  readUint,
+  writeUint,
+  writeUshort,
+  writeUint64,
+} from './core';
 import {
   addZip64EndOfCentralDirectory,
   findEndOfCentralDirectoryOffset,
@@ -79,6 +85,20 @@ describe('openZipReader', () => {
 
     await expect(openZipReader(createMemoryZipReaderSource(zip64))).rejects.toThrow(
       'Invalid ZIP archive: ZIP64 end of central directory record is malformed',
+    );
+  });
+
+  test('rejects classic EOCD entry count mismatches as corruption', async () => {
+    const bytes = new Uint8Array(
+      encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+    );
+    const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+
+    writeUshort(bytes, eocdOffset + 8, 0);
+    writeUshort(bytes, eocdOffset + 10, 1);
+
+    await expect(openZipReader(createMemoryZipReaderSource(bytes))).rejects.toThrow(
+      'Invalid ZIP archive: central directory entry counts disagree (0 on-disk vs 1 total)',
     );
   });
 

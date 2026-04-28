@@ -145,6 +145,13 @@ class AudioEngine {
     return !!extension && URI_DECODE_FALLBACK_EXTENSIONS.has(extension);
   }
 
+  private throwDecodeError(
+    uri: string,
+    cause: { nativeError?: unknown; fallbackError: unknown },
+  ): never {
+    throw new Error(`Failed to decode audio for ${uri}`, { cause });
+  }
+
   private async decodeAudioBuffer(uri: string): Promise<AudioBuffer> {
     const ctx = this.ensureContext();
     const decodeFromBytes = async (): Promise<AudioBuffer> => {
@@ -158,7 +165,11 @@ class AudioEngine {
     };
 
     if (this.shouldDecodeAudioFromBytes(uri)) {
-      return decodeFromBytes();
+      try {
+        return await decodeFromBytes();
+      } catch (fallbackError) {
+        this.throwDecodeError(uri, { fallbackError });
+      }
     }
 
     try {
@@ -167,9 +178,7 @@ class AudioEngine {
       try {
         return await decodeFromBytes();
       } catch (fallbackError) {
-        throw new Error(`Failed to decode audio for ${uri}`, {
-          cause: { nativeError, fallbackError },
-        });
+        this.throwDecodeError(uri, { nativeError, fallbackError });
       }
     }
   }

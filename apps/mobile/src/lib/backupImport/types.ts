@@ -2,6 +2,7 @@ import type { Asset, Mood } from '~/types';
 
 export type ImportMode = 'skip' | 'overwrite';
 export type BackupImportSource = 'tackbok' | 'gratitudeApp' | 'presently';
+export type PresentlyImportPhase = 'reading' | 'entries' | 'finishing';
 export type BackupImportPhase =
   | 'reading'
   | 'validating'
@@ -9,6 +10,12 @@ export type BackupImportPhase =
   | 'taxonomy'
   | 'entries'
   | 'finishing';
+
+export type BackupImportPhaseBySource = {
+  tackbok: BackupImportPhase;
+  gratitudeApp: BackupImportPhase;
+  presently: PresentlyImportPhase;
+};
 
 export type BackupImportWarning =
   | {
@@ -27,6 +34,10 @@ export type BackupImportWarning =
       kind: 'profile-asset';
       message: string;
       assetPath: string;
+    }
+  | {
+      kind: 'profile-settings';
+      message: string;
     };
 
 export interface BackupImportSummary {
@@ -44,9 +55,7 @@ export interface BackupImportSummary {
   warningsTruncated: boolean;
 }
 
-export interface BackupImportProgress {
-  source: BackupImportSource;
-  phase: BackupImportPhase;
+interface BackupImportProgressBase {
   progress: number;
   phaseProgress: number;
   totalEntries: number;
@@ -62,10 +71,18 @@ export interface BackupImportProgress {
   failedProfileAssets: number;
 }
 
-export type BackupImportProgressMetrics = Omit<
-  BackupImportProgress,
-  'source' | 'phase' | 'progress' | 'phaseProgress'
->;
+// Build a discriminated union where `source` and `phase` travel together, so
+// narrowing `source === 'presently'` also narrows `phase` to the Presently-only
+// subset.
+export type BackupImportProgress<TSource extends BackupImportSource = BackupImportSource> =
+  TSource extends BackupImportSource
+    ? {
+        source: TSource;
+        phase: BackupImportPhaseBySource[TSource];
+      } & BackupImportProgressBase
+    : never;
+
+export type BackupImportProgressMetrics = BackupImportProgressBase;
 
 export interface TackbokBackupManifest {
   format: 'tackbok-backup';
@@ -178,7 +195,7 @@ export const IMPORT_PHASE_ORDER: readonly BackupImportPhase[] = [
   'finishing',
 ];
 
-export const PRESENTLY_IMPORT_PHASE_ORDER: readonly BackupImportPhase[] = [
+export const PRESENTLY_IMPORT_PHASE_ORDER: readonly PresentlyImportPhase[] = [
   'reading',
   'entries',
   'finishing',

@@ -13,6 +13,7 @@ export { pickZipImportFile } from './import/helpers';
 export { PRESENTLY_IMPORT_PHASE_ORDER } from './types';
 export type {
   BackupImportPhase,
+  BackupImportPhaseBySource,
   BackupImportProgress,
   BackupImportProgressMetrics,
   BackupImportSource,

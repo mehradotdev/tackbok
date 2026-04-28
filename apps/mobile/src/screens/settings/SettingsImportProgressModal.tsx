@@ -10,6 +10,10 @@ interface SettingsImportProgressModalProps {
   progress: BackupImportProgress | null;
 }
 
+function assertNever(value: never): never {
+  throw new Error(`Unhandled BackupImportPhase: ${String(value)}`);
+}
+
 export function SettingsImportProgressModal({
   visible,
   progress,
@@ -101,7 +105,7 @@ export function SettingsImportProgressModal({
 
           <View className="flex-row items-start gap-2 rounded-xl bg-warning/10 px-3 py-2.5">
             <TriangleAlert size={16} className="mt-0.5 text-warning" />
-            <Text className="flex-1 text-xs leading-[18px] text-muted-foreground">
+            <Text className="flex-1 text-xs leading-4.5 text-muted-foreground">
               {t(
                 'Please do not close or minimize the app while the import is in progress.',
               )}
@@ -127,7 +131,9 @@ function getPhaseLabel(
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
   if (progress.source === 'presently') {
-    switch (progress.phase) {
+    const phase = progress.phase;
+
+    switch (phase) {
       case 'reading':
         return t('Load Presently export');
       case 'entries':
@@ -135,11 +141,13 @@ function getPhaseLabel(
       case 'finishing':
         return t('Refresh journal data');
       default:
-        return t('Import journal entries');
+        return assertNever(phase);
     }
   }
 
-  switch (progress.phase) {
+  const phase = progress.phase;
+
+  switch (phase) {
     case 'reading':
       return t('Open backup file');
     case 'validating':
@@ -152,6 +160,8 @@ function getPhaseLabel(
       return t('Restore entries and media');
     case 'finishing':
       return t('Refresh journal data');
+    default:
+      return assertNever(phase);
   }
 }
 
@@ -159,7 +169,9 @@ function getCurrentDetail(
   progress: BackupImportProgress,
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
-  switch (progress.phase) {
+  const phase = progress.phase;
+
+  switch (phase) {
     case 'reading':
       return t('Loading the selected import file.');
     case 'validating':
@@ -177,6 +189,8 @@ function getCurrentDetail(
         : t('No journal entries found in this backup.');
     case 'finishing':
       return t('Refreshing your journal so imported data appears everywhere.');
+    default:
+      return assertNever(phase);
   }
 }
 

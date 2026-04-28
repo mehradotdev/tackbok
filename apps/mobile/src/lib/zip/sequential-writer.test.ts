@@ -102,4 +102,36 @@ describe('createZipWriter', () => {
     );
     expect(readUint64(bytes, zip64EocdOffset + 32)).toBe(65536n);
   });
+
+  test('emits ZIP64 directory metadata when entry count reaches the classic sentinel', async () => {
+    // TODO: Add a manual workstation end-to-end check for exact UINT32_MAX entry
+    // sizes and offsets. CI cannot cheaply stream a multi-GB boundary fixture, so
+    // this suite only covers the classic EOCD sentinel boundary.
+    const { sink, getBytes } = createMemorySink();
+    const writer = createZipWriter(sink);
+
+    for (let index = 0; index < 65535; index += 1) {
+      await writer.addBytes(`file-${index}.txt`, new Uint8Array(0), true);
+    }
+
+    await writer.close();
+
+    const bytes = getBytes();
+    const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+    const locatorOffset = eocdOffset - 20;
+
+    expect(readUshort(bytes, eocdOffset + 8)).toBe(0xffff);
+    expect(readUshort(bytes, eocdOffset + 10)).toBe(0xffff);
+    expect(readUint(bytes, eocdOffset + 12)).toBe(0xffffffff);
+    expect(readUint(bytes, locatorOffset)).toBe(
+      ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
+    );
+
+    const zip64EocdOffset = Number(readUint64(bytes, locatorOffset + 8));
+
+    expect(readUint(bytes, zip64EocdOffset)).toBe(
+      ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
+    );
+    expect(readUint64(bytes, zip64EocdOffset + 32)).toBe(65535n);
+  });
 });

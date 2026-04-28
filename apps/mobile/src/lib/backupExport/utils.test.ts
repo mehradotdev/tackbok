@@ -20,6 +20,7 @@ mock.module('expo-file-system', () => ({
     modificationTime: number | null = Date.now();
     creationTime: number | null = Date.now();
     bytes = mock(async () => new Uint8Array([1, 2, 3]));
+    copy = mock((_destination: unknown) => {});
 
     constructor(...args: string[]) {
       this.uri = args.join('/');
@@ -144,5 +145,15 @@ describe('backup export utils', () => {
     expect(staleBackup.exists).toBe(false);
     expect(freshBackup.exists).toBe(true);
     expect(unrelatedFile.exists).toBe(true);
+  });
+
+  test('keeps deferred backup zip files with unknown timestamps for the grace period', () => {
+    const unknownAgeBackup = new File('/tmp/TackbokBackup_unknown.zip');
+    unknownAgeBackup.modificationTime = null;
+    unknownAgeBackup.creationTime = null;
+
+    cleanupDeferredBackupZipFiles(5_000, 10_000);
+
+    expect(unknownAgeBackup.exists).toBe(true);
   });
 });

@@ -37,8 +37,7 @@ export function normalizeOptionalText(value: string | null | undefined): string 
  */
 function getSafeExtension(filename: string | null | undefined, fallback: string): string {
   const match = filename?.match(/\.([A-Za-z0-9]+)$/);
-  const extension = match?.[1]?.toLowerCase().replace(/[^a-z0-9]/g, '');
-  return extension || fallback;
+  return match?.[1]?.toLowerCase() || fallback;
 }
 
 /**

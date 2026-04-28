@@ -192,7 +192,9 @@ async function readDirectoryRecord(
   const entryCountOnDisk = readUshort(tailBytes, eocdOffset + 8);
   const entryCount = readUshort(tailBytes, eocdOffset + 10);
   if (entryCountOnDisk !== entryCount) {
-    throw new Error('Unsupported ZIP feature: multi-disk archives are not supported');
+    throw new Error(
+      `Invalid ZIP archive: central directory entry counts disagree (${entryCountOnDisk} on-disk vs ${entryCount} total)`,
+    );
   }
 
   const classicRecord: ZipDirectoryRecord = {

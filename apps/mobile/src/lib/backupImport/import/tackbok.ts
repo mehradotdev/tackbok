@@ -147,6 +147,10 @@ export async function importFromTackbokBackup(
       if (importedProfileImageUri) {
         cleanupImportedFiles([importedProfileImageUri]);
       }
+      recordImportWarning(summary, {
+        kind: 'profile-settings',
+        message: 'Imported entries, but could not apply imported profile settings.',
+      });
       console.warn(
         '[backupImport:tackbok] Imported entries, but could not apply imported profile settings.',
         error,

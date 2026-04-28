@@ -153,9 +153,21 @@ const archiveUtilsMockFactory = () => ({
     mood?: string | null;
     assets?: unknown[];
   }) => Boolean(textTitle || textContent || mood || (assets?.length ?? 0) > 0),
-  deriveGratitudeTitle: (noteText: string | null | undefined) => {
-    const trimmed = noteText?.trim();
-    return trimmed ? trimmed : null;
+  deriveGratitudeTitle: (
+    noteText: string | null | undefined,
+    prompt: string | null | undefined,
+  ) => {
+    const cleanPrompt = prompt?.replace(/\s+/g, ' ').trim();
+    if (cleanPrompt) {
+      return cleanPrompt;
+    }
+
+    const firstLine = noteText
+      ?.split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean);
+
+    return firstLine ? firstLine.slice(0, 120) : null;
   },
   writeImportedPhoto: (bytes: Uint8Array, path: string) => mockWriteImportedPhoto(bytes, path),
 });
@@ -285,6 +297,10 @@ describe('importFromTackbokBackup', () => {
     const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
 
     expect(summary.failedProfileAssets).toBe(0);
+    expect(summary.warnings[0]).toMatchObject({
+      kind: 'profile-settings',
+      message: 'Imported entries, but could not apply imported profile settings.',
+    });
     expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
     expect(mockApplyImportedProfile).toHaveBeenCalledWith(
       expect.objectContaining({ imagePath: 'media/profile.jpg' }),

@@ -147,8 +147,8 @@ function createEntryMeta(
   hasDataDescriptor: boolean,
 ): StreamingZipEntryMeta {
   const nameSize = sizeUTF8(path);
-  const usesZip64Sizes = compressedSize > UINT32_MAX || uncompressedSize > UINT32_MAX;
-  const usesZip64Offset = recordOffset > UINT32_MAX;
+  const usesZip64Sizes = compressedSize >= UINT32_MAX || uncompressedSize >= UINT32_MAX;
+  const usesZip64Offset = recordOffset >= UINT32_MAX;
 
   return {
     path,
@@ -325,9 +325,9 @@ function buildEndOfCentralDirectory(
   centralDirectoryOffset: bigint,
 ): Uint8Array {
   const needsZip64Directory =
-    entryCount > UINT16_MAX ||
-    centralDirectorySize > UINT32_MAX ||
-    centralDirectoryOffset > UINT32_MAX;
+    entryCount >= UINT16_MAX ||
+    centralDirectorySize >= UINT32_MAX ||
+    centralDirectoryOffset >= UINT32_MAX;
   const data = new Uint8Array(needsZip64Directory ? 98 : 22);
   let offset = 0;
 

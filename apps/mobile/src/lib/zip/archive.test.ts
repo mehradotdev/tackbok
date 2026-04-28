@@ -158,9 +158,48 @@ describe('ZIP archive helpers', () => {
         'Invalid ZIP archive: stored entry has mismatched compressed and uncompressed sizes',
       );
     });
+
+    test('rejects classic EOCD entry count mismatches as corruption', () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+      );
+      const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+
+      writeUshort(bytes, eocdOffset + 8, 0);
+      writeUshort(bytes, eocdOffset + 10, 1);
+
+      expect(() => parseZipArchiveBytes(toArrayBuffer(bytes))).toThrow(
+        'Invalid ZIP archive: central directory entry counts disagree (0 on-disk vs 1 total)',
+      );
+    });
   });
 
   describe('encodeZipArchiveBytes', () => {
+    // TODO: Add a manual workstation end-to-end check for exact UINT32_MAX entry
+    // sizes and offsets. CI cannot cheaply build a multi-GB archive fixture, so we
+    // only cover the classic EOCD sentinel boundary here.
+    test('emits ZIP64 EOCD metadata when the entry count reaches the classic sentinel', () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes(createArchiveEntries(65535), true),
+      );
+      const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+      const locatorOffset = eocdOffset - 20;
+
+      expect(readUshort(bytes, eocdOffset + 8)).toBe(0xffff);
+      expect(readUshort(bytes, eocdOffset + 10)).toBe(0xffff);
+      expect(readUint(bytes, eocdOffset + 12)).toBe(0xffffffff);
+      expect(readUint(bytes, locatorOffset)).toBe(
+        ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
+      );
+
+      const zip64EocdOffset = findZip64EndOfCentralDirectoryOffset(bytes);
+
+      expect(readUint(bytes, zip64EocdOffset)).toBe(
+        ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
+      );
+      expect(readUint64(bytes, zip64EocdOffset + 32)).toBe(65535n);
+    });
+
     test('emits ZIP64 EOCD metadata when the entry count exceeds classic limits', () => {
       const bytes = new Uint8Array(
         encodeZipArchiveBytes(createArchiveEntries(65536), true),

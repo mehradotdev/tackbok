@@ -111,11 +111,16 @@ function getSummaryMessage(
   summary: BackupImportSummary,
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
-  const hasWarnings = summary.failedEntries > 0 || getSkippedMediaCount(summary) > 0;
+  const hasWarnings =
+    summary.failedEntries > 0 ||
+    getSkippedMediaCount(summary) > 0 ||
+    summary.warnings.length > 0;
 
   if (summary.importedEntries > 0 || summary.updatedEntries > 0) {
     if (hasWarnings) {
-      return t('Your journal data is ready to review, but some items could not be restored.');
+      return t(
+        'Your journal data is ready to review, but some items could not be restored.',
+      );
     }
 
     return t('Your journal data is ready to review.');

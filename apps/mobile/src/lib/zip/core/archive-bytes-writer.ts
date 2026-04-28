@@ -77,8 +77,8 @@ function prepareEntries(
     const compressedSize = BigInt(file.length);
     const uncompressedSize = BigInt(bytes.length);
     const nameSize = sizeUTF8(path);
-    const usesZip64Sizes = compressedSize > UINT32_MAX || uncompressedSize > UINT32_MAX;
-    const usesZip64Offset = recordOffset > UINT32_MAX;
+    const usesZip64Sizes = compressedSize >= UINT32_MAX || uncompressedSize >= UINT32_MAX;
+    const usesZip64Offset = recordOffset >= UINT32_MAX;
     const localExtraSize = usesZip64Sizes ? 20 : 0;
     const centralExtraSize =
       usesZip64Sizes || usesZip64Offset
@@ -158,9 +158,9 @@ function writeEndOfCentralDirectory(
   centralDirectoryOffset: bigint,
 ): number {
   const needsZip64Directory =
-    entryCount > UINT16_MAX ||
-    centralDirectorySize > UINT32_MAX ||
-    centralDirectoryOffset > UINT32_MAX;
+    entryCount >= UINT16_MAX ||
+    centralDirectorySize >= UINT32_MAX ||
+    centralDirectoryOffset >= UINT32_MAX;
 
   if (needsZip64Directory) {
     const zip64EndOfCentralDirectoryOffset = BigInt(offset);
@@ -360,9 +360,9 @@ export function encodeZipArchiveBytes(
     0n,
   );
   const needsZip64Directory =
-    BigInt(preparedEntries.length) > UINT16_MAX ||
-    centralDirectorySize > UINT32_MAX ||
-    centralDirectoryOffset > UINT32_MAX;
+    BigInt(preparedEntries.length) >= UINT16_MAX ||
+    centralDirectorySize >= UINT32_MAX ||
+    centralDirectoryOffset >= UINT32_MAX;
   const totalSizeBig =
     centralDirectoryOffset +
     centralDirectorySize +

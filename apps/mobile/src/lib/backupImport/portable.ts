@@ -411,6 +411,7 @@ export async function buildGratitudeAppPortablePayload(
     ),
   }));
 
+  const profileEmail = normalizeOptionalText(gratitudeConfig['Email Id']);
   const profileImageName = normalizeOptionalText(gratitudeConfig['Profile Image Name']);
 
   return {
@@ -419,8 +420,8 @@ export async function buildGratitudeAppPortablePayload(
     portableTags: createPortableTagsFromGratitudeApp(gratitudeTags),
     profile: {
       name: gratitudeConfig.Name,
-      email: gratitudeConfig['Email Id'] ?? null,
-      hasEmail: 'Email Id' in gratitudeConfig,
+      email: profileEmail,
+      hasEmail: profileEmail !== null,
       imagePath: profileImageName
         ? findZipEntryPathByBasename(zip, profileImageName)
         : null,
@@ -622,6 +623,7 @@ export async function importPortableEntries(
     }
 
     if (!buildSubstantiveCheck({ textTitle, textContent, mood, assets })) {
+      summary.skippedEntries++;
       processedEntries++;
       reportEntryProgress();
       continue;

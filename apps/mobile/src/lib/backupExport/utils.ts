@@ -136,8 +136,8 @@ export async function saveOrShareZipFile(
       }
 
       const destination = directory.createFile(fileName, ZIP_MIME_TYPE);
-      const bytes = await file.bytes();
-      destination.write(bytes);
+      // Copy the ZIP natively so we do not materialize the whole archive in JS memory first.
+      file.copy(destination);
       // Android writes a user-owned copy before we return, so the temp cache file can go away.
       return 'delete-immediately';
     } catch (error) {
@@ -180,7 +180,9 @@ export function cleanupDeferredBackupZipFiles(
       continue;
     }
 
-    const modifiedAt = entry.modificationTime ?? entry.creationTime ?? 0;
+    // Some platforms can report no readable timestamps; treat those files as fresh so we keep
+    // the share-sheet safety window instead of deleting the ZIP immediately.
+    const modifiedAt = entry.modificationTime ?? entry.creationTime ?? now;
     // Keep recently shared ZIPs around long enough for the OS or target app to finish reading them.
     if (now - modifiedAt < minAgeMs) {
       continue;

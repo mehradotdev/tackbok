@@ -111,7 +111,6 @@ const dbMockFactory = () => {
 
 mock.module('~/db', dbMockFactory);
 mock.module('~/db/index.ts', dbMockFactory);
-mock.module('/Volumes/LocalDisk/proj/tackbok/apps/mobile/src/db/index.ts', dbMockFactory);
 
 const settingsMockFactory = () => ({
   useSettingsStore: {
@@ -121,10 +120,6 @@ const settingsMockFactory = () => ({
 
 mock.module('~/lib/settings', settingsMockFactory);
 mock.module('~/lib/settings/index.ts', settingsMockFactory);
-mock.module(
-  '/Volumes/LocalDisk/proj/tackbok/apps/mobile/src/lib/settings/index.ts',
-  settingsMockFactory,
-);
 
 mock.module('~/lib/zip', () => ({
   createExpoZipWriter: (outputFile: unknown) => ({
@@ -204,9 +199,21 @@ mock.module('../backupImport/archiveUtils', () => ({
     mood?: string | null;
     assets?: unknown[];
   }) => Boolean(textTitle || textContent || mood || (assets?.length ?? 0) > 0),
-  deriveGratitudeTitle: (noteText: string | null | undefined) => {
-    const trimmed = noteText?.trim();
-    return trimmed ? trimmed : null;
+  deriveGratitudeTitle: (
+    noteText: string | null | undefined,
+    prompt: string | null | undefined,
+  ) => {
+    const cleanPrompt = prompt?.replace(/\s+/g, ' ').trim();
+    if (cleanPrompt) {
+      return cleanPrompt;
+    }
+
+    const firstLine = noteText
+      ?.split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean);
+
+    return firstLine ? firstLine.slice(0, 120) : null;
   },
 }));
 
