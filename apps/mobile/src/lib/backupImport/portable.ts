@@ -53,7 +53,15 @@ function describeImportedAsset(type: Asset['type']): string {
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : 'Unknown import error';
+  if (error instanceof Error) {
+    return error.message ? `${error.name}: ${error.message}` : error.name;
+  }
+
+  if (typeof error === 'string' && error) {
+    return error;
+  }
+
+  return 'Unknown import error';
 }
 
 function logImportWarning(
@@ -565,6 +573,10 @@ export async function importPortableEntries(
     // created_at + text_content key as Presently to skip equivalent entries.
     // This path always skips on match, even in overwrite mode, to avoid
     // unnecessary updated_at churn when content is already present.
+    // TODO: Benchmark duplicate-check latency before optimizing this import
+    // path. If portable imports become slow on larger datasets, preload
+    // existing created_at/text_content pairs for the imported timestamps so
+    // duplicate detection does not rely on repeated point lookups.
     if (!hasExisting && hasPortableCreatedAt && textContent) {
       const duplicateByTimestampAndContent = await tx
         .select({ note_id: entries.note_id })

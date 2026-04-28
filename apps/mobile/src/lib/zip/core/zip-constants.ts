@@ -11,6 +11,7 @@ export const ZIP_LOCAL_FILE_HEADER_SIGNATURE = 0x04034b50;
 
 // ─── Central directory ───────────────────────────────────────────────────────
 export const ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE = 0x02014b50;
+export const ZIP_CENTRAL_DIRECTORY_DIGITAL_SIGNATURE = 0x05054b50;
 
 // ─── End of central directory (classic) ─────────────────────────────────────
 export const ZIP_END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06054b50;

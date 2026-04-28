@@ -10,6 +10,7 @@ import { readIBM, readUTF8 } from './filename-codec';
 import {
   ZIP_LOCAL_FILE_HEADER_SIGNATURE,
   ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE,
+  ZIP_CENTRAL_DIRECTORY_DIGITAL_SIGNATURE,
   ZIP_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
   ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
   ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
@@ -31,6 +32,10 @@ import type {
 
 interface ParsedZipDirectoryEntry {
   entry: ParsedZipEntryMeta;
+  nextOffset: number;
+}
+
+interface ParsedCentralDirectoryTrailer {
   nextOffset: number;
 }
 
@@ -402,6 +407,30 @@ function parseCentralDirectoryEntry(
 }
 
 /**
+ * Parses the optional central directory digital signature record that may trail
+ * the declared file headers inside the central directory slice.
+ */
+function parseCentralDirectoryTrailer(
+  data: Uint8Array,
+  offset: number,
+): ParsedCentralDirectoryTrailer {
+  assertZipRange(data, offset, 6, 'central directory trailer');
+
+  if (readUint(data, offset) !== ZIP_CENTRAL_DIRECTORY_DIGITAL_SIGNATURE) {
+    throw new Error(
+      'Invalid ZIP archive: central directory has trailing bytes beyond declared entries',
+    );
+  }
+
+  const size = readUshort(data, offset + 4);
+  assertZipRange(data, offset + 6, size, 'central directory digital signature payload');
+
+  return {
+    nextOffset: offset + 6 + size,
+  };
+}
+
+/**
  * Parses central directory entries from a standalone central directory byte slice.
  */
 export function parseZipCentralDirectoryEntries(
@@ -422,6 +451,10 @@ export function parseZipCentralDirectoryEntries(
     throw new Error(
       'Invalid ZIP archive: central directory extends past the declared size',
     );
+  }
+
+  while (offset < data.length) {
+    offset = parseCentralDirectoryTrailer(data, offset).nextOffset;
   }
 
   return entries;

@@ -11,6 +11,10 @@ export type ZipEntryLookupSource =
 export interface ZipEntryLookup {
   hasPath(path: string): boolean;
   findByBasename(basename: string): string | null;
+  /**
+   * Finds an entry whose path contains `dirName` as one or more contiguous
+   * directory segments and ends with `basename`.
+   */
   findByDirectoryAndBasename(dirName: string, basename: string): string | null;
 }
 
@@ -30,6 +34,26 @@ function listArchivePaths(archive: ZipEntryLookupSource): readonly string[] {
 
 function normalizeLookupSegment(value: string): string {
   return value.trim();
+}
+
+function pathContainsContiguousSegments(path: string, lookupPath: string): boolean {
+  const pathSegments = path.split('/');
+  const lookupSegments = lookupPath.split('/').filter(Boolean);
+
+  if (lookupSegments.length === 0 || lookupSegments.length > pathSegments.length) {
+    return false;
+  }
+
+  for (let start = 0; start <= pathSegments.length - lookupSegments.length; start += 1) {
+    const matches = lookupSegments.every(
+      (segment, offset) => pathSegments[start + offset] === segment,
+    );
+    if (matches) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -87,6 +111,10 @@ export function createZipEntryLookup(archive: ZipEntryLookupSource): ZipEntryLoo
 
       return getPathsByBasename().get(safeBasename)?.[0] ?? null;
     },
+    /**
+     * Finds an entry whose path contains `dirName` as one or more contiguous
+     * directory segments and ends with `basename`.
+     */
     findByDirectoryAndBasename(dirName: string, basename: string): string | null {
       const safeDirName = normalizeLookupSegment(dirName);
       const safeBasename = normalizeLookupSegment(basename);
@@ -94,10 +122,9 @@ export function createZipEntryLookup(archive: ZipEntryLookupSource): ZipEntryLoo
         return null;
       }
 
-      const match = (getPathsByBasename().get(safeBasename) ?? []).find((path) => {
-        const segments = path.split('/');
-        return segments.includes(safeDirName);
-      });
+      const match = (getPathsByBasename().get(safeBasename) ?? []).find((path) =>
+        pathContainsContiguousSegments(path, safeDirName),
+      );
 
       return match ?? null;
     },

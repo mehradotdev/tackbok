@@ -4,6 +4,7 @@ import {
   parseZipArchive,
   readZipEntryText,
 } from './reader/memory-reader';
+import { parseLocalFileHeader } from './core/zip-parser';
 import { createZipEntryLookup } from './zip-entry-lookup';
 import {
   encodeZipArchiveBytes,
@@ -15,8 +16,10 @@ import {
   writeUshort,
 } from './core';
 import {
+  ZIP_CENTRAL_DIRECTORY_DIGITAL_SIGNATURE,
   ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
   ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
+  addCentralDirectoryDigitalSignature,
   addCentralDirectoryZip64Extra,
   addZip64EndOfCentralDirectory,
   findEndOfCentralDirectoryOffset,
@@ -115,6 +118,27 @@ describe('ZIP archive helpers', () => {
         'backup-2026/journalRecordingsFolder/memo-1.mp3',
       );
     });
+
+    test('supports nested directory paths in reusable directory lookups', async () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({
+          'backup-2026/assets/gratitudeImages/photo-1.jpg': new Uint8Array([1, 2, 3]),
+          'backup-2026/assets/journalRecordingsFolder/memo-1.mp3': new Uint8Array([4, 5, 6]),
+        }),
+      );
+      const archive = await openZipReader(createMemoryZipReaderSource(bytes));
+      const lookup = createZipEntryLookup(archive);
+
+      expect(
+        lookup.findByDirectoryAndBasename('assets/gratitudeImages', 'photo-1.jpg'),
+      ).toBe('backup-2026/assets/gratitudeImages/photo-1.jpg');
+      expect(
+        lookup.findByDirectoryAndBasename(
+          'backup-2026/assets/journalRecordingsFolder',
+          'memo-1.mp3',
+        ),
+      ).toBe('backup-2026/assets/journalRecordingsFolder/memo-1.mp3');
+    });
   });
 
   describe('parseZipArchiveBytes', () => {
@@ -192,6 +216,45 @@ describe('ZIP archive helpers', () => {
         'Invalid ZIP archive: central directory entry counts disagree (0 on-disk vs 1 total)',
       );
     });
+
+    test('accepts an optional central directory digital signature trailer', () => {
+      const bytes = addCentralDirectoryDigitalSignature(
+        new Uint8Array(
+          encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+        ),
+        new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
+      );
+
+      const archive = parseZipArchiveBytes(toArrayBuffer(bytes));
+
+      expect(new TextDecoder().decode(archive['sample.txt'])).toBe('hello');
+    });
+
+    test('rejects unknown trailing bytes in the central directory slice', () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
+      );
+      const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+      const trailer = new Uint8Array(6);
+
+      writeUint(trailer, 0, ZIP_CENTRAL_DIRECTORY_DIGITAL_SIGNATURE + 1);
+      writeUshort(trailer, 4, 0);
+
+      const malformed = new Uint8Array(bytes.length + trailer.length);
+      malformed.set(bytes.subarray(0, eocdOffset), 0);
+      malformed.set(trailer, eocdOffset);
+      malformed.set(bytes.subarray(eocdOffset), eocdOffset + trailer.length);
+
+      writeUint(
+        malformed,
+        eocdOffset + trailer.length + 12,
+        readUint(bytes, eocdOffset + 12) + trailer.length,
+      );
+
+      expect(() => parseZipArchiveBytes(toArrayBuffer(malformed))).toThrow(
+        'Invalid ZIP archive: central directory has trailing bytes beyond declared entries',
+      );
+    });
   });
 
   describe('encodeZipArchiveBytes', () => {
@@ -247,7 +310,7 @@ describe('ZIP archive helpers', () => {
         encodeZipArchiveBytes({ 'media/photo.heic': new Uint8Array([1, 2, 3, 4]) }),
       );
 
-      expect(readUshort(bytes, 8)).toBe(0);
+      expect(parseLocalFileHeader(bytes, 0).compressionMethod).toBe(0);
     });
   });
 });

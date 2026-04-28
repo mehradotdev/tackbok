@@ -8,6 +8,7 @@ import {
 } from './core';
 
 export const ZIP_END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06054b50;
+export const ZIP_CENTRAL_DIRECTORY_DIGITAL_SIGNATURE = 0x05054b50;
 export const ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE = 0x06064b50;
 export const ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE = 0x07064b50;
 
@@ -106,6 +107,23 @@ export function addZip64EndOfCentralDirectory(bytes: Uint8Array): Uint8Array {
   writeUshort(next, shiftedEocdOffset + 10, 0xffff);
   writeUint(next, shiftedEocdOffset + 12, 0xffffffff);
   writeUint(next, shiftedEocdOffset + 16, 0xffffffff);
+
+  return next;
+}
+
+export function addCentralDirectoryDigitalSignature(
+  bytes: Uint8Array,
+  signatureData: Uint8Array,
+): Uint8Array {
+  const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
+  const trailer = new Uint8Array(6 + signatureData.length);
+
+  writeUint(trailer, 0, ZIP_CENTRAL_DIRECTORY_DIGITAL_SIGNATURE);
+  writeUshort(trailer, 4, signatureData.length);
+  trailer.set(signatureData, 6);
+
+  const next = insertBytes(bytes, eocdOffset, trailer);
+  writeUint(next, eocdOffset + trailer.length + 12, readUint(bytes, eocdOffset + 12) + trailer.length);
 
   return next;
 }

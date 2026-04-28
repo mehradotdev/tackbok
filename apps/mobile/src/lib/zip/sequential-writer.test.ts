@@ -3,6 +3,7 @@ import {
   readZipEntryBytes,
   readZipEntryText,
 } from './reader/memory-reader';
+import { parseLocalFileHeader } from './core/zip-parser';
 import { createZipWriter, type ZipOutputSink } from './writer/sequential-writer';
 import { readUint, readUint64, readUshort } from './core';
 import {
@@ -86,7 +87,7 @@ describe('createZipWriter', () => {
 
     const bytes = getBytes();
 
-    expect(readUshort(bytes, 8)).toBe(0);
+    expect(parseLocalFileHeader(bytes, 0).compressionMethod).toBe(0);
   });
 
   test('serializes concurrent public operations', async () => {

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 import type { Asset, Mood } from '~/types';
 
 // ============================================================================
@@ -12,16 +12,20 @@ import type { Asset, Mood } from '~/types';
  * - Mood: One of 5 constant values
  * - Nullable Fields: Title, Content, Mood, and Assets are all optional; only Timestamp is required
  */
-export const entries = sqliteTable('entries', {
-  note_id: text('note_id').primaryKey().notNull(),
-  text_title: text('text_title'),
-  text_content: text('text_content'),
-  mood: text('mood').$type<Mood>(),
-  assets: text('assets', { mode: 'json' }).$type<Asset[]>(),
-  tags: text('tags').notNull().default(''),
-  created_at: integer('created_at').notNull(),
-  updated_at: integer('updated_at').notNull(),
-});
+export const entries = sqliteTable(
+  'entries',
+  {
+    note_id: text('note_id').primaryKey().notNull(),
+    text_title: text('text_title'),
+    text_content: text('text_content'),
+    mood: text('mood').$type<Mood>(),
+    assets: text('assets', { mode: 'json' }).$type<Asset[]>(),
+    tags: text('tags').notNull().default(''),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [index('entries_created_at_idx').on(table.created_at)],
+);
 
 /**
  * Global tags table.
