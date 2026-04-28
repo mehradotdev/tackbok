@@ -131,5 +131,14 @@ export function addCentralDirectoryDigitalSignature(
 export function findZip64EndOfCentralDirectoryOffset(bytes: Uint8Array): number {
   const eocdOffset = findEndOfCentralDirectoryOffset(bytes);
   const locatorOffset = eocdOffset - 20;
+
+  if (locatorOffset < 0) {
+    throw new Error('ZIP64 EOCD Locator not found in test fixture');
+  }
+
+  if (readUint(bytes, locatorOffset) !== ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE) {
+    throw new Error('ZIP64 EOCD Locator not found in test fixture');
+  }
+
   return Number(readUint64(bytes, locatorOffset + 8));
 }

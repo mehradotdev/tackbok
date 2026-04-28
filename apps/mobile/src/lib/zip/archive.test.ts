@@ -139,6 +139,21 @@ describe('ZIP archive helpers', () => {
         ),
       ).toBe('backup-2026/assets/journalRecordingsFolder/memo-1.mp3');
     });
+
+    test('does not treat the basename as a directory segment match', async () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({
+          'backup-2026/misc/gratitudeImages': new Uint8Array([1, 2, 3]),
+          'backup-2026/gratitudeImages/gratitudeImages': new Uint8Array([4, 5, 6]),
+        }),
+      );
+      const archive = await openZipReader(createMemoryZipReaderSource(bytes));
+      const lookup = createZipEntryLookup(archive);
+
+      expect(
+        lookup.findByDirectoryAndBasename('gratitudeImages', 'gratitudeImages'),
+      ).toBe('backup-2026/gratitudeImages/gratitudeImages');
+    });
   });
 
   describe('parseZipArchiveBytes', () => {

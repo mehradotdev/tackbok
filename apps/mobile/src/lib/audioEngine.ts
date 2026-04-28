@@ -173,7 +173,11 @@ class AudioEngine {
       try {
         return await decodeFromBytes();
       } catch (fallbackError) {
-        this.throwDecodeError(uri, { fallbackError });
+        try {
+          return await ctx.decodeAudioData(uri);
+        } catch (nativeError) {
+          this.throwDecodeError(uri, { nativeError, fallbackError });
+        }
       }
     }
 
