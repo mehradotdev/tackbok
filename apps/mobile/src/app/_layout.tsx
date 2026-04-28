@@ -16,6 +16,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { useSettingsStore } from '~/lib/settings';
+import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
 import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { PortalHost } from '~/components/primitives/portal';
@@ -108,6 +109,13 @@ export default function Layout() {
       SystemUI.setBackgroundColorAsync(backgroundColor as string);
     }
   }, [hasHydrated, error, backgroundColor]);
+
+  useEffect(() => {
+    if (hasHydrated) {
+      // On app launch we can safely clear deferred backup ZIPs that were kept to avoid the iOS share-sheet race.
+      cleanupDeferredBackupZipFiles(0);
+    }
+  }, [hasHydrated]);
 
   // Show migration error
   if (error) {

@@ -325,7 +325,6 @@ export const zhCN: Translations = {
   'Restoring Tackbok backup': '正在恢复 Tackbok 备份',
   'Load Presently export': '加载 Presently 导出数据',
   'Import journal entries': '导入日记条目',
-  'Preparing import': '正在准备导入',
   'Open backup file': '打开备份文件',
   'Validate backup contents': '验证备份内容',
   'Restore profile': '恢复个人资料',
@@ -345,16 +344,26 @@ export const zhCN: Translations = {
   'Refreshing your journal so imported data appears everywhere.':
     '正在刷新您的日记，以使导入的数据随处可见。',
   'Entries processed': '条目已处理',
+  'Entries skipped due to errors': '因错误跳过的条目',
+  'Please do not close or minimize the app while the import is in progress.':
+    '导入过程中请勿关闭或最小化应用。',
   'Tags added': '标签已添加',
   'Prompts added': '提示已添加',
   'Photos restored': '照片已恢复',
   'Voice memos restored': '语音备忘录已恢复',
+  'Media skipped': '已跳过的媒体',
   'Tackbok backup restored': 'Tackbok 备份已恢复',
   'Gratitude import complete': 'Gratitude 导入完成',
   'Presently import complete': 'Presently 导入完成',
+  'Your journal data is ready to review, but some items could not be restored.':
+    '您的日记数据已准备好供查看，但某些项目无法恢复。',
   'Your journal data is ready to review.': '您的日记数据已准备好供查看。',
+  'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.':
+    '本次导入完成，但有警告。某些项目无法恢复，而其他所有内容已存在于 Tackbok 中。',
   'This import finished, but everything already existed in Tackbok.':
     '本次导入已完成，但是所有内容已存在于 Tackbok 中。',
+  'This import finished with warnings. Some items could not be restored.':
+    '本次导入完成，但有警告。某些项目无法恢复。',
   'This import finished successfully.': '本次导入成功完成。',
   'Imported from Tackbok backup': '从 Tackbok 备份导入',
   'Imported from Gratitude backup': '从 Gratitude 备份导入',
@@ -362,7 +371,6 @@ export const zhCN: Translations = {
   'New entries': '新条目',
   'Updated entries': '已更新的条目',
   'Skipped duplicates': '已跳过的重复项',
-  Warnings: '警告',
   Import: '导入',
 
   // Settings - App Information

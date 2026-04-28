@@ -331,7 +331,6 @@ export const ar: Translations = {
   'Restoring Tackbok backup': 'جاري استعادة النسخة الاحتياطية لتاكبوك',
   'Load Presently export': 'تحميل تصدير Presently',
   'Import journal entries': 'استيراد إدخالات اليوميات',
-  'Preparing import': 'جاري التحضير للاستيراد',
   'Open backup file': 'فتح ملف النسخة الاحتياطية',
   'Validate backup contents': 'التحقق من محتويات النسخة الاحتياطية',
   'Restore profile': 'استعادة الملف الشخصي',
@@ -351,16 +350,26 @@ export const ar: Translations = {
   'Refreshing your journal so imported data appears everywhere.':
     'جاري تحديث يومياتك حتى تظهر البيانات المستوردة في كل مكان.',
   'Entries processed': 'الإدخالات المعالجة',
+  'Entries skipped due to errors': 'إدخالات تم تخطيها بسبب أخطاء',
+  'Please do not close or minimize the app while the import is in progress.':
+    'الرجاء عدم إغلاق التطبيق أو تصغيره أثناء تقدم عملية الاستيراد.',
   'Tags added': 'الوسوم المضافة',
   'Prompts added': 'المطالبات المضافة',
   'Photos restored': 'الصور المستعادة',
   'Voice memos restored': 'المذكرات الصوتية المستعادة',
+  'Media skipped': 'الوسائط المتخطاة',
   'Tackbok backup restored': 'تمت استعادة النسخة الاحتياطية لتاكبوك',
   'Gratitude import complete': 'اكتمل استيراد Gratitude',
   'Presently import complete': 'اكتمل استيراد Presently',
+  'Your journal data is ready to review, but some items could not be restored.':
+    'بيانات يومياتك جاهزة للمراجعة، ولكن لم يتم استعادة بعض العناصر.',
   'Your journal data is ready to review.': 'بيانات يومياتك جاهزة للمراجعة.',
+  'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.':
+    'انتهى الاستيراد مع تحذيرات. لم يتم استعادة بعض العناصر، وكل شيء آخر موجود بالفعل في تاكبوك.',
   'This import finished, but everything already existed in Tackbok.':
     'انتهى الاستيراد، لكن كل شيء كان موجودًا بالفعل في تاكبوك.',
+  'This import finished with warnings. Some items could not be restored.':
+    'انتهى هذا الاستيراد مع تحذيرات. لم يتم استعادة بعض العناصر.',
   'This import finished successfully.': 'انتهى هذا الاستيراد بنجاح.',
   'Imported from Tackbok backup': 'مستورد من نسخة تاكبوك الاحتياطية',
   'Imported from Gratitude backup': 'مستورد من نسخة Gratitude الاحتياطية',
@@ -368,7 +377,6 @@ export const ar: Translations = {
   'New entries': 'إدخالات جديدة',
   'Updated entries': 'إدخالات تم تحديثها',
   'Skipped duplicates': 'تم تخطي المكررات',
-  Warnings: 'تحذيرات',
   Import: 'استيراد',
 
   // Settings - App Information

@@ -18,6 +18,11 @@ interface SettingsState {
   dailyReminderEnabled: boolean;
   reminderTime: string; // HH:MM format, e.g., "09:00"
 
+  // Profile
+  profileName: string | null;
+  profileEmail: string | null;
+  profileImageUri: string | null;
+
   // Appearance
   theme: string;
   timelineEntryLength: number; // 1-50, default 10
@@ -47,6 +52,9 @@ interface SettingsState {
   // Actions
   setDailyReminderEnabled: (enabled: boolean) => void;
   setReminderTime: (time: string) => void;
+  setProfileName: (name: string | null) => void;
+  setProfileEmail: (email: string | null) => void;
+  setProfileImageUri: (uri: string | null) => void;
   setTheme: (theme: string) => void;
   setTimelineEntryLength: (length: number) => void;
   setInspirationalQuotesEnabled: (enabled: boolean) => void;
@@ -70,6 +78,9 @@ export const useSettingsStore = create<SettingsState>()(
       // Default values
       dailyReminderEnabled: false,
       reminderTime: '09:00',
+      profileName: null,
+      profileEmail: null,
+      profileImageUri: null,
       theme: DEFAULT_THEME_ID,
       timelineEntryLength: 10,
       inspirationalQuotesEnabled: true,
@@ -88,6 +99,12 @@ export const useSettingsStore = create<SettingsState>()(
       // Actions
       setDailyReminderEnabled: (enabled) => set({ dailyReminderEnabled: enabled }),
       setReminderTime: (time) => set({ reminderTime: time }),
+      setProfileName: (name) =>
+        set({ profileName: name?.trim() ? name.trim() : null }),
+      setProfileEmail: (email) =>
+        set({ profileEmail: email?.trim() ? email.trim() : null }),
+      setProfileImageUri: (uri) =>
+        set({ profileImageUri: uri?.trim() ? uri.trim() : null }),
       setTheme: (theme) => {
         const id = getThemeConfig(theme).id;
         Uniwind.setTheme(id);
@@ -136,6 +153,9 @@ export const useSettingsStore = create<SettingsState>()(
       partialize: (state) => ({
         dailyReminderEnabled: state.dailyReminderEnabled,
         reminderTime: state.reminderTime,
+        profileName: state.profileName,
+        profileEmail: state.profileEmail,
+        profileImageUri: state.profileImageUri,
         theme: state.theme,
         timelineEntryLength: state.timelineEntryLength,
         inspirationalQuotesEnabled: state.inspirationalQuotesEnabled,

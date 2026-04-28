@@ -349,7 +349,6 @@ export const en = {
   'Restoring Tackbok backup': 'Restoring Tackbok backup',
   'Load Presently export': 'Load Presently export',
   'Import journal entries': 'Import journal entries',
-  'Preparing import': 'Preparing import',
   'Open backup file': 'Open backup file',
   'Validate backup contents': 'Validate backup contents',
   'Restore profile': 'Restore profile',
@@ -369,16 +368,26 @@ export const en = {
   'Refreshing your journal so imported data appears everywhere.':
     'Refreshing your journal so imported data appears everywhere.',
   'Entries processed': 'Entries processed',
+  'Entries skipped due to errors': 'Entries skipped due to errors',
+  'Please do not close or minimize the app while the import is in progress.':
+    'Please do not close or minimize the app while the import is in progress.',
   'Tags added': 'Tags added',
   'Prompts added': 'Prompts added',
   'Photos restored': 'Photos restored',
   'Voice memos restored': 'Voice memos restored',
+  'Media skipped': 'Media skipped',
   'Tackbok backup restored': 'Tackbok backup restored',
   'Gratitude import complete': 'Gratitude import complete',
   'Presently import complete': 'Presently import complete',
+  'Your journal data is ready to review, but some items could not be restored.':
+    'Your journal data is ready to review, but some items could not be restored.',
   'Your journal data is ready to review.': 'Your journal data is ready to review.',
+  'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.':
+    'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.',
   'This import finished, but everything already existed in Tackbok.':
     'This import finished, but everything already existed in Tackbok.',
+  'This import finished with warnings. Some items could not be restored.':
+    'This import finished with warnings. Some items could not be restored.',
   'This import finished successfully.': 'This import finished successfully.',
   'Imported from Tackbok backup': 'Imported from Tackbok backup',
   'Imported from Gratitude backup': 'Imported from Gratitude backup',
@@ -386,7 +395,6 @@ export const en = {
   'New entries': 'New entries',
   'Updated entries': 'Updated entries',
   'Skipped duplicates': 'Skipped duplicates',
-  Warnings: 'Warnings',
   Import: 'Import',
 
   // Settings - App Information

@@ -4,12 +4,15 @@ import {
   ChevronLeft,
   ExternalLink,
   type LucideIcon,
+  type LucideProps,
 } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
+
+type IconComponent = LucideIcon | React.ComponentType<LucideProps>;
 
 interface SettingsRowProps {
   label: string;
@@ -20,7 +23,7 @@ interface SettingsRowProps {
   rightElement?: React.ReactNode;
   isLast?: boolean;
   disabled?: boolean;
-  icon?: LucideIcon;
+  icon?: IconComponent;
 }
 
 export function SettingsRow({

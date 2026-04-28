@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react-native';
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
+import { QUERY_KEYS } from '~/hooks/useGratitude';
 import { deleteAllData } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
@@ -42,16 +43,16 @@ export function DangerZoneSection() {
       // Clear persisted journaling text alongside the DB wipe so "Delete All
       // Data" removes user-authored worksheet content too.
       resetCustomWorksheetTemplate();
-      // Remove all cached queries immediately after the DB wipe so React
-      // Query never serves entries that no longer exist, even if filesystem
-      // cleanup below throws. invalidateQueries() only marks stale — deleted
-      // data would remain visible until a background refetch completes.
-      // removeQueries() evicts the cache entirely.
-      try {
-        queryClient.removeQueries();
-      } catch (error) {
-        console.error('Failed to remove queries:', error);
-      }
+      // Invalidate and await refetch of all cached queries so the mounted
+      // home screen receives empty data from the cleared DB before we navigate
+      // back. Using invalidateQueries (not removeQueries) ensures active
+      // observers trigger a real refetch; removeQueries only evicts the cache
+      // without scheduling a new fetch for already-mounted components.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] }),
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.prompts] }),
+      ]);
       // DB is gone; now clean up the filesystem directories.
       // Attempt both cleanups regardless of individual failures so that a
       // photos error never silently leaves voice memos on disk (and vice versa).
@@ -71,7 +72,7 @@ export function DangerZoneSection() {
       }
       toast.success(t('All data deleted'));
       // Navigate to home screen
-      router.replace('/');
+      router.dismissTo('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
@@ -83,9 +84,7 @@ export function DangerZoneSection() {
       <SettingsSection title={t('Danger Zone')}>
         <SettingsRow
           label={t('Delete All Data')}
-          description={t(
-            'Permanently delete all your app data',
-          )}
+          description={t('Permanently delete all your app data')}
           icon={Trash2}
           onPress={() => setShowDeleteConfirmDialog(true)}
           showChevron

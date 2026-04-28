@@ -27,6 +27,7 @@ import { File } from 'expo-file-system';
 // ============================================================================
 
 const FFT_SIZE = 256;
+const URI_DECODE_DIRECT_EXTENSIONS = new Set(['m4a']);
 
 // ── Visual amplitude compression tuning ────────────────────────────────
 // These control the adaptive scaling curve in getCurrentAmplitude().
@@ -139,12 +140,26 @@ class AudioEngine {
     return this.audioRecorder;
   }
 
+  private shouldDecodeAudioFromBytes(uri: string): boolean {
+    if (!uri.startsWith('file://')) {
+      return false;
+    }
+
+    const extension = uri.split('.').pop()?.toLowerCase();
+    return !extension || !URI_DECODE_DIRECT_EXTENSIONS.has(extension);
+  }
+
+  private throwDecodeError(
+    uri: string,
+    cause: { nativeError?: unknown; fallbackError: unknown },
+  ): never {
+    throw new Error(`Failed to decode audio for ${uri}`, { cause });
+  }
+
   private async decodeAudioBuffer(uri: string): Promise<AudioBuffer> {
     const ctx = this.ensureContext();
-
-    try {
-      return await ctx.decodeAudioData(uri);
-    } catch {
+    const shouldDecodeFromBytes = this.shouldDecodeAudioFromBytes(uri);
+    const decodeFromBytes = async (): Promise<AudioBuffer> => {
       const file = new File(uri);
       const bytes = await file.bytes();
       const buffer = bytes.buffer.slice(
@@ -152,7 +167,21 @@ class AudioEngine {
         bytes.byteOffset + bytes.byteLength,
       );
       return ctx.decodeAudioData(buffer);
+    };
+
+    if (shouldDecodeFromBytes) {
+      try {
+        return await decodeFromBytes();
+      } catch (fallbackError) {
+        try {
+          return await ctx.decodeAudioData(uri);
+        } catch (nativeError) {
+          this.throwDecodeError(uri, { nativeError, fallbackError });
+        }
+      }
     }
+
+    return ctx.decodeAudioData(uri);
   }
 
   // ====================================================================
