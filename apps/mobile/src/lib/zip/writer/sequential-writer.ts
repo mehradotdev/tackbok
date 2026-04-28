@@ -147,6 +147,9 @@ function createEntryMeta(
   hasDataDescriptor: boolean,
 ): StreamingZipEntryMeta {
   const nameSize = sizeUTF8(path);
+  if (nameSize > Number(UINT16_MAX)) {
+    throw new RangeError(`ZIP entry path is too long for header encoding: ${path}`);
+  }
   const usesZip64Sizes = compressedSize >= UINT32_MAX || uncompressedSize >= UINT32_MAX;
   const usesZip64Offset = recordOffset >= UINT32_MAX;
 
@@ -417,109 +420,153 @@ class SequentialZipWriterImpl implements ZipWriter {
   private aborted = false;
   private offset = 0n;
   private readonly entries: StreamingZipEntryMeta[] = [];
+  // ZIP output order is stateful, so public operations must run one at a time.
+  private operationQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly sink: ZipOutputSink) {}
 
   async addBytes(path: string, bytes: Uint8Array, noCompress = false): Promise<void> {
-    this.assertOpen();
+    return this.enqueueOperation(async () => {
+      this.assertOpen();
 
-    const shouldCompress = !shouldStoreWithoutCompression(path) && !noCompress;
-    const file = shouldCompress ? deflateRaw(bytes) : bytes;
-    const timestamp = Date.now();
-    const entry = createEntryMeta(
-      path,
-      this.offset,
-      BigInt(file.length),
-      BigInt(bytes.length),
-      shouldCompress
-        ? ZIP_COMPRESSION_METHOD_DEFLATE
-        : ZIP_COMPRESSION_METHOD_STORE,
-      computeCrc32(bytes, 0, bytes.length),
-      timestamp,
-      false,
-    );
+      // TODO: If serialized compression ever shows up in profiling, move
+      // deflateRaw()/CRC preprocessing outside the queue while keeping sink
+      // writes and shared offset/entry mutation serialized.
+      const shouldCompress = !shouldStoreWithoutCompression(path) && !noCompress;
+      const file = shouldCompress ? deflateRaw(bytes) : bytes;
+      const timestamp = Date.now();
+      const entry = createEntryMeta(
+        path,
+        this.offset,
+        BigInt(file.length),
+        BigInt(bytes.length),
+        shouldCompress ? ZIP_COMPRESSION_METHOD_DEFLATE : ZIP_COMPRESSION_METHOD_STORE,
+        computeCrc32(bytes, 0, bytes.length),
+        timestamp,
+        false,
+      );
 
-    await this.sink.write(buildLocalHeader(entry));
-    await this.sink.write(file);
-    this.entries.push(entry);
-    this.offset += getLocalHeaderSize(entry) + entry.compressedSize;
+      await this.writeOrAbort(buildLocalHeader(entry));
+      await this.writeOrAbort(file);
+      this.entries.push(entry);
+    });
   }
 
   async addText(path: string, text: string): Promise<void> {
-    await this.addBytes(path, ensureTextEncoder().encode(text));
+    return this.addBytes(path, ensureTextEncoder().encode(text));
   }
 
   async addStored(path: string, source: ZipChunkSource): Promise<void> {
-    this.assertOpen();
+    return this.enqueueOperation(async () => {
+      this.assertOpen();
 
-    const timestamp = Date.now();
-    const entry = createEntryMeta(
-      path,
-      this.offset,
-      source.size,
-      source.size,
-      ZIP_COMPRESSION_METHOD_STORE,
-      0,
-      timestamp,
-      true,
-    );
-    await this.sink.write(buildLocalHeader(entry));
+      const timestamp = Date.now();
+      const entry = createEntryMeta(
+        path,
+        this.offset,
+        source.size,
+        source.size,
+        ZIP_COMPRESSION_METHOD_STORE,
+        0,
+        timestamp,
+        true,
+      );
+      await this.writeOrAbort(buildLocalHeader(entry));
 
-    let checksum = 0xffffffff;
-    let writtenSize = 0n;
+      let checksum = 0xffffffff;
+      let writtenSize = 0n;
 
-    for await (const chunk of source.chunks()) {
-      checksum = updateCrc32(checksum, chunk, 0, chunk.length);
-      writtenSize += BigInt(chunk.length);
-      await this.sink.write(chunk);
-    }
+      for await (const chunk of source.chunks()) {
+        checksum = updateCrc32(checksum, chunk, 0, chunk.length);
+        writtenSize += BigInt(chunk.length);
+        await this.writeOrAbort(chunk);
+      }
 
-    if (writtenSize !== source.size) {
-      throw new Error(`ZIP entry size changed while streaming: ${path}`);
-    }
+      if (writtenSize !== source.size) {
+        await this.abortWithError(
+          new Error(`ZIP entry size changed while streaming: ${path}`),
+        );
+      }
 
-    entry.crc = (checksum ^ 0xffffffff) >>> 0;
-    entry.compressedSize = writtenSize;
-    entry.uncompressedSize = writtenSize;
+      entry.crc = (checksum ^ 0xffffffff) >>> 0;
+      entry.compressedSize = writtenSize;
+      entry.uncompressedSize = writtenSize;
 
-    const descriptor = buildDataDescriptor(entry);
-    await this.sink.write(descriptor);
-    this.entries.push(entry);
-    this.offset += getLocalHeaderSize(entry) + writtenSize + BigInt(descriptor.length);
+      const descriptor = buildDataDescriptor(entry);
+      await this.writeOrAbort(descriptor);
+      this.entries.push(entry);
+    });
   }
 
   async close(): Promise<void> {
-    if (this.closed || this.aborted) {
-      return;
-    }
+    return this.enqueueOperation(async () => {
+      if (this.closed || this.aborted) {
+        return;
+      }
 
-    const centralDirectoryOffset = this.offset;
-    let centralDirectorySize = 0n;
+      const centralDirectoryOffset = this.offset;
+      let centralDirectorySize = 0n;
 
-    for (const entry of this.entries) {
-      const header = buildCentralDirectoryHeader(entry);
-      await this.sink.write(header);
-      centralDirectorySize += BigInt(header.length);
-    }
+      for (const entry of this.entries) {
+        const header = buildCentralDirectoryHeader(entry);
+        await this.writeOrAbort(header);
+        centralDirectorySize += BigInt(header.length);
+      }
 
-    await this.sink.write(
-      buildEndOfCentralDirectory(
-        BigInt(this.entries.length),
-        centralDirectorySize,
-        centralDirectoryOffset,
-      ),
-    );
-    this.closed = true;
-    await this.sink.close?.();
+      await this.writeOrAbort(
+        buildEndOfCentralDirectory(
+          BigInt(this.entries.length),
+          centralDirectorySize,
+          centralDirectoryOffset,
+        ),
+      );
+      this.closed = true;
+      await this.sink.close?.();
+    });
   }
 
   async abort(): Promise<void> {
-    if (this.closed || this.aborted) {
-      return;
+    return this.enqueueOperation(async () => {
+      if (this.closed || this.aborted) {
+        return;
+      }
+
+      this.aborted = true;
+      await this.sink.close?.();
+    });
+  }
+
+  /**
+   * Keeps sink writes and lifecycle mutations in strict call order.
+   */
+  private enqueueOperation<T>(operation: () => Promise<T>): Promise<T> {
+    const run = this.operationQueue.then(operation);
+    this.operationQueue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  private async writeOrAbort(bytes: Uint8Array): Promise<void> {
+    try {
+      await this.sink.write(bytes);
+      this.offset += BigInt(bytes.length);
+    } catch (error) {
+      await this.abortWithError(error);
+    }
+  }
+
+  private async abortWithError(error: unknown): Promise<never> {
+    this.aborted = true;
+
+    try {
+      await this.sink.close?.();
+    } catch {
+      // Preserve the original write/streaming failure.
     }
 
-    this.aborted = true;
-    await this.sink.close?.();
+    throw error;
   }
 
   private assertOpen(): void {

@@ -143,6 +143,40 @@ mock.module('~/lib/zip', () => ({
 
     return match?.path ?? null;
   },
+  createZipEntryLookup: (
+    zip: {
+      hasEntry: (path: string) => boolean;
+      listEntries: () => { path: string }[];
+    },
+  ) => ({
+    hasPath: (path: string) => zip.hasEntry(path),
+    findByBasename: (basename: string) => {
+      const safeBasename = basename.trim();
+      if (!safeBasename) {
+        return null;
+      }
+
+      const match = zip
+        .listEntries()
+        .find((entry) => entry.path.split('/').at(-1) === safeBasename);
+
+      return match?.path ?? null;
+    },
+    findByDirectoryAndBasename: (dirName: string, basename: string) => {
+      const safeDirName = dirName.trim();
+      const safeBasename = basename.trim();
+      if (!safeDirName || !safeBasename) {
+        return null;
+      }
+
+      const match = zip.listEntries().find((entry) => {
+        const segments = entry.path.split('/');
+        return segments.includes(safeDirName) && segments.at(-1) === safeBasename;
+      });
+
+      return match?.path ?? null;
+    },
+  }),
   createExpoZipReaderSource: (uri: string) => ({ uri }),
   openZipReader: async (_source: unknown) => ({
     listEntries: () => [],

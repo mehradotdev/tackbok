@@ -84,16 +84,18 @@ export function resolveTagIdsToTitles(
 export function getRelativeAssetFile(relativeUri: string): File | null {
   try {
     if (
-      relativeUri.startsWith(`${PHOTOS_DIR_NAME}/`) ||
-      relativeUri.startsWith(`${VOICE_MEMOS_DIR_NAME}/`)
+      relativeUri.startsWith('/') ||
+      relativeUri.includes('..') ||
+      (!relativeUri.startsWith(`${PHOTOS_DIR_NAME}/`) &&
+        !relativeUri.startsWith(`${VOICE_MEMOS_DIR_NAME}/`))
     ) {
-      return new File(Paths.document, relativeUri);
+      return null;
     }
+
+    return new File(Paths.document, relativeUri);
   } catch {
     return null;
   }
-
-  return null;
 }
 
 /**

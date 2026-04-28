@@ -4,6 +4,7 @@ import {
   parseZipArchive,
   readZipEntryText,
 } from './reader/memory-reader';
+import { createZipEntryLookup } from './zip-entry-lookup';
 import {
   encodeZipArchiveBytes,
   parseZipArchiveBytes,
@@ -93,6 +94,25 @@ describe('ZIP archive helpers', () => {
       expect(hasZipEntry(archive, 'manifest.json')).toBe(false);
       expect(findZipEntryPathByBasename(archive, 'avatar.jpg')).toBe(
         'nested/assets/avatar.jpg',
+      );
+    });
+
+    test('supports reusable basename and directory lookups against ZipReader instances', async () => {
+      const bytes = new Uint8Array(
+        encodeZipArchiveBytes({
+          'backup-2026/gratitudeImages/photo-1.jpg': new Uint8Array([1, 2, 3]),
+          'backup-2026/journalRecordingsFolder/memo-1.mp3': new Uint8Array([4, 5, 6]),
+        }),
+      );
+      const archive = await openZipReader(createMemoryZipReaderSource(bytes));
+      const lookup = createZipEntryLookup(archive);
+
+      expect(lookup.hasPath('backup-2026/gratitudeImages/photo-1.jpg')).toBe(true);
+      expect(lookup.findByDirectoryAndBasename('gratitudeImages', 'photo-1.jpg')).toBe(
+        'backup-2026/gratitudeImages/photo-1.jpg',
+      );
+      expect(lookup.findByBasename('memo-1.mp3')).toBe(
+        'backup-2026/journalRecordingsFolder/memo-1.mp3',
       );
     });
   });

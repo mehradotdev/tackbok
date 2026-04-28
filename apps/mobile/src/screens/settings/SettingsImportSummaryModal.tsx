@@ -40,15 +40,32 @@ export function SettingsImportSummaryModal({
   const skippedMediaCount = getSkippedMediaCount(summary);
 
   const rows = [
-    { label: t('New entries'), value: summary.importedEntries, alwaysShow: true },
-    { label: t('Updated entries'), value: summary.updatedEntries },
-    { label: t('Skipped duplicates'), value: summary.skippedEntries },
-    { label: t('Entries skipped due to errors'), value: summary.failedEntries },
-    { label: t('Tags added'), value: summary.importedTags },
-    { label: t('Prompts added'), value: summary.importedPrompts },
-    { label: t('Photos restored'), value: summary.importedPhotos },
-    { label: t('Voice memos restored'), value: summary.importedAudio },
-    { label: t('Media skipped'), value: skippedMediaCount },
+    {
+      id: 'importedEntries',
+      label: t('New entries'),
+      value: summary.importedEntries,
+      alwaysShow: true,
+    },
+    { id: 'updatedEntries', label: t('Updated entries'), value: summary.updatedEntries },
+    {
+      id: 'skippedEntries',
+      label: t('Skipped duplicates'),
+      value: summary.skippedEntries,
+    },
+    {
+      id: 'failedEntries',
+      label: t('Entries skipped due to errors'),
+      value: summary.failedEntries,
+    },
+    { id: 'importedTags', label: t('Tags added'), value: summary.importedTags },
+    { id: 'importedPrompts', label: t('Prompts added'), value: summary.importedPrompts },
+    { id: 'importedPhotos', label: t('Photos restored'), value: summary.importedPhotos },
+    {
+      id: 'importedAudio',
+      label: t('Voice memos restored'),
+      value: summary.importedAudio,
+    },
+    { id: 'skippedMedia', label: t('Media skipped'), value: skippedMediaCount },
   ].filter((row) => row.alwaysShow || row.value > 0);
 
   return (
@@ -75,7 +92,7 @@ export function SettingsImportSummaryModal({
 
         <View className="gap-2 pb-2">
           {rows.map((row) => (
-            <SummaryRow key={row.label} label={row.label} value={row.value} />
+            <SummaryRow key={row.id} label={row.label} value={row.value} />
           ))}
         </View>
 

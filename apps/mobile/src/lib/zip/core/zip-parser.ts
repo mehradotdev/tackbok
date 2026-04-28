@@ -90,6 +90,10 @@ function requireSingleDiskArchive(
   }
 }
 
+/**
+ * Classic EOCD fields must either use their saturated sentinel value or agree
+ * with the ZIP64 replacement value.
+ */
 function validateClassicZip64Consistency(
   classicValue: number,
   zip64Value: bigint,
@@ -232,6 +236,12 @@ function parseEndOfCentralDirectory(data: Uint8Array): ParsedZipDirectory {
       );
     }
 
+    validateClassicZip64Consistency(
+      entryCountOnDisk,
+      zip64EntryCountOnDisk,
+      'entry count on disk',
+      Number(UINT16_MAX),
+    );
     validateClassicZip64Consistency(
       entryCount,
       zip64EntryCount,

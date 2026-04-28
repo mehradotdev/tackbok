@@ -46,6 +46,21 @@ function createChunkSource(bytes: Uint8Array, chunkSize = 3) {
   };
 }
 
+function createMismatchedChunkSource(
+  bytes: Uint8Array,
+  declaredSizeDelta: bigint,
+  chunkSize = 3,
+) {
+  return {
+    size: BigInt(bytes.length) + declaredSizeDelta,
+    async *chunks(): AsyncIterable<Uint8Array> {
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        yield bytes.subarray(offset, offset + chunkSize).slice();
+      }
+    },
+  };
+}
+
 describe('createZipWriter', () => {
   test('writes both in-memory and streamed entries', async () => {
     const { sink, getBytes } = createMemorySink();
@@ -72,6 +87,91 @@ describe('createZipWriter', () => {
     const bytes = getBytes();
 
     expect(readUshort(bytes, 8)).toBe(0);
+  });
+
+  test('serializes concurrent public operations', async () => {
+    const { sink, getBytes } = createMemorySink();
+    const writer = createZipWriter(sink);
+    const largeAsset = new Uint8Array(8_192).fill(7);
+
+    await Promise.all([
+      writer.addStored('media/photo.jpg', createChunkSource(largeAsset, 257)),
+      writer.addText('manifest.json', '{"ok":true}'),
+    ]);
+    await writer.close();
+
+    const archive = parseZipArchive(getBytes());
+
+    expect(readZipEntryBytes(archive, 'media/photo.jpg')).toEqual(largeAsset);
+    expect(readZipEntryText(archive, 'manifest.json')).toBe('{"ok":true}');
+  });
+
+  test('aborts the writer after a sink write fails mid-entry', async () => {
+    const writes: Uint8Array[] = [];
+    let closeCalls = 0;
+    const sink: ZipOutputSink = {
+      async write(bytes: Uint8Array): Promise<void> {
+        if (writes.length === 1) {
+          writes.push(bytes.subarray(0, Math.ceil(bytes.length / 2)).slice());
+          throw new Error('disk full');
+        }
+
+        writes.push(bytes.slice());
+      },
+      async close(): Promise<void> {
+        closeCalls += 1;
+      },
+    };
+    const writer = createZipWriter(sink);
+
+    await expect(writer.addBytes('broken.bin', new Uint8Array([1, 2, 3, 4]), true)).rejects.toThrow(
+      'disk full',
+    );
+    await expect(writer.addText('later.txt', 'nope')).rejects.toThrow(
+      /ZIP writer has already been aborted/,
+    );
+    await writer.close();
+
+    expect(closeCalls).toBe(1);
+    expect(writes).toHaveLength(2);
+  });
+
+  test('rejects entry paths whose UTF-8 encoded name exceeds the ZIP 16-bit limit', async () => {
+    const { sink } = createMemorySink();
+    const writer = createZipWriter(sink);
+    const oversizedPath = `${'é'.repeat(32768)}.txt`;
+
+    await expect(writer.addText(oversizedPath, 'x')).rejects.toThrow(
+      /ZIP entry path is too long for header encoding/,
+    );
+  });
+
+  test('aborts the writer when a streamed entry size changes mid-write', async () => {
+    let closeCalls = 0;
+    const chunks: Uint8Array[] = [];
+    const streamingSink: ZipOutputSink = {
+      async write(bytes: Uint8Array): Promise<void> {
+        chunks.push(bytes.slice());
+      },
+      async close(): Promise<void> {
+        closeCalls += 1;
+      },
+    };
+    const writer = createZipWriter(streamingSink);
+
+    await expect(
+      writer.addStored(
+        'media/photo.jpg',
+        createMismatchedChunkSource(new Uint8Array([1, 2, 3, 4]), 1n, 2),
+      ),
+    ).rejects.toThrow(/ZIP entry size changed while streaming/);
+    await expect(writer.addText('later.txt', 'nope')).rejects.toThrow(
+      /ZIP writer has already been aborted/,
+    );
+    await writer.close();
+
+    expect(closeCalls).toBe(1);
+    expect(chunks.length).toBeGreaterThan(1);
   });
 
   test('emits ZIP64 directory metadata when entry count exceeds classic limits', async () => {

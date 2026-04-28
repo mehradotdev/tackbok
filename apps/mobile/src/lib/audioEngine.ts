@@ -141,6 +141,10 @@ class AudioEngine {
   }
 
   private shouldDecodeAudioFromBytes(uri: string): boolean {
+    if (!uri.startsWith('file://')) {
+      return false;
+    }
+
     const extension = uri.split('.').pop()?.toLowerCase();
     return !!extension && URI_DECODE_FALLBACK_EXTENSIONS.has(extension);
   }
@@ -154,6 +158,7 @@ class AudioEngine {
 
   private async decodeAudioBuffer(uri: string): Promise<AudioBuffer> {
     const ctx = this.ensureContext();
+    const shouldDecodeFromBytes = this.shouldDecodeAudioFromBytes(uri);
     const decodeFromBytes = async (): Promise<AudioBuffer> => {
       const file = new File(uri);
       const bytes = await file.bytes();
@@ -164,7 +169,7 @@ class AudioEngine {
       return ctx.decodeAudioData(buffer);
     };
 
-    if (this.shouldDecodeAudioFromBytes(uri)) {
+    if (shouldDecodeFromBytes) {
       try {
         return await decodeFromBytes();
       } catch (fallbackError) {
@@ -175,6 +180,10 @@ class AudioEngine {
     try {
       return await ctx.decodeAudioData(uri);
     } catch (nativeError) {
+      if (!shouldDecodeFromBytes) {
+        throw nativeError;
+      }
+
       try {
         return await decodeFromBytes();
       } catch (fallbackError) {

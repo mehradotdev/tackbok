@@ -5,11 +5,7 @@
 
 import { db, customPrompts, entries, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
-import {
-  findZipEntryPathByBasename,
-  hasZipEntry,
-  type ZipReader,
-} from '~/lib/zip';
+import { createZipEntryLookup, type ZipEntryLookup, type ZipReader } from '~/lib/zip';
 import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import type { ImportProgressCallback } from './progress';
 import { reportImportProgress } from './progress';
@@ -47,10 +43,7 @@ import {
   writeImportedAudio,
   writeImportedPhoto,
 } from './archiveUtils';
-import {
-  createSummaryCounterMetrics,
-  recordImportWarning,
-} from './summary';
+import { createSummaryCounterMetrics, recordImportWarning } from './summary';
 import { and, eq } from 'drizzle-orm';
 
 type BackupArchiveTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -233,33 +226,15 @@ function createPortableTagsFromGratitudeApp(
 }
 
 function normalizeArchiveLookupPath(path: string | null | undefined): string | null {
-  const normalized = path?.trim().replace(/\\/g, '/').replace(/^\.?\/+/, '');
+  const normalized = path
+    ?.trim()
+    .replace(/\\/g, '/')
+    .replace(/^\.?\/+/, '');
   return normalized ? normalized : null;
 }
 
-function findZipEntryPathByDirectoryAndBasename(
-  zip: ZipReader,
-  dirName: string,
-  basename: string,
-): string | null {
-  const safeBasename = basename.trim();
-  if (!safeBasename) {
-    return null;
-  }
-
-  const match = zip
-    .listEntries()
-    .map((entry) => entry.path)
-    .find((path) => {
-      const segments = path.split('/');
-      return segments.at(-1) === safeBasename && segments.includes(dirName);
-    });
-
-  return match ?? null;
-}
-
 function resolveGratitudeArchiveAssetPath(
-  zip: ZipReader,
+  zipLookup: ZipEntryLookup,
   dirName: string,
   rawPath: string | null | undefined,
 ): string | null {
@@ -274,7 +249,7 @@ function resolveGratitudeArchiveAssetPath(
   }
 
   for (const candidatePath of candidates) {
-    if (hasZipEntry(zip, candidatePath)) {
+    if (zipLookup.hasPath(candidatePath)) {
       return candidatePath;
     }
   }
@@ -285,8 +260,8 @@ function resolveGratitudeArchiveAssetPath(
   }
 
   return (
-    findZipEntryPathByDirectoryAndBasename(zip, dirName, basename) ??
-    findZipEntryPathByBasename(zip, basename)
+    zipLookup.findByDirectoryAndBasename(dirName, basename) ??
+    zipLookup.findByBasename(basename)
   );
 }
 
@@ -294,7 +269,7 @@ function resolveGratitudeArchiveAssetPath(
  * Resolves all image and audio assets for a GratitudeApp entry from the imported ZIP archive.
  */
 function resolveGratitudeAppEntryAssets(
-  zip: ZipReader,
+  zipLookup: ZipEntryLookup,
   gratitudeEntry: GratitudeAppEntryRecord,
   groupedAssets: Map<string, GratitudeAppAssetRecord[]>,
   gratitudeRecordings: GratitudeAppRecordingRecord[],
@@ -316,7 +291,11 @@ function resolveGratitudeAppEntryAssets(
       asset.assetType === 'audio'
         ? GRATITUDE_APP_RECORDINGS_DIR
         : GRATITUDE_APP_IMAGES_DIR;
-    const candidatePath = resolveGratitudeArchiveAssetPath(zip, dirName, asset.assetPath);
+    const candidatePath = resolveGratitudeArchiveAssetPath(
+      zipLookup,
+      dirName,
+      asset.assetPath,
+    );
     if (!candidatePath) continue;
 
     entryAssets.push({
@@ -333,7 +312,7 @@ function resolveGratitudeAppEntryAssets(
 
     for (const imageName of fallbackImages) {
       const candidatePath = resolveGratitudeArchiveAssetPath(
-        zip,
+        zipLookup,
         GRATITUDE_APP_IMAGES_DIR,
         imageName,
       );
@@ -351,7 +330,7 @@ function resolveGratitudeAppEntryAssets(
       if (recording.noteId !== gratitudeEntry.noteId) continue;
 
       const candidatePath = resolveGratitudeArchiveAssetPath(
-        zip,
+        zipLookup,
         GRATITUDE_APP_RECORDINGS_DIR,
         recording.recordingPath,
       );
@@ -389,6 +368,9 @@ export async function buildGratitudeAppPortablePayload(
     readSafeZipJson<GratitudeAppConfigRecord[]>(zip, GRATITUDE_APP_CONFIG_PATH),
   ]);
   const gratitudeConfig = gratitudeConfigList[0] ?? {};
+  // Gratitude backups often store media under a parent folder, so the importer
+  // reuses a single lookup facade for exact-path and basename fallbacks.
+  const zipLookup = createZipEntryLookup(zip);
   const groupedAssets = groupGratitudeAppAssets(gratitudeAssets);
   const promptTitles = buildGratitudeAppPromptMap(gratitudePrompts, gratitudeEntries);
 
@@ -404,7 +386,7 @@ export async function buildGratitudeAppPortablePayload(
     createdAt: gratitudeEntry.createdOn,
     updatedAt: gratitudeEntry.updatedOn,
     assets: resolveGratitudeAppEntryAssets(
-      zip,
+      zipLookup,
       gratitudeEntry,
       groupedAssets,
       gratitudeRecordings,
@@ -422,9 +404,7 @@ export async function buildGratitudeAppPortablePayload(
       name: gratitudeConfig.Name,
       email: profileEmail,
       hasEmail: profileEmail !== null,
-      imagePath: profileImageName
-        ? findZipEntryPathByBasename(zip, profileImageName)
-        : null,
+      imagePath: profileImageName ? zipLookup.findByBasename(profileImageName) : null,
     },
   };
 }

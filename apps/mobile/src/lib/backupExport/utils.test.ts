@@ -55,6 +55,7 @@ mock.module('expo-file-system', () => ({
   },
   Paths: {
     cache: '/tmp',
+    document: '/documents',
   },
 }));
 
@@ -86,10 +87,8 @@ mock.module('~/lib/voiceMemoUtils', () => ({
   voiceMemoFileExists: (_uri: string) => true,
 }));
 
-const {
-  cleanupDeferredBackupZipFiles,
-  saveOrShareZipFile,
-} = await import('./utils');
+const { cleanupDeferredBackupZipFiles, getRelativeAssetFile, saveOrShareZipFile } =
+  await import('./utils');
 const { File } = await import('expo-file-system');
 
 describe('backup export utils', () => {
@@ -126,6 +125,8 @@ describe('backup export utils', () => {
       'delete-immediately',
     );
     expect(mockPickDirectoryAsync).toHaveBeenCalledTimes(1);
+    expect(file.copy).toHaveBeenCalledTimes(1);
+    expect(file.bytes).not.toHaveBeenCalled();
   });
 
   test('deletes only stale deferred backup zip files', () => {
@@ -151,9 +152,25 @@ describe('backup export utils', () => {
     const unknownAgeBackup = new File('/tmp/TackbokBackup_unknown.zip');
     unknownAgeBackup.modificationTime = null;
     unknownAgeBackup.creationTime = null;
+    mockCacheEntries.push(unknownAgeBackup);
 
     cleanupDeferredBackupZipFiles(5_000, 10_000);
 
     expect(unknownAgeBackup.exists).toBe(true);
+  });
+
+  test('returns a file for managed photo and voice memo URIs', () => {
+    expect(getRelativeAssetFile('photos/example.jpg')?.uri).toBe(
+      '/documents/photos/example.jpg',
+    );
+    expect(getRelativeAssetFile('voice_memos/example.m4a')?.uri).toBe(
+      '/documents/voice_memos/example.m4a',
+    );
+  });
+
+  test('rejects traversal and absolute asset URIs', () => {
+    expect(getRelativeAssetFile('photos/../secret.jpg')).toBeNull();
+    expect(getRelativeAssetFile('voice_memos/../secret.m4a')).toBeNull();
+    expect(getRelativeAssetFile('/photos/example.jpg')).toBeNull();
   });
 });

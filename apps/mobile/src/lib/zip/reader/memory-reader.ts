@@ -18,7 +18,19 @@ export interface ZipArchive {
   readonly entries: Readonly<Record<string, Uint8Array>>;
 }
 
-type ZipEntryLookupArchive = ZipArchive | ZipReader;
+function hasArchivePath(archive: ZipArchive | ZipReader, path: string): boolean {
+  if ('hasEntry' in archive) {
+    return archive.hasEntry(path);
+  }
+
+  return Object.prototype.hasOwnProperty.call(archive.entries, path);
+}
+
+function listArchivePaths(archive: ZipArchive | ZipReader): readonly string[] {
+  return 'listEntries' in archive
+    ? archive.listEntries().map((entry) => entry.path)
+    : Object.keys(archive.entries);
+}
 
 /**
  * Parses raw ZIP bytes into an immutable archive-like object of entry buffers.
@@ -48,12 +60,8 @@ export function parseZipArchive(bytes: Uint8Array): ZipArchive {
 /**
  * Checks whether the archive contains an entry at the exact path.
  */
-export function hasZipEntry(archive: ZipEntryLookupArchive, path: string): boolean {
-  if ('hasEntry' in archive) {
-    return archive.hasEntry(path);
-  }
-
-  return Object.prototype.hasOwnProperty.call(archive.entries, path);
+export function hasZipEntry(archive: ZipArchive | ZipReader, path: string): boolean {
+  return hasArchivePath(archive, path);
 }
 
 /**
@@ -90,7 +98,7 @@ export function readZipEntryJson<T>(archive: ZipArchive, path: string): T {
  * Finds the first archive path whose final path segment matches the given basename.
  */
 export function findZipEntryPathByBasename(
-  archive: ZipEntryLookupArchive,
+  archive: ZipArchive | ZipReader,
   basename: string,
 ): string | null {
   const safeBasename = basename.trim();
@@ -98,11 +106,9 @@ export function findZipEntryPathByBasename(
     return null;
   }
 
-  const paths =
-    'listEntries' in archive
-      ? archive.listEntries().map((entry) => entry.path)
-      : Object.keys(archive.entries);
-  const match = paths.find((path) => path.split('/').pop() === safeBasename);
+  const match = listArchivePaths(archive).find(
+    (path) => path.split('/').pop() === safeBasename,
+  );
 
   return match ?? null;
 }
