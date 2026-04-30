@@ -14,10 +14,10 @@
       "dependencies": {
         "@expo-google-fonts/cinzel": "^0.4.2",
         "@expo-google-fonts/figtree": "^0.4.1",
+        "@expo-google-fonts/gloria-hallelujah": "^0.4.1",
         "@expo-google-fonts/inter": "^0.4.2",
         "@expo-google-fonts/jetbrains-mono": "^0.4.1",
         "@expo-google-fonts/lora": "^0.4.2",
-        "@expo-google-fonts/merriweather": "^0.4.2",
         "@expo-google-fonts/space-mono": "^0.4.2",
         "@legendapp/list": "^2.0.19",
         "@lodev09/react-native-true-sheet": "^3.9.9",
@@ -456,6 +456,8 @@
 
     "@expo-google-fonts/figtree": ["@expo-google-fonts/figtree@0.4.1", "", {}, "sha512-6IQQddGeR3yZBSwiIjy2kd1gA+5s2esF8JAFw6M1qqU4RUlj4Zxkw9J+gixAtZFgd+QIS875EPHqeYlpaRcCRw=="],
 
+    "@expo-google-fonts/gloria-hallelujah": ["@expo-google-fonts/gloria-hallelujah@0.4.1", "", {}, "sha512-nabEnOBtpTipSanwOZSuZZwgdzpOv2+yVLbL4bdFs2gR/3YnVOlGjPfZAydN0sI3YTuVBpz28qbm8OLkJSGMeg=="],
+
     "@expo-google-fonts/inter": ["@expo-google-fonts/inter@0.4.2", "", {}, "sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ=="],
 
     "@expo-google-fonts/jetbrains-mono": ["@expo-google-fonts/jetbrains-mono@0.4.1", "", {}, "sha512-CslACrtMOcRwoWXCO7OMEI+9w3fukWSoBtvNz46OqPoogEuuoY0tkDY1O8sFumk8t0pC6Cx0Xr95O0TOQhpkug=="],
@@ -463,8 +465,6 @@
     "@expo-google-fonts/lora": ["@expo-google-fonts/lora@0.4.2", "", {}, "sha512-Bnofh2mIOUKp4KUS48VjaBgug4lQOcw/ftU0NFv5OPtiutL422//G1v63xDZEMUEL6ft4fi5q94/uKcpDjbPag=="],
 
     "@expo-google-fonts/material-symbols": ["@expo-google-fonts/material-symbols@0.4.26", "", {}, "sha512-1RBDVbRQDIAldwf0oV9QjEallOJ+FkkuYxgKFc345Vzi0dK/ipVITWTUTJHr49Jh1XQuEyVKdHH+mo3DXqZU7g=="],
-
-    "@expo-google-fonts/merriweather": ["@expo-google-fonts/merriweather@0.4.2", "", {}, "sha512-jUlmDzo5hQ36fPDXZvdt2VIZGCFkdg2Gfx+oWnbzvfygdCvx3AIe8O74IdsN1IZ65mxSSgsajM1c2XV2L/eYkw=="],
 
     "@expo-google-fonts/space-mono": ["@expo-google-fonts/space-mono@0.4.2", "", {}, "sha512-soYY/qcKcnY7xjIhuMAVzJYxSdJ3Z8TjrtFHOB5SK7/4MEMGpoaw+CAVyvXnA3fsO7J7waIW+/5Z0Y0i/CfSeg=="],
 
