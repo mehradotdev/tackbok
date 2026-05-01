@@ -1,11 +1,6 @@
 import { Platform, type TextStyle } from 'react-native';
 import { Uniwind } from 'uniwind';
-import {
-  DEFAULT_TITLE_FONT,
-  THEMES,
-  TITLE_FONTS,
-  type TitleFontId,
-} from './theme/registry';
+import { DEFAULT_TITLE_FONT, THEMES, TITLE_FONTS, type TitleFontId } from './registry';
 
 export { DEFAULT_TITLE_FONT, TITLE_FONTS, type TitleFontId };
 export const DEFAULT_TITLE_FONT_SELECTION = 'default' as const;
@@ -14,6 +9,7 @@ export type TitleFontSelection = TitleFontId | typeof DEFAULT_TITLE_FONT_SELECTI
 // ── Body Font Size ─────────────────────────────────────────────────
 export const BODY_FONT_SIZES = ['small', 'default', 'large'] as const;
 export type BodyFontSize = (typeof BODY_FONT_SIZES)[number];
+export const DEFAULT_BODY_FONT_SIZE = 'default' as const;
 
 /**
  * Pixel offset applied to every body-text font size.
@@ -121,9 +117,17 @@ export function normalizeTitleFontSelection(
   return isKnownTitleFontId(fontId) ? fontId : DEFAULT_TITLE_FONT_SELECTION;
 }
 
+/** Coerce persisted or user-provided input into a safe body-font-size value. */
+export function normalizeBodyFontSize(size: string | null | undefined): BodyFontSize {
+  return BODY_FONT_SIZES.includes(size as BodyFontSize)
+    ? (size as BodyFontSize)
+    : DEFAULT_BODY_FONT_SIZE;
+}
 /** Return the built-in title font ID for a given theme. */
 export function getThemeDefaultTitleFontId(themeId: string): TitleFontId {
-  return THEMES.find((theme) => theme.id === themeId)?.defaultTitleFontId ?? DEFAULT_TITLE_FONT;
+  return (
+    THEMES.find((theme) => theme.id === themeId)?.defaultTitleFontId ?? DEFAULT_TITLE_FONT
+  );
 }
 
 /** Resolve a title-font selection to the concrete font ID that should be rendered. */
@@ -169,7 +173,10 @@ export function resolveHeadingFontMetrics(
  * Build a `TextStyle` suitable for rendering a font preview at the given size.
  * Includes heading font metrics (lineHeight) when available.
  */
-export function getTitleFontPreviewStyle(fontFamily: string, fontSize: number): TextStyle {
+export function getTitleFontPreviewStyle(
+  fontFamily: string,
+  fontSize: number,
+): TextStyle {
   const resolvedMetrics = resolveHeadingFontMetrics(fontFamily, fontSize);
 
   return {
@@ -184,15 +191,30 @@ export function getTitleFontPreviewStyle(fontFamily: string, fontSize: number): 
  * This should be called when the font setting changes *and* on app boot
  * (after store hydration).
  */
-export function applyTitleFont(themeId: string, fontId: string | null | undefined) {
-  const font = getTitleFont(resolveTitleFontId(themeId, fontId));
+export function applyTitleFont(fontId: string | null | undefined) {
+  // Update every theme variant, not just the active one, because the app can
+  // render non-active themes at the same time via ScopedTheme previews.
+  if (isDefaultTitleFontSelection(normalizeTitleFontSelection(fontId))) {
+    // "default" selection: each theme uses its own curated heading font, so
+    // resolve the font per-theme inside the loop.
+    for (const theme of THEMES) {
+      const font = getTitleFont(resolveTitleFontId(theme.id, fontId));
 
+      Uniwind.updateCSSVariables(theme.id, {
+        '--font-heading': font.fontFamily,
+      });
+    }
+
+    return;
+  }
+
+  // Explicit font selection: every theme gets the same font, so resolve once
+  // outside the loop and reuse the same override object for all themes.
+  const font = getTitleFont(normalizeTitleFontSelection(fontId));
   const override: Record<string, string> = {
     '--font-heading': font.fontFamily,
   };
 
-  // Override across all theme variants so the selection persists regardless
-  // of which theme is active.
   for (const theme of THEMES) {
     Uniwind.updateCSSVariables(theme.id, override);
   }

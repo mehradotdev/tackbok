@@ -18,7 +18,7 @@ import {
   type ThemeConfig,
   isThemeDark,
 } from '~/lib/theme/themes';
-import { getThemeDefaultTitleFontId, getTitleFont } from '~/lib/typography';
+import { getThemeDefaultTitleFontId, getTitleFont } from '~/lib/theme/typography';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -36,9 +36,7 @@ function ThemeCardContent({
 
   // Resolve this theme's original heading font so the preview always shows
   // the curated font, regardless of any user-level title font override.
-  const themeFontFamily = getTitleFont(
-    getThemeDefaultTitleFontId(theme.id),
-  ).fontFamily;
+  const themeFontFamily = getTitleFont(getThemeDefaultTitleFontId(theme.id)).fontFamily;
 
   return (
     <View

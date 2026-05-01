@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { Platform, Text as RNText, type StyleProp, type TextStyle, type Role } from 'react-native';
+import {
+  Platform,
+  Text as RNText,
+  type StyleProp,
+  type TextStyle,
+  type Role,
+} from 'react-native';
 import { cn, tv, type VariantProps } from 'tailwind-variants';
 import * as Slot from '~/components/primitives/slot';
 import { useSettingsStore } from '~/lib/settings';
@@ -9,7 +15,7 @@ import {
   resolveHeadingFontMetrics,
   resolveTitleFontId,
   type BodyFontSize,
-} from '~/lib/typography';
+} from '~/lib/theme/typography';
 
 const textVariants = tv({
   base: 'text-foreground text-base text-left font-body',
@@ -104,7 +110,8 @@ const TEXT_SIZE_PX: Record<string, number> = {
 // (text-[10px], text-[13.5px]). Groups: [1] named suffix, [2] arbitrary px number.
 // Note: \b is placed after named suffixes only; the closing ] already terminates
 // an arbitrary match unambiguously so no trailing boundary is needed there.
-const TEXT_SIZE_RE = /\btext-(?:(xs|sm|base|lg|xl|[2-9]xl)\b|\[([0-9]+(?:\.[0-9]+)?)px\])/g;
+const TEXT_SIZE_RE =
+  /\btext-(?:(xs|sm|base|lg|xl|[2-9]xl)\b|\[([0-9]+(?:\.[0-9]+)?)px\])/g;
 const HEADING_FONT_RE = /\bfont-heading\b/;
 
 function getLastTextSizePx(classes?: string): number | undefined {
@@ -210,7 +217,12 @@ function Text({
   // heading sizes and would over-inflate smaller ad-hoc heading-font text.
   if (isVariantHeading) {
     const fontConfig = getTitleFont(resolveTitleFontId(themeId, titleFontId));
-    const headingSize = resolveBaseSize(effectiveVariant, variantClasses, className, textClass);
+    const headingSize = resolveBaseSize(
+      effectiveVariant,
+      variantClasses,
+      className,
+      textClass,
+    );
     const resolvedMetrics = resolveHeadingFontMetrics(fontConfig.fontFamily, headingSize);
 
     if (Platform.OS === 'android') {

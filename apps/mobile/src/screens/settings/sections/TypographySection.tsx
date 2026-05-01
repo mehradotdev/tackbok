@@ -11,7 +11,7 @@ import {
   getTitleFont,
   resolveTitleFontId,
   type BodyFontSize,
-} from '~/lib/typography';
+} from '~/lib/theme/typography';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
@@ -37,7 +37,10 @@ const TILE_PREVIEW_SIZE: Record<BodyFontSize, number> = {
 
 export function TypographySection() {
   const { t } = useTranslation();
-  const { theme, titleFont, bodyFontSize, setBodyFontSize } = useSettingsStore();
+  const theme = useSettingsStore((s) => s.theme);
+  const titleFont = useSettingsStore((s) => s.titleFont);
+  const bodyFontSize = useSettingsStore((s) => s.bodyFontSize);
+  const setBodyFontSize = useSettingsStore((s) => s.setBodyFontSize);
 
   const activeTitleFont = getTitleFont(resolveTitleFontId(theme, titleFont));
 

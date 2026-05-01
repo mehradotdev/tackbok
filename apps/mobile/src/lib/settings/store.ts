@@ -6,11 +6,13 @@ import { FirstDay, type FirstDayOfWeek } from '~/types';
 import { DEFAULT_THEME_ID, getThemeConfig } from '~/lib/theme';
 import {
   applyTitleFont,
+  DEFAULT_BODY_FONT_SIZE,
   DEFAULT_TITLE_FONT_SELECTION,
+  normalizeBodyFontSize,
   normalizeTitleFontSelection,
   type BodyFontSize,
   type TitleFontSelection,
-} from '~/lib/typography';
+} from '~/lib/theme/typography';
 import {
   DEFAULT_JOURNAL_FOCUS_AREAS,
   type BuiltInJournalPromptCategoryId,
@@ -101,7 +103,7 @@ export const useSettingsStore = create<SettingsState>()(
       firstDayOfWeek: FirstDay.MONDAY,
       showTimelineBorders: false,
       titleFont: DEFAULT_TITLE_FONT_SELECTION,
-      bodyFontSize: 'default',
+      bodyFontSize: DEFAULT_BODY_FONT_SIZE,
       biometricUnlockEnabled: false,
       googleDriveBackupEnabled: false,
       backupFrequency: 'daily',
@@ -114,8 +116,7 @@ export const useSettingsStore = create<SettingsState>()(
       // Actions
       setDailyReminderEnabled: (enabled) => set({ dailyReminderEnabled: enabled }),
       setReminderTime: (time) => set({ reminderTime: time }),
-      setProfileName: (name) =>
-        set({ profileName: name?.trim() ? name.trim() : null }),
+      setProfileName: (name) => set({ profileName: name?.trim() ? name.trim() : null }),
       setProfileEmail: (email) =>
         set({ profileEmail: email?.trim() ? email.trim() : null }),
       setProfileImageUri: (uri) =>
@@ -123,7 +124,7 @@ export const useSettingsStore = create<SettingsState>()(
       setTheme: (theme) => {
         const id = getThemeConfig(theme).id;
         Uniwind.setTheme(id);
-        applyTitleFont(id, get().titleFont);
+        applyTitleFont(get().titleFont);
         set({ theme: id });
       },
       setTimelineEntryLength: (length) => {
@@ -137,10 +138,10 @@ export const useSettingsStore = create<SettingsState>()(
       setShowTimelineBorders: (enabled) => set({ showTimelineBorders: enabled }),
       setTitleFont: (fontId) => {
         const safeFontId = normalizeTitleFontSelection(fontId);
-        applyTitleFont(getThemeConfig(get().theme).id, safeFontId);
+        applyTitleFont(safeFontId);
         set({ titleFont: safeFontId });
       },
-      setBodyFontSize: (size) => set({ bodyFontSize: size }),
+      setBodyFontSize: (size) => set({ bodyFontSize: normalizeBodyFontSize(size) }),
       setBiometricUnlockEnabled: (enabled) => set({ biometricUnlockEnabled: enabled }),
       setGoogleDriveBackupEnabled: (enabled) =>
         set({ googleDriveBackupEnabled: enabled }),
@@ -161,15 +162,21 @@ export const useSettingsStore = create<SettingsState>()(
           state.setHasHydrated(true);
           const safeThemeId = getThemeConfig(state.theme).id;
           const safeTitleFont = normalizeTitleFontSelection(state.titleFont);
+          const safeBodyFontSize = normalizeBodyFontSize(state.bodyFontSize);
           Uniwind.setTheme(safeThemeId);
-          if (state.theme !== safeThemeId || state.titleFont !== safeTitleFont) {
+          if (
+            state.theme !== safeThemeId ||
+            state.titleFont !== safeTitleFont ||
+            state.bodyFontSize !== safeBodyFontSize
+          ) {
             useSettingsStore.setState({
               theme: safeThemeId,
               titleFont: safeTitleFont,
+              bodyFontSize: safeBodyFontSize,
             });
           }
 
-          applyTitleFont(safeThemeId, safeTitleFont);
+          applyTitleFont(safeTitleFont);
         } else {
           console.warn('Settings store rehydration failed');
           // `state` is unavailable here (persisted merge failed), so we cannot call
