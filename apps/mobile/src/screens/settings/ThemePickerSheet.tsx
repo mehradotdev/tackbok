@@ -50,7 +50,7 @@ function ThemeCardContent({
         <View className="w-4" />
 
         <Text
-          className="text-sm font-bold text-primary-foreground"
+          className="text-sm text-primary-foreground"
           style={{ fontFamily: themeFontFamily }}>
           Tackbok
         </Text>
@@ -75,7 +75,7 @@ function ThemeCardContent({
         {/* Content Column */}
         <View className="flex-1 pl-4 pr-3 py-3 gap-1.5">
           <Text
-            className="text-base font-bold text-foreground"
+            className="text-base text-foreground"
             style={{ fontFamily: themeFontFamily }}>
             {theme.name}
           </Text>
