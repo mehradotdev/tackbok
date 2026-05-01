@@ -10,10 +10,9 @@
     "generate:themes": "bun run src/lib/theme/generate-theme-artifacts.ts",
     "generate:themes:verify": "bun run generate:themes && bun run test:theme",
     "lint": "expo lint",
-    "test": "bun run test:jest && bun run test:bun",
+    "test": "bun run test:jest",
     "test:jest": "jest",
-    "test:theme": "jest src/lib/theme/theme-registry.test.ts src/lib/theme/metro-config.test.ts",
-    "test:bun": "bun test src/lib/zip src/lib/backupExport src/lib/backupImport"
+    "test:theme": "jest src/lib/theme/theme-registry.test.ts src/lib/theme/metro-config.test.ts"
   },
   "dependencies": {
     "@expo-google-fonts/cinzel": "^0.4.2",
@@ -82,11 +81,6 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
-    "testPathIgnorePatterns": [
-      "<rootDir>/src/lib/zip/",
-      "<rootDir>/src/lib/backupExport/",
-      "<rootDir>/src/lib/backupImport/"
-    ],
     "transformIgnorePatterns": [
       "node_modules/(?!.*((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg))"
     ]

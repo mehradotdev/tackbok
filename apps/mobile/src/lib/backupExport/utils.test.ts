@@ -1,77 +1,45 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import * as ExpoFileSystemMock from 'expo-file-system';
+import { File, type File as ExpoFile } from 'expo-file-system';
+import * as ReactNativeMock from 'react-native';
+import {
+  cleanupDeferredBackupZipFiles,
+  getRelativeAssetFile,
+  saveOrShareZipFile,
+} from './utils';
+
+type MockExpoFile = InstanceType<typeof File> & ExpoFile;
+
+const { __mockFileSystemState } = ExpoFileSystemMock as typeof ExpoFileSystemMock & {
+  __mockFileSystemState: {
+    pickDirectoryAsync: jest.Mock;
+    cacheEntries: unknown[];
+  };
+};
+const { __mockReactNativeState } = ReactNativeMock as typeof ReactNativeMock & {
+  __mockReactNativeState: {
+    Platform: {
+      OS: string;
+    };
+  };
+};
 
 (globalThis as { __DEV__?: boolean }).__DEV__ = false;
 
-const mockPickDirectoryAsync = mock(async () => ({
-  createFile: mock(() => ({
-    write: mock(() => {}),
-  })),
-}));
-const mockShareAsync = mock(async (_uri?: string, _options?: unknown) => {});
-const mockIsAvailableAsync = mock(async () => true);
-const mockCacheEntries: unknown[] = [];
-const mockPlatform = {
-  OS: 'ios',
-};
+const mockShareAsync = jest.fn(async (_uri?: string, _options?: unknown) => {});
+const mockIsAvailableAsync = jest.fn(async () => true);
+jest.mock('expo-file-system');
 
-mock.module('expo-file-system', () => ({
-  File: class MockFile {
-    exists = true;
-    modificationTime: number | null = Date.now();
-    creationTime: number | null = Date.now();
-    bytes = mock(async () => new Uint8Array([1, 2, 3]));
-    copy = mock((_destination: unknown) => {});
-
-    constructor(...args: string[]) {
-      this.uri = args.join('/');
-    }
-
-    uri: string;
-
-    delete() {
-      this.exists = false;
-    }
-
-    write(_content: Uint8Array) {}
-  },
-  Directory: class MockDirectory {
-    static pickDirectoryAsync = () => mockPickDirectoryAsync();
-    exists = true;
-
-    constructor(...args: unknown[]) {
-      void args;
-    }
-
-    createFile(name: string, _mimeType: string | null) {
-      return {
-        uri: `picked/${name}`,
-        write: mock(() => {}),
-      };
-    }
-
-    list() {
-      return mockCacheEntries as unknown[];
-    }
-  },
-  Paths: {
-    cache: '/tmp',
-    document: '/documents',
-  },
-}));
-
-mock.module('expo-sharing', () => ({
+jest.mock('expo-sharing', () => ({
   shareAsync: (uri: string, options?: unknown) => mockShareAsync(uri, options),
   isAvailableAsync: () => mockIsAvailableAsync(),
 }));
 
-mock.module('react-native', () => ({
-  Platform: mockPlatform,
-}));
+jest.mock('react-native');
 
-mock.module('~/db', () => ({
+jest.mock('~/db', () => ({
   db: {
-    select: mock(() => ({
-      from: mock(async () => []),
+    select: jest.fn(() => ({
+      from: jest.fn(async () => []),
     })),
   },
   customPrompts: {},
@@ -79,29 +47,25 @@ mock.module('~/db', () => ({
   tags: {},
 }));
 
-mock.module('~/lib/photoUtils', () => ({
+jest.mock('~/lib/photoUtils', () => ({
   photoFileExists: (_uri: string) => true,
 }));
 
-mock.module('~/lib/voiceMemoUtils', () => ({
+jest.mock('~/lib/voiceMemoUtils', () => ({
   voiceMemoFileExists: (_uri: string) => true,
 }));
 
-const { cleanupDeferredBackupZipFiles, getRelativeAssetFile, saveOrShareZipFile } =
-  await import('./utils');
-const { File } = await import('expo-file-system');
-
 describe('backup export utils', () => {
   beforeEach(() => {
-    mockPickDirectoryAsync.mockReset();
+    __mockFileSystemState.pickDirectoryAsync.mockReset();
     mockShareAsync.mockReset();
     mockIsAvailableAsync.mockReset();
-    mockCacheEntries.length = 0;
-    mockPlatform.OS = 'ios';
+    __mockFileSystemState.cacheEntries.length = 0;
+    __mockReactNativeState.Platform.OS = 'ios';
 
-    mockPickDirectoryAsync.mockResolvedValue({
-      createFile: mock(() => ({
-        write: mock(() => {}),
+    __mockFileSystemState.pickDirectoryAsync.mockResolvedValue({
+      createFile: jest.fn(() => ({
+        write: jest.fn(() => {}),
       })),
     });
     mockShareAsync.mockResolvedValue();
@@ -109,7 +73,7 @@ describe('backup export utils', () => {
   });
 
   test('returns deferred cleanup when using the iOS share sheet', async () => {
-    const file = new File('/tmp/TackbokBackup_test.zip');
+    const file = new File('/tmp/TackbokBackup_test.zip') as MockExpoFile;
 
     await expect(saveOrShareZipFile(file, 'TackbokBackup_test.zip')).resolves.toBe(
       'defer-cleanup',
@@ -118,13 +82,13 @@ describe('backup export utils', () => {
   });
 
   test('returns immediate cleanup after android directory copy', async () => {
-    mockPlatform.OS = 'android';
-    const file = new File('/tmp/TackbokBackup_test.zip');
+    __mockReactNativeState.Platform.OS = 'android';
+    const file = new File('/tmp/TackbokBackup_test.zip') as MockExpoFile;
 
     await expect(saveOrShareZipFile(file, 'TackbokBackup_test.zip')).resolves.toBe(
       'delete-immediately',
     );
-    expect(mockPickDirectoryAsync).toHaveBeenCalledTimes(1);
+    expect(__mockFileSystemState.pickDirectoryAsync).toHaveBeenCalledTimes(1);
     expect(file.copy).toHaveBeenCalledTimes(1);
     expect(file.bytes).not.toHaveBeenCalled();
   });
@@ -139,7 +103,7 @@ describe('backup export utils', () => {
     const unrelatedFile = new File('/tmp/not-a-backup.zip');
     unrelatedFile.modificationTime = 1_000;
 
-    mockCacheEntries.push(staleBackup, freshBackup, unrelatedFile);
+    __mockFileSystemState.cacheEntries.push(staleBackup, freshBackup, unrelatedFile);
 
     cleanupDeferredBackupZipFiles(5_000, 10_000);
 
@@ -152,7 +116,7 @@ describe('backup export utils', () => {
     const unknownAgeBackup = new File('/tmp/TackbokBackup_unknown.zip');
     unknownAgeBackup.modificationTime = null;
     unknownAgeBackup.creationTime = null;
-    mockCacheEntries.push(unknownAgeBackup);
+    __mockFileSystemState.cacheEntries.push(unknownAgeBackup);
 
     cleanupDeferredBackupZipFiles(5_000, 10_000);
 

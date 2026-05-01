@@ -1,53 +1,48 @@
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  spyOn,
-  test,
-} from 'bun:test';
+import { importFromTackbokBackup } from './tackbok';
 
-let importFromTackbokBackup: (
-  uri: string,
-  mode: 'skip' | 'overwrite',
-) => Promise<{
-  failedProfileAssets: number;
-  warnings: Record<string, unknown>[];
-}>;
+const spyOn = jest.spyOn;
 
-const txSelectFrom = mock(async (_table: unknown): Promise<{ note_id: string }[]> => []);
-const txSelect = mock(() => ({ from: txSelectFrom }));
+const txSelectFrom = jest.fn(
+  async (_table: unknown): Promise<{ note_id: string }[]> => [],
+);
+const txSelect = jest.fn(() => ({ from: txSelectFrom }));
 const tx = { select: txSelect };
-const mockTransaction = mock(
+const mockTransaction = jest.fn(
   async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx),
 );
-const mockIsZipFile = mock((_uri: string): boolean => true);
-const mockLoadZipFromUri = mock(
+const mockIsZipFile = jest.fn((_uri: string): boolean => true);
+const mockLoadZipFromUri = jest.fn(
   async (_uri: string): Promise<{ close: () => Promise<void> }> => ({
-    close: mock(async () => undefined),
+    close: jest.fn(async () => undefined),
   }),
 );
-const mockReadSafeZipJson = mock(
+const mockReadSafeZipJson = jest.fn(
   async (_zip: unknown, _path: string): Promise<unknown> => undefined,
 );
-const mockReadSafeZipBytes = mock(async (_zip: unknown, _path: string) => new Uint8Array());
-const mockWriteImportedPhoto = mock(
+const mockReadSafeZipBytes = jest.fn(
+  async (_zip: unknown, _path: string) => new Uint8Array(),
+);
+const mockWriteImportedPhoto = jest.fn(
   async (_bytes: Uint8Array, _path: string): Promise<{ uri: string }> => ({
     uri: 'photos/imported.jpg',
   }),
 );
-const mockCleanupImportedFiles = mock((_relativeUris: string[]): void => {});
-const mockUpsertPortableTags = mock(
-  async (_tx: unknown, _portableTags: unknown, _summary: unknown): Promise<Map<string, string>> =>
-    new Map(),
+const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
+const mockUpsertPortableTags = jest.fn(
+  async (
+    _tx: unknown,
+    _portableTags: unknown,
+    _summary: unknown,
+  ): Promise<Map<string, string>> => new Map(),
 );
-const mockEnsurePortablePromptTitles = mock(
-  async (_tx: unknown, _portablePrompts: unknown, _summary: unknown): Promise<Set<string>> =>
-    new Set(),
+const mockEnsurePortablePromptTitles = jest.fn(
+  async (
+    _tx: unknown,
+    _portablePrompts: unknown,
+    _summary: unknown,
+  ): Promise<Set<string>> => new Set(),
 );
-const mockImportPortableEntries = mock(
+const mockImportPortableEntries = jest.fn(
   async (
     _tx: unknown,
     _portableEntries: unknown,
@@ -60,10 +55,16 @@ const mockImportPortableEntries = mock(
     _source: unknown,
   ): Promise<void> => undefined,
 );
-const mockApplyImportedProfile = mock((_profile: unknown, _imageUri: string | null) => {});
-const mockGetImportTotals = mock(() => ({ totalEntries: 0, totalTags: 0, totalPrompts: 0 }));
+const mockApplyImportedProfile = jest.fn(
+  (_profile: unknown, _imageUri: string | null) => {},
+);
+const mockGetImportTotals = jest.fn(() => ({
+  totalEntries: 0,
+  totalTags: 0,
+  totalPrompts: 0,
+}));
 
-mock.module('~/db', () => ({
+jest.mock('~/db', () => ({
   db: {
     transaction: (callback: (transaction: typeof tx) => Promise<void>) =>
       mockTransaction(callback),
@@ -71,7 +72,7 @@ mock.module('~/db', () => ({
   entries: { note_id: 'note_id' },
 }));
 
-mock.module('react-native', () => ({
+jest.mock('react-native', () => ({
   Image: {
     getSize: (_uri: string, onSuccess: (width: number, height: number) => void) =>
       onSuccess(1, 1),
@@ -79,7 +80,7 @@ mock.module('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
-mock.module('expo-file-system', () => ({
+jest.mock('expo-file-system', () => ({
   Directory: class MockDirectory {
     exists = true;
     create() {}
@@ -103,22 +104,22 @@ mock.module('expo-file-system', () => ({
   Paths: { document: '/tmp', cache: '/tmp' },
 }));
 
-mock.module('expo-sharing', () => ({
+jest.mock('expo-sharing', () => ({
   isAvailableAsync: async () => false,
   shareAsync: async () => undefined,
 }));
 
-mock.module('~/lib/photoUtils', () => ({
+jest.mock('~/lib/photoUtils', () => ({
   deletePhotoFile: () => {},
   photoFileExists: () => true,
 }));
 
-mock.module('~/lib/voiceMemoUtils', () => ({
+jest.mock('~/lib/voiceMemoUtils', () => ({
   deleteVoiceMemoFile: () => {},
   voiceMemoFileExists: () => true,
 }));
 
-const archiveUtilsMockFactory = () => ({
+jest.mock('../archiveUtils', () => ({
   VALID_MOODS: new Set(['Joyful', 'Calm', 'Neutral', 'Anxious', 'Sad', 'Angry']),
   generateTimestamp: () => '2026-04-22T10-00-00',
   normalizeOptionalText: (value: string | null | undefined) => {
@@ -126,7 +127,8 @@ const archiveUtilsMockFactory = () => ({
     return trimmed ? trimmed : null;
   },
   assertSafeArchivePath: (path: string) => path,
-  cleanupImportedFiles: (relativeUris: string[]) => mockCleanupImportedFiles(relativeUris),
+  cleanupImportedFiles: (relativeUris: string[]) =>
+    mockCleanupImportedFiles(relativeUris),
   writeImportedAudio: (_bytes: Uint8Array, _path: string) => ({
     type: 'AUDIO',
     uri: 'voice-memos/mock.m4a',
@@ -140,7 +142,8 @@ const archiveUtilsMockFactory = () => ({
   buildTagIdToNameMap: async () => new Map(),
   resolveTagIdsToTitles: (_tagIds: string, _tagMap: Map<string, string>) => [],
   getRelativeAssetFile: (_relativeUri: string) => null,
-  createArchiveAssetPath: (_type: string, relativeUri: string) => `media/photos/${relativeUri}`,
+  createArchiveAssetPath: (_type: string, relativeUri: string) =>
+    `media/photos/${relativeUri}`,
   assetFileExists: (_asset: unknown) => true,
   buildSubstantiveCheck: ({
     textTitle,
@@ -169,13 +172,11 @@ const archiveUtilsMockFactory = () => ({
 
     return firstLine ? firstLine.slice(0, 120) : null;
   },
-  writeImportedPhoto: (bytes: Uint8Array, path: string) => mockWriteImportedPhoto(bytes, path),
-});
+  writeImportedPhoto: (bytes: Uint8Array, path: string) =>
+    mockWriteImportedPhoto(bytes, path),
+}));
 
-mock.module('../archiveUtils', archiveUtilsMockFactory);
-mock.module('../archiveUtils.ts', archiveUtilsMockFactory);
-
-const portableMockFactory = () => ({
+jest.mock('../portable', () => ({
   ensurePortablePromptTitles: (
     txArg: unknown,
     portablePromptsArg: unknown,
@@ -205,30 +206,20 @@ const portableMockFactory = () => ({
     ),
   upsertPortableTags: (txArg: unknown, portableTagsArg: unknown, summaryArg: unknown) =>
     mockUpsertPortableTags(txArg, portableTagsArg, summaryArg),
-});
+}));
 
-mock.module('../portable', portableMockFactory);
-mock.module('../portable.ts', portableMockFactory);
-
-const helpersMockFactory = () => ({
+jest.mock('./helpers', () => ({
   applyImportedProfile: (profileArg: unknown, imageUriArg: string | null) =>
     mockApplyImportedProfile(profileArg, imageUriArg),
   getImportTotals: (...args: Parameters<typeof mockGetImportTotals>) =>
     mockGetImportTotals(...args),
-});
+}));
 
-mock.module('./helpers', helpersMockFactory);
-mock.module('./helpers.ts', helpersMockFactory);
-
-mock.module('../progress', () => ({
-  reportImportProgress: mock(() => {}),
+jest.mock('../progress', () => ({
+  reportImportProgress: jest.fn(() => {}),
 }));
 
 describe('importFromTackbokBackup', () => {
-  beforeAll(async () => {
-    ({ importFromTackbokBackup } = await import('./tackbok'));
-  });
-
   beforeEach(() => {
     txSelectFrom.mockReset();
     txSelect.mockReset();
@@ -252,14 +243,18 @@ describe('importFromTackbokBackup', () => {
     );
     mockIsZipFile.mockReturnValue(true);
     mockLoadZipFromUri.mockResolvedValue({
-      close: mock(async () => undefined),
+      close: jest.fn(async () => undefined),
     });
     mockReadSafeZipJson
       .mockResolvedValueOnce({ format: 'tackbok-backup', backupVersion: 1 })
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce({ name: 'Ada', email: null, imagePath: 'media/profile.jpg' });
+      .mockResolvedValueOnce({
+        name: 'Ada',
+        email: null,
+        imagePath: 'media/profile.jpg',
+      });
     mockReadSafeZipBytes.mockResolvedValue(new Uint8Array([1, 2, 3]));
     mockWriteImportedPhoto.mockRejectedValue(new Error('corrupt profile image'));
     mockUpsertPortableTags.mockResolvedValue(new Map());
@@ -313,9 +308,5 @@ describe('importFromTackbokBackup', () => {
     );
 
     warnSpy.mockRestore();
-  });
-
-  afterAll(() => {
-    mock.restore();
   });
 });

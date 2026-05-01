@@ -1,28 +1,18 @@
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  spyOn,
-  test,
-} from 'bun:test';
 import type { ZipEntryInfo, ZipReader } from '~/lib/zip';
 import { AssetType, type Asset } from '~/types';
+import {
+  buildGratitudeAppPortablePayload,
+  importPortableEntries,
+  upsertPortableTags,
+} from './portable';
 import { createBackupImportSummary } from './summary';
 
-type PortableModule = typeof import('./portable');
+const spyOn = jest.spyOn;
 
-let buildGratitudeAppPortablePayload: PortableModule['buildGratitudeAppPortablePayload'];
-let importPortableEntries: PortableModule['importPortableEntries'];
-let upsertPortableTags: PortableModule['upsertPortableTags'];
-
-const mockReadSafeZipBytes = mock(
+const mockReadSafeZipBytes = jest.fn(
   async (_zip: ZipReader, _path: string) => new Uint8Array(),
 );
-const mockWriteImportedPhoto = mock(
+const mockWriteImportedPhoto = jest.fn(
   async (_bytes: Uint8Array, _path: string): Promise<Asset> => ({
     type: AssetType.IMAGE,
     uri: 'photos/imported.jpg',
@@ -30,22 +20,22 @@ const mockWriteImportedPhoto = mock(
     height: 10,
   }),
 );
-const mockWriteImportedAudio = mock(
+const mockWriteImportedAudio = jest.fn(
   (_bytes: Uint8Array, _path: string): Asset => ({
     type: AssetType.AUDIO,
     uri: 'voice-memos/imported.m4a',
   }),
 );
-const mockCleanupImportedFiles = mock((_relativeUris: string[]): void => {});
+const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
 
-mock.module('~/db', () => ({
+jest.mock('~/db', () => ({
   db: {},
   customPrompts: {},
   entries: { note_id: 'note_id' },
   tags: {},
 }));
 
-mock.module('react-native', () => ({
+jest.mock('react-native', () => ({
   Image: {
     getSize: (_uri: string, onSuccess: (width: number, height: number) => void) =>
       onSuccess(1, 1),
@@ -53,7 +43,7 @@ mock.module('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
-mock.module('expo-file-system', () => ({
+jest.mock('expo-file-system', () => ({
   Directory: class MockDirectory {
     exists = true;
     create() {}
@@ -77,22 +67,22 @@ mock.module('expo-file-system', () => ({
   Paths: { document: '/tmp', cache: '/tmp' },
 }));
 
-mock.module('expo-sharing', () => ({
+jest.mock('expo-sharing', () => ({
   isAvailableAsync: async () => false,
   shareAsync: async () => undefined,
 }));
 
-mock.module('~/lib/photoUtils', () => ({
+jest.mock('~/lib/photoUtils', () => ({
   deletePhotoFile: () => {},
   photoFileExists: () => true,
 }));
 
-mock.module('~/lib/voiceMemoUtils', () => ({
+jest.mock('~/lib/voiceMemoUtils', () => ({
   deleteVoiceMemoFile: () => {},
   voiceMemoFileExists: () => true,
 }));
 
-const archiveUtilsMockFactory = () => ({
+jest.mock('./archiveUtils', () => ({
   VALID_MOODS: new Set(['Joyful', 'Calm', 'Neutral', 'Anxious', 'Sad', 'Angry']),
   generateTimestamp: () => '2026-04-22T10-00-00',
   normalizeOptionalText: (value: string | null | undefined) => {
@@ -121,7 +111,7 @@ const archiveUtilsMockFactory = () => ({
   saveGeneratedZipFile: async (_file: unknown, _fileName: string) => {},
   readSafeZipJson: <T>(zip: ZipReader, path: string) => zip.readEntryJson<T>(path),
   readSafeZipBytes: (zip: ZipReader, path: string) => mockReadSafeZipBytes(zip, path),
-  loadZipFromUri: async (_uri: string) => createFakeStreamingZipArchive({}),
+  loadZipFromUri: async (_uri: string) => mockCreateFakeStreamingZipArchive({}),
   isZipFile: (_uri: string) => true,
   buildTagIdToNameMap: async () => new Map(),
   resolveTagIdsToTitles: (_tagIds: string, _tagMap: Map<string, string>) => [],
@@ -145,12 +135,9 @@ const archiveUtilsMockFactory = () => ({
 
     return firstLine ? firstLine.slice(0, 120) : null;
   },
-});
+}));
 
-mock.module('./archiveUtils', archiveUtilsMockFactory);
-mock.module('./archiveUtils.ts', archiveUtilsMockFactory);
-
-function createFakeStreamingZipArchive(
+function mockCreateFakeStreamingZipArchive(
   entries: Record<string, string | Uint8Array>,
 ): ZipReader {
   const byteEntries = new Map(
@@ -211,13 +198,13 @@ function createFakeStreamingZipArchive(
 }
 
 function createTransactionMock() {
-  const limit = mock(async (_count?: number): Promise<{ note_id: string }[]> => []);
-  const where = mock(() => ({ limit }));
-  const from = mock(() => ({ where, limit }));
-  const select = mock(() => ({ from }));
-  const onConflictDoUpdate = mock(async (_value: unknown): Promise<void> => {});
-  const values = mock(() => ({ onConflictDoUpdate }));
-  const insert = mock(() => ({ values }));
+  const limit = jest.fn(async (_count?: number): Promise<{ note_id: string }[]> => []);
+  const where = jest.fn(() => ({ limit }));
+  const from = jest.fn(() => ({ where, limit }));
+  const select = jest.fn(() => ({ from }));
+  const onConflictDoUpdate = jest.fn(async (_value: unknown): Promise<void> => {});
+  const values = jest.fn(() => ({ onConflictDoUpdate }));
+  const insert = jest.fn(() => ({ values }));
 
   return {
     tx: { insert, select },
@@ -231,13 +218,6 @@ function createTransactionMock() {
   };
 }
 
-beforeAll(async () => {
-  const portableModule = await import('./portable');
-  buildGratitudeAppPortablePayload = portableModule.buildGratitudeAppPortablePayload;
-  importPortableEntries = portableModule.importPortableEntries;
-  upsertPortableTags = portableModule.upsertPortableTags;
-});
-
 beforeEach(() => {
   mockReadSafeZipBytes.mockReset();
   mockWriteImportedPhoto.mockReset();
@@ -247,7 +227,7 @@ beforeEach(() => {
 
 describe('buildGratitudeAppPortablePayload', () => {
   test('resolves Gratitude media entries by basename when the zip has a parent folder', async () => {
-    const zip = createFakeStreamingZipArchive({
+    const zip = mockCreateFakeStreamingZipArchive({
       'gratitudeEntries.json': JSON.stringify([
         {
           noteId: 'entry-1',
@@ -330,7 +310,7 @@ describe('importPortableEntries', () => {
       new Map(),
       summary,
       'overwrite',
-      createFakeStreamingZipArchive({}),
+      mockCreateFakeStreamingZipArchive({}),
       createdFiles,
       'tackbok',
     );
@@ -382,7 +362,7 @@ describe('importPortableEntries', () => {
       new Map(),
       summary,
       'overwrite',
-      createFakeStreamingZipArchive({}),
+      mockCreateFakeStreamingZipArchive({}),
       [],
       'tackbok',
     );
@@ -431,7 +411,7 @@ describe('importPortableEntries', () => {
         new Map(),
         summary,
         'overwrite',
-        createFakeStreamingZipArchive({}),
+        mockCreateFakeStreamingZipArchive({}),
         [],
         'tackbok',
       ),
@@ -444,7 +424,7 @@ describe('importPortableEntries', () => {
 describe('upsertPortableTags', () => {
   test('reuses existing tags when portable titles normalize to the same key', async () => {
     const existingTagId = 'existing-tag-id';
-    const insertedValues = mock(async (_value: unknown): Promise<void> => {});
+    const insertedValues = jest.fn(async (_value: unknown): Promise<void> => {});
     const tx = {
       select: () => ({
         from: async () => [{ tag_id: existingTagId, title: 'Work,Focus' }],
@@ -465,8 +445,4 @@ describe('upsertPortableTags', () => {
     expect(tagMap.get('work focus')).toBe(existingTagId);
     expect(summary.importedTags).toBe(0);
   });
-});
-
-afterAll(() => {
-  mock.restore();
 });
