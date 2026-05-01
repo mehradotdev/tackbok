@@ -5,6 +5,13 @@ import { Uniwind } from 'uniwind';
 import { FirstDay, type FirstDayOfWeek } from '~/types';
 import { DEFAULT_THEME_ID, getThemeConfig } from '~/lib/theme';
 import {
+  applyTitleFont,
+  DEFAULT_TITLE_FONT_SELECTION,
+  normalizeTitleFontSelection,
+  type BodyFontSize,
+  type TitleFontSelection,
+} from '~/lib/typography';
+import {
   DEFAULT_JOURNAL_FOCUS_AREAS,
   type BuiltInJournalPromptCategoryId,
   type JournalPromptsMode,
@@ -30,6 +37,10 @@ interface SettingsState {
   dateIncludesDayOfWeek: boolean;
   firstDayOfWeek: FirstDayOfWeek;
   showTimelineBorders: boolean;
+
+  // Typography
+  titleFont: TitleFontSelection;
+  bodyFontSize: BodyFontSize;
 
   // Security
   biometricUnlockEnabled: boolean;
@@ -61,6 +72,8 @@ interface SettingsState {
   setDateIncludesDayOfWeek: (enabled: boolean) => void;
   setFirstDayOfWeek: (day: FirstDayOfWeek) => void;
   setShowTimelineBorders: (enabled: boolean) => void;
+  setTitleFont: (fontId: TitleFontSelection) => void;
+  setBodyFontSize: (size: BodyFontSize) => void;
   setBiometricUnlockEnabled: (enabled: boolean) => void;
   setGoogleDriveBackupEnabled: (enabled: boolean) => void;
   setBackupFrequency: (frequency: 'daily' | 'weekly' | 'on_change') => void;
@@ -74,7 +87,7 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Default values
       dailyReminderEnabled: false,
       reminderTime: '09:00',
@@ -87,6 +100,8 @@ export const useSettingsStore = create<SettingsState>()(
       dateIncludesDayOfWeek: false,
       firstDayOfWeek: FirstDay.MONDAY,
       showTimelineBorders: false,
+      titleFont: DEFAULT_TITLE_FONT_SELECTION,
+      bodyFontSize: 'default',
       biometricUnlockEnabled: false,
       googleDriveBackupEnabled: false,
       backupFrequency: 'daily',
@@ -108,6 +123,7 @@ export const useSettingsStore = create<SettingsState>()(
       setTheme: (theme) => {
         const id = getThemeConfig(theme).id;
         Uniwind.setTheme(id);
+        applyTitleFont(id, get().titleFont);
         set({ theme: id });
       },
       setTimelineEntryLength: (length) => {
@@ -119,6 +135,12 @@ export const useSettingsStore = create<SettingsState>()(
       setDateIncludesDayOfWeek: (enabled) => set({ dateIncludesDayOfWeek: enabled }),
       setFirstDayOfWeek: (day) => set({ firstDayOfWeek: day }),
       setShowTimelineBorders: (enabled) => set({ showTimelineBorders: enabled }),
+      setTitleFont: (fontId) => {
+        const safeFontId = normalizeTitleFontSelection(fontId);
+        applyTitleFont(getThemeConfig(get().theme).id, safeFontId);
+        set({ titleFont: safeFontId });
+      },
+      setBodyFontSize: (size) => set({ bodyFontSize: size }),
       setBiometricUnlockEnabled: (enabled) => set({ biometricUnlockEnabled: enabled }),
       setGoogleDriveBackupEnabled: (enabled) =>
         set({ googleDriveBackupEnabled: enabled }),
@@ -137,12 +159,17 @@ export const useSettingsStore = create<SettingsState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
-          // If the persisted theme is no longer valid (e.g., 'default'), map it.
-          // Use setTheme (not direct mutation): a partial set above replaces the store
-          // object, so mutating this callback's `state` would not update subscribers
-          // or persist; setTheme also keeps Uniwind in sync.
           const safeThemeId = getThemeConfig(state.theme).id;
-          state.setTheme(safeThemeId);
+          const safeTitleFont = normalizeTitleFontSelection(state.titleFont);
+          Uniwind.setTheme(safeThemeId);
+          if (state.theme !== safeThemeId || state.titleFont !== safeTitleFont) {
+            useSettingsStore.setState({
+              theme: safeThemeId,
+              titleFont: safeTitleFont,
+            });
+          }
+
+          applyTitleFont(safeThemeId, safeTitleFont);
         } else {
           console.warn('Settings store rehydration failed');
           // `state` is unavailable here (persisted merge failed), so we cannot call
@@ -162,6 +189,8 @@ export const useSettingsStore = create<SettingsState>()(
         dateIncludesDayOfWeek: state.dateIncludesDayOfWeek,
         firstDayOfWeek: state.firstDayOfWeek,
         showTimelineBorders: state.showTimelineBorders,
+        titleFont: state.titleFont,
+        bodyFontSize: state.bodyFontSize,
         biometricUnlockEnabled: state.biometricUnlockEnabled,
         googleDriveBackupEnabled: state.googleDriveBackupEnabled,
         backupFrequency: state.backupFrequency,

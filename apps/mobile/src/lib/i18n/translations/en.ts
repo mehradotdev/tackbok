@@ -272,6 +272,18 @@ export const en = {
   'Set the first day of the week in the calendar view':
     'Set the first day of the week in the calendar view',
 
+  // Settings - Typography
+  Typography: 'Typography',
+  'Title Font': 'Title Font',
+  'Choose a font for titles and headings': 'Choose a font for titles and headings',
+  Default: 'Default',
+  'Font Size': 'Font Size',
+  'Adjust the size of body text': 'Adjust the size of body text',
+  Small: 'Small',
+  Large: 'Large',
+  'Preview of the selected font': 'Preview of the selected font',
+  'Gratitude makes today brighter': 'Gratitude makes today brighter',
+
   // Settings - Journaling
   Journaling: 'Journaling',
   'Worksheet Template': 'Worksheet Template',

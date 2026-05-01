@@ -1,6 +1,7 @@
 import * as Slot from '~/components/primitives/slot';
 import * as React from 'react';
-import { Pressable, Text, View, type GestureResponderEvent } from 'react-native';
+import { Pressable, View, type GestureResponderEvent } from 'react-native';
+import { Text } from '~/components/ui/text';
 import type {
   ActionProps,
   ActionRef,

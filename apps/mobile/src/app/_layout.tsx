@@ -1,7 +1,7 @@
 import '../global.css';
 
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener } from 'react-native-safe-area-context';
@@ -20,26 +20,9 @@ import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
 import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { PortalHost } from '~/components/primitives/portal';
+import { Text } from '~/components/ui/text';
 import { Toaster } from '~/components/ui/toast';
-
-// ── Google Fonts ────────────────────────────────────────────────────
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
-import { Figtree_700Bold } from '@expo-google-fonts/figtree';
-import { Cinzel_700Bold } from '@expo-google-fonts/cinzel';
-import { Merriweather_700Bold } from '@expo-google-fonts/merriweather';
-import { Lora_700Bold } from '@expo-google-fonts/lora';
-import { SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
-import {
-  JetBrainsMono_400Regular,
-  JetBrainsMono_500Medium,
-  JetBrainsMono_600SemiBold,
-  JetBrainsMono_700Bold,
-} from '@expo-google-fonts/jetbrains-mono';
+import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,21 +55,7 @@ export default function Layout() {
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
   const themeConfig = getThemeConfig(theme);
 
-  const [fontsLoaded, fontsError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    Figtree_700Bold,
-    Cinzel_700Bold,
-    Merriweather_700Bold,
-    Lora_700Bold,
-    SpaceMono_700Bold,
-    JetBrainsMono_400Regular,
-    JetBrainsMono_500Medium,
-    JetBrainsMono_600SemiBold,
-    JetBrainsMono_700Bold,
-  });
+  const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
 
   const [primaryColor, primaryForeground, backgroundColor] = useCSSVariable([
     '--color-primary',

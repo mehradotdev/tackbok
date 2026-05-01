@@ -7,12 +7,14 @@ import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
 import { NotificationsSection } from './sections/NotificationsSection';
 import { AppearanceSection } from './sections/AppearanceSection';
+import { TypographySection } from './sections/TypographySection';
 import { JournalingSection } from './sections/JournalingSection';
 import { SecuritySection } from './sections/SecuritySection';
 import { BackupRestoreSection } from './sections/BackupRestoreSection';
 import { AppInfoSection } from './sections/AppInfoSection';
 import { DangerZoneSection } from './sections/DangerZoneSection';
 import { ThemePickerSheet } from './ThemePickerSheet';
+import { FontPickerSheet } from './FontPickerSheet';
 import { JournalFocusAreasSheet } from './JournalFocusAreasSheet';
 
 export default function SettingsScreen() {
@@ -39,6 +41,7 @@ export default function SettingsScreen() {
         {/* Settings Content */}
         <ScrollView className="px-safe">
           <NotificationsSection />
+          <TypographySection />
           <AppearanceSection />
           <JournalingSection />
           <SecuritySection />
@@ -52,6 +55,7 @@ export default function SettingsScreen() {
       </View>
 
       <ThemePickerSheet />
+      <FontPickerSheet />
       <JournalFocusAreasSheet />
     </>
   );

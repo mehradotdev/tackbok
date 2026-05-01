@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { BackHandler, GestureResponderEvent, Pressable, Text, View } from 'react-native';
+import { BackHandler, GestureResponderEvent, Pressable, View } from 'react-native';
 import {
   NavigationContext,
   usePreventRemove,
 } from '@react-navigation/native';
+import { Text } from '~/components/ui/text';
 import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { useControllableState } from '~/components/primitives/hooks';
 import { Portal as RNPPortal } from '~/components/primitives/portal';
