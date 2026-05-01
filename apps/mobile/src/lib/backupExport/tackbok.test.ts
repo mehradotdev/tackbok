@@ -1,22 +1,13 @@
 import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  spyOn,
-  test,
-} from 'bun:test';
-import {
   BACKUP_ENTRIES_PATH,
   BACKUP_MANIFEST_PATH,
   BACKUP_PROFILE_PATH,
 } from '../backupImport/types';
+import { exportToBackupZip } from './tackbok';
+
+const spyOn = jest.spyOn;
 
 (globalThis as { __DEV__?: boolean }).__DEV__ = false;
-
-let exportToBackupZip: () => Promise<void>;
 
 type PortableEntryMock = {
   noteId: string;
@@ -34,27 +25,29 @@ type PortableEntryMock = {
   }[];
 };
 
-const mockAddFile = mock(async (_path: string, _file: unknown): Promise<void> => {});
-const mockAddText = mock(async (_path: string, _text: string): Promise<void> => {});
-const mockClose = mock(async (): Promise<void> => {});
-const mockAbort = mock(async (): Promise<void> => {});
-const mockSaveGeneratedZipFile = mock(
+const mockAddFile = jest.fn(async (_path: string, _file: unknown): Promise<void> => {});
+const mockAddText = jest.fn(async (_path: string, _text: string): Promise<void> => {});
+const mockClose = jest.fn(async (): Promise<void> => {});
+const mockAbort = jest.fn(async (): Promise<void> => {});
+const mockSaveGeneratedZipFile = jest.fn(
   async (
     _file: unknown,
     _name: string,
   ): Promise<'delete-immediately' | 'defer-cleanup'> => 'delete-immediately',
 );
-const mockCleanupDeferredBackupZipFiles = mock((_minAgeMs?: number, _now?: number) => {});
-const mockGetRelativeAssetFile = mock((relativeUri: string) => ({
+const mockCleanupDeferredBackupZipFiles = jest.fn(
+  (_minAgeMs?: number, _now?: number) => {},
+);
+const mockGetRelativeAssetFile = jest.fn((relativeUri: string) => ({
   exists: true,
   uri: relativeUri,
 }));
-const mockGetState = mock(() => ({
+const mockGetState = jest.fn(() => ({
   profileName: 'Ada',
   profileEmail: 'ada@example.com',
   profileImageUri: 'photos/profile.jpg',
 }));
-const mockCreatePortableEntries = mock(
+const mockCreatePortableEntries = jest.fn(
   (
     _allEntries: unknown,
     _tagMap: unknown,
@@ -64,10 +57,10 @@ const mockCreatePortableEntries = mock(
     portableEntries: [],
   }),
 );
-const mockCreatePortableTags = mock((_allTags: unknown): unknown[] => []);
-const mockCreatePortablePrompts = mock((_allPrompts: unknown): unknown[] => []);
+const mockCreatePortableTags = jest.fn((_allTags: unknown): unknown[] => []);
+const mockCreatePortablePrompts = jest.fn((_allPrompts: unknown): unknown[] => []);
 
-mock.module('expo-file-system', () => ({
+jest.mock('expo-file-system', () => ({
   File: class MockFile {
     exists = true;
 
@@ -86,16 +79,16 @@ mock.module('expo-file-system', () => ({
   },
 }));
 
-const dbMockFactory = () => {
-  const entries = { created_at: 'created_at' };
+jest.mock('~/db', () => {
+  const mockEntries = { created_at: 'created_at' };
 
   return {
     db: {
-      select: mock(() => ({
-        from: mock((table: unknown) => {
-          if (table === entries) {
+      select: jest.fn(() => ({
+        from: jest.fn((table: unknown) => {
+          if (table === mockEntries) {
             return {
-              orderBy: mock(async () => []),
+              orderBy: jest.fn(async () => []),
             };
           }
 
@@ -104,29 +97,23 @@ const dbMockFactory = () => {
       })),
     },
     customPrompts: {},
-    entries,
+    entries: mockEntries,
     tags: {},
   };
-};
+});
 
-mock.module('~/db', dbMockFactory);
-mock.module('~/db/index.ts', dbMockFactory);
-
-const settingsMockFactory = () => ({
+jest.mock('~/lib/settings', () => ({
   useSettingsStore: {
     getState: () => mockGetState(),
   },
-});
+}));
 
-mock.module('~/lib/settings', settingsMockFactory);
-mock.module('~/lib/settings/index.ts', settingsMockFactory);
-
-mock.module('~/lib/zip', () => ({
+jest.mock('~/lib/zip', () => ({
   createExpoZipWriter: (outputFile: unknown) => ({
     outputFile,
-    addBytes: mock(() => {}),
+    addBytes: jest.fn(() => {}),
     addText: mockAddText,
-    addStored: mock(() => {}),
+    addStored: jest.fn(() => {}),
     addFile: mockAddFile,
     close: mockClose,
     abort: mockAbort,
@@ -143,12 +130,10 @@ mock.module('~/lib/zip', () => ({
 
     return match?.path ?? null;
   },
-  createZipEntryLookup: (
-    zip: {
-      hasEntry: (path: string) => boolean;
-      listEntries: () => { path: string }[];
-    },
-  ) => ({
+  createZipEntryLookup: (zip: {
+    hasEntry: (path: string) => boolean;
+    listEntries: () => { path: string }[];
+  }) => ({
     hasPath: (path: string) => zip.hasEntry(path),
     findByBasename: (basename: string) => {
       const safeBasename = basename.trim();
@@ -189,9 +174,9 @@ mock.module('~/lib/zip', () => ({
   }),
 }));
 
-mock.module('../backupImport/archiveUtils', () => ({
+jest.mock('../backupImport/archiveUtils', () => ({
   VALID_MOODS: new Set(['Joyful', 'Calm', 'Neutral', 'Anxious', 'Sad', 'Angry']),
-  normalizeOptionalText: mock((value: string | null | undefined) => {
+  normalizeOptionalText: jest.fn((value: string | null | undefined) => {
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
   }),
@@ -251,20 +236,21 @@ mock.module('../backupImport/archiveUtils', () => ({
   },
 }));
 
-mock.module('./utils', () => ({
-  generateTimestamp: mock(() => '2026-04-22T10-00-00'),
+jest.mock('./utils', () => ({
+  generateTimestamp: jest.fn(() => '2026-04-22T10-00-00'),
   saveOrShareZipFile: (file: unknown, fileName: string) =>
     mockSaveGeneratedZipFile(file, fileName),
   cleanupDeferredBackupZipFiles: (minAgeMs?: number, now?: number) =>
     mockCleanupDeferredBackupZipFiles(minAgeMs, now),
-  buildTagIdToNameMap: mock(async () => new Map()),
+  buildTagIdToNameMap: jest.fn(async () => new Map()),
   resolveTagIdsToTitles: (_tagIds: string, _tagMap: Map<string, string>) => [],
   getRelativeAssetFile: (relativeUri: string) => mockGetRelativeAssetFile(relativeUri),
-  createArchiveAssetPath: (_type: string, relativeUri: string) => `media/photos/${relativeUri}`,
+  createArchiveAssetPath: (_type: string, relativeUri: string) =>
+    `media/photos/${relativeUri}`,
   assetFileExists: (_asset: unknown) => true,
 }));
 
-mock.module('./portable', () => ({
+jest.mock('./portable', () => ({
   createPortableEntries: (allEntries: unknown, tagMap: unknown) =>
     mockCreatePortableEntries(allEntries, tagMap),
   createPortablePrompts: (allPrompts: unknown) => mockCreatePortablePrompts(allPrompts),
@@ -272,10 +258,6 @@ mock.module('./portable', () => ({
 }));
 
 describe('exportToBackupZip', () => {
-  beforeAll(async () => {
-    ({ exportToBackupZip } = await import('./tackbok'));
-  });
-
   beforeEach(() => {
     mockAddFile.mockReset();
     mockAddText.mockReset();
@@ -352,13 +334,16 @@ describe('exportToBackupZip', () => {
     expect(warnSpy).toHaveBeenCalledTimes(2);
 
     const entriesJson = JSON.parse(
-      mockAddText.mock.calls.find(([path]) => path === BACKUP_ENTRIES_PATH)?.[1] ?? 'null',
+      mockAddText.mock.calls.find(([path]) => path === BACKUP_ENTRIES_PATH)?.[1] ??
+        'null',
     );
     const profileJson = JSON.parse(
-      mockAddText.mock.calls.find(([path]) => path === BACKUP_PROFILE_PATH)?.[1] ?? 'null',
+      mockAddText.mock.calls.find(([path]) => path === BACKUP_PROFILE_PATH)?.[1] ??
+        'null',
     );
     const manifestJson = JSON.parse(
-      mockAddText.mock.calls.find(([path]) => path === BACKUP_MANIFEST_PATH)?.[1] ?? 'null',
+      mockAddText.mock.calls.find(([path]) => path === BACKUP_MANIFEST_PATH)?.[1] ??
+        'null',
     );
 
     expect(entriesJson).toEqual([
@@ -401,9 +386,5 @@ describe('exportToBackupZip', () => {
 
     const sharedFile = mockSaveGeneratedZipFile.mock.calls[0]?.[0] as { exists: boolean };
     expect(sharedFile.exists).toBe(true);
-  });
-
-  afterAll(() => {
-    mock.restore();
   });
 });

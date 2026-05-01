@@ -1,15 +1,13 @@
-import { beforeAll, beforeEach, describe, expect, mock, test } from 'bun:test';
+import { importFromPresentlyCSV } from './presently';
 
-let importFromPresentlyCSV: typeof import('./presently').importFromPresentlyCSV;
-
-const mockFileText = mock(async () => '');
-const mockSelect = mock(() => ({ from: mockFrom }));
-const mockFrom = mock(() => ({ where: mockWhere }));
-const mockWhere = mock(() => ({ limit: mockLimit }));
-const mockLimit = mock(async () => []);
-const mockValues = mock(async () => undefined);
-const mockInsert = mock(() => ({ values: mockValues }));
-const mockTransaction = mock(
+const mockFileText = jest.fn(async () => '');
+const mockLimit = jest.fn(async () => []);
+const mockWhere = jest.fn(() => ({ limit: mockLimit }));
+const mockFrom = jest.fn(() => ({ where: mockWhere }));
+const mockSelect = jest.fn(() => ({ from: mockFrom }));
+const mockValues = jest.fn(async () => undefined);
+const mockInsert = jest.fn(() => ({ values: mockValues }));
+const mockTransaction = jest.fn(
   async (
     callback: (tx: {
       select: typeof mockSelect;
@@ -21,14 +19,14 @@ const mockTransaction = mock(
       insert: mockInsert,
     }),
 );
-const mockGenerateUUID = mock(() => 'generated-note-id');
-const mockReportImportProgress = mock(() => {});
+const mockGenerateUUID = jest.fn(() => 'generated-note-id');
+const mockReportImportProgress = jest.fn(() => {});
 
-mock.module('expo-document-picker', () => ({
-  getDocumentAsync: mock(async () => ({ canceled: true })),
+jest.mock('expo-document-picker', () => ({
+  getDocumentAsync: jest.fn(async () => ({ canceled: true })),
 }));
 
-mock.module('expo-file-system', () => ({
+jest.mock('expo-file-system', () => ({
   File: class MockFile {
     text() {
       return mockFileText();
@@ -36,12 +34,12 @@ mock.module('expo-file-system', () => ({
   },
 }));
 
-mock.module('drizzle-orm', () => ({
+jest.mock('drizzle-orm', () => ({
   and: (...conditions: unknown[]) => ({ type: 'and', conditions }),
   eq: (left: unknown, right: unknown) => ({ type: 'eq', left, right }),
 }));
 
-mock.module('~/db', () => ({
+jest.mock('~/db', () => ({
   db: {
     transaction: (callback: Parameters<typeof mockTransaction>[0]) =>
       mockTransaction(callback),
@@ -53,20 +51,16 @@ mock.module('~/db', () => ({
   },
 }));
 
-mock.module('~/lib/utils', () => ({
+jest.mock('~/lib/utils', () => ({
   generateUUID: () => mockGenerateUUID(),
 }));
 
-mock.module('../progress', () => ({
+jest.mock('../progress', () => ({
   reportImportProgress: (...args: Parameters<typeof mockReportImportProgress>) =>
     mockReportImportProgress(...args),
 }));
 
 describe('importFromPresentlyCSV', () => {
-  beforeAll(async () => {
-    ({ importFromPresentlyCSV } = await import('./presently'));
-  });
-
   beforeEach(() => {
     mockFileText.mockReset();
     mockSelect.mockClear();
