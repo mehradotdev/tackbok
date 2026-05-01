@@ -2,6 +2,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getDefaultConfig } from 'expo/metro-config.js';
 import { withUniwindConfig } from 'uniwind/metro';
+import { CUSTOM_THEME_IDS } from './src/lib/theme/registry.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,19 +29,7 @@ const uniwindConfig = withUniwindConfig(config, {
   // optional: path to typings
   dtsFile: './src/uniwind-types.d.ts',
   // Custom themes
-  extraThemes: [
-    'navy',
-    'sakura',
-    'forest',
-    'lavender',
-    'ember',
-    'ocean',
-    'slate',
-    'peach',
-    'kela',
-    'hecker',
-    'bubblegum',
-  ],
+  extraThemes: [...CUSTOM_THEME_IDS],
 });
 
 export default uniwindConfig;
