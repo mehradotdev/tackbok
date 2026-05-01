@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Modal, Platform, Text, View, type ViewProps } from 'react-native';
+import { Modal, Platform, View, type ViewProps } from 'react-native';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 import { X } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import * as DialogPrimitive from '~/components/primitives/dialog';
 import { Icon } from '~/components/ui/icon';
+import { Text } from '~/components/ui/text';
 import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
 
 type AndroidOverlayStrategy = 'portal' | 'modal';

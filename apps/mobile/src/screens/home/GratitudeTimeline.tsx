@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { format, subDays, startOfDay } from 'date-fns';
 import { LegendList } from '@legendapp/list';
 import {
@@ -12,6 +12,7 @@ import {
 import { useTranslation } from '~/lib/i18n';
 import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
+import { Text } from '~/components/ui/text';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
 

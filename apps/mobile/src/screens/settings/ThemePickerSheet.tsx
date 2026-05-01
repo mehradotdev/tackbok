@@ -18,6 +18,7 @@ import {
   type ThemeConfig,
   isThemeDark,
 } from '~/lib/theme/themes';
+import { getThemeDefaultTitleFontId, getTitleFont } from '~/lib/theme/typography';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -33,6 +34,10 @@ function ThemeCardContent({
 }) {
   const [colorForeground] = useCSSVariable(['--color-foreground']);
 
+  // Resolve this theme's original heading font so the preview always shows
+  // the curated font, regardless of any user-level title font override.
+  const themeFontFamily = getTitleFont(getThemeDefaultTitleFontId(theme.id)).fontFamily;
+
   return (
     <View
       className={cn(
@@ -44,7 +49,9 @@ function ThemeCardContent({
         {/* Left spacer for perfect centering */}
         <View className="w-4" />
 
-        <Text className="text-sm font-heading font-bold text-primary-foreground">
+        <Text
+          className="text-sm text-primary-foreground"
+          style={{ fontFamily: themeFontFamily }}>
           Tackbok
         </Text>
 
@@ -67,7 +74,9 @@ function ThemeCardContent({
 
         {/* Content Column */}
         <View className="flex-1 pl-4 pr-3 py-3 gap-1.5">
-          <Text className="text-base font-heading font-bold text-foreground">
+          <Text
+            className="text-base text-foreground"
+            style={{ fontFamily: themeFontFamily }}>
             {theme.name}
           </Text>
 

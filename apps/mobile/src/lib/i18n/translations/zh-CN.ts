@@ -252,6 +252,18 @@ export const zhCN: Translations = {
   'First Day of Week': '一周的第一天',
   'Set the first day of the week in the calendar view': '设置日历视图中一周的第一天',
 
+  // Settings - Typography
+  Typography: '排版',
+  'Title Font': '标题字体',
+  'Choose a font for titles and headings': '为标题和副标题选择字体',
+  Default: '默认',
+  'Font Size': '字体大小',
+  'Adjust the size of body text': '调整正文字体大小',
+  Small: '小',
+  Large: '大',
+  'Preview of the selected font': '所选字体的预览',
+  'Gratitude makes today brighter': '感恩让今天更明亮',
+
   // Settings - Journaling
   Journaling: '日记书写',
   'Worksheet Template': '写作模板',
@@ -285,7 +297,7 @@ export const zhCN: Translations = {
   'Lock with biometric scanner if supported':
     '塔克博克可使用设备的生物识别扫描仪锁定（如果设备支持）',
 
-    // Settings - Backup & Restore
+  // Settings - Backup & Restore
   'Backup & Restore': '备份与恢复',
   'Google Drive Backup': 'Google Drive 备份',
   'Automatically back up your entries with Google Drive':
@@ -301,8 +313,7 @@ export const zhCN: Translations = {
   'Restore your data from a .zip file': '从 .zip 文件恢复您的数据',
   'Import from Gratitude App': '从 Gratitude 应用导入',
   'Importing from Gratitude App': '正在从 Gratitude 应用导入',
-  'Import data from a Gratitude App .zip backup':
-    '从 Gratitude 应用的 .zip 备份导入数据',
+  'Import data from a Gratitude App .zip backup': '从 Gratitude 应用的 .zip 备份导入数据',
   'Choose Import Mode': '选择导入模式',
   'How should this import handle entries that already exist in Tackbok?':
     '本次导入应如何处理 Tackbok 中已存在的条目？',
@@ -310,11 +321,9 @@ export const zhCN: Translations = {
   'Skip Existing Entries (Recommended)': '跳过现有条目（推荐）',
   'Only import entries with new note IDs': '仅导入具有新笔记 ID 的条目',
   'Overwrite Matching Entries': '覆盖匹配的条目',
-  'Replace existing entries when note IDs match':
-    '当笔记 ID 匹配时替换现有条目',
+  'Replace existing entries when note IDs match': '当笔记 ID 匹配时替换现有条目',
   'Import from Presently App': '从 Presently 应用导入',
-  'Restore your data from a Presently .csv file':
-    '从 Presently 的 .csv 文件恢复您的数据',
+  'Restore your data from a Presently .csv file': '从 Presently 的 .csv 文件恢复您的数据',
   'Import from Presently?': '从 Presently 导入？',
   'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
     '这将从 Presently 应用的 CSV 文件导入条目。重复的条目将被跳过。',
@@ -332,8 +341,7 @@ export const zhCN: Translations = {
   'Restore entries and media': '恢复条目和媒体',
   'Refresh journal data': '刷新日记数据',
   'Loading the selected import file.': '正在加载选定的导入文件。',
-  'Checking backup contents and file structure.':
-    '正在检查备份内容和文件结构。',
+  'Checking backup contents and file structure.': '正在检查备份内容和文件结构。',
   'Restoring profile details and profile photo if available.':
     '正在恢复个人资料详情和头像（如果有）。',
   'Adding tags and prompts before entries are restored.':

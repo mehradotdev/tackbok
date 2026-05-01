@@ -253,6 +253,18 @@ export const zhTW: Translations = {
   'First Day of Week': '每週的第一天',
   'Set the first day of the week in the calendar view': '設定日曆視圖中每週的第一天',
 
+  // Settings - Typography
+  Typography: '排版',
+  'Title Font': '標題字型',
+  'Choose a font for titles and headings': '為標題和副標題選擇字型',
+  Default: '預設',
+  'Font Size': '字型大小',
+  'Adjust the size of body text': '調整正文字型大小',
+  Small: '小',
+  Large: '大',
+  'Preview of the selected font': '所選字型的預覽',
+  'Gratitude makes today brighter': '感恩讓今天更明亮',
+
   // Settings - Journaling
   Journaling: '日記書寫',
   'Worksheet Template': '寫作模板',
@@ -285,7 +297,7 @@ export const zhTW: Translations = {
   'Unlock Tackbok': '解鎖塔克博克',
   'Lock with biometric scanner if supported': '若裝置支援，使用生物辨識鎖定',
 
-    // Settings - Backup & Restore
+  // Settings - Backup & Restore
   'Backup & Restore': '備份與還原',
   'Google Drive Backup': 'Google Drive 備份',
   'Automatically back up your entries with Google Drive':
@@ -310,11 +322,9 @@ export const zhTW: Translations = {
   'Skip Existing Entries (Recommended)': '略過現有紀錄（推薦）',
   'Only import entries with new note IDs': '僅匯入具有新筆記 ID 的紀錄',
   'Overwrite Matching Entries': '覆寫配對的紀錄',
-  'Replace existing entries when note IDs match':
-    '當筆記 ID 相符時取代現有紀錄',
+  'Replace existing entries when note IDs match': '當筆記 ID 相符時取代現有紀錄',
   'Import from Presently App': '從 Presently 應用程式匯入',
-  'Restore your data from a Presently .csv file':
-    '從 Presently 的 .csv 檔案還原您的資料',
+  'Restore your data from a Presently .csv file': '從 Presently 的 .csv 檔案還原您的資料',
   'Import from Presently?': '從 Presently 匯入？',
   'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
     '這將從 Presently 應用程式的 CSV 檔案匯入紀錄。重複的紀錄將被略過。',
@@ -332,8 +342,7 @@ export const zhTW: Translations = {
   'Restore entries and media': '還原紀錄和媒體',
   'Refresh journal data': '重整日記資料',
   'Loading the selected import file.': '正在載入選定的匯入檔案。',
-  'Checking backup contents and file structure.':
-    '正在檢查備份內容和檔案結構。',
+  'Checking backup contents and file structure.': '正在檢查備份內容和檔案結構。',
   'Restoring profile details and profile photo if available.':
     '正在還原個人檔案詳細資料和頭像（如果有）。',
   'Adding tags and prompts before entries are restored.':

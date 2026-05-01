@@ -259,6 +259,18 @@ export const he: Translations = {
   'Set the first day of the week in the calendar view':
     'הגדר את היום הראשון בשבוע בתצוגת היומן',
 
+  // Settings - Typography
+  Typography: 'טיפוגרפיה',
+  'Title Font': 'גופן כותרת',
+  'Choose a font for titles and headings': 'בחר גופן עבור כותרות וכותרות משנה',
+  Default: 'ברירת מחדל',
+  'Font Size': 'גודל גופן',
+  'Adjust the size of body text': 'התאם את גודל טקסט הגוף',
+  Small: 'קטן',
+  Large: 'גדול',
+  'Preview of the selected font': 'תצוגה מקדימה של הגופן הנבחר',
+  'Gratitude makes today brighter': 'הכרת תודה הופכת את היום לבהיר יותר',
+
   // Settings - Journaling
   Journaling: 'כתיבה יומית',
   'Worksheet Template': 'תבנית דף כתיבה',
@@ -293,7 +305,7 @@ export const he: Translations = {
   'Lock with biometric scanner if supported':
     'טאקבוק יכול לנעול באמצעות הסורק הביומטרי של המכשיר (אם נתמך)',
 
-    // Settings - Backup & Restore
+  // Settings - Backup & Restore
   'Backup & Restore': 'גיבוי ושחזור',
   'Google Drive Backup': 'גיבוי ל-Google Drive',
   'Automatically back up your entries with Google Drive':
@@ -340,8 +352,7 @@ export const he: Translations = {
   'Restore entries and media': 'משחזר רשומות ומדיה',
   'Refresh journal data': 'מרענן נתוני יומן',
   'Loading the selected import file.': 'טוען את קובץ הייבוא שנבחר.',
-  'Checking backup contents and file structure.':
-    'בודק את תוכן הגיבוי ומבנה הקובץ.',
+  'Checking backup contents and file structure.': 'בודק את תוכן הגיבוי ומבנה הקובץ.',
   'Restoring profile details and profile photo if available.':
     'משחזר פרטי פרופיל ותמונת פרופיל במידה וזמינה.',
   'Adding tags and prompts before entries are restored.':

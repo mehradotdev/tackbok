@@ -27,6 +27,7 @@ export const SHEET_NAMES = {
   WORKSHEET_TEMPLATE: 'worksheet-template-sheet',
   THEME_PICKER: 'theme-picker-sheet',
   JOURNAL_FOCUS_AREAS: 'journal-focus-areas-sheet',
+  FONT_PICKER: 'font-picker-sheet',
 } as const;
 
 /*

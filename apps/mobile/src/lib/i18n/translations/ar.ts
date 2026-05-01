@@ -257,6 +257,18 @@ export const ar: Translations = {
   'Set the first day of the week in the calendar view':
     'حدد أول يوم في الأسبوع في عرض التقويم',
 
+  // Settings - Typography
+  Typography: 'الخطوط',
+  'Title Font': 'خط العنوان',
+  'Choose a font for titles and headings': 'اختر خطًا للعناوين والترويسات',
+  Default: 'افتراضي',
+  'Font Size': 'حجم الخط',
+  'Adjust the size of body text': 'ضبط حجم النص الأساسي',
+  Small: 'صغير',
+  Large: 'كبير',
+  'Preview of the selected font': 'معاينة الخط المحدد',
+  'Gratitude makes today brighter': 'الامتنان يجعل اليوم أكثر إشراقًا',
+
   // Settings - Journaling
   Journaling: 'الكتابة اليومية',
   'Worksheet Template': 'قالب ورقة الكتابة',
@@ -291,7 +303,7 @@ export const ar: Translations = {
   'Lock with biometric scanner if supported':
     'يمكن لتاكبوك القفل باستخدام الماسح البيومتري لجهازك (إذا كان مدعوماً)',
 
-    // Settings - Backup & Restore
+  // Settings - Backup & Restore
   'Backup & Restore': 'النسخ الاحتياطي والاستعادة',
   'Google Drive Backup': 'نسخ احتياطي على Google Drive',
   'Automatically back up your entries with Google Drive':
@@ -346,7 +358,8 @@ export const ar: Translations = {
     'جاري إضافة الوسوم والمطالبات قبل استعادة الإدخالات.',
   'Processing {processed} of {total} journal entries and attached media.':
     'جاري معالجة {processed} من {total} من إدخالات اليوميات والوسائط المرفقة.',
-  'No journal entries found in this backup.': 'لم يتم العثور على إدخالات يوميات في هذه النسخة الاحتياطية.',
+  'No journal entries found in this backup.':
+    'لم يتم العثور على إدخالات يوميات في هذه النسخة الاحتياطية.',
   'Refreshing your journal so imported data appears everywhere.':
     'جاري تحديث يومياتك حتى تظهر البيانات المستوردة في كل مكان.',
   'Entries processed': 'الإدخالات المعالجة',

@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { Pressable, Text as RNText } from 'react-native';
+import { Pressable } from 'react-native';
 import * as Slot from '~/components/primitives/slot';
+import { Text as AppText } from '~/components/ui/text';
 import type { RootProps, RootRef, TextProps, TextRef } from './types';
 
 const Root = (props: RootProps & { ref?: React.Ref<RootRef> }) => {
@@ -13,7 +14,7 @@ Root.displayName = 'RootNativeLabel';
 
 const Text = (props: TextProps & { ref?: React.Ref<TextRef> }) => {
   const { asChild, ref, ...rest } = props;
-  const Component = asChild ? Slot.Text : RNText;
+  const Component = asChild ? Slot.Text : AppText;
   return <Component ref={ref} {...rest} />;
 };
 
