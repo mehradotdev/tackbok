@@ -9,7 +9,7 @@ This folder contains the source of truth and generated artifacts for theme and f
   This is the first file to edit when adding or removing a theme or title font.
 - `generate-theme-artifacts.ts`
   Generates the runtime artifacts consumed by Metro, TypeScript, and Uniwind.
-  It updates or creates `global.css`, `registry.js`, and `registry.d.ts` from `theme-tokens.ts`.
+  It updates or creates `src/global.css`, `registry.js`, and `registry.d.ts` from `theme-tokens.ts`.
 - `registry.js`
   Generated metadata artifact used by Metro and runtime imports that need plain JavaScript.
 - `registry.d.ts`
@@ -20,7 +20,7 @@ This folder contains the source of truth and generated artifacts for theme and f
 - `fonts.ts`
   Centralizes Expo font asset loading.
   The font family names here must match the font family strings referenced by theme tokens and typography helpers.
-- `global.css`
+- `src/global.css`
   Contains the generated Uniwind theme-token layer via `@variant` blocks.
   Uniwind still consumes CSS variants at runtime, but the values now come from generated output instead of hand-edited theme blocks.
   Handwritten CSS above the generated marker block is preserved on regeneration.
@@ -63,9 +63,9 @@ That split is intentional. The source of truth is now centralized in TypeScript,
 7. If you changed theme ids, run Metro once so Uniwind regenerates `src/uniwind-types.d.ts`.
 8. If you want one command for both steps, run `bun run generate:themes:verify`.
 
-## How `global.css` Is Managed
+## How `src/global.css` Is Managed
 
-`global.css` has two ownership zones:
+`src/global.css` has two ownership zones:
 
 1. Manual CSS above the generated marker block.
 2. Generated theme CSS inside the marker block.
@@ -75,13 +75,13 @@ The generator removes and rebuilds only the generated block:
 - `/* @generated theme-artifacts:start */`
 - `/* @generated theme-artifacts:end */`
 
-If `global.css` is missing, empty, or contains only the two import statements, the generator bootstraps a default manual shell before appending the generated theme block.
+If `src/global.css` is missing, empty, or contains only the two import statements, the generator bootstraps a default manual shell before appending the generated theme block.
 
 That means:
 
 - You can safely add handwritten utilities or shared CSS above the generated markers.
 - You should not manually edit anything inside the generated block.
-- If you delete `global.css`, running `bun run generate:themes` will recreate it.
+- If you delete `src/global.css`, running `bun run generate:themes` will recreate it.
 
 ## How To Add A Title Font Today
 
@@ -95,7 +95,7 @@ That means:
 
 - `registry.js`
 - `registry.d.ts`
-- The generated theme sections inside `global.css`
+- The generated theme sections inside `src/global.css`
 
 Do not edit those by hand. Edit `theme-tokens.ts` and regenerate them instead.
 
@@ -106,7 +106,7 @@ Do not edit those by hand. Edit `theme-tokens.ts` and regenerate them instead.
 The generator keeps the runtime theming model simple:
 
 1. `theme-tokens.ts` defines theme metadata and token values.
-2. `generate-theme-artifacts.ts` generates `registry.js`, `registry.d.ts`, and the theme sections in `global.css`.
+2. `generate-theme-artifacts.ts` generates `registry.js`, `registry.d.ts`, and the theme sections in `src/global.css`.
 3. Metro + Uniwind regenerate `src/uniwind-types.d.ts` from the configured theme list.
 4. Uniwind still reads the generated CSS and runtime switching still uses `Uniwind.setTheme()`.
 

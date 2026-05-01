@@ -9,6 +9,7 @@ import {
   THEME_TOKEN_KEYS,
   TITLE_FONTS,
   type ThemeDefinition,
+  type ThemeId,
   getThemeDefinition,
   resolveThemeVariables,
 } from './theme-tokens';
@@ -106,7 +107,7 @@ function quoteUnion(values: readonly string[]): string {
   return values.map((value) => `'${value}'`).join(' | ');
 }
 
-function buildThemeCssVariableLines(themeId: string): string {
+function buildThemeCssVariableLines(themeId: ThemeId): string {
   const theme = getThemeDefinition(themeId);
   const resolvedVariables = resolveThemeVariables(theme);
 

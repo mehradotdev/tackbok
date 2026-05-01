@@ -543,7 +543,8 @@ export const THEME_DEFINITIONS = [
 export type ThemeDefinition = (typeof THEME_DEFINITIONS)[number];
 export type ThemeId = ThemeDefinition['id'];
 
-export function getTitleFontConfig(id: string) {
+/** Internal source-of-truth helper; runtime fallback lives in themes.ts */
+export function getTitleFontConfig(id: TitleFontId) {
   return TITLE_FONTS.find((font) => font.id === id) ?? TITLE_FONTS[0];
 }
 
@@ -551,7 +552,8 @@ export function getBodyFontPack(id: BodyFontPackId) {
   return BODY_FONT_PACKS[id];
 }
 
-export function getThemeDefinition(id: string) {
+/** Internal source-of-truth helper; runtime fallback lives in themes.ts */
+export function getThemeDefinition(id: ThemeId) {
   return THEME_DEFINITIONS.find((theme) => theme.id === id) ?? THEME_DEFINITIONS[0];
 }
 

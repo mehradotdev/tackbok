@@ -156,16 +156,12 @@ describe('Theme Registry', () => {
   });
 
   test('generated CSS theme variables stay in sync with theme-tokens source', () => {
-    const mismatches = THEME_DEFINITIONS.flatMap((theme) => {
+    for (const theme of THEME_DEFINITIONS) {
       const cssVariables = themeVariablesById.get(theme.id) ?? {};
       const expectedVariables = resolveThemeVariables(theme);
 
-      return JSON.stringify(cssVariables) === JSON.stringify(expectedVariables)
-        ? []
-        : [theme.id];
-    });
-
-    expect(mismatches).toEqual([]);
+      expect(cssVariables).toEqual(expectedVariables);
+    }
   });
 
   test('every theme variant defines the same CSS variable set', () => {
