@@ -15,6 +15,7 @@
     "test:theme": "jest src/lib/theme/theme-registry.test.ts src/lib/theme/metro-config.test.ts"
   },
   "dependencies": {
+    "@babel/runtime": "^7.29.2",
     "@expo-google-fonts/cinzel": "^0.4.2",
     "@expo-google-fonts/figtree": "^0.4.1",
     "@expo-google-fonts/gloria-hallelujah": "^0.4.1",
