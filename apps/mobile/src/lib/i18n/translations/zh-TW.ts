@@ -217,6 +217,15 @@ export const zhTW: Translations = {
   // Milestones
   'days of gratitude': '感恩天數',
 
+  // Settings - Profile
+  'Your Name': '您的姓名',
+  'Change Photo': '更換照片',
+  'Profile Photo': '個人頭像',
+  'Would you like to update or remove your profile photo?':
+    '您想更新還是移除您的個人頭像？',
+  'Update Photo': '更新照片',
+  'Remove Photo': '移除照片',
+
   // Settings
   Language: '語言',
   'Select Language': '選擇語言',

@@ -219,6 +219,15 @@ export const ar: Translations = {
   // Milestones
   'days of gratitude': 'أيام من الامتنان',
 
+  // Settings - Profile
+  'Your Name': 'اسمك',
+  'Change Photo': 'تغيير الصورة',
+  'Profile Photo': 'صورة الملف الشخصي',
+  'Would you like to update or remove your profile photo?':
+    'هل تريد تحديث أو إزالة صورة ملفك الشخصي؟',
+  'Update Photo': 'تحديث الصورة',
+  'Remove Photo': 'إزالة الصورة',
+
   // Settings
   Language: 'اللغة',
   'Select Language': 'اختر اللغة',

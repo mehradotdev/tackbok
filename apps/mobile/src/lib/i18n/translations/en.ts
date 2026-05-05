@@ -233,6 +233,15 @@ export const en = {
   // Milestones
   'days of gratitude': 'days of gratitude',
 
+  // Settings - Profile
+  'Your Name': 'Your Name',
+  'Change Photo': 'Change Photo',
+  'Profile Photo': 'Profile Photo',
+  'Would you like to update or remove your profile photo?':
+    'Would you like to update or remove your profile photo?',
+  'Update Photo': 'Update Photo',
+  'Remove Photo': 'Remove Photo',
+
   // Settings
   Language: 'Language',
   'Select Language': 'Select Language',

@@ -193,10 +193,10 @@
       --theme-border-width: 3px;
       --theme-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
       --font-heading: 'SpaceMono_700Bold';
-      --font-body: 'Inter_400Regular';
-      --font-body-medium: 'Inter_500Medium';
-      --font-body-semibold: 'Inter_600SemiBold';
-      --font-body-bold: 'Inter_700Bold';
+      --font-body: 'JetBrainsMono_400Regular';
+      --font-body-medium: 'JetBrainsMono_500Medium';
+      --font-body-semibold: 'JetBrainsMono_600SemiBold';
+      --font-body-bold: 'JetBrainsMono_700Bold';
     }
 
     /* ═══════════════════════════════════════════
@@ -465,10 +465,10 @@
       --theme-border-width: 3px;
       --theme-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
       --font-heading: 'SpaceMono_700Bold';
-      --font-body: 'Inter_400Regular';
-      --font-body-medium: 'Inter_500Medium';
-      --font-body-semibold: 'Inter_600SemiBold';
-      --font-body-bold: 'Inter_700Bold';
+      --font-body: 'JetBrainsMono_400Regular';
+      --font-body-medium: 'JetBrainsMono_500Medium';
+      --font-body-semibold: 'JetBrainsMono_600SemiBold';
+      --font-body-bold: 'JetBrainsMono_700Bold';
     }
   }
 }
