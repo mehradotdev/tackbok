@@ -145,11 +145,17 @@ function SelectItem({
 }: SelectPrimitive.ItemProps & {
   className?: string;
 }) {
+  const { value } = SelectPrimitive.useRootContext();
+  const isSelected = value?.value === props.value;
+
   return (
     <SelectPrimitive.Item
       className={cn(
         'active:bg-accent/50 group relative flex w-full flex-row items-center gap-2 rounded-sm py-2 pl-2 pr-8 sm:py-1.5',
         props.disabled && 'opacity-50',
+        // Keep selected-row styling in the UI wrapper so the primitive stays close
+        // to upstream while the app controls its own visual language.
+        isSelected && 'bg-accent',
         className,
       )}
       {...props}>

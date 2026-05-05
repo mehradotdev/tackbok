@@ -1,18 +1,18 @@
 import {
-  useAugmentedRef,
+  useAnchoredContentDismiss,
+  useAnchoredTriggerController,
   useControllableState,
+  useDismissibleAnchoredContent,
   useRelativePosition,
   type LayoutPosition,
 } from '~/components/primitives/hooks';
 import { Portal as RNPPortal } from '~/components/primitives/portal';
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import * as React from 'react';
 import {
-  BackHandler,
   Pressable,
   Text,
   View,
-  useWindowDimensions,
   type GestureResponderEvent,
   type LayoutChangeEvent,
   type LayoutRectangle,
@@ -62,22 +62,14 @@ interface IRootContext {
 }
 
 const RootContext = React.createContext<IRootContext | null>(null);
-
-function measureTriggerPosition(
-  trigger: TriggerRef | null,
-  setTriggerPosition: (triggerPosition: LayoutPosition | null) => void,
-) {
-  trigger?.measure((_x, _y, width, height, pageX, pageY) => {
-    setTriggerPosition({ width, pageX, pageY, height });
-  });
-}
+type RootComponentProps = RootProps & React.RefAttributes<RootRef>;
 
 const Root = ({
   asChild,
   onOpenChange: onOpenChangeProp,
   ref,
   ...viewProps
-}: RootProps & { ref?: React.Ref<RootRef> }) => {
+}: RootComponentProps) => {
   const nativeID = React.useId();
   const [triggerPosition, setTriggerPosition] = React.useState<LayoutPosition | null>(
     null,
@@ -85,15 +77,12 @@ const Root = ({
   const [contentLayout, setContentLayout] = React.useState<LayoutRectangle | null>(null);
   const [open, setOpen] = React.useState(false);
 
-  const onOpenChange = React.useCallback(
-    (open: boolean) => {
-      setOpen(open);
-      onOpenChangeProp?.(open);
-    },
-    [onOpenChangeProp],
-  );
+  function onOpenChange(open: boolean) {
+    setOpen(open);
+    onOpenChangeProp?.(open);
+  }
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <RootContext.Provider
       value={{
@@ -121,6 +110,7 @@ function useRootContext() {
   }
   return context;
 }
+type TriggerComponentProps = TriggerProps & React.RefAttributes<TriggerRef>;
 
 const Trigger = ({
   asChild,
@@ -128,43 +118,27 @@ const Trigger = ({
   disabled = false,
   ref,
   ...props
-}: TriggerProps & { ref?: React.Ref<TriggerRef> }) => {
+}: TriggerComponentProps) => {
   const { open, onOpenChange, setTriggerPosition } = useRootContext();
-  const { width, height } = useWindowDimensions();
-
-  const augmentedRef = useAugmentedRef({
+  const { composedRef, measureTrigger } = useAnchoredTriggerController<TriggerRef>({
     ref,
-    methods: {
-      open: () => {
-        onOpenChange(true);
-        measureTriggerPosition(augmentedRef.current, setTriggerPosition);
-      },
-      close: () => {
-        setTriggerPosition(null);
-        onOpenChange(false);
-      },
-    },
+    open,
+    onOpenChange,
+    setTriggerPosition,
   });
-
-  React.useEffect(() => {
-    if (!open) return;
-    // Rotation changes the window size and can also move the trigger itself,
-    // so we re-measure while the menu is open to keep the anchor coordinates fresh.
-    measureTriggerPosition(augmentedRef.current, setTriggerPosition);
-  }, [augmentedRef, height, open, setTriggerPosition, width]);
 
   function onPress(ev: GestureResponderEvent) {
     if (disabled) return;
-    measureTriggerPosition(augmentedRef.current, setTriggerPosition);
+    measureTrigger();
     const newValue = !open;
     onOpenChange(newValue);
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
-      ref={augmentedRef}
+      ref={composedRef}
       aria-disabled={disabled ?? undefined}
       role="button"
       onPress={onPress}
@@ -199,6 +173,7 @@ function Portal({ forceMount, hostName, children }: PortalProps) {
     </RNPPortal>
   );
 }
+type OverlayComponentProps = OverlayProps & React.RefAttributes<OverlayRef>;
 
 const Overlay = ({
   asChild,
@@ -207,14 +182,17 @@ const Overlay = ({
   closeOnPress = true,
   ref,
   ...props
-}: OverlayProps & { ref?: React.Ref<OverlayRef> }) => {
+}: OverlayComponentProps) => {
   const { open, onOpenChange, setContentLayout, setTriggerPosition } = useRootContext();
+  const dismissContent = useAnchoredContentDismiss({
+    onOpenChange,
+    setContentLayout,
+    setTriggerPosition,
+  });
 
   function onPress(ev: GestureResponderEvent) {
     if (closeOnPress) {
-      setTriggerPosition(null);
-      setContentLayout(null);
-      onOpenChange(false);
+      dismissContent();
     }
     OnPressProp?.(ev);
   }
@@ -225,15 +203,13 @@ const Overlay = ({
     }
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return <Component ref={ref} onPress={onPress} {...props} />;
 };
 
 Overlay.displayName = 'OverlayNativeDropdownMenu';
+type ContentComponentProps = ContentProps & React.RefAttributes<ContentRef>;
 
-/**
- * @info `position`, `top`, `left`, and `maxWidth` style properties are controlled internally. Opt out of this behavior by setting `disablePositioningStyle` to `true`.
- */
 const Content = ({
   asChild = false,
   forceMount,
@@ -248,7 +224,7 @@ const Content = ({
   disablePositioningStyle,
   ref,
   ...props
-}: ContentProps & { ref?: React.Ref<ContentRef> }) => {
+}: ContentComponentProps) => {
   const {
     open,
     onOpenChange,
@@ -259,20 +235,12 @@ const Content = ({
     setContentLayout,
   } = useRootContext();
 
-  React.useEffect(() => {
-    if (!open) return;
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      setTriggerPosition(null);
-      setContentLayout(null);
-      onOpenChange(false);
-      return true;
-    });
-
-    return () => {
-      setContentLayout(null);
-      backHandler.remove();
-    };
-  }, [open, onOpenChange, setTriggerPosition, setContentLayout]);
+  useDismissibleAnchoredContent({
+    open,
+    onOpenChange,
+    setContentLayout,
+    setTriggerPosition,
+  });
 
   const positionStyle = useRelativePosition({
     align,
@@ -297,7 +265,7 @@ const Content = ({
     }
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -312,6 +280,7 @@ const Content = ({
 };
 
 Content.displayName = 'ContentNativeDropdownMenu';
+type ItemComponentProps = ItemProps & React.RefAttributes<ItemRef>;
 
 const Item = ({
   asChild,
@@ -321,19 +290,22 @@ const Item = ({
   closeOnPress = true,
   ref,
   ...props
-}: ItemProps & { ref?: React.Ref<ItemRef> }) => {
+}: ItemComponentProps) => {
   const { onOpenChange, setTriggerPosition, setContentLayout } = useRootContext();
+  const dismissContent = useAnchoredContentDismiss({
+    onOpenChange,
+    setContentLayout,
+    setTriggerPosition,
+  });
 
   function onPress(ev: GestureResponderEvent) {
     if (closeOnPress) {
-      setTriggerPosition(null);
-      setContentLayout(null);
-      onOpenChange(false);
+      dismissContent();
     }
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -349,37 +321,33 @@ const Item = ({
 };
 
 Item.displayName = 'ItemNativeDropdownMenu';
+type GroupComponentProps = GroupProps & React.RefAttributes<GroupRef>;
 
-const Group = ({
-  asChild,
-  ref,
-  ...props
-}: GroupProps & { ref?: React.Ref<GroupRef> }) => {
-  const Component = asChild ? Slot.View : View;
+const Group = ({ asChild, ref, ...props }: GroupComponentProps) => {
+  const Component = asChild ? Slot : View;
   return <Component ref={ref} role="group" {...props} />;
 };
 
 Group.displayName = 'GroupNativeDropdownMenu';
+type LabelComponentProps = LabelProps & React.RefAttributes<LabelRef>;
 
-const Label = ({
-  asChild,
-  ref,
-  ...props
-}: LabelProps & { ref?: React.Ref<LabelRef> }) => {
-  const Component = asChild ? Slot.Text : Text;
+const Label = ({ asChild, ref, ...props }: LabelComponentProps) => {
+  const Component = asChild ? Slot : Text;
   return <Component ref={ref} {...props} />;
 };
 
 Label.displayName = 'LabelNativeDropdownMenu';
 
-type IFormItemContext =
+type FormItemState =
   | { checked: boolean }
   | {
       value: string | undefined;
       onValueChange: (value: string) => void;
     };
 
-const FormItemContext = React.createContext<IFormItemContext | null>(null);
+const FormItemContext = React.createContext<FormItemState | null>(null);
+type CheckboxItemComponentProps = CheckboxItemProps &
+  React.RefAttributes<CheckboxItemRef>;
 
 const CheckboxItem = ({
   asChild,
@@ -391,20 +359,23 @@ const CheckboxItem = ({
   disabled = false,
   ref,
   ...props
-}: CheckboxItemProps & { ref?: React.Ref<CheckboxItemRef> }) => {
+}: CheckboxItemComponentProps) => {
   const { onOpenChange, setContentLayout, setTriggerPosition } = useRootContext();
+  const dismissContent = useAnchoredContentDismiss({
+    onOpenChange,
+    setContentLayout,
+    setTriggerPosition,
+  });
 
   function onPress(ev: GestureResponderEvent) {
     onCheckedChange(!checked);
     if (closeOnPress) {
-      setTriggerPosition(null);
-      setContentLayout(null);
-      onOpenChange(false);
+      dismissContent();
     }
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <FormItemContext.Provider value={{ checked }}>
       <Component
@@ -433,6 +404,7 @@ function useFormItemContext() {
   }
   return context;
 }
+type RadioGroupComponentProps = RadioGroupProps & React.RefAttributes<RadioGroupRef>;
 
 const RadioGroup = ({
   asChild,
@@ -440,8 +412,8 @@ const RadioGroup = ({
   onValueChange,
   ref,
   ...props
-}: RadioGroupProps & { ref?: React.Ref<RadioGroupRef> }) => {
-  const Component = asChild ? Slot.View : View;
+}: RadioGroupComponentProps) => {
+  const Component = asChild ? Slot : View;
   return (
     <FormItemContext.Provider value={{ value, onValueChange }}>
       <Component ref={ref} role="radiogroup" {...props} />
@@ -451,11 +423,12 @@ const RadioGroup = ({
 
 RadioGroup.displayName = 'RadioGroupNativeDropdownMenu';
 
-type BothFormItemContext = Exclude<IFormItemContext, { checked: boolean }> & {
+type BothFormItemContext = Exclude<FormItemState, { checked: boolean }> & {
   checked: boolean;
 };
 
 const RadioItemContext = React.createContext({} as { itemValue: string });
+type RadioItemComponentProps = RadioItemProps & React.RefAttributes<RadioItemRef>;
 
 const RadioItem = ({
   asChild,
@@ -466,21 +439,24 @@ const RadioItem = ({
   closeOnPress = true,
   ref,
   ...props
-}: RadioItemProps & { ref?: React.Ref<RadioItemRef> }) => {
+}: RadioItemComponentProps) => {
   const { onOpenChange, setContentLayout, setTriggerPosition } = useRootContext();
+  const dismissContent = useAnchoredContentDismiss({
+    onOpenChange,
+    setContentLayout,
+    setTriggerPosition,
+  });
 
   const { value, onValueChange } = useFormItemContext() as BothFormItemContext;
   function onPress(ev: GestureResponderEvent) {
     onValueChange(itemValue);
     if (closeOnPress) {
-      setTriggerPosition(null);
-      setContentLayout(null);
-      onOpenChange(false);
+      dismissContent();
     }
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <RadioItemContext.Provider value={{ itemValue }}>
       <Component
@@ -505,13 +481,15 @@ RadioItem.displayName = 'RadioItemNativeDropdownMenu';
 function useItemIndicatorContext() {
   return React.useContext(RadioItemContext);
 }
+type ItemIndicatorComponentProps = ItemIndicatorProps &
+  React.RefAttributes<ItemIndicatorRef>;
 
 const ItemIndicator = ({
   asChild,
   forceMount,
   ref,
   ...props
-}: ItemIndicatorProps & { ref?: React.Ref<ItemIndicatorRef> }) => {
+}: ItemIndicatorComponentProps) => {
   const { itemValue } = useItemIndicatorContext();
   const { checked, value } = useFormItemContext() as BothFormItemContext;
 
@@ -523,19 +501,15 @@ const ItemIndicator = ({
       return null;
     }
   }
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return <Component ref={ref} role="presentation" {...props} />;
 };
 
 ItemIndicator.displayName = 'ItemIndicatorNativeDropdownMenu';
+type SeparatorComponentProps = SeparatorProps & React.RefAttributes<SeparatorRef>;
 
-const Separator = ({
-  asChild,
-  decorative,
-  ref,
-  ...props
-}: SeparatorProps & { ref?: React.Ref<SeparatorRef> }) => {
-  const Component = asChild ? Slot.View : View;
+const Separator = ({ asChild, decorative, ref, ...props }: SeparatorComponentProps) => {
+  const Component = asChild ? Slot : View;
   return (
     <Component role={decorative ? 'presentation' : 'separator'} ref={ref} {...props} />
   );
@@ -548,6 +522,7 @@ const SubContext = React.createContext<{
   open: boolean;
   onOpenChange: (value: boolean) => void;
 } | null>(null);
+type SubComponentProps = SubProps & React.RefAttributes<SubRef>;
 
 const Sub = ({
   asChild,
@@ -556,7 +531,7 @@ const Sub = ({
   onOpenChange: onOpenChangeProp,
   ref,
   ...props
-}: SubProps & { ref?: React.Ref<SubRef> }) => {
+}: SubComponentProps) => {
   const nativeID = React.useId();
   const [open = false, onOpenChange] = useControllableState({
     prop: openProp,
@@ -564,7 +539,7 @@ const Sub = ({
     onChange: onOpenChangeProp,
   });
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <SubContext.Provider
       value={{
@@ -588,6 +563,7 @@ function useSubContext() {
   }
   return context;
 }
+type SubTriggerComponentProps = SubTriggerProps & React.RefAttributes<SubTriggerRef>;
 
 const SubTrigger = ({
   asChild,
@@ -596,7 +572,7 @@ const SubTrigger = ({
   disabled = false,
   ref,
   ...props
-}: SubTriggerProps & { ref?: React.Ref<SubTriggerRef> }) => {
+}: SubTriggerComponentProps) => {
   const { nativeID, open, onOpenChange } = useSubContext();
 
   function onPress(ev: GestureResponderEvent) {
@@ -604,7 +580,7 @@ const SubTrigger = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -622,13 +598,14 @@ const SubTrigger = ({
 };
 
 SubTrigger.displayName = 'SubTriggerNativeDropdownMenu';
+type SubContentComponentProps = SubContentProps & React.RefAttributes<SubContentRef>;
 
 const SubContent = ({
   asChild = false,
   forceMount,
   ref,
   ...props
-}: SubContentProps & { ref?: React.Ref<SubContentRef> }) => {
+}: SubContentComponentProps) => {
   const { open, nativeID } = useSubContext();
 
   if (!forceMount) {
@@ -637,7 +614,7 @@ const SubContent = ({
     }
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return <Component ref={ref} role="group" aria-labelledby={nativeID} {...props} />;
 };
 
@@ -662,8 +639,9 @@ export {
   Trigger,
   useRootContext,
   useSubContext,
+};
 
-  // Export types
+export type {
   CheckboxItemProps,
   CheckboxItemRef,
   ContentProps,
@@ -695,4 +673,4 @@ export {
   SubTriggerRef,
   TriggerProps,
   TriggerRef,
-};
+} from './types';

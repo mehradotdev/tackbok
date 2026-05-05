@@ -1,11 +1,5 @@
 import type { Insets } from '~/components/primitives/types';
-import * as React from 'react';
-import {
-  I18nManager,
-  type LayoutRectangle,
-  type ScaledSize,
-  useWindowDimensions,
-} from 'react-native';
+import { Dimensions, type LayoutRectangle, type ScaledSize } from 'react-native';
 
 type UseRelativePositionArgs = Omit<
   GetContentStyleArgs,
@@ -27,49 +21,34 @@ export function useRelativePosition({
   side,
   disablePositioningStyle,
 }: UseRelativePositionArgs) {
-  const { width, height, scale, fontScale } = useWindowDimensions();
+  const dimensions = Dimensions.get('screen');
 
-  return React.useMemo(() => {
-    const dimensions: ScaledSize = { width, height, scale, fontScale };
+  // This calculation is cheap, and doing it synchronously avoids fragile memo
+  // dependency lists around mutable layout objects and current screen metrics.
+  if (disablePositioningStyle) {
+    return {};
+  }
 
-    if (disablePositioningStyle) {
-      return {};
-    }
-    if (!triggerPosition || !contentLayout) {
-      return {
-        position: 'absolute',
-        opacity: 0,
-        top: dimensions.height,
-        zIndex: -9999999,
-      } as const;
-    }
+  if (!triggerPosition || !contentLayout) {
+    return {
+      position: 'absolute',
+      opacity: 0,
+      top: dimensions.height,
+      zIndex: -9999999,
+    } as const;
+  }
 
-    return getContentStyle({
-      align,
-      avoidCollisions,
-      contentLayout,
-      side,
-      triggerPosition,
-      alignOffset,
-      insets,
-      sideOffset,
-      dimensions,
-    });
-  }, [
+  return getContentStyle({
     align,
     avoidCollisions,
+    contentLayout,
     side,
+    triggerPosition,
     alignOffset,
     insets,
     sideOffset,
-    triggerPosition,
-    contentLayout,
-    disablePositioningStyle,
-    width,
-    height,
-    scale,
-    fontScale,
-  ]);
+    dimensions,
+  });
 }
 
 export interface LayoutPosition {
@@ -176,12 +155,6 @@ function getAlignPosition({
         left = centeredPosition;
       }
     }
-  }
-
-  if (I18nManager.isRTL) {
-    // To account for the RTL layout, we calculate the distance from the right edge:
-    const leftRTL = dimensions.width - left - contentWidth;
-    return { left: leftRTL, maxWidth: maxContentWidth };
   }
 
   return { left, maxWidth: maxContentWidth };
