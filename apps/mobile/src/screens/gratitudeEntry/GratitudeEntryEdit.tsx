@@ -126,6 +126,7 @@ export function GratitudeEntryEdit({
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [isContentFocused, setIsContentFocused] = useState(false);
   const titleInputRef = useRef<TextInput>(null);
+  const contentInputRef = useRef<TextInput>(null);
   const hasPromptTitle = title.length > 0;
   const hasAttemptedAutoFill = useRef(false);
 
@@ -135,8 +136,7 @@ export function GratitudeEntryEdit({
       return;
     }
 
-    const needsCustom =
-      journalPromptsMode === 'custom' || journalPromptsMode === 'all';
+    const needsCustom = journalPromptsMode === 'custom' || journalPromptsMode === 'all';
     if (needsCustom && !isCustomPromptsLoaded) {
       return; // wait until custom prompts are loaded
     }
@@ -495,17 +495,31 @@ export function GratitudeEntryEdit({
             </Button>
           </View>
 
-          {/* Title Input */}
-          <Textarea
-            ref={titleInputRef}
-            className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
-            placeholder={t('Title (optional)')}
-            placeholderTextColor={mutedForegroundColor as string}
-            value={title}
-            onChangeText={setTitle}
-            onFocus={() => setIsTitleFocused(true)}
-            onBlur={() => setIsTitleFocused(false)}
-          />
+          {/* Title Input — Text when unfocused to prevent Android focus-forwarding */}
+          {isTitleFocused ? (
+            <Textarea
+              ref={titleInputRef}
+              className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
+              placeholder={t('Title (optional)')}
+              placeholderTextColor={mutedForegroundColor as string}
+              value={title}
+              onChangeText={setTitle}
+              onBlur={() => setIsTitleFocused(false)}
+            />
+          ) : (
+            <Text
+              onPress={() => {
+                setIsTitleFocused(true);
+                setTimeout(() => titleInputRef.current?.focus(), 50);
+              }}
+              className="px-0 py-1.5 text-lg font-body-semibold text-foreground">
+              {title || (
+                <Text className="text-lg font-body-semibold" style={{ color: mutedForegroundColor as string }}>
+                  {t('Title (optional)')}
+                </Text>
+              )}
+            </Text>
+          )}
 
           {/* Prompt Actions — shown when title is focused, or content is focused with no text */}
           {(isTitleFocused || (isContentFocused && content.length === 0)) && (
@@ -547,18 +561,33 @@ export function GratitudeEntryEdit({
             </View>
           )}
 
-          {/* Content Input */}
-          <Textarea
-            className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
-            textAlignVertical="top"
-            placeholder={t('What are you grateful for?')}
-            placeholderTextColor={mutedForegroundColor as string}
-            value={content}
-            onChangeText={setContent}
-            onFocus={() => setIsContentFocused(true)}
-            onBlur={() => setIsContentFocused(false)}
-            scrollEnabled={false}
-          />
+          {/* Content Input — Text when unfocused to prevent Android focus-forwarding */}
+          {isContentFocused ? (
+            <Textarea
+              ref={contentInputRef}
+              className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
+              textAlignVertical="top"
+              placeholder={t('What are you grateful for?')}
+              placeholderTextColor={mutedForegroundColor as string}
+              value={content}
+              onChangeText={setContent}
+              onBlur={() => setIsContentFocused(false)}
+              scrollEnabled={false}
+            />
+          ) : (
+            <Text
+              onPress={() => {
+                setIsContentFocused(true);
+                setTimeout(() => contentInputRef.current?.focus(), 50);
+              }}
+              className="px-0 py-1.5 text-base text-foreground leading-6">
+              {content || (
+                <Text className="text-base leading-6" style={{ color: mutedForegroundColor as string }}>
+                  {t('What are you grateful for?')}
+                </Text>
+              )}
+            </Text>
+          )}
 
           {/* Tags */}
           {displayTags.length > 0 && (

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, ScrollView, Keyboard } from 'react-native';
+import { useState, useRef, useCallback } from 'react';
+import { View, ScrollView, type TextInput } from 'react-native';
 import { Plus, X, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -37,7 +37,29 @@ interface ITagsModalProps {
   onTagDeleted?: (tagId: string) => void;
 }
 
-type ViewState = 'select' | 'create' | 'edit';
+type EditorMode = 'create' | 'edit';
+type QueuedTagSubmission =
+  | {
+      mode: 'create';
+      title: string;
+    }
+  | {
+      mode: 'edit';
+      title: string;
+      tag: Tag;
+    };
+
+const SELECT_TAG_LIST_MAX_HEIGHT = 200;
+const TAGS_EDITOR_SHEET_NAME = `${SHEET_NAMES.TAGS}-editor`;
+
+const normalizeTagTitle = (title: string) => title.toLowerCase();
+
+// Keep the scrollable select list and the short create/edit form in separate
+// TrueSheet instances. Android sizing became unreliable when one presented
+// sheet had to morph between these very different layouts in place.
+//
+// The editor sheet is intentionally a dumb draft collector. The select sheet
+// owns validation, mutations, and toast handling after the editor dismisses.
 
 // ============================================================================
 // Component
@@ -56,20 +78,122 @@ export function TagsModal({
     '--color-muted-foreground',
   ]);
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
-  const [viewState, setViewState] = useState<ViewState>('select');
+  const [editorMode, setEditorMode] = useState<EditorMode>('create');
   const [tagInputValue, setTagInputValue] = useState('');
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState<Tag | null>(null);
+  const [queuedSubmission, setQueuedSubmission] = useState<QueuedTagSubmission | null>(null);
+  const isProcessingSubmissionRef = useRef(false);
+  const tagInputRef = useRef<TextInput>(null);
+  const presentSheet = useCallback((sheetName: string) => {
+    TrueSheet.present(sheetName).catch(() => {});
+  }, []);
+
+  const dismissSheet = useCallback((sheetName: string) => {
+    return TrueSheet.dismiss(sheetName).catch(() => {});
+  }, []);
+
+  const dismissSheetStack = useCallback((sheetName: string) => {
+    return TrueSheet.dismissStack(sheetName).catch(() => {});
+  }, []);
+
+  const resetEditorState = useCallback(() => {
+    setEditorMode('create');
+    setTagInputValue('');
+    setEditingTag(null);
+  }, []);
+
+  const dismissEditor = useCallback(() => {
+    dismissSheetStack(SHEET_NAMES.TAGS);
+  }, [dismissSheetStack]);
+
+  const closeTagsFlow = useCallback(() => {
+    dismissSheet(SHEET_NAMES.TAGS);
+  }, [dismissSheet]);
+
+  const openEditor = useCallback(
+    (
+      nextEditorMode: EditorMode,
+      options?: { tag?: Tag },
+    ) => {
+      if (nextEditorMode === 'edit' && options?.tag) {
+        setEditingTag(options.tag);
+        setTagInputValue(options.tag.title);
+      } else {
+        setEditingTag(null);
+        setTagInputValue('');
+      }
+
+      setEditorMode(nextEditorMode);
+
+      presentSheet(TAGS_EDITOR_SHEET_NAME);
+    },
+    [presentSheet],
+  );
 
   const updateTagMutation = useUpdateTag();
   const deleteTagMutation = useDeleteTag();
   const createTagMutation = useCreateTag();
 
-  const handleDismiss = () => {
-    setViewState('select');
-    setTagInputValue('');
-    setEditingTag(null);
+  const hasConflictingTag = useCallback(
+    (title: string, excludedTagId?: string) => {
+      const normalizedTitle = normalizeTagTitle(title);
+
+      return allTags.some(
+        (tag) =>
+          tag.tag_id !== excludedTagId && normalizeTagTitle(tag.title) === normalizedTitle,
+      );
+    },
+    [allTags],
+  );
+
+  const processQueuedSubmission = useCallback(async () => {
+    if (!queuedSubmission || isProcessingSubmissionRef.current) {
+      return;
+    }
+
+    isProcessingSubmissionRef.current = true;
+    setQueuedSubmission(null);
+
+    try {
+      if (queuedSubmission.mode === 'create') {
+        if (hasConflictingTag(queuedSubmission.title)) {
+          toast.error(t('Tag already exists'), { useModal: true });
+          return;
+        }
+
+        await createTagMutation.mutateAsync(queuedSubmission.title);
+        toast.success(t('Tag created'), { useModal: true });
+        return;
+      }
+
+      if (hasConflictingTag(queuedSubmission.title, queuedSubmission.tag.tag_id)) {
+        toast.error(t('Tag already exists'), { useModal: true });
+        return;
+      }
+
+      await updateTagMutation.mutateAsync({
+        tagId: queuedSubmission.tag.tag_id,
+        title: queuedSubmission.title,
+      });
+      toast.success(t('Tag updated'), { useModal: true });
+    } catch (error) {
+      console.error(
+        queuedSubmission.mode === 'create' ? 'Failed to create tag' : 'Failed to update tag',
+        error,
+      );
+      toast.error(
+        t(queuedSubmission.mode === 'create' ? 'Failed to create tag' : 'Failed to update tag'),
+        { useModal: true },
+      );
+    } finally {
+      isProcessingSubmissionRef.current = false;
+    }
+  }, [createTagMutation, hasConflictingTag, queuedSubmission, t, updateTagMutation]);
+
+  const handleEditorSheetDismiss = () => {
+    resetEditorState();
     setTagToDelete(null);
     setDeleteDialogOpen(false);
   };
@@ -78,61 +202,22 @@ export function TagsModal({
   // Handlers
   // ============================================================================
 
-  const handleCreateTag = async () => {
-    // Sanitize: replace commas and pipes with spaces to avoid CSV/backup issues
+  const submitEditorDraft = useCallback(() => {
     const trimmed = sanitizeTagName(tagInputValue);
     if (!trimmed) return;
 
-    // Check if tag already exists
-    const exists = allTags.some(
-      (tag) => tag.title.toLowerCase() === trimmed.toLowerCase(),
-    );
-    if (exists) {
-      toast.error(t('Tag already exists'), { useModal: true });
-      setTagInputValue('');
-      setViewState('select');
-      return;
+    if (editorMode === 'edit' && editingTag) {
+      setQueuedSubmission({ mode: 'edit', tag: editingTag, title: trimmed });
+    } else {
+      setQueuedSubmission({ mode: 'create', title: trimmed });
     }
 
-    try {
-      await createTagMutation.mutateAsync(trimmed);
-      toast.success(t('Tag created'), { useModal: true });
-      setTagInputValue('');
-      setViewState('select');
-    } catch (error) {
-      console.error('Failed to create tag', error);
-      toast.error(t('Failed to create tag'), { useModal: true });
-    }
-  };
+    dismissEditor();
+  }, [dismissEditor, editingTag, editorMode, tagInputValue]);
 
-  const handleUpdateTag = async () => {
-    if (!editingTag) return;
-    // Sanitize: replace commas and pipes with spaces to avoid CSV/backup issues
-    const trimmed = sanitizeTagName(tagInputValue);
-    if (!trimmed) return;
+  const handleCreateTag = submitEditorDraft;
 
-    // Check if another tag already has this name
-    const exists = allTags.some(
-      (tag) =>
-        tag.tag_id !== editingTag.tag_id &&
-        tag.title.toLowerCase() === trimmed.toLowerCase(),
-    );
-    if (exists) {
-      toast.error(t('Tag already exists'), { useModal: true });
-      return;
-    }
-
-    try {
-      await updateTagMutation.mutateAsync({ tagId: editingTag.tag_id, title: trimmed });
-      toast.success(t('Tag updated'), { useModal: true });
-      setTagInputValue('');
-      setEditingTag(null);
-      setViewState('select');
-    } catch (error) {
-      console.error('Failed to update tag', error);
-      toast.error(t('Failed to update tag'), { useModal: true });
-    }
-  };
+  const handleUpdateTag = submitEditorDraft;
 
   const handleDeleteTag = async () => {
     if (!tagToDelete) return;
@@ -168,11 +253,12 @@ export function TagsModal({
     }
   };
 
-  const handleEditPress = (tag: Tag) => {
-    setEditingTag(tag);
-    setTagInputValue(tag.title);
-    setViewState('edit');
-  };
+  const handleEditPress = useCallback(
+    (tag: Tag) => {
+      openEditor('edit', { tag });
+    },
+    [openEditor],
+  );
 
   const handleDeletePress = (tag: Tag) => {
     setTagToDelete(tag);
@@ -180,35 +266,31 @@ export function TagsModal({
   };
 
   const handleBackPress = () => {
-    Keyboard.dismiss();
-    setViewState('select');
-    setTagInputValue('');
-    setEditingTag(null);
+    dismissEditor();
   };
 
-  const handleCreateNewPress = () => {
-    setTagInputValue('');
-    setViewState('create');
-  };
+  const handleCreateNewPress = useCallback(() => {
+    openEditor('create');
+  }, [openEditor]);
 
   // ============================================================================
   // Render Helpers
   // ============================================================================
 
-  const renderHeader = () => {
-    const isFormView = viewState === 'create' || viewState === 'edit';
-    const title =
-      viewState === 'create'
-        ? t('Create New Tag')
-        : viewState === 'edit'
-          ? t('Edit Tag')
-          : t('Add a Tag');
-
+  const renderHeader = ({
+    title,
+    onClose,
+    showBack = false,
+  }: {
+    title: string;
+    onClose: () => void;
+    showBack?: boolean;
+  }) => {
     return (
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         {/* Left side: Back button (only in form views) or empty space */}
         <View className="w-10">
-          {isFormView && (
+          {showBack && (
             <Button
               variant="ghost"
               size="icon"
@@ -235,7 +317,7 @@ export function TagsModal({
           <Button
             variant="ghost"
             size="icon"
-            onPress={() => TrueSheet.dismiss(SHEET_NAMES.TAGS)}
+            onPress={onClose}
             accessibilityLabel={t('Close')}
             hitSlop={10}
             className="w-8 h-8">
@@ -304,14 +386,13 @@ export function TagsModal({
     <View className="px-4 pt-2 pb-4">
       {allTags.length > 0 && (
         <View className="bg-card rounded-lg border border-border overflow-hidden mb-4">
-          <ScrollView
-            className="max-h-50"
-            contentContainerClassName="p-0"
-            nestedScrollEnabled>
-            {allTags.map((tag, index) =>
-              renderTagItem(tag, index === allTags.length - 1),
-            )}
-          </ScrollView>
+          <View style={{ maxHeight: SELECT_TAG_LIST_MAX_HEIGHT }}>
+            <ScrollView style={{ flexGrow: 0 }} contentContainerClassName="p-0" nestedScrollEnabled>
+              {allTags.map((tag, index) =>
+                renderTagItem(tag, index === allTags.length - 1),
+              )}
+            </ScrollView>
+          </View>
         </View>
       )}
 
@@ -327,20 +408,21 @@ export function TagsModal({
   );
 
   const renderFormView = () => {
-    const isCreateView = viewState === 'create';
+    const isCreateView = editorMode === 'create';
     const buttonText = isCreateView ? t('Create') : t('Save');
     const placeholderText = t('Tag name');
     const isDisabled = !tagInputValue.trim();
 
     return (
+      // <View className="flex-1 justify-between px-4 py-4">
       <View className="px-4 py-4">
         {/* Input field */}
         <Input
+          ref={tagInputRef}
           className="mb-4"
           placeholder={placeholderText}
           value={tagInputValue}
           onChangeText={setTagInputValue}
-          autoFocus
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"
@@ -375,17 +457,50 @@ export function TagsModal({
           adaptive: false,
         }}
         backgroundColor={backgroundColor as string}
-        onDidDismiss={handleDismiss}>
+        onDidFocus={processQueuedSubmission}>
         <View className="pt-2">
-          {renderHeader()}
+          {renderHeader({
+            title: t('Add a Tag'),
+            onClose: closeTagsFlow,
+          })}
 
-          {viewState === 'select' ? renderSelectView() : renderFormView()}
+          {renderSelectView()}
+        </View>
+      </TrueSheet>
+
+      <TrueSheet
+        name={TAGS_EDITOR_SHEET_NAME}
+        detents={['auto']}
+        cornerRadius={sheetRadius}
+        grabber={true}
+        grabberOptions={{
+          topMargin: 8,
+          color: mutedFgColor as string,
+          adaptive: false,
+        }}
+        backgroundColor={backgroundColor as string}
+        onDidPresent={() => {
+          setTimeout(() => {
+            tagInputRef.current?.focus();
+          }, 200);
+        }}
+        onDidDismiss={handleEditorSheetDismiss}>
+        <View className="pt-2">
+          {renderHeader({
+            title: editorMode === 'edit' ? t('Edit Tag') : t('Create New Tag'),
+            onClose: dismissEditor,
+            showBack: true,
+          })}
+
+          {renderFormView()}
         </View>
       </TrueSheet>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className={sheetRadius === 0 ? 'rounded-none' : ''}>
+        <AlertDialogContent
+          androidOverlayStrategy="modal"
+          className={sheetRadius === 0 ? 'rounded-none' : ''}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Delete Tag')}</AlertDialogTitle>
             <AlertDialogDescription>
