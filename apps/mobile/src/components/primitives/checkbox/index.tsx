@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GestureResponderEvent, Pressable, View } from 'react-native';
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import type {
   PressableRef,
   SlottablePressableProps,
@@ -13,6 +13,8 @@ interface RootContext extends RootProps {
 
 const CheckboxContext = React.createContext<RootContext | null>(null);
 
+type RootComponentProps = RootProps & React.RefAttributes<RootRef>;
+
 const Root = ({
   asChild,
   disabled = false,
@@ -21,7 +23,7 @@ const Root = ({
   nativeID,
   ref,
   ...props
-}: RootProps & { ref?: React.Ref<RootRef> }) => {
+}: RootComponentProps) => {
   return (
     <CheckboxContext.Provider
       value={{
@@ -47,12 +49,14 @@ function useCheckboxContext() {
   return context;
 }
 
+type TriggerComponentProps = SlottablePressableProps & React.RefAttributes<PressableRef>;
+
 const Trigger = ({
   asChild,
   onPress: onPressProp,
   ref,
   ...props
-}: SlottablePressableProps & { ref?: React.Ref<PressableRef> }) => {
+}: TriggerComponentProps) => {
   const { disabled, checked, onCheckedChange, nativeID } = useCheckboxContext();
 
   function onPress(ev: GestureResponderEvent) {
@@ -62,7 +66,7 @@ const Trigger = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -83,12 +87,9 @@ const Trigger = ({
 
 Trigger.displayName = 'TriggerNativeCheckbox';
 
-const Indicator = ({
-  asChild,
-  forceMount,
-  ref,
-  ...props
-}: IndicatorProps & { ref?: React.Ref<IndicatorRef> }) => {
+type IndicatorComponentProps = IndicatorProps & React.RefAttributes<IndicatorRef>;
+
+const Indicator = ({ asChild, forceMount, ref, ...props }: IndicatorComponentProps) => {
   const { checked, disabled } = useCheckboxContext();
 
   if (!forceMount) {
@@ -97,7 +98,7 @@ const Indicator = ({
     }
   }
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <Component
       ref={ref}

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Pressable, View, type GestureResponderEvent } from 'react-native';
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import type {
   IndicatorProps,
   IndicatorRef,
@@ -11,6 +11,7 @@ import type {
 } from './types';
 
 const RadioGroupContext = React.createContext<RootProps | null>(null);
+type RootComponentProps = RootProps & React.RefAttributes<RootRef>;
 
 const Root = ({
   asChild,
@@ -19,8 +20,8 @@ const Root = ({
   disabled = false,
   ref,
   ...viewProps
-}: RootProps & { ref?: React.Ref<RootRef> }) => {
-  const Component = asChild ? Slot.View : View;
+}: RootComponentProps) => {
+  const Component = asChild ? Slot : View;
   return (
     <RadioGroupContext.Provider
       value={{
@@ -50,6 +51,7 @@ interface IRadioItemContext {
 }
 
 const RadioItemContext = React.createContext<IRadioItemContext | null>(null);
+type ItemComponentProps = ItemProps & React.RefAttributes<ItemRef>;
 
 const Item = ({
   asChild,
@@ -58,7 +60,7 @@ const Item = ({
   onPress: onPressProp,
   ref,
   ...props
-}: ItemProps & { ref?: React.Ref<ItemRef> }) => {
+}: ItemComponentProps) => {
   const { disabled, value, onValueChange } = useRadioGroupContext();
 
   function onPress(ev: GestureResponderEvent) {
@@ -67,7 +69,7 @@ const Item = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <RadioItemContext.Provider
       value={{
@@ -106,7 +108,7 @@ const Indicator = ({
   forceMount,
   ref,
   ...props
-}: IndicatorProps & { ref?: React.Ref<IndicatorRef> }) => {
+}: IndicatorProps & React.RefAttributes<IndicatorRef>) => {
   const { value } = useRadioGroupContext();
   const { itemValue } = useRadioItemContext();
 
@@ -115,7 +117,7 @@ const Indicator = ({
       return null;
     }
   }
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return <Component ref={ref} role="presentation" {...props} />;
 };
 

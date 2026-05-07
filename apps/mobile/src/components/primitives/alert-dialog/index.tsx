@@ -1,6 +1,6 @@
 import { useControllableState } from '~/components/primitives/hooks';
 import { Portal as RNPPortal } from '~/components/primitives/portal';
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import * as React from 'react';
 import {
   BackHandler,
@@ -9,10 +9,7 @@ import {
   View,
   type GestureResponderEvent,
 } from 'react-native';
-import {
-  NavigationContext,
-  usePreventRemove,
-} from '@react-navigation/native';
+import { NavigationContext, usePreventRemove } from '@react-navigation/native';
 import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import type {
   ActionProps,
@@ -91,7 +88,7 @@ const Root = ({
     defaultProp: defaultOpen,
     onChange: onOpenChangeProp,
   });
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <AlertDialogContext.Provider
       value={{
@@ -130,11 +127,12 @@ const Trigger = ({
   const { open, onOpenChange } = useRootContext();
 
   function onPress(ev: GestureResponderEvent) {
+    if (disabled) return;
     onOpenChange(!open);
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -188,7 +186,7 @@ const Overlay = ({
     }
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return <Component ref={ref} onPress={onPress} {...props} />;
 };
 
@@ -237,7 +235,7 @@ const Content = ({
     }
   }
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <>
       {navigation ? (
@@ -280,7 +278,7 @@ const Cancel = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -312,7 +310,7 @@ const Action = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -333,7 +331,7 @@ const Title = ({
   ...props
 }: TitleProps & { ref?: React.Ref<TitleRef> }) => {
   const { nativeID } = useRootContext();
-  const Component = asChild ? Slot.Text : Text;
+  const Component = asChild ? Slot : Text;
   return <Component ref={ref} role="heading" nativeID={`${nativeID}_label`} {...props} />;
 };
 
@@ -345,7 +343,7 @@ const Description = ({
   ...props
 }: DescriptionProps & { ref?: React.Ref<DescriptionRef> }) => {
   const { nativeID } = useRootContext();
-  const Component = asChild ? Slot.Text : Text;
+  const Component = asChild ? Slot : Text;
   return <Component ref={ref} nativeID={`${nativeID}_desc`} {...props} />;
 };
 

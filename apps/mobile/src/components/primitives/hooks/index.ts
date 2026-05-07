@@ -1,4 +1,3 @@
-export { useAugmentedRef } from './useAugmentedRef';
 export {
 	useAnchoredContentDismiss,
 	useAnchoredTriggerController,

@@ -274,6 +274,7 @@ const Content = ({
       aria-modal={true}
       style={[positionStyle, style]}
       onLayout={onLayout}
+      onStartShouldSetResponder={onStartShouldSetResponder}
       {...props}
     />
   );
@@ -299,6 +300,8 @@ const Item = ({
   });
 
   function onPress(ev: GestureResponderEvent) {
+    if (disabled) return;
+
     if (closeOnPress) {
       dismissContent();
     }
@@ -368,6 +371,8 @@ const CheckboxItem = ({
   });
 
   function onPress(ev: GestureResponderEvent) {
+    if (disabled) return;
+
     onCheckedChange(!checked);
     if (closeOnPress) {
       dismissContent();
@@ -449,6 +454,8 @@ const RadioItem = ({
 
   const { value, onValueChange } = useFormItemContext() as BothFormItemContext;
   function onPress(ev: GestureResponderEvent) {
+    if (disabled) return;
+
     onValueChange(itemValue);
     if (closeOnPress) {
       dismissContent();
@@ -576,6 +583,8 @@ const SubTrigger = ({
   const { nativeID, open, onOpenChange } = useSubContext();
 
   function onPress(ev: GestureResponderEvent) {
+    if (disabled) return;
+
     onOpenChange(!open);
     onPressProp?.(ev);
   }
@@ -674,3 +683,7 @@ export type {
   TriggerProps,
   TriggerRef,
 } from './types';
+
+function onStartShouldSetResponder() {
+  return true;
+}

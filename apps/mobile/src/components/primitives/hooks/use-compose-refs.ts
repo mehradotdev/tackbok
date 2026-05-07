@@ -4,18 +4,21 @@ export function useComposedRefs<T>(
   ...refs: (React.Ref<T> | undefined)[]
 ): React.RefCallback<T> {
   const refsRef = React.useRef(refs);
-  const cleanupsRef = React.useRef<(() => void)[]>([]);
+  const cleanupsRef = React.useRef<((() => void) | undefined)[]>([]);
 
   refsRef.current = refs;
 
   return React.useCallback((node: T | null) => {
-    cleanupsRef.current.forEach((cleanup) => cleanup());
+    const previousCleanups = cleanupsRef.current;
+    previousCleanups.forEach((cleanup) => cleanup?.());
     cleanupsRef.current = [];
 
     if (node == null) {
-      refsRef.current.forEach((ref) => {
+      refsRef.current.forEach((ref, index) => {
         if (typeof ref === 'function') {
-          ref(null);
+          if (previousCleanups[index] == null) {
+            ref(null);
+          }
         } else if (ref != null) {
           ref.current = null;
         }
@@ -23,13 +26,14 @@ export function useComposedRefs<T>(
       return;
     }
 
-    cleanupsRef.current = refsRef.current
-      .map((ref) => setRef(ref, node))
-      .filter((cleanup): cleanup is () => void => cleanup != null);
+    cleanupsRef.current = refsRef.current.map((ref) => setRef(ref, node));
   }, []);
 }
 
-function setRef<T>(ref: React.Ref<T> | undefined, value: T | null): (() => void) | void {
+function setRef<T>(
+  ref: React.Ref<T> | undefined,
+  value: T | null,
+): (() => void) | undefined {
   if (typeof ref === 'function') {
     const cleanup = ref(value);
 

@@ -1,14 +1,11 @@
 import * as React from 'react';
 import { BackHandler, GestureResponderEvent, Pressable, View } from 'react-native';
-import {
-  NavigationContext,
-  usePreventRemove,
-} from '@react-navigation/native';
+import { NavigationContext, usePreventRemove } from '@react-navigation/native';
 import { Text } from '~/components/ui/text';
 import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { useControllableState } from '~/components/primitives/hooks';
 import { Portal as RNPPortal } from '~/components/primitives/portal';
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import type {
   CloseProps,
   CloseRef,
@@ -83,7 +80,7 @@ const Root = ({
     onChange: onOpenChangeProp,
   });
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <DialogContext.Provider
       value={{
@@ -128,7 +125,7 @@ const Trigger = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -182,7 +179,7 @@ const Overlay = ({
     }
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return <Component ref={ref} onPress={onPress} {...props} />;
 };
 
@@ -231,7 +228,7 @@ const Content = ({
     }
   }
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <>
       {navigation ? (
@@ -274,7 +271,7 @@ const Close = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -289,19 +286,22 @@ const Close = ({
 
 Close.displayName = 'CloseNativeDialog';
 
-const Title = ({ ref, ...props }: TitleProps & { ref?: React.Ref<TitleRef> }) => {
+const Title = ({ asChild, ref, ...props }: TitleProps & { ref?: React.Ref<TitleRef> }) => {
   const { nativeID } = useRootContext();
-  return <Text ref={ref} role="heading" nativeID={`${nativeID}_label`} {...props} />;
+  const Component = asChild ? Slot : Text;
+  return <Component ref={ref} role="heading" nativeID={`${nativeID}_label`} {...props} />;
 };
 
 Title.displayName = 'TitleNativeDialog';
 
 const Description = ({
+  asChild,
   ref,
   ...props
 }: DescriptionProps & { ref?: React.Ref<DescriptionRef> }) => {
   const { nativeID } = useRootContext();
-  return <Text ref={ref} nativeID={`${nativeID}_desc`} {...props} />;
+  const Component = asChild ? Slot : Text;
+  return <Component ref={ref} nativeID={`${nativeID}_desc`} {...props} />;
 };
 
 Description.displayName = 'DescriptionNativeDialog';

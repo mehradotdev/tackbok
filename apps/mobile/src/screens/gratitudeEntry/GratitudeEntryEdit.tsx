@@ -370,7 +370,7 @@ export function GratitudeEntryEdit({
       const shouldFocus = !title;
       setTitle(nextPrompt);
       if (shouldFocus) {
-        setTimeout(() => titleInputRef.current?.focus(), 100);
+        setIsTitleFocused(true);
       }
     }
   }, [availablePromptTitles, title]);
@@ -499,6 +499,7 @@ export function GratitudeEntryEdit({
           {isTitleFocused ? (
             <Textarea
               ref={titleInputRef}
+              autoFocus
               className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
               placeholder={t('Title (optional)')}
               placeholderTextColor={mutedForegroundColor as string}
@@ -508,10 +509,7 @@ export function GratitudeEntryEdit({
             />
           ) : (
             <Text
-              onPress={() => {
-                setIsTitleFocused(true);
-                setTimeout(() => titleInputRef.current?.focus(), 50);
-              }}
+              onPress={() => setIsTitleFocused(true)}
               className="px-0 py-1.5 text-lg font-body-semibold text-foreground">
               {title || (
                 <Text className="text-lg font-body-semibold" style={{ color: mutedForegroundColor as string }}>
@@ -565,6 +563,7 @@ export function GratitudeEntryEdit({
           {isContentFocused ? (
             <Textarea
               ref={contentInputRef}
+              autoFocus
               className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
               textAlignVertical="top"
               placeholder={t('What are you grateful for?')}
@@ -576,10 +575,7 @@ export function GratitudeEntryEdit({
             />
           ) : (
             <Text
-              onPress={() => {
-                setIsContentFocused(true);
-                setTimeout(() => contentInputRef.current?.focus(), 50);
-              }}
+              onPress={() => setIsContentFocused(true)}
               className="px-0 py-1.5 text-base text-foreground leading-6">
               {content || (
                 <Text className="text-base leading-6" style={{ color: mutedForegroundColor as string }}>

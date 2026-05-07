@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Platform } from 'react-native';
 import { cn } from 'tailwind-variants';
 import * as LabelPrimitive from '~/components/primitives/label';
+import { Text as AppText } from '~/components/ui/text';
 
 function Label({
   className,
@@ -24,15 +25,17 @@ function Label({
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       disabled={disabled}>
-      <LabelPrimitive.Text
-        ref={ref}
-        className={cn(
-          'text-foreground text-sm font-body-medium',
-          Platform.select({ web: 'leading-none' }),
-          className,
-        )}
-        {...props}
-      />
+      <LabelPrimitive.Text asChild>
+        <AppText
+          ref={ref}
+          className={cn(
+            'text-foreground text-sm font-body-medium',
+            Platform.select({ web: 'leading-none' }),
+            className,
+          )}
+          {...props}
+        />
+      </LabelPrimitive.Text>
     </LabelPrimitive.Root>
   );
 }

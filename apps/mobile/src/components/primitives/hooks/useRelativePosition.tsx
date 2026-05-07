@@ -1,5 +1,10 @@
 import type { Insets } from '~/components/primitives/types';
-import { Dimensions, type LayoutRectangle, type ScaledSize } from 'react-native';
+import {
+  Dimensions,
+  I18nManager,
+  type LayoutRectangle,
+  type ScaledSize,
+} from 'react-native';
 
 type UseRelativePositionArgs = Omit<
   GetContentStyleArgs,
@@ -21,7 +26,14 @@ export function useRelativePosition({
   side,
   disablePositioningStyle,
 }: UseRelativePositionArgs) {
-  const dimensions = Dimensions.get('screen');
+  const dimensions = Dimensions.get('window');
+  const effectiveAlign = I18nManager.isRTL
+    ? align === 'start'
+      ? 'end'
+      : align === 'end'
+        ? 'start'
+        : align
+    : align;
 
   // This calculation is cheap, and doing it synchronously avoids fragile memo
   // dependency lists around mutable layout objects and current screen metrics.
@@ -39,7 +51,7 @@ export function useRelativePosition({
   }
 
   return getContentStyle({
-    align,
+    align: effectiveAlign,
     avoidCollisions,
     contentLayout,
     side,

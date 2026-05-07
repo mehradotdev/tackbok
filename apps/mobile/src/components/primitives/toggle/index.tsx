@@ -1,17 +1,19 @@
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import * as React from 'react';
 import { Pressable, type GestureResponderEvent } from 'react-native';
 import type { RootProps, RootRef } from './types';
+
+type RootComponentProps = RootProps & React.RefAttributes<RootRef>;
 
 const Root = ({
   asChild,
   pressed,
   onPressedChange,
-  disabled,
+  disabled = false,
   onPress: onPressProp,
   ref,
   ...props
-}: RootProps & { ref?: React.Ref<RootRef> }) => {
+}: RootComponentProps) => {
   function onPress(ev: GestureResponderEvent) {
     if (disabled) return;
     const newValue = !pressed;
@@ -19,7 +21,7 @@ const Root = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}

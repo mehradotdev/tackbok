@@ -133,6 +133,7 @@ const Trigger = ({
     disabled: disabledRoot,
     setTriggerPosition,
   } = useRootContext();
+  const isDisabled = disabled || disabledRoot;
   const { composedRef, measureTrigger } = useAnchoredTriggerController<TriggerRef>({
     ref,
     open,
@@ -141,7 +142,7 @@ const Trigger = ({
   });
 
   function onPress(ev: GestureResponderEvent) {
-    if (disabled) return;
+    if (isDisabled) return;
     measureTrigger();
     onOpenChange(!open);
     onPressProp?.(ev);
@@ -151,10 +152,10 @@ const Trigger = ({
   return (
     <Component
       ref={composedRef}
-      aria-disabled={disabled ?? undefined}
+      aria-disabled={isDisabled || undefined}
       role="combobox"
       onPress={onPress}
-      disabled={disabled ?? disabledRoot}
+      disabled={isDisabled}
       aria-expanded={open}
       {...props}
     />
@@ -333,6 +334,8 @@ const Item = ({
   });
 
   function onPress(ev: GestureResponderEvent) {
+    if (disabled) return;
+
     if (closeOnPress) {
       dismissContent();
     }
