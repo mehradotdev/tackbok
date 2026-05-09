@@ -115,11 +115,4 @@ function useItemContext() {
 const utils = ToggleGroupUtils;
 
 export { Item, Root, useItemContext, useRootContext, utils };
-export type {
-  ItemComponentProps,
-  ItemProps,
-  ItemRef,
-  RootComponentProps,
-  RootProps,
-  RootRef,
-};
+export type { ItemProps, ItemRef, RootProps, RootRef };

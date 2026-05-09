@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Keyboard, ActivityIndicator, type TextInput } from 'react-native';
+import {
+  View,
+  Keyboard,
+  ActivityIndicator,
+  Pressable,
+  type TextInput,
+} from 'react-native';
 import {
   KeyboardAwareScrollView,
   useReanimatedKeyboardAnimation,
@@ -508,15 +514,21 @@ export function GratitudeEntryEdit({
               onBlur={() => setIsTitleFocused(false)}
             />
           ) : (
-            <Text
+            <Pressable
               onPress={() => setIsTitleFocused(true)}
-              className="px-0 py-1.5 text-lg font-body-semibold text-foreground">
-              {title || (
-                <Text className="text-lg font-body-semibold" style={{ color: mutedForegroundColor as string }}>
-                  {t('Title (optional)')}
-                </Text>
-              )}
-            </Text>
+              accessibilityRole="button"
+              accessibilityLabel={'Edit title'}
+              accessibilityHint={'Activates the title field for editing'}>
+              <Text className="px-0 py-1.5 text-lg font-body-semibold text-foreground">
+                {title || (
+                  <Text
+                    className="text-lg font-body-semibold"
+                    style={{ color: mutedForegroundColor as string }}>
+                    {t('Title (optional)')}
+                  </Text>
+                )}
+              </Text>
+            </Pressable>
           )}
 
           {/* Prompt Actions — shown when title is focused, or content is focused with no text */}
@@ -574,15 +586,21 @@ export function GratitudeEntryEdit({
               scrollEnabled={false}
             />
           ) : (
-            <Text
+            <Pressable
               onPress={() => setIsContentFocused(true)}
-              className="px-0 py-1.5 text-base text-foreground leading-6">
-              {content || (
-                <Text className="text-base leading-6" style={{ color: mutedForegroundColor as string }}>
-                  {t('What are you grateful for?')}
-                </Text>
-              )}
-            </Text>
+              accessibilityRole="button"
+              accessibilityLabel={'Edit gratitude entry'}
+              accessibilityHint={'Activates the gratitude entry field for editing'}>
+              <Text className="px-0 py-1.5 text-base text-foreground leading-6">
+                {content || (
+                  <Text
+                    className="text-base leading-6"
+                    style={{ color: mutedForegroundColor as string }}>
+                    {t('What are you grateful for?')}
+                  </Text>
+                )}
+              </Text>
+            </Pressable>
           )}
 
           {/* Tags */}

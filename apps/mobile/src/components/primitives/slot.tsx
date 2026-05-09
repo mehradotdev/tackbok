@@ -9,13 +9,13 @@ import {
 function Slot<T extends React.ElementType>(props: React.ComponentPropsWithRef<T>) {
   const { children, ref: forwardedRef, ...restOfProps } = props;
 
-  if (!React.isValidElement(children)) {
-    console.log('Slot - Invalid asChild element', children);
+  if (isTextChildren(children)) {
+    warnSlot('Text children are not supported', children);
     return null;
   }
 
-  if (isTextChildren(children)) {
-    console.log('Slot - Text children are not supported', children);
+  if (!React.isValidElement(children)) {
+    warnSlot('Invalid asChild element', children);
     return null;
   }
 
@@ -27,12 +27,12 @@ function Slot<T extends React.ElementType>(props: React.ComponentPropsWithRef<T>
     try {
       fragmentChild = React.Children.only(childrenProps.children);
     } catch {
-      console.log('Slot expects exactly one slottable child.', childrenProps.children);
+      warnSlot('Expected exactly one slottable child.', childrenProps.children);
       return null;
     }
 
     if (!React.isValidElement(fragmentChild)) {
-      console.log('Slot expects exactly one slottable child.', childrenProps.children);
+      warnSlot('Expected exactly one slottable child.', childrenProps.children);
       return null;
     }
 
@@ -50,6 +50,12 @@ function Slot<T extends React.ElementType>(props: React.ComponentPropsWithRef<T>
 Slot.displayName = 'Slot';
 
 export { Slot };
+
+function warnSlot(message: string, value: unknown) {
+  if (__DEV__) {
+    console.warn(`[Slot] ${message}:`, value);
+  }
+}
 
 function setRef<T>(ref: React.Ref<T> | undefined, value: T | null): (() => void) | void {
   if (typeof ref === 'function') {

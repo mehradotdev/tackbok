@@ -6,7 +6,7 @@ import { Slot } from '~/components/primitives/slot';
 const badgeVariants = tv({
   base: cn(
     'border-border group shrink-0 flex-row items-center justify-center',
-    'w-fit gap-1 overflow-hidden rounded-full border px-2 py-0.5',
+    'gap-1 overflow-hidden rounded-full border px-2 py-0.5',
   ),
   variants: {
     variant: {
