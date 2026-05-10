@@ -59,16 +59,15 @@ const Image = ({
   ...props
 }: ImageComponentProps) => {
   const { alt, setStatus, status } = useRootContext();
+  const sourceKey = getSourceKey(props?.source);
 
   useIsomorphicLayoutEffect(() => {
-    if (isValidSource(props?.source)) {
+    if (sourceKey) {
       setStatus('loading');
-    }
-
-    return () => {
+    } else {
       setStatus('error');
-    };
-  }, [props?.source]);
+    }
+  }, [setStatus, sourceKey]);
 
   const onLoad = React.useCallback(
     (e: ImageLoadEvent) => {
@@ -113,16 +112,16 @@ Fallback.displayName = 'FallbackAvatar';
 
 export { Fallback, Image, Root };
 
-function isValidSource(source?: ImageSourcePropType) {
+function getSourceKey(source?: ImageSourcePropType) {
   if (!source) {
-    return false;
+    return null;
   }
-  // Using require() for the source returns a number
   if (typeof source === 'number') {
-    return true;
+    return String(source);
   }
   if (Array.isArray(source)) {
-    return source.some((source) => !!source.uri);
+    const uris = source.map((item) => item.uri).filter(Boolean);
+    return uris.length > 0 ? uris.join('|') : null;
   }
-  return !!source.uri;
+  return source.uri ?? null;
 }

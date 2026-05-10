@@ -28,13 +28,16 @@ import {
   compressAndSavePhoto,
   deletePhotoFile,
   getFullPhotoUri,
+  type PickPhotosResult,
 } from '~/lib/photoUtils';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar';
+import { toast } from '~/components/ui/toast';
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -67,7 +70,7 @@ function ActionRow({ label, onPress, isLast, isBold, icon, centered }: ActionRow
       variant="ghost"
       onPress={onPress}
       className={cn(
-        'py-[18px] px-5 w-full h-auto rounded-none',
+        'py-4.5 px-5 w-full h-auto rounded-none',
         centered ? 'justify-center' : 'justify-start',
         !isLast && 'border-b border-border',
       )}>
@@ -119,7 +122,7 @@ function ProfileAvatar({ imageUri, name, onPress }: ProfileAvatarProps) {
       }}>
       <Avatar
         alt={name ?? 'Profile'}
-        className="border-6 border-background"
+        className="border-[6px] border-background"
         style={{
           width: AVATAR_SIZE,
           height: AVATAR_SIZE,
@@ -362,6 +365,11 @@ export function SettingsBottomSheet() {
 
   // Photo options dialog
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [permissionAlert, setPermissionAlert] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({ isOpen: false, title: '', message: '' });
 
   const present = () => sheet.current?.present();
   const dismiss = () => sheet.current?.dismiss();
@@ -388,20 +396,59 @@ export function SettingsBottomSheet() {
     reloadAppAsync();
   };
 
+  /** Show an alert guiding the user to enable photo permissions in device Settings. */
+  const showPermissionDeniedAlert = useCallback(
+    (source: 'camera' | 'library') => {
+      const title =
+        source === 'camera'
+          ? t('Camera Access Required')
+          : t('Photo Library Access Required');
+      const message =
+        source === 'camera'
+          ? t('Please enable camera access in your device settings to take photos.')
+          : t(
+              'Please enable photo library access in your device settings to select photos.',
+            );
+
+      setPermissionAlert({ isOpen: true, title, message });
+    },
+    [t],
+  );
+
+  /** Process picker outcomes so denied/cancelled are handled intentionally. */
+  const handlePickPhotoResult = useCallback(
+    async (result: PickPhotosResult) => {
+      if (result.status === 'denied') {
+        showPermissionDeniedAlert(result.source);
+        return;
+      }
+      if (result.status === 'cancelled') return;
+      if (result.uris.length === 0) return;
+
+      try {
+        // Save the new photo first so a failure doesn't destroy the current avatar.
+        const asset = await compressAndSavePhoto(result.uris[0]);
+        const previousUri = profileImageUri;
+
+        setProfileImageUri(asset.uri);
+
+        if (previousUri && previousUri !== asset.uri) {
+          deletePhotoFile(previousUri);
+        }
+      } catch (error) {
+        console.error('Failed to update profile photo:', error);
+        toast.error(t('Failed to add photos'), { useModal: true });
+      }
+    },
+    [profileImageUri, setProfileImageUri, showPermissionDeniedAlert, t],
+  );
+
   /** Pick a new photo, compress, save to documents, and update the store. */
   const handlePickNewPhoto = useCallback(async () => {
     setPhotoDialogOpen(false);
     const result = await pickPhotos('library', 1);
-    if (result.status === 'success' && result.uris.length > 0) {
-      // Delete old photo file if it exists
-      if (profileImageUri) {
-        deletePhotoFile(profileImageUri);
-      }
-      // Compress and save the new photo
-      const asset = await compressAndSavePhoto(result.uris[0]);
-      setProfileImageUri(asset.uri);
-    }
-  }, [profileImageUri, setProfileImageUri]);
+    await handlePickPhotoResult(result);
+  }, [handlePickPhotoResult]);
 
   /** Tap on avatar → show dialog (if photo exists) or pick directly. */
   const handleAvatarPress = useCallback(() => {
@@ -521,6 +568,27 @@ export function SettingsBottomSheet() {
               <Icon as={ImagePlus} className="text-primary-foreground" size={16} />
               <Text>{t('Update Photo')}</Text>
             </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={permissionAlert.isOpen}
+        onOpenChange={(isOpen) => setPermissionAlert((prev) => ({ ...prev, isOpen }))}>
+        <AlertDialogContent
+          className={sheetRadius === 0 ? 'rounded-none' : ''}
+          androidOverlayStrategy="modal">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{permissionAlert.title}</AlertDialogTitle>
+            <AlertDialogDescription>{permissionAlert.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <Text>{t('Cancel')}</Text>
+            </AlertDialogCancel>
+            <AlertDialogAction onPress={() => Linking.openSettings()}>
+              <Text>{t('Open Settings')}</Text>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
