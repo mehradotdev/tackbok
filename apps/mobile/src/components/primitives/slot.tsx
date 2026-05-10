@@ -1,127 +1,103 @@
 import * as React from 'react';
 import {
-  Image as RNImage,
-  Pressable as RNPressable,
-  Text as RNText,
-  View as RNView,
-  StyleSheet,
   type PressableStateCallbackType,
-  type ImageProps as RNImageProps,
   type ImageStyle as RNImageStyle,
   type PressableProps as RNPressableProps,
-  type TextProps as RNTextProps,
-  type ViewProps as RNViewProps,
   type StyleProp,
 } from 'react-native';
 
-type PressableSlotProps = RNPressableProps & {
-  ref?: React.Ref<React.ComponentRef<typeof RNPressable>>;
-};
+function Slot<T extends React.ElementType>(props: React.ComponentPropsWithRef<T>) {
+  const { children, ref: forwardedRef, ...restOfProps } = props;
 
-const Pressable = (props: PressableSlotProps) => {
-  const { children, ref, ...pressableSlotProps } = props;
-
-  if (!React.isValidElement(children)) {
-    console.log('Slot.Pressable - Invalid asChild element', children);
+  if (isTextChildren(children)) {
+    warnSlot('Text children are not supported', children);
     return null;
   }
 
-  return React.cloneElement<
-    React.ComponentPropsWithoutRef<typeof RNPressable>,
-    React.ComponentRef<typeof RNPressable>
-  >(isTextChildren(children) ? <></> : children, {
-    ...mergeProps(pressableSlotProps, children.props as AnyProps),
-    ref: ref ? composeRefs(ref, (children as any).ref) : (children as any).ref,
-  });
-};
-
-Pressable.displayName = 'SlotPressable';
-
-type ViewSlotProps = RNViewProps & {
-  ref?: React.Ref<React.ComponentRef<typeof RNView>>;
-};
-
-const View = (props: ViewSlotProps) => {
-  const { children, ref, ...viewSlotProps } = props;
-
   if (!React.isValidElement(children)) {
-    console.log('Slot.View - Invalid asChild element', children);
+    warnSlot('Invalid asChild element', children);
     return null;
   }
 
-  return React.cloneElement<
-    React.ComponentPropsWithoutRef<typeof RNView>,
-    React.ComponentRef<typeof RNView>
-  >(isTextChildren(children) ? <></> : children, {
-    ...mergeProps(viewSlotProps, children.props as AnyProps),
-    ref: ref ? composeRefs(ref, (children as any).ref) : (children as any).ref,
-  });
-};
+  const childrenProps = (children.props as Record<string, any>) ?? {};
 
-View.displayName = 'SlotView';
+  if (children.type === React.Fragment) {
+    let fragmentChild: React.ReactNode;
 
-type TextSlotProps = RNTextProps & {
-  ref?: React.Ref<React.ComponentRef<typeof RNText>>;
-};
+    try {
+      fragmentChild = React.Children.only(childrenProps.children);
+    } catch {
+      warnSlot('Expected exactly one slottable child.', childrenProps.children);
+      return null;
+    }
 
-const Text = (props: TextSlotProps) => {
-  const { children, ref, ...textSlotProps } = props;
+    if (!React.isValidElement(fragmentChild)) {
+      warnSlot('Expected exactly one slottable child.', childrenProps.children);
+      return null;
+    }
 
-  if (!React.isValidElement(children)) {
-    console.log('Slot.Text - Invalid asChild element', children);
-    return null;
+    return Slot({ ...restOfProps, ref: forwardedRef, children: fragmentChild });
   }
 
-  return React.cloneElement<
-    React.ComponentPropsWithoutRef<typeof RNText>,
-    React.ComponentRef<typeof RNText>
-  >(isTextChildren(children) ? <></> : children, {
-    ...mergeProps(textSlotProps, children.props as AnyProps),
-    ref: ref ? composeRefs(ref, (children as any).ref) : (children as any).ref,
-  });
-};
+  const { ref: childRef, ...childProps } = childrenProps;
 
-Text.displayName = 'SlotText';
+  return React.cloneElement(children, {
+    ...mergeProps(restOfProps, childProps),
+    ref: forwardedRef ? composeRefs(forwardedRef, childRef) : childRef,
+  } as unknown as Partial<React.ComponentPropsWithRef<T>>);
+}
 
-type ImageSlotProps = RNImageProps & {
-  children?: React.ReactNode;
-  ref?: React.Ref<React.ComponentRef<typeof RNImage>>;
-};
+Slot.displayName = 'Slot';
 
-const Image = (props: ImageSlotProps) => {
-  const { children, ref, ...imageSlotProps } = props;
+export { Slot };
 
-  if (!React.isValidElement(children)) {
-    console.log('Slot.Image - Invalid asChild element', children);
-    return null;
+function warnSlot(message: string, value: unknown) {
+  if (__DEV__) {
+    console.warn(`[Slot] ${message}:`, value);
+  }
+}
+
+function setRef<T>(ref: React.Ref<T> | undefined, value: T | null): (() => void) | void {
+  if (typeof ref === 'function') {
+    const cleanup = ref(value);
+
+    if (typeof cleanup === 'function') {
+      return cleanup;
+    }
+
+    return;
   }
 
-  return React.cloneElement<
-    React.ComponentPropsWithoutRef<typeof RNImage>,
-    React.ComponentRef<typeof RNImage>
-  >(isTextChildren(children) ? <></> : children, {
-    ...mergeProps(imageSlotProps, children.props as AnyProps),
-    ref: ref ? composeRefs(ref, (children as any).ref) : (children as any).ref,
-  });
-};
+  if (ref != null) {
+    ref.current = value;
+    return () => {
+      ref.current = null;
+    };
+  }
+}
 
-Image.displayName = 'SlotImage';
+function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]): React.RefCallback<T> {
+  let cleanups: (() => void)[] = [];
 
-export { Image, Pressable, Text, View };
+  return (node) => {
+    cleanups.forEach((cleanup) => cleanup());
+    cleanups = [];
 
-// This project uses code from WorkOS/Radix Primitives.
-// The code is licensed under the MIT License.
-// https://github.com/radix-ui/primitives/tree/main
+    if (node == null) {
+      refs.forEach((ref) => {
+        if (typeof ref === 'function') {
+          ref(null);
+        } else if (ref != null) {
+          ref.current = null;
+        }
+      });
+      return;
+    }
 
-function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]) {
-  return (node: T) =>
-    refs.forEach((ref) => {
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref != null) {
-        (ref as React.RefObject<T>).current = node;
-      }
-    });
+    cleanups = refs
+      .map((ref) => setRef(ref, node))
+      .filter((cleanup): cleanup is () => void => cleanup != null);
+  };
 }
 
 type AnyProps = Record<string, any>;
@@ -166,29 +142,29 @@ type Style = PressableStyle | ImageStyle;
 function combineStyles(slotStyle?: Style, childValue?: Style) {
   if (typeof slotStyle === 'function' && typeof childValue === 'function') {
     return (state: PressableStateCallbackType) => {
-      return StyleSheet.flatten([slotStyle(state), childValue(state)]);
+      return [slotStyle(state), childValue(state)];
     };
   }
   if (typeof slotStyle === 'function') {
     return (state: PressableStateCallbackType) => {
-      return childValue
-        ? StyleSheet.flatten([slotStyle(state), childValue])
-        : slotStyle(state);
+      return childValue ? [slotStyle(state), childValue] : slotStyle(state);
     };
   }
   if (typeof childValue === 'function') {
     return (state: PressableStateCallbackType) => {
-      return slotStyle
-        ? StyleSheet.flatten([slotStyle, childValue(state)])
-        : childValue(state);
+      return slotStyle ? [slotStyle, childValue(state)] : childValue(state);
     };
   }
 
-  return StyleSheet.flatten([slotStyle, childValue].filter(Boolean));
+  if (slotStyle && childValue) {
+    return [slotStyle, childValue];
+  }
+
+  return slotStyle ?? childValue;
 }
 
 export function isTextChildren(
-  children: React.ReactNode | ((state: PressableStateCallbackType) => React.ReactNode)
+  children: React.ReactNode | ((state: PressableStateCallbackType) => React.ReactNode),
 ) {
   return Array.isArray(children)
     ? children.every((child) => typeof child === 'string')

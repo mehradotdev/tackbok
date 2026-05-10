@@ -1,7 +1,7 @@
 import { View, ViewProps } from 'react-native';
 import { cn, tv, type VariantProps } from 'tailwind-variants';
 import { TextClassContext } from '~/components/ui/text';
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 
 const badgeVariants = tv({
   base: cn(
@@ -42,7 +42,7 @@ type BadgeProps = ViewProps & {
 } & VariantProps<typeof badgeVariants>;
 
 function Badge({ className, variant, asChild, ...props }: BadgeProps) {
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <TextClassContext.Provider value={badgeTextVariants({ variant })}>
       <Component className={cn(badgeVariants({ variant }), className)} {...props} />

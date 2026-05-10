@@ -1,65 +1,21 @@
 import * as React from 'react';
-import { Modal, Platform, View, type ViewProps } from 'react-native';
-import { FadeIn, FadeOut } from 'react-native-reanimated';
-import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { View, type ViewProps } from 'react-native';
 import { Timer } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import * as AlertDialogPrimitive from '~/components/primitives/alert-dialog';
 import { Text, TextClassContext } from '~/components/ui/text';
 import { buttonTextVariants, buttonVariants } from '~/components/ui/button';
-import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
+import {
+  DialogOverlayFrame,
+  type AndroidOverlayStrategy,
+} from './dialog-overlay-frame';
 import { Icon } from './icon';
-
-type AndroidOverlayStrategy = 'portal' | 'modal';
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
-
-function AndroidModalOverlay({
-  children,
-  onRequestClose,
-}: {
-  children: React.ReactNode;
-  onRequestClose: () => void;
-}) {
-  return (
-    <Modal
-      visible
-      transparent
-      statusBarTranslucent
-      animationType="none"
-      onRequestClose={onRequestClose}>
-      {children}
-    </Modal>
-  );
-}
-
-function OverlayContainer({
-  androidOverlayStrategy,
-  children,
-  onRequestClose,
-}: {
-  androidOverlayStrategy: AndroidOverlayStrategy;
-  children: React.ReactNode;
-  onRequestClose: () => void;
-}) {
-  if (Platform.OS === 'ios') {
-    return <RNFullWindowOverlay>{children}</RNFullWindowOverlay>;
-  }
-
-  if (Platform.OS === 'android' && androidOverlayStrategy === 'modal') {
-    return (
-      <AndroidModalOverlay onRequestClose={onRequestClose}>
-        {children}
-      </AndroidModalOverlay>
-    );
-  }
-
-  return <>{children}</>;
-}
 
 function AlertDialogOverlay({
   androidOverlayStrategy = 'portal',
@@ -73,17 +29,15 @@ function AlertDialogOverlay({
   const { dismissible = true, onOpenChange } = AlertDialogPrimitive.useRootContext();
 
   return (
-    <OverlayContainer
+    <DialogOverlayFrame
       androidOverlayStrategy={androidOverlayStrategy}
+      animatedContainerClassName="z-50"
       onRequestClose={() => {
         if (dismissible) {
           onOpenChange(false);
         }
-      }}>
-      <NativeOnlyAnimatedView
-        entering={FadeIn.duration(200)}
-        exiting={FadeOut.duration(150)}
-        className="absolute bottom-0 left-0 right-0 top-0 z-50">
+      }}
+      overlay={
         <AlertDialogPrimitive.Overlay
           className={cn(
             'absolute bottom-0 left-0 right-0 top-0 z-40 bg-black/50',
@@ -91,16 +45,9 @@ function AlertDialogOverlay({
           )}
           {...props}
         />
-        {children ? (
-          <View
-            pointerEvents="box-none"
-            className="absolute bottom-0 left-0 right-0 top-0 z-50 items-center justify-center p-2">
-            {/* Keep content outside the overlay pressable so nested scroll views can win touch gestures. */}
-            {children}
-          </View>
-        ) : null}
-      </NativeOnlyAnimatedView>
-    </OverlayContainer>
+      }>
+      {children}
+    </DialogOverlayFrame>
   );
 }
 

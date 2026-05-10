@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { Pressable, View, type GestureResponderEvent } from 'react-native';
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import { ToggleGroupUtils } from '~/components/primitives/utils';
 import type { ItemProps, ItemRef, RootProps, RootRef } from './types';
 
 const ToggleGroupContext = React.createContext<RootProps | null>(null);
+type RootComponentProps = RootProps & React.RefAttributes<RootRef>;
 
 const Root = ({
   asChild,
@@ -18,8 +19,8 @@ const Root = ({
   loop: _loop,
   ref,
   ...viewProps
-}: RootProps & { ref?: React.Ref<RootRef> }) => {
-  const Component = asChild ? Slot.View : View;
+}: RootComponentProps) => {
+  const Component = asChild ? Slot : View;
   return (
     <ToggleGroupContext.Provider
       value={
@@ -48,6 +49,7 @@ function useRootContext() {
 }
 
 const ItemContext = React.createContext<ItemProps | null>(null);
+type ItemComponentProps = ItemProps & React.RefAttributes<ItemRef>;
 
 const Item = ({
   asChild,
@@ -56,7 +58,7 @@ const Item = ({
   onPress: onPressProp,
   ref,
   ...props
-}: ItemProps & { ref?: React.Ref<ItemRef> }) => {
+}: ItemComponentProps) => {
   // const id = React.useId();
   const { type, disabled, value, onValueChange } = useRootContext();
 
@@ -76,7 +78,7 @@ const Item = ({
   const isSelected =
     type === 'multiple' ? ToggleGroupUtils.getIsSelected(value, itemValue) : undefined;
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <ItemContext.Provider value={{ value: itemValue }}>
       <Component

@@ -1,21 +1,22 @@
 import * as React from 'react';
-import { Pressable } from 'react-native';
-import * as Slot from '~/components/primitives/slot';
-import { Text as AppText } from '~/components/ui/text';
+import { Pressable, Text as RNText } from 'react-native';
+import { Slot } from '~/components/primitives/slot';
 import type { RootProps, RootRef, TextProps, TextRef } from './types';
 
-const Root = (props: RootProps & { ref?: React.Ref<RootRef> }) => {
-  const { asChild, ref, ...rest } = props;
-  const Component = asChild ? Slot.Pressable : Pressable;
-  return <Component ref={ref} {...rest} />;
+type RootComponentProps = RootProps & React.RefAttributes<RootRef>;
+
+const Root = ({ asChild, ref, ...props }: RootComponentProps) => {
+  const Component = asChild ? Slot : Pressable;
+  return <Component ref={ref} {...props} />;
 };
 
 Root.displayName = 'RootNativeLabel';
 
-const Text = (props: TextProps & { ref?: React.Ref<TextRef> }) => {
-  const { asChild, ref, ...rest } = props;
-  const Component = asChild ? Slot.Text : AppText;
-  return <Component ref={ref} {...rest} />;
+type TextComponentProps = TextProps & React.RefAttributes<TextRef>;
+
+const Text = ({ asChild, ref, ...props }: TextComponentProps) => {
+  const Component = asChild ? Slot : RNText;
+  return <Component ref={ref} {...props} />;
 };
 
 Text.displayName = 'TextNativeLabel';

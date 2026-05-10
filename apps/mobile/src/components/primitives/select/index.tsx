@@ -1,23 +1,22 @@
-import * as React from 'react';
 import {
-  BackHandler,
-  Pressable,
-  Text,
-  View,
-  useWindowDimensions,
-  type GestureResponderEvent,
-  type LayoutChangeEvent,
-  type LayoutRectangle,
-} from 'react-native';
-import { cn } from 'tailwind-variants';
-import * as Slot from '~/components/primitives/slot';
-import {
-  useAugmentedRef,
+  useAnchoredContentDismiss,
+  useAnchoredTriggerController,
   useControllableState,
+  useDismissibleAnchoredContent,
   useRelativePosition,
   type LayoutPosition,
 } from '~/components/primitives/hooks';
 import { Portal as RNPPortal } from '~/components/primitives/portal';
+import { Slot } from '~/components/primitives/slot';
+import * as React from 'react';
+import {
+  Pressable,
+  Text,
+  View,
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
+  type LayoutRectangle,
+} from 'react-native';
 import type {
   ContentProps,
   ContentRef,
@@ -59,26 +58,18 @@ interface IRootContext extends SharedRootContext {
 }
 
 const RootContext = React.createContext<IRootContext | null>(null);
+type RootComponentProps = RootProps & React.RefAttributes<RootRef>;
 
-function measureTriggerPosition(
-  trigger: TriggerRef | null,
-  setTriggerPosition: (triggerPosition: LayoutPosition | null) => void,
-) {
-  trigger?.measure((_x, _y, width, height, pageX, pageY) => {
-    setTriggerPosition({ width, pageX, pageY, height });
-  });
-}
-
-function Root({
-  ref,
+const Root = ({
   asChild,
   value: valueProp,
   defaultValue,
   onValueChange: onValueChangeProp,
   onOpenChange: onOpenChangeProp,
   disabled,
+  ref,
   ...viewProps
-}: RootProps & { ref?: React.Ref<RootRef> }) {
+}: RootComponentProps) => {
   const nativeID = React.useId();
   const [value, onValueChange] = useControllableState({
     prop: valueProp,
@@ -91,15 +82,12 @@ function Root({
   const [contentLayout, setContentLayout] = React.useState<LayoutRectangle | null>(null);
   const [open, setOpen] = React.useState(false);
 
-  const onOpenChange = React.useCallback(
-    (value: boolean) => {
-      setOpen(value);
-      onOpenChangeProp?.(value);
-    },
-    [onOpenChangeProp],
-  );
+  function onOpenChange(value: boolean) {
+    setOpen(value);
+    onOpenChangeProp?.(value);
+  }
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <RootContext.Provider
       value={{
@@ -117,7 +105,7 @@ function Root({
       <Component ref={ref} {...viewProps} />
     </RootContext.Provider>
   );
-}
+};
 
 Root.displayName = 'RootNativeSelect';
 
@@ -130,80 +118,62 @@ function useRootContext() {
   }
   return context;
 }
+type TriggerComponentProps = TriggerProps & React.RefAttributes<TriggerRef>;
 
-function Trigger({
-  ref,
+const Trigger = ({
   asChild,
   onPress: onPressProp,
   disabled = false,
+  ref,
   ...props
-}: TriggerProps & { ref?: React.Ref<TriggerRef> }) {
+}: TriggerComponentProps) => {
   const {
     open,
     onOpenChange,
     disabled: disabledRoot,
     setTriggerPosition,
   } = useRootContext();
-  const { width, height } = useWindowDimensions();
-
-  const augmentedRef = useAugmentedRef({
+  const isDisabled = disabled || disabledRoot;
+  const { composedRef, measureTrigger } = useAnchoredTriggerController<TriggerRef>({
     ref,
-    methods: {
-      open: () => {
-        onOpenChange(true);
-        measureTriggerPosition(augmentedRef.current, setTriggerPosition);
-      },
-      close: () => {
-        setTriggerPosition(null);
-        onOpenChange(false);
-      },
-    },
+    open,
+    onOpenChange,
+    setTriggerPosition,
   });
 
-  React.useEffect(() => {
-    if (!open) return;
-    // Rotation changes the window size and can also move the trigger itself,
-    // so we re-measure while the menu is open to keep the anchor coordinates fresh.
-    measureTriggerPosition(augmentedRef.current, setTriggerPosition);
-  }, [augmentedRef, height, open, setTriggerPosition, width]);
-
   function onPress(ev: GestureResponderEvent) {
-    if (disabled) return;
-    measureTriggerPosition(augmentedRef.current, setTriggerPosition);
+    if (isDisabled) return;
+    measureTrigger();
     onOpenChange(!open);
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
-      ref={augmentedRef}
-      aria-disabled={disabled ?? undefined}
+      ref={composedRef}
+      aria-disabled={isDisabled || undefined}
       role="combobox"
       onPress={onPress}
-      disabled={disabled ?? disabledRoot}
+      disabled={isDisabled}
       aria-expanded={open}
       {...props}
     />
   );
-}
+};
 
 Trigger.displayName = 'TriggerNativeSelect';
+type ValueComponentProps = ValueProps & React.RefAttributes<ValueRef>;
 
-function Value({
-  ref,
-  asChild,
-  placeholder,
-  ...props
-}: ValueProps & { ref?: React.Ref<ValueRef> }) {
+const Value = ({ asChild, placeholder, ref, ...props }: ValueComponentProps) => {
   const { value } = useRootContext();
-  const Component = asChild ? Slot.Text : Text;
+  const Component = asChild ? Slot : Text;
   return (
     <Component ref={ref} {...props}>
       {value?.label ?? placeholder}
     </Component>
   );
-}
+};
 
 Value.displayName = 'ValueNativeSelect';
 
@@ -229,22 +199,26 @@ function Portal({ forceMount, hostName, children }: PortalProps) {
     </RNPPortal>
   );
 }
+type OverlayComponentProps = OverlayProps & React.RefAttributes<OverlayRef>;
 
-function Overlay({
-  ref,
+const Overlay = ({
   asChild,
   forceMount,
   onPress: OnPressProp,
   closeOnPress = true,
+  ref,
   ...props
-}: OverlayProps & { ref?: React.Ref<OverlayRef> }) {
+}: OverlayComponentProps) => {
   const { open, onOpenChange, setTriggerPosition, setContentLayout } = useRootContext();
+  const dismissContent = useAnchoredContentDismiss({
+    onOpenChange,
+    setContentLayout,
+    setTriggerPosition,
+  });
 
   function onPress(ev: GestureResponderEvent) {
     if (closeOnPress) {
-      setTriggerPosition(null);
-      setContentLayout(null);
-      onOpenChange(false);
+      dismissContent();
     }
     OnPressProp?.(ev);
   }
@@ -255,17 +229,14 @@ function Overlay({
     }
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return <Component ref={ref} onPress={onPress} {...props} />;
-}
+};
 
 Overlay.displayName = 'OverlayNativeSelect';
+type ContentComponentProps = ContentProps & React.RefAttributes<ContentRef>;
 
-/**
- * @info `position`, `top`, `left`, and `maxWidth` style properties are controlled internally. Opt out of this behavior by setting `disablePositioningStyle` to `true`.
- */
-function Content({
-  ref,
+const Content = ({
   asChild = false,
   forceMount,
   align = 'start',
@@ -278,8 +249,9 @@ function Content({
   style,
   disablePositioningStyle,
   position: _position,
+  ref,
   ...props
-}: ContentProps & { ref?: React.Ref<ContentRef> }) {
+}: ContentComponentProps) => {
   const {
     open,
     onOpenChange,
@@ -290,20 +262,12 @@ function Content({
     setTriggerPosition,
   } = useRootContext();
 
-  React.useEffect(() => {
-    if (!open) return;
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      setTriggerPosition(null);
-      setContentLayout(null);
-      onOpenChange(false);
-      return true;
-    });
-
-    return () => {
-      setContentLayout(null);
-      backHandler.remove();
-    };
-  }, [open, onOpenChange, setTriggerPosition, setContentLayout]);
+  useDismissibleAnchoredContent({
+    open,
+    onOpenChange,
+    setContentLayout,
+    setTriggerPosition,
+  });
 
   const positionStyle = useRelativePosition({
     align,
@@ -328,7 +292,7 @@ function Content({
     }
   }
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <Component
       ref={ref}
@@ -341,7 +305,7 @@ function Content({
       {...props}
     />
   );
-}
+};
 
 Content.displayName = 'ContentNativeSelect';
 
@@ -349,35 +313,38 @@ const ItemContext = React.createContext<{
   itemValue: string;
   label: string;
 } | null>(null);
+type ItemComponentProps = ItemProps & React.RefAttributes<ItemRef>;
 
-function Item({
-  ref,
+const Item = ({
   asChild,
   value: itemValue,
   label,
   onPress: onPressProp,
   disabled = false,
   closeOnPress = true,
-  className,
+  ref,
   ...props
-}: ItemProps & { ref?: React.Ref<ItemRef> }) {
+}: ItemComponentProps) => {
   const { onOpenChange, value, onValueChange, setTriggerPosition, setContentLayout } =
     useRootContext();
-
-  const isSelected = value?.value === itemValue;
+  const dismissContent = useAnchoredContentDismiss({
+    onOpenChange,
+    setContentLayout,
+    setTriggerPosition,
+  });
 
   function onPress(ev: GestureResponderEvent) {
+    if (disabled) return;
+
     if (closeOnPress) {
-      setTriggerPosition(null);
-      setContentLayout(null);
-      onOpenChange(false);
+      dismissContent();
     }
 
     onValueChange({ value: itemValue, label });
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <ItemContext.Provider value={{ itemValue, label }}>
       <Component
@@ -385,19 +352,18 @@ function Item({
         role="option"
         onPress={onPress}
         disabled={disabled}
-        aria-checked={isSelected}
+        aria-checked={value?.value === itemValue}
         aria-valuetext={label}
         aria-disabled={!!disabled}
         accessibilityState={{
           disabled: !!disabled,
-          checked: isSelected,
+          checked: value?.value === itemValue,
         }}
-        className={cn(className, isSelected && 'bg-accent')}
         {...props}
       />
     </ItemContext.Provider>
   );
-}
+};
 
 Item.displayName = 'ItemNativeSelect';
 
@@ -410,30 +376,29 @@ function useItemContext() {
   }
   return context;
 }
+type ItemTextComponentProps = ItemTextProps & React.RefAttributes<ItemTextRef>;
 
-function ItemText({
-  ref,
-  asChild,
-  ...props
-}: ItemTextProps & { ref?: React.Ref<ItemTextRef> }) {
+const ItemText = ({ asChild, ref, ...props }: ItemTextComponentProps) => {
   const { label } = useItemContext();
 
-  const Component = asChild ? Slot.Text : Text;
+  const Component = asChild ? Slot : Text;
   return (
     <Component ref={ref} {...props}>
       {label}
     </Component>
   );
-}
+};
 
 ItemText.displayName = 'ItemTextNativeSelect';
+type ItemIndicatorComponentProps = ItemIndicatorProps &
+  React.RefAttributes<ItemIndicatorRef>;
 
-function ItemIndicator({
-  ref,
+const ItemIndicator = ({
   asChild,
   forceMount,
+  ref,
   ...props
-}: ItemIndicatorProps & { ref?: React.Ref<ItemIndicatorRef> }) {
+}: ItemIndicatorComponentProps) => {
   const { itemValue } = useItemContext();
   const { value } = useRootContext();
 
@@ -442,37 +407,35 @@ function ItemIndicator({
       return null;
     }
   }
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return <Component ref={ref} role="presentation" {...props} />;
-}
+};
 
 ItemIndicator.displayName = 'ItemIndicatorNativeSelect';
+type GroupComponentProps = GroupProps & React.RefAttributes<GroupRef>;
 
-function Group({ ref, asChild, ...props }: GroupProps & { ref?: React.Ref<GroupRef> }) {
-  const Component = asChild ? Slot.View : View;
+const Group = ({ asChild, ref, ...props }: GroupComponentProps) => {
+  const Component = asChild ? Slot : View;
   return <Component ref={ref} role="group" {...props} />;
-}
+};
 
 Group.displayName = 'GroupNativeSelect';
+type LabelComponentProps = LabelProps & React.RefAttributes<LabelRef>;
 
-function Label({ ref, asChild, ...props }: LabelProps & { ref?: React.Ref<LabelRef> }) {
-  const Component = asChild ? Slot.Text : Text;
+const Label = ({ asChild, ref, ...props }: LabelComponentProps) => {
+  const Component = asChild ? Slot : Text;
   return <Component ref={ref} {...props} />;
-}
+};
 
 Label.displayName = 'LabelNativeSelect';
+type SeparatorComponentProps = SeparatorProps & React.RefAttributes<SeparatorRef>;
 
-function Separator({
-  ref,
-  asChild,
-  decorative,
-  ...props
-}: SeparatorProps & { ref?: React.Ref<SeparatorRef> }) {
-  const Component = asChild ? Slot.View : View;
+const Separator = ({ asChild, decorative, ref, ...props }: SeparatorComponentProps) => {
+  const Component = asChild ? Slot : View;
   return (
     <Component role={decorative ? 'presentation' : 'separator'} ref={ref} {...props} />
   );
-}
+};
 
 Separator.displayName = 'SeparatorNativeSelect';
 

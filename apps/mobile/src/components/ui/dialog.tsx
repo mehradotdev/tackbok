@@ -1,15 +1,14 @@
 import * as React from 'react';
-import { Modal, Platform, View, type ViewProps } from 'react-native';
-import { FadeIn, FadeOut } from 'react-native-reanimated';
-import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { View, type ViewProps } from 'react-native';
 import { X } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import * as DialogPrimitive from '~/components/primitives/dialog';
+import {
+  DialogOverlayFrame,
+  type AndroidOverlayStrategy,
+} from './dialog-overlay-frame';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
-import { NativeOnlyAnimatedView } from '~/components/ui/native-only-animated-view';
-
-type AndroidOverlayStrategy = 'portal' | 'modal';
 
 const Dialog = DialogPrimitive.Root;
 
@@ -18,45 +17,6 @@ const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
-
-function AndroidModalOverlay({
-  children,
-  onRequestClose,
-}: {
-  children: React.ReactNode;
-  onRequestClose: () => void;
-}) {
-  return (
-    <Modal
-      visible
-      transparent
-      statusBarTranslucent
-      animationType="none"
-      onRequestClose={onRequestClose}>
-      {children}
-    </Modal>
-  );
-}
-
-function OverlayContainer({
-  androidOverlayStrategy,
-  children,
-  onRequestClose,
-}: {
-  androidOverlayStrategy: AndroidOverlayStrategy;
-  children: React.ReactNode;
-  onRequestClose: () => void;
-}) {
-  if (Platform.OS === 'ios') {
-    return <RNFullWindowOverlay>{children}</RNFullWindowOverlay>;
-  }
-
-  if (Platform.OS === 'android' && androidOverlayStrategy === 'modal') {
-    return <AndroidModalOverlay onRequestClose={onRequestClose}>{children}</AndroidModalOverlay>;
-  }
-
-  return <>{children}</>;
-}
 
 function DialogOverlay({
   androidOverlayStrategy = 'portal',
@@ -71,17 +31,14 @@ function DialogOverlay({
   const { dismissible = true, onOpenChange } = DialogPrimitive.useRootContext();
 
   return (
-    <OverlayContainer
+    <DialogOverlayFrame
       androidOverlayStrategy={androidOverlayStrategy}
       onRequestClose={() => {
         if (dismissible) {
           onOpenChange(false);
         }
-      }}>
-      <NativeOnlyAnimatedView
-        entering={FadeIn.duration(200)}
-        exiting={FadeOut.duration(150)}
-        className="absolute bottom-0 left-0 right-0 top-0">
+      }}
+      overlay={
         <DialogPrimitive.Overlay
           className={cn(
             'absolute bottom-0 left-0 right-0 top-0 z-40 bg-black/50',
@@ -89,16 +46,9 @@ function DialogOverlay({
           )}
           {...props}
         />
-        {children ? (
-          <View
-            pointerEvents="box-none"
-            className="absolute bottom-0 left-0 right-0 top-0 z-50 items-center justify-center p-2">
-            {/* Keep content outside the overlay pressable so nested scroll views can win touch gestures. */}
-            {children}
-          </View>
-        ) : null}
-      </NativeOnlyAnimatedView>
-    </OverlayContainer>
+      }>
+      {children}
+    </DialogOverlayFrame>
   );
 }
 function DialogContent({

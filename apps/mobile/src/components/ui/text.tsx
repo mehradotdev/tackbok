@@ -7,7 +7,7 @@ import {
   type Role,
 } from 'react-native';
 import { cn, tv, type VariantProps } from 'tailwind-variants';
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import { useSettingsStore } from '~/lib/settings';
 import {
   FONT_SIZE_DELTA,
@@ -134,7 +134,7 @@ function getLastTextSizePx(classes?: string): number | undefined {
  * 2. Explicit text-size class in `textClass`
  * 3. Explicit text-size class in the resolved variant classes
  * 4. Variant's known base size
- * 3. Fallback 16 px
+ * 5. Fallback 16 px
  */
 function resolveBaseSize(
   variant: TextVariant,
@@ -179,7 +179,7 @@ function Text({
     asChild?: boolean;
   }) {
   const textClass = React.useContext(TextClassContext);
-  const Component = asChild ? Slot.Text : RNText;
+  const Component = asChild ? Slot : RNText;
   const variantClasses = textVariants({ variant });
 
   const delta = useBodyFontDelta();

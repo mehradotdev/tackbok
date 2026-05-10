@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Keyboard, ActivityIndicator, type TextInput } from 'react-native';
+import {
+  View,
+  Keyboard,
+  ActivityIndicator,
+  Pressable,
+  type TextInput,
+} from 'react-native';
 import {
   KeyboardAwareScrollView,
   useReanimatedKeyboardAnimation,
@@ -126,6 +132,7 @@ export function GratitudeEntryEdit({
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [isContentFocused, setIsContentFocused] = useState(false);
   const titleInputRef = useRef<TextInput>(null);
+  const contentInputRef = useRef<TextInput>(null);
   const hasPromptTitle = title.length > 0;
   const hasAttemptedAutoFill = useRef(false);
 
@@ -135,8 +142,7 @@ export function GratitudeEntryEdit({
       return;
     }
 
-    const needsCustom =
-      journalPromptsMode === 'custom' || journalPromptsMode === 'all';
+    const needsCustom = journalPromptsMode === 'custom' || journalPromptsMode === 'all';
     if (needsCustom && !isCustomPromptsLoaded) {
       return; // wait until custom prompts are loaded
     }
@@ -370,7 +376,7 @@ export function GratitudeEntryEdit({
       const shouldFocus = !title;
       setTitle(nextPrompt);
       if (shouldFocus) {
-        setTimeout(() => titleInputRef.current?.focus(), 100);
+        setIsTitleFocused(true);
       }
     }
   }, [availablePromptTitles, title]);
@@ -495,17 +501,35 @@ export function GratitudeEntryEdit({
             </Button>
           </View>
 
-          {/* Title Input */}
-          <Textarea
-            ref={titleInputRef}
-            className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
-            placeholder={t('Title (optional)')}
-            placeholderTextColor={mutedForegroundColor as string}
-            value={title}
-            onChangeText={setTitle}
-            onFocus={() => setIsTitleFocused(true)}
-            onBlur={() => setIsTitleFocused(false)}
-          />
+          {/* Title Input — Text when unfocused to prevent Android focus-forwarding */}
+          {isTitleFocused ? (
+            <Textarea
+              ref={titleInputRef}
+              autoFocus
+              className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
+              placeholder={t('Title (optional)')}
+              placeholderTextColor={mutedForegroundColor as string}
+              value={title}
+              onChangeText={setTitle}
+              onBlur={() => setIsTitleFocused(false)}
+            />
+          ) : (
+            <Pressable
+              onPress={() => setIsTitleFocused(true)}
+              accessibilityRole="button"
+              accessibilityLabel={'Edit title'}
+              accessibilityHint={'Activates the title field for editing'}>
+              <Text className="px-0 py-1.5 text-lg font-body-semibold text-foreground">
+                {title || (
+                  <Text
+                    className="text-lg font-body-semibold"
+                    style={{ color: mutedForegroundColor as string }}>
+                    {t('Title (optional)')}
+                  </Text>
+                )}
+              </Text>
+            </Pressable>
+          )}
 
           {/* Prompt Actions — shown when title is focused, or content is focused with no text */}
           {(isTitleFocused || (isContentFocused && content.length === 0)) && (
@@ -547,18 +571,37 @@ export function GratitudeEntryEdit({
             </View>
           )}
 
-          {/* Content Input */}
-          <Textarea
-            className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
-            textAlignVertical="top"
-            placeholder={t('What are you grateful for?')}
-            placeholderTextColor={mutedForegroundColor as string}
-            value={content}
-            onChangeText={setContent}
-            onFocus={() => setIsContentFocused(true)}
-            onBlur={() => setIsContentFocused(false)}
-            scrollEnabled={false}
-          />
+          {/* Content Input — Text when unfocused to prevent Android focus-forwarding */}
+          {isContentFocused ? (
+            <Textarea
+              ref={contentInputRef}
+              autoFocus
+              className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
+              textAlignVertical="top"
+              placeholder={t('What are you grateful for?')}
+              placeholderTextColor={mutedForegroundColor as string}
+              value={content}
+              onChangeText={setContent}
+              onBlur={() => setIsContentFocused(false)}
+              scrollEnabled={false}
+            />
+          ) : (
+            <Pressable
+              onPress={() => setIsContentFocused(true)}
+              accessibilityRole="button"
+              accessibilityLabel={'Edit gratitude entry'}
+              accessibilityHint={'Activates the gratitude entry field for editing'}>
+              <Text className="px-0 py-1.5 text-base text-foreground leading-6">
+                {content || (
+                  <Text
+                    className="text-base leading-6"
+                    style={{ color: mutedForegroundColor as string }}>
+                    {t('What are you grateful for?')}
+                  </Text>
+                )}
+              </Text>
+            </Pressable>
+          )}
 
           {/* Tags */}
           {displayTags.length > 0 && (

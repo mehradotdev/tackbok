@@ -1,4 +1,4 @@
-import * as Slot from '~/components/primitives/slot';
+import { Slot } from '~/components/primitives/slot';
 import * as React from 'react';
 import { Pressable, View, type GestureResponderEvent } from 'react-native';
 import { Text } from '~/components/ui/text';
@@ -19,6 +19,7 @@ interface RootContext extends RootProps {
   nativeID: string;
 }
 const ToastContext = React.createContext<RootContext | null>(null);
+type RootComponentProps = RootProps & React.RefAttributes<RootRef>;
 
 const Root = ({
   asChild,
@@ -27,14 +28,14 @@ const Root = ({
   onOpenChange,
   ref,
   ...viewProps
-}: RootProps & { ref?: React.Ref<RootRef> }) => {
+}: RootComponentProps) => {
   const nativeID = React.useId();
 
   if (!open) {
     return null;
   }
 
-  const Component = asChild ? Slot.View : View;
+  const Component = asChild ? Slot : View;
   return (
     <ToastContext.Provider
       value={{
@@ -64,6 +65,7 @@ function useToastContext() {
   }
   return context;
 }
+type CloseComponentProps = CloseProps & React.RefAttributes<CloseRef>;
 
 const Close = ({
   asChild,
@@ -71,7 +73,7 @@ const Close = ({
   disabled = false,
   ref,
   ...props
-}: CloseProps & { ref?: React.Ref<CloseRef> }) => {
+}: CloseComponentProps) => {
   const { onOpenChange } = useToastContext();
 
   function onPress(ev: GestureResponderEvent) {
@@ -80,7 +82,7 @@ const Close = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -94,6 +96,7 @@ const Close = ({
 };
 
 Close.displayName = 'CloseToast';
+type ActionComponentProps = ActionProps & React.RefAttributes<ActionRef>;
 
 const Action = ({
   asChild,
@@ -101,7 +104,7 @@ const Action = ({
   disabled = false,
   ref,
   ...props
-}: ActionProps & { ref?: React.Ref<ActionRef> }) => {
+}: ActionComponentProps) => {
   const { onOpenChange } = useToastContext();
 
   function onPress(ev: GestureResponderEvent) {
@@ -110,7 +113,7 @@ const Action = ({
     onPressProp?.(ev);
   }
 
-  const Component = asChild ? Slot.Pressable : Pressable;
+  const Component = asChild ? Slot : Pressable;
   return (
     <Component
       ref={ref}
@@ -124,28 +127,22 @@ const Action = ({
 };
 
 Action.displayName = 'ActionToast';
+type TitleComponentProps = TitleProps & React.RefAttributes<TitleRef>;
 
-const Title = ({
-  asChild,
-  ref,
-  ...props
-}: TitleProps & { ref?: React.Ref<TitleRef> }) => {
+const Title = ({ asChild, ref, ...props }: TitleComponentProps) => {
   const { nativeID } = useToastContext();
 
-  const Component = asChild ? Slot.Text : Text;
+  const Component = asChild ? Slot : Text;
   return <Component ref={ref} role="heading" nativeID={`${nativeID}_label`} {...props} />;
 };
 
 Title.displayName = 'TitleToast';
+type DescriptionComponentProps = DescriptionProps & React.RefAttributes<DescriptionRef>;
 
-const Description = ({
-  asChild,
-  ref,
-  ...props
-}: DescriptionProps & { ref?: React.Ref<DescriptionRef> }) => {
+const Description = ({ asChild, ref, ...props }: DescriptionComponentProps) => {
   const { nativeID } = useToastContext();
 
-  const Component = asChild ? Slot.Text : Text;
+  const Component = asChild ? Slot : Text;
   return <Component ref={ref} nativeID={`${nativeID}_desc`} {...props} />;
 };
 
