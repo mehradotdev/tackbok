@@ -236,7 +236,7 @@ export const THEME_DEFINITIONS = [
     variant: 'light',
     enableTimelineBorders: true,
     defaultTitleFontId: 'spacemono',
-    bodyFontPackId: 'inter',
+    bodyFontPackId: 'jetbrainsMono',
     tokens: {
       '--color-background': '#ffc4e1',
       '--color-foreground': '#000000',
@@ -510,7 +510,7 @@ export const THEME_DEFINITIONS = [
     variant: 'light',
     enableTimelineBorders: true,
     defaultTitleFontId: 'spacemono',
-    bodyFontPackId: 'inter',
+    bodyFontPackId: 'jetbrainsMono',
     tokens: {
       '--color-background': '#fffb00',
       '--color-foreground': '#4a2e1b',

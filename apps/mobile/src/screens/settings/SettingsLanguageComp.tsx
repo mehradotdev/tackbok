@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { I18nManager, Platform } from 'react-native';
 import { reloadAppAsync } from 'expo';
-import { Globe } from 'lucide-react-native';
+import { Languages } from 'lucide-react-native';
 import { useTranslation, languages, type LanguageInfo } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import {
@@ -128,7 +128,7 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
     <>
       <SettingsRow
         label={t('Language')}
-        icon={Globe}
+        icon={Languages}
         isLast={isLast}
         rightElement={
           <Select value={currentValue} onValueChange={handleLanguageSelect}>

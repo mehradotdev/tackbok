@@ -221,6 +221,15 @@ export const he: Translations = {
   // Milestones
   'days of gratitude': 'ימים של הכרת טובה',
 
+  // Settings - Profile
+  'Your Name': 'השם שלך',
+  'Change Photo': 'שנה תמונה',
+  'Profile Photo': 'תמונת פרופיל',
+  'Would you like to update or remove your profile photo?':
+    'האם ברצונך לעדכן או להסיר את תמונת הפרופיל שלך?',
+  'Update Photo': 'עדכן תמונה',
+  'Remove Photo': 'הסר תמונה',
+
   // Settings
   Language: 'שפה',
   'Select Language': 'בחר שפה',
