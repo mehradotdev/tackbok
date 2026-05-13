@@ -28,9 +28,7 @@ export function DangerZoneSection() {
   const router = useRouter();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const resetCustomWorksheetTemplate = useSettingsStore(
-    (state) => state.resetCustomWorksheetTemplate,
-  );
+  const resetSettingsToDefaults = useSettingsStore((state) => state.resetToDefaults);
 
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
 
@@ -40,9 +38,9 @@ export function DangerZoneSection() {
       // Wipe the DB first — if this throws, the files are still intact
       // and the catch block will surface the error to the user.
       await deleteAllData();
-      // Clear persisted journaling text alongside the DB wipe so "Delete All
-      // Data" removes user-authored worksheet content too.
-      resetCustomWorksheetTemplate();
+      // Reset persisted app settings alongside the DB wipe so Delete All Data
+      // restores the app to its default state.
+      resetSettingsToDefaults();
       // Invalidate and await refetch of all cached queries so the mounted
       // home screen receives empty data from the cleared DB before we navigate
       // back. Using invalidateQueries (not removeQueries) ensures active
@@ -77,7 +75,7 @@ export function DangerZoneSection() {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
     }
-  }, [t, router, queryClient, resetCustomWorksheetTemplate]);
+  }, [t, router, queryClient, resetSettingsToDefaults]);
 
   return (
     <>

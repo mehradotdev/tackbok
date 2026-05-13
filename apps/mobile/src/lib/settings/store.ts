@@ -59,6 +59,10 @@ interface SettingsState {
   journalFocusAreas: BuiltInJournalPromptCategoryId[];
   journalPromptsMode: JournalPromptsMode;
 
+  // Layout
+  /** Persisted vertical position (top offset in px) for the action dock. null = default bottom. */
+  actionDockY: number | null;
+
   // Hydration status
   _hasHydrated: boolean;
 
@@ -82,35 +86,42 @@ interface SettingsState {
   setAnalyticsEnabled: (enabled: boolean) => void;
   setCustomWorksheetTemplate: (template: string | null) => void;
   resetCustomWorksheetTemplate: () => void;
+  resetToDefaults: () => void;
   setJournalFocusAreas: (areas: BuiltInJournalPromptCategoryId[]) => void;
   setJournalPromptsMode: (mode: JournalPromptsMode) => void;
+  setActionDockY: (y: number | null) => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
+
+const DEFAULT_SETTINGS_VALUES = {
+  dailyReminderEnabled: false,
+  reminderTime: '09:00',
+  profileName: null,
+  profileEmail: null,
+  profileImageUri: null,
+  theme: DEFAULT_THEME_ID,
+  timelineEntryLength: 10,
+  inspirationalQuotesEnabled: true,
+  dateIncludesDayOfWeek: false,
+  firstDayOfWeek: FirstDay.MONDAY,
+  showTimelineBorders: false,
+  titleFont: DEFAULT_TITLE_FONT_SELECTION,
+  bodyFontSize: DEFAULT_BODY_FONT_SIZE,
+  biometricUnlockEnabled: false,
+  googleDriveBackupEnabled: false,
+  backupFrequency: 'daily' as const,
+  analyticsEnabled: false,
+  customWorksheetTemplate: null,
+  journalFocusAreas: DEFAULT_JOURNAL_FOCUS_AREAS,
+  journalPromptsMode: 'off' as const,
+  actionDockY: null,
+};
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
       // Default values
-      dailyReminderEnabled: false,
-      reminderTime: '09:00',
-      profileName: null,
-      profileEmail: null,
-      profileImageUri: null,
-      theme: DEFAULT_THEME_ID,
-      timelineEntryLength: 10,
-      inspirationalQuotesEnabled: true,
-      dateIncludesDayOfWeek: false,
-      firstDayOfWeek: FirstDay.MONDAY,
-      showTimelineBorders: false,
-      titleFont: DEFAULT_TITLE_FONT_SELECTION,
-      bodyFontSize: DEFAULT_BODY_FONT_SIZE,
-      biometricUnlockEnabled: false,
-      googleDriveBackupEnabled: false,
-      backupFrequency: 'daily',
-      analyticsEnabled: false,
-      customWorksheetTemplate: null,
-      journalFocusAreas: DEFAULT_JOURNAL_FOCUS_AREAS,
-      journalPromptsMode: 'off',
+      ...DEFAULT_SETTINGS_VALUES,
       _hasHydrated: false,
 
       // Actions
@@ -150,8 +161,14 @@ export const useSettingsStore = create<SettingsState>()(
       setCustomWorksheetTemplate: (template) =>
         set({ customWorksheetTemplate: template?.trim() ? template : null }),
       resetCustomWorksheetTemplate: () => set({ customWorksheetTemplate: null }),
+      resetToDefaults: () => {
+        Uniwind.setTheme(DEFAULT_SETTINGS_VALUES.theme);
+        applyTitleFont(DEFAULT_SETTINGS_VALUES.titleFont);
+        set({ ...DEFAULT_SETTINGS_VALUES });
+      },
       setJournalFocusAreas: (areas) => set({ journalFocusAreas: areas }),
       setJournalPromptsMode: (mode) => set({ journalPromptsMode: mode }),
+      setActionDockY: (y) => set({ actionDockY: y }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
     {
@@ -205,6 +222,7 @@ export const useSettingsStore = create<SettingsState>()(
         customWorksheetTemplate: state.customWorksheetTemplate,
         journalFocusAreas: state.journalFocusAreas,
         journalPromptsMode: state.journalPromptsMode,
+        actionDockY: state.actionDockY,
       }),
     },
   ),
