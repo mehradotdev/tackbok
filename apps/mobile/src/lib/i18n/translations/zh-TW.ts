@@ -36,6 +36,10 @@ export const zhTW: Translations = {
   'What are you grateful for?': '您有什麼值得感恩的？',
   'What were you grateful for?': '您曾為什麼感恩？',
   'Failed to load entries': '無法載入紀錄',
+  'Write now': '現在寫',
+  'Pick a date': '選擇日期',
+  'Collapse gratitude actions': '收起感恩操作',
+  'Expand gratitude actions': '展開感恩操作',
 
   // Date Entries
   'Loading...': '載入中...',

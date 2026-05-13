@@ -36,6 +36,10 @@ export const en = {
   'What are you grateful for?': 'What are you grateful for?',
   'What were you grateful for?': 'What were you grateful for?',
   'Failed to load entries': 'Failed to load entries',
+  'Write now': 'Write now',
+  'Pick a date': 'Pick a date',
+  'Collapse gratitude actions': 'Collapse gratitude actions',
+  'Expand gratitude actions': 'Expand gratitude actions',
 
   // Date Entries
   'Loading...': 'Loading...',

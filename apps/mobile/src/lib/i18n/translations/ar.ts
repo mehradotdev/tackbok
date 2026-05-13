@@ -36,6 +36,10 @@ export const ar: Translations = {
   'What are you grateful for?': 'ما الذي تشعر بالامتنان له؟',
   'What were you grateful for?': 'ما الذي كنت ممتنًا له؟',
   'Failed to load entries': 'فشل تحميل السجلات',
+  'Write now': 'اكتب الآن',
+  'Pick a date': 'اختر تاريخًا',
+  'Collapse gratitude actions': 'طي إجراءات الامتنان',
+  'Expand gratitude actions': 'توسيع إجراءات الامتنان',
 
   // Date Entries
   'Loading...': 'جاري التحميل...',

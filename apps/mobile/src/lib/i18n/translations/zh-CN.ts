@@ -36,6 +36,10 @@ export const zhCN: Translations = {
   'What are you grateful for?': '你有什么值得感恩的？',
   'What were you grateful for?': '你曾为什么感激？',
   'Failed to load entries': '加载条目失败',
+  'Write now': '现在写',
+  'Pick a date': '选择日期',
+  'Collapse gratitude actions': '收起感恩操作',
+  'Expand gratitude actions': '展开感恩操作',
 
   // Date Entries
   'Loading...': '加载中...',

@@ -1,22 +1,22 @@
-import { useState, useCallback } from 'react';
-import { View } from 'react-native';
+import { useState, useCallback, useRef } from 'react';
+import { View, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { startOfDay } from 'date-fns';
 import { useRouter } from 'expo-router';
-import { Calendar } from 'lucide-react-native';
-import { cn } from 'tailwind-variants';
 import { type Entry } from '~/types';
 import { getEntriesForDay } from '~/db/queries';
 import { combineDateWithCurrentTime } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
-import { Button } from '~/components/ui/button';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { GratitudeDatepickerModal } from '~/components/GratitudeDatepickerModal';
-import { Icon } from '~/components/ui/icon';
 import { toast } from '~/components/ui/toast';
 import { Header } from './Header';
 import { SearchResults } from './SearchResults';
 import { GratitudeTimeline } from './GratitudeTimeline';
+import { GratitudeActionDock } from './GratitudeActionDock';
+
+/** Minimum scroll delta (in px) to trigger auto-collapse */
+const SCROLL_COLLAPSE_THRESHOLD = 30;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -25,6 +25,10 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isActionDockExpanded, setIsActionDockExpanded] = useState(true);
+
+  // Track last scroll offset to detect scroll direction
+  const lastScrollY = useRef(0);
 
   const handleGratitudeDatepickerPress = useCallback(
     async (date: Date) => {
@@ -93,6 +97,35 @@ export default function HomeScreen() {
     [router],
   );
 
+  /** Add a new entry for today */
+  const handleAddTodayEntry = useCallback(() => {
+    const now = new Date();
+    router.push({
+      pathname: '/gratitudeEntry',
+      params: { dateMs: now.getTime().toString() },
+    });
+  }, [router]);
+
+  /** Auto-collapse the action dock when the user scrolls down */
+  const handleTimelineScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const currentY = event.nativeEvent.contentOffset.y;
+      const delta = currentY - lastScrollY.current;
+
+      // Scrolling down past threshold → collapse
+      if (delta > SCROLL_COLLAPSE_THRESHOLD && isActionDockExpanded) {
+        setIsActionDockExpanded(false);
+      }
+
+      lastScrollY.current = currentY;
+    },
+    [isActionDockExpanded],
+  );
+
+  const handleActionDockToggle = useCallback(() => {
+    setIsActionDockExpanded((prev) => !prev);
+  }, []);
+
   return (
     <SafeAreaView
       className="flex-1 w-full bg-primary"
@@ -123,19 +156,15 @@ export default function HomeScreen() {
           <GratitudeTimeline
             onEntryPress={handleEntryPress}
             onAddEntry={handleAddEntry}
+            onScroll={handleTimelineScroll}
           />
-          {/* FAB (Floating Action Button) - positioned independently */}
-          <Button
-            size="icon"
-            variant="primary"
-            onPress={() => setShowDatePicker(true)}
-            className={cn(
-              'absolute bottom-safe-or-20 ios:bottom-safe-or-12 right-safe-or-6 z-10',
-              'h-14 w-14 items-center justify-center rounded-full',
-              'shadow-lg shadow-black/25',
-            )}>
-            <Icon as={Calendar} className="text-primary-foreground" />
-          </Button>
+
+          <GratitudeActionDock
+            isExpanded={isActionDockExpanded}
+            onToggle={handleActionDockToggle}
+            onAddEntry={handleAddTodayEntry}
+            onPickDate={() => setShowDatePicker(true)}
+          />
 
           <GratitudeDatepickerModal
             visible={showDatePicker}

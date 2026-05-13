@@ -37,6 +37,10 @@ export const he: Translations = {
   'What are you grateful for?': 'על מה אתה אסיר תודה?',
   'What were you grateful for?': 'על מה היית אסיר תודה?',
   'Failed to load entries': 'טעינת הרשומות נכשלה',
+  'Write now': 'כתוב עכשיו',
+  'Pick a date': 'בחר תאריך',
+  'Collapse gratitude actions': 'כווץ פעולות הודיה',
+  'Expand gratitude actions': 'הרחב פעולות הודיה',
 
   // Date Entries
   'Loading...': 'טוען...',
