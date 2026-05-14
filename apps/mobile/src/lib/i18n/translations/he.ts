@@ -37,6 +37,10 @@ export const he: Translations = {
   'What are you grateful for?': 'על מה אתה אסיר תודה?',
   'What were you grateful for?': 'על מה היית אסיר תודה?',
   'Failed to load entries': 'טעינת הרשומות נכשלה',
+  'Write now': 'כתוב עכשיו',
+  'Pick a date': 'בחר תאריך',
+  'Collapse gratitude actions': 'כווץ פעולות הודיה',
+  'Expand gratitude actions': 'הרחב פעולות הודיה',
 
   // Date Entries
   'Loading...': 'טוען...',
@@ -425,6 +429,8 @@ export const he: Translations = {
   'This action cannot be undone. All your app data will be permanently deleted.':
     'לא ניתן לבטל פעולה זו. כל נתוני האפליקציה שלך יימחקו לצמיתות.',
   'All data deleted': 'כל הנתונים נמחקו',
+  'All data deleted, but some media files could not be removed.':
+    'כל הנתונים נמחקו, אך לא ניתן היה להסיר חלק מקובצי המדיה.',
   'Delete failed': 'המחיקה נכשלה',
 
   // Time Picker

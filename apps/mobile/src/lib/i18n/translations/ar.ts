@@ -36,6 +36,10 @@ export const ar: Translations = {
   'What are you grateful for?': 'ما الذي تشعر بالامتنان له؟',
   'What were you grateful for?': 'ما الذي كنت ممتنًا له؟',
   'Failed to load entries': 'فشل تحميل السجلات',
+  'Write now': 'اكتب الآن',
+  'Pick a date': 'اختر تاريخًا',
+  'Collapse gratitude actions': 'طي إجراءات الامتنان',
+  'Expand gratitude actions': 'توسيع إجراءات الامتنان',
 
   // Date Entries
   'Loading...': 'جاري التحميل...',
@@ -425,6 +429,8 @@ export const ar: Translations = {
   'This action cannot be undone. All your app data will be permanently deleted.':
     'لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بيانات التطبيق الخاصة بك بشكل دائم.',
   'All data deleted': 'تم حذف جميع البيانات',
+  'All data deleted, but some media files could not be removed.':
+    'تم حذف جميع البيانات، ولكن تعذر إزالة بعض ملفات الوسائط.',
   'Delete failed': 'فشل الحذف',
 
   // Time Picker

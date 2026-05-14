@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { View } from 'react-native';
 import { format, subDays, startOfDay } from 'date-fns';
 import { LegendList } from '@legendapp/list';
@@ -19,6 +20,8 @@ import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
 interface IGratitudeTimelineProps {
   onEntryPress: (entry: Entry) => void;
   onAddEntry?: (dateMs: number) => void;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  onScrollBeginDrag?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
 const EMPTY_GROUPS = new Map<number, Entry[]>();
@@ -36,6 +39,8 @@ function isDayGroupItem(item: TimelineListItem): item is DayGroup {
 export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   onEntryPress,
   onAddEntry,
+  onScroll,
+  onScrollBeginDrag,
 }) => {
   const { t } = useTranslation();
   const today = startOfDay(new Date());
@@ -224,6 +229,9 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         }
         ListFooterComponent={<View className="h-8" />}
         contentContainerClassName="pb-4"
+        onScroll={onScroll}
+        onScrollBeginDrag={onScrollBeginDrag}
+        scrollEventThrottle={16}
       />
     </View>
   );

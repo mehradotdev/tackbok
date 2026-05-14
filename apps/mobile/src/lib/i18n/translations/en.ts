@@ -36,6 +36,10 @@ export const en = {
   'What are you grateful for?': 'What are you grateful for?',
   'What were you grateful for?': 'What were you grateful for?',
   'Failed to load entries': 'Failed to load entries',
+  'Write now': 'Write now',
+  'Pick a date': 'Pick a date',
+  'Collapse gratitude actions': 'Collapse gratitude actions',
+  'Expand gratitude actions': 'Expand gratitude actions',
 
   // Date Entries
   'Loading...': 'Loading...',
@@ -442,6 +446,8 @@ export const en = {
   'This action cannot be undone. All your app data will be permanently deleted.':
     'This action cannot be undone. All your app data will be permanently deleted.',
   'All data deleted': 'All data deleted',
+  'All data deleted, but some media files could not be removed.':
+    'All data deleted, but some media files could not be removed.',
   'Delete failed': 'Delete failed',
 
   // Time Picker
