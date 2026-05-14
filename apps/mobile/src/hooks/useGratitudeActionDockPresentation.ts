@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { useSettingsStore } from '~/lib/settings/store';
 import type { GratitudeActionDockConfig } from '~/screens/home/GratitudeActionDock';
 
-interface UseGratitudeActionDockDragOptions {
+interface UseGratitudeActionDockPresentationOptions {
   dockConfig: GratitudeActionDockConfig;
   isExpanded: boolean;
   isRTL: boolean;
@@ -23,9 +23,14 @@ interface UseGratitudeActionDockDragOptions {
 
 type DockAnimatedStyle = ReturnType<typeof useAnimatedStyle<ViewStyle>>;
 
-interface UseGratitudeActionDockDragResult {
+interface UseGratitudeActionDockPresentationResult {
   /** Animated inner panel shape and borders for docked vs detached states. */
   containerStyle: DockAnimatedStyle;
+  /**
+   * True once the absolute-positioning container has been measured and the dock
+   * can render at its real persisted/default Y without a first-paint jump.
+   */
+  hasMeasured: boolean;
   /** Measures the available vertical space so drag bounds can be clamped correctly. */
   onContainerLayout: (e: LayoutChangeEvent) => void;
   /** Long-press pan gesture that detaches the dock, tracks vertical drag, and snaps back on release. */
@@ -39,19 +44,25 @@ interface UseGratitudeActionDockDragResult {
 }
 
 /**
- * Owns the dock's drag lifecycle, persisted vertical position, and outer shell animation.
+ * Builds the dock's animated presentation layer.
+ *
+ * This hook owns the dock's drag-to-reposition interaction, persisted vertical
+ * placement, haptics, and the animated styles that render the collapsed and
+ * expanded shell. It does not decide when the dock should expand or collapse
+ * from timeline scrolling; that policy lives in the scroll behavior hook.
  */
-export function useGratitudeActionDockDrag({
+export function useGratitudeActionDockPresentation({
   dockConfig,
   isExpanded,
   isRTL,
   onToggle,
-}: UseGratitudeActionDockDragOptions): UseGratitudeActionDockDragResult {
+}: UseGratitudeActionDockPresentationOptions): UseGratitudeActionDockPresentationResult {
   const { animation, dimensions, gesture } = dockConfig;
   const persistedY = useSettingsStore((s) => s.actionDockY);
   const setPersistedY = useSettingsStore((s) => s.setActionDockY);
 
   const [containerHeight, setContainerHeight] = useState(0);
+  const hasMeasured = containerHeight > 0;
 
   const onContainerLayout = useCallback((e: LayoutChangeEvent) => {
     setContainerHeight(e.nativeEvent.layout.height);
@@ -254,6 +265,7 @@ export function useGratitudeActionDockDrag({
 
   return {
     containerStyle,
+    hasMeasured,
     onContainerLayout,
     panGesture,
     progress,

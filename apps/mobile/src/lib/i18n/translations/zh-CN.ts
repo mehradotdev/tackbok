@@ -417,6 +417,8 @@ export const zhCN: Translations = {
   'This action cannot be undone. All your app data will be permanently deleted.':
     '此操作无法撤销。您的所有应用数据将被永久删除。',
   'All data deleted': '所有数据已删除',
+  'All data deleted, but some media files could not be removed.':
+    '所有数据已删除，但部分媒体文件无法移除。',
   'Delete failed': '删除失败',
 
   // Time Picker

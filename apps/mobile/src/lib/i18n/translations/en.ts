@@ -446,6 +446,8 @@ export const en = {
   'This action cannot be undone. All your app data will be permanently deleted.':
     'This action cannot be undone. All your app data will be permanently deleted.',
   'All data deleted': 'All data deleted',
+  'All data deleted, but some media files could not be removed.':
+    'All data deleted, but some media files could not be removed.',
   'Delete failed': 'Delete failed',
 
   // Time Picker

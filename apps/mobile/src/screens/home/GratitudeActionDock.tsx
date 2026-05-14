@@ -11,7 +11,7 @@ import { cn } from 'tailwind-variants';
 import { Icon } from '~/components/ui/icon';
 import { useTranslation } from '~/lib/i18n';
 import { Button } from '~/components/ui/button';
-import { useGratitudeActionDockDrag } from '~/hooks/useGratitudeActionDockDrag';
+import { useGratitudeActionDockPresentation } from '~/hooks/useGratitudeActionDockPresentation';
 
 export const GRATITUDE_ACTION_DOCK_CONFIG = {
   dimensions: {
@@ -114,12 +114,13 @@ export function GratitudeActionDock({
   const { t, isRTL } = useTranslation();
   const {
     containerStyle,
+    hasMeasured,
     onContainerLayout,
     panGesture,
     progress,
     shellShadowStyle,
     wrapperStyle,
-  } = useGratitudeActionDockDrag({
+  } = useGratitudeActionDockPresentation({
       dockConfig: GRATITUDE_ACTION_DOCK_CONFIG,
       isExpanded,
       isRTL,
@@ -189,7 +190,7 @@ export function GratitudeActionDock({
       className="absolute inset-0"
       onLayout={onContainerLayout}>
       <Animated.View
-        style={wrapperStyle}
+        style={[wrapperStyle, { opacity: hasMeasured ? 1 : 0 }]}
         className={cn('absolute z-10', 'right-0 items-end')}>
         <GestureDetector gesture={panGesture}>
           <Animated.View

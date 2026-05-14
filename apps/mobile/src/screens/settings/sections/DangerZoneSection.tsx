@@ -66,9 +66,13 @@ export function DangerZoneSection() {
         cleanupErrors.push(error instanceof Error ? error.message : String(error));
       }
       if (cleanupErrors.length > 0) {
-        throw new Error(cleanupErrors.join('\n'));
+        toast.warning(t('All data deleted, but some media files could not be removed.'), {
+          description: cleanupErrors.join('\n'),
+          duration: 8000,
+        });
+      } else {
+        toast.success(t('All data deleted'));
       }
-      toast.success(t('All data deleted'));
       // Navigate to home screen
       router.dismissTo('/');
     } catch (error) {

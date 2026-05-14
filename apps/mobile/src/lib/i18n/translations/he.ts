@@ -429,6 +429,8 @@ export const he: Translations = {
   'This action cannot be undone. All your app data will be permanently deleted.':
     'לא ניתן לבטל פעולה זו. כל נתוני האפליקציה שלך יימחקו לצמיתות.',
   'All data deleted': 'כל הנתונים נמחקו',
+  'All data deleted, but some media files could not be removed.':
+    'כל הנתונים נמחקו, אך לא ניתן היה להסיר חלק מקובצי המדיה.',
   'Delete failed': 'המחיקה נכשלה',
 
   // Time Picker

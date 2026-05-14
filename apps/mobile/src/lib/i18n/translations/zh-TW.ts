@@ -418,6 +418,8 @@ export const zhTW: Translations = {
   'This action cannot be undone. All your app data will be permanently deleted.':
     '此動作無法復原。您的所有應用程式資料將被永久刪除。',
   'All data deleted': '所有資料已刪除',
+  'All data deleted, but some media files could not be removed.':
+    '所有資料已刪除，但部分媒體檔案無法移除。',
   'Delete failed': '刪除失敗',
 
   // Time Picker

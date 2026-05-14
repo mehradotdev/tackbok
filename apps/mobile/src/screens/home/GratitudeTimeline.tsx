@@ -21,6 +21,7 @@ interface IGratitudeTimelineProps {
   onEntryPress: (entry: Entry) => void;
   onAddEntry?: (dateMs: number) => void;
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  onScrollBeginDrag?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
 const EMPTY_GROUPS = new Map<number, Entry[]>();
@@ -39,6 +40,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   onEntryPress,
   onAddEntry,
   onScroll,
+  onScrollBeginDrag,
 }) => {
   const { t } = useTranslation();
   const today = startOfDay(new Date());
@@ -228,6 +230,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         ListFooterComponent={<View className="h-8" />}
         contentContainerClassName="pb-4"
         onScroll={onScroll}
+        onScrollBeginDrag={onScrollBeginDrag}
         scrollEventThrottle={16}
       />
     </View>
