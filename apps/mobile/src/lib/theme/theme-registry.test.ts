@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import { createRequire } from 'module';
 import * as path from 'path';
 import {
   CUSTOM_THEME_IDS,
@@ -18,7 +19,9 @@ import {
 
 const GLOBAL_CSS_PATH = path.resolve(__dirname, '../../global.css');
 const FONTS_MODULE_PATH = path.resolve(__dirname, './fonts.ts');
+const REGISTRY_CJS_PATH = path.resolve(__dirname, './registry.cjs');
 const UNIWIND_TYPES_PATH = path.resolve(__dirname, '../../uniwind-types.d.ts');
+const loadCommonJsModule = createRequire(__filename);
 
 function extractVariantBlock(content: string, variantId: string): string {
   const variantMarker = `@variant ${variantId}`;
@@ -99,6 +102,7 @@ function extractUniwindThemeIds(content: string): string[] {
 describe('Theme Registry', () => {
   const globalCss = fs.readFileSync(GLOBAL_CSS_PATH, 'utf-8');
   const fontsModule = fs.readFileSync(FONTS_MODULE_PATH, 'utf-8');
+  const commonJsRegistry = loadCommonJsModule(REGISTRY_CJS_PATH) as typeof import('./registry');
   const uniwindTypesModule = fs.readFileSync(UNIWIND_TYPES_PATH, 'utf-8');
   const titleFontsById = new Map(TITLE_FONTS.map((font) => [font.id, font]));
   const loadedFontFamilies = new Set(extractAppFontAssetNames(fontsModule));
@@ -130,6 +134,15 @@ describe('Theme Registry', () => {
     expect(DEFAULT_TITLE_FONT).toBe(SOURCE_DEFAULT_TITLE_FONT);
     expect(TITLE_FONTS).toEqual(SOURCE_TITLE_FONTS);
     expect(THEMES).toEqual(sourceThemes);
+  });
+
+  test('generated CommonJS registry stays in sync with the ESM registry', () => {
+    expect(commonJsRegistry.DEFAULT_THEME_ID).toBe(DEFAULT_THEME_ID);
+    expect(commonJsRegistry.DEFAULT_TITLE_FONT).toBe(DEFAULT_TITLE_FONT);
+    expect(commonJsRegistry.TITLE_FONTS).toEqual(TITLE_FONTS);
+    expect(commonJsRegistry.THEMES).toEqual(THEMES);
+    expect(commonJsRegistry.THEME_IDS).toEqual(THEMES.map((theme) => theme.id));
+    expect(commonJsRegistry.CUSTOM_THEME_IDS).toEqual(CUSTOM_THEME_IDS);
   });
 
   test('default ids exist in the shared registries', () => {

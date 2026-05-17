@@ -23,8 +23,9 @@ import {
  *   rewrites the generated theme token section below it. If the file is missing,
  *   empty, or imports-only, the script bootstraps it with the required imports and
  *   a minimal handwritten shell before appending generated content.
- * - registry.js: generated JavaScript registry used by runtime code and Metro config.
- * - registry.d.ts: generated TypeScript declarations for the JS registry.
+ * - registry.js: generated ESM registry used by runtime code.
+ * - registry.cjs: generated CommonJS registry used by Node-side tooling.
+ * - registry.d.ts: generated TypeScript declarations for the ESM registry.
  *
  * Re-running the script is safe and idempotent: manual CSS stays user-owned, while
  * the generated theme block and registry artifacts are replaced from the canonical
@@ -39,6 +40,7 @@ const themeDir = __dirname;
 const appRoot = path.resolve(themeDir, '../..');
 const globalCssPath = path.resolve(appRoot, 'global.css');
 const registryJsPath = path.resolve(themeDir, 'registry.js');
+const registryCjsPath = path.resolve(themeDir, 'registry.cjs');
 const registryDtsPath = path.resolve(themeDir, 'registry.d.ts');
 const GLOBAL_CSS_IMPORTS = `@import 'tailwindcss';\n@import 'uniwind';`;
 
@@ -197,10 +199,14 @@ function appendGeneratedThemeArtifactsSection(content: string): string {
   return `${manualContent}\n\n${buildGeneratedThemeArtifactsSection()}\n`;
 }
 
-function generateRegistryJs(): string {
-  const themes = THEME_DEFINITIONS.map(
+function getRegistryThemes() {
+  return THEME_DEFINITIONS.map(
     ({ tokens: _tokens, bodyFontPackId: _bodyFontPackId, ...theme }) => theme,
   );
+}
+
+function generateRegistryJs(): string {
+  const themes = getRegistryThemes();
 
   return [
     `// This file is generated from ${THEME_TOKENS_SOURCE}. Do not edit by hand.`,
@@ -216,6 +222,36 @@ function generateRegistryJs(): string {
     'export const CUSTOM_THEME_IDS = THEMES.filter(',
     `  (theme) => theme.id !== ${toJsLiteral(DEFAULT_THEME_ID)} && theme.id !== 'dark',`,
     ').map((theme) => theme.id);',
+    '',
+  ].join('\n');
+}
+
+function generateRegistryCjs(): string {
+  const themes = getRegistryThemes();
+
+  return [
+    `// This file is generated from ${THEME_TOKENS_SOURCE}. Do not edit by hand.`,
+    '',
+    `const TITLE_FONTS = ${toJsLiteral(TITLE_FONTS)};`,
+    '',
+    `const DEFAULT_THEME_ID = ${toJsLiteral(DEFAULT_THEME_ID)};`,
+    `const DEFAULT_TITLE_FONT = ${toJsLiteral(DEFAULT_TITLE_FONT)};`,
+    '',
+    `const THEMES = ${toJsLiteral(themes)};`,
+    '',
+    'const THEME_IDS = THEMES.map((theme) => theme.id);',
+    'const CUSTOM_THEME_IDS = THEMES.filter(',
+    `  (theme) => theme.id !== ${toJsLiteral(DEFAULT_THEME_ID)} && theme.id !== 'dark',`,
+    ').map((theme) => theme.id);',
+    '',
+    'module.exports = {',
+    '  TITLE_FONTS,',
+    '  DEFAULT_THEME_ID,',
+    '  DEFAULT_TITLE_FONT,',
+    '  THEMES,',
+    '  THEME_IDS,',
+    '  CUSTOM_THEME_IDS,',
+    '};',
     '',
   ].join('\n');
 }
@@ -287,6 +323,7 @@ function main() {
 
   writeIfChanged(globalCssPath, nextGlobalCss);
   writeIfChanged(registryJsPath, generateRegistryJs());
+  writeIfChanged(registryCjsPath, generateRegistryCjs());
   writeIfChanged(registryDtsPath, generateRegistryDts());
 
   console.log('Generated theme artifacts from theme-tokens.ts');
