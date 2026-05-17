@@ -9,9 +9,11 @@ This folder contains the source of truth and generated artifacts for theme and f
   This is the first file to edit when adding or removing a theme or title font.
 - `generate-theme-artifacts.ts`
   Generates the runtime artifacts consumed by Metro, TypeScript, and Uniwind.
-  It updates or creates `src/global.css`, `registry.js`, and `registry.d.ts` from `theme-tokens.ts`.
+  It updates or creates `src/global.css`, `registry.js`, `registry.cjs`, and `registry.d.ts` from `theme-tokens.ts`.
 - `registry.js`
-  Generated metadata artifact used by Metro and runtime imports that need plain JavaScript.
+  Generated ESM metadata artifact used by runtime imports that need plain JavaScript.
+- `registry.cjs`
+  Generated CommonJS metadata artifact used by Node-side tooling such as Metro config.
 - `registry.d.ts`
   Generated TypeScript contract for the generated registry artifact.
 - `themes.ts`
@@ -94,6 +96,7 @@ That means:
 ## Generated Files
 
 - `registry.js`
+- `registry.cjs`
 - `registry.d.ts`
 - The generated theme sections inside `src/global.css`
 
@@ -106,7 +109,7 @@ Do not edit those by hand. Edit `theme-tokens.ts` and regenerate them instead.
 The generator keeps the runtime theming model simple:
 
 1. `theme-tokens.ts` defines theme metadata and token values.
-2. `generate-theme-artifacts.ts` generates `registry.js`, `registry.d.ts`, and the theme sections in `src/global.css`.
+2. `generate-theme-artifacts.ts` generates `registry.js`, `registry.cjs`, `registry.d.ts`, and the theme sections in `src/global.css`.
 3. Metro + Uniwind regenerate `src/uniwind-types.d.ts` from the configured theme list.
 4. Uniwind still reads the generated CSS and runtime switching still uses `Uniwind.setTheme()`.
 
