@@ -43,6 +43,8 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
+// Keep these mocks inline: the portable import tests need extra file APIs such as
+// open().readBytes() that are more specific than the shared manual mocks.
 jest.mock('expo-file-system', () => ({
   Directory: class MockDirectory {
     exists = true;

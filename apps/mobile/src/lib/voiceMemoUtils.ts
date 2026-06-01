@@ -81,7 +81,7 @@ export async function saveVoiceMemo(sourceUri: string): Promise<Asset> {
   const filename = `${generateUUID()}.${getVoiceMemoExtension(sourceUri)}`;
   const srcFile = new File(sourceUri);
   const destFile = new File(voiceMemosDir, filename);
-  srcFile.copy(destFile);
+  await srcFile.copy(destFile);
   // Best-effort cleanup: once persisted, remove the temp recording.
   // This prevents temp storage bloat and avoids races with UI dismissal.
   try {

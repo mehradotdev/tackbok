@@ -180,7 +180,7 @@ export async function compressAndSavePhoto(sourceUri: string): Promise<Asset> {
   const filename = `${generateUUID()}.jpg`;
   const srcFile = new File(saved.uri);
   const destFile = new File(photosDir, filename);
-  srcFile.copy(destFile);
+  await srcFile.copy(destFile);
   try {
     srcFile.delete();
   } catch {

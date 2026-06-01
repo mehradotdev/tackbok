@@ -15,7 +15,6 @@ const PRESENTLY_IMPORT_DOCUMENT_TYPES = [
   'text/csv',
   'text/comma-separated-values',
   'application/csv',
-  '*/*',
 ];
 
 /**

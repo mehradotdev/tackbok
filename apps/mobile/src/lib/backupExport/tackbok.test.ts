@@ -60,6 +60,8 @@ const mockCreatePortableEntries = jest.fn(
 const mockCreatePortableTags = jest.fn((_allTags: unknown): unknown[] => []);
 const mockCreatePortablePrompts = jest.fn((_allPrompts: unknown): unknown[] => []);
 
+// Keep this mock inline: this export suite only needs a tiny File shape and should
+// not couple itself to the shared expo-file-system manual mock.
 jest.mock('expo-file-system', () => ({
   File: class MockFile {
     exists = true;
