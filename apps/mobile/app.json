@@ -75,7 +75,10 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true,
-      "autolinkingModuleResolution": true
+      "autolinkingModuleResolution": true,
+      "inlineModules": {
+        "watchedDirectories": ["src/inlineModules"]
+      }
     },
     "extra": {
       "router": {},
