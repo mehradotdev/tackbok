@@ -8,10 +8,10 @@ describe('Metro Theme Config', () => {
 
   test('imports the CommonJS theme registry for Node-side tooling', () => {
     expect(metroConfigSource).toMatch(
-      /import\s+themeRegistry\s+from\s+['"]\.\/src\/lib\/theme\/registry\.cjs['"]\s*;?/,
+      /require\(['"]\.\/src\/lib\/theme\/registry\.cjs['"]\)/,
     );
     expect(metroConfigSource).toMatch(
-      /const\s*\{\s*CUSTOM_THEME_IDS\s*\}\s*=\s*themeRegistry\s*;?/,
+      /const\s*\{\s*CUSTOM_THEME_IDS\s*\}\s*=\s*require\(['"]\.\/src\/lib\/theme\/registry\.cjs['"]\)\s*;?/,
     );
   });
 

@@ -1,16 +1,13 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { getDefaultConfig } from 'expo/metro-config.js';
-import { withUniwindConfig } from 'uniwind/metro';
-import themeRegistry from './src/lib/theme/registry.cjs';
+const { getDefaultConfig } = require('expo/metro-config');
+const { withUniwindConfig } = require('uniwind/metro');
+const { CUSTOM_THEME_IDS } = require('./src/lib/theme/registry.cjs');
 
-// Metro config runs under Node. The generated runtime registry stays ESM for app
-// imports, so Metro reads the CommonJS companion and plucks values from the
-// default import instead of relying on named imports from a CJS module.
-const { CUSTOM_THEME_IDS } = themeRegistry;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Metro config runs under Node, not the app runtime.
+// Keep this file in CommonJS because Radon / React Native IDE starts Expo through
+// a loader path that still require()s metro.config.js. When this file used ESM
+// syntax, that path hit Node 24's ERR_INTERNAL_ASSERTION while Expo was loading
+// the Metro config. The generated theme registry stays ESM for app imports, so
+// Metro reads the CommonJS companion here instead.
 
 const projectRoot = __dirname;
 
@@ -30,4 +27,4 @@ const uniwindConfig = withUniwindConfig(config, {
   extraThemes: [...CUSTOM_THEME_IDS],
 });
 
-export default uniwindConfig;
+module.exports = uniwindConfig;

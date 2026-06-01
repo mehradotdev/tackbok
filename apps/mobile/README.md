@@ -26,6 +26,27 @@ bun run start
 ```
 *(Or use `bun run ios` / `bun run android` to launch directly in a simulator/emulator)*
 
+## Testing
+
+Run the mobile Jest suite with Bun:
+
+```sh
+bun run test:jest
+```
+
+For a focused slice while iterating on one helper or feature, prefer running a single file:
+
+```sh
+bun run test:jest src/lib/backupExport/utils.test.ts --runInBand
+```
+
+Testing conventions in this app:
+
+- Keep test files colocated with the code they verify, using the existing `.test.ts` pattern.
+- Use shared manual mocks in `apps/mobile/__mocks__` for reusable native-module mocks such as `react-native` and `expo-file-system`.
+- Use inline `jest.mock(..., factory)` inside a test file only when that suite needs a narrower or custom module shape that should not affect other suites.
+- When a test uses the shared manual mocks, call `jest.mock('react-native')` or `jest.mock('expo-file-system')` without an inline factory and configure the exposed mock state in the test.
+
 ## 📦 Building & Generating APKs
 
 To build the app for production, you can use EAS Build:
