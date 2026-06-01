@@ -9,8 +9,8 @@ import {
   View,
   type GestureResponderEvent,
 } from 'react-native';
-import { NavigationContext, usePreventRemove } from '@react-navigation/native';
-import type { NavigationProp, ParamListBase } from '@react-navigation/native';
+import { NavigationContext, usePreventRemove } from 'expo-router/react-navigation';
+import type { NavigationProp, ParamListBase } from 'expo-router/react-navigation';
 import type {
   ActionProps,
   ActionRef,

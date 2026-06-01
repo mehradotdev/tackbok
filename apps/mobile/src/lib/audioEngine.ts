@@ -259,7 +259,8 @@ class AudioEngine {
     void AudioManager.setAudioSessionActivity(false);
 
     if (result.status === 'success') {
-      return { path: result.path, duration: result.duration };
+      const [path] = result.paths;
+      return path ? { path, duration: result.duration } : {};
     }
     return {};
   }

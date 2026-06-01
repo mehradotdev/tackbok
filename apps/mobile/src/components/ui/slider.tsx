@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { useCSSVariable } from 'uniwind';
-import Slider from '@react-native-community/slider';
+import Slider from '@expo/ui/community/slider';
 import { cn } from 'tailwind-variants';
 import { Text } from '~/components/ui/text';
 
