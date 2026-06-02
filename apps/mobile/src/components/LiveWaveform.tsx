@@ -113,8 +113,8 @@ export function LiveWaveform({
 
   // ── Build Skia path ────────────────────────────────────────────────
   const skiaPath = (() => {
-    const p = Skia.Path.Make();
-    if (containerWidth <= 0 || barCount <= 0) return p;
+    const builder = Skia.PathBuilder.Make();
+    if (containerWidth <= 0 || barCount <= 0) return builder.detach();
 
     const buf = bufferRef.current;
     const midY = height / 2;
@@ -133,10 +133,12 @@ export function LiveWaveform({
       const y = midY - barH / 2;
       const radius = Math.min(barWidth / 2, 1.5);
 
-      p.addRRect(Skia.RRectXY(Skia.XYWHRect(x, y, barWidth, barH), radius, radius));
+      builder.addRRect(
+        Skia.RRectXY(Skia.XYWHRect(x, y, barWidth, barH), radius, radius),
+      );
     }
 
-    return p;
+    return builder.detach();
   })();
 
   // ── Render ─────────────────────────────────────────────────────────

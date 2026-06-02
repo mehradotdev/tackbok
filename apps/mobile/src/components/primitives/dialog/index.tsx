@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { BackHandler, GestureResponderEvent, Pressable, View } from 'react-native';
-import { NavigationContext, usePreventRemove } from '@react-navigation/native';
+import { NavigationContext, usePreventRemove } from 'expo-router/react-navigation';
 import { Text } from '~/components/ui/text';
-import type { NavigationProp, ParamListBase } from '@react-navigation/native';
+import type { NavigationProp, ParamListBase } from 'expo-router/react-navigation';
 import { useControllableState } from '~/components/primitives/hooks';
 import { Portal as RNPPortal } from '~/components/primitives/portal';
 import { Slot } from '~/components/primitives/slot';

@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
+import { Platform } from 'react-native';
 import { db, entries } from '~/db';
 import { generateUUID } from '~/lib/utils';
 import {
@@ -9,6 +10,12 @@ import {
 } from '../progress';
 import { createBackupImportSummary } from '../summary';
 import { type BackupImportSummary } from '../types';
+
+const PRESENTLY_IMPORT_DOCUMENT_TYPES = [
+  'text/csv',
+  'text/comma-separated-values',
+  'application/csv',
+];
 
 /**
  * Parses CSV content into rows while preserving quoted commas, newlines, and escaped quotes.
@@ -104,7 +111,7 @@ function parsePresentlyDate(entryDateStr: string): number | null {
  */
 export async function pickPresentlyImportFile(): Promise<DocumentPicker.DocumentPickerSuccessResult | null> {
   const result = await DocumentPicker.getDocumentAsync({
-    type: ['text/csv', 'text/comma-separated-values', 'application/csv', '*/*'],
+    type: Platform.OS === 'android' ? '*/*' : PRESENTLY_IMPORT_DOCUMENT_TYPES,
     copyToCacheDirectory: true,
   });
 

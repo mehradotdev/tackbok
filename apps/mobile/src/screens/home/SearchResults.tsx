@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { LegendList } from '@legendapp/list';
+import { LegendList } from '@legendapp/list/react-native';
 import { type Entry } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useSearchEntries } from '~/hooks/useGratitude';

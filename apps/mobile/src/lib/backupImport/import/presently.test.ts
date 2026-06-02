@@ -1,6 +1,8 @@
-import { importFromPresentlyCSV } from './presently';
+import * as ReactNativeMock from 'react-native';
+import { importFromPresentlyCSV, pickPresentlyImportFile } from './presently';
 
 const mockFileText = jest.fn(async () => '');
+const mockGetDocumentAsync = jest.fn(async () => ({ canceled: true }));
 const mockLimit = jest.fn(async () => []);
 const mockWhere = jest.fn(() => ({ limit: mockLimit }));
 const mockFrom = jest.fn(() => ({ where: mockWhere }));
@@ -23,8 +25,11 @@ const mockGenerateUUID = jest.fn(() => 'generated-note-id');
 const mockReportImportProgress = jest.fn(() => {});
 
 jest.mock('expo-document-picker', () => ({
-  getDocumentAsync: jest.fn(async () => ({ canceled: true })),
+  getDocumentAsync: (...args: Parameters<typeof mockGetDocumentAsync>) =>
+    mockGetDocumentAsync(...args),
 }));
+
+jest.mock('react-native');
 
 jest.mock('expo-file-system', () => ({
   File: class MockFile {
@@ -60,8 +65,19 @@ jest.mock('../progress', () => ({
     mockReportImportProgress(...args),
 }));
 
+const { __mockReactNativeState } = ReactNativeMock as typeof ReactNativeMock & {
+  __mockReactNativeState: {
+    Platform: {
+      OS: string;
+    };
+  };
+};
+
 describe('importFromPresentlyCSV', () => {
   beforeEach(() => {
+    __mockReactNativeState.Platform.OS = 'ios';
+    mockGetDocumentAsync.mockReset();
+    mockGetDocumentAsync.mockResolvedValue({ canceled: true });
     mockFileText.mockReset();
     mockSelect.mockClear();
     mockFrom.mockClear();
@@ -76,6 +92,26 @@ describe('importFromPresentlyCSV', () => {
     mockLimit.mockImplementation(async () => []);
     mockValues.mockImplementation(async () => undefined);
     mockGenerateUUID.mockImplementation(() => 'generated-note-id');
+  });
+
+  test('uses an unrestricted picker filter on android', async () => {
+    __mockReactNativeState.Platform.OS = 'android';
+
+    await expect(pickPresentlyImportFile()).resolves.toBeNull();
+
+    expect(mockGetDocumentAsync).toHaveBeenCalledWith({
+      type: '*/*',
+      copyToCacheDirectory: true,
+    });
+  });
+
+  test('keeps the csv-focused picker filter on ios', async () => {
+    await expect(pickPresentlyImportFile()).resolves.toBeNull();
+
+    expect(mockGetDocumentAsync).toHaveBeenCalledWith({
+      type: ['text/csv', 'text/comma-separated-values', 'application/csv', '*/*'],
+      copyToCacheDirectory: true,
+    });
   });
 
   test('imports rows separated by bare CR line terminators', async () => {

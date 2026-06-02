@@ -17,6 +17,12 @@ import {
 /**
  * Generates the mobile theme runtime artifacts from theme-tokens.ts.
  *
+ * Single source of truth rule:
+ * - Edit theme-tokens.ts when theme metadata or token values change.
+ * - Do not hand-edit registry.js, registry.cjs, registry.d.ts, or generated
+ *   sections in global.css.
+ * - Re-run this script to regenerate those artifacts for runtime and tooling.
+ *
  * This script is the single build step that keeps the typed theme source of truth
  * in sync with the files consumed by the app runtime and tooling:
  * - global.css: preserves handwritten CSS above the generated marker block and

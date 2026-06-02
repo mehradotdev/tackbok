@@ -124,11 +124,14 @@ export function WaveformVisualizer({
     const w = containerWidth;
     const totalBars = bars.length;
 
-    const activeP = Skia.Path.Make();
-    const inactiveP = Skia.Path.Make();
+    const activeBuilder = Skia.PathBuilder.Make();
+    const inactiveBuilder = Skia.PathBuilder.Make();
 
     if (w <= 0 || totalBars === 0) {
-      return { activePath: activeP, inactivePath: inactiveP };
+      return {
+        activePath: activeBuilder.detach(),
+        inactivePath: inactiveBuilder.detach(),
+      };
     }
 
     const midY = height / 2;
@@ -141,33 +144,33 @@ export function WaveformVisualizer({
       const barH = Math.max(2, amplitude * maxBarHeight);
       const y = midY - barH / 2;
       const radius = Math.min(BAR_WIDTH / 2, 1.5);
+      const barRect = Skia.RRectXY(Skia.XYWHRect(x, y, BAR_WIDTH, barH), radius, radius);
 
       if (x + BAR_WIDTH <= progressX) {
-        activeP.addRRect(
-          Skia.RRectXY(Skia.XYWHRect(x, y, BAR_WIDTH, barH), radius, radius),
-        );
+        activeBuilder.addRRect(barRect);
       } else if (x >= progressX) {
-        inactiveP.addRRect(
-          Skia.RRectXY(Skia.XYWHRect(x, y, BAR_WIDTH, barH), radius, radius),
-        );
+        inactiveBuilder.addRRect(barRect);
       } else {
         const playedW = progressX - x;
         const unplayedW = BAR_WIDTH - playedW;
 
         if (playedW > 0) {
-          activeP.addRRect(
+          activeBuilder.addRRect(
             Skia.RRectXY(Skia.XYWHRect(x, y, playedW, barH), radius, radius),
           );
         }
         if (unplayedW > 0) {
-          inactiveP.addRRect(
+          inactiveBuilder.addRRect(
             Skia.RRectXY(Skia.XYWHRect(x + playedW, y, unplayedW, barH), radius, radius),
           );
         }
       }
     }
 
-    return { activePath: activeP, inactivePath: inactiveP };
+    return {
+      activePath: activeBuilder.detach(),
+      inactivePath: inactiveBuilder.detach(),
+    };
   }, [bars, progress, height, containerWidth]);
 
   // ── Render ─────────────────────────────────────────────────────────

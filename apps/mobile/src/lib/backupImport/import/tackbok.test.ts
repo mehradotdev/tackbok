@@ -80,6 +80,8 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
+// Keep these mocks inline: the import flow needs a custom File/Directory surface
+// for archive reads, which is intentionally narrower than the shared manual mocks.
 jest.mock('expo-file-system', () => ({
   Directory: class MockDirectory {
     exists = true;

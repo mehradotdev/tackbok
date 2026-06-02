@@ -23,15 +23,25 @@ const { __mockReactNativeState } = ReactNativeMock as typeof ReactNativeMock & {
   };
 };
 
+const mockSaveZipWithAndroidDocumentPicker = jest.fn(
+  async (_file: ExpoFile, _fileName: string) => {},
+);
+
 (globalThis as { __DEV__?: boolean }).__DEV__ = false;
 
 const mockShareAsync = jest.fn(async (_uri?: string, _options?: unknown) => {});
 const mockIsAvailableAsync = jest.fn(async () => true);
+// These suites reuse the shared manual mocks in apps/mobile/__mocks__.
 jest.mock('expo-file-system');
 
 jest.mock('expo-sharing', () => ({
   shareAsync: (uri: string, options?: unknown) => mockShareAsync(uri, options),
   isAvailableAsync: () => mockIsAvailableAsync(),
+}));
+
+jest.mock('./androidSave', () => ({
+  saveZipWithAndroidDocumentPicker: (file: ExpoFile, fileName: string) =>
+    mockSaveZipWithAndroidDocumentPicker(file, fileName),
 }));
 
 jest.mock('react-native');
@@ -60,6 +70,7 @@ describe('backup export utils', () => {
     __mockFileSystemState.pickDirectoryAsync.mockReset();
     mockShareAsync.mockReset();
     mockIsAvailableAsync.mockReset();
+    mockSaveZipWithAndroidDocumentPicker.mockReset();
     __mockFileSystemState.cacheEntries.length = 0;
     __mockReactNativeState.Platform.OS = 'ios';
 
@@ -68,6 +79,7 @@ describe('backup export utils', () => {
         write: jest.fn(() => {}),
       })),
     });
+    mockSaveZipWithAndroidDocumentPicker.mockResolvedValue(undefined);
     mockShareAsync.mockResolvedValue();
     mockIsAvailableAsync.mockResolvedValue(true);
   });
@@ -81,16 +93,20 @@ describe('backup export utils', () => {
     expect(mockShareAsync).toHaveBeenCalledWith(file.uri, expect.any(Object));
   });
 
-  test('returns immediate cleanup after android directory copy', async () => {
+  test('returns immediate cleanup after android save-as flow', async () => {
     __mockReactNativeState.Platform.OS = 'android';
     const file = new File('/tmp/TackbokBackup_test.zip') as MockExpoFile;
 
     await expect(saveOrShareZipFile(file, 'TackbokBackup_test.zip')).resolves.toBe(
       'delete-immediately',
     );
-    expect(__mockFileSystemState.pickDirectoryAsync).toHaveBeenCalledTimes(1);
-    expect(file.copy).toHaveBeenCalledTimes(1);
+    expect(mockSaveZipWithAndroidDocumentPicker).toHaveBeenCalledWith(
+      file,
+      'TackbokBackup_test.zip',
+    );
+    expect(__mockFileSystemState.pickDirectoryAsync).not.toHaveBeenCalled();
     expect(file.bytes).not.toHaveBeenCalled();
+    expect(file.copy).not.toHaveBeenCalled();
   });
 
   test('deletes only stale deferred backup zip files', () => {

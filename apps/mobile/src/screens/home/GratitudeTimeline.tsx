@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { View } from 'react-native';
 import { format, subDays, startOfDay } from 'date-fns';
-import { LegendList } from '@legendapp/list';
+import { LegendList } from '@legendapp/list/react-native';
 import {
   type DayGroup,
   type MilestoneItem,
@@ -184,28 +184,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         recycleItems={true}
         data={finalList}
         getItemType={(item) => (isMilestoneItem(item) ? 'milestone' : 'dayGroup')}
-        getEstimatedItemSize={(_index, item, type) => {
-          if (type === 'milestone') return 80;
-          if (isDayGroupItem(item)) {
-            const isExpanded = expandedDays.has(item.dateMs);
-            const numEntries = item.entries.length;
-            // Check if any entries have photos
-            const hasPhotos = item.entries.some(
-              (e) => e.assets && e.assets.some((a) => a.type === AssetType.IMAGE),
-            );
-            const hasText = item.entries.some(
-              (e) => e.text_content && e.text_content.trim().length > 0,
-            );
-            const photosExtra = hasPhotos ? 80 : 0; // ~80px for horizontal scroll row
-            const textExtra = hasText ? 40 : 0;
-            // Collapsed: ~70px header + (~40px preview if has text) + optional photos
-            // Expanded: ~70px header + ~150px per entry + optional photos
-            return isExpanded
-              ? 70 + numEntries * (150 + photosExtra)
-              : 70 + textExtra + photosExtra;
-          }
-          return 150;
-        }}
+        estimatedItemSize={180}
         extraData={[expandedDays, tagMap]}
         keyExtractor={(item) =>
           isMilestoneItem(item)

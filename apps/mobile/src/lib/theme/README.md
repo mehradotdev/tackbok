@@ -2,6 +2,8 @@
 
 This folder contains the source of truth and generated artifacts for theme and font metadata in the mobile app.
 
+Single source of truth rule: edit `theme-tokens.ts`, then regenerate artifacts with `bun run generate:themes`. Do not hand-edit `registry.js`, `registry.cjs`, `registry.d.ts`, or generated sections in `src/global.css`.
+
 ## Current Shape
 
 - `theme-tokens.ts`

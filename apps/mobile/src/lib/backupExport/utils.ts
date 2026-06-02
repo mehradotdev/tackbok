@@ -7,6 +7,7 @@ import { db, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { photoFileExists } from '~/lib/photoUtils';
 import { voiceMemoFileExists } from '~/lib/voiceMemoUtils';
+import { saveZipWithAndroidDocumentPicker } from './androidSave';
 
 const ZIP_MIME_TYPE = 'application/zip';
 const ZIP_DIALOG_TITLE = 'Export Tackbok Backup';
@@ -123,7 +124,7 @@ export function assetFileExists(asset: Asset): boolean {
 }
 
 /**
- * Saves a generated ZIP backup using Android directory access or the native share sheet.
+ * Saves a generated ZIP backup using Android save-as or the native share sheet.
  */
 export async function saveOrShareZipFile(
   file: File,
@@ -131,15 +132,7 @@ export async function saveOrShareZipFile(
 ): Promise<GeneratedZipCleanupStrategy> {
   if (Platform.OS === 'android') {
     try {
-      const directory = await Directory.pickDirectoryAsync();
-      const existing = new File(directory, fileName);
-      if (existing.exists) {
-        existing.delete();
-      }
-
-      const destination = directory.createFile(fileName, ZIP_MIME_TYPE);
-      // Copy the ZIP natively so we do not materialize the whole archive in JS memory first.
-      file.copy(destination);
+      await saveZipWithAndroidDocumentPicker(file, fileName);
       // Android writes a user-owned copy before we return, so the temp cache file can go away.
       return 'delete-immediately';
     } catch (error) {
