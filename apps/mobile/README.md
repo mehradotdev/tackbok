@@ -26,6 +26,54 @@ bun run start
 ```
 *(Or use `bun run ios` / `bun run android` to launch directly in a simulator/emulator)*
 
+### Windows Android Setup
+
+Windows needs a couple of extra setup steps for this Expo/React Native app.
+
+1. Enable Windows Developer Mode.
+   - Open **Settings > System > Advanced > For developers**.
+   - Turn **Developer Mode** on.
+   - This lets Expo create the symlinks it needs for inline native modules.
+
+2. Install dependencies from the repository root with Bun's hoisted linker.
+
+```powershell
+cd D:\proj\tackbok
+bun install
+```
+
+The root `bunfig.toml` must keep this setting:
+
+```toml
+[install]
+linker = "hoisted"
+```
+
+React Native's Android native build tools can fail on Windows when packages resolve through long `.bun` paths. The hoisted linker keeps native package paths short and predictable.
+
+3. Check the generated Expo inline-modules property after `expo prebuild`.
+
+Expo may regenerate `apps/mobile/android/gradle.properties` with this value:
+
+```properties
+expo.inlineModules.watchedDirectories=["src/inlineModules"]
+```
+
+On Windows, that can be passed to Node as invalid JSON because the quotes are stripped. If you run `expo prebuild`, make sure the line is escaped like this before running Android:
+
+```properties
+expo.inlineModules.watchedDirectories=[\\"src/inlineModules\\"]
+```
+
+4. Run Android from the mobile app:
+
+```powershell
+cd D:\proj\tackbok\apps\mobile
+bun run android
+```
+
+If the build still fails while creating symlinks or writing native build files, try running the same command from an Administrator PowerShell window.
+
 ## Testing
 
 Run the mobile Jest suite with Bun:
