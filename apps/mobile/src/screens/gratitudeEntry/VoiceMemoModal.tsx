@@ -1,7 +1,16 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Linking } from 'react-native';
+import { View, Linking, ActivityIndicator } from 'react-native';
 import { File } from 'expo-file-system';
-import { Headphones, X, Mic, Square, Play, Pause } from 'lucide-react-native';
+import {
+  Headphones,
+  X,
+  Mic,
+  Square,
+  Play,
+  Pause,
+  Trash2,
+  Save,
+} from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { SHEET_NAMES } from '~/constants';
@@ -11,7 +20,7 @@ import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
-import { WaveformVisualizer } from '~/components/WaveformVisualizer';
+import { StaticWaveform } from '~/components/StaticWaveform';
 import { LiveWaveform } from '~/components/LiveWaveform';
 import {
   AlertDialog,
@@ -32,7 +41,7 @@ interface IVoiceMemoModalProps {
   onVoiceMemoSaved: (tempUri: string) => void;
 }
 
-type RecorderPhase = 'idle' | 'recording' | 'preview';
+type RecorderPhase = 'idle' | 'recording' | 'normalizing' | 'preview';
 
 // ============================================================================
 // Helpers
@@ -46,6 +55,8 @@ function formatTime(totalSeconds: number): string {
 }
 
 const POLL_INTERVAL = 200; // ms
+const MAX_RECORDING_DURATION_SECONDS = 30 * 60;
+const MAX_RECORDING_DURATION_MS = MAX_RECORDING_DURATION_SECONDS * 1000;
 
 // ============================================================================
 // Component
@@ -76,7 +87,11 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
   const durationPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playbackPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const maxRecordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listenerIdRef = useRef<number | null>(null);
+  const isStoppingRef = useRef(false);
+  const stopRecordingHandlerRef = useRef<((autoSave?: boolean) => void) | null>(null);
+  const previewLoadIdRef = useRef(0);
   // Prevent a dismiss->cleanup race: after Save we hand `recordedUri` to the parent to persist,
   // but `onDidDismiss` still fires; we must not delete the temp file in that case.
   const didSaveRef = useRef(false);
@@ -85,6 +100,28 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     '--color-foreground',
     '--color-border',
   ]);
+
+  const resetRecorderState = useCallback(() => {
+    previewLoadIdRef.current += 1;
+    setPhase('idle');
+    setRecordedUri(null);
+    setRecordingDuration(0);
+    setPreviewPlaying(false);
+    setPreviewCurrentTime(0);
+    setPreviewDuration(0);
+    setPreviewAmplitudes([]);
+  }, []);
+
+  const deleteTempRecording = useCallback((uri: string | null) => {
+    if (!uri) return;
+
+    try {
+      const tempFile = new File(uri);
+      if (tempFile.exists) tempFile.delete();
+    } catch {
+      // Ignore — temp dir cleanup is best-effort
+    }
+  }, []);
 
   // ── Polling helpers ────────────────────────────────────────────────
   const stopDurationPoll = useCallback(() => {
@@ -98,6 +135,13 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     if (playbackPollRef.current !== null) {
       clearInterval(playbackPollRef.current);
       playbackPollRef.current = null;
+    }
+  }, []);
+
+  const stopMaxRecordingTimer = useCallback(() => {
+    if (maxRecordingTimeoutRef.current !== null) {
+      clearTimeout(maxRecordingTimeoutRef.current);
+      maxRecordingTimeoutRef.current = null;
     }
   }, []);
 
@@ -136,6 +180,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   // ── Recording (with permission check) ──────────────────────────────
   const startRecording = useCallback(async (): Promise<boolean> => {
     didSaveRef.current = false;
+    stopMaxRecordingTimer();
     const result = await audioEngine.startRecording();
     if (result.status === 'error') {
       console.warn('Failed to start recording:', result.message);
@@ -144,8 +189,11 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     setPhase('recording');
     setRecordingDuration(0);
     startDurationPoll();
+    maxRecordingTimeoutRef.current = setTimeout(() => {
+      stopRecordingHandlerRef.current?.(true);
+    }, MAX_RECORDING_DURATION_MS);
     return true;
-  }, [startDurationPoll]);
+  }, [startDurationPoll, stopMaxRecordingTimer]);
 
   const handleStartRecording = useCallback(async () => {
     // Check current permission status without prompting
@@ -170,23 +218,82 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     setPermissionAlertOpen(true);
   }, [startRecording]);
 
-  const handleStopRecording = useCallback(() => {
-    stopDurationPoll();
-    const result = audioEngine.stopRecording();
-    if (result.path) {
-      setRecordedUri(result.path);
-      setPreviewDuration(result.duration ?? 0);
-      setPhase('preview');
+  const handleStopRecording = useCallback(
+    async (autoSave = false) => {
+      if (isStoppingRef.current) return;
+      isStoppingRef.current = true;
+      stopDurationPoll();
+      stopMaxRecordingTimer();
+      try {
+        const result = audioEngine.stopRecording();
+        if (result.path) {
+          setPhase('normalizing');
 
-      // Extract amplitudes for the preview waveform
-      audioEngine
-        .extractAmplitudes(result.path, 200)
-        .then((data) => setPreviewAmplitudes(data.amplitudes))
-        .catch(() => {});
-    } else {
-      setPhase('idle');
-    }
-  }, [stopDurationPoll]);
+          try {
+            // Normalize audio to boost quiet recordings (esp. on Android)
+            const normalizedUri = await audioEngine.normalizeAudio(result.path);
+
+            setRecordedUri(normalizedUri);
+            setPreviewDuration(result.duration ?? 0);
+
+            if (autoSave) {
+              didSaveRef.current = true;
+              await TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
+              onVoiceMemoSaved(normalizedUri);
+              return;
+            }
+
+            setPhase('preview');
+            setPreviewAmplitudes([]);
+            const previewLoadId = ++previewLoadIdRef.current;
+
+            // Extract amplitudes for the preview waveform
+            audioEngine
+              .extractAmplitudes(normalizedUri, 200)
+              .then((data) => {
+                if (previewLoadIdRef.current === previewLoadId) {
+                  setPreviewAmplitudes(data.amplitudes);
+                }
+              })
+              .catch(() => {});
+          } catch {
+            // If normalization fails, fall back to the original recording
+            setRecordedUri(result.path);
+            setPreviewDuration(result.duration ?? 0);
+
+            if (autoSave) {
+              didSaveRef.current = true;
+              await TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
+              onVoiceMemoSaved(result.path);
+              return;
+            }
+
+            setPhase('preview');
+            setPreviewAmplitudes([]);
+            const previewLoadId = ++previewLoadIdRef.current;
+
+            audioEngine
+              .extractAmplitudes(result.path, 200)
+              .then((data) => {
+                if (previewLoadIdRef.current === previewLoadId) {
+                  setPreviewAmplitudes(data.amplitudes);
+                }
+              })
+              .catch(() => {});
+          }
+        } else {
+          setPhase('idle');
+        }
+      } finally {
+        isStoppingRef.current = false;
+      }
+    },
+    [onVoiceMemoSaved, stopDurationPoll, stopMaxRecordingTimer],
+  );
+
+  useEffect(() => {
+    stopRecordingHandlerRef.current = handleStopRecording;
+  }, [handleStopRecording]);
 
   // ── Preview Playback ───────────────────────────────────────────────
   const handlePlayPause = useCallback(async () => {
@@ -225,17 +332,6 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   );
 
   // ── Actions ────────────────────────────────────────────────────────
-  const handleRecordAgain = useCallback(() => {
-    didSaveRef.current = false;
-    audioEngine.stopPlayback();
-    setPreviewPlaying(false);
-    stopPlaybackPoll();
-    setRecordedUri(null);
-    setPreviewCurrentTime(0);
-    setPreviewDuration(0);
-    setPhase('idle');
-  }, [stopPlaybackPoll]);
-
   const handleSave = useCallback(() => {
     if (recordedUri) {
       didSaveRef.current = true;
@@ -254,8 +350,16 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
       audioEngine.stopRecording();
     }
     stopDurationPoll();
+    stopMaxRecordingTimer();
     stopPlaybackPoll();
-  }, [stopDurationPoll, stopPlaybackPoll]);
+  }, [stopDurationPoll, stopMaxRecordingTimer, stopPlaybackPoll]);
+
+  const handleDiscardRecording = useCallback(() => {
+    didSaveRef.current = false;
+    stopAudioActivity();
+    deleteTempRecording(recordedUri);
+    resetRecorderState();
+  }, [deleteTempRecording, recordedUri, resetRecorderState, stopAudioActivity]);
 
   // ── Unmount cleanup ────────────────────────────────────────────────
   useEffect(() => {
@@ -267,22 +371,11 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
 
     // Clean up unsaved temp recording file (best-effort)
     if (recordedUri && !didSaveRef.current) {
-      try {
-        const tempFile = new File(recordedUri);
-        if (tempFile.exists) tempFile.delete();
-      } catch {
-        // Ignore — temp dir cleanup is best-effort
-      }
+      deleteTempRecording(recordedUri);
     }
 
-    setPhase('idle');
-    setRecordedUri(null);
-    setRecordingDuration(0);
-    setPreviewPlaying(false);
-    setPreviewCurrentTime(0);
-    setPreviewDuration(0);
-    setPreviewAmplitudes([]);
-  }, [stopAudioActivity, recordedUri]);
+    resetRecorderState();
+  }, [deleteTempRecording, recordedUri, resetRecorderState, stopAudioActivity]);
 
   const previewProgress = previewDuration > 0 ? previewCurrentTime / previewDuration : 0;
 
@@ -303,7 +396,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
         onDidDismiss={handleDismiss}>
         <View className="px-6 pt-4 pb-4">
           {/* Close button */}
-          {phase !== 'recording' && (
+          {phase === 'idle' && (
             <Button
               variant="ghost"
               size="icon"
@@ -341,6 +434,21 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
             </>
           )}
 
+          {/* === NORMALIZING PHASE === */}
+          {phase === 'normalizing' && (
+            <>
+              <Text className="text-xl font-body-bold text-foreground text-center mb-2">
+                {t('Processing Audio...')}
+              </Text>
+              <Text className="text-base text-muted-foreground text-center mb-6">
+                {t('Optimizing your recording.')}
+              </Text>
+              <View className="items-center mb-4">
+                <ActivityIndicator size="large" color={foregroundColor as string} />
+              </View>
+            </>
+          )}
+
           {/* === RECORDING PHASE === */}
           {phase === 'recording' && (
             <>
@@ -349,6 +457,9 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
               </Text>
               <Text className="text-4xl font-body-bold text-foreground text-center mb-4">
                 {formatTime(recordingDuration)}
+              </Text>
+              <Text className="text-sm text-muted-foreground text-center mb-4">
+                {t('Voice notes save automatically at 30:00.')}
               </Text>
 
               {/* Live waveform during recording */}
@@ -363,7 +474,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
               <Button
                 variant="default"
                 className="w-full h-14"
-                onPress={handleStopRecording}>
+                onPress={() => handleStopRecording()}>
                 <Icon as={Square} className="text-background size-4" />
                 <Text>{t('Stop Recording')}</Text>
               </Button>
@@ -401,7 +512,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
                     {formatTime(previewCurrentTime)}
                   </Text>
                   <View className="flex-1">
-                    <WaveformVisualizer
+                    <StaticWaveform
                       amplitudes={previewAmplitudes}
                       activeColor={foregroundColor as string}
                       inactiveColor={mutedForegroundColor as string}
@@ -417,17 +528,18 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
                 </View>
               </View>
 
-              {/* Save and Record Again buttons */}
+              {/* Save and discard buttons */}
               <View className="gap-3">
                 <Button variant="default" className="w-full h-14" onPress={handleSave}>
+                  <Icon as={Save} className="text-background size-5" />
                   <Text>{t('Save Recording')}</Text>
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full h-14"
-                  onPress={handleRecordAgain}>
-                  <Icon as={Mic} className="text-foreground size-5" />
-                  <Text>{t('Record Again')}</Text>
+                  onPress={handleDiscardRecording}>
+                  <Icon as={Trash2} className="text-destructive size-5" />
+                  <Text>{t('Discard Recording')}</Text>
                 </Button>
               </View>
             </>

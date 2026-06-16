@@ -82,7 +82,11 @@ export const zhCN: Translations = {
   'Voice Note Recorded': '语音备忘录已录制',
   'Tap on the play button to listen.': '点击播放按钮即可收听。',
   'Save Recording': '保存录音',
-  'Record Again': '重新录制',
+  'Discard Recording': '放弃录音',
+  'Processing Audio...': '正在处理音频...',
+  'Optimizing your recording.': '正在优化您的录音。',
+  'Voice notes save automatically at 30:00.':
+    '语音备忘录会在 30:00 时自动保存。',
 
   'Title (optional)': '标题（可选）',
   'Use Prompt': '使用提示',

@@ -82,7 +82,11 @@ export const zhTW: Translations = {
   'Voice Note Recorded': '語音備忘錄已錄製',
   'Tap on the play button to listen.': '點擊播放按鈕即可收聽。',
   'Save Recording': '儲存錄音',
-  'Record Again': '重新錄製',
+  'Discard Recording': '捨棄錄音',
+  'Processing Audio...': '正在處理音訊...',
+  'Optimizing your recording.': '正在最佳化您的錄音。',
+  'Voice notes save automatically at 30:00.':
+    '語音備忘錄會在 30:00 時自動儲存。',
 
   'Title (optional)': '標題（選填）',
   'Use Prompt': '使用提示',

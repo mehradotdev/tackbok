@@ -8,7 +8,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 // Types
 // ============================================================================
 
-interface WaveformVisualizerProps {
+interface StaticWaveformProps {
   /** Full-track peak amplitudes (0..1), one per logical sample */
   amplitudes?: number[];
   /** Foreground color for the already-played portion */
@@ -33,12 +33,32 @@ interface WaveformVisualizerProps {
 const BAR_WIDTH = 3;
 /** Gap between bars in points */
 const BAR_GAP = 2;
+/** Raw peak floor below which static bars are treated as visual silence. */
+const STATIC_NOISE_FLOOR = 0.01;
+/** Approximate peak ceiling for normalized recorded speech. */
+const STATIC_PRACTICAL_MAX = 0.9;
+/** Gentle visual lift for quiet static bars. */
+const STATIC_PRE_GAIN = 1.28;
+/** Compression that keeps louder clips visibly taller. */
+const STATIC_EXPONENT = 0.74;
+/** Minimum displayed amplitude so quiet bars do not disappear visually. */
+const MIN_DISPLAY_AMPLITUDE = 0.1;
+/** Minimum rendered bar height in points. */
+const MIN_BAR_HEIGHT = 3;
+
+// StaticWaveform owns the final display curve for extracted chunk peaks.
+function shapeStaticDisplayAmplitude(level: number): number {
+  const gated = Math.max(0, level - STATIC_NOISE_FLOOR);
+  const normalized = Math.min(1, gated / (STATIC_PRACTICAL_MAX - STATIC_NOISE_FLOOR));
+  const boosted = Math.min(1, normalized * STATIC_PRE_GAIN);
+  return Math.pow(boosted, STATIC_EXPONENT);
+}
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export function WaveformVisualizer({
+export function StaticWaveform({
   amplitudes,
   activeColor,
   inactiveColor,
@@ -46,7 +66,7 @@ export function WaveformVisualizer({
   progress = 0,
   duration = 0,
   onSeek,
-}: WaveformVisualizerProps) {
+}: StaticWaveformProps) {
   const [containerWidth, setContainerWidth] = useState(0);
 
   // ── Layout ─────────────────────────────────────────────────────────
@@ -63,7 +83,7 @@ export function WaveformVisualizer({
   // ── Downsample static amplitudes to match bar count ────────────────
   const bars = useMemo(() => {
     if (barCount <= 0 || !amplitudes || amplitudes.length === 0) {
-      return new Array(Math.max(barCount, 0)).fill(0.08);
+      return new Array(Math.max(barCount, 0)).fill(MIN_DISPLAY_AMPLITUDE);
     }
 
     const result: number[] = [];
@@ -78,7 +98,8 @@ export function WaveformVisualizer({
         if (amplitudes[j] > peak) peak = amplitudes[j];
       }
 
-      result.push(Math.max(0.08, peak));
+      const shapedPeak = shapeStaticDisplayAmplitude(peak);
+      result.push(Math.max(MIN_DISPLAY_AMPLITUDE, shapedPeak));
     }
 
     return result;
@@ -140,8 +161,8 @@ export function WaveformVisualizer({
 
     for (let i = 0; i < totalBars; i++) {
       const x = i * (BAR_WIDTH + BAR_GAP);
-      const amplitude = bars[i] ?? 0.08;
-      const barH = Math.max(2, amplitude * maxBarHeight);
+      const amplitude = bars[i] ?? MIN_DISPLAY_AMPLITUDE;
+      const barH = Math.max(MIN_BAR_HEIGHT, amplitude * maxBarHeight);
       const y = midY - barH / 2;
       const radius = Math.min(BAR_WIDTH / 2, 1.5);
       const barRect = Skia.RRectXY(Skia.XYWHRect(x, y, BAR_WIDTH, barH), radius, radius);
