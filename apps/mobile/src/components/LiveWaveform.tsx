@@ -27,8 +27,31 @@ interface LiveWaveformProps {
 /** How often (ms) a new amplitude sample is appended to the rolling buffer. */
 const SAMPLE_INTERVAL_MS = 50; // ~20 samples/sec
 
+/** Raw RMS below this is treated as ambient noise and gated to zero. */
+const LIVE_NOISE_FLOOR = 0.01;
+
+/** Approximate RMS ceiling for normal-to-loud speech on a phone mic. */
+const LIVE_PRACTICAL_MAX = 0.35;
+
+/** Visual-only pre-gain before compression to lift quiet speech. */
+const LIVE_PRE_GAIN = 2.25;
+
+/** Power curve exponent for live RMS data (<1 = more boost for quiet speech). */
+const LIVE_EXPONENT = 0.44;
+
 /** Minimum bar height ratio so silent bars are still visible. */
 const MIN_BAR = 0.04;
+
+/** Minimum rendered bar height in points. */
+const MIN_BAR_HEIGHT = 2;
+
+// LiveWaveform owns the final live-display curve; audioEngine only provides raw RMS.
+function shapeLiveDisplayAmplitude(level: number): number {
+  const gated = Math.max(0, level - LIVE_NOISE_FLOOR);
+  const normalized = Math.min(1, gated / (LIVE_PRACTICAL_MAX - LIVE_NOISE_FLOOR));
+  const boosted = Math.min(1, normalized * LIVE_PRE_GAIN);
+  return Math.pow(boosted, LIVE_EXPONENT);
+}
 
 // ============================================================================
 // Component
@@ -84,7 +107,8 @@ export function LiveWaveform({
       if (now - lastSampleTimeRef.current >= SAMPLE_INTERVAL_MS) {
         lastSampleTimeRef.current = now;
 
-        const amplitude = audioEngine.getCurrentAmplitude();
+        const rawAmplitude = audioEngine.getCurrentRmsAmplitude();
+        const amplitude = shapeLiveDisplayAmplitude(rawAmplitude);
         const buf = bufferRef.current;
 
         buf.push(Math.max(MIN_BAR, amplitude));
@@ -129,7 +153,7 @@ export function LiveWaveform({
       const slot = startSlot + i;
       const x = slot * (barWidth + barGap);
       const amplitude = buf[i];
-      const barH = Math.max(2, amplitude * maxBarHeight);
+      const barH = Math.max(MIN_BAR_HEIGHT, amplitude * maxBarHeight);
       const y = midY - barH / 2;
       const radius = Math.min(barWidth / 2, 1.5);
 

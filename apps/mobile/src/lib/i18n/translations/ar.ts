@@ -82,7 +82,11 @@ export const ar: Translations = {
   'Voice Note Recorded': 'تم تسجيل الملاحظة الصوتية',
   'Tap on the play button to listen.': 'اضغط على زر التشغيل للاستماع.',
   'Save Recording': 'حفظ التسجيل',
-  'Record Again': 'تسجيل مرة أخرى',
+  'Discard Recording': 'تجاهل التسجيل',
+  'Processing Audio...': 'جاري معالجة الصوت...',
+  'Optimizing your recording.': 'جاري تحسين التسجيل.',
+  'Voice notes save automatically at 30:00.':
+    'يتم حفظ الملاحظات الصوتية تلقائيًا عند 30:00.',
 
   'Title (optional)': 'العنوان (اختياري)',
   'Use Prompt': 'استخدم السؤال',

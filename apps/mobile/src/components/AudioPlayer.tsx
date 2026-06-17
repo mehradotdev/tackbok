@@ -10,7 +10,7 @@ import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Badge } from '~/components/ui/badge';
 import { Button } from '~/components/ui/button';
-import { WaveformVisualizer } from '~/components/WaveformVisualizer';
+import { StaticWaveform } from '~/components/StaticWaveform';
 
 // ============================================================================
 // Types
@@ -43,7 +43,7 @@ const POLL_INTERVAL = 100; // ms
 /**
  * Number of raw amplitude samples to extract from the audio file.
  * This is intentionally higher than any bar count so downsampling in
- * WaveformVisualizer preserves detail at every container width.
+ * StaticWaveform preserves detail at every container width.
  */
 const AMPLITUDE_SAMPLE_COUNT = 200;
 
@@ -275,7 +275,7 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
 
         {/* Waveform */}
         <View className="flex-1">
-          <WaveformVisualizer
+          <StaticWaveform
             amplitudes={amplitudes}
             activeColor={foregroundColor as string}
             inactiveColor={mutedForegroundColor as string}
