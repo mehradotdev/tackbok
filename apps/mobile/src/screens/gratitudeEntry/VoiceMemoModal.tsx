@@ -162,6 +162,22 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     }, POLL_INTERVAL);
   }, [stopPlaybackPoll]);
 
+  // Enter preview mode and load waveform data, ignoring stale extraction results.
+  const hydratePreviewWaveform = useCallback((uri: string) => {
+    setPhase('preview');
+    setPreviewAmplitudes([]);
+    const previewLoadId = ++previewLoadIdRef.current;
+
+    audioEngine
+      .extractAmplitudes(uri, 200)
+      .then((data) => {
+        if (previewLoadIdRef.current === previewLoadId) {
+          setPreviewAmplitudes(data.amplitudes);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // ── Playback end listener ──────────────────────────────────────────
   useEffect(() => {
     listenerIdRef.current = audioEngine.onPlaybackEnd(() => {
@@ -243,19 +259,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
               return;
             }
 
-            setPhase('preview');
-            setPreviewAmplitudes([]);
-            const previewLoadId = ++previewLoadIdRef.current;
-
-            // Extract amplitudes for the preview waveform
-            audioEngine
-              .extractAmplitudes(normalizedUri, 200)
-              .then((data) => {
-                if (previewLoadIdRef.current === previewLoadId) {
-                  setPreviewAmplitudes(data.amplitudes);
-                }
-              })
-              .catch(() => {});
+            hydratePreviewWaveform(normalizedUri);
           } catch {
             // If normalization fails, fall back to the original recording
             setRecordedUri(result.path);
@@ -268,18 +272,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
               return;
             }
 
-            setPhase('preview');
-            setPreviewAmplitudes([]);
-            const previewLoadId = ++previewLoadIdRef.current;
-
-            audioEngine
-              .extractAmplitudes(result.path, 200)
-              .then((data) => {
-                if (previewLoadIdRef.current === previewLoadId) {
-                  setPreviewAmplitudes(data.amplitudes);
-                }
-              })
-              .catch(() => {});
+            hydratePreviewWaveform(result.path);
           }
         } else {
           setPhase('idle');
@@ -288,7 +281,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
         isStoppingRef.current = false;
       }
     },
-    [onVoiceMemoSaved, stopDurationPoll, stopMaxRecordingTimer],
+    [hydratePreviewWaveform, onVoiceMemoSaved, stopDurationPoll, stopMaxRecordingTimer],
   );
 
   useEffect(() => {
@@ -347,12 +340,13 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   const stopAudioActivity = useCallback(() => {
     audioEngine.stopPlayback();
     if (audioEngine.isRecording) {
-      audioEngine.stopRecording();
+      const result = audioEngine.stopRecording();
+      deleteTempRecording(result.path ?? null);
     }
     stopDurationPoll();
     stopMaxRecordingTimer();
     stopPlaybackPoll();
-  }, [stopDurationPoll, stopMaxRecordingTimer, stopPlaybackPoll]);
+  }, [deleteTempRecording, stopDurationPoll, stopMaxRecordingTimer, stopPlaybackPoll]);
 
   const handleDiscardRecording = useCallback(() => {
     didSaveRef.current = false;

@@ -12,7 +12,7 @@ public class AudioEncoderModule: Module {
 
     AsyncFunction("encodeWavToM4a") { (wavUriString: String, bitrate: Int?) -> String in
       let actualBitrate = bitrate ?? defaultBitrate
-      let wavURL = self.resolveFileURL(wavUriString)
+      let wavURL = try self.resolveFileURL(wavUriString)
 
       let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
       let outputURL = cacheDir.appendingPathComponent("encoded_\(Int(Date().timeIntervalSince1970 * 1000)).m4a")
@@ -26,9 +26,12 @@ public class AudioEncoderModule: Module {
   }
 
   /// Resolve a file:// URI or plain path to a URL.
-  private func resolveFileURL(_ uriString: String) -> URL {
+  private func resolveFileURL(_ uriString: String) throws -> URL {
     if uriString.hasPrefix("file://") {
-      return URL(string: uriString)!
+      guard let url = URL(string: uriString), url.isFileURL else {
+        throw Exception(name: errorEncode, description: "Invalid WAV file URI")
+      }
+      return url
     }
     return URL(fileURLWithPath: uriString)
   }
