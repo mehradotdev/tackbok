@@ -21,6 +21,7 @@ export const zhCN: Translations = {
   Play: '播放',
   Pause: '暂停',
   Settings: '设置',
+  'Share Feedback': '分享反馈',
   'Contact Us': '联系我们',
   'Unknown error': '未知错误',
 
@@ -85,9 +86,7 @@ export const zhCN: Translations = {
   'Discard Recording': '放弃录音',
   'Processing Audio...': '正在处理音频...',
   'Optimizing your recording.': '正在优化您的录音。',
-  'Voice notes save automatically at 30:00.':
-    '语音备忘录会在 30:00 时自动保存。',
-
+  'Voice notes save automatically at 30:00.': '语音备忘录会在 30:00 时自动保存。',
   'Title (optional)': '标题（可选）',
   'Use Prompt': '使用提示',
   'New Prompt': '新提示',

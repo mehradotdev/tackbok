@@ -330,6 +330,7 @@ function buildSupportBody(): string {
   const platform = Platform.OS === 'ios' ? 'iOS' : 'Android';
   const osVersion = Platform.Version;
   const device = Device.modelName ?? 'Unknown';
+  const deviceBrand = Device.brand ?? 'Unknown';
   const { width, height } = Dimensions.get('screen');
   const resolution = `${Math.round(width)}x${Math.round(height)}`;
 
@@ -338,11 +339,11 @@ function buildSupportBody(): string {
     '',
     '',
     '---',
+    `Device Model: ${device} ${deviceBrand}`,
     `App Version: ${appVersion}`,
-    `Platform: ${platform}`,
-    `OS Version: ${osVersion}`,
-    `Device Model: ${device}`,
+    `${platform} Version: ${osVersion}`,
     `Resolution: ${resolution}`,
+    'Note: this information will help us to troubleshoot your issue.',
   ].join('\n');
 }
 
@@ -531,7 +532,11 @@ export function SettingsBottomSheet() {
             onSaveName={handleSaveName}>
             <View className="border-t border-border mt-3">
               <ActionRow label={t('Settings')} icon={Settings} onPress={handleSettings} />
-              <ActionRow label={t('Contact Us')} icon={Mail} onPress={handleContactUs} />
+              <ActionRow
+                label={`${t('Share Feedback')} / ${t('Contact Us')}`}
+                icon={Mail}
+                onPress={handleContactUs}
+              />
               <ActionRow
                 label={t('Reload App')}
                 icon={RotateCcw}

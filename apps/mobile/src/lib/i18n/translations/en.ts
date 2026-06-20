@@ -20,6 +20,7 @@ export const en = {
   Play: 'Play',
   Pause: 'Pause',
   Settings: 'Settings',
+  'Share Feedback': 'Share Feedback',
   'Contact Us': 'Contact Us',
   'Unknown error': 'Unknown error',
 
@@ -86,9 +87,7 @@ export const en = {
   'Discard Recording': 'Discard Recording',
   'Processing Audio...': 'Processing Audio...',
   'Optimizing your recording.': 'Optimizing your recording.',
-  'Voice notes save automatically at 30:00.':
-    'Voice notes save automatically at 30:00.',
-
+  'Voice notes save automatically at 30:00.': 'Voice notes save automatically at 30:00.',
   'Title (optional)': 'Title (optional)',
   'Use Prompt': 'Use Prompt',
   'New Prompt': 'New Prompt',
