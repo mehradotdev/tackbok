@@ -21,6 +21,7 @@ export const zhTW: Translations = {
   Play: '播放',
   Pause: '暫停',
   Settings: '設定',
+  'Share Feedback': '分享意見',
   'Contact Us': '聯絡我們',
   'Unknown error': '未知錯誤',
 
@@ -85,9 +86,7 @@ export const zhTW: Translations = {
   'Discard Recording': '捨棄錄音',
   'Processing Audio...': '正在處理音訊...',
   'Optimizing your recording.': '正在最佳化您的錄音。',
-  'Voice notes save automatically at 30:00.':
-    '語音備忘錄會在 30:00 時自動儲存。',
-
+  'Voice notes save automatically at 30:00.': '語音備忘錄會在 30:00 時自動儲存。',
   'Title (optional)': '標題（選填）',
   'Use Prompt': '使用提示',
   'New Prompt': '新提示',

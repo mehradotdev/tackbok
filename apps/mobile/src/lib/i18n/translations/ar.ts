@@ -21,6 +21,7 @@ export const ar: Translations = {
   Play: 'تشغيل',
   Pause: 'إيقاف مؤقت',
   Settings: 'الإعدادات',
+  'Share Feedback': 'مشاركة الملاحظات',
   'Contact Us': 'اتصل بنا',
   'Unknown error': 'خطأ غير معروف',
 
@@ -87,7 +88,6 @@ export const ar: Translations = {
   'Optimizing your recording.': 'جاري تحسين التسجيل.',
   'Voice notes save automatically at 30:00.':
     'يتم حفظ الملاحظات الصوتية تلقائيًا عند 30:00.',
-
   'Title (optional)': 'العنوان (اختياري)',
   'Use Prompt': 'استخدم السؤال',
   'New Prompt': 'سؤال جديد',

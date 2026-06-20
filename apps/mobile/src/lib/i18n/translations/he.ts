@@ -21,6 +21,7 @@ export const he: Translations = {
   Play: 'נגן',
   Pause: 'השהה',
   Settings: 'הגדרות',
+  'Share Feedback': 'שתף משוב',
   'Contact Us': 'צור קשר',
   'Unknown error': 'שגיאה לא ידועה',
 
@@ -86,9 +87,7 @@ export const he: Translations = {
   'Discard Recording': 'בטל הקלטה',
   'Processing Audio...': 'מעבד שמע...',
   'Optimizing your recording.': 'משפר את ההקלטה שלך.',
-  'Voice notes save automatically at 30:00.':
-    'הקלטות קוליות נשמרות אוטומטית ב-30:00.',
-
+  'Voice notes save automatically at 30:00.': 'הקלטות קוליות נשמרות אוטומטית ב-30:00.',
   'Title (optional)': 'כותרת (אופציונלי)',
   'Use Prompt': 'השתמש בהנחיה',
   'New Prompt': 'הנחיה חדשה',

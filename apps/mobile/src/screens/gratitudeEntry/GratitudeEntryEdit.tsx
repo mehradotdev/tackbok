@@ -267,6 +267,11 @@ export function GratitudeEntryEdit({
       .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined)
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [selectedTagIds, tagMap]);
+  const isContentBottomMost =
+    displayTags.length === 0 &&
+    voiceMemos.length === 0 &&
+    photos.length === 0 &&
+    !isAddingPhotos;
 
   const availablePromptTitles = useMemo(
     () =>
@@ -453,7 +458,7 @@ export function GratitudeEntryEdit({
 
         <KeyboardAwareScrollView
           className="flex-1"
-          contentContainerClassName="px-4 pt-3"
+          contentContainerClassName="flex-grow px-4 pt-3"
           keyboardShouldPersistTaps="handled"
           // bottomOffset so FloatingActionDock doesn't overlap with content behind
           bottomOffset={70}>
@@ -601,6 +606,19 @@ export function GratitudeEntryEdit({
                 )}
               </Text>
             </Pressable>
+          )}
+
+          {/* When content is the final entry section, the blank page area should also behave like the content field so users can tap anywhere to start writing. */}
+          {isContentBottomMost && (
+            <Pressable
+              className="flex-1 min-h-80"
+              onPress={() => {
+                setIsContentFocused(true);
+                contentInputRef.current?.focus();
+              }}
+              accessible={false}
+              importantForAccessibility="no"
+            />
           )}
 
           {/* Tags */}
