@@ -616,9 +616,8 @@ export function GratitudeEntryEdit({
                 setIsContentFocused(true);
                 contentInputRef.current?.focus();
               }}
-              accessibilityRole="button"
-              accessibilityLabel={'Edit gratitude entry'}
-              accessibilityHint={'Activates the gratitude entry field for editing'}
+              accessible={false}
+              importantForAccessibility="no"
             />
           )}
 
