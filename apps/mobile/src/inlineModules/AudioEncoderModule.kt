@@ -5,6 +5,7 @@ import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.net.Uri
+import android.os.SystemClock
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -168,17 +169,20 @@ class AudioEncoderModule : Module() {
         val bytesPerFrame = bytesPerSample * wav.channels
         var presentationTimeUs = 0L
         var inputDone = false
-        var lastProgressMs = System.currentTimeMillis()
+        // Monotonic, and excludes deep sleep — during which the codec could not
+        // have progressed anyway. System.currentTimeMillis() is wall-clock and
+        // can jump backwards (NTP, DST), which would disable this guard.
+        var lastProgressMs = SystemClock.uptimeMillis()
 
         while (true) {
-          if (System.currentTimeMillis() - lastProgressMs > CODEC_STALL_TIMEOUT_MS) {
+          if (SystemClock.uptimeMillis() - lastProgressMs > CODEC_STALL_TIMEOUT_MS) {
             throw IOException("Encoder stalled with no output; aborting")
           }
 
           if (!inputDone) {
             val inputIndex = encoder.dequeueInputBuffer(CODEC_TIMEOUT_US)
             if (inputIndex >= 0) {
-              lastProgressMs = System.currentTimeMillis()
+              lastProgressMs = SystemClock.uptimeMillis()
               val inputBuffer = encoder.getInputBuffer(inputIndex)!!
               inputBuffer.clear()
 
@@ -218,7 +222,7 @@ class AudioEncoderModule : Module() {
 
           val outputIndex = encoder.dequeueOutputBuffer(bufferInfo, CODEC_TIMEOUT_US)
           if (outputIndex >= 0 || outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-            lastProgressMs = System.currentTimeMillis()
+            lastProgressMs = SystemClock.uptimeMillis()
           }
           when {
             outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
