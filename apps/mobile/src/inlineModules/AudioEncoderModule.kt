@@ -19,6 +19,12 @@ private const val CODEC_TIMEOUT_US = 10_000L
 private const val ERROR_ENCODE = "E_AUDIO_ENCODE"
 
 /**
+ * Abort if the codec makes no forward progress for this long. Measured against
+ * progress rather than total runtime so long recordings aren't cut short.
+ */
+private const val CODEC_STALL_TIMEOUT_MS = 15_000L
+
+/**
  * Inline native module that encodes a WAV file to M4A (AAC) using Android's
  * MediaCodec + MediaMuxer with no extra native dependencies.
  */
@@ -36,6 +42,15 @@ class AudioEncoderModule : Module() {
         )
 
         encodeWavToM4a(wavFile, outputFile, actualBitrate)
+
+        // Guard against resolving with a file the muxer never actually wrote.
+        // Callers delete the source WAV once we report success, so handing back
+        // an empty file would lose the recording outright.
+        if (!outputFile.exists() || outputFile.length() == 0L) {
+          outputFile.delete()
+          throw IOException("Encoder produced an empty M4A file")
+        }
+
         promise.resolve(Uri.fromFile(outputFile).toString())
       } catch (e: Exception) {
         promise.reject(ERROR_ENCODE, e.message ?: "Audio encoding failed", e)
@@ -48,6 +63,28 @@ class AudioEncoderModule : Module() {
       File(Uri.parse(uriString).path ?: throw IOException("Invalid file URI"))
     } else {
       File(uriString)
+    }
+  }
+
+  /**
+   * [FileInputStream.skip] may skip fewer bytes than requested. Under-skipping
+   * would feed WAV header bytes to the encoder as if they were audio, producing
+   * an audible click with no error, so keep going until the full count is done.
+   */
+  private fun skipFully(stream: FileInputStream, count: Long) {
+    var remaining = count
+    while (remaining > 0) {
+      val skipped = stream.skip(remaining)
+      if (skipped > 0) {
+        remaining -= skipped
+      } else {
+        // skip() is allowed to return 0; fall back to a byte read so we either
+        // make progress or discover we've hit EOF.
+        if (stream.read() < 0) {
+          throw IOException("Unexpected end of file while skipping WAV header")
+        }
+        remaining -= 1
+      }
     }
   }
 
@@ -123,7 +160,7 @@ class AudioEncoderModule : Module() {
       encoderStarted = true
 
       FileInputStream(wavFile).use { fis ->
-        fis.skip(wav.dataOffset.toLong())
+        skipFully(fis, wav.dataOffset.toLong())
 
         val bufferInfo = MediaCodec.BufferInfo()
         var totalBytesRead = 0
@@ -131,11 +168,17 @@ class AudioEncoderModule : Module() {
         val bytesPerFrame = bytesPerSample * wav.channels
         var presentationTimeUs = 0L
         var inputDone = false
+        var lastProgressMs = System.currentTimeMillis()
 
         while (true) {
+          if (System.currentTimeMillis() - lastProgressMs > CODEC_STALL_TIMEOUT_MS) {
+            throw IOException("Encoder stalled with no output; aborting")
+          }
+
           if (!inputDone) {
             val inputIndex = encoder.dequeueInputBuffer(CODEC_TIMEOUT_US)
             if (inputIndex >= 0) {
+              lastProgressMs = System.currentTimeMillis()
               val inputBuffer = encoder.getInputBuffer(inputIndex)!!
               inputBuffer.clear()
 
@@ -174,6 +217,9 @@ class AudioEncoderModule : Module() {
           }
 
           val outputIndex = encoder.dequeueOutputBuffer(bufferInfo, CODEC_TIMEOUT_US)
+          if (outputIndex >= 0 || outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+            lastProgressMs = System.currentTimeMillis()
+          }
           when {
             outputIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
               if (!muxerStarted) {
@@ -204,6 +250,13 @@ class AudioEncoderModule : Module() {
               }
             }
           }
+        }
+
+        // If the output format never arrived, the muxer was never started and
+        // every sample above was silently discarded. Reaching end-of-stream is
+        // not by itself proof that anything was written.
+        if (!muxerStarted) {
+          throw IOException("Encoder never produced an output format; no audio was written")
         }
       }
     } catch (error: Exception) {
