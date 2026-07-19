@@ -1,4 +1,4 @@
-import ExpoModulesCore
+internal import ExpoModulesCore
 import AVFoundation
 
 private let defaultBitrate = 64000
@@ -6,8 +6,8 @@ private let errorEncode = "E_AUDIO_ENCODE"
 
 /// Inline native module that encodes a WAV file to M4A (AAC) using
 /// AVAssetReader + AVAssetWriter — zero extra dependencies, hardware-accelerated.
-public class AudioEncoderModule: Module {
-  public func definition() -> ModuleDefinition {
+class AudioEncoderModule: Module {
+  func definition() -> ModuleDefinition {
     Name("AudioEncoderModule")
 
     AsyncFunction("encodeWavToM4a") { (wavUriString: String, bitrate: Int?) -> String in
@@ -84,42 +84,82 @@ public class AudioEncoderModule: Module {
     writerInput.expectsMediaDataInRealTime = false
     writer.add(writerInput)
 
-    // Start reading and writing
-    reader.startReading()
-    writer.startWriting()
+    // Start reading and writing. Both return false on failure — check before
+    // going further: calling startSession on a writer that isn't in .writing
+    // raises an ObjC exception, which Swift cannot catch (it would terminate
+    // the app rather than reject the promise).
+    guard reader.startReading() else {
+      throw Exception(
+        name: errorEncode,
+        description: reader.error?.localizedDescription ?? "Could not start reading WAV file"
+      )
+    }
+    guard writer.startWriting() else {
+      reader.cancelReading()
+      throw Exception(
+        name: errorEncode,
+        description: writer.error?.localizedDescription ?? "Could not start writing M4A file"
+      )
+    }
     writer.startSession(atSourceTime: .zero)
 
     // Process samples on a background queue
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
       let queue = DispatchQueue(label: "dev.mehra.tackbok.audio-encoder")
+
+      // AVFoundation may invoke the callback again after we've settled (and
+      // finishWriting's completion can race with it). Resuming a continuation
+      // twice is a fatal error, so funnel every exit through this guard.
+      let settled = NSLock()
+      var hasResumed = false
+      func finish(_ result: Result<Void, Error>) {
+        settled.lock()
+        defer { settled.unlock() }
+        guard !hasResumed else { return }
+        hasResumed = true
+        continuation.resume(with: result)
+      }
+
+      func fail(_ description: String) {
+        finish(.failure(Exception(name: errorEncode, description: description)))
+      }
+
       writerInput.requestMediaDataWhenReady(on: queue) {
         while writerInput.isReadyForMoreMediaData {
-          if let sampleBuffer = readerOutput.copyNextSampleBuffer() {
-            writerInput.append(sampleBuffer)
-          } else {
+          // Sample buffers are autoreleased; without a pool they accumulate
+          // for the whole drain loop instead of the current iteration.
+          let shouldContinue = autoreleasepool { () -> Bool in
+            if let sampleBuffer = readerOutput.copyNextSampleBuffer() {
+              guard writerInput.append(sampleBuffer) else {
+                // Writer rejected the sample — stop now and report the real
+                // cause rather than spinning until the reader drains.
+                writer.cancelWriting()
+                reader.cancelReading()
+                fail(writer.error?.localizedDescription ?? "Writer rejected sample data")
+                return false
+              }
+              return true
+            }
+
             writerInput.markAsFinished()
 
             if reader.status == .failed {
               writer.cancelWriting()
-              continuation.resume(throwing: Exception(
-                name: errorEncode,
-                description: reader.error?.localizedDescription ?? "Reader failed"
-              ))
-              return
+              fail(reader.error?.localizedDescription ?? "Reader failed")
+              return false
             }
 
             writer.finishWriting {
               if writer.status == .failed {
-                continuation.resume(throwing: Exception(
-                  name: errorEncode,
-                  description: writer.error?.localizedDescription ?? "Writer failed"
-                ))
+                fail(writer.error?.localizedDescription ?? "Writer failed")
               } else {
-                continuation.resume()
+                finish(.success(()))
               }
             }
-            return
+            return false
           }
+
+          if !shouldContinue { return }
         }
       }
     }
