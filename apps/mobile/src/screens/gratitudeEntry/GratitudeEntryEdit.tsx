@@ -248,11 +248,11 @@ function GratitudeEntryEditForm({
   // `timestamp` here is the mount-time value)
   const [originalValues, setOriginalValues] = useState(() => ({
     timestamp,
-    // A seeded prompt title is pristine — backing out without typing anything
-    // must not raise the unsaved-changes confirm.
-    title: initialEntry?.text_title || initialPromptTitle || '',
-    content: initialEntry?.text_content || '',
-    mood: initialEntry?.mood || null,
+    // A seeded or auto-filled prompt title is pristine — backing out without
+    // typing anything must not raise the unsaved-changes confirm.
+    title,
+    content,
+    mood,
     tagIds: initialTags,
     photoUris: initialPhotos.map((p) => p.uri),
     voiceMemoUris: initialVoiceMemos.map((m) => m.uri),

@@ -109,7 +109,7 @@ describe('importFromPresentlyCSV', () => {
     await expect(pickPresentlyImportFile()).resolves.toBeNull();
 
     expect(mockGetDocumentAsync).toHaveBeenCalledWith({
-      type: ['text/csv', 'text/comma-separated-values', 'application/csv', '*/*'],
+      type: ['text/csv', 'text/comma-separated-values', 'application/csv'],
       copyToCacheDirectory: true,
     });
   });

@@ -137,23 +137,30 @@ export async function cancelDailyReminder(): Promise<void> {
  * Makes the OS schedule match the persisted settings. Heals OS reboots,
  * reinstall-with-restored-settings, missed reschedules, and permission
  * revoked behind our back (in which case the toggle flips off).
+ *
+ * Best-effort background healing: never throws (callers fire-and-forget),
+ * and a failed resync leaves settings untouched so the next launch retries.
  */
 export async function resyncReminder(): Promise<void> {
-  const { dailyReminderEnabled, reminderTime, setDailyReminderEnabled } =
-    useSettingsStore.getState();
+  try {
+    const { dailyReminderEnabled, reminderTime, setDailyReminderEnabled } =
+      useSettingsStore.getState();
 
-  if (!dailyReminderEnabled) {
-    await cancelDailyReminder();
-    return;
+    if (!dailyReminderEnabled) {
+      await cancelDailyReminder();
+      return;
+    }
+
+    if (!(await hasReminderPermission())) {
+      setDailyReminderEnabled(false);
+      await cancelDailyReminder();
+      return;
+    }
+
+    await scheduleDailyReminder(reminderTime);
+  } catch (error) {
+    console.warn('Failed to resync daily reminder:', error);
   }
-
-  if (!(await hasReminderPermission())) {
-    setDailyReminderEnabled(false);
-    await cancelDailyReminder();
-    return;
-  }
-
-  await scheduleDailyReminder(reminderTime);
 }
 
 let remindersInitialized = false;

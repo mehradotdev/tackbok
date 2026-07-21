@@ -32,9 +32,15 @@ export function NotificationsSection() {
   };
 
   const handleReminderToggle = async () => {
+    // Flip the flag only after the OS call succeeds, so the persisted setting
+    // never diverges from what is actually scheduled.
     if (dailyReminderEnabled) {
-      setDailyReminderEnabled(false);
-      await cancelDailyReminder();
+      try {
+        await cancelDailyReminder();
+        setDailyReminderEnabled(false);
+      } catch {
+        toast.error(t('Failed to update reminder'));
+      }
       return;
     }
 
@@ -52,14 +58,22 @@ export function NotificationsSection() {
       return;
     }
 
-    setDailyReminderEnabled(true);
-    await scheduleDailyReminder(reminderTime);
+    try {
+      await scheduleDailyReminder(reminderTime);
+      setDailyReminderEnabled(true);
+    } catch {
+      toast.error(t('Failed to update reminder'));
+    }
   };
 
   const handleReminderTimeChange = (time: string) => {
+    const previousTime = reminderTime;
     setReminderTime(time);
     if (dailyReminderEnabled) {
-      void scheduleDailyReminder(time);
+      scheduleDailyReminder(time).catch(() => {
+        setReminderTime(previousTime);
+        toast.error(t('Failed to update reminder'));
+      });
     }
   };
 
