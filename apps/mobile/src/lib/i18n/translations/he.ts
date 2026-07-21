@@ -422,6 +422,12 @@ export const he: Translations = {
   Analytics: 'איסוף נתוני ניתוח',
   'Collecting anonymized analytics to help diagnose problems':
     'טאקבוק אוסף מידע אנליטי אנונימי כדי לעזור באבחון בעיות ומעקב אחר מגמות',
+  'Check for updates': 'בדיקת עדכונים',
+  'Checking for updates…': 'בודק עדכונים…',
+  'Restart to apply': 'הפעלה מחדש להחלה',
+  'Update downloaded. Restart to apply it.': 'העדכון ירד. הפעל מחדש כדי להחיל אותו.',
+  'You already have the latest version': 'הגרסה האחרונה כבר מותקנת',
+  'Unable to update': 'לא ניתן לעדכן',
   Version: 'מספר גרסה',
 
   // Settings - Danger Zone

@@ -2,7 +2,9 @@ import React, { useRef, useState, useCallback } from 'react';
 import { Dimensions, Linking, Platform, Pressable, TextInput, View } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import * as Device from 'expo-device';
+import * as Updates from 'expo-updates';
 import { useRouter } from 'expo-router';
 import {
   Settings,
@@ -326,23 +328,35 @@ function TriggerAvatar({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildSupportBody(): string {
-  const appVersion = Constants.expoConfig?.version ?? 'Unknown';
-  const platform = Platform.OS === 'ios' ? 'iOS' : 'Android';
+  const appVersion =
+    Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? 'Unknown';
+  const buildVersion = Application.nativeBuildVersion ?? 'Unknown';
+  const platform = Platform.select({ ios: 'iOS', android: 'Android' }) ?? Platform.OS;
   const osVersion = Platform.Version;
   const device = Device.modelName ?? 'Unknown';
   const deviceBrand = Device.brand ?? 'Unknown';
   const { width, height } = Dimensions.get('screen');
-  const resolution = `${Math.round(width)}x${Math.round(height)}`;
+  const screenSize = `${Math.round(width)}x${Math.round(height)}`;
+  const updateSource = !Updates.isEnabled
+    ? 'Development'
+    : Updates.isEmbeddedLaunch
+      ? 'Embedded'
+      : 'OTA';
 
   return [
     '',
     '',
     '',
     '---',
-    `Device Model: ${device} ${deviceBrand}`,
-    `App Version: ${appVersion}`,
+    'Diagnostic information:',
+    `Device Model: ${deviceBrand} ${device}`,
+    `App Version: ${appVersion} (${buildVersion})`,
     `${platform} Version: ${osVersion}`,
-    `Resolution: ${resolution}`,
+    `Screen Size: ${screenSize}`,
+    `Update Channel: ${Updates.channel ?? 'Unavailable'}`,
+    `Runtime Version: ${Updates.runtimeVersion ?? 'Unavailable'}`,
+    `Update Source: ${updateSource}`,
+    `Update ID: ${Updates.updateId ?? 'Unavailable'}`,
     'Note: this information will help us to troubleshoot your issue.',
   ].join('\n');
 }

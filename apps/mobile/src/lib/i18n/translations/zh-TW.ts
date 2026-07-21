@@ -411,6 +411,12 @@ export const zhTW: Translations = {
   Analytics: '分析資料收集',
   'Collecting anonymized analytics to help diagnose problems':
     '塔克博克收集匿名分析資訊以協助診斷問題並監控趨勢',
+  'Check for updates': '檢查更新',
+  'Checking for updates…': '正在檢查更新…',
+  'Restart to apply': '重新啟動以套用',
+  'Update downloaded. Restart to apply it.': '更新已下載。重新啟動以套用。',
+  'You already have the latest version': '您已使用最新版本',
+  'Unable to update': '無法更新',
   Version: '版本',
 
   // Settings - Danger Zone

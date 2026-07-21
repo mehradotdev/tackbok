@@ -423,6 +423,12 @@ export const ar: Translations = {
   Analytics: 'جمع بيانات التحليلات',
   'Collecting anonymized analytics to help diagnose problems':
     'يقوم تاكبوك بجمع معلومات تحليلية مجهولة للمساعدة في تشخيص المشاكل ومراقبة الاتجاهات',
+  'Check for updates': 'التحقق من التحديثات',
+  'Checking for updates…': 'جارٍ التحقق من التحديثات…',
+  'Restart to apply': 'أعد التشغيل للتطبيق',
+  'Update downloaded. Restart to apply it.': 'تم تنزيل التحديث. أعد التشغيل لتطبيقه.',
+  'You already have the latest version': 'لديك أحدث إصدار بالفعل',
+  'Unable to update': 'تعذّر التحديث',
   Version: 'رقم الإصدار',
 
   // Settings - Danger Zone

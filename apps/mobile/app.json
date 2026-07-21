@@ -71,7 +71,21 @@
       ],
       "expo-font",
       "expo-sharing",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icons/adaptive-icon.png",
+          "color": "#6A755A"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Tackbok to use Face ID to protect your journal."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -83,10 +97,17 @@
     },
     "extra": {
       "router": {},
-      "supportsRTL": true,
       "eas": {
         "projectId": "3cba8280-4616-4cf9-8309-62ce7d14da81"
       }
+    },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3cba8280-4616-4cf9-8309-62ce7d14da81",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }
