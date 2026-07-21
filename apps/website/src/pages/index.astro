@@ -3,7 +3,6 @@ import { Image } from 'astro:assets';
 import tackbokHomeSrc from '~/assets/tackbok_home_page.png';
 import tackbokEditSrc from '~/assets/tackbok_edit_page.png';
 import Layout from '~/layouts/main.astro';
-import { buttonVariants } from '~/components/ui/button';
 import GithubIcon from '~/components/GithubIcon.astro';
 
 const WAITLIST_URL = 'https://forms.gle/A5bGfGJLoEipsauu6';
@@ -59,7 +58,7 @@ const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
             href={WAITLIST_URL}
             target="_blank"
             rel="noopener noreferrer"
-            class={buttonVariants({ size: "lg", className: "h-12 w-full px-8 text-lg font-normal tracking-wider text-white shadow-lg transition-all hover:shadow-xl dark:text-white sm:w-auto" })}
+            class="inline-flex h-12 w-full shrink-0 items-center justify-center gap-1.5 rounded-4xl border border-transparent bg-primary px-8 text-lg font-normal tracking-wider whitespace-nowrap text-white shadow-lg transition-all outline-none select-none hover:bg-primary/80 hover:shadow-xl focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 active:translate-y-px sm:w-auto"
           >
             Join the Waitlist
           </a>
@@ -69,7 +68,7 @@ const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
             target="_blank"
             rel="noopener noreferrer"
             title="View on GitHub"
-            class={buttonVariants({ variant: "outline", size: "lg", className: "flex h-12 w-full items-center gap-2 px-8 font-semibold shadow-sm transition-all hover:shadow-md sm:w-auto" })}
+            class="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-4xl border border-border bg-input/30 px-8 text-sm font-semibold whitespace-nowrap shadow-sm transition-all outline-none select-none hover:bg-input/50 hover:text-foreground hover:shadow-md focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 active:translate-y-px sm:w-auto"
           >
             <GithubIcon width="20" height="20" />
             GitHub
