@@ -439,6 +439,12 @@ export const en = {
   Analytics: 'Analytics data collection',
   'Collecting anonymized analytics to help diagnose problems':
     'Tackbok is collecting anonymized analytics information to help diagnose problems and monitor trends',
+  'Check for updates': 'Check for updates',
+  'Checking for updates…': 'Checking for updates…',
+  'Restart to apply': 'Restart to apply',
+  'Update downloaded. Restart to apply it.': 'Update downloaded. Restart to apply it.',
+  'You already have the latest version': 'You already have the latest version',
+  'Unable to update': 'Unable to update',
   Version: 'Version Number',
 
   // Settings - Danger Zone
