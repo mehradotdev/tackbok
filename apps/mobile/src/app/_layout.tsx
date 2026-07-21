@@ -16,6 +16,8 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { useSettingsStore } from '~/lib/settings';
+import { useLocaleStore } from '~/lib/i18n';
+import { initReminders, useReminderTapObserver } from '~/lib/reminders';
 import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
 import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
@@ -49,10 +51,18 @@ const queryClient = new QueryClient({
   },
 });
 
+// Rendered inside the navigator so reminder-tap navigation happens against a
+// mounted router (covers both cold-start and warm notification taps).
+function ReminderNavigationObserver() {
+  useReminderTapObserver();
+  return null;
+}
+
 export default function Layout() {
   const { success, error } = useMigrations(db, migrations);
   const theme = useSettingsStore((s) => s.theme);
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
+  const localeHasHydrated = useLocaleStore((s) => s._hasHydrated);
   const themeConfig = getThemeConfig(theme);
 
   const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
@@ -85,6 +95,14 @@ export default function Layout() {
       cleanupDeferredBackupZipFiles(0);
     }
   }, [hasHydrated]);
+
+  // Reminder resync needs persisted settings (enabled/time) and the locale
+  // (notification text is baked at schedule time) before it can run.
+  useEffect(() => {
+    if (hasHydrated && localeHasHydrated) {
+      initReminders();
+    }
+  }, [hasHydrated, localeHasHydrated]);
 
   // Show migration error
   if (error) {
@@ -152,6 +170,7 @@ export default function Layout() {
                 }}
               />
             </Stack>
+            <ReminderNavigationObserver />
             <StatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
             <Toaster />
             <PortalHost />

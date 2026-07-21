@@ -11,11 +11,13 @@ import { GratitudeEntryEdit } from './GratitudeEntryEdit';
 interface IGratitudeEntryProps {
   noteId?: string;
   initialDateMs?: number;
+  initialPromptTitle?: string;
 }
 
 export default function GratitudeEntryScreen({
   noteId,
   initialDateMs,
+  initialPromptTitle,
 }: IGratitudeEntryProps) {
   const [isEditMode, setIsEditMode] = useState(!noteId);
   const router = useRouter();
@@ -48,6 +50,7 @@ export default function GratitudeEntryScreen({
         <GratitudeEntryEdit
           initialEntry={entry}
           initialDateMs={initialDateMs}
+          initialPromptTitle={initialPromptTitle}
           onSaveSuccess={handleEditSaveSuccess}
           onCancel={() => {
             if (noteId) {

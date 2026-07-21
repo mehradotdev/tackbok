@@ -254,6 +254,9 @@ export const he: Translations = {
   'Daily reminder notifications are off': 'התראות תזכורת יומיות כבויות',
   'Adjust Reminder Time': 'התאמת זמן התזכורת',
   'Change your daily reminder time': 'שנה את זמן התזכורת היומית שלך',
+  'Notification permission needed': 'נדרשת הרשאת התראות',
+  'To get daily reminders, allow notifications for Tackbok in your device settings.':
+    'כדי לקבל תזכורות יומיות, אפשר התראות עבור Tackbok בהגדרות המכשיר.',
 
   // Settings - Appearance
   Appearance: 'מראה',

@@ -66,6 +66,12 @@ import { WorksheetTemplateModal } from './WorksheetTemplateModal';
 interface GratitudeEntryEditProps {
   initialEntry?: Entry | null;
   initialDateMs?: number;
+  /**
+   * Pre-seeds the prompt title for a new entry (e.g. the prompt shown in the
+   * tapped reminder notification). Takes precedence over the random auto-fill
+   * and counts as a pristine value for unsaved-changes detection.
+   */
+  initialPromptTitle?: string;
   onSaveSuccess: () => void;
   onCancel: () => void;
   onPhotoPress: (photos: Asset[], index: number) => void;
@@ -77,9 +83,37 @@ const areArraysEqual = (a: string[], b: string[]) => {
   return b.every((item) => setA.has(item));
 };
 
-export function GratitudeEntryEdit({
+/**
+ * Thin gate over the edit form. The title auto-fill needs the custom prompt
+ * pool at mount (state initializers only run once), so when the settings
+ * require custom prompts we hold rendering until that local SQLite read
+ * resolves — milliseconds, hidden by the push animation. On query error we
+ * proceed anyway; the pool builder falls back to built-in prompts.
+ */
+export function GratitudeEntryEdit(props: GratitudeEntryEditProps) {
+  const { journalPromptsMode } = useSettingsStore();
+  const { isPending } = useCustomPrompts();
+
+  const willAutoFill =
+    !props.initialEntry && !props.initialPromptTitle && journalPromptsMode !== 'off';
+  const needsCustomPrompts =
+    journalPromptsMode === 'custom' || journalPromptsMode === 'all';
+
+  if (willAutoFill && needsCustomPrompts && isPending) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return <GratitudeEntryEditForm {...props} />;
+}
+
+function GratitudeEntryEditForm({
   initialEntry,
   initialDateMs,
+  initialPromptTitle,
   onSaveSuccess,
   onCancel,
   onPhotoPress,
@@ -88,8 +122,7 @@ export function GratitudeEntryEdit({
   const { t } = useTranslation();
   const navigation = useNavigation();
   const { journalPromptsMode, journalFocusAreas } = useSettingsStore();
-  const { data: customPromptList = [], isSuccess: isCustomPromptsLoaded } =
-    useCustomPrompts();
+  const { data: customPromptList = [] } = useCustomPrompts();
   const customPromptTitles = useMemo(
     () => customPromptList.map((prompt) => prompt.title),
     [customPromptList],
@@ -113,15 +146,33 @@ export function GratitudeEntryEdit({
 
   // Initialize state
   const isNewEntry = !initialEntry;
-  const initialTimestamp = initialEntry?.created_at ?? initialDateMs ?? Date.now();
   const initialTags = initialEntry?.tags
     ? initialEntry.tags.split(',').filter((tag) => tag.length > 0)
     : [];
   const initialPhotos = filterExistingPhotos(initialEntry?.assets ?? null);
   const initialVoiceMemos = filterExistingVoiceMemos(initialEntry?.assets ?? null);
 
-  const [timestamp, setTimestamp] = useState(initialTimestamp);
-  const [title, setTitle] = useState(initialEntry?.text_title || '');
+  // Lazy initializers: Date.now()/Math.random() are impure and must not run
+  // on re-renders (react-hooks/purity) — inside an initializer they run once.
+  const [timestamp, setTimestamp] = useState(
+    () => initialEntry?.created_at ?? initialDateMs ?? Date.now(),
+  );
+  const [title, setTitle] = useState(() => {
+    if (initialEntry?.text_title) return initialEntry.text_title;
+    // A prompt handed in from outside (reminder notification tap) wins over
+    // the random auto-fill.
+    if (initialPromptTitle) return initialPromptTitle;
+    if (!isNewEntry || journalPromptsMode === 'off') return '';
+    // Auto-fill a prompt title per settings. The gate component guarantees
+    // custom prompts are loaded by now when the mode needs them.
+    const pool = getJournalPromptTitlePool({
+      mode: journalPromptsMode,
+      focusAreas: journalFocusAreas,
+      customPromptTitles: customPromptList.map((prompt) => prompt.title),
+      t,
+    });
+    return pool.length > 0 ? (pool[Math.floor(Math.random() * pool.length)] ?? '') : '';
+  });
   const [content, setContent] = useState(initialEntry?.text_content || '');
   const [mood, setMood] = useState<Mood | null>(initialEntry?.mood || null);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialTags);
@@ -134,40 +185,6 @@ export function GratitudeEntryEdit({
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
   const hasPromptTitle = title.length > 0;
-  const hasAttemptedAutoFill = useRef(false);
-
-  // Auto-fill prompt title for new entries based on settings
-  useEffect(() => {
-    if (!isNewEntry || hasAttemptedAutoFill.current || journalPromptsMode === 'off') {
-      return;
-    }
-
-    const needsCustom = journalPromptsMode === 'custom' || journalPromptsMode === 'all';
-    if (needsCustom && !isCustomPromptsLoaded) {
-      return; // wait until custom prompts are loaded
-    }
-
-    const pool = getJournalPromptTitlePool({
-      mode: journalPromptsMode,
-      focusAreas: journalFocusAreas,
-      customPromptTitles,
-      t,
-    });
-
-    if (pool.length > 0) {
-      const randomPrompt = pool[Math.floor(Math.random() * pool.length)];
-      if (randomPrompt) setTitle(randomPrompt);
-    }
-
-    hasAttemptedAutoFill.current = true;
-  }, [
-    isNewEntry,
-    journalPromptsMode,
-    journalFocusAreas,
-    customPromptTitles,
-    isCustomPromptsLoaded,
-    t,
-  ]);
 
   // Auto-open mood modal for new entries (run once on mount).
   // We wait for 'transitionEnd' so iOS doesn't throw "No presenting view
@@ -227,10 +244,13 @@ export function GratitudeEntryEdit({
     TrueSheet.present(SHEET_NAMES.VOICE_MEMO);
   }, [voiceMemos.length, t]);
 
-  // Original values for change detection
+  // Original values for change detection (initializer runs at mount, so
+  // `timestamp` here is the mount-time value)
   const [originalValues, setOriginalValues] = useState(() => ({
-    timestamp: initialTimestamp,
-    title: initialEntry?.text_title || '',
+    timestamp,
+    // A seeded prompt title is pristine — backing out without typing anything
+    // must not raise the unsaved-changes confirm.
+    title: initialEntry?.text_title || initialPromptTitle || '',
     content: initialEntry?.text_content || '',
     mood: initialEntry?.mood || null,
     tagIds: initialTags,

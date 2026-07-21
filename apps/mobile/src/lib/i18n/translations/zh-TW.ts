@@ -250,6 +250,9 @@ export const zhTW: Translations = {
   'Daily reminder notifications are off': '每日提醒通知已關閉',
   'Adjust Reminder Time': '調整提醒時間',
   'Change your daily reminder time': '變更您的每日提醒時間',
+  'Notification permission needed': '需要通知權限',
+  'To get daily reminders, allow notifications for Tackbok in your device settings.':
+    '要接收每日提醒，請在裝置設定中允許 Tackbok 傳送通知。',
 
   // Settings - Appearance
   Appearance: '外觀',

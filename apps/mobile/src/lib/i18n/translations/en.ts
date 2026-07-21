@@ -266,6 +266,9 @@ export const en = {
   'Daily reminder notifications are off': 'Daily reminder notifications are off',
   'Adjust Reminder Time': 'Adjust Reminder Time',
   'Change your daily reminder time': 'Change your daily reminder time',
+  'Notification permission needed': 'Notification permission needed',
+  'To get daily reminders, allow notifications for Tackbok in your device settings.':
+    'To get daily reminders, allow notifications for Tackbok in your device settings.',
 
   // Settings - Appearance
   Appearance: 'Appearance',
