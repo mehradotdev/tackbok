@@ -321,8 +321,12 @@ export const ar: Translations = {
   // Settings - Security
   Security: 'الأمان',
   'Unlock Tackbok': 'فتح تاكبوك',
-  'Lock with biometric scanner if supported':
-    'يمكن لتاكبوك القفل باستخدام الماسح البيومتري لجهازك (إذا كان مدعوماً)',
+  'Lock with your device screen lock':
+    'يمكن لتاكبوك القفل باستخدام قفل شاشة جهازك — المقاييس الحيوية أو رمز PIN أو النمط أو كلمة المرور',
+  Unlock: 'فتح القفل',
+  'App lock unavailable': 'قفل التطبيق غير متاح',
+  'Set up a screen lock (PIN, pattern, or biometrics) in your device settings first.':
+    'قم أولاً بإعداد قفل الشاشة (رمز PIN أو النمط أو المقاييس الحيوية) في إعدادات جهازك.',
 
   // Settings - Backup & Restore
   'Backup & Restore': 'النسخ الاحتياطي والاستعادة',

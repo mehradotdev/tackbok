@@ -322,8 +322,12 @@ export const he: Translations = {
   // Settings - Security
   Security: 'אבטחה',
   'Unlock Tackbok': 'פתיחת טאקבוק',
-  'Lock with biometric scanner if supported':
-    'טאקבוק יכול לנעול באמצעות הסורק הביומטרי של המכשיר (אם נתמך)',
+  'Lock with your device screen lock':
+    'טאקבוק יכול להינעל באמצעות נעילת המסך של המכשיר — ביומטריה, קוד PIN, קו ביטול נעילה או סיסמה',
+  Unlock: 'ביטול נעילה',
+  'App lock unavailable': 'נעילת האפליקציה אינה זמינה',
+  'Set up a screen lock (PIN, pattern, or biometrics) in your device settings first.':
+    'תחילה יש להגדיר נעילת מסך (קוד PIN, קו ביטול נעילה או ביומטריה) בהגדרות המכשיר.',
 
   // Settings - Backup & Restore
   'Backup & Restore': 'גיבוי ושחזור',
