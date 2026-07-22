@@ -253,6 +253,10 @@ export const ar: Translations = {
   'Daily reminder notifications are off': 'إشعارات التذكير اليومية معطلة',
   'Adjust Reminder Time': 'ضبط وقت التذكير',
   'Change your daily reminder time': 'غيّر وقت التذكير اليومي',
+  'Failed to update reminder': 'فشل تحديث التذكير',
+  'Notification permission needed': 'مطلوب إذن الإشعارات',
+  'To get daily reminders, allow notifications for Tackbok in your device settings.':
+    'للحصول على تذكيرات يومية، اسمح بالإشعارات لتطبيق Tackbok من إعدادات جهازك.',
 
   // Settings - Appearance
   Appearance: 'المظهر',

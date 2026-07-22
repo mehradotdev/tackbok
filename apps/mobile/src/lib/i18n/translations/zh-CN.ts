@@ -249,6 +249,10 @@ export const zhCN: Translations = {
   'Daily reminder notifications are off': '每日提醒通知已关闭',
   'Adjust Reminder Time': '调整提醒时间',
   'Change your daily reminder time': '更改您的每日提醒时间',
+  'Failed to update reminder': '更新提醒失败',
+  'Notification permission needed': '需要通知权限',
+  'To get daily reminders, allow notifications for Tackbok in your device settings.':
+    '要接收每日提醒，请在设备设置中允许 Tackbok 发送通知。',
 
   // Settings - Appearance
   Appearance: '外观',
