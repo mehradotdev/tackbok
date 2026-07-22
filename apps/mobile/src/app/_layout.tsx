@@ -22,6 +22,7 @@ import { initAnalytics, trackScreenView } from '~/lib/analytics';
 import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
 import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
+import { AppLockGate } from '~/components/AppLockGate';
 import { PortalHost } from '~/components/primitives/portal';
 import { Text } from '~/components/ui/text';
 import { Toaster } from '~/components/ui/toast';
@@ -151,46 +152,48 @@ export default function Layout() {
             Uniwind.updateInsets(insets);
           }}>
           <KeyboardProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                headerTitleAlign: 'center',
-                headerTintColor: primaryForeground as string,
-                headerStyle: { backgroundColor: primaryColor as string },
-                headerTitleStyle: { fontWeight: 'bold' },
-              }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen
-                name="gratitudeEntry/index"
-                options={{
-                  title: 'Gratitude Entry',
+            <AppLockGate>
+              <Stack
+                screenOptions={{
                   headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="gratitudeEntry/[noteId]"
-                options={{
-                  title: 'Gratitude Entry View',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="dateEntries/[dateMs]"
-                options={{
-                  title: 'Date Entries',
-                  headerShown: false,
-                }}
-              />
-              <Stack.Screen
-                name="settings"
-                options={{
-                  title: 'Settings',
-                  headerShown: false,
-                }}
-              />
-            </Stack>
-            <ReminderNavigationObserver />
-            <ScreenViewObserver />
+                  headerTitleAlign: 'center',
+                  headerTintColor: primaryForeground as string,
+                  headerStyle: { backgroundColor: primaryColor as string },
+                  headerTitleStyle: { fontWeight: 'bold' },
+                }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen
+                  name="gratitudeEntry/index"
+                  options={{
+                    title: 'Gratitude Entry',
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="gratitudeEntry/[noteId]"
+                  options={{
+                    title: 'Gratitude Entry View',
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="dateEntries/[dateMs]"
+                  options={{
+                    title: 'Date Entries',
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
+                  name="settings"
+                  options={{
+                    title: 'Settings',
+                    headerShown: false,
+                  }}
+                />
+              </Stack>
+              <ReminderNavigationObserver />
+              <ScreenViewObserver />
+            </AppLockGate>
             <StatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
             <Toaster />
             <PortalHost />

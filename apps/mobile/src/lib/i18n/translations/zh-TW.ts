@@ -315,7 +315,12 @@ export const zhTW: Translations = {
   // Settings - Security
   Security: '安全性',
   'Unlock Tackbok': '解鎖塔克博克',
-  'Lock with biometric scanner if supported': '若裝置支援，使用生物辨識鎖定',
+  'Lock with your device screen lock':
+    '可使用裝置的螢幕鎖定方式鎖定塔克博克——生物辨識、PIN 碼、圖形或密碼',
+  Unlock: '解鎖',
+  'App lock unavailable': '應用程式鎖定無法使用',
+  'Set up a screen lock (PIN, pattern, or biometrics) in your device settings first.':
+    '請先在裝置設定中設定螢幕鎖定（PIN 碼、圖形或生物辨識）。',
 
   // Settings - Backup & Restore
   'Backup & Restore': '備份與還原',

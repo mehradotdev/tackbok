@@ -338,8 +338,12 @@ export const en = {
   // Settings - Security
   Security: 'Security',
   'Unlock Tackbok': 'Unlock Tackbok',
-  'Lock with biometric scanner if supported':
-    "Tackbok can lock with your device's biometric scanner (if supported by device)",
+  'Lock with your device screen lock':
+    "Tackbok can lock with your device's screen lock — biometrics, PIN, pattern, or passcode",
+  Unlock: 'Unlock',
+  'App lock unavailable': 'App lock unavailable',
+  'Set up a screen lock (PIN, pattern, or biometrics) in your device settings first.':
+    'Set up a screen lock (PIN, pattern, or biometrics) in your device settings first.',
 
   // Settings - Backup & Restore
   'Backup & Restore': 'Backup & Restore',

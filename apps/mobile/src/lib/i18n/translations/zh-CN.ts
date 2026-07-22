@@ -314,8 +314,12 @@ export const zhCN: Translations = {
   // Settings - Security
   Security: '安全',
   'Unlock Tackbok': '解锁塔克博克',
-  'Lock with biometric scanner if supported':
-    '塔克博克可使用设备的生物识别扫描仪锁定（如果设备支持）',
+  'Lock with your device screen lock':
+    '塔克博克可使用设备的锁屏方式锁定——生物识别、PIN 码、图案或密码',
+  Unlock: '解锁',
+  'App lock unavailable': '应用锁不可用',
+  'Set up a screen lock (PIN, pattern, or biometrics) in your device settings first.':
+    '请先在设备设置中设置锁屏方式（PIN 码、图案或生物识别）。',
 
   // Settings - Backup & Restore
   'Backup & Restore': '备份与恢复',
