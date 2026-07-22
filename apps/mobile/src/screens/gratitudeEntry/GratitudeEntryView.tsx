@@ -6,6 +6,7 @@ import type { Entry, Asset } from '~/types';
 import { filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
+import { track } from '~/lib/analytics';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
@@ -75,6 +76,7 @@ export function GratitudeEntryView({
     try {
       if (entry.note_id) {
         await deleteEntryMutation.mutateAsync(entry.note_id);
+        track('entry_deleted');
       }
     } catch (error) {
       console.error('Failed to delete entry', error);

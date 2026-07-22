@@ -23,6 +23,7 @@ import {
   type ImportMode,
 } from '~/lib/backupImport';
 import { exportToBackupZip } from '~/lib/backupExport';
+import { track, toCountBucket } from '~/lib/analytics';
 import { Text } from '~/components/ui/text';
 import { Switch } from '~/components/ui/switch';
 import { toast } from '~/components/ui/toast';
@@ -92,6 +93,7 @@ export function BackupRestoreSection() {
   const handleExportBackup = useCallback(async () => {
     try {
       await exportToBackupZip();
+      track('backup_exported');
       toast.success(t('Backup exported successfully'));
     } catch (error) {
       const message = error instanceof Error ? error.message : t('Export failed');
@@ -118,6 +120,10 @@ export function BackupRestoreSection() {
 
       setImportProgress(null);
       setImportSummary({ source, summary });
+      track('import_completed', {
+        source,
+        entry_bucket: toCountBucket(summary.importedEntries + summary.updatedEntries),
+      });
     },
     [queryClient],
   );

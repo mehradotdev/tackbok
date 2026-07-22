@@ -34,6 +34,7 @@ import { usePhotoSession } from '~/hooks/usePhotoSession';
 import { useVoiceMemoSession } from '~/hooks/useVoiceMemoSession';
 import { useWorksheetTemplate } from '~/hooks/useWorksheetTemplate';
 import { useSettingsStore } from '~/lib/settings';
+import { track, toCharBucket } from '~/lib/analytics';
 import { getJournalPromptTitlePool } from '~/lib/journalPrompts';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -332,6 +333,13 @@ function GratitudeEntryEditForm({
       commitRemovedVoiceMemos();
 
       if (isNewEntry) {
+        track('entry_created', {
+          has_photo: photos.length > 0,
+          has_audio: voiceMemos.length > 0,
+          has_mood: mood !== null,
+          tag_count: selectedTagIds.length,
+          char_bucket: toCharBucket(title.trim().length + content.trim().length),
+        });
         toast.success(t('Entry saved successfully'));
       }
       onSaveSuccess();
