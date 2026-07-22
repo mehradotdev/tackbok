@@ -8,6 +8,7 @@ import {
   requestReminderPermission,
   scheduleDailyReminder,
 } from '~/lib/reminders';
+import { track } from '~/lib/analytics';
 import { Text } from '~/components/ui/text';
 import { Switch } from '~/components/ui/switch';
 import { toast } from '~/components/ui/toast';
@@ -38,6 +39,7 @@ export function NotificationsSection() {
       try {
         await cancelDailyReminder();
         setDailyReminderEnabled(false);
+        track('reminder_disabled');
       } catch {
         toast.error(t('Failed to update reminder'));
       }
@@ -61,6 +63,7 @@ export function NotificationsSection() {
     try {
       await scheduleDailyReminder(reminderTime);
       setDailyReminderEnabled(true);
+      track('reminder_enabled');
     } catch {
       toast.error(t('Failed to update reminder'));
     }

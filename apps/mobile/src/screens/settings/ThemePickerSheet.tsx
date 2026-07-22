@@ -12,6 +12,7 @@ import { ScopedTheme, useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
+import { track } from '~/lib/analytics';
 import {
   THEMES,
   DEFAULT_THEME_SHEET_RADIUS,
@@ -210,6 +211,7 @@ export function ThemePickerSheet() {
                 onSelect={() => {
                   setTheme(theme.id);
                   setShowTimelineBorders(theme.enableTimelineBorders);
+                  track('theme_changed', { theme: theme.id });
                 }}
               />
             ))}

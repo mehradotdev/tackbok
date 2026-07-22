@@ -38,6 +38,24 @@ export async function getAllEntriesGroupByDate(): Promise<Map<number, Entry[]>> 
 }
 
 /**
+ * Get aggregate entry stats (total entries + distinct local-time days with at
+ * least one entry). Used for bucketed analytics — only fetches timestamps.
+ */
+export async function getEntryStats(): Promise<{
+  entryCount: number;
+  daysWithEntries: number;
+}> {
+  const rows = await db.select({ created_at: entries.created_at }).from(entries);
+  // Day boundaries must match the app's timeline grouping (local time), so
+  // dedupe in JS rather than with SQLite's UTC-based date().
+  const days = new Set<number>();
+  rows.forEach((row) => {
+    days.add(startOfDay(new Date(row.created_at)).getTime());
+  });
+  return { entryCount: rows.length, daysWithEntries: days.size };
+}
+
+/**
  * Get a single entry by its note_id
  */
 export async function getEntryById(noteId: string): Promise<Entry | undefined> {

@@ -3,6 +3,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { LegendList } from '@legendapp/list/react-native';
 import { type Entry } from '~/types';
 import { useTranslation } from '~/lib/i18n';
+import { track } from '~/lib/analytics';
 import { useSearchEntries } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import { SearchResultItem } from './SearchResultItem';
@@ -24,6 +25,15 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
     error,
     isLoading,
   } = useSearchEntries(searchQuery, selectedTagIds);
+
+  // One search_used per search session (mount), not per keystroke.
+  const hasTrackedSearch = React.useRef(false);
+  React.useEffect(() => {
+    if (!hasTrackedSearch.current && (searchQuery.trim() || selectedTagIds.length > 0)) {
+      hasTrackedSearch.current = true;
+      track('search_used');
+    }
+  }, [searchQuery, selectedTagIds]);
 
   // Show prompt to search when no query and no tags selected
   if (!searchQuery.trim() && selectedTagIds.length === 0) {

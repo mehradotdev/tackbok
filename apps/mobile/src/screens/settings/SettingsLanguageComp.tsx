@@ -3,6 +3,7 @@ import { I18nManager, Platform } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import { Languages } from 'lucide-react-native';
 import { useTranslation, languages, type LanguageInfo } from '~/lib/i18n';
+import { track } from '~/lib/analytics';
 import { Text } from '~/components/ui/text';
 import {
   Select,
@@ -90,6 +91,7 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
     } else {
       // Apply change immediately
       setLocale(lang.code);
+      track('language_changed', { locale: lang.code });
     }
   };
 
@@ -98,6 +100,7 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
     const shouldBeRTL = pendingLanguage.isRTL;
     // Update the locale preference
     setLocale(pendingLanguage.code);
+    track('language_changed', { locale: pendingLanguage.code });
 
     // Close the dialog first, then reload after a short delay.
     // reloadAppAsync() fires synchronously, so if we call it before

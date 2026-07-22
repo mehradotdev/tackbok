@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
@@ -18,6 +18,7 @@ import migrations from '~/drizzle/migrations';
 import { useSettingsStore } from '~/lib/settings';
 import { useLocaleStore } from '~/lib/i18n';
 import { initReminders, useReminderTapObserver } from '~/lib/reminders';
+import { initAnalytics, trackScreenView } from '~/lib/analytics';
 import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
 import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
@@ -55,6 +56,16 @@ const queryClient = new QueryClient({
 // mounted router (covers both cold-start and warm notification taps).
 function ReminderNavigationObserver() {
   useReminderTapObserver();
+  return null;
+}
+
+// Maps route changes to screen_viewed events (logical screen names only —
+// no raw paths/params). No-ops entirely while analytics is disabled.
+function ScreenViewObserver() {
+  const pathname = usePathname();
+  useEffect(() => {
+    trackScreenView(pathname);
+  }, [pathname]);
   return null;
 }
 
@@ -103,6 +114,14 @@ export default function Layout() {
       initReminders();
     }
   }, [hasHydrated, localeHasHydrated]);
+
+  // Analytics starts only after hydration so the persisted consent flag
+  // (analyticsEnabled) is trustworthy; it stays fully inert when disabled.
+  useEffect(() => {
+    if (hasHydrated) {
+      initAnalytics();
+    }
+  }, [hasHydrated]);
 
   // Show migration error
   if (error) {
@@ -171,6 +190,7 @@ export default function Layout() {
               />
             </Stack>
             <ReminderNavigationObserver />
+            <ScreenViewObserver />
             <StatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
             <Toaster />
             <PortalHost />
