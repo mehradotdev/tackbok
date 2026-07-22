@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Modal, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useCSSVariable } from 'uniwind';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
-import { attemptUnlock, useAppLockStore, type AuthPrompt } from '~/lib/appLock';
+import { attemptUnlock, canUseDeviceAuth, useAppLockStore } from '~/lib/appLock';
 import { getThemeConfig } from '~/lib/theme/themes';
 import { TackbokLogo } from '~/components/TackbokLogo';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
@@ -47,10 +47,21 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   // via the button. Prevents a cancel → foreground → prompt → cancel loop.
   const autoPromptedRef = useRef(false);
 
-  const unlockPrompt = (): AuthPrompt => ({
-    promptMessage: t('Unlock Tackbok'),
-    cancelLabel: t('Cancel'),
-  });
+  // Re-checks enrollment on every attempt: if the user removed all device
+  // auth (passcode off kills biometrics too) after enabling the lock,
+  // there is nothing left to authenticate against — clear the lock and
+  // turn the setting off instead of trapping them on the lock screen.
+  const tryUnlock = useCallback(async () => {
+    if (await canUseDeviceAuth()) {
+      await attemptUnlock({
+        promptMessage: t('Unlock Tackbok'),
+        cancelLabel: t('Cancel'),
+      });
+    } else {
+      useSettingsStore.getState().setBiometricUnlockEnabled(false);
+      useAppLockStore.getState().unlock();
+    }
+  }, [t]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {
@@ -70,12 +81,9 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (locked && active && !autoPromptedRef.current) {
       autoPromptedRef.current = true;
-      void attemptUnlock({
-        promptMessage: t('Unlock Tackbok'),
-        cancelLabel: t('Cancel'),
-      });
+      void tryUnlock();
     }
-  }, [locked, active, t]);
+  }, [locked, active, tryUnlock]);
 
   return (
     <>
@@ -83,7 +91,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
       <AppLockScreen
         visible={enabled && (locked || !active)}
         showUnlockButton={locked}
-        onUnlockPress={() => void attemptUnlock(unlockPrompt())}
+        onUnlockPress={() => void tryUnlock()}
       />
     </>
   );
