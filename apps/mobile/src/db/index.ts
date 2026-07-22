@@ -26,7 +26,15 @@ expo.execSync('PRAGMA journal_mode = WAL');
 // per-connection busy_timeout applies to its reads/writes too (journal_mode
 // is persisted in the file either way). Best effort: a failed attempt is
 // retried on next launch.
-void SQLite.openDatabaseAsync(KV_STORE_DATABASE_NAME)
+//
+// The promise must stay reachable for the app's lifetime: on Android,
+// garbage-collecting a JS database handle closes the underlying native
+// connection (NativeDatabase.sharedObjectDidRelease) even though kv-store
+// still uses it, after which every settings write dies with an NPE from
+// prepareAsync. A settled promise strongly references its value, so holding
+// the promise keeps the handle alive.
+const kvStoreDbHandle = SQLite.openDatabaseAsync(KV_STORE_DATABASE_NAME);
+void kvStoreDbHandle
   .then((kvDb) =>
     kvDb.execAsync('PRAGMA busy_timeout = 2000; PRAGMA journal_mode = WAL;'),
   )
