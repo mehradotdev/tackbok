@@ -34,10 +34,10 @@ jest.mock('~/lib/utils', () => ({
 
 const { __mockFileSystemState } = ExpoFileSystemMock as typeof ExpoFileSystemMock & {
   __mockFileSystemState: {
-    createdFiles: Array<{
+    createdFiles: {
       uri: string;
       delete: jest.Mock;
-    }>;
+    }[];
     copyBehavior: (source: unknown, destination: unknown) => Promise<void>;
   };
 };

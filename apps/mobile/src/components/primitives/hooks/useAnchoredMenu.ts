@@ -5,7 +5,7 @@ import {
   type LayoutRectangle,
 } from 'react-native';
 import { useComposedRefs } from './use-compose-refs';
-import { useEffectEvent } from './useEffectEvent';
+import { useStableCallback } from './useStableCallback';
 import type { LayoutPosition } from './useRelativePosition';
 
 type MeasureCallback = (
@@ -55,12 +55,12 @@ export function useAnchoredTriggerController<T extends AnchoredTriggerRef>({
     });
   }, [setTriggerPosition]);
 
-  const openTriggerEvent = useEffectEvent(() => {
+  const openTrigger = useStableCallback(() => {
     onOpenChange(true);
     measureTrigger();
   });
 
-  const closeTriggerEvent = useEffectEvent(() => {
+  const closeTrigger = useStableCallback(() => {
     setTriggerPosition(null);
     onOpenChange(false);
   });
@@ -71,10 +71,10 @@ export function useAnchoredTriggerController<T extends AnchoredTriggerRef>({
     React.useCallback(
       (node: T | null) => {
         if (!node) return;
-        node.open = () => openTriggerEvent();
-        node.close = () => closeTriggerEvent();
+        node.open = () => openTrigger();
+        node.close = () => closeTrigger();
       },
-      [closeTriggerEvent, openTriggerEvent],
+      [closeTrigger, openTrigger],
     ),
   );
 

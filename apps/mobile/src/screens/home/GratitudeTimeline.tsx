@@ -8,7 +8,6 @@ import {
   type MilestoneItem,
   type TimelineListItem,
   type Entry,
-  AssetType,
 } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';

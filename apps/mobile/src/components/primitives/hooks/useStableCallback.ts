@@ -3,9 +3,12 @@ import { useIsomorphicLayoutEffect } from './useIsomorphicLayoutEffect';
 
 /**
  * Stable callback that always calls the latest version of `callback`.
- * Compatibility shim for `useEffectEvent`.
+ *
+ * Unlike React's `useEffectEvent`, this is safe to call from anywhere
+ * (event handlers, imperative methods), so it must not share that name —
+ * the react-hooks lint enforces `useEffectEvent`'s stricter contract by name.
  */
-export function useEffectEvent<TArgs extends readonly unknown[], TResult>(
+export function useStableCallback<TArgs extends readonly unknown[], TResult>(
   callback: (...args: TArgs) => TResult,
 ): (...args: TArgs) => TResult {
   const callbackRef = React.useRef(callback);
