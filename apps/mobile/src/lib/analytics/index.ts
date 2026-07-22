@@ -42,6 +42,16 @@ const POSTHOG_HOST = 'https://eu.i.posthog.com';
 let client: PostHog | null = null;
 let initialized = false;
 
+// Events tracked after consent but while the async SDK construction is still
+// in flight (e.g. the first screen_viewed on an analytics-enabled cold start).
+// RAM-only: flushed once `enable()` finishes, dropped by `disable()`. Capped
+// as a leak guard in case initialization never completes.
+const MAX_INIT_PENDING_EVENTS = 20;
+let initPendingEvents: {
+  event: AnalyticsEventName;
+  props?: AnalyticsEventProps;
+}[] = [];
+
 // Enable/disable/flush are async and can be toggled rapidly from Settings;
 // serializing them through one chain prevents interleaved init/shutdown.
 let opChain: Promise<void> = Promise.resolve();
@@ -75,12 +85,16 @@ async function enable(): Promise<void> {
   });
   await instance.optIn();
   client = instance;
+  for (const pending of initPendingEvents.splice(0)) {
+    instance.capture(pending.event, pending.props);
+  }
 }
 
 async function disable(): Promise<void> {
   if (!client) return;
   const instance = client;
   client = null; // track() becomes a no-op immediately
+  initPendingEvents = [];
   const { PostHogPersistedProperty } = await import('posthog-react-native');
   await instance.optOut();
   // Drop any queued-but-unsent events so shutdown's final flush sends nothing.
@@ -134,16 +148,27 @@ type TrackArgs<E extends AnalyticsEventName> = AnalyticsEvents[E] extends undefi
 /**
  * Records an event from the typed catalog. Always safe to call: no-ops when
  * analytics is disabled, routes to the RAM-only buffer while the onboarding
- * consent flow is active.
+ * consent flow is active, and queues events while consent is granted but the
+ * SDK is still initializing (so nothing is dropped on an enabled cold start).
  */
 export function track<E extends AnalyticsEventName>(
   ...[event, props]: TrackArgs<E>
 ): void {
-  if (!client && isPreConsentBuffering()) {
-    pushPreConsentEvent(event, props as AnalyticsEventProps | undefined);
+  if (!client) {
+    if (isPreConsentBuffering()) {
+      pushPreConsentEvent(event, props as AnalyticsEventProps | undefined);
+    } else if (
+      useSettingsStore.getState().analyticsEnabled &&
+      initPendingEvents.length < MAX_INIT_PENDING_EVENTS
+    ) {
+      initPendingEvents.push({
+        event,
+        props: props as AnalyticsEventProps | undefined,
+      });
+    }
     return;
   }
-  client?.capture(event, props as AnalyticsEventProps | undefined);
+  client.capture(event, props as AnalyticsEventProps | undefined);
 }
 
 /** Route pathname → screen_viewed event; unknown routes are never sent. */

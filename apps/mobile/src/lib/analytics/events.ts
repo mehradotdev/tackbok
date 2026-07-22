@@ -5,7 +5,7 @@
  * autocapture and session replay are disabled, so if an event is not in this
  * map, it cannot be sent. Keep the Analytics section of the public privacy
  * policy (`apps/website/src/pages/privacy.astro`, tackbok.org/privacy) in
- * sync with this file — it links here as the exhaustive list.
+ * sync with this file.
  *
  * Rules for adding events:
  * - Bucketed values only — never raw text, lengths, dates, or ids that could
@@ -39,6 +39,9 @@ export type AnalyticsEvents = {
     has_photo: boolean;
     has_audio: boolean;
     has_mood: boolean;
+    // Deliberately un-bucketed: entries carry a handful of tags at most
+    // (usually 0-2), so the exact count is too coarse to fingerprint content,
+    // and CountBucket would collapse nearly all values into '1-10'.
     tag_count: number;
     char_bucket: CharBucket;
   };

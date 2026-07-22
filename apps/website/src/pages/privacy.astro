@@ -52,15 +52,11 @@ const supportEmail = 'tackbok.support@mehra.dev';
 
         <h2 class="text-xl font-semibold tracking-tight border-t border-border pt-4">Analytics (Opt-In, Off by Default)</h2>
         <p>
-          We use <strong>PostHog</strong>, hosted in the <strong>European Union</strong>, to understand how the app is used and improve it. Analytics is <strong>disabled by default</strong>: it only runs if you explicitly turn on the Analytics toggle in the app's settings. Until you do, the analytics code is never even initialized and nothing is sent from your device. If you turn the toggle off again, data collection stops immediately, any unsent events are deleted, and the anonymous identifier is discarded.
+          We use <strong>PostHog</strong>, hosted in the <strong>European Union</strong>, to understand how the app is used and improve it. Analytics is <strong>disabled by default</strong>: it only runs after you explicitly opt in, via the Analytics toggle in the app's settings. Until you do, the PostHog analytics library is never even loaded or initialized and nothing is sent from your device. If you turn the toggle off again, data collection stops immediately, any unsent events are deleted, and the anonymous identifier is discarded.
         </p>
         <p>
           When enabled, analytics is anonymous. Events are linked only to a randomly generated identifier — we never collect your name, your email, or anything you write in the app (no journal text, photos, audio, or tag names). Where a number could hint at your journal's contents, such as an entry's length or how many entries you have, the app reports a coarse range (for example "51–200") instead of the exact value.
         </p>
-        <p>
-          The app sends only a small, fixed list of events: app opened, screen viewed (screen name only), entry created or deleted (with yes/no flags like "has a photo" — never the content), search used (never the search text), theme or language changed, backup exported or imported, and daily reminder turned on or off. Alongside these, the analytics library reports basic device information (device model, operating system version, app version) and the country configured in your device settings. We do not use IP addresses to determine your location, and automatic capture features such as session recording are disabled. Tackbok is open source, so you can inspect the exhaustive, always-up-to-date event list <a href="https://github.com/mehradotdev/tackbok/blob/main/apps/mobile/src/lib/analytics/events.ts" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4">directly in the source code</a>.
-        </p>
-
         <h2 class="text-xl font-semibold tracking-tight border-t border-border pt-4">Data Sharing and Disclosure</h2>
         <p>
           <strong>We do not sell your personal data.</strong> Any data that is transmitted from your device to our third-party service providers (such as PostHog or RevenueCat) is used strictly to provide, maintain, and improve the app's functionality (e.g., processing donations and analyzing app usage). We do not share your information with any third parties for their own marketing or advertising purposes.
