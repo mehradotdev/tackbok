@@ -15,30 +15,13 @@ import {
   AudioContext,
   AudioRecorder,
   AudioManager,
-  OfflineAudioContext,
   FileFormat,
   FilePreset,
   type AudioBuffer,
   type AudioBufferSourceNode,
   type AnalyserNode,
 } from 'react-native-audio-api';
-import { File, Paths } from 'expo-file-system';
-import { requireNativeModule } from 'expo';
-
-// ============================================================================
-// Native Audio Encoder (WAV → M4A)
-// ============================================================================
-
-type AudioEncoderNativeModule = {
-  encodeWavToM4a(wavUri: string, bitrate: number): Promise<string>;
-};
-
-/** Voice-optimised AAC bitrate (kbps). 64k is plenty for mono speech. */
-const VOICE_AAC_BITRATE = 64000;
-
-function getAudioEncoder(): AudioEncoderNativeModule {
-  return requireNativeModule<AudioEncoderNativeModule>('AudioEncoderModule');
-}
+import { File } from 'expo-file-system';
 
 // ============================================================================
 // Constants
@@ -47,104 +30,46 @@ function getAudioEncoder(): AudioEncoderNativeModule {
 const FFT_SIZE = 256;
 const URI_DECODE_DIRECT_EXTENSIONS = new Set(['m4a', 'wav']);
 
-// ── Audio normalization tuning ─────────────────────────────────────────
-// These control the post-recording normalization pipeline.
+// ── Playback gain tuning ───────────────────────────────────────────────
+// Quiet recordings (Android records through a VOICE_RECOGNITION-preset
+// stream, which the platform requires to have AGC disabled) are boosted at
+// playback time instead of being destructively re-encoded. The stored file
+// is always the recorder's original output.
 
-/** Target speech RMS after normalization. */
-const NORM_TARGET_RMS = 0.12;
-
-/** Target high percentile peak after normalization (≈ -1 dBFS). */
-const NORM_TARGET_PEAK = 0.89;
-
-/** Maximum gain multiplier to prevent boosting pure noise (~20 dB). */
-const NORM_MAX_GAIN = 10;
-
-/** Minimum useful gain; lower changes are not worth re-encoding. */
-const NORM_MIN_GAIN = 1.15;
-
-/** Minimum peak below which we skip normalization (essentially silence). */
-const NORM_SILENCE_THRESHOLD = 0.005;
-
-/** Samples below this level are ignored for voice RMS/percentile analysis. */
-const NORM_VOICE_FLOOR = 0.01;
-
-/** Avoid amplifying files that contain only tiny bursts/noise. */
-const NORM_MIN_VOICED_RATIO = 0.005;
-
-/** Histogram resolution for percentile peak analysis. */
-const NORM_PERCENTILE_BINS = 1024;
-
-/** Upper percentile used as a robust peak proxy. */
-const NORM_PEAK_PERCENTILE = 0.95;
-
-/** High-pass filter cutoff frequency to remove low-frequency rumble. */
-const NORM_HIGHPASS_HZ = 80;
-
-// ── WAV encoding helper ───────────────────────────────────────────────
+/** Target voiced-speech RMS after playback boost (≈ -13 dBFS, messenger-loud). */
+const GAIN_TARGET_RMS = 0.22;
 
 /**
- * Encode an AudioBuffer as a WAV file (16-bit PCM, little-endian).
- * Returns a Uint8Array containing the complete .wav file data.
+ * How far the percentile peak may be driven INTO the tanh limiter. Values > 1
+ * deliberately overdrive the limiter so it soft-compresses peaks (this is what
+ * makes quiet recordings loud without hard-clipping); higher = louder but more
+ * saturation distortion on transients.
  */
-function encodeWav(buffer: AudioBuffer): Uint8Array {
-  const numChannels = buffer.numberOfChannels;
-  const sampleRate = buffer.sampleRate;
-  const bitsPerSample = 16;
-  const bytesPerSample = bitsPerSample / 8;
-  const blockAlign = numChannels * bytesPerSample;
-  const numFrames = buffer.length;
-  const dataSize = numFrames * blockAlign;
-  const headerSize = 44;
-  const fileSize = headerSize + dataSize;
+const GAIN_PEAK_DRIVE = 1.6;
 
-  const out = new ArrayBuffer(fileSize);
-  const view = new DataView(out);
+/** Maximum gain multiplier to prevent boosting pure noise (~30 dB). */
+const GAIN_MAX = 31.6;
 
-  // Helper to write ASCII string
-  const writeString = (offset: number, str: string) => {
-    for (let i = 0; i < str.length; i++) {
-      view.setUint8(offset + i, str.charCodeAt(i));
-    }
-  };
+/** Minimum useful gain; lower boosts are inaudible, so skip the boost graph. */
+const GAIN_MIN = 1.15;
 
-  // RIFF header
-  writeString(0, 'RIFF');
-  view.setUint32(4, fileSize - 8, true); // file size - 8
-  writeString(8, 'WAVE');
+/** Minimum peak below which we skip boosting (essentially silence). */
+const GAIN_SILENCE_THRESHOLD = 0.005;
 
-  // fmt sub-chunk
-  writeString(12, 'fmt ');
-  view.setUint32(16, 16, true); // sub-chunk size (16 for PCM)
-  view.setUint16(20, 1, true); // audio format (1 = PCM)
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * blockAlign, true); // byte rate
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, bitsPerSample, true);
+/** Samples below this level are ignored for voice RMS/percentile analysis. */
+const GAIN_VOICE_FLOOR = 0.01;
 
-  // data sub-chunk
-  writeString(36, 'data');
-  view.setUint32(40, dataSize, true);
+/** Avoid amplifying files that contain only tiny bursts/noise. */
+const GAIN_MIN_VOICED_RATIO = 0.005;
 
-  // Interleave channel data and write 16-bit PCM samples
-  const channels: Float32Array[] = [];
-  for (let ch = 0; ch < numChannels; ch++) {
-    channels.push(buffer.getChannelData(ch));
-  }
+/** Histogram resolution for percentile peak analysis. */
+const GAIN_PERCENTILE_BINS = 1024;
 
-  let offset = headerSize;
-  for (let i = 0; i < numFrames; i++) {
-    for (let ch = 0; ch < numChannels; ch++) {
-      // Clamp to [-1, 1] then convert to 16-bit signed integer
-      const sample = Math.max(-1, Math.min(1, channels[ch][i]));
-      const int16 = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
-      view.setInt16(offset, int16, true);
-      offset += bytesPerSample;
-    }
-  }
+/** Upper percentile used as a robust peak proxy. */
+const GAIN_PEAK_PERCENTILE = 0.95;
 
-  return new Uint8Array(out);
-}
+/** Maximum number of URIs to remember a computed playback gain for. */
+const GAIN_CACHE_LIMIT = 32;
 
 /**
  * Build a soft-limiter curve for a WaveShaperNode.
@@ -161,8 +86,17 @@ function buildSoftLimiterCurve(samples = 8192): Float32Array {
   return curve;
 }
 
-function getNormalizationGain(buffer: AudioBuffer): number {
-  const histogram = new Uint32Array(NORM_PERCENTILE_BINS);
+let softLimiterCurve: Float32Array | null = null;
+
+function getSoftLimiterCurve(): Float32Array {
+  if (!softLimiterCurve) {
+    softLimiterCurve = buildSoftLimiterCurve();
+  }
+  return softLimiterCurve;
+}
+
+function computePlaybackGain(buffer: AudioBuffer): number {
+  const histogram = new Uint32Array(GAIN_PERCENTILE_BINS);
   let peak = 0;
   let sumSq = 0;
   let voicedSampleCount = 0;
@@ -176,43 +110,43 @@ function getNormalizationGain(buffer: AudioBuffer): number {
       const abs = Math.abs(channelData[i]);
       if (abs > peak) peak = abs;
 
-      if (abs >= NORM_VOICE_FLOOR) {
+      if (abs >= GAIN_VOICE_FLOOR) {
         sumSq += abs * abs;
         voicedSampleCount++;
         const bin = Math.min(
-          NORM_PERCENTILE_BINS - 1,
-          Math.floor(abs * (NORM_PERCENTILE_BINS - 1)),
+          GAIN_PERCENTILE_BINS - 1,
+          Math.floor(abs * (GAIN_PERCENTILE_BINS - 1)),
         );
         histogram[bin]++;
       }
     }
   }
 
-  if (peak < NORM_SILENCE_THRESHOLD || voicedSampleCount === 0) {
+  if (peak < GAIN_SILENCE_THRESHOLD || voicedSampleCount === 0) {
     return 1;
   }
 
-  if (voicedSampleCount / totalSampleCount < NORM_MIN_VOICED_RATIO) {
+  if (voicedSampleCount / totalSampleCount < GAIN_MIN_VOICED_RATIO) {
     return 1;
   }
 
-  const targetCount = Math.ceil(voicedSampleCount * NORM_PEAK_PERCENTILE);
+  const targetCount = Math.ceil(voicedSampleCount * GAIN_PEAK_PERCENTILE);
   let runningCount = 0;
   let percentilePeak = peak;
   for (let bin = 0; bin < histogram.length; bin++) {
     runningCount += histogram[bin];
     if (runningCount >= targetCount) {
-      percentilePeak = Math.max(NORM_VOICE_FLOOR, bin / (NORM_PERCENTILE_BINS - 1));
+      percentilePeak = Math.max(GAIN_VOICE_FLOOR, bin / (GAIN_PERCENTILE_BINS - 1));
       break;
     }
   }
 
   const rms = Math.sqrt(sumSq / voicedSampleCount);
-  const rmsGain = NORM_TARGET_RMS / Math.max(rms, 0.000001);
-  const percentilePeakGain = NORM_TARGET_PEAK / Math.max(percentilePeak, 0.000001);
-  const gain = Math.min(rmsGain, percentilePeakGain, NORM_MAX_GAIN);
+  const rmsGain = GAIN_TARGET_RMS / Math.max(rms, 0.000001);
+  const percentilePeakGain = GAIN_PEAK_DRIVE / Math.max(percentilePeak, 0.000001);
+  const gain = Math.min(rmsGain, percentilePeakGain, GAIN_MAX);
 
-  return gain >= NORM_MIN_GAIN ? gain : 1;
+  return gain >= GAIN_MIN ? gain : 1;
 }
 
 // ============================================================================
@@ -248,6 +182,12 @@ class AudioEngine {
   private _playbackState: PlaybackState = 'idle';
   private _currentUri: string | null = null;
   private loadRequestId = 0;
+
+  // Playback loudness compensation (see "Playback gain tuning" above)
+  private playbackGainCache = new Map<string, number>();
+  private currentPlaybackGain = 1;
+  private boostNode: ReturnType<AudioContext['createGain']> | null = null;
+  private limiterNode: ReturnType<AudioContext['createWaveShaper']> | null = null;
 
   // Timing for seek & progress
   private playStartContextTime = 0; // audioContext.currentTime when play() began
@@ -358,6 +298,57 @@ class AudioEngine {
   }
 
   // ====================================================================
+  // Playback gain (loudness compensation for quiet recordings)
+  // ====================================================================
+
+  /**
+   * Return the playback gain for a file, computing and caching it from the
+   * decoded buffer on first sight. Analysis is a single pass over the samples,
+   * so it only runs once per URI per app session.
+   */
+  private resolvePlaybackGain(uri: string, buffer: AudioBuffer): number {
+    const cached = this.playbackGainCache.get(uri);
+    if (cached !== undefined) return cached;
+
+    const gain = computePlaybackGain(buffer);
+    if (this.playbackGainCache.size >= GAIN_CACHE_LIMIT) {
+      const oldest = this.playbackGainCache.keys().next().value;
+      if (oldest !== undefined) this.playbackGainCache.delete(oldest);
+    }
+    this.playbackGainCache.set(uri, gain);
+    return gain;
+  }
+
+  /**
+   * Wire a source node into the output graph. Quiet recordings get a gain
+   * boost followed by a tanh soft limiter, so peaks pushed past full scale
+   * are rounded off instead of hard-clipping.
+   */
+  private connectSourceToOutput(source: AudioBufferSourceNode): void {
+    const ctx = this.ensureContext();
+    const analyser = this.ensureAnalyser();
+
+    if (this.currentPlaybackGain === 1) {
+      source.connect(analyser);
+      return;
+    }
+
+    // Boost/limiter nodes are created lazily once and reused: seekTo() runs on
+    // every scrub-gesture frame, so per-call allocation would churn native nodes.
+    if (!this.boostNode || !this.limiterNode) {
+      this.boostNode = ctx.createGain();
+      this.limiterNode = ctx.createWaveShaper();
+      this.limiterNode.curve = getSoftLimiterCurve();
+      this.limiterNode.oversample = '4x';
+      this.boostNode.connect(this.limiterNode);
+      this.limiterNode.connect(analyser);
+    }
+
+    this.boostNode.gain.value = this.currentPlaybackGain;
+    source.connect(this.boostNode);
+  }
+
+  // ====================================================================
   // Recording
   // ====================================================================
 
@@ -458,7 +449,7 @@ class AudioEngine {
     const requestId = ++this.loadRequestId;
 
     const ctx = this.ensureContext();
-    const analyser = this.ensureAnalyser();
+    this.ensureAnalyser();
 
     // Connect analyser to speakers so audio is audible during playback
     this.unmuteOutput();
@@ -492,6 +483,10 @@ class AudioEngine {
 
       // Guard: if we were stopped/replaced while decoding
       if (this._currentUri !== uri || requestId !== this.loadRequestId) return;
+
+      // Boost quiet recordings at playback time (single-pass analysis,
+      // cached per URI — see resolvePlaybackGain).
+      this.currentPlaybackGain = this.resolvePlaybackGain(uri, this.currentBuffer);
     } catch (error) {
       this.stopPlayback();
       throw error;
@@ -500,7 +495,7 @@ class AudioEngine {
     // Create source
     this.sourceNode = ctx.createBufferSource();
     this.sourceNode.buffer = this.currentBuffer;
-    this.sourceNode.connect(analyser);
+    this.connectSourceToOutput(this.sourceNode);
 
     // Track timing
     this.playStartOffset = Math.min(offset, this.currentBuffer.duration);
@@ -530,7 +525,6 @@ class AudioEngine {
     if (this._playbackState !== 'paused' || !this.currentBuffer) return;
 
     const ctx = this.ensureContext();
-    const analyser = this.ensureAnalyser();
 
     // Ensure analyser is connected to speakers for audible playback
     this.unmuteOutput();
@@ -541,7 +535,7 @@ class AudioEngine {
 
     this.sourceNode = ctx.createBufferSource();
     this.sourceNode.buffer = this.currentBuffer;
-    this.sourceNode.connect(analyser);
+    this.connectSourceToOutput(this.sourceNode);
 
     this.playStartContextTime = ctx.currentTime;
     this.sourceNode.start(0, this.playStartOffset);
@@ -566,14 +560,13 @@ class AudioEngine {
 
     if (wasPlaying) {
       const ctx = this.ensureContext();
-      const analyser = this.ensureAnalyser();
 
       // Ensure analyser is connected to speakers for audible playback
       this.unmuteOutput();
 
       this.sourceNode = ctx.createBufferSource();
       this.sourceNode.buffer = this.currentBuffer;
-      this.sourceNode.connect(analyser);
+      this.connectSourceToOutput(this.sourceNode);
 
       this.playStartContextTime = ctx.currentTime;
       this.sourceNode.start(0, this.playStartOffset);
@@ -602,6 +595,7 @@ class AudioEngine {
     this._playbackState = 'idle';
     this.playStartOffset = 0;
     this.playStartContextTime = 0;
+    this.currentPlaybackGain = 1;
 
     // Suspend when we stop
     if (!this._isRecording) {
@@ -736,8 +730,9 @@ class AudioEngine {
    * Decode an audio file and return raw chunk-peak amplitudes (0..1).
    * Used as renderer input for the static waveform at rest and during playback.
    *
-   * These values are intentionally left unshaped so the UI layer can own all
-   * static waveform display tuning in one place.
+   * Values are intentionally left unshaped: StaticWaveform normalizes them
+   * against the clip's own loudest peak, so bar heights show the recording's
+   * internal dynamics while playback gain handles absolute loudness.
    */
   async extractAmplitudes(
     uri: string,
@@ -770,100 +765,11 @@ class AudioEngine {
       amplitudes.push(peak);
     }
 
+    // Warm the playback-gain cache while we have the decoded buffer, so the
+    // first play of this file doesn't pay the analysis pass on tap.
+    this.resolvePlaybackGain(uri, buffer);
+
     return { amplitudes, duration: audioDuration };
-  }
-
-  // ====================================================================
-  // Audio Normalization (post-recording)
-  // ====================================================================
-
-  /**
-   * Normalize a recorded audio file to boost quiet recordings.
-   *
-   * Pipeline: decode → analyze voiced RMS/percentile → highpass filter → gain → soft limiter → WAV
-   *
-   * If the recording is already at a reasonable level or is essentially
-   * silence, the original file is returned unchanged.
-   *
-   * @returns The URI of the (possibly new) normalized file.
-   */
-  async normalizeAudio(uri: string): Promise<string> {
-    // 1. Decode the recorded file into an AudioBuffer
-    const sourceBuffer = await this.decodeAudioBuffer(uri);
-    const { numberOfChannels, sampleRate, length: numFrames } = sourceBuffer;
-
-    if (numFrames === 0) return uri;
-
-    // 2. Calculate robust voice gain from voiced RMS and high-percentile peak.
-    // A single tap/pop should not prevent quiet speech from being boosted.
-    const gain = getNormalizationGain(sourceBuffer);
-    if (gain === 1) return uri;
-
-    // 3. Process through OfflineAudioContext
-    const offlineCtx = new OfflineAudioContext(numberOfChannels, numFrames, sampleRate);
-
-    // Source
-    const source = offlineCtx.createBufferSource();
-    source.buffer = sourceBuffer;
-
-    // High-pass filter: remove low-frequency rumble that wastes headroom
-    const highpass = offlineCtx.createBiquadFilter();
-    highpass.type = 'highpass';
-    highpass.frequency.value = NORM_HIGHPASS_HZ;
-
-    // Gain node: boost the signal
-    const gainNode = offlineCtx.createGain();
-    gainNode.gain.value = gain;
-
-    // Soft limiter: prevent clipping after gain boost
-    const limiter = offlineCtx.createWaveShaper();
-    limiter.curve = buildSoftLimiterCurve();
-    limiter.oversample = '4x';
-
-    // Wire the graph: source → highpass → gain → limiter → destination
-    source.connect(highpass);
-    highpass.connect(gainNode);
-    gainNode.connect(limiter);
-    limiter.connect(offlineCtx.destination);
-
-    // Start source and render
-    source.start(0);
-    const processedBuffer = await offlineCtx.startRendering();
-
-    // 4. Encode the processed buffer as intermediate WAV
-    const wavData = encodeWav(processedBuffer);
-
-    // 5. Write intermediate WAV to cache
-    const wavFile = new File(Paths.cache, `normalized_${Date.now()}.wav`);
-    wavFile.write(wavData);
-
-    // 6. Encode WAV → M4A via native module (hardware-accelerated AAC)
-    let finalUri: string;
-    try {
-      finalUri = await getAudioEncoder().encodeWavToM4a(wavFile.uri, VOICE_AAC_BITRATE);
-    } catch {
-      // If native encoding fails, fall back to WAV
-      finalUri = wavFile.uri;
-    }
-
-    // 7. Clean up intermediate WAV (if we successfully encoded to M4A)
-    if (finalUri !== wavFile.uri) {
-      try {
-        if (wavFile.exists) wavFile.delete();
-      } catch {
-        // Ignore — cleanup is best-effort
-      }
-    }
-
-    // 8. Delete the original temp recording file (best-effort)
-    try {
-      const originalFile = new File(uri);
-      if (originalFile.exists) originalFile.delete();
-    } catch {
-      // Ignore — cleanup is best-effort
-    }
-
-    return finalUri;
   }
 
   // ====================================================================
@@ -885,6 +791,8 @@ class AudioEngine {
     this.audioRecorder = null;
     this.analyser = null;
     this.outputGain = null;
+    this.boostNode = null;
+    this.limiterNode = null;
   }
 }
 

@@ -85,8 +85,6 @@ export const he: Translations = {
   'Tap on the play button to listen.': 'הקש על כפתור ההשמעה כדי להאזין.',
   'Save Recording': 'שמור הקלטה',
   'Discard Recording': 'בטל הקלטה',
-  'Processing Audio...': 'מעבד שמע...',
-  'Optimizing your recording.': 'משפר את ההקלטה שלך.',
   'Voice notes save automatically at 30:00.': 'הקלטות קוליות נשמרות אוטומטית ב-30:00.',
   'Title (optional)': 'כותרת (אופציונלי)',
   'Use Prompt': 'השתמש בהנחיה',

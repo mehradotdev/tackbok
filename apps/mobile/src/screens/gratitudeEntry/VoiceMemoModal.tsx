@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Linking, ActivityIndicator } from 'react-native';
+import { View, Linking } from 'react-native';
 import { File } from 'expo-file-system';
 import {
   Headphones,
@@ -41,7 +41,7 @@ interface IVoiceMemoModalProps {
   onVoiceMemoSaved: (tempUri: string) => void;
 }
 
-type RecorderPhase = 'idle' | 'recording' | 'normalizing' | 'preview';
+type RecorderPhase = 'idle' | 'recording' | 'preview';
 
 // ============================================================================
 // Helpers
@@ -243,37 +243,17 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
       try {
         const result = audioEngine.stopRecording();
         if (result.path) {
-          setPhase('normalizing');
+          setRecordedUri(result.path);
+          setPreviewDuration(result.duration ?? 0);
 
-          try {
-            // Normalize audio to boost quiet recordings (esp. on Android)
-            const normalizedUri = await audioEngine.normalizeAudio(result.path);
-
-            setRecordedUri(normalizedUri);
-            setPreviewDuration(result.duration ?? 0);
-
-            if (autoSave) {
-              didSaveRef.current = true;
-              await TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
-              onVoiceMemoSaved(normalizedUri);
-              return;
-            }
-
-            hydratePreviewWaveform(normalizedUri);
-          } catch {
-            // If normalization fails, fall back to the original recording
-            setRecordedUri(result.path);
-            setPreviewDuration(result.duration ?? 0);
-
-            if (autoSave) {
-              didSaveRef.current = true;
-              await TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
-              onVoiceMemoSaved(result.path);
-              return;
-            }
-
-            hydratePreviewWaveform(result.path);
+          if (autoSave) {
+            didSaveRef.current = true;
+            await TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO);
+            onVoiceMemoSaved(result.path);
+            return;
           }
+
+          hydratePreviewWaveform(result.path);
         } else {
           setPhase('idle');
         }
@@ -425,21 +405,6 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
                 <Icon as={Mic} className="text-background size-5" />
                 <Text>{t('Start Recording')}</Text>
               </Button>
-            </>
-          )}
-
-          {/* === NORMALIZING PHASE === */}
-          {phase === 'normalizing' && (
-            <>
-              <Text className="text-xl font-body-bold text-foreground text-center mb-2">
-                {t('Processing Audio...')}
-              </Text>
-              <Text className="text-base text-muted-foreground text-center mb-6">
-                {t('Optimizing your recording.')}
-              </Text>
-              <View className="items-center mb-4">
-                <ActivityIndicator size="large" color={foregroundColor as string} />
-              </View>
             </>
           )}
 

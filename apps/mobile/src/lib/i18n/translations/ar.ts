@@ -84,8 +84,6 @@ export const ar: Translations = {
   'Tap on the play button to listen.': 'اضغط على زر التشغيل للاستماع.',
   'Save Recording': 'حفظ التسجيل',
   'Discard Recording': 'تجاهل التسجيل',
-  'Processing Audio...': 'جاري معالجة الصوت...',
-  'Optimizing your recording.': 'جاري تحسين التسجيل.',
   'Voice notes save automatically at 30:00.':
     'يتم حفظ الملاحظات الصوتية تلقائيًا عند 30:00.',
   'Title (optional)': 'العنوان (اختياري)',

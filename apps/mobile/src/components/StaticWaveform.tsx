@@ -35,11 +35,18 @@ const BAR_WIDTH = 3;
 const BAR_GAP = 2;
 /** Raw peak floor below which static bars are treated as visual silence. */
 const STATIC_NOISE_FLOOR = 0.01;
-/** Approximate peak ceiling for normalized recorded speech. */
-const STATIC_PRACTICAL_MAX = 0.9;
-/** Gentle visual lift for quiet static bars. */
-const STATIC_PRE_GAIN = 1.28;
-/** Compression that keeps louder clips visibly taller. */
+/**
+ * Clips whose loudest raw peak is below this are shown flat instead of being
+ * normalized up to full height — stops near-silence from rendering as speech.
+ */
+const STATIC_MIN_CLIP_PEAK = 0.03;
+/**
+ * Bars are normalized against this percentile of the voiced chunk peaks rather
+ * than the absolute maximum, so one loud blip (tap, door slam) clamps to full
+ * height instead of shrinking every other bar.
+ */
+const STATIC_REFERENCE_PERCENTILE = 0.95;
+/** Compression that keeps quiet passages visible without flattening loud ones. */
 const STATIC_EXPONENT = 0.74;
 /** Minimum displayed amplitude so quiet bars do not disappear visually. */
 const MIN_DISPLAY_AMPLITUDE = 0.1;
@@ -47,11 +54,27 @@ const MIN_DISPLAY_AMPLITUDE = 0.1;
 const MIN_BAR_HEIGHT = 3;
 
 // StaticWaveform owns the final display curve for extracted chunk peaks.
-function shapeStaticDisplayAmplitude(level: number): number {
+// Bars are scaled relative to the clip's own loudness so heights show the
+// recording's internal dynamics; absolute loudness is already equalized by
+// playback gain in audioEngine.
+function shapeStaticDisplayAmplitude(level: number, referencePeak: number): number {
+  const reference = Math.max(referencePeak, STATIC_MIN_CLIP_PEAK);
   const gated = Math.max(0, level - STATIC_NOISE_FLOOR);
-  const normalized = Math.min(1, gated / (STATIC_PRACTICAL_MAX - STATIC_NOISE_FLOOR));
-  const boosted = Math.min(1, normalized * STATIC_PRE_GAIN);
-  return Math.pow(boosted, STATIC_EXPONENT);
+  const normalized = Math.min(1, gated / Math.max(reference - STATIC_NOISE_FLOOR, 0.001));
+  return Math.pow(normalized, STATIC_EXPONENT);
+}
+
+/**
+ * Robust per-clip reference level: the STATIC_REFERENCE_PERCENTILE-th peak of
+ * the chunks above the noise floor. Returns 0 for an entirely silent clip
+ * (shapeStaticDisplayAmplitude then falls back to STATIC_MIN_CLIP_PEAK).
+ */
+function computeReferencePeak(amplitudes: number[]): number {
+  const voiced = amplitudes.filter((a) => a > STATIC_NOISE_FLOOR);
+  if (voiced.length === 0) return 0;
+
+  voiced.sort((a, b) => a - b);
+  return voiced[Math.floor(STATIC_REFERENCE_PERCENTILE * (voiced.length - 1))];
 }
 
 // ============================================================================
@@ -89,6 +112,8 @@ export function StaticWaveform({
     const result: number[] = [];
     const step = amplitudes.length / barCount;
 
+    const referencePeak = computeReferencePeak(amplitudes);
+
     for (let i = 0; i < barCount; i++) {
       const start = Math.floor(i * step);
       const end = Math.min(Math.floor((i + 1) * step), amplitudes.length);
@@ -98,7 +123,7 @@ export function StaticWaveform({
         if (amplitudes[j] > peak) peak = amplitudes[j];
       }
 
-      const shapedPeak = shapeStaticDisplayAmplitude(peak);
+      const shapedPeak = shapeStaticDisplayAmplitude(peak, referencePeak);
       result.push(Math.max(MIN_DISPLAY_AMPLITUDE, shapedPeak));
     }
 
