@@ -419,6 +419,8 @@ export const zhCN: Translations = {
     '塔克博克正在收集匿名分析信息以帮助诊断问题和监控趋势',
   'Check for updates': '检查更新',
   'Checking for updates…': '正在检查更新…',
+  'Last checked: {time}': '上次检查：{time}',
+  Never: '从未',
   'Restart to apply': '重启以应用',
   'Update downloaded. Restart to apply it.': '更新已下载。重启以应用。',
   'You already have the latest version': '您已使用最新版本',

@@ -431,6 +431,8 @@ export const he: Translations = {
     'טאקבוק אוסף מידע אנליטי אנונימי כדי לעזור באבחון בעיות ומעקב אחר מגמות',
   'Check for updates': 'בדיקת עדכונים',
   'Checking for updates…': 'בודק עדכונים…',
+  'Last checked: {time}': 'בדיקה אחרונה: {time}',
+  Never: 'מעולם לא',
   'Restart to apply': 'הפעלה מחדש להחלה',
   'Update downloaded. Restart to apply it.': 'העדכון ירד. הפעל מחדש כדי להחיל אותו.',
   'You already have the latest version': 'הגרסה האחרונה כבר מותקנת',

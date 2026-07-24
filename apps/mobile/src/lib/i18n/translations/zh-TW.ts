@@ -421,6 +421,8 @@ export const zhTW: Translations = {
     '塔克博克收集匿名分析資訊以協助診斷問題並監控趨勢',
   'Check for updates': '檢查更新',
   'Checking for updates…': '正在檢查更新…',
+  'Last checked: {time}': '上次檢查：{time}',
+  Never: '從未',
   'Restart to apply': '重新啟動以套用',
   'Update downloaded. Restart to apply it.': '更新已下載。重新啟動以套用。',
   'You already have the latest version': '您已使用最新版本',

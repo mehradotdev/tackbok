@@ -54,6 +54,9 @@ interface SettingsState {
   // Privacy
   analyticsEnabled: boolean;
 
+  // App updates
+  lastUpdateCheckAt: string | null;
+
   // Journaling
   customWorksheetTemplate: string | null;
   journalFocusAreas: BuiltInJournalPromptCategoryId[];
@@ -92,6 +95,7 @@ interface SettingsState {
   setGoogleDriveBackupEnabled: (enabled: boolean) => void;
   setBackupFrequency: (frequency: 'daily' | 'weekly' | 'on_change') => void;
   setAnalyticsEnabled: (enabled: boolean) => void;
+  setLastUpdateCheckAt: (checkedAt: string) => void;
   setCustomWorksheetTemplate: (template: string | null) => void;
   resetCustomWorksheetTemplate: () => void;
   resetToDefaults: () => void;
@@ -123,6 +127,7 @@ const DEFAULT_SETTINGS_VALUES = {
   googleDriveBackupEnabled: false,
   backupFrequency: 'daily' as const,
   analyticsEnabled: false,
+  lastUpdateCheckAt: null,
   customWorksheetTemplate: null,
   journalFocusAreas: DEFAULT_JOURNAL_FOCUS_AREAS,
   journalPromptsMode: 'off' as const,
@@ -174,6 +179,7 @@ export const useSettingsStore = create<SettingsState>()(
         set({ googleDriveBackupEnabled: enabled }),
       setBackupFrequency: (frequency) => set({ backupFrequency: frequency }),
       setAnalyticsEnabled: (enabled) => set({ analyticsEnabled: enabled }),
+      setLastUpdateCheckAt: (checkedAt) => set({ lastUpdateCheckAt: checkedAt }),
       setCustomWorksheetTemplate: (template) =>
         set({ customWorksheetTemplate: template?.trim() ? template : null }),
       resetCustomWorksheetTemplate: () => set({ customWorksheetTemplate: null }),
@@ -241,6 +247,7 @@ export const useSettingsStore = create<SettingsState>()(
         googleDriveBackupEnabled: state.googleDriveBackupEnabled,
         backupFrequency: state.backupFrequency,
         analyticsEnabled: state.analyticsEnabled,
+        lastUpdateCheckAt: state.lastUpdateCheckAt,
         customWorksheetTemplate: state.customWorksheetTemplate,
         journalFocusAreas: state.journalFocusAreas,
         journalPromptsMode: state.journalPromptsMode,

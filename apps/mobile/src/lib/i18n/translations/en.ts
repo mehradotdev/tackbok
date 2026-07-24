@@ -448,6 +448,8 @@ export const en = {
     'Tackbok is collecting anonymized analytics information to help diagnose problems and monitor trends',
   'Check for updates': 'Check for updates',
   'Checking for updates…': 'Checking for updates…',
+  'Last checked: {time}': 'Last checked: {time}',
+  Never: 'Never',
   'Restart to apply': 'Restart to apply',
   'Update downloaded. Restart to apply it.': 'Update downloaded. Restart to apply it.',
   'You already have the latest version': 'You already have the latest version',

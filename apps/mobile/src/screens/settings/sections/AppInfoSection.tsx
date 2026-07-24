@@ -39,8 +39,13 @@ import { SettingsRow } from '../SettingsRow';
 
 export function AppInfoSection() {
   const router = useRouter();
-  const { t } = useTranslation();
-  const { analyticsEnabled, setAnalyticsEnabled } = useSettingsStore();
+  const { t, locale } = useTranslation();
+  const {
+    analyticsEnabled,
+    setAnalyticsEnabled,
+    lastUpdateCheckAt,
+    setLastUpdateCheckAt,
+  } = useSettingsStore();
   const [isManualCheckRunning, setIsManualCheckRunning] = useState(false);
   const [showReplayOnboardingDialog, setShowReplayOnboardingDialog] = useState(false);
   const { isChecking, isDownloading, isUpdatePending } = useAppUpdates();
@@ -49,12 +54,23 @@ export function AppInfoSection() {
     Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '1.0.0';
   const buildVersion = Application.nativeBuildVersion;
   const displayedVersion = buildVersion ? `${appVersion} (${buildVersion})` : appVersion;
+  const lastUpdateCheckDate = lastUpdateCheckAt ? new Date(lastUpdateCheckAt) : null;
+  const lastUpdateCheckTime =
+    lastUpdateCheckDate && !Number.isNaN(lastUpdateCheckDate.getTime())
+      ? new Intl.DateTimeFormat(locale, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        }).format(lastUpdateCheckDate)
+      : t('Never');
   const isUpdateBusy = isManualCheckRunning || isChecking || isDownloading;
 
   const handleCheckForUpdates = async () => {
     setIsManualCheckRunning(true);
     try {
       const result = await checkForAppUpdate();
+      if (result === 'current' || result === 'downloaded') {
+        setLastUpdateCheckAt(new Date().toISOString());
+      }
 
       if (result === 'unavailable') {
         // This path only runs in Expo Go/development builds, so it does not
@@ -142,6 +158,7 @@ export function AppInfoSection() {
       />
       <SettingsRow
         label={isUpdateBusy ? t('Checking for updates…') : t('Check for updates')}
+        description={t('Last checked: {time}', { time: lastUpdateCheckTime })}
         icon={CloudDownload}
         onPress={handleCheckForUpdates}
         disabled={isUpdateBusy}
