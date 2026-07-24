@@ -17,9 +17,9 @@ import { SettingsRow } from '../SettingsRow';
 
 const JOURNAL_PROMPTS_OPTIONS: { value: JournalPromptsMode; labelKey: string }[] = [
   { value: 'off', labelKey: 'Off' },
-  { value: 'all', labelKey: 'All Prompts' },
-  { value: 'custom', labelKey: 'My Prompts' },
   { value: 'builtin', labelKey: 'Built In Prompts' },
+  { value: 'custom', labelKey: 'My Prompts' },
+  { value: 'all', labelKey: 'All Prompts' },
 ];
 
 export function JournalingSection() {

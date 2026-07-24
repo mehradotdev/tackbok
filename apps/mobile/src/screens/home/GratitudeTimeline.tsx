@@ -15,6 +15,7 @@ import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { Text } from '~/components/ui/text';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
+import { SampleEntriesBanner } from './SampleEntriesBanner';
 
 interface IGratitudeTimelineProps {
   onEntryPress: (entry: Entry) => void;
@@ -205,6 +206,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
             />
           ) : null
         }
+        ListHeaderComponent={<SampleEntriesBanner />}
         ListFooterComponent={<View className="h-8" />}
         contentContainerClassName="pb-4"
         onScroll={onScroll}

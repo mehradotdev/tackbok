@@ -490,6 +490,101 @@ export const zhTW: Translations = {
   NOV: '11月',
   DEC: '12月',
 
+  // Onboarding
+  Skip: '略過',
+  Continue: '繼續',
+  Next: '下一步',
+  'Step {current} of {total}': '第 {current} 步，共 {total} 步',
+  'Get started': '開始使用',
+  'Already have a journal? Import it': '已經有日記了？匯入它',
+  'A private place for your gratitude — free, offline, yours.':
+    '一個屬於你的感恩空間 — 免費、離線、完全屬於你。',
+  'Your journal stays on your device.': '你的日記只儲存在你的裝置上。',
+  'Import your journal': '匯入你的日記',
+  'Where is your journal coming from?': '你的日記來自哪裡？',
+  'Tackbok Backup': 'Tackbok 備份',
+  'Gratitude App': 'Gratitude 應用程式',
+  'Presently App': 'Presently 應用程式',
+  'What should we call you?': '我們該怎麼稱呼你？',
+  'Your name is only used to greet you inside the app.':
+    '你的名字僅用於在應用程式中向你問好。',
+  'Your name (optional)': '你的名字（選填）',
+  'Stays on your device.': '僅儲存在你的裝置上。',
+  'Make it yours': '打造你的風格',
+  'Pick a look — you can change everything later in Settings.':
+    '選擇一種外觀 — 之後隨時可以在設定中更改。',
+  'A walk in the morning sun': '晨光中的散步',
+  'Grateful for quiet streets, warm coffee, and a sky full of color.':
+    '感謝安靜的街道、溫暖的咖啡和滿天的色彩。',
+  'More themes…': '更多主題…',
+  'What do you want to be more grateful for?': '你想對什麼更加心懷感恩？',
+  'We’ll suggest writing prompts from the areas you pick.':
+    '我們會根據你選擇的領域推薦書寫靈感。',
+  'Pick at least {count}': '至少選擇 {count} 個',
+  'Help improve Tackbok?': '幫助改進 Tackbok？',
+  'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
+    'Tackbok 免費且開源。匿名統計能幫助我們找出問題、了解哪些功能重要。',
+  'Anonymous usage stats only — which screens and features get used.':
+    '僅匿名使用統計 — 哪些畫面和功能被使用。',
+  'Never your journal content, photos, voice memos, or anything you type.':
+    '絕不收集你的日記內容、照片、語音備忘或任何輸入的文字。',
+  'Open source — the exact event list is public in the repo.':
+    '開源 — 完整的事件清單公開在程式碼儲存庫中。',
+  'See exactly what we collect': '查看我們實際收集的內容',
+  'Share anonymous stats': '分享匿名統計',
+  'No thanks': '不用了，謝謝',
+  'What we collect': '我們收集的內容',
+  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
+    '這些是 Tackbok 記錄的全部事件 — 只是匿名計數，不附帶任何內容。完整清單公開在開源程式碼中。',
+  'Never collected': '絕不收集',
+  'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
+    '你的日記文字、標題、照片、語音備忘、標籤、姓名、電子郵件或任何輸入的內容。沒有廣告，不出售資料，沒有第三方追蹤。',
+  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
+    '如果你同意，本次設定過程中的匿名步驟將被納入；如果你拒絕，它們會被捨棄，絕不會離開你的裝置。',
+  'You’re all set, {name}!': '一切就緒，{name}！',
+  'You’re all set!': '一切就緒！',
+  'Two last things you can turn on — both optional.':
+    '最後還有兩項可以開啟 — 都是選用的。',
+  'Add example entries': '加入範例日記',
+  'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
+    '幾則範例日記會展示照片、語音備忘、心情和標籤的用法。隨時可以一鍵移除。',
+  'Remind me daily': '每日提醒',
+  'A gentle nudge to write — never your journal content.':
+    '溫柔地提醒你來寫點什麼 — 絕不包含你的日記內容。',
+  'Remind me at {time}': '在 {time} 提醒我',
+  'Setting things up…': '正在準備…',
+  'Start journaling': '開始寫日記',
+  'Showing example entries': '正在顯示範例日記',
+  'Remove all': '全部移除',
+  'Hide this banner': '隱藏此提示',
+  'Example entries removed': '已移除範例日記',
+  'Failed to remove example entries': '移除範例日記失敗',
+  'Add today’s entry here.': '在這裡新增今天的日記。',
+  'Press and hold, then drag to move these buttons along the edge.':
+    '長按後拖曳，即可沿邊緣移動這些按鈕。',
+  'Tap an entry to view or edit it.': '點一下日記即可檢視或編輯。',
+  'Find memories by text or tag.': '透過文字或標籤尋找回憶。',
+  'Replay Onboarding': '重新播放新手導覽',
+  'Run the welcome setup again': '重新執行歡迎設定',
+  'Replay onboarding?': '重新播放新手導覽？',
+  'The welcome setup will start again. Your journal entries and settings are kept.':
+    '歡迎設定將重新開始。你的日記與設定都會保留。',
+  Replay: '重新播放',
+
+  // Onboarding sample entries (seeded content)
+  sample_tag_family: '家人',
+  sample_tag_littleThings: '小確幸',
+  sample_entry_welcome_title: '歡迎來到 Tackbok 👋',
+  sample_entry_welcome_body:
+    '這是你的感恩日記 — 記錄美好時刻的地方。點一下 + 按鈕，可以寫一句話，也可以寫一整頁；每天一次，或想寫就寫。點一下這張卡片查看完整日記。',
+  sample_entry_photos_title: '小小瞬間',
+  sample_entry_photos_body: '你可以為回憶附上照片 — 點一下圖片即可放大。',
+  sample_entry_voice_title: '用我自己的聲音',
+  sample_entry_voice_body:
+    '有時說出來更容易。點一下播放，聽一段簡短的語音備忘。',
+  sample_entry_tags_body:
+    '這則日記回答了一條書寫靈感，並帶有兩個標籤。試試頂部的搜尋，依標籤篩選就能再次找到它。',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{year}年{month}{day}日',
   'dateFormat.full': '{year}年{month}{day}日 {weekday}',

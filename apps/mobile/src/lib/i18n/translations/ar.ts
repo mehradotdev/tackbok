@@ -501,6 +501,103 @@ export const ar: Translations = {
   NOV: 'نوفمبر',
   DEC: 'ديسمبر',
 
+  // Onboarding
+  Skip: 'تخطي',
+  Continue: 'متابعة',
+  Next: 'التالي',
+  'Step {current} of {total}': 'الخطوة {current} من {total}',
+  'Get started': 'ابدأ الآن',
+  'Already have a journal? Import it': 'هل لديك يوميّات بالفعل؟ استوردها',
+  'A private place for your gratitude — free, offline, yours.':
+    'مكان خاص لامتنانك — مجاني، ويعمل دون إنترنت، وملكك وحدك.',
+  'Your journal stays on your device.': 'يوميّاتك تبقى على جهازك.',
+  'Import your journal': 'استيراد يوميّاتك',
+  'Where is your journal coming from?': 'من أين تأتي يوميّاتك؟',
+  'Tackbok Backup': 'نسخة Tackbok الاحتياطية',
+  'Gratitude App': 'تطبيق Gratitude',
+  'Presently App': 'تطبيق Presently',
+  'What should we call you?': 'بماذا نناديك؟',
+  'Your name is only used to greet you inside the app.':
+    'يُستخدم اسمك فقط للترحيب بك داخل التطبيق.',
+  'Your name (optional)': 'اسمك (اختياري)',
+  'Stays on your device.': 'يبقى على جهازك.',
+  'Make it yours': 'اجعله يناسبك',
+  'Pick a look — you can change everything later in Settings.':
+    'اختر مظهرًا — يمكنك تغيير كل شيء لاحقًا من الإعدادات.',
+  'A walk in the morning sun': 'نزهة تحت شمس الصباح',
+  'Grateful for quiet streets, warm coffee, and a sky full of color.':
+    'ممتن للشوارع الهادئة، والقهوة الدافئة، وسماء مليئة بالألوان.',
+  'More themes…': 'مزيد من السمات…',
+  'What do you want to be more grateful for?':
+    'ما الذي تريد أن تكون أكثر امتنانًا له؟',
+  'We’ll suggest writing prompts from the areas you pick.':
+    'سنقترح عليك أفكارًا للكتابة من المجالات التي تختارها.',
+  'Pick at least {count}': 'اختر {count} على الأقل',
+  'Help improve Tackbok?': 'هل تودّ المساعدة في تحسين Tackbok؟',
+  'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
+    'تطبيق Tackbok مجاني ومفتوح المصدر. تساعدنا الإحصاءات المجهولة في اكتشاف الأخطاء ومعرفة الميزات المهمة.',
+  'Anonymous usage stats only — which screens and features get used.':
+    'إحصاءات استخدام مجهولة فقط — أي الشاشات والميزات تُستخدم.',
+  'Never your journal content, photos, voice memos, or anything you type.':
+    'لن نجمع أبدًا محتوى يوميّاتك أو صورك أو مذكّراتك الصوتية أو أي شيء تكتبه.',
+  'Open source — the exact event list is public in the repo.':
+    'مفتوح المصدر — قائمة الأحداث الكاملة متاحة للجميع في المستودع.',
+  'See exactly what we collect': 'اطّلع بالضبط على ما نجمعه',
+  'Share anonymous stats': 'مشاركة إحصاءات مجهولة',
+  'No thanks': 'لا، شكرًا',
+  'What we collect': 'ما الذي نجمعه',
+  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
+    'هذه هي الأحداث الوحيدة التي يسجّلها Tackbok — عدّادات مجهولة دون أي محتوى مرفق. القائمة الكاملة متاحة في الكود مفتوح المصدر.',
+  'Never collected': 'لا يُجمع أبدًا',
+  'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
+    'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو البريد الإلكتروني أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',
+  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
+    'إذا وافقت، تُضمَّن الخطوات المجهولة التي قمت بها أثناء هذا الإعداد. وإذا رفضت، تُحذف فورًا ولا تغادر جهازك أبدًا.',
+  'You’re all set, {name}!': 'كل شيء جاهز يا {name}!',
+  'You’re all set!': 'كل شيء جاهز!',
+  'Two last things you can turn on — both optional.':
+    'أمران أخيران يمكنك تفعيلهما — كلاهما اختياري.',
+  'Add example entries': 'إضافة مدخلات تجريبية',
+  'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
+    'بضع مدخلات تجريبية تُظهر كيفية عمل الصور والمذكّرات الصوتية والحالات المزاجية والوسوم. يمكنك إزالتها في أي وقت بضغطة واحدة.',
+  'Remind me daily': 'ذكّرني يوميًا',
+  'A gentle nudge to write — never your journal content.':
+    'تنبيه لطيف للكتابة — دون محتوى يوميّاتك أبدًا.',
+  'Remind me at {time}': 'ذكّرني في {time}',
+  'Setting things up…': 'جارٍ التجهيز…',
+  'Start journaling': 'ابدأ التدوين',
+  'Showing example entries': 'تُعرض مدخلات تجريبية',
+  'Remove all': 'إزالة الكل',
+  'Hide this banner': 'إخفاء هذا الشريط',
+  'Example entries removed': 'تمت إزالة المدخلات التجريبية',
+  'Failed to remove example entries': 'تعذّرت إزالة المدخلات التجريبية',
+  'Add today’s entry here.': 'أضف مدخل اليوم من هنا.',
+  'Press and hold, then drag to move these buttons along the edge.':
+    'اضغط مطولاً ثم اسحب لتحريك هذه الأزرار على طول الحافة.',
+  'Tap an entry to view or edit it.': 'اضغط على أي مدخل لعرضه أو تعديله.',
+  'Find memories by text or tag.': 'ابحث عن الذكريات بالنص أو الوسم.',
+  'Replay Onboarding': 'إعادة تشغيل جولة الترحيب',
+  'Run the welcome setup again': 'تشغيل إعداد الترحيب مرة أخرى',
+  'Replay onboarding?': 'إعادة تشغيل جولة الترحيب؟',
+  'The welcome setup will start again. Your journal entries and settings are kept.':
+    'سيبدأ إعداد الترحيب من جديد. ستبقى مدخلات يوميّاتك وإعداداتك كما هي.',
+  Replay: 'إعادة التشغيل',
+
+  // Onboarding sample entries (seeded content)
+  sample_tag_family: 'العائلة',
+  sample_tag_littleThings: 'الأشياء الصغيرة',
+  sample_entry_welcome_title: 'مرحبًا بك في Tackbok 👋',
+  sample_entry_welcome_body:
+    'هذا دفتر امتنانك — مكان للحظات الجميلة. اضغط على زر + لكتابة سطر واحد أو صفحة كاملة، مرة في اليوم أو متى شئت. اضغط على هذه البطاقة لرؤية المدخل كاملًا.',
+  sample_entry_photos_title: 'لحظات صغيرة',
+  sample_entry_photos_body:
+    'يمكنك إرفاق الصور بأي ذكرى — اضغط على صورة لتكبيرها.',
+  sample_entry_voice_title: 'بكلماتي الخاصة',
+  sample_entry_voice_body:
+    'أحيانًا يكون قولها أسهل. اضغط على التشغيل لسماع مذكّرة صوتية قصيرة.',
+  sample_entry_tags_body:
+    'يجيب هذا المدخل عن أحد اقتراحات الكتابة ويحمل وسمين. جرّب البحث في الأعلى وصفِّ النتائج حسب الوسم للعثور عليه مجددًا.',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day} {month} {year}',
   'dateFormat.full': '{weekday}، {day} {month} {year}',

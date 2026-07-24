@@ -517,6 +517,103 @@ export const en = {
   NOV: 'Nov',
   DEC: 'Dec',
 
+  // Onboarding
+  Skip: 'Skip',
+  Continue: 'Continue',
+  Next: 'Next',
+  'Step {current} of {total}': 'Step {current} of {total}',
+  'Get started': 'Get started',
+  'Already have a journal? Import it': 'Already have a journal? Import it',
+  'A private place for your gratitude — free, offline, yours.':
+    'A private place for your gratitude — free, offline, yours.',
+  'Your journal stays on your device.': 'Your journal stays on your device.',
+  'Import your journal': 'Import your journal',
+  'Where is your journal coming from?': 'Where is your journal coming from?',
+  'Tackbok Backup': 'Tackbok Backup',
+  'Gratitude App': 'Gratitude App',
+  'Presently App': 'Presently App',
+  'What should we call you?': 'What should we call you?',
+  'Your name is only used to greet you inside the app.':
+    'Your name is only used to greet you inside the app.',
+  'Your name (optional)': 'Your name (optional)',
+  'Stays on your device.': 'Stays on your device.',
+  'Make it yours': 'Make it yours',
+  'Pick a look — you can change everything later in Settings.':
+    'Pick a look — you can change everything later in Settings.',
+  'A walk in the morning sun': 'A walk in the morning sun',
+  'Grateful for quiet streets, warm coffee, and a sky full of color.':
+    'Grateful for quiet streets, warm coffee, and a sky full of color.',
+  'More themes…': 'More themes…',
+  'What do you want to be more grateful for?':
+    'What do you want to be more grateful for?',
+  'We’ll suggest writing prompts from the areas you pick.':
+    'We’ll suggest writing prompts from the areas you pick.',
+  'Pick at least {count}': 'Pick at least {count}',
+  'Help improve Tackbok?': 'Help improve Tackbok?',
+  'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
+    'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.',
+  'Anonymous usage stats only — which screens and features get used.':
+    'Anonymous usage stats only — which screens and features get used.',
+  'Never your journal content, photos, voice memos, or anything you type.':
+    'Never your journal content, photos, voice memos, or anything you type.',
+  'Open source — the exact event list is public in the repo.':
+    'Open source — the exact event list is public in the repo.',
+  'See exactly what we collect': 'See exactly what we collect',
+  'Share anonymous stats': 'Share anonymous stats',
+  'No thanks': 'No thanks',
+  'What we collect': 'What we collect',
+  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
+    'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.',
+  'Never collected': 'Never collected',
+  'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
+    'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',
+  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
+    'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.',
+  'You’re all set, {name}!': 'You’re all set, {name}!',
+  'You’re all set!': 'You’re all set!',
+  'Two last things you can turn on — both optional.':
+    'Two last things you can turn on — both optional.',
+  'Add example entries': 'Add example entries',
+  'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
+    'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.',
+  'Remind me daily': 'Remind me daily',
+  'A gentle nudge to write — never your journal content.':
+    'A gentle nudge to write — never your journal content.',
+  'Remind me at {time}': 'Remind me at {time}',
+  'Setting things up…': 'Setting things up…',
+  'Start journaling': 'Start journaling',
+  'Showing example entries': 'Showing example entries',
+  'Remove all': 'Remove all',
+  'Hide this banner': 'Hide this banner',
+  'Example entries removed': 'Example entries removed',
+  'Failed to remove example entries': 'Failed to remove example entries',
+  'Add today’s entry here.': 'Add today’s entry here.',
+  'Press and hold, then drag to move these buttons along the edge.':
+    'Press and hold, then drag to move these buttons along the edge.',
+  'Tap an entry to view or edit it.': 'Tap an entry to view or edit it.',
+  'Find memories by text or tag.': 'Find memories by text or tag.',
+  'Replay Onboarding': 'Replay Onboarding',
+  'Run the welcome setup again': 'Run the welcome setup again',
+  'Replay onboarding?': 'Replay onboarding?',
+  'The welcome setup will start again. Your journal entries and settings are kept.':
+    'The welcome setup will start again. Your journal entries and settings are kept.',
+  Replay: 'Replay',
+
+  // Onboarding sample entries (seeded content)
+  sample_tag_family: 'Family',
+  sample_tag_littleThings: 'Little things',
+  sample_entry_welcome_title: 'Welcome to Tackbok 👋',
+  sample_entry_welcome_body:
+    'This is your gratitude journal — a place for the good moments. Tap the + button to write one line or a whole page, once a day or whenever you like. Tap this card to see the full entry.',
+  sample_entry_photos_title: 'Small moments',
+  sample_entry_photos_body:
+    'You can attach photos to a memory — tap one to zoom.',
+  sample_entry_voice_title: 'In my own words',
+  sample_entry_voice_body:
+    'Sometimes it’s easier to say it out loud. Tap play to hear a short voice memo.',
+  sample_entry_tags_body:
+    'This entry answers one of the writing prompts and carries two tags. Try the search at the top and filter by tag to find it again.',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{month} {day}, {year}',
   'dateFormat.full': '{weekday}, {month} {day}, {year}',
