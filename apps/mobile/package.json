@@ -86,6 +86,16 @@
     "typescript": "~6.0.3"
   },
   "private": true,
+  "expo": {
+    "autolinking": {
+      "ios": {
+        "buildFromSource": [
+          "react-native-reanimated",
+          "react-native-worklets"
+        ]
+      }
+    }
+  },
   "jest": {
     "preset": "jest-expo",
     "transformIgnorePatterns": [
