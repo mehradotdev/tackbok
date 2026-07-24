@@ -5,11 +5,9 @@ import { AssetType, type Asset } from '~/types';
 import { type TranslationFunction } from '~/lib/i18n';
 import { generateUUID } from '~/lib/utils';
 import { useSettingsStore } from '~/lib/settings';
-import { deletePhotoFile } from '~/lib/photoUtils';
-import { deleteVoiceMemoFile } from '~/lib/voiceMemoUtils';
+import { deleteEntry } from '~/lib/entryDeletion';
 import {
   createTag,
-  deleteEntry,
   deleteTag,
   getAllEntries,
   getAllTags,
@@ -182,18 +180,6 @@ export async function removeSampleEntries(): Promise<void> {
       .split(',')
       .filter(Boolean)
       .forEach((tagId) => candidateTagIds.add(tagId));
-
-    for (const asset of entry.assets ?? []) {
-      try {
-        if (asset.type === AssetType.IMAGE) {
-          deletePhotoFile(asset.uri);
-        } else if (asset.type === AssetType.AUDIO) {
-          deleteVoiceMemoFile(asset.uri);
-        }
-      } catch {
-        // Missing/already-deleted media must not block removal.
-      }
-    }
 
     await deleteEntry(entry.note_id);
   }

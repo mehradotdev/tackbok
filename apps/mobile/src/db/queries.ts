@@ -182,9 +182,12 @@ export async function upsertEntry(entry: NewEntry) {
 }
 
 /**
- * Delete an entry by its note_id
+ * Delete an entry record by its note_id.
+ *
+ * Callers deleting a complete entry should use `deleteEntry` from
+ * `~/lib/entryDeletion` so its media files are cleaned up as well.
  */
-export async function deleteEntry(noteId: string) {
+export async function deleteEntryRecord(noteId: string) {
   await db.delete(entries).where(eq(entries.note_id, noteId));
 }
 
