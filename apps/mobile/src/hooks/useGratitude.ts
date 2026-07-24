@@ -9,7 +9,6 @@ import {
   searchEntries,
   getAllTags,
   upsertEntry,
-  deleteEntry,
   getAllEntriesGroupByDate,
   updateTag,
   deleteTag,
@@ -20,6 +19,7 @@ import {
   updateCustomPrompt,
   deleteCustomPrompt,
 } from '~/db/queries';
+import { deleteEntry } from '~/lib/entryDeletion';
 
 export const QUERY_KEYS = {
   entries: 'entries',

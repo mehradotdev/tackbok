@@ -2,6 +2,7 @@ import type { SupportedLocale, Translations, LanguageInfo } from '../types';
 import { RTL_LOCALES } from '../types';
 import { en } from './en';
 import { ar } from './ar';
+import { de } from './de';
 import { he } from './he';
 import { zhCN } from './zh-CN';
 import { zhTW } from './zh-TW';
@@ -9,7 +10,6 @@ import { zhTW } from './zh-TW';
 // import { ur } from './ur';
 // import { fa } from './fa';
 // import { fr } from './fr';
-// import { de } from './de';
 // import { nl } from './nl';
 // import { pl } from './pl';
 // import { ru } from './ru';
@@ -36,10 +36,10 @@ export const translations: Record<SupportedLocale, Translations> = {
   // es,
   // ur,
   ar,
+  de,
   // fa,
   he,
   // fr,
-  // de,
   // nl,
   // pl,
   // ru,
@@ -65,7 +65,6 @@ export const translations: Record<SupportedLocale, Translations> = {
  * Language metadata for UI display
  */
 export const languages: LanguageInfo[] = [
-  { code: 'en', displayName: 'English', nativeName: 'English', isRTL: false },
   { code: 'ar', displayName: 'Arabic', nativeName: 'العربية', isRTL: true },
   // { code: 'bn', displayName: 'Bengali', nativeName: 'বাংলা', isRTL: false },
   // { code: 'zh-HK', displayName: 'Cantonese', nativeName: '廣東話', isRTL: false },
@@ -82,9 +81,10 @@ export const languages: LanguageInfo[] = [
     isRTL: false,
   },
   // { code: 'nl', displayName: 'Dutch', nativeName: 'Nederlands', isRTL: false },
+  { code: 'en', displayName: 'English', nativeName: 'English', isRTL: false },
   // { code: 'fa', displayName: 'Farsi', nativeName: 'فارسی', isRTL: true },
   // { code: 'fr', displayName: 'French', nativeName: 'Français', isRTL: false },
-  // { code: 'de', displayName: 'German', nativeName: 'Deutsch', isRTL: false },
+  { code: 'de', displayName: 'German', nativeName: 'Deutsch', isRTL: false },
   { code: 'he', displayName: 'Hebrew', nativeName: 'עברית', isRTL: true },
   // { code: 'hi', displayName: 'Hindi', nativeName: 'हिन्दी', isRTL: false },
   // { code: 'it', displayName: 'Italian', nativeName: 'Italiano', isRTL: false },
