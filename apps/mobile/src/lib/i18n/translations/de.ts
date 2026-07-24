@@ -461,6 +461,8 @@ export const de: Translations = {
     'Tackbok erfasst anonymisierte Analysedaten, um Probleme zu erkennen und Trends zu beobachten',
   'Check for updates': 'Nach Updates suchen',
   'Checking for updates…': 'Updates werden gesucht …',
+  'Last checked: {time}': 'Zuletzt geprüft: {time}',
+  Never: 'Nie',
   'Restart to apply': 'Zum Anwenden neu starten',
   'Update downloaded. Restart to apply it.':
     'Update heruntergeladen. Starte die App neu, um es anzuwenden.',

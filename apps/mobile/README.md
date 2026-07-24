@@ -106,7 +106,20 @@ bunx eas build -p android --profile production
 
 ### Publishing OTA updates
 
-EAS Update is configured with isolated `preview` and `production` channels. Publish to preview first:
+EAS Update is configured with isolated `preview` and `production` channels. The
+runtime version uses the `appVersion` policy, so all builds and updates with the
+same app `version` belong to the same OTA compatibility group.
+
+Changing the runtime policy only affects new binaries. Ship a new production
+build before publishing an `appVersion`-based update; existing fingerprint-based
+builds remain on their original runtime and will not receive that update.
+
+Before publishing, confirm that the change only affects JavaScript or assets.
+Adding or updating native dependencies, changing config plugins, permissions, or
+native app configuration, and upgrading Expo or React Native require a new EAS
+build.
+
+Publish OTA changes to preview first:
 
 ```sh
 bunx eas update --channel preview --auto
@@ -119,6 +132,30 @@ bunx eas update:republish --destination-channel production --group <update-group
 ```
 
 Use `bunx eas update --channel production --auto` only when intentionally publishing directly to production. Native dependency or app-config changes require a new EAS build; only JavaScript and asset changes can be delivered OTA.
+
+#### Version and store-build cadence
+
+- Do not increment the app `version` for routine JavaScript or asset-only OTA
+  updates.
+- Increment the app `version` whenever a native change requires a new production
+  store binary or when intentionally starting a new OTA compatibility group. EAS
+  can continue incrementing the iOS build number and Android version code
+  independently.
+- There is no required calendar cadence for a new store version. In addition to
+  native changes, consider a maintenance store build every 3–6 months, or after a
+  substantial set of stable OTA updates, so fresh and offline installs start from
+  a reasonably current embedded bundle.
+- Bump the app `version` for a maintenance store build when it should start a new
+  OTA compatibility group. Without that bump, the build remains in the existing
+  runtime group. Keep the previous release commit available and backport critical
+  fixes while that version still has a meaningful install base.
+- Keep backend changes compatible with the embedded bundle in supported store
+  versions. A fresh or offline install can run that bundle before downloading its
+  latest OTA update.
+- For support diagnostics, Settings shows both the native app/build version and
+  the currently running update date and short update ID. The **Check for updates**
+  action is the authoritative way to confirm that the device has the latest
+  compatible update.
 
 ### Creating a Universal APK from an AAB File
 

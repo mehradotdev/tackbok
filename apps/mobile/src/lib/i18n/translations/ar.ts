@@ -432,6 +432,8 @@ export const ar: Translations = {
     'يقوم تاكبوك بجمع معلومات تحليلية مجهولة للمساعدة في تشخيص المشاكل ومراقبة الاتجاهات',
   'Check for updates': 'التحقق من التحديثات',
   'Checking for updates…': 'جارٍ التحقق من التحديثات…',
+  'Last checked: {time}': 'آخر تحقق: {time}',
+  Never: 'أبدًا',
   'Restart to apply': 'أعد التشغيل للتطبيق',
   'Update downloaded. Restart to apply it.': 'تم تنزيل التحديث. أعد التشغيل لتطبيقه.',
   'You already have the latest version': 'لديك أحدث إصدار بالفعل',
