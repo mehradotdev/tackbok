@@ -6,6 +6,11 @@ export const TITLE_FONTS = [
   },
   {
     id: 'lora',
+    // The bundled file is metric-patched (scripts/patch-font-metrics.py), and
+    // its internal name table is renamed to honor Lora's OFL Reserved Font
+    // Name at the font-software level. The picker label deliberately stays
+    // "Lora": the face is Lora with whitespace-only metric tweaks, and an
+    // invented name would misattribute the design (decision 2026-07-24).
     label: 'Lora',
     fontFamily: 'Lora_700Bold',
   },

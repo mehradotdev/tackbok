@@ -78,7 +78,9 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
 
         {/* Title */}
         {entry.text_title && (
-          <Text className="text-lg font-body-semibold text-foreground mb-1" numberOfLines={1}>
+          <Text
+            className="text-lg font-body-semibold text-foreground mb-1"
+            numberOfLines={1}>
             {entry.text_title}
           </Text>
         )}
@@ -98,7 +100,9 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
                 key={tag.tag_id}
                 variant="secondary"
                 className="px-2 py-1 rounded-md">
-                <Text className="text-sm text-foreground/70 font-body-bold">#{tag.title}</Text>
+                <Text className="text-sm text-foreground/70 font-body-bold">
+                  #{tag.title}
+                </Text>
               </Badge>
             ))}
           </View>
@@ -116,7 +120,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
 
       {/* Photos — horizontal scroll thumbnails */}
       {photos.length > 0 && (
-        <View className="h-[88px]">
+        <View className="h-22">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}

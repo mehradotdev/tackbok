@@ -18,6 +18,7 @@ import {
   useReducedMotion,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
@@ -125,10 +126,16 @@ export function BotanicalBackdrop() {
         -1,
         true,
       );
-      sway.value = withRepeat(
-        withTiming(1, { duration: SWAY_DURATION_MS, easing: Easing.inOut(Easing.sin) }),
-        -1,
-        true,
+      // Half-swing out from the neutral rest pose first, then repeat across
+      // the full 0 ↔ 1 range (0.5 stays the resting value so the sprig hangs
+      // straight when the animation never starts, e.g. reduced motion).
+      sway.value = withSequence(
+        withTiming(1, { duration: SWAY_DURATION_MS / 2, easing: Easing.out(Easing.sin) }),
+        withRepeat(
+          withTiming(0, { duration: SWAY_DURATION_MS, easing: Easing.inOut(Easing.sin) }),
+          -1,
+          true,
+        ),
       );
       return () => {
         cancelAnimation(drift);

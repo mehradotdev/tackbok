@@ -37,9 +37,13 @@ All six faces are SIL OFL 1.1, which requires every redistributed copy —
 modified or not — to carry its copyright notice and the license text. The
 script writes a single combined assets/fonts/LICENSE.txt (per-font
 copyright notices + the shared OFL body). Only Lora declares a Reserved
-Font Name, so the patched Lora is internally renamed ("Tackbok Serif");
-this is invisible to the app because expo-font registers fonts under the
-APP_FONT_ASSETS keys, not the internal name table.
+Font Name, so the patched file's internal name table is renamed ("Tackbok
+Serif") — that is the name font tooling inspects, and expo-font registers
+fonts under the APP_FONT_ASSETS keys, never the name table. The in-app
+picker label deliberately stays "Lora" (TITLE_FONTS in
+src/lib/theme/theme-tokens.ts): the face is Lora with whitespace-only
+metric tweaks, and presenting it under an invented name would
+misattribute the design; LICENSE.txt documents the modification.
 """
 
 from pathlib import Path
