@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { translations } from './index';
+import { languages, translations } from './index';
 
 const SOURCE_LOCALE = 'en';
 const SRC_DIR = path.resolve(__dirname, '../../..');
@@ -74,7 +74,31 @@ describe('Translations', () => {
       test('keys should be in the exact same order as source', () => {
         expect(keys).toEqual(sourceKeys);
       });
+
+      test('should preserve interpolation placeholders', () => {
+        for (const key of sourceKeys) {
+          const sourcePlaceholders = translations[SOURCE_LOCALE][
+            key as keyof (typeof translations)[typeof SOURCE_LOCALE]
+          ]
+            .match(/\{[a-zA-Z_]\w*\}/g)
+            ?.sort();
+          const localePlaceholders = messages[key as keyof typeof messages]
+            .match(/\{[a-zA-Z_]\w*\}/g)
+            ?.sort();
+
+          expect(localePlaceholders).toEqual(sourcePlaceholders);
+        }
+      });
     });
+  });
+
+  test('languages are listed alphabetically by display name', () => {
+    const displayNames = languages.map(({ displayName }) => displayName);
+    const sortedDisplayNames = [...displayNames].sort((a, b) =>
+      a.localeCompare(b, 'en'),
+    );
+
+    expect(displayNames).toEqual(sortedDisplayNames);
   });
 
   describe('Usage', () => {

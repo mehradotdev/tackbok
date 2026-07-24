@@ -12,7 +12,7 @@ export const SUPPORTED_LANG_CODES = [
   // 'fa',
   'he',
   // 'fr',
-  // 'de',
+  'de',
   // 'nl',
   // 'pl',
   // 'ru',

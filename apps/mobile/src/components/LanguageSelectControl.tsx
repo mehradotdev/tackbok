@@ -24,6 +24,9 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 
+const getLanguageLabel = (language: LanguageInfo): string =>
+  `${language.displayName} (${language.nativeName})`;
+
 /**
  * Language dropdown + RTL restart confirmation dialog.
  *
@@ -54,7 +57,7 @@ export function LanguageSelectControl({
       return t('Device Default');
     }
     const lang = languages.find((l) => l.code === localePreference);
-    return lang?.nativeName || 'English';
+    return lang ? getLanguageLabel(lang) : 'English';
   };
 
   // Get LanguageInfo from a language code
@@ -150,13 +153,18 @@ export function LanguageSelectControl({
             )}
 
             {/* Language Options */}
-            {languages.map((lang) => (
-              <SelectItem
-                key={lang.code}
-                value={lang.code}
-                label={`${lang.nativeName} (${lang.displayName})`}
-              />
-            ))}
+            {[...languages]
+              .sort((a, b) => a.displayName.localeCompare(b.displayName, 'en'))
+              .map((lang) => (
+                <SelectItem
+                  key={lang.code}
+                  value={lang.code}
+                  label={getLanguageLabel(lang)}
+                />
+              ))}
+
+            {/* Promotional placeholder — Hindi translations are not available yet. */}
+            <SelectItem value="hi-coming-soon" label="Hindi (हिन्दी) — SOON" disabled />
           </NativeSelectScrollView>
         </SelectContent>
       </Select>
