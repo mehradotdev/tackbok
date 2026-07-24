@@ -186,6 +186,8 @@ class AudioEngine {
   // Playback loudness compensation (see "Playback gain tuning" above)
   private playbackGainCache = new Map<string, number>();
   private currentPlaybackGain = 1;
+  private boostNode: ReturnType<AudioContext['createGain']> | null = null;
+  private limiterNode: ReturnType<AudioContext['createWaveShaper']> | null = null;
 
   // Timing for seek & progress
   private playStartContextTime = 0; // audioContext.currentTime when play() began
@@ -331,16 +333,19 @@ class AudioEngine {
       return;
     }
 
-    const boost = ctx.createGain();
-    boost.gain.value = this.currentPlaybackGain;
+    // Boost/limiter nodes are created lazily once and reused: seekTo() runs on
+    // every scrub-gesture frame, so per-call allocation would churn native nodes.
+    if (!this.boostNode || !this.limiterNode) {
+      this.boostNode = ctx.createGain();
+      this.limiterNode = ctx.createWaveShaper();
+      this.limiterNode.curve = getSoftLimiterCurve();
+      this.limiterNode.oversample = '4x';
+      this.boostNode.connect(this.limiterNode);
+      this.limiterNode.connect(analyser);
+    }
 
-    const limiter = ctx.createWaveShaper();
-    limiter.curve = getSoftLimiterCurve();
-    limiter.oversample = '4x';
-
-    source.connect(boost);
-    boost.connect(limiter);
-    limiter.connect(analyser);
+    this.boostNode.gain.value = this.currentPlaybackGain;
+    source.connect(this.boostNode);
   }
 
   // ====================================================================
@@ -786,6 +791,8 @@ class AudioEngine {
     this.audioRecorder = null;
     this.analyser = null;
     this.outputGain = null;
+    this.boostNode = null;
+    this.limiterNode = null;
   }
 }
 
