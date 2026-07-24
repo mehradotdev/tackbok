@@ -51,7 +51,7 @@ async function copyBundledAsset(
   const sourceUri = bundled.localUri ?? bundled.uri;
   const dir = ensureDir(dirName);
   const filename = `${generateUUID()}.${extension}`;
-  new File(sourceUri).copy(new File(dir, filename));
+  await new File(sourceUri).copy(new File(dir, filename));
   return {
     relativeUri: `${dirName}/${filename}`,
     width: bundled.width ?? undefined,

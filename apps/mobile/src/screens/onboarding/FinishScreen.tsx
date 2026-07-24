@@ -114,7 +114,7 @@ export default function OnboardingFinishScreen() {
   };
 
   const handleFinish = async () => {
-    if (isFinishing) return;
+    if (isFinishing || dbIsEmpty === null) return;
     setIsFinishing(true);
     try {
       if (dbIsEmpty && addSampleEntries) {
@@ -156,9 +156,11 @@ export default function OnboardingFinishScreen() {
           variant="primary"
           size="lg"
           onPress={() => void handleFinish()}
-          disabled={isFinishing}>
+          disabled={isFinishing || dbIsEmpty === null}>
           <Text className="text-lg">
-            {isFinishing ? t('Setting things up…') : t('Start journaling')}
+            {isFinishing || dbIsEmpty === null
+              ? t('Setting things up…')
+              : t('Start journaling')}
           </Text>
         </Button>
       }>

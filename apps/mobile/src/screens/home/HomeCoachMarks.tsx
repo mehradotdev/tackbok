@@ -3,6 +3,7 @@ import { AccessibilityInfo, Pressable, View } from 'react-native';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
+import { useEntriesGroupByDate } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 
@@ -27,9 +28,14 @@ export function HomeCoachMarks() {
   const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
   const hasSeenHomeCoachMarks = useSettingsStore((s) => s.hasSeenHomeCoachMarks);
   const setHasSeenHomeCoachMarks = useSettingsStore((s) => s.setHasSeenHomeCoachMarks);
+  const sampleEntryIds = useSettingsStore((s) => s.sampleEntryIds);
+  const { data: entriesByDate, isPending: entriesArePending } =
+    useEntriesGroupByDate();
   const [stepIndex, setStepIndex] = useState(0);
 
-  const isActive = hasCompletedOnboarding && !hasSeenHomeCoachMarks;
+  const isActive =
+    hasCompletedOnboarding && !hasSeenHomeCoachMarks && !entriesArePending;
+  const hasEntries = Boolean(entriesByDate?.size) || sampleEntryIds.length > 0;
 
   useEffect(() => {
     if (!isActive) return;
@@ -53,11 +59,15 @@ export function HomeCoachMarks() {
       text: t('Press and hold, then drag to move these buttons along the edge.'),
       positionClassName: 'bottom-32 right-4',
     },
-    {
-      key: 'entry-card',
-      text: t('Tap an entry to view or edit it.'),
-      positionClassName: 'top-36 left-6',
-    },
+    ...(hasEntries
+      ? [
+          {
+            key: 'entry-card',
+            text: t('Tap an entry to view or edit it.'),
+            positionClassName: 'top-36 left-6',
+          },
+        ]
+      : []),
     {
       key: 'search',
       text: t('Find memories by text or tag.'),
