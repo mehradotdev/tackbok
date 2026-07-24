@@ -63,6 +63,14 @@ interface SettingsState {
   /** Persisted vertical position (top offset in px) for the action dock. null = default bottom. */
   actionDockY: number | null;
 
+  // Onboarding
+  hasCompletedOnboarding: boolean;
+  /** note_ids of seeded sample entries; non-empty while the removal banner should show. */
+  sampleEntryIds: string[];
+  /** Banner hidden without removing the entries — user chose to build over them. */
+  sampleEntriesBannerDismissed: boolean;
+  hasSeenHomeCoachMarks: boolean;
+
   // Hydration status
   _hasHydrated: boolean;
 
@@ -90,6 +98,10 @@ interface SettingsState {
   setJournalFocusAreas: (areas: BuiltInJournalPromptCategoryId[]) => void;
   setJournalPromptsMode: (mode: JournalPromptsMode) => void;
   setActionDockY: (y: number | null) => void;
+  setHasCompletedOnboarding: (completed: boolean) => void;
+  setSampleEntryIds: (ids: string[]) => void;
+  setSampleEntriesBannerDismissed: (dismissed: boolean) => void;
+  setHasSeenHomeCoachMarks: (seen: boolean) => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
 
@@ -115,6 +127,10 @@ const DEFAULT_SETTINGS_VALUES = {
   journalFocusAreas: DEFAULT_JOURNAL_FOCUS_AREAS,
   journalPromptsMode: 'off' as const,
   actionDockY: null,
+  hasCompletedOnboarding: false,
+  sampleEntryIds: [] as string[],
+  sampleEntriesBannerDismissed: false,
+  hasSeenHomeCoachMarks: false,
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -169,6 +185,12 @@ export const useSettingsStore = create<SettingsState>()(
       setJournalFocusAreas: (areas) => set({ journalFocusAreas: areas }),
       setJournalPromptsMode: (mode) => set({ journalPromptsMode: mode }),
       setActionDockY: (y) => set({ actionDockY: y }),
+      setHasCompletedOnboarding: (completed) =>
+        set({ hasCompletedOnboarding: completed }),
+      setSampleEntryIds: (ids) => set({ sampleEntryIds: ids }),
+      setSampleEntriesBannerDismissed: (dismissed) =>
+        set({ sampleEntriesBannerDismissed: dismissed }),
+      setHasSeenHomeCoachMarks: (seen) => set({ hasSeenHomeCoachMarks: seen }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
     {
@@ -223,6 +245,10 @@ export const useSettingsStore = create<SettingsState>()(
         journalFocusAreas: state.journalFocusAreas,
         journalPromptsMode: state.journalPromptsMode,
         actionDockY: state.actionDockY,
+        hasCompletedOnboarding: state.hasCompletedOnboarding,
+        sampleEntryIds: state.sampleEntryIds,
+        sampleEntriesBannerDismissed: state.sampleEntriesBannerDismissed,
+        hasSeenHomeCoachMarks: state.hasSeenHomeCoachMarks,
       }),
     },
   ),

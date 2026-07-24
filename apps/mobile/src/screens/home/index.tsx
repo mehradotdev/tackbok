@@ -15,6 +15,7 @@ import { Header } from './Header';
 import { SearchResults } from './SearchResults';
 import { GratitudeTimeline } from './GratitudeTimeline';
 import { GratitudeActionDock } from './GratitudeActionDock';
+import { HomeCoachMarks } from './HomeCoachMarks';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -154,6 +155,8 @@ export default function HomeScreen() {
           />
         </View>
       )}
+
+      {!isSearchMode && <HomeCoachMarks />}
     </SafeAreaView>
   );
 }

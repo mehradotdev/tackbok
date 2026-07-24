@@ -162,6 +162,7 @@ export default function Layout() {
                   headerTitleStyle: { fontWeight: 'bold' },
                 }}>
                 <Stack.Screen name="index" />
+                <Stack.Screen name="onboarding" options={{ headerShown: false }} />
                 <Stack.Screen
                   name="gratitudeEntry/index"
                   options={{

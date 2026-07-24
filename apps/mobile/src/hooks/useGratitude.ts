@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { type NewEntry, type Entry } from '~/types';
+import { useSettingsStore } from '~/lib/settings';
 import {
   getAllEntries,
   getEntriesForDay,
@@ -160,6 +161,11 @@ export function useDeleteEntry() {
       // Remove the specific entry query from cache to prevent refetch returning undefined
       queryClient.removeQueries({ queryKey: [QUERY_KEYS.entries, 'byEntry', noteId] });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+      // Manually deleted sample entries must leave the sample-removal banner list.
+      const { sampleEntryIds, setSampleEntryIds } = useSettingsStore.getState();
+      if (sampleEntryIds.includes(noteId)) {
+        setSampleEntryIds(sampleEntryIds.filter((id) => id !== noteId));
+      }
     },
   });
 }

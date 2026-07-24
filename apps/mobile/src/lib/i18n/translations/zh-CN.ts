@@ -488,6 +488,101 @@ export const zhCN: Translations = {
   NOV: '11月',
   DEC: '12月',
 
+  // Onboarding
+  Skip: '跳过',
+  Continue: '继续',
+  Next: '下一步',
+  'Step {current} of {total}': '第 {current} 步，共 {total} 步',
+  'Get started': '开始使用',
+  'Already have a journal? Import it': '已经有日记了？导入它',
+  'A private place for your gratitude — free, offline, yours.':
+    '一个属于你的感恩空间 — 免费、离线、完全归你。',
+  'Your journal stays on your device.': '你的日记只保存在你的设备上。',
+  'Import your journal': '导入你的日记',
+  'Where is your journal coming from?': '你的日记来自哪里？',
+  'Tackbok Backup': 'Tackbok 备份',
+  'Gratitude App': 'Gratitude 应用',
+  'Presently App': 'Presently 应用',
+  'What should we call you?': '我们该怎么称呼你？',
+  'Your name is only used to greet you inside the app.':
+    '你的名字仅用于在应用内向你问好。',
+  'Your name (optional)': '你的名字（可选）',
+  'Stays on your device.': '仅保存在你的设备上。',
+  'Make it yours': '打造你的风格',
+  'Pick a look — you can change everything later in Settings.':
+    '选择一种外观 — 之后可随时在设置中更改。',
+  'A walk in the morning sun': '晨光中的散步',
+  'Grateful for quiet streets, warm coffee, and a sky full of color.':
+    '感恩安静的街道、温暖的咖啡和满天的色彩。',
+  'More themes…': '更多主题…',
+  'What do you want to be more grateful for?': '你想对什么更加心怀感恩？',
+  'We’ll suggest writing prompts from the areas you pick.':
+    '我们会根据你选择的领域推荐写作灵感。',
+  'Pick at least {count}': '至少选择 {count} 个',
+  'Help improve Tackbok?': '帮助改进 Tackbok？',
+  'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
+    'Tackbok 免费且开源。匿名统计能帮助我们发现问题、了解哪些功能重要。',
+  'Anonymous usage stats only — which screens and features get used.':
+    '仅匿名使用统计 — 哪些页面和功能被使用。',
+  'Never your journal content, photos, voice memos, or anything you type.':
+    '绝不收集你的日记内容、照片、语音备忘或任何输入的文字。',
+  'Open source — the exact event list is public in the repo.':
+    '开源 — 完整的事件列表公开在代码仓库中。',
+  'See exactly what we collect': '查看我们具体收集的内容',
+  'Share anonymous stats': '分享匿名统计',
+  'No thanks': '不用了，谢谢',
+  'What we collect': '我们收集的内容',
+  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
+    '这些是 Tackbok 记录的全部事件 — 只是匿名计数，不附带任何内容。完整列表公开在开源代码中。',
+  'Never collected': '绝不收集',
+  'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
+    '你的日记文字、标题、照片、语音备忘、标签、姓名、邮箱或任何输入的内容。没有广告，不出售数据，没有第三方追踪。',
+  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
+    '如果你同意，本次设置过程中的匿名步骤将被包含在内；如果你拒绝，它们会被丢弃，绝不会离开你的设备。',
+  'You’re all set, {name}!': '一切就绪，{name}！',
+  'You’re all set!': '一切就绪！',
+  'Two last things you can turn on — both optional.':
+    '最后还有两项可以开启 — 都是可选的。',
+  'Add example entries': '添加示例日记',
+  'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
+    '几条示例日记会展示照片、语音备忘、心情和标签的用法。随时可以一键移除。',
+  'Remind me daily': '每日提醒',
+  'A gentle nudge to write — never your journal content.':
+    '温柔地提醒你来写点什么 — 绝不包含你的日记内容。',
+  'Remind me at {time}': '在 {time} 提醒我',
+  'Setting things up…': '正在准备…',
+  'Start journaling': '开始写日记',
+  'Showing example entries': '正在显示示例日记',
+  'Remove all': '全部移除',
+  'Hide this banner': '隐藏此提示',
+  'Example entries removed': '已移除示例日记',
+  'Failed to remove example entries': '移除示例日记失败',
+  'Add today’s entry here.': '在这里添加今天的日记。',
+  'Press and hold, then drag to move these buttons along the edge.':
+    '长按后拖动，即可沿边缘移动这些按钮。',
+  'Tap an entry to view or edit it.': '点按日记即可查看或编辑。',
+  'Find memories by text or tag.': '通过文字或标签查找回忆。',
+  'Replay Onboarding': '重新播放新手引导',
+  'Run the welcome setup again': '重新运行欢迎设置',
+  'Replay onboarding?': '重新播放新手引导？',
+  'The welcome setup will start again. Your journal entries and settings are kept.':
+    '欢迎设置将重新开始。你的日记和设置都会保留。',
+  Replay: '重新播放',
+
+  // Onboarding sample entries (seeded content)
+  sample_tag_family: '家人',
+  sample_tag_littleThings: '小确幸',
+  sample_entry_welcome_title: '欢迎来到 Tackbok 👋',
+  sample_entry_welcome_body:
+    '这是你的感恩日记 — 记录美好时刻的地方。点按 + 按钮，可以写一句话，也可以写一整页；每天一次，或想写就写。点按这张卡片查看完整日记。',
+  sample_entry_photos_title: '小小瞬间',
+  sample_entry_photos_body: '你可以为回忆附上照片 — 点按图片即可放大。',
+  sample_entry_voice_title: '用我自己的声音',
+  sample_entry_voice_body:
+    '有时说出来更容易。点按播放，听一段简短的语音备忘。',
+  sample_entry_tags_body:
+    '这条日记回答了一条写作灵感，并带有两个标签。试试顶部的搜索，按标签筛选就能再次找到它。',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{year}年{month}{day}日',
   'dateFormat.full': '{year}年{month}{day}日 {weekday}',

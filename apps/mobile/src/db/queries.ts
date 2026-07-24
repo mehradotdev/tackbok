@@ -56,6 +56,15 @@ export async function getEntryStats(): Promise<{
 }
 
 /**
+ * Whether at least one entry exists. Used by the onboarding bootstrap check
+ * to tell a fresh install apart from an existing pre-onboarding install.
+ */
+export async function hasAnyEntries(): Promise<boolean> {
+  const rows = await db.select({ note_id: entries.note_id }).from(entries).limit(1);
+  return rows.length > 0;
+}
+
+/**
  * Get a single entry by its note_id
  */
 export async function getEntryById(noteId: string): Promise<Entry | undefined> {

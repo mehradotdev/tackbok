@@ -500,6 +500,103 @@ export const he: Translations = {
   NOV: 'נוב׳',
   DEC: 'דצמ׳',
 
+  // Onboarding
+  Skip: 'דילוג',
+  Continue: 'המשך',
+  Next: 'הבא',
+  'Step {current} of {total}': 'שלב {current} מתוך {total}',
+  'Get started': 'בואו נתחיל',
+  'Already have a journal? Import it': 'כבר יש לך יומן? אפשר לייבא אותו',
+  'A private place for your gratitude — free, offline, yours.':
+    'מקום פרטי להכרת התודה שלך — חינמי, לא מקוון, ושלך בלבד.',
+  'Your journal stays on your device.': 'היומן שלך נשאר במכשיר שלך.',
+  'Import your journal': 'ייבוא היומן שלך',
+  'Where is your journal coming from?': 'מאיפה מגיע היומן שלך?',
+  'Tackbok Backup': 'גיבוי Tackbok',
+  'Gratitude App': 'אפליקציית Gratitude',
+  'Presently App': 'אפליקציית Presently',
+  'What should we call you?': 'איך לקרוא לך?',
+  'Your name is only used to greet you inside the app.':
+    'השם משמש רק כדי לברך אותך בתוך האפליקציה.',
+  'Your name (optional)': 'השם שלך (אופציונלי)',
+  'Stays on your device.': 'נשאר במכשיר שלך.',
+  'Make it yours': 'התאימו אותו לעצמכם',
+  'Pick a look — you can change everything later in Settings.':
+    'בחרו מראה — אפשר לשנות הכול מאוחר יותר בהגדרות.',
+  'A walk in the morning sun': 'טיול בשמש הבוקר',
+  'Grateful for quiet streets, warm coffee, and a sky full of color.':
+    'תודה על רחובות שקטים, קפה חם ושמיים מלאי צבע.',
+  'More themes…': 'עוד ערכות נושא…',
+  'What do you want to be more grateful for?':
+    'על מה תרצו להכיר תודה יותר?',
+  'We’ll suggest writing prompts from the areas you pick.':
+    'נציע לכם רעיונות לכתיבה מהתחומים שתבחרו.',
+  'Pick at least {count}': 'בחרו לפחות {count}',
+  'Help improve Tackbok?': 'לעזור לשפר את Tackbok?',
+  'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
+    'Tackbok חינמי ובקוד פתוח. סטטיסטיקות אנונימיות עוזרות לנו למצוא באגים ולהבין אילו תכונות חשובות.',
+  'Anonymous usage stats only — which screens and features get used.':
+    'סטטיסטיקות שימוש אנונימיות בלבד — אילו מסכים ותכונות נמצאים בשימוש.',
+  'Never your journal content, photos, voice memos, or anything you type.':
+    'לעולם לא תוכן היומן, תמונות, הקלטות קול או כל דבר שאתם מקלידים.',
+  'Open source — the exact event list is public in the repo.':
+    'קוד פתוח — רשימת האירועים המדויקת פומבית במאגר.',
+  'See exactly what we collect': 'ראו בדיוק מה אנחנו אוספים',
+  'Share anonymous stats': 'שיתוף סטטיסטיקות אנונימיות',
+  'No thanks': 'לא, תודה',
+  'What we collect': 'מה אנחנו אוספים',
+  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
+    'אלה האירועים היחידים ש-Tackbok מתעד — מונים אנונימיים ללא תוכן מצורף. הרשימה המדויקת פומבית בקוד הפתוח.',
+  'Never collected': 'לעולם לא נאסף',
+  'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
+    'טקסט היומן, כותרות, תמונות, הקלטות קול, תגיות, שם, אימייל או כל דבר שאתם מקלידים. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',
+  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
+    'אם תסכימו, הצעדים האנונימיים שביצעתם במהלך ההגדרה ייכללו. אם תסרבו, הם יימחקו מיד ולעולם לא יעזבו את המכשיר.',
+  'You’re all set, {name}!': 'הכול מוכן, {name}!',
+  'You’re all set!': 'הכול מוכן!',
+  'Two last things you can turn on — both optional.':
+    'שני דברים אחרונים שאפשר להפעיל — שניהם אופציונליים.',
+  'Add example entries': 'הוספת רשומות לדוגמה',
+  'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
+    'כמה רשומות לדוגמה מראות איך עובדים תמונות, הקלטות קול, מצבי רוח ותגיות. אפשר להסיר אותן בכל רגע בלחיצה אחת.',
+  'Remind me daily': 'תזכורת יומית',
+  'A gentle nudge to write — never your journal content.':
+    'דחיפה עדינה לכתוב — לעולם לא תוכן היומן שלכם.',
+  'Remind me at {time}': 'להזכיר לי ב-{time}',
+  'Setting things up…': 'רק רגע, מסדרים הכול…',
+  'Start journaling': 'להתחיל לכתוב',
+  'Showing example entries': 'מוצגות רשומות לדוגמה',
+  'Remove all': 'הסרת הכול',
+  'Hide this banner': 'הסתרת ההודעה הזו',
+  'Example entries removed': 'רשומות הדוגמה הוסרו',
+  'Failed to remove example entries': 'הסרת רשומות הדוגמה נכשלה',
+  'Add today’s entry here.': 'הוסיפו כאן את הרשומה של היום.',
+  'Press and hold, then drag to move these buttons along the edge.':
+    'לחצו לחיצה ארוכה וגררו כדי להזיז את הכפתורים לאורך הקצה.',
+  'Tap an entry to view or edit it.': 'הקישו על רשומה כדי לצפות בה או לערוך אותה.',
+  'Find memories by text or tag.': 'מצאו זיכרונות לפי טקסט או תגית.',
+  'Replay Onboarding': 'הפעלת ההיכרות מחדש',
+  'Run the welcome setup again': 'הפעלת הגדרת הפתיחה מחדש',
+  'Replay onboarding?': 'להפעיל את ההיכרות מחדש?',
+  'The welcome setup will start again. Your journal entries and settings are kept.':
+    'הגדרת הפתיחה תתחיל מחדש. רשומות היומן וההגדרות שלכם נשמרות.',
+  Replay: 'הפעלה מחדש',
+
+  // Onboarding sample entries (seeded content)
+  sample_tag_family: 'משפחה',
+  sample_tag_littleThings: 'דברים קטנים',
+  sample_entry_welcome_title: 'ברוכים הבאים ל-Tackbok 👋',
+  sample_entry_welcome_body:
+    'זהו יומן הכרת התודה שלכם — מקום לרגעים הטובים. הקישו על כפתור + כדי לכתוב שורה אחת או עמוד שלם, פעם ביום או מתי שתרצו. הקישו על הכרטיס הזה כדי לראות את הרשומה המלאה.',
+  sample_entry_photos_title: 'רגעים קטנים',
+  sample_entry_photos_body:
+    'אפשר לצרף תמונות לזיכרון — הקישו על תמונה כדי להגדיל.',
+  sample_entry_voice_title: 'במילים שלי',
+  sample_entry_voice_body:
+    'לפעמים קל יותר לומר את זה בקול. הקישו על נגן כדי לשמוע הקלטה קצרה.',
+  sample_entry_tags_body:
+    'הרשומה הזו עונה על אחת מהצעות הכתיבה ונושאת שתי תגיות. נסו את החיפוש למעלה וסננו לפי תגית כדי למצוא אותה שוב.',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day} ב{month} {year}',
   'dateFormat.full': 'יום {weekday}, {day} ב{month} {year}',
