@@ -33,11 +33,15 @@ const LIVE_NOISE_FLOOR = 0.01;
 /** Approximate RMS ceiling for normal-to-loud speech on a phone mic. */
 const LIVE_PRACTICAL_MAX = 0.35;
 
-/** Visual-only pre-gain before compression to lift quiet speech. */
-const LIVE_PRE_GAIN = 2.25;
+/**
+ * Visual-only pre-gain before compression to lift quiet speech.
+ * Kept modest so quiet input *looks* quiet — bar height should roughly track
+ * how hot the mic signal actually is, not saturate on normal speech.
+ */
+const LIVE_PRE_GAIN = 1.3;
 
 /** Power curve exponent for live RMS data (<1 = more boost for quiet speech). */
-const LIVE_EXPONENT = 0.44;
+const LIVE_EXPONENT = 0.6;
 
 /** Minimum bar height ratio so silent bars are still visible. */
 const MIN_BAR = 0.04;

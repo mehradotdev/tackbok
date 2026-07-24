@@ -85,8 +85,6 @@ export const en = {
   'Tap on the play button to listen.': 'Tap on the play button to listen.',
   'Save Recording': 'Save Recording',
   'Discard Recording': 'Discard Recording',
-  'Processing Audio...': 'Processing Audio...',
-  'Optimizing your recording.': 'Optimizing your recording.',
   'Voice notes save automatically at 30:00.': 'Voice notes save automatically at 30:00.',
   'Title (optional)': 'Title (optional)',
   'Use Prompt': 'Use Prompt',

@@ -86,8 +86,6 @@ export const de: Translations = {
   'Tap on the play button to listen.': 'Tippe zum Anhören auf die Wiedergabetaste.',
   'Save Recording': 'Aufnahme speichern',
   'Discard Recording': 'Aufnahme verwerfen',
-  'Processing Audio...': 'Audio wird verarbeitet …',
-  'Optimizing your recording.': 'Deine Aufnahme wird optimiert.',
   'Voice notes save automatically at 30:00.':
     'Sprachnotizen werden bei 30:00 automatisch gespeichert.',
   'Title (optional)': 'Titel (optional)',
