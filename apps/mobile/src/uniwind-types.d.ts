@@ -3,7 +3,7 @@
 
 declare module 'uniwind' {
     export interface UniwindConfig {
-        themes: readonly ['light', 'dark', 'lavender', 'forest', 'bubblegum', 'hecker', 'peach', 'ember', 'ocean', 'navy', 'sakura', 'slate', 'kela']
+        themes: readonly ['light', 'dark', 'lavender', 'bubblegum', 'clemens', 'weckner', 'hecker', 'peach', 'ember', 'ocean', 'navy', 'sakura', 'slate', 'kela']
     }
 }
 

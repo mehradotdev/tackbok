@@ -36,16 +36,27 @@ export const FONT_SIZE_DELTA: Record<BodyFontSize, number> = {
  *
  * ### Android
  * React Native on Android renders text inside a `ReactTextView`
- * (a subclass of `TextView`). The glyph is drawn into a canvas whose height
- * equals the computed `lineHeight`. If `lineHeight` is smaller than the
- * font's full ascender-to-descender span, the glyph is hard-clipped at the
- * canvas boundary — **regardless of any padding or overflow on the text or
- * parent views**. `paddingBottom` only adds layout space; it does not expand
- * the draw canvas. `overflow: visible` on a parent only controls whether
- * child *views* can paint outside — it has no effect on intra-component
- * glyph clipping inside `ReactTextView`.
+ * (a subclass of `TextView`) and hard-clips glyph ink at the view's
+ * draw-canvas bounds — **regardless of any padding or overflow on the text
+ * or parent views**. `paddingBottom` only adds layout space; it does not
+ * expand the draw canvas. `overflow: visible` on a parent only controls
+ * whether child *views* can paint outside — it has no effect on
+ * intra-component glyph clipping inside `ReactTextView`.
  *
- * The **only** fix is a `lineHeight` tall enough to contain the full glyph.
+ * With an explicit `lineHeight`, RN's `CustomLineHeightSpan` applies
+ * CSS-style *half-leading*: `L = lineHeight − (fontAscent + fontDescent)`,
+ * with `L/2` added above the ascent and below the descent (negative when
+ * the font's **declared** metric span exceeds the lineHeight — which is
+ * what clips descenders on the last line and ascenders on the first).
+ *
+ * Two levers fix that:
+ * 1. The title fonts are vendored with their declared metrics patched down
+ *    to real ink extents (assets/fonts/, via scripts/patch-font-metrics.py),
+ *    because Google Fonts pad these metrics far beyond the ink. After
+ *    patching, every title font fits Tailwind's default heading line
+ *    heights on Android — except Gloria Hallelujah.
+ * 2. For fonts whose *real ink* still exceeds the default line height, the
+ *    only remaining fix is a `lineHeight` ≥ the ink span (an entry below).
  *
  * ## Fields
  * - `lineHeightScale` — iOS lineHeight = `Math.ceil(fontSize × lineHeightScale)`.
@@ -67,15 +78,17 @@ export interface ResolvedHeadingFontMetrics {
 }
 
 export const HEADING_FONT_METRICS: Record<string, HeadingFontMetrics> = {
-  // Gloria Hallelujah is a handwriting font with an unusually deep descender
-  // (letters like 'g', 'y', 'p' extend far below the baseline). iOS handles
-  // this via Core Text's font metrics; Android clips the glyph unless
-  // lineHeight is explicitly set large enough to contain the full descent.
-  // Scale 2.0 gives h2 → lineHeight 60px, which clears the deepest descender.
+  // Gloria Hallelujah is a handwriting font whose real glyph ink spans
+  // 1.73em (patched metrics: ascent 1.13em, 'g' descends to −0.60em) — more
+  // than any Tailwind heading line height, so Android needs an explicit
+  // lineHeight ≥ the ink span. 1.75 is the floor: the vendored font's
+  // declared span is 1.727em (see scripts/patch-font-metrics.py output);
+  // anything lower re-clips the descenders. iOS overflows the line box
+  // gracefully and keeps the tighter 1.4.
   GloriaHallelujah_400Regular: {
     lineHeightScale: 1.4,
     bottomTrim: -6,
-    androidLineHeightScale: 2.0,
+    androidLineHeightScale: 1.75,
   },
 };
 

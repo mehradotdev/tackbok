@@ -297,6 +297,7 @@ export const en = {
   'Title Font': 'Title Font',
   'Choose a font for titles and headings': 'Choose a font for titles and headings',
   Default: 'Default',
+  'Theme Default': 'Theme Default',
   'Font Size': 'Font Size',
   'Adjust the size of body text': 'Adjust the size of body text',
   Small: 'Small',

@@ -23,6 +23,7 @@ export function OnboardingScaffold({
   children,
   footer,
   overlays,
+  backdrop,
 }: {
   /** 1-based progress position; omit on Welcome (no dots, no back). */
   step?: number;
@@ -31,6 +32,8 @@ export function OnboardingScaffold({
   footer?: ReactNode;
   /** Sheets/modals — mounted outside the ScrollView, like screens do elsewhere. */
   overlays?: ReactNode;
+  /** Full-screen art rendered behind everything (e.g. `<ThemeBackdrop />`). */
+  backdrop?: ReactNode;
 }) {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
@@ -40,6 +43,7 @@ export function OnboardingScaffold({
     <SafeAreaView
       className="flex-1 bg-background"
       edges={['top', 'left', 'right', 'bottom']}>
+      {backdrop}
       {/* Top bar: back / dots / skip */}
       <View className="flex-row items-center justify-between px-4 pt-1 min-h-12">
         <View className="w-16 items-start">

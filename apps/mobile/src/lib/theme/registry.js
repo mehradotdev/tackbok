@@ -25,6 +25,11 @@ export const TITLE_FONTS = [
     "id": "spacemono",
     "label": "Space Mono",
     "fontFamily": "SpaceMono_700Bold"
+  },
+  {
+    "id": "baskervville",
+    "label": "Baskervville",
+    "fontFamily": "Baskervville_700Bold"
   }
 ];
 
@@ -54,14 +59,6 @@ export const THEMES = [
     "description": "Gentle purple/lavender",
     "variant": "light",
     "enableTimelineBorders": false,
-    "defaultTitleFontId": "lora"
-  },
-  {
-    "id": "forest",
-    "name": "Forest",
-    "description": "Deep green/moss",
-    "variant": "dark",
-    "enableTimelineBorders": false,
     "defaultTitleFontId": "gloriahallelujah"
   },
   {
@@ -71,6 +68,24 @@ export const THEMES = [
     "variant": "light",
     "enableTimelineBorders": true,
     "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "clemens",
+    "name": "Clemens",
+    "description": "Soft sage/botanical calm",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "botanical",
+    "defaultTitleFontId": "baskervville"
+  },
+  {
+    "id": "weckner",
+    "name": "Weckner",
+    "description": "Forest dusk/brass lamplight",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "botanical",
+    "defaultTitleFontId": "baskervville"
   },
   {
     "id": "hecker",

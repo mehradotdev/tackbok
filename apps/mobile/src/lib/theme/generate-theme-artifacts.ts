@@ -266,6 +266,13 @@ function generateRegistryDts(): string {
   const titleFontIds = TITLE_FONTS.map((font) => font.id);
   const themeIds = THEME_DEFINITIONS.map((theme) => theme.id);
   const fontFamilies = TITLE_FONTS.map((font) => font.fontFamily);
+  const backdropIds = Array.from(
+    new Set(
+      THEME_DEFINITIONS.flatMap((theme) =>
+        'backdropId' in theme ? [theme.backdropId] : [],
+      ),
+    ),
+  );
 
   return [
     `// This file is generated from ${THEME_TOKENS_SOURCE}. Do not edit by hand.`,
@@ -275,6 +282,8 @@ function generateRegistryDts(): string {
     `export type ThemeId = ${quoteUnion(themeIds)};`,
     '',
     `export type ThemeVariant = 'light' | 'dark';`,
+    '',
+    `export type BackdropId = ${backdropIds.length ? quoteUnion(backdropIds) : 'never'};`,
     '',
     'export interface TitleFontConfig {',
     '  id: TitleFontId;',
@@ -288,6 +297,7 @@ function generateRegistryDts(): string {
     '  description: string;',
     '  variant: ThemeVariant;',
     '  enableTimelineBorders: boolean;',
+    '  backdropId?: BackdropId;',
     '  defaultTitleFontId: TitleFontId;',
     '}',
     '',

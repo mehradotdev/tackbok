@@ -33,7 +33,7 @@ Single source of truth rule: edit `theme-tokens.ts`, then regenerate artifacts w
 
 ## What Is Centralized Today
 
-- Theme ids, names, descriptions, light/dark variant, timeline-border defaults, and default title-font mapping.
+- Theme ids, names, descriptions, light/dark variant, timeline-border defaults, backdrop selection, and default title-font mapping.
 - Title font ids, labels, and loaded font family names.
 - Body font packs and the per-theme body-font selection.
 - Full theme token values used to generate the CSS `@variant` blocks.
@@ -59,13 +59,24 @@ That split is intentional. The source of truth is now centralized in TypeScript,
 ## How To Update An Existing Theme
 
 1. Edit the target theme in `THEME_DEFINITIONS` inside `theme-tokens.ts`.
-2. Update metadata such as `name`, `description`, `variant`, `enableTimelineBorders`, or `defaultTitleFontId` as needed.
+2. Update metadata such as `name`, `description`, `variant`, `enableTimelineBorders`, `backdropId`, or `defaultTitleFontId` as needed.
 3. Update the theme token values in that same definition.
 4. If you changed font references, make sure the referenced title font and body font pack still exist.
 5. Run `bun run generate:themes` to rewrite the generated artifacts.
 6. Run `bun run test:theme` to confirm the generated CSS and registry stay in sync.
 7. If you changed theme ids, run Metro once so Uniwind regenerates `src/uniwind-types.d.ts`.
 8. If you want one command for both steps, run `bun run generate:themes:verify`.
+
+## How To Add A Theme Backdrop
+
+A theme can opt into full-screen background art via the optional `backdropId` field. The art itself lives outside this folder, in `src/components/backdrops/`: screens mount the `ThemeBackdrop` resolver there, which maps the active theme's `backdropId` to its art component and renders nothing for themes without one.
+
+1. Build the art component in `src/components/backdrops/` (read colors from live theme tokens via `useCSSVariable`, render one absolute-fill Skia canvas, honor `useReducedMotion`).
+2. Set `backdropId: '<your-id>'` on the theme in `theme-tokens.ts`.
+3. Run `bun run generate:themes` — the generated `BackdropId` union in `registry.d.ts` is derived from the ids used in theme definitions.
+4. Register the component in the `BACKDROPS` map in `src/components/backdrops/ThemeBackdrop.tsx`. TypeScript errors until every backdrop id has a component.
+
+Backdrop ids are not part of the CSS variable contract, so this never touches `global.css` or the every-theme-defines-every-variable rule.
 
 ## How `src/global.css` Is Managed
 
@@ -90,10 +101,17 @@ That means:
 ## How To Add A Title Font Today
 
 1. Add the font metadata to `TITLE_FONTS` in `theme-tokens.ts`.
-2. Load the font asset in `fonts.ts`.
-3. If needed, add heading metrics in `typography.ts`.
-4. If a theme should use it by default, update that theme's `defaultTitleFontId` in `theme-tokens.ts`.
-5. Run `bun run generate:themes`.
+2. Add the font to `scripts/patch-font-metrics.py` and run it (see the script's
+   docstring). Title fonts are vendored into `assets/fonts/` with their declared
+   vertical metrics patched down to real ink extents — Google Fonts pad these
+   metrics, and Android's half-leading line-box math turns that padding into
+   clipped descenders at heading sizes.
+3. Load the vendored asset in `fonts.ts`.
+4. If the script reports the font's ink span exceeds Tailwind's heading line
+   heights (only Gloria Hallelujah so far), add heading metrics in
+   `typography.ts`.
+5. If a theme should use it by default, update that theme's `defaultTitleFontId` in `theme-tokens.ts`.
+6. Run `bun run generate:themes`.
 
 ## Generated Files
 

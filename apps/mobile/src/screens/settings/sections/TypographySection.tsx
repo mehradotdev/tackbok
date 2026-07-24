@@ -56,7 +56,7 @@ export function TypographySection() {
         rightElement={
           <Text className="text-base text-muted-foreground">
             {titleFont === DEFAULT_TITLE_FONT_SELECTION
-              ? t('Default')
+              ? t('Theme Default')
               : activeTitleFont.label}
           </Text>
         }
@@ -97,7 +97,7 @@ export function TypographySection() {
                       'flex-1 flex-col items-center justify-center rounded-lg py-3',
                       isActive
                         ? 'bg-primary/15 border-2 border-ring'
-                        : 'bg-card border-2 border-transparent',
+                        : 'bg-card border-2 border-border',
                     )}>
                     <Text
                       className={cn('text-foreground mb-1 font-body-semibold')}

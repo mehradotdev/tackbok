@@ -284,6 +284,7 @@ export const he: Translations = {
   'Title Font': 'גופן כותרת',
   'Choose a font for titles and headings': 'בחר גופן עבור כותרות וכותרות משנה',
   Default: 'ברירת מחדל',
+  'Theme Default': 'ברירת מחדל של ערכת הנושא',
   'Font Size': 'גודל גופן',
   'Adjust the size of body text': 'התאם את גודל טקסט הגוף',
   Small: 'קטן',

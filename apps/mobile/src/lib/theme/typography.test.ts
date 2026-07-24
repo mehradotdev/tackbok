@@ -9,6 +9,7 @@ import {
   getTitleFont,
   normalizeBodyFontSize,
   normalizeTitleFontSelection,
+  resolveHeadingFontMetrics,
 } from './typography';
 import { THEMES } from './registry';
 
@@ -69,5 +70,35 @@ describe('typography normalization', () => {
         '--font-heading': getTitleFont(explicitFontId).fontFamily,
       });
     }
+  });
+});
+
+describe('resolveHeadingFontMetrics', () => {
+  // Gloria Hallelujah's real ink span (1.73em) exceeds every Tailwind heading
+  // line height, so Android needs the enlarged 1.75 scale with no bottom trim,
+  // while iOS keeps the tighter 1.4 scale plus trim (see HEADING_FONT_METRICS).
+  test('Gloria Hallelujah on Android uses the enlarged line height and no trim', () => {
+    for (const fontSize of [36, 30, 24, 20]) {
+      expect(
+        resolveHeadingFontMetrics('GloriaHallelujah_400Regular', fontSize, 'android'),
+      ).toEqual({
+        lineHeight: Math.ceil(fontSize * 1.75),
+        bottomTrim: 0,
+      });
+    }
+  });
+
+  test('Gloria Hallelujah on iOS keeps the tighter scale and bottom trim', () => {
+    expect(
+      resolveHeadingFontMetrics('GloriaHallelujah_400Regular', 36, 'ios'),
+    ).toEqual({
+      lineHeight: Math.ceil(36 * 1.4),
+      bottomTrim: -6,
+    });
+  });
+
+  test('fonts without registered metrics resolve to undefined', () => {
+    expect(resolveHeadingFontMetrics('Baskervville_700Bold', 36, 'android')).toBeUndefined();
+    expect(resolveHeadingFontMetrics('Lora_700Bold', 36, 'ios')).toBeUndefined();
   });
 });

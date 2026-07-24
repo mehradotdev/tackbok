@@ -131,7 +131,7 @@ export function FontPickerSheet() {
             accessibilityRole="radiogroup"
             accessibilityLabel={t('Title Font')}>
             <FontCard
-              label={t('Default')}
+              label={t('Theme Default')}
               previewFontFamily={themeDefaultFont.fontFamily}
               isActive={currentFont === DEFAULT_TITLE_FONT_SELECTION}
               onSelect={() => setTitleFont(DEFAULT_TITLE_FONT_SELECTION)}

@@ -1,15 +1,17 @@
 // This file is generated from src/lib/theme/theme-tokens.ts. Do not edit by hand.
 
-export type TitleFontId = 'figtree' | 'lora' | 'gloriahallelujah' | 'cinzel' | 'spacemono';
+export type TitleFontId = 'figtree' | 'lora' | 'gloriahallelujah' | 'cinzel' | 'spacemono' | 'baskervville';
 
-export type ThemeId = 'light' | 'dark' | 'lavender' | 'forest' | 'bubblegum' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'navy' | 'sakura' | 'slate' | 'kela';
+export type ThemeId = 'light' | 'dark' | 'lavender' | 'bubblegum' | 'clemens' | 'weckner' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'navy' | 'sakura' | 'slate' | 'kela';
 
 export type ThemeVariant = 'light' | 'dark';
+
+export type BackdropId = 'botanical';
 
 export interface TitleFontConfig {
   id: TitleFontId;
   label: string;
-  fontFamily: 'Figtree_700Bold' | 'Lora_700Bold' | 'GloriaHallelujah_400Regular' | 'Cinzel_700Bold' | 'SpaceMono_700Bold';
+  fontFamily: 'Figtree_700Bold' | 'Lora_700Bold' | 'GloriaHallelujah_400Regular' | 'Cinzel_700Bold' | 'SpaceMono_700Bold' | 'Baskervville_700Bold';
 }
 
 export interface ThemeConfig {
@@ -18,6 +20,7 @@ export interface ThemeConfig {
   description: string;
   variant: ThemeVariant;
   enableTimelineBorders: boolean;
+  backdropId?: BackdropId;
   defaultTitleFontId: TitleFontId;
 }
 

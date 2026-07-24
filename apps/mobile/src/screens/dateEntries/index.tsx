@@ -18,6 +18,7 @@ import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Badge } from '~/components/ui/badge';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { AudioPlayer } from '~/components/AudioPlayer';
+import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 
 interface IDateEntriesScreenProps {
   dateMs: number;
@@ -77,7 +78,9 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
 
         {/* Title */}
         {entry.text_title && (
-          <Text className="text-lg font-body-semibold text-foreground mb-1" numberOfLines={1}>
+          <Text
+            className="text-lg font-body-semibold text-foreground mb-1"
+            numberOfLines={1}>
             {entry.text_title}
           </Text>
         )}
@@ -97,7 +100,9 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
                 key={tag.tag_id}
                 variant="secondary"
                 className="px-2 py-1 rounded-md">
-                <Text className="text-sm text-foreground/70 font-body-bold">#{tag.title}</Text>
+                <Text className="text-sm text-foreground/70 font-body-bold">
+                  #{tag.title}
+                </Text>
               </Badge>
             ))}
           </View>
@@ -115,7 +120,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
 
       {/* Photos — horizontal scroll thumbnails */}
       {photos.length > 0 && (
-        <View className="h-[88px]">
+        <View className="h-22">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -179,6 +184,7 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
+      <ThemeBackdrop />
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <Button onPress={() => router.back()} variant="ghost" className="p-1">
