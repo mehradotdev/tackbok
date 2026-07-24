@@ -5,6 +5,7 @@ import { useEntry } from '~/hooks/useGratitude';
 import type { Asset } from '~/types';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
+import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { GratitudeEntryView } from './GratitudeEntryView';
 import { GratitudeEntryEdit } from './GratitudeEntryEdit';
 
@@ -46,6 +47,7 @@ export default function GratitudeEntryScreen({
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
+      <ThemeBackdrop />
       {isEditMode ? (
         <GratitudeEntryEdit
           initialEntry={entry}

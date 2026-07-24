@@ -15,6 +15,7 @@ import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { Text } from '~/components/ui/text';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
+import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { SampleEntriesBanner } from './SampleEntriesBanner';
 
 interface IGratitudeTimelineProps {
@@ -180,6 +181,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
 
   return (
     <View className="flex-1 bg-background w-full">
+      <ThemeBackdrop />
       <LegendList
         recycleItems={true}
         data={finalList}
@@ -207,7 +209,11 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
           ) : null
         }
         ListHeaderComponent={<SampleEntriesBanner />}
-        ListFooterComponent={<View className="h-8" />}
+        ListFooterComponent={
+          // Footer must clear the floating action dock (panelHeight 148 +
+          // padding) so the last entry can scroll above it.
+          <View className="h-44" />
+        }
         contentContainerClassName="pb-4"
         onScroll={onScroll}
         onScrollBeginDrag={onScrollBeginDrag}

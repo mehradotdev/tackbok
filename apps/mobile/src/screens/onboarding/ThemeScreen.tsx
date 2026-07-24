@@ -22,15 +22,16 @@ import {
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
+import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { ThemePickerSheet } from '~/screens/settings/ThemePickerSheet';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
 
 /**
- * Curated subset shown as swatches (3 light / 3 dark, distinct hues).
- * The full 13-theme grid lives behind "More themes…" (ThemePickerSheet).
+ * Curated subset shown as swatches (distinct hues).
+ * The full theme grid lives behind "More themes…" (ThemePickerSheet).
  */
-const CURATED_THEME_IDS = ['light', 'dark', 'peach', 'lavender', 'navy', 'forest'];
+const CURATED_THEME_IDS = ['light', 'dark', 'peach', 'lavender', 'navy', 'clemens'];
 
 function ThemeSwatch({
   theme,
@@ -173,6 +174,7 @@ export default function OnboardingThemeScreen() {
       step={2}
       onSkip={handleSkip}
       overlays={<ThemePickerSheet />}
+      backdrop={<ThemeBackdrop />}
       footer={
         <Button
           variant="primary"
@@ -223,7 +225,7 @@ export default function OnboardingThemeScreen() {
           accessibilityRole="radiogroup"
           accessibilityLabel={t('Title Font')}>
           <FontChip
-            label={t('Default')}
+            label={t('Theme Default')}
             previewFontFamily={themeDefaultFont.fontFamily}
             isActive={titleFont === DEFAULT_TITLE_FONT_SELECTION}
             onSelect={() => setTitleFont(DEFAULT_TITLE_FONT_SELECTION)}

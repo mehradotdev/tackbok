@@ -18,6 +18,7 @@ import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Badge } from '~/components/ui/badge';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { AudioPlayer } from '~/components/AudioPlayer';
+import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 
 interface IDateEntriesScreenProps {
   dateMs: number;
@@ -179,6 +180,7 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
+      <ThemeBackdrop />
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <Button onPress={() => router.back()} variant="ghost" className="p-1">

@@ -277,6 +277,7 @@ export const zhCN: Translations = {
   'Title Font': '标题字体',
   'Choose a font for titles and headings': '为标题和副标题选择字体',
   Default: '默认',
+  'Theme Default': '主题默认',
   'Font Size': '字体大小',
   'Adjust the size of body text': '调整正文字体大小',
   Small: '小',

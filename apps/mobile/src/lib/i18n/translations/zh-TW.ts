@@ -278,6 +278,7 @@ export const zhTW: Translations = {
   'Title Font': '標題字型',
   'Choose a font for titles and headings': '為標題和副標題選擇字型',
   Default: '預設',
+  'Theme Default': '主題預設',
   'Font Size': '字型大小',
   'Adjust the size of body text': '調整正文字型大小',
   Small: '小',

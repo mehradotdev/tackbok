@@ -283,6 +283,7 @@ export const ar: Translations = {
   'Title Font': 'خط العنوان',
   'Choose a font for titles and headings': 'اختر خطًا للعناوين والترويسات',
   Default: 'افتراضي',
+  'Theme Default': 'افتراضي السمة',
   'Font Size': 'حجم الخط',
   'Adjust the size of body text': 'ضبط حجم النص الأساسي',
   Small: 'صغير',

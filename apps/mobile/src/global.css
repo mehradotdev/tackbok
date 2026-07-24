@@ -124,40 +124,6 @@
       --theme-radius: 8px;
       --theme-border-width: 1px;
       --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
-      --font-heading: 'Lora_700Bold';
-      --font-body: 'Inter_400Regular';
-      --font-body-medium: 'Inter_500Medium';
-      --font-body-semibold: 'Inter_600SemiBold';
-      --font-body-bold: 'Inter_700Bold';
-    }
-
-    /* ═══════════════════════════════════════════
-       FOREST — Deep green/moss
-       ═══════════════════════════════════════════ */
-    @variant forest {
-      --color-background: #0e1a0e;
-      --color-foreground: #c8dcc0;
-      --color-card: #162216;
-      --color-card-foreground: #c8dcc0;
-      --color-popover: #1c2c1c;
-      --color-popover-foreground: #c8dcc0;
-      --color-primary: #5a9a52;
-      --color-primary-foreground: #c8dcc0;
-      --color-secondary: #243824;
-      --color-secondary-foreground: #c8dcc0;
-      --color-muted: #243824;
-      --color-muted-foreground: #6a8a60;
-      --color-accent: #2c4428;
-      --color-accent-foreground: #c8dcc0;
-      --color-destructive: #c45040;
-      --color-destructive-foreground: #c8dcc0;
-      --color-border: #2c4428;
-      --color-input: #243824;
-      --color-ring: #5a9a52;
-      --color-active-overlay: rgba(255, 255, 255, 0.35);
-      --theme-radius: 8px;
-      --theme-border-width: 1px;
-      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
       --font-heading: 'GloriaHallelujah_400Regular';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -197,6 +163,74 @@
       --font-body-medium: 'JetBrainsMono_500Medium';
       --font-body-semibold: 'JetBrainsMono_600SemiBold';
       --font-body-bold: 'JetBrainsMono_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       CLEMENS — Soft sage/botanical calm
+       ═══════════════════════════════════════════ */
+    @variant clemens {
+      --color-background: #dde8d8;
+      --color-foreground: #243428;
+      --color-card: #e7efe0;
+      --color-card-foreground: #243428;
+      --color-popover: #eff4e9;
+      --color-popover-foreground: #243428;
+      --color-primary: #9dbf90;
+      --color-primary-foreground: #243428;
+      --color-secondary: #cdddc4;
+      --color-secondary-foreground: #243428;
+      --color-muted: #cdddc4;
+      --color-muted-foreground: #5d7360;
+      --color-accent: #d3c48f;
+      --color-accent-foreground: #3a3320;
+      --color-destructive: #b05a48;
+      --color-destructive-foreground: #f3f6ee;
+      --color-border: #a4bb9a;
+      --color-input: #c3d6b9;
+      --color-ring: #5e8a63;
+      --color-active-overlay: rgba(36, 52, 40, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(38, 56, 42, 0.14);
+      --font-heading: 'Baskervville_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       WECKNER — Forest dusk/brass lamplight
+       ═══════════════════════════════════════════ */
+    @variant weckner {
+      --color-background: #16211a;
+      --color-foreground: #d7e3d2;
+      --color-card: #1d2a21;
+      --color-card-foreground: #d7e3d2;
+      --color-popover: #233129;
+      --color-popover-foreground: #d7e3d2;
+      --color-primary: #6c9260;
+      --color-primary-foreground: #eef4e9;
+      --color-secondary: #2a3a2e;
+      --color-secondary-foreground: #d7e3d2;
+      --color-muted: #243027;
+      --color-muted-foreground: #8ba18c;
+      --color-accent: #ab9459;
+      --color-accent-foreground: #f0e9d6;
+      --color-destructive: #b5584a;
+      --color-destructive-foreground: #f3f6ee;
+      --color-border: #2f4033;
+      --color-input: #2a3a2e;
+      --color-ring: #7ba26f;
+      --color-active-overlay: rgba(215, 227, 210, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.45);
+      --font-heading: 'Baskervville_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
     }
 
     /* ═══════════════════════════════════════════
