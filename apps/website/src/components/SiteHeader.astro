@@ -1,0 +1,73 @@
+---
+import { ExternalLink } from '@lucide/astro';
+import GithubIcon from './GithubIcon.astro';
+
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = Astro.url.pathname } = Astro.props;
+const onHome = currentPath === '/';
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-[rgba(52,75,55,0.1)] bg-[color-mix(in_srgb,var(--paper)_88%,transparent)] backdrop-blur-[18px]"
+>
+  <a
+    class="btn fixed top-3 left-3 z-[100] -translate-y-[150%] bg-ink font-bold text-white transition-transform duration-150 btn-sm focus:translate-y-0"
+    href="#main-content">Skip to content</a
+  >
+  <div
+    class="navbar mx-auto min-h-[76px] w-full max-w-[1240px] justify-between p-0 px-6 max-sm:min-h-[66px] sm:px-8 lg:px-12"
+  >
+    <div class="navbar-start w-auto">
+      <a
+        class="inline-flex items-center gap-[0.7rem] text-[1.15rem] font-[760] tracking-[-0.02em] text-ink no-underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="/"
+        aria-label="Tackbok home"
+      >
+        <img
+          class="rounded-[0.7rem] shadow-[0_6px_18px_rgba(52,75,55,0.14)]"
+          src="/icon.png"
+          width="38"
+          height="38"
+          alt=""
+        />
+        <span>Tackbok</span>
+      </a>
+    </div>
+
+    <div class="navbar-center hidden min-[901px]:flex">
+      <nav
+        class="flex items-center gap-[clamp(1rem,2.4vw,2rem)]"
+        aria-label="Primary navigation"
+      >
+        <a class="nav-link" href={onHome ? '#features' : '/#features'}>Features</a>
+        <a
+          class="nav-link aria-[current=page]:text-ink aria-[current=page]:underline aria-[current=page]:decoration-sage"
+          href="/faq"
+          aria-current={currentPath === '/faq' ? 'page' : undefined}>FAQ</a
+        >
+        <a
+          class="inline-flex items-center gap-1.5 nav-link"
+          href="https://github.com/mehradotdev/tackbok"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <GithubIcon width="18" height="18" class="size-4 opacity-100" />
+          <span>GitHub</span>
+          <ExternalLink class="size-3.5 opacity-70" />
+        </a>
+      </nav>
+    </div>
+
+    <div class="navbar-end w-auto">
+      <a
+        class="btn h-[42px] min-h-[42px] rounded-full border border-sage-deep bg-sage-deep px-4 text-[0.88rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] max-sm:px-[0.8rem] max-sm:text-[0.78rem]"
+        href={onHome ? '#download' : '/#download'}
+      >
+        Try the beta
+      </a>
+    </div>
+  </div>
+</header>

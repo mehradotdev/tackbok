@@ -5,13 +5,18 @@ interface Props {
   title?: string;
   description?: string;
   image?: string;
+  noIndex?: boolean;
 }
 
 const {
-  title = 'Tackbok',
-  description = 'A free and open-source gratitude journal app. Reflect on your day, simply and securely.',
-  image = '/icon.png',
+  title = 'Tackbok — A private gratitude journal',
+  description = 'A free, open-source gratitude journal for private reflections, photos, voice memos, prompts, and gentle daily reminders.',
+  image,
+  noIndex = false,
 } = Astro.props;
+
+const canonicalUrl = Astro.url.href;
+const socialImageUrl = image ? new URL(image, Astro.url).href : undefined;
 ---
 
 <html lang="en">
@@ -23,6 +28,9 @@ const {
     <title>{title}</title>
     <meta name="title" content={title} />
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {noIndex && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#e8e5cf" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/icon.png" />
@@ -31,13 +39,17 @@ const {
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={image} />
+    <meta property="og:url" content={canonicalUrl} />
+    {socialImageUrl && <meta property="og:image" content={socialImageUrl} />}
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary" />
+    <meta
+      property="twitter:card"
+      content={socialImageUrl ? 'summary_large_image' : 'summary'}
+    />
     <meta property="twitter:title" content={title} />
     <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content={image} />
+    {socialImageUrl && <meta property="twitter:image" content={socialImageUrl} />}
   </head>
   <body>
     <slot />

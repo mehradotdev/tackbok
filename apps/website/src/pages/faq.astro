@@ -1,0 +1,191 @@
+---
+import SiteFooter from '~/components/SiteFooter.astro';
+import SiteHeader from '~/components/SiteHeader.astro';
+import Layout from '~/layouts/main.astro';
+
+const WAITLIST_URL = 'https://forms.gle/A5bGfGJLoEipsauu6';
+const supportEmail = 'tackbok.support@mehra.dev';
+const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=dev.mehra.tackbok';
+const TESTFLIGHT_URL = 'https://testflight.apple.com/join/jGTWBEWq';
+
+const faqs = [
+  {
+    question: 'What is Tackbok?',
+    answer:
+      'Tackbok is a free, open-source gratitude journal for iOS and Android. You can write entries, add photos and voice memos, record moods, use tags and prompts, and set optional daily reminders.',
+  },
+  {
+    question: 'Is Tackbok free?',
+    answer:
+      'Yes. Tackbok is free, open source, and ad-free. Optional donations may help support development, but the journaling experience is not behind a paywall.',
+  },
+  {
+    question: 'How can I try Tackbok?',
+    answer:
+      'Beta previews are available now through Google Play for Android and TestFlight for iOS. You can also join the waitlist for release news.',
+  },
+  {
+    question: 'Do I need to create an account?',
+    answer:
+      'No. Tackbok does not require an account, email address, or cloud profile to keep a journal.',
+  },
+  {
+    question: 'Does Tackbok work offline?',
+    answer:
+      'Yes. The core journal works offline and your entries are stored locally on your device. Internet access may be needed for optional services such as updates, support, or donations.',
+  },
+  {
+    question: 'Where is my journal data stored?',
+    answer:
+      'Journal entries, photos, and voice memos are stored on your device. Tackbok’s developers do not operate a server that holds or reads your journal content.',
+  },
+  {
+    question: 'Can I lock the app?',
+    answer:
+      'Yes. App lock can require Face ID, Touch ID, Android biometrics, or your device PIN, pattern, or passcode. It is an access gate and privacy cover; it does not encrypt the underlying SQLite database.',
+  },
+  {
+    question: 'Does Tackbok use analytics?',
+    answer:
+      'Only if you explicitly opt in. Analytics is off by default and does not collect journal text, photos, audio, tag names, your name, or your email. You can turn it off again in settings.',
+  },
+  {
+    question: 'Can I back up or move my journal?',
+    answer:
+      'Yes. Tackbok supports backup and restore. You can also import entries from a Tackbok backup, Gratitude App, or Presently. Android exports can be saved to a location you choose.',
+  },
+  {
+    question: 'What languages does Tackbok support?',
+    answer:
+      'Tackbok currently supports English, German, Arabic, Hebrew, Simplified Chinese, and Traditional Chinese. Arabic and Hebrew layouts include right-to-left support. Hindi and other languages are coming soon.',
+  },
+  {
+    question: 'How do reminders work?',
+    answer:
+      'You choose whether to enable a daily reminder and when it should arrive. Reminder prompts can reflect your selected focus areas, and tapping one opens a new entry with the prompt ready.',
+  },
+  {
+    question: 'Can I contribute or inspect the source code?',
+    answer:
+      'Yes. Tackbok is licensed under the Apache License 2.0 and developed in public on GitHub. You can inspect the code, report issues, and contribute improvements.',
+  },
+];
+---
+
+<Layout
+  title="Frequently asked questions — Tackbok"
+  description="Answers about Tackbok’s availability, privacy, offline storage, app lock, backups, languages, reminders, and open-source development."
+  image="/og.png"
+>
+  <SiteHeader currentPath="/faq" />
+
+  <main id="main-content" class="bg-background">
+    <section
+      class="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_20%,rgba(140,159,111,0.28),transparent_23rem),radial-gradient(circle_at_5%_95%,rgba(227,205,151,0.26),transparent_22rem),var(--paper)] py-[clamp(5rem,10vw,8rem)]"
+    >
+      <div class="mx-auto w-full max-w-[820px] px-6 text-center sm:px-8">
+        <p
+          class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase"
+        >
+          Questions are welcome here
+        </p>
+        <h1
+          class="mx-auto mb-5 text-[clamp(3rem,7vw,5.7rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
+        >
+          Frequently asked questions.
+        </h1>
+        <p class="mx-auto max-w-[660px] text-[1.08rem] leading-[1.7] text-ink-soft">
+          The short version: Tackbok is a free, private, account-free gratitude journal.
+          Here is everything else you may want to know.
+        </p>
+      </div>
+    </section>
+
+    <section class="py-[clamp(4.5rem,9vw,8rem)]">
+      <div
+        class="mx-auto grid w-[calc(100%_-_40px)] max-w-[1180px] grid-cols-[minmax(230px,0.64fr)_minmax(0,1.36fr)] items-start gap-[clamp(3rem,9vw,8rem)] max-[900px]:grid-cols-1 max-sm:w-[calc(100%_-_28px)]"
+      >
+        <div class="sticky top-[116px] max-[900px]:static max-[900px]:max-w-[620px]">
+          <h2
+            class="mb-5 text-[clamp(2rem,3.7vw,3.2rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
+          >
+            Clear answers, no evasive language.
+          </h2>
+          <p class="text-[1.08rem] leading-[1.7] text-ink-soft">
+            Can’t find what you need? Email us and you’ll reach the person building the
+            app.
+          </p>
+          <a
+            class="inline-flex items-center gap-[0.45rem] font-[750] text-sage-deep underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            href={`mailto:${supportEmail}`}>Contact support <span>→</span></a
+          >
+        </div>
+
+        <div class="flex w-full flex-col gap-3.5">
+          {
+            faqs.map((faq, index) => (
+              <div class="collapse-plus collapse rounded-2xl border border-[rgba(52,75,55,0.15)] bg-paper/50 transition-all duration-200 hover:border-sage/40 hover:bg-paper hover:shadow-sm has-[:checked]:border-sage/50 has-[:checked]:bg-paper has-[:checked]:shadow-[0_6px_24px_rgba(52,75,55,0.07)]">
+                <input type="radio" name="faq-accordion" checked={index === 0} />
+                <div class="collapse-title flex min-h-[64px] items-center pr-12 pl-6 text-[1.05rem] font-[750] text-ink sm:pr-14 sm:pl-7">
+                  {faq.question}
+                </div>
+                <div class="collapse-content pr-8 pl-6 text-[0.98rem] leading-[1.72] text-ink-soft sm:pr-10 sm:pl-7">
+                  <p class="max-w-[680px] pt-1 pb-4">{faq.answer}</p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="border-t border-line bg-paper py-[clamp(3.5rem,8vw,6rem)]">
+      <div
+        class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1180px] items-center justify-between gap-8 max-sm:w-[calc(100%_-_28px)] max-sm:flex-col"
+      >
+        <div>
+          <p
+            class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase"
+          >
+            Ready when you are
+          </p>
+          <h2
+            class="m-0 text-[clamp(2rem,4vw,3.5rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
+          >
+            Try the Tackbok beta.
+          </h2>
+        </div>
+        <div
+          class="flex flex-wrap items-center justify-end gap-[0.7rem] max-sm:w-full max-sm:items-stretch max-sm:justify-start"
+        >
+          <a
+            class="btn h-[50px] min-h-[50px] rounded-full border-sage-deep bg-sage-deep px-[1.35rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] max-sm:w-full"
+            href={GOOGLE_PLAY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Android beta
+          </a>
+          <a
+            class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
+            href={TESTFLIGHT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            iOS via TestFlight
+          </a>
+          <a
+            class="btn btn-link px-2 font-[750] text-sage-deep no-underline hover:underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            href={WAITLIST_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Join the waitlist <span>→</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <SiteFooter />
+</Layout>

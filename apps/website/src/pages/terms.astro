@@ -1,46 +1,47 @@
 ---
 import Layout from '~/layouts/main.astro';
+import SiteFooter from '~/components/SiteFooter.astro';
+import SiteHeader from '~/components/SiteHeader.astro';
 
 const title = 'Terms of Service — Tackbok';
 const description = 'Read the terms of service for the Tackbok gratitude journal app.';
-const lastUpdated = 'March 13, 2026';
+const lastUpdated = 'July 25, 2026';
 const supportEmail = 'tackbok.support@mehra.dev';
 ---
 
 <Layout title={title} description={description}>
+  <SiteHeader currentPath="/terms" />
   <main
+    id="main-content"
     class="flex min-h-screen flex-col items-center bg-background p-6 text-foreground sm:p-12 lg:p-24"
   >
     <div class="flex w-full max-w-3xl flex-col gap-8">
-      <a
-        href="/"
-        class="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
-      >
-        &larr; Back to Home
-      </a>
-
       <div>
         <h1 class="mb-4 text-4xl font-bold tracking-tight">Terms of Service</h1>
-        <p class="text-muted-foreground">
+        <div class="badge badge-outline py-3 text-xs badge-neutral">
           Last updated: {lastUpdated}
-        </p>
+        </div>
       </div>
 
-      <div class="prose prose-neutral dark:prose-invert max-w-none space-y-6">
+      <div class="prose-neutral prose max-w-none space-y-6">
         <p>
           By downloading or using the <strong>Tackbok</strong> app, these terms will automatically
           apply to you. You should make sure you read them carefully before using the app. The
-          <strong>Tackbok</strong> application is open-source software licensed under the GPLv3
-          license, and you are welcome to view, modify, and distribute the source code in accordance
-          with that license. While the code is open-source, we kindly ask that you do not use
-          the <strong>Tackbok</strong> name, official logos, or brand identity when distributing
-          your own modified or cloned versions of the app, especially on official app stores
-          (such as the Apple App Store or Google Play Store). Using your own branding for your
-          forks helps prevent user confusion and respects the work of the independent developer.
-          The original branding and logo designs belong to <strong>Mehra Dot Dev</strong>.
+          <strong> Tackbok</strong> application is open-source software licensed under the Apache
+          License 2.0, and you are welcome to view, modify, and distribute the source code in
+          accordance with that license. While the code is open-source, we kindly ask that you
+          do not use the <strong>Tackbok</strong> name, official logos, or brand identity when
+          distributing your own modified or cloned versions of the app, especially on official
+          app stores (such as the Apple App Store or Google Play Store). Using your own branding
+          for your forks helps prevent user confusion and respects the work of the independent
+          developer. The original branding and logo designs belong to <strong
+            >Mehra Dot Dev</strong
+          >.
         </p>
 
-        <h2 class="text-xl font-semibold tracking-tight border-t border-border pt-4">Service Usage &amp; Limitations</h2>
+        <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
+          Service Usage &amp; Limitations
+        </h2>
         <p>
           <strong>Mehra Dot Dev</strong> is committed to ensuring that the app is as useful
           and efficient as possible. For that reason, we reserve the right to make changes to
@@ -49,14 +50,18 @@ const supportEmail = 'tackbok.support@mehra.dev';
           what you're paying for.
         </p>
         <p>
-          The Tackbok app stores and processes your data only locally on your device.
-          We do not collect or store your journal entries on our servers. It's your
-          responsibility to keep your phone and access to the app secure. We therefore
-          recommend that you do not jailbreak or root your phone, which could make your
-          phone vulnerable to malware and compromise your phone's security features.
+          By default, the Tackbok app stores and processes your journal entries locally on
+          your device. Optional Google Drive backup and opt-in PostHog analytics are
+          described in our <a href="/privacy">Privacy Policy</a>. We do not collect or
+          store your journal entries on our servers. It's your responsibility to keep your
+          phone and access to the app secure. We therefore recommend that you do not
+          jailbreak or root your phone, which could make your phone vulnerable to malware
+          and compromise your phone's security features.
         </p>
 
-        <h2 class="text-xl font-semibold tracking-tight border-t border-border pt-4">Connectivity &amp; Third-Party Charges</h2>
+        <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
+          Connectivity &amp; Third-Party Charges
+        </h2>
         <p>
           Certain functions of the app will require an active internet connection. <strong
             >Mehra Dot Dev</strong
@@ -67,7 +72,9 @@ const supportEmail = 'tackbok.support@mehra.dev';
           including roaming data charges.
         </p>
 
-        <h2 class="text-xl font-semibold tracking-tight border-t border-border pt-4">Updates &amp; Termination</h2>
+        <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
+          Updates &amp; Termination
+        </h2>
         <p>
           We may wish to update the app from time to time. The requirements for operating
           systems may change, and you'll need to download the updates if you want to keep
@@ -77,7 +84,9 @@ const supportEmail = 'tackbok.support@mehra.dev';
           time without giving notice.
         </p>
 
-        <h2 class="text-xl font-semibold tracking-tight border-t border-border pt-4">Changes to These Terms and Conditions</h2>
+        <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
+          Changes to These Terms and Conditions
+        </h2>
         <p>
           We may update our Terms and Conditions from time to time. Thus, you are advised
           to review this page periodically for any changes. We will notify you of any
@@ -85,12 +94,17 @@ const supportEmail = 'tackbok.support@mehra.dev';
           effective immediately after they are posted.
         </p>
 
-        <h2 class="text-xl font-semibold tracking-tight border-t border-border pt-4">Contact Us</h2>
+        <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
+          Contact Us
+        </h2>
         <p>
           If you have any questions or suggestions about our Terms and Conditions, do not
-          hesitate to contact us at <a href={`mailto:${supportEmail}`}><strong>{supportEmail}</strong></a>.
+          hesitate to contact us at <a href={`mailto:${supportEmail}`}
+            ><strong>{supportEmail}</strong></a
+          >.
         </p>
       </div>
     </div>
   </main>
+  <SiteFooter />
 </Layout>

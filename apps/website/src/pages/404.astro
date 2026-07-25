@@ -1,0 +1,72 @@
+---
+import { ExternalLink } from '@lucide/astro';
+import SiteFooter from '~/components/SiteFooter.astro';
+import SiteHeader from '~/components/SiteHeader.astro';
+import Layout from '~/layouts/main.astro';
+---
+
+<Layout
+  title="Page not found — Tackbok"
+  description="That Tackbok page could not be found."
+  noIndex
+>
+  <SiteHeader currentPath="/404" />
+
+  <main
+    id="main-content"
+    class="relative grid min-h-[72vh] place-items-center overflow-hidden py-20 text-center"
+  >
+    <div
+      class="absolute -top-[170px] -right-[120px] size-[340px] rotate-70 rounded-[100%_0] border border-[rgba(100,123,85,0.17)]"
+      aria-hidden="true"
+    >
+    </div>
+    <div
+      class="absolute -bottom-[190px] -left-[100px] size-[340px] rotate-[245deg] rounded-[100%_0] border border-[rgba(100,123,85,0.17)]"
+      aria-hidden="true"
+    >
+    </div>
+    <div
+      class="relative z-[2] mx-auto w-full max-w-[780px] px-6 sm:px-8"
+    >
+      <p
+        class="mb-2 font-display text-[clamp(8rem,20vw,15rem)] leading-[0.65] font-bold tracking-[-0.09em] text-[rgba(100,123,85,0.16)] italic"
+      >
+        404
+      </p>
+      <p class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase">
+        This page wandered off
+      </p>
+      <h1
+        class="mx-auto mb-5 text-[clamp(2.35rem,4.6vw,4.2rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
+      >
+        There’s nothing to reflect on here.
+      </h1>
+      <p class="mx-auto mb-8 max-w-[580px] text-[1.05rem] text-ink-soft">
+        The page may have moved, or the address may be mistyped. Your way back is just
+        below.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <a
+          class="btn h-[50px] min-h-[50px] rounded-full border-sage-deep bg-sage-deep px-[1.35rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] max-sm:w-full"
+          href="/">Return home</a
+        >
+        <a
+          class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
+          href="/faq">Visit the FAQ</a
+        >
+      </div>
+      <a
+        class="btn mt-[1.8rem] inline-flex items-center gap-1.5 btn-link px-2 font-[750] text-sage-deep no-underline hover:underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="https://github.com/mehradotdev/tackbok"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span>Or explore Tackbok on GitHub</span>
+        <ExternalLink class="size-4 opacity-80" />
+      </a>
+    </div>
+  </main>
+
+  <SiteFooter />
+</Layout>

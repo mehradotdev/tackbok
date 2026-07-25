@@ -1,124 +1,661 @@
 ---
+import {
+  Clock,
+  Compass,
+  ExternalLink,
+  History,
+  Languages,
+  Palette,
+  Sparkles,
+} from '@lucide/astro';
 import { Image } from 'astro:assets';
-import tackbokHomeSrc from '~/assets/tackbok_home_page.png';
 import tackbokEditSrc from '~/assets/tackbok_edit_page.png';
-import Layout from '~/layouts/main.astro';
+import tackbokHomeSrc from '~/assets/tackbok_home_page.png';
 import GithubIcon from '~/components/GithubIcon.astro';
+import SiteFooter from '~/components/SiteFooter.astro';
+import SiteHeader from '~/components/SiteHeader.astro';
+import Layout from '~/layouts/main.astro';
 
 const WAITLIST_URL = 'https://forms.gle/A5bGfGJLoEipsauu6';
 const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
+const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=dev.mehra.tackbok';
+const TESTFLIGHT_URL = 'https://testflight.apple.com/join/jGTWBEWq';
+
+const features = [
+  {
+    number: '01',
+    icon: Sparkles,
+    title: 'Capture the whole memory',
+    copy: 'Write freely, then add photos, clearer voice memos, moods, and tags when words are not enough.',
+  },
+  {
+    number: '02',
+    icon: Compass,
+    title: 'Find a gentle starting point',
+    copy: 'Choose focus areas and use thoughtful prompts whenever the blank page feels a little too blank.',
+  },
+  {
+    number: '03',
+    icon: Clock,
+    title: 'Build your own rhythm',
+    copy: 'Set an optional daily reminder at the time that works for you. Tap it to start with a relevant prompt.',
+  },
+  {
+    number: '04',
+    icon: Palette,
+    title: 'Make it feel like yours',
+    copy: 'Choose from 10+ themes, adjust text size, and settle into a journal that fits you.',
+  },
+  {
+    number: '05',
+    icon: History,
+    title: 'Bring your history along',
+    copy: 'Back up and restore your journal, or import entries from Tackbok, Gratitude App, and Presently.',
+  },
+  {
+    number: '06',
+    icon: Languages,
+    title: 'Write in your language',
+    copy: 'Tackbok currently supports 5+ languages with full RTL support. More languages are coming soon.',
+  },
+];
 ---
 
-<Layout>
-  <main
-    class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background p-6 text-foreground sm:p-12 lg:p-24"
-  >
-    {/* Background embellishments */}
-    <div
-      class="absolute top-10 left-10 -z-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl"
-    >
-    </div>
-    <div
-      class="absolute right-10 bottom-20 -z-10 h-64 w-64 rounded-full bg-secondary/30 blur-3xl"
-    >
-    </div>
+<Layout image="/og.png">
+  <SiteHeader />
 
-    <div class="grid w-full max-w-5xl grid-cols-1 items-center gap-12 lg:grid-cols-2">
-      {/* Text / Hero Content */}
-      <div class="z-10 flex flex-col gap-6 text-center lg:text-left">
+  <main id="main-content">
+    <!-- Hero Section -->
+    <section
+      class="relative overflow-hidden py-[clamp(4rem,8vw,7rem)] pb-[clamp(5rem,9vw,8rem)] max-sm:pt-[3rem] max-sm:pb-0"
+    >
+      <div
+        class="pointer-events-none absolute top-[15%] -right-48 size-[34rem] rounded-full bg-[radial-gradient(circle,rgba(163,178,125,0.36),transparent_70%)] blur-[1px]"
+        aria-hidden="true"
+      >
+      </div>
+      <div
+        class="pointer-events-none absolute bottom-[-22rem] left-[18%] size-[42rem] rounded-full bg-[radial-gradient(circle,rgba(233,208,146,0.28),transparent_70%)] blur-[1px]"
+        aria-hidden="true"
+      >
+      </div>
+      <div
+        class="mx-auto grid w-full max-w-[1240px] grid-cols-[minmax(0,1.22fr)_minmax(260px,0.78fr)] items-center gap-[clamp(1.5rem,3vw,4rem)] px-6 max-[900px]:grid-cols-1 sm:px-8 lg:px-12"
+      >
         <div
-          class="mx-auto inline-flex w-fit items-center gap-2 rounded-full bg-primary/20 px-3 py-1 text-sm font-medium text-primary-foreground lg:mx-0"
+          class="relative z-[2] max-[900px]:mx-auto max-[900px]:max-w-[760px] max-[900px]:text-center"
         >
-          <span class="relative flex h-2 w-2">
-            <span
-              class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"
-            ></span>
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
-          </span>
-          Coming Soon
+          <h1
+            class="mb-[1.4rem] max-w-[760px] text-[clamp(3.4rem,4.2vw+1.4rem,6.1rem)] leading-[0.96] font-[720] tracking-[-0.065em] [text-wrap:balance] max-sm:text-[clamp(2.2rem,8.5vw,3.2rem)] max-sm:leading-[1.02]"
+          >
+            <span class="inline-block">A quieter place</span>
+            <span class="inline-block"
+              >for <em class="font-display font-medium text-sage">gratitude.</em></span
+            >
+          </h1>
+          <p
+            class="mb-[1.8rem] max-w-[610px] text-[clamp(1.05rem,1.8vw,1.3rem)] leading-[1.65] text-ink-soft max-[900px]:mx-auto max-sm:text-[0.98rem] max-sm:leading-[1.6]"
+          >
+            Tackbok is a free, open-source gratitude journal for words, photos, and voice
+            memories. No account. No ads. Your journal stays on your device.
+          </p>
+
+          <div
+            class="flex flex-wrap items-center gap-[0.75rem] max-[900px]:justify-center"
+          >
+            <a
+              class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+              href={GOOGLE_PLAY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Get the Tackbok beta version on Google Play Store"
+            >
+              <span
+                class="inline-flex size-full items-center justify-start gap-[0.65rem] rounded-[inherit] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white"
+              >
+                <img
+                  class="size-10 flex-none"
+                  src="/badges/google-play.svg"
+                  width="96"
+                  height="96"
+                  alt=""
+                />
+                <span class="flex min-w-0 flex-col">
+                  <small
+                    class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
+                    >Get beta version on</small
+                  >
+                  <strong class="text-[0.92rem] leading-[1.15] tracking-[-0.025em]"
+                    >Google Play Store</strong
+                  >
+                </span>
+              </span>
+            </a>
+            <a
+              class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-start gap-[0.65rem] rounded-[8px] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+              href={TESTFLIGHT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Join the Tackbok beta with TestFlight"
+            >
+              <img
+                class="size-10 flex-none rounded-[9px]"
+                src="/badges/testflight.png"
+                width="400"
+                height="400"
+                alt=""
+              />
+              <span class="flex min-w-0 flex-col">
+                <small
+                  class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
+                  >Join the beta with</small
+                >
+                <strong class="text-[1.05rem] leading-[1.15] tracking-[-0.025em]"
+                  >TestFlight</strong
+                >
+              </span>
+            </a>
+          </div>
+
+          <div
+            class="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.84rem] text-ink-soft max-[900px]:justify-center max-sm:text-[0.78rem]"
+          >
+            <span class="inline-flex items-center gap-1.5 font-medium text-ink-soft">
+              <span class="size-1.5 rounded-full bg-sage/60"></span>
+              100% Free &amp; Open Source
+            </span>
+            <span class="text-sage/40 max-sm:hidden" aria-hidden="true">•</span>
+            <a
+              class="inline-flex items-center gap-1.5 font-semibold text-sage-deep decoration-sage/40 underline-offset-4 transition-colors duration-150 hover:text-sage hover:underline"
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <GithubIcon
+                width="16"
+                height="16"
+                class="size-3.5 text-ink-soft opacity-85"
+              />
+              <span>Explore source on GitHub</span>
+              <ExternalLink class="size-3 text-sage/70" />
+            </a>
+          </div>
         </div>
 
-        <h1
-          class="text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl"
-        >
-          Tackbok
-        </h1>
-        <p
-          class="mx-auto max-w-lg text-xl leading-relaxed text-muted-foreground sm:text-2xl lg:mx-0"
-        >
-          A free and open-source gratitude journal app. Reflect on your day, simply and
-          securely.
-        </p>
-
-        {/* Call to Actions */}
         <div
-          class="mx-auto mt-4 flex w-full max-w-md flex-col items-center justify-center gap-3 sm:flex-row lg:mx-0 lg:justify-start"
+          class="phone-stage relative isolate min-h-[590px] max-[900px]:mx-auto max-[900px]:w-full max-[900px]:max-w-[650px] max-sm:-mb-4 max-sm:min-h-[440px] max-sm:max-w-[420px]"
+          aria-label="Screenshots of Tackbok’s home and entry screens"
         >
-          <a
-            href={WAITLIST_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex h-12 w-full shrink-0 items-center justify-center gap-1.5 rounded-4xl border border-transparent bg-primary px-8 text-lg font-normal tracking-wider whitespace-nowrap text-white shadow-lg transition-all outline-none select-none hover:bg-primary/80 hover:shadow-xl focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 active:translate-y-px sm:w-auto"
+          <div
+            class="botanical-line bottom-[2%] left-0 -rotate-28 max-sm:hidden"
+            aria-hidden="true"
           >
-            Join the Waitlist
-          </a>
+          </div>
+          <div
+            class="botanical-line top-[2%] right-[6%] rotate-[154deg] max-sm:hidden"
+            aria-hidden="true"
+          >
+          </div>
+          <div
+            class="absolute top-[1%] left-[8%] z-[2] w-[min(49%,300px)] -rotate-4 overflow-hidden rounded-[2.7rem] border-4 border-[rgba(255,255,255,0.7)] bg-[#d9d7a6] shadow-[0_35px_80px_rgba(46,58,40,0.2)] max-sm:left-0 max-sm:w-[57%] max-sm:rounded-[2.2rem] max-sm:border-[3px]"
+          >
+            <Image
+              class="block h-auto w-full"
+              src={tackbokHomeSrc}
+              alt="Tackbok home timeline showing gratitude entries"
+              loading="eager"
+              widths={[260, 360, 450]}
+              sizes="(max-width: 640px) 230px, 300px"
+            />
+          </div>
+          <div
+            class="absolute right-[4%] bottom-0 z-[1] w-[min(45%,276px)] rotate-5 overflow-hidden rounded-[2.7rem] border-4 border-[rgba(255,255,255,0.7)] bg-[#d9d7a6] shadow-[0_35px_80px_rgba(46,58,40,0.2)] max-sm:right-0 max-sm:w-[53%] max-sm:rounded-[2.2rem] max-sm:border-[3px]"
+          >
+            <Image
+              class="block h-auto w-full"
+              src={tackbokEditSrc}
+              alt="Tackbok entry editor with writing and media controls"
+              loading="eager"
+              widths={[260, 360, 450]}
+              sizes="(max-width: 640px) 210px, 280px"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
 
+    <!-- Principles Banner Section -->
+    <section
+      class="relative z-10 border-y border-line bg-sage-pale/50 backdrop-blur-md max-sm:-mt-12"
+      aria-label="Tackbok principles"
+    >
+      <div
+        class="mx-auto grid w-full max-w-[1240px] grid-cols-4 px-6 max-sm:grid-cols-2 sm:px-8 lg:px-12"
+      >
+        <p
+          class="m-0 flex min-h-[74px] items-center justify-center gap-[0.55rem] border-l border-line text-center text-[0.85rem] font-bold text-ink-soft max-sm:border-r max-sm:border-b max-sm:border-l-0"
+        >
+          <span
+            class="inline-flex size-[1.35rem] flex-none items-center justify-center rounded-full bg-sage-pale text-[0.72rem] text-sage-deep"
+            aria-hidden="true">✓</span
+          >
+          Free &amp; open source
+        </p>
+        <p
+          class="m-0 flex min-h-[74px] items-center justify-center gap-[0.55rem] border-l border-line text-center text-[0.85rem] font-bold text-ink-soft max-sm:border-b max-sm:border-l-0"
+        >
+          <span
+            class="inline-flex size-[1.35rem] flex-none items-center justify-center rounded-full bg-sage-pale text-[0.72rem] text-sage-deep"
+            aria-hidden="true">✓</span
+          >
+          Works offline
+        </p>
+        <p
+          class="m-0 flex min-h-[74px] items-center justify-center gap-[0.55rem] border-l border-line text-center text-[0.85rem] font-bold text-ink-soft max-sm:border-r max-sm:border-l-0"
+        >
+          <span
+            class="inline-flex size-[1.35rem] flex-none items-center justify-center rounded-full bg-sage-pale text-[0.72rem] text-sage-deep"
+            aria-hidden="true">✓</span
+          >
+          No account required
+        </p>
+        <p
+          class="m-0 flex min-h-[74px] items-center justify-center gap-[0.55rem] border-x border-line text-center text-[0.85rem] font-bold text-ink-soft max-sm:border-l-0"
+        >
+          <span
+            class="inline-flex size-[1.35rem] flex-none items-center justify-center rounded-full bg-sage-pale text-[0.72rem] text-sage-deep"
+            aria-hidden="true">✓</span
+          >
+          No ads
+        </p>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section
+      class="bg-[linear-gradient(rgba(52,75,55,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(52,75,55,0.035)_1px,transparent_1px),var(--cream)] bg-[length:40px_40px] py-[clamp(5rem,10vw,8.5rem)]"
+    >
+      <div
+        id="features"
+        class="mx-auto w-full max-w-[1240px] scroll-mt-24 px-6 sm:px-8 lg:px-12"
+      >
+        <div class="mx-auto mb-[clamp(2.8rem,6vw,5rem)] max-w-[690px] text-center">
+          <h2
+            class="mb-5 text-[clamp(2.35rem,4.6vw,4.2rem)] leading-[1.03] font-[690] tracking-[-0.055em] [text-wrap:balance] max-sm:text-[clamp(1.85rem,7.5vw,2.5rem)]"
+          >
+            More ways to remember what mattered.
+          </h2>
+          <p
+            class="text-[1.08rem] leading-[1.7] text-ink-soft max-sm:text-[0.98rem] max-sm:leading-[1.6]"
+          >
+            Keep the ritual simple when you want it, and add more detail when a memory
+            deserves it.
+          </p>
+        </div>
+
+        <div
+          class="grid grid-cols-3 gap-px overflow-hidden rounded-[2rem] border-4 border-line shadow-[0_24px_70px_rgba(48,61,42,0.12)] max-[900px]:grid-cols-2 max-sm:grid-cols-1 max-sm:rounded-3xl"
+        >
+          {
+            features.map((feature) => {
+              const IconComponent = feature.icon;
+              return (
+                <article class="group relative flex min-h-[265px] flex-col justify-between bg-sage-pale/70 p-[clamp(1.6rem,3vw,2.5rem)] transition-all duration-300 hover:bg-sage-pale hover:shadow-[inset_0_0_24px_rgba(52,75,55,0.04)] max-sm:min-h-0">
+                  <div>
+                    <div class="mb-6 flex items-center justify-between">
+                      <span class="badge badge-outline border-sage/40 font-display text-[0.92rem] text-sage italic transition-colors duration-300 group-hover:border-sage group-hover:bg-sage/10">
+                        {feature.number}
+                      </span>
+                      <div class="flex size-10 items-center justify-center rounded-xl bg-sage-pale/60 text-sage-deep transition-all duration-300 group-hover:scale-110 group-hover:bg-sage group-hover:text-cream group-hover:shadow-sm">
+                        <IconComponent class="size-5" />
+                      </div>
+                    </div>
+                    <h3 class="card-title text-[1.24rem] tracking-[-0.025em] text-ink transition-colors duration-300 group-hover:text-sage-deep">
+                      {feature.title}
+                    </h3>
+                    <p class="m-0 text-[0.95rem] leading-[1.65] text-ink-soft">
+                      {feature.copy}
+                    </p>
+                  </div>
+                </article>
+              );
+            })
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Setup & Themes Section -->
+    <section class="py-[clamp(5rem,10vw,8.5rem)]">
+      <div
+        class="mx-auto grid w-full max-w-[1240px] grid-cols-2 items-center gap-[clamp(3rem,9vw,8rem)] px-6 max-[900px]:grid-cols-1 sm:px-8 lg:px-12"
+      >
+        <div>
+          <h2
+            class="mb-5 text-[clamp(2.35rem,4.6vw,4.2rem)] leading-[1.03] font-[690] tracking-[-0.055em] [text-wrap:balance] max-sm:text-[clamp(1.85rem,7.5vw,2.5rem)]"
+          >
+            Make it yours.<br class="hidden sm:inline" /> Change anything later.
+          </h2>
+          <p
+            class="max-w-[590px] text-[1.08rem] leading-[1.7] text-ink-soft max-sm:text-[0.98rem] max-sm:leading-[1.6]"
+          >
+            Tackbok’s guided setup helps you pick a theme, font, and focus areas that feel
+            right for you. Every step is quick, skippable, and always available to tweak
+            in settings.
+          </p>
+
+          <ol class="mt-8 mb-0 grid list-none gap-5 p-0">
+            <li class="grid grid-cols-[2.4rem_1fr] items-start gap-4">
+              <span
+                class="flex size-[2.4rem] items-center justify-center rounded-full border border-line bg-cream font-display text-sage italic"
+                >1</span
+              >
+              <div>
+                <strong class="mb-1 block">Choose what feels comfortable</strong>
+                <p class="m-0 text-[0.94rem] text-ink-soft">
+                  See language, font size, and theme changes as you make them.
+                </p>
+              </div>
+            </li>
+            <li class="grid grid-cols-[2.4rem_1fr] items-start gap-4">
+              <span
+                class="flex size-[2.4rem] items-center justify-center rounded-full border border-line bg-cream font-display text-sage italic"
+                >2</span
+              >
+              <div>
+                <strong class="mb-1 block">Pick what you want to notice</strong>
+                <p class="m-0 text-[0.94rem] text-ink-soft">
+                  Focus areas shape the prompts and reminders you receive.
+                </p>
+              </div>
+            </li>
+            <li class="grid grid-cols-[2.4rem_1fr] items-start gap-4">
+              <span
+                class="flex size-[2.4rem] items-center justify-center rounded-full border border-line bg-cream font-display text-sage italic"
+                >3</span
+              >
+              <div>
+                <strong class="mb-1 block">Start with a little context</strong>
+                <p class="m-0 text-[0.94rem] text-ink-soft">
+                  Optional example entries gently show how the journal works.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div
+          class="min-h-[580px] overflow-hidden rounded-[45%_45%_2rem_2rem] border border-line bg-[radial-gradient(circle_at_50%_46%,rgba(255,255,255,0.7),transparent_28%),linear-gradient(145deg,#d8dfc2,#ece4c8)] p-[2.3rem] text-center shadow-[0_24px_70px_rgba(48,61,42,0.12)] max-[900px]:mx-auto max-[900px]:w-full max-[900px]:max-w-[600px] max-sm:min-h-[500px] max-sm:px-3"
+          aria-label="A selection of Tackbok theme colours"
+        >
+          <p class="font-display text-[1.05rem] text-sage-deep italic">
+            Made to match your mood
+          </p>
+          <div class="relative min-h-[480px] max-sm:min-h-[420px]">
+            <!-- Theme Swatches -->
+            <span
+              class="animate-float anim-delay-0 absolute top-[14%] left-[4%] z-20 flex size-[82px] cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#82946d] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:top-[12%] max-sm:left-[2%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
+              >Clemens</span
+            >
+            <span
+              class="animate-float anim-delay-1 absolute top-[3%] left-1/2 z-20 flex size-[82px] -translate-x-1/2 cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#bea8e5] text-[0.7rem] font-bold text-[#2d2242] shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:top-[2%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
+              >Lavender</span
+            >
+            <span
+              class="animate-float anim-delay-2 absolute top-[14%] right-[4%] z-20 flex size-[82px] cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#30473d] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:top-[12%] max-sm:right-[2%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
+              >Weckner</span
+            >
+            <span
+              class="animate-float anim-delay-3 absolute top-1/2 right-[1%] z-20 flex size-[82px] -translate-y-1/2 cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#ff3d9e] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:right-[0%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
+              >Bubblegum</span
+            >
+            <span
+              class="animate-float anim-delay-4 absolute right-[12%] bottom-[6%] z-20 flex size-[82px] cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#353a31] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:right-[8%] max-sm:bottom-[5%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
+              >Dark</span
+            >
+            <span
+              class="animate-float anim-delay-5 absolute bottom-[6%] left-[12%] z-20 flex size-[82px] cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#f5aa8d] text-[0.7rem] font-bold text-[#3d2417] shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:bottom-[5%] max-sm:left-[8%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
+              >Peach</span
+            >
+            <span
+              class="animate-float anim-delay-6 absolute top-1/2 left-[1%] z-20 flex size-[82px] -translate-y-1/2 cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#b99050] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:left-[0%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
+              >Warm</span
+            >
+
+            <!-- Center Badge -->
+            <div
+              class="absolute top-1/2 left-1/2 z-10 flex size-[185px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-[rgba(52,75,55,0.13)] bg-cream shadow-[0_25px_60px_rgba(52,75,55,0.16)] max-sm:size-[160px] sm:size-[195px]"
+            >
+              <img
+                class="mb-[0.4rem] rounded-[1.4rem] max-sm:size-[60px]"
+                src="/icon.png"
+                width="84"
+                height="84"
+                alt=""
+              />
+              <strong class="text-[1rem] sm:text-[1.05rem]">10+ themes</strong>
+              <small class="text-ink-soft">light &amp; dark</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Privacy Section -->
+    <section class="bg-sage-deep py-[clamp(5rem,10vw,8.5rem)] text-white">
+      <div
+        id="privacy"
+        class="mx-auto grid w-full max-w-[1240px] scroll-mt-24 grid-cols-2 items-center gap-[clamp(3rem,9vw,8rem)] px-6 max-[900px]:grid-cols-1 sm:px-8 lg:px-12"
+      >
+        <div
+          class="relative flex min-h-[440px] flex-col justify-center overflow-hidden rounded-[2rem] border border-[rgba(255,255,255,0.22)] bg-[radial-gradient(circle_at_75%_20%,rgba(203,214,172,0.24),transparent_26%),linear-gradient(150deg,rgba(255,255,255,0.12),rgba(255,255,255,0.035))] p-[clamp(2rem,5vw,4.2rem)] after:absolute after:-right-[50px] after:-bottom-[60px] after:size-[260px] after:rounded-full after:border after:border-[rgba(255,255,255,0.14)] after:content-[''] max-[900px]:min-h-0 max-[900px]:w-full max-[900px]:max-w-[560px] max-sm:p-7"
+        >
+          <p
+            class="text-[0.82rem] font-extrabold tracking-[0.11em] text-[#bdcaa3] uppercase"
+          >
+            Why I built Tackbok
+          </p>
+          <blockquote
+            class="my-5 max-w-[460px] font-display text-[clamp(1.35rem,2.2vw,1.85rem)] leading-[1.35] text-[rgba(255,255,255,0.95)]"
+          >
+            “I built Tackbok because journaling shouldn’t be paywalled or ad-driven. This
+            is my free, open-source gift back to society.”
+          </blockquote>
           <a
+            class="relative z-[2] text-[0.9rem] font-bold underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            href="/privacy">Read the privacy policy <span aria-hidden="true">→</span></a
+          >
+        </div>
+
+        <div>
+          <h2
+            class="mb-5 text-[clamp(2.35rem,4.6vw,4.2rem)] leading-[1.03] font-[690] tracking-[-0.055em] [text-wrap:balance] max-sm:text-[clamp(1.85rem,7.5vw,2.5rem)]"
+          >
+            Your thoughts stay close to you.
+          </h2>
+          <p
+            class="text-[1.08rem] leading-[1.7] text-[rgba(255,255,255,0.72)] max-sm:text-[0.98rem] max-sm:leading-[1.6]"
+          >
+            Tackbok is local-first by default, no Tackbok account or central servers
+            required. Protect your journal with Face ID, Touch ID, or biometrics, with
+            optional backups to your personal cloud.
+          </p>
+          <ul class="my-8 grid list-none gap-[0.85rem] p-0">
+            <li class="flex items-center gap-3 text-[rgba(255,255,255,0.9)]">
+              <span
+                class="inline-flex size-[1.35rem] flex-none items-center justify-center rounded-full bg-[rgba(220,226,199,0.16)] text-[0.72rem] text-sage-pale"
+                aria-hidden="true">✓</span
+              >
+              Local-first storage: your entries stay on-device, not on central servers.
+            </li>
+            <li class="flex items-center gap-3 text-[rgba(255,255,255,0.9)]">
+              <span
+                class="inline-flex size-[1.35rem] flex-none items-center justify-center rounded-full bg-[rgba(220,226,199,0.16)] text-[0.72rem] text-sage-pale"
+                aria-hidden="true">✓</span
+              >
+              Analytics is off until you explicitly opt in.
+            </li>
+            <li class="flex items-center gap-3 text-[rgba(255,255,255,0.9)]">
+              <span
+                class="inline-flex size-[1.35rem] flex-none items-center justify-center rounded-full bg-[rgba(220,226,199,0.16)] text-[0.72rem] text-sage-pale"
+                aria-hidden="true">✓</span
+              >
+              No journal content is collected for analytics.
+            </li>
+            <li class="flex items-center gap-3 text-[rgba(255,255,255,0.9)]">
+              <span
+                class="inline-flex size-[1.35rem] flex-none items-center justify-center rounded-full bg-[rgba(220,226,199,0.16)] text-[0.72rem] text-sage-pale"
+                aria-hidden="true">✓</span
+              >
+              App lock hides access and the task-switcher preview.
+            </li>
+          </ul>
+          <p class="mb-0 text-[0.78rem] leading-[1.55] text-[rgba(255,255,255,0.72)]">
+            App lock is a local access gate that uses your device security; it does not
+            encrypt Tackbok’s SQLite database.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Open Source Section -->
+    <section class="bg-paper py-[clamp(5rem,10vw,8.5rem)]">
+      <div
+        class="mx-auto grid w-full max-w-[1240px] grid-cols-[1.1fr_0.9fr] items-end gap-[clamp(3rem,9vw,8rem)] px-6 max-[900px]:grid-cols-1 sm:px-8 lg:px-12"
+      >
+        <div>
+          <p
+            class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase"
+          >
+            Open by nature
+          </p>
+          <h2
+            class="m-0 max-w-[650px] text-[clamp(2.35rem,4.6vw,4.2rem)] leading-[1.03] font-[690] tracking-[-0.055em] [text-wrap:balance] max-sm:text-[clamp(1.85rem,7.5vw,2.5rem)]"
+          >
+            Built in public. Free to inspect.
+          </h2>
+        </div>
+        <div>
+          <p
+            class="text-[1.08rem] leading-[1.7] text-ink-soft max-sm:text-[0.98rem] max-sm:leading-[1.6]"
+          >
+            Tackbok is licensed under the Apache License 2.0 and developed in the open.
+            You can read the code, follow improvements, report an issue, or build your own
+            version.
+          </p>
+          <a
+            class="inline-flex items-center gap-[0.45rem] font-[750] text-sage-deep underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            title="View on GitHub"
-            class="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-4xl border border-border bg-input/30 px-8 text-sm font-semibold whitespace-nowrap shadow-sm transition-all outline-none select-none hover:bg-input/50 hover:text-foreground hover:shadow-md focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 active:translate-y-px sm:w-auto"
           >
-            <GithubIcon width="20" height="20" />
-            GitHub
-          </a>
-        </div>
-
-        <div
-          class="mt-8 flex justify-center gap-6 text-sm text-muted-foreground lg:justify-start"
-        >
-          <a
-            href="/terms"
-            class="underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            Terms of Service
-          </a>
-          <a
-            href="/privacy"
-            class="underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            Privacy Policy
+            <span>Visit Tackbok on GitHub</span>
+            <ExternalLink class="size-4 opacity-80" />
           </a>
         </div>
       </div>
+    </section>
 
-      {/* Hero Visual / Screenshots */}
+    <!-- Download Section -->
+    <section
+      class="relative overflow-hidden bg-[#6f815e] py-[clamp(5rem,10vw,8.8rem)] text-center text-white"
+    >
       <div
-        class="perspective-1000 relative z-10 mt-8 flex aspect-square w-full items-center justify-center md:aspect-video lg:mt-0 lg:aspect-square"
+        class="absolute bottom-[-180px] -left-[70px] size-[300px] rotate-25 rounded-[100%_0] border border-[rgba(255,255,255,0.12)]"
+        aria-hidden="true"
       >
-        {/* Main Phone (Home) */}
-        <Image
-          src={tackbokHomeSrc}
-          alt="Tackbok Home Screen"
-          loading="eager"
-          class="absolute z-20 w-[240px] -translate-x-4 rotate-[-4deg] rounded-[3rem] shadow-[0_0_40px_rgba(0,0,0,0.1)] transition-transform duration-500 hover:scale-105 hover:rotate-0 sm:w-[280px] sm:-translate-x-6 lg:w-[320px] lg:-translate-x-10"
-        />
-
-        {/* Secondary Phone (Edit) */}
-        <Image
-          src={tackbokEditSrc}
-          alt="Tackbok Edit Screen"
-          loading="lazy"
-          class="absolute w-[240px] translate-x-10 translate-y-12 rotate-[8deg] rounded-[3rem] opacity-90 shadow-[0_0_30px_rgba(0,0,0,0.1)] transition-all duration-500 hover:z-30 hover:translate-y-0 hover:rotate-0 hover:opacity-100 sm:w-[280px] sm:translate-x-16 sm:translate-y-16 lg:w-[320px] lg:translate-x-22 lg:translate-y-20"
-        />
       </div>
-    </div>
+      <div
+        class="absolute -top-[180px] -right-[70px] size-[300px] rotate-[205deg] rounded-[100%_0] border border-[rgba(255,255,255,0.12)]"
+        aria-hidden="true"
+      >
+      </div>
+      <div
+        id="download"
+        class="relative z-[2] mx-auto w-full max-w-[1240px] scroll-mt-24 px-6 sm:px-8 lg:px-12"
+      >
+        <p
+          class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-[#e4ead4] uppercase"
+        >
+          A small practice, made personal
+        </p>
+        <h2
+          class="mx-auto mb-5 max-w-[780px] text-[clamp(2.35rem,4.6vw,4.2rem)] leading-[1.03] font-[690] tracking-[-0.055em] [text-wrap:balance] max-sm:text-[clamp(1.85rem,7.5vw,2.5rem)]"
+        >
+          Make a little room for gratitude.
+        </h2>
+        <p
+          class="mb-8 text-[1.08rem] text-[rgba(255,255,255,0.76)] max-sm:text-[0.98rem] max-sm:leading-[1.6]"
+        >
+          Get the Android beta, join the iOS beta, or join the waitlist for release news.
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-[0.7rem]">
+          <a
+            class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            href={GOOGLE_PLAY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get the Tackbok beta version on Google Play Store"
+          >
+            <span
+              class="inline-flex size-full items-center justify-start gap-[0.65rem] rounded-[inherit] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white"
+            >
+              <img
+                class="size-10 flex-none"
+                src="/badges/google-play.svg"
+                width="96"
+                height="96"
+                alt=""
+                loading="lazy"
+              />
+              <span class="flex min-w-0 flex-col">
+                <small
+                  class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
+                  >Get beta version on</small
+                >
+                <strong class="text-[0.92rem] leading-[1.15] tracking-[-0.025em]"
+                  >Google Play Store</strong
+                >
+              </span>
+            </span>
+          </a>
+          <a
+            class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-start gap-[0.65rem] rounded-[8px] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            href={TESTFLIGHT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Join the Tackbok beta with TestFlight"
+          >
+            <img
+              class="size-10 flex-none rounded-[9px]"
+              src="/badges/testflight.png"
+              width="400"
+              height="400"
+              alt=""
+              loading="lazy"
+            />
+            <span class="flex min-w-0 flex-col">
+              <small
+                class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
+                >Join the beta with</small
+              >
+              <strong class="text-[1.05rem] leading-[1.15] tracking-[-0.025em]"
+                >TestFlight</strong
+              >
+            </span>
+          </a>
+        </div>
+        <p class="mt-[1.4rem] mb-0 text-[0.84rem] text-[rgba(255,255,255,0.76)]">
+          Prefer to wait? <a
+            class="font-bold underline-offset-4"
+            href={WAITLIST_URL}
+            target="_blank"
+            rel="noopener noreferrer">Join the release list</a
+          >
+        </p>
+      </div>
+    </section>
   </main>
-</Layout>
 
-<style>
-  .perspective-1000 {
-    perspective: 1000px;
-  }
-</style>
+  <SiteFooter />
+</Layout>
