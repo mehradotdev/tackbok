@@ -100,6 +100,10 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@utility nav-link {
+  @apply text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)];
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
