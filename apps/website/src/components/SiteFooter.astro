@@ -1,0 +1,75 @@
+---
+const supportEmail = 'tackbok.support@mehra.dev';
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-line bg-paper-deep pt-[3.2rem] pb-6">
+  <div
+    class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1180px] items-start justify-between gap-12 max-sm:w-[calc(100%_-_28px)] max-sm:flex-col"
+  >
+    <div>
+      <a
+        class="inline-flex items-center gap-[0.7rem] text-[1.15rem] font-[760] tracking-[-0.02em] text-ink no-underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="/"
+        aria-label="Tackbok home"
+      >
+        <img
+          class="rounded-[0.7rem] shadow-[0_6px_18px_rgba(52,75,55,0.14)]"
+          src="/icon.png"
+          width="40"
+          height="40"
+          alt=""
+        />
+        <span>Tackbok</span>
+      </a>
+      <p class="mt-3 mb-0 text-[0.88rem] text-ink-soft">
+        A private place to notice what matters.
+      </p>
+    </div>
+
+    <nav
+      class="flex max-w-[560px] flex-wrap items-center justify-end gap-[clamp(1rem,2.4vw,2rem)] max-sm:justify-start"
+      aria-label="Footer navigation"
+    >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="/#features">Features</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="/#privacy">Privacy</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="/faq">FAQ</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="/privacy">Privacy policy</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="/terms">Terms</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href={`mailto:${supportEmail}`}>Support</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="https://github.com/mehradotdev/tackbok"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        GitHub
+      </a>
+    </nav>
+  </div>
+
+  <div
+    class="mx-auto mt-11 flex w-[calc(100%_-_40px)] max-w-[1180px] justify-between border-t border-line pt-5 text-[0.76rem] text-ink-soft max-sm:w-[calc(100%_-_28px)] max-sm:flex-col"
+  >
+    <p>&copy; {year} Mehra Dot Dev.</p>
+    <p>Free, open source, and made with care.</p>
+  </div>
+</footer>

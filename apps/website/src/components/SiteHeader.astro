@@ -1,0 +1,69 @@
+---
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = Astro.url.pathname } = Astro.props;
+const onHome = currentPath === '/';
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-[rgba(52,75,55,0.1)] bg-[color-mix(in_srgb,var(--paper)_88%,transparent)] backdrop-blur-[18px]"
+>
+  <a
+    class="fixed top-3 left-3 z-[100] -translate-y-[150%] rounded-full bg-ink px-4 py-[0.7rem] font-bold text-white transition-transform duration-150 focus:translate-y-0"
+    href="#main-content">Skip to content</a
+  >
+  <div
+    class="mx-auto flex min-h-[76px] w-[calc(100%_-_40px)] max-w-[1180px] items-center justify-between gap-8 max-sm:min-h-[66px] max-sm:w-[calc(100%_-_28px)]"
+  >
+    <a
+      class="inline-flex items-center gap-[0.7rem] text-[1.15rem] font-[760] tracking-[-0.02em] text-ink no-underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+      href="/"
+      aria-label="Tackbok home"
+    >
+      <img
+        class="rounded-[0.7rem] shadow-[0_6px_18px_rgba(52,75,55,0.14)]"
+        src="/icon.png"
+        width="38"
+        height="38"
+        alt=""
+      />
+      <span>Tackbok</span>
+    </a>
+
+    <nav
+      class="flex items-center gap-[clamp(1rem,2.4vw,2rem)] max-[900px]:hidden"
+      aria-label="Primary navigation"
+    >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href={onHome ? '#features' : '/#features'}>Features</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href={onHome ? '#privacy' : '/#privacy'}>Privacy</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)] aria-[current=page]:text-ink aria-[current=page]:underline aria-[current=page]:decoration-sage"
+        href="/faq"
+        aria-current={currentPath === '/faq' ? 'page' : undefined}>FAQ</a
+      >
+      <a
+        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href="https://github.com/mehradotdev/tackbok"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        GitHub
+      </a>
+    </nav>
+
+    <a
+      class="inline-flex min-h-[42px] items-center justify-center gap-[0.55rem] rounded-full border border-sage-deep bg-sage-deep px-4 py-[0.62rem] text-[0.88rem] leading-none font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] hover:shadow-[0_12px_28px_rgba(52,75,55,0.24)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)] active:translate-y-0 max-sm:px-[0.8rem] max-sm:text-[0.78rem]"
+      href={onHome ? '#download' : '/#download'}
+    >
+      Try the beta
+    </a>
+  </div>
+</header>

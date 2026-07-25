@@ -1,128 +1,201 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "@fontsource-variable/figtree";
-
-@custom-variant dark (&:is(.dark *));
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/figtree';
 
 :root {
-    --background: oklch(0.867 0.05 105.1);  /* #dad8a6 - Light Olive Beige from app background */
-    --foreground: oklch(0.2 0.05 40);       /* Dark brown/olive text */
-    --card: oklch(0.867 0.05 105.1);
-    --card-foreground: oklch(0.2 0.05 40);
-    --popover: oklch(0.867 0.05 105.1);
-    --popover-foreground: oklch(0.2 0.05 40);
-    --primary: oklch(0.75 0.1 110);         /* #a8b86e - Olive green from buttons/timeline */
-    --primary-foreground: oklch(0.2 0.05 40);
-    --secondary: oklch(0.82 0.05 105);      /* Slightly darker beige for secondary elements */
-    --secondary-foreground: oklch(0.2 0.05 40);
-    --muted: oklch(0.82 0.05 105);
-    --muted-foreground: oklch(0.4 0.05 40);
-    --accent: oklch(0.82 0.05 105);
-    --accent-foreground: oklch(0.2 0.05 40);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.7 0.05 105);
-    --input: oklch(0.82 0.05 105);
-    --ring: oklch(0.75 0.1 110);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.867 0.05 105.1);
-    --sidebar-foreground: oklch(0.2 0.05 40);
-    --sidebar-primary: oklch(0.75 0.1 110);
-    --sidebar-primary-foreground: oklch(0.2 0.05 40);
-    --sidebar-accent: oklch(0.82 0.05 105);
-    --sidebar-accent-foreground: oklch(0.2 0.05 40);
-    --sidebar-border: oklch(0.7 0.05 105);
-    --sidebar-ring: oklch(0.75 0.1 110);
-}
+  --background: oklch(0.867 0.05 105.1);
+  --foreground: oklch(0.2 0.05 40);
+  --card: oklch(0.867 0.05 105.1);
+  --card-foreground: oklch(0.2 0.05 40);
+  --popover: oklch(0.867 0.05 105.1);
+  --popover-foreground: oklch(0.2 0.05 40);
+  --primary: oklch(0.75 0.1 110);
+  --primary-foreground: oklch(0.2 0.05 40);
+  --secondary: oklch(0.82 0.05 105);
+  --secondary-foreground: oklch(0.2 0.05 40);
+  --muted: oklch(0.82 0.05 105);
+  --muted-foreground: oklch(0.4 0.05 40);
+  --accent: oklch(0.82 0.05 105);
+  --accent-foreground: oklch(0.2 0.05 40);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.7 0.05 105);
+  --input: oklch(0.82 0.05 105);
+  --ring: oklch(0.75 0.1 110);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.867 0.05 105.1);
+  --sidebar-foreground: oklch(0.2 0.05 40);
+  --sidebar-primary: oklch(0.75 0.1 110);
+  --sidebar-primary-foreground: oklch(0.2 0.05 40);
+  --sidebar-accent: oklch(0.82 0.05 105);
+  --sidebar-accent-foreground: oklch(0.2 0.05 40);
+  --sidebar-border: oklch(0.7 0.05 105);
+  --sidebar-ring: oklch(0.75 0.1 110);
 
-.dark {
-    --background: oklch(0.2 0.05 40);       /* Dark mode background equivalent */
-    --foreground: oklch(0.867 0.05 105.1);
-    --card: oklch(0.2 0.05 40);
-    --card-foreground: oklch(0.867 0.05 105.1);
-    --popover: oklch(0.2 0.05 40);
-    --popover-foreground: oklch(0.867 0.05 105.1);
-    --primary: oklch(0.75 0.1 110);
-    --primary-foreground: oklch(0.2 0.05 40);
-    --secondary: oklch(0.25 0.05 40);
-    --secondary-foreground: oklch(0.867 0.05 105.1);
-    --muted: oklch(0.25 0.05 40);
-    --muted-foreground: oklch(0.6 0.05 60);
-    --accent: oklch(0.25 0.05 40);
-    --accent-foreground: oklch(0.867 0.05 105.1);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(0.3 0.05 40);
-    --input: oklch(0.3 0.05 40);
-    --ring: oklch(0.75 0.1 110);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --sidebar: oklch(0.2 0.05 40);
-    --sidebar-foreground: oklch(0.867 0.05 105.1);
-    --sidebar-primary: oklch(0.75 0.1 110);
-    --sidebar-primary-foreground: oklch(0.2 0.05 40);
-    --sidebar-accent: oklch(0.25 0.05 40);
-    --sidebar-accent-foreground: oklch(0.867 0.05 105.1);
-    --sidebar-border: oklch(0.3 0.05 40);
-    --sidebar-ring: oklch(0.75 0.1 110);
+  --paper: #f4f1df;
+  --paper-deep: #e8e5cf;
+  --ink: #293325;
+  --ink-soft: #586250;
+  --sage: #647b55;
+  --sage-deep: #344b37;
+  --sage-pale: #dce2c7;
+  --cream: #fffdf4;
+  --line: rgba(52, 75, 55, 0.18);
 }
 
 @theme inline {
-    --font-sans: 'Figtree Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+  --font-sans: 'Figtree Variable', sans-serif;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-sage: var(--sage);
+  --color-sage-deep: var(--sage-deep);
+  --color-sage-pale: var(--sage-pale);
+  --color-cream: var(--cream);
+  --color-line: var(--line);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
-  body {
-    @apply bg-background text-foreground;
-    }
+  }
+
   html {
-    @apply font-sans;
-    }
+    @apply scroll-smooth font-sans;
+  }
+
+  body {
+    @apply m-0 min-w-80 bg-paper text-ink;
+    background-image: radial-gradient(
+      circle at 10% 0%,
+      rgba(255, 255, 255, 0.72),
+      transparent 32rem
+    );
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3,
+  p {
+    @apply mt-0;
+  }
+
+  a {
+    @apply text-inherit;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 55%, white);
+  }
+}
+
+/* The phone halo and botanical stems rely on generated shapes. */
+.phone-stage::before {
+  position: absolute;
+  inset: 10% 3% 6% 8%;
+  z-index: -1;
+  border: 1px solid rgba(52, 75, 55, 0.14);
+  border-radius: 50% 45% 48% 52%;
+  background:
+    radial-gradient(circle at 60% 28%, rgba(255, 255, 255, 0.75), transparent 28%),
+    linear-gradient(145deg, rgba(220, 226, 199, 0.84), rgba(232, 229, 207, 0.18));
+  content: '';
+  transform: rotate(-7deg);
+}
+
+.botanical-line {
+  position: absolute;
+  z-index: 3;
+  width: 90px;
+  height: 210px;
+  border-left: 2px solid rgba(78, 101, 64, 0.35);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.botanical-line::before,
+.botanical-line::after {
+  position: absolute;
+  width: 42px;
+  height: 22px;
+  border: 2px solid rgba(78, 101, 64, 0.3);
+  border-radius: 100% 0 100% 0;
+  content: '';
+}
+
+.botanical-line::before {
+  top: 42px;
+  left: -4px;
+  transform: rotate(-22deg);
+}
+
+.botanical-line::after {
+  top: 104px;
+  left: -40px;
+  transform: rotate(40deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
