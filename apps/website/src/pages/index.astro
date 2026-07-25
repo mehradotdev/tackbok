@@ -196,30 +196,22 @@ const features = [
             aria-hidden="true"
           >
           </div>
-          <div
-            class="absolute top-[1%] left-[8%] z-[2] w-[min(49%,300px)] -rotate-4 overflow-hidden rounded-[2.7rem] border-4 border-[rgba(255,255,255,0.7)] bg-[#d9d7a6] shadow-[0_35px_80px_rgba(46,58,40,0.2)] max-sm:left-0 max-sm:w-[57%] max-sm:rounded-[2.2rem] max-sm:border-[3px]"
-          >
-            <Image
-              class="block h-auto w-full"
-              src={tackbokHomeSrc}
-              alt="Tackbok home timeline showing gratitude entries"
-              loading="eager"
-              widths={[260, 360, 450]}
-              sizes="(max-width: 640px) 230px, 300px"
-            />
-          </div>
-          <div
-            class="absolute right-[4%] bottom-0 z-[1] w-[min(45%,276px)] rotate-5 overflow-hidden rounded-[2.7rem] border-4 border-[rgba(255,255,255,0.7)] bg-[#d9d7a6] shadow-[0_35px_80px_rgba(46,58,40,0.2)] max-sm:right-0 max-sm:w-[53%] max-sm:rounded-[2.2rem] max-sm:border-[3px]"
-          >
-            <Image
-              class="block h-auto w-full"
-              src={tackbokEditSrc}
-              alt="Tackbok entry editor with writing and media controls"
-              loading="eager"
-              widths={[260, 360, 450]}
-              sizes="(max-width: 640px) 210px, 280px"
-            />
-          </div>
+          <Image
+            class="absolute top-[1%] left-[8%] z-[2] block h-auto w-[min(49%,300px)] origin-center -rotate-4 overflow-hidden rounded-[2.7rem] border-4 border-[rgba(255,255,255,0.7)] bg-[#d9d7a6] shadow-[0_35px_80px_rgba(46,58,40,0.2)] max-sm:left-0 max-sm:w-[57%] max-sm:rounded-[2.2rem] max-sm:border-[3px] min-[901px]:top-1/2 min-[901px]:left-1/2 min-[901px]:z-20 min-[901px]:w-[320px] min-[901px]:[translate:-62%_-50%] min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:scale-105 min-[901px]:hover:rotate-0 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]"
+            src={tackbokHomeSrc}
+            alt="Tackbok home timeline showing gratitude entries"
+            loading="eager"
+            widths={[260, 360, 450]}
+            sizes="(max-width: 640px) 230px, (max-width: 900px) 300px, 320px"
+          />
+          <Image
+            class="absolute right-[4%] bottom-0 z-[1] block h-auto w-[min(45%,276px)] origin-center rotate-5 overflow-hidden rounded-[2.7rem] border-4 border-[rgba(255,255,255,0.7)] bg-[#d9d7a6] shadow-[0_35px_80px_rgba(46,58,40,0.2)] max-sm:right-0 max-sm:w-[53%] max-sm:rounded-[2.2rem] max-sm:border-[3px] min-[901px]:top-1/2 min-[901px]:right-auto min-[901px]:bottom-auto min-[901px]:left-1/2 min-[901px]:w-[320px] min-[901px]:[translate:-23%_-38%] min-[901px]:opacity-90 min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:z-30 min-[901px]:hover:[translate:-23%_-50%] min-[901px]:hover:rotate-0 min-[901px]:hover:opacity-100 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]"
+            src={tackbokEditSrc}
+            alt="Tackbok entry editor with writing and media controls"
+            loading="eager"
+            widths={[260, 360, 450]}
+            sizes="(max-width: 640px) 210px, (max-width: 900px) 280px, 320px"
+          />
         </div>
       </div>
     </section>
@@ -453,7 +445,7 @@ const features = [
           <p
             class="text-[0.82rem] font-extrabold tracking-[0.11em] text-[#bdcaa3] uppercase"
           >
-            Why I built Tackbok
+            A message from the developer
           </p>
           <blockquote
             class="my-5 max-w-[460px] font-display text-[clamp(1.35rem,2.2vw,1.85rem)] leading-[1.35] text-[rgba(255,255,255,0.95)]"
