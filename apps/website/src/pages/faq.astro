@@ -57,7 +57,7 @@ const faqs = [
   {
     question: 'What languages does Tackbok support?',
     answer:
-      'Tackbok currently supports English, German, Arabic, Hebrew, Simplified Chinese, and Traditional Chinese. Arabic and Hebrew layouts include right-to-left support. Hindi is planned.',
+      'Tackbok currently supports English, German, Arabic, Hebrew, Simplified Chinese, and Traditional Chinese. Arabic and Hebrew layouts include right-to-left support. Hindi are other languages are coming soon.',
   },
   {
     question: 'How do reminders work?',
@@ -79,17 +79,15 @@ const faqs = [
 >
   <SiteHeader currentPath="/faq" />
 
-  <main id="main-content" class="bg-cream">
+  <main id="main-content" class="bg-background">
     <section
       class="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_20%,rgba(140,159,111,0.28),transparent_23rem),radial-gradient(circle_at_5%_95%,rgba(227,205,151,0.26),transparent_22rem),var(--paper)] py-[clamp(5rem,10vw,8rem)]"
     >
-      <div
-        class="mx-auto w-[calc(100%_-_40px)] max-w-[820px] text-center max-sm:w-[calc(100%_-_28px)]"
-      >
+      <div class="mx-auto w-full max-w-[820px] px-6 text-center sm:px-8">
         <p
           class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase"
         >
-          Good questions are welcome here
+          Questions are welcome here
         </p>
         <h1
           class="mx-auto mb-5 text-[clamp(3rem,7vw,5.7rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
@@ -108,11 +106,6 @@ const faqs = [
         class="mx-auto grid w-[calc(100%_-_40px)] max-w-[1180px] grid-cols-[minmax(230px,0.64fr)_minmax(0,1.36fr)] items-start gap-[clamp(3rem,9vw,8rem)] max-[900px]:grid-cols-1 max-sm:w-[calc(100%_-_28px)]"
       >
         <div class="sticky top-[116px] max-[900px]:static max-[900px]:max-w-[620px]">
-          <p
-            class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase"
-          >
-            Tackbok, explained
-          </p>
           <h2
             class="mb-5 text-[clamp(2rem,3.7vw,3.2rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
           >
@@ -128,23 +121,18 @@ const faqs = [
           >
         </div>
 
-        <div class="border-t border-line">
+        <div class="flex w-full flex-col gap-3.5">
           {
             faqs.map((faq, index) => (
-              <details class="group border-b border-line" open={index === 0}>
-                <summary class="flex min-h-[86px] cursor-pointer list-none items-center justify-between gap-6 text-[1.06rem] font-[750] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)] max-sm:min-h-[76px] [&::-webkit-details-marker]:hidden">
-                  <span>{faq.question}</span>
-                  <span
-                    class="inline-flex size-8 flex-none items-center justify-center rounded-full border border-line text-[1.35rem] font-normal text-sage transition duration-150 group-open:rotate-45 group-open:bg-sage-pale"
-                    aria-hidden="true"
-                  >
-                    +
-                  </span>
-                </summary>
-                <p class="-mt-[0.35rem] mr-14 mb-[1.8rem] max-w-[680px] leading-[1.72] text-ink-soft max-sm:mr-0">
-                  {faq.answer}
-                </p>
-              </details>
+              <div class="collapse-plus collapse rounded-2xl border border-[rgba(52,75,55,0.15)] bg-paper/50 transition-all duration-200 hover:border-sage/40 hover:bg-paper hover:shadow-sm has-[:checked]:border-sage/50 has-[:checked]:bg-paper has-[:checked]:shadow-[0_6px_24px_rgba(52,75,55,0.07)]">
+                <input type="radio" name="faq-accordion" checked={index === 0} />
+                <div class="collapse-title flex min-h-[64px] items-center pr-12 pl-6 text-[1.05rem] font-[750] text-ink sm:pr-14 sm:pl-7">
+                  {faq.question}
+                </div>
+                <div class="collapse-content pr-8 pl-6 text-[0.98rem] leading-[1.72] text-ink-soft sm:pr-10 sm:pl-7">
+                  <p class="max-w-[680px] pt-1 pb-4">{faq.answer}</p>
+                </div>
+              </div>
             ))
           }
         </div>
@@ -171,7 +159,7 @@ const faqs = [
           class="flex flex-wrap items-center justify-end gap-[0.7rem] max-sm:w-full max-sm:items-stretch max-sm:justify-start"
         >
           <a
-            class="inline-flex min-h-[50px] items-center justify-center gap-[0.55rem] rounded-full border border-sage-deep bg-sage-deep px-[1.35rem] py-[0.78rem] leading-none font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] hover:shadow-[0_12px_28px_rgba(52,75,55,0.24)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)] active:translate-y-0 max-sm:w-full"
+            class="btn h-[50px] min-h-[50px] rounded-full border-sage-deep bg-sage-deep px-[1.35rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] max-sm:w-full"
             href={GOOGLE_PLAY_URL}
             target="_blank"
             rel="noopener noreferrer"
@@ -179,7 +167,7 @@ const faqs = [
             Android beta
           </a>
           <a
-            class="inline-flex min-h-[50px] items-center justify-center gap-[0.55rem] rounded-full border border-line bg-[rgba(255,255,255,0.4)] px-[1.35rem] py-[0.78rem] leading-none font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:shadow-[0_8px_22px_rgba(52,75,55,0.1)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)] active:translate-y-0 max-sm:w-full"
+            class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
             href={TESTFLIGHT_URL}
             target="_blank"
             rel="noopener noreferrer"
@@ -187,12 +175,12 @@ const faqs = [
             iOS via TestFlight
           </a>
           <a
-            class="inline-flex items-center gap-[0.45rem] font-[750] text-sage-deep underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            class="btn btn-link px-2 font-[750] text-sage-deep no-underline hover:underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
             href={WAITLIST_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
-            Join the waitlist
+            Join the waitlist <span>→</span>
           </a>
         </div>
       </div>

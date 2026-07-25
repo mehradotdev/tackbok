@@ -1,4 +1,5 @@
 ---
+import { ExternalLink } from '@lucide/astro';
 import SiteFooter from '~/components/SiteFooter.astro';
 import SiteHeader from '~/components/SiteHeader.astro';
 import Layout from '~/layouts/main.astro';
@@ -26,7 +27,7 @@ import Layout from '~/layouts/main.astro';
     >
     </div>
     <div
-      class="relative z-[2] mx-auto w-[calc(100%_-_40px)] max-w-[780px] max-sm:w-[calc(100%_-_28px)]"
+      class="relative z-[2] mx-auto w-full max-w-[780px] px-6 sm:px-8"
     >
       <p
         class="mb-2 font-display text-[clamp(8rem,20vw,15rem)] leading-[0.65] font-bold tracking-[-0.09em] text-[rgba(100,123,85,0.16)] italic"
@@ -47,21 +48,22 @@ import Layout from '~/layouts/main.astro';
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3">
         <a
-          class="inline-flex min-h-[50px] items-center justify-center gap-[0.55rem] rounded-full border border-sage-deep bg-sage-deep px-[1.35rem] py-[0.78rem] leading-none font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] hover:shadow-[0_12px_28px_rgba(52,75,55,0.24)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)] active:translate-y-0 max-sm:w-full"
+          class="btn h-[50px] min-h-[50px] rounded-full border-sage-deep bg-sage-deep px-[1.35rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] max-sm:w-full"
           href="/">Return home</a
         >
         <a
-          class="inline-flex min-h-[50px] items-center justify-center gap-[0.55rem] rounded-full border border-line bg-[rgba(255,255,255,0.4)] px-[1.35rem] py-[0.78rem] leading-none font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:shadow-[0_8px_22px_rgba(52,75,55,0.1)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)] active:translate-y-0 max-sm:w-full"
+          class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
           href="/faq">Visit the FAQ</a
         >
       </div>
       <a
-        class="mt-[1.8rem] inline-flex items-center gap-[0.45rem] font-[750] text-sage-deep underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        class="btn mt-[1.8rem] inline-flex items-center gap-1.5 btn-link px-2 font-[750] text-sage-deep no-underline hover:underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
         href="https://github.com/mehradotdev/tackbok"
         target="_blank"
         rel="noopener noreferrer"
       >
-        Or explore Tackbok on GitHub <span aria-hidden="true">↗</span>
+        <span>Or explore Tackbok on GitHub</span>
+        <ExternalLink class="size-4 opacity-80" />
       </a>
     </div>
   </main>

@@ -1,11 +1,12 @@
 ---
+import { ExternalLink } from '@lucide/astro';
+
 const supportEmail = 'tackbok.support@mehra.dev';
-const year = new Date().getFullYear();
 ---
 
 <footer class="border-t border-line bg-paper-deep pt-[3.2rem] pb-6">
   <div
-    class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1180px] items-start justify-between gap-12 max-sm:w-[calc(100%_-_28px)] max-sm:flex-col"
+    class="mx-auto flex w-full max-w-[1240px] items-start justify-between gap-12 px-6 max-sm:flex-col sm:px-8 lg:px-12"
   >
     <div>
       <a
@@ -28,7 +29,7 @@ const year = new Date().getFullYear();
     </div>
 
     <nav
-      class="flex max-w-[560px] flex-wrap items-center justify-end gap-[clamp(1rem,2.4vw,2rem)] max-sm:justify-start"
+      class="flex max-w-[640px] flex-wrap items-center justify-end gap-[clamp(1rem,2vw,1.8rem)] max-sm:justify-start"
       aria-label="Footer navigation"
     >
       <a
@@ -37,15 +38,7 @@ const year = new Date().getFullYear();
       >
       <a
         class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-        href="/#privacy">Privacy</a
-      >
-      <a
-        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
         href="/faq">FAQ</a
-      >
-      <a
-        class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-        href="/privacy">Privacy policy</a
       >
       <a
         class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
@@ -53,23 +46,34 @@ const year = new Date().getFullYear();
       >
       <a
         class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-        href={`mailto:${supportEmail}`}>Support</a
+        href="/privacy">Privacy policy</a
       >
       <a
         class="text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        href={`mailto:${supportEmail}`}>Support</a
+      >
+      <a
+        class="inline-flex items-center gap-1 text-[0.92rem] font-semibold text-ink-soft underline-offset-[0.3rem] transition-colors duration-150 hover:text-ink hover:underline hover:decoration-sage focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
         href="https://github.com/mehradotdev/tackbok"
         target="_blank"
         rel="noopener noreferrer"
       >
-        GitHub
+        <span>GitHub</span>
+        <ExternalLink class="size-3.5 opacity-70" />
       </a>
     </nav>
   </div>
 
   <div
-    class="mx-auto mt-11 flex w-[calc(100%_-_40px)] max-w-[1180px] justify-between border-t border-line pt-5 text-[0.76rem] text-ink-soft max-sm:w-[calc(100%_-_28px)] max-sm:flex-col"
+    class="mx-auto mt-11 flex w-full max-w-[1240px] justify-center border-t border-line px-6 pt-5 text-center text-[0.76rem] text-ink-soft sm:px-8 lg:px-12"
   >
-    <p>&copy; {year} Mehra Dot Dev.</p>
-    <p>Free, open source, and made with care.</p>
+    <p>
+      Made with ❤️🧡💛 and care by <a
+        class="font-medium underline underline-offset-2 transition-colors duration-150 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage"
+        href="https://mehra.dev"
+        target="_blank"
+        rel="noopener noreferrer">Mehra Dot Dev</a
+      >.
+    </p>
   </div>
 </footer>

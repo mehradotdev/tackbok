@@ -1,14 +1,15 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import '@fontsource-variable/figtree';
+@plugin 'daisyui';
 
 :root {
-  --background: oklch(0.867 0.05 105.1);
-  --foreground: oklch(0.2 0.05 40);
-  --card: oklch(0.867 0.05 105.1);
-  --card-foreground: oklch(0.2 0.05 40);
-  --popover: oklch(0.867 0.05 105.1);
-  --popover-foreground: oklch(0.2 0.05 40);
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
   --primary: oklch(0.75 0.1 110);
   --primary-foreground: oklch(0.2 0.05 40);
   --secondary: oklch(0.82 0.05 105);
@@ -43,7 +44,7 @@
   --sage: #647b55;
   --sage-deep: #344b37;
   --sage-pale: #dce2c7;
-  --cream: #fffdf4;
+  --cream: #f5f5dc;
   --line: rgba(52, 75, 55, 0.18);
 }
 
@@ -184,6 +185,28 @@
   left: -40px;
   transform: rotate(40deg);
 }
+
+/* Premium gentle floating animation for theme swatches */
+@keyframes float-gentle {
+  0%, 100% {
+    translate: 0 0px;
+  }
+  50% {
+    translate: 0 -7px;
+  }
+}
+
+.animate-float {
+  animation: float-gentle 6s ease-in-out infinite;
+}
+
+.anim-delay-0 { animation-delay: 0s; }
+.anim-delay-1 { animation-delay: 0.85s; }
+.anim-delay-2 { animation-delay: 1.7s; }
+.anim-delay-3 { animation-delay: 2.55s; }
+.anim-delay-4 { animation-delay: 3.4s; }
+.anim-delay-5 { animation-delay: 4.25s; }
+.anim-delay-6 { animation-delay: 1.2s; }
 
 @media (prefers-reduced-motion: reduce) {
   html {

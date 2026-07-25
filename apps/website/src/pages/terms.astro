@@ -5,7 +5,7 @@ import SiteHeader from '~/components/SiteHeader.astro';
 
 const title = 'Terms of Service — Tackbok';
 const description = 'Read the terms of service for the Tackbok gratitude journal app.';
-const lastUpdated = 'March 13, 2026';
+const lastUpdated = 'July 25, 2026';
 const supportEmail = 'tackbok.support@mehra.dev';
 ---
 
@@ -18,16 +18,16 @@ const supportEmail = 'tackbok.support@mehra.dev';
     <div class="flex w-full max-w-3xl flex-col gap-8">
       <div>
         <h1 class="mb-4 text-4xl font-bold tracking-tight">Terms of Service</h1>
-        <p class="text-muted-foreground">
+        <div class="badge badge-outline py-3 text-xs badge-neutral">
           Last updated: {lastUpdated}
-        </p>
+        </div>
       </div>
 
-      <div class="prose prose-neutral max-w-none space-y-6">
+      <div class="prose-neutral prose max-w-none space-y-6">
         <p>
           By downloading or using the <strong>Tackbok</strong> app, these terms will automatically
           apply to you. You should make sure you read them carefully before using the app. The
-          <strong>Tackbok</strong> application is open-source software licensed under the Apache
+          <strong> Tackbok</strong> application is open-source software licensed under the Apache
           License 2.0, and you are welcome to view, modify, and distribute the source code in
           accordance with that license. While the code is open-source, we kindly ask that you
           do not use the <strong>Tackbok</strong> name, official logos, or brand identity when
