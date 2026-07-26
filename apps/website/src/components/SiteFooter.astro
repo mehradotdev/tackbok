@@ -1,5 +1,7 @@
 ---
 import { ExternalLink } from '@lucide/astro';
+import { Image } from 'astro:assets';
+import iconSrc from '~/assets/icon.png';
 
 const supportEmail = 'tackbok.support@mehra.dev';
 ---
@@ -14,9 +16,9 @@ const supportEmail = 'tackbok.support@mehra.dev';
         href="/"
         aria-label="Tackbok home"
       >
-        <img
+        <Image
           class="rounded-[0.7rem] shadow-[0_6px_18px_rgba(52,75,55,0.14)]"
-          src="/icon.png"
+          src={iconSrc}
           width="40"
           height="40"
           alt=""

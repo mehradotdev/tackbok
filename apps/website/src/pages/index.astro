@@ -9,8 +9,11 @@ import {
   Sparkles,
 } from '@lucide/astro';
 import { Image } from 'astro:assets';
+import googlePlaySrc from '~/assets/google-play.svg';
+import iconSrc from '~/assets/icon.png';
 import tackbokEditSrc from '~/assets/tackbok_edit_page.png';
 import tackbokHomeSrc from '~/assets/tackbok_home_page.png';
+import testflightSrc from '~/assets/testflight.png';
 import GithubIcon from '~/components/GithubIcon.astro';
 import SiteFooter from '~/components/SiteFooter.astro';
 import SiteHeader from '~/components/SiteHeader.astro';
@@ -59,9 +62,42 @@ const features = [
     copy: 'Tackbok currently supports 5+ languages with full RTL support. More languages are coming soon.',
   },
 ];
+
+const description =
+  'A free, open-source gratitude journal for private reflections, photos, voice memos, prompts, and gentle daily reminders.';
+
+// WebSite belongs on the home page only — Google reads it to pick the site name
+// shown in search results.
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': 'https://tackbok.org/#website',
+      name: 'Tackbok',
+      url: 'https://tackbok.org/',
+      description,
+    },
+    {
+      '@type': 'MobileApplication',
+      name: 'Tackbok',
+      description,
+      applicationCategory: 'LifestyleApplication',
+      operatingSystem: 'Android, iOS',
+      isAccessibleForFree: true,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      downloadUrl: [GOOGLE_PLAY_URL, TESTFLIGHT_URL],
+      sameAs: [GITHUB_URL],
+    },
+  ],
+};
 ---
 
-<Layout image="/og.png">
+<Layout structuredData={structuredData}>
   <SiteHeader />
 
   <main id="main-content">
@@ -113,11 +149,11 @@ const features = [
               <span
                 class="inline-flex size-full items-center justify-start gap-[0.65rem] rounded-[inherit] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white"
               >
-                <img
+                <Image
                   class="size-10 flex-none"
-                  src="/badges/google-play.svg"
-                  width="96"
-                  height="96"
+                  src={googlePlaySrc}
+                  width="40"
+                  height="40"
                   alt=""
                 />
                 <span class="flex min-w-0 flex-col">
@@ -138,11 +174,11 @@ const features = [
               rel="noopener noreferrer"
               aria-label="Join the Tackbok beta with TestFlight"
             >
-              <img
+              <Image
                 class="size-10 flex-none rounded-[9px]"
-                src="/badges/testflight.png"
-                width="400"
-                height="400"
+                src={testflightSrc}
+                width="40"
+                height="40"
                 alt=""
               />
               <span class="flex min-w-0 flex-col">
@@ -418,9 +454,9 @@ const features = [
             <div
               class="absolute top-1/2 left-1/2 z-10 flex size-[185px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-[rgba(52,75,55,0.13)] bg-cream shadow-[0_25px_60px_rgba(52,75,55,0.16)] max-sm:size-[160px] sm:size-[195px]"
             >
-              <img
+              <Image
                 class="mb-[0.4rem] rounded-[1.4rem] max-sm:size-[60px]"
-                src="/icon.png"
+                src={iconSrc}
                 width="84"
                 height="84"
                 alt=""
@@ -592,11 +628,11 @@ const features = [
             <span
               class="inline-flex size-full items-center justify-start gap-[0.65rem] rounded-[inherit] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white"
             >
-              <img
+              <Image
                 class="size-10 flex-none"
-                src="/badges/google-play.svg"
-                width="96"
-                height="96"
+                src={googlePlaySrc}
+                width="40"
+                height="40"
                 alt=""
                 loading="lazy"
               />
@@ -618,11 +654,11 @@ const features = [
             rel="noopener noreferrer"
             aria-label="Join the Tackbok beta with TestFlight"
           >
-            <img
+            <Image
               class="size-10 flex-none rounded-[9px]"
-              src="/badges/testflight.png"
-              width="400"
-              height="400"
+              src={testflightSrc}
+              width="40"
+              height="40"
               alt=""
               loading="lazy"
             />
