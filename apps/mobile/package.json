@@ -9,6 +9,7 @@
     "generate:themes": "bun run src/lib/theme/generate-theme-artifacts.ts",
     "generate:themes:verify": "bun run generate:themes && bun run test:theme",
     "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
     "test": "bun run test:jest",
     "test:jest": "jest",
     "test:theme": "jest src/lib/theme/theme-registry.test.ts src/lib/theme/metro-config.test.ts"

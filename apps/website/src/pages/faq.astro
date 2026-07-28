@@ -74,23 +74,19 @@ const faqs = [
 
 <Layout
   title="Frequently asked questions — Tackbok"
-  description="Answers about Tackbok’s availability, privacy, offline storage, app lock, backups, languages, reminders, and open-source development."
->
+  description="Answers about Tackbok’s availability, privacy, offline storage, app lock, backups, languages, reminders, and open-source development.">
   <SiteHeader currentPath="/faq" />
 
   <main id="main-content" class="bg-background">
     <section
-      class="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_20%,rgba(140,159,111,0.28),transparent_23rem),radial-gradient(circle_at_5%_95%,rgba(227,205,151,0.26),transparent_22rem),var(--paper)] py-[clamp(5rem,10vw,8rem)]"
-    >
+      class="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_20%,rgba(140,159,111,0.28),transparent_23rem),radial-gradient(circle_at_5%_95%,rgba(227,205,151,0.26),transparent_22rem),var(--paper)] py-[clamp(5rem,10vw,8rem)]">
       <div class="mx-auto w-full max-w-[820px] px-6 text-center sm:px-8">
         <p
-          class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase"
-        >
+          class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase">
           Questions are welcome here
         </p>
         <h1
-          class="mx-auto mb-5 text-[clamp(3rem,7vw,5.7rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
-        >
+          class="mx-auto mb-5 text-[clamp(3rem,7vw,5.7rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
           Frequently asked questions.
         </h1>
         <p class="mx-auto max-w-[660px] text-[1.08rem] leading-[1.7] text-ink-soft">
@@ -102,12 +98,10 @@ const faqs = [
 
     <section class="py-[clamp(4.5rem,9vw,8rem)]">
       <div
-        class="mx-auto grid w-[calc(100%_-_40px)] max-w-[1180px] grid-cols-[minmax(230px,0.64fr)_minmax(0,1.36fr)] items-start gap-[clamp(3rem,9vw,8rem)] max-[900px]:grid-cols-1 max-sm:w-[calc(100%_-_28px)]"
-      >
+        class="mx-auto grid w-[calc(100%_-_40px)] max-w-[1180px] grid-cols-[minmax(230px,0.64fr)_minmax(0,1.36fr)] items-start gap-[clamp(3rem,9vw,8rem)] max-[900px]:grid-cols-1 max-sm:w-[calc(100%_-_28px)]">
         <div class="sticky top-[116px] max-[900px]:static max-[900px]:max-w-[620px]">
           <h2
-            class="mb-5 text-[clamp(2rem,3.7vw,3.2rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
-          >
+            class="mb-5 text-[clamp(2rem,3.7vw,3.2rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
             Clear answers, no evasive language.
           </h2>
           <p class="text-[1.08rem] leading-[1.7] text-ink-soft">
@@ -140,45 +134,38 @@ const faqs = [
 
     <section class="border-t border-line bg-paper py-[clamp(3.5rem,8vw,6rem)]">
       <div
-        class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1180px] items-center justify-between gap-8 max-sm:w-[calc(100%_-_28px)] max-sm:flex-col"
-      >
+        class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1180px] items-center justify-between gap-8 max-sm:w-[calc(100%_-_28px)] max-sm:flex-col">
         <div>
           <p
-            class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase"
-          >
+            class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase">
             Ready when you are
           </p>
           <h2
-            class="m-0 text-[clamp(2rem,4vw,3.5rem)] leading-[1.03] font-[690] tracking-[-0.055em]"
-          >
+            class="m-0 text-[clamp(2rem,4vw,3.5rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
             Try the Tackbok beta.
           </h2>
         </div>
         <div
-          class="flex flex-wrap items-center justify-end gap-[0.7rem] max-sm:w-full max-sm:items-stretch max-sm:justify-start"
-        >
+          class="flex flex-wrap items-center justify-end gap-[0.7rem] max-sm:w-full max-sm:items-stretch max-sm:justify-start">
           <a
             class="btn h-[50px] min-h-[50px] rounded-full border-sage-deep bg-sage-deep px-[1.35rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] max-sm:w-full"
             href={GOOGLE_PLAY_URL}
             target="_blank"
-            rel="noopener noreferrer"
-          >
+            rel="noopener noreferrer">
             Android beta
           </a>
           <a
             class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
             href={TESTFLIGHT_URL}
             target="_blank"
-            rel="noopener noreferrer"
-          >
+            rel="noopener noreferrer">
             iOS via TestFlight
           </a>
           <a
             class="btn btn-link px-2 font-[750] text-sage-deep no-underline hover:underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
             href={WAITLIST_URL}
             target="_blank"
-            rel="noopener noreferrer"
-          >
+            rel="noopener noreferrer">
             Join the waitlist <span>→</span>
           </a>
         </div>
