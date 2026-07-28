@@ -1,7 +1,6 @@
 ---
 import { ExternalLink } from '@lucide/astro';
-import { Image } from 'astro:assets';
-import iconSrc from '~/assets/icon.png';
+import Logo from '~/assets/logo.svg';
 
 const supportEmail = 'tackbok.support@mehra.dev';
 ---
@@ -14,13 +13,7 @@ const supportEmail = 'tackbok.support@mehra.dev';
         class="inline-flex items-center gap-[0.7rem] text-[1.15rem] font-[760] tracking-[-0.02em] text-ink no-underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
         href="/"
         aria-label="Tackbok home">
-        <Image
-          class="rounded-[0.7rem] shadow-[0_6px_18px_rgba(52,75,55,0.14)]"
-          src={iconSrc}
-          width="40"
-          height="40"
-          alt=""
-        />
+        <Logo class="size-10 text-ink" aria-hidden="true" />
         <span>Tackbok</span>
       </a>
       <p class="mt-3 mb-0 text-[0.88rem] text-ink-soft">

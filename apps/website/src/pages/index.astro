@@ -10,7 +10,7 @@ import {
 } from '@lucide/astro';
 import { Image } from 'astro:assets';
 import googlePlaySrc from '~/assets/google-play.svg';
-import iconSrc from '~/assets/icon.png';
+import Logo from '~/assets/logo.svg';
 import tackbokEditSrc from '~/assets/tackbok_edit_page.png';
 import tackbokHomeSrc from '~/assets/tackbok_home_page.png';
 import testflightSrc from '~/assets/testflight.png';
@@ -423,12 +423,9 @@ const structuredData = {
             <!-- Center Badge -->
             <div
               class="absolute top-1/2 left-1/2 z-10 flex size-[185px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-[rgba(52,75,55,0.13)] bg-cream shadow-[0_25px_60px_rgba(52,75,55,0.16)] max-sm:size-[160px] sm:size-[195px]">
-              <Image
-                class="mb-[0.4rem] rounded-[1.4rem] max-sm:size-[60px]"
-                src={iconSrc}
-                width="84"
-                height="84"
-                alt=""
+              <Logo
+                class="mb-[0.4rem] size-21 text-ink max-sm:size-15"
+                aria-hidden="true"
               />
               <strong class="text-[1rem] sm:text-[1.05rem]">10+ themes</strong>
               <small class="text-ink-soft">light &amp; dark</small>
