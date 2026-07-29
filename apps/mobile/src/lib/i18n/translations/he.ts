@@ -24,6 +24,7 @@ export const he: Translations = {
   'Share Feedback': 'שתף משוב',
   'Contact Us': 'צור קשר',
   'Unknown error': 'שגיאה לא ידועה',
+  Retry: 'נסה שוב',
 
   // Header & Search
   'Search gratitude logs...': 'חפש יומני הכרת טובה...',
@@ -52,6 +53,7 @@ export const he: Translations = {
   // Gratitude Entry
   'Delete Entry?': 'מחק רשומה?',
   'This entry will be permanently deleted.': 'רשומה זו תימחק לצמיתות.',
+  'Entry not found': 'הרשומה לא נמצאה',
   'Leave without saving?': 'לצאת ללא שמירה?',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     'הרשומה לא נשמרה. האם ברצונך להמשיך לערוך או למחוק?',
@@ -269,8 +271,6 @@ export const he: Translations = {
   'Show Timeline Borders': 'הצג גבולות ציר זמן',
   'Show the borders in the timeline': 'הצג את הגבולות בציר הזמן',
   'Hide the borders in the timeline': 'הסתר את הגבולות בציר הזמן',
-  'Inspirational Quotes': 'ציטוטים מעוררי השראה',
-  'Gratitude quotes will be shown on entry page': 'ציטוטי הכרת טובה יוצגו בדף הרשומה',
   'Date Style': 'סגנון תאריך',
   'Date includes day of the week': 'התאריך כולל את יום השבוע',
   'First Day of Week': 'היום הראשון בשבוע',
@@ -422,6 +422,8 @@ export const he: Translations = {
   'Share Tackbok': 'שתף את טאקבוק',
   'Share the app with friends and family':
     'נהנה מטאקבוק? שתף את האפליקציה עם חברים ומשפחה',
+  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+    'תרגל הכרת תודה עם טאקבוק, אפליקציה פשוטה, חינמית ופרטית ליומן תודה',
   'Privacy Policy': 'מדיניות פרטיות',
   'Read our privacy policy': 'קרא את מדיניות הפרטיות של טאקבוק',
   'Terms & Conditions': 'תנאים והגבלות',
@@ -462,6 +464,8 @@ export const he: Translations = {
   'Next month': 'החודש הבא',
   'Select month': 'בחר חודש',
   'Select year': 'בחר שנה',
+  Random: 'אקראי',
+  'Open a random entry': 'פתח רשומה אקראית',
   Sun: 'א',
   Mon: 'ב',
   Tue: 'ג',
@@ -528,8 +532,7 @@ export const he: Translations = {
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
     'תודה על רחובות שקטים, קפה חם ושמיים מלאי צבע.',
   'More themes…': 'עוד ערכות נושא…',
-  'What do you want to be more grateful for?':
-    'על מה תרצו להכיר תודה יותר?',
+  'What do you want to be more grateful for?': 'על מה תרצו להכיר תודה יותר?',
   'We’ll suggest writing prompts from the areas you pick.':
     'נציע לכם רעיונות לכתיבה מהתחומים שתבחרו.',
   'Pick at least {count}': 'בחרו לפחות {count}',
@@ -590,8 +593,7 @@ export const he: Translations = {
   sample_entry_welcome_body:
     'זהו יומן הכרת התודה שלכם — מקום לרגעים הטובים. הקישו על כפתור + כדי לכתוב שורה אחת או עמוד שלם, פעם ביום או מתי שתרצו. הקישו על הכרטיס הזה כדי לראות את הרשומה המלאה.',
   sample_entry_photos_title: 'רגעים קטנים',
-  sample_entry_photos_body:
-    'אפשר לצרף תמונות לזיכרון — הקישו על תמונה כדי להגדיל.',
+  sample_entry_photos_body: 'אפשר לצרף תמונות לזיכרון — הקישו על תמונה כדי להגדיל.',
   sample_entry_voice_title: 'במילים שלי',
   sample_entry_voice_body:
     'לפעמים קל יותר לומר את זה בקול. הקישו על נגן כדי לשמוע הקלטה קצרה.',

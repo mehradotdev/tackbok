@@ -78,6 +78,8 @@ export interface DatePickerProps {
   onMonthYearChange?: (date: Date) => void;
   /** First day of the week */
   firstDayOfWeek?: FirstDayOfWeek;
+  /** Optional content rendered below the calendar (e.g. action buttons) */
+  footer?: React.ReactNode;
 }
 
 type ViewMode = 'days' | 'months' | 'years';
@@ -212,6 +214,7 @@ export function DatePicker({
   scrollToBottomYearsView = false,
   onMonthYearChange,
   firstDayOfWeek = FirstDay.MONDAY,
+  footer,
 }: DatePickerProps) {
   const { t, isRTL } = useTranslation();
   const [viewDate, setViewDate] = useState(value);
@@ -549,6 +552,7 @@ export function DatePicker({
       {viewMode === 'days' && renderDaysView()}
       {viewMode === 'months' && renderMonthsView()}
       {viewMode === 'years' && renderYearsView()}
+      {viewMode === 'days' && footer}
     </View>
   );
 }

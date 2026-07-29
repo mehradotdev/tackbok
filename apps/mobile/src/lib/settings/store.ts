@@ -35,7 +35,6 @@ interface SettingsState {
   // Appearance
   theme: string;
   timelineEntryLength: number; // 1-50, default 10
-  inspirationalQuotesEnabled: boolean;
   dateIncludesDayOfWeek: boolean;
   firstDayOfWeek: FirstDayOfWeek;
   showTimelineBorders: boolean;
@@ -85,7 +84,6 @@ interface SettingsState {
   setProfileImageUri: (uri: string | null) => void;
   setTheme: (theme: string) => void;
   setTimelineEntryLength: (length: number) => void;
-  setInspirationalQuotesEnabled: (enabled: boolean) => void;
   setDateIncludesDayOfWeek: (enabled: boolean) => void;
   setFirstDayOfWeek: (day: FirstDayOfWeek) => void;
   setShowTimelineBorders: (enabled: boolean) => void;
@@ -117,7 +115,6 @@ const DEFAULT_SETTINGS_VALUES = {
   profileImageUri: null,
   theme: DEFAULT_THEME_ID,
   timelineEntryLength: 10,
-  inspirationalQuotesEnabled: true,
   dateIncludesDayOfWeek: false,
   firstDayOfWeek: FirstDay.MONDAY,
   showTimelineBorders: false,
@@ -163,8 +160,6 @@ export const useSettingsStore = create<SettingsState>()(
         const safeLength = Math.max(1, Math.min(50, length));
         set({ timelineEntryLength: safeLength });
       },
-      setInspirationalQuotesEnabled: (enabled) =>
-        set({ inspirationalQuotesEnabled: enabled }),
       setDateIncludesDayOfWeek: (enabled) => set({ dateIncludesDayOfWeek: enabled }),
       setFirstDayOfWeek: (day) => set({ firstDayOfWeek: day }),
       setShowTimelineBorders: (enabled) => set({ showTimelineBorders: enabled }),
@@ -237,7 +232,6 @@ export const useSettingsStore = create<SettingsState>()(
         profileImageUri: state.profileImageUri,
         theme: state.theme,
         timelineEntryLength: state.timelineEntryLength,
-        inspirationalQuotesEnabled: state.inspirationalQuotesEnabled,
         dateIncludesDayOfWeek: state.dateIncludesDayOfWeek,
         firstDayOfWeek: state.firstDayOfWeek,
         showTimelineBorders: state.showTimelineBorders,

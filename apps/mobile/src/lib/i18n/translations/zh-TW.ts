@@ -24,6 +24,7 @@ export const zhTW: Translations = {
   'Share Feedback': '分享意見',
   'Contact Us': '聯絡我們',
   'Unknown error': '未知錯誤',
+  Retry: '重試',
 
   // Header & Search
   'Search gratitude logs...': '搜尋感恩日誌...',
@@ -51,6 +52,7 @@ export const zhTW: Translations = {
   // Gratitude Entry
   'Delete Entry?': '刪除紀錄？',
   'This entry will be permanently deleted.': '此紀錄將被永久刪除。',
+  'Entry not found': '找不到紀錄',
   'Leave without saving?': '離開而不儲存？',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     '您的紀錄尚未儲存。您想繼續編輯還是捨棄？',
@@ -264,8 +266,6 @@ export const zhTW: Translations = {
   'Show Timeline Borders': '顯示時間軸邊框',
   'Show the borders in the timeline': '顯示時間軸中的邊框',
   'Hide the borders in the timeline': '隱藏時間軸中的邊框',
-  'Inspirational Quotes': '勵志名言',
-  'Gratitude quotes will be shown on entry page': '感恩名言將顯示於紀錄頁面',
   'Date Style': '日期樣式',
   'Date includes day of the week': '日期包含星期',
   'First Day of Week': '每週的第一天',
@@ -412,6 +412,8 @@ export const zhTW: Translations = {
   'Read frequently asked questions': '閱讀塔克博克的常見問題',
   'Share Tackbok': '分享塔克博克',
   'Share the app with friends and family': '喜歡塔克博克嗎？與您的親友分享此應用程式',
+  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+    '用塔克博克練習感恩，一款簡單、免費且私密的感恩日記應用程式',
   'Privacy Policy': '隱私權政策',
   'Read our privacy policy': '閱讀塔克博克的隱私權政策',
   'Terms & Conditions': '條款與條件',
@@ -452,6 +454,8 @@ export const zhTW: Translations = {
   'Next month': '下個月',
   'Select month': '選擇月份',
   'Select year': '選擇年份',
+  Random: '隨機',
+  'Open a random entry': '開啟隨機紀錄',
   Sun: '週日',
   Mon: '週一',
   Tue: '週二',
@@ -581,8 +585,7 @@ export const zhTW: Translations = {
   sample_entry_photos_title: '小小瞬間',
   sample_entry_photos_body: '你可以為回憶附上照片 — 點一下圖片即可放大。',
   sample_entry_voice_title: '用我自己的聲音',
-  sample_entry_voice_body:
-    '有時說出來更容易。點一下播放，聽一段簡短的語音備忘。',
+  sample_entry_voice_body: '有時說出來更容易。點一下播放，聽一段簡短的語音備忘。',
   sample_entry_tags_body:
     '這則日記回答了一條書寫靈感，並帶有兩個標籤。試試頂部的搜尋，依標籤篩選就能再次找到它。',
 

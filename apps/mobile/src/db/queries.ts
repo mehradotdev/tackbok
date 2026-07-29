@@ -65,6 +65,27 @@ export async function hasAnyEntries(): Promise<boolean> {
 }
 
 /**
+ * Total number of entries. Used to decide whether the datepicker's
+ * "Random" shortcut is worth showing (hidden below 2 entries).
+ */
+export async function getEntryCount(): Promise<number> {
+  const [row] = await db.select({ count: sql<number>`count(*)` }).from(entries);
+  return row?.count ?? 0;
+}
+
+/**
+ * Get the note_id of one random entry
+ */
+export async function getRandomEntryId(): Promise<string | undefined> {
+  const [row] = await db
+    .select({ note_id: entries.note_id })
+    .from(entries)
+    .orderBy(sql`RANDOM()`)
+    .limit(1);
+  return row?.note_id;
+}
+
+/**
  * Get a single entry by its note_id
  */
 export async function getEntryById(noteId: string): Promise<Entry | undefined> {

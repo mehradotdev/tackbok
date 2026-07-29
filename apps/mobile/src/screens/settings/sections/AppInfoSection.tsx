@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Linking } from 'react-native';
+import { View, Linking, Share, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
@@ -98,6 +98,24 @@ export function AppInfoSection() {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      const message = t(
+        'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app',
+      );
+      // iOS renders rich link previews only for the dedicated url field;
+      // Android ignores it, so the link must stay in the message there.
+      await Share.share(
+        Platform.OS === 'ios'
+          ? { message, url: 'https://tackbok.org' }
+          : { message: `${message}\nhttps://tackbok.org` },
+      );
+    } catch (error) {
+      console.warn('Failed to open the share sheet:', error);
+      toast.error(t('Unknown error'));
+    }
+  };
+
   const handleReplayOnboarding = () => {
     setShowReplayOnboardingDialog(false);
     const settings = useSettingsStore.getState();
@@ -113,9 +131,7 @@ export function AppInfoSection() {
         label={t('Share Tackbok')}
         description={t('Share the app with friends and family')}
         icon={Share2}
-        onPress={() => {
-          // TODO: Implement share functionality
-        }}
+        onPress={handleShare}
         showChevron
       />
       <SettingsRow
@@ -170,11 +186,7 @@ export function AppInfoSection() {
           onPress={handleRestart}
         />
       )}
-      <SettingsRow
-        label={t('Version')}
-        description={displayedVersion}
-        icon={Info}
-      />
+      <SettingsRow label={t('Version')} description={displayedVersion} icon={Info} />
       <SettingsRow
         label={t('Replay Onboarding')}
         description={t('Run the welcome setup again')}

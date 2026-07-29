@@ -23,6 +23,7 @@ export const en = {
   'Share Feedback': 'Share Feedback',
   'Contact Us': 'Contact Us',
   'Unknown error': 'Unknown error',
+  Retry: 'Retry',
 
   // Header & Search
   'Search gratitude logs...': 'Search gratitude logs...',
@@ -52,6 +53,7 @@ export const en = {
   // Gratitude Entry
   'Delete Entry?': 'Delete Entry?',
   'This entry will be permanently deleted.': 'This entry will be permanently deleted.',
+  'Entry not found': 'Entry not found',
   'Leave without saving?': 'Leave without saving?',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     'Your entry is unsaved. Would you like to keep editing or discard them?',
@@ -281,9 +283,6 @@ export const en = {
   'Show Timeline Borders': 'Show Timeline Borders',
   'Show the borders in the timeline': 'Show the borders in the timeline',
   'Hide the borders in the timeline': 'Hide the borders in the timeline',
-  'Inspirational Quotes': 'Inspirational Quotes',
-  'Gratitude quotes will be shown on entry page':
-    'Gratitude quotes will be shown on entry page',
   'Date Style': 'Date Style',
   'Date includes day of the week': 'Date includes day of the week',
   'First Day of Week': 'First Day of Week',
@@ -439,6 +438,8 @@ export const en = {
   'Share Tackbok': 'Share Tackbok',
   'Share the app with friends and family':
     'Enjoying Tackbok? Share the app with your friends and family',
+  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+    'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app',
   'Privacy Policy': 'Privacy Policy',
   'Read our privacy policy': "Read Tackbok's privacy policy",
   'Terms & Conditions': 'Terms & Conditions',
@@ -479,6 +480,8 @@ export const en = {
   'Next month': 'Next month',
   'Select month': 'Select month',
   'Select year': 'Select year',
+  Random: 'Random',
+  'Open a random entry': 'Open a random entry',
   Sun: 'Sun',
   Mon: 'Mon',
   Tue: 'Tue',
@@ -607,8 +610,7 @@ export const en = {
   sample_entry_welcome_body:
     'This is your gratitude journal — a place for the good moments. Tap the + button to write one line or a whole page, once a day or whenever you like. Tap this card to see the full entry.',
   sample_entry_photos_title: 'Small moments',
-  sample_entry_photos_body:
-    'You can attach photos to a memory — tap one to zoom.',
+  sample_entry_photos_body: 'You can attach photos to a memory — tap one to zoom.',
   sample_entry_voice_title: 'In my own words',
   sample_entry_voice_body:
     'Sometimes it’s easier to say it out loud. Tap play to hear a short voice memo.',

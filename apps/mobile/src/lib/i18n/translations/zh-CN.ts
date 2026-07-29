@@ -24,6 +24,7 @@ export const zhCN: Translations = {
   'Share Feedback': '分享反馈',
   'Contact Us': '联系我们',
   'Unknown error': '未知错误',
+  Retry: '重试',
 
   // Header & Search
   'Search gratitude logs...': '搜索感恩日志...',
@@ -51,6 +52,7 @@ export const zhCN: Translations = {
   // Gratitude Entry
   'Delete Entry?': '删除条目？',
   'This entry will be permanently deleted.': '此条目将被永久删除。',
+  'Entry not found': '未找到条目',
   'Leave without saving?': '不保存离开？',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     '您的条目未保存。您想继续编辑还是丢弃？',
@@ -263,8 +265,6 @@ export const zhCN: Translations = {
   'Show Timeline Borders': '显示时间线边框',
   'Show the borders in the timeline': '显示时间线中的边框',
   'Hide the borders in the timeline': '隐藏时间线中的边框',
-  'Inspirational Quotes': '励志名言',
-  'Gratitude quotes will be shown on entry page': '感恩名言将在条目页面显示',
   'Date Style': '日期样式',
   'Date includes day of the week': '日期包含星期几',
   'First Day of Week': '一周的第一天',
@@ -410,6 +410,8 @@ export const zhCN: Translations = {
   'Read frequently asked questions': '阅读塔克博克的常见问题',
   'Share Tackbok': '分享塔克博克',
   'Share the app with friends and family': '喜欢塔克博克吗？与您的朋友和家人分享这个应用',
+  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+    '用塔克博克练习感恩，一款简单、免费且私密的感恩日记应用',
   'Privacy Policy': '隐私政策',
   'Read our privacy policy': '阅读塔克博克的隐私政策',
   'Terms & Conditions': '条款和条件',
@@ -450,6 +452,8 @@ export const zhCN: Translations = {
   'Next month': '下个月',
   'Select month': '选择月份',
   'Select year': '选择年份',
+  Random: '随机',
+  'Open a random entry': '打开一个随机条目',
   Sun: '周日',
   Mon: '周一',
   Tue: '周二',
@@ -579,8 +583,7 @@ export const zhCN: Translations = {
   sample_entry_photos_title: '小小瞬间',
   sample_entry_photos_body: '你可以为回忆附上照片 — 点按图片即可放大。',
   sample_entry_voice_title: '用我自己的声音',
-  sample_entry_voice_body:
-    '有时说出来更容易。点按播放，听一段简短的语音备忘。',
+  sample_entry_voice_body: '有时说出来更容易。点按播放，听一段简短的语音备忘。',
   sample_entry_tags_body:
     '这条日记回答了一条写作灵感，并带有两个标签。试试顶部的搜索，按标签筛选就能再次找到它。',
 

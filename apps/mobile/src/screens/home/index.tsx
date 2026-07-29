@@ -4,7 +4,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { startOfDay } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { type Entry } from '~/types';
-import { getEntriesForDay } from '~/db/queries';
+import { getEntriesForDay, getRandomEntryId } from '~/db/queries';
 import { combineDateWithCurrentTime } from '~/lib/utils';
 import { useTranslation } from '~/lib/i18n';
 import { useGratitudeActionDockScrollBehavior } from '~/hooks/useGratitudeActionDockScrollBehavior';
@@ -68,6 +68,24 @@ export default function HomeScreen() {
     [router, t],
   );
 
+  const handleRandomEntryPress = useCallback(async () => {
+    try {
+      const noteId = await getRandomEntryId();
+      // The button can outlive the last entry via a stale cached count
+      if (!noteId) {
+        toast.error(t('Unknown error'));
+        return;
+      }
+      router.push({
+        pathname: '/gratitudeEntry/[noteId]',
+        params: { noteId },
+      });
+    } catch (error) {
+      console.error('Failed to open a random entry:', error);
+      toast.error(t('Unknown error'));
+    }
+  }, [router, t]);
+
   const handleSearchPress = () => {
     setIsSearchMode(true);
     setSearchQuery('');
@@ -108,9 +126,7 @@ export default function HomeScreen() {
   }, [router]);
 
   return (
-    <SafeAreaView
-      className="flex-1 w-full bg-primary"
-      edges={['top', 'left', 'right']}>
+    <SafeAreaView className="flex-1 w-full bg-primary" edges={['top', 'left', 'right']}>
       <Header
         isSearchMode={isSearchMode}
         onSearchPress={handleSearchPress}
@@ -152,6 +168,7 @@ export default function HomeScreen() {
             visible={showDatePicker}
             onClose={() => setShowDatePicker(false)}
             onDateSelect={handleGratitudeDatepickerPress}
+            onRandomSelect={handleRandomEntryPress}
           />
         </View>
       )}

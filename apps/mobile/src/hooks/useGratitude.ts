@@ -5,6 +5,7 @@ import { useSettingsStore } from '~/lib/settings';
 import {
   getAllEntries,
   getEntriesForDay,
+  getEntryCount,
   getEntryDatesForMonth,
   searchEntries,
   getAllTags,
@@ -73,12 +74,24 @@ export function useEntryDatesForMonth(year: number, month: number, enabled = tru
 }
 
 /**
- * Hook for a single entry
+ * Hook for the total entry count
+ */
+export function useEntryCount(enabled = true) {
+  return useQuery<number>({
+    queryKey: [QUERY_KEYS.entries, 'count'],
+    queryFn: getEntryCount,
+    enabled,
+  });
+}
+
+/**
+ * Hook for a single entry. Resolves `null` when the entry does not exist —
+ * React Query v5 treats `undefined` query data as an error and would retry.
  */
 export function useEntry(noteId?: string) {
   return useQuery({
     queryKey: [QUERY_KEYS.entries, 'byEntry', noteId],
-    queryFn: () => (noteId ? getEntryById(noteId) : Promise.resolve(undefined)),
+    queryFn: async () => (noteId ? ((await getEntryById(noteId)) ?? null) : null),
     enabled: !!noteId,
   });
 }
