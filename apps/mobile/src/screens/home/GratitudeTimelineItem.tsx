@@ -238,6 +238,9 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const { t, isRTL } = useTranslation();
   const timelineEntryLength = useSettingsStore((state) => state.timelineEntryLength);
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
+  const dateIncludesDayOfWeek = useSettingsStore(
+    (state) => state.dateIncludesDayOfWeek,
+  );
   const tagMap = useTagMapping();
   const animatedButtonRef = useRef<AnimatedButtonHandle>(null);
 
@@ -254,7 +257,9 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
 
   const isExpanded = isExpandedProp ?? dayGroup.isExpanded;
 
-  const formattedDate = formatLocalizedDate(dayGroup.dateStr, t);
+  const formattedDate = formatLocalizedDate(dayGroup.dateStr, t, {
+    includeWeekday: dateIncludesDayOfWeek,
+  });
   const isToday = dayGroup.isToday ?? false;
   const hasEntries = dayGroup.entries.length > 0;
   const hasVoiceMemos = dayGroup.entries.some(

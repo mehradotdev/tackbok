@@ -3,7 +3,6 @@ import { View } from 'react-native';
 import {
   Palette,
   AlignLeft,
-  Quote,
   Calendar,
   CalendarDays,
   Table2,
@@ -26,8 +25,6 @@ export function AppearanceSection() {
   const {
     timelineEntryLength,
     setTimelineEntryLength,
-    inspirationalQuotesEnabled,
-    setInspirationalQuotesEnabled,
     showTimelineBorders,
     setShowTimelineBorders,
     dateIncludesDayOfWeek,
@@ -97,17 +94,6 @@ export function AppearanceSection() {
             </View>
           </View>
         </View>
-        <SettingsRow
-          label={t('Inspirational Quotes')}
-          description={t('Gratitude quotes will be shown on entry page')}
-          icon={Quote}
-          onPress={() => setInspirationalQuotesEnabled(!inspirationalQuotesEnabled)}
-          rightElement={
-            <View pointerEvents="none">
-              <Switch checked={inspirationalQuotesEnabled} />
-            </View>
-          }
-        />
         <SettingsRow
           label={t('Date Style')}
           description={t('Date includes day of the week')}

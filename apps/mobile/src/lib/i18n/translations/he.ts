@@ -269,8 +269,6 @@ export const he: Translations = {
   'Show Timeline Borders': 'הצג גבולות ציר זמן',
   'Show the borders in the timeline': 'הצג את הגבולות בציר הזמן',
   'Hide the borders in the timeline': 'הסתר את הגבולות בציר הזמן',
-  'Inspirational Quotes': 'ציטוטים מעוררי השראה',
-  'Gratitude quotes will be shown on entry page': 'ציטוטי הכרת טובה יוצגו בדף הרשומה',
   'Date Style': 'סגנון תאריך',
   'Date includes day of the week': 'התאריך כולל את יום השבוע',
   'First Day of Week': 'היום הראשון בשבוע',
@@ -422,6 +420,8 @@ export const he: Translations = {
   'Share Tackbok': 'שתף את טאקבוק',
   'Share the app with friends and family':
     'נהנה מטאקבוק? שתף את האפליקציה עם חברים ומשפחה',
+  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+    'תרגל הכרת תודה עם טאקבוק, אפליקציה פשוטה, חינמית ופרטית ליומן תודה',
   'Privacy Policy': 'מדיניות פרטיות',
   'Read our privacy policy': 'קרא את מדיניות הפרטיות של טאקבוק',
   'Terms & Conditions': 'תנאים והגבלות',

@@ -268,8 +268,6 @@ export const ar: Translations = {
   'Show Timeline Borders': 'إظهار حدود الجدول الزمني',
   'Show the borders in the timeline': 'إظهار الحدود في الجدول الزمني',
   'Hide the borders in the timeline': 'إخفاء الحدود من الجدول الزمني',
-  'Inspirational Quotes': 'اقتباسات ملهمة',
-  'Gratitude quotes will be shown on entry page': 'ستظهر اقتباسات الامتنان في صفحة السجل',
   'Date Style': 'نمط التاريخ',
   'Date includes day of the week': 'التاريخ يتضمن يوم الأسبوع',
   'First Day of Week': 'أول يوم في الأسبوع',
@@ -423,6 +421,8 @@ export const ar: Translations = {
   'Share Tackbok': 'شارك تاكبوك',
   'Share the app with friends and family':
     'هل تستمتع بتاكبوك؟ شارك التطبيق مع أصدقائك وعائلتك',
+  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+    'مارس الامتنان مع تاكبوك، تطبيق بسيط ومجاني وخاص لتدوين الامتنان',
   'Privacy Policy': 'سياسة الخصوصية',
   'Read our privacy policy': 'اقرأ سياسة خصوصية تاكبوك',
   'Terms & Conditions': 'الشروط والأحكام',
@@ -529,8 +529,7 @@ export const ar: Translations = {
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
     'ممتن للشوارع الهادئة، والقهوة الدافئة، وسماء مليئة بالألوان.',
   'More themes…': 'مزيد من السمات…',
-  'What do you want to be more grateful for?':
-    'ما الذي تريد أن تكون أكثر امتنانًا له؟',
+  'What do you want to be more grateful for?': 'ما الذي تريد أن تكون أكثر امتنانًا له؟',
   'We’ll suggest writing prompts from the areas you pick.':
     'سنقترح عليك أفكارًا للكتابة من المجالات التي تختارها.',
   'Pick at least {count}': 'اختر {count} على الأقل',
@@ -591,8 +590,7 @@ export const ar: Translations = {
   sample_entry_welcome_body:
     'هذا دفتر امتنانك — مكان للحظات الجميلة. اضغط على زر + لكتابة سطر واحد أو صفحة كاملة، مرة في اليوم أو متى شئت. اضغط على هذه البطاقة لرؤية المدخل كاملًا.',
   sample_entry_photos_title: 'لحظات صغيرة',
-  sample_entry_photos_body:
-    'يمكنك إرفاق الصور بأي ذكرى — اضغط على صورة لتكبيرها.',
+  sample_entry_photos_body: 'يمكنك إرفاق الصور بأي ذكرى — اضغط على صورة لتكبيرها.',
   sample_entry_voice_title: 'بكلماتي الخاصة',
   sample_entry_voice_body:
     'أحيانًا يكون قولها أسهل. اضغط على التشغيل لسماع مذكّرة صوتية قصيرة.',

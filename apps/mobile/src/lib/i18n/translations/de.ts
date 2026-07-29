@@ -290,9 +290,6 @@ export const de: Translations = {
   'Show Timeline Borders': 'Rahmen in der Zeitleiste anzeigen',
   'Show the borders in the timeline': 'Rahmen in der Zeitleiste anzeigen',
   'Hide the borders in the timeline': 'Rahmen in der Zeitleiste ausblenden',
-  'Inspirational Quotes': 'Inspirierende Zitate',
-  'Gratitude quotes will be shown on entry page':
-    'Dankbarkeitszitate werden auf der Eintragsseite angezeigt',
   'Date Style': 'Datumsformat',
   'Date includes day of the week': 'Datum enthält den Wochentag',
   'First Day of Week': 'Erster Wochentag',
@@ -452,6 +449,8 @@ export const de: Translations = {
   'Share Tackbok': 'Tackbok teilen',
   'Share the app with friends and family':
     'Gefällt dir Tackbok? Teile die App mit Freunden und Familie',
+  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+    'Übe Dankbarkeit mit Tackbok, einer einfachen, kostenlosen und privaten Dankbarkeitstagebuch-App',
   'Privacy Policy': 'Datenschutzerklärung',
   'Read our privacy policy': 'Datenschutzerklärung von Tackbok lesen',
   'Terms & Conditions': 'Allgemeine Geschäftsbedingungen',

@@ -264,8 +264,6 @@ export const zhTW: Translations = {
   'Show Timeline Borders': '顯示時間軸邊框',
   'Show the borders in the timeline': '顯示時間軸中的邊框',
   'Hide the borders in the timeline': '隱藏時間軸中的邊框',
-  'Inspirational Quotes': '勵志名言',
-  'Gratitude quotes will be shown on entry page': '感恩名言將顯示於紀錄頁面',
   'Date Style': '日期樣式',
   'Date includes day of the week': '日期包含星期',
   'First Day of Week': '每週的第一天',
@@ -412,6 +410,8 @@ export const zhTW: Translations = {
   'Read frequently asked questions': '閱讀塔克博克的常見問題',
   'Share Tackbok': '分享塔克博克',
   'Share the app with friends and family': '喜歡塔克博克嗎？與您的親友分享此應用程式',
+  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+    '用塔克博克練習感恩，一款簡單、免費且私密的感恩日記應用程式',
   'Privacy Policy': '隱私權政策',
   'Read our privacy policy': '閱讀塔克博克的隱私權政策',
   'Terms & Conditions': '條款與條件',
