@@ -552,8 +552,8 @@ export const de: Translations = {
   'Step {current} of {total}': 'Schritt {current} von {total}',
   'Get started': 'Loslegen',
   'Already have a journal? Import it': 'Du hast bereits ein Tagebuch? Importiere es',
-  'A private place for your gratitude — free, offline, yours.':
-    'Ein privater Ort für deine Dankbarkeit – kostenlos, offline und ganz für dich.',
+  'A private place for your gratitude. Free, offline, yours.':
+    'Ein privater Ort für deine Dankbarkeit. Kostenlos, offline und ganz für dich.',
   'Your journal stays on your device.': 'Dein Tagebuch bleibt auf deinem Gerät.',
   'Import your journal': 'Dein Tagebuch importieren',
   'Where is your journal coming from?': 'Woher stammt dein Tagebuch?',

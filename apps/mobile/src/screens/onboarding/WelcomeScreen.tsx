@@ -231,7 +231,7 @@ export default function OnboardingWelcomeScreen() {
           Tackbok
         </Text>
         <Text className="text-base text-muted-foreground text-center mt-2 px-4">
-          {t('A private place for your gratitude — free, offline, yours.')}
+          {t('A private place for your gratitude. Free, offline, yours.')}
         </Text>
         <View className="flex-row items-center gap-1.5 mt-3">
           <Icon as={ShieldCheck} className="text-muted-foreground size-4" />

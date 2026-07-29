@@ -502,7 +502,7 @@ export const zhTW: Translations = {
   'Step {current} of {total}': '第 {current} 步，共 {total} 步',
   'Get started': '開始使用',
   'Already have a journal? Import it': '已經有日記了？匯入它',
-  'A private place for your gratitude — free, offline, yours.':
+  'A private place for your gratitude. Free, offline, yours.':
     '一個屬於你的感恩空間 — 免費、離線、完全屬於你。',
   'Your journal stays on your device.': '你的日記只儲存在你的裝置上。',
   'Import your journal': '匯入你的日記',

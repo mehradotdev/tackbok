@@ -528,8 +528,8 @@ export const en = {
   'Step {current} of {total}': 'Step {current} of {total}',
   'Get started': 'Get started',
   'Already have a journal? Import it': 'Already have a journal? Import it',
-  'A private place for your gratitude — free, offline, yours.':
-    'A private place for your gratitude — free, offline, yours.',
+  'A private place for your gratitude. Free, offline, yours.':
+    'A private place for your gratitude. Free, offline, yours.',
   'Your journal stays on your device.': 'Your journal stays on your device.',
   'Import your journal': 'Import your journal',
   'Where is your journal coming from?': 'Where is your journal coming from?',

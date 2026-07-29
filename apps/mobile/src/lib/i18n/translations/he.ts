@@ -512,7 +512,7 @@ export const he: Translations = {
   'Step {current} of {total}': 'שלב {current} מתוך {total}',
   'Get started': 'בואו נתחיל',
   'Already have a journal? Import it': 'כבר יש לך יומן? אפשר לייבא אותו',
-  'A private place for your gratitude — free, offline, yours.':
+  'A private place for your gratitude. Free, offline, yours.':
     'מקום פרטי להכרת התודה שלך — חינמי, לא מקוון, ושלך בלבד.',
   'Your journal stays on your device.': 'היומן שלך נשאר במכשיר שלך.',
   'Import your journal': 'ייבוא היומן שלך',

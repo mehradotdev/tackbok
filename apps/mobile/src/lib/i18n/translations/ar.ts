@@ -513,7 +513,7 @@ export const ar: Translations = {
   'Step {current} of {total}': 'الخطوة {current} من {total}',
   'Get started': 'ابدأ الآن',
   'Already have a journal? Import it': 'هل لديك يوميّات بالفعل؟ استوردها',
-  'A private place for your gratitude — free, offline, yours.':
+  'A private place for your gratitude. Free, offline, yours.':
     'مكان خاص لامتنانك — مجاني، ويعمل دون إنترنت، وملكك وحدك.',
   'Your journal stays on your device.': 'يوميّاتك تبقى على جهازك.',
   'Import your journal': 'استيراد يوميّاتك',

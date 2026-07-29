@@ -500,7 +500,7 @@ export const zhCN: Translations = {
   'Step {current} of {total}': '第 {current} 步，共 {total} 步',
   'Get started': '开始使用',
   'Already have a journal? Import it': '已经有日记了？导入它',
-  'A private place for your gratitude — free, offline, yours.':
+  'A private place for your gratitude. Free, offline, yours.':
     '一个属于你的感恩空间 — 免费、离线、完全归你。',
   'Your journal stays on your device.': '你的日记只保存在你的设备上。',
   'Import your journal': '导入你的日记',
