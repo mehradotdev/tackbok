@@ -450,6 +450,8 @@ export const zhCN: Translations = {
   'Next month': '下个月',
   'Select month': '选择月份',
   'Select year': '选择年份',
+  Random: '随机',
+  'Open a random entry': '打开一个随机条目',
   Sun: '周日',
   Mon: '周一',
   Tue: '周二',
@@ -579,8 +581,7 @@ export const zhCN: Translations = {
   sample_entry_photos_title: '小小瞬间',
   sample_entry_photos_body: '你可以为回忆附上照片 — 点按图片即可放大。',
   sample_entry_voice_title: '用我自己的声音',
-  sample_entry_voice_body:
-    '有时说出来更容易。点按播放，听一段简短的语音备忘。',
+  sample_entry_voice_body: '有时说出来更容易。点按播放，听一段简短的语音备忘。',
   sample_entry_tags_body:
     '这条日记回答了一条写作灵感，并带有两个标签。试试顶部的搜索，按标签筛选就能再次找到它。',
 

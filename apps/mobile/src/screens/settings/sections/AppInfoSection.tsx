@@ -112,6 +112,7 @@ export function AppInfoSection() {
       );
     } catch (error) {
       console.warn('Failed to open the share sheet:', error);
+      toast.error(t('Unknown error'));
     }
   };
 

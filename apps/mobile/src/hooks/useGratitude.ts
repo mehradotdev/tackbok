@@ -5,6 +5,7 @@ import { useSettingsStore } from '~/lib/settings';
 import {
   getAllEntries,
   getEntriesForDay,
+  getEntryCount,
   getEntryDatesForMonth,
   searchEntries,
   getAllTags,
@@ -68,6 +69,17 @@ export function useEntryDatesForMonth(year: number, month: number, enabled = tru
   return useQuery<string[]>({
     queryKey: [QUERY_KEYS.entries, 'datesByMonth', year, month],
     queryFn: () => getEntryDatesForMonth(year, month),
+    enabled,
+  });
+}
+
+/**
+ * Hook for the total entry count
+ */
+export function useEntryCount(enabled = true) {
+  return useQuery<number>({
+    queryKey: [QUERY_KEYS.entries, 'count'],
+    queryFn: getEntryCount,
     enabled,
   });
 }

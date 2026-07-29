@@ -2,10 +2,14 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 import { format, startOfDay } from 'date-fns';
 import { cn } from 'tailwind-variants';
+import { Shuffle } from 'lucide-react-native';
 import { MODAL_CLOSE_DELAY } from '~/constants';
 import { useSettingsStore } from '~/lib/settings';
-import { useEntryDatesForMonth } from '~/hooks/useGratitude';
+import { useTranslation } from '~/lib/i18n';
+import { useEntryDatesForMonth, useEntryCount } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
+import { Button } from '~/components/ui/button';
+import { Icon } from '~/components/ui/icon';
 import { Dialog, DialogContent } from '~/components/ui/dialog';
 import { DatePicker, type MarkedDate } from '~/components/ui/datepicker';
 
@@ -18,6 +22,8 @@ export interface IGratitudeDatepickerModalProps {
   entryMarkerColor?: string;
   /** Callback when a date is selected */
   onDateSelect?: (date: Date) => void;
+  /** Callback when the Random button is pressed. Button is hidden when absent or when fewer than 2 entries exist */
+  onRandomSelect?: () => void;
   /** Controlled visibility state */
   visible: boolean;
   /** Callback when modal closes */
@@ -31,9 +37,11 @@ export interface IGratitudeDatepickerModalProps {
 export function GratitudeDatepickerModal({
   entryMarkerColor = '#22c55e', // green-500
   onDateSelect,
+  onRandomSelect,
   visible,
   onClose,
 }: IGratitudeDatepickerModalProps) {
+  const { t } = useTranslation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonthYear, setCurrentMonthYear] = useState(() => {
     const now = new Date();
@@ -47,6 +55,9 @@ export function GratitudeDatepickerModal({
     currentMonthYear.month,
     visible,
   );
+  // "Random" is only meaningful with at least 2 entries to pick between
+  const { data: entryCount = 0 } = useEntryCount(visible);
+  const showRandomButton = !!onRandomSelect && entryCount >= 2;
 
   // Reset state when modal opens
   useEffect(() => {
@@ -102,6 +113,14 @@ export function GratitudeDatepickerModal({
     [onDateSelect, handleOpenChange],
   );
 
+  const handleRandomPress = useCallback(() => {
+    // Close first, then navigate after the close-animation, same as date selection
+    handleOpenChange(false);
+    setTimeout(() => {
+      onRandomSelect?.();
+    }, MODAL_CLOSE_DELAY);
+  }, [onRandomSelect, handleOpenChange]);
+
   // Custom day render — uses isDisabled from DatePicker as the single source of truth
   const renderDay = useCallback(
     (date: Date, isSelected: boolean, isDisabled: boolean, isCurrentMonth: boolean) => {
@@ -152,6 +171,20 @@ export function GratitudeDatepickerModal({
           scrollToBottomYearsView={true}
           onMonthYearChange={handleMonthChange}
           firstDayOfWeek={firstDayOfWeek}
+          footer={
+            showRandomButton ? (
+              <View className="mt-1 flex-row justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onPress={handleRandomPress}
+                  accessibilityLabel={t('Open a random entry')}>
+                  <Icon as={Shuffle} size={16} />
+                  <Text>{t('Random')}</Text>
+                </Button>
+              </View>
+            ) : undefined
+          }
         />
       </DialogContent>
     </Dialog>

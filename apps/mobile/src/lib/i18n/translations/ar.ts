@@ -463,6 +463,8 @@ export const ar: Translations = {
   'Next month': 'الشهر التالي',
   'Select month': 'اختر الشهر',
   'Select year': 'اختر السنة',
+  Random: 'عشوائي',
+  'Open a random entry': 'افتح مدخلًا عشوائيًا',
   Sun: 'أحد',
   Mon: 'إثنين',
   Tue: 'ثلاثاء',

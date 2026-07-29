@@ -452,6 +452,8 @@ export const zhTW: Translations = {
   'Next month': '下個月',
   'Select month': '選擇月份',
   'Select year': '選擇年份',
+  Random: '隨機',
+  'Open a random entry': '開啟隨機紀錄',
   Sun: '週日',
   Mon: '週一',
   Tue: '週二',
@@ -581,8 +583,7 @@ export const zhTW: Translations = {
   sample_entry_photos_title: '小小瞬間',
   sample_entry_photos_body: '你可以為回憶附上照片 — 點一下圖片即可放大。',
   sample_entry_voice_title: '用我自己的聲音',
-  sample_entry_voice_body:
-    '有時說出來更容易。點一下播放，聽一段簡短的語音備忘。',
+  sample_entry_voice_body: '有時說出來更容易。點一下播放，聽一段簡短的語音備忘。',
   sample_entry_tags_body:
     '這則日記回答了一條書寫靈感，並帶有兩個標籤。試試頂部的搜尋，依標籤篩選就能再次找到它。',
 

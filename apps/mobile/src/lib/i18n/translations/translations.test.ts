@@ -32,7 +32,7 @@ function collectSourceFiles(dir: string): string[] {
 /**
  * Extracts dynamic key prefixes from source code that are used in template
  * literal string translations.
- * 
+ *
  * Example prefixes detected by the regex /\`([a-zA-Z_][\\w. ]*[_ ])\\$\\{/g:
  * - "Feeling " (from \`Feeling ${status}\`)
  * - "TackbokBackup_" (from \`TackbokBackup_${type}\`)
@@ -94,9 +94,7 @@ describe('Translations', () => {
 
   test('languages are listed alphabetically by display name', () => {
     const displayNames = languages.map(({ displayName }) => displayName);
-    const sortedDisplayNames = [...displayNames].sort((a, b) =>
-      a.localeCompare(b, 'en'),
-    );
+    const sortedDisplayNames = [...displayNames].sort((a, b) => a.localeCompare(b, 'en'));
 
     expect(displayNames).toEqual(sortedDisplayNames);
   });

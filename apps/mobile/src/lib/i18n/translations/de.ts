@@ -78,7 +78,8 @@ export const de: Translations = {
   'Please enable microphone access in your device settings to record voice memos.':
     'Aktiviere in den Geräteeinstellungen den Mikrofonzugriff, um Sprachnotizen aufzunehmen.',
   'Record Voice Note': 'Sprachnotiz aufnehmen',
-  'Tap the button below when ready.': 'Tippe auf die Schaltfläche unten, wenn du bereit bist.',
+  'Tap the button below when ready.':
+    'Tippe auf die Schaltfläche unten, wenn du bereit bist.',
   'Start Recording': 'Aufnahme starten',
   'Recording Voice Note...': 'Sprachnotiz wird aufgenommen …',
   'Stop Recording': 'Aufnahme beenden',
@@ -118,11 +119,13 @@ export const de: Translations = {
   'Create your first prompt': 'Erstelle deinen ersten Schreibimpuls',
 
   // Prompts - Faith
-  prompt_faith_1: 'Was ist deine früheste Erinnerung daran, Gottes Gegenwart gespürt zu haben?',
+  prompt_faith_1:
+    'Was ist deine früheste Erinnerung daran, Gottes Gegenwart gespürt zu haben?',
   prompt_faith_2: 'Wo hast du in letzter Zeit Gnade in deinem Leben erfahren?',
   prompt_faith_3: 'Welches Gebet hat dich durch eine schwere Zeit getragen?',
   prompt_faith_4: 'Wie hat dein Glaube deine Sicht auf Herausforderungen verändert?',
-  prompt_faith_5: 'Welche spirituelle Praxis oder Gewohnheit schenkt dir am meisten Frieden?',
+  prompt_faith_5:
+    'Welche spirituelle Praxis oder Gewohnheit schenkt dir am meisten Frieden?',
   prompt_faith_6:
     'Schreibe über einen Moment, in dem du dich eindeutig von einer höheren Macht geführt gefühlt hast.',
   prompt_faith_7:
@@ -155,14 +158,17 @@ export const de: Translations = {
   prompt_health_7: 'Was tust du heute für dein seelisches Wohlbefinden?',
   prompt_health_8:
     'Schreibe über eine Situation, in der du eine körperliche Herausforderung oder Verletzung überwunden hast.',
-  prompt_health_9: 'Mit welcher kleinen Änderung kannst du deine Schlafqualität verbessern?',
+  prompt_health_9:
+    'Mit welcher kleinen Änderung kannst du deine Schlafqualität verbessern?',
 
   // Prompts - Friends
-  prompt_friends_1: 'Welcher Freund oder welche Freundin hat dein Leben zuletzt leichter gemacht?',
+  prompt_friends_1:
+    'Welcher Freund oder welche Freundin hat dein Leben zuletzt leichter gemacht?',
   prompt_friends_2:
     'Welche Erinnerung mit einem Freund oder einer Freundin bringt dich noch immer zum Lächeln?',
   prompt_friends_3: 'Wem möchtest du diese Woche Mut machen?',
-  prompt_friends_4: 'Welche Eigenschaft schätzt du an deinen engsten Freundschaften am meisten?',
+  prompt_friends_4:
+    'Welche Eigenschaft schätzt du an deinen engsten Freundschaften am meisten?',
   prompt_friends_5:
     'Schreibe über jemanden, der dir geholfen hat, die Dinge aus einer anderen Perspektive zu betrachten.',
   prompt_friends_6:
@@ -176,7 +182,8 @@ export const de: Translations = {
   // Prompts - Family
   prompt_family_1: 'Für welche Familientradition bist du dankbar?',
   prompt_family_2: 'Wer in deiner Familie hat dir etwas Bleibendes beigebracht?',
-  prompt_family_3: 'An welchen kleinen Moment mit deiner Familie möchtest du dich erinnern?',
+  prompt_family_3:
+    'An welchen kleinen Moment mit deiner Familie möchtest du dich erinnern?',
   prompt_family_4: 'Welche Geschichte aus deiner Familie inspiriert dich?',
   prompt_family_5:
     'Wie hat sich deine Beziehung zu einem Familienmitglied im Laufe der Zeit entwickelt?',
@@ -184,7 +191,8 @@ export const de: Translations = {
     'Schreibe über eine Fähigkeit oder ein Rezept, das in deiner Familie weitergegeben wurde.',
   prompt_family_7:
     'Welche bestimmte Charaktereigenschaft teilst du mit einem Elternteil oder Geschwisterteil?',
-  prompt_family_8: 'Beschreibe eine Kindheitserinnerung, die dir noch immer große Freude bereitet.',
+  prompt_family_8:
+    'Beschreibe eine Kindheitserinnerung, die dir noch immer große Freude bereitet.',
   prompt_family_9: 'Wie unterstützt sich deine Familie in schwierigen Zeiten?',
 
   // Prompts - Little Things
@@ -199,8 +207,7 @@ export const de: Translations = {
   prompt_littleThings_7: 'Was war heute der schönste Teil deiner Morgenroutine?',
   prompt_littleThings_8:
     'Erzähle von einer kurzen Begegnung mit einer fremden Person, die dein Herz erwärmt hat.',
-  prompt_littleThings_9:
-    'Welcher günstige Gegenstand bereichert dein Leben besonders?',
+  prompt_littleThings_9: 'Welcher günstige Gegenstand bereichert dein Leben besonders?',
 
   // Default Worksheet Template Keys
   'What I am grateful for today...': 'Wofür ich heute dankbar bin …',
@@ -299,7 +306,8 @@ export const de: Translations = {
   // Settings - Typography
   Typography: 'Typografie',
   'Title Font': 'Titelschrift',
-  'Choose a font for titles and headings': 'Wähle eine Schriftart für Titel und Überschriften',
+  'Choose a font for titles and headings':
+    'Wähle eine Schriftart für Titel und Überschriften',
   Default: 'Standard',
   'Theme Default': 'Designstandard',
   'Font Size': 'Schriftgröße',
@@ -320,7 +328,8 @@ export const de: Translations = {
   'Start Writing': 'Losschreiben',
   'Journal Focus Areas': 'Themenschwerpunkte',
   'Personalize your journal prompts.': 'Personalisiere deine Schreibimpulse.',
-  'Pick the topics you want to write about.': 'Wähle die Themen aus, über die du schreiben möchtest.',
+  'Pick the topics you want to write about.':
+    'Wähle die Themen aus, über die du schreiben möchtest.',
   'Select at least 2 focus areas': 'Wähle mindestens 2 Themenschwerpunkte aus',
   'Journal Prompts': 'Schreibimpulse',
   'Choose which prompts to show when starting a new journal entry.':
@@ -365,7 +374,8 @@ export const de: Translations = {
   'All of your data in a format that you can restore in the app later':
     'Alle deine Daten in einem Format, das du später in der App wiederherstellen kannst',
   'Import as .ZIP': 'Als .ZIP importieren',
-  'Restore your data from a .zip file': 'Stelle deine Daten aus einer .zip-Datei wieder her',
+  'Restore your data from a .zip file':
+    'Stelle deine Daten aus einer .zip-Datei wieder her',
   'Import from Gratitude App': 'Aus der Gratitude App importieren',
   'Importing from Gratitude App': 'Import aus der Gratitude App',
   'Import data from a Gratitude App .zip backup':
@@ -492,6 +502,8 @@ export const de: Translations = {
   'Next month': 'Nächster Monat',
   'Select month': 'Monat auswählen',
   'Select year': 'Jahr auswählen',
+  Random: 'Zufällig',
+  'Open a random entry': 'Einen zufälligen Eintrag öffnen',
   Sun: 'So',
   Mon: 'Mo',
   Tue: 'Di',
@@ -537,8 +549,7 @@ export const de: Translations = {
   Next: 'Weiter',
   'Step {current} of {total}': 'Schritt {current} von {total}',
   'Get started': 'Loslegen',
-  'Already have a journal? Import it':
-    'Du hast bereits ein Tagebuch? Importiere es',
+  'Already have a journal? Import it': 'Du hast bereits ein Tagebuch? Importiere es',
   'A private place for your gratitude — free, offline, yours.':
     'Ein privater Ort für deine Dankbarkeit – kostenlos, offline und ganz für dich.',
   'Your journal stays on your device.': 'Dein Tagebuch bleibt auf deinem Gerät.',
@@ -559,8 +570,7 @@ export const de: Translations = {
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
     'Dankbar für ruhige Straßen, warmen Kaffee und einen farbenfrohen Himmel.',
   'More themes…': 'Weitere Designs …',
-  'What do you want to be more grateful for?':
-    'Wofür möchtest du dankbarer sein?',
+  'What do you want to be more grateful for?': 'Wofür möchtest du dankbarer sein?',
   'We’ll suggest writing prompts from the areas you pick.':
     'Wir schlagen dir Schreibimpulse aus den ausgewählten Bereichen vor.',
   'Pick at least {count}': 'Wähle mindestens {count} aus',
@@ -601,8 +611,7 @@ export const de: Translations = {
   'Remove all': 'Alle entfernen',
   'Hide this banner': 'Diesen Hinweis ausblenden',
   'Example entries removed': 'Beispieleinträge entfernt',
-  'Failed to remove example entries':
-    'Beispieleinträge konnten nicht entfernt werden',
+  'Failed to remove example entries': 'Beispieleinträge konnten nicht entfernt werden',
   'Add today’s entry here.': 'Füge hier den heutigen Eintrag hinzu.',
   'Press and hold, then drag to move these buttons along the edge.':
     'Halte die Schaltflächen gedrückt und ziehe sie dann am Rand entlang, um sie zu verschieben.',

@@ -462,6 +462,8 @@ export const he: Translations = {
   'Next month': 'החודש הבא',
   'Select month': 'בחר חודש',
   'Select year': 'בחר שנה',
+  Random: 'אקראי',
+  'Open a random entry': 'פתח רשומה אקראית',
   Sun: 'א',
   Mon: 'ב',
   Tue: 'ג',
@@ -528,8 +530,7 @@ export const he: Translations = {
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
     'תודה על רחובות שקטים, קפה חם ושמיים מלאי צבע.',
   'More themes…': 'עוד ערכות נושא…',
-  'What do you want to be more grateful for?':
-    'על מה תרצו להכיר תודה יותר?',
+  'What do you want to be more grateful for?': 'על מה תרצו להכיר תודה יותר?',
   'We’ll suggest writing prompts from the areas you pick.':
     'נציע לכם רעיונות לכתיבה מהתחומים שתבחרו.',
   'Pick at least {count}': 'בחרו לפחות {count}',
@@ -590,8 +591,7 @@ export const he: Translations = {
   sample_entry_welcome_body:
     'זהו יומן הכרת התודה שלכם — מקום לרגעים הטובים. הקישו על כפתור + כדי לכתוב שורה אחת או עמוד שלם, פעם ביום או מתי שתרצו. הקישו על הכרטיס הזה כדי לראות את הרשומה המלאה.',
   sample_entry_photos_title: 'רגעים קטנים',
-  sample_entry_photos_body:
-    'אפשר לצרף תמונות לזיכרון — הקישו על תמונה כדי להגדיל.',
+  sample_entry_photos_body: 'אפשר לצרף תמונות לזיכרון — הקישו על תמונה כדי להגדיל.',
   sample_entry_voice_title: 'במילים שלי',
   sample_entry_voice_body:
     'לפעמים קל יותר לומר את זה בקול. הקישו על נגן כדי לשמוע הקלטה קצרה.',

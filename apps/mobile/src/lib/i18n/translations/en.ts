@@ -478,6 +478,8 @@ export const en = {
   'Next month': 'Next month',
   'Select month': 'Select month',
   'Select year': 'Select year',
+  Random: 'Random',
+  'Open a random entry': 'Open a random entry',
   Sun: 'Sun',
   Mon: 'Mon',
   Tue: 'Tue',
