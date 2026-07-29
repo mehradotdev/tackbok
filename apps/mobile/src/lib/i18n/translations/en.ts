@@ -23,6 +23,7 @@ export const en = {
   'Share Feedback': 'Share Feedback',
   'Contact Us': 'Contact Us',
   'Unknown error': 'Unknown error',
+  Retry: 'Retry',
 
   // Header & Search
   'Search gratitude logs...': 'Search gratitude logs...',

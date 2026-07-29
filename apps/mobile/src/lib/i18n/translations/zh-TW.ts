@@ -24,6 +24,7 @@ export const zhTW: Translations = {
   'Share Feedback': '分享意見',
   'Contact Us': '聯絡我們',
   'Unknown error': '未知錯誤',
+  Retry: '重試',
 
   // Header & Search
   'Search gratitude logs...': '搜尋感恩日誌...',

@@ -24,6 +24,7 @@ export const zhCN: Translations = {
   'Share Feedback': '分享反馈',
   'Contact Us': '联系我们',
   'Unknown error': '未知错误',
+  Retry: '重试',
 
   // Header & Search
   'Search gratitude logs...': '搜索感恩日志...',

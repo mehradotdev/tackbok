@@ -26,13 +26,16 @@ export default function GratitudeEntryScreen({
   const [isEditMode, setIsEditMode] = useState(!noteId);
   const router = useRouter();
   const { t } = useTranslation();
-  const { data: entry, isLoading } = useEntry(noteId);
+  const { data: entry, isLoading, isError, refetch } = useEntry(noteId);
 
   // Deleting an entry clears its cache before the delayed back-navigation runs,
   // so keep the last loaded entry on screen instead of flashing "not found".
-  const lastEntryRef = useRef(entry);
-  if (entry) lastEntryRef.current = entry;
-  const displayEntry = entry ?? lastEntryRef.current;
+  // Scoped to noteId so a reused screen never falls back to a different entry.
+  const lastEntryRef = useRef({ noteId, entry });
+  if (entry) lastEntryRef.current = { noteId, entry };
+  const displayEntry =
+    entry ??
+    (lastEntryRef.current.noteId === noteId ? lastEntryRef.current.entry : undefined);
 
   // Image Viewer — single instance shared by both View and Edit modes
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
@@ -78,6 +81,19 @@ export default function GratitudeEntryScreen({
           <View className="flex-1 items-center justify-center">
             {/* Native loading indicator */}
             <ActivityIndicator size="large" />
+          </View>
+        ) : isError ? (
+          /* Query failed (e.g. transient db error) — the entry may still exist */
+          <View className="flex-1 items-center justify-center gap-4 px-8">
+            <Text className="text-lg font-body-medium text-muted-foreground">
+              {t('Unknown error')}
+            </Text>
+            <Button onPress={() => refetch()}>
+              <Text>{t('Retry')}</Text>
+            </Button>
+            <Button variant="outline" onPress={() => router.back()}>
+              <Text>{t('Back')}</Text>
+            </Button>
           </View>
         ) : (
           /* Query settled without a result — the entry no longer exists */

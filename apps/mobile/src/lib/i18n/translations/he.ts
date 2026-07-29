@@ -24,6 +24,7 @@ export const he: Translations = {
   'Share Feedback': 'שתף משוב',
   'Contact Us': 'צור קשר',
   'Unknown error': 'שגיאה לא ידועה',
+  Retry: 'נסה שוב',
 
   // Header & Search
   'Search gratitude logs...': 'חפש יומני הכרת טובה...',

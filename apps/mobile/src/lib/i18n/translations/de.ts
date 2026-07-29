@@ -24,6 +24,7 @@ export const de: Translations = {
   'Share Feedback': 'Feedback teilen',
   'Contact Us': 'Kontakt',
   'Unknown error': 'Unbekannter Fehler',
+  Retry: 'Erneut versuchen',
 
   // Header & Search
   'Search gratitude logs...': 'Dankbarkeitseinträge durchsuchen …',

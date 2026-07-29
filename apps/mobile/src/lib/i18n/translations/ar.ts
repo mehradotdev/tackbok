@@ -24,6 +24,7 @@ export const ar: Translations = {
   'Share Feedback': 'مشاركة الملاحظات',
   'Contact Us': 'اتصل بنا',
   'Unknown error': 'خطأ غير معروف',
+  Retry: 'إعادة المحاولة',
 
   // Header & Search
   'Search gratitude logs...': 'بحث في سجلات الامتنان...',
