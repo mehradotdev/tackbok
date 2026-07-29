@@ -52,6 +52,7 @@ export const en = {
   // Gratitude Entry
   'Delete Entry?': 'Delete Entry?',
   'This entry will be permanently deleted.': 'This entry will be permanently deleted.',
+  'Entry not found': 'Entry not found',
   'Leave without saving?': 'Leave without saving?',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     'Your entry is unsaved. Would you like to keep editing or discard them?',

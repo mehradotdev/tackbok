@@ -52,6 +52,7 @@ export const he: Translations = {
   // Gratitude Entry
   'Delete Entry?': 'מחק רשומה?',
   'This entry will be permanently deleted.': 'רשומה זו תימחק לצמיתות.',
+  'Entry not found': 'הרשומה לא נמצאה',
   'Leave without saving?': 'לצאת ללא שמירה?',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     'הרשומה לא נשמרה. האם ברצונך להמשיך לערוך או למחוק?',

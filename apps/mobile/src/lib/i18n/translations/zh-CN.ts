@@ -51,6 +51,7 @@ export const zhCN: Translations = {
   // Gratitude Entry
   'Delete Entry?': '删除条目？',
   'This entry will be permanently deleted.': '此条目将被永久删除。',
+  'Entry not found': '未找到条目',
   'Leave without saving?': '不保存离开？',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     '您的条目未保存。您想继续编辑还是丢弃？',

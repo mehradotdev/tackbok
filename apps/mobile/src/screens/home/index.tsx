@@ -71,12 +71,15 @@ export default function HomeScreen() {
   const handleRandomEntryPress = useCallback(async () => {
     try {
       const noteId = await getRandomEntryId();
-      if (noteId) {
-        router.push({
-          pathname: '/gratitudeEntry/[noteId]',
-          params: { noteId },
-        });
+      // The button can outlive the last entry via a stale cached count
+      if (!noteId) {
+        toast.error(t('Unknown error'));
+        return;
       }
+      router.push({
+        pathname: '/gratitudeEntry/[noteId]',
+        params: { noteId },
+      });
     } catch (error) {
       console.error('Failed to open a random entry:', error);
       toast.error(t('Unknown error'));

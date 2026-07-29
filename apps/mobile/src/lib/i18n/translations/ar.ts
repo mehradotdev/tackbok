@@ -51,6 +51,7 @@ export const ar: Translations = {
   // Gratitude Entry
   'Delete Entry?': 'حذف السجل؟',
   'This entry will be permanently deleted.': 'سيتم حذف هذا السجل نهائيًا.',
+  'Entry not found': 'لم يتم العثور على المدخل',
   'Leave without saving?': 'المغادرة دون حفظ؟',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     'سجلك غير محفوظ. هل تريد الاستمرار في التحرير أو تجاهله؟',

@@ -53,6 +53,7 @@ export const de: Translations = {
   // Gratitude Entry
   'Delete Entry?': 'Eintrag löschen?',
   'This entry will be permanently deleted.': 'Dieser Eintrag wird dauerhaft gelöscht.',
+  'Entry not found': 'Eintrag nicht gefunden',
   'Leave without saving?': 'Ohne Speichern verlassen?',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     'Dein Eintrag ist nicht gespeichert. Möchtest du ihn weiter bearbeiten oder verwerfen?',

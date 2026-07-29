@@ -51,6 +51,7 @@ export const zhTW: Translations = {
   // Gratitude Entry
   'Delete Entry?': '刪除紀錄？',
   'This entry will be permanently deleted.': '此紀錄將被永久刪除。',
+  'Entry not found': '找不到紀錄',
   'Leave without saving?': '離開而不儲存？',
   'Your entry is unsaved. Would you like to keep editing or discard them?':
     '您的紀錄尚未儲存。您想繼續編輯還是捨棄？',
