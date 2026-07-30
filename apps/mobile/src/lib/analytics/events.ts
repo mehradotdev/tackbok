@@ -19,7 +19,13 @@ export type CharBucket = '0-50' | '51-200' | '200+';
 export type CountBucket = '0' | '1-10' | '11-50' | '51-200' | '200+';
 
 /** Logical screens — derived from the route, never the raw pathname/params. */
-export type ScreenName = 'home' | 'entry_new' | 'entry_view' | 'date_entries' | 'settings';
+export type ScreenName =
+  | 'home'
+  | 'entry_new'
+  | 'entry_view'
+  | 'date_entries'
+  | 'insights'
+  | 'settings';
 
 export type ImportSource = 'tackbok' | 'gratitudeApp' | 'presently';
 

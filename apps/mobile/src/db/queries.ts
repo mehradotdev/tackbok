@@ -56,6 +56,45 @@ export async function getEntryStats(): Promise<{
 }
 
 /**
+ * Lightweight per-entry projection for the Insights screen. Deliberately never
+ * selects `text_content` itself — char/word counts are computed inside SQLite
+ * so journal text is never loaded into JS just for stats.
+ */
+export interface InsightsEntryRow {
+  note_id: string;
+  created_at: number;
+  mood: Entry['mood'];
+  assets: Entry['assets'];
+  tags: string;
+  char_count: number;
+  word_count: number;
+}
+
+export async function getInsightsEntryRows(): Promise<InsightsEntryRow[]> {
+  // Whitespace-normalized copy of the content (newlines/tabs → spaces) used
+  // for word counting.
+  const normalized = sql`replace(replace(replace(${entries.text_content}, char(13), ' '), char(10), ' '), char(9), ' ')`;
+  return db
+    .select({
+      note_id: entries.note_id,
+      created_at: entries.created_at,
+      mood: entries.mood,
+      assets: entries.assets,
+      tags: entries.tags,
+      char_count: sql<number>`coalesce(length(${entries.text_content}), 0)`,
+      // Approximate word count: whitespace-separated runs. Consecutive blanks
+      // (e.g. blank lines between paragraphs) inflate it slightly — fine for a
+      // stat tile, and it keeps the query free of entry text.
+      word_count: sql<number>`case
+        when ${entries.text_content} is null or trim(${normalized}) = '' then 0
+        else length(trim(${normalized})) - length(replace(trim(${normalized}), ' ', '')) + 1
+      end`,
+    })
+    .from(entries)
+    .orderBy(entries.created_at);
+}
+
+/**
  * Whether at least one entry exists. Used by the onboarding bootstrap check
  * to tell a fresh install apart from an existing pre-onboarding install.
  */

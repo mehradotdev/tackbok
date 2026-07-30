@@ -139,6 +139,7 @@ export function TimePickerModal({
           <View className="h-32 w-16">
             <LegendList
               data={hourOptions}
+              recycleItems={true}
               estimatedItemSize={40}
               extraData={tempHours}
               keyExtractor={(item) => item.toString()}
@@ -155,6 +156,7 @@ export function TimePickerModal({
           <View className="h-32 w-16">
             <LegendList
               data={minuteOptions}
+              recycleItems={true}
               estimatedItemSize={40}
               extraData={tempMinutes}
               keyExtractor={(item) => item.toString()}

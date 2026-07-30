@@ -178,6 +178,7 @@ export function trackScreenView(pathname: string): void {
   else if (pathname === '/gratitudeEntry') screen = 'entry_new';
   else if (pathname.startsWith('/gratitudeEntry/')) screen = 'entry_view';
   else if (pathname.startsWith('/dateEntries')) screen = 'date_entries';
+  else if (pathname.startsWith('/insights')) screen = 'insights';
   else if (pathname.startsWith('/settings')) screen = 'settings';
   if (screen) track('screen_viewed', { screen });
 }

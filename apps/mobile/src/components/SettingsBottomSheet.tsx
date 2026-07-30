@@ -10,6 +10,7 @@ import {
   Settings,
   Mail,
   RotateCcw,
+  ChartColumn,
   Pencil,
   Plus,
   User,
@@ -389,6 +390,11 @@ export function SettingsBottomSheet() {
   const present = () => sheet.current?.present();
   const dismiss = () => sheet.current?.dismiss();
 
+  const handleInsights = async () => {
+    await dismiss();
+    router.navigate('/insights');
+  };
+
   const handleSettings = async () => {
     await dismiss();
     router.navigate('/settings');
@@ -545,6 +551,11 @@ export function SettingsBottomSheet() {
             onAvatarPress={handleAvatarPress}
             onSaveName={handleSaveName}>
             <View className="border-t border-border mt-3">
+              <ActionRow
+                label={t('Insights')}
+                icon={ChartColumn}
+                onPress={handleInsights}
+              />
               <ActionRow label={t('Settings')} icon={Settings} onPress={handleSettings} />
               <ActionRow
                 label={`${t('Share Feedback')} / ${t('Contact Us')}`}
