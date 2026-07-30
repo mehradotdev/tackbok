@@ -19,7 +19,6 @@ import {
   ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
   ZIP64_EOCD_RECORD_DATA_SIZE,
 } from '../core';
-import { cloneBytes } from '../shared/bytes';
 import { ensureTextDecoder } from '../shared/text-codec';
 import type { ParsedZipEntryMeta } from '../core';
 
@@ -31,6 +30,11 @@ const ZIP_TAIL_READ_SIZE =
  */
 export interface ZipReaderSource {
   size(): Promise<bigint>;
+  /**
+   * Must resolve with a buffer the caller may keep and mutate — never a view
+   * into state the source will reuse for later reads. The reader hands these
+   * bytes to app code without defensive copying.
+   */
   read(offset: bigint, length: number): Promise<Uint8Array>;
   close?(): Promise<void> | void;
 }
@@ -229,6 +233,13 @@ function createEntryInfo(entry: ParsedZipEntryMeta): ZipEntryInfo {
   };
 }
 
+/**
+ * Local file headers are usually 30 bytes plus a short filename, so one read
+ * of this size almost always covers the whole header and avoids a second
+ * round-trip to the byte source per entry.
+ */
+const LOCAL_HEADER_PREFETCH_SIZE = 256;
+
 class ZipReaderImpl implements ZipReader {
   private closed = false;
   private readonly entries: readonly ZipEntryInfo[];
@@ -237,6 +248,7 @@ class ZipReaderImpl implements ZipReader {
   constructor(
     private readonly reader: ZipReaderSource,
     parsedEntries: ParsedZipEntryMeta[],
+    private readonly archiveSize: bigint,
   ) {
     this.entries = parsedEntries.map(createEntryInfo);
     this.entriesByPath = new Map(parsedEntries.map((entry) => [entry.path, entry]));
@@ -267,10 +279,19 @@ class ZipReaderImpl implements ZipReader {
       throw new Error('Unsupported ZIP feature: encrypted entries are not supported');
     }
 
+    const availableBytes = this.archiveSize - entry.localHeaderOffset;
+    if (availableBytes < 30n) {
+      throw new Error('Invalid ZIP archive: local file header is truncated');
+    }
+
+    const prefetchLength =
+      availableBytes < BigInt(LOCAL_HEADER_PREFETCH_SIZE)
+        ? Number(availableBytes)
+        : LOCAL_HEADER_PREFETCH_SIZE;
     const localHeaderPrefix = await readExact(
       this.reader,
       entry.localHeaderOffset,
-      30,
+      prefetchLength,
       'local file header',
     );
 
@@ -282,7 +303,7 @@ class ZipReaderImpl implements ZipReader {
     const extraLength = readUshort(localHeaderPrefix, 28);
     const localHeaderLength = 30 + nameLength + extraLength;
     const localHeaderBytes =
-      localHeaderLength === localHeaderPrefix.length
+      localHeaderLength <= localHeaderPrefix.length
         ? localHeaderPrefix
         : await readExact(
             this.reader,
@@ -318,7 +339,9 @@ class ZipReaderImpl implements ZipReader {
         );
       }
 
-      return cloneBytes(compressedBytes);
+      // The ZipReaderSource contract guarantees read() results are caller-owned,
+      // so returning them directly avoids a second full-entry allocation.
+      return compressedBytes;
     }
 
     if (localHeader.compressionMethod === ZIP_COMPRESSION_METHOD_DEFLATE) {
@@ -363,25 +386,38 @@ class ZipReaderImpl implements ZipReader {
 
 /**
  * Opens a ZIP archive from a random-access byte reader without loading every file entry.
+ *
+ * On failure the source is closed before the error propagates, so callers do
+ * not leak file handles when handed an invalid archive.
  */
 export async function openZipReader(reader: ZipReaderSource): Promise<ZipReader> {
-  const directory = await readDirectoryRecord(reader);
-  const centralDirectorySize = toSafeNumber(
-    directory.centralDirectorySize,
-    'Central directory size',
-  );
-  const centralDirectoryBytes = await readExact(
-    reader,
-    directory.centralDirectoryOffset,
-    centralDirectorySize,
-    'central directory',
-  );
-  const entries = parseZipCentralDirectoryEntries(
-    centralDirectoryBytes,
-    directory.entryCount,
-  );
+  try {
+    const archiveSize = await reader.size();
+    const directory = await readDirectoryRecord(reader);
+    const centralDirectorySize = toSafeNumber(
+      directory.centralDirectorySize,
+      'Central directory size',
+    );
+    const centralDirectoryBytes = await readExact(
+      reader,
+      directory.centralDirectoryOffset,
+      centralDirectorySize,
+      'central directory',
+    );
+    const entries = parseZipCentralDirectoryEntries(
+      centralDirectoryBytes,
+      directory.entryCount,
+    );
 
-  return new ZipReaderImpl(reader, entries);
+    return new ZipReaderImpl(reader, entries, archiveSize);
+  } catch (error) {
+    try {
+      await reader.close?.();
+    } catch {
+      // Preserve the original open/parse failure.
+    }
+    throw error;
+  }
 }
 
 /**

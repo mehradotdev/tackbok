@@ -83,6 +83,14 @@ interface MaterializedPortableAssetsResult {
   hadFailures: boolean;
 }
 
+/**
+ * Lets the UI thread render between synchronous asset reads/writes; a plain
+ * await only yields a microtask, which never frees a frame.
+ */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 async function materializePortableEntryAssets(
   portableEntry: PortableEntry,
   zip: ZipReader,
@@ -94,6 +102,7 @@ async function materializePortableEntryAssets(
   let hadFailures = false;
 
   for (const portableAsset of portableEntry.assets ?? []) {
+    await yieldToEventLoop();
     try {
       const archivePath = assertSafeArchivePath(portableAsset.path);
       const bytes = await readSafeZipBytes(zip, archivePath);
