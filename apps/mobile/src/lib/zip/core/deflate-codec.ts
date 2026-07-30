@@ -954,6 +954,12 @@ function writeHuffmanSymbol(
  */
 export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
   if (data[0] === 3 && data[1] === 0) {
+    // An empty stream must not silently satisfy a non-empty fixed destination:
+    // the ZIP read path sizes the buffer from the declared uncompressed size,
+    // and returning it untouched would yield all-zero bytes for the entry.
+    if (buffer != null && buffer.length !== 0) {
+      throw new Error('Invalid DEFLATE data: output is smaller than the declared size');
+    }
     return buffer ?? new Uint8Array(0);
   }
 
@@ -1102,6 +1108,13 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
       const distanceCode = distanceMap[read17Bits(data, position) & distanceMask];
       position += distanceCode & 15;
       const distanceLiteral = distanceCode >>> 4;
+      // DEFLATE reserves distance symbols 30 and 31. The decode table carries
+      // 65535-byte sentinel entries for them, which `distance > offset` only
+      // catches while less than 64 KB of output exists — beyond that a crafted
+      // stream would silently copy from the wrong position.
+      if (distanceLiteral > 29) {
+        throw new Error('Invalid DEFLATE data: reserved distance symbol');
+      }
       const distanceExtra = state.distanceDefs[distanceLiteral];
       const distance =
         (distanceExtra >>> 4) + readBitsFast(data, position, distanceExtra & 15);
@@ -1137,6 +1150,13 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
         offset += 1;
       }
     }
+  }
+
+  // Overflow throws inside the loop, so a length mismatch here can only mean
+  // the stream produced fewer bytes than the fixed destination declares; the
+  // untouched tail would otherwise pass through as silent zero padding.
+  if (!shouldGrowBuffer && offset !== output!.length) {
+    throw new Error('Invalid DEFLATE data: output is smaller than the declared size');
   }
 
   return output!.length === offset ? output! : output!.slice(0, offset);

@@ -79,6 +79,46 @@ describe('core safety', () => {
     }
   });
 
+  test('inflateRaw rejects streams that underfill a fixed destination buffer', () => {
+    const compressible = new TextEncoder().encode('hello hello hello '.repeat(50));
+    const incompressible = pseudoRandomBytes(70000, 3);
+
+    // A destination one byte larger than the decoded payload must not be
+    // silently zero-padded.
+    for (const source of [compressible, incompressible]) {
+      const compressed = deflateRaw(source);
+      expect(() => inflateRaw(compressed, new Uint8Array(source.length + 1))).toThrow(
+        'Invalid DEFLATE data: output is smaller than the declared size',
+      );
+    }
+
+    // The 0x03 0x00 empty-stream fast path must obey the same rule.
+    const emptyStream = deflateRaw(new Uint8Array(0));
+    expect(Array.from(emptyStream)).toEqual([3, 0]);
+    expect(() => inflateRaw(emptyStream, new Uint8Array(1))).toThrow(
+      'Invalid DEFLATE data: output is smaller than the declared size',
+    );
+    expect(inflateRaw(emptyStream, new Uint8Array(0))).toEqual(new Uint8Array(0));
+    expect(inflateRaw(emptyStream)).toEqual(new Uint8Array(0));
+  });
+
+  test('inflateRaw rejects reserved distance symbols 30 and 31', () => {
+    // Hand-assembled fixed-Huffman blocks: final-block bit, block type 01,
+    // length symbol 257 (a three-byte match), then the reserved distance
+    // symbol. Real encoders never emit distance codes above 29.
+    const reservedSymbol30 = new Uint8Array([0x03, 0x3e]);
+    const reservedSymbol31 = new Uint8Array([0x03, 0x7e]);
+
+    for (const stream of [reservedSymbol30, reservedSymbol31]) {
+      expect(() => inflateRaw(stream, new Uint8Array(3))).toThrow(
+        'Invalid DEFLATE data: reserved distance symbol',
+      );
+      expect(() => inflateRaw(stream)).toThrow(
+        'Invalid DEFLATE data: reserved distance symbol',
+      );
+    }
+  });
+
   test('inflateRaw rejects output larger than the provided buffer', () => {
     // Compressible input decodes through the Huffman literal/match paths;
     // incompressible input decodes through the stored-block path.

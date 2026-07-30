@@ -302,6 +302,12 @@ class ZipReaderImpl implements ZipReader {
     const nameLength = readUshort(localHeaderPrefix, 26);
     const extraLength = readUshort(localHeaderPrefix, 28);
     const localHeaderLength = 30 + nameLength + extraLength;
+    // readExact would also fail on a short read, but only if the source
+    // short-reads at EOF; the ZipReaderSource contract does not guarantee
+    // that, so enforce the archive bounds here instead of relying on it.
+    if (BigInt(localHeaderLength) > availableBytes) {
+      throw new Error('Invalid ZIP archive: local file header is truncated');
+    }
     const localHeaderBytes =
       localHeaderLength <= localHeaderPrefix.length
         ? localHeaderPrefix
@@ -322,6 +328,9 @@ class ZipReaderImpl implements ZipReader {
       `Uncompressed size for ${path}`,
     );
     const dataOffset = entry.localHeaderOffset + BigInt(localHeader.dataOffset);
+    if (dataOffset + entry.compressedSize > this.archiveSize) {
+      throw new Error(`Invalid ZIP archive: ZIP entry data for ${path} is truncated`);
+    }
     const compressedBytes = await readExact(
       this.reader,
       dataOffset,
