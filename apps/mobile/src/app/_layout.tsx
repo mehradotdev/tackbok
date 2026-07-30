@@ -185,6 +185,13 @@ export default function Layout() {
                   }}
                 />
                 <Stack.Screen
+                  name="insights"
+                  options={{
+                    title: 'Insights',
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
                   name="settings"
                   options={{
                     title: 'Settings',
