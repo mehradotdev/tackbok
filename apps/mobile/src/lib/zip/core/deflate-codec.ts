@@ -1,3 +1,32 @@
+/**
+ * Pure-JS DEFLATE codec used by the ZIP read/write paths.
+ *
+ * Derived from UZIP.js (https://github.com/photopea/UZIP.js),
+ * Copyright (c) 2018 Photopea, released under the MIT License:
+ *
+ *   Permission is hereby granted, free of charge, to any person obtaining a
+ *   copy of this software and associated documentation files (the "Software"),
+ *   to deal in the Software without restriction, including without limitation
+ *   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ *   and/or sell copies of the Software, and to permit persons to whom the
+ *   Software is furnished to do so, subject to the following conditions:
+ *
+ *   The above copyright notice and this permission notice shall be included
+ *   in all copies or substantial portions of the Software.
+ *
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ *   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ *   DEALINGS IN THE SOFTWARE.
+ *
+ * Local changes relative to UZIP.js include TypeScript typing, renamed
+ * identifiers, bitstream bounds guards, and output-capacity checks during
+ * inflate.
+ */
+
 // ─── Internal types ─────────────────────────────────────────────────────────
 // These are implementation details of the DEFLATE codec and are not part of
 // the public ZIP API surface.
@@ -925,6 +954,12 @@ function writeHuffmanSymbol(
  */
 export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
   if (data[0] === 3 && data[1] === 0) {
+    // An empty stream must not silently satisfy a non-empty fixed destination:
+    // the ZIP read path sizes the buffer from the declared uncompressed size,
+    // and returning it untouched would yield all-zero bytes for the entry.
+    if (buffer != null && buffer.length !== 0) {
+      throw new Error('Invalid DEFLATE data: output is smaller than the declared size');
+    }
     return buffer ?? new Uint8Array(0);
   }
 
@@ -933,6 +968,12 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
   if (shouldGrowBuffer) {
     output = new Uint8Array((data.length >>> 2) << 3);
   }
+
+  // When the caller provides a fixed destination (the ZIP read path sizes it
+  // from the declared uncompressed size), overflowing it must be an error.
+  // Without this check, out-of-bounds typed-array writes are silent no-ops
+  // and corrupt archives would decode to silently wrong bytes.
+  const capacity = shouldGrowBuffer ? Infinity : output!.length;
 
   let finalBlock = 0;
   let position = 0;
@@ -954,6 +995,9 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
 
       const byteOffset = (position >>> 3) + 4;
       const length = data[byteOffset - 4] | (data[byteOffset - 3] << 8);
+      if (offset + length > capacity) {
+        throw new Error('Invalid DEFLATE data: output exceeds the declared size');
+      }
       if (shouldGrowBuffer) {
         output = ensureInflateBuffer(output!, offset + length);
       }
@@ -1039,6 +1083,12 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
       const literal = code >>> 4;
 
       if (literal >>> 8 === 0) {
+        if (offset >= output!.length) {
+          if (!shouldGrowBuffer) {
+            throw new Error('Invalid DEFLATE data: output exceeds the declared size');
+          }
+          output = ensureInflateBuffer(output!, offset + (1 << 17));
+        }
         output![offset] = literal;
         offset += 1;
         continue;
@@ -1058,10 +1108,26 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
       const distanceCode = distanceMap[read17Bits(data, position) & distanceMask];
       position += distanceCode & 15;
       const distanceLiteral = distanceCode >>> 4;
+      // DEFLATE reserves distance symbols 30 and 31. The decode table carries
+      // 65535-byte sentinel entries for them, which `distance > offset` only
+      // catches while less than 64 KB of output exists — beyond that a crafted
+      // stream would silently copy from the wrong position.
+      if (distanceLiteral > 29) {
+        throw new Error('Invalid DEFLATE data: reserved distance symbol');
+      }
       const distanceExtra = state.distanceDefs[distanceLiteral];
       const distance =
         (distanceExtra >>> 4) + readBitsFast(data, position, distanceExtra & 15);
       position += distanceExtra & 15;
+
+      if (distance > offset) {
+        throw new Error(
+          'Invalid DEFLATE data: match distance points before the output start',
+        );
+      }
+      if (end > capacity) {
+        throw new Error('Invalid DEFLATE data: output exceeds the declared size');
+      }
 
       if (shouldGrowBuffer) {
         output = ensureInflateBuffer(output!, offset + (1 << 17));
@@ -1084,6 +1150,13 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
         offset += 1;
       }
     }
+  }
+
+  // Overflow throws inside the loop, so a length mismatch here can only mean
+  // the stream produced fewer bytes than the fixed destination declares; the
+  // untouched tail would otherwise pass through as silent zero padding.
+  if (!shouldGrowBuffer && offset !== output!.length) {
+    throw new Error('Invalid DEFLATE data: output is smaller than the declared size');
   }
 
   return output!.length === offset ? output! : output!.slice(0, offset);

@@ -208,6 +208,11 @@ These are the APIs to prefer for real backup import/export flows because they av
 
 These are still useful for tests, fixtures, tiny archives, and cases where the ZIP already exists as a `Uint8Array`.
 
+They are deliberately **not** exported from the top-level `~/lib/zip` facade, so app code cannot grow accidental dependencies on them. Import them directly from their modules instead:
+
+- `~/lib/zip/reader/memory-reader`
+- `~/lib/zip/writer/memory-writer`
+
 Ownership is explicit by layer:
 
 - in-memory reader helpers live under `reader/memory-reader`
@@ -370,7 +375,7 @@ Why use this path:
 ### Build a small ZIP in memory
 
 ```ts
-import { createMemoryZipWriter } from '~/lib/zip';
+import { createMemoryZipWriter } from '~/lib/zip/writer/memory-writer';
 
 const zip = createMemoryZipWriter();
 zip.addText('manifest.json', JSON.stringify({ ok: true }));
@@ -388,7 +393,11 @@ Why use this path:
 ### Parse a small ZIP already loaded into memory
 
 ```ts
-import { parseZipArchive, readZipEntryJson, readZipEntryText } from '~/lib/zip';
+import {
+  parseZipArchive,
+  readZipEntryJson,
+  readZipEntryText,
+} from '~/lib/zip/reader/memory-reader';
 
 const archive = parseZipArchive(zipBytes);
 const manifest = readZipEntryJson<{ ok: boolean }>(archive, 'manifest.json');
@@ -412,6 +421,6 @@ Use `parseZipArchive` when you already have ZIP bytes in memory and the archive 
 
 ## Design Notes
 
-- The top-level facade favors the scalable path, but still exposes explicit in-memory helpers.
+- The top-level facade exposes only the scalable path; the explicit in-memory helpers are imported from their own modules (tests and fixtures only).
 - `core/` is intentionally platform-agnostic so it can be extracted later without Expo code.
 - `adapters/expo/` is intentionally thin so file-backed behavior stays outside the pure ZIP logic.
