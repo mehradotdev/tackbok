@@ -120,10 +120,11 @@ export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProp
 
   // The grid is a purely visual chart — 13pt cells are far below usable touch
   // targets, so days are deliberately not interactive (day detail lives in
-  // the home timeline). Hidden from the accessibility tree: without the
-  // colors, its month labels and legend text carry no meaning.
+  // the home timeline). The grid and legend are hidden from the accessibility
+  // tree (without the colors, month labels and legend text carry no meaning),
+  // but the Entries/Mood toggle stays accessible — it's a functional control.
   return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View>
       {hasMoods && (
         <View className="flex-row self-start bg-muted/60 rounded-full p-0.5 mb-3">
           <ModePill
@@ -139,7 +140,10 @@ export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProp
         </View>
       )}
 
-      <View style={{ height: gridHeight }}>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ height: gridHeight }}>
         {isRTL ? (
           // LegendList mispositions horizontal content under native RTL
           // (blank strip) — fall back to a plain ScrollView there. RN lays the
@@ -189,7 +193,10 @@ export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProp
       </View>
 
       {mode === 'entries' ? (
-        <View className="flex-row items-center justify-end gap-1 mt-2">
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          className="flex-row items-center justify-end gap-1 mt-2">
           <Text className="text-[10px] text-muted-foreground mr-1">{t('Less')}</Text>
           {['bg-muted/40', 'bg-primary/35', 'bg-primary/65', 'bg-primary'].map(
             (levelClass) => (
@@ -203,7 +210,10 @@ export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProp
           <Text className="text-[10px] text-muted-foreground ml-1">{t('More')}</Text>
         </View>
       ) : (
-        <View className="flex-row items-center justify-end gap-2 mt-2">
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          className="flex-row items-center justify-end gap-2 mt-2">
           {MOODS.map((mood) => (
             <View key={mood} className="flex-row items-center gap-1">
               <View

@@ -346,6 +346,10 @@ describe('computeInsightsStats', () => {
       'photos/new.jpg',
       'photos/old.jpg',
     ]);
+    expect(stats.recentPhotos.map((p) => p.dateMs)).toEqual([
+      daysAgoAt(1),
+      daysAgoAt(3),
+    ]);
   });
 
   it('caps the photo mosaic list', () => {
