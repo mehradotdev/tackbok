@@ -53,7 +53,11 @@ export function InsightsSection({
   );
 }
 
-/** A value + caption pair used by the hero tiles and the counts row. */
+/**
+ * A value + caption pair used by the counts row. Columns share the row width
+ * equally (flex-1), and a value too wide for its column shrinks to fit rather
+ * than clipping — an unbounded word count can reach seven digits.
+ */
 export function StatValue({
   value,
   label,
@@ -64,8 +68,12 @@ export function StatValue({
   align?: 'center' | 'start';
 }) {
   return (
-    <View className={align === 'center' ? 'items-center' : 'items-start'}>
-      <Text className="text-2xl font-body-bold text-foreground" numberOfLines={1}>
+    <View className={align === 'center' ? 'flex-1 items-center' : 'flex-1 items-start'}>
+      <Text
+        className="text-2xl font-body-bold text-foreground"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}>
         {value}
       </Text>
       <Text
