@@ -1,13 +1,13 @@
 import { View } from 'react-native';
 import { DAY_KEYS, MOODS, MOOD_EMOJI } from '~/constants';
-import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import type { InsightsStats } from '~/lib/insights';
 import { MOOD_COLORS } from './shared';
 
 /** Emoji bar per mood + the "happiest weekday" callout sentence. */
 export function MoodSection({ stats }: { stats: InsightsStats }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const maxCount = Math.max(...MOODS.map((mood) => stats.moodCounts[mood]), 1);
 
   return (
@@ -27,7 +27,7 @@ export function MoodSection({ stats }: { stats: InsightsStats }) {
               />
             </View>
             <Text className="text-xs text-muted-foreground w-8 text-right">
-              {count.toLocaleString()}
+              {formatLocalizedNumber(count, locale)}
             </Text>
           </View>
         );

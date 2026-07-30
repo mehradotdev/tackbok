@@ -35,6 +35,9 @@ export const SCORE_MULTIPLIER = Math.pow(0.5, 1 / 13);
 /** The heatmap strip never renders narrower than this many weeks. */
 export const MIN_HEATMAP_WEEKS = 26;
 
+/** The monthly bar strip never renders narrower than this many months. */
+export const MIN_MONTHLY_MONTHS = 12;
+
 /** Mood trend chart looks at this many recent weeks. */
 export const MOOD_TREND_WEEKS = 26;
 
@@ -98,7 +101,7 @@ export interface InsightsStats {
   /** Weekly mood averages for the trend chart; empty when below thresholds. */
   moodTrend: MoodTrendPoint[];
   timeOfDay: Record<TimeOfDayBucket, number>;
-  /** Last 12 months, oldest first, zero-filled. */
+  /** Full history (min MIN_MONTHLY_MONTHS), oldest first, zero-filled. */
   monthly: { monthStartMs: number; count: number }[];
   /** Tag usage, most-used first, capped at TOP_TAGS_LIMIT. */
   topTags: { tagId: string; count: number }[];
@@ -107,7 +110,7 @@ export interface InsightsStats {
   photoCount: number;
   audioCount: number;
   /** Newest photos first, capped at MOSAIC_PHOTO_LIMIT. Relative URIs. */
-  recentPhotos: { noteId: string; uri: string }[];
+  recentPhotos: { noteId: string; dateMs: number; uri: string }[];
 }
 
 export interface ComputeInsightsOptions {
@@ -346,7 +349,7 @@ export function computeInsightsStats(
     }
   }
 
-  // ── Monthly volume (last 12 months, zero-filled) ────────────────────────
+  // ── Monthly volume (full history, zero-filled, min 12 months) ───────────
   const monthCounts = new Map<number, number>();
   for (const [dayMs, day] of dayMap) {
     const monthMs = startOfMonth(new Date(dayMs)).getTime();
@@ -354,9 +357,16 @@ export function computeInsightsStats(
   }
   const monthly: { monthStartMs: number; count: number }[] = [];
   const currentMonthStart = startOfMonth(todayStart);
-  for (let i = 11; i >= 0; i--) {
-    const monthMs = addMonths(currentMonthStart, -i).getTime();
+  const defaultStart = addMonths(currentMonthStart, -(MIN_MONTHLY_MONTHS - 1));
+  const oldestMonthMs = monthCounts.size
+    ? Math.min(...monthCounts.keys())
+    : defaultStart.getTime();
+  let monthCursor =
+    defaultStart.getTime() <= oldestMonthMs ? defaultStart : new Date(oldestMonthMs);
+  while (monthCursor.getTime() <= currentMonthStart.getTime()) {
+    const monthMs = monthCursor.getTime();
     monthly.push({ monthStartMs: monthMs, count: monthCounts.get(monthMs) ?? 0 });
+    monthCursor = addMonths(monthCursor, 1);
   }
 
   // ── Top tags ────────────────────────────────────────────────────────────
@@ -366,12 +376,12 @@ export function computeInsightsStats(
     .slice(0, TOP_TAGS_LIMIT);
 
   // ── Recent photos (newest first) ────────────────────────────────────────
-  const recentPhotos: { noteId: string; uri: string }[] = [];
+  const recentPhotos: { noteId: string; dateMs: number; uri: string }[] = [];
   for (let i = sorted.length - 1; i >= 0; i--) {
     const row = sorted[i];
     for (const asset of row.assets ?? []) {
       if (asset.type !== AssetType.IMAGE) continue;
-      recentPhotos.push({ noteId: row.note_id, uri: asset.uri });
+      recentPhotos.push({ noteId: row.note_id, dateMs: row.created_at, uri: asset.uri });
       if (recentPhotos.length >= MOSAIC_PHOTO_LIMIT) break;
     }
     if (recentPhotos.length >= MOSAIC_PHOTO_LIMIT) break;

@@ -27,13 +27,6 @@ export default function InsightsScreen() {
   const { t, isRTL } = useTranslation();
   const { stats, error } = useInsightsStats();
 
-  const handleDayPress = (dateMs: number) => {
-    router.push({
-      pathname: '/dateEntries/[dateMs]',
-      params: { dateMs: dateMs.toString() },
-    });
-  };
-
   return (
     <View className="flex-1 bg-background">
       {/* Header — mirrors the Settings screen */}
@@ -88,11 +81,7 @@ export default function InsightsScreen() {
           </InsightsSection>
 
           <InsightsSection title={t('Consistency')}>
-            <ContributionHeatmap
-              weeks={stats.heatmapWeeks}
-              hasMoods={stats.moodTotal > 0}
-              onDayPress={handleDayPress}
-            />
+            <ContributionHeatmap weeks={stats.heatmapWeeks} hasMoods={stats.moodTotal > 0} />
           </InsightsSection>
 
           {stats.moodTotal > 0 && (
@@ -107,15 +96,15 @@ export default function InsightsScreen() {
             </InsightsSection>
           )}
 
+          <InsightsSection title={t('Entries per month')}>
+            <MonthlyBars stats={stats} />
+          </InsightsSection>
+
           {stats.totalEntries >= TIME_OF_DAY_MIN_ENTRIES && (
             <InsightsSection title={t('Writing habits')}>
               <TimeOfDaySection stats={stats} />
             </InsightsSection>
           )}
-
-          <InsightsSection title={t('Entries per month')}>
-            <MonthlyBars stats={stats} />
-          </InsightsSection>
 
           <TopTagsSection stats={stats} />
 

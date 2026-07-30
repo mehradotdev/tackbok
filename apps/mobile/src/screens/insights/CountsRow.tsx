@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
 import type { InsightsStats } from '~/lib/insights';
 import { StatValue } from './shared';
 
@@ -13,13 +13,19 @@ export function CountsRow({ stats }: { stats: InsightsStats }) {
 
   return (
     <View className="flex-row justify-between">
-      <StatValue value={stats.totalEntries.toLocaleString()} label={t('Entries')} />
       <StatValue
-        value={(isCJK ? stats.totalChars : stats.totalWords).toLocaleString()}
+        value={formatLocalizedNumber(stats.totalEntries, locale)}
+        label={t('Entries')}
+      />
+      <StatValue
+        value={formatLocalizedNumber(isCJK ? stats.totalChars : stats.totalWords, locale)}
         label={isCJK ? t('Characters') : t('Words')}
       />
-      <StatValue value={stats.photoCount.toLocaleString()} label={t('Photos')} />
-      <StatValue value={stats.audioCount.toLocaleString()} label={t('Voice memos')} />
+      <StatValue value={formatLocalizedNumber(stats.photoCount, locale)} label={t('Photos')} />
+      <StatValue
+        value={formatLocalizedNumber(stats.audioCount, locale)}
+        label={t('Voice memos')}
+      />
     </View>
   );
 }

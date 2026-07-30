@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import type { InsightsStats, TimeOfDayBucket } from '~/lib/insights';
 
@@ -24,7 +24,7 @@ const CALLOUT_KEYS: Record<TimeOfDayBucket, string> = {
 
 /** When do you journal? Four bars + a one-line "night writer" style callout. */
 export function TimeOfDaySection({ stats }: { stats: InsightsStats }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const counts = BUCKETS.map((bucket) => stats.timeOfDay[bucket.key]);
   const total = counts.reduce((sum, count) => sum + count, 0);
   const maxCount = Math.max(...counts, 1);
@@ -46,7 +46,7 @@ export function TimeOfDaySection({ stats }: { stats: InsightsStats }) {
             <View key={bucket.key} className="flex-1 items-center justify-end">
               {count > 0 && (
                 <Text className="text-[10px] text-muted-foreground mb-0.5">
-                  {count.toLocaleString()}
+                  {formatLocalizedNumber(count, locale)}
                 </Text>
               )}
               <View

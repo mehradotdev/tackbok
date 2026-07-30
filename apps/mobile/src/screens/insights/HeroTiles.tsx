@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useCSSVariable } from 'uniwind';
-import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import type { InsightsStats } from '~/lib/insights';
 import { InsightsSectionTitle } from './shared';
@@ -74,12 +74,13 @@ function StreakTile({
   value: number;
   label: string;
 }) {
+  const { locale } = useTranslation();
   return (
     <Tile>
       <View className="flex-row items-center gap-1.5">
         <Text className="text-2xl">{emoji}</Text>
         <Text className="text-3xl font-body-bold text-foreground">
-          {value.toLocaleString()}
+          {formatLocalizedNumber(value, locale)}
         </Text>
       </View>
       <TileCaption label={label} />

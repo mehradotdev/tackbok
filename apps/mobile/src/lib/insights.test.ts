@@ -292,6 +292,21 @@ describe('computeInsightsStats', () => {
     expect(total).toBe(3);
   });
 
+  it('extends monthly volume back to the first entry month', () => {
+    const rows = [
+      row({ created_at: new Date(2024, 2, 15, 12).getTime() }), // March 15 2024
+      row({ created_at: daysAgoAt(0) }),
+    ];
+    const stats = computeInsightsStats(rows, OPTS);
+    // March 2024 → July 2026 inclusive = 29 months, zero-filled between.
+    expect(stats.monthly).toHaveLength(29);
+    expect(stats.monthly[0].monthStartMs).toBe(new Date(2024, 2, 1).getTime());
+    expect(stats.monthly[0].count).toBe(1);
+    expect(stats.monthly[stats.monthly.length - 1].count).toBe(1);
+    const total = stats.monthly.reduce((sum, m) => sum + m.count, 0);
+    expect(total).toBe(2);
+  });
+
   it('counts tags from the CSV column and caps the top list', () => {
     const rows = [
       row({ created_at: daysAgoAt(1), tags: 'a,b' }),

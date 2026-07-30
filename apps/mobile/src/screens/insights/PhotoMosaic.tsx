@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getFullPhotoUri } from '~/lib/photoUtils';
-import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedDate, useTranslation } from '~/lib/i18n';
 import type { InsightsStats } from '~/lib/insights';
 import { InsightsSection } from './shared';
 
@@ -34,6 +34,7 @@ export function PhotoMosaic({ stats }: { stats: InsightsStats }) {
           key={photo.key}
           className="w-1/3 p-0.5"
           accessibilityRole="imagebutton"
+          accessibilityLabel={formatLocalizedDate(photo.dateMs, t)}
           onPress={() =>
             router.push({
               pathname: '/gratitudeEntry/[noteId]',

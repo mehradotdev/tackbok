@@ -19,3 +19,6 @@ export { useTranslation } from './useTranslation';
 
 // Date Formatting
 export { formatLocalizedDate, formatTimeLabel } from './dateFormatting';
+
+// Number Formatting
+export { formatLocalizedNumber } from './numberFormatting';

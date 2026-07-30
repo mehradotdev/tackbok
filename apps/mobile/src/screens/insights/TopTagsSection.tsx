@@ -1,13 +1,13 @@
 import { View } from 'react-native';
 import { useTagMapping } from '~/hooks/useGratitude';
-import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import type { InsightsStats } from '~/lib/insights';
 import { InsightsSection } from './shared';
 
 /** The five most-used tags as labeled horizontal bars. Self-gating. */
 export function TopTagsSection({ stats }: { stats: InsightsStats }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const tagMap = useTagMapping();
 
   // Drop ids whose tag record no longer exists (deleted tags leave no title).
@@ -35,7 +35,7 @@ export function TopTagsSection({ stats }: { stats: InsightsStats }) {
             />
           </View>
           <Text className="text-xs text-muted-foreground w-8 text-right">
-            {tag.count.toLocaleString()}
+            {formatLocalizedNumber(tag.count, locale)}
           </Text>
         </View>
       ))}

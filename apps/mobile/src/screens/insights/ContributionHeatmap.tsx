@@ -1,5 +1,5 @@
-import { memo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { memo, useRef, useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { LegendList } from '@legendapp/list/react-native';
 import { cn } from 'tailwind-variants';
 import { MOODS, MOOD_EMOJI, MONTH_SHORT_KEYS } from '~/constants';
@@ -23,22 +23,14 @@ function countLevelClass(count: number): string {
   return 'bg-primary';
 }
 
-function DayCell({
-  day,
-  mode,
-  onPress,
-}: {
-  day: HeatmapDay;
-  mode: HeatmapMode;
-  onPress: (day: HeatmapDay) => void;
-}) {
+function DayCell({ day, mode }: { day: HeatmapDay; mode: HeatmapMode }) {
   if (day.isFuture) {
     // Invisible but present, so the current week keeps a full 7-row column.
     return <View style={{ width: CELL, height: CELL, marginBottom: GAP }} />;
   }
 
   const moodColor = mode === 'mood' && day.mood ? MOOD_COLORS[day.mood] : null;
-  const cell = (
+  return (
     <View
       className={cn(
         'rounded-[3px]',
@@ -47,22 +39,10 @@ function DayCell({
       style={{
         width: CELL,
         height: CELL,
+        marginBottom: GAP,
         ...(moodColor ? { backgroundColor: moodColor } : null),
       }}
     />
-  );
-
-  if (day.count === 0) {
-    return <View style={{ marginBottom: GAP }}>{cell}</View>;
-  }
-  return (
-    <Pressable
-      onPress={() => onPress(day)}
-      style={{ marginBottom: GAP }}
-      hitSlop={2}
-      accessibilityRole="button">
-      {cell}
-    </Pressable>
   );
 }
 
@@ -70,12 +50,10 @@ const WeekColumn = memo(function WeekColumn({
   week,
   mode,
   monthLabel,
-  onDayPress,
 }: {
   week: HeatmapWeek;
   mode: HeatmapMode;
   monthLabel: string | null;
-  onDayPress: (day: HeatmapDay) => void;
 }) {
   return (
     <View style={{ width: COL }}>
@@ -90,7 +68,7 @@ const WeekColumn = memo(function WeekColumn({
         )}
       </View>
       {week.days.map((day) => (
-        <DayCell key={day.dateMs} day={day} mode={mode} onPress={onDayPress} />
+        <DayCell key={day.dateMs} day={day} mode={mode} />
       ))}
     </View>
   );
@@ -126,7 +104,6 @@ interface ContributionHeatmapProps {
   weeks: HeatmapWeek[];
   /** Whether any mood exists at all — hides the mood toggle when false. */
   hasMoods: boolean;
-  onDayPress: (dateMs: number) => void;
 }
 
 /**
@@ -134,19 +111,19 @@ interface ContributionHeatmapProps {
  * history, virtualized horizontally and right-anchored on today. The mood
  * mode recolors the same grid into a "year in pixels".
  */
-export function ContributionHeatmap({
-  weeks,
-  hasMoods,
-  onDayPress,
-}: ContributionHeatmapProps) {
-  const { t } = useTranslation();
+export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProps) {
+  const { t, isRTL } = useTranslation();
   const [mode, setMode] = useState<HeatmapMode>('entries');
+  const rtlScrollRef = useRef<ScrollView>(null);
 
-  const handleDayPress = (day: HeatmapDay) => onDayPress(day.dateMs);
   const gridHeight = MONTH_ROW_HEIGHT + 7 * COL;
 
+  // The grid is a purely visual chart — 13pt cells are far below usable touch
+  // targets, so days are deliberately not interactive (day detail lives in
+  // the home timeline). Hidden from the accessibility tree: without the
+  // colors, its month labels and legend text carry no meaning.
   return (
-    <View>
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {hasMoods && (
         <View className="flex-row self-start bg-muted/60 rounded-full p-0.5 mb-3">
           <ModePill
@@ -163,26 +140,52 @@ export function ContributionHeatmap({
       )}
 
       <View style={{ height: gridHeight }}>
-        <LegendList
-          horizontal
-          data={weeks}
-          extraData={mode}
-          estimatedItemSize={COL}
-          drawDistance={300}
-          initialScrollIndex={weeks.length - 1}
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(week) => `week-${week.weekStartMs}`}
-          renderItem={({ item }) => (
-            <WeekColumn
-              week={item}
-              mode={mode}
-              monthLabel={
-                item.monthIndex !== null ? t(MONTH_SHORT_KEYS[item.monthIndex]) : null
-              }
-              onDayPress={handleDayPress}
-            />
-          )}
-        />
+        {isRTL ? (
+          // LegendList mispositions horizontal content under native RTL
+          // (blank strip) — fall back to a plain ScrollView there. RN lays the
+          // columns out right-to-left natively, which is also the correct
+          // reading direction; the newest week sits at the visual LEFT edge,
+          // i.e. absolute offset 0 (scrollToEnd would anchor on the oldest).
+          <ScrollView
+            ref={rtlScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            onContentSizeChange={() =>
+              rtlScrollRef.current?.scrollTo({ x: 0, animated: false })
+            }>
+            {weeks.map((week) => (
+              <WeekColumn
+                key={`week-${week.weekStartMs}`}
+                week={week}
+                mode={mode}
+                monthLabel={
+                  week.monthIndex !== null ? t(MONTH_SHORT_KEYS[week.monthIndex]) : null
+                }
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <LegendList
+            horizontal
+            data={weeks}
+            recycleItems={true}
+            extraData={mode}
+            estimatedItemSize={COL}
+            drawDistance={300}
+            initialScrollIndex={weeks.length - 1}
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(week) => `week-${week.weekStartMs}`}
+            renderItem={({ item }) => (
+              <WeekColumn
+                week={item}
+                mode={mode}
+                monthLabel={
+                  item.monthIndex !== null ? t(MONTH_SHORT_KEYS[item.monthIndex]) : null
+                }
+              />
+            )}
+          />
+        )}
       </View>
 
       {mode === 'entries' ? (
