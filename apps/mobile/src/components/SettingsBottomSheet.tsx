@@ -8,6 +8,7 @@ import * as Updates from 'expo-updates';
 import { useRouter } from 'expo-router';
 import {
   Settings,
+  Palette,
   Mail,
   RotateCcw,
   ChartColumn,
@@ -395,6 +396,11 @@ export function SettingsBottomSheet() {
     router.navigate('/insights');
   };
 
+  const handleAppearance = async () => {
+    await dismiss();
+    router.navigate('/appearance');
+  };
+
   const handleSettings = async () => {
     await dismiss();
     router.navigate('/settings');
@@ -551,6 +557,11 @@ export function SettingsBottomSheet() {
             onAvatarPress={handleAvatarPress}
             onSaveName={handleSaveName}>
             <View className="border-t border-border mt-3">
+              <ActionRow
+                label={t('Appearance')}
+                icon={Palette}
+                onPress={handleAppearance}
+              />
               <ActionRow
                 label={t('Insights')}
                 icon={ChartColumn}

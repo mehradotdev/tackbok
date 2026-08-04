@@ -18,14 +18,47 @@ export type CharBucket = '0-50' | '51-200' | '200+';
 /** Order-of-magnitude bucket for entry counts / journaled-day counts. */
 export type CountBucket = '0' | '1-10' | '11-50' | '51-200' | '200+';
 
-/** Logical screens — derived from the route, never the raw pathname/params. */
-export type ScreenName =
-  | 'home'
-  | 'entry_new'
-  | 'entry_view'
-  | 'date_entries'
-  | 'insights'
-  | 'settings';
+/**
+ * Expo Router path pattern → logical analytics screen name.
+ *
+ * This is the single source of truth for tracked screens. Dynamic segments
+ * match exactly one non-empty path segment; raw parameter values are never
+ * included in analytics events.
+ */
+export const SCREEN_ROUTE_MAP = {
+  '/': 'home',
+  '/gratitudeEntry': 'entry_new',
+  '/gratitudeEntry/[noteId]': 'entry_view',
+  '/dateEntries/[dateMs]': 'date_entries',
+  '/appearance': 'appearance',
+  '/insights': 'insights',
+  '/settings': 'settings',
+} as const;
+
+export type ScreenName = (typeof SCREEN_ROUTE_MAP)[keyof typeof SCREEN_ROUTE_MAP];
+
+type ScreenRoutePattern = keyof typeof SCREEN_ROUTE_MAP;
+
+function matchesRoutePattern(pathname: string, pattern: ScreenRoutePattern): boolean {
+  const pathSegments = pathname.split('/').filter(Boolean);
+  const patternSegments = pattern.split('/').filter(Boolean);
+
+  return (
+    pathSegments.length === patternSegments.length &&
+    patternSegments.every(
+      (segment, index) =>
+        (segment.startsWith('[') && segment.endsWith(']')) ||
+        segment === pathSegments[index],
+    )
+  );
+}
+
+/** Resolves a pathname to its allowlisted logical name; unknown routes are ignored. */
+export function getScreenName(pathname: string): ScreenName | null {
+  const patterns = Object.keys(SCREEN_ROUTE_MAP) as ScreenRoutePattern[];
+  const pattern = patterns.find((candidate) => matchesRoutePattern(pathname, candidate));
+  return pattern ? SCREEN_ROUTE_MAP[pattern] : null;
+}
 
 export type ImportSource = 'tackbok' | 'gratitudeApp' | 'presently';
 

@@ -19,10 +19,10 @@ import { getLocales } from 'expo-localization';
 import { useSettingsStore } from '~/lib/settings';
 import { getEntryStats } from '~/db/queries';
 import {
+  getScreenName,
   toCountBucket,
   type AnalyticsEventName,
   type AnalyticsEvents,
-  type ScreenName,
 } from './events';
 import {
   drainPreConsentBuffer,
@@ -173,13 +173,7 @@ export function track<E extends AnalyticsEventName>(
 
 /** Route pathname → screen_viewed event; unknown routes are never sent. */
 export function trackScreenView(pathname: string): void {
-  let screen: ScreenName | null = null;
-  if (pathname === '/') screen = 'home';
-  else if (pathname === '/gratitudeEntry') screen = 'entry_new';
-  else if (pathname.startsWith('/gratitudeEntry/')) screen = 'entry_view';
-  else if (pathname.startsWith('/dateEntries')) screen = 'date_entries';
-  else if (pathname.startsWith('/insights')) screen = 'insights';
-  else if (pathname.startsWith('/settings')) screen = 'settings';
+  const screen = getScreenName(pathname);
   if (screen) track('screen_viewed', { screen });
 }
 

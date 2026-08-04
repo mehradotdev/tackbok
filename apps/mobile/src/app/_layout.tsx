@@ -192,6 +192,13 @@ export default function Layout() {
                   }}
                 />
                 <Stack.Screen
+                  name="appearance"
+                  options={{
+                    title: 'Appearance',
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen
                   name="settings"
                   options={{
                     title: 'Settings',
