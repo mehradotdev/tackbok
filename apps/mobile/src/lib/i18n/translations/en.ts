@@ -451,6 +451,7 @@ export const en = {
   'Checking for updates…': 'Checking for updates…',
   'Last checked: {time}': 'Last checked: {time}',
   Never: 'Never',
+  Restart: 'Restart',
   'Restart to apply': 'Restart to apply',
   'Update downloaded. Restart to apply it.': 'Update downloaded. Restart to apply it.',
   'You already have the latest version': 'You already have the latest version',

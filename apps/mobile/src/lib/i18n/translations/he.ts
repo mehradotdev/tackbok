@@ -435,6 +435,7 @@ export const he: Translations = {
   'Checking for updates…': 'בודק עדכונים…',
   'Last checked: {time}': 'בדיקה אחרונה: {time}',
   Never: 'מעולם לא',
+  Restart: 'הפעלה מחדש',
   'Restart to apply': 'הפעלה מחדש להחלה',
   'Update downloaded. Restart to apply it.': 'העדכון ירד. הפעל מחדש כדי להחיל אותו.',
   'You already have the latest version': 'הגרסה האחרונה כבר מותקנת',

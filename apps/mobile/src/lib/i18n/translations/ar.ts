@@ -436,6 +436,7 @@ export const ar: Translations = {
   'Checking for updates…': 'جارٍ التحقق من التحديثات…',
   'Last checked: {time}': 'آخر تحقق: {time}',
   Never: 'أبدًا',
+  Restart: 'إعادة التشغيل',
   'Restart to apply': 'أعد التشغيل للتطبيق',
   'Update downloaded. Restart to apply it.': 'تم تنزيل التحديث. أعد التشغيل لتطبيقه.',
   'You already have the latest version': 'لديك أحدث إصدار بالفعل',

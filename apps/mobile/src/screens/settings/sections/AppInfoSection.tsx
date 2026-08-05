@@ -64,6 +64,15 @@ export function AppInfoSection() {
       : t('Never');
   const isUpdateBusy = isManualCheckRunning || isChecking || isDownloading;
 
+  const handleRestart = async () => {
+    try {
+      await restartToApplyAppUpdate();
+    } catch (error) {
+      console.warn('Failed to restart to apply the downloaded update:', error);
+      toast.error(t('Unable to update'));
+    }
+  };
+
   const handleCheckForUpdates = async () => {
     setIsManualCheckRunning(true);
     try {
@@ -77,7 +86,12 @@ export function AppInfoSection() {
         // need to expand the end-user translation catalog.
         toast.info('Updates are unavailable in development builds');
       } else if (result === 'downloaded') {
-        toast.success(t('Update downloaded. Restart to apply it.'));
+        toast.success(t('Update downloaded. Restart to apply it.'), {
+          action: {
+            label: t('Restart'),
+            onPress: () => void handleRestart(),
+          },
+        });
       } else {
         toast.success(t('You already have the latest version'));
       }
@@ -86,15 +100,6 @@ export function AppInfoSection() {
       toast.error(t('Unable to update'));
     } finally {
       setIsManualCheckRunning(false);
-    }
-  };
-
-  const handleRestart = async () => {
-    try {
-      await restartToApplyAppUpdate();
-    } catch (error) {
-      console.warn('Failed to restart to apply the downloaded update:', error);
-      toast.error(t('Unable to update'));
     }
   };
 

@@ -474,6 +474,7 @@ export const de: Translations = {
   'Checking for updates…': 'Updates werden gesucht …',
   'Last checked: {time}': 'Zuletzt geprüft: {time}',
   Never: 'Nie',
+  Restart: 'Neu starten',
   'Restart to apply': 'Zum Anwenden neu starten',
   'Update downloaded. Restart to apply it.':
     'Update heruntergeladen. Starte die App neu, um es anzuwenden.',

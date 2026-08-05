@@ -425,6 +425,7 @@ export const zhTW: Translations = {
   'Checking for updates…': '正在檢查更新…',
   'Last checked: {time}': '上次檢查：{time}',
   Never: '從未',
+  Restart: '重新啟動',
   'Restart to apply': '重新啟動以套用',
   'Update downloaded. Restart to apply it.': '更新已下載。重新啟動以套用。',
   'You already have the latest version': '您已使用最新版本',
