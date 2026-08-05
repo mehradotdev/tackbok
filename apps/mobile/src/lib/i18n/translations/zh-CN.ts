@@ -423,6 +423,7 @@ export const zhCN: Translations = {
   'Checking for updates…': '正在检查更新…',
   'Last checked: {time}': '上次检查：{time}',
   Never: '从未',
+  Restart: '重启',
   'Restart to apply': '重启以应用',
   'Update downloaded. Restart to apply it.': '更新已下载。重启以应用。',
   'You already have the latest version': '您已使用最新版本',
