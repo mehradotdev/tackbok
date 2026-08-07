@@ -24,24 +24,34 @@ export const AchievementShareCard = React.forwardRef<View, AchievementShareCardP
   ) {
     const firstReadyFrame = React.useRef<number | null>(null);
     const secondReadyFrame = React.useRef<number | null>(null);
+    const hasMeasured = React.useRef(false);
     const countTextStyle = getTitleFontPreviewStyle(titleFontFamily, 88);
     const titleTextStyle = getTitleFontPreviewStyle(titleFontFamily, 29);
 
+    const scheduleReady = React.useCallback(() => {
+      firstReadyFrame.current = requestAnimationFrame(() => {
+        secondReadyFrame.current = requestAnimationFrame(() => onReadyChange?.(true));
+      });
+    }, [onReadyChange]);
+
     React.useEffect(() => {
       onReadyChange?.(false);
+      // The frame keeps a fixed aspect ratio, so `onLayout` only ever fires on
+      // mount. Once measured, a later prop change has to reschedule the ready
+      // signal itself or the card would stay not-ready forever.
+      if (hasMeasured.current) scheduleReady();
       return () => {
         if (firstReadyFrame.current !== null)
           cancelAnimationFrame(firstReadyFrame.current);
         if (secondReadyFrame.current !== null)
           cancelAnimationFrame(secondReadyFrame.current);
       };
-    }, [achievement.id, palette.id, titleFontFamily, onReadyChange]);
+    }, [achievement.id, palette.id, titleFontFamily, onReadyChange, scheduleReady]);
 
     const handleLayout = React.useCallback(() => {
-      firstReadyFrame.current = requestAnimationFrame(() => {
-        secondReadyFrame.current = requestAnimationFrame(() => onReadyChange?.(true));
-      });
-    }, [onReadyChange]);
+      hasMeasured.current = true;
+      scheduleReady();
+    }, [scheduleReady]);
 
     return (
       <ShareCardFrame

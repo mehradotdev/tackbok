@@ -20,6 +20,10 @@ describe('entry share layouts', () => {
       'tall',
     ]);
     expect(ENTRY_LAYOUT_CANDIDATES.at(-1)?.finalFallback).toBe(true);
+    // An early final fallback would stop the shrink cascade before it ran out.
+    expect(
+      ENTRY_LAYOUT_CANDIDATES.slice(0, -1).filter((candidate) => candidate.finalFallback),
+    ).toEqual([]);
   });
 
   test('exports exact standard dimensions', () => {

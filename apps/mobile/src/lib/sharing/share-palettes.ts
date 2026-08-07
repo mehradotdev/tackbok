@@ -42,13 +42,18 @@ export function getSharePalette(id: string): SharePalette {
   };
 }
 
-export const SHARE_PALETTES: readonly SharePalette[] = SHARE_THEME_IDS.map((id) => {
-  const palette = getSharePalette(id);
-  // The Light fallback must never turn a mistyped grid member into a silent
-  // duplicate tile.
-  if (palette.id !== id) throw new Error(`Unknown sharing theme: ${id}`);
-  return palette;
-});
+export const SHARE_PALETTES: readonly SharePalette[] = (() => {
+  const seen = new Set<string>();
+  return SHARE_THEME_IDS.map((id) => {
+    const palette = getSharePalette(id);
+    // Neither a mistyped grid member falling back to Light nor a repeated id
+    // may turn into a silent duplicate tile.
+    if (palette.id !== id) throw new Error(`Unknown sharing theme: ${id}`);
+    if (seen.has(id)) throw new Error(`Duplicate sharing theme: ${id}`);
+    seen.add(id);
+    return palette;
+  });
+})();
 
 export function isShareThemeId(value: string): value is ShareThemeId {
   return SHARE_THEME_IDS.some((id) => id === value);
