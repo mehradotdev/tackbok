@@ -10,6 +10,7 @@ export const __mockFileSystemState = {
   cacheEntries: [] as unknown[],
   createdFiles: [] as unknown[],
   copyBehavior: async (_source: unknown, _destination: unknown) => {},
+  moveBehavior: async (_source: unknown, _destination: unknown) => {},
   paths: {
     cache: '/tmp',
     document: '/documents',
@@ -24,6 +25,13 @@ export class File {
   copy = jest.fn((destination: unknown) =>
     __mockFileSystemState.copyBehavior(this, destination),
   );
+  // Matches the real API: a move repoints this file at its new location.
+  move = jest.fn(async (destination: unknown) => {
+    await __mockFileSystemState.moveBehavior(this, destination);
+    if (destination && typeof destination === 'object' && 'uri' in destination) {
+      this.uri = String((destination as { uri?: unknown }).uri ?? this.uri);
+    }
+  });
   uri: string;
 
   constructor(...args: unknown[]) {

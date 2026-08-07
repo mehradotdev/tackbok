@@ -3,28 +3,41 @@ import { View, Pressable } from 'react-native';
 import { cn } from 'tailwind-variants';
 import { useCSSVariable } from 'uniwind';
 import { type MilestoneItem } from '~/types';
-import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { Text } from '~/components/ui/text';
 import { TackbokLogo } from '~/components/TackbokLogo';
+import { getAchievement, isAchievementDay } from '~/lib/achievements';
+import { useAchievementDialogStore } from '~/lib/achievement-dialog';
 
 interface IGratitudeMilestoneProps {
   milestone: MilestoneItem;
 }
 
 export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milestone }) => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
   const [foregroundColor] = useCSSVariable(['--color-foreground']);
 
   const handlePress = () => {
-    // TODO: Implement Share Milestone functionality
-    console.log('Milestone pressed', milestone);
+    const achievement = getAchievement(milestone.milestoneDays);
+    if (achievement) {
+      useAchievementDialogStore.getState().openManualAchievement(achievement);
+    }
   };
 
   return (
     <Pressable
       onPress={handlePress}
+      disabled={milestone.milestoneDays === 0}
+      accessibilityRole={milestone.milestoneDays === 0 ? undefined : 'button'}
+      accessibilityLabel={
+        milestone.milestoneDays === 0
+          ? undefined
+          : t('Open {count} day achievement', {
+              count: formatLocalizedNumber(milestone.milestoneDays, locale),
+            })
+      }
       className={cn(
         'flex-row w-full active:bg-muted',
         showTimelineBorders && !milestone.isLast && 'border-b-2 border-border',
@@ -74,5 +87,5 @@ export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milesto
 // Helper function to check if a day count is a milestone
 // Milestones: 5, 10, and every multiple of 25 (25, 50, 75, 100, ...)
 export function isMilestone(dayCount: number): boolean {
-  return dayCount === 0 || dayCount === 5 || dayCount === 10 || dayCount % 25 === 0;
+  return dayCount === 0 || (dayCount !== 1 && isAchievementDay(dayCount));
 }

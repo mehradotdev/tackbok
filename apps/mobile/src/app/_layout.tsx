@@ -27,6 +27,7 @@ import { PortalHost } from '~/components/primitives/portal';
 import { Text } from '~/components/ui/text';
 import { Toaster } from '~/components/ui/toast';
 import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
+import { AchievementDialogHost } from '~/components/achievement-dialog-host';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -185,6 +186,10 @@ export default function Layout() {
                   }}
                 />
                 <Stack.Screen
+                  name="share-entry/[noteId]"
+                  options={{ title: 'Share Entry', headerShown: false }}
+                />
+                <Stack.Screen
                   name="insights"
                   options={{
                     title: 'Insights',
@@ -208,6 +213,7 @@ export default function Layout() {
               </Stack>
               <ReminderNavigationObserver />
               <ScreenViewObserver />
+              <AchievementDialogHost />
             </AppLockGate>
             <StatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
             <Toaster />

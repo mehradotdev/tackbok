@@ -627,6 +627,28 @@ export const zhCN: Translations = {
   'Write a few entries and your stats will show up here.':
     '写下几条记录后，你的统计数据就会显示在这里。',
 
+  // 分享与成就
+  'Share your gratitude': '分享你的感恩',
+  'I was grateful for': '我感恩的是',
+  'Share image': '分享图片',
+  'Share entry': '分享记录',
+  'Include mood': '包含心情',
+  'Mood is hidden unless you include it': '除非你主动包含，否则心情不会显示',
+  'Include photos': '包含照片',
+  'Up to the first five photos will be shared': '最多分享前五张照片',
+  'Choose a style': '选择样式',
+  'Sharing is not available on this device': '此设备无法使用分享功能',
+  'Could not share image. Please try again.': '无法分享图片，请重试。',
+  '{theme} theme': '{theme}主题',
+  '{theme} theme, selected': '{theme}主题，已选择',
+  'Day one complete!': '第一天完成！',
+  'A beautiful beginning. Keep noticing the good.': '美好的开始。继续发现生活中的美好。',
+  '{count} days of gratitude!': '感恩第{count}天！',
+  'Congratulations on making gratitude part of your journey.':
+    '恭喜你让感恩成为人生旅程的一部分。',
+  'Share achievement': '分享成就',
+  'Open {count} day achievement': '打开第{count}天成就',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{year}年{month}{day}日',
   'dateFormat.full': '{year}年{month}{day}日 {weekday}',

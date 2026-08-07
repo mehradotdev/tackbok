@@ -657,6 +657,30 @@ export const en = {
   'Write a few entries and your stats will show up here.':
     'Write a few entries and your stats will show up here.',
 
+  // Sharing and achievements
+  'Share your gratitude': 'Share your gratitude',
+  'I was grateful for': 'I was grateful for',
+  'Share image': 'Share image',
+  'Share entry': 'Share entry',
+  'Include mood': 'Include mood',
+  'Mood is hidden unless you include it': 'Mood is hidden unless you include it',
+  'Include photos': 'Include photos',
+  'Up to the first five photos will be shared':
+    'Up to the first five photos will be shared',
+  'Choose a style': 'Choose a style',
+  'Sharing is not available on this device': 'Sharing is not available on this device',
+  'Could not share image. Please try again.': 'Could not share image. Please try again.',
+  '{theme} theme': '{theme} theme',
+  '{theme} theme, selected': '{theme} theme, selected',
+  'Day one complete!': 'Day one complete!',
+  'A beautiful beginning. Keep noticing the good.':
+    'A beautiful beginning. Keep noticing the good.',
+  '{count} days of gratitude!': '{count} days of gratitude!',
+  'Congratulations on making gratitude part of your journey.':
+    'Congratulations on making gratitude part of your journey.',
+  'Share achievement': 'Share achievement',
+  'Open {count} day achievement': 'Open {count} day achievement',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{month} {day}, {year}',
   'dateFormat.full': '{weekday}, {month} {day}, {year}',

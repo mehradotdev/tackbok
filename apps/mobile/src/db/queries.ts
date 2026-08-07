@@ -1,6 +1,7 @@
 import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
 import { startOfDay, format } from 'date-fns';
 import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
+import { getAchievementForCreateTransition, type Achievement } from '~/lib/achievements';
 import {
   db,
   entries,
@@ -38,21 +39,33 @@ export async function getAllEntriesGroupByDate(): Promise<Map<number, Entry[]>> 
 }
 
 /**
- * Get aggregate entry stats (total entries + distinct local-time days with at
- * least one entry). Used for bucketed analytics — only fetches timestamps.
+ * Total entries plus the distinct local-time day starts that contain one.
+ * Only fetches timestamps. Accepts a transaction so achievement evaluation and
+ * analytics can never disagree about where a day begins.
  */
-export async function getEntryStats(): Promise<{
-  entryCount: number;
-  daysWithEntries: number;
-}> {
-  const rows = await db.select({ created_at: entries.created_at }).from(entries);
+async function readEntryDays(
+  executor: Pick<typeof db, 'select'>,
+): Promise<{ entryCount: number; days: Set<number> }> {
+  const rows = await executor.select({ created_at: entries.created_at }).from(entries);
   // Day boundaries must match the app's timeline grouping (local time), so
   // dedupe in JS rather than with SQLite's UTC-based date().
   const days = new Set<number>();
   rows.forEach((row) => {
     days.add(startOfDay(new Date(row.created_at)).getTime());
   });
-  return { entryCount: rows.length, daysWithEntries: days.size };
+  return { entryCount: rows.length, days };
+}
+
+/**
+ * Get aggregate entry stats (total entries + distinct local-time days with at
+ * least one entry). Used for bucketed analytics.
+ */
+export async function getEntryStats(): Promise<{
+  entryCount: number;
+  daysWithEntries: number;
+}> {
+  const { entryCount, days } = await readEntryDays(db);
+  return { entryCount, daysWithEntries: days.size };
 }
 
 /**
@@ -239,6 +252,35 @@ export async function upsertEntry(entry: NewEntry) {
         created_at: entry.created_at ?? sql`${entries.created_at}`, // use previous value if new value is undefined
       },
     });
+}
+
+/**
+ * Inserts a genuine new entry and evaluates achievement eligibility from the
+ * same serialized database transition. Seeding, imports, and edits deliberately
+ * continue to use `upsertEntry` and therefore never enqueue celebrations.
+ */
+export async function createEntryWithAchievement(
+  entry: NewEntry,
+): Promise<Achievement | null> {
+  const now = Date.now();
+  const createdAt = entry.created_at ?? now;
+
+  return db.transaction(async (tx) => {
+    const { entryCount, days } = await readEntryDays(tx);
+
+    await tx.insert(entries).values({
+      ...entry,
+      created_at: createdAt,
+      updated_at: now,
+    });
+
+    return getAchievementForCreateTransition({
+      entryCountBefore: entryCount,
+      journaledDaysBefore: days.size,
+      // Local day starts, so this stays correct across DST transitions.
+      addsJournaledDay: !days.has(startOfDay(new Date(createdAt)).getTime()),
+    });
+  });
 }
 
 /**

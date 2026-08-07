@@ -682,6 +682,33 @@ export const de: Translations = {
   'Write a few entries and your stats will show up here.':
     'Schreibe ein paar Einträge und deine Statistiken erscheinen hier.',
 
+  // Teilen und Erfolge
+  'Share your gratitude': 'Teile deine Dankbarkeit',
+  'I was grateful for': 'Ich war dankbar für',
+  'Share image': 'Bild teilen',
+  'Share entry': 'Eintrag teilen',
+  'Include mood': 'Stimmung einbeziehen',
+  'Mood is hidden unless you include it':
+    'Die Stimmung bleibt verborgen, wenn du sie nicht einbeziehst',
+  'Include photos': 'Fotos einbeziehen',
+  'Up to the first five photos will be shared':
+    'Bis zu den ersten fünf Fotos werden geteilt',
+  'Choose a style': 'Stil auswählen',
+  'Sharing is not available on this device':
+    'Teilen ist auf diesem Gerät nicht verfügbar',
+  'Could not share image. Please try again.':
+    'Das Bild konnte nicht geteilt werden. Bitte versuche es erneut.',
+  '{theme} theme': 'Design {theme}',
+  '{theme} theme, selected': 'Design {theme}, ausgewählt',
+  'Day one complete!': 'Tag eins geschafft!',
+  'A beautiful beginning. Keep noticing the good.':
+    'Ein schöner Anfang. Nimm weiterhin das Gute wahr.',
+  '{count} days of gratitude!': '{count} Tage Dankbarkeit!',
+  'Congratulations on making gratitude part of your journey.':
+    'Glückwunsch, dass Dankbarkeit Teil deines Weges ist.',
+  'Share achievement': 'Erfolg teilen',
+  'Open {count} day achievement': 'Erfolg für {count} Tage öffnen',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day}. {month} {year}',
   'dateFormat.full': '{weekday}, {day}. {month} {year}',

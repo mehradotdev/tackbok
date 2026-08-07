@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, ScrollView } from 'react-native';
-import { ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Pencil, Share2, Trash2 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
 import type { Entry, Asset } from '~/types';
 import { filterExistingPhotos } from '~/lib/photoUtils';
@@ -39,6 +41,8 @@ export function GratitudeEntryView({
   onPhotoPress,
 }: GratitudeEntryViewProps) {
   const { t, isRTL } = useTranslation();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const tagMap = useTagMapping();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const deleteEntryMutation = useDeleteEntry();
@@ -71,6 +75,7 @@ export function GratitudeEntryView({
 
   // Extract voice memo assets (only those whose files still exist on disk)
   const voiceMemos = filterExistingVoiceMemos(entry.assets ?? null);
+  const canShare = Boolean(title?.trim() || content?.trim());
 
   const handleDelete = async () => {
     try {
@@ -178,6 +183,23 @@ export function GratitudeEntryView({
           </View>
         )}
       </ScrollView>
+
+      {canShare ? (
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute left-4 h-12 w-12 rounded-full bg-background shadow-theme"
+          style={{ bottom: Math.max(insets.bottom, 12) }}
+          accessibilityLabel={t('Share entry')}
+          onPress={() =>
+            router.push({
+              pathname: '/share-entry/[noteId]',
+              params: { noteId: entry.note_id },
+            })
+          }>
+          <Icon as={Share2} size={21} />
+        </Button>
+      ) : null}
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
