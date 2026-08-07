@@ -641,6 +641,30 @@ export const ar: Translations = {
   'Write a few entries and your stats will show up here.':
     'اكتب بعض الإدخالات وستظهر إحصاءاتك هنا.',
 
+  // المشاركة والإنجازات
+  'Share your gratitude': 'شارك امتنانك',
+  'I was grateful for': 'كنت ممتنًا لـ',
+  'Share image': 'مشاركة الصورة',
+  'Share entry': 'مشاركة الإدخال',
+  'Include mood': 'تضمين الحالة المزاجية',
+  'Mood is hidden unless you include it': 'تظل الحالة المزاجية مخفية ما لم تضمّنها',
+  'Include photos': 'تضمين الصور',
+  'Up to the first five photos will be shared': 'ستتم مشاركة أول خمس صور كحد أقصى',
+  'Choose a style': 'اختر نمطًا',
+  'Sharing is not available on this device': 'المشاركة غير متاحة على هذا الجهاز',
+  'Could not share image. Please try again.':
+    'تعذرت مشاركة الصورة. يرجى المحاولة مرة أخرى.',
+  '{theme} theme': 'سمة {theme}',
+  '{theme} theme, selected': 'سمة {theme}، محددة',
+  'Day one complete!': 'اكتمل اليوم الأول!',
+  'A beautiful beginning. Keep noticing the good.':
+    'بداية جميلة. واصل ملاحظة الأشياء الجيدة.',
+  '{count} days of gratitude!': '{count} يومًا من الامتنان!',
+  'Congratulations on making gratitude part of your journey.':
+    'تهانينا لجعل الامتنان جزءًا من رحلتك.',
+  'Share achievement': 'مشاركة الإنجاز',
+  'Open {count} day achievement': 'فتح إنجاز {count} يومًا',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day} {month} {year}',
   'dateFormat.full': '{weekday}، {day} {month} {year}',

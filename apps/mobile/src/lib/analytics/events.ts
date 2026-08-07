@@ -29,6 +29,7 @@ export const SCREEN_ROUTE_MAP = {
   '/': 'home',
   '/gratitudeEntry': 'entry_new',
   '/gratitudeEntry/[noteId]': 'entry_view',
+  '/share-entry/[noteId]': 'entry_share',
   '/dateEntries/[dateMs]': 'date_entries',
   '/appearance': 'appearance',
   '/insights': 'insights',

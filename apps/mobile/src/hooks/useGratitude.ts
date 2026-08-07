@@ -10,6 +10,7 @@ import {
   searchEntries,
   getAllTags,
   upsertEntry,
+  createEntryWithAchievement,
   getAllEntriesGroupByDate,
   updateTag,
   deleteTag,
@@ -158,6 +159,23 @@ export function useUpsertEntry() {
     mutationFn: (entry: NewEntry) => upsertEntry(entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+    },
+  });
+}
+
+/** Hook used only for user-created entries so passive writes cannot celebrate. */
+export function useCreateEntryWithAchievement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (entry: NewEntry) => createEntryWithAchievement(entry),
+    onSuccess: (achievement) => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+      // Enqueued here rather than at the call site so any future create surface
+      // celebrates without having to remember this step.
+      if (achievement) {
+        useSettingsStore.getState().setPendingAchievement(achievement);
+      }
     },
   });
 }

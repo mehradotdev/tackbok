@@ -18,6 +18,7 @@ import {
   type BuiltInJournalPromptCategoryId,
   type JournalPromptsMode,
 } from '~/lib/journalPrompts';
+import type { Achievement } from '~/lib/achievements';
 
 // TODO: Implement actual functionality for all settings
 // This is currently a mock store - all values are stored but not yet connected to real features
@@ -72,6 +73,7 @@ interface SettingsState {
   /** Banner hidden without removing the entries — user chose to build over them. */
   sampleEntriesBannerDismissed: boolean;
   hasSeenHomeCoachMarks: boolean;
+  pendingAchievement: Achievement | null;
 
   // Hydration status
   _hasHydrated: boolean;
@@ -104,6 +106,7 @@ interface SettingsState {
   setSampleEntryIds: (ids: string[]) => void;
   setSampleEntriesBannerDismissed: (dismissed: boolean) => void;
   setHasSeenHomeCoachMarks: (seen: boolean) => void;
+  setPendingAchievement: (achievement: Achievement | null) => void;
   setHasHydrated: (hydrated: boolean) => void;
 }
 
@@ -133,6 +136,7 @@ const DEFAULT_SETTINGS_VALUES = {
   sampleEntryIds: [] as string[],
   sampleEntriesBannerDismissed: false,
   hasSeenHomeCoachMarks: false,
+  pendingAchievement: null,
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -192,6 +196,8 @@ export const useSettingsStore = create<SettingsState>()(
       setSampleEntriesBannerDismissed: (dismissed) =>
         set({ sampleEntriesBannerDismissed: dismissed }),
       setHasSeenHomeCoachMarks: (seen) => set({ hasSeenHomeCoachMarks: seen }),
+      setPendingAchievement: (achievement) =>
+        set({ pendingAchievement: achievement }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
     {
@@ -250,6 +256,7 @@ export const useSettingsStore = create<SettingsState>()(
         sampleEntryIds: state.sampleEntryIds,
         sampleEntriesBannerDismissed: state.sampleEntriesBannerDismissed,
         hasSeenHomeCoachMarks: state.hasSeenHomeCoachMarks,
+        pendingAchievement: state.pendingAchievement,
       }),
     },
   ),

@@ -115,12 +115,9 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     let processedDays = 0;
 
     finalDayGroups.forEach((group) => {
-      // Placeholders have an empty entries array, so hasContent is false.
-      // For real entries, check that at least one has substantive data.
-      const hasContent = group.entries.some(
-        (e) =>
-          e.text_content || e.text_title || e.mood || (e.assets && e.assets.length > 0),
-      );
+      // Every stored entry day counts, including seeded/imported entries. Only
+      // synthetic today/yesterday placeholders have no entries.
+      const hasContent = group.entries.length > 0;
 
       const remainingDays = totalContentDays - processedDays;
 

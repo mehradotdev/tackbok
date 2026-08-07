@@ -29,7 +29,12 @@ import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n
 import { generateUUID } from '~/lib/utils';
 import { filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
-import { useCustomPrompts, useUpsertEntry, useTagMapping } from '~/hooks/useGratitude';
+import {
+  useCreateEntryWithAchievement,
+  useCustomPrompts,
+  useUpsertEntry,
+  useTagMapping,
+} from '~/hooks/useGratitude';
 import { usePhotoSession } from '~/hooks/usePhotoSession';
 import { useVoiceMemoSession } from '~/hooks/useVoiceMemoSession';
 import { useWorksheetTemplate } from '~/hooks/useWorksheetTemplate';
@@ -138,6 +143,7 @@ function GratitudeEntryEditForm({
 
   // Mutations
   const upsertEntryMutation = useUpsertEntry();
+  const createEntryMutation = useCreateEntryWithAchievement();
   const isSaving = useRef(false);
 
   // Keyboard animation for floating dock positioning (avoids iOS touch issues with KeyboardStickyView)
@@ -307,6 +313,9 @@ function GratitudeEntryEditForm({
 
   const handleSave = async () => {
     if (!canSave) return;
+    // A second tap before the write settles would generate a fresh UUID and
+    // store the entry twice.
+    if (isSaving.current) return;
 
     isSaving.current = true;
     const id = initialEntry?.note_id || generateUUID();
@@ -315,7 +324,7 @@ function GratitudeEntryEditForm({
     const allAssets: Asset[] = [...photos, ...voiceMemos];
 
     try {
-      await upsertEntryMutation.mutateAsync({
+      const entryToSave = {
         note_id: id,
         text_title: title.trim() || null,
         text_content: content.trim() || null,
@@ -324,7 +333,14 @@ function GratitudeEntryEditForm({
         tags: selectedTagIds.join(','),
         created_at: timestamp,
         updated_at: Date.now(),
-      });
+      };
+      // The create path also evaluates and enqueues achievements; edits and
+      // other passive writes must keep using the plain upsert.
+      if (isNewEntry) {
+        await createEntryMutation.mutateAsync(entryToSave);
+      } else {
+        await upsertEntryMutation.mutateAsync(entryToSave);
+      }
 
       // Delete files that were removed during this editing session.
       // Best-effort: runs only after a successful save to prevent data loss

@@ -640,6 +640,29 @@ export const he: Translations = {
   'Write a few entries and your stats will show up here.':
     'כתוב כמה רשומות והנתונים שלך יופיעו כאן.',
 
+  // שיתוף והישגים
+  'Share your gratitude': 'שיתוף הכרת התודה שלך',
+  'I was grateful for': 'הכרתי תודה על',
+  'Share image': 'שיתוף תמונה',
+  'Share entry': 'שיתוף רשומה',
+  'Include mood': 'הוספת מצב רוח',
+  'Mood is hidden unless you include it': 'מצב הרוח מוסתר אלא אם בוחרים להוסיף אותו',
+  'Include photos': 'הוספת תמונות',
+  'Up to the first five photos will be shared': 'ישותפו עד חמש התמונות הראשונות',
+  'Choose a style': 'בחירת סגנון',
+  'Sharing is not available on this device': 'השיתוף אינו זמין במכשיר הזה',
+  'Could not share image. Please try again.': 'לא ניתן לשתף את התמונה. נסו שוב.',
+  '{theme} theme': 'ערכת נושא {theme}',
+  '{theme} theme, selected': 'ערכת נושא {theme}, נבחרה',
+  'Day one complete!': 'היום הראשון הושלם!',
+  'A beautiful beginning. Keep noticing the good.':
+    'התחלה יפה. המשיכו להבחין בדברים הטובים.',
+  '{count} days of gratitude!': '{count} ימים של הכרת תודה!',
+  'Congratulations on making gratitude part of your journey.':
+    'כל הכבוד על הפיכת הכרת התודה לחלק מהדרך שלכם.',
+  'Share achievement': 'שיתוף הישג',
+  'Open {count} day achievement': 'פתיחת הישג של {count} ימים',
+
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
   'dateFormat.short': '{day} ב{month} {year}',
   'dateFormat.full': 'יום {weekday}, {day} ב{month} {year}',
