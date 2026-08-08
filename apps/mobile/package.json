@@ -3,9 +3,10 @@
   "version": "0.6.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "start": "APP_VARIANT=beta expo start",
+    "android": "APP_VARIANT=beta expo run:android",
+    "ios": "APP_VARIANT=beta expo run:ios",
+    "prebuild": "APP_VARIANT=beta expo prebuild --clean",
     "generate:themes": "bun run src/lib/theme/generate-theme-artifacts.ts",
     "generate:themes:verify": "bun run generate:themes && bun run test:theme",
     "lint": "expo lint",

@@ -27,6 +27,28 @@ bun run start
 
 _(Or use `bun run ios` / `bun run android` to launch directly in a simulator/emulator)_
 
+### App variants (Beta vs. Production)
+
+Local development builds use a separate **beta** app identity so they install side by side with the store app:
+
+| | Production | Beta (local dev, EAS `development`) |
+| --- | --- | --- |
+| Display name | Tackbok | Tackbok (Beta) |
+| Android package / iOS bundle ID | `dev.mehra.tackbok` | `dev.mehra.tackbok.beta` |
+| Deep-link scheme | `tackbok` | `tackbok-beta` |
+
+The variant is selected by the `APP_VARIANT=beta` environment variable in [app.config.ts](app.config.ts). The `start`/`android`/`ios` scripts and the EAS `development` profile set it for you. Preview and production builds set nothing and keep the store identity — never change that.
+
+**Important:** the display name and package/bundle ID are stamped into the native `android/`/`ios/` projects when *prebuild* runs, not at `expo start` time. If you regenerate the native projects manually, always go through the script — a bare `npx expo prebuild` would bake the production identity into your local build:
+
+```sh
+bun run prebuild   # = APP_VARIANT=beta expo prebuild --clean
+```
+
+Run it after changing `app.config.ts`, config plugins, or native dependencies, then rebuild with `bun run android` / `bun run ios`.
+
+The `APP_VARIANT=beta` prefix in these scripts works on Windows too: `bun run` executes scripts with Bun's cross-platform shell, which supports Unix-style env-var assignments natively — no `cross-env` needed. Just always run scripts through `bun run`, not `npm run`/`yarn`.
+
 ### Windows Android Setup
 
 Windows needs a couple of extra setup steps for this Expo/React Native app.
@@ -52,15 +74,15 @@ linker = "hoisted"
 
 React Native's Android native build tools can fail on Windows when packages resolve through long `.bun` paths. The hoisted linker keeps native package paths short and predictable.
 
-3. Check the generated Expo inline-modules property after `expo prebuild`.
+3. Check the generated Expo inline-modules property after prebuild.
 
-Expo may regenerate `apps/mobile/android/gradle.properties` with this value:
+Regenerate native projects only via `bun run prebuild` (never bare `npx expo prebuild` — see the App variants section above; it would bake the production identity into your local build). Expo may regenerate `apps/mobile/android/gradle.properties` with this value:
 
 ```properties
 expo.inlineModules.watchedDirectories=["src/inlineModules"]
 ```
 
-On Windows, that can be passed to Node as invalid JSON because the quotes are stripped. If you run `expo prebuild`, make sure the line is escaped like this before running Android:
+On Windows, that can be passed to Node as invalid JSON because the quotes are stripped. After running `bun run prebuild`, make sure the line is escaped like this before running Android:
 
 ```properties
 expo.inlineModules.watchedDirectories=[\\"src/inlineModules\\"]
