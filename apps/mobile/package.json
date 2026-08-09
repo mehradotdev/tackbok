@@ -15,6 +15,7 @@
     "phase2:test": "jest src/lib/cloudSync/codec src/lib/cloudSync/ancestry src/lib/cloudSync/conflicts src/lib/cloudSync/domain src/lib/cloudSync/outbox src/lib/cloudSync/providers/contract.test.ts src/lib/cloudSync/engine --runInBand --no-watchman",
     "phase3:test": "jest src/lib/cloudSync/providers/googleDrive.test.ts src/lib/cloudSync/auth/policy.test.ts --runInBand --no-watchman",
     "phase3:probe:test": "jest src/lib/cloudSync/phase3 --runInBand --no-watchman",
+    "phase4:test": "bun run phase2:test && bun test scripts/cloud-sync-phase4/phase4-gate.test.ts",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "bun run test:jest",
@@ -42,6 +43,7 @@
     "expo-application": "~57.0.2",
     "expo-asset": "~57.0.7",
     "expo-auth-session": "~57.0.6",
+    "expo-background-task": "~57.0.8",
     "expo-constants": "~57.0.6",
     "expo-dev-client": "~57.0.9",
     "expo-device": "~57.0.1",
@@ -54,6 +56,7 @@
     "expo-linking": "~57.0.4",
     "expo-local-authentication": "~57.0.2",
     "expo-localization": "~57.0.1",
+    "expo-network": "~57.0.1",
     "expo-notifications": "~57.0.7",
     "expo-router": "~57.0.8",
     "expo-secure-store": "~57.0.1",
@@ -62,6 +65,7 @@
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.1",
+    "expo-task-manager": "~57.0.8",
     "expo-updates": "~57.0.10",
     "expo-web-browser": "~57.0.2",
     "lucide-react-native": "^1.17.0",
@@ -111,7 +115,10 @@
   "jest": {
     "preset": "jest-expo",
     "globalSetup": "<rootDir>/jest.global-setup.js",
-    "testPathIgnorePatterns": ["<rootDir>/scripts/cloud-sync-phase1/"],
+    "testPathIgnorePatterns": [
+      "<rootDir>/scripts/cloud-sync-phase1/",
+      "<rootDir>/scripts/cloud-sync-phase4/"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!.*((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg))"
     ]

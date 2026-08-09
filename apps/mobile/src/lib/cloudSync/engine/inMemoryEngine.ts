@@ -1,5 +1,5 @@
 import { canonicalBytes, sha256Bytes } from '../codec';
-import { VersionGraph } from '../ancestry';
+import { VersionGraph, type VersionGraphDurableState } from '../ancestry';
 import { resolveHeads, type ResolutionResult } from '../conflicts';
 import { createSystemVersion, deterministicId } from '../domain/version';
 import {
@@ -22,8 +22,9 @@ import {
   type OutboxItem,
   type ProvisionalCapture,
 } from '../outbox';
-import type { CloudProvider, RemoteObject, VaultRef } from '../providers';
+import type { ByteSource, CloudProvider, RemoteObject, VaultRef } from '../providers';
 import { SyncStateMachine } from './stateMachine';
+import type { SyncState } from './stateMachine';
 
 type EntityKey = `${EntityType}:${string}`;
 const SEED_BATCH_SIZE = 50;
@@ -37,6 +38,51 @@ interface ResolvedEntity {
 
 export interface SyncPassHooks {
   beforeApply?: (device: InMemorySyncDevice) => void | Promise<void>;
+}
+
+export type DurableSyncStep =
+  | 'mutation'
+  | 'seed-checkpoint'
+  | 'pull-page'
+  | 'provisional'
+  | 'apply'
+  | 'publish-blob'
+  | 'publish-edit'
+  | 'publish-recovery-init'
+  | 'publish-resolution'
+  | 'publish-join'
+  | 'publish-revocation'
+  | 'settle'
+  | 'purge-batch'
+  | 'revoked';
+
+export interface EngineDurabilityHooks {
+  checkpoint(device: InMemorySyncDevice, step: DurableSyncStep): void;
+}
+
+export interface EngineDurableSnapshot {
+  version: 1;
+  state: SyncState;
+  domain: [EntityKey, DomainState][];
+  generations: [EntityKey, number][];
+  outbox: [EntityKey, OutboxItem][];
+  graphs: [EntityKey, VersionGraphDurableState][];
+  conflicts: [string, NonNullable<ResolutionResult['conflict']>][];
+  blobs: [string, number[]][];
+  appliedHeads: [EntityKey, string[]][];
+  degradedEntities: [EntityKey, string][];
+  cursor: string | null;
+  pendingChangeObjects: (Omit<RemoteObject, 'body'> & { body: number[] })[];
+  pendingChangeCursor: string | null;
+  editSequence: number;
+  logicalAuthoredAt: number;
+  revokedKind: RevocationKind | null;
+  seedItems: { type: EntityType; id: string; state: DomainState }[];
+  seedIndex: number;
+  seedAwaiting: EntityKey[];
+  seedAwaitingCursor: string | null;
+  seedCursor: string | null;
+  purgeCursor: string | null;
 }
 
 export interface SyncPassResult {
@@ -68,13 +114,14 @@ function graphSort(key: EntityKey): number {
 }
 
 export class InMemorySyncDevice {
-  readonly stateMachine = new SyncStateMachine();
+  stateMachine = new SyncStateMachine();
   readonly domain = new Map<EntityKey, DomainState>();
   readonly generations = new Map<EntityKey, number>();
   readonly outbox = new Map<EntityKey, OutboxItem>();
   readonly graphs = new Map<EntityKey, VersionGraph>();
   readonly conflicts = new Map<string, NonNullable<ResolutionResult['conflict']>>();
   readonly blobs = new Map<string, Uint8Array>();
+  private readonly blobSources = new Map<string, ByteSource>();
   readonly appliedHeads = new Map<EntityKey, string[]>();
   readonly degradedEntities = new Map<EntityKey, string>();
   private cursor: string | undefined;
@@ -90,11 +137,14 @@ export class InMemorySyncDevice {
   private seedAwaiting = new Set<EntityKey>();
   private seedAwaitingCursor: string | null = null;
   private seedCursor: string | null = null;
+  private purgeCursor: string | null = null;
 
   constructor(
     readonly deviceId: string,
     readonly vault: VaultRef,
     readonly provider: CloudProvider,
+    private readonly durability?: EngineDurabilityHooks,
+    private readonly connectionMode: 'interactive' | 'silent' = 'interactive',
   ) {}
 
   get isRevoked(): boolean {
@@ -105,9 +155,15 @@ export class InMemorySyncDevice {
     return this.seedCursor;
   }
 
+  get isSeeding(): boolean {
+    return this.seedItems.length > 0 &&
+      (this.seedIndex < this.seedItems.length || this.seedAwaiting.size > 0);
+  }
+
   async initialize(): Promise<void> {
     this.stateMachine.transition('connecting');
-    await this.provider.connect();
+    if (this.connectionMode === 'silent') await this.provider.refreshConnection();
+    else await this.provider.connect();
     this.connected = true;
     this.stateMachine.transition('initializing');
     this.stateMachine.transition('idle');
@@ -119,7 +175,13 @@ export class InMemorySyncDevice {
     }
     const hash = sha256Bytes(bytes);
     this.blobs.set(hash, bytes.slice());
+    this.checkpoint('mutation');
     return hash;
+  }
+
+  /** Registers a restart-reconstructible production file source without buffering it. */
+  registerBlobSource(hash: string, source: ByteSource): void {
+    this.blobSources.set(hash, source);
   }
 
   mutate(
@@ -148,6 +210,18 @@ export class InMemorySyncDevice {
       }),
     );
     if (this.stateMachine.state === 'idle') this.stateMachine.transition('dirty');
+    this.checkpoint('mutation');
+  }
+
+  /** Imports an already-transactional production outbox row without minting a new edit. */
+  adoptQueuedMutation(item: OutboxItem, state: DomainState | null): void {
+    const key = entityKey(item.entityType, item.entityId);
+    this.generations.set(key, item.generation);
+    if (state) this.domain.set(key, state);
+    else this.domain.delete(key);
+    this.outbox.set(key, item);
+    if (this.stateMachine.state === 'idle') this.stateMachine.transition('dirty');
+    this.checkpoint('mutation');
   }
 
   seed(states: { type: EntityType; id: string; state: DomainState }[]): void {
@@ -162,6 +236,7 @@ export class InMemorySyncDevice {
       const key = entityKey(item.type, item.id);
       if (!this.domain.has(key)) this.domain.set(key, item.state);
     }
+    this.checkpoint('seed-checkpoint');
   }
 
   snapshot(): Record<string, DomainState> {
@@ -185,7 +260,18 @@ export class InMemorySyncDevice {
       result.revoked = true;
       return result;
     }
-    if (!this.connected) await this.initialize();
+    if (!this.connected) {
+      if (this.stateMachine.state === 'disabled') {
+        await this.initialize();
+      } else {
+        // A durable restart restores the state machine before the provider
+        // session. Reattach silently, then recover the interrupted active
+        // state below; do not attempt an impossible idle/pushing -> connecting
+        // transition or show interactive consent in background work.
+        await this.provider.refreshConnection();
+        this.connected = true;
+      }
+    }
     this.stateMachine.recoverAfterCrash(this.outbox.size > 0);
     const revocation = await this.observeRevocation();
     if (revocation) {
@@ -224,6 +310,7 @@ export class InMemorySyncDevice {
       });
       this.graphFor(key).add(capture.version.body, capture.version.hash);
       captures.set(key, capture);
+      this.checkpoint('provisional');
     }
 
     const resolved: ResolvedEntity[] = [];
@@ -287,6 +374,7 @@ export class InMemorySyncDevice {
       }
       result.applied++;
       appliedResolved.push(item);
+      this.checkpoint('apply');
     }
 
     this.recoverTombstonedTagReferences(appliedResolved);
@@ -298,6 +386,7 @@ export class InMemorySyncDevice {
         await this.publishVersionAncestry(capture.version);
         await this.publishVersion(capture.version);
         capture.version.published = true;
+        this.checkpoint('publish-edit');
         result.pushed++;
       }
       for (const recovery of item.recoveries) {
@@ -305,6 +394,7 @@ export class InMemorySyncDevice {
         await this.publishBlobs(recovery.body.state);
         await this.publishVersion(recovery);
         recovery.published = true;
+        this.checkpoint('publish-recovery-init');
         result.pushed++;
       }
       if (
@@ -315,6 +405,9 @@ export class InMemorySyncDevice {
         await this.publishVersionAncestry(item.version);
         await this.publishVersion(item.version);
         item.version.published = true;
+        this.checkpoint(
+          item.version.body.kind === 'resolution' ? 'publish-resolution' : 'publish-join',
+        );
         result.pushed++;
       }
     }
@@ -331,7 +424,81 @@ export class InMemorySyncDevice {
     }
     this.stateMachine.transition('verifying');
     this.stateMachine.transition(this.outbox.size > 0 ? 'dirty' : 'idle');
+    this.checkpoint('settle');
     return result;
+  }
+
+  toDurableSnapshot(): EngineDurableSnapshot {
+    return {
+      version: 1,
+      state: this.stateMachine.state,
+      domain: Array.from(this.domain.entries()),
+      generations: Array.from(this.generations.entries()),
+      outbox: Array.from(this.outbox.entries()),
+      graphs: Array.from(this.graphs, ([key, graph]) => [key, graph.toDurableState()]),
+      conflicts: Array.from(this.conflicts.entries()),
+      blobs: Array.from(this.blobs, ([hash, body]) => [hash, Array.from(body)]),
+      appliedHeads: Array.from(this.appliedHeads.entries()),
+      degradedEntities: Array.from(this.degradedEntities.entries()),
+      cursor: this.cursor ?? null,
+      pendingChangeObjects: this.pendingChangeObjects.map((object) => ({
+        ...object,
+        body: Array.from(object.body),
+      })),
+      pendingChangeCursor: this.pendingChangeCursor ?? null,
+      editSequence: this.editSequence,
+      logicalAuthoredAt: this.logicalAuthoredAt,
+      revokedKind: this.revokedKind,
+      seedItems: this.seedItems,
+      seedIndex: this.seedIndex,
+      seedAwaiting: Array.from(this.seedAwaiting),
+      seedAwaitingCursor: this.seedAwaitingCursor,
+      seedCursor: this.seedCursor,
+      purgeCursor: this.purgeCursor,
+    };
+  }
+
+  restoreDurableSnapshot(snapshot: EngineDurableSnapshot): void {
+    if (snapshot.version !== 1) throw new Error('Unsupported durable engine snapshot');
+    this.stateMachine = new SyncStateMachine(snapshot.state);
+    this.domain.clear();
+    snapshot.domain.forEach(([key, value]) => this.domain.set(key, value));
+    this.generations.clear();
+    snapshot.generations.forEach(([key, value]) => this.generations.set(key, value));
+    this.outbox.clear();
+    snapshot.outbox.forEach(([key, value]) => this.outbox.set(key, value));
+    this.graphs.clear();
+    for (const [key, durableGraph] of snapshot.graphs) {
+      const [type, id] = splitEntityKey(key);
+      const graph = new VersionGraph(this.vault.vaultId, type, id);
+      graph.restoreDurableState(durableGraph);
+      this.graphs.set(key, graph);
+    }
+    this.conflicts.clear();
+    snapshot.conflicts.forEach(([key, value]) => this.conflicts.set(key, value));
+    this.blobs.clear();
+    snapshot.blobs.forEach(([hash, body]) => this.blobs.set(hash, Uint8Array.from(body)));
+    this.appliedHeads.clear();
+    snapshot.appliedHeads.forEach(([key, value]) => this.appliedHeads.set(key, value));
+    this.degradedEntities.clear();
+    snapshot.degradedEntities.forEach(([key, value]) => this.degradedEntities.set(key, value));
+    this.cursor = snapshot.cursor ?? undefined;
+    this.pendingChangeObjects = snapshot.pendingChangeObjects.map((object) => ({
+      ...object,
+      body: Uint8Array.from(object.body),
+    }));
+    this.pendingChangeCursor = snapshot.pendingChangeCursor ?? undefined;
+    this.editSequence = snapshot.editSequence;
+    this.logicalAuthoredAt = snapshot.logicalAuthoredAt;
+    this.connected = false;
+    this.revokedKind = snapshot.revokedKind;
+    this.seedItems = snapshot.seedItems;
+    this.seedIndex = snapshot.seedIndex;
+    this.seedAwaiting = new Set(snapshot.seedAwaiting);
+    this.seedAwaitingCursor = snapshot.seedAwaitingCursor;
+    this.seedCursor = snapshot.seedCursor;
+    this.purgeCursor = snapshot.purgeCursor;
+    this.satisfyKnownRecoveries();
   }
 
   async revoke(kind: RevocationKind, revocationId: string, timestamp: number): Promise<void> {
@@ -350,6 +517,7 @@ export class InMemorySyncDevice {
       `revocations/${hash}.json`,
       bytes,
     );
+    this.checkpoint('publish-revocation');
     await this.purgeResidue();
     await this.applyRevocation(kind);
   }
@@ -393,6 +561,7 @@ export class InMemorySyncDevice {
       this.seedCursor = this.seedAwaitingCursor;
       this.seedAwaitingCursor = null;
     }
+    this.checkpoint('seed-checkpoint');
   }
 
   private async pullAllChanges(): Promise<number> {
@@ -411,7 +580,6 @@ export class InMemorySyncDevice {
         this.pendingChangeObjects = [...page.objects];
         this.pendingChangeCursor = next;
       }
-
       while (this.pendingChangeObjects.length > 0) {
         const object = this.pendingChangeObjects[0];
         if (!object.key.startsWith('entities/')) {
@@ -452,6 +620,7 @@ export class InMemorySyncDevice {
       cursor = this.pendingChangeCursor ?? cursor;
       this.cursor = cursor;
       this.pendingChangeCursor = undefined;
+      this.checkpoint('pull-page');
     }
   }
 
@@ -521,6 +690,15 @@ export class InMemorySyncDevice {
         await this.publishBlobs(parent.body.state);
         await this.publishVersion(parent);
         parent.published = true;
+        this.checkpoint(
+          parent.body.kind === 'edit'
+            ? 'publish-edit'
+            : parent.body.kind === 'recovery-init'
+              ? 'publish-recovery-init'
+              : parent.body.kind === 'resolution'
+                ? 'publish-resolution'
+                : 'publish-join',
+        );
       }
     }
     for (const recoveryRef of version.body.recoveries) {
@@ -537,6 +715,7 @@ export class InMemorySyncDevice {
         await this.publishBlobs(recovery.body.state);
         await this.publishVersion(recovery);
         recovery.published = true;
+        this.checkpoint('publish-recovery-init');
       }
     }
   }
@@ -550,7 +729,7 @@ export class InMemorySyncDevice {
           : [];
     for (const asset of assets) {
       if (!/^[a-f0-9]{64}$/.test(asset.blobHash)) return false;
-      if (this.blobs.has(asset.blobHash)) continue;
+      if (this.blobs.has(asset.blobHash) || this.blobSources.has(asset.blobHash)) continue;
       const key = `blobs/${asset.blobHash.slice(0, 2)}/${asset.blobHash}`;
       if (!(await this.provider.read(this.vault, key))) return false;
     }
@@ -566,13 +745,14 @@ export class InMemorySyncDevice {
           ? [state.photo]
           : [];
     for (const asset of assets) {
-      const body = this.blobs.get(asset.blobHash);
+      const body = this.blobSources.get(asset.blobHash) ?? this.blobs.get(asset.blobHash);
       if (!body) continue;
       await this.provider.putImmutable(
         this.vault,
         `blobs/${asset.blobHash.slice(0, 2)}/${asset.blobHash}`,
         body,
       );
+      this.checkpoint('publish-blob');
     }
   }
 
@@ -611,15 +791,25 @@ export class InMemorySyncDevice {
     await this.provider.disconnect();
     this.connected = false;
     if (this.stateMachine.state !== 'revoked') this.stateMachine.transition('revoked');
+    this.checkpoint('revoked');
   }
 
   private async purgeResidue(): Promise<void> {
-    let cursor: string | undefined;
+    let cursor = this.purgeCursor ?? undefined;
     do {
       const page = await this.provider.deleteVaultResidue(this.vault, cursor);
       cursor = page.cursor ?? undefined;
-      if (page.complete) break;
+      this.purgeCursor = cursor ?? null;
+      this.checkpoint('purge-batch');
+      if (page.complete) {
+        this.purgeCursor = null;
+        break;
+      }
     } while (true);
+  }
+
+  private checkpoint(step: DurableSyncStep): void {
+    this.durability?.checkpoint(this, step);
   }
 
   private recoverTombstonedTagReferences(resolved: ResolvedEntity[]): void {

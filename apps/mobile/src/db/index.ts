@@ -10,7 +10,7 @@ const DATABASE_NAME = 'tackbok.db';
 // Database file used by expo-sqlite/kv-store, which backs zustand persist.
 const KV_STORE_DATABASE_NAME = 'ExpoSQLiteStorage';
 
-const expo = SQLite.openDatabaseSync(DATABASE_NAME);
+export const sqlite = SQLite.openDatabaseSync(DATABASE_NAME);
 
 // busy_timeout makes SQLite retry for a bit instead of failing immediately
 // with "Error code 5: database is locked", and WAL lets readers and a writer
@@ -18,8 +18,8 @@ const expo = SQLite.openDatabaseSync(DATABASE_NAME);
 // briefly leave the torn-down runtime's native connection alive (sometimes
 // mid-transaction) alongside the new one, which made startup reads/writes
 // throw uncaught "database is locked" errors.
-expo.execSync('PRAGMA busy_timeout = 2000');
-expo.execSync('PRAGMA journal_mode = WAL');
+sqlite.execSync('PRAGMA busy_timeout = 2000');
+sqlite.execSync('PRAGMA journal_mode = WAL');
 
 // Same hardening for the kv-store database. Opening with default options
 // returns the same pooled native connection kv-store itself uses, so the
@@ -42,7 +42,7 @@ void kvStoreDbHandle
     console.warn('Failed to configure kv-store database:', error);
   });
 
-export const db = drizzle(expo, { schema });
+export const db = drizzle(sqlite, { schema });
 
 // Re-export schema for convenience
 export * from './schema';

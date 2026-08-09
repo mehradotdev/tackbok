@@ -16,7 +16,8 @@ requirements were met.
 | 1 — normalized model + outbox | ✅ closed ([gate](./phase1/gate.md)) |
 | 2 — engine vs. the fake provider | ✅ closed ([gate](./phase2/gate.md)) |
 | 3 — Google Drive adapter | ✅ conditionally closed ([gate](./phase3/gate.md), [waiver](./phase3/waiver.md)) |
-| 4 — runtime + UI | not started |
+| 4a — durable runtime (no UI) | 🟡 ready for owner review ([gate](./phase4/gate.md)) |
+| 4b — UI + translations | not started; blocked on 4a review |
 | 5 — hardening + rollout | not started |
 | 6 — background-transfer decision | blocked: needs a physical device |
 
@@ -27,6 +28,7 @@ requirements were met.
   Phase-0 gate with its owner waiver. `results/` holds the on-device
   diagnostics runs.
 - `phase1/`, `phase2/` — gates and evidence for the local model and the engine.
+- `phase4/` — the split Phase-4 runtime gate and redacted machine evidence.
 - `phase3/` — the Drive adapter. Read [`gate.md`](./phase3/gate.md) for what was
   proven, [`waiver.md`](./phase3/waiver.md) for what was not and what is owed on
   the first physical device, [`probes.md`](./phase3/probes.md) to re-run the

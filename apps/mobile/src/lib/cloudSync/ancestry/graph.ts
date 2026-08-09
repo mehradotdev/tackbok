@@ -14,10 +14,26 @@ export interface MissingDependency {
   kind: 'parent' | 'recovery';
 }
 
+export interface VersionGraphDurableState {
+  versions: {
+    body: EntityVersionBody;
+    hash: string;
+    status: HashedVersion['status'];
+    published: boolean;
+  }[];
+  fetchedDependencies: { hash: string; byteLength: number }[];
+  recoveryDependencies: {
+    hash: string;
+    entityType: string;
+    entityId: string;
+  }[];
+}
+
 export class VersionGraph {
   private readonly versions = new Map<string, HashedVersion>();
   private readonly fetchedDependencyHashes = new Set<string>();
   private fetchedDependencyBytes = 0;
+  private readonly fetchedDependencySizes = new Map<string, number>();
   private readonly recoveryDependencies = new Map<
     string,
     { entityType: string; entityId: string }
@@ -64,7 +80,52 @@ export class VersionGraph {
       throw new Error('Dependency fetch byte cap exceeded');
     }
     this.fetchedDependencyHashes.add(hash);
+    this.fetchedDependencySizes.set(hash, byteLength);
     this.fetchedDependencyBytes += byteLength;
+  }
+
+  toDurableState(): VersionGraphDurableState {
+    return {
+      versions: this.values().map((version) => ({
+        body: version.body,
+        hash: version.hash,
+        status: version.status,
+        published: version.published,
+      })),
+      fetchedDependencies: Array.from(this.fetchedDependencySizes, ([hash, byteLength]) => ({
+        hash,
+        byteLength,
+      })),
+      recoveryDependencies: Array.from(
+        this.recoveryDependencies,
+        ([hash, identity]) => ({ hash, ...identity }),
+      ),
+    };
+  }
+
+  restoreDurableState(state: VersionGraphDurableState): void {
+    for (const dependency of state.fetchedDependencies) {
+      this.recordFetchedDependency(dependency.hash, dependency.byteLength);
+    }
+    for (const dependency of state.recoveryDependencies) {
+      this.recoveryDependencies.set(dependency.hash, {
+        entityType: dependency.entityType,
+        entityId: dependency.entityId,
+      });
+    }
+    const pending = [...state.versions];
+    while (pending.length > 0) {
+      const nextIndex = pending.findIndex((candidate) =>
+        candidate.body.parents.every(
+          (parent) => this.versions.has(parent) || !state.versions.some((item) => item.hash === parent),
+        ),
+      );
+      const [next] = pending.splice(nextIndex < 0 ? 0 : nextIndex, 1);
+      const restored = this.add(next.body, next.hash);
+      restored.status = next.status;
+      restored.published = next.published;
+    }
+    this.refreshCompleteness();
   }
 
   add(body: EntityVersionBody, expectedHash?: string): HashedVersion {

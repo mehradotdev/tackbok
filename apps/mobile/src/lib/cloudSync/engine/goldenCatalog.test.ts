@@ -19,8 +19,21 @@ import {
   type RemoteObjectRef,
   type VaultRef,
 } from '../providers';
-import { createPortableEntries, createPortablePrompts, createPortableTags } from '~/lib/backupExport/portable';
 import { InMemorySyncDevice } from './inMemoryEngine';
+
+export type GoldenDeviceFactory = (
+  deviceId: string,
+  vault: VaultRef,
+  provider: FakeCloudProvider,
+) => InMemorySyncDevice;
+
+const defaultDeviceFactory: GoldenDeviceFactory = (deviceId, vault, provider) =>
+  new InMemorySyncDevice(deviceId, vault, provider);
+let activeDeviceFactory = defaultDeviceFactory;
+
+function makeDevice(deviceId: string, vault: VaultRef, provider: FakeCloudProvider) {
+  return activeDeviceFactory(deviceId, vault, provider);
+}
 
 jest.mock('~/lib/backupExport/utils', () => ({
   assetFileExists: () => true,
@@ -181,8 +194,8 @@ function conflict(kind: 'set' | 'text' | 'scalar' | 'delete' | 'raced' | 'profil
 async function dirtyScenario(kind: 'upsert' | 'delete' | 'generation' | 'clean-race') {
   const provider = new FakeCloudProvider(20);
   const vault = await setup(provider);
-  const a = new InMemorySyncDevice('a', vault, provider);
-  const b = new InMemorySyncDevice('b', vault, provider);
+  const a = makeDevice('a', vault, provider);
+  const b = makeDevice('b', vault, provider);
   a.mutate('entry', 'e', entry('base'));
   await a.sync();
   await b.sync();
@@ -247,8 +260,8 @@ class CrashProvider extends FakeCloudProvider {
 async function publishCrash(category: 'blob' | 'edit' | 'recovery-init' | 'resolution') {
   const provider = new CrashProvider(50);
   const vault = await setup(provider);
-  const remote = new InMemorySyncDevice('remote', vault, provider);
-  const local = new InMemorySyncDevice('local', vault, provider);
+  const remote = makeDevice('remote', vault, provider);
+  const local = makeDevice('local', vault, provider);
   remote.mutate('entry', 'e', entry('base'));
   await remote.sync();
   await local.sync();
@@ -277,8 +290,8 @@ async function publishCrash(category: 'blob' | 'edit' | 'recovery-init' | 'resol
 async function revocation(kind: 'journal-deleted' | 'backup-deleted') {
   const provider = new FakeCloudProvider(2);
   const vault = await setup(provider);
-  const a = new InMemorySyncDevice('a', vault, provider);
-  const b = new InMemorySyncDevice('b', vault, provider);
+  const a = makeDevice('a', vault, provider);
+  const b = makeDevice('b', vault, provider);
   a.mutate('entry', 'e', entry('local'));
   await a.sync();
   await b.sync();
@@ -292,7 +305,7 @@ async function revocation(kind: 'journal-deleted' | 'backup-deleted') {
 async function concurrentRevocations() {
   const provider = new FakeCloudProvider(20);
   const vault = await setup(provider);
-  const devices = ['a', 'b', 'c'].map((id) => new InMemorySyncDevice(id, vault, provider));
+  const devices = ['a', 'b', 'c'].map((id) => makeDevice(id, vault, provider));
   devices.forEach((device) => device.mutate('entry', 'e', entry(device.deviceId)));
   await devices[0].sync();
   for (const kind of ['backup-deleted', 'journal-deleted'] as const) {
@@ -319,7 +332,7 @@ async function concurrentRevocations() {
 async function seeding(ahead: boolean) {
   const provider = new FakeCloudProvider(200);
   const vault = await setup(provider);
-  const device = new InMemorySyncDevice('seed', vault, provider);
+  const device = makeDevice('seed', vault, provider);
   device.seed(Array.from({ length: 120 }, (_, index) => ({
     type: 'entry' as const,
     id: `entry-${index.toString().padStart(3, '0')}`,
@@ -337,7 +350,15 @@ async function seeding(ahead: boolean) {
   expect(versions.length).toBe(ahead ? 1 : 2);
 }
 
-function zipRoundTrip() {
+async function zipRoundTrip() {
+  const {
+    createPortableEntries,
+    createPortablePrompts,
+    createPortableTags,
+    // Jest's native-ESM mode cannot load this React-Native module through a
+    // static import; Bun can resolve this lazy CommonJS edge for the gate.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+  } = require('~/lib/backupExport/portable') as typeof import('~/lib/backupExport/portable');
   const portableTags = createPortableTags([
     { tag_id: 'tag-id', title: 'Tag', created_at: 1, updated_at: 2, conflict_origin_id: null },
   ] as never);
@@ -401,8 +422,8 @@ async function validation(id: string) {
   }
   const provider = new FakeCloudProvider(20);
   const vault = await setup(provider);
-  const a = new InMemorySyncDevice('a', vault, provider);
-  const b = new InMemorySyncDevice('b', vault, provider);
+  const a = makeDevice('a', vault, provider);
+  const b = makeDevice('b', vault, provider);
   a.seed([{ type: 'tag', id: 't', state: tag('Kind') }, { type: 'entry', id: 'e', state: entry('base', ['t']) }]);
   for (let pass = 0; pass < 3; pass++) { await a.sync(); await b.sync(); }
   a.mutate('tag', 't', null);
@@ -456,6 +477,21 @@ const runners: Record<string, () => void | Promise<void>> = {
   'ancestry-cycle-rejection': () => validation('ancestry-cycle-rejection'),
   'tombstoned-tag-concurrent-reference': () => validation('tombstoned-tag-concurrent-reference'),
 };
+
+export async function runGoldenScenarioWithFactory(
+  id: string,
+  factory: GoldenDeviceFactory,
+): Promise<void> {
+  const runner = runners[id];
+  if (!runner) throw new Error(`No golden scenario runner for ${id}`);
+  const previous = activeDeviceFactory;
+  activeDeviceFactory = factory;
+  try {
+    await runner();
+  } finally {
+    activeDeviceFactory = previous;
+  }
+}
 
 test.each(golden.scenarios.map((scenario) => scenario.id))(
   'frozen golden scenario: %s',

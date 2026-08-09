@@ -36,6 +36,13 @@
       "when": 1786236134589,
       "tag": "0004_good_roulette",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1786287913589,
+      "tag": "0005_normal_mauler",
+      "breakpoints": true
     }
   ]
 }

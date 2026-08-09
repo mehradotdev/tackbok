@@ -62,6 +62,22 @@ export function getScreenName(pathname: string): ScreenName | null {
 }
 
 export type ImportSource = 'tackbok' | 'gratitudeApp' | 'presently';
+export type CloudSyncTrigger =
+  | 'app-active'
+  | 'connectivity-restored'
+  | 'backgrounding'
+  | 'periodic'
+  | 'manual';
+export type CloudSyncFailureCategory =
+  | 'auth'
+  | 'quota'
+  | 'rate-limit'
+  | 'offline'
+  | 'corrupt'
+  | 'transient'
+  | 'unknown';
+export type CloudSyncCountBucket = '0' | '1-10' | '11-100' | '100+';
+export type CloudSyncDurationBucket = '<1s' | '1-10s' | '10-60s' | '60s+';
 
 /**
  * Event name → payload type. `undefined` means the event carries no payload.
@@ -93,6 +109,16 @@ export type AnalyticsEvents = {
   backup_exported: undefined;
   reminder_enabled: undefined;
   reminder_disabled: undefined;
+  cloud_sync_connected: { provider: 'google-drive' | 'dropbox' };
+  cloud_sync_started: { trigger: CloudSyncTrigger };
+  cloud_sync_succeeded: {
+    duration_bucket: CloudSyncDurationBucket;
+    pulled_bucket: CloudSyncCountBucket;
+    pushed_bucket: CloudSyncCountBucket;
+  };
+  cloud_sync_failed: { category: CloudSyncFailureCategory };
+  cloud_sync_conflict_recovered: { entity_type: 'entry' | 'tag' | 'prompt' | 'profile' };
+  cloud_sync_repair_result: { result: 'repaired' | 'unrecoverable' | 'not-needed' };
   // Onboarding funnel — defined now, fired only once the onboarding flow ships
   // (see z-onboarding-flow.md). Buffered pre-consent, sent only on opt-in.
   onboarding_step_viewed: { step: string };
@@ -114,4 +140,18 @@ export function toCountBucket(count: number): CountBucket {
   if (count <= 50) return '11-50';
   if (count <= 200) return '51-200';
   return '200+';
+}
+
+export function toCloudSyncCountBucket(count: number): CloudSyncCountBucket {
+  if (count <= 0) return '0';
+  if (count <= 10) return '1-10';
+  if (count <= 100) return '11-100';
+  return '100+';
+}
+
+export function toCloudSyncDurationBucket(durationMs: number): CloudSyncDurationBucket {
+  if (durationMs < 1_000) return '<1s';
+  if (durationMs < 10_000) return '1-10s';
+  if (durationMs < 60_000) return '10-60s';
+  return '60s+';
 }

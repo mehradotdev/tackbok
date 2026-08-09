@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -28,7 +28,10 @@ import { Text } from '~/components/ui/text';
 import { Toaster } from '~/components/ui/toast';
 import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
-import { runNormalizedModelBackfill } from '~/lib/cloudSync/storage/backfill';
+import {
+  createProductionSyncRuntime,
+  registerCloudSyncBackgroundTask,
+} from '~/lib/cloudSync/runtime';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -55,6 +58,10 @@ const queryClient = new QueryClient({
   },
 });
 
+const cloudSyncRuntime = createProductionSyncRuntime({
+  onRemoteApplied: () => queryClient.invalidateQueries(),
+});
+
 // Rendered inside the navigator so reminder-tap navigation happens against a
 // mounted router (covers both cold-start and warm notification taps).
 function ReminderNavigationObserver() {
@@ -78,7 +85,6 @@ export default function Layout() {
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
   const localeHasHydrated = useLocaleStore((s) => s._hasHydrated);
   const themeConfig = getThemeConfig(theme);
-  const backfillStartedRef = useRef(false);
 
   const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
 
@@ -92,23 +98,10 @@ export default function Layout() {
     !error && (!success || (!fontsLoaded && !fontsError));
 
   useEffect(() => {
-    if (!success || !hasHydrated || backfillStartedRef.current) return;
-    backfillStartedRef.current = true;
-    const settings = useSettingsStore.getState();
-    void runNormalizedModelBackfill({
-      profileName: settings.profileName,
-      profileEmail: settings.profileEmail,
-      profileImageUri: settings.profileImageUri,
-    })
-      .catch((cause: unknown) => {
-        // Dual-write is already live, so migration failure must disable sync
-        // readiness without preventing the journal UI from rendering. A later
-        // launch resumes from the durable checkpoint.
-        console.error(
-          'Cloud-sync backfill deferred until next launch:',
-          cause instanceof Error ? cause.message : 'unknown error',
-        );
-      });
+    if (!success || !hasHydrated) return;
+    void cloudSyncRuntime.start();
+    void registerCloudSyncBackgroundTask();
+    return () => cloudSyncRuntime.stop();
   }, [hasHydrated, success]);
 
   // Keep native splash until persisted settings (and Uniwind theme) are ready

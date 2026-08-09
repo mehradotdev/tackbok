@@ -293,6 +293,23 @@ export const syncProviderState = sqliteTable('sync_provider_state', {
   updated_at: integer('updated_at').notNull(),
 });
 
+/**
+ * Atomic restart image for the deterministic sync state machine. The
+ * normalized/domain and protocol tables remain authoritative; this row keeps
+ * the pass-local cursor, staged page, seed cursor, and purge cursor together
+ * so a process death cannot create a mixed checkpoint.
+ */
+export const syncEngineCheckpoints = sqliteTable(
+  'sync_engine_checkpoints',
+  {
+    device_id: text('device_id').notNull(),
+    vault_id: text('vault_id').notNull(),
+    snapshot_json: text('snapshot_json').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.device_id, table.vault_id] })],
+);
+
 export const syncConflicts = sqliteTable('sync_conflicts', {
   conflict_id: text('conflict_id').primaryKey().notNull(),
   entity_type: text('entity_type').notNull(),
