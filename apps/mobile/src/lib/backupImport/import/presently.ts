@@ -2,9 +2,12 @@ import { and, eq } from 'drizzle-orm';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
-import { db, entries } from '~/db';
+import { entries } from '~/db';
 import { generateUUID } from '~/lib/utils';
-import { upsertEntryInTransaction } from '~/lib/cloudSync/storage/repositories';
+import {
+  runInCloudSyncTransaction,
+  upsertEntryInTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 import {
   type ImportProgressCallback,
   reportImportProgress,
@@ -179,7 +182,7 @@ export async function importFromPresentlyCSV(
   // created_at/text_content pairs for the imported dates and add an index on
   // created_at so duplicate detection does not rely on repeated table scans.
   const batchId = generateUUID();
-  await db.transaction(async (tx) => {
+  await runInCloudSyncTransaction(async (tx) => {
     const advanceProgress = () => {
       processedEntries++;
       reportEntriesProgress();

@@ -1,4 +1,5 @@
 import { fetch } from 'expo/fetch';
+import { maskGoogleAccountEmail } from './policy';
 
 export async function fetchGoogleAccountLabel(accessToken: string): Promise<string> {
   try {
@@ -8,7 +9,7 @@ export async function fetchGoogleAccountLabel(accessToken: string): Promise<stri
     if (!response.ok) return 'Google Drive';
     const body = (await response.json()) as { email?: unknown };
     return typeof body.email === 'string' && body.email.length > 0
-      ? body.email
+      ? maskGoogleAccountEmail(body.email)
       : 'Google Drive';
   } catch {
     return 'Google Drive';

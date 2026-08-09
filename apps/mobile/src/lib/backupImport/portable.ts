@@ -470,9 +470,15 @@ export async function upsertPortableTags(
     if (!cleanTitle) continue;
 
     const key = cleanTitle.toLowerCase();
-    if (tagMap.has(key)) continue;
+    const portableId = portableTag.tagId?.trim();
+    const existingTitleId = tagMap.get(key);
+    if (existingTitleId) {
+      if (portableId) tagMap.set(`id:${portableId}`, existingTitleId);
+      continue;
+    }
 
-    const tagId = portableTag.tagId?.trim() || generateUUID();
+    const requestedId = portableId || generateUUID();
+    const tagId = tagMap.has(`id:${requestedId}`) ? generateUUID() : requestedId;
     await createTagInTransaction(
       tx,
       cleanTitle,
@@ -481,11 +487,15 @@ export async function upsertPortableTags(
         now: Number.isFinite(portableTag.updatedAt)
           ? portableTag.updatedAt
           : Date.now(),
+        createdAt: Number.isFinite(portableTag.createdAt)
+          ? portableTag.createdAt
+          : undefined,
       },
       tagId,
     );
     tagMap.set(key, tagId);
     tagMap.set(`id:${tagId}`, tagId);
+    if (portableId) tagMap.set(`id:${portableId}`, tagId);
     summary.importedTags++;
   }
 
@@ -505,6 +515,7 @@ export async function ensurePortablePromptTitles(
   const promptTitles = new Set(
     existingPrompts.map((prompt) => sanitizePromptTitle(prompt.title).toLowerCase()),
   );
+  const promptIds = new Set(existingPrompts.map((prompt) => prompt.prompt_id));
 
   for (const portablePrompt of portablePrompts) {
     const cleanTitle = sanitizePromptTitle(portablePrompt.title);
@@ -513,6 +524,8 @@ export async function ensurePortablePromptTitles(
     const key = cleanTitle.toLowerCase();
     if (promptTitles.has(key)) continue;
 
+    const requestedId = portablePrompt.promptId?.trim() || generateUUID();
+    const promptId = promptIds.has(requestedId) ? generateUUID() : requestedId;
     await createPromptInTransaction(
       tx,
       cleanTitle,
@@ -521,9 +534,13 @@ export async function ensurePortablePromptTitles(
         now: Number.isFinite(portablePrompt.updatedAt)
           ? portablePrompt.updatedAt
           : Date.now(),
+        createdAt: Number.isFinite(portablePrompt.createdAt)
+          ? portablePrompt.createdAt
+          : undefined,
       },
-      portablePrompt.promptId?.trim() || generateUUID(),
+      promptId,
     );
+    promptIds.add(promptId);
     promptTitles.add(key);
     summary.importedPrompts++;
   }
@@ -582,18 +599,21 @@ export async function importPortableEntries(
       continue;
     }
 
-    const stableTagIds = (portableEntry.tagIds ?? [])
-      .map((tagId) => tagMap.get(`id:${tagId}`))
-      .filter((tagId): tagId is string => !!tagId);
-    const tagIds = (stableTagIds.length > 0
-      ? stableTagIds
-      : (portableEntry.tagTitles ?? [])
-      .map((title) => sanitizeTagName(title))
-      .filter(Boolean)
-      .map((title) => tagMap.get(title.toLowerCase()))
-      .filter((tagId): tagId is string => !!tagId))
-      .sort()
-      .join(',');
+    const resolvedTagIds = new Set<string>();
+    const portableTagIds = portableEntry.tagIds ?? [];
+    const portableTagTitles = portableEntry.tagTitles ?? [];
+    for (let index = 0; index < Math.max(portableTagIds.length, portableTagTitles.length); index++) {
+      const stableId = portableTagIds[index]
+        ? tagMap.get(`id:${portableTagIds[index]}`)
+        : undefined;
+      const cleanTitle = portableTagTitles[index]
+        ? sanitizeTagName(portableTagTitles[index])
+        : '';
+      const titleId = cleanTitle ? tagMap.get(cleanTitle.toLowerCase()) : undefined;
+      const resolvedId = stableId ?? titleId;
+      if (resolvedId) resolvedTagIds.add(resolvedId);
+    }
+    const tagIds = Array.from(resolvedTagIds).sort().join(',');
 
     const textTitle = normalizeOptionalText(portableEntry.textTitle);
     const textContent = normalizeOptionalText(portableEntry.textContent);

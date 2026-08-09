@@ -2,18 +2,21 @@
 
 Date: 2026-08-09
 
-Status: **REOPENED 2026-08-09 by owner review — release-blocking defects found.**
-See [`../review-2026-08-09.md`](../review-2026-08-09.md): H1 (profile loss on
-kill during first-launch backfill), H2 (own-backup restore crash), H3 (no
-retained-media ledger consumer — universal media leak), H4/H5 (import
-identity/tag-association failures), M1–M5. The checked evidence below remains
-accurate for what the harness tests; the harness did not cover these paths.
+Status: **RE-CLOSED 2026-08-09 after owner-review remediation.**
+
+The H1–H5 and M1–M5 findings in
+[`../review-2026-08-09.md`](../review-2026-08-09.md) were fixed and covered by
+targeted regressions. Phase 1 is ready for its downstream integration work.
 
 ## Evidence
 
 Command: `bun run phase1:test`
 
-Recorded result: **2 tests passed, 0 failed, 18 assertions**.
+Recorded result: **4 tests passed, 0 failed, 26 assertions**.
+
+Supporting command: `bun run test:jest -- --runInBand --no-watchman`
+
+Recorded result: **35 suites passed, 276 tests passed, 0 failed**.
 
 - [x] The schema-only Drizzle migration applies through migration `0004` with
   foreign keys enabled.
@@ -23,6 +26,9 @@ Recorded result: **2 tests passed, 0 failed, 18 assertions**.
   the same transaction.
 - [x] A forced rollback leaves neither the domain mutation nor its outbox intent.
 - [x] A one-row backfill batch can stop and resume from its persisted checkpoint.
+- [x] The legacy profile is committed before entry batching, remains in the
+  persisted compatibility cache until migration completes, and survives an
+  interrupted first-launch backfill.
 - [x] Stable recovered asset IDs remain identical across restart and a second
   completed reconciliation pass.
 - [x] Concurrent entry edit, entry deletion, tag-membership removal, asset
@@ -32,7 +38,16 @@ Recorded result: **2 tests passed, 0 failed, 18 assertions**.
   transaction-scoped repositories; profile data is sourced from SQLite, and
   media removal routes through the retained-media ledger.
 - [x] Portable ZIP round-trip tests preserve entry, tag, prompt, asset, and
-  profile identities while retaining the version-1 envelope.
+  profile identities while retaining the version-1 envelope; own-backup profile
+  photos restore idempotently, primary-key collisions remap safely, mixed
+  stable-ID/title tag associations survive, and creation timestamps are kept.
+- [x] With no configured vault, the retained-media reaper deletes eligible
+  bytes and completes their obligations; with a vault, it leaves them for the
+  sync lifecycle.
+- [x] Entry deletion removes normalized tag joins even when SQLite foreign-key
+  enforcement is disabled, and Delete All clears the normalized profile.
+- [x] Backfill row selection and reconciliation occur inside their write
+  transactions, and startup runs the checkpointed work in the background.
 
 ## Scope of this evidence
 

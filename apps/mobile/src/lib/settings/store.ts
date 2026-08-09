@@ -36,6 +36,8 @@ interface SettingsState {
   profileName: string | null;
   profileEmail: string | null;
   profileImageUri: string | null;
+  /** Keeps the legacy AsyncStorage profile copy until SQLite migration commits. */
+  legacyProfileMigrationComplete: boolean;
 
   // Appearance
   theme: string;
@@ -112,6 +114,7 @@ interface SettingsState {
   setHasSeenHomeCoachMarks: (seen: boolean) => void;
   setPendingAchievement: (achievement: Achievement | null) => void;
   setHasHydrated: (hydrated: boolean) => void;
+  markLegacyProfileMigrationComplete: () => void;
 }
 
 const DEFAULT_SETTINGS_VALUES = {
@@ -120,6 +123,7 @@ const DEFAULT_SETTINGS_VALUES = {
   profileName: null,
   profileEmail: null,
   profileImageUri: null,
+  legacyProfileMigrationComplete: false,
   theme: DEFAULT_THEME_ID,
   timelineEntryLength: 10,
   dateIncludesDayOfWeek: false,
@@ -219,6 +223,8 @@ export const useSettingsStore = create<SettingsState>()(
       setPendingAchievement: (achievement) =>
         set({ pendingAchievement: achievement }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
+      markLegacyProfileMigrationComplete: () =>
+        set({ legacyProfileMigrationComplete: true }),
     }),
     {
       name: 'tackbok-settings',
@@ -251,6 +257,17 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
       partialize: (state) => ({
+        // These three fields intentionally remain in the legacy store until the
+        // SQLite profile row has committed. Rehydration itself persists state,
+        // so dropping them earlier creates a kill window during first backfill.
+        ...(state.legacyProfileMigrationComplete
+          ? {}
+          : {
+              profileName: state.profileName,
+              profileEmail: state.profileEmail,
+              profileImageUri: state.profileImageUri,
+            }),
+        legacyProfileMigrationComplete: state.legacyProfileMigrationComplete,
         dailyReminderEnabled: state.dailyReminderEnabled,
         reminderTime: state.reminderTime,
         theme: state.theme,
@@ -286,4 +303,9 @@ export function hydrateProfileCache(profile: {
   profileImageUri: string | null;
 }): void {
   useSettingsStore.setState(profile);
+}
+
+/** Drops the legacy persisted profile only after its SQLite row is durable. */
+export function markLegacyProfileMigrationComplete(): void {
+  useSettingsStore.getState().markLegacyProfileMigrationComplete();
 }

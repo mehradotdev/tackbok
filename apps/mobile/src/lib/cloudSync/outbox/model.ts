@@ -8,6 +8,8 @@ export interface OutboxItem {
   baseHeads: string[];
   generation: number;
   batchId: string | null;
+  /** Captured at the local mutation, not later during a retrying sync pass. */
+  authoredAt?: number;
 }
 
 export interface ProvisionalCapture {
@@ -51,7 +53,7 @@ export function constructProvisional(input: {
       authorDeviceId: input.deviceId,
       editSequence: input.editSequence,
       batchId: input.item.batchId,
-      authoredAt: input.authoredAt,
+      authoredAt: input.item.authoredAt ?? input.authoredAt,
     }),
   };
 }

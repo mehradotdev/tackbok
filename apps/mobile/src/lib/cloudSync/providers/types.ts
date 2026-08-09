@@ -65,6 +65,8 @@ export interface DeleteSweepPage {
 export interface CloudProvider {
   readonly kind: 'google-drive' | 'dropbox';
   readonly capabilities: ProviderCapabilities;
+  /** Test-provider hook for observation-local server views. */
+  setClientContext?(deviceId: string): void;
   connect(): Promise<ProviderConnection>;
   refreshConnection(): Promise<ProviderConnection>;
   disconnect(): Promise<void>;

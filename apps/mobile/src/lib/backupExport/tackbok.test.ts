@@ -83,6 +83,12 @@ jest.mock('expo-file-system', () => ({
 
 jest.mock('~/db', () => {
   const mockEntries = { created_at: 'created_at' };
+  const mockMediaAssets = {
+    owner_type: 'owner_type',
+    owner_id: 'owner_id',
+    created_at: 'created_at',
+    asset_id: 'asset_id',
+  };
   const mockUserProfile = {};
 
   return {
@@ -93,6 +99,10 @@ jest.mock('~/db', () => {
             return {
               orderBy: jest.fn(async () => []),
             };
+          }
+
+          if (table === mockMediaAssets) {
+            return { orderBy: jest.fn(async () => []) };
           }
 
           if (table === mockUserProfile) {
@@ -106,7 +116,7 @@ jest.mock('~/db', () => {
     customPrompts: {},
     entries: mockEntries,
     entryTags: {},
-    mediaAssets: {},
+    mediaAssets: mockMediaAssets,
     tags: {},
     userProfile: mockUserProfile,
   };

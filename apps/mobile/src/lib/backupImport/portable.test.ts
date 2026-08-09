@@ -2,6 +2,7 @@ import type { ZipEntryInfo, ZipReader } from '~/lib/zip';
 import { AssetType, type Asset } from '~/types';
 import {
   buildGratitudeAppPortablePayload,
+  ensurePortablePromptTitles,
   importPortableEntries,
   upsertPortableTags,
 } from './portable';
@@ -27,6 +28,9 @@ const mockWriteImportedAudio = jest.fn(
   }),
 );
 const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
+const mockCreatePromptInTransaction = jest.fn(
+  async (..._args: unknown[]) => undefined,
+);
 
 jest.mock('~/db', () => ({
   db: {},
@@ -47,7 +51,8 @@ jest.mock('~/lib/cloudSync/storage/repositories', () => ({
     await tx.insert({}).values({ tag_id: stableId, title });
     return stableId;
   },
-  createPromptInTransaction: async () => undefined,
+  createPromptInTransaction: (...args: unknown[]) =>
+    mockCreatePromptInTransaction(...args),
 }));
 
 jest.mock('react-native', () => ({
@@ -240,6 +245,7 @@ beforeEach(() => {
   mockWriteImportedPhoto.mockReset();
   mockWriteImportedAudio.mockReset();
   mockCleanupImportedFiles.mockReset();
+  mockCreatePromptInTransaction.mockReset();
 });
 
 describe('buildGratitudeAppPortablePayload', () => {
@@ -297,6 +303,41 @@ describe('importPortableEntries', () => {
   afterEach(() => {
     warnSpy?.mockRestore();
     warnSpy = undefined;
+  });
+
+  test('resolves each imported tag independently across stable-id and title fallback', async () => {
+    const { tx, values } = createTransactionMock();
+    const summary = createBackupImportSummary();
+    await importPortableEntries(
+      tx as never,
+      [
+        {
+          noteId: 'entry-mixed-tags',
+          textTitle: null,
+          textContent: 'Body',
+          mood: null,
+          tagIds: ['portable-a', 'portable-b'],
+          tagTitles: ['A', 'B'],
+          createdAt: 1,
+          updatedAt: 2,
+          assets: [],
+        },
+      ],
+      new Set(),
+      new Map([
+        ['id:portable-a', 'local-a'],
+        ['b', 'local-b'],
+      ]),
+      summary,
+      'overwrite',
+      mockCreateFakeStreamingZipArchive({}),
+      [],
+      'tackbok',
+    );
+
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({ tags: 'local-a,local-b' }),
+    );
   });
 
   test('continues importing textual entries when a media asset fails', async () => {
@@ -461,5 +502,75 @@ describe('upsertPortableTags', () => {
     expect(insertedValues).not.toHaveBeenCalled();
     expect(tagMap.get('work focus')).toBe(existingTagId);
     expect(summary.importedTags).toBe(0);
+  });
+
+  test('maps a title-deduped portable id and remaps a colliding local id', async () => {
+    const insertedValues = jest.fn(async (_value: unknown): Promise<void> => {});
+    const tx = {
+      select: () => ({
+        from: async () => [
+          { tag_id: 'local-family', title: 'Family' },
+          { tag_id: 'portable-collision', title: 'Local only' },
+        ],
+      }),
+      insert: () => ({ values: insertedValues }),
+    };
+    const summary = createBackupImportSummary();
+    const tagMap = await upsertPortableTags(
+      tx as never,
+      [
+        {
+          tagId: 'portable-family',
+          title: 'Family',
+          createdAt: 1,
+          updatedAt: 2,
+        },
+        {
+          tagId: 'portable-collision',
+          title: 'Imported distinct',
+          createdAt: 3,
+          updatedAt: 4,
+        },
+      ],
+      summary,
+    );
+
+    expect(tagMap.get('id:portable-family')).toBe('local-family');
+    expect(tagMap.get('id:portable-collision')).not.toBe('portable-collision');
+    expect(tagMap.get('imported distinct')).toBe(
+      tagMap.get('id:portable-collision'),
+    );
+    expect(summary.importedTags).toBe(1);
+  });
+});
+
+describe('ensurePortablePromptTitles', () => {
+  test('generates a fresh id when a portable prompt id collides locally', async () => {
+    const tx = {
+      select: () => ({
+        from: async () => [
+          { prompt_id: 'prompt-collision', title: 'Different local prompt' },
+        ],
+      }),
+    };
+    const summary = createBackupImportSummary();
+    await ensurePortablePromptTitles(
+      tx as never,
+      [
+        {
+          promptId: 'prompt-collision',
+          title: 'Imported prompt',
+          createdAt: 11,
+          updatedAt: 22,
+        },
+      ],
+      summary,
+    );
+
+    expect(mockCreatePromptInTransaction).toHaveBeenCalledTimes(1);
+    const [, , context, stableId] = mockCreatePromptInTransaction.mock.calls[0] as unknown[];
+    expect(stableId).not.toBe('prompt-collision');
+    expect(context).toMatchObject({ now: 22, createdAt: 11 });
+    expect(summary.importedPrompts).toBe(1);
   });
 });

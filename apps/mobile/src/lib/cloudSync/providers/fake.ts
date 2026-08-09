@@ -1,4 +1,6 @@
 import { sha256Bytes } from '../codec';
+import { validateVaultMarkerBytes } from '../domain/validation';
+import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
 import {
   collectByteSource,
   ProviderError,
@@ -48,8 +50,24 @@ export class FakeCloudProvider implements CloudProvider {
   private fileSequence = 0;
   private readonly objects: StoredObject[] = [];
   private readonly vaults = new Map<string, VaultRef>();
+  private currentClientId: string | null = null;
+  private readonly revocationViews = new Map<
+    string,
+    Set<'journal-deleted' | 'backup-deleted'>
+  >();
 
   constructor(readonly pageSize = 50) {}
+
+  setClientContext(deviceId: string): void {
+    this.currentClientId = deviceId;
+  }
+
+  setRevocationView(
+    deviceId: string,
+    kinds: readonly ('journal-deleted' | 'backup-deleted')[],
+  ): void {
+    this.revocationViews.set(deviceId, new Set(kinds));
+  }
 
   async connect(): Promise<ProviderConnection> {
     this.connected = true;
@@ -78,6 +96,7 @@ export class FakeCloudProvider implements CloudProvider {
 
   async createVaultMarker(vaultId: string, body: Uint8Array): Promise<VaultMarkerResult> {
     this.assertConnected();
+    validateVaultMarkerBytes(body);
     const vault = this.vaults.get(vaultId) ?? {
       vaultId,
       remoteRootId: `fake-root-${vaultId}`,
@@ -113,6 +132,12 @@ export class FakeCloudProvider implements CloudProvider {
     source: ByteSource,
   ): Promise<RemoteObjectRef> {
     this.assertConnected();
+    if (
+      key.startsWith('blobs/') &&
+      source.byteLength > PROTOCOL_V1_CAPS.maximumMediaBytes
+    ) {
+      throw new ProviderError('corrupt', 'Media object exceeds the protocol byte cap');
+    }
     const body = await collectByteSource(source);
     const hash = sha256Bytes(body);
     const candidates = this.live(vault).filter((object) => object.key === key);
@@ -137,7 +162,7 @@ export class FakeCloudProvider implements CloudProvider {
   async list(vault: VaultRef, prefix: LogicalKey, cursor?: string): Promise<ListPage> {
     this.assertConnected();
     const offset = cursor ? Number(cursor) : 0;
-    let objects = this.live(vault)
+    let objects = this.visible(vault)
       .filter((object) => object.key.startsWith(prefix))
       .sort((left, right) =>
         left.key.localeCompare(right.key) || left.fileId.localeCompare(right.fileId),
@@ -155,10 +180,13 @@ export class FakeCloudProvider implements CloudProvider {
       .filter((object) => object.sequence > sequence)
       .sort((left, right) => left.sequence - right.sequence)
       .slice(0, this.pageSize);
+    const delivered = this.faults.reverseListings ? [...changes].reverse() : changes;
     return {
-      objects: changes.map((object) => this.copy(object)),
+      objects: delivered.map((object) => this.copy(object)),
       cursor:
-        changes.length > 0 ? String(changes[changes.length - 1].sequence) : cursor ?? '0',
+        changes.length > 0
+          ? String(Math.max(...changes.map((object) => object.sequence)))
+          : cursor ?? '0',
     };
   }
 
@@ -227,6 +255,26 @@ export class FakeCloudProvider implements CloudProvider {
     return this.objects.filter(
       (object) => object.vaultId === vault.vaultId && !object.deleted,
     );
+  }
+
+  private visible(vault: VaultRef): StoredObject[] {
+    const live = this.live(vault);
+    if (!this.currentClientId) return live;
+    const view = this.revocationViews.get(this.currentClientId);
+    if (!view) return live;
+    return live.filter((object) => {
+      if (!object.key.startsWith('revocations/')) return true;
+      try {
+        const marker = JSON.parse(new TextDecoder().decode(object.body)) as {
+          kind?: string;
+        };
+        return (
+          marker.kind === 'journal-deleted' || marker.kind === 'backup-deleted'
+        ) && view.has(marker.kind);
+      } catch {
+        return true;
+      }
+    });
   }
 
   private reference(object: StoredObject): RemoteObjectRef {

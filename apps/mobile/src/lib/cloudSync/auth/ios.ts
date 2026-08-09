@@ -9,6 +9,7 @@ import * as WebBrowser from 'expo-web-browser';
 
 import { fetchGoogleAccountLabel } from './accountLabel';
 import { getGoogleOAuthConfig } from './config';
+import { isTerminalGoogleRefreshError } from './policy';
 import {
   clearGoogleAccessToken,
   clearGoogleTokens,
@@ -93,9 +94,20 @@ export class IosGoogleAuthorization implements CloudAuthorization {
       const tokens = toStoredTokens(response, current.refreshToken);
       await writeGoogleTokens(tokens);
       return tokens.accessToken;
-    } catch {
-      await clearGoogleTokens();
-      throw new CloudAuthError('refresh-failed', 'Google authorization expired; reconnect required');
+    } catch (error) {
+      if (isTerminalGoogleRefreshError(error)) {
+        await clearGoogleTokens();
+        throw new CloudAuthError(
+          'refresh-failed',
+          'Google authorization expired; reconnect required',
+        );
+      }
+      // Network/server failures keep the refresh token so an offline interval
+      // never forces the owner through interactive consent again.
+      throw new CloudAuthError(
+        'refresh-failed',
+        'Google authorization could not be refreshed; retry when online',
+      );
     }
   }
 

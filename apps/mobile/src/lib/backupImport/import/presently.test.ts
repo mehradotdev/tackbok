@@ -61,6 +61,8 @@ jest.mock('~/lib/utils', () => ({
 }));
 
 jest.mock('~/lib/cloudSync/storage/repositories', () => ({
+  runInCloudSyncTransaction: (callback: Parameters<typeof mockTransaction>[0]) =>
+    mockTransaction(callback),
   upsertEntryInTransaction: async (tx: any, entry: unknown) =>
     tx.insert({}).values(entry),
 }));

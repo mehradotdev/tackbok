@@ -2,6 +2,11 @@ import { canonicalBytes, sha256Bytes } from '../codec';
 import { VersionGraph } from '../ancestry';
 import { resolveHeads, type ResolutionResult } from '../conflicts';
 import { createSystemVersion, deterministicId } from '../domain/version';
+import {
+  parseAndValidateRevocationMarker,
+  validateConflictRecord,
+} from '../domain/validation';
+import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
 import type {
   DomainState,
   EntityType,
@@ -21,6 +26,7 @@ import type { CloudProvider, RemoteObject, VaultRef } from '../providers';
 import { SyncStateMachine } from './stateMachine';
 
 type EntityKey = `${EntityType}:${string}`;
+const SEED_BATCH_SIZE = 50;
 
 interface ResolvedEntity {
   key: EntityKey;
@@ -70,10 +76,20 @@ export class InMemorySyncDevice {
   readonly conflicts = new Map<string, NonNullable<ResolutionResult['conflict']>>();
   readonly blobs = new Map<string, Uint8Array>();
   readonly appliedHeads = new Map<EntityKey, string[]>();
+  readonly degradedEntities = new Map<EntityKey, string>();
   private cursor: string | undefined;
+  /** A fetched page is retained until every object in it is consumed. */
+  private pendingChangeObjects: RemoteObject[] = [];
+  private pendingChangeCursor: string | undefined;
   private editSequence = 1;
+  private logicalAuthoredAt = 0;
   private connected = false;
   private revokedKind: RevocationKind | null = null;
+  private seedItems: { type: EntityType; id: string; state: DomainState }[] = [];
+  private seedIndex = 0;
+  private seedAwaiting = new Set<EntityKey>();
+  private seedAwaitingCursor: string | null = null;
+  private seedCursor: string | null = null;
 
   constructor(
     readonly deviceId: string,
@@ -85,6 +101,10 @@ export class InMemorySyncDevice {
     return this.revokedKind !== null;
   }
 
+  get seedingCheckpoint(): string | null {
+    return this.seedCursor;
+  }
+
   async initialize(): Promise<void> {
     this.stateMachine.transition('connecting');
     await this.provider.connect();
@@ -94,6 +114,9 @@ export class InMemorySyncDevice {
   }
 
   putBlob(bytes: Uint8Array): string {
+    if (bytes.byteLength > PROTOCOL_V1_CAPS.maximumMediaBytes) {
+      throw new Error('Blob exceeds the protocol media byte cap');
+    }
     const hash = sha256Bytes(bytes);
     this.blobs.set(hash, bytes.slice());
     return hash;
@@ -121,14 +144,24 @@ export class InMemorySyncDevice {
         currentHeads: this.appliedHeads.get(key) ?? this.graphFor(key).heads(),
         generation,
         batchId,
+        authoredAt: ++this.logicalAuthoredAt,
       }),
     );
     if (this.stateMachine.state === 'idle') this.stateMachine.transition('dirty');
   }
 
   seed(states: { type: EntityType; id: string; state: DomainState }[]): void {
-    const batchId = deterministicId('tackbok-seed-batch-v1', this.vault.vaultId);
-    for (const item of states) this.mutate(item.type, item.id, item.state, batchId);
+    this.seedItems = [...states].sort((left, right) =>
+      entityKey(left.type, left.id).localeCompare(entityKey(right.type, right.id)),
+    );
+    this.seedIndex = 0;
+    this.seedAwaiting.clear();
+    this.seedAwaitingCursor = null;
+    this.seedCursor = null;
+    for (const item of this.seedItems) {
+      const key = entityKey(item.type, item.id);
+      if (!this.domain.has(key)) this.domain.set(key, item.state);
+    }
   }
 
   snapshot(): Record<string, DomainState> {
@@ -138,8 +171,7 @@ export class InMemorySyncDevice {
   }
 
   async sync(hooks: SyncPassHooks = {}): Promise<SyncPassResult> {
-    if (!this.connected) await this.initialize();
-    this.stateMachine.recoverAfterCrash(this.outbox.size > 0);
+    this.provider.setClientContext?.(this.deviceId);
     const result: SyncPassResult = {
       pulled: 0,
       pushed: 0,
@@ -147,6 +179,14 @@ export class InMemorySyncDevice {
       skippedByCas: 0,
       revoked: false,
     };
+    // A terminal marker is sticky. Retrying a pass must not reconnect to or
+    // repopulate a vault that this device has already observed as dead.
+    if (this.revokedKind) {
+      result.revoked = true;
+      return result;
+    }
+    if (!this.connected) await this.initialize();
+    this.stateMachine.recoverAfterCrash(this.outbox.size > 0);
     const revocation = await this.observeRevocation();
     if (revocation) {
       await this.applyRevocation(revocation);
@@ -162,18 +202,23 @@ export class InMemorySyncDevice {
 
     result.pulled = await this.pullAllChanges();
     this.stateMachine.transition('resolving');
+    this.pumpSeedBatch();
 
     const captures = new Map<EntityKey, ProvisionalCapture>();
+    const deferredKeys = new Set<EntityKey>();
     for (const [key, item] of Array.from(this.outbox.entries()).sort(([a], [b]) =>
       a.localeCompare(b),
     )) {
       const state = this.domain.get(key) ?? null;
-      if (state && !(await this.assetsPublishable(state))) continue;
+      if (state && !(await this.assetsPublishable(state))) {
+        deferredKeys.add(key);
+        continue;
+      }
       const capture = constructProvisional({
         vaultId: this.vault.vaultId,
         deviceId: this.deviceId,
         editSequence: this.editSequence++,
-        authoredAt: Date.now(),
+        authoredAt: item.authoredAt ?? ++this.logicalAuthoredAt,
         item,
         state,
       });
@@ -186,6 +231,9 @@ export class InMemorySyncDevice {
       (left, right) => graphSort(left) - graphSort(right) || left.localeCompare(right),
     );
     for (const key of allKeys) {
+      // Pull and stage remote ancestry, but never resolve/apply over a local
+      // mutation whose media is not publishable yet.
+      if (deferredKeys.has(key)) continue;
       const graph = this.graphFor(key);
       const heads = graph.heads();
       if (heads.length === 0) continue;
@@ -211,6 +259,7 @@ export class InMemorySyncDevice {
       }
       graph.add(resolution.resolution.body, resolution.resolution.hash);
       if (resolution.conflict) {
+        validateConflictRecord(resolution.conflict);
         this.conflicts.set(resolution.conflict.conflictId, resolution.conflict);
       }
       resolved.push({
@@ -222,6 +271,7 @@ export class InMemorySyncDevice {
     }
 
     await hooks.beforeApply?.(this);
+    const appliedResolved: ResolvedEntity[] = [];
     for (const item of resolved) {
       const currentGeneration = this.generations.get(item.key) ?? 0;
       if (!canApplyAtGeneration(item.capturedGeneration, currentGeneration)) {
@@ -236,13 +286,14 @@ export class InMemorySyncDevice {
         );
       }
       result.applied++;
+      appliedResolved.push(item);
     }
 
-    this.recoverTombstonedTagReferences(resolved);
+    this.recoverTombstonedTagReferences(appliedResolved);
     this.stateMachine.transition('pushing');
     for (const item of resolved) {
       const capture = captures.get(item.key);
-      if (capture) {
+      if (capture && !capture.version.published) {
         await this.publishBlobs(capture.version.body.state);
         await this.publishVersionAncestry(capture.version);
         await this.publishVersion(capture.version);
@@ -250,12 +301,16 @@ export class InMemorySyncDevice {
         result.pushed++;
       }
       for (const recovery of item.recoveries) {
+        if (recovery.published) continue;
         await this.publishBlobs(recovery.body.state);
         await this.publishVersion(recovery);
         recovery.published = true;
         result.pushed++;
       }
-      if (item.version.body.kind !== 'edit' || !capture) {
+      if (
+        !item.version.published &&
+        (item.version.body.kind !== 'edit' || !capture)
+      ) {
         await this.publishBlobs(item.version.body.state);
         await this.publishVersionAncestry(item.version);
         await this.publishVersion(item.version);
@@ -280,6 +335,7 @@ export class InMemorySyncDevice {
   }
 
   async revoke(kind: RevocationKind, revocationId: string, timestamp: number): Promise<void> {
+    this.provider.setClientContext?.(this.deviceId);
     const body = {
       formatVersion: 1,
       vaultId: this.vault.vaultId,
@@ -307,26 +363,96 @@ export class InMemorySyncDevice {
     return graph;
   }
 
+  private pumpSeedBatch(): void {
+    if (this.seedAwaiting.size > 0) {
+      if (Array.from(this.seedAwaiting).some((key) => this.outbox.has(key))) return;
+      this.seedCursor = this.seedAwaitingCursor;
+      this.seedAwaiting.clear();
+      this.seedAwaitingCursor = null;
+    }
+    if (this.seedIndex >= this.seedItems.length) return;
+
+    const batchId = deterministicId('tackbok-seed-batch-v1', this.vault.vaultId);
+    let scanned = 0;
+    while (this.seedIndex < this.seedItems.length && scanned < SEED_BATCH_SIZE) {
+      const item = this.seedItems[this.seedIndex++];
+      const key = entityKey(item.type, item.id);
+      scanned++;
+      this.seedAwaitingCursor = key;
+      if (this.outbox.has(key)) {
+        this.seedAwaiting.add(key);
+        continue;
+      }
+      const alreadyPublished =
+        (this.appliedHeads.get(key)?.length ?? 0) > 0 || this.graphFor(key).heads().length > 0;
+      if (alreadyPublished) continue;
+      this.mutate(item.type, item.id, this.domain.get(key) ?? item.state, batchId);
+      this.seedAwaiting.add(key);
+    }
+    if (this.seedAwaiting.size === 0) {
+      this.seedCursor = this.seedAwaitingCursor;
+      this.seedAwaitingCursor = null;
+    }
+  }
+
   private async pullAllChanges(): Promise<number> {
     let pulled = 0;
     let cursor = this.cursor;
+    const entities = new Set<EntityKey>();
     while (true) {
-      const page = await this.provider.getChanges(this.vault, cursor);
-      for (const object of page.objects) {
-        if (!object.key.startsWith('entities/')) continue;
-        this.stageRemoteObject(object);
+      if (this.pendingChangeObjects.length === 0) {
+        const page = await this.provider.getChanges(this.vault, cursor);
+        const next = page.cursor ?? cursor;
+        if (page.objects.length === 0 || next === cursor) {
+          this.cursor = next;
+          this.satisfyKnownRecoveries();
+          return pulled;
+        }
+        this.pendingChangeObjects = [...page.objects];
+        this.pendingChangeCursor = next;
+      }
+
+      while (this.pendingChangeObjects.length > 0) {
+        const object = this.pendingChangeObjects[0];
+        if (!object.key.startsWith('entities/')) {
+          this.pendingChangeObjects.shift();
+          continue;
+        }
+        const segments = object.key.split('/');
+        const key = segments.length === 4
+          ? entityKey(segments[1] as EntityType, segments[2])
+          : null;
+        if (
+          key &&
+          !entities.has(key) &&
+          entities.size >= PROTOCOL_V1_CAPS.entitiesPerPass
+        ) {
+          this.satisfyKnownRecoveries();
+          return pulled;
+        }
+        this.pendingChangeObjects.shift();
+        if (key) entities.add(key);
+        try {
+          this.stageRemoteObject(object);
+          if (key) this.degradedEntities.delete(key);
+        } catch (error) {
+          if (key) {
+            this.degradedEntities.set(
+              key,
+              error instanceof Error ? error.message : 'invalid remote object',
+            );
+          }
+        }
         pulled++;
       }
-      const next = page.cursor ?? cursor;
-      if (page.objects.length === 0 || next === cursor) {
-        this.cursor = next;
-        break;
-      }
-      cursor = next;
+
+      // Only advance the provider cursor after the entire fetched page has
+      // been consumed. This prevents a reversed page plus the entity cap from
+      // skipping the low-sequence tail permanently.
+      cursor = this.pendingChangeCursor ?? cursor;
+      this.cursor = cursor;
+      this.pendingChangeCursor = undefined;
     }
-    this.cursor = cursor;
-    this.satisfyKnownRecoveries();
-    return pulled;
   }
 
   private stageRemoteObject(object: RemoteObject): void {
@@ -335,6 +461,9 @@ export class InMemorySyncDevice {
     const [, rawType, id, filename] = segments;
     const hash = filename.replace(/\.json$/, '');
     const body = JSON.parse(new TextDecoder().decode(object.body)) as EntityVersionBody;
+    if (!['entry', 'tag', 'prompt', 'profile'].includes(rawType)) {
+      throw new Error('Unknown remote entity type');
+    }
     const key = entityKey(rawType as EntityType, id);
     const version = this.graphFor(key).add(body, hash);
     version.published = true;
@@ -452,16 +581,11 @@ export class InMemorySyncDevice {
       const page = await this.provider.list(this.vault, 'revocations/', cursor);
       for (const object of page.objects) {
         try {
-          const marker = JSON.parse(new TextDecoder().decode(object.body)) as {
-            vaultId: string;
-            kind: RevocationKind;
-          };
-          if (
-            marker.vaultId === this.vault.vaultId &&
-            (marker.kind === 'journal-deleted' || marker.kind === 'backup-deleted')
-          ) {
-            observed.push(marker.kind);
-          }
+          const marker = parseAndValidateRevocationMarker(
+            object.body,
+            this.vault.vaultId,
+          );
+          observed.push(marker.kind);
         } catch {
           // Invalid markers are ignored and surfaced by adapter diagnostics.
         }
@@ -498,6 +622,8 @@ export class InMemorySyncDevice {
 
   private recoverTombstonedTagReferences(resolved: ResolvedEntity[]): void {
     for (const item of resolved) {
+      const currentGeneration = this.generations.get(item.key) ?? 0;
+      if (!canApplyAtGeneration(item.capturedGeneration, currentGeneration)) continue;
       if (item.version.body.state?.entityType !== 'entry') continue;
       const entry = item.version.body.state;
       const rewritten = [...entry.tagIds];
@@ -505,18 +631,41 @@ export class InMemorySyncDevice {
       for (let index = 0; index < rewritten.length; index++) {
         const tagId = rewritten[index];
         if (this.domain.has(entityKey('tag', tagId))) continue;
-        const tagGraph = this.graphs.get(entityKey('tag', tagId));
-        const prior = tagGraph
-          ?.values()
+        const tagKey = entityKey('tag', tagId);
+        const tagGraph = this.graphs.get(tagKey);
+        const tombstone = (this.appliedHeads.get(tagKey) ?? [])
+          .map((hash) => tagGraph?.get(hash))
           .filter(
-            (version) => !version.body.deleted && version.body.state?.entityType === 'tag',
+            (version): version is HashedVersion =>
+              !!version && version.status === 'complete' && version.body.deleted,
+          )
+          .sort((left, right) => left.hash.localeCompare(right.hash))[0];
+        if (!tagGraph || !tombstone) continue;
+        const liveAncestors = tagGraph
+          .values()
+          .filter(
+            (version) =>
+              version.status === 'complete' &&
+              !version.body.deleted &&
+              version.body.state?.entityType === 'tag' &&
+              tagGraph.descendsFrom(tombstone.hash, version.hash),
+          );
+        const prior = liveAncestors
+          .filter(
+            (candidate) =>
+              !liveAncestors.some(
+                (other) =>
+                  other.hash !== candidate.hash &&
+                  tagGraph.descendsFrom(other.hash, candidate.hash),
+              ),
           )
           .sort((left, right) => left.hash.localeCompare(right.hash))[0];
         if (!prior || prior.body.state?.entityType !== 'tag') continue;
         const recoveredId = deterministicId(
           'tackbok-recovered-tombstoned-tag-v1',
+          this.vault.vaultId,
           tagId,
-          item.version.hash,
+          tombstone.hash,
         );
         const recoveredState: TagState = {
           ...prior.body.state,

@@ -45,7 +45,15 @@ export async function exportToBackupZip(): Promise<void> {
     db.select().from(entries).orderBy(desc(entries.created_at)),
     db.select().from(tags),
     db.select().from(customPrompts),
-      db.select().from(mediaAssets),
+      db
+        .select()
+        .from(mediaAssets)
+        .orderBy(
+          mediaAssets.owner_type,
+          mediaAssets.owner_id,
+          mediaAssets.created_at,
+          mediaAssets.asset_id,
+        ),
       db.select().from(entryTags),
       db.select().from(userProfile).limit(1),
     ]);

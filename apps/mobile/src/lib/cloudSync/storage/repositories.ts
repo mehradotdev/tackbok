@@ -29,6 +29,7 @@ export interface MutationContext {
   origin?: MutationOrigin;
   batchId?: string | null;
   now?: number;
+  createdAt?: number;
 }
 
 export type CloudSyncTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -349,6 +350,9 @@ export async function deleteEntryInTransaction(
     .where(
       and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)),
     );
+  // Production does not enable PRAGMA foreign_keys, so this cannot rely on the
+  // schema's ON DELETE CASCADE.
+  await tx.delete(entryTags).where(eq(entryTags.note_id, noteId));
   await tx.delete(entries).where(eq(entries.note_id, noteId));
   await markNormalized(tx, 'entry', noteId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
@@ -391,7 +395,7 @@ export async function createTagInTransaction(
   await tx.insert(tags).values({
     tag_id: tagId,
     title: cleanTitle,
-    created_at: now,
+    created_at: context.createdAt ?? now,
     updated_at: now,
   });
   await markNormalized(tx, 'tag', tagId, now);
@@ -466,7 +470,7 @@ export async function createPromptInTransaction(
   await tx.insert(customPrompts).values({
     prompt_id: promptId,
     title: cleanTitle,
-    created_at: now,
+    created_at: context.createdAt ?? now,
     updated_at: now,
   });
   await markNormalized(tx, 'prompt', promptId, now);
@@ -542,18 +546,47 @@ export async function updateProfileInTransaction(
   if (update.photoUri !== undefined) {
     if (update.photoUri) {
       const canReuse = previousAsset?.local_uri === update.photoUri;
-      photoAssetId = canReuse ? previousAsset.asset_id : update.photoAssetId ?? generateUUID();
-      await tx.insert(mediaAssets).values({
-        asset_id: photoAssetId,
-        owner_type: 'profile',
-        owner_id: PROFILE_ROW_ID,
-        kind: 'profile-photo',
-        local_uri: update.photoUri,
-        download_state: 'n/a',
-        mime_type: 'image/jpeg',
-        created_at: canReuse ? previousAsset.created_at : now,
-        updated_at: now,
-      });
+      const requestedId = update.photoAssetId ?? generateUUID();
+      const [requestedAsset] = await tx
+        .select()
+        .from(mediaAssets)
+        .where(eq(mediaAssets.asset_id, requestedId))
+        .limit(1);
+      const requestedIdBelongsElsewhere =
+        requestedAsset &&
+        (requestedAsset.owner_type !== 'profile' || requestedAsset.owner_id !== PROFILE_ROW_ID);
+      photoAssetId = canReuse
+        ? previousAsset.asset_id
+        : requestedIdBelongsElsewhere
+          ? generateUUID()
+          : requestedId;
+      await tx
+        .insert(mediaAssets)
+        .values({
+          asset_id: photoAssetId,
+          owner_type: 'profile',
+          owner_id: PROFILE_ROW_ID,
+          kind: 'profile-photo',
+          local_uri: update.photoUri,
+          download_state: 'n/a',
+          mime_type: 'image/jpeg',
+          created_at:
+            (canReuse ? previousAsset.created_at : requestedAsset?.created_at) ?? now,
+          updated_at: now,
+        })
+        .onConflictDoUpdate({
+          target: mediaAssets.asset_id,
+          set: {
+            owner_type: 'profile',
+            owner_id: PROFILE_ROW_ID,
+            kind: 'profile-photo',
+            local_uri: update.photoUri,
+            download_state: 'n/a',
+            mime_type: 'image/jpeg',
+            updated_at: now,
+            pending_local_delete_at: null,
+          },
+        });
     } else {
       photoAssetId = null;
     }
@@ -606,5 +639,8 @@ export async function updateProfileInTransaction(
 export async function runInCloudSyncTransaction<T>(
   operation: (tx: CloudSyncTransaction) => Promise<T>,
 ): Promise<T> {
-  return db.transaction(operation);
+  const result = await db.transaction(operation);
+  const { reapRetainedMediaWithoutVault } = await import('./retainedMedia');
+  await reapRetainedMediaWithoutVault();
+  return result;
 }

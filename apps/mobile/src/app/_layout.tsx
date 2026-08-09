@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -78,8 +78,7 @@ export default function Layout() {
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
   const localeHasHydrated = useLocaleStore((s) => s._hasHydrated);
   const themeConfig = getThemeConfig(theme);
-  const [normalizedModelReady, setNormalizedModelReady] = useState(false);
-  const [backfillError, setBackfillError] = useState<Error | null>(null);
+  const backfillStartedRef = useRef(false);
 
   const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
 
@@ -90,25 +89,27 @@ export default function Layout() {
   ]);
 
   const isBootstrapLoading =
-    !error &&
-    !backfillError &&
-    (!success || !normalizedModelReady || (!fontsLoaded && !fontsError));
+    !error && (!success || (!fontsLoaded && !fontsError));
 
   useEffect(() => {
-    if (!success || !hasHydrated || normalizedModelReady || backfillError) return;
+    if (!success || !hasHydrated || backfillStartedRef.current) return;
+    backfillStartedRef.current = true;
     const settings = useSettingsStore.getState();
     void runNormalizedModelBackfill({
       profileName: settings.profileName,
       profileEmail: settings.profileEmail,
       profileImageUri: settings.profileImageUri,
     })
-      .then(() => setNormalizedModelReady(true))
       .catch((cause: unknown) => {
-        setBackfillError(
-          cause instanceof Error ? cause : new Error('Cloud-sync backfill failed'),
+        // Dual-write is already live, so migration failure must disable sync
+        // readiness without preventing the journal UI from rendering. A later
+        // launch resumes from the durable checkpoint.
+        console.error(
+          'Cloud-sync backfill deferred until next launch:',
+          cause instanceof Error ? cause.message : 'unknown error',
         );
       });
-  }, [backfillError, hasHydrated, normalizedModelReady, success]);
+  }, [hasHydrated, success]);
 
   // Keep native splash until persisted settings (and Uniwind theme) are ready
   useEffect(() => {
@@ -147,12 +148,12 @@ export default function Layout() {
     }
   }, [hasHydrated]);
 
-  // Show migration error
-  if (error || backfillError) {
+  // SQL schema migration errors are fatal; the resumable data backfill is not.
+  if (error) {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4">
         <Text className="text-destructive text-center">
-          Database migration error: {(error ?? backfillError)?.message}
+          Database migration error: {error.message}
         </Text>
       </View>
     );

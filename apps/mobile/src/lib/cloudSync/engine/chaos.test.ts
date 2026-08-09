@@ -144,7 +144,7 @@ test.each([
   }
 });
 
-test('seeded chaos converges after interrupted at-least-once pushes, deletes, and restarts', async () => {
+test('seeded chaos converges after interrupted at-least-once pushes and deletes', async () => {
   for (let seed = 1; seed <= 12; seed++) {
     const { provider, devices } = await setup(3);
     devices[0].mutate('entry', 'entry', entry('root'));
@@ -174,5 +174,26 @@ test('seeded chaos converges after interrupted at-least-once pushes, deletes, an
     expect(devices[1].snapshot()).toEqual(devices[0].snapshot());
     expect(devices[2].snapshot()).toEqual(devices[0].snapshot());
     expect(devices.every((device) => device.outbox.size === 0)).toBe(true);
+  }
+});
+
+test('seeded chaos schedules revocation before stale writers can publish', async () => {
+  for (let seed = 1; seed <= 12; seed++) {
+    const { provider, vault, devices } = await setup(3);
+    devices[0].mutate('entry', 'entry', entry(`root-${seed}`));
+    await converge(devices, 2);
+    const stale = devices[(seed % 2) + 1];
+    stale.mutate('entry', 'entry', entry(`stale-${seed}`));
+    if (seed % 3 === 0) await stale.sync();
+    const kind = seed % 2 === 0 ? 'journal-deleted' as const : 'backup-deleted' as const;
+    await devices[0].revoke(kind, `chaos-revocation-${seed}`, seed);
+    for (const device of devices.slice(1)) await device.sync();
+    expect(devices.every((device) => device.isRevoked)).toBe(true);
+    expect(
+      provider.physicalObjects(vault).every((item) => item.key.startsWith('revocations/')),
+    ).toBe(true);
+    if (kind === 'journal-deleted') {
+      expect(devices.every((device) => Object.keys(device.snapshot()).length === 0)).toBe(true);
+    }
   }
 });

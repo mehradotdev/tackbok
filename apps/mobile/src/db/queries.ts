@@ -7,6 +7,8 @@ import {
   deleteEntryInTransaction,
   deletePromptInTransaction,
   deleteTagInTransaction,
+  runInCloudSyncTransaction,
+  updateProfileInTransaction,
   updatePromptInTransaction,
   updateTagInTransaction,
   upsertEntryInTransaction,
@@ -20,6 +22,7 @@ import {
   type NewEntry,
   type Tag,
   type CustomPrompt,
+  cloudVault,
 } from './index';
 
 /**
@@ -241,7 +244,7 @@ export async function searchEntries(
  * Insert or update an entry
  */
 export async function upsertEntry(entry: NewEntry) {
-  await db.transaction((tx) => upsertEntryInTransaction(tx, entry));
+  await runInCloudSyncTransaction((tx) => upsertEntryInTransaction(tx, entry));
 }
 
 /**
@@ -255,7 +258,7 @@ export async function createEntryWithAchievement(
   const now = Date.now();
   const createdAt = entry.created_at ?? now;
 
-  return db.transaction(async (tx) => {
+  return runInCloudSyncTransaction(async (tx) => {
     const { entryCount, days } = await readEntryDays(tx);
 
     await upsertEntryInTransaction(tx, {
@@ -280,18 +283,19 @@ export async function createEntryWithAchievement(
  * `~/lib/entryDeletion` so its media files are cleaned up as well.
  */
 export async function deleteEntryRecord(noteId: string) {
-  await db.transaction((tx) => deleteEntryInTransaction(tx, noteId));
+  await runInCloudSyncTransaction((tx) => deleteEntryInTransaction(tx, noteId));
 }
 
 /**
  * Completely resets the database by deleting all entries.
  */
-export async function deleteAllData() {
-  await db.transaction(async (tx) => {
-    const [allEntries, allTags, allPrompts] = await Promise.all([
+export async function deleteAllData(): Promise<{ retainedMediaForSync: boolean }> {
+  return runInCloudSyncTransaction(async (tx) => {
+    const [allEntries, allTags, allPrompts, vaultRows] = await Promise.all([
       tx.select({ id: entries.note_id }).from(entries),
       tx.select({ id: tags.tag_id }).from(tags),
       tx.select({ id: customPrompts.prompt_id }).from(customPrompts),
+      tx.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1),
     ]);
     const batchId = `local-reset-${Date.now()}`;
     for (const { id } of allEntries) {
@@ -303,6 +307,12 @@ export async function deleteAllData() {
     for (const { id } of allPrompts) {
       await deletePromptInTransaction(tx, id, { batchId });
     }
+    await updateProfileInTransaction(
+      tx,
+      { displayName: null, email: null, photoUri: null },
+      { batchId },
+    );
+    return { retainedMediaForSync: vaultRows.length > 0 };
   });
 }
 

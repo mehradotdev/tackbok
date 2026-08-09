@@ -116,7 +116,11 @@ export const userProfile = sqliteTable('user_profile', {
   updated_at: integer('updated_at').notNull(),
 });
 
-/** Local provider/vault configuration. Credentials are deliberately absent. */
+/**
+ * Local provider/vault configuration. Credentials are deliberately absent.
+ * `account_label` is a reserved v1 column and must remain null: the UI receives
+ * only a masked, in-memory label from the authorization provider.
+ */
 export const cloudVault = sqliteTable('cloud_vault', {
   vault_id: text('vault_id').primaryKey().notNull(),
   provider_kind: text('provider_kind', { enum: ['google-drive', 'dropbox'] }).notNull(),

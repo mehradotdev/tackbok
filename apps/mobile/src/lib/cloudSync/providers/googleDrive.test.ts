@@ -121,14 +121,14 @@ test('resumable upload uses 256 KiB boundaries, verifies bytes, and replaces exp
   for (let index = 0; index < bytes.length; index++) bytes[index] = index % 251;
   const hash = sha256Bytes(bytes);
   const identity = { logicalKey: `blobs/aa/${hash}`, contentHash: hash };
-  await sessions.set(identity, { uri: 'https://expired', expiresAt: 1 });
+  await sessions.set(identity, { uri: 'https://www.googleapis.com/upload/expired', expiresAt: 1 });
   const ranges: string[] = [];
   const fetch: DriveFetchLike = async (url, init) => {
     if (url.includes('/drive/v3/files?') && !url.includes('/upload/')) return response(200, { files: [] });
     if (url.includes('uploadType=resumable')) {
-      return response(200, {}, { headers: { location: 'https://session' } });
+      return response(200, {}, { headers: { location: 'https://www.googleapis.com/upload/session' } });
     }
-    if (url === 'https://session') {
+    if (url === 'https://www.googleapis.com/upload/session') {
       const headers = init?.headers as Record<string, string>;
       ranges.push(headers['Content-Range']);
       return ranges.length === 1
@@ -165,11 +165,14 @@ test('resumable upload queries and continues from the persisted Drive offset', a
   const hash = sha256Bytes(bytes);
   const key = `blobs/aa/${hash}`;
   const identity = { logicalKey: key, contentHash: hash };
-  await sessions.set(identity, { uri: 'https://session', expiresAt: Date.now() + 60_000 });
+  await sessions.set(identity, {
+    uri: 'https://www.googleapis.com/upload/session',
+    expiresAt: Date.now() + 60_000,
+  });
   const ranges: string[] = [];
   const fetch: DriveFetchLike = async (url, init) => {
     if (url.includes('/drive/v3/files?')) return response(200, { files: [] });
-    if (url === 'https://session') {
+    if (url === 'https://www.googleapis.com/upload/session') {
       const headers = init?.headers as Record<string, string>;
       ranges.push(headers['Content-Range']);
       if (headers['Content-Length'] === '0') {
@@ -194,6 +197,40 @@ test('resumable upload queries and continues from the persisted Drive offset', a
     `bytes ${256 * 1024}-${bytes.length - 1}/${bytes.length}`,
   ]);
   expect(await sessions.get(identity)).toBeNull();
+});
+
+test('untrusted persisted resumable URI is discarded before attaching a bearer token', async () => {
+  const auth = new FakeAuth();
+  const sessions = new MemoryResumableSessionStore();
+  const bytes = new Uint8Array([7, 8, 9]);
+  const hash = sha256Bytes(bytes);
+  const key = `blobs/aa/${hash}`;
+  await sessions.set(
+    { logicalKey: key, contentHash: hash },
+    { uri: 'https://attacker.example/upload', expiresAt: Date.now() + 60_000 },
+  );
+  const urls: string[] = [];
+  const fetch: DriveFetchLike = async (url) => {
+    urls.push(url);
+    if (url.includes('uploadType=resumable')) {
+      return response(200, {}, {
+        headers: { location: 'https://www.googleapis.com/upload/safe-session' },
+      });
+    }
+    if (url.includes('/drive/v3/files?')) return response(200, { files: [] });
+    if (url === 'https://www.googleapis.com/upload/safe-session') {
+      return response(200, file('blob-file', key, hash));
+    }
+    throw new Error(`Unexpected request ${url}`);
+  };
+  async function* chunks() { yield bytes; }
+  const provider = new GoogleDriveProvider({ auth, fetch, sessionStore: sessions });
+  await provider.putImmutable(
+    { vaultId: 'vault', remoteRootId: 'root' },
+    key,
+    { byteLength: bytes.length, contentHash: hash, chunks: chunks() },
+  );
+  expect(urls).not.toContain('https://attacker.example/upload');
 });
 
 test('large download resumes into a durable sink and verifies the complete hash', async () => {

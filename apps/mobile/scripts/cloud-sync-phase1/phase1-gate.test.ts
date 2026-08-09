@@ -32,6 +32,7 @@ beforeEach(() => {
   mock.module('~/db', () => ({ ...schema, db: testDb }));
   mock.module('~/lib/settings/store', () => ({
     hydrateProfileCache: () => undefined,
+    markLegacyProfileMigrationComplete: () => undefined,
   }));
 });
 
@@ -171,6 +172,8 @@ describe('Phase 1 transactional gate', () => {
       { batchSize: 1, stopAfterCommittedBatches: 1 },
     );
     expect(interrupted.status).toBe('interrupted');
+    const [profileBeforeEntryResume] = await testDb.select().from(schema.userProfile);
+    expect(profileBeforeEntryResume.display_name).toBe('Before');
     const [assetA1] = await testDb
       .select()
       .from(schema.mediaAssets)
@@ -237,5 +240,79 @@ describe('Phase 1 transactional gate', () => {
       .from(schema.mediaAssets)
       .where(eq(schema.mediaAssets.owner_id, 'a'));
     expect(assetA3.asset_id).toBe(assetA1.asset_id);
+  });
+
+  test('profile-photo restore is idempotent and media is reaped without a vault', async () => {
+    const suffix = Date.now();
+    const repository = await import(
+      `../../src/lib/cloudSync/storage/repositories.ts?case=profile-${suffix}`
+    );
+    await testDb.transaction((tx) =>
+      repository.updateProfileInTransaction(tx, {
+        displayName: 'Owner',
+        photoUri: 'photos/profile.jpg',
+        photoAssetId: 'profile-asset',
+      }),
+    );
+    await testDb.transaction((tx) =>
+      repository.updateProfileInTransaction(tx, {
+        photoUri: 'photos/profile.jpg',
+        photoAssetId: 'profile-asset',
+      }),
+    );
+    expect(
+      await testDb
+        .select()
+        .from(schema.mediaAssets)
+        .where(eq(schema.mediaAssets.asset_id, 'profile-asset')),
+    ).toHaveLength(1);
+
+    await testDb.transaction((tx) =>
+      repository.updateProfileInTransaction(tx, { photoUri: null }),
+    );
+    const reaper = await import(
+      `../../src/lib/cloudSync/storage/retainedMedia.ts?case=reaper-${suffix}`
+    );
+    const deletedUris: string[] = [];
+    const result = await reaper.reapRetainedMediaWithoutVault({
+      now: 99,
+      deleteFile: async (row: typeof schema.syncRetainedMedia.$inferSelect) => {
+        deletedUris.push(row.original_uri);
+        return 'deleted';
+      },
+    });
+    expect(result).toEqual({ deleted: 1, missing: 0, failed: 0, deferred: 0 });
+    expect(deletedUris).toEqual(['photos/profile.jpg']);
+    const [ledger] = await testDb.select().from(schema.syncRetainedMedia);
+    expect(ledger.state).toBe('safe_to_delete');
+    const [obligation] = await testDb.select().from(schema.syncMediaObligations);
+    expect(obligation.completed_at).toBe(99);
+  });
+
+  test('entry deletion removes normalized tag joins even with foreign keys disabled', async () => {
+    sqlite.exec('PRAGMA foreign_keys = OFF');
+    const repository = await import(
+      `../../src/lib/cloudSync/storage/repositories.ts?case=no-fk-${Date.now()}`
+    );
+    await testDb.insert(schema.tags).values({
+      tag_id: 'tag-no-fk',
+      title: 'Tag',
+      created_at: 1,
+      updated_at: 1,
+    });
+    await testDb.transaction((tx) =>
+      repository.upsertEntryInTransaction(tx, {
+        note_id: 'entry-no-fk',
+        text_content: 'body',
+        tags: 'tag-no-fk',
+        created_at: 1,
+        updated_at: 1,
+      }),
+    );
+    expect(await testDb.select().from(schema.entryTags)).toHaveLength(1);
+    await testDb.transaction((tx) =>
+      repository.deleteEntryInTransaction(tx, 'entry-no-fk'),
+    );
+    expect(await testDb.select().from(schema.entryTags)).toHaveLength(0);
   });
 });

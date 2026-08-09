@@ -1,4 +1,4 @@
-import { db, entries } from '~/db';
+import { entries } from '~/db';
 import { useSettingsStore } from '~/lib/settings';
 import { type BackupImportSummary, type ImportMode } from '../types';
 import {
@@ -24,6 +24,7 @@ import {
   writeImportedPhoto,
 } from '../archiveUtils';
 import { getImportTotals } from './helpers';
+import { runInCloudSyncTransaction } from '~/lib/cloudSync/storage/repositories';
 
 export async function importFromGratitudeAppBackup(
   uri: string,
@@ -72,7 +73,7 @@ export async function importFromGratitudeAppBackup(
         ...createSummaryCounterMetrics(summary),
       });
 
-      await db.transaction(async (tx) => {
+      await runInCloudSyncTransaction(async (tx) => {
         const tagMap = await upsertPortableTags(tx, portableTags, summary);
         await ensurePortablePromptTitles(tx, portablePrompts, summary);
         reportImportProgress(onProgress, 'gratitudeApp', 'taxonomy', 1, {

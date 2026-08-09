@@ -175,7 +175,9 @@ function resolveEntries(
   const recoveries: HashedVersion[] = [];
   const recoveredEntityIds: string[] = [];
   if (authoredTextCandidates.length >= 2) {
-    for (const candidate of live) {
+    // Preserve only genuinely authored alternatives. A branch that retained
+    // the merge-base text is not a user-authored recovered copy.
+    for (const candidate of authoredTextCandidates) {
       if (candidate.representativeHash === textPrimary.representativeHash) continue;
       if (
         candidate.state.title === textPrimary.state.title &&
@@ -367,11 +369,37 @@ export function resolveHeads(
     };
   }
 
+  const renameCandidates = candidates.filter(
+    (candidate) =>
+      candidate.state?.entityType === first.entityType &&
+      (first.entityType === 'tag' || first.entityType === 'prompt'),
+  );
+  const baseTitle =
+    baseState?.entityType === 'tag' || baseState?.entityType === 'prompt'
+      ? baseState.title
+      : null;
+  const authoredRenames = baseTitle === null
+    ? renameCandidates
+    : renameCandidates.filter(
+        (candidate) =>
+          (candidate.state?.entityType === 'tag' ||
+            candidate.state?.entityType === 'prompt') &&
+          candidate.state.title !== baseTitle,
+      );
+  const renamePrimary = authoredRenames[0] ?? renameCandidates[0] ?? primary;
   const recoveries: HashedVersion[] = [];
-  for (const candidate of candidates.slice(1)) {
+  for (const candidate of authoredRenames) {
+    if (candidate.representativeHash === renamePrimary.representativeHash) continue;
     if (
       candidate.state?.entityType !== 'tag' &&
       candidate.state?.entityType !== 'prompt'
+    ) {
+      continue;
+    }
+    if (
+      (renamePrimary.state?.entityType === 'tag' ||
+        renamePrimary.state?.entityType === 'prompt') &&
+      candidate.state.title === renamePrimary.state.title
     ) {
       continue;
     }
@@ -400,7 +428,7 @@ export function resolveHeads(
       entityId: first.entityId,
       kind: 'resolution',
       parents: heads,
-      state: primary.state,
+      state: renamePrimary.state,
       recoveries: recoveries.map((version) => ({
         entityType: version.body.entityType,
         entityId: version.body.entityId,
@@ -409,14 +437,17 @@ export function resolveHeads(
       derivedTimestamp,
     }),
     recoveries,
-    conflict: {
-      conflictId: deterministicId('tackbok-conflict-v1', first.entityId, ...heads),
-      entityType: first.entityType,
-      entityId: first.entityId,
-      headHashes: heads,
-      resolutionType: 'recovered-rename',
-      alternates: [],
-      recoveredEntityIds: recoveries.map((version) => version.body.entityId),
-    },
+    conflict:
+      recoveries.length > 0
+        ? {
+            conflictId: deterministicId('tackbok-conflict-v1', first.entityId, ...heads),
+            entityType: first.entityType,
+            entityId: first.entityId,
+            headHashes: heads,
+            resolutionType: 'recovered-rename',
+            alternates: [],
+            recoveredEntityIds: recoveries.map((version) => version.body.entityId),
+          }
+        : null,
   };
 }

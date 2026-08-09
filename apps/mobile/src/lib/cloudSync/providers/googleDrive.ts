@@ -1,5 +1,7 @@
 import type { CloudAuthorization } from '../auth';
 import { IncrementalSha256, sha256Bytes } from '../codec';
+import { validateVaultMarkerBytes } from '../domain/validation';
+import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
 import {
   ProviderError,
   type ByteSource,
@@ -28,6 +30,16 @@ const PROP_HASH = 'tb_hash';
 const CHUNK_SIZE = 256 * 1024;
 const SESSION_LIFETIME_MS = 6 * 24 * 60 * 60 * 1000;
 const FILE_FIELDS = 'id,name,size,appProperties,trashed';
+const GOOGLE_RESUMABLE_ORIGIN = 'https://www.googleapis.com';
+
+export function isTrustedGoogleResumableSessionUri(uri: string): boolean {
+  try {
+    const parsed = new URL(uri);
+    return parsed.origin === GOOGLE_RESUMABLE_ORIGIN && parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 interface DriveFile {
   id: string;
@@ -278,6 +290,7 @@ export class GoogleDriveProvider implements CloudProvider {
   }
 
   async createVaultMarker(vaultId: string, body: Uint8Array): Promise<VaultMarkerResult> {
+    validateVaultMarkerBytes(body);
     const existing = await this.findByKey(vaultId, 'vault.json');
     const ref = await this.putImmutable({ vaultId, remoteRootId: APP_DATA }, 'vault.json', body);
     return {
@@ -314,6 +327,9 @@ export class GoogleDriveProvider implements CloudProvider {
     const expectedSize = Number(file.size);
     if (!Number.isSafeInteger(expectedSize) || expectedSize < 0) {
       throw new ProviderError('corrupt', `Drive returned an invalid size for ${key}`);
+    }
+    if (key.startsWith('blobs/') && expectedSize > PROTOCOL_V1_CAPS.maximumMediaBytes) {
+      throw new ProviderError('corrupt', 'Media object exceeds the protocol byte cap');
     }
     let offset = await sink.byteLength();
     if (offset > expectedSize) {
@@ -368,6 +384,13 @@ export class GoogleDriveProvider implements CloudProvider {
   }
 
   async putImmutable(vault: VaultRef, key: LogicalKey, source: ByteSource): Promise<RemoteObjectRef> {
+    if (
+      key.startsWith('blobs/') &&
+      (source instanceof Uint8Array ? source.byteLength : source.byteLength) >
+        PROTOCOL_V1_CAPS.maximumMediaBytes
+    ) {
+      throw new ProviderError('corrupt', 'Media object exceeds the protocol byte cap');
+    }
     const hash = source instanceof Uint8Array ? sha256Bytes(source) : source.contentHash;
     const candidates = await this.findByKey(vault.vaultId, key);
     for (const candidate of candidates) {
@@ -492,6 +515,13 @@ export class GoogleDriveProvider implements CloudProvider {
   }
 
   private async downloadVerified(file: DriveFile): Promise<Uint8Array> {
+    const size = file.size === undefined ? null : Number(file.size);
+    if (
+      logicalKey(file).startsWith('blobs/') &&
+      (size === null || !Number.isSafeInteger(size) || size > PROTOCOL_V1_CAPS.maximumMediaBytes)
+    ) {
+      throw new ProviderError('corrupt', 'Media object exceeds the protocol byte cap');
+    }
     const response = await this.request(`${API}/files/${encodeURIComponent(file.id)}?alt=media`);
     const hasher = new IncrementalSha256();
     const chunks: Uint8Array[] = [];
@@ -541,6 +571,10 @@ export class GoogleDriveProvider implements CloudProvider {
     const identity = { logicalKey: key, contentHash: hash };
     let session = await this.sessions.get(identity);
     let uploaded = 0;
+    if (session && !isTrustedGoogleResumableSessionUri(session.uri)) {
+      await this.sessions.delete(identity);
+      session = null;
+    }
     if (!session || session.expiresAt <= Date.now()) {
       await this.sessions.delete(identity);
       const response = await this.request(`${UPLOAD_API}/files?uploadType=resumable&fields=${FILE_FIELDS}`, {
@@ -554,6 +588,9 @@ export class GoogleDriveProvider implements CloudProvider {
       });
       const uri = response.headers.get('location');
       if (!uri) throw new ProviderError('transient', 'Drive returned no resumable session URI');
+      if (!isTrustedGoogleResumableSessionUri(uri)) {
+        throw new ProviderError('corrupt', 'Drive returned an untrusted resumable session URI');
+      }
       session = { uri, expiresAt: Date.now() + SESSION_LIFETIME_MS };
       await this.sessions.set(identity, session);
     } else {
@@ -589,6 +626,9 @@ export class GoogleDriveProvider implements CloudProvider {
         });
         const uri = response.headers.get('location');
         if (!uri) throw new ProviderError('transient', 'Drive returned no resumable session URI');
+        if (!isTrustedGoogleResumableSessionUri(uri)) {
+          throw new ProviderError('corrupt', 'Drive returned an untrusted resumable session URI');
+        }
         session = { uri, expiresAt: Date.now() + SESSION_LIFETIME_MS };
         await this.sessions.set(identity, session);
         uploaded = 0;

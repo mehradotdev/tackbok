@@ -1,4 +1,4 @@
-import { db, entries } from '~/db';
+import { entries } from '~/db';
 import {
   BACKUP_ENTRIES_PATH,
   BACKUP_MANIFEST_PATH,
@@ -37,7 +37,10 @@ import {
 } from '../archiveUtils';
 import { getImportTotals } from './helpers';
 import { generateUUID } from '~/lib/utils';
-import { updateProfileInTransaction } from '~/lib/cloudSync/storage/repositories';
+import {
+  runInCloudSyncTransaction,
+  updateProfileInTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 import { hydrateProfileCache } from '~/lib/settings';
 
 export async function importFromTackbokBackup(
@@ -107,7 +110,7 @@ export async function importFromTackbokBackup(
         ...createSummaryCounterMetrics(summary),
       });
 
-      await db.transaction(async (tx) => {
+      await runInCloudSyncTransaction(async (tx) => {
         const tagMap = await upsertPortableTags(tx, portableTags, summary, batchId);
         await ensurePortablePromptTitles(tx, portablePrompts, summary, batchId);
         reportImportProgress(onProgress, 'tackbok', 'taxonomy', 1, {

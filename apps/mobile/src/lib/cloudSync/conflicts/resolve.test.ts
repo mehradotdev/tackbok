@@ -1,6 +1,6 @@
 import { VersionGraph } from '../ancestry';
 import { createEditVersion } from '../domain/version';
-import type { AssetDescriptor, EntryState } from '../domain/types';
+import type { AssetDescriptor, EntryState, TagState } from '../domain/types';
 import { resolveHeads } from '.';
 
 const asset: AssetDescriptor = {
@@ -123,4 +123,49 @@ test('a concurrent edit survives a delete, while a causally later delete wins', 
   expect(resolveHeads(graph, [edited.hash, laterDelete.hash]).resolution.body.deleted).toBe(
     true,
   );
+});
+
+test('unchanged merge-base text is never emitted as an unauthored recovery', () => {
+  const root = version('root', state());
+  const left = version('left', state({ title: 'Left', content: 'Left' }), [root.hash]);
+  const right = version('right', state({ title: 'Right', content: 'Right' }), [root.hash]);
+  const unchanged = version('unchanged', state({ updatedAt: 2 }), [root.hash]);
+  const graph = new VersionGraph('vault', 'entry', 'entry');
+  for (const item of [root, left, right, unchanged]) graph.add(item.body, item.hash);
+  const result = resolveHeads(graph, [left.hash, right.hash, unchanged.hash]);
+  expect(result.recoveries).toHaveLength(1);
+  const texts = [result.resolution, ...result.recoveries].map((item) => {
+    const value = item.body.state;
+    return value?.entityType === 'entry' ? value.content : null;
+  });
+  expect(new Set(texts)).toEqual(new Set(['Left', 'Right']));
+});
+
+test('a single tag rename wins over an unchanged base branch', () => {
+  const tagState = (title: string, updatedAt = 1): TagState => ({
+    entityType: 'tag',
+    title,
+    createdAt: 1,
+    updatedAt,
+    conflictOriginId: null,
+  });
+  const make = (device: string, value: TagState, parents: string[] = []) =>
+    createEditVersion({
+      vaultId: 'vault',
+      entityType: 'tag',
+      entityId: 'tag',
+      parents,
+      state: value,
+      authorDeviceId: device,
+      editSequence: 1,
+      authoredAt: 1,
+    });
+  const root = make('root', tagState('Original'));
+  const renamed = make('rename', tagState('Renamed', 2), [root.hash]);
+  const unchanged = make('unchanged', tagState('Original', 3), [root.hash]);
+  const graph = new VersionGraph('vault', 'tag', 'tag');
+  for (const item of [root, renamed, unchanged]) graph.add(item.body, item.hash);
+  const result = resolveHeads(graph, [renamed.hash, unchanged.hash]);
+  expect(result.resolution.body.state).toMatchObject({ title: 'Renamed' });
+  expect(result.recoveries).toHaveLength(0);
 });

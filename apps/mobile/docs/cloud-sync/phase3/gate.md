@@ -11,7 +11,7 @@ object was created or deleted.
 
 ## Account-independent evidence
 
-- [x] `bun run phase3:test`: **1 suite passed, 7 tests passed, 0 failed**.
+- [x] `bun run phase3:test`: **2 suites passed, 10 tests passed, 0 failed**.
 - [x] Immutable writes tolerate a same-content duplicate and reject a same-key,
   different-content collision under the mocked Drive API.
 - [x] Downloads are stream-hashed and reject corrupt bytes; a 401 clears the
@@ -19,6 +19,9 @@ object was created or deleted.
 - [x] Resumable uploads use 256 KiB boundaries, replace expired sessions, persist
   session URI/expiry in `sync_remote_objects`, query Drive's accepted offset after
   restart, and continue from that offset.
+- [x] Persisted resumable-session URLs are accepted only for the exact
+  `https://www.googleapis.com` origin; a malicious SQLite URL is discarded and
+  never receives a request or bearer token.
 - [x] Large downloads resume into a durable sink with an HTTP byte range, avoid
   whole-file buffering in the adapter, and verify the completed SHA-256 before
   returning the object as trusted.
@@ -28,6 +31,12 @@ object was created or deleted.
   global revocation endpoint or issuing a Drive request.
 - [x] OAuth token storage is isolated to `expo-secure-store`; SQLite, Zustand,
   diagnostics, and logs receive no tokens.
+- [x] Account emails are reduced to a masked, in-memory cosmetic label. The
+  reserved `cloud_vault.account_label` column remains null and is not a storage
+  destination.
+- [x] iOS clears SecureStore credentials only for terminal refresh failures
+  (`invalid_grant`/401); transient network and server failures retain the
+  refresh token for retry.
 - [x] Android inline Google Authorization module compiles:
   `:app:compileDebugKotlin` → **BUILD SUCCESSFUL**.
 - [x] iOS authorization/native-module integration compiles in an arm64 Debug

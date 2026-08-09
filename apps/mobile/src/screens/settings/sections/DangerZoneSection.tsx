@@ -37,7 +37,7 @@ export function DangerZoneSection() {
     try {
       // Wipe the DB first — if this throws, the files are still intact
       // and the catch block will surface the error to the user.
-      await deleteAllData();
+      const { retainedMediaForSync } = await deleteAllData();
       // Reset persisted app settings alongside the DB wipe so Delete All Data
       // restores the app to its default state.
       resetSettingsToDefaults();
@@ -55,15 +55,17 @@ export function DangerZoneSection() {
       // Attempt both cleanups regardless of individual failures so that a
       // photos error never silently leaves voice memos on disk (and vice versa).
       const cleanupErrors: string[] = [];
-      try {
-        deleteAllPhotos();
-      } catch (error) {
-        cleanupErrors.push(error instanceof Error ? error.message : String(error));
-      }
-      try {
-        deleteAllVoiceMemos();
-      } catch (error) {
-        cleanupErrors.push(error instanceof Error ? error.message : String(error));
+      if (!retainedMediaForSync) {
+        try {
+          deleteAllPhotos();
+        } catch (error) {
+          cleanupErrors.push(error instanceof Error ? error.message : String(error));
+        }
+        try {
+          deleteAllVoiceMemos();
+        } catch (error) {
+          cleanupErrors.push(error instanceof Error ? error.message : String(error));
+        }
       }
       if (cleanupErrors.length > 0) {
         toast.warning(t('All data deleted, but some media files could not be removed.'), {

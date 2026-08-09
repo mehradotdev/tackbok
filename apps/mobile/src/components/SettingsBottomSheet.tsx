@@ -466,9 +466,14 @@ export function SettingsBottomSheet() {
   /** Pick a new photo, compress, save to documents, and update the store. */
   const handlePickNewPhoto = useCallback(async () => {
     setPhotoDialogOpen(false);
-    const result = await pickPhotos('library', 1);
-    await handlePickPhotoResult(result);
-  }, [handlePickPhotoResult]);
+    try {
+      const result = await pickPhotos('library', 1);
+      await handlePickPhotoResult(result);
+    } catch (error) {
+      console.error('Failed to open profile photo picker:', error);
+      toast.error(t('Failed to add photos'), { useModal: true });
+    }
+  }, [handlePickPhotoResult, t]);
 
   /** Tap on avatar → show dialog (if photo exists) or pick directly. */
   const handleAvatarPress = useCallback(() => {
@@ -477,23 +482,35 @@ export function SettingsBottomSheet() {
       setPhotoDialogOpen(true);
     } else {
       // No photo → pick directly
-      handlePickNewPhoto();
+      void handlePickNewPhoto();
     }
   }, [handlePickNewPhoto, profileImageUri]);
 
   /** Remove the current photo and clean up the file. */
   const handleRemovePhoto = useCallback(async () => {
     setPhotoDialogOpen(false);
-    if (profileImageUri) {
-      await setProfileImageUri(null);
+    try {
+      if (profileImageUri) {
+        await setProfileImageUri(null);
+      }
+    } catch (error) {
+      console.error('Failed to remove profile photo:', error);
+      toast.error(t('Unknown error'), { useModal: true });
     }
-  }, [profileImageUri, setProfileImageUri]);
+  }, [profileImageUri, setProfileImageUri, t]);
 
   const handleSaveName = useCallback(
     async (newName: string) => {
-      await setProfileName(newName || null);
+      try {
+        await setProfileName(newName || null);
+      } catch (error) {
+        console.error('Failed to save profile name:', error);
+        toast.error(t('Unknown error'), {
+          useModal: true,
+        });
+      }
     },
-    [setProfileName],
+    [setProfileName, t],
   );
 
   return (

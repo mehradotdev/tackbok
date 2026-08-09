@@ -9,7 +9,10 @@ import {
   tags,
   userProfile,
 } from '~/db';
-import { hydrateProfileCache } from '~/lib/settings/store';
+import {
+  hydrateProfileCache,
+  markLegacyProfileMigrationComplete,
+} from '~/lib/settings/store';
 import {
   NORMALIZED_MODEL_MIGRATION_ID,
   PROFILE_ENTITY_ID,
@@ -98,6 +101,7 @@ export async function runNormalizedModelBackfill(
     .limit(1);
 
   if (existingMigration?.status === 'complete') {
+    markLegacyProfileMigrationComplete();
     await loadProfileCache();
     return {
       status: 'complete',
@@ -107,61 +111,8 @@ export async function runNormalizedModelBackfill(
     };
   }
 
-  let cursor = existingMigration?.phase === 'entries' ? existingMigration.cursor : null;
-  let committedBatches = 0;
-  let normalizedEntries = 0;
-  await writeCheckpoint('entries', cursor, 'running');
-
-  while (true) {
-    const batch = await db
-      .select()
-      .from(entries)
-      .where(cursor ? gt(entries.note_id, cursor) : undefined)
-      .orderBy(asc(entries.note_id))
-      .limit(batchSize);
-    if (batch.length === 0) break;
-
-    await db.transaction(async (tx) => {
-      const done = await tx
-        .select({ id: cloudSyncMigrationItems.entity_id })
-        .from(cloudSyncMigrationItems)
-        .where(
-          and(
-            eq(cloudSyncMigrationItems.entity_type, 'entry'),
-            inArray(
-              cloudSyncMigrationItems.entity_id,
-              batch.map((entry) => entry.note_id),
-            ),
-          ),
-        );
-      const doneIds = new Set(done.map(({ id }) => id));
-      for (const entry of batch) {
-        if (doneIds.has(entry.note_id)) continue;
-        await normalizeLegacyEntryInTransaction(tx, entry);
-        normalizedEntries++;
-      }
-      cursor = batch.at(-1)!.note_id;
-      const now = Date.now();
-      await tx
-        .insert(cloudSyncMigration)
-        .values({
-          migration_id: NORMALIZED_MODEL_MIGRATION_ID,
-          phase: 'entries',
-          cursor,
-          status: 'running',
-          updated_at: now,
-        })
-        .onConflictDoUpdate({
-          target: cloudSyncMigration.migration_id,
-          set: { phase: 'entries', cursor, status: 'running', updated_at: now },
-        });
-    });
-    committedBatches++;
-    if (committedBatches === options.stopAfterCommittedBatches) {
-      return { status: 'interrupted', committedBatches, normalizedEntries, repairedEntries: 0 };
-    }
-  }
-
+  // The legacy Zustand profile must become durable before any long-running
+  // entry work. Until completion, the store deliberately keeps its old copy.
   await db.transaction(async (tx) => {
     const now = Date.now();
     const [profileItem] = await tx
@@ -185,6 +136,66 @@ export async function runNormalizedModelBackfill(
         { origin: 'migration', now },
       );
     }
+  });
+
+  let cursor = existingMigration?.phase === 'entries' ? existingMigration.cursor : null;
+  let committedBatches = 0;
+  let normalizedEntries = 0;
+  await writeCheckpoint('entries', cursor, 'running');
+
+  while (true) {
+    const batch = await db.transaction(async (tx) => {
+      const currentBatch = await tx
+        .select()
+        .from(entries)
+        .where(cursor ? gt(entries.note_id, cursor) : undefined)
+        .orderBy(asc(entries.note_id))
+        .limit(batchSize);
+      if (currentBatch.length === 0) return [];
+      const done = await tx
+        .select({ id: cloudSyncMigrationItems.entity_id })
+        .from(cloudSyncMigrationItems)
+        .where(
+          and(
+            eq(cloudSyncMigrationItems.entity_type, 'entry'),
+            inArray(
+              cloudSyncMigrationItems.entity_id,
+              currentBatch.map((entry) => entry.note_id),
+            ),
+          ),
+        );
+      const doneIds = new Set(done.map(({ id }) => id));
+      for (const entry of currentBatch) {
+        if (doneIds.has(entry.note_id)) continue;
+        await normalizeLegacyEntryInTransaction(tx, entry);
+        normalizedEntries++;
+      }
+      cursor = currentBatch.at(-1)!.note_id;
+      const now = Date.now();
+      await tx
+        .insert(cloudSyncMigration)
+        .values({
+          migration_id: NORMALIZED_MODEL_MIGRATION_ID,
+          phase: 'entries',
+          cursor,
+          status: 'running',
+          updated_at: now,
+        })
+        .onConflictDoUpdate({
+          target: cloudSyncMigration.migration_id,
+          set: { phase: 'entries', cursor, status: 'running', updated_at: now },
+        });
+      return currentBatch;
+    });
+    if (batch.length === 0) break;
+    committedBatches++;
+    if (committedBatches === options.stopAfterCommittedBatches) {
+      return { status: 'interrupted', committedBatches, normalizedEntries, repairedEntries: 0 };
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    const now = Date.now();
     for (const table of [tags, customPrompts] as const) {
       const rows = await tx.select().from(table);
       const entityType = table === tags ? 'tag' : 'prompt';
@@ -201,21 +212,30 @@ export async function runNormalizedModelBackfill(
 
   await writeCheckpoint('reconciling', null, 'running');
   let repairedEntries = 0;
-  const allEntries = await db.select().from(entries).orderBy(asc(entries.note_id));
-  for (let offset = 0; offset < allEntries.length; offset += batchSize) {
-    const batch = allEntries.slice(offset, offset + batchSize);
-    await db.transaction(async (tx) => {
-      for (const entry of batch) {
+  let reconcileCursor: string | null = null;
+  while (true) {
+    const batch = await db.transaction(async (tx) => {
+      const currentBatch = await tx
+        .select()
+        .from(entries)
+        .where(reconcileCursor ? gt(entries.note_id, reconcileCursor) : undefined)
+        .orderBy(asc(entries.note_id))
+        .limit(batchSize);
+      for (const entry of currentBatch) {
         // Rewriting from the authoritative legacy read model is idempotent and
         // repairs interrupted or concurrent normalization without touching it.
         await normalizeLegacyEntryInTransaction(tx, entry);
         repairedEntries++;
       }
+      return currentBatch;
     });
+    if (batch.length === 0) break;
+    reconcileCursor = batch.at(-1)!.note_id;
   }
 
   const now = Date.now();
   await writeCheckpoint('complete', null, 'complete', now);
+  markLegacyProfileMigrationComplete();
   await loadProfileCache();
   return { status: 'complete', committedBatches, normalizedEntries, repairedEntries };
 }

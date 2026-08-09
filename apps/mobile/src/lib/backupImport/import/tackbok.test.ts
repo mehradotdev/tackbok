@@ -81,6 +81,8 @@ jest.mock('~/lib/settings', () => ({
 }));
 
 jest.mock('~/lib/cloudSync/storage/repositories', () => ({
+  runInCloudSyncTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
+    mockTransaction(callback),
   updateProfileInTransaction: (txArg: unknown, profile: unknown, context: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile, context),
 }));

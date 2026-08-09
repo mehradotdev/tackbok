@@ -6,7 +6,7 @@ async function setup(pageSize = 2) {
   await provider.connect();
   const { vault } = await provider.createVaultMarker(
     'vault',
-    canonicalBytes({ formatVersion: 1, vaultId: 'vault' }),
+    canonicalBytes({ magic: 'tackbok-vault', formatVersion: 1, vaultId: 'vault' }),
   );
   return { provider, vault };
 }
