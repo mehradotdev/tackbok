@@ -1,0 +1,65 @@
+{
+  "probeSuite": "cloud-sync-phase0",
+  "timestamp": "2026-08-09T00:03:59.135Z",
+  "platform": "android",
+  "osVersion": "36",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "canonicalFixtures": {
+    "passed": true,
+    "vectors": [
+      {
+        "id": "object-key-order",
+        "actualByteLength": 25,
+        "expectedByteLength": 25,
+        "byteIdentical": true
+      },
+      {
+        "id": "unicode-nfc-and-escaping",
+        "actualByteLength": 30,
+        "expectedByteLength": 30,
+        "byteIdentical": true
+      },
+      {
+        "id": "arrays-preserve-schema-order",
+        "actualByteLength": 44,
+        "expectedByteLength": 44,
+        "byteIdentical": true
+      },
+      {
+        "id": "profile-excludes-email",
+        "actualByteLength": 159,
+        "expectedByteLength": 159,
+        "byteIdentical": true
+      }
+    ]
+  },
+  "streamingHash": {
+    "fixtureId": "full-200mib",
+    "fixtureBytes": 209715200,
+    "expectedSha256": "502bfded85f94ec7c5a6284ba359cc6f219438aada6099ab5f2c8560fcbc3868",
+    "firstRun": {
+      "sha256": "502bfded85f94ec7c5a6284ba359cc6f219438aada6099ab5f2c8560fcbc3868",
+      "bytesRead": 209715200,
+      "elapsedMs": 274.079959,
+      "maximumReadBytes": 1048576,
+      "mebibytesPerSecond": 729.7140612896837,
+      "passesThroughputTarget": true,
+      "respectsBoundedRead": true
+    },
+    "secondRun": {
+      "sha256": "502bfded85f94ec7c5a6284ba359cc6f219438aada6099ab5f2c8560fcbc3868",
+      "bytesRead": 209715200,
+      "elapsedMs": 174.629375,
+      "maximumReadBytes": 1048576,
+      "mebibytesPerSecond": 1145.2826879784686,
+      "passesThroughputTarget": true,
+      "respectsBoundedRead": true
+    },
+    "hashMatchesExpected": true,
+    "runsAgree": true,
+    "generationMs": 17949,
+    "passed": true
+  },
+  "passed": true
+}

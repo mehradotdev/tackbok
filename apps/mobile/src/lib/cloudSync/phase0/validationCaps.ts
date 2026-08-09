@@ -1,0 +1,26 @@
+export const PROTOCOL_V1_CAPS = {
+  vaultJsonBytes: 16 * 1024,
+  revocationJsonBytes: 16 * 1024,
+  entityVersionJsonBytes: 1024 * 1024,
+  parentCount: 64,
+  ancestryDepth: 4096,
+  dependencyObjectsPerEntity: 10_000,
+  entitiesPerPass: 500,
+  recoveryDependencyCount: 64,
+  dependencyBytesPerEntity: 64 * 1024 * 1024,
+  entityIdUtf8Bytes: 256,
+  deviceIdUtf8Bytes: 256,
+  batchIdUtf8Bytes: 256,
+  titleUtf8Bytes: 16 * 1024,
+  entryContentUtf8Bytes: 768 * 1024,
+  displayNameUtf8Bytes: 4 * 1024,
+  promptTextUtf8Bytes: 64 * 1024,
+  mimeTypeUtf8Bytes: 256,
+  scalarAlternateJsonBytes: 64 * 1024,
+  tagIdsPerEntry: 512,
+  assetsPerEntity: 256,
+  maximumMediaBytes: 200 * 1024 * 1024,
+  maximumMetadataDepth: 16,
+} as const;
+
+export type ProtocolV1Cap = keyof typeof PROTOCOL_V1_CAPS;

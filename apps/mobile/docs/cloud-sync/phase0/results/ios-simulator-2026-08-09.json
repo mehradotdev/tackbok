@@ -1,0 +1,65 @@
+{
+  "probeSuite": "cloud-sync-phase0",
+  "timestamp": "2026-08-09T00:07:22.951Z",
+  "platform": "ios",
+  "osVersion": "26.5",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "canonicalFixtures": {
+    "passed": true,
+    "vectors": [
+      {
+        "id": "object-key-order",
+        "actualByteLength": 25,
+        "expectedByteLength": 25,
+        "byteIdentical": true
+      },
+      {
+        "id": "unicode-nfc-and-escaping",
+        "actualByteLength": 30,
+        "expectedByteLength": 30,
+        "byteIdentical": true
+      },
+      {
+        "id": "arrays-preserve-schema-order",
+        "actualByteLength": 44,
+        "expectedByteLength": 44,
+        "byteIdentical": true
+      },
+      {
+        "id": "profile-excludes-email",
+        "actualByteLength": 159,
+        "expectedByteLength": 159,
+        "byteIdentical": true
+      }
+    ]
+  },
+  "streamingHash": {
+    "fixtureId": "full-200mib",
+    "fixtureBytes": 209715200,
+    "expectedSha256": "502bfded85f94ec7c5a6284ba359cc6f219438aada6099ab5f2c8560fcbc3868",
+    "firstRun": {
+      "sha256": "502bfded85f94ec7c5a6284ba359cc6f219438aada6099ab5f2c8560fcbc3868",
+      "bytesRead": 209715200,
+      "maximumReadBytes": 1048576,
+      "elapsedMs": 90.764375,
+      "mebibytesPerSecond": 2203.5077088340004,
+      "passesThroughputTarget": true,
+      "respectsBoundedRead": true
+    },
+    "secondRun": {
+      "sha256": "502bfded85f94ec7c5a6284ba359cc6f219438aada6099ab5f2c8560fcbc3868",
+      "bytesRead": 209715200,
+      "maximumReadBytes": 1048576,
+      "elapsedMs": 83.642917,
+      "mebibytesPerSecond": 2391.1169908146558,
+      "passesThroughputTarget": true,
+      "respectsBoundedRead": true
+    },
+    "hashMatchesExpected": true,
+    "runsAgree": true,
+    "generationMs": 8375,
+    "passed": true
+  },
+  "passed": true
+}

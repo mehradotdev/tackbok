@@ -210,6 +210,13 @@ export default function Layout() {
                     headerShown: false,
                   }}
                 />
+                <Stack.Screen
+                  name="dev-diagnostics"
+                  options={{
+                    title: 'Phase-0 Diagnostics',
+                    headerShown: false,
+                  }}
+                />
               </Stack>
               <ReminderNavigationObserver />
               <ScreenViewObserver />

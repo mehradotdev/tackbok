@@ -1,6 +1,23 @@
 import type { ExpoConfig } from 'expo/config';
 
 const IS_BETA = process.env.APP_VARIANT === 'beta';
+const GOOGLE_OAUTH = IS_BETA
+  ? {
+      androidClientId:
+        '771958263851-rtbv0o1v10lnpiag8q1lrvbdkrajjbpj.apps.googleusercontent.com',
+      iosClientId:
+        '771958263851-87ehodu2jreg8t57kgcmnd7fsn7ess8o.apps.googleusercontent.com',
+      iosRedirectScheme:
+        'com.googleusercontent.apps.771958263851-87ehodu2jreg8t57kgcmnd7fsn7ess8o',
+    }
+  : {
+      androidClientId:
+        '771958263851-3oat281bkoaf37a6998t5n5cg2v6fofe.apps.googleusercontent.com',
+      iosClientId:
+        '771958263851-dvits2qk2kbvinc4un2n172msnotten2.apps.googleusercontent.com',
+      iosRedirectScheme:
+        'com.googleusercontent.apps.771958263851-dvits2qk2kbvinc4un2n172msnotten2',
+    };
 
 const config: ExpoConfig = {
   name: IS_BETA ? 'Tackbok (Beta)' : 'Tackbok',
@@ -29,6 +46,16 @@ const config: ExpoConfig = {
     },
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      CFBundleURLTypes: [
+        {
+          CFBundleURLName: 'Tackbok',
+          CFBundleURLSchemes: [IS_BETA ? 'tackbok-beta' : 'tackbok'],
+        },
+        {
+          CFBundleURLName: 'Google OAuth',
+          CFBundleURLSchemes: [GOOGLE_OAUTH.iosRedirectScheme],
+        },
+      ],
     },
   },
   web: {
@@ -103,6 +130,9 @@ const config: ExpoConfig = {
   },
   extra: {
     router: {},
+    cloudSync: {
+      google: GOOGLE_OAUTH,
+    },
     eas: {
       projectId: '3cba8280-4616-4cf9-8309-62ce7d14da81',
     },

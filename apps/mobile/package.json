@@ -9,6 +9,8 @@
     "prebuild": "APP_VARIANT=beta expo prebuild --clean",
     "generate:themes": "bun run src/lib/theme/generate-theme-artifacts.ts",
     "generate:themes:verify": "bun run generate:themes && bun run test:theme",
+    "phase0:restore-probe": "bun run scripts/cloud-sync-phase0/restore-scale.ts",
+    "phase0:test": "jest src/lib/cloudSync/phase0 --runInBand --no-watchman",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "bun run test:jest",
