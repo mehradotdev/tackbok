@@ -55,9 +55,6 @@ const mockImportPortableEntries = jest.fn(
     _source: unknown,
   ): Promise<void> => undefined,
 );
-const mockApplyImportedProfile = jest.fn(
-  (_profile: unknown, _imageUri: string | null) => {},
-);
 const mockGetImportTotals = jest.fn(() => ({
   totalEntries: 0,
   totalTags: 0,
@@ -226,8 +223,6 @@ jest.mock('../portable', () => ({
 }));
 
 jest.mock('./helpers', () => ({
-  applyImportedProfile: (profileArg: unknown, imageUriArg: string | null) =>
-    mockApplyImportedProfile(profileArg, imageUriArg),
   getImportTotals: (...args: Parameters<typeof mockGetImportTotals>) =>
     mockGetImportTotals(...args),
 }));
@@ -250,7 +245,6 @@ describe('importFromTackbokBackup', () => {
     mockUpsertPortableTags.mockReset();
     mockEnsurePortablePromptTitles.mockReset();
     mockImportPortableEntries.mockReset();
-    mockApplyImportedProfile.mockReset();
     mockHydrateProfileCache.mockReset();
     mockUpdateProfileInTransaction.mockReset();
     mockUpdateProfileInTransaction.mockResolvedValue(undefined);

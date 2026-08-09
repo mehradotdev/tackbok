@@ -141,6 +141,53 @@ test('unchanged merge-base text is never emitted as an unauthored recovery', () 
   expect(new Set(texts)).toEqual(new Set(['Left', 'Right']));
 });
 
+test('an unchanged hash-first branch cannot become text primary over authored branches', () => {
+  const root = version('root', state());
+  const authoredPool = Array.from({ length: 128 }, (_, index) =>
+    version(
+      `authored-${index}`,
+      state({ title: `Authored ${index}`, content: `Authored ${index}` }),
+      [root.hash],
+    ),
+  ).sort((left, right) => right.hash.localeCompare(left.hash));
+  const unchangedPool = Array.from({ length: 128 }, (_, index) =>
+    createEditVersion({
+      vaultId: 'vault',
+      entityType: 'entry',
+      entityId: 'entry',
+      parents: [root.hash],
+      state: state({ updatedAt: index + 2 }),
+      authorDeviceId: `unchanged-${index}`,
+      editSequence: index + 2,
+      authoredAt: index + 2,
+    }),
+  ).sort((left, right) => left.hash.localeCompare(right.hash));
+  const left = authoredPool[0];
+  const right = authoredPool[1];
+  const unchanged = unchangedPool[0];
+  expect(unchanged.hash.localeCompare(left.hash)).toBeLessThan(0);
+  expect(unchanged.hash.localeCompare(right.hash)).toBeLessThan(0);
+
+  const graph = new VersionGraph('vault', 'entry', 'entry');
+  for (const item of [root, left, right, unchanged]) graph.add(item.body, item.hash);
+  const result = resolveHeads(graph, [left.hash, right.hash, unchanged.hash]);
+  const resolved = result.resolution.body.state;
+  expect(resolved?.entityType).toBe('entry');
+  if (resolved?.entityType === 'entry') {
+    expect(resolved.content).not.toBe('base');
+  }
+  const texts = [result.resolution, ...result.recoveries].map((item) => {
+    const value = item.body.state;
+    return value?.entityType === 'entry' ? value.content : null;
+  });
+  expect(new Set(texts)).toEqual(
+    new Set([
+      (left.body.state as EntryState).content,
+      (right.body.state as EntryState).content,
+    ]),
+  );
+});
+
 test('a single tag rename wins over an unchanged base branch', () => {
   const tagState = (title: string, updatedAt = 1): TagState => ({
     entityType: 'tag',

@@ -460,12 +460,14 @@ export class InMemorySyncDevice {
     if (segments.length !== 4) return;
     const [, rawType, id, filename] = segments;
     const hash = filename.replace(/\.json$/, '');
-    const body = JSON.parse(new TextDecoder().decode(object.body)) as EntityVersionBody;
     if (!['entry', 'tag', 'prompt', 'profile'].includes(rawType)) {
       throw new Error('Unknown remote entity type');
     }
     const key = entityKey(rawType as EntityType, id);
-    const version = this.graphFor(key).add(body, hash);
+    const graph = this.graphFor(key);
+    graph.recordFetchedDependency(hash, object.body.byteLength);
+    const body = JSON.parse(new TextDecoder().decode(object.body)) as EntityVersionBody;
+    const version = graph.add(body, hash);
     version.published = true;
   }
 

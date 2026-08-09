@@ -1,6 +1,7 @@
 import { createEditVersion, createSystemVersion } from '../domain/version';
 import type { EntryState } from '../domain/types';
-import { VersionGraph } from '.';
+import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
+import { assertAncestryDepthWithinCap, VersionGraph } from '.';
 
 const state = (content: string): EntryState => ({
   entityType: 'entry',
@@ -103,4 +104,41 @@ test('recovery declarations block a resolution until the exact dependency exists
     entityId: 'recovered',
   });
   expect(graph.get(resolution.hash)?.status).toBe('complete');
+});
+
+test('ancestry depth accepts the frozen limit and rejects one over', () => {
+  expect(() =>
+    assertAncestryDepthWithinCap(PROTOCOL_V1_CAPS.ancestryDepth),
+  ).not.toThrow();
+  expect(() =>
+    assertAncestryDepthWithinCap(PROTOCOL_V1_CAPS.ancestryDepth + 1),
+  ).toThrow('Version ancestry depth cap exceeded');
+});
+
+test('remote dependency object accounting accepts the frozen limit and rejects one over', () => {
+  const graph = new VersionGraph('vault', 'entry', 'entry');
+  for (let index = 0; index < PROTOCOL_V1_CAPS.dependencyObjectsPerEntity; index++) {
+    graph.recordFetchedDependency(index.toString(16).padStart(64, '0'), 0);
+  }
+  // A duplicate is idempotent and cannot consume the budget twice.
+  graph.recordFetchedDependency('0'.repeat(64), 0);
+  expect(() =>
+    graph.recordFetchedDependency(
+      PROTOCOL_V1_CAPS.dependencyObjectsPerEntity.toString(16).padStart(64, '0'),
+      0,
+    ),
+  ).toThrow('Dependency fetch object cap exceeded');
+});
+
+test('remote dependency byte accounting accepts the frozen limit and rejects one over', () => {
+  const graph = new VersionGraph('vault', 'entry', 'entry');
+  graph.recordFetchedDependency(
+    'a'.repeat(64),
+    PROTOCOL_V1_CAPS.dependencyBytesPerEntity,
+  );
+  // A duplicate is idempotent even if the provider delivers it again.
+  graph.recordFetchedDependency('a'.repeat(64), 1);
+  expect(() => graph.recordFetchedDependency('b'.repeat(64), 1)).toThrow(
+    'Dependency fetch byte cap exceeded',
+  );
 });

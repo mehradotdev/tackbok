@@ -29,6 +29,10 @@ export function coalesceOutbox(
     baseHeads: previous?.baseHeads ?? [...mutation.currentHeads].sort(),
     generation: mutation.generation,
     batchId: mutation.batchId,
+    // authoredAt belongs to the logical coalesced mutation. Once captured it
+    // must survive later local coalescing and crash retries so reconstructing
+    // the provisional does not manufacture a new logical edit time.
+    authoredAt: previous?.authoredAt ?? mutation.authoredAt,
   };
 }
 

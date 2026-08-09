@@ -153,7 +153,10 @@ function resolveEntries(
           candidate.state.title !== base.title || candidate.state.content !== base.content,
       )
     : live;
-  const textPrimary = authoredTextCandidates.length === 1 ? authoredTextCandidates[0] : primary;
+  // If any branch authored text, the primary must also be authored. Candidate
+  // hash order is only a deterministic tie-breaker within that authored set;
+  // it must never promote an unchanged merge-base branch over real edits.
+  const textPrimary = authoredTextCandidates[0] ?? primary;
   const mood = scalarChoice('mood', base?.mood, live, (state) =>
     state.entityType === 'entry' ? state.mood : null,
   );

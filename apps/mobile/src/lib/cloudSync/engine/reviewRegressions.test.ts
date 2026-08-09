@@ -1,4 +1,5 @@
 import { canonicalBytes } from '../codec';
+import { VersionGraph } from '../ancestry';
 import { createEditVersion } from '../domain/version';
 import type { EntryState, TagState } from '../domain/types';
 import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
@@ -82,6 +83,81 @@ test('one tombstone race creates one stable recovered tag across devices', async
   expect(recoveredTags[0][1]).toMatchObject({ title: 'Kindness', conflictOriginId: 't' });
 });
 
+test('tag recovery uses the last live rename before a complete tombstone', async () => {
+  const { provider, vault } = await setup();
+  const a = new InMemorySyncDevice('a', vault, provider);
+  const b = new InMemorySyncDevice('b', vault, provider);
+  a.seed([
+    { type: 'tag', id: 't', state: tag('Original') },
+    { type: 'entry', id: 'e', state: entry('base', ['t']) },
+  ]);
+  for (let round = 0; round < 3; round++) {
+    await a.sync();
+    await b.sync();
+  }
+
+  a.mutate('tag', 't', tag('Renamed'));
+  await a.sync();
+  a.mutate('tag', 't', null);
+  await a.sync();
+  b.mutate('entry', 'e', entry('offline edit', ['t']));
+  await b.sync();
+
+  const recoveredTags = Object.entries(b.snapshot()).filter(
+    ([key, value]) =>
+      key.startsWith('tag:') &&
+      value.entityType === 'tag' &&
+      value.conflictOriginId === 't',
+  );
+  expect(recoveredTags).toHaveLength(1);
+  expect(recoveredTags[0][1]).toMatchObject({ title: 'Renamed' });
+  expect((b.snapshot()['entry:e'] as EntryState).tagIds).toEqual([
+    recoveredTags[0][0].slice('tag:'.length),
+  ]);
+});
+
+test('an incomplete tombstone stays parked and cannot trigger tag recovery', async () => {
+  const { provider, vault } = await setup();
+  const root = createEditVersion({
+    vaultId: 'vault',
+    entityType: 'tag',
+    entityId: 't',
+    parents: [],
+    state: tag('Original'),
+    authorDeviceId: 'remote',
+    editSequence: 1,
+    authoredAt: 1,
+  });
+  const tombstone = createEditVersion({
+    vaultId: 'vault',
+    entityType: 'tag',
+    entityId: 't',
+    parents: [root.hash],
+    state: null,
+    deleted: true,
+    authorDeviceId: 'remote',
+    editSequence: 2,
+    authoredAt: 2,
+  });
+  await provider.putImmutable(
+    vault,
+    `entities/tag/t/${tombstone.hash}.json`,
+    new TextEncoder().encode(tombstone.canonical),
+  );
+
+  const device = new InMemorySyncDevice('device', vault, provider);
+  device.mutate('entry', 'e', entry('local', ['t']));
+  await device.sync();
+
+  expect(device.graphs.get('tag:t')?.get(tombstone.hash)?.status).toBe('incomplete');
+  expect((device.snapshot()['entry:e'] as EntryState).tagIds).toEqual(['t']);
+  expect(
+    Object.values(device.snapshot()).filter(
+      (value) => value.entityType === 'tag' && value.conflictOriginId === 't',
+    ),
+  ).toHaveLength(0);
+});
+
 test('corrupt remote objects quarantine one entity without aborting the pull pass', async () => {
   const { provider, vault } = await setup();
   await provider.putImmutable(
@@ -108,6 +184,38 @@ test('corrupt remote objects quarantine one entity without aborting the pull pas
   await expect(device.sync()).resolves.toMatchObject({ pulled: 2 });
   expect(device.snapshot()['entry:good']).toMatchObject({ content: 'good' });
   expect(device.degradedEntities.has('entry:bad')).toBe(true);
+});
+
+test('change-feed ingest enforces the per-entity fetched dependency byte budget', async () => {
+  const { provider, vault } = await setup();
+  const remote = createEditVersion({
+    vaultId: 'vault',
+    entityType: 'entry',
+    entityId: 'capped',
+    parents: [],
+    state: entry('remote'),
+    authorDeviceId: 'remote',
+    editSequence: 1,
+    authoredAt: 1,
+  });
+  await provider.putImmutable(
+    vault,
+    `entities/entry/capped/${remote.hash}.json`,
+    new TextEncoder().encode(remote.canonical),
+  );
+  const device = new InMemorySyncDevice('device', vault, provider);
+  const graph = new VersionGraph('vault', 'entry', 'capped');
+  graph.recordFetchedDependency(
+    'f'.repeat(64),
+    PROTOCOL_V1_CAPS.dependencyBytesPerEntity,
+  );
+  device.graphs.set('entry:capped', graph);
+
+  await expect(device.sync()).resolves.toMatchObject({ pulled: 1 });
+  expect(device.degradedEntities.get('entry:capped')).toBe(
+    'Dependency fetch byte cap exceeded',
+  );
+  expect(device.snapshot()['entry:capped']).toBeUndefined();
 });
 
 test('entities-per-pass defers excess valid work and resumes from its cursor', async () => {

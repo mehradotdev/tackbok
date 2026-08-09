@@ -13,7 +13,8 @@ are explicitly deferred to the Phase-4 integration gate below.
 
 Command: `bun run phase2:test`
 
-Recorded result: **9 suites passed, 65 tests passed, 0 failed**.
+Recorded result after the residual review punch-list: **9 suites passed, 73
+tests passed, 0 failed**.
 
 Review PoC command:
 `bun run scripts/cloud-sync-review/review-2026-08-09-poc.ts`
@@ -53,7 +54,10 @@ recovered tag converged.
   portable import/export, and validation behavior.
 - [x] The frozen ADR-0001 cap table is enforced at parser/engine/provider
   boundaries, oversized or corrupt remote entities are quarantined without
-  aborting unrelated work, and the 500-entity pass cap resumes by cursor.
+  aborting unrelated work, and the 500-entity pass cap resumes by cursor. The
+  exact at/over boundaries for ancestry depth, fetched dependency objects, and
+  fetched dependency bytes are covered; byte/object accounting executes on the
+  real change-feed staging path.
 
 ## Scope of this evidence
 
@@ -64,3 +68,17 @@ production SQLite model. In particular, persisted edit-sequence allocation,
 reconstruction after a real process death, and final provisional/revocation
 integration must be tested in Phase 4. These are merge-blocking Phase-4
 obligations, not evidence supplied by this gate.
+
+Phase 4 must also keep sync disabled until `isNormalizedModelReady()` returns
+true and provide an in-session retry path for a failed/resumable backfill. That
+readiness wiring is merge-blocking for Phase 4; it is deliberately not claimed
+or implemented by this Phase-2 in-memory gate.
+
+Persisted edit-sequence allocation is merge-blocking for the same reason and is
+demonstrably outstanding: `authoredAt` now survives outbox coalescing, but
+`editSequence` is still allocated per provisional construction, so a push that
+crashes after the object is stored republishes a differently-hashed version on
+retry (owner PoC: two `edit` versions sharing `authoredAt`, differing only in
+`editSequence`, reconciled by a `join`). Phase 4 must capture `editSequence`
+once with the outbox item and reuse it across retries and process death so a
+retried push is byte-identical.

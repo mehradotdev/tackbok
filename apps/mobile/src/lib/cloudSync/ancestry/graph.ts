@@ -3,6 +3,12 @@ import { hashVersion } from '../domain/version';
 import { validateVersionBody } from '../domain/validation';
 import type { EntityVersionBody, HashedVersion } from '../domain/types';
 
+export function assertAncestryDepthWithinCap(depth: number): void {
+  if (depth > PROTOCOL_V1_CAPS.ancestryDepth) {
+    throw new Error('Version ancestry depth cap exceeded');
+  }
+}
+
 export interface MissingDependency {
   hash: string;
   kind: 'parent' | 'recovery';
@@ -10,6 +16,8 @@ export interface MissingDependency {
 
 export class VersionGraph {
   private readonly versions = new Map<string, HashedVersion>();
+  private readonly fetchedDependencyHashes = new Set<string>();
+  private fetchedDependencyBytes = 0;
   private readonly recoveryDependencies = new Map<
     string,
     { entityType: string; entityId: string }
@@ -31,6 +39,32 @@ export class VersionGraph {
 
   values(): HashedVersion[] {
     return Array.from(this.versions.values());
+  }
+
+  /**
+   * Accounts for unique remote objects before JSON parsing/staging. This is
+   * deliberately on the change-feed path: fetchMissing is not the only way an
+   * entity's dependency graph arrives.
+   */
+  recordFetchedDependency(hash: string, byteLength: number): void {
+    if (this.fetchedDependencyHashes.has(hash)) return;
+    if (!Number.isSafeInteger(byteLength) || byteLength < 0) {
+      throw new Error('Invalid fetched dependency byte length');
+    }
+    if (
+      this.fetchedDependencyHashes.size >=
+      PROTOCOL_V1_CAPS.dependencyObjectsPerEntity
+    ) {
+      throw new Error('Dependency fetch object cap exceeded');
+    }
+    if (
+      byteLength >
+      PROTOCOL_V1_CAPS.dependencyBytesPerEntity - this.fetchedDependencyBytes
+    ) {
+      throw new Error('Dependency fetch byte cap exceeded');
+    }
+    this.fetchedDependencyHashes.add(hash);
+    this.fetchedDependencyBytes += byteLength;
   }
 
   add(body: EntityVersionBody, expectedHash?: string): HashedVersion {
@@ -240,9 +274,7 @@ export class VersionGraph {
     const stack: { hash: string; depth: number }[] = [{ hash: start, depth: 1 }];
     while (stack.length > 0) {
       const { hash, depth } = stack.pop()!;
-      if (depth > PROTOCOL_V1_CAPS.ancestryDepth) {
-        throw new Error('Version ancestry depth cap exceeded');
-      }
+      assertAncestryDepthWithinCap(depth);
       const version = this.versions.get(hash);
       for (const parent of version?.body.parents ?? []) {
         if (this.versions.has(parent)) stack.push({ hash: parent, depth: depth + 1 });
