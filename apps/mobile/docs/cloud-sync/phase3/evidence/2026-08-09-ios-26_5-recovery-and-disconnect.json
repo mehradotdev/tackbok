@@ -1,0 +1,139 @@
+{
+  "probeSuite": "cloud-sync-phase3",
+  "timestamp": "2026-08-09T12:11:35.761Z",
+  "platform": "ios",
+  "osVersion": "26.5",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "vaultId": "probe-mslrgion",
+  "groups": [
+    {
+      "id": "connect",
+      "title": "Connect and grant Drive access",
+      "status": "passed",
+      "elapsedMs": 33837,
+      "steps": [
+        {
+          "id": "connect.authorize",
+          "title": "Interactive consent",
+          "status": "passed",
+          "detail": "Consent completed and an account label was derived.",
+          "facts": {
+            "accountLabelPresent": true,
+            "accountLabelIsMasked": true
+          }
+        },
+        {
+          "id": "connect.appdata-scope",
+          "title": "The granted scope reaches appDataFolder",
+          "status": "passed",
+          "detail": "An appDataFolder query succeeded with the granted token.",
+          "facts": {
+            "existingVaults": 0,
+            "existingProbeVaults": 0
+          }
+        },
+        {
+          "id": "connect.vault-marker",
+          "title": "Create the probe vault marker",
+          "status": "passed",
+          "detail": "The vault marker was created once and the identical repeat was reported as a duplicate.",
+          "facts": {
+            "vaultId": "probe-mslrgion",
+            "firstWasDuplicate": false,
+            "repeatWasDuplicate": true,
+            "remoteRootStable": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "external-revocation",
+      "title": "External authorization failure and recovery",
+      "status": "passed",
+      "elapsedMs": 31486,
+      "steps": [
+        {
+          "id": "external.recovery",
+          "title": "Reconnecting restores Drive access",
+          "status": "passed",
+          "detail": "Interactive consent restored authorization and Drive writes resumed.",
+          "facts": {
+            "accountLabelPresent": true,
+            "wroteObjectAfterRecovery": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "cleanup",
+      "title": "Remove probe objects from the test account",
+      "status": "passed",
+      "elapsedMs": 4771,
+      "steps": [
+        {
+          "id": "cleanup.vault",
+          "title": "Delete every object in the probe vault",
+          "status": "passed",
+          "detail": "Removed 2 probe objects, including revocation markers and the vault marker.",
+          "facts": {
+            "deleted": 2,
+            "sweeps": 1,
+            "residueSweepCompleted": true,
+            "remaining": 0
+          }
+        },
+        {
+          "id": "cleanup.stale-vaults",
+          "title": "Remove probe vaults left by earlier runs",
+          "status": "passed",
+          "detail": "Removed 0 stale probe vaults and spared 0 recent ones that may belong to a concurrent run; only probe-… vaults are ever eligible.",
+          "facts": {
+            "staleVaults": 0,
+            "sparedRecentVaults": 0,
+            "objectsRemoved": 0,
+            "probeVaultsLeft": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "disconnect",
+      "title": "Local disconnect",
+      "status": "awaiting-operator",
+      "elapsedMs": 98,
+      "steps": [
+        {
+          "id": "disconnect.local-only",
+          "title": "Disconnect issues no global revocation request",
+          "status": "passed",
+          "detail": "Local credentials were cleared and no JavaScript request reached a Google revocation endpoint.",
+          "facts": {
+            "globalRevocationRequests": 0,
+            "endpointsContacted": 0,
+            "secureStoreCleared": true
+          }
+        },
+        {
+          "id": "disconnect.no-access",
+          "title": "Drive calls fail after disconnect",
+          "status": "passed",
+          "detail": "Drive access is unavailable until the operator reconnects.",
+          "facts": {
+            "writeRejected": true,
+            "category": "auth:not-connected"
+          }
+        },
+        {
+          "id": "disconnect.grant-survives",
+          "title": "The account-level grant survives",
+          "status": "awaiting-operator",
+          "detail": "JavaScript issued no revocation request, but the native sign-out path is outside this observation. Confirm on the account itself.",
+          "facts": {},
+          "operatorPrompt": "Open myaccount.google.com → Security → Your connections to third-party apps and confirm Tackbok is still listed. If it is gone, Disconnect revoked the whole account grant and this step fails."
+        }
+      ]
+    }
+  ],
+  "status": "awaiting-operator"
+}

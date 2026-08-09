@@ -14,6 +14,7 @@
     "phase1:test": "bun test scripts/cloud-sync-phase1/phase1-gate.test.ts",
     "phase2:test": "jest src/lib/cloudSync/codec src/lib/cloudSync/ancestry src/lib/cloudSync/conflicts src/lib/cloudSync/domain src/lib/cloudSync/outbox src/lib/cloudSync/providers/contract.test.ts src/lib/cloudSync/engine --runInBand --no-watchman",
     "phase3:test": "jest src/lib/cloudSync/providers/googleDrive.test.ts src/lib/cloudSync/auth/policy.test.ts --runInBand --no-watchman",
+    "phase3:probe:test": "jest src/lib/cloudSync/phase3 --runInBand --no-watchman",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "bun run test:jest",

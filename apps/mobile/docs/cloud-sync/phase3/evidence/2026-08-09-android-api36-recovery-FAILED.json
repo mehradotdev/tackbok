@@ -1,0 +1,44 @@
+{
+  "probeSuite": "cloud-sync-phase3",
+  "timestamp": "2026-08-09T12:09:01.269Z",
+  "platform": "android",
+  "osVersion": "36",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "vaultId": "probe-unconnected",
+  "groups": [
+    {
+      "id": "connect",
+      "title": "Connect and grant Drive access",
+      "status": "failed",
+      "elapsedMs": 2134,
+      "steps": [
+        {
+          "id": "connect.authorize",
+          "title": "Interactive consent",
+          "status": "passed",
+          "detail": "Consent completed and an account label was derived.",
+          "facts": {
+            "accountLabelPresent": true,
+            "accountLabelIsMasked": true
+          }
+        },
+        {
+          "id": "connect.appdata-scope",
+          "title": "The granted scope reaches appDataFolder",
+          "status": "failed",
+          "detail": "auth: Google Drive request failed (401)",
+          "facts": {}
+        },
+        {
+          "id": "connect.vault-marker",
+          "title": "Create the probe vault marker",
+          "status": "failed",
+          "detail": "auth: Google Drive request failed (401)",
+          "facts": {}
+        }
+      ]
+    }
+  ],
+  "status": "failed"
+}

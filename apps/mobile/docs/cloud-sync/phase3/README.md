@@ -1,12 +1,20 @@
 # Cloud sync Phase 3
 
-Phase 3 supplies the Google authorization and Drive adapter code. Implementation
-has stopped at the owner-dependent part of the gate, exactly as directed.
+Phase 3 supplies the Google authorization and Drive adapter code.
 
-Read [`gate.md`](./gate.md) before merging or beginning Phase 4. The mocked
-contract suite and native compilation are green, but Phase 3 is **not closed**:
-the remaining probes require the owner's disposable Google test account and
-interactive consent.
+Phase 3 is **conditionally closed** as of 2026-08-09: the owner ran the probe
+suite against real Google Drive on both platforms with disposable accounts, five
+of seven merge-blocking probes closed on evidence, and the remaining two are
+dispositioned by [`waiver.md`](./waiver.md). Phase 4 may begin.
+
+Read before touching this code:
+
+- [`gate.md`](./gate.md) — what was proven and what was not.
+- [`waiver.md`](./waiver.md) — the physical-device waiver and the obligations it
+  carries forward to the first real device and to store submission.
+- [`probes.md`](./probes.md) — how to re-run the owner probe suite.
+- [`findings/`](./findings/) — two Android authorization findings; 0002 is fixed
+  and verified, 0001 is open and not merge-blocking.
 
 Run the account-independent suite with:
 

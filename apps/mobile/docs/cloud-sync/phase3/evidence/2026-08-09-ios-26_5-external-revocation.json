@@ -1,0 +1,60 @@
+{
+  "probeSuite": "cloud-sync-phase3",
+  "timestamp": "2026-08-09T12:04:26.049Z",
+  "platform": "ios",
+  "osVersion": "26.5",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "vaultId": "probe-attached",
+  "groups": [
+    {
+      "id": "connect",
+      "title": "Attach to stored credentials",
+      "status": "passed",
+      "elapsedMs": 271,
+      "steps": [
+        {
+          "id": "connect.attach",
+          "title": "Reuse stored credentials without consent",
+          "status": "passed",
+          "detail": "Stored credentials were reused without interactive consent.",
+          "facts": {
+            "storedCredentialsPresent": true,
+            "hasRefreshCredential": true,
+            "accessTokenPresent": true,
+            "accountLabelIsMasked": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "external-revocation",
+      "title": "External authorization failure and recovery",
+      "status": "awaiting-operator",
+      "elapsedMs": 208,
+      "steps": [
+        {
+          "id": "external.failure",
+          "title": "A revoked grant fails cleanly",
+          "status": "passed",
+          "detail": "The revoked grant surfaced as auth:refresh-failed rather than an unbounded retry.",
+          "facts": {
+            "failed": true,
+            "category": "auth:refresh-failed",
+            "authorizationFailure": true,
+            "credentialsRetainedForRetry": false
+          }
+        },
+        {
+          "id": "external.recover-next",
+          "title": "Reconnect after revocation",
+          "status": "awaiting-operator",
+          "detail": "Run the recovery stage once the failure above is recorded.",
+          "facts": {},
+          "operatorPrompt": "Tap \"Recover\" to run interactive consent again and confirm the app returns to a working state."
+        }
+      ]
+    }
+  ],
+  "status": "awaiting-operator"
+}

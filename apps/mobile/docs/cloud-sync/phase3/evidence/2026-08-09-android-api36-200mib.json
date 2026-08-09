@@ -1,0 +1,360 @@
+{
+  "probeSuite": "cloud-sync-phase3",
+  "timestamp": "2026-08-09T11:02:17.918Z",
+  "platform": "android",
+  "osVersion": "36",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "vaultId": "probe-mslob1c3",
+  "groups": [
+    {
+      "id": "connect",
+      "title": "Connect and grant Drive access",
+      "status": "passed",
+      "elapsedMs": 9603,
+      "steps": [
+        {
+          "id": "connect.authorize",
+          "title": "Interactive consent",
+          "status": "passed",
+          "detail": "Consent completed and an account label was derived.",
+          "facts": {
+            "accountLabelPresent": true,
+            "accountLabelIsMasked": true
+          }
+        },
+        {
+          "id": "connect.appdata-scope",
+          "title": "The granted scope reaches appDataFolder",
+          "status": "passed",
+          "detail": "An appDataFolder query succeeded with the granted token.",
+          "facts": {
+            "existingVaults": 3,
+            "existingProbeVaults": 3
+          }
+        },
+        {
+          "id": "connect.vault-marker",
+          "title": "Create the probe vault marker",
+          "status": "passed",
+          "detail": "The vault marker was created once and the identical repeat was reported as a duplicate.",
+          "facts": {
+            "vaultId": "probe-mslob1c3",
+            "firstWasDuplicate": false,
+            "repeatWasDuplicate": true,
+            "remoteRootStable": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "drive-immutability",
+      "title": "Immutable object identity",
+      "status": "passed",
+      "elapsedMs": 6513,
+      "steps": [
+        {
+          "id": "immutability.duplicate-write",
+          "title": "Identical duplicate write is tolerated",
+          "status": "passed",
+          "detail": "2 physical files share the logical key and the properties query returns all of them; reads stay deterministic.",
+          "facts": {
+            "physicalFilesForKey": 2,
+            "sameFileIdReturned": false,
+            "contentHashesAgree": true,
+            "readBackSucceeded": true,
+            "readBackByteLength": 4096,
+            "requestsIssued": 9
+          }
+        },
+        {
+          "id": "immutability.collision",
+          "title": "Different body at the same key is corruption",
+          "status": "passed",
+          "detail": "The adapter reported corruption instead of selecting a candidate by name or modified time.",
+          "facts": {
+            "rejected": true,
+            "category": "corrupt"
+          }
+        }
+      ]
+    },
+    {
+      "id": "resumable-upload",
+      "title": "Resumable upload and restart resume",
+      "status": "passed",
+      "elapsedMs": 12754,
+      "steps": [
+        {
+          "id": "resumable.interrupted",
+          "title": "An interrupted upload persists its session",
+          "status": "passed",
+          "detail": "The session survived the interruption in the SQLite ledger.",
+          "facts": {
+            "interrupted": true,
+            "bytesDeliveredBeforeInterrupt": 1048576,
+            "sessionPersisted": true,
+            "sessionOriginTrusted": true,
+            "sessionExpiresInFuture": true
+          }
+        },
+        {
+          "id": "resumable.resume",
+          "title": "A fresh provider resumes from the accepted offset",
+          "status": "passed",
+          "detail": "The resumed upload produced the declared hash and the session ledger was cleared on completion.",
+          "facts": {
+            "chunkBoundaryBytes": 262144,
+            "declaredHashMatches": true,
+            "downloadedBodyMatches": true,
+            "sessionClearedOnCompletion": true,
+            "requestsToResume": 6,
+            "status308Responses": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": "session-recovery",
+      "title": "Resumable session expiry recovery",
+      "status": "skipped",
+      "elapsedMs": 10954,
+      "steps": [
+        {
+          "id": "session.expired-locally",
+          "title": "An expired stored session is replaced",
+          "status": "passed",
+          "detail": "An expired session was discarded and a new one started without losing the logical upload.",
+          "facts": {
+            "mode": "forced-local-expiry",
+            "uploadCompleted": true,
+            "requestsIssued": 6,
+            "sessionCleared": true
+          }
+        },
+        {
+          "id": "session.dead-uri",
+          "title": "A session Drive no longer knows is restarted",
+          "status": "passed",
+          "detail": "Drive rejected the stale session and the adapter restarted the upload.",
+          "facts": {
+            "mode": "forced-dead-session",
+            "uploadCompleted": true,
+            "sessionCleared": true
+          }
+        },
+        {
+          "id": "session.natural-expiry",
+          "title": "Natural service-side session expiry",
+          "status": "skipped",
+          "detail": "Google expires a resumable session after roughly a week, which no single sitting can observe. Still owed: leave one interrupted upload in the ledger, return after the expiry window, and confirm the adapter restarts it without operator action.",
+          "facts": {}
+        }
+      ]
+    },
+    {
+      "id": "permanent-delete",
+      "title": "Permanent deletion is idempotent",
+      "status": "passed",
+      "elapsedMs": 7359,
+      "steps": [
+        {
+          "id": "delete.permanent",
+          "title": "A deleted object is gone from appDataFolder",
+          "status": "passed",
+          "detail": "The object is absent from the appDataFolder listing. That listing excludes trashed files, so it proves absence from the working set; Drive `files.delete` is what makes it permanent.",
+          "facts": {
+            "readReturnsNull": true,
+            "existsReturnsEmpty": true
+          }
+        },
+        {
+          "id": "delete.idempotent",
+          "title": "Repeating the delete is success",
+          "status": "passed",
+          "detail": "A repeated permanent delete resolved rather than throwing on 404.",
+          "facts": {
+            "repeatedDeleteThrew": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "revocation-purge",
+      "title": "Interrupted revocation purge",
+      "status": "passed",
+      "elapsedMs": 55725,
+      "steps": [
+        {
+          "id": "purge.seed",
+          "title": "Publish both revocation kinds and residue",
+          "status": "passed",
+          "detail": "Two revocation kinds and seven residue objects are published.",
+          "facts": {
+            "revocationMarkers": 2,
+            "residueObjects": 9,
+            "vaultReportsRevoked": true
+          }
+        },
+        {
+          "id": "purge.interrupted",
+          "title": "A purge stopped between pages resumes",
+          "status": "passed",
+          "detail": "The purge resumed after each interruption and finished without operator intervention.",
+          "facts": {
+            "sweeps": 9,
+            "deletedTotal": 13,
+            "completed": true
+          }
+        },
+        {
+          "id": "purge.markers-survive",
+          "title": "Only revocation markers remain",
+          "status": "passed",
+          "detail": "Every residue object is gone and both revocation kinds survived the purge.",
+          "facts": {
+            "remainingMarkers": 2,
+            "remainingNonMarkers": 0,
+            "markersSurvived": true,
+            "distinctRevocationKinds": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "transfer",
+      "title": "Large transfer round trip (full-200mib)",
+      "status": "passed",
+      "elapsedMs": 1081637,
+      "steps": [
+        {
+          "id": "transfer.fixture",
+          "title": "Deterministic fixture is present",
+          "status": "passed",
+          "detail": "The fixture bytes come from the frozen Phase-0 generator.",
+          "facts": {
+            "fixtureId": "full-200mib",
+            "fixtureBytes": 209715200,
+            "expectedSha256": "502bfded85f94ec7c5a6284ba359cc6f219438aada6099ab5f2c8560fcbc3868",
+            "generationMs": 7102,
+            "runtime": "emulator-or-simulator"
+          }
+        },
+        {
+          "id": "transfer.upload-interrupted",
+          "title": "A large upload survives an interruption",
+          "status": "passed",
+          "detail": "The interrupted transfer left a resumable session in durable storage.",
+          "facts": {
+            "interrupted": true,
+            "bytesDeliveredBeforeInterrupt": 83886080,
+            "sessionPersisted": true
+          }
+        },
+        {
+          "id": "transfer.upload-resume",
+          "title": "The upload resumes and completes",
+          "status": "passed",
+          "detail": "The completed upload carries the host-frozen fixture hash.",
+          "facts": {
+            "resumedFromPersistedSession": true,
+            "declaredHashMatches": true,
+            "elapsedMs": 544165,
+            "mebibytesPerSecond": 0.37,
+            "requestsIssued": 482,
+            "status308Responses": 480,
+            "runtime": "emulator-or-simulator"
+          }
+        },
+        {
+          "id": "transfer.download",
+          "title": "The download streams to disk and verifies",
+          "status": "passed",
+          "detail": "Byte count and SHA-256 match the frozen fixture; the adapter never buffered the whole object in JavaScript.",
+          "facts": {
+            "byteCountMatches": true,
+            "sha256Matches": true,
+            "downloadedBytes": 209715200,
+            "elapsedMs": 9367,
+            "mebibytesPerSecond": 21.35,
+            "runtime": "emulator-or-simulator"
+          }
+        },
+        {
+          "id": "transfer.download-resume",
+          "title": "A partial download resumes by byte range",
+          "status": "passed",
+          "detail": "The adapter requested only the missing range and the completed file still verified.",
+          "facts": {
+            "resumedFromBytes": 62914560,
+            "finalBytes": 209715200,
+            "sha256Matches": true,
+            "status206Responses": 1,
+            "requestsIssued": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "silent-refresh",
+      "title": "Silent token renewal after expiry",
+      "status": "passed",
+      "elapsedMs": 2623,
+      "steps": [
+        {
+          "id": "refresh.forced-expiry",
+          "title": "Renew without interactive consent",
+          "status": "passed",
+          "detail": "A cleared access token was renewed non-interactively and the account label survived.",
+          "facts": {
+            "hadRefreshCredentialBefore": false,
+            "accessTokenClearedBeforeRenewal": true,
+            "accessTokenRenewed": true,
+            "accountLabelPresent": true
+          }
+        },
+        {
+          "id": "refresh.drive-call",
+          "title": "A Drive call succeeds on the renewed token",
+          "status": "passed",
+          "detail": "An authorized Drive write completed after the silent renewal.",
+          "facts": {
+            "wroteObject": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "cleanup",
+      "title": "Remove probe objects from the test account",
+      "status": "passed",
+      "elapsedMs": 19772,
+      "steps": [
+        {
+          "id": "cleanup.vault",
+          "title": "Delete every object in the probe vault",
+          "status": "passed",
+          "detail": "Removed 4 probe objects, including revocation markers and the vault marker.",
+          "facts": {
+            "deleted": 4,
+            "sweeps": 1,
+            "residueSweepCompleted": true,
+            "remaining": 0
+          }
+        },
+        {
+          "id": "cleanup.stale-vaults",
+          "title": "Remove probe vaults left by earlier runs",
+          "status": "passed",
+          "detail": "Removed 3 stale probe vaults; only probe-… vaults are eligible.",
+          "facts": {
+            "staleVaults": 3,
+            "objectsRemoved": 6,
+            "probeVaultsLeft": 0
+          }
+        }
+      ]
+    }
+  ],
+  "status": "skipped"
+}

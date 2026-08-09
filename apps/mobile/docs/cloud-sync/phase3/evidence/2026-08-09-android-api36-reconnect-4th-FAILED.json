@@ -1,0 +1,31 @@
+{
+  "probeSuite": "cloud-sync-phase3",
+  "timestamp": "2026-08-09T12:29:25.479Z",
+  "platform": "android",
+  "osVersion": "36",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "vaultId": "probe-unconnected",
+  "groups": [
+    {
+      "id": "connect",
+      "title": "Connect and grant Drive access",
+      "status": "inconclusive",
+      "elapsedMs": 438,
+      "steps": [
+        {
+          "id": "connect.authorize",
+          "title": "Interactive consent",
+          "status": "inconclusive",
+          "detail": "Consent completed, but the account label fell back to the provider name, so the token it produced was rejected by userinfo.",
+          "facts": {
+            "accountLabelPresent": true,
+            "accountLabelIsFallback": true,
+            "accountLabelIsMasked": false
+          }
+        }
+      ]
+    }
+  ],
+  "status": "inconclusive"
+}
