@@ -1,6 +1,6 @@
 import { canonicalizeJsonV1 } from '../codec';
-import type { CanonicalJsonValue } from '../phase0/canonicalJsonV1';
-import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
+import type { CanonicalJsonValue } from '../protocol/canonicalJsonV1';
+import { PROTOCOL_V1_CAPS } from '../protocol/validationCaps';
 import {
   isSha256,
   type AssetDescriptor,

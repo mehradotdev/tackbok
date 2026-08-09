@@ -1,4 +1,4 @@
-import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
+import { PROTOCOL_V1_CAPS } from '../protocol/validationCaps';
 import { hashVersion } from '../domain/version';
 import { validateVersionBody } from '../domain/validation';
 import type { EntityVersionBody, HashedVersion } from '../domain/types';

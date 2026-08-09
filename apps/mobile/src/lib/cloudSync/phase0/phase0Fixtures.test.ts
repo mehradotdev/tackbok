@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 
-import { canonicalizeJsonV1, type CanonicalJsonValue } from './canonicalJsonV1';
+import { canonicalizeJsonV1, type CanonicalJsonValue } from '../protocol/canonicalJsonV1';
 import { runCanonicalFixtureDeviceProbe } from './deviceFixtureProbe';
 import canonicalFixture from './fixtures/canonical-v1.json';
 import goldenFixture from './fixtures/golden-v1.json';
-import { PROTOCOL_V1_CAPS } from './validationCaps';
+import { PROTOCOL_V1_CAPS } from '../protocol/validationCaps';
 
 const REQUIRED_SCENARIOS = [
   'tiny-vault',

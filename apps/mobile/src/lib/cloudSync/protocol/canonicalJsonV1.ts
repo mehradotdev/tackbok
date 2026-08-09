@@ -1,3 +1,16 @@
+/**
+ * Canonical JSON encoding for vault protocol v1 — frozen in
+ * `docs/cloud-sync/phase0/0001-protocol-v1.md` and verified against the golden
+ * fixtures in `../phase0/fixtures/`.
+ *
+ * Every version file's identity is the SHA-256 of these bytes, so changing this
+ * encoder changes every hash in every existing vault. Treat it as immutable:
+ * a real change is a new protocol version with a migration, not an edit here.
+ *
+ * This is production code, not phase-0 scaffolding. It lived under `phase0/`
+ * until 2026-08-09 and was moved because "phase 0 is closed" is not a reason to
+ * delete the encoder the whole feature depends on.
+ */
 export type CanonicalJsonPrimitive = boolean | null | number | string;
 export type CanonicalJsonValue =
   | CanonicalJsonPrimitive

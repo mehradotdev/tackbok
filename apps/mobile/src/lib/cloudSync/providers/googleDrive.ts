@@ -1,7 +1,7 @@
 import type { CloudAuthorization } from '../auth';
 import { IncrementalSha256, sha256Bytes } from '../codec';
 import { validateVaultMarkerBytes } from '../domain/validation';
-import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
+import { PROTOCOL_V1_CAPS } from '../protocol/validationCaps';
 import {
   ProviderError,
   type ByteSource,

@@ -1,5 +1,5 @@
 import golden from '../phase0/fixtures/canonical-v1.json';
-import type { CanonicalJsonValue } from '../phase0/canonicalJsonV1';
+import type { CanonicalJsonValue } from '../protocol/canonicalJsonV1';
 import { canonicalizeJsonV1, IncrementalSha256, sha256Text } from '.';
 
 test('production codec stays byte-identical to every frozen Phase-0 vector', () => {

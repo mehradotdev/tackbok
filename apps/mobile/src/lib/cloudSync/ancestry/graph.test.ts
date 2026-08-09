@@ -1,6 +1,6 @@
 import { createEditVersion, createSystemVersion } from '../domain/version';
 import type { EntryState } from '../domain/types';
-import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
+import { PROTOCOL_V1_CAPS } from '../protocol/validationCaps';
 import { assertAncestryDepthWithinCap, VersionGraph } from '.';
 
 const state = (content: string): EntryState => ({

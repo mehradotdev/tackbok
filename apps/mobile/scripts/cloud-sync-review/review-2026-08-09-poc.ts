@@ -1,8 +1,8 @@
 /* PoC for two suspected Apply-CAS violations in inMemorySyncDevice. */
-import { canonicalBytes } from '/Volumes/LocalDisk/proj/tackbok/apps/mobile/src/lib/cloudSync/codec';
-import { FakeCloudProvider } from '/Volumes/LocalDisk/proj/tackbok/apps/mobile/src/lib/cloudSync/providers';
-import { InMemorySyncDevice } from '/Volumes/LocalDisk/proj/tackbok/apps/mobile/src/lib/cloudSync/engine';
-import type { EntryState, TagState } from '/Volumes/LocalDisk/proj/tackbok/apps/mobile/src/lib/cloudSync/domain/types';
+import { canonicalBytes } from '../../src/lib/cloudSync/codec';
+import { FakeCloudProvider } from '../../src/lib/cloudSync/providers';
+import { InMemorySyncDevice } from '../../src/lib/cloudSync/engine';
+import type { EntryState, TagState } from '../../src/lib/cloudSync/domain/types';
 
 const entry = (content: string, tags: string[] = [], assets: EntryState['assets'] = []): EntryState => ({
   entityType: 'entry', title: content, content, mood: null, tagIds: tags, assets,

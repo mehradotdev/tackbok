@@ -1,5 +1,5 @@
 import { canonicalizeJsonV1 } from '../codec';
-import type { CanonicalJsonValue } from '../phase0/canonicalJsonV1';
+import type { CanonicalJsonValue } from '../protocol/canonicalJsonV1';
 import { VersionGraph } from '../ancestry';
 import { createSystemVersion, deterministicId } from '../domain/version';
 import {

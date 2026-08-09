@@ -4,7 +4,7 @@ import { performance } from 'node:perf_hooks';
 import {
   canonicalizeJsonV1,
   type CanonicalJsonValue,
-} from '../../src/lib/cloudSync/phase0/canonicalJsonV1';
+} from '../../src/lib/cloudSync/protocol/canonicalJsonV1';
 
 const versionCount = Number(process.argv[2] ?? 50_000);
 const versionsPerEntity = 10;

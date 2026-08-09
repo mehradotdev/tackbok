@@ -2,7 +2,7 @@ import { canonicalBytes } from '../codec';
 import { VersionGraph } from '../ancestry';
 import { createEditVersion } from '../domain/version';
 import type { EntryState, TagState } from '../domain/types';
-import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
+import { PROTOCOL_V1_CAPS } from '../protocol/validationCaps';
 import { FakeCloudProvider } from '../providers';
 import { InMemorySyncDevice } from './inMemoryEngine';
 

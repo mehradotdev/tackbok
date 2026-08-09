@@ -1,7 +1,7 @@
 # Cloud sync Phase 0
 
 This directory is the evidence bundle for Phase 0 of
-[`z-backup-final-v6.md`](../../../z-backup-final-v6.md). Phase 0 freezes protocol
+[`plan-v6.md`](../plan-v6.md). Phase 0 freezes protocol
 v1 and its fixtures; it does not create the database, outbox, sync engine, or UI.
 
 ## What Phase 0 is

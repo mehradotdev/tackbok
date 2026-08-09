@@ -1,4 +1,4 @@
-import { canonicalJsonV1Bytes, type CanonicalJsonValue } from './canonicalJsonV1';
+import { canonicalJsonV1Bytes, type CanonicalJsonValue } from '../protocol/canonicalJsonV1';
 import canonicalFixture from './fixtures/canonical-v1.json';
 
 export interface CanonicalFixtureProbeResult {

@@ -6,7 +6,7 @@ import {
   parseAndValidateRevocationMarker,
   validateConflictRecord,
 } from '../domain/validation';
-import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
+import { PROTOCOL_V1_CAPS } from '../protocol/validationCaps';
 import type {
   DomainState,
   EntityType,

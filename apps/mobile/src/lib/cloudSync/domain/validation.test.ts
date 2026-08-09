@@ -1,5 +1,5 @@
 import { canonicalizeJsonV1 } from '../codec';
-import { PROTOCOL_V1_CAPS } from '../phase0/validationCaps';
+import { PROTOCOL_V1_CAPS } from '../protocol/validationCaps';
 import { createEditVersion } from './version';
 import type {
   AssetDescriptor,

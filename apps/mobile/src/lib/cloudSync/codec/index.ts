@@ -1,10 +1,10 @@
 import {
   canonicalizeJsonV1,
   type CanonicalJsonValue,
-} from '../phase0/canonicalJsonV1';
+} from '../protocol/canonicalJsonV1';
 import { sha256Text } from './sha256';
 
-export { canonicalizeJsonV1 } from '../phase0/canonicalJsonV1';
+export { canonicalizeJsonV1 } from '../protocol/canonicalJsonV1';
 export type { StreamingHashResult } from '../phase0/streamingHashSpike';
 export { sha256Bytes, sha256Text } from './sha256';
 export { IncrementalSha256 } from './incrementalSha256';

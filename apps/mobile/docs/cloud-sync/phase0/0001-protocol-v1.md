@@ -2,7 +2,7 @@
 
 - Status: accepted as the Phase-0 candidate; protocol confirmation is blocked by the gate
 - Date: 2026-08-08
-- Source of authority: `z-backup-final-v6.md`
+- Source of authority: `docs/cloud-sync/plan-v6.md`
 
 ## Decision
 
@@ -27,7 +27,7 @@ accepted v1 blind spot.
 ## Canonical JSON (`canonical-json-v1`)
 
 The reference encoder is
-[`canonicalJsonV1.ts`](../../../src/lib/cloudSync/phase0/canonicalJsonV1.ts).
+[`canonicalJsonV1.ts`](../../../src/lib/cloudSync/protocol/canonicalJsonV1.ts).
 
 - Input is the schema-projected value. Unknown fields are rejected by schema
   validation before encoding.
@@ -123,7 +123,7 @@ valid work to a later pass.
 | Single media file | 200 MiB |
 
 The executable constants are
-[`validationCaps.ts`](../../../src/lib/cloudSync/phase0/validationCaps.ts), and
+[`validationCaps.ts`](../../../src/lib/cloudSync/protocol/validationCaps.ts), and
 the golden catalog contains at-limit and over-limit expectations for every cap.
 
 ## Frozen performance targets
