@@ -45,6 +45,11 @@ import {
 } from './archiveUtils';
 import { createSummaryCounterMetrics, recordImportWarning } from './summary';
 import { and, eq } from 'drizzle-orm';
+import {
+  createPromptInTransaction,
+  createTagInTransaction,
+  upsertEntryInTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 
 type BackupArchiveTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -115,6 +120,11 @@ async function materializePortableEntryAssets(
           uri: photo.uri,
           width: portableAsset.width ?? photo.width,
           height: portableAsset.height ?? photo.height,
+          assetId: portableAsset.assetId,
+          blobHash: portableAsset.blobHash,
+          mimeType: portableAsset.mimeType,
+          byteSize: portableAsset.byteSize,
+          durationMs: portableAsset.durationMs,
         });
         summary.importedPhotos++;
         continue;
@@ -122,7 +132,14 @@ async function materializePortableEntryAssets(
 
       const audio = writeImportedAudio(bytes, archivePath);
       entryCreatedFiles.push(audio.uri);
-      assets.push(audio);
+        assets.push({
+          ...audio,
+          assetId: portableAsset.assetId,
+          blobHash: portableAsset.blobHash,
+          mimeType: portableAsset.mimeType,
+          byteSize: portableAsset.byteSize,
+          durationMs: portableAsset.durationMs,
+        });
       summary.importedAudio++;
     } catch (error) {
       hadFailures = true;
@@ -436,6 +453,7 @@ export async function upsertPortableTags(
   tx: BackupArchiveTransaction,
   portableTags: PortableTag[],
   summary: BackupImportSummary,
+  batchId?: string,
 ): Promise<Map<string, string>> {
   const existingTags = await tx.select().from(tags);
   const tagMap = new Map<string, string>();
@@ -444,6 +462,7 @@ export async function upsertPortableTags(
     const key = sanitizeTagName(tag.title).toLowerCase();
     if (!key) continue;
     tagMap.set(key, tag.tag_id);
+    tagMap.set(`id:${tag.tag_id}`, tag.tag_id);
   }
 
   for (const portableTag of portableTags) {
@@ -453,18 +472,20 @@ export async function upsertPortableTags(
     const key = cleanTitle.toLowerCase();
     if (tagMap.has(key)) continue;
 
-    const tagId = generateUUID();
-    await tx.insert(tags).values({
-      tag_id: tagId,
-      title: cleanTitle,
-      created_at: Number.isFinite(portableTag.createdAt)
-        ? portableTag.createdAt
-        : Date.now(),
-      updated_at: Number.isFinite(portableTag.updatedAt)
-        ? portableTag.updatedAt
-        : Date.now(),
-    });
+    const tagId = portableTag.tagId?.trim() || generateUUID();
+    await createTagInTransaction(
+      tx,
+      cleanTitle,
+      {
+        batchId,
+        now: Number.isFinite(portableTag.updatedAt)
+          ? portableTag.updatedAt
+          : Date.now(),
+      },
+      tagId,
+    );
     tagMap.set(key, tagId);
+    tagMap.set(`id:${tagId}`, tagId);
     summary.importedTags++;
   }
 
@@ -478,6 +499,7 @@ export async function ensurePortablePromptTitles(
   tx: BackupArchiveTransaction,
   portablePrompts: PortablePrompt[],
   summary: BackupImportSummary,
+  batchId?: string,
 ): Promise<Set<string>> {
   const existingPrompts = await tx.select().from(customPrompts);
   const promptTitles = new Set(
@@ -491,16 +513,17 @@ export async function ensurePortablePromptTitles(
     const key = cleanTitle.toLowerCase();
     if (promptTitles.has(key)) continue;
 
-    await tx.insert(customPrompts).values({
-      prompt_id: generateUUID(),
-      title: cleanTitle,
-      created_at: Number.isFinite(portablePrompt.createdAt)
-        ? portablePrompt.createdAt
-        : Date.now(),
-      updated_at: Number.isFinite(portablePrompt.updatedAt)
-        ? portablePrompt.updatedAt
-        : Date.now(),
-    });
+    await createPromptInTransaction(
+      tx,
+      cleanTitle,
+      {
+        batchId,
+        now: Number.isFinite(portablePrompt.updatedAt)
+          ? portablePrompt.updatedAt
+          : Date.now(),
+      },
+      portablePrompt.promptId?.trim() || generateUUID(),
+    );
     promptTitles.add(key);
     summary.importedPrompts++;
   }
@@ -522,6 +545,7 @@ export async function importPortableEntries(
   createdFiles: string[],
   source: BackupImportSource,
   onProgress?: ImportProgressCallback,
+  batchId?: string,
 ): Promise<void> {
   let processedEntries = 0;
   const totalEntries = portableEntries.length;
@@ -558,11 +582,17 @@ export async function importPortableEntries(
       continue;
     }
 
-    const tagIds = (portableEntry.tagTitles ?? [])
+    const stableTagIds = (portableEntry.tagIds ?? [])
+      .map((tagId) => tagMap.get(`id:${tagId}`))
+      .filter((tagId): tagId is string => !!tagId);
+    const tagIds = (stableTagIds.length > 0
+      ? stableTagIds
+      : (portableEntry.tagTitles ?? [])
       .map((title) => sanitizeTagName(title))
       .filter(Boolean)
       .map((title) => tagMap.get(title.toLowerCase()))
-      .filter((tagId): tagId is string => !!tagId)
+      .filter((tagId): tagId is string => !!tagId))
+      .sort()
       .join(',');
 
     const textTitle = normalizeOptionalText(portableEntry.textTitle);
@@ -631,9 +661,9 @@ export async function importPortableEntries(
     }
 
     try {
-      await tx
-        .insert(entries)
-        .values({
+      await upsertEntryInTransaction(
+        tx,
+        {
           note_id: noteId,
           text_title: textTitle,
           text_content: textContent,
@@ -642,19 +672,9 @@ export async function importPortableEntries(
           tags: tagIds,
           created_at: createdAt,
           updated_at: updatedAt,
-        })
-        .onConflictDoUpdate({
-          target: entries.note_id,
-          set: {
-            text_title: textTitle,
-            text_content: textContent,
-            mood,
-            assets: assets.length > 0 ? assets : null,
-            tags: tagIds,
-            created_at: createdAt,
-            updated_at: updatedAt,
-          },
-        });
+        },
+        { batchId, now: updatedAt },
+      );
     } catch (error) {
       cleanupImportedFiles(entryCreatedFiles);
       throw error;

@@ -19,6 +19,13 @@ export type AssetTypeValue = (typeof AssetType)[keyof typeof AssetType];
 export type Asset = {
   type: AssetTypeValue;
   uri: string;
+  /** Stable cloud-sync identity. Optional for pre-normalization records. */
+  assetId?: string;
+  /** SHA-256 of file bytes once lazily hashed. */
+  blobHash?: string;
+  mimeType?: string;
+  byteSize?: number;
+  durationMs?: number;
   /** Pixel width of the image (may be absent for legacy entries) */
   width?: number;
   /** Pixel height of the image (may be absent for legacy entries) */

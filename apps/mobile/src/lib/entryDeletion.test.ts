@@ -24,7 +24,7 @@ describe('deleteEntry', () => {
     mockDeleteEntryRecord.mockResolvedValue(undefined);
   });
 
-  test('deletes the record before cleaning up all owned media', async () => {
+  test('delegates the atomic tombstone, hard delete, and retention write', async () => {
     mockGetEntryById.mockResolvedValue({
       note_id: 'entry-1',
       assets: [
@@ -36,22 +36,10 @@ describe('deleteEntry', () => {
 
     await deleteEntry('entry-1');
 
-    expect(mockGetEntryById).toHaveBeenCalledWith('entry-1');
     expect(mockDeleteEntryRecord).toHaveBeenCalledWith('entry-1');
-    expect(mockDeletePhotoFile).toHaveBeenCalledTimes(2);
-    expect(mockDeletePhotoFile).toHaveBeenNthCalledWith(1, 'photos/photo-1.jpg');
-    expect(mockDeletePhotoFile).toHaveBeenNthCalledWith(2, 'photos/photo-2.jpg');
-    expect(mockDeleteVoiceMemoFile).toHaveBeenCalledWith(
-      'voice_memos/memo-1.m4a',
-    );
-
-    const recordDeleteOrder = mockDeleteEntryRecord.mock.invocationCallOrder[0];
-    expect(mockDeletePhotoFile.mock.invocationCallOrder[0]).toBeGreaterThan(
-      recordDeleteOrder,
-    );
-    expect(mockDeleteVoiceMemoFile.mock.invocationCallOrder[0]).toBeGreaterThan(
-      recordDeleteOrder,
-    );
+    expect(mockGetEntryById).not.toHaveBeenCalled();
+    expect(mockDeletePhotoFile).not.toHaveBeenCalled();
+    expect(mockDeleteVoiceMemoFile).not.toHaveBeenCalled();
   });
 
   test('does not remove media when deleting the database record fails', async () => {

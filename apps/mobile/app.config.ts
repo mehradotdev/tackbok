@@ -103,6 +103,14 @@ const config: ExpoConfig = {
       },
     ],
     'expo-font',
+    'expo-web-browser',
+    [
+      'expo-secure-store',
+      {
+        configureAndroidBackup: true,
+      },
+    ],
+    './plugins/withGoogleAuthorization',
     'expo-sharing',
     'expo-status-bar',
     'expo-localization',

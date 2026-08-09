@@ -35,6 +35,21 @@ jest.mock('~/db', () => ({
   tags: {},
 }));
 
+jest.mock('~/lib/cloudSync/storage/repositories', () => ({
+  upsertEntryInTransaction: async (tx: any, entry: unknown) =>
+    tx.insert({}).values(entry).onConflictDoUpdate({}),
+  createTagInTransaction: async (
+    tx: any,
+    title: string,
+    _context: unknown,
+    stableId: string,
+  ) => {
+    await tx.insert({}).values({ tag_id: stableId, title });
+    return stableId;
+  },
+  createPromptInTransaction: async () => undefined,
+}));
+
 jest.mock('react-native', () => ({
   Image: {
     getSize: (_uri: string, onSuccess: (width: number, height: number) => void) =>

@@ -30,7 +30,6 @@ import { useSettingsStore } from '~/lib/settings';
 import {
   pickPhotos,
   compressAndSavePhoto,
-  deletePhotoFile,
   getFullPhotoUri,
   type PickPhotosResult,
 } from '~/lib/photoUtils';
@@ -455,19 +454,13 @@ export function SettingsBottomSheet() {
       try {
         // Save the new photo first so a failure doesn't destroy the current avatar.
         const asset = await compressAndSavePhoto(result.uris[0]);
-        const previousUri = profileImageUri;
-
-        setProfileImageUri(asset.uri);
-
-        if (previousUri && previousUri !== asset.uri) {
-          deletePhotoFile(previousUri);
-        }
+        await setProfileImageUri(asset.uri);
       } catch (error) {
         console.error('Failed to update profile photo:', error);
         toast.error(t('Failed to add photos'), { useModal: true });
       }
     },
-    [profileImageUri, setProfileImageUri, showPermissionDeniedAlert, t],
+    [setProfileImageUri, showPermissionDeniedAlert, t],
   );
 
   /** Pick a new photo, compress, save to documents, and update the store. */
@@ -489,17 +482,16 @@ export function SettingsBottomSheet() {
   }, [handlePickNewPhoto, profileImageUri]);
 
   /** Remove the current photo and clean up the file. */
-  const handleRemovePhoto = useCallback(() => {
+  const handleRemovePhoto = useCallback(async () => {
     setPhotoDialogOpen(false);
     if (profileImageUri) {
-      deletePhotoFile(profileImageUri);
-      setProfileImageUri(null);
+      await setProfileImageUri(null);
     }
   }, [profileImageUri, setProfileImageUri]);
 
   const handleSaveName = useCallback(
-    (newName: string) => {
-      setProfileName(newName || null);
+    async (newName: string) => {
+      await setProfileName(newName || null);
     },
     [setProfileName],
   );

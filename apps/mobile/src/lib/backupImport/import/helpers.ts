@@ -22,11 +22,13 @@ export function getImportTotals(
 export function applyImportedProfile(
   profile: PortableProfile,
   imageUri: string | null,
-): void {
+): Promise<void> {
   const settingsState = useSettingsStore.getState();
-  settingsState.setProfileName(profile.name ?? null);
-  settingsState.setProfileEmail(profile.email ?? null);
-  settingsState.setProfileImageUri(imageUri);
+  return Promise.all([
+    settingsState.setProfileName(profile.name ?? null),
+    settingsState.setProfileEmail(profile.email ?? null),
+    settingsState.setProfileImageUri(imageUri),
+  ]).then(() => undefined);
 }
 
 export async function pickZipImportFile(): Promise<DocumentPicker.DocumentPickerSuccessResult | null> {

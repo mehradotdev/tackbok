@@ -83,6 +83,7 @@ jest.mock('expo-file-system', () => ({
 
 jest.mock('~/db', () => {
   const mockEntries = { created_at: 'created_at' };
+  const mockUserProfile = {};
 
   return {
     db: {
@@ -94,13 +95,20 @@ jest.mock('~/db', () => {
             };
           }
 
+          if (table === mockUserProfile) {
+            return { limit: jest.fn(async () => []) };
+          }
+
           return Promise.resolve([]);
         }),
       })),
     },
     customPrompts: {},
     entries: mockEntries,
+    entryTags: {},
+    mediaAssets: {},
     tags: {},
+    userProfile: mockUserProfile,
   };
 });
 
@@ -364,6 +372,8 @@ describe('exportToBackupZip', () => {
       name: 'Ada',
       email: 'ada@example.com',
       imagePath: null,
+      photoAssetId: null,
+      photoBlobHash: null,
     });
     expect(manifestJson.counts).toEqual({
       entries: 1,

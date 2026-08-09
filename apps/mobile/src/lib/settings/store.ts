@@ -19,6 +19,10 @@ import {
   type JournalPromptsMode,
 } from '~/lib/journalPrompts';
 import type { Achievement } from '~/lib/achievements';
+import {
+  runInCloudSyncTransaction,
+  updateProfileInTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 
 // TODO: Implement actual functionality for all settings
 // This is currently a mock store - all values are stored but not yet connected to real features
@@ -81,9 +85,9 @@ interface SettingsState {
   // Actions
   setDailyReminderEnabled: (enabled: boolean) => void;
   setReminderTime: (time: string) => void;
-  setProfileName: (name: string | null) => void;
-  setProfileEmail: (email: string | null) => void;
-  setProfileImageUri: (uri: string | null) => void;
+  setProfileName: (name: string | null) => Promise<void>;
+  setProfileEmail: (email: string | null) => Promise<void>;
+  setProfileImageUri: (uri: string | null) => Promise<void>;
   setTheme: (theme: string) => void;
   setTimelineEntryLength: (length: number) => void;
   setDateIncludesDayOfWeek: (enabled: boolean) => void;
@@ -149,11 +153,27 @@ export const useSettingsStore = create<SettingsState>()(
       // Actions
       setDailyReminderEnabled: (enabled) => set({ dailyReminderEnabled: enabled }),
       setReminderTime: (time) => set({ reminderTime: time }),
-      setProfileName: (name) => set({ profileName: name?.trim() ? name.trim() : null }),
-      setProfileEmail: (email) =>
-        set({ profileEmail: email?.trim() ? email.trim() : null }),
-      setProfileImageUri: (uri) =>
-        set({ profileImageUri: uri?.trim() ? uri.trim() : null }),
+      setProfileName: async (name) => {
+        const displayName = name?.trim() ? name.trim() : null;
+        await runInCloudSyncTransaction((tx) =>
+          updateProfileInTransaction(tx, { displayName }),
+        );
+        set({ profileName: displayName });
+      },
+      setProfileEmail: async (email) => {
+        const normalizedEmail = email?.trim() ? email.trim() : null;
+        await runInCloudSyncTransaction((tx) =>
+          updateProfileInTransaction(tx, { email: normalizedEmail }),
+        );
+        set({ profileEmail: normalizedEmail });
+      },
+      setProfileImageUri: async (uri) => {
+        const photoUri = uri?.trim() ? uri.trim() : null;
+        await runInCloudSyncTransaction((tx) =>
+          updateProfileInTransaction(tx, { photoUri }),
+        );
+        set({ profileImageUri: photoUri });
+      },
       setTheme: (theme) => {
         const id = getThemeConfig(theme).id;
         Uniwind.setTheme(id);
@@ -233,9 +253,6 @@ export const useSettingsStore = create<SettingsState>()(
       partialize: (state) => ({
         dailyReminderEnabled: state.dailyReminderEnabled,
         reminderTime: state.reminderTime,
-        profileName: state.profileName,
-        profileEmail: state.profileEmail,
-        profileImageUri: state.profileImageUri,
         theme: state.theme,
         timelineEntryLength: state.timelineEntryLength,
         dateIncludesDayOfWeek: state.dateIncludesDayOfWeek,
@@ -261,3 +278,12 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 );
+
+/** Updates the non-persisted profile read cache after a committed DB transaction. */
+export function hydrateProfileCache(profile: {
+  profileName: string | null;
+  profileEmail: string | null;
+  profileImageUri: string | null;
+}): void {
+  useSettingsStore.setState(profile);
+}

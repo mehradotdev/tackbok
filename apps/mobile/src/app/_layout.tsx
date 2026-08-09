@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -28,6 +28,7 @@ import { Text } from '~/components/ui/text';
 import { Toaster } from '~/components/ui/toast';
 import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
+import { runNormalizedModelBackfill } from '~/lib/cloudSync/storage/backfill';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -77,6 +78,8 @@ export default function Layout() {
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
   const localeHasHydrated = useLocaleStore((s) => s._hasHydrated);
   const themeConfig = getThemeConfig(theme);
+  const [normalizedModelReady, setNormalizedModelReady] = useState(false);
+  const [backfillError, setBackfillError] = useState<Error | null>(null);
 
   const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
 
@@ -86,7 +89,26 @@ export default function Layout() {
     '--color-background',
   ]);
 
-  const isBootstrapLoading = !error && (!success || (!fontsLoaded && !fontsError));
+  const isBootstrapLoading =
+    !error &&
+    !backfillError &&
+    (!success || !normalizedModelReady || (!fontsLoaded && !fontsError));
+
+  useEffect(() => {
+    if (!success || !hasHydrated || normalizedModelReady || backfillError) return;
+    const settings = useSettingsStore.getState();
+    void runNormalizedModelBackfill({
+      profileName: settings.profileName,
+      profileEmail: settings.profileEmail,
+      profileImageUri: settings.profileImageUri,
+    })
+      .then(() => setNormalizedModelReady(true))
+      .catch((cause: unknown) => {
+        setBackfillError(
+          cause instanceof Error ? cause : new Error('Cloud-sync backfill failed'),
+        );
+      });
+  }, [backfillError, hasHydrated, normalizedModelReady, success]);
 
   // Keep native splash until persisted settings (and Uniwind theme) are ready
   useEffect(() => {
@@ -126,11 +148,11 @@ export default function Layout() {
   }, [hasHydrated]);
 
   // Show migration error
-  if (error) {
+  if (error || backfillError) {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4">
         <Text className="text-destructive text-center">
-          Database migration error: {error.message}
+          Database migration error: {(error ?? backfillError)?.message}
         </Text>
       </View>
     );

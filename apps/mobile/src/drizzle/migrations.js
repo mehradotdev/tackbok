@@ -5,6 +5,7 @@ import m0000 from './0000_public_scrambler.sql';
 import m0001 from './0001_clammy_winter_soldier.sql';
 import m0002 from './0002_marvelous_avengers.sql';
 import m0003 from './0003_common_silhouette.sql';
+import m0004 from './0004_good_roulette.sql';
 
 export default {
   journal,
@@ -13,5 +14,6 @@ export default {
     m0001,
     m0002,
     m0003,
+    m0004,
   },
 };

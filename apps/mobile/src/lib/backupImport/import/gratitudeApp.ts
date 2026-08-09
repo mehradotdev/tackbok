@@ -113,13 +113,13 @@ export async function importFromGratitudeAppBackup(
     try {
       const settingsState = useSettingsStore.getState();
       if (profile.name != null) {
-        settingsState.setProfileName(profile.name);
+        await settingsState.setProfileName(profile.name);
       }
       if (profile.hasEmail) {
-        settingsState.setProfileEmail(profile.email);
+        await settingsState.setProfileEmail(profile.email);
       }
       if (importedProfileImageUri) {
-        settingsState.setProfileImageUri(importedProfileImageUri);
+        await settingsState.setProfileImageUri(importedProfileImageUri);
       }
     } catch (error) {
       if (importedProfileImageUri) {

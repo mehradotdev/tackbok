@@ -4,6 +4,7 @@ import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 import { db, entries } from '~/db';
 import { generateUUID } from '~/lib/utils';
+import { upsertEntryInTransaction } from '~/lib/cloudSync/storage/repositories';
 import {
   type ImportProgressCallback,
   reportImportProgress,
@@ -177,6 +178,7 @@ export async function importFromPresentlyCSV(
   // If Presently imports become slow on larger datasets, preload existing
   // created_at/text_content pairs for the imported dates and add an index on
   // created_at so duplicate detection does not rely on repeated table scans.
+  const batchId = generateUUID();
   await db.transaction(async (tx) => {
     const advanceProgress = () => {
       processedEntries++;
@@ -220,12 +222,17 @@ export async function importFromPresentlyCSV(
       }
 
       const now = Date.now();
-      await tx.insert(entries).values({
-        note_id: generateUUID(),
-        text_content: entryContent,
-        created_at: dateMs,
-        updated_at: now,
-      });
+      await upsertEntryInTransaction(
+        tx,
+        {
+          note_id: generateUUID(),
+          text_content: entryContent,
+          tags: '',
+          created_at: dateMs,
+          updated_at: now,
+        },
+        { batchId, now },
+      );
 
       summary.importedEntries++;
       advanceProgress();

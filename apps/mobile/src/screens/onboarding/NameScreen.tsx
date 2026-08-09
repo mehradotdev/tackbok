@@ -23,8 +23,8 @@ export default function OnboardingNameScreen() {
 
   useOnboardingStepView('name');
 
-  const handleContinue = () => {
-    setProfileName(name);
+  const handleContinue = async () => {
+    await setProfileName(name);
     router.push('/onboarding/theme');
   };
 

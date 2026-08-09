@@ -1,6 +1,14 @@
 import { desc } from 'drizzle-orm';
 import { File, Paths } from 'expo-file-system';
-import { db, customPrompts, entries, tags } from '~/db';
+import {
+  db,
+  customPrompts,
+  entries,
+  entryTags,
+  mediaAssets,
+  tags,
+  userProfile,
+} from '~/db';
 import { PHOTOS_DIR_NAME, VOICE_MEMOS_DIR_NAME } from '~/constants';
 import { useSettingsStore } from '~/lib/settings';
 import { createExpoZipWriter } from '~/lib/zip';
@@ -32,15 +40,27 @@ import {
 } from './utils';
 
 export async function exportToBackupZip(): Promise<void> {
-  const [allEntries, allTags, allPrompts] = await Promise.all([
+  const [allEntries, allTags, allPrompts, allMedia, allEntryTags, profileRows] =
+    await Promise.all([
     db.select().from(entries).orderBy(desc(entries.created_at)),
     db.select().from(tags),
     db.select().from(customPrompts),
-  ]);
+      db.select().from(mediaAssets),
+      db.select().from(entryTags),
+      db.select().from(userProfile).limit(1),
+    ]);
   const settings = useSettingsStore.getState();
-  const profileName = normalizeOptionalText(settings.profileName);
-  const profileEmail = normalizeOptionalText(settings.profileEmail);
-  const profileImageUri = normalizeOptionalText(settings.profileImageUri);
+  const profileRow = profileRows[0];
+  const profilePhoto = profileRow?.photo_asset_id
+    ? allMedia.find((asset) => asset.asset_id === profileRow.photo_asset_id)
+    : undefined;
+  const profileName = normalizeOptionalText(
+    profileRow?.display_name ?? settings.profileName,
+  );
+  const profileEmail = normalizeOptionalText(profileRow?.email ?? settings.profileEmail);
+  const profileImageUri = normalizeOptionalText(
+    profilePhoto?.local_uri ?? settings.profileImageUri,
+  );
 
   if (
     allEntries.length === 0 &&
@@ -54,13 +74,34 @@ export async function exportToBackupZip(): Promise<void> {
   }
 
   const tagMap = await buildTagIdToNameMap();
-  const { portableEntries } = createPortableEntries(allEntries, tagMap);
+  const assetsByEntry = new Map<string, typeof allMedia>();
+  for (const asset of allMedia) {
+    if (asset.owner_type !== 'entry') continue;
+    const list = assetsByEntry.get(asset.owner_id) ?? [];
+    list.push(asset);
+    assetsByEntry.set(asset.owner_id, list);
+  }
+  const tagIdsByEntry = new Map<string, string[]>();
+  for (const relation of allEntryTags) {
+    const list = tagIdsByEntry.get(relation.note_id) ?? [];
+    list.push(relation.tag_id);
+    tagIdsByEntry.set(relation.note_id, list);
+  }
+  for (const ids of tagIdsByEntry.values()) ids.sort();
+  const { portableEntries } = createPortableEntries(
+    allEntries,
+    tagMap,
+    assetsByEntry,
+    tagIdsByEntry,
+  );
   const portableTags = createPortableTags(allTags);
   const portablePrompts = createPortablePrompts(allPrompts);
   const profile: PortableProfile = {
     name: profileName,
     email: profileEmail,
     imagePath: null,
+    photoAssetId: profilePhoto?.asset_id ?? null,
+    photoBlobHash: profilePhoto?.blob_hash ?? null,
   };
   const fileName = `TackbokBackup_${generateTimestamp()}.zip`;
   const tempZipFile = new File(Paths.cache, fileName);

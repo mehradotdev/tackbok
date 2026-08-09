@@ -60,6 +60,11 @@ jest.mock('~/lib/utils', () => ({
   generateUUID: () => mockGenerateUUID(),
 }));
 
+jest.mock('~/lib/cloudSync/storage/repositories', () => ({
+  upsertEntryInTransaction: async (tx: any, entry: unknown) =>
+    tx.insert({}).values(entry),
+}));
+
 jest.mock('../progress', () => ({
   reportImportProgress: (...args: Parameters<typeof mockReportImportProgress>) =>
     mockReportImportProgress(...args),
@@ -127,12 +132,14 @@ describe('importFromPresentlyCSV', () => {
     expect(mockValues).toHaveBeenNthCalledWith(1, {
       note_id: 'generated-note-id',
       text_content: 'First entry',
+      tags: '',
       created_at: new Date('2024-01-01T00:00:00').getTime(),
       updated_at: expect.any(Number),
     });
     expect(mockValues).toHaveBeenNthCalledWith(2, {
       note_id: 'generated-note-id',
       text_content: 'Second entry',
+      tags: '',
       created_at: new Date('2024-01-02T00:00:00').getTime(),
       updated_at: expect.any(Number),
     });
@@ -157,6 +164,7 @@ describe('importFromPresentlyCSV', () => {
     expect(mockValues).toHaveBeenCalledWith({
       note_id: 'generated-note-id',
       text_content: 'Valid leap day',
+      tags: '',
       created_at: new Date(2024, 1, 29).getTime(),
       updated_at: expect.any(Number),
     });

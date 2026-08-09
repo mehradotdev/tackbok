@@ -79,11 +79,13 @@ export function useVoiceMemoSession(
 
   /**
    * Commit (Save path):
-   * Delete every voice memo in the removal queue from disk.
-   * This includes both originally-existing memos and newly-added-then-removed ones.
+   * Delete only memos created and removed inside this unsaved editor session.
+   * Previously persisted memos are retained by the transactional sync ledger.
    */
   const commitRemovedVoiceMemos = useCallback(() => {
-    removedMemosRef.current.forEach((m) => {
+    removedMemosRef.current
+      .filter((memo) => !initialUrisRef.current.has(memo.uri))
+      .forEach((m) => {
       deleteVoiceMemoFile(m.uri);
     });
     removedMemosRef.current = [];

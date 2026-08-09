@@ -98,18 +98,25 @@ export interface TackbokBackupManifest {
 }
 
 export interface PortableTag {
+  tagId?: string;
   title: string;
   createdAt: number;
   updatedAt: number;
 }
 
 export interface PortablePrompt {
+  promptId?: string;
   title: string;
   createdAt: number;
   updatedAt: number;
 }
 
 export interface PortableAsset {
+  assetId?: string;
+  blobHash?: string;
+  mimeType?: string;
+  byteSize?: number;
+  durationMs?: number;
   type: Asset['type'];
   path: string;
   width?: number;
@@ -122,6 +129,7 @@ export interface PortableEntry {
   textContent: string | null;
   mood: Mood | null;
   tagTitles: string[];
+  tagIds?: string[];
   createdAt: number;
   updatedAt: number;
   assets: PortableAsset[];
@@ -131,6 +139,8 @@ export interface PortableProfile {
   name: string | null;
   email: string | null;
   imagePath: string | null;
+  photoAssetId?: string | null;
+  photoBlobHash?: string | null;
 }
 
 export interface GratitudeAppTagRecord {

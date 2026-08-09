@@ -11,6 +11,9 @@
     "generate:themes:verify": "bun run generate:themes && bun run test:theme",
     "phase0:restore-probe": "bun run scripts/cloud-sync-phase0/restore-scale.ts",
     "phase0:test": "jest src/lib/cloudSync/phase0 --runInBand --no-watchman",
+    "phase1:test": "bun test scripts/cloud-sync-phase1/phase1-gate.test.ts",
+    "phase2:test": "jest src/lib/cloudSync/codec src/lib/cloudSync/ancestry src/lib/cloudSync/conflicts src/lib/cloudSync/outbox src/lib/cloudSync/providers/contract.test.ts src/lib/cloudSync/engine --runInBand --no-watchman",
+    "phase3:test": "jest src/lib/cloudSync/providers/googleDrive.test.ts --runInBand --no-watchman",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "bun run test:jest",
@@ -37,6 +40,7 @@
     "expo": "~57.0.8",
     "expo-application": "~57.0.2",
     "expo-asset": "~57.0.7",
+    "expo-auth-session": "~57.0.6",
     "expo-constants": "~57.0.6",
     "expo-dev-client": "~57.0.9",
     "expo-device": "~57.0.1",
@@ -51,12 +55,14 @@
     "expo-localization": "~57.0.1",
     "expo-notifications": "~57.0.7",
     "expo-router": "~57.0.8",
+    "expo-secure-store": "~57.0.1",
     "expo-sharing": "~57.0.7",
     "expo-splash-screen": "~57.0.5",
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.1",
     "expo-updates": "~57.0.10",
+    "expo-web-browser": "~57.0.2",
     "lucide-react-native": "^1.17.0",
     "posthog-react-native": "^4.57.0",
     "react": "19.2.3",
@@ -104,6 +110,7 @@
   "jest": {
     "preset": "jest-expo",
     "globalSetup": "<rootDir>/jest.global-setup.js",
+    "testPathIgnorePatterns": ["<rootDir>/scripts/cloud-sync-phase1/"],
     "transformIgnorePatterns": [
       "node_modules/(?!.*((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg))"
     ]
