@@ -17,6 +17,7 @@ import {
 } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
+import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
 
 export const PROFILE_ROW_ID = 'self';
 export const PROFILE_ENTITY_ID = 'profile';
@@ -640,6 +641,9 @@ export async function runInCloudSyncTransaction<T>(
   operation: (tx: CloudSyncTransaction) => Promise<T>,
 ): Promise<T> {
   const result = await db.transaction(operation);
+  // The durable outbox row now exists. Scheduling sync must not depend on the
+  // best-effort post-commit media reaper completing successfully.
+  notifyCloudSyncMutationCommitted();
   const { reapRetainedMediaWithoutVault } = await import('./retainedMedia');
   await reapRetainedMediaWithoutVault();
   return result;

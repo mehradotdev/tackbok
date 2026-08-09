@@ -331,14 +331,14 @@ export async function getAllTags(): Promise<Tag[]> {
  * Create a new tag
  */
 export async function createTag(title: string): Promise<void> {
-  await db.transaction((tx) => createTagInTransaction(tx, title));
+  await runInCloudSyncTransaction((tx) => createTagInTransaction(tx, title));
 }
 
 /**
  * Update a tag's title
  */
 export async function updateTag(tagId: string, title: string): Promise<void> {
-  await db.transaction((tx) => updateTagInTransaction(tx, tagId, title));
+  await runInCloudSyncTransaction((tx) => updateTagInTransaction(tx, tagId, title));
 }
 
 /**
@@ -346,7 +346,7 @@ export async function updateTag(tagId: string, title: string): Promise<void> {
  * Removes the tag from all entries that reference it, then deletes the tag itself.
  */
 export async function deleteTag(tagId: string): Promise<void> {
-  await db.transaction((tx) => deleteTagInTransaction(tx, tagId));
+  await runInCloudSyncTransaction((tx) => deleteTagInTransaction(tx, tagId));
 }
 
 // ============================================================================
@@ -367,19 +367,19 @@ export async function getAllCustomPrompts(): Promise<CustomPrompt[]> {
  * Create a new reusable custom prompt.
  */
 export async function createCustomPrompt(title: string): Promise<void> {
-  await db.transaction((tx) => createPromptInTransaction(tx, title));
+  await runInCloudSyncTransaction((tx) => createPromptInTransaction(tx, title));
 }
 
 /**
  * Update an existing custom prompt.
  */
 export async function updateCustomPrompt(promptId: string, title: string): Promise<void> {
-  await db.transaction((tx) => updatePromptInTransaction(tx, promptId, title));
+  await runInCloudSyncTransaction((tx) => updatePromptInTransaction(tx, promptId, title));
 }
 
 /**
  * Delete a custom prompt by ID.
  */
 export async function deleteCustomPrompt(promptId: string): Promise<void> {
-  await db.transaction((tx) => deletePromptInTransaction(tx, promptId));
+  await runInCloudSyncTransaction((tx) => deletePromptInTransaction(tx, promptId));
 }

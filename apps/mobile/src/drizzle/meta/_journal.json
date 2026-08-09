@@ -43,6 +43,13 @@
       "when": 1786287913589,
       "tag": "0005_normal_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786292924023,
+      "tag": "0006_classy_roxanne_simpson",
+      "breakpoints": true
     }
   ]
 }

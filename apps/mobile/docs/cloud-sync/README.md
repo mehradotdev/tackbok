@@ -16,8 +16,8 @@ requirements were met.
 | 1 — normalized model + outbox | ✅ closed ([gate](./phase1/gate.md)) |
 | 2 — engine vs. the fake provider | ✅ closed ([gate](./phase2/gate.md)) |
 | 3 — Google Drive adapter | ✅ conditionally closed ([gate](./phase3/gate.md), [waiver](./phase3/waiver.md)) |
-| 4a — durable runtime (no UI) | 🟡 ready for owner review ([gate](./phase4/gate.md)) |
-| 4b — UI + translations | not started; blocked on 4a review |
+| 4a — durable runtime (no UI) | 🟠 remediation ready for owner re-review ([gate](./phase4/gate.md), [review](./phase4/review-4a-2026-08-09.md)) |
+| 4b — UI + translations | not started; blocked on owner acceptance of 4a |
 | 5 — hardening + rollout | not started |
 | 6 — background-transfer decision | blocked: needs a physical device |
 

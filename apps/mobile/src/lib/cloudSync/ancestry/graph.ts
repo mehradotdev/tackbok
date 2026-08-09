@@ -120,7 +120,8 @@ export class VersionGraph {
           (parent) => this.versions.has(parent) || !state.versions.some((item) => item.hash === parent),
         ),
       );
-      const [next] = pending.splice(nextIndex < 0 ? 0 : nextIndex, 1);
+      if (nextIndex < 0) throw new Error('Corrupt durable graph ordering or ancestry cycle');
+      const [next] = pending.splice(nextIndex, 1);
       const restored = this.add(next.body, next.hash);
       restored.status = next.status;
       restored.published = next.published;

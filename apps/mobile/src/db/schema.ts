@@ -5,6 +5,7 @@ import {
   index,
   uniqueIndex,
   primaryKey,
+  blob,
 } from 'drizzle-orm/sqlite-core';
 import type { Asset, Mood } from '~/types';
 
@@ -308,6 +309,51 @@ export const syncEngineCheckpoints = sqliteTable(
     updated_at: integer('updated_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.device_id, table.vault_id] })],
+);
+
+/** Per-entity dependency accounting kept outside the bounded pass checkpoint. */
+export const syncEngineEntityMetadata = sqliteTable(
+  'sync_engine_entity_metadata',
+  {
+    device_id: text('device_id').notNull(),
+    vault_id: text('vault_id').notNull(),
+    entity_type: text('entity_type').notNull(),
+    entity_id: text('entity_id').notNull(),
+    fetched_dependencies_json: text('fetched_dependencies_json').notNull().default('[]'),
+    recovery_dependencies_json: text('recovery_dependencies_json').notNull().default('[]'),
+    degraded_reason: text('degraded_reason'),
+  },
+  (table) => [primaryKey({
+    columns: [table.device_id, table.vault_id, table.entity_type, table.entity_id],
+  })],
+);
+
+/** Dirty local state only; clean state is derived from its applied version. */
+export const syncEngineLocalDomain = sqliteTable(
+  'sync_engine_local_domain',
+  {
+    device_id: text('device_id').notNull(),
+    vault_id: text('vault_id').notNull(),
+    entity_type: text('entity_type').notNull(),
+    entity_id: text('entity_id').notNull(),
+    generation: integer('generation').notNull(),
+    state_json: text('state_json'),
+  },
+  (table) => [primaryKey({
+    columns: [table.device_id, table.vault_id, table.entity_type, table.entity_id],
+  })],
+);
+
+/** Gate-only inline blobs; production reconstructs file-backed byte sources. */
+export const syncEngineLocalBlobs = sqliteTable(
+  'sync_engine_local_blobs',
+  {
+    device_id: text('device_id').notNull(),
+    vault_id: text('vault_id').notNull(),
+    blob_hash: text('blob_hash').notNull(),
+    body: blob('body', { mode: 'buffer' }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.device_id, table.vault_id, table.blob_hash] })],
 );
 
 export const syncConflicts = sqliteTable('sync_conflicts', {

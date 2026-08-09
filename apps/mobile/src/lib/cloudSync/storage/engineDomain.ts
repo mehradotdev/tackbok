@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 import {
   customPrompts,
   db,
@@ -7,11 +7,8 @@ import {
   mediaAssets,
   cloudVault,
   syncChangeQueue,
-  syncConflicts,
-  syncEntityState,
   syncRetainedMedia,
   syncMediaObligations,
-  syncVersions,
   tags,
   userProfile,
 } from '~/db';
@@ -88,28 +85,59 @@ export async function readNormalizedDomainState(
   return { entityType: 'profile', displayName: row.display_name, photo: photo ? descriptor(photo) : null };
 }
 
-export async function enumerateNormalizedDomain(): Promise<
-  { type: EntityType; id: string; state: DomainState }[]
-> {
-  const [entryRows, tagRows, promptRows, profileRows] = await Promise.all([
-    db.select({ id: entries.note_id }).from(entries).orderBy(asc(entries.note_id)),
-    db.select({ id: tags.tag_id }).from(tags).orderBy(asc(tags.tag_id)),
-    db.select({ id: customPrompts.prompt_id }).from(customPrompts).orderBy(asc(customPrompts.prompt_id)),
-    db.select({ id: userProfile.profile_id }).from(userProfile),
-  ]);
-  const identities: { type: EntityType; id: string }[] = [
-    ...tagRows.map(({ id }) => ({ type: 'tag' as const, id })),
-    ...promptRows.map(({ id }) => ({ type: 'prompt' as const, id })),
-    ...profileRows.map(() => ({ type: 'profile' as const, id: 'profile' })),
-    ...entryRows.map(({ id }) => ({ type: 'entry' as const, id })),
-  ];
-  const states = await Promise.all(identities.map(async (identity) => ({
+const SEED_TYPES: EntityType[] = ['entry', 'profile', 'prompt', 'tag'];
+
+export async function readNormalizedSeedPage(
+  cursor: string | null,
+  limit = 50,
+): Promise<{
+  items: { type: EntityType; id: string; state: DomainState }[];
+  isFinalPage: boolean;
+}> {
+  const separator = cursor?.indexOf(':') ?? -1;
+  const cursorType = separator > 0 ? cursor!.slice(0, separator) as EntityType : SEED_TYPES[0];
+  const cursorId = separator > 0 ? cursor!.slice(separator + 1) : '';
+  const startIndex = Math.max(0, SEED_TYPES.indexOf(cursorType));
+  const identities: { type: EntityType; id: string }[] = [];
+
+  for (let index = startIndex; index < SEED_TYPES.length && identities.length < limit; index++) {
+    const type = SEED_TYPES[index];
+    const after = index === startIndex ? cursorId : '';
+    const remaining = limit - identities.length;
+    if (type === 'entry') {
+      const rows = await db.select({ id: entries.note_id }).from(entries)
+        .where(after ? gt(entries.note_id, after) : undefined)
+        .orderBy(asc(entries.note_id)).limit(remaining);
+      identities.push(...rows.map(({ id }) => ({ type, id })));
+      if (rows.length === remaining) break;
+    } else if (type === 'profile') {
+      const rows = await db.select({ id: userProfile.profile_id }).from(userProfile).limit(1);
+      if (rows.length > 0 && 'profile' > after) identities.push({ type, id: 'profile' });
+    } else if (type === 'prompt') {
+      const rows = await db.select({ id: customPrompts.prompt_id }).from(customPrompts)
+        .where(after ? gt(customPrompts.prompt_id, after) : undefined)
+        .orderBy(asc(customPrompts.prompt_id)).limit(remaining);
+      identities.push(...rows.map(({ id }) => ({ type, id })));
+      if (rows.length === remaining) break;
+    } else {
+      const rows = await db.select({ id: tags.tag_id }).from(tags)
+        .where(after ? gt(tags.tag_id, after) : undefined)
+        .orderBy(asc(tags.tag_id)).limit(remaining);
+      identities.push(...rows.map(({ id }) => ({ type, id })));
+      if (rows.length === remaining) break;
+    }
+  }
+
+  const materialized = await Promise.all(identities.map(async (identity) => ({
     ...identity,
     state: await readNormalizedDomainState(identity.type, identity.id),
   })));
-  return states.filter(
+  const items = materialized.filter(
     (item): item is { type: EntityType; id: string; state: DomainState } => item.state !== null,
   );
+  // An exact multiple deliberately takes one final empty page. This keeps the
+  // query bounded without a second look-ahead query or an in-memory ID list.
+  return { items, isFinalPage: identities.length < limit };
 }
 
 /** Pulls transactionally-created Phase-1 intents into the durable engine. */
@@ -127,11 +155,19 @@ export async function hydrateProductionOutbox(engine: SQLiteSyncEngine): Promise
     // settled. After a kill in that gap, the queue can therefore contain a
     // stale generation the engine has already published and settled. Never
     // re-adopt it. A genuinely newer transactional edit still wins.
-    if (!shouldAdoptQueuedGeneration({
+    const shouldAdopt = shouldAdoptQueuedGeneration({
       queuedGeneration: row.generation,
       durableOutboxGeneration: durable?.generation ?? null,
       durableEntityGeneration: engine.generations.get(key) ?? 0,
-    })) {
+    });
+    if (!shouldAdopt) {
+      if (durable && row.action !== 'delete') {
+        engine.restoreLocalDomainState(
+          type,
+          row.entity_id,
+          await readNormalizedDomainState(type, row.entity_id),
+        );
+      }
       continue;
     }
     engine.adoptQueuedMutation({
@@ -203,17 +239,25 @@ export async function hashPendingProductionMedia(limit = 2): Promise<void> {
   }
 }
 
-export async function persistProductionEngineResult(engine: SQLiteSyncEngine): Promise<void> {
+export async function persistProductionEngineResult(
+  engine: SQLiteSyncEngine,
+  changedEntityKeys: string[],
+): Promise<void> {
   const now = Date.now();
   await db.transaction(async (tx) => {
-    const queued = await tx.select().from(syncChangeQueue);
-    for (const row of queued) {
-      const key = `${row.entity_type}:${row.entity_id}` as
-        | `entry:${string}`
-        | `tag:${string}`
-        | `prompt:${string}`
-        | `profile:${string}`;
-      const remaining = engine.outbox.get(key);
+    // The durable store already persisted entity state, versions and conflicts
+    // as entity-scoped deltas. Reconcile only the Phase-1 intent rows named by
+    // this pass; never rescan or rewrite the vault here.
+    for (const key of changedEntityKeys) {
+      const separator = key.indexOf(':');
+      const entityType = key.slice(0, separator);
+      const entityId = key.slice(separator + 1);
+      const [row] = await tx.select().from(syncChangeQueue).where(and(
+        eq(syncChangeQueue.entity_type, entityType),
+        eq(syncChangeQueue.entity_id, entityId),
+      )).limit(1);
+      if (!row) continue;
+      const remaining = engine.outbox.get(key as `${EntityType}:${string}`);
       if (!remaining) {
         await tx.delete(syncChangeQueue).where(and(
           eq(syncChangeQueue.entity_type, row.entity_type),
@@ -229,80 +273,6 @@ export async function persistProductionEngineResult(engine: SQLiteSyncEngine): P
       }
     }
 
-    for (const [key, heads] of engine.appliedHeads) {
-      const separator = key.indexOf(':');
-      const entityType = key.slice(0, separator);
-      const entityId = key.slice(separator + 1);
-      const state = engine.snapshot()[key];
-      await tx.insert(syncEntityState).values({
-        entity_type: entityType,
-        entity_id: entityId,
-        current_head_hashes: heads,
-        last_remote_head_hashes: heads,
-        tombstone: !state,
-        local_generation: engine.generations.get(key) ?? 0,
-        updated_at: now,
-      }).onConflictDoUpdate({
-        target: [syncEntityState.entity_type, syncEntityState.entity_id],
-        set: {
-          current_head_hashes: heads,
-          last_remote_head_hashes: heads,
-          tombstone: !state,
-          updated_at: now,
-        },
-      });
-    }
-
-    for (const graph of engine.graphs.values()) {
-      for (const version of graph.values()) {
-        await tx.insert(syncVersions).values({
-          version_hash: version.hash,
-          vault_id: version.body.vaultId,
-          entity_type: version.body.entityType,
-          entity_id: version.body.entityId,
-          parent_hashes: version.body.parents,
-          kind: version.body.kind,
-          author_device_id: version.body.kind === 'edit' ? version.body.authorDeviceId : null,
-          edit_sequence: version.body.kind === 'edit' ? version.body.editSequence : null,
-          state: version.status,
-          applied: engine.appliedHeads.get(
-            `${version.body.entityType}:${version.body.entityId}`,
-          )?.includes(version.hash) ?? false,
-          published: version.published,
-          canonical_body: version.canonical,
-          body_path: null,
-          created_at: now,
-        }).onConflictDoUpdate({
-          target: syncVersions.version_hash,
-          set: {
-            state: version.status,
-            applied: engine.appliedHeads.get(
-              `${version.body.entityType}:${version.body.entityId}`,
-            )?.includes(version.hash) ?? false,
-            published: version.published,
-            canonical_body: version.canonical,
-          },
-        });
-      }
-    }
-
-    for (const conflict of engine.conflicts.values()) {
-      await tx.insert(syncConflicts).values({
-        conflict_id: conflict.conflictId,
-        entity_type: conflict.entityType,
-        entity_id: conflict.entityId,
-        head_hashes: conflict.headHashes,
-        resolution_type: conflict.resolutionType,
-        recovered_entities: conflict.recoveredEntityIds.map((entityId) => ({
-          entityType: conflict.entityType,
-          entityId,
-        })),
-        alternate_scalars: conflict.alternates,
-        acknowledged_at: null,
-        created_at: now,
-      }).onConflictDoNothing();
-    }
-
     await tx.update(cloudVault).set({
       seeding_checkpoint: engine.seedingCheckpoint,
       status: engine.isRevoked ? 'revoked' : engine.outbox.size > 0 ? 'dirty' : 'idle',
@@ -312,21 +282,23 @@ export async function persistProductionEngineResult(engine: SQLiteSyncEngine): P
 }
 
 /** Materializes only CAS-approved engine heads into the normalized/UI read model. */
-export async function materializeProductionDomain(engine: SQLiteSyncEngine): Promise<void> {
-  const snapshot = engine.snapshot();
+export async function materializeProductionDomain(
+  engine: SQLiteSyncEngine,
+  appliedEntityKeys: string[],
+): Promise<void> {
   const now = Date.now();
-  const keys = Array.from(engine.appliedHeads.keys()).sort((left, right) => {
+  const keys = [...appliedEntityKeys].sort((left, right) => {
     const rank = (key: string) => key.startsWith('tag:') ? 0 : key.startsWith('prompt:') ? 1 : key.startsWith('profile:') ? 2 : 3;
     return rank(left) - rank(right) || left.localeCompare(right);
   });
   await db.transaction(async (tx) => {
     for (const key of keys) {
       // Apply CAS left this entity dirty: its newer local domain row wins.
-      if (engine.outbox.has(key)) continue;
+      if (engine.outbox.has(key as `${EntityType}:${string}`)) continue;
       const separator = key.indexOf(':');
       const type = key.slice(0, separator) as EntityType;
       const id = key.slice(separator + 1);
-      const state = snapshot[key];
+      const state = engine.domain.get(key as `${EntityType}:${string}`);
       if (!state) {
         if (type === 'entry') {
           const existingAssets = await tx.select().from(mediaAssets).where(and(

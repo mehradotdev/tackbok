@@ -7,6 +7,7 @@ import m0002 from './0002_marvelous_avengers.sql';
 import m0003 from './0003_common_silhouette.sql';
 import m0004 from './0004_good_roulette.sql';
 import m0005 from './0005_normal_mauler.sql';
+import m0006 from './0006_classy_roxanne_simpson.sql';
 
 export default {
   journal,
@@ -17,5 +18,6 @@ export default {
     m0003,
     m0004,
     m0005,
+    m0006,
   },
 };

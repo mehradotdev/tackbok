@@ -1,13 +1,13 @@
 {
   "phase": "4a",
-  "timestamp": "2026-08-09T20:58:38+05:30",
+  "timestamp": "2026-08-09T22:20:40+05:30",
   "runtime": "host-machine",
   "commands": {
     "phase4": {
       "command": "bun run phase4:test",
       "phase2SuitesPassed": 9,
       "phase2TestsPassed": 73,
-      "phase4BunTestsPassed": 83,
+      "phase4BunTestsPassed": 88,
       "failed": 0
     },
     "fullJest": {
@@ -29,6 +29,7 @@
   },
   "durability": {
     "frozenCatalogScenarios": 34,
+    "catalogReconstructedBetweenDeviceInteractions": true,
     "chaosSeeds": 12,
     "publishRestartBoundaries": [
       "blob",
@@ -40,7 +41,25 @@
     ],
     "purgeKillPositions": [1, 2, 3, 4, 5],
     "seededEntities": 80,
-    "aheadOfCursorEntity": "redacted-test-fixture"
+    "aheadOfCursorEntity": "redacted-test-fixture",
+    "normalizedApplyReplayAfterRestart": true,
+    "scaleProbe": [
+      {
+        "entities": 500,
+        "checkpointSaves": 570,
+        "checkpointBytesWritten": 307745,
+        "maxCheckpointBytes": 8730,
+        "elapsedMs": 320
+      },
+      {
+        "entities": 2000,
+        "checkpointSaves": 2280,
+        "checkpointBytesWritten": 1231848,
+        "maxCheckpointBytes": 8733,
+        "elapsedMs": 2860
+      }
+    ],
+    "scaleProbeIsPhysicalDeviceEvidence": false
   },
   "security": {
     "notificationPermissionRequested": false,

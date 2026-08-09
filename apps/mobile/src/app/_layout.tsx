@@ -30,7 +30,8 @@ import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
 import {
   createProductionSyncRuntime,
-  registerCloudSyncBackgroundTask,
+  isProductionCloudSyncConfigured,
+  setCloudSyncBackgroundTaskEnabled,
 } from '~/lib/cloudSync/runtime';
 
 SplashScreen.preventAutoHideAsync();
@@ -99,9 +100,17 @@ export default function Layout() {
 
   useEffect(() => {
     if (!success || !hasHydrated) return;
-    void cloudSyncRuntime.start();
-    void registerCloudSyncBackgroundTask();
-    return () => cloudSyncRuntime.stop();
+    let cancelled = false;
+    void (async () => {
+      await cloudSyncRuntime.start();
+      if (cancelled) return;
+      const configured = await isProductionCloudSyncConfigured();
+      if (!cancelled) await setCloudSyncBackgroundTaskEnabled(configured);
+    })();
+    return () => {
+      cancelled = true;
+      cloudSyncRuntime.stop();
+    };
   }, [hasHydrated, success]);
 
   // Keep native splash until persisted settings (and Uniwind theme) are ready

@@ -67,6 +67,7 @@ export type CloudSyncTrigger =
   | 'connectivity-restored'
   | 'backgrounding'
   | 'periodic'
+  | 'local-mutation'
   | 'manual';
 export type CloudSyncFailureCategory =
   | 'auth'

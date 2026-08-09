@@ -12,18 +12,19 @@ import { createGoogleAuthorization } from '../auth';
 import { SQLiteEngineCheckpointStore, SQLiteSyncEngine } from '../engine';
 import { GoogleDriveProvider } from '../providers';
 import {
-  enumerateNormalizedDomain,
   hydrateProductionOutbox,
   hashPendingProductionMedia,
   materializeProductionDomain,
   persistProductionEngineResult,
   registerProductionBlobSources,
+  readNormalizedSeedPage,
 } from '../storage/engineDomain';
 import {
   isNormalizedModelReady,
   runNormalizedModelBackfill,
 } from '../storage/backfill';
 import { SyncRuntime, type RuntimePlatform, type RuntimeSyncEngine } from './SyncRuntime';
+import { addCloudSyncMutationListener } from './mutationSignal';
 
 class ProductionRuntimeEngine implements RuntimeSyncEngine {
   constructor(
@@ -36,20 +37,25 @@ class ProductionRuntimeEngine implements RuntimeSyncEngine {
     await hashPendingProductionMedia();
     await registerProductionBlobSources(this.engine);
     await hydrateProductionOutbox(this.engine);
-    if (!this.engine.isSeeding && this.engine.seedingCheckpoint === null) {
-      const initial = await enumerateNormalizedDomain();
-      if (initial.length > 0) this.engine.seed(initial);
+    if (this.engine.needsSeedPage) {
+      const page = await readNormalizedSeedPage(this.engine.seedingCheckpoint);
+      this.engine.seedBatch(page.items, page.isFinalPage);
     }
     const priorConflicts = new Set(this.engine.conflicts.keys());
-    const result = await this.engine.sync();
+    const result = await this.engine.sync({
+      // A save can commit while pull is in flight. Refreshing the transactional
+      // queue immediately before Apply makes the generation-CAS observe it.
+      beforeApply: () => hydrateProductionOutbox(this.engine),
+    });
     for (const [conflictId, conflict] of this.engine.conflicts) {
       if (!priorConflicts.has(conflictId)) {
         track('cloud_sync_conflict_recovered', { entity_type: conflict.entityType });
       }
     }
-    await materializeProductionDomain(this.engine);
-    await persistProductionEngineResult(this.engine);
-    await this.onRemoteApplied?.();
+    await materializeProductionDomain(this.engine, result.appliedEntityKeys);
+    await persistProductionEngineResult(this.engine, result.changedEntityKeys);
+    this.engine.acknowledgeMaterialized(result.appliedEntityKeys);
+    if (result.remoteApplied > 0) await this.onRemoteApplied?.();
     return result;
   }
 }
@@ -102,8 +108,18 @@ export async function createProductionRuntimeEngine(
     { vaultId: configured.vault_id, remoteRootId: configured.remote_root_id },
     provider,
     new SQLiteEngineCheckpointStore(sqlite),
+    { requiresMaterializationAck: true },
   );
   return new ProductionRuntimeEngine(engine, onRemoteApplied);
+}
+
+export async function isProductionCloudSyncConfigured(): Promise<boolean> {
+  const [configured] = await db.select({ vaultId: cloudVault.vault_id }).from(cloudVault).where(and(
+    isNotNull(cloudVault.remote_root_id),
+    ne(cloudVault.status, 'disabled'),
+    ne(cloudVault.status, 'revoked'),
+  )).limit(1);
+  return configured !== undefined;
 }
 
 export function createProductionSyncRuntime(options: {
@@ -113,6 +129,7 @@ export function createProductionSyncRuntime(options: {
     platform,
     readiness: { isReady: isNormalizedModelReady, retryBackfill },
     createEngine: () => createProductionRuntimeEngine(options.onRemoteApplied),
+    addMutationListener: addCloudSyncMutationListener,
     analytics: {
       connected: (provider) => track('cloud_sync_connected', { provider }),
       started: (trigger) => track('cloud_sync_started', { trigger }),

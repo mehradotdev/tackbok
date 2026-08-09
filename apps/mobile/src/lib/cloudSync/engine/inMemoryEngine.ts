@@ -60,29 +60,39 @@ export interface EngineDurabilityHooks {
   checkpoint(device: InMemorySyncDevice, step: DurableSyncStep): void;
 }
 
-export interface EngineDurableSnapshot {
-  version: 1;
+export interface EngineDurableCheckpoint {
+  version: 2;
   state: SyncState;
-  domain: [EntityKey, DomainState][];
-  generations: [EntityKey, number][];
-  outbox: [EntityKey, OutboxItem][];
-  graphs: [EntityKey, VersionGraphDurableState][];
-  conflicts: [string, NonNullable<ResolutionResult['conflict']>][];
-  blobs: [string, number[]][];
-  appliedHeads: [EntityKey, string[]][];
-  degradedEntities: [EntityKey, string][];
   cursor: string | null;
-  pendingChangeObjects: (Omit<RemoteObject, 'body'> & { body: number[] })[];
-  pendingChangeCursor: string | null;
   editSequence: number;
   logicalAuthoredAt: number;
   revokedKind: RevocationKind | null;
-  seedItems: { type: EntityType; id: string; state: DomainState }[];
-  seedIndex: number;
   seedAwaiting: EntityKey[];
   seedAwaitingCursor: string | null;
   seedCursor: string | null;
+  seedComplete: boolean;
   purgeCursor: string | null;
+  pendingCaptures: [EntityKey, { versionHash: string; capturedGeneration: number }][];
+  pendingMaterializationKeys: EntityKey[];
+  pendingRemoteMaterializationKeys: EntityKey[];
+}
+
+export interface EngineDurableEntity {
+  key: EntityKey;
+  domain: DomainState | null;
+  generation: number;
+  outbox: OutboxItem | null;
+  graph: VersionGraphDurableState | null;
+  appliedHeads: string[];
+  degradedReason: string | null;
+}
+
+export interface EngineDurableDelta {
+  checkpoint: EngineDurableCheckpoint;
+  entities: EngineDurableEntity[];
+  conflicts: NonNullable<ResolutionResult['conflict']>[];
+  blobs: [string, Uint8Array][];
+  clearStructuredState: boolean;
 }
 
 export interface SyncPassResult {
@@ -91,6 +101,9 @@ export interface SyncPassResult {
   applied: number;
   skippedByCas: number;
   revoked: boolean;
+  changedEntityKeys: EntityKey[];
+  appliedEntityKeys: EntityKey[];
+  remoteApplied: number;
 }
 
 export type RevocationKind = 'journal-deleted' | 'backup-deleted';
@@ -132,12 +145,26 @@ export class InMemorySyncDevice {
   private logicalAuthoredAt = 0;
   private connected = false;
   private revokedKind: RevocationKind | null = null;
-  private seedItems: { type: EntityType; id: string; state: DomainState }[] = [];
-  private seedIndex = 0;
   private seedAwaiting = new Set<EntityKey>();
   private seedAwaitingCursor: string | null = null;
   private seedCursor: string | null = null;
+  private seedComplete = false;
+  /** Frozen-catalog compatibility only; production supplies one SQL page at a time. */
+  private seedItems: { type: EntityType; id: string; state: DomainState }[] = [];
+  private seedIndex = 0;
   private purgeCursor: string | null = null;
+  private readonly pendingCaptures = new Map<
+    EntityKey,
+    { versionHash: string; capturedGeneration: number }
+  >();
+  private readonly durabilityDirtyKeys = new Set<EntityKey>();
+  private readonly durabilityDirtyBlobs = new Set<string>();
+  private clearStructuredState = false;
+  private readonly passChangedKeys = new Set<EntityKey>();
+  private readonly passRemoteKeys = new Set<EntityKey>();
+  private readonly pendingMaterializationKeys = new Set<EntityKey>();
+  private readonly pendingRemoteMaterializationKeys = new Set<EntityKey>();
+  private durabilityBatchDepth = 0;
 
   constructor(
     readonly deviceId: string,
@@ -156,8 +183,15 @@ export class InMemorySyncDevice {
   }
 
   get isSeeding(): boolean {
-    return this.seedItems.length > 0 &&
-      (this.seedIndex < this.seedItems.length || this.seedAwaiting.size > 0);
+    return !this.seedComplete || this.seedAwaiting.size > 0 || this.seedIndex < this.seedItems.length;
+  }
+
+  get isSeedingComplete(): boolean {
+    return this.seedComplete;
+  }
+
+  get needsSeedPage(): boolean {
+    return !this.seedComplete && this.seedAwaiting.size === 0;
   }
 
   async initialize(): Promise<void> {
@@ -175,6 +209,7 @@ export class InMemorySyncDevice {
     }
     const hash = sha256Bytes(bytes);
     this.blobs.set(hash, bytes.slice());
+    this.durabilityDirtyBlobs.add(hash);
     this.checkpoint('mutation');
     return hash;
   }
@@ -209,6 +244,7 @@ export class InMemorySyncDevice {
         authoredAt: ++this.logicalAuthoredAt,
       }),
     );
+    this.markEntityDirty(key);
     if (this.stateMachine.state === 'idle') this.stateMachine.transition('dirty');
     this.checkpoint('mutation');
   }
@@ -220,11 +256,15 @@ export class InMemorySyncDevice {
     if (state) this.domain.set(key, state);
     else this.domain.delete(key);
     this.outbox.set(key, item);
+    this.markEntityDirty(key);
     if (this.stateMachine.state === 'idle') this.stateMachine.transition('dirty');
     this.checkpoint('mutation');
   }
 
   seed(states: { type: EntityType; id: string; state: DomainState }[]): void {
+    // Compatibility for Phase 2's in-memory catalog. This list is deliberately
+    // absent from the durable checkpoint. SQLite/production uses seedBatch()
+    // with LIMITed normalized-table pages instead.
     this.seedItems = [...states].sort((left, right) =>
       entityKey(left.type, left.id).localeCompare(entityKey(right.type, right.id)),
     );
@@ -232,11 +272,50 @@ export class InMemorySyncDevice {
     this.seedAwaiting.clear();
     this.seedAwaitingCursor = null;
     this.seedCursor = null;
+    this.seedComplete = true;
     for (const item of this.seedItems) {
       const key = entityKey(item.type, item.id);
       if (!this.domain.has(key)) this.domain.set(key, item.state);
     }
     this.checkpoint('seed-checkpoint');
+  }
+
+  seedBatch(
+    states: { type: EntityType; id: string; state: DomainState }[],
+    isFinalPage: boolean,
+  ): void {
+    if (this.seedAwaiting.size > 0) return;
+    const batchId = deterministicId('tackbok-seed-batch-v1', this.vault.vaultId);
+    this.durabilityBatchDepth++;
+    try {
+      for (const item of states) {
+        const key = entityKey(item.type, item.id);
+        this.seedAwaitingCursor = key;
+        if (!this.outbox.has(key) && (this.appliedHeads.get(key)?.length ?? 0) === 0) {
+          this.mutate(item.type, item.id, item.state, batchId);
+        }
+        if (this.outbox.has(key)) this.seedAwaiting.add(key);
+      }
+    } finally {
+      this.durabilityBatchDepth--;
+    }
+    if (this.seedAwaiting.size === 0) this.advanceSeedCursor();
+    if (isFinalPage) this.seedComplete = true;
+    this.checkpoint('seed-checkpoint');
+  }
+
+  restoreLocalDomainState(type: EntityType, id: string, state: DomainState | null): void {
+    const key = entityKey(type, id);
+    if (state) this.domain.set(key, state);
+    else this.domain.delete(key);
+  }
+
+  acknowledgeMaterialized(keys: string[]): void {
+    keys.forEach((key) => {
+      this.pendingMaterializationKeys.delete(key as EntityKey);
+      this.pendingRemoteMaterializationKeys.delete(key as EntityKey);
+    });
+    this.checkpoint('settle');
   }
 
   snapshot(): Record<string, DomainState> {
@@ -247,12 +326,16 @@ export class InMemorySyncDevice {
 
   async sync(hooks: SyncPassHooks = {}): Promise<SyncPassResult> {
     this.provider.setClientContext?.(this.deviceId);
+    this.passRemoteKeys.clear();
     const result: SyncPassResult = {
       pulled: 0,
       pushed: 0,
       applied: 0,
       skippedByCas: 0,
       revoked: false,
+      changedEntityKeys: [],
+      appliedEntityKeys: [],
+      remoteApplied: 0,
     };
     // A terminal marker is sticky. Retrying a pass must not reconnect to or
     // repopulate a vault that this device has already observed as dead.
@@ -292,26 +375,40 @@ export class InMemorySyncDevice {
 
     const captures = new Map<EntityKey, ProvisionalCapture>();
     const deferredKeys = new Set<EntityKey>();
+    const outboxLimit = this.seedAwaiting.size > 0
+      ? SEED_BATCH_SIZE
+      : PROTOCOL_V1_CAPS.entitiesPerPass;
     for (const [key, item] of Array.from(this.outbox.entries()).sort(([a], [b]) =>
       a.localeCompare(b),
-    )) {
+    ).slice(0, outboxLimit)) {
       const state = this.domain.get(key) ?? null;
       if (state && !(await this.assetsPublishable(state))) {
         deferredKeys.add(key);
         continue;
       }
-      const capture = constructProvisional({
-        vaultId: this.vault.vaultId,
-        deviceId: this.deviceId,
-        editSequence: this.editSequence++,
-        authoredAt: item.authoredAt ?? ++this.logicalAuthoredAt,
-        item,
-        state,
-      });
-      this.graphFor(key).add(capture.version.body, capture.version.hash);
+      const pending = this.pendingCaptures.get(key);
+      const pendingVersion = pending ? this.graphFor(key).get(pending.versionHash) : undefined;
+      const capture = pending && pendingVersion
+        ? { item, version: pendingVersion, capturedGeneration: pending.capturedGeneration }
+        : constructProvisional({
+            vaultId: this.vault.vaultId,
+            deviceId: this.deviceId,
+            editSequence: this.editSequence++,
+            authoredAt: item.authoredAt ?? ++this.logicalAuthoredAt,
+            item,
+            state,
+          });
+      if (!pendingVersion) {
+        this.graphFor(key).add(capture.version.body, capture.version.hash);
+        this.pendingCaptures.set(key, {
+          versionHash: capture.version.hash,
+          capturedGeneration: capture.capturedGeneration,
+        });
+        this.markEntityDirty(key);
+      }
       captures.set(key, capture);
-      this.checkpoint('provisional');
     }
+    if (captures.size > 0) this.checkpoint('provisional');
 
     const resolved: ResolvedEntity[] = [];
     const allKeys = Array.from(this.graphs.keys()).sort(
@@ -325,6 +422,15 @@ export class InMemorySyncDevice {
       const heads = graph.heads();
       if (heads.length === 0) continue;
       const capture = captures.get(key);
+      const applied = this.appliedHeads.get(key) ?? [];
+      // A quiet pass must not re-apply and re-persist every known entity. A
+      // pending local capture still proceeds even if its graph was restored
+      // after Apply, because its immutable publish may not have completed.
+      if (
+        !capture &&
+        heads.length === applied.length &&
+        heads.every((hash, index) => hash === applied[index])
+      ) continue;
       const capturedGeneration = capture?.capturedGeneration ?? this.generations.get(key) ?? 0;
       if (heads.length === 1) {
         resolved.push({
@@ -339,12 +445,14 @@ export class InMemorySyncDevice {
       for (const recovery of resolution.recoveries) {
         const recoveryKey = entityKey(recovery.body.entityType, recovery.body.entityId);
         this.graphFor(recoveryKey).add(recovery.body, recovery.hash);
+        this.markEntityDirty(recoveryKey);
         graph.satisfyRecoveryDependency(recovery.hash, {
           entityType: recovery.body.entityType,
           entityId: recovery.body.entityId,
         });
       }
       graph.add(resolution.resolution.body, resolution.resolution.hash);
+      this.markEntityDirty(key);
       if (resolution.conflict) {
         validateConflictRecord(resolution.conflict);
         this.conflicts.set(resolution.conflict.conflictId, resolution.conflict);
@@ -373,9 +481,10 @@ export class InMemorySyncDevice {
         );
       }
       result.applied++;
+      if (this.passRemoteKeys.has(item.key)) this.pendingRemoteMaterializationKeys.add(item.key);
       appliedResolved.push(item);
-      this.checkpoint('apply');
     }
+    if (appliedResolved.length > 0) this.checkpoint('apply');
 
     this.recoverTombstonedTagReferences(appliedResolved);
     this.stateMachine.transition('pushing');
@@ -386,6 +495,7 @@ export class InMemorySyncDevice {
         await this.publishVersionAncestry(capture.version);
         await this.publishVersion(capture.version);
         capture.version.published = true;
+        this.markEntityDirty(item.key);
         this.checkpoint('publish-edit');
         result.pushed++;
       }
@@ -394,6 +504,7 @@ export class InMemorySyncDevice {
         await this.publishBlobs(recovery.body.state);
         await this.publishVersion(recovery);
         recovery.published = true;
+        this.markEntityDirty(entityKey(recovery.body.entityType, recovery.body.entityId));
         this.checkpoint('publish-recovery-init');
         result.pushed++;
       }
@@ -405,6 +516,7 @@ export class InMemorySyncDevice {
         await this.publishVersionAncestry(item.version);
         await this.publishVersion(item.version);
         item.version.published = true;
+        this.markEntityDirty(item.key);
         this.checkpoint(
           item.version.body.kind === 'resolution' ? 'publish-resolution' : 'publish-join',
         );
@@ -421,84 +533,122 @@ export class InMemorySyncDevice {
       });
       if (settled) this.outbox.set(key, settled);
       else this.outbox.delete(key);
+      this.pendingCaptures.delete(key);
+      this.markEntityDirty(key);
     }
+    // External/production pages can advance immediately once their outbox
+    // batch settles. The frozen in-memory catalog preserves its original
+    // next-pass cursor timing through pumpSeedBatch().
+    if (this.seedItems.length === 0) this.advanceSeedCursorIfSettled();
     this.stateMachine.transition('verifying');
     this.stateMachine.transition(this.outbox.size > 0 ? 'dirty' : 'idle');
     this.checkpoint('settle');
+    result.changedEntityKeys = Array.from(this.passChangedKeys).sort();
+    result.appliedEntityKeys = Array.from(this.pendingMaterializationKeys).sort();
+    result.remoteApplied = this.pendingRemoteMaterializationKeys.size;
+    this.passChangedKeys.clear();
     return result;
   }
 
-  toDurableSnapshot(): EngineDurableSnapshot {
+  toDurableDelta(): EngineDurableDelta {
+    const entities = Array.from(this.durabilityDirtyKeys).sort().map((key) => ({
+      key,
+      domain: this.domain.get(key) ?? null,
+      generation: this.generations.get(key) ?? 0,
+      outbox: this.outbox.get(key) ?? null,
+      graph: this.graphs.get(key)?.toDurableState() ?? null,
+      appliedHeads: this.appliedHeads.get(key) ?? [],
+      degradedReason: this.degradedEntities.get(key) ?? null,
+    }));
+    const dirty = new Set(entities.map(({ key }) => key));
     return {
-      version: 1,
-      state: this.stateMachine.state,
-      domain: Array.from(this.domain.entries()),
-      generations: Array.from(this.generations.entries()),
-      outbox: Array.from(this.outbox.entries()),
-      graphs: Array.from(this.graphs, ([key, graph]) => [key, graph.toDurableState()]),
-      conflicts: Array.from(this.conflicts.entries()),
-      blobs: Array.from(this.blobs, ([hash, body]) => [hash, Array.from(body)]),
-      appliedHeads: Array.from(this.appliedHeads.entries()),
-      degradedEntities: Array.from(this.degradedEntities.entries()),
-      cursor: this.cursor ?? null,
-      pendingChangeObjects: this.pendingChangeObjects.map((object) => ({
-        ...object,
-        body: Array.from(object.body),
-      })),
-      pendingChangeCursor: this.pendingChangeCursor ?? null,
-      editSequence: this.editSequence,
-      logicalAuthoredAt: this.logicalAuthoredAt,
-      revokedKind: this.revokedKind,
-      seedItems: this.seedItems,
-      seedIndex: this.seedIndex,
-      seedAwaiting: Array.from(this.seedAwaiting),
-      seedAwaitingCursor: this.seedAwaitingCursor,
-      seedCursor: this.seedCursor,
-      purgeCursor: this.purgeCursor,
+      checkpoint: {
+        version: 2,
+        state: this.stateMachine.state,
+        cursor: this.cursor ?? null,
+        editSequence: this.editSequence,
+        logicalAuthoredAt: this.logicalAuthoredAt,
+        revokedKind: this.revokedKind,
+        seedAwaiting: Array.from(this.seedAwaiting),
+        seedAwaitingCursor: this.seedAwaitingCursor,
+        seedCursor: this.seedCursor,
+        seedComplete: this.seedComplete,
+        purgeCursor: this.purgeCursor,
+        pendingCaptures: Array.from(this.pendingCaptures.entries()),
+        pendingMaterializationKeys: Array.from(this.pendingMaterializationKeys),
+        pendingRemoteMaterializationKeys: Array.from(this.pendingRemoteMaterializationKeys),
+      },
+      entities,
+      conflicts: Array.from(this.conflicts.values()).filter((conflict) =>
+        dirty.has(entityKey(conflict.entityType, conflict.entityId)),
+      ),
+      blobs: Array.from(this.durabilityDirtyBlobs, (hash) => [hash, this.blobs.get(hash)!]),
+      clearStructuredState: this.clearStructuredState,
     };
   }
 
-  restoreDurableSnapshot(snapshot: EngineDurableSnapshot): void {
-    if (snapshot.version !== 1) throw new Error('Unsupported durable engine snapshot');
-    this.stateMachine = new SyncStateMachine(snapshot.state);
+  markDurable(): void {
+    this.durabilityDirtyKeys.clear();
+    this.durabilityDirtyBlobs.clear();
+    this.clearStructuredState = false;
+  }
+
+  restoreDurableState(
+    checkpoint: EngineDurableCheckpoint,
+    entities: EngineDurableEntity[],
+    conflicts: NonNullable<ResolutionResult['conflict']>[],
+    blobs: [string, Uint8Array][],
+  ): void {
+    if (checkpoint.version !== 2) throw new Error('Unsupported durable engine checkpoint');
+    this.stateMachine = new SyncStateMachine(checkpoint.state);
     this.domain.clear();
-    snapshot.domain.forEach(([key, value]) => this.domain.set(key, value));
     this.generations.clear();
-    snapshot.generations.forEach(([key, value]) => this.generations.set(key, value));
     this.outbox.clear();
-    snapshot.outbox.forEach(([key, value]) => this.outbox.set(key, value));
     this.graphs.clear();
-    for (const [key, durableGraph] of snapshot.graphs) {
-      const [type, id] = splitEntityKey(key);
-      const graph = new VersionGraph(this.vault.vaultId, type, id);
-      graph.restoreDurableState(durableGraph);
-      this.graphs.set(key, graph);
+    this.appliedHeads.clear();
+    this.degradedEntities.clear();
+    for (const entity of entities) {
+      const [type, id] = splitEntityKey(entity.key);
+      if (entity.domain) this.domain.set(entity.key, entity.domain);
+      this.generations.set(entity.key, entity.generation);
+      if (entity.outbox) this.outbox.set(entity.key, entity.outbox);
+      if (entity.graph) {
+        const graph = new VersionGraph(this.vault.vaultId, type, id);
+        graph.restoreDurableState(entity.graph);
+        this.graphs.set(entity.key, graph);
+      }
+      if (entity.appliedHeads.length > 0) this.appliedHeads.set(entity.key, entity.appliedHeads);
+      if (entity.degradedReason) this.degradedEntities.set(entity.key, entity.degradedReason);
     }
     this.conflicts.clear();
-    snapshot.conflicts.forEach(([key, value]) => this.conflicts.set(key, value));
+    conflicts.forEach((conflict) => this.conflicts.set(conflict.conflictId, conflict));
     this.blobs.clear();
-    snapshot.blobs.forEach(([hash, body]) => this.blobs.set(hash, Uint8Array.from(body)));
-    this.appliedHeads.clear();
-    snapshot.appliedHeads.forEach(([key, value]) => this.appliedHeads.set(key, value));
-    this.degradedEntities.clear();
-    snapshot.degradedEntities.forEach(([key, value]) => this.degradedEntities.set(key, value));
-    this.cursor = snapshot.cursor ?? undefined;
-    this.pendingChangeObjects = snapshot.pendingChangeObjects.map((object) => ({
-      ...object,
-      body: Uint8Array.from(object.body),
-    }));
-    this.pendingChangeCursor = snapshot.pendingChangeCursor ?? undefined;
-    this.editSequence = snapshot.editSequence;
-    this.logicalAuthoredAt = snapshot.logicalAuthoredAt;
+    blobs.forEach(([hash, body]) => this.blobs.set(hash, body));
+    this.cursor = checkpoint.cursor ?? undefined;
+    // A page cursor advances only after its complete page is persisted. An
+    // interrupted page is deliberately fetched again instead of checkpointing
+    // up to 100 MiB of untrusted remote bodies.
+    this.pendingChangeObjects = [];
+    this.pendingChangeCursor = undefined;
+    this.editSequence = checkpoint.editSequence;
+    this.logicalAuthoredAt = checkpoint.logicalAuthoredAt;
     this.connected = false;
-    this.revokedKind = snapshot.revokedKind;
-    this.seedItems = snapshot.seedItems;
-    this.seedIndex = snapshot.seedIndex;
-    this.seedAwaiting = new Set(snapshot.seedAwaiting);
-    this.seedAwaitingCursor = snapshot.seedAwaitingCursor;
-    this.seedCursor = snapshot.seedCursor;
-    this.purgeCursor = snapshot.purgeCursor;
+    this.revokedKind = checkpoint.revokedKind;
+    this.seedAwaiting = new Set(checkpoint.seedAwaiting);
+    this.seedAwaitingCursor = checkpoint.seedAwaitingCursor;
+    this.seedCursor = checkpoint.seedCursor;
+    this.seedComplete = checkpoint.seedComplete;
+    this.purgeCursor = checkpoint.purgeCursor;
+    this.pendingCaptures.clear();
+    checkpoint.pendingCaptures.forEach(([key, value]) => this.pendingCaptures.set(key, value));
+    this.pendingMaterializationKeys.clear();
+    checkpoint.pendingMaterializationKeys.forEach((key) => this.pendingMaterializationKeys.add(key));
+    this.pendingRemoteMaterializationKeys.clear();
+    checkpoint.pendingRemoteMaterializationKeys.forEach((key) =>
+      this.pendingRemoteMaterializationKeys.add(key),
+    );
     this.satisfyKnownRecoveries();
+    this.markDurable();
   }
 
   async revoke(kind: RevocationKind, revocationId: string, timestamp: number): Promise<void> {
@@ -531,37 +681,48 @@ export class InMemorySyncDevice {
     return graph;
   }
 
-  private pumpSeedBatch(): void {
+  private advanceSeedCursorIfSettled(): void {
     if (this.seedAwaiting.size > 0) {
       if (Array.from(this.seedAwaiting).some((key) => this.outbox.has(key))) return;
-      this.seedCursor = this.seedAwaitingCursor;
-      this.seedAwaiting.clear();
-      this.seedAwaitingCursor = null;
+      this.advanceSeedCursor();
+      this.checkpoint('seed-checkpoint');
     }
-    if (this.seedIndex >= this.seedItems.length) return;
+  }
+
+  private pumpSeedBatch(): void {
+    this.advanceSeedCursorIfSettled();
+    if (this.seedAwaiting.size > 0 || this.seedIndex >= this.seedItems.length) return;
 
     const batchId = deterministicId('tackbok-seed-batch-v1', this.vault.vaultId);
     let scanned = 0;
-    while (this.seedIndex < this.seedItems.length && scanned < SEED_BATCH_SIZE) {
-      const item = this.seedItems[this.seedIndex++];
-      const key = entityKey(item.type, item.id);
-      scanned++;
-      this.seedAwaitingCursor = key;
-      if (this.outbox.has(key)) {
+    this.durabilityBatchDepth++;
+    try {
+      while (this.seedIndex < this.seedItems.length && scanned < SEED_BATCH_SIZE) {
+        const item = this.seedItems[this.seedIndex++];
+        const key = entityKey(item.type, item.id);
+        scanned++;
+        this.seedAwaitingCursor = key;
+        if (this.outbox.has(key)) {
+          this.seedAwaiting.add(key);
+          continue;
+        }
+        const alreadyPublished =
+          (this.appliedHeads.get(key)?.length ?? 0) > 0 || this.graphFor(key).heads().length > 0;
+        if (alreadyPublished) continue;
+        this.mutate(item.type, item.id, this.domain.get(key) ?? item.state, batchId);
         this.seedAwaiting.add(key);
-        continue;
       }
-      const alreadyPublished =
-        (this.appliedHeads.get(key)?.length ?? 0) > 0 || this.graphFor(key).heads().length > 0;
-      if (alreadyPublished) continue;
-      this.mutate(item.type, item.id, this.domain.get(key) ?? item.state, batchId);
-      this.seedAwaiting.add(key);
+    } finally {
+      this.durabilityBatchDepth--;
     }
-    if (this.seedAwaiting.size === 0) {
-      this.seedCursor = this.seedAwaitingCursor;
-      this.seedAwaitingCursor = null;
-    }
+    if (this.seedAwaiting.size === 0) this.advanceSeedCursor();
     this.checkpoint('seed-checkpoint');
+  }
+
+  private advanceSeedCursor(): void {
+    this.seedCursor = this.seedAwaitingCursor;
+    this.seedAwaiting.clear();
+    this.seedAwaitingCursor = null;
   }
 
   private async pullAllChanges(): Promise<number> {
@@ -600,15 +761,20 @@ export class InMemorySyncDevice {
         }
         this.pendingChangeObjects.shift();
         if (key) entities.add(key);
+        if (key) this.passRemoteKeys.add(key);
         try {
           this.stageRemoteObject(object);
-          if (key) this.degradedEntities.delete(key);
+          if (key) {
+            this.degradedEntities.delete(key);
+            this.markEntityDirty(key);
+          }
         } catch (error) {
           if (key) {
             this.degradedEntities.set(
               key,
               error instanceof Error ? error.message : 'invalid remote object',
             );
+            this.markEntityDirty(key);
           }
         }
         pulled++;
@@ -638,6 +804,7 @@ export class InMemorySyncDevice {
     const body = JSON.parse(new TextDecoder().decode(object.body)) as EntityVersionBody;
     const version = graph.add(body, hash);
     version.published = true;
+    this.markEntityDirty(key);
   }
 
   private satisfyKnownRecoveries(): void {
@@ -664,6 +831,8 @@ export class InMemorySyncDevice {
     if (version.body.deleted || !version.body.state) this.domain.delete(key);
     else this.domain.set(key, version.body.state);
     this.appliedHeads.set(key, [version.hash]);
+    this.pendingMaterializationKeys.add(key);
+    this.markEntityDirty(key);
   }
 
   private async publishVersion(version: HashedVersion): Promise<void> {
@@ -690,6 +859,7 @@ export class InMemorySyncDevice {
         await this.publishBlobs(parent.body.state);
         await this.publishVersion(parent);
         parent.published = true;
+        this.markEntityDirty(key);
         this.checkpoint(
           parent.body.kind === 'edit'
             ? 'publish-edit'
@@ -715,6 +885,7 @@ export class InMemorySyncDevice {
         await this.publishBlobs(recovery.body.state);
         await this.publishVersion(recovery);
         recovery.published = true;
+        this.markEntityDirty(entityKey(recovery.body.entityType, recovery.body.entityId));
         this.checkpoint('publish-recovery-init');
       }
     }
@@ -780,13 +951,20 @@ export class InMemorySyncDevice {
 
   private async applyRevocation(kind: RevocationKind): Promise<void> {
     this.revokedKind = kind;
+    const existingKeys = new Set<EntityKey>([
+      ...this.domain.keys(), ...this.generations.keys(), ...this.outbox.keys(),
+      ...this.graphs.keys(), ...this.appliedHeads.keys(),
+    ]);
     if (kind === 'journal-deleted') {
       this.domain.clear();
       this.generations.clear();
       this.graphs.clear();
       this.appliedHeads.clear();
+      this.clearStructuredState = true;
     }
     this.outbox.clear();
+    this.pendingCaptures.clear();
+    existingKeys.forEach((key) => this.markEntityDirty(key));
     await this.purgeResidue();
     await this.provider.disconnect();
     this.connected = false;
@@ -809,7 +987,13 @@ export class InMemorySyncDevice {
   }
 
   private checkpoint(step: DurableSyncStep): void {
+    if (this.durabilityBatchDepth > 0) return;
     this.durability?.checkpoint(this, step);
+  }
+
+  private markEntityDirty(key: EntityKey): void {
+    this.durabilityDirtyKeys.add(key);
+    this.passChangedKeys.add(key);
   }
 
   private recoverTombstonedTagReferences(resolved: ResolvedEntity[]): void {

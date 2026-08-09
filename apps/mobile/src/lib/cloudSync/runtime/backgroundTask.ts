@@ -16,9 +16,13 @@ if (!TaskManager.isTaskDefined(CLOUD_SYNC_BACKGROUND_TASK)) {
   });
 }
 
-export async function registerCloudSyncBackgroundTask(): Promise<void> {
-  if (await TaskManager.isTaskRegisteredAsync(CLOUD_SYNC_BACKGROUND_TASK)) return;
-  await BackgroundTask.registerTaskAsync(CLOUD_SYNC_BACKGROUND_TASK, {
-    minimumInterval: 15,
-  });
+export async function setCloudSyncBackgroundTaskEnabled(enabled: boolean): Promise<void> {
+  const registered = await TaskManager.isTaskRegisteredAsync(CLOUD_SYNC_BACKGROUND_TASK);
+  if (!enabled) {
+    if (registered) await BackgroundTask.unregisterTaskAsync(CLOUD_SYNC_BACKGROUND_TASK);
+    return;
+  }
+  if (!registered) {
+    await BackgroundTask.registerTaskAsync(CLOUD_SYNC_BACKGROUND_TASK, { minimumInterval: 15 });
+  }
 }
