@@ -1,0 +1,101 @@
+{
+  "phase": "4b",
+  "timestamp": "2026-08-10T06:25:00+05:30",
+  "runtime": "host-machine",
+  "status": "ready-for-owner-review",
+  "commands": {
+    "phase4": {
+      "command": "bun run phase4:test",
+      "phase2SuitesPassed": 9,
+      "phase2TestsPassed": 73,
+      "focusedJestSuitesPassed": 3,
+      "focusedJestTestsPassed": 47,
+      "phase4BunTestsPassed": 98,
+      "phase4BunAssertionsPassed": 450,
+      "failed": 0
+    },
+    "fullJest": {
+      "command": "bun run test:jest -- --runInBand --no-watchman --silent",
+      "suitesPassed": 39,
+      "testsPassed": 338,
+      "failed": 0
+    },
+    "phase1": { "command": "bun run phase1:test", "testsPassed": 4, "failed": 0 },
+    "phase3": { "command": "bun run phase3:test", "testsPassed": 11, "failed": 0 },
+    "phase3Probe": {
+      "command": "bun run phase3:probe:test",
+      "testsPassed": 29,
+      "failed": 0
+    },
+    "mobileTypecheck": { "command": "bun x tsc --noEmit", "passed": true },
+    "mobileLint": {
+      "command": "bun run lint",
+      "errors": 0,
+      "preExistingWarnings": 18
+    },
+    "websiteTypecheck": { "command": "bun run typecheck", "passed": true },
+    "websiteLint": { "command": "bun run lint", "errors": 0 },
+    "websiteBuild": { "command": "bun run build", "pagesBuilt": 5, "passed": true },
+    "expoConfig": { "command": "bun x expo config --type public", "passed": true },
+    "diffCheck": { "command": "git diff --check", "passed": true }
+  },
+  "ui": {
+    "sharedSettingsAndOnboardingFlow": true,
+    "onboardingDriveRowIsFirst": true,
+    "onboardingFailureReturnsWithoutStateChange": true,
+    "settingsFrequencyMockRemoved": true,
+    "providerNeutralWifiMediaPreference": true,
+    "homeStatusHasTextAlternativeAndNonColorIcons": true,
+    "progressAnnouncementsPresent": true,
+    "destructiveActionsAreDistinct": true,
+    "disconnectIsLocalOnly": true,
+    "notificationPermissionRequested": false
+  },
+  "localization": {
+    "locales": ["en", "ar", "de", "he", "zh-CN", "zh-TW"],
+    "translationCompletenessTestsPassed": 22,
+    "missingKeys": 0,
+    "extraKeys": 0,
+    "placeholderMismatches": 0
+  },
+  "analytics": {
+    "surfacesChecked": [
+      "typed-event-catalog",
+      "event-tests",
+      "in-app-privacy-allowlist",
+      "website-policy"
+    ],
+    "cloudSyncEventCount": 6,
+    "allowlistConsistent": true,
+    "payloadsAreCoarseAndContentFree": true
+  },
+  "runtimeRegressions": {
+    "initialDriveRestoreIncludesPreExistingEntityHistory": true,
+    "initialDriveRestoreCursorIsRestartable": true,
+    "runtimeRestartReconstructsEngine": true,
+    "journalDeletedPerformsLocalWipeWithoutOutbox": true,
+    "wifiOnlyMediaLeavesTextSyncEnabled": true
+  },
+  "security": {
+    "protocolFilesModified": false,
+    "phase0HarnessModified": false,
+    "phase3HarnessModified": false,
+    "globalOAuthRevocationEndpointAdded": false,
+    "tokensPersistedOutsideSecureStore": false,
+    "accountLabelPersistedInSQLite": false,
+    "containsAccountIdentifiers": false,
+    "containsTokens": false,
+    "containsJournalData": false,
+    "containsHashes": false,
+    "containsDriveSessionUris": false
+  },
+  "limitations": {
+    "isPhysicalDeviceEvidence": false,
+    "interactiveOAuthExercised": false,
+    "screenReaderExercised": false,
+    "dynamicTypeVisualInspectionPerformed": false,
+    "rtlVisualInspectionPerformed": false,
+    "peakJsHeapMeasured": false,
+    "launchInteractivityMeasuredOnDevice": false
+  }
+}

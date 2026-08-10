@@ -24,9 +24,6 @@ import {
   updateProfileInTransaction,
 } from '~/lib/cloudSync/storage/repositories';
 
-// TODO: Implement actual functionality for all settings
-// This is currently a mock store - all values are stored but not yet connected to real features
-
 interface SettingsState {
   // Notifications
   dailyReminderEnabled: boolean;
@@ -53,9 +50,8 @@ interface SettingsState {
   // Security
   biometricUnlockEnabled: boolean;
 
-  // Backup
-  googleDriveBackupEnabled: boolean;
-  backupFrequency: 'daily' | 'weekly' | 'on_change';
+  // Cloud backup display/transfer preference. Connection state is authoritative in SQLite.
+  cloudSyncWifiOnlyMedia: boolean;
 
   // Privacy
   analyticsEnabled: boolean;
@@ -98,8 +94,7 @@ interface SettingsState {
   setTitleFont: (fontId: TitleFontSelection) => void;
   setBodyFontSize: (size: BodyFontSize) => void;
   setBiometricUnlockEnabled: (enabled: boolean) => void;
-  setGoogleDriveBackupEnabled: (enabled: boolean) => void;
-  setBackupFrequency: (frequency: 'daily' | 'weekly' | 'on_change') => void;
+  setCloudSyncWifiOnlyMedia: (enabled: boolean) => void;
   setAnalyticsEnabled: (enabled: boolean) => void;
   setLastUpdateCheckAt: (checkedAt: string) => void;
   setCustomWorksheetTemplate: (template: string | null) => void;
@@ -132,8 +127,7 @@ const DEFAULT_SETTINGS_VALUES = {
   titleFont: DEFAULT_TITLE_FONT_SELECTION,
   bodyFontSize: DEFAULT_BODY_FONT_SIZE,
   biometricUnlockEnabled: false,
-  googleDriveBackupEnabled: false,
-  backupFrequency: 'daily' as const,
+  cloudSyncWifiOnlyMedia: true,
   analyticsEnabled: false,
   lastUpdateCheckAt: null,
   customWorksheetTemplate: null,
@@ -198,9 +192,8 @@ export const useSettingsStore = create<SettingsState>()(
       },
       setBodyFontSize: (size) => set({ bodyFontSize: normalizeBodyFontSize(size) }),
       setBiometricUnlockEnabled: (enabled) => set({ biometricUnlockEnabled: enabled }),
-      setGoogleDriveBackupEnabled: (enabled) =>
-        set({ googleDriveBackupEnabled: enabled }),
-      setBackupFrequency: (frequency) => set({ backupFrequency: frequency }),
+      setCloudSyncWifiOnlyMedia: (enabled) =>
+        set({ cloudSyncWifiOnlyMedia: enabled }),
       setAnalyticsEnabled: (enabled) => set({ analyticsEnabled: enabled }),
       setLastUpdateCheckAt: (checkedAt) => set({ lastUpdateCheckAt: checkedAt }),
       setCustomWorksheetTemplate: (template) =>
@@ -228,7 +221,24 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'tackbok-settings',
+      version: 1,
       storage: createJSONStorage(() => AsyncStorage),
+      migrate: (persistedState) => {
+        const legacy = persistedState as Record<string, unknown> | undefined;
+        if (!legacy) return persistedState as SettingsState;
+        const {
+          googleDriveBackupEnabled: _legacyEnabled,
+          backupFrequency: _legacyFrequency,
+          ...providerNeutral
+        } = legacy;
+        return {
+          ...providerNeutral,
+          cloudSyncWifiOnlyMedia:
+            typeof providerNeutral.cloudSyncWifiOnlyMedia === 'boolean'
+              ? providerNeutral.cloudSyncWifiOnlyMedia
+              : true,
+        } as unknown as SettingsState;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
@@ -278,8 +288,7 @@ export const useSettingsStore = create<SettingsState>()(
         titleFont: state.titleFont,
         bodyFontSize: state.bodyFontSize,
         biometricUnlockEnabled: state.biometricUnlockEnabled,
-        googleDriveBackupEnabled: state.googleDriveBackupEnabled,
-        backupFrequency: state.backupFrequency,
+        cloudSyncWifiOnlyMedia: state.cloudSyncWifiOnlyMedia,
         analyticsEnabled: state.analyticsEnabled,
         lastUpdateCheckAt: state.lastUpdateCheckAt,
         customWorksheetTemplate: state.customWorksheetTemplate,

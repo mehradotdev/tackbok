@@ -29,7 +29,7 @@ import { Toaster } from '~/components/ui/toast';
 import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
 import {
-  createProductionSyncRuntime,
+  getProductionSyncRuntime,
   isProductionCloudSyncConfigured,
   setCloudSyncBackgroundTaskEnabled,
 } from '~/lib/cloudSync/runtime';
@@ -59,7 +59,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const cloudSyncRuntime = createProductionSyncRuntime({
+const cloudSyncRuntime = getProductionSyncRuntime({
   onRemoteApplied: () => queryClient.invalidateQueries(),
 });
 
@@ -234,6 +234,10 @@ export default function Layout() {
                     title: 'Settings',
                     headerShown: false,
                   }}
+                />
+                <Stack.Screen
+                  name="cloud-backup"
+                  options={{ title: 'Cloud Backup & Sync', headerShown: false }}
                 />
                 <Stack.Screen
                   name="dev-diagnostics"

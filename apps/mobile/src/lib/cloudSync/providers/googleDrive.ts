@@ -31,6 +31,7 @@ const CHUNK_SIZE = 256 * 1024;
 const SESSION_LIFETIME_MS = 6 * 24 * 60 * 60 * 1000;
 const FILE_FIELDS = 'id,name,size,appProperties,trashed';
 const GOOGLE_RESUMABLE_ORIGIN = 'https://www.googleapis.com';
+const INITIAL_RESTORE_CURSOR_PREFIX = 'tackbok-initial-restore:';
 
 export function isTrustedGoogleResumableSessionUri(uri: string): boolean {
   try {
@@ -421,7 +422,11 @@ export class GoogleDriveProvider implements CloudProvider {
       const response = await this.request(`${API}/changes/startPageToken?spaces=${APP_DATA}`);
       const body = (await response.json()) as { startPageToken?: unknown };
       if (typeof body.startPageToken !== 'string') throw new ProviderError('corrupt', 'Drive returned no change cursor');
-      return { objects: [], cursor: body.startPageToken };
+      return this.getInitialRestorePage(vault, body.startPageToken);
+    }
+    if (cursor.startsWith(INITIAL_RESTORE_CURSOR_PREFIX)) {
+      const state = this.decodeInitialRestoreCursor(cursor);
+      return this.getInitialRestorePage(vault, state.startPageToken, state.listPageToken);
     }
     const params = new URLSearchParams({
       pageToken: cursor,
@@ -444,6 +449,69 @@ export class GoogleDriveProvider implements CloudProvider {
       ? body.nextPageToken
       : typeof body.newStartPageToken === 'string' ? body.newStartPageToken : cursor;
     return { objects, cursor: next };
+  }
+
+  /**
+   * A Drive change token starts "now" and therefore cannot discover objects
+   * already in a vault. Before switching to that token, a newly attached
+   * device pages the immutable entity history that existed at connect time.
+   * The compound cursor makes both halves restartable without changing the
+   * protocol-v1 object format.
+   */
+  private async getInitialRestorePage(
+    vault: VaultRef,
+    startPageToken: string,
+    initialListPageToken?: string,
+  ): Promise<ChangePage> {
+    const query = `'${APP_DATA}' in parents and trashed=false and ${propertyClause(PROP_VAULT, vault.vaultId)}`;
+    let listPageToken = initialListPageToken;
+    do {
+      const page = await this.queryFilePage(query, listPageToken);
+      const entityFiles = page.files.filter((file) => logicalKey(file).startsWith('entities/'));
+      const objects = await Promise.all(
+        entityFiles.map(async (file) =>
+          this.remoteObject(file, await this.downloadVerified(file))),
+      );
+      objects.sort((a, b) => a.key.localeCompare(b.key) || a.fileId.localeCompare(b.fileId));
+      if (objects.length > 0) {
+        return {
+          objects,
+          cursor: page.nextPageToken
+            ? this.encodeInitialRestoreCursor(startPageToken, page.nextPageToken)
+            : startPageToken,
+        };
+      }
+      listPageToken = page.nextPageToken;
+    } while (listPageToken);
+    return { objects: [], cursor: startPageToken };
+  }
+
+  private encodeInitialRestoreCursor(startPageToken: string, listPageToken: string): string {
+    return `${INITIAL_RESTORE_CURSOR_PREFIX}${encodeURIComponent(JSON.stringify({
+      startPageToken,
+      listPageToken,
+    }))}`;
+  }
+
+  private decodeInitialRestoreCursor(cursor: string): {
+    startPageToken: string;
+    listPageToken: string;
+  } {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(
+        cursor.slice(INITIAL_RESTORE_CURSOR_PREFIX.length),
+      )) as { startPageToken?: unknown; listPageToken?: unknown };
+      if (
+        typeof parsed.startPageToken !== 'string' ||
+        typeof parsed.listPageToken !== 'string'
+      ) throw new Error('invalid');
+      return {
+        startPageToken: parsed.startPageToken,
+        listPageToken: parsed.listPageToken,
+      };
+    } catch {
+      throw new ProviderError('corrupt', 'Invalid initial restore cursor');
+    }
   }
 
   async getQuota(): Promise<ProviderQuota | null> {

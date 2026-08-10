@@ -346,12 +346,8 @@ export const en = {
   // Settings - Backup & Restore
   'Backup & Restore': 'Backup & Restore',
   'Google Drive Backup': 'Google Drive Backup',
-  'Automatically back up your entries with Google Drive':
-    'Log in with your Google Drive account to automatically back up your entries',
-  'Backup Frequency': 'Backup Frequency',
   Daily: 'Daily',
   Weekly: 'Weekly',
-  'On Every Change': 'On Every Change',
   'Export as .ZIP': 'Export as .ZIP',
   'All of your data in a format that you can restore in the app later':
     'All of your data in a format that you can restore in the app later',
@@ -461,10 +457,6 @@ export const en = {
   // Settings - Danger Zone
   'Danger Zone': 'Danger Zone',
   'Delete All Data': 'Delete All Data',
-  'Permanently delete all your app data': 'Permanently delete all your app data',
-  'Delete all data?': 'Delete all data?',
-  'This action cannot be undone. All your app data will be permanently deleted.':
-    'This action cannot be undone. All your app data will be permanently deleted.',
   'All data deleted': 'All data deleted',
   'All data deleted, but some media files could not be removed.':
     'All data deleted, but some media files could not be removed.',
@@ -531,7 +523,6 @@ export const en = {
   'Already have a journal? Import it': 'Already have a journal? Import it',
   'A private place for your gratitude. Free, offline, yours.':
     'A private place for your gratitude. Free, offline, yours.',
-  'Your journal stays on your device.': 'Your journal stays on your device.',
   'Import your journal': 'Import your journal',
   'Where is your journal coming from?': 'Where is your journal coming from?',
   'Tackbok Backup': 'Tackbok Backup',
@@ -685,4 +676,111 @@ export const en = {
   'dateFormat.short': '{month} {day}, {year}',
   'dateFormat.full': '{weekday}, {month} {day}, {year}',
   'dateFormat.timeLabel': '{weekday} at {time}',
+
+  // Cloud Backup & Sync
+  'Attention needed': 'Attention needed',
+  'Back up and sync your journal with your own Google Drive. No Tackbok account is created.':
+    'Back up and sync your journal with your own Google Drive. No Tackbok account is created.',
+  'Backup health verified': 'Backup health verified',
+  'Before you connect': 'Before you connect',
+  'Check the cloud copy and repair if needed': 'Check the cloud copy and repair if needed',
+  'Choose a backup to merge with this journal. Both sides are preserved.':
+    'Choose a backup to merge with this journal. Both sides are preserved.',
+  'Choose a backup to restore on this device.': 'Choose a backup to restore on this device.',
+  'Cloud Backup & Sync': 'Cloud Backup & Sync',
+  'Cloud backup connected': 'Cloud backup connected',
+  'Cloud backup could not be updated': 'Cloud backup could not be updated',
+  'Cloud backup deleted': 'Cloud backup deleted',
+  'Cloud backup deletion received': 'Cloud backup deletion received',
+  'Cloud backup {number}': 'Cloud backup {number}',
+  'Cloud data is protected in transit and by your storage provider. Tackbok does not end-to-end encrypt cloud backups in this version.':
+    'Cloud data is protected in transit and by your storage provider. Tackbok does not end-to-end encrypt cloud backups in this version.',
+  'Cloud restore started': 'Cloud restore started',
+  'Cloud sync: attention needed': 'Cloud sync: attention needed',
+  'Cloud sync: changes safely queued': 'Cloud sync: changes safely queued',
+  'Cloud sync: paused': 'Cloud sync: paused',
+  'Cloud sync: syncing': 'Cloud sync: syncing',
+  'Cloud sync: up to date': 'Cloud sync: up to date',
+  'Connect Google Drive': 'Connect Google Drive',
+  'Connecting…': 'Connecting…',
+  'Create cloud backup': 'Create cloud backup',
+  'Delete cloud and local journal data': 'Delete cloud and local journal data',
+  'Delete cloud backup': 'Delete cloud backup',
+  'Delete cloud backup?': 'Delete cloud backup?',
+  'Delete journal everywhere': 'Delete journal everywhere',
+  'Delete journal everywhere?': 'Delete journal everywhere?',
+  Disconnect: 'Disconnect',
+  'Disconnect Google Drive?': 'Disconnect Google Drive?',
+  'Disconnect provider': 'Disconnect provider',
+  'Disconnect, then delete local journal data only':
+    'Disconnect, then delete local journal data only',
+  'Edits remain safely queued on this device.': 'Edits remain safely queued on this device.',
+  Entry: 'Entry',
+  'Google Drive': 'Google Drive',
+  'Google Drive connected': 'Google Drive connected',
+  'Google Drive connection was not completed': 'Google Drive connection was not completed',
+  'Google Drive disconnected on this device': 'Google Drive disconnected on this device',
+  'Google Drive reconnected': 'Google Drive reconnected',
+  'Google Drive — {status}': 'Google Drive — {status}',
+  'Google shares basic account identity so Tackbok can show a masked account label. Your email is never added to backups, logs, diagnostics, or analytics.':
+    'Google shares basic account identity so Tackbok can show a masked account label. Your email is never added to backups, logs, diagnostics, or analytics.',
+  'Journal deletion received': 'Journal deletion received',
+  'Keep local data and the cloud copy': 'Keep local data and the cloud copy',
+  'Keep local journal data': 'Keep local journal data',
+  'Keep the cloud copy and other devices': 'Keep the cloud copy and other devices',
+  'Last successful sync: {date}': 'Last successful sync: {date}',
+  'Last verified: {date}': 'Last verified: {date}',
+  'Local data and the cloud backup will both remain. Other devices stay connected.':
+    'Local data and the cloud backup will both remain. Other devices stay connected.',
+  'Mark as reviewed': 'Mark as reviewed',
+  'No Tackbok backup found in this Google account':
+    'No Tackbok backup found in this Google account',
+  'No existing Tackbok backup was found. Create one for this journal.':
+    'No existing Tackbok backup was found. Create one for this journal.',
+  'Optional cloud backup': 'Optional cloud backup',
+  'Pause sync': 'Pause sync',
+  Profile: 'Profile',
+  Prompt: 'Prompt',
+  'Reconnect Google Drive': 'Reconnect Google Drive',
+  'Recovered conflicts': 'Recovered conflicts',
+  'Recovered conflicts marked as reviewed': 'Recovered conflicts marked as reviewed',
+  'Recovered {type} conflict — {count} preserved alternatives':
+    'Recovered {type} conflict — {count} preserved alternatives',
+  'Reset this device only': 'Reset this device only',
+  'Reset this device only?': 'Reset this device only?',
+  'Restore and merge': 'Restore and merge',
+  'Restore cloud backup': 'Restore cloud backup',
+  'Restore from your cloud backup': 'Restore from your cloud backup',
+  'Restoring…': 'Restoring…',
+  'Safely queued': 'Safely queued',
+  'Setting up cloud sync…': 'Setting up cloud sync…',
+  'Sync completed': 'Sync completed',
+  'Sync now': 'Sync now',
+  'Sync paused': 'Sync paused',
+  'Sync resumed': 'Sync resumed',
+  'Syncing…': 'Syncing…',
+  'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.':
+    'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.',
+  'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.':
+    'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.',
+  'The cloud copy will be permanently deleted after verification. Local journal data remains.':
+    'The cloud copy will be permanently deleted after verification. Local journal data remains.',
+  'This cloud backup was deleted. Local journal data remains on this device.':
+    'This cloud backup was deleted. Local journal data remains on this device.',
+  'This connects storage only. It does not create a Tackbok account.':
+    'This connects storage only. It does not create a Tackbok account.',
+  'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.':
+    'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
+  'This device was reset': 'This device was reset',
+  'This journal was deleted everywhere. This device is disconnected.':
+    'This journal was deleted everywhere. This device is disconnected.',
+  'Up to date': 'Up to date',
+  'Verify backup health': 'Verify backup health',
+  'Waiting for the first successful sync': 'Waiting for the first successful sync',
+  'Wi-Fi only for media': 'Wi-Fi only for media',
+  'You can leave this screen; syncing resumes when Tackbok is active.':
+    'You can leave this screen; syncing resumes when Tackbok is active.',
+  'Your journal stays on your device — with optional cloud backup.':
+    'Your journal stays on your device — with optional cloud backup.',
+  '{count} changes safely queued': '{count} changes safely queued',
 } satisfies Record<string, string>;

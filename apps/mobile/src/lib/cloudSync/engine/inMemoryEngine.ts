@@ -186,6 +186,10 @@ export class InMemorySyncDevice {
     return this.revokedKind !== null;
   }
 
+  get revocationKind(): RevocationKind | null {
+    return this.revokedKind;
+  }
+
   get seedingCheckpoint(): string | null {
     return this.seedCursor;
   }
@@ -196,6 +200,10 @@ export class InMemorySyncDevice {
 
   get isSeedingComplete(): boolean {
     return this.seedComplete;
+  }
+
+  get hasPendingPullWork(): boolean {
+    return this.pendingChangeObjects.length > 0;
   }
 
   get needsSeedPage(): boolean {

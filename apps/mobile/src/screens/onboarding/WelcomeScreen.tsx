@@ -1,8 +1,8 @@
-import { useCallback, type ComponentType } from 'react';
+import { useCallback, useRef, type ComponentType } from 'react';
 import { View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import { FileInput, ShieldCheck, X } from 'lucide-react-native';
+import { Cloud, FileInput, ShieldCheck, X } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
@@ -46,7 +46,7 @@ const TILE_PREVIEW_SIZE: Record<BodyFontSize, number> = {
 function ImportSourceSheet({
   onSelectSource,
 }: {
-  onSelectSource: (source: BackupImportSource) => void;
+  onSelectSource: (source: BackupImportSource | 'google-drive') => void;
 }) {
   const { t } = useTranslation();
   const [backgroundColor, themeRadiusStr, mutedFgColor] = useCSSVariable([
@@ -57,11 +57,17 @@ function ImportSourceSheet({
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
   const sources: {
-    source: BackupImportSource;
+    source: BackupImportSource | 'google-drive';
     label: string;
     description: string;
     icon: ComponentType;
   }[] = [
+    {
+      source: 'google-drive',
+      label: t('Google Drive Backup'),
+      description: t('Restore from your cloud backup'),
+      icon: Cloud,
+    },
     {
       source: 'tackbok',
       label: t('Tackbok Backup'),
@@ -144,6 +150,13 @@ export default function OnboardingWelcomeScreen() {
   const { t } = useTranslation();
   const bodyFontSize = useSettingsStore((s) => s.bodyFontSize);
   const setBodyFontSize = useSettingsStore((s) => s.setBodyFontSize);
+  const reopenImportSheet = useRef(false);
+
+  useFocusEffect(useCallback(() => {
+    if (!reopenImportSheet.current) return;
+    reopenImportSheet.current = false;
+    void TrueSheet.present(SHEET_NAMES.ONBOARDING_IMPORT);
+  }, []));
 
   useOnboardingStepView('welcome');
 
@@ -173,15 +186,18 @@ export default function OnboardingWelcomeScreen() {
   } = useBackupImportFlow(handleImportDone);
 
   const handleSelectImportSource = useCallback(
-    async (source: BackupImportSource) => {
+    async (source: BackupImportSource | 'google-drive') => {
       await TrueSheet.dismiss(SHEET_NAMES.ONBOARDING_IMPORT);
-      if (source === 'presently') {
+      if (source === 'google-drive') {
+        reopenImportSheet.current = true;
+        router.push('/cloud-backup?origin=onboarding' as Href);
+      } else if (source === 'presently') {
         await startPresentlyImport();
       } else {
         await selectImportFile(source as PendingImportSelection['source']);
       }
     },
-    [selectImportFile, startPresentlyImport],
+    [router, selectImportFile, startPresentlyImport],
   );
 
   return (
@@ -236,7 +252,7 @@ export default function OnboardingWelcomeScreen() {
         <View className="flex-row items-center gap-1.5 mt-3">
           <Icon as={ShieldCheck} className="text-muted-foreground size-4" />
           <Text className="text-sm text-muted-foreground">
-            {t('Your journal stays on your device.')}
+            {t('Your journal stays on your device — with optional cloud backup.')}
           </Text>
         </View>
       </View>

@@ -1,6 +1,6 @@
 import { AppState } from 'react-native';
 import * as Network from 'expo-network';
-import { and, isNotNull, ne } from 'drizzle-orm';
+import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db, sqlite } from '~/db';
 import { track } from '~/lib/analytics';
 import {
@@ -18,6 +18,7 @@ import {
   persistProductionEngineResult,
   registerProductionBlobSources,
   readNormalizedSeedPage,
+  wipeProductionJournalAfterRevocation,
 } from '../storage/engineDomain';
 import {
   isNormalizedModelReady,
@@ -32,32 +33,75 @@ class ProductionRuntimeEngine implements RuntimeSyncEngine {
     private readonly onRemoteApplied?: () => void | Promise<void>,
   ) {}
   get provider() { return this.engine.provider; }
+  hasPendingWork() {
+    return this.engine.hasPendingPullWork ||
+      (this.engine.needsSeedPage && this.engine.outbox.size === 0);
+  }
 
   async sync() {
-    await hashPendingProductionMedia();
-    await registerProductionBlobSources(this.engine);
-    await hydrateProductionOutbox(this.engine);
-    if (this.engine.needsSeedPage) {
-      const page = await readNormalizedSeedPage(this.engine.seedingCheckpoint);
-      this.engine.seedBatch(page.items, page.isFinalPage);
-    }
-    const priorConflicts = new Set(this.engine.conflicts.keys());
-    const result = await this.engine.sync({
-      // A save can commit while pull is in flight. Refreshing the transactional
-      // queue immediately before Apply makes the generation-CAS observe it.
-      beforeApply: () => hydrateProductionOutbox(this.engine),
-    });
-    for (const [conflictId, conflict] of this.engine.conflicts) {
-      if (!priorConflicts.has(conflictId)) {
-        track('cloud_sync_conflict_recovered', { entity_type: conflict.entityType });
+    setProductionCloudSyncActivity('syncing');
+    try {
+      const network = await Network.getNetworkStateAsync();
+      const mediaAllowed =
+        !useSettingsStore.getState().cloudSyncWifiOnlyMedia ||
+        network.type === Network.NetworkStateType.WIFI;
+      if (mediaAllowed) {
+        await hashPendingProductionMedia();
+        await registerProductionBlobSources(this.engine);
       }
+      await hydrateProductionOutbox(this.engine);
+      if (this.engine.needsSeedPage) {
+        const page = await readNormalizedSeedPage(this.engine.seedingCheckpoint);
+        this.engine.seedBatch(page.items, page.isFinalPage);
+      }
+      const priorConflicts = new Set(this.engine.conflicts.keys());
+      const result = await this.engine.sync({
+        // A save can commit while pull is in flight. Refreshing the transactional
+        // queue immediately before Apply makes the generation-CAS observe it.
+        beforeApply: () => hydrateProductionOutbox(this.engine),
+      });
+      if (result.revoked && this.engine.revocationKind === 'journal-deleted') {
+        await wipeProductionJournalAfterRevocation();
+      }
+      for (const [conflictId, conflict] of this.engine.conflicts) {
+        if (!priorConflicts.has(conflictId)) {
+          track('cloud_sync_conflict_recovered', { entity_type: conflict.entityType });
+        }
+      }
+      await materializeProductionDomain(this.engine, result.appliedEntityKeys);
+      await persistProductionEngineResult(this.engine, result.changedEntityKeys);
+      this.engine.acknowledgeMaterialized(result.appliedEntityKeys);
+      if (result.remoteApplied > 0) {
+        await this.onRemoteApplied?.();
+      } else if (this.engine.revocationKind === 'journal-deleted') {
+        await this.onRemoteApplied?.();
+      }
+      return result;
+    } finally {
+      setProductionCloudSyncActivity('idle');
     }
-    await materializeProductionDomain(this.engine, result.appliedEntityKeys);
-    await persistProductionEngineResult(this.engine, result.changedEntityKeys);
-    this.engine.acknowledgeMaterialized(result.appliedEntityKeys);
-    if (result.remoteApplied > 0) await this.onRemoteApplied?.();
-    return result;
   }
+}
+
+const productionCloudSyncListeners = new Set<() => void>();
+let productionCloudSyncActivity: 'idle' | 'syncing' = 'idle';
+
+export function getProductionCloudSyncActivity(): 'idle' | 'syncing' {
+  return productionCloudSyncActivity;
+}
+
+function setProductionCloudSyncActivity(activity: 'idle' | 'syncing'): void {
+  productionCloudSyncActivity = activity;
+  notifyProductionCloudSyncChanged();
+}
+
+export function subscribeProductionCloudSync(listener: () => void): () => void {
+  productionCloudSyncListeners.add(listener);
+  return () => productionCloudSyncListeners.delete(listener);
+}
+
+export function notifyProductionCloudSyncChanged(): void {
+  productionCloudSyncListeners.forEach((listener) => listener());
 }
 
 const platform: RuntimePlatform = {
@@ -95,8 +139,7 @@ export async function createProductionRuntimeEngine(
 ): Promise<RuntimeSyncEngine | null> {
   const [configured] = await db.select().from(cloudVault).where(and(
     isNotNull(cloudVault.remote_root_id),
-    ne(cloudVault.status, 'disabled'),
-    ne(cloudVault.status, 'revoked'),
+    inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);
   if (!configured?.remote_root_id || configured.provider_kind !== 'google-drive') return null;
 
@@ -116,8 +159,7 @@ export async function createProductionRuntimeEngine(
 export async function isProductionCloudSyncConfigured(): Promise<boolean> {
   const [configured] = await db.select({ vaultId: cloudVault.vault_id }).from(cloudVault).where(and(
     isNotNull(cloudVault.remote_root_id),
-    ne(cloudVault.status, 'disabled'),
-    ne(cloudVault.status, 'revoked'),
+    inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);
   return configured !== undefined;
 }
@@ -137,6 +179,33 @@ export function createProductionSyncRuntime(options: {
       failed: (category) => track('cloud_sync_failed', { category }),
     },
   });
+}
+
+let productionRuntime: SyncRuntime | null = null;
+
+export function getProductionSyncRuntime(options: {
+  onRemoteApplied?: () => void | Promise<void>;
+} = {}): SyncRuntime {
+  productionRuntime ??= createProductionSyncRuntime(options);
+  return productionRuntime;
+}
+
+export async function restartProductionSyncRuntime(): Promise<void> {
+  if (!productionRuntime) return;
+  productionRuntime.stop();
+  await productionRuntime.start();
+  notifyProductionCloudSyncChanged();
+}
+
+export function stopProductionSyncRuntime(): void {
+  productionRuntime?.stop();
+}
+
+export async function runProductionManualSync(): Promise<boolean> {
+  if (!productionRuntime) return false;
+  const result = await productionRuntime.run('manual');
+  notifyProductionCloudSyncChanged();
+  return result !== null;
 }
 
 export async function runProductionBackgroundPass(): Promise<boolean> {

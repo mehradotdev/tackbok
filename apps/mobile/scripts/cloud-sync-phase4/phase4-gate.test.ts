@@ -763,6 +763,35 @@ describe('SyncRuntime gate', () => {
     runtime.stop();
   });
 
+  test('stop and restart reconstructs the durable engine instead of retaining a vault', async () => {
+    const platform = new FakePlatform();
+    let enginesCreated = 0;
+    const enginePasses: number[] = [];
+    const runtime = new SyncRuntime({
+      platform,
+      readiness: { isReady: async () => true, retryBackfill: async () => undefined },
+      createEngine: async () => {
+        const engineIndex = enginesCreated++;
+        enginePasses[engineIndex] = 0;
+        return {
+          provider: { kind: 'google-drive' as const },
+          sync: async () => {
+            enginePasses[engineIndex]++;
+            return emptyResult();
+          },
+        };
+      },
+    });
+
+    await runtime.start();
+    runtime.stop();
+    await runtime.start();
+
+    expect(enginesCreated).toBe(2);
+    expect(enginePasses).toEqual([1, 1]);
+    runtime.stop();
+  });
+
   test('stop during an awaiting start cannot leak subscriptions', async () => {
     const onlineControl: { resolve?: (online: boolean) => void } = {};
     let subscriptions = 0;

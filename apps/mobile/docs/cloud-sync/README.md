@@ -17,7 +17,7 @@ requirements were met.
 | 2 — engine vs. the fake provider | ✅ closed ([gate](./phase2/gate.md)) |
 | 3 — Google Drive adapter | ✅ conditionally closed ([gate](./phase3/gate.md), [waiver](./phase3/waiver.md)) |
 | 4a/4a.1 — durable runtime (no UI) | ✅ closed ([gate](./phase4/gate.md), [review](./phase4/review-4a-2026-08-09.md)) |
-| 4b — UI + translations | green-lit; N4 merge-blocking |
+| 4b — UI + translations | changes requested 2026-08-10; N4 closed ([gate](./phase4/gate.md), [review](./phase4/review-4a-2026-08-09.md)) |
 | 5 — hardening + rollout | not started |
 | 6 — background-transfer decision | blocked: needs a physical device |
 

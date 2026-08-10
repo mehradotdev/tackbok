@@ -5,6 +5,7 @@ import { toCloudSyncCountBucket, toCloudSyncDurationBucket } from '../../analyti
 export interface RuntimeSyncEngine {
   readonly provider: { readonly kind: 'google-drive' | 'dropbox' };
   sync(): Promise<SyncPassResult>;
+  hasPendingWork?(): boolean;
 }
 
 export interface RuntimeSubscription { remove(): void; }
@@ -107,6 +108,10 @@ export class SyncRuntime {
     this.debounceTimer = null;
     this.readinessTimer = null;
     this.rerunTrigger = null;
+    // A later start must reconstruct from the durable checkpoint. Retaining an
+    // engine here would keep the previous vault attached across Disconnect →
+    // connect or pause/resume and bypass the vault-switch teardown in load().
+    this.engine = null;
   }
 
   async runBoundedBackgroundPass(
@@ -160,6 +165,7 @@ export class SyncRuntime {
         pulled_bucket: toCloudSyncCountBucket(result.pulled),
         pushed_bucket: toCloudSyncCountBucket(result.pushed),
       });
+      if (this.engine?.hasPendingWork?.()) this.rerunTrigger = trigger;
       return result;
     } catch (error) {
       this.options.analytics?.failed(failureCategory(error));

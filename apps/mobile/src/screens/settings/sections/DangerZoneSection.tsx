@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react-native';
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { QUERY_KEYS } from '~/hooks/useGratitude';
-import { deleteAllData } from '~/db/queries';
+import { resetThisDeviceOnly } from '~/lib/cloudSync/ui';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
@@ -37,7 +37,7 @@ export function DangerZoneSection() {
     try {
       // Wipe the DB first — if this throws, the files are still intact
       // and the catch block will surface the error to the user.
-      const { retainedMediaForSync } = await deleteAllData();
+      await resetThisDeviceOnly();
       // Reset persisted app settings alongside the DB wipe so Delete All Data
       // restores the app to its default state.
       resetSettingsToDefaults();
@@ -55,17 +55,15 @@ export function DangerZoneSection() {
       // Attempt both cleanups regardless of individual failures so that a
       // photos error never silently leaves voice memos on disk (and vice versa).
       const cleanupErrors: string[] = [];
-      if (!retainedMediaForSync) {
-        try {
-          deleteAllPhotos();
-        } catch (error) {
-          cleanupErrors.push(error instanceof Error ? error.message : String(error));
-        }
-        try {
-          deleteAllVoiceMemos();
-        } catch (error) {
-          cleanupErrors.push(error instanceof Error ? error.message : String(error));
-        }
+      try {
+        deleteAllPhotos();
+      } catch (error) {
+        cleanupErrors.push(error instanceof Error ? error.message : String(error));
+      }
+      try {
+        deleteAllVoiceMemos();
+      } catch (error) {
+        cleanupErrors.push(error instanceof Error ? error.message : String(error));
       }
       if (cleanupErrors.length > 0) {
         toast.warning(t('All data deleted, but some media files could not be removed.'), {
@@ -73,10 +71,11 @@ export function DangerZoneSection() {
           duration: 8000,
         });
       } else {
-        toast.success(t('All data deleted'));
+        toast.success(t('This device was reset'));
       }
-      // Navigate to home screen
-      router.dismissTo('/');
+      // A device-only reset returns to onboarding, matching the cloud-backup
+      // screen and making the restore entry point immediately available.
+      router.replace('/onboarding/welcome');
     } catch (error) {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
@@ -87,8 +86,8 @@ export function DangerZoneSection() {
     <>
       <SettingsSection title={t('Danger Zone')}>
         <SettingsRow
-          label={t('Delete All Data')}
-          description={t('Permanently delete all your app data')}
+          label={t('Reset this device only')}
+          description={t('Disconnect, then delete local journal data only')}
           icon={Trash2}
           onPress={() => setShowDeleteConfirmDialog(true)}
           showChevron
@@ -102,10 +101,10 @@ export function DangerZoneSection() {
         onOpenChange={setShowDeleteConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Delete all data?')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('Reset this device only?')}</AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                'This action cannot be undone. All your app data will be permanently deleted.',
+                'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -116,7 +115,7 @@ export function DangerZoneSection() {
             <AlertDialogDestructiveAction
               onPress={handleDeleteAllData}
               delaySeconds={DELETE_CONFIRM_DELAY_SECONDS}>
-              <Text>{t('Delete All Data')}</Text>
+              <Text>{t('Reset this device only')}</Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>

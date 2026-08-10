@@ -5,8 +5,8 @@ import SiteHeader from '~/components/SiteHeader.astro';
 
 const title = 'Privacy Policy — Tackbok';
 const description =
-  "Learn how Tackbok handles your data. Your journal entries stay on your device — we don't collect or store them.";
-const lastUpdated = 'July 25, 2026';
+  'Learn how Tackbok handles local journal data, optional Google Drive backups, and opt-in analytics.';
+const lastUpdated = 'August 10, 2026';
 const supportEmail = 'tackbok.support@mehra.dev';
 ---
 
@@ -37,8 +37,9 @@ const supportEmail = 'tackbok.support@mehra.dev';
         </h2>
         <p>
           The <strong>Tackbok</strong> application does not require you to create an account.
-          Therefore, we neither store nor have access to your personal entries and data remotely.
-          Your data is stored locally on your device, and all data processing is done locally.
+          Therefore, we neither store nor have access to your personal entries on our
+          servers. Your data is stored and processed locally unless you explicitly enable
+          the optional Google Drive backup described below.
         </p>
         <p>
           We obtain your email address only when you explicitly request support via email.
@@ -74,6 +75,16 @@ const supportEmail = 'tackbok.support@mehra.dev';
           servers, nor do we share your Google user data with any third parties. This integration
           is provided solely for your convenience to keep your data safe.
         </p>
+        <p>
+          Cloud backup data is protected in transit and by Google Drive. Tackbok does
+          <strong> not provide end-to-end encryption for cloud backups in this version</strong>.
+          Google supplies basic account identity only so the app can show a masked account
+          label. On Android, the selected account email may be kept beside credentials in
+          secure device storage so background refresh cannot switch accounts; it is deleted
+          on Disconnect and is never written to a backup, app database, log,
+          diagnostic report, or analytics event. Disconnect affects only that device and
+          does not revoke Tackbok's Google access for other connected devices.
+        </p>
 
         <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
           Analytics (Opt-In, Off by Default)
@@ -95,6 +106,15 @@ const supportEmail = 'tackbok.support@mehra.dev';
           could hint at your journal's contents, such as an entry's length or how many
           entries you have, the app reports a coarse range (for example "51–200") instead
           of the exact value.
+        </p>
+        <p>
+          If you turn on the optional cloud backup, it can send a few anonymous
+          events of the same kind — for example when a backup starts, finishes, or
+          fails. These record only coarse facts, such as which storage provider you
+          chose, roughly how long a backup took, and whether it worked. They never
+          include your journal text, your photos or recordings, your file names, or
+          your email address. The app's privacy screen always shows the complete,
+          up-to-date list.
         </p>
         <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
           Data Sharing and Disclosure

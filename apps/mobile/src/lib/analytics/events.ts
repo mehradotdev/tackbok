@@ -34,6 +34,7 @@ export const SCREEN_ROUTE_MAP = {
   '/appearance': 'appearance',
   '/insights': 'insights',
   '/settings': 'settings',
+  '/cloud-backup': 'cloud_backup',
 } as const;
 
 export type ScreenName = (typeof SCREEN_ROUTE_MAP)[keyof typeof SCREEN_ROUTE_MAP];
@@ -128,6 +129,16 @@ export type AnalyticsEvents = {
 };
 
 export type AnalyticsEventName = keyof AnalyticsEvents;
+
+/** §10 cloud-sync catalog; imported by the in-app privacy disclosure and gate. */
+export const CLOUD_SYNC_ANALYTICS_EVENT_NAMES = [
+  'cloud_sync_connected',
+  'cloud_sync_started',
+  'cloud_sync_succeeded',
+  'cloud_sync_failed',
+  'cloud_sync_conflict_recovered',
+  'cloud_sync_repair_result',
+] as const satisfies readonly AnalyticsEventName[];
 
 export function toCharBucket(charCount: number): CharBucket {
   if (charCount <= 50) return '0-50';

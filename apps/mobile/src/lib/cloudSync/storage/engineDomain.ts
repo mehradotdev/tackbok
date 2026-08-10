@@ -9,6 +9,7 @@ import {
   syncChangeQueue,
   syncRetainedMedia,
   syncMediaObligations,
+  syncProviderState,
   tags,
   userProfile,
 } from '~/db';
@@ -19,6 +20,8 @@ import { hashLocalMediaFile } from '../media/streamingHash';
 import { shouldAdoptQueuedGeneration } from './queueReconciliation';
 import { generateUUID } from '~/lib/utils';
 import { AssetType, type Asset } from '~/types';
+import { deleteAllPhotos } from '~/lib/photoUtils';
+import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 
 function descriptor(row: typeof mediaAssets.$inferSelect): AssetDescriptor {
   return {
@@ -275,10 +278,41 @@ export async function persistProductionEngineResult(
 
     await tx.update(cloudVault).set({
       seeding_checkpoint: engine.seedingCheckpoint,
-      status: engine.isRevoked ? 'revoked' : engine.outbox.size > 0 ? 'dirty' : 'idle',
+      status: engine.isRevoked
+        ? 'revoked'
+        : engine.hasPendingPullWork
+          ? 'restoring'
+          : engine.outbox.size > 0
+            ? 'dirty'
+            : 'idle',
       updated_at: now,
     }).where(eq(cloudVault.vault_id, engine.vault.vaultId));
+    await tx.insert(syncProviderState).values({
+      provider_kind: engine.provider.kind,
+      last_success_at: now,
+      updated_at: now,
+    }).onConflictDoUpdate({
+      target: syncProviderState.provider_kind,
+      set: { last_success_at: now, error_code: null, updated_at: now },
+    });
   });
+}
+
+/** Applies the strict journal-deleted outcome without creating fresh outbox intent. */
+export async function wipeProductionJournalAfterRevocation(): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.delete(entryTags);
+    await tx.delete(mediaAssets);
+    await tx.delete(entries);
+    await tx.delete(tags);
+    await tx.delete(customPrompts);
+    await tx.delete(userProfile);
+    await tx.delete(syncMediaObligations);
+    await tx.delete(syncRetainedMedia);
+    await tx.delete(syncChangeQueue);
+  });
+  try { deleteAllPhotos(); } catch { /* The DB wipe remains authoritative. */ }
+  try { deleteAllVoiceMemos(); } catch { /* The DB wipe remains authoritative. */ }
 }
 
 /** Materializes only CAS-approved engine heads into the normalized/UI read model. */

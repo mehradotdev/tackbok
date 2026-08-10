@@ -574,10 +574,12 @@ export class SQLiteSyncEngine {
   get appliedHeads() { return this.core.appliedHeads; }
   get degradedEntities() { return this.core.degradedEntities; }
   get isRevoked() { return this.core.isRevoked; }
+  get revocationKind() { return this.core.revocationKind; }
   get seedingCheckpoint() { return this.core.seedingCheckpoint; }
   get isSeeding() { return this.core.isSeeding; }
   get isSeedingComplete() { return this.core.isSeedingComplete; }
   get needsSeedPage() { return this.core.needsSeedPage; }
+  get hasPendingPullWork() { return this.core.hasPendingPullWork; }
 
   initialize(): Promise<void> { return this.core.initialize(); }
   putBlob(bytes: Uint8Array): string { return this.core.putBlob(bytes); }

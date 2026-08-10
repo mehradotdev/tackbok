@@ -274,6 +274,62 @@ test('large download resumes into a durable sink and verifies the complete hash'
   expect(durable).toEqual(bytes);
 });
 
+test('initial change discovery restores pre-existing entity history before live changes', async () => {
+  const auth = new FakeAuth();
+  const firstBytes = new Uint8Array([1, 2]);
+  const secondBytes = new Uint8Array([3, 4]);
+  const first = file(
+    'entity-1',
+    'entities/entry/first/version.json',
+    sha256Bytes(firstBytes),
+  );
+  const second = file(
+    'entity-2',
+    'entities/entry/second/version.json',
+    sha256Bytes(secondBytes),
+  );
+  const blob = file('blob', `blobs/aa/${'a'.repeat(64)}`, 'a'.repeat(64));
+  const provider = new GoogleDriveProvider({
+    auth,
+    pageSize: 2,
+    fetch: async (url) => {
+      if (url.includes('/changes/startPageToken')) {
+        return response(200, { startPageToken: 'live-token' });
+      }
+      if (url.includes('/files?') && url.includes('pageToken=list-2')) {
+        return response(200, { files: [second] });
+      }
+      if (url.includes('/files?')) {
+        return response(200, { files: [first, blob], nextPageToken: 'list-2' });
+      }
+      if (url.includes('/entity-1?alt=media')) {
+        return response(200, {}, { bytes: firstBytes });
+      }
+      if (url.includes('/entity-2?alt=media')) {
+        return response(200, {}, { bytes: secondBytes });
+      }
+      if (url.includes('/changes?')) {
+        return response(200, { newStartPageToken: 'next-live-token', changes: [] });
+      }
+      throw new Error(`Unexpected request ${url}`);
+    },
+  });
+  const vault = { vaultId: 'vault', remoteRootId: 'root' };
+
+  const firstPage = await provider.getChanges(vault);
+  expect(firstPage.objects.map(({ key }) => key)).toEqual([first.appProperties.tb_key]);
+  expect(firstPage.cursor).toContain('tackbok-initial-restore:');
+
+  const secondPage = await provider.getChanges(vault, firstPage.cursor ?? undefined);
+  expect(secondPage.objects.map(({ key }) => key)).toEqual([second.appProperties.tb_key]);
+  expect(secondPage.cursor).toBe('live-token');
+
+  await expect(provider.getChanges(vault, secondPage.cursor ?? undefined)).resolves.toEqual({
+    objects: [],
+    cursor: 'next-live-token',
+  });
+});
+
 test('permanent delete is idempotent and purge preserves revocation markers', async () => {
   const auth = new FakeAuth();
   const entity = file('entity-file', 'entities/entry/e/v.json', 'a'.repeat(64));
