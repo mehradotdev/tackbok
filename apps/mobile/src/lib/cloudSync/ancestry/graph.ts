@@ -164,9 +164,20 @@ export class VersionGraph {
   satisfyRecoveryDependency(
     hash: string,
     identity: { entityType: string; entityId: string },
-  ): void {
+  ): boolean {
+    const existing = this.recoveryDependencies.get(hash);
+    if (existing) {
+      if (
+        existing.entityType !== identity.entityType ||
+        existing.entityId !== identity.entityId
+      ) {
+        throw new Error('Recovery dependency identity mismatch');
+      }
+      return false;
+    }
     this.recoveryDependencies.set(hash, identity);
     this.refreshCompleteness();
+    return true;
   }
 
   heads(): string[] {

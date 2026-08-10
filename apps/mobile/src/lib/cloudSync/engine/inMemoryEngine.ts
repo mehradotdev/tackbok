@@ -164,6 +164,14 @@ export class InMemorySyncDevice {
   private readonly passRemoteKeys = new Set<EntityKey>();
   private readonly pendingMaterializationKeys = new Set<EntityKey>();
   private readonly pendingRemoteMaterializationKeys = new Set<EntityKey>();
+  /** Graphs whose heads may have changed since their last Apply. */
+  private readonly pendingResolutionKeys = new Set<EntityKey>();
+  /** Cross-entity recovery lookup, maintained incrementally after restoration. */
+  private readonly knownVersions = new Map<
+    string,
+    { entityType: EntityType; entityId: string }
+  >();
+  private readonly recoveryDependents = new Map<string, Set<EntityKey>>();
   private durabilityBatchDepth = 0;
 
   constructor(
@@ -400,6 +408,7 @@ export class InMemorySyncDevice {
           });
       if (!pendingVersion) {
         this.graphFor(key).add(capture.version.body, capture.version.hash);
+        this.indexVersion(key, capture.version);
         this.pendingCaptures.set(key, {
           versionHash: capture.version.hash,
           capturedGeneration: capture.capturedGeneration,
@@ -407,17 +416,19 @@ export class InMemorySyncDevice {
         this.markEntityDirty(key);
       }
       captures.set(key, capture);
+      this.pendingResolutionKeys.add(key);
     }
     if (captures.size > 0) this.checkpoint('provisional');
 
     const resolved: ResolvedEntity[] = [];
-    const allKeys = Array.from(this.graphs.keys()).sort(
+    const resolveKeys = Array.from(this.pendingResolutionKeys).sort(
       (left, right) => graphSort(left) - graphSort(right) || left.localeCompare(right),
     );
-    for (const key of allKeys) {
+    for (const key of resolveKeys) {
       // Pull and stage remote ancestry, but never resolve/apply over a local
       // mutation whose media is not publishable yet.
       if (deferredKeys.has(key)) continue;
+      this.pendingResolutionKeys.delete(key);
       const graph = this.graphFor(key);
       const heads = graph.heads();
       if (heads.length === 0) continue;
@@ -445,6 +456,7 @@ export class InMemorySyncDevice {
       for (const recovery of resolution.recoveries) {
         const recoveryKey = entityKey(recovery.body.entityType, recovery.body.entityId);
         this.graphFor(recoveryKey).add(recovery.body, recovery.hash);
+        this.indexVersion(recoveryKey, recovery);
         this.markEntityDirty(recoveryKey);
         graph.satisfyRecoveryDependency(recovery.hash, {
           entityType: recovery.body.entityType,
@@ -452,6 +464,7 @@ export class InMemorySyncDevice {
         });
       }
       graph.add(resolution.resolution.body, resolution.resolution.hash);
+      this.indexVersion(key, resolution.resolution);
       this.markEntityDirty(key);
       if (resolution.conflict) {
         validateConflictRecord(resolution.conflict);
@@ -471,6 +484,7 @@ export class InMemorySyncDevice {
       const currentGeneration = this.generations.get(item.key) ?? 0;
       if (!canApplyAtGeneration(item.capturedGeneration, currentGeneration)) {
         result.skippedByCas++;
+        this.pendingResolutionKeys.add(item.key);
         continue;
       }
       this.applyVersion(item.key, item.version);
@@ -607,6 +621,9 @@ export class InMemorySyncDevice {
     this.graphs.clear();
     this.appliedHeads.clear();
     this.degradedEntities.clear();
+    this.pendingResolutionKeys.clear();
+    this.knownVersions.clear();
+    this.recoveryDependents.clear();
     for (const entity of entities) {
       const [type, id] = splitEntityKey(entity.key);
       if (entity.domain) this.domain.set(entity.key, entity.domain);
@@ -647,7 +664,20 @@ export class InMemorySyncDevice {
     checkpoint.pendingRemoteMaterializationKeys.forEach((key) =>
       this.pendingRemoteMaterializationKeys.add(key),
     );
-    this.satisfyKnownRecoveries();
+    this.rebuildRecoveryIndex();
+    for (const [key, graph] of this.graphs) {
+      const heads = graph.heads();
+      const applied = this.appliedHeads.get(key) ?? [];
+      if (
+        heads.length !== applied.length ||
+        heads.some((hash, index) => hash !== applied[index])
+      ) {
+        this.pendingResolutionKeys.add(key);
+      }
+    }
+    // Index reconstruction can persist newly satisfied recovery metadata on a
+    // later real change, but it is not itself a user-visible pass change.
+    this.passChangedKeys.clear();
     this.markDurable();
   }
 
@@ -735,7 +765,6 @@ export class InMemorySyncDevice {
         const next = page.cursor ?? cursor;
         if (page.objects.length === 0 || next === cursor) {
           this.cursor = next;
-          this.satisfyKnownRecoveries();
           return pulled;
         }
         this.pendingChangeObjects = [...page.objects];
@@ -756,12 +785,12 @@ export class InMemorySyncDevice {
           !entities.has(key) &&
           entities.size >= PROTOCOL_V1_CAPS.entitiesPerPass
         ) {
-          this.satisfyKnownRecoveries();
           return pulled;
         }
         this.pendingChangeObjects.shift();
         if (key) entities.add(key);
         if (key) this.passRemoteKeys.add(key);
+        if (key) this.pendingResolutionKeys.add(key);
         try {
           this.stageRemoteObject(object);
           if (key) {
@@ -804,27 +833,56 @@ export class InMemorySyncDevice {
     const body = JSON.parse(new TextDecoder().decode(object.body)) as EntityVersionBody;
     const version = graph.add(body, hash);
     version.published = true;
+    this.indexVersion(key, version);
     this.markEntityDirty(key);
   }
 
-  private satisfyKnownRecoveries(): void {
-    const known = new Map<string, { entityType: EntityType; entityId: string }>();
-    for (const graph of this.graphs.values()) {
-      for (const version of graph.values()) {
-        known.set(version.hash, {
-          entityType: version.body.entityType,
-          entityId: version.body.entityId,
-        });
-      }
+  private rebuildRecoveryIndex(): void {
+    for (const [key, graph] of this.graphs) {
+      for (const version of graph.values()) this.indexVersion(key, version, false);
     }
-    for (const graph of this.graphs.values()) {
-      for (const version of graph.incomplete()) {
-        for (const recovery of version.body.recoveries) {
-          const identity = known.get(recovery.versionHash);
-          if (identity) graph.satisfyRecoveryDependency(recovery.versionHash, identity);
-        }
-      }
+  }
+
+  private indexVersion(
+    key: EntityKey,
+    version: HashedVersion,
+    enqueueDependents = true,
+  ): void {
+    const identity = {
+      entityType: version.body.entityType,
+      entityId: version.body.entityId,
+    };
+    const known = this.knownVersions.get(version.hash);
+    if (
+      known &&
+      (known.entityType !== identity.entityType || known.entityId !== identity.entityId)
+    ) {
+      throw new Error('Recovery dependency identity mismatch');
     }
+    this.knownVersions.set(version.hash, identity);
+
+    for (const recovery of version.body.recoveries) {
+      const dependents = this.recoveryDependents.get(recovery.versionHash) ?? new Set<EntityKey>();
+      dependents.add(key);
+      this.recoveryDependents.set(recovery.versionHash, dependents);
+      const recovered = this.knownVersions.get(recovery.versionHash);
+      if (recovered) this.satisfyIndexedRecovery(key, recovery.versionHash, recovered, enqueueDependents);
+    }
+    for (const dependentKey of this.recoveryDependents.get(version.hash) ?? []) {
+      this.satisfyIndexedRecovery(dependentKey, version.hash, identity, enqueueDependents);
+    }
+  }
+
+  private satisfyIndexedRecovery(
+    dependentKey: EntityKey,
+    hash: string,
+    identity: { entityType: EntityType; entityId: string },
+    enqueue: boolean,
+  ): void {
+    const graph = this.graphs.get(dependentKey);
+    if (!graph || !graph.satisfyRecoveryDependency(hash, identity)) return;
+    if (enqueue) this.pendingResolutionKeys.add(dependentKey);
+    this.markEntityDirty(dependentKey);
   }
 
   private applyVersion(key: EntityKey, version: HashedVersion): void {
@@ -1057,6 +1115,7 @@ export class InMemorySyncDevice {
           derivedTimestamp: item.version.body.derivedTimestamp,
         });
         this.graphFor(entityKey('tag', recoveredId)).add(recovery.body, recovery.hash);
+        this.indexVersion(entityKey('tag', recoveredId), recovery);
         this.applyVersion(entityKey('tag', recoveredId), recovery);
         item.recoveries.unshift(recovery);
         rewritten[index] = recoveredId;
@@ -1086,6 +1145,7 @@ export class InMemorySyncDevice {
           });
         }
         graph.add(rewrittenVersion.body, rewrittenVersion.hash);
+        this.indexVersion(item.key, rewrittenVersion);
         item.version = rewrittenVersion;
         this.applyVersion(item.key, rewrittenVersion);
       }

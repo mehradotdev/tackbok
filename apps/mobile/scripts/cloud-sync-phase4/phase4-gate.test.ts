@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import golden from '../../src/lib/cloudSync/phase0/fixtures/golden-v1.json';
 import { canonicalBytes } from '../../src/lib/cloudSync/codec';
 import type { DomainState, EntityType, EntryState } from '../../src/lib/cloudSync/domain/types';
+import { createEditVersion, createSystemVersion } from '../../src/lib/cloudSync/domain/version';
 import {
   SQLiteEngineCheckpointStore,
   SQLiteSyncEngine,
@@ -61,6 +62,8 @@ function store(): SQLiteEngineCheckpointStore {
       applied INTEGER NOT NULL DEFAULT 0, published INTEGER NOT NULL DEFAULT 0,
       canonical_body TEXT, body_path TEXT, created_at INTEGER NOT NULL
     );
+    CREATE INDEX sync_versions_entity_idx ON sync_versions(entity_type, entity_id);
+    CREATE INDEX sync_versions_vault_idx ON sync_versions(vault_id);
     CREATE TABLE sync_conflicts (
       conflict_id TEXT PRIMARY KEY NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL,
       head_hashes TEXT NOT NULL, resolution_type TEXT NOT NULL,
@@ -95,6 +98,52 @@ async function setup(pageSize = 20) {
   return { provider, vault };
 }
 
+async function putRemoteVersion(
+  provider: FakeCloudProvider,
+  vault: Awaited<ReturnType<typeof setup>>['vault'],
+  version: ReturnType<typeof createEditVersion> | ReturnType<typeof createSystemVersion>,
+) {
+  await provider.putImmutable(
+    vault,
+    `entities/${version.body.entityType}/${version.body.entityId}/${version.hash}.json`,
+    new TextEncoder().encode(version.canonical),
+  );
+}
+
+/**
+ * The general fake provider intentionally implements listings as full array
+ * scans. For the engine scale probe, expose the already-created immutable
+ * objects through an indexed cursor so provider O(n) work per page does not
+ * masquerade as engine O(n) work per pass.
+ */
+function indexedRestoreView(provider: FakeCloudProvider, vault: Awaited<ReturnType<typeof setup>>['vault']) {
+  const changes = provider.physicalObjects(vault)
+    .filter((object) => object.key.startsWith('entities/'))
+    .sort((left, right) => left.sequence - right.sequence);
+  return new Proxy(provider, {
+    get(target, property, receiver) {
+      if (property === 'getChanges') {
+        return async (_vault: typeof vault, cursor?: string) => {
+          const offset = cursor ? Number(cursor) : 0;
+          const objects = changes.slice(offset, offset + target.pageSize);
+          return {
+            objects,
+            cursor: objects.length > 0 ? String(offset + objects.length) : String(offset),
+          };
+        };
+      }
+      if (property === 'list') {
+        return async (_vault: typeof vault, prefix: string) => {
+          if (prefix === 'revocations/') return { objects: [], cursor: null };
+          return target.list(_vault, prefix);
+        };
+      }
+      const value = Reflect.get(target, property, receiver) as unknown;
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
+
 describe('SQLite engine catalog and restart gate', () => {
   test('a structured queue row cannot resurrect an already-settled durable generation', () => {
     expect(shouldAdoptQueuedGeneration({
@@ -112,6 +161,98 @@ describe('SQLite engine catalog and restart gate', () => {
       durableOutboxGeneration: 7,
       durableEntityGeneration: 7,
     })).toBe(false);
+  });
+
+  test('a later cross-entity recovery re-enqueues the graph that depended on it', async () => {
+    const { provider, vault } = await setup(20);
+    const checkpoint = store();
+    const root = createEditVersion({
+      vaultId: vault.vaultId,
+      entityType: 'entry',
+      entityId: 'dependent',
+      parents: [],
+      state: entry('root'),
+      authorDeviceId: 'source',
+      editSequence: 1,
+      authoredAt: 1,
+    });
+    const recovery = createSystemVersion({
+      vaultId: vault.vaultId,
+      entityType: 'entry',
+      entityId: 'recovered',
+      kind: 'recovery-init',
+      parents: [],
+      state: entry('recovered'),
+      derivedTimestamp: 2,
+    });
+    const resolution = createSystemVersion({
+      vaultId: vault.vaultId,
+      entityType: 'entry',
+      entityId: 'dependent',
+      kind: 'resolution',
+      parents: [root.hash],
+      state: entry('resolved-after-recovery'),
+      recoveries: [{
+        entityType: 'entry',
+        entityId: 'recovered',
+        versionHash: recovery.hash,
+      }],
+      derivedTimestamp: 2,
+    });
+    await putRemoteVersion(provider, vault, root);
+    await putRemoteVersion(provider, vault, resolution);
+
+    let restoring = new SQLiteSyncEngine('restoring', vault, provider, checkpoint);
+    await restoring.sync();
+    expect(restoring.snapshot()['entry:dependent']).toMatchObject({ content: 'root' });
+    expect(restoring.graphs.get('entry:dependent')?.get(resolution.hash)?.status)
+      .toBe('incomplete');
+
+    await putRemoteVersion(provider, vault, recovery);
+    // Reconstruct before the recovery arrives to prove the reverse dependency
+    // index is rebuilt from SQLite rather than relying on process-local state.
+    restoring = new SQLiteSyncEngine('restoring', vault, provider, checkpoint);
+    await restoring.sync();
+    expect(restoring.snapshot()['entry:dependent'])
+      .toMatchObject({ content: 'resolved-after-recovery' });
+    expect(restoring.graphs.get('entry:dependent')?.get(resolution.hash)?.status)
+      .toBe('complete');
+  });
+
+  test('switching vaults cannot restore another vault\'s heads, queue, or conflicts', async () => {
+    const provider = new FakeCloudProvider(20);
+    await provider.connect();
+    const { vault: firstVault } = await provider.createVaultMarker(
+      'first-vault',
+      canonicalBytes({ magic: 'tackbok-vault', formatVersion: 1, vaultId: 'first-vault' }),
+    );
+    const { vault: secondVault } = await provider.createVaultMarker(
+      'second-vault',
+      canonicalBytes({ magic: 'tackbok-vault', formatVersion: 1, vaultId: 'second-vault' }),
+    );
+    const checkpoint = store();
+    const first = new SQLiteSyncEngine('same-device', firstVault, provider, checkpoint);
+    first.mutate('entry', 'shared-entry', entry('published in first vault'));
+    await first.sync();
+    first.mutate('entry', 'shared-entry', entry('queued only in first vault'));
+    const database = databases.at(-1)!;
+    database.query(
+      `INSERT INTO sync_conflicts(
+         conflict_id, entity_type, entity_id, head_hashes, resolution_type,
+         recovered_entities, alternate_scalars, created_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run('first-conflict', 'entry', 'shared-entry', '[]', 'test', '[]', '[]', 1);
+
+    const switched = new SQLiteSyncEngine('same-device', secondVault, provider, checkpoint);
+    expect(switched.snapshot()).toEqual({});
+    expect(switched.outbox.size).toBe(0);
+    expect(switched.graphs.size).toBe(0);
+    expect(switched.appliedHeads.size).toBe(0);
+    expect(switched.conflicts.size).toBe(0);
+    expect(database.query('SELECT COUNT(*) AS count FROM sync_versions').get())
+      .toEqual({ count: 0 });
+    expect(database.query('SELECT COUNT(*) AS count FROM sync_engine_checkpoints').get())
+      .toEqual({ count: 0 });
   });
 
   test.each(golden.scenarios.map(({ id }) => id))(
@@ -385,6 +526,60 @@ describe('SQLite engine catalog and restart gate', () => {
     expect(results[1].checkpointBytesWritten).toBeLessThan(20 * 1024 * 1024);
     process.stdout.write(`${JSON.stringify({ phase4Scale: results })}\n`);
   }, 30_000);
+
+  test('10,000/20,000-entity restore work scales near-linearly with touched keys', async () => {
+    const results: {
+      entities: number;
+      passes: number;
+      syncElapsedMs: number;
+      quietPassMs: number;
+    }[] = [];
+    for (const total of [10_000, 20_000]) {
+      const { provider, vault } = await setup(500);
+      for (let index = 0; index < total; index++) {
+        const id = `restore-${String(index).padStart(5, '0')}`;
+        await putRemoteVersion(provider, vault, createEditVersion({
+          vaultId: vault.vaultId,
+          entityType: 'entry',
+          entityId: id,
+          parents: [],
+          state: entry(`restore-${index}`),
+          authorDeviceId: 'source',
+          editSequence: index + 1,
+          authoredAt: index + 1,
+        }));
+      }
+      const checkpoint = store();
+      const restoring = new SQLiteSyncEngine(
+        `restore-${total}`,
+        vault,
+        indexedRestoreView(provider, vault),
+        checkpoint,
+      );
+      let passes = 0;
+      let syncElapsedMs = 0;
+      while (restoring.domain.size < total) {
+        const startedAt = performance.now();
+        await restoring.sync();
+        syncElapsedMs += performance.now() - startedAt;
+        passes++;
+        expect(passes).toBeLessThanOrEqual(Math.ceil(total / 500) + 2);
+      }
+      const quietStartedAt = performance.now();
+      await restoring.sync();
+      const quietPassMs = performance.now() - quietStartedAt;
+      results.push({
+        entities: total,
+        passes,
+        syncElapsedMs: Math.round(syncElapsedMs),
+        quietPassMs: Math.round(quietPassMs),
+      });
+    }
+    const ratio = results[1].syncElapsedMs / results[0].syncElapsedMs;
+    process.stdout.write(`${JSON.stringify({ phase4RestoreScale: results, ratio })}\n`);
+    expect(ratio).toBeLessThan(3);
+    expect(results[1].passes / results[0].passes).toBeLessThan(2.1);
+  }, 120_000);
 
   test('general chaos and revocation schedules converge across a restart after every pass', async () => {
     for (let seed = 1; seed <= 12; seed++) {

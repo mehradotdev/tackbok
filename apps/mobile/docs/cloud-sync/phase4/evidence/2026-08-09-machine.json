@@ -1,13 +1,13 @@
 {
-  "phase": "4a",
-  "timestamp": "2026-08-09T22:20:40+05:30",
+  "phase": "4a.1",
+  "timestamp": "2026-08-10T05:12:00+05:30",
   "runtime": "host-machine",
   "commands": {
     "phase4": {
       "command": "bun run phase4:test",
       "phase2SuitesPassed": 9,
       "phase2TestsPassed": 73,
-      "phase4BunTestsPassed": 88,
+      "phase4BunTestsPassed": 91,
       "failed": 0
     },
     "fullJest": {
@@ -43,6 +43,26 @@
     "seededEntities": 80,
     "aheadOfCursorEntity": "redacted-test-fixture",
     "normalizedApplyReplayAfterRestart": true,
+    "lateRecoveryRequeuesDependentAfterRestart": true,
+    "vaultSwitchIsolation": true,
+    "restoreScaleProbe": {
+      "providerModel": "indexed host cursor over immutable FakeCloudProvider objects",
+      "ownerReviewBaseline": [
+        { "entities": 10000, "syncElapsedMs": 7600 },
+        { "entities": 20000, "syncElapsedMs": 30400 }
+      ],
+      "intermediateSqlScanBaseline": [
+        { "entities": 10000, "syncElapsedMs": 6768 },
+        { "entities": 20000, "syncElapsedMs": 26079 }
+      ],
+      "after": [
+        { "entities": 10000, "passes": 20, "syncElapsedMs": 610, "quietPassMs": 0 },
+        { "entities": 20000, "passes": 40, "syncElapsedMs": 1198, "quietPassMs": 0 }
+      ],
+      "twoXEntityWorkRatio": 1.9639344262295082,
+      "isPhysicalDeviceEvidence": false,
+      "measuresPeakJsHeap": false
+    },
     "scaleProbe": [
       {
         "entities": 500,

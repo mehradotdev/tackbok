@@ -2,13 +2,16 @@
 
 Date: 2026-08-09
 
-Status: **CLOSED — accepted at re-review 2026-08-10. Phase 4b may start.**
-B1, B2, B3 and S1–S5 from the [Phase-4a owner review](./review-4a-2026-08-09.md)
-are closed and independently re-verified; see the re-review section at the end
-of that document. Four follow-on items are recorded there: **N4 (privacy-screen
-and website analytics allowlist) is merge-blocking before cloud sync is
-user-reachable**, N3 gates the Phase-5 Disconnect path, and N1/N2 are §13
-scale obligations carried to Phase 6 with the existing device waivers.
+Status: **CLOSED — 4a and 4a.1 accepted at owner re-review 2026-08-10. Phase 4b
+may start.**
+B1, B2, B3, S1–S5, N1 and N3 from the
+[Phase-4a owner review](./review-4a-2026-08-09.md) are closed and independently
+re-verified; see the two re-review sections at the end of that document.
+**N4 (privacy-screen and website analytics allowlist) remains merge-blocking
+before cloud sync is user-reachable.** N2 (peak JS heap) and N5 (synchronous
+launch load, measured at 607 ms per 20,000 entities on the host and untested on
+device against §13's 5-second interactivity target) are Phase-6
+physical-device obligations.
 
 Phase 4 was split for reviewability. This gate covers only the durable SQLite
 engine and runtime wiring requested for **4a**. It adds no screens, settings UI,
@@ -30,7 +33,7 @@ warnings).
   asserted at least one successful restore. Initial seed pages are supplied by
   the test's normalized-source cursor, matching production. The command also
   re-ran the original Phase-2 suite: **9 suites / 73 tests**. The Phase-4 Bun
-  gate itself passed **88/88**.
+  gate itself passed **91/91**.
 - [x] **Restart injection covers every §5.5 boundary and the revocation marker.**
   The SQLite gate killed and reconstructed the engine after blob, edit,
   recovery-init, resolution, join, and revocation-marker publication. Every
@@ -102,6 +105,49 @@ warnings).
   trigger, entity type, normalized category, and coarse count/duration buckets.
   No token, account label, ID, hash, filename, URI, or journal field is accepted.
 
+## Phase-4a.1 evidence — N1 and N3
+
+- [x] **Restore resolution is driven by touched keys, including late
+  dependencies.** Pulled keys, provisional captures, CAS retries, degraded
+  entities receiving a later valid object, and graphs awakened by a later
+  cross-entity recovery are placed in `pendingResolutionKeys`. A reverse
+  recovery-dependency index is rebuilt once at process restoration and then
+  maintained incrementally. A focused regression reconstructs the SQLite
+  engine after receiving an incomplete resolution, delivers its recovery in a
+  later pass, and verifies that the dependent graph becomes complete and is
+  applied without a full-vault walk.
+- [x] **Engine sync work across a restore is no longer quadratic on the host
+  probe.** This measures one long-lived engine across bounded passes, which is
+  the production shape; it is not an end-to-end restore including per-launch
+  reconstruction. The owner-review baseline reported 7,600 ms at 10,000 entities
+  and 30,400 ms at 20,000 (4.00×). During 4a.1, the same 10,000/20,000 shape
+  also exposed a redundant per-entity `UPDATE sync_versions` whose vault-only
+  query plan caused 6,768/26,079 ms (3.85×) even after touched-key resolution.
+  The update was removed because each complete dirty-graph delta already
+  upserts every version's exact `applied` bit. Final evidence from
+  `bun run phase4:test`:
+
+  | Restored entities | Bounded passes | Sync work | Quiet pass |
+  | ---: | ---: | ---: | ---: |
+  | 10,000 | 20 | 610 ms | < 1 ms |
+  | 20,000 | 40 | 1,198 ms | < 1 ms |
+
+  Two times the entities required 1.96× the measured sync work. The probe uses
+  a real in-memory SQLite store and the ordinary remote-Apply path. Its
+  immutable fake remote objects are exposed through an indexed cursor because
+  `FakeCloudProvider` itself performs a full array scan/sort per page. These
+  are **host-only** timings, not physical-device or §13 heap evidence.
+- [x] **A vault switch cannot restore the prior vault's structured state.**
+  Reads from `sync_entity_state`, `sync_change_queue`, and `sync_conflicts` are
+  scoped through device/vault-owned engine rows. Because those Phase-1 tables
+  predate multi-vault columns, opening a different vault on the same device
+  also transactionally tears down the previous engine replica—versions,
+  heads, queue, conflicts, checkpoints, metadata, and gate-only blobs—then
+  rebuilds from the normalized journal and the selected remote vault. A direct
+  same-device/same-entity-ID vault-switch test verifies no old head, queue,
+  conflict, version, or checkpoint is restored. Journal rows and retained
+  media are outside the teardown.
+
 ## Implementation notes
 
 - Migration `0005_normal_mauler.sql` adds the atomic
@@ -138,3 +184,7 @@ warnings).
 - Peak JS heap during restore (§13, ≤ 250 MB) has **not** been measured by
   anyone; the bounded-checkpoint probe above measures serialization volume, not
   residency. See N2.
+- Synchronous engine construction at launch was measured by the owner at 607 ms
+  per 20,000 entities on a desktop host and scales linearly, implying ~1.5 s at
+  50,000 there. It has **not** been measured on a device against §13's "app
+  interactive ≤ 5 s during restore". See N5.

@@ -83,6 +83,7 @@ export class SQLiteEngineCheckpointStore implements SyncEngineCheckpointStore {
 
   load(deviceId: string, vaultId: string): EngineDurableRestore | null {
     this.stats.loadCount++;
+    this.teardownPreviousVault(deviceId, vaultId);
     const row = this.database.getFirstSync<{ snapshot_json: string }>(
       'SELECT snapshot_json FROM sync_engine_checkpoints WHERE device_id = ? AND vault_id = ?',
       deviceId,
@@ -113,7 +114,20 @@ export class SQLiteEngineCheckpointStore implements SyncEngineCheckpointStore {
       current_head_hashes: string;
       local_generation: number;
       tombstone: number;
-    }>('SELECT entity_type, entity_id, current_head_hashes, local_generation, tombstone FROM sync_entity_state');
+    }>(`SELECT state.entity_type, state.entity_id, state.current_head_hashes,
+               state.local_generation, state.tombstone
+        FROM sync_entity_state AS state
+        WHERE EXISTS (
+          SELECT 1 FROM sync_engine_entity_metadata AS metadata
+          WHERE metadata.device_id = ? AND metadata.vault_id = ?
+            AND metadata.entity_type = state.entity_type
+            AND metadata.entity_id = state.entity_id
+        ) OR EXISTS (
+          SELECT 1 FROM sync_engine_local_domain AS local
+          WHERE local.device_id = ? AND local.vault_id = ?
+            AND local.entity_type = state.entity_type
+            AND local.entity_id = state.entity_id
+        )`, deviceId, vaultId, deviceId, vaultId);
     const queueRows = this.database.getAllSync<{
       entity_type: EntityType;
       entity_id: string;
@@ -122,7 +136,15 @@ export class SQLiteEngineCheckpointStore implements SyncEngineCheckpointStore {
       generation: number;
       batch_id: string | null;
       created_at: number;
-    }>('SELECT entity_type, entity_id, action, base_head_hashes, generation, batch_id, created_at FROM sync_change_queue');
+    }>(`SELECT queue.entity_type, queue.entity_id, queue.action, queue.base_head_hashes,
+               queue.generation, queue.batch_id, queue.created_at
+        FROM sync_change_queue AS queue
+        WHERE EXISTS (
+          SELECT 1 FROM sync_engine_local_domain AS local
+          WHERE local.device_id = ? AND local.vault_id = ?
+            AND local.entity_type = queue.entity_type
+            AND local.entity_id = queue.entity_id
+        )`, deviceId, vaultId);
     const versionRows = this.database.getAllSync<{
       version_hash: string;
       entity_type: EntityType;
@@ -234,8 +256,16 @@ export class SQLiteEngineCheckpointStore implements SyncEngineCheckpointStore {
       resolution_type: string;
       recovered_entities: string;
       alternate_scalars: string;
-    }>(`SELECT conflict_id, entity_type, entity_id, head_hashes, resolution_type,
-               recovered_entities, alternate_scalars FROM sync_conflicts`)
+    }>(`SELECT conflict.conflict_id, conflict.entity_type, conflict.entity_id,
+               conflict.head_hashes, conflict.resolution_type,
+               conflict.recovered_entities, conflict.alternate_scalars
+        FROM sync_conflicts AS conflict
+        WHERE EXISTS (
+          SELECT 1 FROM sync_engine_entity_metadata AS metadata
+          WHERE metadata.device_id = ? AND metadata.vault_id = ?
+            AND metadata.entity_type = conflict.entity_type
+            AND metadata.entity_id = conflict.entity_id
+        )`, deviceId, vaultId)
       .map((item): ConflictRecord => ({
         conflictId: item.conflict_id,
         entityType: item.entity_type,
@@ -257,6 +287,39 @@ export class SQLiteEngineCheckpointStore implements SyncEngineCheckpointStore {
     return { checkpoint, entities, conflicts, blobs };
   }
 
+  /**
+   * The Phase-1 state/queue/conflict tables predate multi-vault scoping. A
+   * device opening a different vault therefore discards the prior engine
+   * replica and rebuilds from the normalized model plus the new remote vault.
+   * Local journal/media tables are deliberately outside this teardown.
+   */
+  private teardownPreviousVault(deviceId: string, vaultId: string): void {
+    const previous = this.database.getFirstSync<{ vault_id: string }>(
+      `SELECT vault_id FROM sync_engine_checkpoints
+       WHERE device_id = ? AND vault_id <> ? LIMIT 1`,
+      deviceId,
+      vaultId,
+    );
+    if (!previous) return;
+
+    this.database.execSync('BEGIN IMMEDIATE');
+    try {
+      this.database.runSync('DELETE FROM sync_entity_state');
+      this.database.runSync('DELETE FROM sync_change_queue');
+      this.database.runSync('DELETE FROM sync_conflicts');
+      this.database.runSync('DELETE FROM sync_versions');
+      this.database.runSync('DELETE FROM sync_engine_entity_metadata');
+      this.database.runSync('DELETE FROM sync_engine_local_domain');
+      this.database.runSync('DELETE FROM sync_engine_local_blobs');
+      this.database.runSync('DELETE FROM sync_engine_checkpoints');
+      this.database.execSync('COMMIT');
+    } catch (error) {
+      this.database.execSync('ROLLBACK');
+      throw error;
+    }
+    this.lastCheckpoint.clear();
+  }
+
   save(deviceId: string, vaultId: string, delta: EngineDurableDelta): void {
     const encoded = JSON.stringify(delta.checkpoint);
     const checkpointKey = this.checkpointKey(deviceId, vaultId);
@@ -265,9 +328,38 @@ export class SQLiteEngineCheckpointStore implements SyncEngineCheckpointStore {
     try {
       if (delta.clearStructuredState) {
         this.database.runSync('DELETE FROM sync_versions WHERE vault_id = ?', vaultId);
-        this.database.runSync('DELETE FROM sync_entity_state');
-        this.database.runSync('DELETE FROM sync_change_queue');
-        this.database.runSync('DELETE FROM sync_conflicts');
+        this.database.runSync(
+          `DELETE FROM sync_conflicts WHERE EXISTS (
+             SELECT 1 FROM sync_engine_entity_metadata AS metadata
+             WHERE metadata.device_id = ? AND metadata.vault_id = ?
+               AND metadata.entity_type = sync_conflicts.entity_type
+               AND metadata.entity_id = sync_conflicts.entity_id
+           )`,
+          deviceId, vaultId,
+        );
+        this.database.runSync(
+          `DELETE FROM sync_change_queue WHERE EXISTS (
+             SELECT 1 FROM sync_engine_local_domain AS local
+             WHERE local.device_id = ? AND local.vault_id = ?
+               AND local.entity_type = sync_change_queue.entity_type
+               AND local.entity_id = sync_change_queue.entity_id
+           )`,
+          deviceId, vaultId,
+        );
+        this.database.runSync(
+          `DELETE FROM sync_entity_state WHERE EXISTS (
+             SELECT 1 FROM sync_engine_entity_metadata AS metadata
+             WHERE metadata.device_id = ? AND metadata.vault_id = ?
+               AND metadata.entity_type = sync_entity_state.entity_type
+               AND metadata.entity_id = sync_entity_state.entity_id
+           ) OR EXISTS (
+             SELECT 1 FROM sync_engine_local_domain AS local
+             WHERE local.device_id = ? AND local.vault_id = ?
+               AND local.entity_type = sync_entity_state.entity_type
+               AND local.entity_id = sync_entity_state.entity_id
+           )`,
+          deviceId, vaultId, deviceId, vaultId,
+        );
         this.database.runSync(
           'DELETE FROM sync_engine_entity_metadata WHERE device_id = ? AND vault_id = ?',
           deviceId,
@@ -339,10 +431,10 @@ export class SQLiteEngineCheckpointStore implements SyncEngineCheckpointStore {
           );
         }
         if (entity.graph) {
-          this.database.runSync(
-            'UPDATE sync_versions SET applied = 0 WHERE vault_id = ? AND entity_type = ? AND entity_id = ?',
-            vaultId, type, id,
-          );
+          // The durable delta contains the graph's complete version set, and
+          // every upsert below writes its exact applied bit. A preceding
+          // vault/entity UPDATE is redundant and makes a large restore
+          // quadratic when SQLite chooses the vault-only index.
           for (const version of entity.graph.versions) {
             const canonical = hashVersion(version.body).canonical;
             this.database.runSync(
