@@ -1,10 +1,10 @@
 import { Image } from 'react-native';
 import { Paths, File, Directory } from 'expo-file-system';
+import { randomUUID } from 'expo-crypto';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { PHOTO_MAX_DIMENSION, PHOTO_QUALITY, PHOTOS_DIR_NAME } from '~/constants';
 import { type Asset, AssetType } from '~/types';
-import { generateUUID } from '~/lib/utils';
 
 /** Returns the photos directory (creates it if it doesn't exist). */
 function getPhotosDir(): Directory {
@@ -177,7 +177,7 @@ export async function compressAndSavePhoto(sourceUri: string): Promise<Asset> {
   });
 
   // 2. Copy to permanent location with a UUID filename
-  const filename = `${generateUUID()}.jpg`;
+  const filename = `${randomUUID()}.jpg`;
   const srcFile = new File(saved.uri);
   const destFile = new File(photosDir, filename);
   await srcFile.copy(destFile);

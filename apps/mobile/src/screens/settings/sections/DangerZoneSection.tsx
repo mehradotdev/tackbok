@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react-native';
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { QUERY_KEYS } from '~/hooks/useGratitude';
-import { resetThisDeviceOnly } from '~/lib/cloudSync/ui';
+import { resetThisDeviceOnly, useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
@@ -22,13 +22,15 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 
 export function DangerZoneSection() {
   const router = useRouter();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const resetSettingsToDefaults = useSettingsStore((state) => state.resetToDefaults);
+  const { snapshot } = useCloudSyncSnapshot();
+  const hasConfiguredCloudVault = snapshot.configured;
 
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
 
@@ -71,7 +73,9 @@ export function DangerZoneSection() {
           duration: 8000,
         });
       } else {
-        toast.success(t('This device was reset'));
+        toast.success(
+          t(hasConfiguredCloudVault ? 'This device was reset' : 'All data deleted'),
+        );
       }
       // A device-only reset returns to onboarding, matching the cloud-backup
       // screen and making the restore entry point immediately available.
@@ -80,14 +84,20 @@ export function DangerZoneSection() {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
     }
-  }, [t, router, queryClient, resetSettingsToDefaults]);
+  }, [t, router, queryClient, resetSettingsToDefaults, hasConfiguredCloudVault]);
 
   return (
     <>
       <SettingsSection title={t('Danger Zone')}>
         <SettingsRow
-          label={t('Reset this device only')}
-          description={t('Disconnect, then delete local journal data only')}
+          label={t(
+            hasConfiguredCloudVault ? 'Reset this device only' : 'Delete All Data',
+          )}
+          description={t(
+            hasConfiguredCloudVault
+              ? 'Disconnect, then delete local journal data only'
+              : 'Permanently delete all your app data',
+          )}
           icon={Trash2}
           onPress={() => setShowDeleteConfirmDialog(true)}
           showChevron
@@ -101,10 +111,16 @@ export function DangerZoneSection() {
         onOpenChange={setShowDeleteConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Reset this device only?')}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t(
+                hasConfiguredCloudVault ? 'Reset this device only?' : 'Delete all data?',
+              )}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
+                hasConfiguredCloudVault
+                  ? 'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.'
+                  : 'This action cannot be undone. All your app data will be permanently deleted.',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -115,7 +131,11 @@ export function DangerZoneSection() {
             <AlertDialogDestructiveAction
               onPress={handleDeleteAllData}
               delaySeconds={DELETE_CONFIRM_DELAY_SECONDS}>
-              <Text>{t('Reset this device only')}</Text>
+              <Text>
+                {t(
+                  hasConfiguredCloudVault ? 'Reset this device only' : 'Delete All Data',
+                )}
+              </Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import {
-  Palette,
-  AlignLeft,
-  Calendar,
-  CalendarDays,
-  Table2,
-} from 'lucide-react-native';
+import { Palette, AlignLeft, Calendar, CalendarDays, Table2 } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
@@ -16,7 +10,7 @@ import { Icon } from '~/components/ui/icon';
 import { Switch } from '~/components/ui/switch';
 import { SettingsSlider } from '~/components/ui/slider';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 import { SettingsFirstDayModal } from '../SettingsFirstDayModal';
 import SettingsLanguageComp from '../SettingsLanguageComp';
 

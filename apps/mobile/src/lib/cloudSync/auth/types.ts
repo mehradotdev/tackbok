@@ -1,5 +1,7 @@
+export const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+
 export const GOOGLE_SCOPES = [
-  'https://www.googleapis.com/auth/drive.appdata',
+  GOOGLE_DRIVE_SCOPE,
   'openid',
   'email',
 ] as const;
@@ -9,12 +11,11 @@ export interface GoogleTokenSet {
   expiresAt: number;
   refreshToken?: string;
   /**
-   * Android only: the account the owner picked in the device account chooser.
-   * Silent renewals pass it back to Play services so a background token request
-   * can never drift to a different signed-in account that also holds a grant.
-   * Lives exclusively in SecureStore next to the tokens and is deleted with
-   * them on Disconnect — never SQLite, logs, diagnostics, or evidence. The
-   * user-visible label stays the masked, in-memory one.
+   * The selected Google account. The auth layer moves this into its own
+   * SecureStore item: Android uses it to pin silent Play-services renewals and
+   * both platforms reuse it as the connected-account label. It is deleted with
+   * the credentials on Disconnect and never enters SQLite, the vault, logs,
+   * diagnostics, evidence, or analytics.
    */
   accountEmail?: string;
 }
@@ -29,7 +30,12 @@ export interface CloudAuthorization {
 
 export class CloudAuthError extends Error {
   constructor(
-    readonly code: 'cancelled' | 'consent-required' | 'not-connected' | 'refresh-failed',
+    readonly code:
+      | 'cancelled'
+      | 'consent-required'
+      | 'permission-required'
+      | 'not-connected'
+      | 'refresh-failed',
     message: string,
   ) {
     super(message);

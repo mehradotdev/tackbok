@@ -18,9 +18,11 @@ import expo.modules.kotlin.modules.ModuleDefinition
 private const val AUTHORIZATION_REQUEST_CODE = 18074
 private const val ACCOUNT_PICKER_REQUEST_CODE = 18075
 private const val GOOGLE_ACCOUNT_TYPE = "com.google"
+private const val GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata"
 private const val ERROR_BUSY = "E_GOOGLE_AUTH_BUSY"
 private const val ERROR_CANCELLED = "E_GOOGLE_AUTH_CANCELLED"
 private const val ERROR_CONSENT_REQUIRED = "E_GOOGLE_AUTH_CONSENT_REQUIRED"
+private const val ERROR_PERMISSION_REQUIRED = "E_GOOGLE_AUTH_PERMISSION_REQUIRED"
 private const val ERROR_NO_ACTIVITY = "E_GOOGLE_AUTH_NO_ACTIVITY"
 private const val ERROR_FAILED = "E_GOOGLE_AUTH_FAILED"
 
@@ -168,7 +170,7 @@ class GoogleAuthorizationModule : Module() {
       AuthorizationRequest.builder()
         .setRequestedScopes(
           listOf(
-            Scope("https://www.googleapis.com/auth/drive.appdata"),
+            Scope(GOOGLE_DRIVE_SCOPE),
             Scope("openid"),
             Scope("email"),
           ),
@@ -230,6 +232,14 @@ class GoogleAuthorizationModule : Module() {
     promise: Promise,
     accountEmail: String?,
   ) {
+    if (!result.grantedScopes.contains(GOOGLE_DRIVE_SCOPE)) {
+      promise.reject(
+        ERROR_PERMISSION_REQUIRED,
+        "Google Drive access was not granted",
+        null,
+      )
+      return
+    }
     val accessToken = result.accessToken
     if (accessToken.isNullOrBlank()) {
       promise.reject(ERROR_FAILED, "Google did not return an access token", null)

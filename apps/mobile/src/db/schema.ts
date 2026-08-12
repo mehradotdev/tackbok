@@ -120,7 +120,9 @@ export const userProfile = sqliteTable('user_profile', {
 /**
  * Local provider/vault configuration. Credentials are deliberately absent.
  * `account_label` is a reserved v1 column and must remain null: the UI receives
- * only a masked, in-memory label from the authorization provider.
+ * the connected account label from the authorization provider instead. The
+ * full email stays in SecureStore beside the credentials (and in memory while
+ * displayed), never in this table.
  */
 export const cloudVault = sqliteTable('cloud_vault', {
   vault_id: text('vault_id').primaryKey().notNull(),

@@ -2,13 +2,13 @@
 
 Date: 2026-08-09
 
-Status: **CLOSED — 4a and 4a.1 accepted at owner re-review 2026-08-10. Phase 4b
-may start.**
+Status: **4a and 4a.1 CLOSED. Phase 4b remediation is READY FOR OWNER
+RE-REVIEW as of 2026-08-10; Phase 5 has not started.**
 B1, B2, B3, S1–S5, N1 and N3 from the
 [Phase-4a owner review](./review-4a-2026-08-09.md) are closed and independently
 re-verified; see the two re-review sections at the end of that document.
-**N4 (privacy-screen and website analytics allowlist) remains merge-blocking
-before cloud sync is user-reachable.** N2 (peak JS heap) and N5 (synchronous
+**N4 (privacy-screen and website analytics allowlist) is implemented in the
+Phase-4b gate below, pending owner acceptance of the complete phase.** N2 (peak JS heap) and N5 (synchronous
 launch load, measured at 607 ms per 20,000 entities on the host and untested on
 device against §13's 5-second interactivity target) are Phase-6
 physical-device obligations.
@@ -191,11 +191,10 @@ warnings).
 
 ## Phase-4b implementation gate — 2026-08-10
 
-Status: **CHANGES REQUESTED at owner review 2026-08-10.** N4 is closed. Two
-items must land before this gate closes: F1 (the Danger Zone copy regression
-outside the cloud feature) and F2 (an expired Drive list-page token strands a
-restore permanently). F3 (403 rate-limit reported as auth) should follow before
-the feature is user-reachable. See
+Status: **READY FOR OWNER RE-REVIEW.** N4 and requested remediations F1–F3 are
+implemented and host-verified; F5 is documented, F6 was fixed, and F7 remains
+accurately labelled as source-contract coverage. This is not an owner closure.
+See
 [`review-4a-2026-08-09.md`](./review-4a-2026-08-09.md), "Owner review of 4b". Machine-readable
 host evidence: [`evidence/2026-08-10-phase4b-host.json`](./evidence/2026-08-10-phase4b-host.json).
 
@@ -203,7 +202,7 @@ host evidence: [`evidence/2026-08-10-phase4b-host.json`](./evidence/2026-08-10-p
   catalog exports the exact six §10 names; its Jest contract checks the event
   test, the in-app `TRACKED_EVENT_NAMES` allowlist, and the website privacy
   policy. Payload types remain coarse and content-free. The focused Jest run
-  passed **3 suites / 47 tests**.
+  passed **3 suites / 54 tests**.
 - [x] **The mock backup settings are replaced by production state.** The old
   enable toggle, daily/weekly frequency model, and frequency modal are gone.
   The persisted-store v1 compatibility migration removes both legacy fields;
@@ -213,8 +212,19 @@ host evidence: [`evidence/2026-08-10-phase4b-host.json`](./evidence/2026-08-10-p
   import sheet places Google Drive first and routes to the same disclosure,
   OAuth, discovery, restore/merge, and progress implementation as Settings.
   The no-vault and failed/cancelled authorization paths return to the import
-  sheet without completing onboarding or creating a vault. Cloud sync does not
-  request notification permission.
+  sheet without completing onboarding or creating a vault. The concise
+  disclosure tells users to select Google's Drive-access checkbox when shown;
+  Android and iOS reject a granular identity-only grant, and the retry message
+  names the missing checkbox. Cloud sync does not request notification
+  permission. A successful restore from onboarding is
+  deliberately treated as a returning-user path: it completes onboarding and
+  skips the later theme/privacy steps; analytics remain off by default. This
+  records F5 rather than silently changing it in this remediation.
+- [x] **Restore choices exclude test state and identify real backups.** Reserved
+  Phase-3 `probe-…` vaults are not offered in the normal product picker. Drive
+  marker creation time is requested as metadata, and legitimate multiple
+  backups are shown newest-first with a localized creation-date label (falling
+  back to a stable numbered label when metadata is unavailable).
 - [x] **The user-reachable status and management surfaces are wired.** The home
   header exposes hidden/synced/syncing/queued/paused/warning states without
   moving the centred title; Settings opens live SQLite-backed state; the manage
@@ -224,9 +234,23 @@ host evidence: [`evidence/2026-08-10-phase4b-host.json`](./evidence/2026-08-10-p
 - [x] **Disconnect and destructive semantics preserve the §10/§11 invariants.**
   Disconnect calls the authorization abstraction's local `signOut()` only;
   neither UI nor control code contains a global OAuth revocation endpoint.
-  Tokens remain in SecureStore, the masked account label remains in memory,
+  Tokens remain in SecureStore; the full connected-account email stays out of
+  SQLite, the vault, logs, diagnostics, and analytics (both platforms keep it
+  only in a separate SecureStore item beside the credentials; Android also uses
+  it for account pinning),
   `backup-deleted` keeps the journal, `journal-deleted` wipes without creating
-  outbox intent, and device reset disconnects before its hard delete.
+  outbox intent, and device reset disconnects before its hard delete. The
+  Settings Danger Zone keeps the original **Delete All Data** label and
+  irreversible warning when no cloud vault is configured, and uses the
+  device-only/cloud-preserving copy only for a configured vault (F1). A
+  never-connected user no longer performs authorization sign-out or background
+  task mutation during the wipe.
+- [x] **The pre-cloud reset path and media semantics are explicit.** The old
+  `retainedMediaForSync` filesystem guard is intentionally absent: reset clears
+  `sync_media_obligations` and `sync_retained_media`, so photos and voice memos
+  are always deleted with the local journal. The routed journal hard-delete and
+  local replica/outbox clear now run in one SQLite transaction; a crash cannot
+  leave delete intents that could later publish on reconnect (F6).
 - [x] **All six Phase-4 locales are complete.** The translation contract passed
   **22/22** for English, Arabic, German, Hebrew, Simplified Chinese, and
   Traditional Chinese, including exact key order, placeholders, and unused-key
@@ -244,24 +268,27 @@ host evidence: [`evidence/2026-08-10-phase4b-host.json`](./evidence/2026-08-10-p
   resumes across process death. Stopping the singleton runtime now drops the
   in-memory engine, so Disconnect → connect or pause/resume reconstructs from
   the correct durable vault rather than retaining the prior attachment.
+- [x] **An expired initial-restore list cursor self-recovers (F2).** A provider
+  reconstructed after the first restore page was given a rejected persisted
+  `files.list` token. It discarded only the non-durable list token, re-listed
+  immutable hash-addressed entity files from the beginning, tolerated the
+  duplicate page, and reached the saved live change token with every entity.
+  Corrupt object bodies are not swallowed by this recovery path.
+- [x] **Restore downloads and Drive retries are bounded (F3).** Entity-object
+  downloads use four workers rather than one promise per file. A ten-object
+  host regression observed a peak of four authenticated downloads. Drive
+  `userRateLimitExceeded`/rate-limit 403s are distinct from genuine auth 403s,
+  `Retry-After` is honored up to a 30-second per-attempt bound, and other
+  transient retries use exponential delays with bounded random jitter.
 - [x] **Cross-phase host regressions pass.** `bun run phase4:test`: frozen
-  Phase-2 **9 suites / 73 tests**, focused Jest **3/47**, Phase-4 Bun **98/98,
-  450 assertions**. Full Jest: **39 suites / 338 tests**. Phase 1: **4/4**;
-  Phase 3 adapter: **11/11**; Phase-3 probe unit tests: **29/29**. Mobile
+  Phase-2 **9 suites / 73 tests**, focused Jest **3/54**, Phase-4 Bun **100/100,
+  461 assertions**. Full Jest: **39 suites / 344 tests**. Phase 1: **4/4**;
+  Phase 3 adapter: **16/16**; Phase-3 probe unit tests: **29/29**. Mobile
   TypeScript is clean and ESLint reports **0 errors / 18 pre-existing warnings**.
   Website typecheck/lint/build are clean (**5 static pages**); Expo public config
   resolves; `git diff --check` passes; frozen protocol/Phase-0/Phase-3 and DEV
-  probe-route diffs are empty. All of these were re-run independently at owner
-  review and match.
-
-### Owner-review non-claims
-
-- The initial-restore compound cursor is proven restartable **within a process**.
-  It is **not** proven to survive an expired Drive `files.list` page token, which
-  is the case that strands a restore (F2).
-- Initial restore issues up to `pageSize` (default 100) concurrent Drive
-  downloads per list page. Concurrency was never bounded or measured, and a
-  Drive rate-limit 403 is currently reported as an auth failure (F3).
+  probe-route diffs are empty. These remediation results await independent
+  owner re-verification.
 
 ### Host-only boundary
 

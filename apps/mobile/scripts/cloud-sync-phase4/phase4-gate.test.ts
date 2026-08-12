@@ -7,6 +7,7 @@ import { canonicalBytes } from '../../src/lib/cloudSync/codec';
 import type { DomainState, EntityType, EntryState } from '../../src/lib/cloudSync/domain/types';
 import { createEditVersion, createSystemVersion } from '../../src/lib/cloudSync/domain/version';
 import {
+  InMemorySyncDevice,
   SQLiteEngineCheckpointStore,
   SQLiteSyncEngine,
   type DurableSyncStep,
@@ -643,6 +644,19 @@ describe('SyncRuntime gate', () => {
     changedEntityKeys: [], appliedEntityKeys: [], remoteApplied: 0,
   });
 
+  test('the engine reports truthful sync phases in execution order', async () => {
+    const phases: string[] = [];
+    const device = new InMemorySyncDevice(
+      'phase-ui-device',
+      { vaultId: 'phase-ui-vault', remoteRootId: 'appDataFolder' },
+      new FakeCloudProvider(),
+    );
+
+    await device.sync({ onPhase: (phase) => phases.push(phase) });
+
+    expect(phases).toEqual(['checking', 'preparing', 'uploading', 'finishing']);
+  });
+
   test('sync cannot start before readiness and a failed backfill retries in-session', async () => {
     const platform = new FakePlatform();
     let ready = false;
@@ -704,6 +718,29 @@ describe('SyncRuntime gate', () => {
     const result = await runtime.runBoundedBackgroundPass('periodic');
     expect(result).not.toBeNull();
     expect(passes).toBe(before + 1);
+    runtime.stop();
+  });
+
+  test('a failed pass exposes only its normalized category and a success clears it', async () => {
+    const platform = new FakePlatform();
+    let shouldFail = true;
+    const runtime = new SyncRuntime({
+      platform,
+      readiness: { isReady: async () => true, retryBackfill: async () => undefined },
+      createEngine: async () => ({
+        provider: { kind: 'google-drive' as const },
+        sync: async () => {
+          if (shouldFail) throw { category: 'rate-limit', sensitive: 'not exposed' };
+          return emptyResult();
+        },
+      }),
+    });
+
+    await runtime.start();
+    expect(runtime.getLastFailureCategory()).toBe('rate-limit');
+    shouldFail = false;
+    await expect(runtime.run('manual')).resolves.not.toBeNull();
+    expect(runtime.getLastFailureCategory()).toBeNull();
     runtime.stop();
   });
 

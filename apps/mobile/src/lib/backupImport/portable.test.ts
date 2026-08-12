@@ -63,6 +63,10 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
+jest.mock('expo-crypto', () => ({
+  randomUUID: jest.fn(() => '123e4567-e89b-42d3-a456-426614174000'),
+}));
+
 // Keep these mocks inline: the portable import tests need extra file APIs such as
 // open().readBytes() that are more specific than the shared manual mocks.
 jest.mock('expo-file-system', () => ({

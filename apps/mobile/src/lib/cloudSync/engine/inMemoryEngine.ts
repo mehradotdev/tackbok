@@ -38,7 +38,10 @@ interface ResolvedEntity {
 
 export interface SyncPassHooks {
   beforeApply?: (device: InMemorySyncDevice) => void | Promise<void>;
+  onPhase?: (phase: SyncPassPhase) => void;
 }
+
+export type SyncPassPhase = 'checking' | 'preparing' | 'uploading' | 'finishing';
 
 export type DurableSyncStep =
   | 'mutation'
@@ -372,6 +375,7 @@ export class InMemorySyncDevice {
       }
     }
     this.stateMachine.recoverAfterCrash(this.outbox.size > 0);
+    hooks.onPhase?.('checking');
     const revocation = await this.observeRevocation();
     if (revocation) {
       await this.applyRevocation(revocation);
@@ -386,6 +390,7 @@ export class InMemorySyncDevice {
     }
 
     result.pulled = await this.pullAllChanges();
+    hooks.onPhase?.('preparing');
     this.stateMachine.transition('resolving');
     this.pumpSeedBatch();
 
@@ -509,6 +514,7 @@ export class InMemorySyncDevice {
     if (appliedResolved.length > 0) this.checkpoint('apply');
 
     this.recoverTombstonedTagReferences(appliedResolved);
+    hooks.onPhase?.('uploading');
     this.stateMachine.transition('pushing');
     for (const item of resolved) {
       const capture = captures.get(item.key);
@@ -562,6 +568,7 @@ export class InMemorySyncDevice {
     // batch settles. The frozen in-memory catalog preserves its original
     // next-pass cursor timing through pumpSeedBatch().
     if (this.seedItems.length === 0) this.advanceSeedCursorIfSettled();
+    hooks.onPhase?.('finishing');
     this.stateMachine.transition('verifying');
     this.stateMachine.transition(this.outbox.size > 0 ? 'dirty' : 'idle');
     this.checkpoint('settle');

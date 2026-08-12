@@ -1,4 +1,5 @@
 import { entries } from '~/db';
+import { randomUUID } from 'expo-crypto';
 import {
   BACKUP_ENTRIES_PATH,
   BACKUP_MANIFEST_PATH,
@@ -36,7 +37,6 @@ import {
   writeImportedPhoto,
 } from '../archiveUtils';
 import { getImportTotals } from './helpers';
-import { generateUUID } from '~/lib/utils';
 import {
   runInCloudSyncTransaction,
   updateProfileInTransaction,
@@ -76,7 +76,7 @@ export async function importFromTackbokBackup(
     const summary = createBackupImportSummary();
     const createdFiles: string[] = [];
     let importedProfileImageUri: string | null = null;
-    const batchId = generateUUID();
+    const batchId = randomUUID();
     const totals = getImportTotals(portableEntries, portableTags, portablePrompts);
 
     reportImportProgress(

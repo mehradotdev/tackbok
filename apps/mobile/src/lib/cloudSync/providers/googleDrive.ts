@@ -29,9 +29,13 @@ const PROP_KEY = 'tb_key';
 const PROP_HASH = 'tb_hash';
 const CHUNK_SIZE = 256 * 1024;
 const SESSION_LIFETIME_MS = 6 * 24 * 60 * 60 * 1000;
-const FILE_FIELDS = 'id,name,size,appProperties,trashed';
+const FILE_FIELDS = 'id,name,size,createdTime,appProperties,trashed';
 const GOOGLE_RESUMABLE_ORIGIN = 'https://www.googleapis.com';
 const INITIAL_RESTORE_CURSOR_PREFIX = 'tackbok-initial-restore:';
+const DOWNLOAD_CONCURRENCY = 4;
+const BASE_RETRY_DELAY_MS = 1_000;
+const MAX_RETRY_DELAY_MS = 30_000;
+const DRIVE_PROPERTY_PAIR_UTF8_CAP = 124;
 
 export function isTrustedGoogleResumableSessionUri(uri: string): boolean {
   try {
@@ -46,6 +50,7 @@ interface DriveFile {
   id: string;
   name?: string;
   size?: string;
+  createdTime?: string;
   trashed?: boolean;
   appProperties?: Record<string, string>;
 }
@@ -160,6 +165,10 @@ export interface GoogleDriveProviderOptions {
   sessionStore?: ResumableSessionStore;
   fetch?: DriveFetchLike;
   pageSize?: number;
+  /** Test seam for retry timing; production uses an ordinary bounded timer. */
+  sleep?: (milliseconds: number) => Promise<void>;
+  /** Test seam for the retry jitter recommended by Google Drive. */
+  random?: () => number;
 }
 
 /** A durable file sink used to resume large downloads without buffering in JS. */
@@ -171,6 +180,18 @@ export interface ResumableDownloadSink {
 }
 
 const utf8 = (value: string) => new TextEncoder().encode(value);
+
+/**
+ * Drive limits each custom-property key/value pair to 124 UTF-8 bytes. Real
+ * entity paths can exceed that once `tb_key` is included, so long keys use a
+ * provider-private digest for lookup while the reversible key remains in the
+ * ordinary Drive file name. Short legacy values keep their original form.
+ */
+export function driveMetadataKey(key: string): string {
+  return utf8(PROP_KEY).length + utf8(key).length <= DRIVE_PROPERTY_PAIR_UTF8_CAP
+    ? key
+    : `h:${sha256Bytes(utf8(key))}`;
+}
 
 function concatBytes(parts: Uint8Array[]): Uint8Array {
   const result = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
@@ -195,9 +216,15 @@ function asDriveFile(value: unknown): DriveFile {
 }
 
 function logicalKey(file: DriveFile): string {
-  const value = file.appProperties?.[PROP_KEY];
-  if (!value) throw new ProviderError('corrupt', `Drive file ${file.id} has no logical key`);
-  return value;
+  const stored = file.appProperties?.[PROP_KEY];
+  if (!stored) throw new ProviderError('corrupt', `Drive file ${file.id} has no logical key`);
+  // Older mocked/provider records may omit `name`; their property contained the
+  // literal key and remains readable. Real Drive responses always request it.
+  if (!file.name) return stored;
+  if (stored !== driveMetadataKey(file.name)) {
+    throw new ProviderError('corrupt', `Drive file ${file.id} has mismatched key metadata`);
+  }
+  return file.name;
 }
 
 function contentHash(file: DriveFile): string {
@@ -214,13 +241,66 @@ function parseRetryAfter(value: string | null): number | null {
   return Number.isNaN(date) ? null : Math.max(0, date - Date.now());
 }
 
-function statusError(status: number, retryAfter: string | null): ProviderError {
+function isDriveRateLimitReason(reason: string | null): boolean {
+  return reason === 'userRateLimitExceeded' ||
+    reason === 'rateLimitExceeded' ||
+    reason === 'sharingRateLimitExceeded';
+}
+
+async function readDriveErrorReason(response: DriveResponseLike): Promise<string | null> {
+  try {
+    const body = (await response.json()) as {
+      error?: {
+        errors?: { reason?: unknown }[];
+        details?: { reason?: unknown }[];
+      };
+    };
+    const reasons = [
+      ...(body.error?.errors ?? []),
+      ...(body.error?.details ?? []),
+    ].map(({ reason }) => reason).filter((reason): reason is string =>
+      typeof reason === 'string');
+    return reasons.find(isDriveRateLimitReason) ?? reasons[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function statusError(
+  status: number,
+  retryAfter: string | null,
+  reason: string | null,
+): ProviderError {
   const message = `Google Drive request failed (${status})`;
-  if (status === 401 || status === 403) return new ProviderError('auth', message);
+  if (status === 401) return new ProviderError('auth', message);
+  if (status === 403 && isDriveRateLimitReason(reason)) {
+    return new ProviderError('rate-limit', message, parseRetryAfter(retryAfter));
+  }
+  if (status === 403) return new ProviderError('auth', message);
+  if (status === 400) return new ProviderError('corrupt', message);
   if (status === 404 || status === 410) return new ProviderError('not-found', message);
   if (status === 429) return new ProviderError('rate-limit', message, parseRetryAfter(retryAfter));
   if (status === 507) return new ProviderError('quota', message);
   return new ProviderError('transient', message, parseRetryAfter(retryAfter));
+}
+
+async function mapWithConcurrency<T, Result>(
+  values: readonly T[],
+  concurrency: number,
+  operation: (value: T) => Promise<Result>,
+): Promise<Result[]> {
+  const results = new Array<Result>(values.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex++;
+      results[index] = await operation(values[index]!);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, values.length) }, worker),
+  );
+  return results;
 }
 
 export class GoogleDriveProvider implements CloudProvider {
@@ -234,12 +314,17 @@ export class GoogleDriveProvider implements CloudProvider {
   private readonly fetcher: DriveFetchLike;
   private readonly sessions: ResumableSessionStore;
   private readonly pageSize: number;
+  private readonly sleep: (milliseconds: number) => Promise<void>;
+  private readonly random: () => number;
 
   constructor(options: GoogleDriveProviderOptions) {
     this.auth = options.auth;
     this.fetcher = options.fetch ?? defaultDriveFetch;
     this.sessions = options.sessionStore ?? new SqliteResumableSessionStore();
     this.pageSize = options.pageSize ?? 100;
+    this.sleep = options.sleep ?? ((milliseconds) =>
+      new Promise((resolve) => setTimeout(resolve, milliseconds)));
+    this.random = options.random ?? Math.random;
   }
 
   async connect(): Promise<ProviderConnection> {
@@ -275,7 +360,14 @@ export class GoogleDriveProvider implements CloudProvider {
       if (!prior) {
         result.set(vaultId, {
           hash: contentHash(marker),
-          summary: { vaultId, remoteRootId: marker.id, revoked: false },
+          summary: {
+            vaultId,
+            remoteRootId: marker.id,
+            revoked: false,
+            createdAt: marker.createdTime && !Number.isNaN(Date.parse(marker.createdTime))
+              ? Date.parse(marker.createdTime)
+              : null,
+          },
         });
       }
     }
@@ -287,7 +379,8 @@ export class GoogleDriveProvider implements CloudProvider {
         if (vault) vault.summary.revoked = true;
       }
     }
-    return [...result.values()].map(({ summary }) => summary).sort((a, b) => a.vaultId.localeCompare(b.vaultId));
+    return [...result.values()].map(({ summary }) => summary).sort((a, b) =>
+      (b.createdAt ?? 0) - (a.createdAt ?? 0) || a.vaultId.localeCompare(b.vaultId));
   }
 
   async createVaultMarker(vaultId: string, body: Uint8Array): Promise<VaultMarkerResult> {
@@ -377,7 +470,9 @@ export class GoogleDriveProvider implements CloudProvider {
     for (let index = 0; index < keys.length; index += 20) {
       const batch = keys.slice(index, index + 20);
       if (batch.length === 0) continue;
-      const expression = batch.map((key) => propertyClause(PROP_KEY, key)).join(' or ');
+      const expression = batch
+        .map((key) => propertyClause(PROP_KEY, driveMetadataKey(key)))
+        .join(' or ');
       const query = `'${APP_DATA}' in parents and trashed=false and ${propertyClause(PROP_VAULT, vault.vaultId)} and (${expression})`;
       for (const file of await this.queryFiles(query)) found.add(logicalKey(file));
     }
@@ -412,7 +507,8 @@ export class GoogleDriveProvider implements CloudProvider {
     const query = `'${APP_DATA}' in parents and trashed=false and ${propertyClause(PROP_VAULT, vault.vaultId)}`;
     const page = await this.queryFilePage(query, cursor);
     const files = page.files.filter((file) => logicalKey(file).startsWith(prefix));
-    const objects = await Promise.all(files.map(async (file) => this.remoteObject(file, await this.downloadVerified(file))));
+    const objects = await mapWithConcurrency(files, DOWNLOAD_CONCURRENCY, async (file) =>
+      this.remoteObject(file, await this.downloadVerified(file)));
     objects.sort((a, b) => a.key.localeCompare(b.key) || a.fileId.localeCompare(b.fileId));
     return { objects, cursor: page.nextPageToken ?? null };
   }
@@ -444,7 +540,8 @@ export class GoogleDriveProvider implements CloudProvider {
     const files = (body.changes ?? [])
       .filter((change) => !change.removed && change.file?.appProperties?.[PROP_VAULT] === vault.vaultId)
       .map((change) => asDriveFile(change.file));
-    const objects = await Promise.all(files.map(async (file) => this.remoteObject(file, await this.downloadVerified(file))));
+    const objects = await mapWithConcurrency(files, DOWNLOAD_CONCURRENCY, async (file) =>
+      this.remoteObject(file, await this.downloadVerified(file)));
     const next = typeof body.nextPageToken === 'string'
       ? body.nextPageToken
       : typeof body.newStartPageToken === 'string' ? body.newStartPageToken : cursor;
@@ -465,12 +562,32 @@ export class GoogleDriveProvider implements CloudProvider {
   ): Promise<ChangePage> {
     const query = `'${APP_DATA}' in parents and trashed=false and ${propertyClause(PROP_VAULT, vault.vaultId)}`;
     let listPageToken = initialListPageToken;
-    do {
-      const page = await this.queryFilePage(query, listPageToken);
+    let rewoundExpiredCursor = false;
+    while (true) {
+      let page: { files: DriveFile[]; nextPageToken?: string };
+      try {
+        page = await this.queryFilePage(query, listPageToken);
+      } catch (error) {
+        if (
+          listPageToken &&
+          !rewoundExpiredCursor &&
+          error instanceof ProviderError &&
+          (error.category === 'corrupt' || error.category === 'not-found')
+        ) {
+          // Drive list-page tokens are not durable. The live start token in the
+          // compound cursor is durable, so safely re-list immutable,
+          // hash-addressed entity files from the beginning.
+          listPageToken = undefined;
+          rewoundExpiredCursor = true;
+          continue;
+        }
+        throw error;
+      }
       const entityFiles = page.files.filter((file) => logicalKey(file).startsWith('entities/'));
-      const objects = await Promise.all(
-        entityFiles.map(async (file) =>
-          this.remoteObject(file, await this.downloadVerified(file))),
+      const objects = await mapWithConcurrency(
+        entityFiles,
+        DOWNLOAD_CONCURRENCY,
+        async (file) => this.remoteObject(file, await this.downloadVerified(file)),
       );
       objects.sort((a, b) => a.key.localeCompare(b.key) || a.fileId.localeCompare(b.fileId));
       if (objects.length > 0) {
@@ -482,7 +599,8 @@ export class GoogleDriveProvider implements CloudProvider {
         };
       }
       listPageToken = page.nextPageToken;
-    } while (listPageToken);
+      if (!listPageToken) break;
+    }
     return { objects: [], cursor: startPageToken };
   }
 
@@ -547,12 +665,16 @@ export class GoogleDriveProvider implements CloudProvider {
     return {
       name: key,
       parents: [APP_DATA],
-      appProperties: { [PROP_VAULT]: vaultId, [PROP_KEY]: key, [PROP_HASH]: hash },
+      appProperties: {
+        [PROP_VAULT]: vaultId,
+        [PROP_KEY]: driveMetadataKey(key),
+        [PROP_HASH]: hash,
+      },
     };
   }
 
   private findByKey(vaultId: string, key: string): Promise<DriveFile[]> {
-    return this.queryFiles(`'${APP_DATA}' in parents and trashed=false and ${propertyClause(PROP_VAULT, vaultId)} and ${propertyClause(PROP_KEY, key)}`);
+    return this.queryFiles(`'${APP_DATA}' in parents and trashed=false and ${propertyClause(PROP_VAULT, vaultId)} and ${propertyClause(PROP_KEY, driveMetadataKey(key))}`);
   }
 
   private async queryFiles(query: string): Promise<DriveFile[]> {
@@ -760,7 +882,13 @@ export class GoogleDriveProvider implements CloudProvider {
       try {
         response = await this.fetcher(url, { ...init, headers });
       } catch {
-        if (attempt < 2) continue;
+        if (attempt < 2) {
+          await this.sleep(Math.min(
+            BASE_RETRY_DELAY_MS * (2 ** attempt) + Math.floor(this.random() * 1_000),
+            MAX_RETRY_DELAY_MS,
+          ));
+          continue;
+        }
         throw new ProviderError('transient', 'Unable to reach Google Drive');
       }
       if (response.ok || accepted.includes(response.status)) return response;
@@ -769,8 +897,19 @@ export class GoogleDriveProvider implements CloudProvider {
         await this.auth.clearInvalidAccessToken();
         continue;
       }
-      const error = statusError(response.status, response.headers.get('retry-after'));
-      if ((error.category === 'rate-limit' || error.category === 'transient') && attempt < 2) continue;
+      const error = statusError(
+        response.status,
+        response.headers.get('retry-after'),
+        await readDriveErrorReason(response),
+      );
+      if ((error.category === 'rate-limit' || error.category === 'transient') && attempt < 2) {
+        await this.sleep(Math.min(
+          error.retryAfterMs ??
+            BASE_RETRY_DELAY_MS * (2 ** attempt) + Math.floor(this.random() * 1_000),
+          MAX_RETRY_DELAY_MS,
+        ));
+        continue;
+      }
       throw error;
     }
     throw new ProviderError('transient', 'Google Drive retry limit reached');

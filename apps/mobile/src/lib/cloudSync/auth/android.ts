@@ -7,7 +7,9 @@ import {
   clearGoogleTokens,
   isGoogleMarkedConnected,
   markGoogleConnected,
+  readGoogleAccountEmail,
   readGoogleTokens,
+  writeGoogleAccountEmail,
   writeGoogleTokens,
 } from './secureTokenStore';
 import { CloudAuthError, type CloudAuthorization, type GoogleTokenSet } from './types';
@@ -38,6 +40,9 @@ function normalizeNativeError(error: unknown): CloudAuthError {
   if (code.includes('CANCELLED')) return new CloudAuthError('cancelled', 'Google sign-in was cancelled');
   if (code.includes('CONSENT_REQUIRED')) {
     return new CloudAuthError('consent-required', 'Google consent is required');
+  }
+  if (code.includes('PERMISSION_REQUIRED')) {
+    return new CloudAuthError('permission-required', 'Google Drive access is required');
   }
   // Keep the native module's message: replacing it with a generic one turns
   // every distinct failure into the same undiagnosable string.
@@ -71,10 +76,13 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
     // No stored expiry is trusted here: AuthorizationResult carries no real
     // expiry (finding 0001), so Play services is the cache of record and every
     // request revalidates through it. The call is local IPC, not network.
-    const cached = await readGoogleTokens();
+    const accountEmail = await readGoogleAccountEmail();
     try {
-      const tokens = await nativeModule().authorize(false, cached?.accountEmail ?? null);
-      await writeGoogleTokens({ ...tokens, accountEmail: tokens.accountEmail ?? cached?.accountEmail });
+      const tokens = await nativeModule().authorize(false, accountEmail);
+      await writeGoogleTokens({
+        ...tokens,
+        accountEmail: tokens.accountEmail ?? accountEmail ?? undefined,
+      });
       return tokens.accessToken;
     } catch (error) {
       throw normalizeNativeError(error);
@@ -104,6 +112,11 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
   }
 
   async getAccountLabel(): Promise<string> {
-    return fetchGoogleAccountLabel(await this.getFreshAccessToken());
+    const accessToken = await this.getFreshAccessToken();
+    const storedEmail = await readGoogleAccountEmail();
+    if (storedEmail) return storedEmail;
+    const label = await fetchGoogleAccountLabel(accessToken);
+    if (label !== 'Google Drive') await writeGoogleAccountEmail(label);
+    return label;
   }
 }

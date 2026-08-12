@@ -16,7 +16,7 @@ import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 
 /** Labels shown under each font-size tile. */
 const SIZE_LABELS: Record<BodyFontSize, string> = {

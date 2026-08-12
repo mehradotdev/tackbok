@@ -3,10 +3,11 @@
  * provides the source-agnostic runtime that writes that model into Tackbok.
  */
 
+import { randomUUID } from 'expo-crypto';
 import { db, customPrompts, entries, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { createZipEntryLookup, type ZipEntryLookup, type ZipReader } from '~/lib/zip';
-import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
+import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import type { ImportProgressCallback } from './progress';
 import { reportImportProgress } from './progress';
 import {
@@ -477,8 +478,8 @@ export async function upsertPortableTags(
       continue;
     }
 
-    const requestedId = portableId || generateUUID();
-    const tagId = tagMap.has(`id:${requestedId}`) ? generateUUID() : requestedId;
+    const requestedId = portableId || randomUUID();
+    const tagId = tagMap.has(`id:${requestedId}`) ? randomUUID() : requestedId;
     await createTagInTransaction(
       tx,
       cleanTitle,
@@ -524,8 +525,8 @@ export async function ensurePortablePromptTitles(
     const key = cleanTitle.toLowerCase();
     if (promptTitles.has(key)) continue;
 
-    const requestedId = portablePrompt.promptId?.trim() || generateUUID();
-    const promptId = promptIds.has(requestedId) ? generateUUID() : requestedId;
+    const requestedId = portablePrompt.promptId?.trim() || randomUUID();
+    const promptId = promptIds.has(requestedId) ? randomUUID() : requestedId;
     await createPromptInTransaction(
       tx,
       cleanTitle,

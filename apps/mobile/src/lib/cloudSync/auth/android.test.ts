@@ -26,7 +26,7 @@ jest.mock('expo-secure-store', () => ({
 }));
 
 jest.mock('./accountLabel', () => ({
-  fetchGoogleAccountLabel: jest.fn(async () => 'm•••@g•••.com'),
+  fetchGoogleAccountLabel: jest.fn(async () => 'probe@gmail.com'),
 }));
 
 async function connect(auth: AndroidGoogleAuthorization, accountEmail = 'probe@gmail.com') {
@@ -129,6 +129,7 @@ describe('AndroidGoogleAuthorization 401 recovery', () => {
     // connected: the retry must reach Play services, not throw not-connected.
     mockNativeAuthorize.mockResolvedValueOnce({ accessToken: 'token-2', expiresAt: 0 });
     await expect(auth.getFreshAccessToken()).resolves.toBe('token-2');
+    expect(mockNativeAuthorize).toHaveBeenLastCalledWith(false, 'probe@gmail.com');
   });
 
   it('treats cache invalidation as best-effort', async () => {
@@ -151,6 +152,12 @@ describe('AndroidGoogleAuthorization error normalization', () => {
     await connect(auth);
     mockNativeAuthorize.mockRejectedValueOnce({ code: 'E_GOOGLE_AUTH_CONSENT_REQUIRED' });
     await expect(auth.getFreshAccessToken()).rejects.toMatchObject({ code: 'consent-required' });
+  });
+
+  it('maps a partial grant that omitted Drive access', async () => {
+    const auth = new AndroidGoogleAuthorization();
+    mockNativeAuthorize.mockRejectedValueOnce({ code: 'E_GOOGLE_AUTH_PERMISSION_REQUIRED' });
+    await expect(auth.authorize()).rejects.toMatchObject({ code: 'permission-required' });
   });
 
   it('maps a cancelled chooser', async () => {

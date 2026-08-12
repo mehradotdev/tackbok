@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 
 export function AppInfoSection() {
   const router = useRouter();

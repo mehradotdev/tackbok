@@ -1,6 +1,5 @@
 import { fetch } from 'expo/fetch';
 
-import { maskGoogleAccountEmail } from './policy';
 import { CloudAuthError } from './types';
 
 export async function fetchGoogleAccountLabel(accessToken: string): Promise<string> {
@@ -26,7 +25,6 @@ export async function fetchGoogleAccountLabel(accessToken: string): Promise<stri
   } catch {
     return 'Google Drive';
   }
-  return typeof body.email === 'string' && body.email.length > 0
-    ? maskGoogleAccountEmail(body.email)
-    : 'Google Drive';
+  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  return email.length > 0 ? email : 'Google Drive';
 }

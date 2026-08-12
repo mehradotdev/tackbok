@@ -21,7 +21,7 @@ const mockTransaction = jest.fn(
       insert: mockInsert,
     }),
 );
-const mockGenerateUUID = jest.fn(() => 'generated-note-id');
+const mockRandomUUID = jest.fn(() => 'generated-note-id');
 const mockReportImportProgress = jest.fn(() => {});
 
 jest.mock('expo-document-picker', () => ({
@@ -56,8 +56,8 @@ jest.mock('~/db', () => ({
   },
 }));
 
-jest.mock('~/lib/utils', () => ({
-  generateUUID: () => mockGenerateUUID(),
+jest.mock('expo-crypto', () => ({
+  randomUUID: () => mockRandomUUID(),
 }));
 
 jest.mock('~/lib/cloudSync/storage/repositories', () => ({
@@ -93,12 +93,12 @@ describe('importFromPresentlyCSV', () => {
     mockValues.mockReset();
     mockInsert.mockClear();
     mockTransaction.mockClear();
-    mockGenerateUUID.mockReset();
+    mockRandomUUID.mockReset();
     mockReportImportProgress.mockReset();
 
     mockLimit.mockImplementation(async () => []);
     mockValues.mockImplementation(async () => undefined);
-    mockGenerateUUID.mockImplementation(() => 'generated-note-id');
+    mockRandomUUID.mockImplementation(() => 'generated-note-id');
   });
 
   test('uses an unrestricted picker filter on android', async () => {

@@ -5,9 +5,9 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  Cloud,
+  CloudCheck,
   CloudOff,
-  RefreshCw,
+  CloudUpload,
   Search,
 } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
@@ -17,6 +17,7 @@ import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
+import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { SettingsBottomSheet } from '~/components/SettingsBottomSheet';
 import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
@@ -46,6 +47,8 @@ export const Header: React.FC<IHeaderProps> = ({
   const { data: allTags } = useTags();
   const safeTags = allTags || [];
   const showTagFilter = isSearchMode && safeTags.length > 0;
+  const syncIsActive =
+    snapshot.status === 'syncing' || snapshot.status === 'restoring';
 
   if (isSearchMode) {
     return (
@@ -145,7 +148,7 @@ export const Header: React.FC<IHeaderProps> = ({
             variant="ghost"
             onPress={() => router.push('/cloud-backup' as Href)}
             accessibilityLabel={
-              snapshot.status === 'syncing'
+              syncIsActive
                 ? t('Cloud sync: syncing')
                 : snapshot.status === 'queued'
                   ? t('Cloud sync: changes safely queued')
@@ -155,16 +158,20 @@ export const Header: React.FC<IHeaderProps> = ({
                       ? t('Cloud sync: attention needed')
                       : t('Cloud sync: up to date')
             }>
-            <Icon
-              as={snapshot.status === 'syncing'
-                ? RefreshCw
-                : snapshot.status === 'warning'
+            {syncIsActive ? (
+              <SpinningRefreshIcon className="text-primary-foreground size-5" />
+            ) : (
+              <Icon
+                as={snapshot.status === 'warning'
                   ? AlertTriangle
                   : snapshot.status === 'paused'
                     ? CloudOff
-                    : Cloud}
-              className="text-primary-foreground size-5"
-            />
+                    : snapshot.status === 'queued' || snapshot.queuedCount > 0
+                      ? CloudUpload
+                      : CloudCheck}
+                className="text-primary-foreground size-5"
+              />
+            )}
             {snapshot.queuedCount > 0 && (
               <View className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-destructive items-center justify-center px-0.5">
                 <Text className="text-[10px] leading-none text-destructive-foreground font-body-bold">

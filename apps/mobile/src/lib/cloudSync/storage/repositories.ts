@@ -1,4 +1,5 @@
 import { and, eq, inArray, ne, notInArray, sql } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 import {
   cloudSyncMigrationItems,
   customPrompts,
@@ -16,7 +17,7 @@ import {
   type NewEntry,
 } from '~/db';
 import { AssetType, type Asset } from '~/types';
-import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
+import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
 
 export const PROFILE_ROW_ID = 'self';
@@ -128,7 +129,7 @@ export async function enqueueMutation(
       ),
     )
     .limit(1);
-  const changeId = existing[0]?.changeId ?? generateUUID();
+  const changeId = existing[0]?.changeId ?? randomUUID();
 
   await tx
     .insert(syncChangeQueue)
@@ -163,7 +164,7 @@ async function retainMediaRow(
   now: number,
 ): Promise<void> {
   if (!asset.local_uri) return;
-  const ledgerId = generateUUID();
+  const ledgerId = randomUUID();
   await tx.insert(syncRetainedMedia).values({
     ledger_id: ledgerId,
     asset_id: asset.asset_id,
@@ -180,7 +181,7 @@ async function retainMediaRow(
     updated_at: now,
   });
   await tx.insert(syncMediaObligations).values({
-    obligation_id: generateUUID(),
+    obligation_id: randomUUID(),
     ledger_id: ledgerId,
     blob_hash: asset.blob_hash,
     obligation_kind: 'outbox',
@@ -207,7 +208,7 @@ async function replaceEntryAssets(
   for (const asset of assets ?? []) {
     const prior = unused.get(asset.uri);
     if (prior) unused.delete(asset.uri);
-    const assetId = prior?.asset_id ?? asset.assetId ?? generateUUID();
+    const assetId = prior?.asset_id ?? asset.assetId ?? randomUUID();
     desiredIds.push(assetId);
     await tx
       .insert(mediaAssets)
@@ -392,7 +393,7 @@ export async function createTagInTransaction(
   if (!cleanTitle) throw new Error('Invalid tag title');
   await assertUniqueTitle(tx, 'tag', cleanTitle);
   const now = context.now ?? Date.now();
-  const tagId = stableId ?? generateUUID();
+  const tagId = stableId ?? randomUUID();
   await tx.insert(tags).values({
     tag_id: tagId,
     title: cleanTitle,
@@ -467,7 +468,7 @@ export async function createPromptInTransaction(
   if (!cleanTitle) throw new Error('Invalid prompt title');
   await assertUniqueTitle(tx, 'prompt', cleanTitle);
   const now = context.now ?? Date.now();
-  const promptId = stableId ?? generateUUID();
+  const promptId = stableId ?? randomUUID();
   await tx.insert(customPrompts).values({
     prompt_id: promptId,
     title: cleanTitle,
@@ -547,7 +548,7 @@ export async function updateProfileInTransaction(
   if (update.photoUri !== undefined) {
     if (update.photoUri) {
       const canReuse = previousAsset?.local_uri === update.photoUri;
-      const requestedId = update.photoAssetId ?? generateUUID();
+      const requestedId = update.photoAssetId ?? randomUUID();
       const [requestedAsset] = await tx
         .select()
         .from(mediaAssets)
@@ -559,7 +560,7 @@ export async function updateProfileInTransaction(
       photoAssetId = canReuse
         ? previousAsset.asset_id
         : requestedIdBelongsElsewhere
-          ? generateUUID()
+          ? randomUUID()
           : requestedId;
       await tx
         .insert(mediaAssets)

@@ -12,12 +12,16 @@ import { getGoogleOAuthConfig } from './config';
 import { isTerminalGoogleRefreshError } from './policy';
 import {
   clearGoogleAccessToken,
+  clearGoogleAccountEmail,
   clearGoogleTokens,
+  readGoogleAccountEmail,
   readGoogleTokens,
+  writeGoogleAccountEmail,
   writeGoogleTokens,
 } from './secureTokenStore';
 import {
   CloudAuthError,
+  GOOGLE_DRIVE_SCOPE,
   GOOGLE_SCOPES,
   type CloudAuthorization,
   type GoogleTokenSet,
@@ -71,7 +75,13 @@ export class IosGoogleAuthorization implements CloudAuthorization {
       },
       DISCOVERY,
     );
+    if (response.scope && !response.scope.split(/\s+/).includes(GOOGLE_DRIVE_SCOPE)) {
+      throw new CloudAuthError('permission-required', 'Google Drive access is required');
+    }
     const tokens = toStoredTokens(response);
+    // A new interactive grant may select a different Google account. Do not
+    // let the prior account's cached label survive into the new connection.
+    await clearGoogleAccountEmail();
     await writeGoogleTokens(tokens);
     return tokens;
   }
@@ -125,6 +135,11 @@ export class IosGoogleAuthorization implements CloudAuthorization {
   }
 
   async getAccountLabel(): Promise<string> {
-    return fetchGoogleAccountLabel(await this.getFreshAccessToken());
+    const accessToken = await this.getFreshAccessToken();
+    const storedEmail = await readGoogleAccountEmail();
+    if (storedEmail) return storedEmail;
+    const label = await fetchGoogleAccountLabel(accessToken);
+    if (label !== 'Google Drive') await writeGoogleAccountEmail(label);
+    return label;
   }
 }

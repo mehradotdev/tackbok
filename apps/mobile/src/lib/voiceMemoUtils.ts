@@ -1,7 +1,7 @@
 import { Paths, File, Directory } from 'expo-file-system';
+import { randomUUID } from 'expo-crypto';
 import { VOICE_MEMOS_DIR_NAME } from '~/constants';
 import { type Asset, AssetType } from '~/types';
-import { generateUUID } from '~/lib/utils';
 
 // ============================================================================
 // Directory Setup
@@ -78,7 +78,7 @@ export function filterExistingVoiceMemos(assets: Asset[] | null): Asset[] {
 export async function saveVoiceMemo(sourceUri: string): Promise<Asset> {
   const voiceMemosDir = getVoiceMemosDir();
 
-  const filename = `${generateUUID()}.${getVoiceMemoExtension(sourceUri)}`;
+  const filename = `${randomUUID()}.${getVoiceMemoExtension(sourceUri)}`;
   const srcFile = new File(sourceUri);
   const destFile = new File(voiceMemosDir, filename);
   await srcFile.copy(destFile);

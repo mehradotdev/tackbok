@@ -1,4 +1,5 @@
 import { and, asc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 import {
   customPrompts,
   db,
@@ -18,7 +19,6 @@ import type { SQLiteSyncEngine } from '../engine';
 import { createLocalMediaByteSource } from '../media/fileByteSource';
 import { hashLocalMediaFile } from '../media/streamingHash';
 import { shouldAdoptQueuedGeneration } from './queueReconciliation';
-import { generateUUID } from '~/lib/utils';
 import { AssetType, type Asset } from '~/types';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
@@ -340,7 +340,7 @@ export async function materializeProductionDomain(
           ));
           for (const removed of existingAssets) {
             if (!removed.local_uri) continue;
-            const ledgerId = generateUUID();
+            const ledgerId = randomUUID();
             await tx.insert(syncRetainedMedia).values({
               ledger_id: ledgerId, asset_id: removed.asset_id,
               original_owner_type: removed.owner_type, original_owner_id: removed.owner_id,
@@ -350,7 +350,7 @@ export async function materializeProductionDomain(
               last_error_code: null, delete_after: null, created_at: now, updated_at: now,
             });
             await tx.insert(syncMediaObligations).values({
-              obligation_id: generateUUID(), ledger_id: ledgerId,
+              obligation_id: randomUUID(), ledger_id: ledgerId,
               blob_hash: removed.blob_hash, obligation_kind: 'remote-apply',
               obligation_key: key, completed_at: now, created_at: now,
             });
@@ -397,7 +397,7 @@ export async function materializeProductionDomain(
           || priorPhoto.blob_hash !== state.photo.blobHash
         );
         if (photoIsReplaced && priorPhoto.local_uri) {
-          const ledgerId = generateUUID();
+          const ledgerId = randomUUID();
           await tx.insert(syncRetainedMedia).values({
             ledger_id: ledgerId, asset_id: priorPhoto.asset_id,
             original_owner_type: priorPhoto.owner_type, original_owner_id: priorPhoto.owner_id,
@@ -407,7 +407,7 @@ export async function materializeProductionDomain(
             last_error_code: null, delete_after: null, created_at: now, updated_at: now,
           });
           await tx.insert(syncMediaObligations).values({
-            obligation_id: generateUUID(), ledger_id: ledgerId,
+            obligation_id: randomUUID(), ledger_id: ledgerId,
             blob_hash: priorPhoto.blob_hash, obligation_kind: 'remote-apply',
             obligation_key: key, completed_at: now, created_at: now,
           });
@@ -481,7 +481,7 @@ export async function materializeProductionDomain(
         // lets the normal retained-media policy reap them safely later.
         for (const removed of existingById.values()) {
           if (removed.local_uri) {
-            const ledgerId = generateUUID();
+            const ledgerId = randomUUID();
             await tx.insert(syncRetainedMedia).values({
               ledger_id: ledgerId, asset_id: removed.asset_id,
               original_owner_type: removed.owner_type, original_owner_id: removed.owner_id,
@@ -491,7 +491,7 @@ export async function materializeProductionDomain(
               last_error_code: null, delete_after: null, created_at: now, updated_at: now,
             });
             await tx.insert(syncMediaObligations).values({
-              obligation_id: generateUUID(), ledger_id: ledgerId, blob_hash: removed.blob_hash,
+              obligation_id: randomUUID(), ledger_id: ledgerId, blob_hash: removed.blob_hash,
               obligation_kind: 'remote-apply', obligation_key: key,
               completed_at: now, created_at: now,
             });

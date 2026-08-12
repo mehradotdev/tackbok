@@ -26,6 +26,8 @@ export interface RemoteVaultSummary {
   vaultId: string;
   remoteRootId: string;
   revoked: boolean;
+  /** Drive marker creation time for human-readable vault selection. */
+  createdAt?: number | null;
 }
 
 export interface RemoteObjectRef {

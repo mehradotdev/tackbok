@@ -78,12 +78,13 @@ const supportEmail = 'tackbok.support@mehra.dev';
         <p>
           Cloud backup data is protected in transit and by Google Drive. Tackbok does
           <strong> not provide end-to-end encryption for cloud backups in this version</strong>.
-          Google supplies basic account identity only so the app can show a masked account
-          label. On Android, the selected account email may be kept beside credentials in
-          secure device storage so background refresh cannot switch accounts; it is deleted
-          on Disconnect and is never written to a backup, app database, log,
-          diagnostic report, or analytics event. Disconnect affects only that device and
-          does not revoke Tackbok's Google access for other connected devices.
+          Google supplies the account email so the app can show the full address of the
+          connected Google Drive. The selected email is kept beside the credentials in secure
+          storage on that device so Tackbok can identify the connected account without fetching
+          the address again; on Android it also pins background refresh to that account. It is
+          deleted on Disconnect and is never written to a backup, app database, log, diagnostic
+          report, or analytics event. Disconnect affects only that device and does not revoke
+          Tackbok's Google access for other connected devices.
         </p>
 
         <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">

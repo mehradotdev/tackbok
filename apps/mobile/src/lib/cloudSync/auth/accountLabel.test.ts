@@ -20,11 +20,9 @@ function response(status: number, body?: unknown) {
 beforeEach(() => mockFetch.mockReset());
 
 describe('fetchGoogleAccountLabel', () => {
-  it('masks the email on success', async () => {
+  it('returns the full email for the connected-account label', async () => {
     mockFetch.mockResolvedValueOnce(response(200, { email: 'probe.account@gmail.com' }));
-    const label = await fetchGoogleAccountLabel('token');
-    expect(label).toContain('•');
-    expect(label).not.toContain('probe.account');
+    await expect(fetchGoogleAccountLabel('token')).resolves.toBe('probe.account@gmail.com');
   });
 
   it('throws an auth error when the token is rejected', async () => {

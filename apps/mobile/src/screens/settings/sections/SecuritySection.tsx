@@ -6,7 +6,7 @@ import { authenticate, canUseDeviceAuth, useAppLockStore } from '~/lib/appLock';
 import { Switch } from '~/components/ui/switch';
 import { toast } from '~/components/ui/toast';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 
 export function SecuritySection() {
   const { t } = useTranslation();

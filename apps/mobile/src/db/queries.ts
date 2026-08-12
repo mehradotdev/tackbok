@@ -12,6 +12,7 @@ import {
   updatePromptInTransaction,
   updateTagInTransaction,
   upsertEntryInTransaction,
+  type CloudSyncTransaction,
 } from '~/lib/cloudSync/storage/repositories';
 import {
   db,
@@ -290,30 +291,34 @@ export async function deleteEntryRecord(noteId: string) {
  * Completely resets the database by deleting all entries.
  */
 export async function deleteAllData(): Promise<{ retainedMediaForSync: boolean }> {
-  return runInCloudSyncTransaction(async (tx) => {
-    const [allEntries, allTags, allPrompts, vaultRows] = await Promise.all([
-      tx.select({ id: entries.note_id }).from(entries),
-      tx.select({ id: tags.tag_id }).from(tags),
-      tx.select({ id: customPrompts.prompt_id }).from(customPrompts),
-      tx.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1),
-    ]);
-    const batchId = `local-reset-${Date.now()}`;
-    for (const { id } of allEntries) {
-      await deleteEntryInTransaction(tx, id, { batchId });
-    }
-    for (const { id } of allTags) {
-      await deleteTagInTransaction(tx, id, { batchId });
-    }
-    for (const { id } of allPrompts) {
-      await deletePromptInTransaction(tx, id, { batchId });
-    }
-    await updateProfileInTransaction(
-      tx,
-      { displayName: null, email: null, photoUri: null },
-      { batchId },
-    );
-    return { retainedMediaForSync: vaultRows.length > 0 };
-  });
+  return runInCloudSyncTransaction(deleteAllDataInTransaction);
+}
+
+export async function deleteAllDataInTransaction(
+  tx: CloudSyncTransaction,
+): Promise<{ retainedMediaForSync: boolean }> {
+  const [allEntries, allTags, allPrompts, vaultRows] = await Promise.all([
+    tx.select({ id: entries.note_id }).from(entries),
+    tx.select({ id: tags.tag_id }).from(tags),
+    tx.select({ id: customPrompts.prompt_id }).from(customPrompts),
+    tx.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1),
+  ]);
+  const batchId = `local-reset-${Date.now()}`;
+  for (const { id } of allEntries) {
+    await deleteEntryInTransaction(tx, id, { batchId });
+  }
+  for (const { id } of allTags) {
+    await deleteTagInTransaction(tx, id, { batchId });
+  }
+  for (const { id } of allPrompts) {
+    await deletePromptInTransaction(tx, id, { batchId });
+  }
+  await updateProfileInTransaction(
+    tx,
+    { displayName: null, email: null, photoUri: null },
+    { batchId },
+  );
+  return { retainedMediaForSync: vaultRows.length > 0 };
 }
 
 // ============================================================================

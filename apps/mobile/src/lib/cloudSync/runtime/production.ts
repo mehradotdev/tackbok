@@ -9,7 +9,11 @@ import {
 } from '~/lib/analytics/events';
 import { useSettingsStore } from '~/lib/settings';
 import { createGoogleAuthorization } from '../auth';
-import { SQLiteEngineCheckpointStore, SQLiteSyncEngine } from '../engine';
+import {
+  SQLiteEngineCheckpointStore,
+  SQLiteSyncEngine,
+  type SyncPassPhase,
+} from '../engine';
 import { GoogleDriveProvider } from '../providers';
 import {
   hydrateProductionOutbox,
@@ -39,7 +43,7 @@ class ProductionRuntimeEngine implements RuntimeSyncEngine {
   }
 
   async sync() {
-    setProductionCloudSyncActivity('syncing');
+    setProductionCloudSyncActivity('preparing');
     try {
       const network = await Network.getNetworkStateAsync();
       const mediaAllowed =
@@ -56,6 +60,7 @@ class ProductionRuntimeEngine implements RuntimeSyncEngine {
       }
       const priorConflicts = new Set(this.engine.conflicts.keys());
       const result = await this.engine.sync({
+        onPhase: setProductionCloudSyncActivity,
         // A save can commit while pull is in flight. Refreshing the transactional
         // queue immediately before Apply makes the generation-CAS observe it.
         beforeApply: () => hydrateProductionOutbox(this.engine),
@@ -84,13 +89,14 @@ class ProductionRuntimeEngine implements RuntimeSyncEngine {
 }
 
 const productionCloudSyncListeners = new Set<() => void>();
-let productionCloudSyncActivity: 'idle' | 'syncing' = 'idle';
+export type ProductionCloudSyncActivity = 'idle' | SyncPassPhase;
+let productionCloudSyncActivity: ProductionCloudSyncActivity = 'idle';
 
-export function getProductionCloudSyncActivity(): 'idle' | 'syncing' {
+export function getProductionCloudSyncActivity(): ProductionCloudSyncActivity {
   return productionCloudSyncActivity;
 }
 
-function setProductionCloudSyncActivity(activity: 'idle' | 'syncing'): void {
+function setProductionCloudSyncActivity(activity: ProductionCloudSyncActivity): void {
   productionCloudSyncActivity = activity;
   notifyProductionCloudSyncChanged();
 }
@@ -203,9 +209,17 @@ export function stopProductionSyncRuntime(): void {
 
 export async function runProductionManualSync(): Promise<boolean> {
   if (!productionRuntime) return false;
+  // Fast Refresh, a prior Disconnect, or an app lifecycle cleanup may have
+  // stopped the singleton. A user-initiated pass should make one explicit
+  // attempt to restore the runtime before reporting failure.
+  await productionRuntime.start();
   const result = await productionRuntime.run('manual');
   notifyProductionCloudSyncChanged();
   return result !== null;
+}
+
+export function getProductionCloudSyncFailureCategory() {
+  return productionRuntime?.getLastFailureCategory() ?? null;
 }
 
 export async function runProductionBackgroundPass(): Promise<boolean> {

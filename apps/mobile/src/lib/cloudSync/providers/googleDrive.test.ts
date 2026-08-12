@@ -1,6 +1,8 @@
 import type { CloudAuthorization, GoogleTokenSet } from '../auth/types';
-import { sha256Bytes } from '../codec';
+import { canonicalBytes, sha256Bytes } from '../codec';
+import { selectRestorableUserVaults } from '../ui/vaultSelection';
 import {
+  driveMetadataKey,
   GoogleDriveProvider,
   MemoryResumableSessionStore,
   type DriveFetchLike,
@@ -55,6 +57,118 @@ function file(id: string, key: string, hash: string) {
     appProperties: { tb_vault: 'vault', tb_key: key, tb_hash: hash },
   };
 }
+
+test('vault discovery exposes marker dates newest-first', async () => {
+  const auth = new FakeAuth();
+  const olderBody = canonicalBytes({
+    magic: 'tackbok-vault',
+    formatVersion: 1,
+    vaultId: 'vault-older',
+  });
+  const newerBody = canonicalBytes({
+    magic: 'tackbok-vault',
+    formatVersion: 1,
+    vaultId: 'vault-newer',
+  });
+  const markers = [
+    {
+      id: 'older-marker',
+      createdTime: '2026-08-08T10:00:00.000Z',
+      appProperties: {
+        tb_vault: 'vault-older',
+        tb_key: 'vault.json',
+        tb_hash: sha256Bytes(olderBody),
+      },
+    },
+    {
+      id: 'newer-marker',
+      createdTime: '2026-08-10T10:00:00.000Z',
+      appProperties: {
+        tb_vault: 'vault-newer',
+        tb_key: 'vault.json',
+        tb_hash: sha256Bytes(newerBody),
+      },
+    },
+  ];
+  const provider = new GoogleDriveProvider({
+    auth,
+    fetch: async (url) => {
+      if (url.includes('/drive/v3/files?')) return response(200, { files: markers });
+      if (url.includes('/older-marker?alt=media')) {
+        return response(200, {}, { bytes: olderBody });
+      }
+      if (url.includes('/newer-marker?alt=media')) {
+        return response(200, {}, { bytes: newerBody });
+      }
+      throw new Error(`Unexpected request ${url}`);
+    },
+  });
+
+  await expect(provider.listVaults()).resolves.toEqual([
+    {
+      vaultId: 'vault-newer',
+      remoteRootId: 'newer-marker',
+      revoked: false,
+      createdAt: Date.parse('2026-08-10T10:00:00.000Z'),
+    },
+    {
+      vaultId: 'vault-older',
+      remoteRootId: 'older-marker',
+      revoked: false,
+      createdAt: Date.parse('2026-08-08T10:00:00.000Z'),
+    },
+  ]);
+});
+
+test('normal restore discovery excludes revoked and Phase-3 probe vaults', () => {
+  expect(selectRestorableUserVaults([
+    { vaultId: 'vault-user', remoteRootId: 'user-root', revoked: false },
+    { vaultId: 'probe-mslob1c3', remoteRootId: 'probe-root', revoked: false },
+    { vaultId: 'vault-dead', remoteRootId: 'dead-root', revoked: true },
+  ])).toEqual([
+    { vaultId: 'vault-user', remoteRootId: 'user-root', revoked: false },
+  ]);
+});
+
+test('full-length entity keys fit Drive appProperties and remain reversible', async () => {
+  const auth = new FakeAuth();
+  const bytes = new Uint8Array([4, 2, 4, 2]);
+  const hash = sha256Bytes(bytes);
+  const key = `entities/entry/${'a'.repeat(36)}/${'b'.repeat(64)}.json`;
+  const metadataKey = driveMetadataKey(key);
+  const stored = {
+    id: 'long-key-file',
+    name: key,
+    size: String(bytes.length),
+    appProperties: {
+      tb_vault: 'vault',
+      tb_key: metadataKey,
+      tb_hash: hash,
+    },
+  };
+  const calls: { url: string; init?: Record<string, unknown> }[] = [];
+  const provider = new GoogleDriveProvider({
+    auth,
+    fetch: async (url, init) => {
+      calls.push({ url, init });
+      if (calls.length === 1) return response(200, { files: [] });
+      if (calls.length === 2) return response(200, stored);
+      if (calls.length === 3) return response(200, { files: [stored] });
+      if (calls.length === 4) return response(200, {}, { bytes });
+      throw new Error(`Unexpected request ${url}`);
+    },
+  });
+  const vault = { vaultId: 'vault', remoteRootId: 'appDataFolder' };
+
+  expect(new TextEncoder().encode(`tb_key${metadataKey}`).length).toBeLessThanOrEqual(124);
+  expect(metadataKey).toMatch(/^h:[0-9a-f]{64}$/);
+  await expect(provider.putImmutable(vault, key, bytes)).resolves.toMatchObject({ key });
+  await expect(provider.read(vault, key)).resolves.toMatchObject({ key, body: bytes });
+  expect(decodeURIComponent(calls[0]!.url)).toContain(metadataKey);
+  expect(new TextDecoder().decode(calls[1]!.init?.body as Uint8Array)).toContain(
+    `"tb_key":"${metadataKey}"`,
+  );
+});
 
 test('Drive immutable writes reuse verified duplicates and reject collisions', async () => {
   const auth = new FakeAuth();
@@ -328,6 +442,157 @@ test('initial change discovery restores pre-existing entity history before live 
     objects: [],
     cursor: 'next-live-token',
   });
+});
+
+test('initial restore rewinds an expired persisted list token and completes idempotently', async () => {
+  const auth = new FakeAuth();
+  const firstBytes = new Uint8Array([21]);
+  const secondBytes = new Uint8Array([22]);
+  const first = file('restore-first', 'entities/entry/first/v1.json', sha256Bytes(firstBytes));
+  const second = file('restore-second', 'entities/entry/second/v1.json', sha256Bytes(secondBytes));
+  let unpagedListings = 0;
+  const fetch: DriveFetchLike = async (url) => {
+    if (url.includes('/changes/startPageToken')) {
+      return response(200, { startPageToken: 'live-after-restore' });
+    }
+    if (url.includes('/files?') && url.includes('pageToken=expired-list-token')) {
+      return response(410);
+    }
+    if (url.includes('/files?') && url.includes('pageToken=fresh-list-token')) {
+      return response(200, { files: [second] });
+    }
+    if (url.includes('/files?')) {
+      unpagedListings++;
+      return response(200, {
+        files: [first],
+        nextPageToken: unpagedListings === 1 ? 'expired-list-token' : 'fresh-list-token',
+      });
+    }
+    if (url.includes('/restore-first?alt=media')) {
+      return response(200, {}, { bytes: firstBytes });
+    }
+    if (url.includes('/restore-second?alt=media')) {
+      return response(200, {}, { bytes: secondBytes });
+    }
+    throw new Error(`Unexpected request ${url}`);
+  };
+  const vault = { vaultId: 'vault', remoteRootId: 'root' };
+  const beforeDeath = new GoogleDriveProvider({ auth, fetch, pageSize: 1 });
+  const firstPage = await beforeDeath.getChanges(vault);
+
+  // Reconstruct the provider as a process death would, then present Drive's
+  // expired-token response for the persisted list cursor.
+  const afterDeath = new GoogleDriveProvider({ auth, fetch, pageSize: 1 });
+  const replayedPage = await afterDeath.getChanges(vault, firstPage.cursor ?? undefined);
+  const finalPage = await afterDeath.getChanges(vault, replayedPage.cursor ?? undefined);
+
+  expect(new Set([
+    ...firstPage.objects,
+    ...replayedPage.objects,
+    ...finalPage.objects,
+  ].map(({ key }) => key))).toEqual(new Set([
+    first.appProperties.tb_key,
+    second.appProperties.tb_key,
+  ]));
+  expect(replayedPage.objects.map(({ key }) => key)).toEqual([first.appProperties.tb_key]);
+  expect(finalPage.cursor).toBe('live-after-restore');
+  expect(unpagedListings).toBe(2);
+});
+
+test('initial restore bounds authenticated entity downloads', async () => {
+  const auth = new FakeAuth();
+  const stored = Array.from({ length: 10 }, (_, index) => {
+    const bytes = new Uint8Array([index]);
+    return {
+      bytes,
+      metadata: file(
+        `bounded-${index}`,
+        `entities/entry/${index}/v1.json`,
+        sha256Bytes(bytes),
+      ),
+    };
+  });
+  let activeDownloads = 0;
+  let peakDownloads = 0;
+  const provider = new GoogleDriveProvider({
+    auth,
+    pageSize: 100,
+    fetch: async (url) => {
+      if (url.includes('/changes/startPageToken')) {
+        return response(200, { startPageToken: 'live-token' });
+      }
+      if (url.includes('/files?')) {
+        return response(200, { files: stored.map(({ metadata }) => metadata) });
+      }
+      const item = stored.find(({ metadata }) => url.includes(`/${metadata.id}?alt=media`));
+      if (!item) throw new Error(`Unexpected request ${url}`);
+      activeDownloads++;
+      peakDownloads = Math.max(peakDownloads, activeDownloads);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      activeDownloads--;
+      return response(200, {}, { bytes: item.bytes });
+    },
+  });
+
+  const page = await provider.getChanges({ vaultId: 'vault', remoteRootId: 'root' });
+  expect(page.objects).toHaveLength(10);
+  expect(peakDownloads).toBeGreaterThan(1);
+  expect(peakDownloads).toBeLessThanOrEqual(4);
+});
+
+test('Drive retries rate-limit 403s with Retry-After but keeps genuine 403s as auth', async () => {
+  const rateLimitAuth = new FakeAuth();
+  const delays: number[] = [];
+  let rateLimitCalls = 0;
+  const rateLimited = new GoogleDriveProvider({
+    auth: rateLimitAuth,
+    sleep: async (milliseconds) => { delays.push(milliseconds); },
+    fetch: async () => {
+      rateLimitCalls++;
+      if (rateLimitCalls === 1) {
+        return response(403, {
+          error: { errors: [{ reason: 'userRateLimitExceeded' }] },
+        }, { headers: { 'retry-after': '2' } });
+      }
+      return response(200, { storageQuota: { usageInDrive: '7', limit: '10' } });
+    },
+  });
+  await expect(rateLimited.getQuota()).resolves.toEqual({ usedBytes: 7, limitBytes: 10 });
+  expect(delays).toEqual([2_000]);
+  expect(rateLimitAuth.clearCount).toBe(0);
+
+  const auth = new FakeAuth();
+  let authCalls = 0;
+  const forbidden = new GoogleDriveProvider({
+    auth,
+    sleep: async () => { throw new Error('auth errors must not retry'); },
+    fetch: async () => {
+      authCalls++;
+      return response(403, {
+        error: { errors: [{ reason: 'insufficientPermissions' }] },
+      });
+    },
+  });
+  await expect(forbidden.getQuota()).rejects.toMatchObject({ category: 'auth' });
+  expect(authCalls).toBe(1);
+});
+
+test('Drive transient retries use bounded exponential backoff', async () => {
+  const delays: number[] = [];
+  let calls = 0;
+  const provider = new GoogleDriveProvider({
+    auth: new FakeAuth(),
+    sleep: async (milliseconds) => { delays.push(milliseconds); },
+    random: () => 0,
+    fetch: async () => {
+      calls++;
+      return calls < 3
+        ? response(500)
+        : response(200, { storageQuota: { usageInDrive: '1' } });
+    },
+  });
+  await expect(provider.getQuota()).resolves.toEqual({ usedBytes: 1, limitBytes: null });
+  expect(delays).toEqual([1_000, 2_000]);
 });
 
 test('permanent delete is idempotent and purge preserves revocation markers', async () => {

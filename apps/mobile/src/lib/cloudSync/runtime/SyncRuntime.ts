@@ -66,6 +66,7 @@ export class SyncRuntime {
   private wasOnline = false;
   private lifecycle = 0;
   private rerunTrigger: CloudSyncTrigger | null = null;
+  private lastFailureCategory: CloudSyncFailureCategory | null = null;
 
   constructor(private readonly options: SyncRuntimeOptions) {}
 
@@ -124,6 +125,10 @@ export class SyncRuntime {
     return this.startRun(trigger, true);
   }
 
+  getLastFailureCategory(): CloudSyncFailureCategory | null {
+    return this.lastFailureCategory;
+  }
+
   private async startRun(
     trigger: CloudSyncTrigger,
     allowFollowup: boolean,
@@ -165,10 +170,12 @@ export class SyncRuntime {
         pulled_bucket: toCloudSyncCountBucket(result.pulled),
         pushed_bucket: toCloudSyncCountBucket(result.pushed),
       });
+      this.lastFailureCategory = null;
       if (this.engine?.hasPendingWork?.()) this.rerunTrigger = trigger;
       return result;
     } catch (error) {
-      this.options.analytics?.failed(failureCategory(error));
+      this.lastFailureCategory = failureCategory(error);
+      this.options.analytics?.failed(this.lastFailureCategory);
       return null;
     }
   }

@@ -1,4 +1,5 @@
 import { and, count, eq, isNull } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 import {
   cloudVault,
   customPrompts,
@@ -7,12 +8,20 @@ import {
   sqlite,
   syncChangeQueue,
   syncConflicts,
+  syncEngineCheckpoints,
+  syncEngineEntityMetadata,
+  syncEngineLocalBlobs,
+  syncEngineLocalDomain,
+  syncEntityState,
+  syncMediaObligations,
   syncProviderState,
+  syncRemoteObjects,
+  syncRetainedMedia,
+  syncVersions,
   tags,
 } from '~/db';
 import { track } from '~/lib/analytics';
-import { deleteAllData } from '~/db/queries';
-import { generateUUID } from '~/lib/utils';
+import { deleteAllDataInTransaction } from '~/db/queries';
 import { createGoogleAuthorization } from '../auth';
 import { canonicalBytes } from '../codec';
 import { SQLiteEngineCheckpointStore, SQLiteSyncEngine } from '../engine';
@@ -20,12 +29,19 @@ import { GoogleDriveProvider } from '../providers';
 import type { RemoteVaultSummary } from '../providers/types';
 import {
   getProductionCloudSyncActivity,
+  getProductionCloudSyncFailureCategory,
   notifyProductionCloudSyncChanged,
   restartProductionSyncRuntime,
   runProductionManualSync,
   stopProductionSyncRuntime,
 } from '../runtime/production';
+import type { SyncPassPhase } from '../engine';
 import { setCloudSyncBackgroundTaskEnabled } from '../runtime/backgroundTask';
+import {
+  runInCloudSyncTransaction,
+  type CloudSyncTransaction,
+} from '../storage/repositories';
+import { selectRestorableUserVaults } from './vaultSelection';
 
 export type CloudSetupOrigin = 'settings' | 'onboarding';
 
@@ -41,6 +57,8 @@ export interface CloudSyncSnapshot {
     | 'warning'
     | 'restoring';
   accountLabel: string | null;
+  activityPhase: SyncPassPhase | null;
+  initialRestore: boolean;
   queuedCount: number;
   conflictCount: number;
   lastSuccessAt: number | null;
@@ -60,6 +78,22 @@ export interface CloudConflictSummary {
   recoveredCount: number;
   alternateCount: number;
   createdAt: number;
+}
+
+export type CloudSyncActionFailureCategory =
+  | 'auth'
+  | 'quota'
+  | 'rate-limit'
+  | 'offline'
+  | 'corrupt'
+  | 'transient'
+  | 'unknown';
+
+export class CloudSyncActionError extends Error {
+  constructor(readonly category: CloudSyncActionFailureCategory) {
+    super(`Cloud sync action failed: ${category}`);
+    this.name = 'CloudSyncActionError';
+  }
 }
 
 let accountLabelInMemory: string | null = null;
@@ -96,10 +130,11 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
     accountLabelInMemory = await createGoogleAuthorization().getAccountLabel()
       .catch(() => null);
   }
+  const activity = getProductionCloudSyncActivity();
   let status: CloudSyncSnapshot['status'] = 'off';
   if (vault?.status === 'revoked') status = 'warning';
   else if (vault?.status === 'paused') status = 'paused';
-  else if (getProductionCloudSyncActivity() === 'syncing') status = 'syncing';
+  else if (activity !== 'idle') status = 'syncing';
   else if (vault?.status === 'restoring') status = 'restoring';
   else if (configured && queuedCount > 0) status = 'queued';
   else if (configured) status = 'synced';
@@ -109,6 +144,8 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
     provider: vault?.provider_kind === 'google-drive' ? 'google-drive' : null,
     status,
     accountLabel: accountLabelInMemory,
+    activityPhase: activity === 'idle' ? null : activity,
+    initialRestore: vault?.status === 'restoring',
     queuedCount,
     conflictCount,
     lastSuccessAt: providerState?.last_success_at ?? null,
@@ -124,7 +161,7 @@ export async function prepareGoogleDriveConnection(): Promise<PreparedGoogleConn
     const connection = await provider.connect();
     const prepared = {
       accountLabel: connection.accountLabel ?? 'Google Drive',
-      availableVaults: (await provider.listVaults()).filter((vault) => !vault.revoked),
+      availableVaults: selectRestorableUserVaults(await provider.listVaults()),
       localHasData: await localHasData(),
     };
     pendingConnection = { provider, prepared };
@@ -168,7 +205,7 @@ export async function completeGoogleDriveConnection(options: {
   }
 
   if (!selected) {
-    const vaultId = generateUUID();
+    const vaultId = randomUUID();
     const marker = await pending.provider.createVaultMarker(
       vaultId,
       canonicalBytes({ magic: 'tackbok-vault', formatVersion: 1, vaultId }),
@@ -186,7 +223,7 @@ export async function completeGoogleDriveConnection(options: {
       provider_kind: 'google-drive',
       remote_root_id: selected!.remoteRootId,
       account_label: null,
-      device_id: prior?.deviceId ?? generateUUID(),
+      device_id: prior?.deviceId ?? randomUUID(),
       status: options.createNew ? 'dirty' : 'restoring',
       created_at: now,
       updated_at: now,
@@ -262,12 +299,17 @@ export async function setCloudSyncPaused(paused: boolean): Promise<void> {
 }
 
 export async function syncNow(): Promise<boolean> {
-  return runProductionManualSync();
+  const passed = await runProductionManualSync();
+  if (!passed) {
+    throw new CloudSyncActionError(
+      getProductionCloudSyncFailureCategory() ?? 'unknown',
+    );
+  }
+  return true;
 }
 
 export async function verifyCloudBackup(): Promise<boolean> {
-  const passed = await runProductionManualSync();
-  if (!passed) return false;
+  await syncNow();
   const now = Date.now();
   await db.insert(syncProviderState).values({
     provider_kind: 'google-drive',
@@ -297,7 +339,7 @@ export async function revokeCloudVault(
     provider,
     new SQLiteEngineCheckpointStore(sqlite),
   );
-  const revocationId = generateUUID();
+  const revocationId = randomUUID();
   await engine.revoke(kind, revocationId, Date.now());
   await db.update(cloudVault).set({
     status: 'revoked',
@@ -311,45 +353,52 @@ export async function revokeCloudVault(
   notifyProductionCloudSyncChanged();
 }
 
-async function clearLocalCloudReplica(): Promise<void> {
-  // Explicit local teardown used only after Disconnect or a completed
-  // journal-deleted revocation. It cannot publish because credentials and the
-  // runtime are already stopped before this transaction begins.
-  try {
-    await sqlite.execAsync(`
-      BEGIN IMMEDIATE;
-      DELETE FROM sync_media_obligations;
-      DELETE FROM sync_retained_media;
-      DELETE FROM sync_remote_objects;
-      DELETE FROM sync_conflicts;
-      DELETE FROM sync_change_queue;
-      DELETE FROM sync_entity_state;
-      DELETE FROM sync_versions;
-      DELETE FROM sync_provider_state;
-      DELETE FROM sync_engine_local_blobs;
-      DELETE FROM sync_engine_local_domain;
-      DELETE FROM sync_engine_entity_metadata;
-      DELETE FROM sync_engine_checkpoints;
-      DELETE FROM cloud_vault;
-      COMMIT;
-    `);
-  } catch (error) {
-    await sqlite.execAsync('ROLLBACK;').catch(() => undefined);
-    throw error;
-  }
+async function clearLocalCloudReplicaInTransaction(
+  tx: CloudSyncTransaction,
+): Promise<void> {
+  await tx.delete(syncMediaObligations);
+  await tx.delete(syncRetainedMedia);
+  await tx.delete(syncRemoteObjects);
+  await tx.delete(syncConflicts);
+  await tx.delete(syncChangeQueue);
+  await tx.delete(syncEntityState);
+  await tx.delete(syncVersions);
+  await tx.delete(syncProviderState);
+  await tx.delete(syncEngineLocalBlobs);
+  await tx.delete(syncEngineLocalDomain);
+  await tx.delete(syncEngineEntityMetadata);
+  await tx.delete(syncEngineCheckpoints);
+  await tx.delete(cloudVault);
+}
+
+async function wipeJournalAndLocalCloudReplica(): Promise<void> {
+  await runInCloudSyncTransaction(async (tx) => {
+    await deleteAllDataInTransaction(tx);
+    // The routed hard delete creates queue and retained-media rows. Clearing
+    // those rows in this same transaction closes the crash window where a
+    // later reconnect could otherwise publish the device wipe to Drive.
+    await clearLocalCloudReplicaInTransaction(tx);
+  });
 }
 
 export async function resetThisDeviceOnly(): Promise<void> {
-  await disconnectGoogleDrive();
-  await deleteAllData();
-  await clearLocalCloudReplica();
+  const [vault] = await db.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1);
+  stopProductionSyncRuntime();
+  if (vault) {
+    // Sign out before deleting local state. A crash before the atomic wipe
+    // leaves the journal intact; a crash after it cannot leave queued deletes.
+    await createGoogleAuthorization().signOut();
+    await setCloudSyncBackgroundTaskEnabled(false);
+  }
+  accountLabelInMemory = null;
+  accountLabelAttemptedForVault = null;
+  await wipeJournalAndLocalCloudReplica();
   notifyProductionCloudSyncChanged();
 }
 
 export async function deleteJournalEverywhere(): Promise<void> {
   await revokeCloudVault('journal-deleted');
-  await deleteAllData();
-  await clearLocalCloudReplica();
+  await wipeJournalAndLocalCloudReplica();
   notifyProductionCloudSyncChanged();
 }
 

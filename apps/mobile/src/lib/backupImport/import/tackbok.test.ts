@@ -92,6 +92,10 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
+jest.mock('expo-crypto', () => ({
+  randomUUID: jest.fn(() => '123e4567-e89b-42d3-a456-426614174000'),
+}));
+
 // Keep these mocks inline: the import flow needs a custom File/Directory surface
 // for archive reads, which is intentionally narrower than the shared manual mocks.
 jest.mock('expo-file-system', () => ({

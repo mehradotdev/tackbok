@@ -1,41 +1,41 @@
 import { View } from 'react-native';
 import {
-  ChevronRight,
   ChevronLeft,
+  ChevronRight,
   ExternalLink,
   type LucideIcon,
   type LucideProps,
 } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
-import { Text } from '~/components/ui/text';
+import { Button, type ButtonProps } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
-import { Button } from '~/components/ui/button';
+import { Text } from '~/components/ui/text';
 
 type IconComponent = LucideIcon | React.ComponentType<LucideProps>;
 
-interface SettingsRowProps {
+type SettingsRowProps = Omit<ButtonProps, 'children' | 'size' | 'variant'> & {
   label: string;
   description?: string;
-  onPress?: () => void;
   showChevron?: boolean;
   isExternalLink?: boolean;
   rightElement?: React.ReactNode;
   isLast?: boolean;
-  disabled?: boolean;
   icon?: IconComponent;
-}
+};
 
 export function SettingsRow({
   label,
   description,
-  onPress,
   showChevron = false,
   isExternalLink = false,
   rightElement,
   isLast = false,
   disabled = false,
   icon,
+  className,
+  onPress,
+  ...props
 }: SettingsRowProps) {
   const { isRTL } = useTranslation();
 
@@ -46,19 +46,16 @@ export function SettingsRow({
       onPress={onPress}
       disabled={disabled}
       className={cn(
-        'flex-row items-center justify-between px-3 py-3',
+        'w-full flex-row items-center justify-between gap-2 px-3 py-3',
         !isLast && 'border-b border-border',
-        disabled && 'opacity-50',
         !onPress && 'active:bg-transparent',
-      )}>
-      {icon && (
-        <View className="mr-2">
-          <Icon as={icon} className="text-foreground size-5" strokeWidth={2} />
-        </View>
+        className,
       )}
-      <View className="flex-1 mr-3 items-start">
-        <View className="flex-row items-center">
-          <Text className="text-base text-foreground font-body-medium mr-1">{label}</Text>
+      {...props}>
+      {icon && <Icon as={icon} className="text-foreground size-5" strokeWidth={2} />}
+      <View className="min-w-0 flex-1 items-start">
+        <View className="flex-row items-center gap-1">
+          <Text className="text-base text-foreground font-body-medium">{label}</Text>
           {isExternalLink && (
             <Icon
               as={ExternalLink}
@@ -74,16 +71,20 @@ export function SettingsRow({
           </Text>
         )}
       </View>
-      <View className="flex-row items-center">
-        {rightElement}
-        {showChevron && (
-          <Icon
-            as={isRTL ? ChevronLeft : ChevronRight}
-            strokeWidth={2}
-            className="text-muted-foreground"
-          />
-        )}
-      </View>
+      {(rightElement || showChevron) && (
+        <View className="flex-row items-center gap-1">
+          {rightElement}
+          {showChevron && (
+            <Icon
+              as={isRTL ? ChevronLeft : ChevronRight}
+              strokeWidth={2}
+              className="text-muted-foreground"
+            />
+          )}
+        </View>
+      )}
     </Button>
   );
 }
+
+export type { SettingsRowProps };

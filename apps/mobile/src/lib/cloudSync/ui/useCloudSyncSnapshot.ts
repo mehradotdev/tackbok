@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { addCloudSyncMutationListener } from '../runtime/mutationSignal';
 import { subscribeProductionCloudSync } from '../runtime/production';
@@ -9,6 +9,8 @@ const EMPTY_SNAPSHOT: CloudSyncSnapshot = {
   provider: null,
   status: 'off',
   accountLabel: null,
+  activityPhase: null,
+  initialRestore: false,
   queuedCount: 0,
   conflictCount: 0,
   lastSuccessAt: null,
@@ -21,8 +23,11 @@ export function useCloudSyncSnapshot(): {
   refresh: () => Promise<void>;
 } {
   const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT);
+  const refreshSequence = useRef(0);
   const refresh = useCallback(async () => {
-    setSnapshot(await loadCloudSyncSnapshot());
+    const sequence = ++refreshSequence.current;
+    const next = await loadCloudSyncSnapshot();
+    if (sequence === refreshSequence.current) setSnapshot(next);
   }, []);
 
   useFocusEffect(useCallback(() => {

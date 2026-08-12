@@ -127,7 +127,7 @@ const DEFAULT_SETTINGS_VALUES = {
   titleFont: DEFAULT_TITLE_FONT_SELECTION,
   bodyFontSize: DEFAULT_BODY_FONT_SIZE,
   biometricUnlockEnabled: false,
-  cloudSyncWifiOnlyMedia: true,
+  cloudSyncWifiOnlyMedia: false,
   analyticsEnabled: false,
   lastUpdateCheckAt: null,
   customWorksheetTemplate: null,
@@ -236,7 +236,7 @@ export const useSettingsStore = create<SettingsState>()(
           cloudSyncWifiOnlyMedia:
             typeof providerNeutral.cloudSyncWifiOnlyMedia === 'boolean'
               ? providerNeutral.cloudSyncWifiOnlyMedia
-              : true,
+              : false,
         } as unknown as SettingsState;
       },
       onRehydrateStorage: () => (state) => {

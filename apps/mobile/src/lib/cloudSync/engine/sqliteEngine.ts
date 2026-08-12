@@ -601,6 +601,7 @@ export class SQLiteSyncEngine {
   async sync(hooks: SyncPassHooks = {}): Promise<SyncPassResult> {
     const result = await this.core.sync({
       beforeApply: hooks.beforeApply ? async () => hooks.beforeApply?.(this.core) : undefined,
+      onPhase: hooks.onPhase,
     });
     if (!this.options.requiresMaterializationAck && result.appliedEntityKeys.length > 0) {
       this.core.acknowledgeMaterialized(result.appliedEntityKeys);

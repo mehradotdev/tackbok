@@ -43,6 +43,7 @@ describe('Phase 4b UI, privacy, translation, and accessibility gate', () => {
     expect(store).not.toContain("backupFrequency: 'daily'");
     expect(store).toContain('googleDriveBackupEnabled: _legacyEnabled');
     expect(store).toContain('cloudSyncWifiOnlyMedia');
+    expect(store).toContain('cloudSyncWifiOnlyMedia: false');
     expect(section).not.toContain('SettingsBackupFrequencyModal');
     expect(existsSync(resolve(
       mobileRoot,
@@ -51,10 +52,13 @@ describe('Phase 4b UI, privacy, translation, and accessibility gate', () => {
   });
 
   test('one shared setup flow serves settings and onboarding', async () => {
-    const [route, onboarding, screen] = await Promise.all([
+    const [route, onboarding, screen, accountLabel, vaultSelection, androidAuth] = await Promise.all([
       app('src/app/cloud-backup.tsx'),
       app('src/screens/onboarding/WelcomeScreen.tsx'),
       app('src/screens/cloudBackup/index.tsx'),
+      app('src/lib/cloudSync/auth/accountLabel.ts'),
+      app('src/lib/cloudSync/ui/vaultSelection.ts'),
+      app('src/inlineModules/GoogleAuthorizationModule.kt'),
     ]);
     expect(route).toContain('CloudBackupScreen');
     expect(onboarding.indexOf("source: 'google-drive'")).toBeLessThan(
@@ -62,20 +66,37 @@ describe('Phase 4b UI, privacy, translation, and accessibility gate', () => {
     );
     expect(onboarding).toContain('/cloud-backup?origin=onboarding');
     expect(screen).toContain("origin === 'onboarding'");
-    expect(screen).toContain('Cloud data is protected in transit');
+    expect(screen).toContain('Backups are encrypted in transit and at rest by Google Drive');
+    expect(screen).toContain('If Google shows a Drive access checkbox, select it.');
+    expect(screen).toContain("error.code === 'permission-required'");
     expect(screen).toContain('No Tackbok backup found in this Google account');
+    expect(screen).toContain('Backup from {date}');
+    expect(screen).toContain('Your Google email is stored securely on this device');
+    expect(accountLabel).toContain("return email.length > 0 ? email : 'Google Drive'");
+    expect(accountLabel).not.toContain('maskGoogleAccountEmail');
+    expect(vaultSelection).toContain("!vault.vaultId.startsWith('probe-')");
+    expect(androidAuth).toContain('result.grantedScopes.contains(GOOGLE_DRIVE_SCOPE)');
   });
 
   test('destructive actions are distinct and Disconnect remains local-only', async () => {
-    const [control, screen] = await Promise.all([
+    const [control, screen, dangerZone] = await Promise.all([
       app('src/lib/cloudSync/ui/production.ts'),
       app('src/screens/cloudBackup/index.tsx'),
+      app('src/screens/settings/sections/DangerZoneSection.tsx'),
     ]);
     expect(control).toContain('createGoogleAuthorization().signOut()');
     expect(screen).toContain("revokeCloudVault('backup-deleted')");
     expect(control).toContain("revokeCloudVault('journal-deleted')");
     expect(control).toContain('resetThisDeviceOnly');
     expect(control).not.toMatch(/googleapis\.com\/revoke|oauth2\/revoke/);
+    expect(dangerZone).toContain('hasConfiguredCloudVault');
+    expect(dangerZone).toContain("'Delete All Data'");
+    expect(dangerZone).toContain(
+      "'This action cannot be undone. All your app data will be permanently deleted.'",
+    );
+    expect(dangerZone).toContain("'Reset this device only'");
+    expect(control).toContain('deleteAllDataInTransaction(tx)');
+    expect(control).toContain('clearLocalCloudReplicaInTransaction(tx)');
   });
 
   test('cloud surfaces expose accessible names, progress announcements, and non-colour status', async () => {

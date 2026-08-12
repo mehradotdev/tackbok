@@ -10,7 +10,7 @@ const mockManipulate = jest.fn(() => ({
   resize: mockResize,
   renderAsync: mockRenderAsync,
 }));
-const mockGenerateUUID = jest.fn(() => 'generated-uuid');
+const mockRandomUUID = jest.fn(() => 'generated-uuid');
 
 jest.mock('expo-file-system');
 jest.mock('react-native');
@@ -28,8 +28,8 @@ jest.mock('expo-image-manipulator', () => ({
     JPEG: 'jpeg',
   },
 }));
-jest.mock('~/lib/utils', () => ({
-  generateUUID: () => mockGenerateUUID(),
+jest.mock('expo-crypto', () => ({
+  randomUUID: () => mockRandomUUID(),
 }));
 
 const { __mockFileSystemState } = ExpoFileSystemMock as typeof ExpoFileSystemMock & {
@@ -82,7 +82,7 @@ describe('media persistence', () => {
     mockRenderAsync.mockReset();
     mockSaveAsync.mockReset();
     mockManipulate.mockReset();
-    mockGenerateUUID.mockReset();
+    mockRandomUUID.mockReset();
 
     mockResize.mockImplementation(() => undefined);
     mockRenderAsync.mockResolvedValue({
@@ -95,7 +95,7 @@ describe('media persistence', () => {
       resize: mockResize,
       renderAsync: mockRenderAsync,
     }));
-    mockGenerateUUID.mockImplementation(() => 'generated-uuid');
+    mockRandomUUID.mockImplementation(() => 'generated-uuid');
   });
 
   test('waits for photo copy before deleting the temp manipulator file', async () => {

@@ -1,12 +1,4 @@
-import {
-  isTerminalGoogleRefreshError,
-  maskGoogleAccountEmail,
-} from './policy';
-
-test('account labels are masked before leaving the auth layer', () => {
-  expect(maskGoogleAccountEmail('owner@example.com')).toBe('o•••@e•••.com');
-  expect(maskGoogleAccountEmail('not-an-email')).toBe('Google Drive');
-});
+import { isTerminalGoogleRefreshError } from './policy';
 
 test('only terminal refresh failures require token removal and re-consent', () => {
   expect(isTerminalGoogleRefreshError({ params: { error: 'invalid_grant' } })).toBe(true);

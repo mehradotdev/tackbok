@@ -17,6 +17,14 @@ All evidence comes from an emulator and a simulator. No physical device was
 available; the waiver records that, what it costs, and what is owed on the first
 real device.
 
+> **Post-gate owner policy update (2026-08-11):** Phase 3 proved the originally
+> specified masked label. Phase 4b now displays the full connected-account email.
+> It remains excluded from SQLite, the vault, logs, diagnostics, and analytics;
+> both platforms keep it only in SecureStore beside the credentials so the
+> label survives process death without another user-info request. Android also
+> uses it for account pinning.
+> The historical evidence below is intentionally unchanged.
+
 ## Account-independent evidence
 
 - [x] `bun run phase3:test`: **2 suites passed, 10 tests passed, 0 failed**.

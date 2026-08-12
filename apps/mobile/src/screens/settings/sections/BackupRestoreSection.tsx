@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 import { SettingsImportModeModal } from '../SettingsImportModeModal';
 import { SettingsImportProgressModal } from '../SettingsImportProgressModal';
 import { SettingsImportSummaryModal } from '../SettingsImportSummaryModal';
@@ -73,19 +73,22 @@ export function BackupRestoreSection() {
       <SettingsSection title={t('Backup & Restore')}>
         <SettingsRow
           label={t('Cloud Backup & Sync')}
-          description={snapshot.configured
-            ? t('Google Drive — {status}', {
-                status: snapshot.status === 'queued'
-                  ? t('Safely queued')
-                  : snapshot.status === 'syncing'
-                    ? t('Syncing…')
-                    : snapshot.status === 'paused'
-                      ? t('Sync paused')
-                      : snapshot.status === 'restoring'
-                        ? t('Restoring…')
-                        : t('Up to date'),
-              })
-            : t('Off')}
+          description={
+            snapshot.configured
+              ? t('Google Drive — {status}', {
+                  status:
+                    snapshot.status === 'queued'
+                      ? t('Safely queued')
+                      : snapshot.status === 'syncing'
+                        ? t('Syncing…')
+                        : snapshot.status === 'paused'
+                          ? t('Sync paused')
+                          : snapshot.status === 'restoring'
+                            ? t('Restoring…')
+                            : t('Up to date'),
+                })
+              : t('Off')
+          }
           icon={Cloud}
           onPress={() => router.push('/cloud-backup' as Href)}
           showChevron
