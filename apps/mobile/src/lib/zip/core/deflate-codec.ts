@@ -43,6 +43,12 @@ interface DeflateOptions {
   level?: number;
 }
 
+export interface BoundedInflateResult {
+  bytes: Uint8Array;
+  /** Number of input bytes occupied by the first complete DEFLATE stream. */
+  consumedBytes: number;
+}
+
 interface CodecState {
   nextCode: Uint16Array;
   blCount: Uint16Array;
@@ -319,6 +325,10 @@ function deflateRawBlock(
   let covered = 0;
 
   if (level === 0) {
+    if (data.length === 0) {
+      putBitsExact(out, bitPosition, 1);
+      return writeStoredBlock(data, 0, 0, out, bitPosition + 8) >>> 3;
+    }
     while (index < data.length) {
       const length = Math.min(0xffff, data.length - index);
       putBitsExact(out, bitPosition, index + length === data.length ? 1 : 0);
@@ -953,6 +963,30 @@ function writeHuffmanSymbol(
  * Inflates raw DEFLATE bytes into the provided destination buffer.
  */
 export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
+  return inflateRawInternal(data, buffer, buffer?.length ?? Infinity).bytes;
+}
+
+/**
+ * Inflates one raw DEFLATE stream while enforcing an allocation/output bound.
+ *
+ * `consumedBytes` deliberately excludes bytes after the final DEFLATE block.
+ * Container codecs use it to locate their trailer and reject appended data.
+ */
+export function inflateRawBounded(
+  data: Uint8Array,
+  maxOutputBytes: number,
+): BoundedInflateResult {
+  if (!Number.isSafeInteger(maxOutputBytes) || maxOutputBytes < 0) {
+    throw new Error('DEFLATE output limit must be a non-negative safe integer');
+  }
+  return inflateRawInternal(data, undefined, maxOutputBytes);
+}
+
+function inflateRawInternal(
+  data: Uint8Array,
+  buffer: Uint8Array | undefined,
+  maxOutputBytes: number,
+): BoundedInflateResult {
   if (data[0] === 3 && data[1] === 0) {
     // An empty stream must not silently satisfy a non-empty fixed destination:
     // the ZIP read path sizes the buffer from the declared uncompressed size,
@@ -960,20 +994,20 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
     if (buffer != null && buffer.length !== 0) {
       throw new Error('Invalid DEFLATE data: output is smaller than the declared size');
     }
-    return buffer ?? new Uint8Array(0);
+    return { bytes: buffer ?? new Uint8Array(0), consumedBytes: 2 };
   }
 
   let output = buffer;
   let shouldGrowBuffer = output == null;
   if (shouldGrowBuffer) {
-    output = new Uint8Array((data.length >>> 2) << 3);
+    output = new Uint8Array(Math.min((data.length >>> 2) << 3, maxOutputBytes));
   }
 
   // When the caller provides a fixed destination (the ZIP read path sizes it
   // from the declared uncompressed size), overflowing it must be an error.
   // Without this check, out-of-bounds typed-array writes are silent no-ops
   // and corrupt archives would decode to silently wrong bytes.
-  const capacity = shouldGrowBuffer ? Infinity : output!.length;
+  const capacity = shouldGrowBuffer ? maxOutputBytes : output!.length;
 
   let finalBlock = 0;
   let position = 0;
@@ -996,10 +1030,14 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
       const byteOffset = (position >>> 3) + 4;
       const length = data[byteOffset - 4] | (data[byteOffset - 3] << 8);
       if (offset + length > capacity) {
-        throw new Error('Invalid DEFLATE data: output exceeds the declared size');
+        throw new Error(
+          shouldGrowBuffer
+            ? 'Invalid DEFLATE data: output exceeds the configured limit'
+            : 'Invalid DEFLATE data: output exceeds the declared size',
+        );
       }
       if (shouldGrowBuffer) {
-        output = ensureInflateBuffer(output!, offset + length);
+        output = ensureInflateBuffer(output!, offset + length, capacity);
       }
       output!.set(
         new Uint8Array(data.buffer, data.byteOffset + byteOffset, length),
@@ -1011,7 +1049,11 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
     }
 
     if (shouldGrowBuffer) {
-      output = ensureInflateBuffer(output!, offset + (1 << 17));
+      output = ensureInflateBuffer(
+        output!,
+        Math.min(offset + (1 << 17), capacity),
+        capacity,
+      );
     }
 
     if (blockType === 1) {
@@ -1083,11 +1125,22 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
       const literal = code >>> 4;
 
       if (literal >>> 8 === 0) {
+        if (offset >= capacity) {
+          throw new Error(
+            shouldGrowBuffer
+              ? 'Invalid DEFLATE data: output exceeds the configured limit'
+              : 'Invalid DEFLATE data: output exceeds the declared size',
+          );
+        }
         if (offset >= output!.length) {
           if (!shouldGrowBuffer) {
             throw new Error('Invalid DEFLATE data: output exceeds the declared size');
           }
-          output = ensureInflateBuffer(output!, offset + (1 << 17));
+          output = ensureInflateBuffer(
+            output!,
+            Math.min(offset + (1 << 17), capacity),
+            capacity,
+          );
         }
         output![offset] = literal;
         offset += 1;
@@ -1126,11 +1179,19 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
         );
       }
       if (end > capacity) {
-        throw new Error('Invalid DEFLATE data: output exceeds the declared size');
+        throw new Error(
+          shouldGrowBuffer
+            ? 'Invalid DEFLATE data: output exceeds the configured limit'
+            : 'Invalid DEFLATE data: output exceeds the declared size',
+        );
       }
 
       if (shouldGrowBuffer) {
-        output = ensureInflateBuffer(output!, offset + (1 << 17));
+        output = ensureInflateBuffer(
+          output!,
+          Math.min(offset + (1 << 17), capacity),
+          capacity,
+        );
       }
 
       // Copy full 4-byte batches first, then finish any 1-3 byte remainder
@@ -1159,15 +1220,26 @@ export function inflateRaw(data: Uint8Array, buffer?: Uint8Array): Uint8Array {
     throw new Error('Invalid DEFLATE data: output is smaller than the declared size');
   }
 
-  return output!.length === offset ? output! : output!.slice(0, offset);
+  return {
+    bytes: output!.length === offset ? output! : output!.slice(0, offset),
+    consumedBytes: Math.ceil(position / 8),
+  };
 }
 
-function ensureInflateBuffer(buffer: Uint8Array, length: number): Uint8Array {
+function ensureInflateBuffer(
+  buffer: Uint8Array,
+  length: number,
+  maxLength = Infinity,
+): Uint8Array {
   if (length <= buffer.length) {
     return buffer;
   }
 
-  const next = new Uint8Array(Math.max(buffer.length << 1, length));
+  const nextLength = Math.min(Math.max(buffer.length << 1, length), maxLength);
+  if (nextLength < length) {
+    throw new Error('Invalid DEFLATE data: output exceeds the configured limit');
+  }
+  const next = new Uint8Array(nextLength);
   next.set(buffer, 0);
   return next;
 }

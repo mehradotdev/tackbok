@@ -29,8 +29,8 @@
     },
     {
       "id": "controls-and-line-separators",
-      "value": { "text": "quote \" slash / reverse \\ tab\t cr\r lf\n" },
-      "canonical": "{\"text\":\"quote \\\" slash / reverse \\\\ tab\\t cr\\r lf\\n\"}",
+      "value": { "text": "quote \" slash / reverse \\ tab\t cr\r lf\n  " },
+      "canonical": "{\"text\":\"quote \\\" slash / reverse \\\\ tab\\t cr\\r lf\\n  \"}",
       "sha256": "acecb51cf1a5d796ae723db15f1807f69cfa34879d8bdd40d40e7718dfb2d262"
     },
     {

@@ -44,6 +44,8 @@ If this code is extracted into a standalone package later, the intended value pr
 	- ZIP64 EOCD records and locator records
 	- ZIP64 offsets, entry counts, and sizes when classic ZIP fields overflow
 - Supports classic stored entries and DEFLATE-compressed entries
+- Supports deterministic, single-member RFC 1952 gzip encoding and strict
+  bounded decoding through `encodeGzip()` and `decodeGzipBounded()`
 - Supports full UTF-8 ZIP entry filename handling, including emoji and other non-BMP code points
 - Keeps entry payload reads lazy on the scalable read path
 - Avoids loading the entire archive into memory when using the random-access reader
@@ -56,7 +58,9 @@ If this code is extracted into a standalone package later, the intended value pr
 - No compression methods beyond:
 	- store
 	- deflate
-- No gzip, tar, tar.gz, 7z, or LZMA support
+- No tar, tar.gz archive workflow, 7z, or LZMA support
+- Gzip support is intentionally an in-memory single-member codec; it is not a
+  multi-member or file-streaming API
 - No true streaming decompression API yet:
 	- `openZipReader` reads metadata lazily
 	- `readEntryBytes()` still materializes the requested entry in memory
@@ -81,6 +85,8 @@ Current `core/` files and responsibilities:
 - `archive-bytes-writer.ts`: In-memory archive serializer that builds local headers, central directory, and EOCD records.
 - `deflate-codec.ts`: Pure DEFLATE encode/decode implementation used by ZIP read/write paths.
 - `crc32.ts`: CRC32 checksum implementation for ZIP entry integrity fields.
+- `gzip-codec.ts`: Deterministic single-member gzip framing and bounded,
+  strict gzip validation over the shared DEFLATE/CRC32 primitives.
 - `types.ts`: Public ZIP core types shared across modules.
 - `index.ts`: Core facade exports used by higher layers and tests.
 - `core-safety.test.ts`: Regression tests for low-level numeric/bitstream safety guarantees.
@@ -195,6 +201,8 @@ The current structure maps directly to future packages:
 - `createZipWriter(sink)`
 - `createExpoZipWriter(fileOrUri)`
 - `createExpoZipReaderSource(fileOrUri)`
+- `encodeGzip(bytes)` for bounded in-memory transfer payloads
+- `decodeGzipBounded(bytes, limits)` for strict single-member decoding
 
 These are the APIs to prefer for real backup import/export flows because they avoid loading the entire archive into memory.
 

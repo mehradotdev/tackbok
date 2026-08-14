@@ -35,3 +35,14 @@ export {
   type ZipEntryLookup,
   type ZipEntryLookupSource,
 } from './zip-entry-lookup';
+
+// Snapshot transfer encoding uses one bounded RFC 1952 member rather than a
+// ZIP archive, while sharing this module's audited DEFLATE and CRC32 core.
+export {
+  decodeGzipBounded,
+  encodeGzip,
+  GzipCodecError,
+  type GzipCodecErrorCode,
+  type GzipDecodeLimits,
+  type GzipEncodeOptions,
+} from './core/gzip-codec';

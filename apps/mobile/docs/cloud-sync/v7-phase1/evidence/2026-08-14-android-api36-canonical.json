@@ -1,0 +1,17 @@
+{
+  "format": "tackbok-v7-canonical-device-report",
+  "formatVersion": 2,
+  "executedAt": "2026-08-14T07:23:56.996Z",
+  "scope": "Android emulator",
+  "platform": "android",
+  "runtimeVersion": "android 36",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "engine": "Hermes",
+  "acceptedVectors": 8,
+  "rejectedVectors": 11,
+  "passed": true,
+  "containsUserData": false,
+  "containsCredentialsOrAccountIdentifiers": false
+}
+

@@ -9,11 +9,15 @@ import {
   runPhase0Diagnostics,
   type Phase0DiagnosticsReport,
 } from '~/lib/cloudSync/phase0/diagnosticsRunner';
+import {
+  runV7CanonicalDeviceProbe,
+  type V7CanonicalDeviceReport,
+} from '~/lib/cloudSync/v2/deviceProbe';
 
 type RunState =
   | { status: 'idle' }
   | { status: 'running'; fixtureId: DeterministicFixtureId }
-  | { status: 'done'; report: Phase0DiagnosticsReport }
+  | { status: 'done'; report: Phase0DiagnosticsReport | V7CanonicalDeviceReport }
   | { status: 'error'; message: string };
 
 /**
@@ -24,24 +28,27 @@ type RunState =
  */
 export default function DevDiagnosticsScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ fixture?: string }>();
+  const params = useLocalSearchParams<{ fixture?: string; suite?: string }>();
   const [runState, setRunState] = useState<RunState>({ status: 'idle' });
   const startedRef = useRef(false);
 
   const fixtureId: DeterministicFixtureId =
     params.fixture === 'quick-32mib' ? 'quick-32mib' : 'full-200mib';
+  const isV7Canonical = params.suite === 'v7-canonical';
 
   const run = useCallback(async () => {
     setRunState({ status: 'running', fixtureId });
     try {
-      const report = await runPhase0Diagnostics(fixtureId);
+      const report = isV7Canonical
+        ? runV7CanonicalDeviceProbe()
+        : await runPhase0Diagnostics(fixtureId);
       setRunState({ status: 'done', report });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.log(`PHASE0_DIAGNOSTICS_ERROR ${message}`);
       setRunState({ status: 'error', message });
     }
-  }, [fixtureId]);
+  }, [fixtureId, isV7Canonical]);
 
   useEffect(() => {
     if (!__DEV__) {
@@ -61,12 +68,14 @@ export default function DevDiagnosticsScreen() {
   return (
     <View className="flex-1 bg-background pt-safe-or-4 px-safe-or-4">
       <Text variant="h2" className="text-foreground font-heading pb-2">
-        Phase-0 diagnostics
+        {isV7Canonical ? 'V7 canonical diagnostics' : 'Phase-0 diagnostics'}
       </Text>
       <ScrollView>
         {runState.status === 'idle' && <Text className="text-foreground">Idle.</Text>}
         {runState.status === 'running' && (
-          <Text className="text-foreground">Running probes ({runState.fixtureId})…</Text>
+          <Text className="text-foreground">
+            {isV7Canonical ? 'Running canonical fixtures…' : `Running probes (${runState.fixtureId})…`}
+          </Text>
         )}
         {runState.status === 'error' && (
           <Text className="text-destructive">Failed: {runState.message}</Text>

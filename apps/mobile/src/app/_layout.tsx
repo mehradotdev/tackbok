@@ -33,6 +33,9 @@ import {
   isProductionCloudSyncConfigured,
   setCloudSyncBackgroundTaskEnabled,
 } from '~/lib/cloudSync/runtime';
+import { installV7CanonicalProbeDeepLinkListener } from '~/lib/cloudSync/v2/deviceProbe';
+
+installV7CanonicalProbeDeepLinkListener();
 
 SplashScreen.preventAutoHideAsync();
 

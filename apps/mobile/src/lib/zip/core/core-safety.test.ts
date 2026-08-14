@@ -1,6 +1,6 @@
 import { readUint } from './byte-io';
 import { computeCrc32, updateCrc32 } from './crc32';
-import { deflateRaw, inflateRaw } from './deflate-codec';
+import { deflateRaw, inflateRaw, inflateRawBounded } from './deflate-codec';
 
 /** Bitwise reference CRC32 used to validate the table-driven implementation. */
 function referenceCrc32(buffer: Uint8Array): number {
@@ -131,5 +131,20 @@ describe('core safety', () => {
         'Invalid DEFLATE data: output exceeds the declared size',
       );
     }
+  });
+
+  test('inflateRawBounded reports the first stream boundary and enforces its limit', () => {
+    const source = new TextEncoder().encode('bounded output '.repeat(100));
+    const compressed = deflateRaw(source);
+    const withSuffix = new Uint8Array(compressed.length + 4);
+    withSuffix.set(compressed);
+    withSuffix.set([1, 2, 3, 4], compressed.length);
+
+    const result = inflateRawBounded(withSuffix, source.length);
+    expect(result.bytes).toEqual(source);
+    expect(result.consumedBytes).toBe(compressed.length);
+    expect(() => inflateRawBounded(compressed, source.length - 1)).toThrow(
+      'output exceeds the configured limit',
+    );
   });
 });
