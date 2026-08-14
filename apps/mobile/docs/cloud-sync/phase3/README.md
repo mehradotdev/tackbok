@@ -1,5 +1,10 @@
 # Cloud sync Phase 3
 
+> **Historical plan-v6 evidence with reusable provider/auth findings.** The
+> snapshot-v2 proposal lives in [`plan-v7.md`](../plan-v7.md). Keep these real
+> Drive probes, authorization findings, waivers, and redacted reports; v7 is
+> expected to reuse part of this adapter and its security boundaries.
+
 Phase 3 supplies the Google authorization and Drive adapter code.
 
 Phase 3 is **conditionally closed** as of 2026-08-09: the owner ran the probe

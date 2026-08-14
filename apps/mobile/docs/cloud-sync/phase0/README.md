@@ -1,5 +1,10 @@
 # Cloud sync Phase 0
 
+> **Historical plan-v6 evidence.** The snapshot-v2 proposal lives in
+> [`plan-v7.md`](../plan-v7.md). Retain these ADRs, probes, and results as an
+> audit trail; they are not v7 gates unless the new plan explicitly reuses
+> them.
+
 This directory is the evidence bundle for Phase 0 of
 [`plan-v6.md`](../plan-v6.md). Phase 0 freezes protocol
 v1 and its fixtures; it does not create the database, outbox, sync engine, or UI.

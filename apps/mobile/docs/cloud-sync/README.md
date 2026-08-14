@@ -1,14 +1,39 @@
 # Cloud Backup & Sync
 
-Google Drive backup and multi-device sync for the journal. Plaintext at the
-provider in v1, hash-addressed immutable version files, no Tackbok account.
+Google Drive backup and practical multi-device sync for the journal. No Tackbok
+account.
 
-**Start here:** [`plan-v6.md`](./plan-v6.md) — the frozen plan of record.
-Section numbers referenced throughout these docs (§4.1, §6.6, §11.5 …) are its
-sections. Nothing in this directory overrides it; the gates record whether its
-requirements were met.
+> **Direction change — 2026-08-12:** [`plan-v7.md`](./plan-v7.md) replaces the
+> per-entity v6 design with snapshot-based sync. The owner approved the plan
+> direction and resolved its §18 decisions on 2026-08-14; schemas, caps, and
+> merge rules freeze only at the V7-0 gate. The app currently still runs the
+> plan-v6 engine.
 
-## Status
+Read these in this order:
+
+1. [`plan-v7.md`](./plan-v7.md) — current draft and open owner decisions.
+2. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining the current
+   implementation.
+3. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
+
+Do not delete the v6 phase folders or review records during design. They are an
+audit trail for schema migrations, Google authorization, Drive behavior,
+security constraints, physical/simulator evidence, and bugs whose fixes remain
+relevant to v7. They may be pruned only in a dedicated post-v7 cleanup after no
+production path relies on the old engine.
+
+## Proposed v7 status
+
+| Phase | State |
+| --- | --- |
+| V7-0 — snapshot ADR, fixtures, measured limits | approved to start 2026-08-14; gate open |
+| V7-1 — snapshot codec + merge engine | not started |
+| V7-2 — durable publisher vs. fake provider | not started |
+| V7-3 — Google Drive snapshot adapter | not started |
+| V7-4 — runtime + UI replacement | not started |
+| V7-5 — device hardening + v6 retirement | not started |
+
+## Historical v6 status
 
 | Phase | State |
 | --- | --- |
@@ -17,13 +42,16 @@ requirements were met.
 | 2 — engine vs. the fake provider | ✅ closed ([gate](./phase2/gate.md)) |
 | 3 — Google Drive adapter | ✅ conditionally closed ([gate](./phase3/gate.md), [waiver](./phase3/waiver.md)) |
 | 4a/4a.1 — durable runtime (no UI) | ✅ closed ([gate](./phase4/gate.md), [review](./phase4/review-4a-2026-08-09.md)) |
-| 4b — UI + translations | ready for owner re-review 2026-08-10; N4 + F1–F3 implemented ([gate](./phase4/gate.md), [review](./phase4/review-4a-2026-08-09.md)) |
-| 5 — hardening + rollout | not started |
-| 6 — background-transfer decision | blocked: needs a physical device |
+| 4b — UI + translations | implementation committed in `ae7833c`; final owner re-review was overtaken by the v7 pivot ([gate](./phase4/gate.md), [review](./phase4/review-4a-2026-08-09.md)) |
+| 5 — hardening + rollout | superseded before start |
+| 6 — background-transfer decision | superseded before start; device questions carry to V7-5 |
 
-## Layout
+## Documentation layout
 
-- [`plan-v6.md`](./plan-v6.md) — the plan. Frozen; changes need sign-off.
+- [`plan-v7.md`](./plan-v7.md) — draft snapshot-sync plan; not yet an
+  implementation contract.
+- [`plan-v6.md`](./plan-v6.md) — frozen historical plan for the currently
+  implemented per-entity protocol.
 - `phase0/` — protocol v1 ADRs (`0001`–`0005`), the spike write-ups, and the
   Phase-0 gate with its owner waiver. `results/` holds the on-device
   diagnostics runs.
@@ -34,8 +62,9 @@ requirements were met.
   the first physical device, [`probes.md`](./phase3/probes.md) to re-run the
   owner probe suite, `findings/` for the two Android authorization defects, and
   `evidence/` for the redacted probe reports behind every claim.
-- [`review-2026-08-09.md`](./review-2026-08-09.md) — the cross-phase review that
-  produced the Phase 1/2 remediation.
+- [`review-2026-08-09.md`](./review-2026-08-09.md) — historical cross-phase
+  review that produced Phase 1/2 remediation. Retained because those fixes
+  affect reusable local data and media code.
 
 ## Conventions
 
@@ -51,7 +80,7 @@ requirements were met.
   bytes, or journal data. `assertReportIsRedacted` throws before a report is
   written or logged.
 
-## Code map
+## Current v6 code map
 
 - `src/lib/cloudSync/protocol/` — **frozen protocol v1 primitives.** Canonical
   JSON encoding and the numeric validation caps. Every vault hash depends on
@@ -63,7 +92,11 @@ requirements were met.
   `dev-diagnostics` and `dev-cloud-probes` routes. Kept because the Phase-3
   waiver commits to re-running them on the first physical device.
 
-## How backup and sync works in the app
+## Historical/current implementation: how v6 works in the app
+
+> The following explains the code shipping at the time of the v7 draft. It is
+> not the target v7 snapshot design. See [`plan-v7.md`](./plan-v7.md) for the
+> proposed replacement.
 
 This section describes the current implementation in plain language. The short
 version is: every committed journal change is first made durable on the device,

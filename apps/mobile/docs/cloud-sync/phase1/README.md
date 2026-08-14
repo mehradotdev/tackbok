@@ -1,5 +1,10 @@
 # Cloud sync Phase 1
 
+> **Historical plan-v6 evidence.** The snapshot-v2 proposal lives in
+> [`plan-v7.md`](../plan-v7.md). The normalized model, stable IDs, repositories,
+> and retained-media work may be reused, so this record must not be deleted
+> during v7 design.
+
 Phase 1 adds the local durability foundation for cloud sync. It does not contact
 a cloud provider and it adds no user-facing backup controls.
 
