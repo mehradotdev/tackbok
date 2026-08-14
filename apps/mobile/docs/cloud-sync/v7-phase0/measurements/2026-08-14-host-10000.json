@@ -1,0 +1,15 @@
+{
+  "format": "tackbok-v7-snapshot-measurement",
+  "formatVersion": 1,
+  "measuredAt": "2026-08-14T05:04:40.223Z",
+  "environment": { "scope": "host-only", "runtime": "Bun 1.3.10", "platform": "darwin-arm64" },
+  "fixture": { "synthetic": true, "entries": 10000, "tags": 32, "entryTags": 20000, "prompts": 16, "mediaDescriptors": 1000, "targetBodyCharacters": 720 },
+  "bytes": { "uncompressed": 11631139, "gzipLevel6": 1518981, "compressionRatio": 7.66, "compressedMiB": 1.449 },
+  "timingMs": { "encodeCanonical": 84.19, "gzip": 123.42, "gunzipParseAndRecanonicalize": 86.42 },
+  "memoryBytes": {
+    "encodeRetainedHeapDelta": 40151986,
+    "decodeValidateRetainedHeapDelta": 6312193,
+    "processPeakRss": 421560320,
+    "qualification": "Host process measurements; retained deltas are not peak transient heap and do not satisfy the physical-device gate."
+  }
+}

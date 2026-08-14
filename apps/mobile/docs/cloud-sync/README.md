@@ -11,10 +11,12 @@ account.
 
 Read these in this order:
 
-1. [`plan-v7.md`](./plan-v7.md) — current draft and open owner decisions.
-2. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining the current
+1. [`plan-v7.md`](./plan-v7.md) — approved direction and current phase plan.
+2. [`v7-phase0/README.md`](./v7-phase0/README.md) — V7-0 design bundle and
+   open evidence/owner gate.
+3. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining the current
    implementation.
-3. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
+4. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
 
 Do not delete the v6 phase folders or review records during design. They are an
 audit trail for schema migrations, Google authorization, Drive behavior,
@@ -26,8 +28,8 @@ production path relies on the old engine.
 
 | Phase | State |
 | --- | --- |
-| V7-0 — snapshot ADR, fixtures, measured limits | approved to start 2026-08-14; gate open |
-| V7-1 — snapshot codec + merge engine | not started |
+| V7-0 — snapshot ADR, fixtures, measured limits | ✅ closed at owner review 2026-08-14; obligation V1 carries to V7-1 ([gate](./v7-phase0/gate.md), [review](./v7-phase0/review-2026-08-14.md)) |
+| V7-1 — snapshot codec + merge engine | authorized 2026-08-14; not started |
 | V7-2 — durable publisher vs. fake provider | not started |
 | V7-3 — Google Drive snapshot adapter | not started |
 | V7-4 — runtime + UI replacement | not started |
@@ -48,8 +50,10 @@ production path relies on the old engine.
 
 ## Documentation layout
 
-- [`plan-v7.md`](./plan-v7.md) — draft snapshot-sync plan; not yet an
-  implementation contract.
+- [`plan-v7.md`](./plan-v7.md) — approved snapshot-sync direction; V7-0 freezes
+  the proposed schema, caps, merge rules, and budgets.
+- [`v7-phase0/`](./v7-phase0/README.md) — protocol-v2 ADRs, synthetic frozen
+  fixtures, request model, host measurements, and evidence gate.
 - [`plan-v6.md`](./plan-v6.md) — frozen historical plan for the currently
   implemented per-entity protocol.
 - `phase0/` — protocol v1 ADRs (`0001`–`0005`), the spike write-ups, and the

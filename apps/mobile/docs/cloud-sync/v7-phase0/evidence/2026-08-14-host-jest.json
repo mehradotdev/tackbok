@@ -1,0 +1,16 @@
+{
+  "format": "tackbok-v7-phase0-host-evidence",
+  "formatVersion": 1,
+  "executedAt": "2026-08-14",
+  "scope": "host-only",
+  "runtime": "Jest 29.7 through jest-expo",
+  "command": "bun run v7:phase0:test",
+  "result": "passed",
+  "suites": 1,
+  "tests": 24,
+  "acceptedCanonicalVectors": 8,
+  "rejectedCanonicalVectors": 11,
+  "mergeCases": 8,
+  "containsUserData": false,
+  "containsCredentialsOrAccountIdentifiers": false
+}
