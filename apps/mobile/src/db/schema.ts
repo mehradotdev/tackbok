@@ -430,6 +430,77 @@ export const cloudV2ShadowReaper = sqliteTable(
   },
 );
 
+/**
+ * Durable Drive discovery cursor, isolated by a random connection epoch kept
+ * beside the Google credentials in SecureStore. The epoch is not an account
+ * identifier and prevents a new Google connection from reusing stale file IDs
+ * or a cursor belonging to the previous account.
+ */
+export const cloudV2DriveState = sqliteTable(
+  'cloud_v2_drive_state',
+  {
+    connection_id: text('connection_id').notNull(),
+    vault_id: text('vault_id').notNull(),
+    change_cursor: text('change_cursor'),
+    inventory_complete: integer('inventory_complete', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    retry_not_before: integer('retry_not_before').notNull().default(0),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.connection_id, table.vault_id] })],
+);
+
+/** Provider metadata only: never tokens, account labels, bodies, or journal text. */
+export const cloudV2DriveObjects = sqliteTable(
+  'cloud_v2_drive_objects',
+  {
+    connection_id: text('connection_id').notNull(),
+    vault_id: text('vault_id').notNull(),
+    file_id: text('file_id').notNull(),
+    logical_key: text('logical_key').notNull(),
+    object_kind: text('object_kind', {
+      enum: ['snapshot', 'head', 'media', 'revocation'],
+    }).notNull(),
+    content_sha256: text('content_sha256').notNull(),
+    byte_count: integer('byte_count').notNull(),
+    created_at: integer('created_at'),
+    head_json: text('head_json'),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.connection_id, table.vault_id, table.file_id] }),
+    index('cloud_v2_drive_objects_key_idx').on(
+      table.connection_id,
+      table.vault_id,
+      table.logical_key,
+    ),
+  ],
+);
+
+/** Resumable session URIs are local restart state and are never logged/evidenced. */
+export const cloudV2DriveUploadSessions = sqliteTable(
+  'cloud_v2_drive_upload_sessions',
+  {
+    connection_id: text('connection_id').notNull(),
+    vault_id: text('vault_id').notNull(),
+    logical_key: text('logical_key').notNull(),
+    content_sha256: text('content_sha256').notNull(),
+    session_uri: text('session_uri').notNull(),
+    expires_at: integer('expires_at').notNull(),
+    byte_count: integer('byte_count').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({
+    columns: [
+      table.connection_id,
+      table.vault_id,
+      table.logical_key,
+      table.content_sha256,
+    ],
+  })],
+);
+
 export const syncConflicts = sqliteTable('sync_conflicts', {
   conflict_id: text('conflict_id').primaryKey().notNull(),
   entity_type: text('entity_type').notNull(),

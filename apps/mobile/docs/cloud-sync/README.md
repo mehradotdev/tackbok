@@ -17,9 +17,11 @@ Read these in this order:
    phase and the durable device probe.
 4. [`v7-phase2/README.md`](./v7-phase2/README.md) — closed durable-publisher
    phase; returned once for blocking finding X1, remediated and re-reviewed.
-5. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining the current
+5. [`v7-phase3/README.md`](./v7-phase3/README.md) — closed Drive snapshot
+   adapter phase with redacted real-service evidence.
+6. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining the current
    implementation.
-6. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
+7. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
 
 Do not delete the v6 phase folders or review records during design. They are an
 audit trail for schema migrations, Google authorization, Drive behavior,
@@ -34,8 +36,8 @@ production path relies on the old engine.
 | V7-0 — snapshot ADR, fixtures, measured limits | ✅ closed at owner review 2026-08-14; obligation V1 carries to V7-1 ([gate](./v7-phase0/gate.md), [review](./v7-phase0/review-2026-08-14.md)) |
 | V7-1 — snapshot codec + merge engine | ✅ closed at owner review 2026-08-14; obligation W1 carries to V7-2 ([gate](./v7-phase1/gate.md), [review](./v7-phase1/review-2026-08-14.md)) |
 | V7-2 — durable publisher vs. fake provider | ✅ closed at owner re-review 2026-08-15 after one X1 return; X3 note carries to V7-5 ([gate](./v7-phase2/gate.md), [review](./v7-phase2/review-2026-08-15.md)) |
-| V7-3 — Google Drive snapshot adapter | authorized 2026-08-15, not started |
-| V7-4 — runtime + UI replacement | not started |
+| V7-3 — Google Drive snapshot adapter | ✅ closed at owner review 2026-08-15; Y1 carries to V7-4 entry, Y2 noted ([gate](./v7-phase3/gate.md), [review](./v7-phase3/review-2026-08-15.md)) |
+| V7-4 — runtime + UI replacement | authorized 2026-08-15, not started |
 | V7-5 — device hardening + v6 retirement | not started |
 
 ## Historical v6 status
@@ -61,6 +63,8 @@ production path relies on the old engine.
   durable cross-runtime canonical reports, and the V7-1 owner gate.
 - [`v7-phase2/`](./v7-phase2/README.md) — SQLite publisher checkpoints,
   atomic base shadows, fake-provider crash/concurrency schedules, and gate.
+- [`v7-phase3/`](./v7-phase3/README.md) — Drive adapter semantics, durable
+  provider cache, request-budget tests, and redacted real-service evidence.
 - [`plan-v6.md`](./plan-v6.md) — frozen historical plan for the currently
   implemented per-entity protocol.
 - `phase0/` — protocol v1 ADRs (`0001`–`0005`), the spike write-ups, and the

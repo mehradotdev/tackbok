@@ -61,14 +61,6 @@ interface PlannedCandidate {
   mediaHashes: string[];
 }
 
-function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
-  if (left.length !== right.length) return false;
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) return false;
-  }
-  return true;
-}
-
 function domainOf(payload: JournalSnapshotPayloadV2): SnapshotDomainV2 {
   return {
     entries: payload.entries,
@@ -225,7 +217,7 @@ export class SnapshotV2SyncEngine {
 
   private async planCandidate(): Promise<PlannedCandidate | null> {
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
-      const listed = await this.provider.listHeads(this.vaultId);
+      const listed = await this.provider.listHeads(this.vaultId, true);
       const remoteHeads = await this.loadAndNormalizeHeads(listed);
       const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
       const loadedBase = await this.shadowManager.load(checkpoint);
@@ -261,7 +253,7 @@ export class SnapshotV2SyncEngine {
       await this.synchronizeMedia(captured.domain, frontier, merged);
       await this.hooks.beforeHeadRecheck?.();
       const rechecked = await this.loadAndNormalizeHeads(
-        await this.provider.listHeads(this.vaultId),
+        await this.provider.listHeads(this.vaultId, true),
       );
       if (this.headSignature(remoteHeads) !== this.headSignature(rechecked)) continue;
 
@@ -433,8 +425,10 @@ export class SnapshotV2SyncEngine {
     const localHashes = new Set(local.media.map((asset) => asset.blobHash));
     const remoteHashes = new Set(remotes.flatMap((remote) =>
       remote.payload.media.map((asset) => asset.blobHash)));
-    for (const blobHash of [...new Set(merged.media.map((asset) => asset.blobHash))].sort()) {
-      const remotePresent = await this.provider.hasMedia(this.vaultId, blobHash);
+    const requiredHashes = [...new Set(merged.media.map((asset) => asset.blobHash))].sort();
+    const remotelyPresent = await this.provider.hasMediaBatch(this.vaultId, requiredHashes);
+    for (const blobHash of requiredHashes) {
+      const remotePresent = remotelyPresent.has(blobHash);
       const localPresent = await this.mediaStore.hasVerified(blobHash);
       if (!remotePresent && localPresent) {
         const bytes = await this.mediaStore.readVerified(blobHash);
@@ -492,11 +486,14 @@ export class SnapshotV2SyncEngine {
       await this.hooks.at?.('after-snapshot-uploaded');
     }
     if (pending.stage === 'snapshot-uploaded') {
-      const verified = await this.provider.verifySnapshot(this.vaultId, pending.snapshotId);
-      if (!verified || !bytesEqual(verified, pending.compressedBytes)) {
+      const verified = await this.provider.verifySnapshot(
+        this.vaultId,
+        pending.snapshotId,
+        pending.compressedBytes,
+      );
+      if (!verified) {
         throw new AttentionError('invalid-remote-snapshot', 'uploaded-snapshot-verification-failed');
       }
-      decodeSnapshotV2(verified, pending.snapshotId);
       pending = this.stateStore.advancePending(
         this.vaultId, this.deviceId, pending.snapshotId, 'snapshot-verified');
       await this.hooks.at?.('after-snapshot-verified');
@@ -610,8 +607,12 @@ export class SnapshotV2SyncEngine {
   }
 
   private async ensurePendingMedia(pending: V2PendingPublication): Promise<void> {
+    const remotelyPresent = await this.provider.hasMediaBatch(
+      this.vaultId,
+      pending.mediaHashes,
+    );
     for (const blobHash of pending.mediaHashes) {
-      if (await this.provider.hasMedia(this.vaultId, blobHash)) continue;
+      if (remotelyPresent.has(blobHash)) continue;
       const bytes = await this.mediaStore.readVerified(blobHash);
       if (!bytes) {
         throw new AttentionError('missing-media', 'pending-media-unavailable');
@@ -637,7 +638,7 @@ export class SnapshotV2SyncEngine {
 
   private async cleanupSnapshots(): Promise<void> {
     try {
-      const heads = await this.provider.listHeads(this.vaultId);
+      const heads = await this.provider.listHeads(this.vaultId, false);
       // Multiple logical heads may still represent unresolved branches. V7-2
       // chooses leakage over deleting lineage it cannot yet prove redundant.
       const logicalDevices = new Set(heads.map((value) => value.head.deviceId));
@@ -706,6 +707,7 @@ export class SnapshotV2SyncEngine {
     if (code === 'authorization-required') return 'authorization-required';
     if (code === 'quota-full') return 'provider-quota-full';
     if (code === 'permission-denied') return 'provider-permission-denied';
+    if (code === 'invalid-data') return 'invalid-remote-snapshot';
     return null;
   }
 }

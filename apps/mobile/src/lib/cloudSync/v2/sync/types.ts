@@ -104,7 +104,8 @@ export type V2ProviderErrorCode =
   | 'quota-full'
   | 'permission-denied'
   | 'rate-limited'
-  | 'transient';
+  | 'transient'
+  | 'invalid-data';
 
 export class V2ProviderError extends Error {
   constructor(
@@ -118,7 +119,8 @@ export class V2ProviderError extends Error {
 
 export interface SnapshotV2Provider {
   listRevocations(vaultId: string): Promise<('backup-deleted' | 'journal-deleted')[]>;
-  listHeads(vaultId: string): Promise<ListedDeviceHeadV2[]>;
+  /** `refresh=false` is a cleanup-time read of the durable provider cache. */
+  listHeads(vaultId: string, refresh?: boolean): Promise<ListedDeviceHeadV2[]>;
   downloadSnapshot(vaultId: string, snapshotId: string): Promise<Uint8Array | null>;
   uploadSnapshot(
     vaultId: string,
@@ -126,9 +128,13 @@ export interface SnapshotV2Provider {
     bytes: Uint8Array,
     createdAt: number,
   ): Promise<void>;
-  verifySnapshot(vaultId: string, snapshotId: string): Promise<Uint8Array | null>;
+  verifySnapshot(
+    vaultId: string,
+    snapshotId: string,
+    expectedBytes: Uint8Array,
+  ): Promise<boolean>;
   updateDeviceHead(vaultId: string, head: DeviceHeadV2): Promise<void>;
-  hasMedia(vaultId: string, blobHash: string): Promise<boolean>;
+  hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
   uploadMedia(vaultId: string, blobHash: string, bytes: Uint8Array): Promise<void>;
   downloadMedia(vaultId: string, blobHash: string): Promise<Uint8Array | null>;
   listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]>;

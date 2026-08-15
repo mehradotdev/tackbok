@@ -139,9 +139,14 @@ export class FakeSnapshotV2Provider implements SnapshotV2Provider {
     this.takeFault('upload-snapshot', true);
   }
 
-  async verifySnapshot(vaultId: string, snapshotId: string): Promise<Uint8Array | null> {
+  async verifySnapshot(
+    vaultId: string,
+    snapshotId: string,
+    expectedBytes: Uint8Array,
+  ): Promise<boolean> {
     this.before('verify-snapshot');
-    return this.snapshots.get(this.key(vaultId, snapshotId))?.bytes.slice() ?? null;
+    const stored = this.snapshots.get(this.key(vaultId, snapshotId))?.bytes;
+    return Boolean(stored && bytesEqual(stored, expectedBytes));
   }
 
   async updateDeviceHead(vaultId: string, head: DeviceHeadV2): Promise<void> {
@@ -156,9 +161,10 @@ export class FakeSnapshotV2Provider implements SnapshotV2Provider {
     this.takeFault('update-head', true);
   }
 
-  async hasMedia(vaultId: string, blobHash: string): Promise<boolean> {
+  async hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>> {
     this.before('has-media');
-    return this.media.has(this.key(vaultId, blobHash));
+    return new Set(blobHashes.filter((blobHash) =>
+      this.media.has(this.key(vaultId, blobHash))));
   }
 
   async uploadMedia(vaultId: string, blobHash: string, bytes: Uint8Array): Promise<void> {

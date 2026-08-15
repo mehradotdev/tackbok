@@ -16,6 +16,7 @@ import {
   clearGoogleTokens,
   readGoogleAccountEmail,
   readGoogleTokens,
+  rotateGoogleConnectionId,
   writeGoogleAccountEmail,
   writeGoogleTokens,
 } from './secureTokenStore';
@@ -82,6 +83,7 @@ export class IosGoogleAuthorization implements CloudAuthorization {
     // A new interactive grant may select a different Google account. Do not
     // let the prior account's cached label survive into the new connection.
     await clearGoogleAccountEmail();
+    await rotateGoogleConnectionId();
     await writeGoogleTokens(tokens);
     return tokens;
   }

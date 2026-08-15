@@ -1,0 +1,183 @@
+{
+  "probeSuite": "cloud-sync-v7-phase3",
+  "formatVersion": 1,
+  "timestamp": "2026-08-15T04:00:00.374Z",
+  "platform": "android",
+  "osVersion": "36",
+  "appVersion": "0.6.0",
+  "buildType": "debug",
+  "syntheticDataOnly": true,
+  "status": "passed",
+  "steps": [
+    {
+      "id": "representative-import",
+      "title": "Publish and restore 2,000 Presently entries",
+      "status": "passed",
+      "detail": "One synthetic 2,000-entry snapshot was published and restored through a fresh provider cache.",
+      "facts": {
+        "syntheticEntries": 2000,
+        "snapshotObjectsPublished": 1,
+        "restoredEntryCount": 2000,
+        "importRequests": 7,
+        "importRequestCeiling": 8,
+        "restoreRequests": 8,
+        "restoreRequestCeiling": 8
+      },
+      "requests": [
+        {
+          "format": "tackbok-v7-drive-request-report",
+          "formatVersion": 1,
+          "scenario": "representative-import",
+          "attempts": 7,
+          "retries": 0,
+          "estimatedQuotaUnits": 505,
+          "byMethod": { "list": 4, "start-token": 1, "create": 2 },
+          "byResult": { "success": 7 }
+        },
+        {
+          "format": "tackbok-v7-drive-request-report",
+          "formatVersion": 1,
+          "scenario": "fresh-restore",
+          "attempts": 8,
+          "retries": 0,
+          "estimatedQuotaUnits": 855,
+          "byMethod": { "list": 4, "start-token": 1, "download": 2, "create": 1 },
+          "byResult": { "success": 8 }
+        }
+      ]
+    },
+    {
+      "id": "normal-request-budgets",
+      "title": "Warm quiet and one-edit request budgets",
+      "status": "passed",
+      "detail": "Normal no-fault request attempts stayed within the owner-approved V7-0 ceilings.",
+      "facts": {
+        "quietRequests": 2,
+        "quietCeiling": 3,
+        "editRequests": 6,
+        "editCeiling": 7
+      },
+      "requests": [
+        {
+          "format": "tackbok-v7-drive-request-report",
+          "formatVersion": 1,
+          "scenario": "warm-quiet-sync",
+          "attempts": 2,
+          "retries": 0,
+          "estimatedQuotaUnits": 200,
+          "byMethod": { "list": 2 },
+          "byResult": { "success": 2 }
+        },
+        {
+          "format": "tackbok-v7-drive-request-report",
+          "formatVersion": 1,
+          "scenario": "one-text-edit",
+          "attempts": 6,
+          "retries": 0,
+          "estimatedQuotaUnits": 600,
+          "byMethod": { "list": 3, "download": 1, "create": 1, "update": 1 },
+          "byResult": { "success": 6 }
+        }
+      ]
+    },
+    {
+      "id": "grouped-media-query",
+      "title": "Fifty-one media checks use two queries",
+      "status": "passed",
+      "detail": "Fifty-one unknown media hashes fit in two real prefix-and-name queries with no file bodies downloaded.",
+      "facts": { "hashesChecked": 51, "matchingObjects": 0, "listRequests": 2 },
+      "requests": [
+        {
+          "format": "tackbok-v7-drive-request-report",
+          "formatVersion": 1,
+          "scenario": "grouped-media-existence",
+          "attempts": 2,
+          "retries": 0,
+          "estimatedQuotaUnits": 200,
+          "byMethod": { "list": 2 },
+          "byResult": { "success": 2 }
+        }
+      ]
+    },
+    {
+      "id": "duplicate-and-simultaneous-heads",
+      "title": "Duplicate names and simultaneous heads",
+      "status": "passed",
+      "detail": "Both concurrent device heads remained visible and the duplicate physical name was preserved for engine normalization.",
+      "facts": { "duplicatePhysicalHeads": 2, "distinctDeviceHeads": 4, "discoveryPasses": 2 }
+    },
+    {
+      "id": "lost-upload-response",
+      "title": "Lost immutable-upload response reconciliation",
+      "status": "passed",
+      "detail": "A committed create whose response disappeared was reconciled by exact logical key and checksum without a second upload.",
+      "facts": { "responseLossInjected": true, "snapshotRecovered": true },
+      "requests": [
+        {
+          "format": "tackbok-v7-drive-request-report",
+          "formatVersion": 1,
+          "scenario": "lost-upload-response",
+          "attempts": 3,
+          "retries": 0,
+          "estimatedQuotaUnits": 350,
+          "byMethod": { "create": 1, "list": 1, "download": 1 },
+          "byResult": { "transient": 1, "success": 2 }
+        }
+      ]
+    },
+    {
+      "id": "cursor-rebuild",
+      "title": "Invalid change cursor rebuild",
+      "status": "passed",
+      "detail": "Drive rejected the synthetic cursor and the adapter rebuilt its prefix-scoped inventory.",
+      "facts": { "invalidCursorInjected": true, "physicalHeadsAfterRebuild": 5 }
+    },
+    {
+      "id": "revocation",
+      "title": "Revocation marker discovery",
+      "status": "passed",
+      "detail": "A directly prefix-listed backup revocation marker dominated ordinary sync discovery.",
+      "facts": { "backupRevocationObserved": true }
+    },
+    {
+      "id": "cleanup-interruption",
+      "title": "Interrupted snapshot cleanup resumes",
+      "status": "passed",
+      "detail": "Cleanup stopped after bounded transport failures and a new adapter instance safely completed the permanent deletion.",
+      "facts": { "interruptionObserved": true, "snapshotAbsentAfterResume": true },
+      "requests": [
+        {
+          "format": "tackbok-v7-drive-request-report",
+          "formatVersion": 1,
+          "scenario": "cleanup-interruption",
+          "attempts": 3,
+          "retries": 2,
+          "estimatedQuotaUnits": 150,
+          "byMethod": { "delete": 3 },
+          "byResult": { "transient": 3 }
+        }
+      ]
+    },
+    {
+      "id": "permanent-delete",
+      "title": "Permanent delete is idempotent",
+      "status": "passed",
+      "detail": "The snapshot was permanently deleted and repeating the operation remained successful.",
+      "facts": { "snapshotAbsent": true, "repeatDeleteSucceeded": true }
+    },
+    {
+      "id": "probe-cleanup",
+      "title": "Remove all synthetic probe objects",
+      "status": "passed",
+      "detail": "All objects carrying the random probe vault marker were permanently removed.",
+      "facts": { "objectsDeleted": 8, "objectsRemaining": 0 }
+    },
+    {
+      "id": "probe-disconnect",
+      "title": "Remove the throwaway local connection",
+      "status": "passed",
+      "detail": "The throwaway credential and account label were removed through local sign-out without global grant revocation.",
+      "facts": { "localCredentialsRemoved": true, "globalRevocationCalled": false }
+    }
+  ]
+}

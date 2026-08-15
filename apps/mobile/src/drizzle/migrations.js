@@ -9,6 +9,8 @@ import m0004 from './0004_good_roulette.sql';
 import m0005 from './0005_normal_mauler.sql';
 import m0006 from './0006_classy_roxanne_simpson.sql';
 import m0007 from './0007_confused_infant_terrible.sql';
+import m0008 from './0008_gorgeous_thor.sql';
+import m0009 from './0009_nebulous_bulldozer.sql';
 
 export default {
   journal,
@@ -21,5 +23,7 @@ export default {
     m0005,
     m0006,
     m0007,
+    m0008,
+    m0009,
   },
 };

@@ -9,6 +9,7 @@ import {
   markGoogleConnected,
   readGoogleAccountEmail,
   readGoogleTokens,
+  rotateGoogleConnectionId,
   writeGoogleAccountEmail,
   writeGoogleTokens,
 } from './secureTokenStore';
@@ -57,6 +58,7 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
   async authorize(): Promise<GoogleTokenSet> {
     try {
       const tokens = await nativeModule().authorize(true, null);
+      await rotateGoogleConnectionId();
       await writeGoogleTokens(tokens);
       await markGoogleConnected();
       return tokens;

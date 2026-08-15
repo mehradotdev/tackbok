@@ -2,12 +2,15 @@ import {
   clearGoogleAccessToken,
   clearGoogleTokens,
   readGoogleAccountEmail,
+  readOrCreateGoogleConnectionId,
   readGoogleTokens,
+  rotateGoogleConnectionId,
   writeGoogleTokens,
 } from './secureTokenStore';
 
 const TOKEN_KEY = 'tackbok.cloud-sync.google.tokens.v1';
 const ACCOUNT_EMAIL_KEY = 'tackbok.cloud-sync.google.account-email.v1';
+const CONNECTION_ID_KEY = 'tackbok.cloud-sync.google.connection-id.v1';
 const mockStore = new Map<string, string>();
 
 jest.mock('expo-secure-store', () => ({
@@ -73,5 +76,18 @@ describe('Google account email SecureStore isolation', () => {
 
     await expect(readGoogleTokens()).resolves.toBeNull();
     await expect(readGoogleAccountEmail()).resolves.toBeNull();
+  });
+
+  it('keeps an opaque connection epoch in SecureStore and rotates it on reconnect', async () => {
+    const first = await readOrCreateGoogleConnectionId();
+    expect(mockStore.get(CONNECTION_ID_KEY)).toBe(first);
+    expect(JSON.stringify(await readGoogleTokens())).not.toContain(first);
+
+    const second = await rotateGoogleConnectionId();
+    expect(second).not.toBe(first);
+    expect(await readOrCreateGoogleConnectionId()).toBe(second);
+
+    await clearGoogleTokens();
+    expect(mockStore.has(CONNECTION_ID_KEY)).toBe(false);
   });
 });

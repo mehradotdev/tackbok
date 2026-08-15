@@ -1,6 +1,7 @@
 # ADR V7-0008: media owner closure after merge
 
-Status: **implemented; pending V7-2 owner review**  
+Status: **approved at owner review 2026-08-15**
+([review](./review-2026-08-15.md))  
 Date: 2026-08-14  
 Amends: ADR V7-0003's delete/edit media rule
 

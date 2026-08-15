@@ -1,0 +1,1 @@
+ALTER TABLE `cloud_v2_drive_state` ADD `retry_not_before` integer DEFAULT 0 NOT NULL;

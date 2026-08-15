@@ -5,6 +5,7 @@ import type { GoogleTokenSet } from './types';
 const TOKEN_KEY = 'tackbok.cloud-sync.google.tokens.v1';
 const CONNECTED_KEY = 'tackbok.cloud-sync.google.connected.v1';
 const ACCOUNT_EMAIL_KEY = 'tackbok.cloud-sync.google.account-email.v1';
+const CONNECTION_ID_KEY = 'tackbok.cloud-sync.google.connection-id.v1';
 
 function normalizeAccountEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null;
@@ -51,7 +52,35 @@ export async function clearGoogleTokens(): Promise<void> {
   await Promise.all([
     SecureStore.deleteItemAsync(TOKEN_KEY),
     SecureStore.deleteItemAsync(ACCOUNT_EMAIL_KEY),
+    SecureStore.deleteItemAsync(CONNECTION_ID_KEY),
   ]);
+}
+
+/**
+ * Opaque epoch for scoping durable Drive cursors/file IDs without persisting
+ * an account identifier. It rotates after every interactive connection and is
+ * deleted with credentials on Disconnect.
+ */
+export async function readOrCreateGoogleConnectionId(): Promise<string> {
+  const stored = await SecureStore.getItemAsync(CONNECTION_ID_KEY);
+  if (stored) return stored;
+  return rotateGoogleConnectionId();
+}
+
+export async function rotateGoogleConnectionId(): Promise<string> {
+  let value: string;
+  try {
+    const { randomUUID } = await import('expo-crypto');
+    value = randomUUID();
+  } catch {
+    // The epoch is an isolation nonce, not a credential. This fallback keeps
+    // non-native test environments functional without weakening token storage.
+    value = `connection-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  }
+  await SecureStore.setItemAsync(CONNECTION_ID_KEY, value, {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  });
+  return value;
 }
 
 export async function clearGoogleAccessToken(): Promise<void> {
