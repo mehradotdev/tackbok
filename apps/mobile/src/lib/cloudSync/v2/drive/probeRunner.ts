@@ -126,6 +126,7 @@ function probeProvider(options: ProbeProviderOptions): {
       state: options.state,
       fetch: options.fetch,
       instrumentation: metrics,
+      enableDevProbeMethods: true,
     }),
     metrics,
   };

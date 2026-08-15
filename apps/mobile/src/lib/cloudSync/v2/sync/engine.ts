@@ -23,7 +23,7 @@ import type {
   V2SyncHooks,
   V2SyncResult,
 } from './types';
-import { V2ProviderError } from './types';
+import { V2LocalStorageError, V2ProviderError } from './types';
 
 const RETENTION_COUNT = 3;
 const CLEANUP_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -175,6 +175,7 @@ export class SnapshotV2SyncEngine {
       if (!plan) {
         await this.reapOldShadows();
         await this.cleanupSnapshots();
+        this.stateStore.clearPause(this.vaultId, this.deviceId);
         return { status: 'up-to-date', actionableChanges: 0 };
       }
       pending = this.stateStore.createPending(
@@ -204,6 +205,7 @@ export class SnapshotV2SyncEngine {
     }
 
     await this.resumePending(pending);
+    this.stateStore.clearPause(this.vaultId, this.deviceId);
     durable = this.stateStore.loadState(this.vaultId, this.deviceId);
     return {
       status: 'published',
@@ -250,7 +252,7 @@ export class SnapshotV2SyncEngine {
         );
       }
 
-      await this.synchronizeMedia(captured.domain, frontier, merged);
+      await this.synchronizeMedia(captured.domain, frontier, merged, captured.generation);
       await this.hooks.beforeHeadRecheck?.();
       const rechecked = await this.loadAndNormalizeHeads(
         await this.provider.listHeads(this.vaultId, true),
@@ -421,6 +423,7 @@ export class SnapshotV2SyncEngine {
     local: SnapshotDomainV2,
     remotes: RemoteHeadSnapshot[],
     merged: SnapshotDomainV2,
+    capturedGeneration: number,
   ): Promise<void> {
     const localHashes = new Set(local.media.map((asset) => asset.blobHash));
     const remoteHashes = new Set(remotes.flatMap((remote) =>
@@ -438,13 +441,27 @@ export class SnapshotV2SyncEngine {
         await this.provider.uploadMedia(this.vaultId, blobHash, bytes);
         await this.hooks.at?.('during-media-transfer');
       } else if (remotePresent && !localPresent) {
-        const bytes = await this.provider.downloadMedia(this.vaultId, blobHash);
-        if (!bytes || sha256BytesV2(bytes) !== blobHash) {
-          throw new AttentionError('missing-media', 'remote-media-hash-mismatch');
+        try {
+          const bytes = await this.provider.downloadMedia(this.vaultId, blobHash);
+          if (!bytes || sha256BytesV2(bytes) !== blobHash) {
+            await this.journal.applyMergedIfGeneration(merged, capturedGeneration);
+            throw new AttentionError('missing-media', 'remote-media-hash-mismatch');
+          }
+          await this.mediaStore.writeVerified(blobHash, bytes);
+          await this.hooks.at?.('during-media-transfer');
+        } catch (error) {
+          // A policy/transient download block (notably Wi-Fi-only media) must
+          // not hold back the compressed metadata snapshot. The production
+          // journal records a visible pending attachment and hydrates it in a
+          // later bounded media pass. Integrity/auth failures remain blocking.
+          if (!(error instanceof V2ProviderError) ||
+              !['transient', 'rate-limited'].includes(error.code)) throw error;
         }
-        await this.mediaStore.writeVerified(blobHash, bytes);
-        await this.hooks.at?.('during-media-transfer');
       } else if (!remotePresent && !localPresent) {
+        // Apply the already-validated logical journal before pausing. This
+        // keeps a fresh text restore useful while still refusing to publish a
+        // snapshot that references an absent remote blob.
+        await this.journal.applyMergedIfGeneration(merged, capturedGeneration);
         throw new AttentionError(
           localHashes.has(blobHash) && !remoteHashes.has(blobHash)
             ? 'local-media-unreadable'
@@ -682,6 +699,19 @@ export class SnapshotV2SyncEngine {
         : 'invalid-remote-snapshot';
       this.stateStore.setPause(this.vaultId, this.deviceId, reason, `merge-${error.code}`);
       return { status: 'attention', reason, actionableChanges: remaining };
+    }
+    if (error instanceof V2LocalStorageError) {
+      this.stateStore.setPause(
+        this.vaultId,
+        this.deviceId,
+        error.reason,
+        error.errorClass,
+      );
+      return {
+        status: 'attention',
+        reason: error.reason,
+        actionableChanges: remaining,
+      };
     }
     if (error instanceof V2ProviderError) {
       const attention = this.providerAttentionReason(error.code);

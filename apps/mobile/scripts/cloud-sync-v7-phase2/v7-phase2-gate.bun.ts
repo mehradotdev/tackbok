@@ -724,6 +724,61 @@ describe('V7-2 durable publisher', () => {
     expect(app.provider.snapshotIds(app.vaultId)).toEqual([]);
   });
 
+  test('remote text restores and publishes while a verified remote blob waits for Wi-Fi', async () => {
+    const provider = new FakeSnapshotV2Provider();
+    const bytes = new TextEncoder().encode('synthetic-remote-photo');
+    const blobHash = sha256BytesV2(bytes);
+    const sourceDomain = withEntry(blankDomain(), entry('entry-remote-media', 'Restored text'));
+    sourceDomain.media = [{
+      assetId: 'asset-remote-media', ownerType: 'entry', ownerId: 'entry-remote-media',
+      kind: 'photo', blobHash, mimeType: 'image/jpeg', byteSize: bytes.byteLength,
+      width: null, height: null, durationMs: null, createdAt: 1, updatedAt: 1,
+    }];
+    const source = harness('device-media-source', sourceDomain, provider);
+    await source.media.writeVerified(blobHash, bytes);
+    source.state.markDirty(source.vaultId, source.deviceId);
+    expect(await source.engine().sync()).toMatchObject({ status: 'published' });
+
+    const restoring = harness(
+      'device-media-restore', blankDomain(), provider, source.clock, source.vaultId,
+    );
+    provider.failNext('download-media', new V2ProviderError('transient', 'waiting-for-wifi'));
+    expect(await restoring.engine().sync()).toMatchObject({
+      status: 'published', actionableChanges: 0,
+    });
+    expect(restoring.journal.current().entries).toContainEqual(
+      expect.objectContaining({ entryId: 'entry-remote-media', content: 'Restored text' }),
+    );
+    expect(await restoring.media.hasVerified(blobHash)).toBe(false);
+  });
+
+  test('an actually absent remote blob still restores text before durable Attention', async () => {
+    const app = harness('device-remote-missing');
+    const domain = withEntry(blankDomain(), entry('entry-remote-missing', 'Readable text'));
+    domain.media = [{
+      assetId: 'asset-remote-missing', ownerType: 'entry', ownerId: 'entry-remote-missing',
+      kind: 'photo', blobHash: 'b'.repeat(64), mimeType: 'image/jpeg', byteSize: 10,
+      width: null, height: null, durationMs: null, createdAt: 1, updatedAt: 1,
+    }];
+    const encoded = encodeSnapshotV2({
+      format: 'tackbok-snapshot', formatVersion: 2, vaultId: app.vaultId,
+      parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'remote-missing',
+      deviceSequence: 1, createdAt: 1, ...domain,
+    });
+    app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 1);
+    app.provider.injectPhysicalHead({
+      format: 'tackbok-device-head', formatVersion: 2, vaultId: app.vaultId,
+      deviceId: 'remote-missing', deviceSequence: 1, snapshotId: encoded.snapshotId,
+      updatedAt: 1,
+    });
+
+    expect(await app.engine().sync()).toMatchObject({ status: 'attention', reason: 'missing-media' });
+    expect(app.journal.current().entries).toContainEqual(
+      expect.objectContaining({ entryId: 'entry-remote-missing', content: 'Readable text' }),
+    );
+    expect(app.provider.snapshotIds(app.vaultId)).toEqual([encoded.snapshotId]);
+  });
+
   test('revocation markers dominate dirty publication intent', async () => {
     for (const [marker, reason] of [
       ['backup-deleted', 'backup-deleted'],

@@ -2,6 +2,9 @@ import { and, eq, inArray, ne, notInArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import {
   cloudSyncMigrationItems,
+  cloudV2SyncState,
+  cloudV2Tombstones,
+  cloudVault,
   customPrompts,
   db,
   entries,
@@ -19,6 +22,8 @@ import {
 import { AssetType, type Asset } from '~/types';
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
+import { canonicalHashV2 } from '../v2/canonical';
+import type { SnapshotEntryV2, SnapshotPromptV2, SnapshotTagV2 } from '../v2/types';
 
 export const PROFILE_ROW_ID = 'self';
 export const PROFILE_ENTITY_ID = 'profile';
@@ -32,6 +37,8 @@ export interface MutationContext {
   batchId?: string | null;
   now?: number;
   createdAt?: number;
+  /** Canonical protocol-v2 entity hash captured before a local delete. */
+  deletedStateHash?: string | null;
 }
 
 export type CloudSyncTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -82,6 +89,82 @@ export async function enqueueMutation(
   context: MutationContext = {},
 ): Promise<{ changeId: string; generation: number }> {
   const now = context.now ?? Date.now();
+
+  const [v2Vault] = await tx
+    .select({
+      vaultId: cloudVault.vault_id,
+      deviceId: cloudVault.device_id,
+      status: cloudVault.status,
+    })
+    .from(cloudVault)
+    .where(and(
+      eq(cloudVault.protocol_version, 2),
+      notInArray(cloudVault.status, ['disabled', 'revoked']),
+    ))
+    .limit(1);
+
+  if (v2Vault) {
+    await tx.insert(cloudV2SyncState).values({
+      vault_id: v2Vault.vaultId,
+      device_id: v2Vault.deviceId,
+      journal_generation: 0,
+      settled_generation: 0,
+      next_device_sequence: 1,
+      updated_at: now,
+    }).onConflictDoNothing();
+    await tx.update(cloudV2SyncState).set({
+      journal_generation: sql`${cloudV2SyncState.journal_generation} + 1`,
+      updated_at: now,
+    }).where(and(
+      eq(cloudV2SyncState.vault_id, v2Vault.vaultId),
+      eq(cloudV2SyncState.device_id, v2Vault.deviceId),
+    ));
+    const [state] = await tx.select({ generation: cloudV2SyncState.journal_generation })
+      .from(cloudV2SyncState)
+      .where(and(
+        eq(cloudV2SyncState.vault_id, v2Vault.vaultId),
+        eq(cloudV2SyncState.device_id, v2Vault.deviceId),
+      ))
+      .limit(1);
+    if (!state) throw new Error('Failed to advance protocol-v2 journal generation');
+
+    if (action === 'delete') {
+      await tx.insert(cloudV2Tombstones).values({
+        vault_id: v2Vault.vaultId,
+        entity_type: entityType,
+        entity_id: entityId,
+        base_state_hash: null,
+        deleted_state_hash: context.deletedStateHash ?? null,
+        deleted_by_device_id: v2Vault.deviceId,
+        deletion_sequence: state.generation,
+        updated_at: now,
+      }).onConflictDoUpdate({
+        target: [
+          cloudV2Tombstones.vault_id,
+          cloudV2Tombstones.entity_type,
+          cloudV2Tombstones.entity_id,
+        ],
+        set: {
+          base_state_hash: null,
+          deleted_state_hash: context.deletedStateHash ?? null,
+          deleted_by_device_id: v2Vault.deviceId,
+          deletion_sequence: state.generation,
+          updated_at: now,
+        },
+      });
+    } else {
+      await tx.delete(cloudV2Tombstones).where(and(
+        eq(cloudV2Tombstones.vault_id, v2Vault.vaultId),
+        eq(cloudV2Tombstones.entity_type, entityType),
+        eq(cloudV2Tombstones.entity_id, entityId),
+      ));
+    }
+    if (v2Vault.status !== 'paused' && v2Vault.status !== 'restoring') {
+      await tx.update(cloudVault).set({ status: 'dirty', updated_at: now })
+        .where(eq(cloudVault.vault_id, v2Vault.vaultId));
+    }
+    return { changeId: randomUUID(), generation: state.generation };
+  }
 
   await tx
     .insert(syncEntityState)
@@ -358,7 +441,20 @@ export async function deleteEntryInTransaction(
   await tx.delete(entries).where(eq(entries.note_id, noteId));
   await markNormalized(tx, 'entry', noteId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    await enqueueMutation(tx, 'entry', noteId, 'delete', { ...context, now });
+    const deletedState: SnapshotEntryV2 | null = entry ? {
+      entryId: entry.note_id,
+      title: entry.text_title,
+      content: entry.text_content,
+      mood: entry.mood ?? null,
+      createdAt: entry.created_at,
+      updatedAt: entry.updated_at,
+      conflictOriginId: entry.conflict_origin_id,
+    } : null;
+    await enqueueMutation(tx, 'entry', noteId, 'delete', {
+      ...context,
+      now,
+      deletedStateHash: deletedState ? canonicalHashV2(deletedState) : null,
+    });
   }
   return entry;
 }
@@ -430,6 +526,7 @@ export async function deleteTagInTransaction(
   context: MutationContext = {},
 ): Promise<void> {
   const now = context.now ?? Date.now();
+  const [deletedTag] = await tx.select().from(tags).where(eq(tags.tag_id, tagId)).limit(1);
   const relations = await tx.select().from(entryTags).where(eq(entryTags.tag_id, tagId));
   for (const relation of relations) {
     const [entry] = await tx
@@ -454,7 +551,18 @@ export async function deleteTagInTransaction(
   await tx.delete(tags).where(eq(tags.tag_id, tagId));
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    await enqueueMutation(tx, 'tag', tagId, 'delete', { ...context, now });
+    const deletedState: SnapshotTagV2 | null = deletedTag ? {
+      tagId: deletedTag.tag_id,
+      title: deletedTag.title,
+      createdAt: deletedTag.created_at,
+      updatedAt: deletedTag.updated_at,
+      conflictOriginId: deletedTag.conflict_origin_id,
+    } : null;
+    await enqueueMutation(tx, 'tag', tagId, 'delete', {
+      ...context,
+      now,
+      deletedStateHash: deletedState ? canonicalHashV2(deletedState) : null,
+    });
   }
 }
 
@@ -508,10 +616,23 @@ export async function deletePromptInTransaction(
   context: MutationContext = {},
 ): Promise<void> {
   const now = context.now ?? Date.now();
+  const [deletedPrompt] = await tx.select().from(customPrompts)
+    .where(eq(customPrompts.prompt_id, promptId)).limit(1);
   await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    await enqueueMutation(tx, 'prompt', promptId, 'delete', { ...context, now });
+    const deletedState: SnapshotPromptV2 | null = deletedPrompt ? {
+      promptId: deletedPrompt.prompt_id,
+      title: deletedPrompt.title,
+      createdAt: deletedPrompt.created_at,
+      updatedAt: deletedPrompt.updated_at,
+      conflictOriginId: deletedPrompt.conflict_origin_id,
+    } : null;
+    await enqueueMutation(tx, 'prompt', promptId, 'delete', {
+      ...context,
+      now,
+      deletedStateHash: deletedState ? canonicalHashV2(deletedState) : null,
+    });
   }
 }
 

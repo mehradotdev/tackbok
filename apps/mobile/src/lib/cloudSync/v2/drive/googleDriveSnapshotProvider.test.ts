@@ -109,6 +109,7 @@ class FakeDriveV2Server {
   failAfterNextCreate = false;
   hideNextFileLists = 0;
   hideNextChangeLists = 0;
+  rejectChangeCursors = 0;
   private nextId = 0;
   private sequence = 0;
   private readonly changes: { sequence: number; fileId: string; removed: boolean }[] = [];
@@ -124,6 +125,10 @@ class FakeDriveV2Server {
       return response(200, { startPageToken: String(this.sequence) });
     }
     if (parsed.pathname.endsWith('/changes')) {
+      if (this.rejectChangeCursors > 0) {
+        this.rejectChangeCursors -= 1;
+        return response(410);
+      }
       const token = parsed.searchParams.get('pageToken');
       if (token === 'expired-cursor') return response(410);
       if (this.hideNextChangeLists > 0) {
@@ -454,6 +459,40 @@ describe('GoogleDriveSnapshotV2Provider', () => {
     });
   });
 
+  test('discovery rebuild is bounded when Drive rejects each fresh cursor', async () => {
+    const server = new FakeDriveV2Server();
+    server.rejectChangeCursors = 2;
+
+    await expect(provider(server).listHeads(vaultId, true)).rejects.toMatchObject({
+      code: 'transient',
+    });
+    expect(server.calls.filter((call) => call.url.includes('/changes/startPageToken')))
+      .toHaveLength(2);
+    expect(server.calls.filter((call) =>
+      call.url.includes('/changes?') && !call.url.includes('startPageToken')))
+      .toHaveLength(2);
+  });
+
+  test('vault discovery validates head bodies and returns no Drive identifiers', async () => {
+    const server = new FakeDriveV2Server();
+    const olderVault = 'vault-discovery-older';
+    const newerVault = 'vault-discovery-newer';
+    const olderHead: DeviceHeadV2 = {
+      ...head('device-older', 1, '3'.repeat(64)), vaultId: olderVault, updatedAt: 10,
+    };
+    const newerHead: DeviceHeadV2 = {
+      ...head('device-newer', 1, '4'.repeat(64)), vaultId: newerVault, updatedAt: 20,
+    };
+    server.seed(olderVault, 'heads/device-older.json', 'head', canonicalBytesV2(olderHead));
+    server.seed(newerVault, 'heads/device-newer.json', 'head', canonicalBytesV2(newerHead));
+    server.seed('vault-invalid', 'heads/device-invalid.json', 'head', canonicalBytesV2(olderHead));
+
+    await expect(provider(server).listAvailableVaults()).resolves.toEqual([
+      { vaultId: newerVault, updatedAt: 20 },
+      { vaultId: olderVault, updatedAt: 10 },
+    ]);
+  });
+
   test('initial discovery survives one eventually-consistent empty prefix listing', async () => {
     const server = new FakeDriveV2Server();
     const remote = head('device-eventual', 1, '0'.repeat(64));
@@ -615,12 +654,44 @@ describe('GoogleDriveSnapshotV2Provider', () => {
 
   test('revocation metadata is detected without downloading marker bodies', async () => {
     const server = new FakeDriveV2Server();
-    const app = provider(server);
+    const app = new GoogleDriveSnapshotV2Provider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveV2ProviderStateStore(),
+      fetch: server.fetch,
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1_800_000_000_000,
+      enableDevProbeMethods: true,
+    });
     await app.createRevocationForProbe(vaultId, 'backup-deleted');
     server.calls.length = 0;
     await expect(app.listRevocations(vaultId)).resolves.toEqual(['backup-deleted']);
     expect(server.calls).toHaveLength(1);
     expect(server.calls[0].url).toContain('/drive/v3/files?');
+  });
+
+  test('production revocation purge preserves its marker and removes every other object', async () => {
+    const server = new FakeDriveV2Server();
+    const app = provider(server);
+    const remoteHead = head('device-purge', 1, '6'.repeat(64));
+    server.seed(vaultId, 'heads/device-purge.json', 'head', canonicalBytesV2(remoteHead));
+    server.seed(vaultId, `snapshots/${'6'.repeat(64)}.json.gz`, 'snapshot',
+      new Uint8Array([6]));
+    const media = new TextEncoder().encode('synthetic-media-to-purge');
+    const mediaHash = sha256BytesV2(media);
+    server.seed(vaultId, `media/${mediaHash.slice(0, 2)}/${mediaHash}`, 'media', media);
+
+    await app.publishRevocation(vaultId, 'backup-deleted');
+    await expect(app.purgeRevokedVault(vaultId)).resolves.toEqual({ deleted: 3, remaining: 0 });
+    await expect(app.listRevocations(vaultId)).resolves.toEqual(['backup-deleted']);
+    expect([...server.files.values()].map((file) => file.appProperties.tb_v2_kind))
+      .toEqual(['revocation']);
+  });
+
+  test('destructive probe methods are hard-gated on ordinary provider instances', async () => {
+    const app = provider(new FakeDriveV2Server());
+    expect(() => app.setCursorForProbe(vaultId, 'cursor')).toThrow(/disabled/);
+    await expect(app.deleteAllForProbe(vaultId)).rejects.toThrow(/disabled/);
   });
 
   test('request reports reject credentials and provider identifiers', () => {

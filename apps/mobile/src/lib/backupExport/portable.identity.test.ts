@@ -59,7 +59,8 @@ test('manual backup v1 carries every normalized stable identity additively', () 
       {
         note_id: 'entry-stable',
         text_title: 'Title',
-        text_content: 'Body',
+      text_content: 'Body',
+      conflict_origin_id: null,
         mood: null,
         assets: [{ type: AssetType.IMAGE, uri: 'legacy.jpg' }],
         tags: 'tag-stable',

@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
+import { and, asc, eq, gt, isNotNull, isNull, or } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import {
   customPrompts,
@@ -17,7 +17,7 @@ import {
 import type { AssetDescriptor, DomainState, EntityType } from '../domain/types';
 import type { SQLiteSyncEngine } from '../engine';
 import { createLocalMediaByteSource } from '../media/fileByteSource';
-import { hashLocalMediaFile } from '../media/streamingHash';
+import { hashLocalMediaFile, inspectLocalMediaFile } from '../media/streamingHash';
 import { shouldAdoptQueuedGeneration } from './queueReconciliation';
 import { AssetType, type Asset } from '~/types';
 import { deleteAllPhotos } from '~/lib/photoUtils';
@@ -62,7 +62,7 @@ export async function readNormalizedDomainState(
       assets: assets.map(descriptor).sort((a, b) => a.assetId.localeCompare(b.assetId)),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      conflictOriginId: null,
+      conflictOriginId: row.conflict_origin_id,
     };
   }
   if (entityType === 'tag') {
@@ -205,24 +205,35 @@ export async function registerProductionBlobSources(engine: SQLiteSyncEngine): P
 }
 
 /** Hashes a bounded amount of pending media per pass; failures remain durable for retry. */
-export async function hashPendingProductionMedia(limit = 2): Promise<void> {
+export async function hashPendingProductionMedia(limit = 2): Promise<{
+  processed: number;
+  failed: number;
+}> {
+  let processed = 0;
+  let failed = 0;
   const live = await db.select().from(mediaAssets).where(and(
     isNotNull(mediaAssets.local_uri),
-    isNull(mediaAssets.blob_hash),
+    or(isNull(mediaAssets.blob_hash), isNull(mediaAssets.byte_size)),
   )).limit(limit);
   let remaining = limit;
   for (const row of live) {
     if (!row.local_uri) continue;
     try {
-      const hash = await hashLocalMediaFile(row.local_uri);
-      await db.update(mediaAssets).set({ blob_hash: hash, updated_at: Date.now() })
+      const inspected = await inspectLocalMediaFile(row.local_uri);
+      await db.update(mediaAssets).set({
+        blob_hash: inspected.sha256,
+        byte_size: inspected.byteSize,
+        updated_at: Date.now(),
+      })
         .where(eq(mediaAssets.asset_id, row.asset_id));
+      processed++;
     } catch {
       // The normalized row and original file remain; a later pass retries.
+      failed++;
     }
     remaining--;
   }
-  if (remaining <= 0) return;
+  if (remaining <= 0) return { processed, failed };
   const retained = await db.select().from(syncRetainedMedia).where(and(
     isNull(syncRetainedMedia.blob_hash),
     isNotNull(syncRetainedMedia.original_uri),
@@ -236,10 +247,13 @@ export async function hashPendingProductionMedia(limit = 2): Promise<void> {
         await tx.update(syncMediaObligations).set({ blob_hash: hash })
           .where(eq(syncMediaObligations.ledger_id, row.ledger_id));
       });
+      processed++;
     } catch {
       // Retained bytes and obligation stay in place for the next bounded pass.
+      failed++;
     }
   }
+  return { processed, failed };
 }
 
 export async function persistProductionEngineResult(
@@ -501,11 +515,13 @@ export async function materializeProductionDomain(
         await tx.insert(entries).values({
           note_id: id, text_title: state.title, text_content: state.content,
           mood: state.mood as typeof entries.$inferInsert['mood'], assets: legacyAssets,
-          tags: state.tagIds.join(','), created_at: state.createdAt, updated_at: state.updatedAt,
+          tags: state.tagIds.join(','), conflict_origin_id: state.conflictOriginId,
+          created_at: state.createdAt, updated_at: state.updatedAt,
         }).onConflictDoUpdate({ target: entries.note_id, set: {
           text_title: state.title, text_content: state.content,
           mood: state.mood as typeof entries.$inferInsert['mood'], assets: legacyAssets,
-          tags: state.tagIds.join(','), updated_at: state.updatedAt,
+          tags: state.tagIds.join(','), conflict_origin_id: state.conflictOriginId,
+          updated_at: state.updatedAt,
         }});
         await tx.delete(entryTags).where(eq(entryTags.note_id, id));
         if (state.tagIds.length > 0) {

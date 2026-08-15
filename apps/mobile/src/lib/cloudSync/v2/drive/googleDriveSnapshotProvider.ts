@@ -43,6 +43,7 @@ const SESSION_LIFETIME_MS = 6 * 24 * 60 * 60 * 1_000;
 const BASE_RETRY_DELAY_MS = 1_000;
 const MAX_RETRY_DELAY_MS = 30_000;
 const PROPERTY_PAIR_UTF8_CAP = 124;
+const MAX_DISCOVERY_REBUILDS = 1;
 
 interface DriveFileV2 {
   id: string;
@@ -89,6 +90,18 @@ export interface GoogleDriveSnapshotV2ProviderOptions {
   sleep?: (milliseconds: number) => Promise<void>;
   random?: () => number;
   now?: () => number;
+  /** Destructive probe helpers remain unreachable in production bundles. */
+  enableDevProbeMethods?: boolean;
+}
+
+export interface AvailableDriveV2Vault {
+  vaultId: string;
+  updatedAt: number;
+}
+
+export interface DriveV2PurgeResult {
+  deleted: number;
+  remaining: number;
 }
 
 class DriveV2RequestError extends V2ProviderError {
@@ -274,6 +287,7 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
   private readonly sleep: (milliseconds: number) => Promise<void>;
   private readonly random: () => number;
   private readonly now: () => number;
+  private readonly devProbeMethodsEnabled: boolean;
 
   constructor(options: GoogleDriveSnapshotV2ProviderOptions) {
     this.auth = options.auth;
@@ -284,6 +298,7 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
       new Promise((resolve) => setTimeout(resolve, milliseconds)));
     this.random = options.random ?? Math.random;
     this.now = options.now ?? Date.now;
+    this.devProbeMethodsEnabled = __DEV__ && options.enableDevProbeMethods === true;
   }
 
   async listRevocations(
@@ -296,6 +311,67 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
       .filter((value): value is 'backup-deleted' | 'journal-deleted' =>
         value === 'backup-deleted' || value === 'journal-deleted');
     return [...new Set(values)].sort();
+  }
+
+  /** Discovers restorable protocol-v2 vaults without exposing Drive file IDs. */
+  async listAvailableVaults(): Promise<AvailableDriveV2Vault[]> {
+    const scope = '__v2-vault-discovery__';
+    const query = `'${APP_DATA}' in parents and trashed=false and ` +
+      propertyClause(PROP_KIND, 'head');
+    const files = await this.queryFiles(scope, query);
+    const newest = new Map<string, number>();
+    for (const file of files) {
+      const vaultId = file.appProperties[PROP_VAULT];
+      if (!vaultId || !/^[\x20-\x7e]+$/.test(vaultId) || utf8(vaultId).length > 128) continue;
+      const record = await this.materializeRecord(vaultId, file, 'head');
+      if (!record.head || record.head.vaultId !== vaultId) continue;
+      newest.set(vaultId, Math.max(newest.get(vaultId) ?? 0, record.head.updatedAt));
+    }
+    return [...newest].map(([vaultId, updatedAt]) => ({ vaultId, updatedAt }))
+      .sort((left, right) => right.updatedAt - left.updatedAt ||
+        left.vaultId.localeCompare(right.vaultId));
+  }
+
+  async publishRevocation(
+    vaultId: string,
+    reason: 'backup-deleted' | 'journal-deleted',
+  ): Promise<void> {
+    const key = `revocations/${sha256TextV2(reason)}.json`;
+    const bytes = canonicalBytesV2({ format: 'tackbok-revocation', formatVersion: 2, reason });
+    const hash = sha256BytesV2(bytes);
+    const existing = await this.queryExactKey(vaultId, key, 'revocation');
+    if (existing.some((file) => file.sha256Checksum === hash &&
+        parseByteCount(file) === bytes.byteLength &&
+        file.appProperties[PROP_REVOCATION] === reason)) return;
+    if (existing.length > 0) {
+      throw new V2ProviderError('invalid-data', 'Revocation key has conflicting content');
+    }
+    const uploaded = await this.multipartUpload(
+      vaultId,
+      key,
+      'revocation',
+      bytes,
+      'create',
+      undefined,
+      { [PROP_REVOCATION]: reason },
+    );
+    this.state.upsertFile(vaultId, this.record(uploaded, 'revocation', null));
+  }
+
+  /** Permanently purges a vault while preserving its revocation marker. */
+  async purgeRevokedVault(vaultId: string): Promise<DriveV2PurgeResult> {
+    const files = await this.queryFiles(vaultId, this.vaultQuery(vaultId));
+    let deleted = 0;
+    for (const file of files) {
+      if (file.appProperties[PROP_KIND] === 'revocation') continue;
+      await this.request(vaultId, 'delete', `${API}/files/${encodeURIComponent(file.id)}`,
+        { method: 'DELETE' }, { idempotent: true, accepted: [404] });
+      this.state.removeFile(vaultId, file.id);
+      deleted += 1;
+    }
+    const remaining = (await this.queryFiles(vaultId, this.vaultQuery(vaultId)))
+      .filter((file) => file.appProperties[PROP_KIND] !== 'revocation').length;
+    return { deleted, remaining };
   }
 
   async listHeads(vaultId: string, refresh = true): Promise<ListedDeviceHeadV2[]> {
@@ -449,6 +525,7 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
 
   /** Probe-only creation of a second physical name for duplicate-head evidence. */
   async createPhysicalHeadForProbe(vaultId: string, head: DeviceHeadV2): Promise<void> {
+    this.assertDevProbeMethodsEnabled();
     const bytes = canonicalBytesV2(head);
     const uploaded = await this.multipartUpload(
       vaultId,
@@ -464,21 +541,12 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
     vaultId: string,
     reason: 'backup-deleted' | 'journal-deleted',
   ): Promise<void> {
-    const key = `revocations/${sha256TextV2(reason)}.json`;
-    const bytes = canonicalBytesV2({ format: 'tackbok-revocation', formatVersion: 2, reason });
-    const uploaded = await this.multipartUpload(
-      vaultId,
-      key,
-      'revocation',
-      bytes,
-      'create',
-      undefined,
-      { [PROP_REVOCATION]: reason },
-    );
-    this.state.upsertFile(vaultId, this.record(uploaded, 'revocation', null));
+    this.assertDevProbeMethodsEnabled();
+    await this.publishRevocation(vaultId, reason);
   }
 
   async deleteAllForProbe(vaultId: string): Promise<number> {
+    this.assertDevProbeMethodsEnabled();
     const files = await this.queryFiles(vaultId, this.vaultQuery(vaultId));
     let deleted = 0;
     for (const file of files) {
@@ -492,13 +560,14 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
   }
 
   setCursorForProbe(vaultId: string, cursor: string): void {
+    this.assertDevProbeMethodsEnabled();
     this.state.applyChangePage(vaultId, [], [], cursor);
   }
 
-  private async refreshDiscovery(vaultId: string): Promise<void> {
+  private async refreshDiscovery(vaultId: string, rebuilds = 0): Promise<void> {
     const discovery = this.state.loadDiscovery(vaultId);
     if (!discovery.inventoryComplete || !discovery.cursor) {
-      await this.initializeDiscovery(vaultId);
+      await this.initializeDiscovery(vaultId, rebuilds);
       return;
     }
     let cursor = discovery.cursor;
@@ -549,12 +618,18 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
     } catch (error) {
       if (!(error instanceof DriveV2RequestError) ||
           ![400, 404, 410].includes(error.status)) throw error;
+      if (rebuilds >= MAX_DISCOVERY_REBUILDS) {
+        throw new V2ProviderError(
+          'transient',
+          'Drive rejected a freshly rebuilt discovery cursor',
+        );
+      }
       this.state.resetDiscovery(vaultId);
-      await this.initializeDiscovery(vaultId);
+      await this.initializeDiscovery(vaultId, rebuilds + 1);
     }
   }
 
-  private async initializeDiscovery(vaultId: string): Promise<void> {
+  private async initializeDiscovery(vaultId: string, rebuilds = 0): Promise<void> {
     const tokenResponse = await this.request(
       vaultId,
       'start-token',
@@ -585,7 +660,13 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
       records.push(await this.materializeRecord(vaultId, file, kind));
     }
     this.state.replaceInitialInventory(vaultId, records, tokenBody.startPageToken);
-    await this.refreshDiscovery(vaultId);
+    await this.refreshDiscovery(vaultId, rebuilds);
+  }
+
+  private assertDevProbeMethodsEnabled(): void {
+    if (!this.devProbeMethodsEnabled) {
+      throw new Error('Destructive Drive probe methods are disabled');
+    }
   }
 
   private async materializeRecord(

@@ -117,6 +117,19 @@ export class V2ProviderError extends Error {
   }
 }
 
+export class V2LocalStorageError extends Error {
+  constructor(
+    readonly reason: Extract<
+      V2AttentionReason,
+      'local-storage-full' | 'local-media-unreadable' | 'normalized-model-not-ready'
+    >,
+    readonly errorClass: string,
+  ) {
+    super(errorClass);
+    this.name = 'V2LocalStorageError';
+  }
+}
+
 export interface SnapshotV2Provider {
   listRevocations(vaultId: string): Promise<('backup-deleted' | 'journal-deleted')[]>;
   /** `refresh=false` is a cleanup-time read of the durable provider cache. */

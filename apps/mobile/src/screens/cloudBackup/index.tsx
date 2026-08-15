@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, ScrollView, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Linking, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -33,6 +33,7 @@ import {
   listUnacknowledgedCloudConflicts,
   prepareGoogleDriveConnection,
   reconnectGoogleDrive,
+  retryV2AttentionReason,
   resetThisDeviceOnly,
   revokeCloudVault,
   setCloudSyncPaused,
@@ -44,6 +45,7 @@ import {
   CloudSyncActionError,
   type PreparedGoogleConnection,
 } from '~/lib/cloudSync/ui';
+import type { V2AttentionReason, V2RecoveryAction } from '~/lib/cloudSync/v2/sync';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
@@ -150,6 +152,63 @@ function cloudSyncFailureMessage(
     case 'unknown':
       return t('Google Drive could not be reached. Your changes remain safely queued.');
   }
+}
+
+function attentionReasonMessage(
+  reason: V2AttentionReason,
+  t: ReturnType<typeof useTranslation>['t'],
+): string {
+  const messages: Record<V2AttentionReason, string> = {
+    'authorization-required': t('Google Drive authorization needs attention.'),
+    'account-mismatch': t('This backup belongs to a different connected Google account.'),
+    'consent-incomplete': t('Google Drive permission was not fully granted.'),
+    'wrong-vault': t('The connected cloud backup does not match this journal.'),
+    'unsupported-format': t('This backup was created by a newer Tackbok version.'),
+    'invalid-remote-snapshot': t('A cloud snapshot failed its safety checks.'),
+    'head-snapshot-missing': t('A device backup points to a missing snapshot.'),
+    'ambiguous-device-head': t('Two different backups claim the same device version.'),
+    'frontier-too-wide': t('Too many independent device backups need consolidation.'),
+    'derived-id-collision': t('A recovered item conflicts with an existing stable identifier.'),
+    'local-storage-full': t('Tackbok could not safely stage backup data on this device.'),
+    'provider-quota-full': t('Google Drive does not have enough free storage.'),
+    'provider-permission-denied': t('Google Drive denied access to the app backup folder.'),
+    'missing-media': t('A referenced photo or voice memo is unavailable.'),
+    'local-media-unreadable': t('A local photo or voice memo could not be verified.'),
+    'normalized-model-not-ready': t('Your journal is not ready for cloud sync yet.'),
+    'backup-deleted': t('This cloud backup was deleted from another device.'),
+    'journal-deleted': t('This journal was deleted everywhere from another device.'),
+    'purge-incomplete': t('Cloud deletion stopped before every backup object was removed.'),
+    'cleanup-inconsistent': t('Backup cleanup was stopped to protect a current snapshot.'),
+  };
+  return messages[reason];
+}
+
+function recoveryActionLabel(
+  action: V2RecoveryAction,
+  t: ReturnType<typeof useTranslation>['t'],
+): string {
+  const labels: Record<V2RecoveryAction, string> = {
+    'reconnect-google-drive': t('Reconnect Google Drive'),
+    'choose-connected-account': t('Choose the connected account'),
+    'finish-connection': t('Finish connection'),
+    'reconnect-correct-backup': t('Reconnect to the correct backup'),
+    'update-tackbok': t('Update Tackbok'),
+    'retry-verify-backup': t('Retry and verify backup'),
+    'repair-from-verified-backup': t('Repair from verified backup'),
+    'inspect-repair-backup': t('Inspect and repair backup'),
+    'consolidate-backups': t('Consolidate backups'),
+    'export-repair-backup': t('Export journal and repair backup'),
+    'free-device-storage': t('Free device storage and retry'),
+    'manage-drive-storage': t('Manage Google Drive storage'),
+    'retry-missing-media': t('Retry missing media'),
+    'locate-retry-attachment': t('Locate or retry attachment'),
+    'retry-journal-preparation': t('Retry journal preparation'),
+    'acknowledge-disconnect': t('Acknowledge and disconnect'),
+    'review-erase-device': t('Review deletion and erase this device'),
+    'resume-deletion': t('Resume deletion'),
+    'verify-backup-health': t('Verify backup health'),
+  };
+  return labels[action];
 }
 
 export default function CloudBackupScreen() {
@@ -264,6 +323,62 @@ export default function CloudBackupScreen() {
     },
     [refresh, t],
   );
+
+  const handleRecoveryAction = useCallback(async () => {
+    const reason = snapshot.attentionReason;
+    const action = snapshot.recoveryAction;
+    if (!reason || !action) return;
+    if (action === 'choose-connected-account' || action === 'finish-connection' ||
+        action === 'reconnect-correct-backup') {
+      await runAction(async () => {
+        await disconnectGoogleDrive();
+        setPrepared(null);
+        setStage('disclosure');
+      }, t('Choose a Google account to reconnect'));
+      return;
+    }
+    if (action === 'reconnect-google-drive') {
+      await runAction(reconnectGoogleDrive, t('Google Drive reconnected'));
+      return;
+    }
+    if (action === 'update-tackbok') {
+      await Linking.openURL('https://tackbok.org');
+      return;
+    }
+    if (action === 'free-device-storage') {
+      await Linking.openSettings();
+      return;
+    }
+    if (action === 'manage-drive-storage') {
+      await Linking.openURL('https://drive.google.com/drive/quota');
+      return;
+    }
+    if (action === 'acknowledge-disconnect') {
+      await runAction(disconnectGoogleDrive, t('Google Drive disconnected on this device'));
+      return;
+    }
+    if (action === 'review-erase-device') {
+      setDestructiveAction('reset-device');
+      return;
+    }
+    if (action === 'resume-deletion') {
+      await runAction(
+        () => revokeCloudVault(snapshot.revocationKind ?? 'backup-deleted'),
+        t('Cloud deletion completed'),
+      );
+      return;
+    }
+    if (action === 'export-repair-backup' || action === 'locate-retry-attachment') {
+      router.push('/settings');
+      toast.warning(t('Export or repair the affected journal data, then return and retry.'));
+      return;
+    }
+    await runAction(
+      () => retryV2AttentionReason(reason),
+      t('Cloud backup retry completed'),
+    );
+  }, [router, runAction, snapshot.attentionReason, snapshot.recoveryAction,
+    snapshot.revocationKind, t]);
 
   const clearLocalPresentation = useCallback(async () => {
     resetSettings();
@@ -437,6 +552,22 @@ export default function CloudBackupScreen() {
                         })
                       : t('Waiting for the first successful sync')}
                 </Text>
+                {snapshot.attentionReason && snapshot.recoveryAction && (
+                  <View
+                    className="gap-3 rounded-xl border border-destructive/50 bg-destructive/10 p-3"
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="polite">
+                    <Text className="text-sm text-foreground">
+                      {attentionReasonMessage(snapshot.attentionReason, t)}
+                    </Text>
+                    <Button
+                      variant="outline"
+                      onPress={() => void handleRecoveryAction()}
+                      accessibilityLabel={recoveryActionLabel(snapshot.recoveryAction, t)}>
+                      <Text>{recoveryActionLabel(snapshot.recoveryAction, t)}</Text>
+                    </Button>
+                  </View>
+                )}
                 {snapshot.status === 'syncing' && snapshot.activityPhase && (
                   <SyncProgressPanel
                     phase={snapshot.activityPhase}
@@ -455,7 +586,8 @@ export default function CloudBackupScreen() {
                 <Button
                   variant="primary"
                   size="lg"
-                  disabled={snapshot.status === 'syncing' || snapshot.status === 'paused'}
+                  disabled={snapshot.status === 'syncing' || snapshot.status === 'paused' ||
+                    snapshot.status === 'warning'}
                   onPress={() => void runAction(syncNow, t('Sync completed'))}
                   accessibilityLabel={t('Sync now')}>
                   {snapshot.status === 'syncing' ? (

@@ -6,8 +6,9 @@ account.
 > **Direction change — 2026-08-12:** [`plan-v7.md`](./plan-v7.md) replaces the
 > per-entity v6 design with snapshot-based sync. The owner approved the plan
 > direction and resolved its §18 decisions on 2026-08-14; schemas, caps, and
-> merge rules freeze only at the V7-0 gate. The app currently still runs the
-> plan-v6 engine.
+> merge rules froze at the closed V7-0 gate. V7-4 now wires snapshot sync for
+> new/restored connections while preserving the v6 runtime for existing
+> protocol-v1 alpha vaults until the dedicated V7-5 retirement phase.
 
 Read these in this order:
 
@@ -19,9 +20,11 @@ Read these in this order:
    phase; returned once for blocking finding X1, remediated and re-reviewed.
 5. [`v7-phase3/README.md`](./v7-phase3/README.md) — closed Drive snapshot
    adapter phase with redacted real-service evidence.
-6. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining the current
-   implementation.
-7. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
+6. [`v7-phase4/README.md`](./v7-phase4/README.md) — production runtime/UI
+   replacement bundle, host evidence, and open interactive acceptance checks.
+7. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining retained
+   protocol-v1 paths.
+8. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
 
 Do not delete the v6 phase folders or review records during design. They are an
 audit trail for schema migrations, Google authorization, Drive behavior,
@@ -37,7 +40,7 @@ production path relies on the old engine.
 | V7-1 — snapshot codec + merge engine | ✅ closed at owner review 2026-08-14; obligation W1 carries to V7-2 ([gate](./v7-phase1/gate.md), [review](./v7-phase1/review-2026-08-14.md)) |
 | V7-2 — durable publisher vs. fake provider | ✅ closed at owner re-review 2026-08-15 after one X1 return; X3 note carries to V7-5 ([gate](./v7-phase2/gate.md), [review](./v7-phase2/review-2026-08-15.md)) |
 | V7-3 — Google Drive snapshot adapter | ✅ closed at owner review 2026-08-15; Y1 carries to V7-4 entry, Y2 noted ([gate](./v7-phase3/gate.md), [review](./v7-phase3/review-2026-08-15.md)) |
-| V7-4 — runtime + UI replacement | authorized 2026-08-15, not started |
+| V7-4 — runtime + UI replacement | host claims verified at owner review 2026-08-15; Y1/Y2 discharged; four interactive acceptance checks open ([gate](./v7-phase4/gate.md), [review](./v7-phase4/review-2026-08-15.md)) |
 | V7-5 — device hardening + v6 retirement | not started |
 
 ## Historical v6 status
@@ -65,6 +68,8 @@ production path relies on the old engine.
   atomic base shadows, fake-provider crash/concurrency schedules, and gate.
 - [`v7-phase3/`](./v7-phase3/README.md) — Drive adapter semantics, durable
   provider cache, request-budget tests, and redacted real-service evidence.
+- [`v7-phase4/`](./v7-phase4/README.md) — normalized production adapter,
+  protocol-selective runtime, production UI/copy, and gate evidence.
 - [`plan-v6.md`](./plan-v6.md) — frozen historical plan for the currently
   implemented per-entity protocol.
 - `phase0/` — protocol v1 ADRs (`0001`–`0005`), the spike write-ups, and the
@@ -95,7 +100,7 @@ production path relies on the old engine.
   bytes, or journal data. `assertReportIsRedacted` throws before a report is
   written or logged.
 
-## Current v6 code map
+## Retained v6 code map
 
 - `src/lib/cloudSync/protocol/` — **frozen protocol v1 primitives.** Canonical
   JSON encoding and the numeric validation caps. Every vault hash depends on
@@ -107,11 +112,11 @@ production path relies on the old engine.
   `dev-diagnostics` and `dev-cloud-probes` routes. Kept because the Phase-3
   waiver commits to re-running them on the first physical device.
 
-## Historical/current implementation: how v6 works in the app
+## Historical retained implementation: how v6 works in the app
 
-> The following explains the code shipping at the time of the v7 draft. It is
-> not the target v7 snapshot design. See [`plan-v7.md`](./plan-v7.md) for the
-> proposed replacement.
+> The following explains the protocol-v1 path retained for already-configured
+> alpha vaults. New/restored connections use v7 snapshot sync after V7-4. See
+> [`plan-v7.md`](./plan-v7.md) and [`v7-phase4/gate.md`](./v7-phase4/gate.md).
 
 This section describes the current implementation in plain language. The short
 version is: every committed journal change is first made durable on the device,

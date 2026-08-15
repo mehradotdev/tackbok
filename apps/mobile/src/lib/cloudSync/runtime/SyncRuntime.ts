@@ -1,10 +1,14 @@
-import type { SyncPassResult } from '../engine';
 import type { CloudSyncFailureCategory, CloudSyncTrigger } from '../../analytics/events';
 import { toCloudSyncCountBucket, toCloudSyncDurationBucket } from '../../analytics/events';
 
+export interface RuntimePassResult {
+  pulled: number;
+  pushed: number;
+}
+
 export interface RuntimeSyncEngine {
   readonly provider: { readonly kind: 'google-drive' | 'dropbox' };
-  sync(): Promise<SyncPassResult>;
+  sync(): Promise<RuntimePassResult>;
   hasPendingWork?(): boolean;
 }
 
@@ -61,7 +65,7 @@ export class SyncRuntime {
   private subscriptions: RuntimeSubscription[] = [];
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private readinessTimer: ReturnType<typeof setTimeout> | null = null;
-  private running: Promise<SyncPassResult | null> | null = null;
+  private running: Promise<RuntimePassResult | null> | null = null;
   private stopped = true;
   private wasOnline = false;
   private lifecycle = 0;
@@ -117,11 +121,11 @@ export class SyncRuntime {
 
   async runBoundedBackgroundPass(
     trigger: Extract<CloudSyncTrigger, 'backgrounding' | 'periodic'>,
-  ): Promise<SyncPassResult | null> {
+  ): Promise<RuntimePassResult | null> {
     return this.startRun(trigger, false);
   }
 
-  async run(trigger: CloudSyncTrigger): Promise<SyncPassResult | null> {
+  async run(trigger: CloudSyncTrigger): Promise<RuntimePassResult | null> {
     return this.startRun(trigger, true);
   }
 
@@ -132,7 +136,7 @@ export class SyncRuntime {
   private async startRun(
     trigger: CloudSyncTrigger,
     allowFollowup: boolean,
-  ): Promise<SyncPassResult | null> {
+  ): Promise<RuntimePassResult | null> {
     if (this.stopped || !this.engine || !this.wasOnline) return null;
     if (this.running) {
       if (allowFollowup) this.rerunTrigger = trigger;
@@ -146,9 +150,9 @@ export class SyncRuntime {
   private async runLoop(
     initialTrigger: CloudSyncTrigger,
     allowFollowup: boolean,
-  ): Promise<SyncPassResult | null> {
+  ): Promise<RuntimePassResult | null> {
     let trigger = initialTrigger;
-    let finalResult: SyncPassResult | null = null;
+    let finalResult: RuntimePassResult | null = null;
     do {
       this.rerunTrigger = null;
       finalResult = await this.runOne(trigger);
@@ -159,7 +163,7 @@ export class SyncRuntime {
     return finalResult;
   }
 
-  private async runOne(trigger: CloudSyncTrigger): Promise<SyncPassResult | null> {
+  private async runOne(trigger: CloudSyncTrigger): Promise<RuntimePassResult | null> {
     const startedAt = (this.options.now ?? Date.now)();
     this.options.analytics?.started(trigger);
     try {

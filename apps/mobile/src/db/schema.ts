@@ -27,6 +27,7 @@ export const entries = sqliteTable(
     text_title: text('text_title'),
     text_content: text('text_content'),
     mood: text('mood').$type<Mood>(),
+    conflict_origin_id: text('conflict_origin_id'),
     assets: text('assets', { mode: 'json' }).$type<Asset[]>(),
     tags: text('tags').notNull().default(''),
     created_at: integer('created_at').notNull(),
@@ -428,6 +429,39 @@ export const cloudV2ShadowReaper = sqliteTable(
     file_name: text('file_name').primaryKey().notNull(),
     queued_at: integer('queued_at').notNull(),
   },
+);
+
+/** Protocol-v2 deletion intent retained independently from the live domain. */
+export const cloudV2Tombstones = sqliteTable(
+  'cloud_v2_tombstones',
+  {
+    vault_id: text('vault_id').notNull(),
+    entity_type: text('entity_type', {
+      enum: ['entry', 'tag', 'prompt', 'profile'],
+    }).notNull(),
+    entity_id: text('entity_id').notNull(),
+    base_state_hash: text('base_state_hash'),
+    deleted_state_hash: text('deleted_state_hash'),
+    deleted_by_device_id: text('deleted_by_device_id').notNull(),
+    deletion_sequence: integer('deletion_sequence').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({
+    columns: [table.vault_id, table.entity_type, table.entity_id],
+  })],
+);
+
+/** Exact protocol-v2 conflict envelopes plus local review state. */
+export const cloudV2Conflicts = sqliteTable(
+  'cloud_v2_conflicts',
+  {
+    vault_id: text('vault_id').notNull(),
+    conflict_id: text('conflict_id').notNull(),
+    conflict_json: text('conflict_json').notNull(),
+    acknowledged_at: integer('acknowledged_at'),
+    created_at: integer('created_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.vault_id, table.conflict_id] })],
 );
 
 /**

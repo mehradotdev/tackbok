@@ -30,6 +30,7 @@ import {
 } from '../storage/backfill';
 import { SyncRuntime, type RuntimePlatform, type RuntimeSyncEngine } from './SyncRuntime';
 import { addCloudSyncMutationListener } from './mutationSignal';
+import { createProductionV2RuntimeEngine } from '../v2/runtime';
 
 class ProductionRuntimeEngine implements RuntimeSyncEngine {
   constructor(
@@ -96,7 +97,7 @@ export function getProductionCloudSyncActivity(): ProductionCloudSyncActivity {
   return productionCloudSyncActivity;
 }
 
-function setProductionCloudSyncActivity(activity: ProductionCloudSyncActivity): void {
+export function setProductionCloudSyncActivity(activity: ProductionCloudSyncActivity): void {
   productionCloudSyncActivity = activity;
   notifyProductionCloudSyncChanged();
 }
@@ -148,6 +149,14 @@ export async function createProductionRuntimeEngine(
     inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);
   if (!configured?.remote_root_id || configured.provider_kind !== 'google-drive') return null;
+
+  if (configured.protocol_version === 2) {
+    return createProductionV2RuntimeEngine({
+      vault: configured,
+      onActivity: setProductionCloudSyncActivity,
+      onRemoteApplied,
+    });
+  }
 
   // This is the sole runtime construction path. Android token minting therefore
   // stays behind AndroidGoogleAuthorization's durable connection-mark check.

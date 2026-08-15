@@ -86,6 +86,15 @@ const supportEmail = 'tackbok.support@mehra.dev';
           report, or analytics event. Disconnect affects only that device and does not revoke
           Tackbok's Google access for other connected devices.
         </p>
+        <p>
+          Tackbok stores each journal backup as a complete compressed snapshot containing
+          entries, tags, prompts, profile details, deletion records, and conflict records.
+          Photos and voice memos are stored separately and referenced by the snapshot. The
+          app keeps a small recent snapshot history for crash-safe updates and recovery, and
+          removes older unneeded snapshots during routine cleanup. Before publishing changes,
+          a device checks the latest device snapshots and merges them with its local journal;
+          this is device sync, not real-time collaborative editing.
+        </p>
 
         <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
           Analytics (Opt-In, Off by Default)

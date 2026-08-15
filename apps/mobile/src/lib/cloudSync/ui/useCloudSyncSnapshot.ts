@@ -16,6 +16,8 @@ const EMPTY_SNAPSHOT: CloudSyncSnapshot = {
   lastSuccessAt: null,
   lastVerifiedAt: null,
   revocationKind: null,
+  attentionReason: null,
+  recoveryAction: null,
 };
 
 export function useCloudSyncSnapshot(): {

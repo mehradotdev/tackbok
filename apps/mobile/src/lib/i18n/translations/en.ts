@@ -813,4 +813,61 @@ export const en = {
     'Your journal stays on your device — with optional cloud backup.',
   '{count} changes safely queued': '{count} changes safely queued',
   '{count} changes remaining': '{count} changes remaining',
+  'Google Drive authorization needs attention.': 'Google Drive authorization needs attention.',
+  'This backup belongs to a different connected Google account.':
+    'This backup belongs to a different connected Google account.',
+  'Google Drive permission was not fully granted.': 'Google Drive permission was not fully granted.',
+  'The connected cloud backup does not match this journal.':
+    'The connected cloud backup does not match this journal.',
+  'This backup was created by a newer Tackbok version.':
+    'This backup was created by a newer Tackbok version.',
+  'A cloud snapshot failed its safety checks.': 'A cloud snapshot failed its safety checks.',
+  'A device backup points to a missing snapshot.': 'A device backup points to a missing snapshot.',
+  'Two different backups claim the same device version.':
+    'Two different backups claim the same device version.',
+  'Too many independent device backups need consolidation.':
+    'Too many independent device backups need consolidation.',
+  'A recovered item conflicts with an existing stable identifier.':
+    'A recovered item conflicts with an existing stable identifier.',
+  'Tackbok could not safely stage backup data on this device.':
+    'Tackbok could not safely stage backup data on this device.',
+  'Google Drive does not have enough free storage.':
+    'Google Drive does not have enough free storage.',
+  'Google Drive denied access to the app backup folder.':
+    'Google Drive denied access to the app backup folder.',
+  'A referenced photo or voice memo is unavailable.':
+    'A referenced photo or voice memo is unavailable.',
+  'A local photo or voice memo could not be verified.':
+    'A local photo or voice memo could not be verified.',
+  'Your journal is not ready for cloud sync yet.': 'Your journal is not ready for cloud sync yet.',
+  'This cloud backup was deleted from another device.':
+    'This cloud backup was deleted from another device.',
+  'This journal was deleted everywhere from another device.':
+    'This journal was deleted everywhere from another device.',
+  'Cloud deletion stopped before every backup object was removed.':
+    'Cloud deletion stopped before every backup object was removed.',
+  'Backup cleanup was stopped to protect a current snapshot.':
+    'Backup cleanup was stopped to protect a current snapshot.',
+  'Choose the connected account': 'Choose the connected account',
+  'Choose a Google account to reconnect': 'Choose a Google account to reconnect',
+  'Finish connection': 'Finish connection',
+  'Reconnect to the correct backup': 'Reconnect to the correct backup',
+  'Update Tackbok': 'Update Tackbok',
+  'Retry and verify backup': 'Retry and verify backup',
+  'Repair from verified backup': 'Repair from verified backup',
+  'Inspect and repair backup': 'Inspect and repair backup',
+  'Consolidate backups': 'Consolidate backups',
+  'Export journal and repair backup': 'Export journal and repair backup',
+  'Free device storage and retry': 'Free device storage and retry',
+  'Manage Google Drive storage': 'Manage Google Drive storage',
+  'Retry missing media': 'Retry missing media',
+  'Locate or retry attachment': 'Locate or retry attachment',
+  'Retry journal preparation': 'Retry journal preparation',
+  'Acknowledge and disconnect': 'Acknowledge and disconnect',
+  'Review deletion and erase this device': 'Review deletion and erase this device',
+  'Resume deletion': 'Resume deletion',
+  'Cloud deletion completed': 'Cloud deletion completed',
+  'Export or repair the affected journal data, then return and retry.':
+    'Export or repair the affected journal data, then return and retry.',
+  'Cloud backup retry completed': 'Cloud backup retry completed',
 } satisfies Record<string, string>;
