@@ -5,12 +5,11 @@ protocol v1 available for already-configured alpha vaults, and migrates new
 Google Drive connections and the Cloud Backup & Sync UI to snapshot sync.
 
 Start with [`gate.md`](./gate.md); the owner review is
-[`review-2026-08-15.md`](./review-2026-08-15.md) (host claims verified,
-interactive acceptance open). Host evidence is in
+[`review-2026-08-15.md`](./review-2026-08-15.md). The phase is **closed**:
+host claims were verified at owner review and the four interactive acceptance
+checks passed on the owner's API-36 emulator Debug build with the disposable
+account on 2026-08-15. Host evidence is in
 [`evidence/2026-08-15-host-tests.json`](./evidence/2026-08-15-host-tests.json).
-The gate deliberately leaves interactive account-dependent checks open for
-owner review; a successful compile or fake-provider run is not represented as
-a real onboarding restore.
 
 Important implementation entry points:
 

@@ -1,13 +1,14 @@
 # Phase V7-4 gate
 
-Status: **HOST CLAIMS VERIFIED at owner review 2026-08-15
-([review](./review-2026-08-15.md)); interactive acceptance remains OPEN.**
-Every host count reproduced exactly and entry obligations Y1/Y2 are
-discharged. The gate closes only when the four interactive checks below are
-dispositioned by the owner. Protocol v2 is now wired for new/restored
-production connections. Existing protocol-v1 vaults still construct the v1
-runtime and no v6 implementation or probe harness was deleted or switched
-off.
+Status: **CLOSED at owner review 2026-08-15
+([review](./review-2026-08-15.md)); interactive acceptance passed
+2026-08-15.** Every host count reproduced exactly, entry obligations Y1/Y2
+are discharged, and the owner ran all four interactive checks on the API-36
+emulator Debug build with the disposable account — all four passed with no
+anomalies reported. Protocol v2 is now wired for new/restored production
+connections. Existing protocol-v1 vaults still construct the v1 runtime and
+no v6 implementation or probe harness was deleted or switched off. V7-5 is
+unblocked.
 
 ## Entry obligations
 
@@ -98,21 +99,25 @@ off.
 - [x] Consolidated redacted host evidence:
   [`evidence/2026-08-15-host-tests.json`](./evidence/2026-08-15-host-tests.json).
 
-## Interactive acceptance — intentionally not claimed
+## Interactive acceptance — dispositioned by owner 2026-08-15
 
-- [ ] With the disposable account, **Sync now** reaches zero actionable work
+All four checks were run by the owner on the API-36 emulator Debug build with
+the disposable OAuth test account. Disposition: **pass** on all four; no
+anomalies were reported.
+
+- [x] With the disposable account, **Sync now** reaches zero actionable work
   or renders the exact durable blocker and recovery control.
-- [ ] Save while offline, force-stop/restart, reconnect, and observe the queued
+- [x] Save while offline, force-stop/restart, reconnect, and observe the queued
   change publish without loss.
-- [ ] On a clean emulator install, onboarding discovers and restores an
+- [x] On a clean emulator install, onboarding discovers and restores an
   existing v2 snapshot; text becomes usable while Wi-Fi-blocked media remains
   visibly pending.
-- [ ] Exercise representative Attention workflows and TalkBack focus/order on
+- [x] Exercise representative Attention workflows and TalkBack focus/order on
   the installed build.
 
-These are owner-account/manual UI checks, not V7-5 physical-device claims. The
-host gate and Android compile do not substitute for them. Do not close V7-4 or
-start V7-5 until owner review dispositions these four items.
+These are owner-account/manual UI checks, not V7-5 physical-device claims;
+physical-device timing, background reliability, and power-loss evidence remain
+V7-5 obligations.
 
 ## Non-claims and carry-forward
 
@@ -122,5 +127,6 @@ start V7-5 until owner review dispositions these four items.
 - No real large-media transfer was run. X3 (`F_FULLFSYNC`), physical-device
   evidence, large-media behavior, and protocol-v1 retirement remain V7-5.
 - The complex repair actions in ADR V7-0004 are exposed by stable localized
-  controls; owner review must verify their concrete UX against synthetic fault
-  states before closing the interactive gate.
+  controls; the owner verified representative Attention states interactively
+  on 2026-08-15. The full breadth of fault states on physical devices remains
+  a V7-5 obligation.

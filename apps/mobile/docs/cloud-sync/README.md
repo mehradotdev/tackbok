@@ -20,8 +20,9 @@ Read these in this order:
    phase; returned once for blocking finding X1, remediated and re-reviewed.
 5. [`v7-phase3/README.md`](./v7-phase3/README.md) — closed Drive snapshot
    adapter phase with redacted real-service evidence.
-6. [`v7-phase4/README.md`](./v7-phase4/README.md) — production runtime/UI
-   replacement bundle, host evidence, and open interactive acceptance checks.
+6. [`v7-phase4/README.md`](./v7-phase4/README.md) — closed production
+   runtime/UI replacement phase with host evidence and passed interactive
+   acceptance.
 7. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining retained
    protocol-v1 paths.
 8. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
@@ -40,8 +41,8 @@ production path relies on the old engine.
 | V7-1 — snapshot codec + merge engine | ✅ closed at owner review 2026-08-14; obligation W1 carries to V7-2 ([gate](./v7-phase1/gate.md), [review](./v7-phase1/review-2026-08-14.md)) |
 | V7-2 — durable publisher vs. fake provider | ✅ closed at owner re-review 2026-08-15 after one X1 return; X3 note carries to V7-5 ([gate](./v7-phase2/gate.md), [review](./v7-phase2/review-2026-08-15.md)) |
 | V7-3 — Google Drive snapshot adapter | ✅ closed at owner review 2026-08-15; Y1 carries to V7-4 entry, Y2 noted ([gate](./v7-phase3/gate.md), [review](./v7-phase3/review-2026-08-15.md)) |
-| V7-4 — runtime + UI replacement | host claims verified at owner review 2026-08-15; Y1/Y2 discharged; four interactive acceptance checks open ([gate](./v7-phase4/gate.md), [review](./v7-phase4/review-2026-08-15.md)) |
-| V7-5 — device hardening + v6 retirement | not started |
+| V7-4 — runtime + UI replacement | ✅ closed 2026-08-15: host claims verified at owner review, Y1/Y2 discharged, all four interactive acceptance checks passed by owner ([gate](./v7-phase4/gate.md), [review](./v7-phase4/review-2026-08-15.md)) |
+| V7-5 — device hardening + v6 retirement | green-lit 2026-08-15; carries X3 (`F_FULLFSYNC`), physical-device evidence, real large-media transfer, protocol-v1 retirement, and test-vault purge |
 
 ## Historical v6 status
 
