@@ -91,6 +91,12 @@ export class FakeSnapshotV2Provider implements SnapshotV2Provider {
     return structuredClone(this.heads.get(vaultId) ?? []);
   }
 
+  removeDeviceHeadForTest(vaultId: string, deviceId: string): void {
+    const remaining = (this.heads.get(vaultId) ?? [])
+      .filter((candidate) => candidate.head.deviceId !== deviceId);
+    this.heads.set(vaultId, remaining);
+  }
+
   snapshotIds(vaultId: string): string[] {
     return [...this.snapshots.keys()]
       .filter((key) => key.startsWith(`${vaultId}\0`))

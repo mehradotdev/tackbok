@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { canonicalBytesV2, canonicalizeV2 } from '../../src/lib/cloudSync/v2/canonical';
-import { encodeSnapshotV2 } from '../../src/lib/cloudSync/v2/codec';
+import { decodeSnapshotV2, encodeSnapshotV2 } from '../../src/lib/cloudSync/v2/codec';
 import { sha256BytesV2 } from '../../src/lib/cloudSync/v2/sha256';
 import { BaseShadowManagerV2 } from '../../src/lib/cloudSync/v2/sync/baseShadow';
 import { SnapshotV2SyncEngine } from '../../src/lib/cloudSync/v2/sync/engine';
@@ -86,6 +86,7 @@ interface Harness {
   vaultId: string;
   deviceId: string;
   provider: FakeSnapshotV2Provider;
+  database: BunV2Database;
   state: SQLiteV2SyncStateStore;
   files: MemoryBaseShadowFileStore;
   shadows: BaseShadowManagerV2;
@@ -102,13 +103,15 @@ function harness(
   clock: Clock = { value: 1_800_000_000_000 },
   vaultId = 'vault-v7-phase2',
 ): Harness {
-  const state = new SQLiteV2SyncStateStore(database(), () => clock.value);
+  const syncDatabase = database();
+  const state = new SQLiteV2SyncStateStore(syncDatabase, () => clock.value);
   const files = new MemoryBaseShadowFileStore();
   const shadows = new BaseShadowManagerV2(files);
   const journal = new MemorySnapshotV2JournalStore(initial, state, vaultId, deviceId);
   const media = new MemorySnapshotV2MediaStore();
   return {
-    vaultId, deviceId, provider, state, files, shadows, journal, media, clock,
+    vaultId, deviceId, provider, database: syncDatabase,
+    state, files, shadows, journal, media, clock,
     engine: (hooks = {}) => new SnapshotV2SyncEngine(
       vaultId, deviceId, state, shadows, journal, media, provider, hooks,
       () => clock.value,
@@ -287,6 +290,155 @@ describe('V7-2 durable publisher', () => {
     expect(final).toMatchObject({ status: 'published', actionableChanges: 0 });
     expect(app.journal.current().entries.map((value) => value.entryId))
       .toEqual(['entry-base', 'entry-candidate', 'entry-late']);
+  });
+
+  test('a live CAS miss re-merges remote-derived content before base settlement', async () => {
+    const provider = new FakeSnapshotV2Provider();
+    const clock = { value: 1_800_000_000_000 };
+    const source = harness('device-x1-source', blankDomain(), provider, clock);
+    source.journal.mutate(withEntry(
+      source.journal.current(),
+      entry('entry-remote-x1', 'Remote branch survives'),
+    ));
+    await source.engine().sync();
+
+    const target = harness('device-x1-target', blankDomain(), provider, clock);
+    let edited = false;
+    const first = await target.engine({
+      at(point) {
+        if (!edited && point === 'after-head-advanced') {
+          edited = true;
+          target.journal.mutate(withEntry(
+            target.journal.current(),
+            entry('entry-late-x1', 'Late local edit'),
+          ));
+        }
+      },
+    }).sync();
+    expect(first).toMatchObject({ status: 'published', actionableChanges: 1 });
+    expect(target.journal.current().entries.map((value) => value.entryId))
+      .toEqual(['entry-late-x1', 'entry-remote-x1']);
+
+    expect(await target.engine().sync()).toMatchObject({
+      status: 'published', actionableChanges: 0,
+    });
+    const targetHead = provider.physicalHeads(target.vaultId)
+      .find((value) => value.head.deviceId === target.deviceId)!.head;
+    const targetBytes = await provider.downloadSnapshot(target.vaultId, targetHead.snapshotId);
+    expect(targetBytes).not.toBeNull();
+    const targetPayload = decodeSnapshotV2(targetBytes!, targetHead.snapshotId).payload;
+    expect(targetPayload.entries.map((value) => value.entryId))
+      .toEqual(['entry-late-x1', 'entry-remote-x1']);
+    expect(targetPayload.tombstones.some((value) => value.entityId === 'entry-remote-x1'))
+      .toBe(false);
+
+    provider.removeDeviceHeadForTest(target.vaultId, source.deviceId);
+    const restored = harness('device-x1-restored', blankDomain(), provider, clock);
+    expect((await restored.engine().sync()).status).toBe('published');
+    expect(restored.journal.current().entries.map((value) => value.entryId))
+      .toEqual(['entry-late-x1', 'entry-remote-x1']);
+  });
+
+  test('a head-advanced crash then local edit re-merges remote-derived content on resume', async () => {
+    const provider = new FakeSnapshotV2Provider();
+    const clock = { value: 1_800_000_000_000 };
+    const source = harness('device-x1-crash-source', blankDomain(), provider, clock);
+    source.journal.mutate(withEntry(
+      source.journal.current(),
+      entry('entry-remote-crash', 'Remote branch survives restart'),
+    ));
+    await source.engine().sync();
+
+    const target = harness('device-x1-crash-target', blankDomain(), provider, clock);
+    let killed = false;
+    await expect(target.engine({
+      at(point) {
+        if (!killed && point === 'after-head-advanced') {
+          killed = true;
+          throw new SimulatedProcessDeath(point);
+        }
+      },
+    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    expect(target.state.loadPending(target.vaultId, target.deviceId)?.stage)
+      .toBe('head-advanced');
+    target.journal.mutate(withEntry(
+      target.journal.current(),
+      entry('entry-late-crash', 'Late edit after process death'),
+    ));
+
+    expect(await target.engine().sync()).toMatchObject({
+      status: 'published', actionableChanges: 1,
+    });
+    expect(target.journal.current().entries.map((value) => value.entryId))
+      .toEqual(['entry-late-crash', 'entry-remote-crash']);
+    expect(await target.engine().sync()).toMatchObject({
+      status: 'published', actionableChanges: 0,
+    });
+    const targetHead = provider.physicalHeads(target.vaultId)
+      .find((value) => value.head.deviceId === target.deviceId)!.head;
+    const targetBytes = await provider.downloadSnapshot(target.vaultId, targetHead.snapshotId);
+    expect(targetBytes).not.toBeNull();
+    const targetPayload = decodeSnapshotV2(targetBytes!, targetHead.snapshotId).payload;
+    expect(targetPayload.entries.map((value) => value.entryId))
+      .toEqual(['entry-late-crash', 'entry-remote-crash']);
+    expect(targetPayload.tombstones.some((value) => value.entityId === 'entry-remote-crash'))
+      .toBe(false);
+
+    provider.removeDeviceHeadForTest(target.vaultId, source.deviceId);
+    const restored = harness('device-x1-crash-restored', blankDomain(), provider, clock);
+    expect((await restored.engine().sync()).status).toBe('published');
+    expect(restored.journal.current().entries.map((value) => value.entryId))
+      .toEqual(['entry-late-crash', 'entry-remote-crash']);
+  });
+
+  test('a corrupted pending candidate pauses durably instead of escaping the engine', async () => {
+    const app = harness('device-corrupt-pending');
+    app.journal.mutate(withEntry(blankDomain(), entry('entry-pending', 'Pending candidate')));
+    await expect(app.engine({
+      at(point) {
+        if (point === 'after-candidate-persisted') {
+          throw new SimulatedProcessDeath(point);
+        }
+      },
+    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    app.database.runSync(
+      `UPDATE cloud_v2_pending_publication
+       SET compressed_bytes = ?
+       WHERE vault_id = ? AND device_id = ?`,
+      new Uint8Array([1, 2, 3]),
+      app.vaultId,
+      app.deviceId,
+    );
+
+    expect(await app.engine().sync()).toMatchObject({
+      status: 'attention', reason: 'invalid-remote-snapshot',
+    });
+    expect(app.state.loadState(app.vaultId, app.deviceId)).toMatchObject({
+      pauseReason: 'invalid-remote-snapshot',
+      lastErrorClass: 'local-candidate-validation-invalid-gzip',
+    });
+    expect(app.state.loadPending(app.vaultId, app.deviceId)?.stage)
+      .toBe('candidate-persisted');
+  });
+
+  test('repeated journal CAS misses stay bounded and retain the head-advanced intent', async () => {
+    const app = harness('device-cas-contention');
+    app.journal.mutate(withEntry(blankDomain(), entry('entry-contention', 'Queued intent')));
+    const apply = app.journal.applyMergedIfGeneration.bind(app.journal);
+    app.journal.applyMergedIfGeneration = async () => false;
+
+    expect(await app.engine().sync()).toMatchObject({
+      status: 'retry', reason: 'transient', actionableChanges: 1,
+    });
+    expect(app.state.loadPending(app.vaultId, app.deviceId)?.stage).toBe('head-advanced');
+    expect(app.state.loadBaseCheckpoint(app.vaultId, app.deviceId)).toBeNull();
+    expect(app.state.loadState(app.vaultId, app.deviceId).lastErrorClass)
+      .toBe('journal-changed-during-publication-reconciliation');
+
+    app.journal.applyMergedIfGeneration = apply;
+    expect(await app.engine().sync()).toMatchObject({
+      status: 'published', actionableChanges: 0,
+    });
   });
 
   test('remote snapshot download death restarts without hiding the remote head', async () => {

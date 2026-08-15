@@ -1,15 +1,33 @@
 # Phase V7-2 gate
 
-Status: **OPEN — returned at owner review 2026-08-15** (see
-[`review-2026-08-15.md`](./review-2026-08-15.md)). Every recorded claim below
-reproduced at review and the V7-1 entry obligations are discharged, but the
-review found one blocking defect the scenario matrix cannot see: **X1** — a
-mid-publication local edit makes the generation-CAS journal apply skip, and
-the next publication then silently omits merged remote-derived content (no
-tombstone, `up-to-date` status, fresh devices restore without it). The gate
-cannot close until X1 is fixed with its acceptance regression and
-re-reviewed. V7-3 is not authorized. Protocol v2 remains disconnected from
-the production runtime, Google Drive, and user interface.
+Status: **CLOSED at owner re-review 2026-08-15** (see
+[`review-2026-08-15.md`](./review-2026-08-15.md)). The bundle was returned at
+the 2026-08-15 owner review with blocking finding X1 (a mid-publication local
+edit silently dropped merged remote content from the next publication); the
+remediation reconciles the published domain with the newest journal
+generation after a CAS miss and does not settle the base shadow until an
+apply succeeds. Both X1 schedules, the bounded-contention case, and the X2
+corruption case were verified at re-review, including against the original
+review reproduction probe. X3 (iOS `F_FULLFSYNC`) carries to V7-5. **V7-3 is
+authorized.** Protocol v2 remains disconnected from the production runtime,
+Google Drive, and user interface until V7-3/V7-4 wire it deliberately.
+
+## Returned-finding remediation
+
+- [x] **X1, live pass:** a remote-derived entry followed by a local edit at
+  `after-head-advanced` survives in the journal, the target device's next
+  published snapshot, and a fresh-device restore after the source device head
+  is removed. The remote entry has no synthetic tombstone.
+- [x] **X1, crash/resume:** death at `after-head-advanced`, a local edit while
+  the process is down, and resume produce the same three-part result. The
+  pending publication remains at `head-advanced` until the reconciled domain
+  wins a fresh generation CAS; the base shadow cannot settle first.
+- [x] The reconciliation loop is bounded to four fresh captures. Continuous
+  concurrent writers return a transient retry while retaining the durable
+  pending publication instead of weakening the CAS or advancing the base.
+- [x] **X2:** malformed persisted candidate bytes now become a durable
+  `invalid-remote-snapshot` Attention pause with the redacted validation class;
+  the exception no longer escapes the sync engine.
 
 ## Entry obligation and pure-layer regressions
 
@@ -45,7 +63,7 @@ the production runtime, Google Drive, and user interface.
 
 ## Publisher, crash safety, and provider faults
 
-- [x] `bun run v7:phase2:test` passed 30 Bun/SQLite scenarios / 154 assertions.
+- [x] `bun run v7:phase2:test` passed 34 Bun/SQLite scenarios / 181 assertions.
   The harness reconstructs the engine after every plan-v7 §8 kill point:
   after local mutation, during media transfer, after candidate persistence,
   after snapshot upload, after verification, after head advance, during remote
@@ -98,8 +116,10 @@ the production runtime, Google Drive, and user interface.
 - [x] `git diff --check` passed. Scope audit found no diff under frozen
   `src/lib/cloudSync/protocol/`, `src/lib/cloudSync/phase0/`, or
   `src/lib/cloudSync/phase3/`.
-- [x] Consolidated redacted evidence:
+- [x] Original owner-reviewed evidence:
   [`evidence/2026-08-14-host-tests.json`](./evidence/2026-08-14-host-tests.json).
+  X1/X2 remediation evidence:
+  [`evidence/2026-08-15-remediation-host-tests.json`](./evidence/2026-08-15-remediation-host-tests.json).
 
 ## Non-claims
 

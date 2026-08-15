@@ -1,8 +1,9 @@
 # Phase V7-2 — durable publisher against a fake provider
 
-Status: **open — returned at owner review 2026-08-15 with blocking finding
-X1** ([gate](./gate.md), [review](./review-2026-08-15.md)). Protocol v2
-is not wired into the production runtime, UI, or Google Drive adapter.
+Status: **closed at owner re-review 2026-08-15** ([gate](./gate.md),
+[review](./review-2026-08-15.md)); returned once at owner review for blocking
+finding X1, remediated and verified the same day. Protocol v2 is not wired
+into the production runtime, UI, or Google Drive adapter. V7-3 is authorized.
 
 This phase makes the snapshot publisher restart-safe without changing the
 shipping v6 path. The implementation lives under
@@ -23,7 +24,7 @@ rename. It is present and native-build-verified, but remains unwired until the
 production integration phase.
 
 [ADR V7-0008](./0008-media-owner-closure.md) records the W1 merge correction.
-See [gate.md](./gate.md) and the redacted
-[host evidence](./evidence/2026-08-14-host-tests.json) for exact executed
-checks and non-claims.
-
+See [gate.md](./gate.md), the original redacted
+[host evidence](./evidence/2026-08-14-host-tests.json), and the additive
+[X1/X2 remediation evidence](./evidence/2026-08-15-remediation-host-tests.json)
+for exact executed checks and non-claims.

@@ -28,6 +28,7 @@ import { V2ProviderError } from './types';
 const RETENTION_COUNT = 3;
 const CLEANUP_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_HEAD_RECHECKS = 4;
+const MAX_JOURNAL_RECONCILIATION_ATTEMPTS = 4;
 
 class AttentionError extends Error {
   constructor(
@@ -36,6 +37,13 @@ class AttentionError extends Error {
   ) {
     super(errorClass);
     this.name = 'AttentionError';
+  }
+}
+
+class RetryableSyncError extends Error {
+  constructor(readonly errorClass: string) {
+    super(errorClass);
+    this.name = 'RetryableSyncError';
   }
 }
 
@@ -455,7 +463,16 @@ export class SnapshotV2SyncEngine {
 
   private async resumePending(initial: V2PendingPublication): Promise<void> {
     let pending = initial;
-    const decoded = decodeSnapshotV2(pending.compressedBytes, pending.snapshotId);
+    let decoded: ReturnType<typeof decodeSnapshotV2>;
+    try {
+      decoded = decodeSnapshotV2(pending.compressedBytes, pending.snapshotId);
+    } catch (error) {
+      const code = error instanceof SnapshotV2ValidationError ? error.code : 'unknown';
+      throw new AttentionError(
+        'invalid-remote-snapshot',
+        `local-candidate-validation-${code}`,
+      );
+    }
     if (decoded.payload.vaultId !== this.vaultId ||
         decoded.payload.authorDeviceId !== this.deviceId ||
         decoded.payload.deviceSequence !== pending.deviceSequence) {
@@ -499,7 +516,7 @@ export class SnapshotV2SyncEngine {
       await this.hooks.at?.('after-head-advanced');
     }
     if (pending.stage === 'head-advanced') {
-      await this.journal.applyMergedIfGeneration(
+      await this.applyPublishedDomain(
         domainOf(decoded.payload),
         pending.capturedGeneration,
       );
@@ -548,6 +565,48 @@ export class SnapshotV2SyncEngine {
       await this.reapOldShadows();
       await this.cleanupSnapshots();
     }
+  }
+
+  /**
+   * A publication can outlive the journal generation it captured. A failed
+   * CAS therefore cannot be treated as "the late local edit won": the
+   * published domain may also contain remote-authored state that the journal
+   * has never materialized. Reconcile that complete published state with a
+   * fresh journal capture before allowing the base shadow to advance.
+   *
+   * The previous base remains authoritative until settlement. It gives the
+   * merge the ancestry needed to preserve both late local edits and the
+   * remote-derived part of the publication. If the shadow is unavailable,
+   * the codec's conservative two-way merge is the safe fallback. Repeated
+   * writers leave the head-advanced pending record intact for a later pass.
+   */
+  private async applyPublishedDomain(
+    publishedDomain: SnapshotDomainV2,
+    capturedGeneration: number,
+  ): Promise<void> {
+    if (await this.journal.applyMergedIfGeneration(
+      publishedDomain,
+      capturedGeneration,
+    )) return;
+
+    const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
+    const loadedBase = await this.shadowManager.load(checkpoint);
+    const baseDomain = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
+
+    for (let attempt = 0; attempt < MAX_JOURNAL_RECONCILIATION_ATTEMPTS; attempt += 1) {
+      const latest = await this.journal.capture();
+      const reconciled = mergeSnapshotDomainsV2(
+        baseDomain,
+        latest.domain,
+        publishedDomain,
+      );
+      if (await this.journal.applyMergedIfGeneration(
+        reconciled,
+        latest.generation,
+      )) return;
+    }
+
+    throw new RetryableSyncError('journal-changed-during-publication-reconciliation');
   }
 
   private async ensurePendingMedia(pending: V2PendingPublication): Promise<void> {
@@ -635,6 +694,10 @@ export class SnapshotV2SyncEngine {
         reason: error.code === 'rate-limited' ? 'rate-limited' : 'transient',
         actionableChanges: remaining,
       };
+    }
+    if (error instanceof RetryableSyncError) {
+      this.stateStore.setRetryError(this.vaultId, this.deviceId, error.errorClass);
+      return { status: 'retry', reason: 'transient', actionableChanges: remaining };
     }
     throw error;
   }

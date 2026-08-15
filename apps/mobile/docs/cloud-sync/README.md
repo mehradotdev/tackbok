@@ -15,8 +15,8 @@ Read these in this order:
 2. [`v7-phase0/README.md`](./v7-phase0/README.md) — closed V7-0 design bundle.
 3. [`v7-phase1/README.md`](./v7-phase1/README.md) — closed pure codec/merge
    phase and the durable device probe.
-4. [`v7-phase2/README.md`](./v7-phase2/README.md) — durable publisher against a
-   fake provider, returned at owner review with blocking finding X1.
+4. [`v7-phase2/README.md`](./v7-phase2/README.md) — closed durable-publisher
+   phase; returned once for blocking finding X1, remediated and re-reviewed.
 5. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining the current
    implementation.
 6. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
@@ -33,8 +33,8 @@ production path relies on the old engine.
 | --- | --- |
 | V7-0 — snapshot ADR, fixtures, measured limits | ✅ closed at owner review 2026-08-14; obligation V1 carries to V7-1 ([gate](./v7-phase0/gate.md), [review](./v7-phase0/review-2026-08-14.md)) |
 | V7-1 — snapshot codec + merge engine | ✅ closed at owner review 2026-08-14; obligation W1 carries to V7-2 ([gate](./v7-phase1/gate.md), [review](./v7-phase1/review-2026-08-14.md)) |
-| V7-2 — durable publisher vs. fake provider | 🔁 returned at owner review 2026-08-15; blocking finding X1 (silent remote-content drop after a mid-publication edit) ([gate](./v7-phase2/gate.md), [review](./v7-phase2/review-2026-08-15.md)) |
-| V7-3 — Google Drive snapshot adapter | not started |
+| V7-2 — durable publisher vs. fake provider | ✅ closed at owner re-review 2026-08-15 after one X1 return; X3 note carries to V7-5 ([gate](./v7-phase2/gate.md), [review](./v7-phase2/review-2026-08-15.md)) |
+| V7-3 — Google Drive snapshot adapter | authorized 2026-08-15, not started |
 | V7-4 — runtime + UI replacement | not started |
 | V7-5 — device hardening + v6 retirement | not started |
 
