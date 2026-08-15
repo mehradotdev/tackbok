@@ -1,5 +1,6 @@
 import golden from '../../../../docs/cloud-sync/v7-phase0/fixtures/merge-golden-v2.json';
-import { canonicalizeV2 } from './canonical';
+import { canonicalHashV2, canonicalizeV2 } from './canonical';
+import { encodeSnapshotV2 } from './codec';
 import { mergeSnapshotDomainsV2 } from './merge';
 import type { SnapshotDomainV2, SnapshotEntryV2 } from './types';
 import { calculateMediaReferencesV2 } from './validation';
@@ -149,5 +150,51 @@ describe('snapshot v2 merge engine', () => {
     });
     expect(() => mergeSnapshotDomainsV2(textCase.base, collisionLocal, textCase.remote))
       .toThrow(/Derived entity ID/);
+  });
+
+  it('never retains media whose unchanged owner lost to a valid deletion', () => {
+    const entry: SnapshotEntryV2 = {
+      entryId: 'entry-media-owner', title: null, content: 'Synthetic base', mood: null,
+      createdAt: 1, updatedAt: 1, conflictOriginId: null,
+    };
+    const media = {
+      assetId: 'asset-observed', ownerType: 'entry' as const, ownerId: entry.entryId,
+      kind: 'photo' as const, blobHash: 'a'.repeat(64), mimeType: 'image/jpeg',
+      byteSize: 100, width: 10, height: 10, durationMs: null, createdAt: 1, updatedAt: 1,
+    };
+    const base = emptyDomain(entry);
+    base.media = [media];
+    const local = blankDomain();
+    local.tombstones = [{
+      entityType: 'entry', entityId: entry.entryId,
+      baseStateHash: canonicalHashV2(entry), deletedStateHash: canonicalHashV2(entry),
+      deletedByDeviceId: 'device-a', deletionSequence: 2,
+    }];
+    const remote = structuredClone(base);
+    remote.media[0] = { ...remote.media[0], width: 20, updatedAt: 2 };
+
+    const merged = mergeSnapshotDomainsV2(base, local, remote);
+    expect(merged.entries).toEqual([]);
+    expect(merged.media).toEqual([]);
+    expect(merged.conflicts).toEqual([]);
+    expect(() => encodeSnapshotV2({
+      format: 'tackbok-snapshot', formatVersion: 2, vaultId: 'vault-w1',
+      parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'device-a',
+      deviceSequence: 3, createdAt: 3, ...merged,
+    })).not.toThrow();
+  });
+
+  it('chooses equal-sequence tombstone provenance independently of argument order', () => {
+    const first = blankDomain();
+    first.tombstones = [{
+      entityType: 'entry', entityId: 'entry-deleted', baseStateHash: null,
+      deletedStateHash: 'a'.repeat(64), deletedByDeviceId: 'device-z', deletionSequence: 5,
+    }];
+    const second = blankDomain();
+    second.tombstones = [{
+      ...first.tombstones[0], deletedByDeviceId: 'device-a',
+    }];
+    expect(canonicalizeV2(mergeSnapshotDomainsV2(null, first, second)))
+      .toBe(canonicalizeV2(mergeSnapshotDomainsV2(null, second, first)));
   });
 });

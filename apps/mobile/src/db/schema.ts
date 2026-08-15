@@ -358,6 +358,78 @@ export const syncEngineLocalBlobs = sqliteTable(
   (table) => [primaryKey({ columns: [table.device_id, table.vault_id, table.blob_hash] })],
 );
 
+/**
+ * Protocol-v2 snapshot publisher state. Credentials and provider identifiers
+ * are deliberately absent; this row contains only restart-safe local intent.
+ */
+export const cloudV2SyncState = sqliteTable(
+  'cloud_v2_sync_state',
+  {
+    vault_id: text('vault_id').notNull(),
+    device_id: text('device_id').notNull(),
+    journal_generation: integer('journal_generation').notNull().default(0),
+    settled_generation: integer('settled_generation').notNull().default(0),
+    next_device_sequence: integer('next_device_sequence').notNull().default(1),
+    pause_reason: text('pause_reason'),
+    pause_context_json: text('pause_context_json'),
+    last_error_class: text('last_error_class'),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
+);
+
+/** One coalesced immutable candidate, advanced monotonically after each step. */
+export const cloudV2PendingPublication = sqliteTable(
+  'cloud_v2_pending_publication',
+  {
+    vault_id: text('vault_id').notNull(),
+    device_id: text('device_id').notNull(),
+    snapshot_id: text('snapshot_id').notNull(),
+    device_sequence: integer('device_sequence').notNull(),
+    captured_generation: integer('captured_generation').notNull(),
+    compressed_bytes: blob('compressed_bytes', { mode: 'buffer' }).notNull(),
+    media_hashes_json: text('media_hashes_json').notNull().default('[]'),
+    stage: text('stage', {
+      enum: [
+        'candidate-persisted',
+        'snapshot-uploaded',
+        'snapshot-verified',
+        'head-advanced',
+        'domain-applied',
+      ],
+    }).notNull(),
+    created_at: integer('created_at').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
+);
+
+/** SQLite half of ADR V7-0005's atomically paired base-shadow checkpoint. */
+export const cloudV2BaseShadow = sqliteTable(
+  'cloud_v2_base_shadow',
+  {
+    vault_id: text('vault_id').notNull(),
+    device_id: text('device_id').notNull(),
+    shadow_format_version: integer('shadow_format_version').notNull(),
+    snapshot_id: text('snapshot_id').notNull(),
+    file_name: text('file_name').notNull(),
+    canonical_sha256: text('canonical_sha256').notNull(),
+    byte_count: integer('byte_count').notNull(),
+    committed_generation: integer('committed_generation').notNull(),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
+);
+
+/** Old shadow files are deleted only after their replacement checkpoint commits. */
+export const cloudV2ShadowReaper = sqliteTable(
+  'cloud_v2_shadow_reaper',
+  {
+    file_name: text('file_name').primaryKey().notNull(),
+    queued_at: integer('queued_at').notNull(),
+  },
+);
+
 export const syncConflicts = sqliteTable('sync_conflicts', {
   conflict_id: text('conflict_id').primaryKey().notNull(),
   entity_type: text('entity_type').notNull(),

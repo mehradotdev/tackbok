@@ -85,6 +85,20 @@ describe('snapshot v2 codec', () => {
     expect(() => decodeSnapshotV2(gzip(unorderedBytes), sha256BytesV2(unorderedBytes))).toThrow(/strictly sorted/);
   });
 
+  it('rejects an empty media MIME type', () => {
+    const invalid = structuredClone(minimal);
+    invalid.entries = [{
+      entryId: 'entry-mime', title: null, content: null, mood: null,
+      createdAt: 1, updatedAt: 1, conflictOriginId: null,
+    }];
+    invalid.media = [{
+      assetId: 'asset-mime', ownerType: 'entry', ownerId: 'entry-mime', kind: 'photo',
+      blobHash: 'a'.repeat(64), mimeType: '', byteSize: 1, width: null, height: null,
+      durationMs: null, createdAt: 1, updatedAt: 1,
+    }];
+    expect(() => encodeSnapshotV2(invalid)).toThrow(/MIME type|mimeType/);
+  });
+
   it('rejects the compressed-size cap before decompression', () => {
     expect(() => decodeSnapshotV2(new Uint8Array(16 * 1024 * 1024 + 1), 'a'.repeat(64)))
       .toThrow(/Compressed snapshot exceeds/);

@@ -1,0 +1,68 @@
+{
+  "format": "tackbok-v7-phase2-host-evidence",
+  "formatVersion": 1,
+  "executedAt": "2026-08-14T11:01:08Z",
+  "host": "Darwin 25.5.0 arm64",
+  "bunVersion": "1.3.10",
+  "syntheticOnly": true,
+  "commands": [
+    {
+      "command": "bun run v7:phase0:test",
+      "status": "passed",
+      "suites": 1,
+      "tests": 24
+    },
+    {
+      "command": "bun run v7:phase1:test",
+      "status": "passed",
+      "suites": 6,
+      "tests": 74
+    },
+    {
+      "command": "bun run v7:phase2:test",
+      "status": "passed",
+      "tests": 30,
+      "assertions": 154
+    },
+    {
+      "command": "bun x jest --runInBand --no-watchman",
+      "status": "passed",
+      "suites": 47,
+      "tests": 444
+    },
+    {
+      "command": "bun x tsc --noEmit",
+      "status": "passed"
+    },
+    {
+      "command": "bun x drizzle-kit check",
+      "status": "passed"
+    },
+    {
+      "command": "bun run lint",
+      "status": "passed-with-existing-warnings",
+      "errors": 0,
+      "warnings": 18,
+      "changedFileWarnings": 0
+    },
+    {
+      "command": "./gradlew :app:compileDebugKotlin",
+      "status": "passed",
+      "scope": "Android debug compilation"
+    },
+    {
+      "command": "xcodebuild -workspace ios/TackbokBeta.xcworkspace -scheme TackbokBeta -configuration Debug -sdk iphonesimulator -destination generic/platform=iOS Simulator CODE_SIGNING_ALLOWED=NO build",
+      "status": "passed",
+      "scope": "unsigned iOS simulator Debug build"
+    }
+  ],
+  "scopeAudit": {
+    "v6ProtocolChanged": false,
+    "phase0HarnessChanged": false,
+    "phase3HarnessChanged": false,
+    "productionRuntimeSwitched": false,
+    "realProviderUsed": false
+  },
+  "containsUserData": false,
+  "containsCredentialsOrAccountIdentifiers": false
+}

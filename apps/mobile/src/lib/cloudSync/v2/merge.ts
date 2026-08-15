@@ -201,7 +201,9 @@ function chooseTombstone(
   const compatible = (local.baseStateHash === remote.baseStateHash || local.baseStateHash === null || remote.baseStateHash === null) &&
     (local.deletedStateHash === remote.deletedStateHash || local.deletedStateHash === null || remote.deletedStateHash === null);
   if (compatible) {
-    const preferred = local.deletionSequence >= remote.deletionSequence ? local : remote;
+    const preferred = local.deletionSequence > remote.deletionSequence ? local :
+      remote.deletionSequence > local.deletionSequence ? remote :
+      canonicalizeV2(local) <= canonicalizeV2(remote) ? local : remote;
     return {
       ...preferred,
       baseStateHash: local.baseStateHash ?? remote.baseStateHash,
@@ -493,7 +495,14 @@ export function mergeSnapshotDomainsV2(
     conflicts,
   };
   const referenced = calculateMediaReferencesV2(result);
-  media = media.filter((asset) => asset.ownerType === 'entry' || referenced.has(asset.assetId));
+  const liveEntryIds = new Set(result.entries.map((entry) => entry.entryId));
+  media = media.filter((asset) =>
+    (asset.ownerType === 'entry' && liveEntryIds.has(asset.ownerId)) ||
+    (asset.ownerType === 'profile' && referenced.has(asset.assetId)));
+  result.conflicts = result.conflicts.filter((conflict) =>
+    conflict.field !== 'assetReference' ||
+    conflict.entityType !== 'entry' ||
+    liveEntryIds.has(conflict.entityId));
   result.media = media;
   return result;
 }

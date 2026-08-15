@@ -184,7 +184,7 @@ export function validateSnapshotV2Shape(value: unknown): JournalSnapshotPayloadV
     hash(media.blobHash, `${path}.blobHash`);
     if (media.mimeType !== null) {
       const mime = string(media.mimeType, `${path}.mimeType`, SNAPSHOT_V2_CAPS.mimeTypeBytes);
-      if (mime && !ID.test(mime)) invalid('invalid-mime', `${path}.mimeType must be printable ASCII`);
+      if (!ID.test(mime)) invalid('invalid-mime', `${path}.mimeType must be non-empty printable ASCII`);
     }
     integer(media.byteSize, `${path}.byteSize`, SNAPSHOT_V2_CAPS.mediaByteSize);
     nullableInteger(media.width, `${path}.width`, SNAPSHOT_V2_CAPS.imageDimension);

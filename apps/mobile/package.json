@@ -20,6 +20,7 @@
     "v7:phase0:measure:2k": "bun run docs/cloud-sync/v7-phase0/tools/measureSnapshot.ts 2000",
     "v7:phase0:measure:10k": "bun run docs/cloud-sync/v7-phase0/tools/measureSnapshot.ts 10000",
     "v7:phase1:test": "jest src/lib/cloudSync/v2 src/lib/zip/core/core-safety.test.ts src/lib/zip/core/gzip-codec.test.ts --runInBand --no-watchman",
+    "v7:phase2:test": "bun test ./scripts/cloud-sync-v7-phase2/v7-phase2-gate.bun.ts",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "bun run test:jest",
