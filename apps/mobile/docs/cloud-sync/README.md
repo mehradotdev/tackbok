@@ -23,9 +23,11 @@ Read these in this order:
 6. [`v7-phase4/README.md`](./v7-phase4/README.md) — closed production
    runtime/UI replacement phase with host evidence and passed interactive
    acceptance.
-7. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining retained
+7. [`v7-phase5/README.md`](./v7-phase5/README.md) — open device-hardening and
+   retirement phase; Bundle (a) is complete and b1 is returned on D1.
+8. [`plan-v6.md`](./plan-v6.md) — frozen historical plan explaining retained
    protocol-v1 paths.
-8. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
+9. Phase 0–4 gates/reviews only when maintaining or retiring existing v6 code.
 
 Do not delete the v6 phase folders or review records during design. They are an
 audit trail for schema migrations, Google authorization, Drive behavior,
@@ -42,7 +44,7 @@ production path relies on the old engine.
 | V7-2 — durable publisher vs. fake provider | ✅ closed at owner re-review 2026-08-15 after one X1 return; X3 note carries to V7-5 ([gate](./v7-phase2/gate.md), [review](./v7-phase2/review-2026-08-15.md)) |
 | V7-3 — Google Drive snapshot adapter | ✅ closed at owner review 2026-08-15; Y1 carries to V7-4 entry, Y2 noted ([gate](./v7-phase3/gate.md), [review](./v7-phase3/review-2026-08-15.md)) |
 | V7-4 — runtime + UI replacement | ✅ closed 2026-08-15: host claims verified at owner review, Y1/Y2 discharged, all four interactive acceptance checks passed by owner ([gate](./v7-phase4/gate.md), [review](./v7-phase4/review-2026-08-15.md)) |
-| V7-5 — device hardening + v6 retirement | green-lit 2026-08-15; carries X3 (`F_FULLFSYNC`), physical-device evidence, real large-media transfer, protocol-v1 retirement, and test-vault purge |
+| V7-5 — device hardening + v6 retirement | open; Bundle (a) Z1/Z2 remediated, b1 returned on a reproduced 200 MiB whole-buffer OOM, b2 blocks store submission, purge/removal not run ([gate](./v7-phase5/gate.md), [finding D1](./v7-phase5/findings/0001-v2-large-media-whole-buffer-oom.md)) |
 
 ## Historical v6 status
 
@@ -71,6 +73,9 @@ production path relies on the old engine.
   provider cache, request-budget tests, and redacted real-service evidence.
 - [`v7-phase4/`](./v7-phase4/README.md) — normalized production adapter,
   protocol-selective runtime, production UI/copy, and gate evidence.
+- [`v7-phase5/`](./v7-phase5/README.md) — X3 durability, rollout/kill switch,
+  v1 dependency audit, owner device evidence, then separately gated purge and
+  retirement.
 - [`plan-v6.md`](./plan-v6.md) — frozen historical plan for the currently
   implemented per-entity protocol.
 - `phase0/` — protocol v1 ADRs (`0001`–`0005`), the spike write-ups, and the

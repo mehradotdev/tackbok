@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNotNull, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, gt } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import {
   customPrompts,
@@ -8,8 +8,8 @@ import {
   mediaAssets,
   cloudVault,
   syncChangeQueue,
-  syncRetainedMedia,
   syncMediaObligations,
+  syncRetainedMedia,
   syncProviderState,
   tags,
   userProfile,
@@ -17,7 +17,6 @@ import {
 import type { AssetDescriptor, DomainState, EntityType } from '../domain/types';
 import type { SQLiteSyncEngine } from '../engine';
 import { createLocalMediaByteSource } from '../media/fileByteSource';
-import { hashLocalMediaFile, inspectLocalMediaFile } from '../media/streamingHash';
 import { shouldAdoptQueuedGeneration } from './queueReconciliation';
 import { AssetType, type Asset } from '~/types';
 import { deleteAllPhotos } from '~/lib/photoUtils';
@@ -205,56 +204,10 @@ export async function registerProductionBlobSources(engine: SQLiteSyncEngine): P
 }
 
 /** Hashes a bounded amount of pending media per pass; failures remain durable for retry. */
-export async function hashPendingProductionMedia(limit = 2): Promise<{
-  processed: number;
-  failed: number;
-}> {
-  let processed = 0;
-  let failed = 0;
-  const live = await db.select().from(mediaAssets).where(and(
-    isNotNull(mediaAssets.local_uri),
-    or(isNull(mediaAssets.blob_hash), isNull(mediaAssets.byte_size)),
-  )).limit(limit);
-  let remaining = limit;
-  for (const row of live) {
-    if (!row.local_uri) continue;
-    try {
-      const inspected = await inspectLocalMediaFile(row.local_uri);
-      await db.update(mediaAssets).set({
-        blob_hash: inspected.sha256,
-        byte_size: inspected.byteSize,
-        updated_at: Date.now(),
-      })
-        .where(eq(mediaAssets.asset_id, row.asset_id));
-      processed++;
-    } catch {
-      // The normalized row and original file remain; a later pass retries.
-      failed++;
-    }
-    remaining--;
-  }
-  if (remaining <= 0) return { processed, failed };
-  const retained = await db.select().from(syncRetainedMedia).where(and(
-    isNull(syncRetainedMedia.blob_hash),
-    isNotNull(syncRetainedMedia.original_uri),
-  )).limit(remaining);
-  for (const row of retained) {
-    try {
-      const hash = await hashLocalMediaFile(row.staged_uri ?? row.original_uri);
-      await db.transaction(async (tx) => {
-        await tx.update(syncRetainedMedia).set({ blob_hash: hash, updated_at: Date.now() })
-          .where(eq(syncRetainedMedia.ledger_id, row.ledger_id));
-        await tx.update(syncMediaObligations).set({ blob_hash: hash })
-          .where(eq(syncMediaObligations.ledger_id, row.ledger_id));
-      });
-      processed++;
-    } catch {
-      // Retained bytes and obligation stay in place for the next bounded pass.
-      failed++;
-    }
-  }
-  return { processed, failed };
-}
+// Temporary compatibility export for the retained v1 runtime. Protocol v2
+// imports its own primitive directly; Bundle V7-5(c2) can therefore delete
+// this mixed v1 bridge without removing v2 media hashing.
+export { hashPendingProductionMedia } from '../v2/runtime/mediaHashing';
 
 export async function persistProductionEngineResult(
   engine: SQLiteSyncEngine,

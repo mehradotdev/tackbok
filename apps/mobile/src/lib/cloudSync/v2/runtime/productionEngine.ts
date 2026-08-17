@@ -17,7 +17,7 @@ import { createGoogleAuthorization } from '../../auth';
 import { readOrCreateGoogleConnectionId } from '../../auth/secureTokenStore';
 import type { RuntimePassResult, RuntimeSyncEngine } from '../../runtime/SyncRuntime';
 import type { SyncPassPhase } from '../../engine';
-import { hashPendingProductionMedia } from '../../storage/engineDomain';
+import { hashPendingProductionMedia } from './mediaHashing';
 import {
   GoogleDriveSnapshotV2Provider,
   SQLiteDriveV2ProviderStateStore,

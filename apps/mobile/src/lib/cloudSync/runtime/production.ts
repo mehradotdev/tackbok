@@ -31,6 +31,7 @@ import {
 import { SyncRuntime, type RuntimePlatform, type RuntimeSyncEngine } from './SyncRuntime';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { createProductionV2RuntimeEngine } from '../v2/runtime';
+import { isCloudSyncNetworkAllowed } from './rolloutPolicy';
 
 class ProductionRuntimeEngine implements RuntimeSyncEngine {
   constructor(
@@ -149,6 +150,12 @@ export async function createProductionRuntimeEngine(
     inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);
   if (!configured?.remote_root_id || configured.provider_kind !== 'google-drive') return null;
+
+  const protocolVersion = configured.protocol_version === 2 ? 2 : 1;
+  // This check occurs before authorization or provider construction. A rollout
+  // rollback therefore pauses network work while leaving the vault, journal,
+  // queued generations, base shadow, and provider objects untouched.
+  if (!isCloudSyncNetworkAllowed(protocolVersion)) return null;
 
   if (configured.protocol_version === 2) {
     return createProductionV2RuntimeEngine({

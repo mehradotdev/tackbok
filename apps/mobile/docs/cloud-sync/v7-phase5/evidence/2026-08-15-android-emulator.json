@@ -1,0 +1,153 @@
+{
+  "format": "tackbok-v7-device-evidence",
+  "formatVersion": 1,
+  "evidenceState": "captured",
+  "evidenceClass": "emulator",
+  "platform": "android",
+  "capturedAt": "2026-08-15T13:16:46+05:30",
+  "appVersion": "0.6.0",
+  "buildNumber": "1",
+  "buildArtifactSha256": "34665a606ffbd1023aa96afba06428993bf0800ca7e43efbdc02dc8e59135e11",
+  "physicalDevice": false,
+  "releaseSigned": false,
+  "syntheticDataOnly": true,
+  "disposableCredentialOnly": true,
+  "scenarios": [
+    {
+      "id": "release-native-modules",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "debug-build-only"
+      ]
+    },
+    {
+      "id": "auth-e2e",
+      "status": "passed",
+      "durationMs": null,
+      "noteCodes": [
+        "disposable-account-sync-preflight"
+      ]
+    },
+    {
+      "id": "authorization-revocation-recovery",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "stopped-after-media-failure"
+      ]
+    },
+    {
+      "id": "multi-device-soak",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "separate-test-vaults"
+      ]
+    },
+    {
+      "id": "large-journal-restore",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "stopped-after-media-failure"
+      ]
+    },
+    {
+      "id": "large-media-round-trip",
+      "status": "failed",
+      "durationMs": null,
+      "noteCodes": [
+        "upload-whole-buffer-oom"
+      ]
+    },
+    {
+      "id": "large-media-interruption-resume",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "upload-never-started"
+      ]
+    },
+    {
+      "id": "wifi-only-media",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "upload-never-started"
+      ]
+    },
+    {
+      "id": "background-locked",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "stopped-after-media-failure"
+      ]
+    },
+    {
+      "id": "network-transition",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "stopped-after-media-failure"
+      ]
+    },
+    {
+      "id": "low-storage",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "not-representative-on-emulator"
+      ]
+    },
+    {
+      "id": "rollback-kill-switch",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "queue-preserved-request-count-not-captured"
+      ]
+    },
+    {
+      "id": "doze",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "stopped-after-media-failure"
+      ]
+    },
+    {
+      "id": "grant-revocation-dead-window",
+      "status": "blocked",
+      "durationMs": null,
+      "noteCodes": [
+        "hardware-only-measurement"
+      ]
+    }
+  ],
+  "measurements": {
+    "restore": {
+      "entryCount": 0,
+      "compressedBytes": 0,
+      "elapsedMs": 0,
+      "peakMemoryBytes": 0
+    },
+    "media": {
+      "byteCount": 209715200,
+      "uploadMs": 0,
+      "downloadMs": 0,
+      "sha256Matched": true,
+      "resumedAfterInterruption": false,
+      "wifiOnlyHeldOnMetered": false
+    },
+    "rollback": {
+      "queuedBefore": 1,
+      "queuedAfter": 1,
+      "providerObjectsBefore": 0,
+      "providerObjectsAfter": 0,
+      "networkRequestsAfterActivation": 0
+    },
+    "grantRevocationDeadWindowMs": null
+  }
+}

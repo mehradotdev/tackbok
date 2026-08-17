@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
+import { Platform } from 'react-native';
 import * as schema from './schema';
 
 // ============================================================================
@@ -20,6 +21,20 @@ export const sqlite = SQLite.openDatabaseSync(DATABASE_NAME);
 // throw uncaught "database is locked" errors.
 sqlite.execSync('PRAGMA busy_timeout = 2000');
 sqlite.execSync('PRAGMA journal_mode = WAL');
+
+// On Apple platforms, SQLite's fullfsync pragmas make FULL synchronous commits
+// and WAL checkpoints use F_FULLFSYNC instead of ordinary fsync. This covers
+// the durable publisher/checkpoint half of ADR V7-0005; AtomicFileModule covers
+// the app-private base-shadow file before its SQLite checkpoint is committed.
+// Do not apply these Apple-specific pragmas to Android, whose fsync primitive
+// and storage stack have different semantics.
+if (Platform.OS === 'ios') {
+  sqlite.execSync([
+    'PRAGMA synchronous = FULL',
+    'PRAGMA fullfsync = ON',
+    'PRAGMA checkpoint_fullfsync = ON',
+  ].join('; '));
+}
 
 // Same hardening for the kv-store database. Opening with default options
 // returns the same pooled native connection kv-store itself uses, so the

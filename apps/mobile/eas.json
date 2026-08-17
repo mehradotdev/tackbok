@@ -15,11 +15,26 @@
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "all"
+      }
+    },
+    "device-evidence": {
+      "distribution": "internal",
+      "channel": "device-evidence",
+      "env": {
+        "APP_VARIANT": "beta",
+        "TACKBOK_V7_DEVICE_PROBES": "1",
+        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "all"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "all"
+      }
     }
   },
   "submit": {

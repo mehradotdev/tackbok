@@ -70,6 +70,7 @@ type DestructiveAction =
   | 'disconnect'
   | 'delete-backup'
   | 'delete-journal'
+  | 'finish-journal-deletion'
   | 'reset-device';
 
 function statusLabel(
@@ -232,6 +233,7 @@ export default function CloudBackupScreen() {
   const [destructiveAction, setDestructiveAction] = useState<DestructiveAction | null>(
     null,
   );
+  const [deletingJournalEverywhere, setDeletingJournalEverywhere] = useState(false);
 
   const refreshConflicts = useCallback(async () => {
     setConflicts(await listUnacknowledgedCloudConflicts());
@@ -297,6 +299,10 @@ export default function CloudBackupScreen() {
         } else {
           setPrepared(null);
           setStage('overview');
+          // Remove any setup query/state from the route. The durable local
+          // connection is complete here; the first upload continues through
+          // the ordinary runtime and must not hold the user on the setup card.
+          router.replace('/cloud-backup');
         }
       } catch {
         setStage('choose');
@@ -323,6 +329,34 @@ export default function CloudBackupScreen() {
     },
     [refresh, t],
   );
+
+  const clearLocalPresentation = useCallback(async () => {
+    resetSettings();
+    queryClient.clear();
+    try {
+      deleteAllPhotos();
+    } catch {
+      /* DB wipe is already authoritative. */
+    }
+    try {
+      deleteAllVoiceMemos();
+    } catch {
+      /* DB wipe is already authoritative. */
+    }
+    router.replace('/onboarding/welcome');
+  }, [queryClient, resetSettings, router]);
+
+  const completeJournalDeletion = useCallback(async () => {
+    setDeletingJournalEverywhere(true);
+    AccessibilityInfo.announceForAccessibility(t('Deleting journal everywhere…'));
+    try {
+      await deleteJournalEverywhere();
+      await clearLocalPresentation();
+    } catch {
+      setDeletingJournalEverywhere(false);
+      toast.error(t('Cloud backup could not be updated'));
+    }
+  }, [clearLocalPresentation, t]);
 
   const handleRecoveryAction = useCallback(async () => {
     const reason = snapshot.attentionReason;
@@ -358,14 +392,18 @@ export default function CloudBackupScreen() {
       return;
     }
     if (action === 'review-erase-device') {
-      setDestructiveAction('reset-device');
+      setDestructiveAction('finish-journal-deletion');
       return;
     }
     if (action === 'resume-deletion') {
-      await runAction(
-        () => revokeCloudVault(snapshot.revocationKind ?? 'backup-deleted'),
-        t('Cloud deletion completed'),
-      );
+      if (snapshot.revocationKind === 'journal-deleted') {
+        await completeJournalDeletion();
+      } else {
+        await runAction(
+          () => revokeCloudVault('backup-deleted'),
+          t('Cloud deletion completed'),
+        );
+      }
       return;
     }
     if (action === 'export-repair-backup' || action === 'locate-retry-attachment') {
@@ -377,27 +415,10 @@ export default function CloudBackupScreen() {
       () => retryV2AttentionReason(reason),
       t('Cloud backup retry completed'),
     );
-  }, [router, runAction, snapshot.attentionReason, snapshot.recoveryAction,
-    snapshot.revocationKind, t]);
+  }, [completeJournalDeletion, router, runAction, snapshot.attentionReason,
+    snapshot.recoveryAction, snapshot.revocationKind, t]);
 
-  const clearLocalPresentation = useCallback(async () => {
-    resetSettings();
-    queryClient.clear();
-    try {
-      deleteAllPhotos();
-    } catch {
-      /* DB wipe is already authoritative. */
-    }
-    try {
-      deleteAllVoiceMemos();
-    } catch {
-      /* DB wipe is already authoritative. */
-    }
-    router.replace('/onboarding/welcome');
-  }, [queryClient, resetSettings, router]);
-
-  const handleDestructiveAction = useCallback(async () => {
-    const action = destructiveAction;
+  const handleDestructiveAction = useCallback(async (action: DestructiveAction | null) => {
     setDestructiveAction(null);
     if (!action) return;
     try {
@@ -408,8 +429,7 @@ export default function CloudBackupScreen() {
         await revokeCloudVault('backup-deleted');
         toast.success(t('Cloud backup deleted'));
       } else if (action === 'delete-journal') {
-        await deleteJournalEverywhere();
-        await clearLocalPresentation();
+        await completeJournalDeletion();
         return;
       } else {
         await resetThisDeviceOnly();
@@ -420,7 +440,7 @@ export default function CloudBackupScreen() {
     } catch {
       toast.error(t('Cloud backup could not be updated'));
     }
-  }, [clearLocalPresentation, destructiveAction, refresh, t]);
+  }, [clearLocalPresentation, completeJournalDeletion, refresh, t]);
 
   const actionCopy =
     destructiveAction === 'disconnect'
@@ -447,6 +467,14 @@ export default function CloudBackupScreen() {
               ),
               button: t('Delete journal everywhere'),
             }
+          : destructiveAction === 'finish-journal-deletion'
+            ? {
+                title: t('Finish deleting this journal?'),
+                description: t(
+                  'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
+                ),
+                button: t('Finish deletion'),
+              }
           : {
               title: t('Reset this device only?'),
               description: t(
@@ -514,7 +542,8 @@ export default function CloudBackupScreen() {
         )}
 
         {stage === 'overview' &&
-          (snapshot.configured || snapshot.status === 'paused' ? (
+          (snapshot.configured || snapshot.status === 'paused' ||
+            Boolean(snapshot.attentionReason && snapshot.recoveryAction) ? (
             <>
               <View className="rounded-lg border border-border bg-card p-4 gap-3">
                 <View className="flex-row items-center justify-between gap-3">
@@ -788,12 +817,31 @@ export default function CloudBackupScreen() {
             </AlertDialogCancel>
             <AlertDialogDestructiveAction
               delaySeconds={DELETE_CONFIRM_DELAY_SECONDS}
-              onPress={() => void handleDestructiveAction()}>
+              onPress={() => void handleDestructiveAction(destructiveAction)}>
               <Text>{actionCopy.button}</Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {deletingJournalEverywhere && (
+        <View
+          className="absolute inset-0 z-50 items-center justify-center bg-background/95 px-safe-or-6"
+          accessibilityViewIsModal
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('Deleting journal everywhere…')}
+          accessibilityLiveRegion="assertive">
+          <View className="w-full max-w-md items-center gap-4 rounded-xl border border-border bg-card p-6">
+            <ActivityIndicator size="large" colorClassName="accent-primary" />
+            <Text variant="h3" className="text-center text-foreground">
+              {t('Deleting journal everywhere…')}
+            </Text>
+            <Text className="text-center text-muted-foreground">
+              {t('Removing the cloud backup and journal data. Keep Tackbok open.')}
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

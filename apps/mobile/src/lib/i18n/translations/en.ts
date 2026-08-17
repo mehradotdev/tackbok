@@ -715,6 +715,9 @@ export const en = {
   'Delete cloud backup?': 'Delete cloud backup?',
   'Delete journal everywhere': 'Delete journal everywhere',
   'Delete journal everywhere?': 'Delete journal everywhere?',
+  'Deleting journal everywhere…': 'Deleting journal everywhere…',
+  'Removing the cloud backup and journal data. Keep Tackbok open.':
+    'Removing the cloud backup and journal data. Keep Tackbok open.',
   Disconnect: 'Disconnect',
   'Disconnect Google Drive?': 'Disconnect Google Drive?',
   'Disconnect provider': 'Disconnect provider',
@@ -796,6 +799,10 @@ export const en = {
     'This cloud backup contains data Tackbok cannot read.',
   'This connects storage only—not a Tackbok account.':
     'This connects storage only—not a Tackbok account.',
+  'Finish deleting this journal?': 'Finish deleting this journal?',
+  'Cloud deletion is already recorded. Erase the remaining journal data from this device.':
+    'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
+  'Finish deletion': 'Finish deletion',
   'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.':
     'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.',
   'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.':

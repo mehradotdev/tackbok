@@ -45,6 +45,7 @@ import {
   type AvailableDriveV2Vault,
 } from '../v2/drive';
 import {
+  deletionAttentionReason,
   SQLiteV2SyncStateStore,
   V2_ATTENTION_RECOVERY_ACTION,
   type V2AttentionReason,
@@ -60,6 +61,10 @@ import {
 } from '../runtime/production';
 import type { SyncPassPhase } from '../engine';
 import { setCloudSyncBackgroundTaskEnabled } from '../runtime/backgroundTask';
+import {
+  assertCloudSyncNetworkAllowed,
+  getCloudSyncRolloutPolicy,
+} from '../runtime/rolloutPolicy';
 import {
   runInCloudSyncTransaction,
   type CloudSyncTransaction,
@@ -185,15 +190,25 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   const configured = Boolean(
     vault?.remote_root_id && !['disabled', 'revoked'].includes(vault.status),
   );
-  if (configured && vault && accountLabelAttemptedForVault !== vault.vault_id) {
+  if (configured && vault &&
+      (vault.protocol_version === 2
+        ? getCloudSyncRolloutPolicy().allows(2)
+        : getCloudSyncRolloutPolicy().allows(1)) &&
+      accountLabelAttemptedForVault !== vault.vault_id) {
     accountLabelAttemptedForVault = vault.vault_id;
     accountLabelInMemory = await createGoogleAuthorization().getAccountLabel()
       .catch(() => null);
   }
   const activity = getProductionCloudSyncActivity();
   let status: CloudSyncSnapshot['status'] = 'off';
-  const attentionReason = isV2
-    ? (v2State?.pause_reason as V2AttentionReason | null | undefined) ?? null
+  const attentionReason = isV2 && vault
+    ? deletionAttentionReason({
+        status: vault.status,
+        revocationKind: vault.revocation_kind,
+        revocationAcknowledgedAt: vault.revocation_acknowledged_at,
+        pauseReason:
+          (v2State?.pause_reason as V2AttentionReason | null | undefined) ?? null,
+      })
     : null;
   if (vault?.status === 'revoked' || attentionReason) status = 'warning';
   else if (vault?.status === 'paused') status = 'paused';
@@ -220,6 +235,9 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
 }
 
 export async function prepareGoogleDriveConnection(): Promise<PreparedGoogleConnection> {
+  // New/restored connections are protocol v2. Fail before interactive consent
+  // or any Drive request when the rollout channel has v2 paused.
+  assertCloudSyncNetworkAllowed(2);
   await cancelPreparedGoogleDriveConnection();
   const auth = createGoogleAuthorization();
   try {
@@ -262,6 +280,7 @@ export async function completeGoogleDriveConnection(options: {
   vaultId?: string;
   createNew?: boolean;
 }): Promise<void> {
+  assertCloudSyncNetworkAllowed(2);
   const pending = pendingConnection;
   if (!pending) throw new Error('Google Drive connection is no longer active');
 
@@ -342,6 +361,7 @@ export async function completeGoogleDriveConnection(options: {
 export async function reconnectGoogleDrive(): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault?.remote_root_id) throw new Error('No cloud backup is configured');
+  assertCloudSyncNetworkAllowed(vault.protocol_version === 2 ? 2 : 1);
   if (vault.protocol_version === 2) {
     const auth = createGoogleAuthorization();
     await auth.authorize();
@@ -458,14 +478,23 @@ export async function revokeCloudVault(
     eq(cloudVault.provider_kind, 'google-drive'),
   )).limit(1);
   if (!vault?.remote_root_id) throw new Error('No cloud backup is configured');
+  assertCloudSyncNetworkAllowed(vault.protocol_version === 2 ? 2 : 1);
   stopProductionSyncRuntime();
   if (vault.protocol_version === 2) {
     const state = new SQLiteV2SyncStateStore(sqlite);
+    let remoteDeletionCompleted = false;
     try {
+      // This is the durable point of no ordinary-sync return. If the process
+      // dies anywhere below, startup keeps the runtime disabled and exposes a
+      // Resume deletion action instead of silently returning to normal sync.
       await db.update(cloudVault).set({
+        status: 'paused',
         revocation_kind: kind,
+        revocation_acknowledged_at: null,
         updated_at: Date.now(),
       }).where(eq(cloudVault.vault_id, vault.vault_id));
+      await setCloudSyncBackgroundTaskEnabled(false);
+      notifyProductionCloudSyncChanged();
       const connectionId = await readOrCreateGoogleConnectionId();
       const provider = new GoogleDriveSnapshotV2Provider({
         auth: createGoogleAuthorization(),
@@ -474,11 +503,23 @@ export async function revokeCloudVault(
       await provider.publishRevocation(vault.vault_id, kind);
       const purge = await provider.purgeRevokedVault(vault.vault_id);
       if (purge.remaining !== 0) throw new Error('Protocol-v2 purge is incomplete');
-      await createGoogleAuthorization().signOut();
+      // Checkpoint remote completion before signing out. A force-close after
+      // this write can finish journal deletion without Drive authorization;
+      // backup deletion exposes local credential cleanup instead of retrying
+      // the already-complete purge with credentials that may have been cleared.
+      const revocationId = randomUUID();
       await db.update(cloudVault).set({
         status: 'revoked',
         revocation_kind: kind,
-        revocation_id: randomUUID(),
+        revocation_id: revocationId,
+        revocation_acknowledged_at: null,
+        updated_at: Date.now(),
+      }).where(eq(cloudVault.vault_id, vault.vault_id));
+      remoteDeletionCompleted = true;
+      state.clearPause(vault.vault_id, vault.device_id);
+      await createGoogleAuthorization().signOut();
+      await db.update(cloudVault).set({
+        revocation_acknowledged_at: Date.now(),
         updated_at: Date.now(),
       }).where(eq(cloudVault.vault_id, vault.vault_id));
       accountLabelInMemory = null;
@@ -487,12 +528,16 @@ export async function revokeCloudVault(
       notifyProductionCloudSyncChanged();
       return;
     } catch (error) {
-      state.setPause(
-        vault.vault_id,
-        vault.device_id,
-        'purge-incomplete',
-        'protocol-v2-purge-incomplete',
-      );
+      if (remoteDeletionCompleted) {
+        state.clearPause(vault.vault_id, vault.device_id);
+      } else {
+        state.setPause(
+          vault.vault_id,
+          vault.device_id,
+          'purge-incomplete',
+          'protocol-v2-purge-incomplete',
+        );
+      }
       notifyProductionCloudSyncChanged();
       throw error;
     }
@@ -580,7 +625,20 @@ export async function resetThisDeviceOnly(): Promise<void> {
 }
 
 export async function deleteJournalEverywhere(): Promise<void> {
-  await revokeCloudVault('journal-deleted');
+  const [vault] = await db.select({
+    status: cloudVault.status,
+    revocationKind: cloudVault.revocation_kind,
+  }).from(cloudVault).limit(1);
+  const remoteDeletionAlreadyCompleted =
+    vault?.status === 'revoked' && vault.revocationKind === 'journal-deleted';
+  if (!remoteDeletionAlreadyCompleted) {
+    await revokeCloudVault('journal-deleted');
+  } else {
+    // A prior run may have died after the remote-complete checkpoint and
+    // before clearing credentials/local data. Both operations are idempotent.
+    await createGoogleAuthorization().signOut();
+    await setCloudSyncBackgroundTaskEnabled(false);
+  }
   await wipeJournalAndLocalCloudReplica();
   notifyProductionCloudSyncChanged();
 }

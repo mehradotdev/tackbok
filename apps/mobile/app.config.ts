@@ -1,6 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 
 const IS_BETA = process.env.APP_VARIANT === 'beta';
+const ENABLE_V7_DEVICE_PROBES = IS_BETA && process.env.TACKBOK_V7_DEVICE_PROBES === '1';
 const GOOGLE_OAUTH = IS_BETA
   ? {
       androidClientId:
@@ -141,6 +142,9 @@ const config: ExpoConfig = {
     router: {},
     cloudSync: {
       google: GOOGLE_OAUTH,
+      // Only the dedicated internal evidence profile enables the synthetic
+      // V7-5 hardware harness. Store builds leave it false.
+      deviceProbesEnabled: ENABLE_V7_DEVICE_PROBES,
     },
     eas: {
       projectId: '3cba8280-4616-4cf9-8309-62ce7d14da81',

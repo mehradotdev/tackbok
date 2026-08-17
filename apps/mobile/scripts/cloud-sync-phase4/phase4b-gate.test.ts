@@ -97,6 +97,30 @@ describe('Phase 4b UI, privacy, translation, and accessibility gate', () => {
     expect(dangerZone).toContain("'Reset this device only'");
     expect(control).toContain('deleteAllDataInTransaction(tx)');
     expect(control).toContain('clearLocalCloudReplicaInTransaction(tx)');
+    expect(screen.indexOf('setDeletingJournalEverywhere(true);')).toBeLessThan(
+      screen.indexOf('await deleteJournalEverywhere();'),
+    );
+    expect(screen).toContain('accessibilityViewIsModal');
+    expect(screen).toContain("t('Deleting journal everywhere…')");
+    expect(screen).toContain("router.replace('/cloud-backup')");
+    const revokeV2 = control.slice(control.indexOf('if (vault.protocol_version === 2)'));
+    expect(revokeV2.indexOf("status: 'paused'"))
+      .toBeLessThan(revokeV2.indexOf('await provider.publishRevocation'));
+    expect(control).toContain('remoteDeletionAlreadyCompleted');
+    expect(screen).toContain("snapshot.revocationKind === 'journal-deleted'");
+    const journalCompletion = screen.slice(screen.indexOf('const completeJournalDeletion'));
+    expect(journalCompletion.indexOf('await deleteJournalEverywhere();'))
+      .toBeLessThan(journalCompletion.indexOf('await clearLocalPresentation();'));
+    expect(screen).toContain("setDestructiveAction('finish-journal-deletion')");
+    expect(screen).toContain(
+      'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
+    );
+    const revokeV2RemoteComplete = revokeV2.slice(
+      revokeV2.indexOf('const revocationId = randomUUID();'),
+    );
+    expect(revokeV2RemoteComplete.indexOf("status: 'revoked'"))
+      .toBeLessThan(revokeV2RemoteComplete.indexOf('signOut()'));
+    expect(revokeV2RemoteComplete).toContain('revocation_acknowledged_at: Date.now()');
   });
 
   test('cloud surfaces expose accessible names, progress announcements, and non-colour status', async () => {
