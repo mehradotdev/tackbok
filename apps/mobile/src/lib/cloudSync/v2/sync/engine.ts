@@ -2,7 +2,6 @@ import { canonicalizeV2 } from '../canonical';
 import { SnapshotV2ValidationError } from '../caps';
 import { decodeSnapshotV2, encodeSnapshotV2 } from '../codec';
 import { SnapshotV2MergeError, mergeSnapshotDomainsV2 } from '../merge';
-import { sha256BytesV2 } from '../sha256';
 import type {
   JournalSnapshotPayloadV2,
   ObservedDeviceHeadV2,
@@ -434,20 +433,23 @@ export class SnapshotV2SyncEngine {
       const remotePresent = remotelyPresent.has(blobHash);
       const localPresent = await this.mediaStore.hasVerified(blobHash);
       if (!remotePresent && localPresent) {
-        const bytes = await this.mediaStore.readVerified(blobHash);
-        if (!bytes || sha256BytesV2(bytes) !== blobHash) {
+        const source = await this.mediaStore.openVerifiedSource(blobHash);
+        if (!source || source.contentHash !== blobHash) {
           throw new AttentionError('local-media-unreadable', 'local-media-hash-mismatch');
         }
-        await this.provider.uploadMedia(this.vaultId, blobHash, bytes);
+        await this.provider.uploadMedia(this.vaultId, blobHash, source);
         await this.hooks.at?.('during-media-transfer');
       } else if (remotePresent && !localPresent) {
         try {
-          const bytes = await this.provider.downloadMedia(this.vaultId, blobHash);
-          if (!bytes || sha256BytesV2(bytes) !== blobHash) {
+          const downloaded = await this.provider.downloadMedia(
+            this.vaultId,
+            blobHash,
+            await this.mediaStore.openDownloadSink(blobHash),
+          );
+          if (!downloaded) {
             await this.journal.applyMergedIfGeneration(merged, capturedGeneration);
             throw new AttentionError('missing-media', 'remote-media-hash-mismatch');
           }
-          await this.mediaStore.writeVerified(blobHash, bytes);
           await this.hooks.at?.('during-media-transfer');
         } catch (error) {
           // A policy/transient download block (notably Wi-Fi-only media) must
@@ -630,14 +632,14 @@ export class SnapshotV2SyncEngine {
     );
     for (const blobHash of pending.mediaHashes) {
       if (remotelyPresent.has(blobHash)) continue;
-      const bytes = await this.mediaStore.readVerified(blobHash);
-      if (!bytes) {
+      const source = await this.mediaStore.openVerifiedSource(blobHash);
+      if (!source) {
         throw new AttentionError('missing-media', 'pending-media-unavailable');
       }
-      if (sha256BytesV2(bytes) !== blobHash) {
+      if (source.contentHash !== blobHash) {
         throw new AttentionError('local-media-unreadable', 'pending-media-hash-mismatch');
       }
-      await this.provider.uploadMedia(this.vaultId, blobHash, bytes);
+      await this.provider.uploadMedia(this.vaultId, blobHash, source);
       await this.hooks.at?.('during-media-transfer');
     }
   }

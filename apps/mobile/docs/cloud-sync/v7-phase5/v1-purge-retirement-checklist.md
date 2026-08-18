@@ -1,12 +1,13 @@
 # V1 purge and retirement checklist
 
-Status: **c1 authorized only after accepted b1 evidence; c2 remains blocked**
+Status: **c1 authorized by owner disposition 2026-08-18; c2 remains blocked
+until c1 is complete and reviewed**
 
 The owner has attested that no other alpha tester holds a protocol-v1 vault.
-Bundle c1 becomes actionable after b1 emulator evidence is accepted; skipping
-the hardware round means the old path is no longer needed for that round. A
-purge remains destructive and requires a fresh, explicit owner confirmation at
-execution time.
+Bundle c1 became actionable after the owner accepted the physical Android Debug
+D1 transport evidence and moved the unexecuted Wi-Fi-only scenario to the
+store-submission gate. A purge remains destructive and requires a fresh,
+explicit owner confirmation at execution time.
 
 ## Bundle (c1): disposable v1 vault purge
 

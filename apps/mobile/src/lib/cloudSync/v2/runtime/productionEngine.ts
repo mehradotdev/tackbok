@@ -30,6 +30,8 @@ import type {
   DeviceHeadV2,
   ListedDeviceHeadV2,
   SnapshotObjectV2,
+  V2MediaDownloadSink,
+  V2MediaUploadSource,
   SnapshotV2Provider,
   V2AttentionReason,
 } from '../sync/types';
@@ -83,13 +85,21 @@ class MediaPolicyProvider implements SnapshotV2Provider {
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]) {
     return this.delegate.hasMediaBatch(vaultId, blobHashes);
   }
-  async uploadMedia(vaultId: string, blobHash: string, bytes: Uint8Array): Promise<void> {
+  async uploadMedia(
+    vaultId: string,
+    blobHash: string,
+    source: V2MediaUploadSource,
+  ): Promise<void> {
     await this.assertMediaTransferAllowed();
-    await this.delegate.uploadMedia(vaultId, blobHash, bytes);
+    await this.delegate.uploadMedia(vaultId, blobHash, source);
   }
-  async downloadMedia(vaultId: string, blobHash: string): Promise<Uint8Array | null> {
+  async downloadMedia(
+    vaultId: string,
+    blobHash: string,
+    sink: V2MediaDownloadSink,
+  ): Promise<boolean> {
     await this.assertMediaTransferAllowed();
-    return this.delegate.downloadMedia(vaultId, blobHash);
+    return this.delegate.downloadMedia(vaultId, blobHash, sink);
   }
   listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]> {
     return this.delegate.listSnapshots(vaultId);

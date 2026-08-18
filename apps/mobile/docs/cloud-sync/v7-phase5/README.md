@@ -19,11 +19,16 @@ submission blocker. Bundle (a) does not claim
 physical-device, release-build, Drive-transfer, power-loss, background, or
 memory evidence.
 
-Bundle b1 is currently returned on
+Bundle b1 has partial physical Debug evidence for
 [`finding 0001`](./findings/0001-v2-large-media-whole-buffer-oom.md): the
-streaming hash succeeds, but v2 upload still materializes the full 200 MiB file
-and fails on the API-36 emulator. Purge and retirement remain closed until the
-streaming transfer is remediated and the same fixture passes.
+pre-remediation v2 upload materialized the full 200 MiB file and failed on the
+API-36 emulator. The replacement passed real-Drive upload and download
+interruption/resume, fresh restore, and frozen-hash verification on a physical
+Android API-33 device. The owner accepted that transport evidence and moved the
+untested Wi-Fi-only behavior to the store-submission gate in
+[`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md). Bundle c1 is now
+authorized; retirement remains sequenced after c1 and must be a separate
+reviewed diff.
 
 ## Start here
 
@@ -34,6 +39,8 @@ streaming transfer is remediated and the same fixture passes.
   activation semantics, and rollback invariant.
 - [`device-round-checklist.md`](./device-round-checklist.md) — owner-run Android
   and iOS procedure.
+- [`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md) — narrow owner
+  disposition moving the unexecuted policy check to store submission.
 - [`v1-purge-retirement-checklist.md`](./v1-purge-retirement-checklist.md) —
   sequenced but deliberately not executable until device evidence is accepted.
 - [`templates/`](./templates/) — non-evidence report templates. A report enters

@@ -1,12 +1,18 @@
 # Phase V7-5 gate
 
-Status: **OPEN — Bundle (a) findings Z1/Z2 are remediated; Bundle b1 returned
-blocking finding D1 on 2026-08-15.** The Android virtual-device run proved the
-native streaming hash but reproduced a production v2 whole-buffer OOM before
-the 200 MiB resumable upload began. The streaming transfer design is reopened;
-c1 purge and c2 retirement remain blocked. Bundle b2 hardware evidence remains
-blocking for store submission. No v1 test-vault purge or v6 retirement has
-been performed.
+Status: **OPEN — D1 is closed under the owner's 2026-08-18 evidence
+disposition; Bundle c1 is authorized but not performed, and c2 remains
+sequenced after c1.** D1's physical Android Debug real-Drive upload, forced
+interruption/resume, fresh restore, and frozen-hash checks passed. Wi-Fi-only
+behavior was not tested and now blocks store submission rather than v1
+retirement. The earlier Android
+virtual-device run proved native hashing but reproduced the whole-buffer OOM.
+The replacement transport is bounded and restartable in host tests and has now
+crossed the former failure boundary on hardware. Bundle b2 hardware evidence
+remains blocking for store submission. No v1 test-vault purge or v6 retirement
+has been performed.
+Bundle b2 hardware evidence remains blocking for store submission. No v1
+test-vault purge or v6 retirement has been performed.
 
 ## Bundle (a): host preparation
 
@@ -65,6 +71,27 @@ been performed.
   tests, and the dependency audit is 17 roots / 325 reachable sources / 23 v1
   files. D1 remains open and is not softened by this follow-up.
 
+### D1 implementing-agent remediation — 2026-08-18; awaiting owner review
+
+- [x] Upload uses an 8 MiB random-access file source and Drive's authoritative
+  resumable offset; acknowledged offsets persist in SQLite migration 0011.
+- [x] Download uses HTTP Range into an fsynced `.partial` file. It never falls
+  back to a whole-media `arrayBuffer()`, native-hashes the complete file, and
+  atomically promotes it only after verification.
+- [x] The host 200 MiB boundary test records maximum upload read/request and
+  download append sizes of 8 MiB. V7-2 through V7-4 gates and native compile
+  results are recorded in
+  [`evidence/2026-08-18-d1-host-tests.json`](./evidence/2026-08-18-d1-host-tests.json).
+- [x] A physical Android API-33 beta Debug build repeated the real-Drive 200 MiB
+  upload, forced upload interruption/resume, forced download
+  interruption/resume, fresh restore, and frozen-hash verification without the
+  former whole-buffer failure. See
+  [`evidence/2026-08-18-android-physical-debug-d1.json`](./evidence/2026-08-18-android-physical-debug-d1.json).
+- [x] Owner accepts the focused physical Debug evidence for D1. The unexecuted
+  Wi-Fi-only scenario is explicitly moved to the store-submission gate by
+  [`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md); it is not claimed
+  as passing.
+
 ## Bundle (b1): owner emulator/simulator evidence — partial
 
 - [x] Independent API-36 Debug smoke: the app and Cloud Backup & Sync screen
@@ -95,9 +122,10 @@ been performed.
 
 ## Bundle (b2): physical-device remainder — waived for development, blocks store submission
 
-Owner disposition 2026-08-15: physical hardware is unavailable. These items
-are not time-boxed and are not converted into emulator claims. They must pass
-before store submission:
+Owner disposition amended 2026-08-18: physical Android hardware became
+available for the focused D1 Debug run. That run is recorded above, but the
+following release, performance, power, background, and iOS items remain
+non-time-boxed and must pass before store submission:
 
 - [ ] Release-signed Android build passes native-module compilation/runtime,
   auth E2E, restore, interruption, external revocation, and recovery on a
@@ -119,7 +147,7 @@ before store submission:
   preserves queued local intent and provider object count, and later `all`
   resumes the same intent.
 
-## Bundle (c1): disposable v1 test-vault purge — waits for b1 and explicit confirmation
+## Bundle (c1): disposable v1 test-vault purge — authorized; not performed
 
 - [ ] Owner disposable v1 test vaults are revoked and purged through the
   retained reviewed v1 delete path, or the owner records that none exist.
@@ -131,7 +159,8 @@ destructive purge by itself.
 
 ## Bundle (c2): v6 production removal — blocked
 
-- [ ] Bundle b1's real v2 200 MiB boundary passes and is accepted.
+- [x] Bundle b1's real v2 200 MiB boundary passes and is owner-accepted; the
+  untested Wi-Fi-only policy is a store-submission obligation.
 - [ ] Bundle c1 is accepted first.
 - [ ] A separate reviewable diff removes v1 production code.
 - [ ] Dependency audit with `--expect-retired` reports zero production-reachable
@@ -143,12 +172,15 @@ destructive purge by itself.
 
 - No EAS build was started and no paid build quota was consumed by the
   implementing agent.
-- No physical Android or iOS device was used.
+- A physical Android device was used only for the focused D1 beta Debug
+  functional run. No physical iOS device was used.
 - No release-signed build, physical power-loss, real background scheduling,
   Low Power Mode, hardware timing, or hardware memory fact is claimed.
-- The 200 MiB v2 production path crosses a whole-`Uint8Array` boundary and
-  failed on the API-36 emulator. Upload/download timing, resume, restore, and
-  Wi-Fi policy are not claimed; the streaming design is reopened under D1.
+- The pre-remediation 200 MiB v2 production path crossed a whole-`Uint8Array`
+  boundary and failed on the API-36 emulator. The replacement passed physical
+  Android Debug upload/download interruption, resume, restore, and frozen-hash
+  verification. Wi-Fi-policy success and trustworthy device timing/memory are
+  not claimed.
 - No v1 vault was queried, revoked, purged, or deleted. No OAuth grant was
   revoked. No v1 production/protocol/probe source was removed. The only v1
   production-source modification was the behavior-preserving Z1 extraction:

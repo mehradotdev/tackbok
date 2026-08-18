@@ -17,7 +17,12 @@ import {
   userProfile,
 } from '~/db';
 import { AssetType, type Asset } from '~/types';
-import { sha256BytesV2, sha256TextV2 } from '../sha256';
+import { sha256TextV2 } from '../sha256';
+import {
+  createV2MediaPartialFileSink,
+  openV2MediaUploadSource,
+} from '../media';
+import { inspectLocalMediaFile } from '../../media/streamingHash';
 import type {
   SnapshotConflictV2,
   SnapshotDomainV2,
@@ -110,38 +115,39 @@ export class ProductionSnapshotV2MediaStore implements SnapshotV2MediaStore {
       retained.some(({ original, staged }) => fileExists(staged ?? original));
   }
 
-  async readVerified(blobHash: string): Promise<Uint8Array | null> {
+  async openVerifiedSource(blobHash: string) {
     const staged = stageFile(blobHash);
     if (staged.exists) {
-      const bytes = await staged.bytes();
-      return sha256BytesV2(bytes) === blobHash ? bytes : null;
+      const inspected = await inspectLocalMediaFile(staged.uri);
+      if (inspected.sha256 === blobHash) {
+        return openV2MediaUploadSource(staged.uri, blobHash, inspected.byteSize);
+      }
     }
     const [live, retained] = await Promise.all([
-      db.select({ uri: mediaAssets.local_uri }).from(mediaAssets)
+      db.select({ uri: mediaAssets.local_uri, bytes: mediaAssets.byte_size }).from(mediaAssets)
         .where(eq(mediaAssets.blob_hash, blobHash)),
-      db.select({ original: syncRetainedMedia.original_uri, staged: syncRetainedMedia.staged_uri })
+      db.select({
+        original: syncRetainedMedia.original_uri,
+        staged: syncRetainedMedia.staged_uri,
+        bytes: syncRetainedMedia.byte_size,
+      })
         .from(syncRetainedMedia).where(eq(syncRetainedMedia.blob_hash, blobHash)),
     ]);
-    for (const uri of [
-      ...live.map((row) => row.uri),
-      ...retained.map((row) => row.staged ?? row.original),
+    for (const candidate of [
+      ...live.map((row) => ({ uri: row.uri, bytes: row.bytes })),
+      ...retained.map((row) => ({ uri: row.staged ?? row.original, bytes: row.bytes })),
     ]) {
-      if (!fileExists(uri)) continue;
-      const bytes = await fileForLocalUri(uri).bytes();
-      if (sha256BytesV2(bytes) === blobHash) return bytes;
+      if (!fileExists(candidate.uri)) continue;
+      const inspected = await inspectLocalMediaFile(candidate.uri);
+      if (inspected.sha256 !== blobHash ||
+          (candidate.bytes !== null && inspected.byteSize !== candidate.bytes)) continue;
+      return openV2MediaUploadSource(candidate.uri, blobHash, inspected.byteSize);
     }
     return null;
   }
 
-  async writeVerified(blobHash: string, bytes: Uint8Array): Promise<void> {
-    if (sha256BytesV2(bytes) !== blobHash) {
-      throw new V2LocalStorageError('local-media-unreadable', 'downloaded-media-hash-mismatch');
-    }
-    try {
-      stageFile(blobHash).write(bytes);
-    } catch {
-      throw new V2LocalStorageError('local-storage-full', 'media-staging-write-failed');
-    }
+  async openDownloadSink(blobHash: string) {
+    return createV2MediaPartialFileSink(ensureDirectory(STAGING_DIRECTORY), blobHash);
   }
 
   stagedFile(blobHash: string): File | null {
@@ -444,18 +450,21 @@ export class ProductionSnapshotV2JournalStore implements SnapshotV2JournalStore 
     let hydrated = 0;
     let missing = 0;
     for (const row of pending) {
-      if (!row.blob_hash) {
+      if (!row.blob_hash || row.byte_size === null) {
         missing += 1;
         continue;
       }
-      const bytes = await provider.downloadMedia(this.vaultId, row.blob_hash);
-      if (!bytes || sha256BytesV2(bytes) !== row.blob_hash) {
+      const downloaded = await provider.downloadMedia(
+        this.vaultId,
+        row.blob_hash,
+        await this.mediaStore.openDownloadSink(row.blob_hash),
+      );
+      if (!downloaded) {
         await db.update(mediaAssets).set({ download_state: 'missing' })
           .where(eq(mediaAssets.asset_id, row.asset_id));
         missing += 1;
         continue;
       }
-      await this.mediaStore.writeVerified(row.blob_hash, bytes);
       const descriptor: SnapshotMediaV2 = {
         assetId: row.asset_id,
         ownerType: row.owner_type,
@@ -463,7 +472,7 @@ export class ProductionSnapshotV2JournalStore implements SnapshotV2JournalStore 
         kind: row.kind,
         blobHash: row.blob_hash,
         mimeType: row.mime_type,
-        byteSize: row.byte_size ?? bytes.byteLength,
+        byteSize: row.byte_size,
         width: row.width,
         height: row.height,
         durationMs: row.duration_ms,

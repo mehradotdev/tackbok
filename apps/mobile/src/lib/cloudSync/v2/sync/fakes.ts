@@ -9,6 +9,8 @@ import type {
   SnapshotV2JournalStore,
   SnapshotV2MediaStore,
   SnapshotV2Provider,
+  V2MediaDownloadSink,
+  V2MediaUploadSource,
   V2ProviderError,
 } from './types';
 
@@ -37,6 +39,34 @@ interface StoredSnapshot {
 }
 
 const cloneBytes = (bytes: Uint8Array) => bytes.slice();
+
+function memorySource(bytes: Uint8Array, contentHash: string): V2MediaUploadSource {
+  return {
+    byteLength: bytes.byteLength,
+    contentHash,
+    async read(offset, length) {
+      return bytes.slice(offset, Math.min(bytes.byteLength, offset + length));
+    },
+  };
+}
+
+async function readSource(source: V2MediaUploadSource): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  let offset = 0;
+  while (offset < source.byteLength) {
+    const chunk = await source.read(offset, Math.min(1024 * 1024, source.byteLength - offset));
+    if (chunk.byteLength === 0) throw new Error('Media source ended early');
+    chunks.push(chunk);
+    offset += chunk.byteLength;
+  }
+  const result = new Uint8Array(source.byteLength);
+  let written = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, written);
+    written += chunk.byteLength;
+  }
+  return result;
+}
 
 export class FakeSnapshotV2Provider implements SnapshotV2Provider {
   readonly requests: FakeV2ProviderOperation[] = [];
@@ -167,15 +197,30 @@ export class FakeSnapshotV2Provider implements SnapshotV2Provider {
       this.media.has(this.key(vaultId, blobHash))));
   }
 
-  async uploadMedia(vaultId: string, blobHash: string, bytes: Uint8Array): Promise<void> {
+  async uploadMedia(
+    vaultId: string,
+    blobHash: string,
+    source: V2MediaUploadSource,
+  ): Promise<void> {
     this.before('upload-media');
-    this.media.set(this.key(vaultId, blobHash), cloneBytes(bytes));
+    this.media.set(this.key(vaultId, blobHash), await readSource(source));
     this.takeFault('upload-media', true);
   }
 
-  async downloadMedia(vaultId: string, blobHash: string): Promise<Uint8Array | null> {
+  async downloadMedia(
+    vaultId: string,
+    blobHash: string,
+    sink: V2MediaDownloadSink,
+  ): Promise<boolean> {
     this.before('download-media');
-    return this.media.get(this.key(vaultId, blobHash))?.slice() ?? null;
+    const bytes = this.media.get(this.key(vaultId, blobHash));
+    if (!bytes) return false;
+    const offset = await sink.byteLength();
+    if (offset > bytes.byteLength) await sink.reset();
+    const resumedAt = Math.min(await sink.byteLength(), bytes.byteLength);
+    if (resumedAt < bytes.byteLength) await sink.appendAndSync(bytes.slice(resumedAt));
+    await sink.verifyAndPromote(bytes.byteLength, blobHash);
+    return true;
   }
 
   async listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]> {
@@ -254,12 +299,34 @@ export class MemorySnapshotV2MediaStore implements SnapshotV2MediaStore {
     return this.media.has(blobHash);
   }
 
-  async readVerified(blobHash: string): Promise<Uint8Array | null> {
-    return this.media.get(blobHash)?.slice() ?? null;
-  }
-
+  /** Test-only seed helper; production media never crosses this whole-buffer API. */
   async writeVerified(blobHash: string, bytes: Uint8Array): Promise<void> {
     this.media.set(blobHash, cloneBytes(bytes));
+  }
+
+  async openVerifiedSource(blobHash: string): Promise<V2MediaUploadSource | null> {
+    const bytes = this.media.get(blobHash);
+    return bytes ? memorySource(bytes, blobHash) : null;
+  }
+
+  async openDownloadSink(blobHash: string): Promise<V2MediaDownloadSink> {
+    let partial = new Uint8Array();
+    return {
+      byteLength: async () => partial.byteLength,
+      appendAndSync: async (bytes) => {
+        const next = new Uint8Array(partial.byteLength + bytes.byteLength);
+        next.set(partial);
+        next.set(bytes, partial.byteLength);
+        partial = next;
+      },
+      reset: async () => { partial = new Uint8Array(); },
+      verifyAndPromote: async (expectedByteLength, expectedSha256) => {
+        if (expectedSha256 !== blobHash || partial.byteLength !== expectedByteLength) {
+          throw new Error('Invalid in-memory media download');
+        }
+        this.media.set(blobHash, partial.slice());
+      },
+    };
   }
 }
 

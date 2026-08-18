@@ -1,0 +1,83 @@
+{
+  "format": "tackbok-v7-phase5-d1-android-debug-evidence",
+  "formatVersion": 1,
+  "capturedAt": "2026-08-18T16:05:28+05:30",
+  "evidenceClass": "physical-debug",
+  "platform": "android",
+  "deviceModel": "ASUS_I006D",
+  "apiLevel": 33,
+  "appVersion": "0.6.0",
+  "buildNumber": "1",
+  "buildVariant": "beta-debug",
+  "buildArtifactSha256": "ab361c31b00da85605ce235a3a283d8ad194c8789124a49a70e5efeb35fb4fef",
+  "physicalDevice": true,
+  "releaseSigned": false,
+  "syntheticDataOnly": true,
+  "disposableCredentialOnly": true,
+  "checks": [
+    {
+      "name": "content-uri-native-hash-and-copy",
+      "result": "pass"
+    },
+    {
+      "name": "production-streaming-hash",
+      "result": "pass",
+      "byteCount": 209715200
+    },
+    {
+      "name": "real-drive-upload-interruption-resume",
+      "result": "pass",
+      "firstObservedAcknowledgedBytes": 8388608,
+      "persistedAfterForceStopBytes": 25165824,
+      "observedAfterRelaunchBytes": 50331648,
+      "finalByteCount": 209715200
+    },
+    {
+      "name": "real-drive-download-interruption-resume",
+      "result": "pass",
+      "partialAfterForceStopBytes": 16777216,
+      "observedAfterRelaunchBytes": 25165824,
+      "finalByteCount": 209715200,
+      "partialRemovedAfterPromotion": true
+    },
+    {
+      "name": "fresh-restore-ui",
+      "result": "pass",
+      "processSurvived": true,
+      "runtimeErrorsObserved": 0
+    },
+    {
+      "name": "frozen-fixture-native-verification",
+      "result": "pass",
+      "byteCount": 209715200,
+      "elapsedMs": 374,
+      "sha256Matched": true,
+      "productionHashMatched": true,
+      "byteSizeMatched": true
+    },
+    {
+      "name": "settled-local-media-state",
+      "result": "pass",
+      "downloadStateVerified": true,
+      "pendingMediaCount": 0,
+      "currentTransferSessionCount": 0
+    }
+  ],
+  "openScenarios": [
+    "wifi-only-media",
+    "release-signed-runtime",
+    "device-performance",
+    "device-peak-memory",
+    "ios-physical"
+  ],
+  "nonClaims": [
+    "release-signed-build",
+    "store-release-readiness",
+    "wifi-only-media",
+    "device-performance",
+    "device-peak-memory",
+    "power-loss-durability",
+    "background-scheduling",
+    "ios-physical"
+  ]
+}

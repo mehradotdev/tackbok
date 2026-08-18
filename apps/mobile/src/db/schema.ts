@@ -523,6 +523,7 @@ export const cloudV2DriveUploadSessions = sqliteTable(
     session_uri: text('session_uri').notNull(),
     expires_at: integer('expires_at').notNull(),
     byte_count: integer('byte_count').notNull(),
+    uploaded_bytes: integer('uploaded_bytes').notNull().default(0),
     updated_at: integer('updated_at').notNull(),
   },
   (table) => [primaryKey({

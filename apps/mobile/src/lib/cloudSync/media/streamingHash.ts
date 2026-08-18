@@ -14,7 +14,7 @@ export async function inspectLocalMediaFile(uri: string): Promise<{
   sha256: string;
   byteSize: number;
 }> {
-  const resolvedUri = uri.startsWith('file:') || uri.startsWith('/')
+  const resolvedUri = uri.startsWith('file:') || uri.startsWith('content:') || uri.startsWith('/')
     ? uri
     : new File(Paths.document, uri).uri;
   const result = await requireNativeModule<StreamingHashNativeModule>(

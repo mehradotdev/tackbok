@@ -157,11 +157,59 @@ describe('Phase V7-5(a) host-preparation gate', () => {
     expect(probe).toContain('set({ blob_hash: null, byte_size: null })');
     expect(probe).toContain('asset.blob_hash === EXPECTED_SHA256');
     expect(probe).toContain('asset.byte_size === EXPECTED_BYTE_COUNT');
-    expect(probe).toContain('await copyAsync({ from: source.uri, to: destination.uri })');
+    expect(probe).toContain('await inspectLocalMediaFile(selectedFixtureUri)');
+    expect(probe).toContain('await copyAsync({ from: selectedFixtureUri, to: destination.uri })');
+    expect(probe).not.toContain('new File(selectedFixtureUri)');
+    expect(probe).toContain("new File(Paths.document, asset.local_uri)");
+    const streamingHash = readFileSync(join(
+      mobileRoot,
+      'src/lib/cloudSync/media/streamingHash.ts',
+    ), 'utf8');
+    expect(streamingHash).toContain("uri.startsWith('content:')");
     expect(screen).toContain('copyToCacheDirectory: false');
     expect(config).toContain(
       "IS_BETA && process.env.TACKBOK_V7_DEVICE_PROBES === '1'",
     );
+  });
+
+  test('D1 media transport is bounded, restartable, and durably promoted', () => {
+    const types = readFileSync(join(
+      mobileRoot,
+      'src/lib/cloudSync/v2/sync/types.ts',
+    ), 'utf8');
+    const provider = readFileSync(join(
+      mobileRoot,
+      'src/lib/cloudSync/v2/drive/googleDriveSnapshotProvider.ts',
+    ), 'utf8');
+    const journal = readFileSync(join(
+      mobileRoot,
+      'src/lib/cloudSync/v2/storage/productionJournal.ts',
+    ), 'utf8');
+    const transfer = readFileSync(join(
+      mobileRoot,
+      'src/lib/cloudSync/v2/media/fileTransfer.ts',
+    ), 'utf8');
+    const android = readFileSync(join(
+      mobileRoot,
+      'src/inlineModules/AtomicFileModule.kt',
+    ), 'utf8');
+    const apple = readFileSync(join(
+      mobileRoot,
+      'src/inlineModules/AtomicFileModule.swift',
+    ), 'utf8');
+    const migrations = readFileSync(join(mobileRoot, 'src/drizzle/migrations.js'), 'utf8');
+
+    expect(types).toContain('source: V2MediaUploadSource');
+    expect(types).toContain('sink: V2MediaDownloadSink');
+    expect(journal).not.toContain('.bytes()');
+    expect(provider).toContain('const MEDIA_CHUNK_SIZE = 8 * 1024 * 1024');
+    expect(provider).toContain('uploadedBytes: uploaded');
+    expect(provider).toContain("throw new V2ProviderError('transient', 'Drive did not provide a streaming media body')");
+    expect(transfer).toContain('inspectLocalMediaFile(this.partial.uri)');
+    expect(transfer).toContain('replaceAndSync(this.partial.uri, this.final.uri)');
+    expect(android).toContain('AsyncFunction("appendAndSync")');
+    expect(apple).toContain('AsyncFunction("appendAndSync")');
+    expect(migrations).toContain("import m0011 from './0011_even_gargoyle.sql'");
   });
 
   test('the committed host report passes the redaction guard', () => {
@@ -170,6 +218,22 @@ describe('Phase V7-5(a) host-preparation gate', () => {
       'docs/cloud-sync/v7-phase5/evidence/2026-08-18-host-tests.json',
     ), 'utf8'));
     expect(() => assertDriveV2ReportIsRedacted(evidence)).not.toThrow();
+    const d1Evidence: unknown = JSON.parse(readFileSync(join(
+      mobileRoot,
+      'docs/cloud-sync/v7-phase5/evidence/2026-08-18-d1-host-tests.json',
+    ), 'utf8'));
+    expect(() => assertDriveV2ReportIsRedacted(d1Evidence)).not.toThrow();
+    const d1PhysicalDebugEvidence: unknown = JSON.parse(readFileSync(join(
+      mobileRoot,
+      'docs/cloud-sync/v7-phase5/evidence/2026-08-18-android-physical-debug-d1.json',
+    ), 'utf8'));
+    expect(() => assertDriveV2ReportIsRedacted(d1PhysicalDebugEvidence)).not.toThrow();
+    const wifiWaiver = readFileSync(join(
+      mobileRoot,
+      'docs/cloud-sync/v7-phase5/wifi-only-media-waiver.md',
+    ), 'utf8');
+    expect(wifiWaiver).toContain('store-submission gate');
+    expect(wifiWaiver).toContain('does not alter the Wi-Fi-only product requirement');
     const emulatorEvidence: unknown = JSON.parse(readFileSync(join(
       mobileRoot,
       'docs/cloud-sync/v7-phase5/evidence/2026-08-15-android-emulator.json',

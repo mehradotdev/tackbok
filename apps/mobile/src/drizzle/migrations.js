@@ -12,6 +12,7 @@ import m0007 from './0007_confused_infant_terrible.sql';
 import m0008 from './0008_gorgeous_thor.sql';
 import m0009 from './0009_nebulous_bulldozer.sql';
 import m0010 from './0010_mysterious_eternals.sql';
+import m0011 from './0011_even_gargoyle.sql';
 
 export default {
   journal,
@@ -27,5 +28,6 @@ export default {
     m0008,
     m0009,
     m0010,
+    m0011,
   },
 };

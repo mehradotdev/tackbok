@@ -25,6 +25,7 @@ export interface DriveV2UploadSession {
   uri: string;
   expiresAt: number;
   byteCount: number;
+  uploadedBytes: number;
 }
 
 export interface DriveV2ProviderStateStore {
@@ -189,6 +190,7 @@ interface SessionRow {
   session_uri: string;
   expires_at: number;
   byte_count: number;
+  uploaded_bytes: number;
 }
 
 export class SQLiteDriveV2ProviderStateStore implements DriveV2ProviderStateStore {
@@ -349,7 +351,8 @@ export class SQLiteDriveV2ProviderStateStore implements DriveV2ProviderStateStor
     contentSha256: string,
   ): DriveV2UploadSession | null {
     const row = this.database.getFirstSync<SessionRow>(
-      `SELECT logical_key, content_sha256, session_uri, expires_at, byte_count
+      `SELECT logical_key, content_sha256, session_uri, expires_at, byte_count,
+              uploaded_bytes
        FROM cloud_v2_drive_upload_sessions
        WHERE connection_id = ? AND vault_id = ?
          AND logical_key = ? AND content_sha256 = ?`,
@@ -364,6 +367,7 @@ export class SQLiteDriveV2ProviderStateStore implements DriveV2ProviderStateStor
       uri: row.session_uri,
       expiresAt: row.expires_at,
       byteCount: row.byte_count,
+      uploadedBytes: row.uploaded_bytes,
     } : null;
   }
 
@@ -371,12 +375,13 @@ export class SQLiteDriveV2ProviderStateStore implements DriveV2ProviderStateStor
     this.database.runSync(
       `INSERT INTO cloud_v2_drive_upload_sessions(
          connection_id, vault_id, logical_key, content_sha256,
-         session_uri, expires_at, byte_count, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         session_uri, expires_at, byte_count, uploaded_bytes, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(connection_id, vault_id, logical_key, content_sha256) DO UPDATE SET
          session_uri = excluded.session_uri,
          expires_at = excluded.expires_at,
          byte_count = excluded.byte_count,
+         uploaded_bytes = excluded.uploaded_bytes,
          updated_at = excluded.updated_at`,
       this.connectionId,
       vaultId,
@@ -385,6 +390,7 @@ export class SQLiteDriveV2ProviderStateStore implements DriveV2ProviderStateStor
       session.uri,
       session.expiresAt,
       session.byteCount,
+      session.uploadedBytes,
       this.now(),
     );
   }

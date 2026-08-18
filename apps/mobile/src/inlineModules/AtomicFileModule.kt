@@ -23,6 +23,16 @@ class AtomicFileModule : Module() {
       }
     }
 
+    AsyncFunction("appendAndSync") { uriString: String, bytes: ByteArray ->
+      val file = fileFromUri(uriString)
+      file.parentFile?.mkdirs()
+      FileOutputStream(file, true).use { output ->
+        output.write(bytes)
+        output.flush()
+        output.fd.sync()
+      }
+    }
+
     AsyncFunction("replaceAndSync") { sourceUri: String, destinationUri: String ->
       val source = fileFromUri(sourceUri)
       val destination = fileFromUri(destinationUri)

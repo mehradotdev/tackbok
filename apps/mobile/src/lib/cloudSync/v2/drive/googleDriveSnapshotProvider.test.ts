@@ -614,6 +614,7 @@ describe('GoogleDriveSnapshotV2Provider', () => {
       uri,
       expiresAt: Date.now() + 60_000,
       byteCount: bytes.byteLength,
+      uploadedBytes: 0,
     });
     const ranges: string[] = [];
     const fetch: DriveV2FetchLike = async (url, init = {}) => {
@@ -646,10 +647,181 @@ describe('GoogleDriveSnapshotV2Provider', () => {
       auth: new FakeAuth(), state, fetch, sleep: async () => {}, random: () => 0,
     });
 
-    await resumed.uploadMedia(vaultId, hash, bytes);
+    const reads: { offset: number; length: number }[] = [];
+    await resumed.uploadMedia(vaultId, hash, {
+      byteLength: bytes.byteLength,
+      contentHash: hash,
+      read: async (offset, length) => {
+        reads.push({ offset, length });
+        return bytes.slice(offset, offset + length);
+      },
+    });
     expect(ranges[0]).toBe(`bytes */${bytes.byteLength}`);
-    expect(ranges[1]).toBe(`bytes ${256 * 1024}-${2 * 256 * 1024 - 1}/${bytes.byteLength}`);
+    expect(ranges[1]).toBe(`bytes ${256 * 1024}-${bytes.byteLength - 1}/${bytes.byteLength}`);
+    expect(reads).toEqual([{
+      offset: 256 * 1024,
+      length: bytes.byteLength - 256 * 1024,
+    }]);
     expect(state.getUploadSession(vaultId, key, hash)).toBeNull();
+  });
+
+  test('a media download resumes into a durable sink without returning whole-file bytes', async () => {
+    const state = new MemoryDriveV2ProviderStateStore();
+    const bytes = new TextEncoder().encode('synthetic-resumable-media-download');
+    const hash = sha256BytesV2(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    state.upsertFile(vaultId, {
+      fileId: 'media-download-file', logicalKey: key, kind: 'media',
+      contentSha256: hash, byteCount: bytes.byteLength, createdAt: 1, head: null,
+    });
+    let partial = bytes.slice(0, 9);
+    let requestedRange: string | undefined;
+    let promoted = false;
+    const app = new GoogleDriveSnapshotV2Provider({
+      auth: new FakeAuth(), state,
+      fetch: async (_url, init = {}) => {
+        requestedRange = (init.headers as Record<string, string>).Range;
+        return response(206, {}, bytes.slice(partial.byteLength));
+      },
+      sleep: async () => {}, random: () => 0,
+    });
+
+    await expect(app.downloadMedia(vaultId, hash, {
+      byteLength: async () => partial.byteLength,
+      appendAndSync: async (chunk) => {
+        const next = new Uint8Array(partial.byteLength + chunk.byteLength);
+        next.set(partial);
+        next.set(chunk, partial.byteLength);
+        partial = next;
+      },
+      reset: async () => { partial = new Uint8Array(); },
+      verifyAndPromote: async (expectedBytes, expectedHash) => {
+        expect(partial).toEqual(bytes);
+        expect(expectedBytes).toBe(bytes.byteLength);
+        expect(expectedHash).toBe(hash);
+        promoted = true;
+      },
+    })).resolves.toBe(true);
+    expect(requestedRange).toBe('bytes=9-');
+    expect(promoted).toBe(true);
+  });
+
+  test('a server that ignores a media Range request resets the partial before appending', async () => {
+    const state = new MemoryDriveV2ProviderStateStore();
+    const bytes = new TextEncoder().encode('synthetic-range-reset-media');
+    const hash = sha256BytesV2(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    state.upsertFile(vaultId, {
+      fileId: 'media-range-reset', logicalKey: key, kind: 'media',
+      contentSha256: hash, byteCount: bytes.byteLength, createdAt: 1, head: null,
+    });
+    let partial = new Uint8Array([1, 2, 3]);
+    let resets = 0;
+    const app = new GoogleDriveSnapshotV2Provider({
+      auth: new FakeAuth(), state,
+      fetch: async () => response(200, {}, bytes),
+      sleep: async () => {}, random: () => 0,
+    });
+    await expect(app.downloadMedia(vaultId, hash, {
+      byteLength: async () => partial.byteLength,
+      appendAndSync: async (chunk) => { partial = chunk.slice(); },
+      reset: async () => { resets += 1; partial = new Uint8Array(); },
+      verifyAndPromote: async () => { expect(partial).toEqual(bytes); },
+    })).resolves.toBe(true);
+    expect(resets).toBe(1);
+  });
+
+  test('the 200 MiB media boundary remains chunk-bounded in both directions', async () => {
+    const byteCount = 200 * 1024 * 1024;
+    const hash = 'a'.repeat(64);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    const sessionUri = 'https://www.googleapis.com/upload/v7-200mib-session';
+    const uploadState = new MemoryDriveV2ProviderStateStore();
+    let maximumUploadBody = 0;
+    let uploaded = 0;
+    const uploadFetch: DriveV2FetchLike = async (url, init = {}) => {
+      if (url.includes('uploadType=resumable') && init.method === 'POST') {
+        return response(200, {}, undefined, { location: sessionUri });
+      }
+      if (url !== sessionUri) throw new Error(`Unexpected request ${url}`);
+      const body = init.body as Uint8Array;
+      maximumUploadBody = Math.max(maximumUploadBody, body.byteLength);
+      uploaded += body.byteLength;
+      if (uploaded < byteCount) return response(308, {}, undefined, {
+        range: `bytes=0-${uploaded - 1}`,
+      });
+      return response(200, {
+        id: 'media-200mib', name: key, size: String(byteCount),
+        createdTime: '2026-08-15T00:00:00.000Z', sha256Checksum: hash,
+        appProperties: {
+          tb_v2_vault: vaultId, tb_v2_key: driveV2MetadataKey(key),
+          tb_v2_hash: hash, tb_v2_kind: 'media',
+        },
+      });
+    };
+    const uploadProvider = new GoogleDriveSnapshotV2Provider({
+      auth: new FakeAuth(), state: uploadState, fetch: uploadFetch,
+      sleep: async () => {}, random: () => 0,
+    });
+    let maximumRead = 0;
+    await uploadProvider.uploadMedia(vaultId, hash, {
+      byteLength: byteCount,
+      contentHash: hash,
+      read: async (_offset, length) => {
+        maximumRead = Math.max(maximumRead, length);
+        return new Uint8Array(length);
+      },
+    });
+    expect(uploaded).toBe(byteCount);
+    expect(maximumRead).toBe(8 * 1024 * 1024);
+    expect(maximumUploadBody).toBe(8 * 1024 * 1024);
+
+    const downloadState = new MemoryDriveV2ProviderStateStore();
+    downloadState.upsertFile(vaultId, {
+      fileId: 'media-200mib', logicalKey: key, kind: 'media',
+      contentSha256: hash, byteCount, createdAt: 1, head: null,
+    });
+    let delivered = 0;
+    const oneMiB = 1024 * 1024;
+    const downloadResponse: DriveV2ResponseLike = {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: {
+        getReader: () => ({
+          read: async () => delivered === byteCount
+            ? { done: true }
+            : (() => {
+                const length = Math.min(oneMiB, byteCount - delivered);
+                delivered += length;
+                return { done: false, value: new Uint8Array(length) };
+              })(),
+        }),
+      },
+      json: async () => ({}),
+      arrayBuffer: async () => { throw new Error('whole-media arrayBuffer forbidden'); },
+    };
+    const downloadProvider = new GoogleDriveSnapshotV2Provider({
+      auth: new FakeAuth(), state: downloadState,
+      fetch: async () => downloadResponse,
+      sleep: async () => {}, random: () => 0,
+    });
+    let persisted = 0;
+    let maximumAppend = 0;
+    await expect(downloadProvider.downloadMedia(vaultId, hash, {
+      byteLength: async () => persisted,
+      appendAndSync: async (chunk) => {
+        maximumAppend = Math.max(maximumAppend, chunk.byteLength);
+        persisted += chunk.byteLength;
+      },
+      reset: async () => { persisted = 0; },
+      verifyAndPromote: async (expectedBytes, expectedHash) => {
+        expect(expectedBytes).toBe(byteCount);
+        expect(expectedHash).toBe(hash);
+      },
+    })).resolves.toBe(true);
+    expect(persisted).toBe(byteCount);
+    expect(maximumAppend).toBe(8 * 1024 * 1024);
   });
 
   test('revocation metadata is detected without downloading marker bodies', async () => {

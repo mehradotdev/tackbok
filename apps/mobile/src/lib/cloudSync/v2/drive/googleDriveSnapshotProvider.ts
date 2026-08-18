@@ -8,9 +8,11 @@ import type {
   ListedDeviceHeadV2,
   SnapshotObjectV2,
   SnapshotV2Provider,
+  V2MediaDownloadSink,
+  V2MediaUploadSource,
   V2ProviderErrorCode,
 } from '../sync/types';
-import { V2ProviderError } from '../sync/types';
+import { V2MediaIntegrityError, V2ProviderError } from '../sync/types';
 import {
   driveV2ByteBucket,
   driveV2DurationBucket,
@@ -38,6 +40,7 @@ const FILE_FIELDS = 'id,name,size,createdTime,sha256Checksum,appProperties,trash
 const PAGE_SIZE = 1_000;
 const MEDIA_QUERY_GROUP = 50;
 const CHUNK_SIZE = 256 * 1024;
+const MEDIA_CHUNK_SIZE = 8 * 1024 * 1024;
 const MULTIPART_MAX_BYTES = 5 * 1024 * 1024;
 const SESSION_LIFETIME_MS = 6 * 24 * 60 * 60 * 1_000;
 const BASE_RETRY_DELAY_MS = 1_000;
@@ -473,19 +476,37 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
     return found;
   }
 
-  async uploadMedia(vaultId: string, blobHash: string, bytes: Uint8Array): Promise<void> {
-    if (sha256BytesV2(bytes) !== blobHash) {
-      throw new V2ProviderError('invalid-data', 'Media bytes do not match their blob hash');
+  async uploadMedia(
+    vaultId: string,
+    blobHash: string,
+    source: V2MediaUploadSource,
+  ): Promise<void> {
+    if (source.contentHash !== blobHash || !Number.isSafeInteger(source.byteLength) ||
+        source.byteLength < 0 || source.byteLength > SNAPSHOT_V2_CAPS.mediaByteSize) {
+      throw new V2ProviderError('invalid-data', 'Media source metadata is invalid');
     }
-    await this.putImmutable(vaultId, this.mediaKey(blobHash), 'media', bytes, this.now());
+    await this.putImmutableMedia(vaultId, this.mediaKey(blobHash), source, this.now());
   }
 
-  async downloadMedia(vaultId: string, blobHash: string): Promise<Uint8Array | null> {
+  async downloadMedia(
+    vaultId: string,
+    blobHash: string,
+    sink: V2MediaDownloadSink,
+  ): Promise<boolean> {
     const candidates = await this.filesForKey(vaultId, this.mediaKey(blobHash), 'media');
-    if (candidates.length === 0) return null;
+    if (candidates.length === 0) return false;
     this.assertImmutableCandidates(candidates);
-    const bytes = await this.downloadVerified(vaultId, candidates[0]);
-    return sha256BytesV2(bytes) === blobHash ? bytes : null;
+    const file = candidates[0];
+    if (file.contentSha256 !== blobHash || file.byteCount > SNAPSHOT_V2_CAPS.mediaByteSize) {
+      throw new V2ProviderError('invalid-data', 'Drive media metadata does not match its key');
+    }
+    try {
+      await this.downloadMediaToSink(vaultId, file, sink);
+      return true;
+    } catch (error) {
+      if (error instanceof V2MediaIntegrityError) return false;
+      throw error;
+    }
   }
 
   async listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]> {
@@ -752,6 +773,52 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
     }
   }
 
+  private async putImmutableMedia(
+    vaultId: string,
+    key: string,
+    source: V2MediaUploadSource,
+    createdAt: number,
+  ): Promise<void> {
+    const cached = this.state.listKey(vaultId, key).filter((file) => file.kind === 'media');
+    if (cached.length > 0) {
+      if (cached.some((file) => file.contentSha256 !== source.contentHash ||
+          file.byteCount !== source.byteLength)) {
+        throw new V2ProviderError('invalid-data', 'Immutable Drive key has conflicting content');
+      }
+      return;
+    }
+    try {
+      let uploaded: DriveFileV2;
+      if (source.byteLength <= MULTIPART_MAX_BYTES) {
+        const bytes = source.byteLength === 0
+          ? new Uint8Array()
+          : await source.read(0, source.byteLength);
+        if (bytes.byteLength !== source.byteLength) {
+          throw new V2ProviderError('invalid-data', 'Media source ended before its declared size');
+        }
+        if (sha256BytesV2(bytes) !== source.contentHash) {
+          throw new V2ProviderError('invalid-data', 'Media source content changed before upload');
+        }
+        uploaded = await this.multipartUpload(vaultId, key, 'media', bytes, 'create');
+      } else {
+        uploaded = await this.resumableUploadSource(vaultId, key, source);
+      }
+      const record = this.record(uploaded, 'media', null);
+      if (record.contentSha256 !== source.contentHash ||
+          record.byteCount !== source.byteLength) {
+        throw new V2ProviderError('invalid-data', 'Drive upload checksum does not match');
+      }
+      this.state.upsertFile(vaultId, { ...record, createdAt });
+    } catch (error) {
+      if (!(error instanceof V2ProviderError) || error.code !== 'transient') throw error;
+      const match = await this.reconcileAmbiguousWrite(
+        vaultId, key, 'media', source.contentHash, source.byteLength,
+      );
+      if (!match) throw error;
+      this.state.upsertFile(vaultId, this.record(match, 'media', null));
+    }
+  }
+
   private async reconcileAmbiguousWrite(
     vaultId: string,
     key: string,
@@ -884,6 +951,7 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
         uri,
         expiresAt: this.now() + SESSION_LIFETIME_MS,
         byteCount: bytes.byteLength,
+        uploadedBytes: 0,
       };
       this.state.setUploadSession(vaultId, session);
     }
@@ -908,6 +976,7 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
           { idempotent: true, accepted: final ? [200, 201] : [308] },
         );
         uploaded = end;
+        this.state.setUploadSession(vaultId, { ...session, uploadedBytes: uploaded });
         if (final) {
           this.state.deleteUploadSession(vaultId, key, hash);
           return parseDriveFile(await response.json());
@@ -920,6 +989,118 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
       throw error;
     }
     throw new V2ProviderError('transient', 'Drive resumable upload did not complete');
+  }
+
+  private async resumableUploadSource(
+    vaultId: string,
+    key: string,
+    source: V2MediaUploadSource,
+  ): Promise<DriveFileV2> {
+    const hash = source.contentHash;
+    let session = this.state.getUploadSession(vaultId, key, hash);
+    let uploaded = session?.uploadedBytes ?? 0;
+    if (session && (!isTrustedDriveV2ResumableUri(session.uri) ||
+        session.expiresAt <= this.now() || session.byteCount !== source.byteLength ||
+        uploaded < 0 || uploaded > source.byteLength)) {
+      this.state.deleteUploadSession(vaultId, key, hash);
+      session = null;
+      uploaded = 0;
+    }
+    if (session) {
+      try {
+        const status = await this.request(vaultId, 'resumable-chunk', session.uri, {
+          method: 'PUT',
+          headers: {
+            'Content-Length': '0',
+            'Content-Range': `bytes */${source.byteLength}`,
+          },
+        }, { idempotent: true, accepted: [200, 201, 308] });
+        if (status.status === 200 || status.status === 201) {
+          this.state.deleteUploadSession(vaultId, key, hash);
+          return parseDriveFile(await status.json());
+        }
+        const range = /^bytes=0-(\d+)$/.exec(status.headers.get('range') ?? '');
+        uploaded = range ? Number(range[1]) + 1 : 0;
+        if (uploaded > source.byteLength ||
+            (uploaded < source.byteLength && uploaded % (256 * 1024) !== 0)) {
+          this.state.deleteUploadSession(vaultId, key, hash);
+          throw new V2ProviderError('invalid-data', 'Drive returned an invalid upload offset');
+        }
+        session = { ...session, uploadedBytes: uploaded };
+        this.state.setUploadSession(vaultId, session);
+      } catch (error) {
+        if (!(error instanceof DriveV2RequestError) || ![404, 410].includes(error.status)) {
+          throw error;
+        }
+        this.state.deleteUploadSession(vaultId, key, hash);
+        session = null;
+        uploaded = 0;
+      }
+    }
+    if (!session) {
+      const response = await this.request(
+        vaultId,
+        'resumable-start',
+        `${UPLOAD_API}/files?uploadType=resumable&fields=${FILE_FIELDS}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+            'X-Upload-Content-Type': 'application/octet-stream',
+            'X-Upload-Content-Length': String(source.byteLength),
+          },
+          body: JSON.stringify(this.metadata(vaultId, key, 'media', hash)),
+        },
+        { idempotent: false },
+      );
+      const uri = response.headers.get('location');
+      if (!uri || !isTrustedDriveV2ResumableUri(uri)) {
+        throw new V2ProviderError('invalid-data', 'Drive returned an untrusted upload session');
+      }
+      session = {
+        logicalKey: key,
+        contentSha256: hash,
+        uri,
+        expiresAt: this.now() + SESSION_LIFETIME_MS,
+        byteCount: source.byteLength,
+        uploadedBytes: 0,
+      };
+      this.state.setUploadSession(vaultId, session);
+    }
+
+    try {
+      while (uploaded < source.byteLength) {
+        const requested = Math.min(MEDIA_CHUNK_SIZE, source.byteLength - uploaded);
+        const chunk = await source.read(uploaded, requested);
+        if (chunk.byteLength !== requested) {
+          throw new V2ProviderError('invalid-data', 'Media source ended before its declared size');
+        }
+        const end = uploaded + chunk.byteLength;
+        const final = end === source.byteLength;
+        const response = await this.request(vaultId, 'resumable-chunk', session.uri, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': String(chunk.byteLength),
+            'Content-Range': `bytes ${uploaded}-${end - 1}/${source.byteLength}`,
+          },
+          body: chunk,
+        }, { idempotent: true, accepted: final ? [200, 201] : [308] });
+        uploaded = end;
+        session = { ...session, uploadedBytes: uploaded };
+        this.state.setUploadSession(vaultId, session);
+        if (final) {
+          this.state.deleteUploadSession(vaultId, key, hash);
+          return parseDriveFile(await response.json());
+        }
+      }
+    } catch (error) {
+      if (error instanceof DriveV2RequestError && [404, 410].includes(error.status)) {
+        this.state.deleteUploadSession(vaultId, key, hash);
+      }
+      throw error;
+    }
+    throw new V2ProviderError('transient', 'Drive resumable media upload did not complete');
   }
 
   private async downloadVerified(
@@ -966,6 +1147,68 @@ export class GoogleDriveSnapshotV2Provider implements SnapshotV2Provider {
       throw new V2ProviderError('invalid-data', 'Drive download checksum does not match');
     }
     return bytes;
+  }
+
+  private async downloadMediaToSink(
+    vaultId: string,
+    file: DriveV2FileRecord,
+    sink: V2MediaDownloadSink,
+  ): Promise<void> {
+    let offset = await sink.byteLength();
+    if (offset > file.byteCount) {
+      await sink.reset();
+      offset = 0;
+    }
+    if (offset === file.byteCount) {
+      await sink.verifyAndPromote(file.byteCount, file.contentSha256);
+      return;
+    }
+    const response = await this.request(
+      vaultId,
+      'download',
+      `${API}/files/${encodeURIComponent(file.fileId)}?alt=media`,
+      offset > 0 ? { headers: { Range: `bytes=${offset}-` } } : {},
+      { idempotent: true, accepted: [206] },
+    );
+    if (offset > 0 && response.status === 200) {
+      await sink.reset();
+      offset = 0;
+    }
+    const pending: Uint8Array[] = [];
+    let pendingBytes = 0;
+    const flush = async () => {
+      if (pendingBytes === 0) return;
+      const combined = concatBytes(pending);
+      pending.length = 0;
+      pendingBytes = 0;
+      await sink.appendAndSync(combined);
+      offset += combined.byteLength;
+    };
+    if (!response.body) {
+      throw new V2ProviderError('transient', 'Drive did not provide a streaming media body');
+    }
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value?.byteLength) continue;
+      let consumed = 0;
+      while (consumed < value.byteLength) {
+        const accepted = Math.min(MEDIA_CHUNK_SIZE - pendingBytes, value.byteLength - consumed);
+        pending.push(value.subarray(consumed, consumed + accepted));
+        pendingBytes += accepted;
+        consumed += accepted;
+        if (pendingBytes === MEDIA_CHUNK_SIZE) await flush();
+      }
+    }
+    await flush();
+    if (offset !== file.byteCount) {
+      throw new V2ProviderError(
+        'transient',
+        `Drive media download stopped before its declared size`,
+      );
+    }
+    await sink.verifyAndPromote(file.byteCount, file.contentSha256);
   }
 
   private async queryFiles(vaultId: string, query: string): Promise<DriveFileV2[]> {

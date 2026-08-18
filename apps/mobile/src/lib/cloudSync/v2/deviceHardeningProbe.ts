@@ -63,9 +63,10 @@ export async function seedV7LargeMediaProductionProbe(
     throw new Error('Connect a disposable protocol-v2 cloud backup first');
   }
 
-  const source = new File(selectedFixtureUri);
-  if (!source.exists) throw new Error('Select the generated V7-5 200 MiB fixture first');
-  const inspected = await inspectLocalMediaFile(source.uri);
+  // Android's document picker returns a content:// URI. Pass it through to
+  // the native hasher and copier unchanged; constructing an Expo File from it
+  // incorrectly treats the URI as a path under the app document directory.
+  const inspected = await inspectLocalMediaFile(selectedFixtureUri);
   if (inspected.byteSize !== EXPECTED_BYTE_COUNT || inspected.sha256 !== EXPECTED_SHA256) {
     throw new Error('Selected file is not the frozen synthetic V7-5 200 MiB fixture');
   }
@@ -77,7 +78,7 @@ export async function seedV7LargeMediaProductionProbe(
   // 200 MiB gate fixture therefore exceeds the app heap before the production
   // streaming hasher can run. The legacy native relocation API streams the
   // copy in the filesystem module and keeps the bytes off the JS bridge.
-  await copyAsync({ from: source.uri, to: destination.uri });
+  await copyAsync({ from: selectedFixtureUri, to: destination.uri });
 
   const now = Date.now();
   await runInCloudSyncTransaction(async (tx) => {
@@ -128,7 +129,9 @@ export async function verifyV7LargeMediaProductionProbe(): Promise<VerifiedV7Lar
       elapsedMs: 0,
     };
   }
-  const file = new File(asset.local_uri);
+  const file = asset.local_uri.startsWith('file:') || asset.local_uri.startsWith('/')
+    ? new File(asset.local_uri)
+    : new File(Paths.document, asset.local_uri);
   if (!file.exists) {
     return {
       present: false,

@@ -130,6 +130,14 @@ export class V2LocalStorageError extends Error {
   }
 }
 
+/** A completed download failed its native size/hash check; safe to retry from zero. */
+export class V2MediaIntegrityError extends Error {
+  constructor(readonly errorClass: string) {
+    super(errorClass);
+    this.name = 'V2MediaIntegrityError';
+  }
+}
+
 export interface SnapshotV2Provider {
   listRevocations(vaultId: string): Promise<('backup-deleted' | 'journal-deleted')[]>;
   /** `refresh=false` is a cleanup-time read of the durable provider cache. */
@@ -148,10 +156,25 @@ export interface SnapshotV2Provider {
   ): Promise<boolean>;
   updateDeviceHead(vaultId: string, head: DeviceHeadV2): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
-  uploadMedia(vaultId: string, blobHash: string, bytes: Uint8Array): Promise<void>;
-  downloadMedia(vaultId: string, blobHash: string): Promise<Uint8Array | null>;
+  uploadMedia(vaultId: string, blobHash: string, source: V2MediaUploadSource): Promise<void>;
+  downloadMedia(vaultId: string, blobHash: string, sink: V2MediaDownloadSink): Promise<boolean>;
   listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]>;
   deleteSnapshot(vaultId: string, snapshotId: string): Promise<void>;
+}
+
+/** Random-access, bounded media source. No call may return more than `length` bytes. */
+export interface V2MediaUploadSource {
+  readonly byteLength: number;
+  readonly contentHash: string;
+  read(offset: number, length: number): Promise<Uint8Array>;
+}
+
+/** Durable partial-file sink used by restartable ranged downloads. */
+export interface V2MediaDownloadSink {
+  byteLength(): Promise<number>;
+  appendAndSync(bytes: Uint8Array): Promise<void>;
+  reset(): Promise<void>;
+  verifyAndPromote(expectedByteLength: number, expectedSha256: string): Promise<void>;
 }
 
 export interface CapturedJournalV2 {
@@ -173,8 +196,8 @@ export interface SnapshotV2JournalStore {
 
 export interface SnapshotV2MediaStore {
   hasVerified(blobHash: string): Promise<boolean>;
-  readVerified(blobHash: string): Promise<Uint8Array | null>;
-  writeVerified(blobHash: string, bytes: Uint8Array): Promise<void>;
+  openVerifiedSource(blobHash: string): Promise<V2MediaUploadSource | null>;
+  openDownloadSink(blobHash: string): Promise<V2MediaDownloadSink>;
 }
 
 export interface BaseShadowFileStore {

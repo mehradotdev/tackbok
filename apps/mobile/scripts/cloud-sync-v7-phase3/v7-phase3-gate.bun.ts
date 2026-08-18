@@ -7,7 +7,11 @@ import { SQLiteDriveV2ProviderStateStore } from '../../src/lib/cloudSync/v2/driv
 import type { V2SyncDatabase } from '../../src/lib/cloudSync/v2/sync/sqliteState';
 
 const databases: Database[] = [];
-const DRIVE_STATE_MIGRATIONS = ['0008_gorgeous_thor.sql', '0009_nebulous_bulldozer.sql']
+const DRIVE_STATE_MIGRATIONS = [
+  '0008_gorgeous_thor.sql',
+  '0009_nebulous_bulldozer.sql',
+  '0011_even_gargoyle.sql',
+]
   .map((name) => readFileSync(join(import.meta.dir, `../../src/drizzle/${name}`), 'utf8'))
   .join('\n')
   .replaceAll('--> statement-breakpoint', '');
@@ -57,7 +61,7 @@ describe('V7-3 durable Drive adapter state', () => {
     first.setUploadSession('vault-a', {
       logicalKey: 'snapshots/c.json.gz', contentSha256: 'c'.repeat(64),
       uri: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=local-test',
-      expiresAt: 1_000, byteCount: 6_000_000,
+      expiresAt: 1_000, byteCount: 6_000_000, uploadedBytes: 1_048_576,
     });
 
     const afterRestart = new SQLiteDriveV2ProviderStateStore(db, 'connection-a', () => 200);
@@ -67,7 +71,11 @@ describe('V7-3 durable Drive adapter state', () => {
     expect(afterRestart.listKind('vault-a', 'head')).toHaveLength(1);
     expect(afterRestart.getUploadSession(
       'vault-a', 'snapshots/c.json.gz', 'c'.repeat(64),
-    )).toMatchObject({ byteCount: 6_000_000, expiresAt: 1_000 });
+    )).toMatchObject({
+      byteCount: 6_000_000,
+      uploadedBytes: 1_048_576,
+      expiresAt: 1_000,
+    });
   });
 
   test('opaque connection and vault scopes prevent cached Drive state crossing accounts', () => {
@@ -104,4 +112,3 @@ describe('V7-3 durable Drive adapter state', () => {
     expect(state.loadDiscovery('vault-a').cursor).toBe('cursor-2');
   });
 });
-

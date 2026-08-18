@@ -1,6 +1,8 @@
 # Finding 0001: protocol-v2 large media crosses a whole-buffer boundary
 
-Status: **OPEN — blocks Bundle b1 acceptance, c1, and c2**
+Status: **CLOSED WITH OWNER EVIDENCE DISPOSITION — bounded real-Drive upload,
+interruption/resume, fresh restore, and frozen-hash verification passed on
+physical Android Debug; Wi-Fi-only evidence moved to the store-submission gate**
 Observed: 2026-08-15
 Evidence class: Android API-36 emulator, Debug build
 
@@ -54,3 +56,57 @@ and regression tests proving no whole-media `Uint8Array` is required. Then
 repeat the b1 upload/interruption/restore/Wi-Fi scenarios with the same frozen
 fixture. Do not proceed to v1 purge or retirement before owner review accepts
 that rerun.
+
+## Implementing-agent remediation — 2026-08-18
+
+- Media provider/store contracts now use random-access file sources and durable
+  partial-file sinks. Snapshot objects retain their separately capped byte-array
+  path.
+- Drive media upload keeps the existing one-request multipart path only below
+  its 5 MiB bound. Larger media is resumable, reads at most 8 MiB at the
+  server-confirmed offset, and checkpoints each acknowledged offset in SQLite
+  migration `0011_even_gargoyle.sql`.
+- Drive media download resumes with `Range` from the fsynced `.partial` file's
+  length. A server that ignores `Range` causes a safe reset. A response without
+  a streaming body is retried rather than falling back to whole-file
+  `arrayBuffer()`.
+- Android `fd.sync()` and iOS `F_FULLFSYNC` persist each bounded append. The
+  complete partial is hashed with `StreamingHashModule` and atomically renamed
+  only after size/hash verification; the parent directory is then fsynced.
+- A host regression drives 200 MiB in both directions with an 8 MiB maximum
+  source read/request/sink append and a forbidden whole-file `arrayBuffer()`.
+  Evidence is in
+  [`../evidence/2026-08-18-d1-host-tests.json`](../evidence/2026-08-18-d1-host-tests.json).
+
+These are host and compile claims. D1 is not accepted or closed until the
+existing API-36 production probe repeats upload, interruption/resume, restore,
+frozen-hash verification, and Wi-Fi-only behavior against real Drive without
+the earlier allocation failure.
+
+## Physical Android Debug rerun — 2026-08-18
+
+The owner ran the remediated production path on a physical Android API-33
+device using synthetic 200 MiB media and a disposable test credential. The
+beta Debug build passed the core boundary that previously failed:
+
+- production streaming hashing completed without materializing the complete
+  media object in JavaScript;
+- a force-stop after upload progress left a durable acknowledged offset, and
+  the relaunched app resumed from a later non-zero offset before completing the
+  exact 209,715,200-byte real-Drive object;
+- a force-stop during restore left a 16 MiB fsynced partial, and the relaunched
+  app resumed it at 24 MiB before atomic promotion;
+- a fresh restore returned to the journal with no captured Android or React
+  Native runtime error and with the app process still alive; and
+- the durable probe verified the restored 200 MiB fixture against the frozen
+  hash in 374 ms. No pending media or transfer session remained.
+
+The redacted measurements are recorded in
+[`../evidence/2026-08-18-android-physical-debug-d1.json`](../evidence/2026-08-18-android-physical-debug-d1.json).
+This is physical **Debug** functional evidence, not release-signed,
+performance, peak-memory, background, or power-loss evidence. The
+Wi-Fi-only-media scenario was not executed. The owner accepted the core D1
+transport result and moved that unexecuted scenario to the store-submission
+gate in
+[`../wifi-only-media-waiver.md`](../wifi-only-media-waiver.md). The waiver does
+not claim that Wi-Fi-only behavior passed.
