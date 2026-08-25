@@ -696,6 +696,7 @@ export const zhTW: Translations = {
   'Google Drive connected': '已連接 Google Drive',
   'Google Drive connection was not completed': '未完成 Google Drive 連線',
   'Google Drive could not be reached. Your changes remain safely queued.': '無法連線至 Google Drive。你的變更仍會安全地保留在佇列中。',
+  'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.': '照片和語音備忘錄正在等待 Wi-Fi。你的變更仍會安全地保留在佇列中。',
   'Google Drive disconnected on this device': '此裝置已中斷 Google Drive 連線',
   'Google Drive is busy. Try again shortly.': 'Google Drive 忙碌中，請稍後再試。',
   'Google Drive needs to be reconnected.': '需要重新連線 Google Drive。',
@@ -745,7 +746,7 @@ export const zhTW: Translations = {
   'Sync runs in safe batches. You can keep using Tackbok.':
     '同步會以安全批次執行。您可以繼續使用 Tackbok。',
   'Syncing…': '正在同步…',
-  'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.': '文字仍會使用行動數據同步。照片和語音備忘錄會等待 Wi-Fi。',
+  'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.': '只有文字的變更會使用行動數據同步。包含新照片或語音備忘錄的變更會等待 Wi-Fi。',
   'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.': '雲端副本和此裝置的日記將被永久刪除。其他裝置同步時會刪除各自的本機日記。',
   'The cloud copy will be permanently deleted after verification. Local journal data remains.': '驗證後將永久刪除雲端副本。本機日記資料會保留。',
   'This cloud backup was deleted. Local journal data remains on this device.': '此雲端備份已刪除。本機日記資料仍保留在此裝置上。',

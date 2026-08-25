@@ -1,18 +1,18 @@
 # Phase V7-5 gate
 
-Status: **OPEN — D1 is closed under the owner's 2026-08-18 evidence
-disposition; Bundle c1 is authorized but not performed, and c2 remains
-sequenced after c1.** D1's physical Android Debug real-Drive upload, forced
+Status: **OPEN — Bundle (a) and b1's v2 media retirement boundary are
+complete; Bundle c1 is authorized but not performed, c2 remains sequenced
+after c1, and b2 blocks store submission.** D1's physical Android Debug
+real-Drive upload, forced
 interruption/resume, fresh restore, and frozen-hash checks passed. Wi-Fi-only
-behavior was not tested and now blocks store submission rather than v1
-retirement. The earlier Android
+behavior subsequently passed a focused physical Android Debug cellular-hold
+and Wi-Fi-resume round; release-candidate confirmation still blocks store
+submission rather than v1 retirement. The earlier Android
 virtual-device run proved native hashing but reproduced the whole-buffer OOM.
 The replacement transport is bounded and restartable in host tests and has now
 crossed the former failure boundary on hardware. Bundle b2 hardware evidence
 remains blocking for store submission. No v1 test-vault purge or v6 retirement
 has been performed.
-Bundle b2 hardware evidence remains blocking for store submission. No v1
-test-vault purge or v6 retirement has been performed.
 
 ## Bundle (a): host preparation
 
@@ -88,9 +88,28 @@ test-vault purge or v6 retirement has been performed.
   former whole-buffer failure. See
   [`evidence/2026-08-18-android-physical-debug-d1.json`](./evidence/2026-08-18-android-physical-debug-d1.json).
 - [x] Owner accepts the focused physical Debug evidence for D1. The unexecuted
-  Wi-Fi-only scenario is explicitly moved to the store-submission gate by
-  [`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md); it is not claimed
-  as passing.
+  Wi-Fi-only scenario was initially moved to the store-submission gate by
+  [`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md). A later focused
+  physical Android Debug round passed the cellular hold and manual Wi-Fi resume;
+  see
+  [`evidence/2026-08-25-android-physical-debug-wifi-only.json`](./evidence/2026-08-25-android-physical-debug-wifi-only.json).
+- [x] The policy hold has its own `wifi-only-media` failure category and
+  localized message rather than masquerading as a Drive outage. Any online
+  network event now schedules a debounced pass, covering cellular-to-Wi-Fi
+  transitions. The Phase-V7-4 runtime gate proves this transition and all six
+  locale surfaces (7 tests / 106 assertions); the physical round proves the
+  specific hold message and manual Wi-Fi completion, not automatic completion.
+- [x] Reviewer regression follow-up: the pull path treats `wifi-only-media` as
+  a deferrable media-download policy hold, so a remote compressed snapshot is
+  still merged, applied, and safely published while its already-remote blob
+  remains pending locally. The V7-2 golden scenario exercises the exact error
+  code; authorization, integrity, and missing-media failures remain blocking.
+
+Owner confirmation 2026-08-25: the owner personally ran the ASUS API-33 D1
+round and confirms that the recorded upload interruption/resume, download
+resume, fresh restore, and frozen-hash verification reflect the observed run.
+The owner accepts the Debug evidence for D1, authorizes Bundle c1, and approves
+the scoped Wi-Fi-only evidence disposition.
 
 ## Bundle (b1): owner emulator/simulator evidence — partial
 
@@ -112,13 +131,21 @@ test-vault purge or v6 retirement has been performed.
 - [x] iOS simulator manual foreground sync completed and returned to `Up to
   date`. No restore, interruption, network, large-media, or kill-switch claim
   is made from that smoke.
-- [ ] A finalized `evidenceClass: emulator` Android report exercises the 200
-  MiB production hash/upload/restore boundary, 10,000-entry restore correctness,
-  forced Doze, network transitions, revocation recovery, and kill switch.
+- [ ] A finalized `evidenceClass: emulator` Android report exercises the
+  remaining 10,000-entry restore, forced Doze, network-transition, revocation-
+  recovery, and kill-switch matrix. The 200 MiB portion was instead completed
+  on physical Android Debug and dispositioned separately below.
 - [ ] An iOS simulator round exercises the applicable restore, interruption,
   network-transition, and kill-switch behavior, with simulator non-claims.
-- [ ] The 200 MiB v2 result is accepted before c2; failure reopens the streaming
-  design while the v1 reference implementation remains available.
+- [x] The physical Android Debug 200 MiB v2 result is owner-accepted before c2.
+  See
+  [`evidence/2026-08-18-android-physical-debug-d1.json`](./evidence/2026-08-18-android-physical-debug-d1.json)
+  and [`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md).
+- [x] A focused physical Android Debug run held synthetic media on cellular
+  with specific, truthful UI copy and completed after Wi-Fi returned. The owner
+  pressed **Sync now**, so automatic resumption remains a release-candidate
+  check. See
+  [`evidence/2026-08-25-android-physical-debug-wifi-only.json`](./evidence/2026-08-25-android-physical-debug-wifi-only.json).
 
 ## Bundle (b2): physical-device remainder — waived for development, blocks store submission
 
@@ -126,6 +153,10 @@ Owner disposition amended 2026-08-18: physical Android hardware became
 available for the focused D1 Debug run. That run is recorded above, but the
 following release, performance, power, background, and iOS items remain
 non-time-boxed and must pass before store submission:
+
+The focused D1 report uses a finding-specific `physical-debug` format and is
+redaction-guarded, but it does not satisfy Bundle b2. Final b2 evidence must
+still use the strict device-evidence schema and atomic finalization path.
 
 - [ ] Release-signed Android build passes native-module compilation/runtime,
   auth E2E, restore, interruption, external revocation, and recovery on a
@@ -160,7 +191,7 @@ destructive purge by itself.
 ## Bundle (c2): v6 production removal — blocked
 
 - [x] Bundle b1's real v2 200 MiB boundary passes and is owner-accepted; the
-  untested Wi-Fi-only policy is a store-submission obligation.
+  focused Wi-Fi-only policy behavior also passes on physical Android Debug.
 - [ ] Bundle c1 is accepted first.
 - [ ] A separate reviewable diff removes v1 production code.
 - [ ] Dependency audit with `--expect-retired` reports zero production-reachable
@@ -179,8 +210,10 @@ destructive purge by itself.
 - The pre-remediation 200 MiB v2 production path crossed a whole-`Uint8Array`
   boundary and failed on the API-36 emulator. The replacement passed physical
   Android Debug upload/download interruption, resume, restore, and frozen-hash
-  verification. Wi-Fi-policy success and trustworthy device timing/memory are
-  not claimed.
+  verification. A separate synthetic-voice-memo round passed cellular hold and
+  manual Wi-Fi resume on physical Android Debug. Automatic Wi-Fi resumption,
+  release-signed policy behavior, and trustworthy device timing/memory are not
+  claimed.
 - No v1 vault was queried, revoked, purged, or deleted. No OAuth grant was
   revoked. No v1 production/protocol/probe source was removed. The only v1
   production-source modification was the behavior-preserving Z1 extraction:

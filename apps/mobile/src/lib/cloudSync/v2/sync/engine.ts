@@ -457,7 +457,7 @@ export class SnapshotV2SyncEngine {
           // journal records a visible pending attachment and hydrates it in a
           // later bounded media pass. Integrity/auth failures remain blocking.
           if (!(error instanceof V2ProviderError) ||
-              !['transient', 'rate-limited'].includes(error.code)) throw error;
+              !['transient', 'rate-limited', 'wifi-only-media'].includes(error.code)) throw error;
         }
       } else if (!remotePresent && !localPresent) {
         // Apply the already-validated logical journal before pausing. This
@@ -724,7 +724,11 @@ export class SnapshotV2SyncEngine {
       this.stateStore.setRetryError(this.vaultId, this.deviceId, `provider-${error.code}`);
       return {
         status: 'retry',
-        reason: error.code === 'rate-limited' ? 'rate-limited' : 'transient',
+        reason: error.code === 'rate-limited'
+          ? 'rate-limited'
+          : error.code === 'wifi-only-media'
+            ? 'wifi-only-media'
+            : 'transient',
         actionableChanges: remaining,
       };
     }

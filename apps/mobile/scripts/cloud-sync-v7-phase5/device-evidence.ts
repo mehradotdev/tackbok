@@ -41,12 +41,12 @@ export interface V7DeviceEvidenceReport {
   releaseSigned: boolean;
   syntheticDataOnly: boolean;
   disposableCredentialOnly: boolean;
-  scenarios: Array<{
+  scenarios: {
     id: string;
     status: DeviceEvidenceStatus;
     durationMs: number | null;
     noteCodes: string[];
-  }>;
+  }[];
   measurements: {
     restore: {
       entryCount: number;

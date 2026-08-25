@@ -732,6 +732,8 @@ export const en = {
   'Google Drive connection was not completed': 'Google Drive connection was not completed',
   'Google Drive could not be reached. Your changes remain safely queued.':
     'Google Drive could not be reached. Your changes remain safely queued.',
+  'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.':
+    'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.',
   'Google Drive disconnected on this device': 'Google Drive disconnected on this device',
   'Google Drive is busy. Try again shortly.': 'Google Drive is busy. Try again shortly.',
   'Google Drive needs to be reconnected.': 'Google Drive needs to be reconnected.',
@@ -787,8 +789,8 @@ export const en = {
   'Sync runs in safe batches. You can keep using Tackbok.':
     'Sync runs in safe batches. You can keep using Tackbok.',
   'Syncing…': 'Syncing…',
-  'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.':
-    'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.',
+  'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.':
+    'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.',
   'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.':
     'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.',
   'The cloud copy will be permanently deleted after verification. Local journal data remains.':

@@ -710,6 +710,7 @@ export const ar: Translations = {
   'Google Drive connected': 'تم الاتصال بـ Google Drive',
   'Google Drive connection was not completed': 'لم يكتمل الاتصال بـ Google Drive',
   'Google Drive could not be reached. Your changes remain safely queued.': 'تعذر الوصول إلى Google Drive. ستظل تغييراتك في قائمة الانتظار بأمان.',
+  'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.': 'تنتظر الصور والمذكرات الصوتية شبكة Wi-Fi. ستظل تغييراتك في قائمة الانتظار بأمان.',
   'Google Drive disconnected on this device': 'تم قطع اتصال Google Drive على هذا الجهاز',
   'Google Drive is busy. Try again shortly.': 'Google Drive مشغول. حاول مرة أخرى بعد قليل.',
   'Google Drive needs to be reconnected.': 'يلزم إعادة الاتصال بـ Google Drive.',
@@ -759,7 +760,7 @@ export const ar: Translations = {
   'Sync runs in safe batches. You can keep using Tackbok.':
     'تعمل المزامنة على دفعات آمنة. يمكنك متابعة استخدام Tackbok.',
   'Syncing…': 'جارٍ المزامنة…',
-  'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.': 'تستمر مزامنة النص عبر بيانات الهاتف. تنتظر الصور والمذكرات الصوتية شبكة Wi-Fi.',
+  'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.': 'تتم مزامنة التغييرات النصية فقط عبر بيانات الهاتف. أما التغييرات التي تتضمن صورًا أو مذكرات صوتية جديدة فتنتظر شبكة Wi-Fi.',
   'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.': 'سيتم حذف النسخة السحابية ويوميات هذا الجهاز نهائيًا. ستحذف الأجهزة الأخرى يومياتها المحلية عند المزامنة.',
   'The cloud copy will be permanently deleted after verification. Local journal data remains.': 'سيتم حذف النسخة السحابية نهائيًا بعد التحقق. ستبقى بيانات اليوميات المحلية.',
   'This cloud backup was deleted. Local journal data remains on this device.': 'تم حذف هذه النسخة السحابية. ستبقى بيانات اليوميات المحلية على هذا الجهاز.',

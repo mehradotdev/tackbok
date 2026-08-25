@@ -54,13 +54,29 @@ function migratedDatabase(): BunV2Database {
 
 class FakePlatform implements RuntimePlatform {
   online = true;
+  private networkListener: ((online: boolean) => void) | null = null;
+  private timerCallback: (() => void) | null = null;
   addAppStateListener(): RuntimeSubscription { return { remove() {} }; }
-  addNetworkListener(): RuntimeSubscription { return { remove() {} }; }
+  addNetworkListener(listener: (online: boolean) => void): RuntimeSubscription {
+    this.networkListener = listener;
+    return {
+      remove: () => {
+        if (this.networkListener === listener) this.networkListener = null;
+      },
+    };
+  }
   async getNetworkOnline() { return this.online; }
-  setTimer(): ReturnType<typeof setTimeout> {
+  setTimer(callback: () => void): ReturnType<typeof setTimeout> {
+    this.timerCallback = callback;
     return 1 as unknown as ReturnType<typeof setTimeout>;
   }
-  clearTimer() {}
+  clearTimer() { this.timerCallback = null; }
+  emitNetwork(online: boolean) { this.networkListener?.(online); }
+  fireTimer() {
+    const callback = this.timerCallback;
+    this.timerCallback = null;
+    callback?.();
+  }
 }
 
 afterEach(() => {
@@ -121,8 +137,42 @@ describe('Phase V7-4 production runtime gate', () => {
     runtime.stop();
   });
 
+  test('an online transport change retries queued Wi-Fi-only work', async () => {
+    const platform = new FakePlatform();
+    let passes = 0;
+    let resolveSecondPass!: () => void;
+    const secondPass = new Promise<void>((resolve) => { resolveSecondPass = resolve; });
+    const runtime = new SyncRuntime({
+      platform,
+      debounceMs: 0,
+      readiness: { isReady: async () => true, retryBackfill: async () => undefined },
+      createEngine: async () => ({
+        provider: { kind: 'google-drive' as const },
+        sync: async () => {
+          passes += 1;
+          if (passes === 2) resolveSecondPass();
+          return { pulled: 0, pushed: 0 };
+        },
+      }),
+    });
+    await runtime.start();
+    expect(passes).toBe(1);
+
+    // Both cellular and Wi-Fi are coarsely "online". The network event still
+    // represents a transport change and must schedule another pass.
+    platform.emitNetwork(true);
+    platform.fireTimer();
+    await secondPass;
+    expect(passes).toBe(2);
+    runtime.stop();
+  });
+
   test('every durable Attention reason has localized visible copy and an action route', async () => {
     const screen = await Bun.file(join(mobileRoot, 'src/screens/cloudBackup/index.tsx')).text();
+    const productionUi = await Bun.file(join(
+      mobileRoot,
+      'src/lib/cloudSync/ui/production.ts',
+    )).text();
     const localePaths = [
       'en.ts', 'de.ts', 'ar.ts', 'he.ts', 'zh-CN.ts', 'zh-TW.ts',
     ].map((file) => join(mobileRoot, 'src/lib/i18n/translations', file));
@@ -138,9 +188,30 @@ describe('Phase V7-4 production runtime gate', () => {
       expect(locale).toContain("'Cloud backup retry completed'");
       expect(locale).toContain("'Reconnect Google Drive'");
       expect(locale).toContain("'Verify backup health'");
+      expect(locale).toContain(
+        "'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.'",
+      );
+      expect(locale).toContain(
+        "'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.'",
+      );
     }
     expect(screen).toContain('accessibilityRole="alert"');
     expect(screen).toContain('accessibilityLiveRegion="polite"');
+    const attachmentRetry = screen.slice(
+      screen.indexOf("if (action === 'locate-retry-attachment')"),
+      screen.indexOf('await runAction(', screen.indexOf("if (action === 'locate-retry-attachment')")) +
+        180,
+    );
+    expect(attachmentRetry).toContain('retryV2AttentionReason(reason)');
+    expect(attachmentRetry).not.toContain("router.push('/settings')");
+    const retryHelper = productionUi.slice(
+      productionUi.indexOf('export async function retryV2AttentionReason'),
+      productionUi.indexOf('\n}', productionUi.indexOf(
+        'export async function retryV2AttentionReason',
+      )) + 2,
+    );
+    expect(retryHelper).toContain("set({ status: 'dirty'");
+    expect(retryHelper).not.toContain("vault.status !== 'paused'");
   });
 
   test('production wiring is v2-selective, keeps v6 present, and requests no notifications', async () => {
@@ -159,6 +230,8 @@ describe('Phase V7-4 production runtime gate', () => {
     expect(source).toContain('journal_generation: shouldPublishLocal');
     expect(source).not.toContain('expo-notifications');
     expect(source).not.toMatch(/request.*Notification.*Permission/i);
+    expect(source).toContain("new V2ProviderError('wifi-only-media'");
+    expect(source).toContain("case 'wifi-only-media':");
     expect(existsSync(join(mobileRoot, 'src/lib/cloudSync/protocol'))).toBe(true);
     expect(existsSync(join(mobileRoot, 'src/lib/cloudSync/phase0'))).toBe(true);
     expect(existsSync(join(mobileRoot, 'src/lib/cloudSync/phase3'))).toBe(true);

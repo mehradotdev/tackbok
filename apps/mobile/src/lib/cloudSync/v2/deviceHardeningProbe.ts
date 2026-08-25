@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, or } from 'drizzle-orm';
 import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 import { copyAsync } from 'expo-file-system/legacy';
@@ -35,11 +35,100 @@ export interface VerifiedV7LargeMediaProbe {
   elapsedMs: number;
 }
 
+export interface RedactedPendingMediaDiagnostic {
+  pendingCount: number;
+  candidates: {
+    index: number;
+    kind: string;
+    uriClass: 'content' | 'file' | 'absolute' | 'document-relative';
+    directoryClass: 'voice-memos' | 'photos' | 'probe' | 'other';
+    fileExists: boolean | null;
+    nativeInspection: 'passed' | 'failed';
+    byteCount: number | null;
+  }[];
+}
+
 export function isV7DeviceHardeningProbeEnabled(): boolean {
   const cloudSync = Constants.expoConfig?.extra?.cloudSync as {
     deviceProbesEnabled?: unknown;
   } | undefined;
   return __DEV__ || cloudSync?.deviceProbesEnabled === true;
+}
+
+function classifyLocalUri(uri: string): Pick<
+  RedactedPendingMediaDiagnostic['candidates'][number],
+  'uriClass' | 'directoryClass'
+> {
+  const uriClass = uri.startsWith('content:')
+    ? 'content'
+    : uri.startsWith('file:')
+      ? 'file'
+      : uri.startsWith('/')
+        ? 'absolute'
+        : 'document-relative';
+  const directoryClass = uri.includes('voice_memos/')
+    ? 'voice-memos'
+    : uri.includes('photos/')
+      ? 'photos'
+      : uri.includes('cloud-sync-v7-phase5-probes/')
+        ? 'probe'
+        : 'other';
+  return { uriClass, directoryClass };
+}
+
+/**
+ * DEV-only, redacted diagnosis for media that blocks production hashing.
+ * It deliberately exposes no URI, asset/owner ID, digest, account value, or
+ * native exception text.
+ */
+export async function diagnosePendingV7Media(): Promise<RedactedPendingMediaDiagnostic> {
+  if (!isV7DeviceHardeningProbeEnabled()) {
+    throw new Error('V7-5 media diagnosis is disabled in this build');
+  }
+  const rows = await db.select({
+    kind: mediaAssets.kind,
+    localUri: mediaAssets.local_uri,
+  }).from(mediaAssets).where(and(
+    isNotNull(mediaAssets.local_uri),
+    or(isNull(mediaAssets.blob_hash), isNull(mediaAssets.byte_size)),
+  )).limit(10);
+
+  const candidates = await Promise.all(rows.map(async (row, index) => {
+    const uri = row.localUri!;
+    const classification = classifyLocalUri(uri);
+    let fileExists: boolean | null = null;
+    if (classification.uriClass !== 'content') {
+      try {
+        const file = classification.uriClass === 'document-relative'
+          ? new File(Paths.document, uri)
+          : new File(uri);
+        fileExists = file.exists;
+      } catch {
+        fileExists = false;
+      }
+    }
+    try {
+      const inspected = await inspectLocalMediaFile(uri);
+      return {
+        index,
+        kind: row.kind,
+        ...classification,
+        fileExists,
+        nativeInspection: 'passed' as const,
+        byteCount: inspected.byteSize,
+      };
+    } catch {
+      return {
+        index,
+        kind: row.kind,
+        ...classification,
+        fileExists,
+        nativeInspection: 'failed' as const,
+        byteCount: null,
+      };
+    }
+  }));
+  return { pendingCount: rows.length, candidates };
 }
 
 /**

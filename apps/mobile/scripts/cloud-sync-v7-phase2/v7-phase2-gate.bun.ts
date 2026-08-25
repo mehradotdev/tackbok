@@ -724,7 +724,7 @@ describe('V7-2 durable publisher', () => {
     expect(app.provider.snapshotIds(app.vaultId)).toEqual([]);
   });
 
-  test('remote text restores and publishes while a verified remote blob waits for Wi-Fi', async () => {
+  test('remote text restores and publishes when Wi-Fi-only policy defers its verified blob', async () => {
     const provider = new FakeSnapshotV2Provider();
     const bytes = new TextEncoder().encode('synthetic-remote-photo');
     const blobHash = sha256BytesV2(bytes);
@@ -742,7 +742,10 @@ describe('V7-2 durable publisher', () => {
     const restoring = harness(
       'device-media-restore', blankDomain(), provider, source.clock, source.vaultId,
     );
-    provider.failNext('download-media', new V2ProviderError('transient', 'waiting-for-wifi'));
+    provider.failNext(
+      'download-media',
+      new V2ProviderError('wifi-only-media', 'waiting-for-wifi'),
+    );
     expect(await restoring.engine().sync()).toMatchObject({
       status: 'published', actionableChanges: 0,
     });
@@ -750,6 +753,7 @@ describe('V7-2 durable publisher', () => {
       expect.objectContaining({ entryId: 'entry-remote-media', content: 'Restored text' }),
     );
     expect(await restoring.media.hasVerified(blobHash)).toBe(false);
+    expect(restoring.provider.requests).toContain('download-media');
   });
 
   test('an actually absent remote blob still restores text before durable Attention', async () => {

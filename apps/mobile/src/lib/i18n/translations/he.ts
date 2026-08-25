@@ -708,6 +708,7 @@ export const he: Translations = {
   'Google Drive connected': 'Google Drive מחובר',
   'Google Drive connection was not completed': 'החיבור ל-Google Drive לא הושלם',
   'Google Drive could not be reached. Your changes remain safely queued.': 'לא ניתן להגיע אל Google Drive. השינויים שלך יישארו בתור בבטחה.',
+  'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.': 'תמונות ותזכירים קוליים ממתינים ל-Wi-Fi. השינויים שלך יישארו בתור בבטחה.',
   'Google Drive disconnected on this device': 'Google Drive נותק במכשיר הזה',
   'Google Drive is busy. Try again shortly.': 'Google Drive עמוס. יש לנסות שוב בעוד זמן קצר.',
   'Google Drive needs to be reconnected.': 'יש לחבר מחדש את Google Drive.',
@@ -757,7 +758,7 @@ export const he: Translations = {
   'Sync runs in safe batches. You can keep using Tackbok.':
     'הסנכרון פועל באצוות בטוחות. אפשר להמשיך להשתמש ב-Tackbok.',
   'Syncing…': 'מסנכרן…',
-  'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.': 'הטקסט ממשיך להסתנכרן בנתונים סלולריים. תמונות ותזכירים קוליים ממתינים ל-Wi-Fi.',
+  'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.': 'שינויים טקסטואליים בלבד מסתנכרנים דרך נתונים סלולריים. שינויים עם תמונות או תזכירים קוליים חדשים ממתינים ל-Wi-Fi.',
   'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.': 'העותק בענן והיומן במכשיר הזה יימחקו לצמיתות. מכשירים אחרים ימחקו את היומן המקומי שלהם בסנכרון.',
   'The cloud copy will be permanently deleted after verification. Local journal data remains.': 'העותק בענן יימחק לצמיתות לאחר אימות. נתוני היומן המקומיים יישארו.',
   'This cloud backup was deleted. Local journal data remains on this device.': 'הגיבוי הזה בענן נמחק. נתוני היומן המקומיים נשארים במכשיר הזה.',

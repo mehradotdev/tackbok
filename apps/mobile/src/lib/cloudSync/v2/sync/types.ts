@@ -104,6 +104,7 @@ export type V2ProviderErrorCode =
   | 'quota-full'
   | 'permission-denied'
   | 'rate-limited'
+  | 'wifi-only-media'
   | 'transient'
   | 'invalid-data';
 
@@ -247,7 +248,11 @@ export type V2SyncResult =
   | { status: 'up-to-date'; actionableChanges: 0 }
   | { status: 'published'; snapshotId: string; actionableChanges: number }
   | { status: 'attention'; reason: V2AttentionReason; actionableChanges: number }
-  | { status: 'retry'; reason: 'rate-limited' | 'transient'; actionableChanges: number };
+  | {
+      status: 'retry';
+      reason: 'rate-limited' | 'wifi-only-media' | 'transient';
+      actionableChanges: number;
+    };
 
 export interface BaseShadowV1 {
   format: 'tackbok-base-shadow';

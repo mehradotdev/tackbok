@@ -1,0 +1,36 @@
+{
+  "format": "tackbok-v7-wifi-only-media-focused-report",
+  "formatVersion": 1,
+  "capturedAt": "2026-08-25T15:37:18+05:30",
+  "evidenceClass": "physical-debug-focused",
+  "platform": "android",
+  "apiLevel": 33,
+  "physicalDevice": true,
+  "releaseSigned": false,
+  "syntheticDataAttested": true,
+  "disposableIdentityAttested": true,
+  "scenario": {
+    "wifiOnlySettingEnabled": true,
+    "cellularHold": {
+      "ownerObserved": true,
+      "policySpecificMessageShown": true,
+      "queuedWorkPreserved": true,
+      "providerOutageMessageShown": false
+    },
+    "wifiResume": {
+      "ownerObserved": true,
+      "manualSyncPressed": true,
+      "completionToastShown": true,
+      "durationBucket": "10-60s",
+      "implementingAgentObservedFinalStatus": "up-to-date",
+      "implementingAgentObservedValidatedWifi": true
+    }
+  },
+  "nonClaims": [
+    "not-release-signed",
+    "automatic-resume-not-observed-on-device",
+    "not-a-200-mib-policy-run",
+    "no-device-timing-or-memory-claim",
+    "does-not-satisfy-the-strict-bundle-b2-schema"
+  ]
+}

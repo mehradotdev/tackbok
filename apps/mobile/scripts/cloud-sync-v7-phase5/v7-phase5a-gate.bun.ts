@@ -161,6 +161,10 @@ describe('Phase V7-5(a) host-preparation gate', () => {
     expect(probe).toContain('await copyAsync({ from: selectedFixtureUri, to: destination.uri })');
     expect(probe).not.toContain('new File(selectedFixtureUri)');
     expect(probe).toContain("new File(Paths.document, asset.local_uri)");
+    expect(probe).toContain('export async function diagnosePendingV7Media');
+    expect(probe).toContain('nativeInspection');
+    expect(probe).not.toContain('exceptionText');
+    expect(probe).not.toContain('assetId: row.asset_id');
     const streamingHash = readFileSync(join(
       mobileRoot,
       'src/lib/cloudSync/media/streamingHash.ts',
@@ -228,6 +232,27 @@ describe('Phase V7-5(a) host-preparation gate', () => {
       'docs/cloud-sync/v7-phase5/evidence/2026-08-18-android-physical-debug-d1.json',
     ), 'utf8'));
     expect(() => assertDriveV2ReportIsRedacted(d1PhysicalDebugEvidence)).not.toThrow();
+    const wifiOnlyPhysicalDebugEvidence: unknown = JSON.parse(readFileSync(join(
+      mobileRoot,
+      'docs/cloud-sync/v7-phase5/evidence/2026-08-25-android-physical-debug-wifi-only.json',
+    ), 'utf8'));
+    expect(() => assertDriveV2ReportIsRedacted(wifiOnlyPhysicalDebugEvidence)).not.toThrow();
+    expect(wifiOnlyPhysicalDebugEvidence).toMatchObject({
+      evidenceClass: 'physical-debug-focused',
+      physicalDevice: true,
+      releaseSigned: false,
+      scenario: {
+        cellularHold: {
+          policySpecificMessageShown: true,
+          queuedWorkPreserved: true,
+        },
+        wifiResume: {
+          manualSyncPressed: true,
+          completionToastShown: true,
+          implementingAgentObservedFinalStatus: 'up-to-date',
+        },
+      },
+    });
     const wifiWaiver = readFileSync(join(
       mobileRoot,
       'docs/cloud-sync/v7-phase5/wifi-only-media-waiver.md',

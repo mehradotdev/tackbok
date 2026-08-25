@@ -112,7 +112,7 @@ class MediaPolicyProvider implements SnapshotV2Provider {
     if (!useSettingsStore.getState().cloudSyncWifiOnlyMedia) return;
     const network = await Network.getNetworkStateAsync();
     if (network.type !== Network.NetworkStateType.WIFI) {
-      throw new V2ProviderError('transient', 'Media is waiting for Wi-Fi');
+      throw new V2ProviderError('wifi-only-media', 'Media is waiting for Wi-Fi');
     }
   }
 }
@@ -182,7 +182,13 @@ export class ProductionV2RuntimeEngine implements RuntimeSyncEngine {
       throw new V2RuntimeFailure(failureCategory(result.reason));
     }
     if (result.status === 'retry') {
-      throw new V2RuntimeFailure(result.reason === 'rate-limited' ? 'rate-limit' : 'transient');
+      throw new V2RuntimeFailure(
+        result.reason === 'rate-limited'
+          ? 'rate-limit'
+          : result.reason === 'wifi-only-media'
+            ? 'wifi-only-media'
+            : 'transient',
+      );
     }
 
     let hydrated = 0;
@@ -201,7 +207,7 @@ export class ProductionV2RuntimeEngine implements RuntimeSyncEngine {
     } catch (error) {
       if (error instanceof V2RuntimeFailure) throw error;
       if (error instanceof V2ProviderError &&
-          ['transient', 'rate-limited'].includes(error.code)) {
+          ['transient', 'rate-limited', 'wifi-only-media'].includes(error.code)) {
         // Metadata/text sync has completed. Media remains visibly pending and
         // will retry on a later foreground pass or when Wi-Fi is available.
       } else if (error instanceof V2ProviderError) {

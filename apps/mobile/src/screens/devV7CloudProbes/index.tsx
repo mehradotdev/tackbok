@@ -13,6 +13,7 @@ import {
 } from '~/lib/cloudSync/v2/drive/probeRunner';
 import type { DriveV2ProbeReport } from '~/lib/cloudSync/v2/drive/probeReport';
 import {
+  diagnosePendingV7Media,
   isV7DeviceHardeningProbeEnabled,
   seedV7LargeMediaProductionProbe,
   verifyV7LargeMediaProductionProbe,
@@ -36,6 +37,7 @@ export default function DevV7CloudProbesScreen() {
   const [saved, setSaved] = useState(false);
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
+  const [mediaDiagnostic, setMediaDiagnostic] = useState<string | null>(null);
 
   const run = useCallback(async (authorization: 'interactive' | 'stored' = 'interactive') => {
     setBusy(true);
@@ -151,6 +153,27 @@ export default function DevV7CloudProbesScreen() {
         }}>
         <Text>Verify restored v2 200 MiB media</Text>
       </Button>
+
+      <Button
+        className="mt-3"
+        disabled={seedBusy || busy}
+        variant="outline"
+        onPress={() => {
+          setSeedBusy(true);
+          setMediaDiagnostic(null);
+          void diagnosePendingV7Media()
+            .then((result) => setMediaDiagnostic(JSON.stringify(result)))
+            .catch(() => setMediaDiagnostic('Redacted media diagnosis failed.'))
+            .finally(() => setSeedBusy(false));
+        }}>
+        <Text>Diagnose pending media (redacted)</Text>
+      </Button>
+
+      {mediaDiagnostic && (
+        <Text className="text-muted-foreground font-mono text-xs pt-2">
+          {mediaDiagnostic}
+        </Text>
+      )}
 
       {error && <Text className="text-destructive text-sm pt-3">Failed: {error}</Text>}
       {saved && (

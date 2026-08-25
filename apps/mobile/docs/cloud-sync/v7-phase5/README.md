@@ -25,10 +25,12 @@ pre-remediation v2 upload materialized the full 200 MiB file and failed on the
 API-36 emulator. The replacement passed real-Drive upload and download
 interruption/resume, fresh restore, and frozen-hash verification on a physical
 Android API-33 device. The owner accepted that transport evidence and moved the
-untested Wi-Fi-only behavior to the store-submission gate in
-[`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md). Bundle c1 is now
-authorized; retirement remains sequenced after c1 and must be a separate
-reviewed diff.
+then-untested Wi-Fi-only behavior to the store-submission gate in
+[`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md). A 2026-08-25
+physical Android Debug follow-up subsequently passed the cellular hold and
+manual Wi-Fi completion with synthetic media. Automatic resume and a strict
+release-candidate run remain Bundle-b2 obligations. Bundle c1 is authorized;
+retirement remains sequenced after c1 and must be a separate reviewed diff.
 
 ## Start here
 
@@ -40,7 +42,8 @@ reviewed diff.
 - [`device-round-checklist.md`](./device-round-checklist.md) — owner-run Android
   and iOS procedure.
 - [`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md) — narrow owner
-  disposition moving the unexecuted policy check to store submission.
+  disposition and its later physical Android Debug follow-up; strict release
+  evidence remains at store submission.
 - [`v1-purge-retirement-checklist.md`](./v1-purge-retirement-checklist.md) —
   sequenced but deliberately not executable until device evidence is accepted.
 - [`templates/`](./templates/) — non-evidence report templates. A report enters

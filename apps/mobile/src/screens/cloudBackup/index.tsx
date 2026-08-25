@@ -147,6 +147,10 @@ function cloudSyncFailureMessage(
       return t('Google Drive is busy. Try again shortly.');
     case 'offline':
       return t('No internet connection. Your changes remain safely queued.');
+    case 'wifi-only-media':
+      return t(
+        'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.',
+      );
     case 'corrupt':
       return t('This cloud backup contains data Tackbok cannot read.');
     case 'transient':
@@ -406,9 +410,16 @@ export default function CloudBackupScreen() {
       }
       return;
     }
-    if (action === 'export-repair-backup' || action === 'locate-retry-attachment') {
+    if (action === 'export-repair-backup') {
       router.push('/settings');
       toast.warning(t('Export or repair the affected journal data, then return and retry.'));
+      return;
+    }
+    if (action === 'locate-retry-attachment') {
+      await runAction(
+        () => retryV2AttentionReason(reason),
+        t('Cloud backup retry completed'),
+      );
       return;
     }
     await runAction(
@@ -635,13 +646,13 @@ export default function CloudBackupScreen() {
                   icon={Wifi}
                   label={t('Wi-Fi only for media')}
                   description={t(
-                    'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.',
+                    'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.',
                   )}
                   onPress={() => setWifiOnly(!wifiOnly)}
                   role="switch"
                   accessibilityLabel={t('Wi-Fi only for media')}
                   accessibilityHint={t(
-                    'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.',
+                    'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.',
                   )}
                   accessibilityState={{ checked: wifiOnly }}
                   className="rounded-none px-4"

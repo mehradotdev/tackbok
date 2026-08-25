@@ -75,6 +75,7 @@ export type CloudSyncFailureCategory =
   | 'quota'
   | 'rate-limit'
   | 'offline'
+  | 'wifi-only-media'
   | 'corrupt'
   | 'transient'
   | 'unknown';

@@ -52,7 +52,10 @@ export interface SyncRuntimeOptions {
 function failureCategory(error: unknown): CloudSyncFailureCategory {
   if (typeof error === 'object' && error !== null && 'category' in error) {
     const category = String((error as { category: unknown }).category);
-    if (['auth', 'quota', 'rate-limit', 'offline', 'corrupt', 'transient'].includes(category)) {
+    if (
+      ['auth', 'quota', 'rate-limit', 'offline', 'wifi-only-media', 'corrupt', 'transient']
+        .includes(category)
+    ) {
       return category as CloudSyncFailureCategory;
     }
   }
@@ -87,9 +90,11 @@ export class SyncRuntime {
         if (state === 'background') void this.runBoundedBackgroundPass('backgrounding');
       }),
       this.options.platform.addNetworkListener((nextOnline) => {
-        const restored = nextOnline && !this.wasOnline;
         this.wasOnline = nextOnline;
-        if (restored) this.schedule('connectivity-restored');
+        // Network listeners also fire for an online transport change, such as
+        // cellular -> Wi-Fi. That transition must retry Wi-Fi-only media even
+        // though the coarse online boolean remains true.
+        if (nextOnline) this.schedule('connectivity-restored');
       }),
     ];
     if (this.options.addMutationListener) {

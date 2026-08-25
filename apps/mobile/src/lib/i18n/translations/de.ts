@@ -754,6 +754,7 @@ export const de: Translations = {
   'Google Drive connected': 'Google Drive verbunden',
   'Google Drive connection was not completed': 'Google-Drive-Verbindung wurde nicht abgeschlossen',
   'Google Drive could not be reached. Your changes remain safely queued.': 'Google Drive konnte nicht erreicht werden. Deine Änderungen bleiben sicher in der Warteschlange.',
+  'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.': 'Fotos und Sprachnotizen warten auf WLAN. Deine Änderungen bleiben sicher in der Warteschlange.',
   'Google Drive disconnected on this device': 'Google Drive auf diesem Gerät getrennt',
   'Google Drive is busy. Try again shortly.': 'Google Drive ist ausgelastet. Versuche es gleich noch einmal.',
   'Google Drive needs to be reconnected.': 'Google Drive muss erneut verbunden werden.',
@@ -803,7 +804,7 @@ export const de: Translations = {
   'Sync runs in safe batches. You can keep using Tackbok.':
     'Die Synchronisierung erfolgt in sicheren Durchläufen. Du kannst Tackbok weiterverwenden.',
   'Syncing…': 'Synchronisierung läuft…',
-  'Text still syncs on mobile data. Photos and voice memos wait for Wi-Fi.': 'Text wird weiterhin über mobile Daten synchronisiert. Fotos und Sprachnotizen warten auf WLAN.',
+  'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.': 'Nur Textänderungen werden über mobile Daten synchronisiert. Änderungen mit neuen Fotos oder Sprachnotizen warten auf WLAN.',
   'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.': 'Die Cloud-Kopie und das Tagebuch dieses Geräts werden dauerhaft gelöscht. Andere Geräte löschen ihr lokales Tagebuch bei der Synchronisierung.',
   'The cloud copy will be permanently deleted after verification. Local journal data remains.': 'Die Cloud-Kopie wird nach der Prüfung dauerhaft gelöscht. Lokale Tagebuchdaten bleiben erhalten.',
   'This cloud backup was deleted. Local journal data remains on this device.': 'Diese Cloud-Sicherung wurde gelöscht. Lokale Tagebuchdaten bleiben auf diesem Gerät.',

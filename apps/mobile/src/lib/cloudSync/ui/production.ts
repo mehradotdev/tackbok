@@ -119,6 +119,7 @@ export type CloudSyncActionFailureCategory =
   | 'quota'
   | 'rate-limit'
   | 'offline'
+  | 'wifi-only-media'
   | 'corrupt'
   | 'transient'
   | 'unknown';
@@ -696,10 +697,12 @@ export async function retryV2AttentionReason(reason: V2AttentionReason): Promise
   if (!vault || vault.protocol_version !== 2) throw new Error('No protocol-v2 backup');
   const state = new SQLiteV2SyncStateStore(sqlite);
   state.clearPause(vault.vault_id, vault.device_id, reason);
-  if (vault.status !== 'paused') {
-    await db.update(cloudVault).set({ status: 'dirty', updated_at: Date.now() })
-      .where(eq(cloudVault.vault_id, vault.vault_id));
-  }
+  // Clearing the protocol pause without clearing the presentation-level vault
+  // status leaves Sync now disabled even when the attachment has become
+  // readable. A retry is actionable work, so always mark this v2 vault dirty
+  // before reconstructing the runtime.
+  await db.update(cloudVault).set({ status: 'dirty', updated_at: Date.now() })
+    .where(eq(cloudVault.vault_id, vault.vault_id));
   await restartProductionSyncRuntime();
   await syncNow();
 }
