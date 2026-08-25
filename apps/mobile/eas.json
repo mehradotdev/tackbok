@@ -17,23 +17,14 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "all"
-      }
-    },
-    "device-evidence": {
-      "distribution": "internal",
-      "channel": "device-evidence",
-      "env": {
-        "APP_VARIANT": "beta",
-        "TACKBOK_V7_DEVICE_PROBES": "1",
-        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "all"
+        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "on"
       }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "all"
+        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "on"
       }
     }
   },

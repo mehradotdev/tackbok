@@ -33,10 +33,6 @@ import {
   isProductionCloudSyncConfigured,
   setCloudSyncBackgroundTaskEnabled,
 } from '~/lib/cloudSync/runtime';
-import { installV7CanonicalProbeDeepLinkListener } from '~/lib/cloudSync/v2/deviceProbe';
-
-installV7CanonicalProbeDeepLinkListener();
-
 SplashScreen.preventAutoHideAsync();
 
 // Prime Uniwind before React mounts to limit flash. At module load,
@@ -241,13 +237,6 @@ export default function Layout() {
                 <Stack.Screen
                   name="cloud-backup"
                   options={{ title: 'Cloud Backup & Sync', headerShown: false }}
-                />
-                <Stack.Screen
-                  name="dev-diagnostics"
-                  options={{
-                    title: 'Phase-0 Diagnostics',
-                    headerShown: false,
-                  }}
                 />
               </Stack>
               <ReminderNavigationObserver />

@@ -2,7 +2,7 @@ import Darwin
 internal import ExpoModulesCore
 import Foundation
 
-/// ADR V7-0005 durability primitive: fully-synchronized temp writes and atomic rename.
+/// Durability primitive for fully-synchronized temporary writes and atomic rename.
 class AtomicFileModule: Module {
   func definition() -> ModuleDefinition {
     Name("AtomicFileModule")
@@ -22,7 +22,7 @@ class AtomicFileModule: Module {
       try handle.write(contentsOf: bytes)
       // fsync/FileHandle.synchronize can return before the storage hardware has
       // committed its cache on Apple platforms. F_FULLFSYNC is the documented
-      // power-loss durability primitive required by the V7-5 X3 obligation.
+      // power-loss durability primitive required for the atomic checkpoint.
       if Darwin.fcntl(handle.fileDescriptor, F_FULLFSYNC) != 0 {
         throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
       }

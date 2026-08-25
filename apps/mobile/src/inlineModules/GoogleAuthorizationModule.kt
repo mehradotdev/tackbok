@@ -27,15 +27,15 @@ private const val ERROR_NO_ACTIVITY = "E_GOOGLE_AUTH_NO_ACTIVITY"
 private const val ERROR_FAILED = "E_GOOGLE_AUTH_FAILED"
 
 /**
- * Free Android authorization binding chosen by ADR 0005. It requests only
- * Drive appData plus basic identity scopes and never requests offline/server
+ * Android authorization binding for Drive backup. It requests only Drive
+ * appData plus basic identity scopes and never requests offline/server
  * access, so no client secret or refresh token exists on-device.
  *
  * Interactive authorization always starts with the device account chooser and
  * pins the authorization request to the chosen account. Without the pin, Play
  * services silently reuses whichever account already holds a grant, which made
- * both account switching and a real disconnect impossible (phase3 finding
- * 0002). Silent authorization accepts the previously chosen account from
+ * both account switching and a real disconnect impossible. Silent
+ * authorization accepts the previously chosen account from
  * JavaScript for the same reason.
  */
 class GoogleAuthorizationModule : Module() {
@@ -86,7 +86,7 @@ class GoogleAuthorizationModule : Module() {
       // Best effort by contract: JavaScript clears its stored copy regardless,
       // and a failure here must never block 401 recovery. Without this call the
       // next silent authorization re-reads the same dead token from the Play
-      // services cache (phase3 finding 0001).
+      // services cache.
       Thread {
         try {
           GoogleAuthUtil.clearToken(context, accessToken)
@@ -250,7 +250,7 @@ class GoogleAuthorizationModule : Module() {
         "accessToken" to accessToken,
         // AuthorizationResult exposes no real expiry. The old fabricated
         // "now + 55 minutes" made a revoked token look fresh for another hour
-        // (phase3 finding 0001); zero tells JavaScript to revalidate through
+        // zero tells JavaScript to revalidate through
         // Play services — a local IPC call — on every use.
         "expiresAt" to 0,
         "accountEmail" to accountEmail,

@@ -1,1 +1,0 @@
-ALTER TABLE `cloud_v2_drive_upload_sessions` ADD `uploaded_bytes` integer DEFAULT 0 NOT NULL;

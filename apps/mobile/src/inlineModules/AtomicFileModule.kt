@@ -8,7 +8,7 @@ import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.File
 import java.io.FileOutputStream
 
-/** ADR V7-0005 durability primitive: fsynced temp writes and atomic rename. */
+/** Durability primitive for fsynced temporary writes and atomic rename. */
 class AtomicFileModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("AtomicFileModule")

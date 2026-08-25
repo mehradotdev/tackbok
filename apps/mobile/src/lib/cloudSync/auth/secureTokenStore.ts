@@ -131,8 +131,7 @@ export async function clearGoogleAccountEmail(): Promise<void> {
  * "disconnected". This mark is the missing signal: set by a successful
  * interactive authorization, removed by Disconnect, and consulted before any
  * silent token request. Without it a disconnected (or never-connected) Android
- * device silently re-mints a valid token from the surviving grant
- * (phase3 finding 0002).
+ * device silently re-mints a valid token from the surviving grant.
  */
 export async function markGoogleConnected(): Promise<void> {
   await SecureStore.setItemAsync(CONNECTED_KEY, '1', {

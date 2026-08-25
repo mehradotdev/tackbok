@@ -2,8 +2,8 @@ import { and, eq, inArray, ne, notInArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import {
   cloudSyncMigrationItems,
-  cloudV2SyncState,
-  cloudV2Tombstones,
+  cloudSyncState,
+  cloudTombstones,
   cloudVault,
   customPrompts,
   db,
@@ -20,8 +20,8 @@ import {
 import { AssetType, type Asset } from '~/types';
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
-import { canonicalHashV2 } from '../v2/canonical';
-import type { SnapshotEntryV2, SnapshotPromptV2, SnapshotTagV2 } from '../v2/types';
+import { canonicalHashV2 } from '../snapshot/canonical';
+import type { SnapshotEntryV2, SnapshotPromptV2, SnapshotTagV2 } from '../snapshot/types';
 
 export const PROFILE_ROW_ID = 'self';
 export const PROFILE_ENTITY_ID = 'profile';
@@ -35,7 +35,7 @@ export interface MutationContext {
   batchId?: string | null;
   now?: number;
   createdAt?: number;
-  /** Canonical protocol-v2 entity hash captured before a local delete. */
+  /** Canonical snapshot entity hash captured before a local delete. */
   deletedStateHash?: string | null;
 }
 
@@ -76,9 +76,9 @@ async function markNormalized(
 }
 
 /**
- * Advances the protocol-v2 journal generation for an active cloud vault.
+ * Advances the snapshot journal generation for an active cloud vault.
  * Offline/local-only journals need no queue row: their complete normalized
- * state is captured when a protocol-v2 vault is later connected.
+ * state is captured when a cloud vault is later connected.
  */
 export async function enqueueMutation(
   tx: CloudSyncTransaction,
@@ -96,14 +96,11 @@ export async function enqueueMutation(
       status: cloudVault.status,
     })
     .from(cloudVault)
-    .where(and(
-      eq(cloudVault.protocol_version, 2),
-      notInArray(cloudVault.status, ['disabled', 'revoked']),
-    ))
+    .where(notInArray(cloudVault.status, ['disabled', 'revoked']))
     .limit(1);
 
   if (v2Vault) {
-    await tx.insert(cloudV2SyncState).values({
+    await tx.insert(cloudSyncState).values({
       vault_id: v2Vault.vaultId,
       device_id: v2Vault.deviceId,
       journal_generation: 0,
@@ -111,24 +108,24 @@ export async function enqueueMutation(
       next_device_sequence: 1,
       updated_at: now,
     }).onConflictDoNothing();
-    await tx.update(cloudV2SyncState).set({
-      journal_generation: sql`${cloudV2SyncState.journal_generation} + 1`,
+    await tx.update(cloudSyncState).set({
+      journal_generation: sql`${cloudSyncState.journal_generation} + 1`,
       updated_at: now,
     }).where(and(
-      eq(cloudV2SyncState.vault_id, v2Vault.vaultId),
-      eq(cloudV2SyncState.device_id, v2Vault.deviceId),
+      eq(cloudSyncState.vault_id, v2Vault.vaultId),
+      eq(cloudSyncState.device_id, v2Vault.deviceId),
     ));
-    const [state] = await tx.select({ generation: cloudV2SyncState.journal_generation })
-      .from(cloudV2SyncState)
+    const [state] = await tx.select({ generation: cloudSyncState.journal_generation })
+      .from(cloudSyncState)
       .where(and(
-        eq(cloudV2SyncState.vault_id, v2Vault.vaultId),
-        eq(cloudV2SyncState.device_id, v2Vault.deviceId),
+        eq(cloudSyncState.vault_id, v2Vault.vaultId),
+        eq(cloudSyncState.device_id, v2Vault.deviceId),
       ))
       .limit(1);
-    if (!state) throw new Error('Failed to advance protocol-v2 journal generation');
+    if (!state) throw new Error('Failed to advance snapshot journal generation');
 
     if (action === 'delete') {
-      await tx.insert(cloudV2Tombstones).values({
+      await tx.insert(cloudTombstones).values({
         vault_id: v2Vault.vaultId,
         entity_type: entityType,
         entity_id: entityId,
@@ -139,9 +136,9 @@ export async function enqueueMutation(
         updated_at: now,
       }).onConflictDoUpdate({
         target: [
-          cloudV2Tombstones.vault_id,
-          cloudV2Tombstones.entity_type,
-          cloudV2Tombstones.entity_id,
+          cloudTombstones.vault_id,
+          cloudTombstones.entity_type,
+          cloudTombstones.entity_id,
         ],
         set: {
           base_state_hash: null,
@@ -152,10 +149,10 @@ export async function enqueueMutation(
         },
       });
     } else {
-      await tx.delete(cloudV2Tombstones).where(and(
-        eq(cloudV2Tombstones.vault_id, v2Vault.vaultId),
-        eq(cloudV2Tombstones.entity_type, entityType),
-        eq(cloudV2Tombstones.entity_id, entityId),
+      await tx.delete(cloudTombstones).where(and(
+        eq(cloudTombstones.vault_id, v2Vault.vaultId),
+        eq(cloudTombstones.entity_type, entityType),
+        eq(cloudTombstones.entity_id, entityId),
       ));
     }
     if (v2Vault.status !== 'paused' && v2Vault.status !== 'restoring') {

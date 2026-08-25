@@ -5,30 +5,31 @@ import {
 } from './rolloutPolicy';
 
 describe('cloud-sync rollout policy', () => {
-  test('an absent value preserves the current dual-protocol alpha behavior', () => {
-    const policy = resolveCloudSyncRolloutPolicy(undefined);
-    expect(policy).toMatchObject({ mode: 'all', configuredValueValid: true });
-    expect(policy.allows(1)).toBe(true);
-    expect(policy.allows(2)).toBe(true);
+  test('an absent value enables cloud sync', () => {
+    expect(resolveCloudSyncRolloutPolicy(undefined)).toEqual({
+      mode: 'on',
+      configuredValueValid: true,
+      networkAllowed: true,
+    });
   });
 
   test.each([
-    ['all', true, true],
-    ['v1-only', true, false],
-    ['v2-only', false, true],
-    ['off', false, false],
-  ] as const)('%s selects the intended protocol traffic', (mode, v1, v2) => {
-    const policy = resolveCloudSyncRolloutPolicy(mode);
-    expect(policy.configuredValueValid).toBe(true);
-    expect(policy.allows(1)).toBe(v1);
-    expect(policy.allows(2)).toBe(v2);
+    ['on', true],
+    ['off', false],
+  ] as const)('%s selects the intended network state', (mode, networkAllowed) => {
+    expect(resolveCloudSyncRolloutPolicy(mode)).toEqual({
+      mode,
+      configuredValueValid: true,
+      networkAllowed,
+    });
   });
 
   test('an invalid explicit value fails closed', () => {
-    const policy = resolveCloudSyncRolloutPolicy('v2-onyl');
-    expect(policy).toMatchObject({ mode: 'off', configuredValueValid: false });
-    expect(policy.allows(1)).toBe(false);
-    expect(policy.allows(2)).toBe(false);
+    expect(resolveCloudSyncRolloutPolicy('onn')).toEqual({
+      mode: 'off',
+      configuredValueValid: false,
+      networkAllowed: false,
+    });
   });
 
   test('the runtime assertion fails before its caller can begin work', () => {
@@ -37,7 +38,7 @@ describe('cloud-sync rollout policy', () => {
     let providerConstructed = false;
     try {
       expect(() => {
-        assertCloudSyncNetworkAllowed(2);
+        assertCloudSyncNetworkAllowed();
         providerConstructed = true;
       }).toThrow(CloudSyncRolloutDisabledError);
       expect(providerConstructed).toBe(false);

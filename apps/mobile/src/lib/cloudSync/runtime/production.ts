@@ -1,6 +1,6 @@
 import { AppState } from 'react-native';
 import * as Network from 'expo-network';
-import { and, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db } from '~/db';
 import { track } from '~/lib/analytics';
 import {
@@ -19,7 +19,7 @@ import {
   type SyncPassPhase,
 } from './SyncRuntime';
 import { addCloudSyncMutationListener } from './mutationSignal';
-import { createProductionV2RuntimeEngine } from '../v2/runtime';
+import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { isCloudSyncNetworkAllowed } from './rolloutPolicy';
 
 const productionCloudSyncListeners = new Set<() => void>();
@@ -78,7 +78,6 @@ export async function createProductionRuntimeEngine(
   onRemoteApplied?: () => void | Promise<void>,
 ): Promise<RuntimeSyncEngine | null> {
   const [configured] = await db.select().from(cloudVault).where(and(
-    eq(cloudVault.protocol_version, 2),
     isNotNull(cloudVault.remote_root_id),
     inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);
@@ -87,9 +86,9 @@ export async function createProductionRuntimeEngine(
   // This check occurs before authorization or provider construction. A rollout
   // rollback therefore pauses network work while leaving the vault, journal,
   // queued generations, base shadow, and provider objects untouched.
-  if (!isCloudSyncNetworkAllowed(2)) return null;
+  if (!isCloudSyncNetworkAllowed()) return null;
 
-  return createProductionV2RuntimeEngine({
+  return createProductionSnapshotRuntimeEngine({
     vault: configured,
     onActivity: setProductionCloudSyncActivity,
     onRemoteApplied,
@@ -98,7 +97,6 @@ export async function createProductionRuntimeEngine(
 
 export async function isProductionCloudSyncConfigured(): Promise<boolean> {
   const [configured] = await db.select({ vaultId: cloudVault.vault_id }).from(cloudVault).where(and(
-    eq(cloudVault.protocol_version, 2),
     isNotNull(cloudVault.remote_root_id),
     inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);

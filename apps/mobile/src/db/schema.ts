@@ -118,104 +118,22 @@ export const userProfile = sqliteTable('user_profile', {
   updated_at: integer('updated_at').notNull(),
 });
 
-/**
- * Local provider/vault configuration. Credentials are deliberately absent.
- * `account_label` is a reserved v1 column and must remain null: the UI receives
- * the connected account label from the authorization provider instead. The
- * full email stays in SecureStore beside the credentials (and in memory while
- * displayed), never in this table.
- */
+/** Local provider/vault configuration. Credentials and account labels are absent. */
 export const cloudVault = sqliteTable('cloud_vault', {
   vault_id: text('vault_id').primaryKey().notNull(),
   provider_kind: text('provider_kind', { enum: ['google-drive', 'dropbox'] }).notNull(),
   remote_root_id: text('remote_root_id'),
-  account_label: text('account_label'),
   device_id: text('device_id').notNull(),
-  next_edit_sequence: integer('next_edit_sequence').notNull().default(1),
   status: text('status').notNull().default('disabled'),
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
   last_connected_at: integer('last_connected_at'),
-  seeding_checkpoint: text('seeding_checkpoint'),
-  format_version: integer('format_version').notNull().default(1),
-  protocol_version: integer('protocol_version').notNull().default(1),
   revocation_kind: text('revocation_kind', {
     enum: ['journal-deleted', 'backup-deleted'],
   }),
   revocation_id: text('revocation_id'),
   revocation_acknowledged_at: integer('revocation_acknowledged_at'),
 });
-
-export const syncEntityState = sqliteTable(
-  'sync_entity_state',
-  {
-    entity_type: text('entity_type').notNull(),
-    entity_id: text('entity_id').notNull(),
-    current_head_hashes: text('current_head_hashes', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default([]),
-    last_remote_head_hashes: text('last_remote_head_hashes', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default([]),
-    tombstone: integer('tombstone', { mode: 'boolean' }).notNull().default(false),
-    local_generation: integer('local_generation').notNull().default(0),
-    updated_at: integer('updated_at').notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.entity_type, table.entity_id] })],
-);
-
-export const syncChangeQueue = sqliteTable(
-  'sync_change_queue',
-  {
-    change_id: text('change_id').primaryKey().notNull(),
-    entity_type: text('entity_type').notNull(),
-    entity_id: text('entity_id').notNull(),
-    action: text('action', { enum: ['upsert', 'delete'] }).notNull(),
-    base_head_hashes: text('base_head_hashes', { mode: 'json' })
-      .$type<string[]>()
-      .notNull()
-      .default([]),
-    generation: integer('generation').notNull(),
-    batch_id: text('batch_id'),
-    created_at: integer('created_at').notNull(),
-    updated_at: integer('updated_at').notNull(),
-  },
-  (table) => [
-    uniqueIndex('sync_change_queue_entity_unique').on(
-      table.entity_type,
-      table.entity_id,
-    ),
-    index('sync_change_queue_batch_idx').on(table.batch_id),
-  ],
-);
-
-export const syncVersions = sqliteTable(
-  'sync_versions',
-  {
-    version_hash: text('version_hash').primaryKey().notNull(),
-    vault_id: text('vault_id').notNull(),
-    entity_type: text('entity_type').notNull(),
-    entity_id: text('entity_id').notNull(),
-    parent_hashes: text('parent_hashes', { mode: 'json' }).$type<string[]>().notNull(),
-    kind: text('kind', {
-      enum: ['edit', 'resolution', 'recovery-init', 'join'],
-    }).notNull(),
-    author_device_id: text('author_device_id'),
-    edit_sequence: integer('edit_sequence'),
-    state: text('state', { enum: ['provisional', 'incomplete', 'complete'] }).notNull(),
-    applied: integer('applied', { mode: 'boolean' }).notNull().default(false),
-    published: integer('published', { mode: 'boolean' }).notNull().default(false),
-    canonical_body: text('canonical_body'),
-    body_path: text('body_path'),
-    created_at: integer('created_at').notNull(),
-  },
-  (table) => [
-    index('sync_versions_entity_idx').on(table.entity_type, table.entity_id),
-    index('sync_versions_vault_idx').on(table.vault_id),
-  ],
-);
 
 export const syncRetainedMedia = sqliteTable(
   'sync_retained_media',
@@ -270,21 +188,6 @@ export const syncMediaObligations = sqliteTable(
   ],
 );
 
-export const syncRemoteObjects = sqliteTable(
-  'sync_remote_objects',
-  {
-    logical_key: text('logical_key').primaryKey().notNull(),
-    content_hash: text('content_hash').notNull(),
-    provider_file_id: text('provider_file_id'),
-    status: text('status').notNull(),
-    byte_count: integer('byte_count'),
-    resumable_session_uri: text('resumable_session_uri'),
-    resumable_session_expires_at: integer('resumable_session_expires_at'),
-    updated_at: integer('updated_at').notNull(),
-  },
-  (table) => [index('sync_remote_objects_hash_idx').on(table.content_hash)],
-);
-
 export const syncProviderState = sqliteTable('sync_provider_state', {
   provider_kind: text('provider_kind').primaryKey().notNull(),
   change_cursor: text('change_cursor'),
@@ -297,74 +200,9 @@ export const syncProviderState = sqliteTable('sync_provider_state', {
   updated_at: integer('updated_at').notNull(),
 });
 
-/**
- * Atomic restart image for the deterministic sync state machine. The
- * normalized/domain and protocol tables remain authoritative; this row keeps
- * the pass-local cursor, staged page, seed cursor, and purge cursor together
- * so a process death cannot create a mixed checkpoint.
- */
-export const syncEngineCheckpoints = sqliteTable(
-  'sync_engine_checkpoints',
-  {
-    device_id: text('device_id').notNull(),
-    vault_id: text('vault_id').notNull(),
-    snapshot_json: text('snapshot_json').notNull(),
-    updated_at: integer('updated_at').notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.device_id, table.vault_id] })],
-);
-
-/** Per-entity dependency accounting kept outside the bounded pass checkpoint. */
-export const syncEngineEntityMetadata = sqliteTable(
-  'sync_engine_entity_metadata',
-  {
-    device_id: text('device_id').notNull(),
-    vault_id: text('vault_id').notNull(),
-    entity_type: text('entity_type').notNull(),
-    entity_id: text('entity_id').notNull(),
-    fetched_dependencies_json: text('fetched_dependencies_json').notNull().default('[]'),
-    recovery_dependencies_json: text('recovery_dependencies_json').notNull().default('[]'),
-    degraded_reason: text('degraded_reason'),
-  },
-  (table) => [primaryKey({
-    columns: [table.device_id, table.vault_id, table.entity_type, table.entity_id],
-  })],
-);
-
-/** Dirty local state only; clean state is derived from its applied version. */
-export const syncEngineLocalDomain = sqliteTable(
-  'sync_engine_local_domain',
-  {
-    device_id: text('device_id').notNull(),
-    vault_id: text('vault_id').notNull(),
-    entity_type: text('entity_type').notNull(),
-    entity_id: text('entity_id').notNull(),
-    generation: integer('generation').notNull(),
-    state_json: text('state_json'),
-  },
-  (table) => [primaryKey({
-    columns: [table.device_id, table.vault_id, table.entity_type, table.entity_id],
-  })],
-);
-
-/** Gate-only inline blobs; production reconstructs file-backed byte sources. */
-export const syncEngineLocalBlobs = sqliteTable(
-  'sync_engine_local_blobs',
-  {
-    device_id: text('device_id').notNull(),
-    vault_id: text('vault_id').notNull(),
-    blob_hash: text('blob_hash').notNull(),
-    body: blob('body', { mode: 'buffer' }).notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.device_id, table.vault_id, table.blob_hash] })],
-);
-
-/**
- * Protocol-v2 snapshot publisher state. Credentials and provider identifiers
- * are deliberately absent; this row contains only restart-safe local intent.
- */
-export const cloudV2SyncState = sqliteTable(
-  'cloud_v2_sync_state',
+/** Snapshot publisher state. Credentials and provider identifiers are absent. */
+export const cloudSyncState = sqliteTable(
+  'cloud_sync_state',
   {
     vault_id: text('vault_id').notNull(),
     device_id: text('device_id').notNull(),
@@ -380,8 +218,8 @@ export const cloudV2SyncState = sqliteTable(
 );
 
 /** One coalesced immutable candidate, advanced monotonically after each step. */
-export const cloudV2PendingPublication = sqliteTable(
-  'cloud_v2_pending_publication',
+export const cloudPendingPublication = sqliteTable(
+  'cloud_pending_publication',
   {
     vault_id: text('vault_id').notNull(),
     device_id: text('device_id').notNull(),
@@ -405,9 +243,9 @@ export const cloudV2PendingPublication = sqliteTable(
   (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
 );
 
-/** SQLite half of ADR V7-0005's atomically paired base-shadow checkpoint. */
-export const cloudV2BaseShadow = sqliteTable(
-  'cloud_v2_base_shadow',
+/** SQLite half of the atomically paired base-shadow checkpoint. */
+export const cloudBaseShadow = sqliteTable(
+  'cloud_base_shadow',
   {
     vault_id: text('vault_id').notNull(),
     device_id: text('device_id').notNull(),
@@ -423,17 +261,17 @@ export const cloudV2BaseShadow = sqliteTable(
 );
 
 /** Old shadow files are deleted only after their replacement checkpoint commits. */
-export const cloudV2ShadowReaper = sqliteTable(
-  'cloud_v2_shadow_reaper',
+export const cloudShadowReaper = sqliteTable(
+  'cloud_shadow_reaper',
   {
     file_name: text('file_name').primaryKey().notNull(),
     queued_at: integer('queued_at').notNull(),
   },
 );
 
-/** Protocol-v2 deletion intent retained independently from the live domain. */
-export const cloudV2Tombstones = sqliteTable(
-  'cloud_v2_tombstones',
+/** Snapshot deletion intent retained independently from the live domain. */
+export const cloudTombstones = sqliteTable(
+  'cloud_tombstones',
   {
     vault_id: text('vault_id').notNull(),
     entity_type: text('entity_type', {
@@ -451,9 +289,9 @@ export const cloudV2Tombstones = sqliteTable(
   })],
 );
 
-/** Exact protocol-v2 conflict envelopes plus local review state. */
-export const cloudV2Conflicts = sqliteTable(
-  'cloud_v2_conflicts',
+/** Exact snapshot conflict envelopes plus local review state. */
+export const cloudConflicts = sqliteTable(
+  'cloud_conflicts',
   {
     vault_id: text('vault_id').notNull(),
     conflict_id: text('conflict_id').notNull(),
@@ -470,8 +308,8 @@ export const cloudV2Conflicts = sqliteTable(
  * identifier and prevents a new Google connection from reusing stale file IDs
  * or a cursor belonging to the previous account.
  */
-export const cloudV2DriveState = sqliteTable(
-  'cloud_v2_drive_state',
+export const cloudDriveState = sqliteTable(
+  'cloud_drive_state',
   {
     connection_id: text('connection_id').notNull(),
     vault_id: text('vault_id').notNull(),
@@ -486,8 +324,8 @@ export const cloudV2DriveState = sqliteTable(
 );
 
 /** Provider metadata only: never tokens, account labels, bodies, or journal text. */
-export const cloudV2DriveObjects = sqliteTable(
-  'cloud_v2_drive_objects',
+export const cloudDriveObjects = sqliteTable(
+  'cloud_drive_objects',
   {
     connection_id: text('connection_id').notNull(),
     vault_id: text('vault_id').notNull(),
@@ -504,7 +342,7 @@ export const cloudV2DriveObjects = sqliteTable(
   },
   (table) => [
     primaryKey({ columns: [table.connection_id, table.vault_id, table.file_id] }),
-    index('cloud_v2_drive_objects_key_idx').on(
+    index('cloud_drive_objects_key_idx').on(
       table.connection_id,
       table.vault_id,
       table.logical_key,
@@ -513,8 +351,8 @@ export const cloudV2DriveObjects = sqliteTable(
 );
 
 /** Resumable session URIs are local restart state and are never logged/evidenced. */
-export const cloudV2DriveUploadSessions = sqliteTable(
-  'cloud_v2_drive_upload_sessions',
+export const cloudDriveUploadSessions = sqliteTable(
+  'cloud_drive_upload_sessions',
   {
     connection_id: text('connection_id').notNull(),
     vault_id: text('vault_id').notNull(),
@@ -535,24 +373,6 @@ export const cloudV2DriveUploadSessions = sqliteTable(
     ],
   })],
 );
-
-export const syncConflicts = sqliteTable('sync_conflicts', {
-  conflict_id: text('conflict_id').primaryKey().notNull(),
-  entity_type: text('entity_type').notNull(),
-  entity_id: text('entity_id').notNull(),
-  head_hashes: text('head_hashes', { mode: 'json' }).$type<string[]>().notNull(),
-  resolution_type: text('resolution_type').notNull(),
-  recovered_entities: text('recovered_entities', { mode: 'json' })
-    .$type<{ entityType: string; entityId: string }[]>()
-    .notNull()
-    .default([]),
-  alternate_scalars: text('alternate_scalars', { mode: 'json' })
-    .$type<unknown[]>()
-    .notNull()
-    .default([]),
-  acknowledged_at: integer('acknowledged_at'),
-  created_at: integer('created_at').notNull(),
-});
 
 /** Application-level backfill checkpoint; deliberately separate from SQL migrations. */
 export const cloudSyncMigration = sqliteTable('cloud_sync_migration', {
@@ -587,5 +407,3 @@ export type NewCustomPrompt = typeof customPrompts.$inferInsert;
 export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type NewMediaAsset = typeof mediaAssets.$inferInsert;
 export type UserProfile = typeof userProfile.$inferSelect;
-export type SyncEntityState = typeof syncEntityState.$inferSelect;
-export type SyncChange = typeof syncChangeQueue.$inferSelect;

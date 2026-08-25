@@ -24,7 +24,7 @@ sqlite.execSync('PRAGMA journal_mode = WAL');
 
 // On Apple platforms, SQLite's fullfsync pragmas make FULL synchronous commits
 // and WAL checkpoints use F_FULLFSYNC instead of ordinary fsync. This covers
-// the durable publisher/checkpoint half of ADR V7-0005; AtomicFileModule covers
+// the durable publisher/checkpoint transaction; AtomicFileModule covers
 // the app-private base-shadow file before its SQLite checkpoint is committed.
 // Do not apply these Apple-specific pragmas to Android, whose fsync primitive
 // and storage stack have different semantics.

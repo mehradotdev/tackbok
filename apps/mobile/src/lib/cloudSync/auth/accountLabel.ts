@@ -14,7 +14,7 @@ export async function fetchGoogleAccountLabel(accessToken: string): Promise<stri
   }
   if (response.status === 401 || response.status === 403) {
     // The token itself was rejected. Swallowing this into the fallback label
-    // made a dead token look like a healthy connection (phase3 finding 0001),
+    // made a dead token look like a healthy connection,
     // so it must surface as an auth failure instead.
     throw new CloudAuthError('refresh-failed', 'Google rejected the access token');
   }

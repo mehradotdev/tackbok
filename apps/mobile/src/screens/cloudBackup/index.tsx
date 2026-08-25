@@ -32,7 +32,7 @@ import {
   listUnacknowledgedCloudConflicts,
   prepareGoogleDriveConnection,
   reconnectGoogleDrive,
-  retryV2AttentionReason,
+  retrySyncAttentionReason,
   resetThisDeviceOnly,
   revokeCloudVault,
   setCloudSyncPaused,
@@ -45,10 +45,10 @@ import {
   type PreparedGoogleConnection,
 } from '~/lib/cloudSync/ui';
 import {
-  V2ProviderError,
-  type V2AttentionReason,
-  type V2RecoveryAction,
-} from '~/lib/cloudSync/v2/sync';
+  SnapshotProviderError,
+  type SyncAttentionReason,
+  type SyncRecoveryAction,
+} from '~/lib/cloudSync/snapshot/sync';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
@@ -163,10 +163,10 @@ function cloudSyncFailureMessage(
 }
 
 function attentionReasonMessage(
-  reason: V2AttentionReason,
+  reason: SyncAttentionReason,
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
-  const messages: Record<V2AttentionReason, string> = {
+  const messages: Record<SyncAttentionReason, string> = {
     'authorization-required': t('Google Drive authorization needs attention.'),
     'account-mismatch': t('This backup belongs to a different connected Google account.'),
     'consent-incomplete': t('Google Drive permission was not fully granted.'),
@@ -192,10 +192,10 @@ function attentionReasonMessage(
 }
 
 function recoveryActionLabel(
-  action: V2RecoveryAction,
+  action: SyncRecoveryAction,
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
-  const labels: Record<V2RecoveryAction, string> = {
+  const labels: Record<SyncRecoveryAction, string> = {
     'reconnect-google-drive': t('Reconnect Google Drive'),
     'choose-connected-account': t('Choose the connected account'),
     'finish-connection': t('Finish connection'),
@@ -278,7 +278,7 @@ export default function CloudBackupScreen() {
     } catch (error) {
       const permissionMissing =
         (error instanceof CloudAuthError && error.code === 'permission-required') ||
-        (error instanceof V2ProviderError && error.code === 'authorization-required');
+        (error instanceof SnapshotProviderError && error.code === 'authorization-required');
       toast.error(
         permissionMissing
           ? t('Google Drive access is required. Try again and select the Drive access checkbox.')
@@ -420,13 +420,13 @@ export default function CloudBackupScreen() {
     }
     if (action === 'locate-retry-attachment') {
       await runAction(
-        () => retryV2AttentionReason(reason),
+        () => retrySyncAttentionReason(reason),
         t('Cloud backup retry completed'),
       );
       return;
     }
     await runAction(
-      () => retryV2AttentionReason(reason),
+      () => retrySyncAttentionReason(reason),
       t('Cloud backup retry completed'),
     );
   }, [completeJournalDeletion, router, runAction, snapshot.attentionReason,
