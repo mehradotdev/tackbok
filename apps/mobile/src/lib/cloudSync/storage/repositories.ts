@@ -10,8 +10,6 @@ import {
   entries,
   entryTags,
   mediaAssets,
-  syncChangeQueue,
-  syncEntityState,
   syncMediaObligations,
   syncRetainedMedia,
   tags,
@@ -78,8 +76,9 @@ async function markNormalized(
 }
 
 /**
- * Advances the persistent per-entity generation and coalesces one outbox row.
- * The existing base heads are intentionally preserved on conflict.
+ * Advances the protocol-v2 journal generation for an active cloud vault.
+ * Offline/local-only journals need no queue row: their complete normalized
+ * state is captured when a protocol-v2 vault is later connected.
  */
 export async function enqueueMutation(
   tx: CloudSyncTransaction,
@@ -166,78 +165,7 @@ export async function enqueueMutation(
     return { changeId: randomUUID(), generation: state.generation };
   }
 
-  await tx
-    .insert(syncEntityState)
-    .values({
-      entity_type: entityType,
-      entity_id: entityId,
-      current_head_hashes: [],
-      last_remote_head_hashes: [],
-      tombstone: action === 'delete',
-      local_generation: 1,
-      updated_at: now,
-    })
-    .onConflictDoUpdate({
-      target: [syncEntityState.entity_type, syncEntityState.entity_id],
-      set: {
-        local_generation: sql`${syncEntityState.local_generation} + 1`,
-        tombstone: action === 'delete',
-        updated_at: now,
-      },
-    });
-
-  const [state] = await tx
-    .select({
-      generation: syncEntityState.local_generation,
-      heads: syncEntityState.current_head_hashes,
-    })
-    .from(syncEntityState)
-    .where(
-      and(
-        eq(syncEntityState.entity_type, entityType),
-        eq(syncEntityState.entity_id, entityId),
-      ),
-    )
-    .limit(1);
-
-  if (!state) throw new Error(`Failed to create sync state for ${entityType}:${entityId}`);
-
-  const existing = await tx
-    .select({ changeId: syncChangeQueue.change_id })
-    .from(syncChangeQueue)
-    .where(
-      and(
-        eq(syncChangeQueue.entity_type, entityType),
-        eq(syncChangeQueue.entity_id, entityId),
-      ),
-    )
-    .limit(1);
-  const changeId = existing[0]?.changeId ?? randomUUID();
-
-  await tx
-    .insert(syncChangeQueue)
-    .values({
-      change_id: changeId,
-      entity_type: entityType,
-      entity_id: entityId,
-      action,
-      base_head_hashes: state.heads,
-      generation: state.generation,
-      batch_id: context.batchId ?? null,
-      created_at: now,
-      updated_at: now,
-    })
-    .onConflictDoUpdate({
-      target: [syncChangeQueue.entity_type, syncChangeQueue.entity_id],
-      set: {
-        action,
-        generation: state.generation,
-        batch_id: context.batchId ?? null,
-        updated_at: now,
-      },
-    });
-
-  return { changeId, generation: state.generation };
+  return { changeId: randomUUID(), generation: 0 };
 }
 
 async function retainMediaRow(

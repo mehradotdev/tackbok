@@ -6,6 +6,8 @@ export interface RuntimePassResult {
   pushed: number;
 }
 
+export type SyncPassPhase = 'checking' | 'preparing' | 'uploading' | 'finishing';
+
 export interface RuntimeSyncEngine {
   readonly provider: { readonly kind: 'google-drive' | 'dropbox' };
   sync(): Promise<RuntimePassResult>;

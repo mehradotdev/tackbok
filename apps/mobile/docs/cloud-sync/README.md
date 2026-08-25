@@ -6,9 +6,11 @@ account.
 > **Direction change — 2026-08-12:** [`plan-v7.md`](./plan-v7.md) replaces the
 > per-entity v6 design with snapshot-based sync. The owner approved the plan
 > direction and resolved its §18 decisions on 2026-08-14; schemas, caps, and
-> merge rules froze at the closed V7-0 gate. V7-4 now wires snapshot sync for
-> new/restored connections while preserving the v6 runtime for existing
-> protocol-v1 alpha vaults until the dedicated V7-5 retirement phase.
+> merge rules froze at the closed V7-0 gate. V7-4 wired snapshot sync for
+> new/restored connections; V7-5 c2 now removes protocol-v1 production
+> reachability after the owner confirmed no v1-connected alpha installation
+> remains. Historical v6 source/docs are retained as an unreachable audit and
+> device-probe archive.
 
 Read these in this order:
 
@@ -44,7 +46,7 @@ production path relies on the old engine.
 | V7-2 — durable publisher vs. fake provider | ✅ closed at owner re-review 2026-08-15 after one X1 return; X3 note carries to V7-5 ([gate](./v7-phase2/gate.md), [review](./v7-phase2/review-2026-08-15.md)) |
 | V7-3 — Google Drive snapshot adapter | ✅ closed at owner review 2026-08-15; Y1 carries to V7-4 entry, Y2 noted ([gate](./v7-phase3/gate.md), [review](./v7-phase3/review-2026-08-15.md)) |
 | V7-4 — runtime + UI replacement | ✅ closed 2026-08-15: host claims verified at owner review, Y1/Y2 discharged, all four interactive acceptance checks passed by owner ([gate](./v7-phase4/gate.md), [review](./v7-phase4/review-2026-08-15.md)) |
-| V7-5 — device hardening + v6 retirement | open; Bundle (a) Z1/Z2 remediated, b1 returned on a reproduced 200 MiB whole-buffer OOM, b2 blocks store submission, purge/removal not run ([gate](./v7-phase5/gate.md), [finding D1](./v7-phase5/findings/0001-v2-large-media-whole-buffer-oom.md)) |
+| V7-5 — device hardening + v6 retirement | development bundle ready for owner review: D1 remediated on physical Android Debug, c1 has no actionable v1 vault, c2 audit is 0 reachable v1 sources; b2 still blocks store submission ([gate](./v7-phase5/gate.md), [finding D1](./v7-phase5/findings/0001-v2-large-media-whole-buffer-oom.md)) |
 
 ## Historical v6 status
 

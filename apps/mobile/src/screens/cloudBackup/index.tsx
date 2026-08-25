@@ -23,7 +23,6 @@ import { useSettingsStore } from '~/lib/settings';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { CloudAuthError } from '~/lib/cloudSync/auth';
-import { ProviderError } from '~/lib/cloudSync/providers';
 import {
   acknowledgeCloudConflicts,
   cancelPreparedGoogleDriveConnection,
@@ -45,7 +44,11 @@ import {
   CloudSyncActionError,
   type PreparedGoogleConnection,
 } from '~/lib/cloudSync/ui';
-import type { V2AttentionReason, V2RecoveryAction } from '~/lib/cloudSync/v2/sync';
+import {
+  V2ProviderError,
+  type V2AttentionReason,
+  type V2RecoveryAction,
+} from '~/lib/cloudSync/v2/sync';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
@@ -275,7 +278,7 @@ export default function CloudBackupScreen() {
     } catch (error) {
       const permissionMissing =
         (error instanceof CloudAuthError && error.code === 'permission-required') ||
-        (error instanceof ProviderError && error.category === 'auth');
+        (error instanceof V2ProviderError && error.code === 'authorization-required');
       toast.error(
         permissionMissing
           ? t('Google Drive access is required. Try again and select the Drive access checkbox.')

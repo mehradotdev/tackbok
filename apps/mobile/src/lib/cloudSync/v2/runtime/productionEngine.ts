@@ -15,8 +15,11 @@ import type { CloudSyncFailureCategory } from '~/lib/analytics/events';
 import { useSettingsStore } from '~/lib/settings';
 import { createGoogleAuthorization } from '../../auth';
 import { readOrCreateGoogleConnectionId } from '../../auth/secureTokenStore';
-import type { RuntimePassResult, RuntimeSyncEngine } from '../../runtime/SyncRuntime';
-import type { SyncPassPhase } from '../../engine';
+import type {
+  RuntimePassResult,
+  RuntimeSyncEngine,
+  SyncPassPhase,
+} from '../../runtime/SyncRuntime';
 import { hashPendingProductionMedia } from './mediaHashing';
 import {
   GoogleDriveSnapshotV2Provider,

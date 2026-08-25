@@ -14,8 +14,8 @@ that only the owner can produce. The binding order is:
 5. **Bundle (c2), retirement:** remove v1 production code in a separate review
    only after Z1, the b1 large-media obligation, and c1 are closed.
 
-The development phase is not closed until a/b1/c1/c2 pass; b2 remains a store-
-submission blocker. Bundle (a) does not claim
+The development bundles are ready for owner review after c2 reached zero v1
+production reachability; b2 remains a store-submission blocker. Bundle (a) does not claim
 physical-device, release-build, Drive-transfer, power-loss, background, or
 memory evidence.
 
@@ -31,8 +31,10 @@ physical Android Debug follow-up subsequently passed the cellular hold and
 manual Wi-Fi completion with synthetic media. Automatic resume and a strict
 release-candidate run remain Bundle-b2 obligations. Bundle c1 closed on
 2026-08-25 through a redacted no-actionable-v1 owner disposition: the current
-vault is v2 and no v1-connected installation remains. Retirement is now
-authorized but must be a separate reviewed diff.
+vault is v2 and no v1-connected installation remains. The separate c2 diff now
+removes all v1 production routes and passes the retired dependency audit;
+historical source remains only for archived tests and deferred store-submission
+probes. Owner review is still required.
 
 ## Start here
 
@@ -47,7 +49,7 @@ authorized but must be a separate reviewed diff.
   disposition and its later physical Android Debug follow-up; strict release
   evidence remains at store submission.
 - [`v1-purge-retirement-checklist.md`](./v1-purge-retirement-checklist.md) —
-  sequenced but deliberately not executable until device evidence is accepted.
+  completed c1 disposition and the c2 retirement hand-off checklist.
 - [`templates/`](./templates/) — non-evidence report templates. A report enters
   `evidence/` only through the finalizing validator.
 
@@ -58,6 +60,7 @@ From `apps/mobile`:
 ```sh
 bun run v7:phase5a:test
 bun run v7:phase5:audit-v1
+bun run v7:phase5:audit-v1:retired
 bun run v7:phase5:generate-journal-fixture -- 10000 /tmp/tackbok-v7-10k.csv
 bun run v7:phase5:generate-media-fixture -- /tmp/tackbok-v7-200mib.bin
 bun run v7:phase5:validate-device-evidence -- validate-template \

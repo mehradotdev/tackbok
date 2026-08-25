@@ -1,94 +1,26 @@
 import { AppState } from 'react-native';
 import * as Network from 'expo-network';
-import { and, inArray, isNotNull } from 'drizzle-orm';
-import { cloudVault, db, sqlite } from '~/db';
+import { and, eq, inArray, isNotNull } from 'drizzle-orm';
+import { cloudVault, db } from '~/db';
 import { track } from '~/lib/analytics';
 import {
   toCloudSyncCountBucket,
   toCloudSyncDurationBucket,
 } from '~/lib/analytics/events';
 import { useSettingsStore } from '~/lib/settings';
-import { createGoogleAuthorization } from '../auth';
-import {
-  SQLiteEngineCheckpointStore,
-  SQLiteSyncEngine,
-  type SyncPassPhase,
-} from '../engine';
-import { GoogleDriveProvider } from '../providers';
-import {
-  hydrateProductionOutbox,
-  hashPendingProductionMedia,
-  materializeProductionDomain,
-  persistProductionEngineResult,
-  registerProductionBlobSources,
-  readNormalizedSeedPage,
-  wipeProductionJournalAfterRevocation,
-} from '../storage/engineDomain';
 import {
   isNormalizedModelReady,
   runNormalizedModelBackfill,
 } from '../storage/backfill';
-import { SyncRuntime, type RuntimePlatform, type RuntimeSyncEngine } from './SyncRuntime';
+import {
+  SyncRuntime,
+  type RuntimePlatform,
+  type RuntimeSyncEngine,
+  type SyncPassPhase,
+} from './SyncRuntime';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { createProductionV2RuntimeEngine } from '../v2/runtime';
 import { isCloudSyncNetworkAllowed } from './rolloutPolicy';
-
-class ProductionRuntimeEngine implements RuntimeSyncEngine {
-  constructor(
-    private readonly engine: SQLiteSyncEngine,
-    private readonly onRemoteApplied?: () => void | Promise<void>,
-  ) {}
-  get provider() { return this.engine.provider; }
-  hasPendingWork() {
-    return this.engine.hasPendingPullWork ||
-      (this.engine.needsSeedPage && this.engine.outbox.size === 0);
-  }
-
-  async sync() {
-    setProductionCloudSyncActivity('preparing');
-    try {
-      const network = await Network.getNetworkStateAsync();
-      const mediaAllowed =
-        !useSettingsStore.getState().cloudSyncWifiOnlyMedia ||
-        network.type === Network.NetworkStateType.WIFI;
-      if (mediaAllowed) {
-        await hashPendingProductionMedia();
-        await registerProductionBlobSources(this.engine);
-      }
-      await hydrateProductionOutbox(this.engine);
-      if (this.engine.needsSeedPage) {
-        const page = await readNormalizedSeedPage(this.engine.seedingCheckpoint);
-        this.engine.seedBatch(page.items, page.isFinalPage);
-      }
-      const priorConflicts = new Set(this.engine.conflicts.keys());
-      const result = await this.engine.sync({
-        onPhase: setProductionCloudSyncActivity,
-        // A save can commit while pull is in flight. Refreshing the transactional
-        // queue immediately before Apply makes the generation-CAS observe it.
-        beforeApply: () => hydrateProductionOutbox(this.engine),
-      });
-      if (result.revoked && this.engine.revocationKind === 'journal-deleted') {
-        await wipeProductionJournalAfterRevocation();
-      }
-      for (const [conflictId, conflict] of this.engine.conflicts) {
-        if (!priorConflicts.has(conflictId)) {
-          track('cloud_sync_conflict_recovered', { entity_type: conflict.entityType });
-        }
-      }
-      await materializeProductionDomain(this.engine, result.appliedEntityKeys);
-      await persistProductionEngineResult(this.engine, result.changedEntityKeys);
-      this.engine.acknowledgeMaterialized(result.appliedEntityKeys);
-      if (result.remoteApplied > 0) {
-        await this.onRemoteApplied?.();
-      } else if (this.engine.revocationKind === 'journal-deleted') {
-        await this.onRemoteApplied?.();
-      }
-      return result;
-    } finally {
-      setProductionCloudSyncActivity('idle');
-    }
-  }
-}
 
 const productionCloudSyncListeners = new Set<() => void>();
 export type ProductionCloudSyncActivity = 'idle' | SyncPassPhase;
@@ -146,40 +78,27 @@ export async function createProductionRuntimeEngine(
   onRemoteApplied?: () => void | Promise<void>,
 ): Promise<RuntimeSyncEngine | null> {
   const [configured] = await db.select().from(cloudVault).where(and(
+    eq(cloudVault.protocol_version, 2),
     isNotNull(cloudVault.remote_root_id),
     inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);
   if (!configured?.remote_root_id || configured.provider_kind !== 'google-drive') return null;
 
-  const protocolVersion = configured.protocol_version === 2 ? 2 : 1;
   // This check occurs before authorization or provider construction. A rollout
   // rollback therefore pauses network work while leaving the vault, journal,
   // queued generations, base shadow, and provider objects untouched.
-  if (!isCloudSyncNetworkAllowed(protocolVersion)) return null;
+  if (!isCloudSyncNetworkAllowed(2)) return null;
 
-  if (configured.protocol_version === 2) {
-    return createProductionV2RuntimeEngine({
-      vault: configured,
-      onActivity: setProductionCloudSyncActivity,
-      onRemoteApplied,
-    });
-  }
-
-  // This is the sole runtime construction path. Android token minting therefore
-  // stays behind AndroidGoogleAuthorization's durable connection-mark check.
-  const provider = new GoogleDriveProvider({ auth: createGoogleAuthorization() });
-  const engine = new SQLiteSyncEngine(
-    configured.device_id,
-    { vaultId: configured.vault_id, remoteRootId: configured.remote_root_id },
-    provider,
-    new SQLiteEngineCheckpointStore(sqlite),
-    { requiresMaterializationAck: true },
-  );
-  return new ProductionRuntimeEngine(engine, onRemoteApplied);
+  return createProductionV2RuntimeEngine({
+    vault: configured,
+    onActivity: setProductionCloudSyncActivity,
+    onRemoteApplied,
+  });
 }
 
 export async function isProductionCloudSyncConfigured(): Promise<boolean> {
   const [configured] = await db.select({ vaultId: cloudVault.vault_id }).from(cloudVault).where(and(
+    eq(cloudVault.protocol_version, 2),
     isNotNull(cloudVault.remote_root_id),
     inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);

@@ -1,0 +1,79 @@
+{
+  "format": "tackbok-v7-v1-production-retirement-evidence",
+  "formatVersion": 1,
+  "capturedAt": "2026-08-25T16:32:59+05:30",
+  "scope": "host-only",
+  "evidenceClass": "host-retirement",
+  "dependencyAudit": {
+    "productionRoots": 17,
+    "reachableSources": 301,
+    "reachableV1Sources": 0,
+    "expectRetiredExit": 0
+  },
+  "productionBehavior": {
+    "protocolV1ProviderReachable": false,
+    "staleV1RowStartsNetworkWork": false,
+    "protocolV2RuntimeRetained": true,
+    "localOnlyMutationCreatesLegacyOutbox": false,
+    "historicalMigrationsRetained": true,
+    "archivedProbeSourceRetained": true
+  },
+  "checks": [
+    {
+      "name": "full-jest",
+      "result": "pass",
+      "suites": 51,
+      "tests": 487
+    },
+    {
+      "name": "v7-phase2",
+      "result": "pass",
+      "scenarios": 36,
+      "assertions": 189
+    },
+    {
+      "name": "v7-phase3",
+      "result": "pass",
+      "jestSuites": 4,
+      "jestTests": 35,
+      "durableStateScenarios": 3,
+      "durableStateAssertions": 10
+    },
+    {
+      "name": "v7-phase4",
+      "result": "pass",
+      "jestSuites": 11,
+      "jestTests": 139,
+      "runtimeGateScenarios": 7,
+      "runtimeGateAssertions": 106
+    },
+    {
+      "name": "phase5a-gate",
+      "result": "pass",
+      "jestTests": 7,
+      "bunTests": 9,
+      "bunAssertions": 89
+    },
+    {
+      "name": "typescript",
+      "result": "pass"
+    },
+    {
+      "name": "full-lint",
+      "result": "pass",
+      "errors": 0,
+      "preExistingWarnings": 18,
+      "touchedFileWarnings": 0
+    }
+  ],
+  "historicalSuiteDisposition": [
+    "phase1-per-entity-outbox-gate-superseded-by-v7-retirement"
+  ],
+  "nonClaims": [
+    "provider-object-deletion",
+    "oauth-grant-removal",
+    "release-signed-build",
+    "physical-ios",
+    "store-submission-readiness"
+  ]
+}

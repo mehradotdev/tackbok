@@ -1,7 +1,7 @@
 # V1 purge and retirement checklist
 
 Status: **c1 complete by owner no-actionable-v1 disposition 2026-08-25; c2 is
-authorized as a separate removal bundle**
+implemented as a separate bundle and awaits owner review**
 
 The owner has attested that no other alpha tester holds a protocol-v1 vault.
 Bundle c1 became actionable after the owner accepted the physical Android Debug
@@ -35,11 +35,11 @@ follow plan §18.3 and are not silently discovered or deleted.
 
 - [x] Start only after Bundle (c1) owner review and a passing b1 200 MiB v2
   upload/hash/restore result.
-- [ ] Remove v1 production construction, reconnect, revoke, materialization,
+- [x] Remove v1 production construction, reconnect, revoke, materialization,
   and outbox fallback paths identified in `v1-dependency-audit.md`.
-- [ ] Preserve normalized journal data, v2 state, auth/SecureStore,
+- [x] Preserve normalized journal data, v2 state, auth/SecureStore,
   retained-media safety, migration history, and historical docs/gates.
-- [ ] Do not rewrite historical verdicts and do not prune audit docs.
-- [ ] Run `dependency-audit.ts --expect-retired`; reachable v1 count is zero.
-- [ ] Re-run the complete v2/runtime/UI/full-Jest/typecheck/lint evidence set.
+- [x] Do not rewrite historical verdicts and do not prune audit docs.
+- [x] Run `dependency-audit.ts --expect-retired`; reachable v1 count is zero.
+- [x] Re-run the complete v2/runtime/UI/full-Jest/typecheck/lint evidence set.
 - [ ] Hand the removal bundle back for owner review before merge.

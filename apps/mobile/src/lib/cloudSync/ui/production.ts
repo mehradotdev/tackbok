@@ -36,8 +36,6 @@ import { deleteAllDataInTransaction } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { createGoogleAuthorization } from '../auth';
-import { SQLiteEngineCheckpointStore, SQLiteSyncEngine } from '../engine';
-import { GoogleDriveProvider } from '../providers';
 import { readOrCreateGoogleConnectionId } from '../auth/secureTokenStore';
 import {
   GoogleDriveSnapshotV2Provider,
@@ -59,7 +57,7 @@ import {
   runProductionManualSync,
   stopProductionSyncRuntime,
 } from '../runtime/production';
-import type { SyncPassPhase } from '../engine';
+import type { SyncPassPhase } from '../runtime/SyncRuntime';
 import { setCloudSyncBackgroundTaskEnabled } from '../runtime/backgroundTask';
 import {
   assertCloudSyncNetworkAllowed,
@@ -160,7 +158,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
           eq(cloudV2SyncState.vault_id, vault.vault_id),
           eq(cloudV2SyncState.device_id, vault.device_id),
         )).limit(1)
-      : db.select({ value: count(), settled: count() }).from(syncChangeQueue),
+      : Promise.resolve([{ value: 0, settled: 0 }]),
     isV2 && vault
       ? db.select().from(cloudV2SyncState).where(and(
           eq(cloudV2SyncState.vault_id, vault.vault_id),
@@ -172,8 +170,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
           eq(cloudV2Conflicts.vault_id, vault.vault_id),
           isNull(cloudV2Conflicts.acknowledged_at),
         ))
-      : db.select({ value: count() }).from(syncConflicts)
-        .where(isNull(syncConflicts.acknowledged_at)),
+      : Promise.resolve([{ value: 0 }]),
     db.select().from(syncProviderState)
       .where(eq(syncProviderState.provider_kind, 'google-drive')).limit(1),
     isV2
@@ -186,15 +183,12 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   const queuedCount = isV2
     ? Math.max(0, (queued?.value ?? 0) - (queued?.settled ?? 0)) +
       (pendingMedia?.value ?? 0)
-    : queued?.value ?? 0;
+    : 0;
   const conflictCount = conflicts?.value ?? 0;
   const configured = Boolean(
-    vault?.remote_root_id && !['disabled', 'revoked'].includes(vault.status),
+    isV2 && vault?.remote_root_id && !['disabled', 'revoked'].includes(vault.status),
   );
-  if (configured && vault &&
-      (vault.protocol_version === 2
-        ? getCloudSyncRolloutPolicy().allows(2)
-        : getCloudSyncRolloutPolicy().allows(1)) &&
+  if (configured && vault && getCloudSyncRolloutPolicy().allows(2) &&
       accountLabelAttemptedForVault !== vault.vault_id) {
     accountLabelAttemptedForVault = vault.vault_id;
     accountLabelInMemory = await createGoogleAuthorization().getAccountLabel()
@@ -211,25 +205,25 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
           (v2State?.pause_reason as V2AttentionReason | null | undefined) ?? null,
       })
     : null;
-  if (vault?.status === 'revoked' || attentionReason) status = 'warning';
-  else if (vault?.status === 'paused') status = 'paused';
+  if (isV2 && (vault?.status === 'revoked' || attentionReason)) status = 'warning';
+  else if (isV2 && vault?.status === 'paused') status = 'paused';
   else if (activity !== 'idle') status = 'syncing';
-  else if (vault?.status === 'restoring') status = 'restoring';
+  else if (isV2 && vault?.status === 'restoring') status = 'restoring';
   else if (configured && queuedCount > 0) status = 'queued';
   else if (configured) status = 'synced';
 
   return {
     configured,
-    provider: vault?.provider_kind === 'google-drive' ? 'google-drive' : null,
+    provider: isV2 && vault?.provider_kind === 'google-drive' ? 'google-drive' : null,
     status,
-    accountLabel: accountLabelInMemory,
+    accountLabel: isV2 ? accountLabelInMemory : null,
     activityPhase: activity === 'idle' ? null : activity,
-    initialRestore: vault?.status === 'restoring',
+    initialRestore: isV2 && vault?.status === 'restoring',
     queuedCount,
     conflictCount,
     lastSuccessAt: providerState?.last_success_at ?? null,
     lastVerifiedAt: providerState?.last_verify_at ?? null,
-    revocationKind: vault?.revocation_kind ?? null,
+    revocationKind: isV2 ? vault?.revocation_kind ?? null : null,
     attentionReason,
     recoveryAction: attentionReason ? V2_ATTENTION_RECOVERY_ACTION[attentionReason] : null,
   };
@@ -361,45 +355,27 @@ export async function completeGoogleDriveConnection(options: {
 
 export async function reconnectGoogleDrive(): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
-  if (!vault?.remote_root_id) throw new Error('No cloud backup is configured');
-  assertCloudSyncNetworkAllowed(vault.protocol_version === 2 ? 2 : 1);
-  if (vault.protocol_version === 2) {
-    const auth = createGoogleAuthorization();
-    await auth.authorize();
-    const connectionId = await readOrCreateGoogleConnectionId();
-    const provider = new GoogleDriveSnapshotV2Provider({
-      auth,
-      state: new SQLiteDriveV2ProviderStateStore(sqlite, connectionId),
-    });
-    const available = await provider.listAvailableVaults();
-    if (!available.some((remote) => remote.vaultId === vault.vault_id)) {
-      await auth.signOut();
-      throw new Error('The configured Tackbok backup was not found in this Google account');
-    }
-    accountLabelInMemory = await auth.getAccountLabel();
-    accountLabelAttemptedForVault = vault.vault_id;
-    const state = new SQLiteV2SyncStateStore(sqlite).loadState(vault.vault_id, vault.device_id);
-    await db.update(cloudVault).set({
-      status: state.journalGeneration > state.settledGeneration ? 'dirty' : 'idle',
-      last_connected_at: Date.now(),
-      updated_at: Date.now(),
-    }).where(eq(cloudVault.vault_id, vault.vault_id));
-    await setCloudSyncBackgroundTaskEnabled(true);
-    await restartProductionSyncRuntime();
-    return;
+  if (!vault?.remote_root_id || vault.protocol_version !== 2) {
+    throw new Error('No protocol-v2 cloud backup is configured');
   }
-  const provider = new GoogleDriveProvider({ auth: createGoogleAuthorization() });
-  const connection = await provider.connect();
-  const available = await provider.listVaults();
-  if (!available.some((remote) => remote.vaultId === vault.vault_id && !remote.revoked)) {
-    await provider.disconnect();
+  assertCloudSyncNetworkAllowed(2);
+  const auth = createGoogleAuthorization();
+  await auth.authorize();
+  const connectionId = await readOrCreateGoogleConnectionId();
+  const provider = new GoogleDriveSnapshotV2Provider({
+    auth,
+    state: new SQLiteDriveV2ProviderStateStore(sqlite, connectionId),
+  });
+  const available = await provider.listAvailableVaults();
+  if (!available.some((remote) => remote.vaultId === vault.vault_id)) {
+    await auth.signOut();
     throw new Error('The configured Tackbok backup was not found in this Google account');
   }
-  accountLabelInMemory = connection.accountLabel ?? 'Google Drive';
+  accountLabelInMemory = await auth.getAccountLabel();
   accountLabelAttemptedForVault = vault.vault_id;
-  const [queued] = await db.select({ value: count() }).from(syncChangeQueue);
+  const state = new SQLiteV2SyncStateStore(sqlite).loadState(vault.vault_id, vault.device_id);
   await db.update(cloudVault).set({
-    status: (queued?.value ?? 0) > 0 ? 'dirty' : 'idle',
+    status: state.journalGeneration > state.settledGeneration ? 'dirty' : 'idle',
     last_connected_at: Date.now(),
     updated_at: Date.now(),
   }).where(eq(cloudVault.vault_id, vault.vault_id));
@@ -421,21 +397,20 @@ export async function disconnectGoogleDrive(): Promise<void> {
 
 export async function setCloudSyncPaused(paused: boolean): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
-  if (!vault || vault.status === 'revoked' || vault.status === 'disabled') return;
+  if (!vault || vault.protocol_version !== 2 ||
+      vault.status === 'revoked' || vault.status === 'disabled') return;
   if (paused) {
     stopProductionSyncRuntime();
     await db.update(cloudVault).set({ status: 'paused', updated_at: Date.now() })
       .where(eq(cloudVault.vault_id, vault.vault_id));
     await setCloudSyncBackgroundTaskEnabled(false);
   } else {
-    const [queued] = vault.protocol_version === 2
-      ? await db.select({
-        value: sql<number>`MAX(0, ${cloudV2SyncState.journal_generation} - ${cloudV2SyncState.settled_generation})`,
-      }).from(cloudV2SyncState).where(and(
-        eq(cloudV2SyncState.vault_id, vault.vault_id),
-        eq(cloudV2SyncState.device_id, vault.device_id),
-      )).limit(1)
-      : await db.select({ value: count() }).from(syncChangeQueue);
+    const [queued] = await db.select({
+      value: sql<number>`MAX(0, ${cloudV2SyncState.journal_generation} - ${cloudV2SyncState.settled_generation})`,
+    }).from(cloudV2SyncState).where(and(
+      eq(cloudV2SyncState.vault_id, vault.vault_id),
+      eq(cloudV2SyncState.device_id, vault.device_id),
+    )).limit(1);
     await db.update(cloudVault).set({
       status: (queued?.value ?? 0) > 0 ? 'dirty' : 'idle',
       updated_at: Date.now(),
@@ -478,13 +453,14 @@ export async function revokeCloudVault(
   const [vault] = await db.select().from(cloudVault).where(and(
     eq(cloudVault.provider_kind, 'google-drive'),
   )).limit(1);
-  if (!vault?.remote_root_id) throw new Error('No cloud backup is configured');
-  assertCloudSyncNetworkAllowed(vault.protocol_version === 2 ? 2 : 1);
+  if (!vault?.remote_root_id || vault.protocol_version !== 2) {
+    throw new Error('No protocol-v2 cloud backup is configured');
+  }
+  assertCloudSyncNetworkAllowed(2);
   stopProductionSyncRuntime();
-  if (vault.protocol_version === 2) {
-    const state = new SQLiteV2SyncStateStore(sqlite);
-    let remoteDeletionCompleted = false;
-    try {
+  const state = new SQLiteV2SyncStateStore(sqlite);
+  let remoteDeletionCompleted = false;
+  try {
       // This is the durable point of no ordinary-sync return. If the process
       // dies anywhere below, startup keeps the runtime disabled and exposes a
       // Resume deletion action instead of silently returning to normal sync.
@@ -527,41 +503,21 @@ export async function revokeCloudVault(
       accountLabelAttemptedForVault = null;
       await setCloudSyncBackgroundTaskEnabled(false);
       notifyProductionCloudSyncChanged();
-      return;
-    } catch (error) {
-      if (remoteDeletionCompleted) {
-        state.clearPause(vault.vault_id, vault.device_id);
-      } else {
-        state.setPause(
-          vault.vault_id,
-          vault.device_id,
-          'purge-incomplete',
-          'protocol-v2-purge-incomplete',
-        );
-      }
-      notifyProductionCloudSyncChanged();
-      throw error;
+    return;
+  } catch (error) {
+    if (remoteDeletionCompleted) {
+      state.clearPause(vault.vault_id, vault.device_id);
+    } else {
+      state.setPause(
+        vault.vault_id,
+        vault.device_id,
+        'purge-incomplete',
+        'protocol-v2-purge-incomplete',
+      );
     }
+    notifyProductionCloudSyncChanged();
+    throw error;
   }
-  const provider = new GoogleDriveProvider({ auth: createGoogleAuthorization() });
-  const engine = new SQLiteSyncEngine(
-    vault.device_id,
-    { vaultId: vault.vault_id, remoteRootId: vault.remote_root_id },
-    provider,
-    new SQLiteEngineCheckpointStore(sqlite),
-  );
-  const revocationId = randomUUID();
-  await engine.revoke(kind, revocationId, Date.now());
-  await db.update(cloudVault).set({
-    status: 'revoked',
-    revocation_kind: kind,
-    revocation_id: revocationId,
-    updated_at: Date.now(),
-  }).where(eq(cloudVault.vault_id, vault.vault_id));
-  accountLabelInMemory = null;
-  accountLabelAttemptedForVault = null;
-  await setCloudSyncBackgroundTaskEnabled(false);
-  notifyProductionCloudSyncChanged();
 }
 
 async function clearLocalCloudReplicaInTransaction(
@@ -646,49 +602,34 @@ export async function deleteJournalEverywhere(): Promise<void> {
 
 export async function listUnacknowledgedCloudConflicts(): Promise<CloudConflictSummary[]> {
   const [vault] = await db.select().from(cloudVault).limit(1);
-  if (vault?.protocol_version === 2) {
-    const rows = await db.select().from(cloudV2Conflicts).where(and(
-      eq(cloudV2Conflicts.vault_id, vault.vault_id),
-      isNull(cloudV2Conflicts.acknowledged_at),
-    ));
-    return rows.map((row) => {
-      const conflict = JSON.parse(row.conflict_json) as {
-        entityType: CloudConflictSummary['entityType'];
-        recoveredEntityIds?: unknown[];
-        alternates?: unknown[];
-      };
-      return {
-        conflictId: row.conflict_id,
-        entityType: conflict.entityType,
-        recoveredCount: conflict.recoveredEntityIds?.length ?? 0,
-        alternateCount: conflict.alternates?.length ?? 0,
-        createdAt: row.created_at,
-      };
-    });
-  }
-  const rows = await db.select().from(syncConflicts)
-    .where(isNull(syncConflicts.acknowledged_at));
-  return rows.map((row) => ({
-    conflictId: row.conflict_id,
-    entityType: row.entity_type as CloudConflictSummary['entityType'],
-    recoveredCount: row.recovered_entities.length,
-    alternateCount: row.alternate_scalars.length,
-    createdAt: row.created_at,
-  }));
+  if (vault?.protocol_version !== 2) return [];
+  const rows = await db.select().from(cloudV2Conflicts).where(and(
+    eq(cloudV2Conflicts.vault_id, vault.vault_id),
+    isNull(cloudV2Conflicts.acknowledged_at),
+  ));
+  return rows.map((row) => {
+    const conflict = JSON.parse(row.conflict_json) as {
+      entityType: CloudConflictSummary['entityType'];
+      recoveredEntityIds?: unknown[];
+      alternates?: unknown[];
+    };
+    return {
+      conflictId: row.conflict_id,
+      entityType: conflict.entityType,
+      recoveredCount: conflict.recoveredEntityIds?.length ?? 0,
+      alternateCount: conflict.alternates?.length ?? 0,
+      createdAt: row.created_at,
+    };
+  });
 }
 
 export async function acknowledgeCloudConflicts(): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
-  if (vault?.protocol_version === 2) {
-    await db.update(cloudV2Conflicts).set({ acknowledged_at: Date.now() }).where(and(
-      eq(cloudV2Conflicts.vault_id, vault.vault_id),
-      isNull(cloudV2Conflicts.acknowledged_at),
-    ));
-    notifyProductionCloudSyncChanged();
-    return;
-  }
-  await db.update(syncConflicts).set({ acknowledged_at: Date.now() })
-    .where(isNull(syncConflicts.acknowledged_at));
+  if (vault?.protocol_version !== 2) return;
+  await db.update(cloudV2Conflicts).set({ acknowledged_at: Date.now() }).where(and(
+    eq(cloudV2Conflicts.vault_id, vault.vault_id),
+    isNull(cloudV2Conflicts.acknowledged_at),
+  ));
   notifyProductionCloudSyncChanged();
 }
 

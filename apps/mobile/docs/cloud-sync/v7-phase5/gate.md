@@ -1,7 +1,8 @@
 # Phase V7-5 gate
 
-Status: **OPEN — Bundle (a), b1's v2 media retirement boundary, and c1 are
-complete; c2 is authorized but not started, and b2 blocks store submission.**
+Status: **READY FOR OWNER REVIEW — the development bundles (a), b1's v2 media
+retirement boundary, c1, and c2 are complete; b2 still blocks store
+submission.**
 D1's physical Android Debug real-Drive upload, forced
 interruption/resume, fresh restore, and frozen-hash checks passed. Wi-Fi-only
 behavior subsequently passed a focused physical Android Debug cellular-hold
@@ -13,7 +14,11 @@ crossed the former failure boundary on hardware. Bundle b2 hardware evidence
 remains blocking for store submission. No v1 provider object was deleted: the
 owner's only configured vault was verified locally as protocol v2, and no
 protocol-v1-connected installation remains. No v6 retirement has been
-performed.
+performed against provider data. Protocol-v1 production construction,
+reconnect, revocation, conflict, and per-entity outbox fallbacks have now been
+removed; the dependency audit reports zero production reachability. Historical
+source needed by archived tests and deferred device probes remains unreachable
+and is not shipped through a production route.
 
 ## Bundle (a): host preparation
 
@@ -200,17 +205,35 @@ Owner attestation 2026-08-15: the owner is the only alpha tester; no other
 person is expected to hold a protocol-v1 vault. This does not authorize a
 destructive purge by itself.
 
-## Bundle (c2): v6 production removal — authorized; not started
+## Bundle (c2): v6 production retirement — implemented; awaiting owner review
 
 - [x] Bundle b1's real v2 200 MiB boundary passes and is owner-accepted; the
   focused Wi-Fi-only policy behavior also passes on physical Android Debug.
 - [x] Bundle c1 is accepted first through the no-actionable-v1 owner
   disposition above.
-- [ ] A separate reviewable diff removes v1 production code.
-- [ ] Dependency audit with `--expect-retired` reports zero production-reachable
+- [x] The separate reviewable diff removes every v1 production construction,
+  reconnect, revoke, conflict, materialization, and per-entity outbox fallback.
+  A stale protocol-v1 database row is treated as disconnected and cannot mint a
+  token or issue provider traffic.
+- [x] Dependency audit with `--expect-retired` reports zero production-reachable
   v1 engine files.
-- [ ] Historical v6 docs/gates and migration history remain intact unless a
+- [x] Protocol v2 owns the runtime phase type and media hashing helper; removing
+  v1 reachability does not pull shared v2 behavior back through a legacy barrel.
+- [x] Historical v6 docs/gates, migrations, archived tests, and the deferred
+  Phase-0/3 device-probe source remain intact unless a
   later, separately reviewed cleanup decision says otherwise.
+- [x] Host evidence is recorded in
+  [`evidence/2026-08-25-v1-production-retirement.json`](./evidence/2026-08-25-v1-production-retirement.json):
+  retired dependency audit 17 roots / 301 reachable sources / 0 v1 sources;
+  full Jest 51 suites / 487 tests; V7-2 36 scenarios / 189 assertions; V7-3
+  4 Jest suites / 35 tests plus 3 durable-state scenarios / 10 assertions;
+  V7-4 11 Jest suites / 139 tests plus 7 runtime-gate scenarios / 106
+  assertions; Phase-5(a) 7 Jest tests plus 9 Bun tests / 89 assertions;
+  TypeScript passes; full lint has 0 errors / 18 pre-existing warnings and the
+  touched-file lint has 0 errors / 0 warnings.
+- [x] The superseded Phase-1 Bun gate is retained unchanged as historical
+  evidence and is not a current c2 suite: it requires protocol-v1 per-entity
+  queue rows after every mutation, the exact fallback this retirement removes.
 
 ## Non-claims
 
@@ -229,7 +252,7 @@ destructive purge by itself.
   claimed.
 - No v1 provider vault was listed, revoked, purged, or deleted. The preflight
   queried only redacted local configuration and found protocol v2. No OAuth
-  grant was revoked. No v1 production/protocol/probe source was removed. The only v1
-  production-source modification was the behavior-preserving Z1 extraction:
-  `storage/engineDomain.ts` now re-exports the unchanged hashing helper owned by
-  `v2/runtime/mediaHashing.ts`. Frozen protocol and probe sources were untouched.
+  grant was revoked. The v1 engine/provider/protocol source remains only as an
+  unreachable archive for historical tests and deferred store-submission
+  probes; frozen protocol and probe sources were untouched. The c2 claim is
+  zero production reachability, not physical deletion of the audit trail.

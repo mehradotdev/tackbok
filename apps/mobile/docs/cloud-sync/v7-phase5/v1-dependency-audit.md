@@ -1,11 +1,11 @@
 # Protocol-v1 production dependency audit
 
 Date: 2026-08-15
-Status: Bundle V7-5(a) baseline; removal is not authorized yet
+Status: **retirement result recorded 2026-08-25; awaiting owner review**
 
 The executable audit starts from all 17 non-development Expo Router route
 sources, follows local static imports/re-exports, and classifies the v1-only
-engine tree. Current result:
+engine tree. Bundle V7-5(a) baseline result:
 
 - 325 reachable application source files;
 - 23 reachable v1-only files;
@@ -16,14 +16,31 @@ Run `bun run v7:phase5:audit-v1` for the complete sorted list. The baseline is
 expected to be non-zero: V7-4 intentionally retained v1 for already-connected
 alpha vaults.
 
+## Bundle V7-5(c2) result — 2026-08-25
+
+After the owner confirmed that no protocol-v1-connected installation remains,
+the production bridges below were retired without touching provider data,
+local journal rows, SecureStore, migration history, or historical verdicts:
+
+- 17 production roots;
+- 301 reachable application source files;
+- **0 production-reachable protocol-v1 files**;
+- `bun run v7:phase5:audit-v1:retired` exits successfully.
+
+The legacy source tree is retained only for archived v6 tests and deferred
+store-submission device probes. This is deliberate: moving or deleting that
+audit source would add risk without strengthening the production guarantee.
+The executable graph, not a renamed directory, is the binding retirement
+boundary.
+
 ## Current production bridges
 
 | Bridge | Why it is reachable now | Retirement disposition |
 | --- | --- | --- |
-| `runtime/production.ts` → `engine/`, `providers/`, `storage/engineDomain.ts` | Constructs `SQLiteSyncEngine` for a configured `protocol_version = 1` vault and materializes its result. | Remove the v1 branch only after purge evidence; retain the v2 engine factory and readiness/runtime orchestration. |
+| `runtime/production.ts` → `engine/`, `providers/`, `storage/engineDomain.ts` | Baseline constructed `SQLiteSyncEngine` for a configured `protocol_version = 1` vault and materialized its result. | **Retired:** runtime queries protocol v2 only and imports only the v2 factory plus shared readiness/orchestration. |
 | `storage/engineDomain.ts` → `v2/runtime/mediaHashing.ts` | The retained v1 bridge temporarily re-exports the one helper shared with v2. The v2 production engine imports its owned helper directly. | Remove `engineDomain.ts` with v1; retain `v2/runtime/mediaHashing.ts`. This extraction makes the future `--expect-retired` zero result achievable without breaking v2 media hashing. |
-| `ui/production.ts` → v1 engine/provider | Reconnects, reports, and revokes an existing v1 vault through the reviewed delete path. | Keep until the disposable v1 purge is complete, then remove v1 reconnect/revoke/conflict branches. |
-| `storage/repositories.ts` → v1 queue/state tables | Local mutations dual-route: v2 advances a snapshot generation; absence of an active v2 vault falls back to v1 per-entity outbox rows. | After v1 purge, remove the fallback queue/state write while retaining the transaction wrapper, v2 generation/tombstones, and retained-media ledger. |
+| `ui/production.ts` → v1 engine/provider | Baseline reconnected, reported, and revoked an existing v1 vault through the reviewed delete path. | **Retired:** all provider actions require protocol v2; stale v1 rows are shown as disconnected. |
+| `storage/repositories.ts` → v1 queue/state tables | Baseline mutations dual-routed to v1 per-entity outbox rows without an active v2 vault. | **Retired:** active v2 advances snapshot generation/tombstones; local-only journals need no cloud row and are captured when v2 is connected. |
 | Drizzle schema/migrations | Historical v1 tables remain in installed databases. | Schema/migration history is not an executable engine. Keep old migrations; a later additive cleanup migration is optional and must not precede code retirement. |
 | Shared `auth/`, SecureStore, normalized model, media files/ledger, analytics, and UI primitives | Both protocols use these surfaces. | Retain. They are not v1-only and are intentionally outside the 23-file classification. |
 

@@ -48,8 +48,15 @@ describe('Phase V7-5(a) host-preparation gate', () => {
       mobileRoot,
       'src/lib/cloudSync/runtime/backgroundTask.ts',
     ), 'utf8');
-    expect(runtime.indexOf('isCloudSyncNetworkAllowed(protocolVersion)'))
-      .toBeLessThan(runtime.indexOf('new GoogleDriveProvider'));
+    const createRuntime = runtime.slice(
+      runtime.indexOf('export async function createProductionRuntimeEngine'),
+    );
+    expect(createRuntime.indexOf('isCloudSyncNetworkAllowed(2)'))
+      .toBeLessThan(createRuntime.indexOf('createProductionV2RuntimeEngine'));
+    expect(runtime).not.toContain("from '../engine'");
+    expect(runtime).not.toContain("from '../providers'");
+    expect(createRuntime).toContain('eq(cloudVault.protocol_version, 2)');
+    expect(createRuntime).not.toContain('protocolVersion === 1');
     const prepare = ui.slice(ui.indexOf('export async function prepareGoogleDriveConnection'));
     expect(prepare.indexOf('assertCloudSyncNetworkAllowed(2)'))
       .toBeLessThan(prepare.indexOf('auth.authorize()'));
@@ -60,6 +67,16 @@ describe('Phase V7-5(a) host-preparation gate', () => {
     expect(revoke.indexOf('assertCloudSyncNetworkAllowed'))
       .toBeLessThan(revoke.indexOf('publishRevocation'));
     expect(background).toContain("getCloudSyncRolloutPolicy().mode === 'off'");
+    expect(ui).not.toContain("from '../engine'");
+    expect(ui).not.toContain("from '../providers'");
+    expect(ui).not.toContain('getCloudSyncRolloutPolicy().allows(1)');
+
+    const repositories = readFileSync(join(
+      mobileRoot,
+      'src/lib/cloudSync/storage/repositories.ts',
+    ), 'utf8');
+    expect(repositories).not.toContain('.insert(syncChangeQueue)');
+    expect(repositories).not.toContain('.insert(syncEntityState)');
 
     const policy = readFileSync(join(
       mobileRoot,
@@ -68,14 +85,11 @@ describe('Phase V7-5(a) host-preparation gate', () => {
     expect(policy).not.toMatch(/\b(?:fetch|delete|update|insert)\s*\(|SecureStore/);
   });
 
-  test('the current dependency audit records v1 reachability and excludes dev probes', () => {
+  test('the retired dependency audit reports zero v1 production reachability', () => {
     const audit = auditProductionDependencies(mobileRoot);
     expect(audit.productionRootCount).toBeGreaterThan(0);
-    expect(audit.reachableV1FileCount).toBeGreaterThan(0);
-    expect(audit.reachableV1Files).toContain('src/lib/cloudSync/engine/sqliteEngine.ts');
-    expect(audit.reachableV1Files).toContain('src/lib/cloudSync/providers/googleDrive.ts');
-    expect(audit.reachableV1Files.some((path) => path.includes('/phase0/'))).toBe(false);
-    expect(audit.reachableV1Files.some((path) => path.includes('/phase3/'))).toBe(false);
+    expect(audit.reachableV1FileCount).toBe(0);
+    expect(audit.reachableV1Files).toEqual([]);
 
     const v2Engine = readFileSync(join(
       mobileRoot,
@@ -87,6 +101,8 @@ describe('Phase V7-5(a) host-preparation gate', () => {
     ), 'utf8');
     expect(v2Engine).toContain("from './mediaHashing'");
     expect(v2Engine).not.toContain("from '../../storage/engineDomain'");
+    // Retained only for historical tests/device probes. The dependency audit
+    // above proves this bridge is unreachable from every production route.
     expect(legacyBridge).toContain(
       "export { hashPendingProductionMedia } from '../v2/runtime/mediaHashing'",
     );
@@ -279,6 +295,25 @@ describe('Phase V7-5(a) host-preparation gate', () => {
         providerMutationPerformed: false,
         currentV2BackupUntouched: true,
         localJournalPreserved: true,
+      },
+    });
+    const retirementEvidence: unknown = JSON.parse(readFileSync(join(
+      mobileRoot,
+      'docs/cloud-sync/v7-phase5/evidence/2026-08-25-v1-production-retirement.json',
+    ), 'utf8'));
+    expect(() => assertDriveV2ReportIsRedacted(retirementEvidence)).not.toThrow();
+    expect(retirementEvidence).toMatchObject({
+      evidenceClass: 'host-retirement',
+      dependencyAudit: {
+        productionRoots: 17,
+        reachableSources: 301,
+        reachableV1Sources: 0,
+        expectRetiredExit: 0,
+      },
+      productionBehavior: {
+        protocolV1ProviderReachable: false,
+        staleV1RowStartsNetworkWork: false,
+        protocolV2RuntimeRetained: true,
       },
     });
     const wifiWaiver = readFileSync(join(
