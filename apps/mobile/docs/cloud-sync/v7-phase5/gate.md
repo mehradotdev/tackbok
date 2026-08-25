@@ -1,8 +1,8 @@
 # Phase V7-5 gate
 
-Status: **READY FOR OWNER REVIEW — the development bundles (a), b1's v2 media
-retirement boundary, c1, and c2 are complete; b2 still blocks store
-submission.**
+Status: **CLOSED FOR DEVELOPMENT at owner disposition 2026-08-26 — reviewer
+acceptance covers bundles (a), b1's v2 media retirement boundary, c1, and c2;
+b2 remains merge-blocking for store submission.**
 D1's physical Android Debug real-Drive upload, forced
 interruption/resume, fresh restore, and frozen-hash checks passed. Wi-Fi-only
 behavior subsequently passed a focused physical Android Debug cellular-hold
@@ -77,7 +77,7 @@ and is not shipped through a production route.
   tests, and the dependency audit is 17 roots / 325 reachable sources / 23 v1
   files. D1 remains open and is not softened by this follow-up.
 
-### D1 implementing-agent remediation — 2026-08-18; awaiting owner review
+### D1 implementing-agent remediation — accepted 2026-08-25
 
 - [x] Upload uses an 8 MiB random-access file source and Drive's authoritative
   resumable offset; acknowledged offsets persist in SQLite migration 0011.
@@ -205,7 +205,7 @@ Owner attestation 2026-08-15: the owner is the only alpha tester; no other
 person is expected to hold a protocol-v1 vault. This does not authorize a
 destructive purge by itself.
 
-## Bundle (c2): v6 production retirement — implemented; awaiting owner review
+## Bundle (c2): v6 production retirement — accepted 2026-08-26
 
 - [x] Bundle b1's real v2 200 MiB boundary passes and is owner-accepted; the
   focused Wi-Fi-only policy behavior also passes on physical Android Debug.
@@ -234,6 +234,16 @@ destructive purge by itself.
 - [x] The superseded Phase-1 Bun gate is retained unchanged as historical
   evidence and is not a current c2 suite: it requires protocol-v1 per-entity
   queue rows after every mutation, the exact fallback this retirement removes.
+
+### Reviewer acceptance — 2026-08-26
+
+Kimi independently reproduced the recorded audit and test counts for commit
+`4d43e4c` and approved the c2 hand-off. Review found no production-reachable v1
+invocation, confirmed that stale-v1 state fails without token minting or
+provider traffic, found no v2 regression, and accepted the executable import
+graph as the retirement boundary. The owner directed this acceptance to be
+recorded and closes the development gate. This does not waive Bundle b2 or
+claim store-submission readiness.
 
 ## Non-claims
 

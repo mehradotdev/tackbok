@@ -46,7 +46,7 @@ production path relies on the old engine.
 | V7-2 — durable publisher vs. fake provider | ✅ closed at owner re-review 2026-08-15 after one X1 return; X3 note carries to V7-5 ([gate](./v7-phase2/gate.md), [review](./v7-phase2/review-2026-08-15.md)) |
 | V7-3 — Google Drive snapshot adapter | ✅ closed at owner review 2026-08-15; Y1 carries to V7-4 entry, Y2 noted ([gate](./v7-phase3/gate.md), [review](./v7-phase3/review-2026-08-15.md)) |
 | V7-4 — runtime + UI replacement | ✅ closed 2026-08-15: host claims verified at owner review, Y1/Y2 discharged, all four interactive acceptance checks passed by owner ([gate](./v7-phase4/gate.md), [review](./v7-phase4/review-2026-08-15.md)) |
-| V7-5 — device hardening + v6 retirement | development bundle ready for owner review: D1 remediated on physical Android Debug, c1 has no actionable v1 vault, c2 audit is 0 reachable v1 sources; b2 still blocks store submission ([gate](./v7-phase5/gate.md), [finding D1](./v7-phase5/findings/0001-v2-large-media-whole-buffer-oom.md)) |
+| V7-5 — device hardening + v6 retirement | ✅ development gate closed 2026-08-26 after reviewer acceptance; c2 audit is 0 reachable v1 sources. Bundle b2 still blocks store submission ([gate](./v7-phase5/gate.md), [finding D1](./v7-phase5/findings/0001-v2-large-media-whole-buffer-oom.md)) |
 
 ## Historical v6 status
 

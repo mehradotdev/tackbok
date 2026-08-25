@@ -1,7 +1,7 @@
 # Protocol-v1 production dependency audit
 
 Date: 2026-08-15
-Status: **retirement result recorded 2026-08-25; awaiting owner review**
+Status: **retirement accepted 2026-08-26**
 
 The executable audit starts from all 17 non-development Expo Router route
 sources, follows local static imports/re-exports, and classifies the v1-only

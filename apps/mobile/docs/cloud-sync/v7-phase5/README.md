@@ -14,8 +14,9 @@ that only the owner can produce. The binding order is:
 5. **Bundle (c2), retirement:** remove v1 production code in a separate review
    only after Z1, the b1 large-media obligation, and c1 are closed.
 
-The development bundles are ready for owner review after c2 reached zero v1
-production reachability; b2 remains a store-submission blocker. Bundle (a) does not claim
+The development gate closed at owner disposition on 2026-08-26 after reviewer
+acceptance and c2's zero-v1 production-reachability result. Bundle b2 remains a
+store-submission blocker. Bundle (a) does not claim
 physical-device, release-build, Drive-transfer, power-loss, background, or
 memory evidence.
 
@@ -34,7 +35,7 @@ release-candidate run remain Bundle-b2 obligations. Bundle c1 closed on
 vault is v2 and no v1-connected installation remains. The separate c2 diff now
 removes all v1 production routes and passes the retired dependency audit;
 historical source remains only for archived tests and deferred store-submission
-probes. Owner review is still required.
+probes. Reviewer acceptance is recorded in the gate.
 
 ## Start here
 

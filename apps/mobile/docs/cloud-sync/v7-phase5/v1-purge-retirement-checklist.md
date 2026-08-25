@@ -1,7 +1,6 @@
 # V1 purge and retirement checklist
 
-Status: **c1 complete by owner no-actionable-v1 disposition 2026-08-25; c2 is
-implemented as a separate bundle and awaits owner review**
+Status: **complete — c1 owner disposition 2026-08-25; c2 accepted 2026-08-26**
 
 The owner has attested that no other alpha tester holds a protocol-v1 vault.
 Bundle c1 became actionable after the owner accepted the physical Android Debug
@@ -42,4 +41,6 @@ follow plan §18.3 and are not silently discovered or deleted.
 - [x] Do not rewrite historical verdicts and do not prune audit docs.
 - [x] Run `dependency-audit.ts --expect-retired`; reachable v1 count is zero.
 - [x] Re-run the complete v2/runtime/UI/full-Jest/typecheck/lint evidence set.
-- [ ] Hand the removal bundle back for owner review before merge.
+- [x] Hand the removal bundle back for owner review before merge; Kimi approved
+  commit `4d43e4c`, and the owner directed acceptance to be recorded on
+  2026-08-26.
