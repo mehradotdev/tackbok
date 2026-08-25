@@ -162,6 +162,14 @@ describe('Phase V7-5(a) host-preparation gate', () => {
     expect(probe).not.toContain('new File(selectedFixtureUri)');
     expect(probe).toContain("new File(Paths.document, asset.local_uri)");
     expect(probe).toContain('export async function diagnosePendingV7Media');
+    expect(probe).toContain('export async function inspectV1PurgePreflight');
+    const preflight = probe.slice(
+      probe.indexOf('export async function inspectV1PurgePreflight'),
+      probe.indexOf('/**', probe.indexOf('export async function inspectV1PurgePreflight')),
+    );
+    expect(preflight).toContain("? 'eligible-v1'");
+    expect(preflight).toContain('localJournalPresent');
+    expect(preflight).not.toMatch(/vaultId|deviceId|account|token|journalContent/);
     expect(probe).toContain('nativeInspection');
     expect(probe).not.toContain('exceptionText');
     expect(probe).not.toContain('assetId: row.asset_id');
@@ -251,6 +259,26 @@ describe('Phase V7-5(a) host-preparation gate', () => {
           completionToastShown: true,
           implementingAgentObservedFinalStatus: 'up-to-date',
         },
+      },
+    });
+    const v1PurgeDisposition: unknown = JSON.parse(readFileSync(join(
+      mobileRoot,
+      'docs/cloud-sync/v7-phase5/evidence/2026-08-25-v1-purge-disposition.json',
+    ), 'utf8'));
+    expect(() => assertDriveV2ReportIsRedacted(v1PurgeDisposition)).not.toThrow();
+    expect(v1PurgeDisposition).toMatchObject({
+      evidenceClass: 'owner-disposition',
+      redactedLocalPreflight: {
+        configuredVaultCount: 1,
+        protocolVersion: 2,
+        eligibility: 'not-v1',
+        localJournalPresent: true,
+      },
+      disposition: {
+        result: 'no-actionable-v1-vault',
+        providerMutationPerformed: false,
+        currentV2BackupUntouched: true,
+        localJournalPreserved: true,
       },
     });
     const wifiWaiver = readFileSync(join(

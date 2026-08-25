@@ -14,6 +14,7 @@ import {
 import type { DriveV2ProbeReport } from '~/lib/cloudSync/v2/drive/probeReport';
 import {
   diagnosePendingV7Media,
+  inspectV1PurgePreflight,
   isV7DeviceHardeningProbeEnabled,
   seedV7LargeMediaProductionProbe,
   verifyV7LargeMediaProductionProbe,
@@ -38,6 +39,7 @@ export default function DevV7CloudProbesScreen() {
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
   const [mediaDiagnostic, setMediaDiagnostic] = useState<string | null>(null);
+  const [purgePreflight, setPurgePreflight] = useState<string | null>(null);
 
   const run = useCallback(async (authorization: 'interactive' | 'stored' = 'interactive') => {
     setBusy(true);
@@ -172,6 +174,27 @@ export default function DevV7CloudProbesScreen() {
       {mediaDiagnostic && (
         <Text className="text-muted-foreground font-mono text-xs pt-2">
           {mediaDiagnostic}
+        </Text>
+      )}
+
+      <Button
+        className="mt-3"
+        disabled={seedBusy || busy}
+        variant="outline"
+        onPress={() => {
+          setSeedBusy(true);
+          setPurgePreflight(null);
+          void inspectV1PurgePreflight()
+            .then((result) => setPurgePreflight(JSON.stringify(result)))
+            .catch(() => setPurgePreflight('Redacted v1 purge preflight failed.'))
+            .finally(() => setSeedBusy(false));
+        }}>
+        <Text>Check v1 purge preflight (redacted)</Text>
+      </Button>
+
+      {purgePreflight && (
+        <Text className="text-muted-foreground font-mono text-xs pt-2">
+          {purgePreflight}
         </Text>
       )}
 

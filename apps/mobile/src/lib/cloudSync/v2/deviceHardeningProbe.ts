@@ -1,9 +1,9 @@
-import { and, eq, isNotNull, isNull, or } from 'drizzle-orm';
+import { and, count, eq, isNotNull, isNull, or } from 'drizzle-orm';
 import Constants from 'expo-constants';
 import { Directory, File, Paths } from 'expo-file-system';
 import { copyAsync } from 'expo-file-system/legacy';
 
-import { cloudVault, mediaAssets } from '~/db/schema';
+import { cloudVault, entries, mediaAssets } from '~/db/schema';
 import { db } from '~/db';
 import { AssetType } from '~/types';
 import { inspectLocalMediaFile } from '../media/streamingHash';
@@ -46,6 +46,13 @@ export interface RedactedPendingMediaDiagnostic {
     nativeInspection: 'passed' | 'failed';
     byteCount: number | null;
   }[];
+}
+
+export interface RedactedV1PurgePreflight {
+  configuredVaultCount: number;
+  protocolVersion: 1 | 2 | null;
+  eligibility: 'eligible-v1' | 'not-v1' | 'no-configured-vault' | 'ambiguous';
+  localJournalPresent: boolean;
 }
 
 export function isV7DeviceHardeningProbeEnabled(): boolean {
@@ -129,6 +136,40 @@ export async function diagnosePendingV7Media(): Promise<RedactedPendingMediaDiag
     }
   }));
   return { pendingCount: rows.length, candidates };
+}
+
+/**
+ * DEV-only destructive-action preflight. The result contains no vault/device
+ * identifier, provider object, account value, token, or journal content.
+ */
+export async function inspectV1PurgePreflight(): Promise<RedactedV1PurgePreflight> {
+  if (!isV7DeviceHardeningProbeEnabled()) {
+    throw new Error('V7-5 purge preflight is disabled in this build');
+  }
+  const vaults = await db.select({
+    protocolVersion: cloudVault.protocol_version,
+    remoteRootPresent: isNotNull(cloudVault.remote_root_id),
+    status: cloudVault.status,
+  }).from(cloudVault);
+  const configured = vaults.filter((vault) =>
+    vault.remoteRootPresent && !['disabled', 'revoked'].includes(vault.status));
+  const [journal] = await db.select({ value: count() }).from(entries);
+  const protocolVersion = configured.length === 1
+    ? configured[0].protocolVersion === 2 ? 2 : 1
+    : null;
+  const eligibility: RedactedV1PurgePreflight['eligibility'] = configured.length === 0
+    ? 'no-configured-vault'
+    : configured.length > 1
+      ? 'ambiguous'
+      : protocolVersion === 1
+        ? 'eligible-v1'
+        : 'not-v1';
+  return {
+    configuredVaultCount: configured.length,
+    protocolVersion,
+    eligibility,
+    localJournalPresent: (journal?.value ?? 0) > 0,
+  };
 }
 
 /**

@@ -1,9 +1,8 @@
 # Phase V7-5 gate
 
-Status: **OPEN — Bundle (a) and b1's v2 media retirement boundary are
-complete; Bundle c1 is authorized but not performed, c2 remains sequenced
-after c1, and b2 blocks store submission.** D1's physical Android Debug
-real-Drive upload, forced
+Status: **OPEN — Bundle (a), b1's v2 media retirement boundary, and c1 are
+complete; c2 is authorized but not started, and b2 blocks store submission.**
+D1's physical Android Debug real-Drive upload, forced
 interruption/resume, fresh restore, and frozen-hash checks passed. Wi-Fi-only
 behavior subsequently passed a focused physical Android Debug cellular-hold
 and Wi-Fi-resume round; release-candidate confirmation still blocks store
@@ -11,8 +10,10 @@ submission rather than v1 retirement. The earlier Android
 virtual-device run proved native hashing but reproduced the whole-buffer OOM.
 The replacement transport is bounded and restartable in host tests and has now
 crossed the former failure boundary on hardware. Bundle b2 hardware evidence
-remains blocking for store submission. No v1 test-vault purge or v6 retirement
-has been performed.
+remains blocking for store submission. No v1 provider object was deleted: the
+owner's only configured vault was verified locally as protocol v2, and no
+protocol-v1-connected installation remains. No v6 retirement has been
+performed.
 
 ## Bundle (a): host preparation
 
@@ -178,21 +179,33 @@ still use the strict device-evidence schema and atomic finalization path.
   preserves queued local intent and provider object count, and later `all`
   resumes the same intent.
 
-## Bundle (c1): disposable v1 test-vault purge — authorized; not performed
+## Bundle (c1): disposable v1 test-vault disposition — complete 2026-08-25
 
-- [ ] Owner disposable v1 test vaults are revoked and purged through the
-  retained reviewed v1 delete path, or the owner records that none exist.
-- [ ] Disposable OAuth grants are manually removed after device testing/purge.
+- [x] The owner gave fresh destructive authorization for a currently connected
+  disposable identity, but the DEV-only redacted local preflight proved that
+  the sole configured vault is protocol v2 (`eligibility: not-v1`) and that the
+  local journal is present. The authorized v1 deletion therefore did not match
+  this target and was not executed.
+- [x] The owner attests they are the only alpha tester and that no other
+  emulator/device installation remains connected to a protocol-v1 vault. Per
+  plan §18.3, inaccessible orphaned alpha v1 objects are abandoned rather than
+  silently discovered or deleted, and no purge is manufactured against v2.
+- [x] Redacted counts/status and non-claims are recorded in
+  [`evidence/2026-08-25-v1-purge-disposition.json`](./evidence/2026-08-25-v1-purge-disposition.json).
+- [x] The current v2 backup and local journal remain untouched. Removing the
+  disposable OAuth grant is deferred until all remaining device testing ends,
+  because the same disposable identity still backs the active v2 test vault.
 
 Owner attestation 2026-08-15: the owner is the only alpha tester; no other
 person is expected to hold a protocol-v1 vault. This does not authorize a
 destructive purge by itself.
 
-## Bundle (c2): v6 production removal — blocked
+## Bundle (c2): v6 production removal — authorized; not started
 
 - [x] Bundle b1's real v2 200 MiB boundary passes and is owner-accepted; the
   focused Wi-Fi-only policy behavior also passes on physical Android Debug.
-- [ ] Bundle c1 is accepted first.
+- [x] Bundle c1 is accepted first through the no-actionable-v1 owner
+  disposition above.
 - [ ] A separate reviewable diff removes v1 production code.
 - [ ] Dependency audit with `--expect-retired` reports zero production-reachable
   v1 engine files.
@@ -214,8 +227,9 @@ destructive purge by itself.
   manual Wi-Fi resume on physical Android Debug. Automatic Wi-Fi resumption,
   release-signed policy behavior, and trustworthy device timing/memory are not
   claimed.
-- No v1 vault was queried, revoked, purged, or deleted. No OAuth grant was
-  revoked. No v1 production/protocol/probe source was removed. The only v1
+- No v1 provider vault was listed, revoked, purged, or deleted. The preflight
+  queried only redacted local configuration and found protocol v2. No OAuth
+  grant was revoked. No v1 production/protocol/probe source was removed. The only v1
   production-source modification was the behavior-preserving Z1 extraction:
   `storage/engineDomain.ts` now re-exports the unchanged hashing helper owned by
   `v2/runtime/mediaHashing.ts`. Frozen protocol and probe sources were untouched.

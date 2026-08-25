@@ -12,7 +12,7 @@ that only the owner can produce. The binding order is:
    but merge-blocking for store submission.
 4. **Bundle (c1), disposable purge:** use the reviewed v1 delete path after b1.
 5. **Bundle (c2), retirement:** remove v1 production code in a separate review
-   only after Z1 and the b1 large-media obligation are closed.
+   only after Z1, the b1 large-media obligation, and c1 are closed.
 
 The development phase is not closed until a/b1/c1/c2 pass; b2 remains a store-
 submission blocker. Bundle (a) does not claim
@@ -29,8 +29,10 @@ then-untested Wi-Fi-only behavior to the store-submission gate in
 [`wifi-only-media-waiver.md`](./wifi-only-media-waiver.md). A 2026-08-25
 physical Android Debug follow-up subsequently passed the cellular hold and
 manual Wi-Fi completion with synthetic media. Automatic resume and a strict
-release-candidate run remain Bundle-b2 obligations. Bundle c1 is authorized;
-retirement remains sequenced after c1 and must be a separate reviewed diff.
+release-candidate run remain Bundle-b2 obligations. Bundle c1 closed on
+2026-08-25 through a redacted no-actionable-v1 owner disposition: the current
+vault is v2 and no v1-connected installation remains. Retirement is now
+authorized but must be a separate reviewed diff.
 
 ## Start here
 

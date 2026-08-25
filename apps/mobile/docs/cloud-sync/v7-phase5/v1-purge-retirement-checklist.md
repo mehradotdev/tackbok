@@ -1,28 +1,31 @@
 # V1 purge and retirement checklist
 
-Status: **c1 authorized by owner disposition 2026-08-18; c2 remains blocked
-until c1 is complete and reviewed**
+Status: **c1 complete by owner no-actionable-v1 disposition 2026-08-25; c2 is
+authorized as a separate removal bundle**
 
 The owner has attested that no other alpha tester holds a protocol-v1 vault.
 Bundle c1 became actionable after the owner accepted the physical Android Debug
 D1 transport evidence and moved the unexecuted Wi-Fi-only scenario to the
-store-submission gate. A purge remains destructive and requires a fresh,
-explicit owner confirmation at execution time.
+store-submission gate. The owner supplied fresh destructive confirmation on
+2026-08-25, but the redacted local preflight proved the connected vault was
+protocol v2 and therefore outside the authorized target.
 
 ## Bundle (c1): disposable v1 vault purge
 
-- [ ] Identify only owner-created disposable protocol-v1 test vaults. Never use
-  a personal account or infer a target from an unverified label.
-- [ ] Using the still-present reviewed v1 production path, run **Delete cloud
-  backup**/revocation and allow the purge to reach zero remaining objects.
-- [ ] Re-run the retained Phase-3 marker-preservation/permanent-delete checks as
-  required by the accepted device round.
-- [ ] Record redacted evidence with counts/status only—no vault ID, Drive file
+- [x] The owner confirmed the connected identity was disposable; target
+  eligibility was verified from local protocol state rather than its label.
+- [x] The sole configured vault was protocol v2, so the authorized v1 purge did
+  not run and the v2 backup was not substituted as a target.
+- [x] No protocol-v1-connected emulator/device installation remains. The owner
+  is the only alpha tester, so any inaccessible orphan follows the explicit
+  alpha abandonment rule in plan §18.3.
+- [x] Redacted evidence contains counts/status only—no vault ID, Drive file
   ID, logical key, account label, body, token, or session URI.
-- [ ] Confirm the local journal remains present unless the owner explicitly
-  chose **Delete journal everywhere**.
-- [ ] Manually remove the throwaway account's Tackbok OAuth grant in Google
-  Account settings after all device testing and purges finish.
+- [x] The local journal remains present; no provider mutation or destructive UI
+  action was performed. See
+  [`evidence/2026-08-25-v1-purge-disposition.json`](./evidence/2026-08-25-v1-purge-disposition.json).
+- [x] The disposable OAuth grant is deliberately retained until remaining v2
+  device testing ends, then must be removed manually.
 
 If no disposable v1 vault exists, the owner records that disposition instead of
 manufacturing a purge. Alpha vaults outside the owner's disposable test scope
@@ -30,7 +33,7 @@ follow plan §18.3 and are not silently discovered or deleted.
 
 ## Bundle (c2): separate v6 removal diff
 
-- [ ] Start only after Bundle (c1) owner review and a passing b1 200 MiB v2
+- [x] Start only after Bundle (c1) owner review and a passing b1 200 MiB v2
   upload/hash/restore result.
 - [ ] Remove v1 production construction, reconnect, revoke, materialization,
   and outbox fallback paths identified in `v1-dependency-audit.md`.
