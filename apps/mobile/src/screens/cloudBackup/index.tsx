@@ -1,6 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Linking, ScrollView, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Linking,
+  ScrollView,
+  View,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -12,11 +19,14 @@ import {
   FileClock,
   RefreshCw,
   ShieldCheck,
+  Smartphone,
   Trash2,
   Unplug,
   Wifi,
+  X,
 } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
+import { useCSSVariable } from 'uniwind';
 import { useTranslation } from '~/lib/i18n';
 import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
 import { useSettingsStore } from '~/lib/settings';
@@ -32,13 +42,12 @@ import {
   listUnacknowledgedCloudConflicts,
   prepareGoogleDriveConnection,
   reconnectGoogleDrive,
-  retrySyncAttentionReason,
   resetThisDeviceOnly,
+  retrySyncAttentionReason,
   revokeCloudVault,
   setCloudSyncPaused,
   syncNow,
   useCloudSyncSnapshot,
-  verifyCloudBackup,
   type CloudConflictSummary,
   type CloudSyncActionFailureCategory,
   CloudSyncActionError,
@@ -67,14 +76,11 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
+import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 
 type SetupStage = 'overview' | 'disclosure' | 'authorizing' | 'choose' | 'working';
-type DestructiveAction =
-  | 'disconnect'
-  | 'delete-backup'
-  | 'delete-journal'
-  | 'finish-journal-deletion'
-  | 'reset-device';
+type DataAction = 'delete-backup' | 'delete-journal' | 'reset-device';
+type DestructiveAction = 'disconnect' | 'finish-journal-deletion' | DataAction;
 
 function statusLabel(
   status: ReturnType<typeof useCloudSyncSnapshot>['snapshot']['status'],
@@ -176,17 +182,25 @@ function attentionReasonMessage(
     'head-snapshot-missing': t('A device backup points to a missing snapshot.'),
     'ambiguous-device-head': t('Two different backups claim the same device version.'),
     'frontier-too-wide': t('Too many independent device backups need consolidation.'),
-    'derived-id-collision': t('A recovered item conflicts with an existing stable identifier.'),
+    'derived-id-collision': t(
+      'A recovered item conflicts with an existing stable identifier.',
+    ),
     'local-storage-full': t('Tackbok could not safely stage backup data on this device.'),
     'provider-quota-full': t('Google Drive does not have enough free storage.'),
-    'provider-permission-denied': t('Google Drive denied access to the app backup folder.'),
+    'provider-permission-denied': t(
+      'Google Drive denied access to the app backup folder.',
+    ),
     'missing-media': t('A referenced photo or voice memo is unavailable.'),
     'local-media-unreadable': t('A local photo or voice memo could not be verified.'),
     'normalized-model-not-ready': t('Your journal is not ready for cloud sync yet.'),
     'backup-deleted': t('This cloud backup was deleted from another device.'),
     'journal-deleted': t('This journal was deleted everywhere from another device.'),
-    'purge-incomplete': t('Cloud deletion stopped before every backup object was removed.'),
-    'cleanup-inconsistent': t('Backup cleanup was stopped to protect a current snapshot.'),
+    'purge-incomplete': t(
+      'Cloud deletion stopped before every backup object was removed.',
+    ),
+    'cleanup-inconsistent': t(
+      'Backup cleanup was stopped to protect a current snapshot.',
+    ),
   };
   return messages[reason];
 }
@@ -232,6 +246,14 @@ export default function CloudBackupScreen() {
     (state) => state.setHasCompletedOnboarding,
   );
   const resetSettings = useSettingsStore((state) => state.resetToDefaults);
+  const manageDataSheetRef = useRef<TrueSheet>(null);
+  const [sheetBackgroundColor, themeRadiusStr, mutedForegroundColor] = useCSSVariable([
+    '--color-background',
+    '--theme-radius',
+    '--color-muted-foreground',
+  ]);
+  const sheetRadius =
+    String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
   const [stage, setStage] = useState<SetupStage>(
     origin === 'onboarding' ? 'disclosure' : 'overview',
   );
@@ -241,6 +263,10 @@ export default function CloudBackupScreen() {
     null,
   );
   const [deletingJournalEverywhere, setDeletingJournalEverywhere] = useState(false);
+  const providerName = t('Google Drive');
+  const disconnectLabel = t('Disconnect {provider}', {
+    provider: providerName,
+  });
 
   const refreshConflicts = useCallback(async () => {
     setConflicts(await listUnacknowledgedCloudConflicts());
@@ -278,10 +304,13 @@ export default function CloudBackupScreen() {
     } catch (error) {
       const permissionMissing =
         (error instanceof CloudAuthError && error.code === 'permission-required') ||
-        (error instanceof SnapshotProviderError && error.code === 'authorization-required');
+        (error instanceof SnapshotProviderError &&
+          error.code === 'authorization-required');
       toast.error(
         permissionMissing
-          ? t('Google Drive access is required. Try again and select the Drive access checkbox.')
+          ? t(
+              'Google Drive access is required. Try again and select the Drive access checkbox.',
+            )
           : t('Google Drive connection was not completed'),
       );
       if (origin === 'onboarding') router.back();
@@ -369,8 +398,11 @@ export default function CloudBackupScreen() {
     const reason = snapshot.attentionReason;
     const action = snapshot.recoveryAction;
     if (!reason || !action) return;
-    if (action === 'choose-connected-account' || action === 'finish-connection' ||
-        action === 'reconnect-correct-backup') {
+    if (
+      action === 'choose-connected-account' ||
+      action === 'finish-connection' ||
+      action === 'reconnect-correct-backup'
+    ) {
       await runAction(async () => {
         await disconnectGoogleDrive();
         setPrepared(null);
@@ -395,7 +427,10 @@ export default function CloudBackupScreen() {
       return;
     }
     if (action === 'acknowledge-disconnect') {
-      await runAction(disconnectGoogleDrive, t('Google Drive disconnected on this device'));
+      await runAction(
+        disconnectGoogleDrive,
+        t('Google Drive disconnected on this device'),
+      );
       return;
     }
     if (action === 'review-erase-device') {
@@ -415,7 +450,9 @@ export default function CloudBackupScreen() {
     }
     if (action === 'export-repair-backup') {
       router.push('/settings');
-      toast.warning(t('Export or repair the affected journal data, then return and retry.'));
+      toast.warning(
+        t('Export or repair the affected journal data, then return and retry.'),
+      );
       return;
     }
     if (action === 'locate-retry-attachment') {
@@ -429,37 +466,57 @@ export default function CloudBackupScreen() {
       () => retrySyncAttentionReason(reason),
       t('Cloud backup retry completed'),
     );
-  }, [completeJournalDeletion, router, runAction, snapshot.attentionReason,
-    snapshot.recoveryAction, snapshot.revocationKind, t]);
+  }, [
+    completeJournalDeletion,
+    router,
+    runAction,
+    snapshot.attentionReason,
+    snapshot.recoveryAction,
+    snapshot.revocationKind,
+    t,
+  ]);
 
-  const handleDestructiveAction = useCallback(async (action: DestructiveAction | null) => {
-    setDestructiveAction(null);
-    if (!action) return;
-    try {
-      if (action === 'disconnect') {
-        await disconnectGoogleDrive();
-        toast.success(t('Google Drive disconnected on this device'));
-      } else if (action === 'delete-backup') {
-        await revokeCloudVault('backup-deleted');
-        toast.success(t('Cloud backup deleted'));
-      } else if (action === 'delete-journal') {
-        await completeJournalDeletion();
-        return;
-      } else {
-        await resetThisDeviceOnly();
-        await clearLocalPresentation();
-        return;
+  const handleDestructiveAction = useCallback(
+    async (action: DestructiveAction | null) => {
+      setDestructiveAction(null);
+      if (!action) return;
+      try {
+        if (action === 'disconnect') {
+          await disconnectGoogleDrive();
+          toast.success(t('Google Drive disconnected on this device'));
+        } else if (action === 'delete-backup') {
+          await revokeCloudVault('backup-deleted');
+          toast.success(t('Cloud backup deleted'));
+        } else if (action === 'delete-journal') {
+          await completeJournalDeletion();
+          return;
+        } else if (action === 'reset-device') {
+          await resetThisDeviceOnly();
+          await clearLocalPresentation();
+          return;
+        } else {
+          await completeJournalDeletion();
+          return;
+        }
+        await refresh();
+      } catch {
+        toast.error(t('Cloud backup could not be updated'));
       }
-      await refresh();
-    } catch {
-      toast.error(t('Cloud backup could not be updated'));
-    }
-  }, [clearLocalPresentation, completeJournalDeletion, refresh, t]);
+    },
+    [clearLocalPresentation, completeJournalDeletion, refresh, t],
+  );
+
+  const handleChooseDataAction = useCallback(async (action: DataAction) => {
+    await manageDataSheetRef.current?.dismiss();
+    setDestructiveAction(action);
+  }, []);
 
   const actionCopy =
     destructiveAction === 'disconnect'
       ? {
-          title: t('Disconnect Google Drive?'),
+          title: t('Disconnect {provider} from this device?', {
+            provider: providerName,
+          }),
           description: t(
             'Local data and the cloud backup will both remain. Other devices stay connected.',
           ),
@@ -481,21 +538,21 @@ export default function CloudBackupScreen() {
               ),
               button: t('Delete journal everywhere'),
             }
-          : destructiveAction === 'finish-journal-deletion'
+          : destructiveAction === 'reset-device'
             ? {
+                title: t('Reset this device only?'),
+                description: t(
+                  'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
+                ),
+                button: t('Reset this device only'),
+              }
+            : {
                 title: t('Finish deleting this journal?'),
                 description: t(
                   'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
                 ),
                 button: t('Finish deletion'),
-              }
-          : {
-              title: t('Reset this device only?'),
-              description: t(
-                'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
-              ),
-              button: t('Reset this device only'),
-            };
+              };
 
   return (
     <View className="flex-1 bg-background">
@@ -556,8 +613,9 @@ export default function CloudBackupScreen() {
         )}
 
         {stage === 'overview' &&
-          (snapshot.configured || snapshot.status === 'paused' ||
-            Boolean(snapshot.attentionReason && snapshot.recoveryAction) ? (
+          (snapshot.configured ||
+          snapshot.status === 'paused' ||
+          Boolean(snapshot.attentionReason && snapshot.recoveryAction) ? (
             <>
               <View className="rounded-lg border border-border bg-card p-4 gap-3">
                 <View className="flex-row items-center justify-between gap-3">
@@ -606,7 +664,10 @@ export default function CloudBackupScreen() {
                     <Button
                       variant="outline"
                       onPress={() => void handleRecoveryAction()}
-                      accessibilityLabel={recoveryActionLabel(snapshot.recoveryAction, t)}>
+                      accessibilityLabel={recoveryActionLabel(
+                        snapshot.recoveryAction,
+                        t,
+                      )}>
                       <Text>{recoveryActionLabel(snapshot.recoveryAction, t)}</Text>
                     </Button>
                   </View>
@@ -629,8 +690,11 @@ export default function CloudBackupScreen() {
                 <Button
                   variant="primary"
                   size="lg"
-                  disabled={snapshot.status === 'syncing' || snapshot.status === 'paused' ||
-                    snapshot.status === 'warning'}
+                  disabled={
+                    snapshot.status === 'syncing' ||
+                    snapshot.status === 'paused' ||
+                    snapshot.status === 'warning'
+                  }
                   onPress={() => void runAction(syncNow, t('Sync completed'))}
                   accessibilityLabel={t('Sync now')}>
                   {snapshot.status === 'syncing' ? (
@@ -647,16 +711,12 @@ export default function CloudBackupScreen() {
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow
                   icon={Wifi}
-                  label={t('Wi-Fi only for media')}
-                  description={t(
-                    'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.',
-                  )}
+                  label={t('Sync media on Wi-Fi only')}
+                  description={t('Journal text still syncs on mobile data.')}
                   onPress={() => setWifiOnly(!wifiOnly)}
                   role="switch"
-                  accessibilityLabel={t('Wi-Fi only for media')}
-                  accessibilityHint={t(
-                    'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.',
-                  )}
+                  accessibilityLabel={t('Sync media on Wi-Fi only')}
+                  accessibilityHint={t('Journal text still syncs on mobile data.')}
                   accessibilityState={{ checked: wifiOnly }}
                   className="rounded-none px-4"
                   rightElement={
@@ -695,37 +755,6 @@ export default function CloudBackupScreen() {
                 />
               </View>
 
-              <View className="rounded-lg border border-border bg-card overflow-hidden">
-                <SettingsRow
-                  icon={ShieldCheck}
-                  label={t('Verify backup health')}
-                  description={
-                    snapshot.lastVerifiedAt
-                      ? t('Last verified: {date}', {
-                          date: formatLocalizedDate(snapshot.lastVerifiedAt, t, {
-                            relative: true,
-                          }),
-                        })
-                      : t('Check the cloud copy and repair if needed')
-                  }
-                  onPress={() =>
-                    void runAction(verifyCloudBackup, t('Backup health verified'))
-                  }
-                  accessibilityLabel={t('Verify backup health')}
-                  className="rounded-none px-4"
-                />
-                <SettingsRow
-                  icon={RefreshCw}
-                  label={t('Reconnect Google Drive')}
-                  onPress={() =>
-                    void runAction(reconnectGoogleDrive, t('Google Drive reconnected'))
-                  }
-                  accessibilityLabel={t('Reconnect Google Drive')}
-                  className="rounded-none px-4"
-                  isLast
-                />
-              </View>
-
               {conflicts.length > 0 && (
                 <View className="rounded-lg border border-border bg-card p-4 gap-3">
                   <View className="flex-row items-center gap-2">
@@ -755,42 +784,31 @@ export default function CloudBackupScreen() {
                 </View>
               )}
 
-              <View className="rounded-lg border border-destructive/50 bg-card overflow-hidden">
+              <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow
                   icon={Unplug}
-                  label={t('Disconnect provider')}
+                  label={disconnectLabel}
                   description={t('Keep local data and the cloud copy')}
                   onPress={() => setDestructiveAction('disconnect')}
-                  accessibilityLabel={t('Disconnect provider')}
+                  accessibilityLabel={disconnectLabel}
                   accessibilityHint={t('Keep local data and the cloud copy')}
                   className="rounded-none px-4"
+                  isLast
                 />
+              </View>
+
+              <View className="rounded-lg border border-destructive/50 bg-card overflow-hidden">
                 <SettingsRow
                   icon={Trash2}
-                  label={t('Delete cloud backup')}
-                  description={t('Keep local journal data')}
-                  onPress={() => setDestructiveAction('delete-backup')}
-                  accessibilityLabel={t('Delete cloud backup')}
-                  accessibilityHint={t('Keep local journal data')}
+                  label={t('Delete or reset data')}
+                  description={t('Choose which copies of your journal to remove.')}
+                  onPress={() => void manageDataSheetRef.current?.present()}
+                  accessibilityLabel={t('Delete or reset data')}
+                  accessibilityHint={t(
+                    'Choose which copies of your journal to remove.',
+                  )}
                   className="rounded-none px-4"
-                />
-                <SettingsRow
-                  icon={Trash2}
-                  label={t('Delete journal everywhere')}
-                  description={t('Delete cloud and local journal data')}
-                  onPress={() => setDestructiveAction('delete-journal')}
-                  accessibilityLabel={t('Delete journal everywhere')}
-                  accessibilityHint={t('Delete cloud and local journal data')}
-                  className="rounded-none px-4"
-                />
-                <SettingsRow
-                  icon={CloudOff}
-                  label={t('Reset this device only')}
-                  description={t('Keep the cloud copy and other devices')}
-                  onPress={() => setDestructiveAction('reset-device')}
-                  accessibilityLabel={t('Reset this device only')}
-                  accessibilityHint={t('Keep the cloud copy and other devices')}
-                  className="rounded-none px-4"
+                  showChevron
                   isLast
                 />
               </View>
@@ -802,7 +820,7 @@ export default function CloudBackupScreen() {
                 <Text variant="h3" className="text-center text-foreground">
                   {t('Optional cloud backup')}
                 </Text>
-                <Text className="text-center text-muted-foreground">
+                <Text className="text-center text-foreground">
                   {t(
                     'Back up and sync your journal with your own Google Drive. No Tackbok account is created.',
                   )}
@@ -814,6 +832,68 @@ export default function CloudBackupScreen() {
             </View>
           ))}
       </ScrollView>
+
+      <TrueSheet
+        ref={manageDataSheetRef}
+        detents={['auto']}
+        cornerRadius={sheetRadius}
+        grabber
+        grabberOptions={{
+          topMargin: 8,
+          color: mutedForegroundColor as string,
+          adaptive: false,
+        }}
+        backgroundColor={sheetBackgroundColor as string}>
+        <View className="bg-background pt-2 pb-8">
+          <View className="flex-row items-center justify-between px-5 pt-3 pb-2">
+            <Text className="text-xl font-body-bold text-foreground">
+              {t('Delete or reset data')}
+            </Text>
+            <Button
+              onPress={() => void manageDataSheetRef.current?.dismiss()}
+              variant="ghost"
+              className="p-1 -mr-2"
+              accessibilityLabel={t('Close')}>
+              <Icon as={X} className="text-foreground" />
+            </Button>
+          </View>
+
+          <Text className="px-5 pb-3 text-sm text-muted-foreground">
+            {t('Choose which copies of your journal to remove.')}
+          </Text>
+
+          <View className="mx-4 rounded-lg border border-destructive/50 bg-card overflow-hidden">
+            <SettingsRow
+              icon={CloudOff}
+              label={t('Delete cloud backup')}
+              description={t('Keep local journal data')}
+              onPress={() => void handleChooseDataAction('delete-backup')}
+              accessibilityLabel={t('Delete cloud backup')}
+              accessibilityHint={t('Keep local journal data')}
+              className="rounded-none px-4"
+            />
+            <SettingsRow
+              icon={Smartphone}
+              label={t('Reset this device only')}
+              description={t('Keep the cloud copy and other devices')}
+              onPress={() => void handleChooseDataAction('reset-device')}
+              accessibilityLabel={t('Reset this device only')}
+              accessibilityHint={t('Keep the cloud copy and other devices')}
+              className="rounded-none px-4"
+            />
+            <SettingsRow
+              icon={Trash2}
+              label={t('Delete journal everywhere')}
+              description={t('Delete cloud and local journal data')}
+              onPress={() => void handleChooseDataAction('delete-journal')}
+              accessibilityLabel={t('Delete journal everywhere')}
+              accessibilityHint={t('Delete cloud and local journal data')}
+              className="rounded-none px-4"
+              isLast
+            />
+          </View>
+        </View>
+      </TrueSheet>
 
       <AlertDialog
         open={destructiveAction !== null}
@@ -941,9 +1021,6 @@ function DisclosureCard({ busy, onContinue }: { busy: boolean; onContinue: () =>
         {t(
           'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.',
         )}
-      </Text>
-      <Text className="text-foreground/75">
-        {t('This connects storage only—not a Tackbok account.')}
       </Text>
       <Button variant="primary" size="lg" disabled={busy} onPress={onContinue}>
         {busy && <ActivityIndicator colorClassName="accent-primary-foreground" />}

@@ -685,14 +685,14 @@ export const en = {
   'Attention needed': 'Attention needed',
   'Back up and sync your journal with your own Google Drive. No Tackbok account is created.':
     'Back up and sync your journal with your own Google Drive. No Tackbok account is created.',
-  'Backup health verified': 'Backup health verified',
   'Backup from {date}': 'Backup from {date}',
   'Before you connect': 'Before you connect',
-  'Check the cloud copy and repair if needed': 'Check the cloud copy and repair if needed',
   'Checking Google Drive for changes': 'Checking Google Drive for changes',
   'Choose a backup to merge with this journal. Both sides are preserved.':
     'Choose a backup to merge with this journal. Both sides are preserved.',
   'Choose a backup to restore on this device.': 'Choose a backup to restore on this device.',
+  'Choose which copies of your journal to remove.':
+    'Choose which copies of your journal to remove.',
   'Cloud Backup & Sync': 'Cloud Backup & Sync',
   'Cloud backup connected': 'Cloud backup connected',
   'Cloud backup could not be updated': 'Cloud backup could not be updated',
@@ -715,12 +715,13 @@ export const en = {
   'Delete cloud backup?': 'Delete cloud backup?',
   'Delete journal everywhere': 'Delete journal everywhere',
   'Delete journal everywhere?': 'Delete journal everywhere?',
+  'Delete or reset data': 'Delete or reset data',
   'Deleting journal everywhere…': 'Deleting journal everywhere…',
   'Removing the cloud backup and journal data. Keep Tackbok open.':
     'Removing the cloud backup and journal data. Keep Tackbok open.',
   Disconnect: 'Disconnect',
-  'Disconnect Google Drive?': 'Disconnect Google Drive?',
-  'Disconnect provider': 'Disconnect provider',
+  'Disconnect {provider}': 'Disconnect {provider}',
+  'Disconnect {provider} from this device?': 'Disconnect {provider} from this device?',
   'Disconnect, then delete local journal data only':
     'Disconnect, then delete local journal data only',
   'Edits remain safely queued on this device.': 'Edits remain safely queued on this device.',
@@ -743,11 +744,12 @@ export const en = {
   'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.':
     'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.',
   'Journal deletion received': 'Journal deletion received',
+  'Journal text still syncs on mobile data.':
+    'Journal text still syncs on mobile data.',
   'Keep local data and the cloud copy': 'Keep local data and the cloud copy',
   'Keep local journal data': 'Keep local journal data',
   'Keep the cloud copy and other devices': 'Keep the cloud copy and other devices',
   'Last successful sync: {date}': 'Last successful sync: {date}',
-  'Last verified: {date}': 'Last verified: {date}',
   'Local data and the cloud backup will both remain. Other devices stay connected.':
     'Local data and the cloud backup will both remain. Other devices stay connected.',
   'Mark as reviewed': 'Mark as reviewed',
@@ -788,9 +790,8 @@ export const en = {
   'Sync resumed': 'Sync resumed',
   'Sync runs in safe batches. You can keep using Tackbok.':
     'Sync runs in safe batches. You can keep using Tackbok.',
+  'Sync media on Wi-Fi only': 'Sync media on Wi-Fi only',
   'Syncing…': 'Syncing…',
-  'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.':
-    'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.',
   'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.':
     'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.',
   'The cloud copy will be permanently deleted after verification. Local journal data remains.':
@@ -799,8 +800,6 @@ export const en = {
     'This cloud backup was deleted. Local journal data remains on this device.',
   'This cloud backup contains data Tackbok cannot read.':
     'This cloud backup contains data Tackbok cannot read.',
-  'This connects storage only—not a Tackbok account.':
-    'This connects storage only—not a Tackbok account.',
   'Finish deleting this journal?': 'Finish deleting this journal?',
   'Cloud deletion is already recorded. Erase the remaining journal data from this device.':
     'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
@@ -815,7 +814,6 @@ export const en = {
   'Up to date': 'Up to date',
   'Verify backup health': 'Verify backup health',
   'Waiting for the first successful sync': 'Waiting for the first successful sync',
-  'Wi-Fi only for media': 'Wi-Fi only for media',
   'You can leave this screen; syncing resumes when Tackbok is active.':
     'You can leave this screen; syncing resumes when Tackbok is active.',
   'Your journal stays on your device — with optional cloud backup.':

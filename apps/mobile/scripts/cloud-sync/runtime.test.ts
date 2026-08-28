@@ -192,7 +192,7 @@ describe('production cloud-sync runtime', () => {
         "'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.'",
       );
       expect(locale).toContain(
-        "'Text-only changes sync on mobile data. Changes with new photos or voice memos wait for Wi-Fi.'",
+        "'Journal text still syncs on mobile data.'",
       );
     }
     expect(screen).toContain('accessibilityRole="alert"');

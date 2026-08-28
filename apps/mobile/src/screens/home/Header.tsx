@@ -5,7 +5,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  CloudCheck,
+  Check,
+  Cloud,
   CloudOff,
   CloudUpload,
   Search,
@@ -47,8 +48,13 @@ export const Header: React.FC<IHeaderProps> = ({
   const { data: allTags } = useTags();
   const safeTags = allTags || [];
   const showTagFilter = isSearchMode && safeTags.length > 0;
-  const syncIsActive =
-    snapshot.status === 'syncing' || snapshot.status === 'restoring';
+  const syncIsActive = snapshot.status === 'syncing' || snapshot.status === 'restoring';
+  const syncIsUpToDate =
+    !syncIsActive &&
+    snapshot.status !== 'warning' &&
+    snapshot.status !== 'paused' &&
+    snapshot.status !== 'queued' &&
+    snapshot.queuedCount === 0;
 
   if (isSearchMode) {
     return (
@@ -161,16 +167,33 @@ export const Header: React.FC<IHeaderProps> = ({
             {syncIsActive ? (
               <SpinningRefreshIcon className="text-primary-foreground size-5" />
             ) : (
-              <Icon
-                as={snapshot.status === 'warning'
-                  ? AlertTriangle
-                  : snapshot.status === 'paused'
-                    ? CloudOff
-                    : snapshot.status === 'queued' || snapshot.queuedCount > 0
-                      ? CloudUpload
-                      : CloudCheck}
-                className="text-primary-foreground size-5"
-              />
+              <View className="relative size-5">
+                <Icon
+                  as={
+                    snapshot.status === 'warning'
+                      ? AlertTriangle
+                      : snapshot.status === 'paused'
+                        ? CloudOff
+                        : snapshot.status === 'queued' || snapshot.queuedCount > 0
+                          ? CloudUpload
+                          : Cloud
+                  }
+                  className="text-primary-foreground size-6"
+                  strokeWidth={2.5}
+                />
+                {syncIsUpToDate && (
+                  <View
+                    className="absolute -right-1 -bottom-2 size-3 items-center justify-center rounded-full border border-background bg-accent"
+                    accessible={false}
+                    importantForAccessibility="no-hide-descendants">
+                    <Icon
+                      as={Check}
+                      className="size-2.5 text-accent-foreground"
+                      strokeWidth={3.5}
+                    />
+                  </View>
+                )}
+              </View>
             )}
             {snapshot.queuedCount > 0 && (
               <View className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-destructive items-center justify-center px-0.5">
