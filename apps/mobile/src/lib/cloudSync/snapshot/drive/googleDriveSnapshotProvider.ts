@@ -12,6 +12,7 @@ import type {
   MediaUploadSource,
 } from '../sync/types';
 import { MediaIntegrityError, SnapshotProviderError } from '../sync/types';
+import { DriveDiscovery } from './discovery';
 import type { DriveInstrumentationSink, DriveMethodClass } from './instrumentation';
 import type {
   DriveFileRecord,
@@ -45,9 +46,8 @@ const MULTIPART_MAX_BYTES = 4 * 1024 * 1024;
 const HEAD_MAX_BYTES = 256 * 1024;
 const SESSION_LIFETIME_MS = 6 * 24 * 60 * 60 * 1_000;
 const PROPERTY_PAIR_UTF8_CAP = 124;
-const MAX_DISCOVERY_REBUILDS = 1;
 
-interface DriveFile {
+export interface DriveFile {
   id: string;
   name: string;
   size: string;
@@ -55,12 +55,6 @@ interface DriveFile {
   sha256Checksum: string;
   trashed?: boolean;
   appProperties: Record<string, string>;
-}
-
-interface DriveChange {
-  removed?: boolean;
-  fileId?: string;
-  file?: unknown;
 }
 
 export interface GoogleDriveSnapshotProviderOptions {
@@ -186,6 +180,7 @@ function parseCreatedAt(file: DriveFile): number | null {
 export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private readonly state: DriveProviderStateStore;
   private readonly transport: DriveTransport;
+  private readonly discovery: DriveDiscovery;
   private readonly sleep: (milliseconds: number) => Promise<void>;
   private readonly random: () => number;
   private readonly now: () => number;
@@ -205,6 +200,18 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       sleep: this.sleep,
       random: this.random,
       now: this.now,
+    });
+    this.discovery = new DriveDiscovery({
+      state: this.state,
+      request: (...args) => this.request(...args),
+      queryFiles: (vaultId, query) => this.queryFiles(vaultId, query),
+      parseFile: parseDiscoveryFile,
+      kindOf: objectKind,
+      materialize: (vaultId, file, kind, rejectInvalid) =>
+        this.safeMaterializeRecord(vaultId, file, kind, rejectInvalid),
+      vaultQuery: (vaultId, suffix) => this.vaultQuery(vaultId, suffix),
+      propertyClause,
+      sleep: this.sleep,
     });
   }
 
@@ -283,9 +290,9 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   }
 
   async listHeads(vaultId: string, refresh = true): Promise<ListedDeviceHead[]> {
-    if (refresh) await this.refreshDiscovery(vaultId);
+    if (refresh) await this.discovery.refresh(vaultId);
     else if (!this.state.loadDiscovery(vaultId).inventoryComplete) {
-      await this.initializeDiscovery(vaultId);
+      await this.discovery.refresh(vaultId);
     }
     return this.state.listKind(vaultId, 'head').map((record) => {
       if (!record.head) {
@@ -424,7 +431,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
 
   async listSnapshots(vaultId: string): Promise<SnapshotObject[]> {
     if (!this.state.loadDiscovery(vaultId).inventoryComplete) {
-      await this.initializeDiscovery(vaultId);
+      await this.discovery.refresh(vaultId);
     }
     const grouped = new Map<string, SnapshotObject>();
     for (const file of this.state.listKind(vaultId, 'snapshot')) {
@@ -452,108 +459,6 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         { idempotent: true, accepted: [404] });
       this.state.removeFile(vaultId, candidate.fileId);
     }
-  }
-
-  private async refreshDiscovery(vaultId: string, rebuilds = 0): Promise<void> {
-    const discovery = this.state.loadDiscovery(vaultId);
-    if (!discovery.inventoryComplete || !discovery.cursor) {
-      await this.initializeDiscovery(vaultId, rebuilds);
-      return;
-    }
-    let cursor = discovery.cursor;
-    try {
-      while (true) {
-        const params = new URLSearchParams({
-          pageToken: cursor,
-          spaces: APP_DATA,
-          pageSize: String(PAGE_SIZE),
-          includeRemoved: 'true',
-          fields: `nextPageToken,newStartPageToken,changes(removed,fileId,file(${FILE_FIELDS}))`,
-        });
-        const response = await this.request(
-          vaultId,
-          'list',
-          `${API}/changes?${params}`,
-          {},
-          { idempotent: true },
-        );
-        const body = await response.json() as {
-          nextPageToken?: unknown;
-          newStartPageToken?: unknown;
-          changes?: DriveChange[];
-        };
-        const files: DriveFileRecord[] = [];
-        const removed: string[] = [];
-        for (const change of body.changes ?? []) {
-          if (change.removed && typeof change.fileId === 'string') {
-            removed.push(change.fileId);
-            continue;
-          }
-          if (!change.file) continue;
-          const file = parseDiscoveryFile(change.file);
-          if (!file) continue;
-          if (file.appProperties[PROP_VAULT] !== vaultId) continue;
-          const kind = objectKind(file.appProperties[PROP_KIND]);
-          if (!kind) continue;
-          const record = await this.safeMaterializeRecord(vaultId, file, kind, kind === 'head');
-          if (record) files.push(record);
-        }
-        const next = typeof body.nextPageToken === 'string'
-          ? body.nextPageToken
-          : typeof body.newStartPageToken === 'string'
-            ? body.newStartPageToken
-            : cursor;
-        this.state.applyChangePage(vaultId, files, removed, next);
-        if (typeof body.nextPageToken !== 'string') return;
-        cursor = body.nextPageToken;
-      }
-    } catch (error) {
-      if (!(error instanceof DriveRequestError) ||
-          ![400, 404, 410].includes(error.status)) throw error;
-      if (rebuilds >= MAX_DISCOVERY_REBUILDS) {
-        throw new SnapshotProviderError(
-          'transient',
-          'Drive rejected a freshly rebuilt discovery cursor',
-        );
-      }
-      this.state.resetDiscovery(vaultId);
-      await this.initializeDiscovery(vaultId, rebuilds + 1);
-    }
-  }
-
-  private async initializeDiscovery(vaultId: string, rebuilds = 0): Promise<void> {
-    const tokenResponse = await this.request(
-      vaultId,
-      'start-token',
-      `${API}/changes/startPageToken?spaces=${APP_DATA}`,
-      {},
-      { idempotent: true },
-    );
-    const tokenBody = await tokenResponse.json() as { startPageToken?: unknown };
-    if (typeof tokenBody.startPageToken !== 'string') {
-      throw new SnapshotProviderError('invalid-data', 'Drive returned no start-page token');
-    }
-    const scope = `(name contains 'heads/' or name contains 'snapshots/') and (` +
-      `${propertyClause(PROP_KIND, 'head')} or ${propertyClause(PROP_KIND, 'snapshot')})`;
-    const query = this.vaultQuery(vaultId, scope);
-    const initial = await this.queryFiles(vaultId, query);
-    // Drive changes are authoritative only after startPageToken. A second
-    // prefix scan reduces the real service's listing-visibility window for
-    // objects that predate that token; the subsequent changes catch-up closes
-    // the race for objects written after it. This costs two extra first-run
-    // requests, keeping a one-head text restore at the approved ceiling of 8.
-    await this.sleep(250);
-    const repeated = await this.queryFiles(vaultId, query);
-    const files = [...new Map([...initial, ...repeated].map((file) => [file.id, file])).values()];
-    const records: DriveFileRecord[] = [];
-    for (const file of files) {
-      const kind = objectKind(file.appProperties[PROP_KIND]);
-      if (kind !== 'head' && kind !== 'snapshot') continue;
-      const record = await this.safeMaterializeRecord(vaultId, file, kind, kind === 'head');
-      if (record) records.push(record);
-    }
-    this.state.replaceInitialInventory(vaultId, records, tokenBody.startPageToken);
-    await this.refreshDiscovery(vaultId, rebuilds);
   }
 
   private async materializeRecord(
