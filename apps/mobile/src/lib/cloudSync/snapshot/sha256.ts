@@ -16,7 +16,7 @@ const K = new Uint32Array([
 const rotateRight = (value: number, bits: number) =>
   (value >>> bits) | (value << (32 - bits));
 
-export function sha256BytesV2(input: Uint8Array): string {
+export function sha256Bytes(input: Uint8Array): string {
   const bitLength = input.length * 8;
   const paddedLength = Math.ceil((input.length + 9) / 64) * 64;
   const bytes = new Uint8Array(paddedLength);
@@ -65,7 +65,7 @@ export function sha256BytesV2(input: Uint8Array): string {
     .map((value) => value.toString(16).padStart(8, '0')).join('');
 }
 
-export function sha256TextV2(value: string): string {
-  return sha256BytesV2(new TextEncoder().encode(value));
+export function sha256Text(value: string): string {
+  return sha256Bytes(new TextEncoder().encode(value));
 }
 

@@ -1,7 +1,7 @@
 import type {
-  JournalSnapshotPayloadV2,
-  ObservedDeviceHeadV2,
-  SnapshotDomainV2,
+  JournalSnapshotPayload,
+  ObservedDeviceHead,
+  SnapshotDomain,
 } from '../types';
 
 export type SyncAttentionReason =
@@ -78,9 +78,8 @@ export type PendingPublicationStage =
   | 'head-advanced'
   | 'domain-applied';
 
-export interface DeviceHeadV2 {
+export interface DeviceHead {
   format: 'tackbok-device-head';
-  formatVersion: 2;
   vaultId: string;
   deviceId: string;
   deviceSequence: number;
@@ -88,12 +87,12 @@ export interface DeviceHeadV2 {
   updatedAt: number;
 }
 
-export interface ListedDeviceHeadV2 {
+export interface ListedDeviceHead {
   physicalId: string;
-  head: DeviceHeadV2;
+  head: DeviceHead;
 }
 
-export interface SnapshotObjectV2 {
+export interface SnapshotObject {
   snapshotId: string;
   createdAt: number;
   byteCount: number;
@@ -142,7 +141,7 @@ export class MediaIntegrityError extends Error {
 export interface SnapshotProvider {
   listRevocations(vaultId: string): Promise<('backup-deleted' | 'journal-deleted')[]>;
   /** `refresh=false` is a cleanup-time read of the durable provider cache. */
-  listHeads(vaultId: string, refresh?: boolean): Promise<ListedDeviceHeadV2[]>;
+  listHeads(vaultId: string, refresh?: boolean): Promise<ListedDeviceHead[]>;
   downloadSnapshot(vaultId: string, snapshotId: string): Promise<Uint8Array | null>;
   uploadSnapshot(
     vaultId: string,
@@ -155,11 +154,11 @@ export interface SnapshotProvider {
     snapshotId: string,
     expectedBytes: Uint8Array,
   ): Promise<boolean>;
-  updateDeviceHead(vaultId: string, head: DeviceHeadV2): Promise<void>;
+  updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
   uploadMedia(vaultId: string, blobHash: string, source: MediaUploadSource): Promise<void>;
   downloadMedia(vaultId: string, blobHash: string, sink: MediaDownloadSink): Promise<boolean>;
-  listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]>;
+  listSnapshots(vaultId: string): Promise<SnapshotObject[]>;
   deleteSnapshot(vaultId: string, snapshotId: string): Promise<void>;
 }
 
@@ -178,8 +177,8 @@ export interface MediaDownloadSink {
   verifyAndPromote(expectedByteLength: number, expectedSha256: string): Promise<void>;
 }
 
-export interface CapturedJournalV2 {
-  domain: SnapshotDomainV2;
+export interface CapturedJournal {
+  domain: SnapshotDomain;
   generation: number;
 }
 
@@ -188,9 +187,9 @@ export interface CapturedJournalV2 {
  * normalized-domain repositories; tests use an in-memory implementation.
  */
 export interface SnapshotJournalStore {
-  capture(): Promise<CapturedJournalV2>;
+  capture(): Promise<CapturedJournal>;
   applyMergedIfGeneration(
-    domain: SnapshotDomainV2,
+    domain: SnapshotDomain,
     expectedGeneration: number,
   ): Promise<boolean>;
 }
@@ -212,7 +211,6 @@ export interface BaseShadowFileStore {
 export interface BaseShadowCheckpoint {
   vaultId: string;
   deviceId: string;
-  shadowFormatVersion: 1;
   snapshotId: string;
   fileName: string;
   canonicalSha256: string;
@@ -254,14 +252,12 @@ export type SnapshotSyncResult =
       actionableChanges: number;
     };
 
-export interface BaseShadowV1 {
+export interface BaseShadow {
   format: 'tackbok-base-shadow';
-  shadowFormatVersion: 1;
-  protocolFormatVersion: 2;
   vaultId: string;
   snapshotId: string;
-  acceptedDeviceHeads: ObservedDeviceHeadV2[];
-  payload: JournalSnapshotPayloadV2;
+  acceptedDeviceHeads: ObservedDeviceHead[];
+  payload: JournalSnapshotPayload;
 }
 
 export type SnapshotKillPoint =

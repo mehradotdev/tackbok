@@ -34,7 +34,6 @@ export interface DriveInstrumentationSink {
 
 export interface DriveRequestReport {
   format: 'tackbok-drive-request-report';
-  formatVersion: 1;
   scenario: string;
   attempts: number;
   retries: number;
@@ -61,7 +60,6 @@ export class MemoryDriveInstrumentation implements DriveInstrumentationSink {
     }
     const report: DriveRequestReport = {
       format: 'tackbok-drive-request-report',
-      formatVersion: 1,
       scenario: this.scenario,
       attempts: this.metrics.length,
       retries: this.metrics.filter((metric) => metric.retry).length,
@@ -89,7 +87,7 @@ export function assertDriveReportIsRedacted(value: unknown): void {
   const serialized = JSON.stringify(value);
   for (const [label, pattern] of FORBIDDEN_REPORT_PATTERNS) {
     if (pattern.test(serialized)) {
-      throw new Error(`Drive v2 report contains forbidden ${label}`);
+      throw new Error(`Drive report contains forbidden ${label}`);
     }
   }
   for (const forbiddenKey of [
@@ -97,7 +95,7 @@ export function assertDriveReportIsRedacted(value: unknown): void {
     'url', 'uri', 'body', 'content', 'snapshotId', 'blobHash', 'deviceId',
   ]) {
     if (new RegExp(`"${forbiddenKey}"\\s*:`, 'i').test(serialized)) {
-      throw new Error(`Drive v2 report contains forbidden field ${forbiddenKey}`);
+      throw new Error(`Drive report contains forbidden field ${forbiddenKey}`);
     }
   }
 }

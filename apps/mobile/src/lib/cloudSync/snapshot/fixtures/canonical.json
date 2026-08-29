@@ -1,6 +1,5 @@
 {
-  "format": "tackbok-canonical-json-v2-fixtures",
-  "formatVersion": 1,
+  "format": "tackbok-canonical-json-fixtures",
   "synthetic": true,
   "vectors": [
     {
@@ -29,8 +28,9 @@
     },
     {
       "id": "controls-and-line-separators",
-      "value": { "text": "quote \" slash / reverse \\ tab\t cr\r lf\n  " },
-      "canonical": "{\"text\":\"quote \\\" slash / reverse \\\\ tab\\t cr\\r lf\\n  \"}",
+      "note": "The final two characters are intentional U+2028 LINE SEPARATOR and U+2029 PARAGRAPH SEPARATOR test cases; do not remove them.",
+      "value": { "text": "quote \" slash / reverse \\ tab\t cr\r lf\n\u2028\u2029" },
+      "canonical": "{\"text\":\"quote \\\" slash / reverse \\\\ tab\\t cr\\r lf\\n\u2028\u2029\"}",
       "sha256": "acecb51cf1a5d796ae723db15f1807f69cfa34879d8bdd40d40e7718dfb2d262"
     },
     {
@@ -55,7 +55,6 @@
         "entries": [],
         "entryTags": [],
         "format": "tackbok-snapshot",
-        "formatVersion": 2,
         "media": [],
         "observedDeviceHeads": [],
         "parentSnapshotIds": [],
@@ -65,8 +64,8 @@
         "tombstones": [],
         "vaultId": "vault-fixture"
       },
-      "canonical": "{\"authorDeviceId\":\"device-fixture-a\",\"conflicts\":[],\"createdAt\":1770000000000,\"deviceSequence\":1,\"entries\":[],\"entryTags\":[],\"format\":\"tackbok-snapshot\",\"formatVersion\":2,\"media\":[],\"observedDeviceHeads\":[],\"parentSnapshotIds\":[],\"profile\":{\"displayName\":null,\"photoAssetId\":null,\"profileId\":\"profile\",\"updatedAt\":1770000000000},\"prompts\":[],\"tags\":[],\"tombstones\":[],\"vaultId\":\"vault-fixture\"}",
-      "sha256": "aa1c6e28488fc8dd505ece3ff35c48044471d3bfbbce428125637b68008ab9b4"
+      "canonical": "{\"authorDeviceId\":\"device-fixture-a\",\"conflicts\":[],\"createdAt\":1770000000000,\"deviceSequence\":1,\"entries\":[],\"entryTags\":[],\"format\":\"tackbok-snapshot\",\"media\":[],\"observedDeviceHeads\":[],\"parentSnapshotIds\":[],\"profile\":{\"displayName\":null,\"photoAssetId\":null,\"profileId\":\"profile\",\"updatedAt\":1770000000000},\"prompts\":[],\"tags\":[],\"tombstones\":[],\"vaultId\":\"vault-fixture\"}",
+      "sha256": "3eebf4202b149b50f792c0ffe528a6f97b1c7c67223938c5ae52812bb621c988"
     }
   ],
   "reject": [

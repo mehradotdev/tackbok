@@ -20,7 +20,7 @@ function assertBaseName(fileName: string): void {
 
 /** App-private file adapter for durable base-shadow checkpoints. */
 export class ExpoBaseShadowFileStore implements BaseShadowFileStore {
-  private readonly directory = new Directory(Paths.document, 'cloud-sync-v2-base');
+  private readonly directory = new Directory(Paths.document, 'cloud-sync-base');
 
   constructor() {
     this.directory.create({ intermediates: true, idempotent: true });

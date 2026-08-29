@@ -1,9 +1,9 @@
 import type { CloudAuthorization, GoogleTokenSet } from '../../auth/types';
-import { canonicalBytesV2 } from '../canonical';
-import { decodeSnapshotV2, encodeSnapshotV2 } from '../codec';
-import { sha256BytesV2 } from '../sha256';
-import type { JournalSnapshotPayloadV2 } from '../types';
-import type { DeviceHeadV2 } from '../sync/types';
+import { encodeCanonicalBytes } from '../canonical';
+import { decodeSnapshot, encodeSnapshot } from '../codec';
+import { sha256Bytes } from '../sha256';
+import type { JournalSnapshotPayload } from '../types';
+import type { DeviceHead } from '../sync/types';
 import {
   driveMetadataKey,
   GoogleDriveSnapshotProvider,
@@ -199,14 +199,14 @@ class FakeDriveServer {
       appProperties: {
         tb_vault: vaultId,
         tb_key: driveMetadataKey(key),
-        tb_hash: sha256BytesV2(bytes),
+        tb_hash: sha256Bytes(bytes),
         tb_kind: kind,
         ...extra,
       },
     }, bytes);
   }
 
-  record(file: StoredDriveFile, kind: DriveObjectKind, head: DeviceHeadV2 | null): DriveFileRecord {
+  record(file: StoredDriveFile, kind: DriveObjectKind, head: DeviceHead | null): DriveFileRecord {
     return {
       fileId: file.id,
       logicalKey: file.name,
@@ -226,7 +226,7 @@ class FakeDriveServer {
     existingId?: string,
   ): StoredDriveFile {
     const id = existingId ?? `drive-file-${++this.nextId}`;
-    const hash = sha256BytesV2(bytes);
+    const hash = sha256Bytes(bytes);
     const stored: StoredDriveFile = {
       id,
       name: metadata.name,
@@ -270,10 +270,9 @@ class FakeDriveServer {
 
 const vaultId = 'vault-drive-test';
 
-function head(deviceId: string, sequence: number, snapshotId: string): DeviceHeadV2 {
+function head(deviceId: string, sequence: number, snapshotId: string): DeviceHead {
   return {
     format: 'tackbok-device-head',
-    formatVersion: 2,
     vaultId,
     deviceId,
     deviceSequence: sequence,
@@ -282,9 +281,9 @@ function head(deviceId: string, sequence: number, snapshotId: string): DeviceHea
   };
 }
 
-function representativePresentlyPayload(deviceId: string): JournalSnapshotPayloadV2 {
+function representativePresentlyPayload(deviceId: string): JournalSnapshotPayload {
   return {
-    format: 'tackbok-snapshot', formatVersion: 2, vaultId,
+    format: 'tackbok-snapshot', vaultId,
     parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: deviceId,
     deviceSequence: 1, createdAt: 1,
     entries: Array.from({ length: 2_000 }, (_, index) => ({
@@ -319,7 +318,7 @@ function provider(
 describe('GoogleDriveSnapshotProvider', () => {
   test('one 2,000-entry snapshot publishes and fresh-restores within both request ceilings', async () => {
     const server = new FakeDriveServer();
-    const encoded = encodeSnapshotV2(representativePresentlyPayload('device-import'));
+    const encoded = encodeSnapshot(representativePresentlyPayload('device-import'));
     const importMetrics = new MemoryDriveInstrumentation('representative-import');
     const importing = provider(server, new MemoryDriveProviderStateStore(), importMetrics);
     await importing.listRevocations(vaultId);
@@ -336,7 +335,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     const heads = await restoring.listHeads(vaultId, true);
     const downloaded = await restoring.downloadSnapshot(vaultId, encoded.snapshotId);
     expect(downloaded).not.toBeNull();
-    expect(decodeSnapshotV2(downloaded!, encoded.snapshotId).payload.entries).toHaveLength(2_000);
+    expect(decodeSnapshot(downloaded!, encoded.snapshotId).payload.entries).toHaveLength(2_000);
     await restoring.updateDeviceHead(vaultId, head('device-restore', 1, encoded.snapshotId));
 
     expect(heads).toHaveLength(1);
@@ -355,7 +354,7 @@ describe('GoogleDriveSnapshotProvider', () => {
       vaultId,
       `heads/${existingHead.deviceId}.json`,
       'head',
-      canonicalBytesV2(existingHead),
+      encodeCanonicalBytes(existingHead),
     );
     state.replaceInitialInventory(vaultId, [server.record(headFile, 'head', existingHead)], server.cursor());
 
@@ -383,8 +382,8 @@ describe('GoogleDriveSnapshotProvider', () => {
   test('duplicate physical heads remain visible and simultaneous device heads coexist', async () => {
     const server = new FakeDriveServer();
     const duplicate = head('device-duplicate', 1, 'c'.repeat(64));
-    server.seed(vaultId, `heads/${duplicate.deviceId}.json`, 'head', canonicalBytesV2(duplicate));
-    server.seed(vaultId, `heads/${duplicate.deviceId}.json`, 'head', canonicalBytesV2(duplicate));
+    server.seed(vaultId, `heads/${duplicate.deviceId}.json`, 'head', encodeCanonicalBytes(duplicate));
+    server.seed(vaultId, `heads/${duplicate.deviceId}.json`, 'head', encodeCanonicalBytes(duplicate));
     const first = provider(server);
     expect(await first.listHeads(vaultId, true)).toHaveLength(2);
 
@@ -400,12 +399,12 @@ describe('GoogleDriveSnapshotProvider', () => {
     const server = new FakeDriveServer();
     const valid = head('device-valid', 1, 'c'.repeat(64));
     const invalid = head('device-invalid', 1, 'd'.repeat(64));
-    server.seed(vaultId, `heads/${valid.deviceId}.json`, 'head', canonicalBytesV2(valid));
+    server.seed(vaultId, `heads/${valid.deviceId}.json`, 'head', encodeCanonicalBytes(valid));
     const inconsistent = server.seed(
       vaultId,
       `heads/${invalid.deviceId}.json`,
       'head',
-      canonicalBytesV2(invalid),
+      encodeCanonicalBytes(invalid),
     );
     inconsistent.appProperties.tb_hash = '0'.repeat(64);
 
@@ -488,7 +487,7 @@ describe('GoogleDriveSnapshotProvider', () => {
   test('an expired change cursor rebuilds the prefix-scoped inventory', async () => {
     const server = new FakeDriveServer();
     const remote = head('device-cursor', 1, 'f'.repeat(64));
-    server.seed(vaultId, `heads/${remote.deviceId}.json`, 'head', canonicalBytesV2(remote));
+    server.seed(vaultId, `heads/${remote.deviceId}.json`, 'head', encodeCanonicalBytes(remote));
     const state = new MemoryDriveProviderStateStore();
     state.replaceInitialInventory(vaultId, [], 'expired-cursor');
     const app = provider(server, state);
@@ -518,15 +517,15 @@ describe('GoogleDriveSnapshotProvider', () => {
     const server = new FakeDriveServer();
     const olderVault = 'vault-discovery-older';
     const newerVault = 'vault-discovery-newer';
-    const olderHead: DeviceHeadV2 = {
+    const olderHead: DeviceHead = {
       ...head('device-older', 1, '3'.repeat(64)), vaultId: olderVault, updatedAt: 10,
     };
-    const newerHead: DeviceHeadV2 = {
+    const newerHead: DeviceHead = {
       ...head('device-newer', 1, '4'.repeat(64)), vaultId: newerVault, updatedAt: 20,
     };
-    server.seed(olderVault, 'heads/device-older.json', 'head', canonicalBytesV2(olderHead));
-    server.seed(newerVault, 'heads/device-newer.json', 'head', canonicalBytesV2(newerHead));
-    server.seed('vault-invalid', 'heads/device-invalid.json', 'head', canonicalBytesV2(olderHead));
+    server.seed(olderVault, 'heads/device-older.json', 'head', encodeCanonicalBytes(olderHead));
+    server.seed(newerVault, 'heads/device-newer.json', 'head', encodeCanonicalBytes(newerHead));
+    server.seed('vault-invalid', 'heads/device-invalid.json', 'head', encodeCanonicalBytes(olderHead));
 
     await expect(provider(server).listAvailableVaults()).resolves.toEqual([
       { vaultId: newerVault, updatedAt: 20 },
@@ -537,7 +536,7 @@ describe('GoogleDriveSnapshotProvider', () => {
   test('initial discovery survives one eventually-consistent empty prefix listing', async () => {
     const server = new FakeDriveServer();
     const remote = head('device-eventual', 1, '0'.repeat(64));
-    server.seed(vaultId, `heads/${remote.deviceId}.json`, 'head', canonicalBytesV2(remote));
+    server.seed(vaultId, `heads/${remote.deviceId}.json`, 'head', encodeCanonicalBytes(remote));
     server.hideNextFileLists = 1;
     const metrics = new MemoryDriveInstrumentation('fresh-eventual-list');
 
@@ -556,7 +555,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     const server = new FakeDriveServer();
     const remote = head('device-cached-change', 1, '8'.repeat(64));
     const stored = server.seed(
-      vaultId, `heads/${remote.deviceId}.json`, 'head', canonicalBytesV2(remote),
+      vaultId, `heads/${remote.deviceId}.json`, 'head', encodeCanonicalBytes(remote),
     );
     const state = new MemoryDriveProviderStateStore();
     state.replaceInitialInventory(vaultId, [server.record(stored, 'head', remote)], '0');
@@ -572,7 +571,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     const state = new MemoryDriveProviderStateStore();
     state.replaceInitialInventory(vaultId, [], '0');
     const remote = head('device-delayed-change', 1, '7'.repeat(64));
-    server.seed(vaultId, `heads/${remote.deviceId}.json`, 'head', canonicalBytesV2(remote));
+    server.seed(vaultId, `heads/${remote.deviceId}.json`, 'head', encodeCanonicalBytes(remote));
     server.hideNextChangeLists = 1;
     const app = provider(server, state);
 
@@ -585,7 +584,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     const hashes: string[] = [];
     for (let index = 0; index < 51; index += 1) {
       const bytes = new TextEncoder().encode(`synthetic-media-${index}`);
-      const hash = sha256BytesV2(bytes);
+      const hash = sha256Bytes(bytes);
       hashes.push(hash);
       server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
     }
@@ -646,7 +645,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     const state = new MemoryDriveProviderStateStore();
     const bytes = new Uint8Array(5 * 1024 * 1024 + 7);
     for (let index = 0; index < bytes.length; index += 1) bytes[index] = index % 251;
-    const hash = sha256BytesV2(bytes);
+    const hash = sha256Bytes(bytes);
     const key = `media/${hash.slice(0, 2)}/${hash}`;
     const uri = 'https://www.googleapis.com/upload/snapshot-test-session';
     state.setUploadSession(vaultId, {
@@ -709,7 +708,7 @@ describe('GoogleDriveSnapshotProvider', () => {
   test('a media download resumes into a durable sink without returning whole-file bytes', async () => {
     const state = new MemoryDriveProviderStateStore();
     const bytes = new TextEncoder().encode('synthetic-resumable-media-download');
-    const hash = sha256BytesV2(bytes);
+    const hash = sha256Bytes(bytes);
     const key = `media/${hash.slice(0, 2)}/${hash}`;
     state.upsertFile(vaultId, {
       fileId: 'media-download-file', logicalKey: key, kind: 'media',
@@ -750,7 +749,7 @@ describe('GoogleDriveSnapshotProvider', () => {
   test('a server that ignores a media Range request resets the partial before appending', async () => {
     const state = new MemoryDriveProviderStateStore();
     const bytes = new TextEncoder().encode('synthetic-range-reset-media');
-    const hash = sha256BytesV2(bytes);
+    const hash = sha256Bytes(bytes);
     const key = `media/${hash.slice(0, 2)}/${hash}`;
     state.upsertFile(vaultId, {
       fileId: 'media-range-reset', logicalKey: key, kind: 'media',
@@ -886,11 +885,11 @@ describe('GoogleDriveSnapshotProvider', () => {
     const server = new FakeDriveServer();
     const app = provider(server);
     const remoteHead = head('device-purge', 1, '6'.repeat(64));
-    server.seed(vaultId, 'heads/device-purge.json', 'head', canonicalBytesV2(remoteHead));
+    server.seed(vaultId, 'heads/device-purge.json', 'head', encodeCanonicalBytes(remoteHead));
     server.seed(vaultId, `snapshots/${'6'.repeat(64)}.json.gz`, 'snapshot',
       new Uint8Array([6]));
     const media = new TextEncoder().encode('synthetic-media-to-purge');
-    const mediaHash = sha256BytesV2(media);
+    const mediaHash = sha256Bytes(media);
     server.seed(vaultId, `media/${mediaHash.slice(0, 2)}/${mediaHash}`, 'media', media);
 
     await app.publishRevocation(vaultId, 'backup-deleted');

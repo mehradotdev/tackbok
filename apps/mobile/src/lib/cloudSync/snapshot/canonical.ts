@@ -1,10 +1,10 @@
 import { invalid } from './caps';
-import { sha256TextV2 } from './sha256';
+import { sha256Text } from './sha256';
 
-export type CanonicalValueV2 =
+export type CanonicalValue =
   | null | boolean | number | string
-  | CanonicalValueV2[]
-  | { [key: string]: CanonicalValueV2 };
+  | CanonicalValue[]
+  | { [key: string]: CanonicalValue };
 
 function assertScalarString(value: string, path: string): void {
   for (let index = 0; index < value.length; index++) {
@@ -56,15 +56,15 @@ function encode(value: unknown, path: string, ancestors: Set<object>): string {
   }
 }
 
-export function canonicalizeV2(value: unknown): string {
+export function canonicalize(value: unknown): string {
   return encode(value, '$', new Set());
 }
 
-export function canonicalBytesV2(value: unknown): Uint8Array {
-  return new TextEncoder().encode(canonicalizeV2(value));
+export function encodeCanonicalBytes(value: unknown): Uint8Array {
+  return new TextEncoder().encode(canonicalize(value));
 }
 
-export function canonicalHashV2(value: unknown): string {
-  return sha256TextV2(canonicalizeV2(value));
+export function canonicalHash(value: unknown): string {
+  return sha256Text(canonicalize(value));
 }
 

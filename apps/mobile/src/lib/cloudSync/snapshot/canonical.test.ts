@@ -1,6 +1,6 @@
 import fixtures from './fixtures/canonical.json';
 
-import { canonicalHashV2, canonicalizeV2 } from './canonical';
+import { canonicalHash, canonicalize } from './canonical';
 
 function rejectedValue(kind: string, value?: number): unknown {
   if (kind === 'number') return value;
@@ -20,13 +20,13 @@ function rejectedValue(kind: string, value?: number): unknown {
   throw new Error(`Unknown rejection fixture: ${kind}`);
 }
 
-describe('snapshot v2 canonicalization', () => {
+describe('snapshot canonicalization', () => {
   it.each(fixtures.vectors)('matches frozen vector $id', (vector) => {
-    expect(canonicalizeV2(vector.value)).toBe(vector.canonical);
-    expect(canonicalHashV2(vector.value)).toBe(vector.sha256);
+    expect(canonicalize(vector.value)).toBe(vector.canonical);
+    expect(canonicalHash(vector.value)).toBe(vector.sha256);
   });
 
   it.each(fixtures.reject)('rejects frozen invalid vector $id', (vector) => {
-    expect(() => canonicalizeV2(rejectedValue(vector.kind, vector.value))).toThrow();
+    expect(() => canonicalize(rejectedValue(vector.kind, vector.value))).toThrow();
   });
 });

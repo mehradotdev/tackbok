@@ -1,4 +1,4 @@
-export const SNAPSHOT_V2_CAPS = Object.freeze({
+export const SNAPSHOT_CAPS = Object.freeze({
   compressedBytes: 16 * 1024 * 1024,
   uncompressedBytes: 64 * 1024 * 1024,
   jsonDepth: 12,
@@ -26,16 +26,16 @@ export const SNAPSHOT_V2_CAPS = Object.freeze({
   timestamp: 8_640_000_000_000_000,
 });
 
-export class SnapshotV2ValidationError extends Error {
+export class SnapshotValidationError extends Error {
   constructor(
     public readonly code: string,
     message: string,
   ) {
     super(message);
-    this.name = 'SnapshotV2ValidationError';
+    this.name = 'SnapshotValidationError';
   }
 }
 
 export function invalid(code: string, message: string): never {
-  throw new SnapshotV2ValidationError(code, message);
+  throw new SnapshotValidationError(code, message);
 }

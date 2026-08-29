@@ -21,13 +21,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "shadow_format_version": {
-          "name": "shadow_format_version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "snapshot_id": {
           "name": "snapshot_id",
           "type": "text",

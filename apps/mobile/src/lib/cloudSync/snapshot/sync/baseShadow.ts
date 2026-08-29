@@ -1,14 +1,14 @@
 import { decodeGzipBounded, encodeGzip } from '~/lib/zip/core/gzip-codec';
 
-import { canonicalBytesV2 } from '../canonical';
-import { SNAPSHOT_V2_CAPS } from '../caps';
-import { encodeSnapshotV2 } from '../codec';
-import { sha256BytesV2, sha256TextV2 } from '../sha256';
-import { decodeUtf8Strict, parseJsonStrictV2 } from '../strictJson';
-import type { JournalSnapshotPayloadV2, ObservedDeviceHeadV2 } from '../types';
+import { encodeCanonicalBytes } from '../canonical';
+import { SNAPSHOT_CAPS } from '../caps';
+import { encodeSnapshot } from '../codec';
+import { sha256Bytes, sha256Text } from '../sha256';
+import { decodeUtf8Strict, parseJsonStrict } from '../strictJson';
+import type { JournalSnapshotPayload, ObservedDeviceHead } from '../types';
 import type {
   BaseShadowFileStore,
-  BaseShadowV1,
+  BaseShadow,
   BaseShadowCheckpoint,
   SnapshotSyncHooks,
 } from './types';
@@ -64,15 +64,15 @@ function assertClosedObject(
   }
 }
 
-function validateHeads(value: unknown): ObservedDeviceHeadV2[] {
-  if (!Array.isArray(value) || value.length > SNAPSHOT_V2_CAPS.observedDeviceHeads) {
+function validateHeads(value: unknown): ObservedDeviceHead[] {
+  if (!Array.isArray(value) || value.length > SNAPSHOT_CAPS.observedDeviceHeads) {
     invalid('acceptedDeviceHeads is not a bounded array');
   }
   let previous = '';
   for (const [index, item] of value.entries()) {
     assertClosedObject(item, ['deviceId', 'deviceSequence', 'snapshotId'], `acceptedDeviceHeads[${index}]`);
     if (typeof item.deviceId !== 'string' || !ID.test(item.deviceId) ||
-        new TextEncoder().encode(item.deviceId).length > SNAPSHOT_V2_CAPS.idBytes) {
+        new TextEncoder().encode(item.deviceId).length > SNAPSHOT_CAPS.idBytes) {
       invalid('Base-shadow device ID is invalid');
     }
     if (!Number.isSafeInteger(item.deviceSequence) || (item.deviceSequence as number) < 0) {
@@ -84,51 +84,46 @@ function validateHeads(value: unknown): ObservedDeviceHeadV2[] {
     if (item.deviceId <= previous) invalid('Base-shadow device heads are not strictly sorted');
     previous = item.deviceId;
   }
-  return value as ObservedDeviceHeadV2[];
+  return value as ObservedDeviceHead[];
 }
 
-export function encodeBaseShadowV1(shadow: BaseShadowV1): {
+export function encodeBaseShadow(shadow: BaseShadow): {
   canonicalBytes: Uint8Array;
   canonicalSha256: string;
   compressedBytes: Uint8Array;
 } {
-  const validated = validateBaseShadowV1(shadow);
-  const canonicalBytes = canonicalBytesV2(validated);
-  if (canonicalBytes.length > SNAPSHOT_V2_CAPS.uncompressedBytes) {
+  const validated = validateBaseShadow(shadow);
+  const canonicalBytes = encodeCanonicalBytes(validated);
+  if (canonicalBytes.length > SNAPSHOT_CAPS.uncompressedBytes) {
     invalid('Base shadow exceeds the uncompressed snapshot cap');
   }
   const compressedBytes = encodeGzip(canonicalBytes, { level: 6 });
-  if (compressedBytes.length > SNAPSHOT_V2_CAPS.compressedBytes) {
+  if (compressedBytes.length > SNAPSHOT_CAPS.compressedBytes) {
     invalid('Base shadow exceeds the compressed snapshot cap');
   }
   return {
     canonicalBytes,
-    canonicalSha256: sha256BytesV2(canonicalBytes),
+    canonicalSha256: sha256Bytes(canonicalBytes),
     compressedBytes,
   };
 }
 
-export function validateBaseShadowV1(value: unknown): BaseShadowV1 {
+export function validateBaseShadow(value: unknown): BaseShadow {
   assertClosedObject(value, [
-    'format', 'shadowFormatVersion', 'protocolFormatVersion', 'vaultId',
-    'snapshotId', 'acceptedDeviceHeads', 'payload',
+    'format', 'vaultId', 'snapshotId', 'acceptedDeviceHeads', 'payload',
   ], '$');
   if (value.format !== 'tackbok-base-shadow') invalid('Unsupported base-shadow format');
-  if (value.shadowFormatVersion !== 1) invalid('Unsupported base-shadow version');
-  if (value.protocolFormatVersion !== 2) invalid('Unsupported base-shadow protocol payload');
   if (typeof value.vaultId !== 'string' || !ID.test(value.vaultId)) invalid('Invalid base-shadow vault ID');
   if (typeof value.snapshotId !== 'string' || !HASH.test(value.snapshotId)) invalid('Invalid base-shadow snapshot ID');
   const acceptedDeviceHeads = validateHeads(value.acceptedDeviceHeads);
-  const encodedPayload = encodeSnapshotV2(value.payload as JournalSnapshotPayloadV2);
+  const encodedPayload = encodeSnapshot(value.payload as JournalSnapshotPayload);
   if (encodedPayload.snapshotId !== value.snapshotId) invalid('Base-shadow payload hash does not match');
-  if (!bytesEqual(encodedPayload.canonicalBytes, canonicalBytesV2(value.payload))) {
+  if (!bytesEqual(encodedPayload.canonicalBytes, encodeCanonicalBytes(value.payload))) {
     invalid('Base-shadow payload is not normalized canonical protocol state');
   }
   if (encodedPayload.payload.vaultId !== value.vaultId) invalid('Base-shadow vault does not match its payload');
   return {
     format: 'tackbok-base-shadow',
-    shadowFormatVersion: 1,
-    protocolFormatVersion: 2,
     vaultId: value.vaultId,
     snapshotId: value.snapshotId,
     acceptedDeviceHeads: acceptedDeviceHeads.map((head) => ({ ...head })),
@@ -136,20 +131,20 @@ export function validateBaseShadowV1(value: unknown): BaseShadowV1 {
   };
 }
 
-export function decodeBaseShadowV1(compressedBytes: Uint8Array): {
-  shadow: BaseShadowV1;
+export function decodeBaseShadow(compressedBytes: Uint8Array): {
+  shadow: BaseShadow;
   canonicalSha256: string;
 } {
   const canonicalBytes = decodeGzipBounded(compressedBytes, {
-    maxCompressedBytes: SNAPSHOT_V2_CAPS.compressedBytes,
-    maxUncompressedBytes: SNAPSHOT_V2_CAPS.uncompressedBytes,
+    maxCompressedBytes: SNAPSHOT_CAPS.compressedBytes,
+    maxUncompressedBytes: SNAPSHOT_CAPS.uncompressedBytes,
   });
-  const parsed = parseJsonStrictV2(decodeUtf8Strict(canonicalBytes));
-  const shadow = validateBaseShadowV1(parsed);
-  if (!bytesEqual(canonicalBytes, canonicalBytesV2(shadow))) {
+  const parsed = parseJsonStrict(decodeUtf8Strict(canonicalBytes));
+  const shadow = validateBaseShadow(parsed);
+  if (!bytesEqual(canonicalBytes, encodeCanonicalBytes(shadow))) {
     invalid('Base shadow is valid JSON but not canonical JSON');
   }
-  return { shadow, canonicalSha256: sha256BytesV2(canonicalBytes) };
+  return { shadow, canonicalSha256: sha256Bytes(canonicalBytes) };
 }
 
 export class BaseShadowManager {
@@ -158,12 +153,12 @@ export class BaseShadowManager {
   async prepareAndReplace(
     deviceId: string,
     capturedGeneration: number,
-    shadow: BaseShadowV1,
+    shadow: BaseShadow,
     at?: SnapshotSyncHooks['at'],
   ): Promise<BaseShadowCheckpoint> {
-    const encoded = encodeBaseShadowV1(shadow);
-    const finalFileName = `base-${shadow.snapshotId}.v1.json.gz`;
-    const deviceToken = sha256TextV2(deviceId).slice(0, 12);
+    const encoded = encodeBaseShadow(shadow);
+    const finalFileName = `base-${shadow.snapshotId}.json.gz`;
+    const deviceToken = sha256Text(deviceId).slice(0, 12);
     const tempFileName = `${finalFileName}.${deviceToken}.tmp`;
     try {
       await this.files.writeTempAndFsync(tempFileName, encoded.compressedBytes);
@@ -173,7 +168,7 @@ export class BaseShadowManager {
     await at?.('after-base-shadow-temp-fsynced');
     try {
       const readBack = await this.files.read(tempFileName);
-      const verified = decodeBaseShadowV1(readBack);
+      const verified = decodeBaseShadow(readBack);
       if (verified.canonicalSha256 !== encoded.canonicalSha256 ||
           verified.shadow.snapshotId !== shadow.snapshotId) {
         invalid('Base-shadow read-back verification failed');
@@ -195,7 +190,6 @@ export class BaseShadowManager {
     return {
       vaultId: shadow.vaultId,
       deviceId,
-      shadowFormatVersion: 1,
       snapshotId: shadow.snapshotId,
       fileName: finalFileName,
       canonicalSha256: encoded.canonicalSha256,
@@ -206,7 +200,7 @@ export class BaseShadowManager {
 
   async load(
     checkpoint: BaseShadowCheckpoint | null,
-  ): Promise<{ shadow: BaseShadowV1 | null; degraded: boolean }> {
+  ): Promise<{ shadow: BaseShadow | null; degraded: boolean }> {
     if (!checkpoint) return { shadow: null, degraded: false };
     let bytes: Uint8Array;
     try {
@@ -218,7 +212,7 @@ export class BaseShadowManager {
     }
     try {
       if (bytes.length !== checkpoint.byteCount) invalid('Base-shadow byte count changed');
-      const decoded = decodeBaseShadowV1(bytes);
+      const decoded = decodeBaseShadow(bytes);
       if (decoded.canonicalSha256 !== checkpoint.canonicalSha256 ||
           decoded.shadow.snapshotId !== checkpoint.snapshotId ||
           decoded.shadow.vaultId !== checkpoint.vaultId) {

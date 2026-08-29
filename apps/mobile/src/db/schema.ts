@@ -249,7 +249,6 @@ export const cloudBaseShadow = sqliteTable(
   {
     vault_id: text('vault_id').notNull(),
     device_id: text('device_id').notNull(),
-    shadow_format_version: integer('shadow_format_version').notNull(),
     snapshot_id: text('snapshot_id').notNull(),
     file_name: text('file_name').notNull(),
     canonical_sha256: text('canonical_sha256').notNull(),

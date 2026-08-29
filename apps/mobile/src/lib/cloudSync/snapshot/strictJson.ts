@@ -1,4 +1,4 @@
-import { SNAPSHOT_V2_CAPS, invalid } from './caps';
+import { SNAPSHOT_CAPS, invalid } from './caps';
 
 export function decodeUtf8Strict(bytes: Uint8Array): string {
   const parts: string[] = [];
@@ -70,13 +70,13 @@ class StrictJsonParser {
 
   private countNode(): void {
     this.nodes++;
-    if (this.nodes > SNAPSHOT_V2_CAPS.jsonNodes) {
+    if (this.nodes > SNAPSHOT_CAPS.jsonNodes) {
       invalid('json-node-cap', 'JSON node cap exceeded');
     }
   }
 
   private parseValue(depth: number): unknown {
-    if (depth > SNAPSHOT_V2_CAPS.jsonDepth) {
+    if (depth > SNAPSHOT_CAPS.jsonDepth) {
       invalid('json-depth-cap', 'JSON nesting depth cap exceeded');
     }
     this.countNode();
@@ -205,6 +205,6 @@ class StrictJsonParser {
   }
 }
 
-export function parseJsonStrictV2(source: string): unknown {
+export function parseJsonStrict(source: string): unknown {
   return new StrictJsonParser(source).parse();
 }

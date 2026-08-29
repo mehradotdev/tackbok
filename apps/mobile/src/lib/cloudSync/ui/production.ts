@@ -140,7 +140,7 @@ async function localHasData(): Promise<boolean> {
 
 export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   const [vault] = await db.select().from(cloudVault).limit(1);
-  const [[queued], [v2State], [conflicts], [providerState], [pendingMedia]] = await Promise.all([
+  const [[queued], [syncState], [conflicts], [providerState], [pendingMedia]] = await Promise.all([
     vault
       ? db.select({
           value: cloudSyncState.journal_generation,
@@ -193,7 +193,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
         revocationKind: vault.revocation_kind,
         revocationAcknowledgedAt: vault.revocation_acknowledged_at,
         pauseReason:
-          (v2State?.pause_reason as SyncAttentionReason | null | undefined) ?? null,
+          (syncState?.pause_reason as SyncAttentionReason | null | undefined) ?? null,
       })
     : null;
   if (vault?.status === 'revoked' || attentionReason) status = 'warning';
@@ -530,7 +530,7 @@ async function wipeJournalAndLocalCloudReplica(): Promise<void> {
   // Shadow and staging files contain journal-derived bytes outside SQLite.
   // Remove them as part of the explicit destructive operation; clearing only
   // their database pointers would leave recoverable private data behind.
-  for (const directoryName of ['cloud-sync-v2-base', 'cloud-sync-v2-media']) {
+  for (const directoryName of ['cloud-sync-base', 'cloud-sync-media']) {
     const directory = new Directory(Paths.document, directoryName);
     if (directory.exists) directory.delete();
   }
@@ -619,7 +619,7 @@ export async function retrySyncAttentionReason(reason: SyncAttentionReason): Pro
   state.clearPause(vault.vault_id, vault.device_id, reason);
   // Clearing the protocol pause without clearing the presentation-level vault
   // status leaves Sync now disabled even when the attachment has become
-  // readable. A retry is actionable work, so always mark this v2 vault dirty
+  // readable. A retry is actionable work, so always mark this vault dirty
   // before reconstructing the runtime.
   await db.update(cloudVault).set({ status: 'dirty', updated_at: Date.now() })
     .where(eq(cloudVault.vault_id, vault.vault_id));

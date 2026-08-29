@@ -31,9 +31,9 @@ import { SnapshotSyncEngine } from '../sync/engine';
 import { ExpoBaseShadowFileStore } from '../sync/expoBaseShadowFiles';
 import { SQLiteSyncStateStore } from '../sync/sqliteState';
 import type {
-  DeviceHeadV2,
-  ListedDeviceHeadV2,
-  SnapshotObjectV2,
+  DeviceHead,
+  ListedDeviceHead,
+  SnapshotObject,
   MediaDownloadSink,
   MediaUploadSource,
   SnapshotProvider,
@@ -73,7 +73,7 @@ class MediaPolicyProvider implements SnapshotProvider {
   constructor(private readonly delegate: GoogleDriveSnapshotProvider) {}
 
   listRevocations(vaultId: string) { return this.delegate.listRevocations(vaultId); }
-  listHeads(vaultId: string, refresh?: boolean): Promise<ListedDeviceHeadV2[]> {
+  listHeads(vaultId: string, refresh?: boolean): Promise<ListedDeviceHead[]> {
     return this.delegate.listHeads(vaultId, refresh);
   }
   downloadSnapshot(vaultId: string, snapshotId: string) {
@@ -85,7 +85,7 @@ class MediaPolicyProvider implements SnapshotProvider {
   verifySnapshot(vaultId: string, snapshotId: string, expectedBytes: Uint8Array) {
     return this.delegate.verifySnapshot(vaultId, snapshotId, expectedBytes);
   }
-  updateDeviceHead(vaultId: string, head: DeviceHeadV2) {
+  updateDeviceHead(vaultId: string, head: DeviceHead) {
     return this.delegate.updateDeviceHead(vaultId, head);
   }
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]) {
@@ -107,7 +107,7 @@ class MediaPolicyProvider implements SnapshotProvider {
     await this.assertMediaTransferAllowed();
     return this.delegate.downloadMedia(vaultId, blobHash, sink);
   }
-  listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]> {
+  listSnapshots(vaultId: string): Promise<SnapshotObject[]> {
     return this.delegate.listSnapshots(vaultId);
   }
   deleteSnapshot(vaultId: string, snapshotId: string) {

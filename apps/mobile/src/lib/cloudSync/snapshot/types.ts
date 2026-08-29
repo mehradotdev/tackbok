@@ -1,7 +1,7 @@
-export type MoodV2 = 'AMAZING' | 'HAPPY' | 'OKAY' | 'SAD' | 'AWFUL';
-export type EntityTypeV2 = 'entry' | 'tag' | 'prompt' | 'profile';
-export type AssetKindV2 = 'photo' | 'voice' | 'profile-photo';
-export type ConflictFieldV2 =
+export type Mood = 'AMAZING' | 'HAPPY' | 'OKAY' | 'SAD' | 'AWFUL';
+export type EntityType = 'entry' | 'tag' | 'prompt' | 'profile';
+export type AssetKind = 'photo' | 'voice' | 'profile-photo';
+export type ConflictField =
   | 'title'
   | 'content'
   | 'mood'
@@ -12,23 +12,23 @@ export type ConflictFieldV2 =
   | 'deleteEdit'
   | 'referencedDelete';
 
-export interface ObservedDeviceHeadV2 {
+export interface ObservedDeviceHead {
   deviceId: string;
   deviceSequence: number;
   snapshotId: string;
 }
 
-export interface SnapshotEntryV2 {
+export interface SnapshotEntry {
   entryId: string;
   title: string | null;
   content: string | null;
-  mood: MoodV2 | null;
+  mood: Mood | null;
   createdAt: number;
   updatedAt: number;
   conflictOriginId: string | null;
 }
 
-export interface SnapshotTagV2 {
+export interface SnapshotTag {
   tagId: string;
   title: string;
   createdAt: number;
@@ -36,13 +36,13 @@ export interface SnapshotTagV2 {
   conflictOriginId: string | null;
 }
 
-export interface SnapshotEntryTagV2 {
+export interface SnapshotEntryTag {
   entryId: string;
   tagId: string;
   createdAt: number;
 }
 
-export interface SnapshotPromptV2 {
+export interface SnapshotPrompt {
   promptId: string;
   title: string;
   createdAt: number;
@@ -50,18 +50,18 @@ export interface SnapshotPromptV2 {
   conflictOriginId: string | null;
 }
 
-export interface SnapshotProfileV2 {
+export interface SnapshotProfile {
   profileId: 'profile';
   displayName: string | null;
   photoAssetId: string | null;
   updatedAt: number;
 }
 
-export interface SnapshotMediaV2 {
+export interface SnapshotMedia {
   assetId: string;
   ownerType: 'entry' | 'profile';
   ownerId: string;
-  kind: AssetKindV2;
+  kind: AssetKind;
   blobHash: string;
   mimeType: string | null;
   byteSize: number;
@@ -72,8 +72,8 @@ export interface SnapshotMediaV2 {
   updatedAt: number;
 }
 
-export interface SnapshotTombstoneV2 {
-  entityType: EntityTypeV2;
+export interface SnapshotTombstone {
+  entityType: EntityType;
   entityId: string;
   baseStateHash: string | null;
   deletedStateHash: string | null;
@@ -81,53 +81,51 @@ export interface SnapshotTombstoneV2 {
   deletionSequence: number;
 }
 
-export interface SnapshotConflictAlternateV2 {
+export interface SnapshotConflictAlternate {
   valueHash: string;
   value: string | null;
 }
 
-export interface SnapshotConflictV2 {
+export interface SnapshotConflict {
   conflictId: string;
-  entityType: EntityTypeV2;
+  entityType: EntityType;
   entityId: string;
-  field: ConflictFieldV2;
+  field: ConflictField;
   baseValueHash: string | null;
   localValueHash: string | null;
   remoteValueHash: string | null;
   primaryValueHash: string | null;
-  alternates: SnapshotConflictAlternateV2[];
+  alternates: SnapshotConflictAlternate[];
   recoveredEntityIds: string[];
 }
 
-export interface SnapshotDomainV2 {
-  entries: SnapshotEntryV2[];
-  tags: SnapshotTagV2[];
-  entryTags: SnapshotEntryTagV2[];
-  prompts: SnapshotPromptV2[];
-  profile: SnapshotProfileV2;
-  media: SnapshotMediaV2[];
-  tombstones: SnapshotTombstoneV2[];
-  conflicts: SnapshotConflictV2[];
+export interface SnapshotDomain {
+  entries: SnapshotEntry[];
+  tags: SnapshotTag[];
+  entryTags: SnapshotEntryTag[];
+  prompts: SnapshotPrompt[];
+  profile: SnapshotProfile;
+  media: SnapshotMedia[];
+  tombstones: SnapshotTombstone[];
+  conflicts: SnapshotConflict[];
 }
 
-export interface JournalSnapshotPayloadV2 extends SnapshotDomainV2 {
+export interface JournalSnapshotPayload extends SnapshotDomain {
   format: 'tackbok-snapshot';
-  formatVersion: 2;
   vaultId: string;
   parentSnapshotIds: string[];
-  observedDeviceHeads: ObservedDeviceHeadV2[];
+  observedDeviceHeads: ObservedDeviceHead[];
   authorDeviceId: string;
   deviceSequence: number;
   createdAt: number;
 }
 
-export interface StoredJournalSnapshotV2 {
+export interface StoredJournalSnapshot {
   snapshotId: string;
-  payload: JournalSnapshotPayloadV2;
+  payload: JournalSnapshotPayload;
 }
 
-export interface EncodedSnapshotV2 extends StoredJournalSnapshotV2 {
+export interface EncodedSnapshot extends StoredJournalSnapshot {
   canonicalBytes: Uint8Array;
   compressedBytes: Uint8Array;
 }
-

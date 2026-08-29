@@ -1,8 +1,8 @@
-import { SNAPSHOT_V2_CAPS, invalid } from './caps';
-import { canonicalHashV2 } from './canonical';
+import { SNAPSHOT_CAPS, invalid } from './caps';
+import { canonicalHash } from './canonical';
 import type {
-  JournalSnapshotPayloadV2,
-  SnapshotDomainV2,
+  JournalSnapshotPayload,
+  SnapshotDomain,
 } from './types';
 
 type RecordValue = Record<string, unknown>;
@@ -59,7 +59,7 @@ function nullableString(value: unknown, path: string, maxBytes?: number): string
 }
 
 function id(value: unknown, path: string): string {
-  const result = string(value, path, SNAPSHOT_V2_CAPS.idBytes);
+  const result = string(value, path, SNAPSHOT_CAPS.idBytes);
   if (!ID.test(result)) invalid('invalid-id', `${path} must be non-empty printable ASCII`);
   return result;
 }
@@ -87,7 +87,7 @@ function nullableInteger(value: unknown, path: string, max: number): number | nu
 }
 
 function timestamp(value: unknown, path: string): number {
-  return integer(value, path, SNAPSHOT_V2_CAPS.timestamp);
+  return integer(value, path, SNAPSHOT_CAPS.timestamp);
 }
 
 function literal<T extends string | number>(value: unknown, expected: T, path: string): T {
@@ -106,22 +106,21 @@ function nullableEnum(value: unknown, allowed: Set<string>, path: string): strin
 }
 
 /** Shape/scalar validation deliberately runs before canonical-byte and hash checks. */
-export function validateSnapshotV2Shape(value: unknown): JournalSnapshotPayloadV2 {
+export function validateSnapshotShape(value: unknown): JournalSnapshotPayload {
   const root = object(value, [
-    'format', 'formatVersion', 'vaultId', 'parentSnapshotIds', 'observedDeviceHeads',
+    'format', 'vaultId', 'parentSnapshotIds', 'observedDeviceHeads',
     'authorDeviceId', 'deviceSequence', 'createdAt', 'entries', 'tags', 'entryTags',
     'prompts', 'profile', 'media', 'tombstones', 'conflicts',
   ], '$');
   literal(root.format, 'tackbok-snapshot', '$.format');
-  literal(root.formatVersion, 2, '$.formatVersion');
   id(root.vaultId, '$.vaultId');
   id(root.authorDeviceId, '$.authorDeviceId');
   integer(root.deviceSequence, '$.deviceSequence');
   timestamp(root.createdAt, '$.createdAt');
 
-  array(root.parentSnapshotIds, SNAPSHOT_V2_CAPS.parentSnapshotIds, '$.parentSnapshotIds')
+  array(root.parentSnapshotIds, SNAPSHOT_CAPS.parentSnapshotIds, '$.parentSnapshotIds')
     .forEach((item, index) => hash(item, `$.parentSnapshotIds[${index}]`));
-  array(root.observedDeviceHeads, SNAPSHOT_V2_CAPS.observedDeviceHeads, '$.observedDeviceHeads')
+  array(root.observedDeviceHeads, SNAPSHOT_CAPS.observedDeviceHeads, '$.observedDeviceHeads')
     .forEach((item, index) => {
       const path = `$.observedDeviceHeads[${index}]`;
       const head = object(item, ['deviceId', 'deviceSequence', 'snapshotId'], path);
@@ -129,49 +128,49 @@ export function validateSnapshotV2Shape(value: unknown): JournalSnapshotPayloadV
       integer(head.deviceSequence, `${path}.deviceSequence`);
       hash(head.snapshotId, `${path}.snapshotId`);
     });
-  array(root.entries, SNAPSHOT_V2_CAPS.entries, '$.entries').forEach((item, index) => {
+  array(root.entries, SNAPSHOT_CAPS.entries, '$.entries').forEach((item, index) => {
     const path = `$.entries[${index}]`;
     const entry = object(item, ['entryId', 'title', 'content', 'mood', 'createdAt', 'updatedAt', 'conflictOriginId'], path);
     id(entry.entryId, `${path}.entryId`);
-    nullableString(entry.title, `${path}.title`, SNAPSHOT_V2_CAPS.entryTitleBytes);
-    nullableString(entry.content, `${path}.content`, SNAPSHOT_V2_CAPS.entryBodyBytes);
+    nullableString(entry.title, `${path}.title`, SNAPSHOT_CAPS.entryTitleBytes);
+    nullableString(entry.content, `${path}.content`, SNAPSHOT_CAPS.entryBodyBytes);
     nullableEnum(entry.mood, MOODS, `${path}.mood`);
     timestamp(entry.createdAt, `${path}.createdAt`);
     timestamp(entry.updatedAt, `${path}.updatedAt`);
     if (entry.conflictOriginId !== null) id(entry.conflictOriginId, `${path}.conflictOriginId`);
   });
-  array(root.tags, SNAPSHOT_V2_CAPS.tags, '$.tags').forEach((item, index) => {
+  array(root.tags, SNAPSHOT_CAPS.tags, '$.tags').forEach((item, index) => {
     const path = `$.tags[${index}]`;
     const tag = object(item, ['tagId', 'title', 'createdAt', 'updatedAt', 'conflictOriginId'], path);
     id(tag.tagId, `${path}.tagId`);
-    string(tag.title, `${path}.title`, SNAPSHOT_V2_CAPS.shortTitleBytes);
+    string(tag.title, `${path}.title`, SNAPSHOT_CAPS.shortTitleBytes);
     timestamp(tag.createdAt, `${path}.createdAt`);
     timestamp(tag.updatedAt, `${path}.updatedAt`);
     if (tag.conflictOriginId !== null) id(tag.conflictOriginId, `${path}.conflictOriginId`);
   });
-  array(root.entryTags, SNAPSHOT_V2_CAPS.entryTags, '$.entryTags').forEach((item, index) => {
+  array(root.entryTags, SNAPSHOT_CAPS.entryTags, '$.entryTags').forEach((item, index) => {
     const path = `$.entryTags[${index}]`;
     const relation = object(item, ['entryId', 'tagId', 'createdAt'], path);
     id(relation.entryId, `${path}.entryId`);
     id(relation.tagId, `${path}.tagId`);
     timestamp(relation.createdAt, `${path}.createdAt`);
   });
-  array(root.prompts, SNAPSHOT_V2_CAPS.prompts, '$.prompts').forEach((item, index) => {
+  array(root.prompts, SNAPSHOT_CAPS.prompts, '$.prompts').forEach((item, index) => {
     const path = `$.prompts[${index}]`;
     const prompt = object(item, ['promptId', 'title', 'createdAt', 'updatedAt', 'conflictOriginId'], path);
     id(prompt.promptId, `${path}.promptId`);
-    string(prompt.title, `${path}.title`, SNAPSHOT_V2_CAPS.shortTitleBytes);
+    string(prompt.title, `${path}.title`, SNAPSHOT_CAPS.shortTitleBytes);
     timestamp(prompt.createdAt, `${path}.createdAt`);
     timestamp(prompt.updatedAt, `${path}.updatedAt`);
     if (prompt.conflictOriginId !== null) id(prompt.conflictOriginId, `${path}.conflictOriginId`);
   });
   const profile = object(root.profile, ['profileId', 'displayName', 'photoAssetId', 'updatedAt'], '$.profile');
   literal(profile.profileId, 'profile', '$.profile.profileId');
-  nullableString(profile.displayName, '$.profile.displayName', SNAPSHOT_V2_CAPS.profileNameBytes);
+  nullableString(profile.displayName, '$.profile.displayName', SNAPSHOT_CAPS.profileNameBytes);
   if (profile.photoAssetId !== null) id(profile.photoAssetId, '$.profile.photoAssetId');
   timestamp(profile.updatedAt, '$.profile.updatedAt');
 
-  array(root.media, SNAPSHOT_V2_CAPS.media, '$.media').forEach((item, index) => {
+  array(root.media, SNAPSHOT_CAPS.media, '$.media').forEach((item, index) => {
     const path = `$.media[${index}]`;
     const media = object(item, [
       'assetId', 'ownerType', 'ownerId', 'kind', 'blobHash', 'mimeType', 'byteSize',
@@ -183,17 +182,17 @@ export function validateSnapshotV2Shape(value: unknown): JournalSnapshotPayloadV
     enumValue(media.kind, new Set(['photo', 'voice', 'profile-photo']), `${path}.kind`);
     hash(media.blobHash, `${path}.blobHash`);
     if (media.mimeType !== null) {
-      const mime = string(media.mimeType, `${path}.mimeType`, SNAPSHOT_V2_CAPS.mimeTypeBytes);
+      const mime = string(media.mimeType, `${path}.mimeType`, SNAPSHOT_CAPS.mimeTypeBytes);
       if (!ID.test(mime)) invalid('invalid-mime', `${path}.mimeType must be non-empty printable ASCII`);
     }
-    integer(media.byteSize, `${path}.byteSize`, SNAPSHOT_V2_CAPS.mediaByteSize);
-    nullableInteger(media.width, `${path}.width`, SNAPSHOT_V2_CAPS.imageDimension);
-    nullableInteger(media.height, `${path}.height`, SNAPSHOT_V2_CAPS.imageDimension);
-    nullableInteger(media.durationMs, `${path}.durationMs`, SNAPSHOT_V2_CAPS.audioDurationMs);
+    integer(media.byteSize, `${path}.byteSize`, SNAPSHOT_CAPS.mediaByteSize);
+    nullableInteger(media.width, `${path}.width`, SNAPSHOT_CAPS.imageDimension);
+    nullableInteger(media.height, `${path}.height`, SNAPSHOT_CAPS.imageDimension);
+    nullableInteger(media.durationMs, `${path}.durationMs`, SNAPSHOT_CAPS.audioDurationMs);
     timestamp(media.createdAt, `${path}.createdAt`);
     timestamp(media.updatedAt, `${path}.updatedAt`);
   });
-  array(root.tombstones, SNAPSHOT_V2_CAPS.tombstones, '$.tombstones').forEach((item, index) => {
+  array(root.tombstones, SNAPSHOT_CAPS.tombstones, '$.tombstones').forEach((item, index) => {
     const path = `$.tombstones[${index}]`;
     const tomb = object(item, ['entityType', 'entityId', 'baseStateHash', 'deletedStateHash', 'deletedByDeviceId', 'deletionSequence'], path);
     enumValue(tomb.entityType, ENTITY_TYPES, `${path}.entityType`);
@@ -203,7 +202,7 @@ export function validateSnapshotV2Shape(value: unknown): JournalSnapshotPayloadV
     id(tomb.deletedByDeviceId, `${path}.deletedByDeviceId`);
     integer(tomb.deletionSequence, `${path}.deletionSequence`);
   });
-  array(root.conflicts, SNAPSHOT_V2_CAPS.conflicts, '$.conflicts').forEach((item, index) => {
+  array(root.conflicts, SNAPSHOT_CAPS.conflicts, '$.conflicts').forEach((item, index) => {
     const path = `$.conflicts[${index}]`;
     const conflict = object(item, [
       'conflictId', 'entityType', 'entityId', 'field', 'baseValueHash',
@@ -218,17 +217,17 @@ export function validateSnapshotV2Shape(value: unknown): JournalSnapshotPayloadV
     nullableHash(conflict.localValueHash, `${path}.localValueHash`);
     nullableHash(conflict.remoteValueHash, `${path}.remoteValueHash`);
     nullableHash(conflict.primaryValueHash, `${path}.primaryValueHash`);
-    array(conflict.alternates, SNAPSHOT_V2_CAPS.alternatesPerConflict, `${path}.alternates`)
+    array(conflict.alternates, SNAPSHOT_CAPS.alternatesPerConflict, `${path}.alternates`)
       .forEach((item, alternateIndex) => {
         const altPath = `${path}.alternates[${alternateIndex}]`;
         const alternate = object(item, ['valueHash', 'value'], altPath);
         hash(alternate.valueHash, `${altPath}.valueHash`);
-        nullableString(alternate.value, `${altPath}.value`, SNAPSHOT_V2_CAPS.entryBodyBytes);
+        nullableString(alternate.value, `${altPath}.value`, SNAPSHOT_CAPS.entryBodyBytes);
       });
-    array(conflict.recoveredEntityIds, SNAPSHOT_V2_CAPS.entries, `${path}.recoveredEntityIds`)
+    array(conflict.recoveredEntityIds, SNAPSHOT_CAPS.entries, `${path}.recoveredEntityIds`)
       .forEach((item, recoveredIndex) => id(item, `${path}.recoveredEntityIds[${recoveredIndex}]`));
   });
-  return value as JournalSnapshotPayloadV2;
+  return value as JournalSnapshotPayload;
 }
 
 function assertSortedUnique<T>(
@@ -246,7 +245,7 @@ function assertSortedUnique<T>(
   }
 }
 
-function liveKeys(domain: SnapshotDomainV2): Set<string> {
+function liveKeys(domain: SnapshotDomain): Set<string> {
   const result = new Set<string>(['profile\0profile']);
   domain.entries.forEach((value) => result.add(`entry\0${value.entryId}`));
   domain.tags.forEach((value) => result.add(`tag\0${value.tagId}`));
@@ -254,8 +253,8 @@ function liveKeys(domain: SnapshotDomainV2): Set<string> {
   return result;
 }
 
-export function validateSnapshotV2Collections(
-  payload: JournalSnapshotPayloadV2,
+export function validateSnapshotCollections(
+  payload: JournalSnapshotPayload,
   snapshotId: string,
 ): void {
   assertSortedUnique(payload.parentSnapshotIds, (value) => value, '$.parentSnapshotIds');
@@ -322,7 +321,7 @@ export function validateSnapshotV2Collections(
     }
     const candidates = [conflict.localValueHash, conflict.remoteValueHash]
       .filter((value): value is string => value !== null);
-    const expectedConflictId = canonicalHashV2([
+    const expectedConflictId = canonicalHash([
       conflict.entityType,
       conflict.entityId,
       conflict.field,
@@ -349,13 +348,13 @@ export function validateSnapshotV2Collections(
   payload.prompts.forEach((prompt) => add(prompt.title));
   add(payload.profile.displayName);
   payload.conflicts.forEach((conflict) => conflict.alternates.forEach((alternate) => add(alternate.value)));
-  if (authoredBytes > SNAPSHOT_V2_CAPS.authoredTextBytes) {
+  if (authoredBytes > SNAPSHOT_CAPS.authoredTextBytes) {
     invalid('authored-text-cap', 'Total authored text cap exceeded');
   }
 }
 
-export function normalizeSnapshotV2(payload: JournalSnapshotPayloadV2): JournalSnapshotPayloadV2 {
-  const clone: JournalSnapshotPayloadV2 = {
+export function normalizeSnapshot(payload: JournalSnapshotPayload): JournalSnapshotPayload {
+  const clone: JournalSnapshotPayload = {
     ...payload,
     parentSnapshotIds: [...payload.parentSnapshotIds],
     observedDeviceHeads: payload.observedDeviceHeads.map((value) => ({ ...value })),
@@ -389,7 +388,7 @@ export function normalizeSnapshotV2(payload: JournalSnapshotPayloadV2): JournalS
   return clone;
 }
 
-export function calculateMediaReferencesV2(domain: SnapshotDomainV2): Set<string> {
+export function calculateMediaReferences(domain: SnapshotDomain): Set<string> {
   const references = new Set<string>();
   for (const asset of domain.media) if (asset.ownerType === 'entry') references.add(asset.assetId);
   if (domain.profile.photoAssetId) references.add(domain.profile.photoAssetId);

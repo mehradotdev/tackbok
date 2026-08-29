@@ -1,7 +1,6 @@
 CREATE TABLE `cloud_base_shadow` (
 	`vault_id` text NOT NULL,
 	`device_id` text NOT NULL,
-	`shadow_format_version` integer NOT NULL,
 	`snapshot_id` text NOT NULL,
 	`file_name` text NOT NULL,
 	`canonical_sha256` text NOT NULL,

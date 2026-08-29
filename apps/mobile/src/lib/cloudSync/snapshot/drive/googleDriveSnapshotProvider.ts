@@ -1,12 +1,12 @@
 import { CloudAuthError, type CloudAuthorization } from '../../auth/types';
-import { canonicalBytesV2 } from '../canonical';
-import { SNAPSHOT_V2_CAPS } from '../caps';
-import { sha256BytesV2, sha256TextV2 } from '../sha256';
-import { decodeUtf8Strict, parseJsonStrictV2 } from '../strictJson';
+import { encodeCanonicalBytes } from '../canonical';
+import { SNAPSHOT_CAPS } from '../caps';
+import { sha256Bytes, sha256Text } from '../sha256';
+import { decodeUtf8Strict, parseJsonStrict } from '../strictJson';
 import type {
-  DeviceHeadV2,
-  ListedDeviceHeadV2,
-  SnapshotObjectV2,
+  DeviceHead,
+  ListedDeviceHead,
+  SnapshotObject,
   SnapshotProvider,
   MediaDownloadSink,
   MediaUploadSource,
@@ -149,7 +149,7 @@ function propertyClause(key: string, value: string): string {
 export function driveMetadataKey(logicalKey: string): string {
   return utf8(PROP_KEY).length + utf8(logicalKey).length <= PROPERTY_PAIR_UTF8_CAP
     ? logicalKey
-    : `h:${sha256TextV2(logicalKey)}`;
+    : `h:${sha256Text(logicalKey)}`;
 }
 
 export function isTrustedDriveResumableUri(uri: string): boolean {
@@ -291,6 +291,8 @@ function mapStatus(
   return new DriveRequestError('transient', status, 'Drive request failed', retryAfterMs);
 }
 
+// TODO(cloud-sync): Split Drive transport/uploads, discovery, and metadata parsing
+// into focused modules once the initial cloud-sync feature has landed.
 export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private readonly auth: CloudAuthorization;
   private readonly state: DriveProviderStateStore;
@@ -326,7 +328,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
 
   /** Discovers restorable snapshot vaults without exposing Drive file IDs. */
   async listAvailableVaults(): Promise<AvailableDriveVault[]> {
-    const scope = '__v2-vault-discovery__';
+    const scope = '__vault-discovery__';
     const query = `'${APP_DATA}' in parents and trashed=false and ` +
       propertyClause(PROP_KIND, 'head');
     const files = await this.queryFiles(scope, query);
@@ -348,9 +350,9 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     vaultId: string,
     reason: 'backup-deleted' | 'journal-deleted',
   ): Promise<void> {
-    const key = `revocations/${sha256TextV2(reason)}.json`;
-    const bytes = canonicalBytesV2({ format: 'tackbok-revocation', formatVersion: 2, reason });
-    const hash = sha256BytesV2(bytes);
+    const key = `revocations/${sha256Text(reason)}.json`;
+    const bytes = encodeCanonicalBytes({ format: 'tackbok-revocation', reason });
+    const hash = sha256Bytes(bytes);
     const existing = await this.queryExactKey(vaultId, key, 'revocation');
     if (existing.some((file) => file.sha256Checksum === hash &&
         parseByteCount(file) === bytes.byteLength &&
@@ -386,7 +388,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     return { deleted, remaining };
   }
 
-  async listHeads(vaultId: string, refresh = true): Promise<ListedDeviceHeadV2[]> {
+  async listHeads(vaultId: string, refresh = true): Promise<ListedDeviceHead[]> {
     if (refresh) await this.refreshDiscovery(vaultId);
     else if (!this.state.loadDiscovery(vaultId).inventoryComplete) {
       await this.initializeDiscovery(vaultId);
@@ -404,7 +406,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const candidates = await this.filesForKey(vaultId, key, 'snapshot');
     if (candidates.length === 0) return null;
     this.assertImmutableCandidates(candidates);
-    if (candidates[0].byteCount > SNAPSHOT_V2_CAPS.compressedBytes) {
+    if (candidates[0].byteCount > SNAPSHOT_CAPS.compressedBytes) {
       throw new SnapshotProviderError('invalid-data', 'Snapshot exceeds the compressed-byte cap');
     }
     return this.downloadVerified(vaultId, candidates[0]);
@@ -416,7 +418,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     bytes: Uint8Array,
     createdAt: number,
   ): Promise<void> {
-    if (bytes.byteLength > SNAPSHOT_V2_CAPS.compressedBytes) {
+    if (bytes.byteLength > SNAPSHOT_CAPS.compressedBytes) {
       throw new SnapshotProviderError('invalid-data', 'Snapshot exceeds the compressed-byte cap');
     }
     const key = this.snapshotKey(snapshotId);
@@ -430,15 +432,15 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   ): Promise<boolean> {
     const candidates = await this.filesForKey(vaultId, this.snapshotKey(snapshotId), 'snapshot');
     if (candidates.length === 0) return false;
-    const hash = sha256BytesV2(expectedBytes);
+    const hash = sha256Bytes(expectedBytes);
     return candidates.every((candidate) =>
       candidate.contentSha256 === hash && candidate.byteCount === expectedBytes.byteLength);
   }
 
-  async updateDeviceHead(vaultId: string, head: DeviceHeadV2): Promise<void> {
+  async updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void> {
     const key = this.headKey(head.deviceId);
-    const bytes = canonicalBytesV2(head);
-    const hash = sha256BytesV2(bytes);
+    const bytes = encodeCanonicalBytes(head);
+    const hash = sha256Bytes(bytes);
     const existing = this.state.listKey(vaultId, key).filter((file) => file.kind === 'head');
     const cachedId = existing.sort((left, right) => left.fileId.localeCompare(right.fileId))[0]
       ?.fileId;
@@ -499,7 +501,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     source: MediaUploadSource,
   ): Promise<void> {
     if (source.contentHash !== blobHash || !Number.isSafeInteger(source.byteLength) ||
-        source.byteLength < 0 || source.byteLength > SNAPSHOT_V2_CAPS.mediaByteSize) {
+        source.byteLength < 0 || source.byteLength > SNAPSHOT_CAPS.mediaByteSize) {
       throw new SnapshotProviderError('invalid-data', 'Media source metadata is invalid');
     }
     await this.putImmutableMedia(vaultId, this.mediaKey(blobHash), source, this.now());
@@ -514,7 +516,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     if (candidates.length === 0) return false;
     this.assertImmutableCandidates(candidates);
     const file = candidates[0];
-    if (file.contentSha256 !== blobHash || file.byteCount > SNAPSHOT_V2_CAPS.mediaByteSize) {
+    if (file.contentSha256 !== blobHash || file.byteCount > SNAPSHOT_CAPS.mediaByteSize) {
       throw new SnapshotProviderError('invalid-data', 'Drive media metadata does not match its key');
     }
     try {
@@ -526,11 +528,11 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
   }
 
-  async listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]> {
+  async listSnapshots(vaultId: string): Promise<SnapshotObject[]> {
     if (!this.state.loadDiscovery(vaultId).inventoryComplete) {
       await this.initializeDiscovery(vaultId);
     }
-    const grouped = new Map<string, SnapshotObjectV2>();
+    const grouped = new Map<string, SnapshotObject>();
     for (const file of this.state.listKind(vaultId, 'snapshot')) {
       const match = /^snapshots\/([0-9a-f]{64})\.json\.gz$/.exec(file.logicalKey);
       if (!match) continue;
@@ -674,11 +676,11 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       record.byteCount === parseByteCount(file));
     if (cached) return cached;
     const bytes = await this.downloadFile(vaultId, file);
-    const parsed = parseJsonStrictV2(decodeUtf8Strict(bytes));
-    if (!bytesEqual(bytes, canonicalBytesV2(parsed))) {
+    const parsed = parseJsonStrict(decodeUtf8Strict(bytes));
+    if (!bytesEqual(bytes, encodeCanonicalBytes(parsed))) {
       throw new SnapshotProviderError('invalid-data', 'Drive head is not canonical JSON');
     }
-    return this.record(file, kind, parsed as DeviceHeadV2);
+    return this.record(file, kind, parsed as DeviceHead);
   }
 
   private async safeMaterializeRecord(
@@ -741,7 +743,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     bytes: Uint8Array,
     createdAt: number,
   ): Promise<void> {
-    const hash = sha256BytesV2(bytes);
+    const hash = sha256Bytes(bytes);
     const cached = this.state.listKey(vaultId, key).filter((file) => file.kind === kind);
     if (cached.length > 0) {
       if (cached.some((file) =>
@@ -806,7 +808,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         if (bytes.byteLength !== source.byteLength) {
           throw new SnapshotProviderError('invalid-data', 'Media source ended before its declared size');
         }
-        if (sha256BytesV2(bytes) !== source.contentHash) {
+        if (sha256Bytes(bytes) !== source.contentHash) {
           throw new SnapshotProviderError('invalid-data', 'Media source content changed before upload');
         }
         uploaded = await this.multipartUpload(vaultId, key, 'media', bytes, 'create');
@@ -885,14 +887,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     fileId?: string,
     extraProperties: Record<string, string> = {},
   ): Promise<DriveFile> {
-    const boundary = `tackbok_v2_${this.now().toString(36)}_${Math.floor(
+    const boundary = `tackbok_${this.now().toString(36)}_${Math.floor(
       this.random() * Number.MAX_SAFE_INTEGER,
     ).toString(36)}`;
     const metadata = this.metadata(
       vaultId,
       key,
       kind,
-      sha256BytesV2(bytes),
+      sha256Bytes(bytes),
       extraProperties,
       operation === 'create',
     );
@@ -925,7 +927,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     kind: 'snapshot' | 'media',
     bytes: Uint8Array,
   ): Promise<DriveFile> {
-    const hash = sha256BytesV2(bytes);
+    const hash = sha256Bytes(bytes);
     let session = this.state.getUploadSession(vaultId, key, hash);
     let uploaded = 0;
     if (session && (!isTrustedDriveResumableUri(session.uri) ||
@@ -1167,7 +1169,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private async downloadFile(vaultId: string, file: DriveFile): Promise<Uint8Array> {
     const kind = objectKind(file.appProperties[PROP_KIND]);
     const declaredBytes = parseByteCount(file);
-    const byteCap = kind === 'head' ? HEAD_MAX_BYTES : SNAPSHOT_V2_CAPS.compressedBytes;
+    const byteCap = kind === 'head' ? HEAD_MAX_BYTES : SNAPSHOT_CAPS.compressedBytes;
     if (declaredBytes > byteCap) {
       throw new SnapshotProviderError('invalid-data', `Drive ${kind ?? 'object'} exceeds its byte cap`);
     }
@@ -1206,7 +1208,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
     const bytes = concatBytes(chunks);
     if (bytes.byteLength !== parseByteCount(file) ||
-        sha256BytesV2(bytes) !== file.sha256Checksum) {
+        sha256Bytes(bytes) !== file.sha256Checksum) {
       throw new SnapshotProviderError('invalid-data', 'Drive download checksum does not match');
     }
     return bytes;
@@ -1326,7 +1328,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private record(
     file: DriveFile,
     expectedKind: DriveObjectKind,
-    head: DeviceHeadV2 | null,
+    head: DeviceHead | null,
   ): DriveFileRecord {
     const kind = objectKind(file.appProperties[PROP_KIND]);
     if (kind !== expectedKind || file.appProperties[PROP_HASH] !== file.sha256Checksum) {

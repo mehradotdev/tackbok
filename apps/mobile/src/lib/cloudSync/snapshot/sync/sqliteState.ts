@@ -48,7 +48,6 @@ interface PendingRow {
 interface BaseRow {
   vault_id: string;
   device_id: string;
-  shadow_format_version: 1;
   snapshot_id: string;
   file_name: string;
   canonical_sha256: string;
@@ -307,7 +306,6 @@ export class SQLiteSyncStateStore {
     return row ? {
       vaultId: row.vault_id,
       deviceId: row.device_id,
-      shadowFormatVersion: row.shadow_format_version,
       snapshotId: row.snapshot_id,
       fileName: row.file_name,
       canonicalSha256: row.canonical_sha256,
@@ -329,11 +327,10 @@ export class SQLiteSyncStateStore {
       const old = this.loadBaseCheckpoint(checkpoint.vaultId, checkpoint.deviceId);
       this.database.runSync(
         `INSERT INTO cloud_base_shadow(
-           vault_id, device_id, shadow_format_version, snapshot_id, file_name,
+           vault_id, device_id, snapshot_id, file_name,
            canonical_sha256, byte_count, committed_generation, updated_at
-         ) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?)
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(vault_id, device_id) DO UPDATE SET
-           shadow_format_version = excluded.shadow_format_version,
            snapshot_id = excluded.snapshot_id,
            file_name = excluded.file_name,
            canonical_sha256 = excluded.canonical_sha256,

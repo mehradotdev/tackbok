@@ -21,8 +21,8 @@ import {
 import { AssetType, type Asset } from '~/types';
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
-import { canonicalHashV2 } from '../snapshot/canonical';
-import type { SnapshotEntryV2, SnapshotPromptV2, SnapshotTagV2 } from '../snapshot/types';
+import { canonicalHash } from '../snapshot/canonical';
+import type { SnapshotEntry, SnapshotPrompt, SnapshotTag } from '../snapshot/types';
 
 export const PROFILE_ROW_ID = 'self';
 export const PROFILE_ENTITY_ID = 'profile';
@@ -90,7 +90,7 @@ export async function enqueueMutation(
 ): Promise<{ changeId: string; generation: number }> {
   const now = context.now ?? Date.now();
 
-  const [v2Vault] = await tx
+  const [syncVault] = await tx
     .select({
       vaultId: cloudVault.vault_id,
       deviceId: cloudVault.device_id,
@@ -100,10 +100,10 @@ export async function enqueueMutation(
     .where(notInArray(cloudVault.status, ['disabled', 'revoked']))
     .limit(1);
 
-  if (v2Vault) {
+  if (syncVault) {
     await tx.insert(cloudSyncState).values({
-      vault_id: v2Vault.vaultId,
-      device_id: v2Vault.deviceId,
+      vault_id: syncVault.vaultId,
+      device_id: syncVault.deviceId,
       journal_generation: 0,
       settled_generation: 0,
       next_device_sequence: 1,
@@ -113,26 +113,26 @@ export async function enqueueMutation(
       journal_generation: sql`${cloudSyncState.journal_generation} + 1`,
       updated_at: now,
     }).where(and(
-      eq(cloudSyncState.vault_id, v2Vault.vaultId),
-      eq(cloudSyncState.device_id, v2Vault.deviceId),
+      eq(cloudSyncState.vault_id, syncVault.vaultId),
+      eq(cloudSyncState.device_id, syncVault.deviceId),
     ));
     const [state] = await tx.select({ generation: cloudSyncState.journal_generation })
       .from(cloudSyncState)
       .where(and(
-        eq(cloudSyncState.vault_id, v2Vault.vaultId),
-        eq(cloudSyncState.device_id, v2Vault.deviceId),
+        eq(cloudSyncState.vault_id, syncVault.vaultId),
+        eq(cloudSyncState.device_id, syncVault.deviceId),
       ))
       .limit(1);
     if (!state) throw new Error('Failed to advance snapshot journal generation');
 
     if (action === 'delete') {
       await tx.insert(cloudTombstones).values({
-        vault_id: v2Vault.vaultId,
+        vault_id: syncVault.vaultId,
         entity_type: entityType,
         entity_id: entityId,
         base_state_hash: null,
         deleted_state_hash: context.deletedStateHash ?? null,
-        deleted_by_device_id: v2Vault.deviceId,
+        deleted_by_device_id: syncVault.deviceId,
         deletion_sequence: state.generation,
         updated_at: now,
       }).onConflictDoUpdate({
@@ -144,21 +144,21 @@ export async function enqueueMutation(
         set: {
           base_state_hash: null,
           deleted_state_hash: context.deletedStateHash ?? null,
-          deleted_by_device_id: v2Vault.deviceId,
+          deleted_by_device_id: syncVault.deviceId,
           deletion_sequence: state.generation,
           updated_at: now,
         },
       });
     } else {
       await tx.delete(cloudTombstones).where(and(
-        eq(cloudTombstones.vault_id, v2Vault.vaultId),
+        eq(cloudTombstones.vault_id, syncVault.vaultId),
         eq(cloudTombstones.entity_type, entityType),
         eq(cloudTombstones.entity_id, entityId),
       ));
     }
-    if (v2Vault.status !== 'paused' && v2Vault.status !== 'restoring') {
+    if (syncVault.status !== 'paused' && syncVault.status !== 'restoring') {
       await tx.update(cloudVault).set({ status: 'dirty', updated_at: now })
-        .where(eq(cloudVault.vault_id, v2Vault.vaultId));
+        .where(eq(cloudVault.vault_id, syncVault.vaultId));
     }
     return { changeId: randomUUID(), generation: state.generation };
   }
@@ -378,7 +378,7 @@ export async function deleteEntryInTransaction(
   await tx.delete(entries).where(eq(entries.note_id, noteId));
   await markNormalized(tx, 'entry', noteId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotEntryV2 | null = entry ? {
+    const deletedState: SnapshotEntry | null = entry ? {
       entryId: entry.note_id,
       title: entry.text_title,
       content: entry.text_content,
@@ -390,7 +390,7 @@ export async function deleteEntryInTransaction(
     await enqueueMutation(tx, 'entry', noteId, 'delete', {
       ...context,
       now,
-      deletedStateHash: deletedState ? canonicalHashV2(deletedState) : null,
+      deletedStateHash: deletedState ? canonicalHash(deletedState) : null,
     });
   }
   return entry;
@@ -488,7 +488,7 @@ export async function deleteTagInTransaction(
   await tx.delete(tags).where(eq(tags.tag_id, tagId));
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotTagV2 | null = deletedTag ? {
+    const deletedState: SnapshotTag | null = deletedTag ? {
       tagId: deletedTag.tag_id,
       title: deletedTag.title,
       createdAt: deletedTag.created_at,
@@ -498,7 +498,7 @@ export async function deleteTagInTransaction(
     await enqueueMutation(tx, 'tag', tagId, 'delete', {
       ...context,
       now,
-      deletedStateHash: deletedState ? canonicalHashV2(deletedState) : null,
+      deletedStateHash: deletedState ? canonicalHash(deletedState) : null,
     });
   }
 }
@@ -558,7 +558,7 @@ export async function deletePromptInTransaction(
   await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotPromptV2 | null = deletedPrompt ? {
+    const deletedState: SnapshotPrompt | null = deletedPrompt ? {
       promptId: deletedPrompt.prompt_id,
       title: deletedPrompt.title,
       createdAt: deletedPrompt.created_at,
@@ -568,7 +568,7 @@ export async function deletePromptInTransaction(
     await enqueueMutation(tx, 'prompt', promptId, 'delete', {
       ...context,
       now,
-      deletedStateHash: deletedState ? canonicalHashV2(deletedState) : null,
+      deletedStateHash: deletedState ? canonicalHash(deletedState) : null,
     });
   }
 }

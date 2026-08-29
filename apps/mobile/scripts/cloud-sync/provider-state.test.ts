@@ -50,7 +50,7 @@ describe('durable Drive adapter state', () => {
       byteCount: 200,
       createdAt: 90,
       head: {
-        format: 'tackbok-device-head', formatVersion: 2, vaultId: 'vault-a',
+        format: 'tackbok-device-head', vaultId: 'vault-a',
         deviceId: 'device-a', deviceSequence: 3, snapshotId: 'b'.repeat(64), updatedAt: 90,
       },
     }], 'cursor-1');

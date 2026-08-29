@@ -1,18 +1,18 @@
-import { canonicalizeV2 } from '../canonical';
-import { SnapshotV2ValidationError } from '../caps';
-import { decodeSnapshotV2, encodeSnapshotV2 } from '../codec';
-import { SnapshotV2MergeError, mergeSnapshotDomainsV2 } from '../merge';
+import { canonicalize } from '../canonical';
+import { SnapshotValidationError } from '../caps';
+import { decodeSnapshot, encodeSnapshot } from '../codec';
+import { SnapshotMergeError, mergeSnapshotDomains } from '../merge';
 import type {
-  JournalSnapshotPayloadV2,
-  ObservedDeviceHeadV2,
-  SnapshotDomainV2,
+  JournalSnapshotPayload,
+  ObservedDeviceHead,
+  SnapshotDomain,
 } from '../types';
 import { BaseShadowCommitError, BaseShadowManager, BaseShadowReadError } from './baseShadow';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
-  BaseShadowV1,
-  DeviceHeadV2,
-  ListedDeviceHeadV2,
+  BaseShadow,
+  DeviceHead,
+  ListedDeviceHead,
   SnapshotJournalStore,
   SnapshotMediaStore,
   SnapshotProvider,
@@ -57,20 +57,20 @@ function isStorageFull(error: unknown): boolean {
 }
 
 interface RemoteHeadSnapshot {
-  head: DeviceHeadV2;
+  head: DeviceHead;
   snapshotId: string;
-  payload: JournalSnapshotPayloadV2;
+  payload: JournalSnapshotPayload;
 }
 
 interface PlannedCandidate {
-  domain: SnapshotDomainV2;
+  domain: SnapshotDomain;
   capturedGeneration: number;
   parentSnapshotIds: string[];
-  observedDeviceHeads: ObservedDeviceHeadV2[];
+  observedDeviceHeads: ObservedDeviceHead[];
   mediaHashes: string[];
 }
 
-function domainOf(payload: JournalSnapshotPayloadV2): SnapshotDomainV2 {
+function domainOf(payload: JournalSnapshotPayload): SnapshotDomain {
   return {
     entries: payload.entries,
     tags: payload.tags,
@@ -87,8 +87,8 @@ function actionableChanges(journalGeneration: number, settledGeneration: number)
   return Math.max(0, journalGeneration - settledGeneration);
 }
 
-function observationMap(values: ObservedDeviceHeadV2[]): Map<string, ObservedDeviceHeadV2> {
-  const result = new Map<string, ObservedDeviceHeadV2>();
+function observationMap(values: ObservedDeviceHead[]): Map<string, ObservedDeviceHead> {
+  const result = new Map<string, ObservedDeviceHead>();
   for (const value of values) {
     const existing = result.get(value.deviceId);
     if (!existing || value.deviceSequence > existing.deviceSequence ||
@@ -99,14 +99,14 @@ function observationMap(values: ObservedDeviceHeadV2[]): Map<string, ObservedDev
   return result;
 }
 
-function normalizeObservations(values: ObservedDeviceHeadV2[]): ObservedDeviceHeadV2[] {
-  const grouped = new Map<string, ObservedDeviceHeadV2[]>();
+function normalizeObservations(values: ObservedDeviceHead[]): ObservedDeviceHead[] {
+  const grouped = new Map<string, ObservedDeviceHead[]>();
   for (const value of values) {
     const candidates = grouped.get(value.deviceId) ?? [];
     candidates.push(value);
     grouped.set(value.deviceId, candidates);
   }
-  const result: ObservedDeviceHeadV2[] = [];
+  const result: ObservedDeviceHead[] = [];
   for (const [deviceId, candidates] of grouped) {
     const greatest = Math.max(...candidates.map((candidate) => candidate.deviceSequence));
     const atGreatest = candidates.filter((candidate) => candidate.deviceSequence === greatest);
@@ -120,14 +120,16 @@ function normalizeObservations(values: ObservedDeviceHeadV2[]): ObservedDeviceHe
     left.deviceId < right.deviceId ? -1 : left.deviceId > right.deviceId ? 1 : 0);
 }
 
-function isHeadShapeValid(head: DeviceHeadV2): boolean {
-  return head.format === 'tackbok-device-head' && head.formatVersion === 2 &&
+function isHeadShapeValid(head: DeviceHead): boolean {
+  return head.format === 'tackbok-device-head' &&
     typeof head.vaultId === 'string' && typeof head.deviceId === 'string' &&
     Number.isSafeInteger(head.deviceSequence) && head.deviceSequence >= 0 &&
     /^[0-9a-f]{64}$/.test(head.snapshotId) &&
     Number.isSafeInteger(head.updatedAt) && head.updatedAt >= 0;
 }
 
+// TODO(cloud-sync): Extract frontier planning, publication/reconciliation, and
+// cleanup into focused collaborators once the initial protocol has landed.
 export class SnapshotSyncEngine {
   private running = false;
 
@@ -193,9 +195,8 @@ export class SnapshotSyncEngine {
         this.deviceId,
         plan.capturedGeneration,
         (deviceSequence) => {
-          const encoded = encodeSnapshotV2({
+          const encoded = encodeSnapshot({
             format: 'tackbok-snapshot',
-            formatVersion: 2,
             vaultId: this.vaultId,
             parentSnapshotIds: plan.parentSnapshotIds,
             observedDeviceHeads: plan.observedDeviceHeads,
@@ -255,7 +256,7 @@ export class SnapshotSyncEngine {
         const remoteDescendsFromBase = loadedBase.shadow
           ? this.remoteContainsBase(remote, loadedBase.shadow)
           : false;
-        merged = mergeSnapshotDomainsV2(
+        merged = mergeSnapshotDomains(
           remoteDescendsFromBase ? baseDomain : null,
           merged,
           domainOf(remote.payload),
@@ -301,12 +302,11 @@ export class SnapshotSyncEngine {
   }
 
   private async loadAndNormalizeHeads(
-    listed: ListedDeviceHeadV2[],
+    listed: ListedDeviceHead[],
   ): Promise<RemoteHeadSnapshot[]> {
-    const grouped = new Map<string, ListedDeviceHeadV2[]>();
+    const grouped = new Map<string, ListedDeviceHead[]>();
     for (const candidate of listed) {
-      if (candidate.head.format !== 'tackbok-device-head' ||
-          candidate.head.formatVersion !== 2) {
+      if (candidate.head.format !== 'tackbok-device-head') {
         throw new AttentionError('unsupported-format', 'unsupported-device-head-format');
       }
       if (!isHeadShapeValid(candidate.head)) {
@@ -320,18 +320,18 @@ export class SnapshotSyncEngine {
       grouped.set(candidate.head.deviceId, values);
     }
 
-    const normalized: ListedDeviceHeadV2[] = [];
+    const normalized: ListedDeviceHead[] = [];
     for (const values of grouped.values()) {
       const sequence = Math.max(...values.map((value) => value.head.deviceSequence));
       const greatest = values.filter((value) => value.head.deviceSequence === sequence);
       const unique = new Map(greatest.map((value) => [value.head.snapshotId, value]));
       if (unique.size > 1) {
-        const valid: ListedDeviceHeadV2[] = [];
+        const valid: ListedDeviceHead[] = [];
         for (const candidate of unique.values()) {
           const bytes = await this.provider.downloadSnapshot(this.vaultId, candidate.head.snapshotId);
           if (!bytes) continue;
           try {
-            const decoded = decodeSnapshotV2(bytes, candidate.head.snapshotId);
+            const decoded = decodeSnapshot(bytes, candidate.head.snapshotId);
             if (decoded.payload.vaultId === this.vaultId) valid.push(candidate);
           } catch {
             // A single valid retry-created duplicate can safely defeat invalid bytes.
@@ -351,13 +351,13 @@ export class SnapshotSyncEngine {
       const bytes = await this.provider.downloadSnapshot(this.vaultId, candidate.head.snapshotId);
       await this.hooks.at?.('during-remote-snapshot-download');
       if (!bytes) throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
-      let payload: JournalSnapshotPayloadV2;
+      let payload: JournalSnapshotPayload;
       try {
-        payload = decodeSnapshotV2(bytes, candidate.head.snapshotId).payload;
+        payload = decodeSnapshot(bytes, candidate.head.snapshotId).payload;
       } catch (error) {
-        const code = error instanceof SnapshotV2ValidationError ? error.code : 'unknown';
-        if (error instanceof SnapshotV2ValidationError && code === 'invalid-literal' &&
-            /^\$\.(format|formatVersion)\b/.test(error.message)) {
+        const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
+        if (error instanceof SnapshotValidationError && code === 'invalid-literal' &&
+            /^\$\.format\b/.test(error.message)) {
           throw new AttentionError('unsupported-format', 'remote-format-version');
         }
         throw new AttentionError('invalid-remote-snapshot', `snapshot-validation-${code}`);
@@ -394,7 +394,7 @@ export class SnapshotSyncEngine {
     }));
   }
 
-  private remoteContainsBase(remote: RemoteHeadSnapshot, base: BaseShadowV1): boolean {
+  private remoteContainsBase(remote: RemoteHeadSnapshot, base: BaseShadow): boolean {
     if (remote.snapshotId === base.snapshotId ||
         remote.payload.parentSnapshotIds.includes(base.snapshotId)) return true;
     const baseAuthor = base.payload.authorDeviceId;
@@ -410,7 +410,7 @@ export class SnapshotSyncEngine {
 
   private headsCovered(
     heads: RemoteHeadSnapshot[],
-    accepted: ObservedDeviceHeadV2[],
+    accepted: ObservedDeviceHead[],
   ): boolean {
     const known = observationMap(accepted);
     return heads.every((candidate) => {
@@ -422,7 +422,7 @@ export class SnapshotSyncEngine {
   }
 
   private headSignature(heads: RemoteHeadSnapshot[]): string {
-    return canonicalizeV2(heads.map(({ head }) => ({
+    return canonicalize(heads.map(({ head }) => ({
       deviceId: head.deviceId,
       deviceSequence: head.deviceSequence,
       snapshotId: head.snapshotId,
@@ -430,9 +430,9 @@ export class SnapshotSyncEngine {
   }
 
   private async synchronizeMedia(
-    local: SnapshotDomainV2,
+    local: SnapshotDomain,
     remotes: RemoteHeadSnapshot[],
-    merged: SnapshotDomainV2,
+    merged: SnapshotDomain,
     capturedGeneration: number,
   ): Promise<void> {
     const localHashes = new Set(local.media.map((asset) => asset.blobHash));
@@ -487,11 +487,11 @@ export class SnapshotSyncEngine {
 
   private async resumePending(initial: PendingPublication): Promise<void> {
     let pending = initial;
-    let decoded: ReturnType<typeof decodeSnapshotV2>;
+    let decoded: ReturnType<typeof decodeSnapshot>;
     try {
-      decoded = decodeSnapshotV2(pending.compressedBytes, pending.snapshotId);
+      decoded = decodeSnapshot(pending.compressedBytes, pending.snapshotId);
     } catch (error) {
-      const code = error instanceof SnapshotV2ValidationError ? error.code : 'unknown';
+      const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
       throw new AttentionError(
         'invalid-remote-snapshot',
         `local-candidate-validation-${code}`,
@@ -531,7 +531,6 @@ export class SnapshotSyncEngine {
     if (pending.stage === 'snapshot-verified') {
       await this.provider.updateDeviceHead(this.vaultId, {
         format: 'tackbok-device-head',
-        formatVersion: 2,
         vaultId: this.vaultId,
         deviceId: this.deviceId,
         deviceSequence: pending.deviceSequence,
@@ -560,10 +559,8 @@ export class SnapshotSyncEngine {
           snapshotId: pending.snapshotId,
         },
       ]);
-      const shadow: BaseShadowV1 = {
+      const shadow: BaseShadow = {
         format: 'tackbok-base-shadow',
-        shadowFormatVersion: 1,
-        protocolFormatVersion: 2,
         vaultId: this.vaultId,
         snapshotId: pending.snapshotId,
         acceptedDeviceHeads,
@@ -614,7 +611,7 @@ export class SnapshotSyncEngine {
    * writers leave the head-advanced pending record intact for a later pass.
    */
   private async applyPublishedDomain(
-    publishedDomain: SnapshotDomainV2,
+    publishedDomain: SnapshotDomain,
     capturedGeneration: number,
   ): Promise<void> {
     if (await this.journal.applyMergedIfGeneration(
@@ -628,7 +625,7 @@ export class SnapshotSyncEngine {
 
     for (let attempt = 0; attempt < MAX_JOURNAL_RECONCILIATION_ATTEMPTS; attempt += 1) {
       const latest = await this.journal.capture();
-      const reconciled = mergeSnapshotDomainsV2(
+      const reconciled = mergeSnapshotDomains(
         baseDomain,
         latest.domain,
         publishedDomain,
@@ -712,14 +709,14 @@ export class SnapshotSyncEngine {
       );
       return { status: 'attention', reason: error.reason, actionableChanges: remaining };
     }
-    if (error instanceof SnapshotV2MergeError) {
+    if (error instanceof SnapshotMergeError) {
       const reason = error.code === 'derived-id-collision'
         ? 'derived-id-collision'
         : 'invalid-remote-snapshot';
       this.stateStore.setPause(this.vaultId, this.deviceId, reason, `merge-${error.code}`);
       return { status: 'attention', reason, actionableChanges: remaining };
     }
-    if (error instanceof SnapshotV2ValidationError) {
+    if (error instanceof SnapshotValidationError) {
       this.stateStore.setPause(
         this.vaultId,
         this.deviceId,

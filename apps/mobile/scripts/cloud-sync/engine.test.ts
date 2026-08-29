@@ -3,9 +3,9 @@ import { Database, type SQLQueryBindings } from 'bun:sqlite';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { canonicalBytesV2, canonicalizeV2 } from '../../src/lib/cloudSync/snapshot/canonical';
-import { decodeSnapshotV2, encodeSnapshotV2 } from '../../src/lib/cloudSync/snapshot/codec';
-import { sha256BytesV2 } from '../../src/lib/cloudSync/snapshot/sha256';
+import { encodeCanonicalBytes, canonicalize } from '../../src/lib/cloudSync/snapshot/canonical';
+import { decodeSnapshot, encodeSnapshot } from '../../src/lib/cloudSync/snapshot/codec';
+import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
 import { BaseShadowManager } from '../../src/lib/cloudSync/snapshot/sync/baseShadow';
 import { SnapshotSyncEngine } from '../../src/lib/cloudSync/snapshot/sync/engine';
 import {
@@ -26,8 +26,8 @@ import {
   type SnapshotSyncHooks,
 } from '../../src/lib/cloudSync/snapshot/sync/types';
 import type {
-  SnapshotDomainV2,
-  SnapshotEntryV2,
+  SnapshotDomain,
+  SnapshotEntry,
 } from '../../src/lib/cloudSync/snapshot/types';
 import { encodeGzip } from '../../src/lib/zip/core/gzip-codec';
 
@@ -59,7 +59,7 @@ function database(): BunSyncDatabase {
   return new BunSyncDatabase(sqlite);
 }
 
-function blankDomain(): SnapshotDomainV2 {
+function blankDomain(): SnapshotDomain {
   return {
     entries: [], tags: [], entryTags: [], prompts: [],
     profile: { profileId: 'profile', displayName: null, photoAssetId: null, updatedAt: 1 },
@@ -67,14 +67,14 @@ function blankDomain(): SnapshotDomainV2 {
   };
 }
 
-function entry(entryId: string, content: string, updatedAt = 1): SnapshotEntryV2 {
+function entry(entryId: string, content: string, updatedAt = 1): SnapshotEntry {
   return {
     entryId, title: null, content, mood: null, createdAt: 1, updatedAt,
     conflictOriginId: null,
   };
 }
 
-function withEntry(domain: SnapshotDomainV2, value: SnapshotEntryV2): SnapshotDomainV2 {
+function withEntry(domain: SnapshotDomain, value: SnapshotEntry): SnapshotDomain {
   const next = structuredClone(domain);
   next.entries = [...next.entries.filter((item) => item.entryId !== value.entryId), value]
     .sort((left, right) => left.entryId.localeCompare(right.entryId));
@@ -190,7 +190,7 @@ describe('durable snapshot publisher', () => {
 
   test('media survives a transfer death and is uploaded before its referencing snapshot', async () => {
     const bytes = new TextEncoder().encode('synthetic-media-bytes');
-    const blobHash = sha256BytesV2(bytes);
+    const blobHash = sha256Bytes(bytes);
     const domain = withEntry(blankDomain(), entry('entry-media', 'Has media'));
     domain.media = [{
       assetId: 'asset-media', ownerType: 'entry', ownerId: 'entry-media', kind: 'photo',
@@ -220,7 +220,7 @@ describe('durable snapshot publisher', () => {
 
   test('a resumed candidate re-establishes vanished media before snapshot upload', async () => {
     const bytes = new TextEncoder().encode('synthetic-resume-media');
-    const blobHash = sha256BytesV2(bytes);
+    const blobHash = sha256Bytes(bytes);
     const domain = withEntry(blankDomain(), entry('entry-resume-media', 'Resume media'));
     domain.media = [{
       assetId: 'asset-resume-media', ownerType: 'entry', ownerId: 'entry-resume-media',
@@ -327,7 +327,7 @@ describe('durable snapshot publisher', () => {
       .find((value) => value.head.deviceId === target.deviceId)!.head;
     const targetBytes = await provider.downloadSnapshot(target.vaultId, targetHead.snapshotId);
     expect(targetBytes).not.toBeNull();
-    const targetPayload = decodeSnapshotV2(targetBytes!, targetHead.snapshotId).payload;
+    const targetPayload = decodeSnapshot(targetBytes!, targetHead.snapshotId).payload;
     expect(targetPayload.entries.map((value) => value.entryId))
       .toEqual(['entry-late-x1', 'entry-remote-x1']);
     expect(targetPayload.tombstones.some((value) => value.entityId === 'entry-remote-x1'))
@@ -379,7 +379,7 @@ describe('durable snapshot publisher', () => {
       .find((value) => value.head.deviceId === target.deviceId)!.head;
     const targetBytes = await provider.downloadSnapshot(target.vaultId, targetHead.snapshotId);
     expect(targetBytes).not.toBeNull();
-    const targetPayload = decodeSnapshotV2(targetBytes!, targetHead.snapshotId).payload;
+    const targetPayload = decodeSnapshot(targetBytes!, targetHead.snapshotId).payload;
     expect(targetPayload.entries.map((value) => value.entryId))
       .toEqual(['entry-late-crash', 'entry-remote-crash']);
     expect(targetPayload.tombstones.some((value) => value.entityId === 'entry-remote-crash'))
@@ -509,8 +509,8 @@ describe('durable snapshot publisher', () => {
         bytes: new Uint8Array([1, 2, 3]),
       },
       (() => {
-        const encoded = encodeSnapshotV2({
-          format: 'tackbok-snapshot', formatVersion: 2, vaultId: 'different-vault',
+        const encoded = encodeSnapshot({
+          format: 'tackbok-snapshot', vaultId: 'different-vault',
           parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'remote-wrong',
           deviceSequence: 1, createdAt: 1, ...blankDomain(),
         });
@@ -521,15 +521,15 @@ describe('durable snapshot publisher', () => {
       })(),
       (() => {
         const payload = {
-          format: 'tackbok-snapshot', formatVersion: 3,
+          format: 'tackbok-snapshot-future',
           vaultId: 'vault-sync-test', parentSnapshotIds: [], observedDeviceHeads: [],
           authorDeviceId: 'remote-unsupported', deviceSequence: 1, createdAt: 1,
           ...blankDomain(),
         };
-        const canonicalBytes = canonicalBytesV2(payload);
+        const canonicalBytes = encodeCanonicalBytes(payload);
         return {
           suffix: 'unsupported', reason: 'unsupported-format',
-          snapshotId: sha256BytesV2(canonicalBytes),
+          snapshotId: sha256Bytes(canonicalBytes),
           bytes: encodeGzip(canonicalBytes, { level: 6 }),
         };
       })(),
@@ -542,7 +542,7 @@ describe('durable snapshot publisher', () => {
         app.provider.injectSnapshot(app.vaultId, value.snapshotId, value.bytes, 1);
       }
       app.provider.injectPhysicalHead({
-        format: 'tackbok-device-head', formatVersion: 2, vaultId: app.vaultId,
+        format: 'tackbok-device-head', vaultId: app.vaultId,
         deviceId: remoteDeviceId, deviceSequence: 1,
         snapshotId: value.snapshotId, updatedAt: 1,
       });
@@ -596,8 +596,8 @@ describe('durable snapshot publisher', () => {
 
     await first.engine().sync();
     await second.engine().sync();
-    expect(canonicalizeV2(first.journal.current()))
-      .toBe(canonicalizeV2(second.journal.current()));
+    expect(canonicalize(first.journal.current()))
+      .toBe(canonicalize(second.journal.current()));
     expect(new Set(first.journal.current().entries.map((value) => value.content)))
       .toEqual(new Set(['Device A', 'Device B']));
   });
@@ -638,7 +638,7 @@ describe('durable snapshot publisher', () => {
     for (let round = 0; round < 3; round += 1) {
       for (const device of devices) await device.engine().sync();
     }
-    const canonical = devices.map((device) => canonicalizeV2(device.journal.current()));
+    const canonical = devices.map((device) => canonicalize(device.journal.current()));
     expect(new Set(canonical).size).toBe(1);
     expect(new Set(devices[0].journal.current().entries.map((value) => value.content)))
       .toEqual(new Set(['Device 0', 'Device 1', 'Device 2']));
@@ -647,15 +647,15 @@ describe('durable snapshot publisher', () => {
   test('equal-sequence different valid heads pause durably as ambiguous', async () => {
     const app = harness('device-reader');
     for (const [suffix, content] of [['a', 'Branch A'], ['b', 'Branch B']] as const) {
-      const encoded = encodeSnapshotV2({
-        format: 'tackbok-snapshot', formatVersion: 2, vaultId: app.vaultId,
+      const encoded = encodeSnapshot({
+        format: 'tackbok-snapshot', vaultId: app.vaultId,
         parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'device-ambiguous',
         deviceSequence: 7, createdAt: 7,
         ...withEntry(blankDomain(), entry(`entry-${suffix}`, content)),
       });
       app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 7);
       app.provider.injectPhysicalHead({
-        format: 'tackbok-device-head', formatVersion: 2, vaultId: app.vaultId,
+        format: 'tackbok-device-head', vaultId: app.vaultId,
         deviceId: 'device-ambiguous', deviceSequence: 7,
         snapshotId: encoded.snapshotId, updatedAt: 7,
       });
@@ -674,15 +674,15 @@ describe('durable snapshot publisher', () => {
     const app = harness('device-wide-frontier');
     for (let index = 0; index < 9; index += 1) {
       const deviceId = `frontier-device-${index}`;
-      const encoded = encodeSnapshotV2({
-        format: 'tackbok-snapshot', formatVersion: 2, vaultId: app.vaultId,
+      const encoded = encodeSnapshot({
+        format: 'tackbok-snapshot', vaultId: app.vaultId,
         parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: deviceId,
         deviceSequence: 1, createdAt: 1,
         ...withEntry(blankDomain(), entry(`entry-${index}`, `Branch ${index}`)),
       });
       app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 1);
       app.provider.injectPhysicalHead({
-        format: 'tackbok-device-head', formatVersion: 2, vaultId: app.vaultId,
+        format: 'tackbok-device-head', vaultId: app.vaultId,
         deviceId, deviceSequence: 1, snapshotId: encoded.snapshotId, updatedAt: 1,
       });
     }
@@ -728,7 +728,7 @@ describe('durable snapshot publisher', () => {
   test('remote text restores and publishes when Wi-Fi-only policy defers its verified blob', async () => {
     const provider = new FakeSnapshotProvider();
     const bytes = new TextEncoder().encode('synthetic-remote-photo');
-    const blobHash = sha256BytesV2(bytes);
+    const blobHash = sha256Bytes(bytes);
     const sourceDomain = withEntry(blankDomain(), entry('entry-remote-media', 'Restored text'));
     sourceDomain.media = [{
       assetId: 'asset-remote-media', ownerType: 'entry', ownerId: 'entry-remote-media',
@@ -765,14 +765,14 @@ describe('durable snapshot publisher', () => {
       kind: 'photo', blobHash: 'b'.repeat(64), mimeType: 'image/jpeg', byteSize: 10,
       width: null, height: null, durationMs: null, createdAt: 1, updatedAt: 1,
     }];
-    const encoded = encodeSnapshotV2({
-      format: 'tackbok-snapshot', formatVersion: 2, vaultId: app.vaultId,
+    const encoded = encodeSnapshot({
+      format: 'tackbok-snapshot', vaultId: app.vaultId,
       parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'remote-missing',
       deviceSequence: 1, createdAt: 1, ...domain,
     });
     app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 1);
     app.provider.injectPhysicalHead({
-      format: 'tackbok-device-head', formatVersion: 2, vaultId: app.vaultId,
+      format: 'tackbok-device-head', vaultId: app.vaultId,
       deviceId: 'remote-missing', deviceSequence: 1, snapshotId: encoded.snapshotId,
       updatedAt: 1,
     });
@@ -820,27 +820,26 @@ describe('durable snapshot publisher', () => {
       .toEqual(new Set(['Local authored', 'Remote authored']));
   });
 
-  test('an unupgradeable future base-shadow version degrades instead of blocking sync', async () => {
+  test('an unsupported base-shadow format degrades instead of blocking sync', async () => {
     const app = harness('device-future-shadow');
-    const encoded = encodeSnapshotV2({
-      format: 'tackbok-snapshot', formatVersion: 2, vaultId: app.vaultId,
+    const encoded = encodeSnapshot({
+      format: 'tackbok-snapshot', vaultId: app.vaultId,
       parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: app.deviceId,
       deviceSequence: 1, createdAt: 1, ...blankDomain(),
     });
     const futureShadow = {
-      format: 'tackbok-base-shadow', shadowFormatVersion: 2,
-      protocolFormatVersion: 2, vaultId: app.vaultId,
+      format: 'tackbok-base-shadow-future', vaultId: app.vaultId,
       snapshotId: encoded.snapshotId, acceptedDeviceHeads: [], payload: encoded.payload,
     };
-    const canonicalBytes = canonicalBytesV2(futureShadow);
+    const canonicalBytes = encodeCanonicalBytes(futureShadow);
     const compressedBytes = encodeGzip(canonicalBytes, { level: 6 });
-    const fileName = 'base-future.v2.json.gz';
+    const fileName = 'base-future.json.gz';
     app.files.files.set(fileName, compressedBytes);
 
     const loaded = await app.shadows.load({
-      vaultId: app.vaultId, deviceId: app.deviceId, shadowFormatVersion: 1,
+      vaultId: app.vaultId, deviceId: app.deviceId,
       snapshotId: encoded.snapshotId, fileName,
-      canonicalSha256: sha256BytesV2(canonicalBytes), byteCount: compressedBytes.length,
+      canonicalSha256: sha256Bytes(canonicalBytes), byteCount: compressedBytes.length,
       committedGeneration: 0,
     });
     expect(loaded).toEqual({ shadow: null, degraded: true });

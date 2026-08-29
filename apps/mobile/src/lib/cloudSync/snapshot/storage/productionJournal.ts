@@ -18,7 +18,7 @@ import {
   userProfile,
 } from '~/db';
 import { AssetType, type Asset } from '~/types';
-import { sha256TextV2 } from '../sha256';
+import { sha256Text } from '../sha256';
 import {
   copyVerifiedMediaFile,
   createMediaPartialFileSink,
@@ -26,19 +26,19 @@ import {
 } from '../media';
 import { inspectLocalMediaFile } from '../../media/streamingHash';
 import type {
-  SnapshotConflictV2,
-  SnapshotDomainV2,
-  SnapshotMediaV2,
+  SnapshotConflict,
+  SnapshotDomain,
+  SnapshotMedia,
 } from '../types';
 import type {
-  CapturedJournalV2,
+  CapturedJournal,
   SnapshotProvider,
   SnapshotJournalStore,
   SnapshotMediaStore,
 } from '../sync/types';
 import { LocalStorageError } from '../sync/types';
 
-const STAGING_DIRECTORY = 'cloud-sync-v2-media';
+const STAGING_DIRECTORY = 'cloud-sync-media';
 const PHOTO_DIRECTORY = 'photos';
 const VOICE_DIRECTORY = 'voice_memos';
 
@@ -67,8 +67,8 @@ function stageFile(blobHash: string): File {
   return new File(ensureDirectory(STAGING_DIRECTORY), `${blobHash}.bin`);
 }
 
-function parseConflict(value: string): SnapshotConflictV2 {
-  const parsed = JSON.parse(value) as SnapshotConflictV2;
+function parseConflict(value: string): SnapshotConflict {
+  const parsed = JSON.parse(value) as SnapshotConflict;
   if (!parsed || typeof parsed !== 'object' || typeof parsed.conflictId !== 'string') {
     throw new LocalStorageError('local-storage-full', 'invalid-local-conflict-record');
   }
@@ -76,7 +76,7 @@ function parseConflict(value: string): SnapshotConflictV2 {
 }
 
 function legacyAsset(
-  descriptor: SnapshotMediaV2,
+  descriptor: SnapshotMedia,
   uri: string,
 ): Asset {
   return {
@@ -92,18 +92,18 @@ function legacyAsset(
   };
 }
 
-interface MaterializedMediaV2 {
+interface MaterializedMedia {
   uri: string;
   verified: boolean;
 }
 
-function relativeMediaUri(asset: SnapshotMediaV2): string {
+function relativeMediaUri(asset: SnapshotMedia): string {
   const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
   const extension = asset.kind === 'voice' ? 'm4a' : 'jpg';
-  return `${directoryName}/v2-${sha256TextV2(asset.assetId)}-${asset.blobHash}.${extension}`;
+  return `${directoryName}/${sha256Text(asset.assetId)}-${asset.blobHash}.${extension}`;
 }
 
-/** File-backed media cache shared by the v2 engine and normalized journal apply. */
+/** File-backed media cache shared by the sync engine and normalized journal apply. */
 export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
   async hasVerified(blobHash: string): Promise<boolean> {
     if (stageFile(blobHash).exists) return true;
@@ -163,7 +163,7 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
   }
 }
 
-/** Complete-state normalized journal adapter used only by the production v2 runtime. */
+/** Complete-state normalized journal adapter used only by the production runtime. */
 export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   constructor(
     private readonly vaultId: string,
@@ -171,7 +171,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     private readonly mediaStore: ProductionSnapshotMediaStore,
   ) {}
 
-  async capture(): Promise<CapturedJournalV2> {
+  async capture(): Promise<CapturedJournal> {
     return runExclusiveDbTransaction(async (tx) => {
       const [state] = await tx.select().from(cloudSyncState).where(and(
         eq(cloudSyncState.vault_id, this.vaultId),
@@ -195,7 +195,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       const conflictRows = await tx.select().from(cloudConflicts)
         .where(eq(cloudConflicts.vault_id, this.vaultId));
 
-      const media = mediaRows.map((row): SnapshotMediaV2 => {
+      const media = mediaRows.map((row): SnapshotMedia => {
         if (!row.blob_hash || row.byte_size === null) {
           throw new LocalStorageError(
             'local-media-unreadable',
@@ -284,7 +284,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   }
 
   async applyMergedIfGeneration(
-    domain: SnapshotDomainV2,
+    domain: SnapshotDomain,
     expectedGeneration: number,
   ): Promise<boolean> {
     const materializedUris = await this.materializeMedia(domain.media);
@@ -337,7 +337,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
           obligation_id: randomUUID(),
           ledger_id: ledgerId,
           blob_hash: asset.blob_hash,
-          obligation_kind: 'remote-apply-v2',
+          obligation_kind: 'remote-apply',
           obligation_key: `${this.vaultId}:${asset.asset_id}:${asset.blob_hash ?? 'unhashed'}`,
           completed_at: appliedAt,
           created_at: appliedAt,
@@ -372,7 +372,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         })));
       }
 
-      const mediaByOwner = new Map<string, SnapshotMediaV2[]>();
+      const mediaByOwner = new Map<string, SnapshotMedia[]>();
       for (const asset of domain.media) {
         const key = `${asset.ownerType}\0${asset.ownerId}`;
         const values = mediaByOwner.get(key) ?? [];
@@ -481,7 +481,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         missing += 1;
         continue;
       }
-      const descriptor: SnapshotMediaV2 = {
+      const descriptor: SnapshotMedia = {
         assetId: row.asset_id,
         ownerType: row.owner_type,
         ownerId: row.owner_type === 'profile' ? 'profile' : row.owner_id,
@@ -515,14 +515,14 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   }
 
   private async materializeMedia(
-    media: readonly SnapshotMediaV2[],
-  ): Promise<Map<string, MaterializedMediaV2>> {
+    media: readonly SnapshotMedia[],
+  ): Promise<Map<string, MaterializedMedia>> {
     const existingRows = await db.select().from(mediaAssets);
     const byIdentity = new Map(existingRows.map((row) => [
       `${row.asset_id}\0${row.blob_hash ?? ''}`,
       row.local_uri,
     ]));
-    const result = new Map<string, MaterializedMediaV2>();
+    const result = new Map<string, MaterializedMedia>();
     for (const asset of media) {
       const existing = byIdentity.get(`${asset.assetId}\0${asset.blobHash}`) ?? null;
       if (fileExists(existing)) {
@@ -540,7 +540,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     return result;
   }
 
-  private async materializeDescriptor(asset: SnapshotMediaV2): Promise<MaterializedMediaV2> {
+  private async materializeDescriptor(asset: SnapshotMedia): Promise<MaterializedMedia> {
       const relativeUri = relativeMediaUri(asset);
       const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
       const destination = new File(ensureDirectory(directoryName), relativeUri.split('/').pop()!);

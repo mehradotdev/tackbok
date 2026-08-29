@@ -1,6 +1,5 @@
 {
-  "format": "tackbok-snapshot-v2-merge-golden",
-  "formatVersion": 1,
+  "format": "tackbok-snapshot-merge-golden",
   "synthetic": true,
   "materialization": "Each branch is a complete domain snapshot. Omitted collection keys are invalid; envelope metadata is supplied by the harness and is not part of domain merge expectations.",
   "cases": [

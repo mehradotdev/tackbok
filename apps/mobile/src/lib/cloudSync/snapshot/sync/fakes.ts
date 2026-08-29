@@ -1,11 +1,11 @@
-import { canonicalizeV2 } from '../canonical';
-import type { SnapshotDomainV2 } from '../types';
+import { canonicalize } from '../canonical';
+import type { SnapshotDomain } from '../types';
 import type { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadowFileStore,
-  DeviceHeadV2,
-  ListedDeviceHeadV2,
-  SnapshotObjectV2,
+  DeviceHead,
+  ListedDeviceHead,
+  SnapshotObject,
   SnapshotJournalStore,
   SnapshotMediaStore,
   SnapshotProvider,
@@ -71,7 +71,7 @@ async function readSource(source: MediaUploadSource): Promise<Uint8Array> {
 export class FakeSnapshotProvider implements SnapshotProvider {
   readonly requests: FakeProviderOperation[] = [];
   private readonly snapshots = new Map<string, StoredSnapshot>();
-  private readonly heads = new Map<string, ListedDeviceHeadV2[]>();
+  private readonly heads = new Map<string, ListedDeviceHead[]>();
   private readonly media = new Map<string, Uint8Array>();
   private readonly revocations = new Map<string, ('backup-deleted' | 'journal-deleted')[]>();
   private readonly faults: Fault[] = [];
@@ -104,7 +104,7 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     this.revocations.set(vaultId, [...values]);
   }
 
-  injectPhysicalHead(head: DeviceHeadV2, physicalId?: string): void {
+  injectPhysicalHead(head: DeviceHead, physicalId?: string): void {
     const values = this.heads.get(head.vaultId) ?? [];
     values.push({
       physicalId: physicalId ?? `physical-${++this.physicalSequence}`,
@@ -117,7 +117,7 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     this.snapshots.set(this.key(vaultId, snapshotId), { bytes: cloneBytes(bytes), createdAt });
   }
 
-  physicalHeads(vaultId: string): ListedDeviceHeadV2[] {
+  physicalHeads(vaultId: string): ListedDeviceHead[] {
     return structuredClone(this.heads.get(vaultId) ?? []);
   }
 
@@ -143,7 +143,7 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     return [...(this.revocations.get(vaultId) ?? [])];
   }
 
-  async listHeads(vaultId: string): Promise<ListedDeviceHeadV2[]> {
+  async listHeads(vaultId: string): Promise<ListedDeviceHead[]> {
     this.before('list-heads');
     return this.physicalHeads(vaultId);
   }
@@ -179,7 +179,7 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     return Boolean(stored && bytesEqual(stored, expectedBytes));
   }
 
-  async updateDeviceHead(vaultId: string, head: DeviceHeadV2): Promise<void> {
+  async updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void> {
     this.before('update-head');
     const values = (this.heads.get(vaultId) ?? [])
       .filter((candidate) => candidate.head.deviceId !== head.deviceId);
@@ -223,7 +223,7 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     return true;
   }
 
-  async listSnapshots(vaultId: string): Promise<SnapshotObjectV2[]> {
+  async listSnapshots(vaultId: string): Promise<SnapshotObject[]> {
     this.before('list-snapshots');
     return [...this.snapshots.entries()]
       .filter(([key]) => key.startsWith(`${vaultId}\0`))
@@ -332,10 +332,10 @@ export class MemorySnapshotMediaStore implements SnapshotMediaStore {
 
 export class MemorySnapshotJournalStore implements SnapshotJournalStore {
   applyCount = 0;
-  private domain: SnapshotDomainV2;
+  private domain: SnapshotDomain;
 
   constructor(
-    initial: SnapshotDomainV2,
+    initial: SnapshotDomain,
     private readonly state: SQLiteSyncStateStore,
     private readonly vaultId: string,
     private readonly deviceId: string,
@@ -343,12 +343,12 @@ export class MemorySnapshotJournalStore implements SnapshotJournalStore {
     this.domain = structuredClone(initial);
   }
 
-  mutate(next: SnapshotDomainV2): number {
+  mutate(next: SnapshotDomain): number {
     this.domain = structuredClone(next);
     return this.state.markDirty(this.vaultId, this.deviceId);
   }
 
-  current(): SnapshotDomainV2 {
+  current(): SnapshotDomain {
     return structuredClone(this.domain);
   }
 
@@ -358,13 +358,13 @@ export class MemorySnapshotJournalStore implements SnapshotJournalStore {
   }
 
   async applyMergedIfGeneration(
-    domain: SnapshotDomainV2,
+    domain: SnapshotDomain,
     expectedGeneration: number,
   ): Promise<boolean> {
     const current = this.state.loadState(this.vaultId, this.deviceId).journalGeneration;
     if (current !== expectedGeneration) return false;
     this.applyCount += 1;
-    if (canonicalizeV2(this.domain) !== canonicalizeV2(domain)) {
+    if (canonicalize(this.domain) !== canonicalize(domain)) {
       this.domain = structuredClone(domain);
     }
     return true;

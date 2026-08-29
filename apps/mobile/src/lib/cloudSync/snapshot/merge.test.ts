@@ -1,19 +1,19 @@
 import golden from './fixtures/merge-golden.json';
-import { canonicalHashV2, canonicalizeV2 } from './canonical';
-import { encodeSnapshotV2 } from './codec';
-import { mergeSnapshotDomainsV2 } from './merge';
-import type { SnapshotDomainV2, SnapshotEntryV2 } from './types';
-import { calculateMediaReferencesV2 } from './validation';
+import { canonicalHash, canonicalize } from './canonical';
+import { encodeSnapshot } from './codec';
+import { mergeSnapshotDomains } from './merge';
+import type { SnapshotDomain, SnapshotEntry } from './types';
+import { calculateMediaReferences } from './validation';
 
 const cases = golden.cases as unknown as {
   id: string;
-  base: SnapshotDomainV2 | null;
-  local: SnapshotDomainV2;
-  remote: SnapshotDomainV2;
-  expected: SnapshotDomainV2;
+  base: SnapshotDomain | null;
+  local: SnapshotDomain;
+  remote: SnapshotDomain;
+  expected: SnapshotDomain;
 }[];
 
-function conflictSymmetricView(domain: SnapshotDomainV2): unknown {
+function conflictSymmetricView(domain: SnapshotDomain): unknown {
   return {
     ...domain,
     conflicts: domain.conflicts.map((conflict) => ({
@@ -24,7 +24,7 @@ function conflictSymmetricView(domain: SnapshotDomainV2): unknown {
   };
 }
 
-function emptyDomain(entry: SnapshotEntryV2): SnapshotDomainV2 {
+function emptyDomain(entry: SnapshotEntry): SnapshotDomain {
   return {
     entries: [entry], tags: [], entryTags: [], prompts: [],
     profile: { profileId: 'profile', displayName: null, photoAssetId: null, updatedAt: 1 },
@@ -32,7 +32,7 @@ function emptyDomain(entry: SnapshotEntryV2): SnapshotDomainV2 {
   };
 }
 
-function blankDomain(): SnapshotDomainV2 {
+function blankDomain(): SnapshotDomain {
   return {
     entries: [], tags: [], entryTags: [], prompts: [],
     profile: { profileId: 'profile', displayName: null, photoAssetId: null, updatedAt: 1 },
@@ -40,29 +40,29 @@ function blankDomain(): SnapshotDomainV2 {
   };
 }
 
-describe('snapshot v2 merge engine', () => {
+describe('snapshot merge engine', () => {
   it.each(cases)('matches frozen golden case $id byte-identically', ({ base, local, remote, expected }) => {
-    const actual = mergeSnapshotDomainsV2(base, local, remote);
-    expect(canonicalizeV2(actual)).toBe(canonicalizeV2(expected));
+    const actual = mergeSnapshotDomains(base, local, remote);
+    expect(canonicalize(actual)).toBe(canonicalize(expected));
   });
 
   it.each(cases)('is idempotent for golden case $id', ({ base, local, remote }) => {
-    const once = mergeSnapshotDomainsV2(base, local, remote);
-    const twice = mergeSnapshotDomainsV2(base, once, once);
-    expect(canonicalizeV2(twice)).toBe(canonicalizeV2(once));
+    const once = mergeSnapshotDomains(base, local, remote);
+    const twice = mergeSnapshotDomains(base, once, once);
+    expect(canonicalize(twice)).toBe(canonicalize(once));
   });
 
   it.each(cases)('is commutative for user state and conflict candidates in $id', ({ base, local, remote }) => {
-    const left = mergeSnapshotDomainsV2(base, local, remote);
-    const right = mergeSnapshotDomainsV2(base, remote, local);
-    expect(canonicalizeV2(conflictSymmetricView(left))).toBe(canonicalizeV2(conflictSymmetricView(right)));
+    const left = mergeSnapshotDomains(base, local, remote);
+    const right = mergeSnapshotDomains(base, remote, local);
+    expect(canonicalize(conflictSymmetricView(left))).toBe(canonicalize(conflictSymmetricView(right)));
   });
 
   it('keeps authored text and derives stable recovery IDs across generated conflicts', () => {
     let seed = 0x51a7e;
     const next = () => (seed = (seed * 1664525 + 1013904223) >>> 0);
     for (let index = 0; index < 128; index++) {
-      const baseEntry: SnapshotEntryV2 = {
+      const baseEntry: SnapshotEntry = {
         entryId: `entry-property-${index}`, title: 'Synthetic base', content: 'Synthetic base body',
         mood: null, createdAt: 1, updatedAt: 1, conflictOriginId: null,
       };
@@ -71,8 +71,8 @@ describe('snapshot v2 merge engine', () => {
       const local = emptyDomain({ ...baseEntry, content: localText, updatedAt: 2 });
       const remote = emptyDomain({ ...baseEntry, content: remoteText, updatedAt: 3 });
       const base = emptyDomain(baseEntry);
-      const first = mergeSnapshotDomainsV2(base, local, remote);
-      const second = mergeSnapshotDomainsV2(base, local, remote);
+      const first = mergeSnapshotDomains(base, local, remote);
+      const second = mergeSnapshotDomains(base, local, remote);
       const bodies = new Set(first.entries.map((entry) => entry.content));
       expect(bodies).toEqual(new Set([localText, remoteText]));
       expect(first.entries.map((entry) => entry.entryId)).toEqual(second.entries.map((entry) => entry.entryId));
@@ -80,14 +80,14 @@ describe('snapshot v2 merge engine', () => {
   });
 
   it('carries a non-conflicting text-field edit into both conflict branches', () => {
-    const baseEntry: SnapshotEntryV2 = {
+    const baseEntry: SnapshotEntry = {
       entryId: 'entry-mixed-text', title: 'Base title', content: 'Base body', mood: null,
       createdAt: 1, updatedAt: 1, conflictOriginId: null,
     };
     const base = emptyDomain(baseEntry);
     const local = emptyDomain({ ...baseEntry, title: 'Local title', content: 'Local-only body', updatedAt: 2 });
     const remote = emptyDomain({ ...baseEntry, title: 'Remote title', updatedAt: 3 });
-    const merged = mergeSnapshotDomainsV2(base, local, remote);
+    const merged = mergeSnapshotDomains(base, local, remote);
     expect(merged.entries).toHaveLength(2);
     expect(merged.entries.every((entry) => entry.content === 'Local-only body')).toBe(true);
     expect(new Set(merged.entries.map((entry) => entry.title)))
@@ -96,8 +96,8 @@ describe('snapshot v2 merge engine', () => {
 
   it('calculates primary, alternate and entry-owned media references', () => {
     const profileCase = cases.find((item) => item.id === 'profile-independent-fields-and-photo-conflict')!;
-    const merged = mergeSnapshotDomainsV2(profileCase.base, profileCase.local, profileCase.remote);
-    expect(calculateMediaReferencesV2(merged)).toEqual(new Set(['asset-b', 'asset-c']));
+    const merged = mergeSnapshotDomains(profileCase.base, profileCase.local, profileCase.remote);
+    expect(calculateMediaReferences(merged)).toEqual(new Set(['asset-b', 'asset-c']));
   });
 
   it('lets deletion beat an unchanged branch and removes its relations', () => {
@@ -109,7 +109,7 @@ describe('snapshot v2 merge engine', () => {
       entityType: 'tag', entityId: 'tag-c', baseStateHash: 'a'.repeat(64),
       deletedStateHash: 'a'.repeat(64), deletedByDeviceId: 'device-a', deletionSequence: 2,
     }];
-    const merged = mergeSnapshotDomainsV2(base, local, base);
+    const merged = mergeSnapshotDomains(base, local, base);
     expect(merged.tags).toEqual([]);
     expect(merged.entryTags).toEqual([]);
     expect(merged.tombstones).toEqual(local.tombstones);
@@ -117,7 +117,7 @@ describe('snapshot v2 merge engine', () => {
   });
 
   it('never lets a base-less tombstone erase a live authored entry', () => {
-    const liveEntry: SnapshotEntryV2 = {
+    const liveEntry: SnapshotEntry = {
       entryId: 'entry-base-less', title: null, content: 'Synthetic authored value', mood: null,
       createdAt: 1, updatedAt: 2, conflictOriginId: null,
     };
@@ -128,7 +128,7 @@ describe('snapshot v2 merge engine', () => {
     }];
     const remote = blankDomain();
     remote.entries = [liveEntry];
-    const merged = mergeSnapshotDomainsV2(null, local, remote);
+    const merged = mergeSnapshotDomains(null, local, remote);
     expect(merged.entries).toEqual([liveEntry]);
     expect(merged.tombstones).toEqual([]);
     expect(merged.conflicts.map((value) => value.field)).toEqual(['deleteEdit']);
@@ -138,7 +138,7 @@ describe('snapshot v2 merge engine', () => {
     const mediaCase = cases.find((item) => item.id === 'entry-asset-remove-versus-concurrent-reference')!;
     const invalidRemote = structuredClone(mediaCase.remote);
     invalidRemote.media[0].blobHash = 'e'.repeat(64);
-    expect(() => mergeSnapshotDomainsV2(mediaCase.base, mediaCase.local, invalidRemote))
+    expect(() => mergeSnapshotDomains(mediaCase.base, mediaCase.local, invalidRemote))
       .toThrow(/media.blobHash/);
 
     const textCase = cases.find((item) => item.id === 'concurrent-entry-title-and-body-preserve-recovery')!;
@@ -148,12 +148,12 @@ describe('snapshot v2 merge engine', () => {
       content: 'Different synthetic record', mood: null, createdAt: 1, updatedAt: 1,
       conflictOriginId: null,
     });
-    expect(() => mergeSnapshotDomainsV2(textCase.base, collisionLocal, textCase.remote))
+    expect(() => mergeSnapshotDomains(textCase.base, collisionLocal, textCase.remote))
       .toThrow(/Derived entity ID/);
   });
 
   it('never retains media whose unchanged owner lost to a valid deletion', () => {
-    const entry: SnapshotEntryV2 = {
+    const entry: SnapshotEntry = {
       entryId: 'entry-media-owner', title: null, content: 'Synthetic base', mood: null,
       createdAt: 1, updatedAt: 1, conflictOriginId: null,
     };
@@ -167,30 +167,30 @@ describe('snapshot v2 merge engine', () => {
     const local = blankDomain();
     local.tombstones = [{
       entityType: 'entry', entityId: entry.entryId,
-      baseStateHash: canonicalHashV2(entry), deletedStateHash: canonicalHashV2(entry),
+      baseStateHash: canonicalHash(entry), deletedStateHash: canonicalHash(entry),
       deletedByDeviceId: 'device-a', deletionSequence: 2,
     }];
     const remote = structuredClone(base);
     remote.media[0] = { ...remote.media[0], width: 20, updatedAt: 2 };
 
-    const merged = mergeSnapshotDomainsV2(base, local, remote);
+    const merged = mergeSnapshotDomains(base, local, remote);
     expect(merged.entries).toEqual([]);
     expect(merged.media).toEqual([]);
     expect(merged.conflicts).toEqual([]);
-    expect(() => encodeSnapshotV2({
-      format: 'tackbok-snapshot', formatVersion: 2, vaultId: 'vault-w1',
+    expect(() => encodeSnapshot({
+      format: 'tackbok-snapshot', vaultId: 'vault-w1',
       parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'device-a',
       deviceSequence: 3, createdAt: 3, ...merged,
     })).not.toThrow();
   });
 
   it('prunes deleted recovery IDs without changing the durable conflict identity', () => {
-    const entry: SnapshotEntryV2 = {
+    const entry: SnapshotEntry = {
       entryId: 'entry-recovery-delete', title: 'Base', content: 'Base body', mood: null,
       createdAt: 1, updatedAt: 1, conflictOriginId: null,
     };
     const base = emptyDomain(entry);
-    const first = mergeSnapshotDomainsV2(
+    const first = mergeSnapshotDomains(
       base,
       emptyDomain({ ...entry, content: 'Local body', updatedAt: 2 }),
       emptyDomain({ ...entry, content: 'Remote body', updatedAt: 3 }),
@@ -201,19 +201,19 @@ describe('snapshot v2 merge engine', () => {
     local.tombstones.push({
       entityType: 'entry',
       entityId: recovered.entryId,
-      baseStateHash: canonicalHashV2(recovered),
-      deletedStateHash: canonicalHashV2(recovered),
+      baseStateHash: canonicalHash(recovered),
+      deletedStateHash: canonicalHash(recovered),
       deletedByDeviceId: 'device-a',
       deletionSequence: 4,
     });
 
-    const merged = mergeSnapshotDomainsV2(first, local, first);
+    const merged = mergeSnapshotDomains(first, local, first);
     expect(merged.conflicts).not.toHaveLength(0);
     expect(merged.conflicts.every((value) => value.recoveredEntityIds.length === 0)).toBe(true);
     expect(merged.conflicts.map((value) => value.conflictId))
       .toEqual(first.conflicts.map((value) => value.conflictId));
-    expect(() => encodeSnapshotV2({
-      format: 'tackbok-snapshot', formatVersion: 2, vaultId: 'vault-recovery-delete',
+    expect(() => encodeSnapshot({
+      format: 'tackbok-snapshot', vaultId: 'vault-recovery-delete',
       parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'device-a',
       deviceSequence: 5, createdAt: 5, ...merged,
     })).not.toThrow();
@@ -229,7 +229,7 @@ describe('snapshot v2 merge engine', () => {
     second.tombstones = [{
       ...first.tombstones[0], deletedByDeviceId: 'device-a',
     }];
-    expect(canonicalizeV2(mergeSnapshotDomainsV2(null, first, second)))
-      .toBe(canonicalizeV2(mergeSnapshotDomainsV2(null, second, first)));
+    expect(canonicalize(mergeSnapshotDomains(null, first, second)))
+      .toBe(canonicalize(mergeSnapshotDomains(null, second, first)));
   });
 });

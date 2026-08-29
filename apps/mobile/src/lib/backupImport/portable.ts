@@ -8,7 +8,7 @@ import { db, customPrompts, entries, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { createZipEntryLookup, type ZipEntryLookup, type ZipReader } from '~/lib/zip';
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
-import { sha256BytesV2 } from '~/lib/cloudSync/snapshot/sha256';
+import { sha256Bytes } from '~/lib/cloudSync/snapshot/sha256';
 import type { ImportProgressCallback } from './progress';
 import { reportImportProgress } from './progress';
 import {
@@ -113,7 +113,7 @@ async function materializePortableEntryAssets(
     try {
       const archivePath = assertSafeArchivePath(portableAsset.path);
       const bytes = await readSafeZipBytes(zip, archivePath);
-      const blobHash = sha256BytesV2(bytes);
+      const blobHash = sha256Bytes(bytes);
 
       if (portableAsset.type === AssetType.IMAGE) {
         const photo = await writeImportedPhoto(bytes, archivePath);
