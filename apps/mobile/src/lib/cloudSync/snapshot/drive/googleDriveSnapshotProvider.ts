@@ -1,5 +1,4 @@
-import { CloudAuthError, type CloudAuthorization } from '../../auth/types';
-import { providerErrorCodeForAuthError } from '../../failureClassification';
+import type { CloudAuthorization } from '../../auth/types';
 import { encodeCanonicalBytes } from '../canonical';
 import { SNAPSHOT_CAPS } from '../caps';
 import { sha256Bytes, sha256Text } from '../sha256';
@@ -11,22 +10,22 @@ import type {
   SnapshotProvider,
   MediaDownloadSink,
   MediaUploadSource,
-  SnapshotProviderErrorCode,
 } from '../sync/types';
 import { MediaIntegrityError, SnapshotProviderError } from '../sync/types';
-import {
-  driveByteBucket,
-  driveDurationBucket,
-  driveQuotaUnits,
-  type DriveInstrumentationSink,
-  type DriveMethodClass,
-  type DriveResultClass,
-} from './instrumentation';
+import type { DriveInstrumentationSink, DriveMethodClass } from './instrumentation';
 import type {
   DriveFileRecord,
   DriveObjectKind,
   DriveProviderStateStore,
 } from './state';
+import {
+  DriveRequestError,
+  DriveTransport,
+  type DriveFetchLike,
+  type DriveResponseLike,
+} from './transport';
+
+export type { DriveFetchLike, DriveResponseLike } from './transport';
 
 const API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
@@ -45,8 +44,6 @@ const MEDIA_CHUNK_SIZE = 8 * 1024 * 1024;
 const MULTIPART_MAX_BYTES = 4 * 1024 * 1024;
 const HEAD_MAX_BYTES = 256 * 1024;
 const SESSION_LIFETIME_MS = 6 * 24 * 60 * 60 * 1_000;
-const BASE_RETRY_DELAY_MS = 1_000;
-const MAX_RETRY_DELAY_MS = 30_000;
 const PROPERTY_PAIR_UTF8_CAP = 124;
 const MAX_DISCOVERY_REBUILDS = 1;
 
@@ -66,27 +63,6 @@ interface DriveChange {
   file?: unknown;
 }
 
-export interface DriveResponseLike {
-  readonly ok: boolean;
-  readonly status: number;
-  readonly headers: { get(name: string): string | null };
-  readonly body?: {
-    getReader(): { read(): Promise<{ done: boolean; value?: Uint8Array }> };
-  } | null;
-  json(): Promise<unknown>;
-  arrayBuffer(): Promise<ArrayBuffer>;
-}
-
-export type DriveFetchLike = (
-  url: string,
-  init?: Record<string, unknown>,
-) => Promise<DriveResponseLike>;
-
-const defaultDriveFetch: DriveFetchLike = async (url, init) => {
-  const { fetch } = await import('expo/fetch');
-  return fetch(url, init as never) as unknown as DriveResponseLike;
-};
-
 export interface GoogleDriveSnapshotProviderOptions {
   auth: CloudAuthorization;
   state: DriveProviderStateStore;
@@ -105,18 +81,6 @@ export interface AvailableDriveVault {
 export interface DrivePurgeResult {
   deleted: number;
   remaining: number;
-}
-
-class DriveRequestError extends SnapshotProviderError {
-  constructor(
-    code: SnapshotProviderErrorCode,
-    readonly status: number,
-    message: string,
-    readonly retryAfterMs: number | null = null,
-  ) {
-    super(code, message);
-    this.name = 'DriveRequestError';
-  }
 }
 
 function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
@@ -217,102 +181,31 @@ function parseCreatedAt(file: DriveFile): number | null {
   return Number.isNaN(value) ? null : value;
 }
 
-function requestBodyBytes(body: unknown): number {
-  if (body instanceof Uint8Array) return body.byteLength;
-  if (typeof body === 'string') return utf8(body).byteLength;
-  return 0;
-}
-
-function parseRetryAfter(value: string | null, now: number): number | null {
-  if (!value) return null;
-  const seconds = Number(value);
-  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1_000);
-  const date = Date.parse(value);
-  return Number.isNaN(date) ? null : Math.max(0, date - now);
-}
-
-async function errorReason(response: DriveResponseLike): Promise<string | null> {
-  try {
-    const body = await response.json() as {
-      error?: { errors?: { reason?: unknown }[]; details?: { reason?: unknown }[] };
-    };
-    const reasons = [
-      ...(body.error?.errors ?? []),
-      ...(body.error?.details ?? []),
-    ].map((value) => value.reason).filter((value): value is string =>
-      typeof value === 'string');
-    return reasons[0] ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function resultClass(error: DriveRequestError): DriveResultClass {
-  if (error.code === 'authorization-required') return 'authorization';
-  if (error.code === 'permission-denied') return 'permission';
-  if (error.code === 'quota-full') return 'quota';
-  if (error.code === 'rate-limited') return 'rate-limit';
-  if (error.code === 'invalid-data') return 'invalid';
-  if (error.status === 404 || error.status === 410) return 'not-found';
-  return 'transient';
-}
-
-function mapStatus(
-  status: number,
-  reason: string | null,
-  retryAfterMs: number | null,
-): DriveRequestError {
-  if (status === 401) {
-    return new DriveRequestError('authorization-required', status, 'Drive authorization failed');
-  }
-  if (status === 403 && reason === 'storageQuotaExceeded') {
-    return new DriveRequestError('quota-full', status, 'Drive storage quota is full');
-  }
-  if (status === 403 && [
-    'userRateLimitExceeded', 'rateLimitExceeded', 'sharingRateLimitExceeded',
-    'dailyLimitExceeded',
-  ].includes(reason ?? '')) {
-    return new DriveRequestError('rate-limited', status, 'Drive rate limit reached', retryAfterMs);
-  }
-  if (status === 403) {
-    return new DriveRequestError('permission-denied', status, 'Drive permission denied');
-  }
-  if (status === 429) {
-    return new DriveRequestError('rate-limited', status, 'Drive rate limit reached', retryAfterMs);
-  }
-  if (status === 400) {
-    return new DriveRequestError('invalid-data', status, 'Drive rejected an invalid request');
-  }
-  if (status === 404 || status === 410) {
-    return new DriveRequestError('transient', status, 'Drive object or cursor was not found');
-  }
-  if (status === 507) {
-    return new DriveRequestError('quota-full', status, 'Drive storage quota is full');
-  }
-  return new DriveRequestError('transient', status, 'Drive request failed', retryAfterMs);
-}
-
 // TODO(cloud-sync): Split Drive transport/uploads, discovery, and metadata parsing
 // into focused modules once the initial cloud-sync feature has landed.
 export class GoogleDriveSnapshotProvider implements SnapshotProvider {
-  private readonly auth: CloudAuthorization;
   private readonly state: DriveProviderStateStore;
-  private readonly fetcher: DriveFetchLike;
-  private readonly instrumentation?: DriveInstrumentationSink;
+  private readonly transport: DriveTransport;
   private readonly sleep: (milliseconds: number) => Promise<void>;
   private readonly random: () => number;
   private readonly now: () => number;
   private readonly immutableWrites = new Map<string, Promise<void>>();
 
   constructor(options: GoogleDriveSnapshotProviderOptions) {
-    this.auth = options.auth;
     this.state = options.state;
-    this.fetcher = options.fetch ?? defaultDriveFetch;
-    this.instrumentation = options.instrumentation;
     this.sleep = options.sleep ?? ((milliseconds) =>
       new Promise((resolve) => setTimeout(resolve, milliseconds)));
     this.random = options.random ?? Math.random;
     this.now = options.now ?? Date.now;
+    this.transport = new DriveTransport({
+      auth: options.auth,
+      state: options.state,
+      fetch: options.fetch,
+      instrumentation: options.instrumentation,
+      sleep: this.sleep,
+      random: this.random,
+      now: this.now,
+    });
   }
 
   async listRevocations(
@@ -1380,109 +1273,6 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     init: Record<string, unknown> = {},
     options: { idempotent: boolean; accepted?: readonly number[] },
   ): Promise<DriveResponseLike> {
-    const accepted = options.accepted ?? [];
-    const retryNotBefore = this.state.loadDiscovery(vaultId).retryNotBefore;
-    if (retryNotBefore > this.now()) {
-      throw new DriveRequestError(
-        'rate-limited',
-        429,
-        'Drive retry window is still active',
-        retryNotBefore - this.now(),
-      );
-    }
-    let authRetried = false;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      let token: string;
-      try {
-        token = await this.auth.getFreshAccessToken();
-      } catch (error) {
-        if (error instanceof CloudAuthError) {
-          const code = providerErrorCodeForAuthError(error.code);
-          throw new SnapshotProviderError(
-            code,
-            code === 'transient'
-              ? 'Google authorization is temporarily unavailable'
-              : 'Google Drive authorization required',
-          );
-        }
-        throw error;
-      }
-      const started = this.now();
-      let response: DriveResponseLike;
-      try {
-        response = await this.fetcher(url, {
-          ...init,
-          headers: {
-            ...((init.headers as Record<string, string> | undefined) ?? {}),
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      } catch {
-        const error = new DriveRequestError('transient', 0, 'Unable to reach Google Drive');
-        this.recordAttempt(methodClass, error, started, init.body, null, attempt > 0);
-        if (options.idempotent && attempt < 2) {
-          await this.sleep(this.retryDelay(attempt));
-          continue;
-        }
-        throw error;
-      }
-      if (response.ok || accepted.includes(response.status)) {
-        this.recordAttempt(methodClass, null, started, init.body, response, attempt > 0);
-        return response;
-      }
-      const retryAfterMs = parseRetryAfter(response.headers.get('retry-after'), this.now());
-      const error = mapStatus(response.status, await errorReason(response), retryAfterMs);
-      this.recordAttempt(methodClass, error, started, init.body, response, attempt > 0);
-      if (response.status === 401 && !authRetried) {
-        authRetried = true;
-        await this.auth.clearInvalidAccessToken();
-        continue;
-      }
-      if (error.code === 'rate-limited' && retryAfterMs !== null) {
-        this.state.setRetryNotBefore(vaultId, this.now() + retryAfterMs);
-      }
-      if (options.idempotent && attempt < 2 &&
-          (error.code === 'rate-limited' || error.code === 'transient') &&
-          ![404, 410].includes(error.status)) {
-        await this.sleep(Math.min(retryAfterMs ?? this.retryDelay(attempt), MAX_RETRY_DELAY_MS));
-        continue;
-      }
-      throw error;
-    }
-    throw new SnapshotProviderError('transient', 'Drive retry limit reached');
-  }
-
-  private retryDelay(attempt: number): number {
-    return Math.min(
-      BASE_RETRY_DELAY_MS * (2 ** attempt) + Math.floor(this.random() * 1_000),
-      MAX_RETRY_DELAY_MS,
-    );
-  }
-
-  private recordAttempt(
-    methodClass: DriveMethodClass,
-    error: DriveRequestError | null,
-    startedAt: number,
-    requestBody: unknown,
-    response: DriveResponseLike | null,
-    retry: boolean,
-  ): void {
-    if (!this.instrumentation) return;
-    const responseLength = response?.headers.get('content-length');
-    const parsedResponseLength = responseLength === null || responseLength === undefined
-      ? null
-      : Number(responseLength);
-    this.instrumentation.record({
-      methodClass,
-      resultClass: error ? resultClass(error) : 'success',
-      durationBucket: driveDurationBucket(Math.max(0, this.now() - startedAt)),
-      requestBytesBucket: driveByteBucket(requestBodyBytes(requestBody)),
-      responseBytesBucket: parsedResponseLength !== null &&
-        Number.isSafeInteger(parsedResponseLength) && parsedResponseLength >= 0
-        ? driveByteBucket(parsedResponseLength)
-        : 'unknown',
-      retry,
-      quotaUnits: driveQuotaUnits(methodClass),
-    });
+    return this.transport.request(vaultId, methodClass, url, init, options);
   }
 }
