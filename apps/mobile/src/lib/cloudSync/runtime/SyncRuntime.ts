@@ -83,7 +83,13 @@ export class SyncRuntime {
     if (!this.stopped) return;
     const lifecycle = ++this.lifecycle;
     this.stopped = false;
-    const online = await this.options.platform.getNetworkOnline();
+    this.lastFailureCategory = null;
+    let online = false;
+    try {
+      online = await this.options.platform.getNetworkOnline();
+    } catch {
+      this.lastFailureCategory = 'offline';
+    }
     if (this.stopped || lifecycle !== this.lifecycle) return;
     this.wasOnline = online;
     const subscriptions = [
@@ -120,6 +126,8 @@ export class SyncRuntime {
     this.debounceTimer = null;
     this.readinessTimer = null;
     this.rerunTrigger = null;
+    this.running = null;
+    this.lastFailureCategory = null;
     // A later start must reconstruct from the durable checkpoint. Retaining an
     // engine here would keep the previous vault attached across Disconnect →
     // connect or pause/resume and bypass the vault-switch teardown in load().
@@ -144,14 +152,21 @@ export class SyncRuntime {
     trigger: CloudSyncTrigger,
     allowFollowup: boolean,
   ): Promise<RuntimePassResult | null> {
-    if (this.stopped || !this.engine || !this.wasOnline) return null;
+    if (this.stopped || !this.engine) return null;
+    if (!this.wasOnline) {
+      this.lastFailureCategory = 'offline';
+      return null;
+    }
     if (this.running) {
       if (allowFollowup) this.rerunTrigger = trigger;
       return this.running;
     }
-    this.running = this.runLoop(trigger, allowFollowup)
-      .finally(() => { this.running = null; });
-    return this.running;
+    const running = this.runLoop(trigger, allowFollowup)
+      .finally(() => {
+        if (this.running === running) this.running = null;
+      });
+    this.running = running;
+    return running;
   }
 
   private async runLoop(
@@ -171,47 +186,63 @@ export class SyncRuntime {
   }
 
   private async runOne(trigger: CloudSyncTrigger): Promise<RuntimePassResult | null> {
+    const lifecycle = this.lifecycle;
     const startedAt = (this.options.now ?? Date.now)();
     this.options.analytics?.started(trigger);
     try {
       const result = await this.engine!.sync();
       const elapsed = (this.options.now ?? Date.now)() - startedAt;
-      this.options.analytics?.succeeded({
-        duration_bucket: toCloudSyncDurationBucket(elapsed),
-        pulled_bucket: toCloudSyncCountBucket(result.pulled),
-        pushed_bucket: toCloudSyncCountBucket(result.pushed),
-      });
-      this.lastFailureCategory = null;
+      if (!this.stopped && lifecycle === this.lifecycle) {
+        this.options.analytics?.succeeded({
+          duration_bucket: toCloudSyncDurationBucket(elapsed),
+          pulled_bucket: toCloudSyncCountBucket(result.pulled),
+          pushed_bucket: toCloudSyncCountBucket(result.pushed),
+        });
+        this.lastFailureCategory = null;
+      }
       if (this.engine?.hasPendingWork?.()) this.rerunTrigger = trigger;
       return result;
     } catch (error) {
-      this.lastFailureCategory = failureCategory(error);
-      this.options.analytics?.failed(this.lastFailureCategory);
+      if (!this.stopped && lifecycle === this.lifecycle) {
+        this.lastFailureCategory = failureCategory(error);
+        this.options.analytics?.failed(this.lastFailureCategory);
+      }
       return null;
     }
   }
 
   private async tryEnable(lifecycle = this.lifecycle): Promise<void> {
     if (this.stopped || lifecycle !== this.lifecycle || this.engine) return;
-    if (!(await this.options.readiness.isReady())) {
-      try {
-        await this.options.readiness.retryBackfill();
-      } catch {
-        // Readiness stays closed; the in-session timer retries the checkpoint.
+    try {
+      if (!(await this.options.readiness.isReady())) {
+        try {
+          await this.options.readiness.retryBackfill();
+        } catch {
+          // Readiness stays closed; the in-session timer retries the checkpoint.
+        }
       }
-    }
-    if (this.stopped || lifecycle !== this.lifecycle) return;
-    if (await this.options.readiness.isReady()) {
       if (this.stopped || lifecycle !== this.lifecycle) return;
-      const engine = await this.options.createEngine();
-      if (this.stopped || lifecycle !== this.lifecycle) return;
-      this.engine = engine;
-      if (this.engine) {
-        this.options.analytics?.connected(this.engine.provider.kind);
-        await this.run('app-active');
+      if (await this.options.readiness.isReady()) {
+        if (this.stopped || lifecycle !== this.lifecycle) return;
+        const engine = await this.options.createEngine();
+        if (this.stopped || lifecycle !== this.lifecycle) return;
+        this.engine = engine;
+        if (this.engine) {
+          this.options.analytics?.connected(this.engine.provider.kind);
+          await this.run('app-active');
+        }
+        return;
       }
-      return;
+    } catch (error) {
+      if (this.stopped || lifecycle !== this.lifecycle) return;
+      this.lastFailureCategory = failureCategory(error);
+      this.options.analytics?.failed(this.lastFailureCategory);
     }
+    this.scheduleReadinessRetry(lifecycle);
+  }
+
+  private scheduleReadinessRetry(lifecycle: number): void {
+    if (this.readinessTimer || this.stopped || lifecycle !== this.lifecycle) return;
     this.readinessTimer = this.options.platform.setTimer(() => {
       this.readinessTimer = null;
       void this.tryEnable(lifecycle);

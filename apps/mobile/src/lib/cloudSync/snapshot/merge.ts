@@ -481,7 +481,15 @@ export function mergeSnapshotDomainsV2(
       conflictMap.set(conflict.conflictId, conflict);
     }
   }
-  const conflicts = [...conflictMap.values()].sort(keyComparator((value) => value.conflictId));
+  const liveRecoveryOrigins = new Map<string, string | null>();
+  for (const entry of entries.live) liveRecoveryOrigins.set(`entry\0${entry.entryId}`, entry.conflictOriginId);
+  for (const tag of tags.live) liveRecoveryOrigins.set(`tag\0${tag.tagId}`, tag.conflictOriginId);
+  for (const prompt of prompts.live) liveRecoveryOrigins.set(`prompt\0${prompt.promptId}`, prompt.conflictOriginId);
+  const conflicts = [...conflictMap.values()].map((conflict) => ({
+    ...conflict,
+    recoveredEntityIds: conflict.recoveredEntityIds.filter((recoveredId) =>
+      liveRecoveryOrigins.get(`${conflict.entityType}\0${recoveredId}`) === conflict.entityId),
+  })).sort(keyComparator((value) => value.conflictId));
   const tombstones = [...entries.tombstones, ...tags.tombstones, ...prompts.tombstones]
     .sort(keyComparator((value) => `${value.entityType}\0${value.entityId}`));
   const result: SnapshotDomainV2 = {

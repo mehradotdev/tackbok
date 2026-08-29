@@ -83,8 +83,10 @@ export function BackupRestoreSection() {
                         ? t('Syncing…')
                         : snapshot.status === 'paused'
                           ? t('Sync paused')
-                          : snapshot.status === 'restoring'
-                            ? t('Restoring…')
+                        : snapshot.status === 'restoring'
+                          ? t('Restoring…')
+                          : snapshot.status === 'warning'
+                            ? t('Attention needed')
                             : t('Up to date'),
                 })
               : t('Off')

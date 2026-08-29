@@ -58,6 +58,35 @@ void kvStoreDbHandle
   });
 
 export const db = drizzle(sqlite, { schema });
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Runs an async Drizzle unit of work in an Expo-managed transaction.
+ *
+ * Drizzle's Expo adapter exposes a synchronous `transaction()` implementation:
+ * passing it an async callback commits as soon as that callback returns its
+ * Promise. Expo's transaction API owns the async lifetime instead, and the
+ * exclusive native connection prevents unrelated writes from joining it.
+ */
+export async function runExclusiveDbTransaction<T>(
+  operation: (tx: DbTransaction) => Promise<T>,
+): Promise<T> {
+  let completed: { value: T } | undefined;
+  if (Platform.OS === 'web') {
+    await sqlite.withTransactionAsync(async () => {
+      completed = { value: await operation(db as unknown as DbTransaction) };
+    });
+  } else {
+    await sqlite.withExclusiveTransactionAsync(async (nativeTransaction) => {
+      const transactionDb = drizzle(nativeTransaction, { schema });
+      completed = {
+        value: await operation(transactionDb as unknown as DbTransaction),
+      };
+    });
+  }
+  if (!completed) throw new Error('Database transaction completed without a result');
+  return completed.value;
+}
 
 // Re-export schema for convenience
 export * from './schema';

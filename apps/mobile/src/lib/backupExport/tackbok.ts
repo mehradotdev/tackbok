@@ -1,13 +1,13 @@
 import { desc } from 'drizzle-orm';
 import { File, Paths } from 'expo-file-system';
 import {
-  db,
   customPrompts,
   entries,
   entryTags,
   mediaAssets,
   tags,
   userProfile,
+  runExclusiveDbTransaction,
 } from '~/db';
 import { PHOTOS_DIR_NAME, VOICE_MEMOS_DIR_NAME } from '~/constants';
 import { useSettingsStore } from '~/lib/settings';
@@ -33,7 +33,6 @@ import {
 } from './portable';
 import {
   cleanupDeferredBackupZipFiles,
-  buildTagIdToNameMap,
   generateTimestamp,
   getRelativeAssetFile,
   saveOrShareZipFile,
@@ -41,11 +40,11 @@ import {
 
 export async function exportToBackupZip(): Promise<void> {
   const [allEntries, allTags, allPrompts, allMedia, allEntryTags, profileRows] =
-    await Promise.all([
-    db.select().from(entries).orderBy(desc(entries.created_at)),
-    db.select().from(tags),
-    db.select().from(customPrompts),
-      db
+    await runExclusiveDbTransaction(async (tx) => Promise.all([
+      tx.select().from(entries).orderBy(desc(entries.created_at)),
+      tx.select().from(tags),
+      tx.select().from(customPrompts),
+      tx
         .select()
         .from(mediaAssets)
         .orderBy(
@@ -54,9 +53,9 @@ export async function exportToBackupZip(): Promise<void> {
           mediaAssets.created_at,
           mediaAssets.asset_id,
         ),
-      db.select().from(entryTags),
-      db.select().from(userProfile).limit(1),
-    ]);
+      tx.select().from(entryTags),
+      tx.select().from(userProfile).limit(1),
+    ]));
   const settings = useSettingsStore.getState();
   const profileRow = profileRows[0];
   const profilePhoto = profileRow?.photo_asset_id
@@ -81,7 +80,7 @@ export async function exportToBackupZip(): Promise<void> {
     throw new Error('No backup data to export');
   }
 
-  const tagMap = await buildTagIdToNameMap();
+  const tagMap = new Map(allTags.map((tag) => [tag.tag_id, tag.title]));
   const assetsByEntry = new Map<string, typeof allMedia>();
   for (const asset of allMedia) {
     if (asset.owner_type !== 'entry') continue;

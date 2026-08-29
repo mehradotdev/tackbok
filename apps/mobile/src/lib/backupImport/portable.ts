@@ -8,6 +8,7 @@ import { db, customPrompts, entries, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { createZipEntryLookup, type ZipEntryLookup, type ZipReader } from '~/lib/zip';
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
+import { sha256BytesV2 } from '~/lib/cloudSync/snapshot/sha256';
 import type { ImportProgressCallback } from './progress';
 import { reportImportProgress } from './progress';
 import {
@@ -112,6 +113,7 @@ async function materializePortableEntryAssets(
     try {
       const archivePath = assertSafeArchivePath(portableAsset.path);
       const bytes = await readSafeZipBytes(zip, archivePath);
+      const blobHash = sha256BytesV2(bytes);
 
       if (portableAsset.type === AssetType.IMAGE) {
         const photo = await writeImportedPhoto(bytes, archivePath);
@@ -122,9 +124,9 @@ async function materializePortableEntryAssets(
           width: portableAsset.width ?? photo.width,
           height: portableAsset.height ?? photo.height,
           assetId: portableAsset.assetId,
-          blobHash: portableAsset.blobHash,
+          blobHash,
           mimeType: portableAsset.mimeType,
-          byteSize: portableAsset.byteSize,
+          byteSize: bytes.byteLength,
           durationMs: portableAsset.durationMs,
         });
         summary.importedPhotos++;
@@ -136,9 +138,9 @@ async function materializePortableEntryAssets(
         assets.push({
           ...audio,
           assetId: portableAsset.assetId,
-          blobHash: portableAsset.blobHash,
+          blobHash,
           mimeType: portableAsset.mimeType,
-          byteSize: portableAsset.byteSize,
+          byteSize: bytes.byteLength,
           durationMs: portableAsset.durationMs,
         });
       summary.importedAudio++;

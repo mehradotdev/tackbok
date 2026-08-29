@@ -1,4 +1,4 @@
-import { and, count, eq, isNotNull, isNull, or } from 'drizzle-orm';
+import { and, count, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import * as Network from 'expo-network';
 
 import {
@@ -21,6 +21,7 @@ import type {
   SyncPassPhase,
 } from '../../runtime/SyncRuntime';
 import { hashPendingProductionMedia } from './mediaHashing';
+import { reapRetainedMedia } from '../../storage/retainedMedia';
 import {
   GoogleDriveSnapshotProvider,
   SQLiteDriveProviderStateStore,
@@ -56,6 +57,8 @@ class SnapshotRuntimeFailure extends Error {
     this.name = 'SnapshotRuntimeFailure';
   }
 }
+
+const runningVaultPasses = new Map<string, Promise<RuntimePassResult>>();
 
 function failureCategory(reason: SyncAttentionReason): CloudSyncFailureCategory {
   if (reason === 'authorization-required' || reason === 'account-mismatch' ||
@@ -147,6 +150,19 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
   }
 
   async sync(): Promise<RuntimePassResult> {
+    const vaultId = this.vault.vault_id;
+    const existing = runningVaultPasses.get(vaultId);
+    if (existing) return existing;
+    const pass = this.runExclusivePass();
+    runningVaultPasses.set(vaultId, pass);
+    try {
+      return await pass;
+    } finally {
+      if (runningVaultPasses.get(vaultId) === pass) runningVaultPasses.delete(vaultId);
+    }
+  }
+
+  private async runExclusivePass(): Promise<RuntimePassResult> {
     try {
       return await this.syncPass();
     } finally {
@@ -161,6 +177,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     const [unhashed] = await db.select({ value: count() }).from(mediaAssets).where(and(
       isNotNull(mediaAssets.local_uri),
       or(isNull(mediaAssets.blob_hash), isNull(mediaAssets.byte_size)),
+      ne(mediaAssets.download_state, 'missing'),
     ));
     if ((unhashed?.value ?? 0) > 0) {
       if (hashing.failed > 0 && hashing.processed === 0) {
@@ -174,6 +191,20 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       }
       this.needsFollowup = true;
       return { pulled: 0, pushed: 0 };
+    }
+    const [missingLocal] = await db.select({ value: count() }).from(mediaAssets)
+      .where(and(
+        eq(mediaAssets.download_state, 'missing'),
+        or(isNull(mediaAssets.blob_hash), isNull(mediaAssets.byte_size)),
+      ));
+    if ((missingLocal?.value ?? 0) > 0 || hashing.missing > 0) {
+      this.state.setPause(
+        this.vault.vault_id,
+        this.vault.device_id,
+        'local-media-unreadable',
+        'local-media-file-missing',
+      );
+      throw new SnapshotRuntimeFailure('corrupt');
     }
 
     const beforeConflicts = new Set((await db.select({ id: cloudConflicts.conflict_id })
@@ -253,12 +284,24 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       status: durable.journalGeneration > durable.settledGeneration ? 'dirty' : 'idle',
       updated_at: now,
     }).where(eq(cloudVault.vault_id, this.vault.vault_id));
+    await reapRetainedMedia();
 
     const conflicts = await db.select().from(cloudConflicts)
       .where(eq(cloudConflicts.vault_id, this.vault.vault_id));
     for (const row of conflicts) {
       if (beforeConflicts.has(row.conflict_id)) continue;
-      const parsed = JSON.parse(row.conflict_json) as { entityType?: unknown };
+      let parsed: { entityType?: unknown };
+      try {
+        parsed = JSON.parse(row.conflict_json) as { entityType?: unknown };
+      } catch {
+        this.state.setPause(
+          this.vault.vault_id,
+          this.vault.device_id,
+          'cleanup-inconsistent',
+          'invalid-local-conflict-record',
+        );
+        throw new SnapshotRuntimeFailure('corrupt');
+      }
       if (parsed.entityType === 'entry' || parsed.entityType === 'tag' ||
           parsed.entityType === 'prompt' || parsed.entityType === 'profile') {
         track('cloud_sync_conflict_recovered', { entity_type: parsed.entityType });

@@ -258,7 +258,10 @@ export default function CloudBackupScreen() {
     origin === 'onboarding' ? 'disclosure' : 'overview',
   );
   const [prepared, setPrepared] = useState<PreparedGoogleConnection | null>(null);
+  const mountedRef = useRef(true);
   const [conflicts, setConflicts] = useState<CloudConflictSummary[]>([]);
+  const conflictRefreshSequenceRef = useRef(0);
+  const actionRunningRef = useRef(false);
   const [destructiveAction, setDestructiveAction] = useState<DestructiveAction | null>(
     null,
   );
@@ -269,11 +272,13 @@ export default function CloudBackupScreen() {
   });
 
   const refreshConflicts = useCallback(async () => {
-    setConflicts(await listUnacknowledgedCloudConflicts());
+    const sequence = ++conflictRefreshSequenceRef.current;
+    const next = await listUnacknowledgedCloudConflicts();
+    if (sequence === conflictRefreshSequenceRef.current) setConflicts(next);
   }, []);
 
   useEffect(() => {
-    void listUnacknowledgedCloudConflicts().then(setConflicts);
+    void refreshConflicts();
   }, [refreshConflicts, snapshot.conflictCount]);
 
   useEffect(() => {
@@ -282,17 +287,22 @@ export default function CloudBackupScreen() {
     }
   }, [snapshot.status, t]);
 
-  useEffect(
-    () => () => {
-      if (prepared) void cancelPreparedGoogleDriveConnection();
-    },
-    [prepared],
-  );
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      void cancelPreparedGoogleDriveConnection();
+    };
+  }, []);
 
   const handleAuthorize = useCallback(async () => {
     setStage('authorizing');
     try {
       const connection = await prepareGoogleDriveConnection();
+      if (!mountedRef.current) {
+        await cancelPreparedGoogleDriveConnection();
+        return;
+      }
       if (origin === 'onboarding' && connection.availableVaults.length === 0) {
         await cancelPreparedGoogleDriveConnection();
         toast.warning(t('No Tackbok backup found in this Google account'));
@@ -302,6 +312,10 @@ export default function CloudBackupScreen() {
       setPrepared(connection);
       setStage('choose');
     } catch (error) {
+      if (!mountedRef.current) {
+        await cancelPreparedGoogleDriveConnection();
+        return;
+      }
       const permissionMissing =
         (error instanceof CloudAuthError && error.code === 'permission-required') ||
         (error instanceof SnapshotProviderError &&
@@ -350,6 +364,8 @@ export default function CloudBackupScreen() {
 
   const runAction = useCallback(
     async (action: () => Promise<unknown>, success: string) => {
+      if (actionRunningRef.current) return;
+      actionRunningRef.current = true;
       try {
         const result = await action();
         if (result === false) throw new Error('action did not complete');
@@ -361,6 +377,8 @@ export default function CloudBackupScreen() {
             ? cloudSyncFailureMessage(error.category, t)
             : t('Cloud backup could not be updated'),
         );
+      } finally {
+        actionRunningRef.current = false;
       }
     },
     [refresh, t],

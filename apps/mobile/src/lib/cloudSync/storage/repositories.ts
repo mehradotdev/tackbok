@@ -10,6 +10,7 @@ import {
   entries,
   entryTags,
   mediaAssets,
+  runExclusiveDbTransaction,
   syncMediaObligations,
   syncRetainedMedia,
   tags,
@@ -204,6 +205,7 @@ async function replaceEntryAssets(
   assets: Asset[] | null | undefined,
   now: number,
 ): Promise<void> {
+  if (assets === undefined) return;
   const existing = await tx
     .select()
     .from(mediaAssets)
@@ -211,12 +213,18 @@ async function replaceEntryAssets(
       and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)),
     );
   const unused = new Map(existing.map((asset) => [asset.local_uri, asset]));
+  const existingById = new Map(existing.map((asset) => [asset.asset_id, asset]));
   const desiredIds: string[] = [];
 
   for (const asset of assets ?? []) {
-    const prior = unused.get(asset.uri);
-    if (prior) unused.delete(asset.uri);
-    const assetId = prior?.asset_id ?? asset.assetId ?? randomUUID();
+    const requestedId = asset.assetId ?? randomUUID();
+    const [requestedAsset] = await tx.select().from(mediaAssets)
+      .where(eq(mediaAssets.asset_id, requestedId)).limit(1);
+    const requestedIdBelongsElsewhere = requestedAsset &&
+      (requestedAsset.owner_type !== 'entry' || requestedAsset.owner_id !== noteId);
+    const prior = unused.get(asset.uri) ?? existingById.get(requestedId);
+    if (prior) unused.delete(prior.local_uri);
+    const assetId = prior?.asset_id ?? (requestedIdBelongsElsewhere ? randomUUID() : requestedId);
     desiredIds.push(assetId);
     await tx
       .insert(mediaAssets)
@@ -241,8 +249,12 @@ async function replaceEntryAssets(
         set: {
           local_uri: asset.uri,
           kind: assetKind(asset),
+          mime_type: asset.mimeType ?? prior?.mime_type ?? defaultMimeType(asset),
+          byte_size: asset.byteSize ?? prior?.byte_size ?? null,
           width: asset.width ?? prior?.width ?? null,
           height: asset.height ?? prior?.height ?? null,
+          duration_ms: asset.durationMs ?? prior?.duration_ms ?? null,
+          blob_hash: asset.blobHash ?? prior?.blob_hash ?? null,
           updated_at: now,
           pending_local_delete_at: null,
         },
@@ -687,11 +699,15 @@ export async function updateProfileInTransaction(
 export async function runInCloudSyncTransaction<T>(
   operation: (tx: CloudSyncTransaction) => Promise<T>,
 ): Promise<T> {
-  const result = await db.transaction(operation);
+  const result = await runExclusiveDbTransaction(operation);
   // The durable outbox row now exists. Scheduling sync must not depend on the
   // best-effort post-commit media reaper completing successfully.
   notifyCloudSyncMutationCommitted();
   const { reapRetainedMediaWithoutVault } = await import('./retainedMedia');
-  await reapRetainedMediaWithoutVault();
+  try {
+    await reapRetainedMediaWithoutVault();
+  } catch {
+    console.warn('Retained media cleanup will retry later');
+  }
   return result;
 }

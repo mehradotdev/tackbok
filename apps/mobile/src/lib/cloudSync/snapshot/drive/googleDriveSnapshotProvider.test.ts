@@ -396,6 +396,47 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(listed.some((value) => value.head.deviceId === 'device-second')).toBe(true);
   });
 
+  test('discovery quarantines one inconsistent object without hiding valid heads', async () => {
+    const server = new FakeDriveServer();
+    const valid = head('device-valid', 1, 'c'.repeat(64));
+    const invalid = head('device-invalid', 1, 'd'.repeat(64));
+    server.seed(vaultId, `heads/${valid.deviceId}.json`, 'head', canonicalBytesV2(valid));
+    const inconsistent = server.seed(
+      vaultId,
+      `heads/${invalid.deviceId}.json`,
+      'head',
+      canonicalBytesV2(invalid),
+    );
+    inconsistent.appProperties.tb_hash = '0'.repeat(64);
+
+    await expect(provider(server).listHeads(vaultId, true)).resolves.toEqual([
+      expect.objectContaining({ head: valid }),
+    ]);
+  });
+
+  test('rejects oversized snapshots from metadata before downloading the body', async () => {
+    const server = new FakeDriveServer();
+    const snapshotId = 'f'.repeat(64);
+    const oversized = server.seed(
+      vaultId,
+      `snapshots/${snapshotId}.json.gz`,
+      'snapshot',
+      new Uint8Array(16 * 1024 * 1024 + 1),
+    );
+    const state = new MemoryDriveProviderStateStore();
+    state.replaceInitialInventory(
+      vaultId,
+      [server.record(oversized, 'snapshot', null)],
+      server.cursor(),
+    );
+
+    const app = provider(server, state);
+    await expect(app.downloadSnapshot(vaultId, snapshotId)).rejects.toMatchObject({
+      code: 'invalid-data',
+    });
+    expect(server.calls).toHaveLength(0);
+  });
+
   test('a lost immutable create response reconciles the created object without data loss', async () => {
     const server = new FakeDriveServer();
     const app = provider(server);

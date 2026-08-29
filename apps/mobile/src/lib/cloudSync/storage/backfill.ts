@@ -6,6 +6,7 @@ import {
   db,
   entries,
   mediaAssets,
+  runExclusiveDbTransaction,
   tags,
   userProfile,
 } from '~/db';
@@ -113,7 +114,7 @@ export async function runNormalizedModelBackfill(
 
   // The legacy Zustand profile must become durable before any long-running
   // entry work. Until completion, the store deliberately keeps its old copy.
-  await db.transaction(async (tx) => {
+  await runExclusiveDbTransaction(async (tx) => {
     const now = Date.now();
     const [profileItem] = await tx
       .select()
@@ -144,7 +145,7 @@ export async function runNormalizedModelBackfill(
   await writeCheckpoint('entries', cursor, 'running');
 
   while (true) {
-    const batch = await db.transaction(async (tx) => {
+    const batch = await runExclusiveDbTransaction(async (tx) => {
       const currentBatch = await tx
         .select()
         .from(entries)
@@ -194,7 +195,7 @@ export async function runNormalizedModelBackfill(
     }
   }
 
-  await db.transaction(async (tx) => {
+  await runExclusiveDbTransaction(async (tx) => {
     const now = Date.now();
     for (const table of [tags, customPrompts] as const) {
       const rows = await tx.select().from(table);
@@ -214,7 +215,7 @@ export async function runNormalizedModelBackfill(
   let repairedEntries = 0;
   let reconcileCursor: string | null = null;
   while (true) {
-    const batch = await db.transaction(async (tx) => {
+    const batch = await runExclusiveDbTransaction(async (tx) => {
       const currentBatch = await tx
         .select()
         .from(entries)

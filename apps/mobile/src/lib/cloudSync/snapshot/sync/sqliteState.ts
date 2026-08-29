@@ -173,42 +173,53 @@ export class SQLiteSyncStateStore {
       mediaHashes: string[];
     },
   ): PendingPublication {
-    return this.transaction(() => {
-      this.ensureStateRow(vaultId, deviceId);
-      const existing = this.loadPending(vaultId, deviceId);
-      if (existing) return existing;
-      const state = this.loadState(vaultId, deviceId);
-      if (capturedGeneration > state.journalGeneration) {
+    this.ensureStateRow(vaultId, deviceId);
+    const existing = this.loadPending(vaultId, deviceId);
+    if (existing) return existing;
+
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const planned = this.loadState(vaultId, deviceId);
+      if (capturedGeneration > planned.journalGeneration) {
         throw new Error('Candidate captured a future journal generation');
       }
-      const candidate = build(state.nextDeviceSequence);
-      const timestamp = this.now();
-      this.database.runSync(
-        `INSERT INTO cloud_pending_publication(
-           vault_id, device_id, snapshot_id, device_sequence, captured_generation,
-           compressed_bytes, media_hashes_json, stage, created_at, updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'candidate-persisted', ?, ?)`,
-        vaultId,
-        deviceId,
-        candidate.snapshotId,
-        state.nextDeviceSequence,
-        capturedGeneration,
-        candidate.compressedBytes,
-        JSON.stringify([...new Set(candidate.mediaHashes)].sort()),
-        timestamp,
-        timestamp,
-      );
-      this.database.runSync(
-        `UPDATE cloud_sync_state
-         SET next_device_sequence = ?, updated_at = ?
-         WHERE vault_id = ? AND device_id = ?`,
-        state.nextDeviceSequence + 1,
-        timestamp,
-        vaultId,
-        deviceId,
-      );
-      return this.loadPending(vaultId, deviceId)!;
-    });
+      // Canonicalization and gzip can be expensive. Keep them outside the
+      // BEGIN IMMEDIATE section, then re-check the reserved sequence inside.
+      const candidate = build(planned.nextDeviceSequence);
+      const persisted = this.transaction((): PendingPublication | null => {
+        const concurrent = this.loadPending(vaultId, deviceId);
+        if (concurrent) return concurrent;
+        const current = this.loadState(vaultId, deviceId);
+        if (current.nextDeviceSequence !== planned.nextDeviceSequence) return null;
+        const timestamp = this.now();
+        this.database.runSync(
+          `INSERT INTO cloud_pending_publication(
+             vault_id, device_id, snapshot_id, device_sequence, captured_generation,
+             compressed_bytes, media_hashes_json, stage, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, 'candidate-persisted', ?, ?)`,
+          vaultId,
+          deviceId,
+          candidate.snapshotId,
+          planned.nextDeviceSequence,
+          capturedGeneration,
+          candidate.compressedBytes,
+          JSON.stringify([...new Set(candidate.mediaHashes)].sort()),
+          timestamp,
+          timestamp,
+        );
+        this.database.runSync(
+          `UPDATE cloud_sync_state
+           SET next_device_sequence = ?, updated_at = ?
+           WHERE vault_id = ? AND device_id = ?`,
+          planned.nextDeviceSequence + 1,
+          timestamp,
+          vaultId,
+          deviceId,
+        );
+        return this.loadPending(vaultId, deviceId)!;
+      });
+      if (persisted) return persisted;
+    }
+    throw new Error('Device sequence changed during every candidate preparation attempt');
   }
 
   advancePending(

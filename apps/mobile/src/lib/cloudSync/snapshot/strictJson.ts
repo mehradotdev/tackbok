@@ -54,6 +54,7 @@ export function decodeUtf8Strict(bytes: Uint8Array): string {
 class StrictJsonParser {
   private index = 0;
   private nodes = 0;
+  private readonly numberPattern = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
 
   constructor(private readonly source: string) {}
 
@@ -187,8 +188,8 @@ class StrictJsonParser {
   }
 
   private parseNumber(): number {
-    const rest = this.source.slice(this.index);
-    const match = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(rest);
+    this.numberPattern.lastIndex = this.index;
+    const match = this.numberPattern.exec(this.source);
     if (!match) invalid('invalid-json', `Invalid number at ${this.index}`);
     this.index += match[0].length;
     const value = Number(match[0]);
@@ -207,4 +208,3 @@ class StrictJsonParser {
 export function parseJsonStrictV2(source: string): unknown {
   return new StrictJsonParser(source).parse();
 }
-

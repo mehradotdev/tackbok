@@ -30,6 +30,13 @@ export class BaseShadowCommitError extends Error {
   }
 }
 
+export class BaseShadowReadError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = 'BaseShadowReadError';
+  }
+}
+
 function invalid(message: string): never {
   throw new BaseShadowValidationError(message);
 }
@@ -201,8 +208,15 @@ export class BaseShadowManager {
     checkpoint: BaseShadowCheckpoint | null,
   ): Promise<{ shadow: BaseShadowV1 | null; degraded: boolean }> {
     if (!checkpoint) return { shadow: null, degraded: false };
+    let bytes: Uint8Array;
     try {
-      const bytes = await this.files.read(checkpoint.fileName);
+      bytes = await this.files.read(checkpoint.fileName);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/missing|not found/i.test(message)) return { shadow: null, degraded: true };
+      throw new BaseShadowReadError('Base-shadow file could not be read', { cause: error });
+    }
+    try {
       if (bytes.length !== checkpoint.byteCount) invalid('Base-shadow byte count changed');
       const decoded = decodeBaseShadowV1(bytes);
       if (decoded.canonicalSha256 !== checkpoint.canonicalSha256 ||

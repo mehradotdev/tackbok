@@ -20,7 +20,7 @@ export const SNAPSHOT_V2_CAPS = Object.freeze({
   shortTitleBytes: 4 * 1024,
   profileNameBytes: 1024,
   mimeTypeBytes: 127,
-  mediaByteSize: 8 * 1024 * 1024 * 1024 * 1024,
+  mediaByteSize: 8 * 1024 * 1024 * 1024,
   imageDimension: 100_000,
   audioDurationMs: 30 * 24 * 60 * 60 * 1000,
   timestamp: 8_640_000_000_000_000,
@@ -39,4 +39,3 @@ export class SnapshotV2ValidationError extends Error {
 export function invalid(code: string, message: string): never {
   throw new SnapshotV2ValidationError(code, message);
 }
-

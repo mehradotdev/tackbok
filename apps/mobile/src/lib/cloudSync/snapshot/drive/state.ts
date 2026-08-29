@@ -427,6 +427,14 @@ export class SQLiteDriveProviderStateStore implements DriveProviderStateStore {
   }
 
   private fileFromRow(row: FileRow): DriveFileRecord {
+    let head: DeviceHeadV2 | null = null;
+    if (row.head_json) {
+      try {
+        head = JSON.parse(row.head_json) as DeviceHeadV2;
+      } catch {
+        head = null;
+      }
+    }
     return {
       fileId: row.file_id,
       logicalKey: row.logical_key,
@@ -434,7 +442,7 @@ export class SQLiteDriveProviderStateStore implements DriveProviderStateStore {
       contentSha256: row.content_sha256,
       byteCount: row.byte_count,
       createdAt: row.created_at,
-      head: row.head_json ? JSON.parse(row.head_json) as DeviceHeadV2 : null,
+      head,
     };
   }
 

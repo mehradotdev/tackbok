@@ -4,6 +4,7 @@ import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db } from '~/db';
 import { track } from '~/lib/analytics';
 import {
+  type CloudSyncFailureCategory,
   toCloudSyncCountBucket,
   toCloudSyncDurationBucket,
 } from '~/lib/analytics/events';
@@ -172,8 +173,17 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
       pushed_bucket: toCloudSyncCountBucket(result.pushed),
     });
     return true;
-  } catch {
-    track('cloud_sync_failed', { category: 'unknown' });
+  } catch (error) {
+    const category = typeof error === 'object' && error !== null && 'category' in error
+      ? String((error as { category: unknown }).category)
+      : 'unknown';
+    track('cloud_sync_failed', {
+      category: [
+        'auth', 'quota', 'rate-limit', 'offline', 'wifi-only-media', 'corrupt', 'transient',
+      ].includes(category)
+        ? category as CloudSyncFailureCategory
+        : 'unknown',
+    });
     return false;
   }
 }

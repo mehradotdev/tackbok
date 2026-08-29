@@ -11,6 +11,7 @@ import {
   entries,
   entryTags,
   mediaAssets,
+  runExclusiveDbTransaction,
   syncMediaObligations,
   syncRetainedMedia,
   tags,
@@ -19,6 +20,7 @@ import {
 import { AssetType, type Asset } from '~/types';
 import { sha256TextV2 } from '../sha256';
 import {
+  copyVerifiedMediaFile,
   createMediaPartialFileSink,
   openMediaUploadSource,
 } from '../media';
@@ -154,6 +156,11 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
     const file = stageFile(blobHash);
     return file.exists ? file : null;
   }
+
+  deleteStaged(blobHash: string): void {
+    const file = stageFile(blobHash);
+    if (file.exists) file.delete();
+  }
 }
 
 /** Complete-state normalized journal adapter used only by the production v2 runtime. */
@@ -165,7 +172,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   ) {}
 
   async capture(): Promise<CapturedJournalV2> {
-    return db.transaction(async (tx) => {
+    return runExclusiveDbTransaction(async (tx) => {
       const [state] = await tx.select().from(cloudSyncState).where(and(
         eq(cloudSyncState.vault_id, this.vaultId),
         eq(cloudSyncState.device_id, this.deviceId),
@@ -210,6 +217,15 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
           updatedAt: row.updated_at,
         };
       });
+      const recoveryOrigins = new Map<string, string | null>();
+      for (const row of entryRows) recoveryOrigins.set(`entry\0${row.note_id}`, row.conflict_origin_id);
+      for (const row of tagRows) recoveryOrigins.set(`tag\0${row.tag_id}`, row.conflict_origin_id);
+      for (const row of promptRows) recoveryOrigins.set(`prompt\0${row.prompt_id}`, row.conflict_origin_id);
+      const conflicts = conflictRows.map((row) => parseConflict(row.conflict_json)).map((conflict) => ({
+        ...conflict,
+        recoveredEntityIds: conflict.recoveredEntityIds.filter((recoveredId) =>
+          recoveryOrigins.get(`${conflict.entityType}\0${recoveredId}`) === conflict.entityId),
+      }));
 
       return {
         generation: state.journal_generation,
@@ -260,7 +276,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
           })).sort((left, right) =>
             left.entityType.localeCompare(right.entityType) ||
             left.entityId.localeCompare(right.entityId)),
-          conflicts: conflictRows.map((row) => parseConflict(row.conflict_json))
+          conflicts: conflicts
             .sort((left, right) => left.conflictId.localeCompare(right.conflictId)),
         },
       };
@@ -272,7 +288,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     expectedGeneration: number,
   ): Promise<boolean> {
     const materializedUris = await this.materializeMedia(domain.media);
-    return db.transaction(async (tx) => {
+    return runExclusiveDbTransaction(async (tx) => {
       const [state] = await tx.select({ generation: cloudSyncState.journal_generation })
         .from(cloudSyncState).where(and(
           eq(cloudSyncState.vault_id, this.vaultId),
@@ -487,6 +503,12 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         eq(mediaAssets.asset_id, row.asset_id),
         eq(mediaAssets.blob_hash, row.blob_hash),
       ));
+      const remaining = await db.select({ id: mediaAssets.asset_id }).from(mediaAssets)
+        .where(and(
+          eq(mediaAssets.blob_hash, row.blob_hash),
+          eq(mediaAssets.download_state, 'pending'),
+        )).limit(1);
+      if (remaining.length === 0) this.mediaStore.deleteStaged(row.blob_hash);
       hydrated += 1;
     }
     return { hydrated, missing };
@@ -509,22 +531,34 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       }
       result.set(asset.assetId, await this.materializeDescriptor(asset));
     }
+    for (const blobHash of new Set(media.map((asset) => asset.blobHash))) {
+      const assets = media.filter((asset) => asset.blobHash === blobHash);
+      if (assets.every((asset) => result.get(asset.assetId)?.verified)) {
+        this.mediaStore.deleteStaged(blobHash);
+      }
+    }
     return result;
   }
 
   private async materializeDescriptor(asset: SnapshotMediaV2): Promise<MaterializedMediaV2> {
       const relativeUri = relativeMediaUri(asset);
+      const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
+      const destination = new File(ensureDirectory(directoryName), relativeUri.split('/').pop()!);
+      if (destination.exists) {
+        try {
+          const inspected = await inspectLocalMediaFile(destination.uri);
+          if (inspected.byteSize === asset.byteSize && inspected.sha256 === asset.blobHash) {
+            return { uri: relativeUri, verified: true };
+          }
+        } catch {
+          // The verified staging copy below replaces an unreadable destination.
+        }
+      }
       const staged = this.mediaStore.stagedFile(asset.blobHash);
       if (!staged) {
         return { uri: relativeUri, verified: false };
       }
-      const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
-      const destination = new File(ensureDirectory(directoryName), relativeUri.split('/').pop()!);
-      try {
-        if (!destination.exists) await staged.copy(destination);
-      } catch {
-        throw new LocalStorageError('local-storage-full', 'media-materialization-failed');
-      }
+      await copyVerifiedMediaFile(staged, destination, asset.byteSize, asset.blobHash);
       return { uri: relativeUri, verified: true };
   }
 }

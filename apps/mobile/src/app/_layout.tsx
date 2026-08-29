@@ -101,10 +101,14 @@ export default function Layout() {
     if (!success || !hasHydrated) return;
     let cancelled = false;
     void (async () => {
-      await cloudSyncRuntime.start();
-      if (cancelled) return;
-      const configured = await isProductionCloudSyncConfigured();
-      if (!cancelled) await setCloudSyncBackgroundTaskEnabled(configured);
+      try {
+        await cloudSyncRuntime.start();
+        if (cancelled) return;
+        const configured = await isProductionCloudSyncConfigured();
+        if (!cancelled) await setCloudSyncBackgroundTaskEnabled(configured);
+      } catch {
+        console.warn('Cloud sync runtime initialization failed');
+      }
     })();
     return () => {
       cancelled = true;

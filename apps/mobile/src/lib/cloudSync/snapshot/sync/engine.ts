@@ -7,7 +7,7 @@ import type {
   ObservedDeviceHeadV2,
   SnapshotDomainV2,
 } from '../types';
-import { BaseShadowCommitError, BaseShadowManager } from './baseShadow';
+import { BaseShadowCommitError, BaseShadowManager, BaseShadowReadError } from './baseShadow';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadowV1,
@@ -44,6 +44,16 @@ class RetryableSyncError extends Error {
     super(errorClass);
     this.name = 'RetryableSyncError';
   }
+}
+
+function isDatabaseBusy(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /database is locked|database is busy|cannot start a transaction/i.test(message);
+}
+
+function isStorageFull(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /ENOSPC|no space left|disk.*full|storage.*full/i.test(message);
 }
 
 interface RemoteHeadSnapshot {
@@ -106,7 +116,8 @@ function normalizeObservations(values: ObservedDeviceHeadV2[]): ObservedDeviceHe
     }
     result.push({ deviceId, deviceSequence: greatest, snapshotId: snapshotIds[0] });
   }
-  return result.sort((left, right) => left.deviceId.localeCompare(right.deviceId));
+  return result.sort((left, right) =>
+    left.deviceId < right.deviceId ? -1 : left.deviceId > right.deviceId ? 1 : 0);
 }
 
 function isHeadShapeValid(head: DeviceHeadV2): boolean {
@@ -574,8 +585,14 @@ export class SnapshotSyncEngine {
       }
       try {
         this.stateStore.settleWithBase(checkpoint, pending.capturedGeneration);
-      } catch {
-        throw new AttentionError('local-storage-full', 'base-shadow-checkpoint-failed');
+      } catch (error) {
+        if (isDatabaseBusy(error)) {
+          throw new RetryableSyncError('base-shadow-checkpoint-database-busy');
+        }
+        if (isStorageFull(error)) {
+          throw new AttentionError('local-storage-full', 'base-shadow-checkpoint-storage-full');
+        }
+        throw new AttentionError('cleanup-inconsistent', 'base-shadow-checkpoint-inconsistent');
       }
       await this.hooks.at?.('after-base-checkpoint-settled');
       await this.reapOldShadows();
@@ -702,6 +719,19 @@ export class SnapshotSyncEngine {
       this.stateStore.setPause(this.vaultId, this.deviceId, reason, `merge-${error.code}`);
       return { status: 'attention', reason, actionableChanges: remaining };
     }
+    if (error instanceof SnapshotV2ValidationError) {
+      this.stateStore.setPause(
+        this.vaultId,
+        this.deviceId,
+        'normalized-model-not-ready',
+        `local-candidate-${error.code}`,
+      );
+      return {
+        status: 'attention',
+        reason: 'normalized-model-not-ready',
+        actionableChanges: remaining,
+      };
+    }
     if (error instanceof LocalStorageError) {
       this.stateStore.setPause(
         this.vaultId,
@@ -734,6 +764,10 @@ export class SnapshotSyncEngine {
     }
     if (error instanceof RetryableSyncError) {
       this.stateStore.setRetryError(this.vaultId, this.deviceId, error.errorClass);
+      return { status: 'retry', reason: 'transient', actionableChanges: remaining };
+    }
+    if (error instanceof BaseShadowReadError) {
+      this.stateStore.setRetryError(this.vaultId, this.deviceId, 'base-shadow-read-failed');
       return { status: 'retry', reason: 'transient', actionableChanges: remaining };
     }
     throw error;

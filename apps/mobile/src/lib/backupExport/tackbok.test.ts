@@ -90,29 +90,32 @@ jest.mock('~/db', () => {
     asset_id: 'asset_id',
   };
   const mockUserProfile = {};
+  const mockDb = {
+    select: jest.fn(() => ({
+      from: jest.fn((table: unknown) => {
+        if (table === mockEntries) {
+          return {
+            orderBy: jest.fn(async () => []),
+          };
+        }
+
+        if (table === mockMediaAssets) {
+          return { orderBy: jest.fn(async () => []) };
+        }
+
+        if (table === mockUserProfile) {
+          return { limit: jest.fn(async () => []) };
+        }
+
+        return Promise.resolve([]);
+      }),
+    })),
+  };
 
   return {
-    db: {
-      select: jest.fn(() => ({
-        from: jest.fn((table: unknown) => {
-          if (table === mockEntries) {
-            return {
-              orderBy: jest.fn(async () => []),
-            };
-          }
-
-          if (table === mockMediaAssets) {
-            return { orderBy: jest.fn(async () => []) };
-          }
-
-          if (table === mockUserProfile) {
-            return { limit: jest.fn(async () => []) };
-          }
-
-          return Promise.resolve([]);
-        }),
-      })),
-    },
+    db: mockDb,
+    runExclusiveDbTransaction: (operation: (tx: typeof mockDb) => Promise<unknown>) =>
+      operation(mockDb),
     customPrompts: {},
     entries: mockEntries,
     entryTags: {},

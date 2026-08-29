@@ -184,6 +184,41 @@ describe('snapshot v2 merge engine', () => {
     })).not.toThrow();
   });
 
+  it('prunes deleted recovery IDs without changing the durable conflict identity', () => {
+    const entry: SnapshotEntryV2 = {
+      entryId: 'entry-recovery-delete', title: 'Base', content: 'Base body', mood: null,
+      createdAt: 1, updatedAt: 1, conflictOriginId: null,
+    };
+    const base = emptyDomain(entry);
+    const first = mergeSnapshotDomainsV2(
+      base,
+      emptyDomain({ ...entry, content: 'Local body', updatedAt: 2 }),
+      emptyDomain({ ...entry, content: 'Remote body', updatedAt: 3 }),
+    );
+    const recovered = first.entries.find((value) => value.conflictOriginId === entry.entryId)!;
+    const local = structuredClone(first);
+    local.entries = local.entries.filter((value) => value.entryId !== recovered.entryId);
+    local.tombstones.push({
+      entityType: 'entry',
+      entityId: recovered.entryId,
+      baseStateHash: canonicalHashV2(recovered),
+      deletedStateHash: canonicalHashV2(recovered),
+      deletedByDeviceId: 'device-a',
+      deletionSequence: 4,
+    });
+
+    const merged = mergeSnapshotDomainsV2(first, local, first);
+    expect(merged.conflicts).not.toHaveLength(0);
+    expect(merged.conflicts.every((value) => value.recoveredEntityIds.length === 0)).toBe(true);
+    expect(merged.conflicts.map((value) => value.conflictId))
+      .toEqual(first.conflicts.map((value) => value.conflictId));
+    expect(() => encodeSnapshotV2({
+      format: 'tackbok-snapshot', formatVersion: 2, vaultId: 'vault-recovery-delete',
+      parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'device-a',
+      deviceSequence: 5, createdAt: 5, ...merged,
+    })).not.toThrow();
+  });
+
   it('chooses equal-sequence tombstone provenance independently of argument order', () => {
     const first = blankDomain();
     first.tombstones = [{

@@ -16,6 +16,7 @@ import {
   db,
   entries,
   mediaAssets,
+  runExclusiveDbTransaction,
   sqlite,
   syncMediaObligations,
   syncProviderState,
@@ -292,7 +293,7 @@ export async function completeGoogleDriveConnection(options: {
   const now = Date.now();
   const deviceId = prior?.deviceId ?? randomUUID();
   const shouldPublishLocal = options.createNew || pending.prepared.localHasData;
-  await db.transaction(async (tx) => {
+  await runExclusiveDbTransaction(async (tx) => {
     await tx.delete(cloudVault);
     await tx.insert(cloudVault).values({
       vault_id: selected!.vaultId,
@@ -382,7 +383,10 @@ export async function disconnectGoogleDrive(): Promise<void> {
 
 export async function setCloudSyncPaused(paused: boolean): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
-  if (!vault || vault.status === 'revoked' || vault.status === 'disabled') return;
+  if (!vault) throw new Error('Cloud sync is not configured');
+  if (vault.status === 'revoked' || vault.status === 'disabled') {
+    throw new Error('Cloud sync cannot be paused in its current state');
+  }
   if (paused) {
     stopProductionSyncRuntime();
     await db.update(cloudVault).set({ status: 'paused', updated_at: Date.now() })

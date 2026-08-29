@@ -167,6 +167,38 @@ describe('production cloud-sync runtime', () => {
     runtime.stop();
   });
 
+  test('engine construction failures retry readiness in the same session', async () => {
+    const platform = new FakePlatform();
+    let attempts = 0;
+    let passes = 0;
+    let resolvePass!: () => void;
+    const passStarted = new Promise<void>((resolve) => { resolvePass = resolve; });
+    const runtime = new SyncRuntime({
+      platform,
+      readinessRetryMs: 1,
+      readiness: { isReady: async () => true, retryBackfill: async () => undefined },
+      createEngine: async () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error('database locked');
+        return {
+          provider: { kind: 'google-drive' as const },
+          sync: async () => {
+            passes += 1;
+            resolvePass();
+            return { pulled: 0, pushed: 0 };
+          },
+        };
+      },
+    });
+
+    await runtime.start();
+    expect({ attempts, passes }).toEqual({ attempts: 1, passes: 0 });
+    platform.fireTimer();
+    await passStarted;
+    expect({ attempts, passes }).toEqual({ attempts: 2, passes: 1 });
+    runtime.stop();
+  });
+
   test('every durable Attention reason has localized visible copy and an action route', async () => {
     const screen = await Bun.file(join(mobileRoot, 'src/screens/cloudBackup/index.tsx')).text();
     const productionUi = await Bun.file(join(
@@ -230,6 +262,24 @@ describe('production cloud-sync runtime', () => {
     expect(source).not.toMatch(/request.*Notification.*Permission/i);
     expect(source).toContain("new SnapshotProviderError('wifi-only-media'");
     expect(source).toContain("case 'wifi-only-media':");
+  });
+
+  test('production async units of work use Expo-managed transactions', async () => {
+    const databaseSource = await Bun.file(join(mobileRoot, 'src/db/index.ts')).text();
+    expect(databaseSource).toContain('withExclusiveTransactionAsync');
+    expect(databaseSource).toContain('await operation(transactionDb');
+
+    const transactionalPaths = [
+      'src/lib/cloudSync/snapshot/storage/productionJournal.ts',
+      'src/lib/cloudSync/storage/backfill.ts',
+      'src/lib/cloudSync/storage/repositories.ts',
+      'src/lib/cloudSync/storage/retainedMedia.ts',
+      'src/lib/cloudSync/ui/production.ts',
+    ];
+    for (const path of transactionalPaths) {
+      const source = await Bun.file(join(mobileRoot, path)).text();
+      expect(source).not.toContain('db.transaction(async');
+    }
   });
 
   test('the public policy describes complete snapshots and separate media plainly', async () => {
