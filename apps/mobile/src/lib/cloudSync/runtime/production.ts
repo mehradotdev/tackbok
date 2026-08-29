@@ -4,7 +4,6 @@ import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db } from '~/db';
 import { track } from '~/lib/analytics';
 import {
-  type CloudSyncFailureCategory,
   toCloudSyncCountBucket,
   toCloudSyncDurationBucket,
 } from '~/lib/analytics/events';
@@ -22,6 +21,7 @@ import {
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { isCloudSyncNetworkAllowed } from './rolloutPolicy';
+import { readCloudSyncFailureCategory } from '../failureClassification';
 
 const productionCloudSyncListeners = new Set<() => void>();
 export type ProductionCloudSyncActivity = 'idle' | SyncPassPhase;
@@ -174,16 +174,7 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
     });
     return true;
   } catch (error) {
-    const category = typeof error === 'object' && error !== null && 'category' in error
-      ? String((error as { category: unknown }).category)
-      : 'unknown';
-    track('cloud_sync_failed', {
-      category: [
-        'auth', 'quota', 'rate-limit', 'offline', 'wifi-only-media', 'corrupt', 'transient',
-      ].includes(category)
-        ? category as CloudSyncFailureCategory
-        : 'unknown',
-    });
+    track('cloud_sync_failed', { category: readCloudSyncFailureCategory(error) });
     return false;
   }
 }

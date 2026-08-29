@@ -1,4 +1,5 @@
 import { CloudAuthError, type CloudAuthorization } from '../../auth/types';
+import { providerErrorCodeForAuthError } from '../../failureClassification';
 import { encodeCanonicalBytes } from '../canonical';
 import { SNAPSHOT_CAPS } from '../caps';
 import { sha256Bytes, sha256Text } from '../sha256';
@@ -1396,9 +1397,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         token = await this.auth.getFreshAccessToken();
       } catch (error) {
         if (error instanceof CloudAuthError) {
+          const code = providerErrorCodeForAuthError(error.code);
           throw new SnapshotProviderError(
-            error.code === 'temporarily-unavailable' ? 'transient' : 'authorization-required',
-            error.code === 'temporarily-unavailable'
+            code,
+            code === 'transient'
               ? 'Google authorization is temporarily unavailable'
               : 'Google Drive authorization required',
           );

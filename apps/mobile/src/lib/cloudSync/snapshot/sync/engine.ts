@@ -18,11 +18,11 @@ import type {
   SnapshotProvider,
   SyncAttentionReason,
   PendingPublication,
-  SnapshotProviderErrorCode,
   SnapshotSyncHooks,
   SnapshotSyncResult,
 } from './types';
 import { LocalStorageError, SnapshotProviderError } from './types';
+import { attentionReasonForProviderError } from '../../failureClassification';
 
 const RETENTION_COUNT = 3;
 const CLEANUP_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -743,7 +743,7 @@ export class SnapshotSyncEngine {
       };
     }
     if (error instanceof SnapshotProviderError) {
-      const attention = this.providerAttentionReason(error.code);
+      const attention = attentionReasonForProviderError(error.code);
       if (attention) {
         this.stateStore.setPause(this.vaultId, this.deviceId, attention, `provider-${error.code}`);
         return { status: 'attention', reason: attention, actionableChanges: remaining };
@@ -770,11 +770,4 @@ export class SnapshotSyncEngine {
     throw error;
   }
 
-  private providerAttentionReason(code: SnapshotProviderErrorCode): SyncAttentionReason | null {
-    if (code === 'authorization-required') return 'authorization-required';
-    if (code === 'quota-full') return 'provider-quota-full';
-    if (code === 'permission-denied') return 'provider-permission-denied';
-    if (code === 'invalid-data') return 'invalid-remote-snapshot';
-    return null;
-  }
 }

@@ -13,6 +13,7 @@ import {
 import { track } from '~/lib/analytics';
 import type { CloudSyncFailureCategory } from '~/lib/analytics/events';
 import { useSettingsStore } from '~/lib/settings';
+import { failureCategoryForAttention } from '../../failureClassification';
 import { createGoogleAuthorization } from '../../auth';
 import { readOrCreateGoogleConnectionId } from '../../auth/secureTokenStore';
 import type {
@@ -59,15 +60,6 @@ class SnapshotRuntimeFailure extends Error {
 }
 
 const runningVaultPasses = new Map<string, Promise<RuntimePassResult>>();
-
-function failureCategory(reason: SyncAttentionReason): CloudSyncFailureCategory {
-  if (reason === 'authorization-required' || reason === 'account-mismatch' ||
-      reason === 'consent-incomplete') return 'auth';
-  if (reason === 'provider-quota-full') return 'quota';
-  if (reason === 'invalid-remote-snapshot' || reason === 'unsupported-format' ||
-      reason === 'derived-id-collision' || reason === 'ambiguous-device-head') return 'corrupt';
-  return 'unknown';
-}
 
 class MediaPolicyProvider implements SnapshotProvider {
   constructor(private readonly delegate: GoogleDriveSnapshotProvider) {}
@@ -213,7 +205,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     this.onActivity('checking');
     const result = await this.engine.sync();
     if (result.status === 'attention') {
-      throw new SnapshotRuntimeFailure(failureCategory(result.reason));
+      throw new SnapshotRuntimeFailure(failureCategoryForAttention(result.reason));
     }
     if (result.status === 'retry') {
       throw new SnapshotRuntimeFailure(
@@ -256,7 +248,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           reason,
           `media-hydration-${error.code}`,
         );
-        throw new SnapshotRuntimeFailure(failureCategory(reason));
+        throw new SnapshotRuntimeFailure(failureCategoryForAttention(reason));
       } else {
         throw error;
       }

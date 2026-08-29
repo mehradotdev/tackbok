@@ -1,5 +1,6 @@
 import type { CloudSyncFailureCategory, CloudSyncTrigger } from '../../analytics/events';
 import { toCloudSyncCountBucket, toCloudSyncDurationBucket } from '../../analytics/events';
+import { readCloudSyncFailureCategory } from '../failureClassification';
 
 export interface RuntimePassResult {
   pulled: number;
@@ -49,19 +50,6 @@ export interface SyncRuntimeOptions {
   debounceMs?: number;
   readinessRetryMs?: number;
   now?: () => number;
-}
-
-function failureCategory(error: unknown): CloudSyncFailureCategory {
-  if (typeof error === 'object' && error !== null && 'category' in error) {
-    const category = String((error as { category: unknown }).category);
-    if (
-      ['auth', 'quota', 'rate-limit', 'offline', 'wifi-only-media', 'corrupt', 'transient']
-        .includes(category)
-    ) {
-      return category as CloudSyncFailureCategory;
-    }
-  }
-  return 'unknown';
 }
 
 /** Runtime-only orchestration; it owns no UI and never imports Notifications. */
@@ -204,7 +192,7 @@ export class SyncRuntime {
       return result;
     } catch (error) {
       if (!this.stopped && lifecycle === this.lifecycle) {
-        this.lastFailureCategory = failureCategory(error);
+        this.lastFailureCategory = readCloudSyncFailureCategory(error);
         this.options.analytics?.failed(this.lastFailureCategory);
       }
       return null;
@@ -235,7 +223,7 @@ export class SyncRuntime {
       }
     } catch (error) {
       if (this.stopped || lifecycle !== this.lifecycle) return;
-      this.lastFailureCategory = failureCategory(error);
+      this.lastFailureCategory = readCloudSyncFailureCategory(error);
       this.options.analytics?.failed(this.lastFailureCategory);
     }
     this.scheduleReadinessRetry(lifecycle);
