@@ -415,7 +415,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(listed.some((value) => value.head.deviceId === 'device-second')).toBe(true);
   });
 
-  test('discovery quarantines one inconsistent object without hiding valid heads', async () => {
+  test('discovery rejects an inconsistent logical head instead of hiding its branch', async () => {
     const server = new FakeDriveServer();
     const valid = head('device-valid', 1, 'c'.repeat(64));
     const invalid = head('device-invalid', 1, 'd'.repeat(64));
@@ -428,9 +428,9 @@ describe('GoogleDriveSnapshotProvider', () => {
     );
     inconsistent.appProperties.tb_hash = '0'.repeat(64);
 
-    await expect(provider(server).listHeads(vaultId, true)).resolves.toEqual([
-      expect.objectContaining({ head: valid }),
-    ]);
+    await expect(provider(server).listHeads(vaultId, true)).rejects.toMatchObject({
+      code: 'invalid-data',
+    });
   });
 
   test('rejects oversized snapshots from metadata before downloading the body', async () => {

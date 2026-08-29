@@ -601,7 +601,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           if (file.appProperties[PROP_VAULT] !== vaultId) continue;
           const kind = objectKind(file.appProperties[PROP_KIND]);
           if (!kind) continue;
-          const record = await this.safeMaterializeRecord(vaultId, file, kind);
+          const record = await this.safeMaterializeRecord(vaultId, file, kind, kind === 'head');
           if (record) files.push(record);
         }
         const next = typeof body.nextPageToken === 'string'
@@ -655,7 +655,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     for (const file of files) {
       const kind = objectKind(file.appProperties[PROP_KIND]);
       if (kind !== 'head' && kind !== 'snapshot') continue;
-      const record = await this.safeMaterializeRecord(vaultId, file, kind);
+      const record = await this.safeMaterializeRecord(vaultId, file, kind, kind === 'head');
       if (record) records.push(record);
     }
     this.state.replaceInitialInventory(vaultId, records, tokenBody.startPageToken);
@@ -687,12 +687,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     vaultId: string,
     file: DriveFile,
     kind: DriveObjectKind,
+    rejectInvalid = false,
   ): Promise<DriveFileRecord | null> {
     try {
       return await this.materializeRecord(vaultId, file, kind);
     } catch (error) {
       if (!(error instanceof SnapshotProviderError) || error.code !== 'invalid-data') throw error;
       this.state.removeFile(vaultId, file.id);
+      if (rejectInvalid) throw error;
       return null;
     }
   }
@@ -707,7 +709,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const files = await this.queryExactKey(vaultId, key, kind);
     const records: DriveFileRecord[] = [];
     for (const file of files) {
-      const record = await this.safeMaterializeRecord(vaultId, file, kind);
+      const record = await this.safeMaterializeRecord(vaultId, file, kind, kind === 'head');
       if (!record) continue;
       this.state.upsertFile(vaultId, record);
       records.push(record);
