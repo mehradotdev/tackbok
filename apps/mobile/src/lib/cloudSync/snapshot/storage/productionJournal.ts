@@ -57,6 +57,21 @@ function fileExists(uri: string | null): uri is string {
   }
 }
 
+export async function verifyLocalMediaFile(
+  uri: string | null,
+  expectedSha256: string,
+  expectedByteSize: number | null,
+): Promise<boolean> {
+  if (!fileExists(uri)) return false;
+  try {
+    const inspected = await inspectLocalMediaFile(uri);
+    return inspected.sha256 === expectedSha256 &&
+      (expectedByteSize === null || inspected.byteSize === expectedByteSize);
+  } catch {
+    return false;
+  }
+}
+
 function ensureDirectory(name: string): Directory {
   const directory = new Directory(Paths.document, name);
   directory.create({ intermediates: true, idempotent: true });
@@ -106,15 +121,25 @@ function relativeMediaUri(asset: SnapshotMedia): string {
 /** File-backed media cache shared by the sync engine and normalized journal apply. */
 export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
   async hasVerified(blobHash: string): Promise<boolean> {
-    if (stageFile(blobHash).exists) return true;
+    const staged = stageFile(blobHash);
+    if (staged.exists && await verifyLocalMediaFile(staged.uri, blobHash, null)) return true;
     const [live, retained] = await Promise.all([
-      db.select({ uri: mediaAssets.local_uri }).from(mediaAssets)
+      db.select({ uri: mediaAssets.local_uri, bytes: mediaAssets.byte_size }).from(mediaAssets)
         .where(eq(mediaAssets.blob_hash, blobHash)),
-      db.select({ original: syncRetainedMedia.original_uri, staged: syncRetainedMedia.staged_uri })
+      db.select({
+        original: syncRetainedMedia.original_uri,
+        staged: syncRetainedMedia.staged_uri,
+        bytes: syncRetainedMedia.byte_size,
+      })
         .from(syncRetainedMedia).where(eq(syncRetainedMedia.blob_hash, blobHash)),
     ]);
-    return live.some(({ uri }) => fileExists(uri)) ||
-      retained.some(({ original, staged }) => fileExists(staged ?? original));
+    for (const candidate of [
+      ...live.map(({ uri, bytes }) => ({ uri, bytes })),
+      ...retained.map(({ original, staged, bytes }) => ({ uri: staged ?? original, bytes })),
+    ]) {
+      if (await verifyLocalMediaFile(candidate.uri, blobHash, candidate.bytes)) return true;
+    }
+    return false;
   }
 
   async openVerifiedSource(blobHash: string) {
@@ -520,13 +545,17 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     const existingRows = await db.select().from(mediaAssets);
     const byIdentity = new Map(existingRows.map((row) => [
       `${row.asset_id}\0${row.blob_hash ?? ''}`,
-      row.local_uri,
+      row,
     ]));
     const result = new Map<string, MaterializedMedia>();
     for (const asset of media) {
-      const existing = byIdentity.get(`${asset.assetId}\0${asset.blobHash}`) ?? null;
-      if (fileExists(existing)) {
-        result.set(asset.assetId, { uri: existing, verified: true });
+      const existing = byIdentity.get(`${asset.assetId}\0${asset.blobHash}`);
+      if (existing?.local_uri && await verifyLocalMediaFile(
+        existing.local_uri,
+        asset.blobHash,
+        asset.byteSize,
+      )) {
+        result.set(asset.assetId, { uri: existing.local_uri, verified: true });
         continue;
       }
       result.set(asset.assetId, await this.materializeDescriptor(asset));
