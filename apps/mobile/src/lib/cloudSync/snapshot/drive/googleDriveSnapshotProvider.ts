@@ -1394,7 +1394,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         token = await this.auth.getFreshAccessToken();
       } catch (error) {
         if (error instanceof CloudAuthError) {
-          throw new SnapshotProviderError('authorization-required', 'Google Drive authorization required');
+          throw new SnapshotProviderError(
+            error.code === 'temporarily-unavailable' ? 'transient' : 'authorization-required',
+            error.code === 'temporarily-unavailable'
+              ? 'Google authorization is temporarily unavailable'
+              : 'Google Drive authorization required',
+          );
         }
         throw error;
       }

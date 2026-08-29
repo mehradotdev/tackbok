@@ -117,7 +117,7 @@ export class IosGoogleAuthorization implements CloudAuthorization {
       // Network/server failures keep the refresh token so an offline interval
       // never forces the owner through interactive consent again.
       throw new CloudAuthError(
-        'refresh-failed',
+        'temporarily-unavailable',
         'Google authorization could not be refreshed; retry when online',
       );
     }

@@ -9,6 +9,7 @@ const mockFetchGoogleAccountLabel = jest.fn();
 const mockDismissAuthSession = jest.fn();
 const mockPromptAsync = jest.fn();
 const mockExchangeCodeAsync = jest.fn();
+const mockRefreshAsync = jest.fn();
 const mockStore = new Map<string, string>();
 
 jest.mock('expo-auth-session', () => ({
@@ -17,7 +18,7 @@ jest.mock('expo-auth-session', () => ({
     promptAsync: (...args: unknown[]) => mockPromptAsync(...args),
   })),
   exchangeCodeAsync: (...args: unknown[]) => mockExchangeCodeAsync(...args),
-  refreshAsync: jest.fn(),
+  refreshAsync: (...args: unknown[]) => mockRefreshAsync(...args),
   ResponseType: { Code: 'code' },
 }));
 
@@ -54,6 +55,7 @@ beforeEach(() => {
   mockDismissAuthSession.mockReset();
   mockPromptAsync.mockReset();
   mockExchangeCodeAsync.mockReset();
+  mockRefreshAsync.mockReset();
   mockDismissAuthSession.mockResolvedValue(undefined);
 });
 
@@ -134,5 +136,21 @@ describe('IosGoogleAuthorization account label persistence', () => {
       code: 'permission-required',
     });
     await expect(readGoogleTokens()).resolves.toBeNull();
+  });
+
+  it('classifies a temporary refresh failure as retryable and preserves credentials', async () => {
+    await writeGoogleTokens({
+      accessToken: 'expired-token',
+      expiresAt: 0,
+      refreshToken: 'durable-refresh-token',
+    });
+    mockRefreshAsync.mockRejectedValue(new TypeError('Network request failed'));
+
+    await expect(new IosGoogleAuthorization().getFreshAccessToken()).rejects.toMatchObject({
+      code: 'temporarily-unavailable',
+    });
+    await expect(readGoogleTokens()).resolves.toMatchObject({
+      refreshToken: 'durable-refresh-token',
+    });
   });
 });

@@ -1,4 +1,4 @@
-import type { CloudAuthorization, GoogleTokenSet } from '../../auth/types';
+import { CloudAuthError, type CloudAuthorization, type GoogleTokenSet } from '../../auth/types';
 import { encodeCanonicalBytes } from '../canonical';
 import { decodeSnapshot, encodeSnapshot } from '../codec';
 import { sha256Bytes } from '../sha256';
@@ -303,9 +303,10 @@ function provider(
   server: FakeDriveServer,
   state = new MemoryDriveProviderStateStore(),
   instrumentation?: MemoryDriveInstrumentation,
+  auth: CloudAuthorization = new FakeAuth(),
 ) {
   return new GoogleDriveSnapshotProvider({
-    auth: new FakeAuth(),
+    auth,
     state,
     fetch: server.fetch,
     instrumentation,
@@ -316,6 +317,25 @@ function provider(
 }
 
 describe('GoogleDriveSnapshotProvider', () => {
+  test('maps a temporarily unavailable token refresh to a transient provider failure', async () => {
+    const auth: CloudAuthorization = {
+      authorize: async () => ({ accessToken: '', expiresAt: 0 }),
+      getFreshAccessToken: async () => {
+        throw new CloudAuthError('temporarily-unavailable', 'offline during refresh');
+      },
+      clearInvalidAccessToken: async () => {},
+      signOut: async () => {},
+      getAccountLabel: async () => 'Synthetic account',
+    };
+
+    await expect(provider(
+      new FakeDriveServer(),
+      new MemoryDriveProviderStateStore(),
+      undefined,
+      auth,
+    ).listRevocations(vaultId)).rejects.toMatchObject({ code: 'transient' });
+  });
+
   test('one 2,000-entry snapshot publishes and fresh-restores within both request ceilings', async () => {
     const server = new FakeDriveServer();
     const encoded = encodeSnapshot(representativePresentlyPayload('device-import'));

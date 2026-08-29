@@ -35,7 +35,8 @@ export class CloudAuthError extends Error {
       | 'consent-required'
       | 'permission-required'
       | 'not-connected'
-      | 'refresh-failed',
+      | 'refresh-failed'
+      | 'temporarily-unavailable',
     message: string,
   ) {
     super(message);
