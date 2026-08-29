@@ -728,118 +728,39 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     kind: 'snapshot' | 'media',
     bytes: Uint8Array,
   ): Promise<DriveFile> {
-    const hash = sha256Bytes(bytes);
-    let session = this.state.getUploadSession(vaultId, key, hash);
-    let uploaded = 0;
-    if (session && (!isTrustedDriveResumableUri(session.uri) ||
-        session.expiresAt <= this.now() || session.byteCount !== bytes.byteLength)) {
-      this.state.deleteUploadSession(vaultId, key, hash);
-      session = null;
-    }
-    if (session) {
-      try {
-        const status = await this.request(
-          vaultId,
-          'resumable-chunk',
-          session.uri,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Length': '0',
-              'Content-Range': `bytes */${bytes.byteLength}`,
-            },
-          },
-          { idempotent: true, accepted: [200, 201, 308] },
-        );
-        if (status.status === 200 || status.status === 201) {
-          this.state.deleteUploadSession(vaultId, key, hash);
-          return parseDriveFile(await status.json());
-        }
-        const range = /^bytes=0-(\d+)$/.exec(status.headers.get('range') ?? '');
-        uploaded = range ? Number(range[1]) + 1 : 0;
-        if (uploaded > bytes.byteLength ||
-            (uploaded < bytes.byteLength && uploaded % CHUNK_SIZE !== 0)) {
-          this.state.deleteUploadSession(vaultId, key, hash);
-          throw new SnapshotProviderError('invalid-data', 'Drive returned an invalid upload offset');
-        }
-      } catch (error) {
-        if (!(error instanceof DriveRequestError) || ![404, 410].includes(error.status)) {
-          throw error;
-        }
-        this.state.deleteUploadSession(vaultId, key, hash);
-        session = null;
-      }
-    }
-    if (!session) {
-      const response = await this.request(
-        vaultId,
-        'resumable-start',
-        `${UPLOAD_API}/files?uploadType=resumable&fields=${FILE_FIELDS}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json; charset=UTF-8',
-            'X-Upload-Content-Type': 'application/octet-stream',
-            'X-Upload-Content-Length': String(bytes.byteLength),
-          },
-          body: JSON.stringify(this.metadata(vaultId, key, kind, hash)),
-        },
-        { idempotent: false },
-      );
-      const uri = response.headers.get('location');
-      if (!uri || !isTrustedDriveResumableUri(uri)) {
-        throw new SnapshotProviderError('invalid-data', 'Drive returned an untrusted upload session');
-      }
-      session = {
-        logicalKey: key,
-        contentSha256: hash,
-        uri,
-        expiresAt: this.now() + SESSION_LIFETIME_MS,
-        byteCount: bytes.byteLength,
-        uploadedBytes: 0,
-      };
-      this.state.setUploadSession(vaultId, session);
-    }
-
-    try {
-      while (uploaded < bytes.byteLength) {
-        const end = Math.min(uploaded + CHUNK_SIZE, bytes.byteLength);
-        const final = end === bytes.byteLength;
-        const response = await this.request(
-          vaultId,
-          'resumable-chunk',
-          session.uri,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/octet-stream',
-              'Content-Length': String(end - uploaded),
-              'Content-Range': `bytes ${uploaded}-${end - 1}/${bytes.byteLength}`,
-            },
-            body: bytes.slice(uploaded, end),
-          },
-          { idempotent: true, accepted: final ? [200, 201] : [308] },
-        );
-        uploaded = end;
-        this.state.setUploadSession(vaultId, { ...session, uploadedBytes: uploaded });
-        if (final) {
-          this.state.deleteUploadSession(vaultId, key, hash);
-          return parseDriveFile(await response.json());
-        }
-      }
-    } catch (error) {
-      if (error instanceof DriveRequestError && [404, 410].includes(error.status)) {
-        this.state.deleteUploadSession(vaultId, key, hash);
-      }
-      throw error;
-    }
-    throw new SnapshotProviderError('transient', 'Drive resumable upload did not complete');
+    return this.resumableUploadFromSource(
+      vaultId,
+      key,
+      kind,
+      {
+        byteLength: bytes.byteLength,
+        contentHash: sha256Bytes(bytes),
+        read: async (offset, length) => bytes.slice(offset, offset + length),
+      },
+      CHUNK_SIZE,
+    );
   }
 
   private async resumableUploadSource(
     vaultId: string,
     key: string,
     source: MediaUploadSource,
+  ): Promise<DriveFile> {
+    return this.resumableUploadFromSource(
+      vaultId,
+      key,
+      'media',
+      source,
+      MEDIA_CHUNK_SIZE,
+    );
+  }
+
+  private async resumableUploadFromSource(
+    vaultId: string,
+    key: string,
+    kind: 'snapshot' | 'media',
+    source: MediaUploadSource,
+    chunkSize: number,
   ): Promise<DriveFile> {
     const hash = source.contentHash;
     let session = this.state.getUploadSession(vaultId, key, hash);
@@ -867,7 +788,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         const range = /^bytes=0-(\d+)$/.exec(status.headers.get('range') ?? '');
         uploaded = range ? Number(range[1]) + 1 : 0;
         if (uploaded > source.byteLength ||
-            (uploaded < source.byteLength && uploaded % (256 * 1024) !== 0)) {
+            (uploaded < source.byteLength && uploaded % CHUNK_SIZE !== 0)) {
           this.state.deleteUploadSession(vaultId, key, hash);
           throw new SnapshotProviderError('invalid-data', 'Drive returned an invalid upload offset');
         }
@@ -894,7 +815,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
             'X-Upload-Content-Type': 'application/octet-stream',
             'X-Upload-Content-Length': String(source.byteLength),
           },
-          body: JSON.stringify(this.metadata(vaultId, key, 'media', hash)),
+          body: JSON.stringify(this.metadata(vaultId, key, kind, hash)),
         },
         { idempotent: false },
       );
@@ -915,10 +836,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
 
     try {
       while (uploaded < source.byteLength) {
-        const requested = Math.min(MEDIA_CHUNK_SIZE, source.byteLength - uploaded);
+        const requested = Math.min(chunkSize, source.byteLength - uploaded);
         const chunk = await source.read(uploaded, requested);
         if (chunk.byteLength !== requested) {
-          throw new SnapshotProviderError('invalid-data', 'Media source ended before its declared size');
+          throw new SnapshotProviderError('invalid-data', 'Upload source ended before its declared size');
         }
         const end = uploaded + chunk.byteLength;
         const final = end === source.byteLength;
@@ -945,7 +866,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       }
       throw error;
     }
-    throw new SnapshotProviderError('transient', 'Drive resumable media upload did not complete');
+    throw new SnapshotProviderError('transient', 'Drive resumable upload did not complete');
   }
 
   private async downloadVerified(
