@@ -526,7 +526,19 @@ async function clearLocalCloudReplicaInTransaction(
   await tx.delete(cloudVault);
 }
 
-async function wipeJournalAndLocalCloudReplica(): Promise<void> {
+function deleteLocalMediaFiles(): string[] {
+  const errors: string[] = [];
+  for (const remove of [deleteAllPhotos, deleteAllVoiceMemos]) {
+    try {
+      remove();
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+  return errors;
+}
+
+async function wipeJournalAndLocalCloudReplica(): Promise<string[]> {
   // Shadow and staging files contain journal-derived bytes outside SQLite.
   // Remove them as part of the explicit destructive operation; clearing only
   // their database pointers would leave recoverable private data behind.
@@ -541,11 +553,10 @@ async function wipeJournalAndLocalCloudReplica(): Promise<void> {
     // later reconnect could otherwise publish the device wipe to Drive.
     await clearLocalCloudReplicaInTransaction(tx);
   });
-  deleteAllPhotos();
-  deleteAllVoiceMemos();
+  return deleteLocalMediaFiles();
 }
 
-export async function resetThisDeviceOnly(): Promise<void> {
+export async function resetThisDeviceOnly(): Promise<string[]> {
   const [vault] = await db.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1);
   stopProductionSyncRuntime();
   if (vault) {
@@ -556,11 +567,12 @@ export async function resetThisDeviceOnly(): Promise<void> {
   }
   accountLabelInMemory = null;
   accountLabelAttemptedForVault = null;
-  await wipeJournalAndLocalCloudReplica();
+  const mediaCleanupErrors = await wipeJournalAndLocalCloudReplica();
   notifyProductionCloudSyncChanged();
+  return mediaCleanupErrors;
 }
 
-export async function deleteJournalEverywhere(): Promise<void> {
+export async function deleteJournalEverywhere(): Promise<string[]> {
   const [vault] = await db.select({
     status: cloudVault.status,
     revocationKind: cloudVault.revocation_kind,
@@ -575,8 +587,9 @@ export async function deleteJournalEverywhere(): Promise<void> {
     await createGoogleAuthorization().signOut();
     await setCloudSyncBackgroundTaskEnabled(false);
   }
-  await wipeJournalAndLocalCloudReplica();
+  const mediaCleanupErrors = await wipeJournalAndLocalCloudReplica();
   notifyProductionCloudSyncChanged();
+  return mediaCleanupErrors;
 }
 
 export async function listUnacknowledgedCloudConflicts(): Promise<CloudConflictSummary[]> {

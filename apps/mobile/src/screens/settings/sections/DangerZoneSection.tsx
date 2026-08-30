@@ -5,8 +5,6 @@ import { Trash2 } from 'lucide-react-native';
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { QUERY_KEYS } from '~/hooks/useGratitude';
 import { resetThisDeviceOnly, useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
-import { deleteAllPhotos } from '~/lib/photoUtils';
-import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { Text } from '~/components/ui/text';
@@ -39,7 +37,7 @@ export function DangerZoneSection() {
     try {
       // Wipe the DB first — if this throws, the files are still intact
       // and the catch block will surface the error to the user.
-      await resetThisDeviceOnly();
+      const mediaCleanupErrors = await resetThisDeviceOnly();
       // Reset persisted app settings alongside the DB wipe so Delete All Data
       // restores the app to its default state.
       resetSettingsToDefaults();
@@ -53,23 +51,9 @@ export function DangerZoneSection() {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] }),
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.prompts] }),
       ]);
-      // DB is gone; now clean up the filesystem directories.
-      // Attempt both cleanups regardless of individual failures so that a
-      // photos error never silently leaves voice memos on disk (and vice versa).
-      const cleanupErrors: string[] = [];
-      try {
-        deleteAllPhotos();
-      } catch (error) {
-        cleanupErrors.push(error instanceof Error ? error.message : String(error));
-      }
-      try {
-        deleteAllVoiceMemos();
-      } catch (error) {
-        cleanupErrors.push(error instanceof Error ? error.message : String(error));
-      }
-      if (cleanupErrors.length > 0) {
+      if (mediaCleanupErrors.length > 0) {
         toast.warning(t('All data deleted, but some media files could not be removed.'), {
-          description: cleanupErrors.join('\n'),
+          description: mediaCleanupErrors.join('\n'),
           duration: 8000,
         });
       } else {
