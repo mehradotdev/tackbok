@@ -7,6 +7,7 @@ import type {
   SnapshotDomain,
 } from '../types';
 import { BaseShadowManager, BaseShadowReadError } from './baseShadow';
+import { SnapshotCleanup } from './cleanup';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   ListedDeviceHead,
@@ -31,8 +32,6 @@ import {
 } from './frontier';
 import { SnapshotPublisher } from './publication';
 
-const RETENTION_COUNT = 3;
-const CLEANUP_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_HEAD_RECHECKS = 4;
 
 interface PlannedCandidate {
@@ -51,6 +50,7 @@ function actionableChanges(journalGeneration: number, settledGeneration: number)
 // cleanup into focused collaborators once the initial protocol has landed.
 export class SnapshotSyncEngine {
   private running = false;
+  private readonly cleanup: SnapshotCleanup;
   private readonly publisher: SnapshotPublisher;
 
   constructor(
@@ -64,6 +64,14 @@ export class SnapshotSyncEngine {
     private readonly hooks: SnapshotSyncHooks = {},
     private readonly now: () => number = Date.now,
   ) {
+    this.cleanup = new SnapshotCleanup({
+      vaultId,
+      stateStore,
+      shadowManager,
+      provider,
+      hooks,
+      now,
+    });
     this.publisher = new SnapshotPublisher({
       vaultId,
       deviceId,
@@ -74,10 +82,7 @@ export class SnapshotSyncEngine {
       provider,
       hooks,
       now,
-      afterSettlement: async () => {
-        await this.reapOldShadows();
-        await this.cleanupSnapshots();
-      },
+      afterSettlement: () => this.cleanup.run(),
     });
   }
 
@@ -121,8 +126,7 @@ export class SnapshotSyncEngine {
       }
       const plan = await this.planCandidate();
       if (!plan) {
-        await this.reapOldShadows();
-        await this.cleanupSnapshots();
+        await this.cleanup.run();
         this.stateStore.clearPause(this.vaultId, this.deviceId);
         return { status: 'up-to-date', actionableChanges: 0 };
       }
@@ -367,45 +371,6 @@ export class SnapshotSyncEngine {
           'required-media-unavailable',
         );
       }
-    }
-  }
-
-  private async reapOldShadows(): Promise<void> {
-    for (const fileName of this.stateStore.listShadowReaperFiles()) {
-      try {
-        await this.shadowManager.reap(fileName);
-        this.stateStore.completeShadowReap(fileName);
-      } catch {
-        // The new checkpoint already committed. A later pass retries cleanup.
-      }
-    }
-  }
-
-  private async cleanupSnapshots(): Promise<void> {
-    try {
-      const heads = await this.provider.listHeads(this.vaultId, false);
-      // Multiple logical heads may still represent unresolved branches. The
-      // engine chooses leakage over deleting lineage it cannot prove redundant.
-      const logicalDevices = new Set(heads.map((value) => value.head.deviceId));
-      if (logicalDevices.size > 1) return;
-      const snapshots = await this.provider.listSnapshots(this.vaultId);
-      const newest = [...snapshots]
-        .sort((left, right) => right.createdAt - left.createdAt ||
-          right.snapshotId.localeCompare(left.snapshotId))
-        .slice(0, RETENTION_COUNT);
-      const protectedIds = new Set([
-        ...heads.map((value) => value.head.snapshotId),
-        ...newest.map((value) => value.snapshotId),
-      ]);
-      for (const snapshot of snapshots) {
-        if (protectedIds.has(snapshot.snapshotId) ||
-            this.now() - snapshot.createdAt < CLEANUP_GRACE_MS) continue;
-        await this.hooks.at?.('during-snapshot-cleanup');
-        await this.provider.deleteSnapshot(this.vaultId, snapshot.snapshotId);
-      }
-    } catch (error) {
-      if (!(error instanceof SnapshotProviderError)) throw error;
-      // Cleanup is best effort: provider failure retains excess history.
     }
   }
 
