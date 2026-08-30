@@ -1,4 +1,3 @@
-import { canonicalize } from '../canonical';
 import { SnapshotValidationError } from '../caps';
 import { decodeSnapshot, encodeSnapshot } from '../codec';
 import { SnapshotMergeError, mergeSnapshotDomains } from '../merge';
@@ -11,40 +10,32 @@ import { BaseShadowCommitError, BaseShadowManager, BaseShadowReadError } from '.
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadow,
-  DeviceHead,
   ListedDeviceHead,
   SnapshotJournalStore,
   SnapshotMediaStore,
   SnapshotProvider,
-  SyncAttentionReason,
   PendingPublication,
   SnapshotSyncHooks,
   SnapshotSyncResult,
 } from './types';
 import { LocalStorageError, SnapshotProviderError } from './types';
 import { attentionReasonForProviderError } from '../../failureClassification';
+import { AttentionError, RetryableSyncError } from './errors';
+import {
+  activeFrontier,
+  domainOf,
+  headSignature,
+  headsCovered,
+  isHeadShapeValid,
+  normalizeObservations,
+  remoteContainsBase,
+  type RemoteHeadSnapshot,
+} from './frontier';
 
 const RETENTION_COUNT = 3;
 const CLEANUP_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_HEAD_RECHECKS = 4;
 const MAX_JOURNAL_RECONCILIATION_ATTEMPTS = 4;
-
-class AttentionError extends Error {
-  constructor(
-    readonly reason: SyncAttentionReason,
-    readonly errorClass: string,
-  ) {
-    super(errorClass);
-    this.name = 'AttentionError';
-  }
-}
-
-class RetryableSyncError extends Error {
-  constructor(readonly errorClass: string) {
-    super(errorClass);
-    this.name = 'RetryableSyncError';
-  }
-}
 
 function isDatabaseBusy(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -56,12 +47,6 @@ function isStorageFull(error: unknown): boolean {
   return /ENOSPC|no space left|disk.*full|storage.*full/i.test(message);
 }
 
-interface RemoteHeadSnapshot {
-  head: DeviceHead;
-  snapshotId: string;
-  payload: JournalSnapshotPayload;
-}
-
 interface PlannedCandidate {
   domain: SnapshotDomain;
   capturedGeneration: number;
@@ -70,62 +55,8 @@ interface PlannedCandidate {
   mediaHashes: string[];
 }
 
-function domainOf(payload: JournalSnapshotPayload): SnapshotDomain {
-  return {
-    entries: payload.entries,
-    tags: payload.tags,
-    entryTags: payload.entryTags,
-    prompts: payload.prompts,
-    profile: payload.profile,
-    media: payload.media,
-    tombstones: payload.tombstones,
-    conflicts: payload.conflicts,
-  };
-}
-
 function actionableChanges(journalGeneration: number, settledGeneration: number): number {
   return Math.max(0, journalGeneration - settledGeneration);
-}
-
-function observationMap(values: ObservedDeviceHead[]): Map<string, ObservedDeviceHead> {
-  const result = new Map<string, ObservedDeviceHead>();
-  for (const value of values) {
-    const existing = result.get(value.deviceId);
-    if (!existing || value.deviceSequence > existing.deviceSequence ||
-        (value.deviceSequence === existing.deviceSequence && value.snapshotId < existing.snapshotId)) {
-      result.set(value.deviceId, { ...value });
-    }
-  }
-  return result;
-}
-
-function normalizeObservations(values: ObservedDeviceHead[]): ObservedDeviceHead[] {
-  const grouped = new Map<string, ObservedDeviceHead[]>();
-  for (const value of values) {
-    const candidates = grouped.get(value.deviceId) ?? [];
-    candidates.push(value);
-    grouped.set(value.deviceId, candidates);
-  }
-  const result: ObservedDeviceHead[] = [];
-  for (const [deviceId, candidates] of grouped) {
-    const greatest = Math.max(...candidates.map((candidate) => candidate.deviceSequence));
-    const atGreatest = candidates.filter((candidate) => candidate.deviceSequence === greatest);
-    const snapshotIds = [...new Set(atGreatest.map((candidate) => candidate.snapshotId))];
-    if (snapshotIds.length !== 1) {
-      throw new AttentionError('ambiguous-device-head', 'same-sequence-different-snapshot');
-    }
-    result.push({ deviceId, deviceSequence: greatest, snapshotId: snapshotIds[0] });
-  }
-  return result.sort((left, right) =>
-    left.deviceId < right.deviceId ? -1 : left.deviceId > right.deviceId ? 1 : 0);
-}
-
-function isHeadShapeValid(head: DeviceHead): boolean {
-  return head.format === 'tackbok-device-head' &&
-    typeof head.vaultId === 'string' && typeof head.deviceId === 'string' &&
-    Number.isSafeInteger(head.deviceSequence) && head.deviceSequence >= 0 &&
-    /^[0-9a-f]{64}$/.test(head.snapshotId) &&
-    Number.isSafeInteger(head.updatedAt) && head.updatedAt >= 0;
 }
 
 // TODO(cloud-sync): Extract frontier planning, publication/reconciliation, and
@@ -236,13 +167,13 @@ export class SnapshotSyncEngine {
       const loadedBase = await this.shadowManager.load(checkpoint);
       const captured = await this.journal.capture();
       const durable = this.stateStore.loadState(this.vaultId, this.deviceId);
-      const frontier = this.activeFrontier(remoteHeads);
+      const frontier = activeFrontier(remoteHeads);
       if (frontier.length > 8) {
         throw new AttentionError('frontier-too-wide', 'active-parent-cap');
       }
 
       const accepted = loadedBase.shadow?.acceptedDeviceHeads ?? [];
-      const covered = this.headsCovered(remoteHeads, accepted);
+      const covered = headsCovered(remoteHeads, accepted);
       if (loadedBase.shadow && covered &&
           durable.journalGeneration <= durable.settledGeneration) {
         return null;
@@ -254,7 +185,7 @@ export class SnapshotSyncEngine {
         left.snapshotId.localeCompare(right.snapshotId))) {
         if (loadedBase.shadow?.snapshotId === remote.snapshotId) continue;
         const remoteDescendsFromBase = loadedBase.shadow
-          ? this.remoteContainsBase(remote, loadedBase.shadow)
+          ? remoteContainsBase(remote, loadedBase.shadow)
           : false;
         merged = mergeSnapshotDomains(
           remoteDescendsFromBase ? baseDomain : null,
@@ -268,7 +199,7 @@ export class SnapshotSyncEngine {
       const rechecked = await this.loadAndNormalizeHeads(
         await this.provider.listHeads(this.vaultId, true),
       );
-      if (this.headSignature(remoteHeads) !== this.headSignature(rechecked)) continue;
+      if (headSignature(remoteHeads) !== headSignature(rechecked)) continue;
 
       const ownSequence = remoteHeads
         .filter((head) => head.head.deviceId === this.deviceId)
@@ -376,57 +307,6 @@ export class SnapshotSyncEngine {
       });
     }
     return snapshots.sort((left, right) => left.head.deviceId.localeCompare(right.head.deviceId));
-  }
-
-  private activeFrontier(heads: RemoteHeadSnapshot[]): RemoteHeadSnapshot[] {
-    return heads.filter((candidate) => !heads.some((observer) => {
-      if (observer === candidate) return false;
-      if (observer.payload.authorDeviceId === candidate.head.deviceId) {
-        if (observer.payload.deviceSequence > candidate.head.deviceSequence) return true;
-        if (observer.payload.deviceSequence === candidate.head.deviceSequence &&
-            observer.snapshotId === candidate.snapshotId) return true;
-      }
-      const seen = observer.payload.observedDeviceHeads.find((value) =>
-        value.deviceId === candidate.head.deviceId);
-      return Boolean(seen && (seen.deviceSequence > candidate.head.deviceSequence ||
-        (seen.deviceSequence === candidate.head.deviceSequence &&
-         seen.snapshotId === candidate.snapshotId)));
-    }));
-  }
-
-  private remoteContainsBase(remote: RemoteHeadSnapshot, base: BaseShadow): boolean {
-    if (remote.snapshotId === base.snapshotId ||
-        remote.payload.parentSnapshotIds.includes(base.snapshotId)) return true;
-    const baseAuthor = base.payload.authorDeviceId;
-    const baseSequence = base.payload.deviceSequence;
-    if (remote.payload.authorDeviceId === baseAuthor &&
-        remote.payload.deviceSequence > baseSequence) return true;
-    const observed = remote.payload.observedDeviceHeads.find((value) =>
-      value.deviceId === baseAuthor);
-    return Boolean(observed && (observed.deviceSequence > baseSequence ||
-      (observed.deviceSequence === baseSequence &&
-       observed.snapshotId === base.snapshotId)));
-  }
-
-  private headsCovered(
-    heads: RemoteHeadSnapshot[],
-    accepted: ObservedDeviceHead[],
-  ): boolean {
-    const known = observationMap(accepted);
-    return heads.every((candidate) => {
-      const value = known.get(candidate.head.deviceId);
-      return Boolean(value && (value.deviceSequence > candidate.head.deviceSequence ||
-        (value.deviceSequence === candidate.head.deviceSequence &&
-         value.snapshotId === candidate.snapshotId)));
-    });
-  }
-
-  private headSignature(heads: RemoteHeadSnapshot[]): string {
-    return canonicalize(heads.map(({ head }) => ({
-      deviceId: head.deviceId,
-      deviceSequence: head.deviceSequence,
-      snapshotId: head.snapshotId,
-    })));
   }
 
   private async synchronizeMedia(
