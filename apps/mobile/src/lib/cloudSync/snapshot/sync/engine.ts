@@ -6,15 +6,13 @@ import type {
   ObservedDeviceHead,
   SnapshotDomain,
 } from '../types';
-import { BaseShadowCommitError, BaseShadowManager, BaseShadowReadError } from './baseShadow';
+import { BaseShadowManager, BaseShadowReadError } from './baseShadow';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
-  BaseShadow,
   ListedDeviceHead,
   SnapshotJournalStore,
   SnapshotMediaStore,
   SnapshotProvider,
-  PendingPublication,
   SnapshotSyncHooks,
   SnapshotSyncResult,
 } from './types';
@@ -31,21 +29,11 @@ import {
   remoteContainsBase,
   type RemoteHeadSnapshot,
 } from './frontier';
+import { SnapshotPublisher } from './publication';
 
 const RETENTION_COUNT = 3;
 const CLEANUP_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_HEAD_RECHECKS = 4;
-const MAX_JOURNAL_RECONCILIATION_ATTEMPTS = 4;
-
-function isDatabaseBusy(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /database is locked|database is busy|cannot start a transaction/i.test(message);
-}
-
-function isStorageFull(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return /ENOSPC|no space left|disk.*full|storage.*full/i.test(message);
-}
 
 interface PlannedCandidate {
   domain: SnapshotDomain;
@@ -63,6 +51,7 @@ function actionableChanges(journalGeneration: number, settledGeneration: number)
 // cleanup into focused collaborators once the initial protocol has landed.
 export class SnapshotSyncEngine {
   private running = false;
+  private readonly publisher: SnapshotPublisher;
 
   constructor(
     private readonly vaultId: string,
@@ -74,7 +63,23 @@ export class SnapshotSyncEngine {
     private readonly provider: SnapshotProvider,
     private readonly hooks: SnapshotSyncHooks = {},
     private readonly now: () => number = Date.now,
-  ) {}
+  ) {
+    this.publisher = new SnapshotPublisher({
+      vaultId,
+      deviceId,
+      stateStore,
+      shadowManager,
+      journal,
+      mediaStore,
+      provider,
+      hooks,
+      now,
+      afterSettlement: async () => {
+        await this.reapOldShadows();
+        await this.cleanupSnapshots();
+      },
+    });
+  }
 
   async sync(): Promise<SnapshotSyncResult> {
     if (this.running) throw new Error('A snapshot sync pass is already running');
@@ -146,7 +151,7 @@ export class SnapshotSyncEngine {
       await this.hooks.at?.('after-candidate-persisted');
     }
 
-    await this.resumePending(pending);
+    await this.publisher.resume(pending);
     this.stateStore.clearPause(this.vaultId, this.deviceId);
     durable = this.stateStore.loadState(this.vaultId, this.deviceId);
     return {
@@ -362,179 +367,6 @@ export class SnapshotSyncEngine {
           'required-media-unavailable',
         );
       }
-    }
-  }
-
-  private async resumePending(initial: PendingPublication): Promise<void> {
-    let pending = initial;
-    let decoded: ReturnType<typeof decodeSnapshot>;
-    try {
-      decoded = decodeSnapshot(pending.compressedBytes, pending.snapshotId);
-    } catch (error) {
-      const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
-      throw new AttentionError(
-        'invalid-remote-snapshot',
-        `local-candidate-validation-${code}`,
-      );
-    }
-    if (decoded.payload.vaultId !== this.vaultId ||
-        decoded.payload.authorDeviceId !== this.deviceId ||
-        decoded.payload.deviceSequence !== pending.deviceSequence) {
-      throw new AttentionError('invalid-remote-snapshot', 'local-candidate-envelope-mismatch');
-    }
-
-    if (pending.stage === 'candidate-persisted') {
-      await this.ensurePendingMedia(pending);
-      await this.provider.uploadSnapshot(
-        this.vaultId,
-        pending.snapshotId,
-        pending.compressedBytes,
-        decoded.payload.createdAt,
-      );
-      pending = this.stateStore.advancePending(
-        this.vaultId, this.deviceId, pending.snapshotId, 'snapshot-uploaded');
-      await this.hooks.at?.('after-snapshot-uploaded');
-    }
-    if (pending.stage === 'snapshot-uploaded') {
-      const verified = await this.provider.verifySnapshot(
-        this.vaultId,
-        pending.snapshotId,
-        pending.compressedBytes,
-      );
-      if (!verified) {
-        throw new AttentionError('invalid-remote-snapshot', 'uploaded-snapshot-verification-failed');
-      }
-      pending = this.stateStore.advancePending(
-        this.vaultId, this.deviceId, pending.snapshotId, 'snapshot-verified');
-      await this.hooks.at?.('after-snapshot-verified');
-    }
-    if (pending.stage === 'snapshot-verified') {
-      await this.provider.updateDeviceHead(this.vaultId, {
-        format: 'tackbok-device-head',
-        vaultId: this.vaultId,
-        deviceId: this.deviceId,
-        deviceSequence: pending.deviceSequence,
-        snapshotId: pending.snapshotId,
-        updatedAt: this.now(),
-      });
-      pending = this.stateStore.advancePending(
-        this.vaultId, this.deviceId, pending.snapshotId, 'head-advanced');
-      await this.hooks.at?.('after-head-advanced');
-    }
-    if (pending.stage === 'head-advanced') {
-      await this.applyPublishedDomain(
-        domainOf(decoded.payload),
-        pending.capturedGeneration,
-      );
-      await this.hooks.at?.('during-merge-application');
-      pending = this.stateStore.advancePending(
-        this.vaultId, this.deviceId, pending.snapshotId, 'domain-applied');
-    }
-    if (pending.stage === 'domain-applied') {
-      const acceptedDeviceHeads = normalizeObservations([
-        ...decoded.payload.observedDeviceHeads,
-        {
-          deviceId: this.deviceId,
-          deviceSequence: pending.deviceSequence,
-          snapshotId: pending.snapshotId,
-        },
-      ]);
-      const shadow: BaseShadow = {
-        format: 'tackbok-base-shadow',
-        vaultId: this.vaultId,
-        snapshotId: pending.snapshotId,
-        acceptedDeviceHeads,
-        payload: decoded.payload,
-      };
-      let checkpoint;
-      try {
-        checkpoint = await this.shadowManager.prepareAndReplace(
-          this.deviceId,
-          pending.capturedGeneration,
-          shadow,
-          this.hooks.at,
-        );
-      } catch (error) {
-        if (error instanceof BaseShadowCommitError) {
-          throw new AttentionError('local-storage-full', 'base-shadow-commit-failed');
-        }
-        throw error;
-      }
-      try {
-        this.stateStore.settleWithBase(checkpoint, pending.capturedGeneration);
-      } catch (error) {
-        if (isDatabaseBusy(error)) {
-          throw new RetryableSyncError('base-shadow-checkpoint-database-busy');
-        }
-        if (isStorageFull(error)) {
-          throw new AttentionError('local-storage-full', 'base-shadow-checkpoint-storage-full');
-        }
-        throw new AttentionError('cleanup-inconsistent', 'base-shadow-checkpoint-inconsistent');
-      }
-      await this.hooks.at?.('after-base-checkpoint-settled');
-      await this.reapOldShadows();
-      await this.cleanupSnapshots();
-    }
-  }
-
-  /**
-   * A publication can outlive the journal generation it captured. A failed
-   * CAS therefore cannot be treated as "the late local edit won": the
-   * published domain may also contain remote-authored state that the journal
-   * has never materialized. Reconcile that complete published state with a
-   * fresh journal capture before allowing the base shadow to advance.
-   *
-   * The previous base remains authoritative until settlement. It gives the
-   * merge the ancestry needed to preserve both late local edits and the
-   * remote-derived part of the publication. If the shadow is unavailable,
-   * the codec's conservative two-way merge is the safe fallback. Repeated
-   * writers leave the head-advanced pending record intact for a later pass.
-   */
-  private async applyPublishedDomain(
-    publishedDomain: SnapshotDomain,
-    capturedGeneration: number,
-  ): Promise<void> {
-    if (await this.journal.applyMergedIfGeneration(
-      publishedDomain,
-      capturedGeneration,
-    )) return;
-
-    const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
-    const loadedBase = await this.shadowManager.load(checkpoint);
-    const baseDomain = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
-
-    for (let attempt = 0; attempt < MAX_JOURNAL_RECONCILIATION_ATTEMPTS; attempt += 1) {
-      const latest = await this.journal.capture();
-      const reconciled = mergeSnapshotDomains(
-        baseDomain,
-        latest.domain,
-        publishedDomain,
-      );
-      if (await this.journal.applyMergedIfGeneration(
-        reconciled,
-        latest.generation,
-      )) return;
-    }
-
-    throw new RetryableSyncError('journal-changed-during-publication-reconciliation');
-  }
-
-  private async ensurePendingMedia(pending: PendingPublication): Promise<void> {
-    const remotelyPresent = await this.provider.hasMediaBatch(
-      this.vaultId,
-      pending.mediaHashes,
-    );
-    for (const blobHash of pending.mediaHashes) {
-      if (remotelyPresent.has(blobHash)) continue;
-      const source = await this.mediaStore.openVerifiedSource(blobHash);
-      if (!source) {
-        throw new AttentionError('missing-media', 'pending-media-unavailable');
-      }
-      if (source.contentHash !== blobHash) {
-        throw new AttentionError('local-media-unreadable', 'pending-media-hash-mismatch');
-      }
-      await this.provider.uploadMedia(this.vaultId, blobHash, source);
-      await this.hooks.at?.('during-media-transfer');
     }
   }
 
