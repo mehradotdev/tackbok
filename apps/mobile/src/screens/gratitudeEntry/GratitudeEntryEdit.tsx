@@ -12,6 +12,7 @@ import {
   useKeyboardState,
 } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { randomUUID } from 'expo-crypto';
 import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { format } from 'date-fns';
@@ -26,7 +27,6 @@ import {
 } from '~/constants';
 import type { Entry, Mood, Asset } from '~/types';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
-import { generateUUID } from '~/lib/utils';
 import { filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import {
@@ -318,7 +318,7 @@ function GratitudeEntryEditForm({
     if (isSaving.current) return;
 
     isSaving.current = true;
-    const id = initialEntry?.note_id || generateUUID();
+    const id = initialEntry?.note_id || randomUUID();
 
     // Build the combined assets array (photos + voice memos)
     const allAssets: Asset[] = [...photos, ...voiceMemos];

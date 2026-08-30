@@ -1,0 +1,135 @@
+{
+  "format": "tackbok-snapshot-merge-golden",
+  "synthetic": true,
+  "materialization": "Each branch is a complete domain snapshot. Omitted collection keys are invalid; envelope metadata is supplied by the harness and is not part of domain merge expectations.",
+  "cases": [
+    {
+      "id": "entry-disjoint-fields-and-set-membership",
+      "base": {
+        "entries": [{ "entryId": "entry-a", "title": "Base title", "content": "Base body", "mood": "OKAY", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }],
+        "tags": [{ "tagId": "tag-a", "title": "A", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }, { "tagId": "tag-b", "title": "B", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }],
+        "entryTags": [{ "entryId": "entry-a", "tagId": "tag-a", "createdAt": 1000 }],
+        "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": []
+      },
+      "local": {
+        "entries": [{ "entryId": "entry-a", "title": "Local title", "content": "Base body", "mood": "OKAY", "createdAt": 1000, "updatedAt": 2000, "conflictOriginId": null }],
+        "tags": [{ "tagId": "tag-a", "title": "A", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }, { "tagId": "tag-b", "title": "B", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }],
+        "entryTags": [{ "entryId": "entry-a", "tagId": "tag-a", "createdAt": 1000 }, { "entryId": "entry-a", "tagId": "tag-b", "createdAt": 2000 }],
+        "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": []
+      },
+      "remote": {
+        "entries": [{ "entryId": "entry-a", "title": "Base title", "content": "Remote body", "mood": "HAPPY", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }],
+        "tags": [{ "tagId": "tag-a", "title": "A", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }, { "tagId": "tag-b", "title": "B", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }],
+        "entryTags": [],
+        "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": []
+      },
+      "expected": {
+        "entries": [{ "entryId": "entry-a", "title": "Local title", "content": "Remote body", "mood": "HAPPY", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }],
+        "tags": [{ "tagId": "tag-a", "title": "A", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }, { "tagId": "tag-b", "title": "B", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }],
+        "entryTags": [{ "entryId": "entry-a", "tagId": "tag-b", "createdAt": 2000 }],
+        "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": []
+      }
+    },
+    {
+      "id": "concurrent-entry-title-and-body-preserve-recovery",
+      "base": { "entries": [{ "entryId": "entry-b", "title": "Base", "content": "Base text", "mood": null, "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "local": { "entries": [{ "entryId": "entry-b", "title": "Local", "content": "Local text", "mood": "HAPPY", "createdAt": 1000, "updatedAt": 2000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "remote": { "entries": [{ "entryId": "entry-b", "title": "Remote", "content": "Remote text", "mood": "HAPPY", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "expected": {
+        "entries": [
+          { "entryId": "entry-b", "title": "Remote", "content": "Remote text", "mood": "HAPPY", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null },
+          { "entryId": "recovered-b4810beb3416030e8e560b8a897a8aae", "title": "Local", "content": "Local text", "mood": "HAPPY", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": "entry-b" }
+        ],
+        "tags": [], "entryTags": [], "prompts": [],
+        "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 },
+        "media": [], "tombstones": [],
+        "conflicts": [
+          { "conflictId": "267ac70e0212b923246991de35e0619710706d10d4387493c36661131087b7c2", "entityType": "entry", "entityId": "entry-b", "field": "content", "baseValueHash": "a4f5199ff75659fc6f0f9ef08f5ab7a9bb6d6f3a37912726ff9e3f948714b30d", "localValueHash": "64fd4b9a64c2ce1a2a6fdfc6d95271d0d1e756e31e76b8fe94a2157434d5e13a", "remoteValueHash": "62d5a41095dbc5e720b05201b3435252dfe6a50af6a959e8e715d9c58a46eb3e", "primaryValueHash": "62d5a41095dbc5e720b05201b3435252dfe6a50af6a959e8e715d9c58a46eb3e", "alternates": [], "recoveredEntityIds": ["recovered-b4810beb3416030e8e560b8a897a8aae"] },
+          { "conflictId": "df22d9ffe018166cefb6f61848991369a6caeaa92090a96fbf297df4e68ebebe", "entityType": "entry", "entityId": "entry-b", "field": "title", "baseValueHash": "fadada809e27477cbe6548971389b013e9b0984362b112b954482b3a4cc549f6", "localValueHash": "e4f82851f6adf0b1acdc10dce3aeaad39ffd684dbd990904476a4aa60d12eee1", "remoteValueHash": "aa956cb1034685708ddfb1ab8d7916dab12aeb2b26a61abdf42f3fae6702dbd1", "primaryValueHash": "aa956cb1034685708ddfb1ab8d7916dab12aeb2b26a61abdf42f3fae6702dbd1", "alternates": [], "recoveredEntityIds": ["recovered-b4810beb3416030e8e560b8a897a8aae"] }
+        ]
+      }
+    },
+    {
+      "id": "delete-versus-entry-edit",
+      "base": { "entries": [{ "entryId": "entry-c", "title": null, "content": "Before", "mood": null, "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "local": { "entries": [], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [{ "entityType": "entry", "entityId": "entry-c", "baseStateHash": "9ac353ca0cec09d4d198d52e4b90deed426ab7f50497ed722f01164a8ec2ca10", "deletedStateHash": "9ac353ca0cec09d4d198d52e4b90deed426ab7f50497ed722f01164a8ec2ca10", "deletedByDeviceId": "device-local", "deletionSequence": 2 }], "conflicts": [] },
+      "remote": { "entries": [{ "entryId": "entry-c", "title": null, "content": "Edited remotely", "mood": null, "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "expected": {
+        "entries": [{ "entryId": "entry-c", "title": null, "content": "Edited remotely", "mood": null, "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }],
+        "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [],
+        "conflicts": [{ "conflictId": "64bd03d2364936ae88df8f54f8c32e234760689793f71d813b190bf7c0d8b16c", "entityType": "entry", "entityId": "entry-c", "field": "deleteEdit", "baseValueHash": "9ac353ca0cec09d4d198d52e4b90deed426ab7f50497ed722f01164a8ec2ca10", "localValueHash": "1a0550a2cf0453d940a0c38570313c02d4d2111eba086806c39c00ac004b4f9d", "remoteValueHash": "c0b32ca0fd6ade6dab9d09cd706418f7e724dac2cb6f8156b95625d53704c155", "primaryValueHash": "c0b32ca0fd6ade6dab9d09cd706418f7e724dac2cb6f8156b95625d53704c155", "alternates": [{ "valueHash": "1a0550a2cf0453d940a0c38570313c02d4d2111eba086806c39c00ac004b4f9d", "value": null }], "recoveredEntityIds": [] }]
+      }
+    },
+    {
+      "id": "tag-rename-and-concurrent-new-reference-defeats-delete",
+      "base": { "entries": [{ "entryId": "entry-d", "title": null, "content": "Synthetic", "mood": null, "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }], "tags": [{ "tagId": "tag-c", "title": "Base tag", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "local": { "entries": [{ "entryId": "entry-d", "title": null, "content": "Synthetic", "mood": null, "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [{ "entityType": "tag", "entityId": "tag-c", "baseStateHash": "59423545b992f92d1dd09cfc7139401c90b9c265738bdb1a6a2e56a2877b3821", "deletedStateHash": "59423545b992f92d1dd09cfc7139401c90b9c265738bdb1a6a2e56a2877b3821", "deletedByDeviceId": "device-local", "deletionSequence": 3 }], "conflicts": [] },
+      "remote": { "entries": [{ "entryId": "entry-d", "title": null, "content": "Synthetic", "mood": null, "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }], "tags": [{ "tagId": "tag-c", "title": "Renamed and used", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }], "entryTags": [{ "entryId": "entry-d", "tagId": "tag-c", "createdAt": 3000 }], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "expected": {
+        "entries": [{ "entryId": "entry-d", "title": null, "content": "Synthetic", "mood": null, "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }],
+        "tags": [{ "tagId": "tag-c", "title": "Renamed and used", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }],
+        "entryTags": [{ "entryId": "entry-d", "tagId": "tag-c", "createdAt": 3000 }],
+        "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [],
+        "conflicts": [
+          { "conflictId": "5a3edc2f5b29b74c5f523df3f7cff9caffe57ba9cbe5a5ea543f66cd264c586e", "entityType": "tag", "entityId": "tag-c", "field": "deleteEdit", "baseValueHash": "59423545b992f92d1dd09cfc7139401c90b9c265738bdb1a6a2e56a2877b3821", "localValueHash": "dce6e5456cb4added4f7427c91368b68ec352bbff46127fa9e9a11854d2d092a", "remoteValueHash": "c8410665b6668373c83d6f07121591723c041affdec2a4e2107ff9e23f680afc", "primaryValueHash": "c8410665b6668373c83d6f07121591723c041affdec2a4e2107ff9e23f680afc", "alternates": [{ "valueHash": "dce6e5456cb4added4f7427c91368b68ec352bbff46127fa9e9a11854d2d092a", "value": null }], "recoveredEntityIds": [] },
+          { "conflictId": "cc3dd8be2d96620484446f7b7e2b2a64dade3330da9880ae74b9a1227c3597d6", "entityType": "tag", "entityId": "tag-c", "field": "referencedDelete", "baseValueHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b", "localValueHash": "dce6e5456cb4added4f7427c91368b68ec352bbff46127fa9e9a11854d2d092a", "remoteValueHash": "4fa0bc6200fbf359d4f24624cfd6f8830a38cf7ad5a8c2724e799c4a6490691a", "primaryValueHash": "4fa0bc6200fbf359d4f24624cfd6f8830a38cf7ad5a8c2724e799c4a6490691a", "alternates": [{ "valueHash": "dce6e5456cb4added4f7427c91368b68ec352bbff46127fa9e9a11854d2d092a", "value": null }], "recoveredEntityIds": [] }
+        ]
+      }
+    },
+    {
+      "id": "prompt-concurrent-rename",
+      "base": { "entries": [], "tags": [], "entryTags": [], "prompts": [{ "promptId": "prompt-a", "title": "Base prompt", "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "local": { "entries": [], "tags": [], "entryTags": [], "prompts": [{ "promptId": "prompt-a", "title": "Local prompt", "createdAt": 1000, "updatedAt": 2000, "conflictOriginId": null }], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "remote": { "entries": [], "tags": [], "entryTags": [], "prompts": [{ "promptId": "prompt-a", "title": "Remote prompt", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "expected": {
+        "entries": [], "tags": [], "entryTags": [],
+        "prompts": [{ "promptId": "prompt-a", "title": "Local prompt", "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }],
+        "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 },
+        "media": [], "tombstones": [],
+        "conflicts": [{ "conflictId": "916abdd918b3c64b7d946136277d9d073f2041801a10b3a13ea5c0a3eed6466e", "entityType": "prompt", "entityId": "prompt-a", "field": "title", "baseValueHash": "ef9080ef84146af0f6bbf77e6ba44f899df2d9aaca89173575295e48e00bdfc2", "localValueHash": "4f6d08e91b714136f49834500df7b7651d99e6d216821be6a77f2acbc51dd2aa", "remoteValueHash": "63ec1fabb28ea28cc2b172eea39462ff11f40811fa0a8831b0ede0dc07253812", "primaryValueHash": "4f6d08e91b714136f49834500df7b7651d99e6d216821be6a77f2acbc51dd2aa", "alternates": [{ "valueHash": "63ec1fabb28ea28cc2b172eea39462ff11f40811fa0a8831b0ede0dc07253812", "value": "Remote prompt" }], "recoveredEntityIds": [] }]
+      }
+    },
+    {
+      "id": "profile-independent-fields-and-photo-conflict",
+      "base": { "entries": [], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": "Base", "photoAssetId": "asset-a", "updatedAt": 1000 }, "media": [{ "assetId": "asset-a", "ownerType": "profile", "ownerId": "profile", "kind": "profile-photo", "blobHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "mimeType": "image/jpeg", "byteSize": 100, "width": 10, "height": 10, "durationMs": null, "createdAt": 1000, "updatedAt": 1000 }], "tombstones": [], "conflicts": [] },
+      "local": { "entries": [], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": "Local name", "photoAssetId": "asset-b", "updatedAt": 2000 }, "media": [{ "assetId": "asset-a", "ownerType": "profile", "ownerId": "profile", "kind": "profile-photo", "blobHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "mimeType": "image/jpeg", "byteSize": 100, "width": 10, "height": 10, "durationMs": null, "createdAt": 1000, "updatedAt": 1000 }, { "assetId": "asset-b", "ownerType": "profile", "ownerId": "profile", "kind": "profile-photo", "blobHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "mimeType": "image/jpeg", "byteSize": 200, "width": 20, "height": 20, "durationMs": null, "createdAt": 2000, "updatedAt": 2000 }], "tombstones": [], "conflicts": [] },
+      "remote": { "entries": [], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": "Base", "photoAssetId": "asset-c", "updatedAt": 3000 }, "media": [{ "assetId": "asset-a", "ownerType": "profile", "ownerId": "profile", "kind": "profile-photo", "blobHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "mimeType": "image/jpeg", "byteSize": 100, "width": 10, "height": 10, "durationMs": null, "createdAt": 1000, "updatedAt": 1000 }, { "assetId": "asset-c", "ownerType": "profile", "ownerId": "profile", "kind": "profile-photo", "blobHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "mimeType": "image/jpeg", "byteSize": 300, "width": 30, "height": 30, "durationMs": null, "createdAt": 3000, "updatedAt": 3000 }], "tombstones": [], "conflicts": [] },
+      "expected": {
+        "entries": [], "tags": [], "entryTags": [], "prompts": [],
+        "profile": { "profileId": "profile", "displayName": "Local name", "photoAssetId": "asset-c", "updatedAt": 3000 },
+        "media": [{ "assetId": "asset-b", "ownerType": "profile", "ownerId": "profile", "kind": "profile-photo", "blobHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "mimeType": "image/jpeg", "byteSize": 200, "width": 20, "height": 20, "durationMs": null, "createdAt": 2000, "updatedAt": 2000 }, { "assetId": "asset-c", "ownerType": "profile", "ownerId": "profile", "kind": "profile-photo", "blobHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "mimeType": "image/jpeg", "byteSize": 300, "width": 30, "height": 30, "durationMs": null, "createdAt": 3000, "updatedAt": 3000 }],
+        "tombstones": [],
+        "conflicts": [{ "conflictId": "6ef3e4e1c4ebb106119e58341c25c1f206bf78bed764f7e4277268ac358bdb70", "entityType": "profile", "entityId": "profile", "field": "photoAssetId", "baseValueHash": "d41b0fffdbb85e07bb8cc42aaa498fbab9d27d4e32b35ed94faf0a5d0034f941", "localValueHash": "30f655789a4bbbac7d2e295c4ca7729c3e7a45d60dea187aa1e40c69eebe6246", "remoteValueHash": "01b4ec7c6f3f4a2d8aa3829f773f9332a3e3aa786168b6b80758c5634d28d408", "primaryValueHash": "01b4ec7c6f3f4a2d8aa3829f773f9332a3e3aa786168b6b80758c5634d28d408", "alternates": [{ "valueHash": "30f655789a4bbbac7d2e295c4ca7729c3e7a45d60dea187aa1e40c69eebe6246", "value": "asset-b" }], "recoveredEntityIds": [] }]
+      }
+    },
+    {
+      "id": "entry-asset-remove-versus-concurrent-reference",
+      "base": { "entries": [{ "entryId": "entry-e", "title": null, "content": "Asset", "mood": null, "createdAt": 1000, "updatedAt": 1000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [{ "assetId": "asset-d", "ownerType": "entry", "ownerId": "entry-e", "kind": "photo", "blobHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "mimeType": "image/jpeg", "byteSize": 400, "width": 40, "height": 40, "durationMs": null, "createdAt": 1000, "updatedAt": 1000 }], "tombstones": [], "conflicts": [] },
+      "local": { "entries": [{ "entryId": "entry-e", "title": null, "content": "Asset", "mood": null, "createdAt": 1000, "updatedAt": 2000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "remote": { "entries": [{ "entryId": "entry-e", "title": null, "content": "Asset", "mood": null, "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [{ "assetId": "asset-d", "ownerType": "entry", "ownerId": "entry-e", "kind": "photo", "blobHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "mimeType": "image/heic", "byteSize": 400, "width": 40, "height": 40, "durationMs": null, "createdAt": 1000, "updatedAt": 3000 }], "tombstones": [], "conflicts": [] },
+      "expected": {
+        "entries": [{ "entryId": "entry-e", "title": null, "content": "Asset", "mood": null, "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }],
+        "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 },
+        "media": [{ "assetId": "asset-d", "ownerType": "entry", "ownerId": "entry-e", "kind": "photo", "blobHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "mimeType": "image/heic", "byteSize": 400, "width": 40, "height": 40, "durationMs": null, "createdAt": 1000, "updatedAt": 3000 }],
+        "tombstones": [],
+        "conflicts": [{ "conflictId": "95e060e79e78f0efa8bdeec6707d0ffe98e6332d639e0f077952e80af27e5f1d", "entityType": "entry", "entityId": "entry-e", "field": "assetReference", "baseValueHash": "544eb4f06a5e87aa2d301568996777d8f9af6a7191f22242a595a3aea94cc5d6", "localValueHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b", "remoteValueHash": "15d1fffcc6bfafd6f25458b096ab2830161d1c889025723ad6f3a48507f9e543", "primaryValueHash": "15d1fffcc6bfafd6f25458b096ab2830161d1c889025723ad6f3a48507f9e543", "alternates": [{ "valueHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b", "value": null }], "recoveredEntityIds": [] }]
+      }
+    },
+    {
+      "id": "unreadable-base-is-conservative",
+      "base": null,
+      "local": { "entries": [{ "entryId": "entry-f", "title": null, "content": "Local without base", "mood": null, "createdAt": 1000, "updatedAt": 2000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "remote": { "entries": [{ "entryId": "entry-f", "title": null, "content": "Remote without base", "mood": null, "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null }], "tags": [], "entryTags": [], "prompts": [], "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 }, "media": [], "tombstones": [], "conflicts": [] },
+      "expected": {
+        "entries": [
+          { "entryId": "entry-f", "title": null, "content": "Remote without base", "mood": null, "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": null },
+          { "entryId": "recovered-933e63bfae1935f4b70fee61e3860046", "title": null, "content": "Local without base", "mood": null, "createdAt": 1000, "updatedAt": 3000, "conflictOriginId": "entry-f" }
+        ],
+        "tags": [], "entryTags": [], "prompts": [],
+        "profile": { "profileId": "profile", "displayName": null, "photoAssetId": null, "updatedAt": 1000 },
+        "media": [], "tombstones": [],
+        "conflicts": [{ "conflictId": "628bb34fc2fcb8edd06da126930ce1462e94dfd8d5e78797386a503a990bf3b9", "entityType": "entry", "entityId": "entry-f", "field": "content", "baseValueHash": null, "localValueHash": "3dd30a45e6e9cc7109f0e68ee32b0dd8e2a4f4aaeaacb52d18437e17713f3e27", "remoteValueHash": "bdbaac435d6040128fa1c41b8b5d9497d1c7476f548dcef3040551317fdc495e", "primaryValueHash": "bdbaac435d6040128fa1c41b8b5d9497d1c7476f548dcef3040551317fdc495e", "alternates": [], "recoveredEntityIds": ["recovered-933e63bfae1935f4b70fee61e3860046"] }]
+      }
+    }
+  ]
+}

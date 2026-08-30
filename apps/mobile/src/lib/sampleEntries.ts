@@ -1,9 +1,9 @@
 import { Asset as ExpoBundledAsset } from 'expo-asset';
+import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import { PHOTOS_DIR_NAME, VOICE_MEMOS_DIR_NAME } from '~/constants';
 import { AssetType, type Asset } from '~/types';
 import { type TranslationFunction } from '~/lib/i18n';
-import { generateUUID } from '~/lib/utils';
 import { useSettingsStore } from '~/lib/settings';
 import { deleteEntry } from '~/lib/entryDeletion';
 import {
@@ -48,7 +48,7 @@ async function copyBundledAsset(
   await bundled.downloadAsync();
   const sourceUri = bundled.localUri ?? bundled.uri;
   const dir = ensureDir(dirName);
-  const filename = `${generateUUID()}.${extension}`;
+  const filename = `${randomUUID()}.${extension}`;
   await new File(sourceUri).copy(new File(dir, filename));
   return {
     relativeUri: `${dirName}/${filename}`,
@@ -108,28 +108,28 @@ export async function seedSampleEntries(t: TranslationFunction): Promise<string[
 
   const entries = [
     {
-      note_id: generateUUID(),
+      note_id: randomUUID(),
       text_title: t('sample_entry_welcome_title'),
       text_content: t('sample_entry_welcome_body'),
       mood: 'HAPPY' as const,
       created_at: timestampAt(1, 18, 30),
     },
     {
-      note_id: generateUUID(),
+      note_id: randomUUID(),
       text_title: t('sample_entry_voice_title'),
       text_content: t('sample_entry_voice_body'),
       assets: audioAssets,
       created_at: timestampAt(1, 10, 5),
     },
     {
-      note_id: generateUUID(),
+      note_id: randomUUID(),
       text_title: t('sample_entry_photos_title'),
       text_content: t('sample_entry_photos_body'),
       assets: photoAssets,
       created_at: timestampAt(2, 15, 20),
     },
     {
-      note_id: generateUUID(),
+      note_id: randomUUID(),
       // The tags entry answers a built-in prompt from the user's chosen focus areas.
       text_title: t(`prompt_${promptCategory}_1`),
       text_content: t('sample_entry_tags_body'),

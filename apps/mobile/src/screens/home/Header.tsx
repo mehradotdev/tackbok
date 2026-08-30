@@ -1,6 +1,16 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
-import { Search, ArrowLeft, ArrowRight } from 'lucide-react-native';
+import { useRouter, type Href } from 'expo-router';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Cloud,
+  CloudOff,
+  CloudUpload,
+  Search,
+} from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 import { useTags } from '~/hooks/useGratitude';
@@ -8,8 +18,10 @@ import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Input } from '~/components/ui/input';
 import { Button } from '~/components/ui/button';
+import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { SettingsBottomSheet } from '~/components/SettingsBottomSheet';
+import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 
 interface IHeaderProps {
   isSearchMode?: boolean;
@@ -30,10 +42,19 @@ export const Header: React.FC<IHeaderProps> = ({
   selectedTagIds = [],
   onTagsChange,
 }) => {
+  const router = useRouter();
   const { t, isRTL } = useTranslation();
+  const { snapshot } = useCloudSyncSnapshot();
   const { data: allTags } = useTags();
   const safeTags = allTags || [];
   const showTagFilter = isSearchMode && safeTags.length > 0;
+  const syncIsActive = snapshot.status === 'syncing' || snapshot.status === 'restoring';
+  const syncIsUpToDate =
+    !syncIsActive &&
+    snapshot.status !== 'warning' &&
+    snapshot.status !== 'paused' &&
+    snapshot.status !== 'queued' &&
+    snapshot.queuedCount === 0;
 
   if (isSearchMode) {
     return (
@@ -110,17 +131,81 @@ export const Header: React.FC<IHeaderProps> = ({
   }
 
   return (
-    <View className="flex-row w-full items-center justify-between px-safe-or-4 py-2 bg-primary">
+    <View className="relative flex-row w-full items-center justify-between px-safe-or-4 py-2 bg-primary">
       {/* Search Button */}
       <Button className="p-1" onPress={onSearchPress} variant="ghost">
         <Icon as={Search} className="text-primary-foreground" />
       </Button>
 
-      <Text variant="h2" className="text-primary-foreground font-heading">
-        {t('Tackbok')}
-      </Text>
+      <View pointerEvents="none" className="absolute left-0 right-0 items-center">
+        <Text
+          variant="h2"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          className="text-primary-foreground font-heading max-w-[42%]">
+          {t('Tackbok')}
+        </Text>
+      </View>
 
-      <SettingsBottomSheet />
+      <View className="flex-row items-center gap-1">
+        {(snapshot.configured || snapshot.status === 'warning') && (
+          <Button
+            className="p-1"
+            variant="ghost"
+            onPress={() => router.push('/cloud-backup' as Href)}
+            accessibilityLabel={
+              syncIsActive
+                ? t('Cloud sync: syncing')
+                : snapshot.status === 'queued'
+                  ? t('Cloud sync: changes safely queued')
+                  : snapshot.status === 'paused'
+                    ? t('Cloud sync: paused')
+                    : snapshot.status === 'warning'
+                      ? t('Cloud sync: attention needed')
+                      : t('Cloud sync: up to date')
+            }>
+            {syncIsActive ? (
+              <SpinningRefreshIcon className="text-primary-foreground size-5" />
+            ) : (
+              <View className="relative size-5">
+                <Icon
+                  as={
+                    snapshot.status === 'warning'
+                      ? AlertTriangle
+                      : snapshot.status === 'paused'
+                        ? CloudOff
+                        : snapshot.status === 'queued' || snapshot.queuedCount > 0
+                          ? CloudUpload
+                          : Cloud
+                  }
+                  className="text-primary-foreground size-6"
+                  strokeWidth={2.5}
+                />
+                {syncIsUpToDate && (
+                  <View
+                    className="absolute -right-1 -bottom-2 size-3 items-center justify-center rounded-full border border-background bg-accent"
+                    accessible={false}
+                    importantForAccessibility="no-hide-descendants">
+                    <Icon
+                      as={Check}
+                      className="size-2.5 text-accent-foreground"
+                      strokeWidth={3.5}
+                    />
+                  </View>
+                )}
+              </View>
+            )}
+            {snapshot.queuedCount > 0 && (
+              <View className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-destructive items-center justify-center px-0.5">
+                <Text className="text-[10px] leading-none text-destructive-foreground font-body-bold">
+                  {snapshot.queuedCount > 9 ? '9+' : snapshot.queuedCount}
+                </Text>
+              </View>
+            )}
+          </Button>
+        )}
+        <SettingsBottomSheet />
+      </View>
     </View>
   );
 };

@@ -28,7 +28,11 @@ import { Text } from '~/components/ui/text';
 import { Toaster } from '~/components/ui/toast';
 import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
-
+import {
+  getProductionSyncRuntime,
+  isProductionCloudSyncConfigured,
+  setCloudSyncBackgroundTaskEnabled,
+} from '~/lib/cloudSync/runtime';
 SplashScreen.preventAutoHideAsync();
 
 // Prime Uniwind before React mounts to limit flash. At module load,
@@ -52,6 +56,10 @@ const queryClient = new QueryClient({
       staleTime: Infinity,
     },
   },
+});
+
+const cloudSyncRuntime = getProductionSyncRuntime({
+  onRemoteApplied: () => queryClient.invalidateQueries(),
 });
 
 // Rendered inside the navigator so reminder-tap navigation happens against a
@@ -86,7 +94,27 @@ export default function Layout() {
     '--color-background',
   ]);
 
-  const isBootstrapLoading = !error && (!success || (!fontsLoaded && !fontsError));
+  const isBootstrapLoading =
+    !error && (!success || (!fontsLoaded && !fontsError));
+
+  useEffect(() => {
+    if (!success || !hasHydrated) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        await cloudSyncRuntime.start();
+        if (cancelled) return;
+        const configured = await isProductionCloudSyncConfigured();
+        if (!cancelled) await setCloudSyncBackgroundTaskEnabled(configured);
+      } catch {
+        console.warn('Cloud sync runtime initialization failed');
+      }
+    })();
+    return () => {
+      cancelled = true;
+      cloudSyncRuntime.stop();
+    };
+  }, [hasHydrated, success]);
 
   // Keep native splash until persisted settings (and Uniwind theme) are ready
   useEffect(() => {
@@ -125,7 +153,7 @@ export default function Layout() {
     }
   }, [hasHydrated]);
 
-  // Show migration error
+  // SQL schema migration errors are fatal; the resumable data backfill is not.
   if (error) {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4">
@@ -209,6 +237,10 @@ export default function Layout() {
                     title: 'Settings',
                     headerShown: false,
                   }}
+                />
+                <Stack.Screen
+                  name="cloud-backup"
+                  options={{ title: 'Cloud Backup & Sync', headerShown: false }}
                 />
               </Stack>
               <ReminderNavigationObserver />

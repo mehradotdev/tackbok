@@ -9,6 +9,7 @@
     "prebuild": "APP_VARIANT=beta expo prebuild --clean",
     "generate:themes": "bun run src/lib/theme/generate-theme-artifacts.ts",
     "generate:themes:verify": "bun run generate:themes && bun run test:theme",
+    "cloud-sync:test": "jest src/lib/cloudSync src/lib/zip/core/core-safety.test.ts src/lib/zip/core/gzip-codec.test.ts src/lib/analytics/events.test.ts src/lib/i18n/translations/translations.test.ts --runInBand --no-watchman && bun test scripts/cloud-sync",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "bun run test:jest",
@@ -35,7 +36,10 @@
     "expo": "~57.0.8",
     "expo-application": "~57.0.2",
     "expo-asset": "~57.0.7",
+    "expo-auth-session": "~57.0.6",
+    "expo-background-task": "~57.0.8",
     "expo-constants": "~57.0.6",
+    "expo-crypto": "~57.0.1",
     "expo-dev-client": "~57.0.9",
     "expo-device": "~57.0.1",
     "expo-document-picker": "~57.0.1",
@@ -47,14 +51,18 @@
     "expo-linking": "~57.0.4",
     "expo-local-authentication": "~57.0.2",
     "expo-localization": "~57.0.1",
+    "expo-network": "~57.0.1",
     "expo-notifications": "~57.0.7",
     "expo-router": "~57.0.8",
+    "expo-secure-store": "~57.0.1",
     "expo-sharing": "~57.0.7",
     "expo-splash-screen": "~57.0.5",
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.1",
+    "expo-task-manager": "~57.0.8",
     "expo-updates": "~57.0.10",
+    "expo-web-browser": "~57.0.2",
     "lucide-react-native": "^1.17.0",
     "posthog-react-native": "^4.57.0",
     "react": "19.2.3",
@@ -102,6 +110,9 @@
   "jest": {
     "preset": "jest-expo",
     "globalSetup": "<rootDir>/jest.global-setup.js",
+    "testPathIgnorePatterns": [
+      "<rootDir>/scripts/cloud-sync/"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!.*((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg))"
     ]

@@ -108,11 +108,13 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
 
   /**
    * Commit (Save path):
-   * Delete every photo in the removal queue from disk.
-   * This includes both originally-existing photos and newly-added-then-removed ones.
+   * Delete only photos created and removed inside this unsaved editor session.
+   * Previously persisted photos are retained by the transactional sync ledger.
    */
   const commitRemovedPhotos = useCallback(() => {
-    removedPhotosRef.current.forEach((p) => deletePhotoFile(p.uri));
+    removedPhotosRef.current
+      .filter((photo) => !initialUrisRef.current.has(photo.uri))
+      .forEach((photo) => deletePhotoFile(photo.uri));
     removedPhotosRef.current = [];
   }, []);
 

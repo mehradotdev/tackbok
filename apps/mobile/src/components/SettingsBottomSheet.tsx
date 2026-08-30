@@ -30,7 +30,6 @@ import { useSettingsStore } from '~/lib/settings';
 import {
   pickPhotos,
   compressAndSavePhoto,
-  deletePhotoFile,
   getFullPhotoUri,
   type PickPhotosResult,
 } from '~/lib/photoUtils';
@@ -455,27 +454,26 @@ export function SettingsBottomSheet() {
       try {
         // Save the new photo first so a failure doesn't destroy the current avatar.
         const asset = await compressAndSavePhoto(result.uris[0]);
-        const previousUri = profileImageUri;
-
-        setProfileImageUri(asset.uri);
-
-        if (previousUri && previousUri !== asset.uri) {
-          deletePhotoFile(previousUri);
-        }
+        await setProfileImageUri(asset.uri);
       } catch (error) {
         console.error('Failed to update profile photo:', error);
         toast.error(t('Failed to add photos'), { useModal: true });
       }
     },
-    [profileImageUri, setProfileImageUri, showPermissionDeniedAlert, t],
+    [setProfileImageUri, showPermissionDeniedAlert, t],
   );
 
   /** Pick a new photo, compress, save to documents, and update the store. */
   const handlePickNewPhoto = useCallback(async () => {
     setPhotoDialogOpen(false);
-    const result = await pickPhotos('library', 1);
-    await handlePickPhotoResult(result);
-  }, [handlePickPhotoResult]);
+    try {
+      const result = await pickPhotos('library', 1);
+      await handlePickPhotoResult(result);
+    } catch (error) {
+      console.error('Failed to open profile photo picker:', error);
+      toast.error(t('Failed to add photos'), { useModal: true });
+    }
+  }, [handlePickPhotoResult, t]);
 
   /** Tap on avatar → show dialog (if photo exists) or pick directly. */
   const handleAvatarPress = useCallback(() => {
@@ -484,24 +482,35 @@ export function SettingsBottomSheet() {
       setPhotoDialogOpen(true);
     } else {
       // No photo → pick directly
-      handlePickNewPhoto();
+      void handlePickNewPhoto();
     }
   }, [handlePickNewPhoto, profileImageUri]);
 
   /** Remove the current photo and clean up the file. */
-  const handleRemovePhoto = useCallback(() => {
+  const handleRemovePhoto = useCallback(async () => {
     setPhotoDialogOpen(false);
-    if (profileImageUri) {
-      deletePhotoFile(profileImageUri);
-      setProfileImageUri(null);
+    try {
+      if (profileImageUri) {
+        await setProfileImageUri(null);
+      }
+    } catch (error) {
+      console.error('Failed to remove profile photo:', error);
+      toast.error(t('Unknown error'), { useModal: true });
     }
-  }, [profileImageUri, setProfileImageUri]);
+  }, [profileImageUri, setProfileImageUri, t]);
 
   const handleSaveName = useCallback(
-    (newName: string) => {
-      setProfileName(newName || null);
+    async (newName: string) => {
+      try {
+        await setProfileName(newName || null);
+      } catch (error) {
+        console.error('Failed to save profile name:', error);
+        toast.error(t('Unknown error'), {
+          useModal: true,
+        });
+      }
     },
-    [setProfileName],
+    [setProfileName, t],
   );
 
   return (

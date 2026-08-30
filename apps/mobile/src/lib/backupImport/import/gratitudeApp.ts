@@ -1,4 +1,4 @@
-import { db, entries } from '~/db';
+import { entries } from '~/db';
 import { useSettingsStore } from '~/lib/settings';
 import { type BackupImportSummary, type ImportMode } from '../types';
 import {
@@ -24,6 +24,7 @@ import {
   writeImportedPhoto,
 } from '../archiveUtils';
 import { getImportTotals } from './helpers';
+import { runInCloudSyncTransaction } from '~/lib/cloudSync/storage/repositories';
 
 export async function importFromGratitudeAppBackup(
   uri: string,
@@ -72,7 +73,7 @@ export async function importFromGratitudeAppBackup(
         ...createSummaryCounterMetrics(summary),
       });
 
-      await db.transaction(async (tx) => {
+      await runInCloudSyncTransaction(async (tx) => {
         const tagMap = await upsertPortableTags(tx, portableTags, summary);
         await ensurePortablePromptTitles(tx, portablePrompts, summary);
         reportImportProgress(onProgress, 'gratitudeApp', 'taxonomy', 1, {
@@ -113,13 +114,13 @@ export async function importFromGratitudeAppBackup(
     try {
       const settingsState = useSettingsStore.getState();
       if (profile.name != null) {
-        settingsState.setProfileName(profile.name);
+        await settingsState.setProfileName(profile.name);
       }
       if (profile.hasEmail) {
-        settingsState.setProfileEmail(profile.email);
+        await settingsState.setProfileEmail(profile.email);
       }
       if (importedProfileImageUri) {
-        settingsState.setProfileImageUri(importedProfileImageUri);
+        await settingsState.setProfileImageUri(importedProfileImageUri);
       }
     } catch (error) {
       if (importedProfileImageUri) {

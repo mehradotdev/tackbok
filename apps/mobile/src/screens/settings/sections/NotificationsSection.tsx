@@ -14,16 +14,12 @@ import { Switch } from '~/components/ui/switch';
 import { toast } from '~/components/ui/toast';
 import { TimePickerModal } from '~/components/TimePickerModal';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 
 export function NotificationsSection() {
   const { t } = useTranslation();
-  const {
-    dailyReminderEnabled,
-    setDailyReminderEnabled,
-    reminderTime,
-    setReminderTime,
-  } = useSettingsStore();
+  const { dailyReminderEnabled, setDailyReminderEnabled, reminderTime, setReminderTime } =
+    useSettingsStore();
 
   const [showTimePickerModal, setShowTimePickerModal] = useState(false);
 

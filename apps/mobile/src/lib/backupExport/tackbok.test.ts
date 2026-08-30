@@ -83,24 +83,45 @@ jest.mock('expo-file-system', () => ({
 
 jest.mock('~/db', () => {
   const mockEntries = { created_at: 'created_at' };
+  const mockMediaAssets = {
+    owner_type: 'owner_type',
+    owner_id: 'owner_id',
+    created_at: 'created_at',
+    asset_id: 'asset_id',
+  };
+  const mockUserProfile = {};
+  const mockDb = {
+    select: jest.fn(() => ({
+      from: jest.fn((table: unknown) => {
+        if (table === mockEntries) {
+          return {
+            orderBy: jest.fn(async () => []),
+          };
+        }
+
+        if (table === mockMediaAssets) {
+          return { orderBy: jest.fn(async () => []) };
+        }
+
+        if (table === mockUserProfile) {
+          return { limit: jest.fn(async () => []) };
+        }
+
+        return Promise.resolve([]);
+      }),
+    })),
+  };
 
   return {
-    db: {
-      select: jest.fn(() => ({
-        from: jest.fn((table: unknown) => {
-          if (table === mockEntries) {
-            return {
-              orderBy: jest.fn(async () => []),
-            };
-          }
-
-          return Promise.resolve([]);
-        }),
-      })),
-    },
+    db: mockDb,
+    runExclusiveDbTransaction: (operation: (tx: typeof mockDb) => Promise<unknown>) =>
+      operation(mockDb),
     customPrompts: {},
     entries: mockEntries,
+    entryTags: {},
+    mediaAssets: mockMediaAssets,
     tags: {},
+    userProfile: mockUserProfile,
   };
 });
 
@@ -364,6 +385,8 @@ describe('exportToBackupZip', () => {
       name: 'Ada',
       email: 'ada@example.com',
       imagePath: null,
+      photoAssetId: null,
+      photoBlobHash: null,
     });
     expect(manifestJson.counts).toEqual({
       entries: 1,

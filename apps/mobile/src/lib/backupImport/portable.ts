@@ -3,10 +3,12 @@
  * provides the source-agnostic runtime that writes that model into Tackbok.
  */
 
+import { randomUUID } from 'expo-crypto';
 import { db, customPrompts, entries, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { createZipEntryLookup, type ZipEntryLookup, type ZipReader } from '~/lib/zip';
-import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
+import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
+import { sha256Bytes } from '~/lib/cloudSync/snapshot/sha256';
 import type { ImportProgressCallback } from './progress';
 import { reportImportProgress } from './progress';
 import {
@@ -45,6 +47,11 @@ import {
 } from './archiveUtils';
 import { createSummaryCounterMetrics, recordImportWarning } from './summary';
 import { and, eq } from 'drizzle-orm';
+import {
+  createPromptInTransaction,
+  createTagInTransaction,
+  upsertEntryInTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 
 type BackupArchiveTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -106,6 +113,7 @@ async function materializePortableEntryAssets(
     try {
       const archivePath = assertSafeArchivePath(portableAsset.path);
       const bytes = await readSafeZipBytes(zip, archivePath);
+      const blobHash = sha256Bytes(bytes);
 
       if (portableAsset.type === AssetType.IMAGE) {
         const photo = await writeImportedPhoto(bytes, archivePath);
@@ -115,6 +123,11 @@ async function materializePortableEntryAssets(
           uri: photo.uri,
           width: portableAsset.width ?? photo.width,
           height: portableAsset.height ?? photo.height,
+          assetId: portableAsset.assetId,
+          blobHash,
+          mimeType: portableAsset.mimeType,
+          byteSize: bytes.byteLength,
+          durationMs: portableAsset.durationMs,
         });
         summary.importedPhotos++;
         continue;
@@ -122,7 +135,14 @@ async function materializePortableEntryAssets(
 
       const audio = writeImportedAudio(bytes, archivePath);
       entryCreatedFiles.push(audio.uri);
-      assets.push(audio);
+        assets.push({
+          ...audio,
+          assetId: portableAsset.assetId,
+          blobHash,
+          mimeType: portableAsset.mimeType,
+          byteSize: bytes.byteLength,
+          durationMs: portableAsset.durationMs,
+        });
       summary.importedAudio++;
     } catch (error) {
       hadFailures = true;
@@ -436,6 +456,7 @@ export async function upsertPortableTags(
   tx: BackupArchiveTransaction,
   portableTags: PortableTag[],
   summary: BackupImportSummary,
+  batchId?: string,
 ): Promise<Map<string, string>> {
   const existingTags = await tx.select().from(tags);
   const tagMap = new Map<string, string>();
@@ -444,6 +465,7 @@ export async function upsertPortableTags(
     const key = sanitizeTagName(tag.title).toLowerCase();
     if (!key) continue;
     tagMap.set(key, tag.tag_id);
+    tagMap.set(`id:${tag.tag_id}`, tag.tag_id);
   }
 
   for (const portableTag of portableTags) {
@@ -451,20 +473,32 @@ export async function upsertPortableTags(
     if (!cleanTitle) continue;
 
     const key = cleanTitle.toLowerCase();
-    if (tagMap.has(key)) continue;
+    const portableId = portableTag.tagId?.trim();
+    const existingTitleId = tagMap.get(key);
+    if (existingTitleId) {
+      if (portableId) tagMap.set(`id:${portableId}`, existingTitleId);
+      continue;
+    }
 
-    const tagId = generateUUID();
-    await tx.insert(tags).values({
-      tag_id: tagId,
-      title: cleanTitle,
-      created_at: Number.isFinite(portableTag.createdAt)
-        ? portableTag.createdAt
-        : Date.now(),
-      updated_at: Number.isFinite(portableTag.updatedAt)
-        ? portableTag.updatedAt
-        : Date.now(),
-    });
+    const requestedId = portableId || randomUUID();
+    const tagId = tagMap.has(`id:${requestedId}`) ? randomUUID() : requestedId;
+    await createTagInTransaction(
+      tx,
+      cleanTitle,
+      {
+        batchId,
+        now: Number.isFinite(portableTag.updatedAt)
+          ? portableTag.updatedAt
+          : Date.now(),
+        createdAt: Number.isFinite(portableTag.createdAt)
+          ? portableTag.createdAt
+          : undefined,
+      },
+      tagId,
+    );
     tagMap.set(key, tagId);
+    tagMap.set(`id:${tagId}`, tagId);
+    if (portableId) tagMap.set(`id:${portableId}`, tagId);
     summary.importedTags++;
   }
 
@@ -478,11 +512,13 @@ export async function ensurePortablePromptTitles(
   tx: BackupArchiveTransaction,
   portablePrompts: PortablePrompt[],
   summary: BackupImportSummary,
+  batchId?: string,
 ): Promise<Set<string>> {
   const existingPrompts = await tx.select().from(customPrompts);
   const promptTitles = new Set(
     existingPrompts.map((prompt) => sanitizePromptTitle(prompt.title).toLowerCase()),
   );
+  const promptIds = new Set(existingPrompts.map((prompt) => prompt.prompt_id));
 
   for (const portablePrompt of portablePrompts) {
     const cleanTitle = sanitizePromptTitle(portablePrompt.title);
@@ -491,16 +527,23 @@ export async function ensurePortablePromptTitles(
     const key = cleanTitle.toLowerCase();
     if (promptTitles.has(key)) continue;
 
-    await tx.insert(customPrompts).values({
-      prompt_id: generateUUID(),
-      title: cleanTitle,
-      created_at: Number.isFinite(portablePrompt.createdAt)
-        ? portablePrompt.createdAt
-        : Date.now(),
-      updated_at: Number.isFinite(portablePrompt.updatedAt)
-        ? portablePrompt.updatedAt
-        : Date.now(),
-    });
+    const requestedId = portablePrompt.promptId?.trim() || randomUUID();
+    const promptId = promptIds.has(requestedId) ? randomUUID() : requestedId;
+    await createPromptInTransaction(
+      tx,
+      cleanTitle,
+      {
+        batchId,
+        now: Number.isFinite(portablePrompt.updatedAt)
+          ? portablePrompt.updatedAt
+          : Date.now(),
+        createdAt: Number.isFinite(portablePrompt.createdAt)
+          ? portablePrompt.createdAt
+          : undefined,
+      },
+      promptId,
+    );
+    promptIds.add(promptId);
     promptTitles.add(key);
     summary.importedPrompts++;
   }
@@ -522,6 +565,7 @@ export async function importPortableEntries(
   createdFiles: string[],
   source: BackupImportSource,
   onProgress?: ImportProgressCallback,
+  batchId?: string,
 ): Promise<void> {
   let processedEntries = 0;
   const totalEntries = portableEntries.length;
@@ -558,12 +602,21 @@ export async function importPortableEntries(
       continue;
     }
 
-    const tagIds = (portableEntry.tagTitles ?? [])
-      .map((title) => sanitizeTagName(title))
-      .filter(Boolean)
-      .map((title) => tagMap.get(title.toLowerCase()))
-      .filter((tagId): tagId is string => !!tagId)
-      .join(',');
+    const resolvedTagIds = new Set<string>();
+    const portableTagIds = portableEntry.tagIds ?? [];
+    const portableTagTitles = portableEntry.tagTitles ?? [];
+    for (let index = 0; index < Math.max(portableTagIds.length, portableTagTitles.length); index++) {
+      const stableId = portableTagIds[index]
+        ? tagMap.get(`id:${portableTagIds[index]}`)
+        : undefined;
+      const cleanTitle = portableTagTitles[index]
+        ? sanitizeTagName(portableTagTitles[index])
+        : '';
+      const titleId = cleanTitle ? tagMap.get(cleanTitle.toLowerCase()) : undefined;
+      const resolvedId = stableId ?? titleId;
+      if (resolvedId) resolvedTagIds.add(resolvedId);
+    }
+    const tagIds = Array.from(resolvedTagIds).sort().join(',');
 
     const textTitle = normalizeOptionalText(portableEntry.textTitle);
     const textContent = normalizeOptionalText(portableEntry.textContent);
@@ -631,9 +684,9 @@ export async function importPortableEntries(
     }
 
     try {
-      await tx
-        .insert(entries)
-        .values({
+      await upsertEntryInTransaction(
+        tx,
+        {
           note_id: noteId,
           text_title: textTitle,
           text_content: textContent,
@@ -642,19 +695,9 @@ export async function importPortableEntries(
           tags: tagIds,
           created_at: createdAt,
           updated_at: updatedAt,
-        })
-        .onConflictDoUpdate({
-          target: entries.note_id,
-          set: {
-            text_title: textTitle,
-            text_content: textContent,
-            mood,
-            assets: assets.length > 0 ? assets : null,
-            tags: tagIds,
-            created_at: createdAt,
-            updated_at: updatedAt,
-          },
-        });
+        },
+        { batchId, now: updatedAt },
+      );
     } catch (error) {
       cleanupImportedFiles(entryCreatedFiles);
       throw error;

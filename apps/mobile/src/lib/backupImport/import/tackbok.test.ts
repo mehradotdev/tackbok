@@ -55,14 +55,15 @@ const mockImportPortableEntries = jest.fn(
     _source: unknown,
   ): Promise<void> => undefined,
 );
-const mockApplyImportedProfile = jest.fn(
-  (_profile: unknown, _imageUri: string | null) => {},
-);
 const mockGetImportTotals = jest.fn(() => ({
   totalEntries: 0,
   totalTags: 0,
   totalPrompts: 0,
 }));
+const mockHydrateProfileCache = jest.fn((_profile?: unknown) => undefined);
+const mockUpdateProfileInTransaction = jest.fn(
+  async (_tx?: unknown, _profile?: unknown, _context?: unknown) => undefined,
+);
 
 jest.mock('~/db', () => ({
   db: {
@@ -72,12 +73,27 @@ jest.mock('~/db', () => ({
   entries: { note_id: 'note_id' },
 }));
 
+jest.mock('~/lib/settings', () => ({
+  hydrateProfileCache: (profile: unknown) => mockHydrateProfileCache(profile),
+}));
+
+jest.mock('~/lib/cloudSync/storage/repositories', () => ({
+  runInCloudSyncTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
+    mockTransaction(callback),
+  updateProfileInTransaction: (txArg: unknown, profile: unknown, context: unknown) =>
+    mockUpdateProfileInTransaction(txArg, profile, context),
+}));
+
 jest.mock('react-native', () => ({
   Image: {
     getSize: (_uri: string, onSuccess: (width: number, height: number) => void) =>
       onSuccess(1, 1),
   },
   Platform: { OS: 'ios' },
+}));
+
+jest.mock('expo-crypto', () => ({
+  randomUUID: jest.fn(() => '123e4567-e89b-42d3-a456-426614174000'),
 }));
 
 // Keep these mocks inline: the import flow needs a custom File/Directory surface
@@ -211,8 +227,6 @@ jest.mock('../portable', () => ({
 }));
 
 jest.mock('./helpers', () => ({
-  applyImportedProfile: (profileArg: unknown, imageUriArg: string | null) =>
-    mockApplyImportedProfile(profileArg, imageUriArg),
   getImportTotals: (...args: Parameters<typeof mockGetImportTotals>) =>
     mockGetImportTotals(...args),
 }));
@@ -235,7 +249,9 @@ describe('importFromTackbokBackup', () => {
     mockUpsertPortableTags.mockReset();
     mockEnsurePortablePromptTitles.mockReset();
     mockImportPortableEntries.mockReset();
-    mockApplyImportedProfile.mockReset();
+    mockHydrateProfileCache.mockReset();
+    mockUpdateProfileInTransaction.mockReset();
+    mockUpdateProfileInTransaction.mockResolvedValue(undefined);
     mockGetImportTotals.mockReset();
 
     txSelect.mockImplementation(() => ({ from: txSelectFrom }));
@@ -275,39 +291,32 @@ describe('importFromTackbokBackup', () => {
       assetPath: 'media/profile.jpg',
     });
     expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
-    expect(mockApplyImportedProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ imagePath: 'media/profile.jpg' }),
-      null,
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ displayName: 'Ada', photoUri: null }),
+      expect.objectContaining({ batchId: expect.any(String) }),
+    );
+    expect(mockHydrateProfileCache).toHaveBeenCalledWith(
+      expect.objectContaining({ profileName: 'Ada', profileImageUri: null }),
     );
     expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
 
     warnSpy.mockRestore();
   });
 
-  test('keeps imported data and cleans up the copied profile image when applying profile fails', async () => {
+  test('rolls back the import and cleans up the copied profile image when profile persistence fails', async () => {
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
-    mockApplyImportedProfile.mockImplementationOnce(() => {
-      throw new Error('settings write failed');
-    });
+    mockUpdateProfileInTransaction.mockRejectedValueOnce(
+      new Error('profile write failed'),
+    );
 
-    const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
-
-    expect(summary.failedProfileAssets).toBe(0);
-    expect(summary.warnings[0]).toMatchObject({
-      kind: 'profile-settings',
-      message: 'Imported entries, but could not apply imported profile settings.',
-    });
+    await expect(
+      importFromTackbokBackup('backup.zip', 'overwrite'),
+    ).rejects.toThrow('profile write failed');
     expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
-    expect(mockApplyImportedProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ imagePath: 'media/profile.jpg' }),
-      'photos/imported.jpg',
-    );
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalled();
     expect(mockCleanupImportedFiles).toHaveBeenCalledWith(['photos/imported.jpg']);
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[backupImport:tackbok] Imported entries, but could not apply imported profile settings.',
-      expect.any(Error),
-    );
 
     warnSpy.mockRestore();
   });

@@ -1,4 +1,5 @@
-import { db, entries } from '~/db';
+import { entries } from '~/db';
+import { randomUUID } from 'expo-crypto';
 import {
   BACKUP_ENTRIES_PATH,
   BACKUP_MANIFEST_PATH,
@@ -35,7 +36,12 @@ import {
   readSafeZipJson,
   writeImportedPhoto,
 } from '../archiveUtils';
-import { applyImportedProfile, getImportTotals } from './helpers';
+import { getImportTotals } from './helpers';
+import {
+  runInCloudSyncTransaction,
+  updateProfileInTransaction,
+} from '~/lib/cloudSync/storage/repositories';
+import { hydrateProfileCache } from '~/lib/settings';
 
 export async function importFromTackbokBackup(
   uri: string,
@@ -70,6 +76,7 @@ export async function importFromTackbokBackup(
     const summary = createBackupImportSummary();
     const createdFiles: string[] = [];
     let importedProfileImageUri: string | null = null;
+    const batchId = randomUUID();
     const totals = getImportTotals(portableEntries, portableTags, portablePrompts);
 
     reportImportProgress(
@@ -103,9 +110,9 @@ export async function importFromTackbokBackup(
         ...createSummaryCounterMetrics(summary),
       });
 
-      await db.transaction(async (tx) => {
-        const tagMap = await upsertPortableTags(tx, portableTags, summary);
-        await ensurePortablePromptTitles(tx, portablePrompts, summary);
+      await runInCloudSyncTransaction(async (tx) => {
+        const tagMap = await upsertPortableTags(tx, portableTags, summary, batchId);
+        await ensurePortablePromptTitles(tx, portablePrompts, summary, batchId);
         reportImportProgress(onProgress, 'tackbok', 'taxonomy', 1, {
           ...totals,
           ...createSummaryCounterMetrics(summary),
@@ -128,6 +135,17 @@ export async function importFromTackbokBackup(
           createdFiles,
           'tackbok',
           onProgress,
+          batchId,
+        );
+        await updateProfileInTransaction(
+          tx,
+          {
+            displayName: portableProfile.name ?? null,
+            email: portableProfile.email ?? null,
+            photoUri: importedProfileImageUri,
+            photoAssetId: portableProfile.photoAssetId ?? null,
+          },
+          { batchId },
         );
       });
     } catch (error) {
@@ -142,7 +160,11 @@ export async function importFromTackbokBackup(
     });
 
     try {
-      applyImportedProfile(portableProfile, importedProfileImageUri);
+      hydrateProfileCache({
+        profileName: portableProfile.name ?? null,
+        profileEmail: portableProfile.email ?? null,
+        profileImageUri: importedProfileImageUri,
+      });
     } catch (error) {
       if (importedProfileImageUri) {
         cleanupImportedFiles([importedProfileImageUri]);

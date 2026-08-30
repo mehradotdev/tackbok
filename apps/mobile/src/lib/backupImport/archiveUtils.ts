@@ -1,10 +1,11 @@
 import { Image } from 'react-native';
+import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import { MOODS, PHOTOS_DIR_NAME, VOICE_MEMOS_DIR_NAME } from '~/constants';
 import { AssetType, type Asset, type Mood } from '~/types';
 import { deletePhotoFile } from '~/lib/photoUtils';
 import { deleteVoiceMemoFile } from '~/lib/voiceMemoUtils';
-import { generateUUID, sanitizePromptTitle } from '~/lib/utils';
+import { sanitizePromptTitle } from '~/lib/utils';
 import {
   createExpoZipReaderSource,
   openZipReader,
@@ -95,7 +96,7 @@ export async function writeImportedPhoto(
 ): Promise<Asset> {
   const dir = ensureDirectory(PHOTOS_DIR_NAME);
   const extension = getSafeExtension(archivePath, 'jpg');
-  const filename = `${generateUUID()}.${extension}`;
+  const filename = `${randomUUID()}.${extension}`;
   const file = new File(dir, filename);
   try {
     file.write(bytes);
@@ -131,7 +132,7 @@ export async function writeImportedPhoto(
 export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asset {
   const dir = ensureDirectory(VOICE_MEMOS_DIR_NAME);
   const extension = getSafeExtension(archivePath, 'm4a');
-  const filename = `${generateUUID()}.${extension}`;
+  const filename = `${randomUUID()}.${extension}`;
   const file = new File(dir, filename);
   try {
     file.write(bytes);

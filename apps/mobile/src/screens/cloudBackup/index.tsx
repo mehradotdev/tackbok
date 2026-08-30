@@ -1,0 +1,980 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  Linking,
+  ScrollView,
+  View,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Cloud,
+  CloudOff,
+  FileClock,
+  RefreshCw,
+  ShieldCheck,
+  Smartphone,
+  Trash2,
+  Unplug,
+  Wifi,
+  X,
+} from 'lucide-react-native';
+import { cn } from 'tailwind-variants';
+import { useCSSVariable } from 'uniwind';
+import { useTranslation } from '~/lib/i18n';
+import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
+import { useSettingsStore } from '~/lib/settings';
+import { CloudAuthError } from '~/lib/cloudSync/auth';
+import {
+  acknowledgeCloudConflicts,
+  cancelPreparedGoogleDriveConnection,
+  completeGoogleDriveConnection,
+  deleteJournalEverywhere,
+  disconnectGoogleDrive,
+  listUnacknowledgedCloudConflicts,
+  prepareGoogleDriveConnection,
+  reconnectGoogleDrive,
+  resetThisDeviceOnly,
+  retrySyncAttentionReason,
+  revokeCloudVault,
+  setCloudSyncPaused,
+  syncNow,
+  useCloudSyncSnapshot,
+  type CloudConflictSummary,
+  CloudSyncActionError,
+  type PreparedGoogleConnection,
+} from '~/lib/cloudSync/ui';
+import {
+  SnapshotProviderError,
+} from '~/lib/cloudSync/snapshot/sync';
+import { Button } from '~/components/ui/button';
+import { Icon } from '~/components/ui/icon';
+import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
+import { SettingsRow } from '~/components/SettingsRow';
+import { Switch } from '~/components/ui/switch';
+import { Text } from '~/components/ui/text';
+import { toast } from '~/components/ui/toast';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogDestructiveAction,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
+import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
+import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
+import {
+  attentionReasonMessage,
+  cloudSyncFailureMessage,
+  entityTypeLabel,
+  recoveryActionLabel,
+  statusLabel,
+  SYNC_PHASES,
+  syncPhaseLabel,
+} from './copy';
+
+type SetupStage = 'overview' | 'disclosure' | 'authorizing' | 'choose' | 'working';
+type DataAction = 'delete-backup' | 'delete-journal' | 'reset-device';
+type DestructiveAction = 'disconnect' | 'finish-journal-deletion' | DataAction;
+
+export default function CloudBackupScreen() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const params = useLocalSearchParams<{ origin?: string }>();
+  const origin = params.origin === 'onboarding' ? 'onboarding' : 'settings';
+  const { t, isRTL } = useTranslation();
+  const { snapshot, refresh } = useCloudSyncSnapshot();
+  const wifiOnly = useSettingsStore((state) => state.cloudSyncWifiOnlyMedia);
+  const setWifiOnly = useSettingsStore((state) => state.setCloudSyncWifiOnlyMedia);
+  const setHasCompletedOnboarding = useSettingsStore(
+    (state) => state.setHasCompletedOnboarding,
+  );
+  const resetSettings = useSettingsStore((state) => state.resetToDefaults);
+  const manageDataSheetRef = useRef<TrueSheet>(null);
+  const [sheetBackgroundColor, themeRadiusStr, mutedForegroundColor] = useCSSVariable([
+    '--color-background',
+    '--theme-radius',
+    '--color-muted-foreground',
+  ]);
+  const sheetRadius =
+    String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
+  const [stage, setStage] = useState<SetupStage>(
+    origin === 'onboarding' ? 'disclosure' : 'overview',
+  );
+  const [prepared, setPrepared] = useState<PreparedGoogleConnection | null>(null);
+  const mountedRef = useRef(true);
+  const [conflicts, setConflicts] = useState<CloudConflictSummary[]>([]);
+  const conflictRefreshSequenceRef = useRef(0);
+  const actionRunningRef = useRef(false);
+  const [destructiveAction, setDestructiveAction] = useState<DestructiveAction | null>(
+    null,
+  );
+  const [deletingJournalEverywhere, setDeletingJournalEverywhere] = useState(false);
+  const providerName = t('Google Drive');
+  const disconnectLabel = t('Disconnect {provider}', {
+    provider: providerName,
+  });
+
+  const refreshConflicts = useCallback(async () => {
+    const sequence = ++conflictRefreshSequenceRef.current;
+    const next = await listUnacknowledgedCloudConflicts();
+    if (sequence === conflictRefreshSequenceRef.current) setConflicts(next);
+  }, []);
+
+  useEffect(() => {
+    void refreshConflicts();
+  }, [refreshConflicts, snapshot.conflictCount]);
+
+  useEffect(() => {
+    if (snapshot.status === 'syncing' || snapshot.status === 'restoring') {
+      AccessibilityInfo.announceForAccessibility(statusLabel(snapshot.status, t));
+    }
+  }, [snapshot.status, t]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      void cancelPreparedGoogleDriveConnection();
+    };
+  }, []);
+
+  const handleAuthorize = useCallback(async () => {
+    setStage('authorizing');
+    try {
+      const connection = await prepareGoogleDriveConnection();
+      if (!mountedRef.current) {
+        await cancelPreparedGoogleDriveConnection();
+        return;
+      }
+      if (origin === 'onboarding' && connection.availableVaults.length === 0) {
+        await cancelPreparedGoogleDriveConnection();
+        toast.warning(t('No Tackbok backup found in this Google account'));
+        router.back();
+        return;
+      }
+      setPrepared(connection);
+      setStage('choose');
+    } catch (error) {
+      if (!mountedRef.current) {
+        await cancelPreparedGoogleDriveConnection();
+        return;
+      }
+      const permissionMissing =
+        (error instanceof CloudAuthError && error.code === 'permission-required') ||
+        (error instanceof SnapshotProviderError &&
+          error.code === 'authorization-required');
+      toast.error(
+        permissionMissing
+          ? t(
+              'Google Drive access is required. Try again and select the Drive access checkbox.',
+            )
+          : t('Google Drive connection was not completed'),
+      );
+      if (origin === 'onboarding') router.back();
+      else setStage('disclosure');
+    }
+  }, [origin, router, t]);
+
+  const handleComplete = useCallback(
+    async (vaultId?: string, createNew = false) => {
+      setStage('working');
+      try {
+        await completeGoogleDriveConnection({ origin, vaultId, createNew });
+        await refresh();
+        toast.success(
+          origin === 'onboarding'
+            ? t('Cloud restore started')
+            : t('Cloud backup connected'),
+        );
+        if (origin === 'onboarding') {
+          setHasCompletedOnboarding(true);
+          router.replace('/');
+        } else {
+          setPrepared(null);
+          setStage('overview');
+          // Remove any setup query/state from the route. The durable local
+          // connection is complete here; the first upload continues through
+          // the ordinary runtime and must not hold the user on the setup card.
+          router.replace('/cloud-backup');
+        }
+      } catch {
+        setStage('choose');
+        toast.error(t('Cloud backup could not be updated'));
+      }
+    },
+    [origin, refresh, router, setHasCompletedOnboarding, t],
+  );
+
+  const runAction = useCallback(
+    async (action: () => Promise<unknown>, success: string) => {
+      if (actionRunningRef.current) return;
+      actionRunningRef.current = true;
+      try {
+        const result = await action();
+        if (result === false) throw new Error('action did not complete');
+        await refresh();
+        toast.success(success);
+      } catch (error) {
+        toast.error(
+          error instanceof CloudSyncActionError
+            ? cloudSyncFailureMessage(error.category, t)
+            : t('Cloud backup could not be updated'),
+        );
+      } finally {
+        actionRunningRef.current = false;
+      }
+    },
+    [refresh, t],
+  );
+
+  const clearLocalPresentation = useCallback(async () => {
+    resetSettings();
+    queryClient.clear();
+    router.replace('/onboarding/welcome');
+  }, [queryClient, resetSettings, router]);
+
+  const completeJournalDeletion = useCallback(async () => {
+    setDeletingJournalEverywhere(true);
+    AccessibilityInfo.announceForAccessibility(t('Deleting journal everywhere…'));
+    try {
+      await deleteJournalEverywhere();
+      await clearLocalPresentation();
+    } catch {
+      setDeletingJournalEverywhere(false);
+      toast.error(t('Cloud backup could not be updated'));
+    }
+  }, [clearLocalPresentation, t]);
+
+  const handleRecoveryAction = useCallback(async () => {
+    const reason = snapshot.attentionReason;
+    const action = snapshot.recoveryAction;
+    if (!reason || !action) return;
+    if (
+      action === 'choose-connected-account' ||
+      action === 'finish-connection' ||
+      action === 'reconnect-correct-backup'
+    ) {
+      await runAction(async () => {
+        await disconnectGoogleDrive();
+        setPrepared(null);
+        setStage('disclosure');
+      }, t('Choose a Google account to reconnect'));
+      return;
+    }
+    if (action === 'reconnect-google-drive') {
+      await runAction(reconnectGoogleDrive, t('Google Drive reconnected'));
+      return;
+    }
+    if (action === 'update-tackbok') {
+      await Linking.openURL('https://tackbok.org');
+      return;
+    }
+    if (action === 'free-device-storage') {
+      await Linking.openSettings();
+      return;
+    }
+    if (action === 'manage-drive-storage') {
+      await Linking.openURL('https://drive.google.com/drive/quota');
+      return;
+    }
+    if (action === 'acknowledge-disconnect') {
+      await runAction(
+        disconnectGoogleDrive,
+        t('Google Drive disconnected on this device'),
+      );
+      return;
+    }
+    if (action === 'review-erase-device') {
+      setDestructiveAction('finish-journal-deletion');
+      return;
+    }
+    if (action === 'resume-deletion') {
+      if (snapshot.revocationKind === 'journal-deleted') {
+        await completeJournalDeletion();
+      } else {
+        await runAction(
+          () => revokeCloudVault('backup-deleted'),
+          t('Cloud deletion completed'),
+        );
+      }
+      return;
+    }
+    if (action === 'export-repair-backup') {
+      router.push('/settings');
+      toast.warning(
+        t('Export or repair the affected journal data, then return and retry.'),
+      );
+      return;
+    }
+    if (action === 'locate-retry-attachment') {
+      await runAction(
+        () => retrySyncAttentionReason(reason),
+        t('Cloud backup retry completed'),
+      );
+      return;
+    }
+    await runAction(
+      () => retrySyncAttentionReason(reason),
+      t('Cloud backup retry completed'),
+    );
+  }, [
+    completeJournalDeletion,
+    router,
+    runAction,
+    snapshot.attentionReason,
+    snapshot.recoveryAction,
+    snapshot.revocationKind,
+    t,
+  ]);
+
+  const handleDestructiveAction = useCallback(
+    async (action: DestructiveAction | null) => {
+      setDestructiveAction(null);
+      if (!action) return;
+      try {
+        if (action === 'disconnect') {
+          await disconnectGoogleDrive();
+          toast.success(t('Google Drive disconnected on this device'));
+        } else if (action === 'delete-backup') {
+          await revokeCloudVault('backup-deleted');
+          toast.success(t('Cloud backup deleted'));
+        } else if (action === 'delete-journal') {
+          await completeJournalDeletion();
+          return;
+        } else if (action === 'reset-device') {
+          await resetThisDeviceOnly();
+          await clearLocalPresentation();
+          return;
+        } else {
+          await completeJournalDeletion();
+          return;
+        }
+        await refresh();
+      } catch {
+        toast.error(t('Cloud backup could not be updated'));
+      }
+    },
+    [clearLocalPresentation, completeJournalDeletion, refresh, t],
+  );
+
+  const handleChooseDataAction = useCallback(async (action: DataAction) => {
+    await manageDataSheetRef.current?.dismiss();
+    setDestructiveAction(action);
+  }, []);
+
+  const actionCopy =
+    destructiveAction === 'disconnect'
+      ? {
+          title: t('Disconnect {provider} from this device?', {
+            provider: providerName,
+          }),
+          description: t(
+            'Local data and the cloud backup will both remain. Other devices stay connected.',
+          ),
+          button: t('Disconnect'),
+        }
+      : destructiveAction === 'delete-backup'
+        ? {
+            title: t('Delete cloud backup?'),
+            description: t(
+              'The cloud copy will be permanently deleted after verification. Local journal data remains.',
+            ),
+            button: t('Delete cloud backup'),
+          }
+        : destructiveAction === 'delete-journal'
+          ? {
+              title: t('Delete journal everywhere?'),
+              description: t(
+                'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.',
+              ),
+              button: t('Delete journal everywhere'),
+            }
+          : destructiveAction === 'reset-device'
+            ? {
+                title: t('Reset this device only?'),
+                description: t(
+                  'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
+                ),
+                button: t('Reset this device only'),
+              }
+            : {
+                title: t('Finish deleting this journal?'),
+                description: t(
+                  'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
+                ),
+                button: t('Finish deletion'),
+              };
+
+  return (
+    <View className="flex-1 bg-background">
+      <View className="flex-row items-center border-b border-border px-safe-or-4 pt-safe-or-3 pb-3">
+        <Button
+          variant="ghost"
+          className="p-1 mr-1"
+          onPress={() => router.back()}
+          accessibilityLabel={t('Back')}>
+          <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
+        </Button>
+        <Text variant="h2" className="font-heading text-foreground py-1">
+          {t('Cloud Backup & Sync')}
+        </Text>
+      </View>
+
+      <ScrollView
+        className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerClassName="px-safe-or-4 py-5 gap-4 pb-safe-or-8">
+        {snapshot.revocationKind && (
+          <View
+            className="rounded-lg border border-destructive bg-destructive/10 p-4 gap-2"
+            accessibilityRole="alert">
+            <View className="flex-row items-center gap-2">
+              <Icon as={AlertTriangle} className="text-destructive size-5" />
+              <Text className="font-body-bold text-foreground">
+                {snapshot.revocationKind === 'journal-deleted'
+                  ? t('Journal deletion received')
+                  : t('Cloud backup deletion received')}
+              </Text>
+            </View>
+            <Text className="text-sm text-foreground">
+              {snapshot.revocationKind === 'journal-deleted'
+                ? t('This journal was deleted everywhere. This device is disconnected.')
+                : t(
+                    'This cloud backup was deleted. Local journal data remains on this device.',
+                  )}
+            </Text>
+          </View>
+        )}
+
+        {(stage === 'disclosure' || stage === 'authorizing') && (
+          <DisclosureCard
+            busy={stage === 'authorizing'}
+            onContinue={() => void handleAuthorize()}
+          />
+        )}
+
+        {(stage === 'choose' || stage === 'working') && prepared && (
+          <ConnectionChoice
+            prepared={prepared}
+            origin={origin}
+            busy={stage === 'working'}
+            onChoose={(vaultId) => void handleComplete(vaultId)}
+            onCreate={() => void handleComplete(undefined, true)}
+          />
+        )}
+
+        {stage === 'overview' &&
+          (snapshot.configured ||
+          snapshot.status === 'paused' ||
+          Boolean(snapshot.attentionReason && snapshot.recoveryAction) ? (
+            <>
+              <View className="rounded-lg border border-border bg-card p-4 gap-3">
+                <View className="flex-row items-center justify-between gap-3">
+                  <View className="flex-row items-center gap-3 flex-1">
+                    <Icon
+                      as={snapshot.status === 'warning' ? AlertTriangle : Cloud}
+                      className={
+                        snapshot.status === 'warning'
+                          ? 'text-destructive size-6'
+                          : 'text-foreground size-6'
+                      }
+                    />
+                    <View className="flex-1">
+                      <Text className="font-body-bold text-foreground">
+                        {statusLabel(snapshot.status, t)}
+                      </Text>
+                      <Text selectable className="text-sm text-foreground">
+                        {snapshot.accountLabel ?? t('Google Drive')}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <Text className="text-sm text-foreground">
+                  {snapshot.queuedCount > 0
+                    ? snapshot.status === 'syncing'
+                      ? t('{count} changes remaining', { count: snapshot.queuedCount })
+                      : t('{count} changes safely queued', {
+                          count: snapshot.queuedCount,
+                        })
+                    : snapshot.lastSuccessAt
+                      ? t('Last successful sync: {date}', {
+                          date: formatLocalizedDate(snapshot.lastSuccessAt, t, {
+                            relative: true,
+                          }),
+                        })
+                      : t('Waiting for the first successful sync')}
+                </Text>
+                {snapshot.attentionReason && snapshot.recoveryAction && (
+                  <View
+                    className="gap-3 rounded-xl border border-destructive/50 bg-destructive/10 p-3"
+                    accessibilityRole="alert"
+                    accessibilityLiveRegion="polite">
+                    <Text className="text-sm text-foreground">
+                      {attentionReasonMessage(snapshot.attentionReason, t)}
+                    </Text>
+                    <Button
+                      variant="outline"
+                      onPress={() => void handleRecoveryAction()}
+                      accessibilityLabel={recoveryActionLabel(
+                        snapshot.recoveryAction,
+                        t,
+                      )}>
+                      <Text>{recoveryActionLabel(snapshot.recoveryAction, t)}</Text>
+                    </Button>
+                  </View>
+                )}
+                {snapshot.status === 'syncing' && snapshot.activityPhase && (
+                  <SyncProgressPanel
+                    phase={snapshot.activityPhase}
+                    initialRestore={snapshot.initialRestore}
+                  />
+                )}
+                {snapshot.status === 'restoring' && (
+                  <Text
+                    className="text-sm text-foreground"
+                    accessibilityLiveRegion="polite">
+                    {t(
+                      'You can leave this screen; syncing resumes when Tackbok is active.',
+                    )}
+                  </Text>
+                )}
+                <Button
+                  variant="primary"
+                  size="lg"
+                  disabled={
+                    snapshot.status === 'syncing' ||
+                    snapshot.status === 'paused' ||
+                    snapshot.status === 'warning'
+                  }
+                  onPress={() => void runAction(syncNow, t('Sync completed'))}
+                  accessibilityLabel={t('Sync now')}>
+                  {snapshot.status === 'syncing' ? (
+                    <SpinningRefreshIcon className="text-primary-foreground size-5" />
+                  ) : (
+                    <Icon as={RefreshCw} className="text-primary-foreground size-5" />
+                  )}
+                  <Text>
+                    {snapshot.status === 'syncing' ? t('Syncing…') : t('Sync now')}
+                  </Text>
+                </Button>
+              </View>
+
+              <View className="rounded-lg border border-border bg-card overflow-hidden">
+                <SettingsRow
+                  icon={Wifi}
+                  label={t('Sync media on Wi-Fi only')}
+                  description={t('Journal text still syncs on mobile data.')}
+                  onPress={() => setWifiOnly(!wifiOnly)}
+                  role="switch"
+                  accessibilityLabel={t('Sync media on Wi-Fi only')}
+                  accessibilityHint={t('Journal text still syncs on mobile data.')}
+                  accessibilityState={{ checked: wifiOnly }}
+                  className="rounded-none px-4"
+                  rightElement={
+                    <View
+                      pointerEvents="none"
+                      accessible={false}
+                      importantForAccessibility="no-hide-descendants">
+                      <Switch checked={wifiOnly} />
+                    </View>
+                  }
+                />
+                <SettingsRow
+                  icon={CloudOff}
+                  label={t('Pause sync')}
+                  description={t('Edits remain safely queued on this device.')}
+                  onPress={() =>
+                    void runAction(
+                      () => setCloudSyncPaused(snapshot.status !== 'paused'),
+                      snapshot.status !== 'paused' ? t('Sync paused') : t('Sync resumed'),
+                    )
+                  }
+                  role="switch"
+                  accessibilityLabel={t('Pause sync')}
+                  accessibilityHint={t('Edits remain safely queued on this device.')}
+                  accessibilityState={{ checked: snapshot.status === 'paused' }}
+                  className="rounded-none px-4"
+                  rightElement={
+                    <View
+                      pointerEvents="none"
+                      accessible={false}
+                      importantForAccessibility="no-hide-descendants">
+                      <Switch checked={snapshot.status === 'paused'} />
+                    </View>
+                  }
+                  isLast
+                />
+              </View>
+
+              {conflicts.length > 0 && (
+                <View className="rounded-lg border border-border bg-card p-4 gap-3">
+                  <View className="flex-row items-center gap-2">
+                    <Icon as={FileClock} className="text-foreground size-5" />
+                    <Text className="font-body-bold text-foreground">
+                      {t('Recovered conflicts')}
+                    </Text>
+                  </View>
+                  {conflicts.map((conflict) => (
+                    <Text key={conflict.conflictId} className="text-sm text-foreground">
+                      {t('Recovered {type} conflict — {count} preserved alternatives', {
+                        type: entityTypeLabel(conflict.entityType, t),
+                        count: conflict.recoveredCount + conflict.alternateCount,
+                      })}
+                    </Text>
+                  ))}
+                  <Button
+                    variant="outline"
+                    onPress={() =>
+                      void runAction(async () => {
+                        await acknowledgeCloudConflicts();
+                        await refreshConflicts();
+                      }, t('Recovered conflicts marked as reviewed'))
+                    }>
+                    <Text>{t('Mark as reviewed')}</Text>
+                  </Button>
+                </View>
+              )}
+
+              <View className="rounded-lg border border-border bg-card overflow-hidden">
+                <SettingsRow
+                  icon={Unplug}
+                  label={disconnectLabel}
+                  description={t('Keep local data and the cloud copy')}
+                  onPress={() => setDestructiveAction('disconnect')}
+                  accessibilityLabel={disconnectLabel}
+                  accessibilityHint={t('Keep local data and the cloud copy')}
+                  className="rounded-none px-4"
+                  isLast
+                />
+              </View>
+
+              <View className="rounded-lg border border-destructive/50 bg-card overflow-hidden">
+                <SettingsRow
+                  icon={Trash2}
+                  label={t('Delete or reset data')}
+                  description={t('Choose which copies of your journal to remove.')}
+                  onPress={() => void manageDataSheetRef.current?.present()}
+                  accessibilityLabel={t('Delete or reset data')}
+                  accessibilityHint={t(
+                    'Choose which copies of your journal to remove.',
+                  )}
+                  className="rounded-none px-4"
+                  showChevron
+                  isLast
+                />
+              </View>
+            </>
+          ) : (
+            <View className="rounded-lg border border-border bg-card p-5 gap-4">
+              <View className="items-center gap-3">
+                <Icon as={Cloud} className="text-foreground size-10" />
+                <Text variant="h3" className="text-center text-foreground">
+                  {t('Optional cloud backup')}
+                </Text>
+                <Text className="text-center text-foreground">
+                  {t(
+                    'Back up and sync your journal with your own Google Drive. No Tackbok account is created.',
+                  )}
+                </Text>
+              </View>
+              <Button variant="primary" size="lg" onPress={() => setStage('disclosure')}>
+                <Text>{t('Connect Google Drive')}</Text>
+              </Button>
+            </View>
+          ))}
+      </ScrollView>
+
+      <TrueSheet
+        ref={manageDataSheetRef}
+        detents={['auto']}
+        cornerRadius={sheetRadius}
+        grabber
+        grabberOptions={{
+          topMargin: 8,
+          color: mutedForegroundColor as string,
+          adaptive: false,
+        }}
+        backgroundColor={sheetBackgroundColor as string}>
+        <View className="bg-background pt-2 pb-8">
+          <View className="flex-row items-center justify-between px-5 pt-3 pb-2">
+            <Text className="text-xl font-body-bold text-foreground">
+              {t('Delete or reset data')}
+            </Text>
+            <Button
+              onPress={() => void manageDataSheetRef.current?.dismiss()}
+              variant="ghost"
+              className="p-1 -mr-2"
+              accessibilityLabel={t('Close')}>
+              <Icon as={X} className="text-foreground" />
+            </Button>
+          </View>
+
+          <Text className="px-5 pb-3 text-sm text-muted-foreground">
+            {t('Choose which copies of your journal to remove.')}
+          </Text>
+
+          <View className="mx-4 rounded-lg border border-destructive/50 bg-card overflow-hidden">
+            <SettingsRow
+              icon={CloudOff}
+              label={t('Delete cloud backup')}
+              description={t('Keep local journal data')}
+              onPress={() => void handleChooseDataAction('delete-backup')}
+              accessibilityLabel={t('Delete cloud backup')}
+              accessibilityHint={t('Keep local journal data')}
+              className="rounded-none px-4"
+            />
+            <SettingsRow
+              icon={Smartphone}
+              label={t('Reset this device only')}
+              description={t('Keep the cloud copy and other devices')}
+              onPress={() => void handleChooseDataAction('reset-device')}
+              accessibilityLabel={t('Reset this device only')}
+              accessibilityHint={t('Keep the cloud copy and other devices')}
+              className="rounded-none px-4"
+            />
+            <SettingsRow
+              icon={Trash2}
+              label={t('Delete journal everywhere')}
+              description={t('Delete cloud and local journal data')}
+              onPress={() => void handleChooseDataAction('delete-journal')}
+              accessibilityLabel={t('Delete journal everywhere')}
+              accessibilityHint={t('Delete cloud and local journal data')}
+              className="rounded-none px-4"
+              isLast
+            />
+          </View>
+        </View>
+      </TrueSheet>
+
+      <AlertDialog
+        open={destructiveAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setDestructiveAction(null);
+        }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{actionCopy.title}</AlertDialogTitle>
+            <AlertDialogDescription>{actionCopy.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <Text>{t('Cancel')}</Text>
+            </AlertDialogCancel>
+            <AlertDialogDestructiveAction
+              delaySeconds={DELETE_CONFIRM_DELAY_SECONDS}
+              onPress={() => void handleDestructiveAction(destructiveAction)}>
+              <Text>{actionCopy.button}</Text>
+            </AlertDialogDestructiveAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {deletingJournalEverywhere && (
+        <View
+          className="absolute inset-0 z-50 items-center justify-center bg-background/95 px-safe-or-6"
+          accessibilityViewIsModal
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('Deleting journal everywhere…')}
+          accessibilityLiveRegion="assertive">
+          <View className="w-full max-w-md items-center gap-4 rounded-xl border border-border bg-card p-6">
+            <ActivityIndicator size="large" colorClassName="accent-primary" />
+            <Text variant="h3" className="text-center text-foreground">
+              {t('Deleting journal everywhere…')}
+            </Text>
+            <Text className="text-center text-muted-foreground">
+              {t('Removing the cloud backup and journal data. Keep Tackbok open.')}
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function SyncProgressPanel({
+  phase,
+  initialRestore,
+}: {
+  phase: NonNullable<
+    ReturnType<typeof useCloudSyncSnapshot>['snapshot']['activityPhase']
+  >;
+  initialRestore: boolean;
+}) {
+  const { t } = useTranslation();
+  const phaseIndex = SYNC_PHASES.indexOf(phase);
+  const label = syncPhaseLabel(phase, initialRestore, t);
+
+  return (
+    <View
+      className="gap-3 rounded-xl bg-primary/10 p-3"
+      accessibilityRole="progressbar"
+      accessibilityValue={{ text: label }}
+      accessibilityLiveRegion="polite">
+      <View className="flex-row items-center gap-3">
+        <View className="size-9 items-center justify-center rounded-full bg-primary/15">
+          <ActivityIndicator size="small" colorClassName="accent-primary" />
+        </View>
+        <View className="flex-1 gap-0.5">
+          <Text className="font-body-semibold text-foreground">{label}</Text>
+          <Text className="text-xs text-foreground">
+            {t('Step {current} of {total} in this batch', {
+              current: phaseIndex + 1,
+              total: SYNC_PHASES.length,
+            })}
+          </Text>
+        </View>
+      </View>
+
+      <View className="flex-row gap-1.5" accessibilityElementsHidden>
+        {SYNC_PHASES.map((item, index) => (
+          <View
+            key={item}
+            className={cn(
+              'h-1.5 flex-1 rounded-full',
+              index < phaseIndex
+                ? 'bg-primary/50'
+                : index === phaseIndex
+                  ? 'bg-primary'
+                  : 'bg-muted',
+            )}
+          />
+        ))}
+      </View>
+
+      <Text className="text-xs leading-4.5 text-foreground">
+        {t('Sync runs in safe batches. You can keep using Tackbok.')}
+      </Text>
+    </View>
+  );
+}
+
+function DisclosureCard({ busy, onContinue }: { busy: boolean; onContinue: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <View className="rounded-lg border border-border bg-card p-5 gap-4">
+      <View className="flex-row items-center gap-3">
+        <Icon as={ShieldCheck} className="text-foreground size-7" />
+        <Text variant="h3" className="text-foreground flex-1">
+          {t('Before you connect')}
+        </Text>
+      </View>
+      <Text className="text-foreground">
+        {t(
+          'Backups are encrypted in transit and at rest by Google Drive, but are not end-to-end encrypted.',
+        )}
+      </Text>
+      <Text className="font-body-semibold text-foreground">
+        {t(
+          'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.',
+        )}
+      </Text>
+      <Text className="text-foreground">
+        {t(
+          'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.',
+        )}
+      </Text>
+      <Button variant="primary" size="lg" disabled={busy} onPress={onContinue}>
+        {busy && <ActivityIndicator colorClassName="accent-primary-foreground" />}
+        <Text>{busy ? t('Connecting…') : t('Connect Google Drive')}</Text>
+      </Button>
+    </View>
+  );
+}
+
+function ConnectionChoice({
+  prepared,
+  origin,
+  busy,
+  onChoose,
+  onCreate,
+}: {
+  prepared: PreparedGoogleConnection;
+  origin: 'settings' | 'onboarding';
+  busy: boolean;
+  onChoose: (vaultId: string) => void;
+  onCreate: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <View className="rounded-lg border border-border bg-card p-5 gap-4">
+      <View className="flex-row items-center gap-3">
+        <Icon as={CheckCircle2} className="text-foreground size-7" />
+        <View className="flex-1">
+          <Text variant="h3" className="text-foreground">
+            {t('Google Drive connected')}
+          </Text>
+          <Text selectable className="text-sm text-foreground">
+            {prepared.accountLabel}
+          </Text>
+        </View>
+      </View>
+      {prepared.availableVaults.length > 0 ? (
+        <>
+          <Text className="text-foreground">
+            {prepared.localHasData
+              ? t('Choose a backup to merge with this journal. Both sides are preserved.')
+              : t('Choose a backup to restore on this device.')}
+          </Text>
+          {prepared.availableVaults.map((vault, index) => (
+            <Button
+              key={vault.vaultId}
+              variant="outline"
+              size="flex"
+              className="w-full justify-start px-4 py-3"
+              disabled={busy}
+              onPress={() => onChoose(vault.vaultId)}
+              accessibilityLabel={`${
+                prepared.localHasData ? t('Restore and merge') : t('Restore cloud backup')
+              }. ${
+                vault.createdAt
+                  ? t('Backup from {date}', {
+                      date: formatLocalizedDate(vault.createdAt, t),
+                    })
+                  : t('Cloud backup {number}', { number: index + 1 })
+              }`}>
+              <View className="flex-1 gap-0.5">
+                <Text className="font-body-bold text-foreground">
+                  {vault.createdAt
+                    ? t('Backup from {date}', {
+                        date: formatLocalizedDate(vault.createdAt, t),
+                      })
+                    : t('Cloud backup {number}', { number: index + 1 })}
+                </Text>
+                <Text className="text-sm text-foreground">
+                  {prepared.localHasData
+                    ? t('Restore and merge')
+                    : t('Restore cloud backup')}
+                </Text>
+              </View>
+            </Button>
+          ))}
+        </>
+      ) : origin === 'settings' ? (
+        <>
+          <Text className="text-foreground">
+            {t('No existing Tackbok backup was found. Create one for this journal.')}
+          </Text>
+          <Button variant="primary" size="lg" disabled={busy} onPress={onCreate}>
+            <Text>{t('Create cloud backup')}</Text>
+          </Button>
+        </>
+      ) : null}
+      {busy && (
+        <View className="flex-row items-center gap-2" accessibilityLiveRegion="polite">
+          <ActivityIndicator colorClassName="accent-primary" />
+          <Text className="text-foreground/75">{t('Setting up cloud sync…')}</Text>
+        </View>
+      )}
+    </View>
+  );
+}

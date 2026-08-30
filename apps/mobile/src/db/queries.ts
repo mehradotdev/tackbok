@@ -1,7 +1,19 @@
 import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
 import { startOfDay, format } from 'date-fns';
-import { generateUUID, sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import { getAchievementForCreateTransition, type Achievement } from '~/lib/achievements';
+import {
+  createPromptInTransaction,
+  createTagInTransaction,
+  deleteEntryInTransaction,
+  deletePromptInTransaction,
+  deleteTagInTransaction,
+  runInCloudSyncTransaction,
+  updateProfileInTransaction,
+  updatePromptInTransaction,
+  updateTagInTransaction,
+  upsertEntryInTransaction,
+  type CloudSyncTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 import {
   db,
   entries,
@@ -11,6 +23,7 @@ import {
   type NewEntry,
   type Tag,
   type CustomPrompt,
+  cloudVault,
 } from './index';
 
 /**
@@ -232,26 +245,7 @@ export async function searchEntries(
  * Insert or update an entry
  */
 export async function upsertEntry(entry: NewEntry) {
-  const now = Date.now();
-  await db
-    .insert(entries)
-    .values({
-      ...entry,
-      updated_at: now,
-      created_at: entry.created_at ?? now,
-    })
-    .onConflictDoUpdate({
-      target: entries.note_id,
-      set: {
-        text_title: entry.text_title,
-        text_content: entry.text_content,
-        mood: entry.mood,
-        assets: entry.assets,
-        tags: entry.tags,
-        updated_at: now,
-        created_at: entry.created_at ?? sql`${entries.created_at}`, // use previous value if new value is undefined
-      },
-    });
+  await runInCloudSyncTransaction((tx) => upsertEntryInTransaction(tx, entry));
 }
 
 /**
@@ -265,10 +259,10 @@ export async function createEntryWithAchievement(
   const now = Date.now();
   const createdAt = entry.created_at ?? now;
 
-  return db.transaction(async (tx) => {
+  return runInCloudSyncTransaction(async (tx) => {
     const { entryCount, days } = await readEntryDays(tx);
 
-    await tx.insert(entries).values({
+    await upsertEntryInTransaction(tx, {
       ...entry,
       created_at: createdAt,
       updated_at: now,
@@ -290,18 +284,41 @@ export async function createEntryWithAchievement(
  * `~/lib/entryDeletion` so its media files are cleaned up as well.
  */
 export async function deleteEntryRecord(noteId: string) {
-  await db.delete(entries).where(eq(entries.note_id, noteId));
+  await runInCloudSyncTransaction((tx) => deleteEntryInTransaction(tx, noteId));
 }
 
 /**
  * Completely resets the database by deleting all entries.
  */
-export async function deleteAllData() {
-  await db.transaction(async (tx) => {
-    await tx.delete(entries);
-    await tx.delete(tags);
-    await tx.delete(customPrompts);
-  });
+export async function deleteAllData(): Promise<{ retainedMediaForSync: boolean }> {
+  return runInCloudSyncTransaction(deleteAllDataInTransaction);
+}
+
+export async function deleteAllDataInTransaction(
+  tx: CloudSyncTransaction,
+): Promise<{ retainedMediaForSync: boolean }> {
+  const [allEntries, allTags, allPrompts, vaultRows] = await Promise.all([
+    tx.select({ id: entries.note_id }).from(entries),
+    tx.select({ id: tags.tag_id }).from(tags),
+    tx.select({ id: customPrompts.prompt_id }).from(customPrompts),
+    tx.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1),
+  ]);
+  const batchId = `local-reset-${Date.now()}`;
+  for (const { id } of allEntries) {
+    await deleteEntryInTransaction(tx, id, { batchId });
+  }
+  for (const { id } of allTags) {
+    await deleteTagInTransaction(tx, id, { batchId });
+  }
+  for (const { id } of allPrompts) {
+    await deletePromptInTransaction(tx, id, { batchId });
+  }
+  await updateProfileInTransaction(
+    tx,
+    { displayName: null, email: null, photoUri: null },
+    { batchId },
+  );
+  return { retainedMediaForSync: vaultRows.length > 0 };
 }
 
 // ============================================================================
@@ -319,29 +336,14 @@ export async function getAllTags(): Promise<Tag[]> {
  * Create a new tag
  */
 export async function createTag(title: string): Promise<void> {
-  const cleanTitle = sanitizeTagName(title);
-  if (!cleanTitle) throw new Error('Invalid tag title');
-
-  const now = Date.now();
-  await db.insert(tags).values({
-    tag_id: generateUUID(),
-    title: cleanTitle,
-    created_at: now,
-    updated_at: now,
-  });
+  await runInCloudSyncTransaction((tx) => createTagInTransaction(tx, title));
 }
 
 /**
  * Update a tag's title
  */
 export async function updateTag(tagId: string, title: string): Promise<void> {
-  const cleanTitle = sanitizeTagName(title);
-  if (!cleanTitle) throw new Error('Invalid tag title');
-
-  await db
-    .update(tags)
-    .set({ title: cleanTitle, updated_at: Date.now() })
-    .where(eq(tags.tag_id, tagId));
+  await runInCloudSyncTransaction((tx) => updateTagInTransaction(tx, tagId, title));
 }
 
 /**
@@ -349,32 +351,7 @@ export async function updateTag(tagId: string, title: string): Promise<void> {
  * Removes the tag from all entries that reference it, then deletes the tag itself.
  */
 export async function deleteTag(tagId: string): Promise<void> {
-  // 1. Find all entries that have this tag
-  const entriesWithTag = await searchEntries('', [tagId]);
-
-  // 2. Remove the tag from entries and delete the tag itself — atomically
-  await db.transaction(async (tx) => {
-    const updates = entriesWithTag.map(async (entry) => {
-      if (!entry.tags) return;
-
-      const currentTags = entry.tags.split(',').filter((t) => t.length > 0);
-      const newTags = currentTags.filter((id) => id !== tagId);
-
-      // Only update if changed
-      if (newTags.length !== currentTags.length) {
-        const newTagsStr = newTags.join(',');
-        await tx
-          .update(entries)
-          .set({ tags: newTagsStr, updated_at: Date.now() })
-          .where(eq(entries.note_id, entry.note_id));
-      }
-    });
-
-    await Promise.all(updates);
-
-    // 3. Delete the tag itself
-    await tx.delete(tags).where(eq(tags.tag_id, tagId));
-  });
+  await runInCloudSyncTransaction((tx) => deleteTagInTransaction(tx, tagId));
 }
 
 // ============================================================================
@@ -395,58 +372,19 @@ export async function getAllCustomPrompts(): Promise<CustomPrompt[]> {
  * Create a new reusable custom prompt.
  */
 export async function createCustomPrompt(title: string): Promise<void> {
-  const cleanTitle = sanitizePromptTitle(title);
-  if (!cleanTitle) throw new Error('Invalid prompt title');
-
-  const now = Date.now();
-  try {
-    await db.insert(customPrompts).values({
-      prompt_id: generateUUID(),
-      title: cleanTitle,
-      created_at: now,
-      updated_at: now,
-    });
-  } catch (error) {
-    if (isDuplicateCustomPromptTitleError(error)) {
-      throw new Error('Prompt already exists');
-    }
-    throw error;
-  }
+  await runInCloudSyncTransaction((tx) => createPromptInTransaction(tx, title));
 }
 
 /**
  * Update an existing custom prompt.
  */
 export async function updateCustomPrompt(promptId: string, title: string): Promise<void> {
-  const cleanTitle = sanitizePromptTitle(title);
-  if (!cleanTitle) throw new Error('Invalid prompt title');
-
-  try {
-    await db
-      .update(customPrompts)
-      .set({ title: cleanTitle, updated_at: Date.now() })
-      .where(eq(customPrompts.prompt_id, promptId));
-  } catch (error) {
-    if (isDuplicateCustomPromptTitleError(error)) {
-      throw new Error('Prompt already exists');
-    }
-    throw error;
-  }
+  await runInCloudSyncTransaction((tx) => updatePromptInTransaction(tx, promptId, title));
 }
 
 /**
  * Delete a custom prompt by ID.
  */
 export async function deleteCustomPrompt(promptId: string): Promise<void> {
-  await db.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
-}
-
-function isDuplicateCustomPromptTitleError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-
-  const message = error.message.toLowerCase();
-  return (
-    message.includes('unique constraint failed') &&
-    message.includes('custom_prompts.title')
-  );
+  await runInCloudSyncTransaction((tx) => deletePromptInTransaction(tx, promptId));
 }

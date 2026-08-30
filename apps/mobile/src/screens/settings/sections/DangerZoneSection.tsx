@@ -4,9 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react-native';
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { QUERY_KEYS } from '~/hooks/useGratitude';
-import { deleteAllData } from '~/db/queries';
-import { deleteAllPhotos } from '~/lib/photoUtils';
-import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
+import { resetThisDeviceOnly, useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { Text } from '~/components/ui/text';
@@ -22,13 +20,15 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 
 export function DangerZoneSection() {
   const router = useRouter();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const resetSettingsToDefaults = useSettingsStore((state) => state.resetToDefaults);
+  const { snapshot } = useCloudSyncSnapshot();
+  const hasConfiguredCloudVault = snapshot.configured;
 
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
 
@@ -37,7 +37,7 @@ export function DangerZoneSection() {
     try {
       // Wipe the DB first — if this throws, the files are still intact
       // and the catch block will surface the error to the user.
-      await deleteAllData();
+      const mediaCleanupErrors = await resetThisDeviceOnly();
       // Reset persisted app settings alongside the DB wipe so Delete All Data
       // restores the app to its default state.
       resetSettingsToDefaults();
@@ -51,42 +51,37 @@ export function DangerZoneSection() {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] }),
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.prompts] }),
       ]);
-      // DB is gone; now clean up the filesystem directories.
-      // Attempt both cleanups regardless of individual failures so that a
-      // photos error never silently leaves voice memos on disk (and vice versa).
-      const cleanupErrors: string[] = [];
-      try {
-        deleteAllPhotos();
-      } catch (error) {
-        cleanupErrors.push(error instanceof Error ? error.message : String(error));
-      }
-      try {
-        deleteAllVoiceMemos();
-      } catch (error) {
-        cleanupErrors.push(error instanceof Error ? error.message : String(error));
-      }
-      if (cleanupErrors.length > 0) {
+      if (mediaCleanupErrors.length > 0) {
         toast.warning(t('All data deleted, but some media files could not be removed.'), {
-          description: cleanupErrors.join('\n'),
+          description: mediaCleanupErrors.join('\n'),
           duration: 8000,
         });
       } else {
-        toast.success(t('All data deleted'));
+        toast.success(
+          t(hasConfiguredCloudVault ? 'This device was reset' : 'All data deleted'),
+        );
       }
-      // Navigate to home screen
-      router.dismissTo('/');
+      // A device-only reset returns to onboarding, matching the cloud-backup
+      // screen and making the restore entry point immediately available.
+      router.replace('/onboarding/welcome');
     } catch (error) {
       const message = error instanceof Error ? error.message : t('Delete failed');
       toast.error(message);
     }
-  }, [t, router, queryClient, resetSettingsToDefaults]);
+  }, [t, router, queryClient, resetSettingsToDefaults, hasConfiguredCloudVault]);
 
   return (
     <>
       <SettingsSection title={t('Danger Zone')}>
         <SettingsRow
-          label={t('Delete All Data')}
-          description={t('Permanently delete all your app data')}
+          label={t(
+            hasConfiguredCloudVault ? 'Reset this device only' : 'Delete All Data',
+          )}
+          description={t(
+            hasConfiguredCloudVault
+              ? 'Disconnect, then delete local journal data only'
+              : 'Permanently delete all your app data',
+          )}
           icon={Trash2}
           onPress={() => setShowDeleteConfirmDialog(true)}
           showChevron
@@ -100,10 +95,16 @@ export function DangerZoneSection() {
         onOpenChange={setShowDeleteConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Delete all data?')}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t(
+                hasConfiguredCloudVault ? 'Reset this device only?' : 'Delete all data?',
+              )}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {t(
-                'This action cannot be undone. All your app data will be permanently deleted.',
+                hasConfiguredCloudVault
+                  ? 'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.'
+                  : 'This action cannot be undone. All your app data will be permanently deleted.',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -114,7 +115,11 @@ export function DangerZoneSection() {
             <AlertDialogDestructiveAction
               onPress={handleDeleteAllData}
               delaySeconds={DELETE_CONFIRM_DELAY_SECONDS}>
-              <Text>{t('Delete All Data')}</Text>
+              <Text>
+                {t(
+                  hasConfiguredCloudVault ? 'Reset this device only' : 'Delete All Data',
+                )}
+              </Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>

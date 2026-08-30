@@ -7,6 +7,7 @@ import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { commitPreConsentBuffer, stopPreConsentBuffering } from '~/lib/analytics';
+import { CLOUD_SYNC_ANALYTICS_EVENT_NAMES } from '~/lib/analytics/events';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
@@ -15,7 +16,7 @@ import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
 
 /** Keep in sync with src/lib/analytics/events.ts (the typed catalog). */
-const TRACKED_EVENT_NAMES = [
+export const TRACKED_EVENT_NAMES = [
   'app_opened',
   'screen_viewed',
   'entry_created',
@@ -25,6 +26,7 @@ const TRACKED_EVENT_NAMES = [
   'language_changed',
   'import_completed',
   'backup_exported',
+  ...CLOUD_SYNC_ANALYTICS_EVENT_NAMES,
   'reminder_enabled / reminder_disabled',
   'onboarding_step_viewed / onboarding_completed / onboarding_skipped',
 ];

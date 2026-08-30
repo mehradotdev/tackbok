@@ -1,1 +1,1 @@
-export { useSettingsStore } from './store';
+export { hydrateProfileCache, useSettingsStore } from './store';

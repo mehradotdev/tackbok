@@ -21,7 +21,7 @@ const mockTransaction = jest.fn(
       insert: mockInsert,
     }),
 );
-const mockGenerateUUID = jest.fn(() => 'generated-note-id');
+const mockRandomUUID = jest.fn(() => 'generated-note-id');
 const mockReportImportProgress = jest.fn(() => {});
 
 jest.mock('expo-document-picker', () => ({
@@ -56,8 +56,15 @@ jest.mock('~/db', () => ({
   },
 }));
 
-jest.mock('~/lib/utils', () => ({
-  generateUUID: () => mockGenerateUUID(),
+jest.mock('expo-crypto', () => ({
+  randomUUID: () => mockRandomUUID(),
+}));
+
+jest.mock('~/lib/cloudSync/storage/repositories', () => ({
+  runInCloudSyncTransaction: (callback: Parameters<typeof mockTransaction>[0]) =>
+    mockTransaction(callback),
+  upsertEntryInTransaction: async (tx: any, entry: unknown) =>
+    tx.insert({}).values(entry),
 }));
 
 jest.mock('../progress', () => ({
@@ -86,12 +93,12 @@ describe('importFromPresentlyCSV', () => {
     mockValues.mockReset();
     mockInsert.mockClear();
     mockTransaction.mockClear();
-    mockGenerateUUID.mockReset();
+    mockRandomUUID.mockReset();
     mockReportImportProgress.mockReset();
 
     mockLimit.mockImplementation(async () => []);
     mockValues.mockImplementation(async () => undefined);
-    mockGenerateUUID.mockImplementation(() => 'generated-note-id');
+    mockRandomUUID.mockImplementation(() => 'generated-note-id');
   });
 
   test('uses an unrestricted picker filter on android', async () => {
@@ -127,12 +134,14 @@ describe('importFromPresentlyCSV', () => {
     expect(mockValues).toHaveBeenNthCalledWith(1, {
       note_id: 'generated-note-id',
       text_content: 'First entry',
+      tags: '',
       created_at: new Date('2024-01-01T00:00:00').getTime(),
       updated_at: expect.any(Number),
     });
     expect(mockValues).toHaveBeenNthCalledWith(2, {
       note_id: 'generated-note-id',
       text_content: 'Second entry',
+      tags: '',
       created_at: new Date('2024-01-02T00:00:00').getTime(),
       updated_at: expect.any(Number),
     });
@@ -157,6 +166,7 @@ describe('importFromPresentlyCSV', () => {
     expect(mockValues).toHaveBeenCalledWith({
       note_id: 'generated-note-id',
       text_content: 'Valid leap day',
+      tags: '',
       created_at: new Date(2024, 1, 29).getTime(),
       updated_at: expect.any(Number),
     });

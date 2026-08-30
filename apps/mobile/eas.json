@@ -15,11 +15,17 @@
     },
     "preview": {
       "distribution": "internal",
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "on"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "on"
+      }
     }
   },
   "submit": {

@@ -1,14 +1,12 @@
 import { useState, useCallback } from 'react';
-import { View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { CloudUpload, RefreshCw, FileOutput, FileInput } from 'lucide-react-native';
+import { useRouter, type Href } from 'expo-router';
+import { Cloud, FileOutput, FileInput } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
-import { useSettingsStore } from '~/lib/settings';
+import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 import { useBackupImportFlow } from '~/hooks/useBackupImportFlow';
 import { exportToBackupZip } from '~/lib/backupExport';
 import { track } from '~/lib/analytics';
 import { Text } from '~/components/ui/text';
-import { Switch } from '~/components/ui/switch';
 import { toast } from '~/components/ui/toast';
 import {
   GratitudeJournalLogoIcon,
@@ -25,8 +23,7 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
-import { SettingsBackupFrequencyModal } from '../SettingsBackupFrequencyModal';
+import { SettingsRow } from '~/components/SettingsRow';
 import { SettingsImportModeModal } from '../SettingsImportModeModal';
 import { SettingsImportProgressModal } from '../SettingsImportProgressModal';
 import { SettingsImportSummaryModal } from '../SettingsImportSummaryModal';
@@ -34,14 +31,7 @@ import { SettingsImportSummaryModal } from '../SettingsImportSummaryModal';
 export function BackupRestoreSection() {
   const router = useRouter();
   const { t } = useTranslation();
-  const {
-    googleDriveBackupEnabled,
-    setGoogleDriveBackupEnabled,
-    backupFrequency,
-    setBackupFrequency,
-  } = useSettingsStore();
-
-  const [showBackupFrequencyModal, setShowBackupFrequencyModal] = useState(false);
+  const { snapshot } = useCloudSyncSnapshot();
   const [showPresentlyImportConfirmDialog, setShowPresentlyImportConfirmDialog] =
     useState(false);
 
@@ -78,37 +68,32 @@ export function BackupRestoreSection() {
     await startPresentlyImport();
   }, [startPresentlyImport]);
 
-  const getBackupFrequencyLabel = () => {
-    const labels: Record<string, string> = {
-      daily: t('Daily'),
-      weekly: t('Weekly'),
-      on_change: t('On Every Change'),
-    };
-    return labels[backupFrequency] ?? t('Daily');
-  };
-
   return (
     <>
       <SettingsSection title={t('Backup & Restore')}>
         <SettingsRow
-          label={t('Google Drive Backup')}
-          description={t('Automatically back up your entries with Google Drive')}
-          icon={CloudUpload}
-          onPress={() => setGoogleDriveBackupEnabled(!googleDriveBackupEnabled)}
-          disabled
-          rightElement={
-            <View pointerEvents="none">
-              <Switch checked={googleDriveBackupEnabled} />
-            </View>
+          label={t('Cloud Backup & Sync')}
+          description={
+            snapshot.configured
+              ? t('Google Drive — {status}', {
+                  status:
+                    snapshot.status === 'queued'
+                      ? t('Safely queued')
+                      : snapshot.status === 'syncing'
+                        ? t('Syncing…')
+                        : snapshot.status === 'paused'
+                          ? t('Sync paused')
+                        : snapshot.status === 'restoring'
+                          ? t('Restoring…')
+                          : snapshot.status === 'warning'
+                            ? t('Attention needed')
+                            : t('Up to date'),
+                })
+              : t('Off')
           }
-        />
-        <SettingsRow
-          label={t('Backup Frequency')}
-          description={getBackupFrequencyLabel()}
-          icon={RefreshCw}
-          onPress={() => setShowBackupFrequencyModal(true)}
+          icon={Cloud}
+          onPress={() => router.push('/cloud-backup' as Href)}
           showChevron
-          disabled={!googleDriveBackupEnabled}
         />
         <SettingsRow
           label={t('Export as .ZIP')}
@@ -142,13 +127,6 @@ export function BackupRestoreSection() {
           isLast
         />
       </SettingsSection>
-
-      <SettingsBackupFrequencyModal
-        visible={showBackupFrequencyModal}
-        onClose={() => setShowBackupFrequencyModal(false)}
-        value={backupFrequency}
-        onValueChange={setBackupFrequency}
-      />
 
       <SettingsImportModeModal
         visible={pendingImportSelection !== null}

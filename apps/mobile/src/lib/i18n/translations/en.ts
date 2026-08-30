@@ -346,12 +346,8 @@ export const en = {
   // Settings - Backup & Restore
   'Backup & Restore': 'Backup & Restore',
   'Google Drive Backup': 'Google Drive Backup',
-  'Automatically back up your entries with Google Drive':
-    'Log in with your Google Drive account to automatically back up your entries',
-  'Backup Frequency': 'Backup Frequency',
   Daily: 'Daily',
   Weekly: 'Weekly',
-  'On Every Change': 'On Every Change',
   'Export as .ZIP': 'Export as .ZIP',
   'All of your data in a format that you can restore in the app later':
     'All of your data in a format that you can restore in the app later',
@@ -461,8 +457,8 @@ export const en = {
   // Settings - Danger Zone
   'Danger Zone': 'Danger Zone',
   'Delete All Data': 'Delete All Data',
-  'Permanently delete all your app data': 'Permanently delete all your app data',
   'Delete all data?': 'Delete all data?',
+  'Permanently delete all your app data': 'Permanently delete all your app data',
   'This action cannot be undone. All your app data will be permanently deleted.':
     'This action cannot be undone. All your app data will be permanently deleted.',
   'All data deleted': 'All data deleted',
@@ -531,7 +527,6 @@ export const en = {
   'Already have a journal? Import it': 'Already have a journal? Import it',
   'A private place for your gratitude. Free, offline, yours.':
     'A private place for your gratitude. Free, offline, yours.',
-  'Your journal stays on your device.': 'Your journal stays on your device.',
   'Import your journal': 'Import your journal',
   'Where is your journal coming from?': 'Where is your journal coming from?',
   'Tackbok Backup': 'Tackbok Backup',
@@ -685,4 +680,201 @@ export const en = {
   'dateFormat.short': '{month} {day}, {year}',
   'dateFormat.full': '{weekday}, {month} {day}, {year}',
   'dateFormat.timeLabel': '{weekday} at {time}',
+
+  // Cloud Backup & Sync
+  'Attention needed': 'Attention needed',
+  'Back up and sync your journal with your own Google Drive. No Tackbok account is created.':
+    'Back up and sync your journal with your own Google Drive. No Tackbok account is created.',
+  'Backup from {date}': 'Backup from {date}',
+  'Before you connect': 'Before you connect',
+  'Checking Google Drive for changes': 'Checking Google Drive for changes',
+  'Choose a backup to merge with this journal. Both sides are preserved.':
+    'Choose a backup to merge with this journal. Both sides are preserved.',
+  'Choose a backup to restore on this device.': 'Choose a backup to restore on this device.',
+  'Choose which copies of your journal to remove.':
+    'Choose which copies of your journal to remove.',
+  'Cloud Backup & Sync': 'Cloud Backup & Sync',
+  'Cloud backup connected': 'Cloud backup connected',
+  'Cloud backup could not be updated': 'Cloud backup could not be updated',
+  'Cloud backup deleted': 'Cloud backup deleted',
+  'Cloud backup deletion received': 'Cloud backup deletion received',
+  'Cloud backup {number}': 'Cloud backup {number}',
+  'Backups are encrypted in transit and at rest by Google Drive, but are not end-to-end encrypted.':
+    'Backups are encrypted in transit and at rest by Google Drive, but are not end-to-end encrypted.',
+  'Cloud restore started': 'Cloud restore started',
+  'Cloud sync: attention needed': 'Cloud sync: attention needed',
+  'Cloud sync: changes safely queued': 'Cloud sync: changes safely queued',
+  'Cloud sync: paused': 'Cloud sync: paused',
+  'Cloud sync: syncing': 'Cloud sync: syncing',
+  'Cloud sync: up to date': 'Cloud sync: up to date',
+  'Connect Google Drive': 'Connect Google Drive',
+  'Connecting…': 'Connecting…',
+  'Create cloud backup': 'Create cloud backup',
+  'Delete cloud and local journal data': 'Delete cloud and local journal data',
+  'Delete cloud backup': 'Delete cloud backup',
+  'Delete cloud backup?': 'Delete cloud backup?',
+  'Delete journal everywhere': 'Delete journal everywhere',
+  'Delete journal everywhere?': 'Delete journal everywhere?',
+  'Delete or reset data': 'Delete or reset data',
+  'Deleting journal everywhere…': 'Deleting journal everywhere…',
+  'Removing the cloud backup and journal data. Keep Tackbok open.':
+    'Removing the cloud backup and journal data. Keep Tackbok open.',
+  Disconnect: 'Disconnect',
+  'Disconnect {provider}': 'Disconnect {provider}',
+  'Disconnect {provider} from this device?': 'Disconnect {provider} from this device?',
+  'Disconnect, then delete local journal data only':
+    'Disconnect, then delete local journal data only',
+  'Edits remain safely queued on this device.': 'Edits remain safely queued on this device.',
+  Entry: 'Entry',
+  'Google Drive': 'Google Drive',
+  'Google Drive access is required. Try again and select the Drive access checkbox.':
+    'Google Drive access is required. Try again and select the Drive access checkbox.',
+  'Google Drive connected': 'Google Drive connected',
+  'Google Drive connection was not completed': 'Google Drive connection was not completed',
+  'Google Drive could not be reached. Your changes remain safely queued.':
+    'Google Drive could not be reached. Your changes remain safely queued.',
+  'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.':
+    'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.',
+  'Google Drive disconnected on this device': 'Google Drive disconnected on this device',
+  'Google Drive is busy. Try again shortly.': 'Google Drive is busy. Try again shortly.',
+  'Google Drive needs to be reconnected.': 'Google Drive needs to be reconnected.',
+  'Google Drive reconnected': 'Google Drive reconnected',
+  'Google Drive storage is full.': 'Google Drive storage is full.',
+  'Google Drive — {status}': 'Google Drive — {status}',
+  'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.':
+    'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.',
+  'Journal deletion received': 'Journal deletion received',
+  'Journal text still syncs on mobile data.':
+    'Journal text still syncs on mobile data.',
+  'Keep local data and the cloud copy': 'Keep local data and the cloud copy',
+  'Keep local journal data': 'Keep local journal data',
+  'Keep the cloud copy and other devices': 'Keep the cloud copy and other devices',
+  'Last successful sync: {date}': 'Last successful sync: {date}',
+  'Local data and the cloud backup will both remain. Other devices stay connected.':
+    'Local data and the cloud backup will both remain. Other devices stay connected.',
+  'Mark as reviewed': 'Mark as reviewed',
+  'Merging changes and updating Google Drive':
+    'Merging changes and updating Google Drive',
+  'No Tackbok backup found in this Google account':
+    'No Tackbok backup found in this Google account',
+  'No internet connection. Your changes remain safely queued.':
+    'No internet connection. Your changes remain safely queued.',
+  'No existing Tackbok backup was found. Create one for this journal.':
+    'No existing Tackbok backup was found. Create one for this journal.',
+  'Optional cloud backup': 'Optional cloud backup',
+  'Pause sync': 'Pause sync',
+  'Preparing journal changes': 'Preparing journal changes',
+  'Preparing restored journal data': 'Preparing restored journal data',
+  Profile: 'Profile',
+  Prompt: 'Prompt',
+  'Reconnect Google Drive': 'Reconnect Google Drive',
+  'Recovered conflicts': 'Recovered conflicts',
+  'Recovered conflicts marked as reviewed': 'Recovered conflicts marked as reviewed',
+  'Recovered {type} conflict — {count} preserved alternatives':
+    'Recovered {type} conflict — {count} preserved alternatives',
+  'Reset this device only': 'Reset this device only',
+  'Reset this device only?': 'Reset this device only?',
+  'Restore and merge': 'Restore and merge',
+  'Restore cloud backup': 'Restore cloud backup',
+  'Restore from your cloud backup': 'Restore from your cloud backup',
+  'Restoring…': 'Restoring…',
+  'Safely queued': 'Safely queued',
+  'Saving synced journal data on this device':
+    'Saving synced journal data on this device',
+  'Setting up cloud sync…': 'Setting up cloud sync…',
+  'Step {current} of {total} in this batch':
+    'Step {current} of {total} in this batch',
+  'Sync completed': 'Sync completed',
+  'Sync now': 'Sync now',
+  'Sync paused': 'Sync paused',
+  'Sync resumed': 'Sync resumed',
+  'Sync runs in safe batches. You can keep using Tackbok.':
+    'Sync runs in safe batches. You can keep using Tackbok.',
+  'Sync media on Wi-Fi only': 'Sync media on Wi-Fi only',
+  'Syncing…': 'Syncing…',
+  'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.':
+    'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.',
+  'The cloud copy will be permanently deleted after verification. Local journal data remains.':
+    'The cloud copy will be permanently deleted after verification. Local journal data remains.',
+  'This cloud backup was deleted. Local journal data remains on this device.':
+    'This cloud backup was deleted. Local journal data remains on this device.',
+  'This cloud backup contains data Tackbok cannot read.':
+    'This cloud backup contains data Tackbok cannot read.',
+  'Finish deleting this journal?': 'Finish deleting this journal?',
+  'Cloud deletion is already recorded. Erase the remaining journal data from this device.':
+    'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
+  'Finish deletion': 'Finish deletion',
+  'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.':
+    'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.',
+  'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.':
+    'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
+  'This device was reset': 'This device was reset',
+  'This journal was deleted everywhere. This device is disconnected.':
+    'This journal was deleted everywhere. This device is disconnected.',
+  'Up to date': 'Up to date',
+  'Verify backup health': 'Verify backup health',
+  'Waiting for the first successful sync': 'Waiting for the first successful sync',
+  'You can leave this screen; syncing resumes when Tackbok is active.':
+    'You can leave this screen; syncing resumes when Tackbok is active.',
+  'Your journal stays on your device — with optional cloud backup.':
+    'Your journal stays on your device — with optional cloud backup.',
+  '{count} changes safely queued': '{count} changes safely queued',
+  '{count} changes remaining': '{count} changes remaining',
+  'Google Drive authorization needs attention.': 'Google Drive authorization needs attention.',
+  'This backup belongs to a different connected Google account.':
+    'This backup belongs to a different connected Google account.',
+  'Google Drive permission was not fully granted.': 'Google Drive permission was not fully granted.',
+  'The connected cloud backup does not match this journal.':
+    'The connected cloud backup does not match this journal.',
+  'This backup was created by a newer Tackbok version.':
+    'This backup was created by a newer Tackbok version.',
+  'A cloud snapshot failed its safety checks.': 'A cloud snapshot failed its safety checks.',
+  'A device backup points to a missing snapshot.': 'A device backup points to a missing snapshot.',
+  'Two different backups claim the same device version.':
+    'Two different backups claim the same device version.',
+  'Too many independent device backups need consolidation.':
+    'Too many independent device backups need consolidation.',
+  'A recovered item conflicts with an existing stable identifier.':
+    'A recovered item conflicts with an existing stable identifier.',
+  'Tackbok could not safely stage backup data on this device.':
+    'Tackbok could not safely stage backup data on this device.',
+  'Google Drive does not have enough free storage.':
+    'Google Drive does not have enough free storage.',
+  'Google Drive denied access to the app backup folder.':
+    'Google Drive denied access to the app backup folder.',
+  'A referenced photo or voice memo is unavailable.':
+    'A referenced photo or voice memo is unavailable.',
+  'A local photo or voice memo could not be verified.':
+    'A local photo or voice memo could not be verified.',
+  'Your journal is not ready for cloud sync yet.': 'Your journal is not ready for cloud sync yet.',
+  'This cloud backup was deleted from another device.':
+    'This cloud backup was deleted from another device.',
+  'This journal was deleted everywhere from another device.':
+    'This journal was deleted everywhere from another device.',
+  'Cloud deletion stopped before every backup object was removed.':
+    'Cloud deletion stopped before every backup object was removed.',
+  'Backup cleanup was stopped to protect a current snapshot.':
+    'Backup cleanup was stopped to protect a current snapshot.',
+  'Choose the connected account': 'Choose the connected account',
+  'Choose a Google account to reconnect': 'Choose a Google account to reconnect',
+  'Finish connection': 'Finish connection',
+  'Reconnect to the correct backup': 'Reconnect to the correct backup',
+  'Update Tackbok': 'Update Tackbok',
+  'Retry and verify backup': 'Retry and verify backup',
+  'Repair from verified backup': 'Repair from verified backup',
+  'Inspect and repair backup': 'Inspect and repair backup',
+  'Consolidate backups': 'Consolidate backups',
+  'Export journal and repair backup': 'Export journal and repair backup',
+  'Free device storage and retry': 'Free device storage and retry',
+  'Manage Google Drive storage': 'Manage Google Drive storage',
+  'Retry missing media': 'Retry missing media',
+  'Locate or retry attachment': 'Locate or retry attachment',
+  'Retry journal preparation': 'Retry journal preparation',
+  'Acknowledge and disconnect': 'Acknowledge and disconnect',
+  'Review deletion and erase this device': 'Review deletion and erase this device',
+  'Resume deletion': 'Resume deletion',
+  'Cloud deletion completed': 'Cloud deletion completed',
+  'Export or repair the affected journal data, then return and retry.':
+    'Export or repair the affected journal data, then return and retry.',
+  'Cloud backup retry completed': 'Cloud backup retry completed',
 } satisfies Record<string, string>;

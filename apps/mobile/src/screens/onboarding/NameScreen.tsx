@@ -11,6 +11,7 @@ import { Input } from '~/components/ui/input';
 import { Text } from '~/components/ui/text';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
+import { toast } from '~/components/ui/toast';
 
 export default function OnboardingNameScreen() {
   const router = useRouter();
@@ -23,9 +24,14 @@ export default function OnboardingNameScreen() {
 
   useOnboardingStepView('name');
 
-  const handleContinue = () => {
-    setProfileName(name);
-    router.push('/onboarding/theme');
+  const handleContinue = async () => {
+    try {
+      await setProfileName(name);
+      router.push('/onboarding/theme');
+    } catch (error) {
+      console.error('Failed to save onboarding profile name:', error);
+      toast.error(t('Unknown error'));
+    }
   };
 
   const handleSkip = () => {

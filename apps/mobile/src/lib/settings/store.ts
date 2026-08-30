@@ -19,9 +19,10 @@ import {
   type JournalPromptsMode,
 } from '~/lib/journalPrompts';
 import type { Achievement } from '~/lib/achievements';
-
-// TODO: Implement actual functionality for all settings
-// This is currently a mock store - all values are stored but not yet connected to real features
+import {
+  runInCloudSyncTransaction,
+  updateProfileInTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 
 interface SettingsState {
   // Notifications
@@ -32,6 +33,8 @@ interface SettingsState {
   profileName: string | null;
   profileEmail: string | null;
   profileImageUri: string | null;
+  /** Keeps the legacy AsyncStorage profile copy until SQLite migration commits. */
+  legacyProfileMigrationComplete: boolean;
 
   // Appearance
   theme: string;
@@ -47,9 +50,8 @@ interface SettingsState {
   // Security
   biometricUnlockEnabled: boolean;
 
-  // Backup
-  googleDriveBackupEnabled: boolean;
-  backupFrequency: 'daily' | 'weekly' | 'on_change';
+  // Cloud backup display/transfer preference. Connection state is authoritative in SQLite.
+  cloudSyncWifiOnlyMedia: boolean;
 
   // Privacy
   analyticsEnabled: boolean;
@@ -81,9 +83,9 @@ interface SettingsState {
   // Actions
   setDailyReminderEnabled: (enabled: boolean) => void;
   setReminderTime: (time: string) => void;
-  setProfileName: (name: string | null) => void;
-  setProfileEmail: (email: string | null) => void;
-  setProfileImageUri: (uri: string | null) => void;
+  setProfileName: (name: string | null) => Promise<void>;
+  setProfileEmail: (email: string | null) => Promise<void>;
+  setProfileImageUri: (uri: string | null) => Promise<void>;
   setTheme: (theme: string) => void;
   setTimelineEntryLength: (length: number) => void;
   setDateIncludesDayOfWeek: (enabled: boolean) => void;
@@ -92,8 +94,7 @@ interface SettingsState {
   setTitleFont: (fontId: TitleFontSelection) => void;
   setBodyFontSize: (size: BodyFontSize) => void;
   setBiometricUnlockEnabled: (enabled: boolean) => void;
-  setGoogleDriveBackupEnabled: (enabled: boolean) => void;
-  setBackupFrequency: (frequency: 'daily' | 'weekly' | 'on_change') => void;
+  setCloudSyncWifiOnlyMedia: (enabled: boolean) => void;
   setAnalyticsEnabled: (enabled: boolean) => void;
   setLastUpdateCheckAt: (checkedAt: string) => void;
   setCustomWorksheetTemplate: (template: string | null) => void;
@@ -108,6 +109,7 @@ interface SettingsState {
   setHasSeenHomeCoachMarks: (seen: boolean) => void;
   setPendingAchievement: (achievement: Achievement | null) => void;
   setHasHydrated: (hydrated: boolean) => void;
+  markLegacyProfileMigrationComplete: () => void;
 }
 
 const DEFAULT_SETTINGS_VALUES = {
@@ -116,6 +118,7 @@ const DEFAULT_SETTINGS_VALUES = {
   profileName: null,
   profileEmail: null,
   profileImageUri: null,
+  legacyProfileMigrationComplete: false,
   theme: DEFAULT_THEME_ID,
   timelineEntryLength: 10,
   dateIncludesDayOfWeek: false,
@@ -124,8 +127,7 @@ const DEFAULT_SETTINGS_VALUES = {
   titleFont: DEFAULT_TITLE_FONT_SELECTION,
   bodyFontSize: DEFAULT_BODY_FONT_SIZE,
   biometricUnlockEnabled: false,
-  googleDriveBackupEnabled: false,
-  backupFrequency: 'daily' as const,
+  cloudSyncWifiOnlyMedia: false,
   analyticsEnabled: false,
   lastUpdateCheckAt: null,
   customWorksheetTemplate: null,
@@ -149,11 +151,27 @@ export const useSettingsStore = create<SettingsState>()(
       // Actions
       setDailyReminderEnabled: (enabled) => set({ dailyReminderEnabled: enabled }),
       setReminderTime: (time) => set({ reminderTime: time }),
-      setProfileName: (name) => set({ profileName: name?.trim() ? name.trim() : null }),
-      setProfileEmail: (email) =>
-        set({ profileEmail: email?.trim() ? email.trim() : null }),
-      setProfileImageUri: (uri) =>
-        set({ profileImageUri: uri?.trim() ? uri.trim() : null }),
+      setProfileName: async (name) => {
+        const displayName = name?.trim() ? name.trim() : null;
+        await runInCloudSyncTransaction((tx) =>
+          updateProfileInTransaction(tx, { displayName }),
+        );
+        set({ profileName: displayName });
+      },
+      setProfileEmail: async (email) => {
+        const normalizedEmail = email?.trim() ? email.trim() : null;
+        await runInCloudSyncTransaction((tx) =>
+          updateProfileInTransaction(tx, { email: normalizedEmail }),
+        );
+        set({ profileEmail: normalizedEmail });
+      },
+      setProfileImageUri: async (uri) => {
+        const photoUri = uri?.trim() ? uri.trim() : null;
+        await runInCloudSyncTransaction((tx) =>
+          updateProfileInTransaction(tx, { photoUri }),
+        );
+        set({ profileImageUri: photoUri });
+      },
       setTheme: (theme) => {
         const id = getThemeConfig(theme).id;
         Uniwind.setTheme(id);
@@ -174,9 +192,8 @@ export const useSettingsStore = create<SettingsState>()(
       },
       setBodyFontSize: (size) => set({ bodyFontSize: normalizeBodyFontSize(size) }),
       setBiometricUnlockEnabled: (enabled) => set({ biometricUnlockEnabled: enabled }),
-      setGoogleDriveBackupEnabled: (enabled) =>
-        set({ googleDriveBackupEnabled: enabled }),
-      setBackupFrequency: (frequency) => set({ backupFrequency: frequency }),
+      setCloudSyncWifiOnlyMedia: (enabled) =>
+        set({ cloudSyncWifiOnlyMedia: enabled }),
       setAnalyticsEnabled: (enabled) => set({ analyticsEnabled: enabled }),
       setLastUpdateCheckAt: (checkedAt) => set({ lastUpdateCheckAt: checkedAt }),
       setCustomWorksheetTemplate: (template) =>
@@ -199,10 +216,29 @@ export const useSettingsStore = create<SettingsState>()(
       setPendingAchievement: (achievement) =>
         set({ pendingAchievement: achievement }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
+      markLegacyProfileMigrationComplete: () =>
+        set({ legacyProfileMigrationComplete: true }),
     }),
     {
       name: 'tackbok-settings',
+      version: 1,
       storage: createJSONStorage(() => AsyncStorage),
+      migrate: (persistedState) => {
+        const legacy = persistedState as Record<string, unknown> | undefined;
+        if (!legacy) return persistedState as SettingsState;
+        const {
+          googleDriveBackupEnabled: _legacyEnabled,
+          backupFrequency: _legacyFrequency,
+          ...providerNeutral
+        } = legacy;
+        return {
+          ...providerNeutral,
+          cloudSyncWifiOnlyMedia:
+            typeof providerNeutral.cloudSyncWifiOnlyMedia === 'boolean'
+              ? providerNeutral.cloudSyncWifiOnlyMedia
+              : false,
+        } as unknown as SettingsState;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.setHasHydrated(true);
@@ -231,11 +267,19 @@ export const useSettingsStore = create<SettingsState>()(
         }
       },
       partialize: (state) => ({
+        // These three fields intentionally remain in the legacy store until the
+        // SQLite profile row has committed. Rehydration itself persists state,
+        // so dropping them earlier creates a kill window during first backfill.
+        ...(state.legacyProfileMigrationComplete
+          ? {}
+          : {
+              profileName: state.profileName,
+              profileEmail: state.profileEmail,
+              profileImageUri: state.profileImageUri,
+            }),
+        legacyProfileMigrationComplete: state.legacyProfileMigrationComplete,
         dailyReminderEnabled: state.dailyReminderEnabled,
         reminderTime: state.reminderTime,
-        profileName: state.profileName,
-        profileEmail: state.profileEmail,
-        profileImageUri: state.profileImageUri,
         theme: state.theme,
         timelineEntryLength: state.timelineEntryLength,
         dateIncludesDayOfWeek: state.dateIncludesDayOfWeek,
@@ -244,8 +288,7 @@ export const useSettingsStore = create<SettingsState>()(
         titleFont: state.titleFont,
         bodyFontSize: state.bodyFontSize,
         biometricUnlockEnabled: state.biometricUnlockEnabled,
-        googleDriveBackupEnabled: state.googleDriveBackupEnabled,
-        backupFrequency: state.backupFrequency,
+        cloudSyncWifiOnlyMedia: state.cloudSyncWifiOnlyMedia,
         analyticsEnabled: state.analyticsEnabled,
         lastUpdateCheckAt: state.lastUpdateCheckAt,
         customWorksheetTemplate: state.customWorksheetTemplate,
@@ -261,3 +304,17 @@ export const useSettingsStore = create<SettingsState>()(
     },
   ),
 );
+
+/** Updates the non-persisted profile read cache after a committed DB transaction. */
+export function hydrateProfileCache(profile: {
+  profileName: string | null;
+  profileEmail: string | null;
+  profileImageUri: string | null;
+}): void {
+  useSettingsStore.setState(profile);
+}
+
+/** Drops the legacy persisted profile only after its SQLite row is durable. */
+export function markLegacyProfileMigrationComplete(): void {
+  useSettingsStore.getState().markLegacyProfileMigrationComplete();
+}

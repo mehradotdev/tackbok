@@ -13,7 +13,7 @@ import {
   type Option,
 } from '~/components/ui/select';
 import { SettingsSection } from '../SettingsSection';
-import { SettingsRow } from '../SettingsRow';
+import { SettingsRow } from '~/components/SettingsRow';
 
 const JOURNAL_PROMPTS_OPTIONS: { value: JournalPromptsMode; labelKey: string }[] = [
   { value: 'off', labelKey: 'Off' },
