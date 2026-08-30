@@ -200,7 +200,10 @@ describe('production cloud-sync runtime', () => {
   });
 
   test('every durable Attention reason has localized visible copy and an action route', async () => {
-    const screen = await Bun.file(join(mobileRoot, 'src/screens/cloudBackup/index.tsx')).text();
+    const screen = (await Promise.all([
+      'src/screens/cloudBackup/index.tsx',
+      'src/screens/cloudBackup/copy.ts',
+    ].map((path) => Bun.file(join(mobileRoot, path)).text()))).join('\n');
     const productionUi = await Bun.file(join(
       mobileRoot,
       'src/lib/cloudSync/ui/production.ts',
@@ -253,6 +256,7 @@ describe('production cloud-sync runtime', () => {
       'src/lib/cloudSync/snapshot/storage/productionJournal.ts',
       'src/lib/cloudSync/ui/production.ts',
       'src/screens/cloudBackup/index.tsx',
+      'src/screens/cloudBackup/copy.ts',
     ];
     const source = (await Promise.all(paths.map((path) =>
       Bun.file(join(mobileRoot, path)).text()))).join('\n');

@@ -46,8 +46,6 @@ function actionableChanges(journalGeneration: number, settledGeneration: number)
   return Math.max(0, journalGeneration - settledGeneration);
 }
 
-// TODO(cloud-sync): Extract frontier planning, publication/reconciliation, and
-// cleanup into focused collaborators once the initial protocol has landed.
 export class SnapshotSyncEngine {
   private running = false;
   private readonly cleanup: SnapshotCleanup;

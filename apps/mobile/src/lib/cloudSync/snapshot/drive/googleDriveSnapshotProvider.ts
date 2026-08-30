@@ -175,8 +175,6 @@ function parseCreatedAt(file: DriveFile): number | null {
   return Number.isNaN(value) ? null : value;
 }
 
-// TODO(cloud-sync): Split Drive transport/uploads, discovery, and metadata parsing
-// into focused modules once the initial cloud-sync feature has landed.
 export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private readonly state: DriveProviderStateStore;
   private readonly transport: DriveTransport;
