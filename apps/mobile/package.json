@@ -4,7 +4,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "APP_VARIANT=beta expo start",
-    "android": "APP_VARIANT=beta expo run:android",
+    "android": "REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 APP_VARIANT=beta expo run:android",
     "ios": "APP_VARIANT=beta expo run:ios",
     "prebuild": "APP_VARIANT=beta expo prebuild --clean",
     "generate:themes": "bun run src/lib/theme/generate-theme-artifacts.ts",
