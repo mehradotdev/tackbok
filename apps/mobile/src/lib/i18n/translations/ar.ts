@@ -421,6 +421,43 @@ export const ar: Translations = {
     'هل تستمتع بتاكبوك؟ شارك التطبيق مع أصدقائك وعائلتك',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'مارس الامتنان مع تاكبوك، تطبيق بسيط ومجاني وخاص لتدوين الامتنان',
+  'Support Tackbok': 'ادعم تاكبوك',
+  'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
+    'تاكبوك مجاني للاستخدام. إذا أضاف شيئًا إيجابيًا إلى يومك، يمكنك اختياريًا دعم استمرار تطويره. يساعد الدعم في تغطية الاستضافة وخدمات البناء ورسوم متاجر التطبيقات. لا يفتح أي ميزات. يعمل التطبيق بالطريقة نفسها للجميع.',
+  'Choose your thanks': 'اختر مستوى الشكر',
+  'Small thanks': 'شكر صغير',
+  'Helps toward one month of Cloudflare Workers Paid':
+    'يساعد في تغطية شهر واحد من Cloudflare Workers Paid',
+  'Heartfelt thanks': 'شكر من القلب',
+  'Helps toward one month of Expo EAS Starter':
+    'يساعد في تغطية شهر واحد من Expo EAS Starter',
+  'Big thanks': 'شكر كبير',
+  "Helps toward Tackbok's Google Play registration cost":
+    'يساعد في تغطية تكلفة تسجيل تاكبوك في Google Play',
+  'Extraordinary thanks': 'شكر استثنائي',
+  'Helps toward one year of Apple Developer membership':
+    'يساعد في تغطية سنة واحدة من عضوية Apple Developer',
+  Unavailable: 'غير متاح',
+  'Support options could not be loaded. Please try again.':
+    'تعذر تحميل خيارات الدعم. يرجى المحاولة مرة أخرى.',
+  'You appear to be offline. Check your connection and try again.':
+    'يبدو أنك غير متصل بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.',
+  'The purchase could not be completed. Please try again.':
+    'تعذر إكمال عملية الشراء. يرجى المحاولة مرة أخرى.',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    'شكرًا لدعم تاكبوك. هذا يعني لنا الكثير حقًا.',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    'دفعتك معلقة. سيكملها المتجر عند اكتمال الموافقة أو الدفع.',
+  'Where your support helps': 'أين يساعد دعمك',
+  'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
+    'تعكس الأمثلة أعلاه التكاليف الحالية بالدولار الأمريكي. تختلف أسعار المتجر والضرائب والرسوم حسب البلد، لذلك لا يُخصص الدعم لفاتورة محددة.',
+  'Other ways to support': 'طرق أخرى للدعم',
+  'Rate Tackbok': 'قيّم تاكبوك',
+  'Leave a rating in the app store': 'اترك تقييمًا في متجر التطبيقات',
+  'Unable to open the store': 'تعذر فتح المتجر',
+  'Confirm {tier}': 'تأكيد {tier}',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    'سيخصم المتجر {price} مقابل هذا الدعم الاختياري لمرة واحدة. لا يفتح أي ميزات ويمكن شراؤه مرة أخرى.',
   'Privacy Policy': 'سياسة الخصوصية',
   'Read our privacy policy': 'اقرأ سياسة خصوصية تاكبوك',
   'Terms & Conditions': 'الشروط والأحكام',

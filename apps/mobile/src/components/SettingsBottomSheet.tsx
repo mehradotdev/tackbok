@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import * as Updates from 'expo-updates';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import {
   Settings,
   Palette,
@@ -19,6 +19,7 @@ import {
   X,
   ImagePlus,
   Trash2,
+  Heart,
   type LucideIcon,
 } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -405,6 +406,13 @@ export function SettingsBottomSheet() {
     router.navigate('/settings');
   };
 
+  const handleSupport = async () => {
+    await dismiss();
+    // The generated Expo Router declaration is refreshed on the next dev
+    // server start; the explicit Href keeps standalone typechecks unblocked.
+    router.navigate('/support' as Href);
+  };
+
   const handleContactUs = async () => {
     await dismiss();
     const subject = encodeURIComponent('Tackbok - App Support');
@@ -566,6 +574,11 @@ export function SettingsBottomSheet() {
             onAvatarPress={handleAvatarPress}
             onSaveName={handleSaveName}>
             <View className="border-t border-border mt-3">
+              <ActionRow
+                label={t('Support Tackbok')}
+                icon={Heart}
+                onPress={handleSupport}
+              />
               <ActionRow
                 label={t('Appearance')}
                 icon={Palette}

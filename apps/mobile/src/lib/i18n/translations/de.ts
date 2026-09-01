@@ -459,6 +459,43 @@ export const de: Translations = {
     'Gefällt dir Tackbok? Teile die App mit Freunden und Familie',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'Übe Dankbarkeit mit Tackbok, einer einfachen, kostenlosen und privaten Dankbarkeitstagebuch-App',
+  'Support Tackbok': 'Tackbok unterstützen',
+  'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
+    'Tackbok ist kostenlos. Wenn die App etwas Positives in deinen Tag gebracht hat, kannst du ihre Weiterentwicklung freiwillig unterstützen. Die Unterstützung hilft bei Hosting, Build-Diensten und App-Store-Gebühren. Sie schaltet keine Funktionen frei. Die App funktioniert für alle gleich.',
+  'Choose your thanks': 'Wähle deinen Dank',
+  'Small thanks': 'Kleines Dankeschön',
+  'Helps toward one month of Cloudflare Workers Paid':
+    'Hilft bei einem Monat Cloudflare Workers Paid',
+  'Heartfelt thanks': 'Herzliches Dankeschön',
+  'Helps toward one month of Expo EAS Starter':
+    'Hilft bei einem Monat Expo EAS Starter',
+  'Big thanks': 'Großes Dankeschön',
+  "Helps toward Tackbok's Google Play registration cost":
+    'Hilft bei Tackboks Registrierungsgebühr für Google Play',
+  'Extraordinary thanks': 'Außergewöhnliches Dankeschön',
+  'Helps toward one year of Apple Developer membership':
+    'Hilft bei einem Jahr Apple-Developer-Mitgliedschaft',
+  Unavailable: 'Nicht verfügbar',
+  'Support options could not be loaded. Please try again.':
+    'Die Unterstützungsoptionen konnten nicht geladen werden. Bitte versuche es erneut.',
+  'You appear to be offline. Check your connection and try again.':
+    'Du scheinst offline zu sein. Prüfe deine Verbindung und versuche es erneut.',
+  'The purchase could not be completed. Please try again.':
+    'Der Kauf konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    'Danke, dass du Tackbok unterstützt. Das bedeutet uns wirklich viel.',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    'Deine Zahlung steht aus. Der Store schließt sie ab, sobald die Genehmigung oder Zahlung erfolgt ist.',
+  'Where your support helps': 'Wobei deine Unterstützung hilft',
+  'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
+    'Die Beispiele oben zeigen aktuelle Kosten in US-Dollar. Store-Preise, Steuern und Gebühren unterscheiden sich je nach Land, daher wird die Unterstützung keiner bestimmten Rechnung zugeordnet.',
+  'Other ways to support': 'Andere Möglichkeiten zu helfen',
+  'Rate Tackbok': 'Tackbok bewerten',
+  'Leave a rating in the app store': 'Eine Bewertung im App Store hinterlassen',
+  'Unable to open the store': 'Store kann nicht geöffnet werden',
+  'Confirm {tier}': '{tier} bestätigen',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    'Der Store berechnet {price} für diese freiwillige, einmalige Unterstützung. Sie schaltet keine Funktionen frei und kann erneut gekauft werden.',
   'Privacy Policy': 'Datenschutzerklärung',
   'Read our privacy policy': 'Datenschutzerklärung von Tackbok lesen',
   'Terms & Conditions': 'Allgemeine Geschäftsbedingungen',

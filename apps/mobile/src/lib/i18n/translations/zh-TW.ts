@@ -410,6 +410,43 @@ export const zhTW: Translations = {
   'Share the app with friends and family': '喜歡塔克博克嗎？與您的親友分享此應用程式',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     '用塔克博克練習感恩，一款簡單、免費且私密的感恩日記應用程式',
+  'Support Tackbok': '支持塔克博克',
+  'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
+    '塔克博克可免費使用。如果它為您的一天帶來了正面影響，您可以自願支持其持續開發。支持將協助支付託管、建置服務和應用程式商店費用。支持不會解鎖任何功能，所有人的應用程式體驗都相同。',
+  'Choose your thanks': '選擇感謝方式',
+  'Small thanks': '小小感謝',
+  'Helps toward one month of Cloudflare Workers Paid':
+    '協助支付一個月的 Cloudflare Workers Paid',
+  'Heartfelt thanks': '衷心感謝',
+  'Helps toward one month of Expo EAS Starter':
+    '協助支付一個月的 Expo EAS Starter',
+  'Big thanks': '非常感謝',
+  "Helps toward Tackbok's Google Play registration cost":
+    '協助支付塔克博克的 Google Play 註冊費用',
+  'Extraordinary thanks': '特別感謝',
+  'Helps toward one year of Apple Developer membership':
+    '協助支付一年的 Apple Developer 會員費用',
+  Unavailable: '無法使用',
+  'Support options could not be loaded. Please try again.':
+    '無法載入支持選項，請再試一次。',
+  'You appear to be offline. Check your connection and try again.':
+    '您似乎處於離線狀態。請檢查網路連線後再試一次。',
+  'The purchase could not be completed. Please try again.':
+    '無法完成購買，請再試一次。',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    '感謝您支持塔克博克。這對我們真的意義重大。',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    '您的付款正在等候處理。獲得批准或完成付款後，商店將完成交易。',
+  'Where your support helps': '您的支持用於何處',
+  'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
+    '以上範例反映目前的美元成本。商店定價、稅金和手續費因國家或地區而異，因此支持款不會指定用於某一筆帳單。',
+  'Other ways to support': '其他支持方式',
+  'Rate Tackbok': '為塔克博克評分',
+  'Leave a rating in the app store': '在應用程式商店留下評分',
+  'Unable to open the store': '無法開啟應用程式商店',
+  'Confirm {tier}': '確認{tier}',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    '商店將收取 {price}，作為自願的一次性支持。它不會解鎖任何功能，並且可以再次購買。',
   'Privacy Policy': '隱私權政策',
   'Read our privacy policy': '閱讀塔克博克的隱私權政策',
   'Terms & Conditions': '條款與條件',

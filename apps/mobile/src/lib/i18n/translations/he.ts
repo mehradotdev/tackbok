@@ -420,6 +420,43 @@ export const he: Translations = {
     'נהנה מטאקבוק? שתף את האפליקציה עם חברים ומשפחה',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'תרגל הכרת תודה עם טאקבוק, אפליקציה פשוטה, חינמית ופרטית ליומן תודה',
+  'Support Tackbok': 'תמיכה בטאקבוק',
+  'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
+    'טאקבוק חינמית לשימוש. אם היא הוסיפה משהו חיובי ליום שלך, אפשר לתמוך מרצון בהמשך הפיתוח שלה. התמיכה עוזרת לכסות אירוח, שירותי בנייה ועמלות חנויות אפליקציות. היא לא פותחת תכונות. האפליקציה פועלת באותו אופן לכולם.',
+  'Choose your thanks': 'בחירת תודה',
+  'Small thanks': 'תודה קטנה',
+  'Helps toward one month of Cloudflare Workers Paid':
+    'עוזר לממן חודש אחד של Cloudflare Workers Paid',
+  'Heartfelt thanks': 'תודה מכל הלב',
+  'Helps toward one month of Expo EAS Starter':
+    'עוזר לממן חודש אחד של Expo EAS Starter',
+  'Big thanks': 'תודה גדולה',
+  "Helps toward Tackbok's Google Play registration cost":
+    'עוזר לממן את עלות הרישום של טאקבוק ב-Google Play',
+  'Extraordinary thanks': 'תודה יוצאת דופן',
+  'Helps toward one year of Apple Developer membership':
+    'עוזר לממן שנה אחת של חברות Apple Developer',
+  Unavailable: 'לא זמין',
+  'Support options could not be loaded. Please try again.':
+    'לא ניתן לטעון את אפשרויות התמיכה. נסה שוב.',
+  'You appear to be offline. Check your connection and try again.':
+    'נראה שאין חיבור לאינטרנט. בדוק את החיבור ונסה שוב.',
+  'The purchase could not be completed. Please try again.':
+    'לא ניתן להשלים את הרכישה. נסה שוב.',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    'תודה על התמיכה בטאקבוק. זה באמת חשוב לנו מאוד.',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    'התשלום שלך בהמתנה. החנות תשלים אותו לאחר השלמת האישור או התשלום.',
+  'Where your support helps': 'כיצד התמיכה שלך עוזרת',
+  'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
+    'הדוגמאות למעלה משקפות עלויות נוכחיות בדולר ארה״ב. מחירי החנות, המסים והעמלות משתנים בין מדינות, לכן התמיכה אינה מוקצית לחשבון מסוים.',
+  'Other ways to support': 'דרכים נוספות לתמוך',
+  'Rate Tackbok': 'דירוג טאקבוק',
+  'Leave a rating in the app store': 'השאר דירוג בחנות האפליקציות',
+  'Unable to open the store': 'לא ניתן לפתוח את החנות',
+  'Confirm {tier}': 'אישור {tier}',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    'החנות תחייב {price} עבור תמיכה מרצון וחד-פעמית זו. היא לא פותחת תכונות וניתן לרכוש אותה שוב.',
   'Privacy Policy': 'מדיניות פרטיות',
   'Read our privacy policy': 'קרא את מדיניות הפרטיות של טאקבוק',
   'Terms & Conditions': 'תנאים והגבלות',

@@ -4,6 +4,7 @@ import {
   CLOUD_SYNC_ANALYTICS_EVENT_NAMES,
   getScreenName,
   SCREEN_ROUTE_MAP,
+  SUPPORT_ANALYTICS_EVENT_NAMES,
   toCloudSyncCountBucket,
   toCloudSyncDurationBucket,
   type AnalyticsEvents,
@@ -73,5 +74,30 @@ describe('cloud-sync analytics allowlist', () => {
     expect(Object.keys(success).sort()).toEqual([
       'duration_bucket', 'pulled_bucket', 'pushed_bucket',
     ]);
+  });
+});
+
+describe('support analytics allowlist', () => {
+  test('contains only the reviewed support actions', () => {
+    expect(SUPPORT_ANALYTICS_EVENT_NAMES).toEqual([
+      'support_purchase_started',
+      'support_purchase_completed',
+      'support_purchase_cancelled',
+      'support_purchase_pending',
+      'support_purchase_failed',
+      'support_share_opened',
+      'support_rate_opened',
+    ]);
+  });
+
+  test('purchase payloads contain only a tier and coarse failure category', () => {
+    const completed: AnalyticsEvents['support_purchase_completed'] = { tier: 'small' };
+    const failed: AnalyticsEvents['support_purchase_failed'] = {
+      tier: 'extraordinary',
+      category: 'store',
+    };
+
+    expect(Object.keys(completed)).toEqual(['tier']);
+    expect(Object.keys(failed).sort()).toEqual(['category', 'tier']);
   });
 });

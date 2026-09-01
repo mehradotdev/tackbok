@@ -436,6 +436,43 @@ export const en = {
     'Enjoying Tackbok? Share the app with your friends and family',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app',
+  'Support Tackbok': 'Support Tackbok',
+  'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
+    'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.',
+  'Choose your thanks': 'Choose your thanks',
+  'Small thanks': 'Small thanks',
+  'Helps toward one month of Cloudflare Workers Paid':
+    'Helps toward one month of Cloudflare Workers Paid',
+  'Heartfelt thanks': 'Heartfelt thanks',
+  'Helps toward one month of Expo EAS Starter':
+    'Helps toward one month of Expo EAS Starter',
+  'Big thanks': 'Big thanks',
+  "Helps toward Tackbok's Google Play registration cost":
+    "Helps toward Tackbok's Google Play registration cost",
+  'Extraordinary thanks': 'Extraordinary thanks',
+  'Helps toward one year of Apple Developer membership':
+    'Helps toward one year of Apple Developer membership',
+  Unavailable: 'Unavailable',
+  'Support options could not be loaded. Please try again.':
+    'Support options could not be loaded. Please try again.',
+  'You appear to be offline. Check your connection and try again.':
+    'You appear to be offline. Check your connection and try again.',
+  'The purchase could not be completed. Please try again.':
+    'The purchase could not be completed. Please try again.',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    'Thank you for supporting Tackbok. It genuinely means a lot.',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    'Your payment is pending. The store will finish it when approval or payment completes.',
+  'Where your support helps': 'Where your support helps',
+  'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
+    'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.',
+  'Other ways to support': 'Other ways to support',
+  'Rate Tackbok': 'Rate Tackbok',
+  'Leave a rating in the app store': 'Leave a rating in the app store',
+  'Unable to open the store': 'Unable to open the store',
+  'Confirm {tier}': 'Confirm {tier}',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.',
   'Privacy Policy': 'Privacy Policy',
   'Read our privacy policy': "Read Tackbok's privacy policy",
   'Terms & Conditions': 'Terms & Conditions',

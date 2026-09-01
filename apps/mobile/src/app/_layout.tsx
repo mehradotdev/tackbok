@@ -19,6 +19,7 @@ import { useSettingsStore } from '~/lib/settings';
 import { useLocaleStore } from '~/lib/i18n';
 import { initReminders, useReminderTapObserver } from '~/lib/reminders';
 import { initAnalytics, trackScreenView } from '~/lib/analytics';
+import { initializeRevenueCat } from '~/lib/purchases/revenue-cat';
 import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
 import { getThemeConfig, DEFAULT_THEME_ID } from '~/lib/theme/themes';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
@@ -150,6 +151,9 @@ export default function Layout() {
   useEffect(() => {
     if (hasHydrated) {
       initAnalytics();
+      // Warm up the native billing connection. Configuration failures are
+      // surfaced with a retry on the Support screen, not during app startup.
+      void initializeRevenueCat().catch(() => {});
     }
   }, [hasHydrated]);
 
@@ -237,6 +241,10 @@ export default function Layout() {
                     title: 'Settings',
                     headerShown: false,
                   }}
+                />
+                <Stack.Screen
+                  name="support"
+                  options={{ title: 'Support Tackbok', headerShown: false }}
                 />
                 <Stack.Screen
                   name="cloud-backup"

@@ -34,6 +34,7 @@ export const SCREEN_ROUTE_MAP = {
   '/appearance': 'appearance',
   '/insights': 'insights',
   '/settings': 'settings',
+  '/support': 'support',
   '/cloud-backup': 'cloud_backup',
 } as const;
 
@@ -81,6 +82,13 @@ export type CloudSyncFailureCategory =
   | 'unknown';
 export type CloudSyncCountBucket = '0' | '1-10' | '11-100' | '100+';
 export type CloudSyncDurationBucket = '<1s' | '1-10s' | '10-60s' | '60s+';
+export type SupportTier = 'small' | 'heartfelt' | 'big' | 'extraordinary';
+export type SupportPurchaseFailureCategory =
+  | 'offline'
+  | 'configuration'
+  | 'store'
+  | 'not_allowed'
+  | 'unknown';
 
 /**
  * Event name → payload type. `undefined` means the event carries no payload.
@@ -122,6 +130,16 @@ export type AnalyticsEvents = {
   cloud_sync_failed: { category: CloudSyncFailureCategory };
   cloud_sync_conflict_recovered: { entity_type: 'entry' | 'tag' | 'prompt' | 'profile' };
   cloud_sync_repair_result: { result: 'repaired' | 'unrecoverable' | 'not-needed' };
+  support_purchase_started: { tier: SupportTier };
+  support_purchase_completed: { tier: SupportTier };
+  support_purchase_cancelled: { tier: SupportTier };
+  support_purchase_pending: { tier: SupportTier };
+  support_purchase_failed: {
+    tier: SupportTier;
+    category: SupportPurchaseFailureCategory;
+  };
+  support_share_opened: undefined;
+  support_rate_opened: undefined;
   // Onboarding funnel — defined now, fired only once the onboarding flow ships
   // (see z-onboarding-flow.md). Buffered pre-consent, sent only on opt-in.
   onboarding_step_viewed: { step: string };
@@ -139,6 +157,17 @@ export const CLOUD_SYNC_ANALYTICS_EVENT_NAMES = [
   'cloud_sync_failed',
   'cloud_sync_conflict_recovered',
   'cloud_sync_repair_result',
+] as const satisfies readonly AnalyticsEventName[];
+
+/** Privacy-audited support events. Prices, transaction ids, and customer ids are excluded. */
+export const SUPPORT_ANALYTICS_EVENT_NAMES = [
+  'support_purchase_started',
+  'support_purchase_completed',
+  'support_purchase_cancelled',
+  'support_purchase_pending',
+  'support_purchase_failed',
+  'support_share_opened',
+  'support_rate_opened',
 ] as const satisfies readonly AnalyticsEventName[];
 
 export function toCharBucket(charCount: number): CharBucket {
