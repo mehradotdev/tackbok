@@ -231,7 +231,7 @@ export default function SupportScreen() {
           <View className="mb-4 size-16 items-center justify-center rounded-full bg-primary/15">
             <Icon as={Heart} className="text-foreground" size={32} strokeWidth={1.8} />
           </View>
-          <Text className="text-center text-base leading-6 text-foreground/80">
+          <Text className="text-center text-base leading-6 text-foreground">
             {t(
               'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.',
             )}
