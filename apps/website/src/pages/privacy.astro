@@ -6,7 +6,7 @@ import SiteHeader from '~/components/SiteHeader.astro';
 const title = 'Privacy Policy — Tackbok';
 const description =
   'Learn how Tackbok handles local journal data, optional Google Drive backups, and opt-in analytics.';
-const lastUpdated = 'August 10, 2026';
+const lastUpdated = 'September 1, 2026';
 const supportEmail = 'tackbok.support@mehra.dev';
 ---
 
@@ -47,14 +47,14 @@ const supportEmail = 'tackbok.support@mehra.dev';
           important information.
         </p>
         <p>
-          Additionally, Tackbok features a donation system. Donations are processed via
-          RevenueCat. When making a donation, you may choose to provide a display name (or
-          remain anonymous) and an optional email address. The display name will be shown
-          on our public donation leaderboard (where the top 3 donors of the past 90 days
-          are highlighted at the top, and all other donors are listed below). If you
-          provide an email address, it will be used solely to send you a donation
-          acknowledgment and a thank-you note. Your email address will never be publicly
-          displayed on the leaderboard.
+          Tackbok offers optional, one-time support purchases. Payment is processed by
+          Apple or Google through their in-app purchase systems, while <strong>RevenueCat</strong>
+          helps the app retrieve products and purchase results. Tackbok does not ask for a
+          donor name or email address, does not maintain a donor leaderboard, and does not
+          unlock features in exchange for support. RevenueCat uses an automatically generated
+          anonymous app user identifier and receives the product, store, and transaction data
+          needed to provide the purchase service. We do not receive your full payment-card
+          details.
         </p>
 
         <h3 class="text-base font-semibold tracking-tight">
@@ -126,6 +126,13 @@ const supportEmail = 'tackbok.support@mehra.dev';
           your email address. The app's privacy screen always shows the complete,
           up-to-date list.
         </p>
+        <p>
+          Opening the Support screen and using its purchase, share, or rating actions may
+          also produce anonymous analytics events when analytics is enabled. Purchase events
+          contain only the selected support tier and a coarse result or error category. They
+          never include a price, currency, receipt, transaction identifier, RevenueCat user
+          identifier, or payment details.
+        </p>
         <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
           Data Sharing and Disclosure
         </h2>
@@ -133,7 +140,7 @@ const supportEmail = 'tackbok.support@mehra.dev';
           <strong>We do not sell your personal data.</strong> Any data that is transmitted from
           your device to our third-party service providers (such as PostHog or RevenueCat) is
           used strictly to provide, maintain, and improve the app's functionality (e.g., processing
-          donations and analyzing app usage). We do not share your information with any third
+          optional support purchases and analyzing app usage). We do not share your information with any third
           parties for their own marketing or advertising purposes.
         </p>
         <p>
@@ -159,7 +166,8 @@ const supportEmail = 'tackbok.support@mehra.dev';
           </li>
           <li>
             <strong>RevenueCat</strong>: This service manages and processes in-app
-            purchases and donations. For more information, please view the <a
+            support purchases and their status. Apple or Google processes the payment. For
+            more information, please view the <a
               href="https://www.revenuecat.com/privacy"
               target="_blank"
               rel="noopener noreferrer"
