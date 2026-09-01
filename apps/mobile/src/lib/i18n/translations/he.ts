@@ -423,7 +423,8 @@ export const he: Translations = {
   'Support Tackbok': 'תמיכה בטאקבוק',
   'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
     'טאקבוק חינמית לשימוש. אם היא הוסיפה משהו חיובי ליום שלך, אפשר לתמוך מרצון בהמשך הפיתוח שלה. התמיכה עוזרת לכסות אירוח, שירותי בנייה ועמלות חנויות אפליקציות. היא לא פותחת תכונות. האפליקציה פועלת באותו אופן לכולם.',
-  'Choose your thanks': 'בחירת תודה',
+  'Ways to support': 'דרכים לתמוך',
+  Free: 'חינם',
   'Small thanks': 'תודה קטנה',
   'Helps toward one month of Cloudflare Workers Paid':
     'עוזר לממן חודש אחד של Cloudflare Workers Paid',
@@ -443,6 +444,10 @@ export const he: Translations = {
     'נראה שאין חיבור לאינטרנט. בדוק את החיבור ונסה שוב.',
   'The purchase could not be completed. Please try again.':
     'לא ניתן להשלים את הרכישה. נסה שוב.',
+  'Payment successful': 'התשלום בוצע בהצלחה',
+  'Thank you!': 'תודה!',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    'התמיכה שלך עוזרת לשמור על טאקבוק חינמית ועצמאית. זה באמת חשוב לנו מאוד.',
   'Thank you for supporting Tackbok. It genuinely means a lot.':
     'תודה על התמיכה בטאקבוק. זה באמת חשוב לנו מאוד.',
   'Your payment is pending. The store will finish it when approval or payment completes.':
@@ -450,7 +455,6 @@ export const he: Translations = {
   'Where your support helps': 'כיצד התמיכה שלך עוזרת',
   'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
     'הדוגמאות למעלה משקפות עלויות נוכחיות בדולר ארה״ב. מחירי החנות, המסים והעמלות משתנים בין מדינות, לכן התמיכה אינה מוקצית לחשבון מסוים.',
-  'Other ways to support': 'דרכים נוספות לתמוך',
   'Rate Tackbok': 'דירוג טאקבוק',
   'Leave a rating in the app store': 'השאר דירוג בחנות האפליקציות',
   'Unable to open the store': 'לא ניתן לפתוח את החנות',

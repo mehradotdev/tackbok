@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import { useCSSVariable } from 'uniwind';
 import {
   ArrowLeft,
   ArrowRight,
@@ -9,6 +11,7 @@ import {
   RefreshCw,
   Share2,
   Star,
+  type LucideIcon,
 } from 'lucide-react-native';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
@@ -23,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog';
-import { SettingsRow } from '~/components/SettingsRow';
+import { PrayingHandsIcon } from '~/components/PrayingHandsIcon';
 import { SettingsSection } from '~/screens/settings/SettingsSection';
 import { useTranslation } from '~/lib/i18n';
 import { track } from '~/lib/analytics';
@@ -38,12 +41,50 @@ import {
 } from '~/lib/purchases/support-catalog';
 import { openTackbokRating, shareTackbok } from '~/lib/sharing/share-app';
 import { toast } from '~/components/ui/toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '~/components/ui/dialog';
 
 type PurchaseNotice =
-  | { type: 'success' }
   | { type: 'pending' }
   | { type: 'error'; message: string; tierId: SupportCatalogTier['id'] }
   | null;
+
+function FreeSupportRow({
+  icon,
+  title,
+  description,
+  onPress,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <Button
+      variant="ghost"
+      size="flex"
+      onPress={onPress}
+      className="w-full justify-start gap-3 rounded-none border-b border-border px-4 py-4">
+      <View className="size-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+        <Icon as={icon} className="text-foreground" size={20} strokeWidth={2} />
+      </View>
+      <View className="min-w-0 flex-1 items-start">
+        <Text className="text-base font-body-semibold text-foreground">{title}</Text>
+        <Text className="mt-0.5 text-left text-sm text-foreground">{description}</Text>
+      </View>
+      <View className="min-w-16 items-end">
+        <Text className="text-base font-body-bold text-foreground">{t('Free')}</Text>
+      </View>
+    </Button>
+  );
+}
 
 function SupportTierRow({
   tier,
@@ -67,13 +108,13 @@ function SupportTierRow({
       onPress={onPress}
       className="w-full justify-start gap-3 rounded-none border-b border-border px-4 py-4 last:border-b-0">
       <View className="size-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
-        <Icon as={Heart} className="text-primary" size={20} strokeWidth={2} />
+        <Icon as={Heart} className="text-foreground" size={20} strokeWidth={2} />
       </View>
       <View className="min-w-0 flex-1 items-start">
         <Text className="text-base font-body-semibold text-foreground">
           {t(tier.titleKey)}
         </Text>
-        <Text className="mt-0.5 text-left text-sm text-foreground/70">
+        <Text className="mt-0.5 text-left text-sm text-foreground">
           {t(tier.descriptionKey)}
         </Text>
       </View>
@@ -93,7 +134,9 @@ function SupportTierRow({
 export default function SupportScreen() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
+  const [foregroundColor] = useCSSVariable(['--color-foreground']);
   const [selectedTier, setSelectedTier] = useState<SupportCatalogTier | null>(null);
+  const [successfulTier, setSuccessfulTier] = useState<SupportCatalogTier | null>(null);
   const [notice, setNotice] = useState<PurchaseNotice>(null);
 
   const catalogQuery = useQuery({
@@ -119,7 +162,13 @@ export default function SupportScreen() {
       const result = await purchaseMutation.mutateAsync(tier.id);
       if (result === 'completed') {
         track('support_purchase_completed', { tier: tier.id });
-        setNotice({ type: 'success' });
+        toast.success(t('Payment successful'), {
+          description: t('Thank you for supporting Tackbok. It genuinely means a lot.'),
+        });
+        if (process.env.EXPO_OS === 'ios') {
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        setSuccessfulTier(tier);
       } else if (result === 'pending') {
         track('support_purchase_pending', { tier: tier.id });
         setNotice({ type: 'pending' });
@@ -127,8 +176,7 @@ export default function SupportScreen() {
         track('support_purchase_cancelled', { tier: tier.id });
       }
     } catch (error) {
-      const category =
-        error instanceof SupportPurchaseError ? error.category : 'unknown';
+      const category = error instanceof SupportPurchaseError ? error.category : 'unknown';
       track('support_purchase_failed', { tier: tier.id, category });
       setNotice({
         type: 'error',
@@ -181,7 +229,7 @@ export default function SupportScreen() {
       <ScrollView className="px-safe" contentContainerClassName="pb-safe-or-8 pt-6">
         <View className="mb-6 items-center px-6">
           <View className="mb-4 size-16 items-center justify-center rounded-full bg-primary/15">
-            <Icon as={Heart} className="text-primary" size={32} strokeWidth={1.8} />
+            <Icon as={Heart} className="text-foreground" size={32} strokeWidth={1.8} />
           </View>
           <Text className="text-center text-base leading-6 text-foreground/80">
             {t(
@@ -190,7 +238,19 @@ export default function SupportScreen() {
           </Text>
         </View>
 
-        <SettingsSection title={t('Choose your thanks')}>
+        <SettingsSection title={t('Ways to support')}>
+          <FreeSupportRow
+            title={t('Share Tackbok')}
+            description={t('Share the app with friends and family')}
+            icon={Share2}
+            onPress={() => void handleShare()}
+          />
+          <FreeSupportRow
+            title={t('Rate Tackbok')}
+            description={t('Leave a rating in the app store')}
+            icon={Star}
+            onPress={() => void handleRate()}
+          />
           {catalog.map((tier) => (
             <SupportTierRow
               key={tier.id}
@@ -231,13 +291,11 @@ export default function SupportScreen() {
                 : 'mx-4 mb-6 rounded-lg border border-primary/30 bg-primary/10 p-4'
             }>
             <Text className="text-sm leading-5 text-foreground">
-              {notice.type === 'success'
-                ? t('Thank you for supporting Tackbok. It genuinely means a lot.')
-                : notice.type === 'pending'
-                  ? t(
-                      'Your payment is pending. The store will finish it when approval or payment completes.',
-                    )
-                  : notice.message}
+              {notice.type === 'pending'
+                ? t(
+                    'Your payment is pending. The store will finish it when approval or payment completes.',
+                  )
+                : notice.message}
             </Text>
             {notice.type === 'error' && (
               <Button
@@ -260,30 +318,12 @@ export default function SupportScreen() {
           <Text className="mb-2 font-body-semibold text-foreground">
             {t('Where your support helps')}
           </Text>
-          <Text className="text-sm leading-5 text-foreground/75">
+          <Text className="text-sm leading-5 text-foreground">
             {t(
               'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.',
             )}
           </Text>
         </View>
-
-        <SettingsSection title={t('Other ways to support')}>
-          <SettingsRow
-            label={t('Share Tackbok')}
-            description={t('Share the app with friends and family')}
-            icon={Share2}
-            onPress={handleShare}
-            showChevron
-          />
-          <SettingsRow
-            label={t('Rate Tackbok')}
-            description={t('Leave a rating in the app store')}
-            icon={Star}
-            onPress={handleRate}
-            showChevron
-            isLast
-          />
-        </SettingsSection>
       </ScrollView>
 
       <AlertDialog
@@ -294,7 +334,9 @@ export default function SupportScreen() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t('Confirm {tier}', { tier: selectedTier ? t(selectedTier.titleKey) : '' })}
+              {t('Confirm {tier}', {
+                tier: selectedTier ? t(selectedTier.titleKey) : '',
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t(
@@ -316,6 +358,35 @@ export default function SupportScreen() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={successfulTier != null}
+        onOpenChange={(open) => {
+          if (!open) setSuccessfulTier(null);
+        }}>
+        <DialogContent
+          showCloseButton={false}
+          className="w-[92%] max-w-sm items-center gap-5 p-6">
+          <PrayingHandsIcon size={92} color={foregroundColor as string} />
+          <View className="items-center gap-3">
+            <DialogTitle className="text-center font-heading text-3xl leading-9">
+              {t('Thank you!')}
+            </DialogTitle>
+            <DialogDescription className="text-center text-base leading-6 text-foreground">
+              {t(
+                'Your support helps keep Tackbok free and independent. It genuinely means a lot.',
+              )}
+            </DialogDescription>
+          </View>
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full"
+            onPress={() => setSuccessfulTier(null)}>
+            <Text>{t('Continue')}</Text>
+          </Button>
+        </DialogContent>
+      </Dialog>
     </View>
   );
 }

@@ -439,7 +439,8 @@ export const en = {
   'Support Tackbok': 'Support Tackbok',
   'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
     'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.',
-  'Choose your thanks': 'Choose your thanks',
+  'Ways to support': 'Ways to support',
+  Free: 'Free',
   'Small thanks': 'Small thanks',
   'Helps toward one month of Cloudflare Workers Paid':
     'Helps toward one month of Cloudflare Workers Paid',
@@ -459,6 +460,10 @@ export const en = {
     'You appear to be offline. Check your connection and try again.',
   'The purchase could not be completed. Please try again.':
     'The purchase could not be completed. Please try again.',
+  'Payment successful': 'Payment successful',
+  'Thank you!': 'Thank you!',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    'Your support helps keep Tackbok free and independent. It genuinely means a lot.',
   'Thank you for supporting Tackbok. It genuinely means a lot.':
     'Thank you for supporting Tackbok. It genuinely means a lot.',
   'Your payment is pending. The store will finish it when approval or payment completes.':
@@ -466,7 +471,6 @@ export const en = {
   'Where your support helps': 'Where your support helps',
   'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
     'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.',
-  'Other ways to support': 'Other ways to support',
   'Rate Tackbok': 'Rate Tackbok',
   'Leave a rating in the app store': 'Leave a rating in the app store',
   'Unable to open the store': 'Unable to open the store',

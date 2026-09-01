@@ -413,7 +413,8 @@ export const zhTW: Translations = {
   'Support Tackbok': '支持塔克博克',
   'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
     '塔克博克可免費使用。如果它為您的一天帶來了正面影響，您可以自願支持其持續開發。支持將協助支付託管、建置服務和應用程式商店費用。支持不會解鎖任何功能，所有人的應用程式體驗都相同。',
-  'Choose your thanks': '選擇感謝方式',
+  'Ways to support': '支持方式',
+  Free: '免費',
   'Small thanks': '小小感謝',
   'Helps toward one month of Cloudflare Workers Paid':
     '協助支付一個月的 Cloudflare Workers Paid',
@@ -433,6 +434,10 @@ export const zhTW: Translations = {
     '您似乎處於離線狀態。請檢查網路連線後再試一次。',
   'The purchase could not be completed. Please try again.':
     '無法完成購買，請再試一次。',
+  'Payment successful': '付款成功',
+  'Thank you!': '謝謝您！',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    '您的支持幫助塔克博克維持免費與獨立。這對我們真的意義重大。',
   'Thank you for supporting Tackbok. It genuinely means a lot.':
     '感謝您支持塔克博克。這對我們真的意義重大。',
   'Your payment is pending. The store will finish it when approval or payment completes.':
@@ -440,7 +445,6 @@ export const zhTW: Translations = {
   'Where your support helps': '您的支持用於何處',
   'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
     '以上範例反映目前的美元成本。商店定價、稅金和手續費因國家或地區而異，因此支持款不會指定用於某一筆帳單。',
-  'Other ways to support': '其他支持方式',
   'Rate Tackbok': '為塔克博克評分',
   'Leave a rating in the app store': '在應用程式商店留下評分',
   'Unable to open the store': '無法開啟應用程式商店',

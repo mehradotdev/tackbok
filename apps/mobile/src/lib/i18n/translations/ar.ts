@@ -424,7 +424,8 @@ export const ar: Translations = {
   'Support Tackbok': 'ادعم تاكبوك',
   'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
     'تاكبوك مجاني للاستخدام. إذا أضاف شيئًا إيجابيًا إلى يومك، يمكنك اختياريًا دعم استمرار تطويره. يساعد الدعم في تغطية الاستضافة وخدمات البناء ورسوم متاجر التطبيقات. لا يفتح أي ميزات. يعمل التطبيق بالطريقة نفسها للجميع.',
-  'Choose your thanks': 'اختر مستوى الشكر',
+  'Ways to support': 'طرق الدعم',
+  Free: 'مجاني',
   'Small thanks': 'شكر صغير',
   'Helps toward one month of Cloudflare Workers Paid':
     'يساعد في تغطية شهر واحد من Cloudflare Workers Paid',
@@ -444,6 +445,10 @@ export const ar: Translations = {
     'يبدو أنك غير متصل بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.',
   'The purchase could not be completed. Please try again.':
     'تعذر إكمال عملية الشراء. يرجى المحاولة مرة أخرى.',
+  'Payment successful': 'تم الدفع بنجاح',
+  'Thank you!': 'شكرًا لك!',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    'يساعد دعمك على إبقاء تاكبوك مجانيًا ومستقلًا. إنه يعني لنا الكثير حقًا.',
   'Thank you for supporting Tackbok. It genuinely means a lot.':
     'شكرًا لدعم تاكبوك. هذا يعني لنا الكثير حقًا.',
   'Your payment is pending. The store will finish it when approval or payment completes.':
@@ -451,7 +456,6 @@ export const ar: Translations = {
   'Where your support helps': 'أين يساعد دعمك',
   'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
     'تعكس الأمثلة أعلاه التكاليف الحالية بالدولار الأمريكي. تختلف أسعار المتجر والضرائب والرسوم حسب البلد، لذلك لا يُخصص الدعم لفاتورة محددة.',
-  'Other ways to support': 'طرق أخرى للدعم',
   'Rate Tackbok': 'قيّم تاكبوك',
   'Leave a rating in the app store': 'اترك تقييمًا في متجر التطبيقات',
   'Unable to open the store': 'تعذر فتح المتجر',

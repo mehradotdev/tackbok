@@ -462,7 +462,8 @@ export const de: Translations = {
   'Support Tackbok': 'Tackbok unterstützen',
   'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
     'Tackbok ist kostenlos. Wenn die App etwas Positives in deinen Tag gebracht hat, kannst du ihre Weiterentwicklung freiwillig unterstützen. Die Unterstützung hilft bei Hosting, Build-Diensten und App-Store-Gebühren. Sie schaltet keine Funktionen frei. Die App funktioniert für alle gleich.',
-  'Choose your thanks': 'Wähle deinen Dank',
+  'Ways to support': 'Möglichkeiten zur Unterstützung',
+  Free: 'Kostenlos',
   'Small thanks': 'Kleines Dankeschön',
   'Helps toward one month of Cloudflare Workers Paid':
     'Hilft bei einem Monat Cloudflare Workers Paid',
@@ -482,6 +483,10 @@ export const de: Translations = {
     'Du scheinst offline zu sein. Prüfe deine Verbindung und versuche es erneut.',
   'The purchase could not be completed. Please try again.':
     'Der Kauf konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
+  'Payment successful': 'Zahlung erfolgreich',
+  'Thank you!': 'Danke!',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    'Deine Unterstützung hilft, Tackbok kostenlos und unabhängig zu halten. Das bedeutet uns wirklich viel.',
   'Thank you for supporting Tackbok. It genuinely means a lot.':
     'Danke, dass du Tackbok unterstützt. Das bedeutet uns wirklich viel.',
   'Your payment is pending. The store will finish it when approval or payment completes.':
@@ -489,7 +494,6 @@ export const de: Translations = {
   'Where your support helps': 'Wobei deine Unterstützung hilft',
   'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
     'Die Beispiele oben zeigen aktuelle Kosten in US-Dollar. Store-Preise, Steuern und Gebühren unterscheiden sich je nach Land, daher wird die Unterstützung keiner bestimmten Rechnung zugeordnet.',
-  'Other ways to support': 'Andere Möglichkeiten zu helfen',
   'Rate Tackbok': 'Tackbok bewerten',
   'Leave a rating in the app store': 'Eine Bewertung im App Store hinterlassen',
   'Unable to open the store': 'Store kann nicht geöffnet werden',
