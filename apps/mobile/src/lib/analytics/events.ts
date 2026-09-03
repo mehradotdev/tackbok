@@ -13,6 +13,8 @@
  * - No PII, ever (no names, emails, entry text, file names, precise location).
  */
 
+import type { SupportTierId } from '~/lib/purchases/support-catalog';
+
 export type CharBucket = '0-50' | '51-200' | '200+';
 
 /** Order-of-magnitude bucket for entry counts / journaled-day counts. */
@@ -82,7 +84,6 @@ export type CloudSyncFailureCategory =
   | 'unknown';
 export type CloudSyncCountBucket = '0' | '1-10' | '11-100' | '100+';
 export type CloudSyncDurationBucket = '<1s' | '1-10s' | '10-60s' | '60s+';
-export type SupportTier = 'small' | 'heartfelt' | 'big' | 'deepest';
 export type SupportPurchaseFailureCategory =
   | 'offline'
   | 'configuration'
@@ -130,12 +131,12 @@ export type AnalyticsEvents = {
   cloud_sync_failed: { category: CloudSyncFailureCategory };
   cloud_sync_conflict_recovered: { entity_type: 'entry' | 'tag' | 'prompt' | 'profile' };
   cloud_sync_repair_result: { result: 'repaired' | 'unrecoverable' | 'not-needed' };
-  support_purchase_started: { tier: SupportTier };
-  support_purchase_completed: { tier: SupportTier };
-  support_purchase_cancelled: { tier: SupportTier };
-  support_purchase_pending: { tier: SupportTier };
+  support_purchase_started: { tier: SupportTierId };
+  support_purchase_completed: { tier: SupportTierId };
+  support_purchase_cancelled: { tier: SupportTierId };
+  support_purchase_pending: { tier: SupportTierId };
   support_purchase_failed: {
-    tier: SupportTier;
+    tier: SupportTierId;
     category: SupportPurchaseFailureCategory;
   };
   support_share_opened: undefined;
@@ -149,7 +150,46 @@ export type AnalyticsEvents = {
 
 export type AnalyticsEventName = keyof AnalyticsEvents;
 
-/** §10 cloud-sync catalog; imported by the in-app privacy disclosure and gate. */
+/**
+ * Complete runtime catalog used by the in-app privacy disclosure. The Record
+ * constraint makes TypeScript fail whenever AnalyticsEvents gains or loses an
+ * event without this catalog being updated too.
+ */
+const ANALYTICS_EVENT_CATALOG = {
+  app_opened: true,
+  screen_viewed: true,
+  entry_created: true,
+  entry_deleted: true,
+  search_used: true,
+  theme_changed: true,
+  language_changed: true,
+  import_completed: true,
+  backup_exported: true,
+  reminder_enabled: true,
+  reminder_disabled: true,
+  cloud_sync_connected: true,
+  cloud_sync_started: true,
+  cloud_sync_succeeded: true,
+  cloud_sync_failed: true,
+  cloud_sync_conflict_recovered: true,
+  cloud_sync_repair_result: true,
+  support_purchase_started: true,
+  support_purchase_completed: true,
+  support_purchase_cancelled: true,
+  support_purchase_pending: true,
+  support_purchase_failed: true,
+  support_share_opened: true,
+  support_rate_opened: true,
+  onboarding_step_viewed: true,
+  onboarding_completed: true,
+  onboarding_skipped: true,
+} as const satisfies Record<AnalyticsEventName, true>;
+
+export const ANALYTICS_EVENT_NAMES = Object.keys(
+  ANALYTICS_EVENT_CATALOG,
+) as AnalyticsEventName[];
+
+/** Privacy-audited cloud-sync subset used by focused tests and safeguards. */
 export const CLOUD_SYNC_ANALYTICS_EVENT_NAMES = [
   'cloud_sync_connected',
   'cloud_sync_started',

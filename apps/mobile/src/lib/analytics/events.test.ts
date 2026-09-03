@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {
+  ANALYTICS_EVENT_NAMES,
   CLOUD_SYNC_ANALYTICS_EVENT_NAMES,
   getScreenName,
   SCREEN_ROUTE_MAP,
@@ -29,8 +30,20 @@ describe('analytics screen routes', () => {
   });
 });
 
+describe('analytics privacy disclosure', () => {
+  test('renders the compiler-enforced complete event catalog', () => {
+    const privacyScreen = fs.readFileSync(
+      path.resolve(__dirname, '../../screens/onboarding/PrivacyScreen.tsx'),
+      'utf8',
+    );
+
+    expect(privacyScreen).toContain('ANALYTICS_EVENT_NAMES.map');
+    expect(new Set(ANALYTICS_EVENT_NAMES).size).toBe(ANALYTICS_EVENT_NAMES.length);
+  });
+});
+
 describe('cloud-sync analytics allowlist', () => {
-  test('stays synchronized across the catalog, privacy screen, and website policy', () => {
+  test('stays synchronized across the catalog and website policy', () => {
     expect(CLOUD_SYNC_ANALYTICS_EVENT_NAMES).toEqual([
       'cloud_sync_connected',
       'cloud_sync_started',
@@ -39,11 +52,6 @@ describe('cloud-sync analytics allowlist', () => {
       'cloud_sync_conflict_recovered',
       'cloud_sync_repair_result',
     ]);
-    const privacyScreen = fs.readFileSync(
-      path.resolve(__dirname, '../../screens/onboarding/PrivacyScreen.tsx'),
-      'utf8',
-    );
-    expect(privacyScreen).toContain('...CLOUD_SYNC_ANALYTICS_EVENT_NAMES');
     // The website policy covers these events in plain language rather than by
     // name. Naming them there creates a second list that drifts silently the
     // next time the catalog changes; the in-app screen above already renders

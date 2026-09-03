@@ -7,29 +7,13 @@ import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { commitPreConsentBuffer, stopPreConsentBuffering } from '~/lib/analytics';
-import { CLOUD_SYNC_ANALYTICS_EVENT_NAMES } from '~/lib/analytics/events';
+import { ANALYTICS_EVENT_NAMES } from '~/lib/analytics/events';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
-
-/** Keep in sync with src/lib/analytics/events.ts (the typed catalog). */
-export const TRACKED_EVENT_NAMES = [
-  'app_opened',
-  'screen_viewed',
-  'entry_created',
-  'entry_deleted',
-  'search_used',
-  'theme_changed',
-  'language_changed',
-  'import_completed',
-  'backup_exported',
-  ...CLOUD_SYNC_ANALYTICS_EVENT_NAMES,
-  'reminder_enabled / reminder_disabled',
-  'onboarding_step_viewed / onboarding_completed / onboarding_skipped',
-];
 
 function AnalyticsDetailsSheet() {
   const { t } = useTranslation();
@@ -74,7 +58,7 @@ function AnalyticsDetailsSheet() {
           </Text>
 
           <View className="bg-card rounded-lg border border-border px-4 py-3 gap-1.5">
-            {TRACKED_EVENT_NAMES.map((eventName) => (
+            {ANALYTICS_EVENT_NAMES.map((eventName) => (
               <Text key={eventName} className="text-xs text-foreground font-body-medium">
                 {eventName}
               </Text>
