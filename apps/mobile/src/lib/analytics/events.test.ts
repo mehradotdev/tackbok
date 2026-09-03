@@ -93,7 +93,7 @@ describe('support analytics allowlist', () => {
   test('purchase payloads contain only a tier and coarse failure category', () => {
     const completed: AnalyticsEvents['support_purchase_completed'] = { tier: 'small' };
     const failed: AnalyticsEvents['support_purchase_failed'] = {
-      tier: 'extraordinary',
+      tier: 'deepest',
       category: 'store',
     };
 

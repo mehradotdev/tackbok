@@ -422,22 +422,24 @@ export const ar: Translations = {
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'مارس الامتنان مع تاكبوك، تطبيق بسيط ومجاني وخاص لتدوين الامتنان',
   'Support Tackbok': 'ادعم تاكبوك',
-  'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
-    'تاكبوك مجاني للاستخدام. إذا أضاف شيئًا إيجابيًا إلى يومك، يمكنك اختياريًا دعم استمرار تطويره. يساعد الدعم في تغطية الاستضافة وخدمات البناء ورسوم متاجر التطبيقات. لا يفتح أي ميزات. يعمل التطبيق بالطريقة نفسها للجميع.',
+  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+    'تاكبوك مجاني للاستخدام، وهذا لن يتغير. إذا أضاف قليلًا من الامتنان إلى يومك، فيمكنك دعم التطبيق، لكن لا توجد ميزات لفتحها. الجميع يحصل على التطبيق نفسه.',
+  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+    'تبلغ تكلفة تشغيل تاكبوك حاليًا نحو 33.25 دولارًا أمريكيًا شهريًا، قبل الضرائب والرسوم وتكاليف الاستخدام الإضافي. إذا وجدت فيه فائدة، فحتى المساهمة الصغيرة تساعد على إبقائه مجانيًا للجميع.',
   'Ways to support': 'طرق الدعم',
   Free: 'مجاني',
   'Small thanks': 'شكر صغير',
-  'Helps toward one month of Cloudflare Workers Paid':
-    'يساعد في تغطية شهر واحد من Cloudflare Workers Paid',
+  'Helps me finish work 10 minutes earlier':
+    'يمنحني 10 دقائق إضافية في نهاية يوم العمل',
   'Heartfelt thanks': 'شكر من القلب',
-  'Helps toward one month of Expo EAS Starter':
-    'يساعد في تغطية شهر واحد من Expo EAS Starter',
+  'Helps pay for hosting and online services':
+    'يساعد في دفع تكاليف الاستضافة والخدمات عبر الإنترنت',
   'Big thanks': 'شكر كبير',
-  "Helps toward Tackbok's Google Play registration cost":
-    'يساعد في تغطية تكلفة تسجيل تاكبوك في Google Play',
-  'Extraordinary thanks': 'شكر استثنائي',
-  'Helps toward one year of Apple Developer membership':
-    'يساعد في تغطية سنة واحدة من عضوية Apple Developer',
+  'Helps test and release Tackbok updates':
+    'يساعد في اختبار تحديثات تاكبوك وإصدارها',
+  'Deepest thanks': 'جزيل الشكر',
+  'Helps cover one month of Tackbok’s running costs and ongoing development':
+    'يساعد في تغطية شهر من تكاليف تشغيل تاكبوك وتطويره المستمر',
   Unavailable: 'غير متاح',
   'Support options could not be loaded. Please try again.':
     'تعذر تحميل خيارات الدعم. يرجى المحاولة مرة أخرى.',
@@ -454,10 +456,20 @@ export const ar: Translations = {
   'Your payment is pending. The store will finish it when approval or payment completes.':
     'دفعتك معلقة. سيكملها المتجر عند اكتمال الموافقة أو الدفع.',
   'Where your support helps': 'أين يساعد دعمك',
-  'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
-    'تعكس الأمثلة أعلاه التكاليف الحالية بالدولار الأمريكي. تختلف أسعار المتجر والضرائب والرسوم حسب البلد، لذلك لا يُخصص الدعم لفاتورة محددة.',
+  'Cloudflare Workers': 'Cloudflare Workers',
+  'Expo EAS': 'Expo EAS',
+  'Apple Developer membership': 'عضوية Apple Developer',
+  'tackbok.org domain': 'نطاق tackbok.org',
+  'Google Play registration': 'التسجيل في Google Play',
+  'Monthly baseline': 'التكلفة الشهرية الأساسية',
+  'US$5/month': 'US$5 شهريًا',
+  'US$19/month': 'US$19 شهريًا',
+  'US$99/year': 'US$99 سنويًا',
+  'US$12/year': 'US$12 سنويًا',
+  'US$25 one time': 'US$25 لمرة واحدة',
+  'About US$33.25': 'نحو US$33.25',
   'Rate Tackbok': 'قيّم تاكبوك',
-  'Leave a rating in the app store': 'اترك تقييمًا في متجر التطبيقات',
+  'Leave an honest rating in the app store': 'اترك تقييمًا صادقًا في متجر التطبيقات',
   'Unable to open the store': 'تعذر فتح المتجر',
   'Confirm {tier}': 'تأكيد {tier}',
   'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':

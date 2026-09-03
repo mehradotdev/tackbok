@@ -460,22 +460,24 @@ export const de: Translations = {
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'Übe Dankbarkeit mit Tackbok, einer einfachen, kostenlosen und privaten Dankbarkeitstagebuch-App',
   'Support Tackbok': 'Tackbok unterstützen',
-  'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
-    'Tackbok ist kostenlos. Wenn die App etwas Positives in deinen Tag gebracht hat, kannst du ihre Weiterentwicklung freiwillig unterstützen. Die Unterstützung hilft bei Hosting, Build-Diensten und App-Store-Gebühren. Sie schaltet keine Funktionen frei. Die App funktioniert für alle gleich.',
+  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+    'Tackbok ist kostenlos, und das wird sich nicht ändern. Wenn es etwas mehr Dankbarkeit in deinen Tag gebracht hat, kannst du es gerne unterstützen, auch wenn es nichts freizuschalten gibt. Alle bekommen dieselbe App.',
+  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+    'Der Betrieb von Tackbok kostet derzeit etwa 33,25 US$ pro Monat, vor Steuern, Gebühren und nutzungsabhängigen Mehrkosten. Wenn Tackbok für dich wertvoll ist, hilft selbst ein kleiner Beitrag, die App für alle kostenlos zu halten.',
   'Ways to support': 'Möglichkeiten zur Unterstützung',
   Free: 'Kostenlos',
   'Small thanks': 'Kleines Dankeschön',
-  'Helps toward one month of Cloudflare Workers Paid':
-    'Hilft bei einem Monat Cloudflare Workers Paid',
+  'Helps me finish work 10 minutes earlier':
+    'Hilft mir, den Arbeitstag 10 Minuten früher zu beenden',
   'Heartfelt thanks': 'Herzliches Dankeschön',
-  'Helps toward one month of Expo EAS Starter':
-    'Hilft bei einem Monat Expo EAS Starter',
+  'Helps pay for hosting and online services':
+    'Hilft, Hosting und Online-Dienste zu bezahlen',
   'Big thanks': 'Großes Dankeschön',
-  "Helps toward Tackbok's Google Play registration cost":
-    'Hilft bei Tackboks Registrierungsgebühr für Google Play',
-  'Extraordinary thanks': 'Außergewöhnliches Dankeschön',
-  'Helps toward one year of Apple Developer membership':
-    'Hilft bei einem Jahr Apple-Developer-Mitgliedschaft',
+  'Helps test and release Tackbok updates':
+    'Hilft, Tackbok-Updates zu testen und zu veröffentlichen',
+  'Deepest thanks': 'Allergrößtes Dankeschön',
+  'Helps cover one month of Tackbok’s running costs and ongoing development':
+    'Hilft, einen Monat der laufenden Kosten und Weiterentwicklung von Tackbok zu decken',
   Unavailable: 'Nicht verfügbar',
   'Support options could not be loaded. Please try again.':
     'Die Unterstützungsoptionen konnten nicht geladen werden. Bitte versuche es erneut.',
@@ -492,10 +494,21 @@ export const de: Translations = {
   'Your payment is pending. The store will finish it when approval or payment completes.':
     'Deine Zahlung steht aus. Der Store schließt sie ab, sobald die Genehmigung oder Zahlung erfolgt ist.',
   'Where your support helps': 'Wobei deine Unterstützung hilft',
-  'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
-    'Die Beispiele oben zeigen aktuelle Kosten in US-Dollar. Store-Preise, Steuern und Gebühren unterscheiden sich je nach Land, daher wird die Unterstützung keiner bestimmten Rechnung zugeordnet.',
+  'Cloudflare Workers': 'Cloudflare Workers',
+  'Expo EAS': 'Expo EAS',
+  'Apple Developer membership': 'Apple-Developer-Mitgliedschaft',
+  'tackbok.org domain': 'tackbok.org-Domain',
+  'Google Play registration': 'Google-Play-Registrierung',
+  'Monthly baseline': 'Monatliche Grundkosten',
+  'US$5/month': '5 US$/Monat',
+  'US$19/month': '19 US$/Monat',
+  'US$99/year': '99 US$/Jahr',
+  'US$12/year': '12 US$/Jahr',
+  'US$25 one time': 'einmalig 25 US$',
+  'About US$33.25': 'Etwa 33,25 US$',
   'Rate Tackbok': 'Tackbok bewerten',
-  'Leave a rating in the app store': 'Eine Bewertung im App Store hinterlassen',
+  'Leave an honest rating in the app store':
+    'Eine ehrliche Bewertung im App Store hinterlassen',
   'Unable to open the store': 'Store kann nicht geöffnet werden',
   'Confirm {tier}': '{tier} bestätigen',
   'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':

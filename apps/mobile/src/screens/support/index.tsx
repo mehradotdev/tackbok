@@ -131,6 +131,42 @@ function SupportTierRow({
   );
 }
 
+function CostBreakdownRow({
+  label,
+  amount,
+  emphasized = false,
+}: {
+  label: string;
+  amount: string;
+  emphasized?: boolean;
+}) {
+  return (
+    <View
+      className={
+        emphasized
+          ? 'flex-row items-start justify-between gap-4 border-t border-border pt-3'
+          : 'flex-row items-start justify-between gap-4'
+      }>
+      <Text
+        className={
+          emphasized
+            ? 'min-w-0 flex-1 font-body-semibold text-foreground'
+            : 'min-w-0 flex-1 text-sm text-foreground'
+        }>
+        {label}
+      </Text>
+      <Text
+        className={
+          emphasized
+            ? 'shrink-0 text-right font-body-bold text-foreground'
+            : 'shrink-0 text-right text-sm font-body-semibold text-foreground'
+        }>
+        {amount}
+      </Text>
+    </View>
+  );
+}
+
 export default function SupportScreen() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
@@ -233,7 +269,12 @@ export default function SupportScreen() {
           </View>
           <Text className="text-center text-base leading-6 text-foreground">
             {t(
-              'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.',
+              "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.",
+            )}
+          </Text>
+          <Text className="mt-3 text-center text-base leading-6 text-foreground">
+            {t(
+              'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.',
             )}
           </Text>
         </View>
@@ -247,7 +288,7 @@ export default function SupportScreen() {
           />
           <FreeSupportRow
             title={t('Rate Tackbok')}
-            description={t('Leave a rating in the app store')}
+            description={t('Leave an honest rating in the app store')}
             icon={Star}
             onPress={() => void handleRate()}
           />
@@ -315,14 +356,27 @@ export default function SupportScreen() {
         )}
 
         <View className="mx-4 mb-6 rounded-lg border-theme border-border bg-card p-4 shadow-theme">
-          <Text className="mb-2 font-body-semibold text-foreground">
+          <Text className="mb-3 font-body-semibold text-foreground">
             {t('Where your support helps')}
           </Text>
-          <Text className="text-sm leading-5 text-foreground">
-            {t(
-              'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.',
-            )}
-          </Text>
+          <View className="gap-2.5">
+            <CostBreakdownRow label={t('Cloudflare Workers')} amount={t('US$5/month')} />
+            <CostBreakdownRow label={t('Expo EAS')} amount={t('US$19/month')} />
+            <CostBreakdownRow
+              label={t('Apple Developer membership')}
+              amount={t('US$99/year')}
+            />
+            <CostBreakdownRow label={t('tackbok.org domain')} amount={t('US$12/year')} />
+            <CostBreakdownRow
+              label={t('Google Play registration')}
+              amount={t('US$25 one time')}
+            />
+            <CostBreakdownRow
+              label={t('Monthly baseline')}
+              amount={t('About US$33.25')}
+              emphasized
+            />
+          </View>
         </View>
       </ScrollView>
 

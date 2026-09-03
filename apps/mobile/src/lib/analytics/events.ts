@@ -82,7 +82,7 @@ export type CloudSyncFailureCategory =
   | 'unknown';
 export type CloudSyncCountBucket = '0' | '1-10' | '11-100' | '100+';
 export type CloudSyncDurationBucket = '<1s' | '1-10s' | '10-60s' | '60s+';
-export type SupportTier = 'small' | 'heartfelt' | 'big' | 'extraordinary';
+export type SupportTier = 'small' | 'heartfelt' | 'big' | 'deepest';
 export type SupportPurchaseFailureCategory =
   | 'offline'
   | 'configuration'

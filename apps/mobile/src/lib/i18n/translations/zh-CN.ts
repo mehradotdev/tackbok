@@ -409,22 +409,21 @@ export const zhCN: Translations = {
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     '用塔克博克练习感恩，一款简单、免费且私密的感恩日记应用',
   'Support Tackbok': '支持塔克博克',
-  'Tackbok is free to use. If it has brought something positive to your day, you can optionally support its continued development. Support helps cover hosting, build services, and app store fees. It unlocks no features. The app works the same for everyone.':
-    '塔克博克可免费使用。如果它为您的一天带来了积极影响，您可以自愿支持其持续开发。支持将帮助支付托管、构建服务和应用商店费用。支持不会解锁任何功能，所有人的应用体验都相同。',
+  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+    '塔克博克可以免费使用，而且这一点不会改变。如果它让您的生活多了一点感恩，欢迎支持它，但不会解锁任何额外功能。每个人使用的都是同一个应用。',
+  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+    '目前维持塔克博克运行每月约需 33.25 美元，未包含税费、手续费和超额用量费用。如果您觉得它有价值，即使是一笔小额支持，也能帮助它继续对所有人免费。',
   'Ways to support': '支持方式',
   Free: '免费',
   'Small thanks': '小小感谢',
-  'Helps toward one month of Cloudflare Workers Paid':
-    '帮助支付一个月的 Cloudflare Workers Paid',
+  'Helps me finish work 10 minutes earlier': '让我能早 10 分钟结束一天的工作',
   'Heartfelt thanks': '衷心感谢',
-  'Helps toward one month of Expo EAS Starter':
-    '帮助支付一个月的 Expo EAS Starter',
+  'Helps pay for hosting and online services': '帮助支付托管和在线服务费用',
   'Big thanks': '非常感谢',
-  "Helps toward Tackbok's Google Play registration cost":
-    '帮助支付塔克博克的 Google Play 注册费用',
-  'Extraordinary thanks': '特别感谢',
-  'Helps toward one year of Apple Developer membership':
-    '帮助支付一年的 Apple Developer 会员费用',
+  'Helps test and release Tackbok updates': '帮助测试和发布塔克博克更新',
+  'Deepest thanks': '深深感谢',
+  'Helps cover one month of Tackbok’s running costs and ongoing development':
+    '帮助支付塔克博克一个月的运行和持续开发费用',
   Unavailable: '不可用',
   'Support options could not be loaded. Please try again.':
     '无法加载支持选项，请重试。',
@@ -441,10 +440,20 @@ export const zhCN: Translations = {
   'Your payment is pending. The store will finish it when approval or payment completes.':
     '您的付款正在等待处理。获得批准或完成付款后，商店将完成交易。',
   'Where your support helps': '您的支持用于何处',
-  'The examples above reflect current costs in US dollars. Store pricing, taxes, and fees vary by country, so support is not assigned to a specific bill.':
-    '以上示例反映当前的美元成本。商店定价、税费和手续费因国家或地区而异，因此支持款不会指定用于某一笔账单。',
+  'Cloudflare Workers': 'Cloudflare Workers',
+  'Expo EAS': 'Expo EAS',
+  'Apple Developer membership': 'Apple Developer 会员',
+  'tackbok.org domain': 'tackbok.org 域名',
+  'Google Play registration': 'Google Play 注册',
+  'Monthly baseline': '每月基础成本',
+  'US$5/month': '每月 US$5',
+  'US$19/month': '每月 US$19',
+  'US$99/year': '每年 US$99',
+  'US$12/year': '每年 US$12',
+  'US$25 one time': '一次性 US$25',
+  'About US$33.25': '约 US$33.25',
   'Rate Tackbok': '为塔克博克评分',
-  'Leave a rating in the app store': '在应用商店留下评分',
+  'Leave an honest rating in the app store': '在应用商店留下真实评价',
   'Unable to open the store': '无法打开应用商店',
   'Confirm {tier}': '确认{tier}',
   'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':

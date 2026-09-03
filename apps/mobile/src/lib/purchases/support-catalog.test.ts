@@ -17,7 +17,7 @@ describe('support catalog', () => {
       'small',
       'heartfelt',
       'big',
-      'extraordinary',
+      'deepest',
     ]);
     expect(catalog.map((tier) => tier.priceString)).toEqual([
       '$1.99',
@@ -34,7 +34,7 @@ describe('support catalog', () => {
     expect(catalog).toHaveLength(4);
     expect(catalog[2]).toMatchObject({ id: 'big', available: false, priceString: null });
     expect(catalog[3]).toMatchObject({
-      id: 'extraordinary',
+      id: 'deepest',
       available: false,
       priceString: null,
     });
