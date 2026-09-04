@@ -420,6 +420,58 @@ export const he: Translations = {
     'נהנה מטאקבוק? שתף את האפליקציה עם חברים ומשפחה',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'תרגל הכרת תודה עם טאקבוק, אפליקציה פשוטה, חינמית ופרטית ליומן תודה',
+  'Support Tackbok': 'תמיכה בטאקבוק',
+  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+    'טאקבוק חינמית לשימוש, וזה לא עומד להשתנות. אם היא הכניסה קצת יותר הכרת תודה ליום שלך, אפשר לתמוך בה, אך אין שום דבר לפתוח. כולם מקבלים את אותה אפליקציה.',
+  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+    'הפעלת טאקבוק עולה כיום כ־33.25 דולר ארה״ב בחודש, לפני מסים, עמלות וחריגות שימוש. אם טאקבוק מועילה לך, גם תרומה קטנה עוזרת לשמור עליה חינמית לכולם.',
+  'Ways to support': 'דרכים לתמוך',
+  Free: 'חינם',
+  'Small thanks': 'תודה קטנה',
+  'Helps me finish work 10 minutes earlier': 'עוד 10 דקות פנויות בסוף יום העבודה',
+  'Heartfelt thanks': 'תודה מכל הלב',
+  'Helps pay for hosting and online services':
+    'עוזר לשלם על אחסון ושירותים מקוונים',
+  'Big thanks': 'תודה גדולה',
+  'Helps test and release Tackbok updates':
+    'עוזר לבדוק ולפרסם עדכונים לטאקבוק',
+  'Deepest thanks': 'תודה ענקית',
+  'Helps cover one month of Tackbok’s running costs and ongoing development':
+    'עוזר לכסות חודש אחד של עלויות התפעול והמשך הפיתוח של טאקבוק',
+  Unavailable: 'לא זמין',
+  'Support options could not be loaded. Please try again.':
+    'לא ניתן לטעון את אפשרויות התמיכה. נסה שוב.',
+  'You appear to be offline. Check your connection and try again.':
+    'נראה שאין חיבור לאינטרנט. בדוק את החיבור ונסה שוב.',
+  'The purchase could not be completed. Please try again.':
+    'לא ניתן להשלים את הרכישה. נסה שוב.',
+  'Payment successful': 'התשלום בוצע בהצלחה',
+  'Thank you!': 'תודה!',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    'התמיכה שלך עוזרת לשמור על טאקבוק חינמית ועצמאית. זה באמת חשוב לנו מאוד.',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    'תודה על התמיכה בטאקבוק. זה באמת חשוב לנו מאוד.',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    'התשלום שלך בהמתנה. החנות תשלים אותו לאחר השלמת האישור או התשלום.',
+  'Where your support helps': 'כיצד התמיכה שלך עוזרת',
+  'Cloudflare Workers': 'Cloudflare Workers',
+  'Expo EAS': 'Expo EAS',
+  'Apple Developer membership': 'חברות Apple Developer',
+  'tackbok.org domain': 'הדומיין tackbok.org',
+  'Google Play registration': 'רישום ב-Google Play',
+  'Monthly baseline': 'עלות חודשית בסיסית',
+  'US$5/month': 'US$5 לחודש',
+  'US$19/month': 'US$19 לחודש',
+  'US$99/year': 'US$99 לשנה',
+  'US$12/year': 'US$12 לשנה',
+  'US$25 one time': 'US$25 חד-פעמי',
+  'About US$33.25': 'כ־US$33.25',
+  'Rate Tackbok': 'דירוג טאקבוק',
+  'Leave an honest rating in the app store': 'השאר דירוג כן בחנות האפליקציות',
+  'Unable to open the store': 'לא ניתן לפתוח את החנות',
+  'Confirm {tier}': 'אישור {tier}',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    'החנות תחייב {price} עבור תמיכה מרצון וחד-פעמית זו. היא לא פותחת תכונות וניתן לרכוש אותה שוב.',
   'Privacy Policy': 'מדיניות פרטיות',
   'Read our privacy policy': 'קרא את מדיניות הפרטיות של טאקבוק',
   'Terms & Conditions': 'תנאים והגבלות',
@@ -545,8 +597,9 @@ export const he: Translations = {
   'Share anonymous stats': 'שיתוף סטטיסטיקות אנונימיות',
   'No thanks': 'לא, תודה',
   'What we collect': 'מה אנחנו אוספים',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    'אלה האירועים היחידים ש-Tackbok מתעד — מונים אנונימיים ללא תוכן מצורף. הרשימה המדויקת פומבית בקוד הפתוח.',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    'באישורך, Tackbok מתעדת מידע מוגבל ואנונימי על השימוש. המידע עשוי לכלול מסכים שנצפו, תכונות שנעשה בהן שימוש והאם פעולות אופציונליות הצליחו. הוא לעולם אינו כולל את תוכן היומן שלך או כל דבר שהקלדת.',
+  'Audit the analytics code on GitHub': 'בדיקת קוד הניתוח ב-GitHub',
   'Never collected': 'לעולם לא נאסף',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'טקסט היומן, כותרות, תמונות, הקלטות קול, תגיות, שם, אימייל או כל דבר שאתם מקלידים. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',

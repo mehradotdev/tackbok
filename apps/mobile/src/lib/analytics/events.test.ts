@@ -1,9 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import {
+  ANALYTICS_EVENT_NAMES,
+  ANALYTICS_SOURCE_URL,
   CLOUD_SYNC_ANALYTICS_EVENT_NAMES,
   getScreenName,
   SCREEN_ROUTE_MAP,
+  SUPPORT_ANALYTICS_EVENT_NAMES,
   toCloudSyncCountBucket,
   toCloudSyncDurationBucket,
   type AnalyticsEvents,
@@ -28,8 +31,24 @@ describe('analytics screen routes', () => {
   });
 });
 
+describe('analytics privacy disclosure', () => {
+  test('keeps the catalog complete internally and links to its public source', () => {
+    const privacyScreen = fs.readFileSync(
+      path.resolve(__dirname, '../../screens/onboarding/PrivacyScreen.tsx'),
+      'utf8',
+    );
+
+    expect(new Set(ANALYTICS_EVENT_NAMES).size).toBe(ANALYTICS_EVENT_NAMES.length);
+    expect(ANALYTICS_SOURCE_URL).toBe(
+      'https://github.com/mehradotdev/tackbok/blob/main/apps/mobile/src/lib/analytics/events.ts',
+    );
+    expect(privacyScreen).toContain('Linking.openURL(ANALYTICS_SOURCE_URL)');
+    expect(privacyScreen).not.toContain('ANALYTICS_EVENT_NAMES.map');
+  });
+});
+
 describe('cloud-sync analytics allowlist', () => {
-  test('stays synchronized across the catalog, privacy screen, and website policy', () => {
+  test('stays synchronized across the catalog and website policy', () => {
     expect(CLOUD_SYNC_ANALYTICS_EVENT_NAMES).toEqual([
       'cloud_sync_connected',
       'cloud_sync_started',
@@ -38,11 +57,6 @@ describe('cloud-sync analytics allowlist', () => {
       'cloud_sync_conflict_recovered',
       'cloud_sync_repair_result',
     ]);
-    const privacyScreen = fs.readFileSync(
-      path.resolve(__dirname, '../../screens/onboarding/PrivacyScreen.tsx'),
-      'utf8',
-    );
-    expect(privacyScreen).toContain('...CLOUD_SYNC_ANALYTICS_EVENT_NAMES');
     // The website policy covers these events in plain language rather than by
     // name. Naming them there creates a second list that drifts silently the
     // next time the catalog changes; the in-app screen above already renders
@@ -73,5 +87,30 @@ describe('cloud-sync analytics allowlist', () => {
     expect(Object.keys(success).sort()).toEqual([
       'duration_bucket', 'pulled_bucket', 'pushed_bucket',
     ]);
+  });
+});
+
+describe('support analytics allowlist', () => {
+  test('contains only the reviewed support actions', () => {
+    expect(SUPPORT_ANALYTICS_EVENT_NAMES).toEqual([
+      'support_purchase_started',
+      'support_purchase_completed',
+      'support_purchase_cancelled',
+      'support_purchase_pending',
+      'support_purchase_failed',
+      'support_share_opened',
+      'support_rate_opened',
+    ]);
+  });
+
+  test('purchase payloads contain only a tier and coarse failure category', () => {
+    const completed: AnalyticsEvents['support_purchase_completed'] = { tier: 'small' };
+    const failed: AnalyticsEvents['support_purchase_failed'] = {
+      tier: 'deepest',
+      category: 'store',
+    };
+
+    expect(Object.keys(completed)).toEqual(['tier']);
+    expect(Object.keys(failed).sort()).toEqual(['category', 'tier']);
   });
 });

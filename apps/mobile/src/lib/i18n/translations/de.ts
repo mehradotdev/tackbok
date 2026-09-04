@@ -459,6 +459,60 @@ export const de: Translations = {
     'Gefällt dir Tackbok? Teile die App mit Freunden und Familie',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'Übe Dankbarkeit mit Tackbok, einer einfachen, kostenlosen und privaten Dankbarkeitstagebuch-App',
+  'Support Tackbok': 'Tackbok unterstützen',
+  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+    'Tackbok ist kostenlos, und das wird sich nicht ändern. Wenn es etwas mehr Dankbarkeit in deinen Tag gebracht hat, kannst du es gerne unterstützen, auch wenn es nichts freizuschalten gibt. Alle bekommen dieselbe App.',
+  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+    'Der Betrieb von Tackbok kostet derzeit etwa 33,25 US$ pro Monat, vor Steuern, Gebühren und nutzungsabhängigen Mehrkosten. Wenn Tackbok für dich wertvoll ist, hilft selbst ein kleiner Beitrag, die App für alle kostenlos zu halten.',
+  'Ways to support': 'Möglichkeiten zur Unterstützung',
+  Free: 'Kostenlos',
+  'Small thanks': 'Kleines Dankeschön',
+  'Helps me finish work 10 minutes earlier':
+    'Hilft mir, den Arbeitstag 10 Minuten früher zu beenden',
+  'Heartfelt thanks': 'Herzliches Dankeschön',
+  'Helps pay for hosting and online services':
+    'Hilft, Hosting und Online-Dienste zu bezahlen',
+  'Big thanks': 'Großes Dankeschön',
+  'Helps test and release Tackbok updates':
+    'Hilft, Tackbok-Updates zu testen und zu veröffentlichen',
+  'Deepest thanks': 'Allergrößtes Dankeschön',
+  'Helps cover one month of Tackbok’s running costs and ongoing development':
+    'Hilft, einen Monat der laufenden Kosten und Weiterentwicklung von Tackbok zu decken',
+  Unavailable: 'Nicht verfügbar',
+  'Support options could not be loaded. Please try again.':
+    'Die Unterstützungsoptionen konnten nicht geladen werden. Bitte versuche es erneut.',
+  'You appear to be offline. Check your connection and try again.':
+    'Du scheinst offline zu sein. Prüfe deine Verbindung und versuche es erneut.',
+  'The purchase could not be completed. Please try again.':
+    'Der Kauf konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
+  'Payment successful': 'Zahlung erfolgreich',
+  'Thank you!': 'Danke!',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    'Deine Unterstützung hilft, Tackbok kostenlos und unabhängig zu halten. Das bedeutet uns wirklich viel.',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    'Danke, dass du Tackbok unterstützt. Das bedeutet uns wirklich viel.',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    'Deine Zahlung steht aus. Der Store schließt sie ab, sobald die Genehmigung oder Zahlung erfolgt ist.',
+  'Where your support helps': 'Wobei deine Unterstützung hilft',
+  'Cloudflare Workers': 'Cloudflare Workers',
+  'Expo EAS': 'Expo EAS',
+  'Apple Developer membership': 'Apple-Developer-Mitgliedschaft',
+  'tackbok.org domain': 'tackbok.org-Domain',
+  'Google Play registration': 'Google-Play-Registrierung',
+  'Monthly baseline': 'Monatliche Grundkosten',
+  'US$5/month': '5 US$/Monat',
+  'US$19/month': '19 US$/Monat',
+  'US$99/year': '99 US$/Jahr',
+  'US$12/year': '12 US$/Jahr',
+  'US$25 one time': 'einmalig 25 US$',
+  'About US$33.25': 'Etwa 33,25 US$',
+  'Rate Tackbok': 'Tackbok bewerten',
+  'Leave an honest rating in the app store':
+    'Eine ehrliche Bewertung im App Store hinterlassen',
+  'Unable to open the store': 'Store kann nicht geöffnet werden',
+  'Confirm {tier}': '{tier} bestätigen',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    'Der Store berechnet {price} für diese freiwillige, einmalige Unterstützung. Sie schaltet keine Funktionen frei und kann erneut gekauft werden.',
   'Privacy Policy': 'Datenschutzerklärung',
   'Read our privacy policy': 'Datenschutzerklärung von Tackbok lesen',
   'Terms & Conditions': 'Allgemeine Geschäftsbedingungen',
@@ -585,8 +639,9 @@ export const de: Translations = {
   'Share anonymous stats': 'Anonyme Statistiken teilen',
   'No thanks': 'Nein, danke',
   'What we collect': 'Was wir erfassen',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    'Dies sind die einzigen Ereignisse, die Tackbok erfasst – anonyme Zähler ohne angehängte Inhalte. Die genaue Liste ist im Open-Source-Code öffentlich.',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    'Mit deiner Zustimmung erfasst Tackbok nur begrenzte, anonyme Nutzungsinformationen. Dazu können besuchte Bildschirme, verwendete Funktionen und der Erfolg optionaler Vorgänge gehören. Deine Tagebuchinhalte oder Eingaben werden niemals erfasst.',
+  'Audit the analytics code on GitHub': 'Analysecode auf GitHub prüfen',
   'Never collected': 'Wird niemals erfasst',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'Deine Tagebuchtexte, Titel, Fotos, Sprachnotizen, Tags, dein Name, deine E-Mail-Adresse oder andere Eingaben. Keine Werbung, kein Datenverkauf und kein Tracking durch Dritte.',

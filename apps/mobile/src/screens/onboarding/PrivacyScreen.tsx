@@ -1,35 +1,19 @@
-import { View, ScrollView } from 'react-native';
+import { Linking, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import { BarChart3, Code, EyeOff, X } from 'lucide-react-native';
+import { BarChart3, Code, ExternalLink, EyeOff, X } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { commitPreConsentBuffer, stopPreConsentBuffering } from '~/lib/analytics';
-import { CLOUD_SYNC_ANALYTICS_EVENT_NAMES } from '~/lib/analytics/events';
+import { ANALYTICS_SOURCE_URL } from '~/lib/analytics/events';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
-
-/** Keep in sync with src/lib/analytics/events.ts (the typed catalog). */
-export const TRACKED_EVENT_NAMES = [
-  'app_opened',
-  'screen_viewed',
-  'entry_created',
-  'entry_deleted',
-  'search_used',
-  'theme_changed',
-  'language_changed',
-  'import_completed',
-  'backup_exported',
-  ...CLOUD_SYNC_ANALYTICS_EVENT_NAMES,
-  'reminder_enabled / reminder_disabled',
-  'onboarding_step_viewed / onboarding_completed / onboarding_skipped',
-];
 
 function AnalyticsDetailsSheet() {
   const { t } = useTranslation();
@@ -43,14 +27,13 @@ function AnalyticsDetailsSheet() {
   return (
     <TrueSheet
       name={SHEET_NAMES.ANALYTICS_DETAILS}
-      detents={[0.7, 0.85]}
+      detents={['auto']}
       cornerRadius={sheetRadius}
       grabber={true}
       grabberOptions={{ topMargin: 8, color: mutedFgColor as string, adaptive: false }}
-      scrollable
       backgroundColor={backgroundColor as string}>
-      <View className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
+      <View className="bg-background pb-8 pt-2">
+        <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
           <Text className="text-xl font-body-bold text-foreground">
             {t('What we collect')}
           </Text>
@@ -63,39 +46,40 @@ function AnalyticsDetailsSheet() {
           </Button>
         </View>
 
-        <ScrollView
-          nestedScrollEnabled
-          contentContainerClassName="px-5 pb-12"
-          showsVerticalScrollIndicator={false}>
-          <Text className="text-sm text-muted-foreground mb-3">
+        <View className="px-5">
+          <Text className="text-sm text-foreground mb-3">
             {t(
-              'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.',
+              'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.',
             )}
           </Text>
 
-          <View className="bg-card rounded-lg border border-border px-4 py-3 gap-1.5">
-            {TRACKED_EVENT_NAMES.map((eventName) => (
-              <Text key={eventName} className="text-xs text-foreground font-body-medium">
-                {eventName}
-              </Text>
-            ))}
-          </View>
+          <Button
+            variant="link"
+            size="none"
+            className="self-start"
+            accessibilityLabel={t('Audit the analytics code on GitHub')}
+            onPress={() => void Linking.openURL(ANALYTICS_SOURCE_URL)}>
+            <Text className="text-sm text-muted-foreground underline">
+              {t('Audit the analytics code on GitHub')}
+            </Text>
+            <Icon as={ExternalLink} className="size-4 text-muted-foreground" />
+          </Button>
 
           <Text className="text-base font-body-semibold text-foreground mt-5 mb-1.5">
             {t('Never collected')}
           </Text>
-          <Text className="text-sm text-muted-foreground">
+          <Text className="text-sm text-foreground">
             {t(
               'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',
             )}
           </Text>
 
-          <Text className="text-sm text-muted-foreground mt-4">
+          <Text className="text-sm text-foreground mt-4">
             {t(
               'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.',
             )}
           </Text>
-        </ScrollView>
+        </View>
       </View>
     </TrueSheet>
   );
@@ -156,7 +140,9 @@ export default function OnboardingPrivacyScreen() {
           {t('Help improve Tackbok?')}
         </Text>
         <Text className="text-base text-muted-foreground mt-2 mb-6">
-          {t('Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.')}
+          {t(
+            'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.',
+          )}
         </Text>
 
         <View className="gap-4">

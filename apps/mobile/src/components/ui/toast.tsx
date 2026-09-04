@@ -341,7 +341,7 @@ export function Toaster({
                   {t.title}
                 </ToastPrimitive.Title>
                 {t.description && (
-                  <ToastPrimitive.Description className="text-muted-foreground text-sm">
+                  <ToastPrimitive.Description className="text-foreground text-sm">
                     {t.description}
                   </ToastPrimitive.Description>
                 )}

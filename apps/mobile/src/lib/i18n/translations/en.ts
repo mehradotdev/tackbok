@@ -436,6 +436,56 @@ export const en = {
     'Enjoying Tackbok? Share the app with your friends and family',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app',
+  'Support Tackbok': 'Support Tackbok',
+  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+    "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.",
+  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+    'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.',
+  'Ways to support': 'Ways to support',
+  Free: 'Free',
+  'Small thanks': 'Small thanks',
+  'Helps me finish work 10 minutes earlier': 'Helps me finish work 10 minutes earlier',
+  'Heartfelt thanks': 'Heartfelt thanks',
+  'Helps pay for hosting and online services': 'Helps pay for hosting and online services',
+  'Big thanks': 'Big thanks',
+  'Helps test and release Tackbok updates': 'Helps test and release Tackbok updates',
+  'Deepest thanks': 'Deepest thanks',
+  'Helps cover one month of Tackbok’s running costs and ongoing development':
+    'Helps cover one month of Tackbok’s running costs and ongoing development',
+  Unavailable: 'Unavailable',
+  'Support options could not be loaded. Please try again.':
+    'Support options could not be loaded. Please try again.',
+  'You appear to be offline. Check your connection and try again.':
+    'You appear to be offline. Check your connection and try again.',
+  'The purchase could not be completed. Please try again.':
+    'The purchase could not be completed. Please try again.',
+  'Payment successful': 'Payment successful',
+  'Thank you!': 'Thank you!',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    'Your support helps keep Tackbok free and independent. It genuinely means a lot.',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    'Thank you for supporting Tackbok. It genuinely means a lot.',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    'Your payment is pending. The store will finish it when approval or payment completes.',
+  'Where your support helps': 'Where your support helps',
+  'Cloudflare Workers': 'Cloudflare Workers',
+  'Expo EAS': 'Expo EAS',
+  'Apple Developer membership': 'Apple Developer membership',
+  'tackbok.org domain': 'tackbok.org domain',
+  'Google Play registration': 'Google Play registration',
+  'Monthly baseline': 'Monthly baseline',
+  'US$5/month': 'US$5/month',
+  'US$19/month': 'US$19/month',
+  'US$99/year': 'US$99/year',
+  'US$12/year': 'US$12/year',
+  'US$25 one time': 'US$25 one time',
+  'About US$33.25': 'About US$33.25',
+  'Rate Tackbok': 'Rate Tackbok',
+  'Leave an honest rating in the app store': 'Leave an honest rating in the app store',
+  'Unable to open the store': 'Unable to open the store',
+  'Confirm {tier}': 'Confirm {tier}',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.',
   'Privacy Policy': 'Privacy Policy',
   'Read our privacy policy': "Read Tackbok's privacy policy",
   'Terms & Conditions': 'Terms & Conditions',
@@ -562,8 +612,9 @@ export const en = {
   'Share anonymous stats': 'Share anonymous stats',
   'No thanks': 'No thanks',
   'What we collect': 'What we collect',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.',
+  'Audit the analytics code on GitHub': 'Audit the analytics code on GitHub',
   'Never collected': 'Never collected',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',

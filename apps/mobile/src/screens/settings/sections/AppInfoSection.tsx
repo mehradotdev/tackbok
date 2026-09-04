@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Linking, Share, Platform } from 'react-native';
+import { View, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
@@ -36,6 +36,7 @@ import {
 } from '~/components/ui/alert-dialog';
 import { SettingsSection } from '../SettingsSection';
 import { SettingsRow } from '~/components/SettingsRow';
+import { shareTackbok } from '~/lib/sharing/share-app';
 
 export function AppInfoSection() {
   const router = useRouter();
@@ -108,13 +109,7 @@ export function AppInfoSection() {
       const message = t(
         'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app',
       );
-      // iOS renders rich link previews only for the dedicated url field;
-      // Android ignores it, so the link must stay in the message there.
-      await Share.share(
-        Platform.OS === 'ios'
-          ? { message, url: 'https://tackbok.org' }
-          : { message: `${message}\nhttps://tackbok.org` },
-      );
+      await shareTackbok(message);
     } catch (error) {
       console.warn('Failed to open the share sheet:', error);
       toast.error(t('Unknown error'));

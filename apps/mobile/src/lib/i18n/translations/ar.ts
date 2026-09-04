@@ -421,6 +421,59 @@ export const ar: Translations = {
     'هل تستمتع بتاكبوك؟ شارك التطبيق مع أصدقائك وعائلتك',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     'مارس الامتنان مع تاكبوك، تطبيق بسيط ومجاني وخاص لتدوين الامتنان',
+  'Support Tackbok': 'ادعم تاكبوك',
+  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+    'تاكبوك مجاني للاستخدام، وهذا لن يتغير. إذا أضاف قليلًا من الامتنان إلى يومك، فيمكنك دعم التطبيق، لكن لا توجد ميزات لفتحها. الجميع يحصل على التطبيق نفسه.',
+  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+    'تبلغ تكلفة تشغيل تاكبوك حاليًا نحو 33.25 دولارًا أمريكيًا شهريًا، قبل الضرائب والرسوم وتكاليف الاستخدام الإضافي. إذا وجدت فيه فائدة، فحتى المساهمة الصغيرة تساعد على إبقائه مجانيًا للجميع.',
+  'Ways to support': 'طرق الدعم',
+  Free: 'مجاني',
+  'Small thanks': 'شكر صغير',
+  'Helps me finish work 10 minutes earlier':
+    'يمنحني 10 دقائق إضافية في نهاية يوم العمل',
+  'Heartfelt thanks': 'شكر من القلب',
+  'Helps pay for hosting and online services':
+    'يساعد في دفع تكاليف الاستضافة والخدمات عبر الإنترنت',
+  'Big thanks': 'شكر كبير',
+  'Helps test and release Tackbok updates':
+    'يساعد في اختبار تحديثات تاكبوك وإصدارها',
+  'Deepest thanks': 'جزيل الشكر',
+  'Helps cover one month of Tackbok’s running costs and ongoing development':
+    'يساعد في تغطية شهر من تكاليف تشغيل تاكبوك وتطويره المستمر',
+  Unavailable: 'غير متاح',
+  'Support options could not be loaded. Please try again.':
+    'تعذر تحميل خيارات الدعم. يرجى المحاولة مرة أخرى.',
+  'You appear to be offline. Check your connection and try again.':
+    'يبدو أنك غير متصل بالإنترنت. تحقق من اتصالك وحاول مرة أخرى.',
+  'The purchase could not be completed. Please try again.':
+    'تعذر إكمال عملية الشراء. يرجى المحاولة مرة أخرى.',
+  'Payment successful': 'تم الدفع بنجاح',
+  'Thank you!': 'شكرًا لك!',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    'يساعد دعمك على إبقاء تاكبوك مجانيًا ومستقلًا. إنه يعني لنا الكثير حقًا.',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    'شكرًا لدعم تاكبوك. هذا يعني لنا الكثير حقًا.',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    'دفعتك معلقة. سيكملها المتجر عند اكتمال الموافقة أو الدفع.',
+  'Where your support helps': 'أين يساعد دعمك',
+  'Cloudflare Workers': 'Cloudflare Workers',
+  'Expo EAS': 'Expo EAS',
+  'Apple Developer membership': 'عضوية Apple Developer',
+  'tackbok.org domain': 'نطاق tackbok.org',
+  'Google Play registration': 'التسجيل في Google Play',
+  'Monthly baseline': 'التكلفة الشهرية الأساسية',
+  'US$5/month': 'US$5 شهريًا',
+  'US$19/month': 'US$19 شهريًا',
+  'US$99/year': 'US$99 سنويًا',
+  'US$12/year': 'US$12 سنويًا',
+  'US$25 one time': 'US$25 لمرة واحدة',
+  'About US$33.25': 'نحو US$33.25',
+  'Rate Tackbok': 'قيّم تاكبوك',
+  'Leave an honest rating in the app store': 'اترك تقييمًا صادقًا في متجر التطبيقات',
+  'Unable to open the store': 'تعذر فتح المتجر',
+  'Confirm {tier}': 'تأكيد {tier}',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    'سيخصم المتجر {price} مقابل هذا الدعم الاختياري لمرة واحدة. لا يفتح أي ميزات ويمكن شراؤه مرة أخرى.',
   'Privacy Policy': 'سياسة الخصوصية',
   'Read our privacy policy': 'اقرأ سياسة خصوصية تاكبوك',
   'Terms & Conditions': 'الشروط والأحكام',
@@ -546,8 +599,9 @@ export const ar: Translations = {
   'Share anonymous stats': 'مشاركة إحصاءات مجهولة',
   'No thanks': 'لا، شكرًا',
   'What we collect': 'ما الذي نجمعه',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    'هذه هي الأحداث الوحيدة التي يسجّلها Tackbok — عدّادات مجهولة دون أي محتوى مرفق. القائمة الكاملة متاحة في الكود مفتوح المصدر.',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    'بإذنك، يسجّل Tackbok معلومات استخدام محدودة ومجهولة الهوية. قد تشمل الشاشات التي تمت زيارتها والميزات المستخدمة وما إذا كانت العمليات الاختيارية قد نجحت. ولا تشمل أبدًا محتوى يومياتك أو أي شيء تكتبه.',
+  'Audit the analytics code on GitHub': 'راجع رمز التحليلات على GitHub',
   'Never collected': 'لا يُجمع أبدًا',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو البريد الإلكتروني أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',

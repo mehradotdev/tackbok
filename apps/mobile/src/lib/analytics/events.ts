@@ -13,6 +13,8 @@
  * - No PII, ever (no names, emails, entry text, file names, precise location).
  */
 
+import type { SupportTierId } from '~/lib/purchases/support-catalog';
+
 export type CharBucket = '0-50' | '51-200' | '200+';
 
 /** Order-of-magnitude bucket for entry counts / journaled-day counts. */
@@ -34,6 +36,7 @@ export const SCREEN_ROUTE_MAP = {
   '/appearance': 'appearance',
   '/insights': 'insights',
   '/settings': 'settings',
+  '/support': 'support',
   '/cloud-backup': 'cloud_backup',
 } as const;
 
@@ -81,6 +84,12 @@ export type CloudSyncFailureCategory =
   | 'unknown';
 export type CloudSyncCountBucket = '0' | '1-10' | '11-100' | '100+';
 export type CloudSyncDurationBucket = '<1s' | '1-10s' | '10-60s' | '60s+';
+export type SupportPurchaseFailureCategory =
+  | 'offline'
+  | 'configuration'
+  | 'store'
+  | 'not_allowed'
+  | 'unknown';
 
 /**
  * Event name → payload type. `undefined` means the event carries no payload.
@@ -122,6 +131,16 @@ export type AnalyticsEvents = {
   cloud_sync_failed: { category: CloudSyncFailureCategory };
   cloud_sync_conflict_recovered: { entity_type: 'entry' | 'tag' | 'prompt' | 'profile' };
   cloud_sync_repair_result: { result: 'repaired' | 'unrecoverable' | 'not-needed' };
+  support_purchase_started: { tier: SupportTierId };
+  support_purchase_completed: { tier: SupportTierId };
+  support_purchase_cancelled: { tier: SupportTierId };
+  support_purchase_pending: { tier: SupportTierId };
+  support_purchase_failed: {
+    tier: SupportTierId;
+    category: SupportPurchaseFailureCategory;
+  };
+  support_share_opened: undefined;
+  support_rate_opened: undefined;
   // Onboarding funnel — defined now, fired only once the onboarding flow ships
   // (see z-onboarding-flow.md). Buffered pre-consent, sent only on opt-in.
   onboarding_step_viewed: { step: string };
@@ -131,7 +150,49 @@ export type AnalyticsEvents = {
 
 export type AnalyticsEventName = keyof AnalyticsEvents;
 
-/** §10 cloud-sync catalog; imported by the in-app privacy disclosure and gate. */
+/**
+ * Complete runtime catalog used by the in-app privacy disclosure. The Record
+ * constraint makes TypeScript fail whenever AnalyticsEvents gains or loses an
+ * event without this catalog being updated too.
+ */
+const ANALYTICS_EVENT_CATALOG = {
+  app_opened: true,
+  screen_viewed: true,
+  entry_created: true,
+  entry_deleted: true,
+  search_used: true,
+  theme_changed: true,
+  language_changed: true,
+  import_completed: true,
+  backup_exported: true,
+  reminder_enabled: true,
+  reminder_disabled: true,
+  cloud_sync_connected: true,
+  cloud_sync_started: true,
+  cloud_sync_succeeded: true,
+  cloud_sync_failed: true,
+  cloud_sync_conflict_recovered: true,
+  cloud_sync_repair_result: true,
+  support_purchase_started: true,
+  support_purchase_completed: true,
+  support_purchase_cancelled: true,
+  support_purchase_pending: true,
+  support_purchase_failed: true,
+  support_share_opened: true,
+  support_rate_opened: true,
+  onboarding_step_viewed: true,
+  onboarding_completed: true,
+  onboarding_skipped: true,
+} as const satisfies Record<AnalyticsEventName, true>;
+
+export const ANALYTICS_EVENT_NAMES = Object.keys(
+  ANALYTICS_EVENT_CATALOG,
+) as AnalyticsEventName[];
+
+export const ANALYTICS_SOURCE_URL =
+  'https://github.com/mehradotdev/tackbok/blob/main/apps/mobile/src/lib/analytics/events.ts';
+
+/** Privacy-audited cloud-sync subset used by focused tests and safeguards. */
 export const CLOUD_SYNC_ANALYTICS_EVENT_NAMES = [
   'cloud_sync_connected',
   'cloud_sync_started',
@@ -139,6 +200,17 @@ export const CLOUD_SYNC_ANALYTICS_EVENT_NAMES = [
   'cloud_sync_failed',
   'cloud_sync_conflict_recovered',
   'cloud_sync_repair_result',
+] as const satisfies readonly AnalyticsEventName[];
+
+/** Privacy-audited support events. Prices, transaction ids, and customer ids are excluded. */
+export const SUPPORT_ANALYTICS_EVENT_NAMES = [
+  'support_purchase_started',
+  'support_purchase_completed',
+  'support_purchase_cancelled',
+  'support_purchase_pending',
+  'support_purchase_failed',
+  'support_share_opened',
+  'support_rate_opened',
 ] as const satisfies readonly AnalyticsEventName[];
 
 export function toCharBucket(charCount: number): CharBucket {

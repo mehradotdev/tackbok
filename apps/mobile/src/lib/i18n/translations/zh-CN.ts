@@ -408,6 +408,56 @@ export const zhCN: Translations = {
   'Share the app with friends and family': '喜欢塔克博克吗？与您的朋友和家人分享这个应用',
   'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
     '用塔克博克练习感恩，一款简单、免费且私密的感恩日记应用',
+  'Support Tackbok': '支持塔克博克',
+  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+    '塔克博克可以免费使用，而且这一点不会改变。如果它让您的生活多了一点感恩，欢迎支持它，但不会解锁任何额外功能。每个人使用的都是同一个应用。',
+  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+    '目前维持塔克博克运行每月约需 33.25 美元，未包含税费、手续费和超额用量费用。如果您觉得它有价值，即使是一笔小额支持，也能帮助它继续对所有人免费。',
+  'Ways to support': '支持方式',
+  Free: '免费',
+  'Small thanks': '小小感谢',
+  'Helps me finish work 10 minutes earlier': '让我能早 10 分钟结束一天的工作',
+  'Heartfelt thanks': '衷心感谢',
+  'Helps pay for hosting and online services': '帮助支付托管和在线服务费用',
+  'Big thanks': '非常感谢',
+  'Helps test and release Tackbok updates': '帮助测试和发布塔克博克更新',
+  'Deepest thanks': '深深感谢',
+  'Helps cover one month of Tackbok’s running costs and ongoing development':
+    '帮助支付塔克博克一个月的运行和持续开发费用',
+  Unavailable: '不可用',
+  'Support options could not be loaded. Please try again.':
+    '无法加载支持选项，请重试。',
+  'You appear to be offline. Check your connection and try again.':
+    '您似乎处于离线状态。请检查网络连接后重试。',
+  'The purchase could not be completed. Please try again.':
+    '无法完成购买，请重试。',
+  'Payment successful': '支付成功',
+  'Thank you!': '谢谢！',
+  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+    '您的支持帮助塔克博克保持免费和独立。这对我们真的意义重大。',
+  'Thank you for supporting Tackbok. It genuinely means a lot.':
+    '感谢您支持塔克博克。这对我们真的意义重大。',
+  'Your payment is pending. The store will finish it when approval or payment completes.':
+    '您的付款正在等待处理。获得批准或完成付款后，商店将完成交易。',
+  'Where your support helps': '您的支持用于何处',
+  'Cloudflare Workers': 'Cloudflare Workers',
+  'Expo EAS': 'Expo EAS',
+  'Apple Developer membership': 'Apple Developer 会员',
+  'tackbok.org domain': 'tackbok.org 域名',
+  'Google Play registration': 'Google Play 注册',
+  'Monthly baseline': '每月基础成本',
+  'US$5/month': '每月 US$5',
+  'US$19/month': '每月 US$19',
+  'US$99/year': '每年 US$99',
+  'US$12/year': '每年 US$12',
+  'US$25 one time': '一次性 US$25',
+  'About US$33.25': '约 US$33.25',
+  'Rate Tackbok': '为塔克博克评分',
+  'Leave an honest rating in the app store': '在应用商店留下真实评价',
+  'Unable to open the store': '无法打开应用商店',
+  'Confirm {tier}': '确认{tier}',
+  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+    '商店将收取 {price}，作为自愿的一次性支持。它不会解锁任何功能，并且可以再次购买。',
   'Privacy Policy': '隐私政策',
   'Read our privacy policy': '阅读塔克博克的隐私政策',
   'Terms & Conditions': '条款和条件',
@@ -533,8 +583,9 @@ export const zhCN: Translations = {
   'Share anonymous stats': '分享匿名统计',
   'No thanks': '不用了，谢谢',
   'What we collect': '我们收集的内容',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    '这些是 Tackbok 记录的全部事件 — 只是匿名计数，不附带任何内容。完整列表公开在开源代码中。',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    '经你许可，Tackbok 仅记录有限的匿名使用信息，其中可能包括访问过的页面、使用过的功能，以及可选操作是否成功。它绝不会记录你的日记内容或任何输入的文字。',
+  'Audit the analytics code on GitHub': '在 GitHub 上查看分析代码',
   'Never collected': '绝不收集',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     '你的日记文字、标题、照片、语音备忘、标签、姓名、邮箱或任何输入的内容。没有广告，不出售数据，没有第三方追踪。',

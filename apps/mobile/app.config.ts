@@ -138,6 +138,7 @@ const config: ExpoConfig = {
     },
   },
   extra: {
+    appVariant: IS_BETA ? 'beta' : 'production',
     router: {},
     cloudSync: {
       google: GOOGLE_OAUTH,

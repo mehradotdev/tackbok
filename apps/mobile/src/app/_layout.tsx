@@ -239,6 +239,10 @@ export default function Layout() {
                   }}
                 />
                 <Stack.Screen
+                  name="support"
+                  options={{ title: 'Support Tackbok', headerShown: false }}
+                />
+                <Stack.Screen
                   name="cloud-backup"
                   options={{ title: 'Cloud Backup & Sync', headerShown: false }}
                 />
