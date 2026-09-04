@@ -189,6 +189,9 @@ export const ANALYTICS_EVENT_NAMES = Object.keys(
   ANALYTICS_EVENT_CATALOG,
 ) as AnalyticsEventName[];
 
+export const ANALYTICS_SOURCE_URL =
+  'https://github.com/mehradotdev/tackbok/blob/main/apps/mobile/src/lib/analytics/events.ts';
+
 /** Privacy-audited cloud-sync subset used by focused tests and safeguards. */
 export const CLOUD_SYNC_ANALYTICS_EVENT_NAMES = [
   'cloud_sync_connected',

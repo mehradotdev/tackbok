@@ -612,8 +612,9 @@ export const en = {
   'Share anonymous stats': 'Share anonymous stats',
   'No thanks': 'No thanks',
   'What we collect': 'What we collect',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.',
+  'Audit the analytics code on GitHub': 'Audit the analytics code on GitHub',
   'Never collected': 'Never collected',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',

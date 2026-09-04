@@ -597,8 +597,9 @@ export const he: Translations = {
   'Share anonymous stats': 'שיתוף סטטיסטיקות אנונימיות',
   'No thanks': 'לא, תודה',
   'What we collect': 'מה אנחנו אוספים',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    'אלה האירועים היחידים ש-Tackbok מתעד — מונים אנונימיים ללא תוכן מצורף. הרשימה המדויקת פומבית בקוד הפתוח.',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    'באישורך, Tackbok מתעדת מידע מוגבל ואנונימי על השימוש. המידע עשוי לכלול מסכים שנצפו, תכונות שנעשה בהן שימוש והאם פעולות אופציונליות הצליחו. הוא לעולם אינו כולל את תוכן היומן שלך או כל דבר שהקלדת.',
+  'Audit the analytics code on GitHub': 'בדיקת קוד הניתוח ב-GitHub',
   'Never collected': 'לעולם לא נאסף',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'טקסט היומן, כותרות, תמונות, הקלטות קול, תגיות, שם, אימייל או כל דבר שאתם מקלידים. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',

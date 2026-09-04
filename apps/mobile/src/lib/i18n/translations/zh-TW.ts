@@ -585,8 +585,9 @@ export const zhTW: Translations = {
   'Share anonymous stats': '分享匿名統計',
   'No thanks': '不用了，謝謝',
   'What we collect': '我們收集的內容',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    '這些是 Tackbok 記錄的全部事件 — 只是匿名計數，不附帶任何內容。完整清單公開在開源程式碼中。',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    '經你許可，Tackbok 僅記錄有限的匿名使用資訊，其中可能包括造訪過的頁面、使用過的功能，以及選用操作是否成功。它絕不會記錄你的日記內容或任何輸入的文字。',
+  'Audit the analytics code on GitHub': '在 GitHub 上查看分析程式碼',
   'Never collected': '絕不收集',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     '你的日記文字、標題、照片、語音備忘、標籤、姓名、電子郵件或任何輸入的內容。沒有廣告，不出售資料，沒有第三方追蹤。',

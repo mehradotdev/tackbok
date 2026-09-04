@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   ANALYTICS_EVENT_NAMES,
+  ANALYTICS_SOURCE_URL,
   CLOUD_SYNC_ANALYTICS_EVENT_NAMES,
   getScreenName,
   SCREEN_ROUTE_MAP,
@@ -31,14 +32,18 @@ describe('analytics screen routes', () => {
 });
 
 describe('analytics privacy disclosure', () => {
-  test('renders the compiler-enforced complete event catalog', () => {
+  test('keeps the catalog complete internally and links to its public source', () => {
     const privacyScreen = fs.readFileSync(
       path.resolve(__dirname, '../../screens/onboarding/PrivacyScreen.tsx'),
       'utf8',
     );
 
-    expect(privacyScreen).toContain('ANALYTICS_EVENT_NAMES.map');
     expect(new Set(ANALYTICS_EVENT_NAMES).size).toBe(ANALYTICS_EVENT_NAMES.length);
+    expect(ANALYTICS_SOURCE_URL).toBe(
+      'https://github.com/mehradotdev/tackbok/blob/main/apps/mobile/src/lib/analytics/events.ts',
+    );
+    expect(privacyScreen).toContain('Linking.openURL(ANALYTICS_SOURCE_URL)');
+    expect(privacyScreen).not.toContain('ANALYTICS_EVENT_NAMES.map');
   });
 });
 

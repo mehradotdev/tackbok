@@ -599,8 +599,9 @@ export const ar: Translations = {
   'Share anonymous stats': 'مشاركة إحصاءات مجهولة',
   'No thanks': 'لا، شكرًا',
   'What we collect': 'ما الذي نجمعه',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    'هذه هي الأحداث الوحيدة التي يسجّلها Tackbok — عدّادات مجهولة دون أي محتوى مرفق. القائمة الكاملة متاحة في الكود مفتوح المصدر.',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    'بإذنك، يسجّل Tackbok معلومات استخدام محدودة ومجهولة الهوية. قد تشمل الشاشات التي تمت زيارتها والميزات المستخدمة وما إذا كانت العمليات الاختيارية قد نجحت. ولا تشمل أبدًا محتوى يومياتك أو أي شيء تكتبه.',
+  'Audit the analytics code on GitHub': 'راجع رمز التحليلات على GitHub',
   'Never collected': 'لا يُجمع أبدًا',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو البريد الإلكتروني أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',

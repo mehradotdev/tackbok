@@ -583,8 +583,9 @@ export const zhCN: Translations = {
   'Share anonymous stats': '分享匿名统计',
   'No thanks': '不用了，谢谢',
   'What we collect': '我们收集的内容',
-  'These are the only events Tackbok records — anonymous counters with no content attached. The exact list is public in the open-source code.':
-    '这些是 Tackbok 记录的全部事件 — 只是匿名计数，不附带任何内容。完整列表公开在开源代码中。',
+  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+    '经你许可，Tackbok 仅记录有限的匿名使用信息，其中可能包括访问过的页面、使用过的功能，以及可选操作是否成功。它绝不会记录你的日记内容或任何输入的文字。',
+  'Audit the analytics code on GitHub': '在 GitHub 上查看分析代码',
   'Never collected': '绝不收集',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     '你的日记文字、标题、照片、语音备忘、标签、姓名、邮箱或任何输入的内容。没有广告，不出售数据，没有第三方追踪。',
