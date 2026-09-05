@@ -645,8 +645,6 @@ export const de: Translations = {
   'Never collected': 'Wird niemals erfasst',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'Deine Tagebuchtexte, Titel, Fotos, Sprachnotizen, Tags, dein Name, deine E-Mail-Adresse oder andere Eingaben. Keine Werbung, kein Datenverkauf und kein Tracking durch Dritte.',
-  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
-    'Wenn du zustimmst, werden die anonymen Schritte einbezogen, die du während dieser Einrichtung ausgeführt hast. Wenn du ablehnst, werden sie verworfen und verlassen niemals dein Gerät.',
   'You’re all set, {name}!': 'Alles ist bereit, {name}!',
   'You’re all set!': 'Alles ist bereit!',
   'Two last things you can turn on — both optional.':

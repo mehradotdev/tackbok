@@ -605,8 +605,6 @@ export const ar: Translations = {
   'Never collected': 'لا يُجمع أبدًا',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو البريد الإلكتروني أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',
-  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
-    'إذا وافقت، تُضمَّن الخطوات المجهولة التي قمت بها أثناء هذا الإعداد. وإذا رفضت، تُحذف فورًا ولا تغادر جهازك أبدًا.',
   'You’re all set, {name}!': 'كل شيء جاهز يا {name}!',
   'You’re all set!': 'كل شيء جاهز!',
   'Two last things you can turn on — both optional.':

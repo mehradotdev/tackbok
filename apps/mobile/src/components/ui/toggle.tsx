@@ -16,10 +16,11 @@ const toggleVariants = tv({
       ),
     },
     size: {
-      default: 'h-10 min-w-10 px-2.5 sm:h-9 sm:min-w-9 sm:px-2',
-      sm: 'h-9 min-w-9 px-2 sm:h-8 sm:min-w-8 sm:px-1.5',
+      // No sm: (tablet) overrides — mobile-only app, keep phone density on tablets.
+      default: 'h-10 min-w-10 px-2.5',
+      sm: 'h-9 min-w-9 px-2',
       xs: 'px-2 py-0.5', // No fixed height, allows content to determine size
-      lg: 'h-11 min-w-11 px-3 sm:h-10 sm:min-w-10 sm:px-2.5',
+      lg: 'h-11 min-w-11 px-3',
     },
   },
   defaultVariants: {

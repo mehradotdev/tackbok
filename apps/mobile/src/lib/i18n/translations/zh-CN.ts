@@ -589,8 +589,6 @@ export const zhCN: Translations = {
   'Never collected': '绝不收集',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     '你的日记文字、标题、照片、语音备忘、标签、姓名、邮箱或任何输入的内容。没有广告，不出售数据，没有第三方追踪。',
-  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
-    '如果你同意，本次设置过程中的匿名步骤将被包含在内；如果你拒绝，它们会被丢弃，绝不会离开你的设备。',
   'You’re all set, {name}!': '一切就绪，{name}！',
   'You’re all set!': '一切就绪！',
   'Two last things you can turn on — both optional.':

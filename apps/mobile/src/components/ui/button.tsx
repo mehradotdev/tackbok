@@ -15,10 +15,16 @@ const buttonVariants = tv({
       link: 'active:opacity-80',
     },
     size: {
-      default: 'h-10 px-4 sm:h-9',
-      sm: 'h-9 gap-1.5 rounded-md px-3 sm:h-8',
-      lg: 'h-11 rounded-md px-6 sm:h-10',
-      icon: 'h-10 w-10 sm:h-9 sm:w-9',
+      // NOTE: no sm: (tablet) size overrides here. This app is mobile-only
+      // and buttons must keep phone density on tablets — a responsive fixed
+      // height (e.g. sm:h-9) silently wins over call-site h-auto in
+      // tailwind-merge (different specificity groups) and clips multi-line
+      // content on iPad. Call-site h-auto works fine; size="none" remains
+      // for full manual control.
+      default: 'h-10 px-4',
+      sm: 'h-9 gap-1.5 rounded-md px-3',
+      lg: 'h-11 rounded-md px-6',
+      icon: 'h-10 w-10',
       flex: 'h-auto',
       none: 'p-0 h-auto w-auto',
     },

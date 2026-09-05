@@ -46,7 +46,7 @@ export function SettingsImportModeModal({
             variant="outline"
             className="h-auto py-3 px-4"
             onPress={() => onSelectMode('skip')}>
-            <View className="items-start">
+            <View className="flex-1 items-start">
               <Text className="text-base font-body-medium text-left">
                 {t('Skip Existing Entries (Recommended)')}
               </Text>
@@ -60,7 +60,7 @@ export function SettingsImportModeModal({
             variant="destructive"
             className="h-auto py-3 px-4"
             onPress={() => onSelectMode('overwrite')}>
-            <View className="items-start">
+            <View className="flex-1 items-start">
               <Text className="text-base font-body-medium text-left text-destructive-foreground">
                 {t('Overwrite Matching Entries')}
               </Text>
