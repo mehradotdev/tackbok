@@ -603,8 +603,6 @@ export const he: Translations = {
   'Never collected': 'לעולם לא נאסף',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'טקסט היומן, כותרות, תמונות, הקלטות קול, תגיות, שם, אימייל או כל דבר שאתם מקלידים. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',
-  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
-    'אם תסכימו, הצעדים האנונימיים שביצעתם במהלך ההגדרה ייכללו. אם תסרבו, הם יימחקו מיד ולעולם לא יעזבו את המכשיר.',
   'You’re all set, {name}!': 'הכול מוכן, {name}!',
   'You’re all set!': 'הכול מוכן!',
   'Two last things you can turn on — both optional.':

@@ -618,8 +618,6 @@ export const en = {
   'Never collected': 'Never collected',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',
-  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
-    'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.',
   'You’re all set, {name}!': 'You’re all set, {name}!',
   'You’re all set!': 'You’re all set!',
   'Two last things you can turn on — both optional.':

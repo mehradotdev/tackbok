@@ -65,9 +65,9 @@ function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'border-border bg-background flex h-10 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9',
+        'border-border bg-background flex h-10 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5',
         props.disabled && 'opacity-50',
-        size === 'sm' && 'h-8 py-2 sm:py-1.5',
+        size === 'sm' && 'h-8 py-2',
         size === 'flex' && 'h-auto py-0',
         className,
       )}
@@ -133,7 +133,7 @@ function SelectLabel({
 }) {
   return (
     <SelectPrimitive.Label
-      className={cn('text-muted-foreground px-2 py-2 text-xs sm:py-1.5', className)}
+      className={cn('text-muted-foreground px-2 py-2 text-xs', className)}
       {...props}
     />
   );
@@ -151,7 +151,7 @@ function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'active:bg-accent/50 group relative flex w-full flex-row items-center gap-2 rounded-sm py-2 pl-2 pr-8 sm:py-1.5',
+        'active:bg-accent/50 group relative flex w-full flex-row items-center gap-2 rounded-sm py-2 pl-2 pr-8',
         props.disabled && 'opacity-50',
         // Keep selected-row styling in the UI wrapper so the primitive stays close
         // to upstream while the app controls its own visual language.

@@ -28,7 +28,7 @@ function CardTitle({
     <Text
       role="heading"
       aria-level={3}
-      className={cn('font-body-semibold leading-none', className)}
+      className={cn('font-body-semibold leading-tight', className)}
       {...props}
     />
   );

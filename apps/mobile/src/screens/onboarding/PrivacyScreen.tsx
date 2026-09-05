@@ -73,12 +73,6 @@ function AnalyticsDetailsSheet() {
               'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',
             )}
           </Text>
-
-          <Text className="text-sm text-foreground mt-4">
-            {t(
-              'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.',
-            )}
-          </Text>
         </View>
       </View>
     </TrueSheet>

@@ -147,7 +147,7 @@ export const Header: React.FC<IHeaderProps> = ({
         </Text>
       </View>
 
-      <View className="flex-row items-center gap-1">
+      <View className="flex-row items-center gap-1 md:gap-4">
         {(snapshot.configured || snapshot.status === 'warning') && (
           <Button
             className="p-1"
@@ -167,7 +167,7 @@ export const Header: React.FC<IHeaderProps> = ({
             {syncIsActive ? (
               <SpinningRefreshIcon className="text-primary-foreground size-5" />
             ) : (
-              <View className="relative size-5">
+              <View className="relative size-6">
                 <Icon
                   as={
                     snapshot.status === 'warning'

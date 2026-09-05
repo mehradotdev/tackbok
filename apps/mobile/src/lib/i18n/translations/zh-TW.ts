@@ -591,8 +591,6 @@ export const zhTW: Translations = {
   'Never collected': '絕不收集',
   'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
     '你的日記文字、標題、照片、語音備忘、標籤、姓名、電子郵件或任何輸入的內容。沒有廣告，不出售資料，沒有第三方追蹤。',
-  'If you opt in, the anonymous steps you took during this setup are included. If you decline, they are discarded and never leave your device.':
-    '如果你同意，本次設定過程中的匿名步驟將被納入；如果你拒絕，它們會被捨棄，絕不會離開你的裝置。',
   'You’re all set, {name}!': '一切就緒，{name}！',
   'You’re all set!': '一切就緒！',
   'Two last things you can turn on — both optional.':

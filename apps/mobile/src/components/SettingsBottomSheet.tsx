@@ -540,7 +540,10 @@ export function SettingsBottomSheet() {
         cornerRadius={sheetRadius}
         grabber={false}
         backgroundColor={bgColor as string}
-        maxContentWidth={400}>
+        // maxContentWidth is Android only (mobile-only app, no web). On iOS it sets
+        // preferredContentSize + prefersPageSizing=NO, which turns the iPad
+        // sheet into a narrow centered form sheet instead of a bottom sheet.
+        maxContentWidth={Platform.OS === 'android' ? 400 : undefined}>
         {/* Outer wrapper — clips the banner to match sheet corner radius */}
         <View
           style={{
