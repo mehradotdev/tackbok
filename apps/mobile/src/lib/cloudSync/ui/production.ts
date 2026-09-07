@@ -30,7 +30,7 @@ import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { createGoogleAuthorization } from '../auth';
 import { cloudConnectionLifecycle } from '../runtime/connectionLifecycle';
 import { canResumeUnpublishedBackup, clearAuthorizationPause } from './connectionRecovery';
-import { readGoogleAccountEmail, readOrCreateGoogleConnectionId, writeGoogleAccountEmail } from '../auth/secureTokenStore';
+import { readGoogleAccountEmail, readOrCreateGoogleConnectionId, withGoogleCredentialRollback } from '../auth/secureTokenStore';
 import {
   GoogleDriveSnapshotProvider,
   SQLiteDriveProviderStateStore,
@@ -125,6 +125,7 @@ export class CloudSyncActionError extends Error {
 
 let accountLabelInMemory: string | null = null;
 let accountLabelAttemptedForVault: string | null = null;
+let connectionSetupInProgress = false;
 let pendingConnection: {
   provider: GoogleDriveSnapshotProvider;
   auth: ReturnType<typeof createGoogleAuthorization>;
@@ -226,6 +227,11 @@ async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnect
   // Fail before interactive consent or Drive traffic when cloud sync is paused.
   assertCloudSyncNetworkAllowed();
   await cancelPreparedGoogleDriveConnectionImpl();
+  // Disable the old attachment durably before staging a different account.
+  // Background tasks and manual starts must not use these credentials either.
+  await db.update(cloudVault).set({ status: 'disabled', updated_at: Date.now() })
+    .where(inArray(cloudVault.status, ['dirty', 'idle', 'restoring']));
+  await setCloudSyncBackgroundTaskEnabled(false);
   const auth = createGoogleAuthorization();
   try {
     await auth.authorize();
@@ -335,6 +341,7 @@ async function completeGoogleDriveConnectionImpl(options: {
     });
   });
   pendingConnection = null;
+  connectionSetupInProgress = false;
   accountLabelAttemptedForVault = selected.vaultId;
   await setCloudSyncBackgroundTaskEnabled(true);
   notifyProductionCloudSyncChanged();
@@ -348,8 +355,8 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
   assertCloudSyncNetworkAllowed();
   const auth = createGoogleAuthorization();
   const previousEmail = await readGoogleAccountEmail();
-  await auth.authorize();
-  try {
+  await withGoogleCredentialRollback(async () => {
+    await auth.authorize();
     const connectionId = await readOrCreateGoogleConnectionId();
     const provider = new GoogleDriveSnapshotProvider({
       auth,
@@ -371,22 +378,16 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
     if (!available.some((remote) => remote.vaultId === vault.vault_id) && !resumeUnpublished) {
       throw new Error('The configured Tackbok backup was not found in this Google account');
     }
-    accountLabelInMemory = accountLabel;
-    accountLabelAttemptedForVault = vault.vault_id;
+    await setCloudSyncBackgroundTaskEnabled(true);
     clearAuthorizationPause(store, vault.vault_id, vault.device_id);
     await db.update(cloudVault).set({
       status: state.journalGeneration > state.settledGeneration ? 'dirty' : 'idle',
       last_connected_at: Date.now(),
       updated_at: Date.now(),
     }).where(eq(cloudVault.vault_id, vault.vault_id));
-    await setCloudSyncBackgroundTaskEnabled(true);
-  } catch (error) {
-    await auth.signOut().catch(() => undefined);
-    // Retain only the expected account identity for a subsequent reconnect.
-    // No token/connected mark survives; explicit Disconnect clears this too.
-    if (previousEmail) await writeGoogleAccountEmail(previousEmail);
-    throw error;
-  }
+    accountLabelInMemory = accountLabel;
+    accountLabelAttemptedForVault = vault.vault_id;
+  }, () => auth.signOut());
 }
 
 async function disconnectGoogleDriveImpl(): Promise<void> {
@@ -661,21 +662,39 @@ export async function retrySyncAttentionReason(reason: SyncAttentionReason): Pro
 
 // All connection mutations share the same barrier as production sync passes.
 // Drain before touching credentials, then rebuild from the committed state.
-function connectionChange<A extends unknown[], R>(operation: (...args: A) => Promise<R>) {
+function connectionChange<A extends unknown[], R>(
+  operation: (...args: A) => Promise<R>, restart: 'always' | 'success' | 'never' = 'always',
+) {
   return async (...args: A): Promise<R> => {
     stopProductionSyncRuntime();
+    let succeeded = false;
     try {
-      return await cloudConnectionLifecycle.change(() => operation(...args));
+      const result = await cloudConnectionLifecycle.change(() => operation(...args));
+      succeeded = true;
+      return result;
     } finally {
-      await restartProductionSyncRuntime();
+      if (!connectionSetupInProgress && !pendingConnection &&
+          (restart === 'always' || (restart === 'success' && succeeded))) {
+        await restartProductionSyncRuntime();
+      }
       notifyProductionCloudSyncChanged();
     }
   };
 }
 
-export const prepareGoogleDriveConnection = connectionChange(prepareGoogleDriveConnectionImpl);
-export const cancelPreparedGoogleDriveConnection = connectionChange(cancelPreparedGoogleDriveConnectionImpl);
-export const completeGoogleDriveConnection = connectionChange(completeGoogleDriveConnectionImpl);
+export async function prepareGoogleDriveConnection(): Promise<PreparedGoogleConnection> {
+  connectionSetupInProgress = true;
+  return connectionChange(prepareGoogleDriveConnectionImpl, 'never')();
+}
+export async function cancelPreparedGoogleDriveConnection(): Promise<void> {
+  // Screen cleanup after a committed setup is a no-op, not a runtime stop.
+  if (!connectionSetupInProgress && !pendingConnection) return;
+  await connectionChange(async () => {
+    await cancelPreparedGoogleDriveConnectionImpl();
+    connectionSetupInProgress = false;
+  }, 'never')();
+}
+export const completeGoogleDriveConnection = connectionChange(completeGoogleDriveConnectionImpl, 'success');
 export const reconnectGoogleDrive = connectionChange(reconnectGoogleDriveImpl);
 export const disconnectGoogleDrive = connectionChange(disconnectGoogleDriveImpl);
 export const setCloudSyncPaused = connectionChange(setCloudSyncPausedImpl);

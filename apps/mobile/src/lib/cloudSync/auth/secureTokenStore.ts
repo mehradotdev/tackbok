@@ -146,3 +146,32 @@ export async function clearGoogleConnectedMark(): Promise<void> {
 export async function isGoogleMarkedConnected(): Promise<boolean> {
   return (await SecureStore.getItemAsync(CONNECTED_KEY)) === '1';
 }
+
+/** Reconnect runs under the connection barrier; the rollback stays in memory only. */
+export async function withGoogleCredentialRollback<T>(
+  operation: () => Promise<T>,
+  signOut: () => Promise<void>,
+): Promise<T> {
+  const keys = [CONNECTION_ID_KEY, ACCOUNT_EMAIL_KEY, TOKEN_KEY, CONNECTED_KEY];
+  const previous = await Promise.all(keys.map(key => SecureStore.getItemAsync(key)));
+  try {
+    return await operation();
+  } catch (error) {
+    await signOut().catch(() => undefined);
+    try {
+      // Restore the Android admission mark last; never expose a partially restored account.
+      await clearGoogleConnectedMark();
+      for (let index = 0; index < keys.length; index++) {
+        const value = previous[index];
+        if (value === null) await SecureStore.deleteItemAsync(keys[index]);
+        else await SecureStore.setItemAsync(keys[index], value, {
+          keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+        });
+      }
+    } catch {
+      // A failed secure-storage write must not leave mixed-account credentials.
+      await Promise.allSettled([clearGoogleConnectedMark(), clearGoogleTokens()]);
+    }
+    throw error;
+  }
+}

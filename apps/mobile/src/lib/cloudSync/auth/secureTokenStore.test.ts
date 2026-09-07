@@ -1,4 +1,7 @@
 import {
+  withGoogleCredentialRollback,
+  clearGoogleConnectedMark,
+  markGoogleConnected,
   clearGoogleAccessToken,
   clearGoogleTokens,
   readGoogleAccountEmail,
@@ -90,4 +93,40 @@ describe('Google account email SecureStore isolation', () => {
     await clearGoogleTokens();
     expect(mockStore.has(CONNECTION_ID_KEY)).toBe(false);
   });
+});
+
+const signOut = async () => { await clearGoogleConnectedMark(); await clearGoogleTokens(); };
+
+test.each([true, false])('failed reconnect restores all credentials (Android mark: %s)', async connected => {
+  await writeGoogleTokens({ accessToken: 'old', refreshToken: 'refresh', expiresAt: 100, accountEmail: 'old@example.com' });
+  await rotateGoogleConnectionId();
+  if (connected) await markGoogleConnected();
+  const previous = new Map(mockStore);
+  const failure = new Error('validation failed');
+  await expect(withGoogleCredentialRollback(async () => {
+    await writeGoogleTokens({ accessToken: 'new', expiresAt: 200, accountEmail: 'new@example.com' });
+    await rotateGoogleConnectionId();
+    await markGoogleConnected();
+    throw failure;
+  }, signOut)).rejects.toBe(failure);
+  expect(mockStore).toEqual(previous);
+});
+
+test('failed first authorization restores absent keys instead of keeping new credentials', async () => {
+  const failure = new Error('partial token write');
+  await expect(withGoogleCredentialRollback(async () => {
+    await rotateGoogleConnectionId();
+    await writeGoogleTokens({ accessToken: 'new', expiresAt: 200 });
+    throw failure;
+  }, signOut)).rejects.toBe(failure);
+  expect(mockStore.size).toBe(0);
+});
+
+test('successful reconnect retains the new credentials without cleanup', async () => {
+  const cleanup = jest.fn();
+  await withGoogleCredentialRollback(async () => {
+    await writeGoogleTokens({ accessToken: 'new', expiresAt: 200 });
+  }, cleanup);
+  expect((await readGoogleTokens())?.accessToken).toBe('new');
+  expect(cleanup).not.toHaveBeenCalled();
 });

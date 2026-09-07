@@ -1,3 +1,10 @@
+export class CloudConnectionChangedError extends Error {
+  constructor() {
+    super('Cloud connection is changing; retry with the current connection');
+    this.name = 'CloudConnectionChangedError';
+  }
+}
+
 /** Serializes credential/configuration changes against foreground and background passes. */
 export class CloudConnectionLifecycle {
   private generation = 0;
@@ -9,7 +16,7 @@ export class CloudConnectionLifecycle {
 
   async runPass<T>(epoch: number, operation: () => Promise<T>): Promise<T> {
     if (this.changes > 0 || epoch !== this.generation) {
-      throw new Error('Cloud connection is changing; retry with the current connection');
+      throw new CloudConnectionChangedError();
     }
     const pass = Promise.resolve().then(operation);
     this.passes.add(pass);

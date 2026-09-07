@@ -61,6 +61,7 @@ export class SyncRuntime {
   private subscriptions: RuntimeSubscription[] = [];
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private readinessTimer: ReturnType<typeof setTimeout> | null = null;
+  private foregroundTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
   private active = true;
   private lastForegroundAt = -Infinity;
@@ -97,6 +98,7 @@ export class SyncRuntime {
         }
         if (!this.active) {
           this.clearHeartbeat();
+          this.clearForegroundTimer();
           if (this.debounceTimer) this.options.platform.clearTimer(this.debounceTimer);
           this.debounceTimer = null;
         }
@@ -131,6 +133,7 @@ export class SyncRuntime {
     this.debounceTimer = null;
     this.readinessTimer = null;
     this.clearHeartbeat();
+    this.clearForegroundTimer();
     this.lastForegroundAt = -Infinity;
     this.rerunTrigger = null;
     this.running = null;
@@ -265,10 +268,25 @@ export class SyncRuntime {
 
   private requestForegroundPass(): void {
     const now = (this.options.now ?? Date.now)();
-    if (now - this.lastForegroundAt < (this.options.foregroundThrottleMs ?? 5_000)) return;
+    const remaining = (this.options.foregroundThrottleMs ?? 5_000) - (now - this.lastForegroundAt);
+    if (remaining > 0) {
+      if (!this.foregroundTimer) {
+        this.foregroundTimer = this.options.platform.setTimer(() => {
+          this.foregroundTimer = null;
+          if (!this.stopped && this.active) this.requestForegroundPass();
+        }, remaining);
+      }
+      return;
+    }
+    this.clearForegroundTimer();
     this.lastForegroundAt = now;
     // Foreground reads should not wait behind the local-edit debounce.
     void this.run('app-active');
+  }
+
+  private clearForegroundTimer(): void {
+    if (this.foregroundTimer) this.options.platform.clearTimer(this.foregroundTimer);
+    this.foregroundTimer = null;
   }
 
   private clearHeartbeat(): void {

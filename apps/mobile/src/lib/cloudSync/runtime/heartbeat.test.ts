@@ -110,3 +110,27 @@ test('a heartbeat does not overlap or queue an extra pass behind a slow manual s
   expect(app.sync).toHaveBeenCalledTimes(3);
   app.runtime.stop();
 });
+
+
+test('a quick inactive return gets a trailing check at the throttle deadline', async () => {
+  const app = setup();
+  await app.runtime.start();
+  await jest.advanceTimersByTimeAsync(1_000);
+  app.state('inactive');
+  app.state('active');
+  await jest.advanceTimersByTimeAsync(3_999);
+  expect(app.sync).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(1);
+  expect(app.sync).toHaveBeenCalledTimes(2);
+  app.runtime.stop();
+});
+
+test('stopping the runtime cancels a throttled foreground check', async () => {
+  const app = setup();
+  await app.runtime.start();
+  app.state('inactive');
+  app.state('active');
+  app.runtime.stop();
+  await jest.advanceTimersByTimeAsync(5_000);
+  expect(app.sync).toHaveBeenCalledTimes(1);
+});
