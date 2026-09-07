@@ -823,7 +823,7 @@ export const en = {
     'Recovered {type} conflict — {count} preserved alternatives',
   'Reset this device only': 'Reset this device only',
   'Reset this device only?': 'Reset this device only?',
-  'Restore and merge': 'Restore and merge',
+  'Merge': 'Merge',
   'Restore cloud backup': 'Restore cloud backup',
   'Restore from your cloud backup': 'Restore from your cloud backup',
   'Restoring…': 'Restoring…',

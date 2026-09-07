@@ -840,7 +840,7 @@ export const de: Translations = {
   'Recovered {type} conflict — {count} preserved alternatives': '{type}-Konflikt wiederhergestellt — {count} Alternativen erhalten',
   'Reset this device only': 'Nur dieses Gerät zurücksetzen',
   'Reset this device only?': 'Nur dieses Gerät zurücksetzen?',
-  'Restore and merge': 'Wiederherstellen und zusammenführen',
+  'Merge': 'Zusammenführen',
   'Restore cloud backup': 'Cloud-Sicherung wiederherstellen',
   'Restore from your cloud backup': 'Aus deiner Cloud-Sicherung wiederherstellen',
   'Restoring…': 'Wiederherstellung läuft…',

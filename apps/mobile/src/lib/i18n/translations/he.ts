@@ -792,7 +792,7 @@ export const he: Translations = {
   'Recovered {type} conflict — {count} preserved alternatives': 'שוחזרה התנגשות מסוג {type} — נשמרו {count} חלופות',
   'Reset this device only': 'איפוס המכשיר הזה בלבד',
   'Reset this device only?': 'לאפס את המכשיר הזה בלבד?',
-  'Restore and merge': 'שחזור ומיזוג',
+  'Merge': 'מיזוג',
   'Restore cloud backup': 'שחזור גיבוי בענן',
   'Restore from your cloud backup': 'שחזור מהגיבוי שלך בענן',
   'Restoring…': 'משחזר…',

@@ -795,7 +795,7 @@ export const ar: Translations = {
   'Recovered {type} conflict — {count} preserved alternatives': 'تم استرداد تعارض {type} — تم الاحتفاظ بـ {count} بدائل',
   'Reset this device only': 'إعادة ضبط هذا الجهاز فقط',
   'Reset this device only?': 'هل تريد إعادة ضبط هذا الجهاز فقط؟',
-  'Restore and merge': 'الاستعادة والدمج',
+  'Merge': 'دمج',
   'Restore cloud backup': 'استعادة النسخة السحابية',
   'Restore from your cloud backup': 'الاستعادة من نسختك الاحتياطية السحابية',
   'Restoring…': 'جارٍ الاستعادة…',

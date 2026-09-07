@@ -776,7 +776,7 @@ export const zhCN: Translations = {
   'Recovered {type} conflict — {count} preserved alternatives': '已恢复 {type} 冲突 — 保留了 {count} 个备选内容',
   'Reset this device only': '仅重置此设备',
   'Reset this device only?': '仅重置此设备？',
-  'Restore and merge': '恢复并合并',
+  'Merge': '合并',
   'Restore cloud backup': '恢复云备份',
   'Restore from your cloud backup': '从云备份恢复',
   'Restoring…': '正在恢复…',

@@ -161,13 +161,14 @@ export class SyncRuntime {
     initialTrigger: CloudSyncTrigger,
     allowFollowup: boolean,
   ): Promise<RuntimePassResult | null> {
+    const lifecycle = this.lifecycle;
     let trigger = initialTrigger;
     let finalResult: RuntimePassResult | null = null;
     do {
       this.rerunTrigger = null;
       finalResult = await this.runOne(trigger);
       const followup = allowFollowup ? this.rerunTrigger : null;
-      if (!followup || this.stopped || !this.wasOnline) break;
+      if (!followup || this.stopped || lifecycle !== this.lifecycle || !this.wasOnline) break;
       trigger = followup;
     } while (true);
     return finalResult;
@@ -188,7 +189,9 @@ export class SyncRuntime {
         });
         this.lastFailureCategory = null;
       }
-      if (this.engine?.hasPendingWork?.()) this.rerunTrigger = trigger;
+      if (!this.stopped && lifecycle === this.lifecycle && this.engine?.hasPendingWork?.()) {
+        this.rerunTrigger = trigger;
+      }
       return result;
     } catch (error) {
       if (!this.stopped && lifecycle === this.lifecycle) {

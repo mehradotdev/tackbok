@@ -28,7 +28,9 @@ import { deleteAllDataInTransaction } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { createGoogleAuthorization } from '../auth';
-import { readOrCreateGoogleConnectionId } from '../auth/secureTokenStore';
+import { cloudConnectionLifecycle } from '../runtime/connectionLifecycle';
+import { canResumeUnpublishedBackup, clearAuthorizationPause } from './connectionRecovery';
+import { readGoogleAccountEmail, readOrCreateGoogleConnectionId, writeGoogleAccountEmail } from '../auth/secureTokenStore';
 import {
   GoogleDriveSnapshotProvider,
   SQLiteDriveProviderStateStore,
@@ -220,10 +222,10 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   };
 }
 
-export async function prepareGoogleDriveConnection(): Promise<PreparedGoogleConnection> {
+async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnection> {
   // Fail before interactive consent or Drive traffic when cloud sync is paused.
   assertCloudSyncNetworkAllowed();
-  await cancelPreparedGoogleDriveConnection();
+  await cancelPreparedGoogleDriveConnectionImpl();
   const auth = createGoogleAuthorization();
   try {
     await auth.authorize();
@@ -253,13 +255,13 @@ export async function prepareGoogleDriveConnection(): Promise<PreparedGoogleConn
   }
 }
 
-export async function cancelPreparedGoogleDriveConnection(): Promise<void> {
+async function cancelPreparedGoogleDriveConnectionImpl(): Promise<void> {
   const pending = pendingConnection;
   pendingConnection = null;
   if (pending) await pending.auth.signOut().catch(() => undefined);
 }
 
-export async function completeGoogleDriveConnection(options: {
+async function completeGoogleDriveConnectionImpl(options: {
   origin: CloudSetupOrigin;
   vaultId?: string;
   createNew?: boolean;
@@ -335,41 +337,59 @@ export async function completeGoogleDriveConnection(options: {
   pendingConnection = null;
   accountLabelAttemptedForVault = selected.vaultId;
   await setCloudSyncBackgroundTaskEnabled(true);
-  await restartProductionSyncRuntime();
   notifyProductionCloudSyncChanged();
 }
 
-export async function reconnectGoogleDrive(): Promise<void> {
+async function reconnectGoogleDriveImpl(): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault?.remote_root_id) {
     throw new Error('No cloud backup is configured');
   }
   assertCloudSyncNetworkAllowed();
   const auth = createGoogleAuthorization();
+  const previousEmail = await readGoogleAccountEmail();
   await auth.authorize();
-  const connectionId = await readOrCreateGoogleConnectionId();
-  const provider = new GoogleDriveSnapshotProvider({
-    auth,
-    state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
-  });
-  const available = await provider.listAvailableVaults();
-  if (!available.some((remote) => remote.vaultId === vault.vault_id)) {
-    await auth.signOut();
-    throw new Error('The configured Tackbok backup was not found in this Google account');
+  try {
+    const connectionId = await readOrCreateGoogleConnectionId();
+    const provider = new GoogleDriveSnapshotProvider({
+      auth,
+      state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+    });
+    const available = await provider.listAvailableVaults();
+    const store = new SQLiteSyncStateStore(sqlite);
+    const state = store.loadState(vault.vault_id, vault.device_id);
+    const accountLabel = await auth.getAccountLabel();
+    const resumeUnpublished = canResumeUnpublishedBackup({
+      previousEmail,
+      currentEmail: await readGoogleAccountEmail(),
+      settledGeneration: state.settledGeneration,
+      hasBase: store.loadBaseCheckpoint(vault.vault_id, vault.device_id) !== null,
+      availableVaultCount: available.length,
+      revoked: vault.revocation_kind !== null ||
+        (await provider.listRevocations(vault.vault_id)).length > 0,
+    });
+    if (!available.some((remote) => remote.vaultId === vault.vault_id) && !resumeUnpublished) {
+      throw new Error('The configured Tackbok backup was not found in this Google account');
+    }
+    accountLabelInMemory = accountLabel;
+    accountLabelAttemptedForVault = vault.vault_id;
+    clearAuthorizationPause(store, vault.vault_id, vault.device_id);
+    await db.update(cloudVault).set({
+      status: state.journalGeneration > state.settledGeneration ? 'dirty' : 'idle',
+      last_connected_at: Date.now(),
+      updated_at: Date.now(),
+    }).where(eq(cloudVault.vault_id, vault.vault_id));
+    await setCloudSyncBackgroundTaskEnabled(true);
+  } catch (error) {
+    await auth.signOut().catch(() => undefined);
+    // Retain only the expected account identity for a subsequent reconnect.
+    // No token/connected mark survives; explicit Disconnect clears this too.
+    if (previousEmail) await writeGoogleAccountEmail(previousEmail);
+    throw error;
   }
-  accountLabelInMemory = await auth.getAccountLabel();
-  accountLabelAttemptedForVault = vault.vault_id;
-  const state = new SQLiteSyncStateStore(sqlite).loadState(vault.vault_id, vault.device_id);
-  await db.update(cloudVault).set({
-    status: state.journalGeneration > state.settledGeneration ? 'dirty' : 'idle',
-    last_connected_at: Date.now(),
-    updated_at: Date.now(),
-  }).where(eq(cloudVault.vault_id, vault.vault_id));
-  await setCloudSyncBackgroundTaskEnabled(true);
-  await restartProductionSyncRuntime();
 }
 
-export async function disconnectGoogleDrive(): Promise<void> {
+async function disconnectGoogleDriveImpl(): Promise<void> {
   stopProductionSyncRuntime();
   // Per-device Disconnect is intentionally local. This abstraction clears
   // SecureStore and native session state without calling Google's revoke API.
@@ -381,7 +401,7 @@ export async function disconnectGoogleDrive(): Promise<void> {
   notifyProductionCloudSyncChanged();
 }
 
-export async function setCloudSyncPaused(paused: boolean): Promise<void> {
+async function setCloudSyncPausedImpl(paused: boolean): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault) throw new Error('Cloud sync is not configured');
   if (vault.status === 'revoked' || vault.status === 'disabled') {
@@ -404,7 +424,6 @@ export async function setCloudSyncPaused(paused: boolean): Promise<void> {
       updated_at: Date.now(),
     }).where(eq(cloudVault.vault_id, vault.vault_id));
     await setCloudSyncBackgroundTaskEnabled(true);
-    await restartProductionSyncRuntime();
   }
   notifyProductionCloudSyncChanged();
 }
@@ -435,7 +454,7 @@ export async function verifyCloudBackup(): Promise<boolean> {
   return true;
 }
 
-export async function revokeCloudVault(
+async function revokeCloudVaultImpl(
   kind: 'backup-deleted' | 'journal-deleted',
 ): Promise<void> {
   const [vault] = await db.select().from(cloudVault).where(and(
@@ -556,7 +575,7 @@ async function wipeJournalAndLocalCloudReplica(): Promise<string[]> {
   return deleteLocalMediaFiles();
 }
 
-export async function resetThisDeviceOnly(): Promise<string[]> {
+async function resetThisDeviceOnlyImpl(): Promise<string[]> {
   const [vault] = await db.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1);
   stopProductionSyncRuntime();
   if (vault) {
@@ -572,7 +591,7 @@ export async function resetThisDeviceOnly(): Promise<string[]> {
   return mediaCleanupErrors;
 }
 
-export async function deleteJournalEverywhere(): Promise<string[]> {
+async function deleteJournalEverywhereImpl(): Promise<string[]> {
   const [vault] = await db.select({
     status: cloudVault.status,
     revocationKind: cloudVault.revocation_kind,
@@ -580,7 +599,7 @@ export async function deleteJournalEverywhere(): Promise<string[]> {
   const remoteDeletionAlreadyCompleted =
     vault?.status === 'revoked' && vault.revocationKind === 'journal-deleted';
   if (!remoteDeletionAlreadyCompleted) {
-    await revokeCloudVault('journal-deleted');
+    await revokeCloudVaultImpl('journal-deleted');
   } else {
     // A prior run may have died after the remote-complete checkpoint and
     // before clearing credentials/local data. Both operations are idempotent.
@@ -639,3 +658,27 @@ export async function retrySyncAttentionReason(reason: SyncAttentionReason): Pro
   await restartProductionSyncRuntime();
   await syncNow();
 }
+
+// All connection mutations share the same barrier as production sync passes.
+// Drain before touching credentials, then rebuild from the committed state.
+function connectionChange<A extends unknown[], R>(operation: (...args: A) => Promise<R>) {
+  return async (...args: A): Promise<R> => {
+    stopProductionSyncRuntime();
+    try {
+      return await cloudConnectionLifecycle.change(() => operation(...args));
+    } finally {
+      await restartProductionSyncRuntime();
+      notifyProductionCloudSyncChanged();
+    }
+  };
+}
+
+export const prepareGoogleDriveConnection = connectionChange(prepareGoogleDriveConnectionImpl);
+export const cancelPreparedGoogleDriveConnection = connectionChange(cancelPreparedGoogleDriveConnectionImpl);
+export const completeGoogleDriveConnection = connectionChange(completeGoogleDriveConnectionImpl);
+export const reconnectGoogleDrive = connectionChange(reconnectGoogleDriveImpl);
+export const disconnectGoogleDrive = connectionChange(disconnectGoogleDriveImpl);
+export const setCloudSyncPaused = connectionChange(setCloudSyncPausedImpl);
+export const revokeCloudVault = connectionChange(revokeCloudVaultImpl);
+export const resetThisDeviceOnly = connectionChange(resetThisDeviceOnlyImpl);
+export const deleteJournalEverywhere = connectionChange(deleteJournalEverywhereImpl);
