@@ -355,6 +355,12 @@ export const de: Translations = {
 
   // Settings - Security
   Security: 'Sicherheit',
+  'Lock after': 'Sperren nach',
+  'Time away from the app before requiring an unlock.': 'Zeit außerhalb der App, bevor ein Entsperren erforderlich ist.',
+  '0 seconds': '0 Sekunden',
+  '30 seconds': '30 Sekunden',
+  '1 minute': '1 Minute',
+  '2 minutes': '2 Minuten',
   'Unlock Tackbok': 'Tackbok entsperren',
   'Lock with your device screen lock':
     'Tackbok kann mit der Displaysperre deines Geräts geschützt werden – Biometrie, PIN, Muster oder Code',

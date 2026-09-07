@@ -1,3 +1,4 @@
+import { withExternalAuthentication } from '~/lib/externalAuthentication';
 import { requireNativeModule } from 'expo-modules-core';
 
 import { fetchGoogleAccountLabel } from './accountLabel';
@@ -56,15 +57,17 @@ function normalizeNativeError(error: unknown): CloudAuthError {
 
 export class AndroidGoogleAuthorization implements CloudAuthorization {
   async authorize(): Promise<GoogleTokenSet> {
-    try {
-      const tokens = await nativeModule().authorize(true, null);
-      await rotateGoogleConnectionId();
-      await writeGoogleTokens(tokens);
-      await markGoogleConnected();
-      return tokens;
-    } catch (error) {
-      throw normalizeNativeError(error);
-    }
+    return withExternalAuthentication(async () => {
+      try {
+        const tokens = await nativeModule().authorize(true, null);
+        await rotateGoogleConnectionId();
+        await writeGoogleTokens(tokens);
+        await markGoogleConnected();
+        return tokens;
+      } catch (error) {
+        throw normalizeNativeError(error);
+      }
+    });
   }
 
   async getFreshAccessToken(): Promise<string> {

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { normalizeAppLockDelay, type AppLockDelaySeconds } from '../appLockSession';
 import AsyncStorage from 'expo-sqlite/kv-store';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Uniwind } from 'uniwind';
@@ -49,6 +50,7 @@ interface SettingsState {
 
   // Security
   biometricUnlockEnabled: boolean;
+  appLockDelaySeconds: AppLockDelaySeconds;
 
   // Cloud backup display/transfer preference. Connection state is authoritative in SQLite.
   cloudSyncWifiOnlyMedia: boolean;
@@ -94,6 +96,7 @@ interface SettingsState {
   setTitleFont: (fontId: TitleFontSelection) => void;
   setBodyFontSize: (size: BodyFontSize) => void;
   setBiometricUnlockEnabled: (enabled: boolean) => void;
+  setAppLockDelaySeconds: (seconds: AppLockDelaySeconds) => void;
   setCloudSyncWifiOnlyMedia: (enabled: boolean) => void;
   setAnalyticsEnabled: (enabled: boolean) => void;
   setLastUpdateCheckAt: (checkedAt: string) => void;
@@ -127,6 +130,7 @@ const DEFAULT_SETTINGS_VALUES = {
   titleFont: DEFAULT_TITLE_FONT_SELECTION,
   bodyFontSize: DEFAULT_BODY_FONT_SIZE,
   biometricUnlockEnabled: false,
+  appLockDelaySeconds: 0 as AppLockDelaySeconds,
   cloudSyncWifiOnlyMedia: false,
   analyticsEnabled: false,
   lastUpdateCheckAt: null,
@@ -192,6 +196,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
       setBodyFontSize: (size) => set({ bodyFontSize: normalizeBodyFontSize(size) }),
       setBiometricUnlockEnabled: (enabled) => set({ biometricUnlockEnabled: enabled }),
+      setAppLockDelaySeconds: (seconds) => set({ appLockDelaySeconds: normalizeAppLockDelay(seconds) }),
       setCloudSyncWifiOnlyMedia: (enabled) =>
         set({ cloudSyncWifiOnlyMedia: enabled }),
       setAnalyticsEnabled: (enabled) => set({ analyticsEnabled: enabled }),
@@ -288,6 +293,7 @@ export const useSettingsStore = create<SettingsState>()(
         titleFont: state.titleFont,
         bodyFontSize: state.bodyFontSize,
         biometricUnlockEnabled: state.biometricUnlockEnabled,
+        appLockDelaySeconds: state.appLockDelaySeconds,
         cloudSyncWifiOnlyMedia: state.cloudSyncWifiOnlyMedia,
         analyticsEnabled: state.analyticsEnabled,
         lastUpdateCheckAt: state.lastUpdateCheckAt,

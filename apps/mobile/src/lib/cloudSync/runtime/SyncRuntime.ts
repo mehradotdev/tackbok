@@ -18,6 +18,7 @@ export interface RuntimeSyncEngine {
 export interface RuntimeSubscription { remove(): void; }
 
 export interface RuntimePlatform {
+  getAppState?(): 'active' | 'background' | 'inactive';
   addAppStateListener(listener: (state: 'active' | 'background' | 'inactive') => void): RuntimeSubscription;
   addNetworkListener(listener: (online: boolean) => void): RuntimeSubscription;
   getNetworkOnline(): Promise<boolean>;
@@ -49,6 +50,8 @@ export interface SyncRuntimeOptions {
   analytics?: RuntimeAnalytics;
   debounceMs?: number;
   readinessRetryMs?: number;
+  heartbeatMs?: number;
+  foregroundThrottleMs?: number;
   now?: () => number;
 }
 
@@ -58,6 +61,9 @@ export class SyncRuntime {
   private subscriptions: RuntimeSubscription[] = [];
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private readinessTimer: ReturnType<typeof setTimeout> | null = null;
+  private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+  private active = true;
+  private lastForegroundAt = -Infinity;
   private running: Promise<RuntimePassResult | null> | null = null;
   private stopped = true;
   private wasOnline = false;
@@ -80,9 +86,20 @@ export class SyncRuntime {
     }
     if (this.stopped || lifecycle !== this.lifecycle) return;
     this.wasOnline = online;
+    this.active = (this.options.platform.getAppState?.() ?? 'active') === 'active';
     const subscriptions = [
       this.options.platform.addAppStateListener((state) => {
-        if (state === 'active') this.schedule('app-active');
+        const becameActive = state === 'active' && !this.active;
+        this.active = state === 'active';
+        if (becameActive) {
+          this.requestForegroundPass();
+          this.scheduleHeartbeat();
+        }
+        if (!this.active) {
+          this.clearHeartbeat();
+          if (this.debounceTimer) this.options.platform.clearTimer(this.debounceTimer);
+          this.debounceTimer = null;
+        }
         if (state === 'background') void this.runBoundedBackgroundPass('backgrounding');
       }),
       this.options.platform.addNetworkListener((nextOnline) => {
@@ -113,6 +130,8 @@ export class SyncRuntime {
     if (this.readinessTimer) this.options.platform.clearTimer(this.readinessTimer);
     this.debounceTimer = null;
     this.readinessTimer = null;
+    this.clearHeartbeat();
+    this.lastForegroundAt = -Infinity;
     this.rerunTrigger = null;
     this.running = null;
     this.lastFailureCategory = null;
@@ -220,7 +239,11 @@ export class SyncRuntime {
         this.engine = engine;
         if (this.engine) {
           this.options.analytics?.connected(this.engine.provider.kind);
-          await this.run('app-active');
+          if (this.active) {
+            this.lastForegroundAt = (this.options.now ?? Date.now)();
+            await this.run('app-active');
+            this.scheduleHeartbeat();
+          }
         }
         return;
       }
@@ -240,8 +263,35 @@ export class SyncRuntime {
     }, this.options.readinessRetryMs ?? 5_000);
   }
 
+  private requestForegroundPass(): void {
+    const now = (this.options.now ?? Date.now)();
+    if (now - this.lastForegroundAt < (this.options.foregroundThrottleMs ?? 5_000)) return;
+    this.lastForegroundAt = now;
+    // Foreground reads should not wait behind the local-edit debounce.
+    void this.run('app-active');
+  }
+
+  private clearHeartbeat(): void {
+    if (this.heartbeatTimer) this.options.platform.clearTimer(this.heartbeatTimer);
+    this.heartbeatTimer = null;
+  }
+
+  private scheduleHeartbeat(): void {
+    if (this.stopped || !this.active || !this.engine || this.heartbeatTimer) return;
+    const lifecycle = this.lifecycle;
+    this.heartbeatTimer = this.options.platform.setTimer(() => {
+      this.heartbeatTimer = null;
+      if (this.stopped || !this.active || lifecycle !== this.lifecycle) return;
+      // Do not queue redundant passes when a slow sync already owns the engine.
+      const pass = this.running ?? this.run('periodic');
+      void pass.finally(() => {
+        if (lifecycle === this.lifecycle) this.scheduleHeartbeat();
+      });
+    }, this.options.heartbeatMs ?? 120_000);
+  }
+
   private schedule(trigger: CloudSyncTrigger): void {
-    if (this.stopped) return;
+    if (this.stopped || !this.active) return;
     if (this.debounceTimer) this.options.platform.clearTimer(this.debounceTimer);
     this.debounceTimer = this.options.platform.setTimer(() => {
       this.debounceTimer = null;

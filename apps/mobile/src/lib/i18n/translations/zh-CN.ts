@@ -312,6 +312,12 @@ export const zhCN: Translations = {
 
   // Settings - Security
   Security: '安全',
+  'Lock after': '自动锁定时间',
+  'Time away from the app before requiring an unlock.': '离开应用多久后需要解锁。',
+  '0 seconds': '0 秒',
+  '30 seconds': '30 秒',
+  '1 minute': '1 分钟',
+  '2 minutes': '2 分钟',
   'Unlock Tackbok': '解锁塔克博克',
   'Lock with your device screen lock':
     '塔克博克可使用设备的锁屏方式锁定——生物识别、PIN 码、图案或密码',

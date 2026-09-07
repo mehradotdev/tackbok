@@ -319,6 +319,12 @@ export const ar: Translations = {
 
   // Settings - Security
   Security: 'الأمان',
+  'Lock after': 'القفل بعد',
+  'Time away from the app before requiring an unlock.': 'الوقت خارج التطبيق قبل طلب إلغاء القفل.',
+  '0 seconds': '0 ثانية',
+  '30 seconds': '30 ثانية',
+  '1 minute': 'دقيقة واحدة',
+  '2 minutes': 'دقيقتان',
   'Unlock Tackbok': 'فتح تاكبوك',
   'Lock with your device screen lock':
     'يمكن لتاكبوك القفل باستخدام قفل شاشة جهازك — المقاييس الحيوية أو رمز PIN أو النمط أو كلمة المرور',

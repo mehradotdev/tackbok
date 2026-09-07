@@ -5,6 +5,8 @@ import { useCSSVariable } from 'uniwind';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { attemptUnlock, canUseDeviceAuth, useAppLockStore } from '~/lib/appLock';
+import { normalizeAppLockDelay } from '~/lib/appLockSession';
+import { appLockSession, refreshExternalAuthentication, useExternalAuthentication } from '~/lib/externalAuthentication';
 import { getThemeConfig } from '~/lib/theme/themes';
 import { TackbokLogo } from '~/components/TackbokLogo';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
@@ -18,7 +20,7 @@ const LOCK_LOGO_SIZE = 108;
  * Root gate for the app lock. When `biometricUnlockEnabled` is on:
  * - cold start renders the opaque lock screen instead of app content (no
  *   flash of journal entries) and auto-triggers the OS auth prompt;
- * - real backgrounding re-locks; brief `inactive` blips (app switcher peek,
+ * - backgrounding re-locks after the chosen grace period; `inactive` blips (app switcher peek,
  *   permission dialogs, the auth sheet itself) do not;
  * - while the app is not `active` the same opaque screen doubles as a
  *   task-switcher privacy cover.
@@ -30,6 +32,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const enabled = useSettingsStore((s) => s.biometricUnlockEnabled);
   const isLocked = useAppLockStore((s) => s.isLocked);
+  const externalAuthenticationActive = useExternalAuthentication((s) => s.active);
   const [appStateStatus, setAppStateStatus] = useState(AppState.currentState);
 
   // Pre-init `null` counts as locked so content never paints first.
@@ -52,6 +55,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   // there is nothing left to authenticate against — clear the lock and
   // turn the setting off instead of trapping them on the lock screen.
   const tryUnlock = useCallback(async () => {
+    if (useExternalAuthentication.getState().active) return;
     if (await canUseDeviceAuth()) {
       await attemptUnlock({
         promptMessage: t('Unlock Tackbok'),
@@ -66,31 +70,35 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {
       setAppStateStatus(next);
-      if (
-        next === 'background' &&
-        useSettingsStore.getState().biometricUnlockEnabled &&
-        !useAppLockStore.getState().isAuthenticating
-      ) {
-        autoPromptedRef.current = false;
-        useAppLockStore.getState().lock();
+      const settings = useSettingsStore.getState();
+      if (!useAppLockStore.getState().isAuthenticating) {
+        const shouldLock = appLockSession.transition(
+          next, normalizeAppLockDelay(settings.appLockDelaySeconds),
+        );
+        if (settings.biometricUnlockEnabled && shouldLock) {
+          autoPromptedRef.current = false;
+          useAppLockStore.getState().lock();
+        }
       }
+      refreshExternalAuthentication();
     });
     return () => subscription.remove();
   }, []);
 
   useEffect(() => {
-    if (locked && active && !autoPromptedRef.current) {
+    if (locked && active && !externalAuthenticationActive && !autoPromptedRef.current) {
       autoPromptedRef.current = true;
       void tryUnlock();
     }
-  }, [locked, active, tryUnlock]);
+  }, [locked, active, externalAuthenticationActive, tryUnlock]);
 
   return (
     <>
       {everUnlocked ? children : null}
       <AppLockScreen
         visible={enabled && (locked || !active)}
-        showUnlockButton={locked}
+        nativeModal={!externalAuthenticationActive}
+        showUnlockButton={locked && !externalAuthenticationActive}
         onUnlockPress={() => void tryUnlock()}
       />
     </>
@@ -99,17 +107,40 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
 
 interface AppLockScreenProps {
   visible: boolean;
+  nativeModal: boolean;
   /** False while the cover is only acting as a privacy screen (not locked). */
   showUnlockButton: boolean;
   onUnlockPress: () => void;
 }
 
-function AppLockScreen({ visible, showUnlockButton, onUnlockPress }: AppLockScreenProps) {
+function AppLockScreen({ visible, nativeModal, showUnlockButton, onUnlockPress }: AppLockScreenProps) {
   const { t } = useTranslation();
   const theme = useSettingsStore((s) => s.theme);
   const themeConfig = getThemeConfig(theme);
   const [foregroundColor] = useCSSVariable(['--color-foreground']);
 
+  const content = (
+    <SafeAreaView
+      className="flex-1 bg-background dark:bg-primary"
+      edges={['top', 'left', 'right', 'bottom']}>
+      <StatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
+      <View className="flex-1 items-center justify-center gap-10">
+        <TackbokLogo size={LOCK_LOGO_SIZE} color={foregroundColor as string} />
+        {showUnlockButton ? (
+          <Button variant="primary" size="lg" onPress={onUnlockPress}>
+            <Text>{t('Unlock')}</Text>
+          </Button>
+        ) : null}
+      </View>
+    </SafeAreaView>
+  );
+  // Never present a competing native modal over the Google chooser/browser.
+  // The in-app cover still hides journal content in the task switcher.
+  if (!nativeModal) {
+    return visible ? (
+      <View className="absolute inset-0 z-50" accessibilityViewIsModal>{content}</View>
+    ) : null;
+  }
   return (
     <Modal
       visible={visible}
@@ -118,19 +149,7 @@ function AppLockScreen({ visible, showUnlockButton, onUnlockPress }: AppLockScre
       statusBarTranslucent
       navigationBarTranslucent
       onRequestClose={() => {}}>
-      <SafeAreaView
-        className="flex-1 bg-background dark:bg-primary"
-        edges={['top', 'left', 'right', 'bottom']}>
-        <StatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
-        <View className="flex-1 items-center justify-center gap-10">
-          <TackbokLogo size={LOCK_LOGO_SIZE} color={foregroundColor as string} />
-          {showUnlockButton ? (
-            <Button variant="primary" size="lg" onPress={onUnlockPress}>
-              <Text>{t('Unlock')}</Text>
-            </Button>
-          ) : null}
-        </View>
-      </SafeAreaView>
+      {content}
     </Modal>
   );
 }

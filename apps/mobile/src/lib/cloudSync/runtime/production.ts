@@ -46,6 +46,7 @@ export function notifyProductionCloudSyncChanged(): void {
 }
 
 const platform: RuntimePlatform = {
+  getAppState: () => AppState.currentState === 'active' ? 'active' : 'background',
   addAppStateListener(listener) {
     return AppState.addEventListener('change', (state) => {
       if (state === 'active' || state === 'background' || state === 'inactive') {

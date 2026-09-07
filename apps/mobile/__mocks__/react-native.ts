@@ -23,7 +23,13 @@ export const Image = {
   ),
 };
 
+export const AppState = {
+  currentState: 'active',
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+};
+
 export const __mockReactNativeState = {
+  AppState,
   Platform,
   NativeModules,
   Image,
