@@ -1,3 +1,4 @@
+import { CloudConnectionChangedError } from './connectionLifecycle';
 import type { CloudSyncFailureCategory, CloudSyncTrigger } from '../../analytics/events';
 import { toCloudSyncCountBucket, toCloudSyncDurationBucket } from '../../analytics/events';
 import { readCloudSyncFailureCategory } from '../failureClassification';
@@ -46,6 +47,7 @@ export interface SyncRuntimeOptions {
   platform: RuntimePlatform;
   readiness: RuntimeReadiness;
   createEngine(): Promise<RuntimeSyncEngine | null>;
+  waitForConnectionChange?(): Promise<void>;
   addMutationListener?(listener: () => void): RuntimeSubscription;
   analytics?: RuntimeAnalytics;
   debounceMs?: number;
@@ -196,7 +198,7 @@ export class SyncRuntime {
     return finalResult;
   }
 
-  private async runOne(trigger: CloudSyncTrigger): Promise<RuntimePassResult | null> {
+  private async runOne(trigger: CloudSyncTrigger, retryConnectionChange = true): Promise<RuntimePassResult | null> {
     const lifecycle = this.lifecycle;
     const startedAt = (this.options.now ?? Date.now)();
     this.options.analytics?.started(trigger);
@@ -216,8 +218,24 @@ export class SyncRuntime {
       }
       return result;
     } catch (error) {
+      let failure = error;
+      if (error instanceof CloudConnectionChangedError && retryConnectionChange &&
+          !this.stopped && lifecycle === this.lifecycle) {
+        try {
+          await this.options.waitForConnectionChange?.();
+          if (this.stopped || lifecycle !== this.lifecycle || !this.active || !this.wasOnline) return null;
+          // Never retry the old engine: its captured connection epoch is invalid.
+          const engine = await this.options.createEngine();
+          if (this.stopped || lifecycle !== this.lifecycle) return null;
+          this.engine = engine;
+          if (!engine) return null; // Disconnect, pause, or pending setup.
+          return await this.runOne(trigger, false);
+        } catch (retryError) {
+          failure = retryError;
+        }
+      }
       if (!this.stopped && lifecycle === this.lifecycle) {
-        this.lastFailureCategory = readCloudSyncFailureCategory(error);
+        this.lastFailureCategory = readCloudSyncFailureCategory(failure);
         this.options.analytics?.failed(this.lastFailureCategory);
       }
       return null;

@@ -14,6 +14,11 @@ export class CloudConnectionLifecycle {
 
   get epoch(): number { return this.generation; }
 
+  async waitForChanges(): Promise<void> {
+    // Include changes queued while an earlier change was settling.
+    while (this.changes > 0) await this.tail.catch(() => undefined);
+  }
+
   async runPass<T>(epoch: number, operation: () => Promise<T>): Promise<T> {
     if (this.changes > 0 || epoch !== this.generation) {
       throw new CloudConnectionChangedError();

@@ -1,5 +1,5 @@
 import { AppState } from 'react-native';
-import { CloudConnectionChangedError } from './connectionLifecycle';
+import { cloudConnectionLifecycle, CloudConnectionChangedError } from './connectionLifecycle';
 import * as Network from 'expo-network';
 import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db } from '~/db';
@@ -113,6 +113,7 @@ export function createProductionSyncRuntime(options: {
     platform,
     readiness: { isReady: isNormalizedModelReady, retryBackfill },
     createEngine: () => createProductionRuntimeEngine(options.onRemoteApplied),
+    waitForConnectionChange: () => cloudConnectionLifecycle.waitForChanges(),
     addMutationListener: addCloudSyncMutationListener,
     analytics: {
       connected: (provider) => track('cloud_sync_connected', { provider }),
