@@ -144,8 +144,13 @@ build.
 Publish OTA changes to preview first:
 
 ```sh
-bunx eas update --channel preview --auto
+bunx eas update --channel preview --auto --environment preview
 ```
+
+Expo SDK 55 and later require `--environment` when publishing an update. This
+selects the EAS environment whose variables are embedded in the JavaScript
+bundle; variables under a build profile's `env` field are not automatically
+loaded by `eas update`.
 
 After verifying that update with a preview build, promote the same update group to production:
 
@@ -153,7 +158,19 @@ After verifying that update with a preview build, promote the same update group 
 bunx eas update:republish --destination-channel production --group <update-group-id>
 ```
 
-Use `bunx eas update --channel production --auto` only when intentionally publishing directly to production. Native dependency or app-config changes require a new EAS build; only JavaScript and asset changes can be delivered OTA.
+Republishing reuses the already-generated preview bundle and does not reload
+variables from the production environment. Before promoting, confirm that all
+relevant `EXPO_PUBLIC_*` variables have the same values in the preview and
+production EAS environments. If they differ, publish separately from the same
+tested commit:
+
+```sh
+bunx eas update --channel production --auto --environment production
+```
+
+Publish directly to production only when that is intentional. Native dependency
+or app-config changes require a new EAS build; only JavaScript and asset changes
+can be delivered OTA.
 
 #### Version and store-build cadence
 
