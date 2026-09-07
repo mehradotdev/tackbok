@@ -1,3 +1,4 @@
+import { CloudConnectionChangedError } from './connectionLifecycle';
 import type { CloudSyncFailureCategory, CloudSyncTrigger } from '../../analytics/events';
 import { toCloudSyncCountBucket, toCloudSyncDurationBucket } from '../../analytics/events';
 import { readCloudSyncFailureCategory } from '../failureClassification';
@@ -18,6 +19,7 @@ export interface RuntimeSyncEngine {
 export interface RuntimeSubscription { remove(): void; }
 
 export interface RuntimePlatform {
+  getAppState?(): 'active' | 'background' | 'inactive';
   addAppStateListener(listener: (state: 'active' | 'background' | 'inactive') => void): RuntimeSubscription;
   addNetworkListener(listener: (online: boolean) => void): RuntimeSubscription;
   getNetworkOnline(): Promise<boolean>;
@@ -45,10 +47,13 @@ export interface SyncRuntimeOptions {
   platform: RuntimePlatform;
   readiness: RuntimeReadiness;
   createEngine(): Promise<RuntimeSyncEngine | null>;
+  waitForConnectionChange?(): Promise<void>;
   addMutationListener?(listener: () => void): RuntimeSubscription;
   analytics?: RuntimeAnalytics;
   debounceMs?: number;
   readinessRetryMs?: number;
+  heartbeatMs?: number;
+  foregroundThrottleMs?: number;
   now?: () => number;
 }
 
@@ -58,6 +63,10 @@ export class SyncRuntime {
   private subscriptions: RuntimeSubscription[] = [];
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private readinessTimer: ReturnType<typeof setTimeout> | null = null;
+  private foregroundTimer: ReturnType<typeof setTimeout> | null = null;
+  private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+  private active = true;
+  private lastForegroundAt = -Infinity;
   private running: Promise<RuntimePassResult | null> | null = null;
   private stopped = true;
   private wasOnline = false;
@@ -80,9 +89,21 @@ export class SyncRuntime {
     }
     if (this.stopped || lifecycle !== this.lifecycle) return;
     this.wasOnline = online;
+    this.active = (this.options.platform.getAppState?.() ?? 'active') === 'active';
     const subscriptions = [
       this.options.platform.addAppStateListener((state) => {
-        if (state === 'active') this.schedule('app-active');
+        const becameActive = state === 'active' && !this.active;
+        this.active = state === 'active';
+        if (becameActive) {
+          this.requestForegroundPass();
+          this.scheduleHeartbeat();
+        }
+        if (!this.active) {
+          this.clearHeartbeat();
+          this.clearForegroundTimer();
+          if (this.debounceTimer) this.options.platform.clearTimer(this.debounceTimer);
+          this.debounceTimer = null;
+        }
         if (state === 'background') void this.runBoundedBackgroundPass('backgrounding');
       }),
       this.options.platform.addNetworkListener((nextOnline) => {
@@ -113,6 +134,9 @@ export class SyncRuntime {
     if (this.readinessTimer) this.options.platform.clearTimer(this.readinessTimer);
     this.debounceTimer = null;
     this.readinessTimer = null;
+    this.clearHeartbeat();
+    this.clearForegroundTimer();
+    this.lastForegroundAt = -Infinity;
     this.rerunTrigger = null;
     this.running = null;
     this.lastFailureCategory = null;
@@ -161,19 +185,20 @@ export class SyncRuntime {
     initialTrigger: CloudSyncTrigger,
     allowFollowup: boolean,
   ): Promise<RuntimePassResult | null> {
+    const lifecycle = this.lifecycle;
     let trigger = initialTrigger;
     let finalResult: RuntimePassResult | null = null;
     do {
       this.rerunTrigger = null;
       finalResult = await this.runOne(trigger);
       const followup = allowFollowup ? this.rerunTrigger : null;
-      if (!followup || this.stopped || !this.wasOnline) break;
+      if (!followup || this.stopped || lifecycle !== this.lifecycle || !this.wasOnline) break;
       trigger = followup;
     } while (true);
     return finalResult;
   }
 
-  private async runOne(trigger: CloudSyncTrigger): Promise<RuntimePassResult | null> {
+  private async runOne(trigger: CloudSyncTrigger, retryConnectionChange = true): Promise<RuntimePassResult | null> {
     const lifecycle = this.lifecycle;
     const startedAt = (this.options.now ?? Date.now)();
     this.options.analytics?.started(trigger);
@@ -188,11 +213,29 @@ export class SyncRuntime {
         });
         this.lastFailureCategory = null;
       }
-      if (this.engine?.hasPendingWork?.()) this.rerunTrigger = trigger;
+      if (!this.stopped && lifecycle === this.lifecycle && this.engine?.hasPendingWork?.()) {
+        this.rerunTrigger = trigger;
+      }
       return result;
     } catch (error) {
+      let failure = error;
+      if (error instanceof CloudConnectionChangedError && retryConnectionChange &&
+          !this.stopped && lifecycle === this.lifecycle) {
+        try {
+          await this.options.waitForConnectionChange?.();
+          if (this.stopped || lifecycle !== this.lifecycle || !this.active || !this.wasOnline) return null;
+          // Never retry the old engine: its captured connection epoch is invalid.
+          const engine = await this.options.createEngine();
+          if (this.stopped || lifecycle !== this.lifecycle) return null;
+          this.engine = engine;
+          if (!engine) return null; // Disconnect, pause, or pending setup.
+          return await this.runOne(trigger, false);
+        } catch (retryError) {
+          failure = retryError;
+        }
+      }
       if (!this.stopped && lifecycle === this.lifecycle) {
-        this.lastFailureCategory = readCloudSyncFailureCategory(error);
+        this.lastFailureCategory = readCloudSyncFailureCategory(failure);
         this.options.analytics?.failed(this.lastFailureCategory);
       }
       return null;
@@ -217,7 +260,11 @@ export class SyncRuntime {
         this.engine = engine;
         if (this.engine) {
           this.options.analytics?.connected(this.engine.provider.kind);
-          await this.run('app-active');
+          if (this.active) {
+            this.lastForegroundAt = (this.options.now ?? Date.now)();
+            await this.run('app-active');
+            this.scheduleHeartbeat();
+          }
         }
         return;
       }
@@ -237,8 +284,50 @@ export class SyncRuntime {
     }, this.options.readinessRetryMs ?? 5_000);
   }
 
+  private requestForegroundPass(): void {
+    const now = (this.options.now ?? Date.now)();
+    const remaining = (this.options.foregroundThrottleMs ?? 5_000) - (now - this.lastForegroundAt);
+    if (remaining > 0) {
+      if (!this.foregroundTimer) {
+        this.foregroundTimer = this.options.platform.setTimer(() => {
+          this.foregroundTimer = null;
+          if (!this.stopped && this.active) this.requestForegroundPass();
+        }, remaining);
+      }
+      return;
+    }
+    this.clearForegroundTimer();
+    this.lastForegroundAt = now;
+    // Foreground reads should not wait behind the local-edit debounce.
+    void this.run('app-active');
+  }
+
+  private clearForegroundTimer(): void {
+    if (this.foregroundTimer) this.options.platform.clearTimer(this.foregroundTimer);
+    this.foregroundTimer = null;
+  }
+
+  private clearHeartbeat(): void {
+    if (this.heartbeatTimer) this.options.platform.clearTimer(this.heartbeatTimer);
+    this.heartbeatTimer = null;
+  }
+
+  private scheduleHeartbeat(): void {
+    if (this.stopped || !this.active || !this.engine || this.heartbeatTimer) return;
+    const lifecycle = this.lifecycle;
+    this.heartbeatTimer = this.options.platform.setTimer(() => {
+      this.heartbeatTimer = null;
+      if (this.stopped || !this.active || lifecycle !== this.lifecycle) return;
+      // Do not queue redundant passes when a slow sync already owns the engine.
+      const pass = this.running ?? this.run('periodic');
+      void pass.finally(() => {
+        if (lifecycle === this.lifecycle) this.scheduleHeartbeat();
+      });
+    }, this.options.heartbeatMs ?? 120_000);
+  }
+
   private schedule(trigger: CloudSyncTrigger): void {
-    if (this.stopped) return;
+    if (this.stopped || !this.active) return;
     if (this.debounceTimer) this.options.platform.clearTimer(this.debounceTimer);
     this.debounceTimer = this.options.platform.setTimer(() => {
       this.debounceTimer = null;

@@ -1,6 +1,13 @@
 import { deletionAttentionReason } from './deletionRecovery';
 
 describe('durable cloud deletion recovery', () => {
+  test('a disconnected device suppresses a stale authorization warning', () => {
+    expect(deletionAttentionReason({
+      status: 'disabled', revocationKind: null,
+      revocationAcknowledgedAt: null, pauseReason: 'authorization-required',
+    })).toBeNull();
+  });
+
   test('preserves an explicit provider failure reason', () => {
     expect(deletionAttentionReason({
       status: 'paused',

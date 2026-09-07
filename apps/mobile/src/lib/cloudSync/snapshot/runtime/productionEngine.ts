@@ -21,6 +21,7 @@ import type {
   RuntimeSyncEngine,
   SyncPassPhase,
 } from '../../runtime/SyncRuntime';
+import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import { hashPendingProductionMedia } from './mediaHashing';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
 import {
@@ -127,6 +128,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     private readonly mediaProvider: SnapshotProvider,
     private readonly onActivity: (phase: SyncPassPhase | 'idle') => void,
     private readonly onRemoteApplied?: () => void | Promise<void>,
+    private readonly connectionEpoch = cloudConnectionLifecycle.epoch,
   ) {}
 
   hasPendingWork(): boolean {
@@ -145,7 +147,9 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     const vaultId = this.vault.vault_id;
     const existing = runningVaultPasses.get(vaultId);
     if (existing) return existing;
-    const pass = this.runExclusivePass();
+    const pass = cloudConnectionLifecycle.runPass(
+      this.connectionEpoch, () => this.runExclusivePass(),
+    );
     runningVaultPasses.set(vaultId, pass);
     try {
       return await pass;
@@ -325,6 +329,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
   onActivity: (phase: SyncPassPhase | 'idle') => void;
   onRemoteApplied?: () => void | Promise<void>;
 }): Promise<ProductionSnapshotRuntimeEngine> {
+  const connectionEpoch = cloudConnectionLifecycle.epoch;
   const connectionId = await readOrCreateGoogleConnectionId();
   const state = new SQLiteSyncStateStore(sqlite);
   state.loadState(options.vault.vault_id, options.vault.device_id);
@@ -366,6 +371,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     provider,
     options.onActivity,
     options.onRemoteApplied,
+    connectionEpoch,
   );
 }
 

@@ -934,7 +934,7 @@ function ConnectionChoice({
               disabled={busy}
               onPress={() => onChoose(vault.vaultId)}
               accessibilityLabel={`${
-                prepared.localHasData ? t('Restore and merge') : t('Restore cloud backup')
+                prepared.localHasData ? t('Merge') : t('Restore cloud backup')
               }. ${
                 vault.createdAt
                   ? t('Backup from {date}', {
@@ -952,7 +952,7 @@ function ConnectionChoice({
                 </Text>
                 <Text className="text-sm text-foreground">
                   {prepared.localHasData
-                    ? t('Restore and merge')
+                    ? t('Merge')
                     : t('Restore cloud backup')}
                 </Text>
               </View>

@@ -320,6 +320,12 @@ export const he: Translations = {
 
   // Settings - Security
   Security: 'אבטחה',
+  'Lock after': 'נעילה לאחר',
+  'Time away from the app before requiring an unlock.': 'משך הזמן מחוץ לאפליקציה לפני שנדרשת פתיחת נעילה.',
+  '0 seconds': '0 שניות',
+  '30 seconds': '30 שניות',
+  '1 minute': 'דקה אחת',
+  '2 minutes': '2 דקות',
   'Unlock Tackbok': 'פתיחת טאקבוק',
   'Lock with your device screen lock':
     'טאקבוק יכול להינעל באמצעות נעילת המסך של המכשיר — ביומטריה, קוד PIN, קו ביטול נעילה או סיסמה',
@@ -792,7 +798,7 @@ export const he: Translations = {
   'Recovered {type} conflict — {count} preserved alternatives': 'שוחזרה התנגשות מסוג {type} — נשמרו {count} חלופות',
   'Reset this device only': 'איפוס המכשיר הזה בלבד',
   'Reset this device only?': 'לאפס את המכשיר הזה בלבד?',
-  'Restore and merge': 'שחזור ומיזוג',
+  'Merge': 'מיזוג',
   'Restore cloud backup': 'שחזור גיבוי בענן',
   'Restore from your cloud backup': 'שחזור מהגיבוי שלך בענן',
   'Restoring…': 'משחזר…',

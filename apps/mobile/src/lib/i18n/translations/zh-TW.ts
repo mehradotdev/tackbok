@@ -313,6 +313,12 @@ export const zhTW: Translations = {
 
   // Settings - Security
   Security: '安全性',
+  'Lock after': '自動鎖定時間',
+  'Time away from the app before requiring an unlock.': '離開應用程式多久後需要解鎖。',
+  '0 seconds': '0 秒',
+  '30 seconds': '30 秒',
+  '1 minute': '1 分鐘',
+  '2 minutes': '2 分鐘',
   'Unlock Tackbok': '解鎖塔克博克',
   'Lock with your device screen lock':
     '可使用裝置的螢幕鎖定方式鎖定塔克博克——生物辨識、PIN 碼、圖形或密碼',
@@ -778,7 +784,7 @@ export const zhTW: Translations = {
   'Recovered {type} conflict — {count} preserved alternatives': '已還原 {type} 衝突 — 保留了 {count} 個替代內容',
   'Reset this device only': '只重設此裝置',
   'Reset this device only?': '只重設此裝置？',
-  'Restore and merge': '還原並合併',
+  'Merge': '合併',
   'Restore cloud backup': '還原雲端備份',
   'Restore from your cloud backup': '從雲端備份還原',
   'Restoring…': '正在還原…',

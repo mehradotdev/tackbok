@@ -1,3 +1,4 @@
+import { withExternalAuthentication } from '~/lib/externalAuthentication';
 import {
   AuthRequest,
   exchangeCodeAsync,
@@ -51,41 +52,43 @@ function toStoredTokens(response: TokenResponse, priorRefreshToken?: string): Go
 
 export class IosGoogleAuthorization implements CloudAuthorization {
   async authorize(): Promise<GoogleTokenSet> {
-    const config = getGoogleOAuthConfig();
-    const request = new AuthRequest({
-      clientId: config.iosClientId,
-      redirectUri: redirectUri(config.iosRedirectScheme),
-      responseType: ResponseType.Code,
-      scopes: [...GOOGLE_SCOPES],
-      usePKCE: true,
-      extraParams: { access_type: 'offline', prompt: 'consent' },
-    });
-    const result = await request.promptAsync(DISCOVERY);
-    if (result.type === 'cancel' || result.type === 'dismiss') {
-      throw new CloudAuthError('cancelled', 'Google sign-in was cancelled');
-    }
-    if (result.type !== 'success' || typeof result.params.code !== 'string') {
-      throw new CloudAuthError('consent-required', 'Google consent was not completed');
-    }
-    const response = await exchangeCodeAsync(
-      {
+    return withExternalAuthentication(async () => {
+      const config = getGoogleOAuthConfig();
+      const request = new AuthRequest({
         clientId: config.iosClientId,
-        code: result.params.code,
         redirectUri: redirectUri(config.iosRedirectScheme),
-        extraParams: { code_verifier: request.codeVerifier ?? '' },
-      },
-      DISCOVERY,
-    );
-    if (response.scope && !response.scope.split(/\s+/).includes(GOOGLE_DRIVE_SCOPE)) {
-      throw new CloudAuthError('permission-required', 'Google Drive access is required');
-    }
-    const tokens = toStoredTokens(response);
-    // A new interactive grant may select a different Google account. Do not
-    // let the prior account's cached label survive into the new connection.
-    await clearGoogleAccountEmail();
-    await rotateGoogleConnectionId();
-    await writeGoogleTokens(tokens);
-    return tokens;
+        responseType: ResponseType.Code,
+        scopes: [...GOOGLE_SCOPES],
+        usePKCE: true,
+        extraParams: { access_type: 'offline', prompt: 'consent' },
+      });
+      const result = await request.promptAsync(DISCOVERY);
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        throw new CloudAuthError('cancelled', 'Google sign-in was cancelled');
+      }
+      if (result.type !== 'success' || typeof result.params.code !== 'string') {
+        throw new CloudAuthError('consent-required', 'Google consent was not completed');
+      }
+      const response = await exchangeCodeAsync(
+        {
+          clientId: config.iosClientId,
+          code: result.params.code,
+          redirectUri: redirectUri(config.iosRedirectScheme),
+          extraParams: { code_verifier: request.codeVerifier ?? '' },
+        },
+        DISCOVERY,
+      );
+      if (response.scope && !response.scope.split(/\s+/).includes(GOOGLE_DRIVE_SCOPE)) {
+        throw new CloudAuthError('permission-required', 'Google Drive access is required');
+      }
+      const tokens = toStoredTokens(response);
+      // A new interactive grant may select a different Google account. Do not
+      // let the prior account's cached label survive into the new connection.
+      await clearGoogleAccountEmail();
+      await rotateGoogleConnectionId();
+      await writeGoogleTokens(tokens);
+      return tokens;
+    });
   }
 
   async getFreshAccessToken(): Promise<string> {

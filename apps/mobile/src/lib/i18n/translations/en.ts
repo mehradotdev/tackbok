@@ -335,6 +335,12 @@ export const en = {
 
   // Settings - Security
   Security: 'Security',
+  'Lock after': 'Lock after',
+  'Time away from the app before requiring an unlock.': 'Time away from the app before requiring an unlock.',
+  '0 seconds': '0 seconds',
+  '30 seconds': '30 seconds',
+  '1 minute': '1 minute',
+  '2 minutes': '2 minutes',
   'Unlock Tackbok': 'Unlock Tackbok',
   'Lock with your device screen lock':
     "Tackbok can lock with your device's screen lock — biometrics, PIN, pattern, or passcode",
@@ -823,7 +829,7 @@ export const en = {
     'Recovered {type} conflict — {count} preserved alternatives',
   'Reset this device only': 'Reset this device only',
   'Reset this device only?': 'Reset this device only?',
-  'Restore and merge': 'Restore and merge',
+  'Merge': 'Merge',
   'Restore cloud backup': 'Restore cloud backup',
   'Restore from your cloud backup': 'Restore from your cloud backup',
   'Restoring…': 'Restoring…',

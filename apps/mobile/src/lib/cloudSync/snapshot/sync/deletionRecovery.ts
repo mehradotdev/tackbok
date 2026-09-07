@@ -23,6 +23,7 @@ export function deletionAttentionReason(
     return 'backup-deleted';
   }
   if (state.status === 'revoked' && state.revocationKind === 'backup-deleted') return null;
+  if (state.status === 'disabled') return null;
   if (state.pauseReason) return state.pauseReason;
   if (state.status === 'paused' && state.revocationKind) return 'purge-incomplete';
   return null;

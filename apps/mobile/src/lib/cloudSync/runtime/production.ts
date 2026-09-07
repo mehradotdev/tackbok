@@ -1,4 +1,5 @@
 import { AppState } from 'react-native';
+import { cloudConnectionLifecycle, CloudConnectionChangedError } from './connectionLifecycle';
 import * as Network from 'expo-network';
 import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db } from '~/db';
@@ -46,6 +47,7 @@ export function notifyProductionCloudSyncChanged(): void {
 }
 
 const platform: RuntimePlatform = {
+  getAppState: () => AppState.currentState === 'active' ? 'active' : 'background',
   addAppStateListener(listener) {
     return AppState.addEventListener('change', (state) => {
       if (state === 'active' || state === 'background' || state === 'inactive') {
@@ -111,6 +113,7 @@ export function createProductionSyncRuntime(options: {
     platform,
     readiness: { isReady: isNormalizedModelReady, retryBackfill },
     createEngine: () => createProductionRuntimeEngine(options.onRemoteApplied),
+    waitForConnectionChange: () => cloudConnectionLifecycle.waitForChanges(),
     addMutationListener: addCloudSyncMutationListener,
     analytics: {
       connected: (provider) => track('cloud_sync_connected', { provider }),
@@ -161,20 +164,26 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
     try { await retryBackfill(); } catch { return false; }
   }
   if (!(await isNormalizedModelReady())) return false;
-  const engine = await createProductionRuntimeEngine();
-  if (!engine) return true;
-  track('cloud_sync_started', { trigger: 'periodic' });
-  const startedAt = Date.now();
-  try {
-    const result = await engine.sync();
-    track('cloud_sync_succeeded', {
-      duration_bucket: toCloudSyncDurationBucket(Date.now() - startedAt),
-      pulled_bucket: toCloudSyncCountBucket(result.pulled),
-      pushed_bucket: toCloudSyncCountBucket(result.pushed),
-    });
-    return true;
-  } catch (error) {
-    track('cloud_sync_failed', { category: readCloudSyncFailureCategory(error) });
-    return false;
+  // A connection can change while the async factory is constructing an engine.
+  // Keep rejecting that engine, but give this background invocation one fresh attempt.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const startedAt = Date.now();
+    try {
+      const engine = await createProductionRuntimeEngine();
+      if (!engine) return true;
+      track('cloud_sync_started', { trigger: 'periodic' });
+      const result = await engine.sync();
+      track('cloud_sync_succeeded', {
+        duration_bucket: toCloudSyncDurationBucket(Date.now() - startedAt),
+        pulled_bucket: toCloudSyncCountBucket(result.pulled),
+        pushed_bucket: toCloudSyncCountBucket(result.pushed),
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof CloudConnectionChangedError && attempt === 0) continue;
+      track('cloud_sync_failed', { category: readCloudSyncFailureCategory(error) });
+      return false;
+    }
   }
+  return false;
 }

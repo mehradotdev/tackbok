@@ -29,6 +29,7 @@ import type {
   SnapshotDomain,
   SnapshotEntry,
 } from '../../src/lib/cloudSync/snapshot/types';
+import { clearAuthorizationPause } from '../../src/lib/cloudSync/ui/connectionRecovery';
 import { encodeGzip } from '../../src/lib/zip/core/gzip-codec';
 
 const databases: Database[] = [];
@@ -127,6 +128,35 @@ afterEach(() => {
 });
 
 describe('durable snapshot publisher', () => {
+  test('reconnect clears durable auth failures and the existing backup syncs again', async () => {
+    const app = harness('device-reconnect', withEntry(blankDomain(), entry('local-entry', 'Local')));
+    app.state.markDirty(app.vaultId, app.deviceId);
+    for (const reason of ['authorization-required', 'provider-permission-denied'] as const) {
+      app.state.setPause(app.vaultId, app.deviceId, reason, 'provider-auth');
+      expect((await app.engine().sync()).status).toBe('attention');
+      clearAuthorizationPause(app.state, app.vaultId, app.deviceId);
+      expect((await app.engine().sync()).status).not.toBe('attention');
+      expect(app.state.loadState(app.vaultId, app.deviceId).pauseReason).toBeNull();
+    }
+    app.state.setPause(app.vaultId, app.deviceId, 'missing-media', 'missing');
+    clearAuthorizationPause(app.state, app.vaultId, app.deviceId);
+    expect(app.state.loadState(app.vaultId, app.deviceId).pauseReason).toBe('missing-media');
+  });
+
+  test('Merge attaches a local journal to an existing backup and preserves both on both devices', async () => {
+    const cloud = harness('old-device', withEntry(blankDomain(), entry('cloud-entry', 'Cloud')));
+    cloud.state.markDirty(cloud.vaultId, cloud.deviceId);
+    await cloud.engine().sync();
+    const local = harness('new-device', withEntry(blankDomain(), entry('local-entry', 'Local')), cloud.provider);
+    local.state.markDirty(local.vaultId, local.deviceId);
+    expect((await local.engine().sync()).status).toBe('published');
+    await cloud.engine().sync();
+    for (const app of [local, cloud]) {
+      expect((await app.journal.capture()).domain.entries.map(value => value.entryId).sort())
+        .toEqual(['cloud-entry', 'local-entry']);
+    }
+  });
+
   test('a 2,000-entry import coalesces into one immutable snapshot and one head write', async () => {
     const imported = blankDomain();
     imported.entries = Array.from({ length: 2_000 }, (_, index) =>
