@@ -9,7 +9,11 @@ export function refreshExternalAuthentication(): void {
   useExternalAuthentication.setState({ active: appLockSession.externalAuthenticationActive });
 }
 
-/** Covers the native chooser/browser through token persistence, including cancellation. */
+/**
+ * Covers a native external flow through its result handling, including
+ * cancellation. This is used for flows such as Google authorization and store
+ * purchases that may background the app while a native surface is presented.
+ */
 export async function withExternalAuthentication<T>(operation: () => Promise<T>): Promise<T> {
   appLockSession.beginExternalAuthentication();
   refreshExternalAuthentication();

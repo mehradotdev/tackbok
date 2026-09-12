@@ -11,6 +11,7 @@ import {
   type SupportCatalogTier,
   type SupportTierId,
 } from './support-catalog';
+import { withExternalAuthentication } from '~/lib/externalAuthentication';
 
 export type SupportPurchaseErrorCategory =
   | 'offline'
@@ -169,22 +170,24 @@ export async function purchaseSupportTier(
     );
   }
 
-  try {
-    await Purchases.purchasePackage(revenueCatPackage);
-    return 'completed';
-  } catch (error) {
-    if (isPurchasesError(error)) {
-      if (error.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) {
-        return 'cancelled';
+  return withExternalAuthentication(async () => {
+    try {
+      await Purchases.purchasePackage(revenueCatPackage);
+      return 'completed';
+    } catch (error) {
+      if (isPurchasesError(error)) {
+        if (error.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) {
+          return 'cancelled';
+        }
+        if (error.code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) {
+          return 'pending';
+        }
+        throw new SupportPurchaseError(
+          classifyPurchasesError(error.code),
+          error.message,
+        );
       }
-      if (error.code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) {
-        return 'pending';
-      }
-      throw new SupportPurchaseError(
-        classifyPurchasesError(error.code),
-        error.message,
-      );
+      throw new SupportPurchaseError('unknown', 'The purchase could not be completed.');
     }
-    throw new SupportPurchaseError('unknown', 'The purchase could not be completed.');
-  }
+  });
 }
