@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { ArrowLeft, ArrowRight, Pencil, Share2, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -42,6 +42,7 @@ export function GratitudeEntryView({
 }: GratitudeEntryViewProps) {
   const { t, isRTL } = useTranslation();
   const router = useRouter();
+
   const insets = useSafeAreaInsets();
   const tagMap = useTagMapping();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -152,7 +153,7 @@ export function GratitudeEntryView({
                 <View
                   key={tag.tag_id}
                   className="relative flex-row items-center px-3 py-1.5 bg-muted rounded-lg border border-border">
-                  <Text className="text-sm font-body-semibold text-primary-foreground">
+                  <Text className="text-sm font-body-semibold text-foreground">
                     #{tag.title}
                   </Text>
                 </View>

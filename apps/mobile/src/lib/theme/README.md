@@ -78,6 +78,37 @@ A theme can opt into full-screen background art via the optional `backdropId` fi
 
 Backdrop ids are not part of the CSS variable contract, so this never touches `global.css` or the every-theme-defines-every-variable rule.
 
+### Helena and Poonam skies
+
+These themes share `SkyBackdrop.tsx` and the original SkSL artwork in
+`sky-shader.ts`. Helena is daylight; Poonam is moonlight. Both use the installed
+Lora heading font and Inter body pack. Sky, cloud and celestial colors resolve
+from scoped theme tokens, so picker previews use the same scene as full screens.
+
+The canvas measures its container rather than the device window. Sun/moon placement
+is bounded to the upper-right; blurred foliage follows the bottom edge. Picker
+previews are still. Screen animation respects reduced motion, navigation focus
+and app backgrounding. A gradient and celestial disc remain if shader compilation
+is unavailable. Journal content uses the existing transparent screen layout.
+
+When changing this artwork, check portrait, landscape and picker sizes, including
+scrolling/editing on a physical device. Shader compilation and still renders alone
+do not establish animation performance or battery impact.
+
+### Shiro and Shadow pet scenes
+
+`PetBackdrop.tsx` draws Shiro's white dog and Shadow's black cat with native Skia
+paths, shapes and gradients. Both use Baskervville headings and Inter body text.
+The pets keep their identity colors; atmosphere and surfaces use theme tokens.
+Clouds, blinking, tails and particles pause off-focus/backgrounded and remain
+still in previews or reduced-motion mode. Animated transforms are derived as
+whole arrays: do not nest shared values inside a regular transform array.
+
+The four sky/pet themes do not add opaque journal surface overrides. The
+shared `BACKDROPS` map serves both screens and picker cards through `preview`;
+botanical cards also use container-sized still artwork. Adding an entry to this
+map automatically supplies its picker preview.
+
 ## How `src/global.css` Is Managed
 
 `src/global.css` has two ownership zones:

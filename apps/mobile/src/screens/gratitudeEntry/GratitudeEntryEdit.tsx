@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Keyboard,
@@ -128,6 +128,7 @@ function GratitudeEntryEditForm({
   const { t } = useTranslation();
   const navigation = useNavigation();
   const { journalPromptsMode, journalFocusAreas } = useSettingsStore();
+
   const { data: customPromptList = [] } = useCustomPrompts();
   const customPromptTitles = useMemo(
     () => customPromptList.map((prompt) => prompt.title),
@@ -673,7 +674,7 @@ function GratitudeEntryEditForm({
                   <View
                     key={tag.tag_id}
                     className="relative flex-row items-center px-3 py-1.5 bg-muted rounded-lg border border-border">
-                    <Text className="text-sm mr-1 font-body-semibold text-primary-foreground">
+                    <Text className="text-sm mr-1 font-body-semibold text-foreground">
                       #{tag.title}
                     </Text>
                     <Button

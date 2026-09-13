@@ -234,6 +234,74 @@
     }
 
     /* ═══════════════════════════════════════════
+       HELENA — Sunlit blue skies and peach-gold clouds
+       ═══════════════════════════════════════════ */
+    @variant helena {
+      --color-background: #abcbea;
+      --color-foreground: #1e344c;
+      --color-card: #fff7e9;
+      --color-card-foreground: #1e344c;
+      --color-popover: #fffaf1;
+      --color-popover-foreground: #1e344c;
+      --color-primary: #f2c888;
+      --color-primary-foreground: #1e344c;
+      --color-secondary: #e5eaf0;
+      --color-secondary-foreground: #1e344c;
+      --color-muted: #dbe6ef;
+      --color-muted-foreground: #425a70;
+      --color-accent: #f2d4bd;
+      --color-accent-foreground: #503b30;
+      --color-destructive: #a53736;
+      --color-destructive-foreground: #ffffff;
+      --color-border: #8aa5ba;
+      --color-input: #fff7e9;
+      --color-ring: #526f91;
+      --color-active-overlay: rgba(30, 52, 76, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(10, 24, 45, 0.16);
+      --font-heading: 'Lora_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       POONAM — Full moon, midnight blue and silver clouds
+       ═══════════════════════════════════════════ */
+    @variant poonam {
+      --color-background: #19243d;
+      --color-foreground: #f1eee7;
+      --color-card: #22314b;
+      --color-card-foreground: #f1eee7;
+      --color-popover: #283852;
+      --color-popover-foreground: #f1eee7;
+      --color-primary: #46678c;
+      --color-primary-foreground: #f1eee7;
+      --color-secondary: #30415c;
+      --color-secondary-foreground: #f1eee7;
+      --color-muted: #2c3b55;
+      --color-muted-foreground: #b6c5da;
+      --color-accent: #75849e;
+      --color-accent-foreground: #101c30;
+      --color-destructive: #f09d98;
+      --color-destructive-foreground: #301b22;
+      --color-border: #4b607d;
+      --color-input: #22314b;
+      --color-ring: #bfd2ee;
+      --color-active-overlay: rgba(241, 238, 231, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(10, 24, 45, 0.16);
+      --font-heading: 'Lora_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
        HECKER — Cyberpunk/Retro-Futurism
        ═══════════════════════════════════════════ */
     @variant hecker {
@@ -503,6 +571,74 @@
       --font-body-medium: 'JetBrainsMono_500Medium';
       --font-body-semibold: 'JetBrainsMono_600SemiBold';
       --font-body-bold: 'JetBrainsMono_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       SHIRO — Sunlit lakeside with a white dog
+       ═══════════════════════════════════════════ */
+    @variant shiro {
+      --color-background: #a8d0f5;
+      --color-foreground: #453220;
+      --color-card: #f8f1de;
+      --color-card-foreground: #453220;
+      --color-popover: #fdf8ec;
+      --color-popover-foreground: #453220;
+      --color-primary: #eec27e;
+      --color-primary-foreground: #453220;
+      --color-secondary: #d8e6f3;
+      --color-secondary-foreground: #453220;
+      --color-muted: #e6dcc4;
+      --color-muted-foreground: #6d593f;
+      --color-accent: #f6d9a8;
+      --color-accent-foreground: #453220;
+      --color-destructive: #c04535;
+      --color-destructive-foreground: #fdf8ec;
+      --color-border: #d8c9a8;
+      --color-input: #ecdfc2;
+      --color-ring: #7a8a5c;
+      --color-active-overlay: rgba(69, 50, 32, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(60, 45, 30, 0.15);
+      --font-heading: 'Baskervville_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       SHADOW — Moonlit lakeside with a black cat
+       ═══════════════════════════════════════════ */
+    @variant shadow {
+      --color-background: #101a2e;
+      --color-foreground: #efe4c8;
+      --color-card: #1c2642;
+      --color-card-foreground: #efe4c8;
+      --color-popover: #232e4e;
+      --color-popover-foreground: #efe4c8;
+      --color-primary: #c9a86a;
+      --color-primary-foreground: #241a0a;
+      --color-secondary: #2b3152;
+      --color-secondary-foreground: #e6dcc0;
+      --color-muted: #232c48;
+      --color-muted-foreground: #9aa4c0;
+      --color-accent: #3a4266;
+      --color-accent-foreground: #e8ddc0;
+      --color-destructive: #a33c36;
+      --color-destructive-foreground: #f6ead6;
+      --color-border: #35436e;
+      --color-input: #232c48;
+      --color-ring: #d0b276;
+      --color-active-overlay: rgba(240, 230, 207, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.45);
+      --font-heading: 'Baskervville_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
     }
   }
 }

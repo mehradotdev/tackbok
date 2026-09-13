@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from 'react';
-import { StyleSheet, useWindowDimensions } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { AppState, StyleSheet, View } from 'react-native';
 import {
   Canvas,
   Circle,
@@ -104,8 +104,8 @@ function buildFrond(
  * right, brass berries as accents. Token-driven, so the same component paints
  * daylight sage under Clemens and moonlit green under Weckner.
  */
-export function BotanicalBackdrop() {
-  const { width, height } = useWindowDimensions();
+export function BotanicalBackdrop({ preview = false }: { preview?: boolean }) {
+  const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
   const reducedMotion = useReducedMotion();
 
   const [primary, ring, accent] = useCSSVariable([
@@ -120,35 +120,64 @@ export function BotanicalBackdrop() {
   const sway = useSharedValue(0.5);
   useFocusEffect(
     useCallback(() => {
-      if (reducedMotion) return;
-      drift.value = withRepeat(
-        withTiming(1, { duration: DRIFT_DURATION_MS, easing: Easing.inOut(Easing.quad) }),
-        -1,
-        true,
-      );
-      // Half-swing out from the neutral rest pose first, then repeat across
-      // the full 0 ↔ 1 range (0.5 stays the resting value so the sprig hangs
-      // straight when the animation never starts, e.g. reduced motion).
-      sway.value = withSequence(
-        withTiming(1, { duration: SWAY_DURATION_MS / 2, easing: Easing.out(Easing.sin) }),
-        withRepeat(
-          withTiming(0, { duration: SWAY_DURATION_MS, easing: Easing.inOut(Easing.sin) }),
-          -1,
-          true,
-        ),
-      );
-      return () => {
+      const stop = () => {
         cancelAnimation(drift);
         cancelAnimation(sway);
       };
-    }, [reducedMotion, drift, sway]),
+      if (preview || reducedMotion) {
+        stop();
+        drift.value = 0;
+        sway.value = 0.5;
+        return stop;
+      }
+      const start = () => {
+        stop();
+        drift.value = withRepeat(
+          withTiming(1, {
+            duration: DRIFT_DURATION_MS,
+            easing: Easing.inOut(Easing.quad),
+          }),
+          -1,
+          true,
+        );
+        sway.value = withSequence(
+          withTiming(1, {
+            duration: SWAY_DURATION_MS / 2,
+            easing: Easing.out(Easing.sin),
+          }),
+          withRepeat(
+            withTiming(0, {
+              duration: SWAY_DURATION_MS,
+              easing: Easing.inOut(Easing.sin),
+            }),
+            -1,
+            true,
+          ),
+        );
+      };
+      if (AppState.currentState === 'active') start();
+      const subscription = AppState.addEventListener('change', (state) => {
+        if (state === 'active') start();
+        else stop();
+      });
+      return () => {
+        subscription.remove();
+        stop();
+      };
+    }, [preview, reducedMotion, drift, sway]),
   );
 
   const dapple1 = useDerivedValue(() =>
-    vec(width * 0.18 + drift.value * width * 0.12, height * 0.12 + drift.value * height * 0.05),
+    vec(
+      width * 0.18 + drift.value * width * 0.12,
+      height * 0.12 + drift.value * height * 0.05,
+    ),
   );
   const dapple2 = useDerivedValue(() =>
-    vec(width * 0.88 - drift.value * width * 0.1, height * 0.38 + drift.value * height * 0.08),
+    vec(
+      width * 0.88 - drift.value * width * 0.1,
+      height * 0.38 + drift.value * height * 0.08,
+    ),
   );
   const hangingTransform = useDerivedValue(() => [
     { translateX: width * 0.84 },
@@ -198,98 +227,118 @@ export function BotanicalBackdrop() {
   const dappleRadius = width * 0.5;
 
   return (
-    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-      {/* Skylight: soft light falling from the top, like the mood board kitchen */}
-      <Group opacity={SKYLIGHT_OPACITY}>
-        <Rect x={0} y={0} width={width} height={height * 0.5}>
-          <LinearGradient
-            start={vec(0, 0)}
-            end={vec(0, height * 0.5)}
-            colors={[primary, 'transparent']}
-          />
-        </Rect>
-      </Group>
+    <View
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      onLayout={({ nativeEvent: { layout } }) =>
+        setSize((previous) =>
+          previous.width === layout.width && previous.height === layout.height
+            ? previous
+            : { width: layout.width, height: layout.height },
+        )
+      }>
+      {width > 0 && height > 0 && (
+        <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+          {/* Skylight: soft light falling from the top, like the mood board kitchen */}
+          <Group opacity={SKYLIGHT_OPACITY}>
+            <Rect x={0} y={0} width={width} height={height * 0.5}>
+              <LinearGradient
+                start={vec(0, 0)}
+                end={vec(0, height * 0.5)}
+                colors={[primary, 'transparent']}
+              />
+            </Rect>
+          </Group>
 
-      {/* Dappled light drifting on a slow loop */}
-      <Group opacity={DAPPLE_OPACITY}>
-        <Circle c={dapple1} r={dappleRadius}>
-          <RadialGradient c={dapple1} r={dappleRadius} colors={[accent, 'transparent']} />
-        </Circle>
-        <Circle c={dapple2} r={dappleRadius * 0.85}>
-          <RadialGradient
-            c={dapple2}
-            r={dappleRadius * 0.85}
-            colors={[accent, 'transparent']}
-          />
-        </Circle>
-      </Group>
+          {/* Dappled light drifting on a slow loop */}
+          <Group opacity={DAPPLE_OPACITY}>
+            <Circle c={dapple1} r={dappleRadius}>
+              <RadialGradient
+                c={dapple1}
+                r={dappleRadius}
+                colors={[accent, 'transparent']}
+              />
+            </Circle>
+            <Circle c={dapple2} r={dappleRadius * 0.85}>
+              <RadialGradient
+                c={dapple2}
+                r={dappleRadius * 0.85}
+                colors={[accent, 'transparent']}
+              />
+            </Circle>
+          </Group>
 
-      {/* Rolling hills along the bottom edge */}
-      <Group opacity={FAR_HILL_OPACITY}>
-        <Path path={scene.farHill} color={primary} style="fill" />
-      </Group>
+          {/* Rolling hills along the bottom edge */}
+          <Group opacity={FAR_HILL_OPACITY}>
+            <Path path={scene.farHill} color={primary} style="fill" />
+          </Group>
 
-      {/* Fern fan rising bottom-right, from behind the near hill */}
-      <Group
-        opacity={FERN_OPACITY}
-        transform={[{ translateX: width * 0.78 }, { translateY: height + 8 }]}>
-        {scene.fern.map(({ rotate, frond }, i) => (
-          <Group key={i} transform={[{ rotate }]}>
+          {/* Fern fan rising bottom-right, from behind the near hill */}
+          <Group
+            opacity={FERN_OPACITY}
+            transform={[{ translateX: width * 0.78 }, { translateY: height + 8 }]}>
+            {scene.fern.map(({ rotate, frond }, i) => (
+              <Group key={i} transform={[{ rotate }]}>
+                <Path
+                  path={frond.stem}
+                  color={ring}
+                  style="stroke"
+                  strokeWidth={frond.strokeWidth}
+                  strokeCap="round"
+                  strokeJoin="round"
+                />
+                <Path path={frond.leaves} color={ring} style="fill" />
+              </Group>
+            ))}
+          </Group>
+
+          <Group opacity={NEAR_HILL_OPACITY}>
+            <Path path={scene.nearHill} color={primary} style="fill" />
+          </Group>
+
+          {/* Foreground leaf cluster, bottom-left corner */}
+          <Group
+            opacity={CLUSTER_OPACITY}
+            transform={[{ translateX: width * 0.07 }, { translateY: height + 10 }]}>
+            {scene.cluster.map(({ rotate, frond }, i) => (
+              <Group key={i} transform={[{ rotate }]}>
+                <Path
+                  path={frond.stem}
+                  color={ring}
+                  style="stroke"
+                  strokeWidth={frond.strokeWidth}
+                  strokeCap="round"
+                  strokeJoin="round"
+                />
+                <Path path={frond.leaves} color={ring} style="fill" />
+              </Group>
+            ))}
+          </Group>
+
+          {/* Sprig hanging from the top-right, gently swaying */}
+          <Group opacity={HANGING_OPACITY} transform={hangingTransform}>
             <Path
-              path={frond.stem}
+              path={scene.hanging.stem}
               color={ring}
               style="stroke"
-              strokeWidth={frond.strokeWidth}
+              strokeWidth={scene.hanging.strokeWidth}
               strokeCap="round"
               strokeJoin="round"
             />
-            <Path path={frond.leaves} color={ring} style="fill" />
+            <Path path={scene.hanging.leaves} color={ring} style="fill" />
           </Group>
-        ))}
-      </Group>
 
-      <Group opacity={NEAR_HILL_OPACITY}>
-        <Path path={scene.nearHill} color={primary} style="fill" />
-      </Group>
-
-      {/* Foreground leaf cluster, bottom-left corner */}
-      <Group
-        opacity={CLUSTER_OPACITY}
-        transform={[{ translateX: width * 0.07 }, { translateY: height + 10 }]}>
-        {scene.cluster.map(({ rotate, frond }, i) => (
-          <Group key={i} transform={[{ rotate }]}>
-            <Path
-              path={frond.stem}
-              color={ring}
-              style="stroke"
-              strokeWidth={frond.strokeWidth}
-              strokeCap="round"
-              strokeJoin="round"
-            />
-            <Path path={frond.leaves} color={ring} style="fill" />
+          {/* Brass berries — the one warm metal moment */}
+          <Group opacity={BERRY_OPACITY}>
+            {scene.berries.map(({ cx, cy, r }, i) => (
+              <Circle key={i} cx={cx} cy={cy} r={r} color={accent} />
+            ))}
           </Group>
-        ))}
-      </Group>
-
-      {/* Sprig hanging from the top-right, gently swaying */}
-      <Group opacity={HANGING_OPACITY} transform={hangingTransform}>
-        <Path
-          path={scene.hanging.stem}
-          color={ring}
-          style="stroke"
-          strokeWidth={scene.hanging.strokeWidth}
-          strokeCap="round"
-          strokeJoin="round"
-        />
-        <Path path={scene.hanging.leaves} color={ring} style="fill" />
-      </Group>
-
-      {/* Brass berries — the one warm metal moment */}
-      <Group opacity={BERRY_OPACITY}>
-        {scene.berries.map(({ cx, cy, r }, i) => (
-          <Circle key={i} cx={cx} cy={cy} r={r} color={accent} />
-        ))}
-      </Group>
-    </Canvas>
+        </Canvas>
+      )}
+    </View>
   );
 }

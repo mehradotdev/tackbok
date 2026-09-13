@@ -24,6 +24,7 @@ import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 import { TackbokLogo } from '~/components/TackbokLogo';
+import { BACKDROPS } from '~/components/backdrops/ThemeBackdrop';
 
 /** Rendered inside ScopedTheme so useCSSVariable resolves per-theme. */
 function ThemeCardContent({
@@ -34,6 +35,8 @@ function ThemeCardContent({
   isActive: boolean;
 }) {
   const [colorForeground] = useCSSVariable(['--color-foreground']);
+  const Art = theme.backdropId ? BACKDROPS[theme.backdropId] : undefined;
+  const hasPet = theme.backdropId === 'shiro' || theme.backdropId === 'shadow';
 
   // Resolve this theme's original heading font so the preview always shows
   // the curated font, regardless of any user-level title font override.
@@ -63,6 +66,7 @@ function ThemeCardContent({
 
       {/* Body preview */}
       <View className="flex-1 flex-row">
+        {Art && <Art preview />}
         {/* Mini Timeline Column */}
         <View className="w-6 items-end">
           {/* Continuous Line */}
@@ -90,7 +94,11 @@ function ThemeCardContent({
 
           {/* Mini logo preview */}
           <View className="items-center py-2 pr-4">
-            <TackbokLogo size={44} color={colorForeground as string} />
+            {hasPet ? (
+              <View style={{ height: 44 }} />
+            ) : (
+              <TackbokLogo size={44} color={colorForeground as string} />
+            )}
           </View>
         </View>
       </View>
