@@ -88,6 +88,24 @@ export const THEMES = [
     "defaultTitleFontId": "baskervville"
   },
   {
+    "id": "helena",
+    "name": "Helena",
+    "description": "Sunlit blue skies and peach-gold clouds",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "helena",
+    "defaultTitleFontId": "lora"
+  },
+  {
+    "id": "poonam",
+    "name": "Poonam",
+    "description": "Full moon, midnight blue and silver clouds",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "poonam",
+    "defaultTitleFontId": "lora"
+  },
+  {
     "id": "hecker",
     "name": "Hecker",
     "description": "Cyberpunk/Retro-Futurism",
@@ -150,6 +168,24 @@ export const THEMES = [
     "variant": "light",
     "enableTimelineBorders": true,
     "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "shiro",
+    "name": "Shiro",
+    "description": "Sunlit lakeside with a white dog",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "shiro",
+    "defaultTitleFontId": "baskervville"
+  },
+  {
+    "id": "shadow",
+    "name": "Shadow",
+    "description": "Moonlit lakeside with a black cat",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "shadow",
+    "defaultTitleFontId": "baskervville"
   }
 ];
 

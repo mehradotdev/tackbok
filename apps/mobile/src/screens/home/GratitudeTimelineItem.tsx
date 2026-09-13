@@ -238,9 +238,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const { t, isRTL } = useTranslation();
   const timelineEntryLength = useSettingsStore((state) => state.timelineEntryLength);
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
-  const dateIncludesDayOfWeek = useSettingsStore(
-    (state) => state.dateIncludesDayOfWeek,
-  );
+  const dateIncludesDayOfWeek = useSettingsStore((state) => state.dateIncludesDayOfWeek);
   const tagMap = useTagMapping();
   const animatedButtonRef = useRef<AnimatedButtonHandle>(null);
 
