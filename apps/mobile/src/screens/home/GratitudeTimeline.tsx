@@ -211,7 +211,11 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         ListHeaderComponent={<SampleEntriesBanner />}
         ListFooterComponent={
           // Leave enough room to scroll the last entry above all dock actions.
-          <View style={{ height: gratitudeDockHeight(theme === 'shiro') + 28 }} />
+          <View
+            style={{
+              height: gratitudeDockHeight(theme === 'shiro' || theme === 'shadow') + 28,
+            }}
+          />
         }
         contentContainerClassName="pb-4"
         onScroll={onScroll}

@@ -9,9 +9,7 @@ import {
   Oval,
   Path,
   Rect,
-  Image,
   Shader,
-  useImage,
   Skia,
   vec,
 } from '@shopify/react-native-skia';
@@ -31,10 +29,11 @@ import { SKY_SHADER } from './sky-shader';
 import { STONE_SHADER } from './stone-shader';
 import { ShiroDogArt } from './ShiroDog';
 import { useShiroMotion } from './useShiroMotion';
+import { useShadowMotion } from './useShadowMotion';
+import { ShadowCatArt } from './ShadowCat';
 
 const skyEffect = Skia.RuntimeEffect.Make(SKY_SHADER);
 const stoneEffect = Skia.RuntimeEffect.Make(STONE_SHADER);
-const CAT_IMAGE = require('../../../assets/images/elegant_black_cat.png');
 
 function rgb(color: string) {
   const value = Skia.Color(color);
@@ -183,7 +182,7 @@ export function PetBackdrop({
   const night = mode === 'night';
   // Navigation and interaction contexts belong above the Canvas renderer.
   const dogMotion = useShiroMotion(preview || night);
-  const petImage = useImage(night ? CAT_IMAGE : null);
+  const catMotion = useShadowMotion(preview || !night);
   const [background, accent, primary, muted, border, card, ring, secondary] =
     useCSSVariable([
       '--color-background',
@@ -499,35 +498,28 @@ export function PetBackdrop({
           </Group>
 
           {/* Contact shadow anchors the paws; the cat's tail hangs over the face. */}
-          {(!night || petImage) && (
-            <>
-              <Oval
-                x={perchX - imageW * 0.23}
-                y={perchY - 2}
-                width={imageW * 0.46}
-                height={shortSide * 0.023}
-                color={colors.petShadow}
-                opacity={0.45}>
-                <BlurMask blur={shortSide * 0.007} style="normal" />
-              </Oval>
-              <Group transform={petTransform}>
-                {night ? (
-                  <Image
-                    image={petImage}
-                    x={0}
-                    y={0}
-                    width={imageW}
-                    height={imageH}
-                    fit="contain"
-                  />
-                ) : (
-                  <Group transform={[{ scale: imageW / 1225 }]}>
-                    <ShiroDogArt {...dogMotion} />
-                  </Group>
-                )}
-              </Group>
-            </>
-          )}
+          <>
+            <Oval
+              x={perchX - imageW * 0.23}
+              y={perchY - 2}
+              width={imageW * 0.46}
+              height={shortSide * 0.023}
+              color={colors.petShadow}
+              opacity={0.45}>
+              <BlurMask blur={shortSide * 0.007} style="normal" />
+            </Oval>
+            <Group transform={petTransform}>
+              {night ? (
+                <Group transform={[{ scale: imageW / 1024 }]}>
+                  <ShadowCatArt {...catMotion} />
+                </Group>
+              ) : (
+                <Group transform={[{ scale: imageW / 1225 }]}>
+                  <ShiroDogArt {...dogMotion} />
+                </Group>
+              )}
+            </Group>
+          </>
 
           {/* Falling petals (day) */}
           {!night &&

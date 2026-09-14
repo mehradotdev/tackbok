@@ -10,7 +10,7 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { useShiroInteraction } from './ShiroInteraction';
+import { usePetInteraction } from './PetInteraction';
 import {
   nextShiroBarkCount,
   nextShiroBarkDelay,
@@ -26,7 +26,7 @@ export function useShiroMotion(preview: boolean) {
   const performance = useSharedValue(0);
   const bark = useSharedValue(0);
   const barkCount = useSharedValue(1);
-  const interaction = useShiroInteraction();
+  const interaction = usePetInteraction();
   const register = interaction?.register;
   const setBusy = interaction?.setBusy;
 
@@ -50,9 +50,11 @@ export function useShiroMotion(preview: boolean) {
         idle.value = 0;
         performance.value = 0;
         bark.value = 0;
-        unregister?.();
-        unregister = undefined;
-        setBusy?.(false);
+        if (unregister) {
+          unregister();
+          setBusy?.(false);
+          unregister = undefined;
+        }
       };
       const scheduleBark = () => {
         if (!active || busy || reducedMotion) return;

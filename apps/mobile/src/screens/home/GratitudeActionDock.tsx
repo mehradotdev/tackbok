@@ -9,7 +9,7 @@ import { GestureDetector } from 'react-native-gesture-handler';
 import { Calendar, ChevronLeft, ChevronRight, PawPrint, Plus } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useSettingsStore } from '~/lib/settings';
-import { useShiroInteraction } from '~/components/backdrops/ShiroInteraction';
+import { usePetInteraction } from '~/components/backdrops/PetInteraction';
 import { gratitudeDockHeight } from './gratitude-dock-layout';
 import { Icon } from '~/components/ui/icon';
 import { useTranslation } from '~/lib/i18n';
@@ -116,8 +116,8 @@ export function GratitudeActionDock({
 }: GratitudeActionDockProps) {
   const { t, isRTL } = useTranslation();
   const theme = useSettingsStore((s) => s.theme);
-  const pet = useShiroInteraction();
-  const showPet = theme === 'shiro' && pet !== null;
+  const pet = usePetInteraction();
+  const showPet = (theme === 'shiro' || theme === 'shadow') && pet !== null;
   const {
     containerStyle,
     hasMeasured,
