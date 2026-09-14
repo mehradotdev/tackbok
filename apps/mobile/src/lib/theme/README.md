@@ -95,6 +95,10 @@ When changing this artwork, check portrait, landscape and picker sizes, includin
 scrolling/editing on a physical device. Shader compilation and still renders alone
 do not establish animation performance or battery impact.
 
+Helena includes a three-bird flock with gentle wing motion: the first flyover
+starts after 8 seconds, then repeats every 10 seconds. The entire flock enters
+and exits beyond the canvas edges.
+
 ### Shiro and Shadow pet scenes
 
 `PetBackdrop.tsx` uses the diffuse sky and textured stone shaders, native Skia
@@ -126,6 +130,32 @@ The four sky/pet themes do not add opaque journal surface overrides. The
 shared `BACKDROPS` map serves both screens and picker cards through `preview`;
 botanical cards also use container-sized still artwork. Adding an entry to this
 map automatically supplies its picker preview.
+
+### Camino and Camino Night
+
+Two manually selected themes share `CaminoBackdrop.tsx`, with Space Mono headings
+and Inter body text. They use the normal theme/font override and picker systems.
+`CaminoLandscape.tsx` renders original native vector paths from `camino-art.ts`:
+a winding trail, lone pilgrim, distant cathedral, wildflowers and a right-side
+stone waymarker. Landmark scales are uniform and bounded by container dimensions;
+wider containers reveal more countryside. The shell sits above the dock's default
+position; a manually moved dock can overlap the artwork.
+
+A final full-canvas color wash mutes every layer so transparent journal entries
+remain readable throughout the screen. Daytime birds use Helena's wing motion in
+a small flock: an 8-second initial wait, then a six-second crossing every 10
+seconds. Cloud drift follows Helena's timing; `camino-sky-shader.ts` adds visible
+cloud banks and phased nighttime star shimmer to the shared sky shader. Focus loss/backgrounding stops animation, reduced motion and
+picker previews are still, and a gradient/disc fallback handles shader failure.
+
+Run `node scripts/art/render-camino.cjs` from the mobile directory to render the
+actual Skia art and compile its shader at phone, tablet, landscape and picker sizes
+in `/tmp/camino-previews`. The night renders sample two animation phases. The
+renderer also checks body-text contrast against every background pixel (at least
+4.5:1). These stills complement native scrolling and animation checks; they do not
+measure GPU
+performance or battery use.
+
 
 ## How `src/global.css` Is Managed
 
