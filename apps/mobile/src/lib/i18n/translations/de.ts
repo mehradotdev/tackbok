@@ -41,6 +41,7 @@ export const de: Translations = {
   'Failed to load entries': 'Einträge konnten nicht geladen werden',
   'Write now': 'Jetzt schreiben',
   'Pick a date': 'Datum auswählen',
+  'Play with Pet': 'Mit dem Haustier spielen',
   'Collapse gratitude actions': 'Dankbarkeitsaktionen einklappen',
   'Expand gratitude actions': 'Dankbarkeitsaktionen ausklappen',
 

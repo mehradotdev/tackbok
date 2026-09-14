@@ -40,6 +40,7 @@ export const zhTW: Translations = {
   'Failed to load entries': '無法載入紀錄',
   'Write now': '現在寫',
   'Pick a date': '選擇日期',
+  'Play with Pet': '和寵物玩耍',
   'Collapse gratitude actions': '收起感恩操作',
   'Expand gratitude actions': '展開感恩操作',
 

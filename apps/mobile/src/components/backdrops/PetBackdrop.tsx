@@ -29,10 +29,11 @@ import {
 import { useCSSVariable } from 'uniwind';
 import { SKY_SHADER } from './sky-shader';
 import { STONE_SHADER } from './stone-shader';
+import { ShiroDogArt } from './ShiroDog';
+import { useShiroMotion } from './useShiroMotion';
 
 const skyEffect = Skia.RuntimeEffect.Make(SKY_SHADER);
 const stoneEffect = Skia.RuntimeEffect.Make(STONE_SHADER);
-const DOG_IMAGE = require('../../../assets/images/shiro_dog.png');
 const CAT_IMAGE = require('../../../assets/images/elegant_black_cat.png');
 
 function rgb(color: string) {
@@ -180,7 +181,9 @@ export function PetBackdrop({
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
   const reducedMotion = useReducedMotion();
   const night = mode === 'night';
-  const petImage = useImage(night ? CAT_IMAGE : DOG_IMAGE);
+  // Navigation and interaction contexts belong above the Canvas renderer.
+  const dogMotion = useShiroMotion(preview || night);
+  const petImage = useImage(night ? CAT_IMAGE : null);
   const [background, accent, primary, muted, border, card, ring, secondary] =
     useCSSVariable([
       '--color-background',
@@ -245,7 +248,7 @@ export function PetBackdrop({
           -1,
           true,
         );
-        // Whole cutouts retain their pose: tiny breathing, anchored at the paws.
+        // Tiny breathing anchored at the paws, shared by both pet styles.
         breathe.value = withRepeat(
           withTiming(1, { duration: 4200, easing: Easing.inOut(Easing.sin) }),
           -1,
@@ -264,7 +267,7 @@ export function PetBackdrop({
             false,
           );
         } else {
-          // Butterfly flyover in each 52s cycle; petals fall on a 16s loop.
+          // Butterfly hover/wing cycles share a 52s clock; petals use 16s.
           flight.value = withRepeat(
             withTiming(1, { duration: 52000, easing: Easing.linear }),
             -1,
@@ -338,19 +341,6 @@ export function PetBackdrop({
     }),
     [width, height, scene.wallTop, cap, colors],
   );
-  const butterflyTransform = useDerivedValue(() => {
-    const progress = (flight.value - 0.36) / 0.16;
-    const scale = shortSide * 0.0016;
-    return [
-      { translateX: -30 + progress * (width + 60) },
-      { translateY: height * 0.3 - Math.sin(progress * Math.PI * 2) * height * 0.04 },
-      { scaleX: scale },
-      { scaleY: scale * (0.55 + 0.45 * Math.sin(flight.value * 700)) },
-    ];
-  });
-  const butterflyOpacity = useDerivedValue(() =>
-    flight.value > 0.36 && flight.value < 0.52 ? 0.9 : 0,
-  );
   const meteorTransform = useDerivedValue(() => {
     const progress = (flight.value - 0.8) / 0.022;
     const x = width * 0.18 + progress * width * 0.44;
@@ -373,6 +363,19 @@ export function PetBackdrop({
   const imageW = imageH * imageAspect;
   const perchX = width * 0.58;
   const perchY = scene.wallTop + cap * 0.25;
+  // A small butterfly hovers just above the upward-facing muzzle. Its orbit
+  // closes over the existing 52s scene clock and stays responsive to pet size.
+  const butterflyTransform = useDerivedValue(() => {
+    const phase = flight.value * Math.PI * 20;
+    const scale = shortSide * 0.0016;
+    return [
+      { translateX: perchX + imageW * 0.27 + Math.sin(phase) * shortSide * 0.025 },
+      { translateY: perchY - imageH * 0.99 + Math.cos(phase) * shortSide * 0.015 },
+      { rotate: -0.2 + Math.sin(phase) * 0.15 },
+      { scaleX: scale },
+      { scaleY: scale * (0.65 + 0.35 * Math.sin(flight.value * Math.PI * 400)) },
+    ];
+  });
   const petTransform = useDerivedValue(() => [
     { translateX: perchX },
     { translateY: perchY },
@@ -496,7 +499,7 @@ export function PetBackdrop({
           </Group>
 
           {/* Contact shadow anchors the paws; the cat's tail hangs over the face. */}
-          {petImage && (
+          {(!night || petImage) && (
             <>
               <Oval
                 x={perchX - imageW * 0.23}
@@ -508,14 +511,20 @@ export function PetBackdrop({
                 <BlurMask blur={shortSide * 0.007} style="normal" />
               </Oval>
               <Group transform={petTransform}>
-                <Image
-                  image={petImage}
-                  x={0}
-                  y={0}
-                  width={imageW}
-                  height={imageH}
-                  fit="contain"
-                />
+                {night ? (
+                  <Image
+                    image={petImage}
+                    x={0}
+                    y={0}
+                    width={imageW}
+                    height={imageH}
+                    fit="contain"
+                  />
+                ) : (
+                  <Group transform={[{ scale: imageW / 1225 }]}>
+                    <ShiroDogArt {...dogMotion} />
+                  </Group>
+                )}
               </Group>
             </>
           )}
@@ -533,9 +542,9 @@ export function PetBackdrop({
               />
             ))}
 
-          {/* Butterfly flyover (day, not in previews / reduced motion) */}
+          {/* Butterfly companion (day, hidden in previews / reduced motion) */}
           {!night && !preview && !reducedMotion && (
-            <Group transform={butterflyTransform} opacity={butterflyOpacity}>
+            <Group transform={butterflyTransform} opacity={0.95}>
               <Path path={BUTTERFLY_PATH} color={accent} />
               <Path
                 path="M 0 -3 L 0 4"
