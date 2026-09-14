@@ -16,7 +16,7 @@ import { SearchResults } from './SearchResults';
 import { GratitudeTimeline } from './GratitudeTimeline';
 import { GratitudeActionDock } from './GratitudeActionDock';
 import { HomeCoachMarks } from './HomeCoachMarks';
-import { ShiroInteractionProvider } from '~/components/backdrops/ShiroInteraction';
+import { PetInteractionProvider } from '~/components/backdrops/PetInteraction';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -150,7 +150,7 @@ export default function HomeScreen() {
           />
         </KeyboardAvoidingView>
       ) : (
-        <ShiroInteractionProvider>
+        <PetInteractionProvider>
           <View className="relative flex-1 w-full">
             <GratitudeTimeline
               onEntryPress={handleEntryPress}
@@ -173,7 +173,7 @@ export default function HomeScreen() {
               onRandomSelect={handleRandomEntryPress}
             />
           </View>
-        </ShiroInteractionProvider>
+        </PetInteractionProvider>
       )}
 
       {!isSearchMode && <HomeCoachMarks />}

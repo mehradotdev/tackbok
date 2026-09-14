@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 
-interface ShiroInteraction {
+interface PetInteraction {
   ready: boolean;
   busy: boolean;
   play: () => void;
@@ -16,11 +16,11 @@ interface ShiroInteraction {
   setBusy: (busy: boolean) => void;
 }
 
-const Context = createContext<ShiroInteraction | null>(null);
+const Context = createContext<PetInteraction | null>(null);
 
 /** Home-local bridge: decorative canvases never intercept journal touches.
  * Commands are not queued or persisted, and cannot reach picker/share scenes. */
-export function ShiroInteractionProvider({ children }: { children: ReactNode }) {
+export function PetInteractionProvider({ children }: { children: ReactNode }) {
   const handler = useRef<(() => void) | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -42,6 +42,6 @@ export function ShiroInteractionProvider({ children }: { children: ReactNode }) 
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
-export function useShiroInteraction() {
+export function usePetInteraction() {
   return useContext(Context);
 }

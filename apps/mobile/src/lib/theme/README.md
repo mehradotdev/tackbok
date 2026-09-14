@@ -98,7 +98,7 @@ do not establish animation performance or battery impact.
 ### Shiro and Shadow pet scenes
 
 `PetBackdrop.tsx` uses the diffuse sky and textured stone shaders, native Skia
-vector art for Shiro and a PNG cutout for Shadow. Both use Baskervville headings
+vector art for both Shiro and Shadow. Both use Baskervville headings
 and Inter body text. Atmosphere and surfaces use theme tokens.
 
 Shiro's editable assets live in `assets/images/shiro-dog-vector/`. Compile them
@@ -107,8 +107,14 @@ editing. The three authored head views support a smooth turn. Idle motion includ
 breathing, blinking, gentle continuous wagging and randomly selected single/double
 silent barks, with a fresh 2–5-second quiet pause between bursts.
 The home dock's “Play with Pet” action triggers a four-second turn, head tilt and
-two silent barks, ignoring repeated presses during playback. This interaction is
-currently implemented for Shiro only; Shadow's expressive animation is deferred.
+two silent barks, ignoring repeated presses during playback. Shadow also exposes the same action: an equal random choice between an eyes-first
+knowing glance (tilt, slow blink, tail flick) and a silent meow followed by a blink.
+Its idle behavior stays quiet, with blinking, ear turns and small tail-tip sways.
+Shadow's source poses are in `assets/images/shadow-cat-vector/`; compile them with
+`python3 scripts/art/generate-shadow-art.py`. The approved three-quarter resting
+view turns through an authored transition pose to the front view. Blinks follow
+the eye angles; quick near-ear flicks and a larger anchored tail sweep keep idle
+movement visible at phone size.
 
 Focus loss/backgrounding cancels pet playback and pending callbacks. Previews
 stay still; Reduce Motion uses a timed still greeting instead of a performance.

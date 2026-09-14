@@ -1,4 +1,4 @@
-import { useShiroMotion } from './useShiroMotion';
+import { useShadowMotion } from './useShadowMotion';
 
 let mockReducedMotion = false;
 let mockCleanup: () => void;
@@ -65,7 +65,7 @@ afterEach(() => {
 });
 
 it('ignores repeated presses until the performance finishes', () => {
-  useShiroMotion(false);
+  useShadowMotion(false);
   mockPlay!();
   mockPlay!();
   mockPlay!();
@@ -78,7 +78,7 @@ it('ignores repeated presses until the performance finishes', () => {
 });
 
 it('cancels on background, rejects stale completion, and does not replay on resume', () => {
-  const motion = useShiroMotion(false);
+  const motion = useShadowMotion(false);
   mockPlay!();
   const stalePlay = mockPlay!;
   mockAppState('background');
@@ -97,7 +97,7 @@ it('cancels on background, rejects stale completion, and does not replay on resu
 
 it('shows only a timed still expression in reduced motion, then restores rest', () => {
   mockReducedMotion = true;
-  const motion = useShiroMotion(false);
+  const motion = useShadowMotion(false);
   mockPlay!();
   mockPlay!();
   expect(mockTiming).not.toHaveBeenCalled();
@@ -110,49 +110,31 @@ it('shows only a timed still expression in reduced motion, then restores rest', 
 
 it('cleans up a still timer on blur and keeps previews unregistered and frozen', () => {
   mockReducedMotion = true;
-  const motion = useShiroMotion(false);
+  const motion = useShadowMotion(false);
   mockPlay!();
   mockCleanup();
   expect(jest.getTimerCount()).toBe(0);
   expect(motion.performance.value).toBe(0);
   expect(mockRemove).toHaveBeenCalled();
   jest.clearAllMocks();
-  useShiroMotion(true);
+  useShadowMotion(true);
   expect(mockRegister).not.toHaveBeenCalled();
   expect(mockTiming).not.toHaveBeenCalled();
 });
 
-it('schedules random single/double bursts with a fresh quiet pause after completion', () => {
-  const random = jest.spyOn(Math, 'random').mockReturnValue(0);
+it('selects either performance with equal probability and permits repeats', () => {
+  const random = jest.spyOn(Math, 'random').mockReturnValue(0.2);
   try {
-    const motion = useShiroMotion(false);
-    jest.advanceTimersByTime(1999);
-    expect(mockCompletions).toHaveLength(0);
-    jest.advanceTimersByTime(1);
-    expect(motion.barkCount.value).toBe(1);
-    expect(mockTiming).toHaveBeenLastCalledWith(
-      0.4,
-      expect.objectContaining({ duration: 400 }),
-      expect.any(Function),
-    );
-    random.mockReturnValue(0.9999);
+    const motion = useShadowMotion(false);
+    mockPlay!();
+    expect(motion.variant.value).toBe(0);
     mockCompletions[0](true);
-    expect(motion.bark.value).toBe(0);
-    jest.advanceTimersByTime(4998);
-    expect(mockCompletions).toHaveLength(1);
-    jest.advanceTimersByTime(2);
-    expect(motion.barkCount.value).toBe(2);
-    expect(mockTiming).toHaveBeenLastCalledWith(
-      0.85,
-      expect.objectContaining({ duration: 850 }),
-      expect.any(Function),
-    );
-    mockPlay!(); // Paw performance preempts the idle burst.
-    expect(motion.bark.value).toBe(0);
-    mockCompletions[1](true); // Stale idle completion cannot schedule another burst.
-    expect(jest.getTimerCount()).toBe(0);
-    mockAppState('background');
-    expect(jest.getTimerCount()).toBe(0);
+    random.mockReturnValue(0.8);
+    mockPlay!();
+    expect(motion.variant.value).toBe(1);
+    mockCompletions[1](true);
+    mockPlay!();
+    expect(motion.variant.value).toBe(1);
   } finally {
     random.mockRestore();
   }

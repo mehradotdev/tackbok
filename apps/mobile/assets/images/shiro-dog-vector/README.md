@@ -1,7 +1,7 @@
 # Shiro vector artwork and motion
 
 The mobile app now draws Shiro from these editable SVG paths using Skia and
-Reanimated. Shadow continues to use its existing PNG.
+Reanimated. Shadow has its own vector artwork and choreography.
 
 ## Source artwork
 
@@ -50,7 +50,7 @@ Focus loss or backgrounding cancels playback and pending callbacks. Picker
 previews remain still. Reduce Motion stops idle motion and replaces the paw
 performance with a still friendly expression shown for 1.8 seconds.
 
-The home-local `ShiroInteractionProvider` connects the accessible “Play with Pet”
+The home-local `PetInteractionProvider` connects the accessible “Play with Pet”
 dock button to the decorative canvas, which remains noninteractive. Other
 screens and picker previews do not receive those commands.
 
