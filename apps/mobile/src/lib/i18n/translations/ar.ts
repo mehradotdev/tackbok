@@ -40,6 +40,7 @@ export const ar: Translations = {
   'Failed to load entries': 'فشل تحميل السجلات',
   'Write now': 'اكتب الآن',
   'Pick a date': 'اختر تاريخًا',
+  'Play with Pet': 'العب مع الحيوان الأليف',
   'Collapse gratitude actions': 'طي إجراءات الامتنان',
   'Expand gratitude actions': 'توسيع إجراءات الامتنان',
 

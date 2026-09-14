@@ -10,6 +10,8 @@ import {
   type Entry,
 } from '~/types';
 import { useTranslation } from '~/lib/i18n';
+import { useSettingsStore } from '~/lib/settings';
+import { gratitudeDockHeight } from './gratitude-dock-layout';
 import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
 import { Text } from '~/components/ui/text';
@@ -44,6 +46,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   onScrollBeginDrag,
 }) => {
   const { t } = useTranslation();
+  const theme = useSettingsStore((s) => s.theme);
   const today = startOfDay(new Date());
   const yesterday = subDays(today, 1);
   const todayMs = today.getTime();
@@ -207,9 +210,8 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         }
         ListHeaderComponent={<SampleEntriesBanner />}
         ListFooterComponent={
-          // Footer must clear the floating action dock (panelHeight 148 +
-          // padding) so the last entry can scroll above it.
-          <View className="h-44" />
+          // Leave enough room to scroll the last entry above all dock actions.
+          <View style={{ height: gratitudeDockHeight(theme === 'shiro') + 28 }} />
         }
         contentContainerClassName="pb-4"
         onScroll={onScroll}

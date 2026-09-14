@@ -40,6 +40,7 @@ export const zhCN: Translations = {
   'Failed to load entries': '加载条目失败',
   'Write now': '现在写',
   'Pick a date': '选择日期',
+  'Play with Pet': '和宠物玩耍',
   'Collapse gratitude actions': '收起感恩操作',
   'Expand gratitude actions': '展开感恩操作',
 

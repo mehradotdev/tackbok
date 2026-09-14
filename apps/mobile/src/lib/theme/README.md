@@ -97,12 +97,24 @@ do not establish animation performance or battery impact.
 
 ### Shiro and Shadow pet scenes
 
-`PetBackdrop.tsx` draws Shiro's white dog and Shadow's black cat with native Skia
-paths, shapes and gradients. Both use Baskervville headings and Inter body text.
-The pets keep their identity colors; atmosphere and surfaces use theme tokens.
-Clouds, blinking, tails and particles pause off-focus/backgrounded and remain
-still in previews or reduced-motion mode. Animated transforms are derived as
-whole arrays: do not nest shared values inside a regular transform array.
+`PetBackdrop.tsx` uses the diffuse sky and textured stone shaders, native Skia
+vector art for Shiro and a PNG cutout for Shadow. Both use Baskervville headings
+and Inter body text. Atmosphere and surfaces use theme tokens.
+
+Shiro's editable assets live in `assets/images/shiro-dog-vector/`. Compile them
+with `python3 scripts/art/generate-shiro-art.py` from the mobile directory after
+editing. The three authored head views support a smooth turn. Idle motion includes
+breathing, blinking, gentle continuous wagging and randomly selected single/double
+silent barks, with a fresh 2–5-second quiet pause between bursts.
+The home dock's “Play with Pet” action triggers a four-second turn, head tilt and
+two silent barks, ignoring repeated presses during playback. This interaction is
+currently implemented for Shiro only; Shadow's expressive animation is deferred.
+
+Focus loss/backgrounding cancels pet playback and pending callbacks. Previews
+stay still; Reduce Motion uses a timed still greeting instead of a performance.
+The home-local interaction provider keeps commands out of share/picker scenes.
+Animated transforms are derived as whole arrays: do not nest shared values
+inside a regular transform array.
 
 The four sky/pet themes do not add opaque journal surface overrides. The
 shared `BACKDROPS` map serves both screens and picker cards through `preview`;

@@ -41,6 +41,7 @@ export const he: Translations = {
   'Failed to load entries': 'טעינת הרשומות נכשלה',
   'Write now': 'כתוב עכשיו',
   'Pick a date': 'בחר תאריך',
+  'Play with Pet': 'לשחק עם חיית המחמד',
   'Collapse gratitude actions': 'כווץ פעולות הודיה',
   'Expand gratitude actions': 'הרחב פעולות הודיה',
 

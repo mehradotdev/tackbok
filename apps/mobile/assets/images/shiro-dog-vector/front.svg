@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1225" height="1284" viewBox="0 0 1225 1284" fill="none">
+  <title>Shiro — front-facing head view</title>
+  <desc>Authored front head and second ear/eye for the Shiro turn. Same canvas, body and paw baseline as the approved resting pose.</desc>
+  <defs>
+    <linearGradient id="fur" x1="370" y1="350" x2="885" y2="1130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDFA" />
+      <stop offset="0.58" stop-color="#FBF7F1" />
+      <stop offset="1" stop-color="#F1E9DE" />
+    </linearGradient>
+    <linearGradient id="face-fur" x1="527" y1="170" x2="786" y2="629" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFEFC" />
+      <stop offset="1" stop-color="#F8F2EA" />
+    </linearGradient>
+    <linearGradient id="ear-fur" x1="248" y1="465" x2="383" y2="658" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFCF8" />
+      <stop offset="1" stop-color="#EEE5D9" />
+    </linearGradient>
+    <linearGradient id="collar-blue" x1="565" y1="646" x2="778" y2="576" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#59BDF0" />
+      <stop offset="1" stop-color="#32A8E9" />
+    </linearGradient>
+  </defs>
+  <g stroke="#302A24" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <g id="tail">
+      <path fill="url(#fur)" d="M366 1136 C323 1144 286 1119 278 1087 C267 1052 286 1030 312 1017 C342 1002 336 974 312 960 C274 937 239 957 214 983 C177 1021 166 1072 180 1120 C194 1172 227 1203 276 1210 C310 1215 346 1207 377 1190 Z" />
+    </g>
+    <g id="far-foreleg">
+      <path fill="url(#fur)" d="M804 839 C867 866 896 941 914 1021 L947 1103 C981 1121 995 1154 986 1182 C978 1208 950 1213 921 1208 L850 1179 L812 1017 Z" />
+    </g>
+    <g id="body">
+      <path fill="url(#fur)" d="M565 633 C527 661 514 703 493 761 C477 807 461 852 432 886 C393 931 365 971 345 1017 C324 1065 316 1115 326 1161 C335 1203 354 1231 390 1240 C428 1248 465 1243 509 1245 L711 1230 C759 1230 788 1222 810 1208 C847 1191 871 1150 882 1102 C895 1047 895 996 891 947 C889 848 865 745 825 669 C806 632 784 609 751 600 Z" />
+      <path fill="#E8DDD0" stroke="none" opacity="0.35" d="M484 849 C453 917 384 969 358 1050 C339 1106 345 1177 379 1205 C405 1226 441 1224 481 1228 L598 1229 C533 1243 425 1246 390 1236 C344 1224 325 1184 329 1115 C332 1050 363 982 411 924 C442 888 461 867 484 849 Z" />
+    </g>
+    <g id="near-foreleg">
+      <path fill="url(#fur)" stroke="none" d="M646 979 C663 1025 672 1078 677 1137 C680 1196 687 1228 726 1237 C757 1245 788 1239 807 1230 C825 1226 835 1213 837 1195 C841 1166 825 1140 807 1128 L788 987 Z" />
+      <path d="M654 990 C665 1031 672 1092 678 1152 C682 1197 690 1229 727 1237 C756 1244 786 1238 806 1230 C827 1226 838 1211 838 1189 C839 1163 824 1140 807 1128 C801 1086 795 1035 788 987" />
+      <path stroke-width="5" d="M799 1190 C806 1201 804 1218 796 1230" />
+    </g>
+    <g id="front-right-paw">
+      <path fill="url(#fur)" d="M884 957 C896 1008 899 1065 912 1110 C932 1129 942 1153 941 1177 C941 1204 920 1216 891 1220 C869 1225 847 1221 827 1215" />
+    </g>
+    <g id="haunch-and-hind-paw">
+      <path stroke-width="6" d="M608 997 C645 1014 663 1044 670 1084 C678 1127 669 1162 650 1185" />
+      <path fill="url(#fur)" stroke-width="7" d="M566 1195 C593 1178 621 1177 646 1184 C667 1190 680 1210 667 1227 C659 1238 638 1242 616 1243 L467 1245" />
+      <path stroke-width="5" d="M626 1216 C633 1222 635 1232 631 1240" />
+    </g>
+    <g id="collar">
+      <path fill="url(#collar-blue)" d="M538 609 C597 614 705 583 764 552 C782 553 794 565 798 580 C802 598 786 613 765 625 C711 655 628 678 574 670 C546 667 528 658 529 644 C529 632 533 620 538 609 Z" />
+    </g>
+    <g id="head">
+      <g id="far-ear">
+        <path d="M869 268 C908 243 945 253 980 278 C1020 306 1055 347 1053 376 C1051 402 1027 413 1007 398 C980 378 961 354 936 347 L877 322 Z" fill="url(#ear-fur)" />
+      </g>
+      <g id="head-base">
+        <path fill="url(#face-fur)" d="M375 350 C369 303 389 259 440 239 C448 206 486 196 523 203 C555 179 603 183 648 192 C690 180 729 192 755 211 C804 204 855 235 886 278 C924 306 940 348 934 390 C950 427 934 477 906 500 C886 545 851 574 807 583 C767 610 711 622 659 612 C607 626 559 611 523 597 C479 598 430 571 405 534 C377 498 368 442 378 391 Z" />
+        <path stroke-width="5" d="M601 198 C593 179 607 166 625 166 C644 165 660 179 669 191" />
+      </g>
+      <g id="near-ear">
+        <path fill="url(#ear-fur)" stroke="none" d="M423 284 C387 267 353 265 324 290 C295 318 272 355 272 391 C272 416 294 428 318 415 C342 398 354 373 373 366 C397 357 413 345 425 325 L440 298 Z" />
+        <path d="M423 284 C387 267 353 265 324 290 C295 318 272 355 272 391 C272 416 294 428 318 415 C342 398 354 373 373 366 C397 357 413 345 425 325 L440 298" />
+      </g>
+      <g id="brow">
+        <path stroke-width="5" d="M491 295 C495 276 515 266 531 276" />
+      </g>
+      <g id="visible-eye" stroke="none">
+        <ellipse cx="535" cy="335" rx="18" ry="24" fill="#090A08" />
+      </g>
+      <g id="nose" stroke="none">
+        <path d="M686 438 C689 449 668 449 654 449 C638 454 621 451 617 440 C626 427 638 429 650 429 C664 428 681 430 686 438 Z" fill="#171511" />
+      </g>
+      <g id="far-eye" stroke="none">
+        <ellipse cx="782" cy="340" rx="18" ry="24" fill="#090A08" />
+      </g>
+      <g id="mouth">
+        <path d="M650 452 C650 461 642 466 634 461 M650 452 C650 461 661 466 669 461" stroke-width="5" />
+      </g>
+    </g>
+  </g>
+</svg>

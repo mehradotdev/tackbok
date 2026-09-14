@@ -40,6 +40,7 @@ export const en = {
   'Failed to load entries': 'Failed to load entries',
   'Write now': 'Write now',
   'Pick a date': 'Pick a date',
+  'Play with Pet': 'Play with Pet',
   'Collapse gratitude actions': 'Collapse gratitude actions',
   'Expand gratitude actions': 'Expand gratitude actions',
 
