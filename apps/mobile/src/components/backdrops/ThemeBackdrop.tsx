@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { useSettingsStore } from '~/lib/settings';
 import { getThemeConfig } from '~/lib/theme/themes';
 import type { BackdropId } from '~/lib/theme/registry';
+import { CaminoDayBackdrop, CaminoNightBackdrop } from './CaminoBackdrop';
 import { BotanicalBackdrop } from './BotanicalBackdrop';
 import { HelenaBackdrop, PoonamBackdrop } from './SkyBackdrop';
 import { ShiroBackdrop, ShadowBackdrop } from './PetBackdrop';
@@ -30,6 +31,8 @@ export const BACKDROPS: Record<BackdropId, ComponentType<BackdropProps>> = {
   poonam: PoonamBackdrop,
   shiro: ShiroBackdrop,
   shadow: ShadowBackdrop,
+  camino: CaminoDayBackdrop,
+  'camino-night': CaminoNightBackdrop,
 };
 
 /**

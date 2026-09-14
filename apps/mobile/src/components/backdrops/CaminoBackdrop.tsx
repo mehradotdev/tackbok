@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import {
-  BlurMask,
   Canvas,
   Circle,
   Group,
@@ -25,43 +24,20 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
-import { SKY_SHADER } from './sky-shader';
+import { CAMINO_SKY_SHADER } from './camino-sky-shader';
+import { CaminoLandscape } from './CaminoLandscape';
 
-const skyEffect = Skia.RuntimeEffect.Make(SKY_SHADER);
-export type SkyMode = 'day' | 'night';
-
+const skyEffect = Skia.RuntimeEffect.Make(CAMINO_SKY_SHADER);
 function rgb(color: string) {
   const value = Skia.Color(color);
   return [value[0], value[1], value[2]];
 }
 
-/** Soft, narrow leaves on curved stems, in a shared 100 × 100 art space. */
-function foliagePath() {
-  let path = '';
-  for (let i = 0; i < 9; i++) {
-    const base = 4 + i * 11;
-    const height = 22 + ((i * 17) % 29);
-    const bend = i % 2 === 0 ? -11 : 13;
-    path += `M ${base} 106 Q ${base + bend * 0.25} ${100 - height * 0.6} ${base + bend} ${100 - height}`;
-    for (let j = 1; j <= 5; j++) {
-      const t = j / 6;
-      const x = base + bend * t * t;
-      const y = 103 - height * t;
-      const side = j % 2 ? -1 : 1;
-      const length = 5.5 - t * 2;
-      path += ` M ${x} ${y} Q ${x + side * length} ${y - 7} ${x + side * length * 1.6} ${y - 5}`;
-      path += ` Q ${x + side * length} ${y + 1} ${x} ${y} Z`;
-    }
-  }
-  return path;
-}
-
-/** Static previews use this same scene, with explicit mode and scoped colors. */
-export function SkyBackdrop({
+function CaminoBackdrop({
   mode,
   preview = false,
 }: {
-  mode: SkyMode;
+  mode: 'day' | 'night';
   preview?: boolean;
 }) {
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
@@ -143,25 +119,10 @@ export function SkyBackdrop({
     drift: drift.value,
     night: night ? 1 : 0,
     crescent: 0,
+    shimmer: sway.value,
     ...colors,
   }));
-  const foliage = useMemo(() => foliagePath(), []);
   const shortSide = Math.min(width, height);
-  const foliageHeight = Math.min(height * 0.47, width * 0.72);
-  const leftTransform = useDerivedValue(() => [
-    { translateX: -width * 0.12 },
-    { translateY: height - foliageHeight },
-    { scaleX: width * 0.007 },
-    { scaleY: foliageHeight * 0.01 },
-    { skewX: (sway.value - 0.5) * 0.035 },
-  ]);
-  const rightTransform = useDerivedValue(() => [
-    { translateX: width * 1.12 },
-    { translateY: height - foliageHeight * 1.2 },
-    { scaleX: -width * 0.006 },
-    { scaleY: foliageHeight * 0.012 },
-    { skewX: (0.5 - sway.value) * 0.045 },
-  ]);
   const birdTransform = useDerivedValue(() => {
     // Six-second crossing in each ten-second cycle; reset off-canvas.
     const progress = flight.value / 0.6;
@@ -173,7 +134,7 @@ export function SkyBackdrop({
     ];
   });
   const birdOpacity = useDerivedValue(() =>
-    flight.value >= 0 && flight.value < 0.6 ? 0.5 : 0,
+    flight.value >= 0 && flight.value < 0.6 ? 0.62 : 0,
   );
 
   return (
@@ -211,30 +172,6 @@ export function SkyBackdrop({
               color={night ? foreground : primary}
             />
           )}
-          <Group opacity={night ? 0.16 : 0.12} transform={leftTransform}>
-            <Path
-              path={foliage}
-              color={night ? accent : foreground}
-              style="stroke"
-              strokeWidth={0.7}>
-              <BlurMask blur={1.1} style="normal" />
-            </Path>
-            <Path path={foliage} color={night ? accent : foreground}>
-              <BlurMask blur={1.1} style="normal" />
-            </Path>
-          </Group>
-          <Group opacity={night ? 0.24 : 0.18} transform={rightTransform}>
-            <Path
-              path={foliage}
-              color={night ? accent : foreground}
-              style="stroke"
-              strokeWidth={0.8}>
-              <BlurMask blur={0.8} style="normal" />
-            </Path>
-            <Path path={foliage} color={night ? accent : foreground}>
-              <BlurMask blur={0.8} style="normal" />
-            </Path>
-          </Group>
           {!night && !preview && !reducedMotion && (
             <Group transform={birdTransform} opacity={birdOpacity}>
               <Path
@@ -246,15 +183,22 @@ export function SkyBackdrop({
               />
             </Group>
           )}
+          <CaminoLandscape
+            width={width}
+            height={height}
+            night={night}
+            background={background}
+            foreground={foreground}
+            primary={primary}
+          />
         </Canvas>
       )}
     </View>
   );
 }
-
-export function HelenaBackdrop({ preview }: { preview?: boolean }) {
-  return <SkyBackdrop mode="day" preview={preview} />;
+export function CaminoDayBackdrop({ preview }: { preview?: boolean }) {
+  return <CaminoBackdrop mode="day" preview={preview} />;
 }
-export function PoonamBackdrop({ preview }: { preview?: boolean }) {
-  return <SkyBackdrop mode="night" preview={preview} />;
+export function CaminoNightBackdrop({ preview }: { preview?: boolean }) {
+  return <CaminoBackdrop mode="night" preview={preview} />;
 }

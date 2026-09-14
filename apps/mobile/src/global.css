@@ -302,6 +302,74 @@
     }
 
     /* ═══════════════════════════════════════════
+       CAMINO — A quiet sunlit walk toward Santiago
+       ═══════════════════════════════════════════ */
+    @variant camino {
+      --color-background: #f3ecdf;
+      --color-foreground: #20374b;
+      --color-card: #e3eaf0;
+      --color-card-foreground: #20374b;
+      --color-popover: #f6f1e7;
+      --color-popover-foreground: #20374b;
+      --color-primary: #efca8c;
+      --color-primary-foreground: #20374b;
+      --color-secondary: #d8e3ec;
+      --color-secondary-foreground: #20374b;
+      --color-muted: #e5e7df;
+      --color-muted-foreground: #45586a;
+      --color-accent: #fff8ed;
+      --color-accent-foreground: #20374b;
+      --color-destructive: #a53736;
+      --color-destructive-foreground: #ffffff;
+      --color-border: #9eafba;
+      --color-input: #e3eaf0;
+      --color-ring: #526f91;
+      --color-active-overlay: rgba(30, 52, 76, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(10, 24, 45, 0.16);
+      --font-heading: 'SpaceMono_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       CAMINO-NIGHT — The way to Santiago beneath a shimmering sky
+       ═══════════════════════════════════════════ */
+    @variant camino-night {
+      --color-background: #111e32;
+      --color-foreground: #f2eadb;
+      --color-card: #233650;
+      --color-card-foreground: #f2eadb;
+      --color-popover: #293d56;
+      --color-popover-foreground: #f2eadb;
+      --color-primary: #365575;
+      --color-primary-foreground: #f2eadb;
+      --color-secondary: #2a405c;
+      --color-secondary-foreground: #f2eadb;
+      --color-muted: #243750;
+      --color-muted-foreground: #bdcbdc;
+      --color-accent: #334963;
+      --color-accent-foreground: #f2eadb;
+      --color-destructive: #f09d98;
+      --color-destructive-foreground: #301b22;
+      --color-border: #4b607d;
+      --color-input: #233650;
+      --color-ring: #bfd2ee;
+      --color-active-overlay: rgba(241, 238, 231, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(10, 24, 45, 0.16);
+      --font-heading: 'SpaceMono_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
        HECKER — Cyberpunk/Retro-Futurism
        ═══════════════════════════════════════════ */
     @variant hecker {

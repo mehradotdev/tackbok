@@ -106,6 +106,24 @@ const THEMES = [
     "defaultTitleFontId": "lora"
   },
   {
+    "id": "camino",
+    "name": "Camino",
+    "description": "A quiet sunlit walk toward Santiago",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "camino",
+    "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "camino-night",
+    "name": "Camino Night",
+    "description": "The way to Santiago beneath a shimmering sky",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "camino-night",
+    "defaultTitleFontId": "spacemono"
+  },
+  {
     "id": "hecker",
     "name": "Hecker",
     "description": "Cyberpunk/Retro-Futurism",
