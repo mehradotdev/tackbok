@@ -252,7 +252,7 @@ export default function OnboardingWelcomeScreen() {
         <View className="flex-row items-center gap-1.5 mt-3">
           <Icon as={ShieldCheck} className="text-muted-foreground size-4" />
           <Text className="text-sm text-muted-foreground">
-            {t('Your journal stays on your device — with optional cloud backup.')}
+            {t('Your journal stays on your device. Cloud backup is optional.')}
           </Text>
         </View>
       </View>

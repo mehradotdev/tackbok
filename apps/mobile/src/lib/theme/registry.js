@@ -54,37 +54,21 @@ export const THEMES = [
     "defaultTitleFontId": "figtree"
   },
   {
-    "id": "lavender",
-    "name": "Lavender",
-    "description": "Gentle purple/lavender",
+    "id": "shiro",
+    "name": "Shiro",
+    "description": "Sunlit lakeside with a white dog",
     "variant": "light",
     "enableTimelineBorders": false,
-    "defaultTitleFontId": "gloriahallelujah"
-  },
-  {
-    "id": "bubblegum",
-    "name": "Bubblegum",
-    "description": "Neo-Brutalism Pop",
-    "variant": "light",
-    "enableTimelineBorders": true,
-    "defaultTitleFontId": "spacemono"
-  },
-  {
-    "id": "clemens",
-    "name": "Clemens",
-    "description": "Soft sage/botanical calm",
-    "variant": "light",
-    "enableTimelineBorders": false,
-    "backdropId": "botanical",
+    "backdropId": "shiro",
     "defaultTitleFontId": "baskervville"
   },
   {
-    "id": "weckner",
-    "name": "Weckner",
-    "description": "Forest dusk/brass lamplight",
+    "id": "shadow",
+    "name": "Shadow",
+    "description": "Moonlit lakeside with a black cat",
     "variant": "dark",
     "enableTimelineBorders": false,
-    "backdropId": "botanical",
+    "backdropId": "shadow",
     "defaultTitleFontId": "baskervville"
   },
   {
@@ -106,6 +90,24 @@ export const THEMES = [
     "defaultTitleFontId": "lora"
   },
   {
+    "id": "clemens",
+    "name": "Clemens",
+    "description": "Soft sage/botanical calm",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "botanical",
+    "defaultTitleFontId": "baskervville"
+  },
+  {
+    "id": "weckner",
+    "name": "Weckner",
+    "description": "Forest dusk/brass lamplight",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "botanical",
+    "defaultTitleFontId": "baskervville"
+  },
+  {
     "id": "camino",
     "name": "Camino",
     "description": "A quiet sunlit walk toward Santiago",
@@ -121,6 +123,22 @@ export const THEMES = [
     "variant": "dark",
     "enableTimelineBorders": false,
     "backdropId": "camino-night",
+    "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "lavender",
+    "name": "Lavender",
+    "description": "Gentle purple/lavender",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "defaultTitleFontId": "gloriahallelujah"
+  },
+  {
+    "id": "bubblegum",
+    "name": "Bubblegum",
+    "description": "Neo-Brutalism Pop",
+    "variant": "light",
+    "enableTimelineBorders": true,
     "defaultTitleFontId": "spacemono"
   },
   {
@@ -186,24 +204,6 @@ export const THEMES = [
     "variant": "light",
     "enableTimelineBorders": true,
     "defaultTitleFontId": "spacemono"
-  },
-  {
-    "id": "shiro",
-    "name": "Shiro",
-    "description": "Sunlit lakeside with a white dog",
-    "variant": "light",
-    "enableTimelineBorders": false,
-    "backdropId": "shiro",
-    "defaultTitleFontId": "baskervville"
-  },
-  {
-    "id": "shadow",
-    "name": "Shadow",
-    "description": "Moonlit lakeside with a black cat",
-    "variant": "dark",
-    "enableTimelineBorders": false,
-    "backdropId": "shadow",
-    "defaultTitleFontId": "baskervville"
   }
 ];
 

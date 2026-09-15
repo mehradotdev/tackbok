@@ -569,7 +569,7 @@ export const zhTW: Translations = {
   'Your name (optional)': '你的名字（選填）',
   'Stays on your device.': '僅儲存在你的裝置上。',
   'Make it yours': '打造你的風格',
-  'Pick a look — you can change everything later in Settings.':
+  'Pick a look. You can change everything later in Settings.':
     '選擇一種外觀 — 之後隨時可以在設定中更改。',
   'A walk in the morning sun': '晨光中的散步',
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
@@ -582,11 +582,11 @@ export const zhTW: Translations = {
   'Help improve Tackbok?': '幫助改進 Tackbok？',
   'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
     'Tackbok 免費且開源。匿名統計能幫助我們找出問題、了解哪些功能重要。',
-  'Anonymous usage stats only — which screens and features get used.':
+  'Anonymous usage stats only, including which screens and features get used.':
     '僅匿名使用統計 — 哪些畫面和功能被使用。',
   'Never your journal content, photos, voice memos, or anything you type.':
     '絕不收集你的日記內容、照片、語音備忘或任何輸入的文字。',
-  'Open source — the exact event list is public in the repo.':
+  'Open source. The exact event list is public in the repo.':
     '開源 — 完整的事件清單公開在程式碼儲存庫中。',
   'See exactly what we collect': '查看我們實際收集的內容',
   'Share anonymous stats': '分享匿名統計',
@@ -600,13 +600,13 @@ export const zhTW: Translations = {
     '你的日記文字、標題、照片、語音備忘、標籤、姓名、電子郵件或任何輸入的內容。沒有廣告，不出售資料，沒有第三方追蹤。',
   'You’re all set, {name}!': '一切就緒，{name}！',
   'You’re all set!': '一切就緒！',
-  'Two last things you can turn on — both optional.':
+  'Two last things you can turn on. Both are optional.':
     '最後還有兩項可以開啟 — 都是選用的。',
   'Add example entries': '加入範例日記',
   'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
     '幾則範例日記會展示照片、語音備忘、心情和標籤的用法。隨時可以一鍵移除。',
   'Remind me daily': '每日提醒',
-  'A gentle nudge to write — never your journal content.':
+  'A gentle nudge to write. Never your journal content.':
     '溫柔地提醒你來寫點什麼 — 絕不包含你的日記內容。',
   'Remind me at {time}': '在 {time} 提醒我',
   'Setting things up…': '正在準備…',
@@ -818,7 +818,7 @@ export const zhTW: Translations = {
   'Verify backup health': '驗證備份狀態',
   'Waiting for the first successful sync': '正在等待首次成功同步',
   'You can leave this screen; syncing resumes when Tackbok is active.': '你可以離開此畫面；Tackbok 處於使用中時會繼續同步。',
-  'Your journal stays on your device — with optional cloud backup.': '你的日記保留在裝置上，也可選擇使用雲端備份。',
+  'Your journal stays on your device. Cloud backup is optional.': '你的日記保留在裝置上，也可選擇使用雲端備份。',
   '{count} changes safely queued': '{count} 項變更已安全排隊',
   '{count} changes remaining': '剩餘 {count} 項變更',
   'Google Drive authorization needs attention.': 'Google Drive 授權需要處理。',

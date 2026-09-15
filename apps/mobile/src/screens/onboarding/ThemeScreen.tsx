@@ -9,7 +9,11 @@ import { SHEET_NAMES, MOOD_EMOJI } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { track } from '~/lib/analytics';
-import { getThemeConfig, type ThemeConfig } from '~/lib/theme/themes';
+import {
+  getThemeConfig,
+  type ThemeConfig,
+  type ThemeId,
+} from '~/lib/theme/themes';
 import {
   DEFAULT_TITLE_FONT_SELECTION,
   TITLE_FONTS,
@@ -31,7 +35,14 @@ import { useOnboardingStepView } from './useOnboardingStepView';
  * Curated subset shown as swatches (distinct hues).
  * The full theme grid lives behind "More themes…" (ThemePickerSheet).
  */
-const CURATED_THEME_IDS = ['light', 'dark', 'peach', 'lavender', 'navy', 'clemens'];
+const CURATED_THEME_IDS = [
+  'light',
+  'dark',
+  'shiro',
+  'shadow',
+  'clemens',
+  'slate',
+] as const satisfies readonly ThemeId[];
 
 function ThemeSwatch({
   theme,
@@ -188,7 +199,7 @@ export default function OnboardingThemeScreen() {
           {t('Make it yours')}
         </Text>
         <Text className="text-base text-muted-foreground mt-1 mb-4">
-          {t('Pick a look — you can change everything later in Settings.')}
+          {t('Pick a look. You can change everything later in Settings.')}
         </Text>
 
         <ThemePreviewCard />

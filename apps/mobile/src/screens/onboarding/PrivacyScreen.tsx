@@ -103,7 +103,7 @@ export default function OnboardingPrivacyScreen() {
   const bullets = [
     {
       icon: BarChart3,
-      text: t('Anonymous usage stats only — which screens and features get used.'),
+      text: t('Anonymous usage stats only, including which screens and features get used.'),
     },
     {
       icon: EyeOff,
@@ -111,7 +111,7 @@ export default function OnboardingPrivacyScreen() {
     },
     {
       icon: Code,
-      text: t('Open source — the exact event list is public in the repo.'),
+      text: t('Open source. The exact event list is public in the repo.'),
     },
   ];
 

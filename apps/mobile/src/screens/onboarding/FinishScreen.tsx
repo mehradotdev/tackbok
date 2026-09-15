@@ -171,7 +171,7 @@ export default function OnboardingFinishScreen() {
             : t('You’re all set!')}
         </Text>
         <Text className="text-base text-muted-foreground mt-2 mb-6">
-          {t('Two last things you can turn on — both optional.')}
+          {t('Two last things you can turn on. Both are optional.')}
         </Text>
 
         <View className="gap-3">
@@ -219,7 +219,7 @@ export default function OnboardingFinishScreen() {
               {t('Remind me daily')}
             </Text>
             <Text className="text-sm text-muted-foreground mt-0.5">
-              {t('A gentle nudge to write — never your journal content.')}
+              {t('A gentle nudge to write. Never your journal content.')}
             </Text>
 
             {dailyReminderEnabled && (
