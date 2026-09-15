@@ -567,7 +567,7 @@ export const zhCN: Translations = {
   'Your name (optional)': '你的名字（可选）',
   'Stays on your device.': '仅保存在你的设备上。',
   'Make it yours': '打造你的风格',
-  'Pick a look — you can change everything later in Settings.':
+  'Pick a look. You can change everything later in Settings.':
     '选择一种外观 — 之后可随时在设置中更改。',
   'A walk in the morning sun': '晨光中的散步',
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
@@ -580,11 +580,11 @@ export const zhCN: Translations = {
   'Help improve Tackbok?': '帮助改进 Tackbok？',
   'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
     'Tackbok 免费且开源。匿名统计能帮助我们发现问题、了解哪些功能重要。',
-  'Anonymous usage stats only — which screens and features get used.':
+  'Anonymous usage stats only, including which screens and features get used.':
     '仅匿名使用统计 — 哪些页面和功能被使用。',
   'Never your journal content, photos, voice memos, or anything you type.':
     '绝不收集你的日记内容、照片、语音备忘或任何输入的文字。',
-  'Open source — the exact event list is public in the repo.':
+  'Open source. The exact event list is public in the repo.':
     '开源 — 完整的事件列表公开在代码仓库中。',
   'See exactly what we collect': '查看我们具体收集的内容',
   'Share anonymous stats': '分享匿名统计',
@@ -598,13 +598,13 @@ export const zhCN: Translations = {
     '你的日记文字、标题、照片、语音备忘、标签、姓名、邮箱或任何输入的内容。没有广告，不出售数据，没有第三方追踪。',
   'You’re all set, {name}!': '一切就绪，{name}！',
   'You’re all set!': '一切就绪！',
-  'Two last things you can turn on — both optional.':
+  'Two last things you can turn on. Both are optional.':
     '最后还有两项可以开启 — 都是可选的。',
   'Add example entries': '添加示例日记',
   'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
     '几条示例日记会展示照片、语音备忘、心情和标签的用法。随时可以一键移除。',
   'Remind me daily': '每日提醒',
-  'A gentle nudge to write — never your journal content.':
+  'A gentle nudge to write. Never your journal content.':
     '温柔地提醒你来写点什么 — 绝不包含你的日记内容。',
   'Remind me at {time}': '在 {time} 提醒我',
   'Setting things up…': '正在准备…',
@@ -816,7 +816,7 @@ export const zhCN: Translations = {
   'Verify backup health': '验证备份状态',
   'Waiting for the first successful sync': '正在等待首次成功同步',
   'You can leave this screen; syncing resumes when Tackbok is active.': '你可以离开此页面；Tackbok 处于活动状态时会继续同步。',
-  'Your journal stays on your device — with optional cloud backup.': '你的日记保留在设备上，也可选择使用云备份。',
+  'Your journal stays on your device. Cloud backup is optional.': '你的日记保留在设备上，也可选择使用云备份。',
   '{count} changes safely queued': '{count} 项更改已安全排队',
   '{count} changes remaining': '剩余 {count} 项更改',
   'Google Drive authorization needs attention.': 'Google Drive 授权需要处理。',

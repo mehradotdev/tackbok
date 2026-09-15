@@ -98,100 +98,32 @@
     }
 
     /* ═══════════════════════════════════════════
-       LAVENDER — Gentle purple/lavender
+       SHIRO — Sunlit lakeside with a white dog
        ═══════════════════════════════════════════ */
-    @variant lavender {
-      --color-background: #f3eef8;
-      --color-foreground: #2e2440;
-      --color-card: #f8f4fc;
-      --color-card-foreground: #2e2440;
-      --color-popover: #faf7fd;
-      --color-popover-foreground: #2e2440;
-      --color-primary: #bea8e5;
-      --color-primary-foreground: #2e2440;
-      --color-secondary: #e0d4f0;
-      --color-secondary-foreground: #2e2440;
-      --color-muted: #e0d4f0;
-      --color-muted-foreground: #6e5a8a;
-      --color-accent: #d0c0e4;
-      --color-accent-foreground: #2e2440;
-      --color-destructive: #b84060;
-      --color-destructive-foreground: #f8f4fc;
-      --color-border: #c8b8dc;
-      --color-input: #d0c0e4;
-      --color-ring: #9b7bc7;
-      --color-active-overlay: rgba(0, 0, 0, 0.12);
-      --theme-radius: 8px;
-      --theme-border-width: 1px;
-      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
-      --font-heading: 'GloriaHallelujah_400Regular';
-      --font-body: 'Inter_400Regular';
-      --font-body-medium: 'Inter_500Medium';
-      --font-body-semibold: 'Inter_600SemiBold';
-      --font-body-bold: 'Inter_700Bold';
-    }
-
-    /* ═══════════════════════════════════════════
-       BUBBLEGUM — Neo-Brutalism Pop
-       ═══════════════════════════════════════════ */
-    @variant bubblegum {
-      --color-background: #ffc4e1;
-      --color-foreground: #000000;
-      --color-card: #ffffff;
-      --color-card-foreground: #000000;
-      --color-popover: #ffffff;
-      --color-popover-foreground: #000000;
-      --color-primary: #ff3d9e;
-      --color-primary-foreground: #000000;
-      --color-secondary: #00ffcc;
-      --color-secondary-foreground: #000000;
-      --color-muted: #ffe8f2;
-      --color-muted-foreground: #4a4a4a;
-      --color-accent: #faff00;
-      --color-accent-foreground: #000000;
-      --color-destructive: #cf382d;
-      --color-destructive-foreground: #ffffff;
-      --color-border: #000000;
-      --color-input: #ffffff;
-      --color-ring: #000000;
-      --color-active-overlay: rgba(0, 0, 0, 0.2);
-      --theme-radius: 0;
-      --theme-border-width: 3px;
-      --theme-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
-      --font-heading: 'SpaceMono_700Bold';
-      --font-body: 'JetBrainsMono_400Regular';
-      --font-body-medium: 'JetBrainsMono_500Medium';
-      --font-body-semibold: 'JetBrainsMono_600SemiBold';
-      --font-body-bold: 'JetBrainsMono_700Bold';
-    }
-
-    /* ═══════════════════════════════════════════
-       CLEMENS — Soft sage/botanical calm
-       ═══════════════════════════════════════════ */
-    @variant clemens {
-      --color-background: #dde8d8;
-      --color-foreground: #243428;
-      --color-card: #e7efe0;
-      --color-card-foreground: #243428;
-      --color-popover: #eff4e9;
-      --color-popover-foreground: #243428;
-      --color-primary: #9dbf90;
-      --color-primary-foreground: #243428;
-      --color-secondary: #cdddc4;
-      --color-secondary-foreground: #243428;
-      --color-muted: #cdddc4;
-      --color-muted-foreground: #5d7360;
-      --color-accent: #d3c48f;
-      --color-accent-foreground: #3a3320;
-      --color-destructive: #b05a48;
-      --color-destructive-foreground: #f3f6ee;
-      --color-border: #a4bb9a;
-      --color-input: #c3d6b9;
-      --color-ring: #5e8a63;
-      --color-active-overlay: rgba(36, 52, 40, 0.1);
+    @variant shiro {
+      --color-background: #a8d0f5;
+      --color-foreground: #453220;
+      --color-card: #f8f1de;
+      --color-card-foreground: #453220;
+      --color-popover: #fdf8ec;
+      --color-popover-foreground: #453220;
+      --color-primary: #eec27e;
+      --color-primary-foreground: #453220;
+      --color-secondary: #d8e6f3;
+      --color-secondary-foreground: #453220;
+      --color-muted: #e6dcc4;
+      --color-muted-foreground: #6d593f;
+      --color-accent: #f6d9a8;
+      --color-accent-foreground: #453220;
+      --color-destructive: #c04535;
+      --color-destructive-foreground: #fdf8ec;
+      --color-border: #d8c9a8;
+      --color-input: #ecdfc2;
+      --color-ring: #7a8a5c;
+      --color-active-overlay: rgba(69, 50, 32, 0.1);
       --theme-radius: 12px;
       --theme-border-width: 1px;
-      --theme-shadow: 0 10px 15px 0 rgba(38, 56, 42, 0.14);
+      --theme-shadow: 0 6px 16px 0 rgba(60, 45, 30, 0.15);
       --font-heading: 'Baskervville_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -200,32 +132,32 @@
     }
 
     /* ═══════════════════════════════════════════
-       WECKNER — Forest dusk/brass lamplight
+       SHADOW — Moonlit lakeside with a black cat
        ═══════════════════════════════════════════ */
-    @variant weckner {
-      --color-background: #16211a;
-      --color-foreground: #d7e3d2;
-      --color-card: #1d2a21;
-      --color-card-foreground: #d7e3d2;
-      --color-popover: #233129;
-      --color-popover-foreground: #d7e3d2;
-      --color-primary: #6c9260;
-      --color-primary-foreground: #eef4e9;
-      --color-secondary: #2a3a2e;
-      --color-secondary-foreground: #d7e3d2;
-      --color-muted: #243027;
-      --color-muted-foreground: #8ba18c;
-      --color-accent: #ab9459;
-      --color-accent-foreground: #f0e9d6;
-      --color-destructive: #b5584a;
-      --color-destructive-foreground: #f3f6ee;
-      --color-border: #2f4033;
-      --color-input: #2a3a2e;
-      --color-ring: #7ba26f;
-      --color-active-overlay: rgba(215, 227, 210, 0.1);
+    @variant shadow {
+      --color-background: #101a2e;
+      --color-foreground: #efe4c8;
+      --color-card: #1c2642;
+      --color-card-foreground: #efe4c8;
+      --color-popover: #232e4e;
+      --color-popover-foreground: #efe4c8;
+      --color-primary: #c9a86a;
+      --color-primary-foreground: #241a0a;
+      --color-secondary: #2b3152;
+      --color-secondary-foreground: #e6dcc0;
+      --color-muted: #232c48;
+      --color-muted-foreground: #9aa4c0;
+      --color-accent: #3a4266;
+      --color-accent-foreground: #e8ddc0;
+      --color-destructive: #a33c36;
+      --color-destructive-foreground: #f6ead6;
+      --color-border: #35436e;
+      --color-input: #232c48;
+      --color-ring: #d0b276;
+      --color-active-overlay: rgba(240, 230, 207, 0.1);
       --theme-radius: 12px;
       --theme-border-width: 1px;
-      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.45);
+      --theme-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.45);
       --font-heading: 'Baskervville_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
@@ -302,6 +234,74 @@
     }
 
     /* ═══════════════════════════════════════════
+       CLEMENS — Soft sage/botanical calm
+       ═══════════════════════════════════════════ */
+    @variant clemens {
+      --color-background: #dde8d8;
+      --color-foreground: #243428;
+      --color-card: #e7efe0;
+      --color-card-foreground: #243428;
+      --color-popover: #eff4e9;
+      --color-popover-foreground: #243428;
+      --color-primary: #9dbf90;
+      --color-primary-foreground: #243428;
+      --color-secondary: #cdddc4;
+      --color-secondary-foreground: #243428;
+      --color-muted: #cdddc4;
+      --color-muted-foreground: #5d7360;
+      --color-accent: #d3c48f;
+      --color-accent-foreground: #3a3320;
+      --color-destructive: #b05a48;
+      --color-destructive-foreground: #f3f6ee;
+      --color-border: #a4bb9a;
+      --color-input: #c3d6b9;
+      --color-ring: #5e8a63;
+      --color-active-overlay: rgba(36, 52, 40, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(38, 56, 42, 0.14);
+      --font-heading: 'Baskervville_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       WECKNER — Forest dusk/brass lamplight
+       ═══════════════════════════════════════════ */
+    @variant weckner {
+      --color-background: #16211a;
+      --color-foreground: #d7e3d2;
+      --color-card: #1d2a21;
+      --color-card-foreground: #d7e3d2;
+      --color-popover: #233129;
+      --color-popover-foreground: #d7e3d2;
+      --color-primary: #6c9260;
+      --color-primary-foreground: #eef4e9;
+      --color-secondary: #2a3a2e;
+      --color-secondary-foreground: #d7e3d2;
+      --color-muted: #243027;
+      --color-muted-foreground: #8ba18c;
+      --color-accent: #ab9459;
+      --color-accent-foreground: #f0e9d6;
+      --color-destructive: #b5584a;
+      --color-destructive-foreground: #f3f6ee;
+      --color-border: #2f4033;
+      --color-input: #2a3a2e;
+      --color-ring: #7ba26f;
+      --color-active-overlay: rgba(215, 227, 210, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.45);
+      --font-heading: 'Baskervville_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
        CAMINO — A quiet sunlit walk toward Santiago
        ═══════════════════════════════════════════ */
     @variant camino {
@@ -367,6 +367,74 @@
       --font-body-medium: 'Inter_500Medium';
       --font-body-semibold: 'Inter_600SemiBold';
       --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       LAVENDER — Gentle purple/lavender
+       ═══════════════════════════════════════════ */
+    @variant lavender {
+      --color-background: #f3eef8;
+      --color-foreground: #2e2440;
+      --color-card: #f8f4fc;
+      --color-card-foreground: #2e2440;
+      --color-popover: #faf7fd;
+      --color-popover-foreground: #2e2440;
+      --color-primary: #bea8e5;
+      --color-primary-foreground: #2e2440;
+      --color-secondary: #e0d4f0;
+      --color-secondary-foreground: #2e2440;
+      --color-muted: #e0d4f0;
+      --color-muted-foreground: #6e5a8a;
+      --color-accent: #d0c0e4;
+      --color-accent-foreground: #2e2440;
+      --color-destructive: #b84060;
+      --color-destructive-foreground: #f8f4fc;
+      --color-border: #c8b8dc;
+      --color-input: #d0c0e4;
+      --color-ring: #9b7bc7;
+      --color-active-overlay: rgba(0, 0, 0, 0.12);
+      --theme-radius: 8px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
+      --font-heading: 'GloriaHallelujah_400Regular';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       BUBBLEGUM — Neo-Brutalism Pop
+       ═══════════════════════════════════════════ */
+    @variant bubblegum {
+      --color-background: #ffc4e1;
+      --color-foreground: #000000;
+      --color-card: #ffffff;
+      --color-card-foreground: #000000;
+      --color-popover: #ffffff;
+      --color-popover-foreground: #000000;
+      --color-primary: #ff3d9e;
+      --color-primary-foreground: #000000;
+      --color-secondary: #00ffcc;
+      --color-secondary-foreground: #000000;
+      --color-muted: #ffe8f2;
+      --color-muted-foreground: #4a4a4a;
+      --color-accent: #faff00;
+      --color-accent-foreground: #000000;
+      --color-destructive: #cf382d;
+      --color-destructive-foreground: #ffffff;
+      --color-border: #000000;
+      --color-input: #ffffff;
+      --color-ring: #000000;
+      --color-active-overlay: rgba(0, 0, 0, 0.2);
+      --theme-radius: 0;
+      --theme-border-width: 3px;
+      --theme-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+      --font-heading: 'SpaceMono_700Bold';
+      --font-body: 'JetBrainsMono_400Regular';
+      --font-body-medium: 'JetBrainsMono_500Medium';
+      --font-body-semibold: 'JetBrainsMono_600SemiBold';
+      --font-body-bold: 'JetBrainsMono_700Bold';
     }
 
     /* ═══════════════════════════════════════════
@@ -639,74 +707,6 @@
       --font-body-medium: 'JetBrainsMono_500Medium';
       --font-body-semibold: 'JetBrainsMono_600SemiBold';
       --font-body-bold: 'JetBrainsMono_700Bold';
-    }
-
-    /* ═══════════════════════════════════════════
-       SHIRO — Sunlit lakeside with a white dog
-       ═══════════════════════════════════════════ */
-    @variant shiro {
-      --color-background: #a8d0f5;
-      --color-foreground: #453220;
-      --color-card: #f8f1de;
-      --color-card-foreground: #453220;
-      --color-popover: #fdf8ec;
-      --color-popover-foreground: #453220;
-      --color-primary: #eec27e;
-      --color-primary-foreground: #453220;
-      --color-secondary: #d8e6f3;
-      --color-secondary-foreground: #453220;
-      --color-muted: #e6dcc4;
-      --color-muted-foreground: #6d593f;
-      --color-accent: #f6d9a8;
-      --color-accent-foreground: #453220;
-      --color-destructive: #c04535;
-      --color-destructive-foreground: #fdf8ec;
-      --color-border: #d8c9a8;
-      --color-input: #ecdfc2;
-      --color-ring: #7a8a5c;
-      --color-active-overlay: rgba(69, 50, 32, 0.1);
-      --theme-radius: 12px;
-      --theme-border-width: 1px;
-      --theme-shadow: 0 6px 16px 0 rgba(60, 45, 30, 0.15);
-      --font-heading: 'Baskervville_700Bold';
-      --font-body: 'Inter_400Regular';
-      --font-body-medium: 'Inter_500Medium';
-      --font-body-semibold: 'Inter_600SemiBold';
-      --font-body-bold: 'Inter_700Bold';
-    }
-
-    /* ═══════════════════════════════════════════
-       SHADOW — Moonlit lakeside with a black cat
-       ═══════════════════════════════════════════ */
-    @variant shadow {
-      --color-background: #101a2e;
-      --color-foreground: #efe4c8;
-      --color-card: #1c2642;
-      --color-card-foreground: #efe4c8;
-      --color-popover: #232e4e;
-      --color-popover-foreground: #efe4c8;
-      --color-primary: #c9a86a;
-      --color-primary-foreground: #241a0a;
-      --color-secondary: #2b3152;
-      --color-secondary-foreground: #e6dcc0;
-      --color-muted: #232c48;
-      --color-muted-foreground: #9aa4c0;
-      --color-accent: #3a4266;
-      --color-accent-foreground: #e8ddc0;
-      --color-destructive: #a33c36;
-      --color-destructive-foreground: #f6ead6;
-      --color-border: #35436e;
-      --color-input: #232c48;
-      --color-ring: #d0b276;
-      --color-active-overlay: rgba(240, 230, 207, 0.1);
-      --theme-radius: 12px;
-      --theme-border-width: 1px;
-      --theme-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.45);
-      --font-heading: 'Baskervville_700Bold';
-      --font-body: 'Inter_400Regular';
-      --font-body-medium: 'Inter_500Medium';
-      --font-body-semibold: 'Inter_600SemiBold';
-      --font-body-bold: 'Inter_700Bold';
     }
   }
 }

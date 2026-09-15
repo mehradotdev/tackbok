@@ -2,11 +2,11 @@
 
 export type TitleFontId = 'figtree' | 'lora' | 'gloriahallelujah' | 'cinzel' | 'spacemono' | 'baskervville';
 
-export type ThemeId = 'light' | 'dark' | 'lavender' | 'bubblegum' | 'clemens' | 'weckner' | 'helena' | 'poonam' | 'camino' | 'camino-night' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'navy' | 'sakura' | 'slate' | 'kela' | 'shiro' | 'shadow';
+export type ThemeId = 'light' | 'dark' | 'shiro' | 'shadow' | 'helena' | 'poonam' | 'clemens' | 'weckner' | 'camino' | 'camino-night' | 'lavender' | 'bubblegum' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'navy' | 'sakura' | 'slate' | 'kela';
 
 export type ThemeVariant = 'light' | 'dark';
 
-export type BackdropId = 'botanical' | 'helena' | 'poonam' | 'camino' | 'camino-night' | 'shiro' | 'shadow';
+export type BackdropId = 'shiro' | 'shadow' | 'helena' | 'poonam' | 'botanical' | 'camino' | 'camino-night';
 
 export interface TitleFontConfig {
   id: TitleFontId;

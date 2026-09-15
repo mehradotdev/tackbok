@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { normalizeAppLockDelay, type AppLockDelaySeconds } from '../appLockSession';
 import AsyncStorage from 'expo-sqlite/kv-store';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { Appearance } from 'react-native';
 import { Uniwind } from 'uniwind';
 import { FirstDay, type FirstDayOfWeek } from '~/types';
+import { normalizeAppLockDelay, type AppLockDelaySeconds } from '~/lib/appLockSession';
 import { DEFAULT_THEME_ID, getThemeConfig } from '~/lib/theme';
 import {
   applyTitleFont,
@@ -24,6 +25,12 @@ import {
   runInCloudSyncTransaction,
   updateProfileInTransaction,
 } from '~/lib/cloudSync/storage/repositories';
+
+// Capture this before the app primes Uniwind with its temporary pre-hydration
+// theme. Uniwind can override React Native's reported color scheme when a fixed
+// theme is selected.
+const INITIAL_DEVICE_THEME_ID =
+  Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
 
 interface SettingsState {
   // Notifications
@@ -196,9 +203,9 @@ export const useSettingsStore = create<SettingsState>()(
       },
       setBodyFontSize: (size) => set({ bodyFontSize: normalizeBodyFontSize(size) }),
       setBiometricUnlockEnabled: (enabled) => set({ biometricUnlockEnabled: enabled }),
-      setAppLockDelaySeconds: (seconds) => set({ appLockDelaySeconds: normalizeAppLockDelay(seconds) }),
-      setCloudSyncWifiOnlyMedia: (enabled) =>
-        set({ cloudSyncWifiOnlyMedia: enabled }),
+      setAppLockDelaySeconds: (seconds) =>
+        set({ appLockDelaySeconds: normalizeAppLockDelay(seconds) }),
+      setCloudSyncWifiOnlyMedia: (enabled) => set({ cloudSyncWifiOnlyMedia: enabled }),
       setAnalyticsEnabled: (enabled) => set({ analyticsEnabled: enabled }),
       setLastUpdateCheckAt: (checkedAt) => set({ lastUpdateCheckAt: checkedAt }),
       setCustomWorksheetTemplate: (template) =>
@@ -218,8 +225,7 @@ export const useSettingsStore = create<SettingsState>()(
       setSampleEntriesBannerDismissed: (dismissed) =>
         set({ sampleEntriesBannerDismissed: dismissed }),
       setHasSeenHomeCoachMarks: (seen) => set({ hasSeenHomeCoachMarks: seen }),
-      setPendingAchievement: (achievement) =>
-        set({ pendingAchievement: achievement }),
+      setPendingAchievement: (achievement) => set({ pendingAchievement: achievement }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
       markLegacyProfileMigrationComplete: () =>
         set({ legacyProfileMigrationComplete: true }),
@@ -228,6 +234,13 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'tackbok-settings',
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        // Use the device theme only when no settings have been saved.
+        ...(persistedState == null
+          ? { theme: INITIAL_DEVICE_THEME_ID }
+          : (persistedState as Partial<SettingsState>)),
+      }),
       migrate: (persistedState) => {
         const legacy = persistedState as Record<string, unknown> | undefined;
         if (!legacy) return persistedState as SettingsState;

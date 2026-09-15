@@ -6,6 +6,7 @@ import {
   DEFAULT_THEME_ID,
   DEFAULT_TITLE_FONT,
   THEMES,
+  THEME_IDS,
   TITLE_FONTS,
 } from './registry';
 import {
@@ -175,6 +176,32 @@ describe('Theme Registry', () => {
     expect(DEFAULT_TITLE_FONT).toBe(SOURCE_DEFAULT_TITLE_FONT);
     expect(TITLE_FONTS).toEqual(SOURCE_TITLE_FONTS);
     expect(THEMES).toEqual(sourceThemes);
+  });
+
+  test('theme picker uses the curated display order and includes every theme once', () => {
+    expect(THEME_IDS).toEqual([
+      'light',
+      'dark',
+      'shiro',
+      'shadow',
+      'helena',
+      'poonam',
+      'clemens',
+      'weckner',
+      'camino',
+      'camino-night',
+      'lavender',
+      'bubblegum',
+      'hecker',
+      'peach',
+      'ember',
+      'ocean',
+      'navy',
+      'sakura',
+      'slate',
+      'kela',
+    ]);
+    expect(new Set(THEME_IDS).size).toBe(THEME_IDS.length);
   });
 
   test('generated CommonJS registry stays in sync with the ESM registry', () => {

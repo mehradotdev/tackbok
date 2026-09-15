@@ -45,7 +45,7 @@ function ThemeCardContent({
   return (
     <View
       className={cn(
-        'rounded-(--theme-radius) overflow-hidden border-2 bg-background shadow-theme',
+        'grow rounded-(--theme-radius) overflow-hidden border-2 bg-background shadow-theme',
         isActive ? 'border-ring' : 'border-transparent',
       )}>
       {/* Header bar showing primary color */}
@@ -208,20 +208,26 @@ export function ThemePickerSheet() {
           contentContainerClassName="px-4 pb-12 gap-3"
           showsVerticalScrollIndicator={false}>
           <View
-            className="flex-row flex-wrap gap-3 justify-between"
+            className="gap-3"
             accessibilityRole="radiogroup"
             accessibilityLabel={t('Select a theme')}>
-            {THEMES.map((theme) => (
-              <ThemeCard
-                key={theme.id}
-                theme={theme}
-                isActive={currentTheme === theme.id}
-                onSelect={() => {
-                  setTheme(theme.id);
-                  setShowTimelineBorders(theme.enableTimelineBorders);
-                  track('theme_changed', { theme: theme.id });
-                }}
-              />
+            {Array.from({ length: Math.ceil(THEMES.length / 2) }, (_, rowIndex) => (
+              <View
+                key={THEMES[rowIndex * 2].id}
+                className="flex-row items-stretch gap-3 justify-between">
+                {THEMES.slice(rowIndex * 2, rowIndex * 2 + 2).map((theme) => (
+                  <ThemeCard
+                    key={theme.id}
+                    theme={theme}
+                    isActive={currentTheme === theme.id}
+                    onSelect={() => {
+                      setTheme(theme.id);
+                      setShowTimelineBorders(theme.enableTimelineBorders);
+                      track('theme_changed', { theme: theme.id });
+                    }}
+                  />
+                ))}
+              </View>
             ))}
           </View>
         </ScrollView>
