@@ -6,7 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener } from 'react-native-safe-area-context';
 import { Stack, usePathname } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { AppStatusBar } from '~/components/AppStatusBar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { useFonts } from 'expo-font';
@@ -251,7 +251,7 @@ export default function Layout() {
               <ScreenViewObserver />
               <AchievementDialogHost />
             </AppLockGate>
-            <StatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
+            <AppStatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
             <Toaster />
             <PortalHost />
           </KeyboardProvider>

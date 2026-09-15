@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Modal, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { AppStatusBar } from '~/components/AppStatusBar';
 import { useCSSVariable } from 'uniwind';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
@@ -123,7 +123,7 @@ function AppLockScreen({ visible, nativeModal, showUnlockButton, onUnlockPress }
     <SafeAreaView
       className="flex-1 bg-background dark:bg-primary"
       edges={['top', 'left', 'right', 'bottom']}>
-      <StatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
+      <AppStatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
       <View className="flex-1 items-center justify-center gap-10">
         <TackbokLogo size={LOCK_LOGO_SIZE} color={foregroundColor as string} />
         {showUnlockButton ? (

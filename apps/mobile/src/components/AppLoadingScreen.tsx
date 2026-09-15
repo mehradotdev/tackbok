@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, View, ActivityIndicator } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { AppStatusBar } from '~/components/AppStatusBar';
 import { useCSSVariable } from 'uniwind';
 import { useSettingsStore } from '~/lib/settings';
 import { getThemeConfig } from '~/lib/theme/themes';
@@ -32,7 +32,7 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = fals
 
   const content = (
     <SafeAreaView className="flex-1 bg-background dark:bg-primary" edges={['top', 'left', 'right', 'bottom']}>
-      <StatusBar style={statusBarStyle} />
+      <AppStatusBar style={statusBarStyle} />
       <View className="flex-1">
         <View
           className="absolute inset-x-0 items-center"
