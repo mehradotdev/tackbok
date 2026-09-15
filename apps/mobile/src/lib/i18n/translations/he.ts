@@ -264,8 +264,7 @@ export const he: Translations = {
   Appearance: 'מראה',
   Theme: 'ערכת נושא',
   'Select a theme': 'בחר ערכת נושא',
-  'Choose from over 10 different themes and color schemes':
-    'בחר מתוך יותר מ-10 ערכות נושא וסכמות צבע שונות',
+  '{count} themes and color schemes': '{count} ערכות נושא וסכמות צבע',
   'Timeline Entry Length': 'אורך רשומה בציר הזמן',
   'Number of lines shown in the timeline':
     'מספר השורות המוצגות בציר הזמן. הטקסט המלא נראה בלחיצה על הרשומה',

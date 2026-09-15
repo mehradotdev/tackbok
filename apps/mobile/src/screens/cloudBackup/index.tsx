@@ -124,6 +124,11 @@ export default function CloudBackupScreen() {
     provider: providerName,
   });
 
+  const handleBack = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace(origin === 'onboarding' ? '/onboarding/welcome' : '/');
+  }, [origin, router]);
+
   const refreshConflicts = useCallback(async () => {
     const sequence = ++conflictRefreshSequenceRef.current;
     const next = await listUnacknowledgedCloudConflicts();
@@ -159,7 +164,7 @@ export default function CloudBackupScreen() {
       if (origin === 'onboarding' && connection.availableVaults.length === 0) {
         await cancelPreparedGoogleDriveConnection();
         toast.warning(t('No Tackbok backup found in this Google account'));
-        router.back();
+        handleBack();
         return;
       }
       setPrepared(connection);
@@ -180,10 +185,10 @@ export default function CloudBackupScreen() {
             )
           : t('Google Drive connection was not completed'),
       );
-      if (origin === 'onboarding') router.back();
+      if (origin === 'onboarding') handleBack();
       else setStage('disclosure');
     }
-  }, [origin, router, t]);
+  }, [handleBack, origin, t]);
 
   const handleComplete = useCallback(
     async (vaultId?: string, createNew = false) => {
@@ -191,6 +196,9 @@ export default function CloudBackupScreen() {
       try {
         await completeGoogleDriveConnection({ origin, vaultId, createNew });
         await refresh();
+        // Setup can finish after the user has left. Keep the connection, but
+        // do not let this screen's stale callback change their navigation/UI.
+        if (!mountedRef.current) return;
         toast.success(
           origin === 'onboarding'
             ? t('Cloud restore started')
@@ -200,14 +208,13 @@ export default function CloudBackupScreen() {
           setHasCompletedOnboarding(true);
           router.replace('/');
         } else {
+          // Local state is enough to leave setup. Replacing the route here
+          // could replace Home if the user backed out while setup was running.
           setPrepared(null);
           setStage('overview');
-          // Remove any setup query/state from the route. The durable local
-          // connection is complete here; the first upload continues through
-          // the ordinary runtime and must not hold the user on the setup card.
-          router.replace('/cloud-backup');
         }
       } catch {
+        if (!mountedRef.current) return;
         setStage('choose');
         toast.error(t('Cloud backup could not be updated'));
       }
@@ -421,7 +428,7 @@ export default function CloudBackupScreen() {
         <Button
           variant="ghost"
           className="p-1 mr-1"
-          onPress={() => router.back()}
+          onPress={handleBack}
           accessibilityLabel={t('Back')}>
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Button>

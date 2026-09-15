@@ -144,7 +144,7 @@ function ExpandedEntryRow({
       {/* --- Content Column --- */}
       <Pressable
         onPress={onPress}
-        className="flex-1 flex-col pt-2 pl-0 pb-2 active:bg-muted">
+        className="flex-1 flex-col pt-2 pl-0 pb-2 active:bg-active-overlay">
         <View className="flex-col items-start pl-3 pr-2">
           {/* Time & Mood */}
           <Badge
@@ -351,7 +351,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
         {!isExpanded && hasEntries && (
           <Pressable
             onPress={() => animatedButtonRef.current?.simulatePress()}
-            className="w-full active:bg-muted rounded-lg">
+            className="w-full rounded-lg active:bg-active-overlay">
             {previewText ? (
               <Text
                 className="text-base px-4 pb-2 text-foreground"

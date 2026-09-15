@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -271,7 +271,7 @@ export function GratitudeActionDock({
                   className="absolute inset-0 items-center justify-center">
                   <Icon
                     as={collapsedChevronIcon}
-                    className="text-foreground size-5"
+                    className="text-primary-foreground size-5"
                     strokeWidth={GRATITUDE_ACTION_DOCK_CONFIG.icon.strokeWidth}
                   />
                 </Animated.View>
@@ -280,7 +280,7 @@ export function GratitudeActionDock({
                   className="absolute inset-0 items-center justify-center">
                   <Icon
                     as={expandedChevronIcon}
-                    className="text-foreground size-5"
+                    className="text-primary-foreground size-5"
                     strokeWidth={GRATITUDE_ACTION_DOCK_CONFIG.icon.strokeWidth}
                   />
                 </Animated.View>
