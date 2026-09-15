@@ -260,8 +260,7 @@ export const zhTW: Translations = {
   Appearance: '外觀',
   Theme: '主題',
   'Select a theme': '選擇主題',
-  'Choose from over 10 different themes and color schemes':
-    '從 10 多種不同的主題和配色方案中選擇',
+  '{count} themes and color schemes': '{count} 種主題和配色方案',
   'Timeline Entry Length': '時間軸紀錄長度',
   'Number of lines shown in the timeline': '時間軸中顯示的行數。點選紀錄可查看完整文字',
   'Show Timeline Borders': '顯示時間軸邊框',

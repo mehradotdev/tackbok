@@ -292,8 +292,7 @@ export const de: Translations = {
   Appearance: 'Darstellung',
   Theme: 'Design',
   'Select a theme': 'Design auswählen',
-  'Choose from over 10 different themes and color schemes':
-    'Wähle aus über 10 verschiedenen Designs und Farbschemata',
+  '{count} themes and color schemes': '{count} Designs und Farbschemata',
   'Timeline Entry Length': 'Länge der Zeitleisteneinträge',
   'Number of lines shown in the timeline':
     'Anzahl der in der Zeitleiste angezeigten Zeilen. Der vollständige Text wird sichtbar, wenn du den Eintrag öffnest',

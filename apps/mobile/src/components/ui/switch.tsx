@@ -1,5 +1,6 @@
 import { Switch as RNSwitch, SwitchProps as RNSwitchProps } from 'react-native';
-import { useCSSVariable } from 'uniwind';
+import { useCSSVariable, useUniwind } from 'uniwind';
+import { isThemeDark } from '~/lib/theme/themes';
 
 interface SwitchProps extends Omit<RNSwitchProps, 'value' | 'onValueChange'> {
   checked?: boolean;
@@ -7,26 +8,28 @@ interface SwitchProps extends Omit<RNSwitchProps, 'value' | 'onValueChange'> {
 }
 
 function Switch({ checked, onCheckedChange, disabled, ...props }: SwitchProps) {
-  const [primaryColor, backgroundColor, inputColor] = useCSSVariable([
+  const { theme } = useUniwind();
+  const isDark = isThemeDark(theme);
+  const [primaryColor, foregroundColor] = useCSSVariable([
     '--color-primary',
-    '--color-background',
-    '--color-input',
+    '--color-foreground',
   ]);
+  // Input colors can match the surrounding card. Give the off track
+  // its own neutral gray and keep the thumb light in both switch states.
+  const offTrackColor = isDark ? '#808080' : '#a3a3a3';
+  const thumbColor = isDark ? (foregroundColor as string) : '#ffffff';
 
   return (
     <RNSwitch
       value={checked}
       onValueChange={onCheckedChange}
       disabled={disabled}
-      // Track color (background when switch is on)
       trackColor={{
-        false: inputColor as string,
+        false: offTrackColor,
         true: primaryColor as string,
       }}
-      // Thumb color (the button that slides)
-      thumbColor={backgroundColor as string}
-      // iOS specific style
-      ios_backgroundColor={inputColor as string}
+      thumbColor={thumbColor}
+      ios_backgroundColor={offTrackColor}
       {...props}
     />
   );

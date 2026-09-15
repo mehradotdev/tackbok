@@ -263,8 +263,7 @@ export const ar: Translations = {
   Appearance: 'المظهر',
   Theme: 'السمة',
   'Select a theme': 'اختر سمة',
-  'Choose from over 10 different themes and color schemes':
-    'اختر من بين أكثر من 10 سمة ونظام ألوان مختلف',
+  '{count} themes and color schemes': '{count} سمة ونظام ألوان',
   'Timeline Entry Length': 'طول إدخال الجدول الزمني',
   'Number of lines shown in the timeline':
     'عدد الأسطر المعروضة في الجدول الزمني. النص الكامل يظهر عند النقر على الإدخال',
