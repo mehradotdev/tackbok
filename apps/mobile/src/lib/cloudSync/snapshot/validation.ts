@@ -17,11 +17,11 @@ const CONFLICT_FIELDS = new Set([
 ]);
 const utf8Length = (value: string) => new TextEncoder().encode(value).length;
 
-function object(value: unknown, keys: readonly string[], path: string): RecordValue {
+function object(value: unknown, keys: readonly string[], path: string, optional: readonly string[] = []): RecordValue {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     invalid('invalid-shape', `${path} must be an object`);
   }
-  const actual = Object.keys(value).sort();
+  const actual = Object.keys(value).filter((key) => !optional.includes(key)).sort();
   const expected = [...keys].sort();
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
     invalid('closed-shape', `${path} has missing or unknown keys`);
@@ -131,7 +131,12 @@ export function validateSnapshotShape(value: unknown): JournalSnapshotPayload {
     });
   array(root.entries, SNAPSHOT_CAPS.entries, '$.entries').forEach((item, index) => {
     const path = `$.entries[${index}]`;
-    const entry = object(item, ['entryId', 'title', 'content', 'mood', 'createdAt', 'updatedAt', 'conflictOriginId'], path);
+    const entry = object(item, ['entryId', 'title', 'content', 'mood', 'createdAt', 'updatedAt', 'conflictOriginId'], path, ['attachmentOrder']);
+    if ('attachmentOrder' in entry) {
+      const order = array(entry.attachmentOrder, SNAPSHOT_CAPS.media, `${path}.attachmentOrder`);
+      order.forEach((value, index) => id(value, `${path}.attachmentOrder[${index}]`));
+      if (new Set(order).size !== order.length) invalid('duplicate-attachment-order', 'Attachment order contains duplicates');
+    }
     id(entry.entryId, `${path}.entryId`);
     nullableString(entry.title, `${path}.title`, SNAPSHOT_CAPS.entryTitleBytes);
     nullableString(entry.content, `${path}.content`, SNAPSHOT_CAPS.entryBodyBytes);
@@ -298,6 +303,14 @@ export function validateSnapshotCollections(
     const validProfile = asset.ownerType === 'profile' && asset.ownerId === 'profile' && asset.kind === 'profile-photo';
     if (!validEntry && !validProfile) invalid('dangling-reference', `Invalid media owner for ${asset.assetId}`);
   }
+  for (const entry of payload.entries) {
+    for (const assetId of entry.attachmentOrder ?? []) {
+      const asset = media.get(assetId);
+      if (!asset || asset.ownerType !== 'entry' || asset.ownerId !== entry.entryId) {
+        invalid('invalid-attachment-order', 'Attachment order references media outside its entry');
+      }
+    }
+  }
   const byType = { entry: entries, tag: tags, prompt: prompts };
   for (const [type, records] of Object.entries(byType)) {
     // Recovery IDs are independent editable entries. Their immutable origin
@@ -372,7 +385,9 @@ export function normalizeSnapshot(payload: JournalSnapshotPayload): JournalSnaps
     ...payload,
     parentSnapshotIds: [...payload.parentSnapshotIds],
     observedDeviceHeads: payload.observedDeviceHeads.map((value) => ({ ...value })),
-    entries: payload.entries.map((value) => ({ ...value })),
+    entries: payload.entries.map((value) => ({ ...value,
+      ...(value.attachmentOrder ? { attachmentOrder: [...value.attachmentOrder] } : {}),
+    })),
     tags: payload.tags.map((value) => ({ ...value })),
     entryTags: payload.entryTags.map((value) => ({ ...value })),
     prompts: payload.prompts.map((value) => ({ ...value })),

@@ -15,6 +15,7 @@ import type {
   SnapshotTombstone,
 } from './types';
 import { calculateMediaReferences } from './validation';
+import { mergeAttachmentOrder } from './attachmentOrder';
 
 type MergeEntity = SnapshotEntry | SnapshotTag | SnapshotPrompt;
 type EntityCollection = 'entries' | 'tags' | 'prompts';
@@ -524,5 +525,28 @@ export function mergeSnapshotDomains(
     conflict.entityType !== 'entry' ||
     liveEntryIds.has(conflict.entityId));
   result.media = media;
+  const baseEntries = mapBy(base?.entries ?? [], (entry) => entry.entryId);
+  const localEntries = mapBy(local.entries, (entry) => entry.entryId);
+  const remoteEntries = mapBy(remote.entries, (entry) => entry.entryId);
+  const mediaByEntry = new Map<string, string[]>();
+  for (const asset of media) {
+    if (asset.ownerType !== 'entry') continue;
+    const ids = mediaByEntry.get(asset.ownerId) ?? [];
+    ids.push(asset.assetId);
+    mediaByEntry.set(asset.ownerId, ids);
+  }
+  result.entries = result.entries.map((entry) => {
+    const b = baseEntries.get(entry.entryId)?.attachmentOrder;
+    const l = localEntries.get(entry.entryId)?.attachmentOrder;
+    const r = remoteEntries.get(entry.entryId)?.attachmentOrder;
+    const liveIds = mediaByEntry.get(entry.entryId) ?? [];
+    if (liveIds.length === 0) {
+      const { attachmentOrder: _order, ...withoutOrder } = entry;
+      return withoutOrder;
+    }
+    // Preserve the byte shape of legacy snapshots until an order is known.
+    if (b === undefined && l === undefined && r === undefined) return entry;
+    return { ...entry, attachmentOrder: mergeAttachmentOrder(b, l, r, liveIds) };
+  });
   return result;
 }

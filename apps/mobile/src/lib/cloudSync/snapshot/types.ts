@@ -21,6 +21,9 @@ export interface ObservedDeviceHead {
 
 export interface SnapshotEntry {
   entryId: string;
+  /** Display sequence only; media descriptors determine attachment membership.
+   * Absent in older snapshots, which fall back to asset-ID order. */
+  attachmentOrder?: string[];
   title: string | null;
   content: string | null;
   mood: Mood | null;

@@ -161,3 +161,31 @@ Follow-up validation: 231 Jest tests across 23 suites and 55 Bun tests across
 four files passed, including the production SQLite adapter. The final expanded
 retention cases passed in the 42-test engine suite. TypeScript and targeted lint
 passed. Native-device timing and live Google Drive verification remain pending.
+
+## Attachment order follow-up
+
+Snapshots now carry an optional `attachmentOrder` ID array on each entry. The
+existing local `entries.assets` array remains the storage source; no database
+column or migration is added. Capture resolves legacy URI-only assets against
+normalized media IDs. Restore applies this sequence to photos and voice memos,
+while media records remain sorted by ID for canonical hashing.
+
+Media merge decides membership first. Order merge projects the base and both
+branches onto surviving IDs, keeps a one-sided change, or uses lexical ID-array
+comparison for competing changes. It appends missing survivors from the other
+branch, then any remaining IDs in sorted order. Order never deletes an attachment
+or revives one removed by media merge; it creates no additional conflict entries.
+Duplicate IDs and references to another entry's media are rejected at validation.
+
+Older snapshots without this field remain readable and retain the asset-ID
+fallback. Their original display order cannot be reconstructed from cloud data
+alone. Both clients must be updated before syncing new ordered snapshots, because
+older clients reject unknown entry fields. An unchanged, already-synced journal
+does not automatically publish new ordering metadata; the next journal change
+publishes the order currently present on that device.
+
+Validation: 236 Jest tests across 24 suites and 56 Bun tests passed. Coverage
+includes concurrent additions/deletions, competing orders, legacy fallback,
+symmetric and repeatable merges, codec round-trips, and real SQLite capture and
+restore of both photo and voice-memo arrays. TypeScript, targeted lint, and
+whitespace checks passed. Live cross-device verification remains pending.

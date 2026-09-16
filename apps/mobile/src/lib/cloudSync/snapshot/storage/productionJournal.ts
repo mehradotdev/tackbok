@@ -20,6 +20,7 @@ import {
 import { AssetType, type Asset } from '~/types';
 import { sha256Text } from '../sha256';
 import { canonicalize } from '../canonical';
+import { completeAttachmentOrder } from '../attachmentOrder';
 import { writeBatches } from './writeBatches';
 import {
   copyVerifiedMediaFile,
@@ -236,6 +237,23 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         };
       });
       const recoveryOrigins = new Map<string, string | null>();
+      const entryMedia = new Map<string, typeof mediaRows>();
+      for (const row of mediaRows) {
+        if (row.owner_type !== 'entry') continue;
+        const rows = entryMedia.get(row.owner_id) ?? [];
+        rows.push(row);
+        entryMedia.set(row.owner_id, rows);
+      }
+      const attachmentOrder = (row: typeof entryRows[number]) => {
+        const assets = entryMedia.get(row.note_id) ?? [];
+        if (assets.length === 0) return {};
+        const byUri = new Map(assets.map((asset) => [asset.local_uri, asset.asset_id]));
+        const knownIds = new Set(assets.map((asset) => asset.asset_id));
+        const ids = (row.assets ?? []).map((asset) => asset.assetId && knownIds.has(asset.assetId)
+          ? asset.assetId : byUri.get(asset.uri))
+          .filter((id): id is string => id !== undefined);
+        return { attachmentOrder: completeAttachmentOrder(ids, assets.map((asset) => asset.asset_id)) };
+      };
       for (const row of entryRows) recoveryOrigins.set(`entry\0${row.note_id}`, row.conflict_origin_id);
       for (const row of tagRows) recoveryOrigins.set(`tag\0${row.tag_id}`, row.conflict_origin_id);
       for (const row of promptRows) recoveryOrigins.set(`prompt\0${row.prompt_id}`, row.conflict_origin_id);
@@ -250,6 +268,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         domain: {
           entries: entryRows.map((row) => ({
             entryId: row.note_id,
+            ...attachmentOrder(row),
             title: row.text_title,
             content: row.text_content,
             mood: row.mood ?? null,
@@ -418,7 +437,10 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         tagsByEntry.set(relation.entryId, ids);
       }
       if (domain.entries.length > 0) await writeBatches(domain.entries.map((entry) => {
-        const assets = (mediaByOwner.get(`entry\0${entry.entryId}`) ?? [])
+        const descriptors = mediaByOwner.get(`entry\0${entry.entryId}`) ?? [];
+        const byId = new Map(descriptors.map((asset) => [asset.assetId, asset]));
+        const assets = completeAttachmentOrder(entry.attachmentOrder, [...byId.keys()])
+          .map((id) => byId.get(id)!)
           .map((asset) => legacyAsset(asset, materializedUris.get(asset.assetId)!.uri));
         const tagIds = (tagsByEntry.get(entry.entryId) ?? []).sort();
         return {

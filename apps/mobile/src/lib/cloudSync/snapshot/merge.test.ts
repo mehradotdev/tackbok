@@ -1,6 +1,6 @@
 import golden from './fixtures/merge-golden.json';
 import { canonicalHash, canonicalize } from './canonical';
-import { encodeSnapshot } from './codec';
+import { decodeSnapshot, encodeSnapshot } from './codec';
 import { mergeSnapshotDomains } from './merge';
 import type { SnapshotDomain, SnapshotEntry } from './types';
 import { calculateMediaReferences } from './validation';
@@ -41,6 +41,39 @@ function blankDomain(): SnapshotDomain {
 }
 
 describe('snapshot merge engine', () => {
+  it('merges attachment additions/deletions independently from photo and voice order', () => {
+    const entry: SnapshotEntry = { entryId: 'ordered', title: null, content: 'Body', mood: null,
+      createdAt: 1, updatedAt: 1, conflictOriginId: null, attachmentOrder: ['photo-b', 'photo-a', 'voice-b', 'voice-a'] };
+    const descriptor = (assetId: string) => ({ assetId, ownerType: 'entry' as const, ownerId: entry.entryId,
+      kind: assetId.startsWith('voice') ? 'voice' as const : 'photo' as const,
+      blobHash: 'a'.repeat(64), byteSize: 8, mimeType: null, width: null, height: null,
+      durationMs: null, createdAt: 1, updatedAt: 1 });
+    const base = { ...emptyDomain(entry), media: entry.attachmentOrder!.map(descriptor) };
+    const branch = (order: string[]) => ({ ...base,
+      entries: [{ ...entry, attachmentOrder: order }], media: order.map(descriptor) });
+    // Each phone removes a different photo and adds a photo and a voice memo.
+    const local = branch(['photo-b', 'photo-c', 'voice-b', 'voice-a', 'voice-c']);
+    const remote = branch(['photo-a', 'photo-d', 'voice-a', 'voice-b', 'voice-d']);
+    const merged = mergeSnapshotDomains(base, local, remote);
+    const surviving = ['photo-c', 'photo-d', 'voice-a', 'voice-b', 'voice-c', 'voice-d'];
+    expect(merged.media.map((asset) => asset.assetId).sort()).toEqual(surviving);
+    expect([...merged.entries[0].attachmentOrder!].sort()).toEqual(surviving);
+    expect(mergeSnapshotDomains(base, remote, local)).toEqual(merged);
+    expect(mergeSnapshotDomains(base, merged, merged)).toEqual(merged);
+    expect(merged.conflicts).toEqual([]);
+    const encode = (domain: SnapshotDomain) => encodeSnapshot({ ...domain,
+      format: 'tackbok-snapshot', vaultId: 'order', authorDeviceId: 'device', deviceSequence: 1,
+      createdAt: 1, parentSnapshotIds: [], observedDeviceHeads: [] });
+    const encoded = encode(base);
+    const decoded = decodeSnapshot(encoded.compressedBytes, encoded.snapshotId).payload;
+    expect(decoded.entries[0].attachmentOrder).toEqual(entry.attachmentOrder);
+    expect(decoded.media.map((asset) => asset.assetId)).toEqual([...entry.attachmentOrder!].sort());
+    expect(() => encode(merged)).not.toThrow();
+    expect(() => encode({ ...base, entries: [{ ...entry, attachmentOrder: ['photo-a', 'photo-a'] }] }))
+      .toThrow(/duplicates/);
+    expect(() => encode({ ...base, entries: [{ ...entry, attachmentOrder: ['missing'] }] }))
+      .toThrow(/outside its entry/);
+  });
   it('keeps repeated recoveries editable after deleting their ancestor', () => {
     const root: SnapshotEntry = { entryId: 'root', title: null, content: 'Root', mood: null,
       createdAt: 1, updatedAt: 1, conflictOriginId: null };
