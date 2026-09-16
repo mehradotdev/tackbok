@@ -1,4 +1,5 @@
 import { SnapshotValidationError } from '../caps';
+import { canonicalize } from '../canonical';
 import { decodeSnapshot, encodeSnapshot } from '../codec';
 import { SnapshotMergeError, mergeSnapshotDomains } from '../merge';
 import type {
@@ -35,6 +36,7 @@ import { SnapshotPublisher } from './publication';
 const MAX_HEAD_RECHECKS = 4;
 
 interface PlannedCandidate {
+  existingSnapshot?: RemoteHeadSnapshot;
   domain: SnapshotDomain;
   capturedGeneration: number;
   parentSnapshotIds: string[];
@@ -127,6 +129,15 @@ export class SnapshotSyncEngine {
         await this.cleanup.run();
         this.stateStore.clearPause(this.vaultId, this.deviceId);
         return { status: 'up-to-date', actionableChanges: 0 };
+      }
+      if (plan.existingSnapshot) {
+        await this.publisher.adopt(plan.existingSnapshot, plan.observedDeviceHeads, plan.capturedGeneration);
+        const settled = this.stateStore.loadState(this.vaultId, this.deviceId);
+        return {
+          status: 'pulled',
+          snapshotId: plan.existingSnapshot.snapshotId,
+          actionableChanges: actionableChanges(settled.journalGeneration, settled.settledGeneration),
+        };
       }
       pending = this.stateStore.createPending(
         this.vaultId,
@@ -232,7 +243,14 @@ export class SnapshotSyncEngine {
         })),
         ...frontier.flatMap((remote) => remote.payload.observedDeviceHeads),
       ]);
+      const mergedContent = canonicalize(merged);
       return {
+        // Compare journal state, not snapshot IDs: sequence, author, parents and
+        // observations change even when all user data is identical. A matching
+        // complete snapshot is already a backup of this merge; acknowledge it
+        // locally instead of starting an endless exchange of acknowledgments.
+        existingSnapshot: frontier.find((remote) =>
+          canonicalize(domainOf(remote.payload)) === mergedContent),
         domain: merged,
         capturedGeneration: captured.generation,
         parentSnapshotIds: [...new Set(parentSnapshotIds)].sort(),

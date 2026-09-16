@@ -247,6 +247,7 @@ export interface DurableSyncState {
 
 export type SnapshotSyncResult =
   | { status: 'up-to-date'; actionableChanges: 0 }
+  | { status: 'pulled'; snapshotId: string; actionableChanges: number }
   | { status: 'published'; snapshotId: string; actionableChanges: number }
   | { status: 'attention'; reason: SyncAttentionReason; actionableChanges: number }
   | {

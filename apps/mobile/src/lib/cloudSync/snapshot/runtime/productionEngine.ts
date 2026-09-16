@@ -308,13 +308,13 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       profileName: profile?.display_name ?? null,
       profileImageUri: photo?.local_uri ?? null,
     });
-    if (result.status === 'published' || hydrated > 0) await this.onRemoteApplied?.();
+    if (result.status === 'published' || result.status === 'pulled' || hydrated > 0) await this.onRemoteApplied?.();
     const [pendingMedia] = await db.select({ value: count() }).from(mediaAssets)
       .where(eq(mediaAssets.download_state, 'pending'));
     this.needsFollowup = result.actionableChanges > 0;
     if ((pendingMedia?.value ?? 0) > 0 && hydrated > 0) this.needsFollowup = true;
     return {
-      pulled: result.status === 'published' ? 1 : 0,
+      pulled: result.status === 'published' || result.status === 'pulled' ? 1 : 0,
       pushed: result.status === 'published' ? 1 : 0,
     };
   }
@@ -351,7 +351,9 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     {
       at: (point) => {
         if (point === 'during-remote-snapshot-download') options.onActivity('checking');
-        else if (point === 'during-merge-application') options.onActivity('finishing');
+        else if (point === 'during-merge-application' || point.startsWith('after-base-')) {
+          options.onActivity('finishing');
+        }
         else if (point === 'during-media-transfer' || point === 'after-snapshot-uploaded' ||
             point === 'after-snapshot-verified' || point === 'after-head-advanced') {
           options.onActivity('uploading');

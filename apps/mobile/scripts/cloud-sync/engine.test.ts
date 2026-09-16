@@ -129,6 +129,176 @@ afterEach(() => {
 });
 
 describe('durable snapshot publisher', () => {
+  test.each([1, 2, 3])('%s fresh devices stop publishing once journal data converges', async (count) => {
+    const provider = new FakeSnapshotProvider();
+    const devices = Array.from({ length: count }, (_, i) => harness(`idle-${i}`, blankDomain(), provider));
+    devices[0].journal.mutate(withEntry(blankDomain(), entry('shared', 'Initial')));
+    expect((await devices[0].engine().sync()).status).toBe('published');
+    for (const device of devices.slice(1)) expect((await device.engine().sync()).status).toBe('pulled');
+    expect(provider.snapshotIds(devices[0].vaultId)).toHaveLength(1);
+    const quiet = async () => {
+      provider.requests.length = 0;
+      for (let round = 0; round < 4; round++) {
+        for (const device of devices) expect((await device.engine().sync()).status).toBe('up-to-date');
+      }
+      expect(provider.requests).not.toContain('upload-snapshot');
+      expect(provider.requests).not.toContain('update-head');
+    };
+    await quiet();
+    // The newest device may have never published a head before this edit.
+    const writer = devices.at(-1)!;
+    writer.journal.mutate(withEntry(writer.journal.current(), entry('shared', 'Edited', 2)));
+    expect((await writer.engine().sync()).status).toBe('published');
+    provider.requests.length = 0;
+    for (const device of devices.filter((d) => d !== writer)) {
+      expect((await device.engine().sync()).status).toBe('pulled');
+      expect(device.journal.current().entries[0].content).toBe('Edited');
+    }
+    expect(provider.requests).not.toContain('upload-snapshot');
+    expect(provider.requests).not.toContain('update-head');
+    await quiet();
+    expect(provider.snapshotIds(writer.vaultId)).toHaveLength(2);
+  });
+
+  test('a dirty generation with identical journal data settles locally', async () => {
+    const app = harness('no-op');
+    app.journal.mutate(withEntry(blankDomain(), entry('same', 'Same')));
+    await app.engine().sync();
+    app.journal.mutate(app.journal.current());
+    app.provider.requests.length = 0;
+    expect(await app.engine().sync()).toMatchObject({ status: 'pulled', actionableChanges: 0 });
+    expect(app.provider.requests).not.toContain('upload-snapshot');
+    expect(app.provider.requests).not.toContain('update-head');
+    expect((await app.engine().sync()).status).toBe('up-to-date');
+  });
+
+  test('failed pull checkpoint storage pauses safely and retries without publishing', async () => {
+    const source = harness('pull-storage-source');
+    source.journal.mutate(withEntry(blankDomain(), entry('shared', 'Cloud')));
+    await source.engine().sync();
+    const target = harness('pull-storage-target', blankDomain(), source.provider);
+    const write = target.files.writeTempAndFsync.bind(target.files);
+    target.files.writeTempAndFsync = async () => { throw new Error('ENOSPC'); };
+    source.provider.requests.length = 0;
+    expect(await target.engine().sync()).toMatchObject({ status: 'attention', reason: 'local-storage-full' });
+    expect(target.state.loadBaseCheckpoint(target.vaultId, target.deviceId)).toBeNull();
+    target.files.writeTempAndFsync = write;
+    target.state.clearPause(target.vaultId, target.deviceId);
+    expect((await target.engine().sync()).status).toBe('pulled');
+    expect(source.provider.requests).not.toContain('upload-snapshot');
+    expect(source.provider.requests).not.toContain('update-head');
+  });
+
+  test('new observations cannot overwrite the file referenced by the prior checkpoint', async () => {
+    const app = harness('pull-checkpoint-reader');
+    await app.engine().sync();
+    const old = app.state.loadBaseCheckpoint(app.vaultId, app.deviceId)!;
+    const shadow = (await app.shadows.load(old)).shadow!;
+    const next = await app.shadows.prepareAndReplace(app.deviceId, 0, {
+      ...shadow, acceptedDeviceHeads: [...shadow.acceptedDeviceHeads, {
+        deviceId: 'z-other', deviceSequence: 1, snapshotId: 'a'.repeat(64),
+      }],
+    });
+    expect(next.fileName).not.toBe(old.fileName);
+    // Simulate death after replacing the file, but before committing SQLite.
+    expect((await app.shadows.load(old)).shadow).toEqual(shadow);
+    app.state.settlePulledBase(next, 0);
+    expect(app.state.listShadowReaperFiles()).toContain(old.fileName);
+    app.state.settlePulledBase(old, 0);
+    expect(app.state.listShadowReaperFiles()).not.toContain(old.fileName);
+  });
+
+  test('existing identical heads settle without another acknowledgment upload', async () => {
+    const app = harness('old-loop-reader');
+    const domain = withEntry(blankDomain(), entry('same', 'Same'));
+    for (const author of ['old-a', 'old-b', 'old-c']) {
+      const encoded = encodeSnapshot({ ...domain, format: 'tackbok-snapshot', vaultId: app.vaultId,
+        authorDeviceId: author, deviceSequence: 5, createdAt: 1, parentSnapshotIds: [], observedDeviceHeads: [] });
+      app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 1);
+      app.provider.injectPhysicalHead({ format: 'tackbok-device-head', vaultId: app.vaultId,
+        deviceId: author, deviceSequence: 5, snapshotId: encoded.snapshotId, updatedAt: 1 });
+    }
+    expect((await app.engine().sync()).status).toBe('pulled');
+    expect((await app.engine().sync()).status).toBe('up-to-date');
+    expect(app.provider.requests).not.toContain('upload-snapshot');
+    expect(app.provider.requests).not.toContain('update-head');
+  });
+
+  test('deletions and date edits propagate by pulling, then stay quiet', async () => {
+    const source = harness('domain-source');
+    source.journal.mutate(withEntry(blankDomain(), entry('same', 'Same')));
+    await source.engine().sync();
+    const target = harness('domain-target', blankDomain(), source.provider);
+    await target.engine().sync();
+    source.journal.mutate(withEntry(source.journal.current(), { ...entry('same', 'Same', 2), createdAt: 500 }));
+    expect((await source.engine().sync()).status).toBe('published');
+    expect((await target.engine().sync()).status).toBe('pulled');
+    expect(target.journal.current().entries[0].createdAt).toBe(500);
+    const deleted = source.journal.current();
+    const hash = canonicalize(deleted.entries[0]);
+    deleted.entries = [];
+    deleted.tombstones = [{ entityType: 'entry', entityId: 'same', baseStateHash: sha256Bytes(new TextEncoder().encode(hash)),
+      deletedStateHash: sha256Bytes(new TextEncoder().encode(hash)), deletedByDeviceId: source.deviceId, deletionSequence: 3 }];
+    source.journal.mutate(deleted);
+    expect((await source.engine().sync()).status).toBe('published');
+    source.provider.requests.length = 0;
+    expect((await target.engine().sync()).status).toBe('pulled');
+    expect(target.journal.current()).toEqual(deleted);
+    expect((await source.engine().sync()).status).toBe('up-to-date');
+    expect(source.provider.requests).not.toContain('upload-snapshot');
+    expect(source.provider.requests).not.toContain('update-head');
+  });
+
+  test('an edit before remote apply retries without overwriting or settling that edit', async () => {
+    const source = harness('pull-source');
+    source.journal.mutate(withEntry(blankDomain(), entry('shared', 'Cloud')));
+    await source.engine().sync();
+    const target = harness('pull-target', blankDomain(), source.provider);
+    let edited = false;
+    expect(await target.engine({ beforeHeadRecheck() {
+      if (edited) return;
+      edited = true;
+      target.journal.mutate(withEntry(target.journal.current(), entry('local', 'Local edit')));
+    } }).sync()).toMatchObject({ status: 'retry', actionableChanges: 1 });
+    expect(target.state.loadBaseCheckpoint(target.vaultId, target.deviceId)).toBeNull();
+    expect(target.journal.current().entries[0].content).toBe('Local edit');
+    expect((await target.engine().sync()).status).toBe('published');
+    expect(target.journal.current().entries.map((e) => e.entryId)).toEqual(['local', 'shared']);
+  });
+
+  test('an edit after remote apply remains queued while the remote base is committed', async () => {
+    const source = harness('pull-late-source');
+    source.journal.mutate(withEntry(blankDomain(), entry('shared', 'Cloud')));
+    await source.engine().sync();
+    const target = harness('pull-late-target', blankDomain(), source.provider);
+    expect(await target.engine({ at(point) {
+      if (point === 'during-merge-application') {
+        target.journal.mutate(withEntry(target.journal.current(), entry('shared', 'Local edit', 2)));
+      }
+    } }).sync()).toMatchObject({ status: 'pulled', actionableChanges: 1 });
+    expect((await target.engine().sync()).status).toBe('published');
+    expect(target.journal.current().entries).toEqual([entry('shared', 'Local edit', 2)]);
+    expect(target.journal.current().conflicts).toEqual([]);
+  });
+
+  test.each<SnapshotKillPoint>([
+    'during-merge-application', 'after-base-shadow-temp-fsynced', 'after-base-shadow-readback',
+    'after-base-shadow-renamed', 'after-base-checkpoint-settled',
+  ])('remote adoption survives interruption at %s without uploading', async (point) => {
+    const source = harness('pull-crash-source');
+    source.journal.mutate(withEntry(blankDomain(), entry('shared', 'Cloud')));
+    await source.engine().sync();
+    const target = harness('pull-crash-target', blankDomain(), source.provider);
+    source.provider.requests.length = 0;
+    await expect(target.engine({ at(current) {
+      if (current === point) throw new SimulatedProcessDeath(current);
+    } }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    expect(['pulled', 'up-to-date']).toContain((await target.engine().sync()).status);
+    expect(target.journal.current().entries).toEqual([entry('shared', 'Cloud')]);
+    expect((await target.engine().sync()).status).toBe('up-to-date');
+    expect(source.provider.requests).not.toContain('upload-snapshot');
+    expect(source.provider.requests).not.toContain('update-head');
+  });
   test('multi-device cleanup retains current heads, divergent branches, and unpublished candidates', async () => {
     const first = harness('retention-a');
     for (let index = 0; index < 6; index++) {
@@ -137,6 +307,10 @@ describe('durable snapshot publisher', () => {
       await first.engine().sync();
     }
     const second = harness('retention-b', blankDomain(), first.provider, first.clock);
+    await second.engine().sync();
+    const secondDomain = second.journal.current();
+    secondDomain.entries[0].content = 'Second device';
+    second.journal.mutate(secondDomain);
     await second.engine().sync();
     const cleaner = new SnapshotCleanup({
       vaultId: first.vaultId, stateStore: first.state, shadowManager: first.shadows,
@@ -176,7 +350,7 @@ describe('durable snapshot publisher', () => {
       expect(remaining).toContain(head.snapshotId);
     }
     const restored = harness('retention-restore', blankDomain(), first.provider, first.clock);
-    expect((await restored.engine().sync()).status).toBe('published');
+    expect((await restored.engine().sync()).status).toBe('pulled');
     expect(restored.journal.current().entries).toHaveLength(6);
   });
 
@@ -216,7 +390,7 @@ describe('durable snapshot publisher', () => {
     first.state.setPause(first.vaultId, first.deviceId, 'invalid-remote-snapshot', 'merge-invalid-immutable-mutation');
     first.state.clearPause(first.vaultId, first.deviceId);
     expect((await first.engine().sync()).status).toBe('published');
-    expect((await second.engine().sync()).status).toBe('published');
+    expect((await second.engine().sync()).status).toBe('pulled');
     expect(second.journal.current().entries[0].createdAt).toBe(864000001);
     expect(second.journal.current().conflicts).toEqual([]);
   });
@@ -227,7 +401,7 @@ describe('durable snapshot publisher', () => {
     await first.engine().sync();
     const second = harness('cache-b', blankDomain(), first.provider);
     first.provider.requests.length = 0;
-    expect((await second.engine().sync()).status).toBe('published');
+    expect((await second.engine().sync()).status).toBe('pulled');
     expect(first.provider.requests.filter((op) => op === 'download-snapshot')).toHaveLength(1);
     first.provider.requests.length = 0;
     expect((await second.engine().sync()).status).toBe('up-to-date');
@@ -439,6 +613,9 @@ describe('durable snapshot publisher', () => {
     await source.engine().sync();
 
     const target = harness('device-x1-target', blankDomain(), provider, clock);
+    const local = target.journal.current();
+    local.profile.displayName = 'Local profile to publish';
+    target.journal.mutate(local);
     let edited = false;
     const first = await target.engine({
       at(point) {
@@ -470,7 +647,7 @@ describe('durable snapshot publisher', () => {
 
     provider.removeDeviceHeadForTest(target.vaultId, source.deviceId);
     const restored = harness('device-x1-restored', blankDomain(), provider, clock);
-    expect((await restored.engine().sync()).status).toBe('published');
+    expect((await restored.engine().sync()).status).toBe('pulled');
     expect(restored.journal.current().entries.map((value) => value.entryId))
       .toEqual(['entry-late-x1', 'entry-remote-x1']);
   });
@@ -486,6 +663,9 @@ describe('durable snapshot publisher', () => {
     await source.engine().sync();
 
     const target = harness('device-x1-crash-target', blankDomain(), provider, clock);
+    const local = target.journal.current();
+    local.profile.displayName = 'Local profile to publish';
+    target.journal.mutate(local);
     let killed = false;
     await expect(target.engine({
       at(point) {
@@ -522,7 +702,7 @@ describe('durable snapshot publisher', () => {
 
     provider.removeDeviceHeadForTest(target.vaultId, source.deviceId);
     const restored = harness('device-x1-crash-restored', blankDomain(), provider, clock);
-    expect((await restored.engine().sync()).status).toBe('published');
+    expect((await restored.engine().sync()).status).toBe('pulled');
     expect(restored.journal.current().entries.map((value) => value.entryId))
       .toEqual(['entry-late-crash', 'entry-remote-crash']);
   });
@@ -599,7 +779,7 @@ describe('durable snapshot publisher', () => {
     expect(provider.physicalHeads(target.vaultId)
       .some((value) => value.head.deviceId === 'device-source')).toBe(true);
 
-    expect((await target.engine().sync()).status).toBe('published');
+    expect((await target.engine().sync()).status).toBe('pulled');
     expect(target.journal.current().entries.map((value) => value.content))
       .toEqual(['Remote authored']);
   });
@@ -740,6 +920,13 @@ describe('durable snapshot publisher', () => {
       .toBe(canonicalize(second.journal.current()));
     expect(new Set(first.journal.current().entries.map((value) => value.content)))
       .toEqual(new Set(['Device A', 'Device B']));
+    provider.requests.length = 0;
+    for (let i = 0; i < 4; i++) {
+      await first.engine().sync();
+      await second.engine().sync();
+    }
+    expect(provider.requests).not.toContain('upload-snapshot');
+    expect(provider.requests).not.toContain('update-head');
     if (editDates) {
       expect(new Set(first.journal.current().entries.map((value) => value.createdAt)))
         .toEqual(new Set([86400001, 172800001]));
@@ -869,7 +1056,7 @@ describe('durable snapshot publisher', () => {
     expect(app.provider.snapshotIds(app.vaultId)).toEqual([]);
   });
 
-  test('remote text restores and publishes when Wi-Fi-only policy defers its verified blob', async () => {
+  test('remote text restores without publishing when Wi-Fi-only policy defers its verified blob', async () => {
     const provider = new FakeSnapshotProvider();
     const bytes = new TextEncoder().encode('synthetic-remote-photo');
     const blobHash = sha256Bytes(bytes);
@@ -892,7 +1079,7 @@ describe('durable snapshot publisher', () => {
       new SnapshotProviderError('wifi-only-media', 'waiting-for-wifi'),
     );
     expect(await restoring.engine().sync()).toMatchObject({
-      status: 'published', actionableChanges: 0,
+      status: 'pulled', actionableChanges: 0,
     });
     expect(restoring.journal.current().entries).toContainEqual(
       expect.objectContaining({ entryId: 'entry-remote-media', content: 'Restored text' }),

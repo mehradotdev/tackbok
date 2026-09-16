@@ -1,10 +1,10 @@
 import { SnapshotValidationError } from '../caps';
 import { decodeSnapshot } from '../codec';
 import { mergeSnapshotDomains } from '../merge';
-import type { SnapshotDomain } from '../types';
+import type { ObservedDeviceHead, SnapshotDomain } from '../types';
 import { BaseShadowCommitError, BaseShadowManager } from './baseShadow';
 import { AttentionError, RetryableSyncError } from './errors';
-import { domainOf, normalizeObservations } from './frontier';
+import { domainOf, normalizeObservations, type RemoteHeadSnapshot } from './frontier';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadow,
@@ -42,6 +42,24 @@ export interface SnapshotPublisherOptions {
 
 export class SnapshotPublisher {
   constructor(private readonly options: SnapshotPublisherOptions) {}
+
+  async adopt(
+    remote: RemoteHeadSnapshot,
+    acceptedDeviceHeads: ObservedDeviceHead[],
+    capturedGeneration: number,
+  ): Promise<void> {
+    const { journal, hooks, vaultId } = this.options;
+    // A concurrent edit invalidates the plan. Re-plan on retry rather than
+    // overwriting it or marking a generation that was never backed up settled.
+    if (!await journal.applyMergedIfGeneration(domainOf(remote.payload), capturedGeneration)) {
+      throw new RetryableSyncError('journal-changed-during-remote-adoption');
+    }
+    await hooks.at?.('during-merge-application');
+    await this.commitBase({
+      format: 'tackbok-base-shadow', vaultId,
+      snapshotId: remote.snapshotId, payload: remote.payload, acceptedDeviceHeads,
+    }, capturedGeneration, false);
+  }
 
   async resume(initial: PendingPublication): Promise<void> {
     const { deviceId, hooks, provider, stateStore, vaultId } = this.options;
@@ -125,34 +143,41 @@ export class SnapshotPublisher {
         acceptedDeviceHeads,
         payload: decoded.payload,
       };
-      let checkpoint;
-      try {
-        checkpoint = await this.options.shadowManager.prepareAndReplace(
-          deviceId,
-          pending.capturedGeneration,
-          shadow,
-          hooks.at,
-        );
-      } catch (error) {
-        if (error instanceof BaseShadowCommitError) {
-          throw new AttentionError('local-storage-full', 'base-shadow-commit-failed');
-        }
-        throw error;
-      }
-      try {
-        stateStore.settleWithBase(checkpoint, pending.capturedGeneration);
-      } catch (error) {
-        if (isDatabaseBusy(error)) {
-          throw new RetryableSyncError('base-shadow-checkpoint-database-busy');
-        }
-        if (isStorageFull(error)) {
-          throw new AttentionError('local-storage-full', 'base-shadow-checkpoint-storage-full');
-        }
-        throw new AttentionError('cleanup-inconsistent', 'base-shadow-checkpoint-inconsistent');
-      }
-      await hooks.at?.('after-base-checkpoint-settled');
-      await this.options.afterSettlement();
+      await this.commitBase(shadow, pending.capturedGeneration, true);
     }
+  }
+
+  private async commitBase(shadow: BaseShadow, capturedGeneration: number, publication: boolean): Promise<void> {
+    const { deviceId, hooks, stateStore, vaultId } = this.options;
+    let checkpoint;
+    try {
+      checkpoint = await this.options.shadowManager.prepareAndReplace(
+        deviceId,
+        capturedGeneration,
+        shadow,
+        hooks.at,
+      );
+    } catch (error) {
+      if (error instanceof BaseShadowCommitError) {
+        throw new AttentionError('local-storage-full', 'base-shadow-commit-failed');
+      }
+      throw error;
+    }
+    try {
+      if (publication) stateStore.settleWithBase(checkpoint, capturedGeneration);
+      else stateStore.settlePulledBase(checkpoint, capturedGeneration);
+    } catch (error) {
+      if (isDatabaseBusy(error)) {
+        throw new RetryableSyncError('base-shadow-checkpoint-database-busy');
+      }
+      if (isStorageFull(error)) {
+        throw new AttentionError('local-storage-full', 'base-shadow-checkpoint-storage-full');
+      }
+      throw new AttentionError('cleanup-inconsistent', 'base-shadow-checkpoint-inconsistent');
+    }
+    await hooks.at?.('after-base-checkpoint-settled');
+    stateStore.clearPause(vaultId, deviceId);
+    await this.options.afterSettlement();
   }
 
   /** Reconciles remote-derived published state with edits made after capture. */

@@ -1,5 +1,31 @@
 # Cloud sync audit — 2026-09-16
 
+## Heartbeat publication loop — 2026-09-17
+
+The original tests checked journal convergence but missed publication quiescence.
+Fresh devices reproduced an acknowledgment loop: every newly observed snapshot
+caused a new publication even when the journal domain was unchanged.
+
+Fixed: after merge, media checks, and head recheck, the engine compares the full
+journal domain (including profile, media descriptors, conflicts and tombstones)
+against verified frontier snapshots. If one already contains the result, it
+applies that snapshot and settles a local base checkpoint without uploading a
+snapshot or updating a device head. Local edits made during a pull invalidate
+the apply or remain queued after the captured generation. Existing durable
+publications still finish their recovery sequence.
+
+Runtime results distinguish `pulled` from `published`, refresh the UI for both,
+and count a pull as zero pushes. The heartbeat still performs remote checks;
+this change prevents redundant publications rather than removing polling.
+
+Regression tests cover fresh one/two/three-device journals becoming quiet,
+subsequent edits, identical dirty generations, existing redundant heads,
+date edits and deletions, concurrent conflict convergence, interrupted pulls,
+storage failures, and edits during adoption. Base files include their full
+content hash so changing accepted observations cannot overwrite the prior
+checkpoint before SQLite commits. No cloud reset or schema migration is needed.
+Update all active clients: older clients can still publish redundant snapshots.
+
 ## Scope and recommendation
 
 This is a focused source and regression-test review of snapshot merging,
