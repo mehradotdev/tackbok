@@ -1,5 +1,5 @@
-import { type ReactNode } from 'react';
-import { Pressable, View } from 'react-native';
+import { type ReactNode, useCallback, useState } from 'react';
+import { type LayoutChangeEvent, Pressable, View } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -108,25 +108,53 @@ interface GratitudeActionDockProps {
  * from the right edge, drag vertically, and release to snap back.
  * The vertical position persists across restarts via the settings store.
  */
-export function GratitudeActionDock({
+export function GratitudeActionDock(props: GratitudeActionDockProps) {
+  const [containerHeight, setContainerHeight] = useState(0);
+  const theme = useSettingsStore((s) => s.theme);
+  const pet = usePetInteraction();
+  const showPet = (theme === 'shiro' || theme === 'shadow') && pet !== null;
+  const minimumHeight =
+    gratitudeDockHeight(showPet) +
+    2 * GRATITUDE_ACTION_DOCK_CONFIG.gesture.verticalPadding;
+  const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
+    setContainerHeight(event.nativeEvent.layout.height);
+  }, []);
+
+  return (
+    <View
+      pointerEvents="box-none"
+      className="absolute inset-0"
+      onLayout={onContainerLayout}>
+      {/* Mount animation hooks only once a usable initial position is known. */}
+      {Number.isFinite(containerHeight) && containerHeight >= minimumHeight && (
+        <MeasuredGratitudeActionDock
+          {...props}
+          containerHeight={containerHeight}
+          showPet={showPet}
+        />
+      )}
+    </View>
+  );
+}
+
+function MeasuredGratitudeActionDock({
   isExpanded,
   onToggle,
   onAddEntry,
   onPickDate,
-}: GratitudeActionDockProps) {
+  containerHeight,
+  showPet,
+}: GratitudeActionDockProps & { containerHeight: number; showPet: boolean }) {
   const { t, isRTL } = useTranslation();
-  const theme = useSettingsStore((s) => s.theme);
   const pet = usePetInteraction();
-  const showPet = (theme === 'shiro' || theme === 'shadow') && pet !== null;
   const {
     containerStyle,
-    hasMeasured,
-    onContainerLayout,
     panGesture,
     progress,
     shellShadowStyle,
     wrapperStyle,
   } = useGratitudeActionDockPresentation({
+    containerHeight,
     dockConfig: {
       ...GRATITUDE_ACTION_DOCK_CONFIG,
       dimensions: {
@@ -197,98 +225,93 @@ export function GratitudeActionDock({
     : t('Expand gratitude actions');
 
   return (
-    <View
-      pointerEvents="box-none"
-      className="absolute inset-0"
-      onLayout={onContainerLayout}>
-      <Animated.View
-        style={[wrapperStyle, { opacity: hasMeasured ? 1 : 0 }]}
-        className={cn('absolute z-10', 'right-0 items-end')}>
-        <GestureDetector gesture={panGesture}>
-          <Animated.View style={shellShadowStyle} className="shadow-theme">
+    <Animated.View
+      style={wrapperStyle}
+      className={cn('absolute z-10', 'right-0 items-end')}>
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={shellShadowStyle} className="shadow-theme">
+          <Animated.View
+            style={containerStyle}
+            className={cn(
+              'flex-row items-center overflow-hidden border border-border bg-muted',
+            )}>
+            {/* Action buttons – absolutely positioned so they never push
+                the toggle tab out of the collapsed container */}
             <Animated.View
-              style={containerStyle}
+              pointerEvents={isExpanded ? 'auto' : 'none'}
+              style={[
+                actionsStyle,
+                {
+                  width:
+                    GRATITUDE_ACTION_DOCK_CONFIG.dimensions.expandedWidth -
+                    GRATITUDE_ACTION_DOCK_CONFIG.dimensions.tabWidth,
+                },
+              ]}
               className={cn(
-                'flex-row items-center overflow-hidden border border-border bg-muted',
+                'absolute top-0 bottom-0 items-center justify-center gap-3 px-3',
+                'left-0',
               )}>
-              {/* Action buttons – absolutely positioned so they never push
-                  the toggle tab out of the collapsed container */}
-              <Animated.View
-                pointerEvents={isExpanded ? 'auto' : 'none'}
-                style={[
-                  actionsStyle,
-                  {
-                    width:
-                      GRATITUDE_ACTION_DOCK_CONFIG.dimensions.expandedWidth -
-                      GRATITUDE_ACTION_DOCK_CONFIG.dimensions.tabWidth,
-                  },
-                ]}
-                className={cn(
-                  'absolute top-0 bottom-0 items-center justify-center gap-3 px-3',
-                  'left-0',
-                )}>
+              <DockActionButton
+                accessibilityLabel={t('Write now')}
+                disabled={!isExpanded}
+                onPress={onAddEntry}>
+                <View className="size-10 items-center justify-center rounded-full">
+                  <Icon as={Plus} className="text-primary-foreground" />
+                </View>
+              </DockActionButton>
+
+              <DockActionButton
+                accessibilityLabel={t('Pick a date')}
+                disabled={!isExpanded}
+                onPress={onPickDate}>
+                <View className="size-10 items-center justify-center rounded-full">
+                  <Icon as={Calendar} className="text-primary-foreground" />
+                </View>
+              </DockActionButton>
+              {showPet && (
                 <DockActionButton
-                  accessibilityLabel={t('Write now')}
-                  disabled={!isExpanded}
-                  onPress={onAddEntry}>
+                  accessibilityLabel={t('Play with Pet')}
+                  disabled={!isExpanded || !pet?.ready || pet.busy}
+                  onPress={() => pet?.play()}>
                   <View className="size-10 items-center justify-center rounded-full">
-                    <Icon as={Plus} className="text-primary-foreground" />
+                    <Icon as={PawPrint} className="text-foreground" />
                   </View>
                 </DockActionButton>
-
-                <DockActionButton
-                  accessibilityLabel={t('Pick a date')}
-                  disabled={!isExpanded}
-                  onPress={onPickDate}>
-                  <View className="size-10 items-center justify-center rounded-full">
-                    <Icon as={Calendar} className="text-primary-foreground" />
-                  </View>
-                </DockActionButton>
-                {showPet && (
-                  <DockActionButton
-                    accessibilityLabel={t('Play with Pet')}
-                    disabled={!isExpanded || !pet.ready || pet.busy}
-                    onPress={pet.play}>
-                    <View className="size-10 items-center justify-center rounded-full">
-                      <Icon as={PawPrint} className="text-foreground" />
-                    </View>
-                  </DockActionButton>
-                )}
-              </Animated.View>
-
-              {/* Toggle chevron stays pinned to the docked edge in both LTR and RTL. */}
-              <Pressable
-                onPress={onToggle}
-                accessibilityRole="button"
-                accessibilityLabel={toggleAccessibilityLabel}
-                style={{ width: GRATITUDE_ACTION_DOCK_CONFIG.dimensions.tabWidth }}
-                className={cn(
-                  'relative h-full items-center justify-center bg-primary active:opacity-80',
-                  'ml-auto border-l border-border/70',
-                )}>
-                <Animated.View
-                  style={collapsedChevronStyle}
-                  className="absolute inset-0 items-center justify-center">
-                  <Icon
-                    as={collapsedChevronIcon}
-                    className="text-primary-foreground size-5"
-                    strokeWidth={GRATITUDE_ACTION_DOCK_CONFIG.icon.strokeWidth}
-                  />
-                </Animated.View>
-                <Animated.View
-                  style={expandedChevronStyle}
-                  className="absolute inset-0 items-center justify-center">
-                  <Icon
-                    as={expandedChevronIcon}
-                    className="text-primary-foreground size-5"
-                    strokeWidth={GRATITUDE_ACTION_DOCK_CONFIG.icon.strokeWidth}
-                  />
-                </Animated.View>
-              </Pressable>
+              )}
             </Animated.View>
+
+            {/* Toggle chevron stays pinned to the docked edge in both LTR and RTL. */}
+            <Pressable
+              onPress={onToggle}
+              accessibilityRole="button"
+              accessibilityLabel={toggleAccessibilityLabel}
+              style={{ width: GRATITUDE_ACTION_DOCK_CONFIG.dimensions.tabWidth }}
+              className={cn(
+                'relative h-full items-center justify-center bg-primary active:opacity-80',
+                'ml-auto border-l border-border/70',
+              )}>
+              <Animated.View
+                style={collapsedChevronStyle}
+                className="absolute inset-0 items-center justify-center">
+                <Icon
+                  as={collapsedChevronIcon}
+                  className="text-primary-foreground size-5"
+                  strokeWidth={GRATITUDE_ACTION_DOCK_CONFIG.icon.strokeWidth}
+                />
+              </Animated.View>
+              <Animated.View
+                style={expandedChevronStyle}
+                className="absolute inset-0 items-center justify-center">
+                <Icon
+                  as={expandedChevronIcon}
+                  className="text-primary-foreground size-5"
+                  strokeWidth={GRATITUDE_ACTION_DOCK_CONFIG.icon.strokeWidth}
+                />
+              </Animated.View>
+            </Pressable>
           </Animated.View>
-        </GestureDetector>
-      </Animated.View>
-    </View>
+        </Animated.View>
+      </GestureDetector>
+    </Animated.View>
   );
 }
