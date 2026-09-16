@@ -95,6 +95,7 @@ const config: ExpoConfig = {
     [
       'react-native-audio-api',
       {
+        iosBackgroundMode: false,
         iosMicrophonePermission:
           'Tackbok needs access to your microphone to record voice memos for your gratitude entries.',
         androidPermissions: [
