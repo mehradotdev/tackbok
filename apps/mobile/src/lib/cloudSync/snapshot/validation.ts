@@ -11,6 +11,7 @@ const ID = /^[\x20-\x7e]+$/;
 const MOODS = new Set(['AMAZING', 'HAPPY', 'OKAY', 'SAD', 'AWFUL']);
 const ENTITY_TYPES = new Set(['entry', 'tag', 'prompt', 'profile']);
 const CONFLICT_FIELDS = new Set([
+  'createdAt',
   'title', 'content', 'mood', 'displayName', 'photoAssetId', 'tagMembership',
   'assetReference', 'deleteEdit', 'referencedDelete',
 ]);

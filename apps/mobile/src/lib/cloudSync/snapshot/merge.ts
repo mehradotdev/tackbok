@@ -111,33 +111,36 @@ function mergeEntry(
   remote: SnapshotEntry,
   conflicts: SnapshotConflict[],
 ): SnapshotEntry[] {
-  assertImmutable('entry.createdAt', base?.createdAt, local.createdAt, remote.createdAt);
+  // This is the editable journal date, not an immutable insertion timestamp.
+  const createdAt = scalarMerge(base?.createdAt, local.createdAt, remote.createdAt);
   assertImmutable('entry.conflictOriginId', base?.conflictOriginId, local.conflictOriginId, remote.conflictOriginId);
   const title = scalarMerge(base?.title, local.title, remote.title);
   const content = scalarMerge(base?.content, local.content, remote.content);
   const mood = scalarMerge(base?.mood, local.mood, remote.mood);
   const updatedAt = Math.max(base?.updatedAt ?? 0, local.updatedAt, remote.updatedAt);
-  const textConflict = title.conflicted || content.conflicted;
-  let primaryTextBranch: 'local' | 'remote' | null = null;
+  const entryConflict = title.conflicted || content.conflicted || createdAt.conflicted;
+  let primaryEntryBranch: 'local' | 'remote' | null = null;
   let recoveredId: string | null = null;
-  if (textConflict) {
-    const localPairHash = canonicalHash([local.title, local.content]);
-    const remotePairHash = canonicalHash([remote.title, remote.content]);
-    primaryTextBranch = localPairHash <= remotePairHash ? 'local' : 'remote';
+  if (entryConflict) {
+    const localPairHash = canonicalHash(createdAt.conflicted
+      ? [local.title, local.content, local.createdAt] : [local.title, local.content]);
+    const remotePairHash = canonicalHash(createdAt.conflicted
+      ? [remote.title, remote.content, remote.createdAt] : [remote.title, remote.content]);
+    primaryEntryBranch = localPairHash <= remotePairHash ? 'local' : 'remote';
     const baseStateHash = base ? canonicalHash(base) : null;
     const branchHashes = [canonicalHash(local), canonicalHash(remote)].sort();
     recoveredId = `recovered-${sha256Text(canonicalize([
       local.entryId, baseStateHash, branchHashes[0], branchHashes[1],
     ])).slice(0, 32)}`;
   }
-  const primaryBranch = primaryTextBranch === 'remote' ? remote : local;
-  const losingBranch = primaryTextBranch === 'remote' ? local : remote;
+  const primaryBranch = primaryEntryBranch === 'remote' ? remote : local;
+  const losingBranch = primaryEntryBranch === 'remote' ? local : remote;
   const primary: SnapshotEntry = {
     entryId: local.entryId,
     title: title.conflicted ? primaryBranch.title : title.value,
     content: content.conflicted ? primaryBranch.content : content.value,
     mood: mood.value,
-    createdAt: local.createdAt,
+    createdAt: createdAt.conflicted ? primaryBranch.createdAt : createdAt.value,
     updatedAt,
     conflictOriginId: local.conflictOriginId,
   };
@@ -153,13 +156,17 @@ function mergeEntry(
     conflicts.push(makeConflict('entry', local.entryId, 'mood', base?.mood,
       local.mood, remote.mood, mood.value, mood.primary === 'local' ? remote.mood : local.mood, [], base === undefined));
   }
-  if (!textConflict) return [primary];
+  if (createdAt.conflicted) {
+    conflicts.push(makeConflict('entry', local.entryId, 'createdAt', base?.createdAt,
+      local.createdAt, remote.createdAt, primary.createdAt, undefined, [recoveredId!], base === undefined));
+  }
+  if (!entryConflict) return [primary];
   return [primary, {
     entryId: recoveredId!,
     title: title.conflicted ? losingBranch.title : title.value,
     content: content.conflicted ? losingBranch.content : content.value,
     mood: mood.value,
-    createdAt: local.createdAt,
+    createdAt: createdAt.conflicted ? losingBranch.createdAt : createdAt.value,
     updatedAt,
     conflictOriginId: local.entryId,
   }];
@@ -398,8 +405,13 @@ function mergeConflictSet(
   for (const id of [...new Set([...b.keys(), ...l.keys(), ...r.keys()])].sort()) {
     const bv = b.get(id), lv = l.get(id), rv = r.get(id);
     if (lv && rv) {
-      if (!equal(lv, rv)) throw new SnapshotMergeError('conflict-id-collision', `Conflict ${id} differs`);
-      result.push(lv);
+      // The same conflict can be discovered independently with opposite device
+      // perspectives. Only these two labels may swap; all other data must agree.
+      const reversed = { ...rv, localValueHash: rv.remoteValueHash, remoteValueHash: rv.localValueHash };
+      if (!equal(lv, rv) && !equal(lv, reversed)) {
+        throw new SnapshotMergeError('conflict-id-collision', `Conflict ${id} differs`);
+      }
+      result.push(canonicalize(lv) <= canonicalize(rv) ? lv : rv);
     } else if (lv && !bv) result.push(lv);
     else if (rv && !bv) result.push(rv);
     else if (lv && bv && !rv) {
@@ -466,9 +478,9 @@ export function mergeSnapshotDomains(
     newConflicts.push(makeConflict('tag', relation.tagId, 'referencedDelete', null,
       localCandidate, remoteCandidate, relation, null));
   }
-  entryTags = entryTags.filter((value) =>
-    entries.live.some((entry) => entry.entryId === value.entryId) &&
-    tags.live.some((tag) => tag.tagId === value.tagId));
+  const entryIds = new Set(entries.live.map((entry) => entry.entryId));
+  const tagIds = new Set(tags.live.map((tag) => tag.tagId));
+  entryTags = entryTags.filter((value) => entryIds.has(value.entryId) && tagIds.has(value.tagId));
   entryTags.sort(keyComparator((value) => `${value.entryId}\0${value.tagId}`));
   tags.live.sort(keyComparator((value) => value.tagId));
 

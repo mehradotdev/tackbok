@@ -2,6 +2,7 @@ export type Mood = 'AMAZING' | 'HAPPY' | 'OKAY' | 'SAD' | 'AWFUL';
 export type EntityType = 'entry' | 'tag' | 'prompt' | 'profile';
 export type AssetKind = 'photo' | 'voice' | 'profile-photo';
 export type ConflictField =
+  | 'createdAt'
   | 'title'
   | 'content'
   | 'mood'

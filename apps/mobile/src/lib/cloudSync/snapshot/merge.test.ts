@@ -41,6 +41,63 @@ function blankDomain(): SnapshotDomain {
 }
 
 describe('snapshot merge engine', () => {
+  const datedEntry: SnapshotEntry = {
+    entryId: 'entry-date', title: 'Journal', content: 'Body', mood: null,
+    createdAt: 1788571860000, updatedAt: 1, conflictOriginId: null,
+  };
+
+  it('merges a one-sided date edit with a text edit without creating a conflict', () => {
+    const base = emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 1789435860000, updatedAt: 2 });
+    const remote = emptyDomain({ ...datedEntry, content: 'Edited body', updatedAt: 3 });
+    const merged = mergeSnapshotDomains(base, local, remote);
+    expect(merged.entries).toEqual([{ ...local.entries[0], content: 'Edited body', updatedAt: 3 }]);
+    expect(merged.conflicts).toEqual([]);
+    expect(mergeSnapshotDomains(base, remote, local)).toEqual(merged);
+    expect(mergeSnapshotDomains(base, merged, merged)).toEqual(merged);
+  });
+
+  it.each([false, true])('preserves concurrent dates and text, without a base: %s', (noBase) => {
+    const base = noBase ? null : emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 1789435860000, content: 'Local', updatedAt: 2 });
+    const remote = emptyDomain({ ...datedEntry, createdAt: 1789522260000, content: 'Remote', updatedAt: 3 });
+    const merged = mergeSnapshotDomains(base, local, remote);
+    expect(new Set(merged.entries.map((e) => `${e.content}:${e.createdAt}`)))
+      .toEqual(new Set(['Local:1789435860000', 'Remote:1789522260000']));
+    expect(merged.conflicts.map((c) => c.field).sort()).toEqual(['content', 'createdAt']);
+    expect(conflictSymmetricView(mergeSnapshotDomains(base, remote, local)))
+      .toEqual(conflictSymmetricView(merged));
+    expect(mergeSnapshotDomains(base, merged, merged)).toEqual(merged);
+    expect(() => encodeSnapshot({
+      ...merged, format: 'tackbok-snapshot', vaultId: 'vault-date', authorDeviceId: 'device-date',
+      deviceSequence: 1, createdAt: 3, observedDeviceHeads: [], parentSnapshotIds: [],
+    })).not.toThrow();
+  });
+
+  it('preserves both dates for a date-only conflict and carries a non-conflicting text edit', () => {
+    const base = emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 2, content: 'Edited' });
+    const remote = emptyDomain({ ...datedEntry, createdAt: 3 });
+    const merged = mergeSnapshotDomains(base, local, remote);
+    expect(merged.entries.map((e) => e.createdAt).sort()).toEqual([2, 3]);
+    expect(merged.entries.map((e) => e.content)).toEqual(['Edited', 'Edited']);
+    expect(merged.conflicts.map((c) => c.field)).toEqual(['createdAt']);
+  });
+
+  it('converges independently discovered conflicts with reversed device labels', () => {
+    const base = emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, content: 'Local' });
+    const remote = emptyDomain({ ...datedEntry, content: 'Remote' });
+    const left = mergeSnapshotDomains(base, local, remote);
+    const right = mergeSnapshotDomains(base, remote, local);
+    const merged = mergeSnapshotDomains(base, left, right);
+    expect(merged.entries).toEqual(left.entries);
+    expect(merged.conflicts).toHaveLength(1);
+    expect(mergeSnapshotDomains(base, right, left)).toEqual(merged);
+    const corrupt = structuredClone(right);
+    corrupt.conflicts[0].primaryValueHash = 'e'.repeat(64);
+    expect(() => mergeSnapshotDomains(base, left, corrupt)).toThrow(/differs/);
+  });
   it.each(cases)('matches frozen golden case $id byte-identically', ({ base, local, remote, expected }) => {
     const actual = mergeSnapshotDomains(base, local, remote);
     expect(canonicalize(actual)).toBe(canonicalize(expected));

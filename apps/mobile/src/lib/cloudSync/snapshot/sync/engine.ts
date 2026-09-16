@@ -167,9 +167,12 @@ export class SnapshotSyncEngine {
   }
 
   private async planCandidate(): Promise<PlannedCandidate | null> {
+    // Content-addressed payloads cannot change under the same hash. Reuse only
+    // successfully decoded payloads during this plan; later syncs verify anew.
+    const verifiedSnapshots = new Map<string, JournalSnapshotPayload>();
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       const listed = await this.provider.listHeads(this.vaultId, true);
-      const remoteHeads = await this.loadAndNormalizeHeads(listed);
+      const remoteHeads = await this.loadAndNormalizeHeads(listed, verifiedSnapshots);
       const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
       const loadedBase = await this.shadowManager.load(checkpoint);
       const captured = await this.journal.capture();
@@ -205,6 +208,7 @@ export class SnapshotSyncEngine {
       await this.hooks.beforeHeadRecheck?.();
       const rechecked = await this.loadAndNormalizeHeads(
         await this.provider.listHeads(this.vaultId, true),
+        verifiedSnapshots,
       );
       if (headSignature(remoteHeads) !== headSignature(rechecked)) continue;
 
@@ -241,6 +245,7 @@ export class SnapshotSyncEngine {
 
   private async loadAndNormalizeHeads(
     listed: ListedDeviceHead[],
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
   ): Promise<RemoteHeadSnapshot[]> {
     const grouped = new Map<string, ListedDeviceHead[]>();
     for (const candidate of listed) {
@@ -286,19 +291,22 @@ export class SnapshotSyncEngine {
 
     const snapshots: RemoteHeadSnapshot[] = [];
     for (const candidate of normalized) {
-      const bytes = await this.provider.downloadSnapshot(this.vaultId, candidate.head.snapshotId);
-      await this.hooks.at?.('during-remote-snapshot-download');
-      if (!bytes) throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
-      let payload: JournalSnapshotPayload;
-      try {
-        payload = decodeSnapshot(bytes, candidate.head.snapshotId).payload;
-      } catch (error) {
-        const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
-        if (error instanceof SnapshotValidationError && code === 'invalid-literal' &&
-            /^\$\.format\b/.test(error.message)) {
-          throw new AttentionError('unsupported-format', 'remote-format-version');
+      let payload = verifiedSnapshots.get(candidate.head.snapshotId);
+      if (!payload) {
+        const bytes = await this.provider.downloadSnapshot(this.vaultId, candidate.head.snapshotId);
+        await this.hooks.at?.('during-remote-snapshot-download');
+        if (!bytes) throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
+        try {
+          payload = decodeSnapshot(bytes, candidate.head.snapshotId).payload;
+        } catch (error) {
+          const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
+          if (error instanceof SnapshotValidationError && code === 'invalid-literal' &&
+              /^\$\.format\b/.test(error.message)) {
+            throw new AttentionError('unsupported-format', 'remote-format-version');
+          }
+          throw new AttentionError('invalid-remote-snapshot', `snapshot-validation-${code}`);
         }
-        throw new AttentionError('invalid-remote-snapshot', `snapshot-validation-${code}`);
+        verifiedSnapshots.set(candidate.head.snapshotId, payload);
       }
       if (payload.vaultId !== this.vaultId) {
         throw new AttentionError('wrong-vault', 'snapshot-vault-mismatch');

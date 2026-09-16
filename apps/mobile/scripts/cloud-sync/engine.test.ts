@@ -128,6 +128,34 @@ afterEach(() => {
 });
 
 describe('durable snapshot publisher', () => {
+  test('date edits recover from the old pause and converge across two devices', async () => {
+    const first = harness('date-ios', withEntry(blankDomain(), entry('dated', 'Body')));
+    first.state.markDirty(first.vaultId, first.deviceId);
+    await first.engine().sync();
+    const second = harness('date-android', blankDomain(), first.provider);
+    await second.engine().sync();
+    await first.engine().sync();
+    first.journal.mutate(withEntry(first.journal.current(), { ...entry('dated', 'Body', 2), createdAt: 864000001 }));
+    first.state.setPause(first.vaultId, first.deviceId, 'invalid-remote-snapshot', 'merge-invalid-immutable-mutation');
+    first.state.clearPause(first.vaultId, first.deviceId);
+    expect((await first.engine().sync()).status).toBe('published');
+    expect((await second.engine().sync()).status).toBe('published');
+    expect(second.journal.current().entries[0].createdAt).toBe(864000001);
+    expect(second.journal.current().conflicts).toEqual([]);
+  });
+
+  test('reuses validated snapshots for head rechecks but verifies again next pass', async () => {
+    const first = harness('cache-a', withEntry(blankDomain(), entry('cached', 'Body')));
+    first.state.markDirty(first.vaultId, first.deviceId);
+    await first.engine().sync();
+    const second = harness('cache-b', blankDomain(), first.provider);
+    first.provider.requests.length = 0;
+    expect((await second.engine().sync()).status).toBe('published');
+    expect(first.provider.requests.filter((op) => op === 'download-snapshot')).toHaveLength(1);
+    first.provider.requests.length = 0;
+    expect((await second.engine().sync()).status).toBe('up-to-date');
+    expect(first.provider.requests.filter((op) => op === 'download-snapshot').length).toBeGreaterThan(0);
+  });
   test('reconnect clears durable auth failures and the existing backup syncs again', async () => {
     const app = harness('device-reconnect', withEntry(blankDomain(), entry('local-entry', 'Local')));
     app.state.markDirty(app.vaultId, app.deviceId);
@@ -598,7 +626,7 @@ describe('durable snapshot publisher', () => {
       .toBe('inspect-repair-backup');
   });
 
-  test('simultaneous device publications remain discoverable and later converge', async () => {
+  test.each([false, true])('simultaneous publications converge, including date edits: %s', async (editDates) => {
     const provider = new FakeSnapshotProvider();
     const clock = { value: 1_800_000_000_000 };
     const initial = withEntry(blankDomain(), entry('entry-shared', 'Base'));
@@ -608,8 +636,12 @@ describe('durable snapshot publisher', () => {
     const second = harness('device-b', initial, provider, clock);
     await second.engine().sync();
 
-    first.journal.mutate(withEntry(first.journal.current(), entry('entry-shared', 'Device A', 2)));
-    second.journal.mutate(withEntry(second.journal.current(), entry('entry-shared', 'Device B', 2)));
+    first.journal.mutate(withEntry(first.journal.current(), {
+      ...entry('entry-shared', 'Device A', 2), createdAt: editDates ? 86400001 : 1,
+    }));
+    second.journal.mutate(withEntry(second.journal.current(), {
+      ...entry('entry-shared', 'Device B', 2), createdAt: editDates ? 172800001 : 1,
+    }));
     let waiting = 0;
     let release!: () => void;
     const barrier = new Promise<void>((resolve) => { release = resolve; });
@@ -630,6 +662,10 @@ describe('durable snapshot publisher', () => {
       .toBe(canonicalize(second.journal.current()));
     expect(new Set(first.journal.current().entries.map((value) => value.content)))
       .toEqual(new Set(['Device A', 'Device B']));
+    if (editDates) {
+      expect(new Set(first.journal.current().entries.map((value) => value.createdAt)))
+        .toEqual(new Set([86400001, 172800001]));
+    }
   });
 
   test('three simultaneous disjoint writers converge without dropping a branch', async () => {
