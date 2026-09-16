@@ -8,6 +8,7 @@ import { decodeSnapshot, encodeSnapshot } from '../../src/lib/cloudSync/snapshot
 import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
 import { BaseShadowManager } from '../../src/lib/cloudSync/snapshot/sync/baseShadow';
 import { SnapshotSyncEngine } from '../../src/lib/cloudSync/snapshot/sync/engine';
+import { SnapshotCleanup } from '../../src/lib/cloudSync/snapshot/sync/cleanup';
 import {
   FakeSnapshotProvider,
   MemoryBaseShadowFileStore,
@@ -128,6 +129,82 @@ afterEach(() => {
 });
 
 describe('durable snapshot publisher', () => {
+  test('multi-device cleanup retains current heads, divergent branches, and unpublished candidates', async () => {
+    const first = harness('retention-a');
+    for (let index = 0; index < 6; index++) {
+      first.clock.value++;
+      first.journal.mutate(withEntry(first.journal.current(), entry(`entry-${index}`, 'Keep')));
+      await first.engine().sync();
+    }
+    const second = harness('retention-b', blankDomain(), first.provider, first.clock);
+    await second.engine().sync();
+    const cleaner = new SnapshotCleanup({
+      vaultId: first.vaultId, stateStore: first.state, shadowManager: first.shadows,
+      provider: first.provider, hooks: {}, now: () => first.clock.value,
+    });
+    const cleanup = () => cleaner.run();
+    first.clock.value += 31 * 24 * 60 * 60 * 1000;
+    // A separate, unobserved device is a divergent branch, even when old.
+    const divergent = encodeSnapshot({ ...blankDomain(), format: 'tackbok-snapshot',
+      vaultId: first.vaultId, authorDeviceId: 'offline', deviceSequence: 1,
+      createdAt: 1, parentSnapshotIds: [], observedDeviceHeads: [] });
+    first.provider.injectSnapshot(first.vaultId, divergent.snapshotId, divergent.compressedBytes, 1);
+    first.provider.injectPhysicalHead({ format: 'tackbok-device-head', vaultId: first.vaultId,
+      deviceId: 'offline', deviceSequence: 1, snapshotId: divergent.snapshotId, updatedAt: 1 });
+    // More retained objects than one cleanup batch must not starve covered history.
+    for (let i = 0; i < 11; i++) {
+      const orphan = encodeSnapshot({ ...divergent.payload, authorDeviceId: `unobserved-${i}` });
+      first.provider.injectSnapshot(first.vaultId, orphan.snapshotId, orphan.compressedBytes, 1);
+    }
+    const before = first.provider.snapshotIds(first.vaultId);
+    await cleanup();
+    expect(first.provider.snapshotIds(first.vaultId)).toEqual(before);
+    first.provider.removeDeviceHeadForTest(first.vaultId, 'offline');
+    // Uploaded but not head-advanced: its sequence is not yet covered.
+    const pending = encodeSnapshot({ ...blankDomain(), format: 'tackbok-snapshot',
+      vaultId: first.vaultId, authorDeviceId: first.deviceId, deviceSequence: 100,
+      createdAt: 2, parentSnapshotIds: [], observedDeviceHeads: [] });
+    first.provider.injectSnapshot(first.vaultId, pending.snapshotId, pending.compressedBytes, 2);
+    await cleanup();
+    await cleanup();
+    await cleanup();
+    const remaining = first.provider.snapshotIds(first.vaultId);
+    expect(remaining.length).toBeLessThan(before.length);
+    expect(remaining).toContain(pending.snapshotId);
+    expect(remaining).toContain(divergent.snapshotId);
+    for (const { head } of first.provider.physicalHeads(first.vaultId)) {
+      expect(remaining).toContain(head.snapshotId);
+    }
+    const restored = harness('retention-restore', blankDomain(), first.provider, first.clock);
+    expect((await restored.engine().sync()).status).toBe('published');
+    expect(restored.journal.current().entries).toHaveLength(6);
+  });
+
+  test('cleanup aborts when a head changes immediately before deletion', async () => {
+    const app = harness('retention-race');
+    for (let i = 0; i < 5; i++) {
+      app.clock.value++;
+      app.journal.mutate(withEntry(app.journal.current(), entry(`entry-${i}`, 'Keep')));
+      await app.engine().sync();
+    }
+    app.clock.value += 31 * 24 * 60 * 60 * 1000;
+    const before = app.provider.snapshotIds(app.vaultId);
+    await new SnapshotCleanup({ vaultId: app.vaultId, stateStore: app.state,
+      shadowManager: app.shadows, provider: app.provider, now: () => app.clock.value,
+      hooks: { at() { app.provider.injectPhysicalHead({
+        ...app.provider.physicalHeads(app.vaultId)[0].head, deviceId: 'arriving-device',
+      }); } },
+    }).run();
+    expect(app.provider.snapshotIds(app.vaultId)).toEqual(before);
+    expect(app.provider.requests).not.toContain('delete-snapshot');
+    // The new device's envelope wrongly claims the first device's snapshot.
+    // Even identical snapshot IDs must be checked against each head envelope.
+    await new SnapshotCleanup({ vaultId: app.vaultId, stateStore: app.state,
+      shadowManager: app.shadows, provider: app.provider, now: () => app.clock.value,
+      hooks: {},
+    }).run();
+    expect(app.provider.requests).not.toContain('delete-snapshot');
+  });
   test('date edits recover from the old pause and converge across two devices', async () => {
     const first = harness('date-ios', withEntry(blankDomain(), entry('dated', 'Body')));
     first.state.markDirty(first.vaultId, first.deviceId);
@@ -470,10 +547,10 @@ describe('durable snapshot publisher', () => {
     );
 
     expect(await app.engine().sync()).toMatchObject({
-      status: 'attention', reason: 'invalid-remote-snapshot',
+      status: 'attention', reason: 'normalized-model-not-ready',
     });
     expect(app.state.loadState(app.vaultId, app.deviceId)).toMatchObject({
-      pauseReason: 'invalid-remote-snapshot',
+      pauseReason: 'normalized-model-not-ready',
       lastErrorClass: 'local-candidate-validation-invalid-gzip',
     });
     expect(app.state.loadPending(app.vaultId, app.deviceId)?.stage)
@@ -534,6 +611,7 @@ describe('durable snapshot publisher', () => {
       ['permission-denied', 'attention', 'provider-permission-denied'],
       ['rate-limited', 'retry', 'rate-limited'],
       ['transient', 'retry', 'transient'],
+      ['invalid-request', 'attention', 'provider-request-rejected'],
     ] as const;
     for (const [providerCode, status, reason] of cases) {
       const app = harness(`device-${providerCode}`);
@@ -619,7 +697,7 @@ describe('durable snapshot publisher', () => {
       'derived-id-collision', 'frontier-too-wide', 'head-snapshot-missing',
       'invalid-remote-snapshot', 'journal-deleted', 'local-media-unreadable',
       'local-storage-full', 'missing-media', 'normalized-model-not-ready',
-      'provider-permission-denied', 'provider-quota-full', 'purge-incomplete',
+      'provider-permission-denied', 'provider-quota-full', 'provider-request-rejected', 'purge-incomplete',
       'unsupported-format', 'wrong-vault',
     ]);
     expect(ATTENTION_RECOVERY_ACTION['ambiguous-device-head'])

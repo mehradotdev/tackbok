@@ -52,14 +52,14 @@ export class SnapshotPublisher {
     } catch (error) {
       const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
       throw new AttentionError(
-        'invalid-remote-snapshot',
+        'normalized-model-not-ready',
         `local-candidate-validation-${code}`,
       );
     }
     if (decoded.payload.vaultId !== vaultId ||
         decoded.payload.authorDeviceId !== deviceId ||
         decoded.payload.deviceSequence !== pending.deviceSequence) {
-      throw new AttentionError('invalid-remote-snapshot', 'local-candidate-envelope-mismatch');
+      throw new AttentionError('normalized-model-not-ready', 'local-candidate-envelope-mismatch');
     }
 
     if (pending.stage === 'candidate-persisted') {

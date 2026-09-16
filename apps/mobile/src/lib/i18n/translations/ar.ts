@@ -878,4 +878,6 @@ export const ar: Translations = {
   'Cloud deletion completed': 'اكتمل الحذف السحابي',
   'Export or repair the affected journal data, then return and retry.': 'صدّر بيانات اليوميات المتأثرة أو أصلحها، ثم عُد وأعد المحاولة.',
   'Cloud backup retry completed': 'اكتملت إعادة محاولة النسخ السحابي',
+  "Cloud sync could not finish. Your changes remain safely queued.": "تعذّرت مزامنة السحابة. تبقى تغييراتك محفوظة بأمان في قائمة الانتظار.",
+  "Google Drive rejected a backup request. Update Tackbok and retry.": "رفض Google Drive طلب نسخ احتياطي. حدّث Tackbok وأعد المحاولة.",
 };

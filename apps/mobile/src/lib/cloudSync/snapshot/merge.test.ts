@@ -41,6 +41,35 @@ function blankDomain(): SnapshotDomain {
 }
 
 describe('snapshot merge engine', () => {
+  it('keeps repeated recoveries editable after deleting their ancestor', () => {
+    const root: SnapshotEntry = { entryId: 'root', title: null, content: 'Root', mood: null,
+      createdAt: 1, updatedAt: 1, conflictOriginId: null };
+    const recovery = { ...root, entryId: 'recovery', content: 'Recovery', conflictOriginId: 'root' };
+    const base = { ...emptyDomain(root), entries: [recovery, root] };
+    const branch = (content: string) => ({ ...base, entries: [{ ...recovery, content }, root] });
+    const merged = mergeSnapshotDomains(base, branch('Left'), branch('Right'));
+    const encode = (domain: SnapshotDomain) => encodeSnapshot({ ...domain,
+      format: 'tackbok-snapshot', vaultId: 'family', authorDeviceId: 'device',
+      deviceSequence: 4, createdAt: 1, parentSnapshotIds: [], observedDeviceHeads: [] });
+    expect(() => encode(merged)).not.toThrow();
+    expect(merged.entries.map((value) => value.content).sort()).toEqual(['Left', 'Right', 'Root']);
+    const deleted = structuredClone(merged);
+    deleted.entries = deleted.entries.filter((value) => value.entryId !== 'root');
+    deleted.tombstones.push({ entityType: 'entry', entityId: 'root', baseStateHash: canonicalHash(root),
+      deletedStateHash: canonicalHash(root), deletedByDeviceId: 'device', deletionSequence: 3 });
+    const afterDelete = mergeSnapshotDomains(merged, deleted, merged);
+    expect(() => encode(afterDelete)).not.toThrow();
+    expect(afterDelete.entries.map((value) => value.content).sort()).toEqual(['Left', 'Right']);
+    expect(mergeSnapshotDomains(merged, merged, deleted)).toEqual(afterDelete);
+    const orphan = structuredClone(afterDelete);
+    orphan.tombstones = [];
+    expect(() => encode(orphan)).toThrow(/missing ancestor/);
+    const cyclic = structuredClone(base);
+    cyclic.entries[1].conflictOriginId = 'recovery';
+    expect(() => encode(cyclic)).toThrow(/cycle/);
+    cyclic.entries[1].conflictOriginId = 'root';
+    expect(() => encode(cyclic)).toThrow(/cycle/);
+  });
   const datedEntry: SnapshotEntry = {
     entryId: 'entry-date', title: 'Journal', content: 'Body', mood: null,
     createdAt: 1788571860000, updatedAt: 1, conflictOriginId: null,

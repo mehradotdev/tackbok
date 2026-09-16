@@ -88,8 +88,9 @@ export function cloudSyncFailureMessage(
     case 'corrupt':
       return t('This cloud backup contains data Tackbok cannot read.');
     case 'transient':
-    case 'unknown':
       return t('Google Drive could not be reached. Your changes remain safely queued.');
+    case 'unknown':
+      return t('Cloud sync could not finish. Your changes remain safely queued.');
   }
 }
 
@@ -112,6 +113,7 @@ export function attentionReasonMessage(
     ),
     'local-storage-full': t('Tackbok could not safely stage backup data on this device.'),
     'provider-quota-full': t('Google Drive does not have enough free storage.'),
+    'provider-request-rejected': t('Google Drive rejected a backup request. Update Tackbok and retry.'),
     'provider-permission-denied': t(
       'Google Drive denied access to the app backup folder.',
     ),

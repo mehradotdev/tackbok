@@ -26,6 +26,7 @@ export interface SnapshotEntry {
   mood: Mood | null;
   createdAt: number;
   updatedAt: number;
+  /** Immutable lineage: a live entry (including a recovery) or its tombstone. */
   conflictOriginId: string | null;
 }
 

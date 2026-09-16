@@ -337,9 +337,11 @@ export class SnapshotSyncEngine {
     const remotelyPresent = await this.provider.hasMediaBatch(this.vaultId, requiredHashes);
     for (const blobHash of requiredHashes) {
       const remotePresent = remotelyPresent.has(blobHash);
-      const localPresent = await this.mediaStore.hasVerified(blobHash);
+      // An upload source already proves local availability. Do not hash the
+      // same bytes first for hasVerified and then again to open the source.
+      const source = remotePresent ? null : await this.mediaStore.openVerifiedSource(blobHash);
+      const localPresent = remotePresent ? await this.mediaStore.hasVerified(blobHash) : source !== null;
       if (!remotePresent && localPresent) {
-        const source = await this.mediaStore.openVerifiedSource(blobHash);
         if (!source || source.contentHash !== blobHash) {
           throw new AttentionError('local-media-unreadable', 'local-media-hash-mismatch');
         }
@@ -395,7 +397,7 @@ export class SnapshotSyncEngine {
     if (error instanceof SnapshotMergeError) {
       const reason = error.code === 'derived-id-collision'
         ? 'derived-id-collision'
-        : 'invalid-remote-snapshot';
+        : 'normalized-model-not-ready';
       this.stateStore.setPause(this.vaultId, this.deviceId, reason, `merge-${error.code}`);
       return { status: 'attention', reason, actionableChanges: remaining };
     }

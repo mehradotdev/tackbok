@@ -13,7 +13,7 @@ import {
 import { track } from '~/lib/analytics';
 import type { CloudSyncFailureCategory } from '~/lib/analytics/events';
 import { useSettingsStore } from '~/lib/settings';
-import { failureCategoryForAttention } from '../../failureClassification';
+import { attentionReasonForProviderError, failureCategoryForAttention } from '../../failureClassification';
 import { createGoogleAuthorization } from '../../auth';
 import { readOrCreateGoogleConnectionId } from '../../auth/secureTokenStore';
 import type {
@@ -241,11 +241,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         // Metadata/text sync has completed. Media remains visibly pending and
         // will retry on a later foreground pass or when Wi-Fi is available.
       } else if (error instanceof SnapshotProviderError) {
-        const reason: SyncAttentionReason = error.code === 'authorization-required'
-          ? 'authorization-required'
-          : error.code === 'permission-denied'
-            ? 'provider-permission-denied'
-            : 'missing-media';
+        const reason = attentionReasonForProviderError(error.code) ?? 'missing-media';
         this.state.setPause(
           this.vault.vault_id,
           this.vault.device_id,

@@ -300,13 +300,26 @@ export function validateSnapshotCollections(
   }
   const byType = { entry: entries, tag: tags, prompt: prompts };
   for (const [type, records] of Object.entries(byType)) {
-    for (const record of records.values()) {
-      const origin = record.conflictOriginId;
-      if (origin === null) continue;
-      const primary = records.get(origin);
-      if (!primary || primary.conflictOriginId !== null) {
-        invalid('invalid-conflict-origin', `${type} recovery has a missing or recovered origin`);
+    // Recovery IDs are independent editable entries. Their immutable origin
+    // records lineage, which may include other recoveries or a deleted ancestor.
+    // Memoize completed paths so even a long family is checked in linear time.
+    const checked = new Set<string>();
+    for (const id of records.keys()) {
+      const path = new Set<string>();
+      let current: string | null = id;
+      while (current !== null && !checked.has(current)) {
+        if (path.has(current)) invalid('invalid-conflict-origin', `${type} recovery lineage contains a cycle`);
+        path.add(current);
+        const record: { conflictOriginId: string | null } | undefined = records.get(current);
+        if (!record) {
+          if (!tomb.has(`${type}\0${current}`)) {
+            invalid('invalid-conflict-origin', `${type} recovery has a missing ancestor`);
+          }
+          break;
+        }
+        current = record.conflictOriginId;
       }
+      for (const visited of path) checked.add(visited);
     }
   }
   for (const conflict of payload.conflicts) {

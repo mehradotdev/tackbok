@@ -19,6 +19,7 @@ import {
   type DriveFileRecord,
   type DriveObjectKind,
 } from './state';
+import { DriveTransport } from './transport';
 
 class FakeAuth implements CloudAuthorization {
   clears = 0;
@@ -317,6 +318,14 @@ function provider(
 }
 
 describe('GoogleDriveSnapshotProvider', () => {
+  test('a rejected request is not classified as corrupt cloud content', async () => {
+    const fetch = jest.fn(async () => response(400));
+    const transport = new DriveTransport({ auth: new FakeAuth(), state: new MemoryDriveProviderStateStore(),
+      fetch, sleep: async () => {}, random: () => 0, now: () => 1 });
+    await expect(transport.request(vaultId, 'list', 'https://www.googleapis.com/drive/v3/files', {},
+      { idempotent: true })).rejects.toMatchObject({ code: 'invalid-request', status: 400 });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   test('maps a temporarily unavailable token refresh to a transient provider failure', async () => {
     const auth: CloudAuthorization = {
       authorize: async () => ({ accessToken: '', expiresAt: 0 }),

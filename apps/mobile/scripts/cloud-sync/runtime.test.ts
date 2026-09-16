@@ -213,7 +213,7 @@ describe('production cloud-sync runtime', () => {
     ].map((file) => join(mobileRoot, 'src/lib/i18n/translations', file));
     const locales = await Promise.all(localePaths.map((path) => Bun.file(path).text()));
     const reasons = Object.keys(ATTENTION_RECOVERY_ACTION) as SyncAttentionReason[];
-    expect(reasons).toHaveLength(20);
+    expect(reasons).toHaveLength(21);
     for (const reason of reasons) {
       expect(screen).toContain(`'${reason}'`);
       expect(screen).toContain(`'${ATTENTION_RECOVERY_ACTION[reason]}'`);

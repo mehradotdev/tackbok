@@ -38,7 +38,9 @@ remain readable by the new client; there is no database migration or vault reset
 Reload the updated app and use **Retry and verify backup** to clear the existing
 pause and run the corrected merge.
 
-## Remaining findings, in priority order
+## Follow-up implementation
+
+The findings below describe the original audit state; each now has an implementation status.
 
 ### 1. High: concurrent edits to a recovered entry can block sync
 
@@ -50,9 +52,12 @@ Reproduced with a valid root + recovered entry, concurrent edits to the recovery
 and `encodeSnapshot(mergeSnapshotDomains(...))`: `invalid-conflict-origin`.
 This predates the date fix and also affects text conflicts.
 
-Next change: define one recovery-family model and make generation, conflict
-references, deletion/promotion, and validation agree on it. Cover repeat edits
-and deleting the original entry. Do not merely remove the validator check.
+Implemented: recovery origins are immutable lineage links to live entries or
+same-type tombstones. Repeated recoveries are valid; cycles and missing ancestors
+remain invalid. Validation walks and memoizes lineage paths in linear time.
+Deleting an ancestor preserves its tombstone rather than rewriting/promoting the
+remaining family. Tests cover repeated conflicts, ancestor deletion, orphaned
+links, and cycles. Existing immediate conflict references remain unchanged.
 
 ### 2. High: bulk local applies can exceed SQLite bind limits
 
@@ -63,9 +68,10 @@ An entry insert binds several values per row. The accepted format is therefore
 larger than this write path can reliably apply. This is a source-level finding;
 the native simulator's exact compiled limit was not queried.
 
-Next change: bounded insert batches inside the existing transaction, with a
-large restore test against actual SQLite. The current 2,000-entry engine test
-uses an in-memory journal and does not exercise production materialization.
+Implemented: all seven bulk collections use 50-row batches inside the existing
+atomic transaction. A production-adapter test restores 10,000 entries and 10,000
+relations into real SQLite, verifies values, and forces a later-batch failure to
+prove the deletes and earlier batches roll back together.
 
 ### 3. Medium: every successful apply rewrites the complete local journal
 
@@ -73,9 +79,13 @@ uses an in-memory journal and does not exercise production materialization.
 entries, tags, relations, prompts, profile, media, tombstones, and conflicts.
 It also scans all relations for every entry when rebuilding legacy tag strings.
 
-Next change: index relations by entry once, add bounded writes, then measure
-transaction time on realistic journals. Consider diffed writes only if measured
-cost warrants the extra logic. Keep generation checks and atomic transactions.
+Implemented: relation strings are built from a single entry index. Unchanged
+journal applications skip materialization and database writes, with a second
+transactional generation check to reject intervening edits. Changed journals
+still use atomic replacement, now with bounded inserts. The production-adapter
+restore test took roughly 132 ms on the development machine on its first run
+(not a native iOS/Android timing). Per-row diffed writes are deliberately deferred
+until native measurements justify their added bookkeeping.
 
 ### 4. Medium: multi-device history has no effective snapshot retention
 
@@ -83,9 +93,16 @@ cost warrants the extra logic. Keep generation checks and atomic transactions.
 is more than one logical device. Even two fully converged devices retain all
 historical complete snapshots. New snapshots can accumulate during ordinary use.
 
-Next change: design retention around proven covered heads and a grace period,
-with offline-device, pending-publication, and restore tests. Do not just remove
-the multi-device guard: its purpose is to protect unresolved branches.
+Implemented: cleanup validates current head payloads and requires a single
+surviving frontier that covers the other devices. It retains every current head,
+the three newest snapshots, and the 30-day grace period. An old candidate is
+removed only if its decoded author sequence is strictly covered by that survivor.
+Unknown/divergent branches and uploaded candidates ahead of known heads stay.
+Head changes abort a deletion batch. At most ten old candidates are examined per
+pass, with a rotating in-memory cursor to avoid starvation by retained objects.
+Tests cover multi-device convergence, divergent/offline heads, unpublished
+candidates, a changing head, and restoring after cleanup. Media deletion remains
+outside this cleanup path.
 
 ### 5. Medium: repeated whole-file verification increases sync cost
 
@@ -93,9 +110,14 @@ the multi-device guard: its purpose is to protect unresolved branches.
 in `openVerifiedSource`, and again during materialization. Media lookup logic is
 duplicated between source discovery and existence verification.
 
-Next change: centralize verified-source selection and measure bytes read per
-sync. Scope any verification reuse to an operation and a stable file identity;
-do not treat a stored hash alone as evidence that local bytes still match.
+Implemented: one verified-source resolver serves presence and upload lookup,
+including fallback from unreadable staged files to retained originals. Upload
+planning opens that source directly instead of hashing once for presence and
+again to open it. Unchanged applies skip materialization, and staged cleanup no
+longer scans every descriptor for every blob. No cross-pass hash cache was added;
+materialization and subsequent operations still verify bytes independently.
+Tests assert one initial hash read, later-call revalidation, and retained fallback.
+A full native bytes-read benchmark is still useful before adding more caching.
 
 ### 6. Medium: error categories can incorrectly blame backup corruption
 
@@ -104,10 +126,13 @@ do not treat a stored hash alone as evidence that local bytes still match.
 `invalid-data`, which reaches the same category. Local pending-candidate failures
 in `publication.ts` similarly use a remote-snapshot reason.
 
-Next change: separate invalid remote content, local merge/model failures, and
-rejected provider requests. Retain non-sensitive error codes for diagnostics
-and give each category an appropriate action. The date fix removes the reported
-trigger but does not overhaul these error categories.
+Implemented: local merge/model and pending-candidate failures use journal
+preparation recovery. HTTP 400 now has an `invalid-request` provider code and
+`provider-request-rejected` attention state, with an update/retry instruction.
+Invalid downloaded content still uses backup verification. Hydration shares the
+same provider classification. Unknown failures use neutral queued-work copy
+instead of claiming Drive was unreachable. New text is present in all six locales;
+non-sensitive diagnostic codes remain persisted.
 
 ## Safeguards worth retaining
 
@@ -127,3 +152,12 @@ two-device convergence, date/text combinations, date-only conflicts, no-base
 merges, codec validation, reversed conflict labels, and per-plan download reuse.
 Live iOS/Android + Google Drive verification remains to be performed with both
 clients running the updated code.
+
+Follow-up compatibility: recovery lineage chains and the provider-request attention
+state also require updated clients. No cloud data reset or database migration is
+needed. Follow-up changes are separate from the initial unsigned commit `1af686b`.
+
+Follow-up validation: 231 Jest tests across 23 suites and 55 Bun tests across
+four files passed, including the production SQLite adapter. The final expanded
+retention cases passed in the 42-test engine suite. TypeScript and targeted lint
+passed. Native-device timing and live Google Drive verification remain pending.

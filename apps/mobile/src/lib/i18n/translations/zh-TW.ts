@@ -861,4 +861,6 @@ export const zhTW: Translations = {
   'Cloud deletion completed': '雲端刪除已完成',
   'Export or repair the affected journal data, then return and retry.': '匯出或修復受影響的日記資料，然後返回並重試。',
   'Cloud backup retry completed': '雲端備份重試已完成',
+  "Cloud sync could not finish. Your changes remain safely queued.": "雲端同步未能完成。你的變更仍安全地保留在佇列中。",
+  "Google Drive rejected a backup request. Update Tackbok and retry.": "Google Drive 拒絕了備份請求。請更新 Tackbok 後重試。",
 };
