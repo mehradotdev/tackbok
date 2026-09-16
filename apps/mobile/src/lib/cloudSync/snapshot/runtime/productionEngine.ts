@@ -168,8 +168,9 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
 
   private async syncPass(): Promise<RuntimePassResult> {
     this.needsFollowup = false;
-    this.onActivity('preparing');
+    this.onActivity('checking');
     const hashing = await hashPendingProductionMedia(2);
+    if (hashing.processed > 0) this.onActivity('preparing');
     const [unhashed] = await db.select({ value: count() }).from(mediaAssets).where(and(
       isNotNull(mediaAssets.local_uri),
       or(isNull(mediaAssets.blob_hash), isNull(mediaAssets.byte_size)),
@@ -254,7 +255,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       }
     }
 
-    this.onActivity('finishing');
+    if (result.status !== 'up-to-date' || hydrated > 0) this.onActivity('finishing');
     const now = Date.now();
     await db.insert(syncProviderState).values({
       provider_kind: 'google-drive',
@@ -350,6 +351,8 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     provider,
     {
       at: (point) => {
+        // Housekeeping during an otherwise quiet check is not pending sync work.
+        if (point === 'during-snapshot-cleanup') return;
         if (point === 'during-remote-snapshot-download') options.onActivity('checking');
         else if (point === 'during-merge-application' || point.startsWith('after-base-')) {
           options.onActivity('finishing');

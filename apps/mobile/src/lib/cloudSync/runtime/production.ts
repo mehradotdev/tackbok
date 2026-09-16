@@ -17,24 +17,23 @@ import {
   SyncRuntime,
   type RuntimePlatform,
   type RuntimeSyncEngine,
-  type SyncPassPhase,
 } from './SyncRuntime';
+import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { isCloudSyncNetworkAllowed } from './rolloutPolicy';
 import { readCloudSyncFailureCategory } from '../failureClassification';
+export type { ProductionCloudSyncActivity } from './activity';
 
 const productionCloudSyncListeners = new Set<() => void>();
-export type ProductionCloudSyncActivity = 'idle' | SyncPassPhase;
-let productionCloudSyncActivity: ProductionCloudSyncActivity = 'idle';
+const productionCloudSyncActivity = new SyncActivity(notifyProductionCloudSyncChanged);
 
 export function getProductionCloudSyncActivity(): ProductionCloudSyncActivity {
-  return productionCloudSyncActivity;
+  return productionCloudSyncActivity.current;
 }
 
 export function setProductionCloudSyncActivity(activity: ProductionCloudSyncActivity): void {
-  productionCloudSyncActivity = activity;
-  notifyProductionCloudSyncChanged();
+  productionCloudSyncActivity.report(activity);
 }
 
 export function subscribeProductionCloudSync(listener: () => void): () => void {
@@ -149,10 +148,15 @@ export async function runProductionManualSync(): Promise<boolean> {
   // Fast Refresh, a prior Disconnect, or an app lifecycle cleanup may have
   // stopped the singleton. A user-initiated pass should make one explicit
   // attempt to restore the runtime before reporting failure.
-  await productionRuntime.start();
-  const result = await productionRuntime.run('manual');
-  notifyProductionCloudSyncChanged();
-  return result !== null;
+  const finish = productionCloudSyncActivity.beginManual();
+  try {
+    await productionRuntime.start();
+    const result = await productionRuntime.run('manual');
+    notifyProductionCloudSyncChanged();
+    return result !== null;
+  } finally {
+    finish();
+  }
 }
 
 export function getProductionCloudSyncFailureCategory() {
