@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+// Type augmentation only: Google/iOS builds do not link the Galaxy native module.
+import type {} from 'react-native-purchases-store-galaxy';
 import Purchases, {
   PURCHASES_ERROR_CODE,
   type PurchasesError,
@@ -35,12 +37,20 @@ export type SupportPurchaseResult = 'completed' | 'cancelled' | 'pending';
 let configurationPromise: Promise<void> | null = null;
 let packagesByTier = new Map<SupportTierId, PurchasesPackage>();
 
+function isGalaxyStore(): boolean {
+  return (
+    Platform.OS === 'android' && Constants.expoConfig?.extra?.androidStore === 'samsung'
+  );
+}
+
 function getRevenueCatApiKey(): string | undefined {
+  // Galaxy TEST mode exercises Samsung IAP, not RevenueCat's simulated Test Store.
+  if (isGalaxyStore()) return process.env.EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY;
   const appVariant = Constants.expoConfig?.extra?.appVariant;
   const isTestBuild = appVariant === 'beta' || __DEV__;
   if (isTestBuild) return process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY;
 
-  const platform = process.env.EXPO_OS ?? Platform.OS;
+  const platform = Platform.OS;
   if (platform === 'ios') return process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
   if (platform === 'android') {
     return process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
@@ -52,7 +62,7 @@ export function initializeRevenueCat(): Promise<void> {
   if (configurationPromise) return configurationPromise;
 
   configurationPromise = (async () => {
-    const platform = process.env.EXPO_OS ?? Platform.OS;
+    const platform = Platform.OS;
     if (platform !== 'ios' && platform !== 'android') {
       throw new SupportPurchaseError(
         'configuration',
@@ -69,7 +79,15 @@ export function initializeRevenueCat(): Promise<void> {
     }
 
     if (!(await Purchases.isConfigured())) {
-      Purchases.configure({ apiKey });
+      if (isGalaxyStore()) {
+        const mode = Constants.expoConfig?.extra?.galaxyBillingMode ?? 'PRODUCTION';
+        if (mode !== 'PRODUCTION' && mode !== 'TEST') {
+          throw new SupportPurchaseError('configuration', 'Invalid Galaxy billing mode.');
+        }
+        Purchases.configure({ apiKey, store: 'GALAXY', galaxyBillingMode: mode });
+      } else {
+        Purchases.configure({ apiKey });
+      }
       if (__DEV__) await Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
     }
   })().catch((error) => {
@@ -119,9 +137,9 @@ export async function loadSupportCatalog(): Promise<SupportCatalogTier[]> {
 function isPurchasesError(error: unknown): error is PurchasesError {
   return Boolean(
     error &&
-      typeof error === 'object' &&
-      'code' in error &&
-      typeof (error as { code?: unknown }).code === 'string',
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string',
   );
 }
 
@@ -182,10 +200,7 @@ export async function purchaseSupportTier(
         if (error.code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) {
           return 'pending';
         }
-        throw new SupportPurchaseError(
-          classifyPurchasesError(error.code),
-          error.message,
-        );
+        throw new SupportPurchaseError(classifyPurchasesError(error.code), error.message);
       }
       throw new SupportPurchaseError('unknown', 'The purchase could not be completed.');
     }
