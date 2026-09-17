@@ -7,6 +7,7 @@ import { useCSSVariable } from 'uniwind';
 import {
   ArrowLeft,
   ArrowRight,
+  HandHeart,
   Heart,
   RefreshCw,
   Share2,
@@ -265,7 +266,7 @@ export default function SupportScreen() {
       <ScrollView className="px-safe" contentContainerClassName="pb-safe-or-8 pt-6">
         <View className="mb-6 items-center px-6">
           <View className="mb-4 size-16 items-center justify-center rounded-full bg-primary/15">
-            <Icon as={Heart} className="text-foreground" size={32} strokeWidth={1.8} />
+            <Icon as={HandHeart} className="text-foreground" size={40} strokeWidth={1.8} />
           </View>
           <Text className="text-center text-base leading-6 text-foreground">
             {t(

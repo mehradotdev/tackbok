@@ -39,7 +39,7 @@ export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milesto
             })
       }
       className={cn(
-        'flex-row w-full active:bg-muted',
+        'flex-row w-full active:bg-active-overlay',
         showTimelineBorders && !milestone.isLast && 'border-b-2 border-border',
       )}>
       {/* --- Timeline Column --- */}

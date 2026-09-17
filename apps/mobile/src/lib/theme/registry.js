@@ -54,20 +54,40 @@ export const THEMES = [
     "defaultTitleFontId": "figtree"
   },
   {
-    "id": "lavender",
-    "name": "Lavender",
-    "description": "Gentle purple/lavender",
+    "id": "shiro",
+    "name": "Shiro",
+    "description": "Sunlit lakeside with a white dog",
     "variant": "light",
     "enableTimelineBorders": false,
-    "defaultTitleFontId": "gloriahallelujah"
+    "backdropId": "shiro",
+    "defaultTitleFontId": "baskervville"
   },
   {
-    "id": "bubblegum",
-    "name": "Bubblegum",
-    "description": "Neo-Brutalism Pop",
+    "id": "shadow",
+    "name": "Shadow",
+    "description": "Moonlit lakeside with a black cat",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "shadow",
+    "defaultTitleFontId": "baskervville"
+  },
+  {
+    "id": "helena",
+    "name": "Helena",
+    "description": "Sunlit meadow, ivory clouds and a dragonfly",
     "variant": "light",
-    "enableTimelineBorders": true,
-    "defaultTitleFontId": "spacemono"
+    "enableTimelineBorders": false,
+    "backdropId": "helena",
+    "defaultTitleFontId": "lora"
+  },
+  {
+    "id": "poonam",
+    "name": "Poonam",
+    "description": "Moonlit meadow, silver clouds and a moth",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "poonam",
+    "defaultTitleFontId": "lora"
   },
   {
     "id": "clemens",
@@ -86,6 +106,32 @@ export const THEMES = [
     "enableTimelineBorders": false,
     "backdropId": "botanical",
     "defaultTitleFontId": "baskervville"
+  },
+  {
+    "id": "camino",
+    "name": "Camino",
+    "description": "A quiet sunlit walk toward Santiago",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "camino",
+    "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "camino-night",
+    "name": "Camino Night",
+    "description": "The way to Santiago beneath a shimmering sky",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "camino-night",
+    "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "bubblegum",
+    "name": "Bubblegum",
+    "description": "Neo-Brutalism Pop",
+    "variant": "light",
+    "enableTimelineBorders": true,
+    "defaultTitleFontId": "spacemono"
   },
   {
     "id": "hecker",
@@ -120,8 +166,8 @@ export const THEMES = [
     "defaultTitleFontId": "cinzel"
   },
   {
-    "id": "navy",
-    "name": "Navy",
+    "id": "naini",
+    "name": "Naini",
     "description": "Deep navy/slate blue",
     "variant": "dark",
     "enableTimelineBorders": false,
@@ -150,6 +196,14 @@ export const THEMES = [
     "variant": "light",
     "enableTimelineBorders": true,
     "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "lavender",
+    "name": "Lavender",
+    "description": "Gentle purple/lavender",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "defaultTitleFontId": "gloriahallelujah"
   }
 ];
 

@@ -40,6 +40,7 @@ export const ar: Translations = {
   'Failed to load entries': 'فشل تحميل السجلات',
   'Write now': 'اكتب الآن',
   'Pick a date': 'اختر تاريخًا',
+  'Play with Pet': 'العب مع الحيوان الأليف',
   'Collapse gratitude actions': 'طي إجراءات الامتنان',
   'Expand gratitude actions': 'توسيع إجراءات الامتنان',
 
@@ -262,8 +263,7 @@ export const ar: Translations = {
   Appearance: 'المظهر',
   Theme: 'السمة',
   'Select a theme': 'اختر سمة',
-  'Choose from over 10 different themes and color schemes':
-    'اختر من بين أكثر من 10 سمة ونظام ألوان مختلف',
+  '{count} themes and color schemes': '{count} سمة ونظام ألوان',
   'Timeline Entry Length': 'طول إدخال الجدول الزمني',
   'Number of lines shown in the timeline':
     'عدد الأسطر المعروضة في الجدول الزمني. النص الكامل يظهر عند النقر على الإدخال',
@@ -582,7 +582,7 @@ export const ar: Translations = {
   'Your name (optional)': 'اسمك (اختياري)',
   'Stays on your device.': 'يبقى على جهازك.',
   'Make it yours': 'اجعله يناسبك',
-  'Pick a look — you can change everything later in Settings.':
+  'Pick a look. You can change everything later in Settings.':
     'اختر مظهرًا — يمكنك تغيير كل شيء لاحقًا من الإعدادات.',
   'A walk in the morning sun': 'نزهة تحت شمس الصباح',
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
@@ -595,11 +595,11 @@ export const ar: Translations = {
   'Help improve Tackbok?': 'هل تودّ المساعدة في تحسين Tackbok؟',
   'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
     'تطبيق Tackbok مجاني ومفتوح المصدر. تساعدنا الإحصاءات المجهولة في اكتشاف الأخطاء ومعرفة الميزات المهمة.',
-  'Anonymous usage stats only — which screens and features get used.':
+  'Anonymous usage stats only, including which screens and features get used.':
     'إحصاءات استخدام مجهولة فقط — أي الشاشات والميزات تُستخدم.',
   'Never your journal content, photos, voice memos, or anything you type.':
     'لن نجمع أبدًا محتوى يوميّاتك أو صورك أو مذكّراتك الصوتية أو أي شيء تكتبه.',
-  'Open source — the exact event list is public in the repo.':
+  'Open source. The exact event list is public in the repo.':
     'مفتوح المصدر — قائمة الأحداث الكاملة متاحة للجميع في المستودع.',
   'See exactly what we collect': 'اطّلع بالضبط على ما نجمعه',
   'Share anonymous stats': 'مشاركة إحصاءات مجهولة',
@@ -613,13 +613,13 @@ export const ar: Translations = {
     'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو البريد الإلكتروني أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',
   'You’re all set, {name}!': 'كل شيء جاهز يا {name}!',
   'You’re all set!': 'كل شيء جاهز!',
-  'Two last things you can turn on — both optional.':
+  'Two last things you can turn on. Both are optional.':
     'أمران أخيران يمكنك تفعيلهما — كلاهما اختياري.',
   'Add example entries': 'إضافة مدخلات تجريبية',
   'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
     'بضع مدخلات تجريبية تُظهر كيفية عمل الصور والمذكّرات الصوتية والحالات المزاجية والوسوم. يمكنك إزالتها في أي وقت بضغطة واحدة.',
   'Remind me daily': 'ذكّرني يوميًا',
-  'A gentle nudge to write — never your journal content.':
+  'A gentle nudge to write. Never your journal content.':
     'تنبيه لطيف للكتابة — دون محتوى يوميّاتك أبدًا.',
   'Remind me at {time}': 'ذكّرني في {time}',
   'Setting things up…': 'جارٍ التجهيز…',
@@ -834,7 +834,7 @@ export const ar: Translations = {
   'Verify backup health': 'التحقق من سلامة النسخة الاحتياطية',
   'Waiting for the first successful sync': 'في انتظار أول مزامنة ناجحة',
   'You can leave this screen; syncing resumes when Tackbok is active.': 'يمكنك مغادرة هذه الشاشة؛ تستأنف المزامنة عندما يكون Tackbok نشطًا.',
-  'Your journal stays on your device — with optional cloud backup.': 'تبقى يومياتك على جهازك — مع نسخ احتياطي سحابي اختياري.',
+  'Your journal stays on your device. Cloud backup is optional.': 'تبقى يومياتك على جهازك — مع نسخ احتياطي سحابي اختياري.',
   '{count} changes safely queued': '{count} تغييرات في قائمة انتظار آمنة',
   '{count} changes remaining': 'متبقٍ {count} تغييرات',
   'Google Drive authorization needs attention.': 'يحتاج تفويض Google Drive إلى تدخل.',

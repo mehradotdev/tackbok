@@ -6,6 +6,7 @@ import {
   DEFAULT_THEME_ID,
   DEFAULT_TITLE_FONT,
   THEMES,
+  THEME_IDS,
   TITLE_FONTS,
 } from './registry';
 import {
@@ -100,9 +101,49 @@ function extractUniwindThemeIds(content: string): string[] {
 }
 
 describe('Theme Registry', () => {
+  test.each(['helena', 'poonam', 'shiro', 'shadow'])(
+    '%s provides readable text on its solid surfaces',
+    (id) => {
+      const theme = THEME_DEFINITIONS.find((candidate) => candidate.id === id)!;
+      const variables = resolveThemeVariables(theme);
+      const luminance = (hex: string) => {
+        const channels = hex
+          .slice(1)
+          .match(/../g)!
+          .map((channel) => {
+            const value = parseInt(channel, 16) / 255;
+            return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+          });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      };
+      for (const surface of [
+        'background',
+        'card',
+        'popover',
+        'primary',
+        'secondary',
+        'muted',
+        'accent',
+        'destructive',
+      ]) {
+        const foreground =
+          surface === 'background' ? 'foreground' : `${surface}-foreground`;
+        const a = luminance(variables[`--color-${surface}`]);
+        const b = luminance(variables[`--color-${foreground}`]);
+        const contrast = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+        expect({ surface, readable: contrast >= 4.5 }).toEqual({
+          surface,
+          readable: true,
+        });
+      }
+    },
+  );
+
   const globalCss = fs.readFileSync(GLOBAL_CSS_PATH, 'utf-8');
   const fontsModule = fs.readFileSync(FONTS_MODULE_PATH, 'utf-8');
-  const commonJsRegistry = loadCommonJsModule(REGISTRY_CJS_PATH) as typeof import('./registry');
+  const commonJsRegistry = loadCommonJsModule(
+    REGISTRY_CJS_PATH,
+  ) as typeof import('./registry');
   const uniwindTypesModule = fs.readFileSync(UNIWIND_TYPES_PATH, 'utf-8');
   const titleFontsById = new Map(TITLE_FONTS.map((font) => [font.id, font]));
   const loadedFontFamilies = new Set(extractAppFontAssetNames(fontsModule));
@@ -118,7 +159,8 @@ describe('Theme Registry', () => {
   ).sort();
 
   test('global.css contains exactly one generated theme block', () => {
-    const startMatches = globalCss.match(/\/\* @generated theme-artifacts:start \*\//g) ?? [];
+    const startMatches =
+      globalCss.match(/\/\* @generated theme-artifacts:start \*\//g) ?? [];
     const endMatches = globalCss.match(/\/\* @generated theme-artifacts:end \*\//g) ?? [];
 
     expect(startMatches).toHaveLength(1);
@@ -134,6 +176,32 @@ describe('Theme Registry', () => {
     expect(DEFAULT_TITLE_FONT).toBe(SOURCE_DEFAULT_TITLE_FONT);
     expect(TITLE_FONTS).toEqual(SOURCE_TITLE_FONTS);
     expect(THEMES).toEqual(sourceThemes);
+  });
+
+  test('theme picker uses the curated display order and includes every theme once', () => {
+    expect(THEME_IDS).toEqual([
+      'light',
+      'dark',
+      'shiro',
+      'shadow',
+      'helena',
+      'poonam',
+      'clemens',
+      'weckner',
+      'camino',
+      'camino-night',
+      'bubblegum',
+      'hecker',
+      'peach',
+      'ember',
+      'ocean',
+      'naini',
+      'sakura',
+      'slate',
+      'kela',
+      'lavender',
+    ]);
+    expect(new Set(THEME_IDS).size).toBe(THEME_IDS.length);
   });
 
   test('generated CommonJS registry stays in sync with the ESM registry', () => {
@@ -189,7 +257,9 @@ describe('Theme Registry', () => {
   });
 
   test('the baseline theme defines the required token contract', () => {
-    expect(baselineVariableKeys).toEqual(expect.arrayContaining(REQUIRED_THEME_VARIABLES));
+    expect(baselineVariableKeys).toEqual(
+      expect.arrayContaining(REQUIRED_THEME_VARIABLES),
+    );
   });
 
   test('every theme default title font exists, is loaded, and matches CSS --font-heading', () => {

@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, {
   Extrapolation,
@@ -6,8 +6,11 @@ import Animated, {
   useAnimatedStyle,
 } from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
-import { Calendar, ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
+import { Calendar, ChevronLeft, ChevronRight, PawPrint, Plus } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
+import { useSettingsStore } from '~/lib/settings';
+import { usePetInteraction } from '~/components/backdrops/PetInteraction';
+import { gratitudeDockHeight } from './gratitude-dock-layout';
 import { Icon } from '~/components/ui/icon';
 import { useTranslation } from '~/lib/i18n';
 import { Button } from '~/components/ui/button';
@@ -16,7 +19,7 @@ import { useGratitudeActionDockPresentation } from '~/hooks/useGratitudeActionDo
 export const GRATITUDE_ACTION_DOCK_CONFIG = {
   dimensions: {
     actionSize: 52,
-    panelHeight: 148,
+    panelHeight: 148 as number,
     tabWidth: 28,
     expandedWidth: 102,
     cornerRadius: 28,
@@ -112,6 +115,9 @@ export function GratitudeActionDock({
   onPickDate,
 }: GratitudeActionDockProps) {
   const { t, isRTL } = useTranslation();
+  const theme = useSettingsStore((s) => s.theme);
+  const pet = usePetInteraction();
+  const showPet = (theme === 'shiro' || theme === 'shadow') && pet !== null;
   const {
     containerStyle,
     hasMeasured,
@@ -121,11 +127,17 @@ export function GratitudeActionDock({
     shellShadowStyle,
     wrapperStyle,
   } = useGratitudeActionDockPresentation({
-      dockConfig: GRATITUDE_ACTION_DOCK_CONFIG,
-      isExpanded,
-      isRTL,
-      onToggle,
-    });
+    dockConfig: {
+      ...GRATITUDE_ACTION_DOCK_CONFIG,
+      dimensions: {
+        ...GRATITUDE_ACTION_DOCK_CONFIG.dimensions,
+        panelHeight: gratitudeDockHeight(showPet),
+      },
+    },
+    isExpanded,
+    isRTL,
+    onToggle,
+  });
   const directionMultiplier = isRTL ? -1 : 1;
   const collapsedChevronIcon = isRTL ? ChevronRight : ChevronLeft;
   const expandedChevronIcon = isRTL ? ChevronLeft : ChevronRight;
@@ -193,9 +205,7 @@ export function GratitudeActionDock({
         style={[wrapperStyle, { opacity: hasMeasured ? 1 : 0 }]}
         className={cn('absolute z-10', 'right-0 items-end')}>
         <GestureDetector gesture={panGesture}>
-          <Animated.View
-            style={shellShadowStyle}
-            className="shadow-theme">
+          <Animated.View style={shellShadowStyle} className="shadow-theme">
             <Animated.View
               style={containerStyle}
               className={cn(
@@ -234,6 +244,16 @@ export function GratitudeActionDock({
                     <Icon as={Calendar} className="text-primary-foreground" />
                   </View>
                 </DockActionButton>
+                {showPet && (
+                  <DockActionButton
+                    accessibilityLabel={t('Play with Pet')}
+                    disabled={!isExpanded || !pet.ready || pet.busy}
+                    onPress={pet.play}>
+                    <View className="size-10 items-center justify-center rounded-full">
+                      <Icon as={PawPrint} className="text-foreground" />
+                    </View>
+                  </DockActionButton>
+                )}
               </Animated.View>
 
               {/* Toggle chevron stays pinned to the docked edge in both LTR and RTL. */}
@@ -251,7 +271,7 @@ export function GratitudeActionDock({
                   className="absolute inset-0 items-center justify-center">
                   <Icon
                     as={collapsedChevronIcon}
-                    className="text-foreground size-5"
+                    className="text-primary-foreground size-5"
                     strokeWidth={GRATITUDE_ACTION_DOCK_CONFIG.icon.strokeWidth}
                   />
                 </Animated.View>
@@ -260,7 +280,7 @@ export function GratitudeActionDock({
                   className="absolute inset-0 items-center justify-center">
                   <Icon
                     as={expandedChevronIcon}
-                    className="text-foreground size-5"
+                    className="text-primary-foreground size-5"
                     strokeWidth={GRATITUDE_ACTION_DOCK_CONFIG.icon.strokeWidth}
                   />
                 </Animated.View>

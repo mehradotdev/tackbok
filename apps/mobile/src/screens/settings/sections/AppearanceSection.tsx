@@ -5,6 +5,7 @@ import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
+import { THEMES } from '~/lib/theme/themes';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Switch } from '~/components/ui/switch';
@@ -13,6 +14,7 @@ import { SettingsSection } from '../SettingsSection';
 import { SettingsRow } from '~/components/SettingsRow';
 import { SettingsFirstDayModal } from '../SettingsFirstDayModal';
 import SettingsLanguageComp from '../SettingsLanguageComp';
+import { ThemeRowPreview } from '../ThemeRowPreview';
 
 export function AppearanceSection() {
   const { t } = useTranslation();
@@ -44,8 +46,11 @@ export function AppearanceSection() {
         <SettingsLanguageComp />
         <SettingsRow
           label={t('Theme')}
-          description={t('Choose from over 10 different themes and color schemes')}
+          description={t('{count} themes and color schemes', {
+            count: THEMES.length,
+          })}
           icon={Palette}
+          rightElement={<ThemeRowPreview />}
           onPress={() => {
             TrueSheet.present(SHEET_NAMES.THEME_PICKER);
           }}

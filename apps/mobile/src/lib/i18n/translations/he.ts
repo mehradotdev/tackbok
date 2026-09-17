@@ -41,6 +41,7 @@ export const he: Translations = {
   'Failed to load entries': 'טעינת הרשומות נכשלה',
   'Write now': 'כתוב עכשיו',
   'Pick a date': 'בחר תאריך',
+  'Play with Pet': 'לשחק עם חיית המחמד',
   'Collapse gratitude actions': 'כווץ פעולות הודיה',
   'Expand gratitude actions': 'הרחב פעולות הודיה',
 
@@ -263,8 +264,7 @@ export const he: Translations = {
   Appearance: 'מראה',
   Theme: 'ערכת נושא',
   'Select a theme': 'בחר ערכת נושא',
-  'Choose from over 10 different themes and color schemes':
-    'בחר מתוך יותר מ-10 ערכות נושא וסכמות צבע שונות',
+  '{count} themes and color schemes': '{count} ערכות נושא וסכמות צבע',
   'Timeline Entry Length': 'אורך רשומה בציר הזמן',
   'Number of lines shown in the timeline':
     'מספר השורות המוצגות בציר הזמן. הטקסט המלא נראה בלחיצה על הרשומה',
@@ -580,7 +580,7 @@ export const he: Translations = {
   'Your name (optional)': 'השם שלך (אופציונלי)',
   'Stays on your device.': 'נשאר במכשיר שלך.',
   'Make it yours': 'התאימו אותו לעצמכם',
-  'Pick a look — you can change everything later in Settings.':
+  'Pick a look. You can change everything later in Settings.':
     'בחרו מראה — אפשר לשנות הכול מאוחר יותר בהגדרות.',
   'A walk in the morning sun': 'טיול בשמש הבוקר',
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
@@ -593,11 +593,11 @@ export const he: Translations = {
   'Help improve Tackbok?': 'לעזור לשפר את Tackbok?',
   'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
     'Tackbok חינמי ובקוד פתוח. סטטיסטיקות אנונימיות עוזרות לנו למצוא באגים ולהבין אילו תכונות חשובות.',
-  'Anonymous usage stats only — which screens and features get used.':
+  'Anonymous usage stats only, including which screens and features get used.':
     'סטטיסטיקות שימוש אנונימיות בלבד — אילו מסכים ותכונות נמצאים בשימוש.',
   'Never your journal content, photos, voice memos, or anything you type.':
     'לעולם לא תוכן היומן, תמונות, הקלטות קול או כל דבר שאתם מקלידים.',
-  'Open source — the exact event list is public in the repo.':
+  'Open source. The exact event list is public in the repo.':
     'קוד פתוח — רשימת האירועים המדויקת פומבית במאגר.',
   'See exactly what we collect': 'ראו בדיוק מה אנחנו אוספים',
   'Share anonymous stats': 'שיתוף סטטיסטיקות אנונימיות',
@@ -611,13 +611,13 @@ export const he: Translations = {
     'טקסט היומן, כותרות, תמונות, הקלטות קול, תגיות, שם, אימייל או כל דבר שאתם מקלידים. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',
   'You’re all set, {name}!': 'הכול מוכן, {name}!',
   'You’re all set!': 'הכול מוכן!',
-  'Two last things you can turn on — both optional.':
+  'Two last things you can turn on. Both are optional.':
     'שני דברים אחרונים שאפשר להפעיל — שניהם אופציונליים.',
   'Add example entries': 'הוספת רשומות לדוגמה',
   'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
     'כמה רשומות לדוגמה מראות איך עובדים תמונות, הקלטות קול, מצבי רוח ותגיות. אפשר להסיר אותן בכל רגע בלחיצה אחת.',
   'Remind me daily': 'תזכורת יומית',
-  'A gentle nudge to write — never your journal content.':
+  'A gentle nudge to write. Never your journal content.':
     'דחיפה עדינה לכתוב — לעולם לא תוכן היומן שלכם.',
   'Remind me at {time}': 'להזכיר לי ב-{time}',
   'Setting things up…': 'רק רגע, מסדרים הכול…',
@@ -831,7 +831,7 @@ export const he: Translations = {
   'Verify backup health': 'אימות תקינות הגיבוי',
   'Waiting for the first successful sync': 'ממתין לסנכרון המוצלח הראשון',
   'You can leave this screen; syncing resumes when Tackbok is active.': 'אפשר לצאת מהמסך; הסנכרון יתחדש כאשר Tackbok פעיל.',
-  'Your journal stays on your device — with optional cloud backup.': 'היומן שלך נשאר במכשיר — עם גיבוי ענן אופציונלי.',
+  'Your journal stays on your device. Cloud backup is optional.': 'היומן שלך נשאר במכשיר — עם גיבוי ענן אופציונלי.',
   '{count} changes safely queued': '{count} שינויים ממתינים בבטחה',
   '{count} changes remaining': 'נותרו {count} שינויים',
   'Google Drive authorization needs attention.': 'ההרשאה ל-Google Drive דורשת טיפול.',

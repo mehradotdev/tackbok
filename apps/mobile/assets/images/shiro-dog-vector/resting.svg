@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1225" height="1284" viewBox="0 0 1225 1284" fill="none">
+  <title>Shiro — upward-looking resting pose</title>
+  <desc>Editable resting artwork with a script-free browser preview of tail wagging and mixed single/double silent barks. The mobile Reanimated rig independently randomizes each burst and waits 2–5 seconds afterward. The SVG preview uses a representative repeating schedule.</desc>
+  <defs>
+    <linearGradient id="fur" x1="370" y1="350" x2="885" y2="1130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDFA" />
+      <stop offset="0.58" stop-color="#FBF7F1" />
+      <stop offset="1" stop-color="#F1E9DE" />
+    </linearGradient>
+    <linearGradient id="face-fur" x1="527" y1="170" x2="786" y2="629" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFEFC" />
+      <stop offset="1" stop-color="#F8F2EA" />
+    </linearGradient>
+    <linearGradient id="ear-fur" x1="248" y1="465" x2="383" y2="658" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFCF8" />
+      <stop offset="1" stop-color="#EEE5D9" />
+    </linearGradient>
+    <linearGradient id="collar-blue" x1="565" y1="646" x2="778" y2="576" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#59BDF0" />
+      <stop offset="1" stop-color="#32A8E9" />
+    </linearGradient>
+  </defs>
+  <g stroke="#302A24" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <g id="tail">
+      <path fill="url(#fur)" d="M366 1136 C323 1144 286 1119 278 1087 C267 1052 286 1030 312 1017 C342 1002 336 974 312 960 C274 937 239 957 214 983 C177 1021 166 1072 180 1120 C194 1172 227 1203 276 1210 C310 1215 346 1207 377 1190 Z" />
+      <animateTransform attributeName="transform" type="rotate" values="0 354 1160;5.4 354 1160;0 354 1160;-5.4 354 1160;0 354 1160" dur="1.2s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.25;0.5;0.75;1" keySplines="0.37 0 0.63 1;0.37 0 0.63 1;0.37 0 0.63 1;0.37 0 0.63 1" />
+    </g>
+    <g id="far-foreleg">
+      <path fill="url(#fur)" d="M804 839 C867 866 896 941 914 1021 L947 1103 C981 1121 995 1154 986 1182 C978 1208 950 1213 921 1208 L850 1179 L812 1017 Z" />
+    </g>
+    <g id="body">
+      <path fill="url(#fur)" d="M565 633 C527 661 514 703 493 761 C477 807 461 852 432 886 C393 931 365 971 345 1017 C324 1065 316 1115 326 1161 C335 1203 354 1231 390 1240 C428 1248 465 1243 509 1245 L711 1230 C759 1230 788 1222 810 1208 C847 1191 871 1150 882 1102 C895 1047 895 996 891 947 C889 848 865 745 825 669 C806 632 784 609 751 600 Z" />
+      <path fill="#E8DDD0" stroke="none" opacity="0.35" d="M484 849 C453 917 384 969 358 1050 C339 1106 345 1177 379 1205 C405 1226 441 1224 481 1228 L598 1229 C533 1243 425 1246 390 1236 C344 1224 325 1184 329 1115 C332 1050 363 982 411 924 C442 888 461 867 484 849 Z" />
+    </g>
+    <g id="near-foreleg">
+      <path fill="url(#fur)" stroke="none" d="M646 979 C663 1025 672 1078 677 1137 C680 1196 687 1228 726 1237 C757 1245 788 1239 807 1230 C825 1226 835 1213 837 1195 C841 1166 825 1140 807 1128 L788 987 Z" />
+      <path d="M654 990 C665 1031 672 1092 678 1152 C682 1197 690 1229 727 1237 C756 1244 786 1238 806 1230 C827 1226 838 1211 838 1189 C839 1163 824 1140 807 1128 C801 1086 795 1035 788 987" />
+      <path stroke-width="5" d="M799 1190 C806 1201 804 1218 796 1230" />
+    </g>
+    <g id="front-right-paw">
+      <path fill="url(#fur)" d="M884 957 C896 1008 899 1065 912 1110 C932 1129 942 1153 941 1177 C941 1204 920 1216 891 1220 C869 1225 847 1221 827 1215" />
+    </g>
+    <g id="haunch-and-hind-paw">
+      <path stroke-width="6" d="M608 997 C645 1014 663 1044 670 1084 C678 1127 669 1162 650 1185" />
+      <path fill="url(#fur)" stroke-width="7" d="M566 1195 C593 1178 621 1177 646 1184 C667 1190 680 1210 667 1227 C659 1238 638 1242 616 1243 L467 1245" />
+      <path stroke-width="5" d="M626 1216 C633 1222 635 1232 631 1240" />
+    </g>
+    <g id="collar">
+      <path fill="url(#collar-blue)" d="M538 609 C597 614 705 583 764 552 C782 553 794 565 798 580 C802 598 786 613 765 625 C711 655 628 678 574 670 C546 667 528 658 529 644 C529 632 533 620 538 609 Z" />
+    </g>
+    <g id="head">
+      <g id="head-base">
+        <path fill="url(#face-fur)" d="M348 372 C357 323 399 274 445 223 C482 179 514 137 562 105 C610 72 656 55 713 49 C774 42 827 48 870 66 C916 85 941 119 955 162 C972 213 961 261 936 308 C912 354 881 394 847 433 C817 470 794 516 754 548 C704 588 647 613 591 629 C551 640 508 640 473 631 C425 619 397 591 384 552 C368 507 368 462 373 418 Z" />
+        <path stroke-width="5" d="M622 93 C615 69 625 47 647 37 C667 28 685 33 699 47" />
+      </g>
+      <g id="near-ear">
+        <path fill="url(#ear-fur)" stroke="none" d="M378 359 C337 384 302 420 272 459 C226 515 188 563 190 612 C189 659 212 694 250 700 C293 708 329 687 350 653 C369 619 374 575 382 521 L398 398 Z" />
+        <path d="M378 359 C337 384 302 420 272 459 C226 515 188 563 190 612 C189 659 212 694 250 700 C293 708 329 687 350 653 C369 619 374 575 382 521 L398 398" />
+      </g>
+      <g id="brow">
+        <path stroke-width="5" d="M466 296 C450 269 457 237 477 213 C491 197 511 185 530 188" />
+      </g>
+      <g id="visible-eye" stroke="none">
+        <path fill="#15130F" d="M613 276 C613 291 602 304 587 304 C571 304 560 294 560 278 C560 263 570 251 586 251 C602 251 613 261 613 276 Z" />
+        <ellipse cx="584" cy="274" rx="18" ry="19" fill="#090A08" />
+      </g>
+      <g id="nose" stroke="none">
+        <path fill="#201C17" d="M865 129 C866 145 853 158 837 158 C821 158 809 147 809 133 C808 117 820 104 836 103 C852 102 864 114 865 129 Z" />
+        <ellipse cx="837" cy="131" rx="21" ry="21" fill="#090A08" />
+      </g>
+      <animateTransform attributeName="transform" type="rotate" values="0 650 617;0 650 617;-1 650 617;0 650 617;0 650 617;-1 650 617;0 650 617;0 650 617;-1 650 617;0 650 617;0 650 617;-1 650 617;0 650 617;0 650 617;-1 650 617;0 650 617;0 650 617;-1 650 617;0 650 617;0 650 617;-1 650 617;0 650 617;0 650 617" keyTimes="0.0000000;0.1139535;0.1209302;0.1279070;0.2767442;0.2837209;0.2906977;0.2967442;0.3037209;0.3106977;0.5395349;0.5465116;0.5534884;0.6558140;0.6627907;0.6697674;0.6758140;0.6827907;0.6897674;0.8627907;0.8697674;0.8767442;1.0000000" dur="21.5s" repeatCount="indefinite" />
+      <g id="resting-bark-preview" transform="translate(839 239) rotate(-45.8)" stroke="none" opacity="0">
+        <ellipse cx="0" cy="39" rx="38" ry="44" fill="#30231F" />
+        <ellipse cx="0" cy="65.5" rx="18" ry="9.5" fill="#DB9F9A" />
+        <animate attributeName="opacity" values="0;0;1;0;0;1;0;0;1;0;0;1;0;0;1;0;0;1;0;0;1;0;0" keyTimes="0.0000000;0.1139535;0.1209302;0.1279070;0.2767442;0.2837209;0.2906977;0.2967442;0.3037209;0.3106977;0.5395349;0.5465116;0.5534884;0.6558140;0.6627907;0.6697674;0.6758140;0.6827907;0.6897674;0.8627907;0.8697674;0.8767442;1.0000000" dur="21.5s" repeatCount="indefinite" />
+      </g>
+    </g>
+  </g>
+</svg>

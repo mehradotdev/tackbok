@@ -41,6 +41,7 @@ export const de: Translations = {
   'Failed to load entries': 'Einträge konnten nicht geladen werden',
   'Write now': 'Jetzt schreiben',
   'Pick a date': 'Datum auswählen',
+  'Play with Pet': 'Mit dem Haustier spielen',
   'Collapse gratitude actions': 'Dankbarkeitsaktionen einklappen',
   'Expand gratitude actions': 'Dankbarkeitsaktionen ausklappen',
 
@@ -291,8 +292,7 @@ export const de: Translations = {
   Appearance: 'Darstellung',
   Theme: 'Design',
   'Select a theme': 'Design auswählen',
-  'Choose from over 10 different themes and color schemes':
-    'Wähle aus über 10 verschiedenen Designs und Farbschemata',
+  '{count} themes and color schemes': '{count} Designs und Farbschemata',
   'Timeline Entry Length': 'Länge der Zeitleisteneinträge',
   'Number of lines shown in the timeline':
     'Anzahl der in der Zeitleiste angezeigten Zeilen. Der vollständige Text wird sichtbar, wenn du den Eintrag öffnest',
@@ -622,7 +622,7 @@ export const de: Translations = {
   'Your name (optional)': 'Dein Name (optional)',
   'Stays on your device.': 'Bleibt auf deinem Gerät.',
   'Make it yours': 'Gestalte es nach deinen Wünschen',
-  'Pick a look — you can change everything later in Settings.':
+  'Pick a look. You can change everything later in Settings.':
     'Wähle ein Aussehen – du kannst später in den Einstellungen alles ändern.',
   'A walk in the morning sun': 'Ein Spaziergang in der Morgensonne',
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
@@ -635,11 +635,11 @@ export const de: Translations = {
   'Help improve Tackbok?': 'Tackbok verbessern helfen?',
   'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
     'Tackbok ist kostenlos und Open Source. Anonyme Statistiken helfen uns, Fehler zu finden und zu erkennen, welche Funktionen wichtig sind.',
-  'Anonymous usage stats only — which screens and features get used.':
+  'Anonymous usage stats only, including which screens and features get used.':
     'Nur anonyme Nutzungsstatistiken – welche Ansichten und Funktionen verwendet werden.',
   'Never your journal content, photos, voice memos, or anything you type.':
     'Niemals deine Tagebuchinhalte, Fotos, Sprachnotizen oder andere Eingaben.',
-  'Open source — the exact event list is public in the repo.':
+  'Open source. The exact event list is public in the repo.':
     'Open Source – die genaue Ereignisliste ist im Repository öffentlich.',
   'See exactly what we collect': 'Genau ansehen, was wir erfassen',
   'Share anonymous stats': 'Anonyme Statistiken teilen',
@@ -653,13 +653,13 @@ export const de: Translations = {
     'Deine Tagebuchtexte, Titel, Fotos, Sprachnotizen, Tags, dein Name, deine E-Mail-Adresse oder andere Eingaben. Keine Werbung, kein Datenverkauf und kein Tracking durch Dritte.',
   'You’re all set, {name}!': 'Alles ist bereit, {name}!',
   'You’re all set!': 'Alles ist bereit!',
-  'Two last things you can turn on — both optional.':
+  'Two last things you can turn on. Both are optional.':
     'Du kannst noch zwei Dinge aktivieren – beide sind optional.',
   'Add example entries': 'Beispieleinträge hinzufügen',
   'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
     'Einige Beispieleinträge zeigen, wie Fotos, Sprachnotizen, Stimmungen und Tags funktionieren. Du kannst sie jederzeit mit einem Tippen entfernen.',
   'Remind me daily': 'Täglich erinnern',
-  'A gentle nudge to write — never your journal content.':
+  'A gentle nudge to write. Never your journal content.':
     'Ein sanfter Anstoß zum Schreiben – ohne deine Tagebuchinhalte.',
   'Remind me at {time}': 'Um {time} erinnern',
   'Setting things up…': 'Alles wird eingerichtet …',
@@ -879,7 +879,7 @@ export const de: Translations = {
   'Verify backup health': 'Sicherungsstatus prüfen',
   'Waiting for the first successful sync': 'Warten auf die erste erfolgreiche Synchronisierung',
   'You can leave this screen; syncing resumes when Tackbok is active.': 'Du kannst diesen Bildschirm verlassen; die Synchronisierung wird fortgesetzt, wenn Tackbok aktiv ist.',
-  'Your journal stays on your device — with optional cloud backup.': 'Dein Tagebuch bleibt auf deinem Gerät — mit optionaler Cloud-Sicherung.',
+  'Your journal stays on your device. Cloud backup is optional.': 'Dein Tagebuch bleibt auf deinem Gerät — mit optionaler Cloud-Sicherung.',
   '{count} changes safely queued': '{count} Änderungen sicher vorgemerkt',
   '{count} changes remaining': '{count} Änderungen verbleiben',
   'Google Drive authorization needs attention.': 'Die Google-Drive-Autorisierung erfordert Aufmerksamkeit.',

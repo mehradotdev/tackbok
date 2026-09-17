@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1536" viewBox="0 0 1024 1536" fill="none">
+  <title>Shadow — resting, upward-looking vector study</title>
+  <desc>Slender near-black seated cat, long curved neck, amber eyes, delicate whiskers and a hanging curled tail. Violet rim light keeps the silhouette visible at night. Editable named layers; resting artwork approval milestone.</desc>
+  <defs>
+    <linearGradient id="fur" x1="388" y1="720" x2="791" y2="892" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17131F"/><stop offset="0.4" stop-color="#101018"/><stop offset="1" stop-color="#0A0B11"/>
+    </linearGradient>
+    <linearGradient id="face" x1="495" y1="240" x2="759" y2="410" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17151F"/><stop offset="0.58" stop-color="#101118"/><stop offset="1" stop-color="#0B0D14"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="366" y1="346" x2="802" y2="1071" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B295C6"/><stop offset="0.55" stop-color="#8C6DA4"/><stop offset="1" stop-color="#655277"/>
+    </linearGradient>
+    <linearGradient id="ear-pink" x1="424" y1="184" x2="684" y2="330" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D19B9B"/><stop offset="1" stop-color="#8E626D"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="566" y1="215" x2="675" y2="361" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7CF7E"/><stop offset="0.55" stop-color="#FFE6A5"/><stop offset="1" stop-color="#F5CF7F"/>
+    </linearGradient>
+    <radialGradient id="halo"><stop stop-color="#9475AA" stop-opacity="0.16"/><stop offset="0.65" stop-color="#836097" stop-opacity="0.07"/><stop offset="1" stop-color="#836097" stop-opacity="0"/></radialGradient>
+    <clipPath id="near-eye-clip"><path d="M525 330 C548 282 593 258 642 306 C619 350 565 372 525 330 Z"/></clipPath>
+    <clipPath id="far-eye-clip"><path d="M698 274 C684 240 692 210 715 199 C744 184 761 215 758 240 C754 268 729 285 698 274 Z"/></clipPath>
+  </defs>
+  <g id="ambient-halo">
+    <ellipse cx="583" cy="834" rx="337" ry="612" fill="url(#halo)"/>
+    <ellipse cx="630" cy="271" rx="296" ry="252" fill="url(#halo)"/>
+  </g>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <g id="tail">
+      <path d="M466 1117 C368 1128 288 1166 239 1248 C202 1312 207 1385 248 1436 C285 1486 364 1515 429 1483 C476 1460 511 1417 500 1381 C493 1356 465 1340 443 1346 C419 1350 408 1370 417 1393 C429 1420 414 1434 394 1439 C345 1452 300 1413 294 1368 C287 1318 316 1274 357 1256 C397 1235 436 1212 480 1201 C508 1189 507 1133 466 1117 Z" fill="url(#fur)" stroke="#392E46" stroke-width="4"/>
+      <path d="M425 1142 C341 1142 278 1185 241 1251 C213 1301 209 1356 230 1403" stroke="url(#rim)" stroke-width="7"/>
+      <path d="M428 1481 C477 1457 509 1416 496 1382 C489 1362 466 1347 447 1350" stroke="#5F4C73" stroke-width="4"/>
+    </g>
+    <g id="far-haunch">
+      <path d="M723 951 C751 919 788 935 805 973 C824 1015 804 1102 778 1159 L722 1176 L690 1105 Z" fill="url(#fur)" stroke="#665074" stroke-width="3"/>
+    </g>
+    <g id="body-neck">
+      <path d="M607 397 C624 449 641 508 634 566 C628 634 581 680 534 734 C480 795 425 863 395 939 C366 1008 368 1084 391 1143 C404 1176 429 1198 468 1209 L638 1206 C675 1198 704 1172 720 1134 C744 1077 744 1010 747 949 C750 878 789 811 801 744 C814 668 786 594 759 528 C741 484 730 444 727 389 Z" fill="url(#fur)" stroke="#302939" stroke-width="4"/>
+      <path d="M614 430 C629 477 641 527 633 571 C625 639 578 688 532 741 C477 804 425 869 395 942 C370 1008 369 1072 389 1129" stroke="url(#rim)" stroke-width="7"/>
+      <path d="M735 447 C743 491 762 536 777 578 C804 650 818 710 798 773 C780 831 745 880 728 927" stroke="url(#rim)" stroke-width="4"/>
+    </g>
+    <g id="far-foreleg">
+      <path d="M749 841 C743 932 724 1053 734 1145 C757 1140 782 1148 792 1164 C806 1185 790 1200 766 1200 L721 1201 C704 1194 704 1173 706 1152 L700 963" fill="url(#fur)"/>
+      <path d="M749 841 C743 932 724 1053 734 1145 C757 1140 782 1148 792 1164 C806 1185 790 1200 766 1200" stroke="#766087" stroke-width="4"/>
+      <path d="M754 1151 C777 1160 781 1181 772 1195" stroke="#635170" stroke-width="3"/>
+    </g>
+    <g id="near-foreleg">
+      <path d="M659 797 C661 878 678 971 690 1043 L711 1149 C737 1156 745 1175 740 1193 C735 1214 685 1218 668 1204 C656 1194 659 1173 656 1153 L617 1005 L588 897 Z" fill="url(#fur)"/>
+      <path d="M659 797 C661 878 678 971 690 1043 L711 1149 C737 1156 745 1175 740 1193 C735 1214 685 1218 668 1204 C656 1194 659 1173 656 1153 L617 1005" stroke="#80658F" stroke-width="3.5"/>
+      <path d="M692 1154 C717 1157 733 1180 724 1204 M681 1178 C689 1187 690 1198 686 1208" stroke="#7C668C" stroke-width="3"/>
+    </g>
+    <g id="near-haunch-and-paw">
+      <path d="M400 1107 C376 1051 389 988 433 960 C475 933 525 932 565 958 C610 987 630 1039 620 1088 C613 1122 599 1144 580 1164 C610 1149 636 1154 646 1171 C661 1192 645 1211 618 1214 L468 1215 C433 1212 413 1190 400 1167 Z" fill="url(#fur)"/>
+      <path d="M456 951 C502 933 544 943 574 967 C617 1001 632 1051 619 1095 C611 1123 598 1146 580 1164 C610 1149 636 1154 646 1171 C661 1192 645 1211 618 1214" stroke="#80628F" stroke-width="4"/>
+      <path d="M611 1171 C626 1181 628 1197 621 1209 M626 1169 C641 1179 643 1194 636 1204" stroke="#735C81" stroke-width="3"/>
+    </g>
+    <g id="head">
+      <g id="far-ear">
+        <path d="M617 181 C631 136 657 85 681 58 C709 89 733 143 744 192 L689 222 Z" fill="#0E1016" stroke="#43354E" stroke-width="4"/>
+        <path d="M621 172 C638 124 660 82 680 60" stroke="url(#rim)" stroke-width="5"/>
+        <path d="M672 171 C674 137 678 101 684 78 C702 103 718 143 725 179 L692 170 L684 179 L690 158 Z" fill="url(#ear-pink)"/>
+      </g>
+      <g id="near-ear">
+        <path d="M532 230 C487 215 438 207 394 214 C387 250 427 324 479 360 L539 305 Z" fill="#0D0F15" stroke="#43354E" stroke-width="4"/>
+        <path d="M520 225 C471 214 432 208 398 214" stroke="url(#rim)" stroke-width="5"/>
+        <path d="M403 226 C439 225 476 244 502 263 L471 271 L496 271 L479 287 L475 335 C442 311 415 263 403 226 Z" fill="url(#ear-pink)"/>
+      </g>
+      <g id="head-base">
+        <path d="M480 290 C493 247 530 217 566 199 C608 177 650 166 689 176 C727 179 757 203 781 235 C806 268 812 301 798 339 C784 376 752 401 715 418 C674 439 625 446 582 440 C539 437 500 418 483 390 C467 362 467 325 480 290 Z" fill="url(#face)"/>
+        <path d="M525 231 C560 199 601 179 641 176" stroke="url(#rim)" stroke-width="4"/>
+        <path d="M784 248 C805 281 807 309 795 340" stroke="#443A55" stroke-width="3"/>
+      </g>
+      <g id="near-eye">
+        <path d="M525 330 C548 282 593 258 642 306 C619 350 565 372 525 330 Z" fill="url(#amber)" stroke="#07090E" stroke-width="7"/>
+        <g clip-path="url(#near-eye-clip)">
+          <ellipse cx="603" cy="292" rx="20" ry="35" transform="rotate(-29 603 292)" fill="#070B0E"/>
+          <ellipse cx="620" cy="292" rx="4.5" ry="7" transform="rotate(-29 620 292)" fill="#FFF9E4"/>
+        </g>
+      </g>
+      <g id="far-eye">
+        <path d="M698 274 C684 240 692 210 715 199 C744 184 761 215 758 240 C754 268 729 285 698 274 Z" fill="url(#amber)" stroke="#07090E" stroke-width="6"/>
+        <g clip-path="url(#far-eye-clip)">
+          <ellipse cx="735" cy="220" rx="15" ry="29" transform="rotate(-28 735 220)" fill="#070B0E"/>
+          <ellipse cx="746" cy="212" rx="4" ry="6" transform="rotate(-28 746 212)" fill="#FFF9E4"/>
+        </g>
+      </g>
+      <g id="nose-mouth">
+        <path d="M674 306 Q686 295 701 291 Q705 301 700 315 Q685 312 674 306 Z" fill="#8E7A9F"/>
+        <path d="M699 316 C706 337 698 348 688 358 M701 330 Q709 339 719 337" stroke="#080B12" stroke-width="3"/>
+      </g>
+      <g id="whiskers" stroke="#E7D5DC" stroke-width="2.5" opacity="0.86">
+        <path d="M577 374 C513 389 452 420 408 459 M583 381 C522 414 467 451 434 496 M590 390 C548 426 508 471 483 516"/>
+        <path d="M773 276 C813 240 852 214 886 197 M778 282 C827 255 876 241 919 236 M782 291 C829 279 872 275 906 281"/>
+      </g>
+    </g>
+  </g>
+</svg>

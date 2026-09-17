@@ -16,6 +16,7 @@ import { SearchResults } from './SearchResults';
 import { GratitudeTimeline } from './GratitudeTimeline';
 import { GratitudeActionDock } from './GratitudeActionDock';
 import { HomeCoachMarks } from './HomeCoachMarks';
+import { PetInteractionProvider } from '~/components/backdrops/PetInteraction';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -149,28 +150,30 @@ export default function HomeScreen() {
           />
         </KeyboardAvoidingView>
       ) : (
-        <View className="relative flex-1 w-full">
-          <GratitudeTimeline
-            onEntryPress={handleEntryPress}
-            onAddEntry={handleAddEntry}
-            onScroll={handleTimelineScroll}
-            onScrollBeginDrag={handleTimelineScrollBeginDrag}
-          />
+        <PetInteractionProvider>
+          <View className="relative flex-1 w-full">
+            <GratitudeTimeline
+              onEntryPress={handleEntryPress}
+              onAddEntry={handleAddEntry}
+              onScroll={handleTimelineScroll}
+              onScrollBeginDrag={handleTimelineScrollBeginDrag}
+            />
 
-          <GratitudeActionDock
-            isExpanded={isActionDockExpanded}
-            onToggle={handleActionDockToggle}
-            onAddEntry={handleAddTodayEntry}
-            onPickDate={() => setShowDatePicker(true)}
-          />
+            <GratitudeActionDock
+              isExpanded={isActionDockExpanded}
+              onToggle={handleActionDockToggle}
+              onAddEntry={handleAddTodayEntry}
+              onPickDate={() => setShowDatePicker(true)}
+            />
 
-          <GratitudeDatepickerModal
-            visible={showDatePicker}
-            onClose={() => setShowDatePicker(false)}
-            onDateSelect={handleGratitudeDatepickerPress}
-            onRandomSelect={handleRandomEntryPress}
-          />
-        </View>
+            <GratitudeDatepickerModal
+              visible={showDatePicker}
+              onClose={() => setShowDatePicker(false)}
+              onDateSelect={handleGratitudeDatepickerPress}
+              onRandomSelect={handleRandomEntryPress}
+            />
+          </View>
+        </PetInteractionProvider>
       )}
 
       {!isSearchMode && <HomeCoachMarks />}

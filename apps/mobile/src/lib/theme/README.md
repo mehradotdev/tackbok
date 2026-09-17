@@ -78,6 +78,99 @@ A theme can opt into full-screen background art via the optional `backdropId` fi
 
 Backdrop ids are not part of the CSS variable contract, so this never touches `global.css` or the every-theme-defines-every-variable rule.
 
+### Helena and Poonam meadows
+
+`SkyBackdrop.tsx` shares one meadow composition between daylight Helena and
+moonlit Poonam. Both retain Lora headings and Inter body text. Helena's UI primary
+is soft blue; artwork colors live independently in `MEADOW_PALETTES` in
+`theme-tokens.ts`, so the sun stays golden and clouds stay ivory. The scoped
+background token still supplies the sky. `meadow-sky-shader.ts` is isolated from
+the older shader used by pet scenes and Camino.
+
+`meadow-art.ts` builds three batched layers of rooted grass blades and seed heads.
+Individual tips bend with continuous sway and phased traveling gusts. Actual
+container dimensions determine plant count and depth: tablet/landscape layouts
+reveal additional meadow instead of stretching phone art. Soft distance blur and
+a palette wash keep transparent journal content readable.
+
+The sky uses elapsed active seconds for continuous left-to-right clouds (about
+75 seconds per phone-width), without a reversing loop. Thin clouds veil the
+upper-right sun/full moon. Night retains faint stars and lunar texture.
+A gradient/disc fallback remains if shader compilation fails.
+
+One dragonfly (day) or moth (night) visits for 8–12 seconds, then stays absent for
+10–20 seconds. Each visit randomizes direction and two or three foreground grass
+tips to hover above, with rapid wing motion and slight positional drift. This
+replaces Helena's previous bird flock. Opening the keyboard cancels the visitor;
+closing it starts a fresh quiet interval. Grass and clouds continue while typing.
+Focus loss, backgrounding and unmount stop the clock and clear visitor timers.
+Reduce Motion and picker previews show still scenery without wildlife.
+
+Run `node scripts/art/render-meadow.cjs` from the mobile directory to compile the
+actual shader and render grass geometry at phone, tablet, landscape and picker
+sizes at three animation times in `/tmp/meadow-previews`. The renderer checks
+body-text contrast across every pixel, including sample visitor silhouettes.
+Physical-device motion, scrolling and keyboard checks complement these stills;
+headless renders do not establish GPU performance or battery use.
+
+### Shiro and Shadow pet scenes
+
+`PetBackdrop.tsx` uses the diffuse sky and textured stone shaders, native Skia
+vector art for both Shiro and Shadow. Both use Baskervville headings
+and Inter body text. Atmosphere and surfaces use theme tokens.
+
+Shiro's editable assets live in `assets/images/shiro-dog-vector/`. Compile them
+with `python3 scripts/art/generate-shiro-art.py` from the mobile directory after
+editing. The three authored head views support a smooth turn. Idle motion includes
+breathing, blinking, gentle continuous wagging and randomly selected single/double
+silent barks, with a fresh 2–5-second quiet pause between bursts.
+The home dock's “Play with Pet” action triggers a four-second turn, head tilt and
+two silent barks, ignoring repeated presses during playback. Shadow also exposes the same action: an equal random choice between an eyes-first
+knowing glance (tilt, slow blink, tail flick) and a silent meow followed by a blink.
+Its idle behavior stays quiet, with blinking, ear turns and small tail-tip sways.
+Shadow's source poses are in `assets/images/shadow-cat-vector/`; compile them with
+`python3 scripts/art/generate-shadow-art.py`. The approved three-quarter resting
+view turns through an authored transition pose to the front view. Blinks follow
+the eye angles; quick near-ear flicks and a larger anchored tail sweep keep idle
+movement visible at phone size.
+
+Focus loss/backgrounding cancels pet playback and pending callbacks. Previews
+stay still; Reduce Motion uses a timed still greeting instead of a performance.
+The home-local interaction provider keeps commands out of share/picker scenes.
+Animated transforms are derived as whole arrays: do not nest shared values
+inside a regular transform array.
+
+The four sky/pet themes do not add opaque journal surface overrides. The
+shared `BACKDROPS` map serves both screens and picker cards through `preview`;
+botanical cards also use container-sized still artwork. Adding an entry to this
+map automatically supplies its picker preview.
+
+### Camino and Camino Night
+
+Two manually selected themes share `CaminoBackdrop.tsx`, with Space Mono headings
+and Inter body text. They use the normal theme/font override and picker systems.
+`CaminoLandscape.tsx` renders original native vector paths from `camino-art.ts`:
+a winding trail, lone pilgrim, distant cathedral, wildflowers and a right-side
+stone waymarker. Landmark scales are uniform and bounded by container dimensions;
+wider containers reveal more countryside. The shell sits above the dock's default
+position; a manually moved dock can overlap the artwork.
+
+A final full-canvas color wash mutes every layer so transparent journal entries
+remain readable throughout the screen. Daytime birds use Helena's wing motion in
+a small flock: an 8-second initial wait, then a six-second crossing every 10
+seconds. Cloud drift follows Helena's timing; `camino-sky-shader.ts` adds visible
+cloud banks and phased nighttime star shimmer to the shared sky shader. Focus loss/backgrounding stops animation, reduced motion and
+picker previews are still, and a gradient/disc fallback handles shader failure.
+
+Run `node scripts/art/render-camino.cjs` from the mobile directory to render the
+actual Skia art and compile its shader at phone, tablet, landscape and picker sizes
+in `/tmp/camino-previews`. The night renders sample two animation phases. The
+renderer also checks body-text contrast against every background pixel (at least
+4.5:1). These stills complement native scrolling and animation checks; they do not
+measure GPU
+performance or battery use.
+
+
 ## How `src/global.css` Is Managed
 
 `src/global.css` has two ownership zones:

@@ -40,6 +40,7 @@ export const en = {
   'Failed to load entries': 'Failed to load entries',
   'Write now': 'Write now',
   'Pick a date': 'Pick a date',
+  'Play with Pet': 'Play with Pet',
   'Collapse gratitude actions': 'Collapse gratitude actions',
   'Expand gratitude actions': 'Expand gratitude actions',
 
@@ -275,8 +276,7 @@ export const en = {
   Appearance: 'Appearance',
   Theme: 'Theme',
   'Select a theme': 'Select a theme',
-  'Choose from over 10 different themes and color schemes':
-    'Choose from over 10 different themes and color schemes',
+  '{count} themes and color schemes': '{count} themes and color schemes',
   'Timeline Entry Length': 'Timeline Entry Length',
   'Number of lines shown in the timeline':
     'Number of lines shown in the timeline. The full text is visible when you click the entry',
@@ -594,8 +594,8 @@ export const en = {
   'Your name (optional)': 'Your name (optional)',
   'Stays on your device.': 'Stays on your device.',
   'Make it yours': 'Make it yours',
-  'Pick a look — you can change everything later in Settings.':
-    'Pick a look — you can change everything later in Settings.',
+  'Pick a look. You can change everything later in Settings.':
+    'Pick a look. You can change everything later in Settings.',
   'A walk in the morning sun': 'A walk in the morning sun',
   'Grateful for quiet streets, warm coffee, and a sky full of color.':
     'Grateful for quiet streets, warm coffee, and a sky full of color.',
@@ -608,12 +608,12 @@ export const en = {
   'Help improve Tackbok?': 'Help improve Tackbok?',
   'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
     'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.',
-  'Anonymous usage stats only — which screens and features get used.':
-    'Anonymous usage stats only — which screens and features get used.',
+  'Anonymous usage stats only, including which screens and features get used.':
+    'Anonymous usage stats only, including which screens and features get used.',
   'Never your journal content, photos, voice memos, or anything you type.':
     'Never your journal content, photos, voice memos, or anything you type.',
-  'Open source — the exact event list is public in the repo.':
-    'Open source — the exact event list is public in the repo.',
+  'Open source. The exact event list is public in the repo.':
+    'Open source. The exact event list is public in the repo.',
   'See exactly what we collect': 'See exactly what we collect',
   'Share anonymous stats': 'Share anonymous stats',
   'No thanks': 'No thanks',
@@ -626,14 +626,14 @@ export const en = {
     'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',
   'You’re all set, {name}!': 'You’re all set, {name}!',
   'You’re all set!': 'You’re all set!',
-  'Two last things you can turn on — both optional.':
-    'Two last things you can turn on — both optional.',
+  'Two last things you can turn on. Both are optional.':
+    'Two last things you can turn on. Both are optional.',
   'Add example entries': 'Add example entries',
   'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
     'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.',
   'Remind me daily': 'Remind me daily',
-  'A gentle nudge to write — never your journal content.':
-    'A gentle nudge to write — never your journal content.',
+  'A gentle nudge to write. Never your journal content.':
+    'A gentle nudge to write. Never your journal content.',
   'Remind me at {time}': 'Remind me at {time}',
   'Setting things up…': 'Setting things up…',
   'Start journaling': 'Start journaling',
@@ -659,9 +659,9 @@ export const en = {
   sample_tag_littleThings: 'Little things',
   sample_entry_welcome_title: 'Welcome to Tackbok 👋',
   sample_entry_welcome_body:
-    'This is your gratitude journal — a place for the good moments. Tap the + button to write one line or a whole page, once a day or whenever you like. Tap this card to see the full entry.',
+    'This is your gratitude journal, a place for the good moments. Tap the + button to write one line or a whole page, once a day or whenever you like. Tap this card to see the full entry.',
   sample_entry_photos_title: 'Small moments',
-  sample_entry_photos_body: 'You can attach photos to a memory — tap one to zoom.',
+  sample_entry_photos_body: 'You can attach photos to a memory. Tap one to zoom.',
   sample_entry_voice_title: 'In my own words',
   sample_entry_voice_body:
     'Sometimes it’s easier to say it out loud. Tap play to hear a short voice memo.',
@@ -871,8 +871,8 @@ export const en = {
   'Waiting for the first successful sync': 'Waiting for the first successful sync',
   'You can leave this screen; syncing resumes when Tackbok is active.':
     'You can leave this screen; syncing resumes when Tackbok is active.',
-  'Your journal stays on your device — with optional cloud backup.':
-    'Your journal stays on your device — with optional cloud backup.',
+  'Your journal stays on your device. Cloud backup is optional.':
+    'Your journal stays on your device. Cloud backup is optional.',
   '{count} changes safely queued': '{count} changes safely queued',
   '{count} changes remaining': '{count} changes remaining',
   'Google Drive authorization needs attention.': 'Google Drive authorization needs attention.',
