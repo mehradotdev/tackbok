@@ -30,6 +30,11 @@
         "ANDROID_STORE": "google"
       }
     },
+    "production-local": {
+      "extends": "production",
+      "environment": "production",
+      "autoIncrement": false
+    },
     "production-galaxy": {
       "extends": "production",
       "environment": "production",
