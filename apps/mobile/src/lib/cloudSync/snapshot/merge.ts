@@ -119,7 +119,12 @@ function mergeEntry(
   const content = scalarMerge(base?.content, local.content, remote.content);
   const mood = scalarMerge(base?.mood, local.mood, remote.mood);
   const updatedAt = Math.max(base?.updatedAt ?? 0, local.updatedAt, remote.updatedAt);
-  const entryConflict = title.conflicted || content.conflicted || createdAt.conflicted;
+  const entryConflict = title.conflicted || content.conflicted;
+  // Resolve date-only conflicts by entry edit time; scalarMerge breaks ties
+  // deterministically so reversing local/remote produces the same date.
+  const mergedDate = createdAt.conflicted && !entryConflict && local.updatedAt !== remote.updatedAt
+    ? (local.updatedAt > remote.updatedAt ? local.createdAt : remote.createdAt)
+    : createdAt.value;
   let primaryEntryBranch: 'local' | 'remote' | null = null;
   let recoveredId: string | null = null;
   if (entryConflict) {
@@ -141,7 +146,7 @@ function mergeEntry(
     title: title.conflicted ? primaryBranch.title : title.value,
     content: content.conflicted ? primaryBranch.content : content.value,
     mood: mood.value,
-    createdAt: createdAt.conflicted ? primaryBranch.createdAt : createdAt.value,
+    createdAt: createdAt.conflicted && entryConflict ? primaryBranch.createdAt : mergedDate,
     updatedAt,
     conflictOriginId: local.conflictOriginId,
   };
@@ -159,7 +164,7 @@ function mergeEntry(
   }
   if (createdAt.conflicted) {
     conflicts.push(makeConflict('entry', local.entryId, 'createdAt', base?.createdAt,
-      local.createdAt, remote.createdAt, primary.createdAt, undefined, [recoveredId!], base === undefined));
+      local.createdAt, remote.createdAt, primary.createdAt, undefined, recoveredId ? [recoveredId] : [], base === undefined));
   }
   if (!entryConflict) return [primary];
   return [primary, {

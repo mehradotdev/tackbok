@@ -136,14 +136,39 @@ describe('snapshot merge engine', () => {
     })).not.toThrow();
   });
 
-  it('preserves both dates for a date-only conflict and carries a non-conflicting text edit', () => {
-    const base = emptyDomain(datedEntry);
-    const local = emptyDomain({ ...datedEntry, createdAt: 2, content: 'Edited' });
-    const remote = emptyDomain({ ...datedEntry, createdAt: 3 });
+  it.each([false, true])('resolves date-only conflicts by edit time, without a base: %s', (noBase) => {
+    const base = noBase ? null : emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 2, content: 'Edited', updatedAt: 4 });
+    const remote = emptyDomain({ ...datedEntry, createdAt: 3, content: noBase ? 'Edited' : datedEntry.content, updatedAt: 5 });
+    const photo = { assetId: 'photo', ownerType: 'entry' as const, ownerId: datedEntry.entryId,
+      kind: 'photo' as const, blobHash: 'a'.repeat(64), mimeType: 'image/jpeg', byteSize: 100,
+      width: 10, height: 10, durationMs: null, createdAt: 1, updatedAt: 1 };
+    local.media = [photo];
+    remote.media = [photo];
+    local.entries[0].attachmentOrder = [photo.assetId];
+    remote.entries[0].attachmentOrder = [photo.assetId];
     const merged = mergeSnapshotDomains(base, local, remote);
-    expect(merged.entries.map((e) => e.createdAt).sort()).toEqual([2, 3]);
-    expect(merged.entries.map((e) => e.content)).toEqual(['Edited', 'Edited']);
-    expect(merged.conflicts.map((c) => c.field)).toEqual(['createdAt']);
+    expect(merged.entries).toHaveLength(1);
+    expect(merged.entries[0]).toMatchObject({ entryId: datedEntry.entryId, createdAt: 3,
+      content: 'Edited', attachmentOrder: ['photo'], conflictOriginId: null });
+    expect(merged.media).toEqual([photo]);
+    expect(merged.conflicts).toHaveLength(1);
+    expect(merged.conflicts[0]).toMatchObject({ field: 'createdAt', recoveredEntityIds: [],
+      primaryValueHash: canonicalHash(3) });
+    expect(conflictSymmetricView(mergeSnapshotDomains(base, remote, local)))
+      .toEqual(conflictSymmetricView(merged));
+  });
+
+  it('breaks equal edit timestamps deterministically for date-only conflicts', () => {
+    const base = emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 2, updatedAt: 4 });
+    const remote = emptyDomain({ ...datedEntry, createdAt: 3, updatedAt: 4 });
+    const merged = mergeSnapshotDomains(base, local, remote);
+    expect(merged.entries).toHaveLength(1);
+    expect(merged.entries[0].createdAt).toBe(canonicalHash(2) <= canonicalHash(3) ? 2 : 3);
+    expect(merged.conflicts[0].recoveredEntityIds).toEqual([]);
+    expect(conflictSymmetricView(mergeSnapshotDomains(base, remote, local)))
+      .toEqual(conflictSymmetricView(merged));
   });
 
   it('converges independently discovered conflicts with reversed device labels', () => {

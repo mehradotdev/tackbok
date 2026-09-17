@@ -1,4 +1,6 @@
-import { ProductionSnapshotMediaStore, verifyLocalMediaFile } from './productionJournal';
+import { cloudConflicts, cloudSyncState, runExclusiveDbTransaction } from '~/db';
+import { LocalStorageError } from '../sync/types';
+import { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore, verifyLocalMediaFile } from './productionJournal';
 
 const mockInspectLocalMediaFile = jest.fn();
 const mockExistingUris = new Set<string>();
@@ -99,5 +101,62 @@ describe('verifyLocalMediaFile', () => {
 
     await expect(verifyLocalMediaFile(uri, 'a'.repeat(64), 8)).resolves.toBe(true);
     await expect(verifyLocalMediaFile(uri, 'a'.repeat(64), 9)).resolves.toBe(false);
+  });
+});
+
+
+describe('persisted conflict validation during capture', () => {
+  const valid = {
+    conflictId: 'a'.repeat(64), entityType: 'entry', entityId: 'entry', field: 'createdAt',
+    baseValueHash: null, localValueHash: 'b'.repeat(64), remoteValueHash: 'c'.repeat(64),
+    primaryValueHash: 'b'.repeat(64), alternates: [], recoveredEntityIds: [],
+  };
+  const store = new ProductionSnapshotJournalStore('vault', 'device', new ProductionSnapshotMediaStore());
+
+  function captureWith(value: string) {
+    jest.mocked(runExclusiveDbTransaction).mockImplementation(async (operation) => {
+      const tx = { select: () => ({ from: (table: unknown) => {
+        const rows = table === cloudSyncState ? [{ journal_generation: 1 }]
+          : table === cloudConflicts ? [{ conflict_json: value }] : [];
+        const query = Object.assign(Promise.resolve(rows), {
+          where: () => query, limit: () => query,
+        });
+        return query;
+      } }) };
+      return operation(tx as never);
+    });
+    return store.capture();
+  }
+
+  test.each([
+    '{', 'null', '[]', '{"conflictId":"x"}',
+    ...Object.keys(valid).map((key) => JSON.stringify(Object.fromEntries(
+      Object.entries(valid).filter(([field]) => field !== key),
+    ))),
+    ...[
+      { entityType: 'unknown' }, { field: 'unknown' }, { entityId: '' },
+      { baseValueHash: 'bad' }, { localValueHash: 1 }, { remoteValueHash: {} },
+      { primaryValueHash: 'bad' }, { recoveredEntityIds: null }, { recoveredEntityIds: [1] },
+      { alternates: {} }, { alternates: [null] },
+      { alternates: [{ valueHash: 'a'.repeat(64) }] },
+      { alternates: [{ valueHash: 'bad', value: null }] },
+      { alternates: [{ valueHash: 'a'.repeat(64), value: 1 }] },
+    ].map((patch) => JSON.stringify({ ...valid, ...patch })),
+  ])('classifies malformed persisted data as a preparation failure: %s', async (value) => {
+    await expect(captureWith(value)).rejects.toBeInstanceOf(LocalStorageError);
+    await expect(captureWith(value)).rejects.toMatchObject({
+      reason: 'normalized-model-not-ready', message: 'invalid-local-conflict-record',
+    });
+  });
+
+  test('accepts a complete valid conflict', async () => {
+    const conflict = { ...valid, alternates: [{ valueHash: 'c'.repeat(64), value: null }] };
+    expect((await captureWith(JSON.stringify(conflict))).domain.conflicts).toEqual([conflict]);
+  });
+
+  test('does not relabel unrelated database errors as corrupt metadata', async () => {
+    const error = new TypeError('transaction setup failed');
+    jest.mocked(runExclusiveDbTransaction).mockRejectedValueOnce(error);
+    await expect(store.capture()).rejects.toBe(error);
   });
 });

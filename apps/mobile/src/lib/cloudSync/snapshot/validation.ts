@@ -2,6 +2,7 @@ import { SNAPSHOT_CAPS, invalid } from './caps';
 import { canonicalHash } from './canonical';
 import type {
   JournalSnapshotPayload,
+  SnapshotConflict,
   SnapshotDomain,
 } from './types';
 
@@ -104,6 +105,33 @@ function enumValue(value: unknown, allowed: Set<string>, path: string): string {
 
 function nullableEnum(value: unknown, allowed: Set<string>, path: string): string | null {
   return value === null ? null : enumValue(value, allowed, path);
+}
+
+/** Shared shape validation for cloud snapshots and persisted local conflicts. */
+export function validateSnapshotConflict(value: unknown, path = '$'): SnapshotConflict {
+  const conflict = object(value, [
+    'conflictId', 'entityType', 'entityId', 'field', 'baseValueHash',
+    'localValueHash', 'remoteValueHash', 'primaryValueHash', 'alternates',
+    'recoveredEntityIds',
+  ], path);
+  hash(conflict.conflictId, `${path}.conflictId`);
+  enumValue(conflict.entityType, ENTITY_TYPES, `${path}.entityType`);
+  id(conflict.entityId, `${path}.entityId`);
+  enumValue(conflict.field, CONFLICT_FIELDS, `${path}.field`);
+  nullableHash(conflict.baseValueHash, `${path}.baseValueHash`);
+  nullableHash(conflict.localValueHash, `${path}.localValueHash`);
+  nullableHash(conflict.remoteValueHash, `${path}.remoteValueHash`);
+  nullableHash(conflict.primaryValueHash, `${path}.primaryValueHash`);
+  array(conflict.alternates, SNAPSHOT_CAPS.alternatesPerConflict, `${path}.alternates`)
+    .forEach((item, alternateIndex) => {
+      const altPath = `${path}.alternates[${alternateIndex}]`;
+      const alternate = object(item, ['valueHash', 'value'], altPath);
+      hash(alternate.valueHash, `${altPath}.valueHash`);
+      nullableString(alternate.value, `${altPath}.value`, SNAPSHOT_CAPS.entryBodyBytes);
+    });
+  array(conflict.recoveredEntityIds, SNAPSHOT_CAPS.entries, `${path}.recoveredEntityIds`)
+    .forEach((item, recoveredIndex) => id(item, `${path}.recoveredEntityIds[${recoveredIndex}]`));
+  return value as SnapshotConflict;
 }
 
 /** Shape/scalar validation deliberately runs before canonical-byte and hash checks. */
@@ -210,28 +238,7 @@ export function validateSnapshotShape(value: unknown): JournalSnapshotPayload {
   });
   array(root.conflicts, SNAPSHOT_CAPS.conflicts, '$.conflicts').forEach((item, index) => {
     const path = `$.conflicts[${index}]`;
-    const conflict = object(item, [
-      'conflictId', 'entityType', 'entityId', 'field', 'baseValueHash',
-      'localValueHash', 'remoteValueHash', 'primaryValueHash', 'alternates',
-      'recoveredEntityIds',
-    ], path);
-    hash(conflict.conflictId, `${path}.conflictId`);
-    enumValue(conflict.entityType, ENTITY_TYPES, `${path}.entityType`);
-    id(conflict.entityId, `${path}.entityId`);
-    enumValue(conflict.field, CONFLICT_FIELDS, `${path}.field`);
-    nullableHash(conflict.baseValueHash, `${path}.baseValueHash`);
-    nullableHash(conflict.localValueHash, `${path}.localValueHash`);
-    nullableHash(conflict.remoteValueHash, `${path}.remoteValueHash`);
-    nullableHash(conflict.primaryValueHash, `${path}.primaryValueHash`);
-    array(conflict.alternates, SNAPSHOT_CAPS.alternatesPerConflict, `${path}.alternates`)
-      .forEach((item, alternateIndex) => {
-        const altPath = `${path}.alternates[${alternateIndex}]`;
-        const alternate = object(item, ['valueHash', 'value'], altPath);
-        hash(alternate.valueHash, `${altPath}.valueHash`);
-        nullableString(alternate.value, `${altPath}.value`, SNAPSHOT_CAPS.entryBodyBytes);
-      });
-    array(conflict.recoveredEntityIds, SNAPSHOT_CAPS.entries, `${path}.recoveredEntityIds`)
-      .forEach((item, recoveredIndex) => id(item, `${path}.recoveredEntityIds[${recoveredIndex}]`));
+    validateSnapshotConflict(item, path);
   });
   return value as JournalSnapshotPayload;
 }

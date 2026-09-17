@@ -20,6 +20,8 @@ import {
 import { AssetType, type Asset } from '~/types';
 import { sha256Text } from '../sha256';
 import { canonicalize } from '../canonical';
+import { SnapshotValidationError } from '../caps';
+import { validateSnapshotConflict } from '../validation';
 import { completeAttachmentOrder } from '../attachmentOrder';
 import { writeBatches } from './writeBatches';
 import {
@@ -87,9 +89,9 @@ function stageFile(blobHash: string): File {
 
 function parseConflict(value: string): SnapshotConflict {
   try {
-    const parsed = JSON.parse(value) as SnapshotConflict;
-    if (parsed && typeof parsed === 'object' && typeof parsed.conflictId === 'string') return parsed;
-  } catch {
+    return validateSnapshotConflict(JSON.parse(value));
+  } catch (error) {
+    if (!(error instanceof SyntaxError) && !(error instanceof SnapshotValidationError)) throw error;
     // Invalid local metadata is a preparation failure, not cloud corruption.
   }
   throw new LocalStorageError('normalized-model-not-ready', 'invalid-local-conflict-record');
