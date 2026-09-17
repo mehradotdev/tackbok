@@ -71,6 +71,16 @@ const config: ExpoConfig = {
     output: 'static',
   },
   plugins: [
+    [
+      'expo-build-properties',
+      {
+        android: {
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+        },
+      },
+    ],
+    './plugins/withAndroidReleaseOptimization',
     'expo-router',
     'expo-background-task',
     'expo-system-ui',

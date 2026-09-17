@@ -231,6 +231,58 @@ The `tackbok-universal.apks` file generated in the previous step is a `.zip` fil
 
 ### Google Play and Samsung Galaxy Store
 
+#### Android release optimization
+
+Android release builds enable R8 minification and resource shrinking through
+`expo-build-properties` in `app.config.ts`. The local
+`plugins/withAndroidReleaseOptimization.js` plugin selects
+`proguard-android-optimize.txt` during prebuild. Keep these settings in Expo
+configuration; editing the ignored `android/` files does not survive clean prebuilds.
+Debug builds (including the EAS `development` profile) retain the normal
+development behavior. The flags apply to the Android release build type, so
+`preview` and Galaxy release builds are optimized too, not just the profile named
+`production`.
+
+Inter and JetBrains Mono imports in `src/lib/theme/fonts.ts` use individual weight
+modules so Metro includes only the eight selected faces. Keep those imports off
+the package-root barrels, which also register unused font assets. The six patched
+title fonts remain unchanged.
+
+Do not run `scripts/patch-font-metrics.py` on every build. Its generated title
+fonts and license file are committed in `assets/fonts/`. Rerun it only when
+updating those source fonts or changing the metric patches, then review and
+commit the generated files. It does not patch Inter or JetBrains Mono.
+
+To validate a release after changing optimization settings, run from `apps/mobile`:
+
+```sh
+# Optional: run the production build pipeline using this machine's Android SDK.
+# This still uses EAS credentials/environment and increments the remote versionCode.
+bunx eas build --platform android --profile production --local
+
+# Create the Google Play release AAB with the production EAS environment.
+bunx eas build --platform android --profile production
+
+# After reviewing the build, submit that exact build to the configured internal track.
+bunx eas submit --platform android --profile production --id <build-id>
+```
+
+Install the internal-track build and check cold launch, all fonts/themes, sheets
+and keyboard, app lock, purchases/restore, M4A recording/playback/seek/waveforms,
+database search, cloud sync/import/export and reminders. Debug-client tests do not
+exercise R8. Check Play's new-release optimization results and device-specific
+download size, and verify the release's R8 mapping is available for crash
+deobfuscation. Promote only after release testing passes; do not rely on a
+universal APK's size as the Play download size.
+
+This requires a new native binary, not just an OTA update. Follow the app-version
+runtime policy when preparing the next release. Android optimization applies to
+Galaxy release builds too, so validate Samsung billing separately before shipping
+that profile. The audio-artwork and edge-to-edge dependency warnings require
+separate follow-up; these build settings do not guarantee they disappear.
+
+#### Store profiles
+
 `ANDROID_STORE=google` (the default) uses Google Play billing. `ANDROID_STORE=samsung`
 uses Samsung IAP with the Galaxy RevenueCat public key. Both production builds use
 `dev.mehra.tackbok`; these are store-specific distributions, not side-by-side apps.
