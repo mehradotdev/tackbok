@@ -245,7 +245,7 @@ export const THEME_DEFINITIONS = [
   {
     id: 'helena',
     name: 'Helena',
-    description: 'Sunlit blue skies and peach-gold clouds',
+    description: 'Sunlit meadow, ivory clouds and a dragonfly',
     variant: 'light',
     enableTimelineBorders: false,
     backdropId: 'helena',
@@ -258,7 +258,7 @@ export const THEME_DEFINITIONS = [
       '--color-card-foreground': '#1e344c',
       '--color-popover': '#fffaf1',
       '--color-popover-foreground': '#1e344c',
-      '--color-primary': '#f2c888',
+      '--color-primary': '#8fb5d6',
       '--color-primary-foreground': '#1e344c',
       '--color-secondary': '#e5eaf0',
       '--color-secondary-foreground': '#1e344c',
@@ -280,7 +280,7 @@ export const THEME_DEFINITIONS = [
   {
     id: 'poonam',
     name: 'Poonam',
-    description: 'Full moon, midnight blue and silver clouds',
+    description: 'Moonlit meadow, silver clouds and a moth',
     variant: 'dark',
     enableTimelineBorders: false,
     backdropId: 'poonam',
@@ -334,7 +334,7 @@ export const THEME_DEFINITIONS = [
       '--color-secondary-foreground': '#243428',
       '--color-muted': '#cdddc4',
       '--color-muted-foreground': '#5d7360',
-      '--color-accent': '#d3c48f',
+      '--color-accent': '#e0d3a5',
       '--color-accent-foreground': '#3a3320',
       '--color-destructive': '#b05a48',
       '--color-destructive-foreground': '#f3f6ee',
@@ -369,7 +369,7 @@ export const THEME_DEFINITIONS = [
       '--color-secondary-foreground': '#d7e3d2',
       '--color-muted': '#243027',
       '--color-muted-foreground': '#8ba18c',
-      '--color-accent': '#ab9459',
+      '--color-accent': '#6d5b32',
       '--color-accent-foreground': '#f0e9d6',
       '--color-destructive': '#b5584a',
       '--color-destructive-foreground': '#f3f6ee',
@@ -707,12 +707,12 @@ export const THEME_DEFINITIONS = [
       '--color-card-foreground': '#d4d6dc',
       '--color-popover': '#2a2c32',
       '--color-popover-foreground': '#d4d6dc',
-      '--color-primary': '#8890a0',
+      '--color-primary': '#555d6b',
       '--color-primary-foreground': '#d4d6dc',
       '--color-secondary': '#303238',
       '--color-secondary-foreground': '#d4d6dc',
       '--color-muted': '#303238',
-      '--color-muted-foreground': '#70747c',
+      '--color-muted-foreground': '#969aa2',
       '--color-accent': '#3a3c44',
       '--color-accent-foreground': '#d4d6dc',
       '--color-destructive': '#c45050',
@@ -827,3 +827,30 @@ export function resolveThemeVariables(theme: ThemeDefinition): Record<string, st
     '--font-body-bold': `'${bodyFontPack['--font-body-bold']}'`,
   };
 }
+
+/** Artwork colors are independent of UI accents; keep the sun golden when
+ * Helena's buttons change. Explicit mode also works in scoped picker previews. */
+export const MEADOW_PALETTES = {
+  day: {
+    cloud: '#fffdf2',
+    light: '#f2cb82',
+    distant: '#bacba4',
+    middle: '#94b080',
+    grass: '#718d56',
+    highlight: '#c3d39b',
+    visitor: '#555b60',
+    wash: '#e3edda',
+    washOpacity: 0.24,
+  },
+  night: {
+    cloud: '#8498aa',
+    light: '#f1eee7',
+    distant: '#263d3e',
+    middle: '#254b46',
+    grass: '#335c4c',
+    highlight: '#759386',
+    visitor: '#536c60',
+    wash: '#19243d',
+    washOpacity: 0.6,
+  },
+} as const;

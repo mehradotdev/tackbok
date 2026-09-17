@@ -74,7 +74,7 @@ export const THEMES = [
   {
     "id": "helena",
     "name": "Helena",
-    "description": "Sunlit blue skies and peach-gold clouds",
+    "description": "Sunlit meadow, ivory clouds and a dragonfly",
     "variant": "light",
     "enableTimelineBorders": false,
     "backdropId": "helena",
@@ -83,7 +83,7 @@ export const THEMES = [
   {
     "id": "poonam",
     "name": "Poonam",
-    "description": "Full moon, midnight blue and silver clouds",
+    "description": "Moonlit meadow, silver clouds and a moth",
     "variant": "dark",
     "enableTimelineBorders": false,
     "backdropId": "poonam",

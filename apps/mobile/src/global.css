@@ -166,7 +166,7 @@
     }
 
     /* ═══════════════════════════════════════════
-       HELENA — Sunlit blue skies and peach-gold clouds
+       HELENA — Sunlit meadow, ivory clouds and a dragonfly
        ═══════════════════════════════════════════ */
     @variant helena {
       --color-background: #abcbea;
@@ -175,7 +175,7 @@
       --color-card-foreground: #1e344c;
       --color-popover: #fffaf1;
       --color-popover-foreground: #1e344c;
-      --color-primary: #f2c888;
+      --color-primary: #8fb5d6;
       --color-primary-foreground: #1e344c;
       --color-secondary: #e5eaf0;
       --color-secondary-foreground: #1e344c;
@@ -200,7 +200,7 @@
     }
 
     /* ═══════════════════════════════════════════
-       POONAM — Full moon, midnight blue and silver clouds
+       POONAM — Moonlit meadow, silver clouds and a moth
        ═══════════════════════════════════════════ */
     @variant poonam {
       --color-background: #19243d;
@@ -249,7 +249,7 @@
       --color-secondary-foreground: #243428;
       --color-muted: #cdddc4;
       --color-muted-foreground: #5d7360;
-      --color-accent: #d3c48f;
+      --color-accent: #e0d3a5;
       --color-accent-foreground: #3a3320;
       --color-destructive: #b05a48;
       --color-destructive-foreground: #f3f6ee;
@@ -283,7 +283,7 @@
       --color-secondary-foreground: #d7e3d2;
       --color-muted: #243027;
       --color-muted-foreground: #8ba18c;
-      --color-accent: #ab9459;
+      --color-accent: #6d5b32;
       --color-accent-foreground: #f0e9d6;
       --color-destructive: #b5584a;
       --color-destructive-foreground: #f3f6ee;
@@ -617,12 +617,12 @@
       --color-card-foreground: #d4d6dc;
       --color-popover: #2a2c32;
       --color-popover-foreground: #d4d6dc;
-      --color-primary: #8890a0;
+      --color-primary: #555d6b;
       --color-primary-foreground: #d4d6dc;
       --color-secondary: #303238;
       --color-secondary-foreground: #d4d6dc;
       --color-muted: #303238;
-      --color-muted-foreground: #70747c;
+      --color-muted-foreground: #969aa2;
       --color-accent: #3a3c44;
       --color-accent-foreground: #d4d6dc;
       --color-destructive: #c45050;

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState, Keyboard, StyleSheet, View } from 'react-native';
 import {
   BlurMask,
   Canvas,
@@ -14,49 +14,50 @@ import {
 } from '@shopify/react-native-skia';
 import { useFocusEffect } from 'expo-router';
 import {
-  cancelAnimation,
-  Easing,
   useDerivedValue,
+  useFrameCallback,
   useReducedMotion,
   useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
-import { SKY_SHADER } from './sky-shader';
+import { MEADOW_PALETTES } from '~/lib/theme/theme-tokens';
+import { MEADOW_SKY_SHADER } from './meadow-sky-shader';
+import {
+  bladeBend,
+  meadowBlades,
+  meadowPath,
+  DRAGONFLY_BODY,
+  DRAGONFLY_WINGS,
+  MOTH_BODY,
+  MOTH_WINGS,
+  type MeadowBlade,
+} from './meadow-art';
 
-const skyEffect = Skia.RuntimeEffect.Make(SKY_SHADER);
+const skyEffect = Skia.RuntimeEffect.Make(MEADOW_SKY_SHADER);
 export type SkyMode = 'day' | 'night';
+const rgb = (color: string) => Array.from(Skia.Color(color)).slice(0, 3);
 
-function rgb(color: string) {
-  const value = Skia.Color(color);
-  return [value[0], value[1], value[2]];
+function GrassLayer({
+  blades,
+  time,
+  color,
+  blur,
+}: {
+  blades: MeadowBlade[];
+  time: SharedValue<number>;
+  color: string;
+  blur: number;
+}) {
+  const path = useDerivedValue(() => meadowPath(blades, time.value));
+  return (
+    <Path path={path} color={color}>
+      <BlurMask blur={blur} style="normal" />
+    </Path>
+  );
 }
 
-/** Soft, narrow leaves on curved stems, in a shared 100 × 100 art space. */
-function foliagePath() {
-  let path = '';
-  for (let i = 0; i < 9; i++) {
-    const base = 4 + i * 11;
-    const height = 22 + ((i * 17) % 29);
-    const bend = i % 2 === 0 ? -11 : 13;
-    path += `M ${base} 106 Q ${base + bend * 0.25} ${100 - height * 0.6} ${base + bend} ${100 - height}`;
-    for (let j = 1; j <= 5; j++) {
-      const t = j / 6;
-      const x = base + bend * t * t;
-      const y = 103 - height * t;
-      const side = j % 2 ? -1 : 1;
-      const length = 5.5 - t * 2;
-      path += ` M ${x} ${y} Q ${x + side * length} ${y - 7} ${x + side * length * 1.6} ${y - 5}`;
-      path += ` Q ${x + side * length} ${y + 1} ${x} ${y} Z`;
-    }
-  }
-  return path;
-}
-
-/** Static previews use this same scene, with explicit mode and scoped colors. */
+/** A single measured canvas serves phone/tablet screens and still picker cards. */
 export function SkyBackdrop({
   mode,
   preview = false,
@@ -66,115 +67,165 @@ export function SkyBackdrop({
 }) {
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
   const reducedMotion = useReducedMotion();
-  const [background, accent, primary, foreground] = useCSSVariable([
-    '--color-background',
-    '--color-accent',
-    '--color-primary',
-    '--color-foreground',
-  ]) as [string, string, string, string];
+  const background = useCSSVariable('--color-background') as string;
   const night = mode === 'night';
+  const palette = MEADOW_PALETTES[mode];
   const colors = useMemo(
     () => ({
       sky: rgb(background),
-      cloud: rgb(accent),
-      light: rgb(night ? foreground : primary),
+      cloud: rgb(palette.cloud),
+      light: rgb(palette.light),
     }),
-    [background, accent, primary, foreground, night],
+    [background, palette],
   );
-  const drift = useSharedValue(0);
-  const sway = useSharedValue(0);
-  const flight = useSharedValue(-1);
+  const layers = useMemo(
+    () =>
+      [0, 1, 2].map((layer) =>
+        meadowBlades(Math.max(1, width), Math.max(1, height), layer),
+      ),
+    [width, height],
+  );
+  const time = useSharedValue(0);
+  const running = useSharedValue(false);
+  const visitorStart = useSharedValue(-100);
+  const duration = useSharedValue(10);
+  const direction = useSharedValue(1);
+  const targets = useSharedValue([3, 6, 9]);
+  const visible = useSharedValue(false);
+  const frame = useFrameCallback(({ timeSincePreviousFrame }) => {
+    if (running.value) time.value += Math.min(timeSincePreviousFrame ?? 0, 50) / 1000;
+  }, false);
 
   useFocusEffect(
     useCallback(() => {
-      const stop = () => {
-        cancelAnimation(drift);
-        cancelAnimation(sway);
-        cancelAnimation(flight);
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let keyboardOpen = Keyboard.isVisible();
+      let active = AppState.currentState === 'active';
+      let disposed = false;
+      const clearVisit = () => {
+        clearTimeout(timer);
+        visible.value = false;
       };
-      if (preview || reducedMotion) {
-        stop();
-        drift.value = 0;
-        sway.value = 0;
-        flight.value = -1;
-        return stop;
-      }
-      const start = () => {
-        stop();
-        drift.value = withRepeat(
-          withTiming(1, { duration: 48000, easing: Easing.inOut(Easing.sin) }),
-          -1,
-          true,
-        );
-        sway.value = withRepeat(
-          withTiming(1, { duration: 7000, easing: Easing.inOut(Easing.sin) }),
-          -1,
-          true,
-        );
-        if (!night) {
-          flight.value = -1;
-          flight.value = withDelay(
-            8000,
-            withRepeat(
-              withSequence(
-                withTiming(0, { duration: 0 }),
-                withTiming(1, { duration: 10000, easing: Easing.linear }),
+      const schedule = () => {
+        clearVisit();
+        if (disposed || !active || keyboardOpen || preview || reducedMotion) return;
+        timer = setTimeout(
+          () => {
+            direction.value = Math.random() < 0.5 ? 1 : -1;
+            duration.value = 8 + Math.random() * 4;
+            // Pick two or three actual foreground stems, ordered across the meadow.
+            const count = Math.random() < 0.5 ? 2 : 3;
+            const n = layers[2].length;
+            const selected = Array.from({ length: count }, (_, i) =>
+              Math.min(
+                n - 4,
+                Math.max(
+                  3,
+                  Math.floor((0.16 + ((i + Math.random() * 0.5) / count) * 0.7) * n),
+                ),
               ),
-              -1,
-              false,
-            ),
-          );
-        }
+            );
+            targets.value = direction.value > 0 ? selected : selected.reverse();
+            visitorStart.value = time.value;
+            visible.value = true;
+            timer = setTimeout(schedule, duration.value * 1000);
+          },
+          10000 + Math.random() * 10000,
+        );
       };
-      if (AppState.currentState === 'active') start();
-      const subscription = AppState.addEventListener('change', (state) => {
-        if (state === 'active') start();
-        else stop();
+      const start = () => {
+        running.value = !preview && !reducedMotion && active;
+        frame.setActive(running.value);
+        schedule();
+      };
+      start();
+      const app = AppState.addEventListener('change', (state) => {
+        active = state === 'active';
+        start();
+      });
+      const show = Keyboard.addListener('keyboardDidShow', () => {
+        keyboardOpen = true;
+        clearVisit();
+      });
+      const hide = Keyboard.addListener('keyboardDidHide', () => {
+        keyboardOpen = false;
+        schedule();
       });
       return () => {
-        subscription.remove();
-        stop();
+        disposed = true;
+        clearVisit();
+        running.value = false;
+        frame.setActive(false);
+        app.remove();
+        show.remove();
+        hide.remove();
       };
-    }, [preview, reducedMotion, night, drift, sway, flight]),
+    }, [
+      preview,
+      reducedMotion,
+      layers,
+      frame,
+      running,
+      time,
+      visible,
+      visitorStart,
+      duration,
+      direction,
+      targets,
+    ]),
   );
 
   const uniforms = useDerivedValue(() => ({
     size: [Math.max(1, width), Math.max(1, height)],
-    drift: drift.value,
+    time: time.value,
     night: night ? 1 : 0,
     crescent: 0,
     ...colors,
   }));
-  const foliage = useMemo(() => foliagePath(), []);
-  const shortSide = Math.min(width, height);
-  const foliageHeight = Math.min(height * 0.47, width * 0.72);
-  const leftTransform = useDerivedValue(() => [
-    { translateX: -width * 0.12 },
-    { translateY: height - foliageHeight },
-    { scaleX: width * 0.007 },
-    { scaleY: foliageHeight * 0.01 },
-    { skewX: (sway.value - 0.5) * 0.035 },
-  ]);
-  const rightTransform = useDerivedValue(() => [
-    { translateX: width * 1.12 },
-    { translateY: height - foliageHeight * 1.2 },
-    { scaleX: -width * 0.006 },
-    { scaleY: foliageHeight * 0.012 },
-    { skewX: (0.5 - sway.value) * 0.045 },
-  ]);
-  const birdTransform = useDerivedValue(() => {
-    // Six-second crossing in each ten-second cycle; reset off-canvas.
-    const progress = flight.value / 0.6;
+  const unit = Math.min(width, height, 620);
+  const creatureScale = Math.max(0.25, unit / 520);
+  const visitorTransform = useDerivedValue(() => {
+    const progress = Math.max(
+      0,
+      Math.min(1, (time.value - visitorStart.value) / duration.value),
+    );
+    const points = targets.value.map((index) => {
+      const blade = layers[2][Math.min(index, layers[2].length - 1)];
+      return {
+        x: blade.x + bladeBend(blade, time.value),
+        y: blade.base - blade.height - unit * 0.035,
+      };
+    });
+    const start = { x: direction.value > 0 ? -40 : width + 40, y: height * 0.78 };
+    const end = { x: direction.value > 0 ? width + 40 : -40, y: height * 0.8 };
+    const route = [start, ...points, end];
+    const step = progress * (route.length - 1);
+    const index = Math.min(route.length - 2, Math.floor(step));
+    // Arrive early in each segment, then hover before moving to the next tip.
+    const fraction = Math.min(1, (step - index) / 0.62);
+    const smooth = fraction * fraction * (3 - 2 * fraction);
+    const from = route[index],
+      to = route[index + 1];
     return [
-      { translateX: -shortSide * 0.14 + progress * (width + shortSide * 0.28) },
-      { translateY: height * 0.32 - Math.sin(progress * Math.PI) * height * 0.045 },
-      { scaleX: shortSide * 0.0015 },
-      { scaleY: shortSide * 0.0015 * (0.5 + Math.sin(flight.value * 125) * 0.5) },
+      {
+        translateX:
+          from.x + (to.x - from.x) * smooth + Math.sin(time.value * 4) * unit * 0.003,
+      },
+      {
+        translateY:
+          from.y + (to.y - from.y) * smooth + Math.sin(time.value * 5.3) * unit * 0.004,
+      },
+      { scale: creatureScale },
+      { rotate: direction.value * 0.18 },
     ];
   });
-  const birdOpacity = useDerivedValue(() =>
-    flight.value >= 0 && flight.value < 0.6 ? 0.5 : 0,
-  );
+  const wingTransform = useDerivedValue(() => [
+    { scaleX: 0.3 + Math.abs(Math.sin(time.value * (night ? 44 : 66))) * 0.7 },
+  ]);
+  const visitorOpacity = useDerivedValue(() => {
+    const t = (time.value - visitorStart.value) / duration.value;
+    return visible.value && t >= 0 && t < 1 ? Math.min(1, t * 15, (1 - t) * 15) * 0.7 : 0;
+  });
 
   return (
     <View
@@ -198,52 +249,70 @@ export function SkyBackdrop({
             ) : (
               <LinearGradient
                 start={vec(0, 0)}
-                end={vec(width, height)}
-                colors={[background, accent]}
+                end={vec(0, height)}
+                colors={[background, palette.cloud]}
               />
             )}
           </Rect>
           {!skyEffect && (
             <Circle
-              cx={width - shortSide * 0.185}
-              cy={Math.max(shortSide * 0.158, height * 0.17)}
-              r={shortSide * 0.088}
-              color={night ? foreground : primary}
+              cx={width - unit * 0.185}
+              cy={Math.max(unit * 0.158, height * 0.17)}
+              r={unit * 0.088}
+              color={palette.light}
             />
           )}
-          <Group opacity={night ? 0.16 : 0.12} transform={leftTransform}>
-            <Path
-              path={foliage}
-              color={night ? accent : foreground}
-              style="stroke"
-              strokeWidth={0.7}>
-              <BlurMask blur={1.1} style="normal" />
-            </Path>
-            <Path path={foliage} color={night ? accent : foreground}>
-              <BlurMask blur={1.1} style="normal" />
-            </Path>
+          <Rect x={0} y={height * 0.72} width={width} height={height * 0.28}>
+            <LinearGradient
+              start={vec(0, height * 0.72)}
+              end={vec(0, height)}
+              colors={['transparent', palette.distant]}
+            />
+          </Rect>
+          <GrassLayer
+            blades={layers[0]}
+            time={time}
+            color={palette.distant}
+            blur={unit * 0.005}
+          />
+          <GrassLayer
+            blades={layers[1]}
+            time={time}
+            color={palette.middle}
+            blur={unit * 0.002}
+          />
+          <GrassLayer
+            blades={layers[2]}
+            time={time}
+            color={palette.grass}
+            blur={unit * 0.0008}
+          />
+          <Group opacity={0.22}>
+            <GrassLayer
+              blades={layers[2].filter((_, i) => i % 4 === 0)}
+              time={time}
+              color={palette.highlight}
+              blur={0.5}
+            />
           </Group>
-          <Group opacity={night ? 0.24 : 0.18} transform={rightTransform}>
-            <Path
-              path={foliage}
-              color={night ? accent : foreground}
-              style="stroke"
-              strokeWidth={0.8}>
-              <BlurMask blur={0.8} style="normal" />
-            </Path>
-            <Path path={foliage} color={night ? accent : foreground}>
-              <BlurMask blur={0.8} style="normal" />
-            </Path>
-          </Group>
-          {!night && !preview && !reducedMotion && (
-            <Group transform={birdTransform} opacity={birdOpacity}>
-              <Path
-                path="M -15 -5 Q -7 -11 0 0 Q 7 -11 15 -5 M -49 9 Q -43 4 -37 13 Q -31 4 -25 9 M -76 -14 Q -71 -19 -65 -11 Q -59 -19 -54 -14"
-                color={foreground}
-                style="stroke"
-                strokeWidth={1.8}
-                strokeCap="round"
-              />
+          <Rect
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+            color={palette.wash}
+            opacity={palette.washOpacity}
+          />
+          {!preview && !reducedMotion && (
+            <Group transform={visitorTransform} opacity={visitorOpacity}>
+              <Group transform={wingTransform}>
+                <Path path={night ? MOTH_WINGS : DRAGONFLY_WINGS} color={palette.visitor}>
+                  <BlurMask blur={0.9} style="normal" />
+                </Path>
+              </Group>
+              <Path path={night ? MOTH_BODY : DRAGONFLY_BODY} color={palette.visitor}>
+                <BlurMask blur={0.65} style="normal" />
+              </Path>
             </Group>
           )}
         </Canvas>
@@ -251,7 +320,6 @@ export function SkyBackdrop({
     </View>
   );
 }
-
 export function HelenaBackdrop({ preview }: { preview?: boolean }) {
   return <SkyBackdrop mode="day" preview={preview} />;
 }

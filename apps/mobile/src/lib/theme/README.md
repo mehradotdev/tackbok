@@ -78,26 +78,40 @@ A theme can opt into full-screen background art via the optional `backdropId` fi
 
 Backdrop ids are not part of the CSS variable contract, so this never touches `global.css` or the every-theme-defines-every-variable rule.
 
-### Helena and Poonam skies
+### Helena and Poonam meadows
 
-These themes share `SkyBackdrop.tsx` and the original SkSL artwork in
-`sky-shader.ts`. Helena is daylight; Poonam is moonlight. Both use the installed
-Lora heading font and Inter body pack. Sky, cloud and celestial colors resolve
-from scoped theme tokens, so picker previews use the same scene as full screens.
+`SkyBackdrop.tsx` shares one meadow composition between daylight Helena and
+moonlit Poonam. Both retain Lora headings and Inter body text. Helena's UI primary
+is soft blue; artwork colors live independently in `MEADOW_PALETTES` in
+`theme-tokens.ts`, so the sun stays golden and clouds stay ivory. The scoped
+background token still supplies the sky. `meadow-sky-shader.ts` is isolated from
+the older shader used by pet scenes and Camino.
 
-The canvas measures its container rather than the device window. Sun/moon placement
-is bounded to the upper-right; blurred foliage follows the bottom edge. Picker
-previews are still. Screen animation respects reduced motion, navigation focus
-and app backgrounding. A gradient and celestial disc remain if shader compilation
-is unavailable. Journal content uses the existing transparent screen layout.
+`meadow-art.ts` builds three batched layers of rooted grass blades and seed heads.
+Individual tips bend with continuous sway and phased traveling gusts. Actual
+container dimensions determine plant count and depth: tablet/landscape layouts
+reveal additional meadow instead of stretching phone art. Soft distance blur and
+a palette wash keep transparent journal content readable.
 
-When changing this artwork, check portrait, landscape and picker sizes, including
-scrolling/editing on a physical device. Shader compilation and still renders alone
-do not establish animation performance or battery impact.
+The sky uses elapsed active seconds for continuous left-to-right clouds (about
+75 seconds per phone-width), without a reversing loop. Thin clouds veil the
+upper-right sun/full moon. Night retains faint stars and lunar texture.
+A gradient/disc fallback remains if shader compilation fails.
 
-Helena includes a three-bird flock with gentle wing motion: the first flyover
-starts after 8 seconds, then repeats every 10 seconds. The entire flock enters
-and exits beyond the canvas edges.
+One dragonfly (day) or moth (night) visits for 8–12 seconds, then stays absent for
+10–20 seconds. Each visit randomizes direction and two or three foreground grass
+tips to hover above, with rapid wing motion and slight positional drift. This
+replaces Helena's previous bird flock. Opening the keyboard cancels the visitor;
+closing it starts a fresh quiet interval. Grass and clouds continue while typing.
+Focus loss, backgrounding and unmount stop the clock and clear visitor timers.
+Reduce Motion and picker previews show still scenery without wildlife.
+
+Run `node scripts/art/render-meadow.cjs` from the mobile directory to compile the
+actual shader and render grass geometry at phone, tablet, landscape and picker
+sizes at three animation times in `/tmp/meadow-previews`. The renderer checks
+body-text contrast across every pixel, including sample visitor silhouettes.
+Physical-device motion, scrolling and keyboard checks complement these stills;
+headless renders do not establish GPU performance or battery use.
 
 ### Shiro and Shadow pet scenes
 
