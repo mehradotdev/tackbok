@@ -1,5 +1,10 @@
 import type { ExpoConfig } from 'expo/config';
 
+// Shared CommonJS config is also loaded by React Native autolinking.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { androidStore, galaxyBillingMode } = require('./config/android-store');
+const { version } = require('./package.json');
+
 const IS_BETA = process.env.APP_VARIANT === 'beta';
 const GOOGLE_OAUTH = IS_BETA
   ? {
@@ -30,6 +35,10 @@ const config: ExpoConfig = {
   owner: 'mehradotdev',
   android: {
     package: IS_BETA ? 'dev.mehra.tackbok.beta' : 'dev.mehra.tackbok',
+    // A Galaxy update must never be accepted by a Google binary (or vice versa).
+    ...(androidStore === 'samsung'
+      ? { runtimeVersion: `${version}-galaxy-${galaxyBillingMode.toLowerCase()}` }
+      : {}),
     adaptiveIcon: {
       foregroundImage: './assets/icons/adaptive-icon.png',
       monochromeImage: './assets/icons/adaptive-icon.png',
@@ -113,6 +122,7 @@ const config: ExpoConfig = {
       },
     ],
     './plugins/withGoogleAuthorization',
+    './plugins/withPurchaseLaunchMode',
     'expo-sharing',
     'expo-status-bar',
     'expo-localization',
@@ -140,6 +150,8 @@ const config: ExpoConfig = {
   },
   extra: {
     appVariant: IS_BETA ? 'beta' : 'production',
+    androidStore,
+    galaxyBillingMode,
     router: {},
     cloudSync: {
       google: GOOGLE_OAUTH,

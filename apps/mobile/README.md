@@ -129,8 +129,8 @@ bunx eas build -p android --profile production
 ### Publishing OTA updates
 
 EAS Update is configured with isolated `preview` and `production` channels. The
-runtime version uses the `appVersion` policy, so all builds and updates with the
-same app `version` belong to the same OTA compatibility group.
+Google/iOS runtime version uses the `appVersion` policy. Samsung Android builds
+use a separate runtime and channels; see Store-specific OTA updates below.
 
 Changing the runtime policy only affects new binaries. Ship a new production
 build before publishing an `appVersion`-based update; existing fingerprint-based
@@ -228,3 +228,77 @@ The `tackbok-universal.apks` file generated in the previous step is a `.zip` fil
 
 - **Terminal:** Run `unzip -p tackbok-universal.apks universal.apk > tackbok-universal.apk`
 - **File Explorer (OS):** Rename the file extension from `.apks` to `.zip`, double-click to unzip it, and inside the extracted folder you will find `universal.apk` and `toc.pb`. The `universal.apk` is your final installable APK.
+
+### Google Play and Samsung Galaxy Store
+
+`ANDROID_STORE=google` (the default) uses Google Play billing. `ANDROID_STORE=samsung`
+uses Samsung IAP with the Galaxy RevenueCat public key. Both production builds use
+`dev.mehra.tackbok`; these are store-specific distributions, not side-by-side apps.
+The existing beta identity remains available for ordinary local development.
+
+Run from `apps/mobile`:
+
+```sh
+# Google Play AAB (also retains the existing iOS production profile)
+bunx eas build --platform android --profile production
+
+# Galaxy Store APK, production billing (including Galaxy Store beta submissions)
+bunx eas build --platform android --profile production-galaxy
+
+# Sideload-only Samsung purchase testing, using the production package ID
+bunx eas build --platform android --profile galaxy-test
+```
+
+Upload the Galaxy production APK through Samsung Seller Portal. Do not submit the
+`galaxy-test` build to a store. Samsung test purchases require a physical Galaxy
+device signed into a Samsung account; they do not work in an emulator.
+
+The Samsung public SDK key is set in the Galaxy EAS profile. It is public client
+configuration, not a server secret. Local development also supports
+`EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY` in `.env.local`. Set that variable in the EAS
+`production` environment too before publishing Samsung OTA updates, since Update
+does not load build-profile environment variables.
+
+Samsung's native billing add-on is autolinked only when `ANDROID_STORE=samsung`.
+Rebuild after switching stores; changing JavaScript alone cannot add this module.
+For local Samsung testing, use the production package ID consistently:
+
+```sh
+APP_VARIANT=production ANDROID_STORE=samsung GALAXY_BILLING_MODE=TEST bunx expo prebuild --platform android
+APP_VARIANT=production ANDROID_STORE=samsung GALAXY_BILLING_MODE=TEST bunx expo run:android
+```
+
+Do not use the ordinary `start`/`android` scripts for that session: they select the
+beta package. Use `APP_VARIANT=production ANDROID_STORE=samsung GALAXY_BILLING_MODE=TEST bunx expo start`
+when restarting Metro. These commands explicitly override any inherited beta variant.
+
+#### Samsung products
+
+Create and activate consumable products in Samsung Seller Portal, connect the
+Galaxy app in RevenueCat, and attach its products to the existing `support`
+offering packages. The current catalog expects these exact product IDs:
+
+| RevenueCat package | Samsung product ID |
+| --- | --- |
+| `thanks_small` | `dev.mehra.tackbok.support.small.v2` |
+| `thanks_heartfelt` | `dev.mehra.tackbok.support.heartfelt.v2` |
+| `thanks_big` | `dev.mehra.tackbok.support.big.v2` |
+| `thanks_deepest` | `dev.mehra.tackbok.support.deepest` |
+
+#### Store-specific OTA updates
+
+Google keeps its existing channels and app-version runtime. Samsung uses
+`production-galaxy` and a runtime of `<version>-galaxy-production`; test builds use
+`galaxy-test` and `<version>-galaxy-test`. Never promote Google update groups to
+Samsung channels. Publish Samsung updates explicitly:
+
+```sh
+ANDROID_STORE=samsung GALAXY_BILLING_MODE=PRODUCTION bunx eas update --platform android --channel production-galaxy --environment production --auto
+```
+
+Keep `ANDROID_STORE` and `GALAXY_BILLING_MODE` out of shared EAS environments; select
+them using the build profile or the explicit command above. A native dependency
+change requires a fresh binary and a new app version before publishing OTA updates.
+
+References: [RevenueCat Galaxy installation](https://www.revenuecat.com/docs/getting-started/installation/reactnative),
+[Galaxy product setup](https://www.revenuecat.com/docs/getting-started/entitlements/galaxy-products).
