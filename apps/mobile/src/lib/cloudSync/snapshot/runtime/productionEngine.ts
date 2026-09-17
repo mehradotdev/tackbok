@@ -13,7 +13,7 @@ import {
 import { track } from '~/lib/analytics';
 import type { CloudSyncFailureCategory } from '~/lib/analytics/events';
 import { useSettingsStore } from '~/lib/settings';
-import { failureCategoryForAttention } from '../../failureClassification';
+import { attentionReasonForProviderError, failureCategoryForAttention } from '../../failureClassification';
 import { createGoogleAuthorization } from '../../auth';
 import { readOrCreateGoogleConnectionId } from '../../auth/secureTokenStore';
 import type {
@@ -168,8 +168,9 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
 
   private async syncPass(): Promise<RuntimePassResult> {
     this.needsFollowup = false;
-    this.onActivity('preparing');
+    this.onActivity('checking');
     const hashing = await hashPendingProductionMedia(2);
+    if (hashing.processed > 0) this.onActivity('preparing');
     const [unhashed] = await db.select({ value: count() }).from(mediaAssets).where(and(
       isNotNull(mediaAssets.local_uri),
       or(isNull(mediaAssets.blob_hash), isNull(mediaAssets.byte_size)),
@@ -241,11 +242,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         // Metadata/text sync has completed. Media remains visibly pending and
         // will retry on a later foreground pass or when Wi-Fi is available.
       } else if (error instanceof SnapshotProviderError) {
-        const reason: SyncAttentionReason = error.code === 'authorization-required'
-          ? 'authorization-required'
-          : error.code === 'permission-denied'
-            ? 'provider-permission-denied'
-            : 'missing-media';
+        const reason = attentionReasonForProviderError(error.code) ?? 'missing-media';
         this.state.setPause(
           this.vault.vault_id,
           this.vault.device_id,
@@ -258,7 +255,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       }
     }
 
-    this.onActivity('finishing');
+    if (result.status !== 'up-to-date' || hydrated > 0) this.onActivity('finishing');
     const now = Date.now();
     await db.insert(syncProviderState).values({
       provider_kind: 'google-drive',
@@ -312,13 +309,13 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       profileName: profile?.display_name ?? null,
       profileImageUri: photo?.local_uri ?? null,
     });
-    if (result.status === 'published' || hydrated > 0) await this.onRemoteApplied?.();
+    if (result.status === 'published' || result.status === 'pulled' || hydrated > 0) await this.onRemoteApplied?.();
     const [pendingMedia] = await db.select({ value: count() }).from(mediaAssets)
       .where(eq(mediaAssets.download_state, 'pending'));
     this.needsFollowup = result.actionableChanges > 0;
     if ((pendingMedia?.value ?? 0) > 0 && hydrated > 0) this.needsFollowup = true;
     return {
-      pulled: result.status === 'published' ? 1 : 0,
+      pulled: result.status === 'published' || result.status === 'pulled' ? 1 : 0,
       pushed: result.status === 'published' ? 1 : 0,
     };
   }
@@ -354,8 +351,12 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     provider,
     {
       at: (point) => {
+        // Housekeeping during an otherwise quiet check is not pending sync work.
+        if (point === 'during-snapshot-cleanup') return;
         if (point === 'during-remote-snapshot-download') options.onActivity('checking');
-        else if (point === 'during-merge-application') options.onActivity('finishing');
+        else if (point === 'during-merge-application' || point.startsWith('after-base-')) {
+          options.onActivity('finishing');
+        }
         else if (point === 'during-media-transfer' || point === 'after-snapshot-uploaded' ||
             point === 'after-snapshot-verified' || point === 'after-head-advanced') {
           options.onActivity('uploading');

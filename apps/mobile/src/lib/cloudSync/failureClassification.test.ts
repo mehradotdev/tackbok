@@ -14,6 +14,10 @@ describe('cloud sync failure classification', () => {
   test('maps provider failures to durable attention only when user action is required', () => {
     expect(attentionReasonForProviderError('quota-full')).toBe('provider-quota-full');
     expect(attentionReasonForProviderError('transient')).toBeNull();
+    expect(attentionReasonForProviderError('invalid-request')).toBe('provider-request-rejected');
+    expect(attentionReasonForProviderError('invalid-data')).toBe('invalid-remote-snapshot');
+    expect(failureCategoryForAttention('normalized-model-not-ready')).toBe('unknown');
+    expect(failureCategoryForAttention('provider-request-rejected')).toBe('unknown');
   });
 
   test('uses one validated analytics category parser', () => {

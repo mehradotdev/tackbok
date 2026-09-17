@@ -18,6 +18,7 @@ export type SyncAttentionReason =
   | 'local-storage-full'
   | 'provider-quota-full'
   | 'provider-permission-denied'
+  | 'provider-request-rejected'
   | 'missing-media'
   | 'local-media-unreadable'
   | 'normalized-model-not-ready'
@@ -62,6 +63,7 @@ export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecovery
   'local-storage-full': 'free-device-storage',
   'provider-quota-full': 'manage-drive-storage',
   'provider-permission-denied': 'reconnect-google-drive',
+  'provider-request-rejected': 'update-tackbok',
   'missing-media': 'retry-missing-media',
   'local-media-unreadable': 'locate-retry-attachment',
   'normalized-model-not-ready': 'retry-journal-preparation',
@@ -105,6 +107,7 @@ export type SnapshotProviderErrorCode =
   | 'rate-limited'
   | 'wifi-only-media'
   | 'transient'
+  | 'invalid-request'
   | 'invalid-data';
 
 export class SnapshotProviderError extends Error {
@@ -244,6 +247,7 @@ export interface DurableSyncState {
 
 export type SnapshotSyncResult =
   | { status: 'up-to-date'; actionableChanges: 0 }
+  | { status: 'pulled'; snapshotId: string; actionableChanges: number }
   | { status: 'published'; snapshotId: string; actionableChanges: number }
   | { status: 'attention'; reason: SyncAttentionReason; actionableChanges: number }
   | {

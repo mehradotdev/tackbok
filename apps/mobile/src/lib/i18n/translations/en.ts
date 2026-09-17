@@ -932,4 +932,6 @@ export const en = {
   'Export or repair the affected journal data, then return and retry.':
     'Export or repair the affected journal data, then return and retry.',
   'Cloud backup retry completed': 'Cloud backup retry completed',
+  "Cloud sync could not finish. Your changes remain safely queued.": "Cloud sync could not finish. Your changes remain safely queued.",
+  "Google Drive rejected a backup request. Update Tackbok and retry.": "Google Drive rejected a backup request. Update Tackbok and retry.",
 } satisfies Record<string, string>;

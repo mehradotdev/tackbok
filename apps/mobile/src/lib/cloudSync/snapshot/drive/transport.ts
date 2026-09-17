@@ -83,7 +83,7 @@ function resultClass(error: DriveRequestError): DriveResultClass {
   if (error.code === 'permission-denied') return 'permission';
   if (error.code === 'quota-full') return 'quota';
   if (error.code === 'rate-limited') return 'rate-limit';
-  if (error.code === 'invalid-data') return 'invalid';
+  if (error.code === 'invalid-data' || error.code === 'invalid-request') return 'invalid';
   if (error.status === 404 || error.status === 410) return 'not-found';
   return 'transient';
 }
@@ -112,7 +112,7 @@ function mapStatus(
     return new DriveRequestError('rate-limited', status, 'Drive rate limit reached', retryAfterMs);
   }
   if (status === 400) {
-    return new DriveRequestError('invalid-data', status, 'Drive rejected an invalid request');
+    return new DriveRequestError('invalid-request', status, 'Drive rejected an invalid request');
   }
   if (status === 404 || status === 410) {
     return new DriveRequestError('transient', status, 'Drive object or cursor was not found');

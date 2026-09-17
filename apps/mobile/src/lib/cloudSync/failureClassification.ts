@@ -42,5 +42,6 @@ export function attentionReasonForProviderError(
   if (code === 'quota-full') return 'provider-quota-full';
   if (code === 'permission-denied') return 'provider-permission-denied';
   if (code === 'invalid-data') return 'invalid-remote-snapshot';
+  if (code === 'invalid-request') return 'provider-request-rejected';
   return null;
 }

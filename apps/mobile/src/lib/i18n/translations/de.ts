@@ -923,4 +923,6 @@ export const de: Translations = {
   'Cloud deletion completed': 'Cloud-Löschung abgeschlossen',
   'Export or repair the affected journal data, then return and retry.': 'Exportiere oder repariere die betroffenen Tagebuchdaten und versuche es danach erneut.',
   'Cloud backup retry completed': 'Erneuter Sicherungsversuch abgeschlossen',
+  "Cloud sync could not finish. Your changes remain safely queued.": "Die Cloud-Synchronisierung konnte nicht abgeschlossen werden. Deine Änderungen bleiben sicher vorgemerkt.",
+  "Google Drive rejected a backup request. Update Tackbok and retry.": "Google Drive hat eine Sicherungsanfrage abgelehnt. Aktualisiere Tackbok und versuche es erneut.",
 };

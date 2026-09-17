@@ -2,6 +2,7 @@ export type Mood = 'AMAZING' | 'HAPPY' | 'OKAY' | 'SAD' | 'AWFUL';
 export type EntityType = 'entry' | 'tag' | 'prompt' | 'profile';
 export type AssetKind = 'photo' | 'voice' | 'profile-photo';
 export type ConflictField =
+  | 'createdAt'
   | 'title'
   | 'content'
   | 'mood'
@@ -20,11 +21,15 @@ export interface ObservedDeviceHead {
 
 export interface SnapshotEntry {
   entryId: string;
+  /** Display sequence only; media descriptors determine attachment membership.
+   * Absent in older snapshots, which fall back to asset-ID order. */
+  attachmentOrder?: string[];
   title: string | null;
   content: string | null;
   mood: Mood | null;
   createdAt: number;
   updatedAt: number;
+  /** Immutable lineage: a live entry (including a recovery) or its tombstone. */
   conflictOriginId: string | null;
 }
 

@@ -2,6 +2,7 @@ import { SNAPSHOT_CAPS, invalid } from './caps';
 import { canonicalHash } from './canonical';
 import type {
   JournalSnapshotPayload,
+  SnapshotConflict,
   SnapshotDomain,
 } from './types';
 
@@ -11,16 +12,17 @@ const ID = /^[\x20-\x7e]+$/;
 const MOODS = new Set(['AMAZING', 'HAPPY', 'OKAY', 'SAD', 'AWFUL']);
 const ENTITY_TYPES = new Set(['entry', 'tag', 'prompt', 'profile']);
 const CONFLICT_FIELDS = new Set([
+  'createdAt',
   'title', 'content', 'mood', 'displayName', 'photoAssetId', 'tagMembership',
   'assetReference', 'deleteEdit', 'referencedDelete',
 ]);
 const utf8Length = (value: string) => new TextEncoder().encode(value).length;
 
-function object(value: unknown, keys: readonly string[], path: string): RecordValue {
+function object(value: unknown, keys: readonly string[], path: string, optional: readonly string[] = []): RecordValue {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     invalid('invalid-shape', `${path} must be an object`);
   }
-  const actual = Object.keys(value).sort();
+  const actual = Object.keys(value).filter((key) => !optional.includes(key)).sort();
   const expected = [...keys].sort();
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
     invalid('closed-shape', `${path} has missing or unknown keys`);
@@ -105,6 +107,33 @@ function nullableEnum(value: unknown, allowed: Set<string>, path: string): strin
   return value === null ? null : enumValue(value, allowed, path);
 }
 
+/** Shared shape validation for cloud snapshots and persisted local conflicts. */
+export function validateSnapshotConflict(value: unknown, path = '$'): SnapshotConflict {
+  const conflict = object(value, [
+    'conflictId', 'entityType', 'entityId', 'field', 'baseValueHash',
+    'localValueHash', 'remoteValueHash', 'primaryValueHash', 'alternates',
+    'recoveredEntityIds',
+  ], path);
+  hash(conflict.conflictId, `${path}.conflictId`);
+  enumValue(conflict.entityType, ENTITY_TYPES, `${path}.entityType`);
+  id(conflict.entityId, `${path}.entityId`);
+  enumValue(conflict.field, CONFLICT_FIELDS, `${path}.field`);
+  nullableHash(conflict.baseValueHash, `${path}.baseValueHash`);
+  nullableHash(conflict.localValueHash, `${path}.localValueHash`);
+  nullableHash(conflict.remoteValueHash, `${path}.remoteValueHash`);
+  nullableHash(conflict.primaryValueHash, `${path}.primaryValueHash`);
+  array(conflict.alternates, SNAPSHOT_CAPS.alternatesPerConflict, `${path}.alternates`)
+    .forEach((item, alternateIndex) => {
+      const altPath = `${path}.alternates[${alternateIndex}]`;
+      const alternate = object(item, ['valueHash', 'value'], altPath);
+      hash(alternate.valueHash, `${altPath}.valueHash`);
+      nullableString(alternate.value, `${altPath}.value`, SNAPSHOT_CAPS.entryBodyBytes);
+    });
+  array(conflict.recoveredEntityIds, SNAPSHOT_CAPS.entries, `${path}.recoveredEntityIds`)
+    .forEach((item, recoveredIndex) => id(item, `${path}.recoveredEntityIds[${recoveredIndex}]`));
+  return value as SnapshotConflict;
+}
+
 /** Shape/scalar validation deliberately runs before canonical-byte and hash checks. */
 export function validateSnapshotShape(value: unknown): JournalSnapshotPayload {
   const root = object(value, [
@@ -130,7 +159,12 @@ export function validateSnapshotShape(value: unknown): JournalSnapshotPayload {
     });
   array(root.entries, SNAPSHOT_CAPS.entries, '$.entries').forEach((item, index) => {
     const path = `$.entries[${index}]`;
-    const entry = object(item, ['entryId', 'title', 'content', 'mood', 'createdAt', 'updatedAt', 'conflictOriginId'], path);
+    const entry = object(item, ['entryId', 'title', 'content', 'mood', 'createdAt', 'updatedAt', 'conflictOriginId'], path, ['attachmentOrder']);
+    if ('attachmentOrder' in entry) {
+      const order = array(entry.attachmentOrder, SNAPSHOT_CAPS.media, `${path}.attachmentOrder`);
+      order.forEach((value, index) => id(value, `${path}.attachmentOrder[${index}]`));
+      if (new Set(order).size !== order.length) invalid('duplicate-attachment-order', 'Attachment order contains duplicates');
+    }
     id(entry.entryId, `${path}.entryId`);
     nullableString(entry.title, `${path}.title`, SNAPSHOT_CAPS.entryTitleBytes);
     nullableString(entry.content, `${path}.content`, SNAPSHOT_CAPS.entryBodyBytes);
@@ -204,28 +238,7 @@ export function validateSnapshotShape(value: unknown): JournalSnapshotPayload {
   });
   array(root.conflicts, SNAPSHOT_CAPS.conflicts, '$.conflicts').forEach((item, index) => {
     const path = `$.conflicts[${index}]`;
-    const conflict = object(item, [
-      'conflictId', 'entityType', 'entityId', 'field', 'baseValueHash',
-      'localValueHash', 'remoteValueHash', 'primaryValueHash', 'alternates',
-      'recoveredEntityIds',
-    ], path);
-    hash(conflict.conflictId, `${path}.conflictId`);
-    enumValue(conflict.entityType, ENTITY_TYPES, `${path}.entityType`);
-    id(conflict.entityId, `${path}.entityId`);
-    enumValue(conflict.field, CONFLICT_FIELDS, `${path}.field`);
-    nullableHash(conflict.baseValueHash, `${path}.baseValueHash`);
-    nullableHash(conflict.localValueHash, `${path}.localValueHash`);
-    nullableHash(conflict.remoteValueHash, `${path}.remoteValueHash`);
-    nullableHash(conflict.primaryValueHash, `${path}.primaryValueHash`);
-    array(conflict.alternates, SNAPSHOT_CAPS.alternatesPerConflict, `${path}.alternates`)
-      .forEach((item, alternateIndex) => {
-        const altPath = `${path}.alternates[${alternateIndex}]`;
-        const alternate = object(item, ['valueHash', 'value'], altPath);
-        hash(alternate.valueHash, `${altPath}.valueHash`);
-        nullableString(alternate.value, `${altPath}.value`, SNAPSHOT_CAPS.entryBodyBytes);
-      });
-    array(conflict.recoveredEntityIds, SNAPSHOT_CAPS.entries, `${path}.recoveredEntityIds`)
-      .forEach((item, recoveredIndex) => id(item, `${path}.recoveredEntityIds[${recoveredIndex}]`));
+    validateSnapshotConflict(item, path);
   });
   return value as JournalSnapshotPayload;
 }
@@ -297,15 +310,36 @@ export function validateSnapshotCollections(
     const validProfile = asset.ownerType === 'profile' && asset.ownerId === 'profile' && asset.kind === 'profile-photo';
     if (!validEntry && !validProfile) invalid('dangling-reference', `Invalid media owner for ${asset.assetId}`);
   }
+  for (const entry of payload.entries) {
+    for (const assetId of entry.attachmentOrder ?? []) {
+      const asset = media.get(assetId);
+      if (!asset || asset.ownerType !== 'entry' || asset.ownerId !== entry.entryId) {
+        invalid('invalid-attachment-order', 'Attachment order references media outside its entry');
+      }
+    }
+  }
   const byType = { entry: entries, tag: tags, prompt: prompts };
   for (const [type, records] of Object.entries(byType)) {
-    for (const record of records.values()) {
-      const origin = record.conflictOriginId;
-      if (origin === null) continue;
-      const primary = records.get(origin);
-      if (!primary || primary.conflictOriginId !== null) {
-        invalid('invalid-conflict-origin', `${type} recovery has a missing or recovered origin`);
+    // Recovery IDs are independent editable entries. Their immutable origin
+    // records lineage, which may include other recoveries or a deleted ancestor.
+    // Memoize completed paths so even a long family is checked in linear time.
+    const checked = new Set<string>();
+    for (const id of records.keys()) {
+      const path = new Set<string>();
+      let current: string | null = id;
+      while (current !== null && !checked.has(current)) {
+        if (path.has(current)) invalid('invalid-conflict-origin', `${type} recovery lineage contains a cycle`);
+        path.add(current);
+        const record: { conflictOriginId: string | null } | undefined = records.get(current);
+        if (!record) {
+          if (!tomb.has(`${type}\0${current}`)) {
+            invalid('invalid-conflict-origin', `${type} recovery has a missing ancestor`);
+          }
+          break;
+        }
+        current = record.conflictOriginId;
       }
+      for (const visited of path) checked.add(visited);
     }
   }
   for (const conflict of payload.conflicts) {
@@ -358,7 +392,9 @@ export function normalizeSnapshot(payload: JournalSnapshotPayload): JournalSnaps
     ...payload,
     parentSnapshotIds: [...payload.parentSnapshotIds],
     observedDeviceHeads: payload.observedDeviceHeads.map((value) => ({ ...value })),
-    entries: payload.entries.map((value) => ({ ...value })),
+    entries: payload.entries.map((value) => ({ ...value,
+      ...(value.attachmentOrder ? { attachmentOrder: [...value.attachmentOrder] } : {}),
+    })),
     tags: payload.tags.map((value) => ({ ...value })),
     entryTags: payload.entryTags.map((value) => ({ ...value })),
     prompts: payload.prompts.map((value) => ({ ...value })),

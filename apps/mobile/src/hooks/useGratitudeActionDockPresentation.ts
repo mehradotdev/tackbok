@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { type LayoutChangeEvent, type ViewStyle } from 'react-native';
+import { useCallback, useEffect, useMemo } from 'react';
+import { type ViewStyle } from 'react-native';
 import {
   Extrapolation,
   interpolate,
@@ -16,6 +16,8 @@ import type { GratitudeActionDockConfig } from '~/screens/home/GratitudeActionDo
 
 interface UseGratitudeActionDockPresentationOptions {
   dockConfig: GratitudeActionDockConfig;
+  /** Measured before the animated dock mounts. */
+  containerHeight: number;
   isExpanded: boolean;
   isRTL: boolean;
   onToggle: () => void;
@@ -26,13 +28,6 @@ type DockAnimatedStyle = ReturnType<typeof useAnimatedStyle<ViewStyle>>;
 interface UseGratitudeActionDockPresentationResult {
   /** Animated inner panel shape and borders for docked vs detached states. */
   containerStyle: DockAnimatedStyle;
-  /**
-   * True once the absolute-positioning container has been measured and the dock
-   * can render at its real persisted/default Y without a first-paint jump.
-   */
-  hasMeasured: boolean;
-  /** Measures the available vertical space so drag bounds can be clamped correctly. */
-  onContainerLayout: (e: LayoutChangeEvent) => void;
   /** Long-press pan gesture that detaches the dock, tracks vertical drag, and snaps back on release. */
   panGesture: ReturnType<typeof Gesture.Pan>;
   /** Shared expand progress from 0 collapsed to 1 expanded, consumed by child animations. */
@@ -53,6 +48,7 @@ interface UseGratitudeActionDockPresentationResult {
  */
 export function useGratitudeActionDockPresentation({
   dockConfig,
+  containerHeight,
   isExpanded,
   isRTL,
   onToggle,
@@ -60,13 +56,6 @@ export function useGratitudeActionDockPresentation({
   const { animation, dimensions, gesture } = dockConfig;
   const persistedY = useSettingsStore((s) => s.actionDockY);
   const setPersistedY = useSettingsStore((s) => s.setActionDockY);
-
-  const [containerHeight, setContainerHeight] = useState(0);
-  const hasMeasured = containerHeight > 0;
-
-  const onContainerLayout = useCallback((e: LayoutChangeEvent) => {
-    setContainerHeight(e.nativeEvent.layout.height);
-  }, []);
 
   const minY = gesture.verticalPadding;
   const maxY = Math.max(
@@ -265,8 +254,6 @@ export function useGratitudeActionDockPresentation({
 
   return {
     containerStyle,
-    hasMeasured,
-    onContainerLayout,
     panGesture,
     progress,
     shellShadowStyle,

@@ -1,6 +1,6 @@
 import golden from './fixtures/merge-golden.json';
 import { canonicalHash, canonicalize } from './canonical';
-import { encodeSnapshot } from './codec';
+import { decodeSnapshot, encodeSnapshot } from './codec';
 import { mergeSnapshotDomains } from './merge';
 import type { SnapshotDomain, SnapshotEntry } from './types';
 import { calculateMediaReferences } from './validation';
@@ -41,6 +41,150 @@ function blankDomain(): SnapshotDomain {
 }
 
 describe('snapshot merge engine', () => {
+  it('merges attachment additions/deletions independently from photo and voice order', () => {
+    const entry: SnapshotEntry = { entryId: 'ordered', title: null, content: 'Body', mood: null,
+      createdAt: 1, updatedAt: 1, conflictOriginId: null, attachmentOrder: ['photo-b', 'photo-a', 'voice-b', 'voice-a'] };
+    const descriptor = (assetId: string) => ({ assetId, ownerType: 'entry' as const, ownerId: entry.entryId,
+      kind: assetId.startsWith('voice') ? 'voice' as const : 'photo' as const,
+      blobHash: 'a'.repeat(64), byteSize: 8, mimeType: null, width: null, height: null,
+      durationMs: null, createdAt: 1, updatedAt: 1 });
+    const base = { ...emptyDomain(entry), media: entry.attachmentOrder!.map(descriptor) };
+    const branch = (order: string[]) => ({ ...base,
+      entries: [{ ...entry, attachmentOrder: order }], media: order.map(descriptor) });
+    // Each phone removes a different photo and adds a photo and a voice memo.
+    const local = branch(['photo-b', 'photo-c', 'voice-b', 'voice-a', 'voice-c']);
+    const remote = branch(['photo-a', 'photo-d', 'voice-a', 'voice-b', 'voice-d']);
+    const merged = mergeSnapshotDomains(base, local, remote);
+    const surviving = ['photo-c', 'photo-d', 'voice-a', 'voice-b', 'voice-c', 'voice-d'];
+    expect(merged.media.map((asset) => asset.assetId).sort()).toEqual(surviving);
+    expect([...merged.entries[0].attachmentOrder!].sort()).toEqual(surviving);
+    expect(mergeSnapshotDomains(base, remote, local)).toEqual(merged);
+    expect(mergeSnapshotDomains(base, merged, merged)).toEqual(merged);
+    expect(merged.conflicts).toEqual([]);
+    const encode = (domain: SnapshotDomain) => encodeSnapshot({ ...domain,
+      format: 'tackbok-snapshot', vaultId: 'order', authorDeviceId: 'device', deviceSequence: 1,
+      createdAt: 1, parentSnapshotIds: [], observedDeviceHeads: [] });
+    const encoded = encode(base);
+    const decoded = decodeSnapshot(encoded.compressedBytes, encoded.snapshotId).payload;
+    expect(decoded.entries[0].attachmentOrder).toEqual(entry.attachmentOrder);
+    expect(decoded.media.map((asset) => asset.assetId)).toEqual([...entry.attachmentOrder!].sort());
+    expect(() => encode(merged)).not.toThrow();
+    expect(() => encode({ ...base, entries: [{ ...entry, attachmentOrder: ['photo-a', 'photo-a'] }] }))
+      .toThrow(/duplicates/);
+    expect(() => encode({ ...base, entries: [{ ...entry, attachmentOrder: ['missing'] }] }))
+      .toThrow(/outside its entry/);
+  });
+  it('keeps repeated recoveries editable after deleting their ancestor', () => {
+    const root: SnapshotEntry = { entryId: 'root', title: null, content: 'Root', mood: null,
+      createdAt: 1, updatedAt: 1, conflictOriginId: null };
+    const recovery = { ...root, entryId: 'recovery', content: 'Recovery', conflictOriginId: 'root' };
+    const base = { ...emptyDomain(root), entries: [recovery, root] };
+    const branch = (content: string) => ({ ...base, entries: [{ ...recovery, content }, root] });
+    const merged = mergeSnapshotDomains(base, branch('Left'), branch('Right'));
+    const encode = (domain: SnapshotDomain) => encodeSnapshot({ ...domain,
+      format: 'tackbok-snapshot', vaultId: 'family', authorDeviceId: 'device',
+      deviceSequence: 4, createdAt: 1, parentSnapshotIds: [], observedDeviceHeads: [] });
+    expect(() => encode(merged)).not.toThrow();
+    expect(merged.entries.map((value) => value.content).sort()).toEqual(['Left', 'Right', 'Root']);
+    const deleted = structuredClone(merged);
+    deleted.entries = deleted.entries.filter((value) => value.entryId !== 'root');
+    deleted.tombstones.push({ entityType: 'entry', entityId: 'root', baseStateHash: canonicalHash(root),
+      deletedStateHash: canonicalHash(root), deletedByDeviceId: 'device', deletionSequence: 3 });
+    const afterDelete = mergeSnapshotDomains(merged, deleted, merged);
+    expect(() => encode(afterDelete)).not.toThrow();
+    expect(afterDelete.entries.map((value) => value.content).sort()).toEqual(['Left', 'Right']);
+    expect(mergeSnapshotDomains(merged, merged, deleted)).toEqual(afterDelete);
+    const orphan = structuredClone(afterDelete);
+    orphan.tombstones = [];
+    expect(() => encode(orphan)).toThrow(/missing ancestor/);
+    const cyclic = structuredClone(base);
+    cyclic.entries[1].conflictOriginId = 'recovery';
+    expect(() => encode(cyclic)).toThrow(/cycle/);
+    cyclic.entries[1].conflictOriginId = 'root';
+    expect(() => encode(cyclic)).toThrow(/cycle/);
+  });
+  const datedEntry: SnapshotEntry = {
+    entryId: 'entry-date', title: 'Journal', content: 'Body', mood: null,
+    createdAt: 1788571860000, updatedAt: 1, conflictOriginId: null,
+  };
+
+  it('merges a one-sided date edit with a text edit without creating a conflict', () => {
+    const base = emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 1789435860000, updatedAt: 2 });
+    const remote = emptyDomain({ ...datedEntry, content: 'Edited body', updatedAt: 3 });
+    const merged = mergeSnapshotDomains(base, local, remote);
+    expect(merged.entries).toEqual([{ ...local.entries[0], content: 'Edited body', updatedAt: 3 }]);
+    expect(merged.conflicts).toEqual([]);
+    expect(mergeSnapshotDomains(base, remote, local)).toEqual(merged);
+    expect(mergeSnapshotDomains(base, merged, merged)).toEqual(merged);
+  });
+
+  it.each([false, true])('preserves concurrent dates and text, without a base: %s', (noBase) => {
+    const base = noBase ? null : emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 1789435860000, content: 'Local', updatedAt: 2 });
+    const remote = emptyDomain({ ...datedEntry, createdAt: 1789522260000, content: 'Remote', updatedAt: 3 });
+    const merged = mergeSnapshotDomains(base, local, remote);
+    expect(new Set(merged.entries.map((e) => `${e.content}:${e.createdAt}`)))
+      .toEqual(new Set(['Local:1789435860000', 'Remote:1789522260000']));
+    expect(merged.conflicts.map((c) => c.field).sort()).toEqual(['content', 'createdAt']);
+    expect(conflictSymmetricView(mergeSnapshotDomains(base, remote, local)))
+      .toEqual(conflictSymmetricView(merged));
+    expect(mergeSnapshotDomains(base, merged, merged)).toEqual(merged);
+    expect(() => encodeSnapshot({
+      ...merged, format: 'tackbok-snapshot', vaultId: 'vault-date', authorDeviceId: 'device-date',
+      deviceSequence: 1, createdAt: 3, observedDeviceHeads: [], parentSnapshotIds: [],
+    })).not.toThrow();
+  });
+
+  it.each([false, true])('resolves date-only conflicts by edit time, without a base: %s', (noBase) => {
+    const base = noBase ? null : emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 2, content: 'Edited', updatedAt: 4 });
+    const remote = emptyDomain({ ...datedEntry, createdAt: 3, content: noBase ? 'Edited' : datedEntry.content, updatedAt: 5 });
+    const photo = { assetId: 'photo', ownerType: 'entry' as const, ownerId: datedEntry.entryId,
+      kind: 'photo' as const, blobHash: 'a'.repeat(64), mimeType: 'image/jpeg', byteSize: 100,
+      width: 10, height: 10, durationMs: null, createdAt: 1, updatedAt: 1 };
+    local.media = [photo];
+    remote.media = [photo];
+    local.entries[0].attachmentOrder = [photo.assetId];
+    remote.entries[0].attachmentOrder = [photo.assetId];
+    const merged = mergeSnapshotDomains(base, local, remote);
+    expect(merged.entries).toHaveLength(1);
+    expect(merged.entries[0]).toMatchObject({ entryId: datedEntry.entryId, createdAt: 3,
+      content: 'Edited', attachmentOrder: ['photo'], conflictOriginId: null });
+    expect(merged.media).toEqual([photo]);
+    expect(merged.conflicts).toHaveLength(1);
+    expect(merged.conflicts[0]).toMatchObject({ field: 'createdAt', recoveredEntityIds: [],
+      primaryValueHash: canonicalHash(3) });
+    expect(conflictSymmetricView(mergeSnapshotDomains(base, remote, local)))
+      .toEqual(conflictSymmetricView(merged));
+  });
+
+  it('breaks equal edit timestamps deterministically for date-only conflicts', () => {
+    const base = emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, createdAt: 2, updatedAt: 4 });
+    const remote = emptyDomain({ ...datedEntry, createdAt: 3, updatedAt: 4 });
+    const merged = mergeSnapshotDomains(base, local, remote);
+    expect(merged.entries).toHaveLength(1);
+    expect(merged.entries[0].createdAt).toBe(canonicalHash(2) <= canonicalHash(3) ? 2 : 3);
+    expect(merged.conflicts[0].recoveredEntityIds).toEqual([]);
+    expect(conflictSymmetricView(mergeSnapshotDomains(base, remote, local)))
+      .toEqual(conflictSymmetricView(merged));
+  });
+
+  it('converges independently discovered conflicts with reversed device labels', () => {
+    const base = emptyDomain(datedEntry);
+    const local = emptyDomain({ ...datedEntry, content: 'Local' });
+    const remote = emptyDomain({ ...datedEntry, content: 'Remote' });
+    const left = mergeSnapshotDomains(base, local, remote);
+    const right = mergeSnapshotDomains(base, remote, local);
+    const merged = mergeSnapshotDomains(base, left, right);
+    expect(merged.entries).toEqual(left.entries);
+    expect(merged.conflicts).toHaveLength(1);
+    expect(mergeSnapshotDomains(base, right, left)).toEqual(merged);
+    const corrupt = structuredClone(right);
+    corrupt.conflicts[0].primaryValueHash = 'e'.repeat(64);
+    expect(() => mergeSnapshotDomains(base, left, corrupt)).toThrow(/differs/);
+  });
   it.each(cases)('matches frozen golden case $id byte-identically', ({ base, local, remote, expected }) => {
     const actual = mergeSnapshotDomains(base, local, remote);
     expect(canonicalize(actual)).toBe(canonicalize(expected));

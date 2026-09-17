@@ -157,7 +157,9 @@ export class BaseShadowManager {
     at?: SnapshotSyncHooks['at'],
   ): Promise<BaseShadowCheckpoint> {
     const encoded = encodeBaseShadow(shadow);
-    const finalFileName = `base-${shadow.snapshotId}.json.gz`;
+    // The same remote payload may be accepted with different observed heads.
+    // Never replace the file still referenced by an older SQLite checkpoint.
+    const finalFileName = `base-${shadow.snapshotId}-${encoded.canonicalSha256}.json.gz`;
     const deviceToken = sha256Text(deviceId).slice(0, 12);
     const tempFileName = `${finalFileName}.${deviceToken}.tmp`;
     try {

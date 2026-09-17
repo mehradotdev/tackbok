@@ -318,11 +318,31 @@ export class SQLiteSyncStateStore {
     checkpoint: BaseShadowCheckpoint,
     capturedGeneration: number,
   ): { dirty: boolean; oldFileName: string | null } {
+    return this.settleBase(checkpoint, capturedGeneration, true);
+  }
+
+  /** A verified remote snapshot needs a local checkpoint, not a publication. */
+  settlePulledBase(
+    checkpoint: BaseShadowCheckpoint,
+    capturedGeneration: number,
+  ): { dirty: boolean; oldFileName: string | null } {
+    return this.settleBase(checkpoint, capturedGeneration, false);
+  }
+
+  private settleBase(
+    checkpoint: BaseShadowCheckpoint,
+    capturedGeneration: number,
+    publication: boolean,
+  ): { dirty: boolean; oldFileName: string | null } {
     return this.transaction(() => {
       const pending = this.loadPending(checkpoint.vaultId, checkpoint.deviceId);
-      if (!pending || pending.snapshotId !== checkpoint.snapshotId ||
-          STAGE_ORDER[pending.stage] < STAGE_ORDER['domain-applied']) {
+      if (publication && (!pending || pending.snapshotId !== checkpoint.snapshotId ||
+          STAGE_ORDER[pending.stage] < STAGE_ORDER['domain-applied'])) {
         throw new Error('Cannot settle an incomplete snapshot publication');
+      }
+      if (!publication && pending) throw new Error('Cannot adopt a snapshot during publication');
+      if (capturedGeneration > this.loadState(checkpoint.vaultId, checkpoint.deviceId).journalGeneration) {
+        throw new Error('Cannot settle a future journal generation');
       }
       const old = this.loadBaseCheckpoint(checkpoint.vaultId, checkpoint.deviceId);
       this.database.runSync(
@@ -354,6 +374,9 @@ export class SQLiteSyncStateStore {
           this.now(),
         );
       }
+      // Adoption can revisit an existing remote snapshot. Its new active base
+      // must not remain queued for deletion from an earlier checkpoint switch.
+      this.database.runSync('DELETE FROM cloud_shadow_reaper WHERE file_name = ?', checkpoint.fileName);
       this.database.runSync(
         `UPDATE cloud_sync_state
          SET settled_generation = MAX(settled_generation, ?), updated_at = ?

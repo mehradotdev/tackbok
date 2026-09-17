@@ -875,4 +875,6 @@ export const he: Translations = {
   'Cloud deletion completed': 'המחיקה מהענן הושלמה',
   'Export or repair the affected journal data, then return and retry.': 'יש לייצא או לתקן את נתוני היומן שנפגעו, ואז לחזור ולנסות שוב.',
   'Cloud backup retry completed': 'הניסיון החוזר של גיבוי הענן הושלם',
+  "Cloud sync could not finish. Your changes remain safely queued.": "סנכרון הענן לא הושלם. השינויים שלך נשארים שמורים בבטחה בתור.",
+  "Google Drive rejected a backup request. Update Tackbok and retry.": "Google Drive דחה בקשת גיבוי. יש לעדכן את Tackbok ולנסות שוב.",
 };

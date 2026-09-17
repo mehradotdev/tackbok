@@ -1,4 +1,5 @@
 import { SnapshotValidationError } from '../caps';
+import { canonicalize } from '../canonical';
 import { decodeSnapshot, encodeSnapshot } from '../codec';
 import { SnapshotMergeError, mergeSnapshotDomains } from '../merge';
 import type {
@@ -35,6 +36,7 @@ import { SnapshotPublisher } from './publication';
 const MAX_HEAD_RECHECKS = 4;
 
 interface PlannedCandidate {
+  existingSnapshot?: RemoteHeadSnapshot;
   domain: SnapshotDomain;
   capturedGeneration: number;
   parentSnapshotIds: string[];
@@ -128,6 +130,15 @@ export class SnapshotSyncEngine {
         this.stateStore.clearPause(this.vaultId, this.deviceId);
         return { status: 'up-to-date', actionableChanges: 0 };
       }
+      if (plan.existingSnapshot) {
+        await this.publisher.adopt(plan.existingSnapshot, plan.observedDeviceHeads, plan.capturedGeneration);
+        const settled = this.stateStore.loadState(this.vaultId, this.deviceId);
+        return {
+          status: 'pulled',
+          snapshotId: plan.existingSnapshot.snapshotId,
+          actionableChanges: actionableChanges(settled.journalGeneration, settled.settledGeneration),
+        };
+      }
       pending = this.stateStore.createPending(
         this.vaultId,
         this.deviceId,
@@ -167,9 +178,12 @@ export class SnapshotSyncEngine {
   }
 
   private async planCandidate(): Promise<PlannedCandidate | null> {
+    // Content-addressed payloads cannot change under the same hash. Reuse only
+    // successfully decoded payloads during this plan; later syncs verify anew.
+    const verifiedSnapshots = new Map<string, JournalSnapshotPayload>();
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       const listed = await this.provider.listHeads(this.vaultId, true);
-      const remoteHeads = await this.loadAndNormalizeHeads(listed);
+      const remoteHeads = await this.loadAndNormalizeHeads(listed, verifiedSnapshots);
       const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
       const loadedBase = await this.shadowManager.load(checkpoint);
       const captured = await this.journal.capture();
@@ -205,6 +219,7 @@ export class SnapshotSyncEngine {
       await this.hooks.beforeHeadRecheck?.();
       const rechecked = await this.loadAndNormalizeHeads(
         await this.provider.listHeads(this.vaultId, true),
+        verifiedSnapshots,
       );
       if (headSignature(remoteHeads) !== headSignature(rechecked)) continue;
 
@@ -228,7 +243,14 @@ export class SnapshotSyncEngine {
         })),
         ...frontier.flatMap((remote) => remote.payload.observedDeviceHeads),
       ]);
+      const mergedContent = canonicalize(merged);
       return {
+        // Compare journal state, not snapshot IDs: sequence, author, parents and
+        // observations change even when all user data is identical. A matching
+        // complete snapshot is already a backup of this merge; acknowledge it
+        // locally instead of starting an endless exchange of acknowledgments.
+        existingSnapshot: frontier.find((remote) =>
+          canonicalize(domainOf(remote.payload)) === mergedContent),
         domain: merged,
         capturedGeneration: captured.generation,
         parentSnapshotIds: [...new Set(parentSnapshotIds)].sort(),
@@ -241,6 +263,7 @@ export class SnapshotSyncEngine {
 
   private async loadAndNormalizeHeads(
     listed: ListedDeviceHead[],
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
   ): Promise<RemoteHeadSnapshot[]> {
     const grouped = new Map<string, ListedDeviceHead[]>();
     for (const candidate of listed) {
@@ -286,19 +309,22 @@ export class SnapshotSyncEngine {
 
     const snapshots: RemoteHeadSnapshot[] = [];
     for (const candidate of normalized) {
-      const bytes = await this.provider.downloadSnapshot(this.vaultId, candidate.head.snapshotId);
-      await this.hooks.at?.('during-remote-snapshot-download');
-      if (!bytes) throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
-      let payload: JournalSnapshotPayload;
-      try {
-        payload = decodeSnapshot(bytes, candidate.head.snapshotId).payload;
-      } catch (error) {
-        const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
-        if (error instanceof SnapshotValidationError && code === 'invalid-literal' &&
-            /^\$\.format\b/.test(error.message)) {
-          throw new AttentionError('unsupported-format', 'remote-format-version');
+      let payload = verifiedSnapshots.get(candidate.head.snapshotId);
+      if (!payload) {
+        const bytes = await this.provider.downloadSnapshot(this.vaultId, candidate.head.snapshotId);
+        await this.hooks.at?.('during-remote-snapshot-download');
+        if (!bytes) throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
+        try {
+          payload = decodeSnapshot(bytes, candidate.head.snapshotId).payload;
+        } catch (error) {
+          const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
+          if (error instanceof SnapshotValidationError && code === 'invalid-literal' &&
+              /^\$\.format\b/.test(error.message)) {
+            throw new AttentionError('unsupported-format', 'remote-format-version');
+          }
+          throw new AttentionError('invalid-remote-snapshot', `snapshot-validation-${code}`);
         }
-        throw new AttentionError('invalid-remote-snapshot', `snapshot-validation-${code}`);
+        verifiedSnapshots.set(candidate.head.snapshotId, payload);
       }
       if (payload.vaultId !== this.vaultId) {
         throw new AttentionError('wrong-vault', 'snapshot-vault-mismatch');
@@ -329,9 +355,11 @@ export class SnapshotSyncEngine {
     const remotelyPresent = await this.provider.hasMediaBatch(this.vaultId, requiredHashes);
     for (const blobHash of requiredHashes) {
       const remotePresent = remotelyPresent.has(blobHash);
-      const localPresent = await this.mediaStore.hasVerified(blobHash);
+      // An upload source already proves local availability. Do not hash the
+      // same bytes first for hasVerified and then again to open the source.
+      const source = remotePresent ? null : await this.mediaStore.openVerifiedSource(blobHash);
+      const localPresent = remotePresent ? await this.mediaStore.hasVerified(blobHash) : source !== null;
       if (!remotePresent && localPresent) {
-        const source = await this.mediaStore.openVerifiedSource(blobHash);
         if (!source || source.contentHash !== blobHash) {
           throw new AttentionError('local-media-unreadable', 'local-media-hash-mismatch');
         }
@@ -387,7 +415,7 @@ export class SnapshotSyncEngine {
     if (error instanceof SnapshotMergeError) {
       const reason = error.code === 'derived-id-collision'
         ? 'derived-id-collision'
-        : 'invalid-remote-snapshot';
+        : 'normalized-model-not-ready';
       this.stateStore.setPause(this.vaultId, this.deviceId, reason, `merge-${error.code}`);
       return { status: 'attention', reason, actionableChanges: remaining };
     }
