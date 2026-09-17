@@ -1,8 +1,27 @@
-const { withAppBuildGradle } = require('expo/config-plugins');
+const { withAppBuildGradle, withGradleProperties } = require('expo/config-plugins');
 
 // The default Expo preset disables optimization. Keep the optimized preset
 // through clean prebuilds; expo-build-properties controls minify/resource flags.
 module.exports = function withAndroidReleaseOptimization(config) {
+  config = withGradleProperties(config, (mod) => {
+    // SDK 57's release lint/KSP can exhaust the template's 512 MiB Metaspace.
+    // Preserve heap and other JVM options while raising only this limit.
+    const args = mod.modResults.find(
+      (entry) => entry.type === 'property' && entry.key === 'org.gradle.jvmargs',
+    );
+    if (args) {
+      args.value = /-XX:MaxMetaspaceSize=\S+/.test(args.value)
+        ? args.value.replace(/-XX:MaxMetaspaceSize=\S+/g, '-XX:MaxMetaspaceSize=1024m')
+        : `${args.value} -XX:MaxMetaspaceSize=1024m`;
+    } else {
+      mod.modResults.push({
+        type: 'property',
+        key: 'org.gradle.jvmargs',
+        value: '-Xmx2048m -XX:MaxMetaspaceSize=1024m',
+      });
+    }
+    return mod;
+  });
   return withAppBuildGradle(config, (mod) => {
     if (mod.modResults.language !== 'groovy') {
       throw new Error(

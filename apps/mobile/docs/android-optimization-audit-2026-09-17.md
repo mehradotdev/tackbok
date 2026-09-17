@@ -216,3 +216,76 @@ warnings were non-fatal. No Play submission or on-device testing was performed.
 The Doctor issues above remain unresolved and should be handled before public
 rollout. Temporary EAS build files were removed after verification; the final AAB
 remains locally in the ignored build-artifact path.
+
+
+## SDK 57 patch alignment and local version policy
+
+Follow-up changes (app version 1.0.2): Expo 57.0.23, React Native 0.86.3,
+Reanimated 4.5.1, Worklets 0.10.1, and the matching Expo SDK patch dependencies.
+React Native now selects Hermes V1 250829098.0.17, beyond the affected versions.
+Duplicate on-disk copies of Expo modules were removed; frozen-lockfile install
+and Expo Doctor pass. Doctor also passes all 21 checks in the clean EAS build
+workspace. No Doctor exclusions or dependency overrides were added to hide issues.
+
+The app version is explicitly read from package.json in app.config.ts. Advancing
+to 1.0.2 separates OTA compatibility from the previous native runtime under the
+existing appVersion policy. Galaxy retains its store-specific runtime suffix.
+
+`production-local` inherits `production`, explicitly uses the production EAS
+environment, and disables autoIncrement. Use:
+
+```sh
+bunx eas build --platform android --profile production-local --local
+```
+
+The `production` cloud profile still auto-increments. The profile—not the local
+flag—selects the increment policy. Local builds reuse the current remote version
+code and should not be treated as unique store submissions.
+
+Validation completed before native build: TypeScript passed; 53 Jest suites / 469
+tests passed; 71 Bun cloud-sync tests passed; lint had zero errors and 18 warnings;
+iOS production JS export passed. This does not constitute an iOS native build or
+public-release approval. Release smoke-test/build results are recorded below. Physical-device audio, authenticated sync, purchases/restore and Play
+internal-track validation still require evidence before public rollout approval.
+
+
+### Completed native build and smoke test
+
+The SDK-aligned local production build succeeded (version 1.0.2, versionCode 10)
+without incrementing the remote version. Artifact: `build-sdk57-1.0.2.aab`,
+161,349,911 bytes; two DEX files totaling 16,067,584 raw bytes; 15 fonts; embedded
+R8 mapping. Release minification, resource shrinking and the optimized preset
+were verified in the generated project. Archive size is not Play download size.
+
+An initial attempt exhausted Gradle's 512 MiB Metaspace during release lint/KSP.
+The persistent plugin now raises that limit to 1024 MiB, preserving other JVM
+options. The retry completed successfully without disabling lint. A transient
+Expo Doctor network failure was followed by a successful 21/21 rerun in the same
+clean build workspace.
+
+Device-specific APKs generated from the AAB were explicitly signed with the local
+debug key for installation on the API 36 arm64 emulator. Startup, onboarding,
+example journal entries and the profile sheet rendered successfully, including
+fonts and icons; no fatal runtime exception was observed in the inspected logs.
+This is a limited smoke test, not verification of physical-device audio, Google
+OAuth, authenticated sync or billing. The first unsigned bundletool extraction
+could not install; signing the test APKs resolved that tooling issue.
+
+**Ready for internal testing; public rollout is not yet approved.** The original
+bitmap-loader and framework edge-to-edge recommendations remain separate follow-ups.
+No store submission was performed.
+
+### Build-warning triage
+
+- iOS duplicate `-lc++`: redundant linker input; non-blocking when linking succeeds.
+- Expo Dev Launcher script has no declared outputs: Xcode runs it on each build.
+  This affects incremental build work, not app correctness. Avoid editing generated
+  Xcode files just to silence this upstream warning.
+- Explicit `ios.infoPlist.CFBundleURLTypes` overrides Expo's generic `scheme` on
+  iOS. The generated beta plist was checked: it contains `tackbok-beta` and the
+  Google OAuth callback scheme. Production config similarly selects `tackbok`.
+  This warning does not mean those schemes are missing; OAuth still needs a
+  real sign-in smoke test.
+- Android debug-manifest `tools:replace` with no matching declaration is redundant
+  merge metadata, not a release optimization failure. Keep debug cleartext support
+  needed by Metro. No maxSdkVersion conflicts is a successful informational check.

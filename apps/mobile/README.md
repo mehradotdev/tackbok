@@ -238,6 +238,8 @@ Android release builds enable R8 minification and resource shrinking through
 `plugins/withAndroidReleaseOptimization.js` plugin selects
 `proguard-android-optimize.txt` during prebuild. Keep these settings in Expo
 configuration; editing the ignored `android/` files does not survive clean prebuilds.
+The plugin also raises Gradle Metaspace to 1 GiB to avoid release lint/KSP
+class-metadata exhaustion observed with the SDK 57 patch set.
 Debug builds (including the EAS `development` profile) retain the normal
 development behavior. The flags apply to the Android release build type, so
 `preview` and Galaxy release builds are optimized too, not just the profile named
@@ -257,8 +259,8 @@ To validate a release after changing optimization settings, run from `apps/mobil
 
 ```sh
 # Optional: run the production build pipeline using this machine's Android SDK.
-# This still uses EAS credentials/environment and increments the remote versionCode.
-bunx eas build --platform android --profile production --local
+# Uses production credentials/environment without incrementing the remote versionCode.
+bunx eas build --platform android --profile production-local --local
 
 # Create the Google Play release AAB with the production EAS environment.
 bunx eas build --platform android --profile production
@@ -266,6 +268,12 @@ bunx eas build --platform android --profile production
 # After reviewing the build, submit that exact build to the configured internal track.
 bunx eas submit --platform android --profile production --id <build-id>
 ```
+
+`production-local` inherits production settings and overrides `autoIncrement` to
+`false`. It reuses the current remote version code; cloud builds using
+`production` still increment it. The profile controls incrementing, not the
+`--local` flag: always select `production-local` for local validation. Reused
+version codes are for testing, not repeated Play submissions.
 
 Install the internal-track build and check cold launch, all fonts/themes, sheets
 and keyboard, app lock, purchases/restore, M4A recording/playback/seek/waveforms,

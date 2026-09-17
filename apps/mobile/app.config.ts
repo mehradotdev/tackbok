@@ -25,6 +25,7 @@ const GOOGLE_OAUTH = IS_BETA
     };
 
 const config: ExpoConfig = {
+  version,
   name: IS_BETA ? 'Tackbok (Beta)' : 'Tackbok',
   slug: 'tackbok',
   scheme: IS_BETA ? 'tackbok-beta' : 'tackbok',
@@ -81,6 +82,7 @@ const config: ExpoConfig = {
       },
     ],
     './plugins/withAndroidReleaseOptimization',
+    'expo-asset',
     'expo-router',
     'expo-background-task',
     'expo-system-ui',
