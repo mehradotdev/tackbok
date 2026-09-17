@@ -2,7 +2,7 @@
 
 export type TitleFontId = 'figtree' | 'lora' | 'gloriahallelujah' | 'cinzel' | 'spacemono' | 'baskervville';
 
-export type ThemeId = 'light' | 'dark' | 'shiro' | 'shadow' | 'helena' | 'poonam' | 'clemens' | 'weckner' | 'camino' | 'camino-night' | 'lavender' | 'bubblegum' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'navy' | 'sakura' | 'slate' | 'kela';
+export type ThemeId = 'light' | 'dark' | 'shiro' | 'shadow' | 'helena' | 'poonam' | 'clemens' | 'weckner' | 'camino' | 'camino-night' | 'bubblegum' | 'hecker' | 'peach' | 'ember' | 'ocean' | 'naini' | 'sakura' | 'slate' | 'kela' | 'lavender';
 
 export type ThemeVariant = 'light' | 'dark';
 

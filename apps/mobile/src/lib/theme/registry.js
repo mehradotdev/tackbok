@@ -126,14 +126,6 @@ export const THEMES = [
     "defaultTitleFontId": "spacemono"
   },
   {
-    "id": "lavender",
-    "name": "Lavender",
-    "description": "Gentle purple/lavender",
-    "variant": "light",
-    "enableTimelineBorders": false,
-    "defaultTitleFontId": "gloriahallelujah"
-  },
-  {
     "id": "bubblegum",
     "name": "Bubblegum",
     "description": "Neo-Brutalism Pop",
@@ -174,8 +166,8 @@ export const THEMES = [
     "defaultTitleFontId": "cinzel"
   },
   {
-    "id": "navy",
-    "name": "Navy",
+    "id": "naini",
+    "name": "Naini",
     "description": "Deep navy/slate blue",
     "variant": "dark",
     "enableTimelineBorders": false,
@@ -204,6 +196,14 @@ export const THEMES = [
     "variant": "light",
     "enableTimelineBorders": true,
     "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "lavender",
+    "name": "Lavender",
+    "description": "Gentle purple/lavender",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "defaultTitleFontId": "gloriahallelujah"
   }
 ];
 

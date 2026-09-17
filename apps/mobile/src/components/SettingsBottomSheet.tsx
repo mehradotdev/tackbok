@@ -597,13 +597,16 @@ export function SettingsBottomSheet() {
                 label={`${t('Share Feedback')} / ${t('Contact Us')}`}
                 icon={Mail}
                 onPress={handleContactUs}
+                isLast={!__DEV__}
               />
-              <ActionRow
-                label={t('Reload App')}
-                icon={RotateCcw}
-                onPress={handleReloadApp}
-                isLast
-              />
+              {__DEV__ && (
+                <ActionRow
+                  label={t('Reload App')}
+                  icon={RotateCcw}
+                  onPress={handleReloadApp}
+                  isLast
+                />
+              )}
             </View>
 
             <View className="h-2 pb-safe" />

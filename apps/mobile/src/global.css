@@ -370,40 +370,6 @@
     }
 
     /* ═══════════════════════════════════════════
-       LAVENDER — Gentle purple/lavender
-       ═══════════════════════════════════════════ */
-    @variant lavender {
-      --color-background: #f3eef8;
-      --color-foreground: #2e2440;
-      --color-card: #f8f4fc;
-      --color-card-foreground: #2e2440;
-      --color-popover: #faf7fd;
-      --color-popover-foreground: #2e2440;
-      --color-primary: #bea8e5;
-      --color-primary-foreground: #2e2440;
-      --color-secondary: #e0d4f0;
-      --color-secondary-foreground: #2e2440;
-      --color-muted: #e0d4f0;
-      --color-muted-foreground: #6e5a8a;
-      --color-accent: #d0c0e4;
-      --color-accent-foreground: #2e2440;
-      --color-destructive: #b84060;
-      --color-destructive-foreground: #f8f4fc;
-      --color-border: #c8b8dc;
-      --color-input: #d0c0e4;
-      --color-ring: #9b7bc7;
-      --color-active-overlay: rgba(0, 0, 0, 0.12);
-      --theme-radius: 8px;
-      --theme-border-width: 1px;
-      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
-      --font-heading: 'GloriaHallelujah_400Regular';
-      --font-body: 'Inter_400Regular';
-      --font-body-medium: 'Inter_500Medium';
-      --font-body-semibold: 'Inter_600SemiBold';
-      --font-body-bold: 'Inter_700Bold';
-    }
-
-    /* ═══════════════════════════════════════════
        BUBBLEGUM — Neo-Brutalism Pop
        ═══════════════════════════════════════════ */
     @variant bubblegum {
@@ -574,9 +540,9 @@
     }
 
     /* ═══════════════════════════════════════════
-       NAVY — Deep navy/slate blue
+       NAINI — Deep navy/slate blue
        ═══════════════════════════════════════════ */
-    @variant navy {
+    @variant naini {
       --color-background: #0f1729;
       --color-foreground: #d8e0f0;
       --color-card: #182038;
@@ -707,6 +673,40 @@
       --font-body-medium: 'JetBrainsMono_500Medium';
       --font-body-semibold: 'JetBrainsMono_600SemiBold';
       --font-body-bold: 'JetBrainsMono_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       LAVENDER — Gentle purple/lavender
+       ═══════════════════════════════════════════ */
+    @variant lavender {
+      --color-background: #f3eef8;
+      --color-foreground: #2e2440;
+      --color-card: #f8f4fc;
+      --color-card-foreground: #2e2440;
+      --color-popover: #faf7fd;
+      --color-popover-foreground: #2e2440;
+      --color-primary: #bea8e5;
+      --color-primary-foreground: #2e2440;
+      --color-secondary: #e0d4f0;
+      --color-secondary-foreground: #2e2440;
+      --color-muted: #e0d4f0;
+      --color-muted-foreground: #6e5a8a;
+      --color-accent: #d0c0e4;
+      --color-accent-foreground: #2e2440;
+      --color-destructive: #b84060;
+      --color-destructive-foreground: #f8f4fc;
+      --color-border: #c8b8dc;
+      --color-input: #d0c0e4;
+      --color-ring: #9b7bc7;
+      --color-active-overlay: rgba(0, 0, 0, 0.12);
+      --theme-radius: 8px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.15);
+      --font-heading: 'GloriaHallelujah_400Regular';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
     }
   }
 }

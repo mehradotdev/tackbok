@@ -190,16 +190,16 @@ describe('Theme Registry', () => {
       'weckner',
       'camino',
       'camino-night',
-      'lavender',
       'bubblegum',
       'hecker',
       'peach',
       'ember',
       'ocean',
-      'navy',
+      'naini',
       'sakura',
       'slate',
       'kela',
+      'lavender',
     ]);
     expect(new Set(THEME_IDS).size).toBe(THEME_IDS.length);
   });

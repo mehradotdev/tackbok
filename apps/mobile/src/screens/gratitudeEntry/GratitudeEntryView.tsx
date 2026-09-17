@@ -189,8 +189,8 @@ export function GratitudeEntryView({
         <Button
           variant="outline"
           size="icon"
-          className="absolute left-4 h-12 w-12 rounded-full bg-background shadow-theme"
-          style={{ bottom: Math.max(insets.bottom, 12) }}
+          className="absolute right-4 h-12 w-12 rounded-full bg-background shadow-theme"
+          style={{ bottom: Math.max(insets.bottom, 12) + 8 }}
           accessibilityLabel={t('Share entry')}
           onPress={() =>
             router.push({

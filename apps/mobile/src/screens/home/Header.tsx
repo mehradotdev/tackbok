@@ -183,12 +183,12 @@ export const Header: React.FC<IHeaderProps> = ({
                 />
                 {syncIsUpToDate && (
                   <View
-                    className="absolute -right-1 -bottom-2 size-3 items-center justify-center rounded-full border border-background bg-accent"
+                    className="absolute -right-1 -bottom-2 size-3 items-center justify-center rounded-full border border-background bg-background"
                     accessible={false}
                     importantForAccessibility="no-hide-descendants">
                     <Icon
                       as={Check}
-                      className="size-2.5 text-accent-foreground"
+                      className="size-2.5 text-foreground"
                       strokeWidth={3.5}
                     />
                   </View>
