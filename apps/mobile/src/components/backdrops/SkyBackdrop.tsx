@@ -18,6 +18,7 @@ import {
   useFrameCallback,
   useReducedMotion,
   useSharedValue,
+  type FrameInfo,
   type SharedValue,
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
@@ -92,9 +93,17 @@ export function SkyBackdrop({
   const direction = useSharedValue(1);
   const targets = useSharedValue([3, 6, 9]);
   const visible = useSharedValue(false);
-  const frame = useFrameCallback(({ timeSincePreviousFrame }) => {
-    if (running.value) time.value += Math.min(timeSincePreviousFrame ?? 0, 50) / 1000;
-  }, false);
+  // Keep the registration stable across timeline and layout rerenders.
+  const frame = useFrameCallback(
+    useCallback(
+      ({ timeSincePreviousFrame }: FrameInfo) => {
+        'worklet';
+        if (running.value) time.value += Math.min(timeSincePreviousFrame ?? 0, 50) / 1000;
+      },
+      [running, time],
+    ),
+    false,
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -134,8 +143,11 @@ export function SkyBackdrop({
         );
       };
       const start = () => {
-        running.value = !preview && !reducedMotion && active;
-        frame.setActive(running.value);
+        // Use the same JS decision for both controls; shared-value writes are
+        // scheduled on the UI thread, so an immediate read can still be stale.
+        const shouldRun = !preview && !reducedMotion && active;
+        running.value = shouldRun;
+        frame.setActive(shouldRun);
         schedule();
       };
       start();

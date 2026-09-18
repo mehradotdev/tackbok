@@ -10,7 +10,6 @@ import {
   type Entry,
 } from '~/types';
 import { useTranslation } from '~/lib/i18n';
-import { useSettingsStore } from '~/lib/settings';
 import { gratitudeDockHeight } from './gratitude-dock-layout';
 import { useEntriesGroupByDate, useTagMapping } from '~/hooks/useGratitude';
 import { AppLoadingScreen } from '~/components/AppLoadingScreen';
@@ -46,7 +45,12 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   onScrollBeginDrag,
 }) => {
   const { t } = useTranslation();
-  const theme = useSettingsStore((s) => s.theme);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  // Reveal the lower backdrop in every theme, with clearance for the tallest dock.
+  const footerHeight = Math.max(
+    gratitudeDockHeight(true) + 28,
+    viewportHeight * 0.45 + 24,
+  );
   const today = startOfDay(new Date());
   const yesterday = subDays(today, 1);
   const todayMs = today.getTime();
@@ -180,7 +184,9 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
   }
 
   return (
-    <View className="flex-1 bg-background w-full">
+    <View
+      className="flex-1 bg-background w-full"
+      onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}>
       <ThemeBackdrop />
       <LegendList
         recycleItems={true}
@@ -209,14 +215,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
           ) : null
         }
         ListHeaderComponent={<SampleEntriesBanner />}
-        ListFooterComponent={
-          // Leave enough room to scroll the last entry above all dock actions.
-          <View
-            style={{
-              height: gratitudeDockHeight(theme === 'shiro' || theme === 'shadow') + 28,
-            }}
-          />
-        }
+        ListFooterComponent={<View style={{ height: footerHeight }} />}
         contentContainerClassName="pb-4"
         onScroll={onScroll}
         onScrollBeginDrag={onScrollBeginDrag}
