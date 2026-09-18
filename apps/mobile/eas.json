@@ -38,11 +38,13 @@
     "production-galaxy": {
       "extends": "production",
       "environment": "production",
+      "autoIncrement": false,
       "channel": "production-galaxy",
       "android": {
         "buildType": "apk"
       },
       "env": {
+        "APP_VARIANT": "production",
         "ANDROID_STORE": "samsung",
         "GALAXY_BILLING_MODE": "PRODUCTION",
         "EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY": "galx_pQPQgMjxgVZkfRpCPBAsvpwRbsP"

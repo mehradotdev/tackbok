@@ -75,7 +75,6 @@ function leaf(px: number, py: number, angle: number, length: number): string {
   );
 }
 
-const PETAL_PATH = 'M 0 -6 Q 4.5 -2 0 6 Q -4.5 -2 0 -6 Z';
 const BUTTERFLY_PATH =
   'M 0 0 Q -13 -11 -15 -2 Q -14 6 0 1 Z M 0 0 Q 13 -11 15 -2 Q 14 6 0 1 Z';
 
@@ -135,40 +134,6 @@ function TwinkleStar({
   return <Circle cx={x} cy={y} r={r} color={color} opacity={opacity} />;
 }
 
-function FallingPetal({
-  width,
-  height,
-  offset,
-  color,
-  fall,
-}: {
-  width: number;
-  height: number;
-  offset: number;
-  color: string;
-  fall: SharedValue<number>;
-}) {
-  const transform = useDerivedValue(() => {
-    const p = (fall.value + offset) % 1;
-    const x =
-      width * (0.15 + offset * 0.6) +
-      Math.sin((p * 3 + offset * 7) * Math.PI * 2) * width * 0.045;
-    const y = -0.06 * height + p * 1.15 * height;
-    return [{ translateX: x }, { translateY: y }, { rotate: p * 5 + offset * 3 }];
-  });
-  const opacity = useDerivedValue(() => {
-    const p = (fall.value + offset) % 1;
-    if (p < 0.06) return (p / 0.06) * 0.85;
-    if (p > 0.9) return Math.max(0, ((1 - p) / 0.1) * 0.85);
-    return 0.85;
-  });
-  return (
-    <Group transform={transform} opacity={opacity}>
-      <Path path={PETAL_PATH} color={color} />
-    </Group>
-  );
-}
-
 /** Static previews render this same scene frozen at rest, like SkyBackdrop. */
 export function PetBackdrop({
   mode,
@@ -207,7 +172,6 @@ export function PetBackdrop({
       flowerPetal: mixColors(card, '#fff6e8', night ? 0.7 : 0.15),
       flowerCenter: primary,
       star: primary,
-      petal: withAlpha(card, 0.85),
       petShadow: night ? '#080c19' : '#57482f',
     }),
     [background, accent, primary, muted, border, card, ring, secondary, night],
@@ -217,7 +181,6 @@ export function PetBackdrop({
   const breathe = useSharedValue(0);
   const flight = useSharedValue(0);
   const twinkle = useSharedValue(0);
-  const fall = useSharedValue(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -226,7 +189,6 @@ export function PetBackdrop({
         cancelAnimation(breathe);
         cancelAnimation(flight);
         cancelAnimation(twinkle);
-        cancelAnimation(fall);
       };
       if (preview || reducedMotion) {
         stop();
@@ -234,7 +196,6 @@ export function PetBackdrop({
         breathe.value = 0;
         flight.value = 0;
         twinkle.value = 0;
-        fall.value = 0;
         return stop;
       }
       const start = () => {
@@ -266,14 +227,9 @@ export function PetBackdrop({
             false,
           );
         } else {
-          // Butterfly hover/wing cycles share a 52s clock; petals use 16s.
+          // Butterfly hover/wing cycles share a 52s clock.
           flight.value = withRepeat(
             withTiming(1, { duration: 52000, easing: Easing.linear }),
-            -1,
-            false,
-          );
-          fall.value = withRepeat(
-            withTiming(1, { duration: 16000, easing: Easing.linear }),
             -1,
             false,
           );
@@ -288,13 +244,13 @@ export function PetBackdrop({
         subscription.remove();
         stop();
       };
-    }, [preview, reducedMotion, night, drift, breathe, flight, twinkle, fall]),
+    }, [preview, reducedMotion, night, drift, breathe, flight, twinkle]),
   );
 
   const scene = useMemo(() => {
     const w = width;
     const h = height;
-    const wallTop = h * 0.78;
+    const wallTop = h * 0.82;
     const mainVine =
       `M ${w + 8} ${h} C ${w * 0.98} ${h * 0.86}, ${w * 0.93} ${h * 0.76}, ${w * 0.94} ${h * 0.66}` +
       ` C ${w * 0.95} ${h * 0.58}, ${w * 0.88} ${h * 0.54}, ${w * 0.91} ${h * 0.47}`;
@@ -366,7 +322,7 @@ export function PetBackdrop({
   // closes over the existing 52s scene clock and stays responsive to pet size.
   const butterflyTransform = useDerivedValue(() => {
     const phase = flight.value * Math.PI * 20;
-    const scale = shortSide * 0.0016;
+    const scale = shortSide * 0.002;
     return [
       { translateX: perchX + imageW * 0.27 + Math.sin(phase) * shortSide * 0.025 },
       { translateY: perchY - imageH * 0.99 + Math.cos(phase) * shortSide * 0.015 },
@@ -521,26 +477,20 @@ export function PetBackdrop({
             </Group>
           </>
 
-          {/* Falling petals (day) */}
-          {!night &&
-            [0, 0.3, 0.55, 0.8].map((offset) => (
-              <FallingPetal
-                key={offset}
-                width={width}
-                height={height}
-                offset={offset}
-                color={colors.petal}
-                fall={fall}
-              />
-            ))}
-
           {/* Butterfly companion (day, hidden in previews / reduced motion) */}
           {!night && !preview && !reducedMotion && (
             <Group transform={butterflyTransform} opacity={0.95}>
-              <Path path={BUTTERFLY_PATH} color={accent} />
+              <Path path={BUTTERFLY_PATH} color="#D99A20" />
+              <Path
+                path={BUTTERFLY_PATH}
+                color="#674522"
+                style="stroke"
+                strokeWidth={0.8}
+                strokeJoin="round"
+              />
               <Path
                 path="M 0 -3 L 0 4"
-                color={border}
+                color="#4A321F"
                 style="stroke"
                 strokeWidth={1.6}
                 strokeCap="round"
