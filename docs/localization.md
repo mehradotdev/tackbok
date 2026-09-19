@@ -1,8 +1,8 @@
 # Mobile localization
 
 This guide applies to `apps/mobile`. English is the source language; current
-catalogs are English, Arabic, German, Hebrew, Simplified Chinese, and Traditional
-Chinese. New languages are a separate follow-up to this migration.
+catalogs are English, Arabic, German, Hebrew, Hindi, Spanish, Swedish, Simplified
+Chinese, and Traditional Chinese.
 
 ## Voice and meaning
 
@@ -34,13 +34,16 @@ collect a gender preference for localization.
 | German              | Informal singular `du/dein`; normal German noun capitalization                                                                |
 | Arabic              | Modern Standard Arabic, broadly understood vocabulary; natural neutral constructions where possible, masculine when necessary |
 | Hebrew              | Everyday singular address; natural infinitive/noun action labels where appropriate, masculine when necessary                  |
+| Hindi               | Everyday respectful `आप`; natural neutral constructions where possible, masculine when necessary                              |
+| Spanish             | International, widely understood Spanish; informal singular `tú`; avoid region-specific slang                                 |
+| Swedish             | Everyday, respectful `du/din`; concise Swedish product language                                                               |
 | Simplified Chinese  | Everyday respectful `你` or natural pronoun omission; Simplified script                                                       |
 | Traditional Chinese | Everyday respectful `你` or natural pronoun omission; Traditional script; retain established catalog vocabulary               |
 
 These are this app's editorial choices, not claims that every speaker prefers the
 same register. Research established product-writing conventions before adding a
-language. Prefer words understood across regions, including for a future Spanish
-catalog. If materially different regional meanings cannot be reconciled naturally,
+language. Prefer words understood across regions. If materially different regional
+meanings cannot be reconciled naturally,
 ask the developer which variant to prioritize. Keep Simplified and Traditional
 Chinese distinct; a script conversion alone is not a translation review.
 
@@ -51,13 +54,13 @@ GitHub, and other third-party names recognizable.
 
 ## Glossary
 
-| Meaning                     | English    | German        | Arabic        | Hebrew      | Simplified Chinese | Traditional Chinese |
-| --------------------------- | ---------- | ------------- | ------------- | ----------- | ------------------ | ------------------- |
-| Individual journal record   | entry      | Eintrag       | سجل           | רשומה       | 条目               | 紀錄                |
-| Collection of entries       | journal    | Tagebuch      | دفتر اليوميات | יומן        | 日记               | 日記                |
-| Audio attachment            | voice note | Sprachnotiz   | ملاحظة صوتية  | הקלטה קולית | 语音笔记           | 語音筆記            |
-| Writing question/suggestion | prompt     | Schreibimpuls | سؤال          | הנחיה       | 提示               | 提示                |
-| Organizing label            | tag        | Tag           | وسم           | תגית        | 标签               | 標籤                |
+| Meaning                     | English    | German        | Arabic        | Hebrew      | Hindi      | Spanish       | Swedish        | Simplified Chinese | Traditional Chinese |
+| --------------------------- | ---------- | ------------- | ------------- | ----------- | ---------- | ------------- | -------------- | ------------------ | ------------------- |
+| Individual journal record   | entry      | Eintrag       | سجل           | רשומה       | प्रविष्टि  | entrada       | anteckning     | 条目               | 紀錄                |
+| Collection of entries       | journal    | Tagebuch      | دفتر اليوميات | יומן        | डायरी      | diario        | dagbok         | 日记               | 日記                |
+| Audio attachment            | voice note | Sprachnotiz   | ملاحظة صوتية  | הקלטה קולית | वॉइस नोट   | nota de voz   | röstanteckning | 语音笔记           | 語音筆記            |
+| Writing question/suggestion | prompt     | Schreibimpuls | سؤال          | הנחיה       | लेखन संकेत | pregunta guía | skrivfråga     | 提示               | 提示                |
+| Organizing label            | tag        | Tag           | وسم           | תגית        | टैग        | etiqueta      | etikett        | 标签               | 標籤                |
 
 Inflect terms naturally; consistency does not mean pasting the same grammatical
 form into every sentence. Existing stored user content, example entries, and

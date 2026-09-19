@@ -70,8 +70,8 @@ it('formats iOS dates, numbers, and messages when Intl omits the numbering syste
 });
 
 it('defaults to English when no device language or saved preference is supported', () => {
-  expect(getEffectiveSupportedLocale('hi-IN', 'device')).toBe('en');
-  expect(getEffectiveSupportedLocale(['es-MX', 'hi-IN'], 'device')).toBe('en');
+  expect(getEffectiveSupportedLocale('fr-FR', 'device')).toBe('en');
+  expect(getEffectiveSupportedLocale(['it-IT', 'fr-FR'], 'device')).toBe('en');
   expect(getEffectiveSupportedLocale(null, 'device')).toBe('en');
   expect(getEffectiveSupportedLocale('de-DE', 'unsupported' as LocalePreference)).toBe(
     'en',
@@ -85,13 +85,15 @@ it.each([
   ['zh-SG', 'zh-CN'],
   ['de-AT', 'de'],
   ['he-IL', 'he'],
-  ['es-MX', null],
+  ['es-MX', 'es'],
+  ['hi-IN', 'hi'],
+  ['sv-SE', 'sv'],
 ])('matches %s to %s', (device, expected) =>
   expect(getEffectiveLocale(device)).toBe(expected),
 );
 
 it('checks device language preferences in order and honors an explicit app language', () => {
-  expect(getEffectiveLocale(['es-MX', 'de-AT', 'en-US'])).toBe('de');
+  expect(getEffectiveLocale(['es-MX', 'de-AT', 'en-US'])).toBe('es');
   expect(getEffectiveLocale(['de-AT'], 'ar')).toBe('ar');
 });
 

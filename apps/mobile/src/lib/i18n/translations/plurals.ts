@@ -26,6 +26,104 @@ export const pluralMessages = {
     'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
       '{type}: {count} alternative versions saved',
   },
+  es: {
+    'appearance.countThemesAndColorSchemes_one': '{count} tema y combinación de colores',
+    'appearance.countThemesAndColorSchemes_many':
+      '{count} temas y combinaciones de colores',
+    'appearance.countThemesAndColorSchemes_other':
+      '{count} temas y combinaciones de colores',
+    'entry.maximumCountPhotosPerEntry_one': 'Hasta {count} foto por entrada',
+    'entry.maximumCountPhotosPerEntry_many': 'Hasta {count} fotos por entrada',
+    'entry.maximumCountPhotosPerEntry_other': 'Hasta {count} fotos por entrada',
+    'entry.maximumCountVoiceMemosPerEntry_one': 'Hasta {count} nota de voz por entrada',
+    'entry.maximumCountVoiceMemosPerEntry_many':
+      'Hasta {count} notas de voz por entrada',
+    'entry.maximumCountVoiceMemosPerEntry_other':
+      'Hasta {count} notas de voz por entrada',
+    'insights.countYearsAgoToday_one': 'Hoy hace {count} año',
+    'insights.countYearsAgoToday_many': 'Hoy hace {count} años',
+    'insights.countYearsAgoToday_other': 'Hoy hace {count} años',
+    'milestone.daysOfGratitude_one': '{count} día de gratitud',
+    'milestone.daysOfGratitude_many': '{count} días de gratitud',
+    'milestone.daysOfGratitude_other': '{count} días de gratitud',
+    'sharing.countDaysOfGratitude_one': '¡{count} día de gratitud!',
+    'sharing.countDaysOfGratitude_many': '¡{count} días de gratitud!',
+    'sharing.countDaysOfGratitude_other': '¡{count} días de gratitud!',
+    'sharing.openCountDayAchievement_one': 'Ver logro: {count} día',
+    'sharing.openCountDayAchievement_many': 'Ver logro: {count} días',
+    'sharing.openCountDayAchievement_other': 'Ver logro: {count} días',
+    'cloud.countChangesSafelyQueued_one':
+      '{count} cambio guardado, esperando para sincronizarse',
+    'cloud.countChangesSafelyQueued_many':
+      '{count} cambios guardados, esperando para sincronizarse',
+    'cloud.countChangesSafelyQueued_other':
+      '{count} cambios guardados, esperando para sincronizarse',
+    'cloud.countChangesRemaining_one': 'Queda {count} cambio',
+    'cloud.countChangesRemaining_many': 'Quedan {count} cambios',
+    'cloud.countChangesRemaining_other': 'Quedan {count} cambios',
+    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
+      '{type}: se guardó {count} versión alternativa',
+    'cloud.recoveredTypeConflictCountPreservedAlternatives_many':
+      '{type}: se guardaron {count} versiones alternativas',
+    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
+      '{type}: se guardaron {count} versiones alternativas',
+  },
+  hi: {
+    'appearance.countThemesAndColorSchemes_one': '{count} थीम और रंग योजना',
+    'appearance.countThemesAndColorSchemes_other': '{count} थीम और रंग योजनाएँ',
+    'entry.maximumCountPhotosPerEntry_one': 'हर प्रविष्टि में अधिकतम {count} फ़ोटो',
+    'entry.maximumCountPhotosPerEntry_other': 'हर प्रविष्टि में अधिकतम {count} फ़ोटो',
+    'entry.maximumCountVoiceMemosPerEntry_one':
+      'हर प्रविष्टि में अधिकतम {count} वॉइस नोट',
+    'entry.maximumCountVoiceMemosPerEntry_other':
+      'हर प्रविष्टि में अधिकतम {count} वॉइस नोट',
+    'insights.countYearsAgoToday_one': 'आज से {count} वर्ष पहले',
+    'insights.countYearsAgoToday_other': 'आज से {count} वर्ष पहले',
+    'milestone.daysOfGratitude_one': 'कृतज्ञता का {count} दिन',
+    'milestone.daysOfGratitude_other': 'कृतज्ञता के {count} दिन',
+    'sharing.countDaysOfGratitude_one': 'कृतज्ञता का {count} दिन!',
+    'sharing.countDaysOfGratitude_other': 'कृतज्ञता के {count} दिन!',
+    'sharing.openCountDayAchievement_one': 'उपलब्धि देखें: {count} दिन',
+    'sharing.openCountDayAchievement_other': 'उपलब्धि देखें: {count} दिन',
+    'cloud.countChangesSafelyQueued_one':
+      '{count} बदलाव सहेजा गया, सिंक होने की प्रतीक्षा में',
+    'cloud.countChangesSafelyQueued_other':
+      '{count} बदलाव सहेजे गए, सिंक होने की प्रतीक्षा में',
+    'cloud.countChangesRemaining_one': '{count} बदलाव बाकी है',
+    'cloud.countChangesRemaining_other': '{count} बदलाव बाकी हैं',
+    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
+      '{type}: {count} वैकल्पिक संस्करण सहेजा गया',
+    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
+      '{type}: {count} वैकल्पिक संस्करण सहेजे गए',
+  },
+  sv: {
+    'appearance.countThemesAndColorSchemes_one': '{count} tema och färgschema',
+    'appearance.countThemesAndColorSchemes_other': '{count} teman och färgscheman',
+    'entry.maximumCountPhotosPerEntry_one': 'Upp till {count} foto per anteckning',
+    'entry.maximumCountPhotosPerEntry_other': 'Upp till {count} foton per anteckning',
+    'entry.maximumCountVoiceMemosPerEntry_one':
+      'Upp till {count} röstanteckning per anteckning',
+    'entry.maximumCountVoiceMemosPerEntry_other':
+      'Upp till {count} röstanteckningar per anteckning',
+    'insights.countYearsAgoToday_one': 'I dag för {count} år sedan',
+    'insights.countYearsAgoToday_other': 'I dag för {count} år sedan',
+    'milestone.daysOfGratitude_one': '{count} dag av tacksamhet',
+    'milestone.daysOfGratitude_other': '{count} dagar av tacksamhet',
+    'sharing.countDaysOfGratitude_one': '{count} dag av tacksamhet!',
+    'sharing.countDaysOfGratitude_other': '{count} dagar av tacksamhet!',
+    'sharing.openCountDayAchievement_one': 'Visa prestation: {count} dag',
+    'sharing.openCountDayAchievement_other': 'Visa prestation: {count} dagar',
+    'cloud.countChangesSafelyQueued_one':
+      '{count} ändring sparad och väntar på synkronisering',
+    'cloud.countChangesSafelyQueued_other':
+      '{count} ändringar sparade och väntar på synkronisering',
+    'cloud.countChangesRemaining_one': '{count} ändring återstår',
+    'cloud.countChangesRemaining_other': '{count} ändringar återstår',
+    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
+      '{type}: {count} alternativ version sparad',
+    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
+      '{type}: {count} alternativa versioner sparade',
+  },
   de: {
     'appearance.countThemesAndColorSchemes_one': '{count} Design und Farbschema',
     'appearance.countThemesAndColorSchemes_other': '{count} Designs und Farbschemata',
