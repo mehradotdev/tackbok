@@ -5,7 +5,10 @@ import { TextClassContext } from '~/components/ui/text';
 import * as SelectPrimitive from '~/components/primitives/select';
 import { Check, ChevronDown } from 'lucide-react-native';
 import * as React from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+// GH ScrollView is required because RN's built-in ScrollView doesn't handle
+// nested scrolling gestures inside overlays on Android.
+import { ScrollView as GHScrollView } from 'react-native-gesture-handler';
 import Animated, {
   FadeIn,
   FadeOut,
@@ -14,6 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { withUniwind } from 'uniwind';
 
 type Option = SelectPrimitive.Option;
 
@@ -183,11 +187,19 @@ function SelectSeparator({
   );
 }
 
+const StyledGHScrollView = withUniwind(GHScrollView);
+
 function NativeSelectScrollView({
   className,
   ...props
-}: React.ComponentProps<typeof ScrollView>) {
-  return <ScrollView className={cn('max-h-52', className)} {...props} />;
+}: React.ComponentProps<typeof GHScrollView>) {
+  return (
+    <StyledGHScrollView
+      nestedScrollEnabled
+      className={cn('max-h-52', className)}
+      {...props}
+    />
+  );
 }
 
 export {
