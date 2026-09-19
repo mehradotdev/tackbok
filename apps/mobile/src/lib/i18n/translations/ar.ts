@@ -5,6 +5,20 @@ import type { Translations } from '../types';
  * Contains translations for all UI strings used in the application
  */
 export const ar: Translations = {
+  // Cold-start header greeting
+  "Welcome back": "مرحبًا بعودتك",
+  "Good morning": "صباح الخير",
+  "Good afternoon": "طاب مساؤك",
+  "Good evening": "مساء الخير",
+  "Happy Sunday": "أحد سعيد",
+  "Happy Monday": "اثنين سعيد",
+  "Happy Tuesday": "ثلاثاء سعيد",
+  "Happy Wednesday": "أربعاء سعيد",
+  "Happy Thursday": "خميس سعيد",
+  "Happy Friday": "جمعة سعيدة",
+  "Happy Saturday": "سبت سعيد",
+  "Greeting with name": "{greeting}، {name}",
+
   // Common
   Tackbok: 'تاكبوك',
   Cancel: 'إلغاء',

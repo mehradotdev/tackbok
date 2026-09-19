@@ -1,4 +1,5 @@
 import React from 'react';
+import { HeaderGreeting, HeaderMotion, useHeaderGreeting } from './header-greeting';
 import { View, ScrollView } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import {
@@ -42,6 +43,12 @@ export const Header: React.FC<IHeaderProps> = ({
   selectedTagIds = [],
   onTagsChange,
 }) => {
+  const greetingState = useHeaderGreeting(isSearchMode);
+  const motion = {
+    progress: greetingState.progress,
+    reducedMotion: greetingState.reducedMotion,
+    active: greetingState.active,
+  };
   const router = useRouter();
   const { t, isRTL } = useTranslation();
   const { snapshot } = useCloudSyncSnapshot();
@@ -131,81 +138,96 @@ export const Header: React.FC<IHeaderProps> = ({
   }
 
   return (
-    <View className="relative flex-row w-full items-center justify-between px-safe-or-4 py-2 bg-primary">
-      {/* Search Button */}
-      <Button className="p-1" onPress={onSearchPress} variant="ghost">
-        <Icon as={Search} className="text-primary-foreground" />
-      </Button>
-
-      <View pointerEvents="none" className="absolute left-0 right-0 items-center">
-        <Text
-          variant="h2"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          className="text-primary-foreground font-heading max-w-[42%]">
-          {t('Tackbok')}
-        </Text>
-      </View>
-
-      <View className="flex-row items-center gap-1 md:gap-4">
-        {(snapshot.configured || snapshot.status === 'warning') && (
-          <Button
-            className="p-1"
-            variant="ghost"
-            onPress={() => router.push('/cloud-backup' as Href)}
-            accessibilityLabel={
-              syncIsActive
-                ? t('Cloud sync: syncing')
-                : snapshot.status === 'queued'
-                  ? t('Cloud sync: changes safely queued')
-                  : snapshot.status === 'paused'
-                    ? t('Cloud sync: paused')
-                    : snapshot.status === 'warning'
-                      ? t('Cloud sync: attention needed')
-                      : t('Cloud sync: up to date')
-            }>
-            {syncIsActive ? (
-              <SpinningRefreshIcon className="text-primary-foreground size-5" />
-            ) : (
-              <View className="relative size-6">
-                <Icon
-                  as={
-                    snapshot.status === 'warning'
-                      ? AlertTriangle
-                      : snapshot.status === 'paused'
-                        ? CloudOff
-                        : snapshot.status === 'queued' || snapshot.queuedCount > 0
-                          ? CloudUpload
-                          : Cloud
-                  }
-                  className="text-primary-foreground size-6"
-                  strokeWidth={2.5}
-                />
-                {syncIsUpToDate && (
-                  <View
-                    className="absolute -right-1 -bottom-2 size-3 items-center justify-center rounded-full border border-background bg-background"
-                    accessible={false}
-                    importantForAccessibility="no-hide-descendants">
-                    <Icon
-                      as={Check}
-                      className="size-2.5 text-foreground"
-                      strokeWidth={3.5}
-                    />
-                  </View>
-                )}
-              </View>
-            )}
-            {snapshot.queuedCount > 0 && (
-              <View className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-destructive items-center justify-center px-0.5">
-                <Text className="text-[10px] leading-none text-destructive-foreground font-body-bold">
-                  {snapshot.queuedCount > 9 ? '9+' : snapshot.queuedCount}
-                </Text>
-              </View>
-            )}
+    <View
+      onLayout={greetingState.onLayout}
+      className="relative w-full overflow-hidden bg-primary">
+      <View
+        pointerEvents={motion.active ? 'none' : 'auto'}
+        accessibilityElementsHidden={motion.active}
+        importantForAccessibility={motion.active ? 'no-hide-descendants' : 'auto'}
+        className="relative flex-row w-full items-center justify-between px-safe-or-4 py-2">
+        <HeaderMotion {...motion} index={0}>
+          {/* Search Button */}
+          <Button className="p-1" onPress={onSearchPress} variant="ghost">
+            <Icon as={Search} className="text-primary-foreground" />
           </Button>
-        )}
-        <SettingsBottomSheet />
+        </HeaderMotion>
+        <View pointerEvents="none" className="absolute left-0 right-0 items-center">
+          <HeaderMotion {...motion} index={1} className="items-center w-full">
+            <Text
+              variant="h2"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              className="text-primary-foreground font-heading max-w-[42%]">
+              {t('Tackbok')}
+            </Text>
+          </HeaderMotion>
+        </View>
+
+        <HeaderMotion
+          {...motion}
+          index={2}
+          className="flex-row items-center gap-1 md:gap-4">
+          {(snapshot.configured || snapshot.status === 'warning') && (
+            <Button
+              className="p-1"
+              variant="ghost"
+              onPress={() => router.push('/cloud-backup' as Href)}
+              accessibilityLabel={
+                syncIsActive
+                  ? t('Cloud sync: syncing')
+                  : snapshot.status === 'queued'
+                    ? t('Cloud sync: changes safely queued')
+                    : snapshot.status === 'paused'
+                      ? t('Cloud sync: paused')
+                      : snapshot.status === 'warning'
+                        ? t('Cloud sync: attention needed')
+                        : t('Cloud sync: up to date')
+              }>
+              {syncIsActive ? (
+                <SpinningRefreshIcon className="text-primary-foreground size-5" />
+              ) : (
+                <View className="relative size-6">
+                  <Icon
+                    as={
+                      snapshot.status === 'warning'
+                        ? AlertTriangle
+                        : snapshot.status === 'paused'
+                          ? CloudOff
+                          : snapshot.status === 'queued' || snapshot.queuedCount > 0
+                            ? CloudUpload
+                            : Cloud
+                    }
+                    className="text-primary-foreground size-6"
+                    strokeWidth={2.5}
+                  />
+                  {syncIsUpToDate && (
+                    <View
+                      className="absolute -right-1 -bottom-2 size-3 items-center justify-center rounded-full border border-background bg-background"
+                      accessible={false}
+                      importantForAccessibility="no-hide-descendants">
+                      <Icon
+                        as={Check}
+                        className="size-2.5 text-foreground"
+                        strokeWidth={3.5}
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+              {snapshot.queuedCount > 0 && (
+                <View className="absolute -right-0.5 -top-0.5 min-w-4 h-4 rounded-full bg-destructive items-center justify-center px-0.5">
+                  <Text className="text-[10px] leading-none text-destructive-foreground font-body-bold">
+                    {snapshot.queuedCount > 9 ? '9+' : snapshot.queuedCount}
+                  </Text>
+                </View>
+              )}
+            </Button>
+          )}
+          <SettingsBottomSheet />
+        </HeaderMotion>
       </View>
+      <HeaderGreeting {...greetingState} />
     </View>
   );
 };

@@ -4,6 +4,20 @@
  * This file serves as a reference for all available translation keys
  */
 export const en = {
+  // Cold-start header greeting
+  "Welcome back": "Welcome back",
+  "Good morning": "Good morning",
+  "Good afternoon": "Good afternoon",
+  "Good evening": "Good evening",
+  "Happy Sunday": "Happy Sunday",
+  "Happy Monday": "Happy Monday",
+  "Happy Tuesday": "Happy Tuesday",
+  "Happy Wednesday": "Happy Wednesday",
+  "Happy Thursday": "Happy Thursday",
+  "Happy Friday": "Happy Friday",
+  "Happy Saturday": "Happy Saturday",
+  "Greeting with name": "{greeting}, {name}",
+
   // Common
   Tackbok: 'Tackbok',
   Cancel: 'Cancel',

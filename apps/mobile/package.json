@@ -81,6 +81,7 @@
     "react-native-worklets": "0.10.1",
     "tailwind-variants": "^3.2.2",
     "tailwindcss": "^4.3.0",
+    "unicode-segmenter": "^0.17.3",
     "uniwind": "^1.7.0",
     "zustand": "^5.0.14"
   },

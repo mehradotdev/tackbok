@@ -5,6 +5,20 @@ import type { Translations } from '../types';
  * Contains translations for all UI strings used in the application
  */
 export const he: Translations = {
+  // Cold-start header greeting
+  "Welcome back": "טוב שחזרת",
+  "Good morning": "בוקר טוב",
+  "Good afternoon": "צהריים טובים",
+  "Good evening": "ערב טוב",
+  "Happy Sunday": "יום ראשון נעים",
+  "Happy Monday": "יום שני נעים",
+  "Happy Tuesday": "יום שלישי נעים",
+  "Happy Wednesday": "יום רביעי נעים",
+  "Happy Thursday": "יום חמישי נעים",
+  "Happy Friday": "יום שישי נעים",
+  "Happy Saturday": "שבת נעימה",
+  "Greeting with name": "{greeting}, {name}",
+
   // Common
   Tackbok: 'טאקבוק',
   Cancel: 'ביטול',

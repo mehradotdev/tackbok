@@ -5,6 +5,20 @@ import type { Translations } from '../types';
  * Contains translations for all UI strings used in the application
  */
 export const de: Translations = {
+  // Cold-start header greeting
+  "Welcome back": "Willkommen zurück",
+  "Good morning": "Guten Morgen",
+  "Good afternoon": "Guten Tag",
+  "Good evening": "Guten Abend",
+  "Happy Sunday": "Schönen Sonntag",
+  "Happy Monday": "Schönen Montag",
+  "Happy Tuesday": "Schönen Dienstag",
+  "Happy Wednesday": "Schönen Mittwoch",
+  "Happy Thursday": "Schönen Donnerstag",
+  "Happy Friday": "Schönen Freitag",
+  "Happy Saturday": "Schönen Samstag",
+  "Greeting with name": "{greeting}, {name}",
+
   // Common
   Tackbok: 'Tackbok',
   Cancel: 'Abbrechen',
