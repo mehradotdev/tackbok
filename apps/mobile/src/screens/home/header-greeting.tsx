@@ -21,12 +21,7 @@ import { chooseGreeting, greetingUnits, fitGreeting } from './greeting';
 let launchGreetingClaimed = false;
 const PREVIOUS_KEY = 'home.previous-greeting';
 const DURATION = 4480;
-type GreetingMessage = { parts: string[]; label: string };
-
-// Animate words, never individual characters or pieces of a name.
-function textGroups(text: string) {
-  return text.match(/\S+\s*/gu) ?? [];
-}
+type GreetingMessage = { label: string };
 
 export function useHeaderGreeting(isSearchMode: boolean) {
   const { t, isReady } = useTranslation();
@@ -77,20 +72,13 @@ export function useHeaderGreeting(isSearchMode: boolean) {
         /* Best-effort repeat prevention. */
       }
       const cleanName = name?.trim();
-      // Split only at the name placeholder: connected scripts and names stay intact.
-      const template = cleanName
-        ? t('Greeting with name', { greeting: t('Welcome back'), name: '\uFFFC' })
+      // GreetingLine segments the final localized text into safe animation units.
+      const first = cleanName
+        ? t('Greeting with name', { greeting: t('Welcome back'), name: cleanName })
         : t('Welcome back');
-      const pieces = template.split('\uFFFC');
-      const parts = cleanName
-        ? [...textGroups(pieces[0]), cleanName + pieces.slice(1).join('') + '!']
-        : textGroups(template + '!');
       const second = t(key) + (Math.random() < 0.25 ? '! 😊' : '!');
       setStep(0);
-      setMessages([
-        { parts: parts.filter(Boolean), label: parts.join('') },
-        { parts: textGroups(second), label: second },
-      ]);
+      setMessages([{ label: first + '!' }, { label: second }]);
       setPending(false);
     }, 0);
     return () => clearTimeout(start);
@@ -110,7 +98,11 @@ export function useHeaderGreeting(isSearchMode: boolean) {
       finish();
       return;
     }
-    if (measured !== 3) return;
+    if (measured !== 3) {
+      // A missing native layout callback must never leave the controls hidden.
+      const fallback = setTimeout(finish, 1500);
+      return () => clearTimeout(fallback);
+    }
     progress.value = 0;
     // Give the mounted text layers a frame to reach the native UI before timing them.
     const start = setTimeout(() => {

@@ -75,6 +75,7 @@ function mountGreeting() {
           result!.onMessageReady(1);
         }
       }),
+    measure: (index: number) => act(() => result!.onMessageReady(index)),
     state: (state: string) =>
       act(() => {
         for (const listener of mockListeners) listener(state);
@@ -152,7 +153,8 @@ it('holds each static greeting for two seconds with reduced motion', () => {
 it('does not spend the reading time while native text measurement is pending', () => {
   const hook = mountGreeting();
   hook.layout(false);
-  hook.tick(5000);
+  hook.tick(0);
+  hook.tick(1000);
   expect(hook.current.greeting?.label).toBe('Welcome back, Maya!');
   expect(mockTiming).not.toHaveBeenCalled();
   hook.layout();
@@ -161,4 +163,37 @@ it('does not spend the reading time while native text measurement is pending', (
   hook.tick(4480);
   expect(hook.current.greeting).toBeNull();
   hook.unmount();
+});
+
+it.each([false, true])(
+  'restores controls if measurement stalls (partial: %s)',
+  (partial) => {
+    const hook = mountGreeting();
+    hook.layout(false);
+    hook.tick(0);
+    if (partial) hook.measure(0);
+    hook.tick(1499);
+    expect(hook.current.active).toBe(true);
+    hook.tick(1);
+    expect(hook.current.active).toBe(false);
+    expect(hook.current.greeting).toBeNull();
+    expect(hook.current.progress.value).toBe(4480);
+    expect(mockTiming).not.toHaveBeenCalled();
+    hook.unmount();
+  },
+);
+
+it('clears the measurement fallback when unmounted', () => {
+  const scheduled = jest.spyOn(global, 'setTimeout');
+  const cleared = jest.spyOn(global, 'clearTimeout');
+  const hook = mountGreeting();
+  hook.layout(false);
+  hook.tick(0);
+  const fallbackIndex = scheduled.mock.calls.findIndex((call) => call[1] === 1500);
+  expect(fallbackIndex).toBeGreaterThanOrEqual(0);
+  const fallback = scheduled.mock.results[fallbackIndex].value;
+  hook.unmount();
+  expect(cleared).toHaveBeenCalledWith(fallback);
+  scheduled.mockRestore();
+  cleared.mockRestore();
 });

@@ -8,7 +8,7 @@ export const ar: Translations = {
   // Cold-start header greeting
   "Welcome back": "مرحبًا بعودتك",
   "Good morning": "صباح الخير",
-  "Good afternoon": "طاب مساؤك",
+  "Good afternoon": "طاب يومك",
   "Good evening": "مساء الخير",
   "Happy Sunday": "أحد سعيد",
   "Happy Monday": "اثنين سعيد",
