@@ -6,7 +6,7 @@ import { en } from './translations/en';
  */
 export const SUPPORTED_LANG_CODES = [
   'en',
-  // 'es',
+  'es',
   // 'ur',
   'ar',
   // 'fa',
@@ -18,7 +18,7 @@ export const SUPPORTED_LANG_CODES = [
   // 'ru',
   // 'pt',
   // 'it',
-  // 'hi',
+  'hi',
   // 'ko',
   // 'ja',
   // 'tr',
@@ -28,7 +28,7 @@ export const SUPPORTED_LANG_CODES = [
   // 'ml',
   // 'mr',
   // 'bn',
-  // 'sv',
+  'sv',
 ] as const;
 
 /**

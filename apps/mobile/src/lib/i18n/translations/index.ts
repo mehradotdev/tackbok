@@ -15,7 +15,7 @@ import { de } from './de';
 import { he } from './he';
 import { zhCN } from './zh-CN';
 import { zhTW } from './zh-TW';
-// import { es } from './es';
+import { es } from './es';
 // import { ur } from './ur';
 // import { fa } from './fa';
 // import { fr } from './fr';
@@ -24,7 +24,7 @@ import { zhTW } from './zh-TW';
 // import { ru } from './ru';
 // import { pt } from './pt';
 // import { it } from './it';
-// import { hi } from './hi';
+import { hi } from './hi';
 // import { ko } from './ko';
 // import { ja } from './ja';
 // import { zhHK } from './zh-HK';
@@ -35,14 +35,14 @@ import { zhTW } from './zh-TW';
 // import { ml } from './ml';
 // import { mr } from './mr';
 // import { bn } from './bn';
-// import { sv } from './sv';
+import { sv } from './sv';
 
 /**
  * All translations indexed by locale code
  */
 export const translations: Record<SupportedLocale, Translations> = {
   en,
-  // es,
+  es,
   // ur,
   ar,
   de,
@@ -54,7 +54,7 @@ export const translations: Record<SupportedLocale, Translations> = {
   // ru,
   // pt,
   // it,
-  // hi,
+  hi,
   // ko,
   // ja,
   'zh-CN': zhCN,
@@ -67,7 +67,7 @@ export const translations: Record<SupportedLocale, Translations> = {
   // ml,
   // mr,
   // bn,
-  // sv,
+  sv,
 };
 
 /**
@@ -95,7 +95,7 @@ export const languages: LanguageInfo[] = [
   // { code: 'fr', displayName: 'French', nativeName: 'Français', isRTL: false },
   { code: 'de', displayName: 'German', nativeName: 'Deutsch', isRTL: false },
   { code: 'he', displayName: 'Hebrew', nativeName: 'עברית', isRTL: true },
-  // { code: 'hi', displayName: 'Hindi', nativeName: 'हिन्दी', isRTL: false },
+  { code: 'hi', displayName: 'Hindi', nativeName: 'हिन्दी', isRTL: false },
   // { code: 'it', displayName: 'Italian', nativeName: 'Italiano', isRTL: false },
   // { code: 'ja', displayName: 'Japanese', nativeName: '日本語', isRTL: false },
   // { code: 'kn', displayName: 'Kannada', nativeName: 'ಕನ್ನಡ', isRTL: false },
@@ -105,8 +105,8 @@ export const languages: LanguageInfo[] = [
   // { code: 'pl', displayName: 'Polish', nativeName: 'Polski', isRTL: false },
   // { code: 'pt', displayName: 'Portuguese', nativeName: 'Português', isRTL: false },
   // { code: 'ru', displayName: 'Russian', nativeName: 'Русский', isRTL: false },
-  // { code: 'es', displayName: 'Spanish', nativeName: 'Español', isRTL: false },
-  // { code: 'sv', displayName: 'Swedish', nativeName: 'Svenska', isRTL: false },
+  { code: 'es', displayName: 'Spanish', nativeName: 'Español', isRTL: false },
+  { code: 'sv', displayName: 'Swedish', nativeName: 'Svenska', isRTL: false },
   // { code: 'ta', displayName: 'Tamil', nativeName: 'தமிழ்', isRTL: false },
   // { code: 'te', displayName: 'Telugu', nativeName: 'తెలుగు', isRTL: false },
   // { code: 'tr', displayName: 'Turkish', nativeName: 'Türkçe', isRTL: false },

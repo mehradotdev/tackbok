@@ -20,7 +20,7 @@ export const zhCN: Translations = {
   'greeting.withName': '{name}，{greeting}',
 
   // Common
-  'common.tackbok': '塔克博克',
+  'common.tackbok': '塔克布克',
   'common.cancel': '取消',
   'common.done': '完成',
   'common.save': '保存',
@@ -250,7 +250,7 @@ export const zhCN: Translations = {
   'settings.deviceDefault': '设备默认',
   'settings.restartRequired': '需要重启',
   'settings.languageChangeRequiresAppRestartProceed':
-    '更改语言需要重启塔克博克。是否继续？',
+    '更改语言需要重启塔克布克。是否继续？',
   'settings.proceed': '继续',
   'settings.reloadApp': '重新加载应用',
 
@@ -264,7 +264,7 @@ export const zhCN: Translations = {
   'notifications.failedToUpdateReminder': '更新提醒失败',
   'notifications.notificationPermissionNeeded': '需要通知权限',
   'notifications.toGetDailyRemindersAllowNotificationsForTackbokInYour':
-    '要接收每日提醒，请在设备设置中允许 Tackbok 发送通知。',
+    '要接收每日提醒，请在设备设置中允许塔克布克发送通知。',
 
   // Settings - Appearance
   'appearance.appearance': '外观',
@@ -327,9 +327,9 @@ export const zhCN: Translations = {
   'security.30Seconds': '30 秒',
   'security.1Minute': '1 分钟',
   'security.2Minutes': '2 分钟',
-  'security.unlockTackbok': '解锁塔克博克',
+  'security.unlockTackbok': '解锁塔克布克',
   'security.lockWithYourDeviceScreenLock':
-    '塔克博克可使用设备的锁屏方式锁定——生物识别、PIN 码、图案或密码',
+    '塔克布克可使用设备的锁屏方式锁定——生物识别、PIN 码、图案或密码',
   'security.unlock': '解锁',
   'security.appLockUnavailable': '应用锁不可用',
   'security.setUpAScreenLockPinPatternOrBiometricsIn':
@@ -348,7 +348,7 @@ export const zhCN: Translations = {
   'backup.importDataFromAGratitudeAppZipBackup': '从 Gratitude 应用的 .zip 备份导入数据',
   'backup.chooseImportMode': '选择导入模式',
   'backup.howShouldThisImportHandleEntriesThatAlreadyExistIn':
-    '本次导入应如何处理 Tackbok 中已存在的条目？',
+    '本次导入应如何处理塔克布克中已存在的条目？',
   'backup.skipExistingEntries': '跳过现有条目',
   'backup.skipExistingEntriesRecommended': '跳过现有条目（推荐）',
   'backup.onlyImportEntriesWithNewNoteIds': '仅导入具有新笔记 ID 的条目',
@@ -362,7 +362,7 @@ export const zhCN: Translations = {
   'backup.backupExportedSuccessfully': '备份导出成功',
   'backup.exportFailed': '导出失败',
   'backup.importFailed': '导入失败',
-  'backup.restoringTackbokBackup': '正在恢复 Tackbok 备份',
+  'backup.restoringTackbokBackup': '正在恢复塔克布克备份',
   'backup.loadPresentlyExport': '加载 Presently 导出数据',
   'backup.importJournalEntries': '导入日记条目',
   'backup.openBackupFile': '打开备份文件',
@@ -389,20 +389,20 @@ export const zhCN: Translations = {
   'backup.photosRestored': '照片已恢复',
   'backup.voiceMemosRestored': '语音笔记已恢复',
   'backup.mediaSkipped': '已跳过的媒体',
-  'backup.tackbokBackupRestored': 'Tackbok 备份已恢复',
+  'backup.tackbokBackupRestored': '塔克布克备份已恢复',
   'backup.gratitudeImportComplete': 'Gratitude 导入完成',
   'backup.presentlyImportComplete': 'Presently 导入完成',
   'backup.yourJournalDataIsReadyToReviewButSomeItems':
     '你的日记数据已准备好供查看，但某些项目无法恢复。',
   'backup.yourJournalDataIsReadyToReview': '你的日记数据已准备好供查看。',
   'backup.thisImportFinishedWithWarningsSomeItemsCouldNotBe':
-    '本次导入完成，但有警告。某些项目无法恢复，而其他所有内容已存在于 Tackbok 中。',
+    '本次导入完成，但有警告。某些项目无法恢复，而其他所有内容已存在于塔克布克中。',
   'backup.thisImportFinishedButEverythingAlreadyExistedInTackbok':
-    '本次导入已完成，但是所有内容已存在于 Tackbok 中。',
+    '本次导入已完成，但是所有内容已存在于塔克布克中。',
   'backup.thisImportFinishedWithWarningsSomeItemsCouldNotBe2':
     '本次导入完成，但有警告。某些项目无法恢复。',
   'backup.thisImportFinishedSuccessfully': '本次导入成功完成。',
-  'backup.importedFromTackbokBackup': '从 Tackbok 备份导入',
+  'backup.importedFromTackbokBackup': '从塔克布克备份导入',
   'backup.importedFromGratitudeBackup': '从 Gratitude 备份导入',
   'backup.importedFromPresentlyExport': '从 Presently 导出数据导入',
   'backup.newEntries': '新条目',
@@ -413,17 +413,17 @@ export const zhCN: Translations = {
   // Settings - App Information
   'appInfo.appInformation': '应用信息',
   'appInfo.faq': '常见问题',
-  'appInfo.readFrequentlyAskedQuestions': '阅读塔克博克的常见问题',
-  'appInfo.shareTackbok': '分享塔克博克',
+  'appInfo.readFrequentlyAskedQuestions': '阅读塔克布克的常见问题',
+  'appInfo.shareTackbok': '分享塔克布克',
   'appInfo.shareTheAppWithFriendsAndFamily':
-    '喜欢塔克博克吗？与你的朋友和家人分享这个应用',
+    '喜欢塔克布克吗？与你的朋友和家人分享这个应用',
   'appInfo.practiceGratitudeWithTackbokASimpleFreeAndPrivateGratitude':
-    '用塔克博克练习感恩，一款简单、免费且私密的感恩日记应用',
-  'appInfo.supportTackbok': '支持塔克博克',
+    '用塔克布克练习感恩，一款简单、免费且私密的感恩日记应用',
+  'appInfo.supportTackbok': '支持塔克布克',
   'appInfo.tackbokIsFreeToUseAndThatsNotChangingIf':
-    '塔克博克可以免费使用，而且这一点不会改变。如果它让你的生活多了一点感恩，欢迎支持它，但不会解锁任何额外功能。每个人使用的都是同一个应用。',
+    '塔克布克可以免费使用，而且这一点不会改变。如果它让你的生活多了一点感恩，欢迎支持它，但不会解锁任何额外功能。每个人使用的都是同一个应用。',
   'appInfo.keepingTackbokRunningCurrentlyCostsAboutUs3325Per':
-    '目前维持塔克博克运行每月约需 33.25 美元，未包含税费、手续费和超额用量费用。如果你觉得它有价值，即使是一笔小额支持，也能帮助它继续对所有人免费。',
+    '目前维持塔克布克运行每月约需 33.25 美元，未包含税费、手续费和超额用量费用。如果你觉得它有价值，即使是一笔小额支持，也能帮助它继续对所有人免费。',
   'appInfo.waysToSupport': '支持方式',
   'appInfo.free': '免费',
   'appInfo.smallThanks': '小小感谢',
@@ -431,10 +431,10 @@ export const zhCN: Translations = {
   'appInfo.heartfeltThanks': '衷心感谢',
   'appInfo.helpsPayForHostingAndOnlineServices': '帮助支付托管和在线服务费用',
   'appInfo.bigThanks': '非常感谢',
-  'appInfo.helpsTestAndReleaseTackbokUpdates': '帮助测试和发布塔克博克更新',
+  'appInfo.helpsTestAndReleaseTackbokUpdates': '帮助测试和发布塔克布克更新',
   'appInfo.deepestThanks': '深深感谢',
   'appInfo.helpsCoverOneMonthOfTackboksRunningCostsAndOngoing':
-    '帮助支付塔克博克一个月的运行和持续开发费用',
+    '帮助支付塔克布克一个月的运行和持续开发费用',
   'appInfo.unavailable': '不可用',
   'appInfo.supportOptionsCouldNotBeLoadedPleaseTryAgain': '无法加载支持选项，请重试。',
   'appInfo.youAppearToBeOfflineCheckYourConnectionAndTry':
@@ -443,9 +443,9 @@ export const zhCN: Translations = {
   'appInfo.paymentSuccessful': '支付成功',
   'appInfo.thankYou': '谢谢！',
   'appInfo.yourSupportHelpsKeepTackbokFreeAndIndependentItGenuinely':
-    '你的支持帮助塔克博克保持免费和独立。这对我们真的意义重大。',
+    '你的支持帮助塔克布克保持免费和独立。这对我们真的意义重大。',
   'appInfo.thankYouForSupportingTackbokItGenuinelyMeansALot':
-    '感谢你支持塔克博克。这对我们真的意义重大。',
+    '感谢你支持塔克布克。这对我们真的意义重大。',
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     '你的付款正在等待处理。获得批准或完成付款后，商店将完成交易。',
   'appInfo.whereYourSupportHelps': '你的支持用于何处',
@@ -461,19 +461,19 @@ export const zhCN: Translations = {
   'appInfo.us12Year': '每年 US$12',
   'appInfo.us25OneTime': '一次性 US$25',
   'appInfo.aboutUs3325': '约 US$33.25',
-  'appInfo.rateTackbok': '为塔克博克评分',
+  'appInfo.rateTackbok': '为塔克布克评分',
   'appInfo.leaveAnHonestRatingInTheAppStore': '在应用商店留下真实评价',
   'appInfo.unableToOpenTheStore': '无法打开应用商店',
   'appInfo.confirmTier': '确认{tier}',
   'appInfo.theStoreWillChargePriceForThisVoluntaryOneTime':
     '商店将收取 {price}，作为自愿的一次性支持。它不会解锁任何功能，并且可以再次购买。',
   'appInfo.privacyPolicy': '隐私政策',
-  'appInfo.readOurPrivacyPolicy': '阅读塔克博克的隐私政策',
+  'appInfo.readOurPrivacyPolicy': '阅读塔克布克的隐私政策',
   'appInfo.termsConditions': '条款和条件',
   'appInfo.readOurTermsAndConditions': '阅读我们的条款和条件',
   'appInfo.analytics': '分析数据收集',
   'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    '塔克博克正在收集匿名分析信息以帮助诊断问题和监控趋势',
+    '塔克布克正在收集匿名分析信息以帮助诊断问题和监控趋势',
   'appInfo.checkForUpdates': '检查更新',
   'appInfo.checkingForUpdates': '正在检查更新…',
   'appInfo.lastCheckedTime': '上次检查：{time}',
@@ -559,7 +559,7 @@ export const zhCN: Translations = {
     '一个属于你的感恩空间 — 免费、离线、完全归你。',
   'onboarding.importYourJournal': '导入你的日记',
   'onboarding.whereIsYourJournalComingFrom': '你的日记来自哪里？',
-  'onboarding.tackbokBackup': 'Tackbok 备份',
+  'onboarding.tackbokBackup': '塔克布克备份',
   'onboarding.gratitudeApp': 'Gratitude 应用',
   'onboarding.presentlyApp': 'Presently 应用',
   'onboarding.whatShouldWeCallYou': '我们该怎么称呼你？',
@@ -577,9 +577,9 @@ export const zhCN: Translations = {
   'onboarding.wellSuggestWritingPromptsFromTheAreasYouPick':
     '我们会根据你选择的领域推荐写作灵感。',
   'onboarding.pickAtLeastCount': '至少选择 {count} 个',
-  'onboarding.helpImproveTackbok': '帮助改进 Tackbok？',
+  'onboarding.helpImproveTackbok': '帮助改进塔克布克？',
   'onboarding.tackbokIsFreeAndOpenSourceAnonymousStatsHelpUs':
-    'Tackbok 免费且开源。匿名统计能帮助我们发现问题、了解哪些功能重要。',
+    '塔克布克免费且开源。匿名统计能帮助我们发现问题、了解哪些功能重要。',
   'onboarding.anonymousUsageStatsOnlyIncludingWhichScreensAndFeaturesGet':
     '仅匿名使用统计 — 哪些页面和功能被使用。',
   'onboarding.neverYourJournalContentPhotosVoiceMemosOrAnythingYou':
@@ -591,7 +591,7 @@ export const zhCN: Translations = {
   'onboarding.noThanks': '不用了，谢谢',
   'onboarding.whatWeCollect': '我们收集的内容',
   'onboarding.withYourPermissionTackbokRecordsLimitedAnonymousUsageInformationThis':
-    '经你许可，Tackbok 仅记录有限的匿名使用信息，其中可能包括访问过的页面、使用过的功能，以及可选操作是否成功。它绝不会记录你的日记内容或任何输入的文字。',
+    '经你许可，塔克布克仅记录有限的匿名使用信息，其中可能包括访问过的页面、使用过的功能，以及可选操作是否成功。它绝不会记录你的日记内容或任何输入的文字。',
   'onboarding.auditTheAnalyticsCodeOnGithub': '在 GitHub 上查看分析代码',
   'onboarding.neverCollected': '绝不收集',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
@@ -629,7 +629,7 @@ export const zhCN: Translations = {
   // Onboarding sample entries (seeded content)
   sample_tag_family: '家人',
   sample_tag_littleThings: '小确幸',
-  sample_entry_welcome_title: '欢迎来到 Tackbok 👋',
+  sample_entry_welcome_title: '欢迎来到塔克布克 👋',
   sample_entry_welcome_body:
     '这是你的感恩日记 — 记录美好时刻的地方。点按 + 按钮，可以写一句话，也可以写一整页；每天一次，或想写就写。点按这张卡片查看完整日记。',
   sample_entry_photos_title: '小小瞬间',
@@ -706,7 +706,7 @@ export const zhCN: Translations = {
   // Cloud Backup & Sync
   'cloud.attentionNeeded': '需要注意',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    '使用你自己的 Google Drive 备份和同步日记。不会创建 Tackbok 账户。',
+    '使用你自己的 Google Drive 备份和同步日记。不会创建塔克布克账户。',
   'cloud.backupFromDate': '{date} 的备份',
   'cloud.beforeYouConnect': '连接之前',
   'cloud.checkingGoogleDriveForChanges': '正在检查 Google Drive 中的更改',
@@ -739,7 +739,7 @@ export const zhCN: Translations = {
   'cloud.deleteOrResetData': '删除或重置数据',
   'cloud.deletingJournalEverywhere': '正在从所有位置删除日记…',
   'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
-    '正在删除云备份和日记数据。请保持 Tackbok 打开。',
+    '正在删除云备份和日记数据。请保持塔克布克打开。',
   'cloud.disconnect': '断开连接',
   'cloud.disconnectProvider': '断开 {provider}',
   'cloud.disconnectProviderFromThisDevice': '要断开此设备与 {provider} 的连接吗？',
@@ -774,11 +774,11 @@ export const zhCN: Translations = {
   'cloud.markAsReviewed': '标记为已查看',
   'cloud.mergingChangesAndUpdatingGoogleDrive': '正在合并更改并更新 Google Drive',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
-    '此 Google 账户中没有找到 Tackbok 备份',
+    '此 Google 账户中没有找到塔克布克备份',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
     '没有互联网连接。你的更改仍会安全地保留在队列中。',
   'cloud.noExistingTackbokBackupWasFoundCreateOneForThis':
-    '未找到现有 Tackbok 备份。请为此日记创建一个备份。',
+    '未找到现有塔克布克备份。请为此日记创建一个备份。',
   'cloud.optionalCloudBackup': '可选云备份',
   'cloud.pauseSync': '暂停同步',
   'cloud.preparingJournalChanges': '正在准备日记更改',
@@ -805,7 +805,7 @@ export const zhCN: Translations = {
   'cloud.syncPaused': '同步已暂停',
   'cloud.syncResumed': '同步已恢复',
   'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
-    '同步会以安全批次运行。你可以继续使用 Tackbok。',
+    '同步会以安全批次运行。你可以继续使用塔克布克。',
   'cloud.syncMediaOnWiFiOnly': '仅通过 Wi-Fi 同步媒体',
   'cloud.syncing': '正在同步…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
@@ -815,7 +815,7 @@ export const zhCN: Translations = {
   'cloud.thisCloudBackupWasDeletedLocalJournalDataRemainsOn':
     '此云备份已删除。本地日记数据仍保留在此设备上。',
   'cloud.thisCloudBackupContainsDataTackbokCannotRead':
-    '此云端备份包含 Tackbok 无法读取的数据。',
+    '此云端备份包含塔克布克无法读取的数据。',
   'cloud.finishDeletingThisJournal': '完成删除此日记？',
   'cloud.cloudDeletionIsAlreadyRecordedEraseTheRemainingJournalData':
     '云端删除已记录。请清除此设备上剩余的日记数据。',
@@ -831,7 +831,7 @@ export const zhCN: Translations = {
   'cloud.verifyBackupHealth': '验证备份状态',
   'cloud.waitingForTheFirstSuccessfulSync': '正在等待首次成功同步',
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
-    '你可以离开此页面；Tackbok 处于活动状态时会继续同步。',
+    '你可以离开此页面；塔克布克处于活动状态时会继续同步。',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
     '你的日记保留在设备上，也可选择使用云备份。',
   'cloud.countChangesSafelyQueued': '{count} 项更改已安全排队',
@@ -842,7 +842,7 @@ export const zhCN: Translations = {
   'cloud.googleDrivePermissionWasNotFullyGranted': 'Google Drive 权限未完全授予。',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
     '已连接的云备份与此日记不匹配。',
-  'cloud.thisBackupWasCreatedByANewerTackbokVersion': '此备份由较新版本的 Tackbok 创建。',
+  'cloud.thisBackupWasCreatedByANewerTackbokVersion': '此备份由较新版本的塔克布克创建。',
   'cloud.aCloudSnapshotFailedItsSafetyChecks': '一份已保存的云备份未通过安全检查。',
   'cloud.aDeviceBackupPointsToAMissingSnapshot': '设备备份引用的一份已保存备份不存在。',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
@@ -852,7 +852,7 @@ export const zhCN: Translations = {
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     '一个已恢复项目与现有项目的内部 ID 相同。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    '塔克博克无法在此设备上安全地准备备份数据。',
+    '塔克布克无法在此设备上安全地准备备份数据。',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage': 'Google Drive 没有足够的可用空间。',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
     'Google Drive 拒绝访问应用备份文件夹。',
@@ -870,7 +870,7 @@ export const zhCN: Translations = {
   'cloud.chooseAGoogleAccountToReconnect': '选择要重新连接的 Google 账号',
   'cloud.finishConnection': '完成连接',
   'cloud.reconnectToTheCorrectBackup': '重新连接正确的备份',
-  'cloud.updateTackbok': '更新 Tackbok',
+  'cloud.updateTackbok': '更新塔克布克',
   'cloud.retryAndVerifyBackup': '重试并验证备份',
   'cloud.repairFromVerifiedBackup': '从已验证备份修复',
   'cloud.inspectAndRepairBackup': '检查并修复备份',
@@ -891,7 +891,7 @@ export const zhCN: Translations = {
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     '云同步未能完成。你的更改仍安全地保留在队列中。',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive 拒绝了备份请求。请更新 Tackbok 后重试。',
+    'Google Drive 拒绝了备份请求。请更新塔克布克后重试。',
   'time.hours': '小时',
   'time.minutes': '分钟',
   'common.databaseUpdateFailed': '无法更新日记数据库：{message}',
