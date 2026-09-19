@@ -60,7 +60,7 @@ export function useShareImage({ enabled = true }: { enabled?: boolean } = {}) {
     async ({ logLabel, ...options }: ShareRequest): Promise<ShareResult> => {
       if (isSharing) return 'busy';
       if (isAvailable === false) {
-        toast.error(t('Sharing is not available on this device'));
+        toast.error(t('sharing.sharingIsNotAvailableOnThisDevice'));
         return 'unavailable';
       }
 
@@ -70,11 +70,11 @@ export function useShareImage({ enabled = true }: { enabled?: boolean } = {}) {
       } catch (error) {
         if (error instanceof SharingUnavailableError) {
           if (mountedRef.current) setIsAvailable(false);
-          toast.error(t('Sharing is not available on this device'));
+          toast.error(t('sharing.sharingIsNotAvailableOnThisDevice'));
           return 'unavailable';
         }
         console.error(logLabel);
-        toast.error(t('Could not share image. Please try again.'));
+        toast.error(t('sharing.couldNotShareImagePleaseTryAgain'));
         return 'failed';
       } finally {
         if (mountedRef.current) setIsSharing(false);

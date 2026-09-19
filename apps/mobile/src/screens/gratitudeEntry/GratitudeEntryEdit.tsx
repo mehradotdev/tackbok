@@ -15,7 +15,6 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { randomUUID } from 'expo-crypto';
 import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
-import { format } from 'date-fns';
 import { Clock, FilePenLine, Plus, Shuffle, X } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import {
@@ -26,7 +25,12 @@ import {
   SHEET_NAMES,
 } from '~/constants';
 import type { Entry, Mood, Asset } from '~/types';
-import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
+import {
+  useTranslation,
+  formatLocalizedTime,
+  formatLocalizedDate,
+  formatTimeLabel,
+} from '~/lib/i18n';
 import { filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import {
@@ -125,7 +129,7 @@ function GratitudeEntryEditForm({
   onPhotoPress,
 }: GratitudeEntryEditProps) {
   const tagMap = useTagMapping();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const navigation = useNavigation();
   const { journalPromptsMode, journalFocusAreas } = useSettingsStore();
 
@@ -232,7 +236,7 @@ function GratitudeEntryEditForm({
     const remaining = MAX_PHOTOS_PER_ENTRY - photos.length;
     if (remaining <= 0) {
       toast.warning(
-        t('Maximum {count} photos per entry', { count: String(MAX_PHOTOS_PER_ENTRY) }),
+        t('entry.maximumCountPhotosPerEntry', { count: MAX_PHOTOS_PER_ENTRY }),
       );
       return;
     }
@@ -243,8 +247,8 @@ function GratitudeEntryEditForm({
     const remaining = MAX_VOICE_MEMOS_PER_ENTRY - voiceMemos.length;
     if (remaining <= 0) {
       toast.warning(
-        t('Maximum {count} voice memos per entry', {
-          count: String(MAX_VOICE_MEMOS_PER_ENTRY),
+        t('entry.maximumCountVoiceMemosPerEntry', {
+          count: MAX_VOICE_MEMOS_PER_ENTRY,
         }),
       );
       return;
@@ -277,7 +281,7 @@ function GratitudeEntryEditForm({
     voiceMemos.length > 0;
   const dateLabel = formatLocalizedDate(timestamp, t, { relative: true });
   const timeLabel = formatTimeLabel(timestamp, t);
-  const formattedTime = format(new Date(timestamp), 'HH:mm');
+  const formattedTime = formatLocalizedTime(new Date(timestamp), locale);
   const moodOption = mood ? MOOD_OPTIONS.find((o) => o.value === mood) : null;
 
   const hasUnsavedChanges =
@@ -357,13 +361,13 @@ function GratitudeEntryEditForm({
           tag_count: selectedTagIds.length,
           char_bucket: toCharBucket(title.trim().length + content.trim().length),
         });
-        toast.success(t('Entry saved successfully'));
+        toast.success(t('mood.entrySavedSuccessfully'));
       }
       onSaveSuccess();
     } catch (error) {
       console.error('Failed to save entry:', error);
       isSaving.current = false;
-      toast.error(t('Failed to save entry'));
+      toast.error(t('mood.failedToSaveEntry'));
     }
   };
 
@@ -479,7 +483,7 @@ function GratitudeEntryEditForm({
           {/* Cancel button */}
           <View className="z-10">
             <Button onPress={handlePressCancel} variant="link" className="p-0">
-              <Text className="text-lg text-foreground/70">{t('Cancel')}</Text>
+              <Text className="text-lg text-foreground/70">{t('common.cancel')}</Text>
             </Button>
           </View>
 
@@ -496,7 +500,7 @@ function GratitudeEntryEditForm({
           {/* Save button */}
           <View className="z-10">
             <Button onPress={handleSave} disabled={!canSave} variant="default">
-              <Text>{t('Save')}</Text>
+              <Text>{t('common.save')}</Text>
             </Button>
           </View>
         </View>
@@ -518,7 +522,7 @@ function GratitudeEntryEditForm({
                 className="relative flex-row items-center px-3 py-0.5 gap-1.5 mr-2 bg-primary/50 active:bg-primary/60 transition-colors rounded-lg border border-border">
                 <Text className="text-2xl">{moodOption.emoji}</Text>
                 <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
-                  {t(`Feeling ${moodOption.label}`)}
+                  {t(moodOption.feelingKey)}
                 </Text>
                 {/* Clear mood button */}
                 <Button
@@ -557,7 +561,7 @@ function GratitudeEntryEditForm({
               ref={titleInputRef}
               autoFocus
               className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
-              placeholder={t('Title (optional)')}
+              placeholder={t('entry.titleOptional')}
               placeholderTextColor={mutedForegroundColor as string}
               value={title}
               onChangeText={setTitle}
@@ -574,7 +578,7 @@ function GratitudeEntryEditForm({
                   <Text
                     className="text-lg font-body-semibold"
                     style={{ color: mutedForegroundColor as string }}>
-                    {t('Title (optional)')}
+                    {t('entry.titleOptional')}
                   </Text>
                 )}
               </Text>
@@ -594,7 +598,7 @@ function GratitudeEntryEditForm({
                     className="text-secondary-foreground size-4"
                   />
                   <Text className="text-secondary-foreground text-sm font-body-bold">
-                    {hasPromptTitle ? t('New Prompt') : t('Add Prompt')}
+                    {hasPromptTitle ? t('entry.newPrompt') : t('entry.addPrompt')}
                   </Text>
                 </Button>
               )}
@@ -614,7 +618,7 @@ function GratitudeEntryEditForm({
                   onPress={handleOpenPromptLibrary}
                   className="ml-auto">
                   <Text className="text-base font-body text-foreground">
-                    {t('Show All')}
+                    {t('entry.showAll')}
                   </Text>
                 </Button>
               )}
@@ -628,7 +632,7 @@ function GratitudeEntryEditForm({
               autoFocus
               className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
               textAlignVertical="top"
-              placeholder={t('What are you grateful for?')}
+              placeholder={t('gratitude.whatAreYouGratefulFor')}
               placeholderTextColor={mutedForegroundColor as string}
               value={content}
               onChangeText={setContent}
@@ -646,7 +650,7 @@ function GratitudeEntryEditForm({
                   <Text
                     className="text-base leading-6"
                     style={{ color: mutedForegroundColor as string }}>
-                    {t('What are you grateful for?')}
+                    {t('gratitude.whatAreYouGratefulFor')}
                   </Text>
                 )}
               </Text>
@@ -791,19 +795,17 @@ function GratitudeEntryEditForm({
         onOpenChange={setShowUnsavedChangesConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Leave without saving?')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('entry.leaveWithoutSaving')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t(
-                'Your entry is unsaved. Would you like to keep editing or discard them?',
-              )}
+              {t('entry.discardChanges.message')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onPress={() => setShowUnsavedChangesConfirm(false)}>
-              <Text>{t('Keep Editing')}</Text>
+              <Text>{t('entry.keepEditing')}</Text>
             </AlertDialogCancel>
             <AlertDialogDestructiveAction onPress={handleDiscardChanges}>
-              <Text>{t('Discard')}</Text>
+              <Text>{t('common.discard')}</Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>

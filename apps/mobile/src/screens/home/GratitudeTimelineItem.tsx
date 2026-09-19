@@ -1,12 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { View, Pressable, Platform, FlatList, Image, ScrollView } from 'react-native';
 import { Mic } from 'lucide-react-native';
-import { format } from 'date-fns';
 import { cn } from 'tailwind-variants';
 import { MOOD_EMOJI } from '~/constants';
 import type { DayGroup, Entry, Asset } from '~/types';
 import { useSettingsStore } from '~/lib/settings';
-import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
+import { useTranslation, formatLocalizedTime, formatLocalizedDate } from '~/lib/i18n';
 import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTagMapping } from '~/hooks/useGratitude';
@@ -59,7 +58,8 @@ function ExpandedEntryRow({
   tagMap,
   onPhotoPress,
 }: IEntryRowProps) {
-  const time = format(new Date(entry.created_at), 'HH:mm');
+  const { locale } = useTranslation();
+  const time = formatLocalizedTime(new Date(entry.created_at), locale);
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
 
   const tags = (entry.tags ? entry.tags.split(',') : [])
@@ -323,7 +323,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
             onPress={onPlaceholderPress}
             className="w-full justify-start">
             <Text className="text-base px-4 pb-4 text-muted-foreground leading-6">
-              {dayGroup.placeholderText || t('What were you grateful for?')}
+              {dayGroup.placeholderText || t('gratitude.whatWereYouGratefulFor')}
             </Text>
           </Button>
         )}

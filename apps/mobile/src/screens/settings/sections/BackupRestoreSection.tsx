@@ -56,9 +56,9 @@ export function BackupRestoreSection() {
     try {
       await exportToBackupZip();
       track('backup_exported');
-      toast.success(t('Backup exported successfully'));
+      toast.success(t('backup.backupExportedSuccessfully'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('Export failed');
+      const message = error instanceof Error ? error.message : t('backup.exportFailed');
       toast.error(message);
     }
   }, [t]);
@@ -70,57 +70,55 @@ export function BackupRestoreSection() {
 
   return (
     <>
-      <SettingsSection title={t('Backup & Restore')}>
+      <SettingsSection title={t('backup.backupRestore')}>
         <SettingsRow
-          label={t('Cloud Backup & Sync')}
+          label={t('cloud.cloudBackupSync')}
           description={
             snapshot.configured
-              ? t('Google Drive — {status}', {
+              ? t('cloud.googleDriveStatus', {
                   status:
                     snapshot.status === 'queued'
-                      ? t('Safely queued')
+                      ? t('cloud.safelyQueued')
                       : snapshot.status === 'syncing'
-                        ? t('Syncing…')
+                        ? t('cloud.syncing')
                         : snapshot.status === 'paused'
-                          ? t('Sync paused')
-                        : snapshot.status === 'restoring'
-                          ? t('Restoring…')
-                          : snapshot.status === 'warning'
-                            ? t('Attention needed')
-                            : t('Up to date'),
+                          ? t('cloud.syncPaused')
+                          : snapshot.status === 'restoring'
+                            ? t('cloud.restoring')
+                            : snapshot.status === 'warning'
+                              ? t('cloud.attentionNeeded')
+                              : t('cloud.upToDate'),
                 })
-              : t('Off')
+              : t('journaling.off')
           }
           icon={Cloud}
           onPress={() => router.push('/cloud-backup' as Href)}
           showChevron
         />
         <SettingsRow
-          label={t('Export as .ZIP')}
-          description={t(
-            'All of your data in a format that you can restore in the app later',
-          )}
+          label={t('backup.exportAsZip')}
+          description={t('backup.allOfYourDataInAFormatThatYouCan')}
           icon={FileOutput}
           onPress={handleExportBackup}
           showChevron
         />
         <SettingsRow
-          label={t('Import as .ZIP')}
-          description={t('Restore your data from a .zip file')}
+          label={t('backup.importAsZip')}
+          description={t('backup.restoreYourDataFromAZipFile')}
           icon={FileInput}
           onPress={() => selectImportFile('tackbok')}
           showChevron
         />
         <SettingsRow
-          label={t('Import from Gratitude App')}
-          description={t('Import data from a Gratitude App .zip backup')}
+          label={t('backup.importFromGratitudeApp')}
+          description={t('backup.importDataFromAGratitudeAppZipBackup')}
           icon={GratitudeJournalLogoIcon}
           onPress={() => selectImportFile('gratitudeApp')}
           showChevron
         />
         <SettingsRow
-          label={t('Import from Presently App')}
-          description={t('Restore your data from a Presently .csv file')}
+          label={t('backup.importFromPresentlyApp')}
+          description={t('backup.restoreYourDataFromAPresentlyCsvFile')}
           icon={PresentlyLogoIcon}
           onPress={() => setShowPresentlyImportConfirmDialog(true)}
           showChevron
@@ -152,19 +150,17 @@ export function BackupRestoreSection() {
         onOpenChange={setShowPresentlyImportConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Import from Presently?')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('backup.importFromPresently')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t(
-                'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.',
-              )}
+              {t('backup.thisWillImportEntriesFromAPresentlyAppCsvFile')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogAction onPress={handleImportFromPresentlyCSV}>
-              <Text>{t('Import')}</Text>
+              <Text>{t('backup.import')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -52,7 +52,7 @@ export function OnboardingScaffold({
               variant="ghost"
               size="icon"
               onPress={() => router.back()}
-              accessibilityLabel={t('Back')}
+              accessibilityLabel={t('common.back')}
               hitSlop={10}>
               <Icon as={BackIcon} className="text-foreground size-5" />
             </Button>
@@ -63,7 +63,7 @@ export function OnboardingScaffold({
           <View
             className="flex-row items-center gap-1.5"
             accessibilityRole="progressbar"
-            accessibilityLabel={t('Step {current} of {total}', {
+            accessibilityLabel={t('onboarding.stepCurrentOfTotal', {
               current: step,
               total: ONBOARDING_STEP_COUNT,
             })}>
@@ -82,7 +82,7 @@ export function OnboardingScaffold({
         <View className="w-16 items-end">
           {onSkip && (
             <Button variant="ghost" size="sm" onPress={onSkip} hitSlop={10}>
-              <Text className="text-muted-foreground">{t('Skip')}</Text>
+              <Text className="text-muted-foreground">{t('onboarding.skip')}</Text>
             </Button>
           )}
         </View>

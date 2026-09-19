@@ -34,7 +34,11 @@ function DayCell({ day, mode }: { day: HeatmapDay; mode: HeatmapMode }) {
     <View
       className={cn(
         'rounded-[3px]',
-        moodColor ? undefined : mode === 'mood' ? 'bg-muted/40' : countLevelClass(day.count),
+        moodColor
+          ? undefined
+          : mode === 'mood'
+            ? 'bg-muted/40'
+            : countLevelClass(day.count),
       )}
       style={{
         width: CELL,
@@ -128,12 +132,12 @@ export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProp
       {hasMoods && (
         <View className="flex-row self-start bg-muted/60 rounded-full p-0.5 mb-3">
           <ModePill
-            label={t('Entries')}
+            label={t('insights.entries')}
             active={mode === 'entries'}
             onPress={() => setMode('entries')}
           />
           <ModePill
-            label={t('Mood')}
+            label={t('entry.mood')}
             active={mode === 'mood'}
             onPress={() => setMode('mood')}
           />
@@ -197,7 +201,9 @@ export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProp
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
           className="flex-row items-center justify-end gap-1 mt-2">
-          <Text className="text-[10px] text-muted-foreground mr-1">{t('Less')}</Text>
+          <Text className="text-[10px] text-muted-foreground mr-1">
+            {t('insights.less')}
+          </Text>
           {['bg-muted/40', 'bg-primary/35', 'bg-primary/65', 'bg-primary'].map(
             (levelClass) => (
               <View
@@ -207,7 +213,9 @@ export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProp
               />
             ),
           )}
-          <Text className="text-[10px] text-muted-foreground ml-1">{t('More')}</Text>
+          <Text className="text-[10px] text-muted-foreground ml-1">
+            {t('insights.more')}
+          </Text>
         </View>
       ) : (
         <View

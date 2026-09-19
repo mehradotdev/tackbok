@@ -1,14 +1,11 @@
 import type { SupportedLocale } from './types';
+import { getFormattingLocale } from './formattingLocale';
 
-/**
- * Format a number using the active app language's grouping conventions
- * (e.g. de → "1.234", en → "1,234") instead of the device locale, so numbers
- * read correctly next to translated labels.
- *
- * Digits are pinned to Latin (`-u-nu-latn`): plain `ar` would switch to
- * Eastern Arabic-Indic digits, while dates and interpolated counts elsewhere
- * in the app always render Latin digits.
- */
-export function formatLocalizedNumber(value: number, locale: SupportedLocale): string {
-  return value.toLocaleString(`${locale}-u-nu-latn`);
+/** Display only: never use localized numbers in IDs, storage, or backup formats. */
+export function formatLocalizedNumber(
+  value: number,
+  locale: SupportedLocale,
+  options?: Intl.NumberFormatOptions,
+): string {
+  return new Intl.NumberFormat(getFormattingLocale(locale), options).format(value);
 }

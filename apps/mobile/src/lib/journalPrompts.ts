@@ -1,16 +1,52 @@
-import type { TranslationFunction } from '~/lib/i18n/types';
+import type { TranslationFunction, TranslationKey } from '~/lib/i18n/types';
 
 // Controls which prompt sources are available when creating or editing an entry.
 export type JournalPromptsMode = 'off' | 'all' | 'custom' | 'builtin';
 
 export const JOURNAL_PROMPT_CATEGORIES = [
-  { id: 'custom', labelKey: 'My Prompts', emoji: '💗', isCustom: true },
-  { id: 'self', labelKey: 'Self', emoji: '😇', promptCount: 9, descriptionKey: 'focusArea_self_desc' },
-  { id: 'littleThings', labelKey: 'Little things', emoji: '🌈', promptCount: 9, descriptionKey: 'focusArea_littleThings_desc' },
-  { id: 'health', labelKey: 'Health', emoji: '💪', promptCount: 9, descriptionKey: 'focusArea_health_desc' },
-  { id: 'family', labelKey: 'Family', emoji: '🏡', promptCount: 9, descriptionKey: 'focusArea_family_desc' },
-  { id: 'friends', labelKey: 'Friends', emoji: '🤝', promptCount: 9, descriptionKey: 'focusArea_friends_desc' },
-  { id: 'faith', labelKey: 'Faith', emoji: '🙏', promptCount: 9, descriptionKey: 'focusArea_faith_desc' },
+  { id: 'custom', labelKey: 'journaling.myPrompts', emoji: '💗', isCustom: true },
+  {
+    id: 'self',
+    labelKey: 'entry.self',
+    emoji: '😇',
+    promptCount: 9,
+    descriptionKey: 'journaling.focusareaSelfDesc',
+  },
+  {
+    id: 'littleThings',
+    labelKey: 'entry.littleThings',
+    emoji: '🌈',
+    promptCount: 9,
+    descriptionKey: 'journaling.focusareaLittlethingsDesc',
+  },
+  {
+    id: 'health',
+    labelKey: 'entry.health',
+    emoji: '💪',
+    promptCount: 9,
+    descriptionKey: 'journaling.focusareaHealthDesc',
+  },
+  {
+    id: 'family',
+    labelKey: 'entry.family',
+    emoji: '🏡',
+    promptCount: 9,
+    descriptionKey: 'journaling.focusareaFamilyDesc',
+  },
+  {
+    id: 'friends',
+    labelKey: 'entry.friends',
+    emoji: '🤝',
+    promptCount: 9,
+    descriptionKey: 'journaling.focusareaFriendsDesc',
+  },
+  {
+    id: 'faith',
+    labelKey: 'entry.faith',
+    emoji: '🙏',
+    promptCount: 9,
+    descriptionKey: 'journaling.focusareaFaithDesc',
+  },
 ] as const;
 
 export type JournalPromptCategory = (typeof JOURNAL_PROMPT_CATEGORIES)[number];
@@ -24,10 +60,13 @@ export type BuiltInJournalPromptCategoryId = Exclude<JournalPromptCategoryId, 'c
 export interface BuiltInJournalPrompt {
   id: string;
   categoryId: BuiltInJournalPromptCategoryId;
-  titleKey: string;
+  titleKey: TranslationKey;
 }
 
-export const DEFAULT_JOURNAL_FOCUS_AREAS: BuiltInJournalPromptCategoryId[] = ['self', 'littleThings'];
+export const DEFAULT_JOURNAL_FOCUS_AREAS: BuiltInJournalPromptCategoryId[] = [
+  'self',
+  'littleThings',
+];
 
 // Narrowed built-in categories list so consumers do not have to repeatedly exclude
 // the special 'custom' category at every call site.
@@ -41,7 +80,7 @@ export const BUILT_IN_JOURNAL_PROMPTS: BuiltInJournalPrompt[] =
   BUILT_IN_JOURNAL_PROMPT_CATEGORIES.flatMap((category) => {
     const count = category.promptCount;
     return Array.from({ length: count }).map((_, idx) => {
-      const index = idx + 1;
+      const index = (idx + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
       return {
         id: `prompt_${category.id}_${index}`,
         categoryId: category.id,
@@ -105,9 +144,9 @@ export function getJournalPromptTitlePool({
 }
 
 export const DEFAULT_WORKSHEET_TEMPLATE_KEYS = [
-  'What I am grateful for today...',
-  'My affirmation for today...',
-  'One little thing that made me smile recently...',
+  'worksheet.whatIAmGratefulForToday',
+  'worksheet.myAffirmationForToday',
+  'worksheet.oneLittleThingThatMadeMeSmileRecently',
 ] as const;
 
 export function buildDefaultWorksheetTemplate(t: TranslationFunction) {

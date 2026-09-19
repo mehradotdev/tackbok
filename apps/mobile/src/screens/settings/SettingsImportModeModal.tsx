@@ -35,9 +35,11 @@ export function SettingsImportModeModal({
     <Dialog open={visible} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-sm" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle className="text-center">{t('Choose Import Mode')}</DialogTitle>
+          <DialogTitle className="text-center">
+            {t('backup.chooseImportMode')}
+          </DialogTitle>
           <DialogDescription className="text-center leading-5">
-            {t('How should this import handle entries that already exist in Tackbok?')}
+            {t('backup.howShouldThisImportHandleEntriesThatAlreadyExistIn')}
           </DialogDescription>
         </DialogHeader>
 
@@ -48,10 +50,10 @@ export function SettingsImportModeModal({
             onPress={() => onSelectMode('skip')}>
             <View className="flex-1 items-start">
               <Text className="text-base font-body-medium text-left">
-                {t('Skip Existing Entries (Recommended)')}
+                {t('backup.skipExistingEntriesRecommended')}
               </Text>
               <Text className="text-sm text-foreground/70 text-left mt-1">
-                {t('Only import entries with new note IDs')}
+                {t('backup.onlyImportEntriesWithNewNoteIds')}
               </Text>
             </View>
           </Button>
@@ -62,10 +64,10 @@ export function SettingsImportModeModal({
             onPress={() => onSelectMode('overwrite')}>
             <View className="flex-1 items-start">
               <Text className="text-base font-body-medium text-left text-destructive-foreground">
-                {t('Overwrite Matching Entries')}
+                {t('backup.overwriteMatchingEntries')}
               </Text>
               <Text className="text-sm text-destructive-foreground/80 text-left mt-1">
-                {t('Replace existing entries when note IDs match')}
+                {t('backup.replaceExistingEntriesWhenNoteIdsMatch')}
               </Text>
             </View>
           </Button>
@@ -73,7 +75,7 @@ export function SettingsImportModeModal({
 
         <DialogFooter className="sm:justify-center">
           <Button variant="ghost" className="mt-1" onPress={onClose}>
-            <Text>{t('Cancel')}</Text>
+            <Text>{t('common.cancel')}</Text>
           </Button>
         </DialogFooter>
       </DialogContent>

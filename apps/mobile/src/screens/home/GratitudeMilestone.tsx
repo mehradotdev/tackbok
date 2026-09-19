@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { cn } from 'tailwind-variants';
 import { useCSSVariable } from 'uniwind';
 import { type MilestoneItem } from '~/types';
-import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
+import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { Text } from '~/components/ui/text';
 import { TackbokLogo } from '~/components/TackbokLogo';
@@ -15,7 +15,7 @@ interface IGratitudeMilestoneProps {
 }
 
 export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milestone }) => {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
   const [foregroundColor] = useCSSVariable(['--color-foreground']);
 
@@ -34,8 +34,8 @@ export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milesto
       accessibilityLabel={
         milestone.milestoneDays === 0
           ? undefined
-          : t('Open {count} day achievement', {
-              count: formatLocalizedNumber(milestone.milestoneDays, locale),
+          : t('sharing.openCountDayAchievement', {
+              count: milestone.milestoneDays,
             })
       }
       className={cn(
@@ -71,7 +71,7 @@ export const GratitudeMilestone: React.FC<IGratitudeMilestoneProps> = ({ milesto
       <View className="flex-1 py-4 px-4">
         {milestone.milestoneDays !== 0 && (
           <Text className="text-lg font-body-bold text-foreground">
-            <Text variant="h2">{milestone.milestoneDays}</Text> {t('days of gratitude')}
+            {t('milestone.daysOfGratitude', { count: milestone.milestoneDays })}
           </Text>
         )}
 

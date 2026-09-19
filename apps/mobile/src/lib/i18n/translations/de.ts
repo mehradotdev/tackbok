@@ -6,140 +6,138 @@ import type { Translations } from '../types';
  */
 export const de: Translations = {
   // Cold-start header greeting
-  "Welcome back": "Willkommen zurück",
-  "Good morning": "Guten Morgen",
-  "Good afternoon": "Guten Tag",
-  "Good evening": "Guten Abend",
-  "Happy Sunday": "Schönen Sonntag",
-  "Happy Monday": "Schönen Montag",
-  "Happy Tuesday": "Schönen Dienstag",
-  "Happy Wednesday": "Schönen Mittwoch",
-  "Happy Thursday": "Schönen Donnerstag",
-  "Happy Friday": "Schönen Freitag",
-  "Happy Saturday": "Schönen Samstag",
-  "Greeting with name": "{greeting}, {name}",
+  'greeting.welcomeBack': 'Willkommen zurück',
+  'greeting.goodMorning': 'Guten Morgen',
+  'greeting.goodAfternoon': 'Guten Tag',
+  'greeting.goodEvening': 'Guten Abend',
+  'greeting.happySunday': 'Schönen Sonntag',
+  'greeting.happyMonday': 'Schönen Montag',
+  'greeting.happyTuesday': 'Schönen Dienstag',
+  'greeting.happyWednesday': 'Schönen Mittwoch',
+  'greeting.happyThursday': 'Schönen Donnerstag',
+  'greeting.happyFriday': 'Schönen Freitag',
+  'greeting.happySaturday': 'Schönen Samstag',
+  'greeting.withName': '{greeting}, {name}',
 
   // Common
-  Tackbok: 'Tackbok',
-  Cancel: 'Abbrechen',
-  Done: 'Fertig',
-  Save: 'Speichern',
-  Edit: 'Bearbeiten',
-  Add: 'Hinzufügen',
-  Back: 'Zurück',
-  Create: 'Erstellen',
-  Discard: 'Verwerfen',
-  Delete: 'Löschen',
-  Remove: 'Entfernen',
-  Close: 'Schließen',
-  Play: 'Abspielen',
-  Pause: 'Pause',
-  Settings: 'Einstellungen',
-  'Share Feedback': 'Feedback teilen',
-  'Contact Us': 'Kontakt',
-  'Unknown error': 'Unbekannter Fehler',
-  Retry: 'Erneut versuchen',
+  'common.tackbok': 'Tackbok',
+  'common.cancel': 'Abbrechen',
+  'common.done': 'Fertig',
+  'common.save': 'Speichern',
+  'common.back': 'Zurück',
+  'common.create': 'Erstellen',
+  'common.discard': 'Verwerfen',
+  'common.delete': 'Löschen',
+  'common.remove': 'Entfernen',
+  'common.close': 'Schließen',
+  'common.play': 'Abspielen',
+  'common.pause': 'Pause',
+  'common.settings': 'Einstellungen',
+  'common.shareFeedback': 'Feedback teilen',
+  'common.contactUs': 'Kontakt',
+  'common.unknownError': 'Unbekannter Fehler',
+  'common.retry': 'Erneut versuchen',
 
   // Header & Search
-  'Search gratitude logs...': 'Dankbarkeitseinträge durchsuchen …',
-  'Start typing to search your gratitude logs':
-    'Tippe etwas ein, um deine Dankbarkeitseinträge zu durchsuchen',
-  'Search failed': 'Suche fehlgeschlagen',
-  'No results': 'Keine Ergebnisse',
+  'search.searchGratitudeLogs': 'Einträge durchsuchen …',
+  'search.startTypingToSearchYourGratitudeLogs':
+    'Tippe etwas ein, um deine Einträge zu durchsuchen',
+  'search.searchFailed': 'Suche fehlgeschlagen',
+  'search.noResults': 'Keine Ergebnisse',
 
   // Gratitude
-  'What are you grateful for today?': 'Wofür bist du heute dankbar?',
-  'What were you grateful for yesterday?': 'Wofür warst du gestern dankbar?',
-  'What are you grateful for?': 'Wofür bist du dankbar?',
-  'What were you grateful for?': 'Wofür warst du dankbar?',
-  'Failed to load entries': 'Einträge konnten nicht geladen werden',
-  'Write now': 'Jetzt schreiben',
-  'Pick a date': 'Datum auswählen',
-  'Play with Pet': 'Mit dem Haustier spielen',
-  'Collapse gratitude actions': 'Dankbarkeitsaktionen einklappen',
-  'Expand gratitude actions': 'Dankbarkeitsaktionen ausklappen',
+  'gratitude.whatAreYouGratefulForToday': 'Wofür bist du heute dankbar?',
+  'gratitude.whatWereYouGratefulForYesterday': 'Wofür warst du gestern dankbar?',
+  'gratitude.whatAreYouGratefulFor': 'Wofür bist du dankbar?',
+  'gratitude.whatWereYouGratefulFor': 'Wofür warst du dankbar?',
+  'gratitude.failedToLoadEntries': 'Einträge konnten nicht geladen werden',
+  'gratitude.writeNow': 'Jetzt schreiben',
+  'gratitude.pickADate': 'Datum auswählen',
+  'gratitude.playWithPet': 'Mit dem Haustier spielen',
+  'gratitude.collapseGratitudeActions': 'Dankbarkeitsaktionen einklappen',
+  'gratitude.expandGratitudeActions': 'Dankbarkeitsaktionen ausklappen',
 
   // Date Entries
-  'Loading...': 'Wird geladen …',
-  'No entries for this date': 'Keine Einträge für dieses Datum',
-  'Create Entry': 'Eintrag erstellen',
-  'Something went wrong. Creating new entry.':
+  'dateEntries.loading': 'Wird geladen …',
+  'dateEntries.noEntriesForThisDate': 'Keine Einträge für dieses Datum',
+  'dateEntries.createEntry': 'Eintrag erstellen',
+  'dateEntries.somethingWentWrongCreatingNewEntry':
     'Etwas ist schiefgelaufen. Ein neuer Eintrag wird erstellt.',
 
   // Gratitude Entry
-  'Delete Entry?': 'Eintrag löschen?',
-  'This entry will be permanently deleted.': 'Dieser Eintrag wird dauerhaft gelöscht.',
-  'Entry not found': 'Eintrag nicht gefunden',
-  'Leave without saving?': 'Ohne Speichern verlassen?',
-  'Your entry is unsaved. Would you like to keep editing or discard them?':
-    'Dein Eintrag ist nicht gespeichert. Möchtest du ihn weiter bearbeiten oder verwerfen?',
-  'Keep Editing': 'Weiter bearbeiten',
+  'entry.deleteEntry': 'Eintrag löschen?',
+  'entry.thisEntryWillBePermanentlyDeleted': 'Dieser Eintrag wird dauerhaft gelöscht.',
+  'entry.entryNotFound': 'Eintrag nicht gefunden',
+  'entry.leaveWithoutSaving': 'Ohne Speichern verlassen?',
+  'entry.discardChanges.message':
+    'Deine Änderungen wurden nicht gespeichert. Weiter bearbeiten oder Änderungen verwerfen?',
+  'entry.keepEditing': 'Weiter bearbeiten',
 
-  'Pick any date': 'Beliebiges Datum auswählen',
-  Mood: 'Stimmung',
-  Photo: 'Foto',
-  'Add Photo': 'Foto hinzufügen',
-  'Take Photo': 'Foto aufnehmen',
-  'Choose from Library': 'Aus Mediathek auswählen',
-  'Maximum {count} photos per entry': 'Maximal {count} Fotos pro Eintrag',
-  'Maximum {count} voice memos per entry': 'Maximal {count} Sprachnotizen pro Eintrag',
-  'Camera Access Required': 'Kamerazugriff erforderlich',
-  'Photo Library Access Required': 'Zugriff auf die Fotomediathek erforderlich',
-  'Please enable camera access in your device settings to take photos.':
+  'entry.pickAnyDate': 'Beliebiges Datum auswählen',
+  'entry.mood': 'Stimmung',
+  'entry.photo': 'Foto',
+  'entry.addPhoto': 'Foto hinzufügen',
+  'entry.takePhoto': 'Foto aufnehmen',
+  'entry.chooseFromLibrary': 'Aus Mediathek auswählen',
+  'entry.maximumCountPhotosPerEntry': 'Maximal {count} Fotos pro Eintrag',
+  'entry.maximumCountVoiceMemosPerEntry': 'Maximal {count} Sprachnotizen pro Eintrag',
+  'entry.cameraAccessRequired': 'Kamerazugriff erforderlich',
+  'entry.photoLibraryAccessRequired': 'Zugriff auf die Fotomediathek erforderlich',
+  'entry.pleaseEnableCameraAccessInYourDeviceSettingsToTake':
     'Aktiviere in den Geräteeinstellungen den Kamerazugriff, um Fotos aufzunehmen.',
-  'Please enable photo library access in your device settings to select photos.':
+  'entry.pleaseEnablePhotoLibraryAccessInYourDeviceSettingsTo':
     'Aktiviere in den Geräteeinstellungen den Zugriff auf die Fotomediathek, um Fotos auszuwählen.',
-  'Open Settings': 'Einstellungen öffnen',
-  Voice: 'Stimme',
-  'Microphone Access Required': 'Mikrofonzugriff erforderlich',
-  'Please enable microphone access in your device settings to record voice memos.':
+  'entry.openSettings': 'Einstellungen öffnen',
+  'entry.voice': 'Sprachnotiz',
+  'entry.microphoneAccessRequired': 'Mikrofonzugriff erforderlich',
+  'entry.pleaseEnableMicrophoneAccessInYourDeviceSettingsToRecord':
     'Aktiviere in den Geräteeinstellungen den Mikrofonzugriff, um Sprachnotizen aufzunehmen.',
-  'Record Voice Note': 'Sprachnotiz aufnehmen',
-  'Tap the button below when ready.':
+  'entry.recordVoiceNote': 'Sprachnotiz aufnehmen',
+  'entry.tapTheButtonBelowWhenReady':
     'Tippe auf die Schaltfläche unten, wenn du bereit bist.',
-  'Start Recording': 'Aufnahme starten',
-  'Recording Voice Note...': 'Sprachnotiz wird aufgenommen …',
-  'Stop Recording': 'Aufnahme beenden',
-  'Voice Note Recorded': 'Sprachnotiz aufgenommen',
-  'Tap on the play button to listen.': 'Tippe zum Anhören auf die Wiedergabetaste.',
-  'Save Recording': 'Aufnahme speichern',
-  'Discard Recording': 'Aufnahme verwerfen',
-  'Voice notes save automatically at 30:00.':
-    'Sprachnotizen werden bei 30:00 automatisch gespeichert.',
-  'Title (optional)': 'Titel (optional)',
-  'Use Prompt': 'Schreibimpuls verwenden',
-  'New Prompt': 'Neuer Schreibimpuls',
-  'Add Prompt': 'Schreibimpuls hinzufügen',
-  'Show All': 'Alle anzeigen',
-  'Prompt text': 'Text des Schreibimpulses',
-  'Prompt already exists': 'Schreibimpuls ist bereits vorhanden',
-  'Prompt created': 'Schreibimpuls erstellt',
-  'Failed to create prompt': 'Schreibimpuls konnte nicht erstellt werden',
-  'Prompt updated': 'Schreibimpuls aktualisiert',
-  'Failed to update prompt': 'Schreibimpuls konnte nicht aktualisiert werden',
-  'Prompt deleted': 'Schreibimpuls gelöscht',
-  'Failed to delete prompt': 'Schreibimpuls konnte nicht gelöscht werden',
-  Faith: 'Glaube',
-  Self: 'Ich',
-  Health: 'Gesundheit',
-  Friends: 'Freunde',
-  Family: 'Familie',
-  'Little things': 'Kleine Dinge',
-  'Create Prompt': 'Schreibimpuls erstellen',
-  'Create a Prompt': 'Einen Schreibimpuls erstellen',
-  'Edit Prompt': 'Schreibimpuls bearbeiten',
-  'Delete Prompt': 'Schreibimpuls löschen',
-  'Delete Prompt?': 'Schreibimpuls löschen?',
-  'Are you sure you want to delete this prompt?':
+  'entry.startRecording': 'Aufnahme starten',
+  'entry.recordingVoiceNote': 'Sprachnotiz wird aufgenommen …',
+  'entry.stopRecording': 'Aufnahme beenden',
+  'entry.voiceNoteRecorded': 'Sprachnotiz aufgenommen',
+  'entry.tapOnThePlayButtonToListen': 'Tippe zum Anhören auf die Wiedergabetaste.',
+  'entry.saveRecording': 'Aufnahme speichern',
+  'entry.discardRecording': 'Aufnahme verwerfen',
+  'entry.voiceNotesSaveAutomaticallyAt3000':
+    'Sprachnotizen werden nach 30 Minuten automatisch gespeichert.',
+  'entry.titleOptional': 'Titel (optional)',
+  'entry.usePrompt': 'Schreibimpuls verwenden',
+  'entry.newPrompt': 'Neuer Schreibimpuls',
+  'entry.addPrompt': 'Schreibimpuls hinzufügen',
+  'entry.showAll': 'Alle anzeigen',
+  'entry.promptText': 'Text des Schreibimpulses',
+  'entry.promptAlreadyExists': 'Schreibimpuls ist bereits vorhanden',
+  'entry.promptCreated': 'Schreibimpuls erstellt',
+  'entry.failedToCreatePrompt': 'Schreibimpuls konnte nicht erstellt werden',
+  'entry.promptUpdated': 'Schreibimpuls aktualisiert',
+  'entry.failedToUpdatePrompt': 'Schreibimpuls konnte nicht aktualisiert werden',
+  'entry.promptDeleted': 'Schreibimpuls gelöscht',
+  'entry.failedToDeletePrompt': 'Schreibimpuls konnte nicht gelöscht werden',
+  'entry.faith': 'Glaube',
+  'entry.self': 'Ich',
+  'entry.health': 'Gesundheit',
+  'entry.friends': 'Freunde',
+  'entry.family': 'Familie',
+  'entry.littleThings': 'Kleine Dinge',
+  'entry.createPrompt': 'Schreibimpuls erstellen',
+  'entry.createAPrompt': 'Schreibimpuls erstellen',
+  'entry.editPrompt': 'Schreibimpuls bearbeiten',
+  'entry.deletePrompt': 'Schreibimpuls löschen',
+  'entry.deletePrompt2': 'Schreibimpuls löschen?',
+  'entry.areYouSureYouWantToDeleteThisPrompt':
     'Möchtest du diesen Schreibimpuls wirklich löschen?',
-  'No prompts yet': 'Noch keine Schreibimpulse',
-  'Create your first prompt': 'Erstelle deinen ersten Schreibimpuls',
+  'entry.noPromptsYet': 'Noch keine Schreibimpulse',
+  'entry.createYourFirstPrompt': 'Erstelle deinen ersten Schreibimpuls',
 
   // Prompts - Faith
   prompt_faith_1:
     'Was ist deine früheste Erinnerung daran, Gottes Gegenwart gespürt zu haben?',
   prompt_faith_2: 'Wo hast du in letzter Zeit Gnade in deinem Leben erfahren?',
-  prompt_faith_3: 'Welches Gebet hat dich durch eine schwere Zeit getragen?',
+  prompt_faith_3: 'Welches Gebet hat dir durch eine schwierige Zeit geholfen?',
   prompt_faith_4: 'Wie hat dein Glaube deine Sicht auf Herausforderungen verändert?',
   prompt_faith_5:
     'Welche spirituelle Praxis oder Gewohnheit schenkt dir am meisten Frieden?',
@@ -162,7 +160,7 @@ export const de: Translations = {
   prompt_self_6: 'Wie bist du an einem Fehler gewachsen, den du kürzlich gemacht hast?',
   prompt_self_7: 'Welche Grenze musst du setzen, um deine Energie zu schützen?',
   prompt_self_8: 'In welchem Lebensbereich fühlst du dich am authentischsten?',
-  prompt_self_9: 'Beschreibe deinen idealen, perfekten Tag vom Morgen bis zum Abend.',
+  prompt_self_9: 'Beschreibe deinen idealen Tag vom Morgen bis zur Nacht.',
 
   // Prompts - Health
   prompt_health_1: 'Für welchen Teil deines Körpers bist du heute besonders dankbar?',
@@ -217,484 +215,483 @@ export const de: Translations = {
   prompt_littleThings_2: 'Welcher kleine Moment hat dich heute innehalten lassen?',
   prompt_littleThings_3: 'Welchen alltäglichen Komfort würdest du am meisten vermissen?',
   prompt_littleThings_4:
-    'Beschreibe ein kleines, alltägliches Detail in deiner Umgebung, das schön ist.',
+    'Beschreibe ein kleines, alltägliches Detail in deiner Umgebung, das du schön findest.',
   prompt_littleThings_5: 'Welches Geräusch hörst du morgens beim Aufwachen am liebsten?',
   prompt_littleThings_6:
     'Schreibe über eine einfache Freude, auf die du dich jeden Tag freust.',
   prompt_littleThings_7: 'Was war heute der schönste Teil deiner Morgenroutine?',
   prompt_littleThings_8:
-    'Erzähle von einer kurzen Begegnung mit einer fremden Person, die dein Herz erwärmt hat.',
+    'Beschreibe eine kurze Begegnung mit einer fremden Person, die dir Freude bereitet hat.',
   prompt_littleThings_9: 'Welcher günstige Gegenstand bereichert dein Leben besonders?',
 
   // Default Worksheet Template Keys
-  'What I am grateful for today...': 'Wofür ich heute dankbar bin …',
-  'My affirmation for today...': 'Meine Affirmation für heute …',
-  'One little thing that made me smile recently...':
+  'worksheet.whatIAmGratefulForToday': 'Wofür ich heute dankbar bin …',
+  'worksheet.myAffirmationForToday': 'Meine Affirmation für heute …',
+  'worksheet.oneLittleThingThatMadeMeSmileRecently':
     'Eine Kleinigkeit, die mich kürzlich zum Lächeln gebracht hat …',
 
   // Moods
-  Amazing: 'Großartig',
-  Happy: 'Glücklich',
-  Okay: 'Okay',
-  Sad: 'Traurig',
-  Awful: 'Schrecklich',
-  'How are you feeling?': 'Wie fühlst du dich?',
-  'Feeling Amazing': 'Fühle mich großartig',
-  'Feeling Happy': 'Fühle mich glücklich',
-  'Feeling Okay': 'Fühle mich okay',
-  'Feeling Sad': 'Fühle mich traurig',
-  'Feeling Awful': 'Fühle mich schrecklich',
-  'Entry saved successfully': 'Eintrag erfolgreich gespeichert',
-  'Failed to save entry': 'Eintrag konnte nicht gespeichert werden',
-  'Failed to save voice memo': 'Sprachnotiz konnte nicht gespeichert werden',
-  'Failed to add photos': 'Fotos konnten nicht hinzugefügt werden',
-  'Failed to delete entry': 'Eintrag konnte nicht gelöscht werden',
-  'Tag already exists': 'Tag ist bereits vorhanden',
-  'Tag created': 'Tag erstellt',
-  'Failed to create tag': 'Tag konnte nicht erstellt werden',
-  'Tag updated': 'Tag aktualisiert',
-  'Failed to update tag': 'Tag konnte nicht aktualisiert werden',
-  'Tag deleted': 'Tag gelöscht',
-  'Failed to delete tag': 'Tag konnte nicht gelöscht werden',
+  'mood.amazing': 'Großartig',
+  'mood.happy': 'Glücklich',
+  'mood.okay': 'Okay',
+  'mood.sad': 'Traurig',
+  'mood.awful': 'Schrecklich',
+  'mood.howAreYouFeeling': 'Wie fühlst du dich?',
+  'mood.feelingAmazing': 'Fühle mich großartig',
+  'mood.feelingHappy': 'Fühle mich glücklich',
+  'mood.feelingOkay': 'Fühle mich okay',
+  'mood.feelingSad': 'Fühle mich traurig',
+  'mood.feelingAwful': 'Fühle mich schrecklich',
+  'mood.entrySavedSuccessfully': 'Eintrag erfolgreich gespeichert',
+  'mood.failedToSaveEntry': 'Eintrag konnte nicht gespeichert werden',
+  'mood.failedToSaveVoiceMemo': 'Sprachnotiz konnte nicht gespeichert werden',
+  'mood.failedToAddPhotos': 'Fotos konnten nicht hinzugefügt werden',
+  'mood.failedToDeleteEntry': 'Eintrag konnte nicht gelöscht werden',
+  'mood.tagAlreadyExists': 'Tag ist bereits vorhanden',
+  'mood.tagCreated': 'Tag erstellt',
+  'mood.failedToCreateTag': 'Tag konnte nicht erstellt werden',
+  'mood.tagUpdated': 'Tag aktualisiert',
+  'mood.failedToUpdateTag': 'Tag konnte nicht aktualisiert werden',
+  'mood.tagDeleted': 'Tag gelöscht',
+  'mood.failedToDeleteTag': 'Tag konnte nicht gelöscht werden',
 
   // Tags
-  Tag: 'Tag',
-  Tags: 'Tags',
-  'Tag name': 'Tag-Name',
-  'Add a Tag': 'Tag hinzufügen',
-  'Create New Tag': 'Neuen Tag erstellen',
-  'Edit Tag': 'Tag bearbeiten',
-  'Delete Tag': 'Tag löschen',
-  'Are you sure you want to delete the tag "{title}"?':
+  'tags.tag': 'Tag',
+  'tags.tagName': 'Tag-Name',
+  'tags.addATag': 'Tag hinzufügen',
+  'tags.createNewTag': 'Tag erstellen',
+  'tags.editTag': 'Tag bearbeiten',
+  'tags.deleteTag': 'Tag löschen',
+  'tags.areYouSureYouWantToDeleteTheTagTitle':
     'Möchtest du den Tag „{title}“ wirklich löschen?',
 
   // Milestones
-  'days of gratitude': 'Tage der Dankbarkeit',
+  'milestone.daysOfGratitude': 'Tage der Dankbarkeit',
 
   // Settings - Profile
-  'Your Name': 'Dein Name',
-  'Change Photo': 'Foto ändern',
-  'Profile Photo': 'Profilfoto',
-  'Would you like to update or remove your profile photo?':
+  'profile.yourName': 'Dein Name',
+  'profile.changePhoto': 'Foto ändern',
+  'profile.profilePhoto': 'Profilfoto',
+  'profile.wouldYouLikeToUpdateOrRemoveYourProfilePhoto':
     'Möchtest du dein Profilfoto aktualisieren oder entfernen?',
-  'Update Photo': 'Foto aktualisieren',
-  'Remove Photo': 'Foto entfernen',
+  'profile.updatePhoto': 'Foto aktualisieren',
+  'profile.removePhoto': 'Foto entfernen',
 
   // Settings
-  Language: 'Sprache',
-  'Select Language': 'Sprache auswählen',
-  'Device Default': 'Gerätestandard',
-  'Restart Required': 'Neustart erforderlich',
-  'Language change requires app restart. Proceed?':
-    'Zum Ändern der Sprache muss die App neu gestartet werden. Fortfahren?',
-  Proceed: 'Fortfahren',
-  'Reload App': 'App neu laden',
+  'settings.language': 'Sprache',
+  'settings.selectLanguage': 'Sprache auswählen',
+  'settings.deviceDefault': 'Gerätestandard',
+  'settings.restartRequired': 'Neustart erforderlich',
+  'settings.languageChangeRequiresAppRestartProceed':
+    'Zum Ändern der Sprache muss Tackbok neu gestartet werden. Fortfahren?',
+  'settings.proceed': 'Fortfahren',
+  'settings.reloadApp': 'App neu laden',
 
   // Settings - Notifications
-  Notifications: 'Benachrichtigungen',
-  'Daily Reminder': 'Tägliche Erinnerung',
-  'Daily reminder notifications are on': 'Tägliche Erinnerungen sind aktiviert',
-  'Daily reminder notifications are off': 'Tägliche Erinnerungen sind deaktiviert',
-  'Adjust Reminder Time': 'Erinnerungszeit anpassen',
-  'Change your daily reminder time': 'Ändere die Uhrzeit deiner täglichen Erinnerung',
-  'Failed to update reminder': 'Erinnerung konnte nicht aktualisiert werden',
-  'Notification permission needed': 'Berechtigung für Benachrichtigungen erforderlich',
-  'To get daily reminders, allow notifications for Tackbok in your device settings.':
+  'notifications.notifications': 'Benachrichtigungen',
+  'notifications.dailyReminder': 'Tägliche Erinnerung',
+  'notifications.dailyReminderNotificationsAreOn': 'Tägliche Erinnerungen sind aktiviert',
+  'notifications.dailyReminderNotificationsAreOff':
+    'Tägliche Erinnerungen sind deaktiviert',
+  'notifications.adjustReminderTime': 'Erinnerungszeit anpassen',
+  'notifications.changeYourDailyReminderTime':
+    'Ändere die Uhrzeit deiner täglichen Erinnerung',
+  'notifications.failedToUpdateReminder': 'Erinnerung konnte nicht aktualisiert werden',
+  'notifications.notificationPermissionNeeded':
+    'Berechtigung für Benachrichtigungen erforderlich',
+  'notifications.toGetDailyRemindersAllowNotificationsForTackbokInYour':
     'Erlaube Tackbok in deinen Geräteeinstellungen Benachrichtigungen, um tägliche Erinnerungen zu erhalten.',
 
   // Settings - Appearance
-  Appearance: 'Darstellung',
-  Theme: 'Design',
-  'Select a theme': 'Design auswählen',
-  '{count} themes and color schemes': '{count} Designs und Farbschemata',
-  'Timeline Entry Length': 'Länge der Zeitleisteneinträge',
-  'Number of lines shown in the timeline':
-    'Anzahl der in der Zeitleiste angezeigten Zeilen. Der vollständige Text wird sichtbar, wenn du den Eintrag öffnest',
-  'Show Timeline Borders': 'Rahmen in der Zeitleiste anzeigen',
-  'Show the borders in the timeline': 'Rahmen in der Zeitleiste anzeigen',
-  'Hide the borders in the timeline': 'Rahmen in der Zeitleiste ausblenden',
-  'Date Style': 'Datumsformat',
-  'Date includes day of the week': 'Datum enthält den Wochentag',
-  'First Day of Week': 'Erster Wochentag',
-  'Set the first day of the week in the calendar view':
+  'appearance.appearance': 'Darstellung',
+  'appearance.theme': 'Design',
+  'appearance.selectATheme': 'Design auswählen',
+  'appearance.countThemesAndColorSchemes': '{count} Designs und Farbschemata',
+  'appearance.timelineEntryLength': 'Länge der Zeitleisteneinträge',
+  'appearance.numberOfLinesShownInTheTimeline':
+    'Anzahl der angezeigten Zeilen in der Zeitleiste. Tippe auf einen Eintrag, um den vollständigen Text zu lesen.',
+  'appearance.showTimelineBorders': 'Rahmen in der Zeitleiste anzeigen',
+  'appearance.showTheBordersInTheTimeline': 'Rahmen in der Zeitleiste anzeigen',
+  'appearance.hideTheBordersInTheTimeline': 'Rahmen in der Zeitleiste ausblenden',
+  'appearance.dateStyle': 'Datumsformat',
+  'appearance.dateIncludesDayOfTheWeek': 'Datum enthält den Wochentag',
+  'appearance.firstDayOfWeek': 'Erster Wochentag',
+  'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Lege den ersten Wochentag in der Kalenderansicht fest',
 
   // Settings - Typography
-  Typography: 'Typografie',
-  'Title Font': 'Titelschrift',
-  'Choose a font for titles and headings':
+  'typography.typography': 'Typografie',
+  'typography.titleFont': 'Titelschrift',
+  'typography.chooseAFontForTitlesAndHeadings':
     'Wähle eine Schriftart für Titel und Überschriften',
-  Default: 'Standard',
-  'Theme Default': 'Designstandard',
-  'Font Size': 'Schriftgröße',
-  'Adjust the size of body text': 'Passe die Größe des Fließtexts an',
-  Small: 'Klein',
-  Large: 'Groß',
-  'Preview of the selected font': 'Vorschau der ausgewählten Schriftart',
-  'Gratitude makes today brighter': 'Dankbarkeit macht den heutigen Tag heller',
+  'typography.default': 'Standard',
+  'typography.themeDefault': 'Designstandard',
+  'typography.fontSize': 'Schriftgröße',
+  'typography.adjustTheSizeOfBodyText': 'Passe die Größe des Fließtexts an',
+  'typography.small': 'Klein',
+  'typography.large': 'Groß',
+  'typography.previewOfTheSelectedFont': 'Vorschau der ausgewählten Schriftart',
+  'typography.gratitudeMakesTodayBrighter': 'Dankbarkeit macht den heutigen Tag heller',
 
   // Settings - Journaling
-  Journaling: 'Tagebuch',
-  'Worksheet Template': 'Arbeitsblattvorlage',
-  'Edit Worksheet Template': 'Arbeitsblattvorlage bearbeiten',
-  'Use this template to pre-fill the body of new gratitude entries':
-    'Verwende diese Vorlage, um den Text neuer Dankbarkeitseinträge vorab auszufüllen',
-  'Reset to Default': 'Auf Standard zurücksetzen',
-  'Journaling Worksheet': 'Tagebuch-Arbeitsblatt',
-  'Start Writing': 'Losschreiben',
-  'Journal Focus Areas': 'Themenschwerpunkte',
-  'Personalize your journal prompts.': 'Personalisiere deine Schreibimpulse.',
-  'Pick the topics you want to write about.':
+  'journaling.journaling': 'Tagebuch',
+  'journaling.editWorksheetTemplate': 'Arbeitsblattvorlage bearbeiten',
+  'journaling.resetToDefault': 'Auf Standard zurücksetzen',
+  'journaling.journalingWorksheet': 'Tagebuch-Arbeitsblatt',
+  'journaling.startWriting': 'Losschreiben',
+  'journaling.journalFocusAreas': 'Themenschwerpunkte',
+  'journaling.personalizeYourJournalPrompts': 'Personalisiere deine Schreibimpulse.',
+  'journaling.pickTheTopicsYouWantToWriteAbout':
     'Wähle die Themen aus, über die du schreiben möchtest.',
-  'Select at least 2 focus areas': 'Wähle mindestens 2 Themenschwerpunkte aus',
-  'Journal Prompts': 'Schreibimpulse',
-  'Choose which prompts to show when starting a new journal entry.':
+  'journaling.selectAtLeast2FocusAreas': 'Wähle mindestens 2 Themenschwerpunkte aus',
+  'journaling.journalPrompts': 'Schreibimpulse',
+  'journaling.chooseWhichPromptsToShowWhenStartingANewJournal':
     'Wähle aus, welche Schreibimpulse beim Erstellen eines neuen Tagebucheintrags angezeigt werden.',
-  Off: 'Aus',
-  'All Prompts': 'Alle Schreibimpulse',
-  'My Prompts': 'Meine Schreibimpulse',
-  'Built In Prompts': 'Integrierte Schreibimpulse',
-  focusArea_self_desc:
+  'journaling.off': 'Aus',
+  'journaling.allPrompts': 'Alle Schreibimpulse',
+  'journaling.myPrompts': 'Meine Schreibimpulse',
+  'journaling.builtInPrompts': 'Integrierte Schreibimpulse',
+  'journaling.focusareaSelfDesc':
     'Denke über deine Hobbys, Interessen, Erfahrungen und dein Leben im Allgemeinen nach.',
-  focusArea_littleThings_desc:
+  'journaling.focusareaLittlethingsDesc':
     'Schätze die kleinen, oft übersehenen Freuden des Alltags.',
-  focusArea_health_desc:
+  'journaling.focusareaHealthDesc':
     'Schätze die vielen Vorzüge deines Körpers und seiner Fähigkeiten.',
-  focusArea_family_desc:
+  'journaling.focusareaFamilyDesc':
     'Schätze deine Familienmitglieder und die gemeinsam verbrachten Momente.',
-  focusArea_friends_desc:
+  'journaling.focusareaFriendsDesc':
     'Schätze deine liebevollen, unterstützenden und verständnisvollen Freunde.',
-  focusArea_faith_desc:
+  'journaling.focusareaFaithDesc':
     'Konzentriere dich auf die Wertschätzung deines Glaubens, deiner Spiritualität und deines inneren Friedens.',
 
   // Settings - Security
-  Security: 'Sicherheit',
-  'Lock after': 'Sperren nach',
-  'Time away from the app before requiring an unlock.': 'Zeit außerhalb der App, bevor ein Entsperren erforderlich ist.',
-  '0 seconds': '0 Sekunden',
-  '30 seconds': '30 Sekunden',
-  '1 minute': '1 Minute',
-  '2 minutes': '2 Minuten',
-  'Unlock Tackbok': 'Tackbok entsperren',
-  'Lock with your device screen lock':
+  'security.security': 'Sicherheit',
+  'security.lockAfter': 'Sperren nach',
+  'security.timeAwayFromTheAppBeforeRequiringAnUnlock':
+    'Zeit außerhalb der App, bevor ein Entsperren erforderlich ist.',
+  'security.0Seconds': '0 Sekunden',
+  'security.30Seconds': '30 Sekunden',
+  'security.1Minute': '1 Minute',
+  'security.2Minutes': '2 Minuten',
+  'security.unlockTackbok': 'Tackbok entsperren',
+  'security.lockWithYourDeviceScreenLock':
     'Tackbok kann mit der Displaysperre deines Geräts geschützt werden – Biometrie, PIN, Muster oder Code',
-  Unlock: 'Entsperren',
-  'App lock unavailable': 'App-Sperre nicht verfügbar',
-  'Set up a screen lock (PIN, pattern, or biometrics) in your device settings first.':
+  'security.unlock': 'Entsperren',
+  'security.appLockUnavailable': 'App-Sperre nicht verfügbar',
+  'security.setUpAScreenLockPinPatternOrBiometricsIn':
     'Richte zuerst in deinen Geräteeinstellungen eine Displaysperre (PIN, Muster oder Biometrie) ein.',
 
   // Settings - Backup & Restore
-  'Backup & Restore': 'Sichern & Wiederherstellen',
-  'Google Drive Backup': 'Google-Drive-Sicherung',
-  Daily: 'Täglich',
-  Weekly: 'Wöchentlich',
-  'Export as .ZIP': 'Als .ZIP exportieren',
-  'All of your data in a format that you can restore in the app later':
+  'backup.backupRestore': 'Sichern & Wiederherstellen',
+  'backup.googleDriveBackup': 'Google-Drive-Sicherung',
+  'backup.exportAsZip': 'Als ZIP exportieren',
+  'backup.allOfYourDataInAFormatThatYouCan':
     'Alle deine Daten in einem Format, das du später in der App wiederherstellen kannst',
-  'Import as .ZIP': 'Als .ZIP importieren',
-  'Restore your data from a .zip file':
+  'backup.importAsZip': 'Aus ZIP importieren',
+  'backup.restoreYourDataFromAZipFile':
     'Stelle deine Daten aus einer .zip-Datei wieder her',
-  'Import from Gratitude App': 'Aus der Gratitude App importieren',
-  'Importing from Gratitude App': 'Import aus der Gratitude App',
-  'Import data from a Gratitude App .zip backup':
+  'backup.importFromGratitudeApp': 'Aus der Gratitude App importieren',
+  'backup.importingFromGratitudeApp': 'Import aus der Gratitude App',
+  'backup.importDataFromAGratitudeAppZipBackup':
     'Daten aus einer .zip-Sicherung der Gratitude App importieren',
-  'Choose Import Mode': 'Importmodus auswählen',
-  'How should this import handle entries that already exist in Tackbok?':
+  'backup.chooseImportMode': 'Importmodus auswählen',
+  'backup.howShouldThisImportHandleEntriesThatAlreadyExistIn':
     'Wie soll dieser Import mit Einträgen umgehen, die bereits in Tackbok vorhanden sind?',
-  'Skip Existing Entries': 'Vorhandene Einträge überspringen',
-  'Skip Existing Entries (Recommended)': 'Vorhandene Einträge überspringen (empfohlen)',
-  'Only import entries with new note IDs': 'Nur Einträge mit neuen Notiz-IDs importieren',
-  'Overwrite Matching Entries': 'Übereinstimmende Einträge überschreiben',
-  'Replace existing entries when note IDs match':
+  'backup.skipExistingEntries': 'Vorhandene Einträge überspringen',
+  'backup.skipExistingEntriesRecommended': 'Vorhandene Einträge überspringen (empfohlen)',
+  'backup.onlyImportEntriesWithNewNoteIds':
+    'Nur Einträge mit neuen Notiz-IDs importieren',
+  'backup.overwriteMatchingEntries': 'Übereinstimmende Einträge überschreiben',
+  'backup.replaceExistingEntriesWhenNoteIdsMatch':
     'Vorhandene Einträge ersetzen, wenn die Notiz-IDs übereinstimmen',
-  'Import from Presently App': 'Aus der Presently App importieren',
-  'Restore your data from a Presently .csv file':
+  'backup.importFromPresentlyApp': 'Aus der Presently App importieren',
+  'backup.restoreYourDataFromAPresentlyCsvFile':
     'Stelle deine Daten aus einer .csv-Datei von Presently wieder her',
-  'Import from Presently?': 'Aus Presently importieren?',
-  'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.':
+  'backup.importFromPresently': 'Aus Presently importieren?',
+  'backup.thisWillImportEntriesFromAPresentlyAppCsvFile':
     'Dadurch werden Einträge aus einer CSV-Datei der Presently App importiert. Doppelte Einträge werden übersprungen.',
-  'Backup exported successfully': 'Sicherung erfolgreich exportiert',
-  'Export failed': 'Export fehlgeschlagen',
-  importedCount: '{count} Einträge importiert',
-  'Import failed': 'Import fehlgeschlagen',
-  'Restoring Tackbok backup': 'Tackbok-Sicherung wird wiederhergestellt',
-  'Load Presently export': 'Presently-Export laden',
-  'Import journal entries': 'Tagebucheinträge importieren',
-  'Open backup file': 'Sicherungsdatei öffnen',
-  'Validate backup contents': 'Sicherungsinhalt überprüfen',
-  'Restore profile': 'Profil wiederherstellen',
-  'Import tags and prompts': 'Tags und Schreibimpulse importieren',
-  'Restore entries and media': 'Einträge und Medien wiederherstellen',
-  'Refresh journal data': 'Tagebuchdaten aktualisieren',
-  'Loading the selected import file.': 'Die ausgewählte Importdatei wird geladen.',
-  'Checking backup contents and file structure.':
+  'backup.backupExportedSuccessfully': 'Sicherung erfolgreich exportiert',
+  'backup.exportFailed': 'Export fehlgeschlagen',
+  'backup.importFailed': 'Import fehlgeschlagen',
+  'backup.restoringTackbokBackup': 'Tackbok-Sicherung wird wiederhergestellt',
+  'backup.loadPresentlyExport': 'Presently-Export laden',
+  'backup.importJournalEntries': 'Tagebucheinträge importieren',
+  'backup.openBackupFile': 'Sicherungsdatei öffnen',
+  'backup.validateBackupContents': 'Sicherungsinhalt überprüfen',
+  'backup.restoreProfile': 'Profil wiederherstellen',
+  'backup.importTagsAndPrompts': 'Tags und Schreibimpulse importieren',
+  'backup.restoreEntriesAndMedia': 'Einträge und Medien wiederherstellen',
+  'backup.refreshJournalData': 'Tagebuchdaten aktualisieren',
+  'backup.loadingTheSelectedImportFile': 'Die ausgewählte Importdatei wird geladen.',
+  'backup.checkingBackupContentsAndFileStructure':
     'Sicherungsinhalt und Dateistruktur werden überprüft.',
-  'Restoring profile details and profile photo if available.':
+  'backup.restoringProfileDetailsAndProfilePhotoIfAvailable':
     'Profildetails und Profilfoto werden wiederhergestellt, sofern verfügbar.',
-  'Adding tags and prompts before entries are restored.':
+  'backup.addingTagsAndPromptsBeforeEntriesAreRestored':
     'Tags und Schreibimpulse werden hinzugefügt, bevor die Einträge wiederhergestellt werden.',
-  'Processing {processed} of {total} journal entries and attached media.':
+  'backup.processingProcessedOfTotalJournalEntriesAndAttachedMedia':
     '{processed} von {total} Tagebucheinträgen und angehängten Medien werden verarbeitet.',
-  'No journal entries found in this backup.':
+  'backup.noJournalEntriesFoundInThisBackup':
     'In dieser Sicherung wurden keine Tagebucheinträge gefunden.',
-  'Refreshing your journal so imported data appears everywhere.':
+  'backup.refreshingYourJournalSoImportedDataAppearsEverywhere':
     'Dein Tagebuch wird aktualisiert, damit die importierten Daten überall angezeigt werden.',
-  'Entries processed': 'Verarbeitete Einträge',
-  'Entries skipped due to errors': 'Wegen Fehlern übersprungene Einträge',
-  'Please do not close or minimize the app while the import is in progress.':
+  'backup.entriesProcessed': 'Verarbeitete Einträge',
+  'backup.entriesSkippedDueToErrors': 'Wegen Fehlern übersprungene Einträge',
+  'backup.pleaseDoNotCloseOrMinimizeTheAppWhileThe':
     'Bitte schließe oder minimiere die App nicht, solange der Import läuft.',
-  'Tags added': 'Hinzugefügte Tags',
-  'Prompts added': 'Hinzugefügte Schreibimpulse',
-  'Photos restored': 'Wiederhergestellte Fotos',
-  'Voice memos restored': 'Wiederhergestellte Sprachnotizen',
-  'Media skipped': 'Übersprungene Medien',
-  'Tackbok backup restored': 'Tackbok-Sicherung wiederhergestellt',
-  'Gratitude import complete': 'Gratitude-Import abgeschlossen',
-  'Presently import complete': 'Presently-Import abgeschlossen',
-  'Your journal data is ready to review, but some items could not be restored.':
+  'backup.tagsAdded': 'Hinzugefügte Tags',
+  'backup.promptsAdded': 'Hinzugefügte Schreibimpulse',
+  'backup.photosRestored': 'Wiederhergestellte Fotos',
+  'backup.voiceMemosRestored': 'Wiederhergestellte Sprachnotizen',
+  'backup.mediaSkipped': 'Übersprungene Medien',
+  'backup.tackbokBackupRestored': 'Tackbok-Sicherung wiederhergestellt',
+  'backup.gratitudeImportComplete': 'Gratitude-Import abgeschlossen',
+  'backup.presentlyImportComplete': 'Presently-Import abgeschlossen',
+  'backup.yourJournalDataIsReadyToReviewButSomeItems':
     'Deine Tagebuchdaten können jetzt überprüft werden, einige Elemente konnten jedoch nicht wiederhergestellt werden.',
-  'Your journal data is ready to review.':
+  'backup.yourJournalDataIsReadyToReview':
     'Deine Tagebuchdaten können jetzt überprüft werden.',
-  'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.':
+  'backup.thisImportFinishedWithWarningsSomeItemsCouldNotBe':
     'Dieser Import wurde mit Warnungen abgeschlossen. Einige Elemente konnten nicht wiederhergestellt werden und alles andere war bereits in Tackbok vorhanden.',
-  'This import finished, but everything already existed in Tackbok.':
+  'backup.thisImportFinishedButEverythingAlreadyExistedInTackbok':
     'Dieser Import ist abgeschlossen, aber alles war bereits in Tackbok vorhanden.',
-  'This import finished with warnings. Some items could not be restored.':
+  'backup.thisImportFinishedWithWarningsSomeItemsCouldNotBe2':
     'Dieser Import wurde mit Warnungen abgeschlossen. Einige Elemente konnten nicht wiederhergestellt werden.',
-  'This import finished successfully.': 'Dieser Import wurde erfolgreich abgeschlossen.',
-  'Imported from Tackbok backup': 'Aus Tackbok-Sicherung importiert',
-  'Imported from Gratitude backup': 'Aus Gratitude-Sicherung importiert',
-  'Imported from Presently export': 'Aus Presently-Export importiert',
-  'New entries': 'Neue Einträge',
-  'Updated entries': 'Aktualisierte Einträge',
-  'Skipped duplicates': 'Übersprungene Duplikate',
-  Import: 'Importieren',
+  'backup.thisImportFinishedSuccessfully':
+    'Dieser Import wurde erfolgreich abgeschlossen.',
+  'backup.importedFromTackbokBackup': 'Aus Tackbok-Sicherung importiert',
+  'backup.importedFromGratitudeBackup': 'Aus Gratitude-Sicherung importiert',
+  'backup.importedFromPresentlyExport': 'Aus Presently-Export importiert',
+  'backup.newEntries': 'Neue Einträge',
+  'backup.updatedEntries': 'Aktualisierte Einträge',
+  'backup.skippedDuplicates': 'Übersprungene Duplikate',
+  'backup.import': 'Importieren',
 
   // Settings - App Information
-  'App Information': 'App-Informationen',
-  FAQ: 'FAQ',
-  'Read frequently asked questions': 'Häufig gestellte Fragen zu Tackbok lesen',
-  'Share Tackbok': 'Tackbok teilen',
-  'Share the app with friends and family':
+  'appInfo.appInformation': 'App-Informationen',
+  'appInfo.faq': 'FAQ',
+  'appInfo.readFrequentlyAskedQuestions': 'Häufig gestellte Fragen zu Tackbok lesen',
+  'appInfo.shareTackbok': 'Tackbok teilen',
+  'appInfo.shareTheAppWithFriendsAndFamily':
     'Gefällt dir Tackbok? Teile die App mit Freunden und Familie',
-  'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app':
+  'appInfo.practiceGratitudeWithTackbokASimpleFreeAndPrivateGratitude':
     'Übe Dankbarkeit mit Tackbok, einer einfachen, kostenlosen und privaten Dankbarkeitstagebuch-App',
-  'Support Tackbok': 'Tackbok unterstützen',
-  "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.":
+  'appInfo.supportTackbok': 'Tackbok unterstützen',
+  'appInfo.tackbokIsFreeToUseAndThatsNotChangingIf':
     'Tackbok ist kostenlos, und das wird sich nicht ändern. Wenn es etwas mehr Dankbarkeit in deinen Tag gebracht hat, kannst du es gerne unterstützen, auch wenn es nichts freizuschalten gibt. Alle bekommen dieselbe App.',
-  'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.':
+  'appInfo.keepingTackbokRunningCurrentlyCostsAboutUs3325Per':
     'Der Betrieb von Tackbok kostet derzeit etwa 33,25 US$ pro Monat, vor Steuern, Gebühren und nutzungsabhängigen Mehrkosten. Wenn Tackbok für dich wertvoll ist, hilft selbst ein kleiner Beitrag, die App für alle kostenlos zu halten.',
-  'Ways to support': 'Möglichkeiten zur Unterstützung',
-  Free: 'Kostenlos',
-  'Small thanks': 'Kleines Dankeschön',
-  'Helps me finish work 10 minutes earlier':
+  'appInfo.waysToSupport': 'Möglichkeiten zur Unterstützung',
+  'appInfo.free': 'Kostenlos',
+  'appInfo.smallThanks': 'Kleines Dankeschön',
+  'appInfo.helpsMeFinishWork10MinutesEarlier':
     'Hilft mir, den Arbeitstag 10 Minuten früher zu beenden',
-  'Heartfelt thanks': 'Herzliches Dankeschön',
-  'Helps pay for hosting and online services':
+  'appInfo.heartfeltThanks': 'Herzliches Dankeschön',
+  'appInfo.helpsPayForHostingAndOnlineServices':
     'Hilft, Hosting und Online-Dienste zu bezahlen',
-  'Big thanks': 'Großes Dankeschön',
-  'Helps test and release Tackbok updates':
+  'appInfo.bigThanks': 'Großes Dankeschön',
+  'appInfo.helpsTestAndReleaseTackbokUpdates':
     'Hilft, Tackbok-Updates zu testen und zu veröffentlichen',
-  'Deepest thanks': 'Allergrößtes Dankeschön',
-  'Helps cover one month of Tackbok’s running costs and ongoing development':
+  'appInfo.deepestThanks': 'Allergrößtes Dankeschön',
+  'appInfo.helpsCoverOneMonthOfTackboksRunningCostsAndOngoing':
     'Hilft, einen Monat der laufenden Kosten und Weiterentwicklung von Tackbok zu decken',
-  Unavailable: 'Nicht verfügbar',
-  'Support options could not be loaded. Please try again.':
+  'appInfo.unavailable': 'Nicht verfügbar',
+  'appInfo.supportOptionsCouldNotBeLoadedPleaseTryAgain':
     'Die Unterstützungsoptionen konnten nicht geladen werden. Bitte versuche es erneut.',
-  'You appear to be offline. Check your connection and try again.':
+  'appInfo.youAppearToBeOfflineCheckYourConnectionAndTry':
     'Du scheinst offline zu sein. Prüfe deine Verbindung und versuche es erneut.',
-  'The purchase could not be completed. Please try again.':
+  'appInfo.thePurchaseCouldNotBeCompletedPleaseTryAgain':
     'Der Kauf konnte nicht abgeschlossen werden. Bitte versuche es erneut.',
-  'Payment successful': 'Zahlung erfolgreich',
-  'Thank you!': 'Danke!',
-  'Your support helps keep Tackbok free and independent. It genuinely means a lot.':
+  'appInfo.paymentSuccessful': 'Zahlung erfolgreich',
+  'appInfo.thankYou': 'Danke!',
+  'appInfo.yourSupportHelpsKeepTackbokFreeAndIndependentItGenuinely':
     'Deine Unterstützung hilft, Tackbok kostenlos und unabhängig zu halten. Das bedeutet uns wirklich viel.',
-  'Thank you for supporting Tackbok. It genuinely means a lot.':
+  'appInfo.thankYouForSupportingTackbokItGenuinelyMeansALot':
     'Danke, dass du Tackbok unterstützt. Das bedeutet uns wirklich viel.',
-  'Your payment is pending. The store will finish it when approval or payment completes.':
+  'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'Deine Zahlung steht aus. Der Store schließt sie ab, sobald die Genehmigung oder Zahlung erfolgt ist.',
-  'Where your support helps': 'Wobei deine Unterstützung hilft',
-  'Cloudflare Workers': 'Cloudflare Workers',
-  'Expo EAS': 'Expo EAS',
-  'Apple Developer membership': 'Apple-Developer-Mitgliedschaft',
-  'tackbok.org domain': 'tackbok.org-Domain',
-  'Google Play registration': 'Google-Play-Registrierung',
-  'Monthly baseline': 'Monatliche Grundkosten',
-  'US$5/month': '5 US$/Monat',
-  'US$19/month': '19 US$/Monat',
-  'US$99/year': '99 US$/Jahr',
-  'US$12/year': '12 US$/Jahr',
-  'US$25 one time': 'einmalig 25 US$',
-  'About US$33.25': 'Etwa 33,25 US$',
-  'Rate Tackbok': 'Tackbok bewerten',
-  'Leave an honest rating in the app store':
+  'appInfo.whereYourSupportHelps': 'Wobei deine Unterstützung hilft',
+  'appInfo.cloudflareWorkers': 'Cloudflare Workers',
+  'appInfo.expoEas': 'Expo EAS',
+  'appInfo.appleDeveloperMembership': 'Apple-Developer-Mitgliedschaft',
+  'appInfo.tackbokOrgDomain': 'tackbok.org-Domain',
+  'appInfo.googlePlayRegistration': 'Google-Play-Registrierung',
+  'appInfo.monthlyBaseline': 'Monatliche Grundkosten',
+  'appInfo.us5Month': '5 US$/Monat',
+  'appInfo.us19Month': '19 US$/Monat',
+  'appInfo.us99Year': '99 US$/Jahr',
+  'appInfo.us12Year': '12 US$/Jahr',
+  'appInfo.us25OneTime': 'einmalig 25 US$',
+  'appInfo.aboutUs3325': 'Etwa 33,25 US$',
+  'appInfo.rateTackbok': 'Tackbok bewerten',
+  'appInfo.leaveAnHonestRatingInTheAppStore':
     'Eine ehrliche Bewertung im App Store hinterlassen',
-  'Unable to open the store': 'Store kann nicht geöffnet werden',
-  'Confirm {tier}': '{tier} bestätigen',
-  'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.':
+  'appInfo.unableToOpenTheStore': 'Store kann nicht geöffnet werden',
+  'appInfo.confirmTier': '{tier} bestätigen',
+  'appInfo.theStoreWillChargePriceForThisVoluntaryOneTime':
     'Der Store berechnet {price} für diese freiwillige, einmalige Unterstützung. Sie schaltet keine Funktionen frei und kann erneut gekauft werden.',
-  'Privacy Policy': 'Datenschutzerklärung',
-  'Read our privacy policy': 'Datenschutzerklärung von Tackbok lesen',
-  'Terms & Conditions': 'Allgemeine Geschäftsbedingungen',
-  'Read our terms and conditions': 'Unsere allgemeinen Geschäftsbedingungen lesen',
-  Analytics: 'Erfassung von Analysedaten',
-  'Collecting anonymized analytics to help diagnose problems':
+  'appInfo.privacyPolicy': 'Datenschutzerklärung',
+  'appInfo.readOurPrivacyPolicy': 'Datenschutzerklärung von Tackbok lesen',
+  'appInfo.termsConditions': 'Allgemeine Geschäftsbedingungen',
+  'appInfo.readOurTermsAndConditions': 'Unsere allgemeinen Geschäftsbedingungen lesen',
+  'appInfo.analytics': 'Erfassung von Analysedaten',
+  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
     'Tackbok erfasst anonymisierte Analysedaten, um Probleme zu erkennen und Trends zu beobachten',
-  'Check for updates': 'Nach Updates suchen',
-  'Checking for updates…': 'Updates werden gesucht …',
-  'Last checked: {time}': 'Zuletzt geprüft: {time}',
-  Never: 'Nie',
-  Restart: 'Neu starten',
-  'Restart to apply': 'Zum Anwenden neu starten',
-  'Update downloaded. Restart to apply it.':
+  'appInfo.checkForUpdates': 'Nach Updates suchen',
+  'appInfo.checkingForUpdates': 'Updates werden gesucht …',
+  'appInfo.lastCheckedTime': 'Zuletzt geprüft: {time}',
+  'appInfo.never': 'Nie',
+  'appInfo.restart': 'Neu starten',
+  'appInfo.restartToApply': 'Zum Anwenden neu starten',
+  'appInfo.updateDownloadedRestartToApplyIt':
     'Update heruntergeladen. Starte die App neu, um es anzuwenden.',
-  'You already have the latest version': 'Du hast bereits die neueste Version',
-  'Unable to update': 'Update nicht möglich',
-  Version: 'Versionsnummer',
+  'appInfo.youAlreadyHaveTheLatestVersion': 'Du hast bereits die neueste Version',
+  'appInfo.unableToUpdate': 'Update nicht möglich',
+  'appInfo.version': 'Versionsnummer',
 
   // Settings - Danger Zone
-  'Danger Zone': 'Gefahrenbereich',
-  'Delete All Data': 'Alle Daten löschen',
-  'Delete all data?': 'Alle Daten löschen?',
-  'Permanently delete all your app data': 'Alle deine App-Daten dauerhaft löschen',
-  'This action cannot be undone. All your app data will be permanently deleted.':
+  'dangerZone.dangerZone': 'Gefahrenbereich',
+  'dangerZone.deleteAllData': 'Alle Daten löschen',
+  'dangerZone.deleteAllData2': 'Alle Daten löschen?',
+  'dangerZone.permanentlyDeleteAllYourAppData': 'Alle deine App-Daten dauerhaft löschen',
+  'dangerZone.thisActionCannotBeUndoneAllYourAppDataWill':
     'Diese Aktion kann nicht rückgängig gemacht werden. Alle deine App-Daten werden dauerhaft gelöscht.',
-  'All data deleted': 'Alle Daten gelöscht',
-  'All data deleted, but some media files could not be removed.':
+  'dangerZone.allDataDeleted': 'Alle Daten gelöscht',
+  'dangerZone.allDataDeletedButSomeMediaFilesCouldNotBe':
     'Alle Daten wurden gelöscht, aber einige Mediendateien konnten nicht entfernt werden.',
-  'Delete failed': 'Löschen fehlgeschlagen',
+  'dangerZone.deleteFailed': 'Löschen fehlgeschlagen',
 
   // Time Picker
-  'Select Time': 'Uhrzeit auswählen',
+  'time.selectTime': 'Uhrzeit auswählen',
 
   // Date Picker
-  Today: 'Heute',
-  Yesterday: 'Gestern',
-  Selected: 'Ausgewählt',
-  'Previous month': 'Vorheriger Monat',
-  'Next month': 'Nächster Monat',
-  'Select month': 'Monat auswählen',
-  'Select year': 'Jahr auswählen',
-  Random: 'Zufällig',
-  'Open a random entry': 'Einen zufälligen Eintrag öffnen',
-  Sun: 'So',
-  Mon: 'Mo',
-  Tue: 'Di',
-  Wed: 'Mi',
-  Thu: 'Do',
-  Fri: 'Fr',
-  Sat: 'Sa',
-  Sunday: 'Sonntag',
-  Monday: 'Montag',
-  Tuesday: 'Dienstag',
-  Wednesday: 'Mittwoch',
-  Thursday: 'Donnerstag',
-  Friday: 'Freitag',
-  Saturday: 'Samstag',
-  January: 'Januar',
-  February: 'Februar',
-  March: 'März',
-  April: 'April',
-  May: 'Mai',
-  June: 'Juni',
-  July: 'Juli',
-  August: 'August',
-  September: 'September',
-  October: 'Oktober',
-  November: 'November',
-  December: 'Dezember',
-  JAN: 'Jan',
-  FEB: 'Feb',
-  MAR: 'Mär',
-  APR: 'Apr',
-  MAY: 'Mai',
-  JUN: 'Jun',
-  JUL: 'Jul',
-  AUG: 'Aug',
-  SEP: 'Sep',
-  OCT: 'Okt',
-  NOV: 'Nov',
-  DEC: 'Dez',
+  'calendar.today': 'Heute',
+  'calendar.yesterday': 'Gestern',
+  'calendar.previousMonth': 'Vorheriger Monat',
+  'calendar.nextMonth': 'Nächster Monat',
+  'calendar.selectMonth': 'Monat auswählen',
+  'calendar.selectYear': 'Jahr auswählen',
+  'calendar.random': 'Zufällig',
+  'calendar.openARandomEntry': 'Einen zufälligen Eintrag öffnen',
+  'calendar.sun': 'So',
+  'calendar.mon': 'Mo',
+  'calendar.tue': 'Di',
+  'calendar.wed': 'Mi',
+  'calendar.thu': 'Do',
+  'calendar.fri': 'Fr',
+  'calendar.sat': 'Sa',
+  'calendar.sunday': 'Sonntag',
+  'calendar.monday': 'Montag',
+  'calendar.tuesday': 'Dienstag',
+  'calendar.wednesday': 'Mittwoch',
+  'calendar.thursday': 'Donnerstag',
+  'calendar.friday': 'Freitag',
+  'calendar.saturday': 'Samstag',
+  'calendar.january': 'Januar',
+  'calendar.february': 'Februar',
+  'calendar.march': 'März',
+  'calendar.april': 'April',
+  'calendar.may': 'Mai',
+  'calendar.june': 'Juni',
+  'calendar.july': 'Juli',
+  'calendar.august': 'August',
+  'calendar.september': 'September',
+  'calendar.october': 'Oktober',
+  'calendar.november': 'November',
+  'calendar.december': 'Dezember',
+  'calendar.jan': 'Jan',
+  'calendar.feb': 'Feb',
+  'calendar.mar': 'Mär',
+  'calendar.apr': 'Apr',
+  'calendar.may2': 'Mai',
+  'calendar.jun': 'Jun',
+  'calendar.jul': 'Jul',
+  'calendar.aug': 'Aug',
+  'calendar.sep': 'Sep',
+  'calendar.oct': 'Okt',
+  'calendar.nov': 'Nov',
+  'calendar.dec': 'Dez',
 
   // Onboarding
-  Skip: 'Überspringen',
-  Continue: 'Weiter',
-  Next: 'Weiter',
-  'Step {current} of {total}': 'Schritt {current} von {total}',
-  'Get started': 'Loslegen',
-  'Already have a journal? Import it': 'Du hast bereits ein Tagebuch? Importiere es',
-  'A private place for your gratitude. Free, offline, yours.':
+  'onboarding.skip': 'Überspringen',
+  'onboarding.continue': 'Weiter',
+  'onboarding.next': 'Weiter',
+  'onboarding.stepCurrentOfTotal': 'Schritt {current} von {total}',
+  'onboarding.getStarted': 'Loslegen',
+  'onboarding.alreadyHaveAJournalImportIt': 'Du hast bereits ein Tagebuch? Importiere es',
+  'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'Ein privater Ort für deine Dankbarkeit. Kostenlos, offline und ganz für dich.',
-  'Import your journal': 'Dein Tagebuch importieren',
-  'Where is your journal coming from?': 'Woher stammt dein Tagebuch?',
-  'Tackbok Backup': 'Tackbok-Sicherung',
-  'Gratitude App': 'Gratitude App',
-  'Presently App': 'Presently App',
-  'What should we call you?': 'Wie dürfen wir dich nennen?',
-  'Your name is only used to greet you inside the app.':
+  'onboarding.importYourJournal': 'Dein Tagebuch importieren',
+  'onboarding.whereIsYourJournalComingFrom': 'Woher stammt dein Tagebuch?',
+  'onboarding.tackbokBackup': 'Tackbok-Sicherung',
+  'onboarding.gratitudeApp': 'Gratitude App',
+  'onboarding.presentlyApp': 'Presently App',
+  'onboarding.whatShouldWeCallYou': 'Wie dürfen wir dich nennen?',
+  'onboarding.yourNameIsOnlyUsedToGreetYouInsideThe':
     'Dein Name wird nur verwendet, um dich in der App zu begrüßen.',
-  'Your name (optional)': 'Dein Name (optional)',
-  'Stays on your device.': 'Bleibt auf deinem Gerät.',
-  'Make it yours': 'Gestalte es nach deinen Wünschen',
-  'Pick a look. You can change everything later in Settings.':
+  'onboarding.yourNameOptional': 'Dein Name (optional)',
+  'onboarding.staysOnYourDevice': 'Bleibt auf deinem Gerät.',
+  'onboarding.makeItYours': 'Gestalte es nach deinen Wünschen',
+  'onboarding.pickALookYouCanChangeEverythingLaterInSettings':
     'Wähle ein Aussehen – du kannst später in den Einstellungen alles ändern.',
-  'A walk in the morning sun': 'Ein Spaziergang in der Morgensonne',
-  'Grateful for quiet streets, warm coffee, and a sky full of color.':
+  'onboarding.aWalkInTheMorningSun': 'Ein Spaziergang in der Morgensonne',
+  'onboarding.gratefulForQuietStreetsWarmCoffeeAndASkyFull':
     'Dankbar für ruhige Straßen, warmen Kaffee und einen farbenfrohen Himmel.',
-  'More themes…': 'Weitere Designs …',
-  'What do you want to be more grateful for?': 'Wofür möchtest du dankbarer sein?',
-  'We’ll suggest writing prompts from the areas you pick.':
+  'onboarding.moreThemes': 'Weitere Designs …',
+  'onboarding.whatDoYouWantToBeMoreGratefulFor': 'Wofür möchtest du dankbarer sein?',
+  'onboarding.wellSuggestWritingPromptsFromTheAreasYouPick':
     'Wir schlagen dir Schreibimpulse aus den ausgewählten Bereichen vor.',
-  'Pick at least {count}': 'Wähle mindestens {count} aus',
-  'Help improve Tackbok?': 'Tackbok verbessern helfen?',
-  'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.':
+  'onboarding.pickAtLeastCount': 'Wähle mindestens {count} aus',
+  'onboarding.helpImproveTackbok': 'Tackbok verbessern helfen?',
+  'onboarding.tackbokIsFreeAndOpenSourceAnonymousStatsHelpUs':
     'Tackbok ist kostenlos und Open Source. Anonyme Statistiken helfen uns, Fehler zu finden und zu erkennen, welche Funktionen wichtig sind.',
-  'Anonymous usage stats only, including which screens and features get used.':
+  'onboarding.anonymousUsageStatsOnlyIncludingWhichScreensAndFeaturesGet':
     'Nur anonyme Nutzungsstatistiken – welche Ansichten und Funktionen verwendet werden.',
-  'Never your journal content, photos, voice memos, or anything you type.':
+  'onboarding.neverYourJournalContentPhotosVoiceMemosOrAnythingYou':
     'Niemals deine Tagebuchinhalte, Fotos, Sprachnotizen oder andere Eingaben.',
-  'Open source. The exact event list is public in the repo.':
+  'onboarding.openSourceTheExactEventListIsPublicInThe':
     'Open Source – die genaue Ereignisliste ist im Repository öffentlich.',
-  'See exactly what we collect': 'Genau ansehen, was wir erfassen',
-  'Share anonymous stats': 'Anonyme Statistiken teilen',
-  'No thanks': 'Nein, danke',
-  'What we collect': 'Was wir erfassen',
-  'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.':
+  'onboarding.seeExactlyWhatWeCollect': 'Genau ansehen, was wir erfassen',
+  'onboarding.shareAnonymousStats': 'Anonyme Statistiken teilen',
+  'onboarding.noThanks': 'Nein, danke',
+  'onboarding.whatWeCollect': 'Was wir erfassen',
+  'onboarding.withYourPermissionTackbokRecordsLimitedAnonymousUsageInformationThis':
     'Mit deiner Zustimmung erfasst Tackbok nur begrenzte, anonyme Nutzungsinformationen. Dazu können besuchte Bildschirme, verwendete Funktionen und der Erfolg optionaler Vorgänge gehören. Deine Tagebuchinhalte oder Eingaben werden niemals erfasst.',
-  'Audit the analytics code on GitHub': 'Analysecode auf GitHub prüfen',
-  'Never collected': 'Wird niemals erfasst',
-  'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.':
+  'onboarding.auditTheAnalyticsCodeOnGithub': 'Analysecode auf GitHub prüfen',
+  'onboarding.neverCollected': 'Wird niemals erfasst',
+  'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
     'Deine Tagebuchtexte, Titel, Fotos, Sprachnotizen, Tags, dein Name, deine E-Mail-Adresse oder andere Eingaben. Keine Werbung, kein Datenverkauf und kein Tracking durch Dritte.',
-  'You’re all set, {name}!': 'Alles ist bereit, {name}!',
-  'You’re all set!': 'Alles ist bereit!',
-  'Two last things you can turn on. Both are optional.':
+  'onboarding.youreAllSetName': 'Alles ist bereit, {name}!',
+  'onboarding.youreAllSet': 'Alles ist bereit!',
+  'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Du kannst noch zwei Dinge aktivieren – beide sind optional.',
-  'Add example entries': 'Beispieleinträge hinzufügen',
-  'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.':
+  'onboarding.addExampleEntries': 'Beispieleinträge hinzufügen',
+  'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'Einige Beispieleinträge zeigen, wie Fotos, Sprachnotizen, Stimmungen und Tags funktionieren. Du kannst sie jederzeit mit einem Tippen entfernen.',
-  'Remind me daily': 'Täglich erinnern',
-  'A gentle nudge to write. Never your journal content.':
+  'onboarding.remindMeDaily': 'Täglich erinnern',
+  'onboarding.aGentleNudgeToWriteNeverYourJournalContent':
     'Ein sanfter Anstoß zum Schreiben – ohne deine Tagebuchinhalte.',
-  'Remind me at {time}': 'Um {time} erinnern',
-  'Setting things up…': 'Alles wird eingerichtet …',
-  'Start journaling': 'Tagebuch starten',
-  'Showing example entries': 'Beispieleinträge werden angezeigt',
-  'Remove all': 'Alle entfernen',
-  'Hide this banner': 'Diesen Hinweis ausblenden',
-  'Example entries removed': 'Beispieleinträge entfernt',
-  'Failed to remove example entries': 'Beispieleinträge konnten nicht entfernt werden',
-  'Add today’s entry here.': 'Füge hier den heutigen Eintrag hinzu.',
-  'Press and hold, then drag to move these buttons along the edge.':
+  'onboarding.remindMeAtTime': 'Um {time} erinnern',
+  'onboarding.settingThingsUp': 'Alles wird eingerichtet …',
+  'onboarding.startJournaling': 'Tagebuch starten',
+  'onboarding.showingExampleEntries': 'Beispieleinträge werden angezeigt',
+  'onboarding.removeAll': 'Alle entfernen',
+  'onboarding.hideThisBanner': 'Diesen Hinweis ausblenden',
+  'onboarding.exampleEntriesRemoved': 'Beispieleinträge entfernt',
+  'onboarding.failedToRemoveExampleEntries':
+    'Beispieleinträge konnten nicht entfernt werden',
+  'onboarding.addTodaysEntryHere': 'Füge hier den heutigen Eintrag hinzu.',
+  'onboarding.pressAndHoldThenDragToMoveTheseButtonsAlong':
     'Halte die Schaltflächen gedrückt und ziehe sie dann am Rand entlang, um sie zu verschieben.',
-  'Tap an entry to view or edit it.':
+  'onboarding.tapAnEntryToViewOrEditIt':
     'Tippe auf einen Eintrag, um ihn anzusehen oder zu bearbeiten.',
-  'Find memories by text or tag.': 'Finde Erinnerungen nach Text oder Tag.',
-  'Replay Onboarding': 'Einführung wiederholen',
-  'Run the welcome setup again': 'Willkommenseinrichtung erneut ausführen',
-  'Replay onboarding?': 'Einführung wiederholen?',
-  'The welcome setup will start again. Your journal entries and settings are kept.':
+  'onboarding.findMemoriesByTextOrTag': 'Finde Erinnerungen nach Text oder Tag.',
+  'onboarding.replayOnboarding': 'Einführung wiederholen',
+  'onboarding.runTheWelcomeSetupAgain': 'Willkommenseinrichtung erneut ausführen',
+  'onboarding.replayOnboarding2': 'Einführung wiederholen?',
+  'onboarding.theWelcomeSetupWillStartAgainYourJournalEntriesAnd':
     'Die Willkommenseinrichtung wird erneut gestartet. Deine Tagebucheinträge und Einstellungen bleiben erhalten.',
-  Replay: 'Wiederholen',
+  'onboarding.replay': 'Wiederholen',
 
   // Onboarding sample entries (seeded content)
   sample_tag_family: 'Familie',
@@ -712,231 +709,291 @@ export const de: Translations = {
     'Dieser Eintrag beantwortet einen der Schreibimpulse und enthält zwei Tags. Nutze die Suche oben und filtere nach Tags, um ihn wiederzufinden.',
 
   // Insights
-  Insights: 'Einblicke',
-  Overview: 'Überblick',
-  'Gratitude score': 'Dankbarkeits-Score',
-  'Current streak': 'Aktuelle Serie',
-  'Longest streak': 'Längste Serie',
-  'Days journaled': 'Tage mit Einträgen',
-  Consistency: 'Beständigkeit',
-  Entries: 'Einträge',
-  Less: 'Weniger',
-  More: 'Mehr',
-  'Your happiest day is {weekday}': 'Dein glücklichster Tag ist {weekday}',
-  'Mood over time': 'Stimmung im Zeitverlauf',
-  'Writing habits': 'Schreibgewohnheiten',
-  Morning: 'Morgens',
-  Afternoon: 'Nachmittags',
-  Evening: 'Abends',
-  Night: 'Nachts',
-  "You're a morning writer": 'Du schreibst am liebsten morgens',
-  "You're an afternoon writer": 'Du schreibst am liebsten nachmittags',
-  "You're an evening writer": 'Du schreibst am liebsten abends',
-  "You're a night writer": 'Du schreibst am liebsten nachts',
-  'Entries per month': 'Einträge pro Monat',
-  'Top tags': 'Top-Tags',
-  Totals: 'Gesamt',
-  Words: 'Wörter',
-  Characters: 'Zeichen',
-  Photos: 'Fotos',
-  'Voice memos': 'Sprachnotizen',
-  'Your memories': 'Deine Erinnerungen',
-  'On this day': 'An diesem Tag',
-  'One year ago today': 'Heute vor einem Jahr',
-  'One month ago today': 'Heute vor einem Monat',
-  '{count} years ago today': 'Heute vor {count} Jahren',
-  'A moment from this day': 'Ein Moment dieses Tages',
-  'No insights yet': 'Noch keine Einblicke',
-  'Write a few entries and your stats will show up here.':
+  'insights.insights': 'Einblicke',
+  'insights.overview': 'Überblick',
+  'insights.gratitudeScore': 'Dankbarkeits-Score',
+  'insights.currentStreak': 'Aktuelle Serie',
+  'insights.longestStreak': 'Längste Serie',
+  'insights.daysJournaled': 'Tage mit Einträgen',
+  'insights.consistency': 'Beständigkeit',
+  'insights.entries': 'Einträge',
+  'insights.less': 'Weniger',
+  'insights.more': 'Mehr',
+  'insights.yourHappiestDayIsWeekday': 'Dein glücklichster Tag ist {weekday}',
+  'insights.moodOverTime': 'Stimmung im Zeitverlauf',
+  'insights.writingHabits': 'Schreibgewohnheiten',
+  'insights.morning': 'Morgens',
+  'insights.afternoon': 'Nachmittags',
+  'insights.evening': 'Abends',
+  'insights.night': 'Nachts',
+  'insights.youreAMorningWriter': 'Du schreibst am liebsten morgens',
+  'insights.youreAnAfternoonWriter': 'Du schreibst am liebsten nachmittags',
+  'insights.youreAnEveningWriter': 'Du schreibst am liebsten abends',
+  'insights.youreANightWriter': 'Du schreibst am liebsten nachts',
+  'insights.entriesPerMonth': 'Einträge pro Monat',
+  'insights.topTags': 'Top-Tags',
+  'insights.totals': 'Gesamt',
+  'insights.words': 'Wörter',
+  'insights.characters': 'Zeichen',
+  'insights.photos': 'Fotos',
+  'insights.voiceMemos': 'Sprachnotizen',
+  'insights.yourMemories': 'Deine Erinnerungen',
+  'insights.onThisDay': 'An diesem Tag',
+  'insights.oneYearAgoToday': 'Heute vor einem Jahr',
+  'insights.oneMonthAgoToday': 'Heute vor einem Monat',
+  'insights.countYearsAgoToday': 'Heute vor {count} Jahren',
+  'insights.aMomentFromThisDay': 'Ein Moment dieses Tages',
+  'insights.noInsightsYet': 'Noch keine Einblicke',
+  'insights.writeAFewEntriesAndYourStatsWillShowUp':
     'Schreibe ein paar Einträge und deine Statistiken erscheinen hier.',
 
   // Teilen und Erfolge
-  'Share your gratitude': 'Teile deine Dankbarkeit',
-  'I was grateful for': 'Ich war dankbar für',
-  'Share image': 'Bild teilen',
-  'Share entry': 'Eintrag teilen',
-  'Include mood': 'Stimmung einbeziehen',
-  'Mood is hidden unless you include it':
+  'sharing.shareYourGratitude': 'Teile deine Dankbarkeit',
+  'sharing.iWasGratefulFor': 'Ich war dankbar für',
+  'sharing.shareImage': 'Bild teilen',
+  'sharing.shareEntry': 'Eintrag teilen',
+  'sharing.includeMood': 'Stimmung einbeziehen',
+  'sharing.moodIsHiddenUnlessYouIncludeIt':
     'Die Stimmung bleibt verborgen, wenn du sie nicht einbeziehst',
-  'Include photos': 'Fotos einbeziehen',
-  'Up to the first five photos will be shared':
+  'sharing.includePhotos': 'Fotos einbeziehen',
+  'sharing.upToTheFirstFivePhotosWillBeShared':
     'Bis zu den ersten fünf Fotos werden geteilt',
-  'Choose a style': 'Stil auswählen',
-  'Sharing is not available on this device':
+  'sharing.chooseAStyle': 'Stil auswählen',
+  'sharing.sharingIsNotAvailableOnThisDevice':
     'Teilen ist auf diesem Gerät nicht verfügbar',
-  'Could not share image. Please try again.':
+  'sharing.couldNotShareImagePleaseTryAgain':
     'Das Bild konnte nicht geteilt werden. Bitte versuche es erneut.',
-  '{theme} theme': 'Design {theme}',
-  '{theme} theme, selected': 'Design {theme}, ausgewählt',
-  'Day one complete!': 'Tag eins geschafft!',
-  'A beautiful beginning. Keep noticing the good.':
+  'sharing.themeTheme': 'Design {theme}',
+  'sharing.themeThemeSelected': 'Design {theme}, ausgewählt',
+  'sharing.dayOneComplete': 'Tag eins geschafft!',
+  'sharing.aBeautifulBeginningKeepNoticingTheGood':
     'Ein schöner Anfang. Nimm weiterhin das Gute wahr.',
-  '{count} days of gratitude!': '{count} Tage Dankbarkeit!',
-  'Congratulations on making gratitude part of your journey.':
+  'sharing.countDaysOfGratitude': '{count} Tage Dankbarkeit!',
+  'sharing.congratulationsOnMakingGratitudePartOfYourJourney':
     'Glückwunsch, dass Dankbarkeit Teil deines Weges ist.',
-  'Share achievement': 'Erfolg teilen',
-  'Open {count} day achievement': 'Erfolg für {count} Tage öffnen',
+  'sharing.shareAchievement': 'Erfolg teilen',
+  'sharing.openCountDayAchievement': 'Erfolg für {count} Tage öffnen',
 
   // Date Format Patterns (placeholders: {weekday}, {month}, {day}, {year})
-  'dateFormat.short': '{day}. {month} {year}',
-  'dateFormat.full': '{weekday}, {day}. {month} {year}',
   'dateFormat.timeLabel': '{weekday} um {time}',
 
   // Cloud Backup & Sync
-  'Attention needed': 'Aktion erforderlich',
-  'Back up and sync your journal with your own Google Drive. No Tackbok account is created.': 'Sichere und synchronisiere dein Tagebuch mit deinem eigenen Google Drive. Es wird kein Tackbok-Konto erstellt.',
-  'Backup from {date}': 'Sicherung vom {date}',
-  'Before you connect': 'Vor dem Verbinden',
-  'Checking Google Drive for changes': 'Google Drive wird auf Änderungen geprüft',
-  'Choose a backup to merge with this journal. Both sides are preserved.': 'Wähle eine Sicherung, die mit diesem Tagebuch zusammengeführt wird. Beide Seiten bleiben erhalten.',
-  'Choose a backup to restore on this device.': 'Wähle eine Sicherung zur Wiederherstellung auf diesem Gerät.',
-  'Choose which copies of your journal to remove.': 'Wähle aus, welche Kopien deines Tagebuchs entfernt werden sollen.',
-  'Cloud Backup & Sync': 'Cloud-Sicherung & Synchronisierung',
-  'Cloud backup connected': 'Cloud-Sicherung verbunden',
-  'Cloud backup could not be updated': 'Cloud-Sicherung konnte nicht aktualisiert werden',
-  'Cloud backup deleted': 'Cloud-Sicherung gelöscht',
-  'Cloud backup deletion received': 'Löschung der Cloud-Sicherung empfangen',
-  'Cloud backup {number}': 'Cloud-Sicherung {number}',
-  'Backups are encrypted in transit and at rest by Google Drive, but are not end-to-end encrypted.': 'Backups werden bei der Übertragung und im Ruhezustand von Google Drive verschlüsselt, sind aber nicht Ende-zu-Ende verschlüsselt.',
-  'Cloud restore started': 'Cloud-Wiederherstellung gestartet',
-  'Cloud sync: attention needed': 'Cloud-Synchronisierung: Aktion erforderlich',
-  'Cloud sync: changes safely queued': 'Cloud-Synchronisierung: Änderungen sicher vorgemerkt',
-  'Cloud sync: paused': 'Cloud-Synchronisierung: pausiert',
-  'Cloud sync: syncing': 'Cloud-Synchronisierung: läuft',
-  'Cloud sync: up to date': 'Cloud-Synchronisierung: aktuell',
-  'Connect Google Drive': 'Google Drive verbinden',
-  'Connecting…': 'Verbindung wird hergestellt…',
-  'Create cloud backup': 'Cloud-Sicherung erstellen',
-  'Delete cloud and local journal data': 'Cloud- und lokale Tagebuchdaten löschen',
-  'Delete cloud backup': 'Cloud-Sicherung löschen',
-  'Delete cloud backup?': 'Cloud-Sicherung löschen?',
-  'Delete journal everywhere': 'Tagebuch überall löschen',
-  'Delete journal everywhere?': 'Tagebuch überall löschen?',
-  'Delete or reset data': 'Daten löschen oder zurücksetzen',
-  'Deleting journal everywhere…': 'Tagebuch wird überall gelöscht…',
-  'Removing the cloud backup and journal data. Keep Tackbok open.':
+  'cloud.attentionNeeded': 'Aktion erforderlich',
+  'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
+    'Sichere und synchronisiere dein Tagebuch mit deinem eigenen Google Drive. Es wird kein Tackbok-Konto erstellt.',
+  'cloud.backupFromDate': 'Sicherung vom {date}',
+  'cloud.beforeYouConnect': 'Vor dem Verbinden',
+  'cloud.checkingGoogleDriveForChanges': 'Google Drive wird auf Änderungen geprüft',
+  'cloud.chooseABackupToMergeWithThisJournalBothSides':
+    'Wähle eine Sicherung, die mit diesem Tagebuch zusammengeführt wird. Beide Seiten bleiben erhalten.',
+  'cloud.chooseABackupToRestoreOnThisDevice':
+    'Wähle eine Sicherung zur Wiederherstellung auf diesem Gerät.',
+  'cloud.chooseWhichCopiesOfYourJournalToRemove':
+    'Wähle aus, welche Kopien deines Tagebuchs entfernt werden sollen.',
+  'cloud.cloudBackupSync': 'Cloud-Sicherung & Synchronisierung',
+  'cloud.cloudBackupConnected': 'Cloud-Sicherung verbunden',
+  'cloud.cloudBackupCouldNotBeUpdated':
+    'Cloud-Sicherung konnte nicht aktualisiert werden',
+  'cloud.cloudBackupDeleted': 'Cloud-Sicherung gelöscht',
+  'cloud.cloudBackupDeletionReceived': 'Löschung der Cloud-Sicherung empfangen',
+  'cloud.cloudBackupNumber': 'Cloud-Sicherung {number}',
+  'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
+    'Backups werden bei der Übertragung und im Ruhezustand von Google Drive verschlüsselt, sind aber nicht Ende-zu-Ende verschlüsselt.',
+  'cloud.cloudRestoreStarted': 'Cloud-Wiederherstellung gestartet',
+  'cloud.cloudSyncAttentionNeeded': 'Cloud-Synchronisierung: Aktion erforderlich',
+  'cloud.cloudSyncChangesSafelyQueued':
+    'Cloud-Synchronisierung: Änderungen sicher vorgemerkt',
+  'cloud.cloudSyncPaused': 'Cloud-Synchronisierung: pausiert',
+  'cloud.cloudSyncSyncing': 'Cloud-Synchronisierung: läuft',
+  'cloud.cloudSyncUpToDate': 'Cloud-Synchronisierung: aktuell',
+  'cloud.connectGoogleDrive': 'Google Drive verbinden',
+  'cloud.connecting': 'Verbindung wird hergestellt…',
+  'cloud.createCloudBackup': 'Cloud-Sicherung erstellen',
+  'cloud.deleteCloudAndLocalJournalData': 'Cloud- und lokale Tagebuchdaten löschen',
+  'cloud.deleteCloudBackup': 'Cloud-Sicherung löschen',
+  'cloud.deleteCloudBackup2': 'Cloud-Sicherung löschen?',
+  'cloud.deleteJournalEverywhere': 'Tagebuch überall löschen',
+  'cloud.deleteJournalEverywhere2': 'Tagebuch überall löschen?',
+  'cloud.deleteOrResetData': 'Daten löschen oder zurücksetzen',
+  'cloud.deletingJournalEverywhere': 'Tagebuch wird überall gelöscht…',
+  'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
     'Cloud-Sicherung und Tagebuchdaten werden gelöscht. Lass Tackbok geöffnet.',
-  Disconnect: 'Trennen',
-  'Disconnect {provider}': '{provider} trennen',
-  'Disconnect {provider} from this device?': '{provider} von diesem Gerät trennen?',
-  'Disconnect, then delete local journal data only': 'Trennen und dann nur lokale Tagebuchdaten löschen',
-  'Edits remain safely queued on this device.': 'Änderungen bleiben auf diesem Gerät sicher vorgemerkt.',
-  Entry: 'Eintrag',
-  'Google Drive': 'Google Drive',
-  'Google Drive access is required. Try again and select the Drive access checkbox.': 'Google-Drive-Zugriff ist erforderlich. Versuche es erneut und wähle das Kontrollkästchen für den Drive-Zugriff aus.',
-  'Google Drive connected': 'Google Drive verbunden',
-  'Google Drive connection was not completed': 'Google-Drive-Verbindung wurde nicht abgeschlossen',
-  'Google Drive could not be reached. Your changes remain safely queued.': 'Google Drive konnte nicht erreicht werden. Deine Änderungen bleiben sicher in der Warteschlange.',
-  'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.': 'Fotos und Sprachnotizen warten auf WLAN. Deine Änderungen bleiben sicher in der Warteschlange.',
-  'Google Drive disconnected on this device': 'Google Drive auf diesem Gerät getrennt',
-  'Google Drive is busy. Try again shortly.': 'Google Drive ist ausgelastet. Versuche es gleich noch einmal.',
-  'Google Drive needs to be reconnected.': 'Google Drive muss erneut verbunden werden.',
-  'Google Drive reconnected': 'Google Drive erneut verbunden',
-  'Google Drive storage is full.': 'Der Google-Drive-Speicher ist voll.',
-  'Google Drive — {status}': 'Google Drive — {status}',
-  'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.': 'Wenn Google ein Kontrollkästchen für den Drive-Zugriff anzeigt, wähle es aus. Ohne diese Berechtigung kann das Backup nicht verbunden werden.',
-  'Journal deletion received': 'Tagebuchlöschung empfangen',
-  'Journal text still syncs on mobile data.': 'Tagebuchtext wird weiterhin über mobile Daten synchronisiert.',
-  'Keep local data and the cloud copy': 'Lokale Daten und Cloud-Kopie behalten',
-  'Keep local journal data': 'Lokale Tagebuchdaten behalten',
-  'Keep the cloud copy and other devices': 'Cloud-Kopie und andere Geräte behalten',
-  'Last successful sync: {date}': 'Letzte erfolgreiche Synchronisierung: {date}',
-  'Local data and the cloud backup will both remain. Other devices stay connected.': 'Lokale Daten und die Cloud-Sicherung bleiben erhalten. Andere Geräte bleiben verbunden.',
-  'Mark as reviewed': 'Als geprüft markieren',
-  'Merging changes and updating Google Drive':
+  'cloud.disconnect': 'Trennen',
+  'cloud.disconnectProvider': '{provider} trennen',
+  'cloud.disconnectProviderFromThisDevice': '{provider} von diesem Gerät trennen?',
+  'cloud.disconnectThenDeleteLocalJournalDataOnly':
+    'Trennen und dann nur lokale Tagebuchdaten löschen',
+  'cloud.editsRemainSafelyQueuedOnThisDevice':
+    'Änderungen bleiben auf diesem Gerät sicher vorgemerkt.',
+  'cloud.entry': 'Eintrag',
+  'cloud.googleDrive': 'Google Drive',
+  'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
+    'Google-Drive-Zugriff ist erforderlich. Versuche es erneut und wähle das Kontrollkästchen für den Drive-Zugriff aus.',
+  'cloud.googleDriveConnected': 'Google Drive verbunden',
+  'cloud.googleDriveConnectionWasNotCompleted':
+    'Google-Drive-Verbindung wurde nicht abgeschlossen',
+  'cloud.googleDriveCouldNotBeReachedYourChangesRemainSafely':
+    'Google Drive konnte nicht erreicht werden. Deine Änderungen bleiben sicher in der Warteschlange.',
+  'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
+    'Fotos und Sprachnotizen warten auf WLAN. Deine Änderungen bleiben sicher in der Warteschlange.',
+  'cloud.googleDriveDisconnectedOnThisDevice': 'Google Drive auf diesem Gerät getrennt',
+  'cloud.googleDriveIsBusyTryAgainShortly':
+    'Google Drive ist ausgelastet. Versuche es gleich noch einmal.',
+  'cloud.googleDriveNeedsToBeReconnected': 'Google Drive muss erneut verbunden werden.',
+  'cloud.googleDriveReconnected': 'Google Drive erneut verbunden',
+  'cloud.googleDriveStorageIsFull': 'Der Google-Drive-Speicher ist voll.',
+  'cloud.googleDriveStatus': 'Google Drive — {status}',
+  'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
+    'Wenn Google ein Kontrollkästchen für den Drive-Zugriff anzeigt, wähle es aus. Ohne diese Berechtigung kann das Backup nicht verbunden werden.',
+  'cloud.journalDeletionReceived': 'Tagebuchlöschung empfangen',
+  'cloud.journalTextStillSyncsOnMobileData':
+    'Tagebuchtext wird weiterhin über mobile Daten synchronisiert.',
+  'cloud.keepLocalDataAndTheCloudCopy': 'Lokale Daten und Cloud-Kopie behalten',
+  'cloud.keepLocalJournalData': 'Lokale Tagebuchdaten behalten',
+  'cloud.keepTheCloudCopyAndOtherDevices': 'Cloud-Kopie und andere Geräte behalten',
+  'cloud.lastSuccessfulSyncDate': 'Letzte erfolgreiche Synchronisierung: {date}',
+  'cloud.localDataAndTheCloudBackupWillBothRemainOther':
+    'Lokale Daten und die Cloud-Sicherung bleiben erhalten. Andere Geräte bleiben verbunden.',
+  'cloud.markAsReviewed': 'Als geprüft markieren',
+  'cloud.mergingChangesAndUpdatingGoogleDrive':
     'Änderungen werden zusammengeführt und Google Drive wird aktualisiert',
-  'No Tackbok backup found in this Google account': 'Keine Tackbok-Sicherung in diesem Google-Konto gefunden',
-  'No internet connection. Your changes remain safely queued.': 'Keine Internetverbindung. Deine Änderungen bleiben sicher in der Warteschlange.',
-  'No existing Tackbok backup was found. Create one for this journal.': 'Keine bestehende Tackbok-Sicherung gefunden. Erstelle eine für dieses Tagebuch.',
-  'Optional cloud backup': 'Optionale Cloud-Sicherung',
-  'Pause sync': 'Synchronisierung pausieren',
-  'Preparing journal changes': 'Journaländerungen werden vorbereitet',
-  'Preparing restored journal data': 'Wiederhergestellte Journaldaten werden vorbereitet',
-  Profile: 'Profil',
-  Prompt: 'Schreibimpuls',
-  'Reconnect Google Drive': 'Google Drive erneut verbinden',
-  'Recovered conflicts': 'Wiederhergestellte Konflikte',
-  'Recovered conflicts marked as reviewed': 'Wiederhergestellte Konflikte als geprüft markiert',
-  'Recovered {type} conflict — {count} preserved alternatives': '{type}-Konflikt wiederhergestellt — {count} Alternativen erhalten',
-  'Reset this device only': 'Nur dieses Gerät zurücksetzen',
-  'Reset this device only?': 'Nur dieses Gerät zurücksetzen?',
-  'Merge': 'Zusammenführen',
-  'Restore cloud backup': 'Cloud-Sicherung wiederherstellen',
-  'Restore from your cloud backup': 'Aus deiner Cloud-Sicherung wiederherstellen',
-  'Restoring…': 'Wiederherstellung läuft…',
-  'Safely queued': 'Sicher vorgemerkt',
-  'Saving synced journal data on this device':
+  'cloud.noTackbokBackupFoundInThisGoogleAccount':
+    'Keine Tackbok-Sicherung in diesem Google-Konto gefunden',
+  'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
+    'Keine Internetverbindung. Deine Änderungen bleiben sicher in der Warteschlange.',
+  'cloud.noExistingTackbokBackupWasFoundCreateOneForThis':
+    'Keine bestehende Tackbok-Sicherung gefunden. Erstelle eine für dieses Tagebuch.',
+  'cloud.optionalCloudBackup': 'Optionale Cloud-Sicherung',
+  'cloud.pauseSync': 'Synchronisierung pausieren',
+  'cloud.preparingJournalChanges': 'Journaländerungen werden vorbereitet',
+  'cloud.preparingRestoredJournalData':
+    'Wiederhergestellte Journaldaten werden vorbereitet',
+  'cloud.profile': 'Profil',
+  'cloud.prompt': 'Schreibimpuls',
+  'cloud.reconnectGoogleDrive': 'Google Drive erneut verbinden',
+  'cloud.recoveredConflicts': 'Wiederhergestellte Konflikte',
+  'cloud.recoveredConflictsMarkedAsReviewed':
+    'Wiederhergestellte Konflikte als geprüft markiert',
+  'cloud.recoveredTypeConflictCountPreservedAlternatives':
+    '{type}-Konflikt wiederhergestellt — {count} Alternativen erhalten',
+  'cloud.resetThisDeviceOnly': 'Nur dieses Gerät zurücksetzen',
+  'cloud.resetThisDeviceOnly2': 'Nur dieses Gerät zurücksetzen?',
+  'cloud.merge': 'Zusammenführen',
+  'cloud.restoreCloudBackup': 'Cloud-Sicherung wiederherstellen',
+  'cloud.restoreFromYourCloudBackup': 'Aus deiner Cloud-Sicherung wiederherstellen',
+  'cloud.restoring': 'Wiederherstellung läuft…',
+  'cloud.safelyQueued': 'Sicher vorgemerkt',
+  'cloud.savingSyncedJournalDataOnThisDevice':
     'Synchronisierte Journaldaten werden auf diesem Gerät gespeichert',
-  'Setting up cloud sync…': 'Cloud-Synchronisierung wird eingerichtet…',
-  'Step {current} of {total} in this batch':
+  'cloud.settingUpCloudSync': 'Cloud-Synchronisierung wird eingerichtet…',
+  'cloud.stepCurrentOfTotalInThisBatch':
     'Schritt {current} von {total} in diesem Durchlauf',
-  'Sync completed': 'Synchronisierung abgeschlossen',
-  'Sync now': 'Jetzt synchronisieren',
-  'Sync paused': 'Synchronisierung pausiert',
-  'Sync resumed': 'Synchronisierung fortgesetzt',
-  'Sync runs in safe batches. You can keep using Tackbok.':
+  'cloud.syncCompleted': 'Synchronisierung abgeschlossen',
+  'cloud.syncNow': 'Jetzt synchronisieren',
+  'cloud.syncPaused': 'Synchronisierung pausiert',
+  'cloud.syncResumed': 'Synchronisierung fortgesetzt',
+  'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
     'Die Synchronisierung erfolgt in sicheren Durchläufen. Du kannst Tackbok weiterverwenden.',
-  'Sync media on Wi-Fi only': 'Medien nur über WLAN synchronisieren',
-  'Syncing…': 'Synchronisierung läuft…',
-  'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.': 'Die Cloud-Kopie und das Tagebuch dieses Geräts werden dauerhaft gelöscht. Andere Geräte löschen ihr lokales Tagebuch bei der Synchronisierung.',
-  'The cloud copy will be permanently deleted after verification. Local journal data remains.': 'Die Cloud-Kopie wird nach der Prüfung dauerhaft gelöscht. Lokale Tagebuchdaten bleiben erhalten.',
-  'This cloud backup was deleted. Local journal data remains on this device.': 'Diese Cloud-Sicherung wurde gelöscht. Lokale Tagebuchdaten bleiben auf diesem Gerät.',
-  'This cloud backup contains data Tackbok cannot read.': 'Diese Cloud-Sicherung enthält Daten, die Tackbok nicht lesen kann.',
-  'Finish deleting this journal?': 'Löschen dieses Tagebuchs abschließen?',
-  'Cloud deletion is already recorded. Erase the remaining journal data from this device.': 'Die Cloud-Löschung wurde bereits gespeichert. Lösche die verbleibenden Tagebuchdaten von diesem Gerät.',
-  'Finish deletion': 'Löschen abschließen',
-  'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.': 'Deine Google-E-Mail-Adresse wird sicher auf diesem Gerät gespeichert, um das verbundene Konto zu identifizieren, und beim Trennen gelöscht. Sie wird niemals in Backups, Protokolle, Diagnosedaten oder Analysen aufgenommen.',
-  'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.': 'Dieses Gerät wird zuerst getrennt und löscht dann sein lokales Tagebuch. Cloud-Sicherung und andere Geräte bleiben erhalten.',
-  'This device was reset': 'Dieses Gerät wurde zurückgesetzt',
-  'This journal was deleted everywhere. This device is disconnected.': 'Dieses Tagebuch wurde überall gelöscht. Dieses Gerät ist getrennt.',
-  'Up to date': 'Aktuell',
-  'Verify backup health': 'Sicherungsstatus prüfen',
-  'Waiting for the first successful sync': 'Warten auf die erste erfolgreiche Synchronisierung',
-  'You can leave this screen; syncing resumes when Tackbok is active.': 'Du kannst diesen Bildschirm verlassen; die Synchronisierung wird fortgesetzt, wenn Tackbok aktiv ist.',
-  'Your journal stays on your device. Cloud backup is optional.': 'Dein Tagebuch bleibt auf deinem Gerät — mit optionaler Cloud-Sicherung.',
-  '{count} changes safely queued': '{count} Änderungen sicher vorgemerkt',
-  '{count} changes remaining': '{count} Änderungen verbleiben',
-  'Google Drive authorization needs attention.': 'Die Google-Drive-Autorisierung erfordert Aufmerksamkeit.',
-  'This backup belongs to a different connected Google account.': 'Diese Sicherung gehört zu einem anderen verbundenen Google-Konto.',
-  'Google Drive permission was not fully granted.': 'Die Google-Drive-Berechtigung wurde nicht vollständig erteilt.',
-  'The connected cloud backup does not match this journal.': 'Die verbundene Cloud-Sicherung passt nicht zu diesem Tagebuch.',
-  'This backup was created by a newer Tackbok version.': 'Diese Sicherung wurde mit einer neueren Tackbok-Version erstellt.',
-  'A cloud snapshot failed its safety checks.': 'Ein Cloud-Snapshot hat die Sicherheitsprüfungen nicht bestanden.',
-  'A device backup points to a missing snapshot.': 'Eine Gerätesicherung verweist auf einen fehlenden Snapshot.',
-  'Two different backups claim the same device version.': 'Zwei verschiedene Sicherungen beanspruchen dieselbe Geräteversion.',
-  'Too many independent device backups need consolidation.': 'Zu viele unabhängige Gerätesicherungen müssen zusammengeführt werden.',
-  'A recovered item conflicts with an existing stable identifier.': 'Ein wiederhergestelltes Element kollidiert mit einer vorhandenen stabilen Kennung.',
-  'Tackbok could not safely stage backup data on this device.': 'Tackbok konnte Sicherungsdaten auf diesem Gerät nicht sicher vorbereiten.',
-  'Google Drive does not have enough free storage.': 'Google Drive hat nicht genügend freien Speicherplatz.',
-  'Google Drive denied access to the app backup folder.': 'Google Drive hat den Zugriff auf den Sicherungsordner der App verweigert.',
-  'A referenced photo or voice memo is unavailable.': 'Ein referenziertes Foto oder eine Sprachnotiz ist nicht verfügbar.',
-  'A local photo or voice memo could not be verified.': 'Ein lokales Foto oder eine Sprachnotiz konnte nicht überprüft werden.',
-  'Your journal is not ready for cloud sync yet.': 'Dein Tagebuch ist noch nicht für die Cloud-Synchronisierung bereit.',
-  'This cloud backup was deleted from another device.': 'Diese Cloud-Sicherung wurde von einem anderen Gerät gelöscht.',
-  'This journal was deleted everywhere from another device.': 'Dieses Tagebuch wurde von einem anderen Gerät überall gelöscht.',
-  'Cloud deletion stopped before every backup object was removed.': 'Die Cloud-Löschung wurde beendet, bevor alle Sicherungsobjekte entfernt waren.',
-  'Backup cleanup was stopped to protect a current snapshot.': 'Die Sicherungsbereinigung wurde zum Schutz eines aktuellen Snapshots gestoppt.',
-  'Choose the connected account': 'Verbundenes Konto auswählen',
-  'Choose a Google account to reconnect': 'Google-Konto zum erneuten Verbinden auswählen',
-  'Finish connection': 'Verbindung abschließen',
-  'Reconnect to the correct backup': 'Mit der richtigen Sicherung verbinden',
-  'Update Tackbok': 'Tackbok aktualisieren',
-  'Retry and verify backup': 'Erneut versuchen und Sicherung prüfen',
-  'Repair from verified backup': 'Aus geprüfter Sicherung reparieren',
-  'Inspect and repair backup': 'Sicherung prüfen und reparieren',
-  'Consolidate backups': 'Sicherungen zusammenführen',
-  'Export journal and repair backup': 'Tagebuch exportieren und Sicherung reparieren',
-  'Free device storage and retry': 'Gerätespeicher freigeben und erneut versuchen',
-  'Manage Google Drive storage': 'Google-Drive-Speicher verwalten',
-  'Retry missing media': 'Fehlende Medien erneut versuchen',
-  'Locate or retry attachment': 'Anhang suchen oder erneut versuchen',
-  'Retry journal preparation': 'Tagebuchvorbereitung erneut versuchen',
-  'Acknowledge and disconnect': 'Bestätigen und trennen',
-  'Review deletion and erase this device': 'Löschung prüfen und dieses Gerät löschen',
-  'Resume deletion': 'Löschung fortsetzen',
-  'Cloud deletion completed': 'Cloud-Löschung abgeschlossen',
-  'Export or repair the affected journal data, then return and retry.': 'Exportiere oder repariere die betroffenen Tagebuchdaten und versuche es danach erneut.',
-  'Cloud backup retry completed': 'Erneuter Sicherungsversuch abgeschlossen',
-  "Cloud sync could not finish. Your changes remain safely queued.": "Die Cloud-Synchronisierung konnte nicht abgeschlossen werden. Deine Änderungen bleiben sicher vorgemerkt.",
-  "Google Drive rejected a backup request. Update Tackbok and retry.": "Google Drive hat eine Sicherungsanfrage abgelehnt. Aktualisiere Tackbok und versuche es erneut.",
+  'cloud.syncMediaOnWiFiOnly': 'Medien nur über WLAN synchronisieren',
+  'cloud.syncing': 'Synchronisierung läuft…',
+  'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
+    'Die Cloud-Kopie und das Tagebuch dieses Geräts werden dauerhaft gelöscht. Andere Geräte löschen ihr lokales Tagebuch bei der Synchronisierung.',
+  'cloud.theCloudCopyWillBePermanentlyDeletedAfterVerificationLocal':
+    'Die Cloud-Kopie wird nach der Prüfung dauerhaft gelöscht. Lokale Tagebuchdaten bleiben erhalten.',
+  'cloud.thisCloudBackupWasDeletedLocalJournalDataRemainsOn':
+    'Diese Cloud-Sicherung wurde gelöscht. Lokale Tagebuchdaten bleiben auf diesem Gerät.',
+  'cloud.thisCloudBackupContainsDataTackbokCannotRead':
+    'Diese Cloud-Sicherung enthält Daten, die Tackbok nicht lesen kann.',
+  'cloud.finishDeletingThisJournal': 'Löschen dieses Tagebuchs abschließen?',
+  'cloud.cloudDeletionIsAlreadyRecordedEraseTheRemainingJournalData':
+    'Die Cloud-Löschung wurde bereits gespeichert. Lösche die verbleibenden Tagebuchdaten von diesem Gerät.',
+  'cloud.finishDeletion': 'Löschen abschließen',
+  'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
+    'Deine Google-E-Mail-Adresse wird sicher auf diesem Gerät gespeichert, um das verbundene Konto zu identifizieren, und beim Trennen gelöscht. Sie wird niemals in Backups, Protokolle, Diagnosedaten oder Analysen aufgenommen.',
+  'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
+    'Dieses Gerät wird zuerst getrennt und löscht dann sein lokales Tagebuch. Cloud-Sicherung und andere Geräte bleiben erhalten.',
+  'cloud.thisDeviceWasReset': 'Dieses Gerät wurde zurückgesetzt',
+  'cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected':
+    'Dieses Tagebuch wurde überall gelöscht. Dieses Gerät ist getrennt.',
+  'cloud.upToDate': 'Aktuell',
+  'cloud.verifyBackupHealth': 'Sicherungsstatus prüfen',
+  'cloud.waitingForTheFirstSuccessfulSync':
+    'Warten auf die erste erfolgreiche Synchronisierung',
+  'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
+    'Du kannst diesen Bildschirm verlassen; die Synchronisierung wird fortgesetzt, wenn Tackbok aktiv ist.',
+  'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
+    'Dein Tagebuch bleibt auf deinem Gerät — mit optionaler Cloud-Sicherung.',
+  'cloud.countChangesSafelyQueued': '{count} Änderungen sicher vorgemerkt',
+  'cloud.countChangesRemaining': '{count} Änderungen verbleiben',
+  'cloud.googleDriveAuthorizationNeedsAttention':
+    'Die Google-Drive-Autorisierung erfordert Aufmerksamkeit.',
+  'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
+    'Diese Sicherung gehört zu einem anderen verbundenen Google-Konto.',
+  'cloud.googleDrivePermissionWasNotFullyGranted':
+    'Die Google-Drive-Berechtigung wurde nicht vollständig erteilt.',
+  'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
+    'Die verbundene Cloud-Sicherung passt nicht zu diesem Tagebuch.',
+  'cloud.thisBackupWasCreatedByANewerTackbokVersion':
+    'Diese Sicherung wurde mit einer neueren Tackbok-Version erstellt.',
+  'cloud.aCloudSnapshotFailedItsSafetyChecks':
+    'Eine gespeicherte Cloud-Sicherung hat die Sicherheitsprüfungen nicht bestanden.',
+  'cloud.aDeviceBackupPointsToAMissingSnapshot':
+    'Eine Gerätesicherung verweist auf eine gespeicherte Sicherung, die fehlt.',
+  'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
+    'Zwei verschiedene Sicherungen beanspruchen dieselbe Geräteversion.',
+  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
+    'Zu viele getrennte Gerätesicherungen müssen zusammengeführt werden.',
+  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
+    'Ein wiederhergestelltes Element hat dieselbe interne ID wie ein vorhandenes Element.',
+  'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
+    'Tackbok konnte die Sicherungsdaten auf diesem Gerät nicht sicher vorbereiten.',
+  'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
+    'Google Drive hat nicht genügend freien Speicherplatz.',
+  'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
+    'Google Drive hat den Zugriff auf den Sicherungsordner der App verweigert.',
+  'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
+    'Ein für die Sicherung benötigtes Foto oder eine Sprachnotiz ist nicht verfügbar.',
+  'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
+    'Ein Foto oder eine Sprachnotiz auf diesem Gerät konnte nicht überprüft werden.',
+  'cloud.yourJournalIsNotReadyForCloudSyncYet':
+    'Dein Tagebuch ist noch nicht für die Cloud-Synchronisierung bereit.',
+  'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
+    'Diese Cloud-Sicherung wurde von einem anderen Gerät gelöscht.',
+  'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
+    'Dieses Tagebuch wurde von einem anderen Gerät überall gelöscht.',
+  'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
+    'Das Löschen in der Cloud wurde gestoppt, bevor alle Sicherungsdaten entfernt wurden.',
+  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
+    'Die Bereinigung wurde gestoppt, um eine noch verwendete Sicherung zu schützen.',
+  'cloud.chooseTheConnectedAccount': 'Verbundenes Konto auswählen',
+  'cloud.chooseAGoogleAccountToReconnect':
+    'Google-Konto zum erneuten Verbinden auswählen',
+  'cloud.finishConnection': 'Verbindung abschließen',
+  'cloud.reconnectToTheCorrectBackup': 'Mit der richtigen Sicherung verbinden',
+  'cloud.updateTackbok': 'Tackbok aktualisieren',
+  'cloud.retryAndVerifyBackup': 'Erneut versuchen und Sicherung prüfen',
+  'cloud.repairFromVerifiedBackup': 'Aus geprüfter Sicherung reparieren',
+  'cloud.inspectAndRepairBackup': 'Sicherung prüfen und reparieren',
+  'cloud.consolidateBackups': 'Sicherungen zusammenführen',
+  'cloud.exportJournalAndRepairBackup': 'Tagebuch exportieren und Sicherung reparieren',
+  'cloud.freeDeviceStorageAndRetry': 'Gerätespeicher freigeben und erneut versuchen',
+  'cloud.manageGoogleDriveStorage': 'Google-Drive-Speicher verwalten',
+  'cloud.retryMissingMedia': 'Fehlende Medien erneut versuchen',
+  'cloud.locateOrRetryAttachment': 'Anhang suchen oder erneut versuchen',
+  'cloud.retryJournalPreparation': 'Tagebuchvorbereitung erneut versuchen',
+  'cloud.acknowledgeAndDisconnect': 'Bestätigen und trennen',
+  'cloud.reviewDeletionAndEraseThisDevice': 'Löschung prüfen und dieses Gerät löschen',
+  'cloud.resumeDeletion': 'Löschung fortsetzen',
+  'cloud.cloudDeletionCompleted': 'Cloud-Löschung abgeschlossen',
+  'cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd':
+    'Exportiere oder repariere die betroffenen Tagebuchdaten und versuche es danach erneut.',
+  'cloud.cloudBackupRetryCompleted': 'Erneuter Sicherungsversuch abgeschlossen',
+  'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
+    'Die Cloud-Synchronisierung konnte nicht abgeschlossen werden. Deine Änderungen bleiben sicher vorgemerkt.',
+  'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
+    'Google Drive hat eine Sicherungsanfrage abgelehnt. Aktualisiere Tackbok und versuche es erneut.',
+  'time.hours': 'Stunden',
+  'time.minutes': 'Minuten',
+  'common.databaseUpdateFailed':
+    'Die Tagebuchdatenbank konnte nicht aktualisiert werden: {message}',
 };

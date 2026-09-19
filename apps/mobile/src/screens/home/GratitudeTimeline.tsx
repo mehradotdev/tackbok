@@ -98,7 +98,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         entries: [],
         isExpanded: false,
         isToday: true,
-        placeholderText: t('What are you grateful for today?'),
+        placeholderText: t('gratitude.whatAreYouGratefulForToday'),
       });
     }
 
@@ -109,7 +109,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         entries: [],
         isExpanded: false,
         isYesterday: true,
-        placeholderText: t('What were you grateful for yesterday?'),
+        placeholderText: t('gratitude.whatWereYouGratefulForYesterday'),
       });
     }
 
@@ -168,10 +168,10 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
       return (
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-center text-red-600 mb-2">
-            {t('Failed to load entries')}
+            {t('gratitude.failedToLoadEntries')}
           </Text>
           <Text className="text-center text-gray-500">
-            {error?.message || t('Unknown error')}
+            {error?.message || t('common.unknownError')}
           </Text>
         </View>
       );

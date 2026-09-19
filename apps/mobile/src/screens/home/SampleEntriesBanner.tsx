@@ -35,9 +35,9 @@ export function SampleEntriesBanner() {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] }),
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.tags] }),
       ]);
-      toast.success(t('Example entries removed'));
+      toast.success(t('onboarding.exampleEntriesRemoved'));
     } catch {
-      toast.error(t('Failed to remove example entries'));
+      toast.error(t('onboarding.failedToRemoveExampleEntries'));
     } finally {
       setIsRemoving(false);
     }
@@ -51,13 +51,13 @@ export function SampleEntriesBanner() {
           size="icon"
           className="size-7 -ml-1"
           onPress={() => setDismissed(true)}
-          accessibilityLabel={t('Hide this banner')}
+          accessibilityLabel={t('onboarding.hideThisBanner')}
           hitSlop={8}>
           <Icon as={X} className="text-muted-foreground size-4" />
         </Button>
         <Icon as={Sparkles} className="text-muted-foreground size-4" />
         <Text className="text-sm text-muted-foreground flex-1">
-          {t('Showing example entries')}
+          {t('onboarding.showingExampleEntries')}
         </Text>
       </View>
       <Button
@@ -65,7 +65,7 @@ export function SampleEntriesBanner() {
         size="sm"
         onPress={() => void handleRemoveAll()}
         disabled={isRemoving}>
-        <Text className="text-sm">{t('Remove all')}</Text>
+        <Text className="text-sm">{t('onboarding.removeAll')}</Text>
       </Button>
     </View>
   );

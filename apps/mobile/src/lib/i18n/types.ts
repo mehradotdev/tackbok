@@ -78,21 +78,28 @@ export const DEFAULT_LOCALE = 'en' as const satisfies SupportedLocale;
 
 /**
  * Flat translation dictionary
- * Keys are the English text, values are translations
- * If a key is missing for a locale, the key itself is used as fallback
+ * Stable message identifiers map to translated text
+ * Missing locale messages fall back to English
  */
-export type Translations = typeof en;
+export type TranslationKey = keyof typeof en;
+export type PluralCategory = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
+export type Translations = Record<TranslationKey, string>;
 
 /**
  * Translation function type
- * Takes a key (English text) and returns the translated string
- * Optionally accepts interpolation params, e.g. t('importedCount', { count: 5 })
- * Falls back to the key itself if translation not found
+ * Takes a stable message identifier and returns translated text
+ * Optionally accepts interpolation params, e.g. t('milestone.daysOfGratitude', { count: 5 })
+ * Falls back to the English source message
  */
-export type TranslationFunction = (
-  key: string,
-  params?: Record<string, string | number>,
-) => string;
+export type TranslationFunction = {
+  readonly locale?: SupportedLocale;
+  readonly formattingLocale?: string;
+  readonly uses24hourClock?: boolean | null;
+  (
+    key: TranslationKey,
+    params?: Record<string, string | number> & { count?: number },
+  ): string;
+};
 
 /**
  * Language metadata for display in UI

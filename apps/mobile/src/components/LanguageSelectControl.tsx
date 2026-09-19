@@ -54,7 +54,7 @@ export function LanguageSelectControl({
   // Get display name for current preference
   const getCurrentLanguageLabel = (): string => {
     if (localePreference === 'device') {
-      return t('Device Default');
+      return t('settings.deviceDefault');
     }
     const lang = languages.find((l) => l.code === localePreference);
     return lang ? getLanguageLabel(lang) : 'English';
@@ -143,13 +143,13 @@ export function LanguageSelectControl({
     <>
       <Select value={currentValue} onValueChange={handleLanguageSelect}>
         <SelectTrigger className={triggerClassName}>
-          <SelectValue placeholder={t('Select Language')} />
+          <SelectValue placeholder={t('settings.selectLanguage')} />
         </SelectTrigger>
         <SelectContent className="min-w-[220px]">
           <NativeSelectScrollView className="max-h-72">
             {/* Device Default Option - only show if device language is supported */}
             {isDeviceDefaultLocaleSupported && deviceDefaultLocale && (
-              <SelectItem value="device" label={t('Device Default')} />
+              <SelectItem value="device" label={t('settings.deviceDefault')} />
             )}
 
             {/* Language Options */}
@@ -176,17 +176,17 @@ export function LanguageSelectControl({
         dismissible={true}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Restart Required')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.restartRequired')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('Language change requires app restart. Proceed?')}
+              {t('settings.languageChangeRequiresAppRestartProceed')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onPress={handleCancelLanguageChange}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogAction onPress={handleConfirmLanguageChange}>
-              <Text>{t('Proceed')}</Text>
+              <Text>{t('settings.proceed')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

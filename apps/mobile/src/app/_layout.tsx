@@ -16,7 +16,8 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { useSettingsStore } from '~/lib/settings';
-import { useLocaleStore } from '~/lib/i18n';
+import { useProfileBootstrap } from '~/lib/settings/useProfileBootstrap';
+import { useTranslation, useLocaleStore } from '~/lib/i18n';
 import { initReminders, useReminderTapObserver } from '~/lib/reminders';
 import { initAnalytics, trackScreenView } from '~/lib/analytics';
 import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
@@ -80,10 +81,12 @@ function ScreenViewObserver() {
 }
 
 export default function Layout() {
+  const { t } = useTranslation();
   const { success, error } = useMigrations(db, migrations);
   const theme = useSettingsStore((s) => s.theme);
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
   const localeHasHydrated = useLocaleStore((s) => s._hasHydrated);
+  const profileReady = useProfileBootstrap(success, hasHydrated);
   const themeConfig = getThemeConfig(theme);
 
   const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
@@ -95,10 +98,10 @@ export default function Layout() {
   ]);
 
   const isBootstrapLoading =
-    !error && (!success || (!fontsLoaded && !fontsError));
+    !error && (!success || !profileReady || (!fontsLoaded && !fontsError));
 
   useEffect(() => {
-    if (!success || !hasHydrated) return;
+    if (!success || !hasHydrated || !profileReady) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -114,7 +117,7 @@ export default function Layout() {
       cancelled = true;
       cloudSyncRuntime.stop();
     };
-  }, [hasHydrated, success]);
+  }, [hasHydrated, profileReady, success]);
 
   // Keep native splash until persisted settings (and Uniwind theme) are ready
   useEffect(() => {
@@ -158,7 +161,7 @@ export default function Layout() {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4">
         <Text className="text-destructive text-center">
-          Database migration error: {error.message}
+          {t('common.databaseUpdateFailed', { message: error.message })}
         </Text>
       </View>
     );

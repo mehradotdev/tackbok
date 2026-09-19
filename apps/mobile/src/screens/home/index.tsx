@@ -61,7 +61,7 @@ export default function HomeScreen() {
         }
       } catch (error) {
         console.error('Failed to fetch entries for date:', error);
-        toast.error(t('Something went wrong. Creating new entry.'));
+        toast.error(t('dateEntries.somethingWentWrongCreatingNewEntry'));
         // Fallback: navigate to new entry anyway so user isn't blocked
         navigateToNewEntry();
       }
@@ -74,7 +74,7 @@ export default function HomeScreen() {
       const noteId = await getRandomEntryId();
       // The button can outlive the last entry via a stale cached count
       if (!noteId) {
-        toast.error(t('Unknown error'));
+        toast.error(t('common.unknownError'));
         return;
       }
       router.push({
@@ -83,7 +83,7 @@ export default function HomeScreen() {
       });
     } catch (error) {
       console.error('Failed to open a random entry:', error);
-      toast.error(t('Unknown error'));
+      toast.error(t('common.unknownError'));
     }
   }, [router, t]);
 

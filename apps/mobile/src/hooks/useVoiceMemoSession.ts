@@ -61,7 +61,7 @@ export function useVoiceMemoSession(
         setVoiceMemos((prev) => [...prev, asset]);
       } catch (error) {
         console.error('Failed to save voice memo:', error);
-        toast.error(t('Failed to save voice memo'));
+        toast.error(t('mood.failedToSaveVoiceMemo'));
       }
     },
     [t],
@@ -86,8 +86,8 @@ export function useVoiceMemoSession(
     removedMemosRef.current
       .filter((memo) => !initialUrisRef.current.has(memo.uri))
       .forEach((m) => {
-      deleteVoiceMemoFile(m.uri);
-    });
+        deleteVoiceMemoFile(m.uri);
+      });
     removedMemosRef.current = [];
   }, []);
 

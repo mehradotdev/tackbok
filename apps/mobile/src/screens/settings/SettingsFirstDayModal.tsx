@@ -32,9 +32,9 @@ export function SettingsFirstDayModal({
   }, [visible, value]);
 
   const options: { value: FirstDayOfWeek; label: string }[] = [
-    { value: FirstDay.SATURDAY, label: t('Saturday') },
-    { value: FirstDay.SUNDAY, label: t('Sunday') },
-    { value: FirstDay.MONDAY, label: t('Monday') },
+    { value: FirstDay.SATURDAY, label: t('calendar.saturday') },
+    { value: FirstDay.SUNDAY, label: t('calendar.sunday') },
+    { value: FirstDay.MONDAY, label: t('calendar.monday') },
   ];
 
   const handleConfirm = () => {
@@ -51,7 +51,7 @@ export function SettingsFirstDayModal({
           className="bg-background rounded-lg p-6 mx-4 w-[90%] max-w-sm"
           onPress={(e) => e.stopPropagation()}>
           <Text className="text-lg font-body-semibold text-foreground mb-4 text-center">
-            {t('First Day of Week')}
+            {t('appearance.firstDayOfWeek')}
           </Text>
 
           <RadioGroup
@@ -76,10 +76,10 @@ export function SettingsFirstDayModal({
 
           <View className="flex-row gap-3">
             <Button variant="outline" className="flex-1" onPress={onClose}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </Button>
             <Button className="flex-1" onPress={handleConfirm}>
-              <Text>{t('Done')}</Text>
+              <Text>{t('common.done')}</Text>
             </Button>
           </View>
         </Pressable>

@@ -34,6 +34,7 @@ function ThemeCardContent({
   theme: ThemeConfig;
   isActive: boolean;
 }) {
+  const { t } = useTranslation();
   const [colorForeground] = useCSSVariable(['--color-foreground']);
   const Art = theme.backdropId ? BACKDROPS[theme.backdropId] : undefined;
   const hasPet = theme.backdropId === 'shiro' || theme.backdropId === 'shadow';
@@ -56,7 +57,7 @@ function ThemeCardContent({
         <Text
           className="text-sm text-primary-foreground"
           style={{ fontFamily: themeFontFamily }}>
-          Tackbok
+          {t('common.tackbok')}
         </Text>
 
         <View className="w-4 h-4 items-center justify-center">
@@ -188,13 +189,13 @@ export function ThemePickerSheet() {
         {/* Header */}
         <View className="flex-row items-center justify-between px-5 pt-4 pb-3">
           <Text className="text-xl font-body-bold text-foreground">
-            {t('Select a theme')}
+            {t('appearance.selectATheme')}
           </Text>
           <Button
             onPress={() => TrueSheet.dismiss(SHEET_NAMES.THEME_PICKER)}
             variant="ghost"
             className="p-1 -mr-2"
-            accessibilityLabel={t('Close')}>
+            accessibilityLabel={t('common.close')}>
             <Icon as={X} className="text-foreground" />
           </Button>
         </View>
@@ -210,7 +211,7 @@ export function ThemePickerSheet() {
           <View
             className="gap-3"
             accessibilityRole="radiogroup"
-            accessibilityLabel={t('Select a theme')}>
+            accessibilityLabel={t('appearance.selectATheme')}>
             {Array.from({ length: Math.ceil(THEMES.length / 2) }, (_, rowIndex) => (
               <View
                 key={THEMES[rowIndex * 2].id}

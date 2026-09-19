@@ -102,7 +102,7 @@ export function AchievementDialogHost() {
 
     const result = await share({
       ref: captureRef,
-      dialogTitle: t('Share achievement'),
+      dialogTitle: t('sharing.shareAchievement'),
       filenamePrefix: 'tackbok-achievement',
       width: ACHIEVEMENT_SHARE_OUTPUT.width,
       height: ACHIEVEMENT_SHARE_OUTPUT.height,
@@ -131,11 +131,11 @@ export function AchievementDialogHost() {
   const isFirstDay = achievement.variant === 'first-day';
   const numberLabel = formatLocalizedNumber(achievement.journaledDays, locale);
   const title = isFirstDay
-    ? t('Day one complete!')
-    : t('{count} days of gratitude!', { count: numberLabel });
+    ? t('sharing.dayOneComplete')
+    : t('sharing.countDaysOfGratitude', { count: achievement.journaledDays });
   const message = isFirstDay
-    ? t('A beautiful beginning. Keep noticing the good.')
-    : t('Congratulations on making gratitude part of your journey.');
+    ? t('sharing.aBeautifulBeginningKeepNoticingTheGood')
+    : t('sharing.congratulationsOnMakingGratitudePartOfYourJourney');
 
   return (
     <Dialog open={visible} onOpenChange={handleOpenChange}>
@@ -146,7 +146,7 @@ export function AchievementDialogHost() {
           variant="ghost"
           size="icon"
           className="absolute right-2 top-2 z-10 rounded-full bg-background/80"
-          accessibilityLabel={t('Close')}
+          accessibilityLabel={t('common.close')}
           onPress={clearAchievement}>
           <Icon as={X} size={18} />
         </Button>
@@ -168,11 +168,11 @@ export function AchievementDialogHost() {
           disabled={!captureReady || isSharing || sharingAvailable !== true}
           onPress={() => void handleShare()}>
           {isSharing ? <ActivityIndicator size="small" /> : null}
-          <Text>{t('Share achievement')}</Text>
+          <Text>{t('sharing.shareAchievement')}</Text>
         </Button>
         {sharingAvailable === false ? (
           <Text className="text-center text-sm text-destructive">
-            {t('Sharing is not available on this device')}
+            {t('sharing.sharingIsNotAvailableOnThisDevice')}
           </Text>
         ) : null}
       </DialogContent>

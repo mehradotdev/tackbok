@@ -26,8 +26,8 @@ export function SharePaletteGrid({ selectedId, onSelect }: SharePaletteGridProps
             accessibilityState={{ selected }}
             accessibilityLabel={
               selected
-                ? t('{theme} theme, selected', { theme: palette.name })
-                : t('{theme} theme', { theme: palette.name })
+                ? t('sharing.themeThemeSelected', { theme: palette.name })
+                : t('sharing.themeTheme', { theme: palette.name })
             }
             onPress={() => onSelect(palette)}
             className="relative w-[30.5%] aspect-square rounded-lg active:opacity-70"

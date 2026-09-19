@@ -98,13 +98,13 @@ export function FontPickerSheet() {
         {/* Header */}
         <View className={cn('items-center justify-between px-5 pt-3 pb-3', 'flex-row')}>
           <Text className={cn('text-xl font-body-bold text-foreground')}>
-            {t('Title Font')}
+            {t('typography.titleFont')}
           </Text>
           <Button
             onPress={() => TrueSheet.dismiss(SHEET_NAMES.FONT_PICKER)}
             variant="ghost"
             className={cn('p-1 -mr-2')}
-            accessibilityLabel={t('Close')}>
+            accessibilityLabel={t('common.close')}>
             <Icon as={X} className="text-foreground" />
           </Button>
         </View>
@@ -114,10 +114,10 @@ export function FontPickerSheet() {
           <Text
             className={cn('text-xl text-foreground mb-1')}
             style={getTitleFontPreviewStyle(activeFontConfig.fontFamily, 20)}>
-            {t('Gratitude makes today brighter')}
+            {t('typography.gratitudeMakesTodayBrighter')}
           </Text>
           <Text className={cn('text-sm text-muted-foreground')}>
-            {t('Preview of the selected font')}
+            {t('typography.previewOfTheSelectedFont')}
           </Text>
         </View>
 
@@ -129,9 +129,9 @@ export function FontPickerSheet() {
           <View
             className={cn('flex-row flex-wrap gap-3', 'justify-start')}
             accessibilityRole="radiogroup"
-            accessibilityLabel={t('Title Font')}>
+            accessibilityLabel={t('typography.titleFont')}>
             <FontCard
-              label={t('Theme Default')}
+              label={t('typography.themeDefault')}
               previewFontFamily={themeDefaultFont.fontFamily}
               isActive={currentFont === DEFAULT_TITLE_FONT_SELECTION}
               onSelect={() => setTitleFont(DEFAULT_TITLE_FONT_SELECTION)}

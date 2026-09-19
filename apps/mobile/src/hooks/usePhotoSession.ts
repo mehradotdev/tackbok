@@ -87,7 +87,7 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
           setPhotos((prev) => [...prev, ...succeeded].slice(0, MAX_PHOTOS_PER_ENTRY));
         }
         if (hadFailure) {
-          toast.error(t('Failed to add photos'));
+          toast.error(t('mood.failedToAddPhotos'));
         }
       } finally {
         setIsAddingPhotos(false);

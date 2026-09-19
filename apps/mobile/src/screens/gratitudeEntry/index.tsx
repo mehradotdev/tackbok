@@ -86,23 +86,23 @@ export default function GratitudeEntryScreen({
           /* Query failed (e.g. transient db error) — the entry may still exist */
           <View className="flex-1 items-center justify-center gap-4 px-8">
             <Text className="text-lg font-body-medium text-muted-foreground">
-              {t('Unknown error')}
+              {t('common.unknownError')}
             </Text>
             <Button onPress={() => refetch()}>
-              <Text>{t('Retry')}</Text>
+              <Text>{t('common.retry')}</Text>
             </Button>
             <Button variant="outline" onPress={() => router.back()}>
-              <Text>{t('Back')}</Text>
+              <Text>{t('common.back')}</Text>
             </Button>
           </View>
         ) : (
           /* Query settled without a result — the entry no longer exists */
           <View className="flex-1 items-center justify-center gap-4 px-8">
             <Text className="text-lg font-body-medium text-muted-foreground">
-              {t('Entry not found')}
+              {t('entry.entryNotFound')}
             </Text>
             <Button variant="outline" onPress={() => router.back()}>
-              <Text>{t('Back')}</Text>
+              <Text>{t('common.back')}</Text>
             </Button>
           </View>
         )

@@ -1,3 +1,4 @@
+import type { TranslationKey } from '~/lib/i18n/types';
 import { collectGraphemes } from 'unicode-segmenter/grapheme';
 
 export const GREETING_EMOJIS = [
@@ -18,13 +19,13 @@ export function chooseGreetingEmoji(random = Math.random) {
 }
 
 export const WEEKDAY_GREETINGS = [
-  'Happy Sunday',
-  'Happy Monday',
-  'Happy Tuesday',
-  'Happy Wednesday',
-  'Happy Thursday',
-  'Happy Friday',
-  'Happy Saturday',
+  'greeting.happySunday',
+  'greeting.happyMonday',
+  'greeting.happyTuesday',
+  'greeting.happyWednesday',
+  'greeting.happyThursday',
+  'greeting.happyFriday',
+  'greeting.happySaturday',
 ] as const;
 
 export function chooseGreeting(
@@ -33,10 +34,15 @@ export function chooseGreeting(
   random = Math.random,
 ) {
   const hour = date.getHours();
-  const time = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const choices = [time, WEEKDAY_GREETINGS[date.getDay()]].filter(
-    (key) => key !== previous,
-  );
+  const time =
+    hour < 12
+      ? 'greeting.goodMorning'
+      : hour < 17
+        ? 'greeting.goodAfternoon'
+        : 'greeting.goodEvening';
+  const choices: TranslationKey[] = (
+    [time, WEEKDAY_GREETINGS[date.getDay()]] as const
+  ).filter((key) => key !== previous);
   return choices[Math.floor(random() * choices.length)];
 }
 

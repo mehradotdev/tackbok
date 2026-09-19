@@ -83,7 +83,9 @@ export function TagsModal({
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState<Tag | null>(null);
-  const [queuedSubmission, setQueuedSubmission] = useState<QueuedTagSubmission | null>(null);
+  const [queuedSubmission, setQueuedSubmission] = useState<QueuedTagSubmission | null>(
+    null,
+  );
   const isProcessingSubmissionRef = useRef(false);
   const tagInputRef = useRef<TextInput>(null);
   const presentSheet = useCallback((sheetName: string) => {
@@ -113,10 +115,7 @@ export function TagsModal({
   }, [dismissSheet]);
 
   const openEditor = useCallback(
-    (
-      nextEditorMode: EditorMode,
-      options?: { tag?: Tag },
-    ) => {
+    (nextEditorMode: EditorMode, options?: { tag?: Tag }) => {
       if (nextEditorMode === 'edit' && options?.tag) {
         setEditingTag(options.tag);
         setTagInputValue(options.tag.title);
@@ -142,7 +141,8 @@ export function TagsModal({
 
       return allTags.some(
         (tag) =>
-          tag.tag_id !== excludedTagId && normalizeTagTitle(tag.title) === normalizedTitle,
+          tag.tag_id !== excludedTagId &&
+          normalizeTagTitle(tag.title) === normalizedTitle,
       );
     },
     [allTags],
@@ -159,17 +159,17 @@ export function TagsModal({
     try {
       if (queuedSubmission.mode === 'create') {
         if (hasConflictingTag(queuedSubmission.title)) {
-          toast.error(t('Tag already exists'), { useModal: true });
+          toast.error(t('mood.tagAlreadyExists'), { useModal: true });
           return;
         }
 
         await createTagMutation.mutateAsync(queuedSubmission.title);
-        toast.success(t('Tag created'), { useModal: true });
+        toast.success(t('mood.tagCreated'), { useModal: true });
         return;
       }
 
       if (hasConflictingTag(queuedSubmission.title, queuedSubmission.tag.tag_id)) {
-        toast.error(t('Tag already exists'), { useModal: true });
+        toast.error(t('mood.tagAlreadyExists'), { useModal: true });
         return;
       }
 
@@ -177,14 +177,20 @@ export function TagsModal({
         tagId: queuedSubmission.tag.tag_id,
         title: queuedSubmission.title,
       });
-      toast.success(t('Tag updated'), { useModal: true });
+      toast.success(t('mood.tagUpdated'), { useModal: true });
     } catch (error) {
       console.error(
-        queuedSubmission.mode === 'create' ? 'Failed to create tag' : 'Failed to update tag',
+        queuedSubmission.mode === 'create'
+          ? 'Failed to create tag'
+          : 'Failed to update tag',
         error,
       );
       toast.error(
-        t(queuedSubmission.mode === 'create' ? 'Failed to create tag' : 'Failed to update tag'),
+        t(
+          queuedSubmission.mode === 'create'
+            ? 'mood.failedToCreateTag'
+            : 'mood.failedToUpdateTag',
+        ),
         { useModal: true },
       );
     } finally {
@@ -224,7 +230,7 @@ export function TagsModal({
 
     try {
       await deleteTagMutation.mutateAsync(tagToDelete.tag_id);
-      toast.success(t('Tag deleted'), { useModal: true });
+      toast.success(t('mood.tagDeleted'), { useModal: true });
 
       // Remove from local selection only after successful delete
       if (selectedTagIds.includes(tagToDelete.tag_id)) {
@@ -235,7 +241,7 @@ export function TagsModal({
       onTagDeleted?.(tagToDelete.tag_id);
     } catch (error) {
       console.error('Failed to delete tag', error);
-      toast.error(t('Failed to delete tag'), { useModal: true });
+      toast.error(t('mood.failedToDeleteTag'), { useModal: true });
     }
     setTagToDelete(null);
     setDeleteDialogOpen(false);
@@ -295,7 +301,7 @@ export function TagsModal({
               variant="ghost"
               size="icon"
               onPress={handleBackPress}
-              accessibilityLabel={t('Back')}
+              accessibilityLabel={t('common.back')}
               hitSlop={10}
               className="w-8 h-8 px-0">
               <Icon
@@ -318,7 +324,7 @@ export function TagsModal({
             variant="ghost"
             size="icon"
             onPress={onClose}
-            accessibilityLabel={t('Close')}
+            accessibilityLabel={t('common.close')}
             hitSlop={10}
             className="w-8 h-8">
             <Icon as={X} className="text-muted-foreground" size={20} />
@@ -361,7 +367,7 @@ export function TagsModal({
             variant="ghost"
             size="icon"
             onPress={() => handleEditPress(tag)}
-            accessibilityLabel={t('Edit Tag')}
+            accessibilityLabel={t('tags.editTag')}
             hitSlop={8}
             className="w-8 h-8 mr-1">
             <Icon as={Pencil} className="text-muted-foreground" size={18} />
@@ -372,7 +378,7 @@ export function TagsModal({
             variant="ghost"
             size="icon"
             onPress={() => handleDeletePress(tag)}
-            accessibilityLabel={t('Delete Tag')}
+            accessibilityLabel={t('tags.deleteTag')}
             hitSlop={8}
             className="w-8 h-8">
             <Icon as={Trash2} className="text-destructive" size={18} />
@@ -387,7 +393,10 @@ export function TagsModal({
       {allTags.length > 0 && (
         <View className="bg-card rounded-lg border border-border overflow-hidden mb-4">
           <View style={{ maxHeight: SELECT_TAG_LIST_MAX_HEIGHT }}>
-            <ScrollView style={{ flexGrow: 0 }} contentContainerClassName="p-0" nestedScrollEnabled>
+            <ScrollView
+              style={{ flexGrow: 0 }}
+              contentContainerClassName="p-0"
+              nestedScrollEnabled>
               {allTags.map((tag, index) =>
                 renderTagItem(tag, index === allTags.length - 1),
               )}
@@ -402,15 +411,15 @@ export function TagsModal({
         onPress={handleCreateNewPress}
         className="flex-row items-center justify-center gap-2 mt-0">
         <Icon as={Plus} className="text-foreground" size={18} />
-        <Text>{t('Create New Tag')}</Text>
+        <Text>{t('tags.createNewTag')}</Text>
       </Button>
     </View>
   );
 
   const renderFormView = () => {
     const isCreateView = editorMode === 'create';
-    const buttonText = isCreateView ? t('Create') : t('Save');
-    const placeholderText = t('Tag name');
+    const buttonText = isCreateView ? t('common.create') : t('common.save');
+    const placeholderText = t('tags.tagName');
     const isDisabled = !tagInputValue.trim();
 
     return (
@@ -460,7 +469,7 @@ export function TagsModal({
         onDidFocus={processQueuedSubmission}>
         <View className="pt-2">
           {renderHeader({
-            title: t('Add a Tag'),
+            title: t('tags.addATag'),
             onClose: closeTagsFlow,
           })}
 
@@ -487,7 +496,7 @@ export function TagsModal({
         onDidDismiss={handleEditorSheetDismiss}>
         <View className="pt-2">
           {renderHeader({
-            title: editorMode === 'edit' ? t('Edit Tag') : t('Create New Tag'),
+            title: editorMode === 'edit' ? t('tags.editTag') : t('tags.createNewTag'),
             onClose: dismissEditor,
             showBack: true,
           })}
@@ -502,19 +511,19 @@ export function TagsModal({
           androidOverlayStrategy="modal"
           className={sheetRadius === 0 ? 'rounded-none' : ''}>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Delete Tag')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('tags.deleteTag')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('Are you sure you want to delete the tag "{title}"?', {
+              {t('tags.areYouSureYouWantToDeleteTheTagTitle', {
                 title: tagToDelete?.title ?? '',
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onPress={() => setDeleteDialogOpen(false)}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogDestructiveAction onPress={handleDeleteTag}>
-              <Text>{t('Delete')}</Text>
+              <Text>{t('common.delete')}</Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>

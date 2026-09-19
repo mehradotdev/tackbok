@@ -35,13 +35,13 @@ function AnalyticsDetailsSheet() {
       <View className="bg-background pb-8 pt-2">
         <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
           <Text className="text-xl font-body-bold text-foreground">
-            {t('What we collect')}
+            {t('onboarding.whatWeCollect')}
           </Text>
           <Button
             onPress={() => TrueSheet.dismiss(SHEET_NAMES.ANALYTICS_DETAILS)}
             variant="ghost"
             className="p-1 -mr-2"
-            accessibilityLabel={t('Close')}>
+            accessibilityLabel={t('common.close')}>
             <Icon as={X} className="text-foreground" />
           </Button>
         </View>
@@ -49,7 +49,7 @@ function AnalyticsDetailsSheet() {
         <View className="px-5">
           <Text className="text-sm text-foreground mb-3">
             {t(
-              'With your permission, Tackbok records limited, anonymous usage information. This may include screens visited, features used, and whether optional operations succeed. It never includes your journal content or anything you type.',
+              'onboarding.withYourPermissionTackbokRecordsLimitedAnonymousUsageInformationThis',
             )}
           </Text>
 
@@ -57,21 +57,19 @@ function AnalyticsDetailsSheet() {
             variant="link"
             size="none"
             className="self-start"
-            accessibilityLabel={t('Audit the analytics code on GitHub')}
+            accessibilityLabel={t('onboarding.auditTheAnalyticsCodeOnGithub')}
             onPress={() => void Linking.openURL(ANALYTICS_SOURCE_URL)}>
             <Text className="text-sm text-muted-foreground underline">
-              {t('Audit the analytics code on GitHub')}
+              {t('onboarding.auditTheAnalyticsCodeOnGithub')}
             </Text>
             <Icon as={ExternalLink} className="size-4 text-muted-foreground" />
           </Button>
 
           <Text className="text-base font-body-semibold text-foreground mt-5 mb-1.5">
-            {t('Never collected')}
+            {t('onboarding.neverCollected')}
           </Text>
           <Text className="text-sm text-foreground">
-            {t(
-              'Your journal text, titles, photos, voice memos, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',
-            )}
+            {t('onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail')}
           </Text>
         </View>
       </View>
@@ -103,15 +101,15 @@ export default function OnboardingPrivacyScreen() {
   const bullets = [
     {
       icon: BarChart3,
-      text: t('Anonymous usage stats only, including which screens and features get used.'),
+      text: t('onboarding.anonymousUsageStatsOnlyIncludingWhichScreensAndFeaturesGet'),
     },
     {
       icon: EyeOff,
-      text: t('Never your journal content, photos, voice memos, or anything you type.'),
+      text: t('onboarding.neverYourJournalContentPhotosVoiceMemosOrAnythingYou'),
     },
     {
       icon: Code,
-      text: t('Open source. The exact event list is public in the repo.'),
+      text: t('onboarding.openSourceTheExactEventListIsPublicInThe'),
     },
   ];
 
@@ -122,21 +120,19 @@ export default function OnboardingPrivacyScreen() {
       footer={
         <View className="gap-2">
           <Button variant="primary" size="lg" onPress={handleAccept}>
-            <Text className="text-lg">{t('Share anonymous stats')}</Text>
+            <Text className="text-lg">{t('onboarding.shareAnonymousStats')}</Text>
           </Button>
           <Button variant="outline" size="lg" onPress={handleDecline}>
-            <Text className="text-lg">{t('No thanks')}</Text>
+            <Text className="text-lg">{t('onboarding.noThanks')}</Text>
           </Button>
         </View>
       }>
       <View className="pt-10">
         <Text variant="h2" className="text-foreground">
-          {t('Help improve Tackbok?')}
+          {t('onboarding.helpImproveTackbok')}
         </Text>
         <Text className="text-base text-muted-foreground mt-2 mb-6">
-          {t(
-            'Tackbok is free and open source. Anonymous stats help us find bugs and see which features matter.',
-          )}
+          {t('onboarding.tackbokIsFreeAndOpenSourceAnonymousStatsHelpUs')}
         </Text>
 
         <View className="gap-4">
@@ -153,7 +149,7 @@ export default function OnboardingPrivacyScreen() {
           className="self-start mt-5 -ml-1"
           onPress={() => TrueSheet.present(SHEET_NAMES.ANALYTICS_DETAILS)}>
           <Text className="text-sm text-muted-foreground underline">
-            {t('See exactly what we collect')}
+            {t('onboarding.seeExactlyWhatWeCollect')}
           </Text>
         </Button>
       </View>

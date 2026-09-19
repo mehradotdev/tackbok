@@ -1,3 +1,4 @@
+import type { TranslationKey } from '~/lib/i18n';
 import { View } from 'react-native';
 import { Type, ALargeSmall } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -19,10 +20,10 @@ import { SettingsSection } from '../SettingsSection';
 import { SettingsRow } from '~/components/SettingsRow';
 
 /** Labels shown under each font-size tile. */
-const SIZE_LABELS: Record<BodyFontSize, string> = {
-  small: 'Small',
-  default: 'Default',
-  large: 'Large',
+const SIZE_LABELS: Record<BodyFontSize, TranslationKey> = {
+  small: 'typography.small',
+  default: 'typography.default',
+  large: 'typography.large',
 };
 
 /**
@@ -45,18 +46,18 @@ export function TypographySection() {
   const activeTitleFont = getTitleFont(resolveTitleFontId(theme, titleFont));
 
   return (
-    <SettingsSection title={t('Typography')}>
+    <SettingsSection title={t('typography.typography')}>
       {/* Title font row */}
       <SettingsRow
-        label={t('Title Font')}
-        description={t('Choose a font for titles and headings')}
+        label={t('typography.titleFont')}
+        description={t('typography.chooseAFontForTitlesAndHeadings')}
         icon={Type}
         onPress={() => TrueSheet.present(SHEET_NAMES.FONT_PICKER)}
         showChevron
         rightElement={
           <Text className="text-base text-muted-foreground">
             {titleFont === DEFAULT_TITLE_FONT_SELECTION
-              ? t('Theme Default')
+              ? t('typography.themeDefault')
               : activeTitleFont.label}
           </Text>
         }
@@ -70,17 +71,17 @@ export function TypographySection() {
           </View>
           <View className={cn('flex-1')}>
             <Text className={cn('text-base font-body-medium text-foreground')}>
-              {t('Font Size')}
+              {t('typography.fontSize')}
             </Text>
             <Text className={cn('text-sm text-foreground/80 mt-0.5 mb-3')}>
-              {t('Adjust the size of body text')}
+              {t('typography.adjustTheSizeOfBodyText')}
             </Text>
 
             {/* Size tiles */}
             <View
               className={cn('flex-row gap-3 justify-start')}
               accessibilityRole="radiogroup"
-              accessibilityLabel={t('Font Size')}>
+              accessibilityLabel={t('typography.fontSize')}>
               {BODY_FONT_SIZES.map((size) => {
                 const isActive = bodyFontSize === size;
                 return (

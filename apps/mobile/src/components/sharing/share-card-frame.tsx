@@ -1,3 +1,4 @@
+import { useTranslation } from '~/lib/i18n';
 import React from 'react';
 import { View, Text, type ViewStyle } from 'react-native';
 import { TackbokLogo } from '~/components/TackbokLogo';
@@ -12,6 +13,7 @@ type ShareCardFrameProps = {
 
 export const ShareCardFrame = React.forwardRef<View, ShareCardFrameProps>(
   function ShareCardFrame({ palette, aspectRatio, children, onLayout }, ref) {
+    const { t } = useTranslation();
     const frameStyle: ViewStyle = {
       width: '100%',
       aspectRatio,
@@ -46,7 +48,7 @@ export const ShareCardFrame = React.forwardRef<View, ShareCardFrameProps>(
               fontSize: 12,
               letterSpacing: 0.5,
             }}>
-            Tackbok
+            {t('common.tackbok')}
           </Text>
         </View>
       </View>

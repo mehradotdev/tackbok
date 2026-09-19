@@ -15,16 +15,19 @@ export function CountsRow({ stats }: { stats: InsightsStats }) {
     <View className="flex-row justify-between">
       <StatValue
         value={formatLocalizedNumber(stats.totalEntries, locale)}
-        label={t('Entries')}
+        label={t('insights.entries')}
       />
       <StatValue
         value={formatLocalizedNumber(isCJK ? stats.totalChars : stats.totalWords, locale)}
-        label={isCJK ? t('Characters') : t('Words')}
+        label={isCJK ? t('insights.characters') : t('insights.words')}
       />
-      <StatValue value={formatLocalizedNumber(stats.photoCount, locale)} label={t('Photos')} />
+      <StatValue
+        value={formatLocalizedNumber(stats.photoCount, locale)}
+        label={t('insights.photos')}
+      />
       <StatValue
         value={formatLocalizedNumber(stats.audioCount, locale)}
-        label={t('Voice memos')}
+        label={t('insights.voiceMemos')}
       />
     </View>
   );

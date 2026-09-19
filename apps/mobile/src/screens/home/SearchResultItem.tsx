@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { format } from 'date-fns';
 import { cn } from 'tailwind-variants';
 import { MOOD_EMOJI, MONTH_SHORT_KEYS } from '~/constants';
 import { type Entry } from '~/types';
-import { useTranslation } from '~/lib/i18n';
+import { useTranslation, formatLocalizedTime, formatLocalizedNumber } from '~/lib/i18n';
 import { useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 
@@ -20,12 +19,12 @@ interface ISearchResultItemProps {
 // Component
 // ============================================================================
 export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPress }) => {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const dateObj = new Date(item.created_at);
   const day = dateObj.getDate();
   const month = t(MONTH_SHORT_KEYS[dateObj.getMonth()]);
   const year = dateObj.getFullYear();
-  const time = format(dateObj, 'HH:mm');
+  const time = formatLocalizedTime(dateObj, locale);
 
   const tagMap = useTagMapping();
   const tags = (item.tags ? item.tags.split(',') : [])
@@ -41,8 +40,12 @@ export const SearchResultItem: React.FC<ISearchResultItemProps> = ({ item, onPre
       {/* Column 1: Date */}
       <View className="items-center justify-center pr-2 mr-3 border-r-2 border-border">
         <Text className="text-sm font-body-semibold text-foreground">{month}</Text>
-        <Text className="text-xl font-body-semibold text-foreground">{day}</Text>
-        <Text className="text-xs font-body-semibold text-foreground">{year}</Text>
+        <Text className="text-xl font-body-semibold text-foreground">
+          {formatLocalizedNumber(day, locale, { useGrouping: false })}
+        </Text>
+        <Text className="text-xs font-body-semibold text-foreground">
+          {formatLocalizedNumber(year, locale, { useGrouping: false })}
+        </Text>
       </View>
 
       {/* Column 2: Content */}

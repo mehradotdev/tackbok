@@ -73,7 +73,7 @@ export function PolaroidPhoto({
         <Button
           variant="ghost"
           size="none"
-          accessibilityLabel={t('Remove')}
+          accessibilityLabel={t('common.remove')}
           onPress={onRemove}
           hitSlop={6}
           className="absolute top-1 right-1 z-10 rounded-full">

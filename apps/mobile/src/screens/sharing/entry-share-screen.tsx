@@ -70,7 +70,7 @@ export function EntryShareScreen({ noteId }: { noteId?: string }) {
     if (!entry) return;
     await share({
       ref: captureRef,
-      dialogTitle: t('Share your gratitude'),
+      dialogTitle: t('sharing.shareYourGratitude'),
       filenamePrefix: 'tackbok-gratitude',
       width: output.width,
       height: output.height,
@@ -87,20 +87,20 @@ export function EntryShareScreen({ noteId }: { noteId?: string }) {
           <Button
             variant="ghost"
             size="icon"
-            accessibilityLabel={t('Back')}
+            accessibilityLabel={t('common.back')}
             onPress={() => router.back()}>
             <Icon as={isRTL ? ArrowRight : ArrowLeft} />
           </Button>
         </View>
         <Text className="flex-1 text-center text-lg font-body-bold text-foreground">
-          {t('Share your gratitude')}
+          {t('sharing.shareYourGratitude')}
         </Text>
         <View className="w-12 items-end">
           <Button
             variant="ghost"
             size="icon"
             disabled={!entry || !captureReady || isSharing || sharingAvailable !== true}
-            accessibilityLabel={t('Share image')}
+            accessibilityLabel={t('sharing.shareImage')}
             onPress={() => void handleShare()}>
             {isSharing ? <ActivityIndicator size="small" /> : <Icon as={Check} />}
           </Button>
@@ -113,18 +113,20 @@ export function EntryShareScreen({ noteId }: { noteId?: string }) {
         </View>
       ) : isError ? (
         <View className="flex-1 items-center justify-center gap-4 px-8">
-          <Text className="text-center text-muted-foreground">{t('Unknown error')}</Text>
+          <Text className="text-center text-muted-foreground">
+            {t('common.unknownError')}
+          </Text>
           <Button onPress={() => refetch()}>
-            <Text>{t('Retry')}</Text>
+            <Text>{t('common.retry')}</Text>
           </Button>
         </View>
       ) : !entry ? (
         <View className="flex-1 items-center justify-center gap-4 px-8">
           <Text className="text-center text-muted-foreground">
-            {t('Entry not found')}
+            {t('entry.entryNotFound')}
           </Text>
           <Button variant="outline" onPress={() => router.back()}>
-            <Text>{t('Back')}</Text>
+            <Text>{t('common.back')}</Text>
           </Button>
         </View>
       ) : (
@@ -135,9 +137,9 @@ export function EntryShareScreen({ noteId }: { noteId?: string }) {
           <EntryShareCard
             ref={captureRef}
             dateLabel={formatLocalizedDate(entry.created_at, t, { relative: true })}
-            title={entry.text_title?.trim() || t('I was grateful for')}
+            title={entry.text_title?.trim() || t('sharing.iWasGratefulFor')}
             body={entry.text_content}
-            moodLabel={moodOption ? t(`Feeling ${moodOption.label}`) : null}
+            moodLabel={moodOption ? t(moodOption.feelingKey) : null}
             moodEmoji={moodOption?.emoji}
             photos={photos}
             includeMood={includeMood}
@@ -156,16 +158,16 @@ export function EntryShareScreen({ noteId }: { noteId?: string }) {
             <View className="flex-row items-center justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3">
               <View className="flex-1 gap-1">
                 <Text className="font-body-semibold text-foreground">
-                  {t('Include mood')}
+                  {t('sharing.includeMood')}
                 </Text>
                 <Text className="text-sm text-muted-foreground">
-                  {t('Mood is hidden unless you include it')}
+                  {t('sharing.moodIsHiddenUnlessYouIncludeIt')}
                 </Text>
               </View>
               <Switch
                 checked={includeMood}
                 onCheckedChange={setIncludeMood}
-                accessibilityLabel={t('Include mood')}
+                accessibilityLabel={t('sharing.includeMood')}
               />
             </View>
           ) : null}
@@ -174,30 +176,30 @@ export function EntryShareScreen({ noteId }: { noteId?: string }) {
             <View className="flex-row items-center justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3">
               <View className="flex-1 gap-1">
                 <Text className="font-body-semibold text-foreground">
-                  {t('Include photos')}
+                  {t('sharing.includePhotos')}
                 </Text>
                 <Text className="text-sm text-muted-foreground">
-                  {t('Up to the first five photos will be shared')}
+                  {t('sharing.upToTheFirstFivePhotosWillBeShared')}
                 </Text>
               </View>
               <Switch
                 checked={includePhotos}
                 onCheckedChange={setIncludePhotos}
-                accessibilityLabel={t('Include photos')}
+                accessibilityLabel={t('sharing.includePhotos')}
               />
             </View>
           ) : null}
 
           <View className="gap-3">
             <Text className="text-lg font-body-bold text-foreground">
-              {t('Choose a style')}
+              {t('sharing.chooseAStyle')}
             </Text>
             <SharePaletteGrid selectedId={palette.id} onSelect={setPalette} />
           </View>
 
           {sharingAvailable === false ? (
             <Text className="text-center text-sm text-destructive">
-              {t('Sharing is not available on this device')}
+              {t('sharing.sharingIsNotAvailableOnThisDevice')}
             </Text>
           ) : null}
         </ScrollView>

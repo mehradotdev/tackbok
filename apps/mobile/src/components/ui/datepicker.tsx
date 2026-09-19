@@ -1,3 +1,4 @@
+import type { TranslationKey } from '~/lib/i18n';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   addMonths,
@@ -22,7 +23,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { FirstDay, type FirstDayOfWeek } from '~/types';
 import { MONTH_SHORT_KEYS, MONTH_KEYS } from '~/constants';
-import { useTranslation } from '~/lib/i18n';
+import { useTranslation, formatLocalizedNumber } from '~/lib/i18n';
 import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
@@ -86,10 +87,18 @@ type ViewMode = 'days' | 'months' | 'years';
 
 // Keys for translation - these match the keys in translation files
 // Base order starting from Sunday (index 0)
-const WEEKDAY_KEYS_BASE = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAY_KEYS_BASE = [
+  'calendar.sun',
+  'calendar.mon',
+  'calendar.tue',
+  'calendar.wed',
+  'calendar.thu',
+  'calendar.fri',
+  'calendar.sat',
+] as const;
 
 /** Get weekday keys ordered by first day of week */
-function getOrderedWeekdayKeys(firstDayOfWeek: FirstDayOfWeek): string[] {
+function getOrderedWeekdayKeys(firstDayOfWeek: FirstDayOfWeek): TranslationKey[] {
   const startIndex = WEEK_STARTS_ON_MAP[firstDayOfWeek];
   return [
     ...WEEKDAY_KEYS_BASE.slice(startIndex),
@@ -145,6 +154,7 @@ function DayCell({
   renderDay,
   accessibilityLabel,
 }: DayCellProps) {
+  const { locale } = useTranslation();
   if (renderDay) {
     return (
       <Pressable
@@ -159,7 +169,7 @@ function DayCell({
     );
   }
 
-  const dayNumber = format(date, 'd');
+  const dayNumber = formatLocalizedNumber(date.getDate(), locale, { useGrouping: false });
 
   return (
     <Pressable
@@ -216,7 +226,7 @@ export function DatePicker({
   firstDayOfWeek = FirstDay.MONDAY,
   footer,
 }: DatePickerProps) {
-  const { t, isRTL } = useTranslation();
+  const { t, isRTL, locale } = useTranslation();
   const [viewDate, setViewDate] = useState(value);
   const [viewMode, setViewMode] = useState<ViewMode>('days');
   const yearsScrollRef = useRef<ScrollView>(null);
@@ -376,7 +386,7 @@ export function DatePicker({
         <NavButton
           onPress={handlePrevMonth}
           disabled={!canGoBack}
-          accessibilityLabel={t('Previous month')}>
+          accessibilityLabel={t('calendar.previousMonth')}>
           <Icon as={!isRTL ? ChevronLeft : ChevronRight} />
         </NavButton>
 
@@ -384,7 +394,7 @@ export function DatePicker({
           <Button
             onPress={openMonthsView}
             variant={viewMode === 'months' ? 'default' : 'outline'}
-            accessibilityLabel={t('Select month')}
+            accessibilityLabel={t('calendar.selectMonth')}
             accessibilityState={{ expanded: viewMode === 'months' }}
             className="rounded-none px-2">
             <Text className="text-lg font-body-semibold">{translatedMonth}</Text>
@@ -392,17 +402,21 @@ export function DatePicker({
           <Button
             onPress={openYearsView}
             variant={viewMode === 'years' ? 'default' : 'outline'}
-            accessibilityLabel={t('Select year')}
+            accessibilityLabel={t('calendar.selectYear')}
             accessibilityState={{ expanded: viewMode === 'years' }}
             className="rounded-none px-2">
-            <Text className="text-lg font-body-semibold">{format(viewDate, 'yyyy')}</Text>
+            <Text className="text-lg font-body-semibold">
+              {formatLocalizedNumber(viewDate.getFullYear(), locale, {
+                useGrouping: false,
+              })}
+            </Text>
           </Button>
         </View>
 
         <NavButton
           onPress={handleNextMonth}
           disabled={!canGoForward}
-          accessibilityLabel={t('Next month')}>
+          accessibilityLabel={t('calendar.nextMonth')}>
           <Icon as={!isRTL ? ChevronRight : ChevronLeft} />
         </NavButton>
       </View>
@@ -537,7 +551,7 @@ export function DatePicker({
                   'text-base font-body-medium text-foreground',
                   isCurrentYear && 'text-primary-foreground',
                 )}>
-                {year}
+                {formatLocalizedNumber(year, locale, { useGrouping: false })}
               </Text>
             </Pressable>
           );

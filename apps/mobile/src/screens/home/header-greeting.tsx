@@ -79,8 +79,8 @@ export function useHeaderGreeting(isSearchMode: boolean) {
       const cleanName = name?.trim();
       // GreetingLine segments the final localized text into safe animation units.
       const first = cleanName
-        ? t('Greeting with name', { greeting: t('Welcome back'), name: cleanName })
-        : t('Welcome back');
+        ? t('greeting.withName', { greeting: t('greeting.welcomeBack'), name: cleanName })
+        : t('greeting.welcomeBack');
       const second = `${t(key)}! ${chooseGreetingEmoji()}`;
       setStep(0);
       setMessages([{ label: first + '!' }, { label: second }]);
@@ -243,6 +243,44 @@ export function HeaderGreeting({
 
 /** Measure the complete row before revealing it, then fit every unit at the same scale. */
 function GreetingLine({
+  isRTL,
+  ...props
+}: {
+  onReady: (step: number) => void;
+  text: string;
+  progress: SharedValue<number>;
+  reducedMotion: boolean;
+  step: number;
+  isRTL: boolean;
+}) {
+  // Keep mixed-direction text in one native paragraph. Separate animated views
+  // let Yoga reverse Latin letters and multiword names along with the RTL row.
+  if (isRTL) {
+    return (
+      <HeaderMotion
+        progress={props.progress}
+        active
+        reducedMotion={props.reducedMotion}
+        index={0}
+        greeting
+        step={props.step}>
+        <Text
+          variant="h2"
+          className="text-primary-foreground font-heading"
+          style={{ writingDirection: 'rtl', textAlign: 'auto' }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          onLayout={() => props.onReady(props.step)}>
+          {props.text}
+        </Text>
+      </HeaderMotion>
+    );
+  }
+  return <AnimatedGreetingLine {...props} isRTL={isRTL} />;
+}
+
+function AnimatedGreetingLine({
   onReady,
   text,
   progress,
@@ -310,8 +348,10 @@ function GreetingLine({
         style={{
           opacity: ready ? 1 : 0,
           width: lineWidth,
-          flexDirection: isRTL ? 'row-reverse' : 'row',
-          alignSelf: isRTL ? 'flex-end' : 'flex-start',
+          // Native RTL already mirrors row order and the start edge.
+          flexDirection: 'row',
+          alignSelf: 'flex-start',
+          // Transform origins use physical edges, so this still needs RTL.
           transformOrigin: isRTL ? 'right center' : 'left center',
           transform: [{ scale: fit.scale }],
         }}>

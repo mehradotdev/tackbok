@@ -81,7 +81,9 @@ function FreeSupportRow({
         <Text className="mt-0.5 text-left text-sm text-foreground">{description}</Text>
       </View>
       <View className="min-w-16 items-end">
-        <Text className="text-base font-body-bold text-foreground">{t('Free')}</Text>
+        <Text className="text-base font-body-bold text-foreground">
+          {t('appInfo.free')}
+        </Text>
       </View>
     </Button>
   );
@@ -124,7 +126,7 @@ function SupportTierRow({
           <ActivityIndicator size="small" colorClassName="accent-primary" />
         ) : (
           <Text className="text-base font-body-bold text-foreground">
-            {tier.priceString ?? t('Unavailable')}
+            {tier.priceString ?? t('appInfo.unavailable')}
           </Text>
         )}
       </View>
@@ -199,8 +201,8 @@ export default function SupportScreen() {
       const result = await purchaseMutation.mutateAsync(tier.id);
       if (result === 'completed') {
         track('support_purchase_completed', { tier: tier.id });
-        toast.success(t('Payment successful'), {
-          description: t('Thank you for supporting Tackbok. It genuinely means a lot.'),
+        toast.success(t('appInfo.paymentSuccessful'), {
+          description: t('appInfo.thankYouForSupportingTackbokItGenuinelyMeansALot'),
         });
         if (process.env.EXPO_OS === 'ios') {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -220,8 +222,8 @@ export default function SupportScreen() {
         tierId: tier.id,
         message:
           category === 'offline'
-            ? t('You appear to be offline. Check your connection and try again.')
-            : t('The purchase could not be completed. Please try again.'),
+            ? t('appInfo.youAppearToBeOfflineCheckYourConnectionAndTry')
+            : t('appInfo.thePurchaseCouldNotBeCompletedPleaseTryAgain'),
       });
     }
   };
@@ -230,12 +232,10 @@ export default function SupportScreen() {
     track('support_share_opened');
     try {
       await shareTackbok(
-        t(
-          'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app',
-        ),
+        t('appInfo.practiceGratitudeWithTackbokASimpleFreeAndPrivateGratitude'),
       );
     } catch {
-      toast.error(t('Unknown error'));
+      toast.error(t('common.unknownError'));
     }
   };
 
@@ -244,7 +244,7 @@ export default function SupportScreen() {
     try {
       await openTackbokRating();
     } catch {
-      toast.error(t('Unable to open the store'));
+      toast.error(t('appInfo.unableToOpenTheStore'));
     }
   };
 
@@ -255,41 +255,42 @@ export default function SupportScreen() {
           onPress={() => router.back()}
           variant="ghost"
           className="mr-1 p-1"
-          accessibilityLabel={t('Back')}>
+          accessibilityLabel={t('common.back')}>
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Button>
         <Text variant="h2" className="py-1 font-heading text-foreground">
-          {t('Support Tackbok')}
+          {t('appInfo.supportTackbok')}
         </Text>
       </View>
 
       <ScrollView className="px-safe" contentContainerClassName="pb-safe-or-8 pt-6">
         <View className="mb-6 items-center px-6">
           <View className="mb-4 size-16 items-center justify-center rounded-full bg-primary/15">
-            <Icon as={HandHeart} className="text-foreground" size={40} strokeWidth={1.8} />
+            <Icon
+              as={HandHeart}
+              className="text-foreground"
+              size={40}
+              strokeWidth={1.8}
+            />
           </View>
           <Text className="text-center text-base leading-6 text-foreground">
-            {t(
-              "Tackbok is free to use, and that's not changing. If it has brought a little more gratitude into your day, you’re welcome to support it, though there’s nothing to unlock. Everyone gets the same app.",
-            )}
+            {t('appInfo.tackbokIsFreeToUseAndThatsNotChangingIf')}
           </Text>
           <Text className="mt-3 text-center text-base leading-6 text-foreground">
-            {t(
-              'Keeping Tackbok running currently costs about US$33.25 per month, before taxes, fees, and usage overages. If you’ve found it worthwhile, even a small contribution helps keep it free for everyone.',
-            )}
+            {t('appInfo.keepingTackbokRunningCurrentlyCostsAboutUs3325Per')}
           </Text>
         </View>
 
-        <SettingsSection title={t('Ways to support')}>
+        <SettingsSection title={t('appInfo.waysToSupport')}>
           <FreeSupportRow
-            title={t('Share Tackbok')}
-            description={t('Share the app with friends and family')}
+            title={t('appInfo.shareTackbok')}
+            description={t('appInfo.shareTheAppWithFriendsAndFamily')}
             icon={Share2}
             onPress={() => void handleShare()}
           />
           <FreeSupportRow
-            title={t('Rate Tackbok')}
-            description={t('Leave an honest rating in the app store')}
+            title={t('appInfo.rateTackbok')}
+            description={t('appInfo.leaveAnHonestRatingInTheAppStore')}
             icon={Star}
             onPress={() => void handleRate()}
           />
@@ -307,7 +308,7 @@ export default function SupportScreen() {
         {catalogQuery.isError && (
           <View className="mx-4 mb-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
             <Text className="text-sm text-foreground">
-              {t('Support options could not be loaded. Please try again.')}
+              {t('appInfo.supportOptionsCouldNotBeLoadedPleaseTryAgain')}
             </Text>
             <Button
               variant="outline"
@@ -320,7 +321,7 @@ export default function SupportScreen() {
               ) : (
                 <Icon as={RefreshCw} className="text-foreground" size={16} />
               )}
-              <Text>{t('Retry')}</Text>
+              <Text>{t('common.retry')}</Text>
             </Button>
           </View>
         )}
@@ -334,9 +335,7 @@ export default function SupportScreen() {
             }>
             <Text className="text-sm leading-5 text-foreground">
               {notice.type === 'pending'
-                ? t(
-                    'Your payment is pending. The store will finish it when approval or payment completes.',
-                  )
+                ? t('appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen')
                 : notice.message}
             </Text>
             {notice.type === 'error' && (
@@ -350,7 +349,7 @@ export default function SupportScreen() {
                 }}
                 className="mt-3 self-start">
                 <Icon as={RefreshCw} className="text-foreground" size={16} />
-                <Text>{t('Retry')}</Text>
+                <Text>{t('common.retry')}</Text>
               </Button>
             )}
           </View>
@@ -358,23 +357,32 @@ export default function SupportScreen() {
 
         <View className="mx-4 mb-6 rounded-lg border-theme border-border bg-card p-4 shadow-theme">
           <Text className="mb-3 font-body-semibold text-foreground">
-            {t('Where your support helps')}
+            {t('appInfo.whereYourSupportHelps')}
           </Text>
           <View className="gap-2.5">
-            <CostBreakdownRow label={t('Cloudflare Workers')} amount={t('US$5/month')} />
-            <CostBreakdownRow label={t('Expo EAS')} amount={t('US$19/month')} />
             <CostBreakdownRow
-              label={t('Apple Developer membership')}
-              amount={t('US$99/year')}
-            />
-            <CostBreakdownRow label={t('tackbok.org domain')} amount={t('US$12/year')} />
-            <CostBreakdownRow
-              label={t('Google Play registration')}
-              amount={t('US$25 one time')}
+              label={t('appInfo.cloudflareWorkers')}
+              amount={t('appInfo.us5Month')}
             />
             <CostBreakdownRow
-              label={t('Monthly baseline')}
-              amount={t('About US$33.25')}
+              label={t('appInfo.expoEas')}
+              amount={t('appInfo.us19Month')}
+            />
+            <CostBreakdownRow
+              label={t('appInfo.appleDeveloperMembership')}
+              amount={t('appInfo.us99Year')}
+            />
+            <CostBreakdownRow
+              label={t('appInfo.tackbokOrgDomain')}
+              amount={t('appInfo.us12Year')}
+            />
+            <CostBreakdownRow
+              label={t('appInfo.googlePlayRegistration')}
+              amount={t('appInfo.us25OneTime')}
+            />
+            <CostBreakdownRow
+              label={t('appInfo.monthlyBaseline')}
+              amount={t('appInfo.aboutUs3325')}
               emphasized
             />
           </View>
@@ -389,26 +397,25 @@ export default function SupportScreen() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {t('Confirm {tier}', {
+              {t('appInfo.confirmTier', {
                 tier: selectedTier ? t(selectedTier.titleKey) : '',
               })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t(
-                'The store will charge {price} for this voluntary, one-time support. It unlocks no features and can be purchased again.',
-                { price: selectedTier?.priceString ?? '' },
-              )}
+              {t('appInfo.theStoreWillChargePriceForThisVoluntaryOneTime', {
+                price: selectedTier?.priceString ?? '',
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogAction
               onPress={() => {
                 if (selectedTier) void confirmPurchase(selectedTier);
               }}>
-              <Text>{t('Continue')}</Text>
+              <Text>{t('onboarding.continue')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -425,12 +432,10 @@ export default function SupportScreen() {
           <PrayingHandsIcon size={92} color={foregroundColor as string} />
           <View className="items-center gap-3">
             <DialogTitle className="text-center font-heading text-3xl leading-9">
-              {t('Thank you!')}
+              {t('appInfo.thankYou')}
             </DialogTitle>
             <DialogDescription className="text-center text-base leading-6 text-foreground">
-              {t(
-                'Your support helps keep Tackbok free and independent. It genuinely means a lot.',
-              )}
+              {t('appInfo.yourSupportHelpsKeepTackbokFreeAndIndependentItGenuinely')}
             </DialogDescription>
           </View>
           <Button
@@ -438,7 +443,7 @@ export default function SupportScreen() {
             size="lg"
             className="w-full"
             onPress={() => setSuccessfulTier(null)}>
-            <Text>{t('Continue')}</Text>
+            <Text>{t('onboarding.continue')}</Text>
           </Button>
         </DialogContent>
       </Dialog>

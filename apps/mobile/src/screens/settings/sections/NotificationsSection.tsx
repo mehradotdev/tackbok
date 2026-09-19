@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Linking, View } from 'react-native';
 import { Bell, Clock } from 'lucide-react-native';
-import { useTranslation } from '~/lib/i18n';
+import { useTranslation, formatLocalizedTime } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import {
   cancelDailyReminder,
@@ -17,15 +17,17 @@ import { SettingsSection } from '../SettingsSection';
 import { SettingsRow } from '~/components/SettingsRow';
 
 export function NotificationsSection() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { dailyReminderEnabled, setDailyReminderEnabled, reminderTime, setReminderTime } =
     useSettingsStore();
 
   const [showTimePickerModal, setShowTimePickerModal] = useState(false);
 
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    const [hours, minutes] = time.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return formatLocalizedTime(date, locale);
   };
 
   const handleReminderToggle = async () => {
@@ -37,19 +39,19 @@ export function NotificationsSection() {
         setDailyReminderEnabled(false);
         track('reminder_disabled');
       } catch {
-        toast.error(t('Failed to update reminder'));
+        toast.error(t('notifications.failedToUpdateReminder'));
       }
       return;
     }
 
     const granted = await requestReminderPermission();
     if (!granted) {
-      toast.warning(t('Notification permission needed'), {
+      toast.warning(t('notifications.notificationPermissionNeeded'), {
         description: t(
-          'To get daily reminders, allow notifications for Tackbok in your device settings.',
+          'notifications.toGetDailyRemindersAllowNotificationsForTackbokInYour',
         ),
         action: {
-          label: t('Open Settings'),
+          label: t('entry.openSettings'),
           onPress: () => Linking.openSettings(),
         },
       });
@@ -61,7 +63,7 @@ export function NotificationsSection() {
       setDailyReminderEnabled(true);
       track('reminder_enabled');
     } catch {
-      toast.error(t('Failed to update reminder'));
+      toast.error(t('notifications.failedToUpdateReminder'));
     }
   };
 
@@ -71,20 +73,20 @@ export function NotificationsSection() {
     if (dailyReminderEnabled) {
       scheduleDailyReminder(time).catch(() => {
         setReminderTime(previousTime);
-        toast.error(t('Failed to update reminder'));
+        toast.error(t('notifications.failedToUpdateReminder'));
       });
     }
   };
 
   return (
     <>
-      <SettingsSection title={t('Notifications')} className="pt-4">
+      <SettingsSection title={t('notifications.notifications')} className="pt-4">
         <SettingsRow
-          label={t('Daily Reminder')}
+          label={t('notifications.dailyReminder')}
           description={
             dailyReminderEnabled
-              ? t('Daily reminder notifications are on')
-              : t('Daily reminder notifications are off')
+              ? t('notifications.dailyReminderNotificationsAreOn')
+              : t('notifications.dailyReminderNotificationsAreOff')
           }
           icon={Bell}
           onPress={() => void handleReminderToggle()}
@@ -95,8 +97,8 @@ export function NotificationsSection() {
           }
         />
         <SettingsRow
-          label={t('Adjust Reminder Time')}
-          description={t('Change your daily reminder time')}
+          label={t('notifications.adjustReminderTime')}
+          description={t('notifications.changeYourDailyReminderTime')}
           icon={Clock}
           onPress={() => setShowTimePickerModal(true)}
           showChevron
@@ -117,7 +119,7 @@ export function NotificationsSection() {
         onClose={() => setShowTimePickerModal(false)}
         value={reminderTime}
         onValueChange={handleReminderTimeChange}
-        title={t('Adjust Reminder Time')}
+        title={t('notifications.adjustReminderTime')}
       />
     </>
   );

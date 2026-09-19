@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 let mockFocused = true;
 let mockReduced = false;
+let mockRTL = false;
 const mockListeners = new Set<(state: string) => void>();
 const mockTiming = jest.fn((value: number) => value);
 jest.mock('expo-router/react-navigation', () => ({ useIsFocused: () => mockFocused }));
@@ -14,12 +15,16 @@ jest.mock('~/lib/settings', () => ({
     selector({ _hasHydrated: true, profileName: 'Maya' }),
 }));
 jest.mock('~/lib/i18n', () => ({
-  useTranslation: () => ({ isReady: true, t: mockTranslate }),
+  useTranslation: () => ({ isReady: true, isRTL: mockRTL, t: mockTranslate }),
 }));
 function mockTranslate(key: string, params?: Record<string, string>) {
-  return key === 'Greeting with name' ? `${params?.greeting}, ${params?.name}` : key;
+  const { en } = require('../../lib/i18n/translations/en');
+  return key === 'greeting.withName'
+    ? `${params?.greeting}, ${params?.name}`
+    : (en[key] ?? key);
 }
 jest.mock('react-native', () => ({
+  View: 'View',
   AppState: {
     currentState: 'active',
     addEventListener: (_: string, listener: (state: string) => void) => {
@@ -29,6 +34,9 @@ jest.mock('react-native', () => ({
   },
 }));
 jest.mock('react-native-reanimated', () => ({
+  __esModule: true,
+  default: { View: 'Animated.View' },
+  useAnimatedStyle: () => ({}),
   useReducedMotion: () => mockReduced,
   useSharedValue: (value: number) => require('react').useRef({ value }).current,
   cancelAnimation: jest.fn(),
@@ -43,7 +51,34 @@ beforeEach(() => {
   mockListeners.clear();
   mockFocused = true;
   mockReduced = false;
+  mockRTL = false;
 });
+
+it.each(['טוב שחזרת, Maya Rose!', 'مرحبًا بعودتك، Maya Rose!'])(
+  'keeps the entire mixed-direction greeting in a native text paragraph: %s',
+  (label) => {
+    mockRTL = true;
+    const React = require('react');
+    const { act, create } = require('react-test-renderer');
+    const { HeaderGreeting } = require('./header-greeting');
+    const onReady = jest.fn();
+    let root: ReturnType<typeof create>;
+    act(() => {
+      root = create(React.createElement(HeaderGreeting, {
+        messages: [{ label }], onMessageReady: onReady,
+        step: 0, progress: { value: 0 }, reducedMotion: false,
+      }));
+    });
+    const texts = root!.root.findAllByType('Text');
+    expect(texts).toHaveLength(1);
+    expect(texts[0].props.children).toBe(label);
+    expect(texts[0].props.numberOfLines).toBe(1);
+    expect(texts[0].props.adjustsFontSizeToFit).toBe(true);
+    act(() => texts[0].props.onLayout());
+    expect(onReady).toHaveBeenCalledWith(0);
+    act(() => root!.unmount());
+  },
+);
 afterEach(() => jest.useRealTimers());
 
 function mountGreeting() {

@@ -64,13 +64,13 @@ export function OnThisDayCard() {
   if (!lookBacks || lookBacks.length === 0) return null;
 
   const labelFor = (lookBack: LookBack): string => {
-    if (lookBack.yearsAgo === 0) return t('One month ago today');
-    if (lookBack.yearsAgo === 1) return t('One year ago today');
-    return t('{count} years ago today', { count: lookBack.yearsAgo });
+    if (lookBack.yearsAgo === 0) return t('insights.oneMonthAgoToday');
+    if (lookBack.yearsAgo === 1) return t('insights.oneYearAgoToday');
+    return t('insights.countYearsAgoToday', { count: lookBack.yearsAgo });
   };
 
   return (
-    <InsightsSection title={t('On this day')} contentClassName="p-0">
+    <InsightsSection title={t('insights.onThisDay')} contentClassName="p-0">
       {lookBacks.map((lookBack, index) => (
         <Pressable
           key={lookBack.dateMs}
@@ -94,7 +94,7 @@ export function OnThisDayCard() {
               {formatLocalizedDate(lookBack.dateMs, t)}
             </Text>
             <Text className="text-sm text-foreground mt-1.5" numberOfLines={2}>
-              {entryPreview(lookBack.entries[0], t('A moment from this day'))}
+              {entryPreview(lookBack.entries[0], t('insights.aMomentFromThisDay'))}
             </Text>
           </View>
           <Icon

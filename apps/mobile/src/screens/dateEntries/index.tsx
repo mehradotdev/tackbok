@@ -9,7 +9,7 @@ import { type Entry, type Asset } from '~/types';
 import { combineDateWithCurrentTime } from '~/lib/utils';
 import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
-import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
+import { useTranslation, formatLocalizedTime, formatLocalizedDate } from '~/lib/i18n';
 import { useEntriesForDay, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
@@ -32,8 +32,8 @@ interface IEntryItemProps {
 }
 
 function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
-  const { t } = useTranslation();
-  const time = format(new Date(entry.created_at), 'HH:mm');
+  const { t, locale } = useTranslation();
+  const time = formatLocalizedTime(new Date(entry.created_at), locale);
 
   const moodOption = entry.mood ? MOOD_OPTIONS.find((o) => o.value === entry.mood) : null;
 
@@ -70,7 +70,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
             <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-full border border-border">
               <Text className="text-xl">{moodOption.emoji}</Text>
               <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
-                {t(`Feeling ${moodOption.label}`)}
+                {t(moodOption.feelingKey)}
               </Text>
             </View>
           )}
@@ -203,15 +203,15 @@ export default function DateEntriesScreen({ dateMs }: IDateEntriesScreenProps) {
       {/* Entries list */}
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-muted-foreground">{t('Loading...')}</Text>
+          <Text className="text-muted-foreground">{t('dateEntries.loading')}</Text>
         </View>
       ) : entries.length === 0 ? (
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-muted-foreground text-center mb-4">
-            {t('No entries for this date')}
+            {t('dateEntries.noEntriesForThisDate')}
           </Text>
           <Button onPress={handleNewEntry}>
-            <Text>{t('Create Entry')}</Text>
+            <Text>{t('dateEntries.createEntry')}</Text>
           </Button>
         </View>
       ) : (

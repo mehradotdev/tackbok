@@ -7,12 +7,12 @@ import {
 
 describe('cold-start greeting selection', () => {
   it.each([
-    [0, 'Good morning'],
-    [11, 'Good morning'],
-    [12, 'Good afternoon'],
-    [16, 'Good afternoon'],
-    [17, 'Good evening'],
-    [23, 'Good evening'],
+    [0, 'greeting.goodMorning'],
+    [11, 'greeting.goodMorning'],
+    [12, 'greeting.goodAfternoon'],
+    [16, 'greeting.goodAfternoon'],
+    [17, 'greeting.goodEvening'],
+    [23, 'greeting.goodEvening'],
   ])('uses local hour %s for %s', (hour, expected) => {
     expect(chooseGreeting(new Date(2026, 8, 19, hour as number), null, () => 0)).toBe(
       expected,
@@ -27,7 +27,11 @@ describe('cold-start greeting selection', () => {
   });
   it('never immediately repeats any eligible greeting', () => {
     const date = new Date(2026, 8, 19, 10);
-    for (const previous of ['Welcome back', 'Good morning', 'Happy Saturday']) {
+    for (const previous of [
+      'greeting.welcomeBack',
+      'greeting.goodMorning',
+      'greeting.happySaturday',
+    ]) {
       for (const random of [0, 0.25, 0.5, 0.99]) {
         expect(chooseGreeting(date, previous, () => random)).not.toBe(previous);
       }

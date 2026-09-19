@@ -33,20 +33,20 @@ export function AppearanceSection() {
 
   const getFirstDayLabel = () => {
     const labels: Record<string, string> = {
-      saturday: t('Saturday'),
-      sunday: t('Sunday'),
-      monday: t('Monday'),
+      saturday: t('calendar.saturday'),
+      sunday: t('calendar.sunday'),
+      monday: t('calendar.monday'),
     };
-    return labels[firstDayOfWeek] ?? t('Monday');
+    return labels[firstDayOfWeek] ?? t('calendar.monday');
   };
 
   return (
     <>
-      <SettingsSection title={t('Appearance')}>
+      <SettingsSection title={t('appearance.appearance')}>
         <SettingsLanguageComp />
         <SettingsRow
-          label={t('Theme')}
-          description={t('{count} themes and color schemes', {
+          label={t('appearance.theme')}
+          description={t('appearance.countThemesAndColorSchemes', {
             count: THEMES.length,
           })}
           icon={Palette}
@@ -57,11 +57,11 @@ export function AppearanceSection() {
           showChevron
         />
         <SettingsRow
-          label={t('Show Timeline Borders')}
+          label={t('appearance.showTimelineBorders')}
           description={
             showTimelineBorders
-              ? t('Show the borders in the timeline')
-              : t('Hide the borders in the timeline')
+              ? t('appearance.showTheBordersInTheTimeline')
+              : t('appearance.hideTheBordersInTheTimeline')
           }
           icon={Table2}
           onPress={() => setShowTimelineBorders(!showTimelineBorders)}
@@ -78,10 +78,10 @@ export function AppearanceSection() {
             </View>
             <View className="flex-1">
               <Text className="text-base font-body-medium text-foreground">
-                {t('Timeline Entry Length')}
+                {t('appearance.timelineEntryLength')}
               </Text>
               <Text className="text-sm text-foreground/80 mt-0.5 mb-2">
-                {t('Number of lines shown in the timeline')}
+                {t('appearance.numberOfLinesShownInTheTimeline')}
               </Text>
               <SettingsSlider
                 value={timelineEntryLength}
@@ -94,8 +94,8 @@ export function AppearanceSection() {
           </View>
         </View>
         <SettingsRow
-          label={t('Date Style')}
-          description={t('Date includes day of the week')}
+          label={t('appearance.dateStyle')}
+          description={t('appearance.dateIncludesDayOfTheWeek')}
           icon={Calendar}
           onPress={() => setDateIncludesDayOfWeek(!dateIncludesDayOfWeek)}
           rightElement={
@@ -105,8 +105,8 @@ export function AppearanceSection() {
           }
         />
         <SettingsRow
-          label={t('First Day of Week')}
-          description={t('Set the first day of the week in the calendar view')}
+          label={t('appearance.firstDayOfWeek')}
+          description={t('appearance.setTheFirstDayOfTheWeekInTheCalendar')}
           icon={CalendarDays}
           onPress={() => setShowFirstDayModal(true)}
           showChevron

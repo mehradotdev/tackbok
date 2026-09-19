@@ -2,6 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { languages, translations } from './index';
 
+jest.mock('expo-localization', () => ({
+  getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
+}));
+
 const SOURCE_LOCALE = 'en';
 const SRC_DIR = path.resolve(__dirname, '../../..');
 const SKIP_PATTERNS = [/\/i18n\/translations\//, /\/node_modules\//];

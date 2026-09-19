@@ -1,3 +1,4 @@
+import type { TranslationKey } from '~/lib/i18n';
 import { useMemo, useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react-native';
@@ -103,24 +104,24 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
     if (!trimmed) return;
 
     if (isDuplicatePrompt(trimmed)) {
-      toast.error(t('Prompt already exists'), { useModal: true });
+      toast.error(t('entry.promptAlreadyExists'), { useModal: true });
       return;
     }
 
     try {
       await createPromptMutation.mutateAsync(trimmed);
-      toast.success(t('Prompt created'), { useModal: true });
+      toast.success(t('entry.promptCreated'), { useModal: true });
       setPromptInputValue('');
       setActiveCategoryId('custom');
       TrueSheet.dismiss(SHEET_NAMES.PROMPT_FORM);
     } catch (error) {
       console.error('Failed to create prompt', error);
       if (error instanceof Error && error.message === 'Prompt already exists') {
-        toast.error(t('Prompt already exists'), { useModal: true });
+        toast.error(t('entry.promptAlreadyExists'), { useModal: true });
         return;
       }
 
-      toast.error(t('Failed to create prompt'), { useModal: true });
+      toast.error(t('entry.failedToCreatePrompt'), { useModal: true });
     }
   };
 
@@ -131,7 +132,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
     if (!trimmed) return;
 
     if (isDuplicatePrompt(trimmed, editingPrompt.prompt_id)) {
-      toast.error(t('Prompt already exists'), { useModal: true });
+      toast.error(t('entry.promptAlreadyExists'), { useModal: true });
       return;
     }
 
@@ -140,7 +141,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
         promptId: editingPrompt.prompt_id,
         title: trimmed,
       });
-      toast.success(t('Prompt updated'), { useModal: true });
+      toast.success(t('entry.promptUpdated'), { useModal: true });
       setPromptInputValue('');
       setEditingPrompt(null);
       setActiveCategoryId('custom');
@@ -148,11 +149,11 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
     } catch (error) {
       console.error('Failed to update prompt', error);
       if (error instanceof Error && error.message === 'Prompt already exists') {
-        toast.error(t('Prompt already exists'), { useModal: true });
+        toast.error(t('entry.promptAlreadyExists'), { useModal: true });
         return;
       }
 
-      toast.error(t('Failed to update prompt'), { useModal: true });
+      toast.error(t('entry.failedToUpdatePrompt'), { useModal: true });
     }
   };
 
@@ -162,10 +163,10 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
 
     try {
       await deletePromptMutation.mutateAsync(promptToDelete.prompt_id);
-      toast.success(t('Prompt deleted'), { useModal: true });
+      toast.success(t('entry.promptDeleted'), { useModal: true });
     } catch (error) {
       console.error('Failed to delete prompt', error);
-      toast.error(t('Failed to delete prompt'), { useModal: true });
+      toast.error(t('entry.failedToDeletePrompt'), { useModal: true });
     }
 
     setPromptToDelete(null);
@@ -184,7 +185,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
       <View className="w-10" />
 
       <Text className="text-foreground text-lg font-body-semibold leading-tight flex-1 text-center">
-        {t('All Prompts')}
+        {t('journaling.allPrompts')}
       </Text>
 
       <View className="w-10 items-end">
@@ -192,7 +193,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
           variant="ghost"
           size="icon"
           onPress={() => TrueSheet.dismiss(SHEET_NAMES.PROMPT_LIBRARY)}
-          accessibilityLabel={t('Close')}
+          accessibilityLabel={t('common.close')}
           hitSlop={10}
           className="w-8 h-8">
           <Icon as={X} className="text-muted-foreground" size={20} />
@@ -250,7 +251,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
     </View>
   );
 
-  const renderBuiltInPromptRow = (titleKey: string, isLast: boolean) => (
+  const renderBuiltInPromptRow = (titleKey: TranslationKey, isLast: boolean) => (
     <View
       key={titleKey}
       className={cn(
@@ -268,7 +269,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
         variant="ghost"
         size="icon"
         onPress={() => handlePromptApply(t(titleKey))}
-        accessibilityLabel={t('Use Prompt')}
+        accessibilityLabel={t('entry.usePrompt')}
         hitSlop={8}
         className="w-8 h-8">
         <Icon as={Plus} className="text-muted-foreground" size={20} />
@@ -296,7 +297,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
           variant="ghost"
           size="icon"
           onPress={() => handleEditPress(prompt)}
-          accessibilityLabel={t('Edit Prompt')}
+          accessibilityLabel={t('entry.editPrompt')}
           hitSlop={8}
           className="w-8 h-8 mr-1">
           <Icon as={Pencil} className="text-muted-foreground" size={18} />
@@ -308,7 +309,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
             setPromptToDelete(prompt);
             setDeleteDialogOpen(true);
           }}
-          accessibilityLabel={t('Delete Prompt')}
+          accessibilityLabel={t('entry.deletePrompt')}
           hitSlop={8}
           className="w-8 h-8">
           <Icon as={Trash2} className="text-destructive" size={18} />
@@ -352,10 +353,10 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
           ) : (
             <View className="h-40 px-6 py-10 items-center justify-center gap-2">
               <Text className="text-lg font-body-bold text-foreground/80">
-                {t('No prompts yet')}
+                {t('entry.noPromptsYet')}
               </Text>
               <Text className="text-center text-sm leading-6 text-foreground/70">
-                {t('Create your first prompt')}
+                {t('entry.createYourFirstPrompt')}
               </Text>
             </View>
           )}
@@ -373,7 +374,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
                 TrueSheet.present(SHEET_NAMES.PROMPT_FORM);
               }}>
               <Icon as={Plus} className="text-primary-foreground size-6" />
-              <Text className="text-lg">{t('Create a Prompt')}</Text>
+              <Text className="text-lg">{t('entry.createAPrompt')}</Text>
             </Button>
           </View>
         )}
@@ -383,9 +384,8 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
 
   const renderFormSheet = () => {
     const isCreateView = viewState !== 'edit';
-    const title = isCreateView ? t('Create Prompt') : t('Edit Prompt');
-    const isSubmitting =
-      createPromptMutation.isPending || updatePromptMutation.isPending;
+    const title = isCreateView ? t('entry.createPrompt') : t('entry.editPrompt');
+    const isSubmitting = createPromptMutation.isPending || updatePromptMutation.isPending;
     const isDisabled = !sanitizePromptTitle(promptInputValue) || isSubmitting;
 
     return (
@@ -412,7 +412,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
                 variant="ghost"
                 size="icon"
                 onPress={() => TrueSheet.dismiss(SHEET_NAMES.PROMPT_FORM)}
-                accessibilityLabel={t('Back')}
+                accessibilityLabel={t('common.back')}
                 hitSlop={10}
                 className="w-8 h-8 px-0">
                 <Icon
@@ -430,7 +430,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
                 variant="ghost"
                 size="icon"
                 onPress={() => TrueSheet.dismiss(SHEET_NAMES.PROMPT_FORM)}
-                accessibilityLabel={t('Close')}
+                accessibilityLabel={t('common.close')}
                 hitSlop={10}
                 className="w-8 h-8">
                 <Icon as={X} className="text-muted-foreground" size={20} />
@@ -441,7 +441,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
           <View className="px-4 py-4">
             <Input
               className="mb-4"
-              placeholder={t('Prompt text')}
+              placeholder={t('entry.promptText')}
               value={promptInputValue}
               onChangeText={setPromptInputValue}
               editable={!isSubmitting}
@@ -453,7 +453,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
               onPress={isCreateView ? handleCreatePrompt : handleUpdatePrompt}
               disabled={isDisabled}
               className={cn(isDisabled && 'opacity-50')}>
-              <Text>{isCreateView ? t('Create') : t('Save')}</Text>
+              <Text>{isCreateView ? t('common.create') : t('common.save')}</Text>
             </Button>
           </View>
         </View>
@@ -486,19 +486,19 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className={sheetRadius === 0 ? 'rounded-none' : ''}>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Delete Prompt?')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('entry.deletePrompt2')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('Are you sure you want to delete this prompt?')}
+              {t('entry.areYouSureYouWantToDeleteThisPrompt')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onPress={() => setDeleteDialogOpen(false)}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogDestructiveAction
               onPress={handleDeletePrompt}
               disabled={deletePromptMutation.isPending}>
-              <Text>{t('Delete')}</Text>
+              <Text>{t('common.delete')}</Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>
