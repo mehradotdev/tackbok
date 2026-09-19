@@ -1,5 +1,22 @@
 import { collectGraphemes } from 'unicode-segmenter/grapheme';
 
+export const GREETING_EMOJIS = [
+  '😊',
+  '🙏',
+  '😄',
+  '😇',
+  '🙂',
+  '👋',
+  '🌻',
+  '✨',
+  '💛',
+  '🌿',
+] as const;
+
+export function chooseGreetingEmoji(random = Math.random) {
+  return GREETING_EMOJIS[Math.floor(random() * GREETING_EMOJIS.length)];
+}
+
 export const WEEKDAY_GREETINGS = [
   'Happy Sunday',
   'Happy Monday',

@@ -15,12 +15,17 @@ import Animated, {
 import { Text } from '~/components/ui/text';
 import { useSettingsStore } from '~/lib/settings';
 import { useTranslation } from '~/lib/i18n';
-import { chooseGreeting, greetingUnits, fitGreeting } from './greeting';
+import {
+  chooseGreeting,
+  chooseGreetingEmoji,
+  greetingUnits,
+  fitGreeting,
+} from './greeting';
 
 // A JS runtime is one cold start; route remounts and foregrounding must not replay.
 let launchGreetingClaimed = false;
 const PREVIOUS_KEY = 'home.previous-greeting';
-const DURATION = 4480;
+const DURATION = 4680;
 type GreetingMessage = { label: string };
 
 export function useHeaderGreeting(isSearchMode: boolean) {
@@ -76,7 +81,7 @@ export function useHeaderGreeting(isSearchMode: boolean) {
       const first = cleanName
         ? t('Greeting with name', { greeting: t('Welcome back'), name: cleanName })
         : t('Welcome back');
-      const second = t(key) + (Math.random() < 0.25 ? '! 😊' : '!');
+      const second = `${t(key)}! ${chooseGreetingEmoji()}`;
       setStep(0);
       setMessages([{ label: first + '!' }, { label: second }]);
       setPending(false);
@@ -113,7 +118,7 @@ export function useHeaderGreeting(isSearchMode: boolean) {
         });
       }
     }, 250);
-    const next = setTimeout(() => setStep(1), 250 + (reducedMotion ? 2000 : 2090));
+    const next = setTimeout(() => setStep(1), 250 + (reducedMotion ? 2000 : 2190));
     const timer = setTimeout(finish, 250 + (reducedMotion ? 4000 : DURATION));
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') finish();
@@ -168,13 +173,13 @@ export function HeaderMotion({
     if (reducedMotion)
       return { opacity: greeting ? 1 : 0, transform: [{ translateY: 0 }] };
     const delay = greeting
-      ? index * Math.min(27, 300 / Math.max(1, unitCount - 1))
+      ? index * Math.min(36, 400 / Math.max(1, unitCount - 1))
       : Math.min(index * 55, 120);
     const times = greeting
       ? step === 0
-        ? [150 + delay, 570 + delay, 1890, 2090]
-        : [2090 + delay, 2510 + delay, 3930, 4130]
-      : [4130 + delay, 4360 + delay, 4580, 4680];
+        ? [150 + delay, 570 + delay, 1990, 2190]
+        : [2190 + delay, 2610 + delay, 4130, 4330]
+      : [4330 + delay, 4560 + delay, 4780, 4880];
     // Smoothstep gives each entrance/exit a gentle ease without spring overshoot.
     const entrance = interpolate(progress.value, times.slice(0, 2), [0, 1], 'clamp');
     const exit = interpolate(progress.value, times.slice(2), [0, 1], 'clamp');
@@ -288,7 +293,8 @@ function GreetingLine({
         {[...units, '…'].map((unit, index) => (
           <Text
             key={index}
-            className="text-xl font-body-semibold"
+            variant="h2"
+            className="font-heading"
             numberOfLines={1}
             onLayout={(event) => {
               const width = event.nativeEvent.layout.width;
@@ -321,7 +327,8 @@ function GreetingLine({
             step={step}>
             <Text
               numberOfLines={1}
-              className="text-primary-foreground text-xl font-body-semibold"
+              variant="h2"
+              className="text-primary-foreground font-heading"
               style={{ writingDirection: isRTL ? 'rtl' : 'ltr' }}>
               {unit}
             </Text>

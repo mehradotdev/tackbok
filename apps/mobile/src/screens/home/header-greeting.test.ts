@@ -93,13 +93,14 @@ it('waits for layout, restores controls, and does not replay on route remount', 
   hook.layout();
   hook.tick(0);
   expect(hook.current.greeting?.label).toBe('Welcome back, Maya!');
-  hook.tick(2340);
+  hook.tick(2440);
   expect(hook.current.greeting?.label).not.toContain('Maya');
   expect(hook.current.greeting?.label).not.toContain('Welcome back');
-  hook.tick(4480);
+  expect(hook.current.greeting?.label).toMatch(/! (😊|🙏|😄|😇|🙂|👋|🌻|✨|💛|🌿)$/u);
+  hook.tick(4680);
   expect(hook.current.greeting).toBeNull();
   // The UI thread must retain the fully visible final frame during React cleanup.
-  expect(hook.current.progress.value).toBe(4480);
+  expect(hook.current.progress.value).toBe(4680);
   expect(hook.current.active).toBe(false);
   hook.unmount();
   const remount = mountGreeting();
@@ -160,7 +161,7 @@ it('does not spend the reading time while native text measurement is pending', (
   hook.layout();
   hook.tick(250);
   expect(mockTiming).toHaveBeenCalled();
-  hook.tick(4480);
+  hook.tick(4680);
   expect(hook.current.greeting).toBeNull();
   hook.unmount();
 });
@@ -177,7 +178,7 @@ it.each([false, true])(
     hook.tick(1);
     expect(hook.current.active).toBe(false);
     expect(hook.current.greeting).toBeNull();
-    expect(hook.current.progress.value).toBe(4480);
+    expect(hook.current.progress.value).toBe(4680);
     expect(mockTiming).not.toHaveBeenCalled();
     hook.unmount();
   },
