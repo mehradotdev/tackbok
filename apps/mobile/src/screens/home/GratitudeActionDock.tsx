@@ -147,25 +147,20 @@ function MeasuredGratitudeActionDock({
 }: GratitudeActionDockProps & { containerHeight: number; showPet: boolean }) {
   const { t, isRTL } = useTranslation();
   const pet = usePetInteraction();
-  const {
-    containerStyle,
-    panGesture,
-    progress,
-    shellShadowStyle,
-    wrapperStyle,
-  } = useGratitudeActionDockPresentation({
-    containerHeight,
-    dockConfig: {
-      ...GRATITUDE_ACTION_DOCK_CONFIG,
-      dimensions: {
-        ...GRATITUDE_ACTION_DOCK_CONFIG.dimensions,
-        panelHeight: gratitudeDockHeight(showPet),
+  const { containerStyle, panGesture, progress, shellShadowStyle, wrapperStyle } =
+    useGratitudeActionDockPresentation({
+      containerHeight,
+      dockConfig: {
+        ...GRATITUDE_ACTION_DOCK_CONFIG,
+        dimensions: {
+          ...GRATITUDE_ACTION_DOCK_CONFIG.dimensions,
+          panelHeight: gratitudeDockHeight(showPet),
+        },
       },
-    },
-    isExpanded,
-    isRTL,
-    onToggle,
-  });
+      isExpanded,
+      isRTL,
+      onToggle,
+    });
   const directionMultiplier = isRTL ? -1 : 1;
   const collapsedChevronIcon = isRTL ? ChevronRight : ChevronLeft;
   const expandedChevronIcon = isRTL ? ChevronLeft : ChevronRight;
@@ -221,8 +216,8 @@ function MeasuredGratitudeActionDock({
   }));
 
   const toggleAccessibilityLabel = isExpanded
-    ? t('Collapse gratitude actions')
-    : t('Expand gratitude actions');
+    ? t('gratitude.collapseGratitudeActions')
+    : t('gratitude.expandGratitudeActions');
 
   return (
     <Animated.View
@@ -252,7 +247,7 @@ function MeasuredGratitudeActionDock({
                 'left-0',
               )}>
               <DockActionButton
-                accessibilityLabel={t('Write now')}
+                accessibilityLabel={t('gratitude.writeNow')}
                 disabled={!isExpanded}
                 onPress={onAddEntry}>
                 <View className="size-10 items-center justify-center rounded-full">
@@ -261,7 +256,7 @@ function MeasuredGratitudeActionDock({
               </DockActionButton>
 
               <DockActionButton
-                accessibilityLabel={t('Pick a date')}
+                accessibilityLabel={t('gratitude.pickADate')}
                 disabled={!isExpanded}
                 onPress={onPickDate}>
                 <View className="size-10 items-center justify-center rounded-full">
@@ -270,7 +265,7 @@ function MeasuredGratitudeActionDock({
               </DockActionButton>
               {showPet && (
                 <DockActionButton
-                  accessibilityLabel={t('Play with Pet')}
+                  accessibilityLabel={t('gratitude.playWithPet')}
                   disabled={!isExpanded || !pet?.ready || pet.busy}
                   onPress={() => pet?.play()}>
                   <View className="size-10 items-center justify-center rounded-full">

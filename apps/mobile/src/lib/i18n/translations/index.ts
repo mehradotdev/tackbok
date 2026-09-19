@@ -1,4 +1,13 @@
-import type { SupportedLocale, Translations, LanguageInfo } from '../types';
+import { getIntlLanguageTag } from '../languageTag';
+import { pluralMessages } from './plurals';
+import { formatLocalizedNumber } from '../numberFormatting';
+import { createInstance } from 'i18next';
+import type {
+  SupportedLocale,
+  Translations,
+  LanguageInfo,
+  TranslationKey,
+} from '../types';
 import { RTL_LOCALES } from '../types';
 import { en } from './en';
 import { ar } from './ar';
@@ -70,13 +79,13 @@ export const languages: LanguageInfo[] = [
   // { code: 'zh-HK', displayName: 'Cantonese', nativeName: '廣東話', isRTL: false },
   {
     code: 'zh-CN',
-    displayName: 'CN Simplified',
+    displayName: 'Chinese (Simplified)',
     nativeName: '简体中文',
     isRTL: false,
   },
   {
     code: 'zh-TW',
-    displayName: 'CN Traditional',
+    displayName: 'Chinese (Traditional)',
     nativeName: '繁體中文',
     isRTL: false,
   },
@@ -104,51 +113,43 @@ export const languages: LanguageInfo[] = [
   // { code: 'ur', displayName: 'Urdu', nativeName: 'اردو', isRTL: true },
 ];
 
-/**
- * Get translation for a key in the specified locale
- * Falls back to the key itself if translation not found
- * Supports interpolation: translate(locale, 'importedCount', { count: 5 })
- * Placeholders use {name} syntax, e.g. "Imported {count} entries"
- */
+// Bundled resources initialize synchronously; no network backend or React provider.
+const engine = createInstance();
+void engine.init({
+  resources: Object.fromEntries(
+    Object.entries(translations).map(([locale, messages]) => [
+      getIntlLanguageTag(locale as SupportedLocale),
+      { translation: { ...messages, ...pluralMessages[locale as SupportedLocale] } },
+    ]),
+  ),
+  lng: 'en',
+  fallbackLng: 'en',
+  initAsync: false,
+  keySeparator: false,
+  nsSeparator: false,
+  returnNull: false,
+  returnEmptyString: false,
+  interpolation: { prefix: '{', suffix: '}', escapeValue: false },
+});
+
+/** Translate a complete message. Pass a numeric count for locale plural rules. */
 export function translate(
   locale: SupportedLocale,
-  key: string,
+  key: TranslationKey,
   params?: Record<string, string | number>,
 ): string {
-  const localeTranslations = translations[locale];
-
-  let result: string;
-  if (key in localeTranslations) {
-    result = localeTranslations[key as keyof Translations];
-  } else {
-    if (__DEV__) {
-      console.warn(`[i18n] Missing translation for key: "${key}" in locale: "${locale}"`);
-    }
-    result = key;
-  }
-
-  if (params) {
-    for (const [paramKey, value] of Object.entries(params)) {
-      const placeholder = `{${paramKey}}`;
-      if (__DEV__ && !result.includes(placeholder)) {
-        console.warn(
-          `[i18n] Unused interpolation param "${paramKey}" for key: "${key}" in locale: "${locale}"`,
-        );
-      }
-      result = result.replaceAll(placeholder, String(value));
-    }
-
-    if (__DEV__) {
-      const unreplaced = result.match(/\{[a-zA-Z_]\w*\}/g);
-      if (unreplaced) {
-        console.warn(
-          `[i18n] Unreplaced placeholder(s) ${unreplaced.join(', ')} for key: "${key}" in locale: "${locale}"`,
-        );
-      }
-    }
-  }
-
-  return result;
+  const replace = Object.fromEntries(
+    Object.entries(params ?? {}).map(([name, value]) => [
+      name,
+      typeof value === 'number' ? formatLocalizedNumber(value, locale) : value,
+    ]),
+  );
+  return engine.t(key, {
+    lng: getIntlLanguageTag(locale),
+    count: typeof params?.count === 'number' ? params.count : undefined,
+    replace,
+    defaultValue: en['common.unknownError'],
+  });
 }
 
 /**

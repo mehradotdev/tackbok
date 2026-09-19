@@ -40,7 +40,7 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
     return (
       <View className="flex-1 bg-background w-full items-center justify-center px-4">
         <Text className="text-muted-foreground text-center">
-          {t('Start typing to search your gratitude logs')}
+          {t('search.startTypingToSearchYourGratitudeLogs')}
         </Text>
       </View>
     );
@@ -57,9 +57,9 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
   if (error) {
     return (
       <View className="flex-1 bg-background w-full items-center justify-center px-4">
-        <Text className="text-center text-red-600 mb-2">{t('Search failed')}</Text>
+        <Text className="text-center text-red-600 mb-2">{t('search.searchFailed')}</Text>
         <Text className="text-center text-muted-foreground">
-          {error?.message || t('Unknown error')}
+          {error?.message || t('common.unknownError')}
         </Text>
       </View>
     );
@@ -68,7 +68,7 @@ export const SearchResults: React.FC<ISearchResultsProps> = ({
   if (results.length === 0) {
     return (
       <View className="flex-1 bg-background w-full items-center justify-center px-4">
-        <Text className="text-muted-foreground text-center">{t('No results')}</Text>
+        <Text className="text-muted-foreground text-center">{t('search.noResults')}</Text>
       </View>
     );
   }

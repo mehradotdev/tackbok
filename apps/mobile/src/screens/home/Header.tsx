@@ -80,7 +80,7 @@ export const Header: React.FC<IHeaderProps> = ({
           <View className="flex-1 mx-3">
             <Input
               className="bg-background rounded-lg px-3 py-2 text-foreground"
-              placeholder={t('Search gratitude logs...')}
+              placeholder={t('search.searchGratitudeLogs')}
               value={searchQuery}
               onChangeText={onSearchQueryChange}
               autoFocus
@@ -159,7 +159,7 @@ export const Header: React.FC<IHeaderProps> = ({
               numberOfLines={1}
               adjustsFontSizeToFit
               className="text-primary-foreground font-heading max-w-[42%]">
-              {t('Tackbok')}
+              {t('common.tackbok')}
             </Text>
           </HeaderMotion>
         </View>
@@ -175,14 +175,14 @@ export const Header: React.FC<IHeaderProps> = ({
               onPress={() => router.push('/cloud-backup' as Href)}
               accessibilityLabel={
                 syncIsActive
-                  ? t('Cloud sync: syncing')
+                  ? t('cloud.cloudSyncSyncing')
                   : snapshot.status === 'queued'
-                    ? t('Cloud sync: changes safely queued')
+                    ? t('cloud.cloudSyncChangesSafelyQueued')
                     : snapshot.status === 'paused'
-                      ? t('Cloud sync: paused')
+                      ? t('cloud.cloudSyncPaused')
                       : snapshot.status === 'warning'
-                        ? t('Cloud sync: attention needed')
-                        : t('Cloud sync: up to date')
+                        ? t('cloud.cloudSyncAttentionNeeded')
+                        : t('cloud.cloudSyncUpToDate')
               }>
               {syncIsActive ? (
                 <SpinningRefreshIcon className="text-primary-foreground size-5" />

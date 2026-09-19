@@ -51,7 +51,7 @@ export function JournalFocusAreasSheet() {
 
   const handleSave = () => {
     if (!canSave) {
-      toast.warning(t('Select at least 2 focus areas'));
+      toast.warning(t('journaling.selectAtLeast2FocusAreas'));
       return;
     }
     setJournalFocusAreas(selectedAreas);
@@ -77,7 +77,7 @@ export function JournalFocusAreasSheet() {
           <View className="w-10" />
 
           <Text className="text-foreground text-lg font-body-semibold leading-tight flex-1 text-center">
-            {t('Journal Focus Areas')}
+            {t('journaling.journalFocusAreas')}
           </Text>
 
           <View className="w-10 items-end">
@@ -85,7 +85,7 @@ export function JournalFocusAreasSheet() {
               variant="ghost"
               size="icon"
               onPress={() => TrueSheet.dismiss(SHEET_NAMES.JOURNAL_FOCUS_AREAS)}
-              accessibilityLabel={t('Close')}
+              accessibilityLabel={t('common.close')}
               hitSlop={10}
               className="w-8 h-8">
               <Icon as={X} className="text-muted-foreground" size={20} />
@@ -96,7 +96,7 @@ export function JournalFocusAreasSheet() {
         {/* Subtitle */}
         <View className="px-4 pt-3 pb-2">
           <Text className="text-sm text-muted-foreground">
-            {t('Pick the topics you want to write about.')}
+            {t('journaling.pickTheTopicsYouWantToWriteAbout')}
           </Text>
         </View>
 
@@ -110,8 +110,7 @@ export function JournalFocusAreasSheet() {
               nestedScrollEnabled>
               {BUILT_IN_JOURNAL_PROMPT_CATEGORIES.map((category, index) => {
                 const isSelected = selectedAreas.includes(category.id);
-                const isLast =
-                  index === BUILT_IN_JOURNAL_PROMPT_CATEGORIES.length - 1;
+                const isLast = index === BUILT_IN_JOURNAL_PROMPT_CATEGORIES.length - 1;
 
                 return (
                   <Button
@@ -172,7 +171,7 @@ export function JournalFocusAreasSheet() {
             onPress={handleSave}
             disabled={!canSave}
             className={cn(!canSave && 'opacity-50')}>
-            <Text className="text-lg">{t('Save')}</Text>
+            <Text className="text-lg">{t('common.save')}</Text>
           </Button>
         </View>
       </View>

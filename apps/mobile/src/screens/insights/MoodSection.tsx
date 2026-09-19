@@ -37,7 +37,7 @@ export function MoodSection({ stats }: { stats: InsightsStats }) {
         <View className="flex-row items-center gap-1.5 mt-2">
           <Text className="text-base">✨</Text>
           <Text className="text-sm text-foreground flex-1">
-            {t('Your happiest day is {weekday}', {
+            {t('insights.yourHappiestDayIsWeekday', {
               weekday: t(DAY_KEYS[stats.happiestWeekday]),
             })}
           </Text>

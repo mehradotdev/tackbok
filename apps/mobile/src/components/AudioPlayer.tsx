@@ -258,7 +258,9 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
           variant="ghost"
           size="none"
           onPress={handlePlayPause}
-          accessibilityLabel={isPlaying && isActiveUri ? t('Pause') : t('Play')}
+          accessibilityLabel={
+            isPlaying && isActiveUri ? t('common.pause') : t('common.play')
+          }
           className="w-12 h-12 rounded-full bg-primary">
           <Icon
             as={isPlaying && isActiveUri ? Pause : Play}
@@ -293,7 +295,7 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
           variant="ghost"
           size="none"
           onPress={onRemove}
-          accessibilityLabel={t('Remove')}
+          accessibilityLabel={t('common.remove')}
           hitSlop={6}
           className="absolute -top-2 -right-2 z-10 rounded-full">
           <Badge

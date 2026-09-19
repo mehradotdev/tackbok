@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import type { BackupImportSource, BackupImportSummary } from '~/lib/backupImport';
-import { useTranslation } from '~/lib/i18n';
+import { useTranslation, formatLocalizedNumber } from '~/lib/i18n';
 import { Button } from '~/components/ui/button';
 import {
   Dialog,
@@ -42,30 +42,42 @@ export function SettingsImportSummaryModal({
   const rows = [
     {
       id: 'importedEntries',
-      label: t('New entries'),
+      label: t('backup.newEntries'),
       value: summary.importedEntries,
       alwaysShow: true,
     },
-    { id: 'updatedEntries', label: t('Updated entries'), value: summary.updatedEntries },
+    {
+      id: 'updatedEntries',
+      label: t('backup.updatedEntries'),
+      value: summary.updatedEntries,
+    },
     {
       id: 'skippedEntries',
-      label: t('Skipped duplicates'),
+      label: t('backup.skippedDuplicates'),
       value: summary.skippedEntries,
     },
     {
       id: 'failedEntries',
-      label: t('Entries skipped due to errors'),
+      label: t('backup.entriesSkippedDueToErrors'),
       value: summary.failedEntries,
     },
-    { id: 'importedTags', label: t('Tags added'), value: summary.importedTags },
-    { id: 'importedPrompts', label: t('Prompts added'), value: summary.importedPrompts },
-    { id: 'importedPhotos', label: t('Photos restored'), value: summary.importedPhotos },
+    { id: 'importedTags', label: t('backup.tagsAdded'), value: summary.importedTags },
+    {
+      id: 'importedPrompts',
+      label: t('backup.promptsAdded'),
+      value: summary.importedPrompts,
+    },
+    {
+      id: 'importedPhotos',
+      label: t('backup.photosRestored'),
+      value: summary.importedPhotos,
+    },
     {
       id: 'importedAudio',
-      label: t('Voice memos restored'),
+      label: t('backup.voiceMemosRestored'),
       value: summary.importedAudio,
     },
-    { id: 'skippedMedia', label: t('Media skipped'), value: skippedMediaCount },
+    { id: 'skippedMedia', label: t('backup.mediaSkipped'), value: skippedMediaCount },
   ].filter((row) => row.alwaysShow || row.value > 0);
 
   return (
@@ -98,7 +110,7 @@ export function SettingsImportSummaryModal({
 
         <DialogFooter className="mt-5 sm:justify-center">
           <Button variant="primary" className="w-full" onPress={onDone}>
-            <Text>{t('Done')}</Text>
+            <Text>{t('common.done')}</Text>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -110,18 +122,18 @@ function getSummaryTitle(
   source: BackupImportSource,
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
-  if (source === 'tackbok') return t('Tackbok backup restored');
-  if (source === 'gratitudeApp') return t('Gratitude import complete');
-  return t('Presently import complete');
+  if (source === 'tackbok') return t('backup.tackbokBackupRestored');
+  if (source === 'gratitudeApp') return t('backup.gratitudeImportComplete');
+  return t('backup.presentlyImportComplete');
 }
 
 function getSummarySourceLabel(
   source: BackupImportSource,
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
-  if (source === 'tackbok') return t('Imported from Tackbok backup');
-  if (source === 'gratitudeApp') return t('Imported from Gratitude backup');
-  return t('Imported from Presently export');
+  if (source === 'tackbok') return t('backup.importedFromTackbokBackup');
+  if (source === 'gratitudeApp') return t('backup.importedFromGratitudeBackup');
+  return t('backup.importedFromPresentlyExport');
 }
 
 function getSummaryMessage(
@@ -135,28 +147,24 @@ function getSummaryMessage(
 
   if (summary.importedEntries > 0 || summary.updatedEntries > 0) {
     if (hasWarnings) {
-      return t(
-        'Your journal data is ready to review, but some items could not be restored.',
-      );
+      return t('backup.yourJournalDataIsReadyToReviewButSomeItems');
     }
 
-    return t('Your journal data is ready to review.');
+    return t('backup.yourJournalDataIsReadyToReview');
   }
   if (summary.skippedEntries > 0) {
     if (hasWarnings) {
-      return t(
-        'This import finished with warnings. Some items could not be restored, and everything else already existed in Tackbok.',
-      );
+      return t('backup.thisImportFinishedWithWarningsSomeItemsCouldNotBe');
     }
 
-    return t('This import finished, but everything already existed in Tackbok.');
+    return t('backup.thisImportFinishedButEverythingAlreadyExistedInTackbok');
   }
 
   if (hasWarnings) {
-    return t('This import finished with warnings. Some items could not be restored.');
+    return t('backup.thisImportFinishedWithWarningsSomeItemsCouldNotBe2');
   }
 
-  return t('This import finished successfully.');
+  return t('backup.thisImportFinishedSuccessfully');
 }
 
 function getSkippedMediaCount(summary: BackupImportSummary): number {
@@ -164,10 +172,13 @@ function getSkippedMediaCount(summary: BackupImportSummary): number {
 }
 
 function SummaryRow({ label, value }: { label: string; value: number }) {
+  const { locale } = useTranslation();
   return (
     <View className="flex-row items-center justify-between rounded-2xl bg-muted/60 px-3 py-3">
       <Text className="text-sm text-foreground">{label}</Text>
-      <Text className="text-sm font-body-bold text-foreground">{value}</Text>
+      <Text className="text-sm font-body-bold text-foreground">
+        {formatLocalizedNumber(value, locale)}
+      </Text>
     </View>
   );
 }

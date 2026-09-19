@@ -29,12 +29,10 @@ export function HomeCoachMarks() {
   const hasSeenHomeCoachMarks = useSettingsStore((s) => s.hasSeenHomeCoachMarks);
   const setHasSeenHomeCoachMarks = useSettingsStore((s) => s.setHasSeenHomeCoachMarks);
   const sampleEntryIds = useSettingsStore((s) => s.sampleEntryIds);
-  const { data: entriesByDate, isPending: entriesArePending } =
-    useEntriesGroupByDate();
+  const { data: entriesByDate, isPending: entriesArePending } = useEntriesGroupByDate();
   const [stepIndex, setStepIndex] = useState(0);
 
-  const isActive =
-    hasCompletedOnboarding && !hasSeenHomeCoachMarks && !entriesArePending;
+  const isActive = hasCompletedOnboarding && !hasSeenHomeCoachMarks && !entriesArePending;
   const hasEntries = Boolean(entriesByDate?.size) || sampleEntryIds.length > 0;
 
   useEffect(() => {
@@ -51,26 +49,26 @@ export function HomeCoachMarks() {
     // automatically under forceRTL, matching the mirrored targets.
     {
       key: 'add-entry',
-      text: t('Add today’s entry here.'),
+      text: t('onboarding.addTodaysEntryHere'),
       positionClassName: 'bottom-32 right-4',
     },
     {
       key: 'move-dock',
-      text: t('Press and hold, then drag to move these buttons along the edge.'),
+      text: t('onboarding.pressAndHoldThenDragToMoveTheseButtonsAlong'),
       positionClassName: 'bottom-32 right-4',
     },
     ...(hasEntries
       ? [
           {
             key: 'entry-card',
-            text: t('Tap an entry to view or edit it.'),
+            text: t('onboarding.tapAnEntryToViewOrEditIt'),
             positionClassName: 'top-36 left-6',
           },
         ]
       : []),
     {
       key: 'search',
-      text: t('Find memories by text or tag.'),
+      text: t('onboarding.findMemoriesByTextOrTag'),
       positionClassName: 'top-16 left-3',
     },
   ];
@@ -107,10 +105,14 @@ export function HomeCoachMarks() {
               variant="ghost"
               size="sm"
               onPress={() => setHasSeenHomeCoachMarks(true)}>
-              <Text className="text-sm text-muted-foreground">{t('Skip')}</Text>
+              <Text className="text-sm text-muted-foreground">
+                {t('onboarding.skip')}
+              </Text>
             </Button>
             <Button variant="primary" size="sm" onPress={handleAdvance}>
-              <Text className="text-sm">{isLastStep ? t('Done') : t('Next')}</Text>
+              <Text className="text-sm">
+                {isLastStep ? t('common.done') : t('onboarding.next')}
+              </Text>
             </Button>
           </View>
         </View>

@@ -61,14 +61,12 @@ export function AddPhotoModal({
       onClose(); // Close the choice dialog first
       const title =
         source === 'camera'
-          ? t('Camera Access Required')
-          : t('Photo Library Access Required');
+          ? t('entry.cameraAccessRequired')
+          : t('entry.photoLibraryAccessRequired');
       const message =
         source === 'camera'
-          ? t('Please enable camera access in your device settings to take photos.')
-          : t(
-              'Please enable photo library access in your device settings to select photos.',
-            );
+          ? t('entry.pleaseEnableCameraAccessInYourDeviceSettingsToTake')
+          : t('entry.pleaseEnablePhotoLibraryAccessInYourDeviceSettingsTo');
 
       setPermissionAlert({ isOpen: true, title, message });
     },
@@ -96,7 +94,7 @@ export function AddPhotoModal({
       <Dialog open={visible} onOpenChange={onClose}>
         <DialogContent className={isSharp ? 'rounded-none' : ''}>
           <DialogHeader>
-            <DialogTitle>{t('Add Photo')}</DialogTitle>
+            <DialogTitle>{t('entry.addPhoto')}</DialogTitle>
           </DialogHeader>
           <View className="flex-row gap-4 justify-center py-4">
             <Button
@@ -108,7 +106,7 @@ export function AddPhotoModal({
                 await handlePickResult(result);
               }}>
               <Icon as={Camera} className="size-8 text-foreground" strokeWidth={2} />
-              <Text className="text-center font-body-medium">{t('Take Photo')}</Text>
+              <Text className="text-center font-body-medium">{t('entry.takePhoto')}</Text>
             </Button>
             <Button
               variant="outline"
@@ -122,13 +120,13 @@ export function AddPhotoModal({
               }}>
               <Icon as={ImagePlus} className="size-8 text-foreground" strokeWidth={2} />
               <Text className="text-center font-body-medium">
-                {t('Choose from Library')}
+                {t('entry.chooseFromLibrary')}
               </Text>
             </Button>
           </View>
           <DialogFooter>
             <Button variant="default" className="w-full" onPress={onClose}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -145,14 +143,14 @@ export function AddPhotoModal({
           <AlertDialogFooter>
             <AlertDialogCancel
               onPress={() => setPermissionAlert((prev) => ({ ...prev, isOpen: false }))}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogAction
               onPress={() => {
                 setPermissionAlert((prev) => ({ ...prev, isOpen: false }));
                 Linking.openSettings();
               }}>
-              <Text>{t('Open Settings')}</Text>
+              <Text>{t('entry.openSettings')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

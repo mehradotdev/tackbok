@@ -57,7 +57,7 @@ export function MoodModal({ value, onChange }: IMoodModalProps) {
       <View className="pb-4 pt-2">
         <View className="flex-row items-center justify-between px-4 py-4">
           <Text className="text-foreground text-lg font-body-semibold leading-tight">
-            {t('How are you feeling?')}
+            {t('mood.howAreYouFeeling')}
           </Text>
           <Button
             variant="ghost"

@@ -19,26 +19,26 @@ export function TopTagsSection({ stats }: { stats: InsightsStats }) {
   const maxCount = Math.max(...rows.map((tag) => tag.count), 1);
 
   return (
-    <InsightsSection title={t('Top tags')}>
+    <InsightsSection title={t('insights.topTags')}>
       <View className="gap-2.5">
-      {rows.map((tag) => (
-        <View key={tag.tagId} className="flex-row items-center gap-2">
-          <Text
-            className="text-sm text-foreground w-24 font-body-medium"
-            numberOfLines={1}>
-            {tag.title}
-          </Text>
-          <View className="flex-1 h-3 rounded-full bg-muted/40 overflow-hidden">
-            <View
-              className="h-3 rounded-full bg-primary"
-              style={{ width: `${Math.max((tag.count / maxCount) * 100, 4)}%` }}
-            />
+        {rows.map((tag) => (
+          <View key={tag.tagId} className="flex-row items-center gap-2">
+            <Text
+              className="text-sm text-foreground w-24 font-body-medium"
+              numberOfLines={1}>
+              {tag.title}
+            </Text>
+            <View className="flex-1 h-3 rounded-full bg-muted/40 overflow-hidden">
+              <View
+                className="h-3 rounded-full bg-primary"
+                style={{ width: `${Math.max((tag.count / maxCount) * 100, 4)}%` }}
+              />
+            </View>
+            <Text className="text-xs text-muted-foreground w-8 text-right">
+              {formatLocalizedNumber(tag.count, locale)}
+            </Text>
           </View>
-          <Text className="text-xs text-muted-foreground w-8 text-right">
-            {formatLocalizedNumber(tag.count, locale)}
-          </Text>
-        </View>
-      ))}
+        ))}
       </View>
     </InsightsSection>
   );

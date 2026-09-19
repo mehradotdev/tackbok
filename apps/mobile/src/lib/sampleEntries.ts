@@ -78,8 +78,7 @@ async function ensureTag(title: string): Promise<string | null> {
   const allTags = await getAllTags();
   const normalized = title.trim().toLowerCase();
   return (
-    allTags.find((tag) => tag.title.trim().toLowerCase() === normalized)?.tag_id ??
-    null
+    allTags.find((tag) => tag.title.trim().toLowerCase() === normalized)?.tag_id ?? null
   );
 }
 
@@ -101,8 +100,18 @@ export async function seedSampleEntries(t: TranslationFunction): Promise<string[
   ).filter((id): id is string => id !== null);
 
   const photoAssets: Asset[] = [
-    { type: AssetType.IMAGE, uri: photo1.relativeUri, width: photo1.width, height: photo1.height },
-    { type: AssetType.IMAGE, uri: photo2.relativeUri, width: photo2.width, height: photo2.height },
+    {
+      type: AssetType.IMAGE,
+      uri: photo1.relativeUri,
+      width: photo1.width,
+      height: photo1.height,
+    },
+    {
+      type: AssetType.IMAGE,
+      uri: photo2.relativeUri,
+      width: photo2.width,
+      height: photo2.height,
+    },
   ];
   const audioAssets: Asset[] = [{ type: AssetType.AUDIO, uri: audio.relativeUri }];
 

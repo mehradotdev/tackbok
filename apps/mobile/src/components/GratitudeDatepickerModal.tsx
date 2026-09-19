@@ -178,9 +178,9 @@ export function GratitudeDatepickerModal({
                   variant="ghost"
                   size="sm"
                   onPress={handleRandomPress}
-                  accessibilityLabel={t('Open a random entry')}>
+                  accessibilityLabel={t('calendar.openARandomEntry')}>
                   <Icon as={Shuffle} size={16} />
-                  <Text>{t('Random')}</Text>
+                  <Text>{t('calendar.random')}</Text>
                 </Button>
               </View>
             ) : undefined

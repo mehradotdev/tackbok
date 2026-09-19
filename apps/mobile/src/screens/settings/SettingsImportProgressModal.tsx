@@ -29,30 +29,30 @@ export function SettingsImportProgressModal({
   const stats = [
     progress.totalEntries > 0
       ? {
-          label: t('Entries processed'),
+          label: t('backup.entriesProcessed'),
           value: `${progress.processedEntries}/${progress.totalEntries}`,
         }
       : null,
     progress.importedTags > 0
-      ? { label: t('Tags added'), value: String(progress.importedTags) }
+      ? { label: t('backup.tagsAdded'), value: String(progress.importedTags) }
       : null,
     progress.importedPrompts > 0
-      ? { label: t('Prompts added'), value: String(progress.importedPrompts) }
+      ? { label: t('backup.promptsAdded'), value: String(progress.importedPrompts) }
       : null,
     progress.importedPhotos > 0
-      ? { label: t('Photos restored'), value: String(progress.importedPhotos) }
+      ? { label: t('backup.photosRestored'), value: String(progress.importedPhotos) }
       : null,
     progress.importedAudio > 0
-      ? { label: t('Voice memos restored'), value: String(progress.importedAudio) }
+      ? { label: t('backup.voiceMemosRestored'), value: String(progress.importedAudio) }
       : null,
     progress.failedEntries > 0
       ? {
-          label: t('Entries skipped due to errors'),
+          label: t('backup.entriesSkippedDueToErrors'),
           value: String(progress.failedEntries),
         }
       : null,
     skippedMediaCount > 0
-      ? { label: t('Media skipped'), value: String(skippedMediaCount) }
+      ? { label: t('backup.mediaSkipped'), value: String(skippedMediaCount) }
       : null,
   ].filter((stat): stat is { label: string; value: string } => stat !== null);
 
@@ -106,9 +106,7 @@ export function SettingsImportProgressModal({
           <View className="flex-row items-start gap-2 rounded-xl bg-warning/10 px-3 py-2.5">
             <TriangleAlert size={16} className="mt-0.5 text-warning" />
             <Text className="flex-1 text-xs leading-4.5 text-muted-foreground">
-              {t(
-                'Please do not close or minimize the app while the import is in progress.',
-              )}
+              {t('backup.pleaseDoNotCloseOrMinimizeTheAppWhileThe')}
             </Text>
           </View>
         </View>
@@ -121,9 +119,9 @@ function getImportTitle(
   source: BackupImportProgress['source'],
   t: ReturnType<typeof useTranslation>['t'],
 ): string {
-  if (source === 'tackbok') return t('Restoring Tackbok backup');
-  if (source === 'gratitudeApp') return t('Importing from Gratitude App');
-  return t('Import from Presently App');
+  if (source === 'tackbok') return t('backup.restoringTackbokBackup');
+  if (source === 'gratitudeApp') return t('backup.importingFromGratitudeApp');
+  return t('backup.importFromPresentlyApp');
 }
 
 function getPhaseLabel(
@@ -135,11 +133,11 @@ function getPhaseLabel(
 
     switch (phase) {
       case 'reading':
-        return t('Load Presently export');
+        return t('backup.loadPresentlyExport');
       case 'entries':
-        return t('Import journal entries');
+        return t('backup.importJournalEntries');
       case 'finishing':
-        return t('Refresh journal data');
+        return t('backup.refreshJournalData');
       default:
         return assertNever(phase);
     }
@@ -149,17 +147,17 @@ function getPhaseLabel(
 
   switch (phase) {
     case 'reading':
-      return t('Open backup file');
+      return t('backup.openBackupFile');
     case 'validating':
-      return t('Validate backup contents');
+      return t('backup.validateBackupContents');
     case 'profile':
-      return t('Restore profile');
+      return t('backup.restoreProfile');
     case 'taxonomy':
-      return t('Import tags and prompts');
+      return t('backup.importTagsAndPrompts');
     case 'entries':
-      return t('Restore entries and media');
+      return t('backup.restoreEntriesAndMedia');
     case 'finishing':
-      return t('Refresh journal data');
+      return t('backup.refreshJournalData');
     default:
       return assertNever(phase);
   }
@@ -173,22 +171,22 @@ function getCurrentDetail(
 
   switch (phase) {
     case 'reading':
-      return t('Loading the selected import file.');
+      return t('backup.loadingTheSelectedImportFile');
     case 'validating':
-      return t('Checking backup contents and file structure.');
+      return t('backup.checkingBackupContentsAndFileStructure');
     case 'profile':
-      return t('Restoring profile details and profile photo if available.');
+      return t('backup.restoringProfileDetailsAndProfilePhotoIfAvailable');
     case 'taxonomy':
-      return t('Adding tags and prompts before entries are restored.');
+      return t('backup.addingTagsAndPromptsBeforeEntriesAreRestored');
     case 'entries':
       return progress.totalEntries > 0
-        ? t('Processing {processed} of {total} journal entries and attached media.', {
+        ? t('backup.processingProcessedOfTotalJournalEntriesAndAttachedMedia', {
             processed: progress.processedEntries,
             total: progress.totalEntries,
           })
-        : t('No journal entries found in this backup.');
+        : t('backup.noJournalEntriesFoundInThisBackup');
     case 'finishing':
-      return t('Refreshing your journal so imported data appears everywhere.');
+      return t('backup.refreshingYourJournalSoImportedDataAppearsEverywhere');
     default:
       return assertNever(phase);
   }

@@ -15,19 +15,19 @@ export function statusLabel(
 ): string {
   switch (status) {
     case 'syncing':
-      return t('Syncing…');
+      return t('cloud.syncing');
     case 'queued':
-      return t('Safely queued');
+      return t('cloud.safelyQueued');
     case 'paused':
-      return t('Sync paused');
+      return t('cloud.syncPaused');
     case 'warning':
-      return t('Attention needed');
+      return t('cloud.attentionNeeded');
     case 'restoring':
-      return t('Restoring…');
+      return t('cloud.restoring');
     case 'synced':
-      return t('Up to date');
+      return t('cloud.upToDate');
     default:
-      return t('Off');
+      return t('journaling.off');
   }
 }
 
@@ -40,15 +40,15 @@ export function syncPhaseLabel(
 ): string {
   switch (phase) {
     case 'checking':
-      return t('Checking Google Drive for changes');
+      return t('cloud.checkingGoogleDriveForChanges');
     case 'preparing':
       return initialRestore
-        ? t('Preparing restored journal data')
-        : t('Preparing journal changes');
+        ? t('cloud.preparingRestoredJournalData')
+        : t('cloud.preparingJournalChanges');
     case 'uploading':
-      return t('Merging changes and updating Google Drive');
+      return t('cloud.mergingChangesAndUpdatingGoogleDrive');
     case 'finishing':
-      return t('Saving synced journal data on this device');
+      return t('cloud.savingSyncedJournalDataOnThisDevice');
   }
 }
 
@@ -58,13 +58,13 @@ export function entityTypeLabel(
 ): string {
   switch (entityType) {
     case 'entry':
-      return t('Entry');
+      return t('cloud.entry');
     case 'tag':
-      return t('Tag');
+      return t('tags.tag');
     case 'prompt':
-      return t('Prompt');
+      return t('cloud.prompt');
     case 'profile':
-      return t('Profile');
+      return t('cloud.profile');
   }
 }
 
@@ -74,23 +74,21 @@ export function cloudSyncFailureMessage(
 ): string {
   switch (category) {
     case 'auth':
-      return t('Google Drive needs to be reconnected.');
+      return t('cloud.googleDriveNeedsToBeReconnected');
     case 'quota':
-      return t('Google Drive storage is full.');
+      return t('cloud.googleDriveStorageIsFull');
     case 'rate-limit':
-      return t('Google Drive is busy. Try again shortly.');
+      return t('cloud.googleDriveIsBusyTryAgainShortly');
     case 'offline':
-      return t('No internet connection. Your changes remain safely queued.');
+      return t('cloud.noInternetConnectionYourChangesRemainSafelyQueued');
     case 'wifi-only-media':
-      return t(
-        'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.',
-      );
+      return t('cloud.photosAndVoiceMemosAreWaitingForWiFiYour');
     case 'corrupt':
-      return t('This cloud backup contains data Tackbok cannot read.');
+      return t('cloud.thisCloudBackupContainsDataTackbokCannotRead');
     case 'transient':
-      return t('Google Drive could not be reached. Your changes remain safely queued.');
+      return t('cloud.googleDriveCouldNotBeReachedYourChangesRemainSafely');
     case 'unknown':
-      return t('Cloud sync could not finish. Your changes remain safely queued.');
+      return t('cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued');
   }
 }
 
@@ -99,35 +97,31 @@ export function attentionReasonMessage(
   t: TranslationFunction,
 ): string {
   const messages: Record<SyncAttentionReason, string> = {
-    'authorization-required': t('Google Drive authorization needs attention.'),
-    'account-mismatch': t('This backup belongs to a different connected Google account.'),
-    'consent-incomplete': t('Google Drive permission was not fully granted.'),
-    'wrong-vault': t('The connected cloud backup does not match this journal.'),
-    'unsupported-format': t('This backup was created by a newer Tackbok version.'),
-    'invalid-remote-snapshot': t('A cloud snapshot failed its safety checks.'),
-    'head-snapshot-missing': t('A device backup points to a missing snapshot.'),
-    'ambiguous-device-head': t('Two different backups claim the same device version.'),
-    'frontier-too-wide': t('Too many independent device backups need consolidation.'),
+    'authorization-required': t('cloud.googleDriveAuthorizationNeedsAttention'),
+    'account-mismatch': t('cloud.thisBackupBelongsToADifferentConnectedGoogleAccount'),
+    'consent-incomplete': t('cloud.googleDrivePermissionWasNotFullyGranted'),
+    'wrong-vault': t('cloud.theConnectedCloudBackupDoesNotMatchThisJournal'),
+    'unsupported-format': t('cloud.thisBackupWasCreatedByANewerTackbokVersion'),
+    'invalid-remote-snapshot': t('cloud.aCloudSnapshotFailedItsSafetyChecks'),
+    'head-snapshot-missing': t('cloud.aDeviceBackupPointsToAMissingSnapshot'),
+    'ambiguous-device-head': t('cloud.twoDifferentBackupsClaimTheSameDeviceVersion'),
+    'frontier-too-wide': t('cloud.tooManyIndependentDeviceBackupsNeedConsolidation'),
     'derived-id-collision': t(
-      'A recovered item conflicts with an existing stable identifier.',
+      'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier',
     ),
-    'local-storage-full': t('Tackbok could not safely stage backup data on this device.'),
-    'provider-quota-full': t('Google Drive does not have enough free storage.'),
-    'provider-request-rejected': t('Google Drive rejected a backup request. Update Tackbok and retry.'),
-    'provider-permission-denied': t(
-      'Google Drive denied access to the app backup folder.',
+    'local-storage-full': t('cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice'),
+    'provider-quota-full': t('cloud.googleDriveDoesNotHaveEnoughFreeStorage'),
+    'provider-request-rejected': t(
+      'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry',
     ),
-    'missing-media': t('A referenced photo or voice memo is unavailable.'),
-    'local-media-unreadable': t('A local photo or voice memo could not be verified.'),
-    'normalized-model-not-ready': t('Your journal is not ready for cloud sync yet.'),
-    'backup-deleted': t('This cloud backup was deleted from another device.'),
-    'journal-deleted': t('This journal was deleted everywhere from another device.'),
-    'purge-incomplete': t(
-      'Cloud deletion stopped before every backup object was removed.',
-    ),
-    'cleanup-inconsistent': t(
-      'Backup cleanup was stopped to protect a current snapshot.',
-    ),
+    'provider-permission-denied': t('cloud.googleDriveDeniedAccessToTheAppBackupFolder'),
+    'missing-media': t('cloud.aReferencedPhotoOrVoiceMemoIsUnavailable'),
+    'local-media-unreadable': t('cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified'),
+    'normalized-model-not-ready': t('cloud.yourJournalIsNotReadyForCloudSyncYet'),
+    'backup-deleted': t('cloud.thisCloudBackupWasDeletedFromAnotherDevice'),
+    'journal-deleted': t('cloud.thisJournalWasDeletedEverywhereFromAnotherDevice'),
+    'purge-incomplete': t('cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved'),
+    'cleanup-inconsistent': t('cloud.backupCleanupWasStoppedToProtectACurrentSnapshot'),
   };
   return messages[reason];
 }
@@ -137,25 +131,25 @@ export function recoveryActionLabel(
   t: TranslationFunction,
 ): string {
   const labels: Record<SyncRecoveryAction, string> = {
-    'reconnect-google-drive': t('Reconnect Google Drive'),
-    'choose-connected-account': t('Choose the connected account'),
-    'finish-connection': t('Finish connection'),
-    'reconnect-correct-backup': t('Reconnect to the correct backup'),
-    'update-tackbok': t('Update Tackbok'),
-    'retry-verify-backup': t('Retry and verify backup'),
-    'repair-from-verified-backup': t('Repair from verified backup'),
-    'inspect-repair-backup': t('Inspect and repair backup'),
-    'consolidate-backups': t('Consolidate backups'),
-    'export-repair-backup': t('Export journal and repair backup'),
-    'free-device-storage': t('Free device storage and retry'),
-    'manage-drive-storage': t('Manage Google Drive storage'),
-    'retry-missing-media': t('Retry missing media'),
-    'locate-retry-attachment': t('Locate or retry attachment'),
-    'retry-journal-preparation': t('Retry journal preparation'),
-    'acknowledge-disconnect': t('Acknowledge and disconnect'),
-    'review-erase-device': t('Review deletion and erase this device'),
-    'resume-deletion': t('Resume deletion'),
-    'verify-backup-health': t('Verify backup health'),
+    'reconnect-google-drive': t('cloud.reconnectGoogleDrive'),
+    'choose-connected-account': t('cloud.chooseTheConnectedAccount'),
+    'finish-connection': t('cloud.finishConnection'),
+    'reconnect-correct-backup': t('cloud.reconnectToTheCorrectBackup'),
+    'update-tackbok': t('cloud.updateTackbok'),
+    'retry-verify-backup': t('cloud.retryAndVerifyBackup'),
+    'repair-from-verified-backup': t('cloud.repairFromVerifiedBackup'),
+    'inspect-repair-backup': t('cloud.inspectAndRepairBackup'),
+    'consolidate-backups': t('cloud.consolidateBackups'),
+    'export-repair-backup': t('cloud.exportJournalAndRepairBackup'),
+    'free-device-storage': t('cloud.freeDeviceStorageAndRetry'),
+    'manage-drive-storage': t('cloud.manageGoogleDriveStorage'),
+    'retry-missing-media': t('cloud.retryMissingMedia'),
+    'locate-retry-attachment': t('cloud.locateOrRetryAttachment'),
+    'retry-journal-preparation': t('cloud.retryJournalPreparation'),
+    'acknowledge-disconnect': t('cloud.acknowledgeAndDisconnect'),
+    'review-erase-device': t('cloud.reviewDeletionAndEraseThisDevice'),
+    'resume-deletion': t('cloud.resumeDeletion'),
+    'verify-backup-health': t('cloud.verifyBackupHealth'),
   };
   return labels[action];
 }

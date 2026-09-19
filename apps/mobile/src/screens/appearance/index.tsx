@@ -22,11 +22,11 @@ export default function AppearanceScreen() {
             onPress={() => router.back()}
             variant="ghost"
             className="p-1 mr-1"
-            accessibilityLabel={t('Back')}>
+            accessibilityLabel={t('common.back')}>
             <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
           </Button>
           <Text variant="h2" className="text-foreground py-1 font-heading">
-            {t('Appearance')}
+            {t('appearance.appearance')}
           </Text>
         </View>
 

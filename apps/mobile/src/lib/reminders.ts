@@ -83,7 +83,7 @@ async function ensureAndroidChannel(locale: SupportedLocale) {
     return;
   }
   await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
-    name: translate(locale, 'Daily Reminder'),
+    name: translate(locale, 'notifications.dailyReminder'),
     importance: Notifications.AndroidImportance.DEFAULT,
   });
 }
@@ -97,9 +97,9 @@ function buildReminderContent(locale: SupportedLocale) {
   const body =
     pool.length > 0
       ? pool[Math.floor(Math.random() * pool.length)]
-      : t('What are you grateful for today?');
+      : t('gratitude.whatAreYouGratefulForToday');
   return {
-    title: t('Daily Reminder'),
+    title: t('notifications.dailyReminder'),
     body,
     // Carry the prompt into the tap target so the entry editor opens with the
     // exact question the user tapped, not a fresh random one.

@@ -376,7 +376,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
               size="icon"
               onPress={() => TrueSheet.dismiss(SHEET_NAMES.VOICE_MEMO)}
               hitSlop={8}
-              accessibilityLabel={t('Close')}
+              accessibilityLabel={t('common.close')}
               className="absolute top-4 right-6 z-10 w-8 h-8 px-0">
               <Icon as={X} className="text-muted-foreground size-6" />
             </Button>
@@ -393,17 +393,17 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
           {phase === 'idle' && (
             <>
               <Text className="text-xl font-body-bold text-foreground text-center mb-2">
-                {t('Record Voice Note')}
+                {t('entry.recordVoiceNote')}
               </Text>
               <Text className="text-base text-muted-foreground text-center mb-6">
-                {t('Tap the button below when ready.')}
+                {t('entry.tapTheButtonBelowWhenReady')}
               </Text>
               <Button
                 variant="default"
                 className="w-full h-14"
                 onPress={handleStartRecording}>
                 <Icon as={Mic} className="text-background size-5" />
-                <Text>{t('Start Recording')}</Text>
+                <Text>{t('entry.startRecording')}</Text>
               </Button>
             </>
           )}
@@ -412,13 +412,13 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
           {phase === 'recording' && (
             <>
               <Text className="text-xl font-body-bold text-foreground text-center mb-2">
-                {t('Recording Voice Note...')}
+                {t('entry.recordingVoiceNote')}
               </Text>
               <Text className="text-4xl font-body-bold text-foreground text-center mb-4">
                 {formatTime(recordingDuration)}
               </Text>
               <Text className="text-sm text-muted-foreground text-center mb-4">
-                {t('Voice notes save automatically at 30:00.')}
+                {t('entry.voiceNotesSaveAutomaticallyAt3000')}
               </Text>
 
               {/* Live waveform during recording */}
@@ -435,7 +435,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
                 className="w-full h-14"
                 onPress={() => handleStopRecording()}>
                 <Icon as={Square} className="text-background size-4" />
-                <Text>{t('Stop Recording')}</Text>
+                <Text>{t('entry.stopRecording')}</Text>
               </Button>
             </>
           )}
@@ -444,10 +444,10 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
           {phase === 'preview' && (
             <>
               <Text className="text-xl font-body-bold text-foreground text-center mb-2">
-                {t('Voice Note Recorded')}
+                {t('entry.voiceNoteRecorded')}
               </Text>
               <Text className="text-base text-muted-foreground text-center mb-4">
-                {t('Tap on the play button to listen.')}
+                {t('entry.tapOnThePlayButtonToListen')}
               </Text>
 
               {/* Play/Pause button */}
@@ -455,7 +455,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
                 variant="secondary"
                 size="icon"
                 onPress={handlePlayPause}
-                accessibilityLabel={previewPlaying ? t('Pause') : t('Play')}
+                accessibilityLabel={previewPlaying ? t('common.pause') : t('common.play')}
                 accessibilityState={{ selected: previewPlaying }}
                 className="self-center w-16 h-16 rounded-full bg-muted items-center justify-center mb-2">
                 <Icon
@@ -491,14 +491,14 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
               <View className="gap-3">
                 <Button variant="default" className="w-full h-14" onPress={handleSave}>
                   <Icon as={Save} className="text-background size-5" />
-                  <Text>{t('Save Recording')}</Text>
+                  <Text>{t('entry.saveRecording')}</Text>
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full h-14"
                   onPress={handleDiscardRecording}>
                   <Icon as={Trash2} className="text-destructive size-5" />
-                  <Text>{t('Discard Recording')}</Text>
+                  <Text>{t('entry.discardRecording')}</Text>
                 </Button>
               </View>
             </>
@@ -510,23 +510,21 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
       <AlertDialog open={permissionAlertOpen} onOpenChange={setPermissionAlertOpen}>
         <AlertDialogContent className={sheetRadius === 0 ? 'rounded-none' : ''}>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Microphone Access Required')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('entry.microphoneAccessRequired')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t(
-                'Please enable microphone access in your device settings to record voice memos.',
-              )}
+              {t('entry.pleaseEnableMicrophoneAccessInYourDeviceSettingsToRecord')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onPress={() => setPermissionAlertOpen(false)}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogAction
               onPress={() => {
                 setPermissionAlertOpen(false);
                 Linking.openSettings();
               }}>
-              <Text>{t('Open Settings')}</Text>
+              <Text>{t('entry.openSettings')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

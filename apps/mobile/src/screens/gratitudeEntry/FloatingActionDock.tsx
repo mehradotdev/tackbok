@@ -84,25 +84,25 @@ export function FloatingActionDock({
       )}>
       <DockButton
         icon={Smile}
-        label={t('Mood')}
+        label={t('entry.mood')}
         showLabel={!isKeyboardVisible}
         onPress={() => handlePress(onRequestMoodModal)}
       />
       <DockButton
         icon={ImagePlus}
-        label={t('Photo')}
+        label={t('entry.photo')}
         showLabel={!isKeyboardVisible}
         onPress={() => handlePress(onRequestAddPhotoModal)}
       />
       <DockButton
         icon={Mic}
-        label={t('Voice')}
+        label={t('entry.voice')}
         showLabel={!isKeyboardVisible}
         onPress={() => handlePress(onRequestVoiceMemoModal)}
       />
       <DockButton
         icon={Tag}
-        label={t('Tag')}
+        label={t('tags.tag')}
         showLabel={!isKeyboardVisible}
         onPress={() => handlePress(onRequestTagsModal)}
       />

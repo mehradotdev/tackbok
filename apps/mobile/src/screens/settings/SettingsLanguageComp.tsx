@@ -8,7 +8,7 @@ export default function SettingsLanguageComp({ isLast = false }: { isLast?: bool
 
   return (
     <SettingsRow
-      label={t('Language')}
+      label={t('settings.language')}
       icon={Languages}
       isLast={isLast}
       rightElement={<LanguageSelectControl />}

@@ -60,7 +60,7 @@ export default function OnboardingFocusAreasScreen() {
         <View className="gap-1.5">
           {!canContinue && (
             <Text className="text-sm text-muted-foreground text-center">
-              {t('Pick at least {count}', { count: ONBOARDING_MIN_FOCUS_AREAS })}
+              {t('onboarding.pickAtLeastCount', { count: ONBOARDING_MIN_FOCUS_AREAS })}
             </Text>
           )}
           <Button
@@ -69,16 +69,16 @@ export default function OnboardingFocusAreasScreen() {
             onPress={handleContinue}
             disabled={!canContinue}
             className={cn(!canContinue && 'opacity-50')}>
-            <Text className="text-lg">{t('Continue')}</Text>
+            <Text className="text-lg">{t('onboarding.continue')}</Text>
           </Button>
         </View>
       }>
       <View className="pt-4">
         <Text variant="h2" className="text-foreground">
-          {t('What do you want to be more grateful for?')}
+          {t('onboarding.whatDoYouWantToBeMoreGratefulFor')}
         </Text>
         <Text className="text-base text-muted-foreground mt-1 mb-4">
-          {t('We’ll suggest writing prompts from the areas you pick.')}
+          {t('onboarding.wellSuggestWritingPromptsFromTheAreasYouPick')}
         </Text>
 
         {/* Single-column list, styled like Settings → Journal Focus Areas */}

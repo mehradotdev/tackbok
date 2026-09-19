@@ -1,10 +1,9 @@
 import { useState, useCallback } from 'react';
 import { View, ViewProps, Keyboard } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
-import { format, startOfDay, subDays } from 'date-fns';
+import { startOfDay, subDays } from 'date-fns';
 import { cn } from 'tailwind-variants';
-import { MONTH_SHORT_KEYS } from '~/constants';
-import { useTranslation } from '~/lib/i18n';
+import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
 import {
   Select,
@@ -33,13 +32,6 @@ interface IDateSelectDropdownProps {
 // Helpers
 // ============================================================================
 
-function formatShortDate(date: Date, t: (key: string) => string): string {
-  const day = format(date, 'd');
-  const month = t(MONTH_SHORT_KEYS[date.getMonth()]);
-  const year = format(date, 'yyyy');
-  return `${day} ${month}, ${year}`;
-}
-
 // ============================================================================
 // Component
 // ============================================================================
@@ -59,8 +51,8 @@ export function DateSelectDropdown({
   const yesterday = subDays(today, 1);
 
   // Format options for display
-  const todayLabel = `${t('Today')} - ${formatShortDate(today, t)}`;
-  const yesterdayLabel = `${t('Yesterday')} - ${formatShortDate(yesterday, t)}`;
+  const todayLabel = `${t('calendar.today')} - ${formatLocalizedDate(today, t)}`;
+  const yesterdayLabel = `${t('calendar.yesterday')} - ${formatLocalizedDate(yesterday, t)}`;
 
   const handleValueChange = useCallback(
     (option: Option | undefined) => {
@@ -132,7 +124,7 @@ export function DateSelectDropdown({
           <SelectItem value="today" label={todayLabel} />
           <SelectItem value="yesterday" label={yesterdayLabel} />
           <SelectSeparator />
-          <SelectItem value="pick" label={t('Pick any date')} />
+          <SelectItem value="pick" label={t('entry.pickAnyDate')} />
         </SelectContent>
       </Select>
 

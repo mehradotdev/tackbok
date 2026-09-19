@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from 'expo-sqlite/kv-store';
 import type { LocalePreference, SupportedLocale } from './types';
-import { DEFAULT_LOCALE, SUPPORTED_LANG_CODES } from './types';
+import { ALL_SUPPORTED_LOCALES, DEFAULT_LOCALE, SUPPORTED_LANG_CODES } from './types';
 
 interface LocaleState {
   /**
@@ -53,29 +53,34 @@ export const useLocaleStore = create<LocaleState>()(
  * If device locale is not supported, returns null
  */
 export function getEffectiveLocale(
-  deviceLocale: string | null,
+  deviceLocale: string | readonly string[] | null,
   preference: LocalePreference = 'device',
 ): SupportedLocale | null {
   if (preference !== 'device') {
-    return preference;
+    // Persisted preferences can come from older builds or imported settings.
+    return ALL_SUPPORTED_LOCALES.includes(preference) ? preference : DEFAULT_LOCALE;
   }
 
   if (!deviceLocale) {
     return null;
   }
 
-  const normalizedLocale = deviceLocale.toLowerCase();
+  if (Array.isArray(deviceLocale)) {
+    for (const tag of deviceLocale) {
+      const locale = getEffectiveLocale(tag);
+      if (locale) return locale;
+    }
+    return null;
+  }
+  const normalizedLocale = (deviceLocale as string).replaceAll('_', '-').toLowerCase();
 
-  // Handle Chinese locale variants as special cases (need full locale code with region)
-  if (normalizedLocale.startsWith('zh-cn') || normalizedLocale === 'zh-hans') {
-    return 'zh-CN';
+  // Script takes precedence over region (e.g. zh-Hant-CN).
+  if (/^zh(?:-|$)/.test(normalizedLocale)) {
+    const parts = normalizedLocale.split('-');
+    if (parts.includes('hant')) return 'zh-TW';
+    if (parts.includes('hans')) return 'zh-CN';
+    return parts.some((part) => ['tw', 'hk', 'mo'].includes(part)) ? 'zh-TW' : 'zh-CN';
   }
-  if (normalizedLocale.startsWith('zh-tw') || normalizedLocale === 'zh-hant') {
-    return 'zh-TW';
-  }
-  // if (normalizedLocale.startsWith('zh-hk')) {
-  //   return 'zh-HK';
-  // }
 
   // Extract language code from device locale (e.g., 'en-US' -> 'en')
   const langCode = normalizedLocale.split('-')[0];
@@ -92,7 +97,7 @@ export function getEffectiveLocale(
  * Get the effective supported locale based on user preference and device settings
  */
 export function getEffectiveSupportedLocale(
-  deviceLocale: string | null,
+  deviceLocale: string | readonly string[] | null,
   preference: LocalePreference,
 ): SupportedLocale {
   return getEffectiveLocale(deviceLocale, preference) ?? DEFAULT_LOCALE;

@@ -1,3 +1,4 @@
+import type { TranslationKey } from '~/lib/i18n';
 import { useCallback, useRef, type ComponentType } from 'react';
 import { View } from 'react-native';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
@@ -31,10 +32,10 @@ import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
 
 /** Labels shown under each font-size tile (mirrors Settings → Typography). */
-const SIZE_LABELS: Record<BodyFontSize, string> = {
-  small: 'Small',
-  default: 'Default',
-  large: 'Large',
+const SIZE_LABELS: Record<BodyFontSize, TranslationKey> = {
+  small: 'typography.small',
+  default: 'typography.default',
+  large: 'typography.large',
 };
 
 const TILE_PREVIEW_SIZE: Record<BodyFontSize, number> = {
@@ -64,26 +65,26 @@ function ImportSourceSheet({
   }[] = [
     {
       source: 'google-drive',
-      label: t('Google Drive Backup'),
-      description: t('Restore from your cloud backup'),
+      label: t('backup.googleDriveBackup'),
+      description: t('cloud.restoreFromYourCloudBackup'),
       icon: Cloud,
     },
     {
       source: 'tackbok',
-      label: t('Tackbok Backup'),
-      description: t('Restore your data from a .zip file'),
+      label: t('onboarding.tackbokBackup'),
+      description: t('backup.restoreYourDataFromAZipFile'),
       icon: FileInput,
     },
     {
       source: 'gratitudeApp',
-      label: t('Gratitude App'),
-      description: t('Import data from a Gratitude App .zip backup'),
+      label: t('onboarding.gratitudeApp'),
+      description: t('backup.importDataFromAGratitudeAppZipBackup'),
       icon: GratitudeJournalLogoIcon,
     },
     {
       source: 'presently',
-      label: t('Presently App'),
-      description: t('Restore your data from a Presently .csv file'),
+      label: t('onboarding.presentlyApp'),
+      description: t('backup.restoreYourDataFromAPresentlyCsvFile'),
       icon: PresentlyLogoIcon,
     },
   ];
@@ -100,19 +101,19 @@ function ImportSourceSheet({
         {/* Header */}
         <View className="flex-row items-center justify-between px-5 pt-3 pb-2">
           <Text className="text-xl font-body-bold text-foreground">
-            {t('Import your journal')}
+            {t('onboarding.importYourJournal')}
           </Text>
           <Button
             onPress={() => TrueSheet.dismiss(SHEET_NAMES.ONBOARDING_IMPORT)}
             variant="ghost"
             className="p-1 -mr-2"
-            accessibilityLabel={t('Close')}>
+            accessibilityLabel={t('common.close')}>
             <Icon as={X} className="text-foreground" />
           </Button>
         </View>
 
         <Text className="px-5 pb-3 text-sm text-muted-foreground">
-          {t('Where is your journal coming from?')}
+          {t('onboarding.whereIsYourJournalComingFrom')}
         </Text>
 
         <View className="mx-4 bg-card rounded-lg border border-border overflow-hidden">
@@ -152,11 +153,13 @@ export default function OnboardingWelcomeScreen() {
   const setBodyFontSize = useSettingsStore((s) => s.setBodyFontSize);
   const reopenImportSheet = useRef(false);
 
-  useFocusEffect(useCallback(() => {
-    if (!reopenImportSheet.current) return;
-    reopenImportSheet.current = false;
-    void TrueSheet.present(SHEET_NAMES.ONBOARDING_IMPORT);
-  }, []));
+  useFocusEffect(
+    useCallback(() => {
+      if (!reopenImportSheet.current) return;
+      reopenImportSheet.current = false;
+      void TrueSheet.present(SHEET_NAMES.ONBOARDING_IMPORT);
+    }, []),
+  );
 
   useOnboardingStepView('welcome');
 
@@ -229,13 +232,13 @@ export default function OnboardingWelcomeScreen() {
             variant="primary"
             size="lg"
             onPress={() => router.push('/onboarding/name')}>
-            <Text className="text-lg">{t('Get started')}</Text>
+            <Text className="text-lg">{t('onboarding.getStarted')}</Text>
           </Button>
           <Button
             variant="link"
             onPress={() => TrueSheet.present(SHEET_NAMES.ONBOARDING_IMPORT)}>
             <Text className="text-sm text-muted-foreground">
-              {t('Already have a journal? Import it')}
+              {t('onboarding.alreadyHaveAJournalImportIt')}
             </Text>
           </Button>
         </View>
@@ -244,15 +247,15 @@ export default function OnboardingWelcomeScreen() {
       <View className="items-center pt-6 pb-2">
         <TackbokLogoThemed />
         <Text variant="h1" className="text-foreground mt-4">
-          Tackbok
+          {t('common.tackbok')}
         </Text>
         <Text className="text-base text-muted-foreground text-center mt-2 px-4">
-          {t('A private place for your gratitude. Free, offline, yours.')}
+          {t('onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours')}
         </Text>
         <View className="flex-row items-center gap-1.5 mt-3">
           <Icon as={ShieldCheck} className="text-muted-foreground size-4" />
           <Text className="text-sm text-muted-foreground">
-            {t('Your journal stays on your device. Cloud backup is optional.')}
+            {t('cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional')}
           </Text>
         </View>
       </View>
@@ -261,19 +264,19 @@ export default function OnboardingWelcomeScreen() {
       <View className="mt-6 gap-5">
         <View className="flex-row items-center justify-between">
           <Text className="text-base font-body-medium text-foreground">
-            {t('Language')}
+            {t('settings.language')}
           </Text>
           <LanguageSelectControl triggerClassName="min-w-[160px]" />
         </View>
 
         <View>
           <Text className="text-base font-body-medium text-foreground mb-2">
-            {t('Font Size')}
+            {t('typography.fontSize')}
           </Text>
           <View
             className="flex-row gap-3 justify-start"
             accessibilityRole="radiogroup"
-            accessibilityLabel={t('Font Size')}>
+            accessibilityLabel={t('typography.fontSize')}>
             {BODY_FONT_SIZES.map((size) => {
               const isActive = bodyFontSize === size;
               return (
@@ -306,7 +309,6 @@ export default function OnboardingWelcomeScreen() {
           </View>
         </View>
       </View>
-
     </OnboardingScaffold>
   );
 }

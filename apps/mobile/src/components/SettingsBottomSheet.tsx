@@ -118,14 +118,14 @@ function ProfileAvatar({ imageUri, name, onPress }: ProfileAvatarProps) {
   return (
     <Pressable
       onPress={onPress}
-      accessibilityLabel={t('Change Photo')}
+      accessibilityLabel={t('profile.changePhoto')}
       className="active:scale-95"
       style={{
         width: AVATAR_SIZE,
         height: AVATAR_SIZE,
       }}>
       <Avatar
-        alt={name ?? 'Profile'}
+        alt={name ?? t('cloud.profile')}
         className="border-[6px] border-background"
         style={{
           width: AVATAR_SIZE,
@@ -212,7 +212,7 @@ function ProfileNameField({ name, onSave }: ProfileNameFieldProps) {
           onChangeText={setDraft}
           onSubmitEditing={commitEdit}
           returnKeyType="done"
-          placeholder={t('Your Name')}
+          placeholder={t('profile.yourName')}
           className="flex-1 text-lg font-body-semibold text-foreground border-b-2 border-primary py-1"
           placeholderTextColorClassName="accent-muted-foreground"
           autoCapitalize="words"
@@ -247,7 +247,7 @@ function ProfileNameField({ name, onSave }: ProfileNameFieldProps) {
           'font-heading',
           name ? 'text-foreground' : 'text-muted-foreground',
         )}>
-        {name || t('Your Name')}
+        {name || t('profile.yourName')}
       </Text>
       <Icon as={Pencil} className="text-muted-foreground" size={14} strokeWidth={2} />
     </Pressable>
@@ -299,9 +299,10 @@ function TriggerAvatar({
   const initials = getInitials(name);
   const displayUri = imageUri ? getFullPhotoUri(imageUri) : null;
 
+  const { t } = useTranslation();
   return (
     <Avatar
-      alt={name ?? 'Profile'}
+      alt={name ?? t('cloud.profile')}
       className="border border-primary-foreground/50"
       style={{
         width: TRIGGER_AVATAR_SIZE,
@@ -435,14 +436,12 @@ export function SettingsBottomSheet() {
     (source: 'camera' | 'library') => {
       const title =
         source === 'camera'
-          ? t('Camera Access Required')
-          : t('Photo Library Access Required');
+          ? t('entry.cameraAccessRequired')
+          : t('entry.photoLibraryAccessRequired');
       const message =
         source === 'camera'
-          ? t('Please enable camera access in your device settings to take photos.')
-          : t(
-              'Please enable photo library access in your device settings to select photos.',
-            );
+          ? t('entry.pleaseEnableCameraAccessInYourDeviceSettingsToTake')
+          : t('entry.pleaseEnablePhotoLibraryAccessInYourDeviceSettingsTo');
 
       setPermissionAlert({ isOpen: true, title, message });
     },
@@ -465,7 +464,7 @@ export function SettingsBottomSheet() {
         await setProfileImageUri(asset.uri);
       } catch (error) {
         console.error('Failed to update profile photo:', error);
-        toast.error(t('Failed to add photos'), { useModal: true });
+        toast.error(t('mood.failedToAddPhotos'), { useModal: true });
       }
     },
     [setProfileImageUri, showPermissionDeniedAlert, t],
@@ -479,7 +478,7 @@ export function SettingsBottomSheet() {
       await handlePickPhotoResult(result);
     } catch (error) {
       console.error('Failed to open profile photo picker:', error);
-      toast.error(t('Failed to add photos'), { useModal: true });
+      toast.error(t('mood.failedToAddPhotos'), { useModal: true });
     }
   }, [handlePickPhotoResult, t]);
 
@@ -503,7 +502,7 @@ export function SettingsBottomSheet() {
       }
     } catch (error) {
       console.error('Failed to remove profile photo:', error);
-      toast.error(t('Unknown error'), { useModal: true });
+      toast.error(t('common.unknownError'), { useModal: true });
     }
   }, [profileImageUri, setProfileImageUri, t]);
 
@@ -513,7 +512,7 @@ export function SettingsBottomSheet() {
         await setProfileName(newName || null);
       } catch (error) {
         console.error('Failed to save profile name:', error);
-        toast.error(t('Unknown error'), {
+        toast.error(t('common.unknownError'), {
           useModal: true,
         });
       }
@@ -529,7 +528,7 @@ export function SettingsBottomSheet() {
         onPress={present}
         hitSlop={12}
         accessibilityRole="button"
-        accessibilityLabel={t('Open Settings')}
+        accessibilityLabel={t('entry.openSettings')}
         className="py-1 px-1 w-auto h-auto">
         <TriggerAvatar imageUri={profileImageUri} name={profileName} />
       </Button>
@@ -578,30 +577,34 @@ export function SettingsBottomSheet() {
             onSaveName={handleSaveName}>
             <View className="border-t border-border mt-3">
               <ActionRow
-                label={t('Support Tackbok')}
+                label={t('appInfo.supportTackbok')}
                 icon={Heart}
                 onPress={handleSupport}
               />
               <ActionRow
-                label={t('Appearance')}
+                label={t('appearance.appearance')}
                 icon={Palette}
                 onPress={handleAppearance}
               />
               <ActionRow
-                label={t('Insights')}
+                label={t('insights.insights')}
                 icon={ChartColumn}
                 onPress={handleInsights}
               />
-              <ActionRow label={t('Settings')} icon={Settings} onPress={handleSettings} />
               <ActionRow
-                label={`${t('Share Feedback')} / ${t('Contact Us')}`}
+                label={t('common.settings')}
+                icon={Settings}
+                onPress={handleSettings}
+              />
+              <ActionRow
+                label={`${t('common.shareFeedback')} / ${t('common.contactUs')}`}
                 icon={Mail}
                 onPress={handleContactUs}
                 isLast={!__DEV__}
               />
               {__DEV__ && (
                 <ActionRow
-                  label={t('Reload App')}
+                  label={t('settings.reloadApp')}
                   icon={RotateCcw}
                   onPress={handleReloadApp}
                   isLast
@@ -620,22 +623,22 @@ export function SettingsBottomSheet() {
           className={sheetRadius === 0 ? 'rounded-none' : ''}
           androidOverlayStrategy="modal">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Profile Photo')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('profile.profilePhoto')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('Would you like to update or remove your profile photo?')}
+              {t('profile.wouldYouLikeToUpdateOrRemoveYourProfilePhoto')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onPress={() => setPhotoDialogOpen(false)}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogDestructiveAction onPress={handleRemovePhoto}>
               <Icon as={Trash2} className="text-destructive-foreground" size={16} />
-              <Text>{t('Remove Photo')}</Text>
+              <Text>{t('profile.removePhoto')}</Text>
             </AlertDialogDestructiveAction>
             <Button onPress={handlePickNewPhoto}>
               <Icon as={ImagePlus} className="text-primary-foreground" size={16} />
-              <Text>{t('Update Photo')}</Text>
+              <Text>{t('profile.updatePhoto')}</Text>
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -653,10 +656,10 @@ export function SettingsBottomSheet() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogAction onPress={() => Linking.openSettings()}>
-              <Text>{t('Open Settings')}</Text>
+              <Text>{t('entry.openSettings')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

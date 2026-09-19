@@ -79,8 +79,8 @@ export function useHeaderGreeting(isSearchMode: boolean) {
       const cleanName = name?.trim();
       // GreetingLine segments the final localized text into safe animation units.
       const first = cleanName
-        ? t('Greeting with name', { greeting: t('Welcome back'), name: cleanName })
-        : t('Welcome back');
+        ? t('greeting.withName', { greeting: t('greeting.welcomeBack'), name: cleanName })
+        : t('greeting.welcomeBack');
       const second = `${t(key)}! ${chooseGreetingEmoji()}`;
       setStep(0);
       setMessages([{ label: first + '!' }, { label: second }]);

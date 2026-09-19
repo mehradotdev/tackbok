@@ -6,7 +6,11 @@ import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { attemptUnlock, canUseDeviceAuth, useAppLockStore } from '~/lib/appLock';
 import { normalizeAppLockDelay } from '~/lib/appLockSession';
-import { appLockSession, refreshExternalAuthentication, useExternalAuthentication } from '~/lib/externalAuthentication';
+import {
+  appLockSession,
+  refreshExternalAuthentication,
+  useExternalAuthentication,
+} from '~/lib/externalAuthentication';
 import { getThemeConfig } from '~/lib/theme/themes';
 import { TackbokLogo } from '~/components/TackbokLogo';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
@@ -58,8 +62,8 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
     if (useExternalAuthentication.getState().active) return;
     if (await canUseDeviceAuth()) {
       await attemptUnlock({
-        promptMessage: t('Unlock Tackbok'),
-        cancelLabel: t('Cancel'),
+        promptMessage: t('security.unlockTackbok'),
+        cancelLabel: t('common.cancel'),
       });
     } else {
       useSettingsStore.getState().setBiometricUnlockEnabled(false);
@@ -73,7 +77,8 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
       const settings = useSettingsStore.getState();
       if (!useAppLockStore.getState().isAuthenticating) {
         const shouldLock = appLockSession.transition(
-          next, normalizeAppLockDelay(settings.appLockDelaySeconds),
+          next,
+          normalizeAppLockDelay(settings.appLockDelaySeconds),
         );
         if (settings.biometricUnlockEnabled && shouldLock) {
           autoPromptedRef.current = false;
@@ -113,7 +118,12 @@ interface AppLockScreenProps {
   onUnlockPress: () => void;
 }
 
-function AppLockScreen({ visible, nativeModal, showUnlockButton, onUnlockPress }: AppLockScreenProps) {
+function AppLockScreen({
+  visible,
+  nativeModal,
+  showUnlockButton,
+  onUnlockPress,
+}: AppLockScreenProps) {
   const { t } = useTranslation();
   const theme = useSettingsStore((s) => s.theme);
   const themeConfig = getThemeConfig(theme);
@@ -128,7 +138,7 @@ function AppLockScreen({ visible, nativeModal, showUnlockButton, onUnlockPress }
         <TackbokLogo size={LOCK_LOGO_SIZE} color={foregroundColor as string} />
         {showUnlockButton ? (
           <Button variant="primary" size="lg" onPress={onUnlockPress}>
-            <Text>{t('Unlock')}</Text>
+            <Text>{t('security.unlock')}</Text>
           </Button>
         ) : null}
       </View>
@@ -138,7 +148,9 @@ function AppLockScreen({ visible, nativeModal, showUnlockButton, onUnlockPress }
   // The in-app cover still hides journal content in the task switcher.
   if (!nativeModal) {
     return visible ? (
-      <View className="absolute inset-0 z-50" accessibilityViewIsModal>{content}</View>
+      <View className="absolute inset-0 z-50" accessibilityViewIsModal>
+        {content}
+      </View>
     ) : null;
   }
   return (

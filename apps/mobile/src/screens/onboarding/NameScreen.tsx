@@ -18,9 +18,7 @@ export default function OnboardingNameScreen() {
   const { t } = useTranslation();
   const setProfileName = useSettingsStore((s) => s.setProfileName);
   // Initialize from the store so a restored/re-run flow shows the saved name.
-  const [name, setName] = useState(
-    () => useSettingsStore.getState().profileName ?? '',
-  );
+  const [name, setName] = useState(() => useSettingsStore.getState().profileName ?? '');
 
   useOnboardingStepView('name');
 
@@ -30,7 +28,7 @@ export default function OnboardingNameScreen() {
       router.push('/onboarding/theme');
     } catch (error) {
       console.error('Failed to save onboarding profile name:', error);
-      toast.error(t('Unknown error'));
+      toast.error(t('common.unknownError'));
     }
   };
 
@@ -45,20 +43,20 @@ export default function OnboardingNameScreen() {
       onSkip={handleSkip}
       footer={
         <Button variant="primary" size="lg" onPress={handleContinue}>
-          <Text className="text-lg">{t('Continue')}</Text>
+          <Text className="text-lg">{t('onboarding.continue')}</Text>
         </Button>
       }>
       <View className="pt-10">
         <Text variant="h2" className="text-foreground">
-          {t('What should we call you?')}
+          {t('onboarding.whatShouldWeCallYou')}
         </Text>
         <Text className="text-base text-muted-foreground mt-2">
-          {t('Your name is only used to greet you inside the app.')}
+          {t('onboarding.yourNameIsOnlyUsedToGreetYouInsideThe')}
         </Text>
 
         <Input
           className="mt-8"
-          placeholder={t('Your name (optional)')}
+          placeholder={t('onboarding.yourNameOptional')}
           value={name}
           onChangeText={setName}
           autoComplete="name"
@@ -69,7 +67,7 @@ export default function OnboardingNameScreen() {
         <View className="flex-row items-center gap-1.5 mt-4">
           <Icon as={ShieldCheck} className="text-muted-foreground size-4" />
           <Text className="text-sm text-muted-foreground">
-            {t('Stays on your device.')}
+            {t('onboarding.staysOnYourDevice')}
           </Text>
         </View>
       </View>

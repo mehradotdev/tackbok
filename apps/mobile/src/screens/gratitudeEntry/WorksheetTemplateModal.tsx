@@ -96,11 +96,11 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
             setTimeout(() => textareaRef.current?.focus(), 100);
           }}>
           <Icon as={FilePenLine} className="text-primary-foreground size-5" />
-          <Text>{t('Edit Worksheet Template')}</Text>
+          <Text>{t('journaling.editWorksheetTemplate')}</Text>
         </Button>
 
         <Button onPress={handleStartWriting}>
-          <Text>{t('Start Writing')}</Text>
+          <Text>{t('journaling.startWriting')}</Text>
         </Button>
       </View>
     </View>
@@ -126,13 +126,13 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
 
       <View className="gap-3 pb-4">
         <Button variant="outline" onPress={handleReset}>
-          <Text>{t('Reset to Default')}</Text>
+          <Text>{t('journaling.resetToDefault')}</Text>
         </Button>
         <Button
           onPress={handleSave}
           disabled={!canSave}
           className={cn(!canSave && 'opacity-50')}>
-          <Text>{t('Save')}</Text>
+          <Text>{t('common.save')}</Text>
         </Button>
       </View>
     </View>
@@ -160,7 +160,7 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
                 variant="ghost"
                 size="icon"
                 onPress={handleCancel}
-                accessibilityLabel={t('Back')}
+                accessibilityLabel={t('common.back')}
                 hitSlop={10}
                 className="w-8 h-8 px-0">
                 <Icon
@@ -172,14 +172,16 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
             )}
           </View>
           <Text className="text-foreground text-lg font-body-semibold leading-tight flex-1 text-center">
-            {isEditing ? t('Edit Worksheet Template') : t('Journaling Worksheet')}
+            {isEditing
+              ? t('journaling.editWorksheetTemplate')
+              : t('journaling.journalingWorksheet')}
           </Text>
           <View className="w-10 items-end">
             <Button
               variant="ghost"
               size="icon"
               onPress={() => TrueSheet.dismiss(SHEET_NAMES.WORKSHEET_TEMPLATE)}
-              accessibilityLabel={t('Close')}
+              accessibilityLabel={t('common.close')}
               hitSlop={10}
               className="w-8 h-8">
               <Icon as={X} className="text-muted-foreground" size={20} />

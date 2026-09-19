@@ -1,70 +1,67 @@
-import { format, isToday, isYesterday } from 'date-fns';
-import type { TranslationFunction } from './types';
-import { DAY_KEYS, MONTH_KEYS } from '~/constants';
+import { isToday, isYesterday } from 'date-fns';
+import { getCalendars } from 'expo-localization';
+import type { SupportedLocale, TranslationFunction } from './types';
+import { getFormattingLocale } from './formattingLocale';
 
 export interface FormatDateOptions {
-  /** Include the weekday (e.g., "Sunday, January 1, 2022") */
   includeWeekday?: boolean;
-  /** Return "Today" or "Yesterday" if applicable */
   relative?: boolean;
 }
 
-/**
- * Helper to coerce and validate a date input.
- * Returns a valid Date object or null if invalid.
- */
 function toValidDate(date: string | number | Date): Date | null {
+  // Date-only journal values represent a local day, not UTC midnight.
   const dateObj =
-    typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-
-  if (isNaN(dateObj.getTime())) {
-    console.error(`Invalid date provided: ${date}`);
-    return null;
-  }
-  return dateObj;
+    typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)
+      ? new Date(`${date}T00:00:00`)
+      : new Date(date);
+  return Number.isNaN(dateObj.getTime()) ? null : dateObj;
 }
 
-/**
- * Format a date string (YYYY-MM-DD), timestamp, or Date object to a localized format
- * Uses translatable format patterns to support different locale conventions (e.g., RTL languages)
- *
- * Format patterns use placeholders:
- * - Short format (dateFormat.short): {month}, {day}, {year}
- * - Full format (dateFormat.full): {weekday}, {month}, {day}, {year}
- */
+/** Localized display only. Storage and archive date formats stay machine-readable. */
 export function formatLocalizedDate(
   date: string | number | Date,
   t: TranslationFunction,
   options?: FormatDateOptions,
 ): string {
-  const dateObj = toValidDate(date);
-  if (!dateObj) return String(date);
-
+  const value = toValidDate(date);
+  if (!value) return String(date);
   if (options?.relative) {
-    if (isToday(dateObj)) return t('Today');
-    if (isYesterday(dateObj)) return t('Yesterday');
+    if (isToday(value)) return t('calendar.today');
+    if (isYesterday(value)) return t('calendar.yesterday');
   }
+  return new Intl.DateTimeFormat(
+    t.formattingLocale ?? getFormattingLocale(t.locale ?? 'en'),
+    {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      ...(options?.includeWeekday ? { weekday: 'long' } : {}),
+    },
+  ).format(value);
+}
 
-  const weekday = t(DAY_KEYS[dateObj.getDay()]);
-  const month = t(MONTH_KEYS[dateObj.getMonth()]);
-  const day = format(dateObj, 'd');
-  const year = format(dateObj, 'yyyy');
-
-  if (options?.includeWeekday) {
-    return t('dateFormat.full', { weekday, month, day, year });
-  }
-
-  return t('dateFormat.short', { month, day, year });
+export function formatLocalizedTime(
+  date: Date,
+  locale: SupportedLocale,
+  options?: { hourOnly?: boolean },
+): string {
+  const uses24hourClock = getCalendars()[0]?.uses24hourClock;
+  return new Intl.DateTimeFormat(getFormattingLocale(locale), {
+    hour: 'numeric',
+    ...(options?.hourOnly ? {} : { minute: '2-digit' as const }),
+    ...(uses24hourClock == null ? {} : { hour12: !uses24hourClock }),
+  }).format(date);
 }
 
 export function formatTimeLabel(
   date: string | number | Date,
   t: TranslationFunction,
 ): string {
-  const dateObj = toValidDate(date);
-  if (!dateObj) return String(date);
-
-  const weekday = t(DAY_KEYS[dateObj.getDay()]);
-  const time = format(dateObj, 'HH:mm');
-  return t('dateFormat.timeLabel', { weekday, time });
+  const value = toValidDate(date);
+  if (!value) return String(date);
+  const locale = t.locale ?? 'en';
+  const weekday = new Intl.DateTimeFormat(getFormattingLocale(locale), {
+    weekday: 'long',
+  }).format(value);
+  return t('dateFormat.timeLabel', { weekday, time: formatLocalizedTime(value, locale) });
 }

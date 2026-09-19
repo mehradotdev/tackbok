@@ -1,17 +1,19 @@
-import { useMemo, useCallback } from 'react';
-import { getLocales } from 'expo-localization';
+import { getFormattingLocale } from './formattingLocale';
+import { useMemo } from 'react';
+import { useLocales, useCalendars } from 'expo-localization';
 import { useLocaleStore, getEffectiveLocale, getEffectiveSupportedLocale } from './store';
 import { translate, isRTLLocale } from './translations';
 import {
   type SupportedLocale,
   type LocalePreference,
   type TranslationFunction,
+  type TranslationKey,
 } from './types';
 
 interface UseTranslationResult {
   /**
    * Translation function - t("key") returns translated string
-   * Falls back to the key itself if translation not found
+   * Falls back to the English source message
    */
   t: TranslationFunction;
 
@@ -58,10 +60,12 @@ export function useTranslation(): UseTranslationResult {
   const { localePreference, setLocalePreference, _hasHydrated } = useLocaleStore();
 
   // Get device locale
-  const deviceLocale = useMemo(() => {
-    const locales = getLocales();
-    return locales[0]?.languageTag ?? null;
-  }, []);
+  const deviceLocales = useLocales();
+  const calendars = useCalendars();
+  const deviceLocale = useMemo(
+    () => deviceLocales.map((item) => item.languageTag),
+    [deviceLocales],
+  );
 
   // Calculate device default locale
   const deviceDefaultLocale = useMemo(
@@ -76,10 +80,18 @@ export function useTranslation(): UseTranslationResult {
   );
 
   // Create translation function
-  const t = useCallback(
-    (key: string, params?: Record<string, string | number>): string =>
-      translate(locale, key, params),
-    [locale],
+  const t = useMemo(
+    () =>
+      Object.assign(
+        (key: TranslationKey, params?: Record<string, string | number>) =>
+          translate(locale, key, params),
+        {
+          locale,
+          formattingLocale: getFormattingLocale(locale, deviceLocales[0]),
+          uses24hourClock: calendars[0]?.uses24hourClock,
+        },
+      ),
+    [locale, deviceLocales, calendars],
   );
 
   // Check if RTL

@@ -52,35 +52,42 @@ export function DangerZoneSection() {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.prompts] }),
       ]);
       if (mediaCleanupErrors.length > 0) {
-        toast.warning(t('All data deleted, but some media files could not be removed.'), {
+        toast.warning(t('dangerZone.allDataDeletedButSomeMediaFilesCouldNotBe'), {
           description: mediaCleanupErrors.join('\n'),
           duration: 8000,
         });
       } else {
         toast.success(
-          t(hasConfiguredCloudVault ? 'This device was reset' : 'All data deleted'),
+          t(
+            hasConfiguredCloudVault
+              ? 'cloud.thisDeviceWasReset'
+              : 'dangerZone.allDataDeleted',
+          ),
         );
       }
       // A device-only reset returns to onboarding, matching the cloud-backup
       // screen and making the restore entry point immediately available.
       router.replace('/onboarding/welcome');
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('Delete failed');
+      const message =
+        error instanceof Error ? error.message : t('dangerZone.deleteFailed');
       toast.error(message);
     }
   }, [t, router, queryClient, resetSettingsToDefaults, hasConfiguredCloudVault]);
 
   return (
     <>
-      <SettingsSection title={t('Danger Zone')}>
+      <SettingsSection title={t('dangerZone.dangerZone')}>
         <SettingsRow
           label={t(
-            hasConfiguredCloudVault ? 'Reset this device only' : 'Delete All Data',
+            hasConfiguredCloudVault
+              ? 'cloud.resetThisDeviceOnly'
+              : 'dangerZone.deleteAllData',
           )}
           description={t(
             hasConfiguredCloudVault
-              ? 'Disconnect, then delete local journal data only'
-              : 'Permanently delete all your app data',
+              ? 'cloud.disconnectThenDeleteLocalJournalDataOnly'
+              : 'dangerZone.permanentlyDeleteAllYourAppData',
           )}
           icon={Trash2}
           onPress={() => setShowDeleteConfirmDialog(true)}
@@ -97,27 +104,31 @@ export function DangerZoneSection() {
           <AlertDialogHeader>
             <AlertDialogTitle>
               {t(
-                hasConfiguredCloudVault ? 'Reset this device only?' : 'Delete all data?',
+                hasConfiguredCloudVault
+                  ? 'cloud.resetThisDeviceOnly2'
+                  : 'dangerZone.deleteAllData2',
               )}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t(
                 hasConfiguredCloudVault
-                  ? 'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.'
-                  : 'This action cannot be undone. All your app data will be permanently deleted.',
+                  ? 'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe'
+                  : 'dangerZone.thisActionCannotBeUndoneAllYourAppDataWill',
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogDestructiveAction
               onPress={handleDeleteAllData}
               delaySeconds={DELETE_CONFIRM_DELAY_SECONDS}>
               <Text>
                 {t(
-                  hasConfiguredCloudVault ? 'Reset this device only' : 'Delete All Data',
+                  hasConfiguredCloudVault
+                    ? 'cloud.resetThisDeviceOnly'
+                    : 'dangerZone.deleteAllData',
                 )}
               </Text>
             </AlertDialogDestructiveAction>

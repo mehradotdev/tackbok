@@ -9,11 +9,7 @@ import { SHEET_NAMES, MOOD_EMOJI } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { track } from '~/lib/analytics';
-import {
-  getThemeConfig,
-  type ThemeConfig,
-  type ThemeId,
-} from '~/lib/theme/themes';
+import { getThemeConfig, type ThemeConfig, type ThemeId } from '~/lib/theme/themes';
 import {
   DEFAULT_TITLE_FONT_SELECTION,
   TITLE_FONTS,
@@ -143,12 +139,12 @@ function ThemePreviewCard() {
         <Text
           className="text-lg text-foreground flex-1"
           style={getTitleFontPreviewStyle(activeTitleFont.fontFamily, 18)}>
-          {t('A walk in the morning sun')}
+          {t('onboarding.aWalkInTheMorningSun')}
         </Text>
         <Text className="text-2xl ml-2">{MOOD_EMOJI.HAPPY}</Text>
       </View>
       <Text className="text-base text-foreground mt-2">
-        {t('Grateful for quiet streets, warm coffee, and a sky full of color.')}
+        {t('onboarding.gratefulForQuietStreetsWarmCoffeeAndASkyFull')}
       </Text>
     </View>
   );
@@ -191,15 +187,15 @@ export default function OnboardingThemeScreen() {
           variant="primary"
           size="lg"
           onPress={() => router.push('/onboarding/focus-areas')}>
-          <Text className="text-lg">{t('Continue')}</Text>
+          <Text className="text-lg">{t('onboarding.continue')}</Text>
         </Button>
       }>
       <View className="pt-4">
         <Text variant="h2" className="text-foreground">
-          {t('Make it yours')}
+          {t('onboarding.makeItYours')}
         </Text>
         <Text className="text-base text-muted-foreground mt-1 mb-4">
-          {t('Pick a look. You can change everything later in Settings.')}
+          {t('onboarding.pickALookYouCanChangeEverythingLaterInSettings')}
         </Text>
 
         <ThemePreviewCard />
@@ -208,7 +204,7 @@ export default function OnboardingThemeScreen() {
         <View
           className="flex-row flex-wrap justify-between gap-y-4 mt-6"
           accessibilityRole="radiogroup"
-          accessibilityLabel={t('Theme')}>
+          accessibilityLabel={t('appearance.theme')}>
           {curatedThemes.map((theme) => (
             <ThemeSwatch
               key={theme.id}
@@ -223,20 +219,20 @@ export default function OnboardingThemeScreen() {
           className="self-center mt-1"
           onPress={() => TrueSheet.present(SHEET_NAMES.THEME_PICKER)}>
           <Text className="text-sm text-muted-foreground underline">
-            {t('More themes…')}
+            {t('onboarding.moreThemes')}
           </Text>
         </Button>
 
         {/* Title font */}
         <Text className="text-base font-body-medium text-foreground mt-4 mb-2">
-          {t('Title Font')}
+          {t('typography.titleFont')}
         </Text>
         <View
           className="flex-row flex-wrap justify-between gap-y-2"
           accessibilityRole="radiogroup"
-          accessibilityLabel={t('Title Font')}>
+          accessibilityLabel={t('typography.titleFont')}>
           <FontChip
-            label={t('Theme Default')}
+            label={t('typography.themeDefault')}
             previewFontFamily={themeDefaultFont.fontFamily}
             isActive={titleFont === DEFAULT_TITLE_FONT_SELECTION}
             onSelect={() => setTitleFont(DEFAULT_TITLE_FONT_SELECTION)}

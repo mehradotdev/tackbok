@@ -17,7 +17,10 @@ jest.mock('~/lib/i18n', () => ({
   useTranslation: () => ({ isReady: true, t: mockTranslate }),
 }));
 function mockTranslate(key: string, params?: Record<string, string>) {
-  return key === 'Greeting with name' ? `${params?.greeting}, ${params?.name}` : key;
+  const { en } = require('../../lib/i18n/translations/en');
+  return key === 'greeting.withName'
+    ? `${params?.greeting}, ${params?.name}`
+    : (en[key] ?? key);
 }
 jest.mock('react-native', () => ({
   AppState: {

@@ -108,7 +108,7 @@ export function useBackupImportFlow(
         await finishImport(source, summary);
       } catch (error) {
         setImportProgress(null);
-        const message = error instanceof Error ? error.message : t('Import failed');
+        const message = error instanceof Error ? error.message : t('backup.importFailed');
         toast.error(message);
       }
     },
@@ -124,12 +124,12 @@ export function useBackupImportFlow(
 
         const asset = result.assets?.[0];
         if (!asset?.uri) {
-          throw new Error(t('Import failed'));
+          throw new Error(t('backup.importFailed'));
         }
 
         setPendingImportSelection({ source, uri: asset.uri });
       } catch (error) {
-        const message = error instanceof Error ? error.message : t('Import failed');
+        const message = error instanceof Error ? error.message : t('backup.importFailed');
         toast.error(message);
       }
     },
@@ -164,14 +164,14 @@ export function useBackupImportFlow(
 
       const assetUri = result.assets?.[0]?.uri;
       if (!assetUri) {
-        throw new Error(t('Import failed'));
+        throw new Error(t('backup.importFailed'));
       }
 
       await runImportFlow('presently', (onProgress) =>
         importFromPresentlyCSV(assetUri, onProgress),
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('Import failed');
+      const message = error instanceof Error ? error.message : t('backup.importFailed');
       toast.error(message);
     }
   }, [runImportFlow, t]);

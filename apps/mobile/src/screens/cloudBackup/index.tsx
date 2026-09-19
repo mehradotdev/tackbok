@@ -50,9 +50,7 @@ import {
   CloudSyncActionError,
   type PreparedGoogleConnection,
 } from '~/lib/cloudSync/ui';
-import {
-  SnapshotProviderError,
-} from '~/lib/cloudSync/snapshot/sync';
+import { SnapshotProviderError } from '~/lib/cloudSync/snapshot/sync';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
@@ -105,8 +103,7 @@ export default function CloudBackupScreen() {
     '--theme-radius',
     '--color-muted-foreground',
   ]);
-  const sheetRadius =
-    String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
+  const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
   const [stage, setStage] = useState<SetupStage>(
     origin === 'onboarding' ? 'disclosure' : 'overview',
   );
@@ -119,8 +116,8 @@ export default function CloudBackupScreen() {
     null,
   );
   const [deletingJournalEverywhere, setDeletingJournalEverywhere] = useState(false);
-  const providerName = t('Google Drive');
-  const disconnectLabel = t('Disconnect {provider}', {
+  const providerName = t('cloud.googleDrive');
+  const disconnectLabel = t('cloud.disconnectProvider', {
     provider: providerName,
   });
 
@@ -163,7 +160,7 @@ export default function CloudBackupScreen() {
       }
       if (origin === 'onboarding' && connection.availableVaults.length === 0) {
         await cancelPreparedGoogleDriveConnection();
-        toast.warning(t('No Tackbok backup found in this Google account'));
+        toast.warning(t('cloud.noTackbokBackupFoundInThisGoogleAccount'));
         handleBack();
         return;
       }
@@ -180,10 +177,8 @@ export default function CloudBackupScreen() {
           error.code === 'authorization-required');
       toast.error(
         permissionMissing
-          ? t(
-              'Google Drive access is required. Try again and select the Drive access checkbox.',
-            )
-          : t('Google Drive connection was not completed'),
+          ? t('cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe')
+          : t('cloud.googleDriveConnectionWasNotCompleted'),
       );
       if (origin === 'onboarding') handleBack();
       else setStage('disclosure');
@@ -201,8 +196,8 @@ export default function CloudBackupScreen() {
         if (!mountedRef.current) return;
         toast.success(
           origin === 'onboarding'
-            ? t('Cloud restore started')
-            : t('Cloud backup connected'),
+            ? t('cloud.cloudRestoreStarted')
+            : t('cloud.cloudBackupConnected'),
         );
         if (origin === 'onboarding') {
           setHasCompletedOnboarding(true);
@@ -216,7 +211,7 @@ export default function CloudBackupScreen() {
       } catch {
         if (!mountedRef.current) return;
         setStage('choose');
-        toast.error(t('Cloud backup could not be updated'));
+        toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
       }
     },
     [origin, refresh, router, setHasCompletedOnboarding, t],
@@ -235,7 +230,7 @@ export default function CloudBackupScreen() {
         toast.error(
           error instanceof CloudSyncActionError
             ? cloudSyncFailureMessage(error.category, t)
-            : t('Cloud backup could not be updated'),
+            : t('cloud.cloudBackupCouldNotBeUpdated'),
         );
       } finally {
         actionRunningRef.current = false;
@@ -252,13 +247,13 @@ export default function CloudBackupScreen() {
 
   const completeJournalDeletion = useCallback(async () => {
     setDeletingJournalEverywhere(true);
-    AccessibilityInfo.announceForAccessibility(t('Deleting journal everywhere…'));
+    AccessibilityInfo.announceForAccessibility(t('cloud.deletingJournalEverywhere'));
     try {
       await deleteJournalEverywhere();
       await clearLocalPresentation();
     } catch {
       setDeletingJournalEverywhere(false);
-      toast.error(t('Cloud backup could not be updated'));
+      toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
     }
   }, [clearLocalPresentation, t]);
 
@@ -275,11 +270,11 @@ export default function CloudBackupScreen() {
         await disconnectGoogleDrive();
         setPrepared(null);
         setStage('disclosure');
-      }, t('Choose a Google account to reconnect'));
+      }, t('cloud.chooseAGoogleAccountToReconnect'));
       return;
     }
     if (action === 'reconnect-google-drive') {
-      await runAction(reconnectGoogleDrive, t('Google Drive reconnected'));
+      await runAction(reconnectGoogleDrive, t('cloud.googleDriveReconnected'));
       return;
     }
     if (action === 'update-tackbok') {
@@ -297,7 +292,7 @@ export default function CloudBackupScreen() {
     if (action === 'acknowledge-disconnect') {
       await runAction(
         disconnectGoogleDrive,
-        t('Google Drive disconnected on this device'),
+        t('cloud.googleDriveDisconnectedOnThisDevice'),
       );
       return;
     }
@@ -311,28 +306,26 @@ export default function CloudBackupScreen() {
       } else {
         await runAction(
           () => revokeCloudVault('backup-deleted'),
-          t('Cloud deletion completed'),
+          t('cloud.cloudDeletionCompleted'),
         );
       }
       return;
     }
     if (action === 'export-repair-backup') {
       router.push('/settings');
-      toast.warning(
-        t('Export or repair the affected journal data, then return and retry.'),
-      );
+      toast.warning(t('cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd'));
       return;
     }
     if (action === 'locate-retry-attachment') {
       await runAction(
         () => retrySyncAttentionReason(reason),
-        t('Cloud backup retry completed'),
+        t('cloud.cloudBackupRetryCompleted'),
       );
       return;
     }
     await runAction(
       () => retrySyncAttentionReason(reason),
-      t('Cloud backup retry completed'),
+      t('cloud.cloudBackupRetryCompleted'),
     );
   }, [
     completeJournalDeletion,
@@ -351,10 +344,10 @@ export default function CloudBackupScreen() {
       try {
         if (action === 'disconnect') {
           await disconnectGoogleDrive();
-          toast.success(t('Google Drive disconnected on this device'));
+          toast.success(t('cloud.googleDriveDisconnectedOnThisDevice'));
         } else if (action === 'delete-backup') {
           await revokeCloudVault('backup-deleted');
-          toast.success(t('Cloud backup deleted'));
+          toast.success(t('cloud.cloudBackupDeleted'));
         } else if (action === 'delete-journal') {
           await completeJournalDeletion();
           return;
@@ -368,7 +361,7 @@ export default function CloudBackupScreen() {
         }
         await refresh();
       } catch {
-        toast.error(t('Cloud backup could not be updated'));
+        toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
       }
     },
     [clearLocalPresentation, completeJournalDeletion, refresh, t],
@@ -382,44 +375,40 @@ export default function CloudBackupScreen() {
   const actionCopy =
     destructiveAction === 'disconnect'
       ? {
-          title: t('Disconnect {provider} from this device?', {
+          title: t('cloud.disconnectProviderFromThisDevice', {
             provider: providerName,
           }),
-          description: t(
-            'Local data and the cloud backup will both remain. Other devices stay connected.',
-          ),
-          button: t('Disconnect'),
+          description: t('cloud.localDataAndTheCloudBackupWillBothRemainOther'),
+          button: t('cloud.disconnect'),
         }
       : destructiveAction === 'delete-backup'
         ? {
-            title: t('Delete cloud backup?'),
+            title: t('cloud.deleteCloudBackup2'),
             description: t(
-              'The cloud copy will be permanently deleted after verification. Local journal data remains.',
+              'cloud.theCloudCopyWillBePermanentlyDeletedAfterVerificationLocal',
             ),
-            button: t('Delete cloud backup'),
+            button: t('cloud.deleteCloudBackup'),
           }
         : destructiveAction === 'delete-journal'
           ? {
-              title: t('Delete journal everywhere?'),
-              description: t(
-                'The cloud copy and this device’s journal will be permanently deleted. Other devices will delete their local journal when they sync.',
-              ),
-              button: t('Delete journal everywhere'),
+              title: t('cloud.deleteJournalEverywhere2'),
+              description: t('cloud.theCloudCopyAndThisDevicesJournalWillBePermanently'),
+              button: t('cloud.deleteJournalEverywhere'),
             }
           : destructiveAction === 'reset-device'
             ? {
-                title: t('Reset this device only?'),
+                title: t('cloud.resetThisDeviceOnly2'),
                 description: t(
-                  'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
+                  'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe',
                 ),
-                button: t('Reset this device only'),
+                button: t('cloud.resetThisDeviceOnly'),
               }
             : {
-                title: t('Finish deleting this journal?'),
+                title: t('cloud.finishDeletingThisJournal'),
                 description: t(
-                  'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
+                  'cloud.cloudDeletionIsAlreadyRecordedEraseTheRemainingJournalData',
                 ),
-                button: t('Finish deletion'),
+                button: t('cloud.finishDeletion'),
               };
 
   return (
@@ -429,11 +418,11 @@ export default function CloudBackupScreen() {
           variant="ghost"
           className="p-1 mr-1"
           onPress={handleBack}
-          accessibilityLabel={t('Back')}>
+          accessibilityLabel={t('common.back')}>
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Button>
         <Text variant="h2" className="font-heading text-foreground py-1">
-          {t('Cloud Backup & Sync')}
+          {t('cloud.cloudBackupSync')}
         </Text>
       </View>
 
@@ -449,16 +438,14 @@ export default function CloudBackupScreen() {
               <Icon as={AlertTriangle} className="text-destructive size-5" />
               <Text className="font-body-bold text-foreground">
                 {snapshot.revocationKind === 'journal-deleted'
-                  ? t('Journal deletion received')
-                  : t('Cloud backup deletion received')}
+                  ? t('cloud.journalDeletionReceived')
+                  : t('cloud.cloudBackupDeletionReceived')}
               </Text>
             </View>
             <Text className="text-sm text-foreground">
               {snapshot.revocationKind === 'journal-deleted'
-                ? t('This journal was deleted everywhere. This device is disconnected.')
-                : t(
-                    'This cloud backup was deleted. Local journal data remains on this device.',
-                  )}
+                ? t('cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected')
+                : t('cloud.thisCloudBackupWasDeletedLocalJournalDataRemainsOn')}
             </Text>
           </View>
         )}
@@ -501,7 +488,7 @@ export default function CloudBackupScreen() {
                         {statusLabel(snapshot.status, t)}
                       </Text>
                       <Text selectable className="text-sm text-foreground">
-                        {snapshot.accountLabel ?? t('Google Drive')}
+                        {snapshot.accountLabel ?? t('cloud.googleDrive')}
                       </Text>
                     </View>
                   </View>
@@ -509,17 +496,17 @@ export default function CloudBackupScreen() {
                 <Text className="text-sm text-foreground">
                   {snapshot.queuedCount > 0
                     ? snapshot.status === 'syncing'
-                      ? t('{count} changes remaining', { count: snapshot.queuedCount })
-                      : t('{count} changes safely queued', {
+                      ? t('cloud.countChangesRemaining', { count: snapshot.queuedCount })
+                      : t('cloud.countChangesSafelyQueued', {
                           count: snapshot.queuedCount,
                         })
                     : snapshot.lastSuccessAt
-                      ? t('Last successful sync: {date}', {
+                      ? t('cloud.lastSuccessfulSyncDate', {
                           date: formatLocalizedDate(snapshot.lastSuccessAt, t, {
                             relative: true,
                           }),
                         })
-                      : t('Waiting for the first successful sync')}
+                      : t('cloud.waitingForTheFirstSuccessfulSync')}
                 </Text>
                 {snapshot.attentionReason && snapshot.recoveryAction && (
                   <View
@@ -550,9 +537,7 @@ export default function CloudBackupScreen() {
                   <Text
                     className="text-sm text-foreground"
                     accessibilityLiveRegion="polite">
-                    {t(
-                      'You can leave this screen; syncing resumes when Tackbok is active.',
-                    )}
+                    {t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs')}
                   </Text>
                 )}
                 <Button
@@ -563,15 +548,17 @@ export default function CloudBackupScreen() {
                     snapshot.status === 'paused' ||
                     snapshot.status === 'warning'
                   }
-                  onPress={() => void runAction(syncNow, t('Sync completed'))}
-                  accessibilityLabel={t('Sync now')}>
+                  onPress={() => void runAction(syncNow, t('cloud.syncCompleted'))}
+                  accessibilityLabel={t('cloud.syncNow')}>
                   {snapshot.status === 'syncing' ? (
                     <SpinningRefreshIcon className="text-primary-foreground size-5" />
                   ) : (
                     <Icon as={RefreshCw} className="text-primary-foreground size-5" />
                   )}
                   <Text>
-                    {snapshot.status === 'syncing' ? t('Syncing…') : t('Sync now')}
+                    {snapshot.status === 'syncing'
+                      ? t('cloud.syncing')
+                      : t('cloud.syncNow')}
                   </Text>
                 </Button>
               </View>
@@ -579,12 +566,12 @@ export default function CloudBackupScreen() {
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow
                   icon={Wifi}
-                  label={t('Sync media on Wi-Fi only')}
-                  description={t('Journal text still syncs on mobile data.')}
+                  label={t('cloud.syncMediaOnWiFiOnly')}
+                  description={t('cloud.journalTextStillSyncsOnMobileData')}
                   onPress={() => setWifiOnly(!wifiOnly)}
                   role="switch"
-                  accessibilityLabel={t('Sync media on Wi-Fi only')}
-                  accessibilityHint={t('Journal text still syncs on mobile data.')}
+                  accessibilityLabel={t('cloud.syncMediaOnWiFiOnly')}
+                  accessibilityHint={t('cloud.journalTextStillSyncsOnMobileData')}
                   accessibilityState={{ checked: wifiOnly }}
                   className="rounded-none px-4"
                   rightElement={
@@ -598,17 +585,19 @@ export default function CloudBackupScreen() {
                 />
                 <SettingsRow
                   icon={CloudOff}
-                  label={t('Pause sync')}
-                  description={t('Edits remain safely queued on this device.')}
+                  label={t('cloud.pauseSync')}
+                  description={t('cloud.editsRemainSafelyQueuedOnThisDevice')}
                   onPress={() =>
                     void runAction(
                       () => setCloudSyncPaused(snapshot.status !== 'paused'),
-                      snapshot.status !== 'paused' ? t('Sync paused') : t('Sync resumed'),
+                      snapshot.status !== 'paused'
+                        ? t('cloud.syncPaused')
+                        : t('cloud.syncResumed'),
                     )
                   }
                   role="switch"
-                  accessibilityLabel={t('Pause sync')}
-                  accessibilityHint={t('Edits remain safely queued on this device.')}
+                  accessibilityLabel={t('cloud.pauseSync')}
+                  accessibilityHint={t('cloud.editsRemainSafelyQueuedOnThisDevice')}
                   accessibilityState={{ checked: snapshot.status === 'paused' }}
                   className="rounded-none px-4"
                   rightElement={
@@ -628,12 +617,12 @@ export default function CloudBackupScreen() {
                   <View className="flex-row items-center gap-2">
                     <Icon as={FileClock} className="text-foreground size-5" />
                     <Text className="font-body-bold text-foreground">
-                      {t('Recovered conflicts')}
+                      {t('cloud.recoveredConflicts')}
                     </Text>
                   </View>
                   {conflicts.map((conflict) => (
                     <Text key={conflict.conflictId} className="text-sm text-foreground">
-                      {t('Recovered {type} conflict — {count} preserved alternatives', {
+                      {t('cloud.recoveredTypeConflictCountPreservedAlternatives', {
                         type: entityTypeLabel(conflict.entityType, t),
                         count: conflict.recoveredCount + conflict.alternateCount,
                       })}
@@ -645,9 +634,9 @@ export default function CloudBackupScreen() {
                       void runAction(async () => {
                         await acknowledgeCloudConflicts();
                         await refreshConflicts();
-                      }, t('Recovered conflicts marked as reviewed'))
+                      }, t('cloud.recoveredConflictsMarkedAsReviewed'))
                     }>
-                    <Text>{t('Mark as reviewed')}</Text>
+                    <Text>{t('cloud.markAsReviewed')}</Text>
                   </Button>
                 </View>
               )}
@@ -656,10 +645,10 @@ export default function CloudBackupScreen() {
                 <SettingsRow
                   icon={Unplug}
                   label={disconnectLabel}
-                  description={t('Keep local data and the cloud copy')}
+                  description={t('cloud.keepLocalDataAndTheCloudCopy')}
                   onPress={() => setDestructiveAction('disconnect')}
                   accessibilityLabel={disconnectLabel}
-                  accessibilityHint={t('Keep local data and the cloud copy')}
+                  accessibilityHint={t('cloud.keepLocalDataAndTheCloudCopy')}
                   className="rounded-none px-4"
                   isLast
                 />
@@ -668,13 +657,11 @@ export default function CloudBackupScreen() {
               <View className="rounded-lg border border-destructive/50 bg-card overflow-hidden">
                 <SettingsRow
                   icon={Trash2}
-                  label={t('Delete or reset data')}
-                  description={t('Choose which copies of your journal to remove.')}
+                  label={t('cloud.deleteOrResetData')}
+                  description={t('cloud.chooseWhichCopiesOfYourJournalToRemove')}
                   onPress={() => void manageDataSheetRef.current?.present()}
-                  accessibilityLabel={t('Delete or reset data')}
-                  accessibilityHint={t(
-                    'Choose which copies of your journal to remove.',
-                  )}
+                  accessibilityLabel={t('cloud.deleteOrResetData')}
+                  accessibilityHint={t('cloud.chooseWhichCopiesOfYourJournalToRemove')}
                   className="rounded-none px-4"
                   showChevron
                   isLast
@@ -686,16 +673,14 @@ export default function CloudBackupScreen() {
               <View className="items-center gap-3">
                 <Icon as={Cloud} className="text-foreground size-10" />
                 <Text variant="h3" className="text-center text-foreground">
-                  {t('Optional cloud backup')}
+                  {t('cloud.optionalCloudBackup')}
                 </Text>
                 <Text className="text-center text-foreground">
-                  {t(
-                    'Back up and sync your journal with your own Google Drive. No Tackbok account is created.',
-                  )}
+                  {t('cloud.backUpAndSyncYourJournalWithYourOwnGoogle')}
                 </Text>
               </View>
               <Button variant="primary" size="lg" onPress={() => setStage('disclosure')}>
-                <Text>{t('Connect Google Drive')}</Text>
+                <Text>{t('cloud.connectGoogleDrive')}</Text>
               </Button>
             </View>
           ))}
@@ -715,47 +700,47 @@ export default function CloudBackupScreen() {
         <View className="bg-background pt-2 pb-8">
           <View className="flex-row items-center justify-between px-5 pt-3 pb-2">
             <Text className="text-xl font-body-bold text-foreground">
-              {t('Delete or reset data')}
+              {t('cloud.deleteOrResetData')}
             </Text>
             <Button
               onPress={() => void manageDataSheetRef.current?.dismiss()}
               variant="ghost"
               className="p-1 -mr-2"
-              accessibilityLabel={t('Close')}>
+              accessibilityLabel={t('common.close')}>
               <Icon as={X} className="text-foreground" />
             </Button>
           </View>
 
           <Text className="px-5 pb-3 text-sm text-muted-foreground">
-            {t('Choose which copies of your journal to remove.')}
+            {t('cloud.chooseWhichCopiesOfYourJournalToRemove')}
           </Text>
 
           <View className="mx-4 rounded-lg border border-destructive/50 bg-card overflow-hidden">
             <SettingsRow
               icon={CloudOff}
-              label={t('Delete cloud backup')}
-              description={t('Keep local journal data')}
+              label={t('cloud.deleteCloudBackup')}
+              description={t('cloud.keepLocalJournalData')}
               onPress={() => void handleChooseDataAction('delete-backup')}
-              accessibilityLabel={t('Delete cloud backup')}
-              accessibilityHint={t('Keep local journal data')}
+              accessibilityLabel={t('cloud.deleteCloudBackup')}
+              accessibilityHint={t('cloud.keepLocalJournalData')}
               className="rounded-none px-4"
             />
             <SettingsRow
               icon={Smartphone}
-              label={t('Reset this device only')}
-              description={t('Keep the cloud copy and other devices')}
+              label={t('cloud.resetThisDeviceOnly')}
+              description={t('cloud.keepTheCloudCopyAndOtherDevices')}
               onPress={() => void handleChooseDataAction('reset-device')}
-              accessibilityLabel={t('Reset this device only')}
-              accessibilityHint={t('Keep the cloud copy and other devices')}
+              accessibilityLabel={t('cloud.resetThisDeviceOnly')}
+              accessibilityHint={t('cloud.keepTheCloudCopyAndOtherDevices')}
               className="rounded-none px-4"
             />
             <SettingsRow
               icon={Trash2}
-              label={t('Delete journal everywhere')}
-              description={t('Delete cloud and local journal data')}
+              label={t('cloud.deleteJournalEverywhere')}
+              description={t('cloud.deleteCloudAndLocalJournalData')}
               onPress={() => void handleChooseDataAction('delete-journal')}
-              accessibilityLabel={t('Delete journal everywhere')}
-              accessibilityHint={t('Delete cloud and local journal data')}
+              accessibilityLabel={t('cloud.deleteJournalEverywhere')}
+              accessibilityHint={t('cloud.deleteCloudAndLocalJournalData')}
               className="rounded-none px-4"
               isLast
             />
@@ -775,7 +760,7 @@ export default function CloudBackupScreen() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogDestructiveAction
               delaySeconds={DELETE_CONFIRM_DELAY_SECONDS}
@@ -791,15 +776,15 @@ export default function CloudBackupScreen() {
           className="absolute inset-0 z-50 items-center justify-center bg-background/95 px-safe-or-6"
           accessibilityViewIsModal
           accessibilityRole="progressbar"
-          accessibilityLabel={t('Deleting journal everywhere…')}
+          accessibilityLabel={t('cloud.deletingJournalEverywhere')}
           accessibilityLiveRegion="assertive">
           <View className="w-full max-w-md items-center gap-4 rounded-xl border border-border bg-card p-6">
             <ActivityIndicator size="large" colorClassName="accent-primary" />
             <Text variant="h3" className="text-center text-foreground">
-              {t('Deleting journal everywhere…')}
+              {t('cloud.deletingJournalEverywhere')}
             </Text>
             <Text className="text-center text-muted-foreground">
-              {t('Removing the cloud backup and journal data. Keep Tackbok open.')}
+              {t('cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen')}
             </Text>
           </View>
         </View>
@@ -834,7 +819,7 @@ function SyncProgressPanel({
         <View className="flex-1 gap-0.5">
           <Text className="font-body-semibold text-foreground">{label}</Text>
           <Text className="text-xs text-foreground">
-            {t('Step {current} of {total} in this batch', {
+            {t('cloud.stepCurrentOfTotalInThisBatch', {
               current: phaseIndex + 1,
               total: SYNC_PHASES.length,
             })}
@@ -859,7 +844,7 @@ function SyncProgressPanel({
       </View>
 
       <Text className="text-xs leading-4.5 text-foreground">
-        {t('Sync runs in safe batches. You can keep using Tackbok.')}
+        {t('cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok')}
       </Text>
     </View>
   );
@@ -872,27 +857,21 @@ function DisclosureCard({ busy, onContinue }: { busy: boolean; onContinue: () =>
       <View className="flex-row items-center gap-3">
         <Icon as={ShieldCheck} className="text-foreground size-7" />
         <Text variant="h3" className="text-foreground flex-1">
-          {t('Before you connect')}
+          {t('cloud.beforeYouConnect')}
         </Text>
       </View>
       <Text className="text-foreground">
-        {t(
-          'Backups are encrypted in transit and at rest by Google Drive, but are not end-to-end encrypted.',
-        )}
+        {t('cloud.backupsAreEncryptedInTransitAndAtRestByGoogle')}
       </Text>
       <Text className="font-body-semibold text-foreground">
-        {t(
-          'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.',
-        )}
+        {t('cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup')}
       </Text>
       <Text className="text-foreground">
-        {t(
-          'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.',
-        )}
+        {t('cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo')}
       </Text>
       <Button variant="primary" size="lg" disabled={busy} onPress={onContinue}>
         {busy && <ActivityIndicator colorClassName="accent-primary-foreground" />}
-        <Text>{busy ? t('Connecting…') : t('Connect Google Drive')}</Text>
+        <Text>{busy ? t('cloud.connecting') : t('cloud.connectGoogleDrive')}</Text>
       </Button>
     </View>
   );
@@ -918,7 +897,7 @@ function ConnectionChoice({
         <Icon as={CheckCircle2} className="text-foreground size-7" />
         <View className="flex-1">
           <Text variant="h3" className="text-foreground">
-            {t('Google Drive connected')}
+            {t('cloud.googleDriveConnected')}
           </Text>
           <Text selectable className="text-sm text-foreground">
             {prepared.accountLabel}
@@ -929,8 +908,8 @@ function ConnectionChoice({
         <>
           <Text className="text-foreground">
             {prepared.localHasData
-              ? t('Choose a backup to merge with this journal. Both sides are preserved.')
-              : t('Choose a backup to restore on this device.')}
+              ? t('cloud.chooseABackupToMergeWithThisJournalBothSides')
+              : t('cloud.chooseABackupToRestoreOnThisDevice')}
           </Text>
           {prepared.availableVaults.map((vault, index) => (
             <Button
@@ -941,26 +920,26 @@ function ConnectionChoice({
               disabled={busy}
               onPress={() => onChoose(vault.vaultId)}
               accessibilityLabel={`${
-                prepared.localHasData ? t('Merge') : t('Restore cloud backup')
+                prepared.localHasData ? t('cloud.merge') : t('cloud.restoreCloudBackup')
               }. ${
                 vault.createdAt
-                  ? t('Backup from {date}', {
+                  ? t('cloud.backupFromDate', {
                       date: formatLocalizedDate(vault.createdAt, t),
                     })
-                  : t('Cloud backup {number}', { number: index + 1 })
+                  : t('cloud.cloudBackupNumber', { number: index + 1 })
               }`}>
               <View className="flex-1 gap-0.5">
                 <Text className="font-body-bold text-foreground">
                   {vault.createdAt
-                    ? t('Backup from {date}', {
+                    ? t('cloud.backupFromDate', {
                         date: formatLocalizedDate(vault.createdAt, t),
                       })
-                    : t('Cloud backup {number}', { number: index + 1 })}
+                    : t('cloud.cloudBackupNumber', { number: index + 1 })}
                 </Text>
                 <Text className="text-sm text-foreground">
                   {prepared.localHasData
-                    ? t('Merge')
-                    : t('Restore cloud backup')}
+                    ? t('cloud.merge')
+                    : t('cloud.restoreCloudBackup')}
                 </Text>
               </View>
             </Button>
@@ -969,17 +948,17 @@ function ConnectionChoice({
       ) : origin === 'settings' ? (
         <>
           <Text className="text-foreground">
-            {t('No existing Tackbok backup was found. Create one for this journal.')}
+            {t('cloud.noExistingTackbokBackupWasFoundCreateOneForThis')}
           </Text>
           <Button variant="primary" size="lg" disabled={busy} onPress={onCreate}>
-            <Text>{t('Create cloud backup')}</Text>
+            <Text>{t('cloud.createCloudBackup')}</Text>
           </Button>
         </>
       ) : null}
       {busy && (
         <View className="flex-row items-center gap-2" accessibilityLiveRegion="polite">
           <ActivityIndicator colorClassName="accent-primary" />
-          <Text className="text-foreground/75">{t('Setting up cloud sync…')}</Text>
+          <Text className="text-foreground/75">{t('cloud.settingUpCloudSync')}</Text>
         </View>
       )}
     </View>

@@ -1,12 +1,10 @@
+import { useTranslation } from '~/lib/i18n';
 import * as React from 'react';
 import { View, type ViewProps } from 'react-native';
 import { X } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import * as DialogPrimitive from '~/components/primitives/dialog';
-import {
-  DialogOverlayFrame,
-  type AndroidOverlayStrategy,
-} from './dialog-overlay-frame';
+import { DialogOverlayFrame, type AndroidOverlayStrategy } from './dialog-overlay-frame';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 
@@ -63,6 +61,7 @@ function DialogContent({
   portalHost?: string;
   showCloseButton?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <DialogPortal hostName={portalHost}>
       <DialogOverlay androidOverlayStrategy={androidOverlayStrategy}>
@@ -81,7 +80,7 @@ function DialogContent({
               )}
               hitSlop={12}>
               <Icon as={X} className={cn('text-foreground size-4 shrink-0')} />
-              <Text className="sr-only">Close</Text>
+              <Text className="sr-only">{t('common.close')}</Text>
             </DialogPrimitive.Close>
           )}
         </DialogPrimitive.Content>
@@ -114,7 +113,10 @@ function DialogTitle({
 }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('text-foreground text-lg font-body-semibold leading-tight', className)}
+      className={cn(
+        'text-foreground text-lg font-body-semibold leading-tight',
+        className,
+      )}
       {...props}
     />
   );

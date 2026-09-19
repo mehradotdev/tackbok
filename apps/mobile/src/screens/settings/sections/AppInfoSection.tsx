@@ -62,7 +62,7 @@ export function AppInfoSection() {
           dateStyle: 'medium',
           timeStyle: 'short',
         }).format(lastUpdateCheckDate)
-      : t('Never');
+      : t('appInfo.never');
   const isUpdateBusy = isManualCheckRunning || isChecking || isDownloading;
 
   const handleRestart = async () => {
@@ -70,7 +70,7 @@ export function AppInfoSection() {
       await restartToApplyAppUpdate();
     } catch (error) {
       console.warn('Failed to restart to apply the downloaded update:', error);
-      toast.error(t('Unable to update'));
+      toast.error(t('appInfo.unableToUpdate'));
     }
   };
 
@@ -87,18 +87,18 @@ export function AppInfoSection() {
         // need to expand the end-user translation catalog.
         toast.info('Updates are unavailable in development builds');
       } else if (result === 'downloaded') {
-        toast.success(t('Update downloaded. Restart to apply it.'), {
+        toast.success(t('appInfo.updateDownloadedRestartToApplyIt'), {
           action: {
-            label: t('Restart'),
+            label: t('appInfo.restart'),
             onPress: () => void handleRestart(),
           },
         });
       } else {
-        toast.success(t('You already have the latest version'));
+        toast.success(t('appInfo.youAlreadyHaveTheLatestVersion'));
       }
     } catch (error) {
       console.warn('Failed to check for or download an app update:', error);
-      toast.error(t('Unable to update'));
+      toast.error(t('appInfo.unableToUpdate'));
     } finally {
       setIsManualCheckRunning(false);
     }
@@ -107,12 +107,12 @@ export function AppInfoSection() {
   const handleShare = async () => {
     try {
       const message = t(
-        'Practice gratitude with Tackbok, a simple, free, and private gratitude journaling app',
+        'appInfo.practiceGratitudeWithTackbokASimpleFreeAndPrivateGratitude',
       );
       await shareTackbok(message);
     } catch (error) {
       console.warn('Failed to open the share sheet:', error);
-      toast.error(t('Unknown error'));
+      toast.error(t('common.unknownError'));
     }
   };
 
@@ -126,17 +126,17 @@ export function AppInfoSection() {
   };
 
   return (
-    <SettingsSection title={t('App Information')}>
+    <SettingsSection title={t('appInfo.appInformation')}>
       <SettingsRow
-        label={t('Share Tackbok')}
-        description={t('Share the app with friends and family')}
+        label={t('appInfo.shareTackbok')}
+        description={t('appInfo.shareTheAppWithFriendsAndFamily')}
         icon={Share2}
         onPress={handleShare}
         showChevron
       />
       <SettingsRow
-        label={t('FAQ')}
-        description={t('Read frequently asked questions')}
+        label={t('appInfo.faq')}
+        description={t('appInfo.readFrequentlyAskedQuestions')}
         icon={HelpCircle}
         onPress={() => {
           Linking.openURL('https://tackbok.org/faq');
@@ -144,8 +144,8 @@ export function AppInfoSection() {
         isExternalLink
       />
       <SettingsRow
-        label={t('Terms & Conditions')}
-        description={t('Read our terms and conditions')}
+        label={t('appInfo.termsConditions')}
+        description={t('appInfo.readOurTermsAndConditions')}
         icon={FileText}
         onPress={() => {
           Linking.openURL('https://tackbok.org/terms');
@@ -153,8 +153,8 @@ export function AppInfoSection() {
         isExternalLink
       />
       <SettingsRow
-        label={t('Privacy Policy')}
-        description={t('Read our privacy policy')}
+        label={t('appInfo.privacyPolicy')}
+        description={t('appInfo.readOurPrivacyPolicy')}
         icon={Shield}
         onPress={() => {
           Linking.openURL('https://tackbok.org/privacy');
@@ -162,8 +162,8 @@ export function AppInfoSection() {
         isExternalLink
       />
       <SettingsRow
-        label={t('Analytics')}
-        description={t('Collecting anonymized analytics to help diagnose problems')}
+        label={t('appInfo.analytics')}
+        description={t('appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems')}
         icon={BarChart3}
         onPress={() => setAnalyticsEnabled(!analyticsEnabled)}
         rightElement={
@@ -173,23 +173,29 @@ export function AppInfoSection() {
         }
       />
       <SettingsRow
-        label={isUpdateBusy ? t('Checking for updates…') : t('Check for updates')}
-        description={t('Last checked: {time}', { time: lastUpdateCheckTime })}
+        label={
+          isUpdateBusy ? t('appInfo.checkingForUpdates') : t('appInfo.checkForUpdates')
+        }
+        description={t('appInfo.lastCheckedTime', { time: lastUpdateCheckTime })}
         icon={CloudDownload}
         onPress={handleCheckForUpdates}
         disabled={isUpdateBusy}
       />
       {isUpdatePending && (
         <SettingsRow
-          label={t('Restart to apply')}
+          label={t('appInfo.restartToApply')}
           icon={RefreshCw}
           onPress={handleRestart}
         />
       )}
-      <SettingsRow label={t('Version')} description={displayedVersion} icon={Info} />
       <SettingsRow
-        label={t('Replay Onboarding')}
-        description={t('Run the welcome setup again')}
+        label={t('appInfo.version')}
+        description={displayedVersion}
+        icon={Info}
+      />
+      <SettingsRow
+        label={t('onboarding.replayOnboarding')}
+        description={t('onboarding.runTheWelcomeSetupAgain')}
         icon={RotateCcw}
         onPress={() => setShowReplayOnboardingDialog(true)}
         showChevron
@@ -201,19 +207,17 @@ export function AppInfoSection() {
         onOpenChange={setShowReplayOnboardingDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Replay onboarding?')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('onboarding.replayOnboarding2')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t(
-                'The welcome setup will start again. Your journal entries and settings are kept.',
-              )}
+              {t('onboarding.theWelcomeSetupWillStartAgainYourJournalEntriesAnd')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogAction onPress={handleReplayOnboarding}>
-              <Text>{t('Replay')}</Text>
+              <Text>{t('onboarding.replay')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

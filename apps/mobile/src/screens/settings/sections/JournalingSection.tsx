@@ -1,3 +1,4 @@
+import type { TranslationKey } from '~/lib/i18n';
 import { Crosshair, ScrollText } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { SHEET_NAMES } from '~/constants';
@@ -15,12 +16,13 @@ import {
 import { SettingsSection } from '../SettingsSection';
 import { SettingsRow } from '~/components/SettingsRow';
 
-const JOURNAL_PROMPTS_OPTIONS: { value: JournalPromptsMode; labelKey: string }[] = [
-  { value: 'off', labelKey: 'Off' },
-  { value: 'builtin', labelKey: 'Built In Prompts' },
-  { value: 'custom', labelKey: 'My Prompts' },
-  { value: 'all', labelKey: 'All Prompts' },
-];
+const JOURNAL_PROMPTS_OPTIONS: { value: JournalPromptsMode; labelKey: TranslationKey }[] =
+  [
+    { value: 'off', labelKey: 'journaling.off' },
+    { value: 'builtin', labelKey: 'journaling.builtInPrompts' },
+    { value: 'custom', labelKey: 'journaling.myPrompts' },
+    { value: 'all', labelKey: 'journaling.allPrompts' },
+  ];
 
 export function JournalingSection() {
   const { t } = useTranslation();
@@ -29,7 +31,7 @@ export function JournalingSection() {
 
   const currentPromptLabel =
     JOURNAL_PROMPTS_OPTIONS.find((o) => o.value === journalPromptsMode)?.labelKey ??
-    'Off';
+    'journaling.off';
 
   const currentValue: Option = {
     value: journalPromptsMode,
@@ -42,22 +44,22 @@ export function JournalingSection() {
   };
 
   return (
-    <SettingsSection title={t('Journaling')}>
+    <SettingsSection title={t('journaling.journaling')}>
       <SettingsRow
-        label={t('Journal Focus Areas')}
-        description={t('Personalize your journal prompts.')}
+        label={t('journaling.journalFocusAreas')}
+        description={t('journaling.personalizeYourJournalPrompts')}
         icon={Crosshair}
         showChevron
         onPress={() => TrueSheet.present(SHEET_NAMES.JOURNAL_FOCUS_AREAS)}
       />
       <SettingsRow
-        label={t('Journal Prompts')}
-        description={t('Choose which prompts to show when starting a new journal entry.')}
+        label={t('journaling.journalPrompts')}
+        description={t('journaling.chooseWhichPromptsToShowWhenStartingANewJournal')}
         icon={ScrollText}
         rightElement={
           <Select value={currentValue} onValueChange={handlePromptsChange}>
             <SelectTrigger className="min-w-30">
-              <SelectValue placeholder={t('Off')} />
+              <SelectValue placeholder={t('journaling.off')} />
             </SelectTrigger>
             <SelectContent className="min-w-45">
               {JOURNAL_PROMPTS_OPTIONS.map((option) => (

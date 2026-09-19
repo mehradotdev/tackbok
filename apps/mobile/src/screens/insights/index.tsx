@@ -35,21 +35,21 @@ export default function InsightsScreen() {
           onPress={() => router.back()}
           variant="ghost"
           className="p-1 mr-1"
-          accessibilityLabel={t('Back')}>
+          accessibilityLabel={t('common.back')}>
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Button>
         <Text variant="h2" className="text-foreground py-1 font-heading">
-          {t('Insights')}
+          {t('insights.insights')}
         </Text>
       </View>
 
       {error ? (
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-center text-destructive mb-2">
-            {t('Failed to load entries')}
+            {t('gratitude.failedToLoadEntries')}
           </Text>
           <Text className="text-center text-muted-foreground">
-            {error.message || t('Unknown error')}
+            {error.message || t('common.unknownError')}
           </Text>
         </View>
       ) : !stats ? (
@@ -63,10 +63,10 @@ export default function InsightsScreen() {
             strokeWidth={1.5}
           />
           <Text variant="large" className="text-center mt-3">
-            {t('No insights yet')}
+            {t('insights.noInsightsYet')}
           </Text>
           <Text className="text-sm text-muted-foreground text-center mt-1">
-            {t('Write a few entries and your stats will show up here.')}
+            {t('insights.writeAFewEntriesAndYourStatsWillShowUp')}
           </Text>
         </View>
       ) : (
@@ -76,32 +76,35 @@ export default function InsightsScreen() {
 
           <HeroTiles stats={stats} />
 
-          <InsightsSection title={t('Totals')}>
+          <InsightsSection title={t('insights.totals')}>
             <CountsRow stats={stats} />
           </InsightsSection>
 
-          <InsightsSection title={t('Consistency')}>
-            <ContributionHeatmap weeks={stats.heatmapWeeks} hasMoods={stats.moodTotal > 0} />
+          <InsightsSection title={t('insights.consistency')}>
+            <ContributionHeatmap
+              weeks={stats.heatmapWeeks}
+              hasMoods={stats.moodTotal > 0}
+            />
           </InsightsSection>
 
           {stats.moodTotal > 0 && (
-            <InsightsSection title={t('Mood')}>
+            <InsightsSection title={t('entry.mood')}>
               <MoodSection stats={stats} />
             </InsightsSection>
           )}
 
           {stats.moodTrend.length > 1 && (
-            <InsightsSection title={t('Mood over time')}>
+            <InsightsSection title={t('insights.moodOverTime')}>
               <MoodTrendLine trend={stats.moodTrend} />
             </InsightsSection>
           )}
 
-          <InsightsSection title={t('Entries per month')}>
+          <InsightsSection title={t('insights.entriesPerMonth')}>
             <MonthlyBars stats={stats} />
           </InsightsSection>
 
           {stats.totalEntries >= TIME_OF_DAY_MIN_ENTRIES && (
-            <InsightsSection title={t('Writing habits')}>
+            <InsightsSection title={t('insights.writingHabits')}>
               <TimeOfDaySection stats={stats} />
             </InsightsSection>
           )}

@@ -16,7 +16,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { useSettingsStore } from '~/lib/settings';
-import { useLocaleStore } from '~/lib/i18n';
+import { useTranslation, useLocaleStore } from '~/lib/i18n';
 import { initReminders, useReminderTapObserver } from '~/lib/reminders';
 import { initAnalytics, trackScreenView } from '~/lib/analytics';
 import { cleanupDeferredBackupZipFiles } from '~/lib/backupExport';
@@ -80,6 +80,7 @@ function ScreenViewObserver() {
 }
 
 export default function Layout() {
+  const { t } = useTranslation();
   const { success, error } = useMigrations(db, migrations);
   const theme = useSettingsStore((s) => s.theme);
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
@@ -94,8 +95,7 @@ export default function Layout() {
     '--color-background',
   ]);
 
-  const isBootstrapLoading =
-    !error && (!success || (!fontsLoaded && !fontsError));
+  const isBootstrapLoading = !error && (!success || (!fontsLoaded && !fontsError));
 
   useEffect(() => {
     if (!success || !hasHydrated) return;
@@ -158,7 +158,7 @@ export default function Layout() {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4">
         <Text className="text-destructive text-center">
-          Database migration error: {error.message}
+          {t('common.databaseUpdateFailed', { message: error.message })}
         </Text>
       </View>
     );

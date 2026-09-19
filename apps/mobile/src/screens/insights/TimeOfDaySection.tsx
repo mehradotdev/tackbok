@@ -1,3 +1,4 @@
+import type { TranslationKey } from '~/lib/i18n';
 import { View } from 'react-native';
 import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
@@ -8,18 +9,18 @@ const BAR_MAX_HEIGHT = 84;
 /** Share of all entries a bucket needs before we call the user that writer. */
 const CALLOUT_MIN_SHARE = 0.4;
 
-const BUCKETS: { key: TimeOfDayBucket; emoji: string; labelKey: string }[] = [
-  { key: 'morning', emoji: '☀️', labelKey: 'Morning' },
-  { key: 'afternoon', emoji: '🌤️', labelKey: 'Afternoon' },
-  { key: 'evening', emoji: '🌆', labelKey: 'Evening' },
-  { key: 'night', emoji: '🌙', labelKey: 'Night' },
+const BUCKETS: { key: TimeOfDayBucket; emoji: string; labelKey: TranslationKey }[] = [
+  { key: 'morning', emoji: '☀️', labelKey: 'insights.morning' },
+  { key: 'afternoon', emoji: '🌤️', labelKey: 'insights.afternoon' },
+  { key: 'evening', emoji: '🌆', labelKey: 'insights.evening' },
+  { key: 'night', emoji: '🌙', labelKey: 'insights.night' },
 ];
 
-const CALLOUT_KEYS: Record<TimeOfDayBucket, string> = {
-  morning: "You're a morning writer",
-  afternoon: "You're an afternoon writer",
-  evening: "You're an evening writer",
-  night: "You're a night writer",
+const CALLOUT_KEYS: Record<TimeOfDayBucket, TranslationKey> = {
+  morning: 'insights.youreAMorningWriter',
+  afternoon: 'insights.youreAnAfternoonWriter',
+  evening: 'insights.youreAnEveningWriter',
+  night: 'insights.youreANightWriter',
 };
 
 /** When do you journal? Four bars + a one-line "night writer" style callout. */
@@ -34,7 +35,8 @@ export function TimeOfDaySection({ stats }: { stats: InsightsStats }) {
       stats.timeOfDay[bucket.key] > stats.timeOfDay[best.key] ? bucket : best,
     BUCKETS[0],
   );
-  const showCallout = total > 0 && stats.timeOfDay[dominant.key] / total >= CALLOUT_MIN_SHARE;
+  const showCallout =
+    total > 0 && stats.timeOfDay[dominant.key] / total >= CALLOUT_MIN_SHARE;
 
   return (
     <View>
@@ -50,7 +52,11 @@ export function TimeOfDaySection({ stats }: { stats: InsightsStats }) {
                 </Text>
               )}
               <View
-                className={count > 0 ? 'w-full rounded-t-md bg-primary' : 'w-full rounded-t-md bg-muted/40'}
+                className={
+                  count > 0
+                    ? 'w-full rounded-t-md bg-primary'
+                    : 'w-full rounded-t-md bg-muted/40'
+                }
                 style={{ height }}
               />
             </View>

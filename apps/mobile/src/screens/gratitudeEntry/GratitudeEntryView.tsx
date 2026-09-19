@@ -86,7 +86,7 @@ export function GratitudeEntryView({
       }
     } catch (error) {
       console.error('Failed to delete entry', error);
-      toast.error(t('Failed to delete entry'));
+      toast.error(t('mood.failedToDeleteEntry'));
       return;
     }
     setShowDeleteConfirm(false);
@@ -129,7 +129,7 @@ export function GratitudeEntryView({
             <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-lg border border-border">
               <Text className="text-2xl">{moodOption.emoji}</Text>
               <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
-                {t(`Feeling ${moodOption.label}`)}
+                {t(moodOption.feelingKey)}
               </Text>
             </View>
           </View>
@@ -191,7 +191,7 @@ export function GratitudeEntryView({
           size="icon"
           className="absolute right-4 h-12 w-12 rounded-full bg-background shadow-theme"
           style={{ bottom: Math.max(insets.bottom, 12) + 8 }}
-          accessibilityLabel={t('Share entry')}
+          accessibilityLabel={t('sharing.shareEntry')}
           onPress={() =>
             router.push({
               pathname: '/share-entry/[noteId]',
@@ -205,17 +205,17 @@ export function GratitudeEntryView({
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('Delete Entry?')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('entry.deleteEntry')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('This entry will be permanently deleted.')}
+              {t('entry.thisEntryWillBePermanentlyDeleted')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onPress={() => setShowDeleteConfirm(false)}>
-              <Text>{t('Cancel')}</Text>
+              <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
             <AlertDialogDestructiveAction onPress={handleDelete}>
-              <Text>{t('Delete')}</Text>
+              <Text>{t('common.delete')}</Text>
             </AlertDialogDestructiveAction>
           </AlertDialogFooter>
         </AlertDialogContent>

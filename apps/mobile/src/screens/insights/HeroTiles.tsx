@@ -93,19 +93,31 @@ export function HeroTiles({ stats }: { stats: InsightsStats }) {
 
   return (
     <View className="px-4 mb-6">
-      <InsightsSectionTitle title={t('Overview')} />
+      <InsightsSectionTitle title={t('insights.overview')} />
       <View className="gap-2">
-      <View className="flex-row gap-2">
-        <Tile>
-          <ScoreRing score={stats.score} />
-          <TileCaption label={t('Gratitude score')} />
-        </Tile>
-        <StreakTile emoji="🔥" value={stats.currentStreak} label={t('Current streak')} />
-      </View>
-      <View className="flex-row gap-2">
-        <StreakTile emoji="🏆" value={stats.longestStreak} label={t('Longest streak')} />
-        <StreakTile emoji="📖" value={stats.daysJournaled} label={t('Days journaled')} />
-      </View>
+        <View className="flex-row gap-2">
+          <Tile>
+            <ScoreRing score={stats.score} />
+            <TileCaption label={t('insights.gratitudeScore')} />
+          </Tile>
+          <StreakTile
+            emoji="🔥"
+            value={stats.currentStreak}
+            label={t('insights.currentStreak')}
+          />
+        </View>
+        <View className="flex-row gap-2">
+          <StreakTile
+            emoji="🏆"
+            value={stats.longestStreak}
+            label={t('insights.longestStreak')}
+          />
+          <StreakTile
+            emoji="📖"
+            value={stats.daysJournaled}
+            label={t('insights.daysJournaled')}
+          />
+        </View>
       </View>
     </View>
   );

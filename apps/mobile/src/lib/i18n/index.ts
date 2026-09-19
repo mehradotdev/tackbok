@@ -5,6 +5,7 @@ export type {
   Translations,
   LanguageInfo,
   TranslationFunction,
+  TranslationKey,
 } from './types';
 export { RTL_LOCALES, DEFAULT_LOCALE } from './types';
 
@@ -18,7 +19,11 @@ export { translations, languages, translate, isRTLLocale } from './translations'
 export { useTranslation } from './useTranslation';
 
 // Date Formatting
-export { formatLocalizedDate, formatTimeLabel } from './dateFormatting';
+export {
+  formatLocalizedDate,
+  formatLocalizedTime,
+  formatTimeLabel,
+} from './dateFormatting';
 
 // Number Formatting
 export { formatLocalizedNumber } from './numberFormatting';

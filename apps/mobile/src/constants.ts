@@ -10,11 +10,36 @@ export const MOOD_EMOJI: Record<Mood, string> = {
 };
 
 export const MOOD_OPTIONS = [
-  { value: 'AMAZING', emoji: MOOD_EMOJI.AMAZING, label: 'Amazing' },
-  { value: 'HAPPY', emoji: MOOD_EMOJI.HAPPY, label: 'Happy' },
-  { value: 'OKAY', emoji: MOOD_EMOJI.OKAY, label: 'Okay' },
-  { value: 'SAD', emoji: MOOD_EMOJI.SAD, label: 'Sad' },
-  { value: 'AWFUL', emoji: MOOD_EMOJI.AWFUL, label: 'Awful' },
+  {
+    value: 'AMAZING',
+    emoji: MOOD_EMOJI.AMAZING,
+    label: 'mood.amazing',
+    feelingKey: 'mood.feelingAmazing',
+  },
+  {
+    value: 'HAPPY',
+    emoji: MOOD_EMOJI.HAPPY,
+    label: 'mood.happy',
+    feelingKey: 'mood.feelingHappy',
+  },
+  {
+    value: 'OKAY',
+    emoji: MOOD_EMOJI.OKAY,
+    label: 'mood.okay',
+    feelingKey: 'mood.feelingOkay',
+  },
+  {
+    value: 'SAD',
+    emoji: MOOD_EMOJI.SAD,
+    label: 'mood.sad',
+    feelingKey: 'mood.feelingSad',
+  },
+  {
+    value: 'AWFUL',
+    emoji: MOOD_EMOJI.AWFUL,
+    label: 'mood.awful',
+    feelingKey: 'mood.feelingAwful',
+  },
 ] as const;
 
 /** Global names for TrueSheet to allow invocation from anywhere */
@@ -41,43 +66,43 @@ export const SHEET_NAMES = {
 export const MODAL_CLOSE_DELAY = 200;
 
 export const MONTH_KEYS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
+  'calendar.january',
+  'calendar.february',
+  'calendar.march',
+  'calendar.april',
+  'calendar.may',
+  'calendar.june',
+  'calendar.july',
+  'calendar.august',
+  'calendar.september',
+  'calendar.october',
+  'calendar.november',
+  'calendar.december',
 ] as const;
 
 export const MONTH_SHORT_KEYS = [
-  'JAN',
-  'FEB',
-  'MAR',
-  'APR',
-  'MAY',
-  'JUN',
-  'JUL',
-  'AUG',
-  'SEP',
-  'OCT',
-  'NOV',
-  'DEC',
+  'calendar.jan',
+  'calendar.feb',
+  'calendar.mar',
+  'calendar.apr',
+  'calendar.may2',
+  'calendar.jun',
+  'calendar.jul',
+  'calendar.aug',
+  'calendar.sep',
+  'calendar.oct',
+  'calendar.nov',
+  'calendar.dec',
 ] as const;
 
 export const DAY_KEYS = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
+  'calendar.sunday',
+  'calendar.monday',
+  'calendar.tuesday',
+  'calendar.wednesday',
+  'calendar.thursday',
+  'calendar.friday',
+  'calendar.saturday',
 ] as const;
 
 /** Directory within the app's document storage where photos are persisted */

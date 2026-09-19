@@ -3,7 +3,7 @@ import { Linking, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bell, Sparkles } from 'lucide-react-native';
-import { useTranslation } from '~/lib/i18n';
+import { useTranslation, formatLocalizedTime } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { track } from '~/lib/analytics';
 import { hasAnyEntries } from '~/db/queries';
@@ -25,18 +25,12 @@ import { useOnboardingStepView } from './useOnboardingStepView';
 
 export default function OnboardingFinishScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const queryClient = useQueryClient();
   const profileName = useSettingsStore((s) => s.profileName);
-  const {
-    dailyReminderEnabled,
-    setDailyReminderEnabled,
-    reminderTime,
-    setReminderTime,
-  } = useSettingsStore();
-  const setHasCompletedOnboarding = useSettingsStore(
-    (s) => s.setHasCompletedOnboarding,
-  );
+  const { dailyReminderEnabled, setDailyReminderEnabled, reminderTime, setReminderTime } =
+    useSettingsStore();
+  const setHasCompletedOnboarding = useSettingsStore((s) => s.setHasCompletedOnboarding);
 
   const [addSampleEntries, setAddSampleEntries] = useState(true);
   // null = unknown (toggle hidden until the check resolves)
@@ -61,8 +55,10 @@ export default function OnboardingFinishScreen() {
   }, []);
 
   const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    const [hours, minutes] = time.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return formatLocalizedTime(date, locale);
   };
 
   // Mirrors Settings → Notifications: flip the flag only after the OS call
@@ -74,19 +70,19 @@ export default function OnboardingFinishScreen() {
         setDailyReminderEnabled(false);
         track('reminder_disabled');
       } catch {
-        toast.error(t('Failed to update reminder'));
+        toast.error(t('notifications.failedToUpdateReminder'));
       }
       return;
     }
 
     const granted = await requestReminderPermission();
     if (!granted) {
-      toast.warning(t('Notification permission needed'), {
+      toast.warning(t('notifications.notificationPermissionNeeded'), {
         description: t(
-          'To get daily reminders, allow notifications for Tackbok in your device settings.',
+          'notifications.toGetDailyRemindersAllowNotificationsForTackbokInYour',
         ),
         action: {
-          label: t('Open Settings'),
+          label: t('entry.openSettings'),
           onPress: () => Linking.openSettings(),
         },
       });
@@ -98,7 +94,7 @@ export default function OnboardingFinishScreen() {
       setDailyReminderEnabled(true);
       track('reminder_enabled');
     } catch {
-      toast.error(t('Failed to update reminder'));
+      toast.error(t('notifications.failedToUpdateReminder'));
     }
   };
 
@@ -108,7 +104,7 @@ export default function OnboardingFinishScreen() {
     if (dailyReminderEnabled) {
       scheduleDailyReminder(time).catch(() => {
         setReminderTime(previousTime);
-        toast.error(t('Failed to update reminder'));
+        toast.error(t('notifications.failedToUpdateReminder'));
       });
     }
   };
@@ -148,7 +144,7 @@ export default function OnboardingFinishScreen() {
           onClose={() => setShowTimePickerModal(false)}
           value={reminderTime}
           onValueChange={handleReminderTimeChange}
-          title={t('Adjust Reminder Time')}
+          title={t('notifications.adjustReminderTime')}
         />
       }
       footer={
@@ -159,19 +155,19 @@ export default function OnboardingFinishScreen() {
           disabled={isFinishing || dbIsEmpty === null}>
           <Text className="text-lg">
             {isFinishing || dbIsEmpty === null
-              ? t('Setting things up…')
-              : t('Start journaling')}
+              ? t('onboarding.settingThingsUp')
+              : t('onboarding.startJournaling')}
           </Text>
         </Button>
       }>
       <View className="pt-10">
         <Text variant="h2" className="text-foreground">
           {profileName
-            ? t('You’re all set, {name}!', { name: profileName })
-            : t('You’re all set!')}
+            ? t('onboarding.youreAllSetName', { name: profileName })
+            : t('onboarding.youreAllSet')}
         </Text>
         <Text className="text-base text-muted-foreground mt-2 mb-6">
-          {t('Two last things you can turn on. Both are optional.')}
+          {t('onboarding.twoLastThingsYouCanTurnOnBothAreOptional')}
         </Text>
 
         <View className="gap-3">
@@ -191,12 +187,10 @@ export default function OnboardingFinishScreen() {
                 </View>
               </View>
               <Text className="text-base font-body-semibold text-foreground mt-2">
-                {t('Add example entries')}
+                {t('onboarding.addExampleEntries')}
               </Text>
               <Text className="text-sm text-muted-foreground mt-0.5">
-                {t(
-                  'A few sample entries show how photos, voice memos, moods and tags work. Remove them anytime with one tap.',
-                )}
+                {t('onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods')}
               </Text>
             </Button>
           )}
@@ -216,10 +210,10 @@ export default function OnboardingFinishScreen() {
               </View>
             </View>
             <Text className="text-base font-body-semibold text-foreground mt-2">
-              {t('Remind me daily')}
+              {t('onboarding.remindMeDaily')}
             </Text>
             <Text className="text-sm text-muted-foreground mt-0.5">
-              {t('A gentle nudge to write. Never your journal content.')}
+              {t('onboarding.aGentleNudgeToWriteNeverYourJournalContent')}
             </Text>
 
             {dailyReminderEnabled && (
@@ -229,7 +223,7 @@ export default function OnboardingFinishScreen() {
                 onPress={() => setShowTimePickerModal(true)}
                 className="self-start mt-3">
                 <Text className="text-sm">
-                  {t('Remind me at {time}', { time: formatTime(reminderTime) })}
+                  {t('onboarding.remindMeAtTime', { time: formatTime(reminderTime) })}
                 </Text>
               </Button>
             )}
