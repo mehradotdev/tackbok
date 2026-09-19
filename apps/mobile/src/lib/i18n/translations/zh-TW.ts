@@ -5,6 +5,20 @@ import type { Translations } from '../types';
  * Contains translations for all UI strings used in the application
  */
 export const zhTW: Translations = {
+  // Cold-start header greeting
+  "Welcome back": "歡迎回來",
+  "Good morning": "早安",
+  "Good afternoon": "午安",
+  "Good evening": "晚安",
+  "Happy Sunday": "週日愉快",
+  "Happy Monday": "週一愉快",
+  "Happy Tuesday": "週二愉快",
+  "Happy Wednesday": "週三愉快",
+  "Happy Thursday": "週四愉快",
+  "Happy Friday": "週五愉快",
+  "Happy Saturday": "週六愉快",
+  "Greeting with name": "{name}，{greeting}",
+
   // Common
   Tackbok: '塔克博克',
   Cancel: '取消',

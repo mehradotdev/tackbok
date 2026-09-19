@@ -81,6 +81,7 @@
     "react-native-worklets": "0.10.1",
     "tailwind-variants": "^3.2.2",
     "tailwindcss": "^4.3.0",
+    "unicode-segmenter": "^0.17.3",
     "uniwind": "^1.7.0",
     "zustand": "^5.0.14"
   },
@@ -97,6 +98,7 @@
     "eslint-plugin-react-compiler": "^19.1.0-rc.2",
     "jest": "~29.7.0",
     "jest-expo": "~57.0.5",
+    "react-test-renderer": "19.2.3",
     "typescript": "~6.0.3"
   },
   "private": true,
