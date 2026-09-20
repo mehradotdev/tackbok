@@ -268,10 +268,12 @@ The `tackbok-universal.apks` file generated in the previous step is a `.zip` fil
 Android release builds enable R8 minification and resource shrinking through
 `expo-build-properties` in `app.config.ts`. The local
 `plugins/withAndroidReleaseOptimization.js` plugin selects
-`proguard-android-optimize.txt` during prebuild. Keep these settings in Expo
-configuration; editing the ignored `android/` files does not survive clean prebuilds.
-The plugin also raises Gradle Metaspace to 1 GiB to avoid release lint/KSP
-class-metadata exhaustion observed with the SDK 57 patch set.
+`proguard-android-optimize.txt` and enables AGP 8.12+ R8 optimized resource
+shrinking (`android.r8.optimizedResourceShrinking=true`) during prebuild. Keep
+these settings in Expo configuration; editing the ignored `android/` files does
+not survive clean prebuilds. The plugin also raises Gradle Metaspace to 1 GiB to
+avoid release lint/KSP class-metadata exhaustion observed with the SDK 57 patch
+set.
 Debug builds (including the EAS `development` profile) retain the normal
 development behavior. The flags apply to the Android release build type, so
 `preview` and Galaxy release builds are optimized too, not just the profile named

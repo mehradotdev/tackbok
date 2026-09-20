@@ -1,7 +1,8 @@
 const { withAppBuildGradle, withGradleProperties } = require('expo/config-plugins');
 
 // The default Expo preset disables optimization. Keep the optimized preset
-// through clean prebuilds; expo-build-properties controls minify/resource flags.
+// through clean prebuilds; expo-build-properties controls minify/resource flags,
+// and this plugin enables AGP 8.12+ R8 optimized resource shrinking.
 module.exports = function withAndroidReleaseOptimization(config) {
   config = withGradleProperties(config, (mod) => {
     // SDK 57's release lint/KSP can exhaust the template's 512 MiB Metaspace.
@@ -18,6 +19,18 @@ module.exports = function withAndroidReleaseOptimization(config) {
         type: 'property',
         key: 'org.gradle.jvmargs',
         value: '-Xmx2048m -XX:MaxMetaspaceSize=1024m',
+      });
+    }
+    const shrinkProp = mod.modResults.find(
+      (entry) => entry.type === 'property' && entry.key === 'android.r8.optimizedResourceShrinking',
+    );
+    if (shrinkProp) {
+      shrinkProp.value = 'true';
+    } else {
+      mod.modResults.push({
+        type: 'property',
+        key: 'android.r8.optimizedResourceShrinking',
+        value: 'true',
       });
     }
     return mod;
