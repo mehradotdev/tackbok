@@ -8,7 +8,18 @@ export default defineConfig([
   expoConfig,
   reactCompiler.configs.recommended,
   {
-    ignores: ['dist/*', '.expo/*'],
+    ignores: [
+      'dist/**',
+      '.expo/**',
+      'android/**',
+      'ios/**',
+      'web-build/**',
+      'coverage/**',
+      '**/*.generated.*',
+      'src/lib/theme/registry.*',
+      'src/uniwind-types.d.ts',
+      'src/drizzle/**',
+    ],
   },
   {
     plugins: {
