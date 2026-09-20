@@ -2,16 +2,28 @@
   "name": "tackbok-monorepo",
   "private": true,
   "packageManager": "bun@1.4.2",
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
+    "prepare": "husky",
+    "format": "prettier --write --ignore-unknown",
+    "format:check": "prettier --check --ignore-unknown",
+    "format:changed": "bun scripts/check-format.mjs",
+    "lint:staged": "lint-staged",
+    "commitlint": "commitlint",
     "build": "bun --filter '@tackbok/website' build",
     "dev": "bun --filter '@tackbok/website' dev",
     "lint": "bun --filter '*' lint",
     "start": "bun --filter '@tackbok/mobile' start",
-    "test": "bun --filter '@tackbok/mobile' test",
+    "test": "bun --filter '*' --if-present test",
     "typecheck": "bun --filter '*' typecheck"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
     "prettier": "^3.8.1"
   }
 }

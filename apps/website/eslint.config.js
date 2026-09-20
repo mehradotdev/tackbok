@@ -5,7 +5,7 @@ import astro from 'eslint-plugin-astro';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
 export default defineConfig([
-  globalIgnores(['dist', '.astro']),
+  globalIgnores(['dist', '.astro', '.wrangler', 'coverage']),
   {
     files: ['**/*.ts'],
     extends: [js.configs.recommended, tseslint.configs.recommended],

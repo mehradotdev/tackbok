@@ -26,3 +26,13 @@ expo-env.d.ts
 
 # Environment files
 .env*
+
+# Generated assets and vendored agent skills
+**/*.generated.*
+apps/mobile/src/lib/theme/registry.*
+apps/mobile/src/global.css
+apps/mobile/src/uniwind-types.d.ts
+apps/mobile/src/drizzle/
+.agents/skills/
+.husky/_/
+.wrangler/
