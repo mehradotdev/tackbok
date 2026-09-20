@@ -10,25 +10,31 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
+        "NODE_ENV": "development",
         "APP_VARIANT": "beta",
         "ANDROID_STORE": "google"
-      }
+      },
+      "environment": "development"
     },
     "preview": {
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "on",
-        "ANDROID_STORE": "google"
-      }
+        "NODE_ENV": "production",
+        "ANDROID_STORE": "google",
+        "APP_VARIANT": "production"
+      },
+      "environment": "preview"
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_TACKBOK_CLOUD_SYNC_ROLLOUT": "on",
-        "ANDROID_STORE": "google"
-      }
+        "NODE_ENV": "production",
+        "ANDROID_STORE": "google",
+        "APP_VARIANT": "production"
+      },
+      "environment": "production"
     },
     "production-local": {
       "extends": "production",
@@ -44,10 +50,10 @@
         "buildType": "apk"
       },
       "env": {
+        "NODE_ENV": "production",
         "APP_VARIANT": "production",
         "ANDROID_STORE": "samsung",
-        "GALAXY_BILLING_MODE": "PRODUCTION",
-        "EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY": "galx_pQPQgMjxgVZkfRpCPBAsvpwRbsP"
+        "GALAXY_BILLING_MODE": "PRODUCTION"
       }
     },
     "galaxy-test": {

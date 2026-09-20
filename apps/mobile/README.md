@@ -37,7 +37,7 @@ Local development builds use a separate **beta** app identity so they install si
 | Android package / iOS bundle ID | `dev.mehra.tackbok` | `dev.mehra.tackbok.beta` |
 | Deep-link scheme | `tackbok` | `tackbok-beta` |
 
-The variant is selected by the `APP_VARIANT=beta` environment variable in [app.config.ts](app.config.ts). The `start`/`android`/`ios` scripts and the EAS `development` profile set it for you. Preview and production builds set nothing and keep the store identity — never change that.
+The variant is selected by the `APP_VARIANT=beta` environment variable in [app.config.ts](app.config.ts). The `start`/`android`/`ios` scripts and the EAS `development` profile set it for you. Preview and production builds explicitly select `production` and keep the store identity — never change that.
 
 **Important:** the display name and package/bundle ID are stamped into the native `android/`/`ios/` projects when *prebuild* runs, not at `expo start` time. If you regenerate the native projects manually, always go through the script — a bare `npx expo prebuild` would bake the production identity into your local build:
 
@@ -144,13 +144,45 @@ build.
 Publish OTA changes to preview first:
 
 ```sh
-bunx eas update --channel preview --auto --environment preview
+bun run update:preview
 ```
 
 Expo SDK 55 and later require `--environment` when publishing an update. This
 selects the EAS environment whose variables are embedded in the JavaScript
 bundle; variables under a build profile's `env` field are not automatically
 loaded by `eas update`.
+
+Run the update scripts from `apps/mobile` using `bun run`. They explicitly select
+`APP_VARIANT`, `ANDROID_STORE`, and `GALAXY_BILLING_MODE` alongside the channel and
+EAS environment, so updates match the intended binary:
+
+| Script | App / store | Channel | EAS environment |
+| --- | --- | --- | --- |
+| `update:development` | Beta / Google or iOS | `development` | `development` |
+| `update:preview` | Production / Google or iOS | `preview` | `preview` |
+| `update:production` | Production / Google or iOS | `production` | `production` |
+| `update:galaxy` | Production / Samsung production billing | `production-galaxy` | `production` |
+| `update:galaxy-test` | Production / Samsung test billing | `galaxy-test` | `production` |
+
+Keep these public SDK keys in the EAS dashboard with plain-text visibility:
+
+| Variable | Environments |
+| --- | --- |
+| `EXPO_PUBLIC_REVENUECAT_TEST_API_KEY` | `development` |
+| `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` | `preview`, `production` |
+| `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` | `preview`, `production` |
+| `EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY` | `preview`, `production` |
+
+Local development reads the keys from gitignored `.env.local`. EAS builds and
+updates read them from the selected dashboard environment. Keep `APP_VARIANT`,
+`ANDROID_STORE`, and `GALAXY_BILLING_MODE` out of shared dashboard environments;
+build profiles and update scripts select them explicitly.
+
+PostHog's public project key and ingestion host are configured in
+`src/lib/analytics/index.ts`; the `EXPO_PUBLIC_POSTHOG_*` variables are unused.
+No repository workflow uses `POSTHOG_CLI_*`. Those dashboard entries can be removed
+if no external workflow uses them; never commit a PostHog personal API key.
+
 
 After verifying that update with a preview build, promote the same update group to production:
 
@@ -165,7 +197,7 @@ production EAS environments. If they differ, publish separately from the same
 tested commit:
 
 ```sh
-bunx eas update --channel production --auto --environment production
+bun run update:production
 ```
 
 Publish directly to production only when that is intentional. Native dependency
@@ -313,11 +345,10 @@ Upload the Galaxy production APK through Samsung Seller Portal. Do not submit th
 `galaxy-test` build to a store. Samsung test purchases require a physical Galaxy
 device signed into a Samsung account; they do not work in an emulator.
 
-The Samsung public SDK key is set in the Galaxy EAS profile. It is public client
-configuration, not a server secret. Local development also supports
-`EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY` in `.env.local`. Set that variable in the EAS
-`production` environment too before publishing Samsung OTA updates, since Update
-does not load build-profile environment variables.
+Set `EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY` in the EAS `production` environment
+before building or publishing Samsung OTA updates. Both Galaxy build profiles
+and update scripts use that environment. This is a public SDK key, not a server
+secret. Local development reads the same key from `.env.local`.
 
 Samsung's native billing add-on is autolinked only when `ANDROID_STORE=samsung`.
 Rebuild after switching stores; changing JavaScript alone cannot add this module.
@@ -353,11 +384,14 @@ Google keeps its existing channels and app-version runtime. Samsung uses
 Samsung channels. Publish Samsung updates explicitly:
 
 ```sh
-ANDROID_STORE=samsung GALAXY_BILLING_MODE=PRODUCTION bunx eas update --platform android --channel production-galaxy --environment production --auto
+bun run update:galaxy
+
+# Sideload-only Samsung test builds
+bun run update:galaxy-test
 ```
 
 Keep `ANDROID_STORE` and `GALAXY_BILLING_MODE` out of shared EAS environments; select
-them using the build profile or the explicit command above. A native dependency
+them using the build profile or the update scripts above. A native dependency
 change requires a fresh binary and a new app version before publishing OTA updates.
 
 References: [RevenueCat Galaxy installation](https://www.revenuecat.com/docs/getting-started/installation/reactnative),
