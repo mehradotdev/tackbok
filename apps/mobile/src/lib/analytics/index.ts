@@ -42,7 +42,7 @@ export { toCharBucket, toCountBucket } from './events';
 
 // PostHog project API keys are public by design (they can only ingest events,
 // never read data), so committing this is normal for a FOSS app.
-const POSTHOG_API_KEY = 'phc_7mxfX8NwwP9KA8MUqN5QLhnpYtVeBYdK5WJ3qwvLHyl';
+const POSTHOG_API_KEY = 'phc_p7Pod5VpEVAq7hoYERvjUo5wqmRPRQPRkgxp3352qBYD';
 const POSTHOG_HOST = 'https://eu.i.posthog.com';
 
 type ClientSession = {
@@ -265,9 +265,12 @@ export function commitPreConsentBuffer(): Promise<void> {
   const expectedGeneration = generation;
   const buffered = drainPreConsentBuffer();
   if (!hasConsent(expectedGeneration)) return Promise.resolve();
+  if (client) {
+    for (const event of buffered) capture(event);
+    return Promise.resolve();
+  }
+  initPendingEvents.unshift(...buffered);
   return enqueue(async () => {
     await enable(expectedGeneration);
-    if (!hasConsent(expectedGeneration)) return;
-    for (const event of buffered) capture(event);
   });
 }

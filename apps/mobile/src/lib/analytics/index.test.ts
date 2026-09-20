@@ -369,3 +369,19 @@ test('slow foreground stats do not block disabling and re-enabling analytics', a
     ),
   ).toEqual([]);
 });
+
+test('pre-consent screen view prevents duplicate fallback screen emission on opt-in', async () => {
+  const a = load();
+  a.initAnalytics();
+  a.startPreConsentBuffering();
+  a.trackScreenView('/settings');
+  consent(true);
+  const committed = a.commitPreConsentBuffer();
+  a.stopPreConsentBuffering();
+  await committed;
+  await settle();
+  const screenEvents = events().filter(([event]) => event === '$screen');
+  expect(screenEvents).toHaveLength(1);
+  expect(screenEvents[0][1]).toMatchObject({ $screen_name: 'settings' });
+});
+
