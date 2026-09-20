@@ -1,0 +1,54 @@
+name: Bug report
+description: Tell us what went wrong in the app or website.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Please check existing issues first.
+        Use sample data and remove personal journal content from screenshots and logs.
+  - type: input
+    id: version
+    attributes:
+      label: Tackbok version
+      description: For the app, include the version/build and update ID from Settings if available. For the website, include the page URL.
+      placeholder: App version/build, update ID, or website URL
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device and environment
+      description: Include your device model, OS version, and app store, or browser for website issues.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What actions lead to the problem? A separate reproduction project is not required.
+      placeholder: |
+        1. Open...
+        2. Tap...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include the error message if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context (optional)
+      description: Add screenshots, relevant logs, app language/theme, or how often it happens. Remove private information first.

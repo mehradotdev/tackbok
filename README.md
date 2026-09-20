@@ -106,7 +106,8 @@ tackbok/
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) (`v1.4.2` or later)
+- Node.js 24 (see `.node-version`)
+- [Bun](https://bun.sh) (use the version in the root `packageManager` field)
 - For Mobile:
   - **Android**: [Android Studio](https://developer.android.com/studio) — follow the [Expo Android Environment Setup Guide](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&platform=android&device=simulated)
   - **iOS**: [Xcode](https://developer.apple.com/xcode/) (macOS only) — follow the [Expo iOS Environment Setup Guide](https://docs.expo.dev/get-started/set-up-your-environment/?mode=development-build&platform=ios&device=simulated)
@@ -170,6 +171,19 @@ You can run quality checks across all workspaces directly from the repository ro
 | `bun run typecheck` | Runs TypeScript typechecks across all workspaces           |
 | `bun run test`      | Runs the mobile test suites (Jest + Bun test)              |
 | `bun run build`     | Builds the website production bundle                       |
+
+---
+
+## Contributing
+
+Small fixes, documentation, translations, and bug reports are welcome. Start with
+[CONTRIBUTING.md](CONTRIBUTING.md) for minimal setup, focused PRs, and checks. You
+can contribute without configuring native mobile builds or service credentials.
+
+- [Report a bug or request a feature](https://github.com/mehradotdev/tackbok/issues/new/choose)
+- [Ask a question or explore an idea](https://github.com/mehradotdev/tackbok/discussions)
+- [Development checks and commit conventions](docs/development-checks.md)
+- [Mobile localization policy](docs/localization.md)
 
 ---
 

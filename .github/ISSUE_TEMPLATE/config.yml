@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and early ideas
+    url: https://github.com/mehradotdev/tackbok/discussions
+    about: Ask for help, explore an idea, or share something you have made.
