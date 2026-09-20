@@ -25,7 +25,7 @@ import {
 // A JS runtime is one cold start; route remounts and foregrounding must not replay.
 let launchGreetingClaimed = false;
 const PREVIOUS_KEY = 'home.previous-greeting';
-const DURATION = 4680;
+const DURATION = 4270;
 type GreetingMessage = { label: string };
 
 export function useHeaderGreeting(isSearchMode: boolean) {
@@ -118,8 +118,8 @@ export function useHeaderGreeting(isSearchMode: boolean) {
         });
       }
     }, 250);
-    const next = setTimeout(() => setStep(1), 250 + (reducedMotion ? 2000 : 2190));
-    const timer = setTimeout(finish, 250 + (reducedMotion ? 4000 : DURATION));
+    const next = setTimeout(() => setStep(1), 250 + (reducedMotion ? 1500 : 1840));
+    const timer = setTimeout(finish, 250 + (reducedMotion ? 3000 : DURATION));
     const subscription = AppState.addEventListener('change', (state) => {
       if (state !== 'active') finish();
     });
@@ -174,12 +174,12 @@ export function HeaderMotion({
       return { opacity: greeting ? 1 : 0, transform: [{ translateY: 0 }] };
     const delay = greeting
       ? index * Math.min(36, 400 / Math.max(1, unitCount - 1))
-      : Math.min(index * 55, 120);
+      : index * 120;
     const times = greeting
       ? step === 0
-        ? [150 + delay, 570 + delay, 1990, 2190]
-        : [2190 + delay, 2610 + delay, 4130, 4330]
-      : [4330 + delay, 4560 + delay, 4780, 4880];
+        ? [150 + delay, 570 + delay, 1640, 1840]
+        : [1840 + delay, 2260 + delay, 3400, 3600]
+      : [3600 + delay, 4000 + delay, 4320, 4420];
     // Smoothstep gives each entrance/exit a gentle ease without spring overshoot.
     const entrance = interpolate(progress.value, times.slice(0, 2), [0, 1], 'clamp');
     const exit = interpolate(progress.value, times.slice(2), [0, 1], 'clamp');

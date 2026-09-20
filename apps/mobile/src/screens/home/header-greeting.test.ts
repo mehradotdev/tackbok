@@ -128,14 +128,14 @@ it('waits for layout, restores controls, and does not replay on route remount', 
   hook.layout();
   hook.tick(0);
   expect(hook.current.greeting?.label).toBe('Welcome back, Maya!');
-  hook.tick(2440);
+  hook.tick(2090);
   expect(hook.current.greeting?.label).not.toContain('Maya');
   expect(hook.current.greeting?.label).not.toContain('Welcome back');
   expect(hook.current.greeting?.label).toMatch(/! (😊|🙏|😄|😇|🙂|👋|🌻|✨|💛|🌿)$/u);
-  hook.tick(4680);
+  hook.tick(4270);
   expect(hook.current.greeting).toBeNull();
   // The UI thread must retain the fully visible final frame during React cleanup.
-  expect(hook.current.progress.value).toBe(4680);
+  expect(hook.current.progress.value).toBe(4270);
   expect(hook.current.active).toBe(false);
   hook.unmount();
   const remount = mountGreeting();
@@ -168,18 +168,18 @@ it('ends on navigation and stays ended when Home regains focus', () => {
   expect(hook.current.greeting).toBeNull();
   hook.unmount();
 });
-it('holds each static greeting for two seconds with reduced motion', () => {
+it('holds each static greeting for 1.5 seconds with reduced motion', () => {
   mockReduced = true;
   const hook = mountGreeting();
   hook.layout();
   hook.tick(0);
   expect(hook.current.greeting).not.toBeNull();
   expect(mockTiming).not.toHaveBeenCalled();
-  hook.tick(2249);
+  hook.tick(1749);
   expect(hook.current.greeting).not.toBeNull();
   hook.tick(1);
   expect(hook.current.greeting?.label).not.toContain('Maya');
-  hook.tick(1999);
+  hook.tick(1499);
   expect(hook.current.greeting).not.toBeNull();
   hook.tick(1);
   expect(hook.current.greeting).toBeNull();
@@ -196,7 +196,7 @@ it('does not spend the reading time while native text measurement is pending', (
   hook.layout();
   hook.tick(250);
   expect(mockTiming).toHaveBeenCalled();
-  hook.tick(4680);
+  hook.tick(4270);
   expect(hook.current.greeting).toBeNull();
   hook.unmount();
 });
@@ -213,7 +213,7 @@ it.each([false, true])(
     hook.tick(1);
     expect(hook.current.active).toBe(false);
     expect(hook.current.greeting).toBeNull();
-    expect(hook.current.progress.value).toBe(4680);
+    expect(hook.current.progress.value).toBe(4270);
     expect(mockTiming).not.toHaveBeenCalled();
     hook.unmount();
   },
