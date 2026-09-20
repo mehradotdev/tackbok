@@ -16,7 +16,6 @@ jest.mock('expo-network', () => ({}));
 jest.mock('~/lib/analytics', () => ({ track: jest.fn() }));
 jest.mock('~/lib/settings', () => ({ useSettingsStore: {} }));
 jest.mock('../storage/backfill', () => ({ isNormalizedModelReady: async () => true }));
-jest.mock('./rolloutPolicy', () => ({ isCloudSyncNetworkAllowed: () => true }));
 
 beforeEach(() => { mockCreate.mockReset(); });
 

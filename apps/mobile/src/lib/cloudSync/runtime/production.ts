@@ -21,7 +21,6 @@ import {
 import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
-import { isCloudSyncNetworkAllowed } from './rolloutPolicy';
 import { readCloudSyncFailureCategory } from '../failureClassification';
 export type { ProductionCloudSyncActivity } from './activity';
 
@@ -84,11 +83,6 @@ export async function createProductionRuntimeEngine(
     inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
   )).limit(1);
   if (!configured?.remote_root_id || configured.provider_kind !== 'google-drive') return null;
-
-  // This check occurs before authorization or provider construction. A rollout
-  // rollback therefore pauses network work while leaving the vault, journal,
-  // queued generations, base shadow, and provider objects untouched.
-  if (!isCloudSyncNetworkAllowed()) return null;
 
   return createProductionSnapshotRuntimeEngine({
     vault: configured,

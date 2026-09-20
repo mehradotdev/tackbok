@@ -44,7 +44,6 @@ jest.mock('../runtime/production', () => ({
   notifyProductionCloudSyncChanged: jest.fn(),
 }));
 jest.mock('../runtime/backgroundTask', () => ({ setCloudSyncBackgroundTaskEnabled: jest.fn(async () => {}) }));
-jest.mock('../runtime/rolloutPolicy', () => ({ assertCloudSyncNetworkAllowed: jest.fn() }));
 jest.mock('../storage/repositories', () => ({}));
 
 beforeEach(async () => {

@@ -54,10 +54,6 @@ import {
 import type { SyncPassPhase } from '../runtime/SyncRuntime';
 import { setCloudSyncBackgroundTaskEnabled } from '../runtime/backgroundTask';
 import {
-  assertCloudSyncNetworkAllowed,
-  getCloudSyncRolloutPolicy,
-} from '../runtime/rolloutPolicy';
-import {
   runInCloudSyncTransaction,
   type CloudSyncTransaction,
 } from '../storage/repositories';
@@ -182,8 +178,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   const configured = Boolean(
     vault?.remote_root_id && !['disabled', 'revoked'].includes(vault.status),
   );
-  if (configured && vault && getCloudSyncRolloutPolicy().networkAllowed &&
-      accountLabelAttemptedForVault !== vault.vault_id) {
+  if (configured && vault && accountLabelAttemptedForVault !== vault.vault_id) {
     accountLabelAttemptedForVault = vault.vault_id;
     accountLabelInMemory = await createGoogleAuthorization().getAccountLabel()
       .catch(() => null);
@@ -224,8 +219,6 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
 }
 
 async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnection> {
-  // Fail before interactive consent or Drive traffic when cloud sync is paused.
-  assertCloudSyncNetworkAllowed();
   await cancelPreparedGoogleDriveConnectionImpl();
   // Disable the old attachment durably before staging a different account.
   // Background tasks and manual starts must not use these credentials either.
@@ -272,7 +265,6 @@ async function completeGoogleDriveConnectionImpl(options: {
   vaultId?: string;
   createNew?: boolean;
 }): Promise<void> {
-  assertCloudSyncNetworkAllowed();
   const pending = pendingConnection;
   if (!pending) throw new Error('Google Drive connection is no longer active');
 
@@ -352,7 +344,6 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
   if (!vault?.remote_root_id) {
     throw new Error('No cloud backup is configured');
   }
-  assertCloudSyncNetworkAllowed();
   const auth = createGoogleAuthorization();
   const previousEmail = await readGoogleAccountEmail();
   await withGoogleCredentialRollback(async () => {
@@ -464,7 +455,6 @@ async function revokeCloudVaultImpl(
   if (!vault?.remote_root_id) {
     throw new Error('No cloud backup is configured');
   }
-  assertCloudSyncNetworkAllowed();
   stopProductionSyncRuntime();
   const state = new SQLiteSyncStateStore(sqlite);
   let remoteDeletionCompleted = false;
