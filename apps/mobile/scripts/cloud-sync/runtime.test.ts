@@ -2,6 +2,11 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { Database, type SQLQueryBindings } from 'bun:sqlite';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import {
+  ALL_SUPPORTED_LOCALES,
+  type TranslationKey,
+  type Translations,
+} from '../../src/lib/i18n/types';
 
 import {
   SyncRuntime,
@@ -208,27 +213,30 @@ describe('production cloud-sync runtime', () => {
       mobileRoot,
       'src/lib/cloudSync/ui/production.ts',
     )).text();
-    const localePaths = [
-      'en.ts', 'de.ts', 'ar.ts', 'he.ts', 'zh-CN.ts', 'zh-TW.ts',
-    ].map((file) => join(mobileRoot, 'src/lib/i18n/translations', file));
-    const locales = await Promise.all(localePaths.map((path) => Bun.file(path).text()));
     const reasons = Object.keys(ATTENTION_RECOVERY_ACTION) as SyncAttentionReason[];
     expect(reasons).toHaveLength(21);
     for (const reason of reasons) {
       expect(screen).toContain(`'${reason}'`);
       expect(screen).toContain(`'${ATTENTION_RECOVERY_ACTION[reason]}'`);
     }
-    for (const locale of locales) {
-      expect(locale).toContain("'Attention needed'");
-      expect(locale).toContain("'Cloud backup retry completed'");
-      expect(locale).toContain("'Reconnect Google Drive'");
-      expect(locale).toContain("'Verify backup health'");
-      expect(locale).toContain(
-        "'Photos and voice memos are waiting for Wi-Fi. Your changes remain safely queued.'",
+    const requiredKeys = [
+      'cloud.attentionNeeded',
+      'cloud.cloudBackupRetryCompleted',
+      'cloud.reconnectGoogleDrive',
+      'cloud.verifyBackupHealth',
+      'cloud.photosAndVoiceMemosAreWaitingForWiFiYour',
+      'cloud.journalTextStillSyncsOnMobileData',
+    ] as const satisfies readonly TranslationKey[];
+    for (const locale of ALL_SUPPORTED_LOCALES) {
+      // Load raw catalogs so English fallback cannot hide missing translations.
+      const module: Record<string, Translations> = await import(
+        `../../src/lib/i18n/translations/${locale}.ts`
       );
-      expect(locale).toContain(
-        "'Journal text still syncs on mobile data.'",
-      );
+      const [catalog] = Object.values(module);
+      for (const key of requiredKeys) {
+        expect(catalog[key], `${locale}: ${key}`).toBeString();
+        expect(catalog[key].trim(), `${locale}: ${key}`).not.toBe('');
+      }
     }
     expect(screen).toContain('accessibilityRole="alert"');
     expect(screen).toContain('accessibilityLiveRegion="polite"');

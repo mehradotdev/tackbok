@@ -1,1 +1,28 @@
+# Lockfiles
 bun.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Git & Config
+.gitignore
+
+# Dependencies & Caches
+node_modules/
+.turbo/
+.fontenv/
+coverage/
+
+# Expo / Mobile build outputs & native code
+.expo/
+dist/
+web-build/
+android/
+ios/
+expo-env.d.ts
+
+# Astro / Web build outputs
+.astro/
+
+# Environment files
+.env*

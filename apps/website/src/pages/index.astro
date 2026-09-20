@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from '@lucide/astro';
 import { Image } from 'astro:assets';
+import galaxyStoreSrc from '~/assets/GalaxyStore_English.png';
 import googlePlaySrc from '~/assets/google-play.svg';
 import Logo from '~/assets/logo.svg';
 import tackbokEditSrc from '~/assets/tackbok_edit_page.png';
@@ -19,9 +20,9 @@ import SiteFooter from '~/components/SiteFooter.astro';
 import SiteHeader from '~/components/SiteHeader.astro';
 import Layout from '~/layouts/main.astro';
 
-const WAITLIST_URL = 'https://forms.gle/A5bGfGJLoEipsauu6';
 const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=dev.mehra.tackbok';
+const GALAXY_STORE_URL = 'https://galaxystore.samsung.com/detail/dev.mehra.tackbok';
 const TESTFLIGHT_URL = 'https://testflight.apple.com/join/jGTWBEWq';
 
 const features = [
@@ -66,7 +67,7 @@ const features = [
 const description =
   'A free, open-source gratitude journal for private reflections, photos, voice memos, prompts, and gentle daily reminders.';
 
-// WebSite belongs on the home page only — Google reads it to pick the site name
+// WebSite belongs on the home page only; Google reads it to pick the site name
 // shown in search results.
 const structuredData = {
   '@context': 'https://schema.org',
@@ -90,7 +91,7 @@ const structuredData = {
         price: '0',
         priceCurrency: 'USD',
       },
-      downloadUrl: [GOOGLE_PLAY_URL, TESTFLIGHT_URL],
+      downloadUrl: [GOOGLE_PLAY_URL, GALAXY_STORE_URL, TESTFLIGHT_URL],
       sameAs: [GITHUB_URL],
     },
   ],
@@ -136,7 +137,7 @@ const structuredData = {
               href={GOOGLE_PLAY_URL}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Get the Tackbok beta version on Google Play Store">
+              aria-label="Get it on Google Play">
               <span
                 class="inline-flex size-full items-center justify-start gap-[0.65rem] rounded-[inherit] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white">
                 <Image
@@ -149,13 +150,26 @@ const structuredData = {
                 <span class="flex min-w-0 flex-col">
                   <small
                     class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
-                    >Get beta version on</small
+                    >GET IT ON</small
                   >
-                  <strong class="text-[0.92rem] leading-[1.15] tracking-[-0.025em]"
-                    >Google Play Store</strong
+                  <strong class="text-[1.05rem] leading-[1.15] tracking-[-0.025em]"
+                    >Google Play</strong
                   >
                 </span>
               </span>
+            </a>
+            <a
+              class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+              href={GALAXY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Available on Galaxy Store">
+              <Image
+                class="h-[58px] w-auto rounded-[8px]"
+                src={galaxyStoreSrc}
+                height="58"
+                alt="Available on Galaxy Store"
+              />
             </a>
             <a
               class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-start gap-[0.65rem] rounded-[8px] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
@@ -563,7 +577,7 @@ const structuredData = {
         </h2>
         <p
           class="mb-8 text-[1.08rem] text-[rgba(255,255,255,0.76)] max-sm:text-[0.98rem] max-sm:leading-[1.6]">
-          Get the Android beta, join the iOS beta, or join the waitlist for release news.
+          Get Tackbok for Android, or join the iOS beta with TestFlight.
         </p>
         <div class="flex flex-wrap items-center justify-center gap-[0.7rem]">
           <a
@@ -571,7 +585,7 @@ const structuredData = {
             href={GOOGLE_PLAY_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Get the Tackbok beta version on Google Play Store">
+            aria-label="Get it on Google Play">
             <span
               class="inline-flex size-full items-center justify-start gap-[0.65rem] rounded-[inherit] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white">
               <Image
@@ -585,13 +599,27 @@ const structuredData = {
               <span class="flex min-w-0 flex-col">
                 <small
                   class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
-                  >Get beta version on</small
+                  >GET IT ON</small
                 >
-                <strong class="text-[0.92rem] leading-[1.15] tracking-[-0.025em]"
-                  >Google Play Store</strong
+                <strong class="text-[1.05rem] leading-[1.15] tracking-[-0.025em]"
+                  >Google Play</strong
                 >
               </span>
             </span>
+          </a>
+          <a
+            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            href={GALAXY_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Available on Galaxy Store">
+            <Image
+              class="h-[58px] w-auto rounded-[8px]"
+              src={galaxyStoreSrc}
+              height="58"
+              alt="Available on Galaxy Store"
+              loading="lazy"
+            />
           </a>
           <a
             class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-start gap-[0.65rem] rounded-[8px] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
@@ -618,14 +646,6 @@ const structuredData = {
             </span>
           </a>
         </div>
-        <p class="mt-[1.4rem] mb-0 text-[0.84rem] text-[rgba(255,255,255,0.76)]">
-          Prefer to wait? <a
-            class="font-bold underline-offset-4"
-            href={WAITLIST_URL}
-            target="_blank"
-            rel="noopener noreferrer">Join the release list</a
-          >
-        </p>
       </div>
     </section>
   </main>
