@@ -3,9 +3,9 @@ import SiteFooter from '~/components/SiteFooter.astro';
 import SiteHeader from '~/components/SiteHeader.astro';
 import Layout from '~/layouts/main.astro';
 
-const WAITLIST_URL = 'https://forms.gle/A5bGfGJLoEipsauu6';
 const supportEmail = 'tackbok.support@mehra.dev';
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=dev.mehra.tackbok';
+const GALAXY_STORE_URL = 'https://galaxystore.samsung.com/detail/dev.mehra.tackbok';
 const TESTFLIGHT_URL = 'https://testflight.apple.com/join/jGTWBEWq';
 
 const faqs = [
@@ -13,6 +13,11 @@ const faqs = [
     question: 'What is Tackbok?',
     answer:
       'Tackbok is a free, open-source gratitude journal for iOS and Android. You can write entries, add photos and voice memos, record moods, use tags and prompts, and set optional daily reminders.',
+  },
+  {
+    question: 'What does the name “Tackbok” mean?',
+    answer:
+      'The name comes from the Swedish words “tack” (meaning thanks or gratitude) and “bok” (meaning book), so Tackbok literally means a “book of thanks” or gratitude book.',
   },
   {
     question: 'Is Tackbok free?',
@@ -27,7 +32,7 @@ const faqs = [
   {
     question: 'How can I try Tackbok?',
     answer:
-      'Beta previews are available now through Google Play for Android and TestFlight for iOS. You can also join the waitlist for release news.',
+      'Tackbok is available for Android on Google Play and Galaxy Store, and for iOS via TestFlight.',
   },
   {
     question: 'Do I need to create an account?',
@@ -143,7 +148,7 @@ const faqs = [
           </p>
           <h2
             class="m-0 text-[clamp(2rem,4vw,3.5rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
-            Try the Tackbok beta.
+            Try Tackbok.
           </h2>
         </div>
         <div
@@ -153,7 +158,14 @@ const faqs = [
             href={GOOGLE_PLAY_URL}
             target="_blank"
             rel="noopener noreferrer">
-            Android beta
+            Google Play
+          </a>
+          <a
+            class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
+            href={GALAXY_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer">
+            Galaxy Store
           </a>
           <a
             class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
@@ -161,13 +173,6 @@ const faqs = [
             target="_blank"
             rel="noopener noreferrer">
             iOS via TestFlight
-          </a>
-          <a
-            class="btn btn-link px-2 font-[750] text-sage-deep no-underline hover:underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-            href={WAITLIST_URL}
-            target="_blank"
-            rel="noopener noreferrer">
-            Join the waitlist <span>→</span>
           </a>
         </div>
       </div>
