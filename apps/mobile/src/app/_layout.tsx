@@ -70,7 +70,7 @@ function ReminderNavigationObserver() {
   return null;
 }
 
-// Maps route changes to screen_viewed events (logical screen names only —
+// Maps route changes to standard $screen events (logical screen names only —
 // no raw paths/params). No-ops entirely while analytics is disabled.
 function ScreenViewObserver() {
   const pathname = usePathname();

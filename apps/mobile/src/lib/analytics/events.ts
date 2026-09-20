@@ -7,6 +7,10 @@
  * policy (`apps/website/src/pages/privacy.astro`, tackbok.org/privacy) in
  * sync with this file.
  *
+ * Shared event metadata (added by index.ts): analytics_schema_version,
+ * app_variant, app_store, is_development, and the allowlisted $screen_name
+ * when a known screen is active. Raw paths and navigation params are excluded.
+ *
  * Rules for adding events:
  * - Bucketed values only — never raw text, lengths, dates, or ids that could
  *   fingerprint journal content or a person.
@@ -95,14 +99,15 @@ export type SupportPurchaseFailureCategory =
  * Event name → payload type. `undefined` means the event carries no payload.
  */
 export type AnalyticsEvents = {
-  /** Fired once per cold start, only when analytics is already enabled. */
+  /** Cold start, consent enable, or return from the background while opted in. */
   app_opened: {
+    reason: 'cold_start' | 'consent_enabled' | 'foreground';
     entry_bucket: CountBucket;
     days_journaled_bucket: CountBucket;
     /** ISO country code from device settings (not IP geolocation), e.g. 'SE'. */
     device_region: string;
   };
-  screen_viewed: { screen: ScreenName };
+  $screen: { $screen_name: ScreenName };
   entry_created: {
     has_photo: boolean;
     has_audio: boolean;
@@ -157,7 +162,7 @@ export type AnalyticsEventName = keyof AnalyticsEvents;
  */
 const ANALYTICS_EVENT_CATALOG = {
   app_opened: true,
-  screen_viewed: true,
+  $screen: true,
   entry_created: true,
   entry_deleted: true,
   search_used: true,
