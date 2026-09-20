@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest a concrete improvement to Tackbok.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check existing requests first. For early ideas or questions, use Discussions.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation and who would benefit.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+      description: What would you like Tackbok to do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and context (optional)
+      description: Share workarounds, alternatives, examples, or sketches if helpful.

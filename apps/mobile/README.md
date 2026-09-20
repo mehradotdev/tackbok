@@ -2,19 +2,25 @@
 
 This is the mobile app for Tackbok ([tackbok.org](https://tackbok.org)), built with React Native, Expo, and styled with [Uniwind](https://docs.uniwind.dev/) (Tailwind CSS v4).
 
+New contributors: start with [CONTRIBUTING.md](../../CONTRIBUTING.md) for minimal
+setup, optional services, and the PR workflow. See [development checks](../../docs/development-checks.md)
+for hooks and CI, and [localization](../../docs/localization.md) before changing
+user-facing text. The release sections below are maintainer reference material.
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js
+- Node.js 24 (see the root `.node-version`)
 - [Bun](https://bun.sh/) (This project uses Bun as its package manager)
 
 ### Installation
 
-Install dependencies using Bun:
+Install dependencies from the repository root using Bun, then enter this app:
 
 ```sh
-bun install
+bun install --frozen-lockfile
+cd apps/mobile
 ```
 
 ### Running Locally
@@ -31,15 +37,15 @@ _(Or use `bun run ios` / `bun run android` to launch directly in a simulator/emu
 
 Local development builds use a separate **beta** app identity so they install side by side with the store app:
 
-| | Production | Beta (local dev, EAS `development`) |
-| --- | --- | --- |
-| Display name | Tackbok | Tackbok (Beta) |
-| Android package / iOS bundle ID | `dev.mehra.tackbok` | `dev.mehra.tackbok.beta` |
-| Deep-link scheme | `tackbok` | `tackbok-beta` |
+|                                 | Production          | Beta (local dev, EAS `development`) |
+| ------------------------------- | ------------------- | ----------------------------------- |
+| Display name                    | Tackbok             | Tackbok (Beta)                      |
+| Android package / iOS bundle ID | `dev.mehra.tackbok` | `dev.mehra.tackbok.beta`            |
+| Deep-link scheme                | `tackbok`           | `tackbok-beta`                      |
 
 The variant is selected by the `APP_VARIANT=beta` environment variable in [app.config.ts](app.config.ts). The `start`/`android`/`ios` scripts and the EAS `development` profile set it for you. Preview and production builds explicitly select `production` and keep the store identity — never change that.
 
-**Important:** the display name and package/bundle ID are stamped into the native `android/`/`ios/` projects when *prebuild* runs, not at `expo start` time. If you regenerate the native projects manually, always go through the script — a bare `npx expo prebuild` would bake the production identity into your local build:
+**Important:** the display name and package/bundle ID are stamped into the native `android/`/`ios/` projects when _prebuild_ runs, not at `expo start` time. If you regenerate the native projects manually, always go through the script — a bare `npx expo prebuild` would bake the production identity into your local build:
 
 ```sh
 bun run prebuild   # = APP_VARIANT=beta expo prebuild --clean
@@ -99,6 +105,8 @@ If the build still fails while creating symlinks or writing native build files, 
 
 ## Testing
 
+Run both the Jest and Bun cloud-sync integration suites with `bun run test`.
+
 Run the mobile Jest suite with Bun:
 
 ```sh
@@ -156,22 +164,22 @@ Run the update scripts from `apps/mobile` using `bun run`. They explicitly selec
 `APP_VARIANT`, `ANDROID_STORE`, and `GALAXY_BILLING_MODE` alongside the channel and
 EAS environment, so updates match the intended binary:
 
-| Script | App / store | Channel | EAS environment |
-| --- | --- | --- | --- |
-| `update:development` | Beta / Google or iOS | `development` | `development` |
-| `update:preview` | Production / Google or iOS | `preview` | `preview` |
-| `update:production` | Production / Google or iOS | `production` | `production` |
-| `update:galaxy` | Production / Samsung production billing | `production-galaxy` | `production` |
-| `update:galaxy-test` | Production / Samsung test billing | `galaxy-test` | `production` |
+| Script               | App / store                             | Channel             | EAS environment |
+| -------------------- | --------------------------------------- | ------------------- | --------------- |
+| `update:development` | Beta / Google or iOS                    | `development`       | `development`   |
+| `update:preview`     | Production / Google or iOS              | `preview`           | `preview`       |
+| `update:production`  | Production / Google or iOS              | `production`        | `production`    |
+| `update:galaxy`      | Production / Samsung production billing | `production-galaxy` | `production`    |
+| `update:galaxy-test` | Production / Samsung test billing       | `galaxy-test`       | `production`    |
 
 Keep these public SDK keys in the EAS dashboard with plain-text visibility:
 
-| Variable | Environments |
-| --- | --- |
-| `EXPO_PUBLIC_REVENUECAT_TEST_API_KEY` | `development` |
-| `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` | `preview`, `production` |
+| Variable                                 | Environments            |
+| ---------------------------------------- | ----------------------- |
+| `EXPO_PUBLIC_REVENUECAT_TEST_API_KEY`    | `development`           |
+| `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY`     | `preview`, `production` |
 | `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` | `preview`, `production` |
-| `EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY` | `preview`, `production` |
+| `EXPO_PUBLIC_REVENUECAT_GALAXY_API_KEY`  | `preview`, `production` |
 
 Local development reads the keys from gitignored `.env.local`. EAS builds and
 updates read them from the selected dashboard environment. Keep `APP_VARIANT`,
@@ -182,7 +190,6 @@ PostHog's public project key and ingestion host are configured in
 `src/lib/analytics/index.ts`; the `EXPO_PUBLIC_POSTHOG_*` variables are unused.
 No repository workflow uses `POSTHOG_CLI_*`. Those dashboard entries can be removed
 if no external workflow uses them; never commit a PostHog personal API key.
-
 
 After verifying that update with a preview build, promote the same update group to production:
 
@@ -371,12 +378,12 @@ Create and activate consumable products in Samsung Seller Portal, connect the
 Galaxy app in RevenueCat, and attach its products to the existing `support`
 offering packages. The current catalog expects these exact product IDs:
 
-| RevenueCat package | Samsung product ID |
-| --- | --- |
-| `thanks_small` | `dev.mehra.tackbok.support.small.v2` |
+| RevenueCat package | Samsung product ID                       |
+| ------------------ | ---------------------------------------- |
+| `thanks_small`     | `dev.mehra.tackbok.support.small.v2`     |
 | `thanks_heartfelt` | `dev.mehra.tackbok.support.heartfelt.v2` |
-| `thanks_big` | `dev.mehra.tackbok.support.big.v2` |
-| `thanks_deepest` | `dev.mehra.tackbok.support.deepest` |
+| `thanks_big`       | `dev.mehra.tackbok.support.big.v2`       |
+| `thanks_deepest`   | `dev.mehra.tackbok.support.deepest`      |
 
 #### Store-specific OTA updates
 
@@ -399,7 +406,6 @@ change requires a fresh binary and a new app version before publishing OTA updat
 References: [RevenueCat Galaxy installation](https://www.revenuecat.com/docs/getting-started/installation/reactnative),
 [Galaxy product setup](https://www.revenuecat.com/docs/getting-started/entitlements/galaxy-products).
 
-
 ## PostHog analytics
 
 Analytics is opt-in and initialized only after settings hydration and consent.
@@ -415,12 +421,12 @@ sent. Pending events retain their original screen context and timestamps.
 
 Every new event includes:
 
-| Property | Values / purpose |
-| --- | --- |
-| `analytics_schema_version` | `2`; use this filter to exclude legacy events |
-| `app_variant` | `beta` or `production` |
-| `app_store` | `apple`, `google`, `samsung`, or `unknown` |
-| `is_development` | True for Metro development, beta variants, or Samsung TEST billing |
+| Property                   | Values / purpose                                                   |
+| -------------------------- | ------------------------------------------------------------------ |
+| `analytics_schema_version` | `2`; use this filter to exclude legacy events                      |
+| `app_variant`              | `beta` or `production`                                             |
+| `app_store`                | `apple`, `google`, `samsung`, or `unknown`                         |
+| `is_development`           | True for Metro development, beta variants, or Samsung TEST billing |
 
 Preview builds intentionally use the production app identity and are not
 separately identified by these properties. Filter your own anonymous distinct ID
