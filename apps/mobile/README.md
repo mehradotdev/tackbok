@@ -362,3 +362,50 @@ change requires a fresh binary and a new app version before publishing OTA updat
 
 References: [RevenueCat Galaxy installation](https://www.revenuecat.com/docs/getting-started/installation/reactnative),
 [Galaxy product setup](https://www.revenuecat.com/docs/getting-started/entitlements/galaxy-products).
+
+
+## PostHog analytics
+
+Analytics is opt-in and initialized only after settings hydration and consent.
+The typed event catalog is `src/lib/analytics/events.ts`; the wrapper in
+`src/lib/analytics/index.ts` adds shared context and is the only production code
+that loads the SDK. Automatic touch capture, replay, remote configuration,
+feature flags, surveys, and exception capture remain disabled.
+
+Screen navigation emits PostHog's standard `$screen` event with `$screen_name`.
+Other events also receive the current allowlisted screen name, when known. No
+raw route paths, note IDs, dates from route parameters, or journal content are
+sent. Pending events retain their original screen context and timestamps.
+
+Every new event includes:
+
+| Property | Values / purpose |
+| --- | --- |
+| `analytics_schema_version` | `2`; use this filter to exclude legacy events |
+| `app_variant` | `beta` or `production` |
+| `app_store` | `apple`, `google`, `samsung`, or `unknown` |
+| `is_development` | True for Metro development, beta variants, or Samsung TEST billing |
+
+Preview builds intentionally use the production app identity and are not
+separately identified by these properties. Filter your own anonymous distinct ID
+when testing a production/preview build.
+
+`app_opened.reason` distinguishes `cold_start`, `consent_enabled`, and
+`foreground` (background-to-active transitions, not transient inactive states).
+Onboarding events are buffered only in RAM before consent, transmitted only on
+acceptance, and discarded on decline. Onboarding funnels therefore describe
+consenting installations, not all installs or the overall consent acceptance rate.
+Turning analytics off immediately blocks capture, clears pending events, and
+invalidates asynchronous work from that consent period.
+
+For a fresh reporting baseline, filter insights by `analytics_schema_version = 2`
+and `is_development = false`. Older installed binaries can still send legacy
+events until updated, even if historical data is deleted. Build screen trends
+from `$screen`, broken down by `$screen_name`; use `entry_created` for journaling
+activity and retention. Separate cloud-sync operational events from user activity
+metrics, since background sync is not evidence of a person using the app.
+
+Validate locally with `bun run test:jest src/lib/analytics --runInBand --no-watchman`
+and `bun run typecheck`. After deploying, opt in on a test device, visit Home,
+Settings, and an entry, then inspect the events in PostHog for screen names and
+shared properties. Confirm that switching analytics off stops new events.
