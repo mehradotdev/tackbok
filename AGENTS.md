@@ -1,50 +1,25 @@
 # Repository agent instructions
 
-## UI framework boundaries
+## Scope and guidance
 
-- `apps/mobile` is an Expo React Native application. Do **not** use daisyUI in
-  this app, including daisyUI components, class names, dependencies, skills, or
-  web-only HTML patterns.
-- For `apps/mobile`, use Uniwind and the existing primitive ui components under
-  `apps/mobile/src/components/ui/`, and app-specific components under
-  `apps/mobile/src/components/`. Follow React Native and Expo conventions.
-- `apps/website` is the Astro website and is the only app in this repository
-  that uses daisyUI. Apply daisyUI guidance only when working within
-  `apps/website`.
-- JSX or TSX alone does not imply daisyUI usage. Determine the target app from
-  its path before selecting UI tools or conventions.
+- This is a Bun workspace monorepo: `apps/mobile` is the Expo React Native app;
+  `apps/website` is the Astro website. Choose scope from the task and file paths.
+- Before changing an app, read its scoped instructions:
+  [mobile](apps/mobile/AGENTS.md) or [website](apps/website/AGENTS.md), including
+  when starting from the repository root.
+- **Never use daisyUI or web-only HTML patterns in mobile.** daisyUI is website-only;
+  JSX/TSX alone does not determine the UI framework.
+- Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup and PR workflow and
+  [development checks](docs/development-checks.md) for hooks and CI.
 
-## Mobile localization
+## Shared conventions
 
-- Read [docs/localization.md](docs/localization.md) before adding or changing mobile
-  user-facing text. It records the agreed voice, per-language register, glossary,
-  regional-variant policy, and verification workflow.
-- Write plain, concise, friendly, respectful language for adults. Avoid jargon,
-  slang, judgment, and unnecessary idioms. Use sentence case in English; preserve
-  proper names and the meaning of faith-related prompts.
-- Use natural gender-neutral phrasing, including messages speaking as the user.
-  If neutral wording is unnatural, use masculine forms. Do not infer gender from
-  names or add a gender setting.
-- Follow established conventions for address in each language and keep its
-  documented register consistent. Prefer widely understood regional wording;
-  ask the developer to choose a variant when a meaningful dialect choice cannot
-  be avoided. Do not guess or automatically create more regional catalogs.
-- Use recognizable transliterations of Tackbok where appropriate; otherwise keep
-  Tackbok, including in Latin-script languages. Preserve third-party brand names.
-- Use stable, descriptive, typed message identifiers independent of English copy.
-  Translate complete messages; never concatenate fragments or build keys from
-  translated labels. Give distinct meanings separate identifiers even when the
-  English wording is identical.
-- Update all six existing catalogs when changing meaning or adding messages.
-  Use numeric `count` values with i18next plural forms; supply every category
-  required by the language. Preserve named interpolation parameters and provide
-  context for ambiguous messages. Never pass user-written journal content to `t`.
-- Use shared locale-aware display formatters. Respect device regional/time
-  preferences and explicit user settings. Keep persisted dates, IDs, archive
-  schemas, and other machine-readable values unchanged.
-- Missing translations fall back to readable English. Automated checks are
-  required; fluent-speaker review is welcome but does not block a release.
-  Correct reported language issues in subsequent updates.
-- Run the localization tests and typecheck after changes. Inspect affected UI for
-  longer translations, large text, accessibility labels, and Arabic/Hebrew RTL.
-  Report any device verification that could not be completed.
+- Use Bun to install dependencies and run scripts. Install from the root and keep
+  the hoisted layout in `bunfig.toml`; add dependencies in the owning workspace.
+- Keep changes localized. Avoid unrelated refactors, mass formatting, and changes
+  to vendored skills under `.agents/skills/`.
+- Prefer inferred or explicit useful types; avoid unnecessary `any` and `as any`.
+- Run relevant checks and report failures or verification you could not complete.
+  Preserve intentional ESLint warnings; do not weaken rules to hide failures.
+- Use the PR template and Conventional Commit titles. Do not deploy or publish
+  releases unless the task explicitly includes that work.
