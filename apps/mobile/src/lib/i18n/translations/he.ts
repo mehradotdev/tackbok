@@ -818,6 +818,11 @@ export const he: Translations = {
   'cloud.restoring': 'משחזר…',
   'cloud.safelyQueued': 'ממתין בבטחה',
   'cloud.savingSyncedJournalDataOnThisDevice': 'שומר את נתוני היומן המסונכרנים במכשיר זה',
+  'cloud.setupElapsedSeconds': 'זמן שחלף: {seconds} שנ׳',
+  'cloud.setupProgressHelp':
+    'Tackbok מחבר את המכשיר הזה ומתחיל את הסנכרון הראשון. גיבויים גדולים, תמונות והקלטות קוליות עשויים להימשך זמן רב יותר.',
+  'cloud.setupTakingLonger':
+    'הפעולה נמשכת יותר מהרגיל. יש לבדוק את החיבור לאינטרנט ולהשאיר את Tackbok פתוח כדי לאפשר לה להמשיך.',
   'cloud.settingUpCloudSync': 'מגדיר סנכרון בענן…',
   'cloud.stepCurrentOfTotalInThisBatch': 'שלב {current} מתוך {total} באצווה זו',
   'cloud.syncCompleted': 'הסנכרון הושלם',

@@ -845,6 +845,11 @@ export const en = {
   'cloud.safelyQueued': 'Safely queued',
   'cloud.savingSyncedJournalDataOnThisDevice':
     'Saving synced journal data on this device',
+  'cloud.setupElapsedSeconds': 'Elapsed time: {seconds} s',
+  'cloud.setupProgressHelp':
+    'Tackbok is connecting this device and starting the first sync. Large backups, photos, and voice notes can take longer.',
+  'cloud.setupTakingLonger':
+    'This is taking longer than usual. Check your internet connection and keep Tackbok open to let it continue.',
   'cloud.settingUpCloudSync': 'Setting up cloud sync…',
   'cloud.stepCurrentOfTotalInThisBatch': 'Step {current} of {total} in this batch',
   'cloud.syncCompleted': 'Sync completed',

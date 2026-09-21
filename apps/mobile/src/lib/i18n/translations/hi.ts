@@ -800,6 +800,11 @@ export const hi = {
   'cloud.safelyQueued': 'सुरक्षित रूप से कतारबद्ध',
   'cloud.savingSyncedJournalDataOnThisDevice':
     'इस डिवाइस पर सिंक किए गए डायरी डेटा को सहेजा जा रहा है',
+  'cloud.setupElapsedSeconds': 'बीता समय: {seconds} सेकंड',
+  'cloud.setupProgressHelp':
+    'Tackbok इस डिवाइस को कनेक्ट कर रहा है और पहला सिंक शुरू कर रहा है। बड़े बैकअप, फ़ोटो और वॉइस नोट में अधिक समय लग सकता है।',
+  'cloud.setupTakingLonger':
+    'इसमें सामान्य से अधिक समय लग रहा है। अपना इंटरनेट कनेक्शन जाँचें और Tackbok खुला रखें ताकि यह जारी रह सके।',
   'cloud.settingUpCloudSync': 'क्लाउड सिंक सेट किया जा रहा है...',
   'cloud.stepCurrentOfTotalInThisBatch': 'इस बैच में {total} का चरण {current}',
   'cloud.syncCompleted': 'सिंक पूरा हुआ',

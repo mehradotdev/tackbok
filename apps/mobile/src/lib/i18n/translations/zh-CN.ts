@@ -773,8 +773,7 @@ export const zhCN: Translations = {
     '本地数据和云备份都会保留。其他设备仍保持连接。',
   'cloud.markAsReviewed': '标记为已查看',
   'cloud.mergingChangesAndUpdatingGoogleDrive': '正在合并更改并更新 Google Drive',
-  'cloud.noTackbokBackupFoundInThisGoogleAccount':
-    '此 Google 账户中没有找到塔克布克备份',
+  'cloud.noTackbokBackupFoundInThisGoogleAccount': '此 Google 账户中没有找到塔克布克备份',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
     '没有互联网连接。你的更改仍会安全地保留在队列中。',
   'cloud.noExistingTackbokBackupWasFoundCreateOneForThis':
@@ -798,6 +797,11 @@ export const zhCN: Translations = {
   'cloud.restoring': '正在恢复…',
   'cloud.safelyQueued': '已安全排队',
   'cloud.savingSyncedJournalDataOnThisDevice': '正在此设备上保存已同步的日记数据',
+  'cloud.setupElapsedSeconds': '已用时间：{seconds} 秒',
+  'cloud.setupProgressHelp':
+    'Tackbok 正在连接此设备并开始首次同步。较大的备份、照片和语音笔记可能需要更长时间。',
+  'cloud.setupTakingLonger':
+    '此次操作比平时用时更长。请检查网络连接，并保持 Tackbok 打开以便继续。',
   'cloud.settingUpCloudSync': '正在设置云同步…',
   'cloud.stepCurrentOfTotalInThisBatch': '本批次第 {current} 步，共 {total} 步',
   'cloud.syncCompleted': '同步完成',

@@ -885,6 +885,11 @@ export const de: Translations = {
   'cloud.safelyQueued': 'Sicher vorgemerkt',
   'cloud.savingSyncedJournalDataOnThisDevice':
     'Synchronisierte Journaldaten werden auf diesem Gerät gespeichert',
+  'cloud.setupElapsedSeconds': 'Vergangene Zeit: {seconds} s',
+  'cloud.setupProgressHelp':
+    'Tackbok verbindet dieses Gerät und startet die erste Synchronisierung. Große Backups, Fotos und Sprachnotizen können länger dauern.',
+  'cloud.setupTakingLonger':
+    'Das dauert länger als üblich. Prüfe deine Internetverbindung und lass Tackbok geöffnet, damit der Vorgang fortgesetzt werden kann.',
   'cloud.settingUpCloudSync': 'Cloud-Synchronisierung wird eingerichtet…',
   'cloud.stepCurrentOfTotalInThisBatch':
     'Schritt {current} von {total} in diesem Durchlauf',
