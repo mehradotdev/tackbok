@@ -38,9 +38,19 @@ environment files, and vendored skills are excluded in `.prettierignore`.
 
 ## Pull requests
 
-GitHub Actions runs lint, typechecking, all tests, and the website build on PRs and
-pushes to `main`. PRs also check the title and formatting of files changed since
-the merge base. To reproduce the formatting check, commit your changes and run:
+GitHub Actions runs lint, typechecking, all tests, and changed-file formatting when
+a PR is opened, updated with commits, or reopened, including draft PRs. Merging to
+`main` does not run these checks again. The website build runs only when the PR
+changes `apps/website/`, root `package.json`, `bun.lock`, `bunfig.toml`,
+`.node-version`, or `.github/workflows/checks.yml`. Deletions and moves out of these
+paths also count as changes.
+
+A separate **PR title** workflow validates Conventional Commit titles, including
+after PR edits. Description edits recheck only the title; they do not rerun or
+cancel code checks. All edits revalidate the title so a skipped check cannot mask
+an invalid title.
+
+To reproduce the formatting check, commit your changes and run:
 
 ```sh
 git fetch origin
@@ -49,7 +59,9 @@ bun run format:changed origin/main
 
 Use a Conventional Commit title for your PR. Maintainers should squash merge and
 use that title for the squash commit. CI does not require rewriting intermediate
-commits. Repository merge settings and branch protection are managed separately.
+commits. Repository merge settings and branch protection are managed separately:
+require both `quality` and `Check PR title`, and enable **Require branches to be up
+to date before merging** to ensure PRs are tested against the latest `main`.
 
 ## Troubleshooting
 
