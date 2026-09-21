@@ -49,8 +49,8 @@ including draft PRs. Merging to `main` does not run these checks again.
   `.github/workflows/checks.yml` trigger both workspaces' lint, typechecking, and
   tests, plus the website build. Deletions and moves out of watched paths also
   count as changes.
-- Changed-file formatting always runs. The `quality` job remains available as a
-  required check on every PR.
+- Changed-file formatting always runs. The `Check code quality` job remains
+  available as a required check on every PR.
 
 These conditions apply only in CI. Root `bun run lint`, `bun run typecheck`, and
 `bun run test` continue to run all configured workspace scripts locally.
@@ -70,8 +70,9 @@ bun run format:changed origin/main
 Use a Conventional Commit title for your PR. Maintainers should squash merge and
 use that title for the squash commit. CI does not require rewriting intermediate
 commits. Repository merge settings and branch protection are managed separately:
-require both `quality` and `Check PR title`, and enable **Require branches to be up
-to date before merging** to ensure PRs are tested against the latest `main`.
+require both `Check code quality` and `Check PR title`, and enable **Require
+branches to be up to date before merging** to ensure PRs are tested against the
+latest `main`.
 
 ## Troubleshooting
 
