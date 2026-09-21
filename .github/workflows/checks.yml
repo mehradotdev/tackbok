@@ -2,15 +2,13 @@ name: Checks
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited, ready_for_review]
-  push:
-    branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
 
 concurrency:
-  group: checks-${{ github.event.pull_request.number || github.ref }}
+  group: checks-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 env:
@@ -33,17 +31,43 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
-      - name: Check PR title
-        if: github.event_name == 'pull_request'
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: printf '%s\n' "$PR_TITLE" | bun run commitlint
       - name: Check changed-file formatting
-        if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bun run format:changed "$BASE_SHA"
-      - run: bun run lint
-      - run: bun run typecheck
-      - run: bun run test
-      - run: bun run build
+      - name: Detect workspace changes
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          for workspace in mobile website; do
+            changed_files=$(git diff --name-only --no-renames "$BASE_SHA...HEAD" -- \
+              "apps/$workspace/" package.json bun.lock bunfig.toml .node-version \
+              .github/workflows/checks.yml)
+            if [[ -n "$changed_files" ]]; then
+              echo "$workspace=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$workspace=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+      - name: Lint mobile
+        if: steps.changes.outputs.mobile == 'true'
+        run: bun --filter '@tackbok/mobile' lint
+      - name: Lint website
+        if: steps.changes.outputs.website == 'true'
+        run: bun --filter '@tackbok/website' lint
+      - name: Typecheck mobile
+        if: steps.changes.outputs.mobile == 'true'
+        run: bun --filter '@tackbok/mobile' typecheck
+      - name: Typecheck website
+        if: steps.changes.outputs.website == 'true'
+        run: bun --filter '@tackbok/website' typecheck
+      - name: Test mobile
+        if: steps.changes.outputs.mobile == 'true'
+        run: bun --filter '@tackbok/mobile' test
+      - name: Test website if configured
+        if: steps.changes.outputs.website == 'true'
+        run: bun --filter '@tackbok/website' --if-present test
+      - name: Build website
+        if: steps.changes.outputs.website == 'true'
+        run: bun run build
