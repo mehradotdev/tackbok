@@ -38,12 +38,22 @@ environment files, and vendored skills are excluded in `.prettierignore`.
 
 ## Pull requests
 
-GitHub Actions runs lint, typechecking, all tests, and changed-file formatting when
-a PR is opened, updated with commits, or reopened, including draft PRs. Merging to
-`main` does not run these checks again. The website build runs only when the PR
-changes `apps/website/`, root `package.json`, `bun.lock`, `bunfig.toml`,
-`.node-version`, or `.github/workflows/checks.yml`. Deletions and moves out of these
-paths also count as changes.
+GitHub Actions runs when a PR is opened, updated with commits, or reopened,
+including draft PRs. Merging to `main` does not run these checks again.
+
+- Lint, typechecking, and tests run for workspaces whose `apps/mobile/` or
+  `apps/website/` paths changed. Mobile runs its full Jest and integration suites;
+  website tests are skipped until a `test` script is added.
+- The website build runs when `apps/website/` changes.
+- Changes to root `package.json`, `bun.lock`, `bunfig.toml`, `.node-version`, or
+  `.github/workflows/checks.yml` trigger both workspaces' lint, typechecking, and
+  tests, plus the website build. Deletions and moves out of watched paths also
+  count as changes.
+- Changed-file formatting always runs. The `quality` job remains available as a
+  required check on every PR.
+
+These conditions apply only in CI. Root `bun run lint`, `bun run typecheck`, and
+`bun run test` continue to run all configured workspace scripts locally.
 
 A separate **PR title** workflow validates Conventional Commit titles, including
 after PR edits. Description edits recheck only the title; they do not rerun or

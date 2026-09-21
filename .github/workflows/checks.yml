@@ -35,22 +35,39 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: bun run format:changed "$BASE_SHA"
-      - run: bun run lint
-      - run: bun run typecheck
-      - run: bun run test
-      - name: Detect website build changes
-        id: website
+      - name: Detect workspace changes
+        id: changes
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          changed_files=$(git diff --name-only --no-renames "$BASE_SHA...HEAD" -- \
-            apps/website/ package.json bun.lock bunfig.toml .node-version \
-            .github/workflows/checks.yml)
-          if [[ -n "$changed_files" ]]; then
-            echo 'build=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'build=false' >> "$GITHUB_OUTPUT"
-          fi
+          for workspace in mobile website; do
+            changed_files=$(git diff --name-only --no-renames "$BASE_SHA...HEAD" -- \
+              "apps/$workspace/" package.json bun.lock bunfig.toml .node-version \
+              .github/workflows/checks.yml)
+            if [[ -n "$changed_files" ]]; then
+              echo "$workspace=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$workspace=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+      - name: Lint mobile
+        if: steps.changes.outputs.mobile == 'true'
+        run: bun --filter '@tackbok/mobile' lint
+      - name: Lint website
+        if: steps.changes.outputs.website == 'true'
+        run: bun --filter '@tackbok/website' lint
+      - name: Typecheck mobile
+        if: steps.changes.outputs.mobile == 'true'
+        run: bun --filter '@tackbok/mobile' typecheck
+      - name: Typecheck website
+        if: steps.changes.outputs.website == 'true'
+        run: bun --filter '@tackbok/website' typecheck
+      - name: Test mobile
+        if: steps.changes.outputs.mobile == 'true'
+        run: bun --filter '@tackbok/mobile' test
+      - name: Test website if configured
+        if: steps.changes.outputs.website == 'true'
+        run: bun --filter '@tackbok/website' --if-present test
       - name: Build website
-        if: steps.website.outputs.build == 'true'
+        if: steps.changes.outputs.website == 'true'
         run: bun run build
