@@ -800,6 +800,11 @@ export const zhTW: Translations = {
   'cloud.restoring': '正在還原…',
   'cloud.safelyQueued': '已安全排隊',
   'cloud.savingSyncedJournalDataOnThisDevice': '正在此裝置上儲存已同步的日誌資料',
+  'cloud.setupElapsedSeconds': '已用時間：{seconds} 秒',
+  'cloud.setupProgressHelp':
+    'Tackbok 正在連接此裝置並開始首次同步。較大的備份、照片和語音筆記可能需要更長時間。',
+  'cloud.setupTakingLonger':
+    '此次操作比平常耗時更久。請檢查網路連線，並保持 Tackbok 開啟以便繼續。',
   'cloud.settingUpCloudSync': '正在設定雲端同步…',
   'cloud.stepCurrentOfTotalInThisBatch': '此批次第 {current} 步，共 {total} 步',
   'cloud.syncCompleted': '同步完成',

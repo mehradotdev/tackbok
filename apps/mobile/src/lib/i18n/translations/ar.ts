@@ -827,6 +827,11 @@ export const ar: Translations = {
   'cloud.safelyQueued': 'في قائمة انتظار آمنة',
   'cloud.savingSyncedJournalDataOnThisDevice':
     'جارٍ حفظ بيانات اليوميات المتزامنة على هذا الجهاز',
+  'cloud.setupElapsedSeconds': 'الوقت المنقضي: {seconds} ث',
+  'cloud.setupProgressHelp':
+    'يربط Tackbok هذا الجهاز ويبدأ المزامنة الأولى. قد تستغرق النسخ الاحتياطية الكبيرة والصور والملاحظات الصوتية وقتًا أطول.',
+  'cloud.setupTakingLonger':
+    'يستغرق هذا وقتًا أطول من المعتاد. تحقق من اتصالك بالإنترنت وأبقِ Tackbok مفتوحًا ليتمكن من المتابعة.',
   'cloud.settingUpCloudSync': 'جارٍ إعداد المزامنة السحابية…',
   'cloud.stepCurrentOfTotalInThisBatch': 'الخطوة {current} من {total} في هذه الدفعة',
   'cloud.syncCompleted': 'اكتملت المزامنة',

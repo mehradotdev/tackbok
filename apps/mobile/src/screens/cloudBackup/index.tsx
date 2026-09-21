@@ -70,6 +70,7 @@ import {
 } from '~/components/ui/alert-dialog';
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
+import { SetupProgress } from './setup-progress';
 import {
   attentionReasonMessage,
   cloudSyncFailureMessage,
@@ -112,6 +113,7 @@ export default function CloudBackupScreen() {
   const [conflicts, setConflicts] = useState<CloudConflictSummary[]>([]);
   const conflictRefreshSequenceRef = useRef(0);
   const actionRunningRef = useRef(false);
+  const [actionRunning, setActionRunning] = useState(false);
   const [destructiveAction, setDestructiveAction] = useState<DestructiveAction | null>(
     null,
   );
@@ -221,6 +223,7 @@ export default function CloudBackupScreen() {
     async (action: () => Promise<unknown>, success: string) => {
       if (actionRunningRef.current) return;
       actionRunningRef.current = true;
+      setActionRunning(true);
       try {
         const result = await action();
         if (result === false) throw new Error('action did not complete');
@@ -234,6 +237,7 @@ export default function CloudBackupScreen() {
         );
       } finally {
         actionRunningRef.current = false;
+        if (mountedRef.current) setActionRunning(false);
       }
     },
     [refresh, t],
@@ -462,6 +466,7 @@ export default function CloudBackupScreen() {
             prepared={prepared}
             origin={origin}
             busy={stage === 'working'}
+            snapshot={snapshot}
             onChoose={(vaultId) => void handleComplete(vaultId)}
             onCreate={() => void handleComplete(undefined, true)}
           />
@@ -518,11 +523,19 @@ export default function CloudBackupScreen() {
                     </Text>
                     <Button
                       variant="outline"
+                      disabled={actionRunning}
+                      accessibilityState={{
+                        busy: actionRunning,
+                        disabled: actionRunning,
+                      }}
                       onPress={() => void handleRecoveryAction()}
                       accessibilityLabel={recoveryActionLabel(
                         snapshot.recoveryAction,
                         t,
                       )}>
+                      {actionRunning && (
+                        <SpinningRefreshIcon className="text-foreground size-5" />
+                      )}
                       <Text>{recoveryActionLabel(snapshot.recoveryAction, t)}</Text>
                     </Button>
                   </View>
@@ -544,6 +557,7 @@ export default function CloudBackupScreen() {
                   variant="primary"
                   size="lg"
                   disabled={
+                    actionRunning ||
                     snapshot.status === 'syncing' ||
                     snapshot.status === 'paused' ||
                     snapshot.status === 'warning'
@@ -881,12 +895,14 @@ function ConnectionChoice({
   prepared,
   origin,
   busy,
+  snapshot,
   onChoose,
   onCreate,
 }: {
   prepared: PreparedGoogleConnection;
   origin: 'settings' | 'onboarding';
   busy: boolean;
+  snapshot: ReturnType<typeof useCloudSyncSnapshot>['snapshot'];
   onChoose: (vaultId: string) => void;
   onCreate: () => void;
 }) {
@@ -906,11 +922,13 @@ function ConnectionChoice({
       </View>
       {prepared.availableVaults.length > 0 ? (
         <>
-          <Text className="text-foreground">
-            {prepared.localHasData
-              ? t('cloud.chooseABackupToMergeWithThisJournalBothSides')
-              : t('cloud.chooseABackupToRestoreOnThisDevice')}
-          </Text>
+          {!busy && (
+            <Text className="text-foreground">
+              {prepared.localHasData
+                ? t('cloud.chooseABackupToMergeWithThisJournalBothSides')
+                : t('cloud.chooseABackupToRestoreOnThisDevice')}
+            </Text>
+          )}
           {prepared.availableVaults.map((vault, index) => (
             <Button
               key={vault.vaultId}
@@ -955,12 +973,7 @@ function ConnectionChoice({
           </Button>
         </>
       ) : null}
-      {busy && (
-        <View className="flex-row items-center gap-2" accessibilityLiveRegion="polite">
-          <ActivityIndicator colorClassName="accent-primary" />
-          <Text className="text-foreground/75">{t('cloud.settingUpCloudSync')}</Text>
-        </View>
-      )}
+      {busy && <SetupProgress snapshot={snapshot} />}
     </View>
   );
 }

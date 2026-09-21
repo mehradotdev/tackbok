@@ -162,9 +162,6 @@ export function LanguageSelectControl({
                   label={getLanguageLabel(lang)}
                 />
               ))}
-
-            {/* Promotional placeholder — Hindi translations are not available yet. */}
-            <SelectItem value="hi-coming-soon" label="Hindi (हिन्दी) — SOON" disabled />
           </NativeSelectScrollView>
         </SelectContent>
       </Select>

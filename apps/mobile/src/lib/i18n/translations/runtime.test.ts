@@ -1,4 +1,4 @@
-import { translate } from './index';
+import { languages, translate } from './index';
 import { pluralMessages } from './plurals';
 import { en } from './en';
 import type { SupportedLocale, TranslationKey } from '../types';
@@ -12,6 +12,17 @@ jest.mock('./de', () => {
   delete incomplete['greeting.welcomeBack'];
   return { de: incomplete };
 });
+
+it.each(languages.map(({ code }) => code).filter((code) => code !== 'device'))(
+  '%s: interpolates elapsed restore time with localized numbers',
+  (locale) => {
+    const zero = translate(locale, 'cloud.setupElapsedSeconds', { seconds: 0 });
+    const later = translate(locale, 'cloud.setupElapsedSeconds', { seconds: 29 });
+    expect(zero).not.toMatch(/[{}]/);
+    expect(later).not.toMatch(/[{}]/);
+    expect(later).not.toBe(zero);
+  },
+);
 
 it('falls back to the English message rather than exposing an identifier', () => {
   expect(translate('de', 'greeting.welcomeBack')).toBe('Welcome back');
