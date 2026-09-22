@@ -58,7 +58,9 @@ These conditions apply only in CI. Root `bun run lint`, `bun run typecheck`, and
 A separate **PR title** workflow validates Conventional Commit titles, including
 after PR edits. Description edits recheck only the title; they do not rerun or
 cancel code checks. All edits revalidate the title so a skipped check cannot mask
-an invalid title.
+an invalid title. This workflow installs only root tooling with `--filter './'`,
+excluding mobile and website dependencies. It also runs for new PR commits because
+required checks must report a result for the latest commit.
 
 To reproduce the formatting check, commit your changes and run:
 
