@@ -75,6 +75,9 @@ const config: ExpoConfig = {
     [
       'expo-build-properties',
       {
+        ios: {
+          enableSceneSupport: true,
+        },
         android: {
           enableMinifyInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
@@ -137,7 +140,24 @@ const config: ExpoConfig = {
     './plugins/withPurchaseLaunchMode',
     'expo-sharing',
     'expo-status-bar',
-    'expo-localization',
+    [
+      'expo-localization',
+      {
+        // Keep aligned with ALL_SUPPORTED_LOCALES in src/lib/i18n/types.ts.
+        // Native language declarations use script tags for Chinese variants.
+        supportedLocales: [
+          'en',
+          'es',
+          'ar',
+          'he',
+          'de',
+          'hi',
+          'sv',
+          'zh-Hans',
+          'zh-Hant',
+        ],
+      },
+    ],
     [
       'expo-notifications',
       {
