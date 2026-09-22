@@ -8,8 +8,6 @@ import * as schema from './schema';
 // ============================================================================
 
 const DATABASE_NAME = 'tackbok.db';
-// Database file used by expo-sqlite/kv-store, which backs zustand persist.
-const KV_STORE_DATABASE_NAME = 'ExpoSQLiteStorage';
 
 export const sqlite = SQLite.openDatabaseSync(DATABASE_NAME);
 
@@ -29,33 +27,14 @@ sqlite.execSync('PRAGMA journal_mode = WAL');
 // Do not apply these Apple-specific pragmas to Android, whose fsync primitive
 // and storage stack have different semantics.
 if (Platform.OS === 'ios') {
-  sqlite.execSync([
-    'PRAGMA synchronous = FULL',
-    'PRAGMA fullfsync = ON',
-    'PRAGMA checkpoint_fullfsync = ON',
-  ].join('; '));
+  sqlite.execSync(
+    [
+      'PRAGMA synchronous = FULL',
+      'PRAGMA fullfsync = ON',
+      'PRAGMA checkpoint_fullfsync = ON',
+    ].join('; '),
+  );
 }
-
-// Same hardening for the kv-store database. Opening with default options
-// returns the same pooled native connection kv-store itself uses, so the
-// per-connection busy_timeout applies to its reads/writes too (journal_mode
-// is persisted in the file either way). Best effort: a failed attempt is
-// retried on next launch.
-//
-// The promise must stay reachable for the app's lifetime: on Android,
-// garbage-collecting a JS database handle closes the underlying native
-// connection (NativeDatabase.sharedObjectDidRelease) even though kv-store
-// still uses it, after which every settings write dies with an NPE from
-// prepareAsync. A settled promise strongly references its value, so holding
-// the promise keeps the handle alive.
-const kvStoreDbHandle = SQLite.openDatabaseAsync(KV_STORE_DATABASE_NAME);
-void kvStoreDbHandle
-  .then((kvDb) =>
-    kvDb.execAsync('PRAGMA busy_timeout = 2000; PRAGMA journal_mode = WAL;'),
-  )
-  .catch((error) => {
-    console.warn('Failed to configure kv-store database:', error);
-  });
 
 export const db = drizzle(sqlite, { schema });
 export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];

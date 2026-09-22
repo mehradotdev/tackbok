@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { I18nManager, Platform } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import { useTranslation, languages, type LanguageInfo } from '~/lib/i18n';
 import { track } from '~/lib/analytics';
 import { Text } from '~/components/ui/text';
+import { toast } from '~/components/ui/toast';
 import {
   Select,
   SelectContent,
@@ -50,6 +51,28 @@ export function LanguageSelectControl({
   // State for confirmation dialog
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingLanguage, setPendingLanguage] = useState<LanguageInfo | null>(null);
+  const changingLanguage = useRef(false);
+
+  const applyLanguage = async (lang: LanguageInfo, restart: boolean) => {
+    if (changingLanguage.current) return;
+    changingLanguage.current = true;
+    try {
+      await setLocale(lang.code);
+      track('language_changed', { locale: lang.code });
+      if (!restart || Platform.OS === 'web') return;
+
+      I18nManager.allowRTL(lang.isRTL);
+      I18nManager.forceRTL(lang.isRTL);
+      // The save has completed. This delay is only for dismissing the overlay.
+      await new Promise<void>((resolve) => setTimeout(resolve, 500));
+      await reloadAppAsync('Language change confirmed');
+    } catch (error) {
+      console.warn('Language change failed:', error);
+      toast.error(t('common.unknownError'));
+    } finally {
+      changingLanguage.current = false;
+    }
+  };
 
   // Get display name for current preference
   const getCurrentLanguageLabel = (): string => {
@@ -102,36 +125,18 @@ export function LanguageSelectControl({
       setShowConfirmDialog(true);
     } else {
       // Apply change immediately
-      setLocale(lang.code);
-      track('language_changed', { locale: lang.code });
+      void applyLanguage(lang, false);
     }
   };
 
   const handleConfirmLanguageChange = () => {
     if (!pendingLanguage) return;
-    const shouldBeRTL = pendingLanguage.isRTL;
-    // Update the locale preference
-    setLocale(pendingLanguage.code);
-    track('language_changed', { locale: pendingLanguage.code });
-
-    // Close the dialog first, then reload after a short delay.
-    // reloadAppAsync() fires synchronously, so if we call it before
-    // the native overlay has been dismissed, the dialog stays stuck
-    // on screen after reload and both buttons become unresponsive.
+    const lang = pendingLanguage;
+    // Dismiss the dialog before saving; restart only after the save completes.
     setShowConfirmDialog(false);
     setPendingLanguage(null);
 
-    // Configure I18nManager for RTL if needed (only on native platforms)
-    if (Platform.OS === 'web') return;
-    I18nManager.allowRTL(shouldBeRTL);
-    I18nManager.forceRTL(shouldBeRTL);
-
-    // Reload app for RTL changes to take effect
-    // Note: Per Expo docs, I18nManager changes require app restart
-    // Give the dialog's native overlay time to fully dismiss before reloading
-    setTimeout(() => {
-      reloadAppAsync('Language change confirmed');
-    }, 500);
+    void applyLanguage(lang, true);
   };
 
   const handleCancelLanguageChange = () => {

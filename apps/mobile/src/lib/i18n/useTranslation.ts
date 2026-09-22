@@ -45,7 +45,7 @@ interface UseTranslationResult {
   /**
    * Set the locale preference
    */
-  setLocale: (locale: LocalePreference) => void;
+  setLocale: (locale: LocalePreference) => Promise<void>;
 
   /**
    * Whether the locale store has been hydrated

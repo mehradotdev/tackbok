@@ -11,7 +11,12 @@ jest.mock('expo-localization', () => ({
   getLocales: () => [mockDevice],
   getCalendars: () => [{ uses24hourClock: mock24hour }],
 }));
-jest.mock('expo-sqlite/kv-store', () => ({ getItem: jest.fn(async () => null) }));
+jest.mock('~/lib/kvStorage', () => ({
+  kvStorage: {
+    getItem: jest.fn(async () => null),
+    setItem: jest.fn(async () => {}),
+  },
+}));
 
 beforeEach(() => {
   mockDevice = { languageTag: 'en-GB', regionCode: 'GB' };

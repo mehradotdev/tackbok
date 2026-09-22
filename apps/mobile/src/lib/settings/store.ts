@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import AsyncStorage from 'expo-sqlite/kv-store';
+import { kvStorage as AsyncStorage } from '~/lib/kvStorage';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Appearance } from 'react-native';
 import { Uniwind } from 'uniwind';
@@ -29,8 +29,7 @@ import {
 // Capture this before the app primes Uniwind with its temporary pre-hydration
 // theme. Uniwind can override React Native's reported color scheme when a fixed
 // theme is selected.
-const INITIAL_DEVICE_THEME_ID =
-  Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
+const INITIAL_DEVICE_THEME_ID = Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
 
 interface SettingsState {
   // Notifications
