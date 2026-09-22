@@ -1,8 +1,15 @@
-import { create } from 'zustand';
+import { create, type StoreApi } from 'zustand';
+import { I18nManager } from 'react-native';
+import { getLocales } from 'expo-localization';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { kvStorage as Storage } from '~/lib/kvStorage';
 import type { LocalePreference, SupportedLocale } from './types';
-import { ALL_SUPPORTED_LOCALES, DEFAULT_LOCALE, SUPPORTED_LANG_CODES } from './types';
+import {
+  ALL_SUPPORTED_LOCALES,
+  DEFAULT_LOCALE,
+  RTL_LOCALES,
+  SUPPORTED_LANG_CODES,
+} from './types';
 
 interface LocaleState {
   /**
@@ -27,8 +34,11 @@ interface LocaleState {
   setHasHydrated: (hydrated: boolean) => void;
 }
 
-export const useLocaleStore = create<LocaleState>()(
-  persist(
+function createLocaleStore() {
+  // This setter bypasses persistence: recovery must not overwrite a preference
+  // that could still be readable on the next launch.
+  let setRuntimeState!: StoreApi<LocaleState>['setState'];
+  const persisted = persist<LocaleState, [], [], Pick<LocaleState, 'localePreference'>>(
     (set, get) => ({
       localePreference: 'device',
       _hasHydrated: false,
@@ -50,20 +60,65 @@ export const useLocaleStore = create<LocaleState>()(
         }
       },
 
-      setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
+      setHasHydrated: (hydrated) => setRuntimeState({ _hasHydrated: hydrated }),
     }),
     {
       name: 'tackbok-locale',
       // Share the async initialization lock with the settings store. Mixing sync
       // and async opens can replace a handle and close the pooled Android database.
-      storage: createJSONStorage(() => Storage),
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
+      storage: createJSONStorage(() => ({
+        ...Storage,
+        async getItem(name) {
+          try {
+            return await Storage.getItem(name);
+          } catch (cause) {
+            // Only JSON parsing errors may trigger corrupt-data cleanup below.
+            throw new Error('Locale storage read failed', { cause });
+          }
+        },
+      })),
+      onRehydrateStorage: () => (state, error) => {
+        if (state) {
+          state.setHasHydrated(true);
+          return;
+        }
+        console.warn('Locale hydration failed:', error);
+        setRuntimeState((current) => ({
+          localePreference: getRecoveryLocale(current.localePreference),
+          _hasHydrated: true,
+        }));
+        // Invalid JSON is corrupt data; an unavailable database is not. Cleanup
+        // is best effort and must never delay startup or reject unhandled.
+        if (error instanceof SyntaxError) {
+          void Storage.removeItem('tackbok-locale').catch(() => {});
+        }
       },
       partialize: (state) => ({ localePreference: state.localePreference }),
     },
-  ),
-);
+  );
+  const creator: typeof persisted = (set, get, api) => {
+    setRuntimeState = set;
+    return persisted(set, get, api);
+  };
+  return create<LocaleState>()(creator);
+}
+
+export const useLocaleStore = createLocaleStore();
+
+function getRecoveryLocale(preference: LocalePreference): SupportedLocale {
+  const tags = getLocales().map(({ languageTag }) => languageTag);
+  const preferred = getEffectiveSupportedLocale(tags, preference);
+  if (RTL_LOCALES.includes(preferred) === I18nManager.isRTL) return preferred;
+  const device = getEffectiveLocale(
+    tags.filter((tag) => {
+      const locale = getEffectiveLocale(tag);
+      return locale !== null && RTL_LOCALES.includes(locale) === I18nManager.isRTL;
+    }),
+  );
+  // With no readable preference or matching device language, the native direction
+  // is all we know. Use Arabic for RTL and English for LTR for this session only.
+  return device ?? (I18nManager.isRTL ? 'ar' : DEFAULT_LOCALE);
+}
 
 /**
  * Get the effective locale based on user preference and device locale.

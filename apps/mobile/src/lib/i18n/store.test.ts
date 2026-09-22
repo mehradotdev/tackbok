@@ -2,9 +2,29 @@ import type { LocalePreference } from './types';
 
 const mockDisk = new Map<string, string>();
 let mockWriteError: Error | undefined;
+let mockReadError: Error | undefined;
+let mockRTL = false;
+let mockTags = ['en-US'];
+const mockRemove = jest.fn(async (key: string) => {
+  mockDisk.delete(key);
+});
+jest.mock('react-native', () => ({
+  I18nManager: {
+    get isRTL() {
+      return mockRTL;
+    },
+  },
+}));
+jest.mock('expo-localization', () => ({
+  getLocales: () => mockTags.map((languageTag) => ({ languageTag })),
+}));
 jest.mock('~/lib/kvStorage', () => ({
   kvStorage: {
-    getItem: async (key: string) => mockDisk.get(key) ?? null,
+    getItem: async (key: string) => {
+      if (mockReadError) throw mockReadError;
+      return mockDisk.get(key) ?? null;
+    },
+    removeItem: (key: string) => mockRemove(key),
     setItem: (key: string, value: string) => {
       if (mockWriteError) return Promise.reject(mockWriteError);
       return new Promise<void>((resolve) => {
@@ -33,6 +53,11 @@ function coldStart() {
 
 beforeEach(() => {
   mockWriteError = undefined;
+  mockReadError = undefined;
+  mockRTL = false;
+  mockTags = ['en-US'];
+  mockRemove.mockClear();
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
   jest.useFakeTimers();
   mockDisk.clear();
 });
@@ -46,14 +71,13 @@ it('restores the visible language when the preference write fails', async () => 
     mockWriteError,
   );
   expect(store.getState().localePreference).toBe('device');
-  expect(JSON.parse(mockDisk.get('tackbok-locale')!).state.localePreference).toBe(
-    'device',
-  );
+  expect(mockDisk.has('tackbok-locale')).toBe(false);
 });
 
 afterEach(() => {
   jest.clearAllTimers();
   jest.useRealTimers();
+  jest.restoreAllMocks();
 });
 
 it.each<[LocalePreference, LocalePreference]>([
@@ -108,5 +132,81 @@ it('hydrates a fresh install with the device language preference', async () => {
   const store = coldStart();
   await store.persist.rehydrate();
   expect(store.getState().localePreference).toBe('device');
+  expect(store.getState()._hasHydrated).toBe(true);
+});
+
+it('recovers from malformed JSON and removes only the corrupt locale entry', async () => {
+  mockDisk.set('tackbok-locale', '{broken');
+  mockDisk.set('tackbok-settings', 'keep');
+  const store = coldStart();
+  await store.persist.rehydrate();
+  expect(store.getState()._hasHydrated).toBe(true);
+  expect(store.getState().localePreference).toBe('en');
+  expect(mockRemove).toHaveBeenCalledWith('tackbok-locale');
+  expect(mockDisk.has('tackbok-locale')).toBe(false);
+  expect(mockDisk.get('tackbok-settings')).toBe('keep');
+});
+
+it('unblocks startup even when corrupt-data cleanup fails', async () => {
+  mockDisk.set('tackbok-locale', '{broken');
+  mockRemove
+    .mockRejectedValueOnce(new Error('read-only'))
+    .mockRejectedValueOnce(new Error('read-only'));
+  const store = coldStart();
+  await store.persist.rehydrate();
+  expect(store.getState()._hasHydrated).toBe(true);
+  expect(mockDisk.get('tackbok-locale')).toBe('{broken');
+});
+
+it('does not mistake a storage SyntaxError for corrupt saved JSON', async () => {
+  const saved = JSON.stringify({ state: { localePreference: 'he' }, version: 0 });
+  mockDisk.set('tackbok-locale', saved);
+  mockReadError = new SyntaxError('storage query failed');
+  const store = coldStart();
+  await store.persist.rehydrate();
+  expect(store.getState()._hasHydrated).toBe(true);
+  expect(mockRemove).not.toHaveBeenCalled();
+  expect(mockDisk.get('tackbok-locale')).toBe(saved);
+});
+
+it.each([
+  [false, ['en-US'], 'en'],
+  [true, ['he-IL'], 'he'],
+  [true, ['en-US', 'he-IL'], 'he'],
+  [true, ['en-US'], 'ar'],
+  [false, ['he-IL'], 'en'],
+] as const)(
+  'uses a session fallback matching RTL=%s and device=%s',
+  async (rtl, tags, expected) => {
+    const saved = JSON.stringify({ state: { localePreference: 'he' }, version: 0 });
+    mockDisk.set('tackbok-locale', saved);
+    mockReadError = new Error('database temporarily unavailable');
+    mockWriteError = new Error('database temporarily unavailable');
+    mockRTL = rtl;
+    mockTags = [...tags];
+    const store = coldStart();
+    await store.persist.rehydrate();
+    await jest.runAllTimersAsync();
+    expect(store.getState()._hasHydrated).toBe(true);
+    expect(store.getState().localePreference).toBe(expected);
+    expect(mockRemove).not.toHaveBeenCalled();
+    expect(mockDisk.get('tackbok-locale')).toBe(saved);
+    mockReadError = undefined;
+    await store.persist.rehydrate();
+    expect(store.getState().localePreference).toBe('he');
+  },
+);
+
+it('keeps an already loaded RTL preference when a subsequent read fails', async () => {
+  mockRTL = true;
+  mockDisk.set(
+    'tackbok-locale',
+    JSON.stringify({ state: { localePreference: 'he' }, version: 0 }),
+  );
+  const store = coldStart();
+  await store.persist.rehydrate();
+  mockReadError = new Error('offline storage');
+  await store.persist.rehydrate();
+  expect(store.getState().localePreference).toBe('he');
   expect(store.getState()._hasHydrated).toBe(true);
 });
