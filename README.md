@@ -1,10 +1,14 @@
 <div align="center">
 
-  <img src="assets/logo.png" alt="Tackbok Logo" width="100" />
+  <a href="https://tackbok.org">
+    <img src="assets/logo.png" alt="Tackbok Logo" width="100" />
+  </a>
 
 # Tackbok
 
 **A quieter place for gratitude.**
+
+[tackbok.org](https://tackbok.org)
 
 A free, open-source, local-first gratitude journal for words, photos, and voice memories.<br />
 No accounts. No ads. Your journal stays on your device.
@@ -27,17 +31,14 @@ No accounts. No ads. Your journal stays on your device.
       <img src="https://img.shields.io/badge/Google_Play-Download-34A853?logo=googleplay&logoColor=white&style=for-the-badge" alt="Google Play" />
     </a>
     &nbsp;
+    <a href="https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507">
+      <img src="https://img.shields.io/badge/App_Store-Download-007AFF?logo=apple&logoColor=white&style=for-the-badge" alt="App Store" />
+    </a>
+    &nbsp;
     <a href="https://apps.samsung.com/appquery/appDetail.as?appId=dev.mehra.tackbok&source=GBadge_01_9271461_tag&directOpen=true&ads=ddb0e6f9&nonOrgType=fce692ba">
       <img src="https://img.shields.io/badge/Galaxy_Store-Download-000000?logo=samsung&logoColor=white&style=for-the-badge" alt="Galaxy Store" />
     </a>
     &nbsp;
-    <a href="https://testflight.apple.com/join/jGTWBEWq">
-      <img src="https://img.shields.io/badge/Apple_TestFlight-Join_Beta-007AFF?logo=apple&logoColor=white&style=for-the-badge" alt="TestFlight Beta" />
-    </a>
-    &nbsp;
-    <a href="https://tackbok.org">
-      <img src="https://img.shields.io/badge/Website-tackbok.org-6f815e?style=for-the-badge" alt="Website" />
-    </a>
   </p>
 
 </div>
