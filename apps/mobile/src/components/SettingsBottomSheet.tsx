@@ -1,5 +1,14 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { Dimensions, Linking, Platform, Pressable, TextInput, View } from 'react-native';
+import {
+  Dimensions,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
@@ -366,9 +375,30 @@ function buildSupportBody(): string {
 
 // ─── SettingsBottomSheet ──────────────────────────────────────────────────────
 
+function SettingsSheetContent({
+  scrollable,
+  children,
+}: {
+  scrollable: boolean;
+  children: React.ReactNode;
+}) {
+  if (!scrollable) return <>{children}</>;
+
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      nestedScrollEnabled
+      keyboardShouldPersistTaps="handled">
+      {children}
+    </ScrollView>
+  );
+}
+
 export function SettingsBottomSheet() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
   const sheet = useRef<TrueSheet>(null);
   const [themeRadiusStr, bgColor] = useCSSVariable([
     '--theme-radius',
@@ -535,7 +565,10 @@ export function SettingsBottomSheet() {
 
       <TrueSheet
         ref={sheet}
-        detents={['auto']}
+        // Preserve the content-sized portrait layout. Landscape needs a bounded
+        // viewport; TrueSheet v3 cannot combine an auto detent with scrollable.
+        detents={isLandscape ? [0.85] : ['auto']}
+        scrollable={isLandscape}
         cornerRadius={sheetRadius}
         grabber={false}
         backgroundColor={bgColor as string}
@@ -543,78 +576,80 @@ export function SettingsBottomSheet() {
         // preferredContentSize + prefersPageSizing=NO, which turns the iPad
         // sheet into a narrow centered form sheet instead of a bottom sheet.
         maxContentWidth={Platform.OS === 'android' ? 400 : undefined}>
-        {/* Outer wrapper — clips the banner to match sheet corner radius */}
-        <View
-          style={{
-            overflow: 'hidden',
-            borderTopLeftRadius: sheetRadius,
-            borderTopRightRadius: sheetRadius,
-          }}>
-          {/* ── Primary-colored banner ── */}
-          <View className="bg-primary" style={{ height: BANNER_HEIGHT }}>
-            {/* Grabber handle */}
-            <View className="items-center pt-3">
-              <View className="w-9 h-1 rounded-full bg-primary-foreground/30" />
+        <SettingsSheetContent scrollable={isLandscape}>
+          {/* Outer wrapper — clips the banner to match sheet corner radius */}
+          <View
+            style={{
+              overflow: 'hidden',
+              borderTopLeftRadius: sheetRadius,
+              borderTopRightRadius: sheetRadius,
+            }}>
+            {/* ── Primary-colored banner ── */}
+            <View className="bg-primary" style={{ height: BANNER_HEIGHT }}>
+              {/* Grabber handle */}
+              <View className="items-center pt-3">
+                <View className="w-9 h-1 rounded-full bg-primary-foreground/30" />
+              </View>
+
+              {/* X close button — sits inside the banner, pushed down from top */}
+              <View className="absolute right-3" style={{ top: 20 }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onPress={dismiss}
+                  hitSlop={10}
+                  className="w-8 h-8">
+                  <Icon as={X} className="text-primary-foreground/70" size={20} />
+                </Button>
+              </View>
             </View>
 
-            {/* X close button — sits inside the banner, pushed down from top */}
-            <View className="absolute right-3" style={{ top: 20 }}>
-              <Button
-                variant="ghost"
-                size="icon"
-                onPress={dismiss}
-                hitSlop={10}
-                className="w-8 h-8">
-                <Icon as={X} className="text-primary-foreground/70" size={20} />
-              </Button>
-            </View>
-          </View>
-
-          <ProfileSection
-            imageUri={profileImageUri}
-            name={profileName}
-            onAvatarPress={handleAvatarPress}
-            onSaveName={handleSaveName}>
-            <View className="border-t border-border mt-3">
-              <ActionRow
-                label={t('appInfo.supportTackbok')}
-                icon={Heart}
-                onPress={handleSupport}
-              />
-              <ActionRow
-                label={t('appearance.appearance')}
-                icon={Palette}
-                onPress={handleAppearance}
-              />
-              <ActionRow
-                label={t('insights.insights')}
-                icon={ChartColumn}
-                onPress={handleInsights}
-              />
-              <ActionRow
-                label={t('common.settings')}
-                icon={Settings}
-                onPress={handleSettings}
-              />
-              <ActionRow
-                label={`${t('common.shareFeedback')} / ${t('common.contactUs')}`}
-                icon={Mail}
-                onPress={handleContactUs}
-                isLast={!__DEV__}
-              />
-              {__DEV__ && (
+            <ProfileSection
+              imageUri={profileImageUri}
+              name={profileName}
+              onAvatarPress={handleAvatarPress}
+              onSaveName={handleSaveName}>
+              <View className="border-t border-border mt-3">
                 <ActionRow
-                  label={t('settings.reloadApp')}
-                  icon={RotateCcw}
-                  onPress={handleReloadApp}
-                  isLast
+                  label={t('appInfo.supportTackbok')}
+                  icon={Heart}
+                  onPress={handleSupport}
                 />
-              )}
-            </View>
+                <ActionRow
+                  label={t('appearance.appearance')}
+                  icon={Palette}
+                  onPress={handleAppearance}
+                />
+                <ActionRow
+                  label={t('insights.insights')}
+                  icon={ChartColumn}
+                  onPress={handleInsights}
+                />
+                <ActionRow
+                  label={t('common.settings')}
+                  icon={Settings}
+                  onPress={handleSettings}
+                />
+                <ActionRow
+                  label={`${t('common.shareFeedback')} / ${t('common.contactUs')}`}
+                  icon={Mail}
+                  onPress={handleContactUs}
+                  isLast={!__DEV__}
+                />
+                {__DEV__ && (
+                  <ActionRow
+                    label={t('settings.reloadApp')}
+                    icon={RotateCcw}
+                    onPress={handleReloadApp}
+                    isLast
+                  />
+                )}
+              </View>
 
-            <View className="h-2 pb-safe" />
-          </ProfileSection>
-        </View>
+              <View className="h-2 pb-safe" />
+            </ProfileSection>
+          </View>
+        </SettingsSheetContent>
       </TrueSheet>
 
       {/* ── Photo options dialog: Update / Remove ── */}
