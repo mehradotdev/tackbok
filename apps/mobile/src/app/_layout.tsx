@@ -98,7 +98,8 @@ export default function Layout() {
   ]);
 
   const isBootstrapLoading =
-    !error && (!success || !profileReady || (!fontsLoaded && !fontsError));
+    !error &&
+    (!success || !profileReady || !localeHasHydrated || (!fontsLoaded && !fontsError));
 
   useEffect(() => {
     if (!success || !hasHydrated || !profileReady) return;

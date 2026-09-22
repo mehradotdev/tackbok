@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from 'expo-sqlite/kv-store';
+import { kvStorage as Storage } from '~/lib/kvStorage';
 import type { LocalePreference, SupportedLocale } from './types';
 import { ALL_SUPPORTED_LOCALES, DEFAULT_LOCALE, SUPPORTED_LANG_CODES } from './types';
 
@@ -12,14 +12,14 @@ interface LocaleState {
   localePreference: LocalePreference;
 
   /**
-   * Whether the store has been hydrated from AsyncStorage
+   * Whether the store has been hydrated from SQLite storage
    */
   _hasHydrated: boolean;
 
   /**
    * Set the locale preference
    */
-  setLocalePreference: (locale: LocalePreference) => void;
+  setLocalePreference: (locale: LocalePreference) => Promise<void>;
 
   /**
    * Internal: mark store as hydrated
@@ -29,17 +29,34 @@ interface LocaleState {
 
 export const useLocaleStore = create<LocaleState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       localePreference: 'device',
       _hasHydrated: false,
 
-      setLocalePreference: (locale) => set({ localePreference: locale }),
+      // Persist's set returns the storage write. RTL restarts must await it.
+      setLocalePreference: async (locale) => {
+        const previous = get().localePreference;
+        try {
+          await set({ localePreference: locale });
+        } catch (error) {
+          // Persist updates memory before writing. Restore the visible language
+          // if saving fails, even when the rollback write also cannot complete.
+          try {
+            await set({ localePreference: previous });
+          } catch {
+            // The in-memory rollback has already happened.
+          }
+          throw error;
+        }
+      },
 
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
     {
       name: 'tackbok-locale',
-      storage: createJSONStorage(() => AsyncStorage),
+      // Share the async initialization lock with the settings store. Mixing sync
+      // and async opens can replace a handle and close the pooled Android database.
+      storage: createJSONStorage(() => Storage),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },
