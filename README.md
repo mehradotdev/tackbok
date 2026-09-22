@@ -1,6 +1,6 @@
 <div align="center">
 
-  <a href="https://tackbok.org">
+  <a href="https://tackbok.org" target="_blank">
     <img src="assets/logo.png" alt="Tackbok Logo" width="100" />
   </a>
 
@@ -8,34 +8,33 @@
 
 **A quieter place for gratitude.**
 
-[tackbok.org](https://tackbok.org)
+<a href="https://tackbok.org" target="_blank">tackbok.org</a>
 
 A free, open-source, local-first gratitude journal for words, photos, and voice memories.<br />
 No accounts. No ads. Your journal stays on your device.
 
   <p align="center">
-    <a href="https://github.com/mehradotdev/tackbok/blob/main/LICENSE">
+    <a href="https://github.com/mehradotdev/tackbok/blob/main/LICENSE" target="_blank">
       <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="Apache 2.0 License" />
     </a>
-    <img src="https://img.shields.io/badge/Platform-iOS%20%7C%20Android-black.svg" alt="Platform iOS | Android" />
-    <a href="https://expo.dev">
-      <img src="https://img.shields.io/badge/Expo-SDK_57-000020?logo=expo" alt="Expo SDK 57" />
+    <a href="#">
+      <img src="https://img.shields.io/badge/Platform-iOS%20%7C%20Android-black.svg" alt="Platform iOS | Android" />
     </a>
-    <a href="https://bun.sh">
-      <img src="https://img.shields.io/badge/Bun-v1.4.2-fbf0df?logo=bun&logoColor=black" alt="Bun v1.4.2" />
+    <a href="https://expo.dev" target="_blank">
+      <img src="https://img.shields.io/badge/Expo-SDK_57-000020?logo=expo" alt="Expo SDK 57" />
     </a>
   </p>
 
   <p align="center">
-    <a href="https://play.google.com/store/apps/details?id=dev.mehra.tackbok">
+    <a href="https://play.google.com/store/apps/details?id=dev.mehra.tackbok" target="_blank">
       <img src="https://img.shields.io/badge/Google_Play-Download-34A853?logo=googleplay&logoColor=white&style=for-the-badge" alt="Google Play" />
     </a>
     &nbsp;
-    <a href="https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507">
+    <a href="https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507" target="_blank">
       <img src="https://img.shields.io/badge/App_Store-Download-007AFF?logo=apple&logoColor=white&style=for-the-badge" alt="App Store" />
     </a>
     &nbsp;
-    <a href="https://apps.samsung.com/appquery/appDetail.as?appId=dev.mehra.tackbok&source=GBadge_01_9271461_tag&directOpen=true&ads=ddb0e6f9&nonOrgType=fce692ba">
+    <a href="https://apps.samsung.com/appquery/appDetail.as?appId=dev.mehra.tackbok&source=GBadge_01_9271461_tag&directOpen=true&ads=ddb0e6f9&nonOrgType=fce692ba" target="_blank">
       <img src="https://img.shields.io/badge/Galaxy_Store-Download-000000?logo=samsung&logoColor=white&style=for-the-badge" alt="Galaxy Store" />
     </a>
     &nbsp;
@@ -86,7 +85,7 @@ No accounts. No ads. Your journal stays on your device.
 
 ## 📁 Repository Structure
 
-This repository is a [Bun](https://bun.sh) monorepo containing two main apps:
+This repository is a [Bun](https://bun.com) monorepo containing two main apps:
 
 ```text
 tackbok/
