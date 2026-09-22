@@ -8,6 +8,7 @@ export const en = {
   'greeting.goodMorning': 'Good morning',
   'greeting.goodAfternoon': 'Good afternoon',
   'greeting.goodEvening': 'Good evening',
+  'greeting.goodNight': 'Good night',
   'greeting.happySunday': 'Happy Sunday',
   'greeting.happyMonday': 'Happy Monday',
   'greeting.happyTuesday': 'Happy Tuesday',

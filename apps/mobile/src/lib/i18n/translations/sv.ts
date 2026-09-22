@@ -5,6 +5,7 @@ export const sv = {
   'greeting.goodMorning': 'God morgon',
   'greeting.goodAfternoon': 'God eftermiddag',
   'greeting.goodEvening': 'God afton',
+  'greeting.goodNight': 'God natt',
   'greeting.happySunday': 'Trevlig söndag',
   'greeting.happyMonday': 'Trevlig måndag',
   'greeting.happyTuesday': 'Trevlig tisdag',

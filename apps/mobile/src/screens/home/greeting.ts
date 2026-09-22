@@ -14,8 +14,11 @@ export const GREETING_EMOJIS = [
   '🌿',
 ] as const;
 
-export function chooseGreetingEmoji(random = Math.random) {
-  return GREETING_EMOJIS[Math.floor(random() * GREETING_EMOJIS.length)];
+const NIGHT_EMOJIS = ['😪', '😴'] as const;
+
+export function chooseGreetingEmoji(greeting: TranslationKey, random = Math.random) {
+  const emojis = greeting === 'greeting.goodNight' ? NIGHT_EMOJIS : GREETING_EMOJIS;
+  return emojis[Math.floor(random() * emojis.length)];
 }
 
 export const WEEKDAY_GREETINGS = [
@@ -34,15 +37,21 @@ export function chooseGreeting(
   random = Math.random,
 ) {
   const hour = date.getHours();
+  const weekday = WEEKDAY_GREETINGS[date.getDay()];
+  // This window has only one eligible greeting, so allow consecutive repeats.
+  if (hour >= 3 && hour < 5) return weekday;
+
   const time =
-    hour < 12
+    hour >= 5 && hour < 12
       ? 'greeting.goodMorning'
-      : hour < 17
+      : hour >= 12 && hour < 17
         ? 'greeting.goodAfternoon'
-        : 'greeting.goodEvening';
-  const choices: TranslationKey[] = (
-    [time, WEEKDAY_GREETINGS[date.getDay()]] as const
-  ).filter((key) => key !== previous);
+        : hour >= 17 && hour < 22
+          ? 'greeting.goodEvening'
+          : 'greeting.goodNight';
+  const choices: TranslationKey[] = ([time, weekday] as const).filter(
+    (key) => key !== previous,
+  );
   return choices[Math.floor(random() * choices.length)];
 }
 

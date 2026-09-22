@@ -5,6 +5,7 @@ export const hi = {
   'greeting.goodMorning': 'शुभ प्रभात',
   'greeting.goodAfternoon': 'शुभ दोपहर',
   'greeting.goodEvening': 'शुभ संध्या',
+  'greeting.goodNight': 'शुभ रात्रि',
   'greeting.happySunday': 'रविवार मुबारक हो',
   'greeting.happyMonday': 'शुभ सोमवार',
   'greeting.happyTuesday': 'मंगलवार मुबारक हो',

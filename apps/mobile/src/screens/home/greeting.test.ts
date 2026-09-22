@@ -1,5 +1,7 @@
 import {
   chooseGreeting,
+  chooseGreetingEmoji,
+  GREETING_EMOJIS,
   WEEKDAY_GREETINGS,
   greetingUnits,
   fitGreeting,
@@ -7,16 +9,58 @@ import {
 
 describe('cold-start greeting selection', () => {
   it.each([
-    [0, 'greeting.goodMorning'],
+    [0, 'greeting.goodNight'],
+    [2, 'greeting.goodNight'],
+    [3, 'greeting.happySaturday'],
+    [4, 'greeting.happySaturday'],
+    [5, 'greeting.goodMorning'],
     [11, 'greeting.goodMorning'],
     [12, 'greeting.goodAfternoon'],
     [16, 'greeting.goodAfternoon'],
     [17, 'greeting.goodEvening'],
-    [23, 'greeting.goodEvening'],
+    [21, 'greeting.goodEvening'],
+    [22, 'greeting.goodNight'],
+    [23, 'greeting.goodNight'],
   ])('uses local hour %s for %s', (hour, expected) => {
     expect(chooseGreeting(new Date(2026, 8, 19, hour as number), null, () => 0)).toBe(
       expected,
     );
+  });
+  it('keeps each greeting eligible through the last minute of its window', () => {
+    for (const [hour, expected] of [
+      [2, 'greeting.goodNight'],
+      [4, 'greeting.happySaturday'],
+      [11, 'greeting.goodMorning'],
+      [16, 'greeting.goodAfternoon'],
+      [21, 'greeting.goodEvening'],
+    ] as const) {
+      expect(chooseGreeting(new Date(2026, 8, 19, hour, 59), null, () => 0)).toBe(
+        expected,
+      );
+    }
+  });
+  it('allows weekday repeats when no time-based greeting is eligible', () => {
+    for (const hour of [3, 4]) {
+      for (const random of [0, 0.99]) {
+        expect(
+          chooseGreeting(
+            new Date(2026, 8, 19, hour),
+            'greeting.happySaturday',
+            () => random,
+          ),
+        ).toBe('greeting.happySaturday');
+      }
+    }
+  });
+  it('prevents repeats and still offers the weekday at night', () => {
+    const date = new Date(2026, 8, 19, 22);
+    expect(chooseGreeting(date, 'greeting.goodNight', () => 0)).toBe(
+      'greeting.happySaturday',
+    );
+    expect(chooseGreeting(date, 'greeting.happySaturday', () => 0.99)).toBe(
+      'greeting.goodNight',
+    );
+    expect(chooseGreeting(date, null, () => 0.99)).toBe('greeting.happySaturday');
   });
   it('uses the local weekday', () => {
     for (let day = 0; day < 7; day++) {
@@ -37,6 +81,22 @@ describe('cold-start greeting selection', () => {
       }
     }
   });
+});
+
+it('randomly chooses a sleepy emoji only for good night', () => {
+  expect(chooseGreetingEmoji('greeting.goodNight', () => 0)).toBe('😪');
+  expect(chooseGreetingEmoji('greeting.goodNight', () => 0.99)).toBe('😴');
+  for (const key of [
+    'greeting.goodMorning',
+    'greeting.goodAfternoon',
+    'greeting.goodEvening',
+    ...WEEKDAY_GREETINGS,
+  ] as const) {
+    expect(chooseGreetingEmoji(key, () => 0)).toBe(GREETING_EMOJIS[0]);
+    expect(chooseGreetingEmoji(key, () => 0.99)).toBe(
+      GREETING_EMOJIS[GREETING_EMOJIS.length - 1],
+    );
+  }
 });
 
 it('preserves emoji sequences and combining accents', () => {

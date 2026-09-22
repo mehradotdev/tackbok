@@ -10,6 +10,7 @@ export const he: Translations = {
   'greeting.goodMorning': 'בוקר טוב',
   'greeting.goodAfternoon': 'צהריים טובים',
   'greeting.goodEvening': 'ערב טוב',
+  'greeting.goodNight': 'לילה טוב',
   'greeting.happySunday': 'יום ראשון נעים',
   'greeting.happyMonday': 'יום שני נעים',
   'greeting.happyTuesday': 'יום שלישי נעים',

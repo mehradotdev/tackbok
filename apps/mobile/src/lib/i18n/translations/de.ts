@@ -10,6 +10,7 @@ export const de: Translations = {
   'greeting.goodMorning': 'Guten Morgen',
   'greeting.goodAfternoon': 'Guten Tag',
   'greeting.goodEvening': 'Guten Abend',
+  'greeting.goodNight': 'Gute Nacht',
   'greeting.happySunday': 'Schönen Sonntag',
   'greeting.happyMonday': 'Schönen Montag',
   'greeting.happyTuesday': 'Schönen Dienstag',

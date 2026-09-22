@@ -10,6 +10,7 @@ export const ar: Translations = {
   'greeting.goodMorning': 'صباح الخير',
   'greeting.goodAfternoon': 'طاب يومك',
   'greeting.goodEvening': 'مساء الخير',
+  'greeting.goodNight': 'تصبح على خير',
   'greeting.happySunday': 'أحد سعيد',
   'greeting.happyMonday': 'اثنين سعيد',
   'greeting.happyTuesday': 'ثلاثاء سعيد',

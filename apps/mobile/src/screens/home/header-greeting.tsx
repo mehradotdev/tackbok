@@ -81,7 +81,7 @@ export function useHeaderGreeting(isSearchMode: boolean) {
       const first = cleanName
         ? t('greeting.withName', { greeting: t('greeting.welcomeBack'), name: cleanName })
         : t('greeting.welcomeBack');
-      const second = `${t(key)}! ${chooseGreetingEmoji()}`;
+      const second = `${t(key)}! ${chooseGreetingEmoji(key)}`;
       setStep(0);
       setMessages([{ label: first + '!' }, { label: second }]);
       setPending(false);

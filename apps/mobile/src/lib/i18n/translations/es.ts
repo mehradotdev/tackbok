@@ -5,6 +5,7 @@ export const es = {
   'greeting.goodMorning': 'Buenos días',
   'greeting.goodAfternoon': 'Buenas tardes',
   'greeting.goodEvening': 'Buenas noches',
+  'greeting.goodNight': 'Buenas noches',
   'greeting.happySunday': 'Feliz domingo',
   'greeting.happyMonday': 'Feliz lunes',
   'greeting.happyTuesday': 'Feliz martes',

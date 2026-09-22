@@ -10,6 +10,7 @@ export const zhTW: Translations = {
   'greeting.goodMorning': '早安',
   'greeting.goodAfternoon': '午安',
   'greeting.goodEvening': '晚安',
+  'greeting.goodNight': '晚安',
   'greeting.happySunday': '週日愉快',
   'greeting.happyMonday': '週一愉快',
   'greeting.happyTuesday': '週二愉快',
