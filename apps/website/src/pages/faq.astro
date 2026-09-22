@@ -1,4 +1,8 @@
 ---
+import { Image } from 'astro:assets';
+import appStoreSrc from '~/assets/app-store.svg';
+import galaxyStoreSrc from '~/assets/galaxy-store.svg';
+import googlePlaySrc from '~/assets/google-play.svg';
 import SiteFooter from '~/components/SiteFooter.astro';
 import SiteHeader from '~/components/SiteHeader.astro';
 import Layout from '~/layouts/main.astro';
@@ -7,7 +11,8 @@ const supportEmail = 'tackbok.support@mehra.dev';
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=dev.mehra.tackbok';
 const GALAXY_STORE_URL =
   'https://apps.samsung.com/appquery/appDetail.as?appId=dev.mehra.tackbok&source=GBadge_01_9271461_tag&directOpen=true&ads=ddb0e6f9&nonOrgType=fce692ba';
-const TESTFLIGHT_URL = 'https://testflight.apple.com/join/jGTWBEWq';
+const APP_STORE_URL =
+  'https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507';
 
 const faqs = [
   {
@@ -33,7 +38,7 @@ const faqs = [
   {
     question: 'How can I try Tackbok?',
     answer:
-      'Tackbok is available for Android on Google Play and Galaxy Store, and for iOS via TestFlight.',
+      'Tackbok is available for Android on Google Play and Galaxy Store, and for iOS on the App Store.',
   },
   {
     question: 'Do I need to create an account?',
@@ -142,7 +147,7 @@ const faqs = [
     <section class="border-t border-line bg-paper py-[clamp(3.5rem,8vw,6rem)]">
       <div
         class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1180px] items-center justify-between gap-8 max-sm:w-[calc(100%_-_28px)] max-sm:flex-col">
-        <div>
+        <div class="max-sm:text-center">
           <p
             class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase">
             Ready when you are
@@ -153,27 +158,45 @@ const faqs = [
           </h2>
         </div>
         <div
-          class="flex flex-wrap items-center justify-end gap-[0.7rem] max-sm:w-full max-sm:items-stretch max-sm:justify-start">
+          class="flex flex-wrap items-center justify-end gap-[0.75rem] max-sm:w-full max-sm:justify-center">
           <a
-            class="btn h-[50px] min-h-[50px] rounded-full border-sage-deep bg-sage-deep px-[1.35rem] font-bold text-white no-underline shadow-[0_8px_20px_rgba(52,75,55,0.16)] transition duration-150 hover:-translate-y-0.5 hover:bg-[#263e2d] max-sm:w-full"
+            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
             href={GOOGLE_PLAY_URL}
             target="_blank"
-            rel="noopener noreferrer">
-            Google Play
+            rel="noopener noreferrer"
+            aria-label="Get it on Google Play">
+            <Image
+              class="h-[58px] w-auto rounded-[8px]"
+              src={googlePlaySrc}
+              height="58"
+              alt="Get it on Google Play"
+            />
           </a>
           <a
-            class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
+            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Download on the App Store">
+            <Image
+              class="h-[58px] w-auto rounded-[8px]"
+              src={appStoreSrc}
+              height="58"
+              alt="Download on the App Store"
+            />
+          </a>
+          <a
+            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
             href={GALAXY_STORE_URL}
             target="_blank"
-            rel="noopener noreferrer">
-            Galaxy Store
-          </a>
-          <a
-            class="btn h-[50px] min-h-[50px] rounded-full border-line bg-[rgba(255,255,255,0.4)] btn-outline px-[1.35rem] font-bold text-ink no-underline transition duration-150 hover:-translate-y-0.5 hover:bg-[rgba(255,255,255,0.8)] hover:text-ink max-sm:w-full"
-            href={TESTFLIGHT_URL}
-            target="_blank"
-            rel="noopener noreferrer">
-            iOS via TestFlight
+            rel="noopener noreferrer"
+            aria-label="Available on Galaxy Store">
+            <Image
+              class="h-[58px] w-auto rounded-[8px]"
+              src={galaxyStoreSrc}
+              height="58"
+              alt="Available on Galaxy Store"
+            />
           </a>
         </div>
       </div>

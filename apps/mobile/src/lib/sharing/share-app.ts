@@ -3,9 +3,8 @@ import { Linking, Platform, Share } from 'react-native';
 const TACKBOK_URL = 'https://tackbok.org';
 const ANDROID_RATING_URL =
   'https://play.google.com/store/apps/details?id=dev.mehra.tackbok&showAllReviews=true';
-// TODO: Replace this with the production App Store review URL after Tackbok
-// gets an App Store ID. Until then, iOS users can open the TestFlight page.
-const IOS_RATING_URL = 'https://testflight.apple.com/join/jGTWBEWq';
+const IOS_RATING_URL =
+  'https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507';
 
 export async function shareTackbok(message: string): Promise<void> {
   const platform = process.env.EXPO_OS ?? Platform.OS;

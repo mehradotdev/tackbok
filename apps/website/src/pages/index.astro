@@ -9,12 +9,12 @@ import {
   Sparkles,
 } from '@lucide/astro';
 import { Image } from 'astro:assets';
-import galaxyStoreSrc from '~/assets/GalaxyStore_English.png';
+import galaxyStoreSrc from '~/assets/galaxy-store.svg';
 import googlePlaySrc from '~/assets/google-play.svg';
 import Logo from '~/assets/logo.svg';
 import tackbokEditSrc from '~/assets/tackbok_edit_page.png';
 import tackbokHomeSrc from '~/assets/tackbok_home_page.png';
-import testflightSrc from '~/assets/testflight.png';
+import appStoreSrc from '~/assets/app-store.svg';
 import GithubIcon from '~/components/GithubIcon.astro';
 import SiteFooter from '~/components/SiteFooter.astro';
 import SiteHeader from '~/components/SiteHeader.astro';
@@ -24,7 +24,8 @@ const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
 const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=dev.mehra.tackbok';
 const GALAXY_STORE_URL =
   'https://apps.samsung.com/appquery/appDetail.as?appId=dev.mehra.tackbok&source=GBadge_01_9271461_tag&directOpen=true&ads=ddb0e6f9&nonOrgType=fce692ba';
-const TESTFLIGHT_URL = 'https://testflight.apple.com/join/jGTWBEWq';
+const APP_STORE_URL =
+  'https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507';
 
 const features = [
   {
@@ -92,7 +93,7 @@ const structuredData = {
         price: '0',
         priceCurrency: 'USD',
       },
-      downloadUrl: [GOOGLE_PLAY_URL, GALAXY_STORE_URL, TESTFLIGHT_URL],
+      downloadUrl: [GOOGLE_PLAY_URL, APP_STORE_URL, GALAXY_STORE_URL],
       sameAs: [GITHUB_URL],
     },
   ],
@@ -134,30 +135,30 @@ const structuredData = {
           <div
             class="flex flex-wrap items-center gap-[0.75rem] max-[900px]:justify-center">
             <a
-              class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+              class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
               href={GOOGLE_PLAY_URL}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Get it on Google Play">
-              <span
-                class="inline-flex size-full items-center justify-start gap-[0.65rem] rounded-[inherit] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white">
-                <Image
-                  class="size-10 flex-none"
-                  src={googlePlaySrc}
-                  width="40"
-                  height="40"
-                  alt=""
-                />
-                <span class="flex min-w-0 flex-col">
-                  <small
-                    class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
-                    >GET IT ON</small
-                  >
-                  <strong class="text-[1.05rem] leading-[1.15] tracking-[-0.025em]"
-                    >Google Play</strong
-                  >
-                </span>
-              </span>
+              <Image
+                class="h-[58px] w-auto rounded-[8px]"
+                src={googlePlaySrc}
+                height="58"
+                alt="Get it on Google Play"
+              />
+            </a>
+            <a
+              class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+              href={APP_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Download on the App Store">
+              <Image
+                class="h-[58px] w-auto rounded-[8px]"
+                src={appStoreSrc}
+                height="58"
+                alt="Download on the App Store"
+              />
             </a>
             <a
               class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
@@ -171,29 +172,6 @@ const structuredData = {
                 height="58"
                 alt="Available on Galaxy Store"
               />
-            </a>
-            <a
-              class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-start gap-[0.65rem] rounded-[8px] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-              href={TESTFLIGHT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Join the Tackbok beta with TestFlight">
-              <Image
-                class="size-10 flex-none rounded-[9px]"
-                src={testflightSrc}
-                width="40"
-                height="40"
-                alt=""
-              />
-              <span class="flex min-w-0 flex-col">
-                <small
-                  class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
-                  >Join the beta with</small
-                >
-                <strong class="text-[1.05rem] leading-[1.15] tracking-[-0.025em]"
-                  >TestFlight</strong
-                >
-              </span>
             </a>
           </div>
 
@@ -578,35 +556,36 @@ const structuredData = {
         </h2>
         <p
           class="mb-8 text-[1.08rem] text-[rgba(255,255,255,0.76)] max-sm:text-[0.98rem] max-sm:leading-[1.6]">
-          Get Tackbok for Android, or join the iOS beta with TestFlight.
+          Get Tackbok for iOS and Android.
         </p>
         <div class="flex flex-wrap items-center justify-center gap-[0.7rem]">
           <a
-            class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
             href={GOOGLE_PLAY_URL}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Get it on Google Play">
-            <span
-              class="inline-flex size-full items-center justify-start gap-[0.65rem] rounded-[inherit] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white">
-              <Image
-                class="size-10 flex-none"
-                src={googlePlaySrc}
-                width="40"
-                height="40"
-                alt=""
-                loading="lazy"
-              />
-              <span class="flex min-w-0 flex-col">
-                <small
-                  class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
-                  >GET IT ON</small
-                >
-                <strong class="text-[1.05rem] leading-[1.15] tracking-[-0.025em]"
-                  >Google Play</strong
-                >
-              </span>
-            </span>
+            <Image
+              class="h-[58px] w-auto rounded-[8px]"
+              src={googlePlaySrc}
+              height="58"
+              alt="Get it on Google Play"
+              loading="lazy"
+            />
+          </a>
+          <a
+            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            href={APP_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Download on the App Store">
+            <Image
+              class="h-[58px] w-auto rounded-[8px]"
+              src={appStoreSrc}
+              height="58"
+              alt="Download on the App Store"
+              loading="lazy"
+            />
           </a>
           <a
             class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
@@ -621,30 +600,6 @@ const structuredData = {
               alt="Available on Galaxy Store"
               loading="lazy"
             />
-          </a>
-          <a
-            class="inline-flex h-[58px] w-[196px] shrink-0 items-center justify-start gap-[0.65rem] rounded-[8px] border border-[#a6a6a6] bg-black px-3 py-[0.48rem] text-left text-white no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-            href={TESTFLIGHT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Join the Tackbok beta with TestFlight">
-            <Image
-              class="size-10 flex-none rounded-[9px]"
-              src={testflightSrc}
-              width="40"
-              height="40"
-              alt=""
-              loading="lazy"
-            />
-            <span class="flex min-w-0 flex-col">
-              <small
-                class="text-[0.58rem] leading-[1.05] font-semibold tracking-[0.015em] uppercase"
-                >Join the beta with</small
-              >
-              <strong class="text-[1.05rem] leading-[1.15] tracking-[-0.025em]"
-                >TestFlight</strong
-              >
-            </span>
           </a>
         </div>
       </div>
