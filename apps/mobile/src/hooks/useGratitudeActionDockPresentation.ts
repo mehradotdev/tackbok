@@ -94,10 +94,20 @@ export function useGratitudeActionDockPresentation({
 
   useEffect(() => {
     if (containerHeight > 0) {
+      if (isDragging.value) {
+        const currentY = positionY.value;
+        const target = clampY(currentY);
+        // Keep the bottom anchor under the finger when bounds change mid-drag.
+        // Shift the origin too, since gesture translation remains cumulative.
+        dragStartY.value += target - currentY;
+        positionY.value = target;
+        return;
+      }
+
       const target = persistedY !== null ? clampY(persistedY) : clampY(defaultY);
       positionY.value = target;
     }
-  }, [clampY, containerHeight, defaultY, persistedY, positionY]);
+  }, [clampY, containerHeight, defaultY, dragStartY, isDragging, persistedY, positionY]);
 
   const persistPosition = useCallback(
     (y: number) => {
