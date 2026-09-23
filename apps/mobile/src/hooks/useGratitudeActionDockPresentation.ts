@@ -13,11 +13,13 @@ import { scheduleOnRN } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
 import { useSettingsStore } from '~/lib/settings/store';
 import type { GratitudeActionDockConfig } from '~/screens/home/GratitudeActionDock';
+import { gratitudeDockPositionBounds } from '~/screens/home/gratitude-dock-layout';
 
 interface UseGratitudeActionDockPresentationOptions {
   dockConfig: GratitudeActionDockConfig;
   /** Measured before the animated dock mounts. */
   containerHeight: number;
+  bottomInset: number;
   isExpanded: boolean;
   isRTL: boolean;
   onToggle: () => void;
@@ -49,6 +51,7 @@ interface UseGratitudeActionDockPresentationResult {
 export function useGratitudeActionDockPresentation({
   dockConfig,
   containerHeight,
+  bottomInset,
   isExpanded,
   isRTL,
   onToggle,
@@ -57,12 +60,12 @@ export function useGratitudeActionDockPresentation({
   const persistedY = useSettingsStore((s) => s.actionDockY);
   const setPersistedY = useSettingsStore((s) => s.setActionDockY);
 
-  const minY = gesture.verticalPadding;
-  const maxY = Math.max(
-    minY,
-    containerHeight - dimensions.panelHeight - gesture.verticalPadding,
+  const { minY, maxY, defaultY, heightDelta } = gratitudeDockPositionBounds(
+    containerHeight,
+    dimensions.panelHeight,
+    gesture.verticalPadding,
+    bottomInset,
   );
-  const defaultY = Math.max(minY, Math.round(containerHeight * 0.7));
   const inwardFloatX = isRTL
     ? animation.inwardFloatOffsetX
     : -animation.inwardFloatOffsetX;
@@ -91,10 +94,20 @@ export function useGratitudeActionDockPresentation({
 
   useEffect(() => {
     if (containerHeight > 0) {
+      if (isDragging.value) {
+        const currentY = positionY.value;
+        const target = clampY(currentY);
+        // Keep the bottom anchor under the finger when bounds change mid-drag.
+        // Shift the origin too, since gesture translation remains cumulative.
+        dragStartY.value += target - currentY;
+        positionY.value = target;
+        return;
+      }
+
       const target = persistedY !== null ? clampY(persistedY) : clampY(defaultY);
       positionY.value = target;
     }
-  }, [clampY, containerHeight, defaultY, persistedY, positionY]);
+  }, [clampY, containerHeight, defaultY, dragStartY, isDragging, persistedY, positionY]);
 
   const persistPosition = useCallback(
     (y: number) => {
@@ -200,7 +213,8 @@ export function useGratitudeActionDockPresentation({
   );
 
   const wrapperStyle = useAnimatedStyle(() => ({
-    top: positionY.value,
+    // Extra actions grow upward from the two-button dock's bottom edge.
+    top: positionY.value - heightDelta,
     transform: [{ translateX: floatX.value }, { scale: dragScale.value }],
   }));
 
