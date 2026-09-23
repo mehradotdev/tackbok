@@ -73,7 +73,7 @@ interface SettingsState {
   journalPromptsMode: JournalPromptsMode;
 
   // Layout
-  /** Persisted vertical position (top offset in px) for the action dock. null = default bottom. */
+  /** Equivalent two-button dock top offset in px; taller docks grow upward. null = default. */
   actionDockY: number | null;
 
   // Onboarding

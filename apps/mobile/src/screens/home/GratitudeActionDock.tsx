@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedStyle,
 } from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar, ChevronLeft, ChevronRight, PawPrint, Plus } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useSettingsStore } from '~/lib/settings';
@@ -110,11 +111,13 @@ interface GratitudeActionDockProps {
  */
 export function GratitudeActionDock(props: GratitudeActionDockProps) {
   const [containerHeight, setContainerHeight] = useState(0);
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const theme = useSettingsStore((s) => s.theme);
   const pet = usePetInteraction();
   const showPet = (theme === 'shiro' || theme === 'shadow') && pet !== null;
   const minimumHeight =
     gratitudeDockHeight(showPet) +
+    bottomInset +
     2 * GRATITUDE_ACTION_DOCK_CONFIG.gesture.verticalPadding;
   const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
     setContainerHeight(event.nativeEvent.layout.height);
@@ -130,6 +133,7 @@ export function GratitudeActionDock(props: GratitudeActionDockProps) {
         <MeasuredGratitudeActionDock
           {...props}
           containerHeight={containerHeight}
+          bottomInset={bottomInset}
           showPet={showPet}
         />
       )}
@@ -143,13 +147,19 @@ function MeasuredGratitudeActionDock({
   onAddEntry,
   onPickDate,
   containerHeight,
+  bottomInset,
   showPet,
-}: GratitudeActionDockProps & { containerHeight: number; showPet: boolean }) {
+}: GratitudeActionDockProps & {
+  containerHeight: number;
+  bottomInset: number;
+  showPet: boolean;
+}) {
   const { t, isRTL } = useTranslation();
   const pet = usePetInteraction();
   const { containerStyle, panGesture, progress, shellShadowStyle, wrapperStyle } =
     useGratitudeActionDockPresentation({
       containerHeight,
+      bottomInset,
       dockConfig: {
         ...GRATITUDE_ACTION_DOCK_CONFIG,
         dimensions: {
