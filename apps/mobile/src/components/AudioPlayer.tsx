@@ -250,7 +250,7 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
 
   return (
     <View
-      className="relative bg-muted rounded-2xl px-4 py-3"
+      className="relative w-full max-w-[420px] self-start bg-muted/70 border border-border rounded-2xl px-4 py-3"
       onStartShouldSetResponder={() => true}>
       <View className="flex-row items-center gap-3">
         {/* Play/Pause button */}
