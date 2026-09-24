@@ -25,5 +25,8 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
     "prettier": "^3.8.1"
+  },
+  "patchedDependencies": {
+    "@shopify/react-native-skia@2.6.2": "patches/@shopify%2Freact-native-skia@2.6.2.patch"
   }
 }
