@@ -1,19 +1,14 @@
 ---
-import {
-  Clock,
-  Compass,
-  ExternalLink,
-  History,
-  Languages,
-  Palette,
-  Sparkles,
-} from '@lucide/astro';
+import { Clock, ExternalLink, History, Languages, Sparkles } from '@lucide/astro';
 import { Image } from 'astro:assets';
 import galaxyStoreSrc from '~/assets/galaxy-store.svg';
 import googlePlaySrc from '~/assets/google-play.svg';
-import Logo from '~/assets/logo.svg';
-import tackbokEditSrc from '~/assets/tackbok_edit_page.png';
-import tackbokHomeSrc from '~/assets/tackbok_home_page.png';
+import tackbokEditSrc from '~/assets/screenshots/memory.webp';
+import tackbokHomeSrc from '~/assets/screenshots/timeline.webp';
+import worksheetSrc from '~/assets/screenshots/worksheet.webp';
+import insightsSrc from '~/assets/screenshots/insights.webp';
+import themesSrc from '~/assets/screenshots/themes.webp';
+import PhoneFrame from '~/components/PhoneFrame.astro';
 import appStoreSrc from '~/assets/app-store.svg';
 import GithubIcon from '~/components/GithubIcon.astro';
 import SiteFooter from '~/components/SiteFooter.astro';
@@ -32,34 +27,22 @@ const features = [
     number: '01',
     icon: Sparkles,
     title: 'Capture the whole memory',
-    copy: 'Write freely, then add photos, clearer voice memos, moods, and tags when words are not enough.',
+    copy: 'Write freely, then add photos, voice memos, moods, and tags when words are not enough.',
   },
   {
     number: '02',
-    icon: Compass,
-    title: 'Find a gentle starting point',
-    copy: 'Choose focus areas and use thoughtful prompts whenever the blank page feels a little too blank.',
-  },
-  {
-    number: '03',
     icon: Clock,
     title: 'Build your own rhythm',
     copy: 'Set an optional daily reminder at the time that works for you. Tap it to start with a relevant prompt.',
   },
   {
-    number: '04',
-    icon: Palette,
-    title: 'Make it feel like yours',
-    copy: 'Choose from 10+ themes, adjust text size, and settle into a journal that fits you.',
-  },
-  {
-    number: '05',
+    number: '03',
     icon: History,
     title: 'Bring your history along',
     copy: 'Back up and restore your journal, or import entries from Tackbok, Gratitude App, and Presently.',
   },
   {
-    number: '06',
+    number: '04',
     icon: Languages,
     title: 'Write in your language',
     copy: 'Tackbok currently supports 5+ languages with full RTL support. More languages are coming soon.',
@@ -199,39 +182,29 @@ const structuredData = {
         </div>
 
         <div
-          class="phone-stage relative isolate min-h-[590px] max-[900px]:mx-auto max-[900px]:w-full max-[900px]:max-w-[650px] max-sm:-mb-4 max-sm:min-h-[440px] max-sm:max-w-[420px]"
-          aria-label="Screenshots of Tackbok’s home and entry screens">
+          class="phone-stage relative isolate mx-auto h-[590px] w-full max-w-[480px] max-sm:h-[570px] max-sm:max-w-[300px]"
+          aria-label="Tackbok timeline and journal entry screenshots">
           <div
-            class="botanical-line bottom-[2%] left-0 -rotate-28 max-sm:hidden"
-            aria-hidden="true">
+            class="absolute top-3 left-0 z-20 w-[270px] -rotate-4 rounded-[2.6rem] max-sm:left-1/2 max-sm:w-[250px] max-sm:-translate-x-1/2 max-sm:rotate-0 min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:scale-105 min-[901px]:hover:rotate-0 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]">
+            <PhoneFrame
+              src={tackbokHomeSrc}
+              alt="Tackbok timeline with a gratitude entry, voice recording, and photos"
+            />
           </div>
           <div
-            class="botanical-line top-[2%] right-[6%] rotate-[154deg] max-sm:hidden"
-            aria-hidden="true">
+            class="absolute top-20 right-0 z-10 w-[245px] rotate-6 rounded-[2.6rem] max-sm:hidden min-[901px]:opacity-90 min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:z-30 min-[901px]:hover:-translate-y-12 min-[901px]:hover:rotate-0 min-[901px]:hover:opacity-100 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]">
+            <PhoneFrame
+              src={tackbokEditSrc}
+              alt="A journal memory with a mood, voice recording, and a framed photo"
+            />
           </div>
-          <Image
-            class="absolute top-[1%] left-[8%] z-[2] block h-auto w-[min(49%,300px)] origin-center -rotate-4 overflow-hidden rounded-[2.7rem] border-4 border-[rgba(255,255,255,0.7)] bg-[#d9d7a6] shadow-[0_35px_80px_rgba(46,58,40,0.2)] max-sm:left-0 max-sm:w-[57%] max-sm:rounded-[2.2rem] max-sm:border-[3px] min-[901px]:top-1/2 min-[901px]:left-1/2 min-[901px]:z-20 min-[901px]:w-[320px] min-[901px]:[translate:-62%_-50%] min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:scale-105 min-[901px]:hover:rotate-0 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]"
-            src={tackbokHomeSrc}
-            alt="Tackbok home timeline showing gratitude entries"
-            loading="eager"
-            widths={[260, 360, 450]}
-            sizes="(max-width: 640px) 230px, (max-width: 900px) 300px, 320px"
-          />
-          <Image
-            class="absolute right-[4%] bottom-0 z-[1] block h-auto w-[min(45%,276px)] origin-center rotate-5 overflow-hidden rounded-[2.7rem] border-4 border-[rgba(255,255,255,0.7)] bg-[#d9d7a6] shadow-[0_35px_80px_rgba(46,58,40,0.2)] max-sm:right-0 max-sm:w-[53%] max-sm:rounded-[2.2rem] max-sm:border-[3px] min-[901px]:top-1/2 min-[901px]:right-auto min-[901px]:bottom-auto min-[901px]:left-1/2 min-[901px]:w-[320px] min-[901px]:[translate:-23%_-38%] min-[901px]:opacity-90 min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:z-30 min-[901px]:hover:[translate:-23%_-50%] min-[901px]:hover:rotate-0 min-[901px]:hover:opacity-100 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]"
-            src={tackbokEditSrc}
-            alt="Tackbok entry editor with writing and media controls"
-            loading="eager"
-            widths={[260, 360, 450]}
-            sizes="(max-width: 640px) 210px, (max-width: 900px) 280px, 320px"
-          />
         </div>
       </div>
     </section>
 
     <!-- Principles Banner Section -->
     <section
-      class="relative z-10 border-y border-line bg-sage-pale/50 backdrop-blur-md max-sm:-mt-12"
+      class="relative z-10 border-y border-line bg-sage-pale/50 backdrop-blur-md"
       aria-label="Tackbok principles">
       <div
         class="mx-auto grid w-full max-w-[1240px] grid-cols-4 px-6 max-sm:grid-cols-2 sm:px-8 lg:px-12">
@@ -288,8 +261,63 @@ const structuredData = {
           </p>
         </div>
 
+        <div class="mb-10 grid grid-cols-2 gap-6 max-sm:grid-cols-1">
+          <article
+            class="card overflow-hidden rounded-[2rem] border border-line bg-paper shadow-xl shadow-ink/5">
+            <div class="card-body flex-none gap-3 p-7 sm:min-h-[240px] sm:p-9">
+              <p
+                class="mb-0 grow-0 text-xs font-bold tracking-[0.14em] text-sage uppercase">
+                A little help getting started
+              </p>
+              <h3 class="card-title text-3xl leading-tight tracking-tight">
+                Find your first words.
+              </h3>
+              <p class="mb-0 grow-0 text-base leading-relaxed text-ink-soft">
+                A thoughtful worksheet gives you somewhere to begin. Make the template
+                your own, then take it one small moment at a time.
+              </p>
+            </div>
+            <figure class="mx-7 mt-2 mb-8 p-5 sm:mx-9 sm:p-7">
+              <Image
+                src={worksheetSrc}
+                alt="Journaling worksheet with gratitude, affirmation, and small moments prompts, plus an option to edit the template"
+                widths={[400, 600, 900]}
+                sizes="(max-width: 640px) 80vw, 440px"
+                loading="lazy"
+                class="h-auto w-full rounded-2xl shadow-lg"
+              />
+            </figure>
+          </article>
+          <article
+            class="card overflow-hidden rounded-[2rem] border border-line bg-paper shadow-xl shadow-ink/5">
+            <div class="card-body flex-none gap-3 p-7 sm:min-h-[240px] sm:p-9">
+              <p
+                class="mb-0 grow-0 text-xs font-bold tracking-[0.14em] text-sage uppercase">
+                Good moments, rediscovered
+              </p>
+              <h3 class="card-title text-3xl leading-tight tracking-tight">
+                Look back. Feel it again.
+              </h3>
+              <p class="mb-0 grow-0 text-base leading-relaxed text-ink-soft">
+                Revisit a memory from this day in years past, and see the little moments
+                you’ve collected along the way.
+              </p>
+            </div>
+            <figure class="mx-7 mt-2 mb-8 p-5 sm:mx-9 sm:p-7">
+              <Image
+                src={insightsSrc}
+                alt="Insights showing an On this day memory from four years ago and an overview of journaling activity"
+                widths={[400, 600, 900]}
+                sizes="(max-width: 640px) 80vw, 440px"
+                loading="lazy"
+                class="h-auto w-full rounded-2xl shadow-lg"
+              />
+            </figure>
+          </article>
+        </div>
+
         <div
-          class="grid grid-cols-3 gap-px overflow-hidden rounded-[2rem] border-4 border-line shadow-[0_24px_70px_rgba(48,61,42,0.12)] max-[900px]:grid-cols-2 max-sm:grid-cols-1 max-sm:rounded-3xl">
+          class="grid grid-cols-2 gap-px overflow-hidden rounded-[2rem] border-4 border-line shadow-[0_24px_70px_rgba(48,61,42,0.12)] max-[900px]:grid-cols-2 max-sm:grid-cols-1 max-sm:rounded-3xl">
           {
             features.map((feature) => {
               const IconComponent = feature.icon;
@@ -375,56 +403,28 @@ const structuredData = {
           </ol>
         </div>
 
-        <div
-          class="min-h-[580px] overflow-hidden rounded-[45%_45%_2rem_2rem] border border-line bg-[radial-gradient(circle_at_50%_46%,rgba(255,255,255,0.7),transparent_28%),linear-gradient(145deg,#d8dfc2,#ece4c8)] p-[2.3rem] text-center shadow-[0_24px_70px_rgba(48,61,42,0.12)] max-[900px]:mx-auto max-[900px]:w-full max-[900px]:max-w-[600px] max-sm:min-h-[500px] max-sm:px-3"
-          aria-label="A selection of Tackbok theme colours">
-          <p
-            class="mx-auto max-w-full font-display text-[1.05rem] wrap-break-word text-sage-deep italic max-sm:max-w-[11rem] max-sm:leading-tight">
-            Made to match your mood
+        <figure
+          class="m-0 min-w-0 rounded-[2rem] border border-line bg-cream p-5 shadow-xl shadow-ink/10 sm:p-7">
+          <figcaption class="mb-6 text-center">
+            <p class="mb-2 font-display text-xl text-sage-deep italic">
+              Made to match your mood
+            </p>
+            <p class="mb-0 text-sm text-ink-soft">
+              Quiet colours. Illustrated worlds. Light &amp; dark.
+            </p>
+          </figcaption>
+          <Image
+            src={themesSrc}
+            alt="Tackbok’s theme picker with Light, Dark, Shiro, Shadow, Helena, and Poonam previews"
+            widths={[480, 800, 1200]}
+            sizes="(max-width: 900px) 85vw, 520px"
+            loading="lazy"
+            class="h-auto w-full rounded-2xl border border-line shadow-lg"
+          />
+          <p class="mt-5 mb-0 text-center text-sm text-ink-soft">
+            A different feeling, with the same familiar journal.
           </p>
-          <div class="relative min-h-[480px] max-sm:min-h-[420px]">
-            <!-- Theme Swatches -->
-            <span
-              class="animate-float anim-delay-0 absolute top-[14%] left-[4%] z-20 flex size-[82px] cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#82946d] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:top-[12%] max-sm:left-[2%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
-              >Clemens</span
-            >
-            <span
-              class="animate-float anim-delay-1 absolute top-[3%] left-1/2 z-20 flex size-[82px] -translate-x-1/2 cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#bea8e5] text-[0.7rem] font-bold text-[#2d2242] shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:top-[2%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
-              >Lavender</span
-            >
-            <span
-              class="animate-float anim-delay-2 absolute top-[14%] right-[4%] z-20 flex size-[82px] cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#30473d] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:top-[12%] max-sm:right-[2%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
-              >Weckner</span
-            >
-            <span
-              class="animate-float anim-delay-3 absolute top-1/2 right-[1%] z-20 flex size-[82px] -translate-y-1/2 cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#ff3d9e] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:right-[0%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
-              >Bubblegum</span
-            >
-            <span
-              class="animate-float anim-delay-4 absolute right-[12%] bottom-[6%] z-20 flex size-[82px] cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#353a31] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:right-[8%] max-sm:bottom-[5%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
-              >Dark</span
-            >
-            <span
-              class="animate-float anim-delay-5 absolute bottom-[6%] left-[12%] z-20 flex size-[82px] cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#f5aa8d] text-[0.7rem] font-bold text-[#3d2417] shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:bottom-[5%] max-sm:left-[8%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
-              >Peach</span
-            >
-            <span
-              class="animate-float anim-delay-6 absolute top-1/2 left-[1%] z-20 flex size-[82px] -translate-y-1/2 cursor-default flex-col items-center justify-center rounded-full border-[4px] border-[rgba(255,255,255,0.65)] bg-[#b99050] text-[0.7rem] font-bold text-white shadow-[0_14px_30px_rgba(52,75,55,0.16)] transition-all duration-300 hover:z-30 hover:scale-110 hover:[animation-play-state:paused] max-sm:left-[0%] max-sm:size-[68px] max-sm:border-[3px] max-sm:text-[0.62rem] sm:size-[86px]"
-              >Warm</span
-            >
-
-            <!-- Center Badge -->
-            <div
-              class="absolute top-1/2 left-1/2 z-10 flex size-[185px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-[rgba(52,75,55,0.13)] bg-cream shadow-[0_25px_60px_rgba(52,75,55,0.16)] max-sm:size-[160px] sm:size-[195px]">
-              <Logo
-                class="mb-[0.4rem] size-21 text-ink max-sm:size-15"
-                aria-hidden="true"
-              />
-              <strong class="text-[1rem] sm:text-[1.05rem]">10+ themes</strong>
-              <small class="text-ink-soft">light &amp; dark</small>
-            </div>
-          </div>
-        </div>
+        </figure>
       </div>
     </section>
 
