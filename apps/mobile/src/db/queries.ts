@@ -167,8 +167,9 @@ export async function getEntryById(noteId: string): Promise<Entry | undefined> {
  * @param dateMs - Start of day in milliseconds
  */
 export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
-  // Calendar day, not 24h: DST days are 23 or 25 hours long in local time.
-  const nextDayMs = addDays(dateMs, 1).getTime();
+  // Next local midnight, not +24h: DST days are 23 or 25 hours long, and in
+  // some zones the shift happens at midnight so a day can start at 01:00.
+  const nextDayMs = startOfDay(addDays(dateMs, 1)).getTime();
   return db
     .select()
     .from(entries)
@@ -230,9 +231,10 @@ export async function searchEntries(
   }
 
   // Tag search (OR logic - if entry has any of the tags). Matches whole CSV
-  // items so tag `1` doesn't match `12`.
+  // items so tag `1` doesn't match `12`. Writers join with a bare `,`; spaces
+  // around items are tolerated like parseTagIds, but ones inside IDs are kept.
   if (tagIds.length > 0) {
-    const tagCsv = sql`',' || replace(${entries.tags}, ' ', '') || ','`;
+    const tagCsv = sql`',' || replace(replace(trim(${entries.tags}), ', ', ','), ' ,', ',') || ','`;
     conditions.push(
       or(...tagIds.map((tagId) => sql`instr(${tagCsv}, ${`,${tagId},`}) > 0`)),
     );

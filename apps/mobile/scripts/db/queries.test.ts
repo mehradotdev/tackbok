@@ -53,6 +53,23 @@ test('getEntriesForDay covers the full local day on 23- and 25-hour DST days', a
   }
 });
 
+test('getEntriesForDay ends at the next local midnight when DST starts at midnight', async () => {
+  // America/Santiago skips 2026-09-06 00:00, so that day starts at 01:00.
+  process.env.TZ = 'America/Santiago';
+  try {
+    const day = new Date(2026, 8, 6);
+    const nextDay = new Date(2026, 8, 7);
+    expect(day.getHours()).toBe(1);
+    insertEntry('late', nextDay.getTime() - 60_000);
+    insertEntry('next-day', nextDay.getTime() + 30 * 60_000);
+    expect((await getEntriesForDay(day.getTime())).map((entry) => entry.note_id)).toEqual(
+      ['late'],
+    );
+  } finally {
+    process.env.TZ = 'America/New_York';
+  }
+});
+
 test('searchEntries matches whole tag ids, not substrings', async () => {
   insertEntry('one', 1, { tags: '1' });
   insertEntry('twelve', 2, { tags: '12,3' });
@@ -64,6 +81,17 @@ test('searchEntries matches whole tag ids, not substrings', async () => {
   expect((await searchEntries('', ['12', '3'])).map((entry) => entry.note_id)).toEqual([
     'spaced',
     'twelve',
+  ]);
+});
+
+test('searchEntries keeps spaces inside tag ids significant', async () => {
+  insertEntry('spaced-id', 1, { tags: 'a,work focus' });
+  insertEntry('joined-id', 2, { tags: 'workfocus' });
+  expect((await searchEntries('', ['work focus'])).map((entry) => entry.note_id)).toEqual(
+    ['spaced-id'],
+  );
+  expect((await searchEntries('', ['workfocus'])).map((entry) => entry.note_id)).toEqual([
+    'joined-id',
   ]);
 });
 
