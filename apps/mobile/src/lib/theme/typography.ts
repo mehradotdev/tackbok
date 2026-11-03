@@ -92,14 +92,6 @@ export const HEADING_FONT_METRICS: Record<string, HeadingFontMetrics> = {
   },
 };
 
-/** Base font-sizes (px) for each heading variant's Tailwind text-* class. */
-export const HEADING_BASE_SIZE: Record<string, number> = {
-  h1: 36, // text-4xl
-  h2: 30, // text-3xl
-  h3: 24, // text-2xl
-  h4: 20, // text-xl
-};
-
 // ── Helpers ────────────────────────────────────────────────────────
 
 /** Look up a title font entry by id. Falls back to the first font if not found. */

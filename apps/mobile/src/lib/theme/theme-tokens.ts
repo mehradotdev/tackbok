@@ -97,8 +97,6 @@ export const REQUIRED_THEME_VARIABLES = [
 export type ThemeTokenKey = (typeof THEME_TOKEN_KEYS)[number];
 export type ThemeVariant = 'light' | 'dark';
 
-export type ThemeTokenValues = Record<ThemeTokenKey, string>;
-
 export const DEFAULT_THEME_ID = 'light' as const;
 export const DEFAULT_TITLE_FONT = 'figtree' as const satisfies TitleFontId;
 

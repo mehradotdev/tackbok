@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { type NewEntry, type Entry } from '~/types';
 import { useSettingsStore } from '~/lib/settings';
 import {
-  getAllEntries,
   getEntriesForDay,
   getEntryCount,
   getEntryDatesForMonth,
@@ -32,16 +31,6 @@ export const QUERY_KEYS = {
 // ============================================================================
 // Queries
 // ============================================================================
-
-/**
- * Hook for all entries sorted by created_at DESC
- */
-export function useEntries() {
-  return useQuery({
-    queryKey: [QUERY_KEYS.entries],
-    queryFn: getAllEntries,
-  });
-}
 
 /**
  * Hook for entries grouped by date
