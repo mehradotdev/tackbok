@@ -178,7 +178,7 @@ describe('Theme Registry', () => {
     expect(THEMES).toEqual(sourceThemes);
   });
 
-  test('theme picker uses the curated display order and includes every theme once', () => {
+  test('theme picker uses the curated display order', () => {
     expect(THEME_IDS).toEqual([
       'light',
       'dark',
@@ -201,7 +201,6 @@ describe('Theme Registry', () => {
       'kela',
       'lavender',
     ]);
-    expect(new Set(THEME_IDS).size).toBe(THEME_IDS.length);
   });
 
   test('generated CommonJS registry stays in sync with the ESM registry', () => {
