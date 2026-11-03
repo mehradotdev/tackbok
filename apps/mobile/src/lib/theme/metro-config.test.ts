@@ -1,23 +1,16 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { CUSTOM_THEME_IDS } from './registry.cjs';
 
-const METRO_CONFIG_PATH = path.resolve(__dirname, '../../../metro.config.js');
+jest.mock('expo/metro-config', () => ({
+  getDefaultConfig: () => ({ resolver: { sourceExts: ['js'] } }),
+}));
+jest.mock('uniwind/metro', () => ({
+  withUniwindConfig: (config: object, options: object) => ({ config, options }),
+}));
 
 describe('Metro Theme Config', () => {
-  const metroConfigSource = fs.readFileSync(METRO_CONFIG_PATH, 'utf-8');
-
-  test('imports the CommonJS theme registry for Node-side tooling', () => {
-    expect(metroConfigSource).toMatch(
-      /require\(['"]\.\/src\/lib\/theme\/registry\.cjs['"]\)/,
-    );
-    expect(metroConfigSource).toMatch(
-      /const\s*\{\s*CUSTOM_THEME_IDS\s*\}\s*=\s*require\(['"]\.\/src\/lib\/theme\/registry\.cjs['"]\)\s*;?/,
-    );
-  });
-
-  test('derives extraThemes from CUSTOM_THEME_IDS instead of hardcoding theme ids', () => {
-    expect(metroConfigSource).toMatch(
-      /extraThemes\s*:\s*\[\s*\.\.\.\s*CUSTOM_THEME_IDS\s*\]\s*,?/,
-    );
+  test('passes every custom theme from the CommonJS registry to uniwind', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { options } = require('../../../metro.config.js');
+    expect(options.extraThemes).toEqual([...CUSTOM_THEME_IDS]);
   });
 });
