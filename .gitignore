@@ -21,3 +21,6 @@ yarn-error.*
 
 # python venv for apps/mobile/scripts/patch-font-metrics.py
 .fontenv/
+
+# Local marketing files, renders, and raw recordings.
+/marketing/
