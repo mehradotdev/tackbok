@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit",
     "test": "bun run test:jest --runInBand --no-watchman && bun run test:integration",
     "test:jest": "jest",
-    "test:integration": "bun test scripts/cloud-sync",
+    "test:integration": "bun test scripts/cloud-sync scripts/db",
     "test:theme": "jest src/lib/theme/theme-registry.test.ts src/lib/theme/metro-config.test.ts"
   },
   "dependencies": {
@@ -124,7 +124,8 @@
     "preset": "jest-expo",
     "globalSetup": "<rootDir>/jest.global-setup.js",
     "testPathIgnorePatterns": [
-      "<rootDir>/scripts/cloud-sync/"
+      "<rootDir>/scripts/cloud-sync/",
+      "<rootDir>/scripts/db/"
     ],
     "transformIgnorePatterns": [
       "node_modules/(?!.*((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg))"
