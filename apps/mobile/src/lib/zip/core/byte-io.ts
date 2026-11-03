@@ -85,11 +85,3 @@ export function toUint16Checked(value: bigint, fieldName: string): number {
 
   return Number(value);
 }
-
-export function readASCII(buffer: Uint8Array, offset: number, length: number): string {
-  let value = '';
-  for (let index = 0; index < length; index += 1) {
-    value += String.fromCharCode(buffer[offset + index]);
-  }
-  return value;
-}

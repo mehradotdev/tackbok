@@ -96,8 +96,3 @@ export function decodeSnapshot(
   validateSnapshotCollections(payload, snapshotId);
   return { snapshotId, payload };
 }
-
-export const snapshotCodecInternals = {
-  decompressBounded,
-  compressDeterministic,
-};

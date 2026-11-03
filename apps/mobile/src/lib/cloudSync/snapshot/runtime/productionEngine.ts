@@ -39,7 +39,6 @@ import type {
   MediaDownloadSink,
   MediaUploadSource,
   SnapshotProvider,
-  SyncAttentionReason,
 } from '../sync/types';
 import { SnapshotProviderError } from '../sync/types';
 import {
@@ -374,15 +373,4 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     options.onRemoteApplied,
     connectionEpoch,
   );
-}
-
-export function readProductionSnapshotResultState(
-  vaultId: string,
-  deviceId: string,
-): { actionableChanges: number; pauseReason: SyncAttentionReason | null } {
-  const state = new SQLiteSyncStateStore(sqlite).loadState(vaultId, deviceId);
-  return {
-    actionableChanges: Math.max(0, state.journalGeneration - state.settledGeneration),
-    pauseReason: state.pauseReason,
-  };
 }

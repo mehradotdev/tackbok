@@ -23,7 +23,6 @@ import {
   syncRetainedMedia,
   tags,
 } from '~/db';
-import { track } from '~/lib/analytics';
 import { deleteAllDataInTransaction } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
@@ -427,22 +426,6 @@ export async function syncNow(): Promise<boolean> {
       getProductionCloudSyncFailureCategory() ?? 'unknown',
     );
   }
-  return true;
-}
-
-export async function verifyCloudBackup(): Promise<boolean> {
-  await syncNow();
-  const now = Date.now();
-  await db.insert(syncProviderState).values({
-    provider_kind: 'google-drive',
-    last_verify_at: now,
-    updated_at: now,
-  }).onConflictDoUpdate({
-    target: syncProviderState.provider_kind,
-    set: { last_verify_at: now, updated_at: now },
-  });
-  track('cloud_sync_repair_result', { result: 'not-needed' });
-  notifyProductionCloudSyncChanged();
   return true;
 }
 
