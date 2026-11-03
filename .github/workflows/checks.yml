@@ -31,6 +31,11 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
       - name: Check changed-file formatting
         env:
@@ -43,7 +48,7 @@ jobs:
         run: |
           for workspace in mobile website; do
             changed_files=$(git diff --name-only --no-renames "$BASE_SHA...HEAD" -- \
-              "apps/$workspace/" package.json bun.lock bunfig.toml .node-version \
+              "apps/$workspace/" package.json bun.lock bunfig.toml .node-version patches/ \
               .github/workflows/checks.yml)
             if [[ -n "$changed_files" ]]; then
               echo "$workspace=true" >> "$GITHUB_OUTPUT"

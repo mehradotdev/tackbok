@@ -45,10 +45,10 @@ including draft PRs. Merging to `main` does not run these checks again.
   `apps/website/` paths changed. Mobile runs its full Jest and integration suites;
   website tests are skipped until a `test` script is added.
 - The website build runs when `apps/website/` changes.
-- Changes to root `package.json`, `bun.lock`, `bunfig.toml`, `.node-version`, or
-  `.github/workflows/checks.yml` trigger both workspaces' lint, typechecking, and
-  tests, plus the website build. Deletions and moves out of watched paths also
-  count as changes.
+- Changes to root `package.json`, `bun.lock`, `bunfig.toml`, `.node-version`,
+  `patches/`, or `.github/workflows/checks.yml` trigger both workspaces' lint,
+  typechecking, and tests, plus the website build. Deletions and moves out of
+  watched paths also count as changes.
 - Changed-file formatting always runs. The `Check code quality` job remains
   available as a required check on every PR.
 
