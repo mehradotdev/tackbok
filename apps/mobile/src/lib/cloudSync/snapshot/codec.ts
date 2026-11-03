@@ -1,14 +1,14 @@
-import {
-  decodeGzipBounded,
-  encodeGzip,
-  GzipCodecError,
-} from '~/lib/zip/core/gzip-codec';
+import { decodeGzipBounded, encodeGzip, GzipCodecError } from '~/lib/zip/core/gzip-codec';
 
 import { encodeCanonicalBytes } from './canonical';
 import { SNAPSHOT_CAPS, invalid } from './caps';
 import { sha256Bytes } from './sha256';
 import { decodeUtf8Strict, parseJsonStrict } from './strictJson';
-import type { EncodedSnapshot, JournalSnapshotPayload, StoredJournalSnapshot } from './types';
+import type {
+  EncodedSnapshot,
+  JournalSnapshotPayload,
+  StoredJournalSnapshot,
+} from './types';
 import {
   normalizeSnapshot,
   validateSnapshotCollections,
@@ -40,7 +40,10 @@ function decompressBounded(compressed: Uint8Array): Uint8Array {
       }
       invalid(error.code, error.message);
     }
-    invalid('invalid-gzip', error instanceof Error ? error.message : 'Invalid gzip stream');
+    invalid(
+      'invalid-gzip',
+      error instanceof Error ? error.message : 'Invalid gzip stream',
+    );
   }
 }
 
@@ -77,7 +80,8 @@ export function decodeSnapshot(
   compressedBytes: Uint8Array,
   expectedSnapshotId: string,
 ): StoredJournalSnapshot {
-  if (!HASH.test(expectedSnapshotId)) invalid('invalid-hash', 'Expected snapshot ID is malformed');
+  if (!HASH.test(expectedSnapshotId))
+    invalid('invalid-hash', 'Expected snapshot ID is malformed');
   // 1-2: compressed cap, then decompression bounded inside the raw inflater.
   const uncompressed = decompressBounded(compressedBytes);
   // 3: strict UTF-8, duplicate-aware JSON parse, closed shape and scalar caps.
@@ -87,11 +91,15 @@ export function decodeSnapshot(
   // 4: canonical bytes must be exactly what was downloaded.
   const canonicalBytes = encodeCanonicalBytes(payload);
   if (!bytesEqual(uncompressed, canonicalBytes)) {
-    invalid('non-canonical-bytes', 'Snapshot payload is valid JSON but not canonical JSON');
+    invalid(
+      'non-canonical-bytes',
+      'Snapshot payload is valid JSON but not canonical JSON',
+    );
   }
   // 5: identity is over the canonical, uncompressed payload.
   const snapshotId = sha256Bytes(canonicalBytes);
-  if (snapshotId !== expectedSnapshotId) invalid('hash-mismatch', 'Snapshot ID does not match payload');
+  if (snapshotId !== expectedSnapshotId)
+    invalid('hash-mismatch', 'Snapshot ID does not match payload');
   // 6: sort, uniqueness, aggregate and referential invariants.
   validateSnapshotCollections(payload, snapshotId);
   return { snapshotId, payload };
