@@ -1,5 +1,5 @@
-import { desc, like, or, and, gte, lt, eq, sql } from 'drizzle-orm';
-import { startOfDay, format } from 'date-fns';
+import { desc, or, and, gte, lt, eq, sql, type SQL } from 'drizzle-orm';
+import { addDays, startOfDay, format } from 'date-fns';
 import { getAchievementForCreateTransition, type Achievement } from '~/lib/achievements';
 import {
   createPromptInTransaction,
@@ -167,7 +167,9 @@ export async function getEntryById(noteId: string): Promise<Entry | undefined> {
  * @param dateMs - Start of day in milliseconds
  */
 export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
-  const nextDayMs = dateMs + 24 * 60 * 60 * 1000;
+  // Next local midnight, not +24h: DST days are 23 or 25 hours long, and in
+  // some zones the shift happens at midnight so a day can start at 01:00.
+  const nextDayMs = startOfDay(addDays(dateMs, 1)).getTime();
   return db
     .select()
     .from(entries)
@@ -213,32 +215,36 @@ export async function searchEntries(
 ): Promise<Entry[]> {
   if (!searchTerm.trim() && tagIds.length === 0) return [];
 
-  const likePattern = `%${searchTerm}%`;
+  // Escape LIKE wildcards so `%` and `_` in the search text match literally.
+  const likePattern = `%${searchTerm.replace(/[\\%_]/g, '\\$&')}%`;
 
-  // Base query
-  let query = db.select().from(entries).orderBy(desc(entries.created_at));
-
-  const conditions = [];
+  const conditions: (SQL | undefined)[] = [];
 
   // Text search
   if (searchTerm.trim()) {
     conditions.push(
-      or(like(entries.text_title, likePattern), like(entries.text_content, likePattern)),
+      or(
+        sql`${entries.text_title} LIKE ${likePattern} ESCAPE '\\'`,
+        sql`${entries.text_content} LIKE ${likePattern} ESCAPE '\\'`,
+      ),
     );
   }
 
-  // Tag search (OR logic - if entry has any of the tags)
+  // Tag search (OR logic - if entry has any of the tags). Matches whole CSV
+  // items so tag `1` doesn't match `12`. Writers join with a bare `,`; spaces
+  // around items are tolerated like parseTagIds, but ones inside IDs are kept.
   if (tagIds.length > 0) {
-    const tagConditions = tagIds.map((tagId) => like(entries.tags, `%${tagId}%`));
-    conditions.push(or(...tagConditions));
+    const tagCsv = sql`',' || replace(replace(trim(${entries.tags}), ', ', ','), ' ,', ',') || ','`;
+    conditions.push(
+      or(...tagIds.map((tagId) => sql`instr(${tagCsv}, ${`,${tagId},`}) > 0`)),
+    );
   }
 
-  if (conditions.length > 0) {
-    // @ts-ignore
-    query = query.where(and(...conditions));
-  }
-
-  return query;
+  return db
+    .select()
+    .from(entries)
+    .where(and(...conditions))
+    .orderBy(desc(entries.created_at));
 }
 
 /**
