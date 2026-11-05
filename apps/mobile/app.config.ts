@@ -24,6 +24,9 @@ const GOOGLE_OAUTH = IS_BETA
         'com.googleusercontent.apps.771958263851-dvits2qk2kbvinc4un2n172msnotten2',
     };
 
+// Beta builds get blueprint-styled icons so both installs are distinguishable.
+const ICON_SUFFIX = IS_BETA ? '-beta' : '';
+
 const config: ExpoConfig = {
   version,
   name: IS_BETA ? 'Tackbok (Beta)' : 'Tackbok',
@@ -32,7 +35,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: 'automatic',
   orientation: 'default',
   backgroundColor: '#E4D7B0',
-  icon: './assets/icons/ios-light.png',
+  icon: `./assets/icons/ios-light${ICON_SUFFIX}.png`,
   owner: 'mehradotdev',
   android: {
     package: IS_BETA ? 'dev.mehra.tackbok.beta' : 'dev.mehra.tackbok',
@@ -41,17 +44,21 @@ const config: ExpoConfig = {
       ? { runtimeVersion: `${version}-galaxy-${galaxyBillingMode.toLowerCase()}` }
       : {}),
     adaptiveIcon: {
-      foregroundImage: './assets/icons/adaptive-icon.png',
+      foregroundImage: `./assets/icons/adaptive-icon${ICON_SUFFIX}.png`,
       monochromeImage: './assets/icons/adaptive-icon.png',
-      backgroundColor: '#E4D7B0',
+      ...(IS_BETA
+        ? { backgroundImage: './assets/icons/adaptive-icon-beta-background.png' }
+        : {}),
+      backgroundColor: IS_BETA ? '#184E96' : '#E4D7B0',
     },
   },
   ios: {
     bundleIdentifier: IS_BETA ? 'dev.mehra.tackbok.beta' : 'dev.mehra.tackbok',
     supportsTablet: true,
     icon: {
-      dark: './assets/icons/ios-dark.png',
-      light: './assets/icons/ios-light.png',
+      // The beta blueprint icon uses the same artwork in light and dark mode.
+      dark: IS_BETA ? './assets/icons/ios-light-beta.png' : './assets/icons/ios-dark.png',
+      light: `./assets/icons/ios-light${ICON_SUFFIX}.png`,
       tinted: './assets/icons/ios-tinted.png',
     },
     infoPlist: {
