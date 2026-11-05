@@ -33,12 +33,12 @@ const ToggleGroupUtils = {
 const EmptyGestureResponderEvent: GestureResponderEvent = {
   nativeEvent: {
     changedTouches: [],
-    identifier: '0',
+    identifier: 0,
     locationX: 0,
     locationY: 0,
     pageX: 0,
     pageY: 0,
-    target: '0',
+    target: 0,
     timestamp: 0,
     touches: [],
   },
@@ -46,6 +46,7 @@ const EmptyGestureResponderEvent: GestureResponderEvent = {
   cancelable: false,
   currentTarget: {} as any,
   defaultPrevented: false,
+  dispatchConfig: { registrationName: '' },
   eventPhase: 0,
   persist: () => {},
   isDefaultPrevented: () => false,
@@ -55,6 +56,12 @@ const EmptyGestureResponderEvent: GestureResponderEvent = {
   stopPropagation: () => {},
   target: {} as any,
   timeStamp: 0,
+  touchHistory: {
+    indexOfSingleActiveTouch: 0,
+    mostRecentTimeStamp: 0,
+    numberActiveTouches: 0,
+    touchBank: [],
+  },
   type: '',
 };
 

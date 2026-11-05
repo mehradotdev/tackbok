@@ -1,7 +1,7 @@
 # React Native Skia Android density patch
 
-`@shopify/react-native-skia@2.6.2` reads density from Android resources at startup
-and caches it in its native platform context. React Native 0.86 converts layout
+`@shopify/react-native-skia@2.14.0` reads density from Android resources at startup
+and caches it in its native platform context. React Native 0.88 converts layout
 dimensions with `PixelUtil`, which uses `DisplayMetricsHolder` screen metrics.
 If those densities differ, Skia scales all artwork incorrectly even though the
 React Native canvas view fills its parent. A smaller Skia density leaves empty

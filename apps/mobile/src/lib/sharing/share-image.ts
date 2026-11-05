@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { View } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
@@ -15,7 +15,7 @@ export async function isNativeSharingAvailable(): Promise<boolean> {
 }
 
 type ShareViewAsPngOptions = {
-  ref: React.RefObject<View | null>;
+  ref: React.RefObject<ViewInstance | null>;
   dialogTitle: string;
   filenamePrefix: string;
   width: number;

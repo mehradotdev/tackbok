@@ -241,7 +241,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
       stopDurationPoll();
       stopMaxRecordingTimer();
       try {
-        const result = audioEngine.stopRecording();
+        const result = await audioEngine.stopRecording();
         if (result.path) {
           setRecordedUri(result.path);
           setPreviewDuration(result.duration ?? 0);
@@ -320,8 +320,9 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   const stopAudioActivity = useCallback(() => {
     audioEngine.stopPlayback();
     if (audioEngine.isRecording) {
-      const result = audioEngine.stopRecording();
-      deleteTempRecording(result.path ?? null);
+      void audioEngine
+        .stopRecording()
+        .then((result) => deleteTempRecording(result.path ?? null));
     }
     stopDurationPoll();
     stopMaxRecordingTimer();
@@ -366,7 +367,7 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
           adaptive: false,
         }}
         dismissible={phase === 'idle'}
-        backgroundColor={backgroundColor as string}
+        backgroundStyle={{ backgroundColor: backgroundColor as string }}
         onDidDismiss={handleDismiss}>
         <View className="px-6 pt-4 pb-4">
           {/* Close button */}

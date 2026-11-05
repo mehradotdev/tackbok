@@ -1,5 +1,10 @@
 import { useState, useRef, useCallback } from 'react';
-import { View, ScrollView, type TextInput } from 'react-native';
+import {
+  View,
+  ScrollView,
+  type ScrollViewInstance,
+  type TextInputInstance,
+} from 'react-native';
 import { Plus, X, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -70,6 +75,7 @@ export function TagsModal({
   onTagsChange,
   onTagDeleted,
 }: ITagsModalProps) {
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const { t, isRTL } = useTranslation();
   const { data: allTags = [] } = useTags();
   const [backgroundColor, themeRadiusStr, mutedFgColor] = useCSSVariable([
@@ -87,7 +93,7 @@ export function TagsModal({
     null,
   );
   const isProcessingSubmissionRef = useRef(false);
-  const tagInputRef = useRef<TextInput>(null);
+  const tagInputRef = useRef<TextInputInstance>(null);
   const presentSheet = useCallback((sheetName: string) => {
     TrueSheet.present(sheetName).catch(() => {});
   }, []);
@@ -394,6 +400,7 @@ export function TagsModal({
         <View className="bg-card rounded-lg border border-border overflow-hidden mb-4">
           <View style={{ maxHeight: SELECT_TAG_LIST_MAX_HEIGHT }}>
             <ScrollView
+              ref={scrollViewRef}
               style={{ flexGrow: 0 }}
               contentContainerClassName="p-0"
               nestedScrollEnabled>
@@ -457,6 +464,7 @@ export function TagsModal({
     <>
       <TrueSheet
         name={SHEET_NAMES.TAGS}
+        scrollableRef={scrollViewRef}
         detents={['auto']}
         cornerRadius={sheetRadius}
         grabber={true}
@@ -465,7 +473,7 @@ export function TagsModal({
           color: mutedFgColor as string,
           adaptive: false,
         }}
-        backgroundColor={backgroundColor as string}
+        backgroundStyle={{ backgroundColor: backgroundColor as string }}
         onDidFocus={processQueuedSubmission}>
         <View className="pt-2">
           {renderHeader({
@@ -487,7 +495,7 @@ export function TagsModal({
           color: mutedFgColor as string,
           adaptive: false,
         }}
-        backgroundColor={backgroundColor as string}
+        backgroundStyle={{ backgroundColor: backgroundColor as string }}
         onDidPresent={() => {
           setTimeout(() => {
             tagInputRef.current?.focus();

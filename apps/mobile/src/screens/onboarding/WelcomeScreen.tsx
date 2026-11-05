@@ -96,7 +96,7 @@ function ImportSourceSheet({
       cornerRadius={sheetRadius}
       grabber={true}
       grabberOptions={{ topMargin: 8, color: mutedFgColor as string, adaptive: false }}
-      backgroundColor={backgroundColor as string}>
+      backgroundStyle={{ backgroundColor: backgroundColor as string }}>
       <View className="bg-background pt-2 pb-8">
         {/* Header */}
         <View className="flex-row items-center justify-between px-5 pt-3 pb-2">

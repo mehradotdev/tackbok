@@ -1,4 +1,4 @@
-import { TextInput, type TextInputProps } from 'react-native';
+import { TextInput, type TextInputProps, type TextInputInstance } from 'react-native';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
 
@@ -6,7 +6,7 @@ function Input({
   className,
   ref,
   ...props
-}: TextInputProps & { ref?: React.Ref<TextInput> }) {
+}: TextInputProps & { ref?: React.Ref<TextInputInstance> }) {
   const { isRTL } = useTranslation();
 
   return (

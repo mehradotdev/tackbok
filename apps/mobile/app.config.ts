@@ -75,9 +75,6 @@ const config: ExpoConfig = {
     [
       'expo-build-properties',
       {
-        ios: {
-          enableSceneSupport: true,
-        },
         android: {
           enableMinifyInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
@@ -85,6 +82,7 @@ const config: ExpoConfig = {
       },
     ],
     './plugins/withAndroidReleaseOptimization',
+    './plugins/withOkHttpVersion',
     'expo-asset',
     'expo-router',
     'expo-background-task',

@@ -28,9 +28,7 @@ const mockWriteImportedAudio = jest.fn(
   }),
 );
 const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
-const mockCreatePromptInTransaction = jest.fn(
-  async (..._args: unknown[]) => undefined,
-);
+const mockCreatePromptInTransaction = jest.fn(async (..._args: unknown[]) => undefined);
 
 jest.mock('~/db', () => ({
   db: {},
@@ -68,7 +66,7 @@ jest.mock('expo-crypto', () => ({
 }));
 
 // Keep these mocks inline: the portable import tests need extra file APIs such as
-// open().readBytes() that are more specific than the shared manual mocks.
+// open().readBytesSync() that are more specific than the shared manual mocks.
 jest.mock('expo-file-system', () => ({
   Directory: class MockDirectory {
     exists = true;
@@ -85,7 +83,7 @@ jest.mock('expo-file-system', () => ({
     copy(..._args: unknown[]) {}
     open() {
       return {
-        readBytes: (_length: number) => new Uint8Array(),
+        readBytesSync: (_length: number) => new Uint8Array(),
         close: () => {},
       };
     }
@@ -541,9 +539,7 @@ describe('upsertPortableTags', () => {
 
     expect(tagMap.get('id:portable-family')).toBe('local-family');
     expect(tagMap.get('id:portable-collision')).not.toBe('portable-collision');
-    expect(tagMap.get('imported distinct')).toBe(
-      tagMap.get('id:portable-collision'),
-    );
+    expect(tagMap.get('imported distinct')).toBe(tagMap.get('id:portable-collision'));
     expect(summary.importedTags).toBe(1);
   });
 });
@@ -572,7 +568,8 @@ describe('ensurePortablePromptTitles', () => {
     );
 
     expect(mockCreatePromptInTransaction).toHaveBeenCalledTimes(1);
-    const [, , context, stableId] = mockCreatePromptInTransaction.mock.calls[0] as unknown[];
+    const [, , context, stableId] = mockCreatePromptInTransaction.mock
+      .calls[0] as unknown[];
     expect(stableId).not.toBe('prompt-collision');
     expect(context).toMatchObject({ now: 22, createdAt: 11 });
     expect(summary.importedPrompts).toBe(1);

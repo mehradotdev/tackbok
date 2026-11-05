@@ -6,11 +6,7 @@ import { AssetType, type Asset, type Mood } from '~/types';
 import { deletePhotoFile } from '~/lib/photoUtils';
 import { deleteVoiceMemoFile } from '~/lib/voiceMemoUtils';
 import { sanitizePromptTitle } from '~/lib/utils';
-import {
-  createExpoZipReaderSource,
-  openZipReader,
-  type ZipReader,
-} from '~/lib/zip';
+import { createExpoZipReaderSource, openZipReader, type ZipReader } from '~/lib/zip';
 
 export const VALID_MOODS = new Set<string>(MOODS);
 
@@ -19,7 +15,7 @@ function readFilePrefixBytes(file: File, length: number): Uint8Array {
   const handle = file.open();
 
   try {
-    return handle.readBytes(safeLength);
+    return handle.readBytesSync(safeLength);
   } finally {
     handle.close();
   }
@@ -99,7 +95,7 @@ export async function writeImportedPhoto(
   const filename = `${randomUUID()}.${extension}`;
   const file = new File(dir, filename);
   try {
-    file.write(bytes);
+    file.writeSync(bytes);
   } catch (error) {
     if (file.exists) {
       file.delete();
@@ -135,7 +131,7 @@ export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asse
   const filename = `${randomUUID()}.${extension}`;
   const file = new File(dir, filename);
   try {
-    file.write(bytes);
+    file.writeSync(bytes);
   } catch (error) {
     if (file.exists) {
       file.delete();
@@ -152,10 +148,7 @@ export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asse
 /**
  * Reads JSON from a ZIP entry after verifying the archive path is safe.
  */
-export async function readSafeZipJson<T>(
-  zip: ZipReader,
-  path: string,
-): Promise<T> {
+export async function readSafeZipJson<T>(zip: ZipReader, path: string): Promise<T> {
   return zip.readEntryJson<T>(assertSafeArchivePath(path));
 }
 

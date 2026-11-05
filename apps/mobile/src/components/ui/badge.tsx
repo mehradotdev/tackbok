@@ -1,4 +1,4 @@
-import { View, ViewProps } from 'react-native';
+import { View, ViewProps, type ViewInstance } from 'react-native';
 import { cn, tv, type VariantProps } from 'tailwind-variants';
 import { TextClassContext } from '~/components/ui/text';
 import { Slot } from '~/components/primitives/slot';
@@ -37,7 +37,7 @@ const badgeTextVariants = tv({
 });
 
 type BadgeProps = ViewProps & {
-  ref?: React.Ref<View>;
+  ref?: React.Ref<ViewInstance>;
   asChild?: boolean;
 } & VariantProps<typeof badgeVariants>;
 

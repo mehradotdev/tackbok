@@ -57,7 +57,7 @@ export class File {
     this.exists = false;
   });
 
-  write = jest.fn((_content: Uint8Array) => {});
+  writeSync = jest.fn((_content: Uint8Array) => {});
 }
 
 export class Directory {

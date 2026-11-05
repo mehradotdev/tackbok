@@ -64,10 +64,15 @@ it.each(['טוב שחזרת, Maya Rose!', 'مرحبًا بعودتك، Maya Rose
     const onReady = jest.fn();
     let root: ReturnType<typeof create>;
     act(() => {
-      root = create(React.createElement(HeaderGreeting, {
-        messages: [{ label }], onMessageReady: onReady,
-        step: 0, progress: { value: 0 }, reducedMotion: false,
-      }));
+      root = create(
+        React.createElement(HeaderGreeting, {
+          messages: [{ label }],
+          onMessageReady: onReady,
+          step: 0,
+          progress: { value: 0 },
+          reducedMotion: false,
+        }),
+      );
     });
     const texts = root!.root.findAllByType('Text');
     expect(texts).toHaveLength(1);
@@ -121,6 +126,8 @@ function mountGreeting() {
 }
 
 it('waits for layout, restores controls, and does not replay on route remount', () => {
+  // This assertion expects a daytime emoji, independently of when CI runs.
+  jest.setSystemTime(new Date(2026, 10, 3, 12));
   const hook = mountGreeting();
   hook.tick(5000);
   expect(hook.current.greeting).toBeNull();

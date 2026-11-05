@@ -164,6 +164,11 @@ type ListenerId = number;
 // Engine
 // ============================================================================
 
+/** Deactivation is best-effort; the session API rejects on native failure. */
+function deactivateAudioSession(): void {
+  AudioManager.setAudioSessionActivity(false).catch(() => {});
+}
+
 class AudioEngine {
   // ── Core Audio Graph ─────────────────────────────────────────────────
   private audioContext: AudioContext | null = null;
@@ -367,8 +372,9 @@ class AudioEngine {
       iosOptions: [],
     });
 
-    const sessionOk = await AudioManager.setAudioSessionActivity(true);
-    if (!sessionOk) {
+    try {
+      await AudioManager.setAudioSessionActivity(true);
+    } catch {
       return { status: 'error', message: 'Could not activate audio session' };
     }
 
@@ -387,7 +393,7 @@ class AudioEngine {
       await ctx.resume();
     }
 
-    const result = recorder.start();
+    const result = await recorder.start();
     if (result.status === 'error') {
       // Tear down the partially-built graph so the singleton isn't left
       // half-initialised for the next attempt.
@@ -395,7 +401,7 @@ class AudioEngine {
       adapter.disconnect();
       this.recorderAdapter = null;
       void ctx.suspend();
-      void AudioManager.setAudioSessionActivity(false);
+      deactivateAudioSession();
       this.unmuteOutput();
       return { status: 'error', message: result.message };
     }
@@ -404,12 +410,13 @@ class AudioEngine {
     return { status: 'success' };
   }
 
-  stopRecording(): { path?: string; duration?: number } {
+  async stopRecording(): Promise<{ path?: string; duration?: number }> {
     const recorder = this.audioRecorder;
     if (!recorder || !this._isRecording) return {};
 
-    const result = recorder.stop();
+    // Clear the flag before awaiting so a concurrent call can't stop twice.
     this._isRecording = false;
+    const result = await recorder.stop();
 
     // Disconnect recorder and adapter from graph
     recorder.disconnect();
@@ -420,7 +427,7 @@ class AudioEngine {
     this.audioContext?.suspend();
     // Fire-and-forget: nothing below depends on the session being deactivated
     // before returning, so we don't need to await (same pattern as stopPlayback).
-    void AudioManager.setAudioSessionActivity(false);
+    deactivateAudioSession();
 
     if (result.status === 'success') {
       const [path] = result.paths;
@@ -465,10 +472,7 @@ class AudioEngine {
     });
 
     try {
-      const sessionOk = await AudioManager.setAudioSessionActivity(true);
-      if (!sessionOk) {
-        throw new Error('Could not activate audio session');
-      }
+      await AudioManager.setAudioSessionActivity(true);
 
       if (ctx.state === 'suspended') {
         await ctx.resume();
@@ -600,7 +604,7 @@ class AudioEngine {
     // Suspend when we stop
     if (!this._isRecording) {
       this.audioContext?.suspend();
-      AudioManager.setAudioSessionActivity(false);
+      deactivateAudioSession();
     }
 
     if (wasActive) {
@@ -666,7 +670,7 @@ class AudioEngine {
       // Suspend when playback ends
       if (!this._isRecording) {
         this.audioContext?.suspend();
-        AudioManager.setAudioSessionActivity(false);
+        deactivateAudioSession();
       }
 
       this.notifyPlaybackStopped();
@@ -779,11 +783,11 @@ class AudioEngine {
   cleanup(): void {
     this.stopPlayback();
     if (this._isRecording) {
-      this.audioRecorder?.stop();
+      void this.audioRecorder?.stop();
       this._isRecording = false;
       // Fire-and-forget: cleanup() tears everything down immediately after this,
       // so there's nothing to wait for.
-      void AudioManager.setAudioSessionActivity(false);
+      deactivateAudioSession();
     }
     this.audioRecorder?.disconnect();
     this.audioContext?.close();

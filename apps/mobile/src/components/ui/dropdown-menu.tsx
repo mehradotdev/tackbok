@@ -9,6 +9,7 @@ import {
   View,
   type ViewStyle,
   ScrollView,
+  type TextInstance,
 } from 'react-native';
 import { FadeIn } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
@@ -307,7 +308,7 @@ function DropdownMenuShortcut({
   className,
   ref,
   ...props
-}: TextProps & { ref?: React.Ref<Text> }) {
+}: TextProps & { ref?: React.Ref<TextInstance> }) {
   return (
     <Text
       ref={ref}

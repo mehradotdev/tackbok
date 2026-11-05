@@ -710,7 +710,7 @@ export default function CloudBackupScreen() {
           color: mutedForegroundColor as string,
           adaptive: false,
         }}
-        backgroundColor={sheetBackgroundColor as string}>
+        backgroundStyle={{ backgroundColor: sheetBackgroundColor as string }}>
         <View className="bg-background pt-2 pb-8">
           <View className="flex-row items-center justify-between px-5 pt-3 pb-2">
             <Text className="text-xl font-body-bold text-foreground">

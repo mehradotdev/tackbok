@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, ScrollView, type TextInput, View } from 'react-native';
+import {
+  Keyboard,
+  ScrollView,
+  type ScrollViewInstance,
+  View,
+  type TextInputInstance,
+} from 'react-native';
 import { ChevronLeft, ChevronRight, FilePenLine, X } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useCSSVariable } from 'uniwind';
@@ -18,6 +24,7 @@ interface WorksheetTemplateModalProps {
 }
 
 export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateModalProps) {
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const { t, isRTL } = useTranslation();
   const {
     resolvedWorksheetTemplate,
@@ -33,7 +40,7 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
   const [draftTemplate, setDraftTemplate] = useState(resolvedWorksheetTemplate);
   const [isEditing, setIsEditing] = useState(false);
-  const textareaRef = useRef<TextInput>(null);
+  const textareaRef = useRef<TextInputInstance>(null);
   const hasChanges = draftTemplate !== resolvedWorksheetTemplate;
   const canSave = draftTemplate.length > 0 && hasChanges;
 
@@ -78,6 +85,7 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
     <View className="px-4 py-4 gap-4">
       <View className="rounded-xl border border-border bg-card/50">
         <ScrollView
+          ref={scrollViewRef}
           className="max-h-80"
           contentContainerClassName="p-4"
           nestedScrollEnabled
@@ -141,6 +149,7 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
   return (
     <TrueSheet
       name={SHEET_NAMES.WORKSHEET_TEMPLATE}
+      scrollableRef={isEditing ? undefined : scrollViewRef}
       detents={['auto']}
       cornerRadius={sheetRadius}
       grabber={true}
@@ -149,7 +158,7 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
         color: mutedFgColor as string,
         adaptive: false,
       }}
-      backgroundColor={backgroundColor as string}
+      backgroundStyle={{ backgroundColor: backgroundColor as string }}
       onDidDismiss={handleDismiss}>
       <View className="bg-background pt-2">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">

@@ -50,7 +50,7 @@ function createFileZipChunkSource(
         for (let offset = 0; offset < fileSize; offset += chunkSize) {
           const length = Math.min(chunkSize, fileSize - offset);
           handle.offset = offset;
-          const chunk = handle.readBytes(length);
+          const chunk = handle.readBytesSync(length);
           if (chunk.length !== length) {
             throw new Error(`File shrank while being added to the ZIP: ${file.uri}`);
           }
@@ -88,7 +88,7 @@ export function createExpoZipWriter(fileOrUri: File | string): ExpoZipWriter {
         return;
       }
 
-      handle.writeBytes(bytes);
+      handle.writeBytesSync(bytes);
     },
     async close(): Promise<void> {
       handle.close();

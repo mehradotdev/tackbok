@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Text, View } from 'react-native';
+import { Image, Text, View, type ViewInstance } from 'react-native';
 import type { Asset } from '~/types';
 import { getFullPhotoUri } from '~/lib/photoUtils';
 import {
@@ -30,7 +30,7 @@ type EntryShareCardProps = {
   onOutputChange: (output: ShareOutput) => void;
 };
 
-export const EntryShareCard = React.forwardRef<View, EntryShareCardProps>(
+export const EntryShareCard = React.forwardRef<ViewInstance, EntryShareCardProps>(
   function EntryShareCard(
     {
       dateLabel,

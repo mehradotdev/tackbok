@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, Platform, View, type ViewInstance } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { X } from 'lucide-react-native';
 import { useTranslation, formatLocalizedNumber } from '~/lib/i18n';
@@ -37,7 +37,7 @@ export function AchievementDialogHost() {
   const isManual = manualAchievement !== null;
   const palette = getSharePalette(theme);
   const titleFontFamily = getTitleFont(resolveTitleFontId(theme, titleFont)).fontFamily;
-  const captureRef = React.useRef<View>(null);
+  const captureRef = React.useRef<ViewInstance>(null);
   const [visible, setVisible] = React.useState(false);
   const [captureReady, setCaptureReady] = React.useState(false);
   const lastHapticAchievement = React.useRef<string | null>(null);

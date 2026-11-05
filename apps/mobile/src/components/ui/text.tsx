@@ -5,6 +5,7 @@ import {
   type StyleProp,
   type TextStyle,
   type Role,
+  type TextInstance,
 } from 'react-native';
 import { cn, tv, type VariantProps } from 'tailwind-variants';
 import { Slot } from '~/components/primitives/slot';
@@ -175,7 +176,7 @@ function Text({
   ref,
   ...props
 }: React.ComponentProps<typeof RNText> &
-  TextVariantProps & { ref?: React.Ref<RNText> } & {
+  TextVariantProps & { ref?: React.Ref<TextInstance> } & {
     asChild?: boolean;
   }) {
   const textClass = React.useContext(TextClassContext);

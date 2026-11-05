@@ -4,6 +4,7 @@ import {
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ScrollViewInstance,
 } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Check, X } from 'lucide-react-native';
@@ -148,7 +149,7 @@ export function ThemePickerSheet() {
 
   // Track scroll position so we can restore it after key-triggered remount
   const scrollOffsetRef = useRef(0);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
 
   useEffect(() => {
     if (scrollOffsetRef.current > 0) {
@@ -174,8 +175,9 @@ export function ThemePickerSheet() {
         color: mutedFgColor as string,
         adaptive: false,
       }}
-      scrollable
-      backgroundColor={backgroundColor as string}>
+      scrollableRef={scrollViewRef}
+      style={{ flex: 1 }}
+      backgroundStyle={{ backgroundColor: backgroundColor as string }}>
       <View
         key={currentTheme}
         className={cn(

@@ -114,7 +114,7 @@ jest.mock('expo-file-system', () => ({
     copy(..._args: unknown[]) {}
     open() {
       return {
-        readBytes: (_length: number) => new Uint8Array(),
+        readBytesSync: (_length: number) => new Uint8Array(),
         close: () => {},
       };
     }
@@ -311,9 +311,9 @@ describe('importFromTackbokBackup', () => {
       new Error('profile write failed'),
     );
 
-    await expect(
-      importFromTackbokBackup('backup.zip', 'overwrite'),
-    ).rejects.toThrow('profile write failed');
+    await expect(importFromTackbokBackup('backup.zip', 'overwrite')).rejects.toThrow(
+      'profile write failed',
+    );
     expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
     expect(mockUpdateProfileInTransaction).toHaveBeenCalled();
     expect(mockCleanupImportedFiles).toHaveBeenCalledWith(['photos/imported.jpg']);

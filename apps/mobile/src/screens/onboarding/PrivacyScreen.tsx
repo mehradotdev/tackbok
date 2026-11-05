@@ -31,7 +31,7 @@ function AnalyticsDetailsSheet() {
       cornerRadius={sheetRadius}
       grabber={true}
       grabberOptions={{ topMargin: 8, color: mutedFgColor as string, adaptive: false }}
-      backgroundColor={backgroundColor as string}>
+      backgroundStyle={{ backgroundColor: backgroundColor as string }}>
       <View className="bg-background pb-8 pt-2">
         <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
           <Text className="text-xl font-body-bold text-foreground">

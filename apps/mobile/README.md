@@ -286,6 +286,12 @@ development behavior. The flags apply to the Android release build type, so
 `preview` and Galaxy release builds are optimized too, not just the profile named
 `production`.
 
+`plugins/withOkHttpVersion.js` forces OkHttp 4.12.1 for every Gradle project.
+React Native and Expo modules still request 4.9.2, which lacks the client-side
+block for the compromised eMudhra intermediate CAs. Check the resolved version with
+`./gradlew :app:dependencies --configuration releaseRuntimeClasspath` after prebuild,
+and remove the plugin once React Native ships 4.12.1 or later.
+
 Inter and JetBrains Mono imports in `src/lib/theme/fonts.ts` use individual weight
 modules so Metro includes only the eight selected faces. Keep those imports off
 the package-root barrels, which also register unused font assets. The six patched

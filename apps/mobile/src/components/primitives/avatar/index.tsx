@@ -5,6 +5,7 @@ import {
   type ImageErrorEvent,
   type ImageLoadEvent,
   type ImageSourcePropType,
+  type ImageURISource,
   Image as RNImage,
   View,
 } from 'react-native';
@@ -123,5 +124,6 @@ function getSourceKey(source?: ImageSourcePropType) {
     const uris = source.map((item) => item.uri).filter(Boolean);
     return uris.length > 0 ? uris.join('|') : null;
   }
-  return source.uri ?? null;
+  // Array.isArray does not narrow out readonly arrays.
+  return (source as ImageURISource).uri ?? null;
 }

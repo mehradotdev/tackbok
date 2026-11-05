@@ -1,4 +1,5 @@
-import { View, ScrollView } from 'react-native';
+import { useRef } from 'react';
+import { View, ScrollView, type ScrollViewInstance } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Check, X } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
@@ -69,6 +70,7 @@ function FontCard({
 }
 
 export function FontPickerSheet() {
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const { t } = useTranslation();
   const themeId = useSettingsStore((s) => s.theme);
   const currentFont = useSettingsStore((s) => s.titleFont);
@@ -85,6 +87,7 @@ export function FontPickerSheet() {
   return (
     <TrueSheet
       name={SHEET_NAMES.FONT_PICKER}
+      scrollableRef={scrollViewRef}
       detents={['auto']}
       cornerRadius={sheetRadius}
       grabber={true}
@@ -93,7 +96,7 @@ export function FontPickerSheet() {
         color: mutedFgColor as string,
         adaptive: false,
       }}
-      backgroundColor={backgroundColor as string}>
+      backgroundStyle={{ backgroundColor: backgroundColor as string }}>
       <View className="bg-background pt-2 pb-6">
         {/* Header */}
         <View className={cn('items-center justify-between px-5 pt-3 pb-3', 'flex-row')}>
@@ -123,6 +126,7 @@ export function FontPickerSheet() {
 
         {/* Font grid */}
         <ScrollView
+          ref={scrollViewRef}
           horizontal={false}
           contentContainerClassName="px-4 gap-3"
           showsVerticalScrollIndicator={false}>
