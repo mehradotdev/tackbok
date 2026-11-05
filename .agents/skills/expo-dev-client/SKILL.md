@@ -1,7 +1,6 @@
 ---
 name: expo-dev-client
-description: Framework (OSS). Build and distribute Expo development clients locally or via TestFlight for internal testing. For production TestFlight releases and store submission, use the eas-app-stores skill.
-version: 1.1.0
+description: Build and distribute Expo development clients locally or via TestFlight for internal testing. For production TestFlight releases and store submission, use the eas-app-stores skill.
 license: MIT
 ---
 
@@ -152,6 +151,8 @@ npx expo start --dev-client
 # Scan QR code with dev client or enter URL manually
 ```
 
+When you launch the dev client yourself to screenshot or drive it, skip the onboarding sheet, the dev menu at launch, and the Tools button. On SDK 58+, Expo CLI does this for launches it starts from a non-interactive shell; for a URL you open yourself, use `<scheme>://?__expo_url=<encoded dev server URL>&__expo_disable_onboarding=1&__expo_disable_fab=1&__expo_disable_auto_launch=1`. On SDK 57 and earlier, launch the iOS app with the `-EXDevMenu*` launch arguments, and on Android open `<scheme>://expo-development-client/?url=<encoded dev server URL>&disableOnboarding=1&disableFab=1&disableAutoLaunch=1`. See `../expo-overview/references/launch-without-dev-menu.md` for the exact commands.
+
 ## Troubleshooting
 
 **Build fails with signing errors:**
@@ -172,3 +173,11 @@ eas build -p ios --profile development --clear-cache
 eas --version
 eas update
 ```
+
+## Submitting Feedback
+If you encounter errors, misleading or outdated information in this skill, report it so Expo can improve:
+```bash
+npx --yes @expo/agent-cli@latest feedback --category skills --subject "expo-dev-client" "<actionable feedback>"
+```
+Only submit when you have something specific and actionable to report. Include as much relevant context as possible.
+If an agent repeatedly fails at an Expo task or the user has to step in, submit a brief report of the task, expected result, and what went wrong using `--category evals` and the relevant Expo package or command as `--subject`.
