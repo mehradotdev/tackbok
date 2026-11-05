@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { View } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import * as ExpoFileSystemMock from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
@@ -35,7 +35,7 @@ const { __mockFileSystemState } = ExpoFileSystemMock as typeof ExpoFileSystemMoc
     moveBehavior: (source: unknown, destination: unknown) => Promise<void>;
   };
 };
-const viewRef = { current: {} as View } as React.RefObject<View>;
+const viewRef = { current: {} as ViewInstance } as React.RefObject<ViewInstance>;
 
 const options = {
   ref: viewRef,

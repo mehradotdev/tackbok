@@ -1,5 +1,5 @@
 import { memo, useMemo, useRef } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, type ScrollViewInstance } from 'react-native';
 import { MONTH_SHORT_KEYS } from '~/constants';
 import { formatLocalizedNumber, useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
@@ -51,7 +51,9 @@ const MonthColumn = memo(function MonthColumn({
         )}
         <View
           className={
-            count > 0 ? 'w-full rounded-t-sm bg-primary' : 'w-full rounded-t-sm bg-muted/40'
+            count > 0
+              ? 'w-full rounded-t-sm bg-primary'
+              : 'w-full rounded-t-sm bg-muted/40'
           }
           style={{ height: barHeight }}
         />
@@ -63,7 +65,9 @@ const MonthColumn = memo(function MonthColumn({
       </View>
       <View style={{ height: YEAR_ROW_HEIGHT }}>
         {yearLabel !== null && (
-          <Text className="text-[10px] text-muted-foreground text-center" numberOfLines={1}>
+          <Text
+            className="text-[10px] text-muted-foreground text-center"
+            numberOfLines={1}>
             {yearLabel}
           </Text>
         )}
@@ -84,7 +88,7 @@ const MonthColumn = memo(function MonthColumn({
  */
 export function MonthlyBars({ stats }: { stats: InsightsStats }) {
   const { t, locale, isRTL } = useTranslation();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const ceiling = useMemo(
     () => scaleCeiling(stats.monthly.map((month) => month.count)),
     [stats.monthly],
@@ -99,7 +103,10 @@ export function MonthlyBars({ stats }: { stats: InsightsStats }) {
   };
 
   return (
-    <View style={{ height: COUNT_ROW_HEIGHT + BAR_MAX_HEIGHT + MONTH_ROW_HEIGHT + YEAR_ROW_HEIGHT }}>
+    <View
+      style={{
+        height: COUNT_ROW_HEIGHT + BAR_MAX_HEIGHT + MONTH_ROW_HEIGHT + YEAR_ROW_HEIGHT,
+      }}>
       <ScrollView
         ref={scrollRef}
         horizontal

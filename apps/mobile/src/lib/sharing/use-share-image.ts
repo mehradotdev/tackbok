@@ -1,5 +1,5 @@
 import React from 'react';
-import type { View } from 'react-native';
+import type { ViewInstance } from 'react-native';
 import { useTranslation } from '~/lib/i18n';
 import { toast } from '~/components/ui/toast';
 import {
@@ -11,7 +11,7 @@ import {
 export type ShareResult = 'shared' | 'busy' | 'unavailable' | 'failed';
 
 type ShareRequest = {
-  ref: React.RefObject<View | null>;
+  ref: React.RefObject<ViewInstance | null>;
   dialogTitle: string;
   filenamePrefix: string;
   width: number;

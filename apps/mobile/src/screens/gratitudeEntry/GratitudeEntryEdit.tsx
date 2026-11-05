@@ -4,7 +4,7 @@ import {
   Keyboard,
   ActivityIndicator,
   Pressable,
-  type TextInput,
+  type TextInputInstance,
 } from 'react-native';
 import {
   KeyboardAwareScrollView,
@@ -13,7 +13,7 @@ import {
 } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { randomUUID } from 'expo-crypto';
-import { useNavigation } from 'expo-router';
+import { useNavigation, usePreventRemove } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { Clock, FilePenLine, Plus, Shuffle, X } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -194,8 +194,8 @@ function GratitudeEntryEditForm({
   const [isTimePickerVisible, setIsTimePickerVisible] = useState(false);
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   const [isContentFocused, setIsContentFocused] = useState(false);
-  const titleInputRef = useRef<TextInput>(null);
-  const contentInputRef = useRef<TextInput>(null);
+  const titleInputRef = useRef<TextInputInstance>(null);
+  const contentInputRef = useRef<TextInputInstance>(null);
   const hasPromptTitle = title.length > 0;
 
   // Auto-open mood modal for new entries (run once on mount).
@@ -316,6 +316,33 @@ function GratitudeEntryEditForm({
     [journalPromptsMode, journalFocusAreas, customPromptTitles, t],
   );
 
+  const handlePressCancel = useCallback(() => {
+    if (hasUnsavedChanges) {
+      Keyboard.dismiss();
+      setShowUnsavedChangesConfirm(true);
+    } else {
+      onCancel();
+    }
+  }, [hasUnsavedChanges, onCancel]);
+
+  /**
+   * Handle Navigation & Back Actions.
+   * Blocks screen removal to handle Unsaved Changes or Edit Mode cancellation.
+   * This covers gestures, header back button, and hardware back button.
+   * 1. Existing Entry: "Back" means "Cancel Edit" (switch to View Mode).
+   * 2. New Entry: Intercept only when there are unsaved changes.
+   */
+  const disableRemovePrevention = usePreventRemove(
+    !showUnsavedChangesConfirm && (!isNewEntry || hasUnsavedChanges),
+    ({ repeat }) => {
+      if (isSaving.current) {
+        repeat();
+        return;
+      }
+      handlePressCancel();
+    },
+  );
+
   const handleSave = async () => {
     if (!canSave) return;
     // A second tap before the write settles would generate a fresh UUID and
@@ -363,6 +390,7 @@ function GratitudeEntryEditForm({
         });
         toast.success(t('mood.entrySavedSuccessfully'));
       }
+      disableRemovePrevention();
       onSaveSuccess();
     } catch (error) {
       console.error('Failed to save entry:', error);
@@ -379,21 +407,15 @@ function GratitudeEntryEditForm({
     setShowUnsavedChangesConfirm(false);
     isSaving.current = true;
     // Delay closing to allow modal animation to finish or prevent race conditions
-    setTimeout(() => onCancel(), MODAL_CLOSE_DELAY);
+    setTimeout(() => {
+      disableRemovePrevention();
+      onCancel();
+    }, MODAL_CLOSE_DELAY);
   };
 
   const handleRemoveTag = (tagId: string) => {
     setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
   };
-
-  const handlePressCancel = useCallback(() => {
-    if (hasUnsavedChanges) {
-      Keyboard.dismiss();
-      setShowUnsavedChangesConfirm(true);
-    } else {
-      onCancel();
-    }
-  }, [hasUnsavedChanges, onCancel]);
 
   /**
    * Handle tag deletion in the database (via TagsModal).
@@ -439,41 +461,6 @@ function GratitudeEntryEditForm({
     Keyboard.dismiss();
     TrueSheet.present(SHEET_NAMES.WORKSHEET_TEMPLATE);
   };
-
-  /**
-   * Handle Navigation & Back Actions.
-   * Intercepts 'beforeRemove' to handle Unsaved Changes or Edit Mode cancellation.
-   * This covers gestures, header back button, and hardware back button.
-   */
-  useEffect(() => {
-    if (showUnsavedChangesConfirm) return;
-
-    const beforeRemoveListener = navigation.addListener('beforeRemove', (e) => {
-      if (isSaving.current) return;
-
-      // 1. Existing Entry: "Back" means "Cancel Edit" (switch to View Mode)
-      // We prevent the default "Pop" action and instead trigger the cancel flow.
-      if (!isNewEntry) {
-        e.preventDefault();
-        handlePressCancel();
-        return;
-      }
-
-      // 2. New Entry: Intercept only when there are unsaved changes
-      if (!hasUnsavedChanges) return;
-
-      e.preventDefault();
-      handlePressCancel();
-    });
-
-    return beforeRemoveListener;
-  }, [
-    navigation,
-    hasUnsavedChanges,
-    showUnsavedChangesConfirm,
-    isNewEntry,
-    handlePressCancel,
-  ]);
 
   return (
     <>

@@ -1,6 +1,6 @@
 import type { TranslationKey } from '~/lib/i18n';
-import { useMemo, useState } from 'react';
-import { View, ScrollView } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { View, ScrollView, type ScrollViewInstance } from 'react-native';
 import { Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useCSSVariable } from 'uniwind';
@@ -46,6 +46,7 @@ interface PromptLibraryModalProps {
 type ViewState = 'browse' | 'create' | 'edit';
 
 export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) {
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const { t, isRTL } = useTranslation();
   const journalFocusAreas = useSettingsStore((s) => s.journalFocusAreas);
   const { data: customPromptList = [] } = useCustomPrompts();
@@ -332,6 +333,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
           {hasPrompts ? (
             <View className="bg-card rounded-lg border border-border overflow-hidden mb-4">
               <ScrollView
+                ref={scrollViewRef}
                 className="max-h-80"
                 contentContainerClassName="p-0"
                 nestedScrollEnabled>
@@ -399,7 +401,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
           color: mutedFgColor as string,
           adaptive: false,
         }}
-        backgroundColor={backgroundColor as string}
+        backgroundStyle={{ backgroundColor: backgroundColor as string }}
         onDidDismiss={() => {
           setViewState('browse');
           setPromptInputValue('');
@@ -465,6 +467,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
     <>
       <TrueSheet
         name={SHEET_NAMES.PROMPT_LIBRARY}
+        scrollableRef={scrollViewRef}
         detents={['auto']}
         cornerRadius={sheetRadius}
         grabber={true}
@@ -473,7 +476,7 @@ export function PromptLibraryModal({ onPromptSelect }: PromptLibraryModalProps) 
           color: mutedFgColor as string,
           adaptive: false,
         }}
-        backgroundColor={backgroundColor as string}
+        backgroundStyle={{ backgroundColor: backgroundColor as string }}
         onDidDismiss={handleDismiss}>
         <View className="bg-background pt-2">
           {renderHeader()}

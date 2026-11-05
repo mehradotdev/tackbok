@@ -1,5 +1,5 @@
 import { cn } from 'tailwind-variants';
-import { TextInput, type TextInputProps } from 'react-native';
+import { TextInput, type TextInputProps, type TextInputInstance } from 'react-native';
 import { useTranslation } from '~/lib/i18n';
 
 export function Textarea({
@@ -8,7 +8,7 @@ export function Textarea({
   numberOfLines,
   ref,
   ...props
-}: TextInputProps & { ref?: React.Ref<TextInput> }) {
+}: TextInputProps & { ref?: React.Ref<TextInputInstance> }) {
   const { isRTL } = useTranslation();
 
   return (

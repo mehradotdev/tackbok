@@ -40,8 +40,13 @@ export function openMediaUploadSource(
     byteLength,
     contentHash,
     async read(offset, length) {
-      if (!Number.isSafeInteger(offset) || offset < 0 || offset > byteLength ||
-          !Number.isSafeInteger(length) || length <= 0) {
+      if (
+        !Number.isSafeInteger(offset) ||
+        offset < 0 ||
+        offset > byteLength ||
+        !Number.isSafeInteger(length) ||
+        length <= 0
+      ) {
         throw new LocalStorageError('local-media-unreadable', 'invalid-media-read-range');
       }
       const requested = Math.min(length, byteLength - offset);
@@ -49,7 +54,7 @@ export function openMediaUploadSource(
       const handle = file.open(FileMode.ReadOnly);
       try {
         handle.offset = offset;
-        return handle.readBytes(requested);
+        return handle.readBytesSync(requested);
       } finally {
         handle.close();
       }
@@ -84,20 +89,29 @@ export class MediaPartialFileSink implements MediaDownloadSink {
     }
   }
 
-  async verifyAndPromote(expectedByteLength: number, expectedSha256: string): Promise<void> {
+  async verifyAndPromote(
+    expectedByteLength: number,
+    expectedSha256: string,
+  ): Promise<void> {
     if (!this.partial.exists || this.partial.size !== expectedByteLength) {
       await this.reset();
       throw new MediaIntegrityError('downloaded-media-size-mismatch');
     }
     const inspected = await inspectLocalMediaFile(this.partial.uri);
-    if (inspected.byteSize !== expectedByteLength || inspected.sha256 !== expectedSha256) {
+    if (
+      inspected.byteSize !== expectedByteLength ||
+      inspected.sha256 !== expectedSha256
+    ) {
       await this.reset();
       throw new MediaIntegrityError('downloaded-media-hash-mismatch');
     }
     try {
       if (this.final.exists) {
         const existing = await inspectLocalMediaFile(this.final.uri);
-        if (existing.byteSize === expectedByteLength && existing.sha256 === expectedSha256) {
+        if (
+          existing.byteSize === expectedByteLength &&
+          existing.sha256 === expectedSha256
+        ) {
           await this.reset();
           return;
         }
@@ -131,7 +145,8 @@ export async function copyVerifiedMediaFile(
   if (destination.exists) {
     try {
       const existing = await inspectLocalMediaFile(destination.uri);
-      if (existing.byteSize === expectedByteLength && existing.sha256 === expectedSha256) return;
+      if (existing.byteSize === expectedByteLength && existing.sha256 === expectedSha256)
+        return;
     } catch {
       // Replace an unreadable/truncated destination from the verified stage.
     }
@@ -141,7 +156,10 @@ export async function copyVerifiedMediaFile(
     if (temporary.exists) temporary.delete();
     await source.copy(temporary);
     const inspected = await inspectLocalMediaFile(temporary.uri);
-    if (inspected.byteSize !== expectedByteLength || inspected.sha256 !== expectedSha256) {
+    if (
+      inspected.byteSize !== expectedByteLength ||
+      inspected.sha256 !== expectedSha256
+    ) {
       throw new MediaIntegrityError('staged-media-hash-mismatch');
     }
     await atomicFiles().replaceAndSync(temporary.uri, destination.uri);

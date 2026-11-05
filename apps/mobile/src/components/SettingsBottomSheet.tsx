@@ -8,6 +8,8 @@ import {
   TextInput,
   useWindowDimensions,
   View,
+  type TextInputInstance,
+  type ScrollViewInstance,
 } from 'react-native';
 import { reloadAppAsync } from 'expo';
 import Constants from 'expo-constants';
@@ -183,7 +185,7 @@ function ProfileNameField({ name, onSave }: ProfileNameFieldProps) {
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(name ?? '');
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
 
   const beginEdit = useCallback(() => {
     setDraft(name ?? '');
@@ -377,15 +379,18 @@ function buildSupportBody(): string {
 
 function SettingsSheetContent({
   scrollable,
+  scrollViewRef,
   children,
 }: {
   scrollable: boolean;
+  scrollViewRef: React.RefObject<ScrollViewInstance | null>;
   children: React.ReactNode;
 }) {
   if (!scrollable) return <>{children}</>;
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       style={{ flex: 1 }}
       nestedScrollEnabled
       keyboardShouldPersistTaps="handled">
@@ -400,6 +405,7 @@ export function SettingsBottomSheet() {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const sheet = useRef<TrueSheet>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const [themeRadiusStr, bgColor] = useCSSVariable([
     '--theme-radius',
     '--color-background',
@@ -566,17 +572,18 @@ export function SettingsBottomSheet() {
       <TrueSheet
         ref={sheet}
         // Preserve the content-sized portrait layout. Landscape needs a bounded
-        // viewport; TrueSheet v3 cannot combine an auto detent with scrollable.
+        // viewport with content that fills the selected detent.
         detents={isLandscape ? [0.85] : ['auto']}
-        scrollable={isLandscape}
+        scrollableRef={isLandscape ? scrollViewRef : undefined}
+        style={isLandscape ? { flex: 1 } : undefined}
         cornerRadius={sheetRadius}
         grabber={false}
-        backgroundColor={bgColor as string}
+        backgroundStyle={{ backgroundColor: bgColor as string }}
         // maxContentWidth is Android only (mobile-only app, no web). On iOS it sets
         // preferredContentSize + prefersPageSizing=NO, which turns the iPad
         // sheet into a narrow centered form sheet instead of a bottom sheet.
         maxContentWidth={Platform.OS === 'android' ? 400 : undefined}>
-        <SettingsSheetContent scrollable={isLandscape}>
+        <SettingsSheetContent scrollable={isLandscape} scrollViewRef={scrollViewRef}>
           {/* Outer wrapper — clips the banner to match sheet corner radius */}
           <View
             style={{

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, ScrollView } from 'react-native';
+import { useRef, useState } from 'react';
+import { View, ScrollView, type ScrollViewInstance } from 'react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Check, Plus, X } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
@@ -20,6 +20,7 @@ import { toast } from '~/components/ui/toast';
 const MIN_FOCUS_AREAS = 2;
 
 export function JournalFocusAreasSheet() {
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const { t } = useTranslation();
   const journalFocusAreas = useSettingsStore((s) => s.journalFocusAreas);
   const setJournalFocusAreas = useSettingsStore((s) => s.setJournalFocusAreas);
@@ -61,6 +62,7 @@ export function JournalFocusAreasSheet() {
   return (
     <TrueSheet
       name={SHEET_NAMES.JOURNAL_FOCUS_AREAS}
+      scrollableRef={scrollViewRef}
       detents={['auto']}
       cornerRadius={sheetRadius}
       grabber={true}
@@ -69,7 +71,7 @@ export function JournalFocusAreasSheet() {
         color: mutedFgColor as string,
         adaptive: false,
       }}
-      backgroundColor={backgroundColor as string}
+      backgroundStyle={{ backgroundColor: backgroundColor as string }}
       onDidPresent={handlePresent}>
       <View className="bg-background pt-2">
         {/* Header */}
@@ -104,6 +106,7 @@ export function JournalFocusAreasSheet() {
         <View className="px-4 mb-4">
           <View className="bg-card rounded-lg border border-border overflow-hidden">
             <ScrollView
+              ref={scrollViewRef}
               className="max-h-[60vh]"
               contentContainerClassName="p-0"
               showsVerticalScrollIndicator={true}

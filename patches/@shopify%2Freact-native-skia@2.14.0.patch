@@ -17,7 +17,7 @@ index 87d1b1e4492e40f4ad2e85e4d54f53388aa5986e..caee852d3f32f65e90e93da7b12b58b6
  JniPlatformContext::createVideo(const std::string &url) {
    jni::Environment::ensureCurrentThreadIsAttached();
 diff --git a/android/cpp/jni/include/JniPlatformContext.h b/android/cpp/jni/include/JniPlatformContext.h
-index abf27cdf8612371ff98102d8cefebfaf2e33ce34..1ac94fb6b61d2425b5472d8f6a8cc6d260879abc 100644
+index 35547a8d14d19052448a5f4c944408ba31266b02..7ab64695bba618bc50cce799a4a9888bdcf9fbdb 100644
 --- a/android/cpp/jni/include/JniPlatformContext.h
 +++ b/android/cpp/jni/include/JniPlatformContext.h
 @@ -40,7 +40,7 @@ public:
@@ -47,10 +47,10 @@ index abf27cdf8612371ff98102d8cefebfaf2e33ce34..1ac94fb6b61d2425b5472d8f6a8cc6d2
  };
  } // namespace RNSkia
 diff --git a/android/cpp/rnskia-android/RNSkAndroidPlatformContext.h b/android/cpp/rnskia-android/RNSkAndroidPlatformContext.h
-index f9f8a1540d99cbc3b7b7352a9ffdb206cd7aa0bf..cf6c65ca7195f96f393e92e0f1a0bf2f1cce370d 100644
+index 46aca6f3e887b646d70ff1b33bdef1e20c35eb53..151d02bdcf96218fad1732296683747cdced86e8 100644
 --- a/android/cpp/rnskia-android/RNSkAndroidPlatformContext.h
 +++ b/android/cpp/rnskia-android/RNSkAndroidPlatformContext.h
-@@ -40,6 +40,11 @@ public:
+@@ -42,6 +42,11 @@ public:
  
    ~RNSkAndroidPlatformContext() override = default;
  
@@ -62,10 +62,10 @@ index f9f8a1540d99cbc3b7b7352a9ffdb206cd7aa0bf..cf6c65ca7195f96f393e92e0f1a0bf2f
    void performStreamOperation(
        const std::string &sourceUri,
        const std::function<void(std::unique_ptr<SkStreamAsset>)> &op) override {
-diff --git a/android/src/main/java/com/shopify/reactnative/skia/PlatformContext.java b/android/src/main/java/com/shopify/reactnative/skia/PlatformContext.java
-index 724776a00be028a773cfbfb70ffb3c25a8e8840e..a9fff6ca2532b8de5e3bceb1b3969cf31886738e 100644
---- a/android/src/main/java/com/shopify/reactnative/skia/PlatformContext.java
-+++ b/android/src/main/java/com/shopify/reactnative/skia/PlatformContext.java
+diff --git a/android/src/main/java/com/reactnative/skia/PlatformContext.java b/android/src/main/java/com/reactnative/skia/PlatformContext.java
+index 2ae917fcd597d7c99fc5f669545b426109b1f208..16f27833b9ba700a6c5e578632474572ca03e991 100644
+--- a/android/src/main/java/com/reactnative/skia/PlatformContext.java
++++ b/android/src/main/java/com/reactnative/skia/PlatformContext.java
 @@ -6,6 +6,7 @@ import android.os.Looper;
  import com.facebook.jni.HybridData;
  import com.facebook.proguard.annotations.DoNotStrip;
@@ -90,10 +90,10 @@ index 724776a00be028a773cfbfb70ffb3c25a8e8840e..a9fff6ca2532b8de5e3bceb1b3969cf3
  
      @DoNotStrip
 diff --git a/cpp/rnskia/RNSkPlatformContext.h b/cpp/rnskia/RNSkPlatformContext.h
-index 596bb93f114cc80c10fc181ab015bdb740d5942a..6fc3b44c5934a72b966ba96bad1f094d5e36a087 100644
+index 370f5764836103f655f30bb4f430a941ea09861d..40c7dca69c610a8230a3bf51d3e6764ec0c94733 100644
 --- a/cpp/rnskia/RNSkPlatformContext.h
 +++ b/cpp/rnskia/RNSkPlatformContext.h
-@@ -191,7 +191,7 @@ public:
+@@ -195,7 +195,7 @@ public:
    /**
     * @return Current scale factor for pixels
     */

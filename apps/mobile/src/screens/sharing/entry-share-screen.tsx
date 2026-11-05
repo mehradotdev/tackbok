@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View, type ViewInstance } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react-native';
 import { useEntry } from '~/hooks/useGratitude';
@@ -28,7 +28,7 @@ export function EntryShareScreen({ noteId }: { noteId?: string }) {
   const { t, isRTL } = useTranslation();
   const activeTheme = useSettingsStore((state) => state.theme);
   const { data: entry, isLoading, isError, refetch } = useEntry(noteId);
-  const captureRef = React.useRef<View>(null);
+  const captureRef = React.useRef<ViewInstance>(null);
   const [includeMood, setIncludeMood] = React.useState(false);
   const [includePhotos, setIncludePhotos] = React.useState(false);
   const [captureReady, setCaptureReady] = React.useState(false);

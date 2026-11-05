@@ -1,5 +1,5 @@
 import { memo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View, type ScrollViewInstance } from 'react-native';
 import { LegendList } from '@legendapp/list/react-native';
 import { cn } from 'tailwind-variants';
 import { MOODS, MOOD_EMOJI, MONTH_SHORT_KEYS } from '~/constants';
@@ -118,7 +118,7 @@ interface ContributionHeatmapProps {
 export function ContributionHeatmap({ weeks, hasMoods }: ContributionHeatmapProps) {
   const { t, isRTL } = useTranslation();
   const [mode, setMode] = useState<HeatmapMode>('entries');
-  const rtlScrollRef = useRef<ScrollView>(null);
+  const rtlScrollRef = useRef<ScrollViewInstance>(null);
 
   const gridHeight = MONTH_ROW_HEIGHT + 7 * COL;
 

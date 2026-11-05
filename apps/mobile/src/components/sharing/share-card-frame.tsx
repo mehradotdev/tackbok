@@ -1,6 +1,6 @@
 import { useTranslation } from '~/lib/i18n';
 import React from 'react';
-import { View, Text, type ViewStyle } from 'react-native';
+import { View, Text, type ViewStyle, type ViewInstance } from 'react-native';
 import { TackbokLogo } from '~/components/TackbokLogo';
 import type { SharePalette } from '~/lib/sharing/share-palettes';
 
@@ -11,7 +11,7 @@ type ShareCardFrameProps = {
   onLayout?: React.ComponentProps<typeof View>['onLayout'];
 };
 
-export const ShareCardFrame = React.forwardRef<View, ShareCardFrameProps>(
+export const ShareCardFrame = React.forwardRef<ViewInstance, ShareCardFrameProps>(
   function ShareCardFrame({ palette, aspectRatio, children, onLayout }, ref) {
     const { t } = useTranslation();
     const frameStyle: ViewStyle = {

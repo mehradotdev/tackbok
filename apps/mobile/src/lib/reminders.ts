@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+// Named enum imports: import/namespace misses enums in the SDK 58 build output.
+import { AndroidImportance, IosAuthorizationStatus } from 'expo-notifications';
 import { getLocales } from 'expo-localization';
 import { router, type Href } from 'expo-router';
 import { useSettingsStore } from '~/lib/settings';
@@ -53,10 +55,7 @@ function parseReminderTime(time: string): { hour: number; minute: number } {
 }
 
 function isPermissionGranted(settings: Notifications.NotificationPermissionsStatus) {
-  return (
-    settings.granted ||
-    settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
-  );
+  return settings.granted || settings.ios?.status === IosAuthorizationStatus.PROVISIONAL;
 }
 
 export async function hasReminderPermission(): Promise<boolean> {
@@ -84,7 +83,7 @@ async function ensureAndroidChannel(locale: SupportedLocale) {
   }
   await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
     name: translate(locale, 'notifications.dailyReminder'),
-    importance: Notifications.AndroidImportance.DEFAULT,
+    importance: AndroidImportance.DEFAULT,
   });
 }
 

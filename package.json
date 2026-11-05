@@ -27,6 +27,6 @@
     "prettier": "^3.8.1"
   },
   "patchedDependencies": {
-    "@shopify/react-native-skia@2.6.2": "patches/@shopify%2Freact-native-skia@2.6.2.patch"
+    "@shopify/react-native-skia@2.14.0": "patches/@shopify%2Freact-native-skia@2.14.0.patch"
   }
 }

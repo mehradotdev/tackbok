@@ -18,7 +18,7 @@ import {
   getMonth,
   addDays,
 } from 'date-fns';
-import { View, Pressable, ScrollView } from 'react-native';
+import { View, Pressable, ScrollView, type ScrollViewInstance } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { FirstDay, type FirstDayOfWeek } from '~/types';
@@ -229,7 +229,7 @@ export function DatePicker({
   const { t, isRTL, locale } = useTranslation();
   const [viewDate, setViewDate] = useState(value);
   const [viewMode, setViewMode] = useState<ViewMode>('days');
-  const yearsScrollRef = useRef<ScrollView>(null);
+  const yearsScrollRef = useRef<ScrollViewInstance>(null);
   const hasAutoScrolledYearsRef = useRef(false);
 
   // Get the weekStartsOn value for date-fns

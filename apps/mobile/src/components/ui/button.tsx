@@ -20,13 +20,15 @@ const buttonVariants = tv({
       // height (e.g. sm:h-9) silently wins over call-site h-auto in
       // tailwind-merge (different specificity groups) and clips multi-line
       // content on iPad. Call-site h-auto works fine; size="none" remains
-      // for full manual control.
+      // for full manual control. It sets no padding because the base has none;
+      // a `p-0` compiles to per-side padding in React Native, which overrides
+      // call-site px-*/py-* (paddingHorizontal/Vertical).
       default: 'h-10 px-4',
       sm: 'h-9 gap-1.5 rounded-md px-3',
       lg: 'h-11 rounded-md px-6',
       icon: 'h-10 w-10',
       flex: 'h-auto',
-      none: 'p-0 h-auto w-auto',
+      none: 'h-auto w-auto',
     },
   },
   defaultVariants: {
