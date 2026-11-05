@@ -7,7 +7,7 @@ import {
   RadialGradient,
   Skia,
   vec,
-} from '@shopify/react-native-skia';
+} from 'react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { SHADOW_ART } from './shadow-art.generated';
 import { shadowPose } from './shadow-motion';

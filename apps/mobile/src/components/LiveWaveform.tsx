@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, LayoutChangeEvent } from 'react-native';
-import { Canvas, Path, Skia } from '@shopify/react-native-skia';
+import { Canvas, Path, Skia } from 'react-native-skia';
 import { audioEngine } from '~/lib/audioEngine';
 
 // ============================================================================
@@ -161,9 +161,7 @@ export function LiveWaveform({
       const y = midY - barH / 2;
       const radius = Math.min(barWidth / 2, 1.5);
 
-      builder.addRRect(
-        Skia.RRectXY(Skia.XYWHRect(x, y, barWidth, barH), radius, radius),
-      );
+      builder.addRRect(Skia.RRectXY(Skia.XYWHRect(x, y, barWidth, barH), radius, radius));
     }
 
     return builder.detach();

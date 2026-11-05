@@ -14,8 +14,7 @@ const load = Module._load;
 const shared = (value) => ({ _isReanimatedSharedValue: true, value });
 Module._load = function (id, parent, main) {
   if (id === 'react-native-reanimated') return { useDerivedValue: (fn) => shared(fn()) };
-  if (id === '@shopify/react-native-skia')
-    return { ...headless, Skia, vec: (x, y) => ({ x, y }) };
+  if (id === 'react-native-skia') return { ...headless, Skia, vec: (x, y) => ({ x, y }) };
   return load.call(this, id, parent, main);
 };
 for (const ext of ['.ts', '.tsx'])
@@ -34,9 +33,7 @@ for (const ext of ['.ts', '.tsx'])
   global.CanvasKit = await require(
     root + '/node_modules/canvaskit-wasm/bin/full/canvaskit.js',
   )({ locateFile: (f) => root + '/node_modules/canvaskit-wasm/bin/full/' + f });
-  headless = require(
-    root + '/node_modules/@shopify/react-native-skia/lib/commonjs/headless',
-  );
+  headless = require(root + '/node_modules/react-native-skia/lib/commonjs/headless');
   Skia = headless.getSkiaExports().Skia;
   const { ShiroDogArt } = require(
     root + '/apps/mobile/src/components/backdrops/ShiroDog.tsx',
@@ -70,7 +67,10 @@ for (const ext of ['.ts', '.tsx'])
       ),
     );
     const img = await headless.drawOffscreen(surface, el);
-    fs.writeFileSync(`${out}/${String(i).padStart(3, '0')}.png`, img.encodeToBytes());
+    fs.writeFileSync(
+      `${out}/${String(i).padStart(3, '0')}.png`,
+      await img.encodeToBytes(),
+    );
     img.dispose();
     surface.dispose();
   }

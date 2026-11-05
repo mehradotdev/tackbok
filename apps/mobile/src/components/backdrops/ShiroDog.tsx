@@ -1,4 +1,4 @@
-import { Group, LinearGradient, Oval, Path, Skia, vec } from '@shopify/react-native-skia';
+import { Group, LinearGradient, Oval, Path, Skia, vec } from 'react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import { SHIRO_ART } from './shiro-art.generated';
 import { shiroIdle, shiroIdleBark, shiroPerformance } from './shiro-motion';

@@ -9,7 +9,7 @@ const React = require(root + '/node_modules/react');
 let headless, Skia;
 const load = Module._load;
 Module._load = function (id, parent, main) {
-  if (id === '@shopify/react-native-skia') return { ...headless, Skia };
+  if (id === 'react-native-skia') return { ...headless, Skia };
   return load.call(this, id, parent, main);
 };
 for (const ext of ['.ts', '.tsx'])
@@ -28,9 +28,7 @@ for (const ext of ['.ts', '.tsx'])
   global.CanvasKit = await require(
     root + '/node_modules/canvaskit-wasm/bin/full/canvaskit.js',
   )({ locateFile: (f) => root + '/node_modules/canvaskit-wasm/bin/full/' + f });
-  headless = require(
-    root + '/node_modules/@shopify/react-native-skia/lib/commonjs/headless',
-  );
+  headless = require(root + '/node_modules/react-native-skia/lib/commonjs/headless');
   Skia = headless.getSkiaExports().Skia;
   const { MEADOW_SKY_SHADER } = require(
     root + '/apps/mobile/src/components/backdrops/meadow-sky-shader.ts',
@@ -153,10 +151,10 @@ for (const ext of ['.ts', '.tsx'])
         const img = await headless.drawOffscreen(surface, scene);
         fs.writeFileSync(
           `${out}/${theme.id}-${name}-${shimmer}.png`,
-          img.encodeToBytes(),
+          await img.encodeToBytes(),
         );
         // Check the whole art surface: journal text can land on any pixel.
-        const pixels = img.readPixels();
+        const pixels = await img.readPixels();
         if (!(pixels instanceof Uint8Array)) throw Error('Expected RGBA8 pixels');
         const linear = Array.from({ length: 256 }, (_, i) => {
           const c = i / 255;
