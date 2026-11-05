@@ -48,12 +48,14 @@ function GrassLayer({
   blades: MeadowBlade[];
   time: SharedValue<number>;
   color: string;
-  blur: number;
+  // Omitted on the front layers: a sub-pixel blur is invisible there but
+  // costs a full blur pass every frame.
+  blur?: number;
 }) {
   const path = useDerivedValue(() => meadowPath(blades, time.value));
   return (
     <Path path={path} color={color}>
-      <BlurMask blur={blur} style="normal" />
+      {blur ? <BlurMask blur={blur} style="normal" /> : null}
     </Path>
   );
 }
@@ -293,18 +295,12 @@ export function SkyBackdrop({
             color={palette.middle}
             blur={unit * 0.002}
           />
-          <GrassLayer
-            blades={layers[2]}
-            time={time}
-            color={palette.grass}
-            blur={unit * 0.0008}
-          />
+          <GrassLayer blades={layers[2]} time={time} color={palette.grass} />
           <Group opacity={0.22}>
             <GrassLayer
               blades={layers[2].filter((_, i) => i % 4 === 0)}
               time={time}
               color={palette.highlight}
-              blur={0.5}
             />
           </Group>
           <Rect
