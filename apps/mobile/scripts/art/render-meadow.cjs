@@ -1,4 +1,3 @@
-/* global __dirname */
 // Render meadow geometry and shader at phone/tablet/picker sizes and check text contrast.
 const fs = require('fs'),
   path = require('path'),

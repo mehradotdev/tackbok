@@ -1,4 +1,3 @@
-/* global __dirname */
 // Render the actual Camino Skia paths and shader at phone/tablet/picker sizes.
 const fs = require('fs'),
   path = require('path'),
