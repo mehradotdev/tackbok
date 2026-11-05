@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, LayoutChangeEvent } from 'react-native';
-import { Canvas, Path, Skia } from '@shopify/react-native-skia';
+import { Canvas, Path, Skia } from 'react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { scheduleOnRN } from 'react-native-worklets';
 

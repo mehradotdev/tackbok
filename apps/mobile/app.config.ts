@@ -76,6 +76,8 @@ const config: ExpoConfig = {
       'expo-build-properties',
       {
         android: {
+          // React Native Skia 3 renders through Dawn/Vulkan and requires API 26.
+          minSdkVersion: 26,
           enableMinifyInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
         },

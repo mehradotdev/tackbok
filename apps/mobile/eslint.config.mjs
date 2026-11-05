@@ -22,6 +22,11 @@ export default defineConfig([
     ],
   },
   {
+    // Node CommonJS scripts (e.g. scripts/art renderers).
+    files: ['scripts/**/*.cjs'],
+    languageOptions: { globals: { __dirname: 'readonly' } },
+  },
+  {
     plugins: {
       i18n: i18nPlugin,
     },

@@ -9,7 +9,7 @@ import {
   RadialGradient,
   Rect,
   vec,
-} from '@shopify/react-native-skia';
+} from 'react-native-skia';
 import { useFocusEffect } from 'expo-router';
 import {
   Easing,

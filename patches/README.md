@@ -1,6 +1,6 @@
 # React Native Skia Android density patch
 
-`@shopify/react-native-skia@2.14.0` reads density from Android resources at startup
+`react-native-skia@3.9.1` reads density from Android resources at startup
 and caches it in its native platform context. React Native 0.88 converts layout
 dimensions with `PixelUtil`, which uses `DisplayMetricsHolder` screen metrics.
 If those densities differ, Skia scales all artwork incorrectly even though the
@@ -28,5 +28,5 @@ Validation on the affected device is still required:
 Compile the changed Java and C++ from `apps/mobile/android` after beta prebuild:
 
 ```sh
-./gradlew :shopify_react-native-skia:compileDebugJavaWithJavac ':shopify_react-native-skia:buildCMakeDebug[arm64-v8a]'
+./gradlew :react-native-skia:compileDebugJavaWithJavac ':react-native-skia:buildCMakeDebug[arm64-v8a]'
 ```

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Circle, Group, Path, Rect, Skia } from '@shopify/react-native-skia';
+import { Circle, Group, Path, Rect, Skia } from 'react-native-skia';
 import {
   ARROW,
   BACKPACK,
