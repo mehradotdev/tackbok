@@ -70,7 +70,7 @@
     "expo-updates": "~58.0.21",
     "expo-web-browser": "~58.0.7",
     "i18next": "^26.7.1",
-    "lucide-react-native": "^1.67.0",
+    "lucide-react-native": "^1.69.0",
     "posthog-react-native": "^4.85.2",
     "react": "19.3.0",
     "react-native": "0.88.1",
