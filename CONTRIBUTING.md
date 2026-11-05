@@ -91,8 +91,12 @@ bun run test
 bun run build
 ```
 
-Tests currently include the mobile Jest suite and Bun cloud-sync integration
-suite. The website is covered by lint, typecheck, and build checks. No emulator or
+These run every workspace; `build` builds only the website. To check one app,
+run `lint`, `typecheck`, and `test` from `apps/mobile`, or `lint`, `typecheck`,
+and `build` from `apps/website`. Use the root commands for shared changes.
+
+Tests currently include the mobile Jest suite and Bun integration suites (cloud
+sync and database). The website is covered by lint, typecheck, and build checks. No emulator or
 service account is needed for these commands. For a focused mobile test:
 
 ```sh
@@ -102,7 +106,7 @@ bun run test:jest src/lib/backupExport/utils.test.ts --runInBand --no-watchman
 
 Add or update tests when behavior changes. For mobile text changes, read
 [the localization guide](docs/localization.md), update all existing catalogs, and
-run its checks. Report device/simulator coverage, including accessibility and RTL
+run its checks. Report iOS/Android device or simulator coverage, including accessibility and RTL
 where relevant, and clearly state anything you could not verify.
 
 Pre-commit hooks format and lint staged files only; lint errors block commits,
@@ -115,11 +119,15 @@ formatting commands and hook troubleshooting.
 1. Use a Conventional Commit, such as `fix(mobile): preserve journal scroll position`
    or `docs: clarify local setup`.
 2. Push your branch and open a PR against `main` using the PR template.
-3. Give the PR a conventional title, link the issue, describe the resulting
-   behavior, and list the checks you ran. Include screenshots for visual changes
-   when practical; documentation-only changes do not need them.
-4. Respond to review and keep the PR focused. Maintainers should squash merge
-   using the PR title; CI does not require rewriting every intermediate commit.
+3. Give the PR a conventional title, link a related issue if there is one,
+   describe the resulting behavior, and list the checks and platforms you tested.
+   For mobile, note whether the change needs a new native build.
+4. Show UI changes when you can: a screenshot or short recording for a new
+   feature, and before/after screenshots or recordings for a visible bug fix.
+   Use sample data. Changes with nothing visible do not need them.
+5. Respond to review and keep the PR focused. Maintainers usually squash merge
+   using the PR title, and occasionally use a merge commit to keep meaningful
+   commits, so keep your commit messages conventional too.
 
 For maintainers: apply `good first issue` only to small, well-described tasks with
 clear acceptance criteria. Use `help wanted` for work that is ready for outside

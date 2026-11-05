@@ -27,6 +27,6 @@
 ## Verification
 
 - `bun run lint`, `bun run typecheck`, and `bun run test` check this app.
-- `test` runs Jest and the separate Bun cloud-sync integration suite. Follow the
+- `test` runs Jest and the separate Bun cloud-sync and database integration suites. Follow the
   colocated tests and shared mock conventions in the README; use focused tests
   while iterating.

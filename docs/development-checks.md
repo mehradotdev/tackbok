@@ -29,7 +29,7 @@ bun run build
 ```
 
 `test` runs all workspace test scripts that exist: currently mobile Jest and Bun
-cloud-sync suites. The website has no test suite yet; its lint, typecheck, and
+cloud-sync and database suites. The website has no test suite yet; its lint, typecheck, and
 production build are checked. `build` builds the website, not native apps.
 
 Formatting is adopted gradually: format changed files rather than the whole
@@ -69,9 +69,9 @@ git fetch origin
 bun run format:changed origin/main
 ```
 
-Use a Conventional Commit title for your PR. Maintainers should squash merge and
-use that title for the squash commit. CI does not require rewriting intermediate
-commits. Repository merge settings and branch protection are managed separately:
+Use a Conventional Commit title for your PR. Maintainers usually squash merge and
+use that title for the squash commit; a merge commit is occasionally used to keep
+meaningful commits. CI checks only the PR title, not intermediate commits. Repository merge settings and branch protection are managed separately:
 require both `Check code quality` and `Check PR title`, and enable **Require
 branches to be up to date before merging** to ensure PRs are tested against the
 latest `main`.
