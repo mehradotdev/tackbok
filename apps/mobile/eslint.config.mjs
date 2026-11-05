@@ -41,6 +41,23 @@ export default defineConfig([
       // The "sync draft state when a modal opens" pattern trips this in ~9
       // components; restructuring them all isn't worth the regression risk.
       'react-hooks/set-state-in-effect': 'warn',
+      // Uniwind silently drops className on unwrapped third-party components.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react-native-safe-area-context',
+              importNames: ['SafeAreaView'],
+              message: 'Use ~/components/ui/safe-area-view so className is applied.',
+            },
+          ],
+        },
+      ],
     },
+  },
+  {
+    files: ['src/components/ui/safe-area-view.tsx'],
+    rules: { 'no-restricted-imports': 'off' },
   },
 ]);

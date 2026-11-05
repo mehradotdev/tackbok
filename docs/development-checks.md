@@ -62,6 +62,15 @@ an invalid title. This workflow installs only root tooling with `--filter './'`,
 excluding mobile and website dependencies. It also runs for new PR commits because
 required checks must report a result for the latest commit.
 
+An advisory **Mobile fingerprint** workflow compares the Expo native fingerprint
+of the PR's merge result with its base when mobile config, dependencies, or
+`patches/` change. If it differs, the PR gets the `native change` label and the
+job summary lists the changed sources. Such a PR cannot ship as an OTA update:
+bump the app version and ship a store build. The job always passes. To inspect a
+fingerprint locally, run
+`APP_VARIANT=production bunx expo-updates fingerprint:generate --platform android`
+from `apps/mobile`.
+
 To reproduce the formatting check, commit your changes and run:
 
 ```sh
