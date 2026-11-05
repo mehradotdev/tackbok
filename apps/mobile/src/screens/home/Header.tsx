@@ -2,6 +2,7 @@ import React from 'react';
 import { HeaderGreeting, HeaderMotion, useHeaderGreeting } from './header-greeting';
 import { View, ScrollView } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
+import Constants from 'expo-constants';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -23,6 +24,9 @@ import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group';
 import { SettingsBottomSheet } from '~/components/SettingsBottomSheet';
 import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
+
+// Brand marker for the beta app variant; intentionally untranslated.
+const IS_BETA_BUILD = Constants.expoConfig?.extra?.appVariant === 'beta';
 
 interface IHeaderProps {
   isSearchMode?: boolean;
@@ -154,13 +158,20 @@ export const Header: React.FC<IHeaderProps> = ({
         </HeaderMotion>
         <View pointerEvents="none" className="absolute left-0 right-0 items-center">
           <HeaderMotion {...motion} index={1} className="items-center w-full">
-            <Text
-              variant="h2"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              className="text-primary-foreground font-heading max-w-[42%]">
-              {t('common.tackbok')}
-            </Text>
+            <View className="flex-row items-start max-w-[42%]">
+              <Text
+                variant="h2"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                className="shrink text-primary-foreground font-heading">
+                {t('common.tackbok')}
+              </Text>
+              {IS_BETA_BUILD && (
+                <Text className="ml-0.5 mt-1 text-xs leading-4 tracking-wider text-primary-foreground font-body-semibold">
+                  BETA
+                </Text>
+              )}
+            </View>
           </HeaderMotion>
         </View>
 
