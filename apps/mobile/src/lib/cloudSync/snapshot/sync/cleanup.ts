@@ -101,6 +101,7 @@ export class SnapshotCleanup {
             return;
           continue;
         }
+        hooks.activity?.('reading-remote-snapshot');
         const bytes = await provider.downloadSnapshot(vaultId, head.snapshotId);
         if (!bytes) return;
         const { payload } = decodeSnapshot(bytes, head.snapshotId);
@@ -126,6 +127,7 @@ export class SnapshotCleanup {
       covered.set(survivor.head.deviceId, survivor.head.deviceSequence);
       for (const snapshot of candidates) {
         this.lastExaminedSnapshot = snapshot.snapshotId;
+        hooks.activity?.('reading-remote-snapshot');
         const bytes = await provider.downloadSnapshot(vaultId, snapshot.snapshotId);
         if (!bytes) continue;
         const { payload } = decodeSnapshot(bytes, snapshot.snapshotId);

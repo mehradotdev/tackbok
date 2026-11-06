@@ -1966,6 +1966,41 @@ describe('sync progress phases', () => {
     },
   );
 
+  test('retention cleanup reads after a publication never read as saving', async () => {
+    const app = harness('device-cleanup-phases');
+    for (let index = 0; index < 5; index++) {
+      app.clock.value++;
+      app.journal.mutate(
+        withEntry(app.journal.current(), entry(`entry-${index}`, `Value ${index}`)),
+      );
+      await app.engine().sync();
+    }
+    app.clock.value += 31 * 24 * 60 * 60 * 1000;
+    app.journal.mutate(withEntry(app.journal.current(), entry('entry-new', 'Newest')));
+
+    let phase: SyncPassPhase = 'checking';
+    let settled = false;
+    const reads: SyncPassPhase[] = [];
+    const download = app.provider.downloadSnapshot.bind(app.provider);
+    app.provider.downloadSnapshot = async (...args) => {
+      if (settled) reads.push(phase);
+      return download(...args);
+    };
+    const result = await app
+      .engine({
+        activity: (activity) => {
+          phase = PHASE_FOR_ENGINE_ACTIVITY[activity];
+        },
+        at: (point) => {
+          if (point === 'after-base-checkpoint-settled') settled = true;
+        },
+      })
+      .sync();
+    expect(result.status).toBe('published');
+    expect(reads.length).toBeGreaterThan(0);
+    expect(reads).not.toContain('uploading');
+  });
+
   test('adopting another device’s snapshot reads as downloading', async () => {
     const provider = new FakeSnapshotProvider();
     const source = harness(
