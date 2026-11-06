@@ -381,6 +381,7 @@ export class SnapshotSyncEngine {
           budget.downloads -= 1;
           let bytes: Uint8Array | null;
           try {
+            this.hooks.activity?.('reading-remote-snapshot');
             bytes = await this.provider.downloadSnapshot(this.vaultId, snapshotId);
           } catch (error) {
             // Damaged bytes (checksum, size, conflicting copies) of an optional
