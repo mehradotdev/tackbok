@@ -252,9 +252,9 @@ export default function OnboardingWelcomeScreen() {
         <Text className="text-base text-muted-foreground text-center mt-2 px-4">
           {t('onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours')}
         </Text>
-        <View className="flex-row items-center gap-1.5 mt-3">
+        <View className="flex-row items-center gap-1.5 mt-3 px-4">
           <Icon as={ShieldCheck} className="text-muted-foreground size-4" />
-          <Text className="text-sm text-muted-foreground">
+          <Text className="shrink text-sm text-muted-foreground">
             {t('cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional')}
           </Text>
         </View>

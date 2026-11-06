@@ -934,6 +934,20 @@ export function mergeSnapshotDomains(
     conflicts,
   };
   const referenced = calculateMediaReferences(result);
+  // A retained photo conflict can still offer a photo that the media merge
+  // dropped, e.g. the base photo after the other side replaced it. Keep its
+  // descriptor so the alternate stays restorable. Only one side can still hold
+  // it (both would have kept it above), so the choice is order-independent.
+  const mergedAssetIds = new Set(media.map((asset) => asset.assetId));
+  for (const assetId of referenced) {
+    if (mergedAssetIds.has(assetId)) continue;
+    const kept =
+      local.media.find((asset) => asset.assetId === assetId) ??
+      remote.media.find((asset) => asset.assetId === assetId) ??
+      base?.media.find((asset) => asset.assetId === assetId);
+    if (kept?.ownerType === 'profile') media.push(kept);
+  }
+  media.sort(keyComparator((value) => value.assetId));
   const liveEntryIds = new Set(result.entries.map((entry) => entry.entryId));
   media = media.filter(
     (asset) =>
