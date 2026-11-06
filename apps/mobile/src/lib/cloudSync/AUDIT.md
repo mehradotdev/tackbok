@@ -44,24 +44,24 @@ unrecoverable > **S3** wrong or misleading UI > **S4** polish.
 
 ### Findings, ranked
 
-| ID | Sev | Finding | Found by | Verified |
-|---|---|---|---|---|
-| N1 | S1 | No merge base after concurrent publishes: edits reverted, entries duplicated, deletions undone | Both (known A) | Repro, both |
-| N2 | S1 | A device that skipped naming erases the name everywhere on first join | Both (known A) | Repro, both |
-| N3 | S1 | A resumed, already-planned candidate is published against stale heads | Opus | Repro + code |
-| N4 | S1/S3 | Same profile photo gets different asset IDs per device, causing frivolous photo conflicts | Astra | Repro + code |
-| N5 | S2 | Disconnect and Pause wait for the whole running pass; nothing can be cancelled | Both (known B) | Repro, both |
-| N6 | S2 | Media download writes beyond the declared size before rejecting it | Astra | Repro |
-| N7 | S3 | Retry-After is shortened to 30 s inside a request | Astra | Repro |
-| N8 | S2/S3 | With Wi-Fi-only media on, a new photo blocks *text* sync on mobile data | Both | Repro, both |
-| N9 | S3 | First restore from onboarding is blocking, mislabelled and fragile when the user leaves | Both | Code + D1 repro |
-| N10 | S3 | "Recovered conflicts" card: identical rows, false "alternative saved", local-only dismissal | Both | Code |
-| N11 | S3 | Progress UI: 4-step bar goes backwards, photo downloads counted as "changes" | Both | Code |
-| N12 | S3 | Misleading error and recovery labels | Opus + Astra (different items) | Code |
-| N13 | S3 | Importing a Tackbok zip overwrites the profile even in merge mode | Opus | Code |
-| N14 | S3 | Discovery can't tell "no backup" from "unreadable backup" | Astra | Code (medium confidence) |
-| N15 | S4 | Privacy copy never says the developer can't see the journal | Both | Code |
-| N16 | S4? | iOS token is readable only while unlocked, which may break background sync | Opus (Astra noted the setting) | Speculative; needs a device |
+| ID  | Sev   | Finding                                                                                        | Found by                       | Verified                    |
+| --- | ----- | ---------------------------------------------------------------------------------------------- | ------------------------------ | --------------------------- |
+| N1  | S1    | No merge base after concurrent publishes: edits reverted, entries duplicated, deletions undone | Both (known A)                 | Repro, both                 |
+| N2  | S1    | A device that skipped naming erases the name everywhere on first join                          | Both (known A)                 | Repro, both                 |
+| N3  | S1    | A resumed, already-planned candidate is published against stale heads                          | Opus                           | Repro + code                |
+| N4  | S1/S3 | Same profile photo gets different asset IDs per device, causing frivolous photo conflicts      | Astra                          | Repro + code                |
+| N5  | S2    | Disconnect and Pause wait for the whole running pass; nothing can be cancelled                 | Both (known B)                 | Repro, both                 |
+| N6  | S2    | Media download writes beyond the declared size before rejecting it                             | Astra                          | Repro                       |
+| N7  | S3    | Retry-After is shortened to 30 s inside a request                                              | Astra                          | Repro                       |
+| N8  | S2/S3 | With Wi-Fi-only media on, a new photo blocks _text_ sync on mobile data                        | Both                           | Repro, both                 |
+| N9  | S3    | First restore from onboarding is blocking, mislabelled and fragile when the user leaves        | Both                           | Code + D1 repro             |
+| N10 | S3    | "Recovered conflicts" card: identical rows, false "alternative saved", local-only dismissal    | Both                           | Code                        |
+| N11 | S3    | Progress UI: 4-step bar goes backwards, photo downloads counted as "changes"                   | Both                           | Code                        |
+| N12 | S3    | Misleading error and recovery labels                                                           | Opus + Astra (different items) | Code                        |
+| N13 | S3    | Importing a Tackbok zip overwrites the profile even in merge mode                              | Opus                           | Code                        |
+| N14 | S3    | Discovery can't tell "no backup" from "unreadable backup"                                      | Astra                          | Code (medium confidence)    |
+| N15 | S4    | Privacy copy never says the developer can't see the journal                                    | Both                           | Code                        |
+| N16 | S4?   | iOS token is readable only while unlocked, which may break background sync                     | Opus (Astra noted the setting) | Speculative; needs a device |
 
 #### N1: Concurrent publishes merge with no base (S1)
 
@@ -92,7 +92,7 @@ unrecoverable > **S3** wrong or misleading UI > **S4** polish.
 
 **Refinement of known A:** identical conflicts collapse into one; the conflict
 ID hashes field, base and values (`merge.ts:45-58`). Quiet rounds add nothing;
-both agents confirmed this. Repeated rows require *new* value pairs under a
+both agents confirmed this. Repeated rows require _new_ value pairs under a
 missing base.
 
 **Fix direction:** merge against the real common ancestor.
@@ -129,7 +129,7 @@ bug until they update.
 - Simpler guard: with no base, a set name or photo beats an unset one without
   raising a conflict.
 
-Astra cautions against making `null` lose *globally*: after a real base, `null`
+Astra cautions against making `null` lose _globally_: after a real base, `null`
 can be a deliberate clear. Both directions agree on the first-join case.
 
 Also trim names in `storage/backfill.ts:130-138` and
@@ -207,7 +207,7 @@ WHERE json_extract(conflict_json,'$.entityType')='profile';
 **Refinement:**
 
 - A single request is probably bounded by native timeouts (Opus; unverified).
-- The real wait is a *whole pass*, which includes every photo it transfers
+- The real wait is a _whole pass_, which includes every photo it transfers
   (`engine.ts:397-447`), and that wait is unbounded while iOS has the app
   suspended.
 - Astra adds that an unresolved promise blocks the barrier indefinitely.
@@ -221,7 +221,7 @@ released.
 - Give each pass an `AbortController`. Pass its signal to fetch, body reads,
   backoff sleeps, the auth refresh and the media loops.
 - Add a per-request inactivity timeout.
-- Stop, Pause and Disconnect abort the pass and drain it *before* credentials are
+- Stop, Pause and Disconnect abort the pass and drain it _before_ credentials are
   cleared. Racing a timer is not enough, because authenticated writes would
   continue (Astra).
 - The staged publish already survives interruption at any point.
@@ -245,8 +245,7 @@ with N5.
 `transport.ts:175-249` checks `retryNotBefore` once, then sleeps
 `min(Retry-After, 30 s)` and retries early.
 
-**Evidence:** request timestamps `[0, 30000]` against a server deadline of
-120000.
+**Evidence:** request timestamps `[0, 30000]` against a server deadline of 120000.
 
 **Fix direction:** if the remaining delay is longer than the pass can wait,
 return `rate-limited` immediately. Never shorten the server's delay.
@@ -258,7 +257,7 @@ return `rate-limited` immediately. Never shorten the server's delay.
 - `snapshot/runtime/productionEngine.ts:84-120` refuses media uploads on
   cellular.
 - `engine.ts:407-412` and `sync/publication.ts:250-266` don't catch that refusal
-  on the *upload* path; only downloads tolerate it (`engine.ts:425-435`).
+  on the _upload_ path; only downloads tolerate it (`engine.ts:425-435`).
 - The whole pass therefore aborts, which contradicts `en.ts:813` "Journal text
   still syncs on mobile data."
 
@@ -282,7 +281,7 @@ treated as deleted. That needs focused tests and should be its own PR.
   hydrates 2 files per pass. The setup screen therefore stays on "working" until
   the whole restore, photos included, finishes.
 - **The toast is wrong:** the toast says "Cloud restore started" (`en.ts:768`,
-  `index.tsx:198-202`) after the restore has *finished*. Runtime errors become
+  `index.tsx:198-202`) after the restore has _finished_. Runtime errors become
   null results, so a failed first pass shows the same success toast (Astra).
 - **Leaving early:**
   - The restore keeps running, but `setHasCompletedOnboarding` sits behind the
@@ -291,7 +290,7 @@ treated as deleted. That needs focused tests and should be its own PR.
   - On relaunch, the restore resumes behind onboarding.
 - **Starting over:** choosing Google Drive again calls
   `prepareGoogleDriveConnectionImpl`. That disables the vault being restored
-  *before* auth (`ui/production.ts:244-250`), and a cancelled sign-in also signs
+  _before_ auth (`ui/production.ts:244-250`), and a cancelled sign-in also signs
   out (`:275`), so the restore is silently dropped.
 - **Possible leak (Opus; speculative, each step present in code):** if the
   database is still empty, "Get started" can seed sample entries
@@ -368,7 +367,7 @@ The proposed copy is listed under UI/UX recommendations.
 
 - **Opus:**
   - `local-media-unreadable` is classified `corrupt`
-    (`failureClassification.ts:37-46`), so a missing *local* photo shows "This
+    (`failureClassification.ts:37-46`), so a missing _local_ photo shows "This
     cloud backup contains data Tackbok cannot read."
   - A dropped connection mid-download shows "could not finish" instead of an
     offline message.
@@ -389,7 +388,7 @@ whatever the import `mode`. The overwrite then reaches every device.
 Account discovery (`googleDriveSnapshotProvider.ts:246-269`, `:570`) only
 considers `tb_kind=head` objects and silently skips invalid metadata. An
 unreadable or older-layout backup therefore shows "No Tackbok backup found" and
-offers to create a *separate* backup. Neither agent had a historical fixture, so
+offers to create a _separate_ backup. Neither agent had a historical fixture, so
 the impact on backups that actually shipped is unknown.
 
 **Fix direction:** add an "unreadable/unsupported backup found" state distinct
@@ -411,10 +410,10 @@ from "no backup found".
 
 - Optional, opt-in PostHog analytics exist. They carry counts, ranges and
   categories, never content (`analytics/events.ts:129-138`). Promise "Tackbok's
-  developer never receives *your journal*", not "never receives any data".
+  developer never receives _your journal_", not "never receives any data".
 - Backups are not end-to-end encrypted. Keep saying so, in plain language.
 
-Proposed copy is under Privacy wording. Update all 10 locales.
+Proposed copy is under Privacy wording. Update all locale catalogs (there are 9).
 
 #### N16: iOS keychain accessibility (speculative, Opus)
 
@@ -458,25 +457,25 @@ change, which would be to use `AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`.
 
 **In the app** (`lib/i18n/translations/en.ts`, then all locales):
 
-| Key / line | Current | Proposed |
-|---|---|---|
-| `:749` overview | "Back up and sync your journal with your own Google Drive. No Tackbok account is created." | "Back up and sync your journal with your own Google Drive. It goes straight from your phone to your Drive. Tackbok's developer never sees it." |
+| Key / line                | Current                                                                                           | Proposed                                                                                                                                                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `:749` overview           | "Back up and sync your journal with your own Google Drive. No Tackbok account is created."        | "Back up and sync your journal with your own Google Drive. It goes straight from your phone to your Drive. Tackbok's developer never sees it."                                                                                                         |
 | `:766` before you connect | "Backups are encrypted in transit and at rest by Google Drive, but are not end-to-end encrypted." | "Your backup is stored in a private Tackbok folder in your Google Drive. Tackbok can't see your other Drive files, and your backup is never sent to Tackbok's developer. Google protects it like your other files, but it isn't end-to-end encrypted." |
-| `:810` permission hint | "If Google shows a Drive access checkbox, select it…" | "Google will ask to let Tackbok use its own private folder in your Drive. Tick that box, or backup can't connect." |
-| `:876` email | long technical text | "Your Google email is kept only on this phone, to show which account is connected. It's removed when you disconnect and is never sent to Tackbok." |
-| `:888` onboarding | "Your journal stays on your device. Cloud backup is optional." | "Your journal stays on your phone. If you turn on backup, a copy goes only to your own Google Drive." |
-| `:844` | "Restore from your cloud backup" | "Restore from your Google Drive backup" |
+| `:810` permission hint    | "If Google shows a Drive access checkbox, select it…"                                             | "Google will ask to let Tackbok use its own private folder in your Drive. Tick that box, or backup can't connect."                                                                                                                                     |
+| `:876` email              | long technical text                                                                               | "Your Google email is kept only on this phone, to show which account is connected. It's removed when you disconnect and is never sent to Tackbok."                                                                                                     |
+| `:888` onboarding         | "Your journal stays on your device. Cloud backup is optional."                                    | "Your journal stays on your phone. If you turn on backup, a copy goes only to your own Google Drive."                                                                                                                                                  |
+| `:844`                    | "Restore from your cloud backup"                                                                  | "Restore from your Google Drive backup"                                                                                                                                                                                                                |
 
 **On the website** (`apps/website/src/pages/`):
 
-| Where | Change |
-|---|---|
-| `faq.astro:54-57` | Add: "If you turn on Google Drive backup, a copy goes straight from your device to a private folder in your own Drive. We never receive it." |
-| `faq.astro:69-72` | Mention Drive backup and sync between phones. |
-| `index.astro:430-441` | "personal cloud" → "your own Google Drive" (only Drive exists). |
-| `privacy.astro:66-69` | Say access is limited to Tackbok's own private app folder. |
-| `privacy.astro:83-104` | Replace the technical email and snapshot paragraphs with plain language. Per the existing preference, `privacy.astro` stays non-technical. |
-| `privacy.astro:114` | "nothing is sent from your device" → "No usage analytics are sent unless you opt in." |
+| Where                  | Change                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `faq.astro:54-57`      | Add: "If you turn on Google Drive backup, a copy goes straight from your device to a private folder in your own Drive. We never receive it." |
+| `faq.astro:69-72`      | Mention Drive backup and sync between phones.                                                                                                |
+| `index.astro:430-441`  | "personal cloud" → "your own Google Drive" (only Drive exists).                                                                              |
+| `privacy.astro:66-69`  | Say access is limited to Tackbok's own private app folder.                                                                                   |
+| `privacy.astro:83-104` | Replace the technical email and snapshot paragraphs with plain language. Per the existing preference, `privacy.astro` stays non-technical.   |
+| `privacy.astro:114`    | "nothing is sent from your device" → "No usage analytics are sent unless you opt in."                                                        |
 
 **Store listing:** the store listing isn't in the repo. Update the privacy and
 data-safety text by hand to match.
@@ -505,36 +504,36 @@ from its repro.
 
 **1. Merge correctness / data loss**
 
-| PR | Scope | Risk |
-|---|---|---|
-| 1a `fix(sync): re-plan stale pending candidates` | N3: before the first upload, compare observed heads and re-plan if they changed. | Low. Local only; the data stays in the journal. |
-| 1b `fix(sync): first join adopts remote profile` | N2: a pristine local profile, or set-beats-unset with no base, for name and photo. Trim names in backfill and import. | Low–medium. Behaviour change only when there is no base. |
-| 1c `fix(sync): treat same-blob profile photos as equal` | N4: in the merge, and optionally hash-derived backfill IDs. | Low. |
-| 1d `fix(sync): merge against common ancestor` | N1: walk retained parents or keep a few local base shadows, falling back to no base. | **Medium–high.** Core merge path; needs the fuzz test and retention coordination. |
-| 1e `fix(import): don't overwrite profile in merge mode` | N13. | Low. |
+| PR                                                      | Scope                                                                                                                 | Risk                                                                              |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 1a `fix(sync): re-plan stale pending candidates`        | N3: before the first upload, compare observed heads and re-plan if they changed.                                      | Low. Local only; the data stays in the journal.                                   |
+| 1b `fix(sync): first join adopts remote profile`        | N2: a pristine local profile, or set-beats-unset with no base, for name and photo. Trim names in backfill and import. | Low–medium. Behaviour change only when there is no base.                          |
+| 1c `fix(sync): treat same-blob profile photos as equal` | N4: in the merge, and optionally hash-derived backfill IDs.                                                           | Low.                                                                              |
+| 1d `fix(sync): merge against common ancestor`           | N1: walk retained parents or keep a few local base shadows, falling back to no base.                                  | **Medium–high.** Core merge path; needs the fuzz test and retention coordination. |
+| 1e `fix(import): don't overwrite profile in merge mode` | N13.                                                                                                                  | Low.                                                                              |
 
 **2. Disconnect and cancellation**
 
-| PR | Scope | Risk |
-|---|---|---|
+| PR                                                    | Scope                                                                                                                                                                                          | Risk                                                                       |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | 2a `fix(sync): abortable passes and request timeouts` | N5: an AbortController per pass, signals in transport, body reads, sleeps and auth refresh, and a drain before credentials are cleared. N6: a bound on streamed bytes. N7: honour Retry-After. | Medium. It touches every request; cancellation must leave resumable state. |
-| 2b `fix(cloud-backup): disconnect and pause feedback` | Pending state, guard and specific errors. | Low. |
+| 2b `fix(cloud-backup): disconnect and pause feedback` | Pending state, guard and specific errors.                                                                                                                                                      | Low.                                                                       |
 
 **3. Sync status UI**
 
-| PR | Scope | Risk |
-|---|---|---|
-| 3a `feat(cloud-backup): first-restore lifecycle` | N9: complete onboarding when the connection is committed, a durable restore milestone, a Home restore card, an honest toast, disabling the vault only after auth, and no sample seeding while a restore runs. | Medium. Onboarding flow and local state. |
-| 3b `feat(cloud-backup): honest progress copy` | N11, N12 labels and classification, and the N8 copy. | Low. |
-| 3c `feat(cloud-backup): actionable conflicts card` | N10: per-field rows with values, hidden non-actionable records, Use or Keep for names, entry grouping and timeline labels, no global "Mark as reviewed", and hiding records older than the join. | Low–medium. |
-| 3d (later) `feat(sync): text-first publish on cellular` | N8 behaviour. | Medium–high. Publication rules. |
+| PR                                                      | Scope                                                                                                                                                                                                         | Risk                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 3a `feat(cloud-backup): first-restore lifecycle`        | N9: complete onboarding when the connection is committed, a durable restore milestone, a Home restore card, an honest toast, disabling the vault only after auth, and no sample seeding while a restore runs. | Medium. Onboarding flow and local state. |
+| 3b `feat(cloud-backup): honest progress copy`           | N11, N12 labels and classification, and the N8 copy.                                                                                                                                                          | Low.                                     |
+| 3c `feat(cloud-backup): actionable conflicts card`      | N10: per-field rows with values, hidden non-actionable records, Use or Keep for names, entry grouping and timeline labels, no global "Mark as reviewed", and hiding records older than the join.              | Low–medium.                              |
+| 3d (later) `feat(sync): text-first publish on cellular` | N8 behaviour.                                                                                                                                                                                                 | Medium–high. Publication rules.          |
 
 **4. Privacy wording**
 
-| PR | Scope | Risk |
-|---|---|---|
-| 4a `docs(cloud-backup): clarify developer never sees journal` | App strings in all 10 locales. | Low. |
-| 4b `docs(website): Drive backup privacy wording` | `faq`, `index` and `privacy.astro`. The store listing is updated by hand. | Low. |
+| PR                                                            | Scope                                                                     | Risk |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------- | ---- |
+| 4a `docs(cloud-backup): clarify developer never sees journal` | App strings in all locale catalogs.                                       | Low. |
+| 4b `docs(website): Drive backup privacy wording`              | `faq`, `index` and `privacy.astro`. The store listing is updated by hand. | Low. |
 
 **Deferred:**
 
@@ -554,6 +553,7 @@ platforms together.
 > "Deep audit — 2026-11-06") found the following problems with Google Drive sync.
 >
 > **Data loss (S1)**
+>
 > - Concurrent passes merge with no common base. Edits are reverted, entries are
 >   duplicated and deletions are undone (N1).
 > - A device restored during onboarding can erase the profile name on every
@@ -563,6 +563,7 @@ platforms together.
 > - Per-device photo IDs create frivolous "Profile" conflicts (N4).
 >
 > **Stuck states (S2)**
+>
 > - Disconnect and Pause wait for the whole running pass, and nothing can be
 >   cancelled (N5).
 > - Media downloads have no streaming size bound (N6).
@@ -570,6 +571,7 @@ platforms together.
 > - Wi-Fi-only blocks text sync (N8).
 >
 > **UI (S3)**
+>
 > - First restore from onboarding: blocking, wrong toast, fragile when the user
 >   leaves (N9).
 > - Conflicts card is unactionable and repeats rows (N10).
@@ -581,6 +583,7 @@ platforms together.
 > user's own Drive and the developer never sees it (N15).
 >
 > **PRs**
+>
 > - [ ] 1a re-plan stale pending candidates
 > - [ ] 1b first join adopts remote profile
 > - [ ] 1c same-blob profile photos are equal
@@ -640,9 +643,9 @@ All of these items are fixed. Keep them in mind when changing merge, storage or 
 - `createdAt` conflicts
 - lineage chains
 - `attachmentOrder`
-- the `provider-request-rejected` state
 
 Update iOS and Android together whenever the snapshot shape changes; the validator rejects unknown fields.
+The `provider-request-rejected` pause reason is local state only, not snapshot data.
 
 **Safeguards worth retaining**
 
