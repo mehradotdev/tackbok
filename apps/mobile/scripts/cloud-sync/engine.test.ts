@@ -2451,6 +2451,66 @@ describe('merging concurrent branches against their common ancestor', () => {
       expect.arrayContaining(['from A', 'from B', 'A2', 'B3']),
     );
   });
+
+  /**
+   * Each round's writers edit one entry and publish at once. Devices that sit
+   * out a round fall behind, so later merges meet one conflict found from
+   * different bases.
+   */
+  async function delayedConflicts(
+    count: number,
+    rounds: { writers: number[]; order: number[] }[],
+  ): Promise<void> {
+    const { devices } = await converged(
+      count,
+      withEntry(blankDomain(), entry('e', 'base')),
+    );
+    for (const [round, { writers, order }] of rounds.entries()) {
+      for (const index of writers) edit(devices[index], 'e', `r${round}-${index}`);
+      const results = await syncConcurrently(order.map((index) => devices[index]));
+      expect(results.map((value) => value.status)).not.toContain('attention');
+    }
+    await settle(devices);
+    await settle(devices);
+    const last = rounds.length - 1;
+    const domain = devices[0].journal.current();
+    expect(domain.entries.map((value) => value.content)).toEqual(
+      expect.arrayContaining(rounds[last].writers.map((index) => `r${last}-${index}`)),
+    );
+    for (const device of devices) {
+      expect(canonicalize(device.journal.current())).toBe(canonicalize(domain));
+    }
+  }
+
+  test('four devices with delayed conflicting edits converge', async () => {
+    // Found by fuzzing: d-0 and d-1 reached one conflict with different
+    // recovery IDs, and every later merge paused on the collision.
+    await delayedConflicts(4, [
+      { writers: [2, 3], order: [2, 3] },
+      { writers: [2], order: [2] },
+      { writers: [0, 2, 3], order: [3, 0, 2] },
+      { writers: [0, 1, 2], order: [0, 1, 2] },
+      { writers: [1, 2], order: [1, 2] },
+      { writers: [0, 3], order: [0, 3] },
+      { writers: [2, 3], order: [2, 3] },
+      { writers: [0, 2, 3], order: [2, 3, 0] },
+      { writers: [0, 1, 2, 3], order: [3, 2, 0, 1] },
+    ]);
+  });
+
+  test.each(
+    Array.from({ length: 18 }, (_, index) => 501 + index).flatMap((seed) =>
+      [2, 3, 4].map((count) => [seed, count]),
+    ),
+  )('delayed conflicting edits converge (seed %i, %i devices)', async (seed, count) => {
+    const random = seededRandom(seed);
+    const all = Array.from({ length: count }, (_, index) => index);
+    const rounds = Array.from({ length: 9 }, (_, round) => {
+      const writers = round === 8 ? all : all.filter(() => random() > 0.25);
+      return { writers, order: [...writers].sort(() => random() - 0.5) };
+    });
+    await delayedConflicts(count, rounds);
+  });
 });
 
 describe('common ancestor selection', () => {
