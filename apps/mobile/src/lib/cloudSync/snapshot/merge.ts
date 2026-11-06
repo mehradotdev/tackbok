@@ -531,18 +531,37 @@ function mergeRelationSet(
   return result.sort(keyComparator(key));
 }
 
+// Without a base, an unset profile field was never authored on that device
+// (e.g. a first join that skipped onboarding), so a set value wins quietly.
+// After a real base, null can be a deliberate clear and merges normally.
+function profileFieldMerge(
+  base: string | null | undefined,
+  local: string | null,
+  remote: string | null,
+): ReturnType<typeof scalarMerge<string | null>> {
+  if (base === undefined && local === null && remote !== null)
+    return { value: remote, conflicted: false, primary: 'remote' };
+  if (base === undefined && remote === null && local !== null)
+    return { value: local, conflicted: false, primary: 'local' };
+  return scalarMerge(base, local, remote);
+}
+
 function mergeProfile(
   base: SnapshotProfile | undefined,
   local: SnapshotProfile,
   remote: SnapshotProfile,
   conflicts: SnapshotConflict[],
 ): SnapshotProfile {
-  const displayName = scalarMerge(
+  const displayName = profileFieldMerge(
     base?.displayName,
     local.displayName,
     remote.displayName,
   );
-  const photo = scalarMerge(base?.photoAssetId, local.photoAssetId, remote.photoAssetId);
+  const photo = profileFieldMerge(
+    base?.photoAssetId,
+    local.photoAssetId,
+    remote.photoAssetId,
+  );
   if (displayName.conflicted)
     conflicts.push(
       makeConflict(

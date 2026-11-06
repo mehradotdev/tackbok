@@ -130,7 +130,9 @@ export async function runNormalizedModelBackfill(
       await updateProfileInTransaction(
         tx,
         {
-          displayName: legacyProfile.profileName,
+          displayName: legacyProfile.profileName?.trim()
+            ? legacyProfile.profileName.trim()
+            : null,
           email: legacyProfile.profileEmail,
           photoUri: legacyProfile.profileImageUri,
         },

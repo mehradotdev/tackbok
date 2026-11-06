@@ -630,6 +630,59 @@ describe('snapshot merge engine', () => {
     ).not.toThrow();
   });
 
+  it('lets a set profile beat an unset one on a first join without conflicts', () => {
+    const named = blankDomain();
+    named.profile = {
+      profileId: 'profile',
+      displayName: 'Mehra',
+      photoAssetId: 'profile-photo',
+      updatedAt: 2,
+    };
+    named.media = [
+      {
+        assetId: 'profile-photo',
+        ownerType: 'profile',
+        ownerId: 'profile',
+        kind: 'profile-photo',
+        blobHash: 'a'.repeat(64),
+        byteSize: 1,
+        mimeType: 'image/jpeg',
+        width: null,
+        height: null,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
+    for (const [local, remote] of [
+      [blankDomain(), named],
+      [named, blankDomain()],
+    ]) {
+      const merged = mergeSnapshotDomains(null, local, remote);
+      expect(merged.profile).toMatchObject({
+        displayName: 'Mehra',
+        photoAssetId: 'profile-photo',
+      });
+      expect(merged.media).toEqual(named.media);
+      expect(merged.conflicts).toEqual([]);
+    }
+  });
+
+  it('keeps a deliberate profile clear after a base and conflicts on different names', () => {
+    const base = blankDomain();
+    base.profile.displayName = 'Mehra';
+    const cleared = structuredClone(base);
+    cleared.profile.displayName = null;
+    expect(mergeSnapshotDomains(base, cleared, base).profile.displayName).toBeNull();
+    expect(mergeSnapshotDomains(base, base, cleared).profile.displayName).toBeNull();
+
+    const renamed = blankDomain();
+    renamed.profile.displayName = 'Manu';
+    expect(
+      mergeSnapshotDomains(null, base, renamed).conflicts.map((value) => value.field),
+    ).toEqual(['displayName']);
+  });
+
   it('chooses equal-sequence tombstone provenance independently of argument order', () => {
     const first = blankDomain();
     first.tombstones = [

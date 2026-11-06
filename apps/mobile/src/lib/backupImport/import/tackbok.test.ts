@@ -304,6 +304,30 @@ describe('importFromTackbokBackup', () => {
     warnSpy.mockRestore();
   });
 
+  test('trims the imported display name', async () => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    mockReadSafeZipJson.mockReset();
+    mockReadSafeZipJson
+      .mockResolvedValueOnce({ format: 'tackbok-backup', backupVersion: 1 })
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce({ name: '  Ada  ', email: null, imagePath: null });
+
+    await importFromTackbokBackup('backup.zip', 'overwrite');
+
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ displayName: 'Ada' }),
+      expect.anything(),
+    );
+    expect(mockHydrateProfileCache).toHaveBeenCalledWith(
+      expect.objectContaining({ profileName: 'Ada' }),
+    );
+
+    warnSpy.mockRestore();
+  });
+
   test('rolls back the import and cleans up the copied profile image when profile persistence fails', async () => {
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
