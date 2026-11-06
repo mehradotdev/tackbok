@@ -293,3 +293,43 @@ test('a same-blob profile photo ID switch reuses the local file instead of downl
   );
   expect(downloads).toBe(0);
 });
+
+test('authored profile clears stay positive and win a no-base merge after a clock reset', async () => {
+  sqlite.exec(
+    'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_sync_state',
+  );
+  const { runExclusiveDbTransaction } = await import('../../src/db');
+  const { updateProfileInTransaction } =
+    await import('../../src/lib/cloudSync/storage/repositories');
+  const { mergeSnapshotDomains } = await import('../../src/lib/cloudSync/snapshot/merge');
+  type Args = Parameters<typeof updateProfileInTransaction>;
+  const write = (update: Args[1], context: Args[2]) =>
+    runExclusiveDbTransaction((tx) => updateProfileInTransaction(tx, update, context));
+  const profileUpdatedAt = () => db.select().from(schema.userProfile).get()?.updated_at;
+
+  await write({ displayName: 'Mehra', photoUri: 'file:///profile.jpg' }, { now: 10 });
+  // The clock resets: the name clear and the photo clear still move forward.
+  await write({ displayName: null }, { now: 0 });
+  expect(profileUpdatedAt()).toBe(11);
+  await write({ photoUri: null }, { now: 0 });
+  expect(profileUpdatedAt()).toBe(12);
+
+  // A first authored write at clock zero is not mistaken for pristine either.
+  sqlite.exec('DELETE FROM media_assets; DELETE FROM user_profile');
+  await write({ displayName: 'Mehra' }, { now: 0 });
+  expect(profileUpdatedAt()).toBe(1);
+  await write({ displayName: null }, { now: 0 });
+  expect(profileUpdatedAt()).toBe(2);
+
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'clock', device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('clock', 'device', {} as never);
+  const { domain } = await store.capture();
+  const remote = structuredClone(domain);
+  remote.profile.displayName = 'Mehra';
+  remote.profile.updatedAt = 1;
+  const merged = mergeSnapshotDomains(null, domain, remote);
+  // The deliberate clear is not silently replaced by the remote name.
+  expect(merged.profile.displayName).toBeNull();
+});

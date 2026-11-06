@@ -697,8 +697,13 @@ export async function updateProfileInTransaction(
       update.displayName !== (previous?.display_name ?? null)) ||
     photoAssetId !== (previous?.photo_asset_id ?? null);
   // updatedAt stays 0 until a synced field is first authored; snapshot merge
-  // relies on that to tell a never-named profile from a deliberate clear.
-  const profileUpdatedAt = syncFieldsChanged ? now : (previous?.updated_at ?? 0);
+  // relies on that to tell a never-named profile from a deliberate clear, so
+  // an authored change is always positive and moves forward, even if the
+  // clock reads 0 or went backwards.
+  const previousUpdatedAt = previous?.updated_at ?? 0;
+  const profileUpdatedAt = syncFieldsChanged
+    ? Math.max(1, now, previousUpdatedAt + 1)
+    : previousUpdatedAt;
 
   if (previousAsset && previousAsset.asset_id !== photoAssetId) {
     await retainMediaRow(tx, previousAsset, 'profile:profile', now);
