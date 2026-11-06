@@ -12,7 +12,7 @@ import type {
   MediaUploadSource,
 } from '../sync/types';
 import { MediaIntegrityError, SnapshotProviderError } from '../sync/types';
-import { untilCancelled } from '../sync/errors';
+import { SyncCancelledError, untilCancelled } from '../sync/errors';
 import { DriveDiscovery } from './discovery';
 import type { DriveInstrumentationSink, DriveMethodClass } from './instrumentation';
 import type { DriveFileRecord, DriveObjectKind, DriveProviderStateStore } from './state';
@@ -93,7 +93,9 @@ async function readDownloadBody<T>(read: () => Promise<T>): Promise<T> {
   try {
     return await read();
   } catch (error) {
-    if (error instanceof SnapshotProviderError) throw error;
+    if (error instanceof SnapshotProviderError || error instanceof SyncCancelledError) {
+      throw error;
+    }
     throw new SnapshotProviderError('transient', 'Drive download was interrupted');
   }
 }
