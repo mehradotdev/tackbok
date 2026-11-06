@@ -241,9 +241,9 @@ describe('production cloud-sync runtime', () => {
       'cloud.attentionNeeded',
       'cloud.cloudBackupRetryCompleted',
       'cloud.reconnectGoogleDrive',
-      'cloud.verifyBackupHealth',
+      'cloud.retryBackupCheck',
       'cloud.photosAndVoiceMemosAreWaitingForWiFiYour',
-      'cloud.journalTextStillSyncsOnMobileData',
+      'cloud.photosAndVoiceNotesSyncOnlyOnWiFi',
     ] as const satisfies readonly TranslationKey[];
     for (const locale of ALL_SUPPORTED_LOCALES) {
       // Load raw catalogs so English fallback cannot hide missing translations.

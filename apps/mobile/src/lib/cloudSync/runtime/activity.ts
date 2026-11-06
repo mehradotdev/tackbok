@@ -1,6 +1,35 @@
+import type { SnapshotKillPoint } from '../snapshot/sync/types';
 import type { SyncPassPhase } from './SyncRuntime';
 
 export type ProductionCloudSyncActivity = 'idle' | SyncPassPhase;
+
+/**
+ * Maps an engine checkpoint to the phase that follows it, or null to keep the
+ * current phase. Media transfers report their own direction before they start.
+ */
+export function phaseAfterCheckpoint(
+  point: SnapshotKillPoint,
+  current: ProductionCloudSyncActivity,
+): SyncPassPhase | null {
+  switch (point) {
+    case 'after-local-mutation':
+      return 'preparing';
+    case 'after-candidate-persisted':
+    case 'after-snapshot-uploaded':
+    case 'after-snapshot-verified':
+    case 'after-head-advanced':
+      return 'uploading';
+    case 'during-remote-snapshot-download':
+      // Remote heads are re-read after every launch; keep that quiet.
+      return 'checking';
+    case 'during-merge-application':
+      // Publishing also applies the merged result locally; that is still saving.
+      return current === 'uploading' ? null : 'downloading';
+    default:
+      // Media transfers, cleanup, and local bookkeeping keep the current phase.
+      return null;
+  }
+}
 
 /** Polling is quiet until real work starts; explicit sync always has feedback. */
 export class SyncActivity {
