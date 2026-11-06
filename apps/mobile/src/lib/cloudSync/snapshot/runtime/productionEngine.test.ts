@@ -6,6 +6,7 @@ import { SyncCancelledError } from '../sync/errors';
 import { ProductionSnapshotRuntimeEngine } from './productionEngine';
 
 const mockWrites: string[] = [];
+const mockMarkJournalRestored = jest.fn();
 function mockQuery(kind: string): unknown {
   const chain: Record<string, unknown> = {};
   for (const method of [
@@ -49,7 +50,10 @@ jest.mock('drizzle-orm', () => ({
 jest.mock('expo-network', () => ({}));
 jest.mock('~/lib/analytics', () => ({ track: jest.fn() }));
 jest.mock('~/lib/settings', () => ({
-  useSettingsStore: { getState: () => ({}), setState: jest.fn() },
+  useSettingsStore: {
+    getState: () => ({ markCloudRestoreJournalRestored: mockMarkJournalRestored }),
+    setState: jest.fn(),
+  },
 }));
 jest.mock('../../auth', () => ({}));
 jest.mock('../../auth/secureTokenStore', () => ({}));
@@ -112,6 +116,26 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeEach(() => {
   mockWrites.length = 0;
+  mockMarkJournalRestored.mockClear();
+});
+
+test('a completed pass records that the journal of this backup was restored', async () => {
+  const app = harness('vault-restored', {
+    engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
+  });
+  await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
+  expect(mockMarkJournalRestored).toHaveBeenCalledWith('vault-restored');
+});
+
+test('a pass that needs attention or a retry records no restored journal', async () => {
+  for (const result of [
+    { status: 'attention', reason: 'auth-required' },
+    { status: 'retry', reason: 'transient' },
+  ]) {
+    const app = harness(`vault-${result.status}`, { engineSync: async () => result });
+    await expect(app.runtime.sync()).rejects.toBeDefined();
+  }
+  expect(mockMarkJournalRestored).not.toHaveBeenCalled();
 });
 
 test('a stopped caller stops waiting for a joined pass without cancelling or overlapping it', async () => {
