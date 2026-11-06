@@ -1,4 +1,5 @@
-import { entries } from '~/db';
+import { eq } from 'drizzle-orm';
+import { entries, userProfile } from '~/db';
 import { randomUUID } from 'expo-crypto';
 import {
   BACKUP_ENTRIES_PATH,
@@ -35,6 +36,8 @@ import {
 } from '../archiveUtils';
 import { getImportTotals } from './helpers';
 import {
+  PROFILE_ROW_ID,
+  type ProfileUpdate,
   runInCloudSyncTransaction,
   updateProfileInTransaction,
 } from '~/lib/cloudSync/storage/repositories';
@@ -74,6 +77,7 @@ export async function importFromTackbokBackup(
     const summary = createBackupImportSummary();
     const createdFiles: string[] = [];
     let importedProfileImageUri: string | null = null;
+    let profileUpdate: ProfileUpdate = {};
     const batchId = randomUUID();
     const totals = getImportTotals(portableEntries, portableTags, portablePrompts);
 
@@ -137,17 +141,32 @@ export async function importFromTackbokBackup(
           onProgress,
           batchId,
         );
-        await updateProfileInTransaction(
-          tx,
-          {
-            displayName: profileName,
-            email: portableProfile.email ?? null,
-            photoUri: importedProfileImageUri,
-            photoAssetId: portableProfile.photoAssetId ?? null,
-          },
-          { batchId },
-        );
+        // Skipping existing data also keeps the current profile; only empty
+        // fields are filled from the backup.
+        const [currentProfile] =
+          mode === 'skip'
+            ? await tx
+                .select()
+                .from(userProfile)
+                .where(eq(userProfile.profile_id, PROFILE_ROW_ID))
+                .limit(1)
+            : [];
+        profileUpdate = {
+          ...(currentProfile?.display_name ? {} : { displayName: profileName }),
+          ...(currentProfile?.email ? {} : { email: portableProfile.email ?? null }),
+          ...(currentProfile?.photo_asset_id
+            ? {}
+            : {
+                photoUri: importedProfileImageUri,
+                photoAssetId: portableProfile.photoAssetId ?? null,
+              }),
+        };
+        await updateProfileInTransaction(tx, profileUpdate, { batchId });
       });
+      if (importedProfileImageUri && profileUpdate.photoUri === undefined) {
+        cleanupImportedFiles([importedProfileImageUri]);
+        importedProfileImageUri = null;
+      }
     } catch (error) {
       cleanupImportedFiles(createdFiles);
       throw error;
@@ -161,9 +180,13 @@ export async function importFromTackbokBackup(
 
     try {
       hydrateProfileCache({
-        profileName,
-        profileEmail: portableProfile.email ?? null,
-        profileImageUri: importedProfileImageUri,
+        ...(profileUpdate.displayName !== undefined && {
+          profileName: profileUpdate.displayName,
+        }),
+        ...(profileUpdate.email !== undefined && { profileEmail: profileUpdate.email }),
+        ...(profileUpdate.photoUri !== undefined && {
+          profileImageUri: profileUpdate.photoUri,
+        }),
       });
     } catch (error) {
       if (importedProfileImageUri) {

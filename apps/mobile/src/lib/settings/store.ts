@@ -324,11 +324,13 @@ export const useSettingsStore = create<SettingsState>()(
 );
 
 /** Updates the non-persisted profile read cache after a committed DB transaction. */
-export function hydrateProfileCache(profile: {
-  profileName: string | null;
-  profileEmail: string | null;
-  profileImageUri: string | null;
-}): void {
+export function hydrateProfileCache(
+  profile: Partial<{
+    profileName: string | null;
+    profileEmail: string | null;
+    profileImageUri: string | null;
+  }>,
+): void {
   useSettingsStore.setState(profile);
 }
 
