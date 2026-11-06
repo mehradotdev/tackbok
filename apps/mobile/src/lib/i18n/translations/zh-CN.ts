@@ -707,10 +707,10 @@ export const zhCN: Translations = {
   // Cloud Backup & Sync
   'cloud.attentionNeeded': '需要注意',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    '使用你自己的 Google Drive 备份和同步日记。不会创建塔克布克账户。',
-  'cloud.backupFromDate': '{date} 的备份',
+    '使用你自己的 Google Drive 备份和同步日记。日记直接从你的手机传到你的 Drive，塔克布克的开发者永远看不到它。',
+  'cloud.lastUpdatedDate': '上次更新：{date}',
   'cloud.beforeYouConnect': '连接之前',
-  'cloud.checkingGoogleDriveForChanges': '正在检查 Google Drive 中的更改',
+  'cloud.checkingGoogleDriveForChanges': '正在检查 Google Drive 中的更改…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
     '选择一个备份与此日记合并。两边的数据都会保留。',
   'cloud.chooseABackupToRestoreOnThisDevice': '选择要在此设备上恢复的备份。',
@@ -722,7 +722,7 @@ export const zhCN: Translations = {
   'cloud.cloudBackupDeletionReceived': '已收到云备份删除通知',
   'cloud.cloudBackupNumber': '云备份 {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Google Drive 会对传输中和静态存储的备份进行加密，但备份未进行端到端加密。',
+    '你的备份保存在你 Google Drive 中一个专属塔克布克的私密文件夹里。塔克布克看不到你 Drive 中的其他文件，你的备份也绝不会发送给塔克布克的开发者。Google 会像保护你的其他文件一样保护它，但它没有端到端加密。',
   'cloud.cloudRestoreStarted': '已开始从云端恢复',
   'cloud.cloudSyncAttentionNeeded': '云同步：需要注意',
   'cloud.cloudSyncChangesSafelyQueued': '云同步：更改已安全排队',
@@ -739,8 +739,8 @@ export const zhCN: Translations = {
   'cloud.deleteJournalEverywhere2': '在所有位置删除日记？',
   'cloud.deleteOrResetData': '删除或重置数据',
   'cloud.deletingJournalEverywhere': '正在从所有位置删除日记…',
-  'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
-    '正在删除云备份和日记数据。请保持塔克布克打开。',
+  'cloud.removingTheCloudBackupAndJournalData':
+    '正在删除云备份和日记数据。如果你离开塔克布克，回来后可以继续删除。',
   'cloud.disconnect': '断开连接',
   'cloud.disconnecting': '正在断开连接…',
   'cloud.disconnectedYourJournalStaysOnThisPhone':
@@ -761,6 +761,8 @@ export const zhCN: Translations = {
     '无法连接 Google Drive。你的更改仍会安全地保留在队列中。',
   'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
     '照片和语音笔记正在等待 Wi-Fi。你的更改仍会安全地保留在队列中。',
+  'cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead':
+    '无法读取此设备上的照片或语音笔记。你的更改仍会安全地保留在队列中。',
   'cloud.googleDriveDisconnectedOnThisDevice': '此设备已断开 Google Drive',
   'cloud.googleDriveIsBusyTryAgainShortly': 'Google Drive 正忙，请稍后重试。',
   'cloud.googleDriveNeedsToBeReconnected': '需要重新连接 Google Drive。',
@@ -768,9 +770,10 @@ export const zhCN: Translations = {
   'cloud.googleDriveStorageIsFull': 'Google Drive 存储空间已满。',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    '如果 Google 显示 Drive 访问权限复选框，请将其选中。没有此权限，备份无法连接。',
+    'Google 可能会询问是否允许塔克布克在你的 Drive 中使用它自己的私密文件夹。请选择允许，否则备份无法连接。',
   'cloud.journalDeletionReceived': '已收到日记删除通知',
-  'cloud.journalTextStillSyncsOnMobileData': '日记文本仍会通过移动数据同步。',
+  'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
+    '照片和语音笔记仅在 Wi-Fi 下上传和下载。包含新照片或语音笔记的条目也会等待 Wi-Fi。',
   'cloud.keepLocalDataAndTheCloudCopy': '保留本地数据和云端副本',
   'cloud.keepLocalJournalData': '保留本地日记数据',
   'cloud.keepTheCloudCopyAndOtherDevices': '保留云端副本和其他设备',
@@ -778,7 +781,7 @@ export const zhCN: Translations = {
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     '本地数据和云备份都会保留。其他设备仍保持连接。',
   'cloud.markAsReviewed': '标记为已查看',
-  'cloud.mergingChangesAndUpdatingGoogleDrive': '正在合并更改并更新 Google Drive',
+  'cloud.savingYourChangesToGoogleDrive': '正在将你的更改保存到 Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount': '此 Google 账户中没有找到塔克布克备份',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
     '没有互联网连接。你的更改仍会安全地保留在队列中。',
@@ -786,8 +789,8 @@ export const zhCN: Translations = {
     '未找到现有塔克布克备份。请为此日记创建一个备份。',
   'cloud.optionalCloudBackup': '可选云备份',
   'cloud.pauseSync': '暂停同步',
-  'cloud.preparingJournalChanges': '正在准备日记更改',
-  'cloud.preparingRestoredJournalData': '正在准备已恢复的日记数据',
+  'cloud.preparingYourChanges': '正在准备你的更改…',
+  'cloud.restoringYourJournalFromGoogleDrive': '正在从 Google Drive 恢复你的日记…',
   'cloud.profile': '个人资料',
   'cloud.prompt': '提示',
   'cloud.reconnectGoogleDrive': '重新连接 Google Drive',
@@ -799,23 +802,25 @@ export const zhCN: Translations = {
   'cloud.resetThisDeviceOnly2': '仅重置此设备？',
   'cloud.merge': '合并',
   'cloud.restoreCloudBackup': '恢复云备份',
-  'cloud.restoreFromYourCloudBackup': '从云备份恢复',
+  'cloud.restoreFromYourCloudBackup': '从你的 Google Drive 备份恢复',
   'cloud.restoring': '正在恢复…',
   'cloud.safelyQueued': '已安全排队',
-  'cloud.savingSyncedJournalDataOnThisDevice': '正在此设备上保存已同步的日记数据',
+  'cloud.gettingChangesFromYourOtherDevices': '正在获取你其他设备上的更改…',
   'cloud.setupElapsedSeconds': '已用时间：{seconds} 秒',
   'cloud.setupProgressHelp':
     'Tackbok 正在连接此设备并开始首次同步。较大的备份、照片和语音笔记可能需要更长时间。',
   'cloud.setupTakingLonger':
-    '此次操作比平时用时更长。请检查网络连接，并保持 Tackbok 打开以便继续。',
+    '此次操作比平时用时更长。请检查网络连接。如果你离开 Tackbok，它会从中断的地方继续。',
   'cloud.settingUpCloudSync': '正在设置云同步…',
-  'cloud.stepCurrentOfTotalInThisBatch': '本批次第 {current} 步，共 {total} 步',
+  'cloud.downloadingPhotosAndVoiceNotes': '正在下载照片和语音笔记…',
   'cloud.syncCompleted': '同步完成',
   'cloud.syncNow': '立即同步',
+  'cloud.resumeSyncToSyncNow': '恢复同步后即可立即同步。',
+  'cloud.fixTheProblemAboveToSyncNow': '解决上方的问题后即可立即同步。',
   'cloud.syncPaused': '同步已暂停',
   'cloud.syncResumed': '同步已恢复',
-  'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
-    '同步会以安全批次运行。你可以继续使用塔克布克。',
+  'cloud.syncIsFasterWithTackbokOpen':
+    '保持塔克布克打开会更快。如果你离开，它会从中断的地方继续。',
   'cloud.syncMediaOnWiFiOnly': '仅通过 Wi-Fi 同步媒体',
   'cloud.syncing': '正在同步…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
@@ -831,21 +836,21 @@ export const zhCN: Translations = {
     '云端删除已记录。请清除此设备上剩余的日记数据。',
   'cloud.finishDeletion': '完成删除',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    '你的 Google 电子邮件会安全地存储在此设备上，用于识别已连接的账户，并在断开连接时删除。它绝不会包含在备份、日志、诊断或分析数据中。',
+    '你的 Google 邮箱只保存在这部手机上，用于显示已连接的账户。断开连接时会被删除，也绝不会发送给塔克布克的开发者。',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     '此设备会先断开连接，然后删除本地日记。云备份和其他设备会保留。',
   'cloud.thisDeviceWasReset': '此设备已重置',
   'cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected':
     '此日记已在所有位置删除。此设备已断开连接。',
   'cloud.upToDate': '已是最新',
-  'cloud.verifyBackupHealth': '验证备份状态',
   'cloud.waitingForTheFirstSuccessfulSync': '正在等待首次成功同步',
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     '你可以离开此页面；塔克布克处于活动状态时会继续同步。',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    '你的日记保留在设备上，也可选择使用云备份。',
+    '你的日记保留在手机上。如果开启备份，副本只会存到你自己的 Google Drive。',
   'cloud.countChangesSafelyQueued': '{count} 项更改已安全排队',
   'cloud.countChangesRemaining': '剩余 {count} 项更改',
+  'cloud.photosAndVoiceNotesToDownloadCount': '待下载的照片和语音笔记：{number}',
   'cloud.googleDriveAuthorizationNeedsAttention': 'Google Drive 授权需要处理。',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
     '此备份属于另一个已连接的 Google 账号。',
@@ -881,15 +886,12 @@ export const zhCN: Translations = {
   'cloud.finishConnection': '完成连接',
   'cloud.reconnectToTheCorrectBackup': '重新连接正确的备份',
   'cloud.updateTackbok': '更新塔克布克',
-  'cloud.retryAndVerifyBackup': '重试并验证备份',
-  'cloud.repairFromVerifiedBackup': '从已验证备份修复',
-  'cloud.inspectAndRepairBackup': '检查并修复备份',
-  'cloud.consolidateBackups': '合并备份',
+  'cloud.retryBackupCheck': '重新检查备份',
   'cloud.exportJournalAndRepairBackup': '导出日记并修复备份',
   'cloud.freeDeviceStorageAndRetry': '释放设备空间并重试',
   'cloud.manageGoogleDriveStorage': '管理 Google Drive 存储空间',
   'cloud.retryMissingMedia': '重试缺失媒体',
-  'cloud.locateOrRetryAttachment': '查找或重试附件',
+  'cloud.retryAttachment': '重试附件',
   'cloud.retryJournalPreparation': '重试日记准备',
   'cloud.acknowledgeAndDisconnect': '确认并断开连接',
   'cloud.reviewDeletionAndEraseThisDevice': '检查删除并清除此设备',

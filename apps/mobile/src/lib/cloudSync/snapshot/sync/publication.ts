@@ -49,6 +49,7 @@ export class SnapshotPublisher {
     capturedGeneration: number,
   ): Promise<void> {
     const { journal, hooks, vaultId } = this.options;
+    hooks.activity?.('applying-remote-snapshot');
     // A concurrent edit invalidates the plan. Re-plan on retry rather than
     // overwriting it or marking a generation that was never backed up settled.
     if (
@@ -73,7 +74,11 @@ export class SnapshotPublisher {
     );
   }
 
-  async resume(initial: PendingPublication): Promise<void> {
+  /**
+   * Returns false when a not-yet-uploaded candidate was planned against heads
+   * that have since changed. It is discarded and the caller must re-plan.
+   */
+  async resume(initial: PendingPublication): Promise<boolean> {
     const { deviceId, hooks, provider, stateStore, vaultId } = this.options;
     let pending = initial;
     let decoded: ReturnType<typeof decodeSnapshot>;
@@ -97,8 +102,18 @@ export class SnapshotPublisher {
       );
     }
 
+    // Report direction explicitly: a resumed publication starts at any stage
+    // and must read as saving, never as the downloads checked on the way.
     if (pending.stage === 'candidate-persisted') {
       await this.ensurePendingMedia(pending);
+      // A candidate can wait across suspension or process death. If another
+      // device published meanwhile, uploading it would overwrite that work.
+      // Before upload nothing remote references it, so re-planning is safe.
+      if (await this.headsChangedSince(decoded.payload.observedDeviceHeads)) {
+        stateStore.discardPending(vaultId, deviceId, pending.snapshotId);
+        return false;
+      }
+      hooks.activity?.('publishing-local-snapshot');
       await provider.uploadSnapshot(
         vaultId,
         pending.snapshotId,
@@ -114,6 +129,7 @@ export class SnapshotPublisher {
       await hooks.at?.('after-snapshot-uploaded');
     }
     if (pending.stage === 'snapshot-uploaded') {
+      hooks.activity?.('publishing-local-snapshot');
       const verified = await provider.verifySnapshot(
         vaultId,
         pending.snapshotId,
@@ -134,6 +150,7 @@ export class SnapshotPublisher {
       await hooks.at?.('after-snapshot-verified');
     }
     if (pending.stage === 'snapshot-verified') {
+      hooks.activity?.('publishing-local-snapshot');
       await provider.updateDeviceHead(vaultId, {
         format: 'tackbok-device-head',
         vaultId,
@@ -151,6 +168,7 @@ export class SnapshotPublisher {
       await hooks.at?.('after-head-advanced');
     }
     if (pending.stage === 'head-advanced') {
+      hooks.activity?.('publishing-local-snapshot');
       await this.applyPublishedDomain(
         domainOf(decoded.payload),
         pending.capturedGeneration,
@@ -181,6 +199,7 @@ export class SnapshotPublisher {
       };
       await this.commitBase(shadow, pending.capturedGeneration, true);
     }
+    return true;
   }
 
   private async commitBase(
@@ -246,6 +265,41 @@ export class SnapshotPublisher {
     }
 
     throw new RetryableSyncError('journal-changed-during-publication-reconciliation');
+  }
+
+  /**
+   * Whether another device published after this candidate was planned. A
+   * same-sequence head with a different snapshot only counts when that snapshot
+   * is valid: planning ignores invalid retry duplicates, but stops on a valid
+   * one as an ambiguous head, so re-planning must surface it.
+   */
+  private async headsChangedSince(observed: ObservedDeviceHead[]): Promise<boolean> {
+    const { provider, vaultId } = this.options;
+    const seen = new Map(observed.map((value) => [value.deviceId, value]));
+    for (const { head } of await provider.listHeads(vaultId, true)) {
+      const known = seen.get(head.deviceId);
+      if (!known || head.deviceSequence > known.deviceSequence) return true;
+      if (
+        head.deviceSequence === known.deviceSequence &&
+        head.snapshotId !== known.snapshotId &&
+        (await this.isValidRemoteSnapshot(head.snapshotId))
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async isValidRemoteSnapshot(snapshotId: string): Promise<boolean> {
+    const { hooks, provider, vaultId } = this.options;
+    hooks.activity?.('reading-remote-snapshot');
+    const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
+    if (!bytes) return false;
+    try {
+      return decodeSnapshot(bytes, snapshotId).payload.vaultId === vaultId;
+    } catch {
+      return false;
+    }
   }
 
   private async ensurePendingMedia(pending: PendingPublication): Promise<void> {

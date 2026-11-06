@@ -781,10 +781,10 @@ export const de: Translations = {
   // Cloud Backup & Sync
   'cloud.attentionNeeded': 'Aktion erforderlich',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'Sichere und synchronisiere dein Tagebuch mit deinem eigenen Google Drive. Es wird kein Tackbok-Konto erstellt.',
-  'cloud.backupFromDate': 'Sicherung vom {date}',
+    'Sichere und synchronisiere dein Tagebuch mit deinem eigenen Google Drive. Es geht direkt von deinem Handy in dein Drive. Der Entwickler von Tackbok sieht es nie.',
+  'cloud.lastUpdatedDate': 'Zuletzt aktualisiert: {date}',
   'cloud.beforeYouConnect': 'Vor dem Verbinden',
-  'cloud.checkingGoogleDriveForChanges': 'Google Drive wird auf Änderungen geprüft',
+  'cloud.checkingGoogleDriveForChanges': 'Google Drive wird auf Änderungen geprüft…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
     'Wähle eine Sicherung, die mit diesem Tagebuch zusammengeführt wird. Beide Seiten bleiben erhalten.',
   'cloud.chooseABackupToRestoreOnThisDevice':
@@ -799,7 +799,7 @@ export const de: Translations = {
   'cloud.cloudBackupDeletionReceived': 'Löschung der Cloud-Sicherung empfangen',
   'cloud.cloudBackupNumber': 'Cloud-Sicherung {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Backups werden bei der Übertragung und im Ruhezustand von Google Drive verschlüsselt, sind aber nicht Ende-zu-Ende verschlüsselt.',
+    'Deine Sicherung liegt in einem privaten Tackbok-Ordner in deinem Google Drive. Tackbok kann deine anderen Drive-Dateien nicht sehen, und deine Sicherung wird nie an den Entwickler von Tackbok gesendet. Google schützt sie wie deine anderen Dateien, aber sie ist nicht Ende-zu-Ende-verschlüsselt.',
   'cloud.cloudRestoreStarted': 'Cloud-Wiederherstellung gestartet',
   'cloud.cloudSyncAttentionNeeded': 'Cloud-Synchronisierung: Aktion erforderlich',
   'cloud.cloudSyncChangesSafelyQueued':
@@ -817,8 +817,8 @@ export const de: Translations = {
   'cloud.deleteJournalEverywhere2': 'Tagebuch überall löschen?',
   'cloud.deleteOrResetData': 'Daten löschen oder zurücksetzen',
   'cloud.deletingJournalEverywhere': 'Tagebuch wird überall gelöscht…',
-  'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
-    'Cloud-Sicherung und Tagebuchdaten werden gelöscht. Lass Tackbok geöffnet.',
+  'cloud.removingTheCloudBackupAndJournalData':
+    'Cloud-Sicherung und Tagebuchdaten werden gelöscht. Wenn du Tackbok verlässt, kannst du das Löschen später fortsetzen.',
   'cloud.disconnect': 'Trennen',
   'cloud.disconnecting': 'Wird getrennt…',
   'cloud.disconnectedYourJournalStaysOnThisPhone':
@@ -843,6 +843,8 @@ export const de: Translations = {
     'Google Drive konnte nicht erreicht werden. Deine Änderungen bleiben sicher in der Warteschlange.',
   'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
     'Fotos und Sprachnotizen warten auf WLAN. Deine Änderungen bleiben sicher in der Warteschlange.',
+  'cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead':
+    'Ein Foto oder eine Sprachnotiz auf diesem Gerät konnte nicht gelesen werden. Deine Änderungen bleiben sicher vorgemerkt.',
   'cloud.googleDriveDisconnectedOnThisDevice': 'Google Drive auf diesem Gerät getrennt',
   'cloud.googleDriveIsBusyTryAgainShortly':
     'Google Drive ist ausgelastet. Versuche es gleich noch einmal.',
@@ -851,10 +853,10 @@ export const de: Translations = {
   'cloud.googleDriveStorageIsFull': 'Der Google-Drive-Speicher ist voll.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'Wenn Google ein Kontrollkästchen für den Drive-Zugriff anzeigt, wähle es aus. Ohne diese Berechtigung kann das Backup nicht verbunden werden.',
+    'Google fragt eventuell, ob Tackbok einen eigenen privaten Ordner in deinem Drive nutzen darf. Erlaube das, sonst kann die Sicherung nicht verbunden werden.',
   'cloud.journalDeletionReceived': 'Tagebuchlöschung empfangen',
-  'cloud.journalTextStillSyncsOnMobileData':
-    'Tagebuchtext wird weiterhin über mobile Daten synchronisiert.',
+  'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
+    'Fotos und Sprachnotizen werden nur über WLAN hoch- und heruntergeladen. Einträge mit neuen Fotos oder Sprachnotizen warten ebenfalls auf WLAN.',
   'cloud.keepLocalDataAndTheCloudCopy': 'Lokale Daten und Cloud-Kopie behalten',
   'cloud.keepLocalJournalData': 'Lokale Tagebuchdaten behalten',
   'cloud.keepTheCloudCopyAndOtherDevices': 'Cloud-Kopie und andere Geräte behalten',
@@ -862,8 +864,8 @@ export const de: Translations = {
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'Lokale Daten und die Cloud-Sicherung bleiben erhalten. Andere Geräte bleiben verbunden.',
   'cloud.markAsReviewed': 'Als geprüft markieren',
-  'cloud.mergingChangesAndUpdatingGoogleDrive':
-    'Änderungen werden zusammengeführt und Google Drive wird aktualisiert',
+  'cloud.savingYourChangesToGoogleDrive':
+    'Deine Änderungen werden in Google Drive gespeichert…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'Keine Tackbok-Sicherung in diesem Google-Konto gefunden',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
@@ -872,9 +874,9 @@ export const de: Translations = {
     'Keine bestehende Tackbok-Sicherung gefunden. Erstelle eine für dieses Tagebuch.',
   'cloud.optionalCloudBackup': 'Optionale Cloud-Sicherung',
   'cloud.pauseSync': 'Synchronisierung pausieren',
-  'cloud.preparingJournalChanges': 'Journaländerungen werden vorbereitet',
-  'cloud.preparingRestoredJournalData':
-    'Wiederhergestellte Journaldaten werden vorbereitet',
+  'cloud.preparingYourChanges': 'Deine Änderungen werden vorbereitet…',
+  'cloud.restoringYourJournalFromGoogleDrive':
+    'Dein Tagebuch wird aus Google Drive wiederhergestellt…',
   'cloud.profile': 'Profil',
   'cloud.prompt': 'Schreibimpuls',
   'cloud.reconnectGoogleDrive': 'Google Drive erneut verbinden',
@@ -887,25 +889,30 @@ export const de: Translations = {
   'cloud.resetThisDeviceOnly2': 'Nur dieses Gerät zurücksetzen?',
   'cloud.merge': 'Zusammenführen',
   'cloud.restoreCloudBackup': 'Cloud-Sicherung wiederherstellen',
-  'cloud.restoreFromYourCloudBackup': 'Aus deiner Cloud-Sicherung wiederherstellen',
+  'cloud.restoreFromYourCloudBackup':
+    'Aus deiner Google-Drive-Sicherung wiederherstellen',
   'cloud.restoring': 'Wiederherstellung läuft…',
   'cloud.safelyQueued': 'Sicher vorgemerkt',
-  'cloud.savingSyncedJournalDataOnThisDevice':
-    'Synchronisierte Journaldaten werden auf diesem Gerät gespeichert',
+  'cloud.gettingChangesFromYourOtherDevices':
+    'Änderungen von deinen anderen Geräten werden abgerufen…',
   'cloud.setupElapsedSeconds': 'Vergangene Zeit: {seconds} s',
   'cloud.setupProgressHelp':
     'Tackbok verbindet dieses Gerät und startet die erste Synchronisierung. Große Backups, Fotos und Sprachnotizen können länger dauern.',
   'cloud.setupTakingLonger':
-    'Das dauert länger als üblich. Prüfe deine Internetverbindung und lass Tackbok geöffnet, damit der Vorgang fortgesetzt werden kann.',
+    'Das dauert länger als üblich. Prüfe deine Internetverbindung. Wenn du Tackbok verlässt, geht es später dort weiter, wo es aufgehört hat.',
   'cloud.settingUpCloudSync': 'Cloud-Synchronisierung wird eingerichtet…',
-  'cloud.stepCurrentOfTotalInThisBatch':
-    'Schritt {current} von {total} in diesem Durchlauf',
+  'cloud.downloadingPhotosAndVoiceNotes':
+    'Fotos und Sprachnotizen werden heruntergeladen…',
   'cloud.syncCompleted': 'Synchronisierung abgeschlossen',
   'cloud.syncNow': 'Jetzt synchronisieren',
+  'cloud.resumeSyncToSyncNow':
+    'Setze die Synchronisierung fort, um jetzt zu synchronisieren.',
+  'cloud.fixTheProblemAboveToSyncNow':
+    'Behebe das Problem oben, um jetzt zu synchronisieren.',
   'cloud.syncPaused': 'Synchronisierung pausiert',
   'cloud.syncResumed': 'Synchronisierung fortgesetzt',
-  'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
-    'Die Synchronisierung erfolgt in sicheren Durchläufen. Du kannst Tackbok weiterverwenden.',
+  'cloud.syncIsFasterWithTackbokOpen':
+    'Mit geöffnetem Tackbok geht es schneller. Wenn du die App verlässt, geht es später dort weiter, wo es aufgehört hat.',
   'cloud.syncMediaOnWiFiOnly': 'Medien nur über WLAN synchronisieren',
   'cloud.syncing': 'Synchronisierung läuft…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
@@ -921,22 +928,23 @@ export const de: Translations = {
     'Die Cloud-Löschung wurde bereits gespeichert. Lösche die verbleibenden Tagebuchdaten von diesem Gerät.',
   'cloud.finishDeletion': 'Löschen abschließen',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'Deine Google-E-Mail-Adresse wird sicher auf diesem Gerät gespeichert, um das verbundene Konto zu identifizieren, und beim Trennen gelöscht. Sie wird niemals in Backups, Protokolle, Diagnosedaten oder Analysen aufgenommen.',
+    'Deine Google-E-Mail-Adresse wird nur auf diesem Handy gespeichert, um zu zeigen, welches Konto verbunden ist. Sie wird beim Trennen gelöscht und nie an den Entwickler von Tackbok gesendet.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'Dieses Gerät wird zuerst getrennt und löscht dann sein lokales Tagebuch. Cloud-Sicherung und andere Geräte bleiben erhalten.',
   'cloud.thisDeviceWasReset': 'Dieses Gerät wurde zurückgesetzt',
   'cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected':
     'Dieses Tagebuch wurde überall gelöscht. Dieses Gerät ist getrennt.',
   'cloud.upToDate': 'Aktuell',
-  'cloud.verifyBackupHealth': 'Sicherungsstatus prüfen',
   'cloud.waitingForTheFirstSuccessfulSync':
     'Warten auf die erste erfolgreiche Synchronisierung',
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'Du kannst diesen Bildschirm verlassen; die Synchronisierung wird fortgesetzt, wenn Tackbok aktiv ist.',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'Dein Tagebuch bleibt auf deinem Gerät — mit optionaler Cloud-Sicherung.',
+    'Dein Tagebuch bleibt auf deinem Handy. Wenn du die Sicherung einschaltest, geht eine Kopie nur in dein eigenes Google Drive.',
   'cloud.countChangesSafelyQueued': '{count} Änderungen sicher vorgemerkt',
   'cloud.countChangesRemaining': '{count} Änderungen verbleiben',
+  'cloud.photosAndVoiceNotesToDownloadCount':
+    'Fotos und Sprachnotizen zum Herunterladen: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
     'Die Google-Drive-Autorisierung erfordert Aufmerksamkeit.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
@@ -983,15 +991,12 @@ export const de: Translations = {
   'cloud.finishConnection': 'Verbindung abschließen',
   'cloud.reconnectToTheCorrectBackup': 'Mit der richtigen Sicherung verbinden',
   'cloud.updateTackbok': 'Tackbok aktualisieren',
-  'cloud.retryAndVerifyBackup': 'Erneut versuchen und Sicherung prüfen',
-  'cloud.repairFromVerifiedBackup': 'Aus geprüfter Sicherung reparieren',
-  'cloud.inspectAndRepairBackup': 'Sicherung prüfen und reparieren',
-  'cloud.consolidateBackups': 'Sicherungen zusammenführen',
+  'cloud.retryBackupCheck': 'Sicherungsprüfung wiederholen',
   'cloud.exportJournalAndRepairBackup': 'Tagebuch exportieren und Sicherung reparieren',
   'cloud.freeDeviceStorageAndRetry': 'Gerätespeicher freigeben und erneut versuchen',
   'cloud.manageGoogleDriveStorage': 'Google-Drive-Speicher verwalten',
   'cloud.retryMissingMedia': 'Fehlende Medien erneut versuchen',
-  'cloud.locateOrRetryAttachment': 'Anhang suchen oder erneut versuchen',
+  'cloud.retryAttachment': 'Anhang erneut versuchen',
   'cloud.retryJournalPreparation': 'Tagebuchvorbereitung erneut versuchen',
   'cloud.acknowledgeAndDisconnect': 'Bestätigen und trennen',
   'cloud.reviewDeletionAndEraseThisDevice': 'Löschung prüfen und dieses Gerät löschen',

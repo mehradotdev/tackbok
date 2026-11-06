@@ -254,6 +254,29 @@ export class SQLiteSyncStateStore {
     });
   }
 
+  /**
+   * Drops a candidate whose snapshot upload has not been recorded. Its data
+   * stays in the journal and is re-planned; the consumed sequence is skipped.
+   */
+  discardPending(vaultId: string, deviceId: string, snapshotId: string): void {
+    this.transaction(() => {
+      const pending = this.loadPending(vaultId, deviceId);
+      if (!pending || pending.snapshotId !== snapshotId) {
+        throw new Error('Pending snapshot publication changed unexpectedly');
+      }
+      if (pending.stage !== 'candidate-persisted') {
+        throw new Error('An uploaded snapshot publication cannot be discarded');
+      }
+      this.database.runSync(
+        `DELETE FROM cloud_pending_publication
+         WHERE vault_id = ? AND device_id = ? AND snapshot_id = ?`,
+        vaultId,
+        deviceId,
+        snapshotId,
+      );
+    });
+  }
+
   setPause(
     vaultId: string,
     deviceId: string,

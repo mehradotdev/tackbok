@@ -747,10 +747,10 @@ export const en = {
   // Cloud Backup & Sync
   'cloud.attentionNeeded': 'Attention needed',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'Back up and sync your journal with your own Google Drive. No Tackbok account is created.',
-  'cloud.backupFromDate': 'Backup from {date}',
+    "Back up and sync your journal with your own Google Drive. It goes straight from your phone to your Drive. Tackbok's developer never sees it.",
+  'cloud.lastUpdatedDate': 'Last updated {date}',
   'cloud.beforeYouConnect': 'Before you connect',
-  'cloud.checkingGoogleDriveForChanges': 'Checking Google Drive for changes',
+  'cloud.checkingGoogleDriveForChanges': 'Checking Google Drive for changes…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
     'Choose a backup to merge with this journal. Both sides are preserved.',
   'cloud.chooseABackupToRestoreOnThisDevice':
@@ -764,7 +764,7 @@ export const en = {
   'cloud.cloudBackupDeletionReceived': 'Cloud backup deletion received',
   'cloud.cloudBackupNumber': 'Cloud backup {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Backups are encrypted in transit and at rest by Google Drive, but are not end-to-end encrypted.',
+    "Your backup is stored in a private Tackbok folder in your Google Drive. Tackbok can't see your other Drive files, and your backup is never sent to Tackbok's developer. Google protects it like your other files, but it isn't end-to-end encrypted.",
   'cloud.cloudRestoreStarted': 'Cloud restore started',
   'cloud.cloudSyncAttentionNeeded': 'Cloud sync: attention needed',
   'cloud.cloudSyncChangesSafelyQueued': 'Cloud sync: changes safely queued',
@@ -781,8 +781,8 @@ export const en = {
   'cloud.deleteJournalEverywhere2': 'Delete journal everywhere?',
   'cloud.deleteOrResetData': 'Delete or reset data',
   'cloud.deletingJournalEverywhere': 'Deleting journal everywhere…',
-  'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
-    'Removing the cloud backup and journal data. Keep Tackbok open.',
+  'cloud.removingTheCloudBackupAndJournalData':
+    'Removing the cloud backup and journal data. If you leave Tackbok, you can resume deletion when you come back.',
   'cloud.disconnect': 'Disconnect',
   'cloud.disconnecting': 'Disconnecting…',
   'cloud.disconnectedYourJournalStaysOnThisPhone':
@@ -806,6 +806,8 @@ export const en = {
     'Google Drive could not be reached. Your changes remain safely queued.',
   'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
     'Photos and voice notes are waiting for Wi-Fi. Your changes remain safely queued.',
+  'cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead':
+    'A photo or voice note on this device could not be read. Your changes remain safely queued.',
   'cloud.googleDriveDisconnectedOnThisDevice': 'Google Drive disconnected on this device',
   'cloud.googleDriveIsBusyTryAgainShortly': 'Google Drive is busy. Try again shortly.',
   'cloud.googleDriveNeedsToBeReconnected': 'Google Drive needs to be reconnected.',
@@ -813,9 +815,10 @@ export const en = {
   'cloud.googleDriveStorageIsFull': 'Google Drive storage is full.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.',
+    "Google may ask to let Tackbok use its own private folder in your Drive. Allow it, or backup can't connect.",
   'cloud.journalDeletionReceived': 'Journal deletion received',
-  'cloud.journalTextStillSyncsOnMobileData': 'Journal text still syncs on mobile data.',
+  'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
+    'Photos and voice notes upload and download only on Wi-Fi. Entries with new photos or voice notes also wait for Wi-Fi.',
   'cloud.keepLocalDataAndTheCloudCopy': 'Keep local data and the cloud copy',
   'cloud.keepLocalJournalData': 'Keep local journal data',
   'cloud.keepTheCloudCopyAndOtherDevices': 'Keep the cloud copy and other devices',
@@ -823,8 +826,7 @@ export const en = {
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'Local data and the cloud backup will both remain. Other devices stay connected.',
   'cloud.markAsReviewed': 'Mark as reviewed',
-  'cloud.mergingChangesAndUpdatingGoogleDrive':
-    'Merging changes and updating Google Drive',
+  'cloud.savingYourChangesToGoogleDrive': 'Saving your changes to Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'No Tackbok backup found in this Google account',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
@@ -833,8 +835,9 @@ export const en = {
     'No existing Tackbok backup was found. Create one for this journal.',
   'cloud.optionalCloudBackup': 'Optional cloud backup',
   'cloud.pauseSync': 'Pause sync',
-  'cloud.preparingJournalChanges': 'Preparing journal changes',
-  'cloud.preparingRestoredJournalData': 'Preparing restored journal data',
+  'cloud.preparingYourChanges': 'Preparing your changes…',
+  'cloud.restoringYourJournalFromGoogleDrive':
+    'Restoring your journal from Google Drive…',
   'cloud.profile': 'Profile',
   'cloud.prompt': 'Prompt',
   'cloud.reconnectGoogleDrive': 'Reconnect Google Drive',
@@ -846,24 +849,25 @@ export const en = {
   'cloud.resetThisDeviceOnly2': 'Reset this device only?',
   'cloud.merge': 'Merge',
   'cloud.restoreCloudBackup': 'Restore cloud backup',
-  'cloud.restoreFromYourCloudBackup': 'Restore from your cloud backup',
+  'cloud.restoreFromYourCloudBackup': 'Restore from your Google Drive backup',
   'cloud.restoring': 'Restoring…',
   'cloud.safelyQueued': 'Safely queued',
-  'cloud.savingSyncedJournalDataOnThisDevice':
-    'Saving synced journal data on this device',
+  'cloud.gettingChangesFromYourOtherDevices': 'Getting changes from your other devices…',
   'cloud.setupElapsedSeconds': 'Elapsed time: {seconds} s',
   'cloud.setupProgressHelp':
     'Tackbok is connecting this device and starting the first sync. Large backups, photos, and voice notes can take longer.',
   'cloud.setupTakingLonger':
-    'This is taking longer than usual. Check your internet connection and keep Tackbok open to let it continue.',
+    'This is taking longer than usual. Check your internet connection. If you leave Tackbok, it picks up where it left off.',
   'cloud.settingUpCloudSync': 'Setting up cloud sync…',
-  'cloud.stepCurrentOfTotalInThisBatch': 'Step {current} of {total} in this batch',
+  'cloud.downloadingPhotosAndVoiceNotes': 'Downloading photos and voice notes…',
   'cloud.syncCompleted': 'Sync completed',
   'cloud.syncNow': 'Sync now',
+  'cloud.resumeSyncToSyncNow': 'Resume sync to sync now.',
+  'cloud.fixTheProblemAboveToSyncNow': 'Fix the problem above to sync now.',
   'cloud.syncPaused': 'Sync paused',
   'cloud.syncResumed': 'Sync resumed',
-  'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
-    'Sync runs in safe batches. You can keep using Tackbok.',
+  'cloud.syncIsFasterWithTackbokOpen':
+    'It’s faster with Tackbok open. If you leave, it picks up where it left off.',
   'cloud.syncMediaOnWiFiOnly': 'Sync media on Wi-Fi only',
   'cloud.syncing': 'Syncing…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
@@ -879,21 +883,22 @@ export const en = {
     'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
   'cloud.finishDeletion': 'Finish deletion',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.',
+    "Your Google email is kept only on this phone, to show which account is connected. It's removed when you disconnect and is never sent to Tackbok's developer.",
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
   'cloud.thisDeviceWasReset': 'This device was reset',
   'cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected':
     'This journal was deleted everywhere. This device is disconnected.',
   'cloud.upToDate': 'Up to date',
-  'cloud.verifyBackupHealth': 'Verify backup health',
   'cloud.waitingForTheFirstSuccessfulSync': 'Waiting for the first successful sync',
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'You can leave this screen; syncing resumes when Tackbok is active.',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'Your journal stays on your device. Cloud backup is optional.',
+    'Your journal stays on your phone. If you turn on backup, a copy goes only to your own Google Drive.',
   'cloud.countChangesSafelyQueued': '{count} changes safely queued',
   'cloud.countChangesRemaining': '{count} changes remaining',
+  'cloud.photosAndVoiceNotesToDownloadCount':
+    'Photos and voice notes to download: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
     'Google Drive authorization needs attention.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
@@ -939,15 +944,12 @@ export const en = {
   'cloud.finishConnection': 'Finish connection',
   'cloud.reconnectToTheCorrectBackup': 'Reconnect to the correct backup',
   'cloud.updateTackbok': 'Update Tackbok',
-  'cloud.retryAndVerifyBackup': 'Retry and verify backup',
-  'cloud.repairFromVerifiedBackup': 'Repair from verified backup',
-  'cloud.inspectAndRepairBackup': 'Inspect and repair backup',
-  'cloud.consolidateBackups': 'Combine backups',
+  'cloud.retryBackupCheck': 'Retry backup check',
   'cloud.exportJournalAndRepairBackup': 'Export journal and repair backup',
   'cloud.freeDeviceStorageAndRetry': 'Free device storage and retry',
   'cloud.manageGoogleDriveStorage': 'Manage Google Drive storage',
   'cloud.retryMissingMedia': 'Retry missing media',
-  'cloud.locateOrRetryAttachment': 'Locate or retry attachment',
+  'cloud.retryAttachment': 'Retry attachment',
   'cloud.retryJournalPreparation': 'Retry journal preparation',
   'cloud.acknowledgeAndDisconnect': 'Acknowledge and disconnect',
   'cloud.reviewDeletionAndEraseThisDevice': 'Review deletion and erase this device',

@@ -671,10 +671,10 @@ export const hi = {
   'dateFormat.timeLabel': '{weekday} पर {time}',
   'cloud.attentionNeeded': 'ध्यान देने की जरूरत है',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'अपने जर्नल का बैकअप लें और उसे अपने Google Drive के साथ सिंक करें। कोई ताकबूक खाता नहीं बनाया गया है.',
-  'cloud.backupFromDate': '{date} से बैकअप',
+    'अपनी डायरी का बैकअप लें और उसे अपने Google Drive के साथ सिंक करें। यह सीधे आपके फ़ोन से आपके Drive में जाती है। ताकबूक का डेवलपर इसे कभी नहीं देखता।',
+  'cloud.lastUpdatedDate': 'अंतिम अपडेट: {date}',
   'cloud.beforeYouConnect': 'इससे पहले कि आप कनेक्ट करें',
-  'cloud.checkingGoogleDriveForChanges': 'परिवर्तनों के लिए Google Drive की जाँच की जा रही है',
+  'cloud.checkingGoogleDriveForChanges': 'Google Drive में परिवर्तनों की जाँच की जा रही है…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
     'इस डायरी के साथ विलय करने के लिए एक बैकअप चुनें। दोनों पक्ष सुरक्षित हैं।',
   'cloud.chooseABackupToRestoreOnThisDevice':
@@ -688,7 +688,7 @@ export const hi = {
   'cloud.cloudBackupDeletionReceived': 'क्लाउड बैकअप विलोपन प्राप्त हुआ',
   'cloud.cloudBackupNumber': 'क्लाउड बैकअप {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'बैकअप ट्रांज़िट में और आराम के दौरान Google Drive द्वारा एन्क्रिप्ट किए जाते हैं, लेकिन एंड-टू-एंड एन्क्रिप्टेड नहीं होते हैं।',
+    'आपका बैकअप आपके Google Drive में ताकबूक के एक निजी फ़ोल्डर में रखा जाता है। ताकबूक आपकी दूसरी Drive फ़ाइलें नहीं देख सकता, और आपका बैकअप कभी भी ताकबूक के डेवलपर को नहीं भेजा जाता। Google इसे आपकी दूसरी फ़ाइलों की तरह सुरक्षित रखता है, लेकिन यह एंड-टू-एंड एन्क्रिप्टेड नहीं है।',
   'cloud.cloudRestoreStarted': 'क्लाउड पुनर्स्थापन प्रारंभ हुआ',
   'cloud.cloudSyncAttentionNeeded': 'क्लाउड सिंक: ध्यान देने की आवश्यकता',
   'cloud.cloudSyncChangesSafelyQueued': 'क्लाउड सिंक: परिवर्तन सुरक्षित रूप से कतारबद्ध',
@@ -705,8 +705,8 @@ export const hi = {
   'cloud.deleteJournalEverywhere2': 'हर जगह से डायरी हटाएं?',
   'cloud.deleteOrResetData': 'डेटा हटाएं या रीसेट करें',
   'cloud.deletingJournalEverywhere': 'डायरी को हर जगह से हटाया जा रहा है...',
-  'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
-    'क्लाउड बैकअप और डायरी डेटा हटाया जा रहा है। ताकबूक को खुला रखें।',
+  'cloud.removingTheCloudBackupAndJournalData':
+    'क्लाउड बैकअप और डायरी डेटा हटाया जा रहा है। अगर आप ताकबूक से बाहर जाते हैं, तो लौटने पर हटाना फिर से शुरू कर सकते हैं।',
   'cloud.disconnect': 'डिस्कनेक्ट',
   'cloud.disconnecting': 'डिस्कनेक्ट हो रहा है…',
   'cloud.disconnectedYourJournalStaysOnThisPhone':
@@ -729,6 +729,8 @@ export const hi = {
     'Google Drive तक नहीं पहुंचा जा सका. आपके परिवर्तन सुरक्षित रूप से कतारबद्ध रहते हैं।',
   'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
     'फ़ोटो और वॉयस नोट्स वाई-फ़ाई की प्रतीक्षा कर रहे हैं। आपके परिवर्तन सुरक्षित रूप से कतारबद्ध रहते हैं।',
+  'cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead':
+    'इस डिवाइस पर मौजूद फ़ोटो या वॉइस नोट को पढ़ा नहीं जा सका। आपके परिवर्तन सुरक्षित रूप से कतार में रहते हैं।',
   'cloud.googleDriveDisconnectedOnThisDevice': 'इस डिवाइस पर Google Drive डिस्कनेक्ट हो गया',
   'cloud.googleDriveIsBusyTryAgainShortly': 'Google Drive व्यस्त है. शीघ्र ही पुनः प्रयास करें.',
   'cloud.googleDriveNeedsToBeReconnected': 'Google Drive को पुनः कनेक्ट करने की आवश्यकता है।',
@@ -736,10 +738,10 @@ export const hi = {
   'cloud.googleDriveStorageIsFull': 'Google Drive स्टोरेज भर गया है.',
   'cloud.googleDriveStatus': 'Google Drive - {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'यदि Google ड्राइव एक्सेस चेकबॉक्स दिखाता है, तो उसे चुनें। इस अनुमति के बिना बैकअप कनेक्ट नहीं हो सकता.',
+    'Google आपसे ताकबूक को आपके Drive में उसका अपना निजी फ़ोल्डर इस्तेमाल करने की अनुमति माँग सकता है। इसकी अनुमति दें, नहीं तो बैकअप कनेक्ट नहीं हो पाएगा।',
   'cloud.journalDeletionReceived': 'डायरी हटाने का अनुरोध प्राप्त हुआ',
-  'cloud.journalTextStillSyncsOnMobileData':
-    'डायरी का टेक्स्ट अभी भी मोबाइल डेटा पर सिंक होता है।',
+  'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
+    'फ़ोटो और वॉइस नोट केवल वाई-फ़ाई पर अपलोड और डाउनलोड होते हैं। नई फ़ोटो या वॉइस नोट वाली प्रविष्टियाँ भी वाई-फ़ाई का इंतज़ार करती हैं।',
   'cloud.keepLocalDataAndTheCloudCopy': 'स्थानीय डेटा और क्लाउड कॉपी रखें',
   'cloud.keepLocalJournalData': 'स्थानीय डायरी डेटा रखें',
   'cloud.keepTheCloudCopyAndOtherDevices': 'क्लाउड कॉपी और अन्य डिवाइस रखें',
@@ -747,8 +749,7 @@ export const hi = {
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'स्थानीय डेटा और क्लाउड बैकअप दोनों बने रहेंगे. अन्य डिवाइस जुड़े रहते हैं.',
   'cloud.markAsReviewed': 'समीक्षा के रूप में चिह्नित करें',
-  'cloud.mergingChangesAndUpdatingGoogleDrive':
-    'परिवर्तनों को मर्ज करना और Google Drive को अपडेट करना',
+  'cloud.savingYourChangesToGoogleDrive': 'आपके परिवर्तन Google Drive में सहेजे जा रहे हैं…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'इस Google खाते में कोई ताकबूक बैकअप नहीं मिला',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
@@ -757,8 +758,9 @@ export const hi = {
     'कोई मौजूदा ताकबूक बैकअप नहीं मिला। इस डायरी के लिए एक बनाएं।',
   'cloud.optionalCloudBackup': 'वैकल्पिक क्लाउड बैकअप',
   'cloud.pauseSync': 'समन्वयन रोकें',
-  'cloud.preparingJournalChanges': 'डायरी के परिवर्तन तैयार करना',
-  'cloud.preparingRestoredJournalData': 'पुनर्स्थापित डायरी डेटा तैयार करना',
+  'cloud.preparingYourChanges': 'आपके परिवर्तन तैयार किए जा रहे हैं…',
+  'cloud.restoringYourJournalFromGoogleDrive':
+    'Google Drive से आपकी डायरी पुनर्स्थापित की जा रही है…',
   'cloud.profile': 'प्रोफ़ाइल',
   'cloud.prompt': 'लेखन संकेत',
   'cloud.reconnectGoogleDrive': 'Google Drive को पुनः कनेक्ट करें',
@@ -771,24 +773,25 @@ export const hi = {
   'cloud.resetThisDeviceOnly2': 'केवल इस डिवाइस को रीसेट करें?',
   'cloud.merge': 'मर्ज',
   'cloud.restoreCloudBackup': 'क्लाउड बैकअप पुनर्स्थापित करें',
-  'cloud.restoreFromYourCloudBackup': 'अपने क्लाउड बैकअप से पुनर्स्थापित करें',
+  'cloud.restoreFromYourCloudBackup': 'अपने Google Drive बैकअप से पुनर्स्थापित करें',
   'cloud.restoring': 'पुनर्स्थापित किया जा रहा है...',
   'cloud.safelyQueued': 'सुरक्षित रूप से कतारबद्ध',
-  'cloud.savingSyncedJournalDataOnThisDevice':
-    'इस डिवाइस पर सिंक किए गए डायरी डेटा को सहेजा जा रहा है',
+  'cloud.gettingChangesFromYourOtherDevices': 'आपके अन्य डिवाइस से परिवर्तन लाए जा रहे हैं…',
   'cloud.setupElapsedSeconds': 'बीता समय: {seconds} सेकंड',
   'cloud.setupProgressHelp':
     'Tackbok इस डिवाइस को कनेक्ट कर रहा है और पहला सिंक शुरू कर रहा है। बड़े बैकअप, फ़ोटो और वॉइस नोट में अधिक समय लग सकता है।',
   'cloud.setupTakingLonger':
-    'इसमें सामान्य से अधिक समय लग रहा है। अपना इंटरनेट कनेक्शन जाँचें और Tackbok खुला रखें ताकि यह जारी रह सके।',
+    'इसमें सामान्य से अधिक समय लग रहा है। अपना इंटरनेट कनेक्शन जाँचें। अगर आप Tackbok से बाहर जाते हैं, तो यह वहीं से जारी रहेगा जहाँ रुका था।',
   'cloud.settingUpCloudSync': 'क्लाउड सिंक सेट किया जा रहा है...',
-  'cloud.stepCurrentOfTotalInThisBatch': 'इस बैच में {total} का चरण {current}',
+  'cloud.downloadingPhotosAndVoiceNotes': 'फ़ोटो और वॉइस नोट डाउनलोड हो रहे हैं…',
   'cloud.syncCompleted': 'सिंक पूरा हुआ',
   'cloud.syncNow': 'अभी सिंक करें',
+  'cloud.resumeSyncToSyncNow': 'अभी सिंक करने के लिए सिंक फिर से शुरू करें।',
+  'cloud.fixTheProblemAboveToSyncNow': 'अभी सिंक करने के लिए ऊपर दी गई समस्या ठीक करें।',
   'cloud.syncPaused': 'समन्वयन रुका हुआ',
   'cloud.syncResumed': 'सिंक फिर से शुरू हुआ',
-  'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
-    'सिंक सुरक्षित बैचों में चलता है। आप ताकबूक का उपयोग जारी रख सकते हैं।',
+  'cloud.syncIsFasterWithTackbokOpen':
+    'ताकबूक खुला रहने पर यह तेज़ी से होता है। अगर आप बाहर जाते हैं, तो यह वहीं से जारी रहेगा जहाँ रुका था।',
   'cloud.syncMediaOnWiFiOnly': 'मीडिया को केवल वाई-फाई पर सिंक करें',
   'cloud.syncing': 'सिंक हो रहा है...',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
@@ -804,21 +807,22 @@ export const hi = {
     'क्लाउड से हटाना पहले ही दर्ज किया जा चुका है। इस डिवाइस से शेष डायरी डेटा मिटा दें।',
   'cloud.finishDeletion': 'विलोपन समाप्त करें',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'कनेक्टेड खाते की पहचान करने के लिए आपका Google ईमेल इस डिवाइस पर सुरक्षित रूप से संग्रहीत किया जाता है, और डिस्कनेक्ट होने पर हटा दिया जाता है। इसे बैकअप, लॉग, डायग्नोस्टिक्स या एनालिटिक्स में कभी भी शामिल नहीं किया जाता है।',
+    'आपका Google ईमेल सिर्फ़ इसी फ़ोन पर रखा जाता है, ताकि दिखाया जा सके कि कौन-सा खाता जुड़ा है। डिस्कनेक्ट करने पर इसे हटा दिया जाता है और यह कभी भी ताकबूक के डेवलपर को नहीं भेजा जाता।',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'यह डिवाइस पहले डिस्कनेक्ट करता है, फिर अपनी स्थानीय डायरी हटा देता है। क्लाउड बैकअप और अन्य डिवाइस बने रहते हैं।',
   'cloud.thisDeviceWasReset': 'यह डिवाइस रीसेट कर दिया गया था',
   'cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected':
     'यह डायरी हर जगह से हटा दी गई। यह डिवाइस डिस्कनेक्ट हो गया है।',
   'cloud.upToDate': 'अप टू डेट',
-  'cloud.verifyBackupHealth': 'बैकअप स्वास्थ्य सत्यापित करें',
   'cloud.waitingForTheFirstSuccessfulSync': 'पहले सफल सिंक की प्रतीक्षा है',
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'आप इस स्क्रीन को छोड़ सकते हैं; ताकबूक सक्रिय होने पर सिंकिंग फिर से शुरू हो जाती है।',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'आपकी डायरी आपके डिवाइस पर रहती है। क्लाउड बैकअप वैकल्पिक है।',
+    'आपकी डायरी आपके फ़ोन पर ही रहती है। अगर आप बैकअप चालू करते हैं, तो उसकी एक कॉपी सिर्फ़ आपके अपने Google Drive में जाती है।',
   'cloud.countChangesSafelyQueued': '{count} परिवर्तन सुरक्षित रूप से कतारबद्ध हैं',
   'cloud.countChangesRemaining': '{count} परिवर्तन शेष',
+  'cloud.photosAndVoiceNotesToDownloadCount':
+    'डाउनलोड होने बाकी फ़ोटो और वॉइस नोट: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
     'Google Drive प्राधिकरण पर ध्यान देने की आवश्यकता है।',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
@@ -864,15 +868,12 @@ export const hi = {
   'cloud.finishConnection': 'कनेक्शन समाप्त करें',
   'cloud.reconnectToTheCorrectBackup': 'सही बैकअप से पुनः कनेक्ट करें',
   'cloud.updateTackbok': 'ताकबूक को अपडेट करें',
-  'cloud.retryAndVerifyBackup': 'पुनः प्रयास करें और बैकअप सत्यापित करें',
-  'cloud.repairFromVerifiedBackup': 'सत्यापित बैकअप से मरम्मत करें',
-  'cloud.inspectAndRepairBackup': 'बैकअप का निरीक्षण और मरम्मत करें',
-  'cloud.consolidateBackups': 'बैकअप संयोजित करें',
+  'cloud.retryBackupCheck': 'बैकअप जाँच फिर से करें',
   'cloud.exportJournalAndRepairBackup': 'डायरी निर्यात करें और बैकअप की मरम्मत करें',
   'cloud.freeDeviceStorageAndRetry': 'डिवाइस का स्टोरेज खाली करें और पुनः प्रयास करें',
   'cloud.manageGoogleDriveStorage': 'Google Drive भंडारण प्रबंधित करें',
   'cloud.retryMissingMedia': 'गुम मीडिया पुनः प्रयास करें',
-  'cloud.locateOrRetryAttachment': 'अनुलग्नक का पता लगाएं या पुनः प्रयास करें',
+  'cloud.retryAttachment': 'अटैचमेंट फिर से आज़माएँ',
   'cloud.retryJournalPreparation': 'डायरी तैयारी का पुनः प्रयास करें',
   'cloud.acknowledgeAndDisconnect': 'स्वीकार करें और डिस्कनेक्ट करें',
   'cloud.reviewDeletionAndEraseThisDevice': 'इस डिवाइस को हटाने और मिटाने की समीक्षा करें',

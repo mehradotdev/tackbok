@@ -65,15 +65,15 @@ function requestBodyBytes(body: unknown): number {
 /**
  * One request's cancellation: the pass signal plus a deadline for each phase
  * (headers, then every body read). Either aborts the fetch, so expo/fetch
- * cancels the native request and errors its body stream.
+ * cancels the native request and errors its body stream. Listeners and timers
+ * live only while a phase runs, so a completed or discarded response retains
+ * nothing on the pass signal.
  */
 class RequestGuard {
   private readonly controller = new AbortController();
   private timedOut = false;
 
-  constructor(private readonly passSignal: AbortSignal | null) {
-    passSignal?.addEventListener('abort', () => this.controller.abort());
-  }
+  constructor(private readonly passSignal: AbortSignal | null) {}
 
   get signal(): AbortSignal {
     return this.controller.signal;
@@ -81,24 +81,35 @@ class RequestGuard {
 
   /** Runs one phase. Rejects promptly on abort even if `work` never settles. */
   phase<T>(work: () => Promise<T>, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
+    if (this.passSignal?.aborted) this.controller.abort();
     if (this.controller.signal.aborted) return Promise.reject(this.abortError());
     return new Promise<T>((resolve, reject) => {
-      const onAbort = () => reject(this.abortError());
+      const abort = () => this.controller.abort();
       const timer = setTimeout(() => {
         this.timedOut = true;
         this.controller.abort();
       }, timeoutMs);
+      let settled = false;
       const settle = () => {
+        settled = true;
         clearTimeout(timer);
+        this.passSignal?.removeEventListener('abort', abort);
         this.controller.signal.removeEventListener('abort', onAbort);
       };
+      const onAbort = () => {
+        settle();
+        reject(this.abortError());
+      };
+      this.passSignal?.addEventListener('abort', abort);
       this.controller.signal.addEventListener('abort', onAbort);
       work().then(
         (value) => {
+          if (settled) return;
           settle();
           resolve(value);
         },
         (error: unknown) => {
+          if (settled) return;
           settle();
           reject(this.controller.signal.aborted ? this.abortError() : error);
         },
@@ -146,6 +157,10 @@ function parseRetryAfter(value: string | null, now: number): number | null {
   return Number.isNaN(date) ? null : Math.max(0, date - now);
 }
 
+/**
+ * The Drive reason in an error body, or null when the body is not readable
+ * JSON. A cancelled or timed-out read rethrows: its reason is unknown, not absent.
+ */
 async function errorReason(response: DriveResponseLike): Promise<string | null> {
   try {
     const body = (await response.json()) as {
@@ -155,7 +170,10 @@ async function errorReason(response: DriveResponseLike): Promise<string | null> 
       .map((value) => value.reason)
       .filter((value): value is string => typeof value === 'string');
     return reasons[0] ?? null;
-  } catch {
+  } catch (error) {
+    if (error instanceof SyncCancelledError || error instanceof DriveRequestError) {
+      throw error;
+    }
     return null;
   }
 }
@@ -262,22 +280,7 @@ export class DriveTransport {
     const signal = this.options.signal?.() ?? null;
     let authRetried = false;
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      throwIfCancelled(signal);
-      // Re-read the durable window before every attempt: another request may
-      // have recorded a longer server-mandated delay while this one waited.
-      const retryWait =
-        this.options.state.loadDiscovery(vaultId).retryNotBefore - this.options.now();
-      if (retryWait > 0) {
-        if (attempt === 0 || retryWait > MAX_RETRY_DELAY_MS) {
-          throw new DriveRequestError(
-            'rate-limited',
-            429,
-            'Drive retry window is still active',
-            retryWait,
-          );
-        }
-        await this.sleep(retryWait, signal);
-      }
+      const honored = await this.awaitRetryWindow(vaultId, attempt, signal, -Infinity);
       let token: string;
       try {
         // shortcut: the token refresh takes no signal and is awaited, not
@@ -286,6 +289,8 @@ export class DriveTransport {
         // auth modules accept an AbortSignal.
         token = await this.options.auth.getFreshAccessToken();
       } catch (error) {
+        // A refresh that fails after cancellation is not a provider failure.
+        throwIfCancelled(signal);
         if (error instanceof CloudAuthError) {
           const code = providerErrorCodeForAuthError(error.code);
           throw new SnapshotProviderError(
@@ -297,7 +302,8 @@ export class DriveTransport {
         }
         throw error;
       }
-      throwIfCancelled(signal);
+      // Another request may have extended the window while the token refreshed.
+      await this.awaitRetryWindow(vaultId, attempt, signal, honored);
       const started = this.options.now();
       const guard = new RequestGuard(signal);
       let response: DriveResponseLike;
@@ -338,19 +344,43 @@ export class DriveTransport {
         response.headers.get('retry-after'),
         this.options.now(),
       );
-      const reason = await errorReason(response);
-      // errorReason swallows read failures; never map a cancelled read to a
+      // Record the server's window before the body read can fail or be cancelled.
+      if (retryAfterMs !== null && (response.status === 429 || response.status >= 500)) {
+        this.extendRetryWindow(vaultId, retryAfterMs);
+      }
+      let error: DriveRequestError;
+      try {
+        error = mapStatus(response.status, await errorReason(response), retryAfterMs);
+      } catch (failure) {
+        if (!(failure instanceof DriveRequestError)) throw failure;
+        // The error body timed out, so a 403's reason is unknown. Never guess a
+        // durable failure such as permission-denied from a missing reason.
+        error =
+          response.status === 403
+            ? new DriveRequestError(
+                'transient',
+                response.status,
+                'Google Drive error response timed out',
+                retryAfterMs,
+              )
+            : mapStatus(response.status, null, retryAfterMs);
+      }
+      // errorReason swallows unreadable bodies; never map a cancelled read to a
       // provider failure that could record Attention.
       throwIfCancelled(signal);
-      const error = mapStatus(response.status, reason, retryAfterMs);
       this.recordAttempt(methodClass, error, started, init.body, response, attempt > 0);
       if (response.status === 401 && !authRetried) {
         authRetried = true;
-        await this.options.auth.clearInvalidAccessToken();
+        try {
+          await this.options.auth.clearInvalidAccessToken();
+        } catch (failure) {
+          throwIfCancelled(signal);
+          throw failure;
+        }
         continue;
       }
       if (error.code === 'rate-limited' && retryAfterMs !== null) {
-        this.options.state.setRetryNotBefore(vaultId, this.options.now() + retryAfterMs);
+        this.extendRetryWindow(vaultId, retryAfterMs);
       }
       if (
         options.idempotent &&
@@ -368,6 +398,43 @@ export class DriveTransport {
       throw error;
     }
     throw new SnapshotProviderError('transient', 'Drive retry limit reached');
+  }
+
+  /**
+   * Waits out the durable server window, re-reading it after each wait because
+   * another request may have extended it. A window already waited for
+   * (`honored`) is not waited for again. Returns the window last honored.
+   */
+  private async awaitRetryWindow(
+    vaultId: string,
+    attempt: number,
+    signal: AbortSignal | null,
+    honored: number,
+  ): Promise<number> {
+    for (;;) {
+      throwIfCancelled(signal);
+      const notBefore = this.options.state.loadDiscovery(vaultId).retryNotBefore;
+      const retryWait = notBefore - this.options.now();
+      if (retryWait <= 0 || notBefore <= honored) return honored;
+      if (attempt === 0 || retryWait > MAX_RETRY_DELAY_MS) {
+        throw new DriveRequestError(
+          'rate-limited',
+          429,
+          'Drive retry window is still active',
+          retryWait,
+        );
+      }
+      await this.sleep(retryWait, signal);
+      honored = notBefore;
+    }
+  }
+
+  /** Never shortens a window another request already recorded. */
+  private extendRetryWindow(vaultId: string, retryAfterMs: number): void {
+    const notBefore = this.options.now() + retryAfterMs;
+    if (notBefore > this.options.state.loadDiscovery(vaultId).retryNotBefore) {
+      this.options.state.setRetryNotBefore(vaultId, notBefore);
+    }
   }
 
   private sleep(milliseconds: number, signal: AbortSignal | null): Promise<void> {

@@ -724,10 +724,10 @@ export const he: Translations = {
   // Cloud Backup & Sync
   'cloud.attentionNeeded': 'נדרשת תשומת לב',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'גיבוי וסנכרון היומן עם Google Drive שלך. לא נוצר חשבון Tackbok.',
-  'cloud.backupFromDate': 'גיבוי מתאריך {date}',
+    'גיבוי וסנכרון היומן עם Google Drive שלך. היומן עובר ישירות מהטלפון ל-Drive שלך, והמפתח של טאקבוק אף פעם לא רואה אותו.',
+  'cloud.lastUpdatedDate': 'עודכן לאחרונה: {date}',
   'cloud.beforeYouConnect': 'לפני ההתחברות',
-  'cloud.checkingGoogleDriveForChanges': 'בודק שינויים ב-Google Drive',
+  'cloud.checkingGoogleDriveForChanges': 'בדיקת שינויים ב-Google Drive…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
     'יש לבחור גיבוי למיזוג עם היומן הזה. שני הצדדים יישמרו.',
   'cloud.chooseABackupToRestoreOnThisDevice': 'יש לבחור גיבוי לשחזור במכשיר הזה.',
@@ -739,7 +739,7 @@ export const he: Translations = {
   'cloud.cloudBackupDeletionReceived': 'התקבלה מחיקת גיבוי בענן',
   'cloud.cloudBackupNumber': 'גיבוי בענן {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Google Drive מצפין גיבויים בעת ההעברה ובמנוחה, אך הם אינם מוצפנים מקצה לקצה.',
+    'הגיבוי נשמר בתיקייה פרטית של טאקבוק ב-Google Drive שלך. טאקבוק לא יכולה לראות את שאר הקבצים שלך ב-Drive, והגיבוי אף פעם לא נשלח למפתח של טאקבוק. Google מגנה עליו כמו על שאר הקבצים שלך, אבל הוא לא מוצפן מקצה לקצה.',
   'cloud.cloudRestoreStarted': 'השחזור מהענן התחיל',
   'cloud.cloudSyncAttentionNeeded': 'סנכרון בענן: נדרשת תשומת לב',
   'cloud.cloudSyncChangesSafelyQueued': 'סנכרון בענן: השינויים ממתינים בבטחה',
@@ -756,8 +756,8 @@ export const he: Translations = {
   'cloud.deleteJournalEverywhere2': 'למחוק את היומן בכל מקום?',
   'cloud.deleteOrResetData': 'מחיקה או איפוס של נתונים',
   'cloud.deletingJournalEverywhere': 'מחיקת היומן מכל מקום…',
-  'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
-    'הגיבוי בענן ונתוני היומן נמחקים. יש להשאיר את Tackbok פתוח.',
+  'cloud.removingTheCloudBackupAndJournalData':
+    'הגיבוי בענן ונתוני היומן נמחקים. אם יוצאים מ-Tackbok, אפשר להמשיך את המחיקה כשחוזרים.',
   'cloud.disconnect': 'ניתוק',
   'cloud.disconnecting': 'מתבצע ניתוק…',
   'cloud.disconnectedYourJournalStaysOnThisPhone':
@@ -779,6 +779,8 @@ export const he: Translations = {
     'לא ניתן להגיע אל Google Drive. השינויים שלך יישארו בתור בבטחה.',
   'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
     'תמונות והקלטות קוליות ממתינים ל-Wi-Fi. השינויים שלך יישארו בתור בבטחה.',
+  'cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead':
+    'לא ניתן היה לקרוא תמונה או הקלטה קולית במכשיר הזה. השינויים שלך יישארו בתור בבטחה.',
   'cloud.googleDriveDisconnectedOnThisDevice': 'Google Drive נותק במכשיר הזה',
   'cloud.googleDriveIsBusyTryAgainShortly':
     'Google Drive עמוס. יש לנסות שוב בעוד זמן קצר.',
@@ -787,10 +789,10 @@ export const he: Translations = {
   'cloud.googleDriveStorageIsFull': 'שטח האחסון ב-Google Drive מלא.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'אם Google מציגה תיבת סימון לגישה ל-Drive, יש לבחור בה. לא ניתן לחבר את הגיבוי ללא הרשאה זו.',
+    'ייתכן ש-Google תבקש לאשר לטאקבוק להשתמש בתיקייה פרטית משלה ב-Drive שלך. יש לאשר, אחרת לא ניתן לחבר את הגיבוי.',
   'cloud.journalDeletionReceived': 'התקבלה מחיקת יומן',
-  'cloud.journalTextStillSyncsOnMobileData':
-    'טקסט היומן עדיין מסתנכרן דרך נתונים סלולריים.',
+  'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
+    'תמונות והקלטות קוליות מועלות ומורדות רק ב-Wi-Fi. גם רשומות עם תמונות או הקלטות קוליות חדשות ממתינות ל-Wi-Fi.',
   'cloud.keepLocalDataAndTheCloudCopy': 'שמירת הנתונים המקומיים והעותק בענן',
   'cloud.keepLocalJournalData': 'שמירת נתוני היומן המקומיים',
   'cloud.keepTheCloudCopyAndOtherDevices': 'שמירת העותק בענן והמכשירים האחרים',
@@ -798,7 +800,7 @@ export const he: Translations = {
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'הנתונים המקומיים והגיבוי בענן יישארו. מכשירים אחרים יישארו מחוברים.',
   'cloud.markAsReviewed': 'סימון כנבדק',
-  'cloud.mergingChangesAndUpdatingGoogleDrive': 'ממזג שינויים ומעדכן את Google Drive',
+  'cloud.savingYourChangesToGoogleDrive': 'שמירת השינויים שלך ב-Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'לא נמצא גיבוי Tackbok בחשבון Google הזה',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
@@ -807,8 +809,8 @@ export const he: Translations = {
     'לא נמצא גיבוי Tackbok קיים. יש ליצור גיבוי ליומן הזה.',
   'cloud.optionalCloudBackup': 'גיבוי ענן אופציונלי',
   'cloud.pauseSync': 'השהיית הסנכרון',
-  'cloud.preparingJournalChanges': 'מכין את השינויים ביומן',
-  'cloud.preparingRestoredJournalData': 'מכין את נתוני היומן ששוחזרו',
+  'cloud.preparingYourChanges': 'הכנת השינויים שלך…',
+  'cloud.restoringYourJournalFromGoogleDrive': 'שחזור היומן שלך מ-Google Drive…',
   'cloud.profile': 'פרופיל',
   'cloud.prompt': 'הנחיה',
   'cloud.reconnectGoogleDrive': 'חיבור מחדש של Google Drive',
@@ -820,23 +822,25 @@ export const he: Translations = {
   'cloud.resetThisDeviceOnly2': 'לאפס את המכשיר הזה בלבד?',
   'cloud.merge': 'מיזוג',
   'cloud.restoreCloudBackup': 'שחזור גיבוי בענן',
-  'cloud.restoreFromYourCloudBackup': 'שחזור מהגיבוי שלך בענן',
+  'cloud.restoreFromYourCloudBackup': 'שחזור מהגיבוי שלך ב-Google Drive',
   'cloud.restoring': 'משחזר…',
   'cloud.safelyQueued': 'ממתין בבטחה',
-  'cloud.savingSyncedJournalDataOnThisDevice': 'שומר את נתוני היומן המסונכרנים במכשיר זה',
+  'cloud.gettingChangesFromYourOtherDevices': 'קבלת שינויים מהמכשירים האחרים שלך…',
   'cloud.setupElapsedSeconds': 'זמן שחלף: {seconds} שנ׳',
   'cloud.setupProgressHelp':
     'Tackbok מחבר את המכשיר הזה ומתחיל את הסנכרון הראשון. גיבויים גדולים, תמונות והקלטות קוליות עשויים להימשך זמן רב יותר.',
   'cloud.setupTakingLonger':
-    'הפעולה נמשכת יותר מהרגיל. יש לבדוק את החיבור לאינטרנט ולהשאיר את Tackbok פתוח כדי לאפשר לה להמשיך.',
+    'הפעולה נמשכת יותר מהרגיל. יש לבדוק את החיבור לאינטרנט. אם יוצאים מ-Tackbok, הפעולה תמשיך מהמקום שבו נעצרה.',
   'cloud.settingUpCloudSync': 'מגדיר סנכרון בענן…',
-  'cloud.stepCurrentOfTotalInThisBatch': 'שלב {current} מתוך {total} באצווה זו',
+  'cloud.downloadingPhotosAndVoiceNotes': 'הורדת תמונות והקלטות קוליות…',
   'cloud.syncCompleted': 'הסנכרון הושלם',
   'cloud.syncNow': 'סנכרון עכשיו',
+  'cloud.resumeSyncToSyncNow': 'כדי לסנכרן עכשיו, יש לחדש את הסנכרון.',
+  'cloud.fixTheProblemAboveToSyncNow': 'כדי לסנכרן עכשיו, יש לפתור את הבעיה שלמעלה.',
   'cloud.syncPaused': 'הסנכרון הושהה',
   'cloud.syncResumed': 'הסנכרון חודש',
-  'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
-    'הסנכרון פועל באצוות בטוחות. אפשר להמשיך להשתמש ב-Tackbok.',
+  'cloud.syncIsFasterWithTackbokOpen':
+    'זה מהיר יותר כש-Tackbok פתוח. אם יוצאים, הסנכרון ימשיך מהמקום שבו נעצר.',
   'cloud.syncMediaOnWiFiOnly': 'סנכרון מדיה ב-Wi-Fi בלבד',
   'cloud.syncing': 'מסנכרן…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
@@ -852,21 +856,21 @@ export const he: Translations = {
     'המחיקה מהענן כבר נרשמה. יש למחוק את נתוני היומן שנותרו במכשיר הזה.',
   'cloud.finishDeletion': 'השלמת המחיקה',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'כתובת האימייל שלך ב-Google נשמרת באופן מאובטח במכשיר הזה כדי לזהות את החשבון המחובר, ונמחקת בעת הניתוק. היא לעולם אינה נכללת בגיבויים, ביומנים, בנתוני אבחון או בניתוח שימוש.',
+    'כתובת האימייל שלך ב-Google נשמרת רק בטלפון הזה, כדי להציג איזה חשבון מחובר. היא נמחקת בניתוק ואף פעם לא נשלחת למפתח של טאקבוק.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'המכשיר הזה יתנתק תחילה ואז ימחק את היומן המקומי. הגיבוי בענן והמכשירים האחרים יישארו.',
   'cloud.thisDeviceWasReset': 'המכשיר הזה אופס',
   'cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected':
     'היומן הזה נמחק בכל מקום. המכשיר הזה מנותק.',
   'cloud.upToDate': 'מעודכן',
-  'cloud.verifyBackupHealth': 'אימות תקינות הגיבוי',
   'cloud.waitingForTheFirstSuccessfulSync': 'ממתין לסנכרון המוצלח הראשון',
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'אפשר לצאת מהמסך; הסנכרון יתחדש כאשר Tackbok פעיל.',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'היומן שלך נשאר במכשיר — עם גיבוי ענן אופציונלי.',
+    'היומן שלך נשאר בטלפון. אם מפעילים גיבוי, עותק נשלח רק ל-Google Drive שלך.',
   'cloud.countChangesSafelyQueued': '{count} שינויים ממתינים בבטחה',
   'cloud.countChangesRemaining': 'נותרו {count} שינויים',
+  'cloud.photosAndVoiceNotesToDownloadCount': 'תמונות והקלטות קוליות להורדה: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention': 'ההרשאה ל-Google Drive דורשת טיפול.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
     'הגיבוי הזה שייך לחשבון Google מחובר אחר.',
@@ -908,15 +912,12 @@ export const he: Translations = {
   'cloud.finishConnection': 'השלמת החיבור',
   'cloud.reconnectToTheCorrectBackup': 'חיבור מחדש לגיבוי הנכון',
   'cloud.updateTackbok': 'עדכון Tackbok',
-  'cloud.retryAndVerifyBackup': 'ניסיון חוזר ואימות הגיבוי',
-  'cloud.repairFromVerifiedBackup': 'תיקון מגיבוי מאומת',
-  'cloud.inspectAndRepairBackup': 'בדיקה ותיקון של הגיבוי',
-  'cloud.consolidateBackups': 'איחוד גיבויים',
+  'cloud.retryBackupCheck': 'בדיקת הגיבוי מחדש',
   'cloud.exportJournalAndRepairBackup': 'ייצוא היומן ותיקון הגיבוי',
   'cloud.freeDeviceStorageAndRetry': 'פינוי מקום במכשיר וניסיון חוזר',
   'cloud.manageGoogleDriveStorage': 'ניהול האחסון ב-Google Drive',
   'cloud.retryMissingMedia': 'ניסיון חוזר למדיה חסרה',
-  'cloud.locateOrRetryAttachment': 'איתור הקובץ המצורף או ניסיון חוזר',
+  'cloud.retryAttachment': 'ניסיון חוזר לקובץ המצורף',
   'cloud.retryJournalPreparation': 'ניסיון חוזר בהכנת היומן',
   'cloud.acknowledgeAndDisconnect': 'אישור וניתוק',
   'cloud.reviewDeletionAndEraseThisDevice': 'בדיקת המחיקה ומחיקת המכשיר הזה',

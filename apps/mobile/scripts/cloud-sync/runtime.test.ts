@@ -241,9 +241,9 @@ describe('production cloud-sync runtime', () => {
       'cloud.attentionNeeded',
       'cloud.cloudBackupRetryCompleted',
       'cloud.reconnectGoogleDrive',
-      'cloud.verifyBackupHealth',
+      'cloud.retryBackupCheck',
       'cloud.photosAndVoiceMemosAreWaitingForWiFiYour',
-      'cloud.journalTextStillSyncsOnMobileData',
+      'cloud.photosAndVoiceNotesSyncOnlyOnWiFi',
     ] as const satisfies readonly TranslationKey[];
     for (const locale of ALL_SUPPORTED_LOCALES) {
       // Load raw catalogs so English fallback cannot hide missing translations.
@@ -316,13 +316,13 @@ describe('production cloud-sync runtime', () => {
     }
   });
 
-  test('the public policy describes complete snapshots and separate media plainly', async () => {
+  test('the public policy describes Drive backup plainly', async () => {
     const policy = await Bun.file(
       join(repositoryRoot, 'apps/website/src/pages/privacy.astro'),
     ).text();
-    expect(policy).toContain('complete compressed snapshot');
-    expect(policy).toContain('Photos and voice memos are stored separately');
-    expect(policy).toContain('not real-time collaborative editing');
-    expect(policy).not.toMatch(/cloud_sync_/);
+    expect(policy).toContain('its own private folder in your Drive');
+    expect(policy).toContain('never see or receive it');
+    expect(policy).toContain('not end-to-end encrypted');
+    expect(policy).not.toMatch(/cloud_sync_|snapshot/);
   });
 });

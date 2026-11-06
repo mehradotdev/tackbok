@@ -25,7 +25,6 @@ import {
   Wifi,
   X,
 } from 'lucide-react-native';
-import { cn } from 'tailwind-variants';
 import { useCSSVariable } from 'uniwind';
 import { useTranslation } from '~/lib/i18n';
 import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
@@ -76,9 +75,10 @@ import {
   attentionReasonMessage,
   cloudSyncFailureMessage,
   entityTypeLabel,
+  pendingWorkSummary,
   recoveryActionLabel,
   statusLabel,
-  SYNC_PHASES,
+  syncNowUnavailableReason,
   syncPhaseLabel,
 } from './copy';
 
@@ -128,6 +128,8 @@ export default function CloudBackupScreen() {
   const disconnectLabel = t('cloud.disconnectProvider', {
     provider: providerName,
   });
+  const pendingWork = pendingWorkSummary(snapshot, t);
+  const syncNowReason = syncNowUnavailableReason(snapshot.status, t);
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -549,19 +551,14 @@ export default function CloudBackupScreen() {
                   </View>
                 </View>
                 <Text className="text-sm text-foreground">
-                  {snapshot.queuedCount > 0
-                    ? snapshot.status === 'syncing'
-                      ? t('cloud.countChangesRemaining', { count: snapshot.queuedCount })
-                      : t('cloud.countChangesSafelyQueued', {
-                          count: snapshot.queuedCount,
-                        })
-                    : snapshot.lastSuccessAt
+                  {pendingWork ??
+                    (snapshot.lastSuccessAt
                       ? t('cloud.lastSuccessfulSyncDate', {
                           date: formatLocalizedDate(snapshot.lastSuccessAt, t, {
                             relative: true,
                           }),
                         })
-                      : t('cloud.waitingForTheFirstSuccessfulSync')}
+                      : t('cloud.waitingForTheFirstSuccessfulSync'))}
                 </Text>
                 {snapshot.attentionReason && snapshot.recoveryAction && (
                   <View
@@ -591,7 +588,7 @@ export default function CloudBackupScreen() {
                   </View>
                 )}
                 {snapshot.status === 'syncing' && snapshot.activityPhase && (
-                  <SyncProgressPanel
+                  <SyncStatusLine
                     phase={snapshot.activityPhase}
                     initialRestore={snapshot.initialRestore}
                   />
@@ -614,7 +611,8 @@ export default function CloudBackupScreen() {
                     snapshot.status === 'warning'
                   }
                   onPress={() => void runAction(syncNow, t('cloud.syncCompleted'))}
-                  accessibilityLabel={t('cloud.syncNow')}>
+                  accessibilityLabel={t('cloud.syncNow')}
+                  accessibilityHint={syncNowReason ?? undefined}>
                   {snapshot.status === 'syncing' ? (
                     <SpinningRefreshIcon className="text-primary-foreground size-5" />
                   ) : (
@@ -626,17 +624,20 @@ export default function CloudBackupScreen() {
                       : t('cloud.syncNow')}
                   </Text>
                 </Button>
+                {syncNowReason && (
+                  <Text className="text-sm text-foreground">{syncNowReason}</Text>
+                )}
               </View>
 
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow
                   icon={Wifi}
                   label={t('cloud.syncMediaOnWiFiOnly')}
-                  description={t('cloud.journalTextStillSyncsOnMobileData')}
+                  description={t('cloud.photosAndVoiceNotesSyncOnlyOnWiFi')}
                   onPress={() => setWifiOnly(!wifiOnly)}
                   role="switch"
                   accessibilityLabel={t('cloud.syncMediaOnWiFiOnly')}
-                  accessibilityHint={t('cloud.journalTextStillSyncsOnMobileData')}
+                  accessibilityHint={t('cloud.photosAndVoiceNotesSyncOnlyOnWiFi')}
                   accessibilityState={{ checked: wifiOnly }}
                   className="rounded-none px-4"
                   rightElement={
@@ -883,7 +884,7 @@ export default function CloudBackupScreen() {
               {t('cloud.deletingJournalEverywhere')}
             </Text>
             <Text className="text-center text-muted-foreground">
-              {t('cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen')}
+              {t('cloud.removingTheCloudBackupAndJournalData')}
             </Text>
           </View>
         </View>
@@ -892,7 +893,7 @@ export default function CloudBackupScreen() {
   );
 }
 
-function SyncProgressPanel({
+function SyncStatusLine({
   phase,
   initialRestore,
 }: {
@@ -902,48 +903,22 @@ function SyncProgressPanel({
   initialRestore: boolean;
 }) {
   const { t } = useTranslation();
-  const phaseIndex = SYNC_PHASES.indexOf(phase);
   const label = syncPhaseLabel(phase, initialRestore, t);
 
+  // Phases are reported as work happens and can repeat, so there is no honest
+  // total to show. Keep the indicator indeterminate.
   return (
     <View
-      className="gap-3 rounded-xl bg-primary/10 p-3"
+      className="gap-2 rounded-xl bg-primary/10 p-3"
       accessibilityRole="progressbar"
       accessibilityValue={{ text: label }}
       accessibilityLiveRegion="polite">
       <View className="flex-row items-center gap-3">
-        <View className="size-9 items-center justify-center rounded-full bg-primary/15">
-          <ActivityIndicator size="small" colorClassName="accent-primary" />
-        </View>
-        <View className="flex-1 gap-0.5">
-          <Text className="font-body-semibold text-foreground">{label}</Text>
-          <Text className="text-xs text-foreground">
-            {t('cloud.stepCurrentOfTotalInThisBatch', {
-              current: phaseIndex + 1,
-              total: SYNC_PHASES.length,
-            })}
-          </Text>
-        </View>
+        <ActivityIndicator size="small" colorClassName="accent-primary" />
+        <Text className="flex-1 font-body-semibold text-foreground">{label}</Text>
       </View>
-
-      <View className="flex-row gap-1.5" accessibilityElementsHidden>
-        {SYNC_PHASES.map((item, index) => (
-          <View
-            key={item}
-            className={cn(
-              'h-1.5 flex-1 rounded-full',
-              index < phaseIndex
-                ? 'bg-primary/50'
-                : index === phaseIndex
-                  ? 'bg-primary'
-                  : 'bg-muted',
-            )}
-          />
-        ))}
-      </View>
-
       <Text className="text-xs leading-4.5 text-foreground">
-        {t('cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok')}
+        {t('cloud.syncIsFasterWithTackbokOpen')}
       </Text>
     </View>
   );
@@ -1025,17 +1000,17 @@ function ConnectionChoice({
               accessibilityLabel={`${
                 prepared.localHasData ? t('cloud.merge') : t('cloud.restoreCloudBackup')
               }. ${
-                vault.createdAt
-                  ? t('cloud.backupFromDate', {
-                      date: formatLocalizedDate(vault.createdAt, t),
+                vault.updatedAt
+                  ? t('cloud.lastUpdatedDate', {
+                      date: formatLocalizedDate(vault.updatedAt, t),
                     })
                   : t('cloud.cloudBackupNumber', { number: index + 1 })
               }`}>
               <View className="flex-1 gap-0.5">
                 <Text className="font-body-bold text-foreground">
-                  {vault.createdAt
-                    ? t('cloud.backupFromDate', {
-                        date: formatLocalizedDate(vault.createdAt, t),
+                  {vault.updatedAt
+                    ? t('cloud.lastUpdatedDate', {
+                        date: formatLocalizedDate(vault.updatedAt, t),
                       })
                     : t('cloud.cloudBackupNumber', { number: index + 1 })}
                 </Text>

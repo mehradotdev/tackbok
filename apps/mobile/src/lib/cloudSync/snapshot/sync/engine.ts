@@ -120,68 +120,79 @@ export class SnapshotSyncEngine {
     }
 
     let pending = this.stateStore.loadPending(this.vaultId, this.deviceId);
-    if (!pending) {
-      if (durable.journalGeneration > durable.settledGeneration) {
-        await this.hooks.at?.('after-local-mutation');
-      }
-      const plan = await this.planCandidate();
-      if (!plan) {
-        await this.cleanup.run();
-        this.stateStore.clearPause(this.vaultId, this.deviceId);
-        return { status: 'up-to-date', actionableChanges: 0 };
-      }
-      if (plan.existingSnapshot) {
-        await this.publisher.adopt(
-          plan.existingSnapshot,
-          plan.observedDeviceHeads,
-          plan.capturedGeneration,
-        );
-        const settled = this.stateStore.loadState(this.vaultId, this.deviceId);
-        return {
-          status: 'pulled',
-          snapshotId: plan.existingSnapshot.snapshotId,
-          actionableChanges: actionableChanges(
-            settled.journalGeneration,
-            settled.settledGeneration,
-          ),
-        };
-      }
-      pending = this.stateStore.createPending(
-        this.vaultId,
-        this.deviceId,
-        plan.capturedGeneration,
-        (deviceSequence) => {
-          const encoded = encodeSnapshot({
-            format: 'tackbok-snapshot',
-            vaultId: this.vaultId,
-            parentSnapshotIds: plan.parentSnapshotIds,
-            observedDeviceHeads: plan.observedDeviceHeads,
-            authorDeviceId: this.deviceId,
-            deviceSequence,
-            createdAt: this.now(),
-            ...plan.domain,
-          });
+    for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
+      if (!pending) {
+        if (durable.journalGeneration > durable.settledGeneration) {
+          this.hooks.activity?.('preparing-local-changes');
+          await this.hooks.at?.('after-local-mutation');
+        }
+        const plan = await this.planCandidate();
+        if (!plan) {
+          await this.cleanup.run();
+          this.stateStore.clearPause(this.vaultId, this.deviceId);
+          return { status: 'up-to-date', actionableChanges: 0 };
+        }
+        if (plan.existingSnapshot) {
+          await this.publisher.adopt(
+            plan.existingSnapshot,
+            plan.observedDeviceHeads,
+            plan.capturedGeneration,
+          );
+          const settled = this.stateStore.loadState(this.vaultId, this.deviceId);
           return {
-            snapshotId: encoded.snapshotId,
-            compressedBytes: encoded.compressedBytes,
-            mediaHashes: plan.mediaHashes,
+            status: 'pulled',
+            snapshotId: plan.existingSnapshot.snapshotId,
+            actionableChanges: actionableChanges(
+              settled.journalGeneration,
+              settled.settledGeneration,
+            ),
           };
-        },
-      );
-      await this.hooks.at?.('after-candidate-persisted');
-    }
+        }
+        pending = this.stateStore.createPending(
+          this.vaultId,
+          this.deviceId,
+          plan.capturedGeneration,
+          (deviceSequence) => {
+            const encoded = encodeSnapshot({
+              format: 'tackbok-snapshot',
+              vaultId: this.vaultId,
+              parentSnapshotIds: plan.parentSnapshotIds,
+              observedDeviceHeads: plan.observedDeviceHeads,
+              authorDeviceId: this.deviceId,
+              deviceSequence,
+              createdAt: this.now(),
+              ...plan.domain,
+            });
+            return {
+              snapshotId: encoded.snapshotId,
+              compressedBytes: encoded.compressedBytes,
+              mediaHashes: plan.mediaHashes,
+            };
+          },
+        );
+        await this.hooks.at?.('after-candidate-persisted');
+      }
 
-    await this.publisher.resume(pending);
-    this.stateStore.clearPause(this.vaultId, this.deviceId);
-    durable = this.stateStore.loadState(this.vaultId, this.deviceId);
-    return {
-      status: 'published',
-      snapshotId: pending.snapshotId,
-      actionableChanges: actionableChanges(
-        durable.journalGeneration,
-        durable.settledGeneration,
-      ),
-    };
+      if (!(await this.publisher.resume(pending))) {
+        // The candidate went stale before upload; its data is still local.
+        pending = null;
+        continue;
+      }
+      this.stateStore.clearPause(this.vaultId, this.deviceId);
+      durable = this.stateStore.loadState(this.vaultId, this.deviceId);
+      return {
+        status: 'published',
+        snapshotId: pending.snapshotId,
+        actionableChanges: actionableChanges(
+          durable.journalGeneration,
+          durable.settledGeneration,
+        ),
+      };
+    }
+    throw new SnapshotProviderError(
+      'transient',
+      'Heads changed before every bounded candidate upload attempt',
+    );
   }
 
   private async planCandidate(): Promise<PlannedCandidate | null> {
@@ -304,6 +315,7 @@ export class SnapshotSyncEngine {
       if (unique.size > 1) {
         const valid: ListedDeviceHead[] = [];
         for (const candidate of unique.values()) {
+          this.hooks.activity?.('reading-remote-snapshot');
           const bytes = await this.provider.downloadSnapshot(
             this.vaultId,
             candidate.head.snapshotId,
@@ -332,6 +344,7 @@ export class SnapshotSyncEngine {
     for (const candidate of normalized) {
       let payload = verifiedSnapshots.get(candidate.head.snapshotId);
       if (!payload) {
+        this.hooks.activity?.('reading-remote-snapshot');
         const bytes = await this.provider.downloadSnapshot(
           this.vaultId,
           candidate.head.snapshotId,

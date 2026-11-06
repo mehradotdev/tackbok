@@ -288,7 +288,18 @@ export type SnapshotKillPoint =
   | 'after-base-checkpoint-settled'
   | 'during-snapshot-cleanup';
 
+/**
+ * Work the engine is about to start. Reported before the work, unlike kill
+ * points, so progress never describes work that has already finished.
+ */
+export type SnapshotSyncActivity =
+  | 'preparing-local-changes'
+  | 'reading-remote-snapshot'
+  | 'publishing-local-snapshot'
+  | 'applying-remote-snapshot';
+
 export interface SnapshotSyncHooks {
   at?(point: SnapshotKillPoint): void | Promise<void>;
+  activity?(activity: SnapshotSyncActivity): void;
   beforeHeadRecheck?(): void | Promise<void>;
 }

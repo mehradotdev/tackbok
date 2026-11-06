@@ -47,11 +47,11 @@ test('shows actual restore phases', () => {
   act(() => {
     root.update(
       <SetupProgress
-        snapshot={{ ...initial, configured: true, activityPhase: 'preparing' }}
+        snapshot={{ ...initial, configured: true, activityPhase: 'downloading' }}
       />,
     );
   });
-  expect(content()).toContain(mockEn['cloud.preparingRestoredJournalData']);
+  expect(content()).toContain(mockEn['cloud.restoringYourJournalFromGoogleDrive']);
 });
 
 test('shows elapsed time and slow-connection guidance after 90 seconds, without pretending progress', () => {
