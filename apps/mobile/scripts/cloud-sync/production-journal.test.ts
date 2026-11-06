@@ -61,12 +61,16 @@ mock.module('expo-file-system', () => ({
     get exists() {
       return existingFiles.has(this.uri);
     }
+    delete() {
+      existingFiles.delete(this.uri);
+    }
   },
   Paths: { document: 'file:///documents' },
 }));
 mock.module('../../src/lib/cloudSync/snapshot/media', () => ({
   copyVerifiedMediaFile(source: { uri: string }, destination: { uri: string }) {
     copiedMedia.push({ from: source.uri, to: destination.uri });
+    existingFiles.add(destination.uri);
   },
   createMediaPartialFileSink() {},
   openMediaUploadSource() {},
@@ -292,6 +296,88 @@ test('a same-blob profile photo ID switch reuses the local file instead of downl
     2,
   );
   expect(downloads).toBe(0);
+});
+
+test('a rejected apply removes the photo it copied unless a committed row uses it', async () => {
+  sqlite.exec(
+    'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM sync_retained_media; DELETE FROM cloud_sync_state',
+  );
+  existingFiles.clear();
+  existingFiles.add('file:///old.jpg');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'photo-race', device_id: 'device', updated_at: 1 })
+    .run();
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'photo-b',
+      owner_type: 'profile',
+      owner_id: 'self',
+      kind: 'profile-photo',
+      local_uri: 'file:///old.jpg',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  db.insert(schema.userProfile)
+    .values({
+      profile_id: 'self',
+      display_name: 'Mehra',
+      photo_asset_id: 'photo-b',
+      updated_at: 1,
+    })
+    .run();
+  const store = new ProductionSnapshotJournalStore(
+    'photo-race',
+    'device',
+    new ProductionSnapshotMediaStore(),
+  );
+  const { domain, generation } = await store.capture();
+  // A new asset ID needs its own file, copied before the generation check.
+  domain.profile.photoAssetId = 'photo-new';
+  domain.media[0].assetId = 'photo-new';
+  const rejectApply = (commitWinner: boolean) => {
+    let transactions = 0;
+    beforeTransaction = () => {
+      if (++transactions !== 2) return;
+      db.update(schema.cloudSyncState)
+        .set({ journal_generation: generation + 1 })
+        .where(eq(schema.cloudSyncState.vault_id, 'photo-race'))
+        .run();
+      if (!commitWinner) return;
+      // The apply that won the race committed a row for the same file.
+      db.insert(schema.mediaAssets)
+        .values({
+          asset_id: 'photo-winner',
+          owner_type: 'profile',
+          owner_id: 'self',
+          kind: 'profile-photo',
+          local_uri: copiedMedia.at(-1)!.to.replace('file:///documents/', ''),
+          blob_hash: fakeBlobHash,
+          byte_size: 1,
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    };
+  };
+
+  rejectApply(false);
+  expect(await store.applyMergedIfGeneration(domain, generation)).toBe(false);
+  const copied = copiedMedia.at(-1)!.to;
+  expect(copied).toContain(fakeBlobHash);
+  expect(existingFiles.has(copied)).toBe(false);
+  expect(existingFiles.has('file:///old.jpg')).toBe(true);
+
+  db.update(schema.cloudSyncState)
+    .set({ journal_generation: generation })
+    .where(eq(schema.cloudSyncState.vault_id, 'photo-race'))
+    .run();
+  rejectApply(true);
+  expect(await store.applyMergedIfGeneration(domain, generation)).toBe(false);
+  beforeTransaction = null;
+  expect(existingFiles.has(copied)).toBe(true);
 });
 
 test('authored profile clears stay positive and win a no-base merge after a clock reset', async () => {
