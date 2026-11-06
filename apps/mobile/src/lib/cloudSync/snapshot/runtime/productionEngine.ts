@@ -42,7 +42,7 @@ import type {
   SnapshotProvider,
 } from '../sync/types';
 import { SnapshotProviderError } from '../sync/types';
-import { throwIfCancelled, untilCancelled } from '../sync/errors';
+import { SyncCancelledError, throwIfCancelled, untilCancelled } from '../sync/errors';
 import { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } from '../storage';
 
 interface ProductionSnapshotVault {
@@ -278,6 +278,28 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     );
     this.onActivity('checking');
     const result = await this.engine.sync();
+    const remoteCommitted = result.status === 'published' || result.status === 'pulled';
+    let hydrated = 0;
+    try {
+      return await this.finishPass(result, beforeConflicts, signal, (count) => {
+        hydrated = count;
+      });
+    } catch (error) {
+      // Journal changes already committed must reach the screens even when the
+      // rest of the pass is cancelled; a later pass may find nothing to apply.
+      if (error instanceof SyncCancelledError && (remoteCommitted || hydrated > 0)) {
+        await this.refreshAppliedViews().catch(() => undefined);
+      }
+      throw error;
+    }
+  }
+
+  private async finishPass(
+    result: Awaited<ReturnType<SnapshotSyncEngine['sync']>>,
+    beforeConflicts: Set<string>,
+    signal: AbortSignal | null,
+    onHydrated: (count: number) => void,
+  ): Promise<RuntimePassResult> {
     throwIfCancelled(signal);
     if (result.status === 'attention') {
       throw new SnapshotRuntimeFailure(failureCategoryForAttention(result.reason));
@@ -296,9 +318,10 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     throwIfCancelled(signal);
     try {
       const hydration = await this.journal.hydratePendingMedia(this.mediaProvider, 2);
+      hydrated = hydration.hydrated;
+      onHydrated(hydrated);
       // Local completion may finish after cancellation; record nothing from it.
       throwIfCancelled(signal);
-      hydrated = hydration.hydrated;
       if (hydration.missing > 0) {
         this.state.setPause(
           this.vault.vault_id,
@@ -388,18 +411,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         track('cloud_sync_conflict_recovered', { entity_type: parsed.entityType });
       }
     }
-    const [profile] = await db.select().from(userProfile).limit(1);
-    const [photo] = profile?.photo_asset_id
-      ? await db
-          .select()
-          .from(mediaAssets)
-          .where(eq(mediaAssets.asset_id, profile.photo_asset_id))
-          .limit(1)
-      : [];
-    useSettingsStore.setState({
-      profileName: profile?.display_name ?? null,
-      profileImageUri: photo?.local_uri ?? null,
-    });
+    await this.refreshProfileCache();
     if (result.status === 'published' || result.status === 'pulled' || hydrated > 0)
       await this.onRemoteApplied?.();
     const [pendingMedia] = await db
@@ -412,6 +424,26 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       pulled: result.status === 'published' || result.status === 'pulled' ? 1 : 0,
       pushed: result.status === 'published' ? 1 : 0,
     };
+  }
+
+  private async refreshProfileCache(): Promise<void> {
+    const [profile] = await db.select().from(userProfile).limit(1);
+    const [photo] = profile?.photo_asset_id
+      ? await db
+          .select()
+          .from(mediaAssets)
+          .where(eq(mediaAssets.asset_id, profile.photo_asset_id))
+          .limit(1)
+      : [];
+    useSettingsStore.setState({
+      profileName: profile?.display_name ?? null,
+      profileImageUri: photo?.local_uri ?? null,
+    });
+  }
+
+  private async refreshAppliedViews(): Promise<void> {
+    await this.refreshProfileCache();
+    await this.onRemoteApplied?.();
   }
 }
 
