@@ -1,6 +1,8 @@
 // https://docs.expo.dev/guides/using-eslint/
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'eslint/config';
 import expoConfig from 'eslint-config-expo/flat.js';
+import oxlint from 'eslint-plugin-oxlint';
 import reactCompiler from 'eslint-plugin-react-compiler';
 import i18nPlugin from './eslint-plugins/i18n.mjs';
 
@@ -60,4 +62,10 @@ export default defineConfig([
     files: ['src/components/ui/safe-area-view.tsx'],
     rules: { 'no-restricted-imports': 'off' },
   },
+  // Oxlint runs first (see .oxlintrc.json); turn off the rules it already covers.
+  // Oxlint reports unused disable directives, since most name rules it now owns.
+  { linterOptions: { reportUnusedDisableDirectives: 'off' } },
+  ...oxlint.buildFromOxlintConfigFile(
+    fileURLToPath(new URL('.oxlintrc.json', import.meta.url)),
+  ),
 ]);

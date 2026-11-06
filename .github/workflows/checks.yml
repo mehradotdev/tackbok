@@ -53,13 +53,31 @@ jobs:
             else
               echo "$workspace=false" >> "$GITHUB_OUTPUT"
             fi
+            # Lint every file only when lint rules or tool versions may have changed.
+            lint_config_files=$(git diff --name-only --no-renames "$BASE_SHA...HEAD" -- \
+              "apps/$workspace/package.json" "apps/$workspace/.oxlintrc.json" \
+              "apps/$workspace/eslint.config.*" "apps/$workspace/eslint-plugins/" \
+              package.json bun.lock bunfig.toml .node-version .github/workflows/checks.yml)
+            if [[ -n "$lint_config_files" ]]; then
+              echo "${workspace}_lint=all" >> "$GITHUB_OUTPUT"
+            else
+              echo "${workspace}_lint=changed" >> "$GITHUB_OUTPUT"
+            fi
           done
       - name: Lint mobile
         if: steps.changes.outputs.mobile == 'true'
-        run: bun --filter '@tackbok/mobile' lint
+        working-directory: apps/mobile
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SCOPE: ${{ steps.changes.outputs.mobile_lint }}
+        run: ../../.github/scripts/lint-changed.sh
       - name: Lint website
         if: steps.changes.outputs.website == 'true'
-        run: bun --filter '@tackbok/website' lint
+        working-directory: apps/website
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SCOPE: ${{ steps.changes.outputs.website_lint }}
+        run: ../../.github/scripts/lint-changed.sh
       - name: Typecheck mobile
         if: steps.changes.outputs.mobile == 'true'
         run: bun --filter '@tackbok/mobile' typecheck

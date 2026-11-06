@@ -6,9 +6,9 @@ the `prepare` script installs Husky hooks automatically.
 
 ## Local checks
 
-- **Pre-commit:** lint-staged formats staged files and runs ESLint with safe fixes
-  for staged mobile/website code, using each app's configuration. Failures block
-  the commit; intentional ESLint warnings do not. lint-staged preserves unstaged
+- **Pre-commit:** lint-staged formats staged files and runs Oxlint, then ESLint,
+  with safe fixes for staged mobile/website code, using each app's configuration.
+  Failures block the commit; intentional lint warnings do not. lint-staged preserves unstaged
   changes and restores its backup if a task fails.
 - **Commit-msg:** commitlint checks Conventional Commits, for example
   `fix(mobile): preserve journal scroll position` or `docs: explain local setup`.
@@ -37,13 +37,23 @@ adds Astro formatting and Tailwind class sorting. Pass paths to format only some
 files. Build outputs, generated theme/artwork/database files, lockfiles,
 environment files, and vendored skills are excluded in its `ignorePatterns`.
 
+Each app lints with Oxlint first (`.oxlintrc.json`), then ESLint. ESLint keeps
+only rules Oxlint lacks: Astro markup, Expo rules, `import/no-unresolved`, the
+custom i18n rule, and the React Compiler checks; `eslint-plugin-oxlint` turns off
+everything Oxlint covers so no rule runs twice. Oxlint, not ESLint, reports unused
+`eslint-disable` comments. Add a rule to `.oxlintrc.json` when Oxlint supports it.
+
 ## Pull requests
 
 GitHub Actions runs when a PR is opened, updated with commits, or reopened,
 including draft PRs. Merging to `main` does not run these checks again.
 
 - Lint, typechecking, and tests run for workspaces whose `apps/mobile/` or
-  `apps/website/` paths changed. Mobile runs its full Jest and integration suites;
+  `apps/website/` paths changed. Lint checks only the files the PR adds or
+  modifies, unless lint configuration or tool versions changed (the app's
+  `package.json`, `.oxlintrc.json`, ESLint config or `eslint-plugins/`, or any root
+  file listed below); then it lints the whole workspace. Typechecking always covers
+  the whole workspace. Mobile runs its full Jest and integration suites;
   website tests are skipped until a `test` script is added.
 - The website build runs when `apps/website/` changes.
 - Changes to root `package.json`, `bun.lock`, `bunfig.toml`, `.node-version`,

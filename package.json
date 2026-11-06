@@ -7,6 +7,8 @@
       "apps/*"
     ],
     "catalog": {
+      "eslint-plugin-oxlint": "^1.90.0",
+      "oxlint": "^1.91.0",
       "tailwindcss": "^4.3.4",
       "typescript": "~6.0.3"
     }
