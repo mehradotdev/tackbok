@@ -205,17 +205,17 @@ export function commonAncestorDomain(
 }
 
 export function headsCovered(
-  heads: { head: DeviceHead }[],
+  heads: RemoteHeadSnapshot[],
   accepted: ObservedDeviceHead[],
 ): boolean {
   const known = observationMap(accepted);
-  return heads.every(({ head }) => {
-    const value = known.get(head.deviceId);
+  return heads.every((candidate) => {
+    const value = known.get(candidate.head.deviceId);
     return Boolean(
       value &&
-      (value.deviceSequence > head.deviceSequence ||
-        (value.deviceSequence === head.deviceSequence &&
-          value.snapshotId === head.snapshotId)),
+      (value.deviceSequence > candidate.head.deviceSequence ||
+        (value.deviceSequence === candidate.head.deviceSequence &&
+          value.snapshotId === candidate.snapshotId)),
     );
   });
 }
