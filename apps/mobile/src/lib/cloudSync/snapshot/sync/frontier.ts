@@ -145,13 +145,25 @@ export function remoteContainsBase(
   );
 }
 
+/**
+ * The candidates no other candidate contains, in snapshot ID order. History
+ * order differs between devices, so it must not decide the merge base.
+ */
 function newestOf(candidates: SnapshotLineage[]): SnapshotLineage[] {
-  return candidates.filter(
-    (candidate) =>
-      !candidates.some(
-        (other) => other !== candidate && remoteContainsBase(other, candidate),
-      ),
-  );
+  return candidates
+    .filter(
+      (candidate) =>
+        !candidates.some(
+          (other) => other !== candidate && remoteContainsBase(other, candidate),
+        ),
+    )
+    .sort((left, right) =>
+      left.snapshotId < right.snapshotId
+        ? -1
+        : left.snapshotId > right.snapshotId
+          ? 1
+          : 0,
+    );
 }
 
 /**

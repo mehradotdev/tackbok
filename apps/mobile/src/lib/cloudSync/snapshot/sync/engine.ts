@@ -1,4 +1,4 @@
-import { SnapshotValidationError } from '../caps';
+import { SNAPSHOT_CAPS, SnapshotValidationError } from '../caps';
 import { canonicalize } from '../canonical';
 import { decodeSnapshot, encodeSnapshot } from '../codec';
 import { SnapshotMergeError, mergeSnapshotDomains } from '../merge';
@@ -37,11 +37,38 @@ import { SnapshotPublisher } from './publication';
 
 const MAX_HEAD_RECHECKS = 4;
 // A merge base older than the local base is found by walking retained
-// parents. Downloads happen only while heads have diverged and are capped per
-// pass; 12 covers four devices publishing at once. Past the cap, the merge
-// uses an older common ancestor, or no base as before.
+// parents, only while heads have diverged. Past any limit below, the merge
+// uses an older verified common ancestor, or no base as before.
+// shortcut: per sync pass (all re-plans included), at most 12 ancestor
+// downloads (four devices publishing at once), 32 MiB transferred (two
+// maximum-size snapshots) and 64 MiB of decoded JSON kept (one maximum-size
+// snapshot, beside the heads); raise them once on-device memory and data
+// measurements show larger vaults regularly fall back to a no-base merge.
 const MAX_ANCESTOR_DEPTH = 4;
 const MAX_ANCESTOR_DOWNLOADS = 12;
+const MAX_ANCESTOR_COMPRESSED_BYTES = 2 * SNAPSHOT_CAPS.compressedBytes;
+const MAX_ANCESTOR_DECODED_BYTES = SNAPSHOT_CAPS.uncompressedBytes;
+
+/** Shared by every plan in one sync pass, so re-planning cannot reset it. */
+interface AncestorBudget {
+  downloads: number;
+  compressedBytes: number;
+  decodedBytes: number;
+}
+
+/**
+ * A valid snapshot is one gzip member, so its last four bytes state the
+ * uncompressed size. Decoding rejects a wrong value, so it is safe to charge
+ * before the expensive decode.
+ */
+function statedUncompressedBytes(bytes: Uint8Array): number {
+  if (bytes.length < 4) return 0;
+  const end = bytes.length;
+  return (
+    (bytes[end - 4] | (bytes[end - 3] << 8) | (bytes[end - 2] << 16)) +
+    bytes[end - 1] * 0x1000000
+  );
+}
 
 interface PlannedCandidate {
   existingSnapshot?: RemoteHeadSnapshot;
@@ -127,13 +154,21 @@ export class SnapshotSyncEngine {
       };
     }
 
+    // Content-addressed payloads cannot change under the same hash. Reuse only
+    // successfully decoded payloads during this pass; later syncs verify anew.
+    const verifiedSnapshots = new Map<string, JournalSnapshotPayload>();
+    const ancestorBudget: AncestorBudget = {
+      downloads: MAX_ANCESTOR_DOWNLOADS,
+      compressedBytes: MAX_ANCESTOR_COMPRESSED_BYTES,
+      decodedBytes: MAX_ANCESTOR_DECODED_BYTES,
+    };
     let pending = this.stateStore.loadPending(this.vaultId, this.deviceId);
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       if (!pending) {
         if (durable.journalGeneration > durable.settledGeneration) {
           await this.hooks.at?.('after-local-mutation');
         }
-        const plan = await this.planCandidate();
+        const plan = await this.planCandidate(verifiedSnapshots, ancestorBudget);
         if (!plan) {
           await this.cleanup.run();
           this.stateStore.clearPause(this.vaultId, this.deviceId);
@@ -202,11 +237,10 @@ export class SnapshotSyncEngine {
     );
   }
 
-  private async planCandidate(): Promise<PlannedCandidate | null> {
-    // Content-addressed payloads cannot change under the same hash. Reuse only
-    // successfully decoded payloads during this plan; later syncs verify anew.
-    const verifiedSnapshots = new Map<string, JournalSnapshotPayload>();
-    const ancestorBudget = { downloads: MAX_ANCESTOR_DOWNLOADS };
+  private async planCandidate(
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
+    ancestorBudget: AncestorBudget,
+  ): Promise<PlannedCandidate | null> {
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       const listed = await this.provider.listHeads(this.vaultId, true);
       const remoteHeads = await this.loadAndNormalizeHeads(listed, verifiedSnapshots);
@@ -246,23 +280,22 @@ export class SnapshotSyncEngine {
         // Merge against what both sides provably contain. The local base is
         // wrong for a concurrent remote: its changes would look like remote
         // deletions. Without a provable ancestor, merge with no base.
-        let baseDomain: SnapshotDomain | null = null;
-        if (tips.length > 0) {
-          for (const tip of tips) {
-            if (walked.has(tip.snapshotId) || remoteContainsBase(remote, tip)) continue;
-            walked.add(tip.snapshotId);
-            for (const ancestor of await this.loadAncestors(
-              tip.payload,
-              verifiedSnapshots,
-              ancestorBudget,
-            )) {
-              history.set(ancestor.snapshotId, ancestor);
-            }
+        // A fresh device has no local base, but each remote it merges still
+        // becomes shared history for the next one.
+        for (const tip of tips) {
+          if (walked.has(tip.snapshotId) || remoteContainsBase(remote, tip)) continue;
+          walked.add(tip.snapshotId);
+          for (const ancestor of await this.loadAncestors(
+            tip.payload,
+            verifiedSnapshots,
+            ancestorBudget,
+          )) {
+            history.set(ancestor.snapshotId, ancestor);
           }
-          baseDomain = commonAncestorDomain(remote, [...history.values()]);
-          history.set(remote.snapshotId, remote);
-          tips.push(remote);
         }
+        const baseDomain = commonAncestorDomain(remote, [...history.values()]);
+        history.set(remote.snapshotId, remote);
+        tips.push(remote);
         merged = mergeSnapshotDomains(baseDomain, merged, domainOf(remote.payload));
       }
 
@@ -318,13 +351,14 @@ export class SnapshotSyncEngine {
 
   /**
    * Retained ancestors of a snapshot, nearest first. Retention cleanup may have
-   * deleted some; a missing or invalid snapshot only ends that line of
-   * history, so the caller falls back to an older or no base instead of failing.
+   * deleted some; a missing, damaged or over-budget snapshot only ends that
+   * line of history, so the caller falls back to an older or no base instead
+   * of failing. Authorization and transient provider errors still propagate.
    */
   private async loadAncestors(
     descendant: JournalSnapshotPayload,
     verifiedSnapshots: Map<string, JournalSnapshotPayload>,
-    budget: { downloads: number },
+    budget: AncestorBudget,
   ): Promise<SnapshotLineage[]> {
     const ancestors: SnapshotLineage[] = [];
     const visited = new Set<string>();
@@ -336,15 +370,36 @@ export class SnapshotSyncEngine {
         visited.add(snapshotId);
         let payload = verifiedSnapshots.get(snapshotId);
         if (!payload) {
-          if (budget.downloads <= 0) return ancestors;
+          // Reserve a maximum-size transfer: its size is unknown until it ends.
+          if (
+            budget.downloads <= 0 ||
+            budget.compressedBytes < SNAPSHOT_CAPS.compressedBytes
+          ) {
+            continue;
+          }
           budget.downloads -= 1;
-          const bytes = await this.provider.downloadSnapshot(this.vaultId, snapshotId);
+          let bytes: Uint8Array | null;
+          try {
+            bytes = await this.provider.downloadSnapshot(this.vaultId, snapshotId);
+          } catch (error) {
+            // Damaged bytes (checksum, size, conflicting copies) of an optional
+            // ancestor must not pause a sync whose heads are all valid.
+            if (error instanceof SnapshotProviderError && error.code === 'invalid-data') {
+              continue;
+            }
+            throw error;
+          }
+          await this.hooks.at?.('during-remote-snapshot-download');
           if (!bytes) continue;
+          budget.compressedBytes -= bytes.length;
+          const decodedBytes = statedUncompressedBytes(bytes);
+          if (decodedBytes > budget.decodedBytes) continue;
           try {
             payload = decodeSnapshot(bytes, snapshotId).payload;
           } catch {
             continue;
           }
+          budget.decodedBytes -= decodedBytes;
           if (payload.vaultId !== this.vaultId) continue;
           verifiedSnapshots.set(snapshotId, payload);
         }

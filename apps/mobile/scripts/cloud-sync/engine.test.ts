@@ -13,6 +13,10 @@ import { BaseShadowManager } from '../../src/lib/cloudSync/snapshot/sync/baseSha
 import { SnapshotSyncEngine } from '../../src/lib/cloudSync/snapshot/sync/engine';
 import { SnapshotCleanup } from '../../src/lib/cloudSync/snapshot/sync/cleanup';
 import {
+  commonAncestorDomain,
+  type SnapshotLineage,
+} from '../../src/lib/cloudSync/snapshot/sync/frontier';
+import {
   FakeSnapshotProvider,
   MemoryBaseShadowFileStore,
   MemorySnapshotJournalStore,
@@ -2190,4 +2194,222 @@ describe('merging concurrent branches against their common ancestor', () => {
       expect(final.profile.displayName).toBe(expectedName);
     },
   );
+
+  test('a fresh restore of concurrent heads merges against their retained ancestor', async () => {
+    let initial = withEntry(blankDomain(), entry('e1', 'one'));
+    initial = withEntry(initial, entry('e2', 'two'));
+    const { devices, provider, clock } = await converged(2, initial);
+    const [a, b] = devices;
+    a.journal.mutate(withoutEntry(a.journal.current(), 'e1', a.deviceId));
+    edit(b, 'e2', 'B2');
+    await syncConcurrently([a, b]);
+
+    const fresh = harness('device-fresh', blankDomain(), provider, clock);
+    const downloadPoints: SnapshotKillPoint[] = [];
+    const result = await fresh
+      .engine({
+        at(point) {
+          if (point === 'during-remote-snapshot-download') downloadPoints.push(point);
+        },
+      })
+      .sync();
+    expect(result.status).not.toBe('attention');
+    // Two heads and their shared ancestor each pass the download kill point.
+    expect(downloadPoints).toHaveLength(3);
+    const domain = fresh.journal.current();
+    expect(domain.conflicts).toEqual([]);
+    expect(contents(domain)).toEqual({ e2: 'B2' });
+  });
+
+  test.each([
+    ['invalid-data', 'published', null],
+    ['transient', 'retry', null],
+    ['rate-limited', 'retry', null],
+    ['authorization-required', 'attention', 'authorization-required'],
+  ] as const)(
+    'an ancestor download failing with %s gives %s',
+    async (code, status, pauseReason) => {
+      const { devices, provider } = await converged(
+        2,
+        withEntry(blankDomain(), entry('e1', 'one')),
+      );
+      const [a, b] = devices;
+      const ancestor = provider.physicalHeads(a.vaultId)[0].head.snapshotId;
+      edit(a, 'e1', 'A1');
+      edit(b, 'e2', 'B2');
+      await syncConcurrently([a, b]);
+      const download = provider.downloadSnapshot.bind(provider);
+      provider.downloadSnapshot = async (vaultId, snapshotId) => {
+        if (snapshotId === ancestor) throw new SnapshotProviderError(code, 'injected');
+        return download(vaultId, snapshotId);
+      };
+
+      // Damaged optional history falls back to a no-base merge; it must not
+      // durably pause a sync whose heads are all valid.
+      expect((await a.engine().sync()).status).toBe(status);
+      expect(a.state.loadState(a.vaultId, a.deviceId).pauseReason ?? null).toBe(
+        pauseReason,
+      );
+    },
+  );
+
+  test('re-planning a stale candidate reuses verified ancestors from the same pass', async () => {
+    const { devices, provider } = await converged(
+      2,
+      withEntry(blankDomain(), entry('e1', 'one')),
+    );
+    const [a, b] = devices;
+    const ancestor = provider.physicalHeads(a.vaultId)[0].head.snapshotId;
+    edit(a, 'e1', 'A');
+    edit(b, 'e2', 'B');
+    await syncConcurrently([a, b]);
+    const download = provider.downloadSnapshot.bind(provider);
+    let ancestorDownloads = 0;
+    provider.downloadSnapshot = async (vaultId, snapshotId) => {
+      if (snapshotId === ancestor) ancestorDownloads += 1;
+      return download(vaultId, snapshotId);
+    };
+
+    let advanced = 0;
+    const result = await a
+      .engine({
+        async at(point) {
+          if (point !== 'after-candidate-persisted') return;
+          // B publishes again, so A's candidate is stale before upload.
+          const { head } = provider
+            .physicalHeads(a.vaultId)
+            .find((value) => value.head.deviceId === b.deviceId)!;
+          const previous = decodeSnapshot(
+            (await download(a.vaultId, head.snapshotId))!,
+            head.snapshotId,
+          ).payload;
+          advanced += 1;
+          const encoded = encodeSnapshot({
+            ...previous,
+            ...withEntry(previous, entry('e2', `B${advanced}`)),
+            deviceSequence: head.deviceSequence + 1,
+            parentSnapshotIds: [head.snapshotId],
+          });
+          await provider.uploadSnapshot(
+            a.vaultId,
+            encoded.snapshotId,
+            encoded.compressedBytes,
+            previous.createdAt,
+          );
+          await provider.updateDeviceHead(a.vaultId, {
+            ...head,
+            deviceSequence: head.deviceSequence + 1,
+            snapshotId: encoded.snapshotId,
+          });
+        },
+      })
+      .sync();
+    expect(result).toMatchObject({ status: 'retry', reason: 'transient' });
+    expect(advanced).toBe(4);
+    expect(ancestorDownloads).toBe(1);
+  });
+
+  test('ancestor transfers stop at the per-pass byte limit and fall back safely', async () => {
+    let initial = withEntry(blankDomain(), entry('e1', 'one'));
+    initial = withEntry(initial, entry('e2', 'two'));
+    const { devices, provider, clock } = await converged(2, initial);
+    const [a, b] = devices;
+    edit(a, 'e1', 'A1');
+    edit(b, 'e2', 'B1');
+    await syncConcurrently([a, b]);
+    edit(a, 'e1', 'A2');
+    edit(b, 'e2', 'B2');
+    await syncConcurrently([a, b]);
+    const heads = new Set(
+      provider.physicalHeads(a.vaultId).map((value) => value.head.snapshotId),
+    );
+    const download = provider.downloadSnapshot.bind(provider);
+    const ancestorDownloads: string[] = [];
+    provider.downloadSnapshot = async (vaultId, snapshotId) => {
+      if (heads.has(snapshotId)) return download(vaultId, snapshotId);
+      ancestorDownloads.push(snapshotId);
+      // A transfer this large leaves less than one maximum-size snapshot.
+      return new Uint8Array(17 * 1024 * 1024);
+    };
+
+    const fresh = harness('device-fresh', blankDomain(), provider, clock);
+    expect((await fresh.engine().sync()).status).not.toBe('attention');
+    expect(ancestorDownloads).toHaveLength(1);
+    const domain = fresh.journal.current();
+    expect(domain.entries.map((value) => value.content)).toEqual(
+      expect.arrayContaining(['A2', 'B2']),
+    );
+  });
+
+  test('crossing merges of conflicting edits converge', async () => {
+    let initial = withEntry(blankDomain(), entry('e1', 'base'));
+    initial = withEntry(initial, entry('e2', 'two'));
+    const { devices } = await converged(2, initial);
+    const [a, b] = devices;
+    edit(a, 'e1', 'from A');
+    edit(b, 'e1', 'from B');
+    await syncConcurrently([a, b]);
+    // Each merges the conflict in its own local/remote order, at once.
+    edit(a, 'e2', 'A2');
+    edit(b, 'e3', 'B3');
+    await syncConcurrently([a, b]);
+    await settle(devices);
+
+    const domain = a.journal.current();
+    expect(canonicalize(b.journal.current())).toBe(canonicalize(domain));
+    expect(domain.conflicts.length).toBeGreaterThan(0);
+    expect(domain.entries.map((value) => value.content)).toEqual(
+      expect.arrayContaining(['from A', 'from B', 'A2', 'B3']),
+    );
+  });
+});
+
+describe('common ancestor selection', () => {
+  function lineage(
+    author: string,
+    domain: SnapshotDomain,
+    parents: SnapshotLineage[] = [],
+  ): SnapshotLineage {
+    const encoded = encodeSnapshot({
+      format: 'tackbok-snapshot',
+      vaultId: 'vault-sync-test',
+      authorDeviceId: author,
+      deviceSequence: 1,
+      createdAt: 1,
+      parentSnapshotIds: parents.map((value) => value.snapshotId).sort(),
+      observedDeviceHeads: [],
+      ...domain,
+    });
+    return { snapshotId: encoded.snapshotId, payload: encoded.payload };
+  }
+
+  function permutations<T>(values: T[]): T[][] {
+    if (values.length <= 1) return [values];
+    return values.flatMap((value, index) =>
+      permutations([...values.slice(0, index), ...values.slice(index + 1)]).map(
+        (rest) => [value, ...rest],
+      ),
+    );
+  }
+
+  test('conflicting crossing ancestors give the same base in any history order', () => {
+    const root = lineage('root', withEntry(blankDomain(), entry('e', 'root')));
+    const branches = ['A', 'B', 'C'].map((author) =>
+      lineage(author, withEntry(blankDomain(), entry('e', author)), [root]),
+    );
+    const remote = lineage('remote', blankDomain(), branches);
+    const bases = permutations([...branches, root]).map((history) =>
+      canonicalize(commonAncestorDomain(remote, history)),
+    );
+    expect(new Set(bases).size).toBe(1);
+  });
+
+  test('unrelated common ancestors give the same fallback base in any order', () => {
+    const left = lineage('A', withEntry(blankDomain(), entry('e', 'A')));
+    const right = lineage('B', withEntry(blankDomain(), entry('e', 'B')));
+    const remote = lineage('remote', blankDomain(), [left, right]);
+    expect(canonicalize(commonAncestorDomain(remote, [left, right]))).toBe(
+      canonicalize(commonAncestorDomain(remote, [right, left])),
+    );
+  });
 });
