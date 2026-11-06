@@ -9,9 +9,10 @@ if [[ "$SCOPE" == 'all' ]]; then
 fi
 
 files=()
-while IFS= read -r file; do
+# NUL-separated so Git doesn't quote or escape unusual paths.
+while IFS= read -r -d '' file; do
   files+=("$file")
-done < <(git diff --name-only --relative --no-renames --diff-filter=d \
+done < <(git diff --name-only -z --relative --no-renames --diff-filter=d \
   "$BASE_SHA...HEAD" -- '*.js' '*.jsx' '*.ts' '*.tsx' '*.cjs' '*.mjs' '*.astro')
 
 if [[ ${#files[@]} -eq 0 ]]; then
