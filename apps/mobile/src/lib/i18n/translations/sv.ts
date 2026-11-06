@@ -685,9 +685,9 @@ export const sv = {
   'cloud.attentionNeeded': 'Uppmärksamhet behövs',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     'Säkerhetskopiera och synkronisera din dagbok med din egen Google Drive. Den går direkt från din telefon till din Drive. Tackboks utvecklare ser den aldrig.',
-  'cloud.backupFromDate': 'Säkerhetskopiering från {date}',
+  'cloud.lastUpdatedDate': 'Senast uppdaterad {date}',
   'cloud.beforeYouConnect': 'Innan du ansluter',
-  'cloud.checkingGoogleDriveForChanges': 'Kontrollerar Google Drive för ändringar',
+  'cloud.checkingGoogleDriveForChanges': 'Kontrollerar Google Drive efter ändringar…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
     'Välj en säkerhetskopia att slå samman med denna dagbok. Båda sidorna bevaras.',
   'cloud.chooseABackupToRestoreOnThisDevice':
@@ -719,8 +719,8 @@ export const sv = {
   'cloud.deleteJournalEverywhere2': 'Radera dagboken överallt?',
   'cloud.deleteOrResetData': 'Ta bort eller återställ data',
   'cloud.deletingJournalEverywhere': 'Raderar dagboken överallt...',
-  'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
-    'Tar bort molnsäkerhetskopian och dagboksdata. Håll Tackbok öppen.',
+  'cloud.removingTheCloudBackupAndJournalData':
+    'Tar bort molnsäkerhetskopian och dagboksdata. Om du lämnar Tackbok kan du återuppta borttagningen när du kommer tillbaka.',
   'cloud.disconnect': 'Koppla från',
   'cloud.disconnectProvider': 'Koppla bort {provider}',
   'cloud.disconnectProviderFromThisDevice':
@@ -740,6 +740,8 @@ export const sv = {
     'Google Drive kunde inte nås. Dina ändringar förblir säkert i kö.',
   'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
     'Foton och röstanteckningar väntar på Wi-Fi. Dina ändringar förblir säkert i kö.',
+  'cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead':
+    'Ett foto eller en röstanteckning på den här enheten kunde inte läsas. Dina ändringar förblir säkert i kö.',
   'cloud.googleDriveDisconnectedOnThisDevice':
     'Google Drive frånkopplad på den här enheten',
   'cloud.googleDriveIsBusyTryAgainShortly':
@@ -751,8 +753,8 @@ export const sv = {
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
     'Google kan fråga om Tackbok får använda en egen privat mapp i din Drive. Tillåt det, annars kan säkerhetskopieringen inte ansluta.',
   'cloud.journalDeletionReceived': 'Begäran om att radera dagboken har tagits emot',
-  'cloud.journalTextStillSyncsOnMobileData':
-    'Dagbokstext synkroniseras fortfarande över mobildata.',
+  'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
+    'Foton och röstanteckningar laddas upp och ned bara via Wi-Fi. Anteckningar med nya foton eller röstanteckningar väntar också på Wi-Fi.',
   'cloud.keepLocalDataAndTheCloudCopy': 'Behåll lokal data och molnkopian',
   'cloud.keepLocalJournalData': 'Behåll lokala dagboksdata',
   'cloud.keepTheCloudCopyAndOtherDevices': 'Behåll molnkopian och andra enheter',
@@ -760,8 +762,7 @@ export const sv = {
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'Lokal data och molnsäkerhetskopieringen kommer båda att finnas kvar. Andra enheter förblir anslutna.',
   'cloud.markAsReviewed': 'Markera som granskad',
-  'cloud.mergingChangesAndUpdatingGoogleDrive':
-    'Slå ihop ändringar och uppdatera Google Drive',
+  'cloud.savingYourChangesToGoogleDrive': 'Sparar dina ändringar i Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'Ingen Tackbok-säkerhetskopia hittades i detta Google-konto',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
@@ -770,8 +771,9 @@ export const sv = {
     'Ingen befintlig Tackbok-säkerhetskopia hittades. Skapa en för den här dagboken.',
   'cloud.optionalCloudBackup': 'Valfri molnsäkerhetskopiering',
   'cloud.pauseSync': 'Pausa synkronisering',
-  'cloud.preparingJournalChanges': 'Förbereder dagboksändringar',
-  'cloud.preparingRestoredJournalData': 'Förbereder återställda dagboksdata',
+  'cloud.preparingYourChanges': 'Förbereder dina ändringar…',
+  'cloud.restoringYourJournalFromGoogleDrive':
+    'Återställer din dagbok från Google Drive…',
   'cloud.profile': 'Profil',
   'cloud.prompt': 'Skrivfråga',
   'cloud.reconnectGoogleDrive': 'Återanslut Google Drive',
@@ -787,21 +789,22 @@ export const sv = {
   'cloud.restoreFromYourCloudBackup': 'Återställ från din säkerhetskopia i Google Drive',
   'cloud.restoring': 'Återställer...',
   'cloud.safelyQueued': 'Säkert i kö',
-  'cloud.savingSyncedJournalDataOnThisDevice':
-    'Sparar synkroniserade dagboksdata på den här enheten',
+  'cloud.gettingChangesFromYourOtherDevices': 'Hämtar ändringar från dina andra enheter…',
   'cloud.setupElapsedSeconds': 'Förfluten tid: {seconds} s',
   'cloud.setupProgressHelp':
     'Tackbok ansluter den här enheten och startar den första synkroniseringen. Stora säkerhetskopior, foton och röstanteckningar kan ta längre tid.',
   'cloud.setupTakingLonger':
-    'Det här tar längre tid än vanligt. Kontrollera din internetanslutning och håll Tackbok öppet så att det kan fortsätta.',
+    'Det här tar längre tid än vanligt. Kontrollera din internetanslutning. Om du lämnar Tackbok fortsätter det där det slutade.',
   'cloud.settingUpCloudSync': 'Konfigurerar molnsynkronisering...',
-  'cloud.stepCurrentOfTotalInThisBatch': 'Steg {current} av {total} i denna sats',
+  'cloud.downloadingPhotosAndVoiceNotes': 'Laddar ned foton och röstanteckningar…',
   'cloud.syncCompleted': 'Synkronisering slutförd',
   'cloud.syncNow': 'Synkronisera nu',
+  'cloud.resumeSyncToSyncNow': 'Återuppta synkroniseringen för att synkronisera nu.',
+  'cloud.fixTheProblemAboveToSyncNow': 'Åtgärda problemet ovan för att synkronisera nu.',
   'cloud.syncPaused': 'Synkronisering pausad',
   'cloud.syncResumed': 'Synkroniseringen återupptogs',
-  'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
-    'Sync körs i säkra partier. Du kan fortsätta använda Tackbok.',
+  'cloud.syncIsFasterWithTackbokOpen':
+    'Det går snabbare när Tackbok är öppet. Om du lämnar appen fortsätter den där den slutade.',
   'cloud.syncMediaOnWiFiOnly': 'Synkronisera media endast på Wi-Fi',
   'cloud.syncing': 'Synkroniseras...',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
@@ -824,7 +827,6 @@ export const sv = {
   'cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected':
     'Den här dagboken raderades överallt. Den här enheten är frånkopplad.',
   'cloud.upToDate': 'Uppdaterad',
-  'cloud.verifyBackupHealth': 'Verifiera säkerhetskopieringens hälsa',
   'cloud.waitingForTheFirstSuccessfulSync':
     'Väntar på den första lyckade synkroniseringen',
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
@@ -833,6 +835,8 @@ export const sv = {
     'Din dagbok stannar på din telefon. Om du slår på säkerhetskopiering går en kopia bara till din egen Google Drive.',
   'cloud.countChangesSafelyQueued': '{count} ändringar säkert i kö',
   'cloud.countChangesRemaining': '{count} ändringar kvar',
+  'cloud.photosAndVoiceNotesToDownloadCount':
+    'Foton och röstanteckningar att ladda ned: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
     'Google Drive-auktorisering kräver uppmärksamhet.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
@@ -878,15 +882,12 @@ export const sv = {
   'cloud.finishConnection': 'Avsluta anslutningen',
   'cloud.reconnectToTheCorrectBackup': 'Återanslut till rätt säkerhetskopia',
   'cloud.updateTackbok': 'Uppdatera Tackbok',
-  'cloud.retryAndVerifyBackup': 'Försök igen och verifiera säkerhetskopieringen',
-  'cloud.repairFromVerifiedBackup': 'Reparera från verifierad säkerhetskopia',
-  'cloud.inspectAndRepairBackup': 'Inspektera och reparera säkerhetskopia',
-  'cloud.consolidateBackups': 'Kombinera säkerhetskopior',
+  'cloud.retryBackupCheck': 'Kontrollera säkerhetskopian igen',
   'cloud.exportJournalAndRepairBackup': 'Exportera dagbok och reparera säkerhetskopia',
   'cloud.freeDeviceStorageAndRetry': 'Frigör enhetslagring och försök igen',
   'cloud.manageGoogleDriveStorage': 'Hantera Google Drive-lagring',
   'cloud.retryMissingMedia': 'Försök hämta saknade mediefiler igen',
-  'cloud.locateOrRetryAttachment': 'Hitta eller försök igen med bilaga',
+  'cloud.retryAttachment': 'Försök med bilagan igen',
   'cloud.retryJournalPreparation': 'Försök förbereda dagboken igen',
   'cloud.acknowledgeAndDisconnect': 'Bekräfta och koppla bort',
   'cloud.reviewDeletionAndEraseThisDevice':
