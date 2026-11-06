@@ -379,6 +379,9 @@ export class SnapshotSyncEngine {
             continue;
           }
           budget.downloads -= 1;
+          // Charge the reservation up front: a damaged transfer may be fully
+          // received before the provider rejects it. Refund what goes unused.
+          budget.compressedBytes -= SNAPSHOT_CAPS.compressedBytes;
           let bytes: Uint8Array | null;
           try {
             this.hooks.activity?.('reading-remote-snapshot');
@@ -392,8 +395,8 @@ export class SnapshotSyncEngine {
             throw error;
           }
           await this.hooks.at?.('during-remote-snapshot-download');
+          budget.compressedBytes += SNAPSHOT_CAPS.compressedBytes - (bytes?.length ?? 0);
           if (!bytes) continue;
-          budget.compressedBytes -= bytes.length;
           const decodedBytes = statedUncompressedBytes(bytes);
           if (decodedBytes > budget.decodedBytes) continue;
           try {

@@ -2404,6 +2404,32 @@ describe('merging concurrent branches against their common ancestor', () => {
     );
   });
 
+  test('damaged ancestor transfers count against the per-pass byte limit', async () => {
+    let initial = withEntry(blankDomain(), entry('e1', 'one'));
+    initial = withEntry(initial, entry('e2', 'two'));
+    const { devices, provider, clock } = await converged(4, initial);
+    for (let round = 0; round < 2; round += 1) {
+      devices.forEach((device, index) => edit(device, `d${index}`, `r${round}`));
+      await syncConcurrently(devices);
+    }
+    const heads = new Set(
+      provider.physicalHeads(devices[0].vaultId).map((value) => value.head.snapshotId),
+    );
+    const download = provider.downloadSnapshot.bind(provider);
+    const ancestorDownloads: string[] = [];
+    provider.downloadSnapshot = async (vaultId, snapshotId) => {
+      if (heads.has(snapshotId)) return download(vaultId, snapshotId);
+      ancestorDownloads.push(snapshotId);
+      // Fully transferred, then rejected by the checksum: the bytes still cost.
+      throw new SnapshotProviderError('invalid-data', 'checksum mismatch');
+    };
+
+    const fresh = harness('device-fresh', blankDomain(), provider, clock);
+    expect((await fresh.engine().sync()).status).not.toBe('attention');
+    // The 32 MiB budget covers at most two maximum-size transfers.
+    expect(ancestorDownloads.length).toBeLessThanOrEqual(2);
+  });
+
   test('crossing merges of conflicting edits converge', async () => {
     let initial = withEntry(blankDomain(), entry('e1', 'base'));
     initial = withEntry(initial, entry('e2', 'two'));
