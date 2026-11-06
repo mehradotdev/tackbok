@@ -1,11 +1,26 @@
 import type { ExpoConfig } from 'expo/config';
 
+import englishLocale from './locales/en.json';
+
 // Shared CommonJS config is also loaded by React Native autolinking.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { androidStore, galaxyBillingMode } = require('./config/android-store');
 const { version } = require('./package.json');
 
 const IS_BETA = process.env.APP_VARIANT === 'beta';
+// app.config.test.ts keeps native declarations aligned with ALL_SUPPORTED_LOCALES.
+const nativeLocales = ['en', 'es', 'ar', 'he', 'de', 'hi', 'sv', 'zh-Hans', 'zh-Hant'];
+// Expo uses these keys verbatim as <locale>.lproj folder names.
+const locales = Object.fromEntries(
+  nativeLocales.map((locale) => {
+    const path = `./locales/${locale}.json`;
+    if (!IS_BETA) return [locale, path];
+    // Localized InfoPlist.strings override the main plist, including the beta name.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const strings: typeof englishLocale = require(path);
+    return [locale, { ios: { ...strings.ios, CFBundleDisplayName: 'Tackbok (Beta)' } }];
+  }),
+);
 const GOOGLE_OAUTH = IS_BETA
   ? {
       androidClientId:
@@ -30,6 +45,7 @@ const ICON_SUFFIX = IS_BETA ? '-beta' : '';
 const config: ExpoConfig = {
   version,
   name: IS_BETA ? 'Tackbok (Beta)' : 'Tackbok',
+  locales,
   slug: 'tackbok',
   scheme: IS_BETA ? 'tackbok-beta' : 'tackbok',
   userInterfaceStyle: 'automatic',
@@ -117,18 +133,15 @@ const config: ExpoConfig = {
     [
       'expo-image-picker',
       {
-        photosPermission:
-          'Tackbok needs access to your photos to attach them to your gratitude entries.',
-        cameraPermission:
-          'Tackbok needs access to your camera to take photos for your gratitude entries.',
+        photosPermission: englishLocale.ios.NSPhotoLibraryUsageDescription,
+        cameraPermission: englishLocale.ios.NSCameraUsageDescription,
       },
     ],
     [
       'react-native-audio-api',
       {
         iosBackgroundMode: false,
-        iosMicrophonePermission:
-          'Tackbok needs access to your microphone to record voice memos for your gratitude entries.',
+        iosMicrophonePermission: englishLocale.ios.NSMicrophoneUsageDescription,
         androidPermissions: [
           'android.permission.RECORD_AUDIO',
           'android.permission.MODIFY_AUDIO_SETTINGS',
@@ -150,19 +163,7 @@ const config: ExpoConfig = {
     [
       'expo-localization',
       {
-        // Keep aligned with ALL_SUPPORTED_LOCALES in src/lib/i18n/types.ts.
-        // Native language declarations use script tags for Chinese variants.
-        supportedLocales: [
-          'en',
-          'es',
-          'ar',
-          'he',
-          'de',
-          'hi',
-          'sv',
-          'zh-Hans',
-          'zh-Hant',
-        ],
+        supportedLocales: nativeLocales,
       },
     ],
     [
@@ -175,7 +176,7 @@ const config: ExpoConfig = {
     [
       'expo-local-authentication',
       {
-        faceIDPermission: 'Allow Tackbok to use Face ID to protect your journal.',
+        faceIDPermission: englishLocale.ios.NSFaceIDUsageDescription,
       },
     ],
   ],
