@@ -166,9 +166,8 @@ export async function importFromTackbokBackup(
         profileImageUri: importedProfileImageUri,
       });
     } catch (error) {
-      if (importedProfileImageUri) {
-        cleanupImportedFiles([importedProfileImageUri]);
-      }
+      // The committed profile row still references the imported photo, so it
+      // must stay. The cache is rebuilt from SQLite on the next launch.
       recordImportWarning(summary, {
         kind: 'profile-settings',
         message: 'Imported entries, but could not apply imported profile settings.',
