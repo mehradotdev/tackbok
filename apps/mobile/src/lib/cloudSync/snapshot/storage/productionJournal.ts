@@ -17,6 +17,10 @@ import {
   tags,
   userProfile,
 } from '~/db';
+import {
+  isLocalProfilePristine,
+  markLocalProfileTouched,
+} from '../../storage/repositories';
 import { AssetType, type Asset } from '~/types';
 import { sha256Text } from '../sha256';
 import { canonicalize } from '../canonical';
@@ -124,46 +128,40 @@ function relativeMediaUri(asset: SnapshotMedia): string {
   return `${directoryName}/${sha256Text(asset.assetId)}-${asset.blobHash}.${extension}`;
 }
 
-/** One physical file, whether a row stores it relative or as an absolute URI. */
-function canonicalFileUri(uri: string): string {
+/**
+ * One physical file, whether a row stores it relative, as a bare absolute
+ * path, or as a `file://` URI. Bare paths become file URLs first: Expo's
+ * Android File cannot report a URI for a scheme-less path. Returns null when
+ * the identity cannot be determined.
+ */
+function canonicalFileUri(uri: string): string | null {
   try {
-    return fileForLocalUri(uri).uri;
+    return fileForLocalUri(uri.startsWith('/') ? `file://${uri}` : uri).uri;
   } catch {
-    return uri;
+    return null;
   }
 }
 
-// Destinations an in-flight apply or hydration relies on before its row
-// commits, counted per canonical file URI. Materialization runs outside the
-// apply transaction, so a rejected apply's cleanup must not delete a file that
-// another apply has already copied or reused but not yet committed.
-const claimedDestinations = new Map<string, number>();
+// Serializes every media file lifetime: an apply's materialize, transaction
+// and rejected-apply cleanup, and a hydration's copy and row update. Cleanup
+// decides from its transaction's reads that a copied file is unreferenced.
+// Each transaction has its own WAL connection, so a concurrent apply could
+// otherwise commit a reference to that same deterministic file after those
+// reads and have it deleted.
+let mediaFileQueue: Promise<unknown> = Promise.resolve();
 
-/** Files one apply or hydration claims, and the ones it copied itself. */
-class MediaFileClaims {
-  private readonly claimed: string[] = [];
-  readonly created: string[] = [];
-
-  claim(uri: string): void {
-    const key = canonicalFileUri(uri);
-    claimedDestinations.set(key, (claimedDestinations.get(key) ?? 0) + 1);
-    this.claimed.push(key);
-  }
-
-  release(): void {
-    for (const key of this.claimed.splice(0)) {
-      const count = claimedDestinations.get(key) ?? 0;
-      if (count > 1) claimedDestinations.set(key, count - 1);
-      else claimedDestinations.delete(key);
-    }
-  }
+function serializeMediaFiles<T>(operation: () => Promise<T>): Promise<T> {
+  const result = mediaFileQueue.then(operation);
+  mediaFileQueue = result.catch(() => undefined);
+  return result;
 }
 
 /**
  * Removes files an apply copied before its transaction was rejected or rolled
  * back. A file that a committed row references (e.g. written by the apply that
- * won the race), under any URI form, or that another in-flight apply claims is
- * kept; anything missed here is only unreferenced space.
+ * won the race), under any URI form, is kept, as is any file whose identity
+ * cannot be compared; anything missed here is only unreferenced space. Runs
+ * inside `serializeMediaFiles`.
  */
 async function discardUncommittedMediaFiles(uris: readonly string[]): Promise<void> {
   if (uris.length === 0) return;
@@ -171,6 +169,7 @@ async function discardUncommittedMediaFiles(uris: readonly string[]): Promise<vo
     await runExclusiveDbTransaction(async (tx) => {
       for (const uri of uris) {
         const target = canonicalFileUri(uri);
+        if (target === null) continue;
         // Narrow by file name, then compare canonical identities: rows may
         // store the same file relative or as an absolute URI.
         const name = uri.slice(uri.lastIndexOf('/') + 1);
@@ -200,8 +199,13 @@ async function discardUncommittedMediaFiles(uris: readonly string[]): Promise<vo
           ...live.map((row) => row.uri),
           ...retained.flatMap((row) => [row.original, row.staged]),
           ...legacy.flatMap((row) => (row.assets ?? []).map((asset) => asset.uri)),
-        ].some((value) => value !== null && canonicalFileUri(value) === target);
-        if (referenced || claimedDestinations.has(target)) continue;
+        ].some((value) => {
+          if (value === null) return false;
+          const identity = canonicalFileUri(value);
+          // An unmatched raw spelling is no evidence the file is unused.
+          return identity === null || identity === target;
+        });
+        if (referenced) continue;
         const file = fileForLocalUri(uri);
         if (file.exists) file.delete();
       }
@@ -325,6 +329,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       const promptRows = await tx.select().from(customPrompts);
       const mediaRows = await tx.select().from(mediaAssets);
       const [profileRow] = await tx.select().from(userProfile).limit(1);
+      const localProfilePristine = await isLocalProfilePristine(tx);
       const tombstoneRows = await tx
         .select()
         .from(cloudTombstones)
@@ -402,6 +407,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
 
       return {
         generation: state.journal_generation,
+        localProfilePristine,
         domain: {
           entries: entryRows
             .map((row) => ({
@@ -493,14 +499,26 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
             ),
           )
           .limit(1);
-        return state?.generation === expectedGeneration;
+        if (state?.generation !== expectedGeneration) return false;
+        // Applying a synced state, even an unchanged one, means this profile
+        // may now carry a remote decision, such as a deliberate clear.
+        await markLocalProfileTouched(tx);
+        return true;
       });
     }
-    // Files copied or reused for this apply have no row until it commits.
-    const files = new MediaFileClaims();
+    return serializeMediaFiles(() => this.applyWithMedia(domain, expectedGeneration));
+  }
+
+  /** Materializes, applies and, if rejected, cleans up; see `serializeMediaFiles`. */
+  private async applyWithMedia(
+    domain: SnapshotDomain,
+    expectedGeneration: number,
+  ): Promise<boolean> {
+    // Files this apply copied have no row until it commits.
+    const created: string[] = [];
     let applied = false;
     try {
-      const materializedUris = await this.materializeMedia(domain.media, files);
+      const materializedUris = await this.materializeMedia(domain.media, created);
       applied = await runExclusiveDbTransaction(async (tx) => {
         const [state] = await tx
           .select({ generation: cloudSyncState.journal_generation })
@@ -576,6 +594,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         await tx.delete(tags);
         await tx.delete(customPrompts);
         await tx.delete(userProfile);
+        await markLocalProfileTouched(tx);
         await tx
           .delete(cloudTombstones)
           .where(eq(cloudTombstones.vault_id, this.vaultId));
@@ -717,8 +736,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       });
       return applied;
     } finally {
-      files.release();
-      if (!applied) await discardUncommittedMediaFiles(files.created);
+      if (!applied) await discardUncommittedMediaFiles(created);
     }
   }
 
@@ -766,11 +784,9 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };
-      // The row already exists, so the copied file needs no rollback tracking,
-      // only a claim until the row points at it.
-      const files = new MediaFileClaims();
-      try {
-        const materialized = await this.materializeDescriptor(descriptor, files);
+      // The row already exists, so the copied file needs no rollback tracking.
+      await serializeMediaFiles(async () => {
+        const materialized = await this.materializeDescriptor(descriptor, []);
         await db
           .update(mediaAssets)
           .set({
@@ -780,12 +796,10 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
           .where(
             and(
               eq(mediaAssets.asset_id, row.asset_id),
-              eq(mediaAssets.blob_hash, row.blob_hash),
+              eq(mediaAssets.blob_hash, descriptor.blobHash),
             ),
           );
-      } finally {
-        files.release();
-      }
+      });
       const remaining = await db
         .select({ id: mediaAssets.asset_id })
         .from(mediaAssets)
@@ -804,7 +818,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
 
   private async materializeMedia(
     media: readonly SnapshotMedia[],
-    files: MediaFileClaims,
+    created: string[],
   ): Promise<Map<string, MaterializedMedia>> {
     const existingRows = await db.select().from(mediaAssets);
     const byIdentity = new Map(
@@ -814,7 +828,6 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     for (const asset of media) {
       const existing = byIdentity.get(`${asset.assetId}\0${asset.blobHash}`);
       if (existing?.local_uri) {
-        files.claim(existing.local_uri);
         if (
           await verifyLocalMediaFile(existing.local_uri, asset.blobHash, asset.byteSize)
         ) {
@@ -822,7 +835,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
           continue;
         }
       }
-      result.set(asset.assetId, await this.materializeDescriptor(asset, files));
+      result.set(asset.assetId, await this.materializeDescriptor(asset, created));
     }
     const unverifiedHashes = new Set(
       media
@@ -839,12 +852,9 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
 
   private async materializeDescriptor(
     asset: SnapshotMedia,
-    files: MediaFileClaims,
+    created: string[],
   ): Promise<MaterializedMedia> {
     const relativeUri = relativeMediaUri(asset);
-    // Claim before checking the destination so no concurrent cleanup removes
-    // a file this apply verified or copied.
-    files.claim(relativeUri);
     const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
     const destination = new File(
       ensureDirectory(directoryName),
@@ -871,7 +881,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     if (!source) {
       return { uri: relativeUri, verified: false };
     }
-    files.created.push(relativeUri);
+    created.push(relativeUri);
     await copyVerifiedMediaFile(source, destination, asset.byteSize, asset.blobHash);
     return { uri: relativeUri, verified: true };
   }

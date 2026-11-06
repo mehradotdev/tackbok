@@ -169,7 +169,13 @@ function getAlignPosition({
     }
   }
 
-  return { left, maxWidth: maxContentWidth };
+  // pageX and the calculated left are physical screen coordinates. Native RTL
+  // layout swaps `left` to `start`, which would mirror this position again.
+  // Explicit logical edges keep the offset on the physical left on both platforms.
+  return {
+    ...(I18nManager.isRTL ? { end: left } : { start: left }),
+    maxWidth: maxContentWidth,
+  };
 }
 
 function getLeftPosition(

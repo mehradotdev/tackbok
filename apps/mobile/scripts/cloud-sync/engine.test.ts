@@ -11,6 +11,10 @@ import { decodeSnapshot, encodeSnapshot } from '../../src/lib/cloudSync/snapshot
 import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
 import { BaseShadowManager } from '../../src/lib/cloudSync/snapshot/sync/baseShadow';
 import { SnapshotSyncEngine } from '../../src/lib/cloudSync/snapshot/sync/engine';
+import {
+  SyncCancelledError,
+  throwIfCancelled,
+} from '../../src/lib/cloudSync/snapshot/sync/errors';
 import { SnapshotCleanup } from '../../src/lib/cloudSync/snapshot/sync/cleanup';
 import {
   FakeSnapshotProvider,
@@ -727,6 +731,38 @@ describe('durable snapshot publisher', () => {
       expect(app.state.loadState(app.vaultId, app.deviceId).settledGeneration).toBe(
         app.state.loadState(app.vaultId, app.deviceId).journalGeneration,
       );
+    },
+  );
+
+  test.each([
+    'after-candidate-persisted',
+    'after-snapshot-uploaded',
+    'after-snapshot-verified',
+    'after-head-advanced',
+    'after-base-checkpoint-settled',
+  ] satisfies SnapshotKillPoint[])(
+    'a pass cancelled at %s records no failure and resumes',
+    async (point) => {
+      const app = harness('device-cancel');
+      app.journal.mutate(withEntry(blankDomain(), entry('entry-cancel', 'Queued')));
+      const controller = new AbortController();
+      const hooks: SnapshotSyncHooks = {
+        at(candidate) {
+          if (candidate === point) controller.abort();
+          throwIfCancelled(controller.signal);
+        },
+      };
+
+      await expect(app.engine(hooks).sync()).rejects.toBeInstanceOf(SyncCancelledError);
+      const interrupted = app.state.loadState(app.vaultId, app.deviceId);
+      expect(interrupted.pauseReason).toBeNull();
+      expect(interrupted.lastErrorClass).toBeNull();
+      expect(['published', 'up-to-date']).toContain((await app.engine().sync()).status);
+      expect(app.state.loadPending(app.vaultId, app.deviceId)).toBeNull();
+      expect(app.state.loadState(app.vaultId, app.deviceId).settledGeneration).toBe(
+        app.state.loadState(app.vaultId, app.deviceId).journalGeneration,
+      );
+      expect(app.provider.physicalHeads(app.vaultId)).toHaveLength(1);
     },
   );
 
@@ -1820,6 +1856,7 @@ describe('durable snapshot publisher', () => {
     const pristine = blankDomain();
     pristine.profile.updatedAt = 0;
     const second = harness('device-b', pristine, provider);
+    second.journal.localProfilePristine = true;
     await second.engine().sync();
     await first.engine().sync();
 
@@ -1827,6 +1864,26 @@ describe('durable snapshot publisher', () => {
       expect(device.journal.current().profile.displayName).toBe('Mehra');
       expect(device.journal.current().conflicts).toEqual([]);
     }
+    // Receiving the remote profile ends local provenance.
+    expect(second.journal.localProfilePristine).toBe(false);
+  });
+
+  test('identical empty profile data without local provenance conflicts on first join', async () => {
+    // An older client's deliberate clear, restored at updatedAt 0, looks
+    // exactly like a fresh profile; only local provenance may adopt quietly.
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    const first = harness('device-a', named, provider);
+    await first.engine().sync();
+    const restoredClear = blankDomain();
+    restoredClear.profile.updatedAt = 0;
+    const second = harness('device-b', restoredClear, provider);
+    await second.engine().sync();
+
+    expect(second.journal.current().conflicts.map((value) => value.field)).toEqual([
+      'displayName',
+    ]);
   });
 
   test.each(['missing', 'corrupt'])(
