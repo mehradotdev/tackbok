@@ -320,4 +320,26 @@ describe('importFromTackbokBackup', () => {
 
     warnSpy.mockRestore();
   });
+
+  test('keeps the committed profile photo when the profile cache refresh fails', async () => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
+    mockHydrateProfileCache.mockImplementationOnce(() => {
+      throw new Error('subscriber failed');
+    });
+
+    const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
+
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ photoUri: 'photos/imported.jpg' }),
+      expect.anything(),
+    );
+    expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
+    expect(summary.warnings).toEqual([
+      expect.objectContaining({ kind: 'profile-settings' }),
+    ]);
+
+    warnSpy.mockRestore();
+  });
 });
