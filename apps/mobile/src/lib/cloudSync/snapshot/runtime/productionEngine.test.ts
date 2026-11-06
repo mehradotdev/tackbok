@@ -163,7 +163,7 @@ test('a stopped caller stops waiting for a cancelled pass that is still draining
   await expect(ownerRun).rejects.toBeInstanceOf(SyncCancelledError);
 });
 
-test('cancellation during local hydration records no pause, success or remote apply', async () => {
+test('cancellation during local hydration records no pause or success but refreshes applied changes', async () => {
   for (const outcome of [
     { hydrated: 0, missing: 1 },
     { hydrated: 1, missing: 0 },
@@ -181,7 +181,23 @@ test('cancellation during local hydration records no pause, success or remote ap
       SyncCancelledError,
     );
     expect(app.setPause).not.toHaveBeenCalled();
-    expect(app.remoteApplied).not.toHaveBeenCalled();
+    // The pulled journal is already committed; screens must not stay stale.
+    expect(app.remoteApplied).toHaveBeenCalledTimes(1);
     expect(mockWrites).toEqual([]);
   }
+});
+
+test('a cancelled pass that applied nothing does not refresh screens', async () => {
+  const caller = new AbortController();
+  const app = harness('vault-hydrate-nothing', {
+    engineSync: async () => ({ status: 'up-to-date', actionableChanges: 0 }),
+    hydrate: async () => {
+      caller.abort();
+      return { hydrated: 0, missing: 0 };
+    },
+  });
+  await expect(app.runtime.sync(caller.signal)).rejects.toBeInstanceOf(
+    SyncCancelledError,
+  );
+  expect(app.remoteApplied).not.toHaveBeenCalled();
 });
