@@ -4,7 +4,12 @@ import { mergeSnapshotDomains } from '../merge';
 import type { ObservedDeviceHead, SnapshotDomain } from '../types';
 import { BaseShadowCommitError, BaseShadowManager } from './baseShadow';
 import { AttentionError, RetryableSyncError } from './errors';
-import { domainOf, normalizeObservations, type RemoteHeadSnapshot } from './frontier';
+import {
+  domainOf,
+  headsCovered,
+  normalizeObservations,
+  type RemoteHeadSnapshot,
+} from './frontier';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadow,
@@ -73,7 +78,11 @@ export class SnapshotPublisher {
     );
   }
 
-  async resume(initial: PendingPublication): Promise<void> {
+  /**
+   * Returns false when a not-yet-uploaded candidate was planned against heads
+   * that have since changed. It is discarded and the caller must re-plan.
+   */
+  async resume(initial: PendingPublication): Promise<boolean> {
     const { deviceId, hooks, provider, stateStore, vaultId } = this.options;
     let pending = initial;
     let decoded: ReturnType<typeof decodeSnapshot>;
@@ -99,6 +108,18 @@ export class SnapshotPublisher {
 
     if (pending.stage === 'candidate-persisted') {
       await this.ensurePendingMedia(pending);
+      // A candidate can wait across suspension or process death. If another
+      // device published meanwhile, uploading it would overwrite that work.
+      // Before upload nothing remote references it, so re-planning is safe.
+      if (
+        !headsCovered(
+          await provider.listHeads(vaultId, true),
+          decoded.payload.observedDeviceHeads,
+        )
+      ) {
+        stateStore.discardPending(vaultId, deviceId, pending.snapshotId);
+        return false;
+      }
       await provider.uploadSnapshot(
         vaultId,
         pending.snapshotId,
@@ -181,6 +202,7 @@ export class SnapshotPublisher {
       };
       await this.commitBase(shadow, pending.capturedGeneration, true);
     }
+    return true;
   }
 
   private async commitBase(

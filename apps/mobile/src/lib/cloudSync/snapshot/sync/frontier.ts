@@ -139,17 +139,17 @@ export function remoteContainsBase(
 }
 
 export function headsCovered(
-  heads: RemoteHeadSnapshot[],
+  heads: { head: DeviceHead }[],
   accepted: ObservedDeviceHead[],
 ): boolean {
   const known = observationMap(accepted);
-  return heads.every((candidate) => {
-    const value = known.get(candidate.head.deviceId);
+  return heads.every(({ head }) => {
+    const value = known.get(head.deviceId);
     return Boolean(
       value &&
-      (value.deviceSequence > candidate.head.deviceSequence ||
-        (value.deviceSequence === candidate.head.deviceSequence &&
-          value.snapshotId === candidate.snapshotId)),
+      (value.deviceSequence > head.deviceSequence ||
+        (value.deviceSequence === head.deviceSequence &&
+          value.snapshotId === head.snapshotId)),
     );
   });
 }
