@@ -4,12 +4,7 @@ import { mergeSnapshotDomains } from '../merge';
 import type { ObservedDeviceHead, SnapshotDomain } from '../types';
 import { BaseShadowCommitError, BaseShadowManager } from './baseShadow';
 import { AttentionError, RetryableSyncError } from './errors';
-import {
-  domainOf,
-  headsAdvancedBeyond,
-  normalizeObservations,
-  type RemoteHeadSnapshot,
-} from './frontier';
+import { domainOf, normalizeObservations, type RemoteHeadSnapshot } from './frontier';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadow,
@@ -111,12 +106,7 @@ export class SnapshotPublisher {
       // A candidate can wait across suspension or process death. If another
       // device published meanwhile, uploading it would overwrite that work.
       // Before upload nothing remote references it, so re-planning is safe.
-      if (
-        headsAdvancedBeyond(
-          await provider.listHeads(vaultId, true),
-          decoded.payload.observedDeviceHeads,
-        )
-      ) {
+      if (await this.headsChangedSince(decoded.payload.observedDeviceHeads)) {
         stateStore.discardPending(vaultId, deviceId, pending.snapshotId);
         return false;
       }
@@ -268,6 +258,40 @@ export class SnapshotPublisher {
     }
 
     throw new RetryableSyncError('journal-changed-during-publication-reconciliation');
+  }
+
+  /**
+   * Whether another device published after this candidate was planned. A
+   * same-sequence head with a different snapshot only counts when that snapshot
+   * is valid: planning ignores invalid retry duplicates, but stops on a valid
+   * one as an ambiguous head, so re-planning must surface it.
+   */
+  private async headsChangedSince(observed: ObservedDeviceHead[]): Promise<boolean> {
+    const { provider, vaultId } = this.options;
+    const seen = new Map(observed.map((value) => [value.deviceId, value]));
+    for (const { head } of await provider.listHeads(vaultId, true)) {
+      const known = seen.get(head.deviceId);
+      if (!known || head.deviceSequence > known.deviceSequence) return true;
+      if (
+        head.deviceSequence === known.deviceSequence &&
+        head.snapshotId !== known.snapshotId &&
+        (await this.isValidRemoteSnapshot(head.snapshotId))
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private async isValidRemoteSnapshot(snapshotId: string): Promise<boolean> {
+    const { provider, vaultId } = this.options;
+    const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
+    if (!bytes) return false;
+    try {
+      return decodeSnapshot(bytes, snapshotId).payload.vaultId === vaultId;
+    } catch {
+      return false;
+    }
   }
 
   private async ensurePendingMedia(pending: PendingPublication): Promise<void> {

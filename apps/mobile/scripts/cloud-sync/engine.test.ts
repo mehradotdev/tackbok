@@ -881,6 +881,45 @@ describe('durable snapshot publisher', () => {
     expect((await second.engine().sync()).status).toBe('up-to-date');
   });
 
+  test('a valid same-sequence head that appears before upload still stops as ambiguous', async () => {
+    const app = harness('late-ambiguous-head');
+    app.journal.mutate(withEntry(blankDomain(), entry('entry-a', 'Original A')));
+    expect((await app.engine().sync()).status).toBe('published');
+    const [{ head }] = app.provider.physicalHeads(app.vaultId);
+
+    app.journal.mutate(withEntry(app.journal.current(), entry('entry-b', 'Added', 2)));
+    await expect(
+      app
+        .engine({
+          at(point) {
+            if (point === 'after-candidate-persisted')
+              throw new SimulatedProcessDeath(point);
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    const pending = app.state.loadPending(app.vaultId, app.deviceId)!;
+
+    const rival = encodeSnapshot({
+      format: 'tackbok-snapshot',
+      vaultId: app.vaultId,
+      parentSnapshotIds: [],
+      observedDeviceHeads: [],
+      authorDeviceId: head.deviceId,
+      deviceSequence: head.deviceSequence,
+      createdAt: 9,
+      ...withEntry(blankDomain(), entry('entry-rival', 'Rival')),
+    });
+    app.provider.injectSnapshot(app.vaultId, rival.snapshotId, rival.compressedBytes, 9);
+    app.provider.injectPhysicalHead({ ...head, snapshotId: rival.snapshotId });
+
+    expect(await app.engine().sync()).toMatchObject({
+      status: 'attention',
+      reason: 'ambiguous-device-head',
+    });
+    expect(app.provider.snapshotIds(app.vaultId)).not.toContain(pending.snapshotId);
+  });
+
   test('an uploaded candidate keeps its durable recovery after heads change', async () => {
     const first = harness('uploaded-candidate-a');
     first.journal.mutate(withEntry(blankDomain(), entry('entry-a', 'Original A')));
