@@ -23,6 +23,7 @@ import { attentionReasonForProviderError } from '../../failureClassification';
 import { AttentionError, RetryableSyncError } from './errors';
 import {
   activeFrontier,
+  commonAncestorDomain,
   domainOf,
   headSignature,
   headsCovered,
@@ -30,10 +31,17 @@ import {
   normalizeObservations,
   remoteContainsBase,
   type RemoteHeadSnapshot,
+  type SnapshotLineage,
 } from './frontier';
 import { SnapshotPublisher } from './publication';
 
 const MAX_HEAD_RECHECKS = 4;
+// A merge base older than the local base is found by walking retained
+// parents. Downloads happen only while heads have diverged and are capped per
+// pass; 12 covers four devices publishing at once. Past the cap, the merge
+// uses an older common ancestor, or no base as before.
+const MAX_ANCESTOR_DEPTH = 4;
+const MAX_ANCESTOR_DOWNLOADS = 12;
 
 interface PlannedCandidate {
   existingSnapshot?: RemoteHeadSnapshot;
@@ -198,6 +206,7 @@ export class SnapshotSyncEngine {
     // Content-addressed payloads cannot change under the same hash. Reuse only
     // successfully decoded payloads during this plan; later syncs verify anew.
     const verifiedSnapshots = new Map<string, JournalSnapshotPayload>();
+    const ancestorBudget = { downloads: MAX_ANCESTOR_DOWNLOADS };
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       const listed = await this.provider.listHeads(this.vaultId, true);
       const remoteHeads = await this.loadAndNormalizeHeads(listed, verifiedSnapshots);
@@ -221,19 +230,40 @@ export class SnapshotSyncEngine {
       }
 
       let merged = captured.domain;
-      const baseDomain = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
+      // Snapshots the merged journal provably contains: the local base, each
+      // remote merged so far, and their retained ancestors when needed.
+      const history = new Map<string, SnapshotLineage>();
+      const tips: SnapshotLineage[] = [];
+      const walked = new Set<string>();
+      if (loadedBase.shadow) {
+        history.set(loadedBase.shadow.snapshotId, loadedBase.shadow);
+        tips.push(loadedBase.shadow);
+      }
       for (const remote of frontier.sort((left, right) =>
         left.snapshotId.localeCompare(right.snapshotId),
       )) {
         if (loadedBase.shadow?.snapshotId === remote.snapshotId) continue;
-        const remoteDescendsFromBase = loadedBase.shadow
-          ? remoteContainsBase(remote, loadedBase.shadow)
-          : false;
-        merged = mergeSnapshotDomains(
-          remoteDescendsFromBase ? baseDomain : null,
-          merged,
-          domainOf(remote.payload),
-        );
+        // Merge against what both sides provably contain. The local base is
+        // wrong for a concurrent remote: its changes would look like remote
+        // deletions. Without a provable ancestor, merge with no base.
+        let baseDomain: SnapshotDomain | null = null;
+        if (tips.length > 0) {
+          for (const tip of tips) {
+            if (walked.has(tip.snapshotId) || remoteContainsBase(remote, tip)) continue;
+            walked.add(tip.snapshotId);
+            for (const ancestor of await this.loadAncestors(
+              tip.payload,
+              verifiedSnapshots,
+              ancestorBudget,
+            )) {
+              history.set(ancestor.snapshotId, ancestor);
+            }
+          }
+          baseDomain = commonAncestorDomain(remote, [...history.values()]);
+          history.set(remote.snapshotId, remote);
+          tips.push(remote);
+        }
+        merged = mergeSnapshotDomains(baseDomain, merged, domainOf(remote.payload));
       }
 
       await this.synchronizeMedia(captured.domain, frontier, merged, captured.generation);
@@ -284,6 +314,46 @@ export class SnapshotSyncEngine {
       'transient',
       'Heads changed during every bounded planning attempt',
     );
+  }
+
+  /**
+   * Retained ancestors of a snapshot, nearest first. Retention cleanup may have
+   * deleted some; a missing or invalid snapshot only ends that line of
+   * history, so the caller falls back to an older or no base instead of failing.
+   */
+  private async loadAncestors(
+    descendant: JournalSnapshotPayload,
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
+    budget: { downloads: number },
+  ): Promise<SnapshotLineage[]> {
+    const ancestors: SnapshotLineage[] = [];
+    const visited = new Set<string>();
+    let generation = descendant.parentSnapshotIds;
+    for (let depth = 0; depth < MAX_ANCESTOR_DEPTH && generation.length > 0; depth += 1) {
+      const next: string[] = [];
+      for (const snapshotId of [...generation].sort()) {
+        if (visited.has(snapshotId)) continue;
+        visited.add(snapshotId);
+        let payload = verifiedSnapshots.get(snapshotId);
+        if (!payload) {
+          if (budget.downloads <= 0) return ancestors;
+          budget.downloads -= 1;
+          const bytes = await this.provider.downloadSnapshot(this.vaultId, snapshotId);
+          if (!bytes) continue;
+          try {
+            payload = decodeSnapshot(bytes, snapshotId).payload;
+          } catch {
+            continue;
+          }
+          if (payload.vaultId !== this.vaultId) continue;
+          verifiedSnapshots.set(snapshotId, payload);
+        }
+        ancestors.push({ snapshotId, payload });
+        next.push(...payload.parentSnapshotIds);
+      }
+      generation = next;
+    }
+    return ancestors;
   }
 
   private async loadAndNormalizeHeads(

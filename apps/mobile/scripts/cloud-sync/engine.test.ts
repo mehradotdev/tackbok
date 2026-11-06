@@ -1824,3 +1824,314 @@ describe('durable snapshot publisher', () => {
     expect(app.provider.requests).not.toContain('delete-media' as never);
   });
 });
+
+function withoutEntry(
+  domain: SnapshotDomain,
+  entryId: string,
+  deletedByDeviceId: string,
+): SnapshotDomain {
+  const next = structuredClone(domain);
+  next.entries = next.entries.filter((item) => item.entryId !== entryId);
+  next.tombstones = [
+    ...next.tombstones,
+    {
+      entityType: 'entry' as const,
+      entityId: entryId,
+      baseStateHash: null,
+      deletedStateHash: null,
+      deletedByDeviceId,
+      deletionSequence: next.tombstones.length + 1,
+    },
+  ].sort((left, right) => left.entityId.localeCompare(right.entityId));
+  return next;
+}
+
+/**
+ * Runs one pass per device so that every publisher uploads before any of them
+ * advances its head. Each branch is planned against the same heads, so the
+ * resulting heads are truly concurrent.
+ */
+async function syncConcurrently(devices: Harness[]) {
+  let remaining = devices.length;
+  let release!: () => void;
+  const barrier = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return Promise.all(
+    devices.map((device) => {
+      let arrived = false;
+      const arrive = () => {
+        if (arrived) return;
+        arrived = true;
+        remaining -= 1;
+        if (remaining === 0) release();
+      };
+      return device
+        .engine({
+          async at(point) {
+            if (point !== 'after-snapshot-uploaded' || arrived) return;
+            arrive();
+            await barrier;
+          },
+        })
+        .sync()
+        .finally(arrive);
+    }),
+  );
+}
+
+async function settle(devices: Harness[]): Promise<void> {
+  for (let round = 0; round < 3; round += 1) {
+    for (const device of devices) {
+      expect((await device.engine().sync()).status).not.toBe('attention');
+    }
+  }
+}
+
+function contents(domain: SnapshotDomain): Record<string, string | null> {
+  return Object.fromEntries(
+    domain.entries.map((value) => [value.entryId, value.content]),
+  );
+}
+
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+}
+
+describe('merging concurrent branches against their common ancestor', () => {
+  async function converged(count = 2, initial = blankDomain()) {
+    const provider = new FakeSnapshotProvider();
+    const clock = { value: 1_800_000_000_000 };
+    const devices = Array.from({ length: count }, (_, index) =>
+      harness(`device-${String.fromCharCode(97 + index)}`, initial, provider, clock),
+    );
+    devices[0].journal.mutate(initial);
+    await devices[0].engine().sync();
+    await settle(devices);
+    return { provider, clock, devices };
+  }
+
+  function edit(device: Harness, entryId: string, content: string): void {
+    device.clock.value += 1000;
+    const current = device.journal.current();
+    const existing = current.entries.find((value) => value.entryId === entryId);
+    device.journal.mutate(
+      withEntry(current, {
+        ...(existing ?? entry(entryId, content)),
+        content,
+        updatedAt: device.clock.value,
+      }),
+    );
+  }
+
+  test('disjoint concurrent entry edits both survive without conflicts', async () => {
+    let initial = withEntry(blankDomain(), entry('e1', 'one'));
+    initial = withEntry(initial, entry('e2', 'two'));
+    const { devices } = await converged(2, initial);
+    const [a, b] = devices;
+    edit(a, 'e1', 'one edited by A');
+    edit(b, 'e2', 'two edited by B');
+    const results = await syncConcurrently([a, b]);
+    expect(results.map((value) => value.status)).toEqual(['published', 'published']);
+    expect(
+      new Set(a.provider.physicalHeads(a.vaultId).map((value) => value.head.snapshotId))
+        .size,
+    ).toBe(2);
+    await settle(devices);
+
+    for (const device of devices) {
+      const domain = device.journal.current();
+      expect(domain.conflicts).toEqual([]);
+      expect(contents(domain)).toEqual({
+        e1: 'one edited by A',
+        e2: 'two edited by B',
+      });
+    }
+  });
+
+  test('a deletion concurrent with an unrelated edit stays deleted', async () => {
+    let initial = withEntry(blankDomain(), entry('e1', 'secret'));
+    initial = withEntry(initial, entry('e2', 'x'));
+    const { devices } = await converged(2, initial);
+    const [a, b] = devices;
+    a.journal.mutate(withoutEntry(a.journal.current(), 'e1', a.deviceId));
+    edit(b, 'e2', 'x2');
+    await syncConcurrently([a, b]);
+    await settle(devices);
+
+    for (const device of devices) {
+      const domain = device.journal.current();
+      expect(domain.conflicts).toEqual([]);
+      expect(contents(domain)).toEqual({ e2: 'x2' });
+      expect(domain.tombstones.map((value) => value.entityId)).toEqual(['e1']);
+    }
+  });
+
+  test('a rename concurrent with entry edits survives every round', async () => {
+    const { devices } = await converged(2, {
+      ...blankDomain(),
+      profile: { ...blankDomain().profile, displayName: 'Mehra', updatedAt: 2 },
+    });
+    const [a, b] = devices;
+    for (let round = 0; round < 4; round += 1) {
+      const renamed = a.journal.current();
+      renamed.profile = {
+        ...renamed.profile,
+        displayName: `A${round}`,
+        updatedAt: a.clock.value,
+      };
+      a.journal.mutate(renamed);
+      edit(b, 'e', `b-${round}`);
+      await syncConcurrently([a, b]);
+      await settle(devices);
+      for (const device of devices) {
+        const domain = device.journal.current();
+        expect(domain.profile.displayName).toBe(`A${round}`);
+        expect(domain.conflicts).toEqual([]);
+        expect(contents(domain)).toEqual({ e: `b-${round}` });
+      }
+    }
+  });
+
+  test('genuinely conflicting concurrent edits still produce a conflict', async () => {
+    const { devices } = await converged(2, withEntry(blankDomain(), entry('e1', 'base')));
+    const [a, b] = devices;
+    edit(a, 'e1', 'from A');
+    edit(b, 'e1', 'from B');
+    await syncConcurrently([a, b]);
+    await settle(devices);
+
+    const domain = a.journal.current();
+    expect(canonicalize(b.journal.current())).toBe(canonicalize(domain));
+    expect(domain.conflicts.length).toBeGreaterThan(0);
+    expect(new Set(domain.entries.map((value) => value.content))).toEqual(
+      new Set(['from A', 'from B']),
+    );
+  });
+
+  test('a later merge of crossing branches finds the newer shared ancestor', async () => {
+    let initial = withEntry(blankDomain(), entry('e1', 'one'));
+    initial = withEntry(initial, entry('e2', 'two'));
+    const { devices } = await converged(2, initial);
+    const [a, b] = devices;
+    edit(a, 'e1', 'A1');
+    edit(b, 'e2', 'B1');
+    await syncConcurrently([a, b]);
+    // Both merge the other branch at once, producing crossing merge snapshots.
+    edit(a, 'e1', 'A2');
+    edit(b, 'e2', 'B2');
+    await syncConcurrently([a, b]);
+    await settle(devices);
+    for (const device of devices) {
+      const domain = device.journal.current();
+      expect(domain.conflicts).toEqual([]);
+      expect(contents(domain)).toEqual({ e1: 'A2', e2: 'B2' });
+    }
+  });
+
+  test('a cleaned-up common ancestor falls back to a no-base merge without failing', async () => {
+    const { devices, provider } = await converged(
+      2,
+      withEntry(blankDomain(), entry('e1', 'one')),
+    );
+    const [a, b] = devices;
+    const ancestor = provider.physicalHeads(a.vaultId)[0].head.snapshotId;
+    edit(a, 'e1', 'one edited by A');
+    edit(b, 'e2', 'new from B');
+    await syncConcurrently([a, b]);
+    await provider.deleteSnapshot(a.vaultId, ancestor);
+
+    provider.requests.length = 0;
+    const result = await a.engine().sync();
+    expect(result.status).toBe('published');
+    // Two heads plus the one missing ancestor; no unbounded history walk.
+    expect(
+      provider.requests.filter((value) => value === 'download-snapshot').length,
+    ).toBeLessThanOrEqual(3);
+    await settle(devices);
+    const domain = a.journal.current();
+    expect(canonicalize(b.journal.current())).toBe(canonicalize(domain));
+    // Without a provable base, A's edit is preserved, if only as a conflict.
+    expect(domain.entries.map((value) => value.content)).toContain('one edited by A');
+    expect(domain.entries.map((value) => value.content)).toContain('new from B');
+  });
+
+  test.each([
+    [1, 2],
+    [2, 2],
+    [3, 3],
+    [4, 3],
+    [5, 4],
+  ])(
+    'seed %i with %i devices: disjoint concurrent edits never conflict',
+    async (seed, count) => {
+      const random = seededRandom(seed);
+      let initial = blankDomain();
+      for (let index = 0; index < 6; index += 1) {
+        initial = withEntry(initial, entry(`shared-${index}`, `shared ${index}`));
+      }
+      const { devices } = await converged(count, initial);
+      // Each device owns a disjoint set of entry IDs, including existing ones.
+      const expected = contents(initial);
+      const deleted = new Set<string>();
+      const owned = (index: number) => [
+        ...Array.from({ length: 6 }, (_, id) => `shared-${id}`).filter(
+          (_, id) => id % count === index,
+        ),
+        ...Array.from({ length: 3 }, (_, id) => `${devices[index].deviceId}-${id}`),
+      ];
+      let expectedName: string | null = null;
+
+      for (let round = 0; round < 12; round += 1) {
+        const writers: Harness[] = [];
+        devices.forEach((device, index) => {
+          if (random() < 0.3) return;
+          const candidates = owned(index).filter((id) => !deleted.has(id));
+          if (candidates.length === 0) return;
+          const entryId = candidates[Math.floor(random() * candidates.length)];
+          if (expected[entryId] !== undefined && random() < 0.2) {
+            device.journal.mutate(
+              withoutEntry(device.journal.current(), entryId, device.deviceId),
+            );
+            delete expected[entryId];
+            deleted.add(entryId);
+          } else {
+            const content = `${entryId} @${round}`;
+            edit(device, entryId, content);
+            expected[entryId] = content;
+          }
+          if (index === 0 && random() < 0.3) {
+            expectedName = `Name ${round}`;
+            const renamed = device.journal.current();
+            renamed.profile = {
+              ...renamed.profile,
+              displayName: expectedName,
+              updatedAt: device.clock.value,
+            };
+            device.journal.mutate(renamed);
+          }
+          writers.push(device);
+        });
+        const readers = devices.filter(
+          (device) => !writers.includes(device) && random() < 0.5,
+        );
+        const results = await syncConcurrently([...writers, ...readers]);
+        for (const result of results) expect(result.status).not.toBe('attention');
+      }
+      await settle(devices);
+
+      const final = devices[0].journal.current();
+      for (const device of devices.slice(1)) {
+        expect(canonicalize(device.journal.current())).toBe(canonicalize(final));
+      }
+      expect(final.conflicts).toEqual([]);
+      expect(final.entries.filter((value) => value.conflictOriginId)).toEqual([]);
+      expect(contents(final)).toEqual(expected);
+      expect(final.profile.displayName).toBe(expectedName);
+    },
+  );
+});

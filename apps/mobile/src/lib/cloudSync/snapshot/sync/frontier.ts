@@ -1,11 +1,14 @@
 import { canonicalize } from '../canonical';
+import { SnapshotMergeError, mergeSnapshotDomains } from '../merge';
 import type {
   JournalSnapshotPayload,
   ObservedDeviceHead,
   SnapshotDomain,
 } from '../types';
-import type { BaseShadow, DeviceHead } from './types';
+import type { DeviceHead } from './types';
 import { AttentionError } from './errors';
+
+const MAX_VIRTUAL_BASE_DEPTH = 4;
 
 export interface RemoteHeadSnapshot {
   head: DeviceHead;
@@ -111,9 +114,13 @@ export function activeFrontier(heads: RemoteHeadSnapshot[]): RemoteHeadSnapshot[
   );
 }
 
+/** A snapshot whose content hash was verified, with the lineage it records. */
+export type SnapshotLineage = Pick<RemoteHeadSnapshot, 'snapshotId' | 'payload'>;
+
+/** Whether `remote` provably descends from `base`: a shadow or any older snapshot. */
 export function remoteContainsBase(
-  remote: RemoteHeadSnapshot,
-  base: BaseShadow,
+  remote: SnapshotLineage,
+  base: SnapshotLineage,
 ): boolean {
   if (
     remote.snapshotId === base.snapshotId ||
@@ -136,6 +143,65 @@ export function remoteContainsBase(
       (observed.deviceSequence === baseSequence &&
         observed.snapshotId === base.snapshotId)),
   );
+}
+
+function newestOf(candidates: SnapshotLineage[]): SnapshotLineage[] {
+  return candidates.filter(
+    (candidate) =>
+      !candidates.some(
+        (other) => other !== candidate && remoteContainsBase(other, candidate),
+      ),
+  );
+}
+
+/**
+ * Merges the newest common ancestors into one base. Crossing merges can leave
+ * several, and each alone lacks the others' changes. They are combined
+ * against their own common ancestor, as in a recursive three-way merge. When
+ * that is unprovable, the newest ancestor alone is still a correct base.
+ */
+function virtualBase(
+  ancestors: SnapshotLineage[],
+  history: SnapshotLineage[],
+  depth: number,
+): SnapshotDomain | null {
+  if (ancestors.length === 0) return null;
+  let base = domainOf(ancestors[0].payload);
+  for (let index = 1; index < ancestors.length; index += 1) {
+    if (depth >= MAX_VIRTUAL_BASE_DEPTH) break;
+    // `base` contains everything any earlier ancestor contains.
+    const shared = newestOf(
+      history.filter(
+        (candidate) =>
+          remoteContainsBase(ancestors[index], candidate) &&
+          ancestors
+            .slice(0, index)
+            .some((ancestor) => remoteContainsBase(ancestor, candidate)),
+      ),
+    );
+    const sharedBase = virtualBase(shared, history, depth + 1);
+    if (!sharedBase) break;
+    try {
+      base = mergeSnapshotDomains(sharedBase, base, domainOf(ancestors[index].payload));
+    } catch (error) {
+      if (!(error instanceof SnapshotMergeError)) throw error;
+      break;
+    }
+  }
+  return base;
+}
+
+/**
+ * The merge base for a remote branch, built from `history`: retained
+ * snapshots that the local journal contains, nearest first. Null means no
+ * common ancestor is provable, so the caller merges without a base.
+ */
+export function commonAncestorDomain(
+  remote: SnapshotLineage,
+  history: SnapshotLineage[],
+): SnapshotDomain | null {
+  const shared = history.filter((candidate) => remoteContainsBase(remote, candidate));
+  return virtualBase(newestOf(shared), history, 0);
 }
 
 export function headsCovered(
