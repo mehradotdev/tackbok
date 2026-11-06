@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "塔克布克",
+    "NSPhotoLibraryUsageDescription": "塔克布克需要访问你的照片，以便将照片添加到感恩条目中。",
+    "NSCameraUsageDescription": "塔克布克需要使用你的相机，为感恩条目拍摄照片。",
+    "NSMicrophoneUsageDescription": "塔克布克需要使用你的麦克风，为感恩条目录制语音笔记。",
+    "NSFaceIDUsageDescription": "允许塔克布克使用 Face ID 来保护你的日记。",
+    "NSLocalNetworkUsageDescription": "Expo Dev Launcher 使用本地网络查找并连接你电脑上运行的开发服务器。"
+  }
+}

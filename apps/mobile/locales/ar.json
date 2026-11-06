@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "تاكبوك",
+    "NSPhotoLibraryUsageDescription": "يحتاج تاكبوك إلى الوصول إلى صورك لإرفاقها بسجلات الامتنان.",
+    "NSCameraUsageDescription": "يحتاج تاكبوك إلى الوصول إلى الكاميرا لالتقاط صور لسجلات الامتنان.",
+    "NSMicrophoneUsageDescription": "يحتاج تاكبوك إلى الوصول إلى الميكروفون لتسجيل ملاحظات صوتية لسجلات الامتنان.",
+    "NSFaceIDUsageDescription": "اسمح لتاكبوك باستخدام Face ID لحماية دفتر يومياتك.",
+    "NSLocalNetworkUsageDescription": "يستخدم Expo Dev Launcher الشبكة المحلية للعثور على خوادم التطوير التي تعمل على جهاز الكمبيوتر والاتصال بها."
+  }
+}
