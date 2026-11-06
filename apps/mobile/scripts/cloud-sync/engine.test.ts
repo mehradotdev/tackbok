@@ -853,6 +853,154 @@ describe('durable snapshot publisher', () => {
     );
   });
 
+  test('a candidate made stale by another device before upload is re-planned', async () => {
+    const first = harness('stale-candidate-a');
+    first.journal.mutate(
+      withEntry(
+        withEntry(blankDomain(), entry('entry-a', 'Original A')),
+        entry('entry-b', 'Original B'),
+      ),
+    );
+    expect((await first.engine().sync()).status).toBe('published');
+    const second = harness('stale-candidate-b', blankDomain(), first.provider);
+    expect((await second.engine().sync()).status).toBe('pulled');
+
+    first.journal.mutate(
+      withEntry(first.journal.current(), entry('entry-b', 'Edited by first', 2)),
+    );
+    await expect(
+      first
+        .engine({
+          at(point) {
+            if (point === 'after-candidate-persisted')
+              throw new SimulatedProcessDeath(point);
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    const stale = first.state.loadPending(first.vaultId, first.deviceId)!;
+
+    second.journal.mutate(
+      withEntry(second.journal.current(), entry('entry-a', 'Edited by second', 3)),
+    );
+    expect((await second.engine().sync()).status).toBe('published');
+
+    expect((await first.engine().sync()).status).toBe('published');
+    expect(first.provider.snapshotIds(first.vaultId)).not.toContain(stale.snapshotId);
+    expect(first.state.loadPending(first.vaultId, first.deviceId)).toBeNull();
+    expect((await second.engine().sync()).status).toBe('pulled');
+    const expected = [
+      entry('entry-a', 'Edited by second', 3),
+      entry('entry-b', 'Edited by first', 2),
+    ];
+    for (const device of [first, second]) {
+      expect(device.journal.current().entries).toEqual(expected);
+      expect(device.journal.current().conflicts).toEqual([]);
+      expect((await device.engine().sync()).status).toBe('up-to-date');
+    }
+  });
+
+  test('a same-sequence duplicate head does not make every candidate stale', async () => {
+    const first = harness('duplicate-head-a');
+    first.journal.mutate(withEntry(blankDomain(), entry('entry-a', 'Original A')));
+    expect((await first.engine().sync()).status).toBe('published');
+    const second = harness('duplicate-head-b', blankDomain(), first.provider);
+    await second.engine().sync();
+    // A retry artifact: same device and sequence, pointing at a missing snapshot.
+    const [{ head }] = first.provider.physicalHeads(first.vaultId);
+    first.provider.injectPhysicalHead({ ...head, snapshotId: 'f'.repeat(64) });
+
+    second.journal.mutate(
+      withEntry(second.journal.current(), entry('entry-b', 'Added by second', 2)),
+    );
+    expect((await second.engine().sync()).status).toBe('published');
+    expect((await second.engine().sync()).status).toBe('up-to-date');
+  });
+
+  test('a valid same-sequence head that appears before upload still stops as ambiguous', async () => {
+    const app = harness('late-ambiguous-head');
+    app.journal.mutate(withEntry(blankDomain(), entry('entry-a', 'Original A')));
+    expect((await app.engine().sync()).status).toBe('published');
+    const [{ head }] = app.provider.physicalHeads(app.vaultId);
+
+    app.journal.mutate(withEntry(app.journal.current(), entry('entry-b', 'Added', 2)));
+    await expect(
+      app
+        .engine({
+          at(point) {
+            if (point === 'after-candidate-persisted')
+              throw new SimulatedProcessDeath(point);
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    const pending = app.state.loadPending(app.vaultId, app.deviceId)!;
+
+    const rival = encodeSnapshot({
+      format: 'tackbok-snapshot',
+      vaultId: app.vaultId,
+      parentSnapshotIds: [],
+      observedDeviceHeads: [],
+      authorDeviceId: head.deviceId,
+      deviceSequence: head.deviceSequence,
+      createdAt: 9,
+      ...withEntry(blankDomain(), entry('entry-rival', 'Rival')),
+    });
+    app.provider.injectSnapshot(app.vaultId, rival.snapshotId, rival.compressedBytes, 9);
+    app.provider.injectPhysicalHead({ ...head, snapshotId: rival.snapshotId });
+
+    expect(await app.engine().sync()).toMatchObject({
+      status: 'attention',
+      reason: 'ambiguous-device-head',
+    });
+    expect(app.provider.snapshotIds(app.vaultId)).not.toContain(pending.snapshotId);
+  });
+
+  test('an uploaded candidate keeps its durable recovery after heads change', async () => {
+    const first = harness('uploaded-candidate-a');
+    first.journal.mutate(withEntry(blankDomain(), entry('entry-a', 'Original A')));
+    expect((await first.engine().sync()).status).toBe('published');
+    const second = harness('uploaded-candidate-b', blankDomain(), first.provider);
+    expect((await second.engine().sync()).status).toBe('pulled');
+
+    first.journal.mutate(
+      withEntry(first.journal.current(), entry('entry-b', 'Added by first', 2)),
+    );
+    await expect(
+      first
+        .engine({
+          at(point) {
+            if (point === 'after-snapshot-uploaded')
+              throw new SimulatedProcessDeath(point);
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    const uploaded = first.state.loadPending(first.vaultId, first.deviceId)!;
+    expect(uploaded.stage).toBe('snapshot-uploaded');
+
+    second.journal.mutate(
+      withEntry(second.journal.current(), entry('entry-c', 'Added by second', 3)),
+    );
+    expect((await second.engine().sync()).status).toBe('published');
+
+    expect(await first.engine().sync()).toMatchObject({
+      status: 'published',
+      snapshotId: uploaded.snapshotId,
+    });
+    for (let round = 0; round < 3; round++) {
+      await second.engine().sync();
+      await first.engine().sync();
+    }
+    for (const device of [first, second]) {
+      expect(device.journal.current().entries.map((value) => value.entryId)).toEqual([
+        'entry-a',
+        'entry-b',
+        'entry-c',
+      ]);
+    }
+  });
+
   test('lost upload and head responses resume idempotently without double materialization', async () => {
     const app = harness('device-lost-response');
     app.journal.mutate(withEntry(blankDomain(), entry('entry-one', 'One logical edit')));

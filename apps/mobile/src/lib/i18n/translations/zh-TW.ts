@@ -710,7 +710,7 @@ export const zhTW: Translations = {
   // Cloud Backup & Sync
   'cloud.attentionNeeded': '需要注意',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    '使用你自己的 Google Drive 備份和同步日記。不會建立塔克布克帳戶。',
+    '使用你自己的 Google Drive 備份和同步日記。日記會直接從你的手機傳到你的 Drive，塔克布克的開發者永遠看不到它。',
   'cloud.backupFromDate': '{date} 的備份',
   'cloud.beforeYouConnect': '連線之前',
   'cloud.checkingGoogleDriveForChanges': '正在檢查 Google Drive 中的變更',
@@ -725,7 +725,7 @@ export const zhTW: Translations = {
   'cloud.cloudBackupDeletionReceived': '已收到雲端備份刪除通知',
   'cloud.cloudBackupNumber': '雲端備份 {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Google Drive 會對傳輸中和靜態儲存的備份進行加密，但備份未進行端對端加密。',
+    '你的備份儲存在你 Google Drive 中一個專屬塔克布克的私人資料夾裡。塔克布克看不到你 Drive 中的其他檔案，你的備份也絕不會傳送給塔克布克的開發者。Google 會像保護你的其他檔案一樣保護它，但它沒有端對端加密。',
   'cloud.cloudRestoreStarted': '已開始從雲端還原',
   'cloud.cloudSyncAttentionNeeded': '雲端同步：需要注意',
   'cloud.cloudSyncChangesSafelyQueued': '雲端同步：變更已安全排隊',
@@ -766,7 +766,7 @@ export const zhTW: Translations = {
   'cloud.googleDriveStorageIsFull': 'Google Drive 儲存空間已滿。',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    '如果 Google 顯示 Drive 存取權核取方塊，請將其選取。沒有此權限，備份無法連線。',
+    'Google 可能會詢問是否允許塔克布克在你的 Drive 中使用它自己的私人資料夾。請選擇允許，否則備份無法連線。',
   'cloud.journalDeletionReceived': '已收到日記刪除通知',
   'cloud.journalTextStillSyncsOnMobileData': '日記文字仍會透過行動數據同步。',
   'cloud.keepLocalDataAndTheCloudCopy': '保留本機資料和雲端副本',
@@ -797,7 +797,7 @@ export const zhTW: Translations = {
   'cloud.resetThisDeviceOnly2': '只重設此裝置？',
   'cloud.merge': '合併',
   'cloud.restoreCloudBackup': '還原雲端備份',
-  'cloud.restoreFromYourCloudBackup': '從雲端備份還原',
+  'cloud.restoreFromYourCloudBackup': '從你的 Google Drive 備份還原',
   'cloud.restoring': '正在還原…',
   'cloud.safelyQueued': '已安全排隊',
   'cloud.savingSyncedJournalDataOnThisDevice': '正在此裝置上儲存已同步的日誌資料',
@@ -829,7 +829,7 @@ export const zhTW: Translations = {
     '雲端刪除已記錄。請清除此裝置上剩餘的日記資料。',
   'cloud.finishDeletion': '完成刪除',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    '你的 Google 電子郵件會安全地儲存在此裝置上，用於識別已連結的帳戶，並在中斷連線時刪除。它絕不會包含在備份、記錄、診斷或分析資料中。',
+    '你的 Google 電子郵件地址只會儲存在這支手機上，用來顯示已連結的帳戶。中斷連線時會被刪除，也絕不會傳送給塔克布克的開發者。',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     '此裝置會先中斷連線，然後刪除本機日記。雲端備份和其他裝置會保留。',
   'cloud.thisDeviceWasReset': '此裝置已重設',
@@ -841,7 +841,7 @@ export const zhTW: Translations = {
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     '你可以離開此畫面；塔克布克處於使用中時會繼續同步。',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    '你的日記保留在裝置上，也可選擇使用雲端備份。',
+    '你的日記會留在手機上。如果開啟備份，副本只會存到你自己的 Google Drive。',
   'cloud.countChangesSafelyQueued': '{count} 項變更已安全排隊',
   'cloud.countChangesRemaining': '剩餘 {count} 項變更',
   'cloud.googleDriveAuthorizationNeedsAttention': 'Google Drive 授權需要處理。',
