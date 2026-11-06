@@ -591,7 +591,7 @@ export const es = {
   'onboarding.auditTheAnalyticsCodeOnGithub': 'Audite el código de análisis en GitHub',
   'onboarding.neverCollected': 'Nunca recogido',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'El texto de su diario, títulos, fotografías, notas de voz, etiquetas, nombre, correo electrónico o cualquier cosa que escriba. Sin anuncios, sin datos de ventas, sin seguimiento de terceros.',
+    'El texto de su diario, títulos, fotografías, notas de voz, etiquetas, nombre o cualquier cosa que escriba. Sin anuncios, sin datos de ventas, sin seguimiento de terceros.',
   'onboarding.youreAllSetName': '¡Ya estás listo, {name}!',
   'onboarding.youreAllSet': '¡Ya estás listo!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

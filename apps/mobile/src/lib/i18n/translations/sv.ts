@@ -575,7 +575,7 @@ export const sv = {
   'onboarding.auditTheAnalyticsCodeOnGithub': 'Granska analyskoden på GitHub',
   'onboarding.neverCollected': 'Aldrig samlad',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'Din dagbokstext, titlar, foton, röstanteckningar, etiketter, namn, e-post eller allt du skriver. Inga annonser, inga säljdata, ingen spårning från tredje part.',
+    'Din dagbokstext, titlar, foton, röstanteckningar, etiketter, namn eller allt du skriver. Inga annonser, inga säljdata, ingen spårning från tredje part.',
   'onboarding.youreAllSetName': 'Du är redo, {name}!',
   'onboarding.youreAllSet': 'Du är klar!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

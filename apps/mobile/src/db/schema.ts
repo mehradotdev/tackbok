@@ -114,6 +114,7 @@ export const userProfile = sqliteTable('user_profile', {
   photo_asset_id: text('photo_asset_id').references(() => mediaAssets.asset_id, {
     onDelete: 'set null',
   }),
+  // Legacy compatibility column; cleared by migration 0005 and never populated.
   email: text('email'),
   updated_at: integer('updated_at').notNull(),
 });

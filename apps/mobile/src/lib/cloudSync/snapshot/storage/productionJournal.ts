@@ -407,7 +407,6 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         .limit(1);
       if (!state || state.generation !== expectedGeneration) return false;
 
-      const [priorProfile] = await tx.select().from(userProfile).limit(1);
       const priorMedia = await tx.select().from(mediaAssets);
       const acknowledged = new Map(
         (
@@ -574,7 +573,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         profile_id: 'self',
         display_name: domain.profile.displayName,
         photo_asset_id: domain.profile.photoAssetId,
-        email: priorProfile?.email ?? null,
+        email: null,
         updated_at: domain.profile.updatedAt,
       });
       if (domain.tombstones.length > 0) {

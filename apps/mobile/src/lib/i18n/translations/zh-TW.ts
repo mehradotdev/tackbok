@@ -599,7 +599,7 @@ export const zhTW: Translations = {
   'onboarding.auditTheAnalyticsCodeOnGithub': '在 GitHub 上查看分析程式碼',
   'onboarding.neverCollected': '絕不收集',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    '你的日記文字、標題、照片、語音筆記、標籤、姓名、電子郵件或任何輸入的內容。沒有廣告，不出售資料，沒有第三方追蹤。',
+    '你的日記文字、標題、照片、語音筆記、標籤、姓名或任何輸入的內容。沒有廣告，不出售資料，沒有第三方追蹤。',
   'onboarding.youreAllSetName': '一切就緒，{name}！',
   'onboarding.youreAllSet': '一切就緒！',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

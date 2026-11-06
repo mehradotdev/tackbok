@@ -26,7 +26,6 @@ const DEFAULT_BATCH_SIZE = 50;
 
 export interface LegacyProfileSnapshot {
   profileName: string | null;
-  profileEmail: string | null;
   profileImageUri: string | null;
 }
 
@@ -81,7 +80,6 @@ async function loadProfileCache(): Promise<void> {
     : [];
   hydrateProfileCache({
     profileName: profile?.display_name ?? null,
-    profileEmail: profile?.email ?? null,
     profileImageUri: photo?.uri ?? null,
   });
 }
@@ -131,7 +129,6 @@ export async function runNormalizedModelBackfill(
         tx,
         {
           displayName: legacyProfile.profileName,
-          email: legacyProfile.profileEmail,
           photoUri: legacyProfile.profileImageUri,
         },
         { origin: 'migration', now },

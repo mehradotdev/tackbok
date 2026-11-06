@@ -270,7 +270,7 @@ describe('importFromTackbokBackup', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce({
         name: 'Ada',
-        email: null,
+        email: 'legacy@example.com',
         imagePath: 'media/profile.jpg',
       });
     mockReadSafeZipBytes.mockResolvedValue(new Uint8Array([1, 2, 3]));
@@ -291,6 +291,8 @@ describe('importFromTackbokBackup', () => {
       assetPath: 'media/profile.jpg',
     });
     expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
+    expect(mockUpdateProfileInTransaction.mock.calls[0][1]).not.toHaveProperty('email');
+    expect(mockHydrateProfileCache.mock.calls[0][0]).not.toHaveProperty('profileEmail');
     expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({ displayName: 'Ada', photoUri: null }),

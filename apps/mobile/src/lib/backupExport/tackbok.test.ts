@@ -383,7 +383,6 @@ describe('exportToBackupZip', () => {
     ]);
     expect(profileJson).toEqual({
       name: 'Ada',
-      email: 'ada@example.com',
       imagePath: null,
       photoAssetId: null,
       photoBlobHash: null,

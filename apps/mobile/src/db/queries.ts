@@ -321,7 +321,7 @@ export async function deleteAllDataInTransaction(
   }
   await updateProfileInTransaction(
     tx,
-    { displayName: null, email: null, photoUri: null },
+    { displayName: null, photoUri: null },
     { batchId },
   );
   return { retainedMediaForSync: vaultRows.length > 0 };

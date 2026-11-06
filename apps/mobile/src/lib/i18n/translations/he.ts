@@ -611,7 +611,7 @@ export const he: Translations = {
   'onboarding.auditTheAnalyticsCodeOnGithub': 'בדיקת קוד הניתוח ב-GitHub',
   'onboarding.neverCollected': 'לעולם לא נאסף',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'טקסט היומן, כותרות, תמונות, הקלטות קוליות, תגיות, שם, אימייל או כל דבר שמוקלד. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',
+    'טקסט היומן, כותרות, תמונות, הקלטות קוליות, תגיות, שם או כל דבר שמוקלד. בלי פרסומות, בלי מכירת נתונים, בלי מעקב של צד שלישי.',
   'onboarding.youreAllSetName': 'הכול מוכן, {name}!',
   'onboarding.youreAllSet': 'הכול מוכן!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

@@ -614,7 +614,7 @@ export const ar: Translations = {
   'onboarding.auditTheAnalyticsCodeOnGithub': 'راجع رمز التحليلات على GitHub',
   'onboarding.neverCollected': 'لا يُجمع أبدًا',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو البريد الإلكتروني أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',
+    'نص يوميّاتك أو العناوين أو الصور أو المذكّرات الصوتية أو الوسوم أو الاسم أو أي شيء تكتبه. لا إعلانات، ولا بيع للبيانات، ولا تتبّع من أطراف خارجية.',
   'onboarding.youreAllSetName': 'كل شيء جاهز يا {name}!',
   'onboarding.youreAllSet': 'كل شيء جاهز!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

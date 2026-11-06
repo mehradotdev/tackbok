@@ -120,9 +120,6 @@ export async function importFromGratitudeAppBackup(
       if (profile.name != null) {
         await settingsState.setProfileName(profile.name);
       }
-      if (profile.hasEmail) {
-        await settingsState.setProfileEmail(profile.email);
-      }
       if (importedProfileImageUri) {
         const photoUri = importedProfileImageUri;
         await runInCloudSyncTransaction((tx) =>

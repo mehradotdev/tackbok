@@ -140,7 +140,6 @@ export async function importFromTackbokBackup(
           tx,
           {
             displayName: portableProfile.name ?? null,
-            email: portableProfile.email ?? null,
             photoUri: importedProfileImageUri,
             photoAssetId: portableProfile.photoAssetId ?? null,
           },
@@ -161,7 +160,6 @@ export async function importFromTackbokBackup(
     try {
       hydrateProfileCache({
         profileName: portableProfile.name ?? null,
-        profileEmail: portableProfile.email ?? null,
         profileImageUri: importedProfileImageUri,
       });
     } catch (error) {

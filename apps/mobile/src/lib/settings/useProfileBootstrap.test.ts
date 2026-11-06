@@ -3,7 +3,7 @@ import { act, create } from 'react-test-renderer';
 import { useProfileBootstrap } from './useProfileBootstrap';
 
 const mockBackfill = jest.fn();
-const mockProfile = { profileName: null, profileEmail: null, profileImageUri: null };
+const mockProfile = { profileName: null, profileImageUri: null };
 jest.mock('./store', () => ({
   useSettingsStore: { getState: () => mockProfile },
 }));

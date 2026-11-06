@@ -138,7 +138,6 @@ export interface PortableEntry {
 
 export interface PortableProfile {
   name: string | null;
-  email: string | null;
   imagePath: string | null;
   photoAssetId?: string | null;
   photoBlobHash?: string | null;

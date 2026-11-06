@@ -115,3 +115,11 @@ describe('importFromGratitudeAppBackup profile photo', () => {
     expect(mockCleanupImportedFiles).toHaveBeenCalledWith(['photos/imported.jpg']);
   });
 });
+
+it('ignores legacy imported email', async () => {
+  mockProfile.hasEmail = true;
+  mockProfile.email = 'legacy@example.com';
+  mockSetProfileEmail.mockClear();
+  await importFromGratitudeAppBackup('backup.zip', 'skip');
+  expect(mockSetProfileEmail).not.toHaveBeenCalled();
+});

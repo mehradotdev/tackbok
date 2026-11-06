@@ -64,7 +64,6 @@ export async function exportToBackupZip(): Promise<void> {
   const profileName = normalizeOptionalText(
     profileRow?.display_name ?? settings.profileName,
   );
-  const profileEmail = normalizeOptionalText(profileRow?.email ?? settings.profileEmail);
   const profileImageUri = normalizeOptionalText(
     profilePhoto?.local_uri ?? settings.profileImageUri,
   );
@@ -74,7 +73,6 @@ export async function exportToBackupZip(): Promise<void> {
     allTags.length === 0 &&
     allPrompts.length === 0 &&
     !profileName &&
-    !profileEmail &&
     !profileImageUri
   ) {
     throw new Error('No backup data to export');
@@ -105,7 +103,6 @@ export async function exportToBackupZip(): Promise<void> {
   const portablePrompts = createPortablePrompts(allPrompts);
   const profile: PortableProfile = {
     name: profileName,
-    email: profileEmail,
     imagePath: null,
     photoAssetId: profilePhoto?.asset_id ?? null,
     photoBlobHash: profilePhoto?.blob_hash ?? null,

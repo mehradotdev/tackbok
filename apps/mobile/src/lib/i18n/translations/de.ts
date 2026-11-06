@@ -661,7 +661,7 @@ export const de: Translations = {
   'onboarding.auditTheAnalyticsCodeOnGithub': 'Analysecode auf GitHub prüfen',
   'onboarding.neverCollected': 'Wird niemals erfasst',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'Deine Tagebuchtexte, Titel, Fotos, Sprachnotizen, Tags, dein Name, deine E-Mail-Adresse oder andere Eingaben. Keine Werbung, kein Datenverkauf und kein Tracking durch Dritte.',
+    'Deine Tagebuchtexte, Titel, Fotos, Sprachnotizen, Tags, dein Name oder andere Eingaben. Keine Werbung, kein Datenverkauf und kein Tracking durch Dritte.',
   'onboarding.youreAllSetName': 'Alles ist bereit, {name}!',
   'onboarding.youreAllSet': 'Alles ist bereit!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

@@ -13,7 +13,6 @@ export function useProfileBootstrap(databaseReady: boolean, settingsReady: boole
     // path still reloads their cache; the sync runtime skips that path when ready.
     void runNormalizedModelBackfill({
       profileName: settings.profileName,
-      profileEmail: settings.profileEmail,
       profileImageUri: settings.profileImageUri,
     })
       .catch(() => console.warn('Profile initialization failed'))

@@ -633,7 +633,7 @@ export const en = {
   'onboarding.auditTheAnalyticsCodeOnGithub': 'Audit the analytics code on GitHub',
   'onboarding.neverCollected': 'Never collected',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'Your journal text, titles, photos, voice notes, tags, name, email, or anything you type. No ads, no selling data, no third-party tracking.',
+    'Your journal text, titles, photos, voice notes, tags, name, or anything you type. No ads, no selling data, no third-party tracking.',
   'onboarding.youreAllSetName': 'You’re all set, {name}!',
   'onboarding.youreAllSet': 'You’re all set!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

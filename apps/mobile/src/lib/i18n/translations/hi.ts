@@ -565,7 +565,7 @@ export const hi = {
   'onboarding.auditTheAnalyticsCodeOnGithub': 'GitHub पर एनालिटिक्स कोड का ऑडिट करें',
   'onboarding.neverCollected': 'कभी एकत्र नहीं किया गया',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
-    'आपका जर्नल टेक्स्ट, शीर्षक, फ़ोटो, वॉयस नोट्स, टैग, नाम, ईमेल, या आपके द्वारा टाइप की गई कोई भी चीज़। कोई विज्ञापन नहीं, कोई विक्रय डेटा नहीं, कोई तृतीय-पक्ष ट्रैकिंग नहीं।',
+    'आपका जर्नल टेक्स्ट, शीर्षक, फ़ोटो, वॉयस नोट्स, टैग, नाम, या आपके द्वारा टाइप की गई कोई भी चीज़। कोई विज्ञापन नहीं, कोई विक्रय डेटा नहीं, कोई तृतीय-पक्ष ट्रैकिंग नहीं।',
   'onboarding.youreAllSetName': 'आप पूरी तरह तैयार हैं, {name}!',
   'onboarding.youreAllSet': 'तुम सब सेट हो!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':

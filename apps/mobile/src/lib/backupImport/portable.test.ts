@@ -276,13 +276,17 @@ describe('buildGratitudeAppPortablePayload', () => {
           recordingPath: 'memo-1.mp3',
         },
       ]),
-      'gratitudeConfig.json': JSON.stringify([{}]),
+      'gratitudeConfig.json': JSON.stringify([
+        { Name: 'Ada', 'Email Id': 'legacy@example.com' },
+      ]),
       'backup-2026/gratitudeImages/photo-1.jpg': new Uint8Array([1, 2, 3]),
       'backup-2026/journalRecordingsFolder/memo-1.mp3': new Uint8Array([4, 5, 6]),
     });
 
     const payload = await buildGratitudeAppPortablePayload(zip);
 
+    expect(payload.profile).not.toHaveProperty('email');
+    expect(payload.profile).not.toHaveProperty('hasEmail');
     expect(payload.portableEntries).toHaveLength(1);
     expect(payload.portableEntries[0]?.assets).toEqual([
       {

@@ -180,3 +180,35 @@ test('production journal applies 10,000 entries atomically, skips unchanged writ
   await expect(store.applyMergedIfGeneration(invalid, 1)).rejects.toThrow();
   expect((await store.capture()).domain).toEqual(domain);
 });
+
+test('cloud capture excludes legacy email and restore does not retain it', async () => {
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets; DELETE FROM user_profile',
+  );
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'email-removal', device_id: 'device', updated_at: 1 })
+    .run();
+  db.insert(schema.userProfile)
+    .values({
+      profile_id: 'self',
+      display_name: 'Ada',
+      email: 'legacy@example.com',
+      updated_at: 1,
+    })
+    .run();
+  const store = new ProductionSnapshotJournalStore(
+    'email-removal',
+    'device',
+    {} as never,
+  );
+  const { domain } = await store.capture();
+  expect(domain.profile).not.toHaveProperty('email');
+  expect(JSON.stringify(domain)).not.toContain('legacy@example.com');
+  domain.profile.displayName = 'Updated name';
+  domain.profile.updatedAt = 2;
+  expect(await store.applyMergedIfGeneration(domain, 0)).toBe(true);
+  expect(db.select().from(schema.userProfile).get()).toMatchObject({
+    display_name: 'Updated name',
+    email: null,
+  });
+});
