@@ -131,9 +131,24 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
   }
 
   async openVerifiedSource(blobHash: string) {
+    for await (const candidate of this.verifiedCandidates(blobHash)) {
+      const source = openMediaUploadSource(candidate.uri, blobHash, candidate.byteSize);
+      if (source) return source;
+    }
+    return null;
+  }
+
+  /** Any verified local copy of a blob, e.g. one held under a replaced asset ID. */
+  async verifiedLocalFile(blobHash: string): Promise<File | null> {
+    for await (const candidate of this.verifiedCandidates(blobHash))
+      return fileForLocalUri(candidate.uri);
+    return null;
+  }
+
+  private async *verifiedCandidates(blobHash: string) {
     const staged = stageFile(blobHash);
-    const stagedSource = await this.inspectSource(staged.uri, blobHash, null);
-    if (stagedSource) return stagedSource;
+    const stagedCandidate = await this.inspectSource(staged.uri, blobHash, null);
+    if (stagedCandidate) yield stagedCandidate;
     const [live, retained] = await Promise.all([
       db
         .select({ uri: mediaAssets.local_uri, bytes: mediaAssets.byte_size })
@@ -155,10 +170,9 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
         { uri: row.original, bytes: row.bytes },
       ]),
     ]) {
-      const source = await this.inspectSource(candidate.uri, blobHash, candidate.bytes);
-      if (source) return source;
+      const verified = await this.inspectSource(candidate.uri, blobHash, candidate.bytes);
+      if (verified) yield verified;
     }
-    return null;
   }
 
   private async inspectSource(uri: string | null, hash: string, bytes: number | null) {
@@ -167,7 +181,7 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
       const inspected = await inspectLocalMediaFile(uri);
       if (inspected.sha256 !== hash || (bytes !== null && inspected.byteSize !== bytes))
         return null;
-      return openMediaUploadSource(uri, hash, inspected.byteSize);
+      return { uri, byteSize: inspected.byteSize };
     } catch {
       // A bad staging/retained copy must not hide another verified local copy.
       return null;
@@ -733,11 +747,15 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         // The verified staging copy below replaces an unreadable destination.
       }
     }
-    const staged = this.mediaStore.stagedFile(asset.blobHash);
-    if (!staged) {
+    // A same-blob asset ID switch keeps the photo local: copy the verified
+    // blob from whichever local file holds it instead of re-downloading.
+    const source =
+      this.mediaStore.stagedFile(asset.blobHash) ??
+      (await this.mediaStore.verifiedLocalFile(asset.blobHash));
+    if (!source) {
       return { uri: relativeUri, verified: false };
     }
-    await copyVerifiedMediaFile(staged, destination, asset.byteSize, asset.blobHash);
+    await copyVerifiedMediaFile(source, destination, asset.byteSize, asset.blobHash);
     return { uri: relativeUri, verified: true };
   }
 }

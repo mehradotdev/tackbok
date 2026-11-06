@@ -39,20 +39,45 @@ mock.module('../../src/db', () => ({
   },
 }));
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
+// Files listed here exist on the fake disk and hash to `fakeBlobHash`.
+const existingFiles = new Set<string>();
+const fakeBlobHash = 'a'.repeat(64);
+const copiedMedia: { from: string; to: string }[] = [];
+const uriOf = (part: unknown) =>
+  typeof part === 'object' && part && 'uri' in part ? String(part.uri) : String(part);
 mock.module('expo-file-system', () => ({
-  Directory: class {},
-  File: class {},
-  Paths: {},
+  Directory: class {
+    uri: string;
+    constructor(...parts: unknown[]) {
+      this.uri = parts.map(uriOf).join('/');
+    }
+    create() {}
+  },
+  File: class {
+    uri: string;
+    constructor(...parts: unknown[]) {
+      this.uri = parts.map(uriOf).join('/');
+    }
+    get exists() {
+      return existingFiles.has(this.uri);
+    }
+  },
+  Paths: { document: 'file:///documents' },
 }));
 mock.module('../../src/lib/cloudSync/snapshot/media', () => ({
-  copyVerifiedMediaFile() {},
+  copyVerifiedMediaFile(source: { uri: string }, destination: { uri: string }) {
+    copiedMedia.push({ from: source.uri, to: destination.uri });
+  },
   createMediaPartialFileSink() {},
   openMediaUploadSource() {},
 }));
 mock.module('../../src/lib/cloudSync/media/streamingHash', () => ({
-  inspectLocalMediaFile() {},
+  inspectLocalMediaFile(uri: string) {
+    if (!existingFiles.has(uri)) throw new Error('missing');
+    return { sha256: fakeBlobHash, byteSize: 1 };
+  },
 }));
-const { ProductionSnapshotJournalStore } =
+const { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } =
   await import('../../src/lib/cloudSync/snapshot/storage/productionJournal');
 afterAll(() => sqlite.close());
 
@@ -206,4 +231,65 @@ test('profile updatedAt stays 0 until a synced profile field is authored', async
   expect(profileUpdatedAt()).toBe(14);
   await write({ displayName: null }, { now: 15 });
   expect(profileUpdatedAt()).toBe(14);
+});
+
+test('a same-blob profile photo ID switch reuses the local file instead of downloading', async () => {
+  sqlite.exec(
+    'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM sync_retained_media',
+  );
+  existingFiles.clear();
+  existingFiles.add('file:///old.jpg');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'photo-switch', device_id: 'device', updated_at: 1 })
+    .run();
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'photo-b',
+      owner_type: 'profile',
+      owner_id: 'self',
+      kind: 'profile-photo',
+      local_uri: 'file:///old.jpg',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  db.insert(schema.userProfile)
+    .values({
+      profile_id: 'self',
+      display_name: 'Mehra',
+      photo_asset_id: 'photo-b',
+      updated_at: 1,
+    })
+    .run();
+
+  const store = new ProductionSnapshotJournalStore(
+    'photo-switch',
+    'device',
+    new ProductionSnapshotMediaStore(),
+  );
+  const { domain, generation } = await store.capture();
+  domain.profile.photoAssetId = 'photo-a';
+  domain.media[0].assetId = 'photo-a';
+  expect(await store.applyMergedIfGeneration(domain, generation)).toBe(true);
+
+  const [row] = db.select().from(schema.mediaAssets).all();
+  expect(row.asset_id).toBe('photo-a');
+  expect(row.download_state).not.toBe('pending');
+  expect(copiedMedia.at(-1)).toEqual({
+    from: 'file:///old.jpg',
+    to: expect.stringContaining(fakeBlobHash),
+  });
+  let downloads = 0;
+  await store.hydratePendingMedia(
+    {
+      downloadMedia: async () => {
+        downloads += 1;
+        return null;
+      },
+    } as never,
+    2,
+  );
+  expect(downloads).toBe(0);
 });
