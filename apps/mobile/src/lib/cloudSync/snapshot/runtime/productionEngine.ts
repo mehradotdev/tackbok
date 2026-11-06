@@ -277,17 +277,14 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       ).map(({ id }) => id),
     );
     this.onActivity('checking');
-    const result = await this.engine.sync();
-    const remoteCommitted = result.status === 'published' || result.status === 'pulled';
-    let hydrated = 0;
     try {
-      return await this.finishPass(result, beforeConflicts, signal, (count) => {
-        hydrated = count;
-      });
+      const result = await this.engine.sync();
+      return await this.finishPass(result, beforeConflicts, signal);
     } catch (error) {
-      // Journal changes already committed must reach the screens even when the
-      // rest of the pass is cancelled; a later pass may find nothing to apply.
-      if (error instanceof SyncCancelledError && (remoteCommitted || hydrated > 0)) {
+      // A cancelled pass may already have committed remote journal changes or
+      // hydrated media, and a later pass can find nothing left to apply. A
+      // refresh only re-reads local data, so always refresh after cancellation.
+      if (error instanceof SyncCancelledError) {
         await this.refreshAppliedViews().catch(() => undefined);
       }
       throw error;
@@ -298,7 +295,6 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     result: Awaited<ReturnType<SnapshotSyncEngine['sync']>>,
     beforeConflicts: Set<string>,
     signal: AbortSignal | null,
-    onHydrated: (count: number) => void,
   ): Promise<RuntimePassResult> {
     throwIfCancelled(signal);
     if (result.status === 'attention') {
@@ -319,7 +315,6 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     try {
       const hydration = await this.journal.hydratePendingMedia(this.mediaProvider, 2);
       hydrated = hydration.hydrated;
-      onHydrated(hydrated);
       // Local completion may finish after cancellation; record nothing from it.
       throwIfCancelled(signal);
       if (hydration.missing > 0) {
