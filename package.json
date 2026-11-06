@@ -2,9 +2,15 @@
   "name": "tackbok-monorepo",
   "private": true,
   "packageManager": "bun@1.4.2",
-  "workspaces": [
-    "apps/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "apps/*"
+    ],
+    "catalog": {
+      "tailwindcss": "^4.3.4",
+      "typescript": "~6.0.3"
+    }
+  },
   "scripts": {
     "prepare": "husky",
     "format": "prettier --write --ignore-unknown",
