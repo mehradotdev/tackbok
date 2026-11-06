@@ -551,9 +551,15 @@ function profileFieldMerge(
 }
 
 // Legacy backfill gives the same photo a random asset ID on each device. Two
-// IDs whose descriptors share a blob are one photo; the lower ID represents it.
-// The other descriptor becomes unreferenced and is pruned with the profile media.
-function sameBlobPhotoId(local: SnapshotDomain, remote: SnapshotDomain): string | null {
+// IDs whose descriptors share a blob are one photo; the lower ID whose
+// descriptor survives the media merge represents it (a side that replaced
+// the base ID keeps its new one). The other descriptor becomes unreferenced
+// and is pruned with the profile media.
+function sameBlobPhotoId(
+  local: SnapshotDomain,
+  remote: SnapshotDomain,
+  mergedMedia: SnapshotMedia[],
+): string | null {
   const localId = local.profile.photoAssetId;
   const remoteId = remote.profile.photoAssetId;
   if (!localId || !remoteId || localId === remoteId) return null;
@@ -561,7 +567,10 @@ function sameBlobPhotoId(local: SnapshotDomain, remote: SnapshotDomain): string 
   const remoteAsset = remote.media.find((value) => value.assetId === remoteId);
   if (!localAsset || !remoteAsset || localAsset.blobHash !== remoteAsset.blobHash)
     return null;
-  return localId < remoteId ? localId : remoteId;
+  const surviving = [localId, remoteId]
+    .filter((id) => mergedMedia.some((value) => value.assetId === id))
+    .sort();
+  return surviving[0] ?? null;
 }
 
 function mergeProfile(
@@ -794,11 +803,12 @@ export function mergeSnapshotDomains(
     remote,
     newConflicts,
   );
+  let media = mergeMedia(base, local, remote, newConflicts);
   const profile = mergeProfile(
     base?.profile,
     local.profile,
     remote.profile,
-    sameBlobPhotoId(local, remote),
+    sameBlobPhotoId(local, remote, media),
     newConflicts,
   );
   let entryTags = mergeRelationSet(
@@ -879,7 +889,6 @@ export function mergeSnapshotDomains(
   entryTags.sort(keyComparator((value) => `${value.entryId}\0${value.tagId}`));
   tags.live.sort(keyComparator((value) => value.tagId));
 
-  let media = mergeMedia(base, local, remote, newConflicts);
   const carriedConflicts = mergeConflictSet(
     base?.conflicts ?? [],
     local.conflicts,
