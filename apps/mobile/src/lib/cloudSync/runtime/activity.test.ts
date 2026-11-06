@@ -1,4 +1,4 @@
-import { phaseAfterCheckpoint, SyncActivity } from './activity';
+import { PHASE_FOR_ENGINE_ACTIVITY, SyncActivity } from './activity';
 
 describe('sync activity visibility', () => {
   test('automatic checks stay idle and only refresh the UI on completion', () => {
@@ -37,35 +37,13 @@ describe('sync activity visibility', () => {
   });
 });
 
-describe('sync phase after an engine checkpoint', () => {
-  test('publishing reads as saving, even while it applies the merged result', () => {
-    expect(phaseAfterCheckpoint('after-local-mutation', 'checking')).toBe('preparing');
-    expect(phaseAfterCheckpoint('after-candidate-persisted', 'preparing')).toBe(
-      'uploading',
-    );
-    expect(phaseAfterCheckpoint('during-merge-application', 'uploading')).toBeNull();
-  });
-
-  test('adopting another device’s changes reads as downloading, never as saving', () => {
-    expect(phaseAfterCheckpoint('during-merge-application', 'checking')).toBe(
-      'downloading',
-    );
-    expect(phaseAfterCheckpoint('during-merge-application', 'downloading-media')).toBe(
-      'downloading',
-    );
-  });
-
-  test('remote reads stay quiet and bookkeeping never moves the phase', () => {
-    expect(phaseAfterCheckpoint('during-remote-snapshot-download', 'idle')).toBe(
-      'checking',
-    );
-    for (const point of [
-      'during-media-transfer',
-      'during-snapshot-cleanup',
-      'after-base-shadow-temp-fsynced',
-      'after-base-checkpoint-settled',
-    ] as const) {
-      expect(phaseAfterCheckpoint(point, 'downloading')).toBeNull();
-    }
+describe('sync phase for engine activity', () => {
+  test('publishing reads as saving, adopting reads as downloading, reads stay quiet', () => {
+    expect(PHASE_FOR_ENGINE_ACTIVITY).toEqual({
+      'preparing-local-changes': 'preparing',
+      'reading-remote-snapshot': 'checking',
+      'publishing-local-snapshot': 'uploading',
+      'applying-remote-snapshot': 'downloading',
+    });
   });
 });

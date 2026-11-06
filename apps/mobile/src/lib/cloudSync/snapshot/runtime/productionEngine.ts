@@ -24,7 +24,7 @@ import type {
   RuntimeSyncEngine,
   SyncPassPhase,
 } from '../../runtime/SyncRuntime';
-import { phaseAfterCheckpoint } from '../../runtime/activity';
+import { PHASE_FOR_ENGINE_ACTIVITY } from '../../runtime/activity';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import { hashPendingProductionMedia } from './mediaHashing';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
@@ -384,12 +384,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     auth: createGoogleAuthorization(),
     state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
   });
-  let current: SyncPassPhase | 'idle' = 'idle';
-  const onActivity = (phase: SyncPassPhase | 'idle') => {
-    current = phase;
-    options.onActivity(phase);
-  };
-  const provider = new MediaPolicyProvider(drive, onActivity);
+  const provider = new MediaPolicyProvider(drive, options.onActivity);
   const engine = new SnapshotSyncEngine(
     options.vault.vault_id,
     options.vault.device_id,
@@ -399,10 +394,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     media,
     provider,
     {
-      at: (point) => {
-        const phase = phaseAfterCheckpoint(point, current);
-        if (phase) onActivity(phase);
-      },
+      activity: (activity) => options.onActivity(PHASE_FOR_ENGINE_ACTIVITY[activity]),
     },
   );
   return new ProductionSnapshotRuntimeEngine(
@@ -411,7 +403,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     engine,
     journal,
     provider,
-    onActivity,
+    options.onActivity,
     options.onRemoteApplied,
     connectionEpoch,
   );
