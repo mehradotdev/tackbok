@@ -1,8 +1,17 @@
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
-import { cloudConflicts, cloudVault, db, entries, mediaAssets, userProfile } from '~/db';
+import {
+  cloudConflicts,
+  cloudVault,
+  db,
+  entries,
+  mediaAssets,
+  runExclusiveDbTransaction,
+  userProfile,
+} from '~/db';
 import { photoFileExists } from '~/lib/photoUtils';
 import { hydrateProfileCache, useSettingsStore } from '~/lib/settings';
 import { notifyProductionCloudSyncChanged } from '../runtime/production';
+import { writeBatches } from '../snapshot/storage/writeBatches';
 import {
   runInCloudSyncTransaction,
   updateProfileInTransaction,
@@ -15,7 +24,11 @@ import {
 
 export type { CloudConflictItem } from './conflictSummary';
 
-/** Lists the conflicts this device can act on. See `deriveConflictItems`. */
+/**
+ * Lists the conflicts this device can act on. See `deriveConflictItems`.
+ * Lookups avoid ID lists, which can exceed SQLite's variable limit on a large
+ * journal. Read errors are thrown to the caller.
+ */
 export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault) return [];
@@ -30,49 +43,50 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
     );
   if (rows.length === 0) return [];
   const records = rows.map((row) =>
-    parseConflictRecord(row.conflict_id, row.conflict_json, row.created_at),
+    parseConflictRecord(
+      row.conflict_id,
+      row.conflict_json,
+      row.created_at,
+      row.archived_at !== null,
+    ),
   );
 
   const [profile] = await db.select().from(userProfile).limit(1);
-  const photoIds = records
-    .filter((record) => record.field === 'photoAssetId' && record.alternateValue)
-    .map((record) => record.alternateValue!);
-  const photoRows =
-    photoIds.length > 0
-      ? await db
-          .select({ assetId: mediaAssets.asset_id, uri: mediaAssets.local_uri })
-          .from(mediaAssets)
-          .where(
-            and(
-              inArray(mediaAssets.asset_id, photoIds),
-              eq(mediaAssets.kind, 'profile-photo'),
-              isNotNull(mediaAssets.local_uri),
-              inArray(mediaAssets.download_state, ['n/a', 'verified']),
-            ),
-          )
-      : [];
-  const localPhotoUris = new Map(
-    photoRows
-      .filter((row) => row.uri && photoFileExists(row.uri))
-      .map((row) => [row.assetId, row.uri!]),
-  );
+  // Profile photos are few: the current one plus kept alternates.
+  const photoRows = records.some((record) => record.field === 'photoAssetId')
+    ? await db
+        .select({
+          assetId: mediaAssets.asset_id,
+          uri: mediaAssets.local_uri,
+          blobHash: mediaAssets.blob_hash,
+          downloadState: mediaAssets.download_state,
+        })
+        .from(mediaAssets)
+        .where(eq(mediaAssets.kind, 'profile-photo'))
+    : [];
+  const localPhotos = new Map<string, { uri: string; blobHash: string | null }>();
+  for (const row of photoRows) {
+    if (row.downloadState !== 'n/a' && row.downloadState !== 'verified') continue;
+    if (!row.uri || !photoFileExists(row.uri)) continue;
+    localPhotos.set(row.assetId, { uri: row.uri, blobHash: row.blobHash });
+  }
+  const currentPhotoBlobHash =
+    photoRows.find((row) => row.assetId === profile?.photo_asset_id)?.blobHash ?? null;
 
-  const recoveredIds = [
-    ...new Set(records.flatMap((record) => record.recoveredEntityIds)),
-  ];
-  const entryRows =
-    recoveredIds.length > 0
-      ? await db
-          .select({ id: entries.note_id })
-          .from(entries)
-          .where(inArray(entries.note_id, recoveredIds))
-      : [];
+  // Recovered entries carry the ID of the entry they were copied from.
+  const entryRows = records.some((record) => record.recoveredEntityIds.length > 0)
+    ? await db
+        .select({ id: entries.note_id })
+        .from(entries)
+        .where(isNotNull(entries.conflict_origin_id))
+    : [];
 
   return deriveConflictItems(records, {
     joinedAt: vault.created_at,
     currentName: profile?.display_name ?? null,
     currentPhotoAssetId: profile?.photo_asset_id ?? null,
-    localPhotoUris,
+    currentPhotoBlobHash,
+    localPhotos,
     existingEntryIds: new Set(entryRows.map((row) => row.id)),
   });
 }
@@ -81,16 +95,21 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
 export async function acknowledgeCloudConflicts(conflictIds: string[]): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault || conflictIds.length === 0) return;
-  await db
-    .update(cloudConflicts)
-    .set({ acknowledged_at: Date.now() })
-    .where(
-      and(
-        eq(cloudConflicts.vault_id, vault.vault_id),
-        inArray(cloudConflicts.conflict_id, conflictIds),
-        isNull(cloudConflicts.acknowledged_at),
-      ),
-    );
+  const acknowledgedAt = Date.now();
+  await runExclusiveDbTransaction((tx) =>
+    writeBatches(conflictIds, (batch) =>
+      tx
+        .update(cloudConflicts)
+        .set({ acknowledged_at: acknowledgedAt })
+        .where(
+          and(
+            eq(cloudConflicts.vault_id, vault.vault_id),
+            inArray(cloudConflicts.conflict_id, batch),
+            isNull(cloudConflicts.acknowledged_at),
+          ),
+        ),
+    ),
+  );
   notifyProductionCloudSyncChanged();
 }
 

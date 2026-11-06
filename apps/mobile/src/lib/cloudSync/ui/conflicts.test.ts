@@ -18,16 +18,19 @@ jest.mock('drizzle-orm', () => ({
   isNotNull: (column: unknown) => ({ isNotNull: column }),
 }));
 jest.mock('~/db', () => ({
+  runExclusiveDbTransaction: async (operation: (tx: unknown) => Promise<void>) =>
+    operation({
+      update: () => ({
+        set: (values: unknown) => ({
+          where: async (condition: unknown) => {
+            mockEvents.push(['acknowledge', values, condition]);
+          },
+        }),
+      }),
+    }),
   db: {
     select: () => ({
       from: () => ({ limit: async () => [{ vault_id: 'vault' }] }),
-    }),
-    update: () => ({
-      set: (values: unknown) => ({
-        where: async (condition: unknown) => {
-          mockEvents.push(['acknowledge', values, condition]);
-        },
-      }),
     }),
   },
   cloudConflicts: { vault_id: 'vault_id', conflict_id: 'conflict_id' },
@@ -80,6 +83,7 @@ describe('resolveNameConflict', () => {
     conflictIds: ['n1', 'n2'],
     current: 'Mehra',
     other: 'Mehra A',
+    archived: false,
   };
 
   test('"Use" saves the other name through the profile write path, then dismisses the row', async () => {

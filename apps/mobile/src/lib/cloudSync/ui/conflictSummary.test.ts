@@ -11,7 +11,14 @@ const context: ConflictSummaryContext = {
   joinedAt: JOINED_AT,
   currentName: 'Mehra',
   currentPhotoAssetId: 'photo-current',
-  localPhotoUris: new Map([['photo-other', 'photos/other.jpg']]),
+  currentPhotoBlobHash: 'current-hash',
+  localPhotos: new Map([
+    ['photo-current', { uri: 'photos/current.jpg', blobHash: 'current-hash' }],
+    ['photo-other', { uri: 'photos/other.jpg', blobHash: 'other-hash' }],
+    ['photo-other-copy', { uri: 'photos/other-copy.jpg', blobHash: 'other-hash' }],
+    ['photo-same-blob', { uri: 'photos/same.jpg', blobHash: 'current-hash' }],
+    ['photo-unhashed', { uri: 'photos/unhashed.jpg', blobHash: null }],
+  ]),
   existingEntryIds: new Set(['recovered-a', 'recovered-b']),
 };
 
@@ -23,6 +30,7 @@ function record(overrides: Partial<CloudConflictRecord>): CloudConflictRecord {
     alternateValue: undefined,
     recoveredEntityIds: [],
     createdAt: JOINED_AT + 1,
+    archived: false,
     ...overrides,
   };
 }
@@ -48,7 +56,9 @@ describe('parseConflictRecord', () => {
       alternateValue: null,
       recoveredEntityIds: [],
       createdAt: 5,
+      archived: false,
     });
+    expect(parseConflictRecord('x', json, 5, true).archived).toBe(true);
   });
 
   test('reports no alternate when the merge kept none', () => {
@@ -78,8 +88,39 @@ describe('deriveConflictItems', () => {
         context,
       ),
     ).toEqual([
-      { kind: 'name', conflictIds: ['n1', 'n2'], current: 'Mehra', other: 'Mehra A' },
-      { kind: 'name', conflictIds: ['n3'], current: 'Mehra', other: null },
+      {
+        kind: 'name',
+        conflictIds: ['n1', 'n2'],
+        current: 'Mehra',
+        other: 'Mehra A',
+        archived: false,
+      },
+      {
+        kind: 'name',
+        conflictIds: ['n3'],
+        current: 'Mehra',
+        other: null,
+        archived: false,
+      },
+    ]);
+  });
+
+  test('a name row is archived only when every record behind it is archived', () => {
+    expect(
+      deriveConflictItems(
+        [
+          record({ conflictId: 'a1', alternateValue: 'Old', archived: true }),
+          record({ conflictId: 'a2', alternateValue: 'Both', archived: true }),
+          record({ conflictId: 'a3', alternateValue: 'Both' }),
+        ],
+        context,
+      ).map(({ conflictIds, ...item }) => [
+        conflictIds,
+        'archived' in item && item.archived,
+      ]),
+    ).toEqual([
+      [['a1'], true],
+      [['a2', 'a3'], false],
     ]);
   });
 
@@ -89,7 +130,7 @@ describe('deriveConflictItems', () => {
     );
   });
 
-  test('lists a photo only when the other file exists and differs from the current one', () => {
+  test('lists a photo only when the other file exists and its content differs from the current one', () => {
     const photo = (conflictId: string, alternateValue: string | null) =>
       record({ conflictId, field: 'photoAssetId', alternateValue });
     expect(
@@ -99,15 +140,24 @@ describe('deriveConflictItems', () => {
           photo('p2', 'photo-missing'),
           photo('p3', 'photo-current'),
           photo('p4', null),
+          photo('p5', 'photo-same-blob'),
+          photo('p6', 'photo-other-copy'),
+          photo('p7', 'photo-unhashed'),
         ],
         context,
       ),
     ).toEqual([
       {
         kind: 'photo',
-        conflictIds: ['p1'],
+        conflictIds: ['p1', 'p6'],
         otherAssetId: 'photo-other',
         otherUri: 'photos/other.jpg',
+      },
+      {
+        kind: 'photo',
+        conflictIds: ['p7'],
+        otherAssetId: 'photo-unhashed',
+        otherUri: 'photos/unhashed.jpg',
       },
     ]);
   });

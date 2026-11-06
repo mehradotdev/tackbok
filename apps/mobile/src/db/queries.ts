@@ -193,30 +193,36 @@ export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
  * followed by its other versions, newest first.
  */
 export async function getEntriesWithOtherVersions(): Promise<Entry[]> {
-  const recovered = await db
+  // One statement with a subquery: binding every origin ID could exceed
+  // SQLite's variable limit on a large journal.
+  const rows = await db
     .select()
     .from(entries)
-    .where(isNotNull(entries.conflict_origin_id))
+    .where(
+      or(
+        isNotNull(entries.conflict_origin_id),
+        inArray(
+          entries.note_id,
+          db
+            .select({ id: entries.conflict_origin_id })
+            .from(entries)
+            .where(isNotNull(entries.conflict_origin_id)),
+        ),
+      ),
+    )
     .orderBy(desc(entries.created_at));
-  if (recovered.length === 0) return [];
+  const byId = new Map(rows.map((entry) => [entry.note_id, entry]));
   const groups = new Map<string, Entry[]>();
-  for (const entry of recovered) {
-    const group = groups.get(entry.conflict_origin_id!) ?? [];
+  for (const entry of rows) {
+    if (!entry.conflict_origin_id) continue;
+    const group = groups.get(entry.conflict_origin_id) ?? [];
     group.push(entry);
-    groups.set(entry.conflict_origin_id!, group);
+    groups.set(entry.conflict_origin_id, group);
   }
-  const origins = new Map(
-    (
-      await db
-        .select()
-        .from(entries)
-        .where(inArray(entries.note_id, [...groups.keys()]))
-    ).map((entry) => [entry.note_id, entry]),
-  );
   const result: Entry[] = [];
   const listed = new Set<string>();
   for (const [originId, versions] of groups) {
-    for (const entry of [origins.get(originId), ...versions]) {
+    for (const entry of [byId.get(originId), ...versions]) {
       if (!entry || listed.has(entry.note_id)) continue;
       listed.add(entry.note_id);
       result.push(entry);

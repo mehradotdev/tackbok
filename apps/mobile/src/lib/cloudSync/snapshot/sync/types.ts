@@ -200,6 +200,12 @@ export interface CapturedJournal {
  */
 export interface SnapshotJournalStore {
   capture(): Promise<CapturedJournal>;
+  /**
+   * Called with the conflict IDs the remote heads hold before the plan's
+   * journal apply, so a store can tell conflicts imported with a restore
+   * from conflicts this device's merge creates.
+   */
+  rememberRemoteConflicts?(conflictIds: readonly string[]): Promise<void>;
   applyMergedIfGeneration(
     domain: SnapshotDomain,
     expectedGeneration: number,

@@ -212,6 +212,36 @@ describe('durable snapshot publisher', () => {
     },
   );
 
+  test('a joining device records the backup conflicts before its first journal apply', async () => {
+    const a = harness('conflict-a');
+    const b = harness('conflict-b', blankDomain(), a.provider);
+    a.journal.mutate(withEntry(blankDomain(), entry('shared', 'Initial')));
+    await a.engine().sync();
+    await b.engine().sync();
+    a.journal.mutate(withEntry(a.journal.current(), entry('shared', 'From A', 2)));
+    b.journal.mutate(withEntry(b.journal.current(), entry('shared', 'From B', 3)));
+    await a.engine().sync();
+    expect((await b.engine().sync()).status).toBe('published');
+    const backupConflicts = b.journal.current().conflicts.map((c) => c.conflictId);
+    expect(backupConflicts.length).toBeGreaterThan(0);
+
+    const joining = harness('conflict-joining', blankDomain(), a.provider);
+    const events: string[][] = [];
+    const apply = joining.journal.applyMergedIfGeneration.bind(joining.journal);
+    Object.assign(joining.journal, {
+      rememberRemoteConflicts: async (ids: readonly string[]) => {
+        events.push(['remember', ...ids]);
+      },
+      applyMergedIfGeneration: (domain: SnapshotDomain, generation: number) => {
+        events.push(['apply']);
+        return apply(domain, generation);
+      },
+    });
+    await joining.engine().sync();
+    expect(events[0]).toEqual(['remember', ...backupConflicts]);
+    expect(events.findIndex(([kind]) => kind === 'apply')).toBeGreaterThan(0);
+  });
+
   test('a dirty generation with identical journal data settles locally', async () => {
     const app = harness('no-op');
     app.journal.mutate(withEntry(blankDomain(), entry('same', 'Same')));

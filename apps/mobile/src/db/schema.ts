@@ -133,6 +133,13 @@ export const cloudVault = sqliteTable('cloud_vault', {
   }),
   revocation_id: text('revocation_id'),
   revocation_acknowledged_at: integer('revocation_acknowledged_at'),
+  /**
+   * Local only. Conflict IDs the remote backup already held while this device
+   * was restoring, recorded before the first journal apply (JSON array).
+   */
+  restore_conflict_ids_json: text('restore_conflict_ids_json'),
+  /** Local only. Set by the first journal apply; later conflicts are new. */
+  conflicts_imported_at: integer('conflicts_imported_at'),
 });
 
 export const syncRetainedMedia = sqliteTable(
@@ -296,6 +303,8 @@ export const cloudConflicts = sqliteTable(
     conflict_json: text('conflict_json').notNull(),
     acknowledged_at: integer('acknowledged_at'),
     created_at: integer('created_at').notNull(),
+    /** Local only. Moved off the conflicts card by the one-time 0005 upgrade. */
+    archived_at: integer('archived_at'),
   },
   (table) => [primaryKey({ columns: [table.vault_id, table.conflict_id] })],
 );

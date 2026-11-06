@@ -237,6 +237,11 @@ export class SnapshotSyncEngine {
         );
       }
 
+      await this.journal.rememberRemoteConflicts?.(
+        frontier.flatMap((remote) =>
+          remote.payload.conflicts.map((conflict) => conflict.conflictId),
+        ),
+      );
       await this.synchronizeMedia(captured.domain, frontier, merged, captured.generation);
       await this.hooks.beforeHeadRecheck?.();
       const rechecked = await this.loadAndNormalizeHeads(
