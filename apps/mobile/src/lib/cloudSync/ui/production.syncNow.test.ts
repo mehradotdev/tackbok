@@ -39,6 +39,7 @@ jest.mock('../runtime/production', () => ({
 }));
 jest.mock('../runtime/backgroundTask', () => ({}));
 jest.mock('../storage/repositories', () => ({}));
+jest.mock('~/lib/settings', () => ({ useSettingsStore: { getState: () => ({}) } }));
 
 beforeEach(() => jest.clearAllMocks());
 
