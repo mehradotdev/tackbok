@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Tackbok",
+    "NSPhotoLibraryUsageDescription": "Tackbok behöver åtkomst till dina bilder för att bifoga dem till dina tacksamhetsanteckningar.",
+    "NSCameraUsageDescription": "Tackbok behöver åtkomst till din kamera för att ta bilder till dina tacksamhetsanteckningar.",
+    "NSMicrophoneUsageDescription": "Tackbok behöver åtkomst till din mikrofon för att spela in röstanteckningar till dina tacksamhetsanteckningar.",
+    "NSFaceIDUsageDescription": "Tillåt Tackbok att använda Face ID för att skydda din dagbok.",
+    "NSLocalNetworkUsageDescription": "Expo Dev Launcher använder det lokala nätverket för att hitta och ansluta till utvecklingsservrar på din dator."
+  }
+}

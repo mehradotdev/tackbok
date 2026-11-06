@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "טאקבוק",
+    "NSPhotoLibraryUsageDescription": "טאקבוק זקוק לגישה לתמונות שלך כדי לצרף אותן לרשומות הכרת התודה שלך.",
+    "NSCameraUsageDescription": "טאקבוק זקוק לגישה למצלמה כדי לצלם תמונות לרשומות הכרת התודה שלך.",
+    "NSMicrophoneUsageDescription": "טאקבוק זקוק לגישה למיקרופון כדי ליצור הקלטות קוליות לרשומות הכרת התודה שלך.",
+    "NSFaceIDUsageDescription": "אפשר לטאקבוק להשתמש ב-Face ID כדי להגן על היומן שלך.",
+    "NSLocalNetworkUsageDescription": "Expo Dev Launcher משתמש ברשת המקומית כדי למצוא שרתי פיתוח שפועלים במחשב שלך ולהתחבר אליהם."
+  }
+}
