@@ -1502,6 +1502,89 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(maximumAppend).toBe(8 * 1024 * 1024);
   });
 
+  test('a connection dropped mid-download is a retryable transient failure', async () => {
+    const hash = 'b'.repeat(64);
+    const state = new MemoryDriveProviderStateStore();
+    state.upsertFile(vaultId, {
+      fileId: 'media-interrupted',
+      logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
+      kind: 'media',
+      contentSha256: hash,
+      byteCount: 2048,
+      createdAt: 1,
+      head: null,
+    });
+    let reads = 0;
+    const interrupted: DriveResponseLike = {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (reads++ === 0) return { done: false, value: new Uint8Array(1024) };
+            throw new TypeError('Network request failed');
+          },
+        }),
+      },
+      json: async () => ({}),
+      arrayBuffer: async () => new ArrayBuffer(0),
+    };
+    const provider = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state,
+      fetch: async () => interrupted,
+      sleep: async () => {},
+      random: () => 0,
+    });
+    await expect(
+      provider.downloadMedia(vaultId, hash, {
+        byteLength: async () => 0,
+        appendAndSync: async () => {},
+        reset: async () => {},
+        verifyAndPromote: async () => {},
+      }),
+    ).rejects.toMatchObject({ code: 'transient' });
+  });
+
+  test('a media download cancelled mid-read stays a cancellation', async () => {
+    const hash = 'c'.repeat(64);
+    const state = new MemoryDriveProviderStateStore();
+    state.upsertFile(vaultId, {
+      fileId: 'media-cancelled',
+      logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
+      kind: 'media',
+      contentSha256: hash,
+      byteCount: 2048,
+      createdAt: 1,
+      head: null,
+    });
+    const stalled: DriveResponseLike = {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: { getReader: () => ({ read: () => new Promise(() => {}) }) },
+      json: async () => ({}),
+      arrayBuffer: async () => new ArrayBuffer(0),
+    };
+    const controller = new AbortController();
+    const provider = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state,
+      fetch: async () => stalled,
+      signal: () => controller.signal,
+    });
+    const download = provider.downloadMedia(vaultId, hash, {
+      byteLength: async () => 0,
+      appendAndSync: async () => {},
+      reset: async () => {},
+      verifyAndPromote: async () => {},
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    controller.abort();
+    await expect(download).rejects.toBeInstanceOf(SyncCancelledError);
+  });
+
   test('a media stream longer than its declared size is cut off before it is written', async () => {
     const declared = new Uint8Array([7, 7, 7]);
     const hash = sha256Bytes(declared);

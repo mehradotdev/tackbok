@@ -12,7 +12,13 @@ export interface RuntimePassResult {
   pushed: number;
 }
 
-export type SyncPassPhase = 'checking' | 'preparing' | 'uploading' | 'finishing';
+/** What a pass is doing now, by direction. Phases can repeat within one pass. */
+export type SyncPassPhase =
+  | 'checking'
+  | 'preparing'
+  | 'uploading'
+  | 'downloading'
+  | 'downloading-media';
 
 export interface RuntimeSyncEngine {
   readonly provider: { readonly kind: 'google-drive' | 'dropbox' };

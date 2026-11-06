@@ -24,6 +24,7 @@ import type {
   RuntimeSyncEngine,
   SyncPassPhase,
 } from '../../runtime/SyncRuntime';
+import { PHASE_FOR_ENGINE_ACTIVITY } from '../../runtime/activity';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import { hashPendingProductionMedia } from './mediaHashing';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
@@ -70,7 +71,10 @@ interface PassCancellation {
 }
 
 class MediaPolicyProvider implements SnapshotProvider {
-  constructor(private readonly delegate: GoogleDriveSnapshotProvider) {}
+  constructor(
+    private readonly delegate: GoogleDriveSnapshotProvider,
+    private readonly onTransfer: (phase: 'uploading' | 'downloading-media') => void,
+  ) {}
 
   listRevocations(vaultId: string) {
     return this.delegate.listRevocations(vaultId);
@@ -104,6 +108,7 @@ class MediaPolicyProvider implements SnapshotProvider {
     source: MediaUploadSource,
   ): Promise<void> {
     await this.assertMediaTransferAllowed();
+    this.onTransfer('uploading');
     await this.delegate.uploadMedia(vaultId, blobHash, source);
   }
   async downloadMedia(
@@ -112,6 +117,7 @@ class MediaPolicyProvider implements SnapshotProvider {
     sink: MediaDownloadSink,
   ): Promise<boolean> {
     await this.assertMediaTransferAllowed();
+    this.onTransfer('downloading-media');
     return this.delegate.downloadMedia(vaultId, blobHash, sink);
   }
   listSnapshots(vaultId: string): Promise<SnapshotObject[]> {
@@ -237,7 +243,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           'local-media-unreadable',
           'local-media-hash-failed',
         );
-        throw new SnapshotRuntimeFailure('corrupt');
+        throw new SnapshotRuntimeFailure('local-media');
       }
       this.needsFollowup = true;
       return { pulled: 0, pushed: 0 };
@@ -259,7 +265,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         'local-media-unreadable',
         'local-media-file-missing',
       );
-      throw new SnapshotRuntimeFailure('corrupt');
+      throw new SnapshotRuntimeFailure('local-media');
     }
 
     const beforeConflicts = new Set(
@@ -326,7 +332,6 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     }
 
     throwIfCancelled(signal);
-    if (result.status !== 'up-to-date' || hydrated > 0) this.onActivity('finishing');
     const now = Date.now();
     await db
       .insert(syncProviderState)
@@ -431,7 +436,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
     signal: () => cancellation.signal,
   });
-  const provider = new MediaPolicyProvider(drive);
+  const provider = new MediaPolicyProvider(drive, options.onActivity);
   const engine = new SnapshotSyncEngine(
     options.vault.vault_id,
     options.vault.device_id,
@@ -441,27 +446,12 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     media,
     provider,
     {
-      at: (point) => {
+      at: () => {
         // Kill points are where a pass may stop and resume safely; a cancelled
         // pass stops at the next one (including between media transfers).
         throwIfCancelled(cancellation.signal);
-        // Housekeeping during an otherwise quiet check is not pending sync work.
-        if (point === 'during-snapshot-cleanup') return;
-        if (point === 'during-remote-snapshot-download') options.onActivity('checking');
-        else if (
-          point === 'during-merge-application' ||
-          point.startsWith('after-base-')
-        ) {
-          options.onActivity('finishing');
-        } else if (
-          point === 'during-media-transfer' ||
-          point === 'after-snapshot-uploaded' ||
-          point === 'after-snapshot-verified' ||
-          point === 'after-head-advanced'
-        ) {
-          options.onActivity('uploading');
-        } else options.onActivity('preparing');
       },
+      activity: (activity) => options.onActivity(PHASE_FOR_ENGINE_ACTIVITY[activity]),
     },
   );
   return new ProductionSnapshotRuntimeEngine(
