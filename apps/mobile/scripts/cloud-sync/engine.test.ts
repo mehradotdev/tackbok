@@ -33,6 +33,8 @@ import type {
   SnapshotDomain,
   SnapshotEntry,
 } from '../../src/lib/cloudSync/snapshot/types';
+import { PHASE_FOR_ENGINE_ACTIVITY } from '../../src/lib/cloudSync/runtime/activity';
+import type { SyncPassPhase } from '../../src/lib/cloudSync/runtime/SyncRuntime';
 import { clearAuthorizationPause } from '../../src/lib/cloudSync/ui/connectionRecovery';
 import { encodeGzip } from '../../src/lib/zip/core/gzip-codec';
 
@@ -1878,5 +1880,241 @@ describe('durable snapshot publisher', () => {
     expect(app.provider.snapshotIds(app.vaultId)).toHaveLength(3);
     expect(app.provider.snapshotIds(app.vaultId)).toContain(currentHead);
     expect(app.provider.requests).not.toContain('delete-media' as never);
+  });
+});
+
+/**
+ * Mirrors the production runtime's progress wiring: engine activity hooks plus
+ * media transfers reporting their direction. Records the phase shown while each
+ * remote operation and the local merge application run.
+ */
+function trackPhases(provider: FakeSnapshotProvider) {
+  const tracker = {
+    phase: 'checking' as SyncPassPhase,
+    paused: false,
+    seen: [] as string[],
+    hooks(extra: SnapshotSyncHooks = {}): SnapshotSyncHooks {
+      return {
+        ...extra,
+        activity: (activity) => {
+          tracker.phase = PHASE_FOR_ENGINE_ACTIVITY[activity];
+        },
+        at: async (point) => {
+          if (point === 'during-merge-application') record('apply-domain');
+          await extra.at?.(point);
+        },
+      };
+    },
+  };
+  const record = (operation: string) => {
+    if (!tracker.paused) tracker.seen.push(`${operation}=${tracker.phase}`);
+  };
+  const uploadMedia = provider.uploadMedia.bind(provider);
+  provider.uploadMedia = (...args) => {
+    if (!tracker.paused) tracker.phase = 'uploading';
+    return uploadMedia(...args);
+  };
+  const downloadMedia = provider.downloadMedia.bind(provider);
+  provider.downloadMedia = (...args) => {
+    if (!tracker.paused) tracker.phase = 'downloading-media';
+    return downloadMedia(...args);
+  };
+  for (const method of [
+    'downloadSnapshot',
+    'uploadSnapshot',
+    'verifySnapshot',
+    'updateDeviceHead',
+  ] as const) {
+    const original = (provider[method] as (...args: unknown[]) => Promise<unknown>).bind(
+      provider,
+    );
+    (provider as unknown as Record<string, unknown>)[method] = (...args: unknown[]) => {
+      record(method);
+      return original(...args);
+    };
+  }
+  return tracker;
+}
+
+describe('sync progress phases', () => {
+  test.each<[SnapshotKillPoint, string[]]>([
+    [
+      'after-candidate-persisted',
+      ['uploadSnapshot', 'verifySnapshot', 'updateDeviceHead', 'apply-domain'],
+    ],
+    ['after-snapshot-uploaded', ['verifySnapshot', 'updateDeviceHead', 'apply-domain']],
+    ['after-snapshot-verified', ['updateDeviceHead', 'apply-domain']],
+    ['after-head-advanced', ['apply-domain']],
+  ])(
+    'a publication resumed from %s reads as saving throughout',
+    async (killPoint, work) => {
+      const app = harness(`device-resume-${killPoint}`);
+      app.journal.mutate(withEntry(blankDomain(), entry('entry-local', 'Local content')));
+      await expect(
+        app
+          .engine({
+            at(point) {
+              if (point === killPoint) throw new SimulatedProcessDeath(point);
+            },
+          })
+          .sync(),
+      ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+
+      const tracker = trackPhases(app.provider);
+      expect((await app.engine(tracker.hooks()).sync()).status).toBe('published');
+      expect(tracker.seen).toEqual(work.map((operation) => `${operation}=uploading`));
+    },
+  );
+
+  test('retention cleanup reads after a publication never read as saving', async () => {
+    const app = harness('device-cleanup-phases');
+    for (let index = 0; index < 5; index++) {
+      app.clock.value++;
+      app.journal.mutate(
+        withEntry(app.journal.current(), entry(`entry-${index}`, `Value ${index}`)),
+      );
+      await app.engine().sync();
+    }
+    app.clock.value += 31 * 24 * 60 * 60 * 1000;
+    app.journal.mutate(withEntry(app.journal.current(), entry('entry-new', 'Newest')));
+
+    let phase: SyncPassPhase = 'checking';
+    let settled = false;
+    const reads: SyncPassPhase[] = [];
+    const download = app.provider.downloadSnapshot.bind(app.provider);
+    app.provider.downloadSnapshot = async (...args) => {
+      if (settled) reads.push(phase);
+      return download(...args);
+    };
+    const result = await app
+      .engine({
+        activity: (activity) => {
+          phase = PHASE_FOR_ENGINE_ACTIVITY[activity];
+        },
+        at: (point) => {
+          if (point === 'after-base-checkpoint-settled') settled = true;
+        },
+      })
+      .sync();
+    expect(result.status).toBe('published');
+    expect(reads.length).toBeGreaterThan(0);
+    expect(reads).not.toContain('uploading');
+  });
+
+  test('adopting another device’s snapshot reads as downloading', async () => {
+    const provider = new FakeSnapshotProvider();
+    const source = harness(
+      'device-source',
+      withEntry(blankDomain(), entry('entry-remote', 'Remote authored')),
+      provider,
+    );
+    source.state.markDirty(source.vaultId, source.deviceId);
+    await source.engine().sync();
+    const target = harness('device-target', blankDomain(), provider, source.clock);
+
+    const tracker = trackPhases(provider);
+    expect((await target.engine(tracker.hooks()).sync()).status).toBe('pulled');
+    expect(tracker.seen).toEqual([
+      'downloadSnapshot=checking',
+      'apply-domain=downloading',
+    ]);
+  });
+
+  test('a snapshot published during a media upload downloads as a quiet check', async () => {
+    const provider = new FakeSnapshotProvider();
+    const bytes = new TextEncoder().encode('synthetic-media-bytes');
+    const blobHash = sha256Bytes(bytes);
+    const domain = withEntry(blankDomain(), entry('entry-media', 'Has media'));
+    domain.media = [
+      {
+        assetId: 'asset-media',
+        ownerType: 'entry',
+        ownerId: 'entry-media',
+        kind: 'photo',
+        blobHash,
+        mimeType: 'image/jpeg',
+        byteSize: bytes.length,
+        width: 10,
+        height: 10,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
+    const app = harness('device-local', domain, provider);
+    const other = harness('device-other', blankDomain(), provider, app.clock);
+    await app.media.writeVerified(blobHash, bytes);
+    app.state.markDirty(app.vaultId, app.deviceId);
+
+    const tracker = trackPhases(provider);
+    let published = false;
+    const result = await app
+      .engine(
+        tracker.hooks({
+          async beforeHeadRecheck() {
+            if (published) return;
+            published = true;
+            tracker.paused = true;
+            other.journal.mutate(withEntry(blankDomain(), entry('entry-other', 'Other')));
+            await other.engine().sync();
+            tracker.paused = false;
+          },
+        }),
+      )
+      .sync();
+    expect(result.status).toBe('published');
+    expect(provider.requests).toContain('upload-media');
+    const downloads = tracker.seen.filter((value) =>
+      value.startsWith('downloadSnapshot'),
+    );
+    expect(downloads.length).toBeGreaterThan(0);
+    expect(new Set(downloads)).toEqual(new Set(['downloadSnapshot=checking']));
+    expect(tracker.seen.slice(-4)).toEqual([
+      'uploadSnapshot=uploading',
+      'verifySnapshot=uploading',
+      'updateDeviceHead=uploading',
+      'apply-domain=uploading',
+    ]);
+  });
+
+  test('a valid same-sequence duplicate head is read as a quiet check', async () => {
+    const app = harness('device-reader');
+    for (const [suffix, content] of [
+      ['a', 'Branch A'],
+      ['b', 'Branch B'],
+    ] as const) {
+      const encoded = encodeSnapshot({
+        format: 'tackbok-snapshot',
+        vaultId: app.vaultId,
+        parentSnapshotIds: [],
+        observedDeviceHeads: [],
+        authorDeviceId: 'device-writer',
+        deviceSequence: 1,
+        createdAt: 1,
+        ...withEntry(blankDomain(), entry(`entry-${suffix}`, content)),
+      });
+      app.provider.injectSnapshot(
+        app.vaultId,
+        encoded.snapshotId,
+        encoded.compressedBytes,
+        1,
+      );
+      app.provider.injectPhysicalHead({
+        format: 'tackbok-device-head',
+        vaultId: app.vaultId,
+        deviceId: 'device-writer',
+        deviceSequence: 1,
+        snapshotId: encoded.snapshotId,
+        updatedAt: 1,
+      });
+    }
+
+    const tracker = trackPhases(app.provider);
+    tracker.phase = 'uploading';
+    expect((await app.engine(tracker.hooks()).sync()).status).toBe('attention');
+    expect(tracker.seen).toEqual([
+      'downloadSnapshot=checking',
+      'downloadSnapshot=checking',
+    ]);
   });
 });

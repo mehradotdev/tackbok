@@ -31,8 +31,7 @@ export function statusLabel(
   }
 }
 
-export const SYNC_PHASES = ['checking', 'preparing', 'uploading', 'finishing'] as const;
-
+/** One plain line for what sync is doing now. Phases have no reliable total. */
 export function syncPhaseLabel(
   phase: NonNullable<CloudSyncSnapshot['activityPhase']>,
   initialRestore: boolean,
@@ -42,14 +41,49 @@ export function syncPhaseLabel(
     case 'checking':
       return t('cloud.checkingGoogleDriveForChanges');
     case 'preparing':
-      return initialRestore
-        ? t('cloud.preparingRestoredJournalData')
-        : t('cloud.preparingJournalChanges');
+      return t('cloud.preparingYourChanges');
     case 'uploading':
-      return t('cloud.mergingChangesAndUpdatingGoogleDrive');
-    case 'finishing':
-      return t('cloud.savingSyncedJournalDataOnThisDevice');
+      return t('cloud.savingYourChangesToGoogleDrive');
+    case 'downloading':
+      return initialRestore
+        ? t('cloud.restoringYourJournalFromGoogleDrive')
+        : t('cloud.gettingChangesFromYourOtherDevices');
+    case 'downloading-media':
+      return t('cloud.downloadingPhotosAndVoiceNotes');
   }
+}
+
+/** Local changes and incoming attachments are different work; never add them. */
+export function pendingWorkSummary(
+  snapshot: Pick<CloudSyncSnapshot, 'status' | 'queuedCount' | 'pendingDownloadCount'>,
+  t: TranslationFunction,
+): string | null {
+  const parts: string[] = [];
+  if (snapshot.queuedCount > 0) {
+    parts.push(
+      snapshot.status === 'syncing'
+        ? t('cloud.countChangesRemaining', { count: snapshot.queuedCount })
+        : t('cloud.countChangesSafelyQueued', { count: snapshot.queuedCount }),
+    );
+  }
+  if (snapshot.pendingDownloadCount > 0) {
+    parts.push(
+      t('cloud.photosAndVoiceNotesToDownloadCount', {
+        number: snapshot.pendingDownloadCount,
+      }),
+    );
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+/** Explains a disabled Sync now button when the status line alone does not. */
+export function syncNowUnavailableReason(
+  status: CloudSyncSnapshot['status'],
+  t: TranslationFunction,
+): string | null {
+  if (status === 'paused') return t('cloud.resumeSyncToSyncNow');
+  if (status === 'warning') return t('cloud.fixTheProblemAboveToSyncNow');
+  return null;
 }
 
 export function entityTypeLabel(
@@ -83,6 +117,8 @@ export function cloudSyncFailureMessage(
       return t('cloud.noInternetConnectionYourChangesRemainSafelyQueued');
     case 'wifi-only-media':
       return t('cloud.photosAndVoiceMemosAreWaitingForWiFiYour');
+    case 'local-media':
+      return t('cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead');
     case 'corrupt':
       return t('cloud.thisCloudBackupContainsDataTackbokCannotRead');
     case 'transient':
@@ -136,20 +172,21 @@ export function recoveryActionLabel(
     'finish-connection': t('cloud.finishConnection'),
     'reconnect-correct-backup': t('cloud.reconnectToTheCorrectBackup'),
     'update-tackbok': t('cloud.updateTackbok'),
-    'retry-verify-backup': t('cloud.retryAndVerifyBackup'),
-    'repair-from-verified-backup': t('cloud.repairFromVerifiedBackup'),
-    'inspect-repair-backup': t('cloud.inspectAndRepairBackup'),
-    'consolidate-backups': t('cloud.consolidateBackups'),
+    // These recoveries all retry the sync after its safety checks.
+    'retry-verify-backup': t('cloud.retryBackupCheck'),
+    'repair-from-verified-backup': t('cloud.retryBackupCheck'),
+    'inspect-repair-backup': t('cloud.retryBackupCheck'),
+    'consolidate-backups': t('cloud.retryBackupCheck'),
     'export-repair-backup': t('cloud.exportJournalAndRepairBackup'),
     'free-device-storage': t('cloud.freeDeviceStorageAndRetry'),
     'manage-drive-storage': t('cloud.manageGoogleDriveStorage'),
     'retry-missing-media': t('cloud.retryMissingMedia'),
-    'locate-retry-attachment': t('cloud.locateOrRetryAttachment'),
+    'locate-retry-attachment': t('cloud.retryAttachment'),
     'retry-journal-preparation': t('cloud.retryJournalPreparation'),
     'acknowledge-disconnect': t('cloud.acknowledgeAndDisconnect'),
     'review-erase-device': t('cloud.reviewDeletionAndEraseThisDevice'),
     'resume-deletion': t('cloud.resumeDeletion'),
-    'verify-backup-health': t('cloud.verifyBackupHealth'),
+    'verify-backup-health': t('cloud.retryBackupCheck'),
   };
   return labels[action];
 }

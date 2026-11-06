@@ -73,7 +73,10 @@ export interface CloudSyncSnapshot {
   accountLabel: string | null;
   activityPhase: SyncPassPhase | null;
   initialRestore: boolean;
+  /** Local changes not yet saved to the backup. */
   queuedCount: number;
+  /** Photos and voice notes from the backup not yet on this device. */
+  pendingDownloadCount: number;
   conflictCount: number;
   lastSuccessAt: number | null;
   lastVerifiedAt: number | null;
@@ -84,7 +87,8 @@ export interface CloudSyncSnapshot {
 
 export interface PreparedCloudVault {
   vaultId: string;
-  createdAt: number | null;
+  /** When any device last updated this backup, not when it was created. */
+  updatedAt: number | null;
 }
 
 export interface PreparedGoogleConnection {
@@ -107,6 +111,7 @@ export type CloudSyncActionFailureCategory =
   | 'rate-limit'
   | 'offline'
   | 'wifi-only-media'
+  | 'local-media'
   | 'corrupt'
   | 'transient'
   | 'unknown';
@@ -191,9 +196,9 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
         : Promise.resolve([]),
     ]);
   const queuedCount = vault
-    ? Math.max(0, (queued?.value ?? 0) - (queued?.settled ?? 0)) +
-      (pendingMedia?.value ?? 0)
+    ? Math.max(0, (queued?.value ?? 0) - (queued?.settled ?? 0))
     : 0;
+  const pendingDownloadCount = vault ? (pendingMedia?.value ?? 0) : 0;
   const conflictCount = conflicts?.value ?? 0;
   const configured = Boolean(
     vault?.remote_root_id && !['disabled', 'revoked'].includes(vault.status),
@@ -219,7 +224,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   else if (vault?.status === 'paused') status = 'paused';
   else if (activity !== 'idle') status = 'syncing';
   else if (vault?.status === 'restoring') status = 'restoring';
-  else if (configured && queuedCount > 0) status = 'queued';
+  else if (configured && queuedCount + pendingDownloadCount > 0) status = 'queued';
   else if (configured) status = 'synced';
 
   return {
@@ -230,6 +235,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
     activityPhase: activity === 'idle' ? null : activity,
     initialRestore: vault?.status === 'restoring',
     queuedCount,
+    pendingDownloadCount,
     conflictCount,
     lastSuccessAt: providerState?.last_success_at ?? null,
     lastVerifiedAt: providerState?.last_verify_at ?? null,
@@ -263,7 +269,7 @@ async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnect
         .filter((vault) => !vault.vaultId.includes('probe-'))
         .map((vault: AvailableDriveVault) => ({
           vaultId: vault.vaultId,
-          createdAt: vault.updatedAt || null,
+          updatedAt: vault.updatedAt || null,
         })),
       localHasData: await localHasData(),
     };
@@ -308,7 +314,7 @@ async function completeGoogleDriveConnectionImpl(options: {
   }
 
   if (!selected) {
-    selected = { vaultId: randomUUID(), createdAt: Date.now() };
+    selected = { vaultId: randomUUID(), updatedAt: Date.now() };
   }
 
   stopProductionSyncRuntime();

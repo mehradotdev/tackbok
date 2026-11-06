@@ -85,6 +85,16 @@ function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
 
 const utf8 = (value: string) => new TextEncoder().encode(value);
 
+/** A connection that drops after the response starts is retryable, not unknown. */
+async function readDownloadBody<T>(read: () => Promise<T>): Promise<T> {
+  try {
+    return await read();
+  } catch (error) {
+    if (error instanceof SnapshotProviderError) throw error;
+    throw new SnapshotProviderError('transient', 'Drive download was interrupted');
+  }
+}
+
 function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
   if (left.length !== right.length) return false;
   for (let index = 0; index < left.length; index += 1) {
@@ -1110,7 +1120,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     if (response.body) {
       const reader = response.body.getReader();
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readDownloadBody(() => reader.read());
         if (done) break;
         if (value?.byteLength) {
           receivedBytes += value.byteLength;
@@ -1124,7 +1134,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         }
       }
     } else {
-      const value = new Uint8Array(await response.arrayBuffer());
+      const value = new Uint8Array(await readDownloadBody(() => response.arrayBuffer()));
       if (value.byteLength > byteCap) {
         throw new SnapshotProviderError(
           'invalid-data',
@@ -1189,7 +1199,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
     const reader = response.body.getReader();
     while (true) {
-      const { done, value } = await reader.read();
+      const { done, value } = await readDownloadBody(() => reader.read());
       if (done) break;
       if (!value?.byteLength) continue;
       let consumed = 0;
