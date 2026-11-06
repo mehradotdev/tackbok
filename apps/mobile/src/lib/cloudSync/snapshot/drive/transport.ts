@@ -345,7 +345,11 @@ export class DriveTransport {
         this.options.now(),
       );
       // Record the server's window before the body read can fail or be cancelled.
-      if (retryAfterMs !== null && (response.status === 429 || response.status >= 500)) {
+      // A 403 may be a rate limit whose reason is only in that body.
+      if (
+        retryAfterMs !== null &&
+        (response.status === 403 || response.status === 429 || response.status >= 500)
+      ) {
         this.extendRetryWindow(vaultId, retryAfterMs);
       }
       let error: DriveRequestError;
