@@ -18,6 +18,7 @@ import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { readCloudSyncFailureCategory } from '../failureClassification';
+import { SyncCancelledError } from '../snapshot/sync/errors';
 export type { ProductionCloudSyncActivity } from './activity';
 
 const productionCloudSyncListeners = new Set<() => void>();
@@ -198,6 +199,8 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
       return true;
     } catch (error) {
       if (error instanceof CloudConnectionChangedError && attempt === 0) continue;
+      // A connection change cancelled this pass; that is not a sync failure.
+      if (error instanceof SyncCancelledError) return true;
       track('cloud_sync_failed', { category: readCloudSyncFailureCategory(error) });
       return false;
     }

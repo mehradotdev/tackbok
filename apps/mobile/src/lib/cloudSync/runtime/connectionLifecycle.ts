@@ -10,7 +10,7 @@ export class CloudConnectionLifecycle {
   private generation = 0;
   private changes = 0;
   private tail: Promise<unknown> = Promise.resolve();
-  private passes = new Set<Promise<unknown>>();
+  private passes = new Map<Promise<unknown>, AbortController>();
 
   get epoch(): number {
     return this.generation;
@@ -21,12 +21,20 @@ export class CloudConnectionLifecycle {
     while (this.changes > 0) await this.tail.catch(() => undefined);
   }
 
-  async runPass<T>(epoch: number, operation: () => Promise<T>): Promise<T> {
+  /**
+   * Runs one pass under the current connection. The pass must stop its network
+   * work when `signal` aborts; a connection change aborts it and then drains it.
+   */
+  async runPass<T>(
+    epoch: number,
+    operation: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
     if (this.changes > 0 || epoch !== this.generation) {
       throw new CloudConnectionChangedError();
     }
-    const pass = Promise.resolve().then(operation);
-    this.passes.add(pass);
+    const controller = new AbortController();
+    const pass = Promise.resolve().then(() => operation(controller.signal));
+    this.passes.set(pass, controller);
     try {
       return await pass;
     } finally {
@@ -38,11 +46,14 @@ export class CloudConnectionLifecycle {
     // Close admission synchronously, including while another change is queued.
     this.changes++;
     this.generation++;
+    // Cancel running passes now, then drain them below before the operation
+    // touches credentials: an aborted pass may still be settling local state.
+    this.passes.forEach((controller) => controller.abort());
     const previous = this.tail;
     const change = previous
       .catch(() => undefined)
       .then(async () => {
-        await Promise.allSettled([...this.passes]);
+        await Promise.allSettled([...this.passes.keys()]);
         return operation();
       });
     this.tail = change;

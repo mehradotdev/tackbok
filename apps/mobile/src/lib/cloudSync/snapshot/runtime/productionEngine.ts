@@ -42,6 +42,7 @@ import type {
   SnapshotProvider,
 } from '../sync/types';
 import { SnapshotProviderError } from '../sync/types';
+import { SyncCancelledError, throwIfCancelled, untilCancelled } from '../sync/errors';
 import { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } from '../storage';
 
 interface ProductionSnapshotVault {
@@ -57,7 +58,17 @@ class SnapshotRuntimeFailure extends Error {
   }
 }
 
-const runningVaultPasses = new Map<string, Promise<RuntimePassResult>>();
+interface RunningVaultPass {
+  promise: Promise<RuntimePassResult>;
+  signal: AbortSignal;
+}
+
+const runningVaultPasses = new Map<string, RunningVaultPass>();
+
+/** The running pass's signal, shared by one engine's provider and hooks. */
+interface PassCancellation {
+  signal: AbortSignal | null;
+}
 
 class MediaPolicyProvider implements SnapshotProvider {
   constructor(
@@ -138,6 +149,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     private readonly onActivity: (phase: SyncPassPhase | 'idle') => void,
     private readonly onRemoteApplied?: () => void | Promise<void>,
     private readonly connectionEpoch = cloudConnectionLifecycle.epoch,
+    private readonly cancellation: PassCancellation = { signal: null },
   ) {}
 
   hasPendingWork(): boolean {
@@ -154,33 +166,63 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     );
   }
 
-  async sync(): Promise<RuntimePassResult> {
+  async sync(caller?: AbortSignal): Promise<RuntimePassResult> {
     const vaultId = this.vault.vault_id;
-    const existing = runningVaultPasses.get(vaultId);
-    if (existing) return existing;
-    const pass = cloudConnectionLifecycle.runPass(this.connectionEpoch, () =>
-      this.runExclusivePass(),
-    );
-    runningVaultPasses.set(vaultId, pass);
+    throwIfCancelled(caller);
+    // Joining or draining another caller's pass: this caller's cancellation
+    // ends only its own wait. The owner keeps its entry until it settles, so
+    // no overlapping pass can start.
+    let existing = runningVaultPasses.get(vaultId);
+    if (existing && !existing.signal.aborted) {
+      return untilCancelled(existing.promise, caller);
+    }
+    // A cancelled pass is still settling; never overlap it, and never report
+    // its cancellation as this caller's result.
+    while (existing) {
+      await untilCancelled(
+        existing.promise.catch(() => undefined),
+        caller,
+      );
+      existing = runningVaultPasses.get(vaultId);
+      if (existing && !existing.signal.aborted) {
+        return untilCancelled(existing.promise, caller);
+      }
+    }
+    throwIfCancelled(caller);
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    caller?.addEventListener('abort', abort);
+    const pass = cloudConnectionLifecycle.runPass(this.connectionEpoch, (signal) => {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener('abort', abort);
+      return this.runExclusivePass(controller.signal);
+    });
+    const running = { promise: pass, signal: controller.signal };
+    runningVaultPasses.set(vaultId, running);
     try {
       return await pass;
     } finally {
-      if (runningVaultPasses.get(vaultId) === pass) runningVaultPasses.delete(vaultId);
+      caller?.removeEventListener('abort', abort);
+      if (runningVaultPasses.get(vaultId) === running) runningVaultPasses.delete(vaultId);
     }
   }
 
-  private async runExclusivePass(): Promise<RuntimePassResult> {
+  private async runExclusivePass(signal: AbortSignal): Promise<RuntimePassResult> {
+    this.cancellation.signal = signal;
     try {
-      return await this.syncPass();
+      throwIfCancelled(signal);
+      return await this.syncPass(signal);
     } finally {
+      if (this.cancellation.signal === signal) this.cancellation.signal = null;
       this.onActivity('idle');
     }
   }
 
-  private async syncPass(): Promise<RuntimePassResult> {
+  private async syncPass(signal: AbortSignal): Promise<RuntimePassResult> {
     this.needsFollowup = false;
     this.onActivity('checking');
     const hashing = await hashPendingProductionMedia(2);
+    throwIfCancelled(signal);
     if (hashing.processed > 0) this.onActivity('preparing');
     const [unhashed] = await db
       .select({ value: count() })
@@ -192,6 +234,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           ne(mediaAssets.download_state, 'missing'),
         ),
       );
+    throwIfCancelled(signal);
     if ((unhashed?.value ?? 0) > 0) {
       if (hashing.failed > 0 && hashing.processed === 0) {
         this.state.setPause(
@@ -214,6 +257,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           or(isNull(mediaAssets.blob_hash), isNull(mediaAssets.byte_size)),
         ),
       );
+    throwIfCancelled(signal);
     if ((missingLocal?.value ?? 0) > 0 || hashing.missing > 0) {
       this.state.setPause(
         this.vault.vault_id,
@@ -233,7 +277,26 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       ).map(({ id }) => id),
     );
     this.onActivity('checking');
-    const result = await this.engine.sync();
+    try {
+      const result = await this.engine.sync();
+      return await this.finishPass(result, beforeConflicts, signal);
+    } catch (error) {
+      // A cancelled pass may already have committed remote journal changes or
+      // hydrated media, and a later pass can find nothing left to apply. A
+      // refresh only re-reads local data, so always refresh after cancellation.
+      if (error instanceof SyncCancelledError) {
+        await this.refreshAppliedViews().catch(() => undefined);
+      }
+      throw error;
+    }
+  }
+
+  private async finishPass(
+    result: Awaited<ReturnType<SnapshotSyncEngine['sync']>>,
+    beforeConflicts: Set<string>,
+    signal: AbortSignal | null,
+  ): Promise<RuntimePassResult> {
+    throwIfCancelled(signal);
     if (result.status === 'attention') {
       throw new SnapshotRuntimeFailure(failureCategoryForAttention(result.reason));
     }
@@ -248,9 +311,12 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     }
 
     let hydrated = 0;
+    throwIfCancelled(signal);
     try {
       const hydration = await this.journal.hydratePendingMedia(this.mediaProvider, 2);
       hydrated = hydration.hydrated;
+      // Local completion may finish after cancellation; record nothing from it.
+      throwIfCancelled(signal);
       if (hydration.missing > 0) {
         this.state.setPause(
           this.vault.vault_id,
@@ -262,6 +328,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       }
     } catch (error) {
       if (error instanceof SnapshotRuntimeFailure) throw error;
+      throwIfCancelled(signal);
       if (
         error instanceof SnapshotProviderError &&
         ['transient', 'rate-limited', 'wifi-only-media'].includes(error.code)
@@ -282,6 +349,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       }
     }
 
+    throwIfCancelled(signal);
     const now = Date.now();
     await db
       .insert(syncProviderState)
@@ -340,18 +408,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         track('cloud_sync_conflict_recovered', { entity_type: parsed.entityType });
       }
     }
-    const [profile] = await db.select().from(userProfile).limit(1);
-    const [photo] = profile?.photo_asset_id
-      ? await db
-          .select()
-          .from(mediaAssets)
-          .where(eq(mediaAssets.asset_id, profile.photo_asset_id))
-          .limit(1)
-      : [];
-    useSettingsStore.setState({
-      profileName: profile?.display_name ?? null,
-      profileImageUri: photo?.local_uri ?? null,
-    });
+    await this.refreshProfileCache();
     if (result.status === 'published' || result.status === 'pulled' || hydrated > 0)
       await this.onRemoteApplied?.();
     const [pendingMedia] = await db
@@ -365,6 +422,26 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       pushed: result.status === 'published' ? 1 : 0,
     };
   }
+
+  private async refreshProfileCache(): Promise<void> {
+    const [profile] = await db.select().from(userProfile).limit(1);
+    const [photo] = profile?.photo_asset_id
+      ? await db
+          .select()
+          .from(mediaAssets)
+          .where(eq(mediaAssets.asset_id, profile.photo_asset_id))
+          .limit(1)
+      : [];
+    useSettingsStore.setState({
+      profileName: profile?.display_name ?? null,
+      profileImageUri: photo?.local_uri ?? null,
+    });
+  }
+
+  private async refreshAppliedViews(): Promise<void> {
+    await this.refreshProfileCache();
+    await this.onRemoteApplied?.();
+  }
 }
 
 export async function createProductionSnapshotRuntimeEngine(options: {
@@ -373,6 +450,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
   onRemoteApplied?: () => void | Promise<void>;
 }): Promise<ProductionSnapshotRuntimeEngine> {
   const connectionEpoch = cloudConnectionLifecycle.epoch;
+  const cancellation: PassCancellation = { signal: null };
   const connectionId = await readOrCreateGoogleConnectionId();
   const state = new SQLiteSyncStateStore(sqlite);
   state.loadState(options.vault.vault_id, options.vault.device_id);
@@ -385,6 +463,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
   const drive = new GoogleDriveSnapshotProvider({
     auth: createGoogleAuthorization(),
     state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+    signal: () => cancellation.signal,
   });
   const provider = new MediaPolicyProvider(drive, options.onActivity);
   const engine = new SnapshotSyncEngine(
@@ -396,6 +475,11 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     media,
     provider,
     {
+      at: () => {
+        // Kill points are where a pass may stop and resume safely; a cancelled
+        // pass stops at the next one (including between media transfers).
+        throwIfCancelled(cancellation.signal);
+      },
       activity: (activity) => options.onActivity(PHASE_FOR_ENGINE_ACTIVITY[activity]),
     },
   );
@@ -408,5 +492,6 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     options.onActivity,
     options.onRemoteApplied,
     connectionEpoch,
+    cancellation,
   );
 }

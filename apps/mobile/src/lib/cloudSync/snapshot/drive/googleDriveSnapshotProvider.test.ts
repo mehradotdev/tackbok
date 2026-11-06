@@ -24,6 +24,7 @@ import {
   type DriveObjectKind,
 } from './state';
 import { DriveTransport } from './transport';
+import { SyncCancelledError } from '../sync/errors';
 
 class FakeAuth implements CloudAuthorization {
   clears = 0;
@@ -371,6 +372,54 @@ function provider(
 }
 
 describe('GoogleDriveSnapshotProvider', () => {
+  test('a 403 Retry-After survives a cancelled error body and blocks the next request', async () => {
+    const state = new MemoryDriveProviderStateStore();
+    let controller = new AbortController();
+    let calls = 0;
+    let markReading!: () => void;
+    const reading = new Promise<void>((resolve) => (markReading = resolve));
+    const transport = new DriveTransport({
+      auth: new FakeAuth(),
+      state,
+      signal: () => controller.signal,
+      now: () => 0,
+      random: () => 0,
+      sleep: async () => {},
+      fetch: async () => {
+        calls += 1;
+        return {
+          ok: false,
+          status: 403,
+          headers: { get: (name: string) => (name === 'retry-after' ? '120' : null) },
+          json: () => {
+            markReading();
+            return new Promise(() => {});
+          },
+          arrayBuffer: async () => new ArrayBuffer(0),
+        };
+      },
+    });
+    const request = () =>
+      transport.request(
+        vaultId,
+        'list',
+        'https://www.googleapis.com/drive/v3/files',
+        {},
+        {
+          idempotent: true,
+        },
+      );
+    const first = request();
+    await reading;
+    controller.abort();
+    await expect(first).rejects.toBeInstanceOf(SyncCancelledError);
+    expect(state.loadDiscovery(vaultId).retryNotBefore).toBe(120_000);
+
+    controller = new AbortController();
+    await expect(request()).rejects.toBeDefined();
+    expect(calls).toBe(1);
+  });
+
   test('a rejected request is not classified as corrupt cloud content', async () => {
     const fetch = jest.fn(async () => response(400));
     const transport = new DriveTransport({
@@ -615,6 +664,7 @@ describe('GoogleDriveSnapshotProvider', () => {
   test('a server retry window is durable and manual retry issues no request inside it', async () => {
     const state = new MemoryDriveProviderStateStore();
     let attempts = 0;
+    const sleeps: number[] = [];
     const limitedFetch: DriveFetchLike = async () => {
       attempts += 1;
       return response(429, {}, undefined, { 'retry-after': '60' });
@@ -623,14 +673,19 @@ describe('GoogleDriveSnapshotProvider', () => {
       auth: new FakeAuth(),
       state,
       fetch: limitedFetch,
-      sleep: async () => {},
+      sleep: async (milliseconds) => {
+        sleeps.push(milliseconds);
+      },
       now: () => 1_000,
       random: () => 0,
     });
     await expect(first.listRevocations(vaultId)).rejects.toMatchObject({
       code: 'rate-limited',
     });
-    expect(attempts).toBe(3);
+    // A 60 s Retry-After exceeds what one pass waits: no early retry.
+    expect(attempts).toBe(1);
+    expect(sleeps).toEqual([]);
+    expect(state.loadDiscovery(vaultId).retryNotBefore).toBe(61_000);
 
     const reconstructed = new GoogleDriveSnapshotProvider({
       auth: new FakeAuth(),
@@ -643,7 +698,345 @@ describe('GoogleDriveSnapshotProvider', () => {
     await expect(reconstructed.listRevocations(vaultId)).rejects.toMatchObject({
       code: 'rate-limited',
     });
-    expect(attempts).toBe(3);
+    expect(attempts).toBe(1);
+  });
+
+  test('Retry-After is never shortened and the durable window is rechecked before each attempt', async () => {
+    let now = 0;
+    const requests: number[] = [];
+    const transport = (
+      fetch: DriveFetchLike,
+      state = new MemoryDriveProviderStateStore(),
+    ) =>
+      new DriveTransport({
+        auth: new FakeAuth(),
+        state,
+        fetch,
+        sleep: async (milliseconds) => {
+          now += milliseconds;
+        },
+        random: () => 0,
+        now: () => now,
+      });
+    const request = (target: DriveTransport) =>
+      target.request(
+        vaultId,
+        'list',
+        'https://www.googleapis.com/drive/v3/files',
+        {},
+        { idempotent: true },
+      );
+
+    // A short server delay is waited out in full, never cut.
+    await expect(
+      request(
+        transport(async () => {
+          requests.push(now);
+          return requests.length === 1
+            ? response(429, {}, undefined, { 'retry-after': '20' })
+            : response(200);
+        }),
+      ),
+    ).resolves.toMatchObject({ status: 200 });
+    expect(requests).toEqual([0, 20_000]);
+
+    // A delay longer than the pass waits ends the pass without another request.
+    requests.length = 0;
+    now = 0;
+    await expect(
+      request(
+        transport(async () => {
+          requests.push(now);
+          return response(429, {}, undefined, { 'retry-after': '120' });
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'rate-limited' });
+    expect(requests).toEqual([0]);
+
+    // A window recorded by another request during backoff blocks the retry.
+    requests.length = 0;
+    now = 0;
+    const shared = new MemoryDriveProviderStateStore();
+    await expect(
+      request(
+        transport(async () => {
+          requests.push(now);
+          shared.setRetryNotBefore(vaultId, now + 120_000);
+          return response(503);
+        }, shared),
+      ),
+    ).rejects.toMatchObject({ code: 'rate-limited' });
+    expect(requests).toEqual([0]);
+  });
+
+  test('cancelling a pass stops a hung request, its backoff and its body read promptly', async () => {
+    const controller = new AbortController();
+    let fetchSignal: AbortSignal | undefined;
+    const hung = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      // Never settles on its own, like a stalled connection.
+      fetch: (_url, init = {}) => {
+        fetchSignal = init.signal as AbortSignal;
+        return new Promise<DriveResponseLike>(() => {});
+      },
+      signal: () => controller.signal,
+    });
+    const listing = hung.listRevocations(vaultId);
+    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    controller.abort();
+    await expect(listing).rejects.toBeInstanceOf(SyncCancelledError);
+    expect(fetchSignal?.aborted).toBe(true);
+
+    const backoff = new AbortController();
+    let attempts = 0;
+    const retrying = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async () => {
+        attempts += 1;
+        return response(503);
+      },
+      sleep: () => new Promise<void>(() => {}),
+      random: () => 0,
+      signal: () => backoff.signal,
+    });
+    const retried = retrying.listRevocations(vaultId);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    backoff.abort();
+    await expect(retried).rejects.toBeInstanceOf(SyncCancelledError);
+    expect(attempts).toBe(1);
+
+    const reading = new AbortController();
+    const stalledBody: DriveResponseLike = {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: { getReader: () => ({ read: () => new Promise(() => {}) }) },
+      json: () => new Promise(() => {}),
+      arrayBuffer: () => new Promise(() => {}),
+    };
+    const reader = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async () => stalledBody,
+      signal: () => reading.signal,
+    });
+    const read = reader.listRevocations(vaultId);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    reading.abort();
+    await expect(read).rejects.toBeInstanceOf(SyncCancelledError);
+  });
+
+  test('a stalled response times out as a transient failure, not a cancellation', async () => {
+    jest.useFakeTimers();
+    try {
+      let attempts = 0;
+      const transport = new DriveTransport({
+        auth: new FakeAuth(),
+        state: new MemoryDriveProviderStateStore(),
+        fetch: () => {
+          attempts += 1;
+          return new Promise<DriveResponseLike>(() => {});
+        },
+        sleep: async () => {},
+        random: () => 0,
+        now: () => 1,
+      });
+      const pending = transport.request(
+        vaultId,
+        'create',
+        'https://www.googleapis.com/upload/drive/v3/files',
+        { method: 'POST' },
+        { idempotent: false },
+      );
+      const outcome = expect(pending).rejects.toMatchObject({
+        code: 'transient',
+        message: 'Google Drive request timed out',
+      });
+      await jest.advanceTimersByTimeAsync(59_999);
+      expect(attempts).toBe(1);
+      await jest.advanceTimersByTimeAsync(1);
+      await outcome;
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('a timed-out 403 error body is a transient failure, never a permission pause', async () => {
+    jest.useFakeTimers();
+    try {
+      const transport = new DriveTransport({
+        auth: new FakeAuth(),
+        state: new MemoryDriveProviderStateStore(),
+        fetch: async () => ({ ...response(403), json: () => new Promise(() => {}) }),
+        sleep: async () => {},
+        random: () => 0,
+        now: () => 1,
+      });
+      const outcome = expect(
+        transport.request(
+          vaultId,
+          'list',
+          'https://www.googleapis.com/drive/v3/files',
+          {},
+          { idempotent: false },
+        ),
+      ).rejects.toMatchObject({ code: 'transient', status: 403 });
+      await jest.advanceTimersByTimeAsync(60_000);
+      await outcome;
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('a token refresh that fails after cancellation records no provider failure', async () => {
+    const controller = new AbortController();
+    let fetches = 0;
+    const transport = new DriveTransport({
+      auth: Object.assign(new FakeAuth(), {
+        getFreshAccessToken: async () => {
+          controller.abort();
+          throw new CloudAuthError('consent-required', 'synthetic consent required');
+        },
+      }),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async () => {
+        fetches += 1;
+        return response(200);
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1,
+      signal: () => controller.signal,
+    });
+    await expect(
+      transport.request(
+        vaultId,
+        'list',
+        'https://www.googleapis.com/drive/v3/files',
+        {},
+        { idempotent: true },
+      ),
+    ).rejects.toBeInstanceOf(SyncCancelledError);
+    expect(fetches).toBe(0);
+  });
+
+  test('a 503 Retry-After window is durable and a window extended during token refresh blocks the send', async () => {
+    const state = new MemoryDriveProviderStateStore();
+    const requests: number[] = [];
+    const unavailable = new DriveTransport({
+      auth: new FakeAuth(),
+      state,
+      fetch: async () => {
+        requests.push(0);
+        return response(503, {}, undefined, { 'retry-after': '120' });
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 0,
+    });
+    const request = (target: DriveTransport) =>
+      target.request(
+        vaultId,
+        'list',
+        'https://www.googleapis.com/drive/v3/files',
+        {},
+        { idempotent: true },
+      );
+    await expect(request(unavailable)).rejects.toMatchObject({ code: 'transient' });
+    await expect(request(unavailable)).rejects.toMatchObject({ code: 'rate-limited' });
+    expect(requests).toEqual([0]);
+    expect(state.loadDiscovery(vaultId).retryNotBefore).toBe(120_000);
+    // A shorter later window never shortens the recorded one.
+    const shorter = new DriveTransport({
+      auth: new FakeAuth(),
+      state,
+      fetch: async () => response(429, {}, undefined, { 'retry-after': '1' }),
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 200_000,
+    });
+    await expect(request(shorter)).rejects.toMatchObject({ code: 'rate-limited' });
+    expect(state.loadDiscovery(vaultId).retryNotBefore).toBe(201_000);
+
+    const shared = new MemoryDriveProviderStateStore();
+    let fetches = 0;
+    const extended = new DriveTransport({
+      auth: Object.assign(new FakeAuth(), {
+        getFreshAccessToken: async () => {
+          // Another request records a server window while this token refreshes.
+          shared.setRetryNotBefore(vaultId, 120_000);
+          return 'synthetic-access';
+        },
+      }),
+      state: shared,
+      fetch: async () => {
+        fetches += 1;
+        return response(200);
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 0,
+    });
+    await expect(request(extended)).rejects.toMatchObject({ code: 'rate-limited' });
+    expect(fetches).toBe(0);
+  });
+
+  test('completed and aborted requests leave no listeners on the pass signal or live timers', async () => {
+    const controller = new AbortController();
+    const listeners = new Set<unknown>();
+    const signal = controller.signal;
+    const add = signal.addEventListener.bind(signal);
+    const remove = signal.removeEventListener.bind(signal);
+    jest
+      .spyOn(signal, 'addEventListener')
+      .mockImplementation((type, listener, options) => {
+        listeners.add(listener);
+        add(type, listener, options);
+      });
+    jest
+      .spyOn(signal, 'removeEventListener')
+      .mockImplementation((type, listener, options) => {
+        listeners.delete(listener);
+        remove(type, listener, options);
+      });
+    let next: DriveResponseLike = response(200);
+    const transport = new DriveTransport({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async () => next,
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1,
+      signal: () => signal,
+    });
+    const request = () =>
+      transport.request(
+        vaultId,
+        'list',
+        'https://www.googleapis.com/drive/v3/files',
+        {},
+        { idempotent: true },
+      );
+    for (let index = 0; index < 20; index += 1) await (await request()).json();
+    // A response whose body is never read retains nothing either.
+    await request();
+    expect(listeners.size).toBe(0);
+
+    jest.useFakeTimers();
+    try {
+      next = { ...response(200), json: () => new Promise(() => {}) };
+      const reading = (await request()).json();
+      expect(jest.getTimerCount()).toBe(1);
+      controller.abort();
+      await expect(reading).rejects.toBeInstanceOf(SyncCancelledError);
+      expect(jest.getTimerCount()).toBe(0);
+      expect(listeners.size).toBe(0);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test('an expired change cursor rebuilds the prefix-scoped inventory', async () => {
@@ -1200,6 +1593,108 @@ describe('GoogleDriveSnapshotProvider', () => {
         verifyAndPromote: async () => {},
       }),
     ).rejects.toMatchObject({ code: 'transient' });
+  });
+
+  test('a media download cancelled mid-read stays a cancellation', async () => {
+    const hash = 'c'.repeat(64);
+    const state = new MemoryDriveProviderStateStore();
+    state.upsertFile(vaultId, {
+      fileId: 'media-cancelled',
+      logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
+      kind: 'media',
+      contentSha256: hash,
+      byteCount: 2048,
+      createdAt: 1,
+      head: null,
+    });
+    const stalled: DriveResponseLike = {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: { getReader: () => ({ read: () => new Promise(() => {}) }) },
+      json: async () => ({}),
+      arrayBuffer: async () => new ArrayBuffer(0),
+    };
+    const controller = new AbortController();
+    const provider = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state,
+      fetch: async () => stalled,
+      signal: () => controller.signal,
+    });
+    const download = provider.downloadMedia(vaultId, hash, {
+      byteLength: async () => 0,
+      appendAndSync: async () => {},
+      reset: async () => {},
+      verifyAndPromote: async () => {},
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    controller.abort();
+    await expect(download).rejects.toBeInstanceOf(SyncCancelledError);
+  });
+
+  test('a media stream longer than its declared size is cut off before it is written', async () => {
+    const declared = new Uint8Array([7, 7, 7]);
+    const hash = sha256Bytes(declared);
+    const state = new MemoryDriveProviderStateStore();
+    state.upsertFile(vaultId, {
+      fileId: 'media-oversized',
+      logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
+      kind: 'media',
+      contentSha256: hash,
+      byteCount: declared.byteLength,
+      createdAt: 1,
+      head: null,
+    });
+    let reads = 0;
+    let cancelled = false;
+    const endless: DriveResponseLike = {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: {
+        getReader: () => ({
+          // Effectively endless (bounded only so a regression fails, not hangs).
+          read: async () => {
+            reads += 1;
+            return reads > 64
+              ? { done: true }
+              : { done: false, value: new Uint8Array(1024) };
+          },
+          cancel: async () => {
+            cancelled = true;
+          },
+        }),
+      },
+      json: async () => ({}),
+      arrayBuffer: async () => new ArrayBuffer(0),
+    };
+    const app = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state,
+      fetch: async () => endless,
+    });
+    let persisted = 0;
+    let resets = 0;
+    await expect(
+      app.downloadMedia(vaultId, hash, {
+        byteLength: async () => persisted,
+        appendAndSync: async (chunk) => {
+          persisted += chunk.byteLength;
+        },
+        reset: async () => {
+          resets += 1;
+          persisted = 0;
+        },
+        verifyAndPromote: async () => {
+          throw new Error('must not promote');
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'transient' });
+    expect(persisted).toBe(0);
+    expect(reads).toBe(1);
+    expect(cancelled).toBe(true);
+    expect(resets).toBe(1);
   });
 
   test('revocation metadata is detected without downloading marker bodies', async () => {
