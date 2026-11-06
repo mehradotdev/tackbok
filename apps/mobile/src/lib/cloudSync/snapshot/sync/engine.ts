@@ -222,6 +222,9 @@ export class SnapshotSyncEngine {
       }
 
       let merged = captured.domain;
+      // Only the captured local side carries local provenance. After the
+      // first merge it holds remote content, which is never pristine.
+      let localProfilePristine = captured.localProfilePristine;
       const baseDomain = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
       for (const remote of frontier.sort((left, right) =>
         left.snapshotId.localeCompare(right.snapshotId),
@@ -234,7 +237,9 @@ export class SnapshotSyncEngine {
           remoteDescendsFromBase ? baseDomain : null,
           merged,
           domainOf(remote.payload),
+          { localProfilePristine },
         );
+        localProfilePristine = false;
       }
 
       await this.synchronizeMedia(captured.domain, frontier, merged, captured.generation);

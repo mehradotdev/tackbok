@@ -210,15 +210,75 @@ test('production journal applies 10,000 entries atomically, skips unchanged writ
   expect((await store.capture()).domain).toEqual(domain);
 });
 
-test('profile updatedAt stays 0 until a synced profile field is authored', async () => {
-  sqlite.exec('DELETE FROM media_assets; DELETE FROM user_profile');
+// Models a fresh install: no profile row yet and the migration-seeded marker.
+function resetToFreshProfile() {
+  sqlite.exec(
+    "DELETE FROM media_assets; DELETE FROM user_profile; INSERT OR IGNORE INTO profile_pristine_marker VALUES ('self')",
+  );
+}
+
+const profilePhoto = (assetId: string) => ({
+  assetId,
+  ownerType: 'profile' as const,
+  ownerId: 'profile',
+  kind: 'profile-photo' as const,
+  blobHash: 'a'.repeat(64),
+  byteSize: 1,
+  mimeType: 'image/jpeg',
+  width: null,
+  height: null,
+  durationMs: null,
+  createdAt: 1,
+  updatedAt: 1,
+});
+
+test('only a provably fresh database starts with a pristine local profile', () => {
+  const migrate = (prepare: (database: Database) => void) => {
+    const fresh = new Database(':memory:');
+    try {
+      for (const { tag } of journal.entries) {
+        if (tag.startsWith('0005_')) prepare(fresh);
+        fresh.exec(
+          readFileSync(
+            join(import.meta.dir, `../../src/drizzle/${tag}.sql`),
+            'utf8',
+          ).replaceAll('--> statement-breakpoint', ''),
+        );
+      }
+      return fresh.query('SELECT profile_id FROM profile_pristine_marker').all();
+    } finally {
+      fresh.close();
+    }
+  };
+  expect(migrate(() => {})).toEqual([{ profile_id: 'self' }]);
+  // Existing installs are conservatively touched: any profile row, even an
+  // empty unstamped one, or any vault may carry an authored or synced clear.
+  expect(
+    migrate((database) =>
+      database.exec(
+        "INSERT INTO user_profile (profile_id, updated_at) VALUES ('self', 0)",
+      ),
+    ),
+  ).toEqual([]);
+  expect(
+    migrate((database) =>
+      database.exec(
+        "INSERT INTO cloud_vault (vault_id, provider_kind, device_id, created_at, updated_at) VALUES ('vault', 'google-drive', 'device', 1, 1)",
+      ),
+    ),
+  ).toEqual([]);
+});
+
+test('profile updatedAt stays 0 and the profile stays pristine until a synced field is authored', async () => {
+  resetToFreshProfile();
   const { runExclusiveDbTransaction } = await import('../../src/db');
-  const { updateProfileInTransaction } =
+  const { isLocalProfilePristine, updateProfileInTransaction } =
     await import('../../src/lib/cloudSync/storage/repositories');
   type Args = Parameters<typeof updateProfileInTransaction>;
   const write = (update: Args[1], context: Args[2]) =>
     runExclusiveDbTransaction((tx) => updateProfileInTransaction(tx, update, context));
   const profileUpdatedAt = () => db.select().from(schema.userProfile).get()?.updated_at;
+  const pristine = () => runExclusiveDbTransaction(isLocalProfilePristine);
 
   // An empty legacy backfill and a skipped onboarding name leave it pristine.
   await write(
@@ -228,13 +288,56 @@ test('profile updatedAt stays 0 until a synced profile field is authored', async
   await write({ displayName: null }, { now: 11 });
   await write({ email: 'local@example.com' }, { now: 12 });
   expect(profileUpdatedAt()).toBe(0);
+  expect(await pristine()).toBe(true);
 
   await write({ displayName: 'Mehra' }, { now: 13 });
   expect(profileUpdatedAt()).toBe(13);
+  expect(await pristine()).toBe(false);
   await write({ displayName: null }, { now: 14 });
   expect(profileUpdatedAt()).toBe(14);
   await write({ displayName: null }, { now: 15 });
   expect(profileUpdatedAt()).toBe(14);
+  // Clearing again does not restore provenance.
+  expect(await pristine()).toBe(false);
+
+  // Imports and backfills write through the same path: a photo alone touches it.
+  resetToFreshProfile();
+  await write({ photoUri: 'file:///imported.jpg' }, { origin: 'migration', now: 16 });
+  expect(await pristine()).toBe(false);
+});
+
+test('a fresh install that skipped onboarding adopts the remote profile on first join', async () => {
+  resetToFreshProfile();
+  sqlite.exec('DELETE FROM entries; DELETE FROM cloud_sync_state');
+  const { mergeSnapshotDomains } = await import('../../src/lib/cloudSync/snapshot/merge');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'first-join', device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('first-join', 'device', {} as never);
+  const captured = await store.capture();
+  expect(captured.localProfilePristine).toBe(true);
+
+  const remote = structuredClone(captured.domain);
+  remote.profile = {
+    profileId: 'profile',
+    displayName: 'Mehra',
+    photoAssetId: 'remote-photo',
+    updatedAt: 10,
+  };
+  remote.media = [profilePhoto('remote-photo')];
+  const merged = mergeSnapshotDomains(null, captured.domain, remote, {
+    localProfilePristine: captured.localProfilePristine,
+  });
+  expect(merged.profile).toEqual(remote.profile);
+  expect(merged.conflicts).toEqual([]);
+
+  // Native file I/O is outside this real-SQLite projection test.
+  Object.defineProperty(store, 'materializeMedia', {
+    value: async () =>
+      new Map([['remote-photo', { uri: 'file:///remote-photo', verified: true }]]),
+  });
+  expect(await store.applyMergedIfGeneration(merged, 0)).toBe(true);
+  expect((await store.capture()).localProfilePristine).toBe(false);
 });
 
 test('a same-blob profile photo ID switch reuses the local file instead of downloading', async () => {
@@ -538,9 +641,8 @@ test('a rejected apply keeps a photo another in-flight apply already materialize
 });
 
 test('authored profile clears stay positive and win a no-base merge after a clock reset', async () => {
-  sqlite.exec(
-    'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_sync_state',
-  );
+  resetToFreshProfile();
+  sqlite.exec('DELETE FROM cloud_sync_state');
   const { runExclusiveDbTransaction } = await import('../../src/db');
   const { updateProfileInTransaction } =
     await import('../../src/lib/cloudSync/storage/repositories');
@@ -558,7 +660,7 @@ test('authored profile clears stay positive and win a no-base merge after a cloc
   expect(profileUpdatedAt()).toBe(12);
 
   // A first authored write at clock zero is not mistaken for pristine either.
-  sqlite.exec('DELETE FROM media_assets; DELETE FROM user_profile');
+  resetToFreshProfile();
   await write({ displayName: 'Mehra' }, { now: 0 });
   expect(profileUpdatedAt()).toBe(1);
   await write({ displayName: null }, { now: 0 });
@@ -568,19 +670,19 @@ test('authored profile clears stay positive and win a no-base merge after a cloc
     .values({ vault_id: 'clock', device_id: 'device', updated_at: 1 })
     .run();
   const store = new ProductionSnapshotJournalStore('clock', 'device', {} as never);
-  const { domain } = await store.capture();
+  const { domain, localProfilePristine } = await store.capture();
+  expect(localProfilePristine).toBe(false);
   const remote = structuredClone(domain);
   remote.profile.displayName = 'Mehra';
   remote.profile.updatedAt = 1;
-  const merged = mergeSnapshotDomains(null, domain, remote);
+  const merged = mergeSnapshotDomains(null, domain, remote, { localProfilePristine });
   // The deliberate clear is not silently replaced by the remote name.
-  expect(merged.profile.displayName).toBeNull();
+  expect(merged.conflicts.map((value) => value.field)).toEqual(['displayName']);
 });
 
 test('a restored profile authored at updatedAt 0 is not treated as pristine', async () => {
-  sqlite.exec(
-    'DELETE FROM entries; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_sync_state',
-  );
+  resetToFreshProfile();
+  sqlite.exec('DELETE FROM entries; DELETE FROM cloud_sync_state');
   const { mergeSnapshotDomains } = await import('../../src/lib/cloudSync/snapshot/merge');
   db.insert(schema.cloudSyncState)
     .values({ vault_id: 'remote-zero', device_id: 'device', updated_at: 1 })
@@ -590,34 +692,87 @@ test('a restored profile authored at updatedAt 0 is not treated as pristine', as
   // An older client (or a backup restored from one) can write a name at 0.
   domain.profile.displayName = 'Authored at clock zero';
   expect(await store.applyMergedIfGeneration(domain, 0)).toBe(true);
-  const restored = (await store.capture()).domain;
-  expect(restored.profile.updatedAt).toBe(0);
+  const restored = await store.capture();
+  expect(restored.domain.profile.updatedAt).toBe(0);
+  expect(restored.localProfilePristine).toBe(false);
 
-  const other = structuredClone(restored);
+  const other = structuredClone(restored.domain);
   other.profile.photoAssetId = 'other-photo';
   other.profile.updatedAt = 10;
-  other.media = [
-    {
-      assetId: 'other-photo',
-      ownerType: 'profile',
-      ownerId: 'profile',
-      kind: 'profile-photo',
-      blobHash: 'a'.repeat(64),
-      byteSize: 1,
-      mimeType: 'image/jpeg',
-      width: null,
-      height: null,
-      durationMs: null,
-      createdAt: 1,
-      updatedAt: 1,
-    },
-  ];
+  other.media = [profilePhoto('other-photo')];
   for (const [local, remote] of [
-    [restored, other],
-    [other, restored],
+    [restored.domain, other],
+    [other, restored.domain],
   ]) {
-    const merged = mergeSnapshotDomains(null, local, remote);
-    // The authored name makes the whole profile non-pristine.
+    const merged = mergeSnapshotDomains(null, local, remote, {
+      localProfilePristine: restored.localProfilePristine,
+    });
     expect(merged.conflicts.map((value) => value.field)).toEqual(['photoAssetId']);
   }
+});
+
+test('an older client full clear at updatedAt 0 conflicts after a restore', async () => {
+  resetToFreshProfile();
+  sqlite.exec('DELETE FROM entries; DELETE FROM cloud_sync_state');
+  const { mergeSnapshotDomains } = await import('../../src/lib/cloudSync/snapshot/merge');
+  const { decodeSnapshot, encodeSnapshot } =
+    await import('../../src/lib/cloudSync/snapshot/codec');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'old-clear', device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('old-clear', 'device', {} as never);
+  // Older writers stamped a deliberate clear of both fields with `now`, which
+  // can be 0. It encodes exactly like an untouched profile.
+  const oldClear = (await store.capture()).domain;
+  oldClear.profile = {
+    profileId: 'profile',
+    displayName: null,
+    photoAssetId: null,
+    updatedAt: 0,
+  };
+  const encoded = encodeSnapshot({
+    format: 'tackbok-snapshot',
+    vaultId: 'old-clear',
+    parentSnapshotIds: [],
+    observedDeviceHeads: [],
+    authorDeviceId: 'old-device',
+    deviceSequence: 1,
+    createdAt: 1,
+    ...oldClear,
+  });
+  const decoded = decodeSnapshot(encoded.compressedBytes, encoded.snapshotId);
+  // The restore matches the empty local state, so it takes the unchanged path.
+  expect(await store.applyMergedIfGeneration(decoded.payload, 0)).toBe(true);
+  const restored = await store.capture();
+  expect(restored.domain.profile).toEqual(oldClear.profile);
+  expect(restored.localProfilePristine).toBe(false);
+
+  const other = structuredClone(restored.domain);
+  other.profile = {
+    profileId: 'profile',
+    displayName: 'Another device',
+    photoAssetId: 'remote-photo',
+    updatedAt: 10,
+  };
+  other.media = [profilePhoto('remote-photo')];
+  for (const [local, remote] of [
+    [restored.domain, other],
+    [other, restored.domain],
+  ]) {
+    const merged = mergeSnapshotDomains(null, local, remote, {
+      localProfilePristine: restored.localProfilePristine,
+    });
+    expect(merged.conflicts.map((value) => value.field).sort()).toEqual([
+      'displayName',
+      'photoAssetId',
+    ]);
+  }
+
+  // The same restore through a full replacement also ends provenance.
+  resetToFreshProfile();
+  sqlite.exec(
+    "INSERT INTO user_profile (profile_id, display_name, updated_at) VALUES ('self', 'Local', 1)",
+  );
+  expect(await store.applyMergedIfGeneration(decoded.payload, 0)).toBe(true);
+  expect((await store.capture()).localProfilePristine).toBe(false);
 });
