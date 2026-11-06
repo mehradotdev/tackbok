@@ -180,3 +180,30 @@ test('production journal applies 10,000 entries atomically, skips unchanged writ
   await expect(store.applyMergedIfGeneration(invalid, 1)).rejects.toThrow();
   expect((await store.capture()).domain).toEqual(domain);
 });
+
+test('profile updatedAt stays 0 until a synced profile field is authored', async () => {
+  sqlite.exec('DELETE FROM media_assets; DELETE FROM user_profile');
+  const { runExclusiveDbTransaction } = await import('../../src/db');
+  const { updateProfileInTransaction } =
+    await import('../../src/lib/cloudSync/storage/repositories');
+  type Args = Parameters<typeof updateProfileInTransaction>;
+  const write = (update: Args[1], context: Args[2]) =>
+    runExclusiveDbTransaction((tx) => updateProfileInTransaction(tx, update, context));
+  const profileUpdatedAt = () => db.select().from(schema.userProfile).get()?.updated_at;
+
+  // An empty legacy backfill and a skipped onboarding name leave it pristine.
+  await write(
+    { displayName: null, email: null, photoUri: null },
+    { origin: 'migration', now: 10 },
+  );
+  await write({ displayName: null }, { now: 11 });
+  await write({ email: 'local@example.com' }, { now: 12 });
+  expect(profileUpdatedAt()).toBe(0);
+
+  await write({ displayName: 'Mehra' }, { now: 13 });
+  expect(profileUpdatedAt()).toBe(13);
+  await write({ displayName: null }, { now: 14 });
+  expect(profileUpdatedAt()).toBe(14);
+  await write({ displayName: null }, { now: 15 });
+  expect(profileUpdatedAt()).toBe(14);
+});

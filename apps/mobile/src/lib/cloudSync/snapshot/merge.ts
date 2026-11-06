@@ -531,17 +531,21 @@ function mergeRelationSet(
   return result.sort(keyComparator(key));
 }
 
-// Without a base, an unset profile field was never authored on that device
-// (e.g. a first join that skipped onboarding), so a set value wins quietly.
-// After a real base, null can be a deliberate clear and merges normally.
+// A profile whose updatedAt is still 0 never had a name or photo written on
+// any device in its history (local writes only stamp updatedAt when a synced
+// field changes). Only such a provably pristine side quietly adopts a set
+// value without a base, e.g. a first join after skipping onboarding. Any other
+// null may be a deliberate clear, so it conflicts as before.
 function profileFieldMerge(
   base: string | null | undefined,
   local: string | null,
   remote: string | null,
+  localPristine: boolean,
+  remotePristine: boolean,
 ): ReturnType<typeof scalarMerge<string | null>> {
-  if (base === undefined && local === null && remote !== null)
+  if (base === undefined && localPristine && local === null && remote !== null)
     return { value: remote, conflicted: false, primary: 'remote' };
-  if (base === undefined && remote === null && local !== null)
+  if (base === undefined && remotePristine && remote === null && local !== null)
     return { value: local, conflicted: false, primary: 'local' };
   return scalarMerge(base, local, remote);
 }
@@ -552,15 +556,21 @@ function mergeProfile(
   remote: SnapshotProfile,
   conflicts: SnapshotConflict[],
 ): SnapshotProfile {
+  const localPristine = local.updatedAt === 0;
+  const remotePristine = remote.updatedAt === 0;
   const displayName = profileFieldMerge(
     base?.displayName,
     local.displayName,
     remote.displayName,
+    localPristine,
+    remotePristine,
   );
   const photo = profileFieldMerge(
     base?.photoAssetId,
     local.photoAssetId,
     remote.photoAssetId,
+    localPristine,
+    remotePristine,
   );
   if (displayName.conflicted)
     conflicts.push(

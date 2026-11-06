@@ -630,7 +630,9 @@ describe('snapshot merge engine', () => {
     ).not.toThrow();
   });
 
-  it('lets a set profile beat an unset one on a first join without conflicts', () => {
+  it('lets a set profile beat a never-edited one on a first join without conflicts', () => {
+    const pristine = blankDomain();
+    pristine.profile.updatedAt = 0;
     const named = blankDomain();
     named.profile = {
       profileId: 'profile',
@@ -655,8 +657,8 @@ describe('snapshot merge engine', () => {
       },
     ];
     for (const [local, remote] of [
-      [blankDomain(), named],
-      [named, blankDomain()],
+      [pristine, named],
+      [named, pristine],
     ]) {
       const merged = mergeSnapshotDomains(null, local, remote);
       expect(merged.profile).toMatchObject({
@@ -681,6 +683,27 @@ describe('snapshot merge engine', () => {
     expect(
       mergeSnapshotDomains(null, base, renamed).conflicts.map((value) => value.field),
     ).toEqual(['displayName']);
+  });
+
+  it('conflicts instead of reverting a profile clear when the base is unavailable', () => {
+    const named = blankDomain();
+    named.profile.displayName = 'Mehra';
+    // A clear stamps updatedAt, so without a base it is not provably pristine.
+    const cleared = blankDomain();
+    cleared.profile.updatedAt = 2;
+    for (const [local, remote] of [
+      [cleared, named],
+      [named, cleared],
+    ]) {
+      const merged = mergeSnapshotDomains(null, local, remote);
+      expect(merged.conflicts.map((value) => value.field)).toEqual(['displayName']);
+      expect(merged.conflicts[0].alternates.map((value) => value.value)).toContain(
+        merged.profile.displayName === null ? 'Mehra' : null,
+      );
+    }
+    expect(mergeSnapshotDomains(null, cleared, named).profile).toEqual(
+      mergeSnapshotDomains(null, named, cleared).profile,
+    );
   });
 
   it('chooses equal-sequence tombstone provenance independently of argument order', () => {

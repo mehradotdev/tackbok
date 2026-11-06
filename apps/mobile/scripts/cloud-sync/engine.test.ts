@@ -1661,6 +1661,87 @@ describe('durable snapshot publisher', () => {
     ).toEqual(new Set(['Local authored', 'Remote authored']));
   });
 
+  test('a never-edited device adopts the remote name on first join without a conflict', async () => {
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    const first = harness('device-a', named, provider);
+    await first.engine().sync();
+    const pristine = blankDomain();
+    pristine.profile.updatedAt = 0;
+    const second = harness('device-b', pristine, provider);
+    await second.engine().sync();
+    await first.engine().sync();
+
+    for (const device of [first, second]) {
+      expect(device.journal.current().profile.displayName).toBe('Mehra');
+      expect(device.journal.current().conflicts).toEqual([]);
+    }
+  });
+
+  test.each(['missing', 'corrupt'])(
+    'a deliberate name clear with a %s base conflicts instead of silently reverting',
+    async (damage) => {
+      const named = blankDomain();
+      named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+      const app = harness('device-a', named);
+      await app.engine().sync();
+      const checkpoint = app.state.loadBaseCheckpoint(app.vaultId, app.deviceId)!;
+      if (damage === 'missing') await app.files.delete(checkpoint.fileName);
+      else app.files.files.set(checkpoint.fileName, new Uint8Array([1]));
+
+      const cleared = structuredClone(app.journal.current());
+      cleared.profile = { ...cleared.profile, displayName: null, updatedAt: 3 };
+      app.journal.mutate(cleared);
+      await app.engine().sync();
+
+      expect(app.journal.current().conflicts.map((value) => value.field)).toEqual([
+        'displayName',
+      ]);
+    },
+  );
+
+  test('a name clear published concurrently with another edit is not silently reverted', async () => {
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    const first = harness('device-a', named, provider);
+    const second = harness('device-b', blankDomain(), provider);
+    await first.engine().sync();
+    await second.engine().sync();
+
+    const cleared = structuredClone(first.journal.current());
+    cleared.profile = { ...cleared.profile, displayName: null, updatedAt: 3 };
+    first.journal.mutate(cleared);
+    second.journal.mutate(withEntry(second.journal.current(), entry('new', 'New entry')));
+    let waiting = 0;
+    let release!: () => void;
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const hooks: SnapshotSyncHooks = {
+      async beforeHeadRecheck() {
+        waiting += 1;
+        if (waiting === 2) release();
+        await barrier;
+      },
+    };
+    await Promise.all([first.engine(hooks).sync(), second.engine(hooks).sync()]);
+    for (let round = 0; round < 3; round += 1) {
+      await first.engine().sync();
+      await second.engine().sync();
+    }
+
+    expect(canonicalize(first.journal.current())).toBe(
+      canonicalize(second.journal.current()),
+    );
+    const profile = first.journal.current().profile;
+    const nameConflicts = first.journal
+      .current()
+      .conflicts.filter((value) => value.field === 'displayName');
+    expect(profile.displayName === null || nameConflicts.length > 0).toBe(true);
+  });
+
   test('an unsupported base-shadow format degrades instead of blocking sync', async () => {
     const app = harness('device-future-shadow');
     const encoded = encodeSnapshot({

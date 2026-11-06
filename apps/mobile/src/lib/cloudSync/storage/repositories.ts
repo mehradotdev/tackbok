@@ -693,8 +693,12 @@ export async function updateProfileInTransaction(
   }
 
   const syncFieldsChanged =
-    (update.displayName !== undefined && update.displayName !== previous?.display_name) ||
+    (update.displayName !== undefined &&
+      update.displayName !== (previous?.display_name ?? null)) ||
     photoAssetId !== (previous?.photo_asset_id ?? null);
+  // updatedAt stays 0 until a synced field is first authored; snapshot merge
+  // relies on that to tell a never-named profile from a deliberate clear.
+  const profileUpdatedAt = syncFieldsChanged ? now : (previous?.updated_at ?? 0);
 
   if (previousAsset && previousAsset.asset_id !== photoAssetId) {
     await retainMediaRow(tx, previousAsset, 'profile:profile', now);
@@ -711,7 +715,7 @@ export async function updateProfileInTransaction(
           : (previous?.display_name ?? null),
       email: update.email !== undefined ? update.email : (previous?.email ?? null),
       photo_asset_id: photoAssetId,
-      updated_at: now,
+      updated_at: profileUpdatedAt,
     })
     .onConflictDoUpdate({
       target: userProfile.profile_id,
@@ -722,7 +726,7 @@ export async function updateProfileInTransaction(
             : (previous?.display_name ?? null),
         email: update.email !== undefined ? update.email : (previous?.email ?? null),
         photo_asset_id: photoAssetId,
-        updated_at: now,
+        updated_at: profileUpdatedAt,
       },
     });
   await markNormalized(tx, 'profile', PROFILE_ENTITY_ID, now);
