@@ -4,4 +4,13 @@
 /** @type {import('expo/fingerprint').Config} */
 module.exports = {
   nativeModuleSourceType: 'files',
+  // Expo's inline modules (app.config.ts experiments.inlineModules) compile into
+  // the native build but are not part of the default fingerprint.
+  extraSources: [
+    {
+      type: 'dir',
+      filePath: 'src/inlineModules',
+      reasons: ['inlineModules'],
+    },
+  ],
 };
