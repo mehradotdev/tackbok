@@ -32,8 +32,7 @@ export const hi = {
   'common.unknownError': 'अज्ञात त्रुटि',
   'common.retry': 'फिर से कोशिश करें',
   'search.searchGratitudeLogs': 'प्रविष्टियाँ खोजें...',
-  'search.startTypingToSearchYourGratitudeLogs':
-    'अपनी प्रविष्टियाँ खोजने के लिए टाइप करें',
+  'search.startTypingToSearchYourGratitudeLogs': 'अपनी प्रविष्टियाँ खोजने के लिए टाइप करें',
   'search.searchFailed': 'खोज विफल रही',
   'search.noResults': 'कोई परिणाम नहीं',
   'gratitude.whatAreYouGratefulForToday': 'आज आप किस के लिए आभारी हैं?',
@@ -49,8 +48,7 @@ export const hi = {
   'dateEntries.loading': 'लोड हो रहा है...',
   'dateEntries.noEntriesForThisDate': 'इस तिथि के लिए कोई प्रविष्टि नहीं',
   'dateEntries.createEntry': 'प्रविष्टि बनाएँ',
-  'dateEntries.somethingWentWrongCreatingNewEntry':
-    'कुछ गलत हो गया। एक नई प्रविष्टि बनाना.',
+  'dateEntries.somethingWentWrongCreatingNewEntry': 'कुछ गलत हो गया। एक नई प्रविष्टि बनाना.',
   'entry.deleteEntry': 'प्रविष्टि हटाएं?',
   'entry.thisEntryWillBePermanentlyDeleted': 'यह प्रविष्टि स्थायी रूप से हटा दी जाएगी.',
   'entry.entryNotFound': 'प्रवेश नहीं मिला',
@@ -112,8 +110,7 @@ export const hi = {
   'entry.editPrompt': 'लेखन संकेत संपादित करें',
   'entry.deletePrompt': 'लेखन संकेत हटाएँ',
   'entry.deletePrompt2': 'लेखन संकेत हटाएँ?',
-  'entry.areYouSureYouWantToDeleteThisPrompt':
-    'क्या आप वाकई इस संकेत को हटाना चाहते हैं?',
+  'entry.areYouSureYouWantToDeleteThisPrompt': 'क्या आप वाकई इस संकेत को हटाना चाहते हैं?',
   'entry.noPromptsYet': 'अभी कोई लेखन संकेत नहीं है',
   'entry.createYourFirstPrompt': 'अपना पहला लेखन संकेत बनाएँ',
   prompt_faith_1: 'ईश्वर की उपस्थिति को महसूस करने की आपकी सबसे पुरानी स्मृति क्या है?',
@@ -123,8 +120,7 @@ export const hi = {
   prompt_faith_5: 'कौन सी साधना या आदत आपको सबसे अधिक शांति देती है?',
   prompt_faith_6:
     'उस समय के बारे में लिखें जब आपको स्पष्ट रूप से एक उच्च शक्ति द्वारा निर्देशित महसूस हुआ।',
-  prompt_faith_7:
-    'वह कौन सी विशिष्ट शिक्षा या उद्धरण है जो आपके दैनिक जीवन को प्रेरित करता है?',
+  prompt_faith_7: 'वह कौन सी विशिष्ट शिक्षा या उद्धरण है जो आपके दैनिक जीवन को प्रेरित करता है?',
   prompt_faith_8: 'व्यस्त सप्ताह के बीच आप आध्यात्मिक संबंध कैसे पाते हैं?',
   prompt_faith_9:
     'उस क्षण पर विचार करें जब आपके विश्वास ने आपको अनिश्चितता के दौरान आराम प्रदान किया था।',
@@ -134,8 +130,7 @@ export const hi = {
   prompt_self_4: 'हाल की कौन सी उपलब्धि है जिसका आपने पर्याप्त जश्न नहीं मनाया है?',
   prompt_self_5: 'अपने व्यक्तित्व के बारे में तीन ऐसी बातें लिखिए जो आपको पसंद हैं।',
   prompt_self_6: 'हाल ही में की गई गलती से आप कैसे आगे बढ़े हैं?',
-  prompt_self_7:
-    'अपनी ऊर्जा की सुरक्षा के लिए आपको कौन सी सीमा निर्धारित करने की आवश्यकता है?',
+  prompt_self_7: 'अपनी ऊर्जा की सुरक्षा के लिए आपको कौन सी सीमा निर्धारित करने की आवश्यकता है?',
   prompt_self_8: 'आप अपने जीवन के किस क्षेत्र में सबसे अधिक प्रामाणिक महसूस करते हैं?',
   prompt_self_9: 'सुबह से रात तक अपने आदर्श दिन का वर्णन करें।',
   prompt_health_1: 'आज आप अपने शरीर के किस अंग के लिए सबसे अधिक आभारी हैं?',
@@ -149,19 +144,15 @@ export const hi = {
   prompt_health_7: 'अपने मानसिक स्वास्थ्य की देखभाल के लिए आप आज क्या कर रहे हैं?',
   prompt_health_8:
     'उस समय के बारे में लिखें जब आपने किसी शारीरिक चुनौती या चोट पर विजय प्राप्त की थी।',
-  prompt_health_9:
-    'अपनी नींद की गुणवत्ता में सुधार के लिए आप कौन सा छोटा सा बदलाव कर सकते हैं?',
+  prompt_health_9: 'अपनी नींद की गुणवत्ता में सुधार के लिए आप कौन सा छोटा सा बदलाव कर सकते हैं?',
   prompt_friends_1: 'हाल ही में किस मित्र ने आपके जीवन को हल्का बना दिया है?',
-  prompt_friends_2:
-    'किसी मित्र के साथ की कौन सी याद आपको आज भी मुस्कुराने पर मजबूर कर देती है?',
+  prompt_friends_2: 'किसी मित्र के साथ की कौन सी याद आपको आज भी मुस्कुराने पर मजबूर कर देती है?',
   prompt_friends_3: 'इस सप्ताह आप किसे प्रोत्साहित करना चाहते हैं?',
   prompt_friends_4: 'आप अपनी निकटतम मित्रता में किस गुण को सबसे अधिक महत्व देते हैं?',
   prompt_friends_5:
     'उस मित्र के बारे में लिखें जिसने आपको चीजों को एक अलग दृष्टिकोण से देखने में मदद की।',
-  prompt_friends_6:
-    'आप अपने दोस्तों के प्रति अपनी सराहना और प्यार कैसे दर्शाना पसंद करते हैं?',
-  prompt_friends_7:
-    'ऐसा कौन मित्र है जिससे आपने काफी समय से बात नहीं की है और आप उनसे क्या कहेंगे?',
+  prompt_friends_6: 'आप अपने दोस्तों के प्रति अपनी सराहना और प्यार कैसे दर्शाना पसंद करते हैं?',
+  prompt_friends_7: 'ऐसा कौन मित्र है जिससे आपने काफी समय से बात नहीं की है और आप उनसे क्या कहेंगे?',
   prompt_friends_8:
     'किसी मित्र के साथ किए गए किसी मज़ेदार या अप्रत्याशित साहसिक कार्य का वर्णन करें।',
   prompt_friends_9: 'आपने अपनी किसी मित्रता से क्या सबक सीखा है?',
@@ -169,14 +160,11 @@ export const hi = {
   prompt_family_2: 'आपके परिवार में किसने आपको कुछ स्थायी सिखाया?',
   prompt_family_3: 'परिवार के साथ कौन सा छोटा सा पल आप याद रखना चाहेंगे?',
   prompt_family_4: 'आपके परिवार के इतिहास की कौन सी कहानी आपको प्रेरणादायक लगती है?',
-  prompt_family_5:
-    'समय के साथ परिवार के किसी सदस्य के साथ आपका रिश्ता कैसे विकसित हुआ है?',
-  prompt_family_6:
-    'किसी ऐसे कौशल या नुस्खे के बारे में लिखें जो आपके परिवार में चला आ रहा है।',
+  prompt_family_5: 'समय के साथ परिवार के किसी सदस्य के साथ आपका रिश्ता कैसे विकसित हुआ है?',
+  prompt_family_6: 'किसी ऐसे कौशल या नुस्खे के बारे में लिखें जो आपके परिवार में चला आ रहा है।',
   prompt_family_7:
     'आपके माता-पिता या भाई-बहन के साथ आपके व्यक्तित्व का कौन सा विशिष्ट गुण साझा होता है?',
-  prompt_family_8:
-    'बचपन की किसी स्मृति का वर्णन करें जो आज भी आपको अत्यधिक आनंदित करती है।',
+  prompt_family_8: 'बचपन की किसी स्मृति का वर्णन करें जो आज भी आपको अत्यधिक आनंदित करती है।',
   prompt_family_9: 'कठिन समय में आपका परिवार एक-दूसरे का समर्थन कैसे करता है?',
   prompt_littleThings_1: 'किस बात ने तुम्हारे ओठों पर आज मुस्कान ला दी है?',
   prompt_littleThings_2: 'आज किस छोटे से क्षण ने आपको रुकने पर मजबूर कर दिया?',
@@ -184,13 +172,11 @@ export const hi = {
   prompt_littleThings_4:
     'अपने आस-पास के एक छोटे, रोजमर्रा के विवरण का वर्णन करें जो आपको सुंदर लगता है।',
   prompt_littleThings_5: 'जब आप सुबह उठते हैं तो आपकी पसंदीदा ध्वनि कौन सी है?',
-  prompt_littleThings_6:
-    'उस साधारण आनंद के बारे में लिखें जिसका आप हर दिन इंतजार करते हैं।',
+  prompt_littleThings_6: 'उस साधारण आनंद के बारे में लिखें जिसका आप हर दिन इंतजार करते हैं।',
   prompt_littleThings_7: 'आज आपकी सुबह की दिनचर्या का सबसे अच्छा हिस्सा क्या था?',
   prompt_littleThings_8:
     'किसी अजनबी के साथ हुई संक्षिप्त मुलाकात का वर्णन करें जिससे आपको खुशी मिली।',
-  prompt_littleThings_9:
-    'वह कौन सी सस्ती वस्तु है जो आपके जीवन में बहुत अधिक मूल्य लाती है?',
+  prompt_littleThings_9: 'वह कौन सी सस्ती वस्तु है जो आपके जीवन में बहुत अधिक मूल्य लाती है?',
   'worksheet.whatIAmGratefulForToday': 'मैं आज किस बात के लिए आभारी हूं...',
   'worksheet.myAffirmationForToday': 'आज के लिए मेरी पुष्टि...',
   'worksheet.oneLittleThingThatMadeMeSmileRecently':
@@ -224,8 +210,7 @@ export const hi = {
   'tags.createNewTag': 'टैग बनाएं',
   'tags.editTag': 'टैग संपादित करें',
   'tags.deleteTag': 'टैग हटाएँ',
-  'tags.areYouSureYouWantToDeleteTheTagTitle':
-    'क्या आप वाकई "{title}" टैग हटाना चाहते हैं?',
+  'tags.areYouSureYouWantToDeleteTheTagTitle': 'क्या आप वाकई "{title}" टैग हटाना चाहते हैं?',
   'milestone.daysOfGratitude': 'कृतज्ञता के दिन',
   'profile.yourName': 'आपका नाम',
   'profile.changePhoto': 'छवि बदलो',
@@ -265,12 +250,10 @@ export const hi = {
   'appearance.dateStyle': 'दिनांक शैली',
   'appearance.dateIncludesDayOfTheWeek': 'दिनांक में सप्ताह का दिन शामिल है',
   'appearance.firstDayOfWeek': 'सप्ताह का पहला दिन',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar':
-    'कैलेंडर दृश्य में सप्ताह का पहला दिन सेट करें',
+  'appearance.setTheFirstDayOfTheWeekInTheCalendar': 'कैलेंडर दृश्य में सप्ताह का पहला दिन सेट करें',
   'typography.typography': 'टाइपोग्राफी',
   'typography.titleFont': 'टाइटल फ़ॉन्ट',
-  'typography.chooseAFontForTitlesAndHeadings':
-    'शीर्षकों और शीर्षकों के लिए एक फ़ॉन्ट चुनें',
+  'typography.chooseAFontForTitlesAndHeadings': 'शीर्षकों और शीर्षकों के लिए एक फ़ॉन्ट चुनें',
   'typography.default': 'डिफ़ॉल्ट',
   'typography.themeDefault': 'थीम डिफ़ॉल्ट',
   'typography.fontSize': 'फ़ॉन्ट आकार',
@@ -286,8 +269,7 @@ export const hi = {
   'journaling.startWriting': 'लिखना शुरू करें',
   'journaling.journalFocusAreas': 'डायरी के फोकस क्षेत्र',
   'journaling.personalizeYourJournalPrompts': 'अपने डायरी संकेतों को वैयक्तिकृत करें।',
-  'journaling.pickTheTopicsYouWantToWriteAbout':
-    'वे विषय चुनें जिनके बारे में आप लिखना चाहते हैं।',
+  'journaling.pickTheTopicsYouWantToWriteAbout': 'वे विषय चुनें जिनके बारे में आप लिखना चाहते हैं।',
   'journaling.selectAtLeast2FocusAreas': 'कम से कम 2 फोकस क्षेत्र चुनें',
   'journaling.journalPrompts': 'डायरी के संकेत',
   'journaling.chooseWhichPromptsToShowWhenStartingANewJournal':
@@ -300,8 +282,7 @@ export const hi = {
     'अपने शौक, रुचियों, अनुभवों और सामान्य रूप से जीवन पर विचार करें।',
   'journaling.focusareaLittlethingsDesc':
     'रोजमर्रा की जिंदगी के छोटे, अक्सर नजरअंदाज किए गए आशीर्वादों को संजोएं।',
-  'journaling.focusareaHealthDesc':
-    'अपने शरीर की अनेक खूबियों और उसकी क्षमताओं की सराहना करें।',
+  'journaling.focusareaHealthDesc': 'अपने शरीर की अनेक खूबियों और उसकी क्षमताओं की सराहना करें।',
   'journaling.focusareaFamilyDesc':
     'अपने परिवार के सदस्यों और उनके साथ साझा किए गए पलों की सराहना करें।',
   'journaling.focusareaFriendsDesc':
@@ -332,15 +313,13 @@ export const hi = {
   'backup.restoreYourDataFromAZipFile': '.zip फ़ाइल से अपना डेटा पुनर्स्थापित करें',
   'backup.importFromGratitudeApp': 'Gratitude ऐप से आयात करें',
   'backup.importingFromGratitudeApp': 'Gratitude ऐप से आयात किया जा रहा है',
-  'backup.importDataFromAGratitudeAppZipBackup':
-    'Gratitude ऐप .zip बैकअप से डेटा आयात करें',
+  'backup.importDataFromAGratitudeAppZipBackup': 'Gratitude ऐप .zip बैकअप से डेटा आयात करें',
   'backup.chooseImportMode': 'आयात मोड चुनें',
   'backup.howShouldThisImportHandleEntriesThatAlreadyExistIn':
     'इस आयात को ताकबूक में पहले से मौजूद प्रविष्टियों को कैसे संभालना चाहिए?',
   'backup.skipExistingEntries': 'मौजूदा प्रविष्टियाँ छोड़ें',
   'backup.skipExistingEntriesRecommended': 'मौजूदा प्रविष्टियाँ छोड़ें (अनुशंसित)',
-  'backup.onlyImportEntriesWithNewNoteIds':
-    'केवल नई नोट आईडी वाली प्रविष्टियाँ आयात करें',
+  'backup.onlyImportEntriesWithNewNoteIds': 'केवल नई नोट आईडी वाली प्रविष्टियाँ आयात करें',
   'backup.overwriteMatchingEntries': 'मेल खाती प्रविष्टियों को अधिलेखित करें',
   'backup.replaceExistingEntriesWhenNoteIdsMatch':
     'नोट आईडी मेल खाने पर मौजूदा प्रविष्टियाँ बदलें',
@@ -371,8 +350,7 @@ export const hi = {
     'प्रविष्टियाँ पुनर्स्थापित करने से पहले टैग और संकेत जोड़ना।',
   'backup.processingProcessedOfTotalJournalEntriesAndAttachedMedia':
     '{total} डायरी प्रविष्टियों और संलग्न मीडिया में से {processed} को संसाधित किया जा रहा है।',
-  'backup.noJournalEntriesFoundInThisBackup':
-    'इस बैकअप में कोई डायरी प्रविष्टियाँ नहीं मिलीं।',
+  'backup.noJournalEntriesFoundInThisBackup': 'इस बैकअप में कोई डायरी प्रविष्टियाँ नहीं मिलीं।',
   'backup.refreshingYourJournalSoImportedDataAppearsEverywhere':
     'अपनी डायरी को ताज़ा किया जा रहा है ताकि आयातित डेटा हर जगह दिखाई दे।',
   'backup.entriesProcessed': 'प्रविष्टियाँ संसाधित',
@@ -420,8 +398,7 @@ export const hi = {
   'appInfo.waysToSupport': 'समर्थन करने के तरीके',
   'appInfo.free': 'मुक्त',
   'appInfo.smallThanks': 'छोटा सा धन्यवाद',
-  'appInfo.helpsMeFinishWork10MinutesEarlier':
-    'मुझे 10 मिनट पहले काम ख़त्म करने में मदद करता है',
+  'appInfo.helpsMeFinishWork10MinutesEarlier': 'मुझे 10 मिनट पहले काम ख़त्म करने में मदद करता है',
   'appInfo.heartfeltThanks': 'दिल से धन्यवाद',
   'appInfo.helpsPayForHostingAndOnlineServices':
     'होस्टिंग और ऑनलाइन सेवाओं के लिए भुगतान करने में सहायता करता है',
@@ -486,8 +463,7 @@ export const hi = {
   'dangerZone.dangerZone': 'खतरा क्षेत्र',
   'dangerZone.deleteAllData': 'सारा डेटा हटा दें',
   'dangerZone.deleteAllData2': 'सारा डेटा मिटा दें?',
-  'dangerZone.permanentlyDeleteAllYourAppData':
-    'अपने सभी ऐप डेटा को स्थायी रूप से हटा दें',
+  'dangerZone.permanentlyDeleteAllYourAppData': 'अपने सभी ऐप डेटा को स्थायी रूप से हटा दें',
   'dangerZone.thisActionCannotBeUndoneAllYourAppDataWill':
     'इस एक्शन को वापस नहीं किया जा सकता। आपका सारा ऐप डेटा स्थायी रूप से हटा दिया जाएगा।',
   'dangerZone.allDataDeleted': 'सारा डेटा मिटा दिया गया',
@@ -546,8 +522,7 @@ export const hi = {
   'onboarding.next': 'अगला',
   'onboarding.stepCurrentOfTotal': '{total} का चरण {current}',
   'onboarding.getStarted': 'शुरू हो जाओ',
-  'onboarding.alreadyHaveAJournalImportIt':
-    'क्या आपके पास पहले से डायरी है? इसे आयात करें',
+  'onboarding.alreadyHaveAJournalImportIt': 'क्या आपके पास पहले से डायरी है? इसे आयात करें',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'आपकी कृतज्ञता के लिए एक निजी स्थान. मुफ़्त, ऑफ़लाइन, आपका।',
   'onboarding.importYourJournal': 'अपनी डायरी आयात करें',
@@ -627,8 +602,7 @@ export const hi = {
   sample_entry_welcome_body:
     'यह आपकी कृतज्ञता डायरी है, अच्छे क्षणों का स्थान है। एक पंक्ति या पूरा पृष्ठ लिखने के लिए, दिन में एक बार या जब भी आप चाहें, + बटन पर टैप करें। पूरी प्रविष्टि देखने के लिए इस कार्ड को टैप करें।',
   sample_entry_photos_title: 'छोटे-छोटे क्षण',
-  sample_entry_photos_body:
-    'आप फ़ोटो को मेमोरी में संलग्न कर सकते हैं. ज़ूम करने के लिए एक पर टैप करें.',
+  sample_entry_photos_body: 'आप फ़ोटो को मेमोरी में संलग्न कर सकते हैं. ज़ूम करने के लिए एक पर टैप करें.',
   sample_entry_voice_title: 'मेरे अपने शब्दों में',
   sample_entry_voice_body:
     'कभी-कभी इसे ज़ोर से कहना आसान होता है। एक संक्षिप्त वॉयस नोट सुनने के लिए प्ले पर टैप करें।',
@@ -700,8 +674,7 @@ export const hi = {
     'अपने जर्नल का बैकअप लें और उसे अपने Google Drive के साथ सिंक करें। कोई ताकबूक खाता नहीं बनाया गया है.',
   'cloud.backupFromDate': '{date} से बैकअप',
   'cloud.beforeYouConnect': 'इससे पहले कि आप कनेक्ट करें',
-  'cloud.checkingGoogleDriveForChanges':
-    'परिवर्तनों के लिए Google Drive की जाँच की जा रही है',
+  'cloud.checkingGoogleDriveForChanges': 'परिवर्तनों के लिए Google Drive की जाँच की जा रही है',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
     'इस डायरी के साथ विलय करने के लिए एक बैकअप चुनें। दोनों पक्ष सुरक्षित हैं।',
   'cloud.chooseABackupToRestoreOnThisDevice':
@@ -751,12 +724,9 @@ export const hi = {
     'Google Drive तक नहीं पहुंचा जा सका. आपके परिवर्तन सुरक्षित रूप से कतारबद्ध रहते हैं।',
   'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
     'फ़ोटो और वॉयस नोट्स वाई-फ़ाई की प्रतीक्षा कर रहे हैं। आपके परिवर्तन सुरक्षित रूप से कतारबद्ध रहते हैं।',
-  'cloud.googleDriveDisconnectedOnThisDevice':
-    'इस डिवाइस पर Google Drive डिस्कनेक्ट हो गया',
-  'cloud.googleDriveIsBusyTryAgainShortly':
-    'Google Drive व्यस्त है. शीघ्र ही पुनः प्रयास करें.',
-  'cloud.googleDriveNeedsToBeReconnected':
-    'Google Drive को पुनः कनेक्ट करने की आवश्यकता है।',
+  'cloud.googleDriveDisconnectedOnThisDevice': 'इस डिवाइस पर Google Drive डिस्कनेक्ट हो गया',
+  'cloud.googleDriveIsBusyTryAgainShortly': 'Google Drive व्यस्त है. शीघ्र ही पुनः प्रयास करें.',
+  'cloud.googleDriveNeedsToBeReconnected': 'Google Drive को पुनः कनेक्ट करने की आवश्यकता है।',
   'cloud.googleDriveReconnected': 'Google Drive पुनः कनेक्ट हुआ',
   'cloud.googleDriveStorageIsFull': 'Google Drive स्टोरेज भर गया है.',
   'cloud.googleDriveStatus': 'Google Drive - {status}',
@@ -900,8 +870,7 @@ export const hi = {
   'cloud.locateOrRetryAttachment': 'अनुलग्नक का पता लगाएं या पुनः प्रयास करें',
   'cloud.retryJournalPreparation': 'डायरी तैयारी का पुनः प्रयास करें',
   'cloud.acknowledgeAndDisconnect': 'स्वीकार करें और डिस्कनेक्ट करें',
-  'cloud.reviewDeletionAndEraseThisDevice':
-    'इस डिवाइस को हटाने और मिटाने की समीक्षा करें',
+  'cloud.reviewDeletionAndEraseThisDevice': 'इस डिवाइस को हटाने और मिटाने की समीक्षा करें',
   'cloud.resumeDeletion': 'हटाना फिर से शुरू करें',
   'cloud.cloudDeletionCompleted': 'क्लाउड डेटा हटाना पूरा हुआ',
   'cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd':

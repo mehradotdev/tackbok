@@ -9,7 +9,7 @@ export function decodeUtf8Strict(bytes: Uint8Array): string {
       units.length = 0;
     }
   };
-  for (let index = 0; index < bytes.length; ) {
+  for (let index = 0; index < bytes.length;) {
     const first = bytes[index++];
     let codePoint: number;
     let remaining: number;

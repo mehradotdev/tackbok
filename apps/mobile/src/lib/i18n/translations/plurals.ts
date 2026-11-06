@@ -72,10 +72,8 @@ export const pluralMessages = {
     'appearance.countThemesAndColorSchemes_other': '{count} थीम और रंग योजनाएँ',
     'entry.maximumCountPhotosPerEntry_one': 'हर प्रविष्टि में अधिकतम {count} फ़ोटो',
     'entry.maximumCountPhotosPerEntry_other': 'हर प्रविष्टि में अधिकतम {count} फ़ोटो',
-    'entry.maximumCountVoiceMemosPerEntry_one':
-      'हर प्रविष्टि में अधिकतम {count} वॉइस नोट',
-    'entry.maximumCountVoiceMemosPerEntry_other':
-      'हर प्रविष्टि में अधिकतम {count} वॉइस नोट',
+    'entry.maximumCountVoiceMemosPerEntry_one': 'हर प्रविष्टि में अधिकतम {count} वॉइस नोट',
+    'entry.maximumCountVoiceMemosPerEntry_other': 'हर प्रविष्टि में अधिकतम {count} वॉइस नोट',
     'insights.countYearsAgoToday_one': 'आज से {count} वर्ष पहले',
     'insights.countYearsAgoToday_other': 'आज से {count} वर्ष पहले',
     'milestone.daysOfGratitude_one': 'कृतज्ञता का {count} दिन',
@@ -84,10 +82,8 @@ export const pluralMessages = {
     'sharing.countDaysOfGratitude_other': 'कृतज्ञता के {count} दिन!',
     'sharing.openCountDayAchievement_one': 'उपलब्धि देखें: {count} दिन',
     'sharing.openCountDayAchievement_other': 'उपलब्धि देखें: {count} दिन',
-    'cloud.countChangesSafelyQueued_one':
-      '{count} बदलाव सहेजा गया, सिंक होने की प्रतीक्षा में',
-    'cloud.countChangesSafelyQueued_other':
-      '{count} बदलाव सहेजे गए, सिंक होने की प्रतीक्षा में',
+    'cloud.countChangesSafelyQueued_one': '{count} बदलाव सहेजा गया, सिंक होने की प्रतीक्षा में',
+    'cloud.countChangesSafelyQueued_other': '{count} बदलाव सहेजे गए, सिंक होने की प्रतीक्षा में',
     'cloud.countChangesRemaining_one': '{count} बदलाव बाकी है',
     'cloud.countChangesRemaining_other': '{count} बदलाव बाकी हैं',
     'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
@@ -200,8 +196,7 @@ export const pluralMessages = {
     'entry.maximumCountPhotosPerEntry_other': 'الحد الأقصى لكل سجل: {count} صورة',
     'entry.maximumCountVoiceMemosPerEntry_zero':
       'الحد الأقصى لكل سجل: {count} ملاحظة صوتية',
-    'entry.maximumCountVoiceMemosPerEntry_one':
-      'الحد الأقصى لكل سجل: {count} ملاحظة صوتية',
+    'entry.maximumCountVoiceMemosPerEntry_one': 'الحد الأقصى لكل سجل: {count} ملاحظة صوتية',
     'entry.maximumCountVoiceMemosPerEntry_two': 'الحد الأقصى لكل سجل: ملاحظتان صوتيتان',
     'entry.maximumCountVoiceMemosPerEntry_few':
       'الحد الأقصى لكل سجل: {count} ملاحظات صوتية',

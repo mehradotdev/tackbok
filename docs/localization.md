@@ -54,13 +54,13 @@ GitHub, and other third-party names recognizable.
 
 ## Glossary
 
-| Meaning                     | English    | German        | Arabic        | Hebrew      | Hindi      | Spanish       | Swedish        | Simplified Chinese | Traditional Chinese |
-| --------------------------- | ---------- | ------------- | ------------- | ----------- | ---------- | ------------- | -------------- | ------------------ | ------------------- |
+| Meaning                     | English    | German        | Arabic        | Hebrew      | Hindi    | Spanish       | Swedish        | Simplified Chinese | Traditional Chinese |
+| --------------------------- | ---------- | ------------- | ------------- | ----------- | -------- | ------------- | -------------- | ------------------ | ------------------- |
 | Individual journal record   | entry      | Eintrag       | سجل           | רשומה       | प्रविष्टि  | entrada       | anteckning     | 条目               | 紀錄                |
-| Collection of entries       | journal    | Tagebuch      | دفتر اليوميات | יומן        | डायरी      | diario        | dagbok         | 日记               | 日記                |
-| Audio attachment            | voice note | Sprachnotiz   | ملاحظة صوتية  | הקלטה קולית | वॉइस नोट   | nota de voz   | röstanteckning | 语音笔记           | 語音筆記            |
-| Writing question/suggestion | prompt     | Schreibimpuls | سؤال          | הנחיה       | लेखन संकेत | pregunta guía | skrivfråga     | 提示               | 提示                |
-| Organizing label            | tag        | Tag           | وسم           | תגית        | टैग        | etiqueta      | etikett        | 标签               | 標籤                |
+| Collection of entries       | journal    | Tagebuch      | دفتر اليوميات | יומן        | डायरी    | diario        | dagbok         | 日记               | 日記                |
+| Audio attachment            | voice note | Sprachnotiz   | ملاحظة صوتية   | הקלטה קולית | वॉइस नोट | nota de voz   | röstanteckning | 语音笔记           | 語音筆記            |
+| Writing question/suggestion | prompt     | Schreibimpuls | سؤال          | הנחיה       | लेखन संकेत  | pregunta guía | skrivfråga     | 提示               | 提示                |
+| Organizing label            | tag        | Tag           | وسم           | תגית        | टैग       | etiqueta      | etikett        | 标签               | 標籤                |
 
 Inflect terms naturally; consistency does not mean pasting the same grammatical
 form into every sentence. Existing stored user content, example entries, and

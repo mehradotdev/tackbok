@@ -54,15 +54,13 @@ const socialImageUrl = new URL(socialImage.src, Astro.site).href;
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image:alt" content="Tackbok, a private gratitude journal" />
 
-    {
-      structuredData && (
-        <script
-          is:inline
-          type="application/ld+json"
-          set:html={JSON.stringify(structuredData)}
-        />
-      )
-    }
+    {structuredData && (
+      <script
+        is:inline
+        type="application/ld+json"
+        set:html={JSON.stringify(structuredData)}
+      />
+    )}
   </head>
   <body>
     <slot />
