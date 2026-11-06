@@ -187,17 +187,18 @@ test('cancellation during local hydration records no pause or success but refres
   }
 });
 
-test('a cancelled pass that applied nothing does not refresh screens', async () => {
+test('a pass cancelled inside the sync engine still refreshes screens', async () => {
   const caller = new AbortController();
-  const app = harness('vault-hydrate-nothing', {
-    engineSync: async () => ({ status: 'up-to-date', actionableChanges: 0 }),
-    hydrate: async () => {
+  const app = harness('vault-engine-cancelled', {
+    engineSync: async () => {
+      // The engine may commit a remote apply before reaching a cancelled kill point.
       caller.abort();
-      return { hydrated: 0, missing: 0 };
+      throw new SyncCancelledError();
     },
   });
   await expect(app.runtime.sync(caller.signal)).rejects.toBeInstanceOf(
     SyncCancelledError,
   );
-  expect(app.remoteApplied).not.toHaveBeenCalled();
+  expect(app.setPause).not.toHaveBeenCalled();
+  expect(app.remoteApplied).toHaveBeenCalledTimes(1);
 });
