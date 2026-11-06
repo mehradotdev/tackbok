@@ -1856,6 +1856,7 @@ describe('durable snapshot publisher', () => {
     const pristine = blankDomain();
     pristine.profile.updatedAt = 0;
     const second = harness('device-b', pristine, provider);
+    second.journal.localProfilePristine = true;
     await second.engine().sync();
     await first.engine().sync();
 
@@ -1863,6 +1864,26 @@ describe('durable snapshot publisher', () => {
       expect(device.journal.current().profile.displayName).toBe('Mehra');
       expect(device.journal.current().conflicts).toEqual([]);
     }
+    // Receiving the remote profile ends local provenance.
+    expect(second.journal.localProfilePristine).toBe(false);
+  });
+
+  test('identical empty profile data without local provenance conflicts on first join', async () => {
+    // An older client's deliberate clear, restored at updatedAt 0, looks
+    // exactly like a fresh profile; only local provenance may adopt quietly.
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    const first = harness('device-a', named, provider);
+    await first.engine().sync();
+    const restoredClear = blankDomain();
+    restoredClear.profile.updatedAt = 0;
+    const second = harness('device-b', restoredClear, provider);
+    await second.engine().sync();
+
+    expect(second.journal.current().conflicts.map((value) => value.field)).toEqual([
+      'displayName',
+    ]);
   });
 
   test.each(['missing', 'corrupt'])(

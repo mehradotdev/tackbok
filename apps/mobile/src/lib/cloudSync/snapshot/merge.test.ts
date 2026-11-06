@@ -630,9 +630,9 @@ describe('snapshot merge engine', () => {
     ).not.toThrow();
   });
 
-  it('lets a set profile beat a never-edited one on a first join without conflicts', () => {
-    const pristine = blankDomain();
-    pristine.profile.updatedAt = 0;
+  it('lets only a locally pristine profile adopt a set one on a first join', () => {
+    const empty = blankDomain();
+    empty.profile.updatedAt = 0;
     const named = blankDomain();
     named.profile = {
       profileId: 'profile',
@@ -656,18 +656,36 @@ describe('snapshot merge engine', () => {
         updatedAt: 1,
       },
     ];
+    const adopted = mergeSnapshotDomains(null, empty, named, {
+      localProfilePristine: true,
+    });
+    expect(adopted.profile).toMatchObject({
+      displayName: 'Mehra',
+      photoAssetId: 'profile-photo',
+    });
+    expect(adopted.media).toEqual(named.media);
+    expect(adopted.conflicts).toEqual([]);
+
+    // The same empty, unstamped values without local provenance may be a
+    // deliberate clear (older clients stamped clears with a 0 clock), and a
+    // remote side is never pristine.
     for (const [local, remote] of [
-      [pristine, named],
-      [named, pristine],
+      [empty, named],
+      [named, empty],
     ]) {
-      const merged = mergeSnapshotDomains(null, local, remote);
-      expect(merged.profile).toMatchObject({
-        displayName: 'Mehra',
-        photoAssetId: 'profile-photo',
-      });
-      expect(merged.media).toEqual(named.media);
-      expect(merged.conflicts).toEqual([]);
+      expect(
+        mergeSnapshotDomains(null, local, remote)
+          .conflicts.map((value) => value.field)
+          .sort(),
+      ).toEqual(['displayName', 'photoAssetId']);
     }
+    expect(
+      mergeSnapshotDomains(null, named, empty, {
+        localProfilePristine: true,
+      })
+        .conflicts.map((value) => value.field)
+        .sort(),
+    ).toEqual(['displayName', 'photoAssetId']);
   });
 
   it('does not treat a populated profile stamped at updatedAt 0 as pristine', () => {
@@ -710,7 +728,7 @@ describe('snapshot merge engine', () => {
   it('conflicts instead of reverting a profile clear when the base is unavailable', () => {
     const named = blankDomain();
     named.profile.displayName = 'Mehra';
-    // A clear stamps updatedAt, so without a base it is not provably pristine.
+    // Without local provenance, an unset field may be a deliberate clear.
     const cleared = blankDomain();
     cleared.profile.updatedAt = 2;
     for (const [local, remote] of [

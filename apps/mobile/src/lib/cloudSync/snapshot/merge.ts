@@ -531,32 +531,19 @@ function mergeRelationSet(
   return result.sort(keyComparator(key));
 }
 
-// A pristine profile is completely empty and was never stamped: no name, no
-// photo, and updatedAt 0 (local writes only stamp updatedAt when a synced field
-// changes). Only such a side quietly adopts a set value without a base, e.g. a
-// first join after skipping onboarding. The timestamp alone is not enough:
-// older clients and backups restored from them can carry authored values at
-// updatedAt 0. Any other null may be a deliberate clear, so it conflicts as
-// before.
-function isPristineProfile(profile: SnapshotProfile): boolean {
-  return (
-    profile.updatedAt === 0 &&
-    profile.displayName === null &&
-    profile.photoAssetId === null
-  );
-}
-
+// Without a base, an unset field normally conflicts with a set one: the null
+// may be a deliberate clear. Only this device's own local provenance can prove
+// a field was never authored (e.g. a first join after skipping onboarding), so
+// only the local side may quietly adopt. Synced data cannot prove it: identical
+// snapshot values can be a deliberate clear made by another or older client.
 function profileFieldMerge(
   base: string | null | undefined,
   local: string | null,
   remote: string | null,
   localPristine: boolean,
-  remotePristine: boolean,
 ): ReturnType<typeof scalarMerge<string | null>> {
   if (base === undefined && localPristine && local === null && remote !== null)
     return { value: remote, conflicted: false, primary: 'remote' };
-  if (base === undefined && remotePristine && remote === null && local !== null)
-    return { value: local, conflicted: false, primary: 'local' };
   return scalarMerge(base, local, remote);
 }
 
@@ -564,23 +551,20 @@ function mergeProfile(
   base: SnapshotProfile | undefined,
   local: SnapshotProfile,
   remote: SnapshotProfile,
+  localPristine: boolean,
   conflicts: SnapshotConflict[],
 ): SnapshotProfile {
-  const localPristine = isPristineProfile(local);
-  const remotePristine = isPristineProfile(remote);
   const displayName = profileFieldMerge(
     base?.displayName,
     local.displayName,
     remote.displayName,
     localPristine,
-    remotePristine,
   );
   const photo = profileFieldMerge(
     base?.photoAssetId,
     local.photoAssetId,
     remote.photoAssetId,
     localPristine,
-    remotePristine,
   );
   if (displayName.conflicted)
     conflicts.push(
@@ -753,10 +737,16 @@ function mergeConflictSet(
   return result;
 }
 
+export interface SnapshotMergeOptions {
+  /** Local provenance from the journal capture; see `profileFieldMerge`. */
+  localProfilePristine?: boolean;
+}
+
 export function mergeSnapshotDomains(
   base: SnapshotDomain | null,
   local: SnapshotDomain,
   remote: SnapshotDomain,
+  options: SnapshotMergeOptions = {},
 ): SnapshotDomain {
   const newConflicts: SnapshotConflict[] = [];
   const entries = mergeEntityCollection<SnapshotEntry>(
@@ -787,6 +777,7 @@ export function mergeSnapshotDomains(
     base?.profile,
     local.profile,
     remote.profile,
+    options.localProfilePristine ?? false,
     newConflicts,
   );
   let entryTags = mergeRelationSet(

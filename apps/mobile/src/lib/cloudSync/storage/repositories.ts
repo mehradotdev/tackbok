@@ -10,6 +10,7 @@ import {
   entries,
   entryTags,
   mediaAssets,
+  profilePristineMarker,
   runExclusiveDbTransaction,
   syncMediaObligations,
   syncRetainedMedia,
@@ -610,6 +611,26 @@ export async function deletePromptInTransaction(
   }
 }
 
+/**
+ * Whether this device's profile was provably never authored, imported,
+ * backfilled, or received from the cloud. This is local provenance, not
+ * derived from synced data: identical snapshot values can also be a
+ * deliberate clear made elsewhere.
+ */
+export async function isLocalProfilePristine(tx: CloudSyncTransaction): Promise<boolean> {
+  const [marker] = await tx
+    .select()
+    .from(profilePristineMarker)
+    .where(eq(profilePristineMarker.profile_id, PROFILE_ROW_ID))
+    .limit(1);
+  return marker !== undefined;
+}
+
+/** Records that this device's profile now has authored or received content. */
+export async function markLocalProfileTouched(tx: CloudSyncTransaction): Promise<void> {
+  await tx.delete(profilePristineMarker);
+}
+
 export interface ProfileUpdate {
   displayName?: string | null;
   email?: string | null;
@@ -696,10 +717,8 @@ export async function updateProfileInTransaction(
     (update.displayName !== undefined &&
       update.displayName !== (previous?.display_name ?? null)) ||
     photoAssetId !== (previous?.photo_asset_id ?? null);
-  // updatedAt stays 0 until a synced field is first authored; snapshot merge
-  // relies on that to tell a never-named profile from a deliberate clear, so
-  // an authored change is always positive and moves forward, even if the
-  // clock reads 0 or went backwards.
+  // An authored change is always positive and moves forward, even if the
+  // clock reads 0 or went backwards, so merged profiles keep a sane stamp.
   const previousUpdatedAt = previous?.updated_at ?? 0;
   const profileUpdatedAt = syncFieldsChanged
     ? Math.max(1, now, previousUpdatedAt + 1)
@@ -735,6 +754,7 @@ export async function updateProfileInTransaction(
       },
     });
   await markNormalized(tx, 'profile', PROFILE_ENTITY_ID, now);
+  if (syncFieldsChanged) await markLocalProfileTouched(tx);
   if (
     syncFieldsChanged &&
     context.origin !== 'remote' &&

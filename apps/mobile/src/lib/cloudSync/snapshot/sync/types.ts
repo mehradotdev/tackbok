@@ -192,6 +192,11 @@ export interface MediaDownloadSink {
 export interface CapturedJournal {
   domain: SnapshotDomain;
   generation: number;
+  /**
+   * Local provenance, never synced: this device's profile was never authored,
+   * imported, backfilled, or received from the cloud.
+   */
+  localProfilePristine: boolean;
 }
 
 /**
