@@ -58,8 +58,9 @@ interface AncestorBudget {
 
 /**
  * A valid snapshot is one gzip member, so its last four bytes state the
- * uncompressed size. Decoding rejects a wrong value, so it is safe to charge
- * before the expensive decode.
+ * uncompressed size. Damaged bytes can state any size, so this only skips an
+ * honest snapshot that cannot fit before decoding it; the decoder itself
+ * enforces the remaining allowance, and a successful decode verifies it.
  */
 function statedUncompressedBytes(bytes: Uint8Array): number {
   if (bytes.length < 4) return 0;
@@ -374,7 +375,8 @@ export class SnapshotSyncEngine {
           // Reserve a maximum-size transfer: its size is unknown until it ends.
           if (
             budget.downloads <= 0 ||
-            budget.compressedBytes < SNAPSHOT_CAPS.compressedBytes
+            budget.compressedBytes < SNAPSHOT_CAPS.compressedBytes ||
+            budget.decodedBytes <= 0
           ) {
             continue;
           }
@@ -400,8 +402,11 @@ export class SnapshotSyncEngine {
           const decodedBytes = statedUncompressedBytes(bytes);
           if (decodedBytes > budget.decodedBytes) continue;
           try {
-            payload = decodeSnapshot(bytes, snapshotId).payload;
+            payload = decodeSnapshot(bytes, snapshotId, budget.decodedBytes).payload;
           } catch {
+            // The output a failed decode inflated is unknown, up to the whole
+            // allowance: charge all of it rather than trust the stated size.
+            budget.decodedBytes = 0;
             continue;
           }
           budget.decodedBytes -= decodedBytes;

@@ -2430,6 +2430,96 @@ describe('merging concurrent branches against their common ancestor', () => {
     expect(ancestorDownloads.length).toBeLessThanOrEqual(2);
   });
 
+  test('re-planning within one pass cannot reset the ancestor budget', async () => {
+    const { devices, provider } = await converged(
+      2,
+      withEntry(blankDomain(), entry('e1', 'one')),
+    );
+    const [a, b] = devices;
+    const ancestor = provider.physicalHeads(a.vaultId)[0].head.snapshotId;
+    edit(a, 'e1', 'A');
+    edit(b, 'e2', 'B');
+    await syncConcurrently([a, b]);
+    const download = provider.downloadSnapshot.bind(provider);
+    let ancestorDownloads = 0;
+    provider.downloadSnapshot = async (vaultId, snapshotId) => {
+      if (snapshotId !== ancestor) return download(vaultId, snapshotId);
+      // A failed transfer is not cached, so every plan would request it again.
+      ancestorDownloads += 1;
+      throw new SnapshotProviderError('invalid-data', 'checksum mismatch');
+    };
+
+    let advanced = 0;
+    const result = await a
+      .engine({
+        async at(point) {
+          if (point !== 'after-candidate-persisted') return;
+          const { head } = provider
+            .physicalHeads(a.vaultId)
+            .find((value) => value.head.deviceId === b.deviceId)!;
+          const previous = decodeSnapshot(
+            (await download(a.vaultId, head.snapshotId))!,
+            head.snapshotId,
+          ).payload;
+          advanced += 1;
+          const encoded = encodeSnapshot({
+            ...previous,
+            ...withEntry(previous, entry('e2', `B${advanced}`)),
+            deviceSequence: head.deviceSequence + 1,
+            parentSnapshotIds: [head.snapshotId],
+          });
+          await provider.uploadSnapshot(
+            a.vaultId,
+            encoded.snapshotId,
+            encoded.compressedBytes,
+            previous.createdAt,
+          );
+          await provider.updateDeviceHead(a.vaultId, {
+            ...head,
+            deviceSequence: head.deviceSequence + 1,
+            snapshotId: encoded.snapshotId,
+          });
+        },
+      })
+      .sync();
+    expect(result).toMatchObject({ status: 'retry', reason: 'transient' });
+    expect(advanced).toBe(4);
+    // Five plans, but one pass: the 32 MiB budget covers two failed transfers.
+    expect(ancestorDownloads).toBe(2);
+  });
+
+  test('a damaged ancestor cannot inflate past the decoded byte limit', async () => {
+    let initial = withEntry(blankDomain(), entry('e1', 'one'));
+    initial = withEntry(initial, entry('e2', 'two'));
+    const { devices, provider, clock } = await converged(4, initial);
+    for (let round = 0; round < 2; round += 1) {
+      devices.forEach((device, index) => edit(device, `d${index}`, `r${round}`));
+      await syncConcurrently(devices);
+    }
+    const heads = new Set(
+      provider.physicalHeads(devices[0].vaultId).map((value) => value.head.snapshotId),
+    );
+    // A small transfer that inflates to 16 MiB while its trailer states zero.
+    const forged = encodeGzip(new Uint8Array(16 * 1024 * 1024));
+    forged.fill(0, forged.length - 4);
+    const download = provider.downloadSnapshot.bind(provider);
+    const ancestorDownloads: string[] = [];
+    provider.downloadSnapshot = async (vaultId, snapshotId) => {
+      if (heads.has(snapshotId)) return download(vaultId, snapshotId);
+      ancestorDownloads.push(snapshotId);
+      return forged;
+    };
+
+    const fresh = harness('device-fresh', blankDomain(), provider, clock);
+    expect((await fresh.engine().sync()).status).not.toBe('attention');
+    // The failed decode may have used the whole 64 MiB allowance, so no
+    // further ancestor is decoded in this pass.
+    expect(ancestorDownloads).toHaveLength(1);
+    expect(fresh.journal.current().entries.map((value) => value.content)).toEqual(
+      expect.arrayContaining(['r1']),
+    );
+  });
+
   test('crossing merges of conflicting edits converge', async () => {
     let initial = withEntry(blankDomain(), entry('e1', 'base'));
     initial = withEntry(initial, entry('e2', 'two'));
