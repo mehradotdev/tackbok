@@ -41,6 +41,7 @@ import type {
   SnapshotProvider,
 } from '../sync/types';
 import { SnapshotProviderError } from '../sync/types';
+import { throwIfCancelled } from '../sync/errors';
 import { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } from '../storage';
 
 interface ProductionSnapshotVault {
@@ -56,7 +57,17 @@ class SnapshotRuntimeFailure extends Error {
   }
 }
 
-const runningVaultPasses = new Map<string, Promise<RuntimePassResult>>();
+interface RunningVaultPass {
+  promise: Promise<RuntimePassResult>;
+  signal: AbortSignal;
+}
+
+const runningVaultPasses = new Map<string, RunningVaultPass>();
+
+/** The running pass's signal, shared by one engine's provider and hooks. */
+interface PassCancellation {
+  signal: AbortSignal | null;
+}
 
 class MediaPolicyProvider implements SnapshotProvider {
   constructor(private readonly delegate: GoogleDriveSnapshotProvider) {}
@@ -132,6 +143,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     private readonly onActivity: (phase: SyncPassPhase | 'idle') => void,
     private readonly onRemoteApplied?: () => void | Promise<void>,
     private readonly connectionEpoch = cloudConnectionLifecycle.epoch,
+    private readonly cancellation: PassCancellation = { signal: null },
   ) {}
 
   hasPendingWork(): boolean {
@@ -148,33 +160,52 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     );
   }
 
-  async sync(): Promise<RuntimePassResult> {
+  async sync(caller?: AbortSignal): Promise<RuntimePassResult> {
     const vaultId = this.vault.vault_id;
-    const existing = runningVaultPasses.get(vaultId);
-    if (existing) return existing;
-    const pass = cloudConnectionLifecycle.runPass(this.connectionEpoch, () =>
-      this.runExclusivePass(),
-    );
-    runningVaultPasses.set(vaultId, pass);
+    let existing = runningVaultPasses.get(vaultId);
+    if (existing && !existing.signal.aborted) return existing.promise;
+    // A cancelled pass is still settling; never overlap it, and never report
+    // its cancellation as this caller's result.
+    while (existing) {
+      await existing.promise.catch(() => undefined);
+      existing = runningVaultPasses.get(vaultId);
+      if (existing && !existing.signal.aborted) return existing.promise;
+    }
+    throwIfCancelled(caller);
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    caller?.addEventListener('abort', abort);
+    const pass = cloudConnectionLifecycle.runPass(this.connectionEpoch, (signal) => {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener('abort', abort);
+      return this.runExclusivePass(controller.signal);
+    });
+    const running = { promise: pass, signal: controller.signal };
+    runningVaultPasses.set(vaultId, running);
     try {
       return await pass;
     } finally {
-      if (runningVaultPasses.get(vaultId) === pass) runningVaultPasses.delete(vaultId);
+      caller?.removeEventListener('abort', abort);
+      if (runningVaultPasses.get(vaultId) === running) runningVaultPasses.delete(vaultId);
     }
   }
 
-  private async runExclusivePass(): Promise<RuntimePassResult> {
+  private async runExclusivePass(signal: AbortSignal): Promise<RuntimePassResult> {
+    this.cancellation.signal = signal;
     try {
-      return await this.syncPass();
+      throwIfCancelled(signal);
+      return await this.syncPass(signal);
     } finally {
+      if (this.cancellation.signal === signal) this.cancellation.signal = null;
       this.onActivity('idle');
     }
   }
 
-  private async syncPass(): Promise<RuntimePassResult> {
+  private async syncPass(signal: AbortSignal): Promise<RuntimePassResult> {
     this.needsFollowup = false;
     this.onActivity('checking');
     const hashing = await hashPendingProductionMedia(2);
+    throwIfCancelled(signal);
     if (hashing.processed > 0) this.onActivity('preparing');
     const [unhashed] = await db
       .select({ value: count() })
@@ -242,6 +273,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     }
 
     let hydrated = 0;
+    throwIfCancelled(signal);
     try {
       const hydration = await this.journal.hydratePendingMedia(this.mediaProvider, 2);
       hydrated = hydration.hydrated;
@@ -366,6 +398,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
   onRemoteApplied?: () => void | Promise<void>;
 }): Promise<ProductionSnapshotRuntimeEngine> {
   const connectionEpoch = cloudConnectionLifecycle.epoch;
+  const cancellation: PassCancellation = { signal: null };
   const connectionId = await readOrCreateGoogleConnectionId();
   const state = new SQLiteSyncStateStore(sqlite);
   state.loadState(options.vault.vault_id, options.vault.device_id);
@@ -378,6 +411,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
   const drive = new GoogleDriveSnapshotProvider({
     auth: createGoogleAuthorization(),
     state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+    signal: () => cancellation.signal,
   });
   const provider = new MediaPolicyProvider(drive);
   const engine = new SnapshotSyncEngine(
@@ -390,6 +424,9 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     provider,
     {
       at: (point) => {
+        // Kill points are where a pass may stop and resume safely; a cancelled
+        // pass stops at the next one (including between media transfers).
+        throwIfCancelled(cancellation.signal);
         // Housekeeping during an otherwise quiet check is not pending sync work.
         if (point === 'during-snapshot-cleanup') return;
         if (point === 'during-remote-snapshot-download') options.onActivity('checking');
@@ -418,5 +455,6 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     options.onActivity,
     options.onRemoteApplied,
     connectionEpoch,
+    cancellation,
   );
 }

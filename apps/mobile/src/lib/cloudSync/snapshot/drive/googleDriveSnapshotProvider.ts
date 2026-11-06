@@ -12,6 +12,7 @@ import type {
   MediaUploadSource,
 } from '../sync/types';
 import { MediaIntegrityError, SnapshotProviderError } from '../sync/types';
+import { untilCancelled } from '../sync/errors';
 import { DriveDiscovery } from './discovery';
 import type { DriveInstrumentationSink, DriveMethodClass } from './instrumentation';
 import type { DriveFileRecord, DriveObjectKind, DriveProviderStateStore } from './state';
@@ -61,6 +62,8 @@ export interface GoogleDriveSnapshotProviderOptions {
   sleep?: (milliseconds: number) => Promise<void>;
   random?: () => number;
   now?: () => number;
+  /** The running pass's cancellation signal; requests and waits stop when it aborts. */
+  signal?: () => AbortSignal | null | undefined;
 }
 
 export interface AvailableDriveVault {
@@ -198,9 +201,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
 
   constructor(options: GoogleDriveSnapshotProviderOptions) {
     this.state = options.state;
-    this.sleep =
+    const sleep =
       options.sleep ??
-      ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+      ((milliseconds) =>
+        new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
+    this.sleep = (milliseconds) =>
+      untilCancelled(sleep(milliseconds), options.signal?.());
     this.random = options.random ?? Math.random;
     this.now = options.now ?? Date.now;
     this.transport = new DriveTransport({
@@ -208,9 +214,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       state: options.state,
       fetch: options.fetch,
       instrumentation: options.instrumentation,
-      sleep: this.sleep,
+      sleep,
       random: this.random,
       now: this.now,
+      signal: options.signal,
     });
     this.discovery = new DriveDiscovery({
       state: this.state,
@@ -1192,6 +1199,16 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       const { done, value } = await reader.read();
       if (done) break;
       if (!value?.byteLength) continue;
+      // Bound the stream before buffering: a malformed or endless response
+      // must never reach the partial file beyond the declared size.
+      if (offset + pendingBytes + value.byteLength > file.byteCount) {
+        await reader.cancel?.();
+        await sink.reset();
+        throw new SnapshotProviderError(
+          'transient',
+          'Drive media download exceeded its declared size',
+        );
+      }
       let consumed = 0;
       while (consumed < value.byteLength) {
         const accepted = Math.min(

@@ -5,6 +5,7 @@ import {
   toCloudSyncDurationBucket,
 } from '../../analytics/events';
 import { readCloudSyncFailureCategory } from '../failureClassification';
+import { SyncCancelledError } from '../snapshot/sync/errors';
 
 export interface RuntimePassResult {
   pulled: number;
@@ -15,7 +16,8 @@ export type SyncPassPhase = 'checking' | 'preparing' | 'uploading' | 'finishing'
 
 export interface RuntimeSyncEngine {
   readonly provider: { readonly kind: 'google-drive' | 'dropbox' };
-  sync(): Promise<RuntimePassResult>;
+  /** Stops its network work promptly once `signal` aborts. */
+  sync(signal?: AbortSignal): Promise<RuntimePassResult>;
   hasPendingWork?(): boolean;
 }
 
@@ -75,6 +77,7 @@ export class SyncRuntime {
   private active = true;
   private lastForegroundAt = -Infinity;
   private running: Promise<RuntimePassResult | null> | null = null;
+  private passController: AbortController | null = null;
   private stopped = true;
   private wasOnline = false;
   private lifecycle = 0;
@@ -147,6 +150,10 @@ export class SyncRuntime {
     this.clearForegroundTimer();
     this.lastForegroundAt = -Infinity;
     this.rerunTrigger = null;
+    // Abort the running pass; a connection change then drains it before it
+    // touches credentials (CloudConnectionLifecycle.change).
+    this.passController?.abort();
+    this.passController = null;
     this.running = null;
     this.lastFailureCategory = null;
     // A later start must reconstruct from the durable checkpoint. Retaining an
@@ -182,9 +189,14 @@ export class SyncRuntime {
       if (allowFollowup) this.rerunTrigger = trigger;
       return this.running;
     }
-    const running = this.runLoop(trigger, allowFollowup).finally(() => {
-      if (this.running === running) this.running = null;
-    });
+    const controller = new AbortController();
+    this.passController = controller;
+    const running = this.runLoop(trigger, allowFollowup, controller.signal).finally(
+      () => {
+        if (this.running === running) this.running = null;
+        if (this.passController === controller) this.passController = null;
+      },
+    );
     this.running = running;
     return running;
   }
@@ -192,13 +204,14 @@ export class SyncRuntime {
   private async runLoop(
     initialTrigger: CloudSyncTrigger,
     allowFollowup: boolean,
+    signal: AbortSignal,
   ): Promise<RuntimePassResult | null> {
     const lifecycle = this.lifecycle;
     let trigger = initialTrigger;
     let finalResult: RuntimePassResult | null = null;
     do {
       this.rerunTrigger = null;
-      finalResult = await this.runOne(trigger);
+      finalResult = await this.runOne(trigger, signal);
       const followup = allowFollowup ? this.rerunTrigger : null;
       if (!followup || this.stopped || lifecycle !== this.lifecycle || !this.wasOnline)
         break;
@@ -209,13 +222,14 @@ export class SyncRuntime {
 
   private async runOne(
     trigger: CloudSyncTrigger,
+    signal: AbortSignal,
     retryConnectionChange = true,
   ): Promise<RuntimePassResult | null> {
     const lifecycle = this.lifecycle;
     const startedAt = (this.options.now ?? Date.now)();
     this.options.analytics?.started(trigger);
     try {
-      const result = await this.engine!.sync();
+      const result = await this.engine!.sync(signal);
       const elapsed = (this.options.now ?? Date.now)() - startedAt;
       if (!this.stopped && lifecycle === this.lifecycle) {
         this.options.analytics?.succeeded({
@@ -234,6 +248,8 @@ export class SyncRuntime {
       }
       return result;
     } catch (error) {
+      // Cancellation is not a failure: record no category or analytics.
+      if (error instanceof SyncCancelledError) return null;
       let failure = error;
       if (
         error instanceof CloudConnectionChangedError &&
@@ -255,8 +271,9 @@ export class SyncRuntime {
           if (this.stopped || lifecycle !== this.lifecycle) return null;
           this.engine = engine;
           if (!engine) return null; // Disconnect, pause, or pending setup.
-          return await this.runOne(trigger, false);
+          return await this.runOne(trigger, signal, false);
         } catch (retryError) {
+          if (retryError instanceof SyncCancelledError) return null;
           failure = retryError;
         }
       }
