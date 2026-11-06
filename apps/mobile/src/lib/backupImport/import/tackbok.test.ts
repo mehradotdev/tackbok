@@ -1,3 +1,4 @@
+import { addCloudSyncMutationListener } from '~/lib/cloudSync/runtime/mutationSignal';
 import { importFromTackbokBackup } from './tackbok';
 
 const spyOn = jest.spyOn;
@@ -64,6 +65,7 @@ const mockHydrateProfileCache = jest.fn((_profile?: unknown) => undefined);
 const mockUpdateProfileInTransaction = jest.fn(
   async (_tx?: unknown, _profile?: unknown, _context?: unknown) => undefined,
 );
+let mockRetainedMediaLoadError: Error | null = null;
 
 jest.mock('~/db', () => ({
   db: {
@@ -71,17 +73,28 @@ jest.mock('~/db', () => ({
       mockTransaction(callback),
   },
   entries: { note_id: 'note_id' },
+  runExclusiveDbTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
+    mockTransaction(callback),
 }));
 
 jest.mock('~/lib/settings', () => ({
   hydrateProfileCache: (profile: unknown) => mockHydrateProfileCache(profile),
 }));
 
+// The real transaction helper runs so its commit contract is exercised.
 jest.mock('~/lib/cloudSync/storage/repositories', () => ({
-  runInCloudSyncTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
-    mockTransaction(callback),
+  ...jest.requireActual('~/lib/cloudSync/storage/repositories'),
   updateProfileInTransaction: (txArg: unknown, profile: unknown, context: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile, context),
+}));
+
+jest.mock('~/lib/cloudSync/storage/retainedMedia', () => ({
+  // A throwing getter stands in for the post-commit module load failing. Jest
+  // without VM modules also rejects the helper's dynamic import itself.
+  get reapRetainedMediaWithoutVault() {
+    if (mockRetainedMediaLoadError) throw mockRetainedMediaLoadError;
+    return async () => undefined;
+  },
 }));
 
 jest.mock('react-native', () => ({
@@ -253,6 +266,7 @@ describe('importFromTackbokBackup', () => {
     mockUpdateProfileInTransaction.mockReset();
     mockUpdateProfileInTransaction.mockResolvedValue(undefined);
     mockGetImportTotals.mockReset();
+    mockRetainedMediaLoadError = null;
 
     txSelect.mockImplementation(() => ({ from: txSelectFrom }));
     txSelectFrom.mockResolvedValue([]);
@@ -342,4 +356,40 @@ describe('importFromTackbokBackup', () => {
 
     warnSpy.mockRestore();
   });
+
+  test.each([
+    ['a mutation listener throws', 'listener'],
+    ['the retained-media module fails to load', 'module'],
+  ] as const)(
+    'keeps the committed import and its photo when %s after commit',
+    async (_label, failure) => {
+      const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+      mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
+      let committed = false;
+      mockTransaction.mockImplementationOnce(async (callback) => {
+        await callback(tx);
+        committed = true;
+      });
+      const subscription = addCloudSyncMutationListener(() => {
+        if (failure === 'listener') throw new Error('listener failed after commit');
+      });
+      if (failure === 'module') {
+        mockRetainedMediaLoadError = new Error('module failed after commit');
+      }
+
+      try {
+        const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
+
+        expect(committed).toBe(true);
+        expect(mockHydrateProfileCache).toHaveBeenCalledWith(
+          expect.objectContaining({ profileImageUri: 'photos/imported.jpg' }),
+        );
+        expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
+        expect(summary.warnings).toEqual([]);
+      } finally {
+        subscription.remove();
+        warnSpy.mockRestore();
+      }
+    },
+  );
 });
