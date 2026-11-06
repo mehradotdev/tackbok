@@ -380,6 +380,163 @@ test('a rejected apply removes the photo it copied unless a committed row uses i
   expect(existingFiles.has(copied)).toBe(true);
 });
 
+function setupPhotoSwitch(vault: string) {
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM sync_retained_media; DELETE FROM cloud_sync_state',
+  );
+  existingFiles.clear();
+  existingFiles.add('file:///old.jpg');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: vault, device_id: 'device', updated_at: 1 })
+    .run();
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'old-photo',
+      owner_type: 'profile',
+      owner_id: 'self',
+      kind: 'profile-photo',
+      local_uri: 'file:///old.jpg',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  db.insert(schema.userProfile)
+    .values({
+      profile_id: 'self',
+      display_name: 'Mehra',
+      photo_asset_id: 'old-photo',
+      updated_at: 1,
+    })
+    .run();
+  return new ProductionSnapshotJournalStore(
+    vault,
+    'device',
+    new ProductionSnapshotMediaStore(),
+  );
+}
+
+/** Holds an apply after it materialized its media, before its transaction. */
+function pauseAfterMaterializing(
+  store: InstanceType<typeof ProductionSnapshotJournalStore>,
+) {
+  const { promise: ready, resolve: materialized } = Promise.withResolvers<void>();
+  const { promise: released, resolve: release } = Promise.withResolvers<void>();
+  const materialize = Reflect.get(store, 'materializeMedia') as (
+    ...args: unknown[]
+  ) => Promise<unknown>;
+  Object.defineProperty(store, 'materializeMedia', {
+    value: async (...args: unknown[]) => {
+      const result = await materialize.apply(store, args);
+      materialized();
+      await released;
+      return result;
+    },
+  });
+  return { ready, release };
+}
+
+test.each([
+  'live absolute',
+  'live relative',
+  'retained original absolute',
+  'retained staged absolute',
+  'retained original relative',
+  'legacy absolute',
+])(
+  'a rejected apply keeps its copied photo when a committed %s URI references it',
+  async (kind) => {
+    const store = setupPhotoSwitch('shared');
+    const { domain } = await store.capture();
+    domain.profile.photoAssetId = 'new-photo';
+    domain.media[0].assetId = 'new-photo';
+    const paused = pauseAfterMaterializing(store);
+    const rejected = store.applyMergedIfGeneration(domain, 0);
+    await paused.ready;
+    const absolute = copiedMedia.at(-1)!.to;
+    const uri = kind.endsWith('absolute')
+      ? absolute
+      : absolute.replace('file:///documents/', '');
+    if (kind.startsWith('live')) {
+      db.insert(schema.mediaAssets)
+        .values({
+          asset_id: 'shared',
+          owner_type: 'profile',
+          owner_id: 'self',
+          kind: 'profile-photo',
+          local_uri: uri,
+          blob_hash: fakeBlobHash,
+          byte_size: 1,
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    } else if (kind.startsWith('legacy')) {
+      db.insert(schema.entries)
+        .values({
+          note_id: 'other-entry',
+          assets: [{ type: AssetType.IMAGE, uri }],
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    } else {
+      db.insert(schema.syncRetainedMedia)
+        .values({
+          ledger_id: 'shared',
+          asset_id: 'shared',
+          original_owner_type: 'profile',
+          original_owner_id: 'self',
+          original_uri: kind.includes('original') ? uri : 'photos/old.jpg',
+          staged_uri: kind.includes('staged') ? uri : null,
+          kind: 'profile-photo',
+          state: 'staged',
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    }
+    sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
+    paused.release();
+    expect(await rejected).toBe(false);
+    expect(existingFiles.has(absolute)).toBe(true);
+  },
+);
+
+test('a rejected apply keeps a photo another in-flight apply already materialized', async () => {
+  const loser = setupPhotoSwitch('concurrent');
+  const winner = new ProductionSnapshotJournalStore(
+    'concurrent',
+    'device',
+    new ProductionSnapshotMediaStore(),
+  );
+  const { domain } = await loser.capture();
+  domain.profile.photoAssetId = 'new-photo';
+  domain.media[0].assetId = 'new-photo';
+  const first = pauseAfterMaterializing(loser);
+  const rejected = loser.applyMergedIfGeneration(domain, 0);
+  await first.ready;
+  const destination = copiedMedia.at(-1)!.to;
+  sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
+  // The second apply reuses the first apply's copy and has not committed yet.
+  const second = pauseAfterMaterializing(winner);
+  const committed = winner.applyMergedIfGeneration(domain, 1);
+  await second.ready;
+  first.release();
+  expect(await rejected).toBe(false);
+  expect(existingFiles.has(destination)).toBe(true);
+  second.release();
+  expect(await committed).toBe(true);
+  const row = db
+    .select()
+    .from(schema.mediaAssets)
+    .where(eq(schema.mediaAssets.asset_id, 'new-photo'))
+    .get()!;
+  expect(row.download_state).toBe('verified');
+  expect(existingFiles.has(destination)).toBe(true);
+});
+
 test('authored profile clears stay positive and win a no-base merge after a clock reset', async () => {
   sqlite.exec(
     'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_sync_state',
