@@ -54,9 +54,14 @@ mock.module('expo-file-system', () => ({
     create() {}
   },
   File: class {
-    uri: string;
+    private readonly path: string;
     constructor(...parts: unknown[]) {
-      this.uri = parts.map(uriOf).join('/');
+      this.path = parts.map(uriOf).join('/');
+    }
+    // Like Expo's Android File, a scheme-less absolute path has no URI.
+    get uri() {
+      if (this.path.startsWith('/')) throw new Error('URI is not absolute');
+      return this.path;
     }
     get exists() {
       return existingFiles.has(this.uri);
@@ -543,10 +548,14 @@ function pauseAfterMaterializing(
 test.each([
   'live absolute',
   'live relative',
+  'live bare',
   'retained original absolute',
   'retained staged absolute',
   'retained original relative',
+  'retained original bare',
+  'retained staged bare',
   'legacy absolute',
+  'legacy bare',
 ])(
   'a rejected apply keeps its copied photo when a committed %s URI references it',
   async (kind) => {
@@ -560,7 +569,9 @@ test.each([
     const absolute = copiedMedia.at(-1)!.to;
     const uri = kind.endsWith('absolute')
       ? absolute
-      : absolute.replace('file:///documents/', '');
+      : kind.endsWith('bare')
+        ? absolute.replace('file://', '')
+        : absolute.replace('file:///documents/', '');
     if (kind.startsWith('live')) {
       db.insert(schema.mediaAssets)
         .values({
@@ -607,7 +618,31 @@ test.each([
   },
 );
 
-test('a rejected apply keeps a photo another in-flight apply already materialized', async () => {
+test('a rejected apply still removes its copy when only a bare path to another file shares its name', async () => {
+  const store = setupPhotoSwitch('bare-other');
+  const { domain } = await store.capture();
+  domain.profile.photoAssetId = 'new-photo';
+  domain.media[0].assetId = 'new-photo';
+  const paused = pauseAfterMaterializing(store);
+  const rejected = store.applyMergedIfGeneration(domain, 0);
+  await paused.ready;
+  const absolute = copiedMedia.at(-1)!.to;
+  const name = absolute.slice(absolute.lastIndexOf('/') + 1);
+  db.insert(schema.entries)
+    .values({
+      note_id: 'other-entry',
+      assets: [{ type: AssetType.IMAGE, uri: `/elsewhere/${name}` }],
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
+  paused.release();
+  expect(await rejected).toBe(false);
+  expect(existingFiles.has(absolute)).toBe(false);
+});
+
+test('a concurrent apply waits for a rejected apply and its cleanup', async () => {
   const loser = setupPhotoSwitch('concurrent');
   const winner = new ProductionSnapshotJournalStore(
     'concurrent',
@@ -622,14 +657,18 @@ test('a rejected apply keeps a photo another in-flight apply already materialize
   await first.ready;
   const destination = copiedMedia.at(-1)!.to;
   sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
-  // The second apply reuses the first apply's copy and has not committed yet.
   const second = pauseAfterMaterializing(winner);
   const committed = winner.applyMergedIfGeneration(domain, 1);
-  await second.ready;
+  let winnerMaterialized = false;
+  void second.ready.then(() => {
+    winnerMaterialized = true;
+  });
+  await Bun.sleep(10);
+  // The second apply cannot reuse the first apply's uncommitted copy.
+  expect(winnerMaterialized).toBe(false);
+  second.release();
   first.release();
   expect(await rejected).toBe(false);
-  expect(existingFiles.has(destination)).toBe(true);
-  second.release();
   expect(await committed).toBe(true);
   const row = db
     .select()
