@@ -34,7 +34,7 @@ No accounts. No ads. Your journal stays on your device.
       <img src="https://img.shields.io/badge/App_Store-Download-007AFF?logo=apple&logoColor=white&style=for-the-badge" alt="App Store" />
     </a>
     &nbsp;
-    <a href="https://apps.samsung.com/appquery/appDetail.as?appId=dev.mehra.tackbok&source=GBadge_01_9271461_tag&directOpen=true&ads=ddb0e6f9&nonOrgType=fce692ba" target="_blank">
+    <a href="https://galaxystore.samsung.com/detail/dev.mehra.tackbok" target="_blank">
       <img src="https://img.shields.io/badge/Galaxy_Store-Download-000000?logo=samsung&logoColor=white&style=for-the-badge" alt="Galaxy Store" />
     </a>
     &nbsp;
