@@ -16,6 +16,7 @@ import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { PolaroidPhoto } from '~/components/PolaroidPhoto';
 import { AudioPlayer } from '~/components/AudioPlayer';
+import { OtherVersionBadge } from '~/components/OtherVersionBadge';
 import {
   AlertDialog,
   AlertDialogDestructiveAction,
@@ -123,6 +124,8 @@ export function GratitudeEntryView({
 
       {/* Content */}
       <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-safe-or-20">
+        <OtherVersionBadge entry={entry} className="mb-4" />
+
         {/* Mood label */}
         {moodOption && (
           <View className="flex-row items-center gap-2 mb-4">

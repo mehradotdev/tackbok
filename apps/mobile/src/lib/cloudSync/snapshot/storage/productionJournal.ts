@@ -6,6 +6,7 @@ import {
   cloudConflicts,
   cloudSyncState,
   cloudTombstones,
+  cloudVault,
   customPrompts,
   db,
   entries,
@@ -409,14 +410,19 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
 
       const [priorProfile] = await tx.select().from(userProfile).limit(1);
       const priorMedia = await tx.select().from(mediaAssets);
-      const acknowledged = new Map(
+      const priorConflicts = new Map(
         (
           await tx
             .select()
             .from(cloudConflicts)
             .where(eq(cloudConflicts.vault_id, this.vaultId))
-        ).map((row) => [row.conflict_id, row.acknowledged_at]),
+        ).map((row) => [row.conflict_id, row]),
       );
+      const [vault] = await tx
+        .select({ status: cloudVault.status, joinedAt: cloudVault.created_at })
+        .from(cloudVault)
+        .where(eq(cloudVault.vault_id, this.vaultId))
+        .limit(1);
 
       // A remote apply is a complete-state replacement. Preserve every local
       // file whose exact descriptor is no longer referenced before deleting
@@ -598,8 +604,14 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
             vault_id: this.vaultId,
             conflict_id: conflict.conflictId,
             conflict_json: JSON.stringify(conflict),
-            acknowledged_at: acknowledged.get(conflict.conflictId) ?? null,
-            created_at: Date.now(),
+            acknowledged_at:
+              priorConflicts.get(conflict.conflictId)?.acknowledged_at ?? null,
+            // created_at is when this device first saw the conflict. Records
+            // that arrive with the initial restore predate this device joining
+            // the backup, so they get the join time and the UI hides them.
+            created_at:
+              priorConflicts.get(conflict.conflictId)?.created_at ??
+              (vault?.status === 'restoring' ? vault.joinedAt : appliedAt),
           })),
           (rows) => tx.insert(cloudConflicts).values(rows),
         );

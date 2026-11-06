@@ -63,6 +63,7 @@ export const en = {
     'Something went wrong. Creating a new entry.',
 
   // Gratitude Entry
+  'entry.otherVersion': 'Other version',
   'entry.deleteEntry': 'Delete entry?',
   'entry.thisEntryWillBePermanentlyDeleted': 'This entry will be permanently deleted.',
   'entry.entryNotFound': 'Entry not found',
@@ -790,7 +791,6 @@ export const en = {
     'Disconnect, then delete local journal data only',
   'cloud.editsRemainSafelyQueuedOnThisDevice':
     'Edits remain safely queued on this device.',
-  'cloud.entry': 'Entry',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     'Google Drive access is required. Try again and select the Drive access checkbox.',
@@ -820,7 +820,6 @@ export const en = {
   'cloud.lastSuccessfulSyncDate': 'Last successful sync: {date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'Local data and the cloud backup will both remain. Other devices stay connected.',
-  'cloud.markAsReviewed': 'Mark as reviewed',
   'cloud.savingYourChangesToGoogleDrive': 'Saving your changes to Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'No Tackbok backup found in this Google account',
@@ -834,12 +833,27 @@ export const en = {
   'cloud.restoringYourJournalFromGoogleDrive':
     'Restoring your journal from Google Drive…',
   'cloud.profile': 'Profile',
-  'cloud.prompt': 'Prompt',
   'cloud.reconnectGoogleDrive': 'Reconnect Google Drive',
-  'cloud.recoveredConflicts': 'Recovered conflicts',
-  'cloud.recoveredConflictsMarkedAsReviewed': 'Recovered conflicts marked as reviewed',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    'Recovered {type} conflict — {count} preserved alternatives',
+  'cloud.conflicts.title': 'Edited on two devices',
+  'cloud.conflicts.nameChanged':
+    'Your name was changed on another device. Current: “{current}”. Other: “{other}”.',
+  'cloud.conflicts.nameChangedNoCurrent':
+    'Your name was changed on another device. Current: no name. Other: “{other}”.',
+  'cloud.conflicts.nameRemoved':
+    'Your name was removed on another device. Current: “{current}”. Other: no name.',
+  'cloud.conflicts.useName': 'Use “{name}”',
+  'cloud.conflicts.removeName': 'Use no name',
+  'cloud.conflicts.keepCurrent': 'Keep current',
+  'cloud.conflicts.photoChanged': 'Your profile photo was changed on another device.',
+  'cloud.conflicts.otherPhoto': 'Profile photo from the other device',
+  'cloud.conflicts.usePhoto': 'Use this photo',
+  'cloud.conflicts.entriesEdited':
+    '{count} entries were edited on two devices at once. Both versions are in your journal.',
+  'cloud.conflicts.showThem': 'Show them',
+  'cloud.conflicts.otherVersionsTitle': 'Other versions',
+  'cloud.conflicts.otherVersionsDescription':
+    'These entries were edited on two devices at once, so both versions were kept. Open one to edit or delete it.',
+  'cloud.conflicts.noOtherVersions': 'No entries have another version.',
   'cloud.resetThisDeviceOnly': 'Reset this device only',
   'cloud.resetThisDeviceOnly2': 'Reset this device only?',
   'cloud.merge': 'Merge',

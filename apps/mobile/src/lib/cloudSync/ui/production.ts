@@ -97,14 +97,6 @@ export interface PreparedGoogleConnection {
   localHasData: boolean;
 }
 
-export interface CloudConflictSummary {
-  conflictId: string;
-  entityType: 'entry' | 'tag' | 'prompt' | 'profile';
-  recoveredCount: number;
-  alternateCount: number;
-  createdAt: number;
-}
-
 export type CloudSyncActionFailureCategory =
   | 'auth'
   | 'quota'
@@ -657,51 +649,6 @@ async function deleteJournalEverywhereImpl(): Promise<string[]> {
   const mediaCleanupErrors = await wipeJournalAndLocalCloudReplica();
   notifyProductionCloudSyncChanged();
   return mediaCleanupErrors;
-}
-
-export async function listUnacknowledgedCloudConflicts(): Promise<
-  CloudConflictSummary[]
-> {
-  const [vault] = await db.select().from(cloudVault).limit(1);
-  if (!vault) return [];
-  const rows = await db
-    .select()
-    .from(cloudConflicts)
-    .where(
-      and(
-        eq(cloudConflicts.vault_id, vault.vault_id),
-        isNull(cloudConflicts.acknowledged_at),
-      ),
-    );
-  return rows.map((row) => {
-    const conflict = JSON.parse(row.conflict_json) as {
-      entityType: CloudConflictSummary['entityType'];
-      recoveredEntityIds?: unknown[];
-      alternates?: unknown[];
-    };
-    return {
-      conflictId: row.conflict_id,
-      entityType: conflict.entityType,
-      recoveredCount: conflict.recoveredEntityIds?.length ?? 0,
-      alternateCount: conflict.alternates?.length ?? 0,
-      createdAt: row.created_at,
-    };
-  });
-}
-
-export async function acknowledgeCloudConflicts(): Promise<void> {
-  const [vault] = await db.select().from(cloudVault).limit(1);
-  if (!vault) return;
-  await db
-    .update(cloudConflicts)
-    .set({ acknowledged_at: Date.now() })
-    .where(
-      and(
-        eq(cloudConflicts.vault_id, vault.vault_id),
-        isNull(cloudConflicts.acknowledged_at),
-      ),
-    );
-  notifyProductionCloudSyncChanged();
 }
 
 export async function retrySyncAttentionReason(

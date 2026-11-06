@@ -64,6 +64,7 @@ export const ar: Translations = {
   'dateEntries.somethingWentWrongCreatingNewEntry': 'حدث خطأ ما. جارٍ إنشاء سجل جديد.',
 
   // Gratitude Entry
+  'entry.otherVersion': 'نسخة أخرى',
   'entry.deleteEntry': 'حذف السجل؟',
   'entry.thisEntryWillBePermanentlyDeleted': 'سيتم حذف هذا السجل نهائيًا.',
   'entry.entryNotFound': 'لم يتم العثور على السجل',
@@ -771,7 +772,6 @@ export const ar: Translations = {
     'قطع الاتصال ثم حذف بيانات اليوميات المحلية فقط',
   'cloud.editsRemainSafelyQueuedOnThisDevice':
     'ستبقى التعديلات في قائمة انتظار آمنة على هذا الجهاز.',
-  'cloud.entry': 'سجل',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     'يلزم السماح بالوصول إلى Google Drive. حاول مرة أخرى وحدد مربع اختيار الوصول إلى Drive.',
@@ -800,7 +800,6 @@ export const ar: Translations = {
   'cloud.lastSuccessfulSyncDate': 'آخر مزامنة ناجحة: {date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'ستبقى البيانات المحلية والنسخة السحابية. وستظل الأجهزة الأخرى متصلة.',
-  'cloud.markAsReviewed': 'وضع علامة تمت المراجعة',
   'cloud.savingYourChangesToGoogleDrive': 'جارٍ حفظ تغييراتك في Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'لم يتم العثور على نسخة Tackbok احتياطية في حساب Google هذا',
@@ -814,13 +813,27 @@ export const ar: Translations = {
   'cloud.restoringYourJournalFromGoogleDrive':
     'جارٍ استعادة دفتر اليوميات من Google Drive…',
   'cloud.profile': 'الملف الشخصي',
-  'cloud.prompt': 'موجّه الكتابة',
   'cloud.reconnectGoogleDrive': 'إعادة الاتصال بـ Google Drive',
-  'cloud.recoveredConflicts': 'تعارضات تم استردادها',
-  'cloud.recoveredConflictsMarkedAsReviewed':
-    'تم وضع علامة المراجعة على التعارضات المستردة',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    'تم استرداد تعارض {type} — تم الاحتفاظ بـ {count} بدائل',
+  'cloud.conflicts.title': 'عُدِّل على جهازين',
+  'cloud.conflicts.nameChanged':
+    'تم تغيير اسمك على جهاز آخر. الحالي: "{current}". على الجهاز الآخر: "{other}".',
+  'cloud.conflicts.nameChangedNoCurrent':
+    'تم تغيير اسمك على جهاز آخر. الحالي: بلا اسم. على الجهاز الآخر: "{other}".',
+  'cloud.conflicts.nameRemoved':
+    'تمت إزالة اسمك على جهاز آخر. الحالي: "{current}". على الجهاز الآخر: بلا اسم.',
+  'cloud.conflicts.useName': 'استخدام "{name}"',
+  'cloud.conflicts.removeName': 'بلا اسم',
+  'cloud.conflicts.keepCurrent': 'الإبقاء على الحالي',
+  'cloud.conflicts.photoChanged': 'تم تغيير صورة ملفك الشخصي على جهاز آخر.',
+  'cloud.conflicts.otherPhoto': 'صورة الملف الشخصي من الجهاز الآخر',
+  'cloud.conflicts.usePhoto': 'استخدام هذه الصورة',
+  'cloud.conflicts.entriesEdited':
+    'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
+  'cloud.conflicts.showThem': 'عرضها',
+  'cloud.conflicts.otherVersionsTitle': 'نسخ أخرى',
+  'cloud.conflicts.otherVersionsDescription':
+    'عُدِّلت هذه السجلات على جهازين في الوقت نفسه، لذا احتُفظ بالنسختين. افتح أحدها لتعديله أو حذفه.',
+  'cloud.conflicts.noOtherVersions': 'لا توجد سجلات لها نسخة أخرى.',
   'cloud.resetThisDeviceOnly': 'إعادة ضبط هذا الجهاز فقط',
   'cloud.resetThisDeviceOnly2': 'هل تريد إعادة ضبط هذا الجهاز فقط؟',
   'cloud.merge': 'دمج',

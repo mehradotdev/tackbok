@@ -49,6 +49,7 @@ export const hi = {
   'dateEntries.noEntriesForThisDate': 'इस तिथि के लिए कोई प्रविष्टि नहीं',
   'dateEntries.createEntry': 'प्रविष्टि बनाएँ',
   'dateEntries.somethingWentWrongCreatingNewEntry': 'कुछ गलत हो गया। एक नई प्रविष्टि बनाना.',
+  'entry.otherVersion': 'अन्य संस्करण',
   'entry.deleteEntry': 'प्रविष्टि हटाएं?',
   'entry.thisEntryWillBePermanentlyDeleted': 'यह प्रविष्टि स्थायी रूप से हटा दी जाएगी.',
   'entry.entryNotFound': 'प्रवेश नहीं मिला',
@@ -714,7 +715,6 @@ export const hi = {
     'डिस्कनेक्ट करें, फिर केवल स्थानीय डायरी डेटा हटाएं',
   'cloud.editsRemainSafelyQueuedOnThisDevice':
     'संपादन इस उपकरण पर सुरक्षित रूप से कतारबद्ध रहते हैं।',
-  'cloud.entry': 'प्रविष्टि',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     'Google Drive पहुंच आवश्यक है. पुनः प्रयास करें और ड्राइव एक्सेस चेकबॉक्स चुनें।',
@@ -743,7 +743,6 @@ export const hi = {
   'cloud.lastSuccessfulSyncDate': 'अंतिम सफल सिंक: {date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'स्थानीय डेटा और क्लाउड बैकअप दोनों बने रहेंगे. अन्य डिवाइस जुड़े रहते हैं.',
-  'cloud.markAsReviewed': 'समीक्षा के रूप में चिह्नित करें',
   'cloud.savingYourChangesToGoogleDrive': 'आपके परिवर्तन Google Drive में सहेजे जा रहे हैं…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'इस Google खाते में कोई ताकबूक बैकअप नहीं मिला',
@@ -757,13 +756,27 @@ export const hi = {
   'cloud.restoringYourJournalFromGoogleDrive':
     'Google Drive से आपकी डायरी पुनर्स्थापित की जा रही है…',
   'cloud.profile': 'प्रोफ़ाइल',
-  'cloud.prompt': 'लेखन संकेत',
   'cloud.reconnectGoogleDrive': 'Google Drive को पुनः कनेक्ट करें',
-  'cloud.recoveredConflicts': 'पुनर्प्राप्त संघर्ष',
-  'cloud.recoveredConflictsMarkedAsReviewed':
-    'पुनर्प्राप्त संघर्षों को समीक्षा के रूप में चिह्नित किया गया',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    'पुनर्प्राप्त {type} संघर्ष - {count} संरक्षित विकल्प',
+  'cloud.conflicts.title': 'दो डिवाइस पर संपादित',
+  'cloud.conflicts.nameChanged':
+    'आपका नाम किसी दूसरे डिवाइस पर बदला गया। मौजूदा: "{current}"। दूसरे डिवाइस पर: "{other}"।',
+  'cloud.conflicts.nameChangedNoCurrent':
+    'आपका नाम किसी दूसरे डिवाइस पर बदला गया। मौजूदा: कोई नाम नहीं। दूसरे डिवाइस पर: "{other}"।',
+  'cloud.conflicts.nameRemoved':
+    'आपका नाम किसी दूसरे डिवाइस पर हटाया गया। मौजूदा: "{current}"। दूसरे डिवाइस पर: कोई नाम नहीं।',
+  'cloud.conflicts.useName': '"{name}" इस्तेमाल करें',
+  'cloud.conflicts.removeName': 'कोई नाम न रखें',
+  'cloud.conflicts.keepCurrent': 'मौजूदा रखें',
+  'cloud.conflicts.photoChanged': 'आपकी प्रोफ़ाइल फ़ोटो किसी दूसरे डिवाइस पर बदली गई।',
+  'cloud.conflicts.otherPhoto': 'दूसरे डिवाइस की प्रोफ़ाइल फ़ोटो',
+  'cloud.conflicts.usePhoto': 'यह फ़ोटो इस्तेमाल करें',
+  'cloud.conflicts.entriesEdited':
+    '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। दोनों संस्करण आपकी डायरी में हैं।',
+  'cloud.conflicts.showThem': 'दिखाएँ',
+  'cloud.conflicts.otherVersionsTitle': 'अन्य संस्करण',
+  'cloud.conflicts.otherVersionsDescription':
+    'ये प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं, इसलिए दोनों संस्करण रखे गए। किसी एक को संपादित करने या हटाने के लिए उसे खोलें।',
+  'cloud.conflicts.noOtherVersions': 'किसी प्रविष्टि का कोई अन्य संस्करण नहीं है।',
   'cloud.resetThisDeviceOnly': 'केवल इस डिवाइस को रीसेट करें',
   'cloud.resetThisDeviceOnly2': 'केवल इस डिवाइस को रीसेट करें?',
   'cloud.merge': 'मर्ज',

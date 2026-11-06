@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   Cloud,
   CloudOff,
-  FileClock,
   RefreshCw,
   ShieldCheck,
   Smartphone,
@@ -31,12 +30,10 @@ import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
 import { useSettingsStore } from '~/lib/settings';
 import { CloudAuthError } from '~/lib/cloudSync/auth';
 import {
-  acknowledgeCloudConflicts,
   cancelPreparedGoogleDriveConnection,
   completeGoogleDriveConnection,
   deleteJournalEverywhere,
   disconnectGoogleDrive,
-  listUnacknowledgedCloudConflicts,
   prepareGoogleDriveConnection,
   reconnectGoogleDrive,
   resetThisDeviceOnly,
@@ -45,7 +42,6 @@ import {
   setCloudSyncPaused,
   syncNow,
   useCloudSyncSnapshot,
-  type CloudConflictSummary,
   CloudSyncActionError,
   type PreparedGoogleConnection,
 } from '~/lib/cloudSync/ui';
@@ -70,10 +66,10 @@ import {
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { SetupProgress } from './setup-progress';
+import { ConflictsCard } from './ConflictsCard';
 import {
   attentionReasonMessage,
   cloudSyncFailureMessage,
-  entityTypeLabel,
   pendingWorkSummary,
   recoveryActionLabel,
   statusLabel,
@@ -110,8 +106,6 @@ export default function CloudBackupScreen() {
   );
   const [prepared, setPrepared] = useState<PreparedGoogleConnection | null>(null);
   const mountedRef = useRef(true);
-  const [conflicts, setConflicts] = useState<CloudConflictSummary[]>([]);
-  const conflictRefreshSequenceRef = useRef(0);
   const actionRunningRef = useRef(false);
   const [actionRunning, setActionRunning] = useState(false);
   const [destructiveAction, setDestructiveAction] = useState<DestructiveAction | null>(
@@ -129,16 +123,6 @@ export default function CloudBackupScreen() {
     if (router.canGoBack()) router.back();
     else router.replace(origin === 'onboarding' ? '/onboarding/welcome' : '/');
   }, [origin, router]);
-
-  const refreshConflicts = useCallback(async () => {
-    const sequence = ++conflictRefreshSequenceRef.current;
-    const next = await listUnacknowledgedCloudConflicts();
-    if (sequence === conflictRefreshSequenceRef.current) setConflicts(next);
-  }, []);
-
-  useEffect(() => {
-    void refreshConflicts();
-  }, [refreshConflicts, snapshot.conflictCount]);
 
   useEffect(() => {
     if (snapshot.status === 'syncing' || snapshot.status === 'restoring') {
@@ -627,34 +611,7 @@ export default function CloudBackupScreen() {
                 />
               </View>
 
-              {conflicts.length > 0 && (
-                <View className="rounded-lg border border-border bg-card p-4 gap-3">
-                  <View className="flex-row items-center gap-2">
-                    <Icon as={FileClock} className="text-foreground size-5" />
-                    <Text className="font-body-bold text-foreground">
-                      {t('cloud.recoveredConflicts')}
-                    </Text>
-                  </View>
-                  {conflicts.map((conflict) => (
-                    <Text key={conflict.conflictId} className="text-sm text-foreground">
-                      {t('cloud.recoveredTypeConflictCountPreservedAlternatives', {
-                        type: entityTypeLabel(conflict.entityType, t),
-                        count: conflict.recoveredCount + conflict.alternateCount,
-                      })}
-                    </Text>
-                  ))}
-                  <Button
-                    variant="outline"
-                    onPress={() =>
-                      void runAction(async () => {
-                        await acknowledgeCloudConflicts();
-                        await refreshConflicts();
-                      }, t('cloud.recoveredConflictsMarkedAsReviewed'))
-                    }>
-                    <Text>{t('cloud.markAsReviewed')}</Text>
-                  </Button>
-                </View>
-              )}
+              <ConflictsCard refreshKey={snapshot.conflictCount} />
 
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow

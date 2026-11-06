@@ -23,7 +23,8 @@ for (const { tag } of journal.entries) {
 const db = drizzle(sqlite, { schema });
 mock.module('../../src/db', () => ({ ...schema, db, runExclusiveDbTransaction() {} }));
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
-const { getEntriesForDay, searchEntries } = await import('../../src/db/queries');
+const { getEntriesForDay, getEntriesWithOtherVersions, searchEntries } =
+  await import('../../src/db/queries');
 afterAll(() => sqlite.close());
 
 function insertEntry(
@@ -110,5 +111,21 @@ test('searchEntries treats LIKE wildcards in the search text literally', async (
   expect((await searchEntries('GRATEFUL')).map((entry) => entry.note_id)).toEqual([
     'plain',
     'percent',
+  ]);
+});
+
+test('getEntriesWithOtherVersions lists each original before its other versions', async () => {
+  insertEntry('plain', 50);
+  insertEntry('origin-old', 10);
+  insertEntry('origin-new', 20);
+  insertEntry('recovered-old', 30, { conflict_origin_id: 'origin-old' });
+  insertEntry('recovered-new', 40, { conflict_origin_id: 'origin-new' });
+  insertEntry('recovered-orphan', 35, { conflict_origin_id: 'deleted-origin' });
+  expect((await getEntriesWithOtherVersions()).map((entry) => entry.note_id)).toEqual([
+    'origin-new',
+    'recovered-new',
+    'recovered-orphan',
+    'origin-old',
+    'recovered-old',
   ]);
 });

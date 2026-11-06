@@ -18,6 +18,7 @@ import { SafeAreaView } from '~/components/ui/safe-area-view';
 import { Badge } from '~/components/ui/badge';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { AudioPlayer } from '~/components/AudioPlayer';
+import { OtherVersionBadge } from '~/components/OtherVersionBadge';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 
 interface IDateEntriesScreenProps {
@@ -31,7 +32,7 @@ interface IEntryItemProps {
   onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
-function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
+export function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
   const { t, locale } = useTranslation();
   const time = formatLocalizedTime(new Date(entry.created_at), locale);
 
@@ -75,6 +76,7 @@ function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
             </View>
           )}
         </View>
+        <OtherVersionBadge entry={entry} className="mb-2" />
 
         {/* Title */}
         {entry.text_title && (

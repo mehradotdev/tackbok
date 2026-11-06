@@ -66,6 +66,7 @@ export const de: Translations = {
     'Etwas ist schiefgelaufen. Ein neuer Eintrag wird erstellt.',
 
   // Gratitude Entry
+  'entry.otherVersion': 'Andere Version',
   'entry.deleteEntry': 'Eintrag löschen?',
   'entry.thisEntryWillBePermanentlyDeleted': 'Dieser Eintrag wird dauerhaft gelöscht.',
   'entry.entryNotFound': 'Eintrag nicht gefunden',
@@ -826,7 +827,6 @@ export const de: Translations = {
     'Trennen und dann nur lokale Tagebuchdaten löschen',
   'cloud.editsRemainSafelyQueuedOnThisDevice':
     'Änderungen bleiben auf diesem Gerät sicher vorgemerkt.',
-  'cloud.entry': 'Eintrag',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     'Google-Drive-Zugriff ist erforderlich. Versuche es erneut und wähle das Kontrollkästchen für den Drive-Zugriff aus.',
@@ -857,7 +857,6 @@ export const de: Translations = {
   'cloud.lastSuccessfulSyncDate': 'Letzte erfolgreiche Synchronisierung: {date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'Lokale Daten und die Cloud-Sicherung bleiben erhalten. Andere Geräte bleiben verbunden.',
-  'cloud.markAsReviewed': 'Als geprüft markieren',
   'cloud.savingYourChangesToGoogleDrive':
     'Deine Änderungen werden in Google Drive gespeichert…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
@@ -872,13 +871,28 @@ export const de: Translations = {
   'cloud.restoringYourJournalFromGoogleDrive':
     'Dein Tagebuch wird aus Google Drive wiederhergestellt…',
   'cloud.profile': 'Profil',
-  'cloud.prompt': 'Schreibimpuls',
   'cloud.reconnectGoogleDrive': 'Google Drive erneut verbinden',
-  'cloud.recoveredConflicts': 'Wiederhergestellte Konflikte',
-  'cloud.recoveredConflictsMarkedAsReviewed':
-    'Wiederhergestellte Konflikte als geprüft markiert',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    '{type}-Konflikt wiederhergestellt — {count} Alternativen erhalten',
+  'cloud.conflicts.title': 'Auf zwei Geräten bearbeitet',
+  'cloud.conflicts.nameChanged':
+    'Dein Name wurde auf einem anderen Gerät geändert. Aktuell: „{current}“. Auf dem anderen Gerät: „{other}“.',
+  'cloud.conflicts.nameChangedNoCurrent':
+    'Dein Name wurde auf einem anderen Gerät geändert. Aktuell: kein Name. Auf dem anderen Gerät: „{other}“.',
+  'cloud.conflicts.nameRemoved':
+    'Dein Name wurde auf einem anderen Gerät entfernt. Aktuell: „{current}“. Auf dem anderen Gerät: kein Name.',
+  'cloud.conflicts.useName': '„{name}“ verwenden',
+  'cloud.conflicts.removeName': 'Keinen Namen verwenden',
+  'cloud.conflicts.keepCurrent': 'Aktuelle Version behalten',
+  'cloud.conflicts.photoChanged':
+    'Dein Profilfoto wurde auf einem anderen Gerät geändert.',
+  'cloud.conflicts.otherPhoto': 'Profilfoto vom anderen Gerät',
+  'cloud.conflicts.usePhoto': 'Dieses Foto verwenden',
+  'cloud.conflicts.entriesEdited':
+    '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
+  'cloud.conflicts.showThem': 'Anzeigen',
+  'cloud.conflicts.otherVersionsTitle': 'Andere Versionen',
+  'cloud.conflicts.otherVersionsDescription':
+    'Diese Einträge wurden gleichzeitig auf zwei Geräten bearbeitet, deshalb wurden beide Versionen behalten. Öffne einen Eintrag, um ihn zu bearbeiten oder zu löschen.',
+  'cloud.conflicts.noOtherVersions': 'Keine Einträge haben eine andere Version.',
   'cloud.resetThisDeviceOnly': 'Nur dieses Gerät zurücksetzen',
   'cloud.resetThisDeviceOnly2': 'Nur dieses Gerät zurücksetzen?',
   'cloud.merge': 'Zusammenführen',

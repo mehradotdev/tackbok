@@ -180,3 +180,75 @@ test('production journal applies 10,000 entries atomically, skips unchanged writ
   await expect(store.applyMergedIfGeneration(invalid, 1)).rejects.toThrow();
   expect((await store.capture()).domain).toEqual(domain);
 });
+
+test('production journal keeps when this device first saw each conflict and dates initial-restore conflicts to the join', async () => {
+  const conflict = (id: string) => ({
+    conflictId: id.repeat(64),
+    entityType: 'profile' as const,
+    entityId: 'profile',
+    field: 'displayName' as const,
+    baseValueHash: null,
+    localValueHash: 'b'.repeat(64),
+    remoteValueHash: 'c'.repeat(64),
+    primaryValueHash: 'b'.repeat(64),
+    alternates: [{ valueHash: 'c'.repeat(64), value: 'Other' }],
+    recoveredEntityIds: [],
+  });
+  const domain: SnapshotDomain = {
+    entries: [],
+    tags: [],
+    entryTags: [],
+    prompts: [],
+    media: [],
+    tombstones: [],
+    conflicts: [conflict('1')],
+    profile: {
+      profileId: 'profile',
+      displayName: 'Mine',
+      photoAssetId: null,
+      updatedAt: 1,
+    },
+  };
+  db.insert(schema.cloudVault)
+    .values({
+      vault_id: 'joined',
+      provider_kind: 'google-drive',
+      device_id: 'device',
+      status: 'restoring',
+      created_at: 500,
+      updated_at: 500,
+    })
+    .run();
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'joined', device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('joined', 'device', {} as never);
+  const rows = () =>
+    db
+      .select()
+      .from(schema.cloudConflicts)
+      .where(eq(schema.cloudConflicts.vault_id, 'joined'))
+      .orderBy(schema.cloudConflicts.conflict_id)
+      .all();
+
+  // The initial restore brings conflicts that predate this device joining.
+  expect(await store.applyMergedIfGeneration(domain, 0)).toBe(true);
+  expect(rows().map((row) => row.created_at)).toEqual([500]);
+
+  db.update(schema.cloudConflicts).set({ acknowledged_at: 600 }).run();
+  db.update(schema.cloudVault).set({ status: 'idle' }).run();
+  const before = Date.now();
+  expect(
+    await store.applyMergedIfGeneration(
+      { ...domain, conflicts: [conflict('1'), conflict('2')] },
+      0,
+    ),
+  ).toBe(true);
+  const [old, added] = rows();
+  expect(old).toMatchObject({ created_at: 500, acknowledged_at: 600 });
+  expect(added.acknowledged_at).toBeNull();
+  expect(added.created_at).toBeGreaterThanOrEqual(before);
+  sqlite.exec(
+    'DELETE FROM cloud_conflicts; DELETE FROM cloud_vault; DELETE FROM user_profile',
+  );
+});
