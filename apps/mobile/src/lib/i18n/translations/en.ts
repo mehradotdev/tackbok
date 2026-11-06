@@ -784,6 +784,11 @@ export const en = {
   'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
     'Removing the cloud backup and journal data. Keep Tackbok open.',
   'cloud.disconnect': 'Disconnect',
+  'cloud.disconnecting': 'Disconnecting…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    'Disconnected. Your journal stays on this phone and your backup stays in your Google Drive.',
+  'cloud.couldNotDisconnectTryAgain': "Couldn't disconnect. Try again.",
+  'cloud.pausing': 'Pausing…',
   'cloud.disconnectProvider': 'Disconnect {provider}',
   'cloud.disconnectProviderFromThisDevice': 'Disconnect {provider} from this device?',
   'cloud.disconnectThenDeleteLocalJournalDataOnly':

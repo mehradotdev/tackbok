@@ -765,6 +765,11 @@ export const ar: Translations = {
   'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
     'جارٍ حذف النسخة الاحتياطية السحابية وبيانات اليوميات. أبقِ Tackbok مفتوحًا.',
   'cloud.disconnect': 'قطع الاتصال',
+  'cloud.disconnecting': 'جارٍ قطع الاتصال…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    'تم قطع الاتصال. يبقى دفتر اليوميات على هذا الهاتف وتبقى نسختك الاحتياطية في Google Drive.',
+  'cloud.couldNotDisconnectTryAgain': 'تعذر قطع الاتصال. حاول مرة أخرى.',
+  'cloud.pausing': 'جارٍ الإيقاف المؤقت…',
   'cloud.disconnectProvider': 'قطع الاتصال بـ {provider}',
   'cloud.disconnectProviderFromThisDevice': 'هل تريد قطع اتصال {provider} بهذا الجهاز؟',
   'cloud.disconnectThenDeleteLocalJournalDataOnly':

@@ -51,6 +51,7 @@ import {
   type PreparedGoogleConnection,
 } from '~/lib/cloudSync/ui';
 import { SnapshotProviderError } from '~/lib/cloudSync/snapshot/sync';
+import { SyncCancelledError } from '~/lib/cloudSync/snapshot/sync/errors';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { SpinningRefreshIcon } from '~/components/ui/spinning-refresh-icon';
@@ -84,6 +85,7 @@ import {
 type SetupStage = 'overview' | 'disclosure' | 'authorizing' | 'choose' | 'working';
 type DataAction = 'delete-backup' | 'delete-journal' | 'reset-device';
 type DestructiveAction = 'disconnect' | 'finish-journal-deletion' | DataAction;
+type ConnectionAction = 'disconnect' | 'pause' | 'resume';
 
 export default function CloudBackupScreen() {
   const router = useRouter();
@@ -114,6 +116,10 @@ export default function CloudBackupScreen() {
   const conflictRefreshSequenceRef = useRef(0);
   const actionRunningRef = useRef(false);
   const [actionRunning, setActionRunning] = useState(false);
+  // Disconnect and Pause may interrupt a running Sync now, so they have their
+  // own guard. They wait until the running pass has stopped.
+  const connectionActionRef = useRef(false);
+  const [connectionAction, setConnectionAction] = useState<ConnectionAction | null>(null);
   const [destructiveAction, setDestructiveAction] = useState<DestructiveAction | null>(
     null,
   );
@@ -221,7 +227,7 @@ export default function CloudBackupScreen() {
 
   const runAction = useCallback(
     async (action: () => Promise<unknown>, success: string) => {
-      if (actionRunningRef.current) return;
+      if (actionRunningRef.current || connectionActionRef.current) return;
       actionRunningRef.current = true;
       setActionRunning(true);
       try {
@@ -230,6 +236,8 @@ export default function CloudBackupScreen() {
         await refresh();
         toast.success(success);
       } catch (error) {
+        // Pause or Disconnect stopped this pass and reports its own outcome.
+        if (error instanceof SyncCancelledError) return;
         toast.error(
           error instanceof CloudSyncActionError
             ? cloudSyncFailureMessage(error.category, t)
@@ -238,6 +246,40 @@ export default function CloudBackupScreen() {
       } finally {
         actionRunningRef.current = false;
         if (mountedRef.current) setActionRunning(false);
+      }
+    },
+    [refresh, t],
+  );
+
+  const runConnectionAction = useCallback(
+    async (
+      kind: ConnectionAction,
+      action: () => Promise<unknown>,
+      success: string,
+      failure?: string,
+    ) => {
+      if (connectionActionRef.current) return;
+      connectionActionRef.current = true;
+      setConnectionAction(kind);
+      if (kind === 'disconnect') {
+        AccessibilityInfo.announceForAccessibility(t('cloud.disconnecting'));
+      } else if (kind === 'pause') {
+        AccessibilityInfo.announceForAccessibility(t('cloud.pausing'));
+      }
+      try {
+        await action();
+        await refresh();
+        toast.success(success);
+      } catch (error) {
+        toast.error(
+          failure ??
+            (error instanceof CloudSyncActionError
+              ? cloudSyncFailureMessage(error.category, t)
+              : t('cloud.cloudBackupCouldNotBeUpdated')),
+        );
+      } finally {
+        connectionActionRef.current = false;
+        if (mountedRef.current) setConnectionAction(null);
       }
     },
     [refresh, t],
@@ -345,11 +387,17 @@ export default function CloudBackupScreen() {
     async (action: DestructiveAction | null) => {
       setDestructiveAction(null);
       if (!action) return;
+      if (action === 'disconnect') {
+        await runConnectionAction(
+          'disconnect',
+          disconnectGoogleDrive,
+          t('cloud.disconnectedYourJournalStaysOnThisPhone'),
+          t('cloud.couldNotDisconnectTryAgain'),
+        );
+        return;
+      }
       try {
-        if (action === 'disconnect') {
-          await disconnectGoogleDrive();
-          toast.success(t('cloud.googleDriveDisconnectedOnThisDevice'));
-        } else if (action === 'delete-backup') {
+        if (action === 'delete-backup') {
           await revokeCloudVault('backup-deleted');
           toast.success(t('cloud.cloudBackupDeleted'));
         } else if (action === 'delete-journal') {
@@ -368,7 +416,7 @@ export default function CloudBackupScreen() {
         toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
       }
     },
-    [clearLocalPresentation, completeJournalDeletion, refresh, t],
+    [clearLocalPresentation, completeJournalDeletion, refresh, runConnectionAction, t],
   );
 
   const handleChooseDataAction = useCallback(async (action: DataAction) => {
@@ -523,10 +571,10 @@ export default function CloudBackupScreen() {
                     </Text>
                     <Button
                       variant="outline"
-                      disabled={actionRunning}
+                      disabled={actionRunning || connectionAction !== null}
                       accessibilityState={{
                         busy: actionRunning,
-                        disabled: actionRunning,
+                        disabled: actionRunning || connectionAction !== null,
                       }}
                       onPress={() => void handleRecoveryAction()}
                       accessibilityLabel={recoveryActionLabel(
@@ -558,6 +606,7 @@ export default function CloudBackupScreen() {
                   size="lg"
                   disabled={
                     actionRunning ||
+                    connectionAction !== null ||
                     snapshot.status === 'syncing' ||
                     snapshot.status === 'paused' ||
                     snapshot.status === 'warning'
@@ -600,25 +649,41 @@ export default function CloudBackupScreen() {
                 <SettingsRow
                   icon={CloudOff}
                   label={t('cloud.pauseSync')}
-                  description={t('cloud.editsRemainSafelyQueuedOnThisDevice')}
-                  onPress={() =>
-                    void runAction(
-                      () => setCloudSyncPaused(snapshot.status !== 'paused'),
-                      snapshot.status !== 'paused'
-                        ? t('cloud.syncPaused')
-                        : t('cloud.syncResumed'),
-                    )
+                  description={
+                    connectionAction === 'pause'
+                      ? t('cloud.pausing')
+                      : t('cloud.editsRemainSafelyQueuedOnThisDevice')
                   }
+                  disabled={connectionAction !== null}
+                  onPress={() => {
+                    // The switch follows the stored state, not this tap: a
+                    // running pass may still be stopping.
+                    const pause = snapshot.status !== 'paused';
+                    void runConnectionAction(
+                      pause ? 'pause' : 'resume',
+                      () => setCloudSyncPaused(pause),
+                      pause ? t('cloud.syncPaused') : t('cloud.syncResumed'),
+                    );
+                  }}
                   role="switch"
                   accessibilityLabel={t('cloud.pauseSync')}
                   accessibilityHint={t('cloud.editsRemainSafelyQueuedOnThisDevice')}
-                  accessibilityState={{ checked: snapshot.status === 'paused' }}
+                  accessibilityState={{
+                    checked: snapshot.status === 'paused',
+                    busy: connectionAction === 'pause' || connectionAction === 'resume',
+                    disabled: connectionAction !== null,
+                  }}
                   className="rounded-none px-4"
                   rightElement={
                     <View
+                      className="flex-row items-center gap-2"
                       pointerEvents="none"
                       accessible={false}
                       importantForAccessibility="no-hide-descendants">
+                      {(connectionAction === 'pause' ||
+                        connectionAction === 'resume') && (
+                        <ActivityIndicator size="small" colorClassName="accent-primary" />
+                      )}
                       <Switch checked={snapshot.status === 'paused'} />
                     </View>
                   }
@@ -658,11 +723,29 @@ export default function CloudBackupScreen() {
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow
                   icon={Unplug}
-                  label={disconnectLabel}
+                  label={
+                    connectionAction === 'disconnect'
+                      ? t('cloud.disconnecting')
+                      : disconnectLabel
+                  }
                   description={t('cloud.keepLocalDataAndTheCloudCopy')}
+                  disabled={connectionAction !== null}
                   onPress={() => setDestructiveAction('disconnect')}
-                  accessibilityLabel={disconnectLabel}
+                  accessibilityLabel={
+                    connectionAction === 'disconnect'
+                      ? t('cloud.disconnecting')
+                      : disconnectLabel
+                  }
                   accessibilityHint={t('cloud.keepLocalDataAndTheCloudCopy')}
+                  accessibilityState={{
+                    busy: connectionAction === 'disconnect',
+                    disabled: connectionAction !== null,
+                  }}
+                  rightElement={
+                    connectionAction === 'disconnect' ? (
+                      <ActivityIndicator size="small" colorClassName="accent-primary" />
+                    ) : undefined
+                  }
                   className="rounded-none px-4"
                   isLast
                 />

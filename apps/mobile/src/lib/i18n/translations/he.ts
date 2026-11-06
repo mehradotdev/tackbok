@@ -759,6 +759,11 @@ export const he: Translations = {
   'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
     'הגיבוי בענן ונתוני היומן נמחקים. יש להשאיר את Tackbok פתוח.',
   'cloud.disconnect': 'ניתוק',
+  'cloud.disconnecting': 'מתבצע ניתוק…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    'החיבור נותק. היומן נשאר בטלפון הזה והגיבוי נשאר ב-Google Drive שלך.',
+  'cloud.couldNotDisconnectTryAgain': 'לא ניתן לנתק. אפשר לנסות שוב.',
+  'cloud.pausing': 'מתבצעת השהיה…',
   'cloud.disconnectProvider': 'ניתוק {provider}',
   'cloud.disconnectProviderFromThisDevice': 'לנתק את {provider} מהמכשיר הזה?',
   'cloud.disconnectThenDeleteLocalJournalDataOnly':

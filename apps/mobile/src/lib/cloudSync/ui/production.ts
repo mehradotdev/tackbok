@@ -49,6 +49,7 @@ import {
   type SyncAttentionReason,
   type SyncRecoveryAction,
 } from '../snapshot/sync';
+import { SyncCancelledError } from '../snapshot/sync/errors';
 import {
   getProductionCloudSyncActivity,
   getProductionCloudSyncFailureCategory,
@@ -475,9 +476,15 @@ async function setCloudSyncPausedImpl(paused: boolean): Promise<void> {
   notifyProductionCloudSyncChanged();
 }
 
+/**
+ * Runs a manual pass. Throws SyncCancelledError when Pause, Disconnect or another
+ * connection change stopped it, so callers can tell that apart from a failure.
+ */
 export async function syncNow(): Promise<boolean> {
+  const epoch = cloudConnectionLifecycle.epoch;
   const passed = await runProductionManualSync();
   if (!passed) {
+    if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
     throw new CloudSyncActionError(getProductionCloudSyncFailureCategory() ?? 'unknown');
   }
   return true;

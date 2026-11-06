@@ -722,6 +722,11 @@ export const sv = {
   'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
     'Tar bort molnsäkerhetskopian och dagboksdata. Håll Tackbok öppen.',
   'cloud.disconnect': 'Koppla från',
+  'cloud.disconnecting': 'Kopplar från…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    'Frånkopplad. Din dagbok finns kvar på den här telefonen och din säkerhetskopia finns kvar på din Google Drive.',
+  'cloud.couldNotDisconnectTryAgain': 'Det gick inte att koppla från. Försök igen.',
+  'cloud.pausing': 'Pausar…',
   'cloud.disconnectProvider': 'Koppla bort {provider}',
   'cloud.disconnectProviderFromThisDevice':
     'Koppla bort {provider} från den här enheten?',
