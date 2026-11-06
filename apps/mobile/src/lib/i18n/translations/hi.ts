@@ -671,7 +671,7 @@ export const hi = {
   'dateFormat.timeLabel': '{weekday} पर {time}',
   'cloud.attentionNeeded': 'ध्यान देने की जरूरत है',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'अपने जर्नल का बैकअप लें और उसे अपने Google Drive के साथ सिंक करें। कोई ताकबूक खाता नहीं बनाया गया है.',
+    'अपनी डायरी का बैकअप लें और उसे अपने Google Drive के साथ सिंक करें। यह सीधे आपके फ़ोन से आपके Drive में जाती है। ताकबूक का डेवलपर इसे कभी नहीं देखता।',
   'cloud.backupFromDate': '{date} से बैकअप',
   'cloud.beforeYouConnect': 'इससे पहले कि आप कनेक्ट करें',
   'cloud.checkingGoogleDriveForChanges': 'परिवर्तनों के लिए Google Drive की जाँच की जा रही है',
@@ -688,7 +688,7 @@ export const hi = {
   'cloud.cloudBackupDeletionReceived': 'क्लाउड बैकअप विलोपन प्राप्त हुआ',
   'cloud.cloudBackupNumber': 'क्लाउड बैकअप {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'बैकअप ट्रांज़िट में और आराम के दौरान Google Drive द्वारा एन्क्रिप्ट किए जाते हैं, लेकिन एंड-टू-एंड एन्क्रिप्टेड नहीं होते हैं।',
+    'आपका बैकअप आपके Google Drive में ताकबूक के एक निजी फ़ोल्डर में रखा जाता है। ताकबूक आपकी दूसरी Drive फ़ाइलें नहीं देख सकता, और आपका बैकअप कभी भी ताकबूक के डेवलपर को नहीं भेजा जाता। Google इसे आपकी दूसरी फ़ाइलों की तरह सुरक्षित रखता है, लेकिन यह एंड-टू-एंड एन्क्रिप्टेड नहीं है।',
   'cloud.cloudRestoreStarted': 'क्लाउड पुनर्स्थापन प्रारंभ हुआ',
   'cloud.cloudSyncAttentionNeeded': 'क्लाउड सिंक: ध्यान देने की आवश्यकता',
   'cloud.cloudSyncChangesSafelyQueued': 'क्लाउड सिंक: परिवर्तन सुरक्षित रूप से कतारबद्ध',
@@ -731,7 +731,7 @@ export const hi = {
   'cloud.googleDriveStorageIsFull': 'Google Drive स्टोरेज भर गया है.',
   'cloud.googleDriveStatus': 'Google Drive - {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'यदि Google ड्राइव एक्सेस चेकबॉक्स दिखाता है, तो उसे चुनें। इस अनुमति के बिना बैकअप कनेक्ट नहीं हो सकता.',
+    'Google आपसे ताकबूक को आपके Drive में उसका अपना निजी फ़ोल्डर इस्तेमाल करने की अनुमति माँग सकता है। इसकी अनुमति दें, नहीं तो बैकअप कनेक्ट नहीं हो पाएगा।',
   'cloud.journalDeletionReceived': 'डायरी हटाने का अनुरोध प्राप्त हुआ',
   'cloud.journalTextStillSyncsOnMobileData':
     'डायरी का टेक्स्ट अभी भी मोबाइल डेटा पर सिंक होता है।',
@@ -766,7 +766,7 @@ export const hi = {
   'cloud.resetThisDeviceOnly2': 'केवल इस डिवाइस को रीसेट करें?',
   'cloud.merge': 'मर्ज',
   'cloud.restoreCloudBackup': 'क्लाउड बैकअप पुनर्स्थापित करें',
-  'cloud.restoreFromYourCloudBackup': 'अपने क्लाउड बैकअप से पुनर्स्थापित करें',
+  'cloud.restoreFromYourCloudBackup': 'अपने Google Drive बैकअप से पुनर्स्थापित करें',
   'cloud.restoring': 'पुनर्स्थापित किया जा रहा है...',
   'cloud.safelyQueued': 'सुरक्षित रूप से कतारबद्ध',
   'cloud.savingSyncedJournalDataOnThisDevice':
@@ -799,7 +799,7 @@ export const hi = {
     'क्लाउड से हटाना पहले ही दर्ज किया जा चुका है। इस डिवाइस से शेष डायरी डेटा मिटा दें।',
   'cloud.finishDeletion': 'विलोपन समाप्त करें',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'कनेक्टेड खाते की पहचान करने के लिए आपका Google ईमेल इस डिवाइस पर सुरक्षित रूप से संग्रहीत किया जाता है, और डिस्कनेक्ट होने पर हटा दिया जाता है। इसे बैकअप, लॉग, डायग्नोस्टिक्स या एनालिटिक्स में कभी भी शामिल नहीं किया जाता है।',
+    'आपका Google ईमेल सिर्फ़ इसी फ़ोन पर रखा जाता है, ताकि दिखाया जा सके कि कौन-सा खाता जुड़ा है। डिस्कनेक्ट करने पर इसे हटा दिया जाता है और यह कभी भी ताकबूक के डेवलपर को नहीं भेजा जाता।',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'यह डिवाइस पहले डिस्कनेक्ट करता है, फिर अपनी स्थानीय डायरी हटा देता है। क्लाउड बैकअप और अन्य डिवाइस बने रहते हैं।',
   'cloud.thisDeviceWasReset': 'यह डिवाइस रीसेट कर दिया गया था',
@@ -811,7 +811,7 @@ export const hi = {
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'आप इस स्क्रीन को छोड़ सकते हैं; ताकबूक सक्रिय होने पर सिंकिंग फिर से शुरू हो जाती है।',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'आपकी डायरी आपके डिवाइस पर रहती है। क्लाउड बैकअप वैकल्पिक है।',
+    'आपकी डायरी आपके फ़ोन पर ही रहती है। अगर आप बैकअप चालू करते हैं, तो उसकी एक कॉपी सिर्फ़ आपके अपने Google Drive में जाती है।',
   'cloud.countChangesSafelyQueued': '{count} परिवर्तन सुरक्षित रूप से कतारबद्ध हैं',
   'cloud.countChangesRemaining': '{count} परिवर्तन शेष',
   'cloud.googleDriveAuthorizationNeedsAttention':

@@ -747,7 +747,7 @@ export const en = {
   // Cloud Backup & Sync
   'cloud.attentionNeeded': 'Attention needed',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'Back up and sync your journal with your own Google Drive. No Tackbok account is created.',
+    "Back up and sync your journal with your own Google Drive. It goes straight from your phone to your Drive. Tackbok's developer never sees it.",
   'cloud.backupFromDate': 'Backup from {date}',
   'cloud.beforeYouConnect': 'Before you connect',
   'cloud.checkingGoogleDriveForChanges': 'Checking Google Drive for changes',
@@ -764,7 +764,7 @@ export const en = {
   'cloud.cloudBackupDeletionReceived': 'Cloud backup deletion received',
   'cloud.cloudBackupNumber': 'Cloud backup {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Backups are encrypted in transit and at rest by Google Drive, but are not end-to-end encrypted.',
+    "Your backup is stored in a private Tackbok folder in your Google Drive. Tackbok can't see your other Drive files, and your backup is never sent to Tackbok's developer. Google protects it like your other files, but it isn't end-to-end encrypted.",
   'cloud.cloudRestoreStarted': 'Cloud restore started',
   'cloud.cloudSyncAttentionNeeded': 'Cloud sync: attention needed',
   'cloud.cloudSyncChangesSafelyQueued': 'Cloud sync: changes safely queued',
@@ -808,7 +808,7 @@ export const en = {
   'cloud.googleDriveStorageIsFull': 'Google Drive storage is full.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'If Google shows a Drive access checkbox, select it. Backup cannot connect without this permission.',
+    "Google may ask to let Tackbok use its own private folder in your Drive. Allow it, or backup can't connect.",
   'cloud.journalDeletionReceived': 'Journal deletion received',
   'cloud.journalTextStillSyncsOnMobileData': 'Journal text still syncs on mobile data.',
   'cloud.keepLocalDataAndTheCloudCopy': 'Keep local data and the cloud copy',
@@ -841,7 +841,7 @@ export const en = {
   'cloud.resetThisDeviceOnly2': 'Reset this device only?',
   'cloud.merge': 'Merge',
   'cloud.restoreCloudBackup': 'Restore cloud backup',
-  'cloud.restoreFromYourCloudBackup': 'Restore from your cloud backup',
+  'cloud.restoreFromYourCloudBackup': 'Restore from your Google Drive backup',
   'cloud.restoring': 'Restoring…',
   'cloud.safelyQueued': 'Safely queued',
   'cloud.savingSyncedJournalDataOnThisDevice':
@@ -874,7 +874,7 @@ export const en = {
     'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
   'cloud.finishDeletion': 'Finish deletion',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'Your Google email is stored securely on this device to identify the connected account, and deleted on Disconnect. It is never included in backups, logs, diagnostics, or analytics.',
+    "Your Google email is kept only on this phone, to show which account is connected. It's removed when you disconnect and is never sent to Tackbok's developer.",
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
   'cloud.thisDeviceWasReset': 'This device was reset',
@@ -886,7 +886,7 @@ export const en = {
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'You can leave this screen; syncing resumes when Tackbok is active.',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'Your journal stays on your device. Cloud backup is optional.',
+    'Your journal stays on your phone. If you turn on backup, a copy goes only to your own Google Drive.',
   'cloud.countChangesSafelyQueued': '{count} changes safely queued',
   'cloud.countChangesRemaining': '{count} changes remaining',
   'cloud.googleDriveAuthorizationNeedsAttention':

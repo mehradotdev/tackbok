@@ -701,7 +701,7 @@ export const es = {
   'dateFormat.timeLabel': '{weekday} y {time}',
   'cloud.attentionNeeded': 'Atención necesaria',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'Haga una copia de seguridad y sincronice su diario con su propio Google Drive. No se crea ninguna cuenta Tackbok.',
+    'Haz una copia de seguridad de tu diario y sincronízalo con tu propio Google Drive. Va directamente de tu teléfono a tu Drive. El desarrollador de Tackbok nunca lo ve.',
   'cloud.backupFromDate': 'Copia de seguridad de {date}',
   'cloud.beforeYouConnect': 'Antes de conectarte',
   'cloud.checkingGoogleDriveForChanges': 'Comprobando Google Drive para detectar cambios',
@@ -720,7 +720,7 @@ export const es = {
     'Se recibió la eliminación de la copia de seguridad en la nube',
   'cloud.cloudBackupNumber': 'Copia de seguridad en la nube {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Las copias de seguridad están cifradas en tránsito y en reposo mediante Google Drive, pero no están cifradas de un extremo a otro.',
+    'Tu copia de seguridad se guarda en una carpeta privada de Tackbok en tu Google Drive. Tackbok no puede ver tus otros archivos de Drive, y tu copia nunca se envía al desarrollador de Tackbok. Google la protege como a tus otros archivos, pero no tiene cifrado de extremo a extremo.',
   'cloud.cloudRestoreStarted': 'Restauración en la nube iniciada',
   'cloud.cloudSyncAttentionNeeded': 'Sincronización en la nube: se necesita atención',
   'cloud.cloudSyncChangesSafelyQueued':
@@ -768,7 +768,7 @@ export const es = {
   'cloud.googleDriveStorageIsFull': 'El almacenamiento Google Drive está lleno.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'Si Google muestra una casilla de verificación de acceso a Drive, selecciónela. La copia de seguridad no puede conectarse sin este permiso.',
+    'Es posible que Google te pida permitir que Tackbok use su propia carpeta privada en tu Drive. Permítelo o la copia de seguridad no podrá conectarse.',
   'cloud.journalDeletionReceived': 'Eliminación de diario recibida',
   'cloud.journalTextStillSyncsOnMobileData':
     'El texto del diario aún se sincroniza con los datos móviles.',
@@ -805,7 +805,8 @@ export const es = {
   'cloud.resetThisDeviceOnly2': '¿Restablecer solo este dispositivo?',
   'cloud.merge': 'Unir',
   'cloud.restoreCloudBackup': 'Restaurar copia de seguridad en la nube',
-  'cloud.restoreFromYourCloudBackup': 'Restaura desde tu copia de seguridad en la nube',
+  'cloud.restoreFromYourCloudBackup':
+    'Restaura desde tu copia de seguridad de Google Drive',
   'cloud.restoring': 'Restaurando…',
   'cloud.safelyQueued': 'En cola de forma segura',
   'cloud.savingSyncedJournalDataOnThisDevice':
@@ -838,7 +839,7 @@ export const es = {
     'La eliminación de la nube ya está registrada. Borre los datos restantes del diario de este dispositivo.',
   'cloud.finishDeletion': 'Finalizar eliminación',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'Su correo electrónico de Google se almacena de forma segura en este dispositivo para identificar la cuenta conectada y se elimina al desconectarse. Nunca se incluye en copias de seguridad, registros, diagnósticos o análisis.',
+    'Tu correo de Google se guarda solo en este teléfono, para mostrar qué cuenta está conectada. Se elimina al desconectar y nunca se envía al desarrollador de Tackbok.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'Este dispositivo se desconecta primero y luego elimina su diario local. La copia de seguridad en la nube y otros dispositivos permanecen.',
   'cloud.thisDeviceWasReset': 'Este dispositivo fue reiniciado',
@@ -850,7 +851,7 @@ export const es = {
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'Puedes salir de esta pantalla; la sincronización se reanuda cuando Tackbok está activo.',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'Su diario permanece en su dispositivo. La copia de seguridad en la nube es opcional.',
+    'Tu diario se queda en tu teléfono. Si activas la copia de seguridad, una copia va solo a tu propio Google Drive.',
   'cloud.countChangesSafelyQueued': 'Cambios {count} en cola de forma segura',
   'cloud.countChangesRemaining': '{count} cambios restantes',
   'cloud.googleDriveAuthorizationNeedsAttention':
