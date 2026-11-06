@@ -12,6 +12,7 @@ const EMPTY_SNAPSHOT: CloudSyncSnapshot = {
   activityPhase: null,
   initialRestore: false,
   queuedCount: 0,
+  pendingDownloadCount: 0,
   conflictCount: 0,
   lastSuccessAt: null,
   lastVerifiedAt: null,
