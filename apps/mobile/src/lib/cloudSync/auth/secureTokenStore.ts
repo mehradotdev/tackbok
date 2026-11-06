@@ -149,32 +149,54 @@ export async function isGoogleMarkedConnected(): Promise<boolean> {
   return (await SecureStore.getItemAsync(CONNECTED_KEY)) === '1';
 }
 
+const CREDENTIAL_KEYS = [CONNECTION_ID_KEY, ACCOUNT_EMAIL_KEY, TOKEN_KEY, CONNECTED_KEY];
+
+/** The stored Google credentials at one moment; held in memory only. */
+export interface GoogleCredentialSnapshot {
+  readonly values: readonly (string | null)[];
+}
+
+export async function captureGoogleCredentials(): Promise<GoogleCredentialSnapshot> {
+  return {
+    values: await Promise.all(
+      CREDENTIAL_KEYS.map((key) => SecureStore.getItemAsync(key)),
+    ),
+  };
+}
+
+/** Signs out, then puts back exactly the captured credentials (absent keys stay absent). */
+export async function restoreGoogleCredentials(
+  snapshot: GoogleCredentialSnapshot,
+  signOut: () => Promise<void>,
+): Promise<void> {
+  await signOut().catch(() => undefined);
+  try {
+    // Restore the Android admission mark last; never expose a partially restored account.
+    await clearGoogleConnectedMark();
+    for (let index = 0; index < CREDENTIAL_KEYS.length; index++) {
+      const value = snapshot.values[index];
+      if (value === null) await SecureStore.deleteItemAsync(CREDENTIAL_KEYS[index]);
+      else
+        await SecureStore.setItemAsync(CREDENTIAL_KEYS[index], value, {
+          keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+        });
+    }
+  } catch {
+    // A failed secure-storage write must not leave mixed-account credentials.
+    await Promise.allSettled([clearGoogleConnectedMark(), clearGoogleTokens()]);
+  }
+}
+
 /** Reconnect runs under the connection barrier; the rollback stays in memory only. */
 export async function withGoogleCredentialRollback<T>(
   operation: () => Promise<T>,
   signOut: () => Promise<void>,
 ): Promise<T> {
-  const keys = [CONNECTION_ID_KEY, ACCOUNT_EMAIL_KEY, TOKEN_KEY, CONNECTED_KEY];
-  const previous = await Promise.all(keys.map((key) => SecureStore.getItemAsync(key)));
+  const previous = await captureGoogleCredentials();
   try {
     return await operation();
   } catch (error) {
-    await signOut().catch(() => undefined);
-    try {
-      // Restore the Android admission mark last; never expose a partially restored account.
-      await clearGoogleConnectedMark();
-      for (let index = 0; index < keys.length; index++) {
-        const value = previous[index];
-        if (value === null) await SecureStore.deleteItemAsync(keys[index]);
-        else
-          await SecureStore.setItemAsync(keys[index], value, {
-            keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-          });
-      }
-    } catch {
-      // A failed secure-storage write must not leave mixed-account credentials.
-      await Promise.allSettled([clearGoogleConnectedMark(), clearGoogleTokens()]);
-    }
+    await restoreGoogleCredentials(previous, signOut);
     throw error;
   }
 }

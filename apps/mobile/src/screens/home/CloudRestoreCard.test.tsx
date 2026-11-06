@@ -41,6 +41,11 @@ jest.mock('~/lib/i18n', () => ({
       mockTranslate('en', key, params),
   }),
 }));
+const journalRestored: CloudRestoreMarker = {
+  vaultId: 'vault-a',
+  startedAt: 1,
+  journalRestoredAt: 2,
+};
 const mockSettings: {
   cloudRestore: CloudRestoreMarker | null;
   cloudSyncWifiOnlyMedia: boolean;
@@ -110,6 +115,7 @@ test('shows the journal restore with a link to Cloud backup, never asking to sta
 });
 
 test('counts downloaded attachments once the journal is ready', () => {
+  mockSettings.cloudRestore = journalRestored;
   mockSnapshot = {
     ...restoring,
     status: 'queued',
@@ -119,11 +125,12 @@ test('counts downloaded attachments once the journal is ready', () => {
   };
   render();
   expect(content()).toContain(
-    'Your journal is ready. Downloading photos and voice notes: 37 of 300.',
+    'Your journal is ready. Photos and voice notes on this device: 37 of 300.',
   );
 });
 
 test('says when attachments wait for Wi-Fi or the restore is paused offline', () => {
+  mockSettings.cloudRestore = journalRestored;
   mockSnapshot = { ...restoring, initialRestore: false, pendingDownloadCount: 12 };
   mockSettings.cloudSyncWifiOnlyMedia = true;
   mockNetwork = { isConnected: true, type: 'CELLULAR' };
@@ -146,6 +153,7 @@ test('keeps a failure visible on the card instead of a success toast', () => {
 });
 
 test('announces completion once and stops tracking the restore', () => {
+  mockSettings.cloudRestore = journalRestored;
   mockSnapshot = {
     ...restoring,
     status: 'synced',
@@ -159,6 +167,15 @@ test('announces completion once and stops tracking the restore', () => {
   expect(mockSettings.setCloudRestore).toHaveBeenCalledWith(null);
   act(() => root.update(<CloudRestoreCard />));
   expect(mockToastSuccess).toHaveBeenCalledTimes(1);
+});
+
+test('a restore resumed before its journal arrived keeps showing the journal step', () => {
+  // Pause and Resume replace `restoring`, so the snapshot alone looks finished.
+  mockSnapshot = { ...restoring, status: 'synced', initialRestore: false };
+  render();
+  expect(content()).toContain(mockEn['cloud.restoringYourJournalFromGoogleDrive']);
+  expect(mockToastSuccess).not.toHaveBeenCalled();
+  expect(mockSettings.setCloudRestore).not.toHaveBeenCalled();
 });
 
 test('shows nothing when no restore is tracked', () => {

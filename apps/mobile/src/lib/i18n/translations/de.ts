@@ -807,7 +807,7 @@ export const de: Translations = {
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'Du kannst Tackbok während der Wiederherstellung weiter nutzen.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
-    'Dein Tagebuch ist bereit. Fotos und Sprachnotizen werden heruntergeladen: {downloaded} von {total}.',
+    'Dein Tagebuch ist bereit. Fotos und Sprachnotizen auf diesem Gerät: {downloaded} von {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
     'Fotos und Sprachnotizen, die auf WLAN warten: {number}',
   'cloud.viewCloudBackup': 'Cloud-Sicherung ansehen',

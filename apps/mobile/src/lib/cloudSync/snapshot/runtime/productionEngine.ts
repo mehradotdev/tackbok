@@ -309,6 +309,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         updated_at: now,
       })
       .where(eq(cloudVault.vault_id, this.vault.vault_id));
+    // This pass applied the backup's journal, which a restore waits for.
+    useSettingsStore.getState().markCloudRestoreJournalRestored(this.vault.vault_id);
     await reapRetainedMedia();
 
     const conflicts = await db

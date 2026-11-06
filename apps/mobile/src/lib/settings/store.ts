@@ -34,6 +34,12 @@ const INITIAL_DEVICE_THEME_ID = Appearance.getColorScheme() === 'dark' ? 'dark' 
 export interface CloudRestoreMarker {
   vaultId: string;
   startedAt: number;
+  /**
+   * When a sync pass for this backup first finished applying the journal. Pause,
+   * resume and reconnect change the backup's status, so only this proves the
+   * journal arrived.
+   */
+  journalRestoredAt?: number;
 }
 
 interface SettingsState {
@@ -115,6 +121,7 @@ interface SettingsState {
   setAppLockDelaySeconds: (seconds: AppLockDelaySeconds) => void;
   setCloudSyncWifiOnlyMedia: (enabled: boolean) => void;
   setCloudRestore: (restore: CloudRestoreMarker | null) => void;
+  markCloudRestoreJournalRestored: (vaultId: string) => void;
   setAnalyticsEnabled: (enabled: boolean) => void;
   setLastUpdateCheckAt: (checkedAt: string) => void;
   setCustomWorksheetTemplate: (template: string | null) => void;
@@ -218,6 +225,12 @@ export const useSettingsStore = create<SettingsState>()(
         set({ appLockDelaySeconds: normalizeAppLockDelay(seconds) }),
       setCloudSyncWifiOnlyMedia: (enabled) => set({ cloudSyncWifiOnlyMedia: enabled }),
       setCloudRestore: (restore) => set({ cloudRestore: restore }),
+      markCloudRestoreJournalRestored: (vaultId) =>
+        set((state) =>
+          state.cloudRestore?.vaultId === vaultId && !state.cloudRestore.journalRestoredAt
+            ? { cloudRestore: { ...state.cloudRestore, journalRestoredAt: Date.now() } }
+            : {},
+        ),
       setAnalyticsEnabled: (enabled) => set({ analyticsEnabled: enabled }),
       setLastUpdateCheckAt: (checkedAt) => set({ lastUpdateCheckAt: checkedAt }),
       setCustomWorksheetTemplate: (template) =>

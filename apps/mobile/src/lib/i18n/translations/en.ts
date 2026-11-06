@@ -772,7 +772,7 @@ export const en = {
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'You can keep using Tackbok while it restores.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
-    'Your journal is ready. Downloading photos and voice notes: {downloaded} of {total}.',
+    'Your journal is ready. Photos and voice notes on this device: {downloaded} of {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
     'Photos and voice notes waiting for Wi-Fi: {number}',
   'cloud.viewCloudBackup': 'View cloud backup',

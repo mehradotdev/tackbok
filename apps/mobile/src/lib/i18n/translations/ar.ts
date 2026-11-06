@@ -752,7 +752,7 @@ export const ar: Translations = {
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'يمكنك مواصلة استخدام Tackbok أثناء الاستعادة.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
-    'دفتر اليوميات جاهز. جارٍ تنزيل الصور والملاحظات الصوتية: {downloaded} من {total}.',
+    'دفتر اليوميات جاهز. الصور والملاحظات الصوتية على هذا الجهاز: {downloaded} من {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
     'صور وملاحظات صوتية بانتظار شبكة Wi-Fi: {number}',
   'cloud.viewCloudBackup': 'عرض النسخة الاحتياطية السحابية',

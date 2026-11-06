@@ -116,13 +116,11 @@ export default function OnboardingFinishScreen() {
     if (isFinishing || dbIsEmpty === null) return;
     setIsFinishing(true);
     try {
-      // Check again right before seeding: a restore may have been committed
-      // since this screen loaded. If the check fails, skip the samples.
-      const restoring = await isCloudRestoreInProgress().catch(() => true);
-      if (dbIsEmpty && addSampleEntries && !restoring) {
+      if (dbIsEmpty && addSampleEntries) {
         try {
           // seedSampleEntries tracks the seeded ids in the settings store
-          // itself (even on partial failure, so the banner can clean up).
+          // itself. It seeds nothing if a restore was committed since this
+          // screen loaded, checked in the same transaction as its writes.
           await seedSampleEntries(t);
         } catch (error) {
           // Non-fatal: finish onboarding with an empty timeline instead.

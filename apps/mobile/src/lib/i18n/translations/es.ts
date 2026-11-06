@@ -728,7 +728,7 @@ export const es = {
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'Puedes seguir usando Tackbok mientras se restaura.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
-    'Tu diario está listo. Descargando fotos y notas de voz: {downloaded} de {total}.',
+    'Tu diario está listo. Fotos y notas de voz en este dispositivo: {downloaded} de {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
     'Fotos y notas de voz esperando wifi: {number}',
   'cloud.viewCloudBackup': 'Ver copia de seguridad en la nube',

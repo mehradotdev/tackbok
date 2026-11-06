@@ -747,7 +747,7 @@ export const he: Translations = {
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'אפשר להמשיך להשתמש ב-Tackbok בזמן השחזור.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
-    'היומן שלך מוכן. הורדת תמונות והקלטות קוליות: {downloaded} מתוך {total}.',
+    'היומן שלך מוכן. תמונות והקלטות קוליות במכשיר הזה: {downloaded} מתוך {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
     'תמונות והקלטות קוליות שממתינות ל-Wi-Fi: {number}',
   'cloud.viewCloudBackup': 'הצגת הגיבוי בענן',

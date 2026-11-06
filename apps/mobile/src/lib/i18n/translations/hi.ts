@@ -696,7 +696,7 @@ export const hi = {
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'पुनर्स्थापन के दौरान आप ताकबूक का उपयोग जारी रख सकते हैं।',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
-    'आपकी डायरी तैयार है। फ़ोटो और वॉइस नोट डाउनलोड हो रहे हैं: {total} में से {downloaded}।',
+    'आपकी डायरी तैयार है। इस डिवाइस पर फ़ोटो और वॉइस नोट: {total} में से {downloaded}।',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
     'वाई-फ़ाई की प्रतीक्षा में फ़ोटो और वॉइस नोट: {number}',
   'cloud.viewCloudBackup': 'क्लाउड बैकअप देखें',

@@ -729,7 +729,7 @@ export const zhCN: Translations = {
     '恢复已暂停。塔克布克打开并联网时会继续。',
   'cloud.youCanKeepUsingTackbokWhileItRestores': '恢复期间你可以继续使用塔克布克。',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
-    '你的日记已就绪。正在下载照片和语音笔记：{downloaded} / {total}。',
+    '你的日记已就绪。此设备上的照片和语音笔记：{downloaded} / {total}。',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount': '等待 Wi-Fi 的照片和语音笔记：{number}',
   'cloud.viewCloudBackup': '查看云备份',
   'cloud.cloudSyncPhotosAndVoiceNotesToDownload': '云同步：有待下载的照片和语音笔记',

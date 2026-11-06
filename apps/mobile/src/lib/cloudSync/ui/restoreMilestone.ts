@@ -4,7 +4,8 @@ import type { CloudSyncActionFailureCategory, CloudSyncSnapshot } from './produc
 
 /**
  * Where a restore from a cloud backup stands. It is derived from durable state
- * (vault status and media download states), so it survives relaunches.
+ * (the restore marker's journal proof and media download states), so it
+ * survives pause, resume and relaunches.
  */
 export type CloudRestoreMilestone =
   | { stage: 'journal' }
@@ -28,7 +29,6 @@ type RestoreSnapshot = Pick<
   | 'configured'
   | 'vaultId'
   | 'status'
-  | 'initialRestore'
   | 'pendingDownloadCount'
   | 'downloadedMediaCount'
   | 'failureCategory'
@@ -44,8 +44,9 @@ const RETRYABLE_FAILURES = new Set<CloudSyncActionFailureCategory>([
 
 /**
  * Returns null when no restore is tracked, or when the snapshot belongs to a
- * different (or no longer connected) backup. A stale snapshot never reports
- * completion.
+ * different (or no longer connected) backup. Completion needs the marker's
+ * proof that a sync pass applied the journal, so a stale snapshot, or a status
+ * changed by pause and resume, never reports completion.
  */
 export function deriveCloudRestoreMilestone(
   restore: CloudRestoreMarker | null,
@@ -73,8 +74,8 @@ export function deriveCloudRestoreMilestone(
     !RETRYABLE_FAILURES.has(failureCategory) &&
     failureCategory !== 'wifi-only-media';
 
-  if (snapshot.initialRestore) {
-    if (failed) return { stage: 'failed', attentionReason: null, failureCategory };
+  if (failed) return { stage: 'failed', attentionReason: null, failureCategory };
+  if (!restore.journalRestoredAt) {
     if (offline) return { stage: 'paused', reason: 'offline' };
     if (failureCategory === 'wifi-only-media') return { stage: 'paused', reason: 'wifi' };
     return { stage: 'journal' };
@@ -82,7 +83,6 @@ export function deriveCloudRestoreMilestone(
 
   const remaining = snapshot.pendingDownloadCount;
   if (remaining === 0) return { stage: 'complete' };
-  if (failed) return { stage: 'failed', attentionReason: null, failureCategory };
   if (offline) return { stage: 'paused', reason: 'offline' };
   if ((wifiOnlyMedia && !network.onWifi) || failureCategory === 'wifi-only-media') {
     return { stage: 'waiting-for-wifi', remaining };

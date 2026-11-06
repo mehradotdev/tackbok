@@ -710,7 +710,7 @@ export const sv = {
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'Du kan fortsätta använda Tackbok medan den återställs.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
-    'Din dagbok är klar. Laddar ned foton och röstanteckningar: {downloaded} av {total}.',
+    'Din dagbok är klar. Foton och röstanteckningar på den här enheten: {downloaded} av {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
     'Foton och röstanteckningar som väntar på wifi: {number}',
   'cloud.viewCloudBackup': 'Visa molnsäkerhetskopia',

@@ -1,12 +1,12 @@
 import { deriveCloudRestoreMilestone } from './restoreMilestone';
 
 const restore = { vaultId: 'vault-a', startedAt: 1 };
+const journalRestored = { ...restore, journalRestoredAt: 2 };
 const online = { online: true, onWifi: true };
 const restoring = {
   configured: true,
   vaultId: 'vault-a',
   status: 'restoring',
-  initialRestore: true,
   pendingDownloadCount: 0,
   downloadedMediaCount: 0,
   failureCategory: null,
@@ -15,7 +15,6 @@ const restoring = {
 const journalReady = {
   ...restoring,
   status: 'queued',
-  initialRestore: false,
   pendingDownloadCount: 263,
   downloadedMediaCount: 37,
 } as const;
@@ -24,14 +23,16 @@ test('follows a restore from journal to attachments to complete', () => {
   expect(deriveCloudRestoreMilestone(restore, restoring, online, false)).toEqual({
     stage: 'journal',
   });
-  expect(deriveCloudRestoreMilestone(restore, journalReady, online, false)).toEqual({
+  expect(
+    deriveCloudRestoreMilestone(journalRestored, journalReady, online, false),
+  ).toEqual({
     stage: 'media',
     downloaded: 37,
     total: 300,
   });
   expect(
     deriveCloudRestoreMilestone(
-      restore,
+      journalRestored,
       {
         ...journalReady,
         status: 'synced',
@@ -48,7 +49,7 @@ test('tracks nothing without a marker, for another backup, or after disconnectin
   expect(deriveCloudRestoreMilestone(null, restoring, online, false)).toBeNull();
   expect(
     deriveCloudRestoreMilestone(
-      restore,
+      journalRestored,
       { ...journalReady, vaultId: 'vault-b' },
       online,
       false,
@@ -58,14 +59,14 @@ test('tracks nothing without a marker, for another backup, or after disconnectin
   expect(
     deriveCloudRestoreMilestone(
       restore,
-      { ...restoring, vaultId: null, configured: false, initialRestore: false },
+      { ...restoring, vaultId: null, configured: false },
       online,
       false,
     ),
   ).toBeNull();
   expect(
     deriveCloudRestoreMilestone(
-      restore,
+      journalRestored,
       { ...journalReady, configured: false, pendingDownloadCount: 0 },
       online,
       false,
@@ -75,11 +76,15 @@ test('tracks nothing without a marker, for another backup, or after disconnectin
 
 test('waits for Wi-Fi only when attachments are left and the device is off Wi-Fi', () => {
   const cellular = { online: true, onWifi: false };
-  expect(deriveCloudRestoreMilestone(restore, journalReady, cellular, true)).toEqual({
+  expect(
+    deriveCloudRestoreMilestone(journalRestored, journalReady, cellular, true),
+  ).toEqual({
     stage: 'waiting-for-wifi',
     remaining: 263,
   });
-  expect(deriveCloudRestoreMilestone(restore, journalReady, cellular, false)).toEqual({
+  expect(
+    deriveCloudRestoreMilestone(journalRestored, journalReady, cellular, false),
+  ).toEqual({
     stage: 'media',
     downloaded: 37,
     total: 300,
@@ -102,7 +107,7 @@ test('pauses while offline and resumes reporting progress when back online', () 
   });
   expect(
     deriveCloudRestoreMilestone(
-      restore,
+      journalRestored,
       { ...journalReady, failureCategory: 'transient' },
       online,
       false,
@@ -110,7 +115,7 @@ test('pauses while offline and resumes reporting progress when back online', () 
   ).toEqual({ stage: 'paused', reason: 'offline' });
   expect(
     deriveCloudRestoreMilestone(
-      restore,
+      journalRestored,
       { ...journalReady, status: 'paused' },
       online,
       false,
@@ -146,10 +151,43 @@ test('reports failures instead of progress or completion', () => {
   });
   expect(
     deriveCloudRestoreMilestone(
-      restore,
+      journalRestored,
       { ...journalReady, failureCategory: 'corrupt' },
       online,
       false,
     ),
   ).toEqual({ stage: 'failed', attentionReason: null, failureCategory: 'corrupt' });
+});
+
+test('pause then resume before the journal is applied never reports completion', () => {
+  // Pause changes `restoring` to `paused`, and Resume changes it to `idle`, so
+  // the snapshot looks synced with no attachments left.
+  const resumed = { ...restoring, status: 'synced', pendingDownloadCount: 0 } as const;
+  expect(
+    deriveCloudRestoreMilestone(
+      restore,
+      resumed,
+      { online: false, onWifi: false },
+      false,
+    ),
+  ).toEqual({ stage: 'paused', reason: 'offline' });
+  expect(deriveCloudRestoreMilestone(restore, resumed, online, false)).toEqual({
+    stage: 'journal',
+  });
+  // Only the proof that a pass applied the journal completes it.
+  expect(deriveCloudRestoreMilestone(journalRestored, resumed, online, false)).toEqual({
+    stage: 'complete',
+  });
+});
+
+test('a failed pass with no attachments left reports the failure, not completion', () => {
+  const synced = { ...journalReady, status: 'synced', pendingDownloadCount: 0 } as const;
+  expect(
+    deriveCloudRestoreMilestone(
+      journalRestored,
+      { ...synced, failureCategory: 'auth' },
+      online,
+      false,
+    ),
+  ).toEqual({ stage: 'failed', attentionReason: null, failureCategory: 'auth' });
 });
