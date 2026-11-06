@@ -44,9 +44,10 @@ export function OnboardingScaffold({
       className="flex-1 bg-background"
       edges={['top', 'left', 'right', 'bottom']}>
       {backdrop}
-      {/* Top bar: back / dots / skip */}
-      <View className="flex-row items-center justify-between px-4 pt-1 min-h-12">
-        <View className="w-16 items-start">
+      {/* Top bar: back / dots / skip. Equal flex-1 side slots keep the dots
+          centred while letting a long Skip label (e.g. German) use the width. */}
+      <View className="flex-row items-center px-4 pt-1 min-h-12">
+        <View className="flex-1 basis-0 items-start">
           {step !== undefined && (
             <Button
               variant="ghost"
@@ -79,10 +80,17 @@ export function OnboardingScaffold({
           </View>
         )}
 
-        <View className="w-16 items-end">
+        <View className="flex-1 basis-0 items-end">
           {onSkip && (
-            <Button variant="ghost" size="sm" onPress={onSkip} hitSlop={10}>
-              <Text className="text-muted-foreground">{t('onboarding.skip')}</Text>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto min-h-9 max-w-full shrink px-2"
+              onPress={onSkip}
+              hitSlop={10}>
+              <Text className="shrink text-muted-foreground" numberOfLines={1}>
+                {t('onboarding.skip')}
+              </Text>
             </Button>
           )}
         </View>

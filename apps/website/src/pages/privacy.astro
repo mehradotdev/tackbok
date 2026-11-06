@@ -6,7 +6,7 @@ import SiteHeader from '~/components/SiteHeader.astro';
 const title = 'Privacy Policy — Tackbok';
 const description =
   'Learn how Tackbok handles local journal data, optional Google Drive backups, and opt-in analytics.';
-const lastUpdated = 'September 1, 2026';
+const lastUpdated = 'November 6, 2026';
 const supportEmail = 'tackbok.support@mehra.dev';
 ---
 
@@ -63,44 +63,31 @@ const supportEmail = 'tackbok.support@mehra.dev';
           Google Drive Backup (Optional)
         </h3>
         <p>
-          Tackbok offers an optional feature that allows you to securely back up and sync
-          your journal entries across devices using your own <strong>Google Drive</strong>{' '}
-          account. If you choose to enable this feature, the application will request
-          access to your Google Drive strictly to upload and retrieve your backup files.
+          Tackbok can back up and sync your journal with your own{' '}
+          <strong>Google Drive</strong>. This is optional and stays off until you turn it
+          on. Tackbok only gets access to its own private folder in your Drive. It can't
+          see, open, or change any of your other Drive files.
         </p>
         <p>
-          We want to be absolutely clear:{' '}
+          We want to be clear:{' '}
           <strong>
-            we (the developers) do not have any access to your Google Drive data, your
-            journal entries, or your backup files.
+            your journal goes straight from your device to your own Google Drive, and we
+            (Tackbok's developers) never see or receive it.
           </strong>{' '}
-          All data is transferred directly between your device and your personal Google
-          Drive account. We do not store your Google Drive credentials or any journal data
-          on our servers, nor do we share your Google user data with any third parties.
-          This integration is provided solely for your convenience to keep your data safe.
+          There is no Tackbok server in between, and we don't share your Google data with
+          anyone.
         </p>
         <p>
-          Cloud backup data is protected in transit and by Google Drive. Tackbok does
-          <strong>
-            not provide end-to-end encryption for cloud backups in this version
-          </strong>
-          . Google supplies the account email so the app can show the full address of the
-          connected Google Drive. The selected email is kept beside the credentials in
-          secure storage on that device so Tackbok can identify the connected account
-          without fetching the address again; on Android it also pins background refresh
-          to that account. It is deleted on Disconnect and is never written to a backup,
-          app database, log, diagnostic report, or analytics event. Disconnect affects
-          only that device and does not revoke Tackbok's Google access for other connected
-          devices.
+          Your backup includes your entries, photos, voice memos, tags, prompts, and
+          profile details. Google protects it the same way it protects your other Drive
+          files, but Tackbok's backups are <strong>not end-to-end encrypted</strong>.
         </p>
         <p>
-          Tackbok stores each journal backup as a complete compressed snapshot containing
-          entries, tags, prompts, profile details, deletion records, and conflict records.
-          Photos and voice memos are stored separately and referenced by the snapshot. The
-          app keeps a small recent snapshot history for crash-safe updates and recovery,
-          and removes older unneeded snapshots during routine cleanup. Before publishing
-          changes, a device checks the latest device snapshots and merges them with its
-          local journal; this is device sync, not real-time collaborative editing.
+          Google tells the app which email address you connected, so the app can show you
+          which account is in use. That email stays on your device, is removed when you
+          disconnect, and is never sent to us or included in your backup or analytics.
+          Disconnecting only affects that device: your backup stays in your Google Drive,
+          and your other connected devices keep syncing.
         </p>
 
         <h2 class="border-t border-border pt-4 text-xl font-semibold tracking-tight">
@@ -111,10 +98,9 @@ const supportEmail = 'tackbok.support@mehra.dev';
           to understand how the app is used and improve it. Analytics is{' '}
           <strong>disabled by default</strong>: it only runs after you explicitly opt in,
           via the Analytics toggle in the app's settings. Until you do, the PostHog
-          analytics library is never even loaded or initialized and nothing is sent from
-          your device. If you turn the toggle off again, data collection stops
-          immediately, any unsent events are deleted, and the anonymous identifier is
-          discarded.
+          analytics library is never even loaded or initialized and no usage analytics are
+          sent. If you turn the toggle off again, data collection stops immediately, any
+          unsent events are deleted, and the anonymous identifier is discarded.
         </p>
         <p>
           When enabled, analytics is anonymous. Events are linked only to a randomly
