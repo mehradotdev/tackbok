@@ -728,7 +728,7 @@ export const ar: Translations = {
   // Cloud Backup & Sync
   'cloud.attentionNeeded': 'يلزم الانتباه',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'انسخ يومياتك وامنحها المزامنة عبر Google Drive الخاص بك. لن يتم إنشاء حساب Tackbok.',
+    'انسخ يومياتك احتياطيًا وزامنها مع Google Drive الخاص بك. تنتقل مباشرةً من هاتفك إلى Drive الخاص بك، ولا يراها مطوّر تاكبوك أبدًا.',
   'cloud.lastUpdatedDate': 'آخر تحديث: {date}',
   'cloud.beforeYouConnect': 'قبل الاتصال',
   'cloud.checkingGoogleDriveForChanges': 'جارٍ التحقق من التغييرات في Google Drive…',
@@ -744,7 +744,7 @@ export const ar: Translations = {
   'cloud.cloudBackupDeletionReceived': 'تم استلام طلب حذف النسخة السحابية',
   'cloud.cloudBackupNumber': 'النسخة السحابية {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'يشفّر Google Drive النسخ الاحتياطية أثناء النقل وأثناء التخزين، لكنها ليست مشفّرة من طرف إلى طرف.',
+    'تُحفظ نسختك الاحتياطية في مجلد خاص بتاكبوك داخل Google Drive الخاص بك. لا يستطيع تاكبوك رؤية ملفاتك الأخرى في Drive، ولا تُرسَل نسختك الاحتياطية أبدًا إلى مطوّر تاكبوك. تحميها Google كما تحمي ملفاتك الأخرى، لكنها ليست مشفّرة من طرف إلى طرف.',
   'cloud.cloudRestoreStarted': 'بدأت الاستعادة من السحابة',
   'cloud.cloudSyncAttentionNeeded': 'المزامنة السحابية: يلزم الانتباه',
   'cloud.cloudSyncChangesSafelyQueued':
@@ -790,7 +790,7 @@ export const ar: Translations = {
   'cloud.googleDriveStorageIsFull': 'مساحة تخزين Google Drive ممتلئة.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'إذا عرضت Google مربع اختيار للوصول إلى Drive، فحدده. لا يمكن توصيل النسخ الاحتياطي من دون هذا الإذن.',
+    'قد تطلب منك Google السماح لتاكبوك باستخدام مجلده الخاص في Drive. اسمح بذلك، وإلا فلن يتمكن النسخ الاحتياطي من الاتصال.',
   'cloud.journalDeletionReceived': 'تم استلام حذف اليوميات',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'لا يتم رفع الصور والملاحظات الصوتية وتنزيلها إلا عبر Wi-Fi. وتنتظر السجلات التي تحتوي على صور أو ملاحظات صوتية جديدة شبكة Wi-Fi أيضًا.',
@@ -825,7 +825,7 @@ export const ar: Translations = {
   'cloud.resetThisDeviceOnly2': 'هل تريد إعادة ضبط هذا الجهاز فقط؟',
   'cloud.merge': 'دمج',
   'cloud.restoreCloudBackup': 'استعادة النسخة السحابية',
-  'cloud.restoreFromYourCloudBackup': 'الاستعادة من نسختك الاحتياطية السحابية',
+  'cloud.restoreFromYourCloudBackup': 'الاستعادة من نسختك الاحتياطية في Google Drive',
   'cloud.restoring': 'جارٍ الاستعادة…',
   'cloud.safelyQueued': 'في قائمة انتظار آمنة',
   'cloud.gettingChangesFromYourOtherDevices': 'جارٍ جلب التغييرات من أجهزتك الأخرى…',
@@ -859,7 +859,7 @@ export const ar: Translations = {
     'تم تسجيل الحذف من السحابة بالفعل. امسح بيانات اليوميات المتبقية من هذا الجهاز.',
   'cloud.finishDeletion': 'إكمال الحذف',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'يُخزَّن بريدك الإلكتروني في Google بأمان على هذا الجهاز لتحديد الحساب المتصل، ويُحذف عند قطع الاتصال. ولا يتم تضمينه مطلقًا في النسخ الاحتياطية أو السجلات أو بيانات التشخيص أو التحليلات.',
+    'يُحفظ بريدك الإلكتروني في Google على هذا الهاتف فقط، لإظهار الحساب المتصل. ويُحذف عند قطع الاتصال، ولا يُرسَل أبدًا إلى مطوّر تاكبوك.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'سيقطع هذا الجهاز الاتصال أولًا ثم يحذف يومياته المحلية. ستبقى النسخة السحابية والأجهزة الأخرى.',
   'cloud.thisDeviceWasReset': 'تمت إعادة ضبط هذا الجهاز',
@@ -870,7 +870,7 @@ export const ar: Translations = {
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'يمكنك مغادرة هذه الشاشة؛ تستأنف المزامنة عندما يكون Tackbok نشطًا.',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'تبقى يومياتك على جهازك — مع نسخ احتياطي سحابي اختياري.',
+    'تبقى يومياتك على هاتفك. وإذا فعّلت النسخ الاحتياطي، تذهب نسخة منها إلى Google Drive الخاص بك فقط.',
   'cloud.countChangesSafelyQueued': '{count} تغييرات في قائمة انتظار آمنة',
   'cloud.countChangesRemaining': 'متبقٍ {count} تغييرات',
   'cloud.photosAndVoiceNotesToDownloadCount':

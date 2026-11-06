@@ -684,7 +684,7 @@ export const sv = {
   'dateFormat.timeLabel': '{weekday} på {time}',
   'cloud.attentionNeeded': 'Uppmärksamhet behövs',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
-    'Säkerhetskopiera och synkronisera din dagbok med din egen Google Drive. Inget Tackbok-konto skapas.',
+    'Säkerhetskopiera och synkronisera din dagbok med din egen Google Drive. Den går direkt från din telefon till din Drive. Tackboks utvecklare ser den aldrig.',
   'cloud.lastUpdatedDate': 'Senast uppdaterad {date}',
   'cloud.beforeYouConnect': 'Innan du ansluter',
   'cloud.checkingGoogleDriveForChanges': 'Kontrollerar Google Drive efter ändringar…',
@@ -702,7 +702,7 @@ export const sv = {
     'Borttagning av molnsäkerhetskopiering har tagits emot',
   'cloud.cloudBackupNumber': 'Molnsäkerhetskopia {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Säkerhetskopieringar krypteras under överföring och i vila av Google Drive, men är inte ände-till-ände-krypterade.',
+    'Din säkerhetskopia sparas i en privat Tackbok-mapp i din Google Drive. Tackbok kan inte se dina andra filer i Drive, och din säkerhetskopia skickas aldrig till Tackboks utvecklare. Google skyddar den som dina andra filer, men den är inte ände-till-ände-krypterad.',
   'cloud.cloudRestoreStarted': 'Molnåterställning startade',
   'cloud.cloudSyncAttentionNeeded': 'Molnsynkronisering: uppmärksamhet behövs',
   'cloud.cloudSyncChangesSafelyQueued': 'Molnsynkronisering: ändringar i säkert kö',
@@ -751,7 +751,7 @@ export const sv = {
   'cloud.googleDriveStorageIsFull': 'Google Drive lagringsutrymme är fullt.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'Om Google visar en kryssruta för Drive-åtkomst markerar du den. Säkerhetskopieringen kan inte ansluta utan denna behörighet.',
+    'Google kan fråga om Tackbok får använda en egen privat mapp i din Drive. Tillåt det, annars kan säkerhetskopieringen inte ansluta.',
   'cloud.journalDeletionReceived': 'Begäran om att radera dagboken har tagits emot',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'Foton och röstanteckningar laddas upp och ned bara via Wi-Fi. Anteckningar med nya foton eller röstanteckningar väntar också på Wi-Fi.',
@@ -786,7 +786,7 @@ export const sv = {
   'cloud.resetThisDeviceOnly2': 'Vill du bara återställa den här enheten?',
   'cloud.merge': 'Slå ihop',
   'cloud.restoreCloudBackup': 'Återställ molnsäkerhetskopiering',
-  'cloud.restoreFromYourCloudBackup': 'Återställ från din molnsäkerhetskopia',
+  'cloud.restoreFromYourCloudBackup': 'Återställ från din säkerhetskopia i Google Drive',
   'cloud.restoring': 'Återställer...',
   'cloud.safelyQueued': 'Säkert i kö',
   'cloud.gettingChangesFromYourOtherDevices': 'Hämtar ändringar från dina andra enheter…',
@@ -820,7 +820,7 @@ export const sv = {
     'Molnraderingen är redan registrerad. Radera återstående dagboksdata från den här enheten.',
   'cloud.finishDeletion': 'Slutför raderingen',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'Din e-post från Google lagras säkert på den här enheten för att identifiera det anslutna kontot och raderas vid Koppla från. Det ingår aldrig i säkerhetskopior, loggar, diagnostik eller analyser.',
+    'Din e-postadress från Google sparas bara på den här telefonen, för att visa vilket konto som är anslutet. Den tas bort när du kopplar från och skickas aldrig till Tackboks utvecklare.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'Den här enheten kopplar först från och raderar sedan sin lokala dagbok. Molnsäkerhetskopian och andra enheter finns kvar.',
   'cloud.thisDeviceWasReset': 'Den här enheten har återställts',
@@ -832,7 +832,7 @@ export const sv = {
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     'Du kan lämna den här skärmen; synkroniseringen återupptas när Tackbok är aktiv.',
   'cloud.yourJournalStaysOnYourDeviceCloudBackupIsOptional':
-    'Din dagbok finns kvar på din enhet. Molnsäkerhetskopiering är valfritt.',
+    'Din dagbok stannar på din telefon. Om du slår på säkerhetskopiering går en kopia bara till din egen Google Drive.',
   'cloud.countChangesSafelyQueued': '{count} ändringar säkert i kö',
   'cloud.countChangesRemaining': '{count} ändringar kvar',
   'cloud.photosAndVoiceNotesToDownloadCount':
