@@ -269,6 +269,8 @@ export default function CloudBackupScreen() {
       try {
         await action();
         await refresh();
+        // Toasts are app-wide: report the result even after the screen
+        // closes, as every action on this screen does.
         toast.success(success);
       } catch (error) {
         toast.error(

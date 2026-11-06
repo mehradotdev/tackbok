@@ -223,3 +223,16 @@ test('Sync now cancelled by Pause or Disconnect shows no error', async () => {
     mockEn['cloud.disconnectedYourJournalStaysOnThisPhone'],
   );
 });
+
+test('Disconnect still reports its result after the screen closes', async () => {
+  const pending = deferred<void>();
+  mockDisconnect.mockReturnValueOnce(pending.promise);
+  await render();
+  await confirmDisconnect();
+  act(() => root.unmount());
+
+  await act(async () => pending.resolve());
+  expect(mockToast.success).toHaveBeenCalledWith(
+    mockEn['cloud.disconnectedYourJournalStaysOnThisPhone'],
+  );
+});
