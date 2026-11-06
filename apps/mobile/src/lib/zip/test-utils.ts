@@ -123,7 +123,11 @@ export function addCentralDirectoryDigitalSignature(
   trailer.set(signatureData, 6);
 
   const next = insertBytes(bytes, eocdOffset, trailer);
-  writeUint(next, eocdOffset + trailer.length + 12, readUint(bytes, eocdOffset + 12) + trailer.length);
+  writeUint(
+    next,
+    eocdOffset + trailer.length + 12,
+    readUint(bytes, eocdOffset + 12) + trailer.length,
+  );
 
   return next;
 }
@@ -136,7 +140,9 @@ export function findZip64EndOfCentralDirectoryOffset(bytes: Uint8Array): number 
     throw new Error('ZIP64 EOCD Locator not found in test fixture');
   }
 
-  if (readUint(bytes, locatorOffset) !== ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE) {
+  if (
+    readUint(bytes, locatorOffset) !== ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE
+  ) {
     throw new Error('ZIP64 EOCD Locator not found in test fixture');
   }
 

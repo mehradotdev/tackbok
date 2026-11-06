@@ -1,10 +1,6 @@
 export const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 
-export const GOOGLE_SCOPES = [
-  GOOGLE_DRIVE_SCOPE,
-  'openid',
-  'email',
-] as const;
+export const GOOGLE_SCOPES = [GOOGLE_DRIVE_SCOPE, 'openid', 'email'] as const;
 
 export interface GoogleTokenSet {
   accessToken: string;

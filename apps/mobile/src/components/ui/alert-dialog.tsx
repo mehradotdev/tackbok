@@ -5,10 +5,7 @@ import { cn } from 'tailwind-variants';
 import * as AlertDialogPrimitive from '~/components/primitives/alert-dialog';
 import { Text, TextClassContext } from '~/components/ui/text';
 import { buttonTextVariants, buttonVariants } from '~/components/ui/button';
-import {
-  DialogOverlayFrame,
-  type AndroidOverlayStrategy,
-} from './dialog-overlay-frame';
+import { DialogOverlayFrame, type AndroidOverlayStrategy } from './dialog-overlay-frame';
 import { Icon } from './icon';
 
 const AlertDialog = AlertDialogPrimitive.Root;

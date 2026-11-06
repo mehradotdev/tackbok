@@ -135,14 +135,14 @@ async function materializePortableEntryAssets(
 
       const audio = writeImportedAudio(bytes, archivePath);
       entryCreatedFiles.push(audio.uri);
-        assets.push({
-          ...audio,
-          assetId: portableAsset.assetId,
-          blobHash,
-          mimeType: portableAsset.mimeType,
-          byteSize: bytes.byteLength,
-          durationMs: portableAsset.durationMs,
-        });
+      assets.push({
+        ...audio,
+        assetId: portableAsset.assetId,
+        blobHash,
+        mimeType: portableAsset.mimeType,
+        byteSize: bytes.byteLength,
+        durationMs: portableAsset.durationMs,
+      });
       summary.importedAudio++;
     } catch (error) {
       hadFailures = true;
@@ -487,9 +487,7 @@ export async function upsertPortableTags(
       cleanTitle,
       {
         batchId,
-        now: Number.isFinite(portableTag.updatedAt)
-          ? portableTag.updatedAt
-          : Date.now(),
+        now: Number.isFinite(portableTag.updatedAt) ? portableTag.updatedAt : Date.now(),
         createdAt: Number.isFinite(portableTag.createdAt)
           ? portableTag.createdAt
           : undefined,
@@ -605,7 +603,11 @@ export async function importPortableEntries(
     const resolvedTagIds = new Set<string>();
     const portableTagIds = portableEntry.tagIds ?? [];
     const portableTagTitles = portableEntry.tagTitles ?? [];
-    for (let index = 0; index < Math.max(portableTagIds.length, portableTagTitles.length); index++) {
+    for (
+      let index = 0;
+      index < Math.max(portableTagIds.length, portableTagTitles.length);
+      index++
+    ) {
       const stableId = portableTagIds[index]
         ? tagMap.get(`id:${portableTagIds[index]}`)
         : undefined;

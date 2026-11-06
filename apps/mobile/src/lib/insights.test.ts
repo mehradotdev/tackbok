@@ -208,9 +208,7 @@ describe('computeInsightsStats', () => {
     });
 
     it('gates the happiest weekday below the mood minimum', () => {
-      const rows = [1, 2, 3].map((d) =>
-        row({ created_at: daysAgoAt(d), mood: 'HAPPY' }),
-      );
+      const rows = [1, 2, 3].map((d) => row({ created_at: daysAgoAt(d), mood: 'HAPPY' }));
       expect(computeInsightsStats(rows, OPTS).happiestWeekday).toBeNull();
     });
 
@@ -346,10 +344,7 @@ describe('computeInsightsStats', () => {
       'photos/new.jpg',
       'photos/old.jpg',
     ]);
-    expect(stats.recentPhotos.map((p) => p.dateMs)).toEqual([
-      daysAgoAt(1),
-      daysAgoAt(3),
-    ]);
+    expect(stats.recentPhotos.map((p) => p.dateMs)).toEqual([daysAgoAt(1), daysAgoAt(3)]);
   });
 
   it('caps the photo mosaic list', () => {

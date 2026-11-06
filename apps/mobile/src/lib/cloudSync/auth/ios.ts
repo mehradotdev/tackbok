@@ -41,7 +41,10 @@ function redirectUri(scheme: string): string {
   return `${scheme}:/oauthredirect`;
 }
 
-function toStoredTokens(response: TokenResponse, priorRefreshToken?: string): GoogleTokenSet {
+function toStoredTokens(
+  response: TokenResponse,
+  priorRefreshToken?: string,
+): GoogleTokenSet {
   const expiresIn = response.expiresIn ?? 3600;
   return {
     accessToken: response.accessToken,
@@ -79,7 +82,10 @@ export class IosGoogleAuthorization implements CloudAuthorization {
         DISCOVERY,
       );
       if (response.scope && !response.scope.split(/\s+/).includes(GOOGLE_DRIVE_SCOPE)) {
-        throw new CloudAuthError('permission-required', 'Google Drive access is required');
+        throw new CloudAuthError(
+          'permission-required',
+          'Google Drive access is required',
+        );
       }
       const tokens = toStoredTokens(response);
       // A new interactive grant may select a different Google account. Do not
@@ -93,7 +99,8 @@ export class IosGoogleAuthorization implements CloudAuthorization {
 
   async getFreshAccessToken(): Promise<string> {
     const current = await readGoogleTokens();
-    if (!current) throw new CloudAuthError('not-connected', 'Google Drive is not connected');
+    if (!current)
+      throw new CloudAuthError('not-connected', 'Google Drive is not connected');
     if (current.accessToken && current.expiresAt > Date.now() + REFRESH_MARGIN_MS) {
       return current.accessToken;
     }

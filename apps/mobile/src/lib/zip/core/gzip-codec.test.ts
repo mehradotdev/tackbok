@@ -24,10 +24,36 @@ function gzipWithOptionalHeader(source: Uint8Array): Uint8Array {
   const trailer = ordinary.subarray(ordinary.length - 8);
   const flags = 0x02 | 0x04 | 0x08 | 0x10;
   const prefix = new Uint8Array([
-    0x1f, 0x8b, 8, flags, 0, 0, 0, 0, 0, 3,
-    3, 0, 0xaa, 0xbb, 0xcc,
-    0x73, 0x79, 0x6e, 0x74, 0x68, 0x65, 0x74, 0x69, 0x63, 0,
-    0x74, 0x65, 0x73, 0x74, 0,
+    0x1f,
+    0x8b,
+    8,
+    flags,
+    0,
+    0,
+    0,
+    0,
+    0,
+    3,
+    3,
+    0,
+    0xaa,
+    0xbb,
+    0xcc,
+    0x73,
+    0x79,
+    0x6e,
+    0x74,
+    0x68,
+    0x65,
+    0x74,
+    0x69,
+    0x63,
+    0,
+    0x74,
+    0x65,
+    0x73,
+    0x74,
+    0,
   ]);
   const result = new Uint8Array(prefix.length + 2 + deflate.length + trailer.length);
   result.set(prefix);
@@ -50,8 +76,9 @@ describe('in-house gzip codec', () => {
       0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 255,
     ]);
     expect(decodeGzipBounded(first, LIMITS)).toEqual(source);
-    expect(decodeGzipBounded(encodeGzip(new Uint8Array(0), { level: 0 }), LIMITS))
-      .toEqual(new Uint8Array(0));
+    expect(
+      decodeGzipBounded(encodeGzip(new Uint8Array(0), { level: 0 }), LIMITS),
+    ).toEqual(new Uint8Array(0));
   });
 
   test('accepts valid optional gzip fields and verifies FHCRC', () => {
@@ -65,7 +92,9 @@ describe('in-house gzip codec', () => {
   });
 
   test('interoperates with the Node zlib reference implementation', () => {
-    const source = new TextEncoder().encode('cross-implementation synthetic text '.repeat(100));
+    const source = new TextEncoder().encode(
+      'cross-implementation synthetic text '.repeat(100),
+    );
     const ours = encodeGzip(source);
     const node = new Uint8Array(gzipSync(source, { level: 6 }));
 
@@ -99,13 +128,21 @@ describe('in-house gzip codec', () => {
     const source = new TextEncoder().encode('x'.repeat(4096));
     const valid = encodeGzip(source);
 
-    expectGzipError(() => decodeGzipBounded(valid, {
-      ...LIMITS,
-      maxCompressedBytes: valid.length - 1,
-    }), 'compressed-size-cap');
-    expectGzipError(() => decodeGzipBounded(valid, {
-      ...LIMITS,
-      maxUncompressedBytes: source.length - 1,
-    }), 'uncompressed-size-cap');
+    expectGzipError(
+      () =>
+        decodeGzipBounded(valid, {
+          ...LIMITS,
+          maxCompressedBytes: valid.length - 1,
+        }),
+      'compressed-size-cap',
+    );
+    expectGzipError(
+      () =>
+        decodeGzipBounded(valid, {
+          ...LIMITS,
+          maxUncompressedBytes: source.length - 1,
+        }),
+      'uncompressed-size-cap',
+    );
   });
 });

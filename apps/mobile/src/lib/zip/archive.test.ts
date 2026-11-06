@@ -123,7 +123,9 @@ describe('ZIP archive helpers', () => {
       const bytes = new Uint8Array(
         encodeZipArchiveBytes({
           'backup-2026/assets/gratitudeImages/photo-1.jpg': new Uint8Array([1, 2, 3]),
-          'backup-2026/assets/journalRecordingsFolder/memo-1.mp3': new Uint8Array([4, 5, 6]),
+          'backup-2026/assets/journalRecordingsFolder/memo-1.mp3': new Uint8Array([
+            4, 5, 6,
+          ]),
         }),
       );
       const archive = await openZipReader(createMemoryZipReaderSource(bytes));

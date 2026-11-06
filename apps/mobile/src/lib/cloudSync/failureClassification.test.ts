@@ -8,14 +8,20 @@ import {
 describe('cloud sync failure classification', () => {
   test('separates retryable token refresh from terminal authorization failures', () => {
     expect(providerErrorCodeForAuthError('temporarily-unavailable')).toBe('transient');
-    expect(providerErrorCodeForAuthError('refresh-failed')).toBe('authorization-required');
+    expect(providerErrorCodeForAuthError('refresh-failed')).toBe(
+      'authorization-required',
+    );
   });
 
   test('maps provider failures to durable attention only when user action is required', () => {
     expect(attentionReasonForProviderError('quota-full')).toBe('provider-quota-full');
     expect(attentionReasonForProviderError('transient')).toBeNull();
-    expect(attentionReasonForProviderError('invalid-request')).toBe('provider-request-rejected');
-    expect(attentionReasonForProviderError('invalid-data')).toBe('invalid-remote-snapshot');
+    expect(attentionReasonForProviderError('invalid-request')).toBe(
+      'provider-request-rejected',
+    );
+    expect(attentionReasonForProviderError('invalid-data')).toBe(
+      'invalid-remote-snapshot',
+    );
     expect(failureCategoryForAttention('normalized-model-not-ready')).toBe('unknown');
     expect(failureCategoryForAttention('provider-request-rejected')).toBe('unknown');
   });

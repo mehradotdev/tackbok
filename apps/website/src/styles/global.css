@@ -192,7 +192,8 @@
 
 /* Premium gentle floating animation for theme swatches */
 @keyframes float-gentle {
-  0%, 100% {
+  0%,
+  100% {
     translate: 0 0px;
   }
   50% {
@@ -204,13 +205,27 @@
   animation: float-gentle 6s ease-in-out infinite;
 }
 
-.anim-delay-0 { animation-delay: 0s; }
-.anim-delay-1 { animation-delay: 0.85s; }
-.anim-delay-2 { animation-delay: 1.7s; }
-.anim-delay-3 { animation-delay: 2.55s; }
-.anim-delay-4 { animation-delay: 3.4s; }
-.anim-delay-5 { animation-delay: 4.25s; }
-.anim-delay-6 { animation-delay: 1.2s; }
+.anim-delay-0 {
+  animation-delay: 0s;
+}
+.anim-delay-1 {
+  animation-delay: 0.85s;
+}
+.anim-delay-2 {
+  animation-delay: 1.7s;
+}
+.anim-delay-3 {
+  animation-delay: 2.55s;
+}
+.anim-delay-4 {
+  animation-delay: 3.4s;
+}
+.anim-delay-5 {
+  animation-delay: 4.25s;
+}
+.anim-delay-6 {
+  animation-delay: 1.2s;
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {

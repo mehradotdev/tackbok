@@ -1,9 +1,5 @@
 import * as React from 'react';
-import {
-  BackHandler,
-  useWindowDimensions,
-  type LayoutRectangle,
-} from 'react-native';
+import { BackHandler, useWindowDimensions, type LayoutRectangle } from 'react-native';
 import { useComposedRefs } from './use-compose-refs';
 import { useStableCallback } from './useStableCallback';
 import type { LayoutPosition } from './useRelativePosition';

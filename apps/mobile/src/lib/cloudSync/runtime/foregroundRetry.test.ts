@@ -1,17 +1,25 @@
 import { SyncRuntime } from './SyncRuntime';
-import { CloudConnectionChangedError, CloudConnectionLifecycle } from './connectionLifecycle';
+import {
+  CloudConnectionChangedError,
+  CloudConnectionLifecycle,
+} from './connectionLifecycle';
 
 function deferred() {
   let resolve!: () => void;
-  const promise = new Promise<void>(done => { resolve = done; });
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
   return { promise, resolve };
 }
 
 function setup() {
   const connection = new CloudConnectionLifecycle();
-  const stale = jest.fn(async () => { throw new CloudConnectionChangedError(); });
+  const stale = jest.fn(async () => {
+    throw new CloudConnectionChangedError();
+  });
   const fresh = jest.fn(async () => ({ pulled: 1, pushed: 0 }));
-  const createEngine = jest.fn()
+  const createEngine = jest
+    .fn()
     .mockResolvedValueOnce({ provider: { kind: 'google-drive' }, sync: stale })
     .mockResolvedValue({ provider: { kind: 'google-drive' }, sync: fresh });
   const runtime = new SyncRuntime({
@@ -20,7 +28,7 @@ function setup() {
       addAppStateListener: () => ({ remove() {} }),
       addNetworkListener: () => ({ remove() {} }),
       setTimer: (callback, delay) => setTimeout(callback, delay),
-      clearTimer: timer => clearTimeout(timer),
+      clearTimer: (timer) => clearTimeout(timer),
     },
     readiness: { isReady: async () => true, retryBackfill: async () => {} },
     createEngine,
@@ -29,8 +37,13 @@ function setup() {
   return { runtime, connection, stale, fresh, createEngine };
 }
 
-beforeEach(() => { jest.useFakeTimers(); });
-afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
 
 test('waits for the connection change and rebuilds before retrying a foreground pass', async () => {
   const app = setup();

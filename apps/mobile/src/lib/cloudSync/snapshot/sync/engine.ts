@@ -131,12 +131,19 @@ export class SnapshotSyncEngine {
         return { status: 'up-to-date', actionableChanges: 0 };
       }
       if (plan.existingSnapshot) {
-        await this.publisher.adopt(plan.existingSnapshot, plan.observedDeviceHeads, plan.capturedGeneration);
+        await this.publisher.adopt(
+          plan.existingSnapshot,
+          plan.observedDeviceHeads,
+          plan.capturedGeneration,
+        );
         const settled = this.stateStore.loadState(this.vaultId, this.deviceId);
         return {
           status: 'pulled',
           snapshotId: plan.existingSnapshot.snapshotId,
-          actionableChanges: actionableChanges(settled.journalGeneration, settled.settledGeneration),
+          actionableChanges: actionableChanges(
+            settled.journalGeneration,
+            settled.settledGeneration,
+          ),
         };
       }
       pending = this.stateStore.createPending(
@@ -195,15 +202,19 @@ export class SnapshotSyncEngine {
 
       const accepted = loadedBase.shadow?.acceptedDeviceHeads ?? [];
       const covered = headsCovered(remoteHeads, accepted);
-      if (loadedBase.shadow && covered &&
-          durable.journalGeneration <= durable.settledGeneration) {
+      if (
+        loadedBase.shadow &&
+        covered &&
+        durable.journalGeneration <= durable.settledGeneration
+      ) {
         return null;
       }
 
       let merged = captured.domain;
       const baseDomain = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
       for (const remote of frontier.sort((left, right) =>
-        left.snapshotId.localeCompare(right.snapshotId))) {
+        left.snapshotId.localeCompare(right.snapshotId),
+      )) {
         if (loadedBase.shadow?.snapshotId === remote.snapshotId) continue;
         const remoteDescendsFromBase = loadedBase.shadow
           ? remoteContainsBase(remote, loadedBase.shadow)
@@ -249,8 +260,9 @@ export class SnapshotSyncEngine {
         // observations change even when all user data is identical. A matching
         // complete snapshot is already a backup of this merge; acknowledge it
         // locally instead of starting an endless exchange of acknowledgments.
-        existingSnapshot: frontier.find((remote) =>
-          canonicalize(domainOf(remote.payload)) === mergedContent),
+        existingSnapshot: frontier.find(
+          (remote) => canonicalize(domainOf(remote.payload)) === mergedContent,
+        ),
         domain: merged,
         capturedGeneration: captured.generation,
         parentSnapshotIds: [...new Set(parentSnapshotIds)].sort(),
@@ -258,7 +270,10 @@ export class SnapshotSyncEngine {
         mediaHashes: [...new Set(merged.media.map((asset) => asset.blobHash))].sort(),
       };
     }
-    throw new SnapshotProviderError('transient', 'Heads changed during every bounded planning attempt');
+    throw new SnapshotProviderError(
+      'transient',
+      'Heads changed during every bounded planning attempt',
+    );
   }
 
   private async loadAndNormalizeHeads(
@@ -289,7 +304,10 @@ export class SnapshotSyncEngine {
       if (unique.size > 1) {
         const valid: ListedDeviceHead[] = [];
         for (const candidate of unique.values()) {
-          const bytes = await this.provider.downloadSnapshot(this.vaultId, candidate.head.snapshotId);
+          const bytes = await this.provider.downloadSnapshot(
+            this.vaultId,
+            candidate.head.snapshotId,
+          );
           if (!bytes) continue;
           try {
             const decoded = decodeSnapshot(bytes, candidate.head.snapshotId);
@@ -299,7 +317,10 @@ export class SnapshotSyncEngine {
           }
         }
         if (valid.length !== 1) {
-          throw new AttentionError('ambiguous-device-head', 'same-sequence-different-snapshot');
+          throw new AttentionError(
+            'ambiguous-device-head',
+            'same-sequence-different-snapshot',
+          );
         }
         normalized.push(valid[0]);
       } else {
@@ -311,26 +332,38 @@ export class SnapshotSyncEngine {
     for (const candidate of normalized) {
       let payload = verifiedSnapshots.get(candidate.head.snapshotId);
       if (!payload) {
-        const bytes = await this.provider.downloadSnapshot(this.vaultId, candidate.head.snapshotId);
+        const bytes = await this.provider.downloadSnapshot(
+          this.vaultId,
+          candidate.head.snapshotId,
+        );
         await this.hooks.at?.('during-remote-snapshot-download');
-        if (!bytes) throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
+        if (!bytes)
+          throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
         try {
           payload = decodeSnapshot(bytes, candidate.head.snapshotId).payload;
         } catch (error) {
           const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
-          if (error instanceof SnapshotValidationError && code === 'invalid-literal' &&
-              /^\$\.format\b/.test(error.message)) {
+          if (
+            error instanceof SnapshotValidationError &&
+            code === 'invalid-literal' &&
+            /^\$\.format\b/.test(error.message)
+          ) {
             throw new AttentionError('unsupported-format', 'remote-format-version');
           }
-          throw new AttentionError('invalid-remote-snapshot', `snapshot-validation-${code}`);
+          throw new AttentionError(
+            'invalid-remote-snapshot',
+            `snapshot-validation-${code}`,
+          );
         }
         verifiedSnapshots.set(candidate.head.snapshotId, payload);
       }
       if (payload.vaultId !== this.vaultId) {
         throw new AttentionError('wrong-vault', 'snapshot-vault-mismatch');
       }
-      if (payload.authorDeviceId !== candidate.head.deviceId ||
-          payload.deviceSequence !== candidate.head.deviceSequence) {
+      if (
+        payload.authorDeviceId !== candidate.head.deviceId ||
+        payload.deviceSequence !== candidate.head.deviceSequence
+      ) {
         throw new AttentionError('invalid-remote-snapshot', 'head-envelope-mismatch');
       }
       snapshots.push({
@@ -339,7 +372,9 @@ export class SnapshotSyncEngine {
         payload,
       });
     }
-    return snapshots.sort((left, right) => left.head.deviceId.localeCompare(right.head.deviceId));
+    return snapshots.sort((left, right) =>
+      left.head.deviceId.localeCompare(right.head.deviceId),
+    );
   }
 
   private async synchronizeMedia(
@@ -349,16 +384,26 @@ export class SnapshotSyncEngine {
     capturedGeneration: number,
   ): Promise<void> {
     const localHashes = new Set(local.media.map((asset) => asset.blobHash));
-    const remoteHashes = new Set(remotes.flatMap((remote) =>
-      remote.payload.media.map((asset) => asset.blobHash)));
-    const requiredHashes = [...new Set(merged.media.map((asset) => asset.blobHash))].sort();
-    const remotelyPresent = await this.provider.hasMediaBatch(this.vaultId, requiredHashes);
+    const remoteHashes = new Set(
+      remotes.flatMap((remote) => remote.payload.media.map((asset) => asset.blobHash)),
+    );
+    const requiredHashes = [
+      ...new Set(merged.media.map((asset) => asset.blobHash)),
+    ].sort();
+    const remotelyPresent = await this.provider.hasMediaBatch(
+      this.vaultId,
+      requiredHashes,
+    );
     for (const blobHash of requiredHashes) {
       const remotePresent = remotelyPresent.has(blobHash);
       // An upload source already proves local availability. Do not hash the
       // same bytes first for hasVerified and then again to open the source.
-      const source = remotePresent ? null : await this.mediaStore.openVerifiedSource(blobHash);
-      const localPresent = remotePresent ? await this.mediaStore.hasVerified(blobHash) : source !== null;
+      const source = remotePresent
+        ? null
+        : await this.mediaStore.openVerifiedSource(blobHash);
+      const localPresent = remotePresent
+        ? await this.mediaStore.hasVerified(blobHash)
+        : source !== null;
       if (!remotePresent && localPresent) {
         if (!source || source.contentHash !== blobHash) {
           throw new AttentionError('local-media-unreadable', 'local-media-hash-mismatch');
@@ -382,8 +427,11 @@ export class SnapshotSyncEngine {
           // not hold back the compressed metadata snapshot. The production
           // journal records a visible pending attachment and hydrates it in a
           // later bounded media pass. Integrity/auth failures remain blocking.
-          if (!(error instanceof SnapshotProviderError) ||
-              !['transient', 'rate-limited', 'wifi-only-media'].includes(error.code)) throw error;
+          if (
+            !(error instanceof SnapshotProviderError) ||
+            !['transient', 'rate-limited', 'wifi-only-media'].includes(error.code)
+          )
+            throw error;
         }
       } else if (!remotePresent && !localPresent) {
         // Apply the already-validated logical journal before pausing. This
@@ -413,10 +461,16 @@ export class SnapshotSyncEngine {
       return { status: 'attention', reason: error.reason, actionableChanges: remaining };
     }
     if (error instanceof SnapshotMergeError) {
-      const reason = error.code === 'derived-id-collision'
-        ? 'derived-id-collision'
-        : 'normalized-model-not-ready';
-      this.stateStore.setPause(this.vaultId, this.deviceId, reason, `merge-${error.code}`);
+      const reason =
+        error.code === 'derived-id-collision'
+          ? 'derived-id-collision'
+          : 'normalized-model-not-ready';
+      this.stateStore.setPause(
+        this.vaultId,
+        this.deviceId,
+        reason,
+        `merge-${error.code}`,
+      );
       return { status: 'attention', reason, actionableChanges: remaining };
     }
     if (error instanceof SnapshotValidationError) {
@@ -448,17 +502,27 @@ export class SnapshotSyncEngine {
     if (error instanceof SnapshotProviderError) {
       const attention = attentionReasonForProviderError(error.code);
       if (attention) {
-        this.stateStore.setPause(this.vaultId, this.deviceId, attention, `provider-${error.code}`);
+        this.stateStore.setPause(
+          this.vaultId,
+          this.deviceId,
+          attention,
+          `provider-${error.code}`,
+        );
         return { status: 'attention', reason: attention, actionableChanges: remaining };
       }
-      this.stateStore.setRetryError(this.vaultId, this.deviceId, `provider-${error.code}`);
+      this.stateStore.setRetryError(
+        this.vaultId,
+        this.deviceId,
+        `provider-${error.code}`,
+      );
       return {
         status: 'retry',
-        reason: error.code === 'rate-limited'
-          ? 'rate-limited'
-          : error.code === 'wifi-only-media'
-            ? 'wifi-only-media'
-            : 'transient',
+        reason:
+          error.code === 'rate-limited'
+            ? 'rate-limited'
+            : error.code === 'wifi-only-media'
+              ? 'wifi-only-media'
+              : 'transient',
         actionableChanges: remaining,
       };
     }
@@ -467,10 +531,13 @@ export class SnapshotSyncEngine {
       return { status: 'retry', reason: 'transient', actionableChanges: remaining };
     }
     if (error instanceof BaseShadowReadError) {
-      this.stateStore.setRetryError(this.vaultId, this.deviceId, 'base-shadow-read-failed');
+      this.stateStore.setRetryError(
+        this.vaultId,
+        this.deviceId,
+        'base-shadow-read-failed',
+      );
       return { status: 'retry', reason: 'transient', actionableChanges: remaining };
     }
     throw error;
   }
-
 }

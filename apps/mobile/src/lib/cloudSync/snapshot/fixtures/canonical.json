@@ -58,7 +58,12 @@
         "media": [],
         "observedDeviceHeads": [],
         "parentSnapshotIds": [],
-        "profile": { "displayName": null, "photoAssetId": null, "profileId": "profile", "updatedAt": 1770000000000 },
+        "profile": {
+          "displayName": null,
+          "photoAssetId": null,
+          "profileId": "profile",
+          "updatedAt": 1770000000000
+        },
         "prompts": [],
         "tags": [],
         "tombstones": [],

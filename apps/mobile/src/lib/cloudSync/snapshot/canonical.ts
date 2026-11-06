@@ -2,7 +2,10 @@ import { invalid } from './caps';
 import { sha256Text } from './sha256';
 
 export type CanonicalValue =
-  | null | boolean | number | string
+  | null
+  | boolean
+  | number
+  | string
   | CanonicalValue[]
   | { [key: string]: CanonicalValue };
 
@@ -67,4 +70,3 @@ export function encodeCanonicalBytes(value: unknown): Uint8Array {
 export function canonicalHash(value: unknown): string {
   return sha256Text(canonicalize(value));
 }
-

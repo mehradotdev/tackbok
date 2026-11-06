@@ -23,6 +23,8 @@ export async function setCloudSyncBackgroundTaskEnabled(enabled: boolean): Promi
     return;
   }
   if (!registered) {
-    await BackgroundTask.registerTaskAsync(CLOUD_SYNC_BACKGROUND_TASK, { minimumInterval: 15 });
+    await BackgroundTask.registerTaskAsync(CLOUD_SYNC_BACKGROUND_TASK, {
+      minimumInterval: 15,
+    });
   }
 }

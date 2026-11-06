@@ -191,7 +191,12 @@ export async function runNormalizedModelBackfill(
     if (batch.length === 0) break;
     committedBatches++;
     if (committedBatches === options.stopAfterCommittedBatches) {
-      return { status: 'interrupted', committedBatches, normalizedEntries, repairedEntries: 0 };
+      return {
+        status: 'interrupted',
+        committedBatches,
+        normalizedEntries,
+        repairedEntries: 0,
+      };
     }
   }
 

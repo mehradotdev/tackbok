@@ -39,7 +39,8 @@ function normalizeNativeError(error: unknown): CloudAuthError {
     typeof error === 'object' && error !== null && 'code' in error
       ? String(error.code)
       : '';
-  if (code.includes('CANCELLED')) return new CloudAuthError('cancelled', 'Google sign-in was cancelled');
+  if (code.includes('CANCELLED'))
+    return new CloudAuthError('cancelled', 'Google sign-in was cancelled');
   if (code.includes('CONSENT_REQUIRED')) {
     return new CloudAuthError('consent-required', 'Google consent is required');
   }

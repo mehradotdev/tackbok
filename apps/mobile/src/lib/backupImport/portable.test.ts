@@ -21,12 +21,10 @@ const mockWriteImportedPhoto = jest.fn(
     height: 10,
   }),
 );
-const mockWriteImportedAudio = jest.fn(
-  (_bytes: Uint8Array, _path: string): Asset => ({
-    type: AssetType.AUDIO,
-    uri: 'voice-memos/imported.m4a',
-  }),
-);
+const mockWriteImportedAudio = jest.fn((_bytes: Uint8Array, _path: string): Asset => ({
+  type: AssetType.AUDIO,
+  uri: 'voice-memos/imported.m4a',
+}));
 const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
 const mockCreatePromptInTransaction = jest.fn(async (..._args: unknown[]) => undefined);
 

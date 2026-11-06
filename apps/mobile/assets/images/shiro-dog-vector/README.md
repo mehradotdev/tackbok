@@ -56,12 +56,12 @@ screens and picker previews do not receive those commands.
 
 ## Rig anchors
 
-| Part | Pivot in viewBox coordinates |
-| --- | --- |
-| Head | 650, 617 |
-| Near ear at rest | 378, 399 |
-| Tail | 354, 1160 |
-| Visible eye at rest | 587, 278 |
+| Part                | Pivot in viewBox coordinates |
+| ------------------- | ---------------------------- |
+| Head                | 650, 617                     |
+| Near ear at rest    | 378, 399                     |
+| Tail                | 354, 1160                    |
+| Visible eye at rest | 587, 278                     |
 
 The ear pivot and eye positions move through the authored views. Body/head,
 collar and tail overlaps hide joints within these small motion ranges; paw

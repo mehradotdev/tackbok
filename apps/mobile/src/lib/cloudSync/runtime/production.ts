@@ -1,5 +1,8 @@
 import { AppState } from 'react-native';
-import { cloudConnectionLifecycle, CloudConnectionChangedError } from './connectionLifecycle';
+import {
+  cloudConnectionLifecycle,
+  CloudConnectionChangedError,
+} from './connectionLifecycle';
 import * as Network from 'expo-network';
 import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db } from '~/db';
@@ -9,15 +12,8 @@ import {
   toCloudSyncDurationBucket,
 } from '~/lib/analytics/events';
 import { useSettingsStore } from '~/lib/settings';
-import {
-  isNormalizedModelReady,
-  runNormalizedModelBackfill,
-} from '../storage/backfill';
-import {
-  SyncRuntime,
-  type RuntimePlatform,
-  type RuntimeSyncEngine,
-} from './SyncRuntime';
+import { isNormalizedModelReady, runNormalizedModelBackfill } from '../storage/backfill';
+import { SyncRuntime, type RuntimePlatform, type RuntimeSyncEngine } from './SyncRuntime';
 import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
@@ -31,7 +27,9 @@ export function getProductionCloudSyncActivity(): ProductionCloudSyncActivity {
   return productionCloudSyncActivity.current;
 }
 
-export function setProductionCloudSyncActivity(activity: ProductionCloudSyncActivity): void {
+export function setProductionCloudSyncActivity(
+  activity: ProductionCloudSyncActivity,
+): void {
   productionCloudSyncActivity.report(activity);
 }
 
@@ -45,7 +43,7 @@ export function notifyProductionCloudSyncChanged(): void {
 }
 
 const platform: RuntimePlatform = {
-  getAppState: () => AppState.currentState === 'active' ? 'active' : 'background',
+  getAppState: () => (AppState.currentState === 'active' ? 'active' : 'background'),
   addAppStateListener(listener) {
     return AppState.addEventListener('change', (state) => {
       if (state === 'active' || state === 'background' || state === 'inactive') {
@@ -78,11 +76,18 @@ async function retryBackfill(): Promise<void> {
 export async function createProductionRuntimeEngine(
   onRemoteApplied?: () => void | Promise<void>,
 ): Promise<RuntimeSyncEngine | null> {
-  const [configured] = await db.select().from(cloudVault).where(and(
-    isNotNull(cloudVault.remote_root_id),
-    inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
-  )).limit(1);
-  if (!configured?.remote_root_id || configured.provider_kind !== 'google-drive') return null;
+  const [configured] = await db
+    .select()
+    .from(cloudVault)
+    .where(
+      and(
+        isNotNull(cloudVault.remote_root_id),
+        inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
+      ),
+    )
+    .limit(1);
+  if (!configured?.remote_root_id || configured.provider_kind !== 'google-drive')
+    return null;
 
   return createProductionSnapshotRuntimeEngine({
     vault: configured,
@@ -92,16 +97,24 @@ export async function createProductionRuntimeEngine(
 }
 
 export async function isProductionCloudSyncConfigured(): Promise<boolean> {
-  const [configured] = await db.select({ vaultId: cloudVault.vault_id }).from(cloudVault).where(and(
-    isNotNull(cloudVault.remote_root_id),
-    inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
-  )).limit(1);
+  const [configured] = await db
+    .select({ vaultId: cloudVault.vault_id })
+    .from(cloudVault)
+    .where(
+      and(
+        isNotNull(cloudVault.remote_root_id),
+        inArray(cloudVault.status, ['dirty', 'idle', 'restoring']),
+      ),
+    )
+    .limit(1);
   return configured !== undefined;
 }
 
-export function createProductionSyncRuntime(options: {
-  onRemoteApplied?: () => void | Promise<void>;
-} = {}): SyncRuntime {
+export function createProductionSyncRuntime(
+  options: {
+    onRemoteApplied?: () => void | Promise<void>;
+  } = {},
+): SyncRuntime {
   return new SyncRuntime({
     platform,
     readiness: { isReady: isNormalizedModelReady, retryBackfill },
@@ -119,9 +132,11 @@ export function createProductionSyncRuntime(options: {
 
 let productionRuntime: SyncRuntime | null = null;
 
-export function getProductionSyncRuntime(options: {
-  onRemoteApplied?: () => void | Promise<void>;
-} = {}): SyncRuntime {
+export function getProductionSyncRuntime(
+  options: {
+    onRemoteApplied?: () => void | Promise<void>;
+  } = {},
+): SyncRuntime {
   productionRuntime ??= createProductionSyncRuntime(options);
   return productionRuntime;
 }
@@ -159,7 +174,11 @@ export function getProductionCloudSyncFailureCategory() {
 
 export async function runProductionBackgroundPass(): Promise<boolean> {
   if (!(await isNormalizedModelReady())) {
-    try { await retryBackfill(); } catch { return false; }
+    try {
+      await retryBackfill();
+    } catch {
+      return false;
+    }
   }
   if (!(await isNormalizedModelReady())) return false;
   // A connection can change while the async factory is constructing an engine.

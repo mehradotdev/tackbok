@@ -3,7 +3,10 @@ import { Database, type SQLQueryBindings } from 'bun:sqlite';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { encodeCanonicalBytes, canonicalize } from '../../src/lib/cloudSync/snapshot/canonical';
+import {
+  encodeCanonicalBytes,
+  canonicalize,
+} from '../../src/lib/cloudSync/snapshot/canonical';
 import { decodeSnapshot, encodeSnapshot } from '../../src/lib/cloudSync/snapshot/codec';
 import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
 import { BaseShadowManager } from '../../src/lib/cloudSync/snapshot/sync/baseShadow';
@@ -37,20 +40,23 @@ const databases: Database[] = [];
 const SNAPSHOT_MIGRATION = readFileSync(
   join(import.meta.dir, '../../src/drizzle/0004_colorful_xavin.sql'),
   'utf8',
-).split('DROP INDEX `custom_prompts_title_unique`')[0]
+)
+  .split('DROP INDEX `custom_prompts_title_unique`')[0]
   .replaceAll('--> statement-breakpoint', '');
 
 class BunSyncDatabase implements SyncDatabase {
   constructor(private readonly database: Database) {}
-  execSync(source: string): void { this.database.exec(source); }
+  execSync(source: string): void {
+    this.database.exec(source);
+  }
   getFirstSync<T>(source: string, ...params: unknown[]): T | null {
-    return this.database.query(source).get(...params as SQLQueryBindings[]) as T | null;
+    return this.database.query(source).get(...(params as SQLQueryBindings[])) as T | null;
   }
   getAllSync<T>(source: string, ...params: unknown[]): T[] {
-    return this.database.query(source).all(...params as SQLQueryBindings[]) as T[];
+    return this.database.query(source).all(...(params as SQLQueryBindings[])) as T[];
   }
   runSync(source: string, ...params: unknown[]): unknown {
-    return this.database.query(source).run(...params as SQLQueryBindings[]);
+    return this.database.query(source).run(...(params as SQLQueryBindings[]));
   }
 }
 
@@ -63,27 +69,46 @@ function database(): BunSyncDatabase {
 
 function blankDomain(): SnapshotDomain {
   return {
-    entries: [], tags: [], entryTags: [], prompts: [],
-    profile: { profileId: 'profile', displayName: null, photoAssetId: null, updatedAt: 1 },
-    media: [], tombstones: [], conflicts: [],
+    entries: [],
+    tags: [],
+    entryTags: [],
+    prompts: [],
+    profile: {
+      profileId: 'profile',
+      displayName: null,
+      photoAssetId: null,
+      updatedAt: 1,
+    },
+    media: [],
+    tombstones: [],
+    conflicts: [],
   };
 }
 
 function entry(entryId: string, content: string, updatedAt = 1): SnapshotEntry {
   return {
-    entryId, title: null, content, mood: null, createdAt: 1, updatedAt,
+    entryId,
+    title: null,
+    content,
+    mood: null,
+    createdAt: 1,
+    updatedAt,
     conflictOriginId: null,
   };
 }
 
 function withEntry(domain: SnapshotDomain, value: SnapshotEntry): SnapshotDomain {
   const next = structuredClone(domain);
-  next.entries = [...next.entries.filter((item) => item.entryId !== value.entryId), value]
-    .sort((left, right) => left.entryId.localeCompare(right.entryId));
+  next.entries = [
+    ...next.entries.filter((item) => item.entryId !== value.entryId),
+    value,
+  ].sort((left, right) => left.entryId.localeCompare(right.entryId));
   return next;
 }
 
-interface Clock { value: number }
+interface Clock {
+  value: number;
+}
 
 interface Harness {
   vaultId: string;
@@ -113,12 +138,28 @@ function harness(
   const journal = new MemorySnapshotJournalStore(initial, state, vaultId, deviceId);
   const media = new MemorySnapshotMediaStore();
   return {
-    vaultId, deviceId, provider, database: syncDatabase,
-    state, files, shadows, journal, media, clock,
-    engine: (hooks = {}) => new SnapshotSyncEngine(
-      vaultId, deviceId, state, shadows, journal, media, provider, hooks,
-      () => clock.value,
-    ),
+    vaultId,
+    deviceId,
+    provider,
+    database: syncDatabase,
+    state,
+    files,
+    shadows,
+    journal,
+    media,
+    clock,
+    engine: (hooks = {}) =>
+      new SnapshotSyncEngine(
+        vaultId,
+        deviceId,
+        state,
+        shadows,
+        journal,
+        media,
+        provider,
+        hooks,
+        () => clock.value,
+      ),
   };
 }
 
@@ -129,36 +170,45 @@ afterEach(() => {
 });
 
 describe('durable snapshot publisher', () => {
-  test.each([1, 2, 3])('%s fresh devices stop publishing once journal data converges', async (count) => {
-    const provider = new FakeSnapshotProvider();
-    const devices = Array.from({ length: count }, (_, i) => harness(`idle-${i}`, blankDomain(), provider));
-    devices[0].journal.mutate(withEntry(blankDomain(), entry('shared', 'Initial')));
-    expect((await devices[0].engine().sync()).status).toBe('published');
-    for (const device of devices.slice(1)) expect((await device.engine().sync()).status).toBe('pulled');
-    expect(provider.snapshotIds(devices[0].vaultId)).toHaveLength(1);
-    const quiet = async () => {
+  test.each([1, 2, 3])(
+    '%s fresh devices stop publishing once journal data converges',
+    async (count) => {
+      const provider = new FakeSnapshotProvider();
+      const devices = Array.from({ length: count }, (_, i) =>
+        harness(`idle-${i}`, blankDomain(), provider),
+      );
+      devices[0].journal.mutate(withEntry(blankDomain(), entry('shared', 'Initial')));
+      expect((await devices[0].engine().sync()).status).toBe('published');
+      for (const device of devices.slice(1))
+        expect((await device.engine().sync()).status).toBe('pulled');
+      expect(provider.snapshotIds(devices[0].vaultId)).toHaveLength(1);
+      const quiet = async () => {
+        provider.requests.length = 0;
+        for (let round = 0; round < 4; round++) {
+          for (const device of devices)
+            expect((await device.engine().sync()).status).toBe('up-to-date');
+        }
+        expect(provider.requests).not.toContain('upload-snapshot');
+        expect(provider.requests).not.toContain('update-head');
+      };
+      await quiet();
+      // The newest device may have never published a head before this edit.
+      const writer = devices.at(-1)!;
+      writer.journal.mutate(
+        withEntry(writer.journal.current(), entry('shared', 'Edited', 2)),
+      );
+      expect((await writer.engine().sync()).status).toBe('published');
       provider.requests.length = 0;
-      for (let round = 0; round < 4; round++) {
-        for (const device of devices) expect((await device.engine().sync()).status).toBe('up-to-date');
+      for (const device of devices.filter((d) => d !== writer)) {
+        expect((await device.engine().sync()).status).toBe('pulled');
+        expect(device.journal.current().entries[0].content).toBe('Edited');
       }
       expect(provider.requests).not.toContain('upload-snapshot');
       expect(provider.requests).not.toContain('update-head');
-    };
-    await quiet();
-    // The newest device may have never published a head before this edit.
-    const writer = devices.at(-1)!;
-    writer.journal.mutate(withEntry(writer.journal.current(), entry('shared', 'Edited', 2)));
-    expect((await writer.engine().sync()).status).toBe('published');
-    provider.requests.length = 0;
-    for (const device of devices.filter((d) => d !== writer)) {
-      expect((await device.engine().sync()).status).toBe('pulled');
-      expect(device.journal.current().entries[0].content).toBe('Edited');
-    }
-    expect(provider.requests).not.toContain('upload-snapshot');
-    expect(provider.requests).not.toContain('update-head');
-    await quiet();
-    expect(provider.snapshotIds(writer.vaultId)).toHaveLength(2);
-  });
+      await quiet();
+      expect(provider.snapshotIds(writer.vaultId)).toHaveLength(2);
+    },
+  );
 
   test('a dirty generation with identical journal data settles locally', async () => {
     const app = harness('no-op');
@@ -166,7 +216,10 @@ describe('durable snapshot publisher', () => {
     await app.engine().sync();
     app.journal.mutate(app.journal.current());
     app.provider.requests.length = 0;
-    expect(await app.engine().sync()).toMatchObject({ status: 'pulled', actionableChanges: 0 });
+    expect(await app.engine().sync()).toMatchObject({
+      status: 'pulled',
+      actionableChanges: 0,
+    });
     expect(app.provider.requests).not.toContain('upload-snapshot');
     expect(app.provider.requests).not.toContain('update-head');
     expect((await app.engine().sync()).status).toBe('up-to-date');
@@ -178,9 +231,14 @@ describe('durable snapshot publisher', () => {
     await source.engine().sync();
     const target = harness('pull-storage-target', blankDomain(), source.provider);
     const write = target.files.writeTempAndFsync.bind(target.files);
-    target.files.writeTempAndFsync = async () => { throw new Error('ENOSPC'); };
+    target.files.writeTempAndFsync = async () => {
+      throw new Error('ENOSPC');
+    };
     source.provider.requests.length = 0;
-    expect(await target.engine().sync()).toMatchObject({ status: 'attention', reason: 'local-storage-full' });
+    expect(await target.engine().sync()).toMatchObject({
+      status: 'attention',
+      reason: 'local-storage-full',
+    });
     expect(target.state.loadBaseCheckpoint(target.vaultId, target.deviceId)).toBeNull();
     target.files.writeTempAndFsync = write;
     target.state.clearPause(target.vaultId, target.deviceId);
@@ -195,9 +253,15 @@ describe('durable snapshot publisher', () => {
     const old = app.state.loadBaseCheckpoint(app.vaultId, app.deviceId)!;
     const shadow = (await app.shadows.load(old)).shadow!;
     const next = await app.shadows.prepareAndReplace(app.deviceId, 0, {
-      ...shadow, acceptedDeviceHeads: [...shadow.acceptedDeviceHeads, {
-        deviceId: 'z-other', deviceSequence: 1, snapshotId: 'a'.repeat(64),
-      }],
+      ...shadow,
+      acceptedDeviceHeads: [
+        ...shadow.acceptedDeviceHeads,
+        {
+          deviceId: 'z-other',
+          deviceSequence: 1,
+          snapshotId: 'a'.repeat(64),
+        },
+      ],
     });
     expect(next.fileName).not.toBe(old.fileName);
     // Simulate death after replacing the file, but before committing SQLite.
@@ -212,11 +276,30 @@ describe('durable snapshot publisher', () => {
     const app = harness('old-loop-reader');
     const domain = withEntry(blankDomain(), entry('same', 'Same'));
     for (const author of ['old-a', 'old-b', 'old-c']) {
-      const encoded = encodeSnapshot({ ...domain, format: 'tackbok-snapshot', vaultId: app.vaultId,
-        authorDeviceId: author, deviceSequence: 5, createdAt: 1, parentSnapshotIds: [], observedDeviceHeads: [] });
-      app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 1);
-      app.provider.injectPhysicalHead({ format: 'tackbok-device-head', vaultId: app.vaultId,
-        deviceId: author, deviceSequence: 5, snapshotId: encoded.snapshotId, updatedAt: 1 });
+      const encoded = encodeSnapshot({
+        ...domain,
+        format: 'tackbok-snapshot',
+        vaultId: app.vaultId,
+        authorDeviceId: author,
+        deviceSequence: 5,
+        createdAt: 1,
+        parentSnapshotIds: [],
+        observedDeviceHeads: [],
+      });
+      app.provider.injectSnapshot(
+        app.vaultId,
+        encoded.snapshotId,
+        encoded.compressedBytes,
+        1,
+      );
+      app.provider.injectPhysicalHead({
+        format: 'tackbok-device-head',
+        vaultId: app.vaultId,
+        deviceId: author,
+        deviceSequence: 5,
+        snapshotId: encoded.snapshotId,
+        updatedAt: 1,
+      });
     }
     expect((await app.engine().sync()).status).toBe('pulled');
     expect((await app.engine().sync()).status).toBe('up-to-date');
@@ -230,15 +313,28 @@ describe('durable snapshot publisher', () => {
     await source.engine().sync();
     const target = harness('domain-target', blankDomain(), source.provider);
     await target.engine().sync();
-    source.journal.mutate(withEntry(source.journal.current(), { ...entry('same', 'Same', 2), createdAt: 500 }));
+    source.journal.mutate(
+      withEntry(source.journal.current(), {
+        ...entry('same', 'Same', 2),
+        createdAt: 500,
+      }),
+    );
     expect((await source.engine().sync()).status).toBe('published');
     expect((await target.engine().sync()).status).toBe('pulled');
     expect(target.journal.current().entries[0].createdAt).toBe(500);
     const deleted = source.journal.current();
     const hash = canonicalize(deleted.entries[0]);
     deleted.entries = [];
-    deleted.tombstones = [{ entityType: 'entry', entityId: 'same', baseStateHash: sha256Bytes(new TextEncoder().encode(hash)),
-      deletedStateHash: sha256Bytes(new TextEncoder().encode(hash)), deletedByDeviceId: source.deviceId, deletionSequence: 3 }];
+    deleted.tombstones = [
+      {
+        entityType: 'entry',
+        entityId: 'same',
+        baseStateHash: sha256Bytes(new TextEncoder().encode(hash)),
+        deletedStateHash: sha256Bytes(new TextEncoder().encode(hash)),
+        deletedByDeviceId: source.deviceId,
+        deletionSequence: 3,
+      },
+    ];
     source.journal.mutate(deleted);
     expect((await source.engine().sync()).status).toBe('published');
     source.provider.requests.length = 0;
@@ -255,15 +351,26 @@ describe('durable snapshot publisher', () => {
     await source.engine().sync();
     const target = harness('pull-target', blankDomain(), source.provider);
     let edited = false;
-    expect(await target.engine({ beforeHeadRecheck() {
-      if (edited) return;
-      edited = true;
-      target.journal.mutate(withEntry(target.journal.current(), entry('local', 'Local edit')));
-    } }).sync()).toMatchObject({ status: 'retry', actionableChanges: 1 });
+    expect(
+      await target
+        .engine({
+          beforeHeadRecheck() {
+            if (edited) return;
+            edited = true;
+            target.journal.mutate(
+              withEntry(target.journal.current(), entry('local', 'Local edit')),
+            );
+          },
+        })
+        .sync(),
+    ).toMatchObject({ status: 'retry', actionableChanges: 1 });
     expect(target.state.loadBaseCheckpoint(target.vaultId, target.deviceId)).toBeNull();
     expect(target.journal.current().entries[0].content).toBe('Local edit');
     expect((await target.engine().sync()).status).toBe('published');
-    expect(target.journal.current().entries.map((e) => e.entryId)).toEqual(['local', 'shared']);
+    expect(target.journal.current().entries.map((e) => e.entryId)).toEqual([
+      'local',
+      'shared',
+    ]);
   });
 
   test('an edit after remote apply remains queued while the remote base is committed', async () => {
@@ -271,28 +378,45 @@ describe('durable snapshot publisher', () => {
     source.journal.mutate(withEntry(blankDomain(), entry('shared', 'Cloud')));
     await source.engine().sync();
     const target = harness('pull-late-target', blankDomain(), source.provider);
-    expect(await target.engine({ at(point) {
-      if (point === 'during-merge-application') {
-        target.journal.mutate(withEntry(target.journal.current(), entry('shared', 'Local edit', 2)));
-      }
-    } }).sync()).toMatchObject({ status: 'pulled', actionableChanges: 1 });
+    expect(
+      await target
+        .engine({
+          at(point) {
+            if (point === 'during-merge-application') {
+              target.journal.mutate(
+                withEntry(target.journal.current(), entry('shared', 'Local edit', 2)),
+              );
+            }
+          },
+        })
+        .sync(),
+    ).toMatchObject({ status: 'pulled', actionableChanges: 1 });
     expect((await target.engine().sync()).status).toBe('published');
     expect(target.journal.current().entries).toEqual([entry('shared', 'Local edit', 2)]);
     expect(target.journal.current().conflicts).toEqual([]);
   });
 
   test.each<SnapshotKillPoint>([
-    'during-merge-application', 'after-base-shadow-temp-fsynced', 'after-base-shadow-readback',
-    'after-base-shadow-renamed', 'after-base-checkpoint-settled',
+    'during-merge-application',
+    'after-base-shadow-temp-fsynced',
+    'after-base-shadow-readback',
+    'after-base-shadow-renamed',
+    'after-base-checkpoint-settled',
   ])('remote adoption survives interruption at %s without uploading', async (point) => {
     const source = harness('pull-crash-source');
     source.journal.mutate(withEntry(blankDomain(), entry('shared', 'Cloud')));
     await source.engine().sync();
     const target = harness('pull-crash-target', blankDomain(), source.provider);
     source.provider.requests.length = 0;
-    await expect(target.engine({ at(current) {
-      if (current === point) throw new SimulatedProcessDeath(current);
-    } }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    await expect(
+      target
+        .engine({
+          at(current) {
+            if (current === point) throw new SimulatedProcessDeath(current);
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
     expect(['pulled', 'up-to-date']).toContain((await target.engine().sync()).status);
     expect(target.journal.current().entries).toEqual([entry('shared', 'Cloud')]);
     expect((await target.engine().sync()).status).toBe('up-to-date');
@@ -303,7 +427,9 @@ describe('durable snapshot publisher', () => {
     const first = harness('retention-a');
     for (let index = 0; index < 6; index++) {
       first.clock.value++;
-      first.journal.mutate(withEntry(first.journal.current(), entry(`entry-${index}`, 'Keep')));
+      first.journal.mutate(
+        withEntry(first.journal.current(), entry(`entry-${index}`, 'Keep')),
+      );
       await first.engine().sync();
     }
     const second = harness('retention-b', blankDomain(), first.provider, first.clock);
@@ -313,32 +439,74 @@ describe('durable snapshot publisher', () => {
     second.journal.mutate(secondDomain);
     await second.engine().sync();
     const cleaner = new SnapshotCleanup({
-      vaultId: first.vaultId, stateStore: first.state, shadowManager: first.shadows,
-      provider: first.provider, hooks: {}, now: () => first.clock.value,
+      vaultId: first.vaultId,
+      stateStore: first.state,
+      shadowManager: first.shadows,
+      provider: first.provider,
+      hooks: {},
+      now: () => first.clock.value,
     });
     const cleanup = () => cleaner.run();
     first.clock.value += 31 * 24 * 60 * 60 * 1000;
     // A separate, unobserved device is a divergent branch, even when old.
-    const divergent = encodeSnapshot({ ...blankDomain(), format: 'tackbok-snapshot',
-      vaultId: first.vaultId, authorDeviceId: 'offline', deviceSequence: 1,
-      createdAt: 1, parentSnapshotIds: [], observedDeviceHeads: [] });
-    first.provider.injectSnapshot(first.vaultId, divergent.snapshotId, divergent.compressedBytes, 1);
-    first.provider.injectPhysicalHead({ format: 'tackbok-device-head', vaultId: first.vaultId,
-      deviceId: 'offline', deviceSequence: 1, snapshotId: divergent.snapshotId, updatedAt: 1 });
+    const divergent = encodeSnapshot({
+      ...blankDomain(),
+      format: 'tackbok-snapshot',
+      vaultId: first.vaultId,
+      authorDeviceId: 'offline',
+      deviceSequence: 1,
+      createdAt: 1,
+      parentSnapshotIds: [],
+      observedDeviceHeads: [],
+    });
+    first.provider.injectSnapshot(
+      first.vaultId,
+      divergent.snapshotId,
+      divergent.compressedBytes,
+      1,
+    );
+    first.provider.injectPhysicalHead({
+      format: 'tackbok-device-head',
+      vaultId: first.vaultId,
+      deviceId: 'offline',
+      deviceSequence: 1,
+      snapshotId: divergent.snapshotId,
+      updatedAt: 1,
+    });
     // More retained objects than one cleanup batch must not starve covered history.
     for (let i = 0; i < 11; i++) {
-      const orphan = encodeSnapshot({ ...divergent.payload, authorDeviceId: `unobserved-${i}` });
-      first.provider.injectSnapshot(first.vaultId, orphan.snapshotId, orphan.compressedBytes, 1);
+      const orphan = encodeSnapshot({
+        ...divergent.payload,
+        authorDeviceId: `unobserved-${i}`,
+      });
+      first.provider.injectSnapshot(
+        first.vaultId,
+        orphan.snapshotId,
+        orphan.compressedBytes,
+        1,
+      );
     }
     const before = first.provider.snapshotIds(first.vaultId);
     await cleanup();
     expect(first.provider.snapshotIds(first.vaultId)).toEqual(before);
     first.provider.removeDeviceHeadForTest(first.vaultId, 'offline');
     // Uploaded but not head-advanced: its sequence is not yet covered.
-    const pending = encodeSnapshot({ ...blankDomain(), format: 'tackbok-snapshot',
-      vaultId: first.vaultId, authorDeviceId: first.deviceId, deviceSequence: 100,
-      createdAt: 2, parentSnapshotIds: [], observedDeviceHeads: [] });
-    first.provider.injectSnapshot(first.vaultId, pending.snapshotId, pending.compressedBytes, 2);
+    const pending = encodeSnapshot({
+      ...blankDomain(),
+      format: 'tackbok-snapshot',
+      vaultId: first.vaultId,
+      authorDeviceId: first.deviceId,
+      deviceSequence: 100,
+      createdAt: 2,
+      parentSnapshotIds: [],
+      observedDeviceHeads: [],
+    });
+    first.provider.injectSnapshot(
+      first.vaultId,
+      pending.snapshotId,
+      pending.compressedBytes,
+      2,
+    );
     await cleanup();
     await cleanup();
     await cleanup();
@@ -349,7 +517,12 @@ describe('durable snapshot publisher', () => {
     for (const { head } of first.provider.physicalHeads(first.vaultId)) {
       expect(remaining).toContain(head.snapshotId);
     }
-    const restored = harness('retention-restore', blankDomain(), first.provider, first.clock);
+    const restored = harness(
+      'retention-restore',
+      blankDomain(),
+      first.provider,
+      first.clock,
+    );
     expect((await restored.engine().sync()).status).toBe('pulled');
     expect(restored.journal.current().entries).toHaveLength(6);
   });
@@ -363,18 +536,31 @@ describe('durable snapshot publisher', () => {
     }
     app.clock.value += 31 * 24 * 60 * 60 * 1000;
     const before = app.provider.snapshotIds(app.vaultId);
-    await new SnapshotCleanup({ vaultId: app.vaultId, stateStore: app.state,
-      shadowManager: app.shadows, provider: app.provider, now: () => app.clock.value,
-      hooks: { at() { app.provider.injectPhysicalHead({
-        ...app.provider.physicalHeads(app.vaultId)[0].head, deviceId: 'arriving-device',
-      }); } },
+    await new SnapshotCleanup({
+      vaultId: app.vaultId,
+      stateStore: app.state,
+      shadowManager: app.shadows,
+      provider: app.provider,
+      now: () => app.clock.value,
+      hooks: {
+        at() {
+          app.provider.injectPhysicalHead({
+            ...app.provider.physicalHeads(app.vaultId)[0].head,
+            deviceId: 'arriving-device',
+          });
+        },
+      },
     }).run();
     expect(app.provider.snapshotIds(app.vaultId)).toEqual(before);
     expect(app.provider.requests).not.toContain('delete-snapshot');
     // The new device's envelope wrongly claims the first device's snapshot.
     // Even identical snapshot IDs must be checked against each head envelope.
-    await new SnapshotCleanup({ vaultId: app.vaultId, stateStore: app.state,
-      shadowManager: app.shadows, provider: app.provider, now: () => app.clock.value,
+    await new SnapshotCleanup({
+      vaultId: app.vaultId,
+      stateStore: app.state,
+      shadowManager: app.shadows,
+      provider: app.provider,
+      now: () => app.clock.value,
       hooks: {},
     }).run();
     expect(app.provider.requests).not.toContain('delete-snapshot');
@@ -386,8 +572,18 @@ describe('durable snapshot publisher', () => {
     const second = harness('date-android', blankDomain(), first.provider);
     await second.engine().sync();
     await first.engine().sync();
-    first.journal.mutate(withEntry(first.journal.current(), { ...entry('dated', 'Body', 2), createdAt: 864000001 }));
-    first.state.setPause(first.vaultId, first.deviceId, 'invalid-remote-snapshot', 'merge-invalid-immutable-mutation');
+    first.journal.mutate(
+      withEntry(first.journal.current(), {
+        ...entry('dated', 'Body', 2),
+        createdAt: 864000001,
+      }),
+    );
+    first.state.setPause(
+      first.vaultId,
+      first.deviceId,
+      'invalid-remote-snapshot',
+      'merge-invalid-immutable-mutation',
+    );
     first.state.clearPause(first.vaultId, first.deviceId);
     expect((await first.engine().sync()).status).toBe('published');
     expect((await second.engine().sync()).status).toBe('pulled');
@@ -402,15 +598,25 @@ describe('durable snapshot publisher', () => {
     const second = harness('cache-b', blankDomain(), first.provider);
     first.provider.requests.length = 0;
     expect((await second.engine().sync()).status).toBe('pulled');
-    expect(first.provider.requests.filter((op) => op === 'download-snapshot')).toHaveLength(1);
+    expect(
+      first.provider.requests.filter((op) => op === 'download-snapshot'),
+    ).toHaveLength(1);
     first.provider.requests.length = 0;
     expect((await second.engine().sync()).status).toBe('up-to-date');
-    expect(first.provider.requests.filter((op) => op === 'download-snapshot').length).toBeGreaterThan(0);
+    expect(
+      first.provider.requests.filter((op) => op === 'download-snapshot').length,
+    ).toBeGreaterThan(0);
   });
   test('reconnect clears durable auth failures and the existing backup syncs again', async () => {
-    const app = harness('device-reconnect', withEntry(blankDomain(), entry('local-entry', 'Local')));
+    const app = harness(
+      'device-reconnect',
+      withEntry(blankDomain(), entry('local-entry', 'Local')),
+    );
     app.state.markDirty(app.vaultId, app.deviceId);
-    for (const reason of ['authorization-required', 'provider-permission-denied'] as const) {
+    for (const reason of [
+      'authorization-required',
+      'provider-permission-denied',
+    ] as const) {
       app.state.setPause(app.vaultId, app.deviceId, reason, 'provider-auth');
       expect((await app.engine().sync()).status).toBe('attention');
       clearAuthorizationPause(app.state, app.vaultId, app.deviceId);
@@ -419,34 +625,49 @@ describe('durable snapshot publisher', () => {
     }
     app.state.setPause(app.vaultId, app.deviceId, 'missing-media', 'missing');
     clearAuthorizationPause(app.state, app.vaultId, app.deviceId);
-    expect(app.state.loadState(app.vaultId, app.deviceId).pauseReason).toBe('missing-media');
+    expect(app.state.loadState(app.vaultId, app.deviceId).pauseReason).toBe(
+      'missing-media',
+    );
   });
 
   test('Merge attaches a local journal to an existing backup and preserves both on both devices', async () => {
-    const cloud = harness('old-device', withEntry(blankDomain(), entry('cloud-entry', 'Cloud')));
+    const cloud = harness(
+      'old-device',
+      withEntry(blankDomain(), entry('cloud-entry', 'Cloud')),
+    );
     cloud.state.markDirty(cloud.vaultId, cloud.deviceId);
     await cloud.engine().sync();
-    const local = harness('new-device', withEntry(blankDomain(), entry('local-entry', 'Local')), cloud.provider);
+    const local = harness(
+      'new-device',
+      withEntry(blankDomain(), entry('local-entry', 'Local')),
+      cloud.provider,
+    );
     local.state.markDirty(local.vaultId, local.deviceId);
     expect((await local.engine().sync()).status).toBe('published');
     await cloud.engine().sync();
     for (const app of [local, cloud]) {
-      expect((await app.journal.capture()).domain.entries.map(value => value.entryId).sort())
-        .toEqual(['cloud-entry', 'local-entry']);
+      expect(
+        (await app.journal.capture()).domain.entries.map((value) => value.entryId).sort(),
+      ).toEqual(['cloud-entry', 'local-entry']);
     }
   });
 
   test('a 2,000-entry import coalesces into one immutable snapshot and one head write', async () => {
     const imported = blankDomain();
     imported.entries = Array.from({ length: 2_000 }, (_, index) =>
-      entry(`entry-${String(index).padStart(4, '0')}`, `Synthetic import row ${index}`));
+      entry(`entry-${String(index).padStart(4, '0')}`, `Synthetic import row ${index}`),
+    );
     const app = harness('device-import', imported);
     app.state.markDirty(app.vaultId, app.deviceId, 2_000);
 
     const result = await app.engine().sync();
     expect(result.status).toBe('published');
-    expect(app.provider.requests.filter((value) => value === 'upload-snapshot')).toHaveLength(1);
-    expect(app.provider.requests.filter((value) => value === 'update-head')).toHaveLength(1);
+    expect(
+      app.provider.requests.filter((value) => value === 'upload-snapshot'),
+    ).toHaveLength(1);
+    expect(app.provider.requests.filter((value) => value === 'update-head')).toHaveLength(
+      1,
+    );
     expect(app.provider.snapshotIds(app.vaultId)).toHaveLength(1);
     expect(app.state.loadPending(app.vaultId, app.deviceId)).toBeNull();
     const checkpoint = app.state.loadBaseCheckpoint(app.vaultId, app.deviceId)!;
@@ -469,55 +690,80 @@ describe('durable snapshot publisher', () => {
     'after-base-shadow-readback',
     'after-base-shadow-renamed',
     'after-base-checkpoint-settled',
-  ] satisfies SnapshotKillPoint[])('restart at %s preserves intent and the previous backup', async (point) => {
-    const app = harness('device-kill');
-    app.journal.mutate(withEntry(blankDomain(), entry('entry-base', 'Verified base')));
-    await app.engine().sync();
-    const previousId = app.provider.physicalHeads(app.vaultId)[0].head.snapshotId;
-    app.clock.value += 1;
-    app.journal.mutate(withEntry(app.journal.current(), entry('entry-next', 'Queued after base', 2)));
-    let injected = false;
-    const hooks: SnapshotSyncHooks = {
-      at(candidate) {
-        if (!injected && candidate === point) {
-          injected = true;
-          throw new SimulatedProcessDeath(point);
-        }
-      },
-    };
+  ] satisfies SnapshotKillPoint[])(
+    'restart at %s preserves intent and the previous backup',
+    async (point) => {
+      const app = harness('device-kill');
+      app.journal.mutate(withEntry(blankDomain(), entry('entry-base', 'Verified base')));
+      await app.engine().sync();
+      const previousId = app.provider.physicalHeads(app.vaultId)[0].head.snapshotId;
+      app.clock.value += 1;
+      app.journal.mutate(
+        withEntry(app.journal.current(), entry('entry-next', 'Queued after base', 2)),
+      );
+      let injected = false;
+      const hooks: SnapshotSyncHooks = {
+        at(candidate) {
+          if (!injected && candidate === point) {
+            injected = true;
+            throw new SimulatedProcessDeath(point);
+          }
+        },
+      };
 
-    await expect(app.engine(hooks).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
-    const resumed = await app.engine().sync();
-    expect(['published', 'up-to-date']).toContain(resumed.status);
-    expect(app.provider.snapshotIds(app.vaultId)).toContain(previousId);
-    expect(app.journal.current().entries.map((value) => value.content))
-      .toEqual(['Verified base', 'Queued after base']);
-    expect(app.state.loadPending(app.vaultId, app.deviceId)).toBeNull();
-    expect(app.state.loadState(app.vaultId, app.deviceId).settledGeneration)
-      .toBe(app.state.loadState(app.vaultId, app.deviceId).journalGeneration);
-  });
+      await expect(app.engine(hooks).sync()).rejects.toBeInstanceOf(
+        SimulatedProcessDeath,
+      );
+      const resumed = await app.engine().sync();
+      expect(['published', 'up-to-date']).toContain(resumed.status);
+      expect(app.provider.snapshotIds(app.vaultId)).toContain(previousId);
+      expect(app.journal.current().entries.map((value) => value.content)).toEqual([
+        'Verified base',
+        'Queued after base',
+      ]);
+      expect(app.state.loadPending(app.vaultId, app.deviceId)).toBeNull();
+      expect(app.state.loadState(app.vaultId, app.deviceId).settledGeneration).toBe(
+        app.state.loadState(app.vaultId, app.deviceId).journalGeneration,
+      );
+    },
+  );
 
   test('media survives a transfer death and is uploaded before its referencing snapshot', async () => {
     const bytes = new TextEncoder().encode('synthetic-media-bytes');
     const blobHash = sha256Bytes(bytes);
     const domain = withEntry(blankDomain(), entry('entry-media', 'Has media'));
-    domain.media = [{
-      assetId: 'asset-media', ownerType: 'entry', ownerId: 'entry-media', kind: 'photo',
-      blobHash, mimeType: 'image/jpeg', byteSize: bytes.length, width: 10, height: 10,
-      durationMs: null, createdAt: 1, updatedAt: 1,
-    }];
+    domain.media = [
+      {
+        assetId: 'asset-media',
+        ownerType: 'entry',
+        ownerId: 'entry-media',
+        kind: 'photo',
+        blobHash,
+        mimeType: 'image/jpeg',
+        byteSize: bytes.length,
+        width: 10,
+        height: 10,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
     const app = harness('device-media', domain);
     await app.media.writeVerified(blobHash, bytes);
     app.state.markDirty(app.vaultId, app.deviceId);
     let killed = false;
-    await expect(app.engine({
-      at(point) {
-        if (!killed && point === 'during-media-transfer') {
-          killed = true;
-          throw new SimulatedProcessDeath(point);
-        }
-      },
-    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    await expect(
+      app
+        .engine({
+          at(point) {
+            if (!killed && point === 'during-media-transfer') {
+              killed = true;
+              throw new SimulatedProcessDeath(point);
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
     expect(app.provider.snapshotIds(app.vaultId)).toEqual([]);
 
     await app.engine().sync();
@@ -531,25 +777,44 @@ describe('durable snapshot publisher', () => {
     const bytes = new TextEncoder().encode('synthetic-resume-media');
     const blobHash = sha256Bytes(bytes);
     const domain = withEntry(blankDomain(), entry('entry-resume-media', 'Resume media'));
-    domain.media = [{
-      assetId: 'asset-resume-media', ownerType: 'entry', ownerId: 'entry-resume-media',
-      kind: 'photo', blobHash, mimeType: 'image/jpeg', byteSize: bytes.length,
-      width: 1, height: 1, durationMs: null, createdAt: 1, updatedAt: 1,
-    }];
+    domain.media = [
+      {
+        assetId: 'asset-resume-media',
+        ownerType: 'entry',
+        ownerId: 'entry-resume-media',
+        kind: 'photo',
+        blobHash,
+        mimeType: 'image/jpeg',
+        byteSize: bytes.length,
+        width: 1,
+        height: 1,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
     const app = harness('device-resume-media', domain);
     await app.media.writeVerified(blobHash, bytes);
     app.state.markDirty(app.vaultId, app.deviceId);
-    await expect(app.engine({
-      at(point) {
-        if (point === 'after-candidate-persisted') throw new SimulatedProcessDeath(point);
-      },
-    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    await expect(
+      app
+        .engine({
+          at(point) {
+            if (point === 'after-candidate-persisted')
+              throw new SimulatedProcessDeath(point);
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
     app.provider.removeMediaForTest(app.vaultId, blobHash);
 
     expect((await app.engine().sync()).status).toBe('published');
-    expect(app.provider.requests.filter((value) => value === 'upload-media')).toHaveLength(2);
-    expect(app.provider.requests.lastIndexOf('upload-media'))
-      .toBeLessThan(app.provider.requests.indexOf('upload-snapshot'));
+    expect(
+      app.provider.requests.filter((value) => value === 'upload-media'),
+    ).toHaveLength(2);
+    expect(app.provider.requests.lastIndexOf('upload-media')).toBeLessThan(
+      app.provider.requests.indexOf('upload-snapshot'),
+    );
   });
 
   test('lost upload and head responses resume idempotently without double materialization', async () => {
@@ -581,35 +846,50 @@ describe('durable snapshot publisher', () => {
     const app = harness('device-cas');
     app.journal.mutate(withEntry(blankDomain(), entry('entry-base', 'Base')));
     await app.engine().sync();
-    app.journal.mutate(withEntry(app.journal.current(), entry('entry-candidate', 'Candidate')));
+    app.journal.mutate(
+      withEntry(app.journal.current(), entry('entry-candidate', 'Candidate')),
+    );
     let killed = false;
-    await expect(app.engine({
-      at(point) {
-        if (!killed && point === 'after-head-advanced') {
-          killed = true;
-          app.journal.mutate(withEntry(app.journal.current(), entry('entry-late', 'Late edit')));
-          throw new SimulatedProcessDeath(point);
-        }
-      },
-    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    await expect(
+      app
+        .engine({
+          at(point) {
+            if (!killed && point === 'after-head-advanced') {
+              killed = true;
+              app.journal.mutate(
+                withEntry(app.journal.current(), entry('entry-late', 'Late edit')),
+              );
+              throw new SimulatedProcessDeath(point);
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
 
     const settledCandidate = await app.engine().sync();
     expect(settledCandidate).toMatchObject({ status: 'published', actionableChanges: 1 });
-    expect(app.journal.current().entries.some((value) => value.entryId === 'entry-late')).toBe(true);
+    expect(
+      app.journal.current().entries.some((value) => value.entryId === 'entry-late'),
+    ).toBe(true);
     const final = await app.engine().sync();
     expect(final).toMatchObject({ status: 'published', actionableChanges: 0 });
-    expect(app.journal.current().entries.map((value) => value.entryId))
-      .toEqual(['entry-base', 'entry-candidate', 'entry-late']);
+    expect(app.journal.current().entries.map((value) => value.entryId)).toEqual([
+      'entry-base',
+      'entry-candidate',
+      'entry-late',
+    ]);
   });
 
   test('a live CAS miss re-merges remote-derived content before base settlement', async () => {
     const provider = new FakeSnapshotProvider();
     const clock = { value: 1_800_000_000_000 };
     const source = harness('device-x1-source', blankDomain(), provider, clock);
-    source.journal.mutate(withEntry(
-      source.journal.current(),
-      entry('entry-remote-x1', 'Remote branch survives'),
-    ));
+    source.journal.mutate(
+      withEntry(
+        source.journal.current(),
+        entry('entry-remote-x1', 'Remote branch survives'),
+      ),
+    );
     await source.engine().sync();
 
     const target = harness('device-x1-target', blankDomain(), provider, clock);
@@ -617,49 +897,67 @@ describe('durable snapshot publisher', () => {
     local.profile.displayName = 'Local profile to publish';
     target.journal.mutate(local);
     let edited = false;
-    const first = await target.engine({
-      at(point) {
-        if (!edited && point === 'after-head-advanced') {
-          edited = true;
-          target.journal.mutate(withEntry(
-            target.journal.current(),
-            entry('entry-late-x1', 'Late local edit'),
-          ));
-        }
-      },
-    }).sync();
+    const first = await target
+      .engine({
+        at(point) {
+          if (!edited && point === 'after-head-advanced') {
+            edited = true;
+            target.journal.mutate(
+              withEntry(
+                target.journal.current(),
+                entry('entry-late-x1', 'Late local edit'),
+              ),
+            );
+          }
+        },
+      })
+      .sync();
     expect(first).toMatchObject({ status: 'published', actionableChanges: 1 });
-    expect(target.journal.current().entries.map((value) => value.entryId))
-      .toEqual(['entry-late-x1', 'entry-remote-x1']);
+    expect(target.journal.current().entries.map((value) => value.entryId)).toEqual([
+      'entry-late-x1',
+      'entry-remote-x1',
+    ]);
 
     expect(await target.engine().sync()).toMatchObject({
-      status: 'published', actionableChanges: 0,
+      status: 'published',
+      actionableChanges: 0,
     });
-    const targetHead = provider.physicalHeads(target.vaultId)
+    const targetHead = provider
+      .physicalHeads(target.vaultId)
       .find((value) => value.head.deviceId === target.deviceId)!.head;
-    const targetBytes = await provider.downloadSnapshot(target.vaultId, targetHead.snapshotId);
+    const targetBytes = await provider.downloadSnapshot(
+      target.vaultId,
+      targetHead.snapshotId,
+    );
     expect(targetBytes).not.toBeNull();
     const targetPayload = decodeSnapshot(targetBytes!, targetHead.snapshotId).payload;
-    expect(targetPayload.entries.map((value) => value.entryId))
-      .toEqual(['entry-late-x1', 'entry-remote-x1']);
-    expect(targetPayload.tombstones.some((value) => value.entityId === 'entry-remote-x1'))
-      .toBe(false);
+    expect(targetPayload.entries.map((value) => value.entryId)).toEqual([
+      'entry-late-x1',
+      'entry-remote-x1',
+    ]);
+    expect(
+      targetPayload.tombstones.some((value) => value.entityId === 'entry-remote-x1'),
+    ).toBe(false);
 
     provider.removeDeviceHeadForTest(target.vaultId, source.deviceId);
     const restored = harness('device-x1-restored', blankDomain(), provider, clock);
     expect((await restored.engine().sync()).status).toBe('pulled');
-    expect(restored.journal.current().entries.map((value) => value.entryId))
-      .toEqual(['entry-late-x1', 'entry-remote-x1']);
+    expect(restored.journal.current().entries.map((value) => value.entryId)).toEqual([
+      'entry-late-x1',
+      'entry-remote-x1',
+    ]);
   });
 
   test('a head-advanced crash then local edit re-merges remote-derived content on resume', async () => {
     const provider = new FakeSnapshotProvider();
     const clock = { value: 1_800_000_000_000 };
     const source = harness('device-x1-crash-source', blankDomain(), provider, clock);
-    source.journal.mutate(withEntry(
-      source.journal.current(),
-      entry('entry-remote-crash', 'Remote branch survives restart'),
-    ));
+    source.journal.mutate(
+      withEntry(
+        source.journal.current(),
+        entry('entry-remote-crash', 'Remote branch survives restart'),
+      ),
+    );
     await source.engine().sync();
 
     const target = harness('device-x1-crash-target', blankDomain(), provider, clock);
@@ -667,56 +965,82 @@ describe('durable snapshot publisher', () => {
     local.profile.displayName = 'Local profile to publish';
     target.journal.mutate(local);
     let killed = false;
-    await expect(target.engine({
-      at(point) {
-        if (!killed && point === 'after-head-advanced') {
-          killed = true;
-          throw new SimulatedProcessDeath(point);
-        }
-      },
-    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
-    expect(target.state.loadPending(target.vaultId, target.deviceId)?.stage)
-      .toBe('head-advanced');
-    target.journal.mutate(withEntry(
-      target.journal.current(),
-      entry('entry-late-crash', 'Late edit after process death'),
-    ));
+    await expect(
+      target
+        .engine({
+          at(point) {
+            if (!killed && point === 'after-head-advanced') {
+              killed = true;
+              throw new SimulatedProcessDeath(point);
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    expect(target.state.loadPending(target.vaultId, target.deviceId)?.stage).toBe(
+      'head-advanced',
+    );
+    target.journal.mutate(
+      withEntry(
+        target.journal.current(),
+        entry('entry-late-crash', 'Late edit after process death'),
+      ),
+    );
 
     expect(await target.engine().sync()).toMatchObject({
-      status: 'published', actionableChanges: 1,
+      status: 'published',
+      actionableChanges: 1,
     });
-    expect(target.journal.current().entries.map((value) => value.entryId))
-      .toEqual(['entry-late-crash', 'entry-remote-crash']);
+    expect(target.journal.current().entries.map((value) => value.entryId)).toEqual([
+      'entry-late-crash',
+      'entry-remote-crash',
+    ]);
     expect(await target.engine().sync()).toMatchObject({
-      status: 'published', actionableChanges: 0,
+      status: 'published',
+      actionableChanges: 0,
     });
-    const targetHead = provider.physicalHeads(target.vaultId)
+    const targetHead = provider
+      .physicalHeads(target.vaultId)
       .find((value) => value.head.deviceId === target.deviceId)!.head;
-    const targetBytes = await provider.downloadSnapshot(target.vaultId, targetHead.snapshotId);
+    const targetBytes = await provider.downloadSnapshot(
+      target.vaultId,
+      targetHead.snapshotId,
+    );
     expect(targetBytes).not.toBeNull();
     const targetPayload = decodeSnapshot(targetBytes!, targetHead.snapshotId).payload;
-    expect(targetPayload.entries.map((value) => value.entryId))
-      .toEqual(['entry-late-crash', 'entry-remote-crash']);
-    expect(targetPayload.tombstones.some((value) => value.entityId === 'entry-remote-crash'))
-      .toBe(false);
+    expect(targetPayload.entries.map((value) => value.entryId)).toEqual([
+      'entry-late-crash',
+      'entry-remote-crash',
+    ]);
+    expect(
+      targetPayload.tombstones.some((value) => value.entityId === 'entry-remote-crash'),
+    ).toBe(false);
 
     provider.removeDeviceHeadForTest(target.vaultId, source.deviceId);
     const restored = harness('device-x1-crash-restored', blankDomain(), provider, clock);
     expect((await restored.engine().sync()).status).toBe('pulled');
-    expect(restored.journal.current().entries.map((value) => value.entryId))
-      .toEqual(['entry-late-crash', 'entry-remote-crash']);
+    expect(restored.journal.current().entries.map((value) => value.entryId)).toEqual([
+      'entry-late-crash',
+      'entry-remote-crash',
+    ]);
   });
 
   test('a corrupted pending candidate pauses durably instead of escaping the engine', async () => {
     const app = harness('device-corrupt-pending');
-    app.journal.mutate(withEntry(blankDomain(), entry('entry-pending', 'Pending candidate')));
-    await expect(app.engine({
-      at(point) {
-        if (point === 'after-candidate-persisted') {
-          throw new SimulatedProcessDeath(point);
-        }
-      },
-    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    app.journal.mutate(
+      withEntry(blankDomain(), entry('entry-pending', 'Pending candidate')),
+    );
+    await expect(
+      app
+        .engine({
+          at(point) {
+            if (point === 'after-candidate-persisted') {
+              throw new SimulatedProcessDeath(point);
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
     app.database.runSync(
       `UPDATE cloud_pending_publication
        SET compressed_bytes = ?
@@ -727,33 +1051,41 @@ describe('durable snapshot publisher', () => {
     );
 
     expect(await app.engine().sync()).toMatchObject({
-      status: 'attention', reason: 'normalized-model-not-ready',
+      status: 'attention',
+      reason: 'normalized-model-not-ready',
     });
     expect(app.state.loadState(app.vaultId, app.deviceId)).toMatchObject({
       pauseReason: 'normalized-model-not-ready',
       lastErrorClass: 'local-candidate-validation-invalid-gzip',
     });
-    expect(app.state.loadPending(app.vaultId, app.deviceId)?.stage)
-      .toBe('candidate-persisted');
+    expect(app.state.loadPending(app.vaultId, app.deviceId)?.stage).toBe(
+      'candidate-persisted',
+    );
   });
 
   test('repeated journal CAS misses stay bounded and retain the head-advanced intent', async () => {
     const app = harness('device-cas-contention');
-    app.journal.mutate(withEntry(blankDomain(), entry('entry-contention', 'Queued intent')));
+    app.journal.mutate(
+      withEntry(blankDomain(), entry('entry-contention', 'Queued intent')),
+    );
     const apply = app.journal.applyMergedIfGeneration.bind(app.journal);
     app.journal.applyMergedIfGeneration = async () => false;
 
     expect(await app.engine().sync()).toMatchObject({
-      status: 'retry', reason: 'transient', actionableChanges: 1,
+      status: 'retry',
+      reason: 'transient',
+      actionableChanges: 1,
     });
     expect(app.state.loadPending(app.vaultId, app.deviceId)?.stage).toBe('head-advanced');
     expect(app.state.loadBaseCheckpoint(app.vaultId, app.deviceId)).toBeNull();
-    expect(app.state.loadState(app.vaultId, app.deviceId).lastErrorClass)
-      .toBe('journal-changed-during-publication-reconciliation');
+    expect(app.state.loadState(app.vaultId, app.deviceId).lastErrorClass).toBe(
+      'journal-changed-during-publication-reconciliation',
+    );
 
     app.journal.applyMergedIfGeneration = apply;
     expect(await app.engine().sync()).toMatchObject({
-      status: 'published', actionableChanges: 0,
+      status: 'published',
+      actionableChanges: 0,
     });
   });
 
@@ -768,20 +1100,28 @@ describe('durable snapshot publisher', () => {
     await source.engine().sync();
     const target = harness('device-target', blankDomain(), provider, source.clock);
     let killed = false;
-    await expect(target.engine({
-      at(point) {
-        if (!killed && point === 'during-remote-snapshot-download') {
-          killed = true;
-          throw new SimulatedProcessDeath(point);
-        }
-      },
-    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
-    expect(provider.physicalHeads(target.vaultId)
-      .some((value) => value.head.deviceId === 'device-source')).toBe(true);
+    await expect(
+      target
+        .engine({
+          at(point) {
+            if (!killed && point === 'during-remote-snapshot-download') {
+              killed = true;
+              throw new SimulatedProcessDeath(point);
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    expect(
+      provider
+        .physicalHeads(target.vaultId)
+        .some((value) => value.head.deviceId === 'device-source'),
+    ).toBe(true);
 
     expect((await target.engine().sync()).status).toBe('pulled');
-    expect(target.journal.current().entries.map((value) => value.content))
-      .toEqual(['Remote authored']);
+    expect(target.journal.current().entries.map((value) => value.content)).toEqual([
+      'Remote authored',
+    ]);
   });
 
   test('provider failures map to durable attention outcomes', async () => {
@@ -795,8 +1135,13 @@ describe('durable snapshot publisher', () => {
     ] as const;
     for (const [providerCode, status, reason] of cases) {
       const app = harness(`device-${providerCode}`);
-      app.journal.mutate(withEntry(blankDomain(), entry('entry', `Synthetic ${providerCode}`)));
-      app.provider.failNext('list-heads', new SnapshotProviderError(providerCode, providerCode));
+      app.journal.mutate(
+        withEntry(blankDomain(), entry('entry', `Synthetic ${providerCode}`)),
+      );
+      app.provider.failNext(
+        'list-heads',
+        new SnapshotProviderError(providerCode, providerCode),
+      );
       const result = await app.engine().sync();
       expect(result).toMatchObject({ status, reason });
       const durable = app.state.loadState(app.vaultId, app.deviceId);
@@ -826,25 +1171,37 @@ describe('durable snapshot publisher', () => {
       },
       (() => {
         const encoded = encodeSnapshot({
-          format: 'tackbok-snapshot', vaultId: 'different-vault',
-          parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'remote-wrong',
-          deviceSequence: 1, createdAt: 1, ...blankDomain(),
+          format: 'tackbok-snapshot',
+          vaultId: 'different-vault',
+          parentSnapshotIds: [],
+          observedDeviceHeads: [],
+          authorDeviceId: 'remote-wrong',
+          deviceSequence: 1,
+          createdAt: 1,
+          ...blankDomain(),
         });
         return {
-          suffix: 'wrong', reason: 'wrong-vault', snapshotId: encoded.snapshotId,
+          suffix: 'wrong',
+          reason: 'wrong-vault',
+          snapshotId: encoded.snapshotId,
           bytes: encoded.compressedBytes,
         };
       })(),
       (() => {
         const payload = {
           format: 'tackbok-snapshot-future',
-          vaultId: 'vault-sync-test', parentSnapshotIds: [], observedDeviceHeads: [],
-          authorDeviceId: 'remote-unsupported', deviceSequence: 1, createdAt: 1,
+          vaultId: 'vault-sync-test',
+          parentSnapshotIds: [],
+          observedDeviceHeads: [],
+          authorDeviceId: 'remote-unsupported',
+          deviceSequence: 1,
+          createdAt: 1,
           ...blankDomain(),
         };
         const canonicalBytes = encodeCanonicalBytes(payload);
         return {
-          suffix: 'unsupported', reason: 'unsupported-format',
+          suffix: 'unsupported',
+          reason: 'unsupported-format',
           snapshotId: sha256Bytes(canonicalBytes),
           bytes: encodeGzip(canonicalBytes, { level: 6 }),
         };
@@ -858,80 +1215,117 @@ describe('durable snapshot publisher', () => {
         app.provider.injectSnapshot(app.vaultId, value.snapshotId, value.bytes, 1);
       }
       app.provider.injectPhysicalHead({
-        format: 'tackbok-device-head', vaultId: app.vaultId,
-        deviceId: remoteDeviceId, deviceSequence: 1,
-        snapshotId: value.snapshotId, updatedAt: 1,
+        format: 'tackbok-device-head',
+        vaultId: app.vaultId,
+        deviceId: remoteDeviceId,
+        deviceSequence: 1,
+        snapshotId: value.snapshotId,
+        updatedAt: 1,
       });
       expect(await app.engine().sync()).toMatchObject({
-        status: 'attention', reason: value.reason,
+        status: 'attention',
+        reason: value.reason,
       });
-      expect(app.state.loadState(app.vaultId, app.deviceId).pauseReason)
-        .toBe(value.reason);
+      expect(app.state.loadState(app.vaultId, app.deviceId).pauseReason).toBe(
+        value.reason,
+      );
     }
   });
 
   test('every durable Attention-needed reason has a recovery action', () => {
     expect(Object.keys(ATTENTION_RECOVERY_ACTION).sort()).toEqual([
-      'account-mismatch', 'ambiguous-device-head', 'authorization-required',
-      'backup-deleted', 'cleanup-inconsistent', 'consent-incomplete',
-      'derived-id-collision', 'frontier-too-wide', 'head-snapshot-missing',
-      'invalid-remote-snapshot', 'journal-deleted', 'local-media-unreadable',
-      'local-storage-full', 'missing-media', 'normalized-model-not-ready',
-      'provider-permission-denied', 'provider-quota-full', 'provider-request-rejected', 'purge-incomplete',
-      'unsupported-format', 'wrong-vault',
+      'account-mismatch',
+      'ambiguous-device-head',
+      'authorization-required',
+      'backup-deleted',
+      'cleanup-inconsistent',
+      'consent-incomplete',
+      'derived-id-collision',
+      'frontier-too-wide',
+      'head-snapshot-missing',
+      'invalid-remote-snapshot',
+      'journal-deleted',
+      'local-media-unreadable',
+      'local-storage-full',
+      'missing-media',
+      'normalized-model-not-ready',
+      'provider-permission-denied',
+      'provider-quota-full',
+      'provider-request-rejected',
+      'purge-incomplete',
+      'unsupported-format',
+      'wrong-vault',
     ]);
-    expect(ATTENTION_RECOVERY_ACTION['ambiguous-device-head'])
-      .toBe('inspect-repair-backup');
+    expect(ATTENTION_RECOVERY_ACTION['ambiguous-device-head']).toBe(
+      'inspect-repair-backup',
+    );
   });
 
-  test.each([false, true])('simultaneous publications converge, including date edits: %s', async (editDates) => {
-    const provider = new FakeSnapshotProvider();
-    const clock = { value: 1_800_000_000_000 };
-    const initial = withEntry(blankDomain(), entry('entry-shared', 'Base'));
-    const first = harness('device-a', initial, provider, clock);
-    first.journal.mutate(initial);
-    await first.engine().sync();
-    const second = harness('device-b', initial, provider, clock);
-    await second.engine().sync();
+  test.each([false, true])(
+    'simultaneous publications converge, including date edits: %s',
+    async (editDates) => {
+      const provider = new FakeSnapshotProvider();
+      const clock = { value: 1_800_000_000_000 };
+      const initial = withEntry(blankDomain(), entry('entry-shared', 'Base'));
+      const first = harness('device-a', initial, provider, clock);
+      first.journal.mutate(initial);
+      await first.engine().sync();
+      const second = harness('device-b', initial, provider, clock);
+      await second.engine().sync();
 
-    first.journal.mutate(withEntry(first.journal.current(), {
-      ...entry('entry-shared', 'Device A', 2), createdAt: editDates ? 86400001 : 1,
-    }));
-    second.journal.mutate(withEntry(second.journal.current(), {
-      ...entry('entry-shared', 'Device B', 2), createdAt: editDates ? 172800001 : 1,
-    }));
-    let waiting = 0;
-    let release!: () => void;
-    const barrier = new Promise<void>((resolve) => { release = resolve; });
-    const hooks: SnapshotSyncHooks = {
-      async beforeHeadRecheck() {
-        waiting += 1;
-        if (waiting === 2) release();
-        await barrier;
-      },
-    };
-    await Promise.all([first.engine(hooks).sync(), second.engine(hooks).sync()]);
-    expect(new Set(provider.physicalHeads(first.vaultId)
-      .map((value) => value.head.deviceId))).toEqual(new Set(['device-a', 'device-b']));
+      first.journal.mutate(
+        withEntry(first.journal.current(), {
+          ...entry('entry-shared', 'Device A', 2),
+          createdAt: editDates ? 86400001 : 1,
+        }),
+      );
+      second.journal.mutate(
+        withEntry(second.journal.current(), {
+          ...entry('entry-shared', 'Device B', 2),
+          createdAt: editDates ? 172800001 : 1,
+        }),
+      );
+      let waiting = 0;
+      let release!: () => void;
+      const barrier = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const hooks: SnapshotSyncHooks = {
+        async beforeHeadRecheck() {
+          waiting += 1;
+          if (waiting === 2) release();
+          await barrier;
+        },
+      };
+      await Promise.all([first.engine(hooks).sync(), second.engine(hooks).sync()]);
+      expect(
+        new Set(
+          provider.physicalHeads(first.vaultId).map((value) => value.head.deviceId),
+        ),
+      ).toEqual(new Set(['device-a', 'device-b']));
 
-    await first.engine().sync();
-    await second.engine().sync();
-    expect(canonicalize(first.journal.current()))
-      .toBe(canonicalize(second.journal.current()));
-    expect(new Set(first.journal.current().entries.map((value) => value.content)))
-      .toEqual(new Set(['Device A', 'Device B']));
-    provider.requests.length = 0;
-    for (let i = 0; i < 4; i++) {
       await first.engine().sync();
       await second.engine().sync();
-    }
-    expect(provider.requests).not.toContain('upload-snapshot');
-    expect(provider.requests).not.toContain('update-head');
-    if (editDates) {
-      expect(new Set(first.journal.current().entries.map((value) => value.createdAt)))
-        .toEqual(new Set([86400001, 172800001]));
-    }
-  });
+      expect(canonicalize(first.journal.current())).toBe(
+        canonicalize(second.journal.current()),
+      );
+      expect(
+        new Set(first.journal.current().entries.map((value) => value.content)),
+      ).toEqual(new Set(['Device A', 'Device B']));
+      provider.requests.length = 0;
+      for (let i = 0; i < 4; i++) {
+        await first.engine().sync();
+        await second.engine().sync();
+      }
+      expect(provider.requests).not.toContain('upload-snapshot');
+      expect(provider.requests).not.toContain('update-head');
+      if (editDates) {
+        expect(
+          new Set(first.journal.current().entries.map((value) => value.createdAt)),
+        ).toEqual(new Set([86400001, 172800001]));
+      }
+    },
+  );
 
   test('three simultaneous disjoint writers converge without dropping a branch', async () => {
     const provider = new FakeSnapshotProvider();
@@ -945,14 +1339,15 @@ describe('durable snapshot publisher', () => {
     await devices[1].engine().sync();
     await devices[2].engine().sync();
     devices.forEach((device, index) => {
-      device.journal.mutate(withEntry(
-        device.journal.current(),
-        entry(`entry-${index}`, `Device ${index}`),
-      ));
+      device.journal.mutate(
+        withEntry(device.journal.current(), entry(`entry-${index}`, `Device ${index}`)),
+      );
     });
     let waiting = 0;
     let release!: () => void;
-    const barrier = new Promise<void>((resolve) => { release = resolve; });
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     const hooks: SnapshotSyncHooks = {
       async beforeHeadRecheck() {
         waiting += 1;
@@ -961,43 +1356,63 @@ describe('durable snapshot publisher', () => {
       },
     };
     await Promise.all(devices.map((device) => device.engine(hooks).sync()));
-    expect(new Set(provider.physicalHeads(devices[0].vaultId)
-      .map((value) => value.head.deviceId))).toEqual(
-        new Set(['device-a', 'device-b', 'device-c']),
-      );
+    expect(
+      new Set(
+        provider.physicalHeads(devices[0].vaultId).map((value) => value.head.deviceId),
+      ),
+    ).toEqual(new Set(['device-a', 'device-b', 'device-c']));
 
     for (let round = 0; round < 3; round += 1) {
       for (const device of devices) await device.engine().sync();
     }
     const canonical = devices.map((device) => canonicalize(device.journal.current()));
     expect(new Set(canonical).size).toBe(1);
-    expect(new Set(devices[0].journal.current().entries.map((value) => value.content)))
-      .toEqual(new Set(['Device 0', 'Device 1', 'Device 2']));
+    expect(
+      new Set(devices[0].journal.current().entries.map((value) => value.content)),
+    ).toEqual(new Set(['Device 0', 'Device 1', 'Device 2']));
   });
 
   test('equal-sequence different valid heads pause durably as ambiguous', async () => {
     const app = harness('device-reader');
-    for (const [suffix, content] of [['a', 'Branch A'], ['b', 'Branch B']] as const) {
+    for (const [suffix, content] of [
+      ['a', 'Branch A'],
+      ['b', 'Branch B'],
+    ] as const) {
       const encoded = encodeSnapshot({
-        format: 'tackbok-snapshot', vaultId: app.vaultId,
-        parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'device-ambiguous',
-        deviceSequence: 7, createdAt: 7,
+        format: 'tackbok-snapshot',
+        vaultId: app.vaultId,
+        parentSnapshotIds: [],
+        observedDeviceHeads: [],
+        authorDeviceId: 'device-ambiguous',
+        deviceSequence: 7,
+        createdAt: 7,
         ...withEntry(blankDomain(), entry(`entry-${suffix}`, content)),
       });
-      app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 7);
+      app.provider.injectSnapshot(
+        app.vaultId,
+        encoded.snapshotId,
+        encoded.compressedBytes,
+        7,
+      );
       app.provider.injectPhysicalHead({
-        format: 'tackbok-device-head', vaultId: app.vaultId,
-        deviceId: 'device-ambiguous', deviceSequence: 7,
-        snapshotId: encoded.snapshotId, updatedAt: 7,
+        format: 'tackbok-device-head',
+        vaultId: app.vaultId,
+        deviceId: 'device-ambiguous',
+        deviceSequence: 7,
+        snapshotId: encoded.snapshotId,
+        updatedAt: 7,
       });
     }
     expect(await app.engine().sync()).toMatchObject({
-      status: 'attention', reason: 'ambiguous-device-head',
+      status: 'attention',
+      reason: 'ambiguous-device-head',
     });
-    expect(app.state.loadState(app.vaultId, app.deviceId).pauseReason)
-      .toBe('ambiguous-device-head');
+    expect(app.state.loadState(app.vaultId, app.deviceId).pauseReason).toBe(
+      'ambiguous-device-head',
+    );
     expect(await app.engine().sync()).toMatchObject({
-      status: 'attention', reason: 'ambiguous-device-head',
+      status: 'attention',
+      reason: 'ambiguous-device-head',
     });
   });
 
@@ -1006,19 +1421,33 @@ describe('durable snapshot publisher', () => {
     for (let index = 0; index < 9; index += 1) {
       const deviceId = `frontier-device-${index}`;
       const encoded = encodeSnapshot({
-        format: 'tackbok-snapshot', vaultId: app.vaultId,
-        parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: deviceId,
-        deviceSequence: 1, createdAt: 1,
+        format: 'tackbok-snapshot',
+        vaultId: app.vaultId,
+        parentSnapshotIds: [],
+        observedDeviceHeads: [],
+        authorDeviceId: deviceId,
+        deviceSequence: 1,
+        createdAt: 1,
         ...withEntry(blankDomain(), entry(`entry-${index}`, `Branch ${index}`)),
       });
-      app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 1);
+      app.provider.injectSnapshot(
+        app.vaultId,
+        encoded.snapshotId,
+        encoded.compressedBytes,
+        1,
+      );
       app.provider.injectPhysicalHead({
-        format: 'tackbok-device-head', vaultId: app.vaultId,
-        deviceId, deviceSequence: 1, snapshotId: encoded.snapshotId, updatedAt: 1,
+        format: 'tackbok-device-head',
+        vaultId: app.vaultId,
+        deviceId,
+        deviceSequence: 1,
+        snapshotId: encoded.snapshotId,
+        updatedAt: 1,
       });
     }
     expect(await app.engine().sync()).toMatchObject({
-      status: 'attention', reason: 'frontier-too-wide',
+      status: 'attention',
+      reason: 'frontier-too-wide',
     });
   });
 
@@ -1030,28 +1459,49 @@ describe('durable snapshot publisher', () => {
       throw new Error('simulated storage full');
     };
     expect(await app.engine().sync()).toMatchObject({
-      status: 'attention', reason: 'local-storage-full',
+      status: 'attention',
+      reason: 'local-storage-full',
     });
-    expect(app.state.loadPending(app.vaultId, app.deviceId)?.stage).toBe('domain-applied');
+    expect(app.state.loadPending(app.vaultId, app.deviceId)?.stage).toBe(
+      'domain-applied',
+    );
     expect(app.provider.physicalHeads(app.vaultId)).toHaveLength(1);
 
     app.files.writeTempAndFsync = originalWrite;
     app.state.clearPause(app.vaultId, app.deviceId, 'local-storage-full');
-    expect(await app.engine().sync()).toMatchObject({ status: 'published', actionableChanges: 0 });
+    expect(await app.engine().sync()).toMatchObject({
+      status: 'published',
+      actionableChanges: 0,
+    });
     expect(app.state.loadPending(app.vaultId, app.deviceId)).toBeNull();
   });
 
   test('required missing media pauses without publishing a dangling snapshot', async () => {
-    const domain = withEntry(blankDomain(), entry('entry-media-missing', 'Missing attachment'));
-    domain.media = [{
-      assetId: 'asset-missing', ownerType: 'entry', ownerId: 'entry-media-missing',
-      kind: 'photo', blobHash: 'a'.repeat(64), mimeType: 'image/jpeg', byteSize: 10,
-      width: null, height: null, durationMs: null, createdAt: 1, updatedAt: 1,
-    }];
+    const domain = withEntry(
+      blankDomain(),
+      entry('entry-media-missing', 'Missing attachment'),
+    );
+    domain.media = [
+      {
+        assetId: 'asset-missing',
+        ownerType: 'entry',
+        ownerId: 'entry-media-missing',
+        kind: 'photo',
+        blobHash: 'a'.repeat(64),
+        mimeType: 'image/jpeg',
+        byteSize: 10,
+        width: null,
+        height: null,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
     const app = harness('device-missing-local', domain);
     app.state.markDirty(app.vaultId, app.deviceId);
     expect(await app.engine().sync()).toMatchObject({
-      status: 'attention', reason: 'local-media-unreadable',
+      status: 'attention',
+      reason: 'local-media-unreadable',
     });
     expect(app.provider.snapshotIds(app.vaultId)).toEqual([]);
   });
@@ -1060,29 +1510,51 @@ describe('durable snapshot publisher', () => {
     const provider = new FakeSnapshotProvider();
     const bytes = new TextEncoder().encode('synthetic-remote-photo');
     const blobHash = sha256Bytes(bytes);
-    const sourceDomain = withEntry(blankDomain(), entry('entry-remote-media', 'Restored text'));
-    sourceDomain.media = [{
-      assetId: 'asset-remote-media', ownerType: 'entry', ownerId: 'entry-remote-media',
-      kind: 'photo', blobHash, mimeType: 'image/jpeg', byteSize: bytes.byteLength,
-      width: null, height: null, durationMs: null, createdAt: 1, updatedAt: 1,
-    }];
+    const sourceDomain = withEntry(
+      blankDomain(),
+      entry('entry-remote-media', 'Restored text'),
+    );
+    sourceDomain.media = [
+      {
+        assetId: 'asset-remote-media',
+        ownerType: 'entry',
+        ownerId: 'entry-remote-media',
+        kind: 'photo',
+        blobHash,
+        mimeType: 'image/jpeg',
+        byteSize: bytes.byteLength,
+        width: null,
+        height: null,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
     const source = harness('device-media-source', sourceDomain, provider);
     await source.media.writeVerified(blobHash, bytes);
     source.state.markDirty(source.vaultId, source.deviceId);
     expect(await source.engine().sync()).toMatchObject({ status: 'published' });
 
     const restoring = harness(
-      'device-media-restore', blankDomain(), provider, source.clock, source.vaultId,
+      'device-media-restore',
+      blankDomain(),
+      provider,
+      source.clock,
+      source.vaultId,
     );
     provider.failNext(
       'download-media',
       new SnapshotProviderError('wifi-only-media', 'waiting-for-wifi'),
     );
     expect(await restoring.engine().sync()).toMatchObject({
-      status: 'pulled', actionableChanges: 0,
+      status: 'pulled',
+      actionableChanges: 0,
     });
     expect(restoring.journal.current().entries).toContainEqual(
-      expect.objectContaining({ entryId: 'entry-remote-media', content: 'Restored text' }),
+      expect.objectContaining({
+        entryId: 'entry-remote-media',
+        content: 'Restored text',
+      }),
     );
     expect(await restoring.media.hasVerified(blobHash)).toBe(false);
     expect(restoring.provider.requests).toContain('download-media');
@@ -1090,27 +1562,60 @@ describe('durable snapshot publisher', () => {
 
   test('an actually absent remote blob still restores text before durable Attention', async () => {
     const app = harness('device-remote-missing');
-    const domain = withEntry(blankDomain(), entry('entry-remote-missing', 'Readable text'));
-    domain.media = [{
-      assetId: 'asset-remote-missing', ownerType: 'entry', ownerId: 'entry-remote-missing',
-      kind: 'photo', blobHash: 'b'.repeat(64), mimeType: 'image/jpeg', byteSize: 10,
-      width: null, height: null, durationMs: null, createdAt: 1, updatedAt: 1,
-    }];
+    const domain = withEntry(
+      blankDomain(),
+      entry('entry-remote-missing', 'Readable text'),
+    );
+    domain.media = [
+      {
+        assetId: 'asset-remote-missing',
+        ownerType: 'entry',
+        ownerId: 'entry-remote-missing',
+        kind: 'photo',
+        blobHash: 'b'.repeat(64),
+        mimeType: 'image/jpeg',
+        byteSize: 10,
+        width: null,
+        height: null,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
     const encoded = encodeSnapshot({
-      format: 'tackbok-snapshot', vaultId: app.vaultId,
-      parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: 'remote-missing',
-      deviceSequence: 1, createdAt: 1, ...domain,
+      format: 'tackbok-snapshot',
+      vaultId: app.vaultId,
+      parentSnapshotIds: [],
+      observedDeviceHeads: [],
+      authorDeviceId: 'remote-missing',
+      deviceSequence: 1,
+      createdAt: 1,
+      ...domain,
     });
-    app.provider.injectSnapshot(app.vaultId, encoded.snapshotId, encoded.compressedBytes, 1);
+    app.provider.injectSnapshot(
+      app.vaultId,
+      encoded.snapshotId,
+      encoded.compressedBytes,
+      1,
+    );
     app.provider.injectPhysicalHead({
-      format: 'tackbok-device-head', vaultId: app.vaultId,
-      deviceId: 'remote-missing', deviceSequence: 1, snapshotId: encoded.snapshotId,
+      format: 'tackbok-device-head',
+      vaultId: app.vaultId,
+      deviceId: 'remote-missing',
+      deviceSequence: 1,
+      snapshotId: encoded.snapshotId,
       updatedAt: 1,
     });
 
-    expect(await app.engine().sync()).toMatchObject({ status: 'attention', reason: 'missing-media' });
+    expect(await app.engine().sync()).toMatchObject({
+      status: 'attention',
+      reason: 'missing-media',
+    });
     expect(app.journal.current().entries).toContainEqual(
-      expect.objectContaining({ entryId: 'entry-remote-missing', content: 'Readable text' }),
+      expect.objectContaining({
+        entryId: 'entry-remote-missing',
+        content: 'Readable text',
+      }),
     );
     expect(app.provider.snapshotIds(app.vaultId)).toEqual([encoded.snapshotId]);
   });
@@ -1138,8 +1643,12 @@ describe('durable snapshot publisher', () => {
     const second = harness('device-b', initial, provider, clock);
     await second.engine().sync();
 
-    first.journal.mutate(withEntry(first.journal.current(), entry('entry-shared', 'Local authored', 2)));
-    second.journal.mutate(withEntry(second.journal.current(), entry('entry-shared', 'Remote authored', 2)));
+    first.journal.mutate(
+      withEntry(first.journal.current(), entry('entry-shared', 'Local authored', 2)),
+    );
+    second.journal.mutate(
+      withEntry(second.journal.current(), entry('entry-shared', 'Remote authored', 2)),
+    );
     await second.engine().sync();
     const checkpoint = first.state.loadBaseCheckpoint(first.vaultId, first.deviceId)!;
     first.files.files.set(checkpoint.fileName, new Uint8Array([1, 2, 3]));
@@ -1147,20 +1656,29 @@ describe('durable snapshot publisher', () => {
     const result = await first.engine().sync();
     expect(result.status).toBe('published');
     expect(first.files.quarantined).toHaveLength(1);
-    expect(new Set(first.journal.current().entries.map((value) => value.content)))
-      .toEqual(new Set(['Local authored', 'Remote authored']));
+    expect(
+      new Set(first.journal.current().entries.map((value) => value.content)),
+    ).toEqual(new Set(['Local authored', 'Remote authored']));
   });
 
   test('an unsupported base-shadow format degrades instead of blocking sync', async () => {
     const app = harness('device-future-shadow');
     const encoded = encodeSnapshot({
-      format: 'tackbok-snapshot', vaultId: app.vaultId,
-      parentSnapshotIds: [], observedDeviceHeads: [], authorDeviceId: app.deviceId,
-      deviceSequence: 1, createdAt: 1, ...blankDomain(),
+      format: 'tackbok-snapshot',
+      vaultId: app.vaultId,
+      parentSnapshotIds: [],
+      observedDeviceHeads: [],
+      authorDeviceId: app.deviceId,
+      deviceSequence: 1,
+      createdAt: 1,
+      ...blankDomain(),
     });
     const futureShadow = {
-      format: 'tackbok-base-shadow-future', vaultId: app.vaultId,
-      snapshotId: encoded.snapshotId, acceptedDeviceHeads: [], payload: encoded.payload,
+      format: 'tackbok-base-shadow-future',
+      vaultId: app.vaultId,
+      snapshotId: encoded.snapshotId,
+      acceptedDeviceHeads: [],
+      payload: encoded.payload,
     };
     const canonicalBytes = encodeCanonicalBytes(futureShadow);
     const compressedBytes = encodeGzip(canonicalBytes, { level: 6 });
@@ -1168,9 +1686,12 @@ describe('durable snapshot publisher', () => {
     app.files.files.set(fileName, compressedBytes);
 
     const loaded = await app.shadows.load({
-      vaultId: app.vaultId, deviceId: app.deviceId,
-      snapshotId: encoded.snapshotId, fileName,
-      canonicalSha256: sha256Bytes(canonicalBytes), byteCount: compressedBytes.length,
+      vaultId: app.vaultId,
+      deviceId: app.deviceId,
+      snapshotId: encoded.snapshotId,
+      fileName,
+      canonicalSha256: sha256Bytes(canonicalBytes),
+      byteCount: compressedBytes.length,
       committedGeneration: 0,
     });
     expect(loaded).toEqual({ shadow: null, degraded: true });
@@ -1181,21 +1702,27 @@ describe('durable snapshot publisher', () => {
     const app = harness('device-retention');
     for (let index = 0; index < 5; index += 1) {
       app.clock.value += 1;
-      app.journal.mutate(withEntry(app.journal.current(), entry(`entry-${index}`, `Value ${index}`)));
+      app.journal.mutate(
+        withEntry(app.journal.current(), entry(`entry-${index}`, `Value ${index}`)),
+      );
       await app.engine().sync();
     }
     expect(app.provider.snapshotIds(app.vaultId)).toHaveLength(5);
     app.clock.value += 31 * 24 * 60 * 60 * 1000;
     app.journal.mutate(withEntry(app.journal.current(), entry('entry-new', 'Newest')));
     let killed = false;
-    await expect(app.engine({
-      at(point) {
-        if (!killed && point === 'during-snapshot-cleanup') {
-          killed = true;
-          throw new SimulatedProcessDeath(point);
-        }
-      },
-    }).sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    await expect(
+      app
+        .engine({
+          at(point) {
+            if (!killed && point === 'during-snapshot-cleanup') {
+              killed = true;
+              throw new SimulatedProcessDeath(point);
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
     const currentHead = app.provider.physicalHeads(app.vaultId)[0].head.snapshotId;
     expect(app.provider.snapshotIds(app.vaultId)).toContain(currentHead);
 
@@ -1204,5 +1731,4 @@ describe('durable snapshot publisher', () => {
     expect(app.provider.snapshotIds(app.vaultId)).toContain(currentHead);
     expect(app.provider.requests).not.toContain('delete-media' as never);
   });
-
 });

@@ -51,14 +51,26 @@ export class SnapshotPublisher {
     const { journal, hooks, vaultId } = this.options;
     // A concurrent edit invalidates the plan. Re-plan on retry rather than
     // overwriting it or marking a generation that was never backed up settled.
-    if (!await journal.applyMergedIfGeneration(domainOf(remote.payload), capturedGeneration)) {
+    if (
+      !(await journal.applyMergedIfGeneration(
+        domainOf(remote.payload),
+        capturedGeneration,
+      ))
+    ) {
       throw new RetryableSyncError('journal-changed-during-remote-adoption');
     }
     await hooks.at?.('during-merge-application');
-    await this.commitBase({
-      format: 'tackbok-base-shadow', vaultId,
-      snapshotId: remote.snapshotId, payload: remote.payload, acceptedDeviceHeads,
-    }, capturedGeneration, false);
+    await this.commitBase(
+      {
+        format: 'tackbok-base-shadow',
+        vaultId,
+        snapshotId: remote.snapshotId,
+        payload: remote.payload,
+        acceptedDeviceHeads,
+      },
+      capturedGeneration,
+      false,
+    );
   }
 
   async resume(initial: PendingPublication): Promise<void> {
@@ -74,10 +86,15 @@ export class SnapshotPublisher {
         `local-candidate-validation-${code}`,
       );
     }
-    if (decoded.payload.vaultId !== vaultId ||
-        decoded.payload.authorDeviceId !== deviceId ||
-        decoded.payload.deviceSequence !== pending.deviceSequence) {
-      throw new AttentionError('normalized-model-not-ready', 'local-candidate-envelope-mismatch');
+    if (
+      decoded.payload.vaultId !== vaultId ||
+      decoded.payload.authorDeviceId !== deviceId ||
+      decoded.payload.deviceSequence !== pending.deviceSequence
+    ) {
+      throw new AttentionError(
+        'normalized-model-not-ready',
+        'local-candidate-envelope-mismatch',
+      );
     }
 
     if (pending.stage === 'candidate-persisted') {
@@ -89,7 +106,11 @@ export class SnapshotPublisher {
         decoded.payload.createdAt,
       );
       pending = stateStore.advancePending(
-        vaultId, deviceId, pending.snapshotId, 'snapshot-uploaded');
+        vaultId,
+        deviceId,
+        pending.snapshotId,
+        'snapshot-uploaded',
+      );
       await hooks.at?.('after-snapshot-uploaded');
     }
     if (pending.stage === 'snapshot-uploaded') {
@@ -99,10 +120,17 @@ export class SnapshotPublisher {
         pending.compressedBytes,
       );
       if (!verified) {
-        throw new AttentionError('invalid-remote-snapshot', 'uploaded-snapshot-verification-failed');
+        throw new AttentionError(
+          'invalid-remote-snapshot',
+          'uploaded-snapshot-verification-failed',
+        );
       }
       pending = stateStore.advancePending(
-        vaultId, deviceId, pending.snapshotId, 'snapshot-verified');
+        vaultId,
+        deviceId,
+        pending.snapshotId,
+        'snapshot-verified',
+      );
       await hooks.at?.('after-snapshot-verified');
     }
     if (pending.stage === 'snapshot-verified') {
@@ -115,7 +143,11 @@ export class SnapshotPublisher {
         updatedAt: this.options.now(),
       });
       pending = stateStore.advancePending(
-        vaultId, deviceId, pending.snapshotId, 'head-advanced');
+        vaultId,
+        deviceId,
+        pending.snapshotId,
+        'head-advanced',
+      );
       await hooks.at?.('after-head-advanced');
     }
     if (pending.stage === 'head-advanced') {
@@ -125,7 +157,11 @@ export class SnapshotPublisher {
       );
       await hooks.at?.('during-merge-application');
       pending = stateStore.advancePending(
-        vaultId, deviceId, pending.snapshotId, 'domain-applied');
+        vaultId,
+        deviceId,
+        pending.snapshotId,
+        'domain-applied',
+      );
     }
     if (pending.stage === 'domain-applied') {
       const acceptedDeviceHeads = normalizeObservations([
@@ -147,7 +183,11 @@ export class SnapshotPublisher {
     }
   }
 
-  private async commitBase(shadow: BaseShadow, capturedGeneration: number, publication: boolean): Promise<void> {
+  private async commitBase(
+    shadow: BaseShadow,
+    capturedGeneration: number,
+    publication: boolean,
+  ): Promise<void> {
     const { deviceId, hooks, stateStore, vaultId } = this.options;
     let checkpoint;
     try {
@@ -171,9 +211,15 @@ export class SnapshotPublisher {
         throw new RetryableSyncError('base-shadow-checkpoint-database-busy');
       }
       if (isStorageFull(error)) {
-        throw new AttentionError('local-storage-full', 'base-shadow-checkpoint-storage-full');
+        throw new AttentionError(
+          'local-storage-full',
+          'base-shadow-checkpoint-storage-full',
+        );
       }
-      throw new AttentionError('cleanup-inconsistent', 'base-shadow-checkpoint-inconsistent');
+      throw new AttentionError(
+        'cleanup-inconsistent',
+        'base-shadow-checkpoint-inconsistent',
+      );
     }
     await hooks.at?.('after-base-checkpoint-settled');
     stateStore.clearPause(vaultId, deviceId);
@@ -186,10 +232,8 @@ export class SnapshotPublisher {
     capturedGeneration: number,
   ): Promise<void> {
     const { deviceId, journal, shadowManager, stateStore, vaultId } = this.options;
-    if (await journal.applyMergedIfGeneration(
-      publishedDomain,
-      capturedGeneration,
-    )) return;
+    if (await journal.applyMergedIfGeneration(publishedDomain, capturedGeneration))
+      return;
 
     const checkpoint = stateStore.loadBaseCheckpoint(vaultId, deviceId);
     const loadedBase = await shadowManager.load(checkpoint);
@@ -197,15 +241,8 @@ export class SnapshotPublisher {
 
     for (let attempt = 0; attempt < MAX_JOURNAL_RECONCILIATION_ATTEMPTS; attempt += 1) {
       const latest = await journal.capture();
-      const reconciled = mergeSnapshotDomains(
-        baseDomain,
-        latest.domain,
-        publishedDomain,
-      );
-      if (await journal.applyMergedIfGeneration(
-        reconciled,
-        latest.generation,
-      )) return;
+      const reconciled = mergeSnapshotDomains(baseDomain, latest.domain, publishedDomain);
+      if (await journal.applyMergedIfGeneration(reconciled, latest.generation)) return;
     }
 
     throw new RetryableSyncError('journal-changed-during-publication-reconciliation');

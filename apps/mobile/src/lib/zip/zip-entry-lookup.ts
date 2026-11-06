@@ -38,13 +38,12 @@ function normalizeLookupSegment(value: string): string {
 
 function pathContainsContiguousSegments(path: string, lookupPath: string): boolean {
   const pathSegments = path.split('/').filter(Boolean);
-  const searchableSegments = path.endsWith('/') ? pathSegments : pathSegments.slice(0, -1);
+  const searchableSegments = path.endsWith('/')
+    ? pathSegments
+    : pathSegments.slice(0, -1);
   const lookupSegments = lookupPath.split('/').filter(Boolean);
 
-  if (
-    lookupSegments.length === 0 ||
-    lookupSegments.length > searchableSegments.length
-  ) {
+  if (lookupSegments.length === 0 || lookupSegments.length > searchableSegments.length) {
     return false;
   }
 

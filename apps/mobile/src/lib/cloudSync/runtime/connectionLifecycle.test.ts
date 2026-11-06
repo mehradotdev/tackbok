@@ -2,7 +2,9 @@ import { CloudConnectionLifecycle } from './connectionLifecycle';
 
 function deferred() {
   let resolve!: () => void;
-  const promise = new Promise<void>((done) => { resolve = done; });
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
   return { promise, resolve };
 }
 
@@ -16,14 +18,20 @@ describe('cloud connection lifecycle', () => {
       await finish.promise;
       events.push('sync committed');
     });
-    const change = lifecycle.change(async () => { events.push('disconnected'); });
-    await expect(lifecycle.runPass(lifecycle.epoch, async () => {})).rejects.toThrow('changing');
+    const change = lifecycle.change(async () => {
+      events.push('disconnected');
+    });
+    await expect(lifecycle.runPass(lifecycle.epoch, async () => {})).rejects.toThrow(
+      'changing',
+    );
     expect(events).toEqual([]);
     finish.resolve();
     await Promise.all([pass, change]);
     expect(events).toEqual(['sync committed', 'disconnected']);
     await expect(lifecycle.runPass(epoch, async () => {})).rejects.toThrow('changing');
-    await expect(lifecycle.runPass(lifecycle.epoch, async () => 'new connection')).resolves.toBe('new connection');
+    await expect(
+      lifecycle.runPass(lifecycle.epoch, async () => 'new connection'),
+    ).resolves.toBe('new connection');
   });
 
   test('a failed pass drains and queued changes remain serialized after a failed change', async () => {
@@ -40,10 +48,14 @@ describe('cloud connection lifecycle', () => {
       throw new Error('cancelled');
     });
     const failedChange = expect(first).rejects.toThrow('cancelled');
-    const second = lifecycle.change(async () => { events.push('second'); });
+    const second = lifecycle.change(async () => {
+      events.push('second');
+    });
     finish.resolve();
     await Promise.all([failedPass, failedChange, second]);
     expect(events).toEqual(['first', 'second']);
-    await expect(lifecycle.runPass(lifecycle.epoch, async () => true)).resolves.toBe(true);
+    await expect(lifecycle.runPass(lifecycle.epoch, async () => true)).resolves.toBe(
+      true,
+    );
   });
 });

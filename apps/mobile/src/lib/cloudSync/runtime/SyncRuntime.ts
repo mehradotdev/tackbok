@@ -1,6 +1,9 @@
 import { CloudConnectionChangedError } from './connectionLifecycle';
 import type { CloudSyncFailureCategory, CloudSyncTrigger } from '../../analytics/events';
-import { toCloudSyncCountBucket, toCloudSyncDurationBucket } from '../../analytics/events';
+import {
+  toCloudSyncCountBucket,
+  toCloudSyncDurationBucket,
+} from '../../analytics/events';
 import { readCloudSyncFailureCategory } from '../failureClassification';
 
 export interface RuntimePassResult {
@@ -16,11 +19,15 @@ export interface RuntimeSyncEngine {
   hasPendingWork?(): boolean;
 }
 
-export interface RuntimeSubscription { remove(): void; }
+export interface RuntimeSubscription {
+  remove(): void;
+}
 
 export interface RuntimePlatform {
   getAppState?(): 'active' | 'background' | 'inactive';
-  addAppStateListener(listener: (state: 'active' | 'background' | 'inactive') => void): RuntimeSubscription;
+  addAppStateListener(
+    listener: (state: 'active' | 'background' | 'inactive') => void,
+  ): RuntimeSubscription;
   addNetworkListener(listener: (online: boolean) => void): RuntimeSubscription;
   getNetworkOnline(): Promise<boolean>;
   setTimer(callback: () => void, delayMs: number): ReturnType<typeof setTimeout>;
@@ -115,7 +122,9 @@ export class SyncRuntime {
       }),
     ];
     if (this.options.addMutationListener) {
-      subscriptions.push(this.options.addMutationListener(() => this.schedule('local-mutation')));
+      subscriptions.push(
+        this.options.addMutationListener(() => this.schedule('local-mutation')),
+      );
     }
     if (this.stopped || lifecycle !== this.lifecycle) {
       subscriptions.forEach((subscription) => subscription.remove());
@@ -173,10 +182,9 @@ export class SyncRuntime {
       if (allowFollowup) this.rerunTrigger = trigger;
       return this.running;
     }
-    const running = this.runLoop(trigger, allowFollowup)
-      .finally(() => {
-        if (this.running === running) this.running = null;
-      });
+    const running = this.runLoop(trigger, allowFollowup).finally(() => {
+      if (this.running === running) this.running = null;
+    });
     this.running = running;
     return running;
   }
@@ -192,13 +200,17 @@ export class SyncRuntime {
       this.rerunTrigger = null;
       finalResult = await this.runOne(trigger);
       const followup = allowFollowup ? this.rerunTrigger : null;
-      if (!followup || this.stopped || lifecycle !== this.lifecycle || !this.wasOnline) break;
+      if (!followup || this.stopped || lifecycle !== this.lifecycle || !this.wasOnline)
+        break;
       trigger = followup;
     } while (true);
     return finalResult;
   }
 
-  private async runOne(trigger: CloudSyncTrigger, retryConnectionChange = true): Promise<RuntimePassResult | null> {
+  private async runOne(
+    trigger: CloudSyncTrigger,
+    retryConnectionChange = true,
+  ): Promise<RuntimePassResult | null> {
     const lifecycle = this.lifecycle;
     const startedAt = (this.options.now ?? Date.now)();
     this.options.analytics?.started(trigger);
@@ -213,17 +225,31 @@ export class SyncRuntime {
         });
         this.lastFailureCategory = null;
       }
-      if (!this.stopped && lifecycle === this.lifecycle && this.engine?.hasPendingWork?.()) {
+      if (
+        !this.stopped &&
+        lifecycle === this.lifecycle &&
+        this.engine?.hasPendingWork?.()
+      ) {
         this.rerunTrigger = trigger;
       }
       return result;
     } catch (error) {
       let failure = error;
-      if (error instanceof CloudConnectionChangedError && retryConnectionChange &&
-          !this.stopped && lifecycle === this.lifecycle) {
+      if (
+        error instanceof CloudConnectionChangedError &&
+        retryConnectionChange &&
+        !this.stopped &&
+        lifecycle === this.lifecycle
+      ) {
         try {
           await this.options.waitForConnectionChange?.();
-          if (this.stopped || lifecycle !== this.lifecycle || !this.active || !this.wasOnline) return null;
+          if (
+            this.stopped ||
+            lifecycle !== this.lifecycle ||
+            !this.active ||
+            !this.wasOnline
+          )
+            return null;
           // Never retry the old engine: its captured connection epoch is invalid.
           const engine = await this.options.createEngine();
           if (this.stopped || lifecycle !== this.lifecycle) return null;
@@ -286,7 +312,8 @@ export class SyncRuntime {
 
   private requestForegroundPass(): void {
     const now = (this.options.now ?? Date.now)();
-    const remaining = (this.options.foregroundThrottleMs ?? 5_000) - (now - this.lastForegroundAt);
+    const remaining =
+      (this.options.foregroundThrottleMs ?? 5_000) - (now - this.lastForegroundAt);
     if (remaining > 0) {
       if (!this.foregroundTimer) {
         this.foregroundTimer = this.options.platform.setTimer(() => {

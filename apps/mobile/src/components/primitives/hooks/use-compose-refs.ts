@@ -67,14 +67,17 @@ export function useComposedRefs<T>(
     attachActiveRefs(node);
   }, [attachActiveRefs, detachActiveRefs, refs]);
 
-  return React.useCallback((node: T | null) => {
-    detachActiveRefs();
-    nodeRef.current = node;
+  return React.useCallback(
+    (node: T | null) => {
+      detachActiveRefs();
+      nodeRef.current = node;
 
-    if (node == null) return;
+      if (node == null) return;
 
-    attachActiveRefs(node);
-  }, [attachActiveRefs, detachActiveRefs]);
+      attachActiveRefs(node);
+    },
+    [attachActiveRefs, detachActiveRefs],
+  );
 }
 
 function setRef<T>(

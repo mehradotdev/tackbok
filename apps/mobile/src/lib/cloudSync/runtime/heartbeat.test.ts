@@ -9,36 +9,57 @@ function setup() {
   const platform: RuntimePlatform = {
     getAppState: () => appState,
     getNetworkOnline: async () => true,
-    addAppStateListener: listener => {
+    addAppStateListener: (listener) => {
       onAppState = listener;
-      return { remove: () => { onAppState = () => {}; } };
+      return {
+        remove: () => {
+          onAppState = () => {};
+        },
+      };
     },
-    addNetworkListener: listener => {
+    addNetworkListener: (listener) => {
       onNetwork = listener;
-      return { remove: () => { onNetwork = () => {}; } };
+      return {
+        remove: () => {
+          onNetwork = () => {};
+        },
+      };
     },
     setTimer: (callback, delay) => setTimeout(callback, delay),
-    clearTimer: timer => clearTimeout(timer),
+    clearTimer: (timer) => clearTimeout(timer),
   };
   const runtime = new SyncRuntime({
     platform,
     readiness: { isReady: async () => true, retryBackfill: async () => {} },
     createEngine: async () => ({ provider: { kind: 'google-drive' }, sync }),
-    addMutationListener: listener => {
+    addMutationListener: (listener) => {
       onMutation = listener;
-      return { remove: () => { onMutation = () => {}; } };
+      return {
+        remove: () => {
+          onMutation = () => {};
+        },
+      };
     },
   });
   return {
-    runtime, sync,
-    state: (next: typeof appState) => { appState = next; onAppState(next); },
+    runtime,
+    sync,
+    state: (next: typeof appState) => {
+      appState = next;
+      onAppState(next);
+    },
     network: (online: boolean) => onNetwork(online),
     mutate: () => onMutation(),
   };
 }
 
-beforeEach(() => { jest.useFakeTimers(); });
-afterEach(() => { jest.clearAllTimers(); jest.useRealTimers(); });
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
 
 test('an idle foreground device checks cloud every two minutes without local edits', async () => {
   const { runtime, sync } = setup();
@@ -97,8 +118,13 @@ test('a heartbeat does not overlap or queue an extra pass behind a slow manual s
   const app = setup();
   await app.runtime.start();
   let finish!: () => void;
-  const pending = new Promise<void>(resolve => { finish = resolve; });
-  app.sync.mockImplementationOnce(async () => { await pending; return { pulled: 0, pushed: 0 }; });
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  app.sync.mockImplementationOnce(async () => {
+    await pending;
+    return { pulled: 0, pushed: 0 };
+  });
   const manual = app.runtime.run('manual');
   await jest.advanceTimersByTimeAsync(240_000);
   expect(app.sync).toHaveBeenCalledTimes(2);
@@ -110,7 +136,6 @@ test('a heartbeat does not overlap or queue an extra pass behind a slow manual s
   expect(app.sync).toHaveBeenCalledTimes(3);
   app.runtime.stop();
 });
-
 
 test('a quick inactive return gets a trailing check at the throttle deadline', async () => {
   const app = setup();

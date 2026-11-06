@@ -54,7 +54,10 @@ async function readSource(source: MediaUploadSource): Promise<Uint8Array> {
   const chunks: Uint8Array[] = [];
   let offset = 0;
   while (offset < source.byteLength) {
-    const chunk = await source.read(offset, Math.min(1024 * 1024, source.byteLength - offset));
+    const chunk = await source.read(
+      offset,
+      Math.min(1024 * 1024, source.byteLength - offset),
+    );
     if (chunk.byteLength === 0) throw new Error('Media source ended early');
     chunks.push(chunk);
     offset += chunk.byteLength;
@@ -73,7 +76,10 @@ export class FakeSnapshotProvider implements SnapshotProvider {
   private readonly snapshots = new Map<string, StoredSnapshot>();
   private readonly heads = new Map<string, ListedDeviceHead[]>();
   private readonly media = new Map<string, Uint8Array>();
-  private readonly revocations = new Map<string, ('backup-deleted' | 'journal-deleted')[]>();
+  private readonly revocations = new Map<
+    string,
+    ('backup-deleted' | 'journal-deleted')[]
+  >();
   private readonly faults: Fault[] = [];
   private physicalSequence = 0;
 
@@ -90,8 +96,9 @@ export class FakeSnapshotProvider implements SnapshotProvider {
   }
 
   private takeFault(operation: FakeProviderOperation, afterMutation: boolean): void {
-    const index = this.faults.findIndex((fault) =>
-      fault.operation === operation && fault.afterMutation === afterMutation);
+    const index = this.faults.findIndex(
+      (fault) => fault.operation === operation && fault.afterMutation === afterMutation,
+    );
     if (index >= 0) throw this.faults.splice(index, 1)[0].error;
   }
 
@@ -100,7 +107,10 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     this.takeFault(operation, false);
   }
 
-  setRevocations(vaultId: string, values: ('backup-deleted' | 'journal-deleted')[]): void {
+  setRevocations(
+    vaultId: string,
+    values: ('backup-deleted' | 'journal-deleted')[],
+  ): void {
     this.revocations.set(vaultId, [...values]);
   }
 
@@ -113,8 +123,16 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     this.heads.set(head.vaultId, values);
   }
 
-  injectSnapshot(vaultId: string, snapshotId: string, bytes: Uint8Array, createdAt: number): void {
-    this.snapshots.set(this.key(vaultId, snapshotId), { bytes: cloneBytes(bytes), createdAt });
+  injectSnapshot(
+    vaultId: string,
+    snapshotId: string,
+    bytes: Uint8Array,
+    createdAt: number,
+  ): void {
+    this.snapshots.set(this.key(vaultId, snapshotId), {
+      bytes: cloneBytes(bytes),
+      createdAt,
+    });
   }
 
   physicalHeads(vaultId: string): ListedDeviceHead[] {
@@ -122,8 +140,9 @@ export class FakeSnapshotProvider implements SnapshotProvider {
   }
 
   removeDeviceHeadForTest(vaultId: string, deviceId: string): void {
-    const remaining = (this.heads.get(vaultId) ?? [])
-      .filter((candidate) => candidate.head.deviceId !== deviceId);
+    const remaining = (this.heads.get(vaultId) ?? []).filter(
+      (candidate) => candidate.head.deviceId !== deviceId,
+    );
     this.heads.set(vaultId, remaining);
   }
 
@@ -148,7 +167,10 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     return this.physicalHeads(vaultId);
   }
 
-  async downloadSnapshot(vaultId: string, snapshotId: string): Promise<Uint8Array | null> {
+  async downloadSnapshot(
+    vaultId: string,
+    snapshotId: string,
+  ): Promise<Uint8Array | null> {
     this.before('download-snapshot');
     return this.snapshots.get(this.key(vaultId, snapshotId))?.bytes.slice() ?? null;
   }
@@ -181,8 +203,9 @@ export class FakeSnapshotProvider implements SnapshotProvider {
 
   async updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void> {
     this.before('update-head');
-    const values = (this.heads.get(vaultId) ?? [])
-      .filter((candidate) => candidate.head.deviceId !== head.deviceId);
+    const values = (this.heads.get(vaultId) ?? []).filter(
+      (candidate) => candidate.head.deviceId !== head.deviceId,
+    );
     values.push({
       physicalId: `physical-${++this.physicalSequence}`,
       head: structuredClone(head),
@@ -191,10 +214,14 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     this.takeFault('update-head', true);
   }
 
-  async hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>> {
+  async hasMediaBatch(
+    vaultId: string,
+    blobHashes: readonly string[],
+  ): Promise<Set<string>> {
     this.before('has-media');
-    return new Set(blobHashes.filter((blobHash) =>
-      this.media.has(this.key(vaultId, blobHash))));
+    return new Set(
+      blobHashes.filter((blobHash) => this.media.has(this.key(vaultId, blobHash))),
+    );
   }
 
   async uploadMedia(
@@ -232,8 +259,11 @@ export class FakeSnapshotProvider implements SnapshotProvider {
         createdAt: value.createdAt,
         byteCount: value.bytes.length,
       }))
-      .sort((left, right) => left.createdAt - right.createdAt ||
-        left.snapshotId.localeCompare(right.snapshotId));
+      .sort(
+        (left, right) =>
+          left.createdAt - right.createdAt ||
+          left.snapshotId.localeCompare(right.snapshotId),
+      );
   }
 
   async deleteSnapshot(vaultId: string, snapshotId: string): Promise<void> {
@@ -319,7 +349,9 @@ export class MemorySnapshotMediaStore implements SnapshotMediaStore {
         next.set(bytes, partial.byteLength);
         partial = next;
       },
-      reset: async () => { partial = new Uint8Array(); },
+      reset: async () => {
+        partial = new Uint8Array();
+      },
       verifyAndPromote: async (expectedByteLength, expectedSha256) => {
         if (expectedSha256 !== blobHash || partial.byteLength !== expectedByteLength) {
           throw new Error('Invalid in-memory media download');
@@ -353,7 +385,10 @@ export class MemorySnapshotJournalStore implements SnapshotJournalStore {
   }
 
   async capture() {
-    const generation = this.state.loadState(this.vaultId, this.deviceId).journalGeneration;
+    const generation = this.state.loadState(
+      this.vaultId,
+      this.deviceId,
+    ).journalGeneration;
     return { domain: structuredClone(this.domain), generation };
   }
 

@@ -28,24 +28,25 @@ const databases: Database[] = [];
 
 class BunSyncDatabase implements SyncDatabase {
   constructor(private readonly database: Database) {}
-  execSync(source: string): void { this.database.exec(source); }
+  execSync(source: string): void {
+    this.database.exec(source);
+  }
   getFirstSync<T>(source: string, ...params: unknown[]): T | null {
-    return this.database.query(source).get(...params as SQLQueryBindings[]) as T | null;
+    return this.database.query(source).get(...(params as SQLQueryBindings[])) as T | null;
   }
   getAllSync<T>(source: string, ...params: unknown[]): T[] {
-    return this.database.query(source).all(...params as SQLQueryBindings[]) as T[];
+    return this.database.query(source).all(...(params as SQLQueryBindings[])) as T[];
   }
   runSync(source: string, ...params: unknown[]): unknown {
-    return this.database.query(source).run(...params as SQLQueryBindings[]);
+    return this.database.query(source).run(...(params as SQLQueryBindings[]));
   }
 }
 
 function migratedDatabase(): BunSyncDatabase {
   const sqlite = new Database(':memory:', { strict: true });
-  const journal = JSON.parse(readFileSync(
-    join(mobileRoot, 'src/drizzle/meta/_journal.json'),
-    'utf8',
-  )) as { entries: { tag: string }[] };
+  const journal = JSON.parse(
+    readFileSync(join(mobileRoot, 'src/drizzle/meta/_journal.json'), 'utf8'),
+  ) as { entries: { tag: string }[] };
   for (const { tag } of journal.entries) {
     const migration = readFileSync(
       join(mobileRoot, 'src/drizzle', `${tag}.sql`),
@@ -61,7 +62,9 @@ class FakePlatform implements RuntimePlatform {
   online = true;
   private networkListener: ((online: boolean) => void) | null = null;
   private timerCallback: (() => void) | null = null;
-  addAppStateListener(): RuntimeSubscription { return { remove() {} }; }
+  addAppStateListener(): RuntimeSubscription {
+    return { remove() {} };
+  }
   addNetworkListener(listener: (online: boolean) => void): RuntimeSubscription {
     this.networkListener = listener;
     return {
@@ -70,13 +73,19 @@ class FakePlatform implements RuntimePlatform {
       },
     };
   }
-  async getNetworkOnline() { return this.online; }
+  async getNetworkOnline() {
+    return this.online;
+  }
   setTimer(callback: () => void): ReturnType<typeof setTimeout> {
     this.timerCallback = callback;
     return 1 as unknown as ReturnType<typeof setTimeout>;
   }
-  clearTimer() { this.timerCallback = null; }
-  emitNetwork(online: boolean) { this.networkListener?.(online); }
+  clearTimer() {
+    this.timerCallback = null;
+  }
+  emitNetwork(online: boolean) {
+    this.networkListener?.(online);
+  }
   fireTimer() {
     const callback = this.timerCallback;
     this.timerCallback = null;
@@ -91,12 +100,15 @@ afterEach(() => {
 describe('production cloud-sync runtime', () => {
   test('the consolidated migration installs the snapshot domain', () => {
     const database = migratedDatabase();
-    const tables = database.getAllSync<{ name: string }>(
-      `SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`,
-    ).map(({ name }) => name);
+    const tables = database
+      .getAllSync<{
+        name: string;
+      }>(`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
+      .map(({ name }) => name);
     expect(tables).toContain('cloud_tombstones');
     expect(tables).toContain('cloud_conflicts');
-    const entryColumns = database.getAllSync<{ name: string }>('PRAGMA table_info(entries)')
+    const entryColumns = database
+      .getAllSync<{ name: string }>('PRAGMA table_info(entries)')
       .map(({ name }) => name);
     expect(entryColumns).toContain('conflict_origin_id');
   });
@@ -146,7 +158,9 @@ describe('production cloud-sync runtime', () => {
     const platform = new FakePlatform();
     let passes = 0;
     let resolveSecondPass!: () => void;
-    const secondPass = new Promise<void>((resolve) => { resolveSecondPass = resolve; });
+    const secondPass = new Promise<void>((resolve) => {
+      resolveSecondPass = resolve;
+    });
     const runtime = new SyncRuntime({
       platform,
       debounceMs: 0,
@@ -177,7 +191,9 @@ describe('production cloud-sync runtime', () => {
     let attempts = 0;
     let passes = 0;
     let resolvePass!: () => void;
-    const passStarted = new Promise<void>((resolve) => { resolvePass = resolve; });
+    const passStarted = new Promise<void>((resolve) => {
+      resolvePass = resolve;
+    });
     const runtime = new SyncRuntime({
       platform,
       readinessRetryMs: 1,
@@ -205,14 +221,16 @@ describe('production cloud-sync runtime', () => {
   });
 
   test('every durable Attention reason has localized visible copy and an action route', async () => {
-    const screen = (await Promise.all([
-      'src/screens/cloudBackup/index.tsx',
-      'src/screens/cloudBackup/copy.ts',
-    ].map((path) => Bun.file(join(mobileRoot, path)).text()))).join('\n');
-    const productionUi = await Bun.file(join(
-      mobileRoot,
-      'src/lib/cloudSync/ui/production.ts',
-    )).text();
+    const screen = (
+      await Promise.all(
+        ['src/screens/cloudBackup/index.tsx', 'src/screens/cloudBackup/copy.ts'].map(
+          (path) => Bun.file(join(mobileRoot, path)).text(),
+        ),
+      )
+    ).join('\n');
+    const productionUi = await Bun.file(
+      join(mobileRoot, 'src/lib/cloudSync/ui/production.ts'),
+    ).text();
     const reasons = Object.keys(ATTENTION_RECOVERY_ACTION) as SyncAttentionReason[];
     expect(reasons).toHaveLength(21);
     for (const reason of reasons) {
@@ -242,16 +260,19 @@ describe('production cloud-sync runtime', () => {
     expect(screen).toContain('accessibilityLiveRegion="polite"');
     const attachmentRetry = screen.slice(
       screen.indexOf("if (action === 'locate-retry-attachment')"),
-      screen.indexOf('await runAction(', screen.indexOf("if (action === 'locate-retry-attachment')")) +
-        180,
+      screen.indexOf(
+        'await runAction(',
+        screen.indexOf("if (action === 'locate-retry-attachment')"),
+      ) + 180,
     );
     expect(attachmentRetry).toContain('retrySyncAttentionReason(reason)');
     expect(attachmentRetry).not.toContain("router.push('/settings')");
     const retryHelper = productionUi.slice(
       productionUi.indexOf('export async function retrySyncAttentionReason'),
-      productionUi.indexOf('\n}', productionUi.indexOf(
-        'export async function retrySyncAttentionReason',
-      )) + 2,
+      productionUi.indexOf(
+        '\n}',
+        productionUi.indexOf('export async function retrySyncAttentionReason'),
+      ) + 2,
     );
     expect(retryHelper).toContain("set({ status: 'dirty'");
     expect(retryHelper).not.toContain("vault.status !== 'paused'");
@@ -266,8 +287,9 @@ describe('production cloud-sync runtime', () => {
       'src/screens/cloudBackup/index.tsx',
       'src/screens/cloudBackup/copy.ts',
     ];
-    const source = (await Promise.all(paths.map((path) =>
-      Bun.file(join(mobileRoot, path)).text()))).join('\n');
+    const source = (
+      await Promise.all(paths.map((path) => Bun.file(join(mobileRoot, path)).text()))
+    ).join('\n');
     expect(source).toContain('createProductionSnapshotRuntimeEngine');
     expect(source).toContain('journal_generation: shouldPublishLocal');
     expect(source).not.toContain('expo-notifications');
@@ -295,10 +317,9 @@ describe('production cloud-sync runtime', () => {
   });
 
   test('the public policy describes complete snapshots and separate media plainly', async () => {
-    const policy = await Bun.file(join(
-      repositoryRoot,
-      'apps/website/src/pages/privacy.astro',
-    )).text();
+    const policy = await Bun.file(
+      join(repositoryRoot, 'apps/website/src/pages/privacy.astro'),
+    ).text();
     expect(policy).toContain('complete compressed snapshot');
     expect(policy).toContain('Photos and voice memos are stored separately');
     expect(policy).toContain('not real-time collaborative editing');

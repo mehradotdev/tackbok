@@ -20,8 +20,10 @@ function isTokenSet(value: unknown): value is GoogleTokenSet {
     typeof candidate.accessToken === 'string' &&
     typeof candidate.expiresAt === 'number' &&
     Number.isFinite(candidate.expiresAt) &&
-    (candidate.refreshToken === undefined || typeof candidate.refreshToken === 'string') &&
-    (candidate.accountEmail === undefined || typeof candidate.accountEmail === 'string') &&
+    (candidate.refreshToken === undefined ||
+      typeof candidate.refreshToken === 'string') &&
+    (candidate.accountEmail === undefined ||
+      typeof candidate.accountEmail === 'string') &&
     (candidate.accessToken.length > 0 || Boolean(candidate.refreshToken))
   );
 }
@@ -153,7 +155,7 @@ export async function withGoogleCredentialRollback<T>(
   signOut: () => Promise<void>,
 ): Promise<T> {
   const keys = [CONNECTION_ID_KEY, ACCOUNT_EMAIL_KEY, TOKEN_KEY, CONNECTED_KEY];
-  const previous = await Promise.all(keys.map(key => SecureStore.getItemAsync(key)));
+  const previous = await Promise.all(keys.map((key) => SecureStore.getItemAsync(key)));
   try {
     return await operation();
   } catch (error) {
@@ -164,9 +166,10 @@ export async function withGoogleCredentialRollback<T>(
       for (let index = 0; index < keys.length; index++) {
         const value = previous[index];
         if (value === null) await SecureStore.deleteItemAsync(keys[index]);
-        else await SecureStore.setItemAsync(keys[index], value, {
-          keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-        });
+        else
+          await SecureStore.setItemAsync(keys[index], value, {
+            keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+          });
       }
     } catch {
       // A failed secure-storage write must not leave mixed-account credentials.

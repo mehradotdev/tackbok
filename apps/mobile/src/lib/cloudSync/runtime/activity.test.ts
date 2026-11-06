@@ -35,5 +35,4 @@ describe('sync activity visibility', () => {
     activity.report('checking');
     expect(activity.current).toBe('idle');
   });
-
 });

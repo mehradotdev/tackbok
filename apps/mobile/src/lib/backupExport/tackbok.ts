@@ -23,9 +23,7 @@ import {
   type PortableProfile,
   type TackbokBackupManifest,
 } from '../backupImport/types';
-import {
-  normalizeOptionalText,
-} from '../backupImport/archiveUtils';
+import { normalizeOptionalText } from '../backupImport/archiveUtils';
 import {
   createPortableEntries,
   createPortablePrompts,
@@ -40,22 +38,24 @@ import {
 
 export async function exportToBackupZip(): Promise<void> {
   const [allEntries, allTags, allPrompts, allMedia, allEntryTags, profileRows] =
-    await runExclusiveDbTransaction(async (tx) => Promise.all([
-      tx.select().from(entries).orderBy(desc(entries.created_at)),
-      tx.select().from(tags),
-      tx.select().from(customPrompts),
-      tx
-        .select()
-        .from(mediaAssets)
-        .orderBy(
-          mediaAssets.owner_type,
-          mediaAssets.owner_id,
-          mediaAssets.created_at,
-          mediaAssets.asset_id,
-        ),
-      tx.select().from(entryTags),
-      tx.select().from(userProfile).limit(1),
-    ]));
+    await runExclusiveDbTransaction(async (tx) =>
+      Promise.all([
+        tx.select().from(entries).orderBy(desc(entries.created_at)),
+        tx.select().from(tags),
+        tx.select().from(customPrompts),
+        tx
+          .select()
+          .from(mediaAssets)
+          .orderBy(
+            mediaAssets.owner_type,
+            mediaAssets.owner_id,
+            mediaAssets.created_at,
+            mediaAssets.asset_id,
+          ),
+        tx.select().from(entryTags),
+        tx.select().from(userProfile).limit(1),
+      ]),
+    );
   const settings = useSettingsStore.getState();
   const profileRow = profileRows[0];
   const profilePhoto = profileRow?.photo_asset_id

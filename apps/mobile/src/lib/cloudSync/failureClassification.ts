@@ -6,26 +6,44 @@ import type {
 } from './snapshot/sync/types';
 
 const FAILURE_CATEGORIES: readonly CloudSyncFailureCategory[] = [
-  'auth', 'quota', 'rate-limit', 'offline', 'wifi-only-media', 'corrupt', 'transient', 'unknown',
+  'auth',
+  'quota',
+  'rate-limit',
+  'offline',
+  'wifi-only-media',
+  'corrupt',
+  'transient',
+  'unknown',
 ];
 
 export function readCloudSyncFailureCategory(error: unknown): CloudSyncFailureCategory {
-  if (typeof error !== 'object' || error === null || !('category' in error)) return 'unknown';
+  if (typeof error !== 'object' || error === null || !('category' in error))
+    return 'unknown';
   const category = String((error as { category: unknown }).category);
   return FAILURE_CATEGORIES.includes(category as CloudSyncFailureCategory)
-    ? category as CloudSyncFailureCategory
+    ? (category as CloudSyncFailureCategory)
     : 'unknown';
 }
 
 export function failureCategoryForAttention(
   reason: SyncAttentionReason,
 ): CloudSyncFailureCategory {
-  if (reason === 'authorization-required' || reason === 'account-mismatch' ||
-      reason === 'consent-incomplete' || reason === 'provider-permission-denied') return 'auth';
+  if (
+    reason === 'authorization-required' ||
+    reason === 'account-mismatch' ||
+    reason === 'consent-incomplete' ||
+    reason === 'provider-permission-denied'
+  )
+    return 'auth';
   if (reason === 'provider-quota-full') return 'quota';
-  if (reason === 'invalid-remote-snapshot' || reason === 'unsupported-format' ||
-      reason === 'derived-id-collision' || reason === 'ambiguous-device-head' ||
-      reason === 'local-media-unreadable') return 'corrupt';
+  if (
+    reason === 'invalid-remote-snapshot' ||
+    reason === 'unsupported-format' ||
+    reason === 'derived-id-collision' ||
+    reason === 'ambiguous-device-head' ||
+    reason === 'local-media-unreadable'
+  )
+    return 'corrupt';
   return 'unknown';
 }
 

@@ -101,63 +101,83 @@ export async function enqueueMutation(
     .limit(1);
 
   if (syncVault) {
-    await tx.insert(cloudSyncState).values({
-      vault_id: syncVault.vaultId,
-      device_id: syncVault.deviceId,
-      journal_generation: 0,
-      settled_generation: 0,
-      next_device_sequence: 1,
-      updated_at: now,
-    }).onConflictDoNothing();
-    await tx.update(cloudSyncState).set({
-      journal_generation: sql`${cloudSyncState.journal_generation} + 1`,
-      updated_at: now,
-    }).where(and(
-      eq(cloudSyncState.vault_id, syncVault.vaultId),
-      eq(cloudSyncState.device_id, syncVault.deviceId),
-    ));
-    const [state] = await tx.select({ generation: cloudSyncState.journal_generation })
+    await tx
+      .insert(cloudSyncState)
+      .values({
+        vault_id: syncVault.vaultId,
+        device_id: syncVault.deviceId,
+        journal_generation: 0,
+        settled_generation: 0,
+        next_device_sequence: 1,
+        updated_at: now,
+      })
+      .onConflictDoNothing();
+    await tx
+      .update(cloudSyncState)
+      .set({
+        journal_generation: sql`${cloudSyncState.journal_generation} + 1`,
+        updated_at: now,
+      })
+      .where(
+        and(
+          eq(cloudSyncState.vault_id, syncVault.vaultId),
+          eq(cloudSyncState.device_id, syncVault.deviceId),
+        ),
+      );
+    const [state] = await tx
+      .select({ generation: cloudSyncState.journal_generation })
       .from(cloudSyncState)
-      .where(and(
-        eq(cloudSyncState.vault_id, syncVault.vaultId),
-        eq(cloudSyncState.device_id, syncVault.deviceId),
-      ))
+      .where(
+        and(
+          eq(cloudSyncState.vault_id, syncVault.vaultId),
+          eq(cloudSyncState.device_id, syncVault.deviceId),
+        ),
+      )
       .limit(1);
     if (!state) throw new Error('Failed to advance snapshot journal generation');
 
     if (action === 'delete') {
-      await tx.insert(cloudTombstones).values({
-        vault_id: syncVault.vaultId,
-        entity_type: entityType,
-        entity_id: entityId,
-        base_state_hash: null,
-        deleted_state_hash: context.deletedStateHash ?? null,
-        deleted_by_device_id: syncVault.deviceId,
-        deletion_sequence: state.generation,
-        updated_at: now,
-      }).onConflictDoUpdate({
-        target: [
-          cloudTombstones.vault_id,
-          cloudTombstones.entity_type,
-          cloudTombstones.entity_id,
-        ],
-        set: {
+      await tx
+        .insert(cloudTombstones)
+        .values({
+          vault_id: syncVault.vaultId,
+          entity_type: entityType,
+          entity_id: entityId,
           base_state_hash: null,
           deleted_state_hash: context.deletedStateHash ?? null,
           deleted_by_device_id: syncVault.deviceId,
           deletion_sequence: state.generation,
           updated_at: now,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: [
+            cloudTombstones.vault_id,
+            cloudTombstones.entity_type,
+            cloudTombstones.entity_id,
+          ],
+          set: {
+            base_state_hash: null,
+            deleted_state_hash: context.deletedStateHash ?? null,
+            deleted_by_device_id: syncVault.deviceId,
+            deletion_sequence: state.generation,
+            updated_at: now,
+          },
+        });
     } else {
-      await tx.delete(cloudTombstones).where(and(
-        eq(cloudTombstones.vault_id, syncVault.vaultId),
-        eq(cloudTombstones.entity_type, entityType),
-        eq(cloudTombstones.entity_id, entityId),
-      ));
+      await tx
+        .delete(cloudTombstones)
+        .where(
+          and(
+            eq(cloudTombstones.vault_id, syncVault.vaultId),
+            eq(cloudTombstones.entity_type, entityType),
+            eq(cloudTombstones.entity_id, entityId),
+          ),
+        );
     }
     if (syncVault.status !== 'paused' && syncVault.status !== 'restoring') {
-      await tx.update(cloudVault).set({ status: 'dirty', updated_at: now })
+      await tx
+        .update(cloudVault)
+        .set({ status: 'dirty', updated_at: now })
         .where(eq(cloudVault.vault_id, syncVault.vaultId));
     }
     return { changeId: randomUUID(), generation: state.generation };
@@ -209,22 +229,25 @@ async function replaceEntryAssets(
   const existing = await tx
     .select()
     .from(mediaAssets)
-    .where(
-      and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)),
-    );
+    .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)));
   const unused = new Map(existing.map((asset) => [asset.local_uri, asset]));
   const existingById = new Map(existing.map((asset) => [asset.asset_id, asset]));
   const desiredIds: string[] = [];
 
   for (const asset of assets ?? []) {
     const requestedId = asset.assetId ?? randomUUID();
-    const [requestedAsset] = await tx.select().from(mediaAssets)
-      .where(eq(mediaAssets.asset_id, requestedId)).limit(1);
-    const requestedIdBelongsElsewhere = requestedAsset &&
+    const [requestedAsset] = await tx
+      .select()
+      .from(mediaAssets)
+      .where(eq(mediaAssets.asset_id, requestedId))
+      .limit(1);
+    const requestedIdBelongsElsewhere =
+      requestedAsset &&
       (requestedAsset.owner_type !== 'entry' || requestedAsset.owner_id !== noteId);
     const prior = unused.get(asset.uri) ?? existingById.get(requestedId);
     if (prior) unused.delete(prior.local_uri);
-    const assetId = prior?.asset_id ?? (requestedIdBelongsElsewhere ? randomUUID() : requestedId);
+    const assetId =
+      prior?.asset_id ?? (requestedIdBelongsElsewhere ? randomUUID() : requestedId);
     desiredIds.push(assetId);
     await tx
       .insert(mediaAssets)
@@ -278,9 +301,7 @@ async function replaceEntryAssets(
   } else {
     await tx
       .delete(mediaAssets)
-      .where(
-        and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)),
-      );
+      .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)));
   }
 }
 
@@ -356,37 +377,39 @@ export async function deleteEntryInTransaction(
   context: MutationContext = {},
 ): Promise<Entry | undefined> {
   const now = context.now ?? Date.now();
-  const [entry] = await tx.select().from(entries).where(eq(entries.note_id, noteId)).limit(1);
+  const [entry] = await tx
+    .select()
+    .from(entries)
+    .where(eq(entries.note_id, noteId))
+    .limit(1);
   const normalized = await tx
     .select()
     .from(mediaAssets)
-    .where(
-      and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)),
-    );
+    .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)));
 
   for (const asset of normalized) {
     await retainMediaRow(tx, asset, `entry:${noteId}`, now);
   }
   await tx
     .delete(mediaAssets)
-    .where(
-      and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)),
-    );
+    .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)));
   // Production does not enable PRAGMA foreign_keys, so this cannot rely on the
   // schema's ON DELETE CASCADE.
   await tx.delete(entryTags).where(eq(entryTags.note_id, noteId));
   await tx.delete(entries).where(eq(entries.note_id, noteId));
   await markNormalized(tx, 'entry', noteId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotEntry | null = entry ? {
-      entryId: entry.note_id,
-      title: entry.text_title,
-      content: entry.text_content,
-      mood: entry.mood ?? null,
-      createdAt: entry.created_at,
-      updatedAt: entry.updated_at,
-      conflictOriginId: entry.conflict_origin_id,
-    } : null;
+    const deletedState: SnapshotEntry | null = entry
+      ? {
+          entryId: entry.note_id,
+          title: entry.text_title,
+          content: entry.text_content,
+          mood: entry.mood ?? null,
+          createdAt: entry.created_at,
+          updatedAt: entry.updated_at,
+          conflictOriginId: entry.conflict_origin_id,
+        }
+      : null;
     await enqueueMutation(tx, 'entry', noteId, 'delete', {
       ...context,
       now,
@@ -450,7 +473,10 @@ export async function updateTagInTransaction(
   if (!cleanTitle) throw new Error('Invalid tag title');
   await assertUniqueTitle(tx, 'tag', cleanTitle, tagId);
   const now = context.now ?? Date.now();
-  await tx.update(tags).set({ title: cleanTitle, updated_at: now }).where(eq(tags.tag_id, tagId));
+  await tx
+    .update(tags)
+    .set({ title: cleanTitle, updated_at: now })
+    .where(eq(tags.tag_id, tagId));
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     await enqueueMutation(tx, 'tag', tagId, 'upsert', { ...context, now });
@@ -463,7 +489,11 @@ export async function deleteTagInTransaction(
   context: MutationContext = {},
 ): Promise<void> {
   const now = context.now ?? Date.now();
-  const [deletedTag] = await tx.select().from(tags).where(eq(tags.tag_id, tagId)).limit(1);
+  const [deletedTag] = await tx
+    .select()
+    .from(tags)
+    .where(eq(tags.tag_id, tagId))
+    .limit(1);
   const relations = await tx.select().from(entryTags).where(eq(entryTags.tag_id, tagId));
   for (const relation of relations) {
     const [entry] = await tx
@@ -471,16 +501,16 @@ export async function deleteTagInTransaction(
       .from(entries)
       .where(eq(entries.note_id, relation.note_id))
       .limit(1);
-    const remaining = parseTagIds(entry?.tags).filter((id) => id !== tagId).join(',');
+    const remaining = parseTagIds(entry?.tags)
+      .filter((id) => id !== tagId)
+      .join(',');
     await tx
       .update(entries)
       .set({ tags: remaining, updated_at: now })
       .where(eq(entries.note_id, relation.note_id));
     await tx
       .delete(entryTags)
-      .where(
-        and(eq(entryTags.note_id, relation.note_id), eq(entryTags.tag_id, tagId)),
-      );
+      .where(and(eq(entryTags.note_id, relation.note_id), eq(entryTags.tag_id, tagId)));
     if (context.origin !== 'remote' && context.origin !== 'migration') {
       await enqueueMutation(tx, 'entry', relation.note_id, 'upsert', { ...context, now });
     }
@@ -488,13 +518,15 @@ export async function deleteTagInTransaction(
   await tx.delete(tags).where(eq(tags.tag_id, tagId));
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotTag | null = deletedTag ? {
-      tagId: deletedTag.tag_id,
-      title: deletedTag.title,
-      createdAt: deletedTag.created_at,
-      updatedAt: deletedTag.updated_at,
-      conflictOriginId: deletedTag.conflict_origin_id,
-    } : null;
+    const deletedState: SnapshotTag | null = deletedTag
+      ? {
+          tagId: deletedTag.tag_id,
+          title: deletedTag.title,
+          createdAt: deletedTag.created_at,
+          updatedAt: deletedTag.updated_at,
+          conflictOriginId: deletedTag.conflict_origin_id,
+        }
+      : null;
     await enqueueMutation(tx, 'tag', tagId, 'delete', {
       ...context,
       now,
@@ -553,18 +585,23 @@ export async function deletePromptInTransaction(
   context: MutationContext = {},
 ): Promise<void> {
   const now = context.now ?? Date.now();
-  const [deletedPrompt] = await tx.select().from(customPrompts)
-    .where(eq(customPrompts.prompt_id, promptId)).limit(1);
+  const [deletedPrompt] = await tx
+    .select()
+    .from(customPrompts)
+    .where(eq(customPrompts.prompt_id, promptId))
+    .limit(1);
   await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotPrompt | null = deletedPrompt ? {
-      promptId: deletedPrompt.prompt_id,
-      title: deletedPrompt.title,
-      createdAt: deletedPrompt.created_at,
-      updatedAt: deletedPrompt.updated_at,
-      conflictOriginId: deletedPrompt.conflict_origin_id,
-    } : null;
+    const deletedState: SnapshotPrompt | null = deletedPrompt
+      ? {
+          promptId: deletedPrompt.prompt_id,
+          title: deletedPrompt.title,
+          createdAt: deletedPrompt.created_at,
+          updatedAt: deletedPrompt.updated_at,
+          conflictOriginId: deletedPrompt.conflict_origin_id,
+        }
+      : null;
     await enqueueMutation(tx, 'prompt', promptId, 'delete', {
       ...context,
       now,
@@ -602,7 +639,9 @@ export async function updateProfileInTransaction(
     : undefined;
 
   let photoAssetId =
-    update.photoAssetId !== undefined ? update.photoAssetId : previous?.photo_asset_id ?? null;
+    update.photoAssetId !== undefined
+      ? update.photoAssetId
+      : (previous?.photo_asset_id ?? null);
   if (update.photoUri !== undefined) {
     if (update.photoUri) {
       const canReuse = previousAsset?.local_uri === update.photoUri;
@@ -614,7 +653,8 @@ export async function updateProfileInTransaction(
         .limit(1);
       const requestedIdBelongsElsewhere =
         requestedAsset &&
-        (requestedAsset.owner_type !== 'profile' || requestedAsset.owner_id !== PROFILE_ROW_ID);
+        (requestedAsset.owner_type !== 'profile' ||
+          requestedAsset.owner_id !== PROFILE_ROW_ID);
       photoAssetId = canReuse
         ? previousAsset.asset_id
         : requestedIdBelongsElsewhere
@@ -666,8 +706,10 @@ export async function updateProfileInTransaction(
     .values({
       profile_id: PROFILE_ROW_ID,
       display_name:
-        update.displayName !== undefined ? update.displayName : previous?.display_name ?? null,
-      email: update.email !== undefined ? update.email : previous?.email ?? null,
+        update.displayName !== undefined
+          ? update.displayName
+          : (previous?.display_name ?? null),
+      email: update.email !== undefined ? update.email : (previous?.email ?? null),
       photo_asset_id: photoAssetId,
       updated_at: now,
     })
@@ -677,8 +719,8 @@ export async function updateProfileInTransaction(
         display_name:
           update.displayName !== undefined
             ? update.displayName
-            : previous?.display_name ?? null,
-        email: update.email !== undefined ? update.email : previous?.email ?? null,
+            : (previous?.display_name ?? null),
+        email: update.email !== undefined ? update.email : (previous?.email ?? null),
         photo_asset_id: photoAssetId,
         updated_at: now,
       },

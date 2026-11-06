@@ -23,5 +23,3 @@ export interface ParsedLocalFileHeader {
   compressionMethod: number;
   dataOffset: number;
 }
-
-

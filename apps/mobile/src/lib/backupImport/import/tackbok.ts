@@ -14,10 +14,7 @@ import {
   type PortableTag,
   type TackbokBackupManifest,
 } from '../types';
-import {
-  type ImportProgressCallback,
-  reportImportProgress,
-} from '../progress';
+import { type ImportProgressCallback, reportImportProgress } from '../progress';
 import {
   createBackupImportSummary,
   createSummaryCounterMetrics,
@@ -121,7 +118,9 @@ export async function importFromTackbokBackup(
         // TODO: If imports ever get slow on large journals, profile this query first.
         // A chunked lookup by incoming portable note IDs may scale better than
         // materializing every existing note_id up front.
-        const existingEntries = await tx.select({ note_id: entries.note_id }).from(entries);
+        const existingEntries = await tx
+          .select({ note_id: entries.note_id })
+          .from(entries);
         const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
 
         await importPortableEntries(

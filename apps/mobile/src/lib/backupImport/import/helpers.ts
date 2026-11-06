@@ -1,9 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
-import type {
-  PortableEntry,
-  PortablePrompt,
-  PortableTag,
-} from '../types';
+import type { PortableEntry, PortablePrompt, PortableTag } from '../types';
 
 export function getImportTotals(
   portableEntries: PortableEntry[],

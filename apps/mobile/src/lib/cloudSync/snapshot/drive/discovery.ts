@@ -65,7 +65,7 @@ export class DriveDiscovery {
           {},
           { idempotent: true },
         );
-        const body = await response.json() as {
+        const body = (await response.json()) as {
           nextPageToken?: unknown;
           newStartPageToken?: unknown;
           changes?: DriveChange[];
@@ -82,21 +82,30 @@ export class DriveDiscovery {
           if (!file || file.appProperties.tb_vault !== vaultId) continue;
           const kind = this.options.kindOf(file.appProperties.tb_kind);
           if (!kind) continue;
-          const record = await this.options.materialize(vaultId, file, kind, kind === 'head');
+          const record = await this.options.materialize(
+            vaultId,
+            file,
+            kind,
+            kind === 'head',
+          );
           if (record) files.push(record);
         }
-        const next = typeof body.nextPageToken === 'string'
-          ? body.nextPageToken
-          : typeof body.newStartPageToken === 'string'
-            ? body.newStartPageToken
-            : cursor;
+        const next =
+          typeof body.nextPageToken === 'string'
+            ? body.nextPageToken
+            : typeof body.newStartPageToken === 'string'
+              ? body.newStartPageToken
+              : cursor;
         this.options.state.applyChangePage(vaultId, files, removed, next);
         if (typeof body.nextPageToken !== 'string') return;
         cursor = body.nextPageToken;
       }
     } catch (error) {
-      if (!(error instanceof DriveRequestError) ||
-          ![400, 404, 410].includes(error.status)) throw error;
+      if (
+        !(error instanceof DriveRequestError) ||
+        ![400, 404, 410].includes(error.status)
+      )
+        throw error;
       if (rebuilds >= MAX_DISCOVERY_REBUILDS) {
         throw new SnapshotProviderError(
           'transient',
@@ -116,11 +125,15 @@ export class DriveDiscovery {
       {},
       { idempotent: true },
     );
-    const tokenBody = await tokenResponse.json() as { startPageToken?: unknown };
+    const tokenBody = (await tokenResponse.json()) as { startPageToken?: unknown };
     if (typeof tokenBody.startPageToken !== 'string') {
-      throw new SnapshotProviderError('invalid-data', 'Drive returned no start-page token');
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Drive returned no start-page token',
+      );
     }
-    const scope = `(name contains 'heads/' or name contains 'snapshots/') and (` +
+    const scope =
+      `(name contains 'heads/' or name contains 'snapshots/') and (` +
       `${this.options.propertyClause('tb_kind', 'head')} or ` +
       `${this.options.propertyClause('tb_kind', 'snapshot')})`;
     const query = this.options.vaultQuery(vaultId, scope);
@@ -130,7 +143,9 @@ export class DriveDiscovery {
     // the changes catch-up below closes the race for newer writes.
     await this.options.sleep(250);
     const repeated = await this.options.queryFiles(vaultId, query);
-    const files = [...new Map([...initial, ...repeated].map((file) => [file.id, file])).values()];
+    const files = [
+      ...new Map([...initial, ...repeated].map((file) => [file.id, file])).values(),
+    ];
     const records: DriveFileRecord[] = [];
     for (const file of files) {
       const kind = this.options.kindOf(file.appProperties.tb_kind);
@@ -138,7 +153,11 @@ export class DriveDiscovery {
       const record = await this.options.materialize(vaultId, file, kind, kind === 'head');
       if (record) records.push(record);
     }
-    this.options.state.replaceInitialInventory(vaultId, records, tokenBody.startPageToken);
+    this.options.state.replaceInitialInventory(
+      vaultId,
+      records,
+      tokenBody.startPageToken,
+    );
     await this.refresh(vaultId, rebuilds);
   }
 }

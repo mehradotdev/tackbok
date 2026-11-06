@@ -199,8 +199,7 @@ export const ar: Translations = {
   // Default Worksheet Template Keys
   'worksheet.whatIAmGratefulForToday': 'ما الذي أشعر بالامتنان له اليوم...',
   'worksheet.myAffirmationForToday': 'توكيدي لنفسي اليوم...',
-  'worksheet.oneLittleThingThatMadeMeSmileRecently':
-    'شيء صغير واحد جعلني أبتسم مؤخراً...',
+  'worksheet.oneLittleThingThatMadeMeSmileRecently': 'شيء صغير واحد جعلني أبتسم مؤخراً...',
 
   // Moods
   'mood.amazing': 'مذهل',

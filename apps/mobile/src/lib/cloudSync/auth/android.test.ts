@@ -29,7 +29,10 @@ jest.mock('./accountLabel', () => ({
   fetchGoogleAccountLabel: jest.fn(async () => 'probe@gmail.com'),
 }));
 
-async function connect(auth: AndroidGoogleAuthorization, accountEmail = 'probe@gmail.com') {
+async function connect(
+  auth: AndroidGoogleAuthorization,
+  accountEmail = 'probe@gmail.com',
+) {
   mockNativeAuthorize.mockResolvedValueOnce({
     accessToken: 'token-1',
     expiresAt: 0,
@@ -63,7 +66,9 @@ describe('AndroidGoogleAuthorization connection state', () => {
     await auth.signOut();
     // Play services would happily hand out a token here (finding 0002); the
     // durable mark is what stands in the way.
-    await expect(auth.getFreshAccessToken()).rejects.toMatchObject({ code: 'not-connected' });
+    await expect(auth.getFreshAccessToken()).rejects.toMatchObject({
+      code: 'not-connected',
+    });
     expect(mockNativeAuthorize).toHaveBeenCalledTimes(1);
     expect(mockNativeSignOut).toHaveBeenCalledTimes(1);
   });
@@ -113,7 +118,10 @@ describe('AndroidGoogleAuthorization token freshness', () => {
       accountEmail: 'probe@gmail.com',
     });
     await auth.authorize();
-    mockNativeAuthorize.mockResolvedValueOnce({ accessToken: 'revalidated', expiresAt: 0 });
+    mockNativeAuthorize.mockResolvedValueOnce({
+      accessToken: 'revalidated',
+      expiresAt: 0,
+    });
     await expect(auth.getFreshAccessToken()).resolves.toBe('revalidated');
     expect(mockNativeAuthorize).toHaveBeenCalledTimes(2);
   });
@@ -151,12 +159,16 @@ describe('AndroidGoogleAuthorization error normalization', () => {
     const auth = new AndroidGoogleAuthorization();
     await connect(auth);
     mockNativeAuthorize.mockRejectedValueOnce({ code: 'E_GOOGLE_AUTH_CONSENT_REQUIRED' });
-    await expect(auth.getFreshAccessToken()).rejects.toMatchObject({ code: 'consent-required' });
+    await expect(auth.getFreshAccessToken()).rejects.toMatchObject({
+      code: 'consent-required',
+    });
   });
 
   it('maps a partial grant that omitted Drive access', async () => {
     const auth = new AndroidGoogleAuthorization();
-    mockNativeAuthorize.mockRejectedValueOnce({ code: 'E_GOOGLE_AUTH_PERMISSION_REQUIRED' });
+    mockNativeAuthorize.mockRejectedValueOnce({
+      code: 'E_GOOGLE_AUTH_PERMISSION_REQUIRED',
+    });
     await expect(auth.authorize()).rejects.toMatchObject({ code: 'permission-required' });
   });
 
@@ -165,7 +177,9 @@ describe('AndroidGoogleAuthorization error normalization', () => {
     mockNativeAuthorize.mockRejectedValueOnce({ code: 'E_GOOGLE_AUTH_CANCELLED' });
     await expect(auth.authorize()).rejects.toMatchObject({ code: 'cancelled' });
     // A cancelled connect must not leave the device marked connected.
-    await expect(auth.getFreshAccessToken()).rejects.toMatchObject({ code: 'not-connected' });
+    await expect(auth.getFreshAccessToken()).rejects.toMatchObject({
+      code: 'not-connected',
+    });
   });
 
   it('wraps unknown native failures as CloudAuthError', async () => {

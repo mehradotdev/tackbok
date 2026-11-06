@@ -148,18 +148,20 @@ export class SQLiteSyncStateStore {
       vaultId,
       deviceId,
     );
-    return row ? {
-      vaultId: row.vault_id,
-      deviceId: row.device_id,
-      snapshotId: row.snapshot_id,
-      deviceSequence: row.device_sequence,
-      capturedGeneration: row.captured_generation,
-      compressedBytes: asBytes(row.compressed_bytes),
-      mediaHashes: JSON.parse(row.media_hashes_json) as string[],
-      stage: row.stage,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    } : null;
+    return row
+      ? {
+          vaultId: row.vault_id,
+          deviceId: row.device_id,
+          snapshotId: row.snapshot_id,
+          deviceSequence: row.device_sequence,
+          capturedGeneration: row.captured_generation,
+          compressedBytes: asBytes(row.compressed_bytes),
+          mediaHashes: JSON.parse(row.media_hashes_json) as string[],
+          stage: row.stage,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }
+      : null;
   }
 
   createPending(
@@ -303,15 +305,17 @@ export class SQLiteSyncStateStore {
       vaultId,
       deviceId,
     );
-    return row ? {
-      vaultId: row.vault_id,
-      deviceId: row.device_id,
-      snapshotId: row.snapshot_id,
-      fileName: row.file_name,
-      canonicalSha256: row.canonical_sha256,
-      byteCount: row.byte_count,
-      committedGeneration: row.committed_generation,
-    } : null;
+    return row
+      ? {
+          vaultId: row.vault_id,
+          deviceId: row.device_id,
+          snapshotId: row.snapshot_id,
+          fileName: row.file_name,
+          canonicalSha256: row.canonical_sha256,
+          byteCount: row.byte_count,
+          committedGeneration: row.committed_generation,
+        }
+      : null;
   }
 
   settleWithBase(
@@ -336,12 +340,20 @@ export class SQLiteSyncStateStore {
   ): { dirty: boolean; oldFileName: string | null } {
     return this.transaction(() => {
       const pending = this.loadPending(checkpoint.vaultId, checkpoint.deviceId);
-      if (publication && (!pending || pending.snapshotId !== checkpoint.snapshotId ||
-          STAGE_ORDER[pending.stage] < STAGE_ORDER['domain-applied'])) {
+      if (
+        publication &&
+        (!pending ||
+          pending.snapshotId !== checkpoint.snapshotId ||
+          STAGE_ORDER[pending.stage] < STAGE_ORDER['domain-applied'])
+      ) {
         throw new Error('Cannot settle an incomplete snapshot publication');
       }
-      if (!publication && pending) throw new Error('Cannot adopt a snapshot during publication');
-      if (capturedGeneration > this.loadState(checkpoint.vaultId, checkpoint.deviceId).journalGeneration) {
+      if (!publication && pending)
+        throw new Error('Cannot adopt a snapshot during publication');
+      if (
+        capturedGeneration >
+        this.loadState(checkpoint.vaultId, checkpoint.deviceId).journalGeneration
+      ) {
         throw new Error('Cannot settle a future journal generation');
       }
       const old = this.loadBaseCheckpoint(checkpoint.vaultId, checkpoint.deviceId);
@@ -376,7 +388,10 @@ export class SQLiteSyncStateStore {
       }
       // Adoption can revisit an existing remote snapshot. Its new active base
       // must not remain queued for deletion from an earlier checkpoint switch.
-      this.database.runSync('DELETE FROM cloud_shadow_reaper WHERE file_name = ?', checkpoint.fileName);
+      this.database.runSync(
+        'DELETE FROM cloud_shadow_reaper WHERE file_name = ?',
+        checkpoint.fileName,
+      );
       this.database.runSync(
         `UPDATE cloud_sync_state
          SET settled_generation = MAX(settled_generation, ?), updated_at = ?
@@ -400,12 +415,17 @@ export class SQLiteSyncStateStore {
   }
 
   listShadowReaperFiles(): string[] {
-    return this.database.getAllSync<{ file_name: string }>(
-      'SELECT file_name FROM cloud_shadow_reaper ORDER BY queued_at, file_name',
-    ).map((row) => row.file_name);
+    return this.database
+      .getAllSync<{
+        file_name: string;
+      }>('SELECT file_name FROM cloud_shadow_reaper ORDER BY queued_at, file_name')
+      .map((row) => row.file_name);
   }
 
   completeShadowReap(fileName: string): void {
-    this.database.runSync('DELETE FROM cloud_shadow_reaper WHERE file_name = ?', fileName);
+    this.database.runSync(
+      'DELETE FROM cloud_shadow_reaper WHERE file_name = ?',
+      fileName,
+    );
   }
 }

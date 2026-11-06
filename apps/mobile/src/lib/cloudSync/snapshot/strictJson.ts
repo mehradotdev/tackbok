@@ -15,13 +15,21 @@ export function decodeUtf8Strict(bytes: Uint8Array): string {
     let remaining: number;
     let minimum: number;
     if (first <= 0x7f) {
-      codePoint = first; remaining = 0; minimum = 0;
+      codePoint = first;
+      remaining = 0;
+      minimum = 0;
     } else if (first >= 0xc2 && first <= 0xdf) {
-      codePoint = first & 0x1f; remaining = 1; minimum = 0x80;
+      codePoint = first & 0x1f;
+      remaining = 1;
+      minimum = 0x80;
     } else if (first >= 0xe0 && first <= 0xef) {
-      codePoint = first & 0x0f; remaining = 2; minimum = 0x800;
+      codePoint = first & 0x0f;
+      remaining = 2;
+      minimum = 0x800;
     } else if (first >= 0xf0 && first <= 0xf4) {
-      codePoint = first & 0x07; remaining = 3; minimum = 0x10000;
+      codePoint = first & 0x07;
+      remaining = 3;
+      minimum = 0x10000;
     } else {
       invalid('invalid-utf8', `Invalid UTF-8 lead byte at ${index - 1}`);
     }
@@ -35,8 +43,11 @@ export function decodeUtf8Strict(bytes: Uint8Array): string {
       }
       codePoint = (codePoint << 6) | (next & 0x3f);
     }
-    if (codePoint < minimum || codePoint > 0x10ffff ||
-        (codePoint >= 0xd800 && codePoint <= 0xdfff)) {
+    if (
+      codePoint < minimum ||
+      codePoint > 0x10ffff ||
+      (codePoint >= 0xd800 && codePoint <= 0xdfff)
+    ) {
       invalid('invalid-utf8', `Invalid UTF-8 scalar ending at ${index - 1}`);
     }
     if (codePoint <= 0xffff) {
@@ -117,7 +128,8 @@ class StrictJsonParser {
       this.skipWhitespace();
       const separator = this.source[this.index++];
       if (separator === '}') return result;
-      if (separator !== ',') invalid('invalid-json', `Expected comma at ${this.index - 1}`);
+      if (separator !== ',')
+        invalid('invalid-json', `Expected comma at ${this.index - 1}`);
       this.skipWhitespace();
     }
   }
@@ -135,7 +147,8 @@ class StrictJsonParser {
       this.skipWhitespace();
       const separator = this.source[this.index++];
       if (separator === ']') return result;
-      if (separator !== ',') invalid('invalid-json', `Expected comma at ${this.index - 1}`);
+      if (separator !== ',')
+        invalid('invalid-json', `Expected comma at ${this.index - 1}`);
       this.skipWhitespace();
     }
   }
@@ -157,7 +170,14 @@ class StrictJsonParser {
         this.index++;
         const escape = this.source[this.index++];
         const escaped: Record<string, string> = {
-          '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t',
+          '"': '"',
+          '\\': '\\',
+          '/': '/',
+          b: '\b',
+          f: '\f',
+          n: '\n',
+          r: '\r',
+          t: '\t',
         };
         if (escape === 'u') {
           const hex = this.source.slice(this.index, this.index + 4);
@@ -198,8 +218,10 @@ class StrictJsonParser {
   }
 
   private skipWhitespace(): void {
-    while (/\s/.test(this.source[this.index] ?? '') &&
-      [' ', '\t', '\r', '\n'].includes(this.source[this.index])) {
+    while (
+      /\s/.test(this.source[this.index] ?? '') &&
+      [' ', '\t', '\r', '\n'].includes(this.source[this.index])
+    ) {
       this.index++;
     }
   }

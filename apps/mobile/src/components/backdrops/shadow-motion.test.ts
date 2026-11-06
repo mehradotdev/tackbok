@@ -30,7 +30,6 @@ it('separates the knowing glance from the meow and blinks after the meow', () =>
   expect(shadowPose(2.75, 1, 0).mouth).toBe(0);
 });
 
-
 it('gives the near ear a quick outward flick and recovery, with visible tail travel', () => {
   expect(shadowPose(0, 0, 3.34).ear).toBeCloseTo(-0.25);
   expect(shadowPose(0, 0, 3.63).ear).toBeCloseTo(0.13);

@@ -37,10 +37,8 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
-      - name: Check changed-file formatting
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: bun run format:changed "$BASE_SHA"
+      - name: Check formatting
+        run: bun run format:check
       - name: Detect workspace changes
         id: changes
         env:

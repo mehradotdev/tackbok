@@ -1,7 +1,7 @@
 export {
-	useAnchoredContentDismiss,
-	useAnchoredTriggerController,
-	useDismissibleAnchoredContent,
+  useAnchoredContentDismiss,
+  useAnchoredTriggerController,
+  useDismissibleAnchoredContent,
 } from './useAnchoredMenu';
 export { useRelativePosition, type LayoutPosition } from './useRelativePosition';
 export { useControllableState } from './useControllableState';

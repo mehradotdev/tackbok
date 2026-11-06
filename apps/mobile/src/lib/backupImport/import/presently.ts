@@ -8,10 +8,7 @@ import {
   runInCloudSyncTransaction,
   upsertEntryInTransaction,
 } from '~/lib/cloudSync/storage/repositories';
-import {
-  type ImportProgressCallback,
-  reportImportProgress,
-} from '../progress';
+import { type ImportProgressCallback, reportImportProgress } from '../progress';
 import { createBackupImportSummary } from '../summary';
 import { type BackupImportSummary } from '../types';
 
@@ -49,7 +46,7 @@ function parseCSV(content: string): string[][] {
       } else if (char === ',') {
         currentRow.push(currentField);
         currentField = '';
-      // Support LF, CRLF, and bare CR line endings when parsing exports.
+        // Support LF, CRLF, and bare CR line endings when parsing exports.
       } else if (char === '\n' || char === '\r') {
         if (char === '\r' && nextChar === '\n') i++;
         currentRow.push(currentField);

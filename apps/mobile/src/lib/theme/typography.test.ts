@@ -89,16 +89,16 @@ describe('resolveHeadingFontMetrics', () => {
   });
 
   test('Gloria Hallelujah on iOS keeps the tighter scale and bottom trim', () => {
-    expect(
-      resolveHeadingFontMetrics('GloriaHallelujah_400Regular', 36, 'ios'),
-    ).toEqual({
+    expect(resolveHeadingFontMetrics('GloriaHallelujah_400Regular', 36, 'ios')).toEqual({
       lineHeight: Math.ceil(36 * 1.4),
       bottomTrim: -6,
     });
   });
 
   test('fonts without registered metrics resolve to undefined', () => {
-    expect(resolveHeadingFontMetrics('Baskervville_700Bold', 36, 'android')).toBeUndefined();
+    expect(
+      resolveHeadingFontMetrics('Baskervville_700Bold', 36, 'android'),
+    ).toBeUndefined();
     expect(resolveHeadingFontMetrics('Lora_700Bold', 36, 'ios')).toBeUndefined();
   });
 });

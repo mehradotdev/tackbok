@@ -5,11 +5,7 @@
 import { type CustomPrompt, type Entry, type MediaAsset, type Tag } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import type { PortableEntry, PortablePrompt, PortableTag } from '../backupImport/types';
-import {
-  assetFileExists,
-  createArchiveAssetPath,
-  resolveTagIdsToTitles,
-} from './utils';
+import { assetFileExists, createArchiveAssetPath, resolveTagIdsToTitles } from './utils';
 
 /**
  * Maps stored tag records into portable tag objects for backup serialization.
@@ -66,7 +62,7 @@ export function createPortableEntries(
               width: asset.width ?? undefined,
               height: asset.height ?? undefined,
             }))
-        : entry.assets ?? [];
+        : (entry.assets ?? []);
 
     for (const asset of sourceAssets) {
       if (!assetFileExists(asset)) {
@@ -92,7 +88,8 @@ export function createPortableEntries(
       textContent: entry.text_content,
       mood: entry.mood ?? null,
       tagTitles: resolveTagIdsToTitles(entry.tags, tagMap),
-      tagIds: normalizedTagIdsByEntry.get(entry.note_id) ??
+      tagIds:
+        normalizedTagIdsByEntry.get(entry.note_id) ??
         entry.tags.split(',').filter(Boolean).sort(),
       createdAt: entry.created_at,
       updatedAt: entry.updated_at,

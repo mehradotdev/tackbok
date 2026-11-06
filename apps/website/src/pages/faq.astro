@@ -94,11 +94,9 @@ const faqs = [
   <SiteHeader currentPath="/faq" />
 
   <main id="main-content" class="bg-background">
-    <section
-      class="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_20%,rgba(140,159,111,0.28),transparent_23rem),radial-gradient(circle_at_5%_95%,rgba(227,205,151,0.26),transparent_22rem),var(--paper)] py-[clamp(5rem,10vw,8rem)]">
+    <section class="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_20%,rgba(140,159,111,0.28),transparent_23rem),radial-gradient(circle_at_5%_95%,rgba(227,205,151,0.26),transparent_22rem),var(--paper)] py-[clamp(5rem,10vw,8rem)]">
       <div class="mx-auto w-full max-w-[820px] px-6 text-center sm:px-8">
-        <h1
-          class="mx-auto mb-5 text-[clamp(3rem,7vw,5.7rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
+        <h1 class="mx-auto mb-5 text-[clamp(3rem,7vw,5.7rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
           Frequently asked questions.
         </h1>
         <p class="mx-auto max-w-[660px] text-[1.08rem] leading-[1.7] text-ink-soft">
@@ -109,11 +107,9 @@ const faqs = [
     </section>
 
     <section class="py-[clamp(4.5rem,9vw,8rem)]">
-      <div
-        class="mx-auto grid w-[calc(100%_-_40px)] max-w-[1180px] grid-cols-[minmax(230px,0.64fr)_minmax(0,1.36fr)] items-start gap-[clamp(3rem,9vw,8rem)] max-[900px]:grid-cols-1 max-sm:w-[calc(100%_-_28px)]">
+      <div class="mx-auto grid w-[calc(100%_-_40px)] max-w-[1180px] grid-cols-[minmax(230px,0.64fr)_minmax(0,1.36fr)] items-start gap-[clamp(3rem,9vw,8rem)] max-[900px]:grid-cols-1 max-sm:w-[calc(100%_-_28px)]">
         <div class="sticky top-[116px] max-[900px]:static max-[900px]:max-w-[620px]">
-          <h2
-            class="mb-5 text-[clamp(2rem,3.7vw,3.2rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
+          <h2 class="mb-5 text-[clamp(2rem,3.7vw,3.2rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
             Clear answers, no evasive language.
           </h2>
           <p class="text-[1.08rem] leading-[1.7] text-ink-soft">
@@ -122,43 +118,38 @@ const faqs = [
           </p>
           <a
             class="inline-flex items-center gap-[0.45rem] font-[750] text-sage-deep underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-            href={`mailto:${supportEmail}`}>Contact support <span>→</span></a
-          >
+            href={`mailto:${supportEmail}`}>
+            Contact support <span>→</span>
+          </a>
         </div>
 
         <div class="flex w-full flex-col gap-3.5">
-          {
-            faqs.map((faq, index) => (
-              <div class="collapse-plus collapse rounded-2xl border border-[rgba(52,75,55,0.15)] bg-paper/50 transition-all duration-200 hover:border-sage/40 hover:bg-paper hover:shadow-sm has-[:checked]:border-sage/50 has-[:checked]:bg-paper has-[:checked]:shadow-[0_6px_24px_rgba(52,75,55,0.07)]">
-                <input type="radio" name="faq-accordion" checked={index === 0} />
-                <div class="collapse-title flex min-h-[64px] items-center pr-12 pl-6 text-[1.05rem] font-[750] text-ink sm:pr-14 sm:pl-7">
-                  {faq.question}
-                </div>
-                <div class="collapse-content pr-8 pl-6 text-[0.98rem] leading-[1.72] text-ink-soft sm:pr-10 sm:pl-7">
-                  <p class="max-w-[680px] pt-1 pb-4">{faq.answer}</p>
-                </div>
+          {faqs.map((faq, index) => (
+            <div class="collapse-plus collapse rounded-2xl border border-[rgba(52,75,55,0.15)] bg-paper/50 transition-all duration-200 hover:border-sage/40 hover:bg-paper hover:shadow-sm has-[:checked]:border-sage/50 has-[:checked]:bg-paper has-[:checked]:shadow-[0_6px_24px_rgba(52,75,55,0.07)]">
+              <input type="radio" name="faq-accordion" checked={index === 0} />
+              <div class="collapse-title flex min-h-[64px] items-center pr-12 pl-6 text-[1.05rem] font-[750] text-ink sm:pr-14 sm:pl-7">
+                {faq.question}
               </div>
-            ))
-          }
+              <div class="collapse-content pr-8 pl-6 text-[0.98rem] leading-[1.72] text-ink-soft sm:pr-10 sm:pl-7">
+                <p class="max-w-[680px] pt-1 pb-4">{faq.answer}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
 
     <section class="border-t border-line bg-paper py-[clamp(3.5rem,8vw,6rem)]">
-      <div
-        class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1180px] items-center justify-between gap-8 max-sm:w-[calc(100%_-_28px)] max-sm:flex-col">
+      <div class="mx-auto flex w-[calc(100%_-_40px)] max-w-[1180px] items-center justify-between gap-8 max-sm:w-[calc(100%_-_28px)] max-sm:flex-col">
         <div class="max-sm:text-center">
-          <p
-            class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase">
+          <p class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase">
             Ready when you are
           </p>
-          <h2
-            class="m-0 text-[clamp(2rem,4vw,3.5rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
+          <h2 class="m-0 text-[clamp(2rem,4vw,3.5rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
             Try Tackbok.
           </h2>
         </div>
-        <div
-          class="flex flex-wrap items-center justify-end gap-[0.75rem] max-sm:w-full max-sm:justify-center">
+        <div class="flex flex-wrap items-center justify-end gap-[0.75rem] max-sm:w-full max-sm:justify-center">
           <a
             class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
             href={GOOGLE_PLAY_URL}

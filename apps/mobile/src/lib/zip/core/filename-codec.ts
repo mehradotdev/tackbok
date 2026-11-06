@@ -60,11 +60,7 @@ export function readUTF8(buffer: Uint8Array, offset: number, length: number): st
   }
 }
 
-function readASCIIFallback(
-  buffer: Uint8Array,
-  offset: number,
-  length: number,
-): string {
+function readASCIIFallback(buffer: Uint8Array, offset: number, length: number): string {
   let value = '';
   for (let index = 0; index < length; index += 1) {
     value += String.fromCharCode(buffer[offset + index]);
@@ -97,7 +93,7 @@ function readCodePoint(value: string, index: number): [number, number] {
 export function writeUTF8(buffer: Uint8Array, offset: number, value: string): number {
   let written = 0;
 
-  for (let index = 0; index < value.length; ) {
+  for (let index = 0; index < value.length;) {
     const [code, width] = readCodePoint(value, index);
     index += width;
 
@@ -134,7 +130,7 @@ export function writeUTF8(buffer: Uint8Array, offset: number, value: string): nu
 export function sizeUTF8(value: string): number {
   let size = 0;
 
-  for (let index = 0; index < value.length; ) {
+  for (let index = 0; index < value.length;) {
     const [code, width] = readCodePoint(value, index);
     index += width;
 

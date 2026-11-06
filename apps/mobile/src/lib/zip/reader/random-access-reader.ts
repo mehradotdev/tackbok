@@ -171,9 +171,7 @@ async function readZip64DirectoryRecord(
   };
 }
 
-async function readDirectoryRecord(
-  reader: ZipReaderSource,
-): Promise<ZipDirectoryRecord> {
+async function readDirectoryRecord(reader: ZipReaderSource): Promise<ZipDirectoryRecord> {
   const archiveSize = await reader.size();
   const tailLength = Number(
     archiveSize < BigInt(ZIP_TAIL_READ_SIZE) ? archiveSize : BigInt(ZIP_TAIL_READ_SIZE),
@@ -432,9 +430,7 @@ export async function openZipReader(reader: ZipReaderSource): Promise<ZipReader>
 /**
  * Creates an in-memory ZIP reader source for tests and adapters.
  */
-export function createMemoryZipReaderSource(
-  bytes: Uint8Array,
-): ZipReaderSource {
+export function createMemoryZipReaderSource(bytes: Uint8Array): ZipReaderSource {
   return {
     async size(): Promise<bigint> {
       return BigInt(bytes.length);

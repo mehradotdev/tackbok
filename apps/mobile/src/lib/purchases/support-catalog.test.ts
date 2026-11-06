@@ -1,7 +1,4 @@
-import {
-  mapSupportCatalog,
-  SUPPORT_TIER_DEFINITIONS,
-} from './support-catalog';
+import { mapSupportCatalog, SUPPORT_TIER_DEFINITIONS } from './support-catalog';
 
 const allPackages = SUPPORT_TIER_DEFINITIONS.map((tier, index) => ({
   packageId: tier.packageId,
