@@ -611,7 +611,7 @@ export default function CloudBackupScreen() {
                 />
               </View>
 
-              <ConflictsCard refreshKey={snapshot.conflictCount} />
+              <ConflictsCard refreshToken={snapshot} />
 
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow

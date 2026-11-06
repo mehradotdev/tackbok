@@ -807,6 +807,12 @@ export const zhCN: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     '这些条目同时在两台设备上被编辑，因此两个版本都已保留。打开一个条目即可编辑或删除。',
   'cloud.conflicts.noOtherVersions': '没有条目有其他版本。',
+  'cloud.conflicts.loadFailed': '无法加载这些选项。',
+  'cloud.conflicts.otherVersionsLoadFailed': '无法加载其他版本。',
+  'cloud.conflicts.showOlderNames': '显示较早的名字版本',
+  'cloud.conflicts.hideOlderNames': '隐藏较早的名字版本',
+  'cloud.conflicts.olderNamesDescription':
+    '应用的早期版本在同步时保存了这些名字。大多数并非真正的更改，但你仍可以使用其中一个。',
   'cloud.resetThisDeviceOnly': '仅重置此设备',
   'cloud.resetThisDeviceOnly2': '仅重置此设备？',
   'cloud.merge': '合并',

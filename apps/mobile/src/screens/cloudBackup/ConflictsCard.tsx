@@ -21,19 +21,48 @@ type NameItem = Extract<CloudConflictItem, { kind: 'name' }>;
 /**
  * Conflicts this device can act on. Each row is dismissed by its own action;
  * records with nothing to act on are not listed (see `deriveConflictItems`).
+ * The list reloads whenever `refreshToken` changes: pass the shared sync
+ * snapshot, which is reloaded on focus, sync activity (including finished
+ * photo downloads) and local journal changes.
  */
-export function ConflictsCard({ refreshKey }: { refreshKey: number }) {
+export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [items, setItems] = useState<CloudConflictItem[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [busy, setBusy] = useState(false);
-  const sequenceRef = useRef(0);
   const mountedRef = useRef(true);
+  const loadingRef = useRef<Promise<void> | null>(null);
+  const reloadQueuedRef = useRef(false);
 
-  const refresh = useCallback(async () => {
-    const sequence = ++sequenceRef.current;
-    const next = await listCloudConflictItems();
-    if (mountedRef.current && sequence === sequenceRef.current) setItems(next);
+  // Loads run one at a time; a request during a load queues one more, so the
+  // last result shown is never older than the last request.
+  const refresh = useCallback((): Promise<void> => {
+    if (loadingRef.current) {
+      reloadQueuedRef.current = true;
+      return loadingRef.current;
+    }
+    loadingRef.current = (async () => {
+      do {
+        reloadQueuedRef.current = false;
+        try {
+          const next = await listCloudConflictItems();
+          if (mountedRef.current) {
+            setItems(next);
+            setLoadFailed(false);
+          }
+        } catch {
+          if (mountedRef.current) {
+            setItems([]);
+            setLoadFailed(true);
+          }
+        }
+      } while (reloadQueuedRef.current);
+    })().finally(() => {
+      loadingRef.current = null;
+    });
+    return loadingRef.current;
   }, []);
 
   useEffect(() => {
@@ -44,8 +73,8 @@ export function ConflictsCard({ refreshKey }: { refreshKey: number }) {
   }, []);
 
   useEffect(() => {
-    void refresh().catch(() => {});
-  }, [refresh, refreshKey]);
+    void refresh();
+  }, [refresh, refreshToken]);
 
   const run = useCallback(
     async (action: () => Promise<void>) => {
@@ -56,14 +85,18 @@ export function ConflictsCard({ refreshKey }: { refreshKey: number }) {
       } catch {
         toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
       } finally {
-        await refresh().catch(() => {});
+        await refresh();
         if (mountedRef.current) setBusy(false);
       }
     },
     [busy, refresh, t],
   );
 
-  if (items.length === 0) return null;
+  const archivedNames = items.filter(
+    (item): item is NameItem => item.kind === 'name' && item.archived,
+  );
+  const activeItems = items.filter((item) => item.kind !== 'name' || !item.archived);
+  if (!loadFailed && items.length === 0) return null;
 
   const nameMessage = (item: NameItem) =>
     item.other === null
@@ -71,6 +104,38 @@ export function ConflictsCard({ refreshKey }: { refreshKey: number }) {
       : item.current === null
         ? t('cloud.conflicts.nameChangedNoCurrent', { other: item.other })
         : t('cloud.conflicts.nameChanged', { current: item.current, other: item.other });
+
+  const nameRow = (item: NameItem) => {
+    const useLabel =
+      item.other === null
+        ? t('cloud.conflicts.removeName')
+        : t('cloud.conflicts.useName', { name: item.other });
+    return (
+      <View key={item.conflictIds.join(',')} className="gap-2">
+        <Text className="text-sm text-foreground">{nameMessage(item)}</Text>
+        <View className="flex-row flex-wrap gap-2">
+          {/* A name can be long: let the button wrap within the card. */}
+          <Button
+            variant="outline"
+            className="h-auto min-h-10 max-w-full py-2"
+            accessibilityLabel={useLabel}
+            disabled={busy}
+            onPress={() => void run(() => resolveNameConflict(item, 'use'))}>
+            <Text className="shrink text-center" numberOfLines={3}>
+              {useLabel}
+            </Text>
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-auto min-h-10 max-w-full py-2"
+            disabled={busy}
+            onPress={() => void run(() => resolveNameConflict(item, 'keep'))}>
+            <Text className="shrink text-center">{t('cloud.conflicts.keepCurrent')}</Text>
+          </Button>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View className="rounded-lg border border-border bg-card p-4 gap-4">
@@ -80,33 +145,19 @@ export function ConflictsCard({ refreshKey }: { refreshKey: number }) {
           {t('cloud.conflicts.title')}
         </Text>
       </View>
-      {items.map((item) => {
+      {loadFailed && (
+        <View className="gap-2">
+          <Text className="text-sm text-foreground">
+            {t('cloud.conflicts.loadFailed')}
+          </Text>
+          <Button variant="outline" className="self-start" onPress={() => void refresh()}>
+            <Text>{t('common.retry')}</Text>
+          </Button>
+        </View>
+      )}
+      {activeItems.map((item) => {
         const key = item.conflictIds.join(',');
-        if (item.kind === 'name') {
-          return (
-            <View key={key} className="gap-2">
-              <Text className="text-sm text-foreground">{nameMessage(item)}</Text>
-              <View className="flex-row flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  disabled={busy}
-                  onPress={() => void run(() => resolveNameConflict(item, 'use'))}>
-                  <Text>
-                    {item.other === null
-                      ? t('cloud.conflicts.removeName')
-                      : t('cloud.conflicts.useName', { name: item.other })}
-                  </Text>
-                </Button>
-                <Button
-                  variant="ghost"
-                  disabled={busy}
-                  onPress={() => void run(() => resolveNameConflict(item, 'keep'))}>
-                  <Text>{t('cloud.conflicts.keepCurrent')}</Text>
-                </Button>
-              </View>
-            </View>
-          );
-        }
+        if (item.kind === 'name') return nameRow(item);
         if (item.kind === 'photo') {
           return (
             <View key={key} className="gap-2">
@@ -123,15 +174,21 @@ export function ConflictsCard({ refreshKey }: { refreshKey: number }) {
               <View className="flex-row flex-wrap gap-2">
                 <Button
                   variant="outline"
+                  className="h-auto min-h-10 max-w-full py-2"
                   disabled={busy}
                   onPress={() => void run(() => resolvePhotoConflict(item, 'use'))}>
-                  <Text>{t('cloud.conflicts.usePhoto')}</Text>
+                  <Text className="shrink text-center">
+                    {t('cloud.conflicts.usePhoto')}
+                  </Text>
                 </Button>
                 <Button
                   variant="ghost"
+                  className="h-auto min-h-10 max-w-full py-2"
                   disabled={busy}
                   onPress={() => void run(() => resolvePhotoConflict(item, 'keep'))}>
-                  <Text>{t('cloud.conflicts.keepCurrent')}</Text>
+                  <Text className="shrink text-center">
+                    {t('cloud.conflicts.keepCurrent')}
+                  </Text>
                 </Button>
               </View>
             </View>
@@ -147,6 +204,7 @@ export function ConflictsCard({ refreshKey }: { refreshKey: number }) {
             <View className="flex-row flex-wrap gap-2">
               <Button
                 variant="outline"
+                className="h-auto min-h-10 max-w-full py-2"
                 disabled={busy}
                 onPress={() =>
                   void run(async () => {
@@ -154,12 +212,37 @@ export function ConflictsCard({ refreshKey }: { refreshKey: number }) {
                     router.push('/other-versions' as Href);
                   })
                 }>
-                <Text>{t('cloud.conflicts.showThem')}</Text>
+                <Text className="shrink text-center">
+                  {t('cloud.conflicts.showThem')}
+                </Text>
               </Button>
             </View>
           </View>
         );
       })}
+      {archivedNames.length > 0 && (
+        <View className="gap-4">
+          <Button
+            variant="ghost"
+            className="h-auto min-h-10 max-w-full self-start py-2"
+            aria-expanded={showArchived}
+            onPress={() => setShowArchived((shown) => !shown)}>
+            <Text className="shrink text-center">
+              {showArchived
+                ? t('cloud.conflicts.hideOlderNames')
+                : t('cloud.conflicts.showOlderNames')}
+            </Text>
+          </Button>
+          {showArchived && (
+            <>
+              <Text className="text-sm text-muted-foreground">
+                {t('cloud.conflicts.olderNamesDescription')}
+              </Text>
+              {archivedNames.map(nameRow)}
+            </>
+          )}
+        </View>
+      )}
     </View>
   );
 }

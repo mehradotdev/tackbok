@@ -777,6 +777,12 @@ export const hi = {
   'cloud.conflicts.otherVersionsDescription':
     'ये प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं, इसलिए दोनों संस्करण रखे गए। किसी एक को संपादित करने या हटाने के लिए उसे खोलें।',
   'cloud.conflicts.noOtherVersions': 'किसी प्रविष्टि का कोई अन्य संस्करण नहीं है।',
+  'cloud.conflicts.loadFailed': 'ये विकल्प लोड नहीं हो सके।',
+  'cloud.conflicts.otherVersionsLoadFailed': 'अन्य संस्करण लोड नहीं हो सके।',
+  'cloud.conflicts.showOlderNames': 'नाम के पुराने संस्करण दिखाएँ',
+  'cloud.conflicts.hideOlderNames': 'नाम के पुराने संस्करण छिपाएँ',
+  'cloud.conflicts.olderNamesDescription':
+    'ऐप के पिछले संस्करणों ने सिंक करते समय ये नाम सहेजे थे। इनमें से ज़्यादातर असली बदलाव नहीं हैं, लेकिन आप अब भी इनमें से कोई एक इस्तेमाल कर सकते हैं।',
   'cloud.resetThisDeviceOnly': 'केवल इस डिवाइस को रीसेट करें',
   'cloud.resetThisDeviceOnly2': 'केवल इस डिवाइस को रीसेट करें?',
   'cloud.merge': 'मर्ज',

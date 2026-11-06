@@ -893,6 +893,13 @@ export const de: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     'Diese Einträge wurden gleichzeitig auf zwei Geräten bearbeitet, deshalb wurden beide Versionen behalten. Öffne einen Eintrag, um ihn zu bearbeiten oder zu löschen.',
   'cloud.conflicts.noOtherVersions': 'Keine Einträge haben eine andere Version.',
+  'cloud.conflicts.loadFailed': 'Diese Auswahl konnte nicht geladen werden.',
+  'cloud.conflicts.otherVersionsLoadFailed':
+    'Die anderen Versionen konnten nicht geladen werden.',
+  'cloud.conflicts.showOlderNames': 'Ältere Namensversionen anzeigen',
+  'cloud.conflicts.hideOlderNames': 'Ältere Namensversionen ausblenden',
+  'cloud.conflicts.olderNamesDescription':
+    'Frühere Versionen der App haben diese Namen beim Synchronisieren gespeichert. Die meisten sind keine echten Änderungen, aber du kannst trotzdem einen davon verwenden.',
   'cloud.resetThisDeviceOnly': 'Nur dieses Gerät zurücksetzen',
   'cloud.resetThisDeviceOnly2': 'Nur dieses Gerät zurücksetzen?',
   'cloud.merge': 'Zusammenführen',

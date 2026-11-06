@@ -810,6 +810,12 @@ export const zhTW: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     '這些紀錄同時在兩部裝置上被編輯，因此兩個版本都已保留。開啟一則紀錄即可編輯或刪除。',
   'cloud.conflicts.noOtherVersions': '沒有紀錄有其他版本。',
+  'cloud.conflicts.loadFailed': '無法載入這些選項。',
+  'cloud.conflicts.otherVersionsLoadFailed': '無法載入其他版本。',
+  'cloud.conflicts.showOlderNames': '顯示較早的名稱版本',
+  'cloud.conflicts.hideOlderNames': '隱藏較早的名稱版本',
+  'cloud.conflicts.olderNamesDescription':
+    '應用程式的早期版本在同步時儲存了這些名稱。大多數並非真正的變更，但你仍可使用其中一個。',
   'cloud.resetThisDeviceOnly': '只重設此裝置',
   'cloud.resetThisDeviceOnly2': '只重設此裝置？',
   'cloud.merge': '合併',

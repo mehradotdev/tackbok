@@ -816,6 +816,12 @@ export const es = {
   'cloud.conflicts.otherVersionsDescription':
     'Estas entradas se editaron en dos dispositivos a la vez, así que se conservaron ambas versiones. Abre una para editarla o eliminarla.',
   'cloud.conflicts.noOtherVersions': 'Ninguna entrada tiene otra versión.',
+  'cloud.conflicts.loadFailed': 'No se pudieron cargar estas opciones.',
+  'cloud.conflicts.otherVersionsLoadFailed': 'No se pudieron cargar las otras versiones.',
+  'cloud.conflicts.showOlderNames': 'Mostrar versiones anteriores del nombre',
+  'cloud.conflicts.hideOlderNames': 'Ocultar versiones anteriores del nombre',
+  'cloud.conflicts.olderNamesDescription':
+    'Versiones anteriores de la app guardaron estos nombres al sincronizar. La mayoría no son cambios reales, pero aún puedes usar uno.',
   'cloud.resetThisDeviceOnly': 'Restablecer solo este dispositivo',
   'cloud.resetThisDeviceOnly2': '¿Restablecer solo este dispositivo?',
   'cloud.merge': 'Unir',

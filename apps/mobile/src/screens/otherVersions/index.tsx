@@ -18,7 +18,7 @@ export default function OtherVersionsScreen() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
   const tagMap = useTagMapping();
-  const { data, isLoading } = useEntriesWithOtherVersions();
+  const { data, isLoading, isError, refetch } = useEntriesWithOtherVersions();
   const entries = data ?? [];
 
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
@@ -54,7 +54,16 @@ export default function OtherVersionsScreen() {
         </Text>
       </View>
 
-      {isLoading ? null : entries.length === 0 ? (
+      {isLoading ? null : isError ? (
+        <View className="flex-1 items-center justify-center gap-4 px-4">
+          <Text className="text-muted-foreground text-center">
+            {t('cloud.conflicts.otherVersionsLoadFailed')}
+          </Text>
+          <Button variant="outline" onPress={() => void refetch()}>
+            <Text>{t('common.retry')}</Text>
+          </Button>
+        </View>
+      ) : entries.length === 0 ? (
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-muted-foreground text-center">
             {t('cloud.conflicts.noOtherVersions')}
@@ -75,6 +84,7 @@ export default function OtherVersionsScreen() {
               onPress={() => handleEntryPress(item)}
               tagMap={tagMap}
               onPhotoPress={handlePhotoPress}
+              showDate
             />
           )}
           contentContainerClassName="pb-safe-or-4"

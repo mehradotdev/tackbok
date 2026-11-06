@@ -30,9 +30,17 @@ interface IEntryItemProps {
   onPress: () => void;
   tagMap: ReturnType<typeof useTagMapping>;
   onPhotoPress: (photos: Asset[], index: number) => void;
+  /** Show the entry's date too, for lists that span several days. */
+  showDate?: boolean;
 }
 
-export function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemProps) {
+export function EntryItem({
+  entry,
+  onPress,
+  tagMap,
+  onPhotoPress,
+  showDate = false,
+}: IEntryItemProps) {
   const { t, locale } = useTranslation();
   const time = formatLocalizedTime(new Date(entry.created_at), locale);
 
@@ -57,6 +65,16 @@ export function EntryItem({ entry, onPress, tagMap, onPhotoPress }: IEntryItemPr
       <View>
         {/* Row 1: Time + Mood */}
         <View className="flex-row flex-wrap items-center gap-2 mb-2">
+          {showDate && (
+            <Text
+              className={cn(
+                'self-start font-body-bold tracking-wider text-foreground/70',
+                'py-1 px-3 bg-muted border border-border rounded-full',
+              )}>
+              {formatLocalizedDate(entry.created_at, t)}
+            </Text>
+          )}
+
           {/* Time Badge - Preserving "Current" style but removing mood */}
           <Text
             className={cn(

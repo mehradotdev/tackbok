@@ -795,6 +795,13 @@ export const sv = {
   'cloud.conflicts.otherVersionsDescription':
     'De här anteckningarna redigerades på två enheter samtidigt, så båda versionerna sparades. Öppna en för att redigera eller ta bort den.',
   'cloud.conflicts.noOtherVersions': 'Inga anteckningar har en annan version.',
+  'cloud.conflicts.loadFailed': 'Det gick inte att läsa in de här valen.',
+  'cloud.conflicts.otherVersionsLoadFailed':
+    'Det gick inte att läsa in de andra versionerna.',
+  'cloud.conflicts.showOlderNames': 'Visa äldre versioner av namnet',
+  'cloud.conflicts.hideOlderNames': 'Dölj äldre versioner av namnet',
+  'cloud.conflicts.olderNamesDescription':
+    'Tidigare versioner av appen sparade de här namnen vid synkronisering. De flesta är inga verkliga ändringar, men du kan fortfarande använda ett av dem.',
   'cloud.resetThisDeviceOnly': 'Återställ endast den här enheten',
   'cloud.resetThisDeviceOnly2': 'Vill du bara återställa den här enheten?',
   'cloud.merge': 'Slå ihop',

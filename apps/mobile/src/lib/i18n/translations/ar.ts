@@ -834,6 +834,12 @@ export const ar: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     'عُدِّلت هذه السجلات على جهازين في الوقت نفسه، لذا احتُفظ بالنسختين. افتح أحدها لتعديله أو حذفه.',
   'cloud.conflicts.noOtherVersions': 'لا توجد سجلات لها نسخة أخرى.',
+  'cloud.conflicts.loadFailed': 'تعذّر تحميل هذه الخيارات.',
+  'cloud.conflicts.otherVersionsLoadFailed': 'تعذّر تحميل النسخ الأخرى.',
+  'cloud.conflicts.showOlderNames': 'عرض النسخ الأقدم من الاسم',
+  'cloud.conflicts.hideOlderNames': 'إخفاء النسخ الأقدم من الاسم',
+  'cloud.conflicts.olderNamesDescription':
+    'حفظت إصدارات سابقة من التطبيق هذه الأسماء أثناء المزامنة. معظمها ليس تغييرات حقيقية، لكن لا يزال بإمكانك استخدام أحدها.',
   'cloud.resetThisDeviceOnly': 'إعادة ضبط هذا الجهاز فقط',
   'cloud.resetThisDeviceOnly2': 'هل تريد إعادة ضبط هذا الجهاز فقط؟',
   'cloud.merge': 'دمج',

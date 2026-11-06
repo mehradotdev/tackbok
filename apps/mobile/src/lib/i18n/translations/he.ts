@@ -827,6 +827,12 @@ export const he: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     'הרשומות האלה נערכו בשני מכשירים בו־זמנית, ולכן שתי הגרסאות נשמרו. אפשר לפתוח רשומה כדי לערוך או למחוק אותה.',
   'cloud.conflicts.noOtherVersions': 'אין רשומות עם גרסה אחרת.',
+  'cloud.conflicts.loadFailed': 'לא ניתן לטעון את האפשרויות האלה.',
+  'cloud.conflicts.otherVersionsLoadFailed': 'לא ניתן לטעון את הגרסאות האחרות.',
+  'cloud.conflicts.showOlderNames': 'הצגת גרסאות קודמות של השם',
+  'cloud.conflicts.hideOlderNames': 'הסתרת גרסאות קודמות של השם',
+  'cloud.conflicts.olderNamesDescription':
+    'גרסאות קודמות של האפליקציה שמרו את השמות האלה במהלך הסנכרון. רובם אינם שינויים אמיתיים, אבל עדיין אפשר להשתמש באחד מהם.',
   'cloud.resetThisDeviceOnly': 'איפוס המכשיר הזה בלבד',
   'cloud.resetThisDeviceOnly2': 'לאפס את המכשיר הזה בלבד?',
   'cloud.merge': 'מיזוג',

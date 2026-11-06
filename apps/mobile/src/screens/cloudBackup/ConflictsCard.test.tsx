@@ -40,11 +40,12 @@ jest.mock('~/lib/cloudSync/ui', () => ({
   acknowledgeCloudConflicts: (...args: unknown[]) => mockAcknowledge(...args),
 }));
 
-const nameItem: CloudConflictItem = {
+const nameItem: Extract<CloudConflictItem, { kind: 'name' }> = {
   kind: 'name',
   conflictIds: ['n1'],
   current: 'Mehra',
   other: 'Mehra A',
+  archived: false,
 };
 const photoItem: CloudConflictItem = {
   kind: 'photo',
@@ -65,7 +66,7 @@ afterEach(() => act(() => root?.unmount()));
 async function render(items: CloudConflictItem[]) {
   mockList.mockResolvedValue(items);
   await act(async () => {
-    root = create(<ConflictsCard refreshKey={0} />);
+    root = create(<ConflictsCard refreshToken={0} />);
   });
 }
 const content = () => JSON.stringify(root.toJSON());
@@ -139,4 +140,62 @@ test('reports a failed action and keeps the row', async () => {
     mockEn['cloud.cloudBackupCouldNotBeUpdated'],
   );
   expect(content()).toContain('Mehra A');
+});
+
+test('reloads when the sync snapshot changes, even if the conflict count does not', async () => {
+  await render([]); // The other photo is still downloading.
+  mockList.mockResolvedValue([photoItem]);
+  await act(async () => root.update(<ConflictsCard refreshToken={1} />));
+  expect(mockList).toHaveBeenCalledTimes(2);
+  expect(root.root.findByType('Image' as never)).toBeDefined();
+});
+
+test('coalesces reloads requested while one is running', async () => {
+  let finish!: (items: CloudConflictItem[]) => void;
+  mockList.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+  await act(async () => {
+    root = create(<ConflictsCard refreshToken={0} />);
+  });
+  mockList.mockResolvedValue([nameItem]);
+  await act(async () => root.update(<ConflictsCard refreshToken={1} />));
+  await act(async () => root.update(<ConflictsCard refreshToken={2} />));
+  await act(async () => finish([]));
+  expect(mockList).toHaveBeenCalledTimes(2);
+  expect(content()).toContain('Mehra A');
+});
+
+test('a failed read shows an error with a retry instead of hiding the card', async () => {
+  mockList.mockRejectedValueOnce(new Error('read failed'));
+  await act(async () => {
+    root = create(<ConflictsCard refreshToken={0} />);
+  });
+  expect(content()).toContain(mockEn['cloud.conflicts.loadFailed']);
+  mockList.mockResolvedValue([nameItem]);
+  await act(async () => button(mockEn['common.retry']).props.onPress());
+  expect(content()).not.toContain(mockEn['cloud.conflicts.loadFailed']);
+  expect(content()).toContain('Mehra A');
+});
+
+test('names archived by the upgrade stay reachable behind "Show older name versions"', async () => {
+  await render([
+    { ...nameItem, conflictIds: ['old'], other: 'Old name', archived: true },
+  ]);
+  expect(content()).not.toContain('Old name');
+  await act(async () => button(mockEn['cloud.conflicts.showOlderNames']).props.onPress());
+  expect(content()).toContain(mockEn['cloud.conflicts.olderNamesDescription']);
+  await act(async () => button('Use “Old name”').props.onPress());
+  expect(mockResolveName).toHaveBeenCalledWith(
+    expect.objectContaining({ conflictIds: ['old'] }),
+    'use',
+  );
+});
+
+test('a long name wraps inside the card and keeps its full accessible label', async () => {
+  const other = 'A'.repeat(300);
+  await render([{ ...nameItem, other }]);
+  const use = button(`Use “${other}”`);
+  expect(use.props.className).toContain('max-w-full');
+  expect(use.props.className).toContain('h-auto');
+  expect(use.props.accessibilityLabel).toBe(`Use “${other}”`);
+  expect(use.findByType('Text' as never).props.className).toContain('shrink');
 });
