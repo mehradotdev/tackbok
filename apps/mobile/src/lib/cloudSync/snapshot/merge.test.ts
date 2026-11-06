@@ -670,6 +670,28 @@ describe('snapshot merge engine', () => {
     }
   });
 
+  it('does not treat a populated profile stamped at updatedAt 0 as pristine', () => {
+    // Older clients and backups restored from them can carry a name at 0.
+    const named = blankDomain();
+    named.profile = {
+      profileId: 'profile',
+      displayName: 'Mehra',
+      photoAssetId: null,
+      updatedAt: 0,
+    };
+    const photographed = structuredClone(named);
+    photographed.profile.photoAssetId = 'other-photo';
+    photographed.profile.updatedAt = 10;
+    for (const [local, remote] of [
+      [named, photographed],
+      [photographed, named],
+    ]) {
+      expect(
+        mergeSnapshotDomains(null, local, remote).conflicts.map((value) => value.field),
+      ).toEqual(['photoAssetId']);
+    }
+  });
+
   it('keeps a deliberate profile clear after a base and conflicts on different names', () => {
     const base = blankDomain();
     base.profile.displayName = 'Mehra';

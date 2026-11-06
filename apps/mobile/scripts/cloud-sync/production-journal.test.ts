@@ -419,3 +419,48 @@ test('authored profile clears stay positive and win a no-base merge after a cloc
   // The deliberate clear is not silently replaced by the remote name.
   expect(merged.profile.displayName).toBeNull();
 });
+
+test('a restored profile authored at updatedAt 0 is not treated as pristine', async () => {
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_sync_state',
+  );
+  const { mergeSnapshotDomains } = await import('../../src/lib/cloudSync/snapshot/merge');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'remote-zero', device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('remote-zero', 'device', {} as never);
+  const { domain } = await store.capture();
+  // An older client (or a backup restored from one) can write a name at 0.
+  domain.profile.displayName = 'Authored at clock zero';
+  expect(await store.applyMergedIfGeneration(domain, 0)).toBe(true);
+  const restored = (await store.capture()).domain;
+  expect(restored.profile.updatedAt).toBe(0);
+
+  const other = structuredClone(restored);
+  other.profile.photoAssetId = 'other-photo';
+  other.profile.updatedAt = 10;
+  other.media = [
+    {
+      assetId: 'other-photo',
+      ownerType: 'profile',
+      ownerId: 'profile',
+      kind: 'profile-photo',
+      blobHash: 'a'.repeat(64),
+      byteSize: 1,
+      mimeType: 'image/jpeg',
+      width: null,
+      height: null,
+      durationMs: null,
+      createdAt: 1,
+      updatedAt: 1,
+    },
+  ];
+  for (const [local, remote] of [
+    [restored, other],
+    [other, restored],
+  ]) {
+    const merged = mergeSnapshotDomains(null, local, remote);
+    // The authored name makes the whole profile non-pristine.
+    expect(merged.conflicts.map((value) => value.field)).toEqual(['photoAssetId']);
+  }
+});

@@ -1,6 +1,20 @@
+import type { SnapshotSyncActivity } from '../snapshot/sync/types';
 import type { SyncPassPhase } from './SyncRuntime';
 
 export type ProductionCloudSyncActivity = 'idle' | SyncPassPhase;
+
+/**
+ * The phase shown for work the engine is about to start. Media transfers report
+ * their own direction before they start.
+ */
+export const PHASE_FOR_ENGINE_ACTIVITY: Record<SnapshotSyncActivity, SyncPassPhase> = {
+  'preparing-local-changes': 'preparing',
+  // Remote heads are re-read after every launch; keep that quiet.
+  'reading-remote-snapshot': 'checking',
+  // Publishing also applies the merged result locally; that is still saving.
+  'publishing-local-snapshot': 'uploading',
+  'applying-remote-snapshot': 'downloading',
+};
 
 /** Polling is quiet until real work starts; explicit sync always has feedback. */
 export class SyncActivity {

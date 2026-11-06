@@ -21,7 +21,10 @@ import {
   writeImportedPhoto,
 } from '../archiveUtils';
 import { getImportTotals } from './helpers';
-import { runInCloudSyncTransaction } from '~/lib/cloudSync/storage/repositories';
+import {
+  runInCloudSyncTransaction,
+  updateProfileInTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 
 export async function importFromGratitudeAppBackup(
   uri: string,
@@ -111,6 +114,7 @@ export async function importFromGratitudeAppBackup(
       ...createSummaryCounterMetrics(summary),
     });
 
+    let profilePhotoCommitted = false;
     try {
       const settingsState = useSettingsStore.getState();
       if (profile.name != null) {
@@ -120,10 +124,17 @@ export async function importFromGratitudeAppBackup(
         await settingsState.setProfileEmail(profile.email);
       }
       if (importedProfileImageUri) {
-        await settingsState.setProfileImageUri(importedProfileImageUri);
+        const photoUri = importedProfileImageUri;
+        await runInCloudSyncTransaction((tx) =>
+          updateProfileInTransaction(tx, { photoUri }),
+        );
+        profilePhotoCommitted = true;
+        useSettingsStore.setState({ profileImageUri: photoUri });
       }
     } catch (error) {
-      if (importedProfileImageUri) {
+      // Once committed, the profile row references the imported photo, so it
+      // must stay. The cache is rebuilt from SQLite on the next launch.
+      if (importedProfileImageUri && !profilePhotoCommitted) {
         cleanupImportedFiles([importedProfileImageUri]);
       }
       recordImportWarning(summary, {

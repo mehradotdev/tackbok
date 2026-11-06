@@ -49,6 +49,7 @@ export class SnapshotPublisher {
     capturedGeneration: number,
   ): Promise<void> {
     const { journal, hooks, vaultId } = this.options;
+    hooks.activity?.('applying-remote-snapshot');
     // A concurrent edit invalidates the plan. Re-plan on retry rather than
     // overwriting it or marking a generation that was never backed up settled.
     if (
@@ -101,6 +102,8 @@ export class SnapshotPublisher {
       );
     }
 
+    // Report direction explicitly: a resumed publication starts at any stage
+    // and must read as saving, never as the downloads checked on the way.
     if (pending.stage === 'candidate-persisted') {
       await this.ensurePendingMedia(pending);
       // A candidate can wait across suspension or process death. If another
@@ -110,6 +113,7 @@ export class SnapshotPublisher {
         stateStore.discardPending(vaultId, deviceId, pending.snapshotId);
         return false;
       }
+      hooks.activity?.('publishing-local-snapshot');
       await provider.uploadSnapshot(
         vaultId,
         pending.snapshotId,
@@ -125,6 +129,7 @@ export class SnapshotPublisher {
       await hooks.at?.('after-snapshot-uploaded');
     }
     if (pending.stage === 'snapshot-uploaded') {
+      hooks.activity?.('publishing-local-snapshot');
       const verified = await provider.verifySnapshot(
         vaultId,
         pending.snapshotId,
@@ -145,6 +150,7 @@ export class SnapshotPublisher {
       await hooks.at?.('after-snapshot-verified');
     }
     if (pending.stage === 'snapshot-verified') {
+      hooks.activity?.('publishing-local-snapshot');
       await provider.updateDeviceHead(vaultId, {
         format: 'tackbok-device-head',
         vaultId,
@@ -162,6 +168,7 @@ export class SnapshotPublisher {
       await hooks.at?.('after-head-advanced');
     }
     if (pending.stage === 'head-advanced') {
+      hooks.activity?.('publishing-local-snapshot');
       await this.applyPublishedDomain(
         domainOf(decoded.payload),
         pending.capturedGeneration,
@@ -284,7 +291,8 @@ export class SnapshotPublisher {
   }
 
   private async isValidRemoteSnapshot(snapshotId: string): Promise<boolean> {
-    const { provider, vaultId } = this.options;
+    const { hooks, provider, vaultId } = this.options;
+    hooks.activity?.('reading-remote-snapshot');
     const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
     if (!bytes) return false;
     try {
