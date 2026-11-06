@@ -550,12 +550,33 @@ function profileFieldMerge(
   return scalarMerge(base, local, remote);
 }
 
+// Legacy backfill gives the same photo a random asset ID on each device. Two
+// IDs whose descriptors share a blob are one photo; the lower ID represents it.
+// The other descriptor becomes unreferenced and is pruned with the profile media.
+function sameBlobPhotoId(local: SnapshotDomain, remote: SnapshotDomain): string | null {
+  const localId = local.profile.photoAssetId;
+  const remoteId = remote.profile.photoAssetId;
+  if (!localId || !remoteId || localId === remoteId) return null;
+  const localAsset = local.media.find((value) => value.assetId === localId);
+  const remoteAsset = remote.media.find((value) => value.assetId === remoteId);
+  if (!localAsset || !remoteAsset || localAsset.blobHash !== remoteAsset.blobHash)
+    return null;
+  return localId < remoteId ? localId : remoteId;
+}
+
 function mergeProfile(
   base: SnapshotProfile | undefined,
-  local: SnapshotProfile,
-  remote: SnapshotProfile,
+  localProfile: SnapshotProfile,
+  remoteProfile: SnapshotProfile,
+  samePhotoId: string | null,
   conflicts: SnapshotConflict[],
 ): SnapshotProfile {
+  const local = samePhotoId
+    ? { ...localProfile, photoAssetId: samePhotoId }
+    : localProfile;
+  const remote = samePhotoId
+    ? { ...remoteProfile, photoAssetId: samePhotoId }
+    : remoteProfile;
   const localPristine = local.updatedAt === 0;
   const remotePristine = remote.updatedAt === 0;
   const displayName = profileFieldMerge(
@@ -777,6 +798,7 @@ export function mergeSnapshotDomains(
     base?.profile,
     local.profile,
     remote.profile,
+    sameBlobPhotoId(local, remote),
     newConflicts,
   );
   let entryTags = mergeRelationSet(

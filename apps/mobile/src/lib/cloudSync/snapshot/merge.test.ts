@@ -706,6 +706,64 @@ describe('snapshot merge engine', () => {
     );
   });
 
+  it('treats same-blob profile photos with different asset IDs as one photo', () => {
+    const withPhoto = (assetId: string, updatedAt: number) => {
+      const domain = blankDomain();
+      domain.profile = {
+        profileId: 'profile',
+        displayName: 'Mehra',
+        photoAssetId: assetId,
+        updatedAt,
+      };
+      domain.media = [
+        {
+          assetId,
+          ownerType: 'profile',
+          ownerId: 'profile',
+          kind: 'profile-photo',
+          blobHash: 'a'.repeat(64),
+          byteSize: 1,
+          mimeType: 'image/jpeg',
+          width: null,
+          height: null,
+          durationMs: null,
+          createdAt: updatedAt,
+          updatedAt,
+        },
+      ];
+      return domain;
+    };
+    const first = withPhoto('photo-a', 1);
+    const second = withPhoto('photo-b', 2);
+    for (const base of [null, blankDomain()]) {
+      const merged = mergeSnapshotDomains(base, second, first);
+      expect(canonicalize(mergeSnapshotDomains(base, first, second))).toBe(
+        canonicalize(merged),
+      );
+      expect(merged.profile.photoAssetId).toBe('photo-a');
+      expect(merged.media).toEqual(first.media);
+      expect(merged.conflicts).toEqual([]);
+      expect(() =>
+        encodeSnapshot({
+          format: 'tackbok-snapshot',
+          vaultId: 'vault-photo',
+          parentSnapshotIds: [],
+          observedDeviceHeads: [],
+          authorDeviceId: 'device-a',
+          deviceSequence: 2,
+          createdAt: 2,
+          ...merged,
+        }),
+      ).not.toThrow();
+    }
+
+    const different = withPhoto('photo-c', 2);
+    different.media[0].blobHash = 'b'.repeat(64);
+    expect(
+      mergeSnapshotDomains(null, first, different).conflicts.map((value) => value.field),
+    ).toEqual(['photoAssetId']);
+  });
+
   it('chooses equal-sequence tombstone provenance independently of argument order', () => {
     const first = blankDomain();
     first.tombstones = [
