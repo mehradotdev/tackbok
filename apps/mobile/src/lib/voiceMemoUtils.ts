@@ -35,7 +35,10 @@ function assertVoiceMemoRelativeUri(relativeUri: string): string {
   return relativeUri;
 }
 
-function getVoiceMemoExtension(path: string | null | undefined, fallback = 'm4a'): string {
+function getVoiceMemoExtension(
+  path: string | null | undefined,
+  fallback = 'm4a',
+): string {
   const match = path?.match(/\.([A-Za-z0-9]+)(?:$|\?)/);
   const extension = match?.[1]?.toLowerCase().replace(/[^a-z0-9]/g, '');
   return extension || fallback;

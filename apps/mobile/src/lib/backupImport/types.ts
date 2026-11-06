@@ -74,13 +74,14 @@ interface BackupImportProgressBase {
 // Build a discriminated union where `source` and `phase` travel together, so
 // narrowing `source === 'presently'` also narrows `phase` to the Presently-only
 // subset.
-export type BackupImportProgress<TSource extends BackupImportSource = BackupImportSource> =
-  TSource extends BackupImportSource
-    ? {
-        source: TSource;
-        phase: BackupImportPhaseBySource[TSource];
-      } & BackupImportProgressBase
-    : never;
+export type BackupImportProgress<
+  TSource extends BackupImportSource = BackupImportSource,
+> = TSource extends BackupImportSource
+  ? {
+      source: TSource;
+      phase: BackupImportPhaseBySource[TSource];
+    } & BackupImportProgressBase
+  : never;
 
 export type BackupImportProgressMetrics = BackupImportProgressBase;
 

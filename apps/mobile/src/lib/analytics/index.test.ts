@@ -384,4 +384,3 @@ test('pre-consent screen view prevents duplicate fallback screen emission on opt
   expect(screenEvents).toHaveLength(1);
   expect(screenEvents[0][1]).toMatchObject({ $screen_name: 'settings' });
 });
-

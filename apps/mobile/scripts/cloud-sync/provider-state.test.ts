@@ -10,20 +10,23 @@ const databases: Database[] = [];
 const DRIVE_STATE_MIGRATION = readFileSync(
   join(import.meta.dir, '../../src/drizzle/0004_colorful_xavin.sql'),
   'utf8',
-).split('DROP INDEX `custom_prompts_title_unique`')[0]
+)
+  .split('DROP INDEX `custom_prompts_title_unique`')[0]
   .replaceAll('--> statement-breakpoint', '');
 
 class BunDatabase implements SyncDatabase {
   constructor(private readonly database: Database) {}
-  execSync(source: string): void { this.database.exec(source); }
+  execSync(source: string): void {
+    this.database.exec(source);
+  }
   getFirstSync<T>(source: string, ...params: unknown[]): T | null {
-    return this.database.query(source).get(...params as SQLQueryBindings[]) as T | null;
+    return this.database.query(source).get(...(params as SQLQueryBindings[])) as T | null;
   }
   getAllSync<T>(source: string, ...params: unknown[]): T[] {
-    return this.database.query(source).all(...params as SQLQueryBindings[]) as T[];
+    return this.database.query(source).all(...(params as SQLQueryBindings[])) as T[];
   }
   runSync(source: string, ...params: unknown[]): unknown {
-    return this.database.query(source).run(...params as SQLQueryBindings[]);
+    return this.database.query(source).run(...(params as SQLQueryBindings[]));
   }
 }
 
@@ -42,33 +45,48 @@ describe('durable Drive adapter state', () => {
   test('cursor, inventory, retry window, metadata and resumable session survive reconstruction', () => {
     const db = database();
     const first = new SQLiteDriveProviderStateStore(db, 'connection-a', () => 100);
-    first.replaceInitialInventory('vault-a', [{
-      fileId: 'physical-head-a',
-      logicalKey: 'heads/device-a.json',
-      kind: 'head',
-      contentSha256: 'a'.repeat(64),
-      byteCount: 200,
-      createdAt: 90,
-      head: {
-        format: 'tackbok-device-head', vaultId: 'vault-a',
-        deviceId: 'device-a', deviceSequence: 3, snapshotId: 'b'.repeat(64), updatedAt: 90,
-      },
-    }], 'cursor-1');
+    first.replaceInitialInventory(
+      'vault-a',
+      [
+        {
+          fileId: 'physical-head-a',
+          logicalKey: 'heads/device-a.json',
+          kind: 'head',
+          contentSha256: 'a'.repeat(64),
+          byteCount: 200,
+          createdAt: 90,
+          head: {
+            format: 'tackbok-device-head',
+            vaultId: 'vault-a',
+            deviceId: 'device-a',
+            deviceSequence: 3,
+            snapshotId: 'b'.repeat(64),
+            updatedAt: 90,
+          },
+        },
+      ],
+      'cursor-1',
+    );
     first.setRetryNotBefore('vault-a', 500);
     first.setUploadSession('vault-a', {
-      logicalKey: 'snapshots/c.json.gz', contentSha256: 'c'.repeat(64),
+      logicalKey: 'snapshots/c.json.gz',
+      contentSha256: 'c'.repeat(64),
       uri: 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=local-test',
-      expiresAt: 1_000, byteCount: 6_000_000, uploadedBytes: 1_048_576,
+      expiresAt: 1_000,
+      byteCount: 6_000_000,
+      uploadedBytes: 1_048_576,
     });
 
     const afterRestart = new SQLiteDriveProviderStateStore(db, 'connection-a', () => 200);
     expect(afterRestart.loadDiscovery('vault-a')).toEqual({
-      cursor: 'cursor-1', inventoryComplete: true, retryNotBefore: 500,
+      cursor: 'cursor-1',
+      inventoryComplete: true,
+      retryNotBefore: 500,
     });
     expect(afterRestart.listKind('vault-a', 'head')).toHaveLength(1);
-    expect(afterRestart.getUploadSession(
-      'vault-a', 'snapshots/c.json.gz', 'c'.repeat(64),
-    )).toMatchObject({
+    expect(
+      afterRestart.getUploadSession('vault-a', 'snapshots/c.json.gz', 'c'.repeat(64)),
+    ).toMatchObject({
       byteCount: 6_000_000,
       uploadedBytes: 1_048_576,
       expiresAt: 1_000,
@@ -78,11 +96,21 @@ describe('durable Drive adapter state', () => {
   test('opaque connection and vault scopes prevent cached Drive state crossing accounts', () => {
     const db = database();
     const firstConnection = new SQLiteDriveProviderStateStore(db, 'connection-a');
-    firstConnection.replaceInitialInventory('vault-a', [{
-      fileId: 'physical-snapshot-a', logicalKey: `snapshots/${'a'.repeat(64)}.json.gz`,
-      kind: 'snapshot', contentSha256: 'b'.repeat(64), byteCount: 100,
-      createdAt: 1, head: null,
-    }], 'cursor-a');
+    firstConnection.replaceInitialInventory(
+      'vault-a',
+      [
+        {
+          fileId: 'physical-snapshot-a',
+          logicalKey: `snapshots/${'a'.repeat(64)}.json.gz`,
+          kind: 'snapshot',
+          contentSha256: 'b'.repeat(64),
+          byteCount: 100,
+          createdAt: 1,
+          head: null,
+        },
+      ],
+      'cursor-a',
+    );
 
     const otherVault = new SQLiteDriveProviderStateStore(db, 'connection-a');
     const otherConnection = new SQLiteDriveProviderStateStore(db, 'connection-b');
@@ -95,14 +123,37 @@ describe('durable Drive adapter state', () => {
   test('change-page application removes and replaces inventory atomically', () => {
     const db = database();
     const state = new SQLiteDriveProviderStateStore(db, 'connection-a');
-    state.replaceInitialInventory('vault-a', [{
-      fileId: 'old', logicalKey: 'heads/device-a.json', kind: 'head',
-      contentSha256: 'a'.repeat(64), byteCount: 1, createdAt: 1, head: null,
-    }], 'cursor-1');
-    state.applyChangePage('vault-a', [{
-      fileId: 'new', logicalKey: `snapshots/${'b'.repeat(64)}.json.gz`, kind: 'snapshot',
-      contentSha256: 'c'.repeat(64), byteCount: 2, createdAt: 2, head: null,
-    }], ['old'], 'cursor-2');
+    state.replaceInitialInventory(
+      'vault-a',
+      [
+        {
+          fileId: 'old',
+          logicalKey: 'heads/device-a.json',
+          kind: 'head',
+          contentSha256: 'a'.repeat(64),
+          byteCount: 1,
+          createdAt: 1,
+          head: null,
+        },
+      ],
+      'cursor-1',
+    );
+    state.applyChangePage(
+      'vault-a',
+      [
+        {
+          fileId: 'new',
+          logicalKey: `snapshots/${'b'.repeat(64)}.json.gz`,
+          kind: 'snapshot',
+          contentSha256: 'c'.repeat(64),
+          byteCount: 2,
+          createdAt: 2,
+          head: null,
+        },
+      ],
+      ['old'],
+      'cursor-2',
+    );
 
     expect(state.listKind('vault-a', 'head')).toEqual([]);
     expect(state.listKind('vault-a', 'snapshot')).toHaveLength(1);

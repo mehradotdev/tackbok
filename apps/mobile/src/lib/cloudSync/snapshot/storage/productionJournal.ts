@@ -30,11 +30,7 @@ import {
   openMediaUploadSource,
 } from '../media';
 import { inspectLocalMediaFile } from '../../media/streamingHash';
-import type {
-  SnapshotConflict,
-  SnapshotDomain,
-  SnapshotMedia,
-} from '../types';
+import type { SnapshotConflict, SnapshotDomain, SnapshotMedia } from '../types';
 import type {
   CapturedJournal,
   SnapshotProvider,
@@ -70,8 +66,10 @@ export async function verifyLocalMediaFile(
   if (!fileExists(uri)) return false;
   try {
     const inspected = await inspectLocalMediaFile(uri);
-    return inspected.sha256 === expectedSha256 &&
-      (expectedByteSize === null || inspected.byteSize === expectedByteSize);
+    return (
+      inspected.sha256 === expectedSha256 &&
+      (expectedByteSize === null || inspected.byteSize === expectedByteSize)
+    );
   } catch {
     return false;
   }
@@ -91,16 +89,17 @@ function parseConflict(value: string): SnapshotConflict {
   try {
     return validateSnapshotConflict(JSON.parse(value));
   } catch (error) {
-    if (!(error instanceof SyntaxError) && !(error instanceof SnapshotValidationError)) throw error;
+    if (!(error instanceof SyntaxError) && !(error instanceof SnapshotValidationError))
+      throw error;
     // Invalid local metadata is a preparation failure, not cloud corruption.
   }
-  throw new LocalStorageError('normalized-model-not-ready', 'invalid-local-conflict-record');
+  throw new LocalStorageError(
+    'normalized-model-not-ready',
+    'invalid-local-conflict-record',
+  );
 }
 
-function legacyAsset(
-  descriptor: SnapshotMedia,
-  uri: string,
-): Asset {
+function legacyAsset(descriptor: SnapshotMedia, uri: string): Asset {
   return {
     type: descriptor.kind === 'voice' ? AssetType.AUDIO : AssetType.IMAGE,
     uri,
@@ -136,19 +135,24 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
     const stagedSource = await this.inspectSource(staged.uri, blobHash, null);
     if (stagedSource) return stagedSource;
     const [live, retained] = await Promise.all([
-      db.select({ uri: mediaAssets.local_uri, bytes: mediaAssets.byte_size }).from(mediaAssets)
+      db
+        .select({ uri: mediaAssets.local_uri, bytes: mediaAssets.byte_size })
+        .from(mediaAssets)
         .where(eq(mediaAssets.blob_hash, blobHash)),
-      db.select({
-        original: syncRetainedMedia.original_uri,
-        staged: syncRetainedMedia.staged_uri,
-        bytes: syncRetainedMedia.byte_size,
-      })
-        .from(syncRetainedMedia).where(eq(syncRetainedMedia.blob_hash, blobHash)),
+      db
+        .select({
+          original: syncRetainedMedia.original_uri,
+          staged: syncRetainedMedia.staged_uri,
+          bytes: syncRetainedMedia.byte_size,
+        })
+        .from(syncRetainedMedia)
+        .where(eq(syncRetainedMedia.blob_hash, blobHash)),
     ]);
     for (const candidate of [
       ...live.map((row) => ({ uri: row.uri, bytes: row.bytes })),
       ...retained.flatMap((row) => [
-        { uri: row.staged, bytes: row.bytes }, { uri: row.original, bytes: row.bytes },
+        { uri: row.staged, bytes: row.bytes },
+        { uri: row.original, bytes: row.bytes },
       ]),
     ]) {
       const source = await this.inspectSource(candidate.uri, blobHash, candidate.bytes);
@@ -161,7 +165,8 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
     if (!fileExists(uri)) return null;
     try {
       const inspected = await inspectLocalMediaFile(uri);
-      if (inspected.sha256 !== hash || (bytes !== null && inspected.byteSize !== bytes)) return null;
+      if (inspected.sha256 !== hash || (bytes !== null && inspected.byteSize !== bytes))
+        return null;
       return openMediaUploadSource(uri, hash, inspected.byteSize);
     } catch {
       // A bad staging/retained copy must not hide another verified local copy.
@@ -194,10 +199,16 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
 
   async capture(): Promise<CapturedJournal> {
     return runExclusiveDbTransaction(async (tx) => {
-      const [state] = await tx.select().from(cloudSyncState).where(and(
-        eq(cloudSyncState.vault_id, this.vaultId),
-        eq(cloudSyncState.device_id, this.deviceId),
-      )).limit(1);
+      const [state] = await tx
+        .select()
+        .from(cloudSyncState)
+        .where(
+          and(
+            eq(cloudSyncState.vault_id, this.vaultId),
+            eq(cloudSyncState.device_id, this.deviceId),
+          ),
+        )
+        .limit(1);
       if (!state) {
         throw new LocalStorageError(
           'normalized-model-not-ready',
@@ -211,9 +222,13 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       const promptRows = await tx.select().from(customPrompts);
       const mediaRows = await tx.select().from(mediaAssets);
       const [profileRow] = await tx.select().from(userProfile).limit(1);
-      const tombstoneRows = await tx.select().from(cloudTombstones)
+      const tombstoneRows = await tx
+        .select()
+        .from(cloudTombstones)
         .where(eq(cloudTombstones.vault_id, this.vaultId));
-      const conflictRows = await tx.select().from(cloudConflicts)
+      const conflictRows = await tx
+        .select()
+        .from(cloudConflicts)
         .where(eq(cloudConflicts.vault_id, this.vaultId));
 
       const media = mediaRows.map((row): SnapshotMedia => {
@@ -246,58 +261,86 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         rows.push(row);
         entryMedia.set(row.owner_id, rows);
       }
-      const attachmentOrder = (row: typeof entryRows[number]) => {
+      const attachmentOrder = (row: (typeof entryRows)[number]) => {
         const assets = entryMedia.get(row.note_id) ?? [];
         if (assets.length === 0) return {};
         const byUri = new Map(assets.map((asset) => [asset.local_uri, asset.asset_id]));
         const knownIds = new Set(assets.map((asset) => asset.asset_id));
-        const ids = (row.assets ?? []).map((asset) => asset.assetId && knownIds.has(asset.assetId)
-          ? asset.assetId : byUri.get(asset.uri))
+        const ids = (row.assets ?? [])
+          .map((asset) =>
+            asset.assetId && knownIds.has(asset.assetId)
+              ? asset.assetId
+              : byUri.get(asset.uri),
+          )
           .filter((id): id is string => id !== undefined);
-        return { attachmentOrder: completeAttachmentOrder(ids, assets.map((asset) => asset.asset_id)) };
+        return {
+          attachmentOrder: completeAttachmentOrder(
+            ids,
+            assets.map((asset) => asset.asset_id),
+          ),
+        };
       };
-      for (const row of entryRows) recoveryOrigins.set(`entry\0${row.note_id}`, row.conflict_origin_id);
-      for (const row of tagRows) recoveryOrigins.set(`tag\0${row.tag_id}`, row.conflict_origin_id);
-      for (const row of promptRows) recoveryOrigins.set(`prompt\0${row.prompt_id}`, row.conflict_origin_id);
-      const conflicts = conflictRows.map((row) => parseConflict(row.conflict_json)).map((conflict) => ({
-        ...conflict,
-        recoveredEntityIds: conflict.recoveredEntityIds.filter((recoveredId) =>
-          recoveryOrigins.get(`${conflict.entityType}\0${recoveredId}`) === conflict.entityId),
-      }));
+      for (const row of entryRows)
+        recoveryOrigins.set(`entry\0${row.note_id}`, row.conflict_origin_id);
+      for (const row of tagRows)
+        recoveryOrigins.set(`tag\0${row.tag_id}`, row.conflict_origin_id);
+      for (const row of promptRows)
+        recoveryOrigins.set(`prompt\0${row.prompt_id}`, row.conflict_origin_id);
+      const conflicts = conflictRows
+        .map((row) => parseConflict(row.conflict_json))
+        .map((conflict) => ({
+          ...conflict,
+          recoveredEntityIds: conflict.recoveredEntityIds.filter(
+            (recoveredId) =>
+              recoveryOrigins.get(`${conflict.entityType}\0${recoveredId}`) ===
+              conflict.entityId,
+          ),
+        }));
 
       return {
         generation: state.journal_generation,
         domain: {
-          entries: entryRows.map((row) => ({
-            entryId: row.note_id,
-            ...attachmentOrder(row),
-            title: row.text_title,
-            content: row.text_content,
-            mood: row.mood ?? null,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            conflictOriginId: row.conflict_origin_id,
-          })).sort((left, right) => left.entryId.localeCompare(right.entryId)),
-          tags: tagRows.map((row) => ({
-            tagId: row.tag_id,
-            title: row.title,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            conflictOriginId: row.conflict_origin_id,
-          })).sort((left, right) => left.tagId.localeCompare(right.tagId)),
-          entryTags: relationRows.map((row) => ({
-            entryId: row.note_id,
-            tagId: row.tag_id,
-            createdAt: row.created_at,
-          })).sort((left, right) =>
-            left.entryId.localeCompare(right.entryId) || left.tagId.localeCompare(right.tagId)),
-          prompts: promptRows.map((row) => ({
-            promptId: row.prompt_id,
-            title: row.title,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-            conflictOriginId: row.conflict_origin_id,
-          })).sort((left, right) => left.promptId.localeCompare(right.promptId)),
+          entries: entryRows
+            .map((row) => ({
+              entryId: row.note_id,
+              ...attachmentOrder(row),
+              title: row.text_title,
+              content: row.text_content,
+              mood: row.mood ?? null,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at,
+              conflictOriginId: row.conflict_origin_id,
+            }))
+            .sort((left, right) => left.entryId.localeCompare(right.entryId)),
+          tags: tagRows
+            .map((row) => ({
+              tagId: row.tag_id,
+              title: row.title,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at,
+              conflictOriginId: row.conflict_origin_id,
+            }))
+            .sort((left, right) => left.tagId.localeCompare(right.tagId)),
+          entryTags: relationRows
+            .map((row) => ({
+              entryId: row.note_id,
+              tagId: row.tag_id,
+              createdAt: row.created_at,
+            }))
+            .sort(
+              (left, right) =>
+                left.entryId.localeCompare(right.entryId) ||
+                left.tagId.localeCompare(right.tagId),
+            ),
+          prompts: promptRows
+            .map((row) => ({
+              promptId: row.prompt_id,
+              title: row.title,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at,
+              conflictOriginId: row.conflict_origin_id,
+            }))
+            .sort((left, right) => left.promptId.localeCompare(right.promptId)),
           profile: {
             profileId: 'profile',
             displayName: profileRow?.display_name ?? null,
@@ -305,18 +348,23 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
             updatedAt: profileRow?.updated_at ?? 0,
           },
           media: media.sort((left, right) => left.assetId.localeCompare(right.assetId)),
-          tombstones: tombstoneRows.map((row) => ({
-            entityType: row.entity_type,
-            entityId: row.entity_id,
-            baseStateHash: row.base_state_hash,
-            deletedStateHash: row.deleted_state_hash,
-            deletedByDeviceId: row.deleted_by_device_id,
-            deletionSequence: row.deletion_sequence,
-          })).sort((left, right) =>
-            left.entityType.localeCompare(right.entityType) ||
-            left.entityId.localeCompare(right.entityId)),
-          conflicts: conflicts
-            .sort((left, right) => left.conflictId.localeCompare(right.conflictId)),
+          tombstones: tombstoneRows
+            .map((row) => ({
+              entityType: row.entity_type,
+              entityId: row.entity_id,
+              baseStateHash: row.base_state_hash,
+              deletedStateHash: row.deleted_state_hash,
+              deletedByDeviceId: row.deleted_by_device_id,
+              deletionSequence: row.deletion_sequence,
+            }))
+            .sort(
+              (left, right) =>
+                left.entityType.localeCompare(right.entityType) ||
+                left.entityId.localeCompare(right.entityId),
+            ),
+          conflicts: conflicts.sort((left, right) =>
+            left.conflictId.localeCompare(right.conflictId),
+          ),
         },
       };
     });
@@ -332,41 +380,59 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     // and hashing every attachment just to apply the state we captured.
     if (canonicalize(captured.domain) === canonicalize(domain)) {
       return runExclusiveDbTransaction(async (tx) => {
-        const [state] = await tx.select({ generation: cloudSyncState.journal_generation })
-          .from(cloudSyncState).where(and(
-            eq(cloudSyncState.vault_id, this.vaultId),
-            eq(cloudSyncState.device_id, this.deviceId),
-          )).limit(1);
+        const [state] = await tx
+          .select({ generation: cloudSyncState.journal_generation })
+          .from(cloudSyncState)
+          .where(
+            and(
+              eq(cloudSyncState.vault_id, this.vaultId),
+              eq(cloudSyncState.device_id, this.deviceId),
+            ),
+          )
+          .limit(1);
         return state?.generation === expectedGeneration;
       });
     }
     const materializedUris = await this.materializeMedia(domain.media);
     return runExclusiveDbTransaction(async (tx) => {
-      const [state] = await tx.select({ generation: cloudSyncState.journal_generation })
-        .from(cloudSyncState).where(and(
-          eq(cloudSyncState.vault_id, this.vaultId),
-          eq(cloudSyncState.device_id, this.deviceId),
-        )).limit(1);
+      const [state] = await tx
+        .select({ generation: cloudSyncState.journal_generation })
+        .from(cloudSyncState)
+        .where(
+          and(
+            eq(cloudSyncState.vault_id, this.vaultId),
+            eq(cloudSyncState.device_id, this.deviceId),
+          ),
+        )
+        .limit(1);
       if (!state || state.generation !== expectedGeneration) return false;
 
       const [priorProfile] = await tx.select().from(userProfile).limit(1);
       const priorMedia = await tx.select().from(mediaAssets);
-      const acknowledged = new Map((await tx.select().from(cloudConflicts)
-        .where(eq(cloudConflicts.vault_id, this.vaultId)))
-        .map((row) => [row.conflict_id, row.acknowledged_at]));
+      const acknowledged = new Map(
+        (
+          await tx
+            .select()
+            .from(cloudConflicts)
+            .where(eq(cloudConflicts.vault_id, this.vaultId))
+        ).map((row) => [row.conflict_id, row.acknowledged_at]),
+      );
 
       // A remote apply is a complete-state replacement. Preserve every local
       // file whose exact descriptor is no longer referenced before deleting
       // its normalized row. The completed obligation records that the
       // head-advanced snapshot made the removal durable; the ordinary reaper
       // remains the only code allowed to unlink the file later.
-      const retainedIdentities = new Set(domain.media.map((asset) =>
-        `${asset.assetId}\0${asset.blobHash}`));
+      const retainedIdentities = new Set(
+        domain.media.map((asset) => `${asset.assetId}\0${asset.blobHash}`),
+      );
       const appliedAt = Date.now();
       for (const asset of priorMedia) {
-        if (!asset.local_uri || retainedIdentities.has(
-          `${asset.asset_id}\0${asset.blob_hash ?? ''}`,
-        )) continue;
+        if (
+          !asset.local_uri ||
+          retainedIdentities.has(`${asset.asset_id}\0${asset.blob_hash ?? ''}`)
+        )
+          continue;
         const ledgerId = randomUUID();
         await tx.insert(syncRetainedMedia).values({
           ledger_id: ledgerId,
@@ -403,26 +469,31 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       await tx.delete(tags);
       await tx.delete(customPrompts);
       await tx.delete(userProfile);
-      await tx.delete(cloudTombstones)
-        .where(eq(cloudTombstones.vault_id, this.vaultId));
-      await tx.delete(cloudConflicts)
-        .where(eq(cloudConflicts.vault_id, this.vaultId));
+      await tx.delete(cloudTombstones).where(eq(cloudTombstones.vault_id, this.vaultId));
+      await tx.delete(cloudConflicts).where(eq(cloudConflicts.vault_id, this.vaultId));
 
-      if (domain.tags.length > 0) await writeBatches(domain.tags.map((tag) => ({
-        tag_id: tag.tagId,
-        title: tag.title,
-        conflict_origin_id: tag.conflictOriginId,
-        created_at: tag.createdAt,
-        updated_at: tag.updatedAt,
-      })), (rows) => tx.insert(tags).values(rows));
+      if (domain.tags.length > 0)
+        await writeBatches(
+          domain.tags.map((tag) => ({
+            tag_id: tag.tagId,
+            title: tag.title,
+            conflict_origin_id: tag.conflictOriginId,
+            created_at: tag.createdAt,
+            updated_at: tag.updatedAt,
+          })),
+          (rows) => tx.insert(tags).values(rows),
+        );
       if (domain.prompts.length > 0) {
-        await writeBatches(domain.prompts.map((prompt) => ({
-          prompt_id: prompt.promptId,
-          title: prompt.title,
-          conflict_origin_id: prompt.conflictOriginId,
-          created_at: prompt.createdAt,
-          updated_at: prompt.updatedAt,
-        })), (rows) => tx.insert(customPrompts).values(rows));
+        await writeBatches(
+          domain.prompts.map((prompt) => ({
+            prompt_id: prompt.promptId,
+            title: prompt.title,
+            conflict_origin_id: prompt.conflictOriginId,
+            created_at: prompt.createdAt,
+            updated_at: prompt.updatedAt,
+          })),
+          (rows) => tx.insert(customPrompts).values(rows),
+        );
       }
 
       const mediaByOwner = new Map<string, SnapshotMedia[]>();
@@ -438,52 +509,67 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         ids.push(relation.tagId);
         tagsByEntry.set(relation.entryId, ids);
       }
-      if (domain.entries.length > 0) await writeBatches(domain.entries.map((entry) => {
-        const descriptors = mediaByOwner.get(`entry\0${entry.entryId}`) ?? [];
-        const byId = new Map(descriptors.map((asset) => [asset.assetId, asset]));
-        const assets = completeAttachmentOrder(entry.attachmentOrder, [...byId.keys()])
-          .map((id) => byId.get(id)!)
-          .map((asset) => legacyAsset(asset, materializedUris.get(asset.assetId)!.uri));
-        const tagIds = (tagsByEntry.get(entry.entryId) ?? []).sort();
-        return {
-          note_id: entry.entryId,
-          text_title: entry.title,
-          text_content: entry.content,
-          mood: entry.mood,
-          assets,
-          tags: tagIds.join(','),
-          conflict_origin_id: entry.conflictOriginId,
-          created_at: entry.createdAt,
-          updated_at: entry.updatedAt,
-        };
-      }), (rows) => tx.insert(entries).values(rows));
+      if (domain.entries.length > 0)
+        await writeBatches(
+          domain.entries.map((entry) => {
+            const descriptors = mediaByOwner.get(`entry\0${entry.entryId}`) ?? [];
+            const byId = new Map(descriptors.map((asset) => [asset.assetId, asset]));
+            const assets = completeAttachmentOrder(entry.attachmentOrder, [
+              ...byId.keys(),
+            ])
+              .map((id) => byId.get(id)!)
+              .map((asset) =>
+                legacyAsset(asset, materializedUris.get(asset.assetId)!.uri),
+              );
+            const tagIds = (tagsByEntry.get(entry.entryId) ?? []).sort();
+            return {
+              note_id: entry.entryId,
+              text_title: entry.title,
+              text_content: entry.content,
+              mood: entry.mood,
+              assets,
+              tags: tagIds.join(','),
+              conflict_origin_id: entry.conflictOriginId,
+              created_at: entry.createdAt,
+              updated_at: entry.updatedAt,
+            };
+          }),
+          (rows) => tx.insert(entries).values(rows),
+        );
 
-      if (domain.media.length > 0) await writeBatches(domain.media.map((asset) => ({
-        asset_id: asset.assetId,
-        owner_type: asset.ownerType,
-        owner_id: asset.ownerType === 'profile' ? 'self' : asset.ownerId,
-        kind: asset.kind,
-        local_uri: materializedUris.get(asset.assetId)!.uri,
-        download_state: materializedUris.get(asset.assetId)!.verified
-          ? 'verified' as const
-          : 'pending' as const,
-        mime_type: asset.mimeType,
-        byte_size: asset.byteSize,
-        width: asset.width,
-        height: asset.height,
-        duration_ms: asset.durationMs,
-        blob_hash: asset.blobHash,
-        created_at: asset.createdAt,
-        updated_at: asset.updatedAt,
-        pending_local_delete_at: null,
-      })), (rows) => tx.insert(mediaAssets).values(rows));
-      if (domain.entryTags.length > 0) await writeBatches(
-        domain.entryTags.map((relation) => ({
-          note_id: relation.entryId,
-          tag_id: relation.tagId,
-          created_at: relation.createdAt,
-          updated_at: relation.createdAt,
-        })), (rows) => tx.insert(entryTags).values(rows));
+      if (domain.media.length > 0)
+        await writeBatches(
+          domain.media.map((asset) => ({
+            asset_id: asset.assetId,
+            owner_type: asset.ownerType,
+            owner_id: asset.ownerType === 'profile' ? 'self' : asset.ownerId,
+            kind: asset.kind,
+            local_uri: materializedUris.get(asset.assetId)!.uri,
+            download_state: materializedUris.get(asset.assetId)!.verified
+              ? ('verified' as const)
+              : ('pending' as const),
+            mime_type: asset.mimeType,
+            byte_size: asset.byteSize,
+            width: asset.width,
+            height: asset.height,
+            duration_ms: asset.durationMs,
+            blob_hash: asset.blobHash,
+            created_at: asset.createdAt,
+            updated_at: asset.updatedAt,
+            pending_local_delete_at: null,
+          })),
+          (rows) => tx.insert(mediaAssets).values(rows),
+        );
+      if (domain.entryTags.length > 0)
+        await writeBatches(
+          domain.entryTags.map((relation) => ({
+            note_id: relation.entryId,
+            tag_id: relation.tagId,
+            created_at: relation.createdAt,
+            updated_at: relation.createdAt,
+          })),
+          (rows) => tx.insert(entryTags).values(rows),
+        );
       await tx.insert(userProfile).values({
         profile_id: 'self',
         display_name: domain.profile.displayName,
@@ -492,25 +578,31 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         updated_at: domain.profile.updatedAt,
       });
       if (domain.tombstones.length > 0) {
-        await writeBatches(domain.tombstones.map((value) => ({
-          vault_id: this.vaultId,
-          entity_type: value.entityType,
-          entity_id: value.entityId,
-          base_state_hash: value.baseStateHash,
-          deleted_state_hash: value.deletedStateHash,
-          deleted_by_device_id: value.deletedByDeviceId,
-          deletion_sequence: value.deletionSequence,
-          updated_at: Date.now(),
-        })), (rows) => tx.insert(cloudTombstones).values(rows));
+        await writeBatches(
+          domain.tombstones.map((value) => ({
+            vault_id: this.vaultId,
+            entity_type: value.entityType,
+            entity_id: value.entityId,
+            base_state_hash: value.baseStateHash,
+            deleted_state_hash: value.deletedStateHash,
+            deleted_by_device_id: value.deletedByDeviceId,
+            deletion_sequence: value.deletionSequence,
+            updated_at: Date.now(),
+          })),
+          (rows) => tx.insert(cloudTombstones).values(rows),
+        );
       }
       if (domain.conflicts.length > 0) {
-        await writeBatches(domain.conflicts.map((conflict) => ({
-          vault_id: this.vaultId,
-          conflict_id: conflict.conflictId,
-          conflict_json: JSON.stringify(conflict),
-          acknowledged_at: acknowledged.get(conflict.conflictId) ?? null,
-          created_at: Date.now(),
-        })), (rows) => tx.insert(cloudConflicts).values(rows));
+        await writeBatches(
+          domain.conflicts.map((conflict) => ({
+            vault_id: this.vaultId,
+            conflict_id: conflict.conflictId,
+            conflict_json: JSON.stringify(conflict),
+            acknowledged_at: acknowledged.get(conflict.conflictId) ?? null,
+            created_at: Date.now(),
+          })),
+          (rows) => tx.insert(cloudConflicts).values(rows),
+        );
       }
       return true;
     });
@@ -521,8 +613,11 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     provider: SnapshotProvider,
     limit = 2,
   ): Promise<{ hydrated: number; missing: number }> {
-    const pending = await db.select().from(mediaAssets)
-      .where(eq(mediaAssets.download_state, 'pending')).limit(limit);
+    const pending = await db
+      .select()
+      .from(mediaAssets)
+      .where(eq(mediaAssets.download_state, 'pending'))
+      .limit(limit);
     let hydrated = 0;
     let missing = 0;
     for (const row of pending) {
@@ -536,7 +631,9 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         await this.mediaStore.openDownloadSink(row.blob_hash),
       );
       if (!downloaded) {
-        await db.update(mediaAssets).set({ download_state: 'missing' })
+        await db
+          .update(mediaAssets)
+          .set({ download_state: 'missing' })
           .where(eq(mediaAssets.asset_id, row.asset_id));
         missing += 1;
         continue;
@@ -556,18 +653,28 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         updatedAt: row.updated_at,
       };
       const materialized = await this.materializeDescriptor(descriptor);
-      await db.update(mediaAssets).set({
-        local_uri: materialized.uri,
-        download_state: 'verified',
-      }).where(and(
-        eq(mediaAssets.asset_id, row.asset_id),
-        eq(mediaAssets.blob_hash, row.blob_hash),
-      ));
-      const remaining = await db.select({ id: mediaAssets.asset_id }).from(mediaAssets)
-        .where(and(
-          eq(mediaAssets.blob_hash, row.blob_hash),
-          eq(mediaAssets.download_state, 'pending'),
-        )).limit(1);
+      await db
+        .update(mediaAssets)
+        .set({
+          local_uri: materialized.uri,
+          download_state: 'verified',
+        })
+        .where(
+          and(
+            eq(mediaAssets.asset_id, row.asset_id),
+            eq(mediaAssets.blob_hash, row.blob_hash),
+          ),
+        );
+      const remaining = await db
+        .select({ id: mediaAssets.asset_id })
+        .from(mediaAssets)
+        .where(
+          and(
+            eq(mediaAssets.blob_hash, row.blob_hash),
+            eq(mediaAssets.download_state, 'pending'),
+          ),
+        )
+        .limit(1);
       if (remaining.length === 0) this.mediaStore.deleteStaged(row.blob_hash);
       hydrated += 1;
     }
@@ -578,25 +685,26 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     media: readonly SnapshotMedia[],
   ): Promise<Map<string, MaterializedMedia>> {
     const existingRows = await db.select().from(mediaAssets);
-    const byIdentity = new Map(existingRows.map((row) => [
-      `${row.asset_id}\0${row.blob_hash ?? ''}`,
-      row,
-    ]));
+    const byIdentity = new Map(
+      existingRows.map((row) => [`${row.asset_id}\0${row.blob_hash ?? ''}`, row]),
+    );
     const result = new Map<string, MaterializedMedia>();
     for (const asset of media) {
       const existing = byIdentity.get(`${asset.assetId}\0${asset.blobHash}`);
-      if (existing?.local_uri && await verifyLocalMediaFile(
-        existing.local_uri,
-        asset.blobHash,
-        asset.byteSize,
-      )) {
+      if (
+        existing?.local_uri &&
+        (await verifyLocalMediaFile(existing.local_uri, asset.blobHash, asset.byteSize))
+      ) {
         result.set(asset.assetId, { uri: existing.local_uri, verified: true });
         continue;
       }
       result.set(asset.assetId, await this.materializeDescriptor(asset));
     }
-    const unverifiedHashes = new Set(media
-      .filter((asset) => !result.get(asset.assetId)?.verified).map((asset) => asset.blobHash));
+    const unverifiedHashes = new Set(
+      media
+        .filter((asset) => !result.get(asset.assetId)?.verified)
+        .map((asset) => asset.blobHash),
+    );
     for (const blobHash of new Set(media.map((asset) => asset.blobHash))) {
       if (!unverifiedHashes.has(blobHash)) {
         this.mediaStore.deleteStaged(blobHash);
@@ -606,24 +714,30 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   }
 
   private async materializeDescriptor(asset: SnapshotMedia): Promise<MaterializedMedia> {
-      const relativeUri = relativeMediaUri(asset);
-      const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
-      const destination = new File(ensureDirectory(directoryName), relativeUri.split('/').pop()!);
-      if (destination.exists) {
-        try {
-          const inspected = await inspectLocalMediaFile(destination.uri);
-          if (inspected.byteSize === asset.byteSize && inspected.sha256 === asset.blobHash) {
-            return { uri: relativeUri, verified: true };
-          }
-        } catch {
-          // The verified staging copy below replaces an unreadable destination.
+    const relativeUri = relativeMediaUri(asset);
+    const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
+    const destination = new File(
+      ensureDirectory(directoryName),
+      relativeUri.split('/').pop()!,
+    );
+    if (destination.exists) {
+      try {
+        const inspected = await inspectLocalMediaFile(destination.uri);
+        if (
+          inspected.byteSize === asset.byteSize &&
+          inspected.sha256 === asset.blobHash
+        ) {
+          return { uri: relativeUri, verified: true };
         }
+      } catch {
+        // The verified staging copy below replaces an unreadable destination.
       }
-      const staged = this.mediaStore.stagedFile(asset.blobHash);
-      if (!staged) {
-        return { uri: relativeUri, verified: false };
-      }
-      await copyVerifiedMediaFile(staged, destination, asset.byteSize, asset.blobHash);
-      return { uri: relativeUri, verified: true };
+    }
+    const staged = this.mediaStore.stagedFile(asset.blobHash);
+    if (!staged) {
+      return { uri: relativeUri, verified: false };
+    }
+    await copyVerifiedMediaFile(staged, destination, asset.byteSize, asset.blobHash);
+    return { uri: relativeUri, verified: true };
   }
 }

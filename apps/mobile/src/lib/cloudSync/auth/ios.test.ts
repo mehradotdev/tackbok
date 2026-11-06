@@ -67,10 +67,12 @@ describe('IosGoogleAuthorization account label persistence', () => {
     });
     mockFetchGoogleAccountLabel.mockResolvedValue('owner@example.com');
 
-    await expect(new IosGoogleAuthorization().getAccountLabel())
-      .resolves.toBe('owner@example.com');
-    await expect(new IosGoogleAuthorization().getAccountLabel())
-      .resolves.toBe('owner@example.com');
+    await expect(new IosGoogleAuthorization().getAccountLabel()).resolves.toBe(
+      'owner@example.com',
+    );
+    await expect(new IosGoogleAuthorization().getAccountLabel()).resolves.toBe(
+      'owner@example.com',
+    );
 
     expect(mockFetchGoogleAccountLabel).toHaveBeenCalledTimes(1);
     expect(mockFetchGoogleAccountLabel).toHaveBeenCalledWith('fresh-token');
@@ -84,7 +86,9 @@ describe('IosGoogleAuthorization account label persistence', () => {
     });
     mockFetchGoogleAccountLabel.mockResolvedValue('Google Drive');
 
-    await expect(new IosGoogleAuthorization().getAccountLabel()).resolves.toBe('Google Drive');
+    await expect(new IosGoogleAuthorization().getAccountLabel()).resolves.toBe(
+      'Google Drive',
+    );
     await expect(readGoogleAccountEmail()).resolves.toBeNull();
   });
 
@@ -124,7 +128,10 @@ describe('IosGoogleAuthorization account label persistence', () => {
   });
 
   it('rejects a granular consent result that omitted Drive access', async () => {
-    mockPromptAsync.mockResolvedValue({ type: 'success', params: { code: 'partial-code' } });
+    mockPromptAsync.mockResolvedValue({
+      type: 'success',
+      params: { code: 'partial-code' },
+    });
     mockExchangeCodeAsync.mockResolvedValue({
       accessToken: 'identity-only-token',
       expiresIn: 3600,
@@ -146,7 +153,9 @@ describe('IosGoogleAuthorization account label persistence', () => {
     });
     mockRefreshAsync.mockRejectedValue(new TypeError('Network request failed'));
 
-    await expect(new IosGoogleAuthorization().getFreshAccessToken()).rejects.toMatchObject({
+    await expect(
+      new IosGoogleAuthorization().getFreshAccessToken(),
+    ).rejects.toMatchObject({
       code: 'temporarily-unavailable',
     });
     await expect(readGoogleTokens()).resolves.toMatchObject({

@@ -1,6 +1,10 @@
 import { inflateRaw } from './deflate-codec';
 import { toSafeNumber } from './byte-io';
-import { assertZipRange, parseLocalFileHeader, parseZipCentralDirectory } from './zip-parser';
+import {
+  assertZipRange,
+  parseLocalFileHeader,
+  parseZipCentralDirectory,
+} from './zip-parser';
 import {
   ZIP_COMPRESSION_METHOD_DEFLATE,
   ZIP_COMPRESSION_METHOD_STORE,

@@ -59,9 +59,13 @@ export function AnimatedButton({
     onPress?.(null as unknown as GestureResponderEvent);
   }, [onPress, translateY]);
 
-  useImperativeHandle(ref, () => ({
-    simulatePress
-  }), [simulatePress]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      simulatePress,
+    }),
+    [simulatePress],
+  );
 
   return (
     <View className={cn('relative', containerClassName)}>

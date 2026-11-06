@@ -176,7 +176,11 @@ function reverseCodes(tree: number[], maxBits: number): void {
   }
 }
 
-function assertBitWriteCapacity(buffer: Uint8Array, position: number, byteCount: number): void {
+function assertBitWriteCapacity(
+  buffer: Uint8Array,
+  position: number,
+  byteCount: number,
+): void {
   const offset = position >>> 3;
   if (offset + byteCount > buffer.length) {
     throw new Error('DEFLATE output buffer is too small');
@@ -184,10 +188,14 @@ function assertBitWriteCapacity(buffer: Uint8Array, position: number, byteCount:
 }
 
 function requiredReadBytes(position: number, length: number): number {
-  return (((position & 7) + length + 7) >>> 3);
+  return ((position & 7) + length + 7) >>> 3;
 }
 
-function assertBitReadCapacity(buffer: Uint8Array, position: number, length: number): void {
+function assertBitReadCapacity(
+  buffer: Uint8Array,
+  position: number,
+  length: number,
+): void {
   const offset = position >>> 3;
   if (offset + requiredReadBytes(position, length) > buffer.length) {
     throw new Error('Invalid DEFLATE data: truncated bitstream');
@@ -242,9 +250,7 @@ function read17Bits(buffer: Uint8Array, position: number): number {
   const first = buffer[offset];
   const second = offset + 1 < buffer.length ? buffer[offset + 1] : 0;
   const third = offset + 2 < buffer.length ? buffer[offset + 2] : 0;
-  return (
-    (first | (second << 8) | (third << 16)) >>> (position & 7)
-  );
+  return (first | (second << 8) | (third << 16)) >>> (position & 7);
 }
 
 function initializeState(): void {

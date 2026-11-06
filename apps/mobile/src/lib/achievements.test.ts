@@ -67,4 +67,3 @@ describe('achievement rules', () => {
     ).toEqual(getAchievement(25));
   });
 });
-

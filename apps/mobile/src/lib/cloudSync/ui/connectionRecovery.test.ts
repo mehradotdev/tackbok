@@ -1,8 +1,12 @@
 import { canResumeUnpublishedBackup } from './connectionRecovery';
 
 const unfinished = {
-  previousEmail: 'owner@example.com', currentEmail: 'owner@example.com',
-  settledGeneration: 0, hasBase: false, availableVaultCount: 0, revoked: false,
+  previousEmail: 'owner@example.com',
+  currentEmail: 'owner@example.com',
+  settledGeneration: 0,
+  hasBase: false,
+  availableVaultCount: 0,
+  revoked: false,
 };
 
 describe('unfinished first backup recovery', () => {
@@ -17,7 +21,10 @@ describe('unfinished first backup recovery', () => {
     { hasBase: true },
     { availableVaultCount: 1 },
     { revoked: true },
-  ])('refuses to initialize a destination with conflicting or missing evidence: %j', (override) => {
-    expect(canResumeUnpublishedBackup({ ...unfinished, ...override })).toBe(false);
-  });
+  ])(
+    'refuses to initialize a destination with conflicting or missing evidence: %j',
+    (override) => {
+      expect(canResumeUnpublishedBackup({ ...unfinished, ...override })).toBe(false);
+    },
+  );
 });

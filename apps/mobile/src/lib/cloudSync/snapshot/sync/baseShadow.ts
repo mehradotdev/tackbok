@@ -59,7 +59,10 @@ function assertClosedObject(
   }
   const actual = Object.keys(value).sort();
   const expected = [...keys].sort();
-  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
+  if (
+    actual.length !== expected.length ||
+    actual.some((key, index) => key !== expected[index])
+  ) {
     invalid(`${path} has missing or unknown keys`);
   }
 }
@@ -70,18 +73,29 @@ function validateHeads(value: unknown): ObservedDeviceHead[] {
   }
   let previous = '';
   for (const [index, item] of value.entries()) {
-    assertClosedObject(item, ['deviceId', 'deviceSequence', 'snapshotId'], `acceptedDeviceHeads[${index}]`);
-    if (typeof item.deviceId !== 'string' || !ID.test(item.deviceId) ||
-        new TextEncoder().encode(item.deviceId).length > SNAPSHOT_CAPS.idBytes) {
+    assertClosedObject(
+      item,
+      ['deviceId', 'deviceSequence', 'snapshotId'],
+      `acceptedDeviceHeads[${index}]`,
+    );
+    if (
+      typeof item.deviceId !== 'string' ||
+      !ID.test(item.deviceId) ||
+      new TextEncoder().encode(item.deviceId).length > SNAPSHOT_CAPS.idBytes
+    ) {
       invalid('Base-shadow device ID is invalid');
     }
-    if (!Number.isSafeInteger(item.deviceSequence) || (item.deviceSequence as number) < 0) {
+    if (
+      !Number.isSafeInteger(item.deviceSequence) ||
+      (item.deviceSequence as number) < 0
+    ) {
       invalid('Base-shadow device sequence is invalid');
     }
     if (typeof item.snapshotId !== 'string' || !HASH.test(item.snapshotId)) {
       invalid('Base-shadow snapshot observation is invalid');
     }
-    if (item.deviceId <= previous) invalid('Base-shadow device heads are not strictly sorted');
+    if (item.deviceId <= previous)
+      invalid('Base-shadow device heads are not strictly sorted');
     previous = item.deviceId;
   }
   return value as ObservedDeviceHead[];
@@ -109,19 +123,25 @@ export function encodeBaseShadow(shadow: BaseShadow): {
 }
 
 export function validateBaseShadow(value: unknown): BaseShadow {
-  assertClosedObject(value, [
-    'format', 'vaultId', 'snapshotId', 'acceptedDeviceHeads', 'payload',
-  ], '$');
+  assertClosedObject(
+    value,
+    ['format', 'vaultId', 'snapshotId', 'acceptedDeviceHeads', 'payload'],
+    '$',
+  );
   if (value.format !== 'tackbok-base-shadow') invalid('Unsupported base-shadow format');
-  if (typeof value.vaultId !== 'string' || !ID.test(value.vaultId)) invalid('Invalid base-shadow vault ID');
-  if (typeof value.snapshotId !== 'string' || !HASH.test(value.snapshotId)) invalid('Invalid base-shadow snapshot ID');
+  if (typeof value.vaultId !== 'string' || !ID.test(value.vaultId))
+    invalid('Invalid base-shadow vault ID');
+  if (typeof value.snapshotId !== 'string' || !HASH.test(value.snapshotId))
+    invalid('Invalid base-shadow snapshot ID');
   const acceptedDeviceHeads = validateHeads(value.acceptedDeviceHeads);
   const encodedPayload = encodeSnapshot(value.payload as JournalSnapshotPayload);
-  if (encodedPayload.snapshotId !== value.snapshotId) invalid('Base-shadow payload hash does not match');
+  if (encodedPayload.snapshotId !== value.snapshotId)
+    invalid('Base-shadow payload hash does not match');
   if (!bytesEqual(encodedPayload.canonicalBytes, encodeCanonicalBytes(value.payload))) {
     invalid('Base-shadow payload is not normalized canonical protocol state');
   }
-  if (encodedPayload.payload.vaultId !== value.vaultId) invalid('Base-shadow vault does not match its payload');
+  if (encodedPayload.payload.vaultId !== value.vaultId)
+    invalid('Base-shadow vault does not match its payload');
   return {
     format: 'tackbok-base-shadow',
     vaultId: value.vaultId,
@@ -165,14 +185,18 @@ export class BaseShadowManager {
     try {
       await this.files.writeTempAndFsync(tempFileName, encoded.compressedBytes);
     } catch (error) {
-      throw new BaseShadowCommitError('Base-shadow temp write/fsync failed', { cause: error });
+      throw new BaseShadowCommitError('Base-shadow temp write/fsync failed', {
+        cause: error,
+      });
     }
     await at?.('after-base-shadow-temp-fsynced');
     try {
       const readBack = await this.files.read(tempFileName);
       const verified = decodeBaseShadow(readBack);
-      if (verified.canonicalSha256 !== encoded.canonicalSha256 ||
-          verified.shadow.snapshotId !== shadow.snapshotId) {
+      if (
+        verified.canonicalSha256 !== encoded.canonicalSha256 ||
+        verified.shadow.snapshotId !== shadow.snapshotId
+      ) {
         invalid('Base-shadow read-back verification failed');
       }
     } catch (error) {
@@ -210,14 +234,19 @@ export class BaseShadowManager {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (/missing|not found/i.test(message)) return { shadow: null, degraded: true };
-      throw new BaseShadowReadError('Base-shadow file could not be read', { cause: error });
+      throw new BaseShadowReadError('Base-shadow file could not be read', {
+        cause: error,
+      });
     }
     try {
-      if (bytes.length !== checkpoint.byteCount) invalid('Base-shadow byte count changed');
+      if (bytes.length !== checkpoint.byteCount)
+        invalid('Base-shadow byte count changed');
       const decoded = decodeBaseShadow(bytes);
-      if (decoded.canonicalSha256 !== checkpoint.canonicalSha256 ||
-          decoded.shadow.snapshotId !== checkpoint.snapshotId ||
-          decoded.shadow.vaultId !== checkpoint.vaultId) {
+      if (
+        decoded.canonicalSha256 !== checkpoint.canonicalSha256 ||
+        decoded.shadow.snapshotId !== checkpoint.snapshotId ||
+        decoded.shadow.vaultId !== checkpoint.vaultId
+      ) {
         invalid('Base-shadow checkpoint does not match its file');
       }
       return { shadow: decoded.shadow, degraded: false };

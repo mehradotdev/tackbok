@@ -31,18 +31,18 @@ If this code is extracted into a standalone package later, the intended value pr
 ## Verified Features
 
 - Supports two read modes:
-	- eager in-memory reads via `parseZipArchive(bytes)`
-	- lazy random-access reads via `openZipReader(reader)`
+  - eager in-memory reads via `parseZipArchive(bytes)`
+  - lazy random-access reads via `openZipReader(reader)`
 - Supports two write modes:
-	- eager in-memory archive building via `createMemoryZipWriter()`
-	- sequential sink-based writing via `createZipWriter(sink)`
+  - eager in-memory archive building via `createMemoryZipWriter()`
+  - sequential sink-based writing via `createZipWriter(sink)`
 - Supports Expo file adapters for backup-style mobile workflows:
-	- `createExpoZipReaderSource(fileOrUri)`
-	- `createExpoZipWriter(fileOrUri)`
+  - `createExpoZipReaderSource(fileOrUri)`
+  - `createExpoZipWriter(fileOrUri)`
 - Supports ZIP64 metadata for reading and writing:
-	- ZIP64 central directory values
-	- ZIP64 EOCD records and locator records
-	- ZIP64 offsets, entry counts, and sizes when classic ZIP fields overflow
+  - ZIP64 central directory values
+  - ZIP64 EOCD records and locator records
+  - ZIP64 offsets, entry counts, and sizes when classic ZIP fields overflow
 - Supports classic stored entries and DEFLATE-compressed entries
 - Supports deterministic, single-member RFC 1952 gzip encoding and strict
   bounded decoding through `encodeGzip()` and `decodeGzipBounded()`
@@ -56,17 +56,17 @@ If this code is extracted into a standalone package later, the intended value pr
 - No encryption support
 - No multi-disk ZIP archive support
 - No compression methods beyond:
-	- store
-	- deflate
+  - store
+  - deflate
 - No tar, tar.gz archive workflow, 7z, or LZMA support
 - Gzip support is intentionally an in-memory single-member codec; it is not a
   multi-member or file-streaming API
 - No true streaming decompression API yet:
-	- `openZipReader` reads metadata lazily
-	- `readEntryBytes()` still materializes the requested entry in memory
+  - `openZipReader` reads metadata lazily
+  - `readEntryBytes()` still materializes the requested entry in memory
 - In-memory APIs are intentionally bounded:
-	- they are for tests and smaller archives
-	- very large entries or archives are rejected with guidance to use the scalable APIs instead
+  - they are for tests and smaller archives
+  - very large entries or archives are rejected with guidance to use the scalable APIs instead
 
 ## Dependency Notes
 
@@ -229,12 +229,12 @@ Ownership is explicit by layer:
 These wrappers are intentionally different from `core/archive-bytes-reader.ts` and `core/archive-bytes-writer.ts`:
 
 - `core/archive-bytes-reader.ts` and `core/archive-bytes-writer.ts` are low-level codec engines.
-	- they parse/serialize ZIP binary structures
-	- they do not provide app-facing ergonomics, cloning policy, or error normalization
+  - they parse/serialize ZIP binary structures
+  - they do not provide app-facing ergonomics, cloning policy, or error normalization
 - `reader/memory-reader.ts` and `writer/memory-writer.ts` are app-facing convenience wrappers.
-	- they expose stable APIs (`parseZipArchive`, `createMemoryZipWriter`)
-	- they apply defensive copying and normalized error messages
-	- they encode/decode text and keep call sites independent from core internals
+  - they expose stable APIs (`parseZipArchive`, `createMemoryZipWriter`)
+  - they apply defensive copying and normalized error messages
+  - they encode/decode text and keep call sites independent from core internals
 
 In short: `core/*` does the binary ZIP work; `memory-*` provides the developer-friendly in-memory API layer.
 

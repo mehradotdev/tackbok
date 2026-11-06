@@ -14,11 +14,7 @@ import type {
 import { MediaIntegrityError, SnapshotProviderError } from '../sync/types';
 import { DriveDiscovery } from './discovery';
 import type { DriveInstrumentationSink, DriveMethodClass } from './instrumentation';
-import type {
-  DriveFileRecord,
-  DriveObjectKind,
-  DriveProviderStateStore,
-} from './state';
+import type { DriveFileRecord, DriveObjectKind, DriveProviderStateStore } from './state';
 import {
   DriveRequestError,
   DriveTransport,
@@ -121,14 +117,20 @@ export function isTrustedDriveResumableUri(uri: string): boolean {
 }
 
 function objectKind(value: unknown): DriveObjectKind | null {
-  return value === 'snapshot' || value === 'head' || value === 'media' || value === 'revocation'
+  return value === 'snapshot' ||
+    value === 'head' ||
+    value === 'media' ||
+    value === 'revocation'
     ? value
     : null;
 }
 
 function parseDriveFile(value: unknown): DriveFile {
   if (!value || typeof value !== 'object') {
-    throw new SnapshotProviderError('invalid-data', 'Drive returned invalid file metadata');
+    throw new SnapshotProviderError(
+      'invalid-data',
+      'Drive returned invalid file metadata',
+    );
   }
   const candidate = value as Partial<DriveFile>;
   if (
@@ -139,7 +141,10 @@ function parseDriveFile(value: unknown): DriveFile {
     !candidate.appProperties ||
     typeof candidate.appProperties !== 'object'
   ) {
-    throw new SnapshotProviderError('invalid-data', 'Drive returned incomplete file metadata');
+    throw new SnapshotProviderError(
+      'invalid-data',
+      'Drive returned incomplete file metadata',
+    );
   }
   return candidate as DriveFile;
 }
@@ -148,7 +153,8 @@ function parseDiscoveryFile(value: unknown): DriveFile | null {
   try {
     return parseDriveFile(value);
   } catch (error) {
-    if (error instanceof SnapshotProviderError && error.code === 'invalid-data') return null;
+    if (error instanceof SnapshotProviderError && error.code === 'invalid-data')
+      return null;
     throw error;
   }
 }
@@ -156,7 +162,10 @@ function parseDiscoveryFile(value: unknown): DriveFile | null {
 function logicalKey(file: DriveFile): string {
   const stored = file.appProperties[PROP_KEY];
   if (!stored || stored !== driveMetadataKey(file.name)) {
-    throw new SnapshotProviderError('invalid-data', 'Drive returned mismatched logical-key metadata');
+    throw new SnapshotProviderError(
+      'invalid-data',
+      'Drive returned mismatched logical-key metadata',
+    );
   }
   return file.name;
 }
@@ -164,7 +173,10 @@ function logicalKey(file: DriveFile): string {
 function parseByteCount(file: DriveFile): number {
   const value = Number(file.size);
   if (!Number.isSafeInteger(value) || value < 0) {
-    throw new SnapshotProviderError('invalid-data', 'Drive returned an invalid byte count');
+    throw new SnapshotProviderError(
+      'invalid-data',
+      'Drive returned an invalid byte count',
+    );
   }
   return value;
 }
@@ -186,8 +198,9 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
 
   constructor(options: GoogleDriveSnapshotProviderOptions) {
     this.state = options.state;
-    this.sleep = options.sleep ?? ((milliseconds) =>
-      new Promise((resolve) => setTimeout(resolve, milliseconds)));
+    this.sleep =
+      options.sleep ??
+      ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
     this.random = options.random ?? Math.random;
     this.now = options.now ?? Date.now;
     this.transport = new DriveTransport({
@@ -216,33 +229,43 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   async listRevocations(
     vaultId: string,
   ): Promise<('backup-deleted' | 'journal-deleted')[]> {
-    const query = this.vaultQuery(vaultId,
-      `name contains 'revocations/' and ${propertyClause(PROP_KIND, 'revocation')}`);
+    const query = this.vaultQuery(
+      vaultId,
+      `name contains 'revocations/' and ${propertyClause(PROP_KIND, 'revocation')}`,
+    );
     const files = await this.queryFiles(vaultId, query);
-    const values = files.map((file) => file.appProperties[PROP_REVOCATION])
-      .filter((value): value is 'backup-deleted' | 'journal-deleted' =>
-        value === 'backup-deleted' || value === 'journal-deleted');
+    const values = files
+      .map((file) => file.appProperties[PROP_REVOCATION])
+      .filter(
+        (value): value is 'backup-deleted' | 'journal-deleted' =>
+          value === 'backup-deleted' || value === 'journal-deleted',
+      );
     return [...new Set(values)].sort();
   }
 
   /** Discovers restorable snapshot vaults without exposing Drive file IDs. */
   async listAvailableVaults(): Promise<AvailableDriveVault[]> {
     const scope = '__vault-discovery__';
-    const query = `'${APP_DATA}' in parents and trashed=false and ` +
+    const query =
+      `'${APP_DATA}' in parents and trashed=false and ` +
       propertyClause(PROP_KIND, 'head');
     const files = await this.queryFiles(scope, query);
     const newest = new Map<string, number>();
     for (const file of files) {
       const vaultId = file.appProperties[PROP_VAULT];
-      if (!vaultId || !/^[\x20-\x7e]+$/.test(vaultId) || utf8(vaultId).length > 128) continue;
+      if (!vaultId || !/^[\x20-\x7e]+$/.test(vaultId) || utf8(vaultId).length > 128)
+        continue;
       const record = await this.safeMaterializeRecord(vaultId, file, 'head');
       if (!record) continue;
       if (!record.head || record.head.vaultId !== vaultId) continue;
       newest.set(vaultId, Math.max(newest.get(vaultId) ?? 0, record.head.updatedAt));
     }
-    return [...newest].map(([vaultId, updatedAt]) => ({ vaultId, updatedAt }))
-      .sort((left, right) => right.updatedAt - left.updatedAt ||
-        left.vaultId.localeCompare(right.vaultId));
+    return [...newest]
+      .map(([vaultId, updatedAt]) => ({ vaultId, updatedAt }))
+      .sort(
+        (left, right) =>
+          right.updatedAt - left.updatedAt || left.vaultId.localeCompare(right.vaultId),
+      );
   }
 
   async publishRevocation(
@@ -253,11 +276,20 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const bytes = encodeCanonicalBytes({ format: 'tackbok-revocation', reason });
     const hash = sha256Bytes(bytes);
     const existing = await this.queryExactKey(vaultId, key, 'revocation');
-    if (existing.some((file) => file.sha256Checksum === hash &&
-        parseByteCount(file) === bytes.byteLength &&
-        file.appProperties[PROP_REVOCATION] === reason)) return;
+    if (
+      existing.some(
+        (file) =>
+          file.sha256Checksum === hash &&
+          parseByteCount(file) === bytes.byteLength &&
+          file.appProperties[PROP_REVOCATION] === reason,
+      )
+    )
+      return;
     if (existing.length > 0) {
-      throw new SnapshotProviderError('invalid-data', 'Revocation key has conflicting content');
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Revocation key has conflicting content',
+      );
     }
     const uploaded = await this.multipartUpload(
       vaultId,
@@ -277,13 +309,19 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     let deleted = 0;
     for (const file of files) {
       if (file.appProperties[PROP_KIND] === 'revocation') continue;
-      await this.request(vaultId, 'delete', `${API}/files/${encodeURIComponent(file.id)}`,
-        { method: 'DELETE' }, { idempotent: true, accepted: [404] });
+      await this.request(
+        vaultId,
+        'delete',
+        `${API}/files/${encodeURIComponent(file.id)}`,
+        { method: 'DELETE' },
+        { idempotent: true, accepted: [404] },
+      );
       this.state.removeFile(vaultId, file.id);
       deleted += 1;
     }
-    const remaining = (await this.queryFiles(vaultId, this.vaultQuery(vaultId)))
-      .filter((file) => file.appProperties[PROP_KIND] !== 'revocation').length;
+    const remaining = (await this.queryFiles(vaultId, this.vaultQuery(vaultId))).filter(
+      (file) => file.appProperties[PROP_KIND] !== 'revocation',
+    ).length;
     return { deleted, remaining };
   }
 
@@ -294,19 +332,28 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
     return this.state.listKind(vaultId, 'head').map((record) => {
       if (!record.head) {
-        throw new SnapshotProviderError('invalid-data', 'Cached Drive head has no validated envelope');
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Cached Drive head has no validated envelope',
+        );
       }
       return { physicalId: record.fileId, head: { ...record.head } };
     });
   }
 
-  async downloadSnapshot(vaultId: string, snapshotId: string): Promise<Uint8Array | null> {
+  async downloadSnapshot(
+    vaultId: string,
+    snapshotId: string,
+  ): Promise<Uint8Array | null> {
     const key = this.snapshotKey(snapshotId);
     const candidates = await this.filesForKey(vaultId, key, 'snapshot');
     if (candidates.length === 0) return null;
     this.assertImmutableCandidates(candidates);
     if (candidates[0].byteCount > SNAPSHOT_CAPS.compressedBytes) {
-      throw new SnapshotProviderError('invalid-data', 'Snapshot exceeds the compressed-byte cap');
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Snapshot exceeds the compressed-byte cap',
+      );
     }
     return this.downloadVerified(vaultId, candidates[0]);
   }
@@ -318,7 +365,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     createdAt: number,
   ): Promise<void> {
     if (bytes.byteLength > SNAPSHOT_CAPS.compressedBytes) {
-      throw new SnapshotProviderError('invalid-data', 'Snapshot exceeds the compressed-byte cap');
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Snapshot exceeds the compressed-byte cap',
+      );
     }
     const key = this.snapshotKey(snapshotId);
     await this.putImmutable(vaultId, key, 'snapshot', bytes, createdAt);
@@ -329,33 +379,51 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     snapshotId: string,
     expectedBytes: Uint8Array,
   ): Promise<boolean> {
-    const candidates = await this.filesForKey(vaultId, this.snapshotKey(snapshotId), 'snapshot');
+    const candidates = await this.filesForKey(
+      vaultId,
+      this.snapshotKey(snapshotId),
+      'snapshot',
+    );
     if (candidates.length === 0) return false;
     const hash = sha256Bytes(expectedBytes);
-    return candidates.every((candidate) =>
-      candidate.contentSha256 === hash && candidate.byteCount === expectedBytes.byteLength);
+    return candidates.every(
+      (candidate) =>
+        candidate.contentSha256 === hash &&
+        candidate.byteCount === expectedBytes.byteLength,
+    );
   }
 
   async updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void> {
     const key = this.headKey(head.deviceId);
     const bytes = encodeCanonicalBytes(head);
     const hash = sha256Bytes(bytes);
-    const existing = this.state.listKey(vaultId, key).filter((file) => file.kind === 'head');
-    const cachedId = existing.sort((left, right) => left.fileId.localeCompare(right.fileId))[0]
-      ?.fileId;
-    const selectedId = cachedId ?? (!this.state.loadDiscovery(vaultId).inventoryComplete
-      ? (await this.queryExactKey(vaultId, key, 'head'))
-        .sort((left, right) => left.id.localeCompare(right.id))[0]?.id
-      : undefined);
+    const existing = this.state
+      .listKey(vaultId, key)
+      .filter((file) => file.kind === 'head');
+    const cachedId = existing.sort((left, right) =>
+      left.fileId.localeCompare(right.fileId),
+    )[0]?.fileId;
+    const selectedId =
+      cachedId ??
+      (!this.state.loadDiscovery(vaultId).inventoryComplete
+        ? (await this.queryExactKey(vaultId, key, 'head')).sort((left, right) =>
+            left.id.localeCompare(right.id),
+          )[0]?.id
+        : undefined);
     try {
       const uploaded = selectedId
         ? await this.multipartUpload(vaultId, key, 'head', bytes, 'update', selectedId)
         : await this.multipartUpload(vaultId, key, 'head', bytes, 'create');
       this.state.upsertFile(vaultId, this.record(uploaded, 'head', head));
     } catch (error) {
-      if (!(error instanceof SnapshotProviderError) || error.code !== 'transient') throw error;
+      if (!(error instanceof SnapshotProviderError) || error.code !== 'transient')
+        throw error;
       const matching = await this.reconcileAmbiguousWrite(
-        vaultId, key, 'head', hash, bytes.byteLength,
+        vaultId,
+        key,
+        'head',
+        hash,
+        bytes.byteLength,
       );
       if (!matching) throw error;
       this.state.upsertFile(vaultId, this.record(matching, 'head', head));
@@ -371,7 +439,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const unknown: string[] = [];
     for (const hash of unique) {
       const key = this.mediaKey(hash);
-      const cached = this.state.listKey(vaultId, key)
+      const cached = this.state
+        .listKey(vaultId, key)
         .some((file) => file.kind === 'media' && file.contentSha256 === hash);
       if (cached) found.add(hash);
       else unknown.push(hash);
@@ -399,8 +468,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     blobHash: string,
     source: MediaUploadSource,
   ): Promise<void> {
-    if (source.contentHash !== blobHash || !Number.isSafeInteger(source.byteLength) ||
-        source.byteLength < 0 || source.byteLength > SNAPSHOT_CAPS.mediaByteSize) {
+    if (
+      source.contentHash !== blobHash ||
+      !Number.isSafeInteger(source.byteLength) ||
+      source.byteLength < 0 ||
+      source.byteLength > SNAPSHOT_CAPS.mediaByteSize
+    ) {
       throw new SnapshotProviderError('invalid-data', 'Media source metadata is invalid');
     }
     await this.putImmutableMedia(vaultId, this.mediaKey(blobHash), source, this.now());
@@ -416,7 +489,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     this.assertImmutableCandidates(candidates);
     const file = candidates[0];
     if (file.contentSha256 !== blobHash || file.byteCount > SNAPSHOT_CAPS.mediaByteSize) {
-      throw new SnapshotProviderError('invalid-data', 'Drive media metadata does not match its key');
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Drive media metadata does not match its key',
+      );
     }
     try {
       await this.downloadMediaToSink(vaultId, file, sink);
@@ -441,20 +517,27 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         createdAt: file.createdAt ?? 0,
         byteCount: file.byteCount,
       };
-      if (!prior || candidate.createdAt < prior.createdAt) grouped.set(match[1], candidate);
+      if (!prior || candidate.createdAt < prior.createdAt)
+        grouped.set(match[1], candidate);
     }
-    return [...grouped.values()].sort((left, right) =>
-      left.createdAt - right.createdAt || left.snapshotId.localeCompare(right.snapshotId));
+    return [...grouped.values()].sort(
+      (left, right) =>
+        left.createdAt - right.createdAt ||
+        left.snapshotId.localeCompare(right.snapshotId),
+    );
   }
 
   async deleteSnapshot(vaultId: string, snapshotId: string): Promise<void> {
     const key = this.snapshotKey(snapshotId);
     const candidates = await this.filesForKey(vaultId, key, 'snapshot');
     for (const candidate of candidates) {
-      await this.request(vaultId, 'delete',
+      await this.request(
+        vaultId,
+        'delete',
         `${API}/files/${encodeURIComponent(candidate.fileId)}`,
         { method: 'DELETE' },
-        { idempotent: true, accepted: [404] });
+        { idempotent: true, accepted: [404] },
+      );
       this.state.removeFile(vaultId, candidate.fileId);
     }
   }
@@ -465,12 +548,16 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     kind: DriveObjectKind,
   ): Promise<DriveFileRecord> {
     if (kind !== 'head') return this.record(file, kind, null);
-    const cached = this.state.listKey(vaultId, logicalKey(file)).find((record) =>
-      record.fileId === file.id &&
-      record.kind === 'head' &&
-      record.head !== null &&
-      record.contentSha256 === file.sha256Checksum &&
-      record.byteCount === parseByteCount(file));
+    const cached = this.state
+      .listKey(vaultId, logicalKey(file))
+      .find(
+        (record) =>
+          record.fileId === file.id &&
+          record.kind === 'head' &&
+          record.head !== null &&
+          record.contentSha256 === file.sha256Checksum &&
+          record.byteCount === parseByteCount(file),
+      );
     if (cached) return cached;
     const bytes = await this.downloadFile(vaultId, file);
     const parsed = parseJsonStrict(decodeUtf8Strict(bytes));
@@ -489,7 +576,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     try {
       return await this.materializeRecord(vaultId, file, kind);
     } catch (error) {
-      if (!(error instanceof SnapshotProviderError) || error.code !== 'invalid-data') throw error;
+      if (!(error instanceof SnapshotProviderError) || error.code !== 'invalid-data')
+        throw error;
       this.state.removeFile(vaultId, file.id);
       if (rejectInvalid) throw error;
       return null;
@@ -506,7 +594,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const files = await this.queryExactKey(vaultId, key, kind);
     const records: DriveFileRecord[] = [];
     for (const file of files) {
-      const record = await this.safeMaterializeRecord(vaultId, file, kind, kind === 'head');
+      const record = await this.safeMaterializeRecord(
+        vaultId,
+        file,
+        kind,
+        kind === 'head',
+      );
       if (!record) continue;
       this.state.upsertFile(vaultId, record);
       records.push(record);
@@ -519,9 +612,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     key: string,
     kind: DriveObjectKind,
   ): Promise<DriveFile[]> {
-    return this.queryFiles(vaultId, this.vaultQuery(vaultId,
-      `name = '${escapeQueryValue(key)}' and ${propertyClause(PROP_KIND, kind)} and ` +
-      propertyClause(PROP_KEY, driveMetadataKey(key))));
+    return this.queryFiles(
+      vaultId,
+      this.vaultQuery(
+        vaultId,
+        `name = '${escapeQueryValue(key)}' and ${propertyClause(PROP_KIND, kind)} and ` +
+          propertyClause(PROP_KEY, driveMetadataKey(key)),
+      ),
+    );
   }
 
   private async putImmutable(
@@ -532,7 +630,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     createdAt: number,
   ): Promise<void> {
     return this.serializeImmutableWrite(vaultId, kind, key, () =>
-      this.putImmutableOnce(vaultId, key, kind, bytes, createdAt));
+      this.putImmutableOnce(vaultId, key, kind, bytes, createdAt),
+    );
   }
 
   private async putImmutableOnce(
@@ -545,29 +644,48 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const hash = sha256Bytes(bytes);
     const cached = this.state.listKey(vaultId, key).filter((file) => file.kind === kind);
     if (cached.length > 0) {
-      if (cached.some((file) =>
-        file.contentSha256 !== hash || file.byteCount !== bytes.byteLength)) {
-        throw new SnapshotProviderError('invalid-data', 'Immutable Drive key has conflicting content');
+      if (
+        cached.some(
+          (file) => file.contentSha256 !== hash || file.byteCount !== bytes.byteLength,
+        )
+      ) {
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Immutable Drive key has conflicting content',
+        );
       }
       return;
     }
     let uploaded: DriveFile | null = null;
     try {
-      uploaded = bytes.byteLength <= MULTIPART_MAX_BYTES
-        ? await this.multipartUpload(vaultId, key, kind, bytes, 'create')
-        : await this.resumableUpload(vaultId, key, kind, bytes);
+      uploaded =
+        bytes.byteLength <= MULTIPART_MAX_BYTES
+          ? await this.multipartUpload(vaultId, key, kind, bytes, 'create')
+          : await this.resumableUpload(vaultId, key, kind, bytes);
       const record = this.record(uploaded, kind, null);
       if (record.contentSha256 !== hash || record.byteCount !== bytes.byteLength) {
-        throw new SnapshotProviderError('invalid-data', 'Drive upload checksum does not match');
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Drive upload checksum does not match',
+        );
       }
       this.state.upsertFile(vaultId, { ...record, createdAt });
     } catch (error) {
-      if (uploaded && error instanceof SnapshotProviderError && error.code === 'invalid-data') {
+      if (
+        uploaded &&
+        error instanceof SnapshotProviderError &&
+        error.code === 'invalid-data'
+      ) {
         await this.deleteCreatedFileBestEffort(vaultId, uploaded.id);
       }
-      if (!(error instanceof SnapshotProviderError) || error.code !== 'transient') throw error;
+      if (!(error instanceof SnapshotProviderError) || error.code !== 'transient')
+        throw error;
       const match = await this.reconcileAmbiguousWrite(
-        vaultId, key, kind, hash, bytes.byteLength,
+        vaultId,
+        key,
+        kind,
+        hash,
+        bytes.byteLength,
       );
       if (!match) throw error;
       this.state.upsertFile(vaultId, this.record(match, kind, null));
@@ -581,7 +699,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     createdAt: number,
   ): Promise<void> {
     return this.serializeImmutableWrite(vaultId, 'media', key, () =>
-      this.putImmutableMediaOnce(vaultId, key, source, createdAt));
+      this.putImmutableMediaOnce(vaultId, key, source, createdAt),
+    );
   }
 
   private async putImmutableMediaOnce(
@@ -590,43 +709,74 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     source: MediaUploadSource,
     createdAt: number,
   ): Promise<void> {
-    const cached = this.state.listKey(vaultId, key).filter((file) => file.kind === 'media');
+    const cached = this.state
+      .listKey(vaultId, key)
+      .filter((file) => file.kind === 'media');
     if (cached.length > 0) {
-      if (cached.some((file) => file.contentSha256 !== source.contentHash ||
-          file.byteCount !== source.byteLength)) {
-        throw new SnapshotProviderError('invalid-data', 'Immutable Drive key has conflicting content');
+      if (
+        cached.some(
+          (file) =>
+            file.contentSha256 !== source.contentHash ||
+            file.byteCount !== source.byteLength,
+        )
+      ) {
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Immutable Drive key has conflicting content',
+        );
       }
       return;
     }
     let uploaded: DriveFile | null = null;
     try {
       if (source.byteLength <= MULTIPART_MAX_BYTES) {
-        const bytes = source.byteLength === 0
-          ? new Uint8Array()
-          : await source.read(0, source.byteLength);
+        const bytes =
+          source.byteLength === 0
+            ? new Uint8Array()
+            : await source.read(0, source.byteLength);
         if (bytes.byteLength !== source.byteLength) {
-          throw new SnapshotProviderError('invalid-data', 'Media source ended before its declared size');
+          throw new SnapshotProviderError(
+            'invalid-data',
+            'Media source ended before its declared size',
+          );
         }
         if (sha256Bytes(bytes) !== source.contentHash) {
-          throw new SnapshotProviderError('invalid-data', 'Media source content changed before upload');
+          throw new SnapshotProviderError(
+            'invalid-data',
+            'Media source content changed before upload',
+          );
         }
         uploaded = await this.multipartUpload(vaultId, key, 'media', bytes, 'create');
       } else {
         uploaded = await this.resumableUploadSource(vaultId, key, source);
       }
       const record = this.record(uploaded, 'media', null);
-      if (record.contentSha256 !== source.contentHash ||
-          record.byteCount !== source.byteLength) {
-        throw new SnapshotProviderError('invalid-data', 'Drive upload checksum does not match');
+      if (
+        record.contentSha256 !== source.contentHash ||
+        record.byteCount !== source.byteLength
+      ) {
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Drive upload checksum does not match',
+        );
       }
       this.state.upsertFile(vaultId, { ...record, createdAt });
     } catch (error) {
-      if (uploaded && error instanceof SnapshotProviderError && error.code === 'invalid-data') {
+      if (
+        uploaded &&
+        error instanceof SnapshotProviderError &&
+        error.code === 'invalid-data'
+      ) {
         await this.deleteCreatedFileBestEffort(vaultId, uploaded.id);
       }
-      if (!(error instanceof SnapshotProviderError) || error.code !== 'transient') throw error;
+      if (!(error instanceof SnapshotProviderError) || error.code !== 'transient')
+        throw error;
       const match = await this.reconcileAmbiguousWrite(
-        vaultId, key, 'media', source.contentHash, source.byteLength,
+        vaultId,
+        key,
+        'media',
+        source.contentHash,
+        source.byteLength,
       );
       if (!match) throw error;
       this.state.upsertFile(vaultId, this.record(match, 'media', null));
@@ -641,19 +791,28 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   ): Promise<void> {
     const identity = `${vaultId}\0${kind}\0${key}`;
     const previous = this.immutableWrites.get(identity);
-    const running = (previous
-      ? previous.catch(() => undefined).then(operation)
-      : operation()).finally(() => {
-      if (this.immutableWrites.get(identity) === running) this.immutableWrites.delete(identity);
+    const running = (
+      previous ? previous.catch(() => undefined).then(operation) : operation()
+    ).finally(() => {
+      if (this.immutableWrites.get(identity) === running)
+        this.immutableWrites.delete(identity);
     });
     this.immutableWrites.set(identity, running);
     return running;
   }
 
-  private async deleteCreatedFileBestEffort(vaultId: string, fileId: string): Promise<void> {
+  private async deleteCreatedFileBestEffort(
+    vaultId: string,
+    fileId: string,
+  ): Promise<void> {
     try {
-      await this.request(vaultId, 'delete', `${API}/files/${encodeURIComponent(fileId)}`,
-        { method: 'DELETE' }, { idempotent: true, accepted: [404] });
+      await this.request(
+        vaultId,
+        'delete',
+        `${API}/files/${encodeURIComponent(fileId)}`,
+        { method: 'DELETE' },
+        { idempotent: true, accepted: [404] },
+      );
       this.state.removeFile(vaultId, fileId);
     } catch {
       // Discovery quarantines the inconsistent object if cleanup cannot complete.
@@ -669,8 +828,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   ): Promise<DriveFile | null> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const files = await this.queryExactKey(vaultId, key, kind);
-      const match = files.find((file) =>
-        file.sha256Checksum === expectedHash && parseByteCount(file) === expectedBytes);
+      const match = files.find(
+        (file) =>
+          file.sha256Checksum === expectedHash && parseByteCount(file) === expectedBytes,
+      );
       if (match) return match;
       if (attempt < 2) await this.sleep(250 * (attempt + 1));
     }
@@ -698,14 +859,17 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       operation === 'create',
     );
     const payload = concatBytes([
-      utf8(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`),
+      utf8(
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
+      ),
       utf8(`--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`),
       bytes,
       utf8(`\r\n--${boundary}--`),
     ]);
-    const target = operation === 'update'
-      ? `${UPLOAD_API}/files/${encodeURIComponent(fileId!)}?uploadType=multipart&fields=${FILE_FIELDS}`
-      : `${UPLOAD_API}/files?uploadType=multipart&fields=${FILE_FIELDS}`;
+    const target =
+      operation === 'update'
+        ? `${UPLOAD_API}/files/${encodeURIComponent(fileId!)}?uploadType=multipart&fields=${FILE_FIELDS}`
+        : `${UPLOAD_API}/files?uploadType=multipart&fields=${FILE_FIELDS}`;
     const response = await this.request(
       vaultId,
       operation,
@@ -763,32 +927,48 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const hash = source.contentHash;
     let session = this.state.getUploadSession(vaultId, key, hash);
     let uploaded = session?.uploadedBytes ?? 0;
-    if (session && (!isTrustedDriveResumableUri(session.uri) ||
-        session.expiresAt <= this.now() || session.byteCount !== source.byteLength ||
-        uploaded < 0 || uploaded > source.byteLength)) {
+    if (
+      session &&
+      (!isTrustedDriveResumableUri(session.uri) ||
+        session.expiresAt <= this.now() ||
+        session.byteCount !== source.byteLength ||
+        uploaded < 0 ||
+        uploaded > source.byteLength)
+    ) {
       this.state.deleteUploadSession(vaultId, key, hash);
       session = null;
       uploaded = 0;
     }
     if (session) {
       try {
-        const status = await this.request(vaultId, 'resumable-chunk', session.uri, {
-          method: 'PUT',
-          headers: {
-            'Content-Length': '0',
-            'Content-Range': `bytes */${source.byteLength}`,
+        const status = await this.request(
+          vaultId,
+          'resumable-chunk',
+          session.uri,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Length': '0',
+              'Content-Range': `bytes */${source.byteLength}`,
+            },
           },
-        }, { idempotent: true, accepted: [200, 201, 308] });
+          { idempotent: true, accepted: [200, 201, 308] },
+        );
         if (status.status === 200 || status.status === 201) {
           this.state.deleteUploadSession(vaultId, key, hash);
           return parseDriveFile(await status.json());
         }
         const range = /^bytes=0-(\d+)$/.exec(status.headers.get('range') ?? '');
         uploaded = range ? Number(range[1]) + 1 : 0;
-        if (uploaded > source.byteLength ||
-            (uploaded < source.byteLength && uploaded % CHUNK_SIZE !== 0)) {
+        if (
+          uploaded > source.byteLength ||
+          (uploaded < source.byteLength && uploaded % CHUNK_SIZE !== 0)
+        ) {
           this.state.deleteUploadSession(vaultId, key, hash);
-          throw new SnapshotProviderError('invalid-data', 'Drive returned an invalid upload offset');
+          throw new SnapshotProviderError(
+            'invalid-data',
+            'Drive returned an invalid upload offset',
+          );
         }
         session = { ...session, uploadedBytes: uploaded };
         this.state.setUploadSession(vaultId, session);
@@ -819,7 +999,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       );
       const uri = response.headers.get('location');
       if (!uri || !isTrustedDriveResumableUri(uri)) {
-        throw new SnapshotProviderError('invalid-data', 'Drive returned an untrusted upload session');
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Drive returned an untrusted upload session',
+        );
       }
       session = {
         logicalKey: key,
@@ -837,19 +1020,28 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         const requested = Math.min(chunkSize, source.byteLength - uploaded);
         const chunk = await source.read(uploaded, requested);
         if (chunk.byteLength !== requested) {
-          throw new SnapshotProviderError('invalid-data', 'Upload source ended before its declared size');
+          throw new SnapshotProviderError(
+            'invalid-data',
+            'Upload source ended before its declared size',
+          );
         }
         const end = uploaded + chunk.byteLength;
         const final = end === source.byteLength;
-        const response = await this.request(vaultId, 'resumable-chunk', session.uri, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'Content-Length': String(chunk.byteLength),
-            'Content-Range': `bytes ${uploaded}-${end - 1}/${source.byteLength}`,
+        const response = await this.request(
+          vaultId,
+          'resumable-chunk',
+          session.uri,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'Content-Length': String(chunk.byteLength),
+              'Content-Range': `bytes ${uploaded}-${end - 1}/${source.byteLength}`,
+            },
+            body: chunk,
           },
-          body: chunk,
-        }, { idempotent: true, accepted: final ? [200, 201] : [308] });
+          { idempotent: true, accepted: final ? [200, 201] : [308] },
+        );
         uploaded = end;
         session = { ...session, uploadedBytes: uploaded };
         this.state.setUploadSession(vaultId, session);
@@ -864,7 +1056,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       }
       throw error;
     }
-    throw new SnapshotProviderError('transient', 'Drive resumable upload did not complete');
+    throw new SnapshotProviderError(
+      'transient',
+      'Drive resumable upload did not complete',
+    );
   }
 
   private async downloadVerified(
@@ -891,7 +1086,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const declaredBytes = parseByteCount(file);
     const byteCap = kind === 'head' ? HEAD_MAX_BYTES : SNAPSHOT_CAPS.compressedBytes;
     if (declaredBytes > byteCap) {
-      throw new SnapshotProviderError('invalid-data', `Drive ${kind ?? 'object'} exceeds its byte cap`);
+      throw new SnapshotProviderError(
+        'invalid-data',
+        `Drive ${kind ?? 'object'} exceeds its byte cap`,
+      );
     }
     const response = await this.request(
       vaultId,
@@ -902,7 +1100,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     );
     const responseLength = Number(response.headers.get('content-length'));
     if (Number.isFinite(responseLength) && responseLength > byteCap) {
-      throw new SnapshotProviderError('invalid-data', 'Drive download exceeds its byte cap');
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Drive download exceeds its byte cap',
+      );
     }
     const chunks: Uint8Array[] = [];
     let receivedBytes = 0;
@@ -914,7 +1115,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         if (value?.byteLength) {
           receivedBytes += value.byteLength;
           if (receivedBytes > byteCap) {
-            throw new SnapshotProviderError('invalid-data', 'Drive download exceeded its byte cap');
+            throw new SnapshotProviderError(
+              'invalid-data',
+              'Drive download exceeded its byte cap',
+            );
           }
           chunks.push(new Uint8Array(value));
         }
@@ -922,14 +1126,22 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     } else {
       const value = new Uint8Array(await response.arrayBuffer());
       if (value.byteLength > byteCap) {
-        throw new SnapshotProviderError('invalid-data', 'Drive download exceeded its byte cap');
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Drive download exceeded its byte cap',
+        );
       }
       chunks.push(value);
     }
     const bytes = concatBytes(chunks);
-    if (bytes.byteLength !== parseByteCount(file) ||
-        sha256Bytes(bytes) !== file.sha256Checksum) {
-      throw new SnapshotProviderError('invalid-data', 'Drive download checksum does not match');
+    if (
+      bytes.byteLength !== parseByteCount(file) ||
+      sha256Bytes(bytes) !== file.sha256Checksum
+    ) {
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Drive download checksum does not match',
+      );
     }
     return bytes;
   }
@@ -970,7 +1182,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       offset += combined.byteLength;
     };
     if (!response.body) {
-      throw new SnapshotProviderError('transient', 'Drive did not provide a streaming media body');
+      throw new SnapshotProviderError(
+        'transient',
+        'Drive did not provide a streaming media body',
+      );
     }
     const reader = response.body.getReader();
     while (true) {
@@ -979,7 +1194,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       if (!value?.byteLength) continue;
       let consumed = 0;
       while (consumed < value.byteLength) {
-        const accepted = Math.min(MEDIA_CHUNK_SIZE - pendingBytes, value.byteLength - consumed);
+        const accepted = Math.min(
+          MEDIA_CHUNK_SIZE - pendingBytes,
+          value.byteLength - consumed,
+        );
         pending.push(value.subarray(consumed, consumed + accepted));
         pendingBytes += accepted;
         consumed += accepted;
@@ -1014,7 +1232,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         {},
         { idempotent: true },
       );
-      const body = await response.json() as { files?: unknown[]; nextPageToken?: unknown };
+      const body = (await response.json()) as {
+        files?: unknown[];
+        nextPageToken?: unknown;
+      };
       for (const value of body.files ?? []) {
         const file = parseDiscoveryFile(value);
         if (file) files.push(file);
@@ -1052,7 +1273,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   ): DriveFileRecord {
     const kind = objectKind(file.appProperties[PROP_KIND]);
     if (kind !== expectedKind || file.appProperties[PROP_HASH] !== file.sha256Checksum) {
-      throw new SnapshotProviderError('invalid-data', 'Drive file metadata is internally inconsistent');
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Drive file metadata is internally inconsistent',
+      );
     }
     return {
       fileId: file.id,
@@ -1066,10 +1290,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   }
 
   private assertImmutableCandidates(candidates: readonly DriveFileRecord[]): void {
-    const identities = new Set(candidates.map((candidate) =>
-      `${candidate.contentSha256}:${candidate.byteCount}`));
+    const identities = new Set(
+      candidates.map((candidate) => `${candidate.contentSha256}:${candidate.byteCount}`),
+    );
     if (identities.size > 1) {
-      throw new SnapshotProviderError('invalid-data', 'Immutable Drive key has conflicting duplicates');
+      throw new SnapshotProviderError(
+        'invalid-data',
+        'Immutable Drive key has conflicting duplicates',
+      );
     }
   }
 
@@ -1086,8 +1314,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   }
 
   private vaultQuery(vaultId: string, suffix?: string): string {
-    return `'${APP_DATA}' in parents and trashed=false and ` +
-      `${propertyClause(PROP_VAULT, vaultId)}${suffix ? ` and (${suffix})` : ''}`;
+    return (
+      `'${APP_DATA}' in parents and trashed=false and ` +
+      `${propertyClause(PROP_VAULT, vaultId)}${suffix ? ` and (${suffix})` : ''}`
+    );
   }
 
   private async request(

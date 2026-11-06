@@ -16,15 +16,15 @@ All size units below are MiB (1,048,576 bytes). ZIP stored bytes are not Play's 
 
 ## Conclusions and priority
 
-| Priority | Action | Expected effect | Confidence / constraint |
-| --- | --- | --- | --- |
-| P0 | Enable release R8, resource shrinking, and the optimized ProGuard preset through persistent Expo configuration | Directly addresses the low DEX obfuscation/optimization issue | Configuration gap confirmed; final Play percentage and savings require a native release build |
-| P1 | Import the eight used Inter/JetBrains Mono faces from per-weight subpaths | Removes 26 unnecessary font variants: 5.96 MiB raw / 2.91 MiB compressed in the old APK | Strong evidence; verify export asset list after change |
-| P1 | Fix or upgrade audio-api notification artwork loader | Addresses the exact bitmap warning | Installed source still contains the flagged network/decode pattern |
-| P1 | Track framework fixes for deprecated edge-to-edge APIs and test insets | Addresses compatibility recommendation | Named RN calls are still in installed RN 0.86.0; source upgrade alone has not removed them |
-| P2 | Evaluate Metro tree shaking / icon import strategy | Reduce JS module graph, bundle and OTA payload | Current graph includes 1,713 Lucide icon modules; experimental optimization needs runtime validation |
-| P3 | Remove or relocate four legacy image PNGs | Repository cleanup: 0.775 MiB | No expected baseline APK saving; these images were not bundled |
-| Deferred | Replace audio engine or Skia | Potentially large native savings | Significant feature migration, not safe dependency deletion |
+| Priority | Action                                                                                                         | Expected effect                                                                         | Confidence / constraint                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| P0       | Enable release R8, resource shrinking, and the optimized ProGuard preset through persistent Expo configuration | Directly addresses the low DEX obfuscation/optimization issue                           | Configuration gap confirmed; final Play percentage and savings require a native release build        |
+| P1       | Import the eight used Inter/JetBrains Mono faces from per-weight subpaths                                      | Removes 26 unnecessary font variants: 5.96 MiB raw / 2.91 MiB compressed in the old APK | Strong evidence; verify export asset list after change                                               |
+| P1       | Fix or upgrade audio-api notification artwork loader                                                           | Addresses the exact bitmap warning                                                      | Installed source still contains the flagged network/decode pattern                                   |
+| P1       | Track framework fixes for deprecated edge-to-edge APIs and test insets                                         | Addresses compatibility recommendation                                                  | Named RN calls are still in installed RN 0.86.0; source upgrade alone has not removed them           |
+| P2       | Evaluate Metro tree shaking / icon import strategy                                                             | Reduce JS module graph, bundle and OTA payload                                          | Current graph includes 1,713 Lucide icon modules; experimental optimization needs runtime validation |
+| P3       | Remove or relocate four legacy image PNGs                                                                      | Repository cleanup: 0.775 MiB                                                           | No expected baseline APK saving; these images were not bundled                                       |
+| Deferred | Replace audio engine or Skia                                                                                   | Potentially large native savings                                                        | Significant feature migration, not safe dependency deletion                                          |
 
 Apple's lack of these warnings is expected: DEX, R8, Android window APIs and this Kotlin artwork loader belong to the Android build. Shared font and JS improvements can still benefit both platforms.
 
@@ -66,14 +66,14 @@ Reference: [RevenueCat installation and legacy workaround](https://www.revenueca
 
 ## 3. Measured baseline package composition
 
-| Component | Raw bytes, MiB | ZIP-stored bytes, MiB |
-| --- | ---: | ---: |
-| Native libraries, all four ABIs | 164.32 | 164.32 |
-| DEX, six files | 57.38 | 20.44 |
-| Hermes bundle | 9.37 | 9.37 |
-| res/raw, all 46 entries | 9.13 | 4.43 |
-| resources.arsc | 2.00 | 2.00 |
-| org/ Java resources | 1.48 | 1.27 |
+| Component                       | Raw bytes, MiB | ZIP-stored bytes, MiB |
+| ------------------------------- | -------------: | --------------------: |
+| Native libraries, all four ABIs |         164.32 |                164.32 |
+| DEX, six files                  |          57.38 |                 20.44 |
+| Hermes bundle                   |           9.37 |                  9.37 |
+| res/raw, all 46 entries         |           9.13 |                  4.43 |
+| resources.arsc                  |           2.00 |                  2.00 |
+| org/ Java resources             |           1.48 |                  1.27 |
 
 Whole APK: 214,225,542 bytes = 204.30 MiB. Native arm64 libraries alone: 43.48 MiB. Other architectures: x86 45.27, x86_64 44.74, armeabi-v7a 30.83 MiB. Subtracting the other ABIs arithmetically gives approximately 83.46 MiB; this is NOT a measured device APK or download estimate.
 
@@ -107,11 +107,11 @@ Material Symbols (956,044 bytes) is pulled through `expo-symbols` (current sourc
 
 These baseline image files have no discovered app/config runtime references and no corresponding assets in the old APK or current Metro export:
 
-| File under assets/images | Bytes |
-| --- | ---: |
-| icon.png | 217,425 |
-| icon_old.png | 333,635 |
-| logo_transparent_dark.png | 131,344 |
+| File under assets/images   |   Bytes |
+| -------------------------- | ------: |
+| icon.png                   | 217,425 |
+| icon_old.png               | 333,635 |
+| logo_transparent_dark.png  | 131,344 |
 | logo_transparent_light.png | 130,227 |
 
 They are candidates for deletion or relocation to design references, totaling 812,631 bytes. Expected baseline binary saving: zero. Git history retains old blobs after a normal deletion.
@@ -179,7 +179,6 @@ References: [Expo bundle analysis](https://docs.expo.dev/guides/analyzing-bundle
 
 No native optimized build or device regression pass was performed during this audit, so there is no measured R8 savings or claim that Play warnings have cleared.
 
-
 ## Follow-up: EAS local production validation
 
 The subsequent implementation enables release R8/resource shrinking, selects the
@@ -201,7 +200,6 @@ Expo 57.0.9 / RN 0.86.2 and later; its current SDK 57 patch set includes RN 0.86
 Do not treat a successful Gradle build as evidence that the runtime regression is
 absent. See [Expo SDK 57 known regressions](https://expo.dev/changelog/sdk-57#known-regressions).
 
-
 EAS local result: the first attempt failed before R8 because GitHub DNS lookup
 failed during audio-api binary downloads, leaving `libavcodec.so` unavailable.
 A connectivity check and retry succeeded without an app-code workaround.
@@ -216,7 +214,6 @@ warnings were non-fatal. No Play submission or on-device testing was performed.
 The Doctor issues above remain unresolved and should be handled before public
 rollout. Temporary EAS build files were removed after verification; the final AAB
 remains locally in the ignored build-artifact path.
-
 
 ## SDK 57 patch alignment and local version policy
 
@@ -247,7 +244,6 @@ tests passed; 71 Bun cloud-sync tests passed; lint had zero errors and 18 warnin
 iOS production JS export passed. This does not constitute an iOS native build or
 public-release approval. Release smoke-test/build results are recorded below. Physical-device audio, authenticated sync, purchases/restore and Play
 internal-track validation still require evidence before public rollout approval.
-
 
 ### Completed native build and smoke test
 

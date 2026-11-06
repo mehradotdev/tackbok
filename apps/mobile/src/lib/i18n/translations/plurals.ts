@@ -36,8 +36,7 @@ export const pluralMessages = {
     'entry.maximumCountPhotosPerEntry_many': 'Hasta {count} fotos por entrada',
     'entry.maximumCountPhotosPerEntry_other': 'Hasta {count} fotos por entrada',
     'entry.maximumCountVoiceMemosPerEntry_one': 'Hasta {count} nota de voz por entrada',
-    'entry.maximumCountVoiceMemosPerEntry_many':
-      'Hasta {count} notas de voz por entrada',
+    'entry.maximumCountVoiceMemosPerEntry_many': 'Hasta {count} notas de voz por entrada',
     'entry.maximumCountVoiceMemosPerEntry_other':
       'Hasta {count} notas de voz por entrada',
     'insights.countYearsAgoToday_one': 'Hoy hace {count} año',

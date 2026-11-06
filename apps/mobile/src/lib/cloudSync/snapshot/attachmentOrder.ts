@@ -1,5 +1,8 @@
 /** Order never decides membership. Missing IDs are appended, deleted IDs ignored. */
-export function completeAttachmentOrder(order: readonly string[] | undefined, liveIds: readonly string[]): string[] {
+export function completeAttachmentOrder(
+  order: readonly string[] | undefined,
+  liveIds: readonly string[],
+): string[] {
   const remaining = new Set(liveIds);
   const result: string[] = [];
   for (const id of order ?? []) {
@@ -19,14 +22,19 @@ export function mergeAttachmentOrder(
   liveIds: readonly string[],
 ): string[] {
   const live = new Set(liveIds);
-  const project = (ids: readonly string[] | undefined) => [...new Set(ids ?? [])].filter((id) => live.has(id));
-  const b = project(base), l = project(local), r = project(remote);
+  const project = (ids: readonly string[] | undefined) =>
+    [...new Set(ids ?? [])].filter((id) => live.has(id));
+  const b = project(base),
+    l = project(local),
+    r = project(remote);
   const key = (ids: string[]) => JSON.stringify(ids);
   let primary: string[], secondary: string[];
   if (local === undefined || (base !== undefined && key(l) === key(b))) {
-    primary = r; secondary = l;
+    primary = r;
+    secondary = l;
   } else if (remote === undefined || (base !== undefined && key(r) === key(b))) {
-    primary = l; secondary = r;
+    primary = l;
+    secondary = r;
   } else {
     [primary, secondary] = key(l) <= key(r) ? [l, r] : [r, l];
   }

@@ -91,8 +91,20 @@ export function assertDriveReportIsRedacted(value: unknown): void {
     }
   }
   for (const forbiddenKey of [
-    'token', 'email', 'account', 'fileId', 'fileName', 'logicalKey', 'query',
-    'url', 'uri', 'body', 'content', 'snapshotId', 'blobHash', 'deviceId',
+    'token',
+    'email',
+    'account',
+    'fileId',
+    'fileName',
+    'logicalKey',
+    'query',
+    'url',
+    'uri',
+    'body',
+    'content',
+    'snapshotId',
+    'blobHash',
+    'deviceId',
   ]) {
     if (new RegExp(`"${forbiddenKey}"\\s*:`, 'i').test(serialized)) {
       throw new Error(`Drive report contains forbidden field ${forbiddenKey}`);
@@ -100,7 +112,9 @@ export function assertDriveReportIsRedacted(value: unknown): void {
   }
 }
 
-export function driveDurationBucket(milliseconds: number): DriveRequestMetric['durationBucket'] {
+export function driveDurationBucket(
+  milliseconds: number,
+): DriveRequestMetric['durationBucket'] {
   if (milliseconds < 100) return '<100ms';
   if (milliseconds < 500) return '<500ms';
   if (milliseconds < 2_000) return '<2s';

@@ -49,29 +49,30 @@ export type SyncRecoveryAction =
   | 'verify-backup-health';
 
 /** Stable action IDs used to select localized recovery copy. */
-export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecoveryAction> = {
-  'authorization-required': 'reconnect-google-drive',
-  'account-mismatch': 'choose-connected-account',
-  'consent-incomplete': 'finish-connection',
-  'wrong-vault': 'reconnect-correct-backup',
-  'unsupported-format': 'update-tackbok',
-  'invalid-remote-snapshot': 'retry-verify-backup',
-  'head-snapshot-missing': 'repair-from-verified-backup',
-  'ambiguous-device-head': 'inspect-repair-backup',
-  'frontier-too-wide': 'consolidate-backups',
-  'derived-id-collision': 'export-repair-backup',
-  'local-storage-full': 'free-device-storage',
-  'provider-quota-full': 'manage-drive-storage',
-  'provider-permission-denied': 'reconnect-google-drive',
-  'provider-request-rejected': 'update-tackbok',
-  'missing-media': 'retry-missing-media',
-  'local-media-unreadable': 'locate-retry-attachment',
-  'normalized-model-not-ready': 'retry-journal-preparation',
-  'backup-deleted': 'acknowledge-disconnect',
-  'journal-deleted': 'review-erase-device',
-  'purge-incomplete': 'resume-deletion',
-  'cleanup-inconsistent': 'verify-backup-health',
-};
+export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecoveryAction> =
+  {
+    'authorization-required': 'reconnect-google-drive',
+    'account-mismatch': 'choose-connected-account',
+    'consent-incomplete': 'finish-connection',
+    'wrong-vault': 'reconnect-correct-backup',
+    'unsupported-format': 'update-tackbok',
+    'invalid-remote-snapshot': 'retry-verify-backup',
+    'head-snapshot-missing': 'repair-from-verified-backup',
+    'ambiguous-device-head': 'inspect-repair-backup',
+    'frontier-too-wide': 'consolidate-backups',
+    'derived-id-collision': 'export-repair-backup',
+    'local-storage-full': 'free-device-storage',
+    'provider-quota-full': 'manage-drive-storage',
+    'provider-permission-denied': 'reconnect-google-drive',
+    'provider-request-rejected': 'update-tackbok',
+    'missing-media': 'retry-missing-media',
+    'local-media-unreadable': 'locate-retry-attachment',
+    'normalized-model-not-ready': 'retry-journal-preparation',
+    'backup-deleted': 'acknowledge-disconnect',
+    'journal-deleted': 'review-erase-device',
+    'purge-incomplete': 'resume-deletion',
+    'cleanup-inconsistent': 'verify-backup-health',
+  };
 
 export type PendingPublicationStage =
   | 'candidate-persisted'
@@ -159,8 +160,16 @@ export interface SnapshotProvider {
   ): Promise<boolean>;
   updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
-  uploadMedia(vaultId: string, blobHash: string, source: MediaUploadSource): Promise<void>;
-  downloadMedia(vaultId: string, blobHash: string, sink: MediaDownloadSink): Promise<boolean>;
+  uploadMedia(
+    vaultId: string,
+    blobHash: string,
+    source: MediaUploadSource,
+  ): Promise<void>;
+  downloadMedia(
+    vaultId: string,
+    blobHash: string,
+    sink: MediaDownloadSink,
+  ): Promise<boolean>;
   listSnapshots(vaultId: string): Promise<SnapshotObject[]>;
   deleteSnapshot(vaultId: string, snapshotId: string): Promise<void>;
 }

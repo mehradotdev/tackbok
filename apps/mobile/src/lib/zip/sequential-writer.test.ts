@@ -125,9 +125,9 @@ describe('createZipWriter', () => {
     };
     const writer = createZipWriter(sink);
 
-    await expect(writer.addBytes('broken.bin', new Uint8Array([1, 2, 3, 4]), true)).rejects.toThrow(
-      'disk full',
-    );
+    await expect(
+      writer.addBytes('broken.bin', new Uint8Array([1, 2, 3, 4]), true),
+    ).rejects.toThrow('disk full');
     await expect(writer.addText('later.txt', 'nope')).rejects.toThrow(
       /ZIP writer has already been aborted/,
     );

@@ -3,10 +3,14 @@ import { create } from 'zustand';
 import { AppLockSession } from './appLockSession';
 
 export const appLockSession = new AppLockSession();
-export const useExternalAuthentication = create<{ active: boolean }>(() => ({ active: false }));
+export const useExternalAuthentication = create<{ active: boolean }>(() => ({
+  active: false,
+}));
 
 export function refreshExternalAuthentication(): void {
-  useExternalAuthentication.setState({ active: appLockSession.externalAuthenticationActive });
+  useExternalAuthentication.setState({
+    active: appLockSession.externalAuthenticationActive,
+  });
 }
 
 /**
@@ -14,11 +18,14 @@ export function refreshExternalAuthentication(): void {
  * cancellation. This is used for flows such as Google authorization and store
  * purchases that may background the app while a native surface is presented.
  */
-export async function withExternalAuthentication<T>(operation: () => Promise<T>): Promise<T> {
+export async function withExternalAuthentication<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
   appLockSession.beginExternalAuthentication();
   refreshExternalAuthentication();
-  try { return await operation(); }
-  finally {
+  try {
+    return await operation();
+  } finally {
     // Native results can arrive before the foreground AppState event. Keep the
     // exception until that return so a zero-second lock cannot race the result.
     appLockSession.endExternalAuthentication(AppState.currentState === 'active');

@@ -74,9 +74,13 @@ export class MemoryDriveProviderStateStore implements DriveProviderStateStore {
   }
 
   loadDiscovery(vaultId: string): DriveDiscoveryState {
-    return { ...(this.discovery.get(vaultId) ?? {
-      cursor: null, inventoryComplete: false, retryNotBefore: 0,
-    }) };
+    return {
+      ...(this.discovery.get(vaultId) ?? {
+        cursor: null,
+        inventoryComplete: false,
+        retryNotBefore: 0,
+      }),
+    };
   }
 
   replaceInitialInventory(
@@ -85,8 +89,10 @@ export class MemoryDriveProviderStateStore implements DriveProviderStateStore {
     cursor: string,
   ): void {
     for (const [key, value] of this.files) {
-      if (key.startsWith(`${vaultId}\0`) &&
-          (value.kind === 'head' || value.kind === 'snapshot')) {
+      if (
+        key.startsWith(`${vaultId}\0`) &&
+        (value.kind === 'head' || value.kind === 'snapshot')
+      ) {
         this.files.delete(key);
       }
     }
@@ -109,10 +115,16 @@ export class MemoryDriveProviderStateStore implements DriveProviderStateStore {
 
   resetDiscovery(vaultId: string): void {
     const retryNotBefore = this.loadDiscovery(vaultId).retryNotBefore;
-    this.discovery.set(vaultId, { cursor: null, inventoryComplete: false, retryNotBefore });
+    this.discovery.set(vaultId, {
+      cursor: null,
+      inventoryComplete: false,
+      retryNotBefore,
+    });
     for (const [key, value] of this.files) {
-      if (key.startsWith(`${vaultId}\0`) &&
-          (value.kind === 'head' || value.kind === 'snapshot')) {
+      if (
+        key.startsWith(`${vaultId}\0`) &&
+        (value.kind === 'head' || value.kind === 'snapshot')
+      ) {
         this.files.delete(key);
       }
     }
@@ -127,14 +139,19 @@ export class MemoryDriveProviderStateStore implements DriveProviderStateStore {
     return [...this.files.entries()]
       .filter(([key, value]) => key.startsWith(`${vaultId}\0`) && value.kind === kind)
       .map(([, value]) => cloneRecord(value))
-      .sort((left, right) => left.logicalKey.localeCompare(right.logicalKey) ||
-        left.fileId.localeCompare(right.fileId));
+      .sort(
+        (left, right) =>
+          left.logicalKey.localeCompare(right.logicalKey) ||
+          left.fileId.localeCompare(right.fileId),
+      );
   }
 
   listKey(vaultId: string, logicalKey: string): DriveFileRecord[] {
     return [...this.files.entries()]
-      .filter(([key, value]) => key.startsWith(`${vaultId}\0`) &&
-        value.logicalKey === logicalKey)
+      .filter(
+        ([key, value]) =>
+          key.startsWith(`${vaultId}\0`) && value.logicalKey === logicalKey,
+      )
       .map(([, value]) => cloneRecord(value))
       .sort((left, right) => left.fileId.localeCompare(right.fileId));
   }
@@ -283,29 +300,33 @@ export class SQLiteDriveProviderStateStore implements DriveProviderStateStore {
   }
 
   listKind(vaultId: string, kind: DriveObjectKind): DriveFileRecord[] {
-    return this.database.getAllSync<FileRow>(
-      `SELECT file_id, logical_key, object_kind, content_sha256,
+    return this.database
+      .getAllSync<FileRow>(
+        `SELECT file_id, logical_key, object_kind, content_sha256,
               byte_count, created_at, head_json
        FROM cloud_drive_objects
        WHERE connection_id = ? AND vault_id = ? AND object_kind = ?
        ORDER BY logical_key, file_id`,
-      this.connectionId,
-      vaultId,
-      kind,
-    ).map((row) => this.fileFromRow(row));
+        this.connectionId,
+        vaultId,
+        kind,
+      )
+      .map((row) => this.fileFromRow(row));
   }
 
   listKey(vaultId: string, logicalKey: string): DriveFileRecord[] {
-    return this.database.getAllSync<FileRow>(
-      `SELECT file_id, logical_key, object_kind, content_sha256,
+    return this.database
+      .getAllSync<FileRow>(
+        `SELECT file_id, logical_key, object_kind, content_sha256,
               byte_count, created_at, head_json
        FROM cloud_drive_objects
        WHERE connection_id = ? AND vault_id = ? AND logical_key = ?
        ORDER BY file_id`,
-      this.connectionId,
-      vaultId,
-      logicalKey,
-    ).map((row) => this.fileFromRow(row));
+        this.connectionId,
+        vaultId,
+        logicalKey,
+      )
+      .map((row) => this.fileFromRow(row));
   }
 
   upsertFile(vaultId: string, file: DriveFileRecord): void {
@@ -361,14 +382,16 @@ export class SQLiteDriveProviderStateStore implements DriveProviderStateStore {
       logicalKey,
       contentSha256,
     );
-    return row ? {
-      logicalKey: row.logical_key,
-      contentSha256: row.content_sha256,
-      uri: row.session_uri,
-      expiresAt: row.expires_at,
-      byteCount: row.byte_count,
-      uploadedBytes: row.uploaded_bytes,
-    } : null;
+    return row
+      ? {
+          logicalKey: row.logical_key,
+          contentSha256: row.content_sha256,
+          uri: row.session_uri,
+          expiresAt: row.expires_at,
+          byteCount: row.byte_count,
+          uploadedBytes: row.uploaded_bytes,
+        }
+      : null;
   }
 
   setUploadSession(vaultId: string, session: DriveUploadSession): void {
@@ -407,7 +430,11 @@ export class SQLiteDriveProviderStateStore implements DriveProviderStateStore {
     );
   }
 
-  private writeDiscovery(vaultId: string, cursor: string | null, complete: boolean): void {
+  private writeDiscovery(
+    vaultId: string,
+    cursor: string | null,
+    complete: boolean,
+  ): void {
     this.database.runSync(
       `INSERT INTO cloud_drive_state(
          connection_id, vault_id, change_cursor, inventory_complete,

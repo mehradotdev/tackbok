@@ -46,8 +46,12 @@ async function refreshSharedSnapshot(): Promise<void> {
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   if (!removeSources) {
-    const production = subscribeProductionCloudSync(() => { void refreshSharedSnapshot(); });
-    const mutation = addCloudSyncMutationListener(() => { void refreshSharedSnapshot(); });
+    const production = subscribeProductionCloudSync(() => {
+      void refreshSharedSnapshot();
+    });
+    const mutation = addCloudSyncMutationListener(() => {
+      void refreshSharedSnapshot();
+    });
     removeSources = () => {
       production();
       mutation.remove();
@@ -74,9 +78,11 @@ export function useCloudSyncSnapshot(): {
   );
   const refresh = useCallback(() => refreshSharedSnapshot(), []);
 
-  useFocusEffect(useCallback(() => {
-    void refresh();
-  }, [refresh]));
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   return { snapshot, refresh };
 }

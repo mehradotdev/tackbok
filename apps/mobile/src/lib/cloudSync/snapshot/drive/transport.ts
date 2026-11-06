@@ -64,14 +64,12 @@ function parseRetryAfter(value: string | null, now: number): number | null {
 
 async function errorReason(response: DriveResponseLike): Promise<string | null> {
   try {
-    const body = await response.json() as {
+    const body = (await response.json()) as {
       error?: { errors?: { reason?: unknown }[]; details?: { reason?: unknown }[] };
     };
-    const reasons = [
-      ...(body.error?.errors ?? []),
-      ...(body.error?.details ?? []),
-    ].map((value) => value.reason).filter((value): value is string =>
-      typeof value === 'string');
+    const reasons = [...(body.error?.errors ?? []), ...(body.error?.details ?? [])]
+      .map((value) => value.reason)
+      .filter((value): value is string => typeof value === 'string');
     return reasons[0] ?? null;
   } catch {
     return null;
@@ -94,28 +92,55 @@ function mapStatus(
   retryAfterMs: number | null,
 ): DriveRequestError {
   if (status === 401) {
-    return new DriveRequestError('authorization-required', status, 'Drive authorization failed');
+    return new DriveRequestError(
+      'authorization-required',
+      status,
+      'Drive authorization failed',
+    );
   }
   if (status === 403 && reason === 'storageQuotaExceeded') {
     return new DriveRequestError('quota-full', status, 'Drive storage quota is full');
   }
-  if (status === 403 && [
-    'userRateLimitExceeded', 'rateLimitExceeded', 'sharingRateLimitExceeded',
-    'dailyLimitExceeded',
-  ].includes(reason ?? '')) {
-    return new DriveRequestError('rate-limited', status, 'Drive rate limit reached', retryAfterMs);
+  if (
+    status === 403 &&
+    [
+      'userRateLimitExceeded',
+      'rateLimitExceeded',
+      'sharingRateLimitExceeded',
+      'dailyLimitExceeded',
+    ].includes(reason ?? '')
+  ) {
+    return new DriveRequestError(
+      'rate-limited',
+      status,
+      'Drive rate limit reached',
+      retryAfterMs,
+    );
   }
   if (status === 403) {
     return new DriveRequestError('permission-denied', status, 'Drive permission denied');
   }
   if (status === 429) {
-    return new DriveRequestError('rate-limited', status, 'Drive rate limit reached', retryAfterMs);
+    return new DriveRequestError(
+      'rate-limited',
+      status,
+      'Drive rate limit reached',
+      retryAfterMs,
+    );
   }
   if (status === 400) {
-    return new DriveRequestError('invalid-request', status, 'Drive rejected an invalid request');
+    return new DriveRequestError(
+      'invalid-request',
+      status,
+      'Drive rejected an invalid request',
+    );
   }
   if (status === 404 || status === 410) {
-    return new DriveRequestError('transient', status, 'Drive object or cursor was not found');
+    return new DriveRequestError(
+      'transient',
+      status,
+      'Drive object or cursor was not found',
+    );
   }
   if (status === 507) {
     return new DriveRequestError('quota-full', status, 'Drive storage quota is full');
@@ -151,7 +176,9 @@ export class DriveTransport {
     const retryNotBefore = this.options.state.loadDiscovery(vaultId).retryNotBefore;
     if (retryNotBefore > this.options.now()) {
       throw new DriveRequestError(
-        'rate-limited', 429, 'Drive retry window is still active',
+        'rate-limited',
+        429,
+        'Drive retry window is still active',
         retryNotBefore - this.options.now(),
       );
     }
@@ -183,7 +210,11 @@ export class DriveTransport {
           },
         });
       } catch {
-        const error = new DriveRequestError('transient', 0, 'Unable to reach Google Drive');
+        const error = new DriveRequestError(
+          'transient',
+          0,
+          'Unable to reach Google Drive',
+        );
         this.recordAttempt(methodClass, error, started, init.body, null, attempt > 0);
         if (options.idempotent && attempt < 2) {
           await this.options.sleep(this.retryDelay(attempt));
@@ -209,13 +240,15 @@ export class DriveTransport {
       if (error.code === 'rate-limited' && retryAfterMs !== null) {
         this.options.state.setRetryNotBefore(vaultId, this.options.now() + retryAfterMs);
       }
-      if (options.idempotent && attempt < 2 &&
-          (error.code === 'rate-limited' || error.code === 'transient') &&
-          ![404, 410].includes(error.status)) {
-        await this.options.sleep(Math.min(
-          retryAfterMs ?? this.retryDelay(attempt),
-          MAX_RETRY_DELAY_MS,
-        ));
+      if (
+        options.idempotent &&
+        attempt < 2 &&
+        (error.code === 'rate-limited' || error.code === 'transient') &&
+        ![404, 410].includes(error.status)
+      ) {
+        await this.options.sleep(
+          Math.min(retryAfterMs ?? this.retryDelay(attempt), MAX_RETRY_DELAY_MS),
+        );
         continue;
       }
       throw error;
@@ -225,7 +258,7 @@ export class DriveTransport {
 
   private retryDelay(attempt: number): number {
     return Math.min(
-      BASE_RETRY_DELAY_MS * (2 ** attempt) + Math.floor(this.options.random() * 1_000),
+      BASE_RETRY_DELAY_MS * 2 ** attempt + Math.floor(this.options.random() * 1_000),
       MAX_RETRY_DELAY_MS,
     );
   }
@@ -240,18 +273,21 @@ export class DriveTransport {
   ): void {
     if (!this.options.instrumentation) return;
     const responseLength = response?.headers.get('content-length');
-    const parsedResponseLength = responseLength === null || responseLength === undefined
-      ? null
-      : Number(responseLength);
+    const parsedResponseLength =
+      responseLength === null || responseLength === undefined
+        ? null
+        : Number(responseLength);
     this.options.instrumentation.record({
       methodClass,
       resultClass: error ? resultClass(error) : 'success',
       durationBucket: driveDurationBucket(Math.max(0, this.options.now() - startedAt)),
       requestBytesBucket: driveByteBucket(requestBodyBytes(requestBody)),
-      responseBytesBucket: parsedResponseLength !== null &&
-        Number.isSafeInteger(parsedResponseLength) && parsedResponseLength >= 0
-        ? driveByteBucket(parsedResponseLength)
-        : 'unknown',
+      responseBytesBucket:
+        parsedResponseLength !== null &&
+        Number.isSafeInteger(parsedResponseLength) &&
+        parsedResponseLength >= 0
+          ? driveByteBucket(parsedResponseLength)
+          : 'unknown',
       retry,
       quotaUnits: driveQuotaUnits(methodClass),
     });

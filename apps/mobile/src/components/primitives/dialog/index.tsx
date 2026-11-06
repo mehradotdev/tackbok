@@ -286,7 +286,11 @@ const Close = ({
 
 Close.displayName = 'CloseNativeDialog';
 
-const Title = ({ asChild, ref, ...props }: TitleProps & { ref?: React.Ref<TitleRef> }) => {
+const Title = ({
+  asChild,
+  ref,
+  ...props
+}: TitleProps & { ref?: React.Ref<TitleRef> }) => {
   const { nativeID } = useRootContext();
   const Component = asChild ? Slot : Text;
   return <Component ref={ref} role="heading" nativeID={`${nativeID}_label`} {...props} />;

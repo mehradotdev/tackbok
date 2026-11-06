@@ -9,9 +9,11 @@ export function AppStatusBar({ style }: { style: 'light' | 'dark' }) {
     // Android needs the controller on the attached view after runtime theme changes.
     void requireOptionalNativeModule<{ setStyle(darkIcons: boolean): Promise<void> }>(
       'SystemBarAppearanceModule',
-    )?.setStyle(style === 'dark').catch(() => {
-      // The activity may have gone away while the update was queued.
-    });
+    )
+      ?.setStyle(style === 'dark')
+      .catch(() => {
+        // The activity may have gone away while the update was queued.
+      });
   }, [style]);
 
   return <StatusBar style={style} />;

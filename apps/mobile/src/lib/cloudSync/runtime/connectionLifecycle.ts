@@ -12,7 +12,9 @@ export class CloudConnectionLifecycle {
   private tail: Promise<unknown> = Promise.resolve();
   private passes = new Set<Promise<unknown>>();
 
-  get epoch(): number { return this.generation; }
+  get epoch(): number {
+    return this.generation;
+  }
 
   async waitForChanges(): Promise<void> {
     // Include changes queued while an earlier change was settling.
@@ -25,8 +27,11 @@ export class CloudConnectionLifecycle {
     }
     const pass = Promise.resolve().then(operation);
     this.passes.add(pass);
-    try { return await pass; }
-    finally { this.passes.delete(pass); }
+    try {
+      return await pass;
+    } finally {
+      this.passes.delete(pass);
+    }
   }
 
   async change<T>(operation: () => Promise<T>): Promise<T> {
@@ -34,13 +39,18 @@ export class CloudConnectionLifecycle {
     this.changes++;
     this.generation++;
     const previous = this.tail;
-    const change = previous.catch(() => undefined).then(async () => {
-      await Promise.allSettled([...this.passes]);
-      return operation();
-    });
+    const change = previous
+      .catch(() => undefined)
+      .then(async () => {
+        await Promise.allSettled([...this.passes]);
+        return operation();
+      });
     this.tail = change;
-    try { return await change; }
-    finally { this.changes--; }
+    try {
+      return await change;
+    } finally {
+      this.changes--;
+    }
   }
 }
 

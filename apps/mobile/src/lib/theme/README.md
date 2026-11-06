@@ -170,7 +170,6 @@ renderer also checks body-text contrast against every background pixel (at least
 measure GPU
 performance or battery use.
 
-
 ## How `src/global.css` Is Managed
 
 `src/global.css` has two ownership zones:

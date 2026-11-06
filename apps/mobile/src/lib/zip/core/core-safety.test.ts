@@ -51,9 +51,7 @@ describe('core safety', () => {
     // path and the byte-at-a-time tail are both exercised.
     const bytes = pseudoRandomBytes(1027, 42);
     expect(computeCrc32(bytes, 0, bytes.length)).toBe(referenceCrc32(bytes));
-    expect(computeCrc32(bytes, 5, 900)).toBe(
-      referenceCrc32(bytes.subarray(5, 905)),
-    );
+    expect(computeCrc32(bytes, 5, 900)).toBe(referenceCrc32(bytes.subarray(5, 905)));
   });
 
   test('updateCrc32 chained over arbitrary splits matches a single pass', () => {

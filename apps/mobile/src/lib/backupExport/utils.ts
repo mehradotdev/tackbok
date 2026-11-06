@@ -46,7 +46,8 @@ export function generateTimestamp(): string {
 function isDeferredBackupZipFile(file: File): boolean {
   const fileName = file.uri.split('/').pop() ?? '';
   return (
-    fileName.startsWith(BACKUP_EXPORT_FILE_PREFIX) && fileName.endsWith(BACKUP_EXPORT_FILE_SUFFIX)
+    fileName.startsWith(BACKUP_EXPORT_FILE_PREFIX) &&
+    fileName.endsWith(BACKUP_EXPORT_FILE_SUFFIX)
   );
 }
 

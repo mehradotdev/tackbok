@@ -2,7 +2,9 @@ import type { SQLiteSyncStateStore } from '../snapshot/sync/sqliteState';
 
 /** Only authorization failures are resolved by renewing Google consent. */
 export function clearAuthorizationPause(
-  state: SQLiteSyncStateStore, vaultId: string, deviceId: string,
+  state: SQLiteSyncStateStore,
+  vaultId: string,
+  deviceId: string,
 ): void {
   state.clearPause(vaultId, deviceId, 'authorization-required');
   state.clearPause(vaultId, deviceId, 'provider-permission-denied');
@@ -17,8 +19,13 @@ export function canResumeUnpublishedBackup(input: {
   availableVaultCount: number;
   revoked: boolean;
 }): boolean {
-  return Boolean(input.previousEmail && input.currentEmail &&
+  return Boolean(
+    input.previousEmail &&
+    input.currentEmail &&
     input.previousEmail.toLowerCase() === input.currentEmail.toLowerCase() &&
-    input.settledGeneration === 0 && !input.hasBase &&
-    input.availableVaultCount === 0 && !input.revoked);
+    input.settledGeneration === 0 &&
+    !input.hasBase &&
+    input.availableVaultCount === 0 &&
+    !input.revoked,
+  );
 }

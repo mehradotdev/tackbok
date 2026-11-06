@@ -120,7 +120,10 @@ export function encodeGzip(
     GZIP_ID2,
     DEFLATE_METHOD,
     0, // FLG: no optional metadata.
-    0, 0, 0, 0, // MTIME=0.
+    0,
+    0,
+    0,
+    0, // MTIME=0.
     0, // XFL: default strategy.
     255, // OS: unknown, so bytes do not vary by host.
   ]);
@@ -157,7 +160,10 @@ export function decodeGzipBounded(
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid DEFLATE stream';
     if (message.includes('output exceeds')) {
-      fail('uncompressed-size-cap', 'Uncompressed gzip data exceeds the configured limit');
+      fail(
+        'uncompressed-size-cap',
+        'Uncompressed gzip data exceeds the configured limit',
+      );
     }
     fail('invalid-gzip', message);
   }
@@ -168,7 +174,7 @@ export function decodeGzipBounded(
   const expectedSize = readUint(compressed, trailerOffset + 4);
   if (
     expectedCrc !== computeCrc32(inflated, 0, inflated.length) ||
-    expectedSize !== (inflated.length >>> 0)
+    expectedSize !== inflated.length >>> 0
   ) {
     fail('invalid-gzip-trailer', 'Gzip CRC or uncompressed length is invalid');
   }

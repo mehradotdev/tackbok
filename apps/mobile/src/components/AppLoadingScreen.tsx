@@ -31,7 +31,9 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = fals
   const statusBarStyle = themeConfig.variant === 'dark' ? 'light' : 'dark';
 
   const content = (
-    <SafeAreaView className="flex-1 bg-background dark:bg-primary" edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView
+      className="flex-1 bg-background dark:bg-primary"
+      edges={['top', 'left', 'right', 'bottom']}>
       <AppStatusBar style={statusBarStyle} />
       <View className="flex-1">
         <View

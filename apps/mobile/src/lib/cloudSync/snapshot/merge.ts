@@ -32,7 +32,8 @@ const equal = (left: unknown, right: unknown) =>
 
 function keyComparator<T>(key: (value: T) => string) {
   return (left: T, right: T) => {
-    const a = key(left), b = key(right);
+    const a = key(left),
+      b = key(right);
     return a < b ? -1 : a > b ? 1 : 0;
   };
 }
@@ -48,8 +49,12 @@ function conflictId(
   baseValueHash: string | null,
   candidateHashes: (string | null)[],
 ): string {
-  const candidates = [...new Set(candidateHashes.filter((value): value is string => value !== null))].sort();
-  return sha256Text(canonicalize([entityType, entityId, field, baseValueHash, candidates]));
+  const candidates = [
+    ...new Set(candidateHashes.filter((value): value is string => value !== null)),
+  ].sort();
+  return sha256Text(
+    canonicalize([entityType, entityId, field, baseValueHash, candidates]),
+  );
 }
 
 function makeConflict(
@@ -68,9 +73,13 @@ function makeConflict(
   const localValueHash = canonicalHash(localValue);
   const remoteValueHash = canonicalHash(remoteValue);
   const primaryValueHash = canonicalHash(primaryValue);
-  const alternateHash = primaryValueHash === localValueHash ? remoteValueHash : localValueHash;
+  const alternateHash =
+    primaryValueHash === localValueHash ? remoteValueHash : localValueHash;
   return {
-    conflictId: conflictId(entityType, entityId, field, baseValueHash, [localValueHash, remoteValueHash]),
+    conflictId: conflictId(entityType, entityId, field, baseValueHash, [
+      localValueHash,
+      remoteValueHash,
+    ]),
     entityType,
     entityId,
     field,
@@ -78,7 +87,10 @@ function makeConflict(
     localValueHash,
     remoteValueHash,
     primaryValueHash,
-    alternates: alternateValue === undefined ? [] : [{ valueHash: alternateHash, value: alternateValue }],
+    alternates:
+      alternateValue === undefined
+        ? []
+        : [{ valueHash: alternateHash, value: alternateValue }],
     recoveredEntityIds: [...recoveredEntityIds].sort(),
   };
 }
@@ -90,7 +102,8 @@ function scalarMerge<T>(
 ): { value: T; conflicted: boolean; primary: 'local' | 'remote' } {
   if (equal(local, remote)) return { value: local, conflicted: false, primary: 'local' };
   if (base !== undefined) {
-    if (equal(local, base)) return { value: remote, conflicted: false, primary: 'remote' };
+    if (equal(local, base))
+      return { value: remote, conflicted: false, primary: 'remote' };
     if (equal(remote, base)) return { value: local, conflicted: false, primary: 'local' };
   }
   const localHash = canonicalHash(local);
@@ -100,9 +113,17 @@ function scalarMerge<T>(
     : { value: remote, conflicted: true, primary: 'remote' };
 }
 
-function assertImmutable(name: string, base: unknown, local: unknown, remote: unknown): void {
+function assertImmutable(
+  name: string,
+  base: unknown,
+  local: unknown,
+  remote: unknown,
+): void {
   if (!equal(local, remote) || (base !== undefined && !equal(base, local))) {
-    throw new SnapshotMergeError('invalid-immutable-mutation', `${name} changed under a stable ID`);
+    throw new SnapshotMergeError(
+      'invalid-immutable-mutation',
+      `${name} changed under a stable ID`,
+    );
   }
 }
 
@@ -114,7 +135,12 @@ function mergeEntry(
 ): SnapshotEntry[] {
   // This is the editable journal date, not an immutable insertion timestamp.
   const createdAt = scalarMerge(base?.createdAt, local.createdAt, remote.createdAt);
-  assertImmutable('entry.conflictOriginId', base?.conflictOriginId, local.conflictOriginId, remote.conflictOriginId);
+  assertImmutable(
+    'entry.conflictOriginId',
+    base?.conflictOriginId,
+    local.conflictOriginId,
+    remote.conflictOriginId,
+  );
   const title = scalarMerge(base?.title, local.title, remote.title);
   const content = scalarMerge(base?.content, local.content, remote.content);
   const mood = scalarMerge(base?.mood, local.mood, remote.mood);
@@ -122,22 +148,31 @@ function mergeEntry(
   const entryConflict = title.conflicted || content.conflicted;
   // Resolve date-only conflicts by entry edit time; scalarMerge breaks ties
   // deterministically so reversing local/remote produces the same date.
-  const mergedDate = createdAt.conflicted && !entryConflict && local.updatedAt !== remote.updatedAt
-    ? (local.updatedAt > remote.updatedAt ? local.createdAt : remote.createdAt)
-    : createdAt.value;
+  const mergedDate =
+    createdAt.conflicted && !entryConflict && local.updatedAt !== remote.updatedAt
+      ? local.updatedAt > remote.updatedAt
+        ? local.createdAt
+        : remote.createdAt
+      : createdAt.value;
   let primaryEntryBranch: 'local' | 'remote' | null = null;
   let recoveredId: string | null = null;
   if (entryConflict) {
-    const localPairHash = canonicalHash(createdAt.conflicted
-      ? [local.title, local.content, local.createdAt] : [local.title, local.content]);
-    const remotePairHash = canonicalHash(createdAt.conflicted
-      ? [remote.title, remote.content, remote.createdAt] : [remote.title, remote.content]);
+    const localPairHash = canonicalHash(
+      createdAt.conflicted
+        ? [local.title, local.content, local.createdAt]
+        : [local.title, local.content],
+    );
+    const remotePairHash = canonicalHash(
+      createdAt.conflicted
+        ? [remote.title, remote.content, remote.createdAt]
+        : [remote.title, remote.content],
+    );
     primaryEntryBranch = localPairHash <= remotePairHash ? 'local' : 'remote';
     const baseStateHash = base ? canonicalHash(base) : null;
     const branchHashes = [canonicalHash(local), canonicalHash(remote)].sort();
-    recoveredId = `recovered-${sha256Text(canonicalize([
-      local.entryId, baseStateHash, branchHashes[0], branchHashes[1],
-    ])).slice(0, 32)}`;
+    recoveredId = `recovered-${sha256Text(
+      canonicalize([local.entryId, baseStateHash, branchHashes[0], branchHashes[1]]),
+    ).slice(0, 32)}`;
   }
   const primaryBranch = primaryEntryBranch === 'remote' ? remote : local;
   const losingBranch = primaryEntryBranch === 'remote' ? local : remote;
@@ -146,36 +181,88 @@ function mergeEntry(
     title: title.conflicted ? primaryBranch.title : title.value,
     content: content.conflicted ? primaryBranch.content : content.value,
     mood: mood.value,
-    createdAt: createdAt.conflicted && entryConflict ? primaryBranch.createdAt : mergedDate,
+    createdAt:
+      createdAt.conflicted && entryConflict ? primaryBranch.createdAt : mergedDate,
     updatedAt,
     conflictOriginId: local.conflictOriginId,
   };
   if (title.conflicted) {
-    conflicts.push(makeConflict('entry', local.entryId, 'title', base?.title,
-      local.title, remote.title, primary.title, undefined, [recoveredId!], base === undefined));
+    conflicts.push(
+      makeConflict(
+        'entry',
+        local.entryId,
+        'title',
+        base?.title,
+        local.title,
+        remote.title,
+        primary.title,
+        undefined,
+        [recoveredId!],
+        base === undefined,
+      ),
+    );
   }
   if (content.conflicted) {
-    conflicts.push(makeConflict('entry', local.entryId, 'content', base?.content,
-      local.content, remote.content, primary.content, undefined, [recoveredId!], base === undefined));
+    conflicts.push(
+      makeConflict(
+        'entry',
+        local.entryId,
+        'content',
+        base?.content,
+        local.content,
+        remote.content,
+        primary.content,
+        undefined,
+        [recoveredId!],
+        base === undefined,
+      ),
+    );
   }
   if (mood.conflicted) {
-    conflicts.push(makeConflict('entry', local.entryId, 'mood', base?.mood,
-      local.mood, remote.mood, mood.value, mood.primary === 'local' ? remote.mood : local.mood, [], base === undefined));
+    conflicts.push(
+      makeConflict(
+        'entry',
+        local.entryId,
+        'mood',
+        base?.mood,
+        local.mood,
+        remote.mood,
+        mood.value,
+        mood.primary === 'local' ? remote.mood : local.mood,
+        [],
+        base === undefined,
+      ),
+    );
   }
   if (createdAt.conflicted) {
-    conflicts.push(makeConflict('entry', local.entryId, 'createdAt', base?.createdAt,
-      local.createdAt, remote.createdAt, primary.createdAt, undefined, recoveredId ? [recoveredId] : [], base === undefined));
+    conflicts.push(
+      makeConflict(
+        'entry',
+        local.entryId,
+        'createdAt',
+        base?.createdAt,
+        local.createdAt,
+        remote.createdAt,
+        primary.createdAt,
+        undefined,
+        recoveredId ? [recoveredId] : [],
+        base === undefined,
+      ),
+    );
   }
   if (!entryConflict) return [primary];
-  return [primary, {
-    entryId: recoveredId!,
-    title: title.conflicted ? losingBranch.title : title.value,
-    content: content.conflicted ? losingBranch.content : content.value,
-    mood: mood.value,
-    createdAt: createdAt.conflicted ? losingBranch.createdAt : createdAt.value,
-    updatedAt,
-    conflictOriginId: local.entryId,
-  }];
+  return [
+    primary,
+    {
+      entryId: recoveredId!,
+      title: title.conflicted ? losingBranch.title : title.value,
+      content: content.conflicted ? losingBranch.content : content.value,
+      mood: mood.value,
+      createdAt: createdAt.conflicted ? losingBranch.createdAt : createdAt.value,
+      updatedAt,
+      conflictOriginId: local.entryId,
+    },
+  ];
 }
 
 function mergeNamedEntity<T extends SnapshotTag | SnapshotPrompt>(
@@ -187,12 +274,34 @@ function mergeNamedEntity<T extends SnapshotTag | SnapshotPrompt>(
 ): T {
   const idKey = type === 'tag' ? 'tagId' : 'promptId';
   const entityId = local[idKey as keyof T] as string;
-  assertImmutable(`${type}.createdAt`, base?.createdAt, local.createdAt, remote.createdAt);
-  assertImmutable(`${type}.conflictOriginId`, base?.conflictOriginId, local.conflictOriginId, remote.conflictOriginId);
+  assertImmutable(
+    `${type}.createdAt`,
+    base?.createdAt,
+    local.createdAt,
+    remote.createdAt,
+  );
+  assertImmutable(
+    `${type}.conflictOriginId`,
+    base?.conflictOriginId,
+    local.conflictOriginId,
+    remote.conflictOriginId,
+  );
   const title = scalarMerge(base?.title, local.title, remote.title);
   if (title.conflicted) {
-    conflicts.push(makeConflict(type, entityId, 'title', base?.title, local.title, remote.title,
-      title.value, title.primary === 'local' ? remote.title : local.title, [], base === undefined));
+    conflicts.push(
+      makeConflict(
+        type,
+        entityId,
+        'title',
+        base?.title,
+        local.title,
+        remote.title,
+        title.value,
+        title.primary === 'local' ? remote.title : local.title,
+        [],
+        base === undefined,
+      ),
+    );
   }
   return {
     ...local,
@@ -202,7 +311,10 @@ function mergeNamedEntity<T extends SnapshotTag | SnapshotPrompt>(
 }
 
 function tombstoneMap(domain: SnapshotDomain | null): Map<string, SnapshotTombstone> {
-  return mapBy(domain?.tombstones ?? [], (value) => `${value.entityType}\0${value.entityId}`);
+  return mapBy(
+    domain?.tombstones ?? [],
+    (value) => `${value.entityType}\0${value.entityId}`,
+  );
 }
 
 function chooseTombstone(
@@ -211,12 +323,22 @@ function chooseTombstone(
   conflicts: SnapshotConflict[],
 ): SnapshotTombstone {
   if (equal(local, remote)) return local;
-  const compatible = (local.baseStateHash === remote.baseStateHash || local.baseStateHash === null || remote.baseStateHash === null) &&
-    (local.deletedStateHash === remote.deletedStateHash || local.deletedStateHash === null || remote.deletedStateHash === null);
+  const compatible =
+    (local.baseStateHash === remote.baseStateHash ||
+      local.baseStateHash === null ||
+      remote.baseStateHash === null) &&
+    (local.deletedStateHash === remote.deletedStateHash ||
+      local.deletedStateHash === null ||
+      remote.deletedStateHash === null);
   if (compatible) {
-    const preferred = local.deletionSequence > remote.deletionSequence ? local :
-      remote.deletionSequence > local.deletionSequence ? remote :
-      canonicalize(local) <= canonicalize(remote) ? local : remote;
+    const preferred =
+      local.deletionSequence > remote.deletionSequence
+        ? local
+        : remote.deletionSequence > local.deletionSequence
+          ? remote
+          : canonicalize(local) <= canonicalize(remote)
+            ? local
+            : remote;
     return {
       ...preferred,
       baseStateHash: local.baseStateHash ?? remote.baseStateHash,
@@ -224,10 +346,23 @@ function chooseTombstone(
       deletionSequence: Math.max(local.deletionSequence, remote.deletionSequence),
     };
   }
-  const localHash = canonicalHash(local), remoteHash = canonicalHash(remote);
+  const localHash = canonicalHash(local),
+    remoteHash = canonicalHash(remote);
   const primary = localHash <= remoteHash ? local : remote;
-  conflicts.push(makeConflict(local.entityType, local.entityId, 'deleteEdit', null,
-    local, remote, primary, null, [], true));
+  conflicts.push(
+    makeConflict(
+      local.entityType,
+      local.entityId,
+      'deleteEdit',
+      null,
+      local,
+      remote,
+      primary,
+      null,
+      [],
+      true,
+    ),
+  );
   return primary;
 }
 
@@ -253,24 +388,53 @@ function mergeEntityCollection<T extends MergeEntity>(
   const baseTombs = tombstoneMap(baseDomain);
   const localTombs = tombstoneMap(localDomain);
   const remoteTombs = tombstoneMap(remoteDomain);
-  const ids = [...new Set([...base.keys(), ...local.keys(), ...remote.keys(),
-    ...[...localTombs.values()].filter((v) => v.entityType === type).map((v) => v.entityId),
-    ...[...remoteTombs.values()].filter((v) => v.entityType === type).map((v) => v.entityId)])].sort();
+  const ids = [
+    ...new Set([
+      ...base.keys(),
+      ...local.keys(),
+      ...remote.keys(),
+      ...[...localTombs.values()]
+        .filter((v) => v.entityType === type)
+        .map((v) => v.entityId),
+      ...[...remoteTombs.values()]
+        .filter((v) => v.entityType === type)
+        .map((v) => v.entityId),
+    ]),
+  ].sort();
   const live: T[] = [];
   const tombstones: SnapshotTombstone[] = [];
   const recoveries = new Map<string, string[]>();
   for (const entityId of ids) {
     const key = `${type}\0${entityId}`;
-    const b = base.get(entityId), l = local.get(entityId), r = remote.get(entityId);
-    const lt = localTombs.get(key), rt = remoteTombs.get(key);
+    const b = base.get(entityId),
+      l = local.get(entityId),
+      r = remote.get(entityId);
+    const lt = localTombs.get(key),
+      rt = remoteTombs.get(key);
     if (l && r) {
       if (type === 'entry') {
-        const merged = mergeEntry(b as SnapshotEntry | undefined, l as SnapshotEntry, r as SnapshotEntry, conflicts);
-        live.push(...merged as T[]);
-        if (merged.length > 1) recoveries.set(entityId, merged.slice(1).map((entry) => entry.entryId));
+        const merged = mergeEntry(
+          b as SnapshotEntry | undefined,
+          l as SnapshotEntry,
+          r as SnapshotEntry,
+          conflicts,
+        );
+        live.push(...(merged as T[]));
+        if (merged.length > 1)
+          recoveries.set(
+            entityId,
+            merged.slice(1).map((entry) => entry.entryId),
+          );
       } else {
-        live.push(mergeNamedEntity(type, b as SnapshotTag | SnapshotPrompt | undefined,
-          l as SnapshotTag | SnapshotPrompt, r as SnapshotTag | SnapshotPrompt, conflicts) as T);
+        live.push(
+          mergeNamedEntity(
+            type,
+            b as SnapshotTag | SnapshotPrompt | undefined,
+            l as SnapshotTag | SnapshotPrompt,
+            r as SnapshotTag | SnapshotPrompt,
+            conflicts,
+          ) as T,
+        );
       }
       continue;
     }
@@ -286,8 +450,20 @@ function mergeEntityCollection<T extends MergeEntity>(
         tombstones.push(deleteValue);
       } else {
         live.push(liveValue);
-        conflicts.push(makeConflict(type, entityId, 'deleteEdit', b ?? null,
-          l ?? lt ?? null, r ?? rt ?? null, liveValue, null, [], !b));
+        conflicts.push(
+          makeConflict(
+            type,
+            entityId,
+            'deleteEdit',
+            b ?? null,
+            l ?? lt ?? null,
+            r ?? rt ?? null,
+            liveValue,
+            null,
+            [],
+            !b,
+          ),
+        );
       }
       continue;
     }
@@ -307,7 +483,10 @@ function mergeEntityCollection<T extends MergeEntity>(
     const recordId = getId(record);
     const existing = uniqueLive.get(recordId);
     if (existing && !equal(existing, record)) {
-      throw new SnapshotMergeError('derived-id-collision', `Derived entity ID ${recordId} collides`);
+      throw new SnapshotMergeError(
+        'derived-id-collision',
+        `Derived entity ID ${recordId} collides`,
+      );
     }
     uniqueLive.set(recordId, record);
   }
@@ -316,19 +495,37 @@ function mergeEntityCollection<T extends MergeEntity>(
 }
 
 function mergeRelationSet(
-  base: SnapshotEntryTag[], local: SnapshotEntryTag[], remote: SnapshotEntryTag[],
+  base: SnapshotEntryTag[],
+  local: SnapshotEntryTag[],
+  remote: SnapshotEntryTag[],
 ): SnapshotEntryTag[] {
   const key = (value: SnapshotEntryTag) => `${value.entryId}\0${value.tagId}`;
-  const b = mapBy(base, key), l = mapBy(local, key), r = mapBy(remote, key);
+  const b = mapBy(base, key),
+    l = mapBy(local, key),
+    r = mapBy(remote, key);
   const result: SnapshotEntryTag[] = [];
   for (const id of [...new Set([...b.keys(), ...l.keys(), ...r.keys()])].sort()) {
-    const bv = b.get(id), lv = l.get(id), rv = r.get(id);
-    const present = lv && rv ? true : !lv && !rv ? false :
-      Boolean(lv) === Boolean(bv) ? Boolean(rv) :
-      Boolean(rv) === Boolean(bv) ? Boolean(lv) : Boolean(lv || rv);
+    const bv = b.get(id),
+      lv = l.get(id),
+      rv = r.get(id);
+    const present =
+      lv && rv
+        ? true
+        : !lv && !rv
+          ? false
+          : Boolean(lv) === Boolean(bv)
+            ? Boolean(rv)
+            : Boolean(rv) === Boolean(bv)
+              ? Boolean(lv)
+              : Boolean(lv || rv);
     if (present) {
-      const candidates = [lv, rv, bv].filter((value): value is SnapshotEntryTag => Boolean(value));
-      result.push({ ...candidates[0], createdAt: Math.min(...candidates.map((value) => value.createdAt)) });
+      const candidates = [lv, rv, bv].filter((value): value is SnapshotEntryTag =>
+        Boolean(value),
+      );
+      result.push({
+        ...candidates[0],
+        createdAt: Math.min(...candidates.map((value) => value.createdAt)),
+      });
     }
   }
   return result.sort(keyComparator(key));
@@ -340,19 +537,59 @@ function mergeProfile(
   remote: SnapshotProfile,
   conflicts: SnapshotConflict[],
 ): SnapshotProfile {
-  const displayName = scalarMerge(base?.displayName, local.displayName, remote.displayName);
+  const displayName = scalarMerge(
+    base?.displayName,
+    local.displayName,
+    remote.displayName,
+  );
   const photo = scalarMerge(base?.photoAssetId, local.photoAssetId, remote.photoAssetId);
-  if (displayName.conflicted) conflicts.push(makeConflict('profile', 'profile', 'displayName', base?.displayName,
-    local.displayName, remote.displayName, displayName.value,
-    displayName.primary === 'local' ? remote.displayName : local.displayName, [], !base));
-  if (photo.conflicted) conflicts.push(makeConflict('profile', 'profile', 'photoAssetId', base?.photoAssetId,
-    local.photoAssetId, remote.photoAssetId, photo.value,
-    photo.primary === 'local' ? remote.photoAssetId : local.photoAssetId, [], !base));
-  return { profileId: 'profile', displayName: displayName.value, photoAssetId: photo.value,
-    updatedAt: Math.max(base?.updatedAt ?? 0, local.updatedAt, remote.updatedAt) };
+  if (displayName.conflicted)
+    conflicts.push(
+      makeConflict(
+        'profile',
+        'profile',
+        'displayName',
+        base?.displayName,
+        local.displayName,
+        remote.displayName,
+        displayName.value,
+        displayName.primary === 'local' ? remote.displayName : local.displayName,
+        [],
+        !base,
+      ),
+    );
+  if (photo.conflicted)
+    conflicts.push(
+      makeConflict(
+        'profile',
+        'profile',
+        'photoAssetId',
+        base?.photoAssetId,
+        local.photoAssetId,
+        remote.photoAssetId,
+        photo.value,
+        photo.primary === 'local' ? remote.photoAssetId : local.photoAssetId,
+        [],
+        !base,
+      ),
+    );
+  return {
+    profileId: 'profile',
+    displayName: displayName.value,
+    photoAssetId: photo.value,
+    updatedAt: Math.max(base?.updatedAt ?? 0, local.updatedAt, remote.updatedAt),
+  };
 }
 
-const MEDIA_IMMUTABLE = ['assetId', 'ownerType', 'ownerId', 'kind', 'blobHash', 'byteSize', 'createdAt'] as const;
+const MEDIA_IMMUTABLE = [
+  'assetId',
+  'ownerType',
+  'ownerId',
+  'kind',
+  'blobHash',
+  'byteSize',
+  'createdAt',
+] as const;
 const MEDIA_OBSERVED = ['mimeType', 'width', 'height', 'durationMs'] as const;
 
 function mergeMedia(
@@ -365,13 +602,21 @@ function mergeMedia(
   const local = mapBy(localDomain.media, (value) => value.assetId);
   const remote = mapBy(remoteDomain.media, (value) => value.assetId);
   const result: SnapshotMedia[] = [];
-  for (const assetId of [...new Set([...base.keys(), ...local.keys(), ...remote.keys()])].sort()) {
-    const b = base.get(assetId), l = local.get(assetId), r = remote.get(assetId);
+  for (const assetId of [
+    ...new Set([...base.keys(), ...local.keys(), ...remote.keys()]),
+  ].sort()) {
+    const b = base.get(assetId),
+      l = local.get(assetId),
+      r = remote.get(assetId);
     if (l && r) {
       if (!b && !equal(l, r)) {
-        throw new SnapshotMergeError('asset-id-collision', `New asset ID ${assetId} has different descriptors`);
+        throw new SnapshotMergeError(
+          'asset-id-collision',
+          `New asset ID ${assetId} has different descriptors`,
+        );
       }
-      for (const field of MEDIA_IMMUTABLE) assertImmutable(`media.${field}`, b?.[field], l[field], r[field]);
+      for (const field of MEDIA_IMMUTABLE)
+        assertImmutable(`media.${field}`, b?.[field], l[field], r[field]);
       const merged = { ...l };
       let observedConflict = false;
       for (const field of MEDIA_OBSERVED) {
@@ -382,38 +627,77 @@ function mergeMedia(
       merged.updatedAt = Math.max(b?.updatedAt ?? 0, l.updatedAt, r.updatedAt);
       result.push(merged);
       if (observedConflict) {
-        conflicts.push(makeConflict(merged.ownerType === 'entry' ? 'entry' : 'profile', merged.ownerId,
-          'assetReference', b ?? null, l, r, merged, null, [], !b));
+        conflicts.push(
+          makeConflict(
+            merged.ownerType === 'entry' ? 'entry' : 'profile',
+            merged.ownerId,
+            'assetReference',
+            b ?? null,
+            l,
+            r,
+            merged,
+            null,
+            [],
+            !b,
+          ),
+        );
       }
       continue;
     }
     const live = l ?? r;
     if (!live) continue;
-    if (!b) { result.push(live); continue; }
+    if (!b) {
+      result.push(live);
+      continue;
+    }
     const unchanged = equal(live, b);
     if (unchanged) continue;
     for (const field of MEDIA_IMMUTABLE) {
-      if (!equal(live[field], b[field])) throw new SnapshotMergeError('invalid-immutable-mutation', `media.${field} changed`);
+      if (!equal(live[field], b[field]))
+        throw new SnapshotMergeError(
+          'invalid-immutable-mutation',
+          `media.${field} changed`,
+        );
     }
     result.push(live);
-    conflicts.push(makeConflict(live.ownerType === 'entry' ? 'entry' : 'profile', live.ownerId,
-      'assetReference', b, l ?? null, r ?? null, live, null));
+    conflicts.push(
+      makeConflict(
+        live.ownerType === 'entry' ? 'entry' : 'profile',
+        live.ownerId,
+        'assetReference',
+        b,
+        l ?? null,
+        r ?? null,
+        live,
+        null,
+      ),
+    );
   }
   return result.sort(keyComparator((value) => value.assetId));
 }
 
 function mergeConflictSet(
-  base: SnapshotConflict[], local: SnapshotConflict[], remote: SnapshotConflict[],
+  base: SnapshotConflict[],
+  local: SnapshotConflict[],
+  remote: SnapshotConflict[],
 ): SnapshotConflict[] {
   const key = (value: SnapshotConflict) => value.conflictId;
-  const b = mapBy(base, key), l = mapBy(local, key), r = mapBy(remote, key);
+  const b = mapBy(base, key),
+    l = mapBy(local, key),
+    r = mapBy(remote, key);
   const result: SnapshotConflict[] = [];
   for (const id of [...new Set([...b.keys(), ...l.keys(), ...r.keys()])].sort()) {
-    const bv = b.get(id), lv = l.get(id), rv = r.get(id);
+    const bv = b.get(id),
+      lv = l.get(id),
+      rv = r.get(id);
     if (lv && rv) {
       // The same conflict can be discovered independently with opposite device
       // perspectives. Only these two labels may swap; all other data must agree.
-      const reversed = { ...rv, localValueHash: rv.remoteValueHash, remoteValueHash: rv.localValueHash };
+      const reversed = {
+        ...rv,
+        localValueHash: rv.remoteValueHash,
+        remoteValueHash: rv.localValueHash,
+      };
       if (!equal(lv, rv) && !equal(lv, reversed)) {
         throw new SnapshotMergeError('conflict-id-collision', `Conflict ${id} differs`);
       }
@@ -436,11 +720,41 @@ export function mergeSnapshotDomains(
   remote: SnapshotDomain,
 ): SnapshotDomain {
   const newConflicts: SnapshotConflict[] = [];
-  const entries = mergeEntityCollection<SnapshotEntry>('entries', 'entry', base, local, remote, newConflicts);
-  const tags = mergeEntityCollection<SnapshotTag>('tags', 'tag', base, local, remote, newConflicts);
-  const prompts = mergeEntityCollection<SnapshotPrompt>('prompts', 'prompt', base, local, remote, newConflicts);
-  const profile = mergeProfile(base?.profile, local.profile, remote.profile, newConflicts);
-  let entryTags = mergeRelationSet(base?.entryTags ?? [], local.entryTags, remote.entryTags);
+  const entries = mergeEntityCollection<SnapshotEntry>(
+    'entries',
+    'entry',
+    base,
+    local,
+    remote,
+    newConflicts,
+  );
+  const tags = mergeEntityCollection<SnapshotTag>(
+    'tags',
+    'tag',
+    base,
+    local,
+    remote,
+    newConflicts,
+  );
+  const prompts = mergeEntityCollection<SnapshotPrompt>(
+    'prompts',
+    'prompt',
+    base,
+    local,
+    remote,
+    newConflicts,
+  );
+  const profile = mergeProfile(
+    base?.profile,
+    local.profile,
+    remote.profile,
+    newConflicts,
+  );
+  let entryTags = mergeRelationSet(
+    base?.entryTags ?? [],
+    local.entryTags,
+    remote.entryTags,
+  );
 
   // A recovery is a complete authored entry and inherits the primary's merged tags.
   for (const [primaryId, recoveredIds] of entries.recoveries) {
@@ -453,9 +767,12 @@ export function mergeSnapshotDomains(
   for (const relation of entryTags) {
     const relationKey = `${relation.entryId}\0${relation.tagId}`;
     const existing = uniqueRelations.get(relationKey);
-    uniqueRelations.set(relationKey, existing
-      ? { ...existing, createdAt: Math.min(existing.createdAt, relation.createdAt) }
-      : relation);
+    uniqueRelations.set(
+      relationKey,
+      existing
+        ? { ...existing, createdAt: Math.min(existing.createdAt, relation.createdAt) }
+        : relation,
+    );
   }
   entryTags = [...uniqueRelations.values()];
 
@@ -467,31 +784,56 @@ export function mergeSnapshotDomains(
     const relationKey = `${relation.entryId}\0${relation.tagId}`;
     const localTomb = localTagTombs.get(`tag\0${relation.tagId}`);
     const remoteTomb = remoteTagTombs.get(`tag\0${relation.tagId}`);
-    const addedOppositeDelete = !baseRelations.has(relationKey) &&
-      ((localTomb && remote.entryTags.some((v) => `${v.entryId}\0${v.tagId}` === relationKey)) ||
-       (remoteTomb && local.entryTags.some((v) => `${v.entryId}\0${v.tagId}` === relationKey)));
+    const addedOppositeDelete =
+      !baseRelations.has(relationKey) &&
+      ((localTomb &&
+        remote.entryTags.some((v) => `${v.entryId}\0${v.tagId}` === relationKey)) ||
+        (remoteTomb &&
+          local.entryTags.some((v) => `${v.entryId}\0${v.tagId}` === relationKey)));
     if (!addedOppositeDelete) continue;
     const tomb = localTomb ?? remoteTomb!;
-    let liveTag = local.tags.find((value) => value.tagId === relation.tagId) ??
+    let liveTag =
+      local.tags.find((value) => value.tagId === relation.tagId) ??
       remote.tags.find((value) => value.tagId === relation.tagId) ??
       base?.tags.find((value) => value.tagId === relation.tagId);
-    if (!liveTag) throw new SnapshotMergeError('missing-referenced-tag', 'Referenced deleted tag has no recoverable value');
-    if (!tags.live.some((value) => value.tagId === relation.tagId)) tags.live.push(liveTag);
+    if (!liveTag)
+      throw new SnapshotMergeError(
+        'missing-referenced-tag',
+        'Referenced deleted tag has no recoverable value',
+      );
+    if (!tags.live.some((value) => value.tagId === relation.tagId))
+      tags.live.push(liveTag);
     const index = tags.tombstones.findIndex((value) => value.entityId === relation.tagId);
     if (index >= 0) tags.tombstones.splice(index, 1);
     const localCandidate = localTomb ? tomb : relation;
     const remoteCandidate = remoteTomb ? tomb : relation;
-    newConflicts.push(makeConflict('tag', relation.tagId, 'referencedDelete', null,
-      localCandidate, remoteCandidate, relation, null));
+    newConflicts.push(
+      makeConflict(
+        'tag',
+        relation.tagId,
+        'referencedDelete',
+        null,
+        localCandidate,
+        remoteCandidate,
+        relation,
+        null,
+      ),
+    );
   }
   const entryIds = new Set(entries.live.map((entry) => entry.entryId));
   const tagIds = new Set(tags.live.map((tag) => tag.tagId));
-  entryTags = entryTags.filter((value) => entryIds.has(value.entryId) && tagIds.has(value.tagId));
+  entryTags = entryTags.filter(
+    (value) => entryIds.has(value.entryId) && tagIds.has(value.tagId),
+  );
   entryTags.sort(keyComparator((value) => `${value.entryId}\0${value.tagId}`));
   tags.live.sort(keyComparator((value) => value.tagId));
 
   let media = mergeMedia(base, local, remote, newConflicts);
-  const carriedConflicts = mergeConflictSet(base?.conflicts ?? [], local.conflicts, remote.conflicts);
+  const carriedConflicts = mergeConflictSet(
+    base?.conflicts ?? [],
+    local.conflicts,
+    remote.conflicts,
+  );
   const conflictMap = new Map<string, SnapshotConflict>();
   for (const conflict of [...carriedConflicts, ...newConflicts]) {
     const existing = conflictMap.get(conflict.conflictId);
@@ -500,16 +842,27 @@ export function mergeSnapshotDomains(
     }
   }
   const liveRecoveryOrigins = new Map<string, string | null>();
-  for (const entry of entries.live) liveRecoveryOrigins.set(`entry\0${entry.entryId}`, entry.conflictOriginId);
-  for (const tag of tags.live) liveRecoveryOrigins.set(`tag\0${tag.tagId}`, tag.conflictOriginId);
-  for (const prompt of prompts.live) liveRecoveryOrigins.set(`prompt\0${prompt.promptId}`, prompt.conflictOriginId);
-  const conflicts = [...conflictMap.values()].map((conflict) => ({
-    ...conflict,
-    recoveredEntityIds: conflict.recoveredEntityIds.filter((recoveredId) =>
-      liveRecoveryOrigins.get(`${conflict.entityType}\0${recoveredId}`) === conflict.entityId),
-  })).sort(keyComparator((value) => value.conflictId));
-  const tombstones = [...entries.tombstones, ...tags.tombstones, ...prompts.tombstones]
-    .sort(keyComparator((value) => `${value.entityType}\0${value.entityId}`));
+  for (const entry of entries.live)
+    liveRecoveryOrigins.set(`entry\0${entry.entryId}`, entry.conflictOriginId);
+  for (const tag of tags.live)
+    liveRecoveryOrigins.set(`tag\0${tag.tagId}`, tag.conflictOriginId);
+  for (const prompt of prompts.live)
+    liveRecoveryOrigins.set(`prompt\0${prompt.promptId}`, prompt.conflictOriginId);
+  const conflicts = [...conflictMap.values()]
+    .map((conflict) => ({
+      ...conflict,
+      recoveredEntityIds: conflict.recoveredEntityIds.filter(
+        (recoveredId) =>
+          liveRecoveryOrigins.get(`${conflict.entityType}\0${recoveredId}`) ===
+          conflict.entityId,
+      ),
+    }))
+    .sort(keyComparator((value) => value.conflictId));
+  const tombstones = [
+    ...entries.tombstones,
+    ...tags.tombstones,
+    ...prompts.tombstones,
+  ].sort(keyComparator((value) => `${value.entityType}\0${value.entityId}`));
   const result: SnapshotDomain = {
     entries: entries.live,
     tags: tags.live,
@@ -522,13 +875,17 @@ export function mergeSnapshotDomains(
   };
   const referenced = calculateMediaReferences(result);
   const liveEntryIds = new Set(result.entries.map((entry) => entry.entryId));
-  media = media.filter((asset) =>
-    (asset.ownerType === 'entry' && liveEntryIds.has(asset.ownerId)) ||
-    (asset.ownerType === 'profile' && referenced.has(asset.assetId)));
-  result.conflicts = result.conflicts.filter((conflict) =>
-    conflict.field !== 'assetReference' ||
-    conflict.entityType !== 'entry' ||
-    liveEntryIds.has(conflict.entityId));
+  media = media.filter(
+    (asset) =>
+      (asset.ownerType === 'entry' && liveEntryIds.has(asset.ownerId)) ||
+      (asset.ownerType === 'profile' && referenced.has(asset.assetId)),
+  );
+  result.conflicts = result.conflicts.filter(
+    (conflict) =>
+      conflict.field !== 'assetReference' ||
+      conflict.entityType !== 'entry' ||
+      liveEntryIds.has(conflict.entityId),
+  );
   result.media = media;
   const baseEntries = mapBy(base?.entries ?? [], (entry) => entry.entryId);
   const localEntries = mapBy(local.entries, (entry) => entry.entryId);

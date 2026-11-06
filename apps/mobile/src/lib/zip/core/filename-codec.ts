@@ -60,11 +60,7 @@ export function readUTF8(buffer: Uint8Array, offset: number, length: number): st
   }
 }
 
-function readASCIIFallback(
-  buffer: Uint8Array,
-  offset: number,
-  length: number,
-): string {
+function readASCIIFallback(buffer: Uint8Array, offset: number, length: number): string {
   let value = '';
   for (let index = 0; index < length; index += 1) {
     value += String.fromCharCode(buffer[offset + index]);

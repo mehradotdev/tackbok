@@ -17,7 +17,6 @@ import {
 
 const textEncoder = new TextEncoder();
 
-
 describe('openZipReader', () => {
   test('reads entries without materializing the whole archive', async () => {
     const bytes = new Uint8Array(
@@ -67,9 +66,7 @@ describe('openZipReader', () => {
       encodeZipArchiveBytes({ 'sample.txt': textEncoder.encode('hello') }, true),
     );
     const zip64 = addZip64EndOfCentralDirectory(base);
-    const archive = await openZipReader(
-      createMemoryZipReaderSource(zip64),
-    );
+    const archive = await openZipReader(createMemoryZipReaderSource(zip64));
 
     await expect(archive.readEntryText('sample.txt')).resolves.toBe('hello');
   });

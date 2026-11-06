@@ -260,13 +260,10 @@ export const cloudBaseShadow = sqliteTable(
 );
 
 /** Old shadow files are deleted only after their replacement checkpoint commits. */
-export const cloudShadowReaper = sqliteTable(
-  'cloud_shadow_reaper',
-  {
-    file_name: text('file_name').primaryKey().notNull(),
-    queued_at: integer('queued_at').notNull(),
-  },
-);
+export const cloudShadowReaper = sqliteTable('cloud_shadow_reaper', {
+  file_name: text('file_name').primaryKey().notNull(),
+  queued_at: integer('queued_at').notNull(),
+});
 
 /** Snapshot deletion intent retained independently from the live domain. */
 export const cloudTombstones = sqliteTable(
@@ -283,9 +280,11 @@ export const cloudTombstones = sqliteTable(
     deletion_sequence: integer('deletion_sequence').notNull(),
     updated_at: integer('updated_at').notNull(),
   },
-  (table) => [primaryKey({
-    columns: [table.vault_id, table.entity_type, table.entity_id],
-  })],
+  (table) => [
+    primaryKey({
+      columns: [table.vault_id, table.entity_type, table.entity_id],
+    }),
+  ],
 );
 
 /** Exact snapshot conflict envelopes plus local review state. */
@@ -363,14 +362,16 @@ export const cloudDriveUploadSessions = sqliteTable(
     uploaded_bytes: integer('uploaded_bytes').notNull().default(0),
     updated_at: integer('updated_at').notNull(),
   },
-  (table) => [primaryKey({
-    columns: [
-      table.connection_id,
-      table.vault_id,
-      table.logical_key,
-      table.content_sha256,
-    ],
-  })],
+  (table) => [
+    primaryKey({
+      columns: [
+        table.connection_id,
+        table.vault_id,
+        table.logical_key,
+        table.content_sha256,
+      ],
+    }),
+  ],
 );
 
 /** Application-level backfill checkpoint; deliberately separate from SQL migrations. */

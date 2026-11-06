@@ -5,4 +5,3 @@ export default function ShareEntryRoute() {
   const { noteId } = useLocalSearchParams<{ noteId: string }>();
   return <EntryShareScreen noteId={noteId} />;
 }
-

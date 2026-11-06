@@ -22,7 +22,9 @@ module.exports = function withAndroidReleaseOptimization(config) {
       });
     }
     const shrinkProp = mod.modResults.find(
-      (entry) => entry.type === 'property' && entry.key === 'android.r8.optimizedResourceShrinking',
+      (entry) =>
+        entry.type === 'property' &&
+        entry.key === 'android.r8.optimizedResourceShrinking',
     );
     if (shrinkProp) {
       shrinkProp.value = 'true';
