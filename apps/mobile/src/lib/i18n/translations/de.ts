@@ -820,6 +820,12 @@ export const de: Translations = {
   'cloud.removingTheCloudBackupAndJournalData':
     'Cloud-Sicherung und Tagebuchdaten werden gelöscht. Wenn du Tackbok verlässt, kannst du das Löschen später fortsetzen.',
   'cloud.disconnect': 'Trennen',
+  'cloud.disconnecting': 'Wird getrennt…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    'Getrennt. Dein Tagebuch bleibt auf diesem Handy und deine Sicherung in deinem Google Drive.',
+  'cloud.couldNotDisconnectTryAgain':
+    'Trennen hat nicht geklappt. Versuche es noch einmal.',
+  'cloud.pausing': 'Wird pausiert…',
   'cloud.disconnectProvider': '{provider} trennen',
   'cloud.disconnectProviderFromThisDevice': '{provider} von diesem Gerät trennen?',
   'cloud.disconnectThenDeleteLocalJournalDataOnly':
