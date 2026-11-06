@@ -531,11 +531,21 @@ function mergeRelationSet(
   return result.sort(keyComparator(key));
 }
 
-// A profile whose updatedAt is still 0 never had a name or photo written on
-// any device in its history (local writes only stamp updatedAt when a synced
-// field changes). Only such a provably pristine side quietly adopts a set
-// value without a base, e.g. a first join after skipping onboarding. Any other
-// null may be a deliberate clear, so it conflicts as before.
+// A pristine profile is completely empty and was never stamped: no name, no
+// photo, and updatedAt 0 (local writes only stamp updatedAt when a synced field
+// changes). Only such a side quietly adopts a set value without a base, e.g. a
+// first join after skipping onboarding. The timestamp alone is not enough:
+// older clients and backups restored from them can carry authored values at
+// updatedAt 0. Any other null may be a deliberate clear, so it conflicts as
+// before.
+function isPristineProfile(profile: SnapshotProfile): boolean {
+  return (
+    profile.updatedAt === 0 &&
+    profile.displayName === null &&
+    profile.photoAssetId === null
+  );
+}
+
 function profileFieldMerge(
   base: string | null | undefined,
   local: string | null,
@@ -556,8 +566,8 @@ function mergeProfile(
   remote: SnapshotProfile,
   conflicts: SnapshotConflict[],
 ): SnapshotProfile {
-  const localPristine = local.updatedAt === 0;
-  const remotePristine = remote.updatedAt === 0;
+  const localPristine = isPristineProfile(local);
+  const remotePristine = isPristineProfile(remote);
   const displayName = profileFieldMerge(
     base?.displayName,
     local.displayName,
