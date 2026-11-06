@@ -372,6 +372,54 @@ function provider(
 }
 
 describe('GoogleDriveSnapshotProvider', () => {
+  test('a 403 Retry-After survives a cancelled error body and blocks the next request', async () => {
+    const state = new MemoryDriveProviderStateStore();
+    let controller = new AbortController();
+    let calls = 0;
+    let markReading!: () => void;
+    const reading = new Promise<void>((resolve) => (markReading = resolve));
+    const transport = new DriveTransport({
+      auth: new FakeAuth(),
+      state,
+      signal: () => controller.signal,
+      now: () => 0,
+      random: () => 0,
+      sleep: async () => {},
+      fetch: async () => {
+        calls += 1;
+        return {
+          ok: false,
+          status: 403,
+          headers: { get: (name: string) => (name === 'retry-after' ? '120' : null) },
+          json: () => {
+            markReading();
+            return new Promise(() => {});
+          },
+          arrayBuffer: async () => new ArrayBuffer(0),
+        };
+      },
+    });
+    const request = () =>
+      transport.request(
+        vaultId,
+        'list',
+        'https://www.googleapis.com/drive/v3/files',
+        {},
+        {
+          idempotent: true,
+        },
+      );
+    const first = request();
+    await reading;
+    controller.abort();
+    await expect(first).rejects.toBeInstanceOf(SyncCancelledError);
+    expect(state.loadDiscovery(vaultId).retryNotBefore).toBe(120_000);
+
+    controller = new AbortController();
+    await expect(request()).rejects.toBeDefined();
+    expect(calls).toBe(1);
+  });
+
   test('a rejected request is not classified as corrupt cloud content', async () => {
     const fetch = jest.fn(async () => response(400));
     const transport = new DriveTransport({
