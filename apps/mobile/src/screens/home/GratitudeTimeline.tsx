@@ -17,6 +17,7 @@ import { Text } from '~/components/ui/text';
 import { TimelineItem } from './GratitudeTimelineItem';
 import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
+import { CloudRestoreCard } from './CloudRestoreCard';
 import { SampleEntriesBanner } from './SampleEntriesBanner';
 
 interface IGratitudeTimelineProps {
@@ -214,7 +215,12 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
             />
           ) : null
         }
-        ListHeaderComponent={<SampleEntriesBanner />}
+        ListHeaderComponent={
+          <>
+            <CloudRestoreCard />
+            <SampleEntriesBanner />
+          </>
+        }
         ListFooterComponent={<View style={{ height: footerHeight }} />}
         contentContainerClassName="pb-4"
         onScroll={onScroll}

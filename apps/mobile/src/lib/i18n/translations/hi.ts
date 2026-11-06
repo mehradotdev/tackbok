@@ -689,7 +689,19 @@ export const hi = {
   'cloud.cloudBackupNumber': 'क्लाउड बैकअप {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
     'आपका बैकअप आपके Google Drive में ताकबूक के एक निजी फ़ोल्डर में रखा जाता है। ताकबूक आपकी दूसरी Drive फ़ाइलें नहीं देख सकता, और आपका बैकअप कभी भी ताकबूक के डेवलपर को नहीं भेजा जाता। Google इसे आपकी दूसरी फ़ाइलों की तरह सुरक्षित रखता है, लेकिन यह एंड-टू-एंड एन्क्रिप्टेड नहीं है।',
-  'cloud.cloudRestoreStarted': 'क्लाउड पुनर्स्थापन प्रारंभ हुआ',
+  'cloud.restoreComplete': 'पुनर्स्थापन पूरा हुआ',
+  'cloud.restoreNeedsAttention': 'पुनर्स्थापन पर ध्यान देना ज़रूरी है',
+  'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
+    'पुनर्स्थापन रुका हुआ है। ताकबूक खुला और ऑनलाइन होने पर यह जारी रहेगा।',
+  'cloud.youCanKeepUsingTackbokWhileItRestores':
+    'पुनर्स्थापन के दौरान आप ताकबूक का उपयोग जारी रख सकते हैं।',
+  'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
+    'आपकी डायरी तैयार है। फ़ोटो और वॉइस नोट डाउनलोड हो रहे हैं: {total} में से {downloaded}।',
+  'cloud.photosAndVoiceNotesWaitingForWiFiCount':
+    'वाई-फ़ाई की प्रतीक्षा में फ़ोटो और वॉइस नोट: {number}',
+  'cloud.viewCloudBackup': 'क्लाउड बैकअप देखें',
+  'cloud.cloudSyncPhotosAndVoiceNotesToDownload':
+    'क्लाउड सिंक: डाउनलोड होने बाकी फ़ोटो और वॉइस नोट',
   'cloud.cloudSyncAttentionNeeded': 'क्लाउड सिंक: ध्यान देने की आवश्यकता',
   'cloud.cloudSyncChangesSafelyQueued': 'क्लाउड सिंक: परिवर्तन सुरक्षित रूप से कतारबद्ध',
   'cloud.cloudSyncPaused': 'क्लाउड सिंक: रुका हुआ',

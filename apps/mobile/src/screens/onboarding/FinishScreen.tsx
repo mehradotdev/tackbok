@@ -9,6 +9,7 @@ import { track } from '~/lib/analytics';
 import { hasAnyEntries } from '~/db/queries';
 import { QUERY_KEYS } from '~/hooks/useGratitude';
 import { seedSampleEntries } from '~/lib/sampleEntries';
+import { isCloudRestoreInProgress } from '~/lib/cloudSync/ui';
 import {
   cancelDailyReminder,
   requestReminderPermission,
@@ -33,7 +34,9 @@ export default function OnboardingFinishScreen() {
   const setHasCompletedOnboarding = useSettingsStore((s) => s.setHasCompletedOnboarding);
 
   const [addSampleEntries, setAddSampleEntries] = useState(true);
-  // null = unknown (toggle hidden until the check resolves)
+  // null = unknown (toggle hidden until the check resolves). A journal being
+  // restored from a cloud backup counts as not empty: sample entries would
+  // otherwise sync into that backup.
   const [dbIsEmpty, setDbIsEmpty] = useState<boolean | null>(null);
   const [showTimePickerModal, setShowTimePickerModal] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -42,9 +45,9 @@ export default function OnboardingFinishScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    hasAnyEntries()
-      .then((hasEntries) => {
-        if (!cancelled) setDbIsEmpty(!hasEntries);
+    Promise.all([hasAnyEntries(), isCloudRestoreInProgress()])
+      .then(([hasEntries, restoring]) => {
+        if (!cancelled) setDbIsEmpty(!hasEntries && !restoring);
       })
       .catch(() => {
         if (!cancelled) setDbIsEmpty(false);
@@ -113,7 +116,10 @@ export default function OnboardingFinishScreen() {
     if (isFinishing || dbIsEmpty === null) return;
     setIsFinishing(true);
     try {
-      if (dbIsEmpty && addSampleEntries) {
+      // Check again right before seeding: a restore may have been committed
+      // since this screen loaded. If the check fails, skip the samples.
+      const restoring = await isCloudRestoreInProgress().catch(() => true);
+      if (dbIsEmpty && addSampleEntries && !restoring) {
         try {
           // seedSampleEntries tracks the seeded ids in the settings store
           // itself (even on partial failure, so the banner can clean up).

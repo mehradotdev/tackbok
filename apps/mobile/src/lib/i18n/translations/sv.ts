@@ -703,7 +703,19 @@ export const sv = {
   'cloud.cloudBackupNumber': 'Molnsäkerhetskopia {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
     'Din säkerhetskopia sparas i en privat Tackbok-mapp i din Google Drive. Tackbok kan inte se dina andra filer i Drive, och din säkerhetskopia skickas aldrig till Tackboks utvecklare. Google skyddar den som dina andra filer, men den är inte ände-till-ände-krypterad.',
-  'cloud.cloudRestoreStarted': 'Molnåterställning startade',
+  'cloud.restoreComplete': 'Återställningen är klar',
+  'cloud.restoreNeedsAttention': 'Återställningen behöver åtgärdas',
+  'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
+    'Återställningen är pausad. Den fortsätter när Tackbok är öppet och online.',
+  'cloud.youCanKeepUsingTackbokWhileItRestores':
+    'Du kan fortsätta använda Tackbok medan den återställs.',
+  'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
+    'Din dagbok är klar. Laddar ned foton och röstanteckningar: {downloaded} av {total}.',
+  'cloud.photosAndVoiceNotesWaitingForWiFiCount':
+    'Foton och röstanteckningar som väntar på wifi: {number}',
+  'cloud.viewCloudBackup': 'Visa molnsäkerhetskopia',
+  'cloud.cloudSyncPhotosAndVoiceNotesToDownload':
+    'Molnsynkronisering: foton och röstanteckningar att ladda ned',
   'cloud.cloudSyncAttentionNeeded': 'Molnsynkronisering: uppmärksamhet behövs',
   'cloud.cloudSyncChangesSafelyQueued': 'Molnsynkronisering: ändringar i säkert kö',
   'cloud.cloudSyncPaused': 'Molnsynkronisering: pausad',

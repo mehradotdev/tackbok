@@ -800,7 +800,19 @@ export const de: Translations = {
   'cloud.cloudBackupNumber': 'Cloud-Sicherung {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
     'Deine Sicherung liegt in einem privaten Tackbok-Ordner in deinem Google Drive. Tackbok kann deine anderen Drive-Dateien nicht sehen, und deine Sicherung wird nie an den Entwickler von Tackbok gesendet. Google schützt sie wie deine anderen Dateien, aber sie ist nicht Ende-zu-Ende-verschlüsselt.',
-  'cloud.cloudRestoreStarted': 'Cloud-Wiederherstellung gestartet',
+  'cloud.restoreComplete': 'Wiederherstellung abgeschlossen',
+  'cloud.restoreNeedsAttention': 'Wiederherstellung braucht deine Aufmerksamkeit',
+  'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
+    'Wiederherstellung pausiert. Sie geht weiter, wenn Tackbok geöffnet und online ist.',
+  'cloud.youCanKeepUsingTackbokWhileItRestores':
+    'Du kannst Tackbok während der Wiederherstellung weiter nutzen.',
+  'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
+    'Dein Tagebuch ist bereit. Fotos und Sprachnotizen werden heruntergeladen: {downloaded} von {total}.',
+  'cloud.photosAndVoiceNotesWaitingForWiFiCount':
+    'Fotos und Sprachnotizen, die auf WLAN warten: {number}',
+  'cloud.viewCloudBackup': 'Cloud-Sicherung ansehen',
+  'cloud.cloudSyncPhotosAndVoiceNotesToDownload':
+    'Cloud-Synchronisierung: Fotos und Sprachnotizen zum Herunterladen',
   'cloud.cloudSyncAttentionNeeded': 'Cloud-Synchronisierung: Aktion erforderlich',
   'cloud.cloudSyncChangesSafelyQueued':
     'Cloud-Synchronisierung: Änderungen sicher vorgemerkt',

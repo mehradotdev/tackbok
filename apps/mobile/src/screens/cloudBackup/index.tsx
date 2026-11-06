@@ -94,9 +94,6 @@ export default function CloudBackupScreen() {
   const { snapshot, refresh } = useCloudSyncSnapshot();
   const wifiOnly = useSettingsStore((state) => state.cloudSyncWifiOnlyMedia);
   const setWifiOnly = useSettingsStore((state) => state.setCloudSyncWifiOnlyMedia);
-  const setHasCompletedOnboarding = useSettingsStore(
-    (state) => state.setHasCompletedOnboarding,
-  );
   const resetSettings = useSettingsStore((state) => state.resetToDefaults);
   const manageDataSheetRef = useRef<TrueSheet>(null);
   const [sheetBackgroundColor, themeRadiusStr, mutedForegroundColor] = useCSSVariable([
@@ -193,18 +190,15 @@ export default function CloudBackupScreen() {
     async (vaultId?: string, createNew = false) => {
       setStage('working');
       try {
+        // Returns once the connection is committed (and onboarding completed);
+        // the restore itself continues in the background with its progress on Home.
         await completeGoogleDriveConnection({ origin, vaultId, createNew });
         await refresh();
         // Setup can finish after the user has left. Keep the connection, but
         // do not let this screen's stale callback change their navigation/UI.
         if (!mountedRef.current) return;
-        toast.success(
-          origin === 'onboarding'
-            ? t('cloud.cloudRestoreStarted')
-            : t('cloud.cloudBackupConnected'),
-        );
+        toast.success(t('cloud.cloudBackupConnected'));
         if (origin === 'onboarding') {
-          setHasCompletedOnboarding(true);
           router.replace('/');
         } else {
           // Local state is enough to leave setup. Replacing the route here
@@ -218,7 +212,7 @@ export default function CloudBackupScreen() {
         toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
       }
     },
-    [origin, refresh, router, setHasCompletedOnboarding, t],
+    [origin, refresh, router, t],
   );
 
   const runAction = useCallback(

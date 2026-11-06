@@ -12,6 +12,11 @@ const mockSignOut = jest.fn(async () => {});
 const mockRestart = jest.fn(async () => {
   mockEvents.push('restart');
 });
+let mockVaults: { vaultId: string; updatedAt: number }[] = [];
+const mockSettings = {
+  setCloudRestore: jest.fn(),
+  setHasCompletedOnboarding: jest.fn(),
+};
 const mockStop = jest.fn();
 const mockCommit = jest.fn(async (operation: (tx: unknown) => Promise<void>) => {
   await operation(mockDb);
@@ -61,10 +66,28 @@ jest.mock('../auth', () => ({
 }));
 jest.mock('../auth/secureTokenStore', () => ({
   readOrCreateGoogleConnectionId: async () => 'epoch',
+  // Like the real helper: sign out, put the previous credentials back, rethrow.
+  withGoogleCredentialRollback: async (
+    operation: () => Promise<unknown>,
+    signOut: () => Promise<void>,
+  ) => {
+    try {
+      return await operation();
+    } catch (error) {
+      await signOut();
+      mockEvents.push('credentials-restored');
+      throw error;
+    }
+  },
 }));
 jest.mock('../snapshot/drive', () => ({
   SQLiteDriveProviderStateStore: jest.fn(),
-  GoogleDriveSnapshotProvider: jest.fn(() => ({ listAvailableVaults: async () => [] })),
+  GoogleDriveSnapshotProvider: jest.fn(() => ({
+    listAvailableVaults: async () => mockVaults,
+  })),
+}));
+jest.mock('~/lib/settings', () => ({
+  useSettingsStore: { getState: () => mockSettings },
 }));
 jest.mock('../snapshot/sync', () => ({}));
 jest.mock('../runtime/production', () => ({
@@ -79,6 +102,7 @@ jest.mock('../storage/repositories', () => ({}));
 
 beforeEach(async () => {
   await cancelPreparedGoogleDriveConnection();
+  mockVaults = [];
   mockEvents.length = 0;
   jest.clearAllMocks();
 });
@@ -86,12 +110,14 @@ afterEach(async () => {
   await cancelPreparedGoogleDriveConnection();
 });
 
-test('setup disables the old attachment before authorization and restarts only after commit', async () => {
+test('setup disables the old attachment after authorization and restarts only after commit', async () => {
   await prepareGoogleDriveConnection();
-  expect(mockEvents).toEqual(['disabled', 'authorize']);
+  expect(mockEvents).toEqual(['authorize', 'disabled']);
   expect(mockRestart).not.toHaveBeenCalled();
   await completeGoogleDriveConnection({ origin: 'settings', createNew: true });
-  expect(mockEvents).toEqual(['disabled', 'authorize', 'commit', 'restart']);
+  expect(mockEvents).toEqual(['authorize', 'disabled', 'commit', 'restart']);
+  expect(mockSettings.setCloudRestore).toHaveBeenCalledWith(null);
+  expect(mockSettings.setHasCompletedOnboarding).not.toHaveBeenCalled();
   const stops = mockStop.mock.calls.length;
   await cancelPreparedGoogleDriveConnection();
   expect(mockStop).toHaveBeenCalledTimes(stops);
@@ -104,13 +130,54 @@ test('cancelling a prepared account signs out without restarting', async () => {
   expect(mockRestart).not.toHaveBeenCalled();
 });
 
-test('failed authorization and failed vault selection never restart the runtime', async () => {
+test('a cancelled sign-in keeps the current backup, its credentials and its restore', async () => {
   mockAuthorize.mockRejectedValueOnce(new Error('cancelled'));
   await expect(prepareGoogleDriveConnection()).rejects.toThrow('cancelled');
-  expect(mockRestart).not.toHaveBeenCalled();
+  expect(mockEvents).toEqual(['credentials-restored', 'restart']);
+  expect(mockEvents).not.toContain('disabled');
+  // Nothing is staged, so screen cleanup must not stop the resumed runtime.
+  const stops = mockStop.mock.calls.length;
+  await cancelPreparedGoogleDriveConnection();
+  expect(mockStop).toHaveBeenCalledTimes(stops);
+});
+
+test('failed vault selection never restarts the runtime', async () => {
   await prepareGoogleDriveConnection();
   await expect(completeGoogleDriveConnection({ origin: 'settings' })).rejects.toThrow(
     'Choose a cloud backup',
   );
   expect(mockRestart).not.toHaveBeenCalled();
+});
+
+test('committing a restore returns without waiting for the restore to finish', async () => {
+  mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
+  await prepareGoogleDriveConnection();
+  // The runtime's first pass is the whole restore; it never settles here.
+  mockRestart.mockImplementationOnce(() => {
+    mockEvents.push('restart');
+    return new Promise<void>(() => undefined);
+  });
+  await completeGoogleDriveConnection({ origin: 'settings', vaultId: 'vault-a' });
+  expect(mockEvents).toEqual(['authorize', 'disabled', 'commit', 'restart']);
+  expect(mockSettings.setCloudRestore).toHaveBeenCalledWith({
+    vaultId: 'vault-a',
+    startedAt: expect.any(Number),
+  });
+});
+
+test('an onboarding restore completes onboarding at commit, without the setup screen', async () => {
+  mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
+  await prepareGoogleDriveConnection();
+  // The setup screen may already be unmounted; nothing here depends on it.
+  const commit = completeGoogleDriveConnection({
+    origin: 'onboarding',
+    vaultId: 'vault-a',
+  });
+  expect(mockSettings.setHasCompletedOnboarding).not.toHaveBeenCalled();
+  await commit;
+  expect(mockSettings.setHasCompletedOnboarding).toHaveBeenCalledWith(true);
+  expect(mockSettings.setCloudRestore).toHaveBeenCalledWith({
+    vaultId: 'vault-a',
+    startedAt: expect.any(Number),
+  });
 });

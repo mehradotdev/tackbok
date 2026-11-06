@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Check,
   Cloud,
+  CloudDownload,
   CloudOff,
   CloudUpload,
   Search,
@@ -66,6 +67,11 @@ export const Header: React.FC<IHeaderProps> = ({
     snapshot.status !== 'paused' &&
     snapshot.status !== 'queued' &&
     snapshot.queuedCount === 0;
+  // Photos and voice notes still coming from the backup; nothing to upload.
+  const downloadsOnly =
+    snapshot.status === 'queued' &&
+    snapshot.queuedCount === 0 &&
+    snapshot.pendingDownloadCount > 0;
 
   if (isSearchMode) {
     return (
@@ -187,13 +193,15 @@ export const Header: React.FC<IHeaderProps> = ({
               accessibilityLabel={
                 syncIsActive
                   ? t('cloud.cloudSyncSyncing')
-                  : snapshot.status === 'queued'
-                    ? t('cloud.cloudSyncChangesSafelyQueued')
-                    : snapshot.status === 'paused'
-                      ? t('cloud.cloudSyncPaused')
-                      : snapshot.status === 'warning'
-                        ? t('cloud.cloudSyncAttentionNeeded')
-                        : t('cloud.cloudSyncUpToDate')
+                  : downloadsOnly
+                    ? t('cloud.cloudSyncPhotosAndVoiceNotesToDownload')
+                    : snapshot.status === 'queued'
+                      ? t('cloud.cloudSyncChangesSafelyQueued')
+                      : snapshot.status === 'paused'
+                        ? t('cloud.cloudSyncPaused')
+                        : snapshot.status === 'warning'
+                          ? t('cloud.cloudSyncAttentionNeeded')
+                          : t('cloud.cloudSyncUpToDate')
               }>
               {syncIsActive ? (
                 <SpinningRefreshIcon className="text-primary-foreground size-5" />
@@ -205,9 +213,11 @@ export const Header: React.FC<IHeaderProps> = ({
                         ? AlertTriangle
                         : snapshot.status === 'paused'
                           ? CloudOff
-                          : snapshot.status === 'queued' || snapshot.queuedCount > 0
-                            ? CloudUpload
-                            : Cloud
+                          : downloadsOnly
+                            ? CloudDownload
+                            : snapshot.status === 'queued' || snapshot.queuedCount > 0
+                              ? CloudUpload
+                              : Cloud
                     }
                     className="text-primary-foreground size-6"
                     strokeWidth={2.5}

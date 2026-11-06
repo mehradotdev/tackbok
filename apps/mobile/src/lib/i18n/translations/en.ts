@@ -765,7 +765,19 @@ export const en = {
   'cloud.cloudBackupNumber': 'Cloud backup {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
     "Your backup is stored in a private Tackbok folder in your Google Drive. Tackbok can't see your other Drive files, and your backup is never sent to Tackbok's developer. Google protects it like your other files, but it isn't end-to-end encrypted.",
-  'cloud.cloudRestoreStarted': 'Cloud restore started',
+  'cloud.restoreComplete': 'Restore complete',
+  'cloud.restoreNeedsAttention': 'Restore needs attention',
+  'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
+    'Restore paused. It continues when Tackbok is open and online.',
+  'cloud.youCanKeepUsingTackbokWhileItRestores':
+    'You can keep using Tackbok while it restores.',
+  'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
+    'Your journal is ready. Downloading photos and voice notes: {downloaded} of {total}.',
+  'cloud.photosAndVoiceNotesWaitingForWiFiCount':
+    'Photos and voice notes waiting for Wi-Fi: {number}',
+  'cloud.viewCloudBackup': 'View cloud backup',
+  'cloud.cloudSyncPhotosAndVoiceNotesToDownload':
+    'Cloud sync: photos and voice notes to download',
   'cloud.cloudSyncAttentionNeeded': 'Cloud sync: attention needed',
   'cloud.cloudSyncChangesSafelyQueued': 'Cloud sync: changes safely queued',
   'cloud.cloudSyncPaused': 'Cloud sync: paused',
