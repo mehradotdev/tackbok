@@ -29,6 +29,11 @@ describe('cloud sync failure classification', () => {
   test('uses one validated analytics category parser', () => {
     expect(readCloudSyncFailureCategory({ category: 'offline' })).toBe('offline');
     expect(readCloudSyncFailureCategory({ category: 'unexpected' })).toBe('unknown');
-    expect(failureCategoryForAttention('local-media-unreadable')).toBe('corrupt');
+    expect(readCloudSyncFailureCategory({ category: 'local-media' })).toBe('local-media');
+  });
+
+  test('keeps local attachment problems separate from unreadable cloud data', () => {
+    expect(failureCategoryForAttention('local-media-unreadable')).toBe('local-media');
+    expect(failureCategoryForAttention('invalid-remote-snapshot')).toBe('corrupt');
   });
 });
