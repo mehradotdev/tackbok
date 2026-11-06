@@ -166,6 +166,7 @@ export class SnapshotSyncEngine {
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       if (!pending) {
         if (durable.journalGeneration > durable.settledGeneration) {
+          this.hooks.activity?.('preparing-local-changes');
           await this.hooks.at?.('after-local-mutation');
         }
         const plan = await this.planCandidate(verifiedSnapshots, ancestorBudget);
@@ -439,6 +440,7 @@ export class SnapshotSyncEngine {
       if (unique.size > 1) {
         const valid: ListedDeviceHead[] = [];
         for (const candidate of unique.values()) {
+          this.hooks.activity?.('reading-remote-snapshot');
           const bytes = await this.provider.downloadSnapshot(
             this.vaultId,
             candidate.head.snapshotId,
@@ -467,6 +469,7 @@ export class SnapshotSyncEngine {
     for (const candidate of normalized) {
       let payload = verifiedSnapshots.get(candidate.head.snapshotId);
       if (!payload) {
+        this.hooks.activity?.('reading-remote-snapshot');
         const bytes = await this.provider.downloadSnapshot(
           this.vaultId,
           candidate.head.snapshotId,

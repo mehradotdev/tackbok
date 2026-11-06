@@ -711,9 +711,9 @@ export const zhTW: Translations = {
   'cloud.attentionNeeded': '需要注意',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     '使用你自己的 Google Drive 備份和同步日記。日記會直接從你的手機傳到你的 Drive，塔克布克的開發者永遠看不到它。',
-  'cloud.backupFromDate': '{date} 的備份',
+  'cloud.lastUpdatedDate': '上次更新：{date}',
   'cloud.beforeYouConnect': '連線之前',
-  'cloud.checkingGoogleDriveForChanges': '正在檢查 Google Drive 中的變更',
+  'cloud.checkingGoogleDriveForChanges': '正在檢查 Google Drive 中的變更…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
     '選擇一個備份與此日記合併。兩邊的資料都會保留。',
   'cloud.chooseABackupToRestoreOnThisDevice': '選擇要在此裝置上還原的備份。',
@@ -742,8 +742,8 @@ export const zhTW: Translations = {
   'cloud.deleteJournalEverywhere2': '在所有位置刪除日記？',
   'cloud.deleteOrResetData': '刪除或重設資料',
   'cloud.deletingJournalEverywhere': '正在從所有位置刪除日記…',
-  'cloud.removingTheCloudBackupAndJournalDataKeepTackbokOpen':
-    '正在刪除雲端備份和日記資料。請保持塔克布克開啟。',
+  'cloud.removingTheCloudBackupAndJournalData':
+    '正在刪除雲端備份和日記資料。如果你離開塔克布克，回來後可以繼續刪除。',
   'cloud.disconnect': '中斷連線',
   'cloud.disconnectProvider': '中斷 {provider} 連線',
   'cloud.disconnectProviderFromThisDevice': '要中斷此裝置與 {provider} 的連線嗎？',
@@ -759,6 +759,8 @@ export const zhTW: Translations = {
     '無法連線至 Google Drive。你的變更仍會安全地保留在佇列中。',
   'cloud.photosAndVoiceMemosAreWaitingForWiFiYour':
     '照片和語音筆記正在等待 Wi-Fi。你的變更仍會安全地保留在佇列中。',
+  'cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead':
+    '無法讀取此裝置上的照片或語音筆記。你的變更仍會安全地保留在佇列中。',
   'cloud.googleDriveDisconnectedOnThisDevice': '此裝置已中斷 Google Drive 連線',
   'cloud.googleDriveIsBusyTryAgainShortly': 'Google Drive 忙碌中，請稍後再試。',
   'cloud.googleDriveNeedsToBeReconnected': '需要重新連線 Google Drive。',
@@ -768,7 +770,8 @@ export const zhTW: Translations = {
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
     'Google 可能會詢問是否允許塔克布克在你的 Drive 中使用它自己的私人資料夾。請選擇允許，否則備份無法連線。',
   'cloud.journalDeletionReceived': '已收到日記刪除通知',
-  'cloud.journalTextStillSyncsOnMobileData': '日記文字仍會透過行動數據同步。',
+  'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
+    '照片和語音筆記僅在 Wi-Fi 下上傳和下載。包含新照片或語音筆記的紀錄也會等待 Wi-Fi。',
   'cloud.keepLocalDataAndTheCloudCopy': '保留本機資料和雲端副本',
   'cloud.keepLocalJournalData': '保留本機日記資料',
   'cloud.keepTheCloudCopyAndOtherDevices': '保留雲端副本和其他裝置',
@@ -776,7 +779,7 @@ export const zhTW: Translations = {
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     '本機資料和雲端備份都會保留。其他裝置仍保持連線。',
   'cloud.markAsReviewed': '標記為已檢視',
-  'cloud.mergingChangesAndUpdatingGoogleDrive': '正在合併變更並更新 Google Drive',
+  'cloud.savingYourChangesToGoogleDrive': '正在將你的變更儲存到 Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount': '此 Google 帳戶中找不到塔克布克備份',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
     '沒有網際網路連線。你的變更仍會安全地保留在佇列中。',
@@ -784,8 +787,8 @@ export const zhTW: Translations = {
     '找不到現有塔克布克備份。請為此日記建立一個備份。',
   'cloud.optionalCloudBackup': '選用的雲端備份',
   'cloud.pauseSync': '暫停同步',
-  'cloud.preparingJournalChanges': '正在準備日誌變更',
-  'cloud.preparingRestoredJournalData': '正在準備已復原的日誌資料',
+  'cloud.preparingYourChanges': '正在準備你的變更…',
+  'cloud.restoringYourJournalFromGoogleDrive': '正在從 Google Drive 還原你的日記…',
   'cloud.profile': '個人資料',
   'cloud.prompt': '提示',
   'cloud.reconnectGoogleDrive': '重新連接 Google Drive',
@@ -800,20 +803,22 @@ export const zhTW: Translations = {
   'cloud.restoreFromYourCloudBackup': '從你的 Google Drive 備份還原',
   'cloud.restoring': '正在還原…',
   'cloud.safelyQueued': '已安全排隊',
-  'cloud.savingSyncedJournalDataOnThisDevice': '正在此裝置上儲存已同步的日誌資料',
+  'cloud.gettingChangesFromYourOtherDevices': '正在取得你其他裝置上的變更…',
   'cloud.setupElapsedSeconds': '已用時間：{seconds} 秒',
   'cloud.setupProgressHelp':
     'Tackbok 正在連接此裝置並開始首次同步。較大的備份、照片和語音筆記可能需要更長時間。',
   'cloud.setupTakingLonger':
-    '此次操作比平常耗時更久。請檢查網路連線，並保持 Tackbok 開啟以便繼續。',
+    '此次操作比平常耗時更久。請檢查網路連線。如果你離開 Tackbok，它會從中斷的地方繼續。',
   'cloud.settingUpCloudSync': '正在設定雲端同步…',
-  'cloud.stepCurrentOfTotalInThisBatch': '此批次第 {current} 步，共 {total} 步',
+  'cloud.downloadingPhotosAndVoiceNotes': '正在下載照片和語音筆記…',
   'cloud.syncCompleted': '同步完成',
   'cloud.syncNow': '立即同步',
+  'cloud.resumeSyncToSyncNow': '恢復同步後即可立即同步。',
+  'cloud.fixTheProblemAboveToSyncNow': '解決上方的問題後即可立即同步。',
   'cloud.syncPaused': '同步已暫停',
   'cloud.syncResumed': '同步已恢復',
-  'cloud.syncRunsInSafeBatchesYouCanKeepUsingTackbok':
-    '同步會以安全批次執行。你可以繼續使用塔克布克。',
+  'cloud.syncIsFasterWithTackbokOpen':
+    '保持塔克布克開啟會更快。如果你離開，它會從中斷的地方繼續。',
   'cloud.syncMediaOnWiFiOnly': '僅透過 Wi-Fi 同步媒體',
   'cloud.syncing': '正在同步…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
@@ -836,7 +841,6 @@ export const zhTW: Translations = {
   'cloud.thisJournalWasDeletedEverywhereThisDeviceIsDisconnected':
     '此日記已在所有位置刪除。此裝置已中斷連線。',
   'cloud.upToDate': '已是最新',
-  'cloud.verifyBackupHealth': '驗證備份狀態',
   'cloud.waitingForTheFirstSuccessfulSync': '正在等待首次成功同步',
   'cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs':
     '你可以離開此畫面；塔克布克處於使用中時會繼續同步。',
@@ -844,6 +848,7 @@ export const zhTW: Translations = {
     '你的日記會留在手機上。如果開啟備份，副本只會存到你自己的 Google Drive。',
   'cloud.countChangesSafelyQueued': '{count} 項變更已安全排隊',
   'cloud.countChangesRemaining': '剩餘 {count} 項變更',
+  'cloud.photosAndVoiceNotesToDownloadCount': '待下載的照片和語音筆記：{number}',
   'cloud.googleDriveAuthorizationNeedsAttention': 'Google Drive 授權需要處理。',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
     '此備份屬於另一個已連接的 Google 帳戶。',
@@ -879,15 +884,12 @@ export const zhTW: Translations = {
   'cloud.finishConnection': '完成連接',
   'cloud.reconnectToTheCorrectBackup': '重新連接正確的備份',
   'cloud.updateTackbok': '更新塔克布克',
-  'cloud.retryAndVerifyBackup': '重試並驗證備份',
-  'cloud.repairFromVerifiedBackup': '從已驗證備份修復',
-  'cloud.inspectAndRepairBackup': '檢查並修復備份',
-  'cloud.consolidateBackups': '合併備份',
+  'cloud.retryBackupCheck': '重新檢查備份',
   'cloud.exportJournalAndRepairBackup': '匯出日記並修復備份',
   'cloud.freeDeviceStorageAndRetry': '釋放裝置空間並重試',
   'cloud.manageGoogleDriveStorage': '管理 Google Drive 儲存空間',
   'cloud.retryMissingMedia': '重試遺失的媒體',
-  'cloud.locateOrRetryAttachment': '尋找或重試附件',
+  'cloud.retryAttachment': '重試附件',
   'cloud.retryJournalPreparation': '重試日記準備',
   'cloud.acknowledgeAndDisconnect': '確認並中斷連線',
   'cloud.reviewDeletionAndEraseThisDevice': '檢查刪除並清除此裝置',

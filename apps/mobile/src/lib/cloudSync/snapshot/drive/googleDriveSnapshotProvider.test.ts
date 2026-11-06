@@ -1157,6 +1157,51 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(maximumAppend).toBe(8 * 1024 * 1024);
   });
 
+  test('a connection dropped mid-download is a retryable transient failure', async () => {
+    const hash = 'b'.repeat(64);
+    const state = new MemoryDriveProviderStateStore();
+    state.upsertFile(vaultId, {
+      fileId: 'media-interrupted',
+      logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
+      kind: 'media',
+      contentSha256: hash,
+      byteCount: 2048,
+      createdAt: 1,
+      head: null,
+    });
+    let reads = 0;
+    const interrupted: DriveResponseLike = {
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (reads++ === 0) return { done: false, value: new Uint8Array(1024) };
+            throw new TypeError('Network request failed');
+          },
+        }),
+      },
+      json: async () => ({}),
+      arrayBuffer: async () => new ArrayBuffer(0),
+    };
+    const provider = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state,
+      fetch: async () => interrupted,
+      sleep: async () => {},
+      random: () => 0,
+    });
+    await expect(
+      provider.downloadMedia(vaultId, hash, {
+        byteLength: async () => 0,
+        appendAndSync: async () => {},
+        reset: async () => {},
+        verifyAndPromote: async () => {},
+      }),
+    ).rejects.toMatchObject({ code: 'transient' });
+  });
+
   test('revocation metadata is detected without downloading marker bodies', async () => {
     const server = new FakeDriveServer();
     const app = new GoogleDriveSnapshotProvider({

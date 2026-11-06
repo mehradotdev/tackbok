@@ -1,4 +1,4 @@
-import { SyncActivity } from './activity';
+import { PHASE_FOR_ENGINE_ACTIVITY, SyncActivity } from './activity';
 
 describe('sync activity visibility', () => {
   test('automatic checks stay idle and only refresh the UI on completion', () => {
@@ -34,5 +34,16 @@ describe('sync activity visibility', () => {
     expect(activity.current).toBe('idle');
     activity.report('checking');
     expect(activity.current).toBe('idle');
+  });
+});
+
+describe('sync phase for engine activity', () => {
+  test('publishing reads as saving, adopting reads as downloading, reads stay quiet', () => {
+    expect(PHASE_FOR_ENGINE_ACTIVITY).toEqual({
+      'preparing-local-changes': 'preparing',
+      'reading-remote-snapshot': 'checking',
+      'publishing-local-snapshot': 'uploading',
+      'applying-remote-snapshot': 'downloading',
+    });
   });
 });

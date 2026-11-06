@@ -11,6 +11,7 @@ const FAILURE_CATEGORIES: readonly CloudSyncFailureCategory[] = [
   'rate-limit',
   'offline',
   'wifi-only-media',
+  'local-media',
   'corrupt',
   'transient',
   'unknown',
@@ -36,12 +37,13 @@ export function failureCategoryForAttention(
   )
     return 'auth';
   if (reason === 'provider-quota-full') return 'quota';
+  // A photo or voice note on this device, not the cloud backup, is unreadable.
+  if (reason === 'local-media-unreadable') return 'local-media';
   if (
     reason === 'invalid-remote-snapshot' ||
     reason === 'unsupported-format' ||
     reason === 'derived-id-collision' ||
-    reason === 'ambiguous-device-head' ||
-    reason === 'local-media-unreadable'
+    reason === 'ambiguous-device-head'
   )
     return 'corrupt';
   return 'unknown';
