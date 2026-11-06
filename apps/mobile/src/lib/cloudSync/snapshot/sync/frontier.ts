@@ -139,18 +139,34 @@ export function remoteContainsBase(
 }
 
 export function headsCovered(
-  heads: { head: DeviceHead }[],
+  heads: RemoteHeadSnapshot[],
   accepted: ObservedDeviceHead[],
 ): boolean {
   const known = observationMap(accepted);
-  return heads.every(({ head }) => {
-    const value = known.get(head.deviceId);
+  return heads.every((candidate) => {
+    const value = known.get(candidate.head.deviceId);
     return Boolean(
       value &&
-      (value.deviceSequence > head.deviceSequence ||
-        (value.deviceSequence === head.deviceSequence &&
-          value.snapshotId === head.snapshotId)),
+      (value.deviceSequence > candidate.head.deviceSequence ||
+        (value.deviceSequence === candidate.head.deviceSequence &&
+          value.snapshotId === candidate.snapshotId)),
     );
+  });
+}
+
+/**
+ * Whether any device published past what `observed` saw. Unlike
+ * `headsCovered`, this compares sequences only: a same-sequence duplicate is a
+ * retry artifact that planning already resolved, not new work.
+ */
+export function headsAdvancedBeyond(
+  heads: { head: DeviceHead }[],
+  observed: ObservedDeviceHead[],
+): boolean {
+  const known = observationMap(observed);
+  return heads.some(({ head }) => {
+    const value = known.get(head.deviceId);
+    return !value || head.deviceSequence > value.deviceSequence;
   });
 }
 

@@ -864,6 +864,23 @@ describe('durable snapshot publisher', () => {
     }
   });
 
+  test('a same-sequence duplicate head does not make every candidate stale', async () => {
+    const first = harness('duplicate-head-a');
+    first.journal.mutate(withEntry(blankDomain(), entry('entry-a', 'Original A')));
+    expect((await first.engine().sync()).status).toBe('published');
+    const second = harness('duplicate-head-b', blankDomain(), first.provider);
+    await second.engine().sync();
+    // A retry artifact: same device and sequence, pointing at a missing snapshot.
+    const [{ head }] = first.provider.physicalHeads(first.vaultId);
+    first.provider.injectPhysicalHead({ ...head, snapshotId: 'f'.repeat(64) });
+
+    second.journal.mutate(
+      withEntry(second.journal.current(), entry('entry-b', 'Added by second', 2)),
+    );
+    expect((await second.engine().sync()).status).toBe('published');
+    expect((await second.engine().sync()).status).toBe('up-to-date');
+  });
+
   test('an uploaded candidate keeps its durable recovery after heads change', async () => {
     const first = harness('uploaded-candidate-a');
     first.journal.mutate(withEntry(blankDomain(), entry('entry-a', 'Original A')));

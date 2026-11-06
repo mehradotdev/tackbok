@@ -6,7 +6,7 @@ import { BaseShadowCommitError, BaseShadowManager } from './baseShadow';
 import { AttentionError, RetryableSyncError } from './errors';
 import {
   domainOf,
-  headsCovered,
+  headsAdvancedBeyond,
   normalizeObservations,
   type RemoteHeadSnapshot,
 } from './frontier';
@@ -112,7 +112,7 @@ export class SnapshotPublisher {
       // device published meanwhile, uploading it would overwrite that work.
       // Before upload nothing remote references it, so re-planning is safe.
       if (
-        !headsCovered(
+        headsAdvancedBeyond(
           await provider.listHeads(vaultId, true),
           decoded.payload.observedDeviceHeads,
         )
