@@ -13,9 +13,8 @@
   },
   "scripts": {
     "prepare": "husky",
-    "format": "prettier --write --ignore-unknown",
-    "format:check": "prettier --check --ignore-unknown",
-    "format:changed": "bun scripts/check-format.mjs",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "lint:staged": "lint-staged",
     "commitlint": "commitlint",
     "build": "bun --filter '@tackbok/website' build",
@@ -26,11 +25,12 @@
     "typecheck": "bun --filter '*' typecheck"
   },
   "devDependencies": {
+    "@astrojs/compiler-rs": "0.5.2",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
-    "prettier": "^3.8.1"
+    "oxfmt": "0.76.0"
   },
   "patchedDependencies": {
     "react-native-skia@3.9.1": "patches/react-native-skia@3.9.1.patch"

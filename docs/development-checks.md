@@ -20,8 +20,8 @@ the `prepare` script installs Husky hooks automatically.
 From the root:
 
 ```sh
-bun run format path/to/changed-file.ts
-bun run format:check path/to/changed-file.ts
+bun run format
+bun run format:check
 bun run lint
 bun run typecheck
 bun run test
@@ -32,9 +32,10 @@ bun run build
 cloud-sync and database suites. The website has no test suite yet; its lint, typecheck, and
 production build are checked. `build` builds the website, not native apps.
 
-Formatting is adopted gradually: format changed files rather than the whole
-repository. Build outputs, generated theme/artwork/database files, lockfiles,
-environment files, and vendored skills are excluded in `.prettierignore`.
+Oxfmt formats the repository using the root `.oxfmtrc.json`; a website override
+adds Astro formatting and Tailwind class sorting. Pass paths to format only some
+files. Build outputs, generated theme/artwork/database files, lockfiles,
+environment files, and vendored skills are excluded in its `ignorePatterns`.
 
 ## Pull requests
 
@@ -49,7 +50,7 @@ including draft PRs. Merging to `main` does not run these checks again.
   `patches/`, or `.github/workflows/checks.yml` trigger both workspaces' lint,
   typechecking, and tests, plus the website build. Deletions and moves out of
   watched paths also count as changes.
-- Changed-file formatting always runs. The `Check code quality` job remains
+- The full-repository formatting check always runs. The `Check code quality` job remains
   available as a required check on every PR.
 
 These conditions apply only in CI. Root `bun run lint`, `bun run typecheck`, and
@@ -72,12 +73,7 @@ fingerprint locally, run
 `APP_VARIANT=production bunx expo-updates fingerprint:generate --platform android`
 from `apps/mobile`.
 
-To reproduce the formatting check, commit your changes and run:
-
-```sh
-git fetch origin
-bun run format:changed origin/main
-```
+To reproduce the formatting check, run `bun run format:check`.
 
 Use a Conventional Commit title for your PR. Maintainers usually squash merge and
 use that title for the squash commit; a merge commit is occasionally used to keep
