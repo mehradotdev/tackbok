@@ -65,7 +65,6 @@ const mockHydrateProfileCache = jest.fn((_profile?: unknown) => undefined);
 const mockUpdateProfileInTransaction = jest.fn(
   async (_tx?: unknown, _profile?: unknown, _context?: unknown) => undefined,
 );
-let mockRetainedMediaLoadError: Error | null = null;
 
 jest.mock('~/db', () => ({
   db: {
@@ -86,15 +85,6 @@ jest.mock('~/lib/cloudSync/storage/repositories', () => ({
   ...jest.requireActual('~/lib/cloudSync/storage/repositories'),
   updateProfileInTransaction: (txArg: unknown, profile: unknown, context: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile, context),
-}));
-
-jest.mock('~/lib/cloudSync/storage/retainedMedia', () => ({
-  // A throwing getter stands in for the post-commit module load failing. Jest
-  // without VM modules also rejects the helper's dynamic import itself.
-  get reapRetainedMediaWithoutVault() {
-    if (mockRetainedMediaLoadError) throw mockRetainedMediaLoadError;
-    return async () => undefined;
-  },
 }));
 
 jest.mock('react-native', () => ({
@@ -266,7 +256,6 @@ describe('importFromTackbokBackup', () => {
     mockUpdateProfileInTransaction.mockReset();
     mockUpdateProfileInTransaction.mockResolvedValue(undefined);
     mockGetImportTotals.mockReset();
-    mockRetainedMediaLoadError = null;
 
     txSelect.mockImplementation(() => ({ from: txSelectFrom }));
     txSelectFrom.mockResolvedValue([]);
@@ -357,9 +346,12 @@ describe('importFromTackbokBackup', () => {
     warnSpy.mockRestore();
   });
 
+  // Jest (without VM modules) always rejects the helper's post-commit dynamic
+  // import of the retained-media module, so every case here also exercises
+  // that guarded failure; the listener case adds a throwing listener on top.
   test.each([
     ['a mutation listener throws', 'listener'],
-    ['the retained-media module fails to load', 'module'],
+    ['only the retained-media module import fails', 'module'],
   ] as const)(
     'keeps the committed import and its photo when %s after commit',
     async (_label, failure) => {
@@ -373,9 +365,9 @@ describe('importFromTackbokBackup', () => {
       const subscription = addCloudSyncMutationListener(() => {
         if (failure === 'listener') throw new Error('listener failed after commit');
       });
-      if (failure === 'module') {
-        mockRetainedMediaLoadError = new Error('module failed after commit');
-      }
+      // A later listener (such as the sync scheduler) must still be notified.
+      const laterListener = jest.fn();
+      const laterSubscription = addCloudSyncMutationListener(laterListener);
 
       try {
         const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
@@ -386,8 +378,10 @@ describe('importFromTackbokBackup', () => {
         );
         expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
         expect(summary.warnings).toEqual([]);
+        expect(laterListener).toHaveBeenCalled();
       } finally {
         subscription.remove();
+        laterSubscription.remove();
         warnSpy.mockRestore();
       }
     },
