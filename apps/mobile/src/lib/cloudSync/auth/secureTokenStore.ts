@@ -152,7 +152,10 @@ export async function isGoogleMarkedConnected(): Promise<boolean> {
 
 const CREDENTIAL_KEYS = [CONNECTION_ID_KEY, ACCOUNT_EMAIL_KEY, TOKEN_KEY, CONNECTED_KEY];
 
-/** The stored Google credentials at one moment; held in memory only. */
+/**
+ * The stored Google credentials at one moment. Reconnect holds it in memory;
+ * the setup guard keeps it in SecureStore.
+ */
 export interface GoogleCredentialSnapshot {
   readonly values: readonly (string | null)[];
 }
@@ -223,8 +226,14 @@ export async function writeGoogleSetupGuard(guard: GoogleSetupGuard): Promise<vo
   });
 }
 
-/** Throws when SecureStore cannot be read, so callers keep sync blocked. */
-export async function readGoogleSetupGuard(): Promise<GoogleSetupGuard | null> {
+/**
+ * Throws when SecureStore cannot be read, so callers keep sync blocked and the
+ * guard stays for a later attempt. 'corrupt' means a guard exists but cannot
+ * put the previous connection back.
+ */
+export async function readGoogleSetupGuard(): Promise<
+  GoogleSetupGuard | 'corrupt' | null
+> {
   const stored = await SecureStore.getItemAsync(SETUP_GUARD_KEY);
   if (!stored) return null;
   try {
@@ -233,9 +242,14 @@ export async function readGoogleSetupGuard(): Promise<GoogleSetupGuard | null> {
   } catch {
     // Handled below.
   }
-  // An unreadable guard cannot put the previous connection back. Keep
-  // credentials out of an unknown account: the user reconnects instead.
-  return { credentials: { values: CREDENTIAL_KEYS.map(() => null) }, vaults: [] };
+  return 'corrupt';
+}
+
+/** Signs out and removes every stored credential, such as an unknown account's. */
+export async function clearGoogleCredentials(
+  signOut: () => Promise<void>,
+): Promise<void> {
+  await restoreGoogleCredentials({ values: CREDENTIAL_KEYS.map(() => null) }, signOut);
 }
 
 export async function clearGoogleSetupGuard(): Promise<void> {

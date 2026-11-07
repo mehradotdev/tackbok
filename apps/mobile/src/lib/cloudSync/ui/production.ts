@@ -41,6 +41,8 @@ import {
 import {
   beginConnectionSetup,
   endConnectionSetup,
+  reconcileAbandonedConnectionSetup,
+  resolveConnectionSetup,
   rollBackConnectionSetup,
   type ConnectionRollback,
 } from '../runtime/connectionSetup';
@@ -278,7 +280,6 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
 }
 
 async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnection> {
-  await cancelPreparedGoogleDriveConnectionImpl();
   const auth = createGoogleAuthorization();
   // Until a backup is chosen, a cancelled or failed setup puts the current
   // backup and its credentials back, so a backup this device is still using
@@ -287,6 +288,9 @@ async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnect
   // a launch after process death puts it back (see connectionSetup).
   let rollback: ConnectionRollback | null = null;
   try {
+    // An earlier setup's picker is invalidated and its backup put back first.
+    await resolvePendingConnectionSetup();
+    connectionSetupInProgress = true;
     rollback = await beginConnectionSetup();
     // Background tasks must not use the staged credentials either.
     await setCloudSyncBackgroundTaskEnabled(false);
@@ -312,9 +316,10 @@ async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnect
     notifyProductionCloudSyncChanged();
     return prepared;
   } catch (error) {
-    // Nothing was staged, so the current backup (if any) resumes.
+    // Nothing was staged, so the current backup (if any) resumes. Without a
+    // rollback this setup changed nothing; a guard it could not read stays
+    // for recovery, and setup can be tried again.
     if (rollback) await rollBackConnection(auth, rollback);
-    else await endConnectionSetup();
     connectionSetupInProgress = false;
     throw error;
   }
@@ -337,14 +342,24 @@ async function cancelPreparedGoogleDriveConnectionImpl(): Promise<void> {
 }
 
 /**
- * Disconnect, reset and deletion replace any setup in progress. Its rollback
- * must never run afterwards: a later picker cancellation would restore the
- * credentials and backup the user just removed.
+ * While a setup is pending, the configured backup and account are
+ * authoritative. Every other connection action calls this first, under the
+ * connection barrier: it puts the setup back (credentials, then backup status)
+ * and invalidates its picker, so the action uses the configured account and
+ * never enables a backup with staged credentials. A setup a dead process left
+ * is put back too; an unreadable guard throws and stays for recovery.
  */
-async function discardPreparedGoogleDriveConnection(): Promise<void> {
-  pendingConnection = null;
+async function resolvePendingConnectionSetup(): Promise<void> {
   connectionSetupInProgress = false;
-  await endConnectionSetup();
+  if (pendingConnection) {
+    await cancelPreparedGoogleDriveConnectionImpl();
+    return;
+  }
+  const auth = createGoogleAuthorization();
+  if (await resolveConnectionSetup(() => auth.signOut())) {
+    accountLabelInMemory = null;
+    accountLabelAttemptedForVault = null;
+  }
 }
 
 /**
@@ -361,11 +376,15 @@ async function enableBackgroundSyncAfterCommit(): Promise<void> {
 
 async function completeGoogleDriveConnectionImpl(options: {
   origin: CloudSetupOrigin;
+  /** The picker's connection; a newer or put-back setup invalidates it. */
+  connection: PreparedGoogleConnection;
   vaultId?: string;
   createNew?: boolean;
 }): Promise<void> {
   const pending = pendingConnection;
-  if (!pending) throw new Error('Google Drive connection is no longer active');
+  if (!pending || pending.prepared !== options.connection) {
+    throw new Error('Google Drive connection is no longer active');
+  }
 
   let selected = options.vaultId
     ? pending.prepared.availableVaults.find((vault) => vault.vaultId === options.vaultId)
@@ -457,6 +476,7 @@ async function completeGoogleDriveConnectionImpl(options: {
 }
 
 async function reconnectGoogleDriveImpl(): Promise<void> {
+  await resolvePendingConnectionSetup();
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault?.remote_root_id) {
     throw new Error('No cloud backup is configured');
@@ -512,7 +532,7 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
 
 async function disconnectGoogleDriveImpl(): Promise<void> {
   stopProductionSyncRuntime();
-  await discardPreparedGoogleDriveConnection();
+  await resolvePendingConnectionSetup();
   // Per-device Disconnect is intentionally local. This abstraction clears
   // SecureStore and native session state without calling Google's revoke API.
   await createGoogleAuthorization().signOut();
@@ -525,6 +545,7 @@ async function disconnectGoogleDriveImpl(): Promise<void> {
 }
 
 async function setCloudSyncPausedImpl(paused: boolean): Promise<void> {
+  await resolvePendingConnectionSetup();
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault) throw new Error('Cloud sync is not configured');
   if (vault.status === 'revoked' || vault.status === 'disabled') {
@@ -584,6 +605,8 @@ async function runManualSyncSince(epoch: number): Promise<boolean> {
 async function revokeCloudVaultImpl(
   kind: 'backup-deleted' | 'journal-deleted',
 ): Promise<void> {
+  // Deletion targets the configured backup with the configured account.
+  await resolvePendingConnectionSetup();
   const [vault] = await db
     .select()
     .from(cloudVault)
@@ -593,7 +616,6 @@ async function revokeCloudVaultImpl(
     throw new Error('No cloud backup is configured');
   }
   stopProductionSyncRuntime();
-  await discardPreparedGoogleDriveConnection();
   const state = new SQLiteSyncStateStore(sqlite);
   let remoteDeletionCompleted = false;
   try {
@@ -715,9 +737,9 @@ async function wipeJournalAndLocalCloudReplica(): Promise<string[]> {
 }
 
 async function resetThisDeviceOnlyImpl(): Promise<string[]> {
-  const [vault] = await db.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1);
   stopProductionSyncRuntime();
-  await discardPreparedGoogleDriveConnection();
+  await resolvePendingConnectionSetup();
+  const [vault] = await db.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1);
   if (vault) {
     // Sign out before deleting local state. A crash before the atomic wipe
     // leaves the journal intact; a crash after it cannot leave queued deletes.
@@ -733,6 +755,7 @@ async function resetThisDeviceOnlyImpl(): Promise<string[]> {
 }
 
 async function deleteJournalEverywhereImpl(): Promise<string[]> {
+  await resolvePendingConnectionSetup();
   const [vault] = await db
     .select({
       status: cloudVault.status,
@@ -742,7 +765,6 @@ async function deleteJournalEverywhereImpl(): Promise<string[]> {
     .limit(1);
   const remoteDeletionAlreadyCompleted =
     vault?.status === 'revoked' && vault.revocationKind === 'journal-deleted';
-  await discardPreparedGoogleDriveConnection();
   if (!remoteDeletionAlreadyCompleted) {
     await revokeCloudVaultImpl('journal-deleted');
   } else {
@@ -805,6 +827,11 @@ export async function acknowledgeCloudConflicts(): Promise<void> {
 export async function retrySyncAttentionReason(
   reason: SyncAttentionReason,
 ): Promise<void> {
+  // Retry enables the backup, so it must not run with staged credentials.
+  if (connectionSetupInProgress || pendingConnection) {
+    throw new Error('Finish or cancel the Google account setup first');
+  }
+  await reconcileAbandonedConnectionSetup();
   // Pause or Disconnect may start at any step; report the whole retry as
   // cancelled then, and never overwrite the status they write.
   const epoch = cloudConnectionLifecycle.epoch;

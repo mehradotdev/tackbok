@@ -16,7 +16,11 @@ const mockRestart = jest.fn(async () => {
   mockEvents.push('restart');
 });
 let mockVaults: { vaultId: string; updatedAt: number }[] = [];
-const mockSettings = {
+const mockSettings: {
+  setCloudRestore: jest.Mock;
+  setHasCompletedOnboarding: jest.Mock;
+  cloudRestore?: { vaultId: string; startedAt: number; journalRestoredAt?: number };
+} = {
   setCloudRestore: jest.fn(),
   setHasCompletedOnboarding: jest.fn(),
 };
@@ -133,6 +137,7 @@ jest.mock('../storage/repositories', () => ({}));
 
 beforeEach(async () => {
   await cancelPreparedGoogleDriveConnection();
+  delete mockSettings.cloudRestore;
   mockVaults = [];
   mockRows.length = 0;
   mockStatuses.length = 0;
@@ -144,10 +149,14 @@ afterEach(async () => {
 });
 
 test('setup disables the old attachment before authorization and restarts only after commit', async () => {
-  await prepareGoogleDriveConnection();
+  const connection = await prepareGoogleDriveConnection();
   expect(mockEvents).toEqual(['disabled', 'authorize']);
   expect(mockRestart).not.toHaveBeenCalled();
-  await completeGoogleDriveConnection({ origin: 'settings', createNew: true });
+  await completeGoogleDriveConnection({
+    origin: 'settings',
+    connection,
+    createNew: true,
+  });
   expect(mockEvents).toEqual(['disabled', 'authorize', 'commit', 'restart']);
   expect(mockSettings.setCloudRestore).toHaveBeenCalledWith(null);
   expect(mockSettings.setHasCompletedOnboarding).not.toHaveBeenCalled();
@@ -202,22 +211,26 @@ test('a cancelled sign-in keeps the current backup, its credentials and its rest
 });
 
 test('failed vault selection never restarts the runtime', async () => {
-  await prepareGoogleDriveConnection();
-  await expect(completeGoogleDriveConnection({ origin: 'settings' })).rejects.toThrow(
-    'Choose a cloud backup',
-  );
+  const connection = await prepareGoogleDriveConnection();
+  await expect(
+    completeGoogleDriveConnection({ origin: 'settings', connection }),
+  ).rejects.toThrow('Choose a cloud backup');
   expect(mockRestart).not.toHaveBeenCalled();
 });
 
 test('committing a restore returns without waiting for the restore to finish', async () => {
   mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
-  await prepareGoogleDriveConnection();
+  const connection = await prepareGoogleDriveConnection();
   // The runtime's first pass is the whole restore; it never settles here.
   mockRestart.mockImplementationOnce(() => {
     mockEvents.push('restart');
     return new Promise<void>(() => undefined);
   });
-  await completeGoogleDriveConnection({ origin: 'settings', vaultId: 'vault-a' });
+  await completeGoogleDriveConnection({
+    origin: 'settings',
+    connection,
+    vaultId: 'vault-a',
+  });
   expect(mockEvents).toEqual(['disabled', 'authorize', 'commit', 'restart']);
   expect(mockSettings.setCloudRestore).toHaveBeenCalledWith({
     vaultId: 'vault-a',
@@ -227,10 +240,11 @@ test('committing a restore returns without waiting for the restore to finish', a
 
 test('an onboarding restore completes onboarding at commit, without the setup screen', async () => {
   mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
-  await prepareGoogleDriveConnection();
+  const connection = await prepareGoogleDriveConnection();
   // The setup screen may already be unmounted; nothing here depends on it.
   const commit = completeGoogleDriveConnection({
     origin: 'onboarding',
+    connection,
     vaultId: 'vault-a',
   });
   expect(mockSettings.setHasCompletedOnboarding).not.toHaveBeenCalled();
@@ -244,10 +258,14 @@ test('an onboarding restore completes onboarding at commit, without the setup sc
 
 test('a failed commit never completes onboarding or records a restore', async () => {
   mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
-  await prepareGoogleDriveConnection();
+  const connection = await prepareGoogleDriveConnection();
   mockCommit.mockRejectedValueOnce(new Error('commit failed'));
   await expect(
-    completeGoogleDriveConnection({ origin: 'onboarding', vaultId: 'vault-a' }),
+    completeGoogleDriveConnection({
+      origin: 'onboarding',
+      connection,
+      vaultId: 'vault-a',
+    }),
   ).rejects.toThrow('commit failed');
   expect(mockSettings.setHasCompletedOnboarding).not.toHaveBeenCalled();
   expect(mockSettings.setCloudRestore).not.toHaveBeenCalled();
@@ -257,9 +275,13 @@ test('a failed commit never completes onboarding or records a restore', async ()
 test('a background registration failure after commit still restarts the restore', async () => {
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
   mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
-  await prepareGoogleDriveConnection();
+  const connection = await prepareGoogleDriveConnection();
   mockSetBackground.mockRejectedValueOnce(new Error('background registration failed'));
-  await completeGoogleDriveConnection({ origin: 'onboarding', vaultId: 'vault-a' });
+  await completeGoogleDriveConnection({
+    origin: 'onboarding',
+    connection,
+    vaultId: 'vault-a',
+  });
   expect(mockSettings.setHasCompletedOnboarding).toHaveBeenCalledWith(true);
   expect(mockEvents).toEqual(['disabled', 'authorize', 'commit', 'restart']);
   expect(warn).toHaveBeenCalled();
@@ -268,8 +290,12 @@ test('a background registration failure after commit still restarts the restore'
 
 test('pausing and resuming before the journal arrives never completes the restore', async () => {
   mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
-  await prepareGoogleDriveConnection();
-  await completeGoogleDriveConnection({ origin: 'onboarding', vaultId: 'vault-a' });
+  const connection = await prepareGoogleDriveConnection();
+  await completeGoogleDriveConnection({
+    origin: 'onboarding',
+    connection,
+    vaultId: 'vault-a',
+  });
   const marker = mockSettings.setCloudRestore.mock.calls.at(-1)?.[0];
   const vault = {
     vault_id: 'vault-a',
@@ -308,4 +334,52 @@ test('pausing and resuming before the journal arrives never completes the restor
   expect(
     deriveCloudRestoreMilestone(marker, snapshot, { online: true, onWifi: true }, false),
   ).not.toEqual({ stage: 'complete' });
+});
+
+test('a snapshot only vouches for a journal proof it saw before reading counts', async () => {
+  const vault = {
+    vault_id: 'vault-a',
+    device_id: 'device',
+    remote_root_id: 'appDataFolder',
+    provider_kind: 'google-drive',
+    status: 'restoring',
+  };
+  const marker = { vaultId: 'vault-a', startedAt: 1 };
+  mockSettings.cloudRestore = marker;
+  // The journal and its proof land while this snapshot is reading.
+  const select = jest.spyOn(mockDb, 'select').mockImplementationOnce(() => {
+    mockSettings.cloudRestore = { ...marker, journalRestoredAt: 2 };
+    return mockQuery();
+  });
+  // Vault, queue, sync state, conflicts, provider state, pending media, downloaded media.
+  mockRows.push(
+    [vault],
+    [{ value: 0, settled: 0 }],
+    [],
+    [{ value: 0 }],
+    [],
+    [{ value: 0 }],
+  );
+  const stale = await loadCloudSyncSnapshot();
+  expect(stale.restoreProofAtLoad).toBeNull();
+  expect(
+    deriveCloudRestoreMilestone(
+      mockSettings.cloudRestore,
+      stale,
+      { online: true, onWifi: true },
+      false,
+    ),
+  ).toEqual({ stage: 'journal' });
+  select.mockRestore();
+  // Vault, queue, sync state, conflicts, provider state, pending media, downloaded media.
+  mockRows.push(
+    [vault],
+    [{ value: 0, settled: 0 }],
+    [],
+    [{ value: 0 }],
+    [],
+    [{ value: 0 }],
+  );
+  const fresh = await loadCloudSyncSnapshot();
+  expect(fresh.restoreProofAtLoad).toBe(2);
 });

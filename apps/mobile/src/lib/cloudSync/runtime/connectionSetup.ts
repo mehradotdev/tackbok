@@ -3,6 +3,7 @@ import { cloudVault, db } from '~/db';
 import { createGoogleAuthorization } from '../auth';
 import {
   captureGoogleCredentials,
+  clearGoogleCredentials,
   clearGoogleSetupGuard,
   readGoogleSetupGuard,
   restoreGoogleCredentials,
@@ -21,15 +22,19 @@ export interface ConnectionRollback extends GoogleSetupGuard {
 
 let setupOwnedByThisProcess = false;
 
+const signOutOfGoogle = () => createGoogleAuthorization().signOut();
+
 /**
  * Starts a connection setup. Call it under the connection barrier, before
  * authorization replaces the current credentials. The guard is durable first,
  * then the current backup is disabled, so no pass can open it with another
- * account's credentials until the setup commits or is put back.
+ * account's credentials until the setup commits or is put back. When it throws,
+ * any guard it did not write is left in place for recovery.
  */
 export async function beginConnectionSetup(): Promise<ConnectionRollback> {
   // A setup left by a process that died is put back before a new one starts.
-  await reconcileAbandonedSetup();
+  // A guard that cannot be read throws here, so setup stays blocked.
+  await resolveConnectionSetup(signOutOfGoogle);
   const rollback: ConnectionRollback = {
     credentials: await captureGoogleCredentials(),
     vaults: await db
@@ -38,11 +43,17 @@ export async function beginConnectionSetup(): Promise<ConnectionRollback> {
       .where(inArray(cloudVault.status, ACTIVE_STATUSES)),
   };
   setupOwnedByThisProcess = true;
-  await writeGoogleSetupGuard(rollback);
-  await db
-    .update(cloudVault)
-    .set({ status: 'disabled', updated_at: Date.now() })
-    .where(inArray(cloudVault.status, ACTIVE_STATUSES));
+  try {
+    await writeGoogleSetupGuard(rollback);
+    await db
+      .update(cloudVault)
+      .set({ status: 'disabled', updated_at: Date.now() })
+      .where(inArray(cloudVault.status, ACTIVE_STATUSES));
+  } catch (error) {
+    // Nothing changed yet except this setup's own guard.
+    await endConnectionSetup().catch(() => undefined);
+    throw error;
+  }
   return rollback;
 }
 
@@ -73,13 +84,30 @@ export async function rollBackConnectionSetup(
   await endConnectionSetup();
 }
 
-async function reconcileAbandonedSetup(): Promise<boolean> {
-  if (setupOwnedByThisProcess) return false;
+/**
+ * Puts back any setup that has not committed and that no live picker holds.
+ * Call it under the connection barrier. Returns true when it changed the
+ * stored connection. Throws while the guard is unreadable, leaving it in place.
+ */
+export async function resolveConnectionSetup(
+  signOut: () => Promise<void>,
+): Promise<boolean> {
   const guard = await readGoogleSetupGuard();
-  if (!guard) return false;
+  if (!guard) {
+    setupOwnedByThisProcess = false;
+    return false;
+  }
+  if (guard === 'corrupt') {
+    // Nothing says whose credentials are stored, so none are trusted. The
+    // backups keep their status; sync needs the user to reconnect.
+    await clearGoogleCredentials(signOut);
+    await endConnectionSetup();
+    return true;
+  }
   // Setup disables every active backup before authorizing, and only a commit
-  // makes one active again. An active backup means it committed (or the
-  // process died before anything changed), so its credentials stay.
+  // (or an action that put this setup back first) makes one active again. An
+  // active backup means it committed, or the process died before anything
+  // changed, so its credentials stay.
   const [active] = await db
     .select({ vaultId: cloudVault.vault_id })
     .from(cloudVault)
@@ -89,9 +117,7 @@ async function reconcileAbandonedSetup(): Promise<boolean> {
     await endConnectionSetup();
     return false;
   }
-  await rollBackConnectionSetup(guard as ConnectionRollback, () =>
-    createGoogleAuthorization().signOut(),
-  );
+  await rollBackConnectionSetup(guard as ConnectionRollback, signOut);
   return true;
 }
 
@@ -102,5 +128,7 @@ async function reconcileAbandonedSetup(): Promise<boolean> {
  */
 export async function reconcileAbandonedConnectionSetup(): Promise<boolean> {
   if (setupOwnedByThisProcess || !(await readGoogleSetupGuard())) return false;
-  return cloudConnectionLifecycle.change(reconcileAbandonedSetup);
+  return cloudConnectionLifecycle.change(async () =>
+    setupOwnedByThisProcess ? false : resolveConnectionSetup(signOutOfGoogle),
+  );
 }

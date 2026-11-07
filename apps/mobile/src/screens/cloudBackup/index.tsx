@@ -193,12 +193,17 @@ export default function CloudBackupScreen() {
   }, [handleBack, origin, t]);
 
   const handleComplete = useCallback(
-    async (vaultId?: string, createNew = false) => {
+    async (connection: PreparedGoogleConnection, vaultId?: string, createNew = false) => {
       setStage('working');
       try {
         // Returns once the connection is committed (and onboarding completed);
         // the restore itself continues in the background with its progress on Home.
-        await completeGoogleDriveConnection({ origin, vaultId, createNew });
+        await completeGoogleDriveConnection({
+          origin,
+          connection,
+          vaultId,
+          createNew,
+        });
         await refresh();
         // Setup can finish after the user has left. Keep the connection, but
         // do not let this screen's stale callback change their navigation/UI.
@@ -513,8 +518,8 @@ export default function CloudBackupScreen() {
             origin={origin}
             busy={stage === 'working'}
             snapshot={snapshot}
-            onChoose={(vaultId) => void handleComplete(vaultId)}
-            onCreate={() => void handleComplete(undefined, true)}
+            onChoose={(vaultId) => void handleComplete(prepared, vaultId)}
+            onCreate={() => void handleComplete(prepared, undefined, true)}
           />
         )}
 
