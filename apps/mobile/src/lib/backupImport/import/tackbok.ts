@@ -36,6 +36,7 @@ import {
 import { getImportTotals } from './helpers';
 import {
   runInCloudSyncTransaction,
+  markLocalProfileTouched,
   updateProfileInTransaction,
 } from '~/lib/cloudSync/storage/repositories';
 import { hydrateProfileCache } from '~/lib/settings';
@@ -70,6 +71,7 @@ export async function importFromTackbokBackup(
         readSafeZipJson<PortablePrompt[]>(zip, BACKUP_PROMPTS_PATH),
         readSafeZipJson<PortableProfile>(zip, BACKUP_PROFILE_PATH),
       ]);
+    const profileName = portableProfile.name?.trim() ? portableProfile.name.trim() : null;
     const summary = createBackupImportSummary();
     const createdFiles: string[] = [];
     let importedProfileImageUri: string | null = null;
@@ -139,13 +141,16 @@ export async function importFromTackbokBackup(
         await updateProfileInTransaction(
           tx,
           {
-            displayName: portableProfile.name ?? null,
+            displayName: profileName,
             email: portableProfile.email ?? null,
             photoUri: importedProfileImageUri,
             photoAssetId: portableProfile.photoAssetId ?? null,
           },
           { batchId },
         );
+        // An imported profile is authored content even when it equals the empty
+        // local one (a deliberately cleared backup), so it is never pristine.
+        await markLocalProfileTouched(tx);
       });
     } catch (error) {
       cleanupImportedFiles(createdFiles);
@@ -160,7 +165,7 @@ export async function importFromTackbokBackup(
 
     try {
       hydrateProfileCache({
-        profileName: portableProfile.name ?? null,
+        profileName,
         profileEmail: portableProfile.email ?? null,
         profileImageUri: importedProfileImageUri,
       });

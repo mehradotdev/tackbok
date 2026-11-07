@@ -531,18 +531,41 @@ function mergeRelationSet(
   return result.sort(keyComparator(key));
 }
 
+// Without a base, an unset field normally conflicts with a set one: the null
+// may be a deliberate clear. Only this device's own local provenance can prove
+// a field was never authored (e.g. a first join after skipping onboarding), so
+// only the local side may quietly adopt. Synced data cannot prove it: identical
+// snapshot values can be a deliberate clear made by another or older client.
+function profileFieldMerge(
+  base: string | null | undefined,
+  local: string | null,
+  remote: string | null,
+  localPristine: boolean,
+): ReturnType<typeof scalarMerge<string | null>> {
+  if (base === undefined && localPristine && local === null && remote !== null)
+    return { value: remote, conflicted: false, primary: 'remote' };
+  return scalarMerge(base, local, remote);
+}
+
 function mergeProfile(
   base: SnapshotProfile | undefined,
   local: SnapshotProfile,
   remote: SnapshotProfile,
+  localPristine: boolean,
   conflicts: SnapshotConflict[],
 ): SnapshotProfile {
-  const displayName = scalarMerge(
+  const displayName = profileFieldMerge(
     base?.displayName,
     local.displayName,
     remote.displayName,
+    localPristine,
   );
-  const photo = scalarMerge(base?.photoAssetId, local.photoAssetId, remote.photoAssetId);
+  const photo = profileFieldMerge(
+    base?.photoAssetId,
+    local.photoAssetId,
+    remote.photoAssetId,
+    localPristine,
+  );
   if (displayName.conflicted)
     conflicts.push(
       makeConflict(
@@ -724,10 +747,16 @@ function mergeConflictSet(
   return result;
 }
 
+export interface SnapshotMergeOptions {
+  /** Local provenance from the journal capture; see `profileFieldMerge`. */
+  localProfilePristine?: boolean;
+}
+
 export function mergeSnapshotDomains(
   base: SnapshotDomain | null,
   local: SnapshotDomain,
   remote: SnapshotDomain,
+  options: SnapshotMergeOptions = {},
 ): SnapshotDomain {
   const newConflicts: SnapshotConflict[] = [];
   const entries = mergeEntityCollection<SnapshotEntry>(
@@ -758,6 +787,7 @@ export function mergeSnapshotDomains(
     base?.profile,
     local.profile,
     remote.profile,
+    options.localProfilePristine ?? false,
     newConflicts,
   );
   let entryTags = mergeRelationSet(

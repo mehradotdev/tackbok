@@ -7,9 +7,10 @@ import m0001 from './0001_clammy_winter_soldier.sql';
 import m0002 from './0002_marvelous_avengers.sql';
 import m0003 from './0003_common_silhouette.sql';
 import m0004 from './0004_colorful_xavin.sql';
-import m0005 from './0005_blushing_goblin_queen.sql';
+import m0005 from './0005_profile_pristine_marker.sql';
+import m0006 from './0006_blushing_goblin_queen.sql';
 
 export default {
   journal,
-  migrations: { m0000, m0001, m0002, m0003, m0004, m0005 },
+  migrations: { m0000, m0001, m0002, m0003, m0004, m0005, m0006 },
 };

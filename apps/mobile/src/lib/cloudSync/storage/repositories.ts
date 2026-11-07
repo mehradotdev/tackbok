@@ -10,6 +10,7 @@ import {
   entries,
   entryTags,
   mediaAssets,
+  profilePristineMarker,
   runExclusiveDbTransaction,
   syncMediaObligations,
   syncRetainedMedia,
@@ -610,6 +611,26 @@ export async function deletePromptInTransaction(
   }
 }
 
+/**
+ * Whether this device's profile was provably never authored, imported,
+ * backfilled, or received from the cloud. This is local provenance, not
+ * derived from synced data: identical snapshot values can also be a
+ * deliberate clear made elsewhere.
+ */
+export async function isLocalProfilePristine(tx: CloudSyncTransaction): Promise<boolean> {
+  const [marker] = await tx
+    .select()
+    .from(profilePristineMarker)
+    .where(eq(profilePristineMarker.profile_id, PROFILE_ROW_ID))
+    .limit(1);
+  return marker !== undefined;
+}
+
+/** Records that this device's profile now has authored or received content. */
+export async function markLocalProfileTouched(tx: CloudSyncTransaction): Promise<void> {
+  await tx.delete(profilePristineMarker);
+}
+
 export interface ProfileUpdate {
   displayName?: string | null;
   email?: string | null;
@@ -693,8 +714,15 @@ export async function updateProfileInTransaction(
   }
 
   const syncFieldsChanged =
-    (update.displayName !== undefined && update.displayName !== previous?.display_name) ||
+    (update.displayName !== undefined &&
+      update.displayName !== (previous?.display_name ?? null)) ||
     photoAssetId !== (previous?.photo_asset_id ?? null);
+  // An authored change is always positive and moves forward, even if the
+  // clock reads 0 or went backwards, so merged profiles keep a sane stamp.
+  const previousUpdatedAt = previous?.updated_at ?? 0;
+  const profileUpdatedAt = syncFieldsChanged
+    ? Math.max(1, now, previousUpdatedAt + 1)
+    : previousUpdatedAt;
 
   if (previousAsset && previousAsset.asset_id !== photoAssetId) {
     await retainMediaRow(tx, previousAsset, 'profile:profile', now);
@@ -711,7 +739,7 @@ export async function updateProfileInTransaction(
           : (previous?.display_name ?? null),
       email: update.email !== undefined ? update.email : (previous?.email ?? null),
       photo_asset_id: photoAssetId,
-      updated_at: now,
+      updated_at: profileUpdatedAt,
     })
     .onConflictDoUpdate({
       target: userProfile.profile_id,
@@ -722,10 +750,11 @@ export async function updateProfileInTransaction(
             : (previous?.display_name ?? null),
         email: update.email !== undefined ? update.email : (previous?.email ?? null),
         photo_asset_id: photoAssetId,
-        updated_at: now,
+        updated_at: profileUpdatedAt,
       },
     });
   await markNormalized(tx, 'profile', PROFILE_ENTITY_ID, now);
+  if (syncFieldsChanged) await markLocalProfileTouched(tx);
   if (
     syncFieldsChanged &&
     context.origin !== 'remote' &&
@@ -742,11 +771,13 @@ export async function runInCloudSyncTransaction<T>(
   operation: (tx: CloudSyncTransaction) => Promise<T>,
 ): Promise<T> {
   const result = await runExclusiveDbTransaction(operation);
-  // The durable outbox row now exists. Scheduling sync must not depend on the
-  // best-effort post-commit media reaper completing successfully.
+  // SQLite has committed. Callers treat a rejection as a rollback and may
+  // delete files the committed rows reference, so post-commit work below must
+  // never reject. The durable outbox row now exists. Scheduling sync must not
+  // depend on the best-effort post-commit media reaper completing successfully.
   notifyCloudSyncMutationCommitted();
-  const { reapRetainedMediaWithoutVault } = await import('./retainedMedia');
   try {
+    const { reapRetainedMediaWithoutVault } = await import('./retainedMedia');
     await reapRetainedMediaWithoutVault();
   } catch {
     console.warn('Retained media cleanup will retry later');

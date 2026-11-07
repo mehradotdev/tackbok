@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a61fd6b2-ad10-43a2-b23d-1e42bd533d48",
+  "id": "922e6a15-414f-402b-9e2e-10583483ebde",
   "prevId": "ef218cd4-6a54-4060-a702-050d01478851",
   "tables": {
     "cloud_base_shadow": {
@@ -114,13 +114,6 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "archived_at": {
-          "name": "archived_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         }
       },
@@ -826,20 +819,6 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "restore_conflict_ids_json": {
-          "name": "restore_conflict_ids_json",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "conflicts_imported_at": {
-          "name": "conflicts_imported_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         }
       },
       "indexes": {},
@@ -1183,6 +1162,23 @@
           "isUnique": false
         }
       },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "profile_pristine_marker": {
+      "name": "profile_pristine_marker",
+      "columns": {
+        "profile_id": {
+          "name": "profile_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

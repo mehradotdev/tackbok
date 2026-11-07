@@ -3,7 +3,13 @@ import { act, create } from 'react-test-renderer';
 import { useProfileBootstrap } from './useProfileBootstrap';
 
 const mockBackfill = jest.fn();
-const mockProfile = { profileName: null, profileEmail: null, profileImageUri: null };
+const mockProfile = {
+  profileName: null,
+  profileEmail: null,
+  profileImageUri: null,
+  _hadSavedSettings: true,
+  hasCompletedOnboarding: false,
+};
 jest.mock('./store', () => ({
   useSettingsStore: { getState: () => mockProfile },
 }));
@@ -54,7 +60,12 @@ it('restores the profile on every cold mount, including when legacy settings hav
         React.createElement(Probe, { databaseReady: true, settingsReady: true }),
       );
     });
-    expect(mockBackfill).toHaveBeenLastCalledWith(mockProfile);
+    expect(mockBackfill).toHaveBeenLastCalledWith({
+      profileName: null,
+      profileEmail: null,
+      profileImageUri: null,
+      priorAppUse: true,
+    });
     expect(mockBackfill).toHaveBeenCalledTimes(launch + 1);
     expect(ready).toBe(false);
     await act(async () => {

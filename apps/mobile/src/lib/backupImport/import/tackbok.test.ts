@@ -1,3 +1,4 @@
+import { addCloudSyncMutationListener } from '~/lib/cloudSync/runtime/mutationSignal';
 import { importFromTackbokBackup } from './tackbok';
 
 const spyOn = jest.spyOn;
@@ -64,6 +65,7 @@ const mockHydrateProfileCache = jest.fn((_profile?: unknown) => undefined);
 const mockUpdateProfileInTransaction = jest.fn(
   async (_tx?: unknown, _profile?: unknown, _context?: unknown) => undefined,
 );
+const mockMarkLocalProfileTouched = jest.fn(async (_tx?: unknown) => undefined);
 
 jest.mock('~/db', () => ({
   db: {
@@ -71,17 +73,20 @@ jest.mock('~/db', () => ({
       mockTransaction(callback),
   },
   entries: { note_id: 'note_id' },
+  runExclusiveDbTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
+    mockTransaction(callback),
 }));
 
 jest.mock('~/lib/settings', () => ({
   hydrateProfileCache: (profile: unknown) => mockHydrateProfileCache(profile),
 }));
 
+// The real transaction helper runs so its commit contract is exercised.
 jest.mock('~/lib/cloudSync/storage/repositories', () => ({
-  runInCloudSyncTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
-    mockTransaction(callback),
+  ...jest.requireActual('~/lib/cloudSync/storage/repositories'),
   updateProfileInTransaction: (txArg: unknown, profile: unknown, context: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile, context),
+  markLocalProfileTouched: (txArg: unknown) => mockMarkLocalProfileTouched(txArg),
 }));
 
 jest.mock('react-native', () => ({
@@ -252,6 +257,7 @@ describe('importFromTackbokBackup', () => {
     mockHydrateProfileCache.mockReset();
     mockUpdateProfileInTransaction.mockReset();
     mockUpdateProfileInTransaction.mockResolvedValue(undefined);
+    mockMarkLocalProfileTouched.mockClear();
     mockGetImportTotals.mockReset();
 
     txSelect.mockImplementation(() => ({ from: txSelectFrom }));
@@ -304,6 +310,46 @@ describe('importFromTackbokBackup', () => {
     warnSpy.mockRestore();
   });
 
+  test('an imported cleared profile still ends local pristine status', async () => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    mockReadSafeZipJson.mockReset();
+    mockReadSafeZipJson
+      .mockResolvedValueOnce({ format: 'tackbok-backup', backupVersion: 1 })
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce({ name: null, email: null, imagePath: null });
+
+    await importFromTackbokBackup('backup.zip', 'overwrite');
+
+    expect(mockMarkLocalProfileTouched).toHaveBeenCalledWith(tx);
+    warnSpy.mockRestore();
+  });
+
+  test('trims the imported display name', async () => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    mockReadSafeZipJson.mockReset();
+    mockReadSafeZipJson
+      .mockResolvedValueOnce({ format: 'tackbok-backup', backupVersion: 1 })
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce({ name: '  Ada  ', email: null, imagePath: null });
+
+    await importFromTackbokBackup('backup.zip', 'overwrite');
+
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ displayName: 'Ada' }),
+      expect.anything(),
+    );
+    expect(mockHydrateProfileCache).toHaveBeenCalledWith(
+      expect.objectContaining({ profileName: 'Ada' }),
+    );
+
+    warnSpy.mockRestore();
+  });
+
   test('rolls back the import and cleans up the copied profile image when profile persistence fails', async () => {
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
@@ -342,4 +388,45 @@ describe('importFromTackbokBackup', () => {
 
     warnSpy.mockRestore();
   });
+
+  // Jest (without VM modules) always rejects the helper's post-commit dynamic
+  // import of the retained-media module, so every case here also exercises
+  // that guarded failure; the listener case adds a throwing listener on top.
+  test.each([
+    ['a mutation listener throws', 'listener'],
+    ['only the retained-media module import fails', 'module'],
+  ] as const)(
+    'keeps the committed import and its photo when %s after commit',
+    async (_label, failure) => {
+      const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+      mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
+      let committed = false;
+      mockTransaction.mockImplementationOnce(async (callback) => {
+        await callback(tx);
+        committed = true;
+      });
+      const subscription = addCloudSyncMutationListener(() => {
+        if (failure === 'listener') throw new Error('listener failed after commit');
+      });
+      // A later listener (such as the sync scheduler) must still be notified.
+      const laterListener = jest.fn();
+      const laterSubscription = addCloudSyncMutationListener(laterListener);
+
+      try {
+        const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
+
+        expect(committed).toBe(true);
+        expect(mockHydrateProfileCache).toHaveBeenCalledWith(
+          expect.objectContaining({ profileImageUri: 'photos/imported.jpg' }),
+        );
+        expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
+        expect(summary.warnings).toEqual([]);
+        expect(laterListener).toHaveBeenCalled();
+      } finally {
+        subscription.remove();
+        laterSubscription.remove();
+        warnSpy.mockRestore();
+      }
+    },
+  );
 });

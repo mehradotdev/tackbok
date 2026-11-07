@@ -17,7 +17,7 @@ const migrations = (
     'utf8',
   ).replaceAll('--> statement-breakpoint', ''),
 }));
-const archiveMigration = migrations.findIndex(({ tag }) => tag.startsWith('0005_'));
+const archiveMigration = migrations.findIndex(({ tag }) => tag.startsWith('0006_'));
 // Stop before the archive so tests can seed rows from an older install.
 for (const { sql } of migrations.slice(0, archiveMigration)) sqlite.exec(sql);
 let upgraded = false;

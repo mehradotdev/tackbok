@@ -240,9 +240,13 @@ describe('durable snapshot publisher', () => {
       rememberRemoteConflicts: async (ids: readonly string[]) => {
         events.push(['remember', ...ids]);
       },
-      applyMergedIfGeneration: (domain: SnapshotDomain, generation: number) => {
+      applyMergedIfGeneration: (
+        domain: SnapshotDomain,
+        generation: number,
+        options: { remoteDerived: boolean },
+      ) => {
         events.push(['apply']);
-        return apply(domain, generation);
+        return apply(domain, generation, options);
       },
     });
     await joining.engine().sync();
@@ -1879,6 +1883,192 @@ describe('durable snapshot publisher', () => {
     expect(
       new Set(first.journal.current().entries.map((value) => value.content)),
     ).toEqual(new Set(['Local authored', 'Remote authored']));
+  });
+
+  test('a never-edited device adopts the remote name on first join without a conflict', async () => {
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    const first = harness('device-a', named, provider);
+    await first.engine().sync();
+    const pristine = blankDomain();
+    pristine.profile.updatedAt = 0;
+    const second = harness('device-b', pristine, provider);
+    second.journal.localProfilePristine = true;
+    await second.engine().sync();
+    await first.engine().sync();
+
+    for (const device of [first, second]) {
+      expect(device.journal.current().profile.displayName).toBe('Mehra');
+      expect(device.journal.current().conflicts).toEqual([]);
+    }
+    // Receiving the remote profile ends local provenance.
+    expect(second.journal.localProfilePristine).toBe(false);
+  });
+
+  test('a solo publication keeps provenance, so a later no-base join adopts quietly', async () => {
+    const pristine = blankDomain();
+    pristine.profile.updatedAt = 0;
+    const solo = harness('device-solo', pristine);
+    solo.journal.localProfilePristine = true;
+    // The publication survives a restart before it applies its own domain.
+    let killed = false;
+    await expect(
+      solo
+        .engine({
+          at(point) {
+            if (!killed && point === 'after-head-advanced') {
+              killed = true;
+              throw new SimulatedProcessDeath();
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    expect((await solo.engine().sync()).status).toBe('published');
+    expect(solo.journal.applyCount).toBeGreaterThan(0);
+    // Applying only this device's own data is not a received profile.
+    expect(solo.journal.localProfilePristine).toBe(true);
+
+    // Later, the same untouched device joins another vault with no base.
+    const otherProvider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    await harness('device-named', named, otherProvider, undefined, 'vault-other')
+      .engine()
+      .sync();
+    const joined = harness(
+      'device-solo',
+      solo.journal.current(),
+      otherProvider,
+      undefined,
+      'vault-other',
+    );
+    joined.journal.localProfilePristine = solo.journal.localProfilePristine;
+    await joined.engine().sync();
+    expect(joined.journal.current().profile.displayName).toBe('Mehra');
+    expect(joined.journal.current().conflicts).toEqual([]);
+    expect(joined.journal.localProfilePristine).toBe(false);
+  });
+
+  test('an unrelated edit before a resumed first-join publication keeps the adopted name', async () => {
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    await harness('device-named', named, provider).engine().sync();
+    const pristine = blankDomain();
+    pristine.profile.updatedAt = 0;
+    const joining = harness(
+      'device-joining',
+      withEntry(pristine, entry('local-entry', 'Local')),
+      provider,
+    );
+    joining.journal.localProfilePristine = true;
+    await expect(
+      joining
+        .engine({
+          at(point) {
+            if (point === 'after-head-advanced') throw new SimulatedProcessDeath();
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    const pending = joining.state.loadPending(joining.vaultId, joining.deviceId)!;
+    expect(
+      decodeSnapshot(pending.compressedBytes, pending.snapshotId).payload.profile
+        .displayName,
+    ).toBe('Mehra');
+
+    // An entry-only edit forces the resumed publication to reconcile.
+    joining.journal.mutate(withEntry(joining.journal.current(), entry('late', 'Late')));
+    await joining.engine().sync();
+    expect(joining.journal.current().profile.displayName).toBe('Mehra');
+    expect(joining.journal.current().conflicts).toEqual([]);
+    expect(
+      joining.journal.current().entries.some((value) => value.entryId === 'late'),
+    ).toBe(true);
+    expect(joining.journal.localProfilePristine).toBe(false);
+  });
+
+  test('identical empty profile data without local provenance conflicts on first join', async () => {
+    // An older client's deliberate clear, restored at updatedAt 0, looks
+    // exactly like a fresh profile; only local provenance may adopt quietly.
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    const first = harness('device-a', named, provider);
+    await first.engine().sync();
+    const restoredClear = blankDomain();
+    restoredClear.profile.updatedAt = 0;
+    const second = harness('device-b', restoredClear, provider);
+    await second.engine().sync();
+
+    expect(second.journal.current().conflicts.map((value) => value.field)).toEqual([
+      'displayName',
+    ]);
+  });
+
+  test.each(['missing', 'corrupt'])(
+    'a deliberate name clear with a %s base conflicts instead of silently reverting',
+    async (damage) => {
+      const named = blankDomain();
+      named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+      const app = harness('device-a', named);
+      await app.engine().sync();
+      const checkpoint = app.state.loadBaseCheckpoint(app.vaultId, app.deviceId)!;
+      if (damage === 'missing') await app.files.delete(checkpoint.fileName);
+      else app.files.files.set(checkpoint.fileName, new Uint8Array([1]));
+
+      const cleared = structuredClone(app.journal.current());
+      cleared.profile = { ...cleared.profile, displayName: null, updatedAt: 3 };
+      app.journal.mutate(cleared);
+      await app.engine().sync();
+
+      expect(app.journal.current().conflicts.map((value) => value.field)).toEqual([
+        'displayName',
+      ]);
+    },
+  );
+
+  test('a name clear published concurrently with another edit is not silently reverted', async () => {
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    const first = harness('device-a', named, provider);
+    const second = harness('device-b', blankDomain(), provider);
+    await first.engine().sync();
+    await second.engine().sync();
+
+    const cleared = structuredClone(first.journal.current());
+    cleared.profile = { ...cleared.profile, displayName: null, updatedAt: 3 };
+    first.journal.mutate(cleared);
+    second.journal.mutate(withEntry(second.journal.current(), entry('new', 'New entry')));
+    let waiting = 0;
+    let release!: () => void;
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const hooks: SnapshotSyncHooks = {
+      async beforeHeadRecheck() {
+        waiting += 1;
+        if (waiting === 2) release();
+        await barrier;
+      },
+    };
+    await Promise.all([first.engine(hooks).sync(), second.engine(hooks).sync()]);
+    for (let round = 0; round < 3; round += 1) {
+      await first.engine().sync();
+      await second.engine().sync();
+    }
+
+    expect(canonicalize(first.journal.current())).toBe(
+      canonicalize(second.journal.current()),
+    );
+    const profile = first.journal.current().profile;
+    const nameConflicts = first.journal
+      .current()
+      .conflicts.filter((value) => value.field === 'displayName');
+    expect(profile.displayName === null || nameConflicts.length > 0).toBe(true);
   });
 
   test('an unsupported base-shadow format degrades instead of blocking sync', async () => {
