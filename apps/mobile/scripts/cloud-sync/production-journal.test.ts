@@ -100,7 +100,9 @@ test('production capture and restore preserve photo and voice order, including U
     value: async () =>
       new Map(ids.map((id) => [id, { uri: `file:///${id}`, verified: true }])),
   });
-  expect(await store.applyMergedIfGeneration(domain, 0)).toBe(true);
+  expect(await store.applyMergedIfGeneration(domain, 0, { remoteDerived: true })).toBe(
+    true,
+  );
   const row = db
     .select()
     .from(schema.entries)
@@ -156,7 +158,9 @@ test('production journal applies 10,000 entries atomically, skips unchanged writ
   }));
   const store = new ProductionSnapshotJournalStore('large', 'device', {} as never);
   const started = performance.now();
-  expect(await store.applyMergedIfGeneration(domain, 0)).toBe(true);
+  expect(await store.applyMergedIfGeneration(domain, 0, { remoteDerived: true })).toBe(
+    true,
+  );
   console.log(
     `10,000-entry production SQLite restore: ${Math.round(performance.now() - started)} ms`,
   );
@@ -165,19 +169,25 @@ test('production journal applies 10,000 entries atomically, skips unchanged writ
   const changes = () =>
     (sqlite.query('SELECT total_changes() AS count').get() as { count: number }).count;
   const before = changes();
-  expect(await store.applyMergedIfGeneration(domain, 0)).toBe(true);
+  expect(await store.applyMergedIfGeneration(domain, 0, { remoteDerived: true })).toBe(
+    true,
+  );
   expect(changes()).toBe(before);
   let transactions = 0;
   beforeTransaction = () => {
     if (++transactions === 2)
       sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
   };
-  expect(await store.applyMergedIfGeneration(domain, 0)).toBe(false);
+  expect(await store.applyMergedIfGeneration(domain, 0, { remoteDerived: true })).toBe(
+    false,
+  );
   beforeTransaction = null;
   // A failed later batch must roll back the deletes and all earlier batches.
   const invalid = structuredClone(domain);
   invalid.entries[1000].entryId = invalid.entries[0].entryId;
-  await expect(store.applyMergedIfGeneration(invalid, 1)).rejects.toThrow();
+  await expect(
+    store.applyMergedIfGeneration(invalid, 1, { remoteDerived: true }),
+  ).rejects.toThrow();
   expect((await store.capture()).domain).toEqual(domain);
 });
 
@@ -238,6 +248,62 @@ test('only a provably fresh database starts with a pristine local profile', () =
       ),
     ),
   ).toEqual([]);
+  // An install from before the normalized profile has journal data but no
+  // profile row yet; its legacy profile may be a deliberate clear.
+  for (const insert of [
+    "INSERT INTO entries (note_id, text_content, created_at, updated_at) VALUES ('legacy', 'Existing journal', 1, 1)",
+    "INSERT INTO tags (tag_id, title, created_at, updated_at) VALUES ('tag', 'Tag', 1, 1)",
+    "INSERT INTO custom_prompts (prompt_id, title, created_at, updated_at) VALUES ('prompt', 'Prompt', 1, 1)",
+  ]) {
+    expect(migrate((database) => database.exec(insert))).toEqual([]);
+  }
+});
+
+test('the legacy profile backfill keeps a pristine profile only on a fresh install', async () => {
+  mock.module('../../src/lib/settings/store', () => ({
+    hydrateProfileCache() {},
+    markLegacyProfileMigrationComplete() {},
+  }));
+  const { runNormalizedModelBackfill } =
+    await import('../../src/lib/cloudSync/storage/backfill');
+  const { runExclusiveDbTransaction } = await import('../../src/db');
+  const { isLocalProfilePristine } =
+    await import('../../src/lib/cloudSync/storage/repositories');
+  const backfill = async (
+    legacy: Partial<Parameters<typeof runNormalizedModelBackfill>[0]>,
+    prepare = '',
+  ) => {
+    resetToFreshProfile();
+    sqlite.exec(
+      `DELETE FROM entries; DELETE FROM tags; DELETE FROM custom_prompts; DELETE FROM cloud_sync_migration; DELETE FROM cloud_sync_migration_items; ${prepare}`,
+    );
+    const result = await runNormalizedModelBackfill({
+      profileName: null,
+      profileEmail: null,
+      profileImageUri: null,
+      priorAppUse: false,
+      ...legacy,
+    });
+    expect(result.status).toBe('complete');
+    return runExclusiveDbTransaction(isLocalProfilePristine);
+  };
+
+  // A fresh install: the empty first-launch profile is not a decision.
+  expect(await backfill({})).toBe(true);
+  // An earlier launch saved settings or completed onboarding: the empty
+  // legacy profile may be a deliberate clear, even with no journal left.
+  expect(await backfill({ priorAppUse: true })).toBe(false);
+  expect(await backfill({ profileEmail: 'local@example.com' })).toBe(false);
+  // Existing journal data is prior use even if the marker was seeded.
+  expect(
+    await backfill(
+      {},
+      "INSERT INTO entries (note_id, text_content, created_at, updated_at) VALUES ('legacy', 'Existing journal', 1, 1)",
+    ),
+  ).toBe(false);
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets; DELETE FROM cloud_sync_migration; DELETE FROM cloud_sync_migration_items',
+  );
 });
 
 test('profile updatedAt stays 0 and the profile stays pristine until a synced field is authored', async () => {
@@ -307,8 +373,51 @@ test('a fresh install that skipped onboarding adopts the remote profile on first
     value: async () =>
       new Map([['remote-photo', { uri: 'file:///remote-photo', verified: true }]]),
   });
-  expect(await store.applyMergedIfGeneration(merged, 0)).toBe(true);
+  expect(await store.applyMergedIfGeneration(merged, 0, { remoteDerived: true })).toBe(
+    true,
+  );
   expect((await store.capture()).localProfilePristine).toBe(false);
+});
+
+test('applying only local state keeps a pristine profile; a remote apply ends it', async () => {
+  resetToFreshProfile();
+  sqlite.exec('DELETE FROM entries; DELETE FROM cloud_sync_state');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'solo', device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('solo', 'device', {} as never);
+  const captured = await store.capture();
+  expect(captured.localProfilePristine).toBe(true);
+
+  // A solo publication re-applies its own captured state (unchanged path)...
+  expect(
+    await store.applyMergedIfGeneration(captured.domain, 0, { remoteDerived: false }),
+  ).toBe(true);
+  expect((await store.capture()).localProfilePristine).toBe(true);
+  // ...or reconciles it with later local edits (full replacement path).
+  const reconciled = structuredClone(captured.domain);
+  reconciled.entries = [
+    {
+      entryId: 'solo-entry',
+      title: null,
+      content: 'Local only',
+      mood: null,
+      createdAt: 1,
+      updatedAt: 1,
+      conflictOriginId: null,
+    },
+  ];
+  expect(
+    await store.applyMergedIfGeneration(reconciled, 0, { remoteDerived: false }),
+  ).toBe(true);
+  expect((await store.capture()).localProfilePristine).toBe(true);
+
+  // The same unchanged state received from another device ends provenance.
+  expect(
+    await store.applyMergedIfGeneration(reconciled, 0, { remoteDerived: true }),
+  ).toBe(true);
+  expect((await store.capture()).localProfilePristine).toBe(false);
+  sqlite.exec('DELETE FROM entries');
 });
 
 test('authored profile clears stay positive and win a no-base merge after a clock reset', async () => {
@@ -362,7 +471,9 @@ test('a restored profile authored at updatedAt 0 is not treated as pristine', as
   const { domain } = await store.capture();
   // An older client (or a backup restored from one) can write a name at 0.
   domain.profile.displayName = 'Authored at clock zero';
-  expect(await store.applyMergedIfGeneration(domain, 0)).toBe(true);
+  expect(await store.applyMergedIfGeneration(domain, 0, { remoteDerived: true })).toBe(
+    true,
+  );
   const restored = await store.capture();
   expect(restored.domain.profile.updatedAt).toBe(0);
   expect(restored.localProfilePristine).toBe(false);
@@ -413,7 +524,9 @@ test('an older client full clear at updatedAt 0 conflicts after a restore', asyn
   });
   const decoded = decodeSnapshot(encoded.compressedBytes, encoded.snapshotId);
   // The restore matches the empty local state, so it takes the unchanged path.
-  expect(await store.applyMergedIfGeneration(decoded.payload, 0)).toBe(true);
+  expect(
+    await store.applyMergedIfGeneration(decoded.payload, 0, { remoteDerived: true }),
+  ).toBe(true);
   const restored = await store.capture();
   expect(restored.domain.profile).toEqual(oldClear.profile);
   expect(restored.localProfilePristine).toBe(false);
@@ -444,6 +557,8 @@ test('an older client full clear at updatedAt 0 conflicts after a restore', asyn
   sqlite.exec(
     "INSERT INTO user_profile (profile_id, display_name, updated_at) VALUES ('self', 'Local', 1)",
   );
-  expect(await store.applyMergedIfGeneration(decoded.payload, 0)).toBe(true);
+  expect(
+    await store.applyMergedIfGeneration(decoded.payload, 0, { remoteDerived: true }),
+  ).toBe(true);
   expect((await store.capture()).localProfilePristine).toBe(false);
 });

@@ -9,7 +9,7 @@ const mockTransaction = jest.fn(
 const mockUpdateProfileInTransaction = jest.fn(
   async (_tx?: unknown, _profile?: unknown) => undefined,
 );
-const mockSetProfileName = jest.fn(async (_name: string | null) => undefined);
+const mockMarkLocalProfileTouched = jest.fn(async (_tx?: unknown) => undefined);
 const mockSetProfileEmail = jest.fn(async (_email: string | null) => undefined);
 const mockSetState = jest.fn((_state: unknown) => undefined);
 const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
@@ -29,7 +29,6 @@ jest.mock('~/db', () => ({
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: {
     getState: () => ({
-      setProfileName: (name: string | null) => mockSetProfileName(name),
       setProfileEmail: (email: string | null) => mockSetProfileEmail(email),
       // Mirrors the store: commit the profile row, then refresh the cache.
       setProfileImageUri: async (photoUri: string | null) => {
@@ -48,6 +47,7 @@ jest.mock('~/lib/cloudSync/storage/repositories', () => ({
     mockTransaction(callback),
   updateProfileInTransaction: (txArg: unknown, profile: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile),
+  markLocalProfileTouched: (txArg: unknown) => mockMarkLocalProfileTouched(txArg),
 }));
 
 jest.mock('../archiveUtils', () => ({
@@ -74,6 +74,8 @@ jest.mock('../portable', () => ({
 describe('importFromGratitudeAppBackup profile photo', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockProfile.name = 'Mehra';
+    mockProfile.imagePath = 'profile.jpg';
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
@@ -82,6 +84,7 @@ describe('importFromGratitudeAppBackup profile photo', () => {
   });
 
   it('keeps the committed profile photo when the cache refresh fails', async () => {
+    mockProfile.name = null;
     mockSetState.mockImplementationOnce(() => {
       throw new Error('cache write failed');
     });
@@ -107,11 +110,60 @@ describe('importFromGratitudeAppBackup profile photo', () => {
   });
 
   it('removes the imported photo when an earlier profile setting fails', async () => {
-    mockSetProfileName.mockRejectedValueOnce(new Error('name failed'));
+    mockUpdateProfileInTransaction.mockRejectedValueOnce(new Error('name failed'));
 
     await importFromGratitudeAppBackup('backup.zip', 'skip');
 
-    expect(mockUpdateProfileInTransaction).not.toHaveBeenCalled();
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledTimes(1);
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(tx, {
+      displayName: 'Mehra',
+    });
     expect(mockCleanupImportedFiles).toHaveBeenCalledWith(['photos/imported.jpg']);
+  });
+});
+
+describe('importFromGratitudeAppBackup profile name', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockProfile.imagePath = null;
+  });
+
+  it('ends pristine status in the same transaction as an explicit empty name', async () => {
+    mockProfile.name = '  ';
+    const order: string[] = [];
+    // The first transaction imports entries; the second writes the profile.
+    mockTransaction
+      .mockImplementationOnce(async (callback) => callback(tx))
+      .mockImplementationOnce(async (callback) => {
+        order.push('begin');
+        const result = await callback(tx);
+        order.push('commit');
+        return result;
+      });
+    mockUpdateProfileInTransaction.mockImplementationOnce(async () => {
+      order.push('write');
+    });
+    mockMarkLocalProfileTouched.mockImplementationOnce(async () => {
+      order.push('touch');
+    });
+
+    const summary = await importFromGratitudeAppBackup('backup.zip', 'overwrite');
+
+    expect(summary.warnings).toEqual([]);
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(tx, {
+      displayName: null,
+    });
+    expect(mockMarkLocalProfileTouched).toHaveBeenCalledWith(tx);
+    expect(order).toEqual(['begin', 'write', 'touch', 'commit']);
+    expect(mockSetState).toHaveBeenCalledWith({ profileName: null });
+  });
+
+  it('leaves the profile untouched when the backup has no name', async () => {
+    mockProfile.name = null;
+
+    await importFromGratitudeAppBackup('backup.zip', 'overwrite');
+
+    expect(mockUpdateProfileInTransaction).not.toHaveBeenCalled();
+    expect(mockMarkLocalProfileTouched).not.toHaveBeenCalled();
   });
 });

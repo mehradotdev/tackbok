@@ -27,6 +27,7 @@ import {
   domainOf,
   headSignature,
   headsCovered,
+  includesOtherDevices,
   isHeadShapeValid,
   normalizeObservations,
   remoteContainsBase,
@@ -543,6 +544,9 @@ export class SnapshotSyncEngine {
     const requiredHashes = [
       ...new Set(merged.media.map((asset) => asset.blobHash)),
     ].sort();
+    const remoteDerived = remotes.some((remote) =>
+      includesOtherDevices(remote.payload, this.deviceId),
+    );
     const remotelyPresent = await this.provider.hasMediaBatch(
       this.vaultId,
       requiredHashes,
@@ -571,7 +575,9 @@ export class SnapshotSyncEngine {
             await this.mediaStore.openDownloadSink(blobHash),
           );
           if (!downloaded) {
-            await this.journal.applyMergedIfGeneration(merged, capturedGeneration);
+            await this.journal.applyMergedIfGeneration(merged, capturedGeneration, {
+              remoteDerived,
+            });
             throw new AttentionError('missing-media', 'remote-media-hash-mismatch');
           }
           await this.hooks.at?.('during-media-transfer');
@@ -590,7 +596,9 @@ export class SnapshotSyncEngine {
         // Apply the already-validated logical journal before pausing. This
         // keeps a fresh text restore useful while still refusing to publish a
         // snapshot that references an absent remote blob.
-        await this.journal.applyMergedIfGeneration(merged, capturedGeneration);
+        await this.journal.applyMergedIfGeneration(merged, capturedGeneration, {
+          remoteDerived,
+        });
         throw new AttentionError(
           localHashes.has(blobHash) && !remoteHashes.has(blobHash)
             ? 'local-media-unreadable'

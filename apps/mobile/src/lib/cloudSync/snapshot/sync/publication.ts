@@ -4,7 +4,12 @@ import { mergeSnapshotDomains } from '../merge';
 import type { ObservedDeviceHead, SnapshotDomain } from '../types';
 import { BaseShadowCommitError, BaseShadowManager } from './baseShadow';
 import { AttentionError, RetryableSyncError } from './errors';
-import { domainOf, normalizeObservations, type RemoteHeadSnapshot } from './frontier';
+import {
+  domainOf,
+  includesOtherDevices,
+  normalizeObservations,
+  type RemoteHeadSnapshot,
+} from './frontier';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadow,
@@ -48,7 +53,7 @@ export class SnapshotPublisher {
     acceptedDeviceHeads: ObservedDeviceHead[],
     capturedGeneration: number,
   ): Promise<void> {
-    const { journal, hooks, vaultId } = this.options;
+    const { deviceId, journal, hooks, vaultId } = this.options;
     hooks.activity?.('applying-remote-snapshot');
     // A concurrent edit invalidates the plan. Re-plan on retry rather than
     // overwriting it or marking a generation that was never backed up settled.
@@ -56,6 +61,7 @@ export class SnapshotPublisher {
       !(await journal.applyMergedIfGeneration(
         domainOf(remote.payload),
         capturedGeneration,
+        { remoteDerived: includesOtherDevices(remote.payload, deviceId) },
       ))
     ) {
       throw new RetryableSyncError('journal-changed-during-remote-adoption');
@@ -172,6 +178,7 @@ export class SnapshotPublisher {
       await this.applyPublishedDomain(
         domainOf(decoded.payload),
         pending.capturedGeneration,
+        includesOtherDevices(decoded.payload, deviceId),
       );
       await hooks.at?.('during-merge-application');
       pending = stateStore.advancePending(
@@ -249,9 +256,14 @@ export class SnapshotPublisher {
   private async applyPublishedDomain(
     publishedDomain: SnapshotDomain,
     capturedGeneration: number,
+    remoteDerived: boolean,
   ): Promise<void> {
     const { deviceId, journal, shadowManager, stateStore, vaultId } = this.options;
-    if (await journal.applyMergedIfGeneration(publishedDomain, capturedGeneration))
+    if (
+      await journal.applyMergedIfGeneration(publishedDomain, capturedGeneration, {
+        remoteDerived,
+      })
+    )
       return;
 
     const checkpoint = stateStore.loadBaseCheckpoint(vaultId, deviceId);
@@ -261,7 +273,12 @@ export class SnapshotPublisher {
     for (let attempt = 0; attempt < MAX_JOURNAL_RECONCILIATION_ATTEMPTS; attempt += 1) {
       const latest = await journal.capture();
       const reconciled = mergeSnapshotDomains(baseDomain, latest.domain, publishedDomain);
-      if (await journal.applyMergedIfGeneration(reconciled, latest.generation)) return;
+      if (
+        await journal.applyMergedIfGeneration(reconciled, latest.generation, {
+          remoteDerived,
+        })
+      )
+        return;
     }
 
     throw new RetryableSyncError('journal-changed-during-publication-reconciliation');

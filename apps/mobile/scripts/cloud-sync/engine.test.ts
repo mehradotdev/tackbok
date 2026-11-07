@@ -1872,6 +1872,51 @@ describe('durable snapshot publisher', () => {
     expect(second.journal.localProfilePristine).toBe(false);
   });
 
+  test('a solo publication keeps provenance, so a later no-base join adopts quietly', async () => {
+    const pristine = blankDomain();
+    pristine.profile.updatedAt = 0;
+    const solo = harness('device-solo', pristine);
+    solo.journal.localProfilePristine = true;
+    // The publication survives a restart before it applies its own domain.
+    let killed = false;
+    await expect(
+      solo
+        .engine({
+          at(point) {
+            if (!killed && point === 'after-head-advanced') {
+              killed = true;
+              throw new SimulatedProcessDeath();
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    expect((await solo.engine().sync()).status).toBe('published');
+    expect(solo.journal.applyCount).toBeGreaterThan(0);
+    // Applying only this device's own data is not a received profile.
+    expect(solo.journal.localProfilePristine).toBe(true);
+
+    // Later, the same untouched device joins another vault with no base.
+    const otherProvider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    await harness('device-named', named, otherProvider, undefined, 'vault-other')
+      .engine()
+      .sync();
+    const joined = harness(
+      'device-solo',
+      solo.journal.current(),
+      otherProvider,
+      undefined,
+      'vault-other',
+    );
+    joined.journal.localProfilePristine = solo.journal.localProfilePristine;
+    await joined.engine().sync();
+    expect(joined.journal.current().profile.displayName).toBe('Mehra');
+    expect(joined.journal.current().conflicts).toEqual([]);
+    expect(joined.journal.localProfilePristine).toBe(false);
+  });
+
   test('identical empty profile data without local provenance conflicts on first join', async () => {
     // An older client's deliberate clear, restored at updatedAt 0, looks
     // exactly like a fresh profile; only local provenance may adopt quietly.

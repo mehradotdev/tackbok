@@ -379,6 +379,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   async applyMergedIfGeneration(
     domain: SnapshotDomain,
     expectedGeneration: number,
+    { remoteDerived }: { remoteDerived: boolean },
   ): Promise<boolean> {
     const captured = await this.capture();
     if (captured.generation !== expectedGeneration) return false;
@@ -397,9 +398,10 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
           )
           .limit(1);
         if (state?.generation !== expectedGeneration) return false;
-        // Applying a synced state, even an unchanged one, means this profile
-        // may now carry a remote decision, such as a deliberate clear.
-        await markLocalProfileTouched(tx);
+        // Applying a remote state, even an unchanged one, means this profile
+        // may now carry a remote decision, such as a deliberate clear. A solo
+        // publication only re-applies this device's own state.
+        if (remoteDerived) await markLocalProfileTouched(tx);
         return true;
       });
     }
@@ -479,7 +481,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       await tx.delete(tags);
       await tx.delete(customPrompts);
       await tx.delete(userProfile);
-      await markLocalProfileTouched(tx);
+      if (remoteDerived) await markLocalProfileTouched(tx);
       await tx.delete(cloudTombstones).where(eq(cloudTombstones.vault_id, this.vaultId));
       await tx.delete(cloudConflicts).where(eq(cloudConflicts.vault_id, this.vaultId));
 
