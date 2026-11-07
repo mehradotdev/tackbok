@@ -347,3 +347,60 @@ test('conflicts created after the first restore apply stay visible when the rest
     'DELETE FROM cloud_conflicts; DELETE FROM cloud_vault; DELETE FROM user_profile; DELETE FROM entries',
   );
 });
+
+test('an unchanged first apply completes the import, so later remote conflicts stay visible', async () => {
+  sqlite.exec(
+    'DELETE FROM cloud_conflicts; DELETE FROM cloud_vault; DELETE FROM user_profile; DELETE FROM entries',
+  );
+  db.insert(schema.cloudVault)
+    .values({
+      vault_id: 'equal',
+      provider_kind: 'google-drive',
+      device_id: 'd',
+      status: 'restoring',
+      created_at: 500,
+      updated_at: 500,
+    })
+    .run();
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'equal', device_id: 'd', updated_at: 500 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('equal', 'd', {} as never);
+  const initial = (await store.capture()).domain;
+  await store.rememberRemoteConflicts([]);
+  expect(await store.applyMergedIfGeneration(initial, 0)).toBe(true);
+  const vault = db
+    .select()
+    .from(schema.cloudVault)
+    .where(eq(schema.cloudVault.vault_id, 'equal'))
+    .get()!;
+  expect(vault.conflicts_imported_at).not.toBeNull();
+
+  // The pass stops before `restoring` clears; a later pass sees a new remote conflict.
+  const merged = structuredClone(initial);
+  merged.profile.displayName = 'Current';
+  merged.conflicts = [
+    {
+      conflictId: 'f'.repeat(64),
+      entityType: 'profile',
+      entityId: 'profile',
+      field: 'displayName',
+      baseValueHash: null,
+      localValueHash: 'a'.repeat(64),
+      remoteValueHash: 'b'.repeat(64),
+      primaryValueHash: 'a'.repeat(64),
+      alternates: [{ valueHash: 'b'.repeat(64), value: 'Later remote name' }],
+      recoveredEntityIds: [],
+    },
+  ];
+  await store.rememberRemoteConflicts(
+    merged.conflicts.map((conflict) => conflict.conflictId),
+  );
+  expect(await store.applyMergedIfGeneration(merged, 0)).toBe(true);
+  const row = db
+    .select()
+    .from(schema.cloudConflicts)
+    .where(eq(schema.cloudConflicts.vault_id, 'equal'))
+    .get()!;
+  expect(row.created_at).toBeGreaterThan(500);
+});

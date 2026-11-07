@@ -406,7 +406,19 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
             ),
           )
           .limit(1);
-        return state?.generation === expectedGeneration;
+        if (state?.generation !== expectedGeneration) return false;
+        // An unchanged first apply still completes the import: later remote
+        // conflicts must not be mistaken for ones the backup already held.
+        await tx
+          .update(cloudVault)
+          .set({ conflicts_imported_at: Date.now(), restore_conflict_ids_json: null })
+          .where(
+            and(
+              eq(cloudVault.vault_id, this.vaultId),
+              isNull(cloudVault.conflicts_imported_at),
+            ),
+          );
+        return true;
       });
     }
     const materializedUris = await this.materializeMedia(domain.media);
