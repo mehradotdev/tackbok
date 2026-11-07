@@ -6,6 +6,10 @@ const mockCreate = jest.fn();
 jest.mock('../snapshot/runtime', () => ({
   createProductionSnapshotRuntimeEngine: (...args: unknown[]) => mockCreate(...args),
 }));
+const mockReconcile = jest.fn(async () => false);
+jest.mock('./connectionSetup', () => ({
+  reconcileAbandonedConnectionSetup: () => mockReconcile(),
+}));
 jest.mock('~/db', () => ({
   cloudVault: {},
   db: {
@@ -36,6 +40,7 @@ jest.mock('../storage/backfill', () => ({ isNormalizedModelReady: async () => tr
 
 beforeEach(() => {
   mockCreate.mockReset();
+  mockReconcile.mockClear();
   jest.mocked(track).mockClear();
 });
 
@@ -83,4 +88,22 @@ test('ordinary construction failures are reported without retrying', async () =>
   mockCreate.mockRejectedValue(new Error('storage failed'));
   await expect(runProductionBackgroundPass()).resolves.toBe(false);
   expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test('an unfinished setup is put back before any backup is opened', async () => {
+  mockCreate.mockResolvedValue({ sync: async () => ({ pulled: 0, pushed: 0 }) });
+  mockReconcile.mockImplementationOnce(async () => {
+    expect(mockCreate).not.toHaveBeenCalled();
+    return true;
+  });
+  await expect(runProductionBackgroundPass()).resolves.toBe(true);
+  expect(mockReconcile).toHaveBeenCalled();
+});
+
+test('a setup guard that cannot be read keeps sync blocked', async () => {
+  mockReconcile.mockRejectedValue(new Error('keychain locked'));
+  await expect(runProductionBackgroundPass()).resolves.toBe(false);
+  expect(mockCreate).not.toHaveBeenCalled();
+  mockReconcile.mockReset();
+  mockReconcile.mockResolvedValue(false);
 });

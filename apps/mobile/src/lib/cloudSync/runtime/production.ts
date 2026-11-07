@@ -3,6 +3,7 @@ import {
   cloudConnectionLifecycle,
   CloudConnectionChangedError,
 } from './connectionLifecycle';
+import { reconcileAbandonedConnectionSetup } from './connectionSetup';
 import * as Network from 'expo-network';
 import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db } from '~/db';
@@ -77,6 +78,8 @@ async function retryBackfill(): Promise<void> {
 export async function createProductionRuntimeEngine(
   onRemoteApplied?: () => void | Promise<void>,
 ): Promise<RuntimeSyncEngine | null> {
+  // A setup the app died in may have stored another account's credentials.
+  await reconcileAbandonedConnectionSetup();
   const [configured] = await db
     .select()
     .from(cloudVault)
