@@ -103,6 +103,8 @@ interface SettingsState {
 
   // Hydration status
   _hasHydrated: boolean;
+  /** Settings were saved by an earlier launch: this is not a fresh install. */
+  _hadSavedSettings: boolean;
 
   // Actions
   setDailyReminderEnabled: (enabled: boolean) => void;
@@ -176,6 +178,7 @@ export const useSettingsStore = create<SettingsState>()(
       // Default values
       ...DEFAULT_SETTINGS_VALUES,
       _hasHydrated: false,
+      _hadSavedSettings: false,
 
       // Actions
       setDailyReminderEnabled: (enabled) => set({ dailyReminderEnabled: enabled }),
@@ -265,6 +268,7 @@ export const useSettingsStore = create<SettingsState>()(
         ...(persistedState == null
           ? { theme: INITIAL_DEVICE_THEME_ID }
           : (persistedState as Partial<SettingsState>)),
+        _hadSavedSettings: persistedState != null,
       }),
       migrate: (persistedState) => {
         const legacy = persistedState as Record<string, unknown> | undefined;
@@ -304,6 +308,9 @@ export const useSettingsStore = create<SettingsState>()(
           applyTitleFont(safeTitleFont);
         } else {
           console.warn('Settings store rehydration failed');
+          // An unreadable store is not proof of a fresh install: treat it as
+          // prior use so the profile backfill never keeps pristine status.
+          useSettingsStore.setState({ _hadSavedSettings: true });
           // `state` is unavailable here (persisted merge failed), so we cannot call
           // `state.setHasHydrated` — use the live store handle instead.
           useSettingsStore.getState().setHasHydrated(true);

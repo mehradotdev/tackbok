@@ -118,6 +118,16 @@ export const userProfile = sqliteTable('user_profile', {
   updated_at: integer('updated_at').notNull(),
 });
 
+/**
+ * Local-only, never synced. The row exists only while this device's profile
+ * has provably never been authored, imported, backfilled, or received from the
+ * cloud. Any such write deletes it, and an absent row means "touched", so
+ * existing installs and wiped tables stay conservative.
+ */
+export const profilePristineMarker = sqliteTable('profile_pristine_marker', {
+  profile_id: text('profile_id').primaryKey().notNull(),
+});
+
 /** Local provider/vault configuration. Credentials and account labels are absent. */
 export const cloudVault = sqliteTable('cloud_vault', {
   vault_id: text('vault_id').primaryKey().notNull(),

@@ -364,6 +364,7 @@ export class MemorySnapshotMediaStore implements SnapshotMediaStore {
 
 export class MemorySnapshotJournalStore implements SnapshotJournalStore {
   applyCount = 0;
+  localProfilePristine = false;
   private domain: SnapshotDomain;
 
   constructor(
@@ -389,16 +390,22 @@ export class MemorySnapshotJournalStore implements SnapshotJournalStore {
       this.vaultId,
       this.deviceId,
     ).journalGeneration;
-    return { domain: structuredClone(this.domain), generation };
+    return {
+      domain: structuredClone(this.domain),
+      generation,
+      localProfilePristine: this.localProfilePristine,
+    };
   }
 
   async applyMergedIfGeneration(
     domain: SnapshotDomain,
     expectedGeneration: number,
+    { remoteDerived }: { remoteDerived: boolean },
   ): Promise<boolean> {
     const current = this.state.loadState(this.vaultId, this.deviceId).journalGeneration;
     if (current !== expectedGeneration) return false;
     this.applyCount += 1;
+    if (remoteDerived) this.localProfilePristine = false;
     if (canonicalize(this.domain) !== canonicalize(domain)) {
       this.domain = structuredClone(domain);
     }

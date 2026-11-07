@@ -17,6 +17,10 @@ import {
   tags,
   userProfile,
 } from '~/db';
+import {
+  isLocalProfilePristine,
+  markLocalProfileTouched,
+} from '../../storage/repositories';
 import { AssetType, type Asset } from '~/types';
 import { sha256Text } from '../sha256';
 import { canonicalize } from '../canonical';
@@ -222,6 +226,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       const promptRows = await tx.select().from(customPrompts);
       const mediaRows = await tx.select().from(mediaAssets);
       const [profileRow] = await tx.select().from(userProfile).limit(1);
+      const localProfilePristine = await isLocalProfilePristine(tx);
       const tombstoneRows = await tx
         .select()
         .from(cloudTombstones)
@@ -299,6 +304,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
 
       return {
         generation: state.journal_generation,
+        localProfilePristine,
         domain: {
           entries: entryRows
             .map((row) => ({
@@ -373,6 +379,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   async applyMergedIfGeneration(
     domain: SnapshotDomain,
     expectedGeneration: number,
+    { remoteDerived }: { remoteDerived: boolean },
   ): Promise<boolean> {
     const captured = await this.capture();
     if (captured.generation !== expectedGeneration) return false;
@@ -390,7 +397,12 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
             ),
           )
           .limit(1);
-        return state?.generation === expectedGeneration;
+        if (state?.generation !== expectedGeneration) return false;
+        // Applying a remote state, even an unchanged one, means this profile
+        // may now carry a remote decision, such as a deliberate clear. A solo
+        // publication only re-applies this device's own state.
+        if (remoteDerived) await markLocalProfileTouched(tx);
+        return true;
       });
     }
     const materializedUris = await this.materializeMedia(domain.media);
@@ -469,6 +481,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       await tx.delete(tags);
       await tx.delete(customPrompts);
       await tx.delete(userProfile);
+      if (remoteDerived) await markLocalProfileTouched(tx);
       await tx.delete(cloudTombstones).where(eq(cloudTombstones.vault_id, this.vaultId));
       await tx.delete(cloudConflicts).where(eq(cloudConflicts.vault_id, this.vaultId));
 
