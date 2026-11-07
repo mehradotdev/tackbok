@@ -104,6 +104,7 @@ jest.mock('~/components/ui/alert-dialog', () => ({
   AlertDialogTitle: 'AlertDialogTitle',
 }));
 jest.mock('./setup-progress', () => ({ SetupProgress: 'SetupProgress' }));
+jest.mock('./ConflictsCard', () => ({ ConflictsCard: 'ConflictsCard' }));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
