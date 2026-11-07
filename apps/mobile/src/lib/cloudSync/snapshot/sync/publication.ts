@@ -272,7 +272,16 @@ export class SnapshotPublisher {
 
     for (let attempt = 0; attempt < MAX_JOURNAL_RECONCILIATION_ATTEMPTS; attempt += 1) {
       const latest = await journal.capture();
-      const reconciled = mergeSnapshotDomains(baseDomain, latest.domain, publishedDomain);
+      // Keep the fresh capture's provenance: an unrelated local edit must not
+      // turn a quiet first-join adoption into a conflict.
+      const reconciled = mergeSnapshotDomains(
+        baseDomain,
+        latest.domain,
+        publishedDomain,
+        {
+          localProfilePristine: latest.localProfilePristine,
+        },
+      );
       if (
         await journal.applyMergedIfGeneration(reconciled, latest.generation, {
           remoteDerived,

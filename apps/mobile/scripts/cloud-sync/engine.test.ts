@@ -1917,6 +1917,45 @@ describe('durable snapshot publisher', () => {
     expect(joined.journal.localProfilePristine).toBe(false);
   });
 
+  test('an unrelated edit before a resumed first-join publication keeps the adopted name', async () => {
+    const provider = new FakeSnapshotProvider();
+    const named = blankDomain();
+    named.profile = { ...named.profile, displayName: 'Mehra', updatedAt: 2 };
+    await harness('device-named', named, provider).engine().sync();
+    const pristine = blankDomain();
+    pristine.profile.updatedAt = 0;
+    const joining = harness(
+      'device-joining',
+      withEntry(pristine, entry('local-entry', 'Local')),
+      provider,
+    );
+    joining.journal.localProfilePristine = true;
+    await expect(
+      joining
+        .engine({
+          at(point) {
+            if (point === 'after-head-advanced') throw new SimulatedProcessDeath();
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    const pending = joining.state.loadPending(joining.vaultId, joining.deviceId)!;
+    expect(
+      decodeSnapshot(pending.compressedBytes, pending.snapshotId).payload.profile
+        .displayName,
+    ).toBe('Mehra');
+
+    // An entry-only edit forces the resumed publication to reconcile.
+    joining.journal.mutate(withEntry(joining.journal.current(), entry('late', 'Late')));
+    await joining.engine().sync();
+    expect(joining.journal.current().profile.displayName).toBe('Mehra');
+    expect(joining.journal.current().conflicts).toEqual([]);
+    expect(
+      joining.journal.current().entries.some((value) => value.entryId === 'late'),
+    ).toBe(true);
+    expect(joining.journal.localProfilePristine).toBe(false);
+  });
+
   test('identical empty profile data without local provenance conflicts on first join', async () => {
     // An older client's deliberate clear, restored at updatedAt 0, looks
     // exactly like a fresh profile; only local provenance may adopt quietly.
