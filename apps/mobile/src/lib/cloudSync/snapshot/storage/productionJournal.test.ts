@@ -41,6 +41,7 @@ jest.mock('~/db', () => ({
   entries: {},
   entryTags: {},
   mediaAssets: { kind: 'media' },
+  profilePristineMarker: {},
   runExclusiveDbTransaction: jest.fn(),
   syncMediaObligations: {},
   syncRetainedMedia: {},

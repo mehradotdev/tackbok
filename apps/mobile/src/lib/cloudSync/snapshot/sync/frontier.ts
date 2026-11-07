@@ -45,6 +45,21 @@ function observationMap(values: ObservedDeviceHead[]): Map<string, ObservedDevic
   return result;
 }
 
+/**
+ * Whether a snapshot can carry another device's data: another device wrote it,
+ * or it observed another device's head. Derived from the snapshot itself, so a
+ * resumed publication reaches the same answer.
+ */
+export function includesOtherDevices(
+  payload: JournalSnapshotPayload,
+  deviceId: string,
+): boolean {
+  return (
+    payload.authorDeviceId !== deviceId ||
+    payload.observedDeviceHeads.some((head) => head.deviceId !== deviceId)
+  );
+}
+
 export function normalizeObservations(
   values: ObservedDeviceHead[],
 ): ObservedDeviceHead[] {

@@ -677,6 +677,122 @@ describe('snapshot merge engine', () => {
     ).not.toThrow();
   });
 
+  it('lets only a locally pristine profile adopt a set one on a first join', () => {
+    const empty = blankDomain();
+    empty.profile.updatedAt = 0;
+    const named = blankDomain();
+    named.profile = {
+      profileId: 'profile',
+      displayName: 'Mehra',
+      photoAssetId: 'profile-photo',
+      updatedAt: 2,
+    };
+    named.media = [
+      {
+        assetId: 'profile-photo',
+        ownerType: 'profile',
+        ownerId: 'profile',
+        kind: 'profile-photo',
+        blobHash: 'a'.repeat(64),
+        byteSize: 1,
+        mimeType: 'image/jpeg',
+        width: null,
+        height: null,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ];
+    const adopted = mergeSnapshotDomains(null, empty, named, {
+      localProfilePristine: true,
+    });
+    expect(adopted.profile).toMatchObject({
+      displayName: 'Mehra',
+      photoAssetId: 'profile-photo',
+    });
+    expect(adopted.media).toEqual(named.media);
+    expect(adopted.conflicts).toEqual([]);
+
+    // The same empty, unstamped values without local provenance may be a
+    // deliberate clear (older clients stamped clears with a 0 clock), and a
+    // remote side is never pristine.
+    for (const [local, remote] of [
+      [empty, named],
+      [named, empty],
+    ]) {
+      expect(
+        mergeSnapshotDomains(null, local, remote)
+          .conflicts.map((value) => value.field)
+          .sort(),
+      ).toEqual(['displayName', 'photoAssetId']);
+    }
+    expect(
+      mergeSnapshotDomains(null, named, empty, {
+        localProfilePristine: true,
+      })
+        .conflicts.map((value) => value.field)
+        .sort(),
+    ).toEqual(['displayName', 'photoAssetId']);
+  });
+
+  it('does not treat a populated profile stamped at updatedAt 0 as pristine', () => {
+    // Older clients and backups restored from them can carry a name at 0.
+    const named = blankDomain();
+    named.profile = {
+      profileId: 'profile',
+      displayName: 'Mehra',
+      photoAssetId: null,
+      updatedAt: 0,
+    };
+    const photographed = structuredClone(named);
+    photographed.profile.photoAssetId = 'other-photo';
+    photographed.profile.updatedAt = 10;
+    for (const [local, remote] of [
+      [named, photographed],
+      [photographed, named],
+    ]) {
+      expect(
+        mergeSnapshotDomains(null, local, remote).conflicts.map((value) => value.field),
+      ).toEqual(['photoAssetId']);
+    }
+  });
+
+  it('keeps a deliberate profile clear after a base and conflicts on different names', () => {
+    const base = blankDomain();
+    base.profile.displayName = 'Mehra';
+    const cleared = structuredClone(base);
+    cleared.profile.displayName = null;
+    expect(mergeSnapshotDomains(base, cleared, base).profile.displayName).toBeNull();
+    expect(mergeSnapshotDomains(base, base, cleared).profile.displayName).toBeNull();
+
+    const renamed = blankDomain();
+    renamed.profile.displayName = 'Manu';
+    expect(
+      mergeSnapshotDomains(null, base, renamed).conflicts.map((value) => value.field),
+    ).toEqual(['displayName']);
+  });
+
+  it('conflicts instead of reverting a profile clear when the base is unavailable', () => {
+    const named = blankDomain();
+    named.profile.displayName = 'Mehra';
+    // Without local provenance, an unset field may be a deliberate clear.
+    const cleared = blankDomain();
+    cleared.profile.updatedAt = 2;
+    for (const [local, remote] of [
+      [cleared, named],
+      [named, cleared],
+    ]) {
+      const merged = mergeSnapshotDomains(null, local, remote);
+      expect(merged.conflicts.map((value) => value.field)).toEqual(['displayName']);
+      expect(merged.conflicts[0].alternates.map((value) => value.value)).toContain(
+        merged.profile.displayName === null ? 'Mehra' : null,
+      );
+    }
+    expect(mergeSnapshotDomains(null, cleared, named).profile).toEqual(
+      mergeSnapshotDomains(null, named, cleared).profile,
+    );
+  });
+
   it('chooses equal-sequence tombstone provenance independently of argument order', () => {
     const first = blankDomain();
     first.tombstones = [

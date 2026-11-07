@@ -18,6 +18,8 @@ import {
   NORMALIZED_MODEL_MIGRATION_ID,
   PROFILE_ENTITY_ID,
   PROFILE_ROW_ID,
+  type CloudSyncTransaction,
+  markLocalProfileTouched,
   normalizeLegacyEntryInTransaction,
   updateProfileInTransaction,
 } from './repositories';
@@ -28,6 +30,11 @@ export interface LegacyProfileSnapshot {
   profileName: string | null;
   profileEmail: string | null;
   profileImageUri: string | null;
+  /**
+   * Durable evidence of earlier use, such as saved settings or completed
+   * onboarding. An empty legacy profile may then be a deliberate clear.
+   */
+  priorAppUse: boolean;
 }
 
 export interface BackfillOptions {
@@ -64,6 +71,21 @@ async function writeCheckpoint(
       target: cloudSyncMigration.migration_id,
       set: { phase, cursor, status, updated_at: now, completed_at: completedAt },
     });
+}
+
+async function hasJournalData(tx: CloudSyncTransaction): Promise<boolean> {
+  for (const table of [entries, tags, customPrompts, mediaAssets]) {
+    if (
+      (
+        await tx
+          .select({ found: sql`1` })
+          .from(table)
+          .limit(1)
+      ).length > 0
+    )
+      return true;
+  }
+  return false;
 }
 
 async function loadProfileCache(): Promise<void> {
@@ -130,12 +152,23 @@ export async function runNormalizedModelBackfill(
       await updateProfileInTransaction(
         tx,
         {
-          displayName: legacyProfile.profileName,
+          displayName: legacyProfile.profileName?.trim()
+            ? legacyProfile.profileName.trim()
+            : null,
           email: legacyProfile.profileEmail,
           photoUri: legacyProfile.profileImageUri,
         },
         { origin: 'migration', now },
       );
+      // An empty legacy profile writes nothing, so it cannot end pristine
+      // status itself. On an install used before, it may be a deliberate
+      // clear, so only a provably fresh install stays pristine.
+      if (
+        legacyProfile.priorAppUse ||
+        legacyProfile.profileEmail ||
+        (await hasJournalData(tx))
+      )
+        await markLocalProfileTouched(tx);
     }
   });
 

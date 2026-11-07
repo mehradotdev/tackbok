@@ -192,6 +192,11 @@ export interface MediaDownloadSink {
 export interface CapturedJournal {
   domain: SnapshotDomain;
   generation: number;
+  /**
+   * Local provenance, never synced: this device's profile was never authored,
+   * imported, backfilled, or received from the cloud.
+   */
+  localProfilePristine: boolean;
 }
 
 /**
@@ -200,9 +205,15 @@ export interface CapturedJournal {
  */
 export interface SnapshotJournalStore {
   capture(): Promise<CapturedJournal>;
+  /**
+   * `remoteDerived` is false only when the domain holds nothing but this
+   * device's own data, such as a solo publication. Only remote-derived
+   * applies end local profile provenance.
+   */
   applyMergedIfGeneration(
     domain: SnapshotDomain,
     expectedGeneration: number,
+    options: { remoteDerived: boolean },
   ): Promise<boolean>;
 }
 
