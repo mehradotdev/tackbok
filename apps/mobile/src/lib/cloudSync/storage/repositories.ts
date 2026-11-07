@@ -771,11 +771,13 @@ export async function runInCloudSyncTransaction<T>(
   operation: (tx: CloudSyncTransaction) => Promise<T>,
 ): Promise<T> {
   const result = await runExclusiveDbTransaction(operation);
-  // The durable outbox row now exists. Scheduling sync must not depend on the
-  // best-effort post-commit media reaper completing successfully.
+  // SQLite has committed. Callers treat a rejection as a rollback and may
+  // delete files the committed rows reference, so post-commit work below must
+  // never reject. The durable outbox row now exists. Scheduling sync must not
+  // depend on the best-effort post-commit media reaper completing successfully.
   notifyCloudSyncMutationCommitted();
-  const { reapRetainedMediaWithoutVault } = await import('./retainedMedia');
   try {
+    const { reapRetainedMediaWithoutVault } = await import('./retainedMedia');
     await reapRetainedMediaWithoutVault();
   } catch {
     console.warn('Retained media cleanup will retry later');
