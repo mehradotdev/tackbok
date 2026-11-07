@@ -50,6 +50,7 @@ export const es = {
   'dateEntries.createEntry': 'Crear entrada',
   'dateEntries.somethingWentWrongCreatingNewEntry':
     'Algo salió mal. Creando una nueva entrada.',
+  'entry.otherVersion': 'Otra versión',
   'entry.deleteEntry': '¿Eliminar entrada?',
   'entry.thisEntryWillBePermanentlyDeleted':
     'Esta entrada será eliminada permanentemente.',
@@ -766,7 +767,6 @@ export const es = {
     'Desconéctese y luego elimine solo los datos del diario local',
   'cloud.editsRemainSafelyQueuedOnThisDevice':
     'Las ediciones permanecen en cola de forma segura en este dispositivo.',
-  'cloud.entry': 'Entrada',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     'Se requiere acceso Google Drive. Inténtalo de nuevo y selecciona la casilla Acceso a Drive.',
@@ -799,7 +799,6 @@ export const es = {
   'cloud.lastSuccessfulSyncDate': 'Última sincronización exitosa: {date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'Los datos locales y la copia de seguridad en la nube permanecerán. Otros dispositivos permanecen conectados.',
-  'cloud.markAsReviewed': 'Marcar como revisado',
   'cloud.savingYourChangesToGoogleDrive': 'Guardando tus cambios en Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'No se encontró ninguna copia de seguridad de Tackbok en esta cuenta de Google',
@@ -813,13 +812,33 @@ export const es = {
   'cloud.restoringYourJournalFromGoogleDrive':
     'Restaurando tu diario desde Google Drive…',
   'cloud.profile': 'Perfil',
-  'cloud.prompt': 'Pregunta guía',
   'cloud.reconnectGoogleDrive': 'Vuelva a conectar Google Drive',
-  'cloud.recoveredConflicts': 'Conflictos recuperados',
-  'cloud.recoveredConflictsMarkedAsReviewed':
-    'Conflictos recuperados marcados como revisados',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    'Conflicto {type} recuperado: alternativas preservadas de {count}',
+  'cloud.conflicts.title': 'Editado en dos dispositivos',
+  'cloud.conflicts.nameChanged':
+    'Tu nombre se cambió en otro dispositivo. Actual: "{current}". En el otro dispositivo: "{other}".',
+  'cloud.conflicts.nameChangedNoCurrent':
+    'Tu nombre se cambió en otro dispositivo. Actual: sin nombre. En el otro dispositivo: "{other}".',
+  'cloud.conflicts.nameRemoved':
+    'Tu nombre se eliminó en otro dispositivo. Actual: "{current}". En el otro dispositivo: sin nombre.',
+  'cloud.conflicts.useName': 'Usar "{name}"',
+  'cloud.conflicts.removeName': 'Usar sin nombre',
+  'cloud.conflicts.keepCurrent': 'Mantener la versión actual',
+  'cloud.conflicts.photoChanged': 'Tu foto de perfil se cambió en otro dispositivo.',
+  'cloud.conflicts.otherPhoto': 'Foto de perfil del otro dispositivo',
+  'cloud.conflicts.usePhoto': 'Usar esta foto',
+  'cloud.conflicts.entriesEdited':
+    '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
+  'cloud.conflicts.showThem': 'Mostrarlas',
+  'cloud.conflicts.otherVersionsTitle': 'Otras versiones',
+  'cloud.conflicts.otherVersionsDescription':
+    'Estas entradas se editaron en dos dispositivos a la vez, así que se conservaron ambas versiones. Abre una para editarla o eliminarla.',
+  'cloud.conflicts.noOtherVersions': 'Ninguna entrada tiene otra versión.',
+  'cloud.conflicts.loadFailed': 'No se pudieron cargar estas opciones.',
+  'cloud.conflicts.otherVersionsLoadFailed': 'No se pudieron cargar las otras versiones.',
+  'cloud.conflicts.showOlderNames': 'Mostrar versiones anteriores del nombre',
+  'cloud.conflicts.hideOlderNames': 'Ocultar versiones anteriores del nombre',
+  'cloud.conflicts.olderNamesDescription':
+    'Versiones anteriores de la app guardaron estos nombres al sincronizar. La mayoría no son cambios reales, pero aún puedes usar uno.',
   'cloud.resetThisDeviceOnly': 'Restablecer solo este dispositivo',
   'cloud.resetThisDeviceOnly2': '¿Restablecer solo este dispositivo?',
   'cloud.merge': 'Unir',

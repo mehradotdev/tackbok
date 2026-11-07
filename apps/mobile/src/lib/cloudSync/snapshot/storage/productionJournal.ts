@@ -1,4 +1,4 @@
-import { and, eq, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 
@@ -6,6 +6,7 @@ import {
   cloudConflicts,
   cloudSyncState,
   cloudTombstones,
+  cloudVault,
   customPrompts,
   db,
   entries,
@@ -479,6 +480,21 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     });
   }
 
+  async rememberRemoteConflicts(conflictIds: readonly string[]): Promise<void> {
+    await db
+      .update(cloudVault)
+      .set({
+        restore_conflict_ids_json: JSON.stringify([...new Set(conflictIds)].sort()),
+      })
+      .where(
+        and(
+          eq(cloudVault.vault_id, this.vaultId),
+          eq(cloudVault.status, 'restoring'),
+          isNull(cloudVault.conflicts_imported_at),
+        ),
+      );
+  }
+
   async applyMergedIfGeneration(
     domain: SnapshotDomain,
     expectedGeneration: number,
@@ -501,6 +517,17 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
           )
           .limit(1);
         if (state?.generation !== expectedGeneration) return false;
+        // An unchanged first apply still completes the import: later remote
+        // conflicts must not be mistaken for ones the backup already held.
+        await tx
+          .update(cloudVault)
+          .set({ conflicts_imported_at: Date.now(), restore_conflict_ids_json: null })
+          .where(
+            and(
+              eq(cloudVault.vault_id, this.vaultId),
+              isNull(cloudVault.conflicts_imported_at),
+            ),
+          );
         // Applying a remote state, even an unchanged one, means this profile
         // may now carry a remote decision, such as a deliberate clear. A solo
         // publication only re-applies this device's own state.
@@ -539,13 +566,34 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
 
         const [priorProfile] = await tx.select().from(userProfile).limit(1);
         const priorMedia = await tx.select().from(mediaAssets);
-        const acknowledged = new Map(
+        const priorConflicts = new Map(
           (
             await tx
               .select()
               .from(cloudConflicts)
               .where(eq(cloudConflicts.vault_id, this.vaultId))
-          ).map((row) => [row.conflict_id, row.acknowledged_at]),
+          ).map((row) => [row.conflict_id, row]),
+        );
+        const [vault] = await tx
+          .select({
+            status: cloudVault.status,
+            joinedAt: cloudVault.created_at,
+            restoreConflictIdsJson: cloudVault.restore_conflict_ids_json,
+            conflictsImportedAt: cloudVault.conflicts_imported_at,
+          })
+          .from(cloudVault)
+          .where(eq(cloudVault.vault_id, this.vaultId))
+          .limit(1);
+        // The first apply on this device imports the backup. Only conflicts the
+        // backup already held then predate the join; conflicts this device's
+        // merge creates, and any arriving after the first apply (even if the
+        // restore pass is retried), are new.
+        const importedConflictIds = new Set<string>(
+          vault?.status === 'restoring' &&
+            vault.conflictsImportedAt === null &&
+            vault.restoreConflictIdsJson
+            ? (JSON.parse(vault.restoreConflictIdsJson) as string[])
+            : [],
         );
 
         // A remote apply is a complete-state replacement. Preserve every local
@@ -731,11 +779,26 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
               vault_id: this.vaultId,
               conflict_id: conflict.conflictId,
               conflict_json: JSON.stringify(conflict),
-              acknowledged_at: acknowledged.get(conflict.conflictId) ?? null,
-              created_at: Date.now(),
+              acknowledged_at:
+                priorConflicts.get(conflict.conflictId)?.acknowledged_at ?? null,
+              archived_at: priorConflicts.get(conflict.conflictId)?.archived_at ?? null,
+              // created_at is when this device first saw the conflict. Records
+              // imported with the backup predate this device joining it, so
+              // they get the join time and the UI hides them.
+              created_at:
+                priorConflicts.get(conflict.conflictId)?.created_at ??
+                (vault && importedConflictIds.has(conflict.conflictId)
+                  ? vault.joinedAt
+                  : appliedAt),
             })),
             (rows) => tx.insert(cloudConflicts).values(rows),
           );
+        }
+        if (vault && vault.conflictsImportedAt === null) {
+          await tx
+            .update(cloudVault)
+            .set({ conflicts_imported_at: appliedAt, restore_conflict_ids_json: null })
+            .where(eq(cloudVault.vault_id, this.vaultId));
         }
         return true;
       });

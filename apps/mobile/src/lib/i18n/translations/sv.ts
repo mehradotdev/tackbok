@@ -49,6 +49,7 @@ export const sv = {
   'dateEntries.noEntriesForThisDate': 'Inga anmälningar för detta datum',
   'dateEntries.createEntry': 'Skapa post',
   'dateEntries.somethingWentWrongCreatingNewEntry': 'Något gick fel. Skapar en ny post.',
+  'entry.otherVersion': 'Annan version',
   'entry.deleteEntry': 'Ta bort post?',
   'entry.thisEntryWillBePermanentlyDeleted': 'Denna post kommer att raderas permanent.',
   'entry.entryNotFound': 'Posten hittades inte',
@@ -746,7 +747,6 @@ export const sv = {
     'Koppla från och radera sedan endast lokala dagboksdata',
   'cloud.editsRemainSafelyQueuedOnThisDevice':
     'Redigeringarna förblir säkert i kö på den här enheten.',
-  'cloud.entry': 'Anteckning',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     'Google Drive-åtkomst krävs. Försök igen och markera kryssrutan Drive access.',
@@ -778,7 +778,6 @@ export const sv = {
   'cloud.lastSuccessfulSyncDate': 'Senaste lyckade synkronisering: {date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'Lokal data och molnsäkerhetskopieringen kommer båda att finnas kvar. Andra enheter förblir anslutna.',
-  'cloud.markAsReviewed': 'Markera som granskad',
   'cloud.savingYourChangesToGoogleDrive': 'Sparar dina ändringar i Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'Ingen Tackbok-säkerhetskopia hittades i detta Google-konto',
@@ -792,13 +791,34 @@ export const sv = {
   'cloud.restoringYourJournalFromGoogleDrive':
     'Återställer din dagbok från Google Drive…',
   'cloud.profile': 'Profil',
-  'cloud.prompt': 'Skrivfråga',
   'cloud.reconnectGoogleDrive': 'Återanslut Google Drive',
-  'cloud.recoveredConflicts': 'Återvunna konflikter',
-  'cloud.recoveredConflictsMarkedAsReviewed':
-    'Återställda konflikter markerade som granskade',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    'Återställd {type}-konflikt — {count} bevarade alternativ',
+  'cloud.conflicts.title': 'Redigerat på två enheter',
+  'cloud.conflicts.nameChanged':
+    'Ditt namn ändrades på en annan enhet. Nuvarande: "{current}". På den andra enheten: "{other}".',
+  'cloud.conflicts.nameChangedNoCurrent':
+    'Ditt namn ändrades på en annan enhet. Nuvarande: inget namn. På den andra enheten: "{other}".',
+  'cloud.conflicts.nameRemoved':
+    'Ditt namn togs bort på en annan enhet. Nuvarande: "{current}". På den andra enheten: inget namn.',
+  'cloud.conflicts.useName': 'Använd "{name}"',
+  'cloud.conflicts.removeName': 'Använd inget namn',
+  'cloud.conflicts.keepCurrent': 'Behåll nuvarande',
+  'cloud.conflicts.photoChanged': 'Din profilbild ändrades på en annan enhet.',
+  'cloud.conflicts.otherPhoto': 'Profilbild från den andra enheten',
+  'cloud.conflicts.usePhoto': 'Använd den här bilden',
+  'cloud.conflicts.entriesEdited':
+    '{count} anteckningar redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
+  'cloud.conflicts.showThem': 'Visa dem',
+  'cloud.conflicts.otherVersionsTitle': 'Andra versioner',
+  'cloud.conflicts.otherVersionsDescription':
+    'De här anteckningarna redigerades på två enheter samtidigt, så båda versionerna sparades. Öppna en för att redigera eller ta bort den.',
+  'cloud.conflicts.noOtherVersions': 'Inga anteckningar har en annan version.',
+  'cloud.conflicts.loadFailed': 'Det gick inte att läsa in de här valen.',
+  'cloud.conflicts.otherVersionsLoadFailed':
+    'Det gick inte att läsa in de andra versionerna.',
+  'cloud.conflicts.showOlderNames': 'Visa äldre versioner av namnet',
+  'cloud.conflicts.hideOlderNames': 'Dölj äldre versioner av namnet',
+  'cloud.conflicts.olderNamesDescription':
+    'Tidigare versioner av appen sparade de här namnen vid synkronisering. De flesta är inga verkliga ändringar, men du kan fortfarande använda ett av dem.',
   'cloud.resetThisDeviceOnly': 'Återställ endast den här enheten',
   'cloud.resetThisDeviceOnly2': 'Vill du bara återställa den här enheten?',
   'cloud.merge': 'Slå ihop',

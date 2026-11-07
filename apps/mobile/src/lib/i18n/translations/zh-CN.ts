@@ -64,6 +64,7 @@ export const zhCN: Translations = {
   'dateEntries.somethingWentWrongCreatingNewEntry': '出了点问题。正在创建新条目。',
 
   // Gratitude Entry
+  'entry.otherVersion': '其他版本',
   'entry.deleteEntry': '删除条目？',
   'entry.thisEntryWillBePermanentlyDeleted': '此条目将被永久删除。',
   'entry.entryNotFound': '未找到条目',
@@ -760,7 +761,6 @@ export const zhCN: Translations = {
   'cloud.disconnectProviderFromThisDevice': '要断开此设备与 {provider} 的连接吗？',
   'cloud.disconnectThenDeleteLocalJournalDataOnly': '先断开连接，然后仅删除本地日记数据',
   'cloud.editsRemainSafelyQueuedOnThisDevice': '编辑内容会在此设备上安全排队。',
-  'cloud.entry': '条目',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     '需要 Google Drive 访问权限。请重试并选中 Drive 访问权限复选框。',
@@ -789,7 +789,6 @@ export const zhCN: Translations = {
   'cloud.lastSuccessfulSyncDate': '上次成功同步：{date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     '本地数据和云备份都会保留。其他设备仍保持连接。',
-  'cloud.markAsReviewed': '标记为已查看',
   'cloud.savingYourChangesToGoogleDrive': '正在将你的更改保存到 Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount': '此 Google 账户中没有找到塔克布克备份',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
@@ -801,12 +800,33 @@ export const zhCN: Translations = {
   'cloud.preparingYourChanges': '正在准备你的更改…',
   'cloud.restoringYourJournalFromGoogleDrive': '正在从 Google Drive 恢复你的日记…',
   'cloud.profile': '个人资料',
-  'cloud.prompt': '提示',
   'cloud.reconnectGoogleDrive': '重新连接 Google Drive',
-  'cloud.recoveredConflicts': '已恢复的冲突',
-  'cloud.recoveredConflictsMarkedAsReviewed': '已将恢复的冲突标记为已查看',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    '已恢复 {type} 冲突 — 保留了 {count} 个备选内容',
+  'cloud.conflicts.title': '在两台设备上编辑过',
+  'cloud.conflicts.nameChanged':
+    '你的名字在另一台设备上被更改。当前：“{current}”。另一台设备：“{other}”。',
+  'cloud.conflicts.nameChangedNoCurrent':
+    '你的名字在另一台设备上被更改。当前：没有名字。另一台设备：“{other}”。',
+  'cloud.conflicts.nameRemoved':
+    '你的名字在另一台设备上被删除。当前：“{current}”。另一台设备：没有名字。',
+  'cloud.conflicts.useName': '使用“{name}”',
+  'cloud.conflicts.removeName': '不使用名字',
+  'cloud.conflicts.keepCurrent': '保留当前',
+  'cloud.conflicts.photoChanged': '你的头像在另一台设备上被更改。',
+  'cloud.conflicts.otherPhoto': '另一台设备上的头像',
+  'cloud.conflicts.usePhoto': '使用这张照片',
+  'cloud.conflicts.entriesEdited':
+    '有 {count} 个条目同时在两台设备上被编辑。两个版本都在你的日记中。',
+  'cloud.conflicts.showThem': '查看',
+  'cloud.conflicts.otherVersionsTitle': '其他版本',
+  'cloud.conflicts.otherVersionsDescription':
+    '这些条目同时在两台设备上被编辑，因此两个版本都已保留。打开一个条目即可编辑或删除。',
+  'cloud.conflicts.noOtherVersions': '没有条目有其他版本。',
+  'cloud.conflicts.loadFailed': '无法加载这些选项。',
+  'cloud.conflicts.otherVersionsLoadFailed': '无法加载其他版本。',
+  'cloud.conflicts.showOlderNames': '显示较早的名字版本',
+  'cloud.conflicts.hideOlderNames': '隐藏较早的名字版本',
+  'cloud.conflicts.olderNamesDescription':
+    '应用的早期版本在同步时保存了这些名字。大多数并非真正的更改，但你仍可以使用其中一个。',
   'cloud.resetThisDeviceOnly': '仅重置此设备',
   'cloud.resetThisDeviceOnly2': '仅重置此设备？',
   'cloud.merge': '合并',

@@ -21,10 +21,10 @@ export const pluralMessages = {
     'cloud.countChangesSafelyQueued_other': '{count} changes saved, waiting to sync',
     'cloud.countChangesRemaining_one': '{count} change remaining',
     'cloud.countChangesRemaining_other': '{count} changes remaining',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
-      '{type}: {count} alternative version saved',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}: {count} alternative versions saved',
+    'cloud.conflicts.entriesEdited_one':
+      'An entry was edited on two devices at once. Both versions are in your journal.',
+    'cloud.conflicts.entriesEdited_other':
+      '{count} entries were edited on two devices at once. Both versions are in your journal.',
   },
   es: {
     'appearance.countThemesAndColorSchemes_one': '{count} tema y combinación de colores',
@@ -60,12 +60,12 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_one': 'Queda {count} cambio',
     'cloud.countChangesRemaining_many': 'Quedan {count} cambios',
     'cloud.countChangesRemaining_other': 'Quedan {count} cambios',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
-      '{type}: se guardó {count} versión alternativa',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_many':
-      '{type}: se guardaron {count} versiones alternativas',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}: se guardaron {count} versiones alternativas',
+    'cloud.conflicts.entriesEdited_one':
+      'Una entrada se editó en dos dispositivos a la vez. Ambas versiones están en tu diario.',
+    'cloud.conflicts.entriesEdited_many':
+      '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
+    'cloud.conflicts.entriesEdited_other':
+      '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
   },
   hi: {
     'appearance.countThemesAndColorSchemes_one': '{count} थीम और रंग योजना',
@@ -86,10 +86,10 @@ export const pluralMessages = {
     'cloud.countChangesSafelyQueued_other': '{count} बदलाव सहेजे गए, सिंक होने की प्रतीक्षा में',
     'cloud.countChangesRemaining_one': '{count} बदलाव बाकी है',
     'cloud.countChangesRemaining_other': '{count} बदलाव बाकी हैं',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
-      '{type}: {count} वैकल्पिक संस्करण सहेजा गया',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}: {count} वैकल्पिक संस्करण सहेजे गए',
+    'cloud.conflicts.entriesEdited_one':
+      'एक प्रविष्टि एक ही समय पर दो डिवाइस पर संपादित की गई। दोनों संस्करण आपकी डायरी में हैं।',
+    'cloud.conflicts.entriesEdited_other':
+      '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। दोनों संस्करण आपकी डायरी में हैं।',
   },
   sv: {
     'appearance.countThemesAndColorSchemes_one': '{count} tema och färgschema',
@@ -114,10 +114,10 @@ export const pluralMessages = {
       '{count} ändringar sparade och väntar på synkronisering',
     'cloud.countChangesRemaining_one': '{count} ändring återstår',
     'cloud.countChangesRemaining_other': '{count} ändringar återstår',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
-      '{type}: {count} alternativ version sparad',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}: {count} alternativa versioner sparade',
+    'cloud.conflicts.entriesEdited_one':
+      'En anteckning redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
+    'cloud.conflicts.entriesEdited_other':
+      '{count} anteckningar redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
   },
   de: {
     'appearance.countThemesAndColorSchemes_one': '{count} Design und Farbschema',
@@ -141,10 +141,10 @@ export const pluralMessages = {
       '{count} Änderungen gespeichert, warten auf Synchronisierung',
     'cloud.countChangesRemaining_one': 'Noch {count} Änderung',
     'cloud.countChangesRemaining_other': 'Noch {count} Änderungen',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
-      '{type}: {count} alternative Version gespeichert',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}: {count} alternative Versionen gespeichert',
+    'cloud.conflicts.entriesEdited_one':
+      'Ein Eintrag wurde gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
+    'cloud.conflicts.entriesEdited_other':
+      '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
   },
   he: {
     'appearance.countThemesAndColorSchemes_one': 'ערכת נושא וצבעים אחת',
@@ -174,12 +174,12 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_one': 'נותר שינוי אחד',
     'cloud.countChangesRemaining_two': 'נותרו {count} שינויים',
     'cloud.countChangesRemaining_other': 'נותרו {count} שינויים',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
-      '{type}: נשמרה גרסה חלופית אחת',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_two':
-      '{type}: נשמרו {count} גרסאות חלופיות',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}: נשמרו {count} גרסאות חלופיות',
+    'cloud.conflicts.entriesEdited_one':
+      'רשומה אחת נערכה בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
+    'cloud.conflicts.entriesEdited_two':
+      '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
+    'cloud.conflicts.entriesEdited_other':
+      '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
   },
   ar: {
     'appearance.countThemesAndColorSchemes_zero': '{count} سمة ونظام ألوان',
@@ -242,18 +242,18 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_few': 'تبقى {count} تغييرات',
     'cloud.countChangesRemaining_many': 'تبقى {count} تغييرًا',
     'cloud.countChangesRemaining_other': 'التغييرات المتبقية: {count}',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_zero':
-      '{type}: النسخ البديلة المحفوظة: {count}',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_one':
-      '{type}: تم حفظ {count} نسخة بديلة',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_two':
-      '{type}: تم حفظ نسختين بديلتين',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_few':
-      '{type}: تم حفظ {count} نسخ بديلة',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_many':
-      '{type}: تم حفظ {count} نسخة بديلة',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}: النسخ البديلة المحفوظة: {count}',
+    'cloud.conflicts.entriesEdited_zero':
+      'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
+    'cloud.conflicts.entriesEdited_one':
+      'عُدِّل سجل واحد على جهازين في الوقت نفسه. النسختان موجودتان في دفتر يومياتك.',
+    'cloud.conflicts.entriesEdited_two':
+      'عُدِّل سجلان على جهازين في الوقت نفسه. النسختان موجودتان في دفتر يومياتك.',
+    'cloud.conflicts.entriesEdited_few':
+      'عُدِّلت {count} سجلات على جهازين في الوقت نفسه. النسختان موجودتان في دفتر يومياتك.',
+    'cloud.conflicts.entriesEdited_many':
+      'عُدِّل {count} سجلًا على جهازين في الوقت نفسه. النسختان موجودتان في دفتر يومياتك.',
+    'cloud.conflicts.entriesEdited_other':
+      'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
   },
   'zh-CN': {
     'appearance.countThemesAndColorSchemes_other': '{count} 种主题和配色',
@@ -265,8 +265,8 @@ export const pluralMessages = {
     'sharing.openCountDayAchievement_other': '查看 {count} 天成就',
     'cloud.countChangesSafelyQueued_other': '已保存 {count} 项更改，等待同步',
     'cloud.countChangesRemaining_other': '还剩 {count} 项更改',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}：已保存 {count} 个其他版本',
+    'cloud.conflicts.entriesEdited_other':
+      '有 {count} 个条目同时在两台设备上被编辑。两个版本都在你的日记中。',
   },
   'zh-TW': {
     'appearance.countThemesAndColorSchemes_other': '{count} 種主題和配色',
@@ -278,8 +278,8 @@ export const pluralMessages = {
     'sharing.openCountDayAchievement_other': '查看 {count} 天成就',
     'cloud.countChangesSafelyQueued_other': '已儲存 {count} 項變更，等待同步',
     'cloud.countChangesRemaining_other': '還剩 {count} 項變更',
-    'cloud.recoveredTypeConflictCountPreservedAlternatives_other':
-      '{type}：已儲存 {count} 個其他版本',
+    'cloud.conflicts.entriesEdited_other':
+      '有 {count} 則紀錄同時在兩部裝置上被編輯。兩個版本都在你的日記中。',
   },
 } satisfies Record<
   SupportedLocale,

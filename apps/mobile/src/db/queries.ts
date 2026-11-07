@@ -1,4 +1,15 @@
-import { desc, or, and, gte, lt, eq, sql, type SQL } from 'drizzle-orm';
+import {
+  desc,
+  or,
+  and,
+  gte,
+  lt,
+  eq,
+  inArray,
+  isNotNull,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import { addDays, startOfDay, format } from 'date-fns';
 import { getAchievementForCreateTransition, type Achievement } from '~/lib/achievements';
 import {
@@ -175,6 +186,49 @@ export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
     .from(entries)
     .where(and(gte(entries.created_at, dateMs), lt(entries.created_at, nextDayMs)))
     .orderBy(desc(entries.created_at));
+}
+
+/**
+ * Entries that sync kept two versions of: each original (when it still exists)
+ * followed by its other versions, newest first.
+ */
+export async function getEntriesWithOtherVersions(): Promise<Entry[]> {
+  // One statement with a subquery: binding every origin ID could exceed
+  // SQLite's variable limit on a large journal.
+  const rows = await db
+    .select()
+    .from(entries)
+    .where(
+      or(
+        isNotNull(entries.conflict_origin_id),
+        inArray(
+          entries.note_id,
+          db
+            .select({ id: entries.conflict_origin_id })
+            .from(entries)
+            .where(isNotNull(entries.conflict_origin_id)),
+        ),
+      ),
+    )
+    .orderBy(desc(entries.created_at));
+  const byId = new Map(rows.map((entry) => [entry.note_id, entry]));
+  const groups = new Map<string, Entry[]>();
+  for (const entry of rows) {
+    if (!entry.conflict_origin_id) continue;
+    const group = groups.get(entry.conflict_origin_id) ?? [];
+    group.push(entry);
+    groups.set(entry.conflict_origin_id, group);
+  }
+  const result: Entry[] = [];
+  const listed = new Set<string>();
+  for (const [originId, versions] of groups) {
+    for (const entry of [byId.get(originId), ...versions]) {
+      if (!entry || listed.has(entry.note_id)) continue;
+      listed.add(entry.note_id);
+      result.push(entry);
+    }
+  }
+  return result;
 }
 
 /**

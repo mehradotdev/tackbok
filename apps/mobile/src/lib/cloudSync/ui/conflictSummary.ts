@@ -1,0 +1,159 @@
+import type { ConflictField, EntityType } from '../snapshot/types';
+
+/** One persisted conflict record, with the parts the conflicts card needs. */
+export interface CloudConflictRecord {
+  conflictId: string;
+  entityType: EntityType;
+  field: ConflictField;
+  /** The losing value kept by the merge; `undefined` when none was kept. */
+  alternateValue: string | null | undefined;
+  recoveredEntityIds: string[];
+  createdAt: number;
+  /** Moved off the card by the one-time upgrade archive; still actionable. */
+  archived: boolean;
+}
+
+/**
+ * An actionable row on the conflicts card. Each row lists every conflict
+ * record it resolves, so one action acknowledges them all.
+ */
+export type CloudConflictItem =
+  | {
+      kind: 'name';
+      conflictIds: string[];
+      current: string | null;
+      other: string | null;
+      /** Kept from before the upgrade; listed under older name versions. */
+      archived: boolean;
+    }
+  | {
+      kind: 'photo';
+      conflictIds: string[];
+      otherAssetId: string;
+      otherUri: string;
+    }
+  | {
+      kind: 'entries';
+      conflictIds: string[];
+      recoveredEntryIds: string[];
+    };
+
+export interface ConflictSummaryContext {
+  /** When this device joined the backup. Older records are hidden. */
+  joinedAt: number;
+  currentName: string | null;
+  currentPhotoAssetId: string | null;
+  /** The current photo's verified content hash, when known. */
+  currentPhotoBlobHash: string | null;
+  /** Profile photos whose files exist on this device, keyed by asset ID. */
+  localPhotos: ReadonlyMap<string, { uri: string; blobHash: string | null }>;
+  /** Recovered entries that still exist in the journal. */
+  existingEntryIds: ReadonlySet<string>;
+}
+
+/** Reads the fields the card uses from a stored, already validated conflict. */
+export function parseConflictRecord(
+  conflictId: string,
+  conflictJson: string,
+  createdAt: number,
+  archived = false,
+): CloudConflictRecord {
+  const conflict = JSON.parse(conflictJson) as {
+    entityType: EntityType;
+    field: ConflictField;
+    alternates?: { value: string | null }[];
+    recoveredEntityIds?: string[];
+  };
+  return {
+    conflictId,
+    entityType: conflict.entityType,
+    field: conflict.field,
+    alternateValue: conflict.alternates?.[0]?.value,
+    recoveredEntityIds: conflict.recoveredEntityIds ?? [],
+    createdAt,
+    archived,
+  };
+}
+
+/**
+ * Turns unacknowledged conflict records into card rows. Records with nothing
+ * to act on stay in storage but are not listed: media metadata
+ * (`assetReference`), delete/edit races, photos whose file is not on this
+ * device, photos with the same content as the current one, values that
+ * already match, and fields without an action.
+ */
+export function deriveConflictItems(
+  records: readonly CloudConflictRecord[],
+  context: ConflictSummaryContext,
+): CloudConflictItem[] {
+  const names = new Map<string | null, { conflictIds: string[]; archived: boolean }>();
+  // Keyed by content hash when known, so copies of one photo share a row.
+  const photos = new Map<string, { assetId: string; conflictIds: string[] }>();
+  const entryConflictIds: string[] = [];
+  const recoveredEntryIds = new Set<string>();
+
+  for (const record of records) {
+    // shortcut: dismissal and this join filter are local to the device;
+    // syncing dismissals needs a snapshot format change, so do that then.
+    if (record.createdAt <= context.joinedAt) continue;
+
+    if (record.entityType === 'profile' && record.field === 'displayName') {
+      if (record.alternateValue === undefined) continue;
+      if (record.alternateValue === context.currentName) continue;
+      const row = names.get(record.alternateValue) ?? { conflictIds: [], archived: true };
+      row.conflictIds.push(record.conflictId);
+      row.archived &&= record.archived;
+      names.set(record.alternateValue, row);
+      continue;
+    }
+
+    if (record.entityType === 'profile' && record.field === 'photoAssetId') {
+      const assetId = record.alternateValue;
+      if (!assetId || assetId === context.currentPhotoAssetId) continue;
+      const photo = context.localPhotos.get(assetId);
+      if (!photo) continue;
+      if (photo.blobHash && photo.blobHash === context.currentPhotoBlobHash) continue;
+      const key = photo.blobHash ?? assetId;
+      const row = photos.get(key) ?? { assetId, conflictIds: [] };
+      row.conflictIds.push(record.conflictId);
+      photos.set(key, row);
+      continue;
+    }
+
+    if (record.entityType === 'entry') {
+      const existing = record.recoveredEntityIds.filter((id) =>
+        context.existingEntryIds.has(id),
+      );
+      if (existing.length === 0) continue;
+      entryConflictIds.push(record.conflictId);
+      for (const id of existing) recoveredEntryIds.add(id);
+    }
+  }
+
+  const items: CloudConflictItem[] = [];
+  for (const [other, { conflictIds, archived }] of names) {
+    items.push({
+      kind: 'name',
+      conflictIds,
+      current: context.currentName,
+      other,
+      archived,
+    });
+  }
+  for (const { assetId, conflictIds } of photos.values()) {
+    items.push({
+      kind: 'photo',
+      conflictIds,
+      otherAssetId: assetId,
+      otherUri: context.localPhotos.get(assetId)!.uri,
+    });
+  }
+  if (entryConflictIds.length > 0) {
+    items.push({
+      kind: 'entries',
+      conflictIds: entryConflictIds,
+      recoveredEntryIds: [...recoveredEntryIds].sort(),
+    });
+  }
+  return items;
+}

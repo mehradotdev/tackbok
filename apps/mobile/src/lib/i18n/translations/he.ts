@@ -64,6 +64,7 @@ export const he: Translations = {
   'dateEntries.somethingWentWrongCreatingNewEntry': 'משהו השתבש. נוצרת רשומה חדשה.',
 
   // Gratitude Entry
+  'entry.otherVersion': 'גרסה אחרת',
   'entry.deleteEntry': 'מחק רשומה?',
   'entry.thisEntryWillBePermanentlyDeleted': 'רשומה זו תימחק לצמיתות.',
   'entry.entryNotFound': 'הרשומה לא נמצאה',
@@ -781,7 +782,6 @@ export const he: Translations = {
   'cloud.disconnectThenDeleteLocalJournalDataOnly':
     'ניתוק ולאחריו מחיקת נתוני היומן המקומיים בלבד',
   'cloud.editsRemainSafelyQueuedOnThisDevice': 'העריכות יישארו בתור בטוח במכשיר הזה.',
-  'cloud.entry': 'רשומה',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     'נדרשת גישה ל-Google Drive. יש לנסות שוב ולבחור בתיבת הסימון לגישה ל-Drive.',
@@ -811,7 +811,6 @@ export const he: Translations = {
   'cloud.lastSuccessfulSyncDate': 'סנכרון מוצלח אחרון: {date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'הנתונים המקומיים והגיבוי בענן יישארו. מכשירים אחרים יישארו מחוברים.',
-  'cloud.markAsReviewed': 'סימון כנבדק',
   'cloud.savingYourChangesToGoogleDrive': 'שמירת השינויים שלך ב-Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount':
     'לא נמצא גיבוי Tackbok בחשבון Google הזה',
@@ -824,12 +823,33 @@ export const he: Translations = {
   'cloud.preparingYourChanges': 'הכנת השינויים שלך…',
   'cloud.restoringYourJournalFromGoogleDrive': 'שחזור היומן שלך מ-Google Drive…',
   'cloud.profile': 'פרופיל',
-  'cloud.prompt': 'הנחיה',
   'cloud.reconnectGoogleDrive': 'חיבור מחדש של Google Drive',
-  'cloud.recoveredConflicts': 'התנגשויות ששוחזרו',
-  'cloud.recoveredConflictsMarkedAsReviewed': 'ההתנגשויות ששוחזרו סומנו כנבדקות',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    'שוחזרה התנגשות מסוג {type} — נשמרו {count} חלופות',
+  'cloud.conflicts.title': 'נערך בשני מכשירים',
+  'cloud.conflicts.nameChanged':
+    'השם שלך שונה במכשיר אחר. נוכחי: "{current}". במכשיר האחר: "{other}".',
+  'cloud.conflicts.nameChangedNoCurrent':
+    'השם שלך שונה במכשיר אחר. נוכחי: אין שם. במכשיר האחר: "{other}".',
+  'cloud.conflicts.nameRemoved':
+    'השם שלך הוסר במכשיר אחר. נוכחי: "{current}". במכשיר האחר: אין שם.',
+  'cloud.conflicts.useName': 'שימוש ב-"{name}"',
+  'cloud.conflicts.removeName': 'ללא שם',
+  'cloud.conflicts.keepCurrent': 'שמירת הנוכחי',
+  'cloud.conflicts.photoChanged': 'תמונת הפרופיל שלך שונתה במכשיר אחר.',
+  'cloud.conflicts.otherPhoto': 'תמונת פרופיל מהמכשיר האחר',
+  'cloud.conflicts.usePhoto': 'שימוש בתמונה הזו',
+  'cloud.conflicts.entriesEdited':
+    '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
+  'cloud.conflicts.showThem': 'הצגה',
+  'cloud.conflicts.otherVersionsTitle': 'גרסאות אחרות',
+  'cloud.conflicts.otherVersionsDescription':
+    'הרשומות האלה נערכו בשני מכשירים בו־זמנית, ולכן שתי הגרסאות נשמרו. אפשר לפתוח רשומה כדי לערוך או למחוק אותה.',
+  'cloud.conflicts.noOtherVersions': 'אין רשומות עם גרסה אחרת.',
+  'cloud.conflicts.loadFailed': 'לא ניתן לטעון את האפשרויות האלה.',
+  'cloud.conflicts.otherVersionsLoadFailed': 'לא ניתן לטעון את הגרסאות האחרות.',
+  'cloud.conflicts.showOlderNames': 'הצגת גרסאות קודמות של השם',
+  'cloud.conflicts.hideOlderNames': 'הסתרת גרסאות קודמות של השם',
+  'cloud.conflicts.olderNamesDescription':
+    'גרסאות קודמות של האפליקציה שמרו את השמות האלה במהלך הסנכרון. רובם אינם שינויים אמיתיים, אבל עדיין אפשר להשתמש באחד מהם.',
   'cloud.resetThisDeviceOnly': 'איפוס המכשיר הזה בלבד',
   'cloud.resetThisDeviceOnly2': 'לאפס את המכשיר הזה בלבד?',
   'cloud.merge': 'מיזוג',

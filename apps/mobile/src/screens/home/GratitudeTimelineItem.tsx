@@ -18,6 +18,7 @@ import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { AudioPlayer } from '~/components/AudioPlayer';
+import { OtherVersionBadge } from '~/components/OtherVersionBadge';
 import { Icon } from '~/components/ui/icon';
 import { TimelineDotAnimated } from './TimelineDot';
 
@@ -155,6 +156,7 @@ function ExpandedEntryRow({
             </Text>
             {entry.mood && <Text className="text-base">{MOOD_EMOJI[entry.mood]}</Text>}
           </Badge>
+          <OtherVersionBadge entry={entry} className="mb-1" />
 
           {/* Title */}
           {entry.text_title && (

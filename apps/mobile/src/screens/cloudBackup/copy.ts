@@ -1,5 +1,4 @@
 import type {
-  CloudConflictSummary,
   CloudSyncActionFailureCategory,
   CloudSyncSnapshot,
 } from '~/lib/cloudSync/ui';
@@ -84,22 +83,6 @@ export function syncNowUnavailableReason(
   if (status === 'paused') return t('cloud.resumeSyncToSyncNow');
   if (status === 'warning') return t('cloud.fixTheProblemAboveToSyncNow');
   return null;
-}
-
-export function entityTypeLabel(
-  entityType: CloudConflictSummary['entityType'],
-  t: TranslationFunction,
-): string {
-  switch (entityType) {
-    case 'entry':
-      return t('cloud.entry');
-    case 'tag':
-      return t('tags.tag');
-    case 'prompt':
-      return t('cloud.prompt');
-    case 'profile':
-      return t('cloud.profile');
-  }
 }
 
 export function cloudSyncFailureMessage(

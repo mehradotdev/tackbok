@@ -43,6 +43,13 @@
       "when": 1794009044257,
       "tag": "0005_profile_pristine_marker",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794029609481,
+      "tag": "0006_blushing_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

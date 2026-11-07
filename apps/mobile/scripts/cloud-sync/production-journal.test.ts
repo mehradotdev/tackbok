@@ -225,6 +225,240 @@ test('production journal applies 10,000 entries atomically, skips unchanged writ
   expect((await store.capture()).domain).toEqual(domain);
 });
 
+test('production journal keeps when this device first saw each conflict and dates initial-restore conflicts to the join', async () => {
+  const conflict = (id: string) => ({
+    conflictId: id.repeat(64),
+    entityType: 'profile' as const,
+    entityId: 'profile',
+    field: 'displayName' as const,
+    baseValueHash: null,
+    localValueHash: 'b'.repeat(64),
+    remoteValueHash: 'c'.repeat(64),
+    primaryValueHash: 'b'.repeat(64),
+    alternates: [{ valueHash: 'c'.repeat(64), value: 'Other' }],
+    recoveredEntityIds: [],
+  });
+  const domain: SnapshotDomain = {
+    entries: [],
+    tags: [],
+    entryTags: [],
+    prompts: [],
+    media: [],
+    tombstones: [],
+    conflicts: [conflict('1')],
+    profile: {
+      profileId: 'profile',
+      displayName: 'Mine',
+      photoAssetId: null,
+      updatedAt: 1,
+    },
+  };
+  db.insert(schema.cloudVault)
+    .values({
+      vault_id: 'joined',
+      provider_kind: 'google-drive',
+      device_id: 'device',
+      status: 'restoring',
+      created_at: 500,
+      updated_at: 500,
+    })
+    .run();
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'joined', device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('joined', 'device', {} as never);
+  const rows = () =>
+    db
+      .select()
+      .from(schema.cloudConflicts)
+      .where(eq(schema.cloudConflicts.vault_id, 'joined'))
+      .orderBy(schema.cloudConflicts.conflict_id)
+      .all();
+
+  // The initial restore imports conflicts that predate this device joining.
+  // Conflict 3 is created by this device's own merge, so it is new.
+  await store.rememberRemoteConflicts([conflict('1').conflictId]);
+  const restoredAt = Date.now();
+  expect(
+    await store.applyMergedIfGeneration(
+      { ...domain, conflicts: [conflict('1'), conflict('3')] },
+      0,
+      { remoteDerived: true },
+    ),
+  ).toBe(true);
+  const [imported, merged] = rows();
+  expect(imported.created_at).toBe(500);
+  expect(merged.created_at).toBeGreaterThanOrEqual(restoredAt);
+
+  db.update(schema.cloudConflicts).set({ acknowledged_at: 600, archived_at: 700 }).run();
+  db.update(schema.cloudVault).set({ status: 'idle' }).run();
+  const before = Date.now();
+  expect(
+    await store.applyMergedIfGeneration(
+      { ...domain, conflicts: [conflict('1'), conflict('2'), conflict('3')] },
+      0,
+      { remoteDerived: true },
+    ),
+  ).toBe(true);
+  const [old, added] = rows();
+  expect(old).toMatchObject({ created_at: 500, acknowledged_at: 600, archived_at: 700 });
+  expect(added.acknowledged_at).toBeNull();
+  expect(added.archived_at).toBeNull();
+  expect(added.created_at).toBeGreaterThanOrEqual(before);
+  sqlite.exec(
+    'DELETE FROM cloud_conflicts; DELETE FROM cloud_vault; DELETE FROM user_profile',
+  );
+});
+
+test('conflicts created after the first restore apply stay visible when the restore pass is retried', async () => {
+  const { mergeSnapshotDomains } = await import('../../src/lib/cloudSync/snapshot/merge');
+  const { deriveConflictItems, parseConflictRecord } =
+    await import('../../src/lib/cloudSync/ui/conflictSummary');
+  db.insert(schema.cloudVault)
+    .values({
+      vault_id: 'retried',
+      provider_kind: 'google-drive',
+      device_id: 'device',
+      status: 'restoring',
+      created_at: 500,
+      updated_at: 500,
+    })
+    .run();
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'retried', device_id: 'device', updated_at: 500 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('retried', 'device', {} as never);
+  const initial: SnapshotDomain = {
+    entries: [
+      {
+        entryId: 'entry',
+        title: null,
+        content: 'First',
+        mood: null,
+        createdAt: 501,
+        updatedAt: 501,
+        conflictOriginId: null,
+      },
+    ],
+    tags: [],
+    entryTags: [],
+    prompts: [],
+    media: [],
+    tombstones: [],
+    conflicts: [],
+    profile: {
+      profileId: 'profile',
+      displayName: 'First',
+      photoAssetId: null,
+      updatedAt: 501,
+    },
+  };
+  await store.rememberRemoteConflicts([]);
+  expect(await store.applyMergedIfGeneration(initial, 0, { remoteDerived: true })).toBe(
+    true,
+  );
+
+  // The app stops before the pass marks the vault idle; both devices then edit
+  // the restored name and entry, and the retried pass merges them.
+  const left = structuredClone(initial);
+  const right = structuredClone(initial);
+  left.profile = { ...left.profile, displayName: 'Alice', updatedAt: 900 };
+  right.profile = { ...right.profile, displayName: 'Bob', updatedAt: 901 };
+  left.entries[0] = { ...left.entries[0], content: 'Left', updatedAt: 900 };
+  right.entries[0] = { ...right.entries[0], content: 'Right', updatedAt: 901 };
+  const merged = mergeSnapshotDomains(initial, left, right);
+  await store.rememberRemoteConflicts(merged.conflicts.map((c) => c.conflictId));
+  expect(await store.applyMergedIfGeneration(merged, 0, { remoteDerived: true })).toBe(
+    true,
+  );
+
+  const rows = db
+    .select()
+    .from(schema.cloudConflicts)
+    .where(eq(schema.cloudConflicts.vault_id, 'retried'))
+    .all();
+  expect(rows.length).toBeGreaterThanOrEqual(2);
+  expect(rows.every((row) => row.created_at > 500)).toBe(true);
+  const items = deriveConflictItems(
+    rows.map((row) =>
+      parseConflictRecord(row.conflict_id, row.conflict_json, row.created_at),
+    ),
+    {
+      joinedAt: 500,
+      currentName: merged.profile.displayName,
+      currentPhotoAssetId: null,
+      currentPhotoBlobHash: null,
+      localPhotos: new Map(),
+      existingEntryIds: new Set(merged.entries.map((entry) => entry.entryId)),
+    },
+  );
+  expect(items.map((item) => item.kind).sort()).toEqual(['entries', 'name']);
+  sqlite.exec(
+    'DELETE FROM cloud_conflicts; DELETE FROM cloud_vault; DELETE FROM user_profile; DELETE FROM entries',
+  );
+});
+
+test('an unchanged first apply completes the import, so later remote conflicts stay visible', async () => {
+  sqlite.exec(
+    'DELETE FROM cloud_conflicts; DELETE FROM cloud_vault; DELETE FROM user_profile; DELETE FROM entries',
+  );
+  db.insert(schema.cloudVault)
+    .values({
+      vault_id: 'equal',
+      provider_kind: 'google-drive',
+      device_id: 'd',
+      status: 'restoring',
+      created_at: 500,
+      updated_at: 500,
+    })
+    .run();
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'equal', device_id: 'd', updated_at: 500 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('equal', 'd', {} as never);
+  const initial = (await store.capture()).domain;
+  await store.rememberRemoteConflicts([]);
+  expect(await store.applyMergedIfGeneration(initial, 0, { remoteDerived: true })).toBe(
+    true,
+  );
+  const vault = db
+    .select()
+    .from(schema.cloudVault)
+    .where(eq(schema.cloudVault.vault_id, 'equal'))
+    .get()!;
+  expect(vault.conflicts_imported_at).not.toBeNull();
+
+  // The pass stops before `restoring` clears; a later pass sees a new remote conflict.
+  const merged = structuredClone(initial);
+  merged.profile.displayName = 'Current';
+  merged.conflicts = [
+    {
+      conflictId: 'f'.repeat(64),
+      entityType: 'profile',
+      entityId: 'profile',
+      field: 'displayName',
+      baseValueHash: null,
+      localValueHash: 'a'.repeat(64),
+      remoteValueHash: 'b'.repeat(64),
+      primaryValueHash: 'a'.repeat(64),
+      alternates: [{ valueHash: 'b'.repeat(64), value: 'Later remote name' }],
+      recoveredEntityIds: [],
+    },
+  ];
+  await store.rememberRemoteConflicts(
+    merged.conflicts.map((conflict) => conflict.conflictId),
+  );
+  expect(await store.applyMergedIfGeneration(merged, 0, { remoteDerived: true })).toBe(
+    true,
+  );
+  const row = db
+    .select()
+    .from(schema.cloudConflicts)
+    .where(eq(schema.cloudConflicts.vault_id, 'equal'))
+    .get()!;
+  expect(row.created_at).toBeGreaterThan(500);
+});
+
 // Models a fresh install: no profile row yet and the migration-seeded marker.
 function resetToFreshProfile() {
   sqlite.exec(

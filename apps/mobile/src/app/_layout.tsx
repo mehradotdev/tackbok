@@ -250,6 +250,10 @@ export default function Layout() {
                   name="cloud-backup"
                   options={{ title: 'Cloud Backup & Sync', headerShown: false }}
                 />
+                <Stack.Screen
+                  name="other-versions"
+                  options={{ title: 'Other Versions', headerShown: false }}
+                />
               </Stack>
               <ReminderNavigationObserver />
               <ScreenViewObserver />

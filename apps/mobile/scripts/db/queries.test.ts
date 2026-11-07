@@ -20,10 +20,21 @@ for (const { tag } of journal.entries) {
     ).replaceAll('--> statement-breakpoint', ''),
   );
 }
-const db = drizzle(sqlite, { schema });
+// Bun's SQLite accepts far more bound variables than the app's Expo SQLite
+// (32,766), so tests check how many a statement binds instead.
+let mostParams = 0;
+const db = drizzle(sqlite, {
+  schema,
+  logger: {
+    logQuery: (_query, params) => {
+      mostParams = Math.max(mostParams, params.length);
+    },
+  },
+});
 mock.module('../../src/db', () => ({ ...schema, db, runExclusiveDbTransaction() {} }));
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
-const { getEntriesForDay, searchEntries } = await import('../../src/db/queries');
+const { getEntriesForDay, getEntriesWithOtherVersions, searchEntries } =
+  await import('../../src/db/queries');
 afterAll(() => sqlite.close());
 
 function insertEntry(
@@ -111,4 +122,41 @@ test('searchEntries treats LIKE wildcards in the search text literally', async (
     'plain',
     'percent',
   ]);
+});
+
+test('getEntriesWithOtherVersions lists each original before its other versions', async () => {
+  insertEntry('plain', 50);
+  insertEntry('origin-old', 10);
+  insertEntry('origin-new', 20);
+  insertEntry('recovered-old', 30, { conflict_origin_id: 'origin-old' });
+  insertEntry('recovered-new', 40, { conflict_origin_id: 'origin-new' });
+  insertEntry('recovered-orphan', 35, { conflict_origin_id: 'deleted-origin' });
+  expect((await getEntriesWithOtherVersions()).map((entry) => entry.note_id)).toEqual([
+    'origin-new',
+    'recovered-new',
+    'recovered-orphan',
+    'origin-old',
+    'recovered-old',
+  ]);
+});
+
+test('getEntriesWithOtherVersions binds no ID list on a large journal', async () => {
+  const count = 33_000;
+  sqlite.exec('BEGIN');
+  const insert = sqlite.prepare(
+    'INSERT INTO entries (note_id, conflict_origin_id, created_at, updated_at) VALUES (?, ?, ?, ?)',
+  );
+  for (let index = 0; index < count; index += 1) {
+    insert.run(`origin-${index}`, null, index, index);
+    insert.run(`recovered-${index}`, `origin-${index}`, count + index, count + index);
+  }
+  sqlite.exec('COMMIT');
+  mostParams = 0;
+  const listed = await getEntriesWithOtherVersions();
+  expect(listed).toHaveLength(count * 2);
+  expect(listed.slice(0, 2).map((entry) => entry.note_id)).toEqual([
+    `origin-${count - 1}`,
+    `recovered-${count - 1}`,
+  ]);
+  expect(mostParams).toBeLessThan(999);
 });

@@ -64,6 +64,7 @@ export const zhTW: Translations = {
   'dateEntries.somethingWentWrongCreatingNewEntry': '發生錯誤。正在建立新紀錄。',
 
   // Gratitude Entry
+  'entry.otherVersion': '其他版本',
   'entry.deleteEntry': '刪除紀錄？',
   'entry.thisEntryWillBePermanentlyDeleted': '此紀錄將被永久刪除。',
   'entry.entryNotFound': '找不到紀錄',
@@ -763,7 +764,6 @@ export const zhTW: Translations = {
   'cloud.disconnectProviderFromThisDevice': '要中斷此裝置與 {provider} 的連線嗎？',
   'cloud.disconnectThenDeleteLocalJournalDataOnly': '先中斷連線，然後只刪除本機日記資料',
   'cloud.editsRemainSafelyQueuedOnThisDevice': '編輯內容會在此裝置上安全排隊。',
-  'cloud.entry': '紀錄',
   'cloud.googleDrive': 'Google Drive',
   'cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe':
     '需要 Google Drive 存取權。請重試並選取 Drive 存取權核取方塊。',
@@ -792,7 +792,6 @@ export const zhTW: Translations = {
   'cloud.lastSuccessfulSyncDate': '上次成功同步：{date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     '本機資料和雲端備份都會保留。其他裝置仍保持連線。',
-  'cloud.markAsReviewed': '標記為已檢視',
   'cloud.savingYourChangesToGoogleDrive': '正在將你的變更儲存到 Google Drive…',
   'cloud.noTackbokBackupFoundInThisGoogleAccount': '此 Google 帳戶中找不到塔克布克備份',
   'cloud.noInternetConnectionYourChangesRemainSafelyQueued':
@@ -804,12 +803,33 @@ export const zhTW: Translations = {
   'cloud.preparingYourChanges': '正在準備你的變更…',
   'cloud.restoringYourJournalFromGoogleDrive': '正在從 Google Drive 還原你的日記…',
   'cloud.profile': '個人資料',
-  'cloud.prompt': '提示',
   'cloud.reconnectGoogleDrive': '重新連接 Google Drive',
-  'cloud.recoveredConflicts': '已還原的衝突',
-  'cloud.recoveredConflictsMarkedAsReviewed': '已將還原的衝突標記為已檢視',
-  'cloud.recoveredTypeConflictCountPreservedAlternatives':
-    '已還原 {type} 衝突 — 保留了 {count} 個替代內容',
+  'cloud.conflicts.title': '在兩部裝置上編輯過',
+  'cloud.conflicts.nameChanged':
+    '你的名字在另一部裝置上被更改。目前：「{current}」。另一部裝置：「{other}」。',
+  'cloud.conflicts.nameChangedNoCurrent':
+    '你的名字在另一部裝置上被更改。目前：沒有名字。另一部裝置：「{other}」。',
+  'cloud.conflicts.nameRemoved':
+    '你的名字在另一部裝置上被移除。目前：「{current}」。另一部裝置：沒有名字。',
+  'cloud.conflicts.useName': '使用「{name}」',
+  'cloud.conflicts.removeName': '不使用名字',
+  'cloud.conflicts.keepCurrent': '保留目前的',
+  'cloud.conflicts.photoChanged': '你的頭像在另一部裝置上被更改。',
+  'cloud.conflicts.otherPhoto': '另一部裝置上的頭像',
+  'cloud.conflicts.usePhoto': '使用這張照片',
+  'cloud.conflicts.entriesEdited':
+    '有 {count} 則紀錄同時在兩部裝置上被編輯。兩個版本都在你的日記中。',
+  'cloud.conflicts.showThem': '查看',
+  'cloud.conflicts.otherVersionsTitle': '其他版本',
+  'cloud.conflicts.otherVersionsDescription':
+    '這些紀錄同時在兩部裝置上被編輯，因此兩個版本都已保留。開啟一則紀錄即可編輯或刪除。',
+  'cloud.conflicts.noOtherVersions': '沒有紀錄有其他版本。',
+  'cloud.conflicts.loadFailed': '無法載入這些選項。',
+  'cloud.conflicts.otherVersionsLoadFailed': '無法載入其他版本。',
+  'cloud.conflicts.showOlderNames': '顯示較早的名稱版本',
+  'cloud.conflicts.hideOlderNames': '隱藏較早的名稱版本',
+  'cloud.conflicts.olderNamesDescription':
+    '應用程式的早期版本在同步時儲存了這些名稱。大多數並非真正的變更，但你仍可使用其中一個。',
   'cloud.resetThisDeviceOnly': '只重設此裝置',
   'cloud.resetThisDeviceOnly2': '只重設此裝置？',
   'cloud.merge': '合併',
