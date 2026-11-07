@@ -6,13 +6,16 @@ import { AssetType, type Asset } from '~/types';
 import { type TranslationFunction } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { deleteEntry } from '~/lib/entryDeletion';
+import { sanitizeTagName } from '~/lib/utils';
+import { tags } from '~/db';
+import { deleteTag, getAllEntries } from '~/db/queries';
+import { isCloudRestoreInProgress } from '~/lib/cloudSync/ui/restoreInProgress';
 import {
-  createTag,
-  deleteTag,
-  getAllEntries,
-  getAllTags,
-  upsertEntry,
-} from '~/db/queries';
+  createTagInTransaction,
+  runInCloudSyncTransaction,
+  upsertEntryInTransaction,
+  type CloudSyncTransaction,
+} from '~/lib/cloudSync/storage/repositories';
 
 /**
  * Seeds the onboarding sample entries: 4 entries spread over the last few days
@@ -69,35 +72,43 @@ function timestampAt(daysAgo: number, hour: number, minute: number): number {
  * Creates a tag if needed and returns its id (tags have a unique title, so a
  * replayed onboarding reuses the existing tag instead of failing).
  */
-async function ensureTag(title: string): Promise<string | null> {
-  try {
-    await createTag(title);
-  } catch {
-    // Most likely a unique-title conflict with an existing tag — fine.
-  }
-  const allTags = await getAllTags();
-  const normalized = title.trim().toLowerCase();
-  return (
-    allTags.find((tag) => tag.title.trim().toLowerCase() === normalized)?.tag_id ?? null
+async function ensureTagInTransaction(
+  tx: CloudSyncTransaction,
+  title: string,
+): Promise<string> {
+  const normalized = sanitizeTagName(title).toLowerCase();
+  const existing = (await tx.select().from(tags)).find(
+    (tag) => tag.title.trim().toLowerCase() === normalized,
   );
+  return existing?.tag_id ?? (await createTagInTransaction(tx, title));
 }
 
+function deleteCopiedFiles(relativeUris: string[]): void {
+  for (const relativeUri of relativeUris) {
+    try {
+      const file = new File(Paths.document, relativeUri);
+      if (file.exists) file.delete();
+    } catch {
+      // Best-effort cleanup; an unreferenced copy is harmless.
+    }
+  }
+}
+
+/**
+ * Returns the seeded note_ids, or none when a restore from a cloud backup is
+ * in progress: sample entries would otherwise sync into that backup.
+ */
 export async function seedSampleEntries(t: TranslationFunction): Promise<string[]> {
   const focusAreas = useSettingsStore.getState().journalFocusAreas;
   const promptCategory = focusAreas[0] ?? 'self';
 
+  // Copy bundled media before the transaction; loading it can take a while.
   const [photo1, photo2, audio] = await Promise.all([
     copyBundledAsset(SAMPLE_PHOTO_MODULES[0], PHOTOS_DIR_NAME, 'jpg'),
     copyBundledAsset(SAMPLE_PHOTO_MODULES[1], PHOTOS_DIR_NAME, 'jpg'),
     copyBundledAsset(SAMPLE_AUDIO_MODULE, VOICE_MEMOS_DIR_NAME, 'm4a'),
   ]);
-
-  const tagIds = (
-    await Promise.all([
-      ensureTag(t('sample_tag_family')),
-      ensureTag(t('sample_tag_littleThings')),
-    ])
-  ).filter((id): id is string => id !== null);
+  const copiedUris = [photo1.relativeUri, photo2.relativeUri, audio.relativeUri];
 
   const photoAssets: Asset[] = [
     {
@@ -115,57 +126,69 @@ export async function seedSampleEntries(t: TranslationFunction): Promise<string[
   ];
   const audioAssets: Asset[] = [{ type: AssetType.AUDIO, uri: audio.relativeUri }];
 
-  const entries = [
-    {
-      note_id: randomUUID(),
-      text_title: t('sample_entry_welcome_title'),
-      text_content: t('sample_entry_welcome_body'),
-      mood: 'HAPPY' as const,
-      created_at: timestampAt(1, 18, 30),
-    },
-    {
-      note_id: randomUUID(),
-      text_title: t('sample_entry_voice_title'),
-      text_content: t('sample_entry_voice_body'),
-      assets: audioAssets,
-      created_at: timestampAt(1, 10, 5),
-    },
-    {
-      note_id: randomUUID(),
-      text_title: t('sample_entry_photos_title'),
-      text_content: t('sample_entry_photos_body'),
-      assets: photoAssets,
-      created_at: timestampAt(2, 15, 20),
-    },
-    {
-      note_id: randomUUID(),
-      // The tags entry answers a built-in prompt from the user's chosen focus areas.
-      text_title: t(`prompt_${promptCategory}_1`),
-      text_content: t('sample_entry_tags_body'),
-      mood: 'AMAZING' as const,
-      tags: tagIds.join(','),
-      created_at: timestampAt(3, 9, 40),
-    },
-  ];
+  let insertedIds: string[];
+  try {
+    insertedIds = await runInCloudSyncTransaction(async (tx) => {
+      // Checked in the same exclusive transaction as the writes: a restore
+      // committed while the media was loading must not receive the samples.
+      if (await isCloudRestoreInProgress(tx)) return [];
+      const tagIds = [
+        await ensureTagInTransaction(tx, t('sample_tag_family')),
+        await ensureTagInTransaction(tx, t('sample_tag_littleThings')),
+      ];
+      const entries = [
+        {
+          note_id: randomUUID(),
+          text_title: t('sample_entry_welcome_title'),
+          text_content: t('sample_entry_welcome_body'),
+          mood: 'HAPPY' as const,
+          created_at: timestampAt(1, 18, 30),
+        },
+        {
+          note_id: randomUUID(),
+          text_title: t('sample_entry_voice_title'),
+          text_content: t('sample_entry_voice_body'),
+          assets: audioAssets,
+          created_at: timestampAt(1, 10, 5),
+        },
+        {
+          note_id: randomUUID(),
+          text_title: t('sample_entry_photos_title'),
+          text_content: t('sample_entry_photos_body'),
+          assets: photoAssets,
+          created_at: timestampAt(2, 15, 20),
+        },
+        {
+          note_id: randomUUID(),
+          // The tags entry answers a built-in prompt from the user's chosen focus areas.
+          text_title: t(`prompt_${promptCategory}_1`),
+          text_content: t('sample_entry_tags_body'),
+          mood: 'AMAZING' as const,
+          tags: tagIds.join(','),
+          created_at: timestampAt(3, 9, 40),
+        },
+      ];
+      for (const entry of entries) {
+        await upsertEntryInTransaction(tx, { ...entry, updated_at: entry.created_at });
+      }
+      return entries.map((entry) => entry.note_id);
+    });
+  } catch (error) {
+    // The transaction rolled back, so no entry references the copies.
+    deleteCopiedFiles(copiedUris);
+    throw error;
+  }
+  if (insertedIds.length === 0) {
+    deleteCopiedFiles(copiedUris);
+    return [];
+  }
 
-  // Track ids in the settings store as they land (not only on full success):
-  // if an insert midway fails, the already-seeded entries stay covered by the
-  // removal banner instead of becoming permanent untracked content.
-  const insertedIds: string[] = [];
   const { setSampleEntryIds, setSampleEntriesBannerDismissed } =
     useSettingsStore.getState();
   // A fresh seed (e.g. onboarding replay) gets a fresh banner, even if the
   // user dismissed it for a previous batch.
   setSampleEntriesBannerDismissed(false);
-  try {
-    for (const entry of entries) {
-      await upsertEntry({ ...entry, updated_at: entry.created_at });
-      insertedIds.push(entry.note_id);
-    }
-  } finally {
-    setSampleEntryIds(insertedIds);
-  }
-
+  setSampleEntryIds(insertedIds);
   return insertedIds;
 }
 

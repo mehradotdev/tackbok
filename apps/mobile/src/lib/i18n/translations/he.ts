@@ -740,7 +740,19 @@ export const he: Translations = {
   'cloud.cloudBackupNumber': 'גיבוי בענן {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
     'הגיבוי נשמר בתיקייה פרטית של טאקבוק ב-Google Drive שלך. טאקבוק לא יכולה לראות את שאר הקבצים שלך ב-Drive, והגיבוי אף פעם לא נשלח למפתח של טאקבוק. Google מגנה עליו כמו על שאר הקבצים שלך, אבל הוא לא מוצפן מקצה לקצה.',
-  'cloud.cloudRestoreStarted': 'השחזור מהענן התחיל',
+  'cloud.restoreComplete': 'השחזור הושלם',
+  'cloud.restoreNeedsAttention': 'השחזור דורש טיפול',
+  'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
+    'השחזור הושהה. הוא ימשיך כש-Tackbok פתוח ומחובר לאינטרנט.',
+  'cloud.youCanKeepUsingTackbokWhileItRestores':
+    'אפשר להמשיך להשתמש ב-Tackbok בזמן השחזור.',
+  'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
+    'היומן שלך מוכן. תמונות והקלטות קוליות במכשיר הזה: {downloaded} מתוך {total}.',
+  'cloud.photosAndVoiceNotesWaitingForWiFiCount':
+    'תמונות והקלטות קוליות שממתינות ל-Wi-Fi: {number}',
+  'cloud.viewCloudBackup': 'הצגת הגיבוי בענן',
+  'cloud.cloudSyncPhotosAndVoiceNotesToDownload':
+    'סנכרון בענן: תמונות והקלטות קוליות להורדה',
   'cloud.cloudSyncAttentionNeeded': 'סנכרון בענן: נדרשת תשומת לב',
   'cloud.cloudSyncChangesSafelyQueued': 'סנכרון בענן: השינויים ממתינים בבטחה',
   'cloud.cloudSyncPaused': 'סנכרון בענן: מושהה',

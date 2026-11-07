@@ -7,18 +7,22 @@ import { loadCloudSyncSnapshot, type CloudSyncSnapshot } from './production';
 const EMPTY_SNAPSHOT: CloudSyncSnapshot = {
   configured: false,
   provider: null,
+  vaultId: null,
   status: 'off',
   accountLabel: null,
   activityPhase: null,
   initialRestore: false,
   queuedCount: 0,
   pendingDownloadCount: 0,
+  downloadedMediaCount: 0,
+  failureCategory: null,
   conflictCount: 0,
   lastSuccessAt: null,
   lastVerifiedAt: null,
   revocationKind: null,
   attentionReason: null,
   recoveryAction: null,
+  restoreProofAtLoad: null,
 };
 
 let cachedSnapshot = EMPTY_SNAPSHOT;
