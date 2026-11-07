@@ -22,6 +22,7 @@ import {
 } from '../archiveUtils';
 import { getImportTotals } from './helpers';
 import {
+  markLocalProfileTouched,
   runInCloudSyncTransaction,
   updateProfileInTransaction,
 } from '~/lib/cloudSync/storage/repositories';
@@ -118,7 +119,14 @@ export async function importFromGratitudeAppBackup(
     try {
       const settingsState = useSettingsStore.getState();
       if (profile.name != null) {
-        await settingsState.setProfileName(profile.name);
+        const displayName = profile.name.trim() ? profile.name.trim() : null;
+        await runInCloudSyncTransaction(async (tx) => {
+          await updateProfileInTransaction(tx, { displayName });
+          // An imported name is authored content even when it is empty and
+          // equals the local one (a deliberately cleared backup).
+          await markLocalProfileTouched(tx);
+        });
+        useSettingsStore.setState({ profileName: displayName });
       }
       if (profile.hasEmail) {
         await settingsState.setProfileEmail(profile.email);

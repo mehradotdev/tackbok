@@ -179,12 +179,12 @@ test('a rejected apply cleanup never deletes a file another apply commits during
       return result;
     },
   });
-  const rejected = loser.applyMergedIfGeneration(domain, 0);
+  const rejected = loser.applyMergedIfGeneration(domain, 0, { remoteDerived: true });
   await materialized.promise;
   const destination = copiedMedia.at(-1)!;
   sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
 
-  const committed = winner.applyMergedIfGeneration(domain, 1);
+  const committed = winner.applyMergedIfGeneration(domain, 1, { remoteDerived: true });
   pauseCleanupReads = true;
   released.resolve();
   await cleanupRead.promise;
