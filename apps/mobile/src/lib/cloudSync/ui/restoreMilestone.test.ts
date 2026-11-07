@@ -11,8 +11,8 @@ const restoring = {
   downloadedMediaCount: 0,
   failureCategory: null,
   attentionReason: null,
-  // Read after the journal proof below.
-  loadedAt: 3,
+  // Saw the journal proof below before reading its counts.
+  restoreProofAtLoad: 2,
 } as const;
 const journalReady = {
   ...restoring,
@@ -50,7 +50,7 @@ test('follows a restore from journal to attachments to complete', () => {
 test('never completes from counts read before the journal proof', () => {
   // Home can hold a snapshot from before the journal was applied (no media rows
   // yet) when the proof arrives through settings.
-  const readBeforeProof = { ...restoring, loadedAt: 2 };
+  const readBeforeProof = { ...restoring, restoreProofAtLoad: null };
   expect(
     deriveCloudRestoreMilestone(journalRestored, readBeforeProof, online, false),
   ).toEqual({ stage: 'journal' });
@@ -65,7 +65,7 @@ test('never completes from counts read before the journal proof', () => {
   expect(
     deriveCloudRestoreMilestone(
       journalRestored,
-      { ...readBeforeProof, loadedAt: 3, pendingDownloadCount: 12 },
+      { ...readBeforeProof, restoreProofAtLoad: 2, pendingDownloadCount: 12 },
       { online: true, onWifi: false },
       true,
     ),
@@ -217,4 +217,27 @@ test('a failed pass with no attachments left reports the failure, not completion
       false,
     ),
   ).toEqual({ stage: 'failed', attentionReason: null, failureCategory: 'auth' });
+});
+
+test('orders counts by the proof they saw, not by the wall clock', () => {
+  // The clock moved back while the app was suspended: the proof (900) is
+  // earlier than this snapshot's start, but the snapshot never saw it.
+  const proof = { vaultId: 'vault-a', startedAt: 800, journalRestoredAt: 900 };
+  expect(
+    deriveCloudRestoreMilestone(
+      proof,
+      { ...restoring, restoreProofAtLoad: null },
+      online,
+      false,
+    ),
+  ).toEqual({ stage: 'journal' });
+  // The clock moved back after the proof: counts that saw it still complete.
+  expect(
+    deriveCloudRestoreMilestone(
+      { ...proof, journalRestoredAt: 5000 },
+      { ...restoring, restoreProofAtLoad: 5000 },
+      online,
+      false,
+    ),
+  ).toEqual({ stage: 'complete' });
 });

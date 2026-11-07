@@ -96,8 +96,12 @@ export interface CloudSyncSnapshot {
   revocationKind: 'journal-deleted' | 'backup-deleted' | null;
   attentionReason: SyncAttentionReason | null;
   recoveryAction: SyncRecoveryAction | null;
-  /** When this snapshot started reading; every count was read after it. */
-  loadedAt: number;
+  /**
+   * The restore marker's journal proof when this snapshot started reading.
+   * Every count was read after it, so counts that match a proof include the
+   * journal's media rows, whatever the wall clock did.
+   */
+  restoreProofAtLoad: number | null;
 }
 
 export interface PreparedCloudVault {
@@ -158,7 +162,8 @@ async function localHasData(): Promise<boolean> {
 }
 
 export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
-  const loadedAt = Date.now();
+  const restoreProofAtLoad =
+    useSettingsStore.getState().cloudRestore?.journalRestoredAt ?? null;
   const [vault] = await db.select().from(cloudVault).limit(1);
   const [[queued], [syncState], [conflicts], [providerState], [pendingMedia]] =
     await Promise.all([
@@ -268,7 +273,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
     revocationKind: vault?.revocation_kind ?? null,
     attentionReason,
     recoveryAction: attentionReason ? ATTENTION_RECOVERY_ACTION[attentionReason] : null,
-    loadedAt,
+    restoreProofAtLoad,
   };
 }
 

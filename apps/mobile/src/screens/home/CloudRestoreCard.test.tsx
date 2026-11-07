@@ -86,8 +86,8 @@ const restoring: CloudSyncSnapshot = {
   revocationKind: null,
   attentionReason: null,
   recoveryAction: null,
-  // Read after the journal proof in `journalRestored`.
-  loadedAt: 3,
+  // Saw the journal proof in `journalRestored` before reading its counts.
+  restoreProofAtLoad: 2,
 };
 
 let root: ReactTestRenderer;
@@ -182,7 +182,7 @@ test('a restore resumed before its journal arrived keeps showing the journal ste
 
 test('waits for fresh counts when the journal proof arrives before them', () => {
   // Home cached this snapshot before the journal was applied: no media rows yet.
-  mockSnapshot = { ...restoring, loadedAt: 1 };
+  mockSnapshot = { ...restoring, restoreProofAtLoad: null };
   mockSettings.cloudSyncWifiOnlyMedia = true;
   mockNetwork = { isConnected: true, type: 'CELLULAR' };
   render();

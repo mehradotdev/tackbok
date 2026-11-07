@@ -33,7 +33,7 @@ type RestoreSnapshot = Pick<
   | 'downloadedMediaCount'
   | 'failureCategory'
   | 'attentionReason'
-  | 'loadedAt'
+  | 'restoreProofAtLoad'
 >;
 
 /** Failures that clear up by themselves once Tackbok is open and online again. */
@@ -84,8 +84,11 @@ export function deriveCloudRestoreMilestone(
   }
 
   // The proof is recorded after the journal's media rows are written. Counts
-  // read before it can predate them, so wait for a snapshot read after it.
-  if (snapshot.loadedAt <= restore.journalRestoredAt) return { stage: 'journal' };
+  // read before it can predate them, so wait for a snapshot that saw this
+  // proof before reading. Wall-clock times are not compared: clocks can move.
+  if (snapshot.restoreProofAtLoad !== restore.journalRestoredAt) {
+    return { stage: 'journal' };
+  }
   const remaining = snapshot.pendingDownloadCount;
   if (remaining === 0) return { stage: 'complete' };
   if (offline) return { stage: 'paused', reason: 'offline' };
