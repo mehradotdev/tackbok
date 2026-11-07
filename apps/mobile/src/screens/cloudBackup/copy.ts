@@ -1,8 +1,11 @@
 import type {
   CloudSyncActionFailureCategory,
   CloudSyncSnapshot,
+  SyncProgress,
+  SyncWait,
 } from '~/lib/cloudSync/ui';
-import type { TranslationFunction } from '~/lib/i18n/types';
+import { formatByteSize } from '~/lib/i18n/numberFormatting';
+import type { SupportedLocale, TranslationFunction } from '~/lib/i18n/types';
 import type {
   SyncAttentionReason,
   SyncRecoveryAction,
@@ -49,6 +52,96 @@ export function syncPhaseLabel(
         : t('cloud.gettingChangesFromYourOtherDevices');
     case 'downloading-media':
       return t('cloud.downloadingPhotosAndVoiceNotes');
+  }
+}
+
+/** The headline for a pass with detailed progress. */
+export function syncProgressLabel(
+  phase: SyncProgress['phase'],
+  initialRestore: boolean,
+  t: TranslationFunction,
+): string {
+  switch (phase) {
+    case 'merging':
+      return t('cloud.progress.combiningChanges');
+    case 'uploading-media':
+      return t('cloud.progress.uploadingPhotosAndVoiceNotes');
+    default:
+      return syncPhaseLabel(phase, initialRestore, t);
+  }
+}
+
+/** How much of the current step is done, when its total is known. */
+export function syncProgressDetail(
+  progress: Pick<SyncProgress, 'phase' | 'items' | 'bytes'>,
+  locale: SupportedLocale,
+  t: TranslationFunction,
+): string | null {
+  const { phase, items, bytes } = progress;
+  const amount = bytes && {
+    done: formatByteSize(bytes.done, locale),
+    total: formatByteSize(bytes.total, locale),
+  };
+  switch (phase) {
+    case 'checking':
+      return items
+        ? t('cloud.progress.devicesChecked', { done: items.done, count: items.total })
+        : null;
+    case 'downloading':
+      // Bytes when every file's size is known; otherwise count files.
+      if (amount) return t('cloud.progress.doneOfTotal', amount);
+      return items
+        ? t('cloud.progress.filesDownloaded', { done: items.done, count: items.total })
+        : null;
+    case 'uploading':
+      return amount ? t('cloud.progress.doneOfTotal', amount) : null;
+    case 'uploading-media':
+    case 'downloading-media':
+      if (items && amount) {
+        return t('cloud.progress.doneOfTotalWithAmount', {
+          done: items.done,
+          total: items.total,
+          doneAmount: amount.done,
+          totalAmount: amount.total,
+        });
+      }
+      if (items) return t('cloud.progress.doneOfTotal', { ...items });
+      return amount ? t('cloud.progress.doneOfTotal', amount) : null;
+    default:
+      return null;
+  }
+}
+
+/** "Step 2 of 4", with time left only when the tracker could estimate it. */
+export function syncProgressOverall(
+  progress: Pick<SyncProgress, 'step' | 'totalSteps' | 'etaMs'>,
+  t: TranslationFunction,
+): string {
+  const { step, totalSteps: total, etaMs } = progress;
+  if (etaMs === undefined) return t('cloud.progress.stepOfTotal', { step, total });
+  const timeLeft =
+    etaMs < 60_000
+      ? t('cloud.progress.lessThanAMinuteLeft')
+      : t('cloud.progress.aboutMinutesLeft', { minutes: Math.round(etaMs / 60_000) });
+  return t('cloud.progress.stepOfTotalWithTimeLeft', { step, total, timeLeft });
+}
+
+/** Why sync is waiting, with a countdown when the wait has a known end. */
+export function syncWaitMessage(
+  waiting: SyncWait,
+  now: number,
+  t: TranslationFunction,
+): string {
+  const seconds = Math.max(1, Math.ceil(((waiting.until ?? now) - now) / 1_000));
+  switch (waiting.reason) {
+    case 'rate-limited':
+      return t('cloud.progress.rateLimitedRetryingInSeconds', { seconds });
+    case 'retry-backoff':
+      return t('cloud.progress.connectionProblemRetryingInSeconds', { seconds });
+    case 'offline':
+      return t('cloud.progress.waitingForInternet');
+    case 'wifi-only-media':
+      return t('cloud.progress.waitingForWifi');
   }
 }
 

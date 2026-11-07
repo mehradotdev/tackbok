@@ -946,6 +946,25 @@ export const de: Translations = {
   'cloud.syncResumed': 'Synchronisierung fortgesetzt',
   'cloud.syncIsFasterWithTackbokOpen':
     'Mit geöffnetem Tackbok geht es schneller. Wenn du die App verlässt, geht es später dort weiter, wo es aufgehört hat.',
+  'cloud.progress.combiningChanges': 'Änderungen werden zusammengeführt…',
+  'cloud.progress.uploadingPhotosAndVoiceNotes':
+    'Fotos und Sprachnotizen werden hochgeladen…',
+  'cloud.progress.devicesChecked': '{done} von {count} Geräten geprüft',
+  'cloud.progress.filesDownloaded': '{done} von {count} Dateien heruntergeladen',
+  'cloud.progress.doneOfTotal': '{done} von {total}',
+  'cloud.progress.doneOfTotalWithAmount':
+    '{done} von {total} ({doneAmount} von {totalAmount})',
+  'cloud.progress.stepOfTotal': 'Schritt {step} von {total}',
+  'cloud.progress.stepOfTotalWithTimeLeft': 'Schritt {step} von {total} · {timeLeft}',
+  'cloud.progress.aboutMinutesLeft': 'noch etwa {minutes} Min.',
+  'cloud.progress.lessThanAMinuteLeft': 'noch weniger als eine Minute',
+  'cloud.progress.rateLimitedRetryingInSeconds':
+    'Google hat uns gebeten, langsamer zu machen. Neuer Versuch in {seconds} s',
+  'cloud.progress.connectionProblemRetryingInSeconds':
+    'Verbindungsproblem. Neuer Versuch in {seconds} s',
+  'cloud.progress.waitingForInternet': 'Warten auf Internetverbindung…',
+  'cloud.progress.waitingForWifi':
+    'Warten auf WLAN, um Fotos und Sprachnotizen zu synchronisieren',
   'cloud.syncMediaOnWiFiOnly': 'Medien nur über WLAN synchronisieren',
   'cloud.syncing': 'Synchronisierung läuft…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':

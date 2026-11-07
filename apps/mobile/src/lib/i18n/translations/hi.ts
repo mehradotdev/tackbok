@@ -823,6 +823,23 @@ export const hi = {
   'cloud.syncResumed': 'सिंक फिर से शुरू हुआ',
   'cloud.syncIsFasterWithTackbokOpen':
     'ताकबूक खुला रहने पर यह तेज़ी से होता है। अगर आप बाहर जाते हैं, तो यह वहीं से जारी रहेगा जहाँ रुका था।',
+  'cloud.progress.combiningChanges': 'परिवर्तन मिलाए जा रहे हैं…',
+  'cloud.progress.uploadingPhotosAndVoiceNotes': 'फ़ोटो और वॉइस नोट अपलोड हो रहे हैं…',
+  'cloud.progress.devicesChecked': '{count} में से {done} डिवाइस जाँचे गए',
+  'cloud.progress.filesDownloaded': '{count} में से {done} फ़ाइलें डाउनलोड हुईं',
+  'cloud.progress.doneOfTotal': '{total} में से {done}',
+  'cloud.progress.doneOfTotalWithAmount':
+    '{total} में से {done} ({totalAmount} में से {doneAmount})',
+  'cloud.progress.stepOfTotal': 'चरण {total} में से {step}',
+  'cloud.progress.stepOfTotalWithTimeLeft': 'चरण {total} में से {step} · {timeLeft}',
+  'cloud.progress.aboutMinutesLeft': 'लगभग {minutes} मिनट बाकी',
+  'cloud.progress.lessThanAMinuteLeft': 'एक मिनट से कम बाकी',
+  'cloud.progress.rateLimitedRetryingInSeconds':
+    'Google ने हमें धीमा होने को कहा है। {seconds} सेकंड में फिर कोशिश होगी',
+  'cloud.progress.connectionProblemRetryingInSeconds':
+    'कनेक्शन में समस्या है। {seconds} सेकंड में फिर कोशिश होगी',
+  'cloud.progress.waitingForInternet': 'इंटरनेट का इंतज़ार है…',
+  'cloud.progress.waitingForWifi': 'फ़ोटो और वॉइस नोट सिंक करने के लिए वाई-फाई का इंतज़ार है',
   'cloud.syncMediaOnWiFiOnly': 'मीडिया को केवल वाई-फाई पर सिंक करें',
   'cloud.syncing': 'सिंक हो रहा है...',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':

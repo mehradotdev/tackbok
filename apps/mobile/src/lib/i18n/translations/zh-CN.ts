@@ -850,6 +850,21 @@ export const zhCN: Translations = {
   'cloud.syncResumed': '同步已恢复',
   'cloud.syncIsFasterWithTackbokOpen':
     '保持塔克布克打开会更快。如果你离开，它会从中断的地方继续。',
+  'cloud.progress.combiningChanges': '正在合并更改…',
+  'cloud.progress.uploadingPhotosAndVoiceNotes': '正在上传照片和语音笔记…',
+  'cloud.progress.devicesChecked': '已检查 {count} 台设备中的 {done} 台',
+  'cloud.progress.filesDownloaded': '已下载 {count} 个文件中的 {done} 个',
+  'cloud.progress.doneOfTotal': '{done}/{total}',
+  'cloud.progress.doneOfTotalWithAmount': '{done}/{total}（{doneAmount}/{totalAmount}）',
+  'cloud.progress.stepOfTotal': '第 {step} 步，共 {total} 步',
+  'cloud.progress.stepOfTotalWithTimeLeft': '第 {step} 步，共 {total} 步 · {timeLeft}',
+  'cloud.progress.aboutMinutesLeft': '大约还剩 {minutes} 分钟',
+  'cloud.progress.lessThanAMinuteLeft': '还剩不到一分钟',
+  'cloud.progress.rateLimitedRetryingInSeconds':
+    'Google 要求我们放慢速度。{seconds} 秒后重试',
+  'cloud.progress.connectionProblemRetryingInSeconds': '连接出现问题。{seconds} 秒后重试',
+  'cloud.progress.waitingForInternet': '正在等待网络连接…',
+  'cloud.progress.waitingForWifi': '正在等待 Wi-Fi 以同步照片和语音笔记',
   'cloud.syncMediaOnWiFiOnly': '仅通过 Wi-Fi 同步媒体',
   'cloud.syncing': '正在同步…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':

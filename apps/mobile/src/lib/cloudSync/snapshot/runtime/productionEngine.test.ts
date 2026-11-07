@@ -3,7 +3,7 @@ import type { SnapshotSyncEngine } from '../sync/engine';
 import type { ProductionSnapshotJournalStore } from '../storage';
 import type { SnapshotProvider } from '../sync/types';
 import { SyncCancelledError } from '../sync/errors';
-import { ProductionSnapshotRuntimeEngine } from './productionEngine';
+import { pendingMediaBytes, ProductionSnapshotRuntimeEngine } from './productionEngine';
 
 const mockWrites: string[] = [];
 const mockMarkJournalRestored = jest.fn();
@@ -225,4 +225,16 @@ test('a pass cancelled inside the sync engine still refreshes screens', async ()
   );
   expect(app.setPause).not.toHaveBeenCalled();
   expect(app.remoteApplied).toHaveBeenCalledTimes(1);
+});
+
+test('attachment rows that share a blob count its bytes once', () => {
+  // Both rows hydrate from one download, which reports its bytes once.
+  expect(
+    pendingMediaBytes([
+      { blobHash: 'shared', byteSize: 100 },
+      { blobHash: 'shared', byteSize: 100 },
+      { blobHash: 'other', byteSize: 50 },
+      { blobHash: null, byteSize: 70 },
+    ]),
+  ).toBe(150);
 });

@@ -769,6 +769,48 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(requests).toEqual([0]);
   });
 
+  test('retry waits are reported with when they end, then cleared', async () => {
+    let now = 0;
+    const waits: unknown[] = [];
+    let attempt = 0;
+    const transport = new DriveTransport({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async () => {
+        attempt += 1;
+        if (attempt === 1) return response(429, {}, undefined, { 'retry-after': '20' });
+        if (attempt === 2) return response(503);
+        throw new Error('network down');
+      },
+      sleep: async (milliseconds) => {
+        waits.push({ sleptAt: now });
+        now += milliseconds;
+      },
+      random: () => 0,
+      now: () => now,
+      onProgress: (report) => waits.push(report),
+    });
+    await expect(
+      transport.request(
+        vaultId,
+        'list',
+        'https://www.googleapis.com/drive/v3/files',
+        {},
+        { idempotent: true },
+      ),
+    ).rejects.toMatchObject({ code: 'transient' });
+    expect(waits).toEqual([
+      // Google's Retry-After, shown as a slow-down with its countdown.
+      { type: 'wait', reason: 'rate-limited', until: 20_000 },
+      { sleptAt: 0 },
+      { type: 'wait', reason: null },
+      // A server error without Retry-After backs off as a connection problem.
+      { type: 'wait', reason: 'retry-backoff', until: 20_000 + 2_000 },
+      { sleptAt: 20_000 },
+      { type: 'wait', reason: null },
+    ]);
+  });
+
   test('cancelling a pass stops a hung request, its backoff and its body read promptly', async () => {
     const controller = new AbortController();
     let fetchSignal: AbortSignal | undefined;
@@ -1311,12 +1353,16 @@ describe('GoogleDriveSnapshotProvider', () => {
         },
       });
     };
+    const progress: number[] = [];
     const resumed = new GoogleDriveSnapshotProvider({
       auth: new FakeAuth(),
       state,
       fetch,
       sleep: async () => {},
       random: () => 0,
+      onProgress: (report) => {
+        if (report.type === 'bytes' && report.key === key) progress.push(report.done);
+      },
     });
 
     const reads: { offset: number; length: number }[] = [];
@@ -1339,6 +1385,8 @@ describe('GoogleDriveSnapshotProvider', () => {
       },
     ]);
     expect(state.getUploadSession(vaultId, key, hash)).toBeNull();
+    // Progress starts at the resumed offset and advances per uploaded chunk.
+    expect(progress).toEqual([256 * 1024, bytes.byteLength, bytes.byteLength]);
   });
 
   test('a media download resumes into a durable sink without returning whole-file bytes', async () => {
@@ -1358,6 +1406,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     let partial = bytes.slice(0, 9);
     let requestedRange: string | undefined;
     let promoted = false;
+    const progress: number[] = [];
     const app = new GoogleDriveSnapshotProvider({
       auth: new FakeAuth(),
       state,
@@ -1367,6 +1416,9 @@ describe('GoogleDriveSnapshotProvider', () => {
       },
       sleep: async () => {},
       random: () => 0,
+      onProgress: (report) => {
+        if (report.type === 'bytes') progress.push(report.done);
+      },
     });
 
     await expect(
@@ -1391,6 +1443,9 @@ describe('GoogleDriveSnapshotProvider', () => {
     ).resolves.toBe(true);
     expect(requestedRange).toBe('bytes=9-');
     expect(promoted).toBe(true);
+    // Reported per read, from the resumed offset to the whole file.
+    expect(progress[0]).toBe(9);
+    expect(progress.at(-1)).toBe(bytes.byteLength);
   });
 
   test('a server that ignores a media Range request resets the partial before appending', async () => {

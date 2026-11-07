@@ -40,8 +40,9 @@ import type {
   MediaDownloadSink,
   MediaUploadSource,
   SnapshotProvider,
+  SyncProgressReport,
 } from '../sync/types';
-import { SnapshotProviderError } from '../sync/types';
+import { isolateProgress, SnapshotProviderError } from '../sync/types';
 import { SyncCancelledError, throwIfCancelled, untilCancelled } from '../sync/errors';
 import { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } from '../storage';
 
@@ -70,10 +71,27 @@ interface PassCancellation {
   signal: AbortSignal | null;
 }
 
+/**
+ * Bytes to download for pending attachment rows. Rows that share a blob
+ * download it once, and transfers report bytes per blob, so count each once.
+ */
+export function pendingMediaBytes(
+  rows: readonly { blobHash: string | null; byteSize: number | null }[],
+): number {
+  const sizes = new Map<string, number>();
+  for (const { blobHash, byteSize } of rows) {
+    if (blobHash) sizes.set(blobHash, byteSize ?? 0);
+  }
+  let total = 0;
+  for (const size of sizes.values()) total += size;
+  return total;
+}
+
 class MediaPolicyProvider implements SnapshotProvider {
   constructor(
     private readonly delegate: GoogleDriveSnapshotProvider,
     private readonly onTransfer: (phase: 'uploading' | 'downloading-media') => void,
+    private readonly onProgress: (report: SyncProgressReport) => void = () => {},
   ) {}
 
   listRevocations(vaultId: string) {
@@ -131,6 +149,7 @@ class MediaPolicyProvider implements SnapshotProvider {
     if (!useSettingsStore.getState().cloudSyncWifiOnlyMedia) return;
     const network = await Network.getNetworkStateAsync();
     if (network.type !== Network.NetworkStateType.WIFI) {
+      this.onProgress({ type: 'wait', reason: 'wifi-only-media' });
       throw new SnapshotProviderError('wifi-only-media', 'Media is waiting for Wi-Fi');
     }
   }
@@ -150,6 +169,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     private readonly onRemoteApplied?: () => void | Promise<void>,
     private readonly connectionEpoch = cloudConnectionLifecycle.epoch,
     private readonly cancellation: PassCancellation = { signal: null },
+    private readonly onProgress: (report: SyncProgressReport) => void = () => {},
   ) {}
 
   hasPendingWork(): boolean {
@@ -210,20 +230,29 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
   private async runExclusivePass(signal: AbortSignal): Promise<RuntimePassResult> {
     this.cancellation.signal = signal;
     try {
+      this.onProgress({ type: 'pass', state: 'start' });
       throwIfCancelled(signal);
       return await this.syncPass(signal);
     } finally {
       if (this.cancellation.signal === signal) this.cancellation.signal = null;
-      this.onActivity('idle');
+      try {
+        this.onProgress({ type: 'pass', state: 'end' });
+      } finally {
+        this.onActivity('idle');
+      }
     }
   }
 
   private async syncPass(signal: AbortSignal): Promise<RuntimePassResult> {
     this.needsFollowup = false;
     this.onActivity('checking');
+    this.onProgress({ type: 'plan', phase: 'checking' });
     const hashing = await hashPendingProductionMedia(2);
     throwIfCancelled(signal);
-    if (hashing.processed > 0) this.onActivity('preparing');
+    if (hashing.processed > 0) {
+      this.onActivity('preparing');
+      this.onProgress({ type: 'plan', phase: 'preparing' });
+    }
     const [unhashed] = await db
       .select({ value: count() })
       .from(mediaAssets)
@@ -313,7 +342,25 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     let hydrated = 0;
     throwIfCancelled(signal);
     try {
-      const hydration = await this.journal.hydratePendingMedia(this.mediaProvider, 2);
+      // Totals cover every waiting attachment; this pass downloads a bounded
+      // batch and the follow-up passes continue with the rest.
+      const waiting = await db
+        .select({ blobHash: mediaAssets.blob_hash, byteSize: mediaAssets.byte_size })
+        .from(mediaAssets)
+        .where(eq(mediaAssets.download_state, 'pending'));
+      if (waiting.length > 0) {
+        this.onProgress({
+          type: 'plan',
+          phase: 'downloading-media',
+          items: { done: 0, total: waiting.length },
+          bytesTotal: pendingMediaBytes(waiting),
+        });
+      }
+      const hydration = await this.journal.hydratePendingMedia(
+        this.mediaProvider,
+        2,
+        () => this.onProgress({ type: 'item', phase: 'downloading-media' }),
+      );
       hydrated = hydration.hydrated;
       // Local completion may finish after cancellation; record nothing from it.
       throwIfCancelled(signal);
@@ -447,6 +494,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
 export async function createProductionSnapshotRuntimeEngine(options: {
   vault: ProductionSnapshotVault;
   onActivity: (phase: SyncPassPhase | 'idle') => void;
+  onProgress?: (report: SyncProgressReport) => void;
   onRemoteApplied?: () => void | Promise<void>;
 }): Promise<ProductionSnapshotRuntimeEngine> {
   const connectionEpoch = cloudConnectionLifecycle.epoch;
@@ -460,12 +508,14 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     options.vault.device_id,
     media,
   );
+  const onProgress = isolateProgress(options.onProgress);
   const drive = new GoogleDriveSnapshotProvider({
     auth: createGoogleAuthorization(),
     state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
     signal: () => cancellation.signal,
+    onProgress,
   });
-  const provider = new MediaPolicyProvider(drive, options.onActivity);
+  const provider = new MediaPolicyProvider(drive, options.onActivity, onProgress);
   const engine = new SnapshotSyncEngine(
     options.vault.vault_id,
     options.vault.device_id,
@@ -481,6 +531,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
         throwIfCancelled(cancellation.signal);
       },
       activity: (activity) => options.onActivity(PHASE_FOR_ENGINE_ACTIVITY[activity]),
+      progress: onProgress,
     },
   );
   return new ProductionSnapshotRuntimeEngine(
@@ -493,5 +544,6 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     options.onRemoteApplied,
     connectionEpoch,
     cancellation,
+    onProgress,
   );
 }

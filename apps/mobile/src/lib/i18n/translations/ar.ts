@@ -880,6 +880,23 @@ export const ar: Translations = {
   'cloud.syncResumed': 'تم استئناف المزامنة',
   'cloud.syncIsFasterWithTackbokOpen':
     'تكون العملية أسرع عندما يكون Tackbok مفتوحًا. وإذا غادرته، فستُستأنف من حيث توقفت.',
+  'cloud.progress.combiningChanges': 'جارٍ دمج التغييرات…',
+  'cloud.progress.uploadingPhotosAndVoiceNotes': 'جارٍ رفع الصور والملاحظات الصوتية…',
+  'cloud.progress.devicesChecked': 'الأجهزة التي تم فحصها: {done} من {count}',
+  'cloud.progress.filesDownloaded': 'الملفات التي تم تنزيلها: {done} من {count}',
+  'cloud.progress.doneOfTotal': '{done} من {total}',
+  'cloud.progress.doneOfTotalWithAmount':
+    '{done} من {total} ({doneAmount} من {totalAmount})',
+  'cloud.progress.stepOfTotal': 'الخطوة {step} من {total}',
+  'cloud.progress.stepOfTotalWithTimeLeft': 'الخطوة {step} من {total} · {timeLeft}',
+  'cloud.progress.aboutMinutesLeft': 'الوقت المتبقي: نحو {minutes} د',
+  'cloud.progress.lessThanAMinuteLeft': 'الوقت المتبقي: أقل من دقيقة',
+  'cloud.progress.rateLimitedRetryingInSeconds':
+    'طلبت Google منا الإبطاء. ستتم إعادة المحاولة خلال {seconds} ث',
+  'cloud.progress.connectionProblemRetryingInSeconds':
+    'مشكلة في الاتصال. ستتم إعادة المحاولة خلال {seconds} ث',
+  'cloud.progress.waitingForInternet': 'في انتظار الاتصال بالإنترنت…',
+  'cloud.progress.waitingForWifi': 'في انتظار Wi-Fi لمزامنة الصور والملاحظات الصوتية',
   'cloud.syncMediaOnWiFiOnly': 'مزامنة الوسائط عبر Wi-Fi فقط',
   'cloud.syncing': 'جارٍ المزامنة…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':

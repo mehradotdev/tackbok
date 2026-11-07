@@ -80,6 +80,7 @@ jest.mock('~/lib/cloudSync/ui', () => ({
   setCloudSyncPaused: (paused: boolean) => mockSetPaused(paused),
   syncNow: () => mockSyncNow(),
   useCloudSyncSnapshot: () => ({ snapshot: mockSnapshot, refresh: mockRefresh }),
+  useCloudSyncProgress: () => ({ progress: null, idleWait: null }),
   CloudSyncActionError: class extends Error {},
 }));
 jest.mock('~/components/ui/button', () => ({ Button: 'Button' }));

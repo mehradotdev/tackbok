@@ -25,6 +25,10 @@ export const pluralMessages = {
       'An entry was edited on two devices at once. Both versions are in your journal.',
     'cloud.conflicts.entriesEdited_other':
       '{count} entries were edited on two devices at once. Both versions are in your journal.',
+    'cloud.progress.devicesChecked_one': '{done} of {count} device checked',
+    'cloud.progress.devicesChecked_other': '{done} of {count} devices checked',
+    'cloud.progress.filesDownloaded_one': '{done} of {count} file downloaded',
+    'cloud.progress.filesDownloaded_other': '{done} of {count} files downloaded',
   },
   es: {
     'appearance.countThemesAndColorSchemes_one': '{count} tema y combinación de colores',
@@ -66,6 +70,12 @@ export const pluralMessages = {
       '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
     'cloud.conflicts.entriesEdited_other':
       '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
+    'cloud.progress.devicesChecked_one': '{done} de {count} dispositivo revisado',
+    'cloud.progress.devicesChecked_many': '{done} de {count} dispositivos revisados',
+    'cloud.progress.devicesChecked_other': '{done} de {count} dispositivos revisados',
+    'cloud.progress.filesDownloaded_one': '{done} de {count} archivo descargado',
+    'cloud.progress.filesDownloaded_many': '{done} de {count} archivos descargados',
+    'cloud.progress.filesDownloaded_other': '{done} de {count} archivos descargados',
   },
   hi: {
     'appearance.countThemesAndColorSchemes_one': '{count} थीम और रंग योजना',
@@ -90,6 +100,10 @@ export const pluralMessages = {
       'एक प्रविष्टि एक ही समय पर दो डिवाइस पर संपादित की गई। दोनों संस्करण आपकी डायरी में हैं।',
     'cloud.conflicts.entriesEdited_other':
       '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। दोनों संस्करण आपकी डायरी में हैं।',
+    'cloud.progress.devicesChecked_one': '{count} में से {done} डिवाइस जाँचा गया',
+    'cloud.progress.devicesChecked_other': '{count} में से {done} डिवाइस जाँचे गए',
+    'cloud.progress.filesDownloaded_one': '{count} में से {done} फ़ाइल डाउनलोड हुई',
+    'cloud.progress.filesDownloaded_other': '{count} में से {done} फ़ाइलें डाउनलोड हुईं',
   },
   sv: {
     'appearance.countThemesAndColorSchemes_one': '{count} tema och färgschema',
@@ -118,6 +132,10 @@ export const pluralMessages = {
       'En anteckning redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
     'cloud.conflicts.entriesEdited_other':
       '{count} anteckningar redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
+    'cloud.progress.devicesChecked_one': '{done} av {count} enhet kontrollerad',
+    'cloud.progress.devicesChecked_other': '{done} av {count} enheter kontrollerade',
+    'cloud.progress.filesDownloaded_one': '{done} av {count} fil nedladdad',
+    'cloud.progress.filesDownloaded_other': '{done} av {count} filer nedladdade',
   },
   de: {
     'appearance.countThemesAndColorSchemes_one': '{count} Design und Farbschema',
@@ -145,6 +163,10 @@ export const pluralMessages = {
       'Ein Eintrag wurde gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
     'cloud.conflicts.entriesEdited_other':
       '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
+    'cloud.progress.devicesChecked_one': '{done} von {count} Gerät geprüft',
+    'cloud.progress.devicesChecked_other': '{done} von {count} Geräten geprüft',
+    'cloud.progress.filesDownloaded_one': '{done} von {count} Datei heruntergeladen',
+    'cloud.progress.filesDownloaded_other': '{done} von {count} Dateien heruntergeladen',
   },
   he: {
     'appearance.countThemesAndColorSchemes_one': 'ערכת נושא וצבעים אחת',
@@ -180,6 +202,12 @@ export const pluralMessages = {
       '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
     'cloud.conflicts.entriesEdited_other':
       '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
+    'cloud.progress.devicesChecked_one': 'נבדקו {done} מתוך מכשיר אחד',
+    'cloud.progress.devicesChecked_two': 'נבדקו {done} מתוך שני מכשירים',
+    'cloud.progress.devicesChecked_other': 'נבדקו {done} מתוך {count} מכשירים',
+    'cloud.progress.filesDownloaded_one': 'הורדו {done} מתוך קובץ אחד',
+    'cloud.progress.filesDownloaded_two': 'הורדו {done} מתוך שני קבצים',
+    'cloud.progress.filesDownloaded_other': 'הורדו {done} מתוך {count} קבצים',
   },
   ar: {
     'appearance.countThemesAndColorSchemes_zero': '{count} سمة ونظام ألوان',
@@ -254,6 +282,18 @@ export const pluralMessages = {
       'عُدِّل {count} سجلًا على جهازين في الوقت نفسه. النسختان موجودتان في دفتر يومياتك.',
     'cloud.conflicts.entriesEdited_other':
       'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
+    'cloud.progress.devicesChecked_zero': 'الأجهزة التي تم فحصها: {done} من {count}',
+    'cloud.progress.devicesChecked_one': 'تم فحص {done} من جهاز واحد',
+    'cloud.progress.devicesChecked_two': 'تم فحص {done} من جهازين',
+    'cloud.progress.devicesChecked_few': 'تم فحص {done} من {count} أجهزة',
+    'cloud.progress.devicesChecked_many': 'تم فحص {done} من {count} جهازًا',
+    'cloud.progress.devicesChecked_other': 'الأجهزة التي تم فحصها: {done} من {count}',
+    'cloud.progress.filesDownloaded_zero': 'الملفات التي تم تنزيلها: {done} من {count}',
+    'cloud.progress.filesDownloaded_one': 'تم تنزيل {done} من ملف واحد',
+    'cloud.progress.filesDownloaded_two': 'تم تنزيل {done} من ملفين',
+    'cloud.progress.filesDownloaded_few': 'تم تنزيل {done} من {count} ملفات',
+    'cloud.progress.filesDownloaded_many': 'تم تنزيل {done} من {count} ملفًا',
+    'cloud.progress.filesDownloaded_other': 'الملفات التي تم تنزيلها: {done} من {count}',
   },
   'zh-CN': {
     'appearance.countThemesAndColorSchemes_other': '{count} 种主题和配色',
@@ -267,6 +307,8 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_other': '还剩 {count} 项更改',
     'cloud.conflicts.entriesEdited_other':
       '有 {count} 个条目同时在两台设备上被编辑。两个版本都在你的日记中。',
+    'cloud.progress.devicesChecked_other': '已检查 {count} 台设备中的 {done} 台',
+    'cloud.progress.filesDownloaded_other': '已下载 {count} 个文件中的 {done} 个',
   },
   'zh-TW': {
     'appearance.countThemesAndColorSchemes_other': '{count} 種主題和配色',
@@ -280,6 +322,8 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_other': '還剩 {count} 項變更',
     'cloud.conflicts.entriesEdited_other':
       '有 {count} 則紀錄同時在兩部裝置上被編輯。兩個版本都在你的日記中。',
+    'cloud.progress.devicesChecked_other': '已檢查 {count} 台裝置中的 {done} 台',
+    'cloud.progress.filesDownloaded_other': '已下載 {count} 個檔案中的 {done} 個',
   },
 } satisfies Record<
   SupportedLocale,

@@ -41,6 +41,7 @@ import {
   revokeCloudVault,
   setCloudSyncPaused,
   syncNow,
+  useCloudSyncProgress,
   useCloudSyncSnapshot,
   CloudSyncActionError,
   type PreparedGoogleConnection,
@@ -67,6 +68,7 @@ import {
 import { DELETE_CONFIRM_DELAY_SECONDS } from '~/constants';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { SetupProgress } from './setup-progress';
+import { SyncStatusLine } from './sync-status';
 import { ConflictsCard } from './ConflictsCard';
 import {
   attentionReasonMessage,
@@ -75,7 +77,6 @@ import {
   recoveryActionLabel,
   statusLabel,
   syncNowUnavailableReason,
-  syncPhaseLabel,
 } from './copy';
 
 type SetupStage = 'overview' | 'disclosure' | 'authorizing' | 'choose' | 'working';
@@ -90,6 +91,7 @@ export default function CloudBackupScreen() {
   const origin = params.origin === 'onboarding' ? 'onboarding' : 'settings';
   const { t, isRTL } = useTranslation();
   const { snapshot, refresh } = useCloudSyncSnapshot();
+  const syncProgress = useCloudSyncProgress();
   const wifiOnly = useSettingsStore((state) => state.cloudSyncWifiOnlyMedia);
   const setWifiOnly = useSettingsStore((state) => state.setCloudSyncWifiOnlyMedia);
   const resetSettings = useSettingsStore((state) => state.resetToDefaults);
@@ -574,8 +576,18 @@ export default function CloudBackupScreen() {
                   <SyncStatusLine
                     phase={snapshot.activityPhase}
                     initialRestore={snapshot.initialRestore}
+                    progress={syncProgress.progress}
                   />
                 )}
+                {snapshot.status !== 'syncing' &&
+                  syncProgress.idleWait === 'wifi-only-media' &&
+                  pendingWork && (
+                    <Text
+                      className="text-sm text-foreground"
+                      accessibilityLiveRegion="polite">
+                      {t('cloud.progress.waitingForWifi')}
+                    </Text>
+                  )}
                 {snapshot.status === 'restoring' && (
                   <Text
                     className="text-sm text-foreground"
@@ -845,37 +857,6 @@ export default function CloudBackupScreen() {
           </View>
         </View>
       )}
-    </View>
-  );
-}
-
-function SyncStatusLine({
-  phase,
-  initialRestore,
-}: {
-  phase: NonNullable<
-    ReturnType<typeof useCloudSyncSnapshot>['snapshot']['activityPhase']
-  >;
-  initialRestore: boolean;
-}) {
-  const { t } = useTranslation();
-  const label = syncPhaseLabel(phase, initialRestore, t);
-
-  // Phases are reported as work happens and can repeat, so there is no honest
-  // total to show. Keep the indicator indeterminate.
-  return (
-    <View
-      className="gap-2 rounded-xl bg-primary/10 p-3"
-      accessibilityRole="progressbar"
-      accessibilityValue={{ text: label }}
-      accessibilityLiveRegion="polite">
-      <View className="flex-row items-center gap-3">
-        <ActivityIndicator size="small" colorClassName="accent-primary" />
-        <Text className="flex-1 font-body-semibold text-foreground">{label}</Text>
-      </View>
-      <Text className="text-xs leading-4.5 text-foreground">
-        {t('cloud.syncIsFasterWithTackbokOpen')}
-      </Text>
     </View>
   );
 }

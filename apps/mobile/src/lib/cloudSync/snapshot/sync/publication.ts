@@ -13,6 +13,7 @@ import {
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadow,
+  MediaUploadSource,
   PendingPublication,
   SnapshotJournalStore,
   SnapshotMediaStore,
@@ -55,6 +56,7 @@ export class SnapshotPublisher {
   ): Promise<void> {
     const { deviceId, journal, hooks, vaultId } = this.options;
     hooks.activity?.('applying-remote-snapshot');
+    hooks.progress?.({ type: 'phase', phase: 'merging' });
     // A concurrent edit invalidates the plan. Re-plan on retry rather than
     // overwriting it or marking a generation that was never backed up settled.
     if (
@@ -120,6 +122,11 @@ export class SnapshotPublisher {
         return false;
       }
       hooks.activity?.('publishing-local-snapshot');
+      hooks.progress?.({
+        type: 'plan',
+        phase: 'uploading',
+        bytesTotal: pending.compressedBytes.byteLength,
+      });
       await provider.uploadSnapshot(
         vaultId,
         pending.snapshotId,
@@ -136,6 +143,7 @@ export class SnapshotPublisher {
     }
     if (pending.stage === 'snapshot-uploaded') {
       hooks.activity?.('publishing-local-snapshot');
+      hooks.progress?.({ type: 'phase', phase: 'uploading' });
       const verified = await provider.verifySnapshot(
         vaultId,
         pending.snapshotId,
@@ -157,6 +165,7 @@ export class SnapshotPublisher {
     }
     if (pending.stage === 'snapshot-verified') {
       hooks.activity?.('publishing-local-snapshot');
+      hooks.progress?.({ type: 'phase', phase: 'uploading' });
       await provider.updateDeviceHead(vaultId, {
         format: 'tackbok-device-head',
         vaultId,
@@ -175,6 +184,7 @@ export class SnapshotPublisher {
     }
     if (pending.stage === 'head-advanced') {
       hooks.activity?.('publishing-local-snapshot');
+      hooks.progress?.({ type: 'phase', phase: 'uploading' });
       await this.applyPublishedDomain(
         domainOf(decoded.payload),
         pending.capturedGeneration,
@@ -331,6 +341,8 @@ export class SnapshotPublisher {
   private async ensurePendingMedia(pending: PendingPublication): Promise<void> {
     const { hooks, mediaStore, provider, vaultId } = this.options;
     const remotelyPresent = await provider.hasMediaBatch(vaultId, pending.mediaHashes);
+    // Open every source before the first upload, so progress knows the totals.
+    const uploads: { blobHash: string; source: MediaUploadSource }[] = [];
     for (const blobHash of pending.mediaHashes) {
       if (remotelyPresent.has(blobHash)) continue;
       const source = await mediaStore.openVerifiedSource(blobHash);
@@ -340,7 +352,20 @@ export class SnapshotPublisher {
       if (source.contentHash !== blobHash) {
         throw new AttentionError('local-media-unreadable', 'pending-media-hash-mismatch');
       }
+      uploads.push({ blobHash, source });
+      await hooks.at?.('during-media-inspection');
+    }
+    if (uploads.length > 0) {
+      hooks.progress?.({
+        type: 'plan',
+        phase: 'uploading-media',
+        items: { done: 0, total: uploads.length },
+        bytesTotal: uploads.reduce((total, { source }) => total + source.byteLength, 0),
+      });
+    }
+    for (const { blobHash, source } of uploads) {
       await provider.uploadMedia(vaultId, blobHash, source);
+      hooks.progress?.({ type: 'item', phase: 'uploading-media' });
       await hooks.at?.('during-media-transfer');
     }
   }

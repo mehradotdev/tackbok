@@ -95,8 +95,11 @@ for (const locale of Object.keys(pluralMessages) as SupportedLocale[]) {
           pluralMessages.en[`${key}_other` as keyof typeof pluralMessages.en],
         ).filter((p) => p !== '{count}');
         expect(placeholders(value).filter((p) => p !== '{count}')).toEqual(required);
+        const params = Object.fromEntries(
+          required.map((placeholder) => [placeholder.slice(1, -1), 'Example']),
+        );
         expect(
-          translate(locale, key as TranslationKey, { count: 2, type: 'Example' }),
+          translate(locale, key as TranslationKey, { ...params, count: 2 }),
         ).not.toMatch(/\{\w+\}/);
       }
     }
