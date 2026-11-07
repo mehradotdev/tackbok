@@ -282,6 +282,9 @@ export const useSettingsStore = create<SettingsState>()(
           applyTitleFont(safeTitleFont);
         } else {
           console.warn('Settings store rehydration failed');
+          // An unreadable store is not proof of a fresh install: treat it as
+          // prior use so the profile backfill never keeps pristine status.
+          useSettingsStore.setState({ _hadSavedSettings: true });
           // `state` is unavailable here (persisted merge failed), so we cannot call
           // `state.setHasHydrated` — use the live store handle instead.
           useSettingsStore.getState().setHasHydrated(true);
