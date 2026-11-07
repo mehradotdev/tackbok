@@ -3,9 +3,17 @@ import { importFromTackbokBackup } from './tackbok';
 
 const spyOn = jest.spyOn;
 
-const txSelectFrom = jest.fn(
-  async (_table: unknown): Promise<{ note_id: string }[]> => [],
-);
+const mockUserProfileTable = { profile_id: 'profile_id' };
+let mockCurrentProfile: Record<string, string | null> | undefined;
+function selectFromTable(table: unknown) {
+  if (table !== mockUserProfileTable) return Promise.resolve([]);
+  return {
+    where: () => ({
+      limit: async () => (mockCurrentProfile ? [mockCurrentProfile] : []),
+    }),
+  };
+}
+const txSelectFrom = jest.fn(selectFromTable);
 const txSelect = jest.fn(() => ({ from: txSelectFrom }));
 const tx = { select: txSelect };
 const mockTransaction = jest.fn(
@@ -75,6 +83,10 @@ jest.mock('~/db', () => ({
   entries: { note_id: 'note_id' },
   runExclusiveDbTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
     mockTransaction(callback),
+  // Read lazily: the module factory runs before this file's constants exist.
+  get userProfile() {
+    return mockUserProfileTable;
+  },
 }));
 
 jest.mock('~/lib/settings', () => ({
@@ -261,7 +273,8 @@ describe('importFromTackbokBackup', () => {
     mockGetImportTotals.mockReset();
 
     txSelect.mockImplementation(() => ({ from: txSelectFrom }));
-    txSelectFrom.mockResolvedValue([]);
+    txSelectFrom.mockImplementation(selectFromTable);
+    mockCurrentProfile = undefined;
     mockTransaction.mockImplementation(
       async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx),
     );
@@ -348,6 +361,64 @@ describe('importFromTackbokBackup', () => {
     );
 
     warnSpy.mockRestore();
+  });
+
+  test('skip mode keeps the current profile and only fills empty fields', async () => {
+    mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
+    mockCurrentProfile = {
+      profile_id: 'self',
+      display_name: 'Mehra',
+      email: null,
+      photo_asset_id: 'current-photo',
+    };
+    mockReadSafeZipJson.mockReset();
+    mockReadSafeZipJson
+      .mockResolvedValueOnce({ format: 'tackbok-backup', backupVersion: 1 })
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce({
+        name: 'Ada',
+        email: 'ada@example.com',
+        imagePath: 'media/profile.jpg',
+        photoAssetId: 'imported-photo',
+      });
+
+    await importFromTackbokBackup('backup.zip', 'skip');
+
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
+      tx,
+      { email: 'ada@example.com' },
+      expect.anything(),
+    );
+    expect(mockHydrateProfileCache).toHaveBeenCalledWith({
+      profileEmail: 'ada@example.com',
+    });
+    expect(mockCleanupImportedFiles).toHaveBeenCalledWith(['photos/imported.jpg']);
+  });
+
+  test('skip mode fills an empty profile from the backup', async () => {
+    mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
+    mockCurrentProfile = {
+      profile_id: 'self',
+      display_name: null,
+      email: null,
+      photo_asset_id: null,
+    };
+
+    await importFromTackbokBackup('backup.zip', 'skip');
+
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
+      tx,
+      {
+        displayName: 'Ada',
+        email: null,
+        photoUri: 'photos/imported.jpg',
+        photoAssetId: null,
+      },
+      expect.anything(),
+    );
+    expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
   });
 
   test('rolls back the import and cleans up the copied profile image when profile persistence fails', async () => {
