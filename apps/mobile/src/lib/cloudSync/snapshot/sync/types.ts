@@ -294,6 +294,7 @@ export interface BaseShadow {
 
 export type SnapshotKillPoint =
   | 'after-local-mutation'
+  | 'during-media-inspection'
   | 'during-media-transfer'
   | 'after-candidate-persisted'
   | 'after-snapshot-uploaded'
@@ -361,6 +362,24 @@ export type SyncProgressReport =
   | { type: 'bytes'; key: string; done: number }
   /** A wait started (with its end time when known) or ended (`reason: null`). */
   | { type: 'wait'; reason: SyncWaitReason | null; until?: number };
+
+export type SyncProgressListener = (report: SyncProgressReport) => void;
+
+/**
+ * Progress is display only, so a failing listener is logged and never thrown
+ * into the sync work that reported it.
+ */
+export function isolateProgress(
+  listener: SyncProgressListener | undefined,
+): SyncProgressListener {
+  return (report) => {
+    try {
+      listener?.(report);
+    } catch (error) {
+      console.warn('Cloud sync progress listener failed', error);
+    }
+  };
+}
 
 export interface SnapshotSyncHooks {
   at?(point: SnapshotKillPoint): void | Promise<void>;

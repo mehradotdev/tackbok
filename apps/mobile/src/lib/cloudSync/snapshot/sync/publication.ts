@@ -353,6 +353,7 @@ export class SnapshotPublisher {
         throw new AttentionError('local-media-unreadable', 'pending-media-hash-mismatch');
       }
       uploads.push({ blobHash, source });
+      await hooks.at?.('during-media-inspection');
     }
     if (uploads.length > 0) {
       hooks.progress?.({

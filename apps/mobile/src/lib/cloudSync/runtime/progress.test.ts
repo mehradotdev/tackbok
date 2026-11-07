@@ -251,4 +251,40 @@ describe('waits', () => {
     progress.report({ type: 'pass', state: 'start' });
     expect(progress.current.idleWait).toBeNull();
   });
+
+  test('a Wi-Fi hold shows on the blocked media work, not on metadata work after it', () => {
+    const { progress, current } = tracker();
+    progress.report({
+      type: 'plan',
+      phase: 'downloading-media',
+      items: { done: 0, total: 1 },
+    });
+    progress.report({ type: 'wait', reason: 'wifi-only-media' });
+    expect(current()?.waiting).toEqual({ reason: 'wifi-only-media' });
+    progress.report({ type: 'plan', phase: 'uploading', bytesTotal: 10 });
+    expect(current()?.waiting).toBeUndefined();
+    progress.report({ type: 'pass', state: 'end' });
+    expect(progress.current.idleWait).toBe('wifi-only-media');
+  });
+});
+
+describe('listener failures', () => {
+  test('stay inside the tracker, including in a throttle timer', () => {
+    const time = manualClock();
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const progress = new SyncProgressTracker(
+      () => {
+        throw new Error('display subscriber failed');
+      },
+      time.clock,
+      250,
+    );
+    expect(() => progress.report({ type: 'pass', state: 'start' })).not.toThrow();
+    expect(() => progress.report({ type: 'plan', phase: 'checking' })).not.toThrow();
+    expect(time.pending).toBe(1);
+    expect(() => time.advance(250)).not.toThrow();
+    expect(progress.current.progress).toMatchObject({ phase: 'checking' });
+    expect(warn).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
 });

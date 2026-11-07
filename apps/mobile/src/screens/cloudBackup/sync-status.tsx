@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, View } from 'react-native';
 import { Text } from '~/components/ui/text';
 import { useTranslation } from '~/lib/i18n';
 import type { CloudSyncSnapshot, SyncProgress } from '~/lib/cloudSync/ui';
@@ -54,6 +54,14 @@ export function SyncStatusLine({
   // A bar only when the current step has a known total; a wait pauses it.
   const fraction = wait ? null : stepFraction(progress);
   const percent = fraction === null ? null : Math.round(fraction * 100);
+  // Announce a wait when it starts or its reason changes, never each second.
+  const waitReason = progress?.waiting?.reason ?? null;
+  const announcedWait = useRef<string | null>(null);
+  useEffect(() => {
+    if (waitReason === announcedWait.current) return;
+    announcedWait.current = waitReason;
+    if (wait) AccessibilityInfo.announceForAccessibility(wait);
+  }, [waitReason, wait]);
 
   return (
     <View
@@ -82,11 +90,7 @@ export function SyncStatusLine({
           />
         </View>
       )}
-      {wait && (
-        <Text className="text-sm text-foreground" accessibilityLiveRegion="polite">
-          {wait}
-        </Text>
-      )}
+      {wait && <Text className="text-sm text-foreground">{wait}</Text>}
       {progress && (
         <Text className="text-xs leading-4.5 text-foreground">
           {syncProgressOverall(progress, t)}

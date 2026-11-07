@@ -28,8 +28,15 @@ const productionCloudSyncActivity = new SyncActivity(notifyProductionCloudSyncCh
 // Progress changes often, so it has its own listeners: reloading the database
 // snapshot on every update would be wasted work.
 const productionCloudSyncProgressListeners = new Set<() => void>();
+// One failing display listener must not skip the rest.
 const productionCloudSyncProgress = new SyncProgressTracker(() =>
-  productionCloudSyncProgressListeners.forEach((listener) => listener()),
+  productionCloudSyncProgressListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (error) {
+      console.warn('Cloud sync progress listener failed', error);
+    }
+  }),
 );
 
 export function getProductionCloudSyncProgress(): SyncProgressSnapshot {

@@ -19,7 +19,7 @@ import type {
   SnapshotSyncHooks,
   SnapshotSyncResult,
 } from './types';
-import { LocalStorageError, SnapshotProviderError } from './types';
+import { isolateProgress, LocalStorageError, SnapshotProviderError } from './types';
 import { attentionReasonForProviderError } from '../../failureClassification';
 import { AttentionError, RetryableSyncError } from './errors';
 import {
@@ -102,12 +102,13 @@ export class SnapshotSyncEngine {
     private readonly hooks: SnapshotSyncHooks = {},
     private readonly now: () => number = Date.now,
   ) {
+    this.hooks = { ...hooks, progress: isolateProgress(hooks.progress) };
     this.cleanup = new SnapshotCleanup({
       vaultId,
       stateStore,
       shadowManager,
       provider,
-      hooks,
+      hooks: this.hooks,
       now,
     });
     this.publisher = new SnapshotPublisher({
@@ -118,7 +119,7 @@ export class SnapshotSyncEngine {
       journal,
       mediaStore,
       provider,
-      hooks,
+      hooks: this.hooks,
       now,
       afterSettlement: () => this.cleanup.run(),
     });
@@ -608,6 +609,8 @@ export class SnapshotSyncEngine {
         ? await this.mediaStore.hasVerified(blobHash)
         : source !== null;
       plan.push({ blobHash, remotePresent, localPresent, source });
+      // Planning reads every file first; a cancelled pass stops between them.
+      await this.hooks.at?.('during-media-inspection');
     }
     const byteSize = new Map(
       merged.media.map((asset) => [asset.blobHash, asset.byteSize]),

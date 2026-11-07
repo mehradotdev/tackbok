@@ -10,9 +10,14 @@ import type {
   SnapshotProvider,
   MediaDownloadSink,
   MediaUploadSource,
+  SyncProgressListener,
   SyncProgressReport,
 } from '../sync/types';
-import { MediaIntegrityError, SnapshotProviderError } from '../sync/types';
+import {
+  isolateProgress,
+  MediaIntegrityError,
+  SnapshotProviderError,
+} from '../sync/types';
 import { SyncCancelledError, untilCancelled } from '../sync/errors';
 import { DriveDiscovery } from './discovery';
 import type { DriveInstrumentationSink, DriveMethodClass } from './instrumentation';
@@ -213,11 +218,11 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private readonly random: () => number;
   private readonly now: () => number;
   private readonly immutableWrites = new Map<string, Promise<void>>();
-  private readonly onProgress?: (report: SyncProgressReport) => void;
+  private readonly onProgress: SyncProgressListener;
 
   constructor(options: GoogleDriveSnapshotProviderOptions) {
     this.state = options.state;
-    this.onProgress = options.onProgress;
+    this.onProgress = isolateProgress(options.onProgress);
     const sleep =
       options.sleep ??
       ((milliseconds) =>
@@ -235,7 +240,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       random: this.random,
       now: this.now,
       signal: options.signal,
-      onProgress: options.onProgress,
+      onProgress: this.onProgress,
     });
     this.discovery = new DriveDiscovery({
       state: this.state,
@@ -1273,7 +1278,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   }
 
   private reportBytes(key: string, done: number): void {
-    this.onProgress?.({ type: 'bytes', key, done });
+    this.onProgress({ type: 'bytes', key, done });
   }
 
   private async queryFiles(vaultId: string, query: string): Promise<DriveFile[]> {

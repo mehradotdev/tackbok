@@ -111,7 +111,10 @@ export class SyncProgressTracker {
   private step = 0;
   private counters = new Map<SyncProgressPhase, PhaseCounter>();
   private transferWait: SyncWait | null = null;
+  /** Media held back until Wi-Fi; shown while idle once the pass ends. */
   private wifiWait = false;
+  /** The media phase the hold blocked; other work in the pass shows its own progress. */
+  private wifiBlockedPhase: SyncProgressPhase | null = null;
   private offline = false;
   private published: SyncProgressSnapshot = EMPTY;
   private lastPublishedAt = -Infinity;
@@ -134,6 +137,7 @@ export class SyncProgressTracker {
         this.step = 0;
         this.counters.clear();
         this.transferWait = null;
+        this.wifiBlockedPhase = null;
         // A new pass checks Wi-Fi again; a finished pass keeps what it found.
         if (report.state === 'start') this.wifiWait = false;
         // Start and end are rare and must not be hidden by a pending update.
@@ -169,8 +173,10 @@ export class SyncProgressTracker {
       }
       case 'wait':
         // Offline comes from the platform (networkChanged), not from requests.
-        if (report.reason === 'wifi-only-media') this.wifiWait = true;
-        else if (report.reason !== 'offline')
+        if (report.reason === 'wifi-only-media') {
+          this.wifiWait = true;
+          this.wifiBlockedPhase = this.phase;
+        } else if (report.reason !== 'offline')
           this.transferWait = report.reason
             ? { reason: report.reason, until: report.until }
             : null;
@@ -184,6 +190,7 @@ export class SyncProgressTracker {
     const changed = this.offline !== !online || this.wifiWait;
     this.offline = !online;
     this.wifiWait = false;
+    this.wifiBlockedPhase = null;
     if (changed) this.schedule();
   }
 
@@ -234,7 +241,12 @@ export class SyncProgressTracker {
       progress: this.snapshot(),
       idleWait: !this.phase && this.wifiWait ? 'wifi-only-media' : null,
     };
-    this.changed();
+    // Reports come from sync work and throttle timers; display failures stay here.
+    try {
+      this.changed();
+    } catch (error) {
+      console.warn('Cloud sync progress listener failed', error);
+    }
   }
 
   private snapshot(): SyncProgress | null {
@@ -256,7 +268,8 @@ export class SyncProgressTracker {
     }
     const waiting: SyncWait | null = this.offline
       ? { reason: 'offline' }
-      : (this.transferWait ?? (this.wifiWait ? { reason: 'wifi-only-media' } : null));
+      : (this.transferWait ??
+        (this.wifiBlockedPhase === this.phase ? { reason: 'wifi-only-media' } : null));
     if (waiting) progress.waiting = { ...waiting };
     return progress;
   }

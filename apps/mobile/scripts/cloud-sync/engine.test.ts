@@ -3339,4 +3339,141 @@ describe('detailed sync progress', () => {
     expect(retried.map(({ phase }) => phase)).not.toContain('downloading');
     expect(retried.map(({ phase }) => phase)).toContain('merging');
   });
+
+  describe('a cancelled pass stops between media inspections', () => {
+    function threePhotos(deviceId: string) {
+      const app = harness(deviceId);
+      const photos = [1, 2, 3].map((value) => new Uint8Array([value]));
+      const domain = withEntry(blankDomain(), entry('entry-photos', 'Three photos'));
+      domain.media = photos.map((bytes, index) =>
+        mediaAsset(`asset-${index}`, 'entry-photos', bytes),
+      );
+      app.journal.mutate(domain);
+      return { app, photos };
+    }
+
+    function abortAfterFirstInspection(app: Harness) {
+      const controller = new AbortController();
+      const inspection = { count: 0 };
+      const open = app.media.openVerifiedSource.bind(app.media);
+      app.media.openVerifiedSource = async (...args) => {
+        inspection.count += 1;
+        const source = await open(...args);
+        controller.abort();
+        return source;
+      };
+      const hooks: SnapshotSyncHooks = {
+        at: () => throwIfCancelled(controller.signal),
+      };
+      return { inspection, hooks };
+    }
+
+    test('while planning transfers', async () => {
+      const { app, photos } = threePhotos('device-cancel-plan');
+      for (const bytes of photos)
+        await app.media.writeVerified(sha256Bytes(bytes), bytes);
+      const { inspection, hooks } = abortAfterFirstInspection(app);
+
+      await expect(app.engine(hooks).sync()).rejects.toBeInstanceOf(SyncCancelledError);
+      expect(inspection.count).toBe(1);
+      const hashes = photos.map((bytes) => sha256Bytes(bytes));
+      expect((await app.provider.hasMediaBatch(app.vaultId, hashes)).size).toBe(0);
+    });
+
+    test('while resuming a pending publication', async () => {
+      const { app, photos } = threePhotos('device-cancel-resume');
+      for (const bytes of photos)
+        await app.media.writeVerified(sha256Bytes(bytes), bytes);
+      await expect(
+        app
+          .engine({
+            at(point) {
+              if (point === 'after-candidate-persisted')
+                throw new SimulatedProcessDeath(point);
+            },
+          })
+          .sync(),
+      ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+      expect(app.state.loadPending(app.vaultId, app.deviceId)).not.toBeNull();
+      // The resumed publication has to upload every photo again.
+      for (const bytes of photos)
+        app.provider.removeMediaForTest(app.vaultId, sha256Bytes(bytes));
+      const { inspection, hooks } = abortAfterFirstInspection(app);
+
+      await expect(app.engine(hooks).sync()).rejects.toBeInstanceOf(SyncCancelledError);
+      expect(inspection.count).toBe(1);
+      expect((await app.engine().sync()).status).toBe('published');
+    });
+  });
+
+  test('a failing progress listener never stops publication', async () => {
+    const provider = new FakeSnapshotProvider();
+    const photo = new TextEncoder().encode('synthetic photo');
+    const domain = withEntry(blankDomain(), entry('entry-photo', 'With a photo'));
+    domain.media = [mediaAsset('asset-photo', 'entry-photo', photo)];
+    const source = harness('device-throwing-display', domain, provider);
+    await source.media.writeVerified(sha256Bytes(photo), photo);
+    source.state.markDirty(source.vaultId, source.deviceId);
+    const failing: SnapshotSyncHooks = {
+      progress() {
+        throw new Error('display subscriber failed');
+      },
+    };
+    const warn = console.warn;
+    console.warn = () => {};
+    try {
+      expect((await source.engine(failing).sync()).status).toBe('published');
+      const target = harness(
+        'device-throwing-pull',
+        blankDomain(),
+        provider,
+        source.clock,
+      );
+      expect((await target.engine(failing).sync()).status).toBe('pulled');
+    } finally {
+      console.warn = warn;
+    }
+  });
+
+  test('a Wi-Fi hold on media leaves the metadata upload its own progress', async () => {
+    const provider = new FakeSnapshotProvider();
+    const photo = new Uint8Array([10, 11]);
+    const remote = withEntry(blankDomain(), entry('entry-remote', 'Remote photo'));
+    remote.media = [mediaAsset('asset-remote', 'entry-remote', photo)];
+    const source = harness('device-wifi-source', remote, provider);
+    await source.media.writeVerified(sha256Bytes(photo), photo);
+    source.state.markDirty(source.vaultId, source.deviceId);
+    await source.engine().sync();
+
+    const target = harness('device-wifi-target', blankDomain(), provider, source.clock);
+    target.journal.mutate(withEntry(blankDomain(), entry('entry-local', 'Local text')));
+    const progress = recordProgress(provider);
+    const downloadMedia = provider.downloadMedia.bind(provider);
+    let held = false;
+    // Mirrors the production media policy: report the hold, then refuse.
+    provider.downloadMedia = async (...args) => {
+      if (held) return downloadMedia(...args);
+      held = true;
+      progress.tracker.report({ type: 'wait', reason: 'wifi-only-media' });
+      throw new SnapshotProviderError('wifi-only-media', 'Media is waiting for Wi-Fi');
+    };
+
+    expect((await progress.pass(target.engine(progress.hooks()))).status).toBe(
+      'published',
+    );
+    expect(
+      progress.seen.find(({ phase }) => phase === 'downloading-media')?.waiting,
+    ).toBeUndefined();
+    expect(progress.seen.findLast(({ phase }) => phase === 'downloading-media')).toEqual(
+      expect.objectContaining({ waiting: { reason: 'wifi-only-media' } }),
+    );
+    const uploading = progress.seen.filter(({ phase }) => phase === 'uploading');
+    expect(uploading.length).toBeGreaterThan(0);
+    for (const value of uploading) expect(value.waiting).toBeUndefined();
+    // The hold still shows once the pass is idle.
+    expect(progress.tracker.current).toEqual({
+      progress: null,
+      idleWait: 'wifi-only-media',
+    });
+  });
 });

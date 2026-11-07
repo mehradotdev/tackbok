@@ -1,4 +1,4 @@
-import { and, count, eq, isNotNull, isNull, ne, or, sum } from 'drizzle-orm';
+import { and, count, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
 import * as Network from 'expo-network';
 
 import {
@@ -42,7 +42,7 @@ import type {
   SnapshotProvider,
   SyncProgressReport,
 } from '../sync/types';
-import { SnapshotProviderError } from '../sync/types';
+import { isolateProgress, SnapshotProviderError } from '../sync/types';
 import { SyncCancelledError, throwIfCancelled, untilCancelled } from '../sync/errors';
 import { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } from '../storage';
 
@@ -69,6 +69,22 @@ const runningVaultPasses = new Map<string, RunningVaultPass>();
 /** The running pass's signal, shared by one engine's provider and hooks. */
 interface PassCancellation {
   signal: AbortSignal | null;
+}
+
+/**
+ * Bytes to download for pending attachment rows. Rows that share a blob
+ * download it once, and transfers report bytes per blob, so count each once.
+ */
+export function pendingMediaBytes(
+  rows: readonly { blobHash: string | null; byteSize: number | null }[],
+): number {
+  const sizes = new Map<string, number>();
+  for (const { blobHash, byteSize } of rows) {
+    if (blobHash) sizes.set(blobHash, byteSize ?? 0);
+  }
+  let total = 0;
+  for (const size of sizes.values()) total += size;
+  return total;
 }
 
 class MediaPolicyProvider implements SnapshotProvider {
@@ -213,14 +229,17 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
 
   private async runExclusivePass(signal: AbortSignal): Promise<RuntimePassResult> {
     this.cancellation.signal = signal;
-    this.onProgress({ type: 'pass', state: 'start' });
     try {
+      this.onProgress({ type: 'pass', state: 'start' });
       throwIfCancelled(signal);
       return await this.syncPass(signal);
     } finally {
       if (this.cancellation.signal === signal) this.cancellation.signal = null;
-      this.onProgress({ type: 'pass', state: 'end' });
-      this.onActivity('idle');
+      try {
+        this.onProgress({ type: 'pass', state: 'end' });
+      } finally {
+        this.onActivity('idle');
+      }
     }
   }
 
@@ -325,16 +344,16 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     try {
       // Totals cover every waiting attachment; this pass downloads a bounded
       // batch and the follow-up passes continue with the rest.
-      const [waiting] = await db
-        .select({ items: count(), bytes: sum(mediaAssets.byte_size) })
+      const waiting = await db
+        .select({ blobHash: mediaAssets.blob_hash, byteSize: mediaAssets.byte_size })
         .from(mediaAssets)
         .where(eq(mediaAssets.download_state, 'pending'));
-      if ((waiting?.items ?? 0) > 0) {
+      if (waiting.length > 0) {
         this.onProgress({
           type: 'plan',
           phase: 'downloading-media',
-          items: { done: 0, total: waiting.items },
-          bytesTotal: Number(waiting.bytes ?? 0),
+          items: { done: 0, total: waiting.length },
+          bytesTotal: pendingMediaBytes(waiting),
         });
       }
       const hydration = await this.journal.hydratePendingMedia(
@@ -489,7 +508,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     options.vault.device_id,
     media,
   );
-  const onProgress = options.onProgress ?? (() => {});
+  const onProgress = isolateProgress(options.onProgress);
   const drive = new GoogleDriveSnapshotProvider({
     auth: createGoogleAuthorization(),
     state: new SQLiteDriveProviderStateStore(sqlite, connectionId),

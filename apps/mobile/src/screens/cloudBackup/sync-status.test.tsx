@@ -9,9 +9,13 @@ jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
 
+const mockAnnounce = jest.fn();
 jest.mock('react-native', () => ({
   View: 'View',
   ActivityIndicator: 'ActivityIndicator',
+  AccessibilityInfo: {
+    announceForAccessibility: (message: string) => mockAnnounce(message),
+  },
 }));
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
 jest.mock('~/lib/i18n', () => ({
@@ -24,6 +28,7 @@ jest.mock('~/lib/i18n', () => ({
 
 let root: ReactTestRenderer;
 beforeEach(() => {
+  mockAnnounce.mockClear();
   jest.useFakeTimers();
   jest.setSystemTime(1_000_000);
 });
@@ -137,4 +142,43 @@ test('offline and Wi-Fi waits explain themselves without a countdown', () => {
     );
   });
   expect(content()).toContain('Waiting for Wi-Fi to sync photos and voice notes');
+});
+
+test('screen readers hear a wait when its reason changes, not every second', () => {
+  const update = (waiting: SyncProgress['waiting']) =>
+    act(() => {
+      root.update(
+        <SyncStatusLine
+          phase="checking"
+          initialRestore={false}
+          progress={{ phase: 'checking', step: 1, totalSteps: 4, waiting }}
+        />,
+      );
+    });
+  render({
+    phase: 'checking',
+    step: 1,
+    totalSteps: 4,
+    waiting: { reason: 'rate-limited', until: 1_000_000 + 40_000 },
+  });
+  expect(mockAnnounce.mock.calls).toEqual([
+    ['Google asked us to slow down. Trying again in 40 s'],
+  ]);
+  // The ticking countdown is outside any live region.
+  expect(
+    root.root.findAll(
+      (node) =>
+        node.props.accessibilityLiveRegion !== undefined &&
+        JSON.stringify(node.props.children).includes('Trying again'),
+    ),
+  ).toHaveLength(0);
+  act(() => jest.advanceTimersByTime(3_000));
+  expect(content()).toContain('Trying again in 37 s');
+  // A later retry for the same reason is not a new announcement.
+  update({ reason: 'rate-limited', until: 1_003_000 + 20_000 });
+  expect(mockAnnounce).toHaveBeenCalledTimes(1);
+  update({ reason: 'offline' });
+  expect(mockAnnounce).toHaveBeenLastCalledWith('Waiting for internet…');
+  update(undefined);
+  expect(mockAnnounce).toHaveBeenCalledTimes(2);
 });
