@@ -39,20 +39,54 @@ mock.module('../../src/db', () => ({
   },
 }));
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
+// Files listed here exist on the fake disk and hash to `fakeBlobHash`.
+const existingFiles = new Set<string>();
+const fakeBlobHash = 'a'.repeat(64);
+const copiedMedia: { from: string; to: string }[] = [];
+const uriOf = (part: unknown) =>
+  typeof part === 'object' && part && 'uri' in part ? String(part.uri) : String(part);
 mock.module('expo-file-system', () => ({
-  Directory: class {},
-  File: class {},
-  Paths: {},
+  Directory: class {
+    uri: string;
+    constructor(...parts: unknown[]) {
+      this.uri = parts.map(uriOf).join('/');
+    }
+    create() {}
+  },
+  File: class {
+    private readonly path: string;
+    constructor(...parts: unknown[]) {
+      this.path = parts.map(uriOf).join('/');
+    }
+    // Like Expo's Android File, a scheme-less absolute path has no URI.
+    get uri() {
+      if (this.path.startsWith('/')) throw new Error('URI is not absolute');
+      return this.path;
+    }
+    get exists() {
+      return existingFiles.has(this.uri);
+    }
+    delete() {
+      existingFiles.delete(this.uri);
+    }
+  },
+  Paths: { document: 'file:///documents' },
 }));
 mock.module('../../src/lib/cloudSync/snapshot/media', () => ({
-  copyVerifiedMediaFile() {},
+  copyVerifiedMediaFile(source: { uri: string }, destination: { uri: string }) {
+    copiedMedia.push({ from: source.uri, to: destination.uri });
+    existingFiles.add(destination.uri);
+  },
   createMediaPartialFileSink() {},
   openMediaUploadSource() {},
 }));
 mock.module('../../src/lib/cloudSync/media/streamingHash', () => ({
-  inspectLocalMediaFile() {},
+  inspectLocalMediaFile(uri: string) {
+    if (!existingFiles.has(uri)) throw new Error('missing');
+    return { sha256: fakeBlobHash, byteSize: 1 };
+  },
 }));
-const { ProductionSnapshotJournalStore } =
+const { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } =
   await import('../../src/lib/cloudSync/snapshot/storage/productionJournal');
 afterAll(() => sqlite.close());
 
@@ -377,6 +411,346 @@ test('a fresh install that skipped onboarding adopts the remote profile on first
     true,
   );
   expect((await store.capture()).localProfilePristine).toBe(false);
+});
+
+test('a same-blob profile photo ID switch reuses the local file instead of downloading', async () => {
+  sqlite.exec(
+    'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM sync_retained_media',
+  );
+  existingFiles.clear();
+  existingFiles.add('file:///old.jpg');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'photo-switch', device_id: 'device', updated_at: 1 })
+    .run();
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'photo-b',
+      owner_type: 'profile',
+      owner_id: 'self',
+      kind: 'profile-photo',
+      local_uri: 'file:///old.jpg',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  db.insert(schema.userProfile)
+    .values({
+      profile_id: 'self',
+      display_name: 'Mehra',
+      photo_asset_id: 'photo-b',
+      updated_at: 1,
+    })
+    .run();
+
+  const store = new ProductionSnapshotJournalStore(
+    'photo-switch',
+    'device',
+    new ProductionSnapshotMediaStore(),
+  );
+  const { domain, generation } = await store.capture();
+  domain.profile.photoAssetId = 'photo-a';
+  domain.media[0].assetId = 'photo-a';
+  expect(
+    await store.applyMergedIfGeneration(domain, generation, { remoteDerived: true }),
+  ).toBe(true);
+
+  const [row] = db.select().from(schema.mediaAssets).all();
+  expect(row.asset_id).toBe('photo-a');
+  expect(row.download_state).not.toBe('pending');
+  expect(copiedMedia.at(-1)).toEqual({
+    from: 'file:///old.jpg',
+    to: expect.stringContaining(fakeBlobHash),
+  });
+  let downloads = 0;
+  await store.hydratePendingMedia(
+    {
+      downloadMedia: async () => {
+        downloads += 1;
+        return null;
+      },
+    } as never,
+    2,
+  );
+  expect(downloads).toBe(0);
+});
+
+test('a rejected apply removes the photo it copied unless a committed row uses it', async () => {
+  sqlite.exec(
+    'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM sync_retained_media; DELETE FROM cloud_sync_state',
+  );
+  existingFiles.clear();
+  existingFiles.add('file:///old.jpg');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'photo-race', device_id: 'device', updated_at: 1 })
+    .run();
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'photo-b',
+      owner_type: 'profile',
+      owner_id: 'self',
+      kind: 'profile-photo',
+      local_uri: 'file:///old.jpg',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  db.insert(schema.userProfile)
+    .values({
+      profile_id: 'self',
+      display_name: 'Mehra',
+      photo_asset_id: 'photo-b',
+      updated_at: 1,
+    })
+    .run();
+  const store = new ProductionSnapshotJournalStore(
+    'photo-race',
+    'device',
+    new ProductionSnapshotMediaStore(),
+  );
+  const { domain, generation } = await store.capture();
+  // A new asset ID needs its own file, copied before the generation check.
+  domain.profile.photoAssetId = 'photo-new';
+  domain.media[0].assetId = 'photo-new';
+  const rejectApply = (commitWinner: boolean) => {
+    let transactions = 0;
+    beforeTransaction = () => {
+      if (++transactions !== 2) return;
+      db.update(schema.cloudSyncState)
+        .set({ journal_generation: generation + 1 })
+        .where(eq(schema.cloudSyncState.vault_id, 'photo-race'))
+        .run();
+      if (!commitWinner) return;
+      // The apply that won the race committed a row for the same file.
+      db.insert(schema.mediaAssets)
+        .values({
+          asset_id: 'photo-winner',
+          owner_type: 'profile',
+          owner_id: 'self',
+          kind: 'profile-photo',
+          local_uri: copiedMedia.at(-1)!.to.replace('file:///documents/', ''),
+          blob_hash: fakeBlobHash,
+          byte_size: 1,
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    };
+  };
+
+  rejectApply(false);
+  expect(
+    await store.applyMergedIfGeneration(domain, generation, { remoteDerived: true }),
+  ).toBe(false);
+  const copied = copiedMedia.at(-1)!.to;
+  expect(copied).toContain(fakeBlobHash);
+  expect(existingFiles.has(copied)).toBe(false);
+  expect(existingFiles.has('file:///old.jpg')).toBe(true);
+
+  db.update(schema.cloudSyncState)
+    .set({ journal_generation: generation })
+    .where(eq(schema.cloudSyncState.vault_id, 'photo-race'))
+    .run();
+  rejectApply(true);
+  expect(
+    await store.applyMergedIfGeneration(domain, generation, { remoteDerived: true }),
+  ).toBe(false);
+  beforeTransaction = null;
+  expect(existingFiles.has(copied)).toBe(true);
+});
+
+function setupPhotoSwitch(vault: string) {
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM sync_retained_media; DELETE FROM cloud_sync_state',
+  );
+  existingFiles.clear();
+  existingFiles.add('file:///old.jpg');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: vault, device_id: 'device', updated_at: 1 })
+    .run();
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'old-photo',
+      owner_type: 'profile',
+      owner_id: 'self',
+      kind: 'profile-photo',
+      local_uri: 'file:///old.jpg',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  db.insert(schema.userProfile)
+    .values({
+      profile_id: 'self',
+      display_name: 'Mehra',
+      photo_asset_id: 'old-photo',
+      updated_at: 1,
+    })
+    .run();
+  return new ProductionSnapshotJournalStore(
+    vault,
+    'device',
+    new ProductionSnapshotMediaStore(),
+  );
+}
+
+/** Holds an apply after it materialized its media, before its transaction. */
+function pauseAfterMaterializing(
+  store: InstanceType<typeof ProductionSnapshotJournalStore>,
+) {
+  const { promise: ready, resolve: materialized } = Promise.withResolvers<void>();
+  const { promise: released, resolve: release } = Promise.withResolvers<void>();
+  const materialize = Reflect.get(store, 'materializeMedia') as (
+    ...args: unknown[]
+  ) => Promise<unknown>;
+  Object.defineProperty(store, 'materializeMedia', {
+    value: async (...args: unknown[]) => {
+      const result = await materialize.apply(store, args);
+      materialized();
+      await released;
+      return result;
+    },
+  });
+  return { ready, release };
+}
+
+test.each([
+  'live absolute',
+  'live relative',
+  'live bare',
+  'retained original absolute',
+  'retained staged absolute',
+  'retained original relative',
+  'retained original bare',
+  'retained staged bare',
+  'legacy absolute',
+  'legacy bare',
+])(
+  'a rejected apply keeps its copied photo when a committed %s URI references it',
+  async (kind) => {
+    const store = setupPhotoSwitch('shared');
+    const { domain } = await store.capture();
+    domain.profile.photoAssetId = 'new-photo';
+    domain.media[0].assetId = 'new-photo';
+    const paused = pauseAfterMaterializing(store);
+    const rejected = store.applyMergedIfGeneration(domain, 0, { remoteDerived: true });
+    await paused.ready;
+    const absolute = copiedMedia.at(-1)!.to;
+    const uri = kind.endsWith('absolute')
+      ? absolute
+      : kind.endsWith('bare')
+        ? absolute.replace('file://', '')
+        : absolute.replace('file:///documents/', '');
+    if (kind.startsWith('live')) {
+      db.insert(schema.mediaAssets)
+        .values({
+          asset_id: 'shared',
+          owner_type: 'profile',
+          owner_id: 'self',
+          kind: 'profile-photo',
+          local_uri: uri,
+          blob_hash: fakeBlobHash,
+          byte_size: 1,
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    } else if (kind.startsWith('legacy')) {
+      db.insert(schema.entries)
+        .values({
+          note_id: 'other-entry',
+          assets: [{ type: AssetType.IMAGE, uri }],
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    } else {
+      db.insert(schema.syncRetainedMedia)
+        .values({
+          ledger_id: 'shared',
+          asset_id: 'shared',
+          original_owner_type: 'profile',
+          original_owner_id: 'self',
+          original_uri: kind.includes('original') ? uri : 'photos/old.jpg',
+          staged_uri: kind.includes('staged') ? uri : null,
+          kind: 'profile-photo',
+          state: 'staged',
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    }
+    sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
+    paused.release();
+    expect(await rejected).toBe(false);
+    expect(existingFiles.has(absolute)).toBe(true);
+  },
+);
+
+test('a rejected apply still removes its copy when only a bare path to another file shares its name', async () => {
+  const store = setupPhotoSwitch('bare-other');
+  const { domain } = await store.capture();
+  domain.profile.photoAssetId = 'new-photo';
+  domain.media[0].assetId = 'new-photo';
+  const paused = pauseAfterMaterializing(store);
+  const rejected = store.applyMergedIfGeneration(domain, 0, { remoteDerived: true });
+  await paused.ready;
+  const absolute = copiedMedia.at(-1)!.to;
+  const name = absolute.slice(absolute.lastIndexOf('/') + 1);
+  db.insert(schema.entries)
+    .values({
+      note_id: 'other-entry',
+      assets: [{ type: AssetType.IMAGE, uri: `/elsewhere/${name}` }],
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
+  paused.release();
+  expect(await rejected).toBe(false);
+  expect(existingFiles.has(absolute)).toBe(false);
+});
+
+test('a concurrent apply waits for a rejected apply and its cleanup', async () => {
+  const loser = setupPhotoSwitch('concurrent');
+  const winner = new ProductionSnapshotJournalStore(
+    'concurrent',
+    'device',
+    new ProductionSnapshotMediaStore(),
+  );
+  const { domain } = await loser.capture();
+  domain.profile.photoAssetId = 'new-photo';
+  domain.media[0].assetId = 'new-photo';
+  const first = pauseAfterMaterializing(loser);
+  const rejected = loser.applyMergedIfGeneration(domain, 0, { remoteDerived: true });
+  await first.ready;
+  const destination = copiedMedia.at(-1)!.to;
+  sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
+  const second = pauseAfterMaterializing(winner);
+  const committed = winner.applyMergedIfGeneration(domain, 1, { remoteDerived: true });
+  let winnerMaterialized = false;
+  void second.ready.then(() => {
+    winnerMaterialized = true;
+  });
+  await Bun.sleep(10);
+  // The second apply cannot reuse the first apply's uncommitted copy.
+  expect(winnerMaterialized).toBe(false);
+  second.release();
+  first.release();
+  expect(await rejected).toBe(false);
+  expect(await committed).toBe(true);
+  const row = db
+    .select()
+    .from(schema.mediaAssets)
+    .where(eq(schema.mediaAssets.asset_id, 'new-photo'))
+    .get()!;
+  expect(row.download_state).toBe('verified');
+  expect(existingFiles.has(destination)).toBe(true);
 });
 
 test('applying only local state keeps a pristine profile; a remote apply ends it', async () => {
