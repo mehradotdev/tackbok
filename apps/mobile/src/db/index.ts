@@ -57,6 +57,17 @@ export async function runExclusiveDbTransaction<T>(
     });
   } else {
     await sqlite.withExclusiveTransactionAsync(async (nativeTransaction) => {
+      // Expo closes the private connection after COMMIT or ROLLBACK has already
+      // decided the outcome. A failed close must not turn a committed write into
+      // a rejection: callers clean up files when a transaction rejects.
+      const close = nativeTransaction.closeAsync.bind(nativeTransaction);
+      nativeTransaction.closeAsync = async () => {
+        try {
+          await close();
+        } catch (error) {
+          console.warn('Database transaction connection could not be closed', error);
+        }
+      };
       const transactionDb = drizzle(nativeTransaction, { schema });
       completed = {
         value: await operation(transactionDb as unknown as DbTransaction),
