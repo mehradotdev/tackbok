@@ -36,6 +36,7 @@ import {
 import { getImportTotals } from './helpers';
 import {
   runInCloudSyncTransaction,
+  markLocalProfileTouched,
   updateProfileInTransaction,
 } from '~/lib/cloudSync/storage/repositories';
 import { hydrateProfileCache } from '~/lib/settings';
@@ -147,6 +148,9 @@ export async function importFromTackbokBackup(
           },
           { batchId },
         );
+        // An imported profile is authored content even when it equals the empty
+        // local one (a deliberately cleared backup), so it is never pristine.
+        await markLocalProfileTouched(tx);
       });
     } catch (error) {
       cleanupImportedFiles(createdFiles);
