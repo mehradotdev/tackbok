@@ -346,6 +346,53 @@ describe('snapshot merge engine', () => {
     corrupt.conflicts[0].primaryValueHash = 'e'.repeat(64);
     expect(() => mergeSnapshotDomains(base, left, corrupt)).toThrow(/differs/);
   });
+
+  it('keeps every recovery of one conflict found beside different other fields', () => {
+    const base = emptyDomain(datedEntry);
+    const remote = emptyDomain({ ...datedEntry, content: 'Remote', updatedAt: 3 });
+    // Same field values, so the same conflict ID; whole-entry recovery IDs differ.
+    const first = mergeSnapshotDomains(
+      base,
+      emptyDomain({ ...datedEntry, content: 'Local', updatedAt: 2 }),
+      remote,
+    );
+    const second = mergeSnapshotDomains(
+      base,
+      remote,
+      emptyDomain({ ...datedEntry, content: 'Local', updatedAt: 4 }),
+    );
+    expect(second.conflicts[0].conflictId).toBe(first.conflicts[0].conflictId);
+    expect(second.conflicts[0].recoveredEntityIds).not.toEqual(
+      first.conflicts[0].recoveredEntityIds,
+    );
+
+    const merged = mergeSnapshotDomains(base, first, second);
+    expect(merged.conflicts).toHaveLength(1);
+    expect(merged.conflicts[0].recoveredEntityIds).toEqual(
+      [
+        ...first.conflicts[0].recoveredEntityIds,
+        ...second.conflicts[0].recoveredEntityIds,
+      ].sort(),
+    );
+    expect(canonicalize(mergeSnapshotDomains(base, second, first))).toBe(
+      canonicalize(merged),
+    );
+    expect(canonicalize(mergeSnapshotDomains(base, merged, first))).toBe(
+      canonicalize(merged),
+    );
+    expect(() =>
+      encodeSnapshot({
+        format: 'tackbok-snapshot',
+        vaultId: 'vault-recovery-union',
+        parentSnapshotIds: [],
+        observedDeviceHeads: [],
+        authorDeviceId: 'device-a',
+        deviceSequence: 5,
+        createdAt: 5,
+        ...merged,
+      }),
+    ).not.toThrow();
+  });
   it.each(cases)(
     'matches frozen golden case $id byte-identically',
     ({ base, local, remote, expected }) => {
