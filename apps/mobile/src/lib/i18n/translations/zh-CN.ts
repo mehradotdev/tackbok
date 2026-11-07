@@ -743,6 +743,11 @@ export const zhCN: Translations = {
   'cloud.removingTheCloudBackupAndJournalData':
     '正在删除云备份和日记数据。如果你离开塔克布克，回来后可以继续删除。',
   'cloud.disconnect': '断开连接',
+  'cloud.disconnecting': '正在断开连接…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    '已断开连接。你的日记仍保留在这部手机上，你的备份仍保留在你的 Google Drive 中。',
+  'cloud.couldNotDisconnectTryAgain': '无法断开连接。请重试。',
+  'cloud.pausing': '正在暂停…',
   'cloud.disconnectProvider': '断开 {provider}',
   'cloud.disconnectProviderFromThisDevice': '要断开此设备与 {provider} 的连接吗？',
   'cloud.disconnectThenDeleteLocalJournalDataOnly': '先断开连接，然后仅删除本地日记数据',
