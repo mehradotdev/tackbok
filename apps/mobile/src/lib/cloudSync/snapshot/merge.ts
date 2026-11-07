@@ -716,15 +716,25 @@ function mergeConflictSet(
     if (lv && rv) {
       // The same conflict can be discovered independently with opposite device
       // perspectives. Only these two labels may swap; all other data must agree.
-      const reversed = {
+      // Recovery IDs hash whole entries, so branches that saw the same field
+      // values beside different other fields recover the losing value under
+      // different IDs. Each recovery is a live entry: keep every reference.
+      // A union is order-independent, so devices converge on the same record.
+      const recoveredEntityIds = [
+        ...new Set([...lv.recoveredEntityIds, ...rv.recoveredEntityIds]),
+      ].sort();
+      const left = canonicalize({ ...lv, recoveredEntityIds });
+      const right = canonicalize({ ...rv, recoveredEntityIds });
+      const reversed = canonicalize({
         ...rv,
         localValueHash: rv.remoteValueHash,
         remoteValueHash: rv.localValueHash,
-      };
-      if (!equal(lv, rv) && !equal(lv, reversed)) {
+        recoveredEntityIds,
+      });
+      if (left !== right && left !== reversed) {
         throw new SnapshotMergeError('conflict-id-collision', `Conflict ${id} differs`);
       }
-      result.push(canonicalize(lv) <= canonicalize(rv) ? lv : rv);
+      result.push({ ...(left <= right ? lv : rv), recoveredEntityIds });
     } else if (lv && !bv) result.push(lv);
     else if (rv && !bv) result.push(rv);
     else if (lv && bv && !rv) {
