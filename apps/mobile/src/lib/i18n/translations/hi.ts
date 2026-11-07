@@ -720,6 +720,11 @@ export const hi = {
   'cloud.removingTheCloudBackupAndJournalData':
     'क्लाउड बैकअप और डायरी डेटा हटाया जा रहा है। अगर आप ताकबूक से बाहर जाते हैं, तो लौटने पर हटाना फिर से शुरू कर सकते हैं।',
   'cloud.disconnect': 'डिस्कनेक्ट',
+  'cloud.disconnecting': 'डिस्कनेक्ट हो रहा है…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    'डिस्कनेक्ट हो गया. आपकी डायरी इसी फ़ोन पर रहेगी और आपका बैकअप आपके Google Drive में रहेगा.',
+  'cloud.couldNotDisconnectTryAgain': 'डिस्कनेक्ट नहीं हो सका. फिर से कोशिश करें.',
+  'cloud.pausing': 'रोका जा रहा है…',
   'cloud.disconnectProvider': '{provider} को डिस्कनेक्ट करें',
   'cloud.disconnectProviderFromThisDevice': 'इस डिवाइस से {provider} को डिस्कनेक्ट करें?',
   'cloud.disconnectThenDeleteLocalJournalDataOnly':

@@ -754,6 +754,11 @@ export const zhTW: Translations = {
   'cloud.removingTheCloudBackupAndJournalData':
     '正在刪除雲端備份和日記資料。如果你離開塔克布克，回來後可以繼續刪除。',
   'cloud.disconnect': '中斷連線',
+  'cloud.disconnecting': '正在中斷連線…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    '已中斷連線。你的日記仍保留在這支手機上，你的備份仍保留在你的 Google Drive 中。',
+  'cloud.couldNotDisconnectTryAgain': '無法中斷連線。請再試一次。',
+  'cloud.pausing': '正在暫停…',
   'cloud.disconnectProvider': '中斷 {provider} 連線',
   'cloud.disconnectProviderFromThisDevice': '要中斷此裝置與 {provider} 的連線嗎？',
   'cloud.disconnectThenDeleteLocalJournalDataOnly': '先中斷連線，然後只刪除本機日記資料',
