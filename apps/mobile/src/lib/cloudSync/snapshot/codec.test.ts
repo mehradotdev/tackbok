@@ -82,6 +82,23 @@ describe('snapshot codec', () => {
     expect(domainMutationCount).toBe(0);
   }, 30_000);
 
+  it('stops inflating at a caller limit below the snapshot cap', () => {
+    const valid = encodeSnapshot(minimal);
+    const size = valid.canonicalBytes.length;
+    expect(decodeSnapshot(valid.compressedBytes, valid.snapshotId, size).payload).toEqual(
+      minimal,
+    );
+    expect(() =>
+      decodeSnapshot(valid.compressedBytes, valid.snapshotId, size - 1),
+    ).toThrow(/size limit/);
+    // A forged trailer size does not change where inflation stops.
+    const forged = valid.compressedBytes.slice();
+    forged.fill(0, forged.length - 4);
+    expect(() => decodeSnapshot(forged, valid.snapshotId, size - 1)).toThrow(
+      /size limit/,
+    );
+  });
+
   it('rejects dangling references and non-normalized collection order', () => {
     const dangling: JournalSnapshotPayload = {
       ...structuredClone(minimal),

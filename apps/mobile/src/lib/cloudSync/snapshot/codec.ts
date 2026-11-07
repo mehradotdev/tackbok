@@ -24,11 +24,14 @@ function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
   return true;
 }
 
-function decompressBounded(compressed: Uint8Array): Uint8Array {
+function decompressBounded(
+  compressed: Uint8Array,
+  maxUncompressedBytes: number,
+): Uint8Array {
   try {
     return decodeGzipBounded(compressed, {
       maxCompressedBytes: SNAPSHOT_CAPS.compressedBytes,
-      maxUncompressedBytes: SNAPSHOT_CAPS.uncompressedBytes,
+      maxUncompressedBytes,
     });
   } catch (error) {
     if (error instanceof GzipCodecError) {
@@ -36,7 +39,7 @@ function decompressBounded(compressed: Uint8Array): Uint8Array {
         invalid(error.code, 'Compressed snapshot exceeds 16 MiB');
       }
       if (error.code === 'uncompressed-size-cap') {
-        invalid(error.code, 'Uncompressed snapshot exceeds 64 MiB');
+        invalid(error.code, 'Uncompressed snapshot exceeds its size limit');
       }
       invalid(error.code, error.message);
     }
@@ -75,15 +78,20 @@ export function encodeSnapshot(payload: JournalSnapshotPayload): EncodedSnapshot
 /**
  * Completes every validation stage before returning a value eligible for a
  * domain transaction. This function itself has no mutation capability.
+ * `maxUncompressedBytes` can lower, never raise, the snapshot size cap.
  */
 export function decodeSnapshot(
   compressedBytes: Uint8Array,
   expectedSnapshotId: string,
+  maxUncompressedBytes: number = SNAPSHOT_CAPS.uncompressedBytes,
 ): StoredJournalSnapshot {
   if (!HASH.test(expectedSnapshotId))
     invalid('invalid-hash', 'Expected snapshot ID is malformed');
   // 1-2: compressed cap, then decompression bounded inside the raw inflater.
-  const uncompressed = decompressBounded(compressedBytes);
+  const uncompressed = decompressBounded(
+    compressedBytes,
+    Math.min(maxUncompressedBytes, SNAPSHOT_CAPS.uncompressedBytes),
+  );
   // 3: strict UTF-8, duplicate-aware JSON parse, closed shape and scalar caps.
   const source = decodeUtf8Strict(uncompressed);
   const parsed = parseJsonStrict(source);

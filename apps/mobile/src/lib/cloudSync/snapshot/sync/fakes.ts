@@ -400,11 +400,12 @@ export class MemorySnapshotJournalStore implements SnapshotJournalStore {
   async applyMergedIfGeneration(
     domain: SnapshotDomain,
     expectedGeneration: number,
+    { remoteDerived }: { remoteDerived: boolean },
   ): Promise<boolean> {
     const current = this.state.loadState(this.vaultId, this.deviceId).journalGeneration;
     if (current !== expectedGeneration) return false;
     this.applyCount += 1;
-    this.localProfilePristine = false;
+    if (remoteDerived) this.localProfilePristine = false;
     if (canonicalize(this.domain) !== canonicalize(domain)) {
       this.domain = structuredClone(domain);
     }

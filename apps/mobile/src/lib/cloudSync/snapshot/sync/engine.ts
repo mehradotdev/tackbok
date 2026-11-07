@@ -1,4 +1,4 @@
-import { SnapshotValidationError } from '../caps';
+import { SNAPSHOT_CAPS, SnapshotValidationError } from '../caps';
 import { canonicalize } from '../canonical';
 import { decodeSnapshot, encodeSnapshot } from '../codec';
 import { SnapshotMergeError, mergeSnapshotDomains } from '../merge';
@@ -23,17 +23,54 @@ import { attentionReasonForProviderError } from '../../failureClassification';
 import { AttentionError, RetryableSyncError } from './errors';
 import {
   activeFrontier,
+  commonAncestorDomain,
   domainOf,
   headSignature,
   headsCovered,
+  includesOtherDevices,
   isHeadShapeValid,
   normalizeObservations,
   remoteContainsBase,
   type RemoteHeadSnapshot,
+  type SnapshotLineage,
 } from './frontier';
 import { SnapshotPublisher } from './publication';
 
 const MAX_HEAD_RECHECKS = 4;
+// A merge base older than the local base is found by walking retained
+// parents, only while heads have diverged. Past any limit below, the merge
+// uses an older verified common ancestor, or no base as before.
+// shortcut: per sync pass (all re-plans included), at most 12 ancestor
+// downloads (four devices publishing at once), 32 MiB transferred (two
+// maximum-size snapshots) and 64 MiB of decoded JSON kept (one maximum-size
+// snapshot, beside the heads); raise them once on-device memory and data
+// measurements show larger vaults regularly fall back to a no-base merge.
+const MAX_ANCESTOR_DEPTH = 4;
+const MAX_ANCESTOR_DOWNLOADS = 12;
+const MAX_ANCESTOR_COMPRESSED_BYTES = 2 * SNAPSHOT_CAPS.compressedBytes;
+const MAX_ANCESTOR_DECODED_BYTES = SNAPSHOT_CAPS.uncompressedBytes;
+
+/** Shared by every plan in one sync pass, so re-planning cannot reset it. */
+interface AncestorBudget {
+  downloads: number;
+  compressedBytes: number;
+  decodedBytes: number;
+}
+
+/**
+ * A valid snapshot is one gzip member, so its last four bytes state the
+ * uncompressed size. Damaged bytes can state any size, so this only skips an
+ * honest snapshot that cannot fit before decoding it; the decoder itself
+ * enforces the remaining allowance, and a successful decode verifies it.
+ */
+function statedUncompressedBytes(bytes: Uint8Array): number {
+  if (bytes.length < 4) return 0;
+  const end = bytes.length;
+  return (
+    (bytes[end - 4] | (bytes[end - 3] << 8) | (bytes[end - 2] << 16)) +
+    bytes[end - 1] * 0x1000000
+  );
+}
 
 interface PlannedCandidate {
   existingSnapshot?: RemoteHeadSnapshot;
@@ -119,6 +156,14 @@ export class SnapshotSyncEngine {
       };
     }
 
+    // Content-addressed payloads cannot change under the same hash. Reuse only
+    // successfully decoded payloads during this pass; later syncs verify anew.
+    const verifiedSnapshots = new Map<string, JournalSnapshotPayload>();
+    const ancestorBudget: AncestorBudget = {
+      downloads: MAX_ANCESTOR_DOWNLOADS,
+      compressedBytes: MAX_ANCESTOR_COMPRESSED_BYTES,
+      decodedBytes: MAX_ANCESTOR_DECODED_BYTES,
+    };
     let pending = this.stateStore.loadPending(this.vaultId, this.deviceId);
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       if (!pending) {
@@ -126,7 +171,7 @@ export class SnapshotSyncEngine {
           this.hooks.activity?.('preparing-local-changes');
           await this.hooks.at?.('after-local-mutation');
         }
-        const plan = await this.planCandidate();
+        const plan = await this.planCandidate(verifiedSnapshots, ancestorBudget);
         if (!plan) {
           await this.cleanup.run();
           this.stateStore.clearPause(this.vaultId, this.deviceId);
@@ -195,10 +240,10 @@ export class SnapshotSyncEngine {
     );
   }
 
-  private async planCandidate(): Promise<PlannedCandidate | null> {
-    // Content-addressed payloads cannot change under the same hash. Reuse only
-    // successfully decoded payloads during this plan; later syncs verify anew.
-    const verifiedSnapshots = new Map<string, JournalSnapshotPayload>();
+  private async planCandidate(
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
+    ancestorBudget: AncestorBudget,
+  ): Promise<PlannedCandidate | null> {
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       const listed = await this.provider.listHeads(this.vaultId, true);
       const remoteHeads = await this.loadAndNormalizeHeads(listed, verifiedSnapshots);
@@ -225,20 +270,41 @@ export class SnapshotSyncEngine {
       // Only the captured local side carries local provenance. After the
       // first merge it holds remote content, which is never pristine.
       let localProfilePristine = captured.localProfilePristine;
-      const baseDomain = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
+      // Snapshots the merged journal provably contains: the local base, each
+      // remote merged so far, and their retained ancestors when needed.
+      const history = new Map<string, SnapshotLineage>();
+      const tips: SnapshotLineage[] = [];
+      const walked = new Set<string>();
+      if (loadedBase.shadow) {
+        history.set(loadedBase.shadow.snapshotId, loadedBase.shadow);
+        tips.push(loadedBase.shadow);
+      }
       for (const remote of frontier.sort((left, right) =>
         left.snapshotId.localeCompare(right.snapshotId),
       )) {
         if (loadedBase.shadow?.snapshotId === remote.snapshotId) continue;
-        const remoteDescendsFromBase = loadedBase.shadow
-          ? remoteContainsBase(remote, loadedBase.shadow)
-          : false;
-        merged = mergeSnapshotDomains(
-          remoteDescendsFromBase ? baseDomain : null,
-          merged,
-          domainOf(remote.payload),
-          { localProfilePristine },
-        );
+        // Merge against what both sides provably contain. The local base is
+        // wrong for a concurrent remote: its changes would look like remote
+        // deletions. Without a provable ancestor, merge with no base.
+        // A fresh device has no local base, but each remote it merges still
+        // becomes shared history for the next one.
+        for (const tip of tips) {
+          if (walked.has(tip.snapshotId) || remoteContainsBase(remote, tip)) continue;
+          walked.add(tip.snapshotId);
+          for (const ancestor of await this.loadAncestors(
+            tip.payload,
+            verifiedSnapshots,
+            ancestorBudget,
+          )) {
+            history.set(ancestor.snapshotId, ancestor);
+          }
+        }
+        const baseDomain = commonAncestorDomain(remote, [...history.values()]);
+        history.set(remote.snapshotId, remote);
+        tips.push(remote);
+        merged = mergeSnapshotDomains(baseDomain, merged, domainOf(remote.payload), {
+          localProfilePristine,
+        });
         localProfilePristine = false;
       }
 
@@ -290,6 +356,76 @@ export class SnapshotSyncEngine {
       'transient',
       'Heads changed during every bounded planning attempt',
     );
+  }
+
+  /**
+   * Retained ancestors of a snapshot, nearest first. Retention cleanup may have
+   * deleted some; a missing, damaged or over-budget snapshot only ends that
+   * line of history, so the caller falls back to an older or no base instead
+   * of failing. Authorization and transient provider errors still propagate.
+   */
+  private async loadAncestors(
+    descendant: JournalSnapshotPayload,
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
+    budget: AncestorBudget,
+  ): Promise<SnapshotLineage[]> {
+    const ancestors: SnapshotLineage[] = [];
+    const visited = new Set<string>();
+    let generation = descendant.parentSnapshotIds;
+    for (let depth = 0; depth < MAX_ANCESTOR_DEPTH && generation.length > 0; depth += 1) {
+      const next: string[] = [];
+      for (const snapshotId of [...generation].sort()) {
+        if (visited.has(snapshotId)) continue;
+        visited.add(snapshotId);
+        let payload = verifiedSnapshots.get(snapshotId);
+        if (!payload) {
+          // Reserve a maximum-size transfer: its size is unknown until it ends.
+          if (
+            budget.downloads <= 0 ||
+            budget.compressedBytes < SNAPSHOT_CAPS.compressedBytes ||
+            budget.decodedBytes <= 0
+          ) {
+            continue;
+          }
+          budget.downloads -= 1;
+          // Charge the reservation up front: a damaged transfer may be fully
+          // received before the provider rejects it. Refund what goes unused.
+          budget.compressedBytes -= SNAPSHOT_CAPS.compressedBytes;
+          let bytes: Uint8Array | null;
+          try {
+            this.hooks.activity?.('reading-remote-snapshot');
+            bytes = await this.provider.downloadSnapshot(this.vaultId, snapshotId);
+          } catch (error) {
+            // Damaged bytes (checksum, size, conflicting copies) of an optional
+            // ancestor must not pause a sync whose heads are all valid.
+            if (error instanceof SnapshotProviderError && error.code === 'invalid-data') {
+              continue;
+            }
+            throw error;
+          }
+          await this.hooks.at?.('during-remote-snapshot-download');
+          budget.compressedBytes += SNAPSHOT_CAPS.compressedBytes - (bytes?.length ?? 0);
+          if (!bytes) continue;
+          const decodedBytes = statedUncompressedBytes(bytes);
+          if (decodedBytes > budget.decodedBytes) continue;
+          try {
+            payload = decodeSnapshot(bytes, snapshotId, budget.decodedBytes).payload;
+          } catch {
+            // The output a failed decode inflated is unknown, up to the whole
+            // allowance: charge all of it rather than trust the stated size.
+            budget.decodedBytes = 0;
+            continue;
+          }
+          budget.decodedBytes -= decodedBytes;
+          if (payload.vaultId !== this.vaultId) continue;
+          verifiedSnapshots.set(snapshotId, payload);
+        }
+        ancestors.push({ snapshotId, payload });
+        next.push(...payload.parentSnapshotIds);
+      }
+      generation = next;
+    }
+    return ancestors;
   }
 
   private async loadAndNormalizeHeads(
@@ -408,6 +544,9 @@ export class SnapshotSyncEngine {
     const requiredHashes = [
       ...new Set(merged.media.map((asset) => asset.blobHash)),
     ].sort();
+    const remoteDerived = remotes.some((remote) =>
+      includesOtherDevices(remote.payload, this.deviceId),
+    );
     const remotelyPresent = await this.provider.hasMediaBatch(
       this.vaultId,
       requiredHashes,
@@ -436,7 +575,9 @@ export class SnapshotSyncEngine {
             await this.mediaStore.openDownloadSink(blobHash),
           );
           if (!downloaded) {
-            await this.journal.applyMergedIfGeneration(merged, capturedGeneration);
+            await this.journal.applyMergedIfGeneration(merged, capturedGeneration, {
+              remoteDerived,
+            });
             throw new AttentionError('missing-media', 'remote-media-hash-mismatch');
           }
           await this.hooks.at?.('during-media-transfer');
@@ -455,7 +596,9 @@ export class SnapshotSyncEngine {
         // Apply the already-validated logical journal before pausing. This
         // keeps a fresh text restore useful while still refusing to publish a
         // snapshot that references an absent remote blob.
-        await this.journal.applyMergedIfGeneration(merged, capturedGeneration);
+        await this.journal.applyMergedIfGeneration(merged, capturedGeneration, {
+          remoteDerived,
+        });
         throw new AttentionError(
           localHashes.has(blobHash) && !remoteHashes.has(blobHash)
             ? 'local-media-unreadable'
