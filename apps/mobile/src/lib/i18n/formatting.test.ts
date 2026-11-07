@@ -1,5 +1,5 @@
 import { formatLocalizedDate, formatLocalizedTime } from './dateFormatting';
-import { formatLocalizedNumber } from './numberFormatting';
+import { formatByteSize, formatLocalizedNumber } from './numberFormatting';
 import { getFormattingLocale } from './formattingLocale';
 import { getEffectiveLocale, getEffectiveSupportedLocale } from './store';
 import { translate } from './translations';
@@ -112,4 +112,14 @@ it('preserves the app language when native Intl rejects a synthetic region tag',
   } finally {
     supported.mockRestore();
   }
+});
+
+it('formats file sizes with locale numbers and units', () => {
+  expect(formatByteSize(512, 'en')).toBe('0.5 kB');
+  expect(formatByteSize(640_000, 'en')).toBe('640 kB');
+  expect(formatByteSize(1_234_567, 'en')).toBe('1.2 MB');
+  expect(formatByteSize(31_000_000, 'en')).toBe('31 MB');
+  expect(formatByteSize(2_500_000_000, 'en')).toBe('2.5 GB');
+  // German uses a decimal comma.
+  expect(formatByteSize(1_234_567, 'de')).toBe('1,2 MB');
 });

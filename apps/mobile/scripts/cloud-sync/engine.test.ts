@@ -43,6 +43,10 @@ import type {
 } from '../../src/lib/cloudSync/snapshot/types';
 import { PHASE_FOR_ENGINE_ACTIVITY } from '../../src/lib/cloudSync/runtime/activity';
 import type { SyncPassPhase } from '../../src/lib/cloudSync/runtime/SyncRuntime';
+import {
+  SyncProgressTracker,
+  type SyncProgress,
+} from '../../src/lib/cloudSync/runtime/progress';
 import { clearAuthorizationPause } from '../../src/lib/cloudSync/ui/connectionRecovery';
 import { encodeGzip } from '../../src/lib/zip/core/gzip-codec';
 
@@ -3113,5 +3117,226 @@ describe('sync progress phases', () => {
       'downloadSnapshot=checking',
       'downloadSnapshot=checking',
     ]);
+  });
+});
+
+/**
+ * Mirrors the production wiring for progress: engine hooks plus the byte
+ * reports the Drive provider makes, here in two reads per transfer.
+ */
+function recordProgress(provider: FakeSnapshotProvider) {
+  const seen: SyncProgress[] = [];
+  const tracker: SyncProgressTracker = new SyncProgressTracker(
+    () => {
+      const progress = tracker.current.progress;
+      if (progress) seen.push(structuredClone(progress));
+    },
+    undefined,
+    0,
+  );
+  const report: NonNullable<SnapshotSyncHooks['progress']> = (value) =>
+    tracker.report(value);
+  const transferred = (key: string, total: number) => {
+    report({ type: 'bytes', key, done: Math.floor(total / 2) });
+    report({ type: 'bytes', key, done: total });
+  };
+  const sizes = new Map<string, number>();
+  const listHeads = provider.listHeads.bind(provider);
+  provider.listHeads = async (...args) =>
+    (await listHeads(...args)).map((listed) => ({
+      ...listed,
+      snapshotBytes: sizes.get(listed.head.snapshotId) ?? listed.snapshotBytes,
+    }));
+  const uploadSnapshot = provider.uploadSnapshot.bind(provider);
+  provider.uploadSnapshot = async (vaultId, snapshotId, bytes, createdAt) => {
+    await uploadSnapshot(vaultId, snapshotId, bytes, createdAt);
+    sizes.set(snapshotId, bytes.byteLength);
+    transferred(snapshotId, bytes.byteLength);
+  };
+  const downloadSnapshot = provider.downloadSnapshot.bind(provider);
+  provider.downloadSnapshot = async (vaultId, snapshotId) => {
+    const bytes = await downloadSnapshot(vaultId, snapshotId);
+    if (bytes) transferred(snapshotId, bytes.byteLength);
+    return bytes;
+  };
+  const uploadMedia = provider.uploadMedia.bind(provider);
+  provider.uploadMedia = async (vaultId, blobHash, source) => {
+    await uploadMedia(vaultId, blobHash, source);
+    transferred(blobHash, source.byteLength);
+  };
+  const downloadMedia = provider.downloadMedia.bind(provider);
+  provider.downloadMedia = async (vaultId, blobHash, sink) => {
+    const downloaded = await downloadMedia(vaultId, blobHash, sink);
+    if (downloaded) transferred(blobHash, await sink.byteLength());
+    return downloaded;
+  };
+  return {
+    seen,
+    tracker,
+    hooks: (extra: SnapshotSyncHooks = {}): SnapshotSyncHooks => ({
+      ...extra,
+      progress: report,
+    }),
+    /** One pass, bounded the way the production runtime bounds it. */
+    async pass(engine: SnapshotSyncEngine) {
+      report({ type: 'pass', state: 'start' });
+      try {
+        return await engine.sync();
+      } finally {
+        report({ type: 'pass', state: 'end' });
+      }
+    },
+  };
+}
+
+/** Counts move forward within a step; only a re-plan returns to the check. */
+function expectMonotonic(seen: SyncProgress[]) {
+  for (let index = 1; index < seen.length; index += 1) {
+    const previous = seen[index - 1];
+    const next = seen[index];
+    if (next.phase === 'checking' && next.step === 1 && previous.step > 1) {
+      expect(next.items).toBeUndefined();
+      continue;
+    }
+    expect(next.step).toBeGreaterThanOrEqual(previous.step);
+    if (next.phase !== previous.phase) continue;
+    if (previous.items && next.items && previous.items.total === next.items.total) {
+      expect(next.items.done).toBeGreaterThanOrEqual(previous.items.done);
+    }
+    if (previous.bytes && next.bytes) {
+      expect(next.bytes.done).toBeGreaterThanOrEqual(previous.bytes.done);
+    }
+  }
+}
+
+function mediaAsset(assetId: string, ownerId: string, bytes: Uint8Array) {
+  return {
+    assetId,
+    ownerType: 'entry' as const,
+    ownerId,
+    kind: 'photo' as const,
+    blobHash: sha256Bytes(bytes),
+    mimeType: 'image/jpeg',
+    byteSize: bytes.length,
+    width: 10,
+    height: 10,
+    durationMs: null,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+}
+
+describe('detailed sync progress', () => {
+  test('counts move forward within each step and reset between passes', async () => {
+    const provider = new FakeSnapshotProvider();
+    const photos = [
+      new TextEncoder().encode('first synthetic photo'),
+      new TextEncoder().encode('second, somewhat longer synthetic photo'),
+    ];
+    const domain = withEntry(blankDomain(), entry('entry-photos', 'Two photos'));
+    domain.media = photos.map((bytes, index) =>
+      mediaAsset(`asset-${index}`, 'entry-photos', bytes),
+    );
+    const source = harness('device-source', domain, provider);
+    for (const bytes of photos)
+      await source.media.writeVerified(sha256Bytes(bytes), bytes);
+    source.state.markDirty(source.vaultId, source.deviceId);
+    const photoBytes = photos[0].length + photos[1].length;
+
+    const upload = recordProgress(provider);
+    expect((await upload.pass(source.engine(upload.hooks()))).status).toBe('published');
+    expectMonotonic(upload.seen);
+    expect(upload.seen.map(({ step }) => step)).toContain(4);
+    expect(
+      upload.seen.findLast(({ phase }) => phase === 'uploading-media'),
+    ).toMatchObject({
+      step: 4,
+      items: { done: 2, total: 2 },
+      bytes: { done: photoBytes, total: photoBytes },
+    });
+    const published = upload.seen.findLast(({ phase }) => phase === 'uploading');
+    expect(published?.bytes?.done).toBe(published?.bytes?.total);
+    expect(published?.bytes?.total).toBeGreaterThan(0);
+    expect(upload.tracker.current.progress).toBeNull();
+
+    const target = harness('device-target', blankDomain(), provider, source.clock);
+    const download = recordProgress(provider);
+    expect((await download.pass(target.engine(download.hooks()))).status).toBe('pulled');
+    expectMonotonic(download.seen);
+    expect(download.seen.find(({ items }) => items)).toEqual({
+      phase: 'checking',
+      step: 1,
+      totalSteps: 4,
+      items: { done: 0, total: 1 },
+    });
+    // The head's size is known, so the download reports bytes, not files.
+    const snapshot = download.seen.findLast(({ phase }) => phase === 'downloading');
+    expect(snapshot).toMatchObject({ step: 2, items: { done: 1, total: 1 } });
+    expect(snapshot?.bytes?.done).toBe(published?.bytes?.total);
+    expect(download.seen.map(({ phase }) => phase)).toContain('merging');
+    expect(
+      download.seen.findLast(({ phase }) => phase === 'downloading-media'),
+    ).toMatchObject({
+      step: 4,
+      items: { done: 2, total: 2 },
+      bytes: { done: photoBytes, total: photoBytes },
+    });
+
+    // The next pass starts over: nothing from the previous pass carries in.
+    download.seen.length = 0;
+    expect((await download.pass(target.engine(download.hooks()))).status).toBe(
+      'up-to-date',
+    );
+    expect(download.seen[0]).toEqual({ phase: 'checking', step: 1, totalSteps: 4 });
+    // Heads are verified once per pass, so the snapshot is read again from zero.
+    expect(download.seen.find(({ phase }) => phase === 'downloading')).toMatchObject({
+      step: 2,
+      items: { done: 0, total: 1 },
+      bytes: { done: 0, total: published?.bytes?.total },
+    });
+    expectMonotonic(download.seen);
+    expect(download.tracker.current.progress).toBeNull();
+  });
+
+  test('re-planning after another device publishes goes back to the check', async () => {
+    const provider = new FakeSnapshotProvider();
+    const first = harness('device-a', blankDomain(), provider);
+    const second = harness('device-b', blankDomain(), provider, first.clock);
+    first.journal.mutate(withEntry(first.journal.current(), entry('entry-a', 'From A')));
+    second.journal.mutate(
+      withEntry(second.journal.current(), entry('entry-b', 'From B')),
+    );
+
+    const progress = recordProgress(provider);
+    let interrupted = false;
+    const result = await progress.pass(
+      first.engine(
+        progress.hooks({
+          async beforeHeadRecheck() {
+            if (interrupted) return;
+            interrupted = true;
+            await second.engine().sync();
+          },
+        }),
+      ),
+    );
+    expect(result.status).toBe('published');
+    expectMonotonic(progress.seen);
+    const restart = progress.seen.findIndex(
+      (value, index) => index > 0 && value.step < progress.seen[index - 1].step,
+    );
+    expect(restart).toBeGreaterThan(0);
+    expect(progress.seen[restart]).toEqual({ phase: 'checking', step: 1, totalSteps: 4 });
+    // The re-check already read device B's snapshot, so the second attempt
+    // counts it as checked and has nothing left to download.
+    const retried = progress.seen.slice(restart);
+    expect(retried).toContainEqual({
+      phase: 'checking',
+      step: 1,
+      totalSteps: 4,
+      items: { done: 1, total: 1 },
+    });
+    expect(retried.map(({ phase }) => phase)).not.toContain('downloading');
+    expect(retried.map(({ phase }) => phase)).toContain('merging');
   });
 });

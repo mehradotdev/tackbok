@@ -26,4 +26,4 @@ export {
 } from './dateFormatting';
 
 // Number Formatting
-export { formatLocalizedNumber } from './numberFormatting';
+export { formatByteSize, formatLocalizedNumber } from './numberFormatting';

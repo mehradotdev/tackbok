@@ -842,6 +842,24 @@ export const sv = {
   'cloud.syncResumed': 'Synkroniseringen återupptogs',
   'cloud.syncIsFasterWithTackbokOpen':
     'Det går snabbare när Tackbok är öppet. Om du lämnar appen fortsätter den där den slutade.',
+  'cloud.progress.combiningChanges': 'Ändringarna slås ihop…',
+  'cloud.progress.uploadingPhotosAndVoiceNotes': 'Laddar upp foton och röstanteckningar…',
+  'cloud.progress.devicesChecked': '{done} av {count} enheter kontrollerade',
+  'cloud.progress.filesDownloaded': '{done} av {count} filer nedladdade',
+  'cloud.progress.doneOfTotal': '{done} av {total}',
+  'cloud.progress.doneOfTotalWithAmount':
+    '{done} av {total} ({doneAmount} av {totalAmount})',
+  'cloud.progress.stepOfTotal': 'Steg {step} av {total}',
+  'cloud.progress.stepOfTotalWithTimeLeft': 'Steg {step} av {total} · {timeLeft}',
+  'cloud.progress.aboutMinutesLeft': 'cirka {minutes} min kvar',
+  'cloud.progress.lessThanAMinuteLeft': 'mindre än en minut kvar',
+  'cloud.progress.rateLimitedRetryingInSeconds':
+    'Google bad oss sakta ner. Försöker igen om {seconds} s',
+  'cloud.progress.connectionProblemRetryingInSeconds':
+    'Anslutningsproblem. Försöker igen om {seconds} s',
+  'cloud.progress.waitingForInternet': 'Väntar på internet…',
+  'cloud.progress.waitingForWifi':
+    'Väntar på Wi-Fi för att synkronisera foton och röstanteckningar',
   'cloud.syncMediaOnWiFiOnly': 'Synkronisera media endast på Wi-Fi',
   'cloud.syncing': 'Synkroniseras...',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':

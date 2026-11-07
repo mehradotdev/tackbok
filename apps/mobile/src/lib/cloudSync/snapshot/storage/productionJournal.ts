@@ -812,6 +812,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   async hydratePendingMedia(
     provider: SnapshotProvider,
     limit = 2,
+    onDownloaded?: () => void,
   ): Promise<{ hydrated: number; missing: number }> {
     const pending = await db
       .select()
@@ -838,6 +839,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         missing += 1;
         continue;
       }
+      onDownloaded?.();
       const descriptor: SnapshotMedia = {
         assetId: row.asset_id,
         ownerType: row.owner_type,

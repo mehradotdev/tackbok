@@ -865,6 +865,24 @@ export const es = {
   'cloud.syncResumed': 'Sincronización reanudada',
   'cloud.syncIsFasterWithTackbokOpen':
     'Es más rápido con Tackbok abierto. Si sales, continuará donde lo dejó.',
+  'cloud.progress.combiningChanges': 'Combinando cambios…',
+  'cloud.progress.uploadingPhotosAndVoiceNotes': 'Subiendo fotos y notas de voz…',
+  'cloud.progress.devicesChecked': '{done} de {count} dispositivos revisados',
+  'cloud.progress.filesDownloaded': '{done} de {count} archivos descargados',
+  'cloud.progress.doneOfTotal': '{done} de {total}',
+  'cloud.progress.doneOfTotalWithAmount':
+    '{done} de {total} ({doneAmount} de {totalAmount})',
+  'cloud.progress.stepOfTotal': 'Paso {step} de {total}',
+  'cloud.progress.stepOfTotalWithTimeLeft': 'Paso {step} de {total} · {timeLeft}',
+  'cloud.progress.aboutMinutesLeft': 'quedan unos {minutes} min',
+  'cloud.progress.lessThanAMinuteLeft': 'queda menos de un minuto',
+  'cloud.progress.rateLimitedRetryingInSeconds':
+    'Google nos pidió ir más despacio. Se volverá a intentar en {seconds} s',
+  'cloud.progress.connectionProblemRetryingInSeconds':
+    'Problema de conexión. Se volverá a intentar en {seconds} s',
+  'cloud.progress.waitingForInternet': 'Esperando conexión a internet…',
+  'cloud.progress.waitingForWifi':
+    'Esperando Wi-Fi para sincronizar fotos y notas de voz',
   'cloud.syncMediaOnWiFiOnly': 'Sincronizar medios solo en Wi-Fi',
   'cloud.syncing': 'Sincronizando…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':

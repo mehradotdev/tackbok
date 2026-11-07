@@ -93,6 +93,8 @@ export interface DeviceHead {
 export interface ListedDeviceHead {
   physicalId: string;
   head: DeviceHead;
+  /** Compressed size of the head's snapshot when the provider already knows it. */
+  snapshotBytes?: number;
 }
 
 export interface SnapshotObject {
@@ -315,8 +317,54 @@ export type SnapshotSyncActivity =
   | 'publishing-local-snapshot'
   | 'applying-remote-snapshot';
 
+/** What the progress line describes. Finer than activity: media has its own phases. */
+export type SyncProgressPhase =
+  | 'preparing'
+  | 'checking'
+  | 'downloading'
+  | 'merging'
+  | 'uploading'
+  | 'uploading-media'
+  | 'downloading-media';
+
+export type SyncWaitReason =
+  | 'rate-limited'
+  | 'retry-backoff'
+  | 'offline'
+  | 'wifi-only-media';
+
+export interface SyncProgressCount {
+  done: number;
+  total: number;
+}
+
+/**
+ * Progress reported by the engine, provider and transport. Like activity, a
+ * plan or phase is reported before its work starts. Display only: progress
+ * never changes what a pass does.
+ */
+export type SyncProgressReport =
+  /** A pass starts or ends; progress from the previous pass is dropped. */
+  | { type: 'pass'; state: 'start' | 'end' }
+  /** Work for a phase is known; resets that phase's counts and makes it current. */
+  | {
+      type: 'plan';
+      phase: SyncProgressPhase;
+      items?: SyncProgressCount;
+      bytesTotal?: number;
+    }
+  /** Work continues in a phase whose counts are kept, such as media directions. */
+  | { type: 'phase'; phase: SyncProgressPhase }
+  /** One planned item in `phase` finished. */
+  | { type: 'item'; phase: SyncProgressPhase }
+  /** Bytes moved so far for one object, counted toward the current phase. */
+  | { type: 'bytes'; key: string; done: number }
+  /** A wait started (with its end time when known) or ended (`reason: null`). */
+  | { type: 'wait'; reason: SyncWaitReason | null; until?: number };
+
 export interface SnapshotSyncHooks {
   at?(point: SnapshotKillPoint): void | Promise<void>;
   activity?(activity: SnapshotSyncActivity): void;
+  progress?(report: SyncProgressReport): void;
   beforeHeadRecheck?(): void | Promise<void>;
 }

@@ -900,6 +900,27 @@ export const en = {
   'cloud.syncResumed': 'Sync resumed',
   'cloud.syncIsFasterWithTackbokOpen':
     'It’s faster with Tackbok open. If you leave, it picks up where it left off.',
+  'cloud.progress.combiningChanges': 'Combining changes…',
+  'cloud.progress.uploadingPhotosAndVoiceNotes': 'Uploading photos and voice notes…',
+  'cloud.progress.devicesChecked': '{done} of {count} devices checked',
+  'cloud.progress.filesDownloaded': '{done} of {count} files downloaded',
+  // Items or file sizes done so far, e.g. "3 of 12" or "1.2 MB of 4.8 MB".
+  'cloud.progress.doneOfTotal': '{done} of {total}',
+  // Photos and voice notes done, then their sizes: "3 of 12 (8.4 MB of 31 MB)".
+  'cloud.progress.doneOfTotalWithAmount':
+    '{done} of {total} ({doneAmount} of {totalAmount})',
+  'cloud.progress.stepOfTotal': 'Step {step} of {total}',
+  // {timeLeft} is cloud.progress.aboutMinutesLeft or cloud.progress.lessThanAMinuteLeft.
+  'cloud.progress.stepOfTotalWithTimeLeft': 'Step {step} of {total} · {timeLeft}',
+  // Estimated time left in the current step; follows the step after " · ".
+  'cloud.progress.aboutMinutesLeft': 'about {minutes} min left',
+  'cloud.progress.lessThanAMinuteLeft': 'less than a minute left',
+  'cloud.progress.rateLimitedRetryingInSeconds':
+    'Google asked us to slow down. Trying again in {seconds} s',
+  'cloud.progress.connectionProblemRetryingInSeconds':
+    'Connection problem. Retrying in {seconds} s',
+  'cloud.progress.waitingForInternet': 'Waiting for internet…',
+  'cloud.progress.waitingForWifi': 'Waiting for Wi-Fi to sync photos and voice notes',
   'cloud.syncMediaOnWiFiOnly': 'Sync media on Wi-Fi only',
   'cloud.syncing': 'Syncing…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':

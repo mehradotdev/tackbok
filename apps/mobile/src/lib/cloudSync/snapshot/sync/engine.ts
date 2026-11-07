@@ -12,6 +12,7 @@ import { SnapshotCleanup } from './cleanup';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   ListedDeviceHead,
+  MediaUploadSource,
   SnapshotJournalStore,
   SnapshotMediaStore,
   SnapshotProvider,
@@ -245,8 +246,13 @@ export class SnapshotSyncEngine {
     ancestorBudget: AncestorBudget,
   ): Promise<PlannedCandidate | null> {
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
+      this.hooks.progress?.({ type: 'plan', phase: 'checking' });
       const listed = await this.provider.listHeads(this.vaultId, true);
-      const remoteHeads = await this.loadAndNormalizeHeads(listed, verifiedSnapshots);
+      const remoteHeads = await this.loadAndNormalizeHeads(
+        listed,
+        verifiedSnapshots,
+        true,
+      );
       const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
       const loadedBase = await this.shadowManager.load(checkpoint);
       const captured = await this.journal.capture();
@@ -266,6 +272,7 @@ export class SnapshotSyncEngine {
         return null;
       }
 
+      this.hooks.progress?.({ type: 'plan', phase: 'merging' });
       let merged = captured.domain;
       // Only the captured local side carries local provenance. After the
       // first merge it holds remote content, which is never pristine.
@@ -433,9 +440,11 @@ export class SnapshotSyncEngine {
     return ancestors;
   }
 
+  /** `reportProgress` is false for the re-check, which normally reads nothing new. */
   private async loadAndNormalizeHeads(
     listed: ListedDeviceHead[],
     verifiedSnapshots: Map<string, JournalSnapshotPayload>,
+    reportProgress = false,
   ): Promise<RemoteHeadSnapshot[]> {
     const grouped = new Map<string, ListedDeviceHead[]>();
     for (const candidate of listed) {
@@ -486,6 +495,29 @@ export class SnapshotSyncEngine {
       }
     }
 
+    if (reportProgress) {
+      const unread = normalized.filter(
+        (candidate) => !verifiedSnapshots.has(candidate.head.snapshotId),
+      );
+      this.hooks.progress?.({
+        type: 'plan',
+        phase: 'checking',
+        items: { done: normalized.length - unread.length, total: normalized.length },
+      });
+      if (unread.length > 0) {
+        const sizes = unread.map((candidate) => candidate.snapshotBytes);
+        this.hooks.progress?.({
+          type: 'plan',
+          phase: 'downloading',
+          items: { done: 0, total: unread.length },
+          // Bytes only when every size is known; otherwise count files.
+          bytesTotal: sizes.every((size) => size !== undefined)
+            ? sizes.reduce<number>((total, size) => total + size!, 0)
+            : undefined,
+        });
+      }
+    }
+
     const snapshots: RemoteHeadSnapshot[] = [];
     for (const candidate of normalized) {
       let payload = verifiedSnapshots.get(candidate.head.snapshotId);
@@ -495,6 +527,7 @@ export class SnapshotSyncEngine {
           this.vaultId,
           candidate.head.snapshotId,
         );
+        if (reportProgress) this.hooks.progress?.({ type: 'item', phase: 'downloading' });
         await this.hooks.at?.('during-remote-snapshot-download');
         if (!bytes)
           throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
@@ -556,6 +589,14 @@ export class SnapshotSyncEngine {
       this.vaultId,
       requiredHashes,
     );
+    // Decide every transfer before the first one starts, so progress knows
+    // the totals. Each blob is still inspected once, in the same order.
+    const plan: {
+      blobHash: string;
+      remotePresent: boolean;
+      localPresent: boolean;
+      source: MediaUploadSource | null;
+    }[] = [];
     for (const blobHash of requiredHashes) {
       const remotePresent = remotelyPresent.has(blobHash);
       // An upload source already proves local availability. Do not hash the
@@ -566,13 +607,43 @@ export class SnapshotSyncEngine {
       const localPresent = remotePresent
         ? await this.mediaStore.hasVerified(blobHash)
         : source !== null;
+      plan.push({ blobHash, remotePresent, localPresent, source });
+    }
+    const byteSize = new Map(
+      merged.media.map((asset) => [asset.blobHash, asset.byteSize]),
+    );
+    const uploads = plan.filter((item) => !item.remotePresent && item.localPresent);
+    const downloads = plan.filter((item) => item.remotePresent && !item.localPresent);
+    if (uploads.length > 0) {
+      this.hooks.progress?.({
+        type: 'plan',
+        phase: 'uploading-media',
+        items: { done: 0, total: uploads.length },
+        bytesTotal: uploads.reduce((total, item) => total + item.source!.byteLength, 0),
+      });
+    }
+    if (downloads.length > 0) {
+      this.hooks.progress?.({
+        type: 'plan',
+        phase: 'downloading-media',
+        items: { done: 0, total: downloads.length },
+        bytesTotal: downloads.reduce(
+          (total, item) => total + (byteSize.get(item.blobHash) ?? 0),
+          0,
+        ),
+      });
+    }
+    for (const { blobHash, remotePresent, localPresent, source } of plan) {
       if (!remotePresent && localPresent) {
         if (!source || source.contentHash !== blobHash) {
           throw new AttentionError('local-media-unreadable', 'local-media-hash-mismatch');
         }
+        this.hooks.progress?.({ type: 'phase', phase: 'uploading-media' });
         await this.provider.uploadMedia(this.vaultId, blobHash, source);
+        this.hooks.progress?.({ type: 'item', phase: 'uploading-media' });
         await this.hooks.at?.('during-media-transfer');
       } else if (remotePresent && !localPresent) {
+        this.hooks.progress?.({ type: 'phase', phase: 'downloading-media' });
         try {
           const downloaded = await this.provider.downloadMedia(
             this.vaultId,
@@ -585,6 +656,7 @@ export class SnapshotSyncEngine {
             });
             throw new AttentionError('missing-media', 'remote-media-hash-mismatch');
           }
+          this.hooks.progress?.({ type: 'item', phase: 'downloading-media' });
           await this.hooks.at?.('during-media-transfer');
         } catch (error) {
           // A policy/transient download block (notably Wi-Fi-only media) must

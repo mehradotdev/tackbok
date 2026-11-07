@@ -46,6 +46,7 @@ jest.mock('drizzle-orm', () => ({
   isNull: jest.fn(),
   ne: jest.fn(),
   or: jest.fn(),
+  sum: jest.fn(),
 }));
 jest.mock('expo-network', () => ({}));
 jest.mock('~/lib/analytics', () => ({ track: jest.fn() }));

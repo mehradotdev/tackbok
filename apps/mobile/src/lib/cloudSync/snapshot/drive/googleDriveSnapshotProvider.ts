@@ -10,6 +10,7 @@ import type {
   SnapshotProvider,
   MediaDownloadSink,
   MediaUploadSource,
+  SyncProgressReport,
 } from '../sync/types';
 import { MediaIntegrityError, SnapshotProviderError } from '../sync/types';
 import { SyncCancelledError, untilCancelled } from '../sync/errors';
@@ -64,6 +65,8 @@ export interface GoogleDriveSnapshotProviderOptions {
   now?: () => number;
   /** The running pass's cancellation signal; requests and waits stop when it aborts. */
   signal?: () => AbortSignal | null | undefined;
+  /** Display only: bytes moved for snapshots and media, and retry waits. */
+  onProgress?: (report: SyncProgressReport) => void;
 }
 
 export interface AvailableDriveVault {
@@ -210,9 +213,11 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private readonly random: () => number;
   private readonly now: () => number;
   private readonly immutableWrites = new Map<string, Promise<void>>();
+  private readonly onProgress?: (report: SyncProgressReport) => void;
 
   constructor(options: GoogleDriveSnapshotProviderOptions) {
     this.state = options.state;
+    this.onProgress = options.onProgress;
     const sleep =
       options.sleep ??
       ((milliseconds) =>
@@ -230,6 +235,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       random: this.random,
       now: this.now,
       signal: options.signal,
+      onProgress: options.onProgress,
     });
     this.discovery = new DriveDiscovery({
       state: this.state,
@@ -356,7 +362,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           'Cached Drive head has no validated envelope',
         );
       }
-      return { physicalId: record.fileId, head: { ...record.head } };
+      const snapshot = this.state
+        .listKey(vaultId, this.snapshotKey(record.head.snapshotId))
+        .find((file) => file.kind === 'snapshot');
+      return {
+        physicalId: record.fileId,
+        head: { ...record.head },
+        ...(snapshot ? { snapshotBytes: snapshot.byteCount } : {}),
+      };
     });
   }
 
@@ -673,6 +686,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           'Immutable Drive key has conflicting content',
         );
       }
+      this.reportBytes(key, bytes.byteLength);
       return;
     }
     let uploaded: DriveFile | null = null;
@@ -709,6 +723,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       if (!match) throw error;
       this.state.upsertFile(vaultId, this.record(match, kind, null));
     }
+    this.reportBytes(key, bytes.byteLength);
   }
 
   private async putImmutableMedia(
@@ -744,6 +759,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           'Immutable Drive key has conflicting content',
         );
       }
+      this.reportBytes(key, source.byteLength);
       return;
     }
     let uploaded: DriveFile | null = null;
@@ -800,6 +816,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       if (!match) throw error;
       this.state.upsertFile(vaultId, this.record(match, 'media', null));
     }
+    this.reportBytes(key, source.byteLength);
   }
 
   private async serializeImmutableWrite(
@@ -975,6 +992,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         );
         if (status.status === 200 || status.status === 201) {
           this.state.deleteUploadSession(vaultId, key, hash);
+          this.reportBytes(key, source.byteLength);
           return parseDriveFile(await status.json());
         }
         const range = /^bytes=0-(\d+)$/.exec(status.headers.get('range') ?? '');
@@ -991,6 +1009,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         }
         session = { ...session, uploadedBytes: uploaded };
         this.state.setUploadSession(vaultId, session);
+        this.reportBytes(key, uploaded);
       } catch (error) {
         if (!(error instanceof DriveRequestError) || ![404, 410].includes(error.status)) {
           throw error;
@@ -1064,6 +1083,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         uploaded = end;
         session = { ...session, uploadedBytes: uploaded };
         this.state.setUploadSession(vaultId, session);
+        this.reportBytes(key, uploaded);
         if (final) {
           this.state.deleteUploadSession(vaultId, key, hash);
           return parseDriveFile(await response.json());
@@ -1126,6 +1146,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
     const chunks: Uint8Array[] = [];
     let receivedBytes = 0;
+    // Heads are tiny and read during other work; only count snapshot bytes.
+    const report = (bytes: number) => {
+      if (kind === 'snapshot') this.reportBytes(file.name, bytes);
+    };
     if (response.body) {
       const reader = response.body.getReader();
       while (true) {
@@ -1140,6 +1164,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
             );
           }
           chunks.push(new Uint8Array(value));
+          report(receivedBytes);
         }
       }
     } else {
@@ -1151,6 +1176,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         );
       }
       chunks.push(value);
+      report(value.byteLength);
     }
     const bytes = concatBytes(chunks);
     if (
@@ -1177,8 +1203,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
     if (offset === file.byteCount) {
       await sink.verifyAndPromote(file.byteCount, file.contentSha256);
+      this.reportBytes(file.logicalKey, file.byteCount);
       return;
     }
+    this.reportBytes(file.logicalKey, offset);
     const response = await this.request(
       vaultId,
       'download',
@@ -1232,6 +1260,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         consumed += accepted;
         if (pendingBytes === MEDIA_CHUNK_SIZE) await flush();
       }
+      this.reportBytes(file.logicalKey, offset + pendingBytes);
     }
     await flush();
     if (offset !== file.byteCount) {
@@ -1241,6 +1270,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       );
     }
     await sink.verifyAndPromote(file.byteCount, file.contentSha256);
+  }
+
+  private reportBytes(key: string, done: number): void {
+    this.onProgress?.({ type: 'bytes', key, done });
   }
 
   private async queryFiles(vaultId: string, query: string): Promise<DriveFile[]> {

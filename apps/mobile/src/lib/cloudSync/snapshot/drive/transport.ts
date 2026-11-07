@@ -1,7 +1,7 @@
 import { CloudAuthError, type CloudAuthorization } from '../../auth/types';
 import { providerErrorCodeForAuthError } from '../../failureClassification';
 import { SyncCancelledError, throwIfCancelled, untilCancelled } from '../sync/errors';
-import type { SnapshotProviderErrorCode } from '../sync/types';
+import type { SnapshotProviderErrorCode, SyncProgressReport } from '../sync/types';
 import { SnapshotProviderError } from '../sync/types';
 import {
   driveByteBucket,
@@ -260,6 +260,8 @@ export interface DriveTransportOptions {
   now: () => number;
   /** The running pass's cancellation signal, read at the start of each request. */
   signal?: () => AbortSignal | null | undefined;
+  /** Display only: reports retry waits so they never look like a stall. */
+  onProgress?: (report: SyncProgressReport) => void;
 }
 
 export class DriveTransport {
@@ -331,7 +333,7 @@ export class DriveTransport {
             : new DriveRequestError('transient', 0, 'Unable to reach Google Drive');
         this.recordAttempt(methodClass, error, started, init.body, null, attempt > 0);
         if (options.idempotent && attempt < 2) {
-          await this.sleep(this.retryDelay(attempt), signal);
+          await this.wait('retry-backoff', this.retryDelay(attempt), signal);
           continue;
         }
         throw error;
@@ -396,7 +398,11 @@ export class DriveTransport {
         // pass will wait ends the pass; the durable window gates later passes.
         const delay = retryAfterMs ?? this.retryDelay(attempt);
         if (delay > MAX_RETRY_DELAY_MS) throw error;
-        await this.sleep(delay, signal);
+        await this.wait(
+          error.code === 'rate-limited' ? 'rate-limited' : 'retry-backoff',
+          delay,
+          signal,
+        );
         continue;
       }
       throw error;
@@ -428,7 +434,7 @@ export class DriveTransport {
           retryWait,
         );
       }
-      await this.sleep(retryWait, signal);
+      await this.wait('rate-limited', retryWait, signal);
       honored = notBefore;
     }
   }
@@ -443,6 +449,24 @@ export class DriveTransport {
 
   private sleep(milliseconds: number, signal: AbortSignal | null): Promise<void> {
     return untilCancelled(this.options.sleep(milliseconds), signal);
+  }
+
+  /** A retry sleep, reported with its end time while it lasts. */
+  private async wait(
+    reason: 'rate-limited' | 'retry-backoff',
+    milliseconds: number,
+    signal: AbortSignal | null,
+  ): Promise<void> {
+    this.options.onProgress?.({
+      type: 'wait',
+      reason,
+      until: this.options.now() + milliseconds,
+    });
+    try {
+      await this.sleep(milliseconds, signal);
+    } finally {
+      this.options.onProgress?.({ type: 'wait', reason: null });
+    }
   }
 
   private retryDelay(attempt: number): number {

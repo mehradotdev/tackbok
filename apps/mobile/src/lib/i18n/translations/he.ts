@@ -873,6 +873,23 @@ export const he: Translations = {
   'cloud.syncResumed': 'הסנכרון חודש',
   'cloud.syncIsFasterWithTackbokOpen':
     'זה מהיר יותר כש-Tackbok פתוח. אם יוצאים, הסנכרון ימשיך מהמקום שבו נעצר.',
+  'cloud.progress.combiningChanges': 'שילוב השינויים…',
+  'cloud.progress.uploadingPhotosAndVoiceNotes': 'העלאת תמונות והקלטות קוליות…',
+  'cloud.progress.devicesChecked': 'נבדקו {done} מתוך {count} מכשירים',
+  'cloud.progress.filesDownloaded': 'הורדו {done} מתוך {count} קבצים',
+  'cloud.progress.doneOfTotal': '{done} מתוך {total}',
+  'cloud.progress.doneOfTotalWithAmount':
+    '{done} מתוך {total} ({doneAmount} מתוך {totalAmount})',
+  'cloud.progress.stepOfTotal': 'שלב {step} מתוך {total}',
+  'cloud.progress.stepOfTotalWithTimeLeft': 'שלב {step} מתוך {total} · {timeLeft}',
+  'cloud.progress.aboutMinutesLeft': 'נותרו כ-{minutes} דק׳',
+  'cloud.progress.lessThanAMinuteLeft': 'נותרה פחות מדקה',
+  'cloud.progress.rateLimitedRetryingInSeconds':
+    'Google ביקשה מאיתנו להאט. ניסיון חוזר בעוד {seconds} שנ׳',
+  'cloud.progress.connectionProblemRetryingInSeconds':
+    'בעיית חיבור. ניסיון חוזר בעוד {seconds} שנ׳',
+  'cloud.progress.waitingForInternet': 'בהמתנה לאינטרנט…',
+  'cloud.progress.waitingForWifi': 'בהמתנה ל-Wi-Fi לסנכרון תמונות והקלטות קוליות',
   'cloud.syncMediaOnWiFiOnly': 'סנכרון מדיה ב-Wi-Fi בלבד',
   'cloud.syncing': 'מסנכרן…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':

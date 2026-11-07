@@ -16,6 +16,7 @@ import { useSettingsStore } from '~/lib/settings';
 import { isNormalizedModelReady, runNormalizedModelBackfill } from '../storage/backfill';
 import { SyncRuntime, type RuntimePlatform, type RuntimeSyncEngine } from './SyncRuntime';
 import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
+import { SyncProgressTracker, type SyncProgressSnapshot } from './progress';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { readCloudSyncFailureCategory } from '../failureClassification';
@@ -24,6 +25,21 @@ export type { ProductionCloudSyncActivity } from './activity';
 
 const productionCloudSyncListeners = new Set<() => void>();
 const productionCloudSyncActivity = new SyncActivity(notifyProductionCloudSyncChanged);
+// Progress changes often, so it has its own listeners: reloading the database
+// snapshot on every update would be wasted work.
+const productionCloudSyncProgressListeners = new Set<() => void>();
+const productionCloudSyncProgress = new SyncProgressTracker(() =>
+  productionCloudSyncProgressListeners.forEach((listener) => listener()),
+);
+
+export function getProductionCloudSyncProgress(): SyncProgressSnapshot {
+  return productionCloudSyncProgress.current;
+}
+
+export function subscribeProductionCloudSyncProgress(listener: () => void): () => void {
+  productionCloudSyncProgressListeners.add(listener);
+  return () => productionCloudSyncProgressListeners.delete(listener);
+}
 
 export function getProductionCloudSyncActivity(): ProductionCloudSyncActivity {
   return productionCloudSyncActivity.current;
@@ -54,13 +70,17 @@ const platform: RuntimePlatform = {
     });
   },
   addNetworkListener(listener) {
-    return Network.addNetworkStateListener((state) =>
-      listener(state.isConnected === true && state.isInternetReachable !== false),
-    );
+    return Network.addNetworkStateListener((state) => {
+      const online = state.isConnected === true && state.isInternetReachable !== false;
+      productionCloudSyncProgress.networkChanged(online);
+      listener(online);
+    });
   },
   async getNetworkOnline() {
     const state = await Network.getNetworkStateAsync();
-    return state.isConnected === true && state.isInternetReachable !== false;
+    const online = state.isConnected === true && state.isInternetReachable !== false;
+    productionCloudSyncProgress.networkChanged(online);
+    return online;
   },
   setTimer: (callback, delayMs) => setTimeout(callback, delayMs),
   clearTimer: (timer) => clearTimeout(timer),
@@ -97,6 +117,7 @@ export async function createProductionRuntimeEngine(
   return createProductionSnapshotRuntimeEngine({
     vault: configured,
     onActivity: setProductionCloudSyncActivity,
+    onProgress: (report) => productionCloudSyncProgress.report(report),
     onRemoteApplied,
   });
 }
