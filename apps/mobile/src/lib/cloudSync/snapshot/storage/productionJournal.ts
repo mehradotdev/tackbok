@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 
@@ -129,6 +129,95 @@ function relativeMediaUri(asset: SnapshotMedia): string {
   return `${directoryName}/${sha256Text(asset.assetId)}-${asset.blobHash}.${extension}`;
 }
 
+/**
+ * One physical file, whether a row stores it relative, as a bare absolute
+ * path, or as a `file://` URI. Bare paths become file URLs first: Expo's
+ * Android File cannot report a URI for a scheme-less path. Returns null when
+ * the identity cannot be determined.
+ */
+function canonicalFileUri(uri: string): string | null {
+  try {
+    return fileForLocalUri(uri.startsWith('/') ? `file://${uri}` : uri).uri;
+  } catch {
+    return null;
+  }
+}
+
+// Serializes every media file lifetime: an apply's materialize, transaction
+// and rejected-apply cleanup, and a hydration's copy and row update. Cleanup
+// decides from its transaction's reads that a copied file is unreferenced.
+// Each transaction has its own WAL connection, so a concurrent apply could
+// otherwise commit a reference to that same deterministic file after those
+// reads and have it deleted.
+let mediaFileQueue: Promise<unknown> = Promise.resolve();
+
+function serializeMediaFiles<T>(operation: () => Promise<T>): Promise<T> {
+  const result = mediaFileQueue.then(operation);
+  mediaFileQueue = result.catch(() => undefined);
+  return result;
+}
+
+/**
+ * Removes files an apply copied before its transaction was rejected or rolled
+ * back. A file that a committed row references (e.g. written by the apply that
+ * won the race), under any URI form, is kept, as is any file whose identity
+ * cannot be compared; anything missed here is only unreferenced space. Runs
+ * inside `serializeMediaFiles`.
+ */
+async function discardUncommittedMediaFiles(uris: readonly string[]): Promise<void> {
+  if (uris.length === 0) return;
+  try {
+    await runExclusiveDbTransaction(async (tx) => {
+      for (const uri of uris) {
+        const target = canonicalFileUri(uri);
+        if (target === null) continue;
+        // Narrow by file name, then compare canonical identities: rows may
+        // store the same file relative or as an absolute URI.
+        const name = uri.slice(uri.lastIndexOf('/') + 1);
+        const [live, retained, legacy] = await Promise.all([
+          tx
+            .select({ uri: mediaAssets.local_uri })
+            .from(mediaAssets)
+            .where(sql`instr(${mediaAssets.local_uri}, ${name}) > 0`),
+          tx
+            .select({
+              original: syncRetainedMedia.original_uri,
+              staged: syncRetainedMedia.staged_uri,
+            })
+            .from(syncRetainedMedia)
+            .where(
+              or(
+                sql`instr(${syncRetainedMedia.original_uri}, ${name}) > 0`,
+                sql`instr(${syncRetainedMedia.staged_uri}, ${name}) > 0`,
+              ),
+            ),
+          tx
+            .select({ assets: entries.assets })
+            .from(entries)
+            .where(sql`instr(${entries.assets}, ${name}) > 0`),
+        ]);
+        const referenced = [
+          ...live.map((row) => row.uri),
+          ...retained.flatMap((row) => [row.original, row.staged]),
+          ...legacy.flatMap((row) => (row.assets ?? []).map((asset) => asset.uri)),
+        ].some((value) => {
+          if (value === null) return false;
+          const identity = canonicalFileUri(value);
+          // An unmatched raw spelling is no evidence the file is unused.
+          return identity === null || identity === target;
+        });
+        if (referenced) continue;
+        const file = fileForLocalUri(uri);
+        if (file.exists) file.delete();
+      }
+    });
+  } catch {
+    // Cleanup must not hide the apply result or its error. A file left here is
+    // only unreferenced space.
+    console.warn('Unused synced media cleanup failed');
+  }
+}
+
 /** File-backed media cache shared by the sync engine and normalized journal apply. */
 export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
   async hasVerified(blobHash: string): Promise<boolean> {
@@ -136,9 +225,24 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
   }
 
   async openVerifiedSource(blobHash: string) {
+    for await (const candidate of this.verifiedCandidates(blobHash)) {
+      const source = openMediaUploadSource(candidate.uri, blobHash, candidate.byteSize);
+      if (source) return source;
+    }
+    return null;
+  }
+
+  /** Any verified local copy of a blob, e.g. one held under a replaced asset ID. */
+  async verifiedLocalFile(blobHash: string): Promise<File | null> {
+    for await (const candidate of this.verifiedCandidates(blobHash))
+      return fileForLocalUri(candidate.uri);
+    return null;
+  }
+
+  private async *verifiedCandidates(blobHash: string) {
     const staged = stageFile(blobHash);
-    const stagedSource = await this.inspectSource(staged.uri, blobHash, null);
-    if (stagedSource) return stagedSource;
+    const stagedCandidate = await this.inspectSource(staged.uri, blobHash, null);
+    if (stagedCandidate) yield stagedCandidate;
     const [live, retained] = await Promise.all([
       db
         .select({ uri: mediaAssets.local_uri, bytes: mediaAssets.byte_size })
@@ -160,10 +264,9 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
         { uri: row.original, bytes: row.bytes },
       ]),
     ]) {
-      const source = await this.inspectSource(candidate.uri, blobHash, candidate.bytes);
-      if (source) return source;
+      const verified = await this.inspectSource(candidate.uri, blobHash, candidate.bytes);
+      if (verified) yield verified;
     }
-    return null;
   }
 
   private async inspectSource(uri: string | null, hash: string, bytes: number | null) {
@@ -172,7 +275,7 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
       const inspected = await inspectLocalMediaFile(uri);
       if (inspected.sha256 !== hash || (bytes !== null && inspected.byteSize !== bytes))
         return null;
-      return openMediaUploadSource(uri, hash, inspected.byteSize);
+      return { uri, byteSize: inspected.byteSize };
     } catch {
       // A bad staging/retained copy must not hide another verified local copy.
       return null;
@@ -432,256 +535,277 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         return true;
       });
     }
-    const materializedUris = await this.materializeMedia(domain.media);
-    return runExclusiveDbTransaction(async (tx) => {
-      const [state] = await tx
-        .select({ generation: cloudSyncState.journal_generation })
-        .from(cloudSyncState)
-        .where(
-          and(
-            eq(cloudSyncState.vault_id, this.vaultId),
-            eq(cloudSyncState.device_id, this.deviceId),
-          ),
-        )
-        .limit(1);
-      if (!state || state.generation !== expectedGeneration) return false;
+    return serializeMediaFiles(() =>
+      this.applyWithMedia(domain, expectedGeneration, remoteDerived),
+    );
+  }
 
-      const [priorProfile] = await tx.select().from(userProfile).limit(1);
-      const priorMedia = await tx.select().from(mediaAssets);
-      const priorConflicts = new Map(
-        (
-          await tx
-            .select()
-            .from(cloudConflicts)
-            .where(eq(cloudConflicts.vault_id, this.vaultId))
-        ).map((row) => [row.conflict_id, row]),
-      );
-      const [vault] = await tx
-        .select({
-          status: cloudVault.status,
-          joinedAt: cloudVault.created_at,
-          restoreConflictIdsJson: cloudVault.restore_conflict_ids_json,
-          conflictsImportedAt: cloudVault.conflicts_imported_at,
-        })
-        .from(cloudVault)
-        .where(eq(cloudVault.vault_id, this.vaultId))
-        .limit(1);
-      // The first apply on this device imports the backup. Only conflicts the
-      // backup already held then predate the join; conflicts this device's
-      // merge creates, and any arriving after the first apply (even if the
-      // restore pass is retried), are new.
-      const importedConflictIds = new Set<string>(
-        vault?.status === 'restoring' &&
-          vault.conflictsImportedAt === null &&
-          vault.restoreConflictIdsJson
-          ? (JSON.parse(vault.restoreConflictIdsJson) as string[])
-          : [],
-      );
+  /** Materializes, applies and, if rejected, cleans up; see `serializeMediaFiles`. */
+  private async applyWithMedia(
+    domain: SnapshotDomain,
+    expectedGeneration: number,
+    remoteDerived: boolean,
+  ): Promise<boolean> {
+    // Files this apply copied have no row until it commits.
+    const created: string[] = [];
+    let applied = false;
+    try {
+      const materializedUris = await this.materializeMedia(domain.media, created);
+      applied = await runExclusiveDbTransaction(async (tx) => {
+        const [state] = await tx
+          .select({ generation: cloudSyncState.journal_generation })
+          .from(cloudSyncState)
+          .where(
+            and(
+              eq(cloudSyncState.vault_id, this.vaultId),
+              eq(cloudSyncState.device_id, this.deviceId),
+            ),
+          )
+          .limit(1);
+        if (!state || state.generation !== expectedGeneration) return false;
 
-      // A remote apply is a complete-state replacement. Preserve every local
-      // file whose exact descriptor is no longer referenced before deleting
-      // its normalized row. The completed obligation records that the
-      // head-advanced snapshot made the removal durable; the ordinary reaper
-      // remains the only code allowed to unlink the file later.
-      const retainedIdentities = new Set(
-        domain.media.map((asset) => `${asset.assetId}\0${asset.blobHash}`),
-      );
-      const appliedAt = Date.now();
-      for (const asset of priorMedia) {
-        if (
-          !asset.local_uri ||
-          retainedIdentities.has(`${asset.asset_id}\0${asset.blob_hash ?? ''}`)
-        )
-          continue;
-        const ledgerId = randomUUID();
-        await tx.insert(syncRetainedMedia).values({
-          ledger_id: ledgerId,
-          asset_id: asset.asset_id,
-          original_owner_type: asset.owner_type,
-          original_owner_id: asset.owner_id,
-          original_uri: asset.local_uri,
-          staged_uri: null,
-          kind: asset.kind,
-          mime_type: asset.mime_type,
-          byte_size: asset.byte_size,
-          blob_hash: asset.blob_hash,
-          state: 'uploaded',
-          attempt_count: 0,
-          last_error_code: null,
-          delete_after: null,
-          created_at: appliedAt,
-          updated_at: appliedAt,
-        });
-        await tx.insert(syncMediaObligations).values({
-          obligation_id: randomUUID(),
-          ledger_id: ledgerId,
-          blob_hash: asset.blob_hash,
-          obligation_kind: 'remote-apply',
-          obligation_key: `${this.vaultId}:${asset.asset_id}:${asset.blob_hash ?? 'unhashed'}`,
-          completed_at: appliedAt,
-          created_at: appliedAt,
-        });
-      }
-
-      await tx.delete(entryTags);
-      await tx.delete(mediaAssets);
-      await tx.delete(entries);
-      await tx.delete(tags);
-      await tx.delete(customPrompts);
-      await tx.delete(userProfile);
-      if (remoteDerived) await markLocalProfileTouched(tx);
-      await tx.delete(cloudTombstones).where(eq(cloudTombstones.vault_id, this.vaultId));
-      await tx.delete(cloudConflicts).where(eq(cloudConflicts.vault_id, this.vaultId));
-
-      if (domain.tags.length > 0)
-        await writeBatches(
-          domain.tags.map((tag) => ({
-            tag_id: tag.tagId,
-            title: tag.title,
-            conflict_origin_id: tag.conflictOriginId,
-            created_at: tag.createdAt,
-            updated_at: tag.updatedAt,
-          })),
-          (rows) => tx.insert(tags).values(rows),
+        const [priorProfile] = await tx.select().from(userProfile).limit(1);
+        const priorMedia = await tx.select().from(mediaAssets);
+        const priorConflicts = new Map(
+          (
+            await tx
+              .select()
+              .from(cloudConflicts)
+              .where(eq(cloudConflicts.vault_id, this.vaultId))
+          ).map((row) => [row.conflict_id, row]),
         );
-      if (domain.prompts.length > 0) {
-        await writeBatches(
-          domain.prompts.map((prompt) => ({
-            prompt_id: prompt.promptId,
-            title: prompt.title,
-            conflict_origin_id: prompt.conflictOriginId,
-            created_at: prompt.createdAt,
-            updated_at: prompt.updatedAt,
-          })),
-          (rows) => tx.insert(customPrompts).values(rows),
-        );
-      }
-
-      const mediaByOwner = new Map<string, SnapshotMedia[]>();
-      for (const asset of domain.media) {
-        const key = `${asset.ownerType}\0${asset.ownerId}`;
-        const values = mediaByOwner.get(key) ?? [];
-        values.push(asset);
-        mediaByOwner.set(key, values);
-      }
-      const tagsByEntry = new Map<string, string[]>();
-      for (const relation of domain.entryTags) {
-        const ids = tagsByEntry.get(relation.entryId) ?? [];
-        ids.push(relation.tagId);
-        tagsByEntry.set(relation.entryId, ids);
-      }
-      if (domain.entries.length > 0)
-        await writeBatches(
-          domain.entries.map((entry) => {
-            const descriptors = mediaByOwner.get(`entry\0${entry.entryId}`) ?? [];
-            const byId = new Map(descriptors.map((asset) => [asset.assetId, asset]));
-            const assets = completeAttachmentOrder(entry.attachmentOrder, [
-              ...byId.keys(),
-            ])
-              .map((id) => byId.get(id)!)
-              .map((asset) =>
-                legacyAsset(asset, materializedUris.get(asset.assetId)!.uri),
-              );
-            const tagIds = (tagsByEntry.get(entry.entryId) ?? []).sort();
-            return {
-              note_id: entry.entryId,
-              text_title: entry.title,
-              text_content: entry.content,
-              mood: entry.mood,
-              assets,
-              tags: tagIds.join(','),
-              conflict_origin_id: entry.conflictOriginId,
-              created_at: entry.createdAt,
-              updated_at: entry.updatedAt,
-            };
-          }),
-          (rows) => tx.insert(entries).values(rows),
+        const [vault] = await tx
+          .select({
+            status: cloudVault.status,
+            joinedAt: cloudVault.created_at,
+            restoreConflictIdsJson: cloudVault.restore_conflict_ids_json,
+            conflictsImportedAt: cloudVault.conflicts_imported_at,
+          })
+          .from(cloudVault)
+          .where(eq(cloudVault.vault_id, this.vaultId))
+          .limit(1);
+        // The first apply on this device imports the backup. Only conflicts the
+        // backup already held then predate the join; conflicts this device's
+        // merge creates, and any arriving after the first apply (even if the
+        // restore pass is retried), are new.
+        const importedConflictIds = new Set<string>(
+          vault?.status === 'restoring' &&
+            vault.conflictsImportedAt === null &&
+            vault.restoreConflictIdsJson
+            ? (JSON.parse(vault.restoreConflictIdsJson) as string[])
+            : [],
         );
 
-      if (domain.media.length > 0)
-        await writeBatches(
-          domain.media.map((asset) => ({
-            asset_id: asset.assetId,
-            owner_type: asset.ownerType,
-            owner_id: asset.ownerType === 'profile' ? 'self' : asset.ownerId,
+        // A remote apply is a complete-state replacement. Preserve every local
+        // file whose exact descriptor is no longer referenced before deleting
+        // its normalized row. The completed obligation records that the
+        // head-advanced snapshot made the removal durable; the ordinary reaper
+        // remains the only code allowed to unlink the file later.
+        const retainedIdentities = new Set(
+          domain.media.map((asset) => `${asset.assetId}\0${asset.blobHash}`),
+        );
+        const appliedAt = Date.now();
+        for (const asset of priorMedia) {
+          if (
+            !asset.local_uri ||
+            retainedIdentities.has(`${asset.asset_id}\0${asset.blob_hash ?? ''}`)
+          )
+            continue;
+          const ledgerId = randomUUID();
+          await tx.insert(syncRetainedMedia).values({
+            ledger_id: ledgerId,
+            asset_id: asset.asset_id,
+            original_owner_type: asset.owner_type,
+            original_owner_id: asset.owner_id,
+            original_uri: asset.local_uri,
+            staged_uri: null,
             kind: asset.kind,
-            local_uri: materializedUris.get(asset.assetId)!.uri,
-            download_state: materializedUris.get(asset.assetId)!.verified
-              ? ('verified' as const)
-              : ('pending' as const),
-            mime_type: asset.mimeType,
-            byte_size: asset.byteSize,
-            width: asset.width,
-            height: asset.height,
-            duration_ms: asset.durationMs,
-            blob_hash: asset.blobHash,
-            created_at: asset.createdAt,
-            updated_at: asset.updatedAt,
-            pending_local_delete_at: null,
-          })),
-          (rows) => tx.insert(mediaAssets).values(rows),
-        );
-      if (domain.entryTags.length > 0)
-        await writeBatches(
-          domain.entryTags.map((relation) => ({
-            note_id: relation.entryId,
-            tag_id: relation.tagId,
-            created_at: relation.createdAt,
-            updated_at: relation.createdAt,
-          })),
-          (rows) => tx.insert(entryTags).values(rows),
-        );
-      await tx.insert(userProfile).values({
-        profile_id: 'self',
-        display_name: domain.profile.displayName,
-        photo_asset_id: domain.profile.photoAssetId,
-        email: priorProfile?.email ?? null,
-        updated_at: domain.profile.updatedAt,
-      });
-      if (domain.tombstones.length > 0) {
-        await writeBatches(
-          domain.tombstones.map((value) => ({
-            vault_id: this.vaultId,
-            entity_type: value.entityType,
-            entity_id: value.entityId,
-            base_state_hash: value.baseStateHash,
-            deleted_state_hash: value.deletedStateHash,
-            deleted_by_device_id: value.deletedByDeviceId,
-            deletion_sequence: value.deletionSequence,
-            updated_at: Date.now(),
-          })),
-          (rows) => tx.insert(cloudTombstones).values(rows),
-        );
-      }
-      if (domain.conflicts.length > 0) {
-        await writeBatches(
-          domain.conflicts.map((conflict) => ({
-            vault_id: this.vaultId,
-            conflict_id: conflict.conflictId,
-            conflict_json: JSON.stringify(conflict),
-            acknowledged_at:
-              priorConflicts.get(conflict.conflictId)?.acknowledged_at ?? null,
-            archived_at: priorConflicts.get(conflict.conflictId)?.archived_at ?? null,
-            // created_at is when this device first saw the conflict. Records
-            // imported with the backup predate this device joining it, so
-            // they get the join time and the UI hides them.
-            created_at:
-              priorConflicts.get(conflict.conflictId)?.created_at ??
-              (vault && importedConflictIds.has(conflict.conflictId)
-                ? vault.joinedAt
-                : appliedAt),
-          })),
-          (rows) => tx.insert(cloudConflicts).values(rows),
-        );
-      }
-      if (vault && vault.conflictsImportedAt === null) {
+            mime_type: asset.mime_type,
+            byte_size: asset.byte_size,
+            blob_hash: asset.blob_hash,
+            state: 'uploaded',
+            attempt_count: 0,
+            last_error_code: null,
+            delete_after: null,
+            created_at: appliedAt,
+            updated_at: appliedAt,
+          });
+          await tx.insert(syncMediaObligations).values({
+            obligation_id: randomUUID(),
+            ledger_id: ledgerId,
+            blob_hash: asset.blob_hash,
+            obligation_kind: 'remote-apply',
+            obligation_key: `${this.vaultId}:${asset.asset_id}:${asset.blob_hash ?? 'unhashed'}`,
+            completed_at: appliedAt,
+            created_at: appliedAt,
+          });
+        }
+
+        await tx.delete(entryTags);
+        await tx.delete(mediaAssets);
+        await tx.delete(entries);
+        await tx.delete(tags);
+        await tx.delete(customPrompts);
+        await tx.delete(userProfile);
+        if (remoteDerived) await markLocalProfileTouched(tx);
         await tx
-          .update(cloudVault)
-          .set({ conflicts_imported_at: appliedAt, restore_conflict_ids_json: null })
-          .where(eq(cloudVault.vault_id, this.vaultId));
-      }
-      return true;
-    });
+          .delete(cloudTombstones)
+          .where(eq(cloudTombstones.vault_id, this.vaultId));
+        await tx.delete(cloudConflicts).where(eq(cloudConflicts.vault_id, this.vaultId));
+
+        if (domain.tags.length > 0)
+          await writeBatches(
+            domain.tags.map((tag) => ({
+              tag_id: tag.tagId,
+              title: tag.title,
+              conflict_origin_id: tag.conflictOriginId,
+              created_at: tag.createdAt,
+              updated_at: tag.updatedAt,
+            })),
+            (rows) => tx.insert(tags).values(rows),
+          );
+        if (domain.prompts.length > 0) {
+          await writeBatches(
+            domain.prompts.map((prompt) => ({
+              prompt_id: prompt.promptId,
+              title: prompt.title,
+              conflict_origin_id: prompt.conflictOriginId,
+              created_at: prompt.createdAt,
+              updated_at: prompt.updatedAt,
+            })),
+            (rows) => tx.insert(customPrompts).values(rows),
+          );
+        }
+
+        const mediaByOwner = new Map<string, SnapshotMedia[]>();
+        for (const asset of domain.media) {
+          const key = `${asset.ownerType}\0${asset.ownerId}`;
+          const values = mediaByOwner.get(key) ?? [];
+          values.push(asset);
+          mediaByOwner.set(key, values);
+        }
+        const tagsByEntry = new Map<string, string[]>();
+        for (const relation of domain.entryTags) {
+          const ids = tagsByEntry.get(relation.entryId) ?? [];
+          ids.push(relation.tagId);
+          tagsByEntry.set(relation.entryId, ids);
+        }
+        if (domain.entries.length > 0)
+          await writeBatches(
+            domain.entries.map((entry) => {
+              const descriptors = mediaByOwner.get(`entry\0${entry.entryId}`) ?? [];
+              const byId = new Map(descriptors.map((asset) => [asset.assetId, asset]));
+              const assets = completeAttachmentOrder(entry.attachmentOrder, [
+                ...byId.keys(),
+              ])
+                .map((id) => byId.get(id)!)
+                .map((asset) =>
+                  legacyAsset(asset, materializedUris.get(asset.assetId)!.uri),
+                );
+              const tagIds = (tagsByEntry.get(entry.entryId) ?? []).sort();
+              return {
+                note_id: entry.entryId,
+                text_title: entry.title,
+                text_content: entry.content,
+                mood: entry.mood,
+                assets,
+                tags: tagIds.join(','),
+                conflict_origin_id: entry.conflictOriginId,
+                created_at: entry.createdAt,
+                updated_at: entry.updatedAt,
+              };
+            }),
+            (rows) => tx.insert(entries).values(rows),
+          );
+
+        if (domain.media.length > 0)
+          await writeBatches(
+            domain.media.map((asset) => ({
+              asset_id: asset.assetId,
+              owner_type: asset.ownerType,
+              owner_id: asset.ownerType === 'profile' ? 'self' : asset.ownerId,
+              kind: asset.kind,
+              local_uri: materializedUris.get(asset.assetId)!.uri,
+              download_state: materializedUris.get(asset.assetId)!.verified
+                ? ('verified' as const)
+                : ('pending' as const),
+              mime_type: asset.mimeType,
+              byte_size: asset.byteSize,
+              width: asset.width,
+              height: asset.height,
+              duration_ms: asset.durationMs,
+              blob_hash: asset.blobHash,
+              created_at: asset.createdAt,
+              updated_at: asset.updatedAt,
+              pending_local_delete_at: null,
+            })),
+            (rows) => tx.insert(mediaAssets).values(rows),
+          );
+        if (domain.entryTags.length > 0)
+          await writeBatches(
+            domain.entryTags.map((relation) => ({
+              note_id: relation.entryId,
+              tag_id: relation.tagId,
+              created_at: relation.createdAt,
+              updated_at: relation.createdAt,
+            })),
+            (rows) => tx.insert(entryTags).values(rows),
+          );
+        await tx.insert(userProfile).values({
+          profile_id: 'self',
+          display_name: domain.profile.displayName,
+          photo_asset_id: domain.profile.photoAssetId,
+          email: priorProfile?.email ?? null,
+          updated_at: domain.profile.updatedAt,
+        });
+        if (domain.tombstones.length > 0) {
+          await writeBatches(
+            domain.tombstones.map((value) => ({
+              vault_id: this.vaultId,
+              entity_type: value.entityType,
+              entity_id: value.entityId,
+              base_state_hash: value.baseStateHash,
+              deleted_state_hash: value.deletedStateHash,
+              deleted_by_device_id: value.deletedByDeviceId,
+              deletion_sequence: value.deletionSequence,
+              updated_at: Date.now(),
+            })),
+            (rows) => tx.insert(cloudTombstones).values(rows),
+          );
+        }
+        if (domain.conflicts.length > 0) {
+          await writeBatches(
+            domain.conflicts.map((conflict) => ({
+              vault_id: this.vaultId,
+              conflict_id: conflict.conflictId,
+              conflict_json: JSON.stringify(conflict),
+              acknowledged_at:
+                priorConflicts.get(conflict.conflictId)?.acknowledged_at ?? null,
+              archived_at: priorConflicts.get(conflict.conflictId)?.archived_at ?? null,
+              // created_at is when this device first saw the conflict. Records
+              // imported with the backup predate this device joining it, so
+              // they get the join time and the UI hides them.
+              created_at:
+                priorConflicts.get(conflict.conflictId)?.created_at ??
+                (vault && importedConflictIds.has(conflict.conflictId)
+                  ? vault.joinedAt
+                  : appliedAt),
+            })),
+            (rows) => tx.insert(cloudConflicts).values(rows),
+          );
+        }
+        if (vault && vault.conflictsImportedAt === null) {
+          await tx
+            .update(cloudVault)
+            .set({ conflicts_imported_at: appliedAt, restore_conflict_ids_json: null })
+            .where(eq(cloudVault.vault_id, this.vaultId));
+        }
+        return true;
+      });
+      return applied;
+    } finally {
+      if (!applied) await discardUncommittedMediaFiles(created);
+    }
   }
 
   /** Bounded post-restore hydration. Metadata/text remain usable while media waits. */
@@ -728,19 +852,22 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };
-      const materialized = await this.materializeDescriptor(descriptor);
-      await db
-        .update(mediaAssets)
-        .set({
-          local_uri: materialized.uri,
-          download_state: 'verified',
-        })
-        .where(
-          and(
-            eq(mediaAssets.asset_id, row.asset_id),
-            eq(mediaAssets.blob_hash, row.blob_hash),
-          ),
-        );
+      // The row already exists, so the copied file needs no rollback tracking.
+      await serializeMediaFiles(async () => {
+        const materialized = await this.materializeDescriptor(descriptor, []);
+        await db
+          .update(mediaAssets)
+          .set({
+            local_uri: materialized.uri,
+            download_state: 'verified',
+          })
+          .where(
+            and(
+              eq(mediaAssets.asset_id, row.asset_id),
+              eq(mediaAssets.blob_hash, descriptor.blobHash),
+            ),
+          );
+      });
       const remaining = await db
         .select({ id: mediaAssets.asset_id })
         .from(mediaAssets)
@@ -759,6 +886,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
 
   private async materializeMedia(
     media: readonly SnapshotMedia[],
+    created: string[],
   ): Promise<Map<string, MaterializedMedia>> {
     const existingRows = await db.select().from(mediaAssets);
     const byIdentity = new Map(
@@ -767,14 +895,15 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     const result = new Map<string, MaterializedMedia>();
     for (const asset of media) {
       const existing = byIdentity.get(`${asset.assetId}\0${asset.blobHash}`);
-      if (
-        existing?.local_uri &&
-        (await verifyLocalMediaFile(existing.local_uri, asset.blobHash, asset.byteSize))
-      ) {
-        result.set(asset.assetId, { uri: existing.local_uri, verified: true });
-        continue;
+      if (existing?.local_uri) {
+        if (
+          await verifyLocalMediaFile(existing.local_uri, asset.blobHash, asset.byteSize)
+        ) {
+          result.set(asset.assetId, { uri: existing.local_uri, verified: true });
+          continue;
+        }
       }
-      result.set(asset.assetId, await this.materializeDescriptor(asset));
+      result.set(asset.assetId, await this.materializeDescriptor(asset, created));
     }
     const unverifiedHashes = new Set(
       media
@@ -789,7 +918,10 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     return result;
   }
 
-  private async materializeDescriptor(asset: SnapshotMedia): Promise<MaterializedMedia> {
+  private async materializeDescriptor(
+    asset: SnapshotMedia,
+    created: string[],
+  ): Promise<MaterializedMedia> {
     const relativeUri = relativeMediaUri(asset);
     const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
     const destination = new File(
@@ -809,11 +941,16 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         // The verified staging copy below replaces an unreadable destination.
       }
     }
-    const staged = this.mediaStore.stagedFile(asset.blobHash);
-    if (!staged) {
+    // A same-blob asset ID switch keeps the photo local: copy the verified
+    // blob from whichever local file holds it instead of re-downloading.
+    const source =
+      this.mediaStore.stagedFile(asset.blobHash) ??
+      (await this.mediaStore.verifiedLocalFile(asset.blobHash));
+    if (!source) {
       return { uri: relativeUri, verified: false };
     }
-    await copyVerifiedMediaFile(staged, destination, asset.byteSize, asset.blobHash);
+    created.push(relativeUri);
+    await copyVerifiedMediaFile(source, destination, asset.byteSize, asset.blobHash);
     return { uri: relativeUri, verified: true };
   }
 }

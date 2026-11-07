@@ -547,13 +547,43 @@ function profileFieldMerge(
   return scalarMerge(base, local, remote);
 }
 
+// Legacy backfill gives the same photo a random asset ID on each device. Two
+// IDs whose descriptors share a blob are one photo; the lower ID whose
+// descriptor survives the media merge represents it (a side that replaced
+// the base ID keeps its new one). The other descriptor becomes unreferenced
+// and is pruned with the profile media.
+function sameBlobPhotoId(
+  local: SnapshotDomain,
+  remote: SnapshotDomain,
+  mergedMedia: SnapshotMedia[],
+): string | null {
+  const localId = local.profile.photoAssetId;
+  const remoteId = remote.profile.photoAssetId;
+  if (!localId || !remoteId || localId === remoteId) return null;
+  const localAsset = local.media.find((value) => value.assetId === localId);
+  const remoteAsset = remote.media.find((value) => value.assetId === remoteId);
+  if (!localAsset || !remoteAsset || localAsset.blobHash !== remoteAsset.blobHash)
+    return null;
+  const surviving = [localId, remoteId]
+    .filter((id) => mergedMedia.some((value) => value.assetId === id))
+    .sort();
+  return surviving[0] ?? null;
+}
+
 function mergeProfile(
   base: SnapshotProfile | undefined,
-  local: SnapshotProfile,
-  remote: SnapshotProfile,
+  localProfile: SnapshotProfile,
+  remoteProfile: SnapshotProfile,
+  samePhotoId: string | null,
   localPristine: boolean,
   conflicts: SnapshotConflict[],
 ): SnapshotProfile {
+  const local = samePhotoId
+    ? { ...localProfile, photoAssetId: samePhotoId }
+    : localProfile;
+  const remote = samePhotoId
+    ? { ...remoteProfile, photoAssetId: samePhotoId }
+    : remoteProfile;
   const displayName = profileFieldMerge(
     base?.displayName,
     local.displayName,
@@ -783,10 +813,12 @@ export function mergeSnapshotDomains(
     remote,
     newConflicts,
   );
+  let media = mergeMedia(base, local, remote, newConflicts);
   const profile = mergeProfile(
     base?.profile,
     local.profile,
     remote.profile,
+    sameBlobPhotoId(local, remote, media),
     options.localProfilePristine ?? false,
     newConflicts,
   );
@@ -868,7 +900,6 @@ export function mergeSnapshotDomains(
   entryTags.sort(keyComparator((value) => `${value.entryId}\0${value.tagId}`));
   tags.live.sort(keyComparator((value) => value.tagId));
 
-  let media = mergeMedia(base, local, remote, newConflicts);
   const carriedConflicts = mergeConflictSet(
     base?.conflicts ?? [],
     local.conflicts,
@@ -914,6 +945,20 @@ export function mergeSnapshotDomains(
     conflicts,
   };
   const referenced = calculateMediaReferences(result);
+  // A retained photo conflict can still offer a photo that the media merge
+  // dropped, e.g. the base photo after the other side replaced it. Keep its
+  // descriptor so the alternate stays restorable. Only one side can still hold
+  // it (both would have kept it above), so the choice is order-independent.
+  const mergedAssetIds = new Set(media.map((asset) => asset.assetId));
+  for (const assetId of referenced) {
+    if (mergedAssetIds.has(assetId)) continue;
+    const kept =
+      local.media.find((asset) => asset.assetId === assetId) ??
+      remote.media.find((asset) => asset.assetId === assetId) ??
+      base?.media.find((asset) => asset.assetId === assetId);
+    if (kept?.ownerType === 'profile') media.push(kept);
+  }
+  media.sort(keyComparator((value) => value.assetId));
   const liveEntryIds = new Set(result.entries.map((entry) => entry.entryId));
   media = media.filter(
     (asset) =>
