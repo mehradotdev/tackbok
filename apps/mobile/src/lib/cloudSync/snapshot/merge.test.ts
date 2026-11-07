@@ -793,6 +793,189 @@ describe('snapshot merge engine', () => {
     );
   });
 
+  it('treats same-blob profile photos with different asset IDs as one photo', () => {
+    const withPhoto = (assetId: string, updatedAt: number) => {
+      const domain = blankDomain();
+      domain.profile = {
+        profileId: 'profile',
+        displayName: 'Mehra',
+        photoAssetId: assetId,
+        updatedAt,
+      };
+      domain.media = [
+        {
+          assetId,
+          ownerType: 'profile',
+          ownerId: 'profile',
+          kind: 'profile-photo',
+          blobHash: 'a'.repeat(64),
+          byteSize: 1,
+          mimeType: 'image/jpeg',
+          width: null,
+          height: null,
+          durationMs: null,
+          createdAt: updatedAt,
+          updatedAt,
+        },
+      ];
+      return domain;
+    };
+    const first = withPhoto('photo-a', 1);
+    const second = withPhoto('photo-b', 2);
+    for (const base of [null, blankDomain()]) {
+      const merged = mergeSnapshotDomains(base, second, first);
+      expect(canonicalize(mergeSnapshotDomains(base, first, second))).toBe(
+        canonicalize(merged),
+      );
+      expect(merged.profile.photoAssetId).toBe('photo-a');
+      expect(merged.media).toEqual(first.media);
+      expect(merged.conflicts).toEqual([]);
+      expect(() =>
+        encodeSnapshot({
+          format: 'tackbok-snapshot',
+          vaultId: 'vault-photo',
+          parentSnapshotIds: [],
+          observedDeviceHeads: [],
+          authorDeviceId: 'device-a',
+          deviceSequence: 2,
+          createdAt: 2,
+          ...merged,
+        }),
+      ).not.toThrow();
+    }
+
+    const different = withPhoto('photo-c', 2);
+    different.media[0].blobHash = 'b'.repeat(64);
+    expect(
+      mergeSnapshotDomains(null, first, different).conflicts.map((value) => value.field),
+    ).toEqual(['photoAssetId']);
+  });
+
+  it('keeps the descriptor of the chosen same-blob photo when one side replaced the base ID', () => {
+    const withPhoto = (assetId: string) => {
+      const domain = blankDomain();
+      domain.profile = { ...domain.profile, displayName: 'Mehra', photoAssetId: assetId };
+      domain.media = [
+        {
+          assetId,
+          ownerType: 'profile',
+          ownerId: 'profile',
+          kind: 'profile-photo',
+          blobHash: 'a'.repeat(64),
+          byteSize: 1,
+          mimeType: 'image/jpeg',
+          width: null,
+          height: null,
+          durationMs: null,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
+      return domain;
+    };
+    for (const [baseId, otherId, expectedId] of [
+      ['photo-a', 'photo-b', 'photo-b'],
+      ['photo-b', 'photo-a', 'photo-a'],
+      ['photo-c', 'photo-b', 'photo-b'],
+    ]) {
+      const base = withPhoto(baseId);
+      const replaced = withPhoto(otherId);
+      for (const [local, remote] of [
+        [base, replaced],
+        [replaced, base],
+      ]) {
+        const merged = mergeSnapshotDomains(base, local, remote);
+        expect(merged.profile.photoAssetId).toBe(expectedId);
+        expect(merged.media.map((value) => value.assetId)).toEqual([expectedId]);
+        expect(merged.conflicts).toEqual([]);
+        expect(() =>
+          encodeSnapshot({
+            format: 'tackbok-snapshot',
+            vaultId: 'vault-photo',
+            parentSnapshotIds: [],
+            observedDeviceHeads: [],
+            authorDeviceId: 'device-a',
+            deviceSequence: 2,
+            createdAt: 2,
+            ...merged,
+          }),
+        ).not.toThrow();
+      }
+    }
+
+    // Both sides replaced the base ID: the lower surviving ID wins.
+    const merged = mergeSnapshotDomains(
+      withPhoto('photo-c'),
+      withPhoto('photo-b'),
+      withPhoto('photo-a'),
+    );
+    expect(merged.profile.photoAssetId).toBe('photo-a');
+    expect(merged.media.map((value) => value.assetId)).toEqual(['photo-a']);
+    expect(merged.conflicts).toEqual([]);
+  });
+
+  it('keeps the descriptor of a photo that a retained conflict still offers', () => {
+    const withPhoto = (assetId: string, blobHash = 'a'.repeat(64)) => {
+      const domain = blankDomain();
+      domain.profile = { ...domain.profile, displayName: 'Mehra', photoAssetId: assetId };
+      domain.media = [
+        {
+          assetId,
+          ownerType: 'profile',
+          ownerId: 'profile',
+          kind: 'profile-photo',
+          blobHash,
+          byteSize: 1,
+          mimeType: 'image/jpeg',
+          width: null,
+          height: null,
+          durationMs: null,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
+      return domain;
+    };
+    const base = withPhoto('photo-a');
+    // Local holds an unresolved photo conflict whose alternate is the base photo.
+    const conflicted = mergeSnapshotDomains(
+      null,
+      base,
+      withPhoto('photo-z', 'b'.repeat(64)),
+    );
+    expect(conflicted.conflicts[0].alternates.map((value) => value.value)).toEqual([
+      'photo-a',
+    ]);
+    conflicted.media = conflicted.media.map((value) => ({
+      ...value,
+      blobHash: 'a'.repeat(64),
+    }));
+    // Remote replaced the base photo with a same-blob ID.
+    const replacement = withPhoto('photo-b');
+
+    const merged = mergeSnapshotDomains(base, conflicted, replacement);
+    expect(canonicalize(mergeSnapshotDomains(base, replacement, conflicted))).toBe(
+      canonicalize(merged),
+    );
+    expect(merged.conflicts.map((value) => value.field)).toEqual(['photoAssetId']);
+    const mediaIds = merged.media.map((value) => value.assetId);
+    for (const assetId of calculateMediaReferences(merged))
+      expect(mediaIds).toContain(assetId);
+    expect(mediaIds).toContain('photo-a');
+    expect(() =>
+      encodeSnapshot({
+        format: 'tackbok-snapshot',
+        vaultId: 'vault-photo',
+        parentSnapshotIds: [],
+        observedDeviceHeads: [],
+        authorDeviceId: 'device-a',
+        deviceSequence: 2,
+        createdAt: 2,
+        ...merged,
+      }),
+    ).not.toThrow();
+  });
+
   it('chooses equal-sequence tombstone provenance independently of argument order', () => {
     const first = blankDomain();
     first.tombstones = [
