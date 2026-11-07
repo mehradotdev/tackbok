@@ -1,3 +1,4 @@
+import { addCloudSyncMutationListener } from '~/lib/cloudSync/runtime/mutationSignal';
 import { importFromTackbokBackup } from './tackbok';
 
 const spyOn = jest.spyOn;
@@ -72,15 +73,17 @@ jest.mock('~/db', () => ({
       mockTransaction(callback),
   },
   entries: { note_id: 'note_id' },
+  runExclusiveDbTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
+    mockTransaction(callback),
 }));
 
 jest.mock('~/lib/settings', () => ({
   hydrateProfileCache: (profile: unknown) => mockHydrateProfileCache(profile),
 }));
 
+// The real transaction helper runs so its commit contract is exercised.
 jest.mock('~/lib/cloudSync/storage/repositories', () => ({
-  runInCloudSyncTransaction: (callback: (transaction: typeof tx) => Promise<void>) =>
-    mockTransaction(callback),
+  ...jest.requireActual('~/lib/cloudSync/storage/repositories'),
   updateProfileInTransaction: (txArg: unknown, profile: unknown, context: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile, context),
   markLocalProfileTouched: (txArg: unknown) => mockMarkLocalProfileTouched(txArg),
@@ -385,4 +388,45 @@ describe('importFromTackbokBackup', () => {
 
     warnSpy.mockRestore();
   });
+
+  // Jest (without VM modules) always rejects the helper's post-commit dynamic
+  // import of the retained-media module, so every case here also exercises
+  // that guarded failure; the listener case adds a throwing listener on top.
+  test.each([
+    ['a mutation listener throws', 'listener'],
+    ['only the retained-media module import fails', 'module'],
+  ] as const)(
+    'keeps the committed import and its photo when %s after commit',
+    async (_label, failure) => {
+      const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+      mockWriteImportedPhoto.mockResolvedValueOnce({ uri: 'photos/imported.jpg' });
+      let committed = false;
+      mockTransaction.mockImplementationOnce(async (callback) => {
+        await callback(tx);
+        committed = true;
+      });
+      const subscription = addCloudSyncMutationListener(() => {
+        if (failure === 'listener') throw new Error('listener failed after commit');
+      });
+      // A later listener (such as the sync scheduler) must still be notified.
+      const laterListener = jest.fn();
+      const laterSubscription = addCloudSyncMutationListener(laterListener);
+
+      try {
+        const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
+
+        expect(committed).toBe(true);
+        expect(mockHydrateProfileCache).toHaveBeenCalledWith(
+          expect.objectContaining({ profileImageUri: 'photos/imported.jpg' }),
+        );
+        expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
+        expect(summary.warnings).toEqual([]);
+        expect(laterListener).toHaveBeenCalled();
+      } finally {
+        subscription.remove();
+        laterSubscription.remove();
+        warnSpy.mockRestore();
+      }
+    },
+  );
 });
