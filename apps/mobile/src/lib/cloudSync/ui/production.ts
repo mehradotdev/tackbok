@@ -49,6 +49,7 @@ import {
   type SyncAttentionReason,
   type SyncRecoveryAction,
 } from '../snapshot/sync';
+import { SyncCancelledError } from '../snapshot/sync/errors';
 import {
   getProductionCloudSyncActivity,
   getProductionCloudSyncFailureCategory,
@@ -481,12 +482,23 @@ async function setCloudSyncPausedImpl(paused: boolean): Promise<void> {
   notifyProductionCloudSyncChanged();
 }
 
+/**
+ * Runs a manual pass. Throws SyncCancelledError when Pause, Disconnect or another
+ * connection change stopped it, so callers can tell that apart from a failure.
+ */
 export async function syncNow(): Promise<boolean> {
-  const passed = await runProductionManualSync();
-  if (!passed) {
-    throw new CloudSyncActionError(getProductionCloudSyncFailureCategory() ?? 'unknown');
-  }
-  return true;
+  return runManualSyncSince(cloudConnectionLifecycle.epoch);
+}
+
+/** `epoch` is the connection epoch when the user's whole action started. */
+async function runManualSyncSince(epoch: number): Promise<boolean> {
+  if (await runProductionManualSync()) return true;
+  // The runtime records a category only for a genuine failure, never for a
+  // cancelled pass, so a failure that overlaps a connection change still shows.
+  const category = getProductionCloudSyncFailureCategory();
+  if (category) throw new CloudSyncActionError(category);
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
+  throw new CloudSyncActionError('unknown');
 }
 
 async function revokeCloudVaultImpl(
@@ -707,8 +719,12 @@ export async function acknowledgeCloudConflicts(): Promise<void> {
 export async function retrySyncAttentionReason(
   reason: SyncAttentionReason,
 ): Promise<void> {
+  // Pause or Disconnect may start at any step; report the whole retry as
+  // cancelled then, and never overwrite the status they write.
+  const epoch = cloudConnectionLifecycle.epoch;
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault) throw new Error('No cloud backup');
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
   const state = new SQLiteSyncStateStore(sqlite);
   state.clearPause(vault.vault_id, vault.device_id, reason);
   // Clearing the protocol pause without clearing the presentation-level vault
@@ -720,7 +736,8 @@ export async function retrySyncAttentionReason(
     .set({ status: 'dirty', updated_at: Date.now() })
     .where(eq(cloudVault.vault_id, vault.vault_id));
   await restartProductionSyncRuntime();
-  await syncNow();
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
+  await runManualSyncSince(epoch);
 }
 
 // All connection mutations share the same barrier as production sync passes.

@@ -742,6 +742,11 @@ export const es = {
   'cloud.removingTheCloudBackupAndJournalData':
     'Eliminando la copia de seguridad en la nube y los datos del diario. Si sales de Tackbok, podrás reanudar la eliminación al volver.',
   'cloud.disconnect': 'Desconectar',
+  'cloud.disconnecting': 'Desconectando…',
+  'cloud.disconnectedYourJournalStaysOnThisPhone':
+    'Desconectado. Tu diario se queda en este teléfono y tu copia de seguridad se queda en tu Google Drive.',
+  'cloud.couldNotDisconnectTryAgain': 'No se pudo desconectar. Inténtalo de nuevo.',
+  'cloud.pausing': 'Pausando…',
   'cloud.disconnectProvider': 'Desconectar {provider}',
   'cloud.disconnectProviderFromThisDevice':
     '¿Desconectar {provider} de este dispositivo?',
