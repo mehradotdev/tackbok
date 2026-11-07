@@ -72,6 +72,7 @@ const mockHydrateProfileCache = jest.fn((_profile?: unknown) => undefined);
 const mockUpdateProfileInTransaction = jest.fn(
   async (_tx?: unknown, _profile?: unknown, _context?: unknown) => undefined,
 );
+const mockMarkLocalProfileTouched = jest.fn(async (_tx?: unknown) => undefined);
 
 jest.mock('~/db', () => ({
   db: {
@@ -95,6 +96,7 @@ jest.mock('~/lib/cloudSync/storage/repositories', () => ({
     mockTransaction(callback),
   updateProfileInTransaction: (txArg: unknown, profile: unknown, context: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile, context),
+  markLocalProfileTouched: (txArg: unknown) => mockMarkLocalProfileTouched(txArg),
 }));
 
 jest.mock('react-native', () => ({
@@ -265,6 +267,7 @@ describe('importFromTackbokBackup', () => {
     mockHydrateProfileCache.mockReset();
     mockUpdateProfileInTransaction.mockReset();
     mockUpdateProfileInTransaction.mockResolvedValue(undefined);
+    mockMarkLocalProfileTouched.mockClear();
     mockGetImportTotals.mockReset();
 
     txSelect.mockImplementation(() => ({ from: txSelectFrom }));
@@ -315,6 +318,22 @@ describe('importFromTackbokBackup', () => {
     );
     expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
 
+    warnSpy.mockRestore();
+  });
+
+  test('an imported cleared profile still ends local pristine status', async () => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    mockReadSafeZipJson.mockReset();
+    mockReadSafeZipJson
+      .mockResolvedValueOnce({ format: 'tackbok-backup', backupVersion: 1 })
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce({ name: null, email: null, imagePath: null });
+
+    await importFromTackbokBackup('backup.zip', 'overwrite');
+
+    expect(mockMarkLocalProfileTouched).toHaveBeenCalledWith(tx);
     warnSpy.mockRestore();
   });
 

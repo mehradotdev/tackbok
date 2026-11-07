@@ -39,6 +39,7 @@ import {
   PROFILE_ROW_ID,
   type ProfileUpdate,
   runInCloudSyncTransaction,
+  markLocalProfileTouched,
   updateProfileInTransaction,
 } from '~/lib/cloudSync/storage/repositories';
 import { hydrateProfileCache } from '~/lib/settings';
@@ -162,6 +163,9 @@ export async function importFromTackbokBackup(
               }),
         };
         await updateProfileInTransaction(tx, profileUpdate, { batchId });
+        // An imported profile is authored content even when it equals the empty
+        // local one (a deliberately cleared backup), so it is never pristine.
+        await markLocalProfileTouched(tx);
       });
       if (importedProfileImageUri && profileUpdate.photoUri === undefined) {
         cleanupImportedFiles([importedProfileImageUri]);
