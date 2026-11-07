@@ -11,6 +11,8 @@ const restoring = {
   downloadedMediaCount: 0,
   failureCategory: null,
   attentionReason: null,
+  // Read after the journal proof below.
+  loadedAt: 3,
 } as const;
 const journalReady = {
   ...restoring,
@@ -43,6 +45,31 @@ test('follows a restore from journal to attachments to complete', () => {
       false,
     ),
   ).toEqual({ stage: 'complete' });
+});
+
+test('never completes from counts read before the journal proof', () => {
+  // Home can hold a snapshot from before the journal was applied (no media rows
+  // yet) when the proof arrives through settings.
+  const readBeforeProof = { ...restoring, loadedAt: 2 };
+  expect(
+    deriveCloudRestoreMilestone(journalRestored, readBeforeProof, online, false),
+  ).toEqual({ stage: 'journal' });
+  expect(
+    deriveCloudRestoreMilestone(
+      journalRestored,
+      { ...readBeforeProof, pendingDownloadCount: 12 },
+      { online: true, onWifi: false },
+      true,
+    ),
+  ).toEqual({ stage: 'journal' });
+  expect(
+    deriveCloudRestoreMilestone(
+      journalRestored,
+      { ...readBeforeProof, loadedAt: 3, pendingDownloadCount: 12 },
+      { online: true, onWifi: false },
+      true,
+    ),
+  ).toEqual({ stage: 'waiting-for-wifi', remaining: 12 });
 });
 
 test('tracks nothing without a marker, for another backup, or after disconnecting', () => {

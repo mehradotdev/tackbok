@@ -86,6 +86,8 @@ const restoring: CloudSyncSnapshot = {
   revocationKind: null,
   attentionReason: null,
   recoveryAction: null,
+  // Read after the journal proof in `journalRestored`.
+  loadedAt: 3,
 };
 
 let root: ReactTestRenderer;
@@ -176,6 +178,24 @@ test('a restore resumed before its journal arrived keeps showing the journal ste
   expect(content()).toContain(mockEn['cloud.restoringYourJournalFromGoogleDrive']);
   expect(mockToastSuccess).not.toHaveBeenCalled();
   expect(mockSettings.setCloudRestore).not.toHaveBeenCalled();
+});
+
+test('waits for fresh counts when the journal proof arrives before them', () => {
+  // Home cached this snapshot before the journal was applied: no media rows yet.
+  mockSnapshot = { ...restoring, loadedAt: 1 };
+  mockSettings.cloudSyncWifiOnlyMedia = true;
+  mockNetwork = { isConnected: true, type: 'CELLULAR' };
+  render();
+  // The engine records the proof in settings before Home reloads the snapshot.
+  mockSettings.cloudRestore = journalRestored;
+  act(() => root.update(<CloudRestoreCard />));
+  expect(mockToastSuccess).not.toHaveBeenCalled();
+  expect(mockSettings.setCloudRestore).not.toHaveBeenCalled();
+  expect(content()).toContain(mockEn['cloud.restoringYourJournalFromGoogleDrive']);
+  mockSnapshot = { ...restoring, initialRestore: false, pendingDownloadCount: 12 };
+  act(() => root.update(<CloudRestoreCard />));
+  expect(content()).toContain('Photos and voice notes waiting for Wi-Fi: 12');
+  expect(mockToastSuccess).not.toHaveBeenCalled();
 });
 
 test('shows nothing when no restore is tracked', () => {

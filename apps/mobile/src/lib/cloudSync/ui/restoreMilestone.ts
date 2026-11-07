@@ -33,6 +33,7 @@ type RestoreSnapshot = Pick<
   | 'downloadedMediaCount'
   | 'failureCategory'
   | 'attentionReason'
+  | 'loadedAt'
 >;
 
 /** Failures that clear up by themselves once Tackbok is open and online again. */
@@ -45,8 +46,9 @@ const RETRYABLE_FAILURES = new Set<CloudSyncActionFailureCategory>([
 /**
  * Returns null when no restore is tracked, or when the snapshot belongs to a
  * different (or no longer connected) backup. Completion needs the marker's
- * proof that a sync pass applied the journal, so a stale snapshot, or a status
- * changed by pause and resume, never reports completion.
+ * proof that a sync pass applied the journal, and download counts read after
+ * that proof, so a stale snapshot, or a status changed by pause and resume,
+ * never reports completion.
  */
 export function deriveCloudRestoreMilestone(
   restore: CloudRestoreMarker | null,
@@ -81,6 +83,9 @@ export function deriveCloudRestoreMilestone(
     return { stage: 'journal' };
   }
 
+  // The proof is recorded after the journal's media rows are written. Counts
+  // read before it can predate them, so wait for a snapshot read after it.
+  if (snapshot.loadedAt <= restore.journalRestoredAt) return { stage: 'journal' };
   const remaining = snapshot.pendingDownloadCount;
   if (remaining === 0) return { stage: 'complete' };
   if (offline) return { stage: 'paused', reason: 'offline' };

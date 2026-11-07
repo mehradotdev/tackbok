@@ -22,6 +22,7 @@ const EMPTY_SNAPSHOT: CloudSyncSnapshot = {
   revocationKind: null,
   attentionReason: null,
   recoveryAction: null,
+  loadedAt: 0,
 };
 
 let cachedSnapshot = EMPTY_SNAPSHOT;
