@@ -153,8 +153,8 @@ export async function isGoogleMarkedConnected(): Promise<boolean> {
 const CREDENTIAL_KEYS = [CONNECTION_ID_KEY, ACCOUNT_EMAIL_KEY, TOKEN_KEY, CONNECTED_KEY];
 
 /**
- * The stored Google credentials at one moment. Reconnect holds it in memory;
- * the setup guard keeps it in SecureStore.
+ * The stored Google credentials at one moment. The setup guard keeps it in
+ * SecureStore while setup or Reconnect replaces them.
  */
 export interface GoogleCredentialSnapshot {
   readonly values: readonly (string | null)[];
@@ -254,18 +254,4 @@ export async function clearGoogleCredentials(
 
 export async function clearGoogleSetupGuard(): Promise<void> {
   await SecureStore.deleteItemAsync(SETUP_GUARD_KEY);
-}
-
-/** Reconnect runs under the connection barrier; the rollback stays in memory only. */
-export async function withGoogleCredentialRollback<T>(
-  operation: () => Promise<T>,
-  signOut: () => Promise<void>,
-): Promise<T> {
-  const previous = await captureGoogleCredentials();
-  try {
-    return await operation();
-  } catch (error) {
-    await restoreGoogleCredentials(previous, signOut);
-    throw error;
-  }
 }

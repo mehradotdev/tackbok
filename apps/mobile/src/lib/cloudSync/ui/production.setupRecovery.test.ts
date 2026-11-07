@@ -25,6 +25,10 @@ const mockRevocations: (string | undefined)[] = [];
 let mockAuthorizeToken = 'new-account-token';
 let mockAvailable = [{ vaultId: 'vault-new', updatedAt: 1 }];
 let mockGuardReadFails = false;
+/** Holds the next setup-guard read, which has already read its value, until it opens. */
+let mockGuardReadGate: Promise<void> | null = null;
+/** Each background engine that synced: its backup and the stored token then. */
+const mockAdmitted: { vault: unknown; token: string | undefined }[] = [];
 const mockSettings = {
   setCloudRestore: jest.fn(),
   setHasCompletedOnboarding: jest.fn(),
@@ -32,6 +36,7 @@ const mockSettings = {
 
 const mockCloudVault = {
   vault_id: 'vault_id',
+  remote_root_id: 'remote_root_id',
   status: 'status',
   device_id: 'device_id',
   provider_kind: 'provider_kind',
@@ -107,7 +112,13 @@ jest.mock('expo-secure-store', () => ({
   WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'unlocked',
   getItemAsync: async (key: string) => {
     if (key === GUARD_KEY && mockGuardReadFails) throw new Error('keychain locked');
-    return mockSecure.get(key) ?? null;
+    const value = mockSecure.get(key) ?? null;
+    if (key === GUARD_KEY && mockGuardReadGate) {
+      const gate = mockGuardReadGate;
+      mockGuardReadGate = null;
+      await gate;
+    }
+    return value;
   },
   setItemAsync: async (key: string, value: string) => {
     mockSecure.set(key, value);
@@ -146,6 +157,7 @@ jest.mock('drizzle-orm', () => ({
   eq: (column: string, value: unknown) => (row: Row) => row[column] === value,
   inArray: (column: string, values: unknown[]) => (row: Row) =>
     values.includes(row[column]),
+  isNotNull: (column: string) => (row: Row) => row[column] != null,
   count: jest.fn(),
   isNull: jest.fn(),
   sql: jest.fn(),
@@ -199,6 +211,24 @@ jest.mock('../runtime/backgroundTask', () => ({
   setCloudSyncBackgroundTaskEnabled: async () => {},
 }));
 jest.mock('../storage/repositories', () => ({}));
+// The real background entry point, with an engine that records what it would use.
+jest.mock('react-native', () => ({ AppState: { currentState: 'background' } }));
+jest.mock('expo-network', () => ({}));
+jest.mock('../storage/backfill', () => ({
+  isNormalizedModelReady: async () => true,
+  runNormalizedModelBackfill: async () => {},
+}));
+jest.mock('../snapshot/runtime', () => ({
+  createProductionSnapshotRuntimeEngine: async (options: { vault: Row }) => ({
+    sync: async () => {
+      mockAdmitted.push({
+        vault: options.vault.vault_id,
+        token: mockSecure.get(TOKEN_KEY),
+      });
+      return { pulled: 0, pushed: 0 };
+    },
+  }),
+}));
 
 let production: Production;
 let setup: ConnectionSetup;
@@ -214,11 +244,21 @@ async function startSetupAndDie() {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 const status = () => mockVaultRows.map((row) => row.status);
+/** Runs one background pass and returns what its engine was opened with. */
+async function backgroundAdmission() {
+  mockAdmitted.length = 0;
+  const runtime = jest.requireActual<typeof import('../runtime/production')>(
+    '../runtime/production',
+  );
+  await runtime.runProductionBackgroundPass();
+  return [...mockAdmitted];
+}
 
 beforeEach(() => {
   mockAuthorizeToken = 'new-account-token';
   mockAvailable = [{ vaultId: 'vault-new', updatedAt: 1 }];
   mockGuardReadFails = false;
+  mockGuardReadGate = null;
   mockRevocations.length = 0;
   mockSecure.clear();
   mockSecure.set(TOKEN_KEY, 'old-account-token');
@@ -507,6 +547,73 @@ test('a corrupt guard signs out even while a backup is active', async () => {
   await expect(setup.reconcileAbandonedConnectionSetup()).resolves.toBe(true);
   expect(mockSecure.get(TOKEN_KEY)).toBeUndefined();
   // The configured backup is kept; sync waits for the user to reconnect.
+  expect(status()).toEqual(['restoring']);
+  expect(mockSecure.has(GUARD_KEY)).toBe(false);
+});
+
+test('a Retry waiting on the guard read cannot enable the backup once setup stages an account', async () => {
+  let release!: () => void;
+  mockGuardReadGate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const retrying = production
+    .retrySyncAttentionReason('purge-incomplete')
+    .catch((error: unknown) => error);
+  for (let tick = 0; tick < 20; tick++) await Promise.resolve();
+  // The Retry has read an absent guard; setup starts while that read is delayed.
+  const preparing = production.prepareGoogleDriveConnection();
+  // Give setup every chance to stage B before the delayed read returns.
+  for (let tick = 0; tick < 50; tick++) await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  release();
+  await retrying;
+  await preparing;
+  expect(mockSecure.get(TOKEN_KEY)).toBe('new-account-token');
+  expect(status()).toEqual(['disabled']);
+  expect(mockSecure.has(GUARD_KEY)).toBe(true);
+  await expect(backgroundAdmission()).resolves.toEqual([]);
+  // After the app dies at the picker, the old backup resumes with its own account.
+  launch();
+  await expect(backgroundAdmission()).resolves.toEqual([
+    { vault: 'vault-old', token: 'old-account-token' },
+  ]);
+  expect(mockSecure.has(GUARD_KEY)).toBe(false);
+});
+
+// Reconnect parses the stored tokens, so these are valid token sets.
+const OLD_TOKENS = JSON.stringify({ accessToken: 'old-account', expiresAt: 0 });
+const THIRD_TOKENS = JSON.stringify({ accessToken: 'third-account', expiresAt: 0 });
+
+test.each(['authorize', 'list'] as const)(
+  'a launch after Reconnect dies at %s puts back the old account before any background pass',
+  async (step) => {
+    mockSecure.set(TOKEN_KEY, OLD_TOKENS);
+    // A pending setup for account B is put back first; Reconnect then picks C.
+    await production.prepareGoogleDriveConnection();
+    mockAuthorizeToken = THIRD_TOKENS;
+    mockAvailable = [{ vaultId: 'vault-old', updatedAt: 1 }];
+    mockDieAt = step;
+    void production.reconnectGoogleDrive().catch(() => undefined);
+    for (let tick = 0; tick < 50; tick++) await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockSecure.get(TOKEN_KEY)).toBe(THIRD_TOKENS);
+    expect(status()).toEqual(['disabled']);
+    expect(mockSecure.has(GUARD_KEY)).toBe(true);
+    mockDieAt = null;
+    launch();
+    await expect(backgroundAdmission()).resolves.toEqual([
+      { vault: 'vault-old', token: OLD_TOKENS },
+    ]);
+    expect(status()).toEqual(['restoring']);
+    expect(mockSecure.has(GUARD_KEY)).toBe(false);
+  },
+);
+
+test('a Reconnect to an account without the backup puts the old account back', async () => {
+  mockSecure.set(TOKEN_KEY, OLD_TOKENS);
+  mockAuthorizeToken = THIRD_TOKENS;
+  await expect(production.reconnectGoogleDrive()).rejects.toThrow('not found');
+  expect(mockSecure.get(TOKEN_KEY)).toBe(OLD_TOKENS);
   expect(status()).toEqual(['restoring']);
   expect(mockSecure.has(GUARD_KEY)).toBe(false);
 });
