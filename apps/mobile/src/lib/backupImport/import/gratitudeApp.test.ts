@@ -1,3 +1,4 @@
+import { addCloudSyncMutationListener } from '~/lib/cloudSync/runtime/mutationSignal';
 import { importFromGratitudeAppBackup } from './gratitudeApp';
 
 const tx = {
@@ -21,9 +22,12 @@ const mockProfile = {
 };
 
 jest.mock('expo-document-picker', () => ({}));
+jest.mock('expo-crypto', () => ({ randomUUID: () => 'uuid' }));
 
 jest.mock('~/db', () => ({
   entries: { note_id: 'note_id' },
+  runExclusiveDbTransaction: (callback: (transaction: typeof tx) => Promise<unknown>) =>
+    mockTransaction(callback),
 }));
 
 jest.mock('~/lib/settings', () => ({
@@ -42,9 +46,9 @@ jest.mock('~/lib/settings', () => ({
   },
 }));
 
+// The real transaction helper runs so its commit contract is exercised.
 jest.mock('~/lib/cloudSync/storage/repositories', () => ({
-  runInCloudSyncTransaction: (callback: (transaction: typeof tx) => Promise<unknown>) =>
-    mockTransaction(callback),
+  ...jest.requireActual('~/lib/cloudSync/storage/repositories'),
   updateProfileInTransaction: (txArg: unknown, profile: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile),
   markLocalProfileTouched: (txArg: unknown) => mockMarkLocalProfileTouched(txArg),
@@ -98,6 +102,37 @@ describe('importFromGratitudeAppBackup profile photo', () => {
     expect(summary.warnings).toEqual([
       expect.objectContaining({ kind: 'profile-settings' }),
     ]);
+  });
+
+  it('keeps the committed profile photo when post-commit work fails', async () => {
+    let commits = 0;
+    const countingCommit = async (
+      callback: (transaction: typeof tx) => Promise<unknown>,
+    ) => {
+      const result = await callback(tx);
+      commits += 1;
+      return result;
+    };
+    mockTransaction
+      .mockImplementationOnce(countingCommit)
+      .mockImplementationOnce(countingCommit);
+    // The second commit is the profile photo write.
+    const subscription = addCloudSyncMutationListener(() => {
+      if (commits === 2) throw new Error('listener failed after commit');
+    });
+
+    try {
+      const summary = await importFromGratitudeAppBackup('backup.zip', 'skip');
+
+      expect(commits).toBe(2);
+      expect(mockSetState).toHaveBeenCalledWith({
+        profileImageUri: 'photos/imported.jpg',
+      });
+      expect(mockCleanupImportedFiles).not.toHaveBeenCalled();
+      expect(summary.warnings).toEqual([]);
+    } finally {
+      subscription.remove();
+    }
   });
 
   it('removes the imported photo when its profile write fails', async () => {
