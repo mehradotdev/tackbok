@@ -11,9 +11,19 @@ export class CloudConnectionLifecycle {
   private changes = 0;
   private tail: Promise<unknown> = Promise.resolve();
   private passes = new Map<Promise<unknown>, AbortController>();
+  private changeListeners = new Set<() => void>();
 
   get epoch(): number {
     return this.generation;
+  }
+
+  /**
+   * Runs `listener` in every change, after running passes have drained and
+   * before the change's operation, so state those passes left is dropped.
+   */
+  addChangeListener(listener: () => void): () => void {
+    this.changeListeners.add(listener);
+    return () => this.changeListeners.delete(listener);
   }
 
   async waitForChanges(): Promise<void> {
@@ -54,6 +64,7 @@ export class CloudConnectionLifecycle {
       .catch(() => undefined)
       .then(async () => {
         await Promise.allSettled([...this.passes.keys()]);
+        this.changeListeners.forEach((listener) => listener());
         return operation();
       });
     this.tail = change;

@@ -11,6 +11,7 @@ import { decodeSnapshot, encodeSnapshot } from '../../src/lib/cloudSync/snapshot
 import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
 import { BaseShadowManager } from '../../src/lib/cloudSync/snapshot/sync/baseShadow';
 import { SnapshotSyncEngine } from '../../src/lib/cloudSync/snapshot/sync/engine';
+import { VerifiedSnapshotCache } from '../../src/lib/cloudSync/snapshot/sync/snapshotCache';
 import {
   SyncCancelledError,
   throwIfCancelled,
@@ -135,7 +136,7 @@ interface Harness {
   journal: MemorySnapshotJournalStore;
   media: MemorySnapshotMediaStore;
   clock: Clock;
-  engine(hooks?: SnapshotSyncHooks): SnapshotSyncEngine;
+  engine(hooks?: SnapshotSyncHooks, cache?: VerifiedSnapshotCache): SnapshotSyncEngine;
 }
 
 function harness(
@@ -162,7 +163,7 @@ function harness(
     journal,
     media,
     clock,
-    engine: (hooks = {}) =>
+    engine: (hooks = {}, cache) =>
       new SnapshotSyncEngine(
         vaultId,
         deviceId,
@@ -173,6 +174,7 @@ function harness(
         provider,
         hooks,
         () => clock.value,
+        cache,
       ),
   };
 }
@@ -639,7 +641,7 @@ describe('durable snapshot publisher', () => {
     expect(second.journal.current().conflicts).toEqual([]);
   });
 
-  test('reuses validated snapshots for head rechecks but verifies again next pass', async () => {
+  test('without a snapshot cache, reuses validated snapshots for head rechecks but verifies again next pass', async () => {
     const first = harness('cache-a', withEntry(blankDomain(), entry('cached', 'Body')));
     first.state.markDirty(first.vaultId, first.deviceId);
     await first.engine().sync();
@@ -3475,5 +3477,203 @@ describe('detailed sync progress', () => {
       progress: null,
       idleWait: 'wifi-only-media',
     });
+  });
+});
+
+describe('verified snapshots across passes', () => {
+  const downloads = (provider: FakeSnapshotProvider) =>
+    provider.requests.filter((op) => op === 'download-snapshot').length;
+
+  async function pulledDevice() {
+    const writer = harness('cache-writer', withEntry(blankDomain(), entry('e1', 'one')));
+    writer.state.markDirty(writer.vaultId, writer.deviceId);
+    expect((await writer.engine().sync()).status).toBe('published');
+    const reader = harness('cache-reader', blankDomain(), writer.provider, writer.clock);
+    const cache = new VerifiedSnapshotCache();
+    expect((await reader.engine({}, cache).sync()).status).toBe('pulled');
+    return { writer, reader, cache, provider: writer.provider };
+  }
+
+  test('a pass with unchanged heads downloads no snapshot but still lists live state', async () => {
+    const { reader, cache, provider } = await pulledDevice();
+    for (let pass = 0; pass < 3; pass += 1) {
+      provider.requests.length = 0;
+      expect((await reader.engine({}, cache).sync()).status).toBe('up-to-date');
+      expect(downloads(provider)).toBe(0);
+      expect(provider.requests).toContain('list-revocations');
+      expect(provider.requests).toContain('list-heads');
+    }
+  });
+
+  test('a device reads its own published head once, then reuses it', async () => {
+    const app = harness('cache-own', withEntry(blankDomain(), entry('e1', 'one')));
+    const cache = new VerifiedSnapshotCache();
+    app.state.markDirty(app.vaultId, app.deviceId);
+    expect((await app.engine({}, cache).sync()).status).toBe('published');
+    // Publication proved the upload on Drive; it put nothing in the cache.
+    expect(cache.size).toBe(0);
+    app.provider.requests.length = 0;
+    expect((await app.engine({}, cache).sync()).status).toBe('up-to-date');
+    expect(downloads(app.provider)).toBe(1);
+    app.provider.requests.length = 0;
+    expect((await app.engine({}, cache).sync()).status).toBe('up-to-date');
+    expect(downloads(app.provider)).toBe(0);
+  });
+
+  test('a changed head downloads exactly that snapshot', async () => {
+    const { writer, reader, cache, provider } = await pulledDevice();
+    writer.clock.value += 1000;
+    writer.journal.mutate(
+      withEntry(writer.journal.current(), entry('e1', 'edited', writer.clock.value)),
+    );
+    expect((await writer.engine().sync()).status).toBe('published');
+    provider.requests.length = 0;
+    expect((await reader.engine({}, cache).sync()).status).toBe('pulled');
+    expect(downloads(provider)).toBe(1);
+    expect(reader.journal.current().entries[0].content).toBe('edited');
+  });
+
+  test('a cached head reads as an instant check, not a download', async () => {
+    const { reader, cache, provider } = await pulledDevice();
+    const progress = recordProgress(provider);
+    expect((await progress.pass(reader.engine(progress.hooks(), cache))).status).toBe(
+      'up-to-date',
+    );
+    expect(progress.seen.map(({ phase }) => phase)).not.toContain('downloading');
+    expect(progress.seen.find(({ items }) => items)).toMatchObject({
+      phase: 'checking',
+      items: { done: 1, total: 1 },
+    });
+  });
+
+  test('the envelope is still checked against the live head on a cache hit', async () => {
+    const { writer, reader, cache, provider } = await pulledDevice();
+    const [{ head }] = provider.physicalHeads(writer.vaultId);
+    // A forged head reuses the cached snapshot under another sequence.
+    provider.injectPhysicalHead({ ...head, deviceSequence: head.deviceSequence + 1 });
+    provider.requests.length = 0;
+    expect(await reader.engine({}, cache).sync()).toMatchObject({
+      status: 'attention',
+      reason: 'invalid-remote-snapshot',
+    });
+    expect(downloads(provider)).toBe(0);
+  });
+
+  test('a snapshot cached for one vault is never used for another', async () => {
+    const { reader, cache } = await pulledDevice();
+    expect(cache.size).toBeGreaterThan(0);
+    const other = harness(
+      'cache-other-vault',
+      withEntry(blankDomain(), entry('e1', 'one')),
+      reader.provider,
+      reader.clock,
+      'vault-other',
+    );
+    other.state.markDirty(other.vaultId, other.deviceId);
+    expect((await other.engine({}, cache).sync()).status).toBe('published');
+    const joining = harness(
+      'cache-other-joining',
+      blankDomain(),
+      reader.provider,
+      reader.clock,
+      'vault-other',
+    );
+    reader.provider.requests.length = 0;
+    expect((await joining.engine({}, cache).sync()).status).toBe('pulled');
+    expect(downloads(reader.provider)).toBe(1);
+  });
+
+  test('publication still verifies its upload on Drive with a warm cache', async () => {
+    const { reader, cache, provider } = await pulledDevice();
+    reader.clock.value += 1000;
+    reader.journal.mutate(
+      withEntry(reader.journal.current(), entry('e2', 'two', reader.clock.value)),
+    );
+    const heads = () => provider.physicalHeads(reader.vaultId).map(({ head }) => head);
+    const before = heads();
+    provider.failNext(
+      'verify-snapshot',
+      new SnapshotProviderError('transient', 'verification failed'),
+    );
+    provider.requests.length = 0;
+    expect((await reader.engine({}, cache).sync()).status).toBe('retry');
+    expect(downloads(provider)).toBe(0);
+    expect(provider.requests).toContain('verify-snapshot');
+    expect(provider.requests).not.toContain('update-head');
+    expect(heads()).toEqual(before);
+
+    provider.requests.length = 0;
+    expect((await reader.engine({}, cache).sync()).status).toBe('published');
+    expect(provider.requests).toContain('verify-snapshot');
+  });
+
+  test('cached ancestors are reused without a download or a budget charge', async () => {
+    const provider = new FakeSnapshotProvider();
+    const clock = { value: 1_800_000_000_000 };
+    const initial = withEntry(blankDomain(), entry('e1', 'one'));
+    const a = harness('device-a', initial, provider, clock);
+    const b = harness('device-b', initial, provider, clock);
+    a.journal.mutate(initial);
+    await a.engine().sync();
+    await settle([a, b]);
+    const ancestor = provider.physicalHeads(a.vaultId)[0].head.snapshotId;
+    const edit = (device: Harness, entryId: string, content: string) => {
+      clock.value += 1000;
+      device.journal.mutate(
+        withEntry(device.journal.current(), entry(entryId, content, clock.value)),
+      );
+    };
+    edit(a, 'e1', 'A1');
+    edit(b, 'e2', 'B2');
+    await syncConcurrently([a, b]);
+
+    const download = provider.downloadSnapshot.bind(provider);
+    let ancestorDownloads = 0;
+    provider.downloadSnapshot = async (vaultId, snapshotId) => {
+      if (snapshotId === ancestor) ancestorDownloads += 1;
+      return download(vaultId, snapshotId);
+    };
+    const cache = new VerifiedSnapshotCache();
+    // The first pass finds the ancestor, then stops before publishing.
+    provider.failNext('has-media', new SnapshotProviderError('transient', 'offline'));
+    expect((await a.engine({}, cache).sync()).status).toBe('retry');
+    expect(ancestorDownloads).toBe(1);
+
+    // Every further ancestor transfer would fail, so success proves reuse.
+    provider.downloadSnapshot = async (vaultId, snapshotId) => {
+      if (snapshotId === ancestor) {
+        ancestorDownloads += 1;
+        throw new SnapshotProviderError('transient', 'unexpected ancestor download');
+      }
+      return download(vaultId, snapshotId);
+    };
+    provider.requests.length = 0;
+    expect((await a.engine({}, cache).sync()).status).toBe('published');
+    expect(ancestorDownloads).toBe(1);
+    expect(downloads(provider)).toBe(0);
+    expect(contents(a.journal.current())).toEqual({ e1: 'A1', e2: 'B2' });
+    expect(a.journal.current().conflicts).toEqual([]);
+  });
+
+  test('a cancelled download leaves nothing in the cache', async () => {
+    const writer = harness('cancel-writer', withEntry(blankDomain(), entry('e1', 'one')));
+    writer.state.markDirty(writer.vaultId, writer.deviceId);
+    await writer.engine().sync();
+    const reader = harness('cancel-reader', blankDomain(), writer.provider, writer.clock);
+    const cache = new VerifiedSnapshotCache();
+    const controller = new AbortController();
+    const cancelled = reader.engine(
+      {
+        at(point) {
+          if (point === 'during-remote-snapshot-download') controller.abort();
+          throwIfCancelled(controller.signal);
+        },
+      },
+      cache,
+    );
+    await expect(cancelled.sync()).rejects.toBeInstanceOf(SyncCancelledError);
+    expect(cache.size).toBe(0);
+    expect((await reader.engine({}, cache).sync()).status).toBe('pulled');
+    expect(cache.size).toBe(1);
   });
 });
