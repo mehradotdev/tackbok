@@ -1,1 +1,1 @@
-export { hydrateProfileCache, useSettingsStore } from './store';
+export { hydrateProfileCache, useSettingsStore, type CloudRestoreMarker } from './store';

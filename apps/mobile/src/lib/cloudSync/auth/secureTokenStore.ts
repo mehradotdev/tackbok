@@ -6,6 +6,7 @@ const TOKEN_KEY = 'tackbok.cloud-sync.google.tokens.v1';
 const CONNECTED_KEY = 'tackbok.cloud-sync.google.connected.v1';
 const ACCOUNT_EMAIL_KEY = 'tackbok.cloud-sync.google.account-email.v1';
 const CONNECTION_ID_KEY = 'tackbok.cloud-sync.google.connection-id.v1';
+const SETUP_GUARD_KEY = 'tackbok.cloud-sync.google.setup-guard.v1';
 
 function normalizeAccountEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null;
@@ -149,32 +150,108 @@ export async function isGoogleMarkedConnected(): Promise<boolean> {
   return (await SecureStore.getItemAsync(CONNECTED_KEY)) === '1';
 }
 
-/** Reconnect runs under the connection barrier; the rollback stays in memory only. */
-export async function withGoogleCredentialRollback<T>(
-  operation: () => Promise<T>,
+const CREDENTIAL_KEYS = [CONNECTION_ID_KEY, ACCOUNT_EMAIL_KEY, TOKEN_KEY, CONNECTED_KEY];
+
+/**
+ * The stored Google credentials at one moment. The setup guard keeps it in
+ * SecureStore while setup or Reconnect replaces them.
+ */
+export interface GoogleCredentialSnapshot {
+  readonly values: readonly (string | null)[];
+}
+
+export async function captureGoogleCredentials(): Promise<GoogleCredentialSnapshot> {
+  return {
+    values: await Promise.all(
+      CREDENTIAL_KEYS.map((key) => SecureStore.getItemAsync(key)),
+    ),
+  };
+}
+
+/** Signs out, then puts back exactly the captured credentials (absent keys stay absent). */
+export async function restoreGoogleCredentials(
+  snapshot: GoogleCredentialSnapshot,
   signOut: () => Promise<void>,
-): Promise<T> {
-  const keys = [CONNECTION_ID_KEY, ACCOUNT_EMAIL_KEY, TOKEN_KEY, CONNECTED_KEY];
-  const previous = await Promise.all(keys.map((key) => SecureStore.getItemAsync(key)));
+): Promise<void> {
+  await signOut().catch(() => undefined);
   try {
-    return await operation();
-  } catch (error) {
-    await signOut().catch(() => undefined);
-    try {
-      // Restore the Android admission mark last; never expose a partially restored account.
-      await clearGoogleConnectedMark();
-      for (let index = 0; index < keys.length; index++) {
-        const value = previous[index];
-        if (value === null) await SecureStore.deleteItemAsync(keys[index]);
-        else
-          await SecureStore.setItemAsync(keys[index], value, {
-            keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-          });
-      }
-    } catch {
-      // A failed secure-storage write must not leave mixed-account credentials.
-      await Promise.allSettled([clearGoogleConnectedMark(), clearGoogleTokens()]);
+    // Restore the Android admission mark last; never expose a partially restored account.
+    await clearGoogleConnectedMark();
+    for (let index = 0; index < CREDENTIAL_KEYS.length; index++) {
+      const value = snapshot.values[index];
+      if (value === null) await SecureStore.deleteItemAsync(CREDENTIAL_KEYS[index]);
+      else
+        await SecureStore.setItemAsync(CREDENTIAL_KEYS[index], value, {
+          keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+        });
     }
-    throw error;
+  } catch {
+    // A failed secure-storage write must not leave mixed-account credentials.
+    await Promise.allSettled([clearGoogleConnectedMark(), clearGoogleTokens()]);
   }
+}
+
+/**
+ * A connection setup in progress, written before authorization replaces the
+ * current credentials. It holds what a cancelled setup puts back, so an app
+ * that dies before the user chooses a backup can still put it back at launch.
+ * It contains credentials, so it lives in SecureStore only.
+ */
+export interface GoogleSetupGuard {
+  credentials: GoogleCredentialSnapshot;
+  vaults: { vaultId: string; status: string }[];
+}
+
+function isSetupGuard(value: unknown): value is GoogleSetupGuard {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<GoogleSetupGuard>;
+  return (
+    Array.isArray(candidate.credentials?.values) &&
+    candidate.credentials.values.length === CREDENTIAL_KEYS.length &&
+    candidate.credentials.values.every(
+      (item: unknown) => item === null || typeof item === 'string',
+    ) &&
+    Array.isArray(candidate.vaults) &&
+    candidate.vaults.every(
+      (vault: unknown) =>
+        typeof (vault as { vaultId?: unknown })?.vaultId === 'string' &&
+        typeof (vault as { status?: unknown }).status === 'string',
+    )
+  );
+}
+
+export async function writeGoogleSetupGuard(guard: GoogleSetupGuard): Promise<void> {
+  await SecureStore.setItemAsync(SETUP_GUARD_KEY, JSON.stringify(guard), {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  });
+}
+
+/**
+ * Throws when SecureStore cannot be read, so callers keep sync blocked and the
+ * guard stays for a later attempt. 'corrupt' means a guard exists but cannot
+ * put the previous connection back.
+ */
+export async function readGoogleSetupGuard(): Promise<
+  GoogleSetupGuard | 'corrupt' | null
+> {
+  const stored = await SecureStore.getItemAsync(SETUP_GUARD_KEY);
+  if (!stored) return null;
+  try {
+    const parsed: unknown = JSON.parse(stored);
+    if (isSetupGuard(parsed)) return parsed;
+  } catch {
+    // Handled below.
+  }
+  return 'corrupt';
+}
+
+/** Signs out and removes every stored credential, such as an unknown account's. */
+export async function clearGoogleCredentials(
+  signOut: () => Promise<void>,
+): Promise<void> {
+  await restoreGoogleCredentials({ values: CREDENTIAL_KEYS.map(() => null) }, signOut);
+}
+
+export async function clearGoogleSetupGuard(): Promise<void> {
+  await SecureStore.deleteItemAsync(SETUP_GUARD_KEY);
 }

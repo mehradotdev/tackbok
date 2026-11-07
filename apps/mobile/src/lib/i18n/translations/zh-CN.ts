@@ -724,7 +724,16 @@ export const zhCN: Translations = {
   'cloud.cloudBackupNumber': '云备份 {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
     '你的备份保存在你 Google Drive 中一个专属塔克布克的私密文件夹里。塔克布克看不到你 Drive 中的其他文件，你的备份也绝不会发送给塔克布克的开发者。Google 会像保护你的其他文件一样保护它，但它没有端到端加密。',
-  'cloud.cloudRestoreStarted': '已开始从云端恢复',
+  'cloud.restoreComplete': '恢复完成',
+  'cloud.restoreNeedsAttention': '恢复需要处理',
+  'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
+    '恢复已暂停。塔克布克打开并联网时会继续。',
+  'cloud.youCanKeepUsingTackbokWhileItRestores': '恢复期间你可以继续使用塔克布克。',
+  'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
+    '你的日记已就绪。此设备上的照片和语音笔记：{downloaded} / {total}。',
+  'cloud.photosAndVoiceNotesWaitingForWiFiCount': '等待 Wi-Fi 的照片和语音笔记：{number}',
+  'cloud.viewCloudBackup': '查看云备份',
+  'cloud.cloudSyncPhotosAndVoiceNotesToDownload': '云同步：有待下载的照片和语音笔记',
   'cloud.cloudSyncAttentionNeeded': '云同步：需要注意',
   'cloud.cloudSyncChangesSafelyQueued': '云同步：更改已安全排队',
   'cloud.cloudSyncPaused': '云同步：已暂停',

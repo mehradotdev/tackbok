@@ -25,7 +25,9 @@ jest.mock('~/db/queries', () => ({}));
 jest.mock('~/lib/photoUtils', () => ({}));
 jest.mock('~/lib/voiceMemoUtils', () => ({}));
 jest.mock('../auth', () => ({}));
-jest.mock('../auth/secureTokenStore', () => ({}));
+jest.mock('../auth/secureTokenStore', () => ({
+  readGoogleSetupGuard: async () => null,
+}));
 jest.mock('../snapshot/drive', () => ({}));
 jest.mock('../snapshot/sync', () => ({
   SQLiteSyncStateStore: class {
@@ -101,13 +103,22 @@ describe('retrySyncAttentionReason', () => {
     await expect(retry()).rejects.toBeInstanceOf(SyncCancelledError);
   });
 
-  test('Pause before the retry marks the vault dirty keeps the paused status', async () => {
+  test('Pause requested while the retry checks the vault writes after it and cancels it', async () => {
+    const order: string[] = [];
+    let pausing!: Promise<void>;
     mockSelectVault.mockImplementationOnce(async () => {
-      await changeConnection();
+      pausing = mockLifecycle.change(async () => {
+        order.push('pause');
+      });
       return [{ vault_id: 'vault', device_id: 'device' }];
     });
+    mockUpdateVault.mockImplementationOnce(async () => {
+      order.push('retry');
+    });
     await expect(retry()).rejects.toBeInstanceOf(SyncCancelledError);
-    expect(mockUpdateVault).not.toHaveBeenCalled();
+    await pausing;
+    // Pause's status write lands last, so the vault stays paused.
+    expect(order).toEqual(['retry', 'pause']);
     expect(mockRestart).not.toHaveBeenCalled();
   });
 });

@@ -31,6 +31,17 @@ import {
 // theme is selected.
 const INITIAL_DEVICE_THEME_ID = Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
 
+export interface CloudRestoreMarker {
+  vaultId: string;
+  startedAt: number;
+  /**
+   * When a sync pass for this backup first finished applying the journal. Pause,
+   * resume and reconnect change the backup's status, so only this proves the
+   * journal arrived.
+   */
+  journalRestoredAt?: number;
+}
+
 interface SettingsState {
   // Notifications
   dailyReminderEnabled: boolean;
@@ -60,6 +71,11 @@ interface SettingsState {
 
   // Cloud backup display/transfer preference. Connection state is authoritative in SQLite.
   cloudSyncWifiOnlyMedia: boolean;
+  /**
+   * The cloud backup this device started restoring. It drives the Home restore
+   * card until the restore is seen to finish; the backup itself stays in SQLite.
+   */
+  cloudRestore: CloudRestoreMarker | null;
 
   // Privacy
   analyticsEnabled: boolean;
@@ -106,6 +122,8 @@ interface SettingsState {
   setBiometricUnlockEnabled: (enabled: boolean) => void;
   setAppLockDelaySeconds: (seconds: AppLockDelaySeconds) => void;
   setCloudSyncWifiOnlyMedia: (enabled: boolean) => void;
+  setCloudRestore: (restore: CloudRestoreMarker | null) => void;
+  markCloudRestoreJournalRestored: (vaultId: string) => void;
   setAnalyticsEnabled: (enabled: boolean) => void;
   setLastUpdateCheckAt: (checkedAt: string) => void;
   setCustomWorksheetTemplate: (template: string | null) => void;
@@ -140,6 +158,7 @@ const DEFAULT_SETTINGS_VALUES = {
   biometricUnlockEnabled: false,
   appLockDelaySeconds: 0 as AppLockDelaySeconds,
   cloudSyncWifiOnlyMedia: false,
+  cloudRestore: null as CloudRestoreMarker | null,
   analyticsEnabled: false,
   lastUpdateCheckAt: null,
   customWorksheetTemplate: null,
@@ -208,6 +227,13 @@ export const useSettingsStore = create<SettingsState>()(
       setAppLockDelaySeconds: (seconds) =>
         set({ appLockDelaySeconds: normalizeAppLockDelay(seconds) }),
       setCloudSyncWifiOnlyMedia: (enabled) => set({ cloudSyncWifiOnlyMedia: enabled }),
+      setCloudRestore: (restore) => set({ cloudRestore: restore }),
+      markCloudRestoreJournalRestored: (vaultId) =>
+        set((state) =>
+          state.cloudRestore?.vaultId === vaultId && !state.cloudRestore.journalRestoredAt
+            ? { cloudRestore: { ...state.cloudRestore, journalRestoredAt: Date.now() } }
+            : {},
+        ),
       setAnalyticsEnabled: (enabled) => set({ analyticsEnabled: enabled }),
       setLastUpdateCheckAt: (checkedAt) => set({ lastUpdateCheckAt: checkedAt }),
       setCustomWorksheetTemplate: (template) =>
@@ -314,6 +340,7 @@ export const useSettingsStore = create<SettingsState>()(
         biometricUnlockEnabled: state.biometricUnlockEnabled,
         appLockDelaySeconds: state.appLockDelaySeconds,
         cloudSyncWifiOnlyMedia: state.cloudSyncWifiOnlyMedia,
+        cloudRestore: state.cloudRestore,
         analyticsEnabled: state.analyticsEnabled,
         lastUpdateCheckAt: state.lastUpdateCheckAt,
         customWorksheetTemplate: state.customWorksheetTemplate,

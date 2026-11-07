@@ -722,7 +722,19 @@ export const es = {
   'cloud.cloudBackupNumber': 'Copia de seguridad en la nube {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
     'Tu copia de seguridad se guarda en una carpeta privada de Tackbok en tu Google Drive. Tackbok no puede ver tus otros archivos de Drive, y tu copia nunca se envía al desarrollador de Tackbok. Google la protege como a tus otros archivos, pero no tiene cifrado de extremo a extremo.',
-  'cloud.cloudRestoreStarted': 'Restauración en la nube iniciada',
+  'cloud.restoreComplete': 'Restauración completada',
+  'cloud.restoreNeedsAttention': 'La restauración necesita atención',
+  'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
+    'Restauración en pausa. Continuará cuando Tackbok esté abierto y con conexión.',
+  'cloud.youCanKeepUsingTackbokWhileItRestores':
+    'Puedes seguir usando Tackbok mientras se restaura.',
+  'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
+    'Tu diario está listo. Fotos y notas de voz en este dispositivo: {downloaded} de {total}.',
+  'cloud.photosAndVoiceNotesWaitingForWiFiCount':
+    'Fotos y notas de voz esperando wifi: {number}',
+  'cloud.viewCloudBackup': 'Ver copia de seguridad en la nube',
+  'cloud.cloudSyncPhotosAndVoiceNotesToDownload':
+    'Sincronización en la nube: fotos y notas de voz por descargar',
   'cloud.cloudSyncAttentionNeeded': 'Sincronización en la nube: se necesita atención',
   'cloud.cloudSyncChangesSafelyQueued':
     'Sincronización en la nube: cambios en cola de forma segura',

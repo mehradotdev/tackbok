@@ -746,7 +746,19 @@ export const ar: Translations = {
   'cloud.cloudBackupNumber': 'النسخة السحابية {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
     'تُحفظ نسختك الاحتياطية في مجلد خاص بتاكبوك داخل Google Drive الخاص بك. لا يستطيع تاكبوك رؤية ملفاتك الأخرى في Drive، ولا تُرسَل نسختك الاحتياطية أبدًا إلى مطوّر تاكبوك. تحميها Google كما تحمي ملفاتك الأخرى، لكنها ليست مشفّرة من طرف إلى طرف.',
-  'cloud.cloudRestoreStarted': 'بدأت الاستعادة من السحابة',
+  'cloud.restoreComplete': 'اكتملت الاستعادة',
+  'cloud.restoreNeedsAttention': 'الاستعادة تحتاج إلى انتباه',
+  'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
+    'الاستعادة متوقفة مؤقتًا. ستُستأنف عندما يكون Tackbok مفتوحًا ومتصلًا بالإنترنت.',
+  'cloud.youCanKeepUsingTackbokWhileItRestores':
+    'يمكنك مواصلة استخدام Tackbok أثناء الاستعادة.',
+  'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
+    'دفتر اليوميات جاهز. الصور والملاحظات الصوتية على هذا الجهاز: {downloaded} من {total}.',
+  'cloud.photosAndVoiceNotesWaitingForWiFiCount':
+    'صور وملاحظات صوتية بانتظار شبكة Wi-Fi: {number}',
+  'cloud.viewCloudBackup': 'عرض النسخة الاحتياطية السحابية',
+  'cloud.cloudSyncPhotosAndVoiceNotesToDownload':
+    'المزامنة السحابية: صور وملاحظات صوتية بانتظار التنزيل',
   'cloud.cloudSyncAttentionNeeded': 'المزامنة السحابية: يلزم الانتباه',
   'cloud.cloudSyncChangesSafelyQueued':
     'المزامنة السحابية: التغييرات في قائمة انتظار آمنة',

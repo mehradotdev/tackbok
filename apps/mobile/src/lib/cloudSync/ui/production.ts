@@ -26,6 +26,7 @@ import {
 import { deleteAllDataInTransaction } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
+import { useSettingsStore } from '~/lib/settings';
 import { createGoogleAuthorization } from '../auth';
 import { cloudConnectionLifecycle } from '../runtime/connectionLifecycle';
 import {
@@ -35,8 +36,14 @@ import {
 import {
   readGoogleAccountEmail,
   readOrCreateGoogleConnectionId,
-  withGoogleCredentialRollback,
 } from '../auth/secureTokenStore';
+import {
+  beginConnectionSetup,
+  endConnectionSetup,
+  resolveConnectionSetup,
+  rollBackConnectionSetup,
+  type ConnectionRollback,
+} from '../runtime/connectionSetup';
 import {
   GoogleDriveSnapshotProvider,
   SQLiteDriveProviderStateStore,
@@ -70,6 +77,7 @@ export type CloudSetupOrigin = 'settings' | 'onboarding';
 export interface CloudSyncSnapshot {
   configured: boolean;
   provider: 'google-drive' | null;
+  vaultId: string | null;
   status: 'off' | 'paused' | 'syncing' | 'queued' | 'synced' | 'warning' | 'restoring';
   accountLabel: string | null;
   activityPhase: SyncPassPhase | null;
@@ -78,12 +86,22 @@ export interface CloudSyncSnapshot {
   queuedCount: number;
   /** Photos and voice notes from the backup not yet on this device. */
   pendingDownloadCount: number;
+  /** Downloaded photos and voice notes on this device, not only this restore's. */
+  downloadedMediaCount: number;
+  /** Why the latest pass in this session failed, if it did. */
+  failureCategory: CloudSyncActionFailureCategory | null;
   conflictCount: number;
   lastSuccessAt: number | null;
   lastVerifiedAt: number | null;
   revocationKind: 'journal-deleted' | 'backup-deleted' | null;
   attentionReason: SyncAttentionReason | null;
   recoveryAction: SyncRecoveryAction | null;
+  /**
+   * The restore marker's journal proof when this snapshot started reading.
+   * Every count was read after it, so counts that match a proof include the
+   * journal's media rows, whatever the wall clock did.
+   */
+  restoreProofAtLoad: number | null;
 }
 
 export interface PreparedCloudVault {
@@ -123,6 +141,7 @@ let pendingConnection: {
   provider: GoogleDriveSnapshotProvider;
   auth: ReturnType<typeof createGoogleAuthorization>;
   prepared: PreparedGoogleConnection;
+  rollback: ConnectionRollback;
 } | null = null;
 
 async function localHasData(): Promise<boolean> {
@@ -135,6 +154,8 @@ async function localHasData(): Promise<boolean> {
 }
 
 export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
+  const restoreProofAtLoad =
+    useSettingsStore.getState().cloudRestore?.journalRestoredAt ?? null;
   const [vault] = await db.select().from(cloudVault).limit(1);
   const [[queued], [syncState], [conflicts], [providerState], [pendingMedia]] =
     await Promise.all([
@@ -188,6 +209,12 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
             .where(inArray(mediaAssets.download_state, ['pending', 'downloading']))
         : Promise.resolve([]),
     ]);
+  const [downloadedMedia] = vault
+    ? await db
+        .select({ value: count() })
+        .from(mediaAssets)
+        .where(eq(mediaAssets.download_state, 'verified'))
+    : [];
   const queuedCount = vault
     ? Math.max(0, (queued?.value ?? 0) - (queued?.settled ?? 0))
     : 0;
@@ -223,72 +250,154 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   return {
     configured,
     provider: vault?.provider_kind === 'google-drive' ? 'google-drive' : null,
+    vaultId: vault?.vault_id ?? null,
     status,
     accountLabel: vault ? accountLabelInMemory : null,
     activityPhase: activity === 'idle' ? null : activity,
     initialRestore: vault?.status === 'restoring',
     queuedCount,
     pendingDownloadCount,
+    downloadedMediaCount: vault ? (downloadedMedia?.value ?? 0) : 0,
+    failureCategory: getProductionCloudSyncFailureCategory(),
     conflictCount,
     lastSuccessAt: providerState?.last_success_at ?? null,
     lastVerifiedAt: providerState?.last_verify_at ?? null,
     revocationKind: vault?.revocation_kind ?? null,
     attentionReason,
     recoveryAction: attentionReason ? ATTENTION_RECOVERY_ACTION[attentionReason] : null,
+    restoreProofAtLoad,
   };
 }
 
-async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnection> {
-  await cancelPreparedGoogleDriveConnectionImpl();
-  // Disable the old attachment durably before staging a different account.
-  // Background tasks and manual starts must not use these credentials either.
-  await db
-    .update(cloudVault)
-    .set({ status: 'disabled', updated_at: Date.now() })
-    .where(inArray(cloudVault.status, ['dirty', 'idle', 'restoring']));
-  await setCloudSyncBackgroundTaskEnabled(false);
-  const auth = createGoogleAuthorization();
+/**
+ * Authorizes the account the user chooses in place of the stored one, then
+ * runs `staged` with it. Setup and Reconnect both go through here. The current
+ * backup and credentials are guarded durably and the backup disabled before
+ * authorization, so no failure, interleaving or process death can leave a
+ * backup enabled with an account that has not been confirmed for it: a throw
+ * puts them back here, and a launch after process death puts them back (see
+ * connectionSetup). Call it under the connection barrier. `staged` commits by
+ * enabling a backup and then calling endConnectionSetup.
+ */
+async function withStagedGoogleAccount<T>(
+  auth: ReturnType<typeof createGoogleAuthorization>,
+  staged: (rollback: ConnectionRollback) => Promise<T>,
+): Promise<T> {
+  // When this throws nothing changed; a guard it could not read stays for
+  // recovery, and the action can be tried again.
+  const rollback = await beginConnectionSetup();
   try {
+    // Background tasks must not use the staged credentials either.
+    await setCloudSyncBackgroundTaskEnabled(false);
     await auth.authorize();
-    const connectionId = await readOrCreateGoogleConnectionId();
-    const provider = new GoogleDriveSnapshotProvider({
-      auth,
-      state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
-    });
-    const vaults = await provider.listAvailableVaults();
-    const prepared = {
-      accountLabel: await auth.getAccountLabel(),
-      availableVaults: vaults
-        .filter((vault) => !vault.vaultId.includes('probe-'))
-        .map((vault: AvailableDriveVault) => ({
-          vaultId: vault.vaultId,
-          updatedAt: vault.updatedAt || null,
-        })),
-      localHasData: await localHasData(),
-    };
-    pendingConnection = { provider, auth, prepared };
-    accountLabelInMemory = prepared.accountLabel;
-    notifyProductionCloudSyncChanged();
-    return prepared;
+    return await staged(rollback);
   } catch (error) {
-    await auth.signOut().catch(() => undefined);
+    await rollBackConnection(auth, rollback);
     throw error;
   }
+}
+
+async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnection> {
+  const auth = createGoogleAuthorization();
+  // Until a backup is chosen, a cancelled or failed setup puts the current
+  // backup and its credentials back, so a backup this device is still using
+  // (such as a running restore) keeps going.
+  try {
+    // An earlier setup's picker is invalidated and its backup put back first.
+    await resolvePendingConnectionSetup();
+    connectionSetupInProgress = true;
+    return await withStagedGoogleAccount(auth, async (rollback) => {
+      const connectionId = await readOrCreateGoogleConnectionId();
+      const provider = new GoogleDriveSnapshotProvider({
+        auth,
+        state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+      });
+      const vaults = await provider.listAvailableVaults();
+      const prepared = {
+        accountLabel: await auth.getAccountLabel(),
+        availableVaults: vaults
+          .filter((vault) => !vault.vaultId.includes('probe-'))
+          .map((vault: AvailableDriveVault) => ({
+            vaultId: vault.vaultId,
+            updatedAt: vault.updatedAt || null,
+          })),
+        localHasData: await localHasData(),
+      };
+      pendingConnection = { provider, auth, prepared, rollback };
+      accountLabelInMemory = prepared.accountLabel;
+      notifyProductionCloudSyncChanged();
+      return prepared;
+    });
+  } catch (error) {
+    connectionSetupInProgress = false;
+    throw error;
+  }
+}
+
+async function rollBackConnection(
+  auth: ReturnType<typeof createGoogleAuthorization>,
+  rollback: ConnectionRollback,
+): Promise<void> {
+  await rollBackConnectionSetup(rollback, () => auth.signOut());
+  accountLabelInMemory = null;
+  accountLabelAttemptedForVault = null;
+  if (rollback.vaults.length > 0) await enableBackgroundSyncAfterCommit();
 }
 
 async function cancelPreparedGoogleDriveConnectionImpl(): Promise<void> {
   const pending = pendingConnection;
   pendingConnection = null;
-  if (pending) await pending.auth.signOut().catch(() => undefined);
+  if (pending) await rollBackConnection(pending.auth, pending.rollback);
+}
+
+/**
+ * While a setup is pending, the configured backup and account are
+ * authoritative. Every other connection action calls this first, under the
+ * connection barrier: it puts the setup back (credentials, then backup status)
+ * and invalidates its picker, so the action uses the configured account and
+ * never enables a backup with staged credentials. A setup a dead process left
+ * is put back too; an unreadable guard throws and stays for recovery.
+ */
+async function resolvePendingConnectionSetup(): Promise<void> {
+  connectionSetupInProgress = false;
+  if (pendingConnection) {
+    await cancelPreparedGoogleDriveConnectionImpl();
+    return;
+  }
+  await resolveAbandonedConnectionSetup();
+}
+
+/** Puts back a setup a dead process left. Call it under the connection barrier. */
+async function resolveAbandonedConnectionSetup(): Promise<void> {
+  if (await resolveConnectionSetup(() => createGoogleAuthorization().signOut())) {
+    accountLabelInMemory = null;
+    accountLabelAttemptedForVault = null;
+  }
+}
+
+/**
+ * Background sync is an extra; foreground sync already runs for a committed
+ * connection. A failed registration is logged and retried at the next launch.
+ */
+async function enableBackgroundSyncAfterCommit(): Promise<void> {
+  try {
+    await setCloudSyncBackgroundTaskEnabled(true);
+  } catch (error) {
+    console.warn('Cloud backup background sync will be registered at next launch', error);
+  }
 }
 
 async function completeGoogleDriveConnectionImpl(options: {
   origin: CloudSetupOrigin;
+  /** The picker's connection; a newer or put-back setup invalidates it. */
+  connection: PreparedGoogleConnection;
   vaultId?: string;
   createNew?: boolean;
 }): Promise<void> {
   const pending = pendingConnection;
-  if (!pending) throw new Error('Google Drive connection is no longer active');
+  if (!pending || pending.prepared !== options.connection) {
+    throw new Error('Google Drive connection is no longer active');
+  }
 
   let selected = options.vaultId
     ? pending.prepared.availableVaults.find((vault) => vault.vaultId === options.vaultId)
@@ -363,73 +472,91 @@ async function completeGoogleDriveConnectionImpl(options: {
         set: { error_code: null, pause_code: null, updated_at: now },
       });
   });
+  // The vault commit is irrevocable: drop the in-memory rollback before any
+  // fallible cleanup, so a later cancel can never put the old account back.
   pendingConnection = null;
   connectionSetupInProgress = false;
+  // The committed backup is active, so a guard left behind (by a crash or a
+  // failed delete) is inert and startup reconciliation clears it.
+  try {
+    await endConnectionSetup();
+  } catch (error) {
+    console.warn('Could not clear the connection setup guard', error);
+  }
   accountLabelAttemptedForVault = selected.vaultId;
-  await setCloudSyncBackgroundTaskEnabled(true);
+  // The connection is committed. Record the restore and finish onboarding here,
+  // not in the setup screen, so neither depends on that screen staying open.
+  const settings = useSettingsStore.getState();
+  settings.setCloudRestore(
+    options.createNew ? null : { vaultId: selected.vaultId, startedAt: now },
+  );
+  if (options.origin === 'onboarding') settings.setHasCompletedOnboarding(true);
+  await enableBackgroundSyncAfterCommit();
   notifyProductionCloudSyncChanged();
 }
 
 async function reconnectGoogleDriveImpl(): Promise<void> {
+  await resolvePendingConnectionSetup();
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault?.remote_root_id) {
     throw new Error('No cloud backup is configured');
   }
   const auth = createGoogleAuthorization();
   const previousEmail = await readGoogleAccountEmail();
-  await withGoogleCredentialRollback(
-    async () => {
-      await auth.authorize();
-      const connectionId = await readOrCreateGoogleConnectionId();
-      const provider = new GoogleDriveSnapshotProvider({
-        auth,
-        state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
-      });
-      const available = await provider.listAvailableVaults();
-      const store = new SQLiteSyncStateStore(sqlite);
-      const state = store.loadState(vault.vault_id, vault.device_id);
-      const accountLabel = await auth.getAccountLabel();
-      const resumeUnpublished = canResumeUnpublishedBackup({
-        previousEmail,
-        currentEmail: await readGoogleAccountEmail(),
-        settledGeneration: state.settledGeneration,
-        hasBase: store.loadBaseCheckpoint(vault.vault_id, vault.device_id) !== null,
-        availableVaultCount: available.length,
-        revoked:
-          vault.revocation_kind !== null ||
-          (await provider.listRevocations(vault.vault_id)).length > 0,
-      });
-      if (
-        !available.some((remote) => remote.vaultId === vault.vault_id) &&
-        !resumeUnpublished
-      ) {
-        throw new Error(
-          'The configured Tackbok backup was not found in this Google account',
-        );
-      }
-      await setCloudSyncBackgroundTaskEnabled(true);
-      clearAuthorizationPause(store, vault.vault_id, vault.device_id);
-      await db
-        .update(cloudVault)
-        .set({
-          status: state.journalGeneration > state.settledGeneration ? 'dirty' : 'idle',
-          last_connected_at: Date.now(),
-          updated_at: Date.now(),
-        })
-        .where(eq(cloudVault.vault_id, vault.vault_id));
-      accountLabelInMemory = accountLabel;
-      accountLabelAttemptedForVault = vault.vault_id;
-    },
-    () => auth.signOut(),
-  );
+  // The chosen account is unconfirmed until it proves it holds this backup.
+  await withStagedGoogleAccount(auth, async () => {
+    const connectionId = await readOrCreateGoogleConnectionId();
+    const provider = new GoogleDriveSnapshotProvider({
+      auth,
+      state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+    });
+    const available = await provider.listAvailableVaults();
+    const store = new SQLiteSyncStateStore(sqlite);
+    const state = store.loadState(vault.vault_id, vault.device_id);
+    const accountLabel = await auth.getAccountLabel();
+    const resumeUnpublished = canResumeUnpublishedBackup({
+      previousEmail,
+      currentEmail: await readGoogleAccountEmail(),
+      settledGeneration: state.settledGeneration,
+      hasBase: store.loadBaseCheckpoint(vault.vault_id, vault.device_id) !== null,
+      availableVaultCount: available.length,
+      revoked:
+        vault.revocation_kind !== null ||
+        (await provider.listRevocations(vault.vault_id)).length > 0,
+    });
+    if (
+      !available.some((remote) => remote.vaultId === vault.vault_id) &&
+      !resumeUnpublished
+    ) {
+      throw new Error(
+        'The configured Tackbok backup was not found in this Google account',
+      );
+    }
+    await setCloudSyncBackgroundTaskEnabled(true);
+    clearAuthorizationPause(store, vault.vault_id, vault.device_id);
+    await db
+      .update(cloudVault)
+      .set({
+        status: state.journalGeneration > state.settledGeneration ? 'dirty' : 'idle',
+        last_connected_at: Date.now(),
+        updated_at: Date.now(),
+      })
+      .where(eq(cloudVault.vault_id, vault.vault_id));
+    // The backup is active with an account that holds it, so the guard is inert.
+    await endConnectionSetup();
+    accountLabelInMemory = accountLabel;
+    accountLabelAttemptedForVault = vault.vault_id;
+  });
 }
 
 async function disconnectGoogleDriveImpl(): Promise<void> {
   stopProductionSyncRuntime();
+  await resolvePendingConnectionSetup();
   // Per-device Disconnect is intentionally local. This abstraction clears
   // SecureStore and native session state without calling Google's revoke API.
   await createGoogleAuthorization().signOut();
   await db.update(cloudVault).set({ status: 'disabled', updated_at: Date.now() });
+  useSettingsStore.getState().setCloudRestore(null);
   accountLabelInMemory = null;
   accountLabelAttemptedForVault = null;
   await setCloudSyncBackgroundTaskEnabled(false);
@@ -437,6 +564,7 @@ async function disconnectGoogleDriveImpl(): Promise<void> {
 }
 
 async function setCloudSyncPausedImpl(paused: boolean): Promise<void> {
+  await resolvePendingConnectionSetup();
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault) throw new Error('Cloud sync is not configured');
   if (vault.status === 'revoked' || vault.status === 'disabled') {
@@ -496,6 +624,8 @@ async function runManualSyncSince(epoch: number): Promise<boolean> {
 async function revokeCloudVaultImpl(
   kind: 'backup-deleted' | 'journal-deleted',
 ): Promise<void> {
+  // Deletion targets the configured backup with the configured account.
+  await resolvePendingConnectionSetup();
   const [vault] = await db
     .select()
     .from(cloudVault)
@@ -555,6 +685,7 @@ async function revokeCloudVaultImpl(
         updated_at: Date.now(),
       })
       .where(eq(cloudVault.vault_id, vault.vault_id));
+    useSettingsStore.getState().setCloudRestore(null);
     accountLabelInMemory = null;
     accountLabelAttemptedForVault = null;
     await setCloudSyncBackgroundTaskEnabled(false);
@@ -625,8 +756,9 @@ async function wipeJournalAndLocalCloudReplica(): Promise<string[]> {
 }
 
 async function resetThisDeviceOnlyImpl(): Promise<string[]> {
-  const [vault] = await db.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1);
   stopProductionSyncRuntime();
+  await resolvePendingConnectionSetup();
+  const [vault] = await db.select({ id: cloudVault.vault_id }).from(cloudVault).limit(1);
   if (vault) {
     // Sign out before deleting local state. A crash before the atomic wipe
     // leaves the journal intact; a crash after it cannot leave queued deletes.
@@ -636,11 +768,13 @@ async function resetThisDeviceOnlyImpl(): Promise<string[]> {
   accountLabelInMemory = null;
   accountLabelAttemptedForVault = null;
   const mediaCleanupErrors = await wipeJournalAndLocalCloudReplica();
+  useSettingsStore.getState().setCloudRestore(null);
   notifyProductionCloudSyncChanged();
   return mediaCleanupErrors;
 }
 
 async function deleteJournalEverywhereImpl(): Promise<string[]> {
+  await resolvePendingConnectionSetup();
   const [vault] = await db
     .select({
       status: cloudVault.status,
@@ -659,6 +793,7 @@ async function deleteJournalEverywhereImpl(): Promise<string[]> {
     await setCloudSyncBackgroundTaskEnabled(false);
   }
   const mediaCleanupErrors = await wipeJournalAndLocalCloudReplica();
+  useSettingsStore.getState().setCloudRestore(null);
   notifyProductionCloudSyncChanged();
   return mediaCleanupErrors;
 }
@@ -666,22 +801,32 @@ async function deleteJournalEverywhereImpl(): Promise<string[]> {
 export async function retrySyncAttentionReason(
   reason: SyncAttentionReason,
 ): Promise<void> {
-  // Pause or Disconnect may start at any step; report the whole retry as
-  // cancelled then, and never overwrite the status they write.
+  // Retry enables the backup, so its checks and its status change run under the
+  // connection barrier: no setup or Reconnect can stage another account's
+  // credentials in between, and a later Pause or Disconnect writes after it.
+  const retrying = cloudConnectionLifecycle.change(async () => {
+    if (connectionSetupInProgress || pendingConnection) {
+      throw new Error('Finish or cancel the Google account setup first');
+    }
+    await resolveAbandonedConnectionSetup();
+    const [vault] = await db.select().from(cloudVault).limit(1);
+    if (!vault) throw new Error('No cloud backup');
+    const state = new SQLiteSyncStateStore(sqlite);
+    state.clearPause(vault.vault_id, vault.device_id, reason);
+    // Clearing the protocol pause without clearing the presentation-level vault
+    // status leaves Sync now disabled even when the attachment has become
+    // readable. A retry is actionable work, so always mark this vault dirty
+    // before reconstructing the runtime.
+    await db
+      .update(cloudVault)
+      .set({ status: 'dirty', updated_at: Date.now() })
+      .where(eq(cloudVault.vault_id, vault.vault_id));
+  });
+  // Any later connection change, such as Pause or Disconnect, cancels the
+  // whole retry.
   const epoch = cloudConnectionLifecycle.epoch;
-  const [vault] = await db.select().from(cloudVault).limit(1);
-  if (!vault) throw new Error('No cloud backup');
+  await retrying;
   if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
-  const state = new SQLiteSyncStateStore(sqlite);
-  state.clearPause(vault.vault_id, vault.device_id, reason);
-  // Clearing the protocol pause without clearing the presentation-level vault
-  // status leaves Sync now disabled even when the attachment has become
-  // readable. A retry is actionable work, so always mark this vault dirty
-  // before reconstructing the runtime.
-  await db
-    .update(cloudVault)
-    .set({ status: 'dirty', updated_at: Date.now() })
-    .where(eq(cloudVault.vault_id, vault.vault_id));
   await restartProductionSyncRuntime();
   if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
   await runManualSyncSince(epoch);
@@ -689,9 +834,12 @@ export async function retrySyncAttentionReason(
 
 // All connection mutations share the same barrier as production sync passes.
 // Drain before touching credentials, then rebuild from the committed state.
+// `awaitFirstPass: false` returns once the runtime is rebuilt in the background;
+// its first pass can be a whole restore.
 function connectionChange<A extends unknown[], R>(
   operation: (...args: A) => Promise<R>,
   restart: 'always' | 'success' | 'never' = 'always',
+  { awaitFirstPass = true }: { awaitFirstPass?: boolean } = {},
 ) {
   return async (...args: A): Promise<R> => {
     stopProductionSyncRuntime();
@@ -706,7 +854,9 @@ function connectionChange<A extends unknown[], R>(
         !pendingConnection &&
         (restart === 'always' || (restart === 'success' && succeeded))
       ) {
-        await restartProductionSyncRuntime();
+        const restarting = restartProductionSyncRuntime();
+        if (awaitFirstPass) await restarting;
+        else void restarting.catch(() => undefined);
       }
       notifyProductionCloudSyncChanged();
     }
@@ -715,19 +865,31 @@ function connectionChange<A extends unknown[], R>(
 
 export async function prepareGoogleDriveConnection(): Promise<PreparedGoogleConnection> {
   connectionSetupInProgress = true;
-  return connectionChange(prepareGoogleDriveConnectionImpl, 'never')();
+  // Restarts only when nothing was staged, so the current backup resumes.
+  return connectionChange(prepareGoogleDriveConnectionImpl, 'always', {
+    awaitFirstPass: false,
+  })();
 }
 export async function cancelPreparedGoogleDriveConnection(): Promise<void> {
   // Screen cleanup after a committed setup is a no-op, not a runtime stop.
   if (!connectionSetupInProgress && !pendingConnection) return;
-  await connectionChange(async () => {
-    await cancelPreparedGoogleDriveConnectionImpl();
-    connectionSetupInProgress = false;
-  }, 'never')();
+  // Restarts so the backup that was put back resumes.
+  await connectionChange(
+    async () => {
+      try {
+        await cancelPreparedGoogleDriveConnectionImpl();
+      } finally {
+        connectionSetupInProgress = false;
+      }
+    },
+    'always',
+    { awaitFirstPass: false },
+  )();
 }
 export const completeGoogleDriveConnection = connectionChange(
   completeGoogleDriveConnectionImpl,
   'success',
+  { awaitFirstPass: false },
 );
 export const reconnectGoogleDrive = connectionChange(reconnectGoogleDriveImpl);
 export const disconnectGoogleDrive = connectionChange(disconnectGoogleDriveImpl);
