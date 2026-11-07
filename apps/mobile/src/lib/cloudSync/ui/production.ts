@@ -480,10 +480,17 @@ async function completeGoogleDriveConnectionImpl(options: {
         set: { error_code: null, pause_code: null, updated_at: now },
       });
   });
-  // The committed backup is active, so a guard left by a crash here is inert.
-  await endConnectionSetup();
+  // The vault commit is irrevocable: drop the in-memory rollback before any
+  // fallible cleanup, so a later cancel can never put the old account back.
   pendingConnection = null;
   connectionSetupInProgress = false;
+  // The committed backup is active, so a guard left behind (by a crash or a
+  // failed delete) is inert and startup reconciliation clears it.
+  try {
+    await endConnectionSetup();
+  } catch (error) {
+    console.warn('Could not clear the connection setup guard', error);
+  }
   accountLabelAttemptedForVault = selected.vaultId;
   // The connection is committed. Record the restore and finish onboarding here,
   // not in the setup screen, so neither depends on that screen staying open.

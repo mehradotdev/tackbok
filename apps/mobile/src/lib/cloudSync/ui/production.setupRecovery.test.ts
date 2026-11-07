@@ -25,6 +25,7 @@ const mockRevocations: (string | undefined)[] = [];
 let mockAuthorizeToken = 'new-account-token';
 let mockAvailable = [{ vaultId: 'vault-new', updatedAt: 1 }];
 let mockGuardReadFails = false;
+let mockGuardDeleteFailsOnce = false;
 /** Holds the next setup-guard read, which has already read its value, until it opens. */
 let mockGuardReadGate: Promise<void> | null = null;
 /** Each background engine that synced: its backup and the stored token then. */
@@ -124,6 +125,10 @@ jest.mock('expo-secure-store', () => ({
     mockSecure.set(key, value);
   },
   deleteItemAsync: async (key: string) => {
+    if (key === GUARD_KEY && mockGuardDeleteFailsOnce) {
+      mockGuardDeleteFailsOnce = false;
+      throw new Error('keychain write failed');
+    }
     mockSecure.delete(key);
   },
 }));
@@ -258,6 +263,7 @@ beforeEach(() => {
   mockAuthorizeToken = 'new-account-token';
   mockAvailable = [{ vaultId: 'vault-new', updatedAt: 1 }];
   mockGuardReadFails = false;
+  mockGuardDeleteFailsOnce = false;
   mockGuardReadGate = null;
   mockRevocations.length = 0;
   mockSecure.clear();
@@ -373,6 +379,30 @@ test('a launch after dying right after commit keeps the new backup and account',
     ['vault-new', 'restoring'],
   ]);
   expect(mockSecure.has(GUARD_KEY)).toBe(false);
+});
+
+test('a failed guard cleanup after commit cannot put the old account onto the new backup', async () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  const connection = await production.prepareGoogleDriveConnection();
+  mockGuardDeleteFailsOnce = true;
+  await production.completeGoogleDriveConnection({
+    origin: 'settings',
+    connection,
+    vaultId: 'vault-new',
+  });
+  // Leaving the screen cancels the picker; the commit must already have won.
+  await production.cancelPreparedGoogleDriveConnection();
+  expect(mockSecure.get(TOKEN_KEY)).toBe('new-account-token');
+  expect(mockVaultRows.map((row) => [row.vault_id, row.status])).toEqual([
+    ['vault-new', 'restoring'],
+  ]);
+  // The leftover guard is inert: the next launch clears it and keeps the pair.
+  launch();
+  expect(await backgroundAdmission()).toEqual([
+    { vault: 'vault-new', token: 'new-account-token' },
+  ]);
+  expect(mockSecure.has(GUARD_KEY)).toBe(false);
+  warn.mockRestore();
 });
 
 test('a launch after dying while putting the old backup back finishes the job', async () => {
