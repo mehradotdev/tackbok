@@ -27,6 +27,7 @@ import type {
 import { PHASE_FOR_ENGINE_ACTIVITY } from '../../runtime/activity';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import { hashPendingProductionMedia } from './mediaHashing';
+import { nativeSha256Bytes } from './nativeSha256';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
 import { GoogleDriveSnapshotProvider, SQLiteDriveProviderStateStore } from '../drive';
 import { BaseShadowManager } from '../sync/baseShadow';
@@ -523,6 +524,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
     signal: () => cancellation.signal,
     onProgress,
+    hashBytes: nativeSha256Bytes,
   });
   const provider = new MediaPolicyProvider(drive, options.onActivity, onProgress);
   const engine = new SnapshotSyncEngine(

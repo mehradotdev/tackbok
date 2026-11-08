@@ -1389,6 +1389,68 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(progress).toEqual([256 * 1024, bytes.byteLength, bytes.byteLength]);
   });
 
+  test('a multipart media upload hashes each photo exactly once, with the injected hasher', async () => {
+    const server = new FakeDriveServer();
+    const hashed: Uint8Array[] = [];
+    const app = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: server.fetch,
+      sleep: async () => {},
+      random: () => 0,
+      hashBytes: async (bytes) => {
+        hashed.push(bytes);
+        return sha256Bytes(bytes);
+      },
+    });
+    const photos = ['synthetic-photo-one', 'synthetic-photo-two'].map((text) =>
+      new TextEncoder().encode(text),
+    );
+    for (const bytes of photos) {
+      const hash = sha256Bytes(bytes);
+      await app.uploadMedia(vaultId, hash, {
+        byteLength: bytes.byteLength,
+        contentHash: hash,
+        read: async (offset, length) => bytes.slice(offset, offset + length),
+      });
+    }
+    expect(hashed).toEqual(photos);
+    // The verified hash is the one Drive stores as the object's metadata hash.
+    for (const bytes of photos) {
+      const hash = sha256Bytes(bytes);
+      const stored = [...server.files.values()].find(
+        (file) => file.name === `media/${hash.slice(0, 2)}/${hash}`,
+      );
+      expect(stored?.appProperties.tb_hash).toBe(hash);
+    }
+
+    // Re-uploading cached media neither reads nor hashes it again.
+    const hash = sha256Bytes(photos[0]);
+    await app.uploadMedia(vaultId, hash, {
+      byteLength: photos[0].byteLength,
+      contentHash: hash,
+      read: async () => {
+        throw new Error('cached media must not be read');
+      },
+    });
+    expect(hashed).toHaveLength(2);
+  });
+
+  test('media whose bytes no longer match their hash is rejected before upload', async () => {
+    const server = new FakeDriveServer();
+    const app = provider(server);
+    const bytes = new TextEncoder().encode('synthetic-photo-before-edit');
+    const hash = sha256Bytes(bytes);
+    await expect(
+      app.uploadMedia(vaultId, hash, {
+        byteLength: bytes.byteLength,
+        contentHash: hash,
+        read: async () => new TextEncoder().encode('synthetic-photo-after-edit!'),
+      }),
+    ).rejects.toMatchObject({ code: 'invalid-data' });
+    expect(server.calls.some((call) => call.method === 'POST')).toBe(false);
+  });
+
   test('a media download resumes into a durable sink without returning whole-file bytes', async () => {
     const state = new MemoryDriveProviderStateStore();
     const bytes = new TextEncoder().encode('synthetic-resumable-media-download');

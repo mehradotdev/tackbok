@@ -49,6 +49,7 @@ import {
   SQLiteDriveProviderStateStore,
   type AvailableDriveVault,
 } from '../snapshot/drive';
+import { nativeSha256Bytes } from '../snapshot/runtime/nativeSha256';
 import {
   deletionAttentionReason,
   SQLiteSyncStateStore,
@@ -311,6 +312,7 @@ async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnect
       const provider = new GoogleDriveSnapshotProvider({
         auth,
         state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+        hashBytes: nativeSha256Bytes,
       });
       const vaults = await provider.listAvailableVaults();
       const prepared = {
@@ -509,6 +511,7 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
     const provider = new GoogleDriveSnapshotProvider({
       auth,
       state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+      hashBytes: nativeSha256Bytes,
     });
     const available = await provider.listAvailableVaults();
     const store = new SQLiteSyncStateStore(sqlite);
@@ -656,6 +659,7 @@ async function revokeCloudVaultImpl(
     const provider = new GoogleDriveSnapshotProvider({
       auth: createGoogleAuthorization(),
       state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+      hashBytes: nativeSha256Bytes,
     });
     await provider.publishRevocation(vault.vault_id, kind);
     const purge = await provider.purgeRevokedVault(vault.vault_id);
