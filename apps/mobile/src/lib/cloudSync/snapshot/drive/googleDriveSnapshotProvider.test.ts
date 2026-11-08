@@ -2025,3 +2025,30 @@ describe('GoogleDriveSnapshotProvider', () => {
     ).not.toThrow();
   });
 });
+
+test('a media upload sends exactly the verified bytes even if its source reuses the buffer', async () => {
+  const server = new FakeDriveServer();
+  const bytes = new TextEncoder().encode('photo-before');
+  const original = bytes.slice();
+  const hash = sha256Bytes(bytes);
+  const app = new GoogleDriveSnapshotProvider({
+    auth: new FakeAuth(),
+    state: new MemoryDriveProviderStateStore(),
+    fetch: server.fetch,
+    sleep: async () => {},
+    random: () => 0,
+    hashBytes: async (input) => sha256Bytes(input),
+  });
+  await app.uploadMedia(vaultId, hash, {
+    byteLength: bytes.byteLength,
+    contentHash: hash,
+    read: async () => {
+      // The source reuses its buffer while the hash is being awaited.
+      queueMicrotask(() => queueMicrotask(() => bytes.fill(0)));
+      return bytes;
+    },
+  });
+  expect(
+    [...server.files.values()].find((file) => file.name.endsWith(hash))?.bytes,
+  ).toEqual(original);
+});

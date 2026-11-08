@@ -777,7 +777,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         const bytes =
           source.byteLength === 0
             ? new Uint8Array()
-            : await source.read(0, source.byteLength);
+            : // Own the bytes: hashing awaits, and a source may reuse its buffer.
+              new Uint8Array(await source.read(0, source.byteLength));
         if (bytes.byteLength !== source.byteLength) {
           throw new SnapshotProviderError(
             'invalid-data',
