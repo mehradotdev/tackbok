@@ -36,6 +36,7 @@ import {
   type SnapshotLineage,
 } from './frontier';
 import { SnapshotPublisher } from './publication';
+import type { VerifiedSnapshotCache } from './snapshotCache';
 
 const MAX_HEAD_RECHECKS = 4;
 // A merge base older than the local base is found by walking retained
@@ -101,6 +102,8 @@ export class SnapshotSyncEngine {
     private readonly provider: SnapshotProvider,
     private readonly hooks: SnapshotSyncHooks = {},
     private readonly now: () => number = Date.now,
+    /** Verified snapshots kept across passes; without it, each pass downloads anew. */
+    private readonly snapshotCache?: VerifiedSnapshotCache,
   ) {
     this.hooks = { ...hooks, progress: isolateProgress(hooks.progress) };
     this.cleanup = new SnapshotCleanup({
@@ -158,8 +161,9 @@ export class SnapshotSyncEngine {
       };
     }
 
-    // Content-addressed payloads cannot change under the same hash. Reuse only
-    // successfully decoded payloads during this pass; later syncs verify anew.
+    // Content-addressed payloads cannot change under the same hash. Reuse
+    // successfully decoded payloads during this pass, and from earlier passes
+    // through the snapshot cache.
     const verifiedSnapshots = new Map<string, JournalSnapshotPayload>();
     const ancestorBudget: AncestorBudget = {
       downloads: MAX_ANCESTOR_DOWNLOADS,
@@ -390,7 +394,7 @@ export class SnapshotSyncEngine {
       for (const snapshotId of [...generation].sort()) {
         if (visited.has(snapshotId)) continue;
         visited.add(snapshotId);
-        let payload = verifiedSnapshots.get(snapshotId);
+        let payload = this.verifiedSnapshot(snapshotId, verifiedSnapshots);
         if (!payload) {
           // Reserve a maximum-size transfer: its size is unknown until it ends.
           if (
@@ -432,6 +436,7 @@ export class SnapshotSyncEngine {
           budget.decodedBytes -= decodedBytes;
           if (payload.vaultId !== this.vaultId) continue;
           verifiedSnapshots.set(snapshotId, payload);
+          this.snapshotCache?.set(this.vaultId, snapshotId, payload, decodedBytes);
         }
         ancestors.push({ snapshotId, payload });
         next.push(...payload.parentSnapshotIds);
@@ -439,6 +444,52 @@ export class SnapshotSyncEngine {
       generation = next;
     }
     return ancestors;
+  }
+
+  /**
+   * An ancestor already verified during this pass or an earlier one. A cached
+   * entry was validated for this vault before it was stored. Ancestors are
+   * optional merge bases, so a cached one may outlive its remote object; it is
+   * not added to `verifiedSnapshots`, which head targets treat as present.
+   */
+  private verifiedSnapshot(
+    snapshotId: string,
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
+  ): JournalSnapshotPayload | undefined {
+    return (
+      verifiedSnapshots.get(snapshotId) ??
+      this.snapshotCache?.get(this.vaultId, snapshotId)
+    );
+  }
+
+  /**
+   * Reuses cached head targets that the provider still lists. The cache saves
+   * only the download: an absent target is evicted and read like an uncached
+   * one, so a deleted backup still reports `head-snapshot-missing`.
+   */
+  private async reuseCachedHeadTargets(
+    heads: ListedDeviceHead[],
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
+  ): Promise<void> {
+    if (!this.snapshotCache) return;
+    const cached = new Map<string, JournalSnapshotPayload>();
+    for (const { head } of heads) {
+      if (verifiedSnapshots.has(head.snapshotId)) continue;
+      const payload = this.snapshotCache.get(this.vaultId, head.snapshotId);
+      if (payload) cached.set(head.snapshotId, payload);
+    }
+    if (cached.size === 0) return;
+    // Heads were just listed with a refresh, so this reads the same fresh
+    // inventory; Drive serves it from its state store without a request.
+    const present = new Set(
+      (await this.provider.listSnapshots(this.vaultId)).map(
+        (snapshot) => snapshot.snapshotId,
+      ),
+    );
+    for (const [snapshotId, payload] of cached) {
+      if (present.has(snapshotId)) verifiedSnapshots.set(snapshotId, payload);
+      else this.snapshotCache.delete(this.vaultId, snapshotId);
+    }
   }
 
   /** `reportProgress` is false for the re-check, which normally reads nothing new. */
@@ -496,10 +547,12 @@ export class SnapshotSyncEngine {
       }
     }
 
+    // Cached snapshots read as instant checks, not downloads.
+    await this.reuseCachedHeadTargets(normalized, verifiedSnapshots);
+    const unread = normalized.filter(
+      (candidate) => !verifiedSnapshots.has(candidate.head.snapshotId),
+    );
     if (reportProgress) {
-      const unread = normalized.filter(
-        (candidate) => !verifiedSnapshots.has(candidate.head.snapshotId),
-      );
       this.hooks.progress?.({
         type: 'plan',
         phase: 'checking',
@@ -522,6 +575,7 @@ export class SnapshotSyncEngine {
     const snapshots: RemoteHeadSnapshot[] = [];
     for (const candidate of normalized) {
       let payload = verifiedSnapshots.get(candidate.head.snapshotId);
+      let downloadedBytes: number | null = null;
       if (!payload) {
         this.hooks.activity?.('reading-remote-snapshot');
         const bytes = await this.provider.downloadSnapshot(
@@ -549,6 +603,7 @@ export class SnapshotSyncEngine {
           );
         }
         verifiedSnapshots.set(candidate.head.snapshotId, payload);
+        downloadedBytes = statedUncompressedBytes(bytes);
       }
       if (payload.vaultId !== this.vaultId) {
         throw new AttentionError('wrong-vault', 'snapshot-vault-mismatch');
@@ -558,6 +613,15 @@ export class SnapshotSyncEngine {
         payload.deviceSequence !== candidate.head.deviceSequence
       ) {
         throw new AttentionError('invalid-remote-snapshot', 'head-envelope-mismatch');
+      }
+      // Keep it for later passes only once every check above has passed.
+      if (downloadedBytes !== null) {
+        this.snapshotCache?.set(
+          this.vaultId,
+          candidate.head.snapshotId,
+          payload,
+          downloadedBytes,
+        );
       }
       snapshots.push({
         head: candidate.head,

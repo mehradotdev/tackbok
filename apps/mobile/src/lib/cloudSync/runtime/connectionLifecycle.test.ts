@@ -34,6 +34,23 @@ describe('cloud connection lifecycle', () => {
     ).resolves.toBe('new connection');
   });
 
+  test('change listeners run after running passes drain and before the change', async () => {
+    const lifecycle = new CloudConnectionLifecycle();
+    const finish = deferred();
+    const events: string[] = [];
+    lifecycle.addChangeListener(() => events.push('listener'));
+    const pass = lifecycle.runPass(lifecycle.epoch, async () => {
+      await finish.promise;
+      events.push('pass settled');
+    });
+    const change = lifecycle.change(async () => {
+      events.push('changed');
+    });
+    finish.resolve();
+    await Promise.all([pass, change]);
+    expect(events).toEqual(['pass settled', 'listener', 'changed']);
+  });
+
   test('a failed pass drains and queued changes remain serialized after a failed change', async () => {
     const lifecycle = new CloudConnectionLifecycle();
     const finish = deferred();

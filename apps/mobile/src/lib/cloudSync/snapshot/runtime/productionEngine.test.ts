@@ -3,7 +3,13 @@ import type { SnapshotSyncEngine } from '../sync/engine';
 import type { ProductionSnapshotJournalStore } from '../storage';
 import type { SnapshotProvider } from '../sync/types';
 import { SyncCancelledError } from '../sync/errors';
-import { pendingMediaBytes, ProductionSnapshotRuntimeEngine } from './productionEngine';
+import type { JournalSnapshotPayload } from '../types';
+import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
+import {
+  pendingMediaBytes,
+  productionSnapshotCache,
+  ProductionSnapshotRuntimeEngine,
+} from './productionEngine';
 
 const mockWrites: string[] = [];
 const mockMarkJournalRestored = jest.fn();
@@ -237,4 +243,36 @@ test('attachment rows that share a blob count its bytes once', () => {
       { blobHash: null, byteSize: 70 },
     ]),
   ).toBe(150);
+});
+
+test('a connection change clears verified snapshots, even those a draining pass kept', async () => {
+  const cached = (vaultId: string, snapshotId: string) => {
+    productionSnapshotCache.set(
+      vaultId,
+      snapshotId,
+      { vaultId } as unknown as JournalSnapshotPayload,
+      1,
+    );
+  };
+  cached('vault-before', 'before');
+  const release = deferred<void>();
+  const app = harness('vault-draining', {
+    engineSync: async () => {
+      await release.promise;
+      // A pass cancelled mid-download may still store what it verified.
+      cached('vault-draining', 'late');
+      return { status: 'up-to-date', actionableChanges: 0 };
+    },
+  });
+  const pass = app.runtime.sync().catch(() => undefined);
+  await tick();
+  let sizeDuringChange = -1;
+  const change = cloudConnectionLifecycle.change(async () => {
+    sizeDuringChange = productionSnapshotCache.size;
+  });
+  release.resolve();
+  await Promise.all([pass, change]);
+  expect(sizeDuringChange).toBe(0);
+  expect(productionSnapshotCache.get('vault-before', 'before')).toBeUndefined();
+  expect(productionSnapshotCache.get('vault-draining', 'late')).toBeUndefined();
 });

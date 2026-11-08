@@ -33,6 +33,7 @@ import { BaseShadowManager } from '../sync/baseShadow';
 import { SnapshotSyncEngine } from '../sync/engine';
 import { ExpoBaseShadowFileStore } from '../sync/expoBaseShadowFiles';
 import { SQLiteSyncStateStore } from '../sync/sqliteState';
+import { VerifiedSnapshotCache } from '../sync/snapshotCache';
 import type {
   DeviceHead,
   ListedDeviceHead,
@@ -65,6 +66,14 @@ interface RunningVaultPass {
 }
 
 const runningVaultPasses = new Map<string, RunningVaultPass>();
+
+/**
+ * Verified snapshots shared by every engine in this process, so passes skip
+ * downloading heads that have not changed. Any connection change (disconnect,
+ * account or backup switch, reset, journal deletion) clears it.
+ */
+export const productionSnapshotCache = new VerifiedSnapshotCache();
+cloudConnectionLifecycle.addChangeListener(() => productionSnapshotCache.clear());
 
 /** The running pass's signal, shared by one engine's provider and hooks. */
 interface PassCancellation {
@@ -533,6 +542,8 @@ export async function createProductionSnapshotRuntimeEngine(options: {
       activity: (activity) => options.onActivity(PHASE_FOR_ENGINE_ACTIVITY[activity]),
       progress: onProgress,
     },
+    Date.now,
+    productionSnapshotCache,
   );
   return new ProductionSnapshotRuntimeEngine(
     options.vault,
