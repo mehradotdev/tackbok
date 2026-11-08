@@ -3676,4 +3676,49 @@ describe('verified snapshots across passes', () => {
     expect((await reader.engine({}, cache).sync()).status).toBe('pulled');
     expect(cache.size).toBe(1);
   });
+
+  const deleteAllSnapshots = async (provider: FakeSnapshotProvider, vaultId: string) => {
+    for (const id of provider.snapshotIds(vaultId)) {
+      await provider.deleteSnapshot(vaultId, id);
+    }
+    expect(provider.snapshotIds(vaultId)).toEqual([]);
+  };
+
+  test.each([
+    ['a cold', false],
+    ['a warm', true],
+  ])('%s cache reports a deleted head target as missing', async (_, warm) => {
+    const { reader, cache, provider } = await pulledDevice();
+    await deleteAllSnapshots(provider, reader.vaultId);
+    const result = await reader
+      .engine({}, warm ? cache : new VerifiedSnapshotCache())
+      .sync();
+    expect(result).toMatchObject({
+      status: 'attention',
+      reason: 'head-snapshot-missing',
+    });
+    // The stale entry goes, so it cannot hide the loss on a later pass either.
+    expect(cache.size).toBe(warm ? 0 : 1);
+  });
+
+  test('a retry does not adopt a cached head target deleted since it was read', async () => {
+    const writer = harness('cache-writer', withEntry(blankDomain(), entry('e1', 'one')));
+    writer.state.markDirty(writer.vaultId, writer.deviceId);
+    expect((await writer.engine().sync()).status).toBe('published');
+    const reader = harness('cache-reader', blankDomain(), writer.provider, writer.clock);
+    const cache = new VerifiedSnapshotCache();
+    // The first pass caches the head target, then fails before adopting it.
+    writer.provider.failNext(
+      'has-media',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await reader.engine({}, cache).sync()).status).toBe('retry');
+    expect(cache.size).toBe(1);
+    await deleteAllSnapshots(writer.provider, writer.vaultId);
+    expect(await reader.engine({}, cache).sync()).toMatchObject({
+      status: 'attention',
+      reason: 'head-snapshot-missing',
+    });
+    expect(cache.size).toBe(0);
+  });
 });

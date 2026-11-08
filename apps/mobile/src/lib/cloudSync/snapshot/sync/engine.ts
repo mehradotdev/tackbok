@@ -447,20 +447,49 @@ export class SnapshotSyncEngine {
   }
 
   /**
-   * A snapshot already verified during this pass or an earlier one. A cached
-   * entry was validated for this vault before it was stored, and it never
-   * replaces listing the live heads.
+   * An ancestor already verified during this pass or an earlier one. A cached
+   * entry was validated for this vault before it was stored. Ancestors are
+   * optional merge bases, so a cached one may outlive its remote object; it is
+   * not added to `verifiedSnapshots`, which head targets treat as present.
    */
   private verifiedSnapshot(
     snapshotId: string,
     verifiedSnapshots: Map<string, JournalSnapshotPayload>,
   ): JournalSnapshotPayload | undefined {
-    let payload = verifiedSnapshots.get(snapshotId);
-    if (!payload) {
-      payload = this.snapshotCache?.get(this.vaultId, snapshotId);
-      if (payload) verifiedSnapshots.set(snapshotId, payload);
+    return (
+      verifiedSnapshots.get(snapshotId) ??
+      this.snapshotCache?.get(this.vaultId, snapshotId)
+    );
+  }
+
+  /**
+   * Reuses cached head targets that the provider still lists. The cache saves
+   * only the download: an absent target is evicted and read like an uncached
+   * one, so a deleted backup still reports `head-snapshot-missing`.
+   */
+  private async reuseCachedHeadTargets(
+    heads: ListedDeviceHead[],
+    verifiedSnapshots: Map<string, JournalSnapshotPayload>,
+  ): Promise<void> {
+    if (!this.snapshotCache) return;
+    const cached = new Map<string, JournalSnapshotPayload>();
+    for (const { head } of heads) {
+      if (verifiedSnapshots.has(head.snapshotId)) continue;
+      const payload = this.snapshotCache.get(this.vaultId, head.snapshotId);
+      if (payload) cached.set(head.snapshotId, payload);
     }
-    return payload;
+    if (cached.size === 0) return;
+    // Heads were just listed with a refresh, so this reads the same fresh
+    // inventory; Drive serves it from its state store without a request.
+    const present = new Set(
+      (await this.provider.listSnapshots(this.vaultId)).map(
+        (snapshot) => snapshot.snapshotId,
+      ),
+    );
+    for (const [snapshotId, payload] of cached) {
+      if (present.has(snapshotId)) verifiedSnapshots.set(snapshotId, payload);
+      else this.snapshotCache.delete(this.vaultId, snapshotId);
+    }
   }
 
   /** `reportProgress` is false for the re-check, which normally reads nothing new. */
@@ -519,8 +548,9 @@ export class SnapshotSyncEngine {
     }
 
     // Cached snapshots read as instant checks, not downloads.
+    await this.reuseCachedHeadTargets(normalized, verifiedSnapshots);
     const unread = normalized.filter(
-      (candidate) => !this.verifiedSnapshot(candidate.head.snapshotId, verifiedSnapshots),
+      (candidate) => !verifiedSnapshots.has(candidate.head.snapshotId),
     );
     if (reportProgress) {
       this.hooks.progress?.({

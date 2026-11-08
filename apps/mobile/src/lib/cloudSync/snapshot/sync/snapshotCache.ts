@@ -87,6 +87,10 @@ export class VerifiedSnapshotCache {
     }
   }
 
+  delete(vaultId: string, snapshotId: string): void {
+    this.remove(this.key(vaultId, snapshotId));
+  }
+
   clear(): void {
     this.entries.clear();
     this.decodedBytes = 0;
