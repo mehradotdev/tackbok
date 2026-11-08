@@ -129,3 +129,43 @@ test('a cancelled pass is not recorded as a sync failure', async () => {
   await expect(stoppedRun).resolves.toBeNull();
   expect(failed).not.toHaveBeenCalled();
 });
+
+test('a manual pass asked for while the runtime starts waits for its engine', async () => {
+  let engineReady!: () => void;
+  const creating = new Promise<void>((resolve) => {
+    engineReady = resolve;
+  });
+  const sync = jest.fn(async () => ({ pulled: 0, pushed: 0 }));
+  const runtime = new SyncRuntime({
+    platform: {
+      getAppState: () => 'active',
+      getNetworkOnline: async () => true,
+      addAppStateListener: () => ({ remove() {} }),
+      addNetworkListener: () => ({ remove() {} }),
+      setTimer: (callback, delay) => setTimeout(callback, delay),
+      clearTimer: (timer) => clearTimeout(timer),
+    },
+    readiness: { isReady: async () => true, retryBackfill: async () => {} },
+    createEngine: async () => {
+      await creating;
+      return { provider: { kind: 'google-drive' }, sync };
+    },
+    heartbeatMs: 60_000,
+  });
+  // Resume starts the runtime without waiting for it.
+  const starting = runtime.start();
+  await tick();
+  // Sync now, before the engine exists: start() shares the start in flight.
+  let manualStarted = false;
+  const manual = runtime.start().then(() => {
+    manualStarted = true;
+    return runtime.run('manual');
+  });
+  await tick();
+  expect(manualStarted).toBe(false);
+  engineReady();
+  await starting;
+  await expect(manual).resolves.not.toBeNull();
+  expect(sync).toHaveBeenCalledTimes(2);
+  runtime.stop();
+});

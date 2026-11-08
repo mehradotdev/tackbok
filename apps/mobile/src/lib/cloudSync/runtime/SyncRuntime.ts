@@ -85,6 +85,7 @@ export class SyncRuntime {
   private running: Promise<RuntimePassResult | null> | null = null;
   private passController: AbortController | null = null;
   private stopped = true;
+  private starting: Promise<void> | null = null;
   private wasOnline = false;
   private lifecycle = 0;
   private rerunTrigger: CloudSyncTrigger | null = null;
@@ -92,8 +93,20 @@ export class SyncRuntime {
 
   constructor(private readonly options: SyncRuntimeOptions) {}
 
-  async start(): Promise<void> {
-    if (!this.stopped) return;
+  /**
+   * Starts the runtime and runs its first pass. A second call while that start
+   * is in flight shares it, so a manual pass never runs before the engine exists.
+   */
+  start(): Promise<void> {
+    if (!this.stopped) return this.starting ?? Promise.resolve();
+    const starting = this.startOnce().finally(() => {
+      if (this.starting === starting) this.starting = null;
+    });
+    this.starting = starting;
+    return starting;
+  }
+
+  private async startOnce(): Promise<void> {
     const lifecycle = ++this.lifecycle;
     this.stopped = false;
     this.lastFailureCategory = null;
@@ -145,6 +158,7 @@ export class SyncRuntime {
 
   stop(): void {
     this.stopped = true;
+    this.starting = null;
     this.lifecycle++;
     this.subscriptions.forEach((subscription) => subscription.remove());
     this.subscriptions = [];
