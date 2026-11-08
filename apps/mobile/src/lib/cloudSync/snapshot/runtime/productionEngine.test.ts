@@ -64,6 +64,7 @@ jest.mock('~/lib/settings', () => ({
 jest.mock('../../auth', () => ({}));
 jest.mock('../../auth/secureTokenStore', () => ({}));
 jest.mock('../../storage/retainedMedia', () => ({ reapRetainedMedia: async () => {} }));
+jest.mock('./nativeSha256', () => ({ nativeSha256Bytes: jest.fn() }));
 jest.mock('./mediaHashing', () => ({
   hashPendingProductionMedia: async () => ({ processed: 0, failed: 0, missing: 0 }),
 }));

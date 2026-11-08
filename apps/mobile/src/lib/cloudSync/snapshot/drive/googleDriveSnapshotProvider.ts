@@ -1,7 +1,7 @@
 import type { CloudAuthorization } from '../../auth/types';
 import { encodeCanonicalBytes } from '../canonical';
 import { SNAPSHOT_CAPS } from '../caps';
-import { sha256Bytes, sha256Text } from '../sha256';
+import { sha256Bytes, sha256Text, type ByteHasher } from '../sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../strictJson';
 import type {
   DeviceHead,
@@ -72,6 +72,8 @@ export interface GoogleDriveSnapshotProviderOptions {
   signal?: () => AbortSignal | null | undefined;
   /** Display only: bytes moved for snapshots and media, and retry waits. */
   onProgress?: (report: SyncProgressReport) => void;
+  /** Hashes media bytes before upload; production passes the native digest. */
+  hashBytes?: ByteHasher;
 }
 
 export interface AvailableDriveVault {
@@ -217,6 +219,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private readonly sleep: (milliseconds: number) => Promise<void>;
   private readonly random: () => number;
   private readonly now: () => number;
+  private readonly hashBytes: ByteHasher;
   private readonly immutableWrites = new Map<string, Promise<void>>();
   private readonly onProgress: SyncProgressListener;
 
@@ -231,6 +234,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       untilCancelled(sleep(milliseconds), options.signal?.());
     this.random = options.random ?? Math.random;
     this.now = options.now ?? Date.now;
+    this.hashBytes = options.hashBytes ?? (async (bytes) => sha256Bytes(bytes));
     this.transport = new DriveTransport({
       auth: options.auth,
       state: options.state,
@@ -773,20 +777,32 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         const bytes =
           source.byteLength === 0
             ? new Uint8Array()
-            : await source.read(0, source.byteLength);
+            : // Own the bytes: hashing awaits, and a source may reuse its buffer.
+              new Uint8Array(await source.read(0, source.byteLength));
         if (bytes.byteLength !== source.byteLength) {
           throw new SnapshotProviderError(
             'invalid-data',
             'Media source ended before its declared size',
           );
         }
-        if (sha256Bytes(bytes) !== source.contentHash) {
+        // Hash once: the verified hash is the upload's metadata hash too.
+        const contentHash = await this.hashBytes(bytes);
+        if (contentHash !== source.contentHash) {
           throw new SnapshotProviderError(
             'invalid-data',
             'Media source content changed before upload',
           );
         }
-        uploaded = await this.multipartUpload(vaultId, key, 'media', bytes, 'create');
+        uploaded = await this.multipartUpload(
+          vaultId,
+          key,
+          'media',
+          bytes,
+          'create',
+          undefined,
+          {},
+          contentHash,
+        );
       } else {
         uploaded = await this.resumableUploadSource(vaultId, key, source);
       }
@@ -887,6 +903,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     operation: 'create' | 'update',
     fileId?: string,
     extraProperties: Record<string, string> = {},
+    contentHash = sha256Bytes(bytes),
   ): Promise<DriveFile> {
     const boundary = `tackbok_${this.now().toString(36)}_${Math.floor(
       this.random() * Number.MAX_SAFE_INTEGER,
@@ -895,7 +912,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       vaultId,
       key,
       kind,
-      sha256Bytes(bytes),
+      contentHash,
       extraProperties,
       operation === 'create',
     );

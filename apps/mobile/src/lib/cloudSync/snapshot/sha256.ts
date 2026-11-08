@@ -89,3 +89,17 @@ export function sha256Bytes(input: Uint8Array): string {
 export function sha256Text(value: string): string {
   return sha256Bytes(new TextEncoder().encode(value));
 }
+
+/** SHA-256 of in-memory bytes as lowercase hex, possibly computed off the JS engine. */
+export type ByteHasher = (bytes: Uint8Array) => Promise<string>;
+
+/** Adapts a raw SHA-256 digest (such as a native one) to `sha256Bytes`'s hex output. */
+export function hexDigestHasher(
+  digest: (bytes: Uint8Array) => Promise<ArrayBuffer>,
+): ByteHasher {
+  return async (bytes) => {
+    const raw = new Uint8Array(await digest(bytes));
+    if (raw.byteLength !== 32) throw new Error('invalid-sha256-digest');
+    return Array.from(raw, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  };
+}
