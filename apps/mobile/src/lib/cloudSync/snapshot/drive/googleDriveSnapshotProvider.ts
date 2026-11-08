@@ -1149,11 +1149,18 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         'Drive download exceeds its byte cap',
       );
     }
-    const chunks: Uint8Array[] = [];
+    // One buffer of the declared size: each read is copied once, and a stream
+    // longer than its metadata is rejected before it is buffered.
+    const bytes = new Uint8Array(declaredBytes);
     let receivedBytes = 0;
+    const exceeded = () =>
+      new SnapshotProviderError(
+        'invalid-data',
+        'Drive download exceeded its declared size',
+      );
     // Heads are tiny and read during other work; only count snapshot bytes.
-    const report = (bytes: number) => {
-      if (kind === 'snapshot') this.reportBytes(file.name, bytes);
+    const report = (done: number) => {
+      if (kind === 'snapshot') this.reportBytes(file.name, done);
     };
     if (response.body) {
       const reader = response.body.getReader();
@@ -1161,33 +1168,23 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         const { done, value } = await readDownloadBody(() => reader.read());
         if (done) break;
         if (value?.byteLength) {
-          receivedBytes += value.byteLength;
-          if (receivedBytes > byteCap) {
-            throw new SnapshotProviderError(
-              'invalid-data',
-              'Drive download exceeded its byte cap',
-            );
+          if (receivedBytes + value.byteLength > declaredBytes) {
+            await reader.cancel?.();
+            throw exceeded();
           }
-          chunks.push(new Uint8Array(value));
+          bytes.set(value, receivedBytes);
+          receivedBytes += value.byteLength;
           report(receivedBytes);
         }
       }
     } else {
       const value = new Uint8Array(await readDownloadBody(() => response.arrayBuffer()));
-      if (value.byteLength > byteCap) {
-        throw new SnapshotProviderError(
-          'invalid-data',
-          'Drive download exceeded its byte cap',
-        );
-      }
-      chunks.push(value);
-      report(value.byteLength);
+      if (value.byteLength > declaredBytes) throw exceeded();
+      bytes.set(value);
+      receivedBytes = value.byteLength;
+      report(receivedBytes);
     }
-    const bytes = concatBytes(chunks);
-    if (
-      bytes.byteLength !== parseByteCount(file) ||
-      sha256Bytes(bytes) !== file.sha256Checksum
-    ) {
+    if (receivedBytes !== declaredBytes || sha256Bytes(bytes) !== file.sha256Checksum) {
       throw new SnapshotProviderError(
         'invalid-data',
         'Drive download checksum does not match',

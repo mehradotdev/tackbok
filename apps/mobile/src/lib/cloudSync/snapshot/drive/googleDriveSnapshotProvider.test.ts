@@ -1752,6 +1752,152 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(resets).toBe(1);
   });
 
+  describe('many small reads', () => {
+    /** A body delivered in `chunkSize` reads, as Android streams a download. */
+    function chunkedResponse(
+      bytes: Uint8Array,
+      chunkSize: number,
+      progress: { reads: number; cancelled: boolean },
+    ): DriveResponseLike {
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        body: {
+          getReader: () => ({
+            read: async () => {
+              const start = progress.reads * chunkSize;
+              if (start >= bytes.byteLength) return { done: true };
+              progress.reads += 1;
+              return { done: false, value: bytes.slice(start, start + chunkSize) };
+            },
+            cancel: async () => {
+              progress.cancelled = true;
+            },
+          }),
+        },
+        json: async () => ({}),
+        arrayBuffer: async () => {
+          throw new Error('whole-body arrayBuffer forbidden');
+        },
+      };
+    }
+
+    function snapshotState(bytes: Uint8Array, declaredBytes = bytes.byteLength) {
+      const snapshotId = 'd'.repeat(64);
+      const state = new MemoryDriveProviderStateStore();
+      state.upsertFile(vaultId, {
+        fileId: 'snapshot-chunked',
+        logicalKey: `snapshots/${snapshotId}.json.gz`,
+        kind: 'snapshot',
+        contentSha256: sha256Bytes(bytes),
+        byteCount: declaredBytes,
+        createdAt: 1,
+        head: null,
+      });
+      return { snapshotId, state };
+    }
+
+    /** Counts Uint8Array allocations and their bytes while `work` runs. */
+    async function countAllocations(work: () => Promise<unknown>) {
+      const counts = { allocations: 0, bytes: 0 };
+      const original = globalThis.Uint8Array;
+      globalThis.Uint8Array = new Proxy(original, {
+        construct(target, args, newTarget) {
+          const created = Reflect.construct(target, args, newTarget) as Uint8Array;
+          counts.allocations += 1;
+          counts.bytes += created.byteLength;
+          return created;
+        },
+      });
+      try {
+        await work();
+      } finally {
+        globalThis.Uint8Array = original;
+      }
+      return counts;
+    }
+
+    test('a snapshot is buffered once, whatever the number of reads', async () => {
+      const bytes = new Uint8Array(256 * 1024).map((_, index) => index * 31);
+      const { snapshotId, state } = snapshotState(bytes);
+      const progress = { reads: 0, cancelled: false };
+      const reports: number[] = [];
+      const app = new GoogleDriveSnapshotProvider({
+        auth: new FakeAuth(),
+        state,
+        fetch: async () => chunkedResponse(bytes, 64, progress),
+        onProgress: (report) => {
+          if (report.type === 'bytes') reports.push(report.done);
+        },
+      });
+      let downloaded: Uint8Array | null = null;
+      const counts = await countAllocations(async () => {
+        downloaded = await app.downloadSnapshot(vaultId, snapshotId);
+      });
+      expect(downloaded).toEqual(bytes);
+      expect(progress.reads).toBe(4096);
+      // The declared-size buffer plus the hash's padded copy: not one copy per
+      // read, and no chunk list concatenated at the end.
+      expect(counts.allocations).toBeLessThanOrEqual(2);
+      expect(counts.bytes).toBeLessThan(2 * bytes.byteLength + 1024);
+      expect(reports).toHaveLength(4096);
+      expect(reports.at(-1)).toBe(bytes.byteLength);
+    });
+
+    test('a snapshot stream longer than its declared size is cut off before it is buffered', async () => {
+      const bytes = new Uint8Array(4096).fill(3);
+      const { snapshotId, state } = snapshotState(bytes, 1024);
+      const progress = { reads: 0, cancelled: false };
+      const app = new GoogleDriveSnapshotProvider({
+        auth: new FakeAuth(),
+        state,
+        fetch: async () => chunkedResponse(bytes, 1000, progress),
+      });
+      await expect(app.downloadSnapshot(vaultId, snapshotId)).rejects.toMatchObject({
+        code: 'invalid-data',
+      });
+      expect(progress.reads).toBe(2);
+      expect(progress.cancelled).toBe(true);
+    });
+
+    test('media is written in large batches, not once per read', async () => {
+      const bytes = new Uint8Array(9 * 1024 * 1024).fill(5);
+      const hash = sha256Bytes(bytes);
+      const state = new MemoryDriveProviderStateStore();
+      state.upsertFile(vaultId, {
+        fileId: 'media-chunked',
+        logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
+        kind: 'media',
+        contentSha256: hash,
+        byteCount: bytes.byteLength,
+        createdAt: 1,
+        head: null,
+      });
+      const progress = { reads: 0, cancelled: false };
+      const app = new GoogleDriveSnapshotProvider({
+        auth: new FakeAuth(),
+        state,
+        fetch: async () => chunkedResponse(bytes, 4096, progress),
+      });
+      const appends: number[] = [];
+      await expect(
+        app.downloadMedia(vaultId, hash, {
+          byteLength: async () => appends.reduce((total, size) => total + size, 0),
+          appendAndSync: async (chunk) => {
+            appends.push(chunk.byteLength);
+          },
+          reset: async () => {
+            appends.length = 0;
+          },
+          verifyAndPromote: async () => {},
+        }),
+      ).resolves.toBe(true);
+      expect(progress.reads).toBe(2304);
+      expect(appends).toEqual([8 * 1024 * 1024, 1024 * 1024]);
+    });
+  });
+
   test('revocation metadata is detected without downloading marker bodies', async () => {
     const server = new FakeDriveServer();
     const app = new GoogleDriveSnapshotProvider({
