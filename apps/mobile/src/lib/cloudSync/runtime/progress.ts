@@ -117,7 +117,6 @@ export class SyncProgressTracker {
   private wifiBlockedPhase: SyncProgressPhase | null = null;
   private offline = false;
   private published: SyncProgressSnapshot = EMPTY;
-  private lastPublishedAt = -Infinity;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -220,23 +219,27 @@ export class SyncProgressTracker {
     return counter;
   }
 
+  /**
+   * Trailing only: the interval starts at the first change after a publish,
+   * which runs after that publish's render. A publish on the change itself
+   * would follow a render slower than the interval at once, so a stream
+   * reporting every small read would re-render the screen once per read.
+   */
   private schedule(): void {
     if (this.timer) return;
-    const wait = this.lastPublishedAt + this.intervalMs - this.clock.now();
-    if (wait <= 0) {
+    if (this.intervalMs <= 0) {
       this.publish();
       return;
     }
     this.timer = this.clock.setTimer(() => {
       this.timer = null;
       this.publish();
-    }, wait);
+    }, this.intervalMs);
   }
 
   private publish(): void {
     if (this.timer) this.clock.clearTimer(this.timer);
     this.timer = null;
-    this.lastPublishedAt = this.clock.now();
     this.published = {
       progress: this.snapshot(),
       idleWait: !this.phase && this.wifiWait ? 'wifi-only-media' : null,

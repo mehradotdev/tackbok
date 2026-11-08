@@ -30,6 +30,10 @@ function manualClock() {
         timer.callback();
       }
     },
+    /** Time spent in synchronous work, such as a render: no timer fires during it. */
+    busy(ms: number) {
+      now += ms;
+    },
     get pending() {
       return timers.length;
     },
@@ -196,6 +200,27 @@ describe('throttling', () => {
     expect(changed).toHaveBeenCalledTimes(2);
     expect(progress.current.progress?.bytes).toEqual({ done: 900, total: 1_000 });
     expect(time.pending).toBe(0);
+  });
+
+  test('a listener slower than the interval does not publish once per report', () => {
+    const time = manualClock();
+    // Each publish re-renders for longer than the interval.
+    const changed = jest.fn(() => time.busy(300));
+    const progress = new SyncProgressTracker(changed, time.clock, 250);
+    progress.report({ type: 'pass', state: 'start' });
+    progress.report({ type: 'plan', phase: 'downloading', bytesTotal: 400_000 });
+    // A stream of small reads, as Android delivers a download.
+    const reports = 400;
+    for (let read = 1; read <= reports; read += 1) {
+      time.advance(5);
+      progress.report({ type: 'bytes', key: 'snapshot', done: read * 1_000 });
+    }
+    time.advance(250);
+    // Publishes follow read time (2 s of reads, one per 250 ms interval after
+    // each render), not the number of reads. Leading-edge throttling published
+    // on every one of the 400 reports here.
+    expect(changed.mock.calls.length).toBeLessThanOrEqual(10);
+    expect(progress.current.progress?.bytes).toEqual({ done: 400_000, total: 400_000 });
   });
 
   test('a pass end publishes at once and cancels a pending update', () => {
