@@ -451,6 +451,15 @@ export class DriveTransport {
     return untilCancelled(this.options.sleep(milliseconds), signal);
   }
 
+  /** The backoff before a download whose body stalled or broke off is retried. */
+  retryBackoff(attempt: number): Promise<void> {
+    return this.wait(
+      'retry-backoff',
+      this.retryDelay(attempt),
+      this.options.signal?.() ?? null,
+    );
+  }
+
   /** A retry sleep, reported with its end time while it lasts. */
   private async wait(
     reason: 'rate-limited' | 'retry-backoff',

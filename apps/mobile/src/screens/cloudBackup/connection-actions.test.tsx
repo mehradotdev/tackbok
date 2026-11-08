@@ -43,7 +43,15 @@ jest.mock('~/lib/settings', () => ({
       resetToDefaults: jest.fn(),
     }),
 }));
-jest.mock('~/lib/cloudSync/auth', () => ({ CloudAuthError: class {} }));
+jest.mock('~/lib/cloudSync/auth', () => ({
+  CloudAuthError: class MockCloudAuthError extends Error {
+    code: string;
+    constructor(mockCode: string) {
+      super(mockCode);
+      this.code = mockCode;
+    }
+  },
+}));
 jest.mock('~/lib/cloudSync/snapshot/sync', () => ({ SnapshotProviderError: class {} }));
 
 const mockSnapshot = {
@@ -58,13 +66,15 @@ const mockSnapshot = {
   lastSuccessAt: null,
   lastVerifiedAt: null,
   revocationKind: null,
-  attentionReason: null,
-  recoveryAction: null,
+  attentionReason: null as string | null,
+  recoveryAction: null as string | null,
 };
 const mockRefresh = jest.fn(async () => {});
 const mockDisconnect = jest.fn<Promise<void>, []>();
 const mockSetPaused = jest.fn<Promise<void>, [boolean]>();
 const mockSyncNow = jest.fn<Promise<boolean>, []>();
+const mockPrepare = jest.fn<Promise<unknown>, []>();
+const mockReconnect = jest.fn<Promise<void>, []>();
 jest.mock('~/lib/cloudSync/ui', () => ({
   acknowledgeCloudConflicts: jest.fn(),
   cancelPreparedGoogleDriveConnection: jest.fn(async () => {}),
@@ -72,8 +82,8 @@ jest.mock('~/lib/cloudSync/ui', () => ({
   deleteJournalEverywhere: jest.fn(),
   disconnectGoogleDrive: () => mockDisconnect(),
   listUnacknowledgedCloudConflicts: jest.fn(async () => []),
-  prepareGoogleDriveConnection: jest.fn(),
-  reconnectGoogleDrive: jest.fn(),
+  prepareGoogleDriveConnection: () => mockPrepare(),
+  reconnectGoogleDrive: () => mockReconnect(),
   resetThisDeviceOnly: jest.fn(),
   retrySyncAttentionReason: jest.fn(),
   revokeCloudVault: jest.fn(),
@@ -148,8 +158,13 @@ async function confirmDisconnect() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSnapshot.configured = true;
   mockSnapshot.status = 'synced';
+  mockSnapshot.attentionReason = null;
+  mockSnapshot.recoveryAction = null;
 });
+const showsText = (text: string) =>
+  root.root.findAll((node) => node.props.children === text).length > 0;
 afterEach(() => act(() => root?.unmount()));
 
 test('Disconnect shows its progress, ignores repeat presses and confirms what is kept', async () => {
@@ -159,6 +174,8 @@ test('Disconnect shows its progress, ignores repeat presses and confirms what is
   await confirmDisconnect();
 
   expect(disconnectRow().props.label).toBe(mockEn['cloud.disconnecting']);
+  // Sync stops before the backup is removed; that is not "Up to date".
+  expect(showsText(mockEn['cloud.upToDate'])).toBe(false);
   expect(disconnectRow().props.disabled).toBe(true);
   expect(pauseRow().props.disabled).toBe(true);
   expect(syncNowButton().props.disabled).toBe(true);
@@ -261,4 +278,43 @@ test('after Resume, Pause and Disconnect stay available while the first pass run
   await confirmDisconnect();
   expect(mockDisconnect).toHaveBeenCalledTimes(1);
   expect(mockToast.error).not.toHaveBeenCalled();
+});
+
+test('backing out of the account picker is silent, in setup and in Reconnect', async () => {
+  const { CloudAuthError } = jest.requireMock('~/lib/cloudSync/auth') as {
+    CloudAuthError: new (code: string) => Error;
+  };
+  mockSnapshot.configured = false;
+  mockSnapshot.status = 'off';
+  mockPrepare.mockRejectedValueOnce(new CloudAuthError('cancelled'));
+  await render();
+  const connect = () =>
+    root.root
+      .findAll((node) => node.props.children === mockEn['cloud.connectGoogleDrive'])
+      .map((text) => text.parent!)
+      .find((button) => (button.type as unknown) === 'Button')!;
+  act(() => connect().props.onPress());
+  await act(async () => connect().props.onPress());
+  expect(mockPrepare).toHaveBeenCalledTimes(1);
+  expect(showsText(mockEn['cloud.beforeYouConnect'])).toBe(true);
+
+  act(() => root.unmount());
+  mockSnapshot.configured = true;
+  mockSnapshot.status = 'warning';
+  mockSnapshot.attentionReason = 'authorization-required';
+  mockSnapshot.recoveryAction = 'reconnect-google-drive';
+  mockReconnect.mockRejectedValueOnce(new CloudAuthError('cancelled'));
+  await render();
+  const reconnect = findHost(
+    'Button',
+    (props) => props.accessibilityLabel === mockEn['cloud.reconnectGoogleDrive'],
+  );
+  await act(async () => reconnect.props.onPress());
+  expect(mockReconnect).toHaveBeenCalledTimes(1);
+  expect(mockToast.error).not.toHaveBeenCalled();
+
+  // Any other failure still says so.
+  mockReconnect.mockRejectedValueOnce(new CloudAuthError('network'));
+  await act(async () => reconnect.props.onPress());
+  expect(mockToast.error).toHaveBeenCalledTimes(1);
 });

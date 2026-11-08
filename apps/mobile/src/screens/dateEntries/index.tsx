@@ -61,6 +61,7 @@ export function EntryItem({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
       className="flex-col w-full px-safe-or-3 border-b border-border py-3 active:bg-muted">
       <View>
         {/* Row 1: Time + Mood */}

@@ -776,11 +776,11 @@ export const hi = {
   'cloud.reconnectGoogleDrive': 'Google Drive को पुनः कनेक्ट करें',
   'cloud.conflicts.title': 'दो डिवाइस पर संपादित',
   'cloud.conflicts.nameChanged':
-    'आपका नाम किसी दूसरे डिवाइस पर बदला गया। मौजूदा: "{current}"। दूसरे डिवाइस पर: "{other}"।',
+    'आपका नाम दो डिवाइस पर संपादित किया गया। मौजूदा: "{current}"। दूसरा संस्करण: "{other}"।',
   'cloud.conflicts.nameChangedNoCurrent':
-    'आपका नाम किसी दूसरे डिवाइस पर बदला गया। मौजूदा: कोई नाम नहीं। दूसरे डिवाइस पर: "{other}"।',
+    'आपका नाम दो डिवाइस पर संपादित किया गया। मौजूदा: कोई नाम नहीं। दूसरा संस्करण: "{other}"।',
   'cloud.conflicts.nameRemoved':
-    'आपका नाम किसी दूसरे डिवाइस पर हटाया गया। मौजूदा: "{current}"। दूसरे डिवाइस पर: कोई नाम नहीं।',
+    'आपका नाम दो डिवाइस पर संपादित किया गया। मौजूदा: "{current}"। दूसरा संस्करण: कोई नाम नहीं।',
   'cloud.conflicts.useName': '"{name}" इस्तेमाल करें',
   'cloud.conflicts.removeName': 'कोई नाम न रखें',
   'cloud.conflicts.keepCurrent': 'मौजूदा रखें',
@@ -824,6 +824,8 @@ export const hi = {
   'cloud.syncIsFasterWithTackbokOpen':
     'ताकबूक खुला रहने पर यह तेज़ी से होता है। अगर आप बाहर जाते हैं, तो यह वहीं से जारी रहेगा जहाँ रुका था।',
   'cloud.progress.combiningChanges': 'परिवर्तन मिलाए जा रहे हैं…',
+  'cloud.progress.checkingDownload': 'डाउनलोड जाँचा जा रहा है…',
+  'cloud.progress.confirmingUpload': 'अपलोड की पुष्टि हो रही है…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'फ़ोटो और वॉइस नोट अपलोड हो रहे हैं…',
   'cloud.progress.devicesChecked': '{count} में से {done} डिवाइस जाँचे गए',
   'cloud.progress.filesDownloaded': '{count} में से {done} फ़ाइलें डाउनलोड हुईं',

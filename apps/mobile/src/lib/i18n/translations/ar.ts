@@ -833,11 +833,11 @@ export const ar: Translations = {
   'cloud.reconnectGoogleDrive': 'إعادة الاتصال بـ Google Drive',
   'cloud.conflicts.title': 'عُدِّل على جهازين',
   'cloud.conflicts.nameChanged':
-    'تم تغيير اسمك على جهاز آخر. الحالي: "{current}". على الجهاز الآخر: "{other}".',
+    'تم تعديل اسمك على جهازين. الحالي: "{current}". النسخة الأخرى: "{other}".',
   'cloud.conflicts.nameChangedNoCurrent':
-    'تم تغيير اسمك على جهاز آخر. الحالي: بلا اسم. على الجهاز الآخر: "{other}".',
+    'تم تعديل اسمك على جهازين. الحالي: بلا اسم. النسخة الأخرى: "{other}".',
   'cloud.conflicts.nameRemoved':
-    'تمت إزالة اسمك على جهاز آخر. الحالي: "{current}". على الجهاز الآخر: بلا اسم.',
+    'تم تعديل اسمك على جهازين. الحالي: "{current}". النسخة الأخرى: بلا اسم.',
   'cloud.conflicts.useName': 'استخدام "{name}"',
   'cloud.conflicts.removeName': 'بلا اسم',
   'cloud.conflicts.keepCurrent': 'الإبقاء على الحالي',
@@ -881,6 +881,8 @@ export const ar: Translations = {
   'cloud.syncIsFasterWithTackbokOpen':
     'تكون العملية أسرع عندما يكون Tackbok مفتوحًا. وإذا غادرته، فستُستأنف من حيث توقفت.',
   'cloud.progress.combiningChanges': 'جارٍ دمج التغييرات…',
+  'cloud.progress.checkingDownload': 'جارٍ التحقق من التنزيل…',
+  'cloud.progress.confirmingUpload': 'جارٍ تأكيد الرفع…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'جارٍ رفع الصور والملاحظات الصوتية…',
   'cloud.progress.devicesChecked': 'الأجهزة التي تم فحصها: {done} من {count}',
   'cloud.progress.filesDownloaded': 'الملفات التي تم تنزيلها: {done} من {count}',

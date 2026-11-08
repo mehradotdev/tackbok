@@ -112,6 +112,23 @@ export function syncProgressDetail(
   }
 }
 
+/** What a step does after its transfer is complete, so a full bar never looks stuck. */
+export function syncProgressFinishing(
+  phase: SyncProgress['phase'],
+  t: TranslationFunction,
+): string | null {
+  switch (phase) {
+    case 'downloading':
+    case 'downloading-media':
+      return t('cloud.progress.checkingDownload');
+    case 'uploading':
+    case 'uploading-media':
+      return t('cloud.progress.confirmingUpload');
+    default:
+      return null;
+  }
+}
+
 /** "Step 2 of 4", with time left only when the tracker could estimate it. */
 export function syncProgressOverall(
   progress: Pick<SyncProgress, 'step' | 'totalSteps' | 'etaMs'>,

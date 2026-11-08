@@ -84,6 +84,9 @@ type DataAction = 'delete-backup' | 'delete-journal' | 'reset-device';
 type DestructiveAction = 'disconnect' | 'finish-journal-deletion' | DataAction;
 type ConnectionAction = 'disconnect' | 'pause' | 'resume';
 
+const isAuthorizationCancelled = (error: unknown) =>
+  error instanceof CloudAuthError && error.code === 'cancelled';
+
 export default function CloudBackupScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -164,15 +167,19 @@ export default function CloudBackupScreen() {
         await cancelPreparedGoogleDriveConnection();
         return;
       }
+      // Backing out of the account picker is a choice, not a failure.
+      const cancelled = isAuthorizationCancelled(error);
       const permissionMissing =
         (error instanceof CloudAuthError && error.code === 'permission-required') ||
         (error instanceof SnapshotProviderError &&
           error.code === 'authorization-required');
-      toast.error(
-        permissionMissing
-          ? t('cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe')
-          : t('cloud.googleDriveConnectionWasNotCompleted'),
-      );
+      if (!cancelled) {
+        toast.error(
+          permissionMissing
+            ? t('cloud.googleDriveAccessIsRequiredTryAgainAndSelectThe')
+            : t('cloud.googleDriveConnectionWasNotCompleted'),
+        );
+      }
       if (origin === 'onboarding') handleBack();
       else setStage('disclosure');
     }
@@ -225,6 +232,8 @@ export default function CloudBackupScreen() {
       } catch (error) {
         // Pause or Disconnect stopped this pass and reports its own outcome.
         if (error instanceof SyncCancelledError) return;
+        // Reconnect's account picker was dismissed: nothing changed.
+        if (isAuthorizationCancelled(error)) return;
         toast.error(
           error instanceof CloudSyncActionError
             ? cloudSyncFailureMessage(error.category, t)
@@ -462,7 +471,12 @@ export default function CloudBackupScreen() {
           accessibilityLabel={t('common.back')}>
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Button>
-        <Text variant="h2" className="font-heading text-foreground py-1">
+        {/* Wraps, then shrinks, so the largest text sizes never clip the title. */}
+        <Text
+          variant="h2"
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          className="flex-1 font-heading text-foreground py-1">
           {t('cloud.cloudBackupSync')}
         </Text>
       </View>
@@ -527,7 +541,10 @@ export default function CloudBackupScreen() {
                     />
                     <View className="flex-1">
                       <Text className="font-body-bold text-foreground">
-                        {statusLabel(snapshot.status, t)}
+                        {/* Disconnect stops sync first; never read that as up to date. */}
+                        {connectionAction === 'disconnect'
+                          ? t('cloud.disconnecting')
+                          : statusLabel(snapshot.status, t)}
                       </Text>
                       <Text selectable className="text-sm text-foreground">
                         {snapshot.accountLabel ?? t('cloud.googleDrive')}

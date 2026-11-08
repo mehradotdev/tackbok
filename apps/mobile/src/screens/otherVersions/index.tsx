@@ -49,7 +49,11 @@ export default function OtherVersionsScreen() {
           accessibilityLabel={t('common.back')}>
           <Icon as={isRTL ? ArrowRight : ArrowLeft} className="text-foreground" />
         </Button>
-        <Text variant="h2" className="text-foreground font-heading">
+        <Text
+          variant="h2"
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          className="flex-1 text-foreground font-heading">
           {t('cloud.conflicts.otherVersionsTitle')}
         </Text>
       </View>

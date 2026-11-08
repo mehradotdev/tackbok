@@ -892,11 +892,11 @@ export const de: Translations = {
   'cloud.reconnectGoogleDrive': 'Google Drive erneut verbinden',
   'cloud.conflicts.title': 'Auf zwei Geräten bearbeitet',
   'cloud.conflicts.nameChanged':
-    'Dein Name wurde auf einem anderen Gerät geändert. Aktuell: „{current}“. Auf dem anderen Gerät: „{other}“.',
+    'Dein Name wurde auf zwei Geräten bearbeitet. Aktuell: „{current}“. Andere Version: „{other}“.',
   'cloud.conflicts.nameChangedNoCurrent':
-    'Dein Name wurde auf einem anderen Gerät geändert. Aktuell: kein Name. Auf dem anderen Gerät: „{other}“.',
+    'Dein Name wurde auf zwei Geräten bearbeitet. Aktuell: kein Name. Andere Version: „{other}“.',
   'cloud.conflicts.nameRemoved':
-    'Dein Name wurde auf einem anderen Gerät entfernt. Aktuell: „{current}“. Auf dem anderen Gerät: kein Name.',
+    'Dein Name wurde auf zwei Geräten bearbeitet. Aktuell: „{current}“. Andere Version: kein Name.',
   'cloud.conflicts.useName': '„{name}“ verwenden',
   'cloud.conflicts.removeName': 'Keinen Namen verwenden',
   'cloud.conflicts.keepCurrent': 'Aktuelle Version behalten',
@@ -947,6 +947,8 @@ export const de: Translations = {
   'cloud.syncIsFasterWithTackbokOpen':
     'Mit geöffnetem Tackbok geht es schneller. Wenn du die App verlässt, geht es später dort weiter, wo es aufgehört hat.',
   'cloud.progress.combiningChanges': 'Änderungen werden zusammengeführt…',
+  'cloud.progress.checkingDownload': 'Download wird geprüft…',
+  'cloud.progress.confirmingUpload': 'Upload wird bestätigt…',
   'cloud.progress.uploadingPhotosAndVoiceNotes':
     'Fotos und Sprachnotizen werden hochgeladen…',
   'cloud.progress.devicesChecked': '{done} von {count} Geräten geprüft',

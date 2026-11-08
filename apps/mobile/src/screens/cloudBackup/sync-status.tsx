@@ -6,6 +6,7 @@ import type { CloudSyncSnapshot, SyncProgress } from '~/lib/cloudSync/ui';
 import {
   syncPhaseLabel,
   syncProgressDetail,
+  syncProgressFinishing,
   syncProgressLabel,
   syncProgressOverall,
   syncWaitMessage,
@@ -54,6 +55,8 @@ export function SyncStatusLine({
   // A bar only when the current step has a known total; a wait pauses it.
   const fraction = wait ? null : stepFraction(progress);
   const percent = fraction === null ? null : Math.round(fraction * 100);
+  const finishing =
+    progress && fraction === 1 ? syncProgressFinishing(progress.phase, t) : null;
   // Announce a wait when it starts or its reason changes, never each second.
   const waitReason = progress?.waiting?.reason ?? null;
   const announcedWait = useRef<string | null>(null);
@@ -90,6 +93,7 @@ export function SyncStatusLine({
           />
         </View>
       )}
+      {finishing && <Text className="text-sm text-foreground">{finishing}</Text>}
       {wait && <Text className="text-sm text-foreground">{wait}</Text>}
       {progress && (
         <Text className="text-xs leading-4.5 text-foreground">

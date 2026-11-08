@@ -826,11 +826,11 @@ export const he: Translations = {
   'cloud.reconnectGoogleDrive': 'חיבור מחדש של Google Drive',
   'cloud.conflicts.title': 'נערך בשני מכשירים',
   'cloud.conflicts.nameChanged':
-    'השם שלך שונה במכשיר אחר. נוכחי: "{current}". במכשיר האחר: "{other}".',
+    'השם שלך נערך בשני מכשירים. נוכחי: "{current}". גרסה אחרת: "{other}".',
   'cloud.conflicts.nameChangedNoCurrent':
-    'השם שלך שונה במכשיר אחר. נוכחי: אין שם. במכשיר האחר: "{other}".',
+    'השם שלך נערך בשני מכשירים. נוכחי: אין שם. גרסה אחרת: "{other}".',
   'cloud.conflicts.nameRemoved':
-    'השם שלך הוסר במכשיר אחר. נוכחי: "{current}". במכשיר האחר: אין שם.',
+    'השם שלך נערך בשני מכשירים. נוכחי: "{current}". גרסה אחרת: אין שם.',
   'cloud.conflicts.useName': 'שימוש ב-"{name}"',
   'cloud.conflicts.removeName': 'ללא שם',
   'cloud.conflicts.keepCurrent': 'שמירת הנוכחי',
@@ -874,6 +874,8 @@ export const he: Translations = {
   'cloud.syncIsFasterWithTackbokOpen':
     'זה מהיר יותר כש-Tackbok פתוח. אם יוצאים, הסנכרון ימשיך מהמקום שבו נעצר.',
   'cloud.progress.combiningChanges': 'שילוב השינויים…',
+  'cloud.progress.checkingDownload': 'בדיקת ההורדה…',
+  'cloud.progress.confirmingUpload': 'אישור ההעלאה…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'העלאת תמונות והקלטות קוליות…',
   'cloud.progress.devicesChecked': 'נבדקו {done} מתוך {count} מכשירים',
   'cloud.progress.filesDownloaded': 'הורדו {done} מתוך {count} קבצים',
