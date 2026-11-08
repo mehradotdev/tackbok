@@ -647,3 +647,58 @@ test('a Reconnect to an account without the backup puts the old account back', a
   expect(status()).toEqual(['restoring']);
   expect(mockSecure.has(GUARD_KEY)).toBe(false);
 });
+
+/**
+ * The next restart runs a first pass, like a long restore, under the real
+ * connection lifecycle. It runs until a connection change cancels it.
+ */
+function nextRestartRunsUntilCancelled(): Promise<string> {
+  const { cloudConnectionLifecycle } = jest.requireActual<
+    typeof import('../runtime/connectionLifecycle')
+  >('../runtime/connectionLifecycle');
+  let settled!: (outcome: string) => void;
+  const outcome = new Promise<string>((resolve) => {
+    settled = resolve;
+  });
+  mockRestart.mockImplementationOnce(async () => {
+    await cloudConnectionLifecycle
+      .runPass(
+        cloudConnectionLifecycle.epoch,
+        (signal) =>
+          new Promise<never>((_resolve, reject) => {
+            signal.addEventListener('abort', () => reject(new Error('aborted')));
+          }),
+      )
+      .catch(() => settled('cancelled'));
+  });
+  return outcome;
+}
+/** Whether `promise` settles soon, rather than waiting on a whole pass. */
+const returnsPromptly = (promise: Promise<unknown>) =>
+  Promise.race([
+    promise.then(() => true),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 100)),
+  ]);
+
+test('Resume returns while its first pass runs, and Pause cancels that pass', async () => {
+  mockVaultRows[0].status = 'paused';
+  const firstPass = nextRestartRunsUntilCancelled();
+  await expect(returnsPromptly(production.setCloudSyncPaused(false))).resolves.toBe(true);
+  expect(status()).toEqual(['idle']);
+  await expect(returnsPromptly(firstPass)).resolves.toBe(false);
+
+  await production.setCloudSyncPaused(true);
+  await expect(firstPass).resolves.toBe('cancelled');
+  expect(status()).toEqual(['paused']);
+});
+
+test('Disconnect works while the pass Resume started is still running', async () => {
+  mockVaultRows[0].status = 'paused';
+  const firstPass = nextRestartRunsUntilCancelled();
+  await expect(returnsPromptly(production.setCloudSyncPaused(false))).resolves.toBe(true);
+
+  await production.disconnectGoogleDrive();
+  await expect(firstPass).resolves.toBe('cancelled');
+  expect(mockSecure.get(TOKEN_KEY)).toBeUndefined();
+  expect(status()).toEqual(['disabled']);
+});

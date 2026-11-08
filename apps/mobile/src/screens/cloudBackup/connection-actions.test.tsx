@@ -238,3 +238,27 @@ test('Disconnect still reports its result after the screen closes', async () => 
     mockEn['cloud.disconnectedYourJournalStaysOnThisPhone'],
   );
 });
+
+test('after Resume, Pause and Disconnect stay available while the first pass runs', async () => {
+  mockSnapshot.status = 'paused';
+  // Resume returns once the runtime restarts; the pass it started keeps running.
+  mockSetPaused.mockImplementationOnce(async () => {
+    mockSnapshot.status = 'syncing';
+  });
+  mockSetPaused.mockResolvedValueOnce(undefined);
+  mockDisconnect.mockResolvedValueOnce(undefined);
+  await render();
+  await act(async () => pauseRow().props.onPress());
+  expect(mockSetPaused).toHaveBeenLastCalledWith(false);
+  expect(mockToast.success).toHaveBeenCalledWith(mockEn['cloud.syncResumed']);
+
+  expect(pauseRow().props.disabled).toBe(false);
+  expect(pauseRow().props.accessibilityState.busy).toBe(false);
+  expect(disconnectRow().props.disabled).toBe(false);
+
+  await act(async () => pauseRow().props.onPress());
+  expect(mockSetPaused).toHaveBeenLastCalledWith(true);
+  await confirmDisconnect();
+  expect(mockDisconnect).toHaveBeenCalledTimes(1);
+  expect(mockToast.error).not.toHaveBeenCalled();
+});

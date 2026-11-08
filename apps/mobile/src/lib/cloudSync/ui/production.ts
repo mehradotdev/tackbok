@@ -834,12 +834,12 @@ export async function retrySyncAttentionReason(
 
 // All connection mutations share the same barrier as production sync passes.
 // Drain before touching credentials, then rebuild from the committed state.
-// `awaitFirstPass: false` returns once the runtime is rebuilt in the background;
-// its first pass can be a whole restore.
+// The change returns without waiting for the rebuilt runtime: its first pass can
+// be a whole restore, and Pause or Disconnect must stay available to cancel it.
+// The runtime records that pass's failure for the status card.
 function connectionChange<A extends unknown[], R>(
   operation: (...args: A) => Promise<R>,
   restart: 'always' | 'success' | 'never' = 'always',
-  { awaitFirstPass = true }: { awaitFirstPass?: boolean } = {},
 ) {
   return async (...args: A): Promise<R> => {
     stopProductionSyncRuntime();
@@ -854,9 +854,7 @@ function connectionChange<A extends unknown[], R>(
         !pendingConnection &&
         (restart === 'always' || (restart === 'success' && succeeded))
       ) {
-        const restarting = restartProductionSyncRuntime();
-        if (awaitFirstPass) await restarting;
-        else void restarting.catch(() => undefined);
+        void restartProductionSyncRuntime().catch(() => undefined);
       }
       notifyProductionCloudSyncChanged();
     }
@@ -866,30 +864,23 @@ function connectionChange<A extends unknown[], R>(
 export async function prepareGoogleDriveConnection(): Promise<PreparedGoogleConnection> {
   connectionSetupInProgress = true;
   // Restarts only when nothing was staged, so the current backup resumes.
-  return connectionChange(prepareGoogleDriveConnectionImpl, 'always', {
-    awaitFirstPass: false,
-  })();
+  return connectionChange(prepareGoogleDriveConnectionImpl, 'always')();
 }
 export async function cancelPreparedGoogleDriveConnection(): Promise<void> {
   // Screen cleanup after a committed setup is a no-op, not a runtime stop.
   if (!connectionSetupInProgress && !pendingConnection) return;
   // Restarts so the backup that was put back resumes.
-  await connectionChange(
-    async () => {
-      try {
-        await cancelPreparedGoogleDriveConnectionImpl();
-      } finally {
-        connectionSetupInProgress = false;
-      }
-    },
-    'always',
-    { awaitFirstPass: false },
-  )();
+  await connectionChange(async () => {
+    try {
+      await cancelPreparedGoogleDriveConnectionImpl();
+    } finally {
+      connectionSetupInProgress = false;
+    }
+  }, 'always')();
 }
 export const completeGoogleDriveConnection = connectionChange(
   completeGoogleDriveConnectionImpl,
   'success',
-  { awaitFirstPass: false },
 );
 export const reconnectGoogleDrive = connectionChange(reconnectGoogleDriveImpl);
 export const disconnectGoogleDrive = connectionChange(disconnectGoogleDriveImpl);
