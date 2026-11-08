@@ -100,7 +100,14 @@ const utf8 = (value: string) => new TextEncoder().encode(value);
 
 /** Transport retries end at the response headers; a later stall or drop is this. */
 class DownloadInterruptedError extends SnapshotProviderError {
-  constructor(message = 'Drive download was interrupted') {
+  constructor(
+    message = 'Drive download was interrupted',
+    /** Thrown instead once retries run out, e.g. an object that is really short. */
+    readonly whenExhausted: SnapshotProviderError = new SnapshotProviderError(
+      'transient',
+      message,
+    ),
+  ) {
     super('transient', message);
     this.name = 'DownloadInterruptedError';
   }
@@ -1166,12 +1173,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       try {
         return await download();
       } catch (error) {
-        if (
-          !(error instanceof DownloadInterruptedError) ||
-          attempt >= DOWNLOAD_ATTEMPTS - 1
-        ) {
-          throw error;
-        }
+        if (!(error instanceof DownloadInterruptedError)) throw error;
+        if (attempt >= DOWNLOAD_ATTEMPTS - 1) throw error.whenExhausted;
         await this.transport.retryBackoff(attempt);
       }
     }
@@ -1240,12 +1243,16 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       receivedBytes = value.byteLength;
       report(receivedBytes);
     }
-    if (receivedBytes !== declaredBytes || sha256Bytes(bytes) !== file.sha256Checksum) {
-      throw new SnapshotProviderError(
-        'invalid-data',
-        'Drive download checksum does not match',
-      );
+    const mismatch = new SnapshotProviderError(
+      'invalid-data',
+      'Drive download checksum does not match',
+    );
+    // A body that ended early is most likely a dropped connection; one that is
+    // still short after every retry is treated as the bad object it may be.
+    if (receivedBytes < declaredBytes) {
+      throw new DownloadInterruptedError('Drive download ended early', mismatch);
     }
+    if (sha256Bytes(bytes) !== file.sha256Checksum) throw mismatch;
     return bytes;
   }
 

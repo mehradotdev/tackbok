@@ -1712,76 +1712,112 @@ describe('GoogleDriveSnapshotProvider', () => {
     ).rejects.toMatchObject({ code: 'transient' });
   });
 
-  test('a download that breaks off shows a retry wait, then retries', async () => {
-    const content = new Uint8Array(2048).fill(5);
-    const hash = sha256Bytes(content);
-    const state = new MemoryDriveProviderStateStore();
-    state.upsertFile(vaultId, {
-      fileId: 'media-retried',
-      logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
-      kind: 'media',
-      contentSha256: hash,
-      byteCount: content.byteLength,
-      createdAt: 1,
-      head: null,
-    });
-    let fetches = 0;
-    const reports: unknown[] = [];
-    const provider = new GoogleDriveSnapshotProvider({
-      auth: new FakeAuth(),
-      state,
-      fetch: async () => {
-        // The first response drops after half the file; the retry completes.
-        const chunks =
-          fetches++ === 0 ? [content.subarray(0, 1024)] : [content.subarray(0)];
-        const dropped = fetches === 1;
-        return {
-          ok: true,
-          status: 200,
-          headers: { get: () => null },
-          body: {
-            getReader: () => ({
-              read: async () => {
-                const value = chunks.shift();
-                if (value) return { done: false, value };
-                if (dropped) throw new TypeError('Network request failed');
-                return { done: true };
-              },
-            }),
-          },
-          json: async () => ({}),
-          arrayBuffer: async () => new ArrayBuffer(0),
-        };
-      },
-      sleep: async () => {},
-      random: () => 0,
-      now: () => 0,
-      onProgress: (report) => {
-        if (report.type === 'wait') reports.push(report);
-      },
-    });
-    let persisted = new Uint8Array(0);
-    await expect(
-      provider.downloadMedia(vaultId, hash, {
-        byteLength: async () => persisted.byteLength,
-        appendAndSync: async (chunk) => {
-          const next = new Uint8Array(persisted.byteLength + chunk.byteLength);
-          next.set(persisted);
-          next.set(chunk, persisted.byteLength);
-          persisted = next;
+  describe('a download that breaks off', () => {
+    // Past the 8 MiB flush, so the first attempt leaves bytes in the sink.
+    const persistedBytes = 8 * 1024 * 1024;
+    const content = new Uint8Array(persistedBytes + 1024).map((_, index) => index % 251);
+    const hash = 'e'.repeat(64);
+    function mediaState() {
+      const state = new MemoryDriveProviderStateStore();
+      state.upsertFile(vaultId, {
+        fileId: 'media-retried',
+        logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
+        kind: 'media',
+        contentSha256: hash,
+        byteCount: content.byteLength,
+        createdAt: 1,
+        head: null,
+      });
+      return state;
+    }
+    function streamed(chunks: Uint8Array[], dropsAtEnd: boolean, status = 200) {
+      return {
+        ok: true,
+        status,
+        headers: { get: () => null },
+        body: {
+          getReader: () => ({
+            read: async () => {
+              const value = chunks.shift();
+              if (value) return { done: false, value };
+              if (dropsAtEnd) throw new TypeError('Network request failed');
+              return { done: true };
+            },
+          }),
+        },
+        json: async () => ({}),
+        arrayBuffer: async () => new ArrayBuffer(0),
+      } satisfies DriveResponseLike;
+    }
+    function memorySink() {
+      const sink = {
+        bytes: new Uint8Array(0),
+        byteLength: async () => sink.bytes.byteLength,
+        appendAndSync: async (chunk: Uint8Array) => {
+          const next = new Uint8Array(sink.bytes.byteLength + chunk.byteLength);
+          next.set(sink.bytes);
+          next.set(chunk, sink.bytes.byteLength);
+          sink.bytes = next;
         },
         reset: async () => {
-          persisted = new Uint8Array(0);
+          sink.bytes = new Uint8Array(0);
         },
         verifyAndPromote: async () => {},
-      }),
-    ).resolves.toBe(true);
-    expect(reports).toEqual([
-      { type: 'wait', reason: 'retry-backoff', until: 1_000 },
-      { type: 'wait', reason: null },
-    ]);
-    expect(fetches).toBe(2);
-    expect(persisted).toEqual(content);
+      };
+      return sink;
+    }
+
+    test('shows a retry wait, then resumes from the saved bytes', async () => {
+      const ranges: (string | null)[] = [];
+      const reports: unknown[] = [];
+      const provider = new GoogleDriveSnapshotProvider({
+        auth: new FakeAuth(),
+        state: mediaState(),
+        fetch: async (_url, init = {}) => {
+          const range =
+            (init.headers as Record<string, string> | undefined)?.Range ?? null;
+          ranges.push(range);
+          return range
+            ? streamed([content.slice(persistedBytes)], false, 206)
+            : streamed([content.slice(0, persistedBytes)], true);
+        },
+        sleep: async () => {},
+        random: () => 0,
+        now: () => 0,
+        onProgress: (report) => {
+          if (report.type === 'wait') reports.push(report);
+        },
+      });
+      const sink = memorySink();
+      await expect(provider.downloadMedia(vaultId, hash, sink)).resolves.toBe(true);
+      expect(reports).toEqual([
+        { type: 'wait', reason: 'retry-backoff', until: 1_000 },
+        { type: 'wait', reason: null },
+      ]);
+      expect(ranges).toEqual([null, `bytes=${persistedBytes}-`]);
+      expect(sink.bytes).toEqual(content);
+    });
+
+    test('a cancel during the retry wait stays a cancellation', async () => {
+      const controller = new AbortController();
+      let fetches = 0;
+      const provider = new GoogleDriveSnapshotProvider({
+        auth: new FakeAuth(),
+        state: mediaState(),
+        fetch: async () => {
+          fetches += 1;
+          return streamed([], true);
+        },
+        sleep: () => new Promise<void>(() => {}),
+        random: () => 0,
+        signal: () => controller.signal,
+      });
+      const download = provider.downloadMedia(vaultId, hash, memorySink());
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      controller.abort();
+      await expect(download).rejects.toBeInstanceOf(SyncCancelledError);
+      expect(fetches).toBe(1);
+    });
   });
 
   test('a media download cancelled mid-read stays a cancellation', async () => {
@@ -1993,6 +2029,47 @@ describe('GoogleDriveSnapshotProvider', () => {
       });
       expect(progress.reads).toBe(2);
       expect(progress.cancelled).toBe(true);
+    });
+
+    test('a snapshot body that ends early is retried, streamed or whole', async () => {
+      const bytes = new Uint8Array(4096).map((_, index) => index % 13);
+      for (const whole of [false, true]) {
+        const { snapshotId, state } = snapshotState(bytes);
+        let fetches = 0;
+        const app = new GoogleDriveSnapshotProvider({
+          auth: new FakeAuth(),
+          state,
+          fetch: async () => {
+            const sent = fetches++ === 0 ? bytes.slice(0, 1000) : bytes;
+            const reply = response(200, {}, sent);
+            return whole ? { ...reply, body: null } : reply;
+          },
+          sleep: async () => {},
+          random: () => 0,
+        });
+        await expect(app.downloadSnapshot(vaultId, snapshotId)).resolves.toEqual(bytes);
+        expect(fetches).toBe(2);
+      }
+    });
+
+    test('a snapshot still short after every retry is invalid data', async () => {
+      const bytes = new Uint8Array(4096).fill(9);
+      const { snapshotId, state } = snapshotState(bytes);
+      let fetches = 0;
+      const app = new GoogleDriveSnapshotProvider({
+        auth: new FakeAuth(),
+        state,
+        fetch: async () => {
+          fetches += 1;
+          return response(200, {}, bytes.slice(0, 1000));
+        },
+        sleep: async () => {},
+        random: () => 0,
+      });
+      await expect(app.downloadSnapshot(vaultId, snapshotId)).rejects.toMatchObject({
+        code: 'invalid-data',
+      });
+      expect(fetches).toBe(3);
     });
 
     test('media is written in large batches, not once per read', async () => {
