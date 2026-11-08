@@ -22,10 +22,10 @@ const BYTE_UNITS = [
  */
 export function formatByteSize(bytes: number, locale: SupportedLocale): string {
   const scale = BYTE_UNITS.find(({ size }) => bytes >= size) ?? BYTE_UNITS[2];
-  const value = bytes / scale.size;
-  const options: Intl.NumberFormatOptions = {
-    maximumFractionDigits: value < 10 ? 1 : 0,
-  };
+  const digits = bytes / scale.size < 10 ? 1 : 0;
+  // Rounded here too: Hermes on iOS ignores fraction digits in unit style.
+  const value = Math.round((bytes / scale.size) * 10 ** digits) / 10 ** digits;
+  const options: Intl.NumberFormatOptions = { maximumFractionDigits: digits };
   try {
     return formatLocalizedNumber(value, locale, {
       ...options,

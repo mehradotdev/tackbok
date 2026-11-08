@@ -18,7 +18,8 @@ type CoachMark = {
  * One-time tooltip walkthrough on the first Home render after onboarding.
  * Deliberately dependency-free: a dim overlay with positioned bubbles rather
  * than a measured-anchor walkthrough library. Tapping anywhere advances;
- * "Skip" ends it; it never shows again (`hasSeenHomeCoachMarks`).
+ * "Skip" ends it. It is marked seen (`hasSeenHomeCoachMarks`) as soon as it
+ * shows, so leaving it unfinished never brings it back on the next launch.
  *
  * Screen-reader users skip it entirely — an overlay sequence communicated by
  * position is noise for them.
@@ -31,16 +32,22 @@ export function HomeCoachMarks() {
   const sampleEntryIds = useSettingsStore((s) => s.sampleEntryIds);
   const { data: entriesByDate, isPending: entriesArePending } = useEntriesGroupByDate();
   const [stepIndex, setStepIndex] = useState(0);
+  const [isActive, setIsActive] = useState(false);
 
-  const isActive = hasCompletedOnboarding && !hasSeenHomeCoachMarks && !entriesArePending;
+  const shouldStart =
+    hasCompletedOnboarding && !hasSeenHomeCoachMarks && !entriesArePending;
   const hasEntries = Boolean(entriesByDate?.size) || sampleEntryIds.length > 0;
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!shouldStart) return;
+    setHasSeenHomeCoachMarks(true);
     AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
-      if (enabled) setHasSeenHomeCoachMarks(true);
+      if (enabled) return;
+      // A replay from Settings starts over.
+      setStepIndex(0);
+      setIsActive(true);
     });
-  }, [isActive, setHasSeenHomeCoachMarks]);
+  }, [shouldStart, setHasSeenHomeCoachMarks]);
 
   if (!isActive) return null;
 
@@ -78,7 +85,7 @@ export function HomeCoachMarks() {
 
   const handleAdvance = () => {
     if (isLastStep) {
-      setHasSeenHomeCoachMarks(true);
+      setIsActive(false);
     } else {
       setStepIndex((prev) => prev + 1);
     }
@@ -101,10 +108,7 @@ export function HomeCoachMarks() {
             {`${stepIndex + 1} / ${marks.length}`}
           </Text>
           <View className="flex-row gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onPress={() => setHasSeenHomeCoachMarks(true)}>
+            <Button variant="ghost" size="sm" onPress={() => setIsActive(false)}>
               <Text className="text-sm text-muted-foreground">
                 {t('onboarding.skip')}
               </Text>

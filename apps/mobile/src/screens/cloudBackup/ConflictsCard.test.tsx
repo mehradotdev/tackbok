@@ -85,7 +85,7 @@ test('renders nothing when no conflict needs a decision', async () => {
 test('shows both names with per-row actions and no global "Mark as reviewed"', async () => {
   await render([nameItem]);
   expect(content()).toContain(
-    'Your name was changed on another device. Current: “Mehra”. Other: “Mehra A”.',
+    'Your name was edited on two devices. Current: “Mehra”. Other version: “Mehra A”.',
   );
   expect(button('Use “Mehra A”')).toBeDefined();
   expect(button(mockEn['cloud.conflicts.keepCurrent'])).toBeDefined();
@@ -109,7 +109,7 @@ test('"Keep current" resolves the name row without changing the name', async () 
 test('a removed name is described as no name', async () => {
   await render([{ ...nameItem, other: null }]);
   expect(content()).toContain(
-    'Your name was removed on another device. Current: “Mehra”. Other: no name.',
+    'Your name was edited on two devices. Current: “Mehra”. Other version: no name.',
   );
   expect(button(mockEn['cloud.conflicts.removeName'])).toBeDefined();
 });

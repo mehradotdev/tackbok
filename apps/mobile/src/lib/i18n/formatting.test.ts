@@ -123,3 +123,27 @@ it('formats file sizes with locale numbers and units', () => {
   // German uses a decimal comma.
   expect(formatByteSize(1_234_567, 'de')).toBe('1,2 MB');
 });
+
+it('rounds file sizes even when unit formatting ignores fraction digits', () => {
+  // Hermes on iOS printed "138.366kB" for 138,366 bytes.
+  const RealNumberFormat = Intl.NumberFormat;
+  const ignoresDigits = jest
+    .spyOn(Intl, 'NumberFormat')
+    .mockImplementation(
+      (locale, options) =>
+        new RealNumberFormat(
+          locale,
+          options?.style === 'unit' ? { ...options, maximumFractionDigits: 20 } : options,
+        ),
+    );
+  Object.assign(Intl.NumberFormat, {
+    supportedLocalesOf: RealNumberFormat.supportedLocalesOf,
+  });
+  try {
+    expect(formatByteSize(138_366, 'en')).toBe('138 kB');
+    expect(formatByteSize(1_234_567, 'en')).toBe('1.2 MB');
+    expect(formatByteSize(9_960, 'en')).toBe('10 kB');
+  } finally {
+    ignoresDigits.mockRestore();
+  }
+});

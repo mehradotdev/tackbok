@@ -1712,6 +1712,78 @@ describe('GoogleDriveSnapshotProvider', () => {
     ).rejects.toMatchObject({ code: 'transient' });
   });
 
+  test('a download that breaks off shows a retry wait, then retries', async () => {
+    const content = new Uint8Array(2048).fill(5);
+    const hash = sha256Bytes(content);
+    const state = new MemoryDriveProviderStateStore();
+    state.upsertFile(vaultId, {
+      fileId: 'media-retried',
+      logicalKey: `media/${hash.slice(0, 2)}/${hash}`,
+      kind: 'media',
+      contentSha256: hash,
+      byteCount: content.byteLength,
+      createdAt: 1,
+      head: null,
+    });
+    let fetches = 0;
+    const reports: unknown[] = [];
+    const provider = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state,
+      fetch: async () => {
+        // The first response drops after half the file; the retry completes.
+        const chunks =
+          fetches++ === 0 ? [content.subarray(0, 1024)] : [content.subarray(0)];
+        const dropped = fetches === 1;
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          body: {
+            getReader: () => ({
+              read: async () => {
+                const value = chunks.shift();
+                if (value) return { done: false, value };
+                if (dropped) throw new TypeError('Network request failed');
+                return { done: true };
+              },
+            }),
+          },
+          json: async () => ({}),
+          arrayBuffer: async () => new ArrayBuffer(0),
+        };
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 0,
+      onProgress: (report) => {
+        if (report.type === 'wait') reports.push(report);
+      },
+    });
+    let persisted = new Uint8Array(0);
+    await expect(
+      provider.downloadMedia(vaultId, hash, {
+        byteLength: async () => persisted.byteLength,
+        appendAndSync: async (chunk) => {
+          const next = new Uint8Array(persisted.byteLength + chunk.byteLength);
+          next.set(persisted);
+          next.set(chunk, persisted.byteLength);
+          persisted = next;
+        },
+        reset: async () => {
+          persisted = new Uint8Array(0);
+        },
+        verifyAndPromote: async () => {},
+      }),
+    ).resolves.toBe(true);
+    expect(reports).toEqual([
+      { type: 'wait', reason: 'retry-backoff', until: 1_000 },
+      { type: 'wait', reason: null },
+    ]);
+    expect(fetches).toBe(2);
+    expect(persisted).toEqual(content);
+  });
+
   test('a media download cancelled mid-read stays a cancellation', async () => {
     const hash = 'c'.repeat(64);
     const state = new MemoryDriveProviderStateStore();

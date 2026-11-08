@@ -815,11 +815,11 @@ export const es = {
   'cloud.reconnectGoogleDrive': 'Vuelva a conectar Google Drive',
   'cloud.conflicts.title': 'Editado en dos dispositivos',
   'cloud.conflicts.nameChanged':
-    'Tu nombre se cambió en otro dispositivo. Actual: "{current}". En el otro dispositivo: "{other}".',
+    'Tu nombre se editó en dos dispositivos. Actual: "{current}". Otra versión: "{other}".',
   'cloud.conflicts.nameChangedNoCurrent':
-    'Tu nombre se cambió en otro dispositivo. Actual: sin nombre. En el otro dispositivo: "{other}".',
+    'Tu nombre se editó en dos dispositivos. Actual: sin nombre. Otra versión: "{other}".',
   'cloud.conflicts.nameRemoved':
-    'Tu nombre se eliminó en otro dispositivo. Actual: "{current}". En el otro dispositivo: sin nombre.',
+    'Tu nombre se editó en dos dispositivos. Actual: "{current}". Otra versión: sin nombre.',
   'cloud.conflicts.useName': 'Usar "{name}"',
   'cloud.conflicts.removeName': 'Usar sin nombre',
   'cloud.conflicts.keepCurrent': 'Mantener la versión actual',
@@ -866,6 +866,8 @@ export const es = {
   'cloud.syncIsFasterWithTackbokOpen':
     'Es más rápido con Tackbok abierto. Si sales, continuará donde lo dejó.',
   'cloud.progress.combiningChanges': 'Combinando cambios…',
+  'cloud.progress.checkingDownload': 'Comprobando la descarga…',
+  'cloud.progress.confirmingUpload': 'Confirmando la subida…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Subiendo fotos y notas de voz…',
   'cloud.progress.devicesChecked': '{done} de {count} dispositivos revisados',
   'cloud.progress.filesDownloaded': '{done} de {count} archivos descargados',

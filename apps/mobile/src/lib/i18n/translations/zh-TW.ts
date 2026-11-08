@@ -806,11 +806,11 @@ export const zhTW: Translations = {
   'cloud.reconnectGoogleDrive': '重新連接 Google Drive',
   'cloud.conflicts.title': '在兩部裝置上編輯過',
   'cloud.conflicts.nameChanged':
-    '你的名字在另一部裝置上被更改。目前：「{current}」。另一部裝置：「{other}」。',
+    '你的名字在兩部裝置上都被編輯過。目前：「{current}」。另一個版本：「{other}」。',
   'cloud.conflicts.nameChangedNoCurrent':
-    '你的名字在另一部裝置上被更改。目前：沒有名字。另一部裝置：「{other}」。',
+    '你的名字在兩部裝置上都被編輯過。目前：沒有名字。另一個版本：「{other}」。',
   'cloud.conflicts.nameRemoved':
-    '你的名字在另一部裝置上被移除。目前：「{current}」。另一部裝置：沒有名字。',
+    '你的名字在兩部裝置上都被編輯過。目前：「{current}」。另一個版本：沒有名字。',
   'cloud.conflicts.useName': '使用「{name}」',
   'cloud.conflicts.removeName': '不使用名字',
   'cloud.conflicts.keepCurrent': '保留目前的',
@@ -854,6 +854,8 @@ export const zhTW: Translations = {
   'cloud.syncIsFasterWithTackbokOpen':
     '保持塔克布克開啟會更快。如果你離開，它會從中斷的地方繼續。',
   'cloud.progress.combiningChanges': '正在合併變更…',
+  'cloud.progress.checkingDownload': '正在檢查下載內容…',
+  'cloud.progress.confirmingUpload': '正在確認上傳…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': '正在上傳照片和語音筆記…',
   'cloud.progress.devicesChecked': '已檢查 {count} 台裝置中的 {done} 台',
   'cloud.progress.filesDownloaded': '已下載 {count} 個檔案中的 {done} 個',

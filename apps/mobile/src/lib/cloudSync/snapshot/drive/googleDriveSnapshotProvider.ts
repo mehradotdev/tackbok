@@ -98,15 +98,29 @@ function concatBytes(parts: readonly Uint8Array[]): Uint8Array {
 
 const utf8 = (value: string) => new TextEncoder().encode(value);
 
-/** A connection that drops after the response starts is retryable, not unknown. */
+/** Transport retries end at the response headers; a later stall or drop is this. */
+class DownloadInterruptedError extends SnapshotProviderError {
+  constructor(message = 'Drive download was interrupted') {
+    super('transient', message);
+    this.name = 'DownloadInterruptedError';
+  }
+}
+
+/** Whole-download attempts when the body stalls or breaks off. */
+const DOWNLOAD_ATTEMPTS = 3;
+
+/** A connection that drops or stalls after the response starts is retryable. */
 async function readDownloadBody<T>(read: () => Promise<T>): Promise<T> {
   try {
     return await read();
   } catch (error) {
-    if (error instanceof SnapshotProviderError || error instanceof SyncCancelledError) {
-      throw error;
+    if (error instanceof SyncCancelledError) throw error;
+    if (error instanceof SnapshotProviderError) {
+      // A body read that timed out is a stall.
+      if (error.code !== 'transient') throw error;
+      throw new DownloadInterruptedError(error.message);
     }
-    throw new SnapshotProviderError('transient', 'Drive download was interrupted');
+    throw new DownloadInterruptedError();
   }
 }
 
@@ -536,7 +550,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       );
     }
     try {
-      await this.downloadMediaToSink(vaultId, file, sink);
+      // A retry resumes from what the sink already holds.
+      await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
       return true;
     } catch (error) {
       if (error instanceof MediaIntegrityError) return false;
@@ -1142,7 +1157,31 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     return this.downloadFile(vaultId, metadata);
   }
 
-  private async downloadFile(vaultId: string, file: DriveFile): Promise<Uint8Array> {
+  /**
+   * Runs a download again after a reported backoff when its body stalled or
+   * broke off, so the card shows a connection problem instead of a frozen bar.
+   */
+  private async retryInterrupted<T>(download: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await download();
+      } catch (error) {
+        if (
+          !(error instanceof DownloadInterruptedError) ||
+          attempt >= DOWNLOAD_ATTEMPTS - 1
+        ) {
+          throw error;
+        }
+        await this.transport.retryBackoff(attempt);
+      }
+    }
+  }
+
+  private downloadFile(vaultId: string, file: DriveFile): Promise<Uint8Array> {
+    return this.retryInterrupted(() => this.downloadFileOnce(vaultId, file));
+  }
+
+  private async downloadFileOnce(vaultId: string, file: DriveFile): Promise<Uint8Array> {
     const kind = objectKind(file.appProperties[PROP_KIND]);
     const declaredBytes = parseByteCount(file);
     const byteCap = kind === 'head' ? HEAD_MAX_BYTES : SNAPSHOT_CAPS.compressedBytes;
@@ -1283,9 +1322,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
     await flush();
     if (offset !== file.byteCount) {
-      throw new SnapshotProviderError(
-        'transient',
-        `Drive media download stopped before its declared size`,
+      throw new DownloadInterruptedError(
+        'Drive media download stopped before its declared size',
       );
     }
     await sink.verifyAndPromote(file.byteCount, file.contentSha256);

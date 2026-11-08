@@ -794,11 +794,11 @@ export const sv = {
   'cloud.reconnectGoogleDrive': 'Återanslut Google Drive',
   'cloud.conflicts.title': 'Redigerat på två enheter',
   'cloud.conflicts.nameChanged':
-    'Ditt namn ändrades på en annan enhet. Nuvarande: "{current}". På den andra enheten: "{other}".',
+    'Ditt namn redigerades på två enheter. Nuvarande: "{current}". Andra versionen: "{other}".',
   'cloud.conflicts.nameChangedNoCurrent':
-    'Ditt namn ändrades på en annan enhet. Nuvarande: inget namn. På den andra enheten: "{other}".',
+    'Ditt namn redigerades på två enheter. Nuvarande: inget namn. Andra versionen: "{other}".',
   'cloud.conflicts.nameRemoved':
-    'Ditt namn togs bort på en annan enhet. Nuvarande: "{current}". På den andra enheten: inget namn.',
+    'Ditt namn redigerades på två enheter. Nuvarande: "{current}". Andra versionen: inget namn.',
   'cloud.conflicts.useName': 'Använd "{name}"',
   'cloud.conflicts.removeName': 'Använd inget namn',
   'cloud.conflicts.keepCurrent': 'Behåll nuvarande',
@@ -843,6 +843,8 @@ export const sv = {
   'cloud.syncIsFasterWithTackbokOpen':
     'Det går snabbare när Tackbok är öppet. Om du lämnar appen fortsätter den där den slutade.',
   'cloud.progress.combiningChanges': 'Ändringarna slås ihop…',
+  'cloud.progress.checkingDownload': 'Kontrollerar nedladdningen…',
+  'cloud.progress.confirmingUpload': 'Bekräftar uppladdningen…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Laddar upp foton och röstanteckningar…',
   'cloud.progress.devicesChecked': '{done} av {count} enheter kontrollerade',
   'cloud.progress.filesDownloaded': '{done} av {count} filer nedladdade',

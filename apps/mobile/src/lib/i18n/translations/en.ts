@@ -853,11 +853,11 @@ export const en = {
   'cloud.reconnectGoogleDrive': 'Reconnect Google Drive',
   'cloud.conflicts.title': 'Edited on two devices',
   'cloud.conflicts.nameChanged':
-    'Your name was changed on another device. Current: “{current}”. Other: “{other}”.',
+    'Your name was edited on two devices. Current: “{current}”. Other version: “{other}”.',
   'cloud.conflicts.nameChangedNoCurrent':
-    'Your name was changed on another device. Current: no name. Other: “{other}”.',
+    'Your name was edited on two devices. Current: no name. Other version: “{other}”.',
   'cloud.conflicts.nameRemoved':
-    'Your name was removed on another device. Current: “{current}”. Other: no name.',
+    'Your name was edited on two devices. Current: “{current}”. Other version: no name.',
   'cloud.conflicts.useName': 'Use “{name}”',
   'cloud.conflicts.removeName': 'Use no name',
   'cloud.conflicts.keepCurrent': 'Keep current',
@@ -901,6 +901,8 @@ export const en = {
   'cloud.syncIsFasterWithTackbokOpen':
     'It’s faster with Tackbok open. If you leave, it picks up where it left off.',
   'cloud.progress.combiningChanges': 'Combining changes…',
+  'cloud.progress.checkingDownload': 'Checking the download…',
+  'cloud.progress.confirmingUpload': 'Confirming the upload…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Uploading photos and voice notes…',
   'cloud.progress.devicesChecked': '{done} of {count} devices checked',
   'cloud.progress.filesDownloaded': '{done} of {count} files downloaded',

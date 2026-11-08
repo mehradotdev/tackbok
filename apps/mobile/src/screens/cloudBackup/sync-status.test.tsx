@@ -74,6 +74,46 @@ test('a known total shows a real bar, the amount and the step', () => {
   ).toHaveLength(0);
 });
 
+test('a full bar says what the step is still doing', () => {
+  render({
+    phase: 'downloading',
+    step: 2,
+    totalSteps: 4,
+    bytes: { done: 524_000, total: 525_000 },
+  });
+  expect(content()).not.toContain(mockEn['cloud.progress.checkingDownload']);
+  act(() => {
+    root.update(
+      <SyncStatusLine
+        phase="downloading"
+        initialRestore={false}
+        progress={{
+          phase: 'downloading',
+          step: 2,
+          totalSteps: 4,
+          bytes: { done: 525_000, total: 525_000 },
+        }}
+      />,
+    );
+  });
+  expect(content()).toContain(mockEn['cloud.progress.checkingDownload']);
+  act(() => {
+    root.update(
+      <SyncStatusLine
+        phase="uploading"
+        initialRestore={false}
+        progress={{
+          phase: 'uploading',
+          step: 4,
+          totalSteps: 4,
+          bytes: { done: 27_000, total: 27_000 },
+        }}
+      />,
+    );
+  });
+  expect(content()).toContain(mockEn['cloud.progress.confirmingUpload']);
+});
+
 test('without a total the indicator stays indeterminate', () => {
   render({ phase: 'merging', step: 3, totalSteps: 4 });
   expect(content()).toContain('Combining changes…');
