@@ -1795,7 +1795,8 @@ describe('GoogleDriveSnapshotProvider', () => {
         { type: 'wait', reason: null },
       ]);
       expect(ranges).toEqual([null, `bytes=${persistedBytes}-`]);
-      expect(sink.bytes).toEqual(content);
+      // toEqual walks 8 MiB element by element and takes ~8 s; compare bytes natively.
+      expect(Buffer.compare(sink.bytes, content)).toBe(0);
     });
 
     test('a cancel during the retry wait stays a cancellation', async () => {
