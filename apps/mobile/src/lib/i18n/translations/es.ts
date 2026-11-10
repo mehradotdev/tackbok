@@ -264,6 +264,7 @@ export const es = {
   'appearance.timelineEntryLength': 'Longitud de la entrada de la línea de tiempo',
   'appearance.numberOfLinesShownInTheTimeline':
     'Número de líneas que se muestran en la línea de tiempo. Toque una entrada para leer el texto completo.',
+  'appearance.timelineAndCalendar': 'Línea de tiempo y calendario',
   'appearance.showTimelineBorders': 'Mostrar bordes de línea de tiempo',
   'appearance.showTheBordersInTheTimeline': 'Mostrar los bordes en la línea de tiempo.',
   'appearance.hideTheBordersInTheTimeline': 'Ocultar los bordes en la línea de tiempo.',
@@ -272,6 +273,7 @@ export const es = {
   'appearance.firstDayOfWeek': 'primer día de la semana',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Establecer el primer día de la semana en la vista de calendario',
+  'appearance.appIcon': 'Icono de la app',
   'typography.typography': 'Tipografía',
   'typography.titleFont': 'Fuente del título',
   'typography.chooseAFontForTitlesAndHeadings':

@@ -36,6 +36,15 @@ import {
 } from '~/lib/cloudSync/runtime';
 SplashScreen.preventAutoHideAsync();
 
+// Hide the native splash once the first JS screen has laid out, so the hand-off
+// never shows a bare window background.
+let splashHidden = false;
+function hideSplash() {
+  if (splashHidden) return;
+  splashHidden = true;
+  void SplashScreen.hideAsync();
+}
+
 // Prime Uniwind before React mounts to limit flash. At module load,
 // `useSettingsStore.getState().theme` is still the persist default (`DEFAULT_THEME_ID`)
 // because Zustand rehydrates async from storage. After hydration,
@@ -120,13 +129,6 @@ export default function Layout() {
     };
   }, [hasHydrated, profileReady, success]);
 
-  // Keep native splash until persisted settings (and Uniwind theme) are ready
-  useEffect(() => {
-    if (hasHydrated || error) {
-      SplashScreen.hideAsync();
-    }
-  }, [hasHydrated, error]);
-
   // Sync native root background once theme is trustworthy (hydrated), or on migration error
   useEffect(() => {
     if ((hasHydrated || error) && backgroundColor) {
@@ -160,7 +162,9 @@ export default function Layout() {
   // SQL schema migration errors are fatal; the resumable data backfill is not.
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center bg-background p-4">
+      <View
+        className="flex-1 items-center justify-center bg-background p-4"
+        onLayout={hideSplash}>
         <Text className="text-destructive text-center">
           {t('common.databaseUpdateFailed', { message: error.message })}
         </Text>
@@ -168,17 +172,21 @@ export default function Layout() {
     );
   }
 
-  // Keep the splash screen visible while loading
+  // Keep the native splash visible until persisted settings (and Uniwind theme) are ready
   if (!hasHydrated) {
     return null;
   }
 
   if (isBootstrapLoading) {
-    return <AppLoadingScreen />;
+    return (
+      <View className="flex-1" onLayout={hideSplash}>
+        <AppLoadingScreen />
+      </View>
+    );
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={hideSplash}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaListener
           onChange={({ insets }) => {

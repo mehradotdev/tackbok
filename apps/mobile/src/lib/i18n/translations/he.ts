@@ -285,6 +285,7 @@ export const he: Translations = {
   'appearance.timelineEntryLength': 'אורך רשומה בציר הזמן',
   'appearance.numberOfLinesShownInTheTimeline':
     'מספר השורות המוצגות בציר הזמן. לחיצה על רשומה מציגה את הטקסט המלא.',
+  'appearance.timelineAndCalendar': 'ציר זמן ולוח שנה',
   'appearance.showTimelineBorders': 'הצג גבולות ציר זמן',
   'appearance.showTheBordersInTheTimeline': 'הצג את הגבולות בציר הזמן',
   'appearance.hideTheBordersInTheTimeline': 'הסתר את הגבולות בציר הזמן',
@@ -293,6 +294,7 @@ export const he: Translations = {
   'appearance.firstDayOfWeek': 'היום הראשון בשבוע',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'הגדר את היום הראשון בשבוע בתצוגת היומן',
+  'appearance.appIcon': 'סמל האפליקציה',
 
   // Settings - Typography
   'typography.typography': 'טיפוגרפיה',

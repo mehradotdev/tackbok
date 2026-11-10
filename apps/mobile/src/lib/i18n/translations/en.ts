@@ -298,6 +298,7 @@ export const en = {
   'appearance.timelineEntryLength': 'Timeline entry length',
   'appearance.numberOfLinesShownInTheTimeline':
     'Number of lines shown in the timeline. Tap an entry to read the full text.',
+  'appearance.timelineAndCalendar': 'Timeline and calendar',
   'appearance.showTimelineBorders': 'Show timeline borders',
   'appearance.showTheBordersInTheTimeline': 'Show the borders in the timeline',
   'appearance.hideTheBordersInTheTimeline': 'Hide the borders in the timeline',
@@ -306,6 +307,7 @@ export const en = {
   'appearance.firstDayOfWeek': 'First day of week',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Set the first day of the week in the calendar view',
+  'appearance.appIcon': 'App icon',
 
   // Settings - Typography
   'typography.typography': 'Typography',

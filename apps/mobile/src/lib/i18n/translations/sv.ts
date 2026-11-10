@@ -254,6 +254,7 @@ export const sv = {
   'appearance.timelineEntryLength': 'Tidslinjepostens längd',
   'appearance.numberOfLinesShownInTheTimeline':
     'Antal rader som visas på tidslinjen. Tryck på en post för att läsa hela texten.',
+  'appearance.timelineAndCalendar': 'Tidslinje och kalender',
   'appearance.showTimelineBorders': 'Visa tidslinjekanter',
   'appearance.showTheBordersInTheTimeline': 'Visa gränserna i tidslinjen',
   'appearance.hideTheBordersInTheTimeline': 'Göm gränserna i tidslinjen',
@@ -262,6 +263,7 @@ export const sv = {
   'appearance.firstDayOfWeek': 'Första dagen i veckan',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Ställ in den första veckodagen i kalendervyn',
+  'appearance.appIcon': 'Appikon',
   'typography.typography': 'Typografi',
   'typography.titleFont': 'Typsnitt för titel',
   'typography.chooseAFontForTitlesAndHeadings':

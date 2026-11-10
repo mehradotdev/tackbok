@@ -6,6 +6,10 @@ import englishLocale from './locales/en.json';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { androidStore, galaxyBillingMode } = require('./config/android-store');
 const { version } = require('./package.json');
+// Expo's config loader only resolves TypeScript files by their full path.
+const { ALTERNATE_APP_ICONS }: typeof import('./src/lib/appIcon/icons') =
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('./src/lib/appIcon/icons.ts');
 
 const IS_BETA = process.env.APP_VARIANT === 'beta';
 // app.config.test.ts keeps native declarations aligned with ALL_SUPPORTED_LOCALES.
@@ -50,7 +54,8 @@ const config: ExpoConfig = {
   scheme: IS_BETA ? 'tackbok-beta' : 'tackbok',
   userInterfaceStyle: 'automatic',
   orientation: 'default',
-  backgroundColor: '#E4D7B0',
+  // Window background behind the splash hand-off; matches the native splash.
+  backgroundColor: '#000000',
   icon: `./assets/icons/ios-light${ICON_SUFFIX}.png`,
   owner: 'mehradotdev',
   android: {
@@ -115,13 +120,10 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
-        image: './assets/icons/splash-icon-dark.png',
+        // Same in light and dark mode: cream (#E9DFC5) logo on black.
+        image: './assets/icons/splash-icon-light.png',
         imageWidth: 200,
-        backgroundColor: '#E4D7B0',
-        dark: {
-          image: './assets/icons/splash-icon-light.png',
-          backgroundColor: '#6A755A',
-        },
+        backgroundColor: '#000000',
       },
     ],
     [
@@ -158,6 +160,7 @@ const config: ExpoConfig = {
     ],
     './plugins/withGoogleAuthorization',
     './plugins/withPurchaseLaunchMode',
+    ['./plugins/withAlternateAppIcons', ALTERNATE_APP_ICONS],
     'expo-sharing',
     'expo-status-bar',
     [
