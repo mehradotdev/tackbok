@@ -82,6 +82,8 @@ export const ar: Translations = {
   'entry.pasteFromClipboard': 'لصق من الحافظة',
   'entry.clipboardHasNoImage': 'لا توجد صورة في الحافظة',
   'entry.clipboardImageInvalid': 'تعذّر إضافة الصورة من الحافظة',
+  'entry.receivedImageInvalid': 'تعذّر إضافة هذه الصورة',
+  'entry.receivedImageTooLarge': 'هذه الصورة أكبر من أن تُضاف',
   'entry.maximumCountPhotosPerEntry': 'الحد الأقصى {count} صور لكل سجل',
   'entry.maximumCountVoiceMemosPerEntry': 'الحد الأقصى {count} ملاحظات صوتية لكل سجل',
   'entry.cameraAccessRequired': 'مطلوب الوصول إلى الكاميرا',

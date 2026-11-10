@@ -81,6 +81,8 @@ export const zhCN: Translations = {
   'entry.pasteFromClipboard': '从剪贴板粘贴',
   'entry.clipboardHasNoImage': '剪贴板中没有图片',
   'entry.clipboardImageInvalid': '无法添加剪贴板中的图片',
+  'entry.receivedImageInvalid': '无法添加此图片',
+  'entry.receivedImageTooLarge': '此图片太大，无法添加',
   'entry.maximumCountPhotosPerEntry': '每条记录最多 {count} 张照片',
   'entry.maximumCountVoiceMemosPerEntry': '每条记录最多 {count} 条语音笔记',
   'entry.cameraAccessRequired': '需要相机访问权限',

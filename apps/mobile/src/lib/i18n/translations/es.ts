@@ -68,6 +68,8 @@ export const es = {
   'entry.pasteFromClipboard': 'Pegar desde el portapapeles',
   'entry.clipboardHasNoImage': 'No hay ninguna imagen en el portapapeles',
   'entry.clipboardImageInvalid': 'No se puede añadir la imagen del portapapeles',
+  'entry.receivedImageInvalid': 'No se puede añadir esta imagen',
+  'entry.receivedImageTooLarge': 'Esta imagen es demasiado grande para añadirla',
   'entry.maximumCountPhotosPerEntry': 'Máximo de fotos {count} por entrada',
   'entry.maximumCountVoiceMemosPerEntry': 'Máximo de notas de voz {count} por entrada',
   'entry.cameraAccessRequired': 'Se requiere acceso a la cámara',

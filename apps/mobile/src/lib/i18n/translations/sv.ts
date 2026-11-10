@@ -66,6 +66,8 @@ export const sv = {
   'entry.pasteFromClipboard': 'Klistra in från urklipp',
   'entry.clipboardHasNoImage': 'Det finns ingen bild i urklipp',
   'entry.clipboardImageInvalid': 'Bilden i urklipp kan inte läggas till',
+  'entry.receivedImageInvalid': 'Bilden kan inte läggas till',
+  'entry.receivedImageTooLarge': 'Bilden är för stor för att läggas till',
   'entry.maximumCountPhotosPerEntry': 'Maximalt {count} foton per post',
   'entry.maximumCountVoiceMemosPerEntry':
     'Maximalt antal {count} röstanteckningar per post',

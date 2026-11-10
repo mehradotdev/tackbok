@@ -81,6 +81,8 @@ export const en = {
   'entry.pasteFromClipboard': 'Paste from clipboard',
   'entry.clipboardHasNoImage': 'No image on the clipboard',
   'entry.clipboardImageInvalid': "The clipboard image can't be added",
+  'entry.receivedImageInvalid': "This image can't be added",
+  'entry.receivedImageTooLarge': 'This image is too large to add',
   'entry.maximumCountPhotosPerEntry': 'Maximum {count} photos per entry',
   'entry.maximumCountVoiceMemosPerEntry': 'Maximum {count} voice notes per entry',
   'entry.cameraAccessRequired': 'Camera access required',

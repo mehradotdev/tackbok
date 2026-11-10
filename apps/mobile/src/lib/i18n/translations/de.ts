@@ -85,6 +85,8 @@ export const de: Translations = {
   'entry.clipboardHasNoImage': 'Kein Bild in der Zwischenablage',
   'entry.clipboardImageInvalid':
     'Das Bild aus der Zwischenablage kann nicht hinzugefügt werden',
+  'entry.receivedImageInvalid': 'Dieses Bild kann nicht hinzugefügt werden',
+  'entry.receivedImageTooLarge': 'Dieses Bild ist zu groß, um es hinzuzufügen',
   'entry.maximumCountPhotosPerEntry': 'Maximal {count} Fotos pro Eintrag',
   'entry.maximumCountVoiceMemosPerEntry': 'Maximal {count} Sprachnotizen pro Eintrag',
   'entry.cameraAccessRequired': 'Kamerazugriff erforderlich',

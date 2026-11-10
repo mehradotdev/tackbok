@@ -81,6 +81,8 @@ export const zhTW: Translations = {
   'entry.pasteFromClipboard': '從剪貼簿貼上',
   'entry.clipboardHasNoImage': '剪貼簿中沒有圖片',
   'entry.clipboardImageInvalid': '無法新增剪貼簿中的圖片',
+  'entry.receivedImageInvalid': '無法新增此圖片',
+  'entry.receivedImageTooLarge': '此圖片太大，無法新增',
   'entry.maximumCountPhotosPerEntry': '每則紀錄最多 {count} 張照片',
   'entry.maximumCountVoiceMemosPerEntry': '每則紀錄最多 {count} 則語音筆記',
   'entry.cameraAccessRequired': '需要相機存取權限',
