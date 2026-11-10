@@ -11,6 +11,9 @@ export const __mockFileSystemState = {
   createdFiles: [] as unknown[],
   copyBehavior: async (_source: unknown, _destination: unknown) => {},
   moveBehavior: async (_source: unknown, _destination: unknown) => {},
+  writeBehavior: async (_file: unknown, _content: unknown, _options?: unknown) => {},
+  // First bytes returned by `File.open().readBytesSync()`; JPEG by default.
+  fileHeader: [0xff, 0xd8, 0xff] as number[],
   paths: {
     cache: '/tmp',
     document: '/documents',
@@ -58,6 +61,16 @@ export class File {
   });
 
   writeSync = jest.fn((_content: Uint8Array) => {});
+
+  write = jest.fn((content: unknown, options?: unknown) =>
+    __mockFileSystemState.writeBehavior(this, content, options),
+  );
+
+  open = jest.fn(() => ({
+    readBytesSync: (length: number) =>
+      new Uint8Array(__mockFileSystemState.fileHeader.slice(0, length)),
+    close: jest.fn(),
+  }));
 }
 
 export class Directory {

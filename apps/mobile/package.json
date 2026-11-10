@@ -44,6 +44,7 @@
     "expo-auth-session": "~58.0.17",
     "expo-background-task": "~58.0.12",
     "expo-build-properties": "~58.0.12",
+    "expo-clipboard": "~58.0.4",
     "expo-constants": "~58.0.14",
     "expo-crypto": "~58.0.7",
     "expo-dev-client": "~58.0.18",

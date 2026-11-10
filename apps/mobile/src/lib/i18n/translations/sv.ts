@@ -63,6 +63,9 @@ export const sv = {
   'entry.addPhoto': 'Lägg till foto',
   'entry.takePhoto': 'Ta foto',
   'entry.chooseFromLibrary': 'Välj från biblioteket',
+  'entry.pasteFromClipboard': 'Klistra in från urklipp',
+  'entry.clipboardHasNoImage': 'Det finns ingen bild i urklipp',
+  'entry.clipboardImageInvalid': 'Bilden i urklipp kan inte läggas till',
   'entry.maximumCountPhotosPerEntry': 'Maximalt {count} foton per post',
   'entry.maximumCountVoiceMemosPerEntry':
     'Maximalt antal {count} röstanteckningar per post',
