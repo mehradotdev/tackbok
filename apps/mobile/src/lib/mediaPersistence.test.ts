@@ -1,6 +1,6 @@
 import * as ExpoFileSystemMock from 'expo-file-system';
 import * as ReactNativeMock from 'react-native';
-import { compressAndSavePhoto } from './photoUtils';
+import { compressAndSavePhoto, takeUrisWithinCapacity } from './photoUtils';
 import { saveVoiceMemo } from './voiceMemoUtils';
 
 const mockResize = jest.fn();
@@ -26,6 +26,28 @@ jest.mock('expo-image-manipulator', () => ({
   },
   SaveFormat: {
     JPEG: 'jpeg',
+    PNG: 'png',
+  },
+}));
+const mockDrawColor = jest.fn();
+const mockDrawImage = jest.fn();
+const mockEncodeToBytes = jest.fn(async () => new Uint8Array([0xff, 0xd8, 0xff, 0xe0]));
+const mockMakeFromEncoded = jest.fn(() => ({ width: () => 1200, height: () => 600 }));
+jest.mock('react-native-skia', () => ({
+  ImageFormat: { JPEG: 3 },
+  Skia: {
+    Color: (color: string) => color,
+    Data: { fromBytes: (bytes: Uint8Array) => bytes },
+    Image: {
+      MakeFromEncoded: (...args: unknown[]) => mockMakeFromEncoded(...(args as [])),
+    },
+    Surface: {
+      MakeRaster: () => ({
+        getCanvas: () => ({ drawColor: mockDrawColor, drawImage: mockDrawImage }),
+        flush: jest.fn(),
+        makeImageSnapshot: () => ({ encodeToBytes: mockEncodeToBytes }),
+      }),
+    },
   },
 }));
 jest.mock('expo-crypto', () => ({
@@ -37,8 +59,11 @@ const { __mockFileSystemState } = ExpoFileSystemMock as typeof ExpoFileSystemMoc
     createdFiles: {
       uri: string;
       delete: jest.Mock;
+      write: jest.Mock;
+      copy: jest.Mock;
     }[];
     copyBehavior: (source: unknown, destination: unknown) => Promise<void>;
+    fileHeader: number[];
   };
 };
 
@@ -68,6 +93,10 @@ describe('media persistence', () => {
   beforeEach(() => {
     __mockFileSystemState.createdFiles.length = 0;
     __mockFileSystemState.copyBehavior = async () => {};
+    __mockFileSystemState.fileHeader = [0xff, 0xd8, 0xff];
+    mockDrawColor.mockClear();
+    mockDrawImage.mockClear();
+    mockEncodeToBytes.mockClear();
 
     __mockReactNativeState.Image.getSize.mockReset();
     __mockReactNativeState.Image.getSize.mockImplementation(
@@ -144,5 +173,75 @@ describe('media persistence', () => {
       uri: 'voice_memos/generated-uuid.m4a',
     });
     expect(tempFile?.delete).toHaveBeenCalledTimes(1);
+  });
+
+  test('places images that may be transparent on white before saving as JPEG', async () => {
+    __mockFileSystemState.fileHeader = [0x89, 0x50, 0x4e, 0x47]; // PNG signature
+    mockSaveAsync.mockResolvedValue({ uri: '/tmp/image-manipulator-result.png' });
+
+    await expect(compressAndSavePhoto('file:///cache/clipboard.png')).resolves.toEqual({
+      type: 'IMAGE',
+      uri: 'photos/generated-uuid.jpg',
+      width: 1200,
+      height: 600,
+    });
+
+    expect(mockSaveAsync).toHaveBeenCalledWith({ format: 'png' });
+    expect(mockDrawColor).toHaveBeenCalledWith('white');
+    expect(mockDrawImage).toHaveBeenCalledTimes(1);
+    expect(mockDrawColor.mock.invocationCallOrder[0]).toBeLessThan(
+      mockDrawImage.mock.invocationCallOrder[0],
+    );
+    expect(mockEncodeToBytes).toHaveBeenCalledWith(3, 70);
+
+    const files = __mockFileSystemState.createdFiles;
+    const tempFile = files.find((f) => f.uri === '/tmp/image-manipulator-result.png');
+    const destFile = files.find((f) => f.uri.endsWith('generated-uuid.jpg'));
+    expect(tempFile?.copy).not.toHaveBeenCalled();
+    expect(tempFile?.delete).toHaveBeenCalledTimes(1);
+    expect(destFile?.write).toHaveBeenCalledWith(
+      new Uint8Array([0xff, 0xd8, 0xff, 0xe0]),
+    );
+  });
+
+  test('keeps JPEG sources on the direct JPEG path', async () => {
+    await compressAndSavePhoto('file:///camera.jpg');
+
+    expect(mockSaveAsync).toHaveBeenCalledWith({ compress: 0.7, format: 'jpeg' });
+    expect(mockDrawColor).not.toHaveBeenCalled();
+  });
+
+  test('removes temp and partial output when the white-background pass fails', async () => {
+    __mockFileSystemState.fileHeader = [0x89, 0x50, 0x4e, 0x47];
+    mockSaveAsync.mockResolvedValue({ uri: '/tmp/image-manipulator-result.png' });
+    mockMakeFromEncoded.mockReturnValueOnce(null as never);
+
+    await expect(compressAndSavePhoto('file:///cache/broken.png')).rejects.toThrow(
+      'Could not decode image',
+    );
+
+    const files = __mockFileSystemState.createdFiles;
+    const tempFile = files.find((f) => f.uri === '/tmp/image-manipulator-result.png');
+    const destFile = files.find((f) => f.uri.endsWith('generated-uuid.jpg'));
+    expect(tempFile?.delete).toHaveBeenCalledTimes(1);
+    expect(destFile?.delete).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('takeUrisWithinCapacity', () => {
+  const uris = ['a', 'b', 'c', 'd'];
+
+  test('keeps every URI while there is room', () => {
+    expect(takeUrisWithinCapacity(uris, 2, 0)).toEqual(uris);
+  });
+
+  test('caps URIs to the remaining capacity, counting in-flight saves', () => {
+    expect(takeUrisWithinCapacity(uris, 6, 1)).toEqual(['a', 'b', 'c']);
+    expect(takeUrisWithinCapacity(uris, 8, 1)).toEqual(['a']);
+  });
+
+  test('returns nothing when the entry is full or over capacity', () => {
+    expect(takeUrisWithinCapacity(uris, 9, 1)).toEqual([]);
+    expect(takeUrisWithinCapacity(uris, 12, 0)).toEqual([]);
   });
 });

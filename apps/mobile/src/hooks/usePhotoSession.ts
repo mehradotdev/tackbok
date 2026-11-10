@@ -5,6 +5,7 @@ import {
   type PickPhotosResult,
   compressAndSavePhoto,
   deletePhotoFile,
+  takeUrisWithinCapacity,
 } from '~/lib/photoUtils';
 import { useTranslation } from '~/lib/i18n';
 import { toast } from '~/components/ui/toast';
@@ -66,13 +67,36 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
   // Photos removed during this session (to be deleted on save, or selectively on discard)
   const removedPhotosRef = useRef<Asset[]>([]);
 
+  // Latest photos and in-flight saves, read synchronously so overlapping adds
+  // can't exceed MAX_PHOTOS_PER_ENTRY through stale render state.
+  const photosRef = useRef(initialPhotos);
+  const pendingCountRef = useRef(0);
+
+  const updatePhotos = useCallback((next: Asset[]) => {
+    photosRef.current = next;
+    setPhotos(next);
+  }, []);
+
   const handlePhotosPicked = useCallback(
     async (result: PickPhotosResult) => {
       if (result.status !== 'success' || result.uris.length === 0) return;
 
+      const uris = takeUrisWithinCapacity(
+        result.uris,
+        photosRef.current.length,
+        pendingCountRef.current,
+      );
+      if (uris.length === 0) {
+        toast.warning(
+          t('entry.maximumCountPhotosPerEntry', { count: MAX_PHOTOS_PER_ENTRY }),
+        );
+        return;
+      }
+
+      pendingCountRef.current += uris.length;
       setIsAddingPhotos(true);
       try {
-        const results = await Promise.allSettled(result.uris.map(compressAndSavePhoto));
+        const results = await Promise.allSettled(uris.map(compressAndSavePhoto));
         const succeeded: Asset[] = [];
         let hadFailure = false;
         for (const r of results) {
@@ -84,27 +108,28 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
           }
         }
         if (succeeded.length > 0) {
-          setPhotos((prev) => [...prev, ...succeeded].slice(0, MAX_PHOTOS_PER_ENTRY));
+          updatePhotos([...photosRef.current, ...succeeded]);
         }
         if (hadFailure) {
           toast.error(t('mood.failedToAddPhotos'));
         }
       } finally {
-        setIsAddingPhotos(false);
+        pendingCountRef.current -= uris.length;
+        setIsAddingPhotos(pendingCountRef.current > 0);
       }
     },
-    [t],
+    [t, updatePhotos],
   );
 
-  const removePhoto = useCallback((photoUri: string) => {
-    setPhotos((prev) => {
-      const removed = prev.find((p) => p.uri === photoUri);
-      if (removed) {
-        removedPhotosRef.current.push(removed);
-      }
-      return prev.filter((p) => p.uri !== photoUri);
-    });
-  }, []);
+  const removePhoto = useCallback(
+    (photoUri: string) => {
+      const removed = photosRef.current.find((p) => p.uri === photoUri);
+      if (!removed) return;
+      removedPhotosRef.current.push(removed);
+      updatePhotos(photosRef.current.filter((p) => p.uri !== photoUri));
+    },
+    [updatePhotos],
+  );
 
   /**
    * Commit (Save path):

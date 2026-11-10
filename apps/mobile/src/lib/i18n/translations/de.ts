@@ -81,6 +81,10 @@ export const de: Translations = {
   'entry.addPhoto': 'Foto hinzufügen',
   'entry.takePhoto': 'Foto aufnehmen',
   'entry.chooseFromLibrary': 'Aus Mediathek auswählen',
+  'entry.pasteFromClipboard': 'Aus Zwischenablage einfügen',
+  'entry.clipboardHasNoImage': 'Kein Bild in der Zwischenablage',
+  'entry.clipboardImageInvalid':
+    'Das Bild aus der Zwischenablage kann nicht hinzugefügt werden',
   'entry.maximumCountPhotosPerEntry': 'Maximal {count} Fotos pro Eintrag',
   'entry.maximumCountVoiceMemosPerEntry': 'Maximal {count} Sprachnotizen pro Eintrag',
   'entry.cameraAccessRequired': 'Kamerazugriff erforderlich',
