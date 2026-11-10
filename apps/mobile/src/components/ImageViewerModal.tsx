@@ -150,7 +150,6 @@ export function ImageViewerModal({
                 disabled={isSharing}
                 accessibilityRole="button"
                 accessibilityLabel={t('sharing.shareImage')}
-                accessibilityState={{ disabled: isSharing }}
                 className={`w-11 h-11 rounded-full bg-black/50 justify-center items-center active:bg-white/20${isSharing ? ' opacity-50' : ''}`}>
                 <Icon as={Share2} className="text-white size-6" />
               </Pressable>
