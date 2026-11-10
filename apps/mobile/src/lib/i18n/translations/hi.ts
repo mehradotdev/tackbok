@@ -66,6 +66,8 @@ export const hi = {
   'entry.pasteFromClipboard': 'क्लिपबोर्ड से पेस्ट करें',
   'entry.clipboardHasNoImage': 'क्लिपबोर्ड में कोई तस्वीर नहीं है',
   'entry.clipboardImageInvalid': 'क्लिपबोर्ड की तस्वीर नहीं जोड़ी जा सकती',
+  'entry.receivedImageInvalid': 'यह तस्वीर नहीं जोड़ी जा सकती',
+  'entry.receivedImageTooLarge': 'यह तस्वीर जोड़ने के लिए बहुत बड़ी है',
   'entry.maximumCountPhotosPerEntry': 'प्रति प्रविष्टि अधिकतम {count} फ़ोटो',
   'entry.maximumCountVoiceMemosPerEntry': 'प्रति प्रविष्टि अधिकतम {count} वॉयस नोट्स',
   'entry.cameraAccessRequired': 'कैमरा पहुंच आवश्यक है',

@@ -32,6 +32,7 @@ import {
   formatTimeLabel,
 } from '~/lib/i18n';
 import { filterExistingPhotos } from '~/lib/photoUtils';
+import { addReceivedImage, type ReceivedImage } from '~/lib/clipboardPhoto';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import {
   useCreateEntryWithAchievement,
@@ -52,6 +53,10 @@ import { Textarea } from '~/components/ui/textarea';
 import { Badge } from '~/components/ui/badge';
 import { toast } from '~/components/ui/toast';
 import { PolaroidPhoto } from '~/components/PolaroidPhoto';
+import {
+  ImageReceivingInput,
+  type ReceivedImageRejection,
+} from '~/components/ImageReceivingInput';
 import { AudioPlayer } from '~/components/AudioPlayer';
 import {
   AlertDialog,
@@ -242,6 +247,35 @@ function GratitudeEntryEditForm({
     }
     setIsAddPhotoVisible(true);
   }, [photos.length, t]);
+
+  // Images from the Android keyboard, paste or drop go through the regular photo
+  // path, which enforces the photo limit and shows its toasts.
+  const handleImageReceived = useCallback(
+    (image: ReceivedImage) => {
+      addReceivedImage(image, handlePhotosPicked)
+        .then((result) => {
+          if (result === 'invalid-image') toast.error(t('entry.receivedImageInvalid'));
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to add received image:', error);
+          toast.error(t('mood.failedToAddPhotos'));
+        });
+    },
+    [handlePhotosPicked, t],
+  );
+
+  const handleImageRejected = useCallback(
+    (reason: ReceivedImageRejection) => {
+      toast.error(
+        t(
+          reason === 'too-large'
+            ? 'entry.receivedImageTooLarge'
+            : 'entry.receivedImageInvalid',
+        ),
+      );
+    },
+    [t],
+  );
 
   const handleVoiceMemoRequest = useCallback(() => {
     const remaining = MAX_VOICE_MEMOS_PER_ENTRY - voiceMemos.length;
@@ -542,12 +576,15 @@ function GratitudeEntryEditForm({
             </Button>
           </View>
 
-          {/* Title Input — Text when unfocused to prevent Android focus-forwarding */}
+          {/* Title Input — Text when unfocused to prevent Android focus-forwarding.
+              Title and content inputs match the unfocused Text's padding so focusing
+              doesn't shift the text. `border-0!`/`shadow-none!` are needed because
+              cn() can't merge them with Textarea's border-theme/shadow-theme. */}
           {isTitleFocused ? (
             <Textarea
               ref={titleInputRef}
               autoFocus
-              className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
+              className="min-h-0 px-0 py-1.5 text-lg font-body-semibold text-foreground border-0! shadow-none!"
               placeholder={t('entry.titleOptional')}
               placeholderTextColor={mutedForegroundColor as string}
               value={title}
@@ -612,37 +649,43 @@ function GratitudeEntryEditForm({
             </View>
           )}
 
-          {/* Content Input — Text when unfocused to prevent Android focus-forwarding */}
-          {isContentFocused ? (
-            <Textarea
-              ref={contentInputRef}
-              autoFocus
-              className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
-              textAlignVertical="top"
-              placeholder={t('gratitude.whatAreYouGratefulFor')}
-              placeholderTextColor={mutedForegroundColor as string}
-              value={content}
-              onChangeText={setContent}
-              onBlur={() => setIsContentFocused(false)}
-              scrollEnabled={false}
-            />
-          ) : (
-            <Pressable
-              onPress={() => setIsContentFocused(true)}
-              accessibilityRole="button"
-              accessibilityLabel={'Edit gratitude entry'}
-              accessibilityHint={'Activates the gratitude entry field for editing'}>
-              <Text className="px-0 py-1.5 text-base text-foreground leading-6">
-                {content || (
-                  <Text
-                    className="text-base leading-6"
-                    style={{ color: mutedForegroundColor as string }}>
-                    {t('gratitude.whatAreYouGratefulFor')}
-                  </Text>
-                )}
-              </Text>
-            </Pressable>
-          )}
+          {/* Content Input — Text when unfocused to prevent Android focus-forwarding.
+              The image receiver stays mounted across focus changes so an image still
+              being copied when the input blurs is not lost. */}
+          <ImageReceivingInput
+            onImageReceived={handleImageReceived}
+            onImageRejected={handleImageRejected}>
+            {isContentFocused ? (
+              <Textarea
+                ref={contentInputRef}
+                autoFocus
+                className="min-h-0 px-0 py-1.5 text-base text-foreground leading-6 border-0! shadow-none!"
+                textAlignVertical="top"
+                placeholder={t('gratitude.whatAreYouGratefulFor')}
+                placeholderTextColor={mutedForegroundColor as string}
+                value={content}
+                onChangeText={setContent}
+                onBlur={() => setIsContentFocused(false)}
+                scrollEnabled={false}
+              />
+            ) : (
+              <Pressable
+                onPress={() => setIsContentFocused(true)}
+                accessibilityRole="button"
+                accessibilityLabel={'Edit gratitude entry'}
+                accessibilityHint={'Activates the gratitude entry field for editing'}>
+                <Text className="px-0 py-1.5 text-base text-foreground leading-6">
+                  {content || (
+                    <Text
+                      className="text-base leading-6"
+                      style={{ color: mutedForegroundColor as string }}>
+                      {t('gratitude.whatAreYouGratefulFor')}
+                    </Text>
+                  )}
+                </Text>
+              </Pressable>
+            )}
+          </ImageReceivingInput>
 
           {/* When content is the final entry section, the blank page area should also behave like the content field so users can tap anywhere to start writing. */}
           {isContentBottomMost && (

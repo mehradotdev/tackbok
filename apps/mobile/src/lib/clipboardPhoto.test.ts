@@ -1,5 +1,9 @@
 import * as ExpoFileSystemMock from 'expo-file-system';
-import { addImageFromDataUri, parseImageDataUri } from './clipboardPhoto';
+import {
+  addImageFromDataUri,
+  addReceivedImage,
+  parseImageDataUri,
+} from './clipboardPhoto';
 
 jest.mock('expo-file-system');
 jest.mock('expo-clipboard', () => ({ getImageAsync: jest.fn() }));
@@ -116,5 +120,59 @@ describe('addImageFromDataUri', () => {
 
     expect(addPhotos).not.toHaveBeenCalled();
     expect(__mockFileSystemState.createdFiles[0].delete).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('addReceivedImage', () => {
+  const RECEIVED = {
+    uri: 'file:///cache/received-images/sticker.png',
+    mimeType: 'image/png',
+  };
+
+  beforeEach(() => {
+    __mockFileSystemState.createdFiles.length = 0;
+  });
+
+  test('passes the received copy to the photo path, then deletes it', async () => {
+    const addPhotos = jest.fn(async () => {
+      expect(__mockFileSystemState.createdFiles[0].delete).not.toHaveBeenCalled();
+    });
+
+    await expect(addReceivedImage(RECEIVED, addPhotos)).resolves.toBe('added');
+
+    expect(addPhotos).toHaveBeenCalledWith({ status: 'success', uris: [RECEIVED.uri] });
+    expect(__mockFileSystemState.createdFiles[0].delete).toHaveBeenCalledTimes(1);
+  });
+
+  test('deletes the copy when adding fails', async () => {
+    const addPhotos = jest.fn(async () => {
+      throw new Error('save failed');
+    });
+
+    await expect(addReceivedImage(RECEIVED, addPhotos)).rejects.toThrow('save failed');
+
+    expect(__mockFileSystemState.createdFiles[0].delete).toHaveBeenCalledTimes(1);
+  });
+
+  test('rejects and deletes a non-image copy', async () => {
+    const addPhotos = jest.fn();
+
+    await expect(
+      addReceivedImage({ ...RECEIVED, mimeType: 'video/mp4' }, addPhotos),
+    ).resolves.toBe('invalid-image');
+
+    expect(addPhotos).not.toHaveBeenCalled();
+    expect(__mockFileSystemState.createdFiles[0].delete).toHaveBeenCalledTimes(1);
+  });
+
+  test('never touches URIs that are not app files', async () => {
+    const addPhotos = jest.fn();
+
+    await expect(
+      addReceivedImage({ ...RECEIVED, uri: 'content://media/external/1' }, addPhotos),
+    ).resolves.toBe('invalid-image');
+
+    expect(addPhotos).not.toHaveBeenCalled();
+    expect(__mockFileSystemState.createdFiles).toHaveLength(0);
   });
 });

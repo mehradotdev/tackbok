@@ -52,18 +52,55 @@ export async function addImageFromDataUri(
 
   const tmpFile = new File(Paths.cache, `clipboard-${randomUUID()}.${parsed.extension}`);
   try {
-    try {
-      await tmpFile.write(parsed.base64, { encoding: 'base64' });
-    } catch {
-      return 'invalid-image';
-    }
+    await tmpFile.write(parsed.base64, { encoding: 'base64' });
+  } catch {
+    deleteTempFile(tmpFile);
+    return 'invalid-image';
+  }
+  return addTempImageFile(tmpFile, addPhotos);
+}
+
+/** An image the Android keyboard, paste or drop handed to the editor. */
+export interface ReceivedImage {
+  /** `file://` URI of an app-owned cache copy; deleted once handled. */
+  uri: string;
+  mimeType: string;
+}
+
+/**
+ * Adds an image received natively (see `ImageReceivingInput`) through the
+ * regular photo path and deletes its temporary copy afterwards, whatever the
+ * outcome. Anything that isn't a `file://` image is rejected.
+ */
+export async function addReceivedImage(
+  image: ReceivedImage,
+  addPhotos: (result: PickPhotosResult) => void | Promise<void>,
+): Promise<PasteImageResult> {
+  if (!image.uri.startsWith('file://')) return 'invalid-image';
+  const tmpFile = new File(image.uri);
+  if (!image.mimeType.toLowerCase().startsWith('image/')) {
+    deleteTempFile(tmpFile);
+    return 'invalid-image';
+  }
+  return addTempImageFile(tmpFile, addPhotos);
+}
+
+async function addTempImageFile(
+  tmpFile: File,
+  addPhotos: (result: PickPhotosResult) => void | Promise<void>,
+): Promise<PasteImageResult> {
+  try {
     await addPhotos({ status: 'success', uris: [tmpFile.uri] });
     return 'added';
   } finally {
-    try {
-      if (tmpFile.exists) tmpFile.delete();
-    } catch {
-      /* ignore — temp file cleanup is best-effort */
-    }
+    deleteTempFile(tmpFile);
+  }
+}
+
+function deleteTempFile(tmpFile: File) {
+  try {
+    if (tmpFile.exists) tmpFile.delete();
+  } catch {
+    /* ignore — temp file cleanup is best-effort */
   }
 }

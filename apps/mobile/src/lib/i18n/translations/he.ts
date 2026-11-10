@@ -81,6 +81,8 @@ export const he: Translations = {
   'entry.pasteFromClipboard': 'הדבקה מהלוח',
   'entry.clipboardHasNoImage': 'אין תמונה בלוח',
   'entry.clipboardImageInvalid': 'לא ניתן להוסיף את התמונה מהלוח',
+  'entry.receivedImageInvalid': 'לא ניתן להוסיף את התמונה הזו',
+  'entry.receivedImageTooLarge': 'התמונה הזו גדולה מדי להוספה',
   'entry.maximumCountPhotosPerEntry': 'מקסימום {count} תמונות לרשומה',
   'entry.maximumCountVoiceMemosPerEntry': 'מקסימום {count} הקלטות קוליות לרשומה',
   'entry.cameraAccessRequired': 'נדרשת גישה למצלמה',
