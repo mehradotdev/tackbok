@@ -281,6 +281,7 @@ export const zhTW: Translations = {
   'appearance.timelineEntryLength': '時間軸紀錄長度',
   'appearance.numberOfLinesShownInTheTimeline':
     '時間軸中顯示的行數。點選紀錄可閱讀完整內容。',
+  'appearance.timelineAndCalendar': '時間軸與日曆',
   'appearance.showTimelineBorders': '顯示時間軸邊框',
   'appearance.showTheBordersInTheTimeline': '顯示時間軸中的邊框',
   'appearance.hideTheBordersInTheTimeline': '隱藏時間軸中的邊框',
@@ -288,6 +289,7 @@ export const zhTW: Translations = {
   'appearance.dateIncludesDayOfTheWeek': '日期包含星期',
   'appearance.firstDayOfWeek': '每週的第一天',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar': '設定日曆視圖中每週的第一天',
+  'appearance.appIcon': '應用程式圖示',
 
   // Settings - Typography
   'typography.typography': '排版',

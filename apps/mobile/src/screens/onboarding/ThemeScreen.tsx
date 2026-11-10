@@ -58,7 +58,7 @@ function ThemeSwatch({
       role="radio"
       accessibilityRole="radio"
       accessibilityLabel={theme.name}
-      accessibilityState={{ selected: isActive }}>
+      accessibilityState={{ checked: isActive }}>
       <ScopedTheme theme={theme.id}>
         <View
           className={cn(
@@ -106,7 +106,7 @@ function FontChip({
       role="radio"
       accessibilityRole="radio"
       accessibilityLabel={label}
-      accessibilityState={{ selected: isActive }}>
+      accessibilityState={{ checked: isActive }}>
       <Text
         className="text-foreground mb-0.5"
         style={getTitleFontPreviewStyle(previewFontFamily, 20)}>

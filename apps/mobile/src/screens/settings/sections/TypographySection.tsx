@@ -93,7 +93,7 @@ export function TypographySection() {
                     role="radio"
                     accessibilityRole="radio"
                     accessibilityLabel={t(SIZE_LABELS[size])}
-                    accessibilityState={{ selected: isActive }}
+                    accessibilityState={{ checked: isActive }}
                     className={cn(
                       'flex-1 flex-col items-center justify-center rounded-lg py-3',
                       isActive

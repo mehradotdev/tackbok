@@ -284,6 +284,7 @@ export const ar: Translations = {
   'appearance.timelineEntryLength': 'طول سجل الجدول الزمني',
   'appearance.numberOfLinesShownInTheTimeline':
     'عدد الأسطر المعروضة في الجدول الزمني. اضغط على سجل لقراءة النص الكامل.',
+  'appearance.timelineAndCalendar': 'المخطط الزمني والتقويم',
   'appearance.showTimelineBorders': 'إظهار حدود الجدول الزمني',
   'appearance.showTheBordersInTheTimeline': 'إظهار الحدود في الجدول الزمني',
   'appearance.hideTheBordersInTheTimeline': 'إخفاء الحدود من الجدول الزمني',
@@ -292,6 +293,7 @@ export const ar: Translations = {
   'appearance.firstDayOfWeek': 'أول يوم في الأسبوع',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'حدد أول يوم في الأسبوع في عرض التقويم',
+  'appearance.appIcon': 'أيقونة التطبيق',
 
   // Settings - Typography
   'typography.typography': 'الخطوط',

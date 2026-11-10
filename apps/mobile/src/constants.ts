@@ -53,6 +53,7 @@ export const SHEET_NAMES = {
   THEME_PICKER: 'theme-picker-sheet',
   JOURNAL_FOCUS_AREAS: 'journal-focus-areas-sheet',
   FONT_PICKER: 'font-picker-sheet',
+  APP_ICON_PICKER: 'app-icon-picker-sheet',
   ONBOARDING_IMPORT: 'onboarding-import-sheet',
   ANALYTICS_DETAILS: 'analytics-details-sheet',
 } as const;

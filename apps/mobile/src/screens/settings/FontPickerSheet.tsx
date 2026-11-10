@@ -46,7 +46,7 @@ function FontCard({
       role="radio"
       accessibilityRole="radio"
       accessibilityLabel={label}
-      accessibilityState={{ selected: isActive }}>
+      accessibilityState={{ checked: isActive }}>
       {/* Font preview */}
       <Text
         className="text-2xl text-foreground mb-1.5"

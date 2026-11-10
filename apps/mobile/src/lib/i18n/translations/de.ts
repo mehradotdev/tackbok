@@ -318,6 +318,7 @@ export const de: Translations = {
   'appearance.timelineEntryLength': 'Länge der Zeitleisteneinträge',
   'appearance.numberOfLinesShownInTheTimeline':
     'Anzahl der angezeigten Zeilen in der Zeitleiste. Tippe auf einen Eintrag, um den vollständigen Text zu lesen.',
+  'appearance.timelineAndCalendar': 'Zeitleiste und Kalender',
   'appearance.showTimelineBorders': 'Rahmen in der Zeitleiste anzeigen',
   'appearance.showTheBordersInTheTimeline': 'Rahmen in der Zeitleiste anzeigen',
   'appearance.hideTheBordersInTheTimeline': 'Rahmen in der Zeitleiste ausblenden',
@@ -326,6 +327,7 @@ export const de: Translations = {
   'appearance.firstDayOfWeek': 'Erster Wochentag',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Lege den ersten Wochentag in der Kalenderansicht fest',
+  'appearance.appIcon': 'App-Symbol',
 
   // Settings - Typography
   'typography.typography': 'Typografie',

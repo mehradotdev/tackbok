@@ -250,6 +250,7 @@ export const hi = {
   'appearance.timelineEntryLength': 'समयरेखा प्रविष्टि लंबाई',
   'appearance.numberOfLinesShownInTheTimeline':
     'टाइमलाइन में दिखाई गई पंक्तियों की संख्या. पूरा पाठ पढ़ने के लिए किसी प्रविष्टि पर टैप करें।',
+  'appearance.timelineAndCalendar': 'टाइमलाइन और कैलेंडर',
   'appearance.showTimelineBorders': 'समयरेखा सीमाएँ दिखाएँ',
   'appearance.showTheBordersInTheTimeline': 'समयरेखा में सीमाएँ दिखाएँ',
   'appearance.hideTheBordersInTheTimeline': 'टाइमलाइन में बॉर्डर छुपाएं',
@@ -257,6 +258,7 @@ export const hi = {
   'appearance.dateIncludesDayOfTheWeek': 'दिनांक में सप्ताह का दिन शामिल है',
   'appearance.firstDayOfWeek': 'सप्ताह का पहला दिन',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar': 'कैलेंडर दृश्य में सप्ताह का पहला दिन सेट करें',
+  'appearance.appIcon': 'ऐप आइकन',
   'typography.typography': 'टाइपोग्राफी',
   'typography.titleFont': 'टाइटल फ़ॉन्ट',
   'typography.chooseAFontForTitlesAndHeadings': 'शीर्षकों और शीर्षकों के लिए एक फ़ॉन्ट चुनें',

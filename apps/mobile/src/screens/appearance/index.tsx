@@ -7,8 +7,10 @@ import { Icon } from '~/components/ui/icon';
 import { Button } from '~/components/ui/button';
 import { AppearanceSection } from '~/screens/settings/sections/AppearanceSection';
 import { TypographySection } from '~/screens/settings/sections/TypographySection';
+import { TimelineSection } from '~/screens/settings/sections/TimelineSection';
 import { ThemePickerSheet } from '~/screens/settings/ThemePickerSheet';
 import { FontPickerSheet } from '~/screens/settings/FontPickerSheet';
+import { AppIconPickerSheet } from '~/screens/settings/AppIconPickerSheet';
 
 export default function AppearanceScreen() {
   const router = useRouter();
@@ -33,12 +35,14 @@ export default function AppearanceScreen() {
         <ScrollView className="px-safe" contentContainerClassName="pt-4">
           <AppearanceSection />
           <TypographySection />
+          <TimelineSection />
           <View className="h-8" />
         </ScrollView>
       </View>
 
       <ThemePickerSheet />
       <FontPickerSheet />
+      <AppIconPickerSheet />
     </>
   );
 }

@@ -281,6 +281,7 @@ export const zhCN: Translations = {
   'appearance.timelineEntryLength': '时间线条目长度',
   'appearance.numberOfLinesShownInTheTimeline':
     '时间线中显示的行数。点击条目可阅读完整内容。',
+  'appearance.timelineAndCalendar': '时间线和日历',
   'appearance.showTimelineBorders': '显示时间线边框',
   'appearance.showTheBordersInTheTimeline': '显示时间线中的边框',
   'appearance.hideTheBordersInTheTimeline': '隐藏时间线中的边框',
@@ -288,6 +289,7 @@ export const zhCN: Translations = {
   'appearance.dateIncludesDayOfTheWeek': '日期包含星期几',
   'appearance.firstDayOfWeek': '一周的第一天',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar': '设置日历视图中一周的第一天',
+  'appearance.appIcon': '应用图标',
 
   // Settings - Typography
   'typography.typography': '排版',
