@@ -702,6 +702,8 @@ export const zhTW: Translations = {
   'sharing.chooseAStyle': '選擇樣式',
   'sharing.sharingIsNotAvailableOnThisDevice': '此裝置無法使用分享功能',
   'sharing.couldNotShareImagePleaseTryAgain': '無法分享圖片，請再試一次。',
+  'sharing.shareVoiceNote': '分享語音筆記',
+  'sharing.couldNotShareVoiceNotePleaseTryAgain': '無法分享語音筆記，請再試一次。',
   'sharing.themeTheme': '{theme}主題',
   'sharing.themeThemeSelected': '{theme}主題，已選取',
   'sharing.dayOneComplete': '第一天完成！',

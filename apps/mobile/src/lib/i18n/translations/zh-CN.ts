@@ -699,6 +699,8 @@ export const zhCN: Translations = {
   'sharing.chooseAStyle': '选择样式',
   'sharing.sharingIsNotAvailableOnThisDevice': '此设备无法使用分享功能',
   'sharing.couldNotShareImagePleaseTryAgain': '无法分享图片，请重试。',
+  'sharing.shareVoiceNote': '分享语音笔记',
+  'sharing.couldNotShareVoiceNotePleaseTryAgain': '无法分享语音笔记，请重试。',
   'sharing.themeTheme': '{theme}主题',
   'sharing.themeThemeSelected': '{theme}主题，已选择',
   'sharing.dayOneComplete': '第一天完成！',

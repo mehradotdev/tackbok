@@ -679,6 +679,9 @@ export const sv = {
     'Delning är inte tillgängligt på den här enheten',
   'sharing.couldNotShareImagePleaseTryAgain':
     'Det gick inte att dela bilden. Försök igen.',
+  'sharing.shareVoiceNote': 'Dela röstanteckning',
+  'sharing.couldNotShareVoiceNotePleaseTryAgain':
+    'Det gick inte att dela röstanteckningen. Försök igen.',
   'sharing.themeTheme': '{theme} tema',
   'sharing.themeThemeSelected': '{theme} tema, valt',
   'sharing.dayOneComplete': 'Dag ett avklarat!',

@@ -169,7 +169,7 @@ export function GratitudeEntryView({
         {voiceMemos.length > 0 && (
           <View className="py-3 gap-3">
             {voiceMemos.map((memo) => (
-              <AudioPlayer key={memo.uri} uri={memo.uri} />
+              <AudioPlayer key={memo.uri} uri={memo.uri} canShare />
             ))}
           </View>
         )}
