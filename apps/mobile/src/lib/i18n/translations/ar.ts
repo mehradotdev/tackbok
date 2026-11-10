@@ -750,7 +750,7 @@ export const ar: Translations = {
   'cloud.cloudBackupDeletionReceived': 'تم استلام طلب حذف النسخة السحابية',
   'cloud.cloudBackupNumber': 'النسخة السحابية {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'تُحفظ نسختك الاحتياطية في مجلد خاص بتاكبوك داخل Google Drive الخاص بك. لا يستطيع تاكبوك رؤية ملفاتك الأخرى في Drive، ولا تُرسَل نسختك الاحتياطية أبدًا إلى مطوّر تاكبوك. تحميها Google كما تحمي ملفاتك الأخرى، لكنها ليست مشفّرة من طرف إلى طرف.',
+    'تنتقل نسختك الاحتياطية مباشرةً من هذا الهاتف إلى مجلد مخفي خاص بتاكبوك في Google Drive الخاص بك. لا تُرسَل أبدًا إلى مطوّر تاكبوك، ولا يستطيع تاكبوك رؤية ملفاتك الأخرى في Drive. تحميها Google كما تحمي ملفاتك الأخرى، لكنها ليست مشفّرة من طرف إلى طرف.',
   'cloud.restoreComplete': 'اكتملت الاستعادة',
   'cloud.restoreNeedsAttention': 'الاستعادة تحتاج إلى انتباه',
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
@@ -812,7 +812,7 @@ export const ar: Translations = {
   'cloud.googleDriveStorageIsFull': 'مساحة تخزين Google Drive ممتلئة.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'قد تطلب منك Google السماح لتاكبوك باستخدام مجلده الخاص في Drive. اسمح بذلك، وإلا فلن يتمكن النسخ الاحتياطي من الاتصال.',
+    'إذا طلبت منك Google السماح لتاكبوك باستخدام مجلده الخاص في Drive، فاسمح بذلك حتى يتمكن النسخ الاحتياطي من الاتصال.',
   'cloud.journalDeletionReceived': 'تم استلام حذف اليوميات',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'لا يتم رفع الصور والملاحظات الصوتية وتنزيلها إلا عبر Wi-Fi. وتنتظر السجلات التي تحتوي على صور أو ملاحظات صوتية جديدة شبكة Wi-Fi أيضًا.',
@@ -919,7 +919,7 @@ export const ar: Translations = {
     'تم تسجيل الحذف من السحابة بالفعل. امسح بيانات اليوميات المتبقية من هذا الجهاز.',
   'cloud.finishDeletion': 'إكمال الحذف',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'يُحفظ بريدك الإلكتروني في Google على هذا الهاتف فقط، لإظهار الحساب المتصل. ويُحذف عند قطع الاتصال، ولا يُرسَل أبدًا إلى مطوّر تاكبوك.',
+    'يبقى بريدك الإلكتروني في Google على هذا الهاتف لإظهار الحساب المتصل، ويُحذف عند قطع الاتصال.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'سيقطع هذا الجهاز الاتصال أولًا ثم يحذف يومياته المحلية. ستبقى النسخة السحابية والأجهزة الأخرى.',
   'cloud.thisDeviceWasReset': 'تمت إعادة ضبط هذا الجهاز',

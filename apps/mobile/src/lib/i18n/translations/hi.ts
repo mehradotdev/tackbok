@@ -694,7 +694,7 @@ export const hi = {
   'cloud.cloudBackupDeletionReceived': 'क्लाउड बैकअप विलोपन प्राप्त हुआ',
   'cloud.cloudBackupNumber': 'क्लाउड बैकअप {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'आपका बैकअप आपके Google Drive में ताकबूक के एक निजी फ़ोल्डर में रखा जाता है। ताकबूक आपकी दूसरी Drive फ़ाइलें नहीं देख सकता, और आपका बैकअप कभी भी ताकबूक के डेवलपर को नहीं भेजा जाता। Google इसे आपकी दूसरी फ़ाइलों की तरह सुरक्षित रखता है, लेकिन यह एंड-टू-एंड एन्क्रिप्टेड नहीं है।',
+    'आपका बैकअप सीधे इस फ़ोन से आपके Google Drive में ताकबूक के एक छिपे हुए फ़ोल्डर में जाता है। यह कभी भी ताकबूक के डेवलपर को नहीं भेजा जाता, और ताकबूक आपकी दूसरी Drive फ़ाइलें नहीं देख सकता। Google इसे आपकी दूसरी फ़ाइलों की तरह सुरक्षित रखता है, लेकिन यह एंड-टू-एंड एन्क्रिप्टेड नहीं है।',
   'cloud.restoreComplete': 'पुनर्स्थापन पूरा हुआ',
   'cloud.restoreNeedsAttention': 'पुनर्स्थापन पर ध्यान देना ज़रूरी है',
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
@@ -755,7 +755,7 @@ export const hi = {
   'cloud.googleDriveStorageIsFull': 'Google Drive स्टोरेज भर गया है.',
   'cloud.googleDriveStatus': 'Google Drive - {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'Google आपसे ताकबूक को आपके Drive में उसका अपना निजी फ़ोल्डर इस्तेमाल करने की अनुमति माँग सकता है। इसकी अनुमति दें, नहीं तो बैकअप कनेक्ट नहीं हो पाएगा।',
+    'अगर Google आपसे ताकबूक को आपके Drive में उसका अपना फ़ोल्डर इस्तेमाल करने की अनुमति माँगे, तो अनुमति दें ताकि बैकअप कनेक्ट हो सके।',
   'cloud.journalDeletionReceived': 'डायरी हटाने का अनुरोध प्राप्त हुआ',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'फ़ोटो और वॉइस नोट केवल वाई-फ़ाई पर अपलोड और डाउनलोड होते हैं। नई फ़ोटो या वॉइस नोट वाली प्रविष्टियाँ भी वाई-फ़ाई का इंतज़ार करती हैं।',
@@ -862,7 +862,7 @@ export const hi = {
     'क्लाउड से हटाना पहले ही दर्ज किया जा चुका है। इस डिवाइस से शेष डायरी डेटा मिटा दें।',
   'cloud.finishDeletion': 'विलोपन समाप्त करें',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'आपका Google ईमेल सिर्फ़ इसी फ़ोन पर रखा जाता है, ताकि दिखाया जा सके कि कौन-सा खाता जुड़ा है। डिस्कनेक्ट करने पर इसे हटा दिया जाता है और यह कभी भी ताकबूक के डेवलपर को नहीं भेजा जाता।',
+    'आपका Google ईमेल इसी फ़ोन पर रहता है, ताकि दिखाया जा सके कि कौन-सा खाता जुड़ा है, और डिस्कनेक्ट करने पर हटा दिया जाता है।',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'यह डिवाइस पहले डिस्कनेक्ट करता है, फिर अपनी स्थानीय डायरी हटा देता है। क्लाउड बैकअप और अन्य डिवाइस बने रहते हैं।',
   'cloud.thisDeviceWasReset': 'यह डिवाइस रीसेट कर दिया गया था',

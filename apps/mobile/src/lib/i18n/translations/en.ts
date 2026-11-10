@@ -770,7 +770,7 @@ export const en = {
   'cloud.cloudBackupDeletionReceived': 'Cloud backup deletion received',
   'cloud.cloudBackupNumber': 'Cloud backup {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    "Your backup is stored in a private Tackbok folder in your Google Drive. Tackbok can't see your other Drive files, and your backup is never sent to Tackbok's developer. Google protects it like your other files, but it isn't end-to-end encrypted.",
+    "Your backup goes straight from this phone to a hidden Tackbok folder in your Google Drive. It's never sent to Tackbok's developer, and Tackbok can't see your other Drive files. Google protects it like your other files, but it isn't end-to-end encrypted.",
   'cloud.restoreComplete': 'Restore complete',
   'cloud.restoreNeedsAttention': 'Restore needs attention',
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
@@ -832,7 +832,7 @@ export const en = {
   'cloud.googleDriveStorageIsFull': 'Google Drive storage is full.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    "Google may ask to let Tackbok use its own private folder in your Drive. Allow it, or backup can't connect.",
+    'If Google asks to let Tackbok use its own folder in your Drive, allow it so backup can connect.',
   'cloud.journalDeletionReceived': 'Journal deletion received',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'Photos and voice notes upload and download only on Wi-Fi. Entries with new photos or voice notes also wait for Wi-Fi.',
@@ -943,7 +943,7 @@ export const en = {
     'Cloud deletion is already recorded. Erase the remaining journal data from this device.',
   'cloud.finishDeletion': 'Finish deletion',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    "Your Google email is kept only on this phone, to show which account is connected. It's removed when you disconnect and is never sent to Tackbok's developer.",
+    'Your Google email stays on this phone to show which account is connected, and is removed when you disconnect.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'This device disconnects first, then deletes its local journal. The cloud backup and other devices remain.',
   'cloud.thisDeviceWasReset': 'This device was reset',

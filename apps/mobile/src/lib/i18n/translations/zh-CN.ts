@@ -728,7 +728,7 @@ export const zhCN: Translations = {
   'cloud.cloudBackupDeletionReceived': '已收到云备份删除通知',
   'cloud.cloudBackupNumber': '云备份 {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    '你的备份保存在你 Google Drive 中一个专属塔克布克的私密文件夹里。塔克布克看不到你 Drive 中的其他文件，你的备份也绝不会发送给塔克布克的开发者。Google 会像保护你的其他文件一样保护它，但它没有端到端加密。',
+    '你的备份会直接从这部手机传到你 Google Drive 中一个专属塔克布克的隐藏文件夹。它绝不会发送给塔克布克的开发者，塔克布克也看不到你 Drive 中的其他文件。Google 会像保护你的其他文件一样保护它，但它没有端到端加密。',
   'cloud.restoreComplete': '恢复完成',
   'cloud.restoreNeedsAttention': '恢复需要处理',
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
@@ -784,7 +784,7 @@ export const zhCN: Translations = {
   'cloud.googleDriveStorageIsFull': 'Google Drive 存储空间已满。',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'Google 可能会询问是否允许塔克布克在你的 Drive 中使用它自己的私密文件夹。请选择允许，否则备份无法连接。',
+    '如果 Google 询问是否允许塔克布克在你的 Drive 中使用它自己的文件夹，请选择允许，这样备份才能连接。',
   'cloud.journalDeletionReceived': '已收到日记删除通知',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     '照片和语音笔记仅在 Wi-Fi 下上传和下载。包含新照片或语音笔记的条目也会等待 Wi-Fi。',
@@ -887,7 +887,7 @@ export const zhCN: Translations = {
     '云端删除已记录。请清除此设备上剩余的日记数据。',
   'cloud.finishDeletion': '完成删除',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    '你的 Google 邮箱只保存在这部手机上，用于显示已连接的账户。断开连接时会被删除，也绝不会发送给塔克布克的开发者。',
+    '你的 Google 邮箱只保存在这部手机上，用于显示已连接的账户，断开连接时会被删除。',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     '此设备会先断开连接，然后删除本地日记。云备份和其他设备会保留。',
   'cloud.thisDeviceWasReset': '此设备已重置',

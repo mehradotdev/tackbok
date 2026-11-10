@@ -806,7 +806,7 @@ export const de: Translations = {
   'cloud.cloudBackupDeletionReceived': 'Löschung der Cloud-Sicherung empfangen',
   'cloud.cloudBackupNumber': 'Cloud-Sicherung {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Deine Sicherung liegt in einem privaten Tackbok-Ordner in deinem Google Drive. Tackbok kann deine anderen Drive-Dateien nicht sehen, und deine Sicherung wird nie an den Entwickler von Tackbok gesendet. Google schützt sie wie deine anderen Dateien, aber sie ist nicht Ende-zu-Ende-verschlüsselt.',
+    'Deine Sicherung geht direkt von diesem Handy in einen versteckten Tackbok-Ordner in deinem Google Drive. Sie wird nie an den Entwickler von Tackbok gesendet, und Tackbok kann deine anderen Drive-Dateien nicht sehen. Google schützt sie wie deine anderen Dateien, aber sie ist nicht Ende-zu-Ende-verschlüsselt.',
   'cloud.restoreComplete': 'Wiederherstellung abgeschlossen',
   'cloud.restoreNeedsAttention': 'Wiederherstellung braucht deine Aufmerksamkeit',
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
@@ -871,7 +871,7 @@ export const de: Translations = {
   'cloud.googleDriveStorageIsFull': 'Der Google-Drive-Speicher ist voll.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'Google fragt eventuell, ob Tackbok einen eigenen privaten Ordner in deinem Drive nutzen darf. Erlaube das, sonst kann die Sicherung nicht verbunden werden.',
+    'Wenn Google fragt, ob Tackbok einen eigenen Ordner in deinem Drive nutzen darf, erlaube es, damit die Sicherung verbunden werden kann.',
   'cloud.journalDeletionReceived': 'Tagebuchlöschung empfangen',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'Fotos und Sprachnotizen werden nur über WLAN hoch- und heruntergeladen. Einträge mit neuen Fotos oder Sprachnotizen warten ebenfalls auf WLAN.',
@@ -988,7 +988,7 @@ export const de: Translations = {
     'Die Cloud-Löschung wurde bereits gespeichert. Lösche die verbleibenden Tagebuchdaten von diesem Gerät.',
   'cloud.finishDeletion': 'Löschen abschließen',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'Deine Google-E-Mail-Adresse wird nur auf diesem Handy gespeichert, um zu zeigen, welches Konto verbunden ist. Sie wird beim Trennen gelöscht und nie an den Entwickler von Tackbok gesendet.',
+    'Deine Google-E-Mail-Adresse bleibt auf diesem Handy, um zu zeigen, welches Konto verbunden ist, und wird beim Trennen gelöscht.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'Dieses Gerät wird zuerst getrennt und löscht dann sein lokales Tagebuch. Cloud-Sicherung und andere Geräte bleiben erhalten.',
   'cloud.thisDeviceWasReset': 'Dieses Gerät wurde zurückgesetzt',

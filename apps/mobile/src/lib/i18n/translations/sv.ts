@@ -708,7 +708,7 @@ export const sv = {
     'Borttagning av molnsäkerhetskopiering har tagits emot',
   'cloud.cloudBackupNumber': 'Molnsäkerhetskopia {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Din säkerhetskopia sparas i en privat Tackbok-mapp i din Google Drive. Tackbok kan inte se dina andra filer i Drive, och din säkerhetskopia skickas aldrig till Tackboks utvecklare. Google skyddar den som dina andra filer, men den är inte ände-till-ände-krypterad.',
+    'Din säkerhetskopia går direkt från den här telefonen till en dold Tackbok-mapp i din Google Drive. Den skickas aldrig till Tackboks utvecklare, och Tackbok kan inte se dina andra filer i Drive. Google skyddar den som dina andra filer, men den är inte ände-till-ände-krypterad.',
   'cloud.restoreComplete': 'Återställningen är klar',
   'cloud.restoreNeedsAttention': 'Återställningen behöver åtgärdas',
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
@@ -773,7 +773,7 @@ export const sv = {
   'cloud.googleDriveStorageIsFull': 'Google Drive lagringsutrymme är fullt.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'Google kan fråga om Tackbok får använda en egen privat mapp i din Drive. Tillåt det, annars kan säkerhetskopieringen inte ansluta.',
+    'Om Google frågar om Tackbok får använda en egen mapp i din Drive, tillåt det så att säkerhetskopieringen kan ansluta.',
   'cloud.journalDeletionReceived': 'Begäran om att radera dagboken har tagits emot',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'Foton och röstanteckningar laddas upp och ned bara via Wi-Fi. Anteckningar med nya foton eller röstanteckningar väntar också på Wi-Fi.',
@@ -882,7 +882,7 @@ export const sv = {
     'Molnraderingen är redan registrerad. Radera återstående dagboksdata från den här enheten.',
   'cloud.finishDeletion': 'Slutför raderingen',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'Din e-postadress från Google sparas bara på den här telefonen, för att visa vilket konto som är anslutet. Den tas bort när du kopplar från och skickas aldrig till Tackboks utvecklare.',
+    'Din e-postadress från Google stannar på den här telefonen för att visa vilket konto som är anslutet, och tas bort när du kopplar från.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'Den här enheten kopplar först från och raderar sedan sin lokala dagbok. Molnsäkerhetskopian och andra enheter finns kvar.',
   'cloud.thisDeviceWasReset': 'Den här enheten har återställts',
