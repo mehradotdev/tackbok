@@ -576,12 +576,15 @@ function GratitudeEntryEditForm({
             </Button>
           </View>
 
-          {/* Title Input — Text when unfocused to prevent Android focus-forwarding */}
+          {/* Title Input — Text when unfocused to prevent Android focus-forwarding.
+              Title and content inputs match the unfocused Text's padding so focusing
+              doesn't shift the text. `border-0!`/`shadow-none!` are needed because
+              cn() can't merge them with Textarea's border-theme/shadow-theme. */}
           {isTitleFocused ? (
             <Textarea
               ref={titleInputRef}
               autoFocus
-              className="px-0 min-h-0 text-lg font-body-semibold text-foreground border-0 shadow-none"
+              className="min-h-0 px-0 py-1.5 text-lg font-body-semibold text-foreground border-0! shadow-none!"
               placeholder={t('entry.titleOptional')}
               placeholderTextColor={mutedForegroundColor as string}
               value={title}
@@ -656,7 +659,7 @@ function GratitudeEntryEditForm({
               <Textarea
                 ref={contentInputRef}
                 autoFocus
-                className="min-h-0 text-base text-foreground leading-6 border-0 shadow-none px-0"
+                className="min-h-0 px-0 py-1.5 text-base text-foreground leading-6 border-0! shadow-none!"
                 textAlignVertical="top"
                 placeholder={t('gratitude.whatAreYouGratefulFor')}
                 placeholderTextColor={mutedForegroundColor as string}
