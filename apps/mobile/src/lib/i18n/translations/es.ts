@@ -726,7 +726,7 @@ export const es = {
     'Se recibió la eliminación de la copia de seguridad en la nube',
   'cloud.cloudBackupNumber': 'Copia de seguridad en la nube {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'Tu copia de seguridad se guarda en una carpeta privada de Tackbok en tu Google Drive. Tackbok no puede ver tus otros archivos de Drive, y tu copia nunca se envía al desarrollador de Tackbok. Google la protege como a tus otros archivos, pero no tiene cifrado de extremo a extremo.',
+    'Tu copia de seguridad va directamente de este teléfono a una carpeta oculta de Tackbok en tu Google Drive. Nunca se envía al desarrollador de Tackbok, y Tackbok no puede ver tus otros archivos de Drive. Google la protege como a tus otros archivos, pero no tiene cifrado de extremo a extremo.',
   'cloud.restoreComplete': 'Restauración completada',
   'cloud.restoreNeedsAttention': 'La restauración necesita atención',
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
@@ -792,7 +792,7 @@ export const es = {
   'cloud.googleDriveStorageIsFull': 'El almacenamiento Google Drive está lleno.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'Es posible que Google te pida permitir que Tackbok use su propia carpeta privada en tu Drive. Permítelo o la copia de seguridad no podrá conectarse.',
+    'Si Google te pide permitir que Tackbok use su propia carpeta en tu Drive, permítelo para que la copia de seguridad pueda conectarse.',
   'cloud.journalDeletionReceived': 'Eliminación de diario recibida',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'Las fotos y notas de voz se suben y descargan solo con Wi-Fi. Las entradas con fotos o notas de voz nuevas también esperan al Wi-Fi.',
@@ -905,7 +905,7 @@ export const es = {
     'La eliminación de la nube ya está registrada. Borre los datos restantes del diario de este dispositivo.',
   'cloud.finishDeletion': 'Finalizar eliminación',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'Tu correo de Google se guarda solo en este teléfono, para mostrar qué cuenta está conectada. Se elimina al desconectar y nunca se envía al desarrollador de Tackbok.',
+    'Tu correo de Google se queda en este teléfono para mostrar qué cuenta está conectada, y se elimina al desconectar.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'Este dispositivo se desconecta primero y luego elimina su diario local. La copia de seguridad en la nube y otros dispositivos permanecen.',
   'cloud.thisDeviceWasReset': 'Este dispositivo fue reiniciado',

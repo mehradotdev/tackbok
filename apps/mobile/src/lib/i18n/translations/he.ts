@@ -745,7 +745,7 @@ export const he: Translations = {
   'cloud.cloudBackupDeletionReceived': 'התקבלה מחיקת גיבוי בענן',
   'cloud.cloudBackupNumber': 'גיבוי בענן {number}',
   'cloud.backupsAreEncryptedInTransitAndAtRestByGoogle':
-    'הגיבוי נשמר בתיקייה פרטית של טאקבוק ב-Google Drive שלך. טאקבוק לא יכולה לראות את שאר הקבצים שלך ב-Drive, והגיבוי אף פעם לא נשלח למפתח של טאקבוק. Google מגנה עליו כמו על שאר הקבצים שלך, אבל הוא לא מוצפן מקצה לקצה.',
+    'הגיבוי עובר ישירות מהטלפון הזה לתיקייה מוסתרת של טאקבוק ב-Google Drive שלך. הוא אף פעם לא נשלח למפתח של טאקבוק, וטאקבוק לא יכולה לראות את שאר הקבצים שלך ב-Drive. Google מגנה עליו כמו על שאר הקבצים שלך, אבל הוא לא מוצפן מקצה לקצה.',
   'cloud.restoreComplete': 'השחזור הושלם',
   'cloud.restoreNeedsAttention': 'השחזור דורש טיפול',
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
@@ -806,7 +806,7 @@ export const he: Translations = {
   'cloud.googleDriveStorageIsFull': 'שטח האחסון ב-Google Drive מלא.',
   'cloud.googleDriveStatus': 'Google Drive — {status}',
   'cloud.ifGoogleShowsADriveAccessCheckboxSelectItBackup':
-    'ייתכן ש-Google תבקש לאשר לטאקבוק להשתמש בתיקייה פרטית משלה ב-Drive שלך. יש לאשר, אחרת לא ניתן לחבר את הגיבוי.',
+    'אם Google מבקשת לאשר לטאקבוק להשתמש בתיקייה משלה ב-Drive שלך, יש לאשר כדי שאפשר יהיה לחבר את הגיבוי.',
   'cloud.journalDeletionReceived': 'התקבלה מחיקת יומן',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'תמונות והקלטות קוליות מועלות ומורדות רק ב-Wi-Fi. גם רשומות עם תמונות או הקלטות קוליות חדשות ממתינות ל-Wi-Fi.',
@@ -912,7 +912,7 @@ export const he: Translations = {
     'המחיקה מהענן כבר נרשמה. יש למחוק את נתוני היומן שנותרו במכשיר הזה.',
   'cloud.finishDeletion': 'השלמת המחיקה',
   'cloud.yourGoogleEmailIsStoredSecurelyOnThisDeviceTo':
-    'כתובת האימייל שלך ב-Google נשמרת רק בטלפון הזה, כדי להציג איזה חשבון מחובר. היא נמחקת בניתוק ואף פעם לא נשלחת למפתח של טאקבוק.',
+    'כתובת האימייל שלך ב-Google נשארת בטלפון הזה כדי להציג איזה חשבון מחובר, והיא נמחקת בניתוק.',
   'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe':
     'המכשיר הזה יתנתק תחילה ואז ימחק את היומן המקומי. הגיבוי בענן והמכשירים האחרים יישארו.',
   'cloud.thisDeviceWasReset': 'המכשיר הזה אופס',
