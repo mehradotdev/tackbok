@@ -59,14 +59,17 @@ export function useExportMediaFile({ kind, toastInModal }: UseExportMediaFileOpt
   const exportFile = React.useCallback(
     async (fileUri: string) => {
       setIsExporting(true);
+      const toastOptions = toastInModal ? { useModal: true } : undefined;
       try {
-        await exportMediaFile({
+        const result = await exportMediaFile({
           fileUri,
           filenamePrefix: kind === 'image' ? 'tackbok-photo' : 'tackbok-voice-note',
           dialogTitle: t(messages.label),
         });
+        // Only Android's save dialog confirms the outcome; the iOS share sheet
+        // resolves the same way whether the user picked a target or dismissed it.
+        if (result === 'saved') toast.success(t('sharing.saved'), toastOptions);
       } catch (error) {
-        const toastOptions = toastInModal ? { useModal: true } : undefined;
         if (error instanceof SharingUnavailableError) {
           toast.error(t('sharing.sharingIsNotAvailableOnThisDevice'), toastOptions);
         } else {

@@ -721,6 +721,7 @@ export const he: Translations = {
   'sharing.saveImage': 'שמירת תמונה',
   'sharing.saveVoiceNote': 'שמירת ההקלטה הקולית',
   'sharing.couldNotSavePleaseTryAgain': 'השמירה נכשלה. נא לנסות שוב.',
+  'sharing.saved': 'נשמר',
   'sharing.themeTheme': 'ערכת נושא {theme}',
   'sharing.themeThemeSelected': 'ערכת נושא {theme}, נבחרה',
   'sharing.dayOneComplete': 'היום הראשון הושלם!',

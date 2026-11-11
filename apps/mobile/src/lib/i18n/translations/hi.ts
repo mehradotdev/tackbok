@@ -672,6 +672,7 @@ export const hi = {
   'sharing.saveImage': 'चित्र सहेजें',
   'sharing.saveVoiceNote': 'वॉइस नोट सहेजें',
   'sharing.couldNotSavePleaseTryAgain': 'सहेजा नहीं जा सका। कृपया पुन: प्रयास करें।',
+  'sharing.saved': 'सहेजा गया',
   'sharing.themeTheme': '{theme} थीम',
   'sharing.themeThemeSelected': '{theme} थीम चयनित',
   'sharing.dayOneComplete': 'पहला दिन पूरा!',

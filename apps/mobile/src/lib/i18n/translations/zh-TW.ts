@@ -707,6 +707,7 @@ export const zhTW: Translations = {
   'sharing.saveImage': '儲存圖片',
   'sharing.saveVoiceNote': '儲存語音筆記',
   'sharing.couldNotSavePleaseTryAgain': '無法儲存，請再試一次。',
+  'sharing.saved': '已儲存',
   'sharing.themeTheme': '{theme}主題',
   'sharing.themeThemeSelected': '{theme}主題，已選取',
   'sharing.dayOneComplete': '第一天完成！',

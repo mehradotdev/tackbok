@@ -704,6 +704,7 @@ export const zhCN: Translations = {
   'sharing.saveImage': '保存图片',
   'sharing.saveVoiceNote': '保存语音笔记',
   'sharing.couldNotSavePleaseTryAgain': '无法保存，请重试。',
+  'sharing.saved': '已保存',
   'sharing.themeTheme': '{theme}主题',
   'sharing.themeThemeSelected': '{theme}主题，已选择',
   'sharing.dayOneComplete': '第一天完成！',

@@ -703,6 +703,7 @@ export const es = {
   'sharing.saveVoiceNote': 'Guardar nota de voz',
   'sharing.couldNotSavePleaseTryAgain':
     'No se pudo guardar. Por favor inténtalo de nuevo.',
+  'sharing.saved': 'Guardado',
   'sharing.themeTheme': 'Tema {theme}',
   'sharing.themeThemeSelected': 'Tema {theme}, seleccionado',
   'sharing.dayOneComplete': '¡Día uno completo!',

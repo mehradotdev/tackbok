@@ -725,6 +725,7 @@ export const ar: Translations = {
   'sharing.saveImage': 'حفظ الصورة',
   'sharing.saveVoiceNote': 'حفظ الملاحظة الصوتية',
   'sharing.couldNotSavePleaseTryAgain': 'تعذر الحفظ. يرجى المحاولة مرة أخرى.',
+  'sharing.saved': 'تم الحفظ',
   'sharing.themeTheme': 'سمة {theme}',
   'sharing.themeThemeSelected': 'سمة {theme}، محددة',
   'sharing.dayOneComplete': 'اكتمل اليوم الأول!',

@@ -685,6 +685,7 @@ export const sv = {
   'sharing.saveImage': 'Spara bild',
   'sharing.saveVoiceNote': 'Spara röstanteckning',
   'sharing.couldNotSavePleaseTryAgain': 'Det gick inte att spara. Försök igen.',
+  'sharing.saved': 'Sparat',
   'sharing.themeTheme': '{theme} tema',
   'sharing.themeThemeSelected': '{theme} tema, valt',
   'sharing.dayOneComplete': 'Dag ett avklarat!',

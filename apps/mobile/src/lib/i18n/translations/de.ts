@@ -780,6 +780,7 @@ export const de: Translations = {
   'sharing.saveVoiceNote': 'Sprachnotiz speichern',
   'sharing.couldNotSavePleaseTryAgain':
     'Speichern fehlgeschlagen. Bitte versuche es erneut.',
+  'sharing.saved': 'Gespeichert',
   'sharing.themeTheme': 'Design {theme}',
   'sharing.themeThemeSelected': 'Design {theme}, ausgewählt',
   'sharing.dayOneComplete': 'Tag eins geschafft!',
