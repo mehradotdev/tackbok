@@ -776,6 +776,10 @@ export const de: Translations = {
   'sharing.shareVoiceNote': 'Sprachnotiz teilen',
   'sharing.couldNotShareVoiceNotePleaseTryAgain':
     'Die Sprachnotiz konnte nicht geteilt werden. Bitte versuche es erneut.',
+  'sharing.saveImage': 'Bild speichern',
+  'sharing.saveVoiceNote': 'Sprachnotiz speichern',
+  'sharing.couldNotSavePleaseTryAgain':
+    'Speichern fehlgeschlagen. Bitte versuche es erneut.',
   'sharing.themeTheme': 'Design {theme}',
   'sharing.themeThemeSelected': 'Design {theme}, ausgewählt',
   'sharing.dayOneComplete': 'Tag eins geschafft!',

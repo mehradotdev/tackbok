@@ -9,12 +9,11 @@ import {
   type FlatListProps,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Share2, X } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
-import { useTranslation } from '~/lib/i18n';
 import { getFullPhotoUri } from '~/lib/photoUtils';
-import { useShareMediaFile } from '~/lib/sharing/use-share-media-file';
+import { useExportMediaFile } from '~/lib/sharing/use-export-media-file';
 import { ZoomableImage } from './ZoomableImage';
 
 // Define a generic interface for photos to make the component modular
@@ -40,12 +39,13 @@ export function ImageViewerModal({
   photos,
   onClose,
 }: ImageViewerModalProps) {
-  const { t } = useTranslation();
   const flatListRef = useRef<FlatList>(null);
-  const { isSharing, share } = useShareMediaFile({
-    failureMessage: 'sharing.couldNotShareImagePleaseTryAgain',
-    toastInModal: true,
-  });
+  const {
+    isExporting,
+    exportFile,
+    label: exportLabel,
+    icon: exportIcon,
+  } = useExportMediaFile({ kind: 'image', toastInModal: true });
 
   const [isScrollEnabled, setScrollEnabled] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(() =>
@@ -135,23 +135,19 @@ export function ImageViewerModal({
               }}
             />
 
-            {/* Share Button - mirrors the close button */}
+            {/* Save (Android) / Share (iOS) Button - mirrors the close button */}
             <View className="absolute top-safe-or-2 left-safe-or-2 z-10">
               <Pressable
                 onPress={() => {
                   const photo = photos[currentIndex];
                   if (!photo) return;
-                  void share({
-                    fileUri: getFullPhotoUri(photo.uri),
-                    filenamePrefix: 'tackbok-photo',
-                    dialogTitle: t('sharing.shareImage'),
-                  });
+                  void exportFile(getFullPhotoUri(photo.uri));
                 }}
-                disabled={isSharing}
+                disabled={isExporting}
                 accessibilityRole="button"
-                accessibilityLabel={t('sharing.shareImage')}
-                className={`w-11 h-11 rounded-full bg-black/50 justify-center items-center active:bg-white/20${isSharing ? ' opacity-50' : ''}`}>
-                <Icon as={Share2} className="text-white size-6" />
+                accessibilityLabel={exportLabel}
+                className={`w-11 h-11 rounded-full bg-black/50 justify-center items-center active:bg-white/20${isExporting ? ' opacity-50' : ''}`}>
+                <Icon as={exportIcon} className="text-white size-6" />
               </Pressable>
             </View>
 

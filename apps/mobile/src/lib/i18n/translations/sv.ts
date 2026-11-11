@@ -682,6 +682,9 @@ export const sv = {
   'sharing.shareVoiceNote': 'Dela röstanteckning',
   'sharing.couldNotShareVoiceNotePleaseTryAgain':
     'Det gick inte att dela röstanteckningen. Försök igen.',
+  'sharing.saveImage': 'Spara bild',
+  'sharing.saveVoiceNote': 'Spara röstanteckning',
+  'sharing.couldNotSavePleaseTryAgain': 'Det gick inte att spara. Försök igen.',
   'sharing.themeTheme': '{theme} tema',
   'sharing.themeThemeSelected': '{theme} tema, valt',
   'sharing.dayOneComplete': 'Dag ett avklarat!',

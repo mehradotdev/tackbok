@@ -20,6 +20,8 @@ private const val ERROR_WRITE_FAILED = "E_BACKUP_EXPORT_WRITE_FAILED"
 /**
  * Android backup export uses ACTION_CREATE_DOCUMENT so the user picks a concrete destination file.
  * We then copy the already-generated ZIP into that URI through ContentResolver streams.
+ * `saveFile` reuses the same save-as flow for single photos and voice notes, because Android's
+ * share sheet has no built-in "save to device" target.
  */
 class BackupExportSaveModule : Module() {
   private var pendingPromise: Promise? = null
@@ -30,36 +32,15 @@ class BackupExportSaveModule : Module() {
 
     AsyncFunction("saveZip") { sourceUriString: String, suggestedFileName: String, promise: Promise
       ->
-      if (pendingPromise != null) {
-        promise.reject(ERROR_BUSY, "Another backup export is already in progress", null)
-        return@AsyncFunction
-      }
+      launchSaveAs(sourceUriString, suggestedFileName, ZIP_MIME_TYPE, promise)
+    }
 
-      val activity = appContext.currentActivity
-      if (activity == null) {
-        promise.reject(ERROR_NO_ACTIVITY, "No active activity", null)
-        return@AsyncFunction
-      }
-
-      val sourceUri = normalizeUri(sourceUriString)
-      val intent =
-              Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = ZIP_MIME_TYPE
-                putExtra(Intent.EXTRA_TITLE, suggestedFileName)
-              }
-
-      // The result comes back asynchronously through OnActivityResult, so keep the request state.
-      pendingPromise = promise
-      pendingSourceUri = sourceUri
-
-      try {
-        activity.startActivityForResult(intent, CREATE_DOCUMENT_REQUEST_CODE)
-      } catch (error: Exception) {
-        pendingPromise = null
-        pendingSourceUri = null
-        promise.reject(ERROR_WRITE_FAILED, error.message ?: "Unable to open save dialog", error)
-      }
+    AsyncFunction("saveFile") {
+            sourceUriString: String,
+            suggestedFileName: String,
+            mimeType: String,
+            promise: Promise ->
+      launchSaveAs(sourceUriString, suggestedFileName, mimeType, promise)
     }
 
     OnActivityResult { _, (requestCode, resultCode, data) ->
@@ -100,6 +81,44 @@ class BackupExportSaveModule : Module() {
       pendingPromise?.reject(ERROR_CANCELLED, "Save cancelled", null)
       pendingPromise = null
       pendingSourceUri = null
+    }
+  }
+
+  private fun launchSaveAs(
+          sourceUriString: String,
+          suggestedFileName: String,
+          mimeType: String,
+          promise: Promise
+  ) {
+    if (pendingPromise != null) {
+      promise.reject(ERROR_BUSY, "Another save is already in progress", null)
+      return
+    }
+
+    val activity = appContext.currentActivity
+    if (activity == null) {
+      promise.reject(ERROR_NO_ACTIVITY, "No active activity", null)
+      return
+    }
+
+    val sourceUri = normalizeUri(sourceUriString)
+    val intent =
+            Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+              addCategory(Intent.CATEGORY_OPENABLE)
+              type = mimeType
+              putExtra(Intent.EXTRA_TITLE, suggestedFileName)
+            }
+
+    // The result comes back asynchronously through OnActivityResult, so keep the request state.
+    pendingPromise = promise
+    pendingSourceUri = sourceUri
+
+    try {
+      activity.startActivityForResult(intent, CREATE_DOCUMENT_REQUEST_CODE)
+    } catch (error: Exception) {
+      pendingPromise = null
+      pendingSourceUri = null
+      promise.reject(ERROR_WRITE_FAILED, error.message ?: "Unable to open save dialog", error)
     }
   }
 

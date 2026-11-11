@@ -741,6 +741,9 @@ export const en = {
   'sharing.shareVoiceNote': 'Share voice note',
   'sharing.couldNotShareVoiceNotePleaseTryAgain':
     'Could not share voice note. Please try again.',
+  'sharing.saveImage': 'Save image',
+  'sharing.saveVoiceNote': 'Save voice note',
+  'sharing.couldNotSavePleaseTryAgain': 'Could not save. Please try again.',
   'sharing.themeTheme': '{theme} theme',
   'sharing.themeThemeSelected': '{theme} theme, selected',
   'sharing.dayOneComplete': 'Day one complete!',

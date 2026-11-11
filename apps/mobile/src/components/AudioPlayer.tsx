@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
-import { Play, Pause, Share2, X } from 'lucide-react-native';
+import { Play, Pause, X } from 'lucide-react-native';
 import { useNavigation } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { audioEngine, type PlaybackState } from '~/lib/audioEngine';
 import { getFullVoiceMemoUri } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
-import { useShareMediaFile } from '~/lib/sharing/use-share-media-file';
+import { useExportMediaFile } from '~/lib/sharing/use-export-media-file';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Badge } from '~/components/ui/badge';
@@ -22,8 +22,8 @@ interface AudioPlayerProps {
   uri: string;
   /** If provided, shows an X button to remove the voice memo (edit mode only) */
   onRemove?: () => void;
-  /** Shows a share button that exports the voice note through the system share sheet */
-  canShare?: boolean;
+  /** Shows a button that saves (Android) or shares (iOS) the voice note */
+  canExport?: boolean;
 }
 
 // ============================================================================
@@ -68,11 +68,14 @@ const amplitudeCache = new Map<string, AmplitudeResult>();
 // Component
 // ============================================================================
 
-export function AudioPlayer({ uri: relativeUri, onRemove, canShare }: AudioPlayerProps) {
+export function AudioPlayer({ uri: relativeUri, onRemove, canExport }: AudioPlayerProps) {
   const { t } = useTranslation();
-  const { isSharing, share } = useShareMediaFile({
-    failureMessage: 'sharing.couldNotShareVoiceNotePleaseTryAgain',
-  });
+  const {
+    isExporting,
+    exportFile,
+    label: exportLabel,
+    icon: exportIcon,
+  } = useExportMediaFile({ kind: 'voiceNote' });
   const uri = getFullVoiceMemoUri(relativeUri);
   const [foregroundColor, mutedForegroundColor] = useCSSVariable([
     '--color-foreground',
@@ -294,23 +297,17 @@ export function AudioPlayer({ uri: relativeUri, onRemove, canShare }: AudioPlaye
           />
         </View>
 
-        {/* Share button (view mode only) */}
-        {canShare && (
+        {/* Save / share button (view mode only) */}
+        {canExport && (
           <Button
             variant="ghost"
             size="none"
-            onPress={() =>
-              void share({
-                fileUri: uri,
-                filenamePrefix: 'tackbok-voice-note',
-                dialogTitle: t('sharing.shareVoiceNote'),
-              })
-            }
-            disabled={isSharing}
-            accessibilityLabel={t('sharing.shareVoiceNote')}
+            onPress={() => void exportFile(uri)}
+            disabled={isExporting}
+            accessibilityLabel={exportLabel}
             hitSlop={6}
             className="w-9 h-9 rounded-full">
-            <Icon as={Share2} className="text-muted-foreground size-5" />
+            <Icon as={exportIcon} className="text-muted-foreground size-5" />
           </Button>
         )}
       </View>

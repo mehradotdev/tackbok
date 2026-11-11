@@ -1,8 +1,13 @@
+import { Platform } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import {
+  isAndroidSaveCancelled,
+  saveFileWithAndroidDocumentPicker,
+} from '~/lib/backupExport/androidSave';
 import { SharingUnavailableError } from './share-image';
 
-let sharingInFlight = false;
+let exportInFlight = false;
 const CLEANUP_DELAY_MS = 60_000;
 
 export class MediaFileMissingError extends Error {}
@@ -28,7 +33,7 @@ function getExtension(uri: string): string {
   return uri.match(/\.([A-Za-z0-9]+)$/)?.[1]?.toLowerCase() ?? '';
 }
 
-/** Local `YYYYMMDD-HHmmss`, so exported files sort by when they were shared. */
+/** Local `YYYYMMDD-HHmmss`, so exported files sort by when they were exported. */
 function formatTimestamp(date: Date): string {
   const pad = (value: number) => value.toString().padStart(2, '0');
   return (
@@ -37,30 +42,36 @@ function formatTimestamp(date: Date): string {
   );
 }
 
-type ShareMediaFileOptions = {
+type ExportMediaFileOptions = {
   /** Full `file://` URI of a stored photo or voice note. */
   fileUri: string;
   /** Readable name prefix replacing the internal UUID file name, e.g. `tackbok-photo`. */
   filenamePrefix: string;
+  /** iOS share sheet title; unused by the Android save dialog. */
   dialogTitle: string;
 };
 
+export type ExportMediaResult = 'shared' | 'saved' | 'cancelled' | 'busy';
+
 /**
- * Opens the system share sheet for a stored media file. The file is copied to
- * the cache under a readable name so the recipient (Files, Photos, AirDrop…)
- * never sees the internal UUID, and the journal's own copy is never handed out.
+ * Exports a stored media file under a readable name so the recipient never sees
+ * the internal UUID. Android opens the system "Save as" dialog, because its
+ * share sheet has no built-in save-to-device target. iOS opens the share sheet,
+ * which offers Save Image and Save to Files.
  */
-export async function shareMediaFile({
+export async function exportMediaFile({
   fileUri,
   filenamePrefix,
   dialogTitle,
-}: ShareMediaFileOptions): Promise<'shared' | 'busy'> {
-  if (sharingInFlight) return 'busy';
-  sharingInFlight = true;
+}: ExportMediaFileOptions): Promise<ExportMediaResult> {
+  if (exportInFlight) return 'busy';
+  exportInFlight = true;
   let namedFile: File | null = null;
 
   try {
-    if (!(await Sharing.isAvailableAsync())) throw new SharingUnavailableError();
+    if (Platform.OS !== 'android' && !(await Sharing.isAvailableAsync())) {
+      throw new SharingUnavailableError();
+    }
 
     const source = new File(fileUri);
     if (!source.exists) throw new MediaFileMissingError();
@@ -70,6 +81,22 @@ export async function shareMediaFile({
     const safePrefix = filenamePrefix.replace(/[^a-zA-Z0-9_-]/g, '-');
     const suffix = extension ? `.${extension}` : '';
     const baseName = `${safePrefix}-${formatTimestamp(new Date())}`;
+
+    if (Platform.OS === 'android') {
+      // The save dialog copies straight from the source and resolves name clashes itself.
+      try {
+        await saveFileWithAndroidDocumentPicker(
+          fileUri,
+          `${baseName}${suffix}`,
+          mimeType,
+        );
+        return 'saved';
+      } catch (error) {
+        if (isAndroidSaveCancelled(error)) return 'cancelled';
+        throw error;
+      }
+    }
+
     // An earlier share from the same second may still be open in another app
     // or awaiting cleanup, so never reuse its file.
     let candidate = new File(Paths.cache, `${baseName}${suffix}`);
@@ -99,6 +126,6 @@ export async function shareMediaFile({
     }
     throw error;
   } finally {
-    sharingInFlight = false;
+    exportInFlight = false;
   }
 }

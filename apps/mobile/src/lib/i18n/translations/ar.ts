@@ -722,6 +722,9 @@ export const ar: Translations = {
   'sharing.shareVoiceNote': 'مشاركة الملاحظة الصوتية',
   'sharing.couldNotShareVoiceNotePleaseTryAgain':
     'تعذرت مشاركة الملاحظة الصوتية. يرجى المحاولة مرة أخرى.',
+  'sharing.saveImage': 'حفظ الصورة',
+  'sharing.saveVoiceNote': 'حفظ الملاحظة الصوتية',
+  'sharing.couldNotSavePleaseTryAgain': 'تعذر الحفظ. يرجى المحاولة مرة أخرى.',
   'sharing.themeTheme': 'سمة {theme}',
   'sharing.themeThemeSelected': 'سمة {theme}، محددة',
   'sharing.dayOneComplete': 'اكتمل اليوم الأول!',

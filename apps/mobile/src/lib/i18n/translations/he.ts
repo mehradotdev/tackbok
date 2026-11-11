@@ -718,6 +718,9 @@ export const he: Translations = {
   'sharing.shareVoiceNote': 'שיתוף ההקלטה הקולית',
   'sharing.couldNotShareVoiceNotePleaseTryAgain':
     'לא ניתן לשתף את ההקלטה הקולית. נא לנסות שוב.',
+  'sharing.saveImage': 'שמירת תמונה',
+  'sharing.saveVoiceNote': 'שמירת ההקלטה הקולית',
+  'sharing.couldNotSavePleaseTryAgain': 'השמירה נכשלה. נא לנסות שוב.',
   'sharing.themeTheme': 'ערכת נושא {theme}',
   'sharing.themeThemeSelected': 'ערכת נושא {theme}, נבחרה',
   'sharing.dayOneComplete': 'היום הראשון הושלם!',
