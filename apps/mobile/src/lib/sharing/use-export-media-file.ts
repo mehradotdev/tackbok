@@ -45,6 +45,9 @@ type UseExportMediaFileOptions = {
 export function useExportMediaFile({ kind, toastInModal }: UseExportMediaFileOptions) {
   const { t } = useTranslation();
   const mountedRef = React.useRef(true);
+  // Synchronous guard: a second tap can land before `isExporting` disables the button,
+  // and must not clear the busy state while the first export is still open.
+  const inFlightRef = React.useRef(false);
   const [isExporting, setIsExporting] = React.useState(false);
   const mode = Platform.OS === 'android' ? 'save' : 'share';
   const messages = MESSAGES[kind][mode];
@@ -58,6 +61,8 @@ export function useExportMediaFile({ kind, toastInModal }: UseExportMediaFileOpt
 
   const exportFile = React.useCallback(
     async (fileUri: string) => {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
       setIsExporting(true);
       const toastOptions = toastInModal ? { useModal: true } : undefined;
       try {
@@ -78,6 +83,7 @@ export function useExportMediaFile({ kind, toastInModal }: UseExportMediaFileOpt
           toast.error(t(messages.failure), toastOptions);
         }
       } finally {
+        inFlightRef.current = false;
         if (mountedRef.current) setIsExporting(false);
       }
     },
