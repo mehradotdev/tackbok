@@ -738,6 +738,13 @@ export const en = {
   'sharing.chooseAStyle': 'Choose a style',
   'sharing.sharingIsNotAvailableOnThisDevice': 'Sharing is not available on this device',
   'sharing.couldNotShareImagePleaseTryAgain': 'Could not share image. Please try again.',
+  'sharing.shareVoiceNote': 'Share voice note',
+  'sharing.couldNotShareVoiceNotePleaseTryAgain':
+    'Could not share voice note. Please try again.',
+  'sharing.saveImage': 'Save image',
+  'sharing.saveVoiceNote': 'Save voice note',
+  'sharing.couldNotSavePleaseTryAgain': 'Could not save. Please try again.',
+  'sharing.saved': 'Saved',
   'sharing.themeTheme': '{theme} theme',
   'sharing.themeThemeSelected': '{theme} theme, selected',
   'sharing.dayOneComplete': 'Day one complete!',

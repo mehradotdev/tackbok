@@ -719,6 +719,13 @@ export const ar: Translations = {
   'sharing.sharingIsNotAvailableOnThisDevice': 'المشاركة غير متاحة على هذا الجهاز',
   'sharing.couldNotShareImagePleaseTryAgain':
     'تعذرت مشاركة الصورة. يرجى المحاولة مرة أخرى.',
+  'sharing.shareVoiceNote': 'مشاركة الملاحظة الصوتية',
+  'sharing.couldNotShareVoiceNotePleaseTryAgain':
+    'تعذرت مشاركة الملاحظة الصوتية. يرجى المحاولة مرة أخرى.',
+  'sharing.saveImage': 'حفظ الصورة',
+  'sharing.saveVoiceNote': 'حفظ الملاحظة الصوتية',
+  'sharing.couldNotSavePleaseTryAgain': 'تعذر الحفظ. يرجى المحاولة مرة أخرى.',
+  'sharing.saved': 'تم الحفظ',
   'sharing.themeTheme': 'سمة {theme}',
   'sharing.themeThemeSelected': 'سمة {theme}، محددة',
   'sharing.dayOneComplete': 'اكتمل اليوم الأول!',

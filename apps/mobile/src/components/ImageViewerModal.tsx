@@ -6,11 +6,14 @@ import {
   useWindowDimensions,
   Pressable,
   StatusBar,
+  type FlatListProps,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { X } from 'lucide-react-native';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
+import { getFullPhotoUri } from '~/lib/photoUtils';
+import { useExportMediaFile } from '~/lib/sharing/use-export-media-file';
 import { ZoomableImage } from './ZoomableImage';
 
 // Define a generic interface for photos to make the component modular
@@ -19,6 +22,9 @@ export interface ImageViewerPhoto {
   width?: number;
   height?: number;
 }
+
+// More than half visible, so exactly one page counts as current.
+const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 51 };
 
 interface ImageViewerModalProps {
   visible: boolean;
@@ -34,12 +40,26 @@ export function ImageViewerModal({
   onClose,
 }: ImageViewerModalProps) {
   const flatListRef = useRef<FlatList>(null);
+  const {
+    isExporting,
+    exportFile,
+    label: exportLabel,
+    icon: exportIcon,
+  } = useExportMediaFile({ kind: 'image', toastInModal: true });
 
   const [isScrollEnabled, setScrollEnabled] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(() =>
     Math.max(0, Math.min(initialIndex, photos.length - 1)),
   );
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  // Viewability reports the item index directly, unlike raw scroll offsets,
+  // which run from the opposite edge in RTL. FlatList requires a stable callback.
+  const onViewableItemsChanged = useRef<
+    FlatListProps<ImageViewerPhoto>['onViewableItemsChanged']
+  >(({ viewableItems }) => {
+    const index = viewableItems[0]?.index;
+    if (index != null) setCurrentIndex(index);
+  }).current;
 
   // Use full screen dimensions for full bleed
   const itemWidth = windowWidth;
@@ -91,10 +111,8 @@ export function ImageViewerModal({
                 index,
               })}
               initialScrollIndex={currentIndex}
-              onMomentumScrollEnd={(ev) => {
-                const newIndex = Math.round(ev.nativeEvent.contentOffset.x / itemWidth);
-                setCurrentIndex(newIndex);
-              }}
+              viewabilityConfig={VIEWABILITY_CONFIG}
+              onViewableItemsChanged={onViewableItemsChanged}
               // If scroll-to-index fails for any reason, fall back to the first photo
               onScrollToIndexFailed={() => {
                 flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
@@ -116,6 +134,22 @@ export function ImageViewerModal({
                 );
               }}
             />
+
+            {/* Save (Android) / Share (iOS) Button - mirrors the close button */}
+            <View className="absolute top-safe-or-2 left-safe-or-2 z-10">
+              <Pressable
+                onPress={() => {
+                  const photo = photos[currentIndex];
+                  if (!photo) return;
+                  void exportFile(getFullPhotoUri(photo.uri));
+                }}
+                disabled={isExporting}
+                accessibilityRole="button"
+                accessibilityLabel={exportLabel}
+                className={`w-11 h-11 rounded-full bg-black/50 justify-center items-center active:bg-white/20${isExporting ? ' opacity-50' : ''}`}>
+                <Icon as={exportIcon} className="text-white size-6" />
+              </Pressable>
+            </View>
 
             {/* Close Button - Positioned absolutely within the Safe Area */}
             <View className="absolute top-safe-or-2 right-safe-or-2 z-10">

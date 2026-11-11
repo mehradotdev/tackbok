@@ -773,6 +773,14 @@ export const de: Translations = {
     'Teilen ist auf diesem Gerät nicht verfügbar',
   'sharing.couldNotShareImagePleaseTryAgain':
     'Das Bild konnte nicht geteilt werden. Bitte versuche es erneut.',
+  'sharing.shareVoiceNote': 'Sprachnotiz teilen',
+  'sharing.couldNotShareVoiceNotePleaseTryAgain':
+    'Die Sprachnotiz konnte nicht geteilt werden. Bitte versuche es erneut.',
+  'sharing.saveImage': 'Bild speichern',
+  'sharing.saveVoiceNote': 'Sprachnotiz speichern',
+  'sharing.couldNotSavePleaseTryAgain':
+    'Speichern fehlgeschlagen. Bitte versuche es erneut.',
+  'sharing.saved': 'Gespeichert',
   'sharing.themeTheme': 'Design {theme}',
   'sharing.themeThemeSelected': 'Design {theme}, ausgewählt',
   'sharing.dayOneComplete': 'Tag eins geschafft!',

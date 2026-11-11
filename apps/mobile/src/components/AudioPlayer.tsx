@@ -6,6 +6,7 @@ import { useCSSVariable } from 'uniwind';
 import { audioEngine, type PlaybackState } from '~/lib/audioEngine';
 import { getFullVoiceMemoUri } from '~/lib/voiceMemoUtils';
 import { useTranslation } from '~/lib/i18n';
+import { useExportMediaFile } from '~/lib/sharing/use-export-media-file';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
 import { Badge } from '~/components/ui/badge';
@@ -21,6 +22,8 @@ interface AudioPlayerProps {
   uri: string;
   /** If provided, shows an X button to remove the voice memo (edit mode only) */
   onRemove?: () => void;
+  /** Shows a button that saves (Android) or shares (iOS) the voice note */
+  canExport?: boolean;
 }
 
 // ============================================================================
@@ -65,8 +68,14 @@ const amplitudeCache = new Map<string, AmplitudeResult>();
 // Component
 // ============================================================================
 
-export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
+export function AudioPlayer({ uri: relativeUri, onRemove, canExport }: AudioPlayerProps) {
   const { t } = useTranslation();
+  const {
+    isExporting,
+    exportFile,
+    label: exportLabel,
+    icon: exportIcon,
+  } = useExportMediaFile({ kind: 'voiceNote' });
   const uri = getFullVoiceMemoUri(relativeUri);
   const [foregroundColor, mutedForegroundColor] = useCSSVariable([
     '--color-foreground',
@@ -287,6 +296,20 @@ export function AudioPlayer({ uri: relativeUri, onRemove }: AudioPlayerProps) {
             onSeek={duration > 0 ? handleSeek : undefined}
           />
         </View>
+
+        {/* Save / share button (view mode only) */}
+        {canExport && (
+          <Button
+            variant="ghost"
+            size="none"
+            onPress={() => void exportFile(uri)}
+            disabled={isExporting}
+            accessibilityLabel={exportLabel}
+            hitSlop={6}
+            className="w-9 h-9 rounded-full">
+            <Icon as={exportIcon} className="text-muted-foreground size-5" />
+          </Button>
+        )}
       </View>
 
       {/* Remove button (edit mode only) */}

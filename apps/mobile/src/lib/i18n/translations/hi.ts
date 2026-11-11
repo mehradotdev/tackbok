@@ -666,6 +666,13 @@ export const hi = {
   'sharing.sharingIsNotAvailableOnThisDevice': 'इस डिवाइस पर साझाकरण उपलब्ध नहीं है',
   'sharing.couldNotShareImagePleaseTryAgain':
     'छवि साझा नहीं की जा सकी. कृपया पुन: प्रयास करें।',
+  'sharing.shareVoiceNote': 'वॉइस नोट साझा करें',
+  'sharing.couldNotShareVoiceNotePleaseTryAgain':
+    'वॉइस नोट साझा नहीं किया जा सका। कृपया पुन: प्रयास करें।',
+  'sharing.saveImage': 'चित्र सहेजें',
+  'sharing.saveVoiceNote': 'वॉइस नोट सहेजें',
+  'sharing.couldNotSavePleaseTryAgain': 'सहेजा नहीं जा सका। कृपया पुन: प्रयास करें।',
+  'sharing.saved': 'सहेजा गया',
   'sharing.themeTheme': '{theme} थीम',
   'sharing.themeThemeSelected': '{theme} थीम चयनित',
   'sharing.dayOneComplete': 'पहला दिन पूरा!',

@@ -715,6 +715,13 @@ export const he: Translations = {
   'sharing.chooseAStyle': 'בחירת סגנון',
   'sharing.sharingIsNotAvailableOnThisDevice': 'השיתוף אינו זמין במכשיר הזה',
   'sharing.couldNotShareImagePleaseTryAgain': 'לא ניתן לשתף את התמונה. נסו שוב.',
+  'sharing.shareVoiceNote': 'שיתוף ההקלטה הקולית',
+  'sharing.couldNotShareVoiceNotePleaseTryAgain':
+    'לא ניתן לשתף את ההקלטה הקולית. נא לנסות שוב.',
+  'sharing.saveImage': 'שמירת תמונה',
+  'sharing.saveVoiceNote': 'שמירת ההקלטה הקולית',
+  'sharing.couldNotSavePleaseTryAgain': 'השמירה נכשלה. נא לנסות שוב.',
+  'sharing.saved': 'נשמר',
   'sharing.themeTheme': 'ערכת נושא {theme}',
   'sharing.themeThemeSelected': 'ערכת נושא {theme}, נבחרה',
   'sharing.dayOneComplete': 'היום הראשון הושלם!',
