@@ -1,14 +1,16 @@
-import { and, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 
 import {
   cloudConflicts,
+  cloudSyncMediaHashCache,
   cloudSyncState,
   cloudTombstones,
   cloudVault,
   customPrompts,
   db,
+  type DbTransaction,
   entries,
   entryTags,
   mediaAssets,
@@ -84,12 +86,193 @@ function fileStamp(uri: string): FileStamp | null {
   }
 }
 
+interface InspectedFile extends FileStamp {
+  sha256: string;
+  hashedAt: number;
+}
+
 // Hashes of local media files, valid while a file keeps the size and
 // modification time it had when hashed. Sync passes and remote applies check
-// every attachment; without this, each pass re-reads the whole library.
-// shortcut: in memory only, so the first pass after launch still hashes every
-// file once; persist it if cold-start passes become a problem.
-const inspectedFiles = new Map<string, FileStamp & { sha256: string }>();
+// every attachment; without this, each pass re-reads the whole library. The
+// table `cloud_sync_media_hash_cache` keeps them across launches.
+const inspectedFiles = new Map<string, InspectedFile>();
+// Changes the table does not hold yet; null removes the row.
+const unsavedInspections = new Map<string, InspectedFile | null>();
+let persistedHashesLoad: Promise<void> | null = null;
+// Whether memory holds every saved row, so a path absent from both maps has none.
+let persistedHashesLoaded = false;
+let prunedPersistedHashes = false;
+
+// Bump when the hashing or the row key changes: older rows are then deleted.
+const MEDIA_HASH_CACHE_VERSION = 1;
+// A saved hash cannot notice bytes corrupted without a stamp change, so old
+// ones are read again, a few files per pass.
+const REHASH_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+const REHASHES_PER_PASS = 4;
+let rehashBudget = REHASHES_PER_PASS;
+
+let documentPrefixValue: string | null = null;
+
+/** The document directory's URI, with a trailing slash. */
+function documentPrefix(): string | null {
+  if (documentPrefixValue === null) {
+    try {
+      const uri = new Directory(Paths.document).uri;
+      documentPrefixValue = uri.endsWith('/') ? uri : `${uri}/`;
+    } catch {
+      return null;
+    }
+  }
+  return documentPrefixValue;
+}
+
+/**
+ * A saved row's key: the path relative to the document directory, since the
+ * iOS container path can change after an app update or device restore. Files
+ * outside that directory are cached in memory only.
+ */
+function persistedHashPath(key: string): string | null {
+  const prefix = documentPrefix();
+  return prefix !== null && key.startsWith(prefix) && key.length > prefix.length
+    ? key.slice(prefix.length)
+    : null;
+}
+
+function rememberHash(key: string, value: InspectedFile): void {
+  inspectedFiles.set(key, value);
+  unsavedInspections.set(key, value);
+}
+
+function forgetHash(key: string): void {
+  // Only a path that may have a saved row needs a removal, so a missing
+  // staging copy probed on every check does not make each pass write.
+  if (inspectedFiles.delete(key) || unsavedInspections.has(key) || !persistedHashesLoaded)
+    unsavedInspections.set(key, null);
+}
+
+/**
+ * Reads saved hashes into memory once per process; a failed read is retried
+ * at the end of the next pass. An unreadable table only means files are
+ * hashed again.
+ */
+function loadPersistedHashes(): Promise<void> {
+  persistedHashesLoad ??= (async () => {
+    const prefix = documentPrefix();
+    if (prefix === null) return;
+    try {
+      await db
+        .delete(cloudSyncMediaHashCache)
+        .where(ne(cloudSyncMediaHashCache.format_version, MEDIA_HASH_CACHE_VERSION));
+      const rows = await db.select().from(cloudSyncMediaHashCache);
+      for (const row of rows) {
+        const key = prefix + row.path;
+        // A read or a removal in this process is newer than the table.
+        if (inspectedFiles.has(key) || unsavedInspections.has(key)) continue;
+        inspectedFiles.set(key, {
+          key,
+          size: row.size,
+          lastModified: row.modified_at,
+          sha256: row.sha256,
+          hashedAt: row.hashed_at,
+        });
+      }
+      persistedHashesLoaded = true;
+    } catch (error) {
+      console.warn('Cloud sync could not load saved media hashes', error);
+    }
+  })();
+  return persistedHashesLoad;
+}
+
+/**
+ * Saves the hashes this process changed in one transaction, and removes rows
+ * for files no media row references. Runs at the end of a sync pass; a
+ * failure leaves the changes for the next pass.
+ */
+async function persistMediaHashes(): Promise<void> {
+  rehashBudget = REHASHES_PER_PASS;
+  // Retry a failed load once per pass, not on every file check.
+  if (!persistedHashesLoaded) persistedHashesLoad = null;
+  await loadPersistedHashes();
+  if (documentPrefix() === null) return;
+  if (unsavedInspections.size === 0 && prunedPersistedHashes) return;
+  const batch = new Map(unsavedInspections);
+  try {
+    await runExclusiveDbTransaction(async (tx) => {
+      const [live, retained, saved] = await Promise.all([
+        tx.select({ uri: mediaAssets.local_uri }).from(mediaAssets),
+        tx
+          .select({
+            original: syncRetainedMedia.original_uri,
+            staged: syncRetainedMedia.staged_uri,
+          })
+          .from(syncRetainedMedia),
+        tx.select({ path: cloudSyncMediaHashCache.path }).from(cloudSyncMediaHashCache),
+      ]);
+      const referenced = new Set<string>();
+      for (const uri of [
+        ...live.map((row) => row.uri),
+        ...retained.flatMap((row) => [row.original, row.staged]),
+      ]) {
+        const key = uri === null ? null : canonicalFileUri(uri);
+        const path = key === null ? null : persistedHashPath(key);
+        if (path !== null) referenced.add(path);
+      }
+      const upserts: (typeof cloudSyncMediaHashCache.$inferInsert)[] = [];
+      const removals = new Set(
+        saved.map((row) => row.path).filter((path) => !referenced.has(path)),
+      );
+      for (const [key, value] of batch) {
+        const path = persistedHashPath(key);
+        if (path === null) continue;
+        if (value === null || !referenced.has(path)) {
+          removals.add(path);
+          continue;
+        }
+        upserts.push({
+          path,
+          size: value.size,
+          modified_at: value.lastModified,
+          sha256: value.sha256,
+          hashed_at: value.hashedAt,
+          format_version: MEDIA_HASH_CACHE_VERSION,
+        });
+      }
+      await writeBatches([...removals], (paths) =>
+        tx
+          .delete(cloudSyncMediaHashCache)
+          .where(inArray(cloudSyncMediaHashCache.path, paths)),
+      );
+      await writeBatches(upserts, (rows) =>
+        tx
+          .insert(cloudSyncMediaHashCache)
+          .values(rows)
+          .onConflictDoUpdate({
+            target: cloudSyncMediaHashCache.path,
+            set: {
+              size: sql`excluded.size`,
+              modified_at: sql`excluded.modified_at`,
+              sha256: sql`excluded.sha256`,
+              hashed_at: sql`excluded.hashed_at`,
+              format_version: sql`excluded.format_version`,
+            },
+          }),
+      );
+    });
+    prunedPersistedHashes = true;
+    for (const [key, value] of batch)
+      if (unsavedInspections.get(key) === value) unsavedInspections.delete(key);
+  } catch (error) {
+    console.warn('Cloud sync could not save media hashes', error);
+  }
+}
+
+/** Whether an old cached hash should be read again; spends this pass's budget. */
+function dueForRehash(cached: InspectedFile): boolean {
+  if (Date.now() - cached.hashedAt < REHASH_AFTER_MS || rehashBudget <= 0) return false;
+  rehashBudget -= 1;
+  return true;
+}
 
 /**
  * Hashes a local file, or returns the hash of an unchanged earlier read. Not
@@ -104,7 +287,8 @@ async function inspectUnchangedLocalMediaFile(
     before &&
     cached &&
     cached.size === before.size &&
-    cached.lastModified === before.lastModified
+    cached.lastModified === before.lastModified &&
+    !dueForRehash(cached)
   ) {
     return { sha256: cached.sha256, byteSize: cached.size };
   }
@@ -121,7 +305,7 @@ async function inspectAndRemember(
     inspected = await inspectLocalMediaFile(uri);
   } catch (error) {
     const key = before?.key ?? canonicalFileUri(uri);
-    if (key !== null) inspectedFiles.delete(key);
+    if (key !== null) forgetHash(key);
     throw error;
   }
   rememberInspection(before, uri, inspected);
@@ -143,25 +327,44 @@ function rememberInspection(
     after.lastModified === before.lastModified &&
     after.size === inspected.byteSize
   ) {
-    inspectedFiles.set(after.key, { ...after, sha256: inspected.sha256 });
+    rememberHash(after.key, { ...after, sha256: inspected.sha256, hashedAt: Date.now() });
     return;
   }
   // The file changed or disappeared while it was read: forget its old hash.
   const key = after?.key ?? before?.key ?? canonicalFileUri(uri);
-  if (key !== null) inspectedFiles.delete(key);
+  if (key !== null) forgetHash(key);
 }
 
 /** A recreated file must be read again, even with an identical stamp. */
 function localMediaFileExists(uri: string | null): uri is string {
   if (fileExists(uri)) return true;
   const key = uri === null ? null : canonicalFileUri(uri);
-  if (key !== null) inspectedFiles.delete(key);
+  if (key !== null) forgetHash(key);
   return false;
 }
 
-/** Test hook: forget every cached file hash. */
-export function clearInspectedMediaFiles(): void {
+/**
+ * Forgets every hash held in memory; the next lookup reads the table again.
+ * "Delete all" calls it once its wipe has committed; tests use it to simulate
+ * an app restart.
+ */
+export function forgetMediaHashes(): void {
   inspectedFiles.clear();
+  unsavedInspections.clear();
+  persistedHashesLoad = null;
+  persistedHashesLoaded = false;
+  prunedPersistedHashes = false;
+  documentPrefixValue = null;
+  rehashBudget = REHASHES_PER_PASS;
+}
+
+/**
+ * Empties the saved hashes in the caller's transaction, for "Delete all".
+ * Call `forgetMediaHashes` after it commits: on a rollback, memory keeps
+ * newer reads the table does not hold yet.
+ */
+export async function clearMediaHashes(tx: DbTransaction): Promise<void> {
+  await tx.delete(cloudSyncMediaHashCache);
 }
 
 /** Hashes a file, reusing an unchanged earlier read only if `reuseHashes`. */
@@ -169,6 +372,7 @@ async function inspectMediaFile(
   uri: string,
   reuseHashes: boolean,
 ): Promise<{ sha256: string; byteSize: number }> {
+  await loadPersistedHashes();
   if (reuseHashes) return inspectUnchangedLocalMediaFile(uri);
   return inspectAndRemember(fileStamp(uri), uri);
 }
@@ -179,6 +383,7 @@ export async function verifyLocalMediaFile(
   expectedByteSize: number | null,
   reuseHashes = true,
 ): Promise<boolean> {
+  await loadPersistedHashes();
   if (!localMediaFileExists(uri)) return false;
   try {
     const inspected = await inspectMediaFile(uri, reuseHashes);
@@ -418,6 +623,7 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
     bytes: number | null,
     reuseHashes: boolean,
   ) {
+    await loadPersistedHashes();
     if (!localMediaFileExists(uri)) return null;
     try {
       const inspected = await inspectMediaFile(uri, reuseHashes);
@@ -964,6 +1170,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
    * state only; the journal and its generation stay the same.
    */
   async requeueMissingVerifiedMedia(): Promise<number> {
+    await loadPersistedHashes();
     const rows = await db
       .select({
         assetId: mediaAssets.asset_id,
@@ -992,7 +1199,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       }
       if (exists) continue;
       const key = canonicalFileUri(localUri);
-      if (key !== null) inspectedFiles.delete(key);
+      if (key !== null) forgetHash(key);
       await db
         .update(mediaAssets)
         .set({ download_state: 'pending' })
@@ -1005,6 +1212,11 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       requeued += 1;
     }
     return requeued;
+  }
+
+  /** Saves this pass's media hash changes; never throws. */
+  persistMediaHashes(): Promise<void> {
+    return persistMediaHashes();
   }
 
   /** Bounded post-restore hydration. Metadata/text remain usable while media waits. */

@@ -393,6 +393,22 @@ export const cloudDriveUploadSessions = sqliteTable(
   ],
 );
 
+/**
+ * Local only, never part of a snapshot: SHA-256 of media files keyed by their
+ * path relative to the document directory. A row is trusted only while the
+ * file keeps the size and modification time it had when hashed; losing the
+ * table only means hashing again.
+ */
+export const cloudSyncMediaHashCache = sqliteTable('cloud_sync_media_hash_cache', {
+  path: text('path').primaryKey().notNull(),
+  size: integer('size').notNull(),
+  modified_at: integer('modified_at').notNull(),
+  sha256: text('sha256').notNull(),
+  hashed_at: integer('hashed_at').notNull(),
+  /** Rows from another hashing or key format are deleted on load. */
+  format_version: integer('format_version').notNull(),
+});
+
 /** Application-level backfill checkpoint; deliberately separate from SQL migrations. */
 export const cloudSyncMigration = sqliteTable('cloud_sync_migration', {
   migration_id: text('migration_id').primaryKey().notNull(),

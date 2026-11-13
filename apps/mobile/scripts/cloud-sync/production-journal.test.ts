@@ -1,4 +1,4 @@
-import { afterAll, expect, mock, test } from 'bun:test';
+import { afterAll, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { readFileSync } from 'node:fs';
@@ -44,6 +44,11 @@ const existingFiles = new Set<string>();
 // Files whose existence check fails, like a passing I/O error.
 const unreadableFiles = new Set<string>();
 const fakeBlobHash = 'a'.repeat(64);
+// Size and modification time of fake files; files without one are never cached.
+const fileStats = new Map<string, { size: number; lastModified: number }>();
+// Every file the fake hasher read, in order.
+const hashReads: string[] = [];
+const paths = { document: 'file:///documents' };
 const copiedMedia: { from: string; to: string }[] = [];
 const uriOf = (part: unknown) =>
   typeof part === 'object' && part && 'uri' in part ? String(part.uri) : String(part);
@@ -69,11 +74,17 @@ mock.module('expo-file-system', () => ({
       if (unreadableFiles.has(this.uri)) throw new Error('I/O error');
       return existingFiles.has(this.uri);
     }
+    get size() {
+      return fileStats.get(this.uri)?.size;
+    }
+    get lastModified() {
+      return fileStats.get(this.uri)?.lastModified;
+    }
     delete() {
       existingFiles.delete(this.uri);
     }
   },
-  Paths: { document: 'file:///documents' },
+  Paths: paths,
 }));
 mock.module('../../src/lib/cloudSync/snapshot/media', () => ({
   copyVerifiedMediaFile(source: { uri: string }, destination: { uri: string }) {
@@ -84,13 +95,21 @@ mock.module('../../src/lib/cloudSync/snapshot/media', () => ({
   openMediaUploadSource() {},
 }));
 mock.module('../../src/lib/cloudSync/media/streamingHash', () => ({
-  inspectLocalMediaFile(uri: string) {
+  inspectLocalMediaFile(value: string) {
+    // Like the real reader, a relative path is inside the document directory.
+    const uri = value.startsWith('file:') ? value : `${paths.document}/${value}`;
+    hashReads.push(uri);
     if (!existingFiles.has(uri)) throw new Error('missing');
     return { sha256: fakeBlobHash, byteSize: 1 };
   },
 }));
-const { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } =
-  await import('../../src/lib/cloudSync/snapshot/storage/productionJournal');
+const {
+  ProductionSnapshotJournalStore,
+  ProductionSnapshotMediaStore,
+  clearMediaHashes,
+  forgetMediaHashes,
+  verifyLocalMediaFile,
+} = await import('../../src/lib/cloudSync/snapshot/storage/productionJournal');
 afterAll(() => sqlite.close());
 
 test('production capture and restore preserve photo and voice order, including URI-only legacy assets', async () => {
@@ -1414,4 +1433,271 @@ test('a repaired attachment is downloaded back to the path its entry uses', asyn
   ]);
   // The journal itself is unchanged, attachment order included.
   expect((await store.capture()).domain.entries[0].attachmentOrder).toEqual(orderBefore);
+});
+
+describe('saved media hashes', () => {
+  const store = () => new ProductionSnapshotJournalStore('hashes', 'device', {} as never);
+  const fileUri = (path: string) => `${paths.document}/${path}`;
+  const verify = (path: string) => verifyLocalMediaFile(path, fakeBlobHash, 1);
+  const savedRows = () =>
+    db
+      .select()
+      .from(schema.cloudSyncMediaHashCache)
+      .all()
+      .sort((left, right) => left.path.localeCompare(right.path));
+  /** A new process: memory is empty and the table is read again. */
+  const restart = () => forgetMediaHashes();
+
+  function addPhoto(assetId: string, path: string) {
+    db.insert(schema.mediaAssets)
+      .values({
+        asset_id: assetId,
+        owner_type: 'entry',
+        owner_id: 'entry',
+        kind: 'photo',
+        local_uri: path,
+        download_state: 'verified',
+        blob_hash: fakeBlobHash,
+        byte_size: 1,
+        created_at: 1,
+        updated_at: 1,
+      })
+      .run();
+    existingFiles.add(fileUri(path));
+    fileStats.set(fileUri(path), { size: 1, lastModified: 1_000 });
+  }
+
+  function saveRow(path: string, values: { hashedAt?: number; version?: number } = {}) {
+    db.insert(schema.cloudSyncMediaHashCache)
+      .values({
+        path,
+        size: 1,
+        modified_at: 1_000,
+        sha256: fakeBlobHash,
+        hashed_at: values.hashedAt ?? Date.now(),
+        format_version: values.version ?? 1,
+      })
+      .run();
+  }
+
+  beforeEach(() => {
+    sqlite.exec(
+      'DELETE FROM media_assets; DELETE FROM sync_retained_media; DELETE FROM cloud_sync_media_hash_cache',
+    );
+    paths.document = 'file:///documents';
+    existingFiles.clear();
+    fileStats.clear();
+    hashReads.length = 0;
+    restart();
+  });
+
+  test('a saved hash is used after a restart, under a moved document directory', async () => {
+    addPhoto('photo', 'photos/a.jpg');
+    // A legacy absolute URI and the relative path are one file and one row.
+    expect(await verify(fileUri('photos/a.jpg'))).toBe(true);
+    await store().persistMediaHashes();
+    expect(savedRows()).toEqual([
+      {
+        path: 'photos/a.jpg',
+        size: 1,
+        modified_at: 1_000,
+        sha256: fakeBlobHash,
+        hashed_at: expect.any(Number),
+        format_version: 1,
+      },
+    ]);
+
+    restart();
+    expect(await verify('photos/a.jpg')).toBe(true);
+    expect(hashReads).toHaveLength(1);
+
+    // An iOS update or restore can move the app container.
+    paths.document = 'file:///moved';
+    restart();
+    existingFiles.add(fileUri('photos/a.jpg'));
+    fileStats.set(fileUri('photos/a.jpg'), { size: 1, lastModified: 1_000 });
+    expect(await verify('photos/a.jpg')).toBe(true);
+    expect(hashReads).toHaveLength(1);
+  });
+
+  test.each([
+    ['size', { size: 2, lastModified: 1_000 }],
+    ['modification time', { size: 1, lastModified: 2_000 }],
+  ])('a new %s re-reads the file and replaces its row', async (_, stamp) => {
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg');
+    fileStats.set(fileUri('photos/a.jpg'), stamp);
+    expect(await verify('photos/a.jpg')).toBe(true);
+    expect(hashReads).toEqual([fileUri('photos/a.jpg')]);
+    await store().persistMediaHashes();
+    // The fake hasher reads one byte, so a two-byte stamp is not cached.
+    expect(savedRows().map((row) => row.modified_at)).toEqual(
+      stamp.size === 1 ? [2_000] : [],
+    );
+  });
+
+  test('upload sources and a missing file ignore saved rows; the missing one loses its row', async () => {
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg');
+    await new ProductionSnapshotMediaStore().openVerifiedSource(fakeBlobHash);
+    expect(hashReads).toEqual([fileUri('photos/a.jpg')]);
+
+    existingFiles.delete(fileUri('photos/a.jpg'));
+    expect(await verify('photos/a.jpg')).toBe(false);
+    await store().persistMediaHashes();
+    expect(savedRows()).toEqual([]);
+  });
+
+  test('rows for files no media row references are removed', async () => {
+    addPhoto('kept', 'photos/kept.jpg');
+    addPhoto('removed', 'photos/removed.jpg');
+    // A row an earlier launch left for an attachment deleted since.
+    saveRow('photos/gone.jpg');
+    expect(await verify('photos/kept.jpg')).toBe(true);
+    expect(await verify('photos/removed.jpg')).toBe(true);
+    await store().persistMediaHashes();
+    expect(savedRows().map((row) => row.path)).toEqual([
+      'photos/kept.jpg',
+      'photos/removed.jpg',
+    ]);
+
+    db.delete(schema.mediaAssets).where(eq(schema.mediaAssets.asset_id, 'removed')).run();
+    // Pruning runs with the next save of a change.
+    existingFiles.delete(fileUri('photos/removed.jpg'));
+    expect(await verify('photos/removed.jpg')).toBe(false);
+    await store().persistMediaHashes();
+    expect(savedRows().map((row) => row.path)).toEqual(['photos/kept.jpg']);
+  });
+
+  test('an unreadable table falls back to hashing', async () => {
+    const warn = spyOn(console, 'warn').mockImplementation(() => {});
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg');
+    sqlite.exec('ALTER TABLE cloud_sync_media_hash_cache RENAME TO hash_cache_away');
+    try {
+      expect(await verify('photos/a.jpg')).toBe(true);
+      expect(await verify('photos/a.jpg')).toBe(true);
+      // Hashed once, then served from memory; saving fails quietly.
+      expect(hashReads).toHaveLength(1);
+      await expect(store().persistMediaHashes()).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      sqlite.exec('ALTER TABLE hash_cache_away RENAME TO cloud_sync_media_hash_cache');
+      warn.mockRestore();
+    }
+  });
+
+  test('a file that goes missing while the table is unreadable still loses its row', async () => {
+    const warn = spyOn(console, 'warn').mockImplementation(() => {});
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg');
+    sqlite.exec('ALTER TABLE cloud_sync_media_hash_cache RENAME TO hash_cache_away');
+    try {
+      existingFiles.delete(fileUri('photos/a.jpg'));
+      expect(await verify('photos/a.jpg')).toBe(false);
+    } finally {
+      sqlite.exec('ALTER TABLE hash_cache_away RENAME TO cloud_sync_media_hash_cache');
+      warn.mockRestore();
+    }
+    await store().persistMediaHashes();
+    expect(savedRows()).toEqual([]);
+  });
+
+  test('a failed load is retried at the end of the pass', async () => {
+    const warn = spyOn(console, 'warn').mockImplementation(() => {});
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg');
+    sqlite.exec('ALTER TABLE cloud_sync_media_hash_cache RENAME TO hash_cache_away');
+    try {
+      expect(await verify('photos/a.jpg')).toBe(true);
+    } finally {
+      sqlite.exec('ALTER TABLE hash_cache_away RENAME TO cloud_sync_media_hash_cache');
+      warn.mockRestore();
+    }
+    await store().persistMediaHashes();
+    // Loaded now: a missing staging copy no longer makes a pass write.
+    expect(await new ProductionSnapshotMediaStore().hasVerified(fakeBlobHash)).toBe(
+      false,
+    );
+    const writes = spyOn(sqlite, 'exec');
+    try {
+      await store().persistMediaHashes();
+      expect(writes).not.toHaveBeenCalledWith('BEGIN IMMEDIATE');
+    } finally {
+      writes.mockRestore();
+    }
+  });
+
+  test('Delete all empties the table and the memory', async () => {
+    addPhoto('photo', 'photos/a.jpg');
+    expect(await verify('photos/a.jpg')).toBe(true);
+    await store().persistMediaHashes();
+    await clearMediaHashes(db as never);
+    forgetMediaHashes();
+    expect(savedRows()).toEqual([]);
+    expect(await verify('photos/a.jpg')).toBe(true);
+    expect(hashReads).toHaveLength(2);
+  });
+
+  test('a rolled-back Delete all keeps reads the table does not hold yet', async () => {
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg', { hashedAt: 1 });
+    // A newer read replaces the saved row in memory only.
+    fileStats.set(fileUri('photos/a.jpg'), { size: 1, lastModified: 2_000 });
+    expect(await verify('photos/a.jpg')).toBe(true);
+    sqlite.exec('BEGIN IMMEDIATE');
+    await clearMediaHashes(db as never);
+    sqlite.exec('ROLLBACK');
+    expect(savedRows().map((row) => row.modified_at)).toEqual([1_000]);
+    expect(await verify('photos/a.jpg')).toBe(true);
+    expect(hashReads).toHaveLength(1);
+    await store().persistMediaHashes();
+    expect(savedRows().map((row) => row.modified_at)).toEqual([2_000]);
+  });
+
+  test('a missing staging copy alone does not make a pass write', async () => {
+    addPhoto('photo', 'photos/a.jpg');
+    expect(await new ProductionSnapshotMediaStore().hasVerified(fakeBlobHash)).toBe(
+      false,
+    );
+    await store().persistMediaHashes();
+    const writes = spyOn(sqlite, 'exec');
+    try {
+      expect(await new ProductionSnapshotMediaStore().hasVerified(fakeBlobHash)).toBe(
+        false,
+      );
+      await store().persistMediaHashes();
+      // No transaction began: nothing changed since the last save.
+      expect(writes).not.toHaveBeenCalledWith('BEGIN IMMEDIATE');
+    } finally {
+      writes.mockRestore();
+    }
+    expect(hashReads).toHaveLength(1);
+  });
+
+  test('rows from another format version are deleted unread', async () => {
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg', { version: 0 });
+    expect(await verify('photos/a.jpg')).toBe(true);
+    expect(hashReads).toHaveLength(1);
+    expect(savedRows()).toEqual([]);
+    await store().persistMediaHashes();
+    expect(savedRows().map((row) => row.format_version)).toEqual([1]);
+  });
+
+  test('hashes saved over 30 days ago are read again, a few per pass', async () => {
+    const old = Date.now() - 31 * 24 * 60 * 60 * 1000;
+    const files = Array.from({ length: 5 }, (_, index) => `photos/${index}.jpg`);
+    for (const [index, path] of files.entries()) {
+      addPhoto(`photo-${index}`, path);
+      saveRow(path, { hashedAt: old });
+    }
+    for (const path of files) expect(await verify(path)).toBe(true);
+    expect(hashReads).toHaveLength(4);
+    await store().persistMediaHashes();
+    for (const path of files) expect(await verify(path)).toBe(true);
+    expect(hashReads).toHaveLength(5);
+    await store().persistMediaHashes();
+    expect(savedRows().every((row) => row.hashed_at > old)).toBe(true);
+  });
 });

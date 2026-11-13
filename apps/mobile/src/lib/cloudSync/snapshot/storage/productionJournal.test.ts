@@ -3,7 +3,7 @@ import { LocalStorageError } from '../sync/types';
 import {
   ProductionSnapshotJournalStore,
   ProductionSnapshotMediaStore,
-  clearInspectedMediaFiles,
+  forgetMediaHashes,
   verifyLocalMediaFile,
 } from './productionJournal';
 import { sha256Text } from '../sha256';
@@ -50,13 +50,16 @@ jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'synthetic-uuid') })
 
 jest.mock('~/db', () => ({
   cloudConflicts: {},
+  // The saved hash table is covered by the Bun integration suite.
+  cloudSyncMediaHashCache: { kind: 'hash-cache' },
   cloudSyncState: {},
   cloudTombstones: {},
   customPrompts: {},
   db: {
+    delete: () => ({ where: async () => {} }),
     select: () => ({
       from: (table: { kind: string }) =>
-        Object.assign(Promise.resolve(mockMediaRows), {
+        Object.assign(Promise.resolve(table.kind === 'hash-cache' ? [] : mockMediaRows), {
           where: async () => (table.kind === 'media' ? mockLive : mockRetained),
         }),
     }),
@@ -90,7 +93,7 @@ describe('verifyLocalMediaFile', () => {
   beforeEach(() => {
     mockExistingUris.clear();
     mockStats.clear();
-    clearInspectedMediaFiles();
+    forgetMediaHashes();
     mockInspectLocalMediaFile.mockReset();
     mockLive = [];
     mockRetained = [];
@@ -161,7 +164,7 @@ describe('cached media hashes', () => {
   beforeEach(() => {
     mockExistingUris.clear();
     mockStats.clear();
-    clearInspectedMediaFiles();
+    forgetMediaHashes();
     mockInspectLocalMediaFile.mockReset();
     mockLive = [{ uri, bytes: 8 }];
     mockRetained = [];
@@ -306,7 +309,7 @@ describe('remote apply with a staged download', () => {
   beforeEach(() => {
     mockExistingUris.clear();
     mockStats.clear();
-    clearInspectedMediaFiles();
+    forgetMediaHashes();
     mockInspectLocalMediaFile.mockReset();
     mockCopyVerifiedMediaFile.mockReset();
     mockLive = [];

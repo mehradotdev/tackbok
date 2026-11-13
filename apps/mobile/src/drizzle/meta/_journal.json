@@ -50,6 +50,13 @@
       "when": 1794029609481,
       "tag": "0006_blushing_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794557549886,
+      "tag": "0007_media_hash_cache",
+      "breakpoints": true
     }
   ]
 }
