@@ -18,6 +18,7 @@ import { SyncRuntime, type RuntimePlatform, type RuntimeSyncEngine } from './Syn
 import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
 import { SyncProgressTracker, type SyncProgressSnapshot } from './progress';
 import { addCloudSyncMutationListener } from './mutationSignal';
+import { bumpMediaRevision } from './mediaRevision';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { readCloudSyncFailureCategory } from '../failureClassification';
 import { SyncCancelledError } from '../snapshot/sync/errors';
@@ -128,6 +129,7 @@ export async function createProductionRuntimeEngine(
     onProgress: (report) => productionCloudSyncProgress.report(report),
     onRemoteApplied: async () => {
       // Downloads reach entries and the restore progress while a pass runs.
+      bumpMediaRevision();
       notifyProductionCloudSyncChanged();
       await onRemoteApplied?.();
     },

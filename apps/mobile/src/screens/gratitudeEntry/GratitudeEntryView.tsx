@@ -5,8 +5,6 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
 import type { Entry, Asset } from '~/types';
-import { filterExistingPhotos, filterUnavailableAttachments } from '~/lib/photoUtils';
-import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { track } from '~/lib/analytics';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
@@ -18,7 +16,7 @@ import { PolaroidPhoto } from '~/components/PolaroidPhoto';
 import { AudioPlayer } from '~/components/AudioPlayer';
 import { OtherVersionBadge } from '~/components/OtherVersionBadge';
 import { PendingAttachmentsNote } from '~/components/PendingAttachmentsNote';
-import { useDownloadedMediaCount } from '~/lib/cloudSync/ui';
+import { useAvailableAttachments } from '~/hooks/useAvailableAttachments';
 import {
   AlertDialog,
   AlertDialogDestructiveAction,
@@ -74,15 +72,8 @@ export function GratitudeEntryView({
     .map((id) => tagMap.get(id.trim()))
     .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined);
 
-  // Re-check files below whenever downloaded attachments arrive.
-  useDownloadedMediaCount();
-
-  // Extract photo assets (only those whose files exist on disk)
-  const photos = filterExistingPhotos(entry.assets ?? null);
-
-  // Extract voice memo assets (only those whose files still exist on disk)
-  const voiceMemos = filterExistingVoiceMemos(entry.assets ?? null);
-  const unavailableCount = filterUnavailableAttachments(entry.assets ?? null).length;
+  // Only attachments whose files are on disk; the rest are still downloading.
+  const { photos, voiceMemos, unavailable } = useAvailableAttachments(entry.assets);
   const canShare = Boolean(title?.trim() || content?.trim());
 
   const handleDelete = async () => {
@@ -193,7 +184,7 @@ export function GratitudeEntryView({
           </View>
         )}
 
-        <PendingAttachmentsNote count={unavailableCount} />
+        <PendingAttachmentsNote count={unavailable.length} />
       </ScrollView>
 
       {canShare ? (

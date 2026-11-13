@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react-native';
 import { useEntry } from '~/hooks/useGratitude';
 import { MOOD_OPTIONS } from '~/constants';
-import { filterExistingPhotos } from '~/lib/photoUtils';
+import { useAvailableAttachments } from '~/hooks/useAvailableAttachments';
 import { formatLocalizedDate, useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import {
@@ -58,10 +58,8 @@ export function EntryShareScreen({ noteId }: { noteId?: string }) {
 
   // The card enforces its own five-photo cap; this list only decides whether the
   // "Include photos" switch is offered at all.
-  const photos = React.useMemo(
-    () => filterExistingPhotos(entry?.assets ?? null),
-    [entry?.assets],
-  );
+  // Photos still downloading join once their files arrive.
+  const { photos } = useAvailableAttachments(entry?.assets);
   const moodOption = entry?.mood
     ? MOOD_OPTIONS.find((option) => option.value === entry.mood)
     : null;

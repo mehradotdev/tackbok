@@ -72,19 +72,6 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-/**
- * Changes when cloud sync finishes downloading attachments. Screens that hide
- * attachments whose files are missing read it to re-check them on arrival:
- * the entry rows themselves do not change when a file arrives.
- */
-export function useDownloadedMediaCount(): number {
-  return useSyncExternalStore(
-    subscribe,
-    () => cachedSnapshot.downloadedMediaCount,
-    () => 0,
-  );
-}
-
 export function useCloudSyncSnapshot(): {
   snapshot: CloudSyncSnapshot;
   refresh: () => Promise<void>;
