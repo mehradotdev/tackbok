@@ -320,12 +320,17 @@ test('backing out of the account picker is silent, in setup and in Reconnect', a
   expect(mockToast.error).toHaveBeenCalledTimes(1);
 });
 
-test('keeps the Other versions row whether or not Google Drive is connected', async () => {
+test('keeps conflicts and other versions reachable after Disconnect', async () => {
+  const reachable = () => [
+    root.root.findAllByType('ConflictsCard' as never).length,
+    root.root.findAllByType('OtherVersionsRow' as never).length,
+  ];
   await render();
-  expect(root.root.findAllByType('OtherVersionsRow' as never)).toHaveLength(1);
+  expect(reachable()).toEqual([1, 1]);
   act(() => root.unmount());
+  // Disconnect keeps the vault, and its open conflicts, with status disabled.
   mockSnapshot.configured = false;
   mockSnapshot.status = 'off';
   await render();
-  expect(root.root.findAllByType('OtherVersionsRow' as never)).toHaveLength(1);
+  expect(reachable()).toEqual([1, 1]);
 });

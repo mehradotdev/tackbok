@@ -773,8 +773,14 @@ export default function CloudBackupScreen() {
               </Button>
             </View>
           ))}
-        {/* Other versions outlive the connection, so keep a way to them when it is off. */}
-        {stage === 'overview' && !showsConnection && <OtherVersionsRow />}
+        {/* Conflicts and other versions outlive the connection, so they stay
+            reachable after Disconnect; the Home notice points here. */}
+        {stage === 'overview' && !showsConnection && (
+          <>
+            <ConflictsCard refreshToken={snapshot} />
+            <OtherVersionsRow />
+          </>
+        )}
       </ScrollView>
 
       <TrueSheet
