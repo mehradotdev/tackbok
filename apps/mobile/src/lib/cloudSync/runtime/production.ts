@@ -18,6 +18,7 @@ import { SyncRuntime, type RuntimePlatform, type RuntimeSyncEngine } from './Syn
 import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
 import { SyncProgressTracker, type SyncProgressSnapshot } from './progress';
 import { addCloudSyncMutationListener } from './mutationSignal';
+import { bumpMediaRevision } from './mediaRevision';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { readCloudSyncFailureCategory } from '../failureClassification';
 import { SyncCancelledError } from '../snapshot/sync/errors';
@@ -105,6 +106,7 @@ async function retryBackfill(): Promise<void> {
 
 export async function createProductionRuntimeEngine(
   onRemoteApplied?: () => void | Promise<void>,
+  { backgroundTask = false }: { backgroundTask?: boolean } = {},
 ): Promise<RuntimeSyncEngine | null> {
   // A setup the app died in may have stored another account's credentials.
   await reconcileAbandonedConnectionSetup();
@@ -125,7 +127,13 @@ export async function createProductionRuntimeEngine(
     vault: configured,
     onActivity: setProductionCloudSyncActivity,
     onProgress: (report) => productionCloudSyncProgress.report(report),
-    onRemoteApplied,
+    onRemoteApplied: async () => {
+      // Downloads reach entries and the restore progress while a pass runs.
+      bumpMediaRevision();
+      notifyProductionCloudSyncChanged();
+      await onRemoteApplied?.();
+    },
+    hydrationBatchesPerPass: backgroundTask ? 1 : undefined,
   });
 }
 
@@ -219,7 +227,9 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const startedAt = Date.now();
     try {
-      const engine = await createProductionRuntimeEngine();
+      const engine = await createProductionRuntimeEngine(undefined, {
+        backgroundTask: true,
+      });
       if (!engine) return true;
       track('cloud_sync_started', { trigger: 'periodic' });
       const result = await engine.sync();

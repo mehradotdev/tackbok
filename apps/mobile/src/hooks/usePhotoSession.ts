@@ -56,7 +56,14 @@ interface UsePhotoSessionReturn {
   discardAllChanges: () => void;
 }
 
-export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
+/**
+ * `reservedCount` counts photos the entry keeps but this session cannot show,
+ * such as ones still downloading from a cloud backup; they use up capacity.
+ */
+export function usePhotoSession(
+  initialPhotos: Asset[],
+  reservedCount = 0,
+): UsePhotoSessionReturn {
   const { t } = useTranslation();
   const [photos, setPhotos] = useState<Asset[]>(initialPhotos);
   const [isAddingPhotos, setIsAddingPhotos] = useState(false);
@@ -83,7 +90,7 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
 
       const uris = takeUrisWithinCapacity(
         result.uris,
-        photosRef.current.length,
+        photosRef.current.length + reservedCount,
         pendingCountRef.current,
       );
       if (uris.length === 0) {
@@ -118,7 +125,7 @@ export function usePhotoSession(initialPhotos: Asset[]): UsePhotoSessionReturn {
         setIsAddingPhotos(pendingCountRef.current > 0);
       }
     },
-    [t, updatePhotos],
+    [reservedCount, t, updatePhotos],
   );
 
   const removePhoto = useCallback(

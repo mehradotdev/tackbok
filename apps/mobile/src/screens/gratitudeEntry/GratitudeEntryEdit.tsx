@@ -24,14 +24,15 @@ import {
   MAX_VOICE_MEMOS_PER_ENTRY,
   SHEET_NAMES,
 } from '~/constants';
-import type { Entry, Mood, Asset } from '~/types';
+import { AssetType, type Entry, type Mood, type Asset } from '~/types';
 import {
   useTranslation,
   formatLocalizedTime,
   formatLocalizedDate,
   formatTimeLabel,
 } from '~/lib/i18n';
-import { filterExistingPhotos } from '~/lib/photoUtils';
+import { filterExistingPhotos, filterUnavailableAttachments } from '~/lib/photoUtils';
+import { attachmentsToSave } from '~/lib/entryAttachments';
 import { addReceivedImage, type ReceivedImage } from '~/lib/clipboardPhoto';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import {
@@ -58,6 +59,7 @@ import {
   type ReceivedImageRejection,
 } from '~/components/ImageReceivingInput';
 import { AudioPlayer } from '~/components/AudioPlayer';
+import { PendingAttachmentsNote } from '~/components/PendingAttachmentsNote';
 import {
   AlertDialog,
   AlertDialogDestructiveAction,
@@ -168,6 +170,15 @@ function GratitudeEntryEditForm({
     : [];
   const initialPhotos = filterExistingPhotos(initialEntry?.assets ?? null);
   const initialVoiceMemos = filterExistingVoiceMemos(initialEntry?.assets ?? null);
+  // Attachments still downloading are not editable here, but saving keeps them.
+  // Read once: one that finishes downloading mid-edit must not be dropped.
+  const [unavailableAttachments] = useState(() =>
+    filterUnavailableAttachments(initialEntry?.assets ?? null),
+  );
+  const unavailablePhotoCount = unavailableAttachments.filter(
+    (asset) => asset.type === AssetType.IMAGE,
+  ).length;
+  const unavailableVoiceMemoCount = unavailableAttachments.length - unavailablePhotoCount;
 
   // Lazy initializers: Date.now()/Math.random() are impure and must not run
   // on re-renders (react-hooks/purity) — inside an initializer they run once.
@@ -224,7 +235,7 @@ function GratitudeEntryEditForm({
     removePhoto,
     commitRemovedPhotos,
     discardAllChanges: discardPhotoChanges,
-  } = usePhotoSession(initialPhotos);
+  } = usePhotoSession(initialPhotos, unavailablePhotoCount);
 
   // Voice memo session: same pattern as photos
   const {
@@ -238,7 +249,7 @@ function GratitudeEntryEditForm({
 
   // Limit-check handlers — gate modal opening with max-count toasts
   const handlePhotoRequest = useCallback(() => {
-    const remaining = MAX_PHOTOS_PER_ENTRY - photos.length;
+    const remaining = MAX_PHOTOS_PER_ENTRY - photos.length - unavailablePhotoCount;
     if (remaining <= 0) {
       toast.warning(
         t('entry.maximumCountPhotosPerEntry', { count: MAX_PHOTOS_PER_ENTRY }),
@@ -246,7 +257,7 @@ function GratitudeEntryEditForm({
       return;
     }
     setIsAddPhotoVisible(true);
-  }, [photos.length, t]);
+  }, [photos.length, unavailablePhotoCount, t]);
 
   // Images from the Android keyboard, paste or drop go through the regular photo
   // path, which enforces the photo limit and shows its toasts.
@@ -278,7 +289,8 @@ function GratitudeEntryEditForm({
   );
 
   const handleVoiceMemoRequest = useCallback(() => {
-    const remaining = MAX_VOICE_MEMOS_PER_ENTRY - voiceMemos.length;
+    const remaining =
+      MAX_VOICE_MEMOS_PER_ENTRY - voiceMemos.length - unavailableVoiceMemoCount;
     if (remaining <= 0) {
       toast.warning(
         t('entry.maximumCountVoiceMemosPerEntry', {
@@ -288,7 +300,7 @@ function GratitudeEntryEditForm({
       return;
     }
     TrueSheet.present(SHEET_NAMES.VOICE_MEMO);
-  }, [voiceMemos.length, t]);
+  }, [voiceMemos.length, unavailableVoiceMemoCount, t]);
 
   // Original values for change detection (initializer runs at mount, so
   // `timestamp` here is the mount-time value)
@@ -312,7 +324,8 @@ function GratitudeEntryEditForm({
     !!content.trim() ||
     mood !== null ||
     photos.length > 0 ||
-    voiceMemos.length > 0;
+    voiceMemos.length > 0 ||
+    unavailableAttachments.length > 0;
   const dateLabel = formatLocalizedDate(timestamp, t, { relative: true });
   const timeLabel = formatTimeLabel(timestamp, t);
   const formattedTime = formatLocalizedTime(new Date(timestamp), locale);
@@ -386,8 +399,12 @@ function GratitudeEntryEditForm({
     isSaving.current = true;
     const id = initialEntry?.note_id || randomUUID();
 
-    // Build the combined assets array (photos + voice memos)
-    const allAssets: Asset[] = [...photos, ...voiceMemos];
+    // Kept attachments, including ones still downloading, keep their order.
+    const allAssets = attachmentsToSave(
+      initialEntry?.assets,
+      [...photos, ...voiceMemos],
+      unavailableAttachments,
+    );
 
     try {
       const entryToSave = {
@@ -761,6 +778,8 @@ function GratitudeEntryEditForm({
             </View>
           )}
 
+          <PendingAttachmentsNote count={unavailableAttachments.length} />
+
           {/* Bottom spacer to prevent content from being hidden behind FloatingActionDock */}
           {!isKeyboardVisible && <View className="h-28" />}
           {isKeyboardVisible && <View className="h-16" />}
@@ -804,7 +823,7 @@ function GratitudeEntryEditForm({
       <AddPhotoModal
         visible={isAddPhotoVisible}
         onClose={() => setIsAddPhotoVisible(false)}
-        currentPhotoCount={photos.length}
+        currentPhotoCount={photos.length + unavailablePhotoCount}
         onPhotosPicked={handlePhotosPicked}
       />
 

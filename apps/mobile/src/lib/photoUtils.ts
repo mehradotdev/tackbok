@@ -11,6 +11,7 @@ import {
   PHOTOS_DIR_NAME,
 } from '~/constants';
 import { type Asset, AssetType } from '~/types';
+import { voiceMemoFileExists } from '~/lib/voiceMemoUtils';
 
 /** Returns the photos directory (creates it if it doesn't exist). */
 function getPhotosDir(): Directory {
@@ -64,6 +65,18 @@ export function photoFileExists(relativeUri: string): boolean {
 export function filterExistingPhotos(assets: Asset[] | null): Asset[] {
   if (!assets || assets.length === 0) return [];
   return assets.filter((a) => a.type === AssetType.IMAGE && photoFileExists(a.uri));
+}
+
+/**
+ * Photos and voice notes whose files are not on this device, such as those a
+ * cloud restore is still downloading. Screens hide them, but an edit must keep
+ * them, or saving would remove them from the entry and from the backup.
+ */
+export function filterUnavailableAttachments(assets: Asset[] | null): Asset[] {
+  if (!assets || assets.length === 0) return [];
+  return assets.filter((a) =>
+    a.type === AssetType.IMAGE ? !photoFileExists(a.uri) : !voiceMemoFileExists(a.uri),
+  );
 }
 
 /**

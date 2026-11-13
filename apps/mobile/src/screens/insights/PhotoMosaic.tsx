@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getFullPhotoUri } from '~/lib/photoUtils';
+import { getFullPhotoUri, photoFileExists } from '~/lib/photoUtils';
+import { useMediaFiles } from '~/hooks/useAvailableAttachments';
 import { formatLocalizedDate, useTranslation } from '~/lib/i18n';
 import type { InsightsStats } from '~/lib/insights';
 import { InsightsSection } from './shared';
@@ -11,9 +12,13 @@ export function PhotoMosaic({ stats }: { stats: InsightsStats }) {
   const router = useRouter();
   const { t } = useTranslation();
 
+  // Photos still downloading from a cloud backup appear once their files arrive.
+  const recentPhotos = useMediaFiles(() =>
+    stats.recentPhotos.filter((photo) => photoFileExists(photo.uri)),
+  );
   const photos = useMemo(
     () =>
-      stats.recentPhotos.flatMap((photo, index) => {
+      recentPhotos.flatMap((photo, index) => {
         try {
           return [
             {
@@ -27,7 +32,7 @@ export function PhotoMosaic({ stats }: { stats: InsightsStats }) {
           return [];
         }
       }),
-    [stats.recentPhotos],
+    [recentPhotos],
   );
 
   if (photos.length === 0) return null;

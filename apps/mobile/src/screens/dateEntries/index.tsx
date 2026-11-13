@@ -7,8 +7,8 @@ import { cn } from 'tailwind-variants';
 import { MOOD_OPTIONS } from '~/constants';
 import { type Entry, type Asset } from '~/types';
 import { combineDateWithCurrentTime } from '~/lib/utils';
-import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
-import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
+import { getFullPhotoUri } from '~/lib/photoUtils';
+import { useAvailableAttachments } from '~/hooks/useAvailableAttachments';
 import { useTranslation, formatLocalizedTime, formatLocalizedDate } from '~/lib/i18n';
 import { useEntriesForDay, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
@@ -52,11 +52,8 @@ export function EntryItem({
     .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined)
     .sort((a, b) => a.title.localeCompare(b.title));
 
-  // Extract photo assets (only those whose files exist on disk)
-  const photos = filterExistingPhotos(entry.assets ?? null);
-
-  // Extract voice memo assets (only those whose files still exist on disk)
-  const voiceMemos = filterExistingVoiceMemos(entry.assets ?? null);
+  // Only attachments whose files are on disk; the rest are still downloading.
+  const { photos, voiceMemos } = useAvailableAttachments(entry.assets);
 
   return (
     <Pressable

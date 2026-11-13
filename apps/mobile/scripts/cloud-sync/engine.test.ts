@@ -1736,7 +1736,7 @@ describe('durable snapshot publisher', () => {
     expect(app.provider.snapshotIds(app.vaultId)).toEqual([]);
   });
 
-  test('remote text restores without publishing when Wi-Fi-only policy defers its verified blob', async () => {
+  test('a restore applies remote text without downloading its media', async () => {
     const provider = new FakeSnapshotProvider();
     const bytes = new TextEncoder().encode('synthetic-remote-photo');
     const blobHash = sha256Bytes(bytes);
@@ -1772,22 +1772,41 @@ describe('durable snapshot publisher', () => {
       source.clock,
       source.vaultId,
     );
-    provider.failNext(
-      'download-media',
-      new SnapshotProviderError('wifi-only-media', 'waiting-for-wifi'),
-    );
+    const sourceRequests = provider.requests.length;
     expect(await restoring.engine().sync()).toMatchObject({
       status: 'pulled',
       actionableChanges: 0,
     });
+    // The journal references the photo; the runtime downloads it afterwards.
     expect(restoring.journal.current().entries).toContainEqual(
       expect.objectContaining({
         entryId: 'entry-remote-media',
         content: 'Restored text',
       }),
     );
+    expect(restoring.journal.current().media.map((asset) => asset.blobHash)).toEqual([
+      blobHash,
+    ]);
     expect(await restoring.media.hasVerified(blobHash)).toBe(false);
-    expect(restoring.provider.requests).toContain('download-media');
+    expect(provider.requests).not.toContain('download-media');
+
+    // An edit before the photo arrives still publishes a snapshot that keeps
+    // it: the provider holds the blob, so nothing is uploaded or downloaded.
+    restoring.journal.mutate(
+      withEntry(restoring.journal.current(), entry('entry-local', 'Edited meanwhile')),
+    );
+    expect(await restoring.engine().sync()).toMatchObject({ status: 'published' });
+    const head = (await provider.listHeads(restoring.vaultId)).find(
+      ({ head }) => head.deviceId === restoring.deviceId,
+    )!;
+    const published = decodeSnapshot(
+      (await provider.downloadSnapshot(restoring.vaultId, head.head.snapshotId))!,
+      head.head.snapshotId,
+    ).payload;
+    expect(published.media.map((asset) => asset.blobHash)).toEqual([blobHash]);
+    const restoringRequests = provider.requests.slice(sourceRequests);
+    expect(restoringRequests).not.toContain('download-media');
+    expect(restoringRequests).not.toContain('upload-media');
   });
 
   test('an actually absent remote blob still restores text before durable Attention', async () => {
@@ -3276,13 +3295,8 @@ describe('detailed sync progress', () => {
     expect(snapshot).toMatchObject({ step: 2, items: { done: 1, total: 1 } });
     expect(snapshot?.bytes?.done).toBe(published?.bytes?.total);
     expect(download.seen.map(({ phase }) => phase)).toContain('merging');
-    expect(
-      download.seen.findLast(({ phase }) => phase === 'downloading-media'),
-    ).toMatchObject({
-      step: 4,
-      items: { done: 2, total: 2 },
-      bytes: { done: photoBytes, total: photoBytes },
-    });
+    // Photos download after the pass applies the journal, in the runtime.
+    expect(download.seen.map(({ phase }) => phase)).not.toContain('downloading-media');
 
     // The next pass starts over: nothing from the previous pass carries in.
     download.seen.length = 0;
@@ -3437,7 +3451,7 @@ describe('detailed sync progress', () => {
     }
   });
 
-  test('a Wi-Fi hold on media leaves the metadata upload its own progress', async () => {
+  test('remote media missing locally leaves the metadata upload its own progress', async () => {
     const provider = new FakeSnapshotProvider();
     const photo = new Uint8Array([10, 11]);
     const remote = withEntry(blankDomain(), entry('entry-remote', 'Remote photo'));
@@ -3450,33 +3464,16 @@ describe('detailed sync progress', () => {
     const target = harness('device-wifi-target', blankDomain(), provider, source.clock);
     target.journal.mutate(withEntry(blankDomain(), entry('entry-local', 'Local text')));
     const progress = recordProgress(provider);
-    const downloadMedia = provider.downloadMedia.bind(provider);
-    let held = false;
-    // Mirrors the production media policy: report the hold, then refuse.
-    provider.downloadMedia = async (...args) => {
-      if (held) return downloadMedia(...args);
-      held = true;
-      progress.tracker.report({ type: 'wait', reason: 'wifi-only-media' });
-      throw new SnapshotProviderError('wifi-only-media', 'Media is waiting for Wi-Fi');
-    };
 
     expect((await progress.pass(target.engine(progress.hooks()))).status).toBe(
       'published',
     );
-    expect(
-      progress.seen.find(({ phase }) => phase === 'downloading-media')?.waiting,
-    ).toBeUndefined();
-    expect(progress.seen.findLast(({ phase }) => phase === 'downloading-media')).toEqual(
-      expect.objectContaining({ waiting: { reason: 'wifi-only-media' } }),
-    );
+    expect(progress.seen.map(({ phase }) => phase)).not.toContain('downloading-media');
     const uploading = progress.seen.filter(({ phase }) => phase === 'uploading');
     expect(uploading.length).toBeGreaterThan(0);
     for (const value of uploading) expect(value.waiting).toBeUndefined();
-    // The hold still shows once the pass is idle.
-    expect(progress.tracker.current).toEqual({
-      progress: null,
-      idleWait: 'wifi-only-media',
-    });
+    expect(provider.requests).not.toContain('download-media');
+    expect(progress.tracker.current.progress).toBeNull();
   });
 });
 

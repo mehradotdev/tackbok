@@ -68,6 +68,9 @@ interface RunningVaultPass {
 
 const runningVaultPasses = new Map<string, RunningVaultPass>();
 
+/** Pending attachments downloaded between checks for cancellation and edits. */
+const HYDRATION_BATCH = 2;
+
 /**
  * Verified snapshots shared by every engine in this process, so passes skip
  * downloading heads that have not changed. Any connection change (disconnect,
@@ -180,6 +183,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     private readonly connectionEpoch = cloudConnectionLifecycle.epoch,
     private readonly cancellation: PassCancellation = { signal: null },
     private readonly onProgress: (report: SyncProgressReport) => void = () => {},
+    /** OS background tasks have little time; they download one batch per pass. */
+    private readonly hydrationBatchesPerPass = Number.POSITIVE_INFINITY,
   ) {}
 
   hasPendingWork(): boolean {
@@ -349,11 +354,20 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       );
     }
 
+    // The journal, text included, is applied by now; attachments the backup
+    // holds but this device lacks wait as pending rows. Show the text before
+    // downloading them.
+    if (result.status === 'published' || result.status === 'pulled') {
+      useSettingsStore.getState().markCloudRestoreJournalRestored(this.vault.vault_id);
+      await this.refreshAppliedViews();
+    }
+
     let hydrated = 0;
     throwIfCancelled(signal);
     try {
-      // Totals cover every waiting attachment; this pass downloads a bounded
-      // batch and the follow-up passes continue with the rest.
+      // Totals cover every waiting attachment. Downloads run in small batches
+      // so cancellation and local edits are noticed between them; edits stop
+      // the downloads, and the follow-up pass publishes them and continues.
       const waiting = await db
         .select({ blobHash: mediaAssets.blob_hash, byteSize: mediaAssets.byte_size })
         .from(mediaAssets)
@@ -366,24 +380,46 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           bytesTotal: pendingMediaBytes(waiting),
         });
       }
-      const hydration = await this.journal.hydratePendingMedia(
-        this.mediaProvider,
-        2,
-        () => this.onProgress({ type: 'item', phase: 'downloading-media' }),
-      );
-      hydrated = hydration.hydrated;
-      // Local completion may finish after cancellation; record nothing from it.
-      throwIfCancelled(signal);
-      if (hydration.missing > 0) {
-        this.state.setPause(
-          this.vault.vault_id,
-          this.vault.device_id,
-          'missing-media',
-          'remote-media-disappeared-during-hydration',
+      for (let batch = 1; ; batch += 1) {
+        const hydration = await this.journal.hydratePendingMedia(
+          this.mediaProvider,
+          HYDRATION_BATCH,
+          () => this.onProgress({ type: 'item', phase: 'downloading-media' }),
         );
-        throw new SnapshotRuntimeFailure('corrupt');
+        hydrated += hydration.hydrated;
+        // Local completion may finish after cancellation; record nothing from it.
+        throwIfCancelled(signal);
+        if (hydration.missing > 0) {
+          this.state.setPause(
+            this.vault.vault_id,
+            this.vault.device_id,
+            'missing-media',
+            'remote-media-disappeared-during-hydration',
+          );
+          throw new SnapshotRuntimeFailure('corrupt');
+        }
+        if (hydration.hydrated > 0) await this.onRemoteApplied?.();
+        // A short batch means nothing is left. The count read above bounds
+        // the loop even if a row were to stay pending.
+        if (
+          hydration.hydrated < HYDRATION_BATCH ||
+          hydrated >= waiting.length ||
+          batch >= this.hydrationBatchesPerPass
+        )
+          break;
+        const durable = this.state.loadState(this.vault.vault_id, this.vault.device_id);
+        if (durable.journalGeneration > durable.settledGeneration) break;
       }
     } catch (error) {
+      // A batch can save some files before it fails; show them. A cancelled
+      // pass refreshes screens on its own path.
+      if (!(error instanceof SyncCancelledError)) {
+        try {
+          await this.onRemoteApplied?.();
+        } catch {
+          // A failed screen refresh must not replace the hydration error.
+        }
+      }
       if (error instanceof SnapshotRuntimeFailure) throw error;
       throwIfCancelled(signal);
       if (
@@ -434,7 +470,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         updated_at: now,
       })
       .where(eq(cloudVault.vault_id, this.vault.vault_id));
-    // This pass applied the backup's journal, which a restore waits for.
+    // An up-to-date pass also proves the journal is applied.
     useSettingsStore.getState().markCloudRestoreJournalRestored(this.vault.vault_id);
     await reapRetainedMedia();
 
@@ -506,6 +542,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
   onActivity: (phase: SyncPassPhase | 'idle') => void;
   onProgress?: (report: SyncProgressReport) => void;
   onRemoteApplied?: () => void | Promise<void>;
+  hydrationBatchesPerPass?: number;
 }): Promise<ProductionSnapshotRuntimeEngine> {
   const connectionEpoch = cloudConnectionLifecycle.epoch;
   const cancellation: PassCancellation = { signal: null };
@@ -558,5 +595,6 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     connectionEpoch,
     cancellation,
     onProgress,
+    options.hydrationBatchesPerPass,
   );
 }

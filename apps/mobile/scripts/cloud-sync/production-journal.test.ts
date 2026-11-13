@@ -1170,3 +1170,92 @@ test('an older client full clear at updatedAt 0 conflicts after a restore', asyn
   ).toBe(true);
   expect((await store.capture()).localProfilePristine).toBe(false);
 });
+
+test('a restore shows entry text with its photo pending, then hydration downloads it', async () => {
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_sync_state',
+  );
+  existingFiles.clear();
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'text-first', device_id: 'device', updated_at: 1 })
+    .run();
+  // Nothing is staged or local until the provider delivers the blob.
+  let staged = false;
+  const store = new ProductionSnapshotJournalStore('text-first', 'device', {
+    stagedFile: () => (staged ? { uri: 'file:///staged.jpg' } : null),
+    verifiedLocalFile: async () => null,
+    openDownloadSink: async () => ({}),
+    deleteStaged: () => {
+      staged = false;
+    },
+  } as never);
+  const domain: SnapshotDomain = {
+    entries: [
+      {
+        entryId: 'entry',
+        title: null,
+        content: 'Restored text',
+        mood: null,
+        createdAt: 1,
+        updatedAt: 1,
+        conflictOriginId: null,
+      },
+    ],
+    tags: [],
+    entryTags: [],
+    prompts: [],
+    media: [
+      {
+        assetId: 'photo',
+        ownerType: 'entry',
+        ownerId: 'entry',
+        kind: 'photo',
+        blobHash: fakeBlobHash,
+        mimeType: 'image/jpeg',
+        byteSize: 1,
+        width: 1,
+        height: 1,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ],
+    tombstones: [],
+    conflicts: [],
+    profile: {
+      profileId: 'profile',
+      displayName: null,
+      photoAssetId: null,
+      updatedAt: 1,
+    },
+  };
+  expect(await store.applyMergedIfGeneration(domain, 0, { remoteDerived: true })).toBe(
+    true,
+  );
+  const [restored] = db.select().from(schema.entries).all();
+  expect(restored.text_content).toBe('Restored text');
+  const photoUri = restored.assets![0].uri;
+  const [pending] = db.select().from(schema.mediaAssets).all();
+  expect(pending).toMatchObject({ download_state: 'pending', local_uri: photoUri });
+
+  const downloaded: string[] = [];
+  expect(
+    await store.hydratePendingMedia(
+      {
+        downloadMedia: async (_vaultId: string, blobHash: string) => {
+          downloaded.push(blobHash);
+          staged = true;
+          return true;
+        },
+      } as never,
+      2,
+    ),
+  ).toEqual({ hydrated: 1, missing: 0 });
+  expect(downloaded).toEqual([fakeBlobHash]);
+  const [hydrated] = db.select().from(schema.mediaAssets).all();
+  expect(hydrated).toMatchObject({ download_state: 'verified', local_uri: photoUri });
+  expect(copiedMedia.at(-1)).toEqual({
+    from: 'file:///staged.jpg',
+    to: expect.stringContaining(photoUri),
+  });
+});

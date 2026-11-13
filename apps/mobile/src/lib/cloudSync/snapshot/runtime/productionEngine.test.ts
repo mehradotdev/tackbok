@@ -3,6 +3,7 @@ import type { SnapshotSyncEngine } from '../sync/engine';
 import type { ProductionSnapshotJournalStore } from '../storage';
 import type { SnapshotProvider } from '../sync/types';
 import { SyncCancelledError } from '../sync/errors';
+import { SnapshotProviderError } from '../sync/types';
 import type { JournalSnapshotPayload } from '../types';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import {
@@ -13,28 +14,28 @@ import {
 
 const mockWrites: string[] = [];
 const mockMarkJournalRestored = jest.fn();
+// Rows every media select returns: the waiting attachments a pass reads.
+let mockPendingMedia: unknown[] = [];
 function mockQuery(kind: string): unknown {
   const chain: Record<string, unknown> = {};
-  for (const method of [
-    'from',
-    'where',
-    'limit',
-    'values',
-    'onConflictDoUpdate',
-    'set',
-  ]) {
+  let rows: unknown[] = [];
+  chain.from = (table: unknown) => {
+    if ((table as { name?: string }).name === 'media_assets') rows = mockPendingMedia;
+    return chain;
+  };
+  for (const method of ['where', 'limit', 'values', 'onConflictDoUpdate', 'set']) {
     chain[method] = () => chain;
   }
   chain.then = (resolve: (rows: unknown[]) => unknown) => {
     if (kind !== 'select') mockWrites.push(kind);
-    return Promise.resolve([]).then(resolve);
+    return Promise.resolve(kind === 'select' ? rows : []).then(resolve);
   };
   return chain;
 }
 jest.mock('~/db', () => ({
   cloudConflicts: {},
   cloudVault: {},
-  mediaAssets: {},
+  mediaAssets: { name: 'media_assets' },
   syncProviderState: {},
   userProfile: {},
   sqlite: { getFirstSync: () => ({ value: 0 }) },
@@ -87,6 +88,8 @@ function harness(
   options: {
     engineSync?: () => Promise<unknown>;
     hydrate?: () => Promise<{ hydrated: number; missing: number }>;
+    loadState?: () => { journalGeneration: number; settledGeneration: number };
+    hydrationBatchesPerPass?: number;
   } = {},
 ): Harness {
   const setPause = jest.fn();
@@ -97,7 +100,8 @@ function harness(
   const runtime = new ProductionSnapshotRuntimeEngine(
     { vault_id: vaultId, device_id: 'device', status: 'idle' },
     {
-      loadState: () => ({ journalGeneration: 0, settledGeneration: 0 }),
+      loadState:
+        options.loadState ?? (() => ({ journalGeneration: 0, settledGeneration: 0 })),
       setPause,
     } as unknown as SQLiteSyncStateStore,
     { sync: engineSync } as unknown as SnapshotSyncEngine,
@@ -107,6 +111,10 @@ function harness(
     {} as SnapshotProvider,
     () => {},
     remoteApplied,
+    undefined,
+    undefined,
+    undefined,
+    options.hydrationBatchesPerPass,
   );
   return { runtime, setPause, engineSync, remoteApplied };
 }
@@ -123,6 +131,7 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 beforeEach(() => {
   mockWrites.length = 0;
+  mockPendingMedia = [];
   mockMarkJournalRestored.mockClear();
 });
 
@@ -143,6 +152,92 @@ test('a pass that needs attention or a retry records no restored journal', async
     await expect(app.runtime.sync()).rejects.toBeDefined();
   }
   expect(mockMarkJournalRestored).not.toHaveBeenCalled();
+});
+
+test('applied text reaches screens before pending media downloads, then every batch downloads', async () => {
+  mockPendingMedia = Array.from({ length: 5 }, (_, index) => ({
+    blobHash: `blob-${index}`,
+    byteSize: 1,
+  }));
+  const order: string[] = [];
+  const batches = [2, 2, 1];
+  const app = harness('vault-text-first', {
+    engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
+    hydrate: async () => {
+      order.push('hydrate');
+      return { hydrated: batches.shift() ?? 0, missing: 0 };
+    },
+  });
+  mockMarkJournalRestored.mockImplementation(() => order.push('journal-restored'));
+  app.remoteApplied.mockImplementation(() => order.push('screens'));
+  await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
+  expect(order.slice(0, 3)).toEqual(['journal-restored', 'screens', 'hydrate']);
+  expect(order.filter((value) => value === 'hydrate')).toHaveLength(3);
+  // Each batch shows its photos as soon as they arrive.
+  expect(order.slice(2, 8)).toEqual([
+    'hydrate',
+    'screens',
+    'hydrate',
+    'screens',
+    'hydrate',
+    'screens',
+  ]);
+  mockMarkJournalRestored.mockReset();
+});
+
+test('local edits stop the downloads so a follow-up pass publishes them first', async () => {
+  mockPendingMedia = Array.from({ length: 6 }, (_, index) => ({
+    blobHash: `blob-${index}`,
+    byteSize: 1,
+  }));
+  const hydrate = jest.fn(async () => ({ hydrated: 2, missing: 0 }));
+  let edited = false;
+  const app = harness('vault-edit-during-hydration', {
+    hydrate: async () => {
+      edited = true;
+      return hydrate();
+    },
+    loadState: () => ({ journalGeneration: edited ? 1 : 0, settledGeneration: 0 }),
+  });
+  await app.runtime.sync();
+  expect(hydrate).toHaveBeenCalledTimes(1);
+  expect(app.runtime.hasPendingWork()).toBe(true);
+});
+
+test('a background task downloads one batch per pass', async () => {
+  mockPendingMedia = Array.from({ length: 6 }, (_, index) => ({
+    blobHash: `blob-${index}`,
+    byteSize: 1,
+  }));
+  const hydrate = jest.fn(async () => ({ hydrated: 2, missing: 0 }));
+  const app = harness('vault-background-hydration', {
+    hydrate,
+    hydrationBatchesPerPass: 1,
+  });
+  await app.runtime.sync();
+  expect(hydrate).toHaveBeenCalledTimes(1);
+});
+
+test('files saved before a hydration batch fails still reach screens', async () => {
+  for (const failure of ['missing', 'provider'] as const) {
+    mockPendingMedia = [
+      { blobHash: 'blob', byteSize: 1 },
+      { blobHash: 'gone', byteSize: 1 },
+    ];
+    const order: string[] = [];
+    const app = harness(`vault-partial-${failure}`, {
+      engineSync: async () => ({ status: 'up-to-date', actionableChanges: 0 }),
+      hydrate: async () => {
+        order.push('hydrate');
+        // The first file is saved, then the second one fails.
+        if (failure === 'missing') return { hydrated: 1, missing: 1 };
+        throw new SnapshotProviderError('authorization-required', 'Signed out mid-batch');
+      },
+    });
+    app.remoteApplied.mockImplementation(() => order.push('screens'));
+    await expect(app.runtime.sync()).rejects.toBeDefined();
+    expect(order).toEqual(['hydrate', 'screens']);
+  }
 });
 
 test('a stopped caller stops waiting for a joined pass without cancelling or overlapping it', async () => {
@@ -212,8 +307,9 @@ test('cancellation during local hydration records no pause or success but refres
       SyncCancelledError,
     );
     expect(app.setPause).not.toHaveBeenCalled();
-    // The pulled journal is already committed; screens must not stay stale.
-    expect(app.remoteApplied).toHaveBeenCalledTimes(1);
+    // The pulled journal reaches screens before media downloads, and again
+    // after cancellation for whatever hydrated meanwhile.
+    expect(app.remoteApplied).toHaveBeenCalledTimes(2);
     expect(mockWrites).toEqual([]);
   }
 });
