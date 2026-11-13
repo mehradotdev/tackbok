@@ -18,6 +18,7 @@ import { PolaroidPhoto } from '~/components/PolaroidPhoto';
 import { AudioPlayer } from '~/components/AudioPlayer';
 import { OtherVersionBadge } from '~/components/OtherVersionBadge';
 import { PendingAttachmentsNote } from '~/components/PendingAttachmentsNote';
+import { useDownloadedMediaCount } from '~/lib/cloudSync/ui';
 import {
   AlertDialog,
   AlertDialogDestructiveAction,
@@ -72,6 +73,9 @@ export function GratitudeEntryView({
     .filter((tag) => tag.trim().length > 0)
     .map((id) => tagMap.get(id.trim()))
     .filter((tag): tag is NonNullable<typeof tag> => tag !== undefined);
+
+  // Re-check files below whenever downloaded attachments arrive.
+  useDownloadedMediaCount();
 
   // Extract photo assets (only those whose files exist on disk)
   const photos = filterExistingPhotos(entry.assets ?? null);

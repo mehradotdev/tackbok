@@ -234,7 +234,7 @@ function GratitudeEntryEditForm({
     removePhoto,
     commitRemovedPhotos,
     discardAllChanges: discardPhotoChanges,
-  } = usePhotoSession(initialPhotos);
+  } = usePhotoSession(initialPhotos, unavailablePhotoCount);
 
   // Voice memo session: same pattern as photos
   const {

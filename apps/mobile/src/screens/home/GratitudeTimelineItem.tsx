@@ -8,6 +8,7 @@ import { useSettingsStore } from '~/lib/settings';
 import { useTranslation, formatLocalizedTime, formatLocalizedDate } from '~/lib/i18n';
 import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
+import { useDownloadedMediaCount } from '~/lib/cloudSync/ui';
 import { useTagMapping } from '~/hooks/useGratitude';
 import { Text } from '~/components/ui/text';
 import {
@@ -242,6 +243,8 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const showTimelineBorders = useSettingsStore((state) => state.showTimelineBorders);
   const dateIncludesDayOfWeek = useSettingsStore((state) => state.dateIncludesDayOfWeek);
   const tagMap = useTagMapping();
+  // Re-check attachment files whenever downloaded attachments arrive.
+  useDownloadedMediaCount();
   const animatedButtonRef = useRef<AnimatedButtonHandle>(null);
 
   // Image Viewer State — single instance shared by both collapsed strip and expanded rows

@@ -9,6 +9,7 @@ import { type Entry, type Asset } from '~/types';
 import { combineDateWithCurrentTime } from '~/lib/utils';
 import { getFullPhotoUri, filterExistingPhotos } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
+import { useDownloadedMediaCount } from '~/lib/cloudSync/ui';
 import { useTranslation, formatLocalizedTime, formatLocalizedDate } from '~/lib/i18n';
 import { useEntriesForDay, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
@@ -42,6 +43,8 @@ export function EntryItem({
   showDate = false,
 }: IEntryItemProps) {
   const { t, locale } = useTranslation();
+  // Re-check attachment files whenever downloaded attachments arrive.
+  useDownloadedMediaCount();
   const time = formatLocalizedTime(new Date(entry.created_at), locale);
 
   const moodOption = entry.mood ? MOOD_OPTIONS.find((o) => o.value === entry.mood) : null;
