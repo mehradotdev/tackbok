@@ -134,19 +134,40 @@ function rememberInspection(
   }
 }
 
+/** A recreated file must be read again, even with an identical stamp. */
+function localMediaFileExists(uri: string | null): uri is string {
+  if (fileExists(uri)) return true;
+  const key = uri === null ? null : canonicalFileUri(uri);
+  if (key !== null) inspectedFiles.delete(key);
+  return false;
+}
+
 /** Test hook: forget every cached file hash. */
 export function clearInspectedMediaFiles(): void {
   inspectedFiles.clear();
+}
+
+/** Hashes a file, reusing an unchanged earlier read only if `reuseHashes`. */
+async function inspectMediaFile(
+  uri: string,
+  reuseHashes: boolean,
+): Promise<{ sha256: string; byteSize: number }> {
+  if (reuseHashes) return inspectUnchangedLocalMediaFile(uri);
+  const before = fileStamp(uri);
+  const inspected = await inspectLocalMediaFile(uri);
+  rememberInspection(before, uri, inspected);
+  return inspected;
 }
 
 export async function verifyLocalMediaFile(
   uri: string | null,
   expectedSha256: string,
   expectedByteSize: number | null,
+  reuseHashes = true,
 ): Promise<boolean> {
-  if (!fileExists(uri)) return false;
+  if (!localMediaFileExists(uri)) return false;
   try {
-    const inspected = await inspectUnchangedLocalMediaFile(uri);
+    const inspected = await inspectMediaFile(uri, reuseHashes);
     return (
       inspected.sha256 === expectedSha256 &&
       (expectedByteSize === null || inspected.byteSize === expectedByteSize)
@@ -368,16 +389,9 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
     bytes: number | null,
     reuseHashes: boolean,
   ) {
-    if (!fileExists(uri)) return null;
+    if (!localMediaFileExists(uri)) return null;
     try {
-      let inspected;
-      if (reuseHashes) {
-        inspected = await inspectUnchangedLocalMediaFile(uri);
-      } else {
-        const before = fileStamp(uri);
-        inspected = await inspectLocalMediaFile(uri);
-        rememberInspection(before, uri, inspected);
-      }
+      const inspected = await inspectMediaFile(uri, reuseHashes);
       if (inspected.sha256 !== hash || (bytes !== null && inspected.byteSize !== bytes))
         return null;
       return { uri, byteSize: inspected.byteSize };
@@ -1004,7 +1018,14 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       const existing = byIdentity.get(`${asset.assetId}\0${asset.blobHash}`);
       if (existing?.local_uri) {
         if (
-          await verifyLocalMediaFile(existing.local_uri, asset.blobHash, asset.byteSize)
+          await verifyLocalMediaFile(
+            existing.local_uri,
+            asset.blobHash,
+            asset.byteSize,
+            // A verified file lets the staged download be deleted below, so
+            // only an unstaged blob may rely on a cached hash.
+            this.mediaStore.stagedFile(asset.blobHash) === null,
+          )
         ) {
           result.set(asset.assetId, { uri: existing.local_uri, verified: true });
           continue;
@@ -1037,7 +1058,12 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     );
     if (destination.exists) {
       try {
-        const inspected = await inspectUnchangedLocalMediaFile(destination.uri);
+        // As in materializeMedia: a staged download is only dropped after a
+        // fresh read of the file that replaces it.
+        const inspected = await inspectMediaFile(
+          destination.uri,
+          this.mediaStore.stagedFile(asset.blobHash) === null,
+        );
         if (
           inspected.byteSize === asset.byteSize &&
           inspected.sha256 === asset.blobHash

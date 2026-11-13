@@ -217,6 +217,23 @@ describe('cached media hashes', () => {
     expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
   });
 
+  test('a deleted file recreated with the same stamp is read again', async () => {
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    mockExistingUris.delete(uri);
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(false);
+    mockExistingUris.add(uri);
+    mockInspectLocalMediaFile.mockResolvedValue({ sha256: 'b'.repeat(64), byteSize: 8 });
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(false);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
+  });
+
+  test('verification without hash reuse always reads the file', async () => {
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    mockInspectLocalMediaFile.mockResolvedValue({ sha256: 'b'.repeat(64), byteSize: 8 });
+    await expect(verifyLocalMediaFile(uri, hash, 8, false)).resolves.toBe(false);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
+  });
+
   test('a file without a modification time is never cached', async () => {
     mockStats.delete(uri);
     await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
