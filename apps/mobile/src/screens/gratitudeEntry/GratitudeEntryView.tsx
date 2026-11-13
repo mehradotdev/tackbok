@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
 import type { Entry, Asset } from '~/types';
-import { filterExistingPhotos } from '~/lib/photoUtils';
+import { filterExistingPhotos, filterUnavailableAttachments } from '~/lib/photoUtils';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { track } from '~/lib/analytics';
@@ -17,6 +17,7 @@ import { Icon } from '~/components/ui/icon';
 import { PolaroidPhoto } from '~/components/PolaroidPhoto';
 import { AudioPlayer } from '~/components/AudioPlayer';
 import { OtherVersionBadge } from '~/components/OtherVersionBadge';
+import { PendingAttachmentsNote } from '~/components/PendingAttachmentsNote';
 import {
   AlertDialog,
   AlertDialogDestructiveAction,
@@ -77,6 +78,7 @@ export function GratitudeEntryView({
 
   // Extract voice memo assets (only those whose files still exist on disk)
   const voiceMemos = filterExistingVoiceMemos(entry.assets ?? null);
+  const unavailableCount = filterUnavailableAttachments(entry.assets ?? null).length;
   const canShare = Boolean(title?.trim() || content?.trim());
 
   const handleDelete = async () => {
@@ -186,6 +188,8 @@ export function GratitudeEntryView({
             ))}
           </View>
         )}
+
+        <PendingAttachmentsNote count={unavailableCount} />
       </ScrollView>
 
       {canShare ? (

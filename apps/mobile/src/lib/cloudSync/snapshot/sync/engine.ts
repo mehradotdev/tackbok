@@ -634,6 +634,14 @@ export class SnapshotSyncEngine {
     );
   }
 
+  /**
+   * Uploads the local media the merged journal needs and the provider lacks.
+   * Remote media missing locally is not downloaded here: applying the journal
+   * records it as a pending attachment, so a restore shows the text first and
+   * the runtime hydrates the files afterwards. A blob counts as present only
+   * when the provider reports it, so a published snapshot never references
+   * media that neither side holds.
+   */
   private async synchronizeMedia(
     local: SnapshotDomain,
     remotes: RemoteHeadSnapshot[],
@@ -647,102 +655,23 @@ export class SnapshotSyncEngine {
     const requiredHashes = [
       ...new Set(merged.media.map((asset) => asset.blobHash)),
     ].sort();
-    const remoteDerived = remotes.some((remote) =>
-      includesOtherDevices(remote.payload, this.deviceId),
-    );
     const remotelyPresent = await this.provider.hasMediaBatch(
       this.vaultId,
       requiredHashes,
     );
-    // Decide every transfer before the first one starts, so progress knows
-    // the totals. Each blob is still inspected once, in the same order.
-    const plan: {
-      blobHash: string;
-      remotePresent: boolean;
-      localPresent: boolean;
-      source: MediaUploadSource | null;
-    }[] = [];
+    // Open every source before the first upload, so progress knows the totals.
+    const uploads: { blobHash: string; source: MediaUploadSource }[] = [];
     for (const blobHash of requiredHashes) {
-      const remotePresent = remotelyPresent.has(blobHash);
-      // An upload source already proves local availability. Do not hash the
-      // same bytes first for hasVerified and then again to open the source.
-      // hasVerified may reuse the hash of a file unchanged since its last read.
-      const source = remotePresent
-        ? null
-        : await this.mediaStore.openVerifiedSource(blobHash);
-      const localPresent = remotePresent
-        ? await this.mediaStore.hasVerified(blobHash)
-        : source !== null;
-      plan.push({ blobHash, remotePresent, localPresent, source });
-      // Planning reads every file first; a cancelled pass stops between them.
-      await this.hooks.at?.('during-media-inspection');
-    }
-    const byteSize = new Map(
-      merged.media.map((asset) => [asset.blobHash, asset.byteSize]),
-    );
-    const uploads = plan.filter((item) => !item.remotePresent && item.localPresent);
-    const downloads = plan.filter((item) => item.remotePresent && !item.localPresent);
-    if (uploads.length > 0) {
-      this.hooks.progress?.({
-        type: 'plan',
-        phase: 'uploading-media',
-        items: { done: 0, total: uploads.length },
-        bytesTotal: uploads.reduce((total, item) => total + item.source!.byteLength, 0),
-      });
-    }
-    if (downloads.length > 0) {
-      this.hooks.progress?.({
-        type: 'plan',
-        phase: 'downloading-media',
-        items: { done: 0, total: downloads.length },
-        bytesTotal: downloads.reduce(
-          (total, item) => total + (byteSize.get(item.blobHash) ?? 0),
-          0,
-        ),
-      });
-    }
-    for (const { blobHash, remotePresent, localPresent, source } of plan) {
-      if (!remotePresent && localPresent) {
-        if (!source || source.contentHash !== blobHash) {
-          throw new AttentionError('local-media-unreadable', 'local-media-hash-mismatch');
-        }
-        this.hooks.progress?.({ type: 'phase', phase: 'uploading-media' });
-        await this.provider.uploadMedia(this.vaultId, blobHash, source);
-        this.hooks.progress?.({ type: 'item', phase: 'uploading-media' });
-        await this.hooks.at?.('during-media-transfer');
-      } else if (remotePresent && !localPresent) {
-        this.hooks.progress?.({ type: 'phase', phase: 'downloading-media' });
-        try {
-          const downloaded = await this.provider.downloadMedia(
-            this.vaultId,
-            blobHash,
-            await this.mediaStore.openDownloadSink(blobHash),
-          );
-          if (!downloaded) {
-            await this.journal.applyMergedIfGeneration(merged, capturedGeneration, {
-              remoteDerived,
-            });
-            throw new AttentionError('missing-media', 'remote-media-hash-mismatch');
-          }
-          this.hooks.progress?.({ type: 'item', phase: 'downloading-media' });
-          await this.hooks.at?.('during-media-transfer');
-        } catch (error) {
-          // A policy/transient download block (notably Wi-Fi-only media) must
-          // not hold back the compressed metadata snapshot. The production
-          // journal records a visible pending attachment and hydrates it in a
-          // later bounded media pass. Integrity/auth failures remain blocking.
-          if (
-            !(error instanceof SnapshotProviderError) ||
-            !['transient', 'rate-limited', 'wifi-only-media'].includes(error.code)
-          )
-            throw error;
-        }
-      } else if (!remotePresent && !localPresent) {
+      if (remotelyPresent.has(blobHash)) continue;
+      const source = await this.mediaStore.openVerifiedSource(blobHash);
+      if (!source) {
         // Apply the already-validated logical journal before pausing. This
         // keeps a fresh text restore useful while still refusing to publish a
         // snapshot that references an absent remote blob.
         await this.journal.applyMergedIfGeneration(merged, capturedGeneration, {
-          remoteDerived,
+          remoteDerived: remotes.some((remote) =>
+            includesOtherDevices(remote.payload, this.deviceId),
+          ),
         });
         throw new AttentionError(
           localHashes.has(blobHash) && !remoteHashes.has(blobHash)
@@ -751,6 +680,26 @@ export class SnapshotSyncEngine {
           'required-media-unavailable',
         );
       }
+      if (source.contentHash !== blobHash) {
+        throw new AttentionError('local-media-unreadable', 'local-media-hash-mismatch');
+      }
+      uploads.push({ blobHash, source });
+      // Planning reads every file first; a cancelled pass stops between them.
+      await this.hooks.at?.('during-media-inspection');
+    }
+    if (uploads.length > 0) {
+      this.hooks.progress?.({
+        type: 'plan',
+        phase: 'uploading-media',
+        items: { done: 0, total: uploads.length },
+        bytesTotal: uploads.reduce((total, { source }) => total + source.byteLength, 0),
+      });
+    }
+    for (const { blobHash, source } of uploads) {
+      this.hooks.progress?.({ type: 'phase', phase: 'uploading-media' });
+      await this.provider.uploadMedia(this.vaultId, blobHash, source);
+      this.hooks.progress?.({ type: 'item', phase: 'uploading-media' });
+      await this.hooks.at?.('during-media-transfer');
     }
   }
 

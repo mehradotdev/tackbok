@@ -105,6 +105,7 @@ async function retryBackfill(): Promise<void> {
 
 export async function createProductionRuntimeEngine(
   onRemoteApplied?: () => void | Promise<void>,
+  { backgroundTask = false }: { backgroundTask?: boolean } = {},
 ): Promise<RuntimeSyncEngine | null> {
   // A setup the app died in may have stored another account's credentials.
   await reconcileAbandonedConnectionSetup();
@@ -125,7 +126,12 @@ export async function createProductionRuntimeEngine(
     vault: configured,
     onActivity: setProductionCloudSyncActivity,
     onProgress: (report) => productionCloudSyncProgress.report(report),
-    onRemoteApplied,
+    onRemoteApplied: async () => {
+      // Downloads reach entries and the restore progress while a pass runs.
+      notifyProductionCloudSyncChanged();
+      await onRemoteApplied?.();
+    },
+    hydrationBatchesPerPass: backgroundTask ? 1 : undefined,
   });
 }
 
@@ -219,7 +225,9 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const startedAt = Date.now();
     try {
-      const engine = await createProductionRuntimeEngine();
+      const engine = await createProductionRuntimeEngine(undefined, {
+        backgroundTask: true,
+      });
       if (!engine) return true;
       track('cloud_sync_started', { trigger: 'periodic' });
       const result = await engine.sync();
