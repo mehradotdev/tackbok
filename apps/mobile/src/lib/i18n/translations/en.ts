@@ -885,6 +885,11 @@ export const en = {
   'cloud.conflicts.otherVersionsDescription':
     'These entries were edited on two devices at once, so both versions were kept. Open one to edit or delete it.',
   'cloud.conflicts.noOtherVersions': 'No entries have another version.',
+  // Home notice shown while conflicts from sync still need a look.
+  'cloud.conflicts.homeNotice':
+    'Some changes were made on two devices at once. See what was kept.',
+  // Description of the Cloud backup row that opens the Other versions screen.
+  'cloud.conflicts.otherVersionsRow': 'Entries kept in two versions',
   'cloud.conflicts.loadFailed': 'These choices could not be loaded.',
   'cloud.conflicts.otherVersionsLoadFailed': 'The other versions could not be loaded.',
   'cloud.conflicts.showOlderNames': 'Show older name versions',

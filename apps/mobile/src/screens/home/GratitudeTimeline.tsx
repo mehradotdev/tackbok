@@ -18,6 +18,7 @@ import { TimelineItem } from './GratitudeTimelineItem';
 import { GratitudeMilestone, isMilestone } from './GratitudeMilestone';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { CloudRestoreCard } from './CloudRestoreCard';
+import { ConflictNoticeCard } from './ConflictNoticeCard';
 import { SampleEntriesBanner } from './SampleEntriesBanner';
 
 interface IGratitudeTimelineProps {
@@ -218,6 +219,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         ListHeaderComponent={
           <>
             <CloudRestoreCard />
+            <ConflictNoticeCard />
             <SampleEntriesBanner />
           </>
         }

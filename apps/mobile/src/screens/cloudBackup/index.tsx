@@ -70,6 +70,7 @@ import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { SetupProgress } from './setup-progress';
 import { SyncStatusLine } from './sync-status';
 import { ConflictsCard } from './ConflictsCard';
+import { OtherVersionsRow } from './OtherVersionsRow';
 import {
   attentionReasonMessage,
   cloudSyncFailureMessage,
@@ -460,6 +461,10 @@ export default function CloudBackupScreen() {
                 ),
                 button: t('cloud.finishDeletion'),
               };
+  const showsConnection =
+    snapshot.configured ||
+    snapshot.status === 'paused' ||
+    Boolean(snapshot.attentionReason && snapshot.recoveryAction);
 
   return (
     <View className="flex-1 bg-background">
@@ -524,9 +529,7 @@ export default function CloudBackupScreen() {
         )}
 
         {stage === 'overview' &&
-          (snapshot.configured ||
-          snapshot.status === 'paused' ||
-          Boolean(snapshot.attentionReason && snapshot.recoveryAction) ? (
+          (showsConnection ? (
             <>
               <View className="rounded-lg border border-border bg-card p-4 gap-3">
                 <View className="flex-row items-center justify-between gap-3">
@@ -707,6 +710,7 @@ export default function CloudBackupScreen() {
               </View>
 
               <ConflictsCard refreshToken={snapshot} />
+              <OtherVersionsRow />
 
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow
@@ -769,6 +773,8 @@ export default function CloudBackupScreen() {
               </Button>
             </View>
           ))}
+        {/* Other versions outlive the connection, so keep a way to them when it is off. */}
+        {stage === 'overview' && !showsConnection && <OtherVersionsRow />}
       </ScrollView>
 
       <TrueSheet

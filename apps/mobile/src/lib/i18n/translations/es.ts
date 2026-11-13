@@ -848,6 +848,9 @@ export const es = {
   'cloud.conflicts.otherVersionsDescription':
     'Estas entradas se editaron en dos dispositivos a la vez, así que se conservaron ambas versiones. Abre una para editarla o eliminarla.',
   'cloud.conflicts.noOtherVersions': 'Ninguna entrada tiene otra versión.',
+  'cloud.conflicts.homeNotice':
+    'Se hicieron algunos cambios en dos dispositivos a la vez. Mira qué se conservó.',
+  'cloud.conflicts.otherVersionsRow': 'Entradas que se conservaron en dos versiones',
   'cloud.conflicts.loadFailed': 'No se pudieron cargar estas opciones.',
   'cloud.conflicts.otherVersionsLoadFailed': 'No se pudieron cargar las otras versiones.',
   'cloud.conflicts.showOlderNames': 'Mostrar versiones anteriores del nombre',

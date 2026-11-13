@@ -116,6 +116,7 @@ jest.mock('~/components/ui/alert-dialog', () => ({
 }));
 jest.mock('./setup-progress', () => ({ SetupProgress: 'SetupProgress' }));
 jest.mock('./ConflictsCard', () => ({ ConflictsCard: 'ConflictsCard' }));
+jest.mock('./OtherVersionsRow', () => ({ OtherVersionsRow: 'OtherVersionsRow' }));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -317,4 +318,14 @@ test('backing out of the account picker is silent, in setup and in Reconnect', a
   mockReconnect.mockRejectedValueOnce(new CloudAuthError('network'));
   await act(async () => reconnect.props.onPress());
   expect(mockToast.error).toHaveBeenCalledTimes(1);
+});
+
+test('keeps the Other versions row whether or not Google Drive is connected', async () => {
+  await render();
+  expect(root.root.findAllByType('OtherVersionsRow' as never)).toHaveLength(1);
+  act(() => root.unmount());
+  mockSnapshot.configured = false;
+  mockSnapshot.status = 'off';
+  await render();
+  expect(root.root.findAllByType('OtherVersionsRow' as never)).toHaveLength(1);
 });

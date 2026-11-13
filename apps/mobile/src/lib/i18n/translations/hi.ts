@@ -808,6 +808,9 @@ export const hi = {
   'cloud.conflicts.otherVersionsDescription':
     'ये प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं, इसलिए दोनों संस्करण रखे गए। किसी एक को संपादित करने या हटाने के लिए उसे खोलें।',
   'cloud.conflicts.noOtherVersions': 'किसी प्रविष्टि का कोई अन्य संस्करण नहीं है।',
+  'cloud.conflicts.homeNotice':
+    'कुछ बदलाव एक ही समय पर दो डिवाइस पर किए गए। देखें कि क्या रखा गया।',
+  'cloud.conflicts.otherVersionsRow': 'वे प्रविष्टियाँ जिनके दो संस्करण रखे गए',
   'cloud.conflicts.loadFailed': 'ये विकल्प लोड नहीं हो सके।',
   'cloud.conflicts.otherVersionsLoadFailed': 'अन्य संस्करण लोड नहीं हो सके।',
   'cloud.conflicts.showOlderNames': 'नाम के पुराने संस्करण दिखाएँ',

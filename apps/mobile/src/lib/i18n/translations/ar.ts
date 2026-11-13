@@ -865,6 +865,9 @@ export const ar: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     'عُدِّلت هذه السجلات على جهازين في الوقت نفسه، لذا احتُفظ بالنسختين. افتح أحدها لتعديله أو حذفه.',
   'cloud.conflicts.noOtherVersions': 'لا توجد سجلات لها نسخة أخرى.',
+  'cloud.conflicts.homeNotice':
+    'أُجريت بعض التغييرات على جهازين في الوقت نفسه. اطّلع على ما احتُفظ به.',
+  'cloud.conflicts.otherVersionsRow': 'سجلات احتُفظ بنسختين منها',
   'cloud.conflicts.loadFailed': 'تعذّر تحميل هذه الخيارات.',
   'cloud.conflicts.otherVersionsLoadFailed': 'تعذّر تحميل النسخ الأخرى.',
   'cloud.conflicts.showOlderNames': 'عرض النسخ الأقدم من الاسم',
