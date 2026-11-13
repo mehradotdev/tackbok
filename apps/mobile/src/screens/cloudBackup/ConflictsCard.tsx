@@ -6,7 +6,6 @@ import { useTranslation } from '~/lib/i18n';
 import { getFullPhotoUri } from '~/lib/photoUtils';
 import {
   acknowledgeCloudConflicts,
-  listCloudConflictItems,
   resolveNameConflict,
   resolvePhotoConflict,
   type CloudConflictItem,
@@ -15,55 +14,22 @@ import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
+import { activeConflictItems, useCloudConflictItems } from './useCloudConflictItems';
 
 type NameItem = Extract<CloudConflictItem, { kind: 'name' }>;
 
 /**
  * Conflicts this device can act on. Each row is dismissed by its own action;
  * records with nothing to act on are not listed (see `deriveConflictItems`).
- * The list reloads whenever `refreshToken` changes: pass the shared sync
- * snapshot, which is reloaded on focus, sync activity (including finished
- * photo downloads) and local journal changes.
+ * The list reloads whenever `refreshToken` changes (see `useCloudConflictItems`).
  */
 export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const [items, setItems] = useState<CloudConflictItem[]>([]);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const { items, loadFailed, refresh } = useCloudConflictItems(refreshToken);
   const [showArchived, setShowArchived] = useState(false);
   const [busy, setBusy] = useState(false);
   const mountedRef = useRef(true);
-  const loadingRef = useRef<Promise<void> | null>(null);
-  const reloadQueuedRef = useRef(false);
-
-  // Loads run one at a time; a request during a load queues one more, so the
-  // last result shown is never older than the last request.
-  const refresh = useCallback((): Promise<void> => {
-    if (loadingRef.current) {
-      reloadQueuedRef.current = true;
-      return loadingRef.current;
-    }
-    loadingRef.current = (async () => {
-      do {
-        reloadQueuedRef.current = false;
-        try {
-          const next = await listCloudConflictItems();
-          if (mountedRef.current) {
-            setItems(next);
-            setLoadFailed(false);
-          }
-        } catch {
-          if (mountedRef.current) {
-            setItems([]);
-            setLoadFailed(true);
-          }
-        }
-      } while (reloadQueuedRef.current);
-    })().finally(() => {
-      loadingRef.current = null;
-    });
-    return loadingRef.current;
-  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -71,10 +37,6 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
       mountedRef.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh, refreshToken]);
 
   const run = useCallback(
     async (action: () => Promise<void>) => {
@@ -95,7 +57,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
   const archivedNames = items.filter(
     (item): item is NameItem => item.kind === 'name' && item.archived,
   );
-  const activeItems = items.filter((item) => item.kind !== 'name' || !item.archived);
+  const activeItems = activeConflictItems(items);
   if (!loadFailed && items.length === 0) return null;
 
   const nameMessage = (item: NameItem) =>

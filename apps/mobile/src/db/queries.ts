@@ -231,6 +231,15 @@ export async function getEntriesWithOtherVersions(): Promise<Entry[]> {
   return result;
 }
 
+/** Number of entries that sync kept as another version of an entry. */
+export async function getOtherVersionCount(): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(entries)
+    .where(isNotNull(entries.conflict_origin_id));
+  return row?.count ?? 0;
+}
+
 /**
  * Get all dates (as YYYY-MM-DD strings) that have entries for a given month
  */

@@ -33,8 +33,12 @@ const db = drizzle(sqlite, {
 });
 mock.module('../../src/db', () => ({ ...schema, db, runExclusiveDbTransaction() {} }));
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
-const { getEntriesForDay, getEntriesWithOtherVersions, searchEntries } =
-  await import('../../src/db/queries');
+const {
+  getEntriesForDay,
+  getEntriesWithOtherVersions,
+  getOtherVersionCount,
+  searchEntries,
+} = await import('../../src/db/queries');
 afterAll(() => sqlite.close());
 
 function insertEntry(
@@ -138,6 +142,14 @@ test('getEntriesWithOtherVersions lists each original before its other versions'
     'origin-old',
     'recovered-old',
   ]);
+});
+
+test('getOtherVersionCount counts only entries kept as another version', async () => {
+  expect(await getOtherVersionCount()).toBe(0);
+  insertEntry('origin', 10);
+  insertEntry('recovered', 20, { conflict_origin_id: 'origin' });
+  insertEntry('recovered-orphan', 30, { conflict_origin_id: 'deleted-origin' });
+  expect(await getOtherVersionCount()).toBe(2);
 });
 
 test('getEntriesWithOtherVersions binds no ID list on a large journal', async () => {

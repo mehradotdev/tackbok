@@ -826,6 +826,9 @@ export const sv = {
   'cloud.conflicts.otherVersionsDescription':
     'De här anteckningarna redigerades på två enheter samtidigt, så båda versionerna sparades. Öppna en för att redigera eller ta bort den.',
   'cloud.conflicts.noOtherVersions': 'Inga anteckningar har en annan version.',
+  'cloud.conflicts.homeNotice':
+    'Några ändringar gjordes på två enheter samtidigt. Se vad som behölls.',
+  'cloud.conflicts.otherVersionsRow': 'Anteckningar som sparades i två versioner',
   'cloud.conflicts.loadFailed': 'Det gick inte att läsa in de här valen.',
   'cloud.conflicts.otherVersionsLoadFailed':
     'Det gick inte att läsa in de andra versionerna.',

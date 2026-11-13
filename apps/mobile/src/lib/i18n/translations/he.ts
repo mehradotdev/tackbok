@@ -858,6 +858,9 @@ export const he: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     'הרשומות האלה נערכו בשני מכשירים בו־זמנית, ולכן שתי הגרסאות נשמרו. אפשר לפתוח רשומה כדי לערוך או למחוק אותה.',
   'cloud.conflicts.noOtherVersions': 'אין רשומות עם גרסה אחרת.',
+  'cloud.conflicts.homeNotice':
+    'חלק מהשינויים נעשו בשני מכשירים בו־זמנית. אפשר לראות מה נשמר.',
+  'cloud.conflicts.otherVersionsRow': 'רשומות שנשמרו בשתי גרסאות',
   'cloud.conflicts.loadFailed': 'לא ניתן לטעון את האפשרויות האלה.',
   'cloud.conflicts.otherVersionsLoadFailed': 'לא ניתן לטעון את הגרסאות האחרות.',
   'cloud.conflicts.showOlderNames': 'הצגת גרסאות קודמות של השם',

@@ -837,6 +837,8 @@ export const zhTW: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     '這些紀錄同時在兩部裝置上被編輯，因此兩個版本都已保留。開啟一則紀錄即可編輯或刪除。',
   'cloud.conflicts.noOtherVersions': '沒有紀錄有其他版本。',
+  'cloud.conflicts.homeNotice': '有些變更同時在兩部裝置上進行。查看保留了哪些內容。',
+  'cloud.conflicts.otherVersionsRow': '保留了兩個版本的紀錄',
   'cloud.conflicts.loadFailed': '無法載入這些選項。',
   'cloud.conflicts.otherVersionsLoadFailed': '無法載入其他版本。',
   'cloud.conflicts.showOlderNames': '顯示較早的名稱版本',

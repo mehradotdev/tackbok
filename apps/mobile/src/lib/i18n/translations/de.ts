@@ -927,6 +927,9 @@ export const de: Translations = {
   'cloud.conflicts.otherVersionsDescription':
     'Diese Einträge wurden gleichzeitig auf zwei Geräten bearbeitet, deshalb wurden beide Versionen behalten. Öffne einen Eintrag, um ihn zu bearbeiten oder zu löschen.',
   'cloud.conflicts.noOtherVersions': 'Keine Einträge haben eine andere Version.',
+  'cloud.conflicts.homeNotice':
+    'Einige Änderungen wurden gleichzeitig auf zwei Geräten gemacht. Sieh nach, was behalten wurde.',
+  'cloud.conflicts.otherVersionsRow': 'Einträge, die in zwei Versionen behalten wurden',
   'cloud.conflicts.loadFailed': 'Diese Auswahl konnte nicht geladen werden.',
   'cloud.conflicts.otherVersionsLoadFailed':
     'Die anderen Versionen konnten nicht geladen werden.',

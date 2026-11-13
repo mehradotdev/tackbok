@@ -116,6 +116,7 @@ jest.mock('~/components/ui/alert-dialog', () => ({
 }));
 jest.mock('./setup-progress', () => ({ SetupProgress: 'SetupProgress' }));
 jest.mock('./ConflictsCard', () => ({ ConflictsCard: 'ConflictsCard' }));
+jest.mock('./OtherVersionsRow', () => ({ OtherVersionsRow: 'OtherVersionsRow' }));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -317,4 +318,19 @@ test('backing out of the account picker is silent, in setup and in Reconnect', a
   mockReconnect.mockRejectedValueOnce(new CloudAuthError('network'));
   await act(async () => reconnect.props.onPress());
   expect(mockToast.error).toHaveBeenCalledTimes(1);
+});
+
+test('keeps conflicts and other versions reachable after Disconnect', async () => {
+  const reachable = () => [
+    root.root.findAllByType('ConflictsCard' as never).length,
+    root.root.findAllByType('OtherVersionsRow' as never).length,
+  ];
+  await render();
+  expect(reachable()).toEqual([1, 1]);
+  act(() => root.unmount());
+  // Disconnect keeps the vault, and its open conflicts, with status disabled.
+  mockSnapshot.configured = false;
+  mockSnapshot.status = 'off';
+  await render();
+  expect(reachable()).toEqual([1, 1]);
 });

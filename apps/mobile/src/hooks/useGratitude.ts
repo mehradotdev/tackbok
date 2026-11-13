@@ -5,6 +5,7 @@ import { useSettingsStore } from '~/lib/settings';
 import {
   getEntriesForDay,
   getEntriesWithOtherVersions,
+  getOtherVersionCount,
   getEntryCount,
   getEntryDatesForMonth,
   searchEntries,
@@ -60,6 +61,17 @@ export function useEntriesWithOtherVersions() {
   return useQuery({
     queryKey: [QUERY_KEYS.entries, 'otherVersions'],
     queryFn: getEntriesWithOtherVersions,
+  });
+}
+
+/**
+ * Hook for the number of entries sync kept as another version. Lives under the
+ * entries key so edits, deletes and applied syncs refresh it.
+ */
+export function useOtherVersionCount() {
+  return useQuery<number>({
+    queryKey: [QUERY_KEYS.entries, 'otherVersionCount'],
+    queryFn: getOtherVersionCount,
   });
 }
 
