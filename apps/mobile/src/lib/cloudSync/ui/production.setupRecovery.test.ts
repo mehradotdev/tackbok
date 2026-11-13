@@ -110,7 +110,7 @@ const mockDb = {
 };
 
 jest.mock('expo-secure-store', () => ({
-  WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'unlocked',
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'after-first-unlock',
   getItemAsync: async (key: string) => {
     if (key === GUARD_KEY && mockGuardReadFails) throw new Error('keychain locked');
     const value = mockSecure.get(key) ?? null;
@@ -219,6 +219,9 @@ jest.mock('../storage/repositories', () => ({}));
 // The real background entry point, with an engine that records what it would use.
 jest.mock('react-native', () => ({ AppState: { currentState: 'background' } }));
 jest.mock('expo-network', () => ({}));
+jest.mock('../runtime/backgroundExecution', () => ({
+  beginBackgroundExecution: async () => null,
+}));
 jest.mock('../storage/backfill', () => ({
   isNormalizedModelReady: async () => true,
   runNormalizedModelBackfill: async () => {},

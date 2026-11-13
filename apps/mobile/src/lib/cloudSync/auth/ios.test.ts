@@ -28,7 +28,7 @@ jest.mock('expo-web-browser', () => ({
 }));
 
 jest.mock('expo-secure-store', () => ({
-  WHEN_UNLOCKED_THIS_DEVICE_ONLY: 'when-unlocked-this-device-only',
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'after-first-unlock-this-device-only',
   getItemAsync: async (key: string) => mockStore.get(key) ?? null,
   setItemAsync: async (key: string, value: string) => {
     mockStore.set(key, value);
