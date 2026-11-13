@@ -962,15 +962,17 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     let requeued = 0;
     for (const row of rows) {
       if (row.localUri !== null) {
+        // Canonical first: Android cannot open a bare absolute path.
+        const key = canonicalFileUri(row.localUri);
+        if (key === null) continue;
         let exists: boolean;
         try {
-          exists = fileForLocalUri(row.localUri).exists;
+          exists = new File(key).exists;
         } catch {
           continue;
         }
         if (exists) continue;
-        const key = canonicalFileUri(row.localUri);
-        if (key !== null) inspectedFiles.delete(key);
+        inspectedFiles.delete(key);
       }
       await db
         .update(mediaAssets)
@@ -1035,18 +1037,42 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       // The row already exists, so the copied file needs no rollback tracking.
       await serializeMediaFiles(async () => {
         const materialized = await this.materializeDescriptor(descriptor, []);
-        await db
-          .update(mediaAssets)
-          .set({
-            local_uri: materialized.uri,
-            download_state: 'verified',
-          })
-          .where(
-            and(
-              eq(mediaAssets.asset_id, row.asset_id),
-              eq(mediaAssets.blob_hash, descriptor.blobHash),
-            ),
-          );
+        await runExclusiveDbTransaction(async (tx) => {
+          await tx
+            .update(mediaAssets)
+            .set({
+              local_uri: materialized.uri,
+              download_state: 'verified',
+            })
+            .where(
+              and(
+                eq(mediaAssets.asset_id, row.asset_id),
+                eq(mediaAssets.blob_hash, descriptor.blobHash),
+              ),
+            );
+          // A re-downloaded file can land at a new path; screens read the
+          // entry's attachment list, so point it there too.
+          if (row.owner_type !== 'entry' || row.local_uri === materialized.uri) return;
+          const [entry] = await tx
+            .select({ assets: entries.assets })
+            .from(entries)
+            .where(eq(entries.note_id, row.owner_id))
+            .limit(1);
+          if (!entry?.assets) return;
+          let moved = false;
+          const assets = entry.assets.map((asset) => {
+            if (asset.assetId !== row.asset_id && asset.uri !== row.local_uri)
+              return asset;
+            moved = true;
+            return { ...asset, uri: materialized.uri };
+          });
+          if (moved) {
+            await tx
+              .update(entries)
+              .set({ assets })
+              .where(eq(entries.note_id, row.owner_id));
+          }
+        });
       });
       const remaining = await db
         .select({ id: mediaAssets.asset_id })

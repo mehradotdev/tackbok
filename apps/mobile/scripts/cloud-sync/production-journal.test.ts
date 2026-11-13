@@ -41,6 +41,8 @@ mock.module('../../src/db', () => ({
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
 // Files listed here exist on the fake disk and hash to `fakeBlobHash`.
 const existingFiles = new Set<string>();
+// Files whose existence check fails, like a passing I/O error.
+const unreadableFiles = new Set<string>();
 const fakeBlobHash = 'a'.repeat(64);
 const copiedMedia: { from: string; to: string }[] = [];
 const uriOf = (part: unknown) =>
@@ -64,6 +66,7 @@ mock.module('expo-file-system', () => ({
       return this.path;
     }
     get exists() {
+      if (unreadableFiles.has(this.uri)) throw new Error('I/O error');
       return existingFiles.has(this.uri);
     }
     delete() {
@@ -1263,7 +1266,11 @@ test('a restore shows entry text with its photo pending, then hydration download
 test('downloaded attachments whose file vanished are queued for download again', async () => {
   sqlite.exec('DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM entries');
   existingFiles.clear();
+  unreadableFiles.clear();
   existingFiles.add('file:///documents/photos/kept.jpg');
+  existingFiles.add('file:///abs/photos/kept-absolute.jpg');
+  existingFiles.add('file:///abs/photos/kept-scheme.jpg');
+  unreadableFiles.add('file:///documents/photos/unreadable.jpg');
   const row = (assetId: string, localUri: string, downloadState: 'verified' | 'n/a') => ({
     asset_id: assetId,
     owner_type: 'entry' as const,
@@ -1279,17 +1286,22 @@ test('downloaded attachments whose file vanished are queued for download again',
   db.insert(schema.mediaAssets)
     .values([
       row('kept', 'photos/kept.jpg', 'verified'),
+      row('kept-absolute', '/abs/photos/kept-absolute.jpg', 'verified'),
+      row('kept-scheme', 'file:///abs/photos/kept-scheme.jpg', 'verified'),
       row('vanished', 'photos/vanished.jpg', 'verified'),
+      // Bare absolute paths are checked too; Android cannot open them as is.
+      row('vanished-absolute', '/abs/photos/vanished.jpg', 'verified'),
+      row('vanished-scheme', 'file:///abs/photos/vanished-scheme.jpg', 'verified'),
       // Created on this device: it may not be in the backup, so it is never
       // queued for download; the upload path reports it instead.
       row('local', 'photos/local.jpg', 'n/a'),
       // The existence check itself fails: leave the row alone.
-      row('unreadable', '/no-scheme.jpg', 'verified'),
+      row('unreadable', 'photos/unreadable.jpg', 'verified'),
     ])
     .run();
   const store = new ProductionSnapshotJournalStore('requeue', 'device', {} as never);
 
-  expect(await store.requeueMissingVerifiedMedia()).toBe(1);
+  expect(await store.requeueMissingVerifiedMedia()).toBe(3);
   const states = Object.fromEntries(
     db
       .select()
@@ -1299,10 +1311,97 @@ test('downloaded attachments whose file vanished are queued for download again',
   );
   expect(states).toEqual({
     kept: 'verified',
+    'kept-absolute': 'verified',
+    'kept-scheme': 'verified',
     vanished: 'pending',
+    'vanished-absolute': 'pending',
+    'vanished-scheme': 'pending',
     local: 'n/a',
     unreadable: 'verified',
   });
   // Nothing new to queue on a second look.
   expect(await store.requeueMissingVerifiedMedia()).toBe(0);
+  unreadableFiles.clear();
+});
+
+test('a repaired attachment downloaded to a new path is visible from its entry', async () => {
+  sqlite.exec(
+    'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM entries; DELETE FROM cloud_sync_state',
+  );
+  existingFiles.clear();
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'repair', device_id: 'device', updated_at: 1 })
+    .run();
+  // A legacy attachment, without an asset ID, at a path the app no longer uses.
+  db.insert(schema.entries)
+    .values({
+      note_id: 'entry',
+      text_content: 'Text',
+      assets: [
+        { type: AssetType.IMAGE, uri: 'photos/other.jpg', assetId: 'other' },
+        { type: AssetType.IMAGE, uri: 'photos/original.jpg' },
+      ],
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  existingFiles.add('file:///documents/photos/other.jpg');
+  const media = (assetId: string, localUri: string) => ({
+    asset_id: assetId,
+    owner_type: 'entry' as const,
+    owner_id: 'entry',
+    kind: 'photo' as const,
+    local_uri: localUri,
+    download_state: 'verified' as const,
+    blob_hash: assetId === 'other' ? 'b'.repeat(64) : fakeBlobHash,
+    byte_size: 1,
+    created_at: 1,
+    updated_at: 1,
+  });
+  db.insert(schema.mediaAssets)
+    .values([
+      media('other', 'photos/other.jpg'),
+      media('original', 'photos/original.jpg'),
+    ])
+    .run();
+  let staged = false;
+  const store = new ProductionSnapshotJournalStore('repair', 'device', {
+    stagedFile: () => (staged ? { uri: 'file:///staged.jpg' } : null),
+    verifiedLocalFile: async () => null,
+    openDownloadSink: async () => ({}),
+    deleteStaged: () => {
+      staged = false;
+    },
+  } as never);
+  const orderBefore = (await store.capture()).domain.entries[0].attachmentOrder;
+
+  expect(await store.requeueMissingVerifiedMedia()).toBe(1);
+  expect(
+    await store.hydratePendingMedia(
+      {
+        downloadMedia: async () => {
+          staged = true;
+          return true;
+        },
+      } as never,
+      2,
+    ),
+  ).toEqual({ hydrated: 1, missing: 0 });
+
+  const repaired = db
+    .select()
+    .from(schema.mediaAssets)
+    .where(eq(schema.mediaAssets.asset_id, 'original'))
+    .all()[0];
+  expect(repaired.download_state).toBe('verified');
+  expect(repaired.local_uri).not.toBe('photos/original.jpg');
+  const [entryRow] = db.select().from(schema.entries).all();
+  // Screens read the entry's list: it points at the downloaded file, in order.
+  expect(entryRow.assets!.map((asset) => asset.uri)).toEqual([
+    'photos/other.jpg',
+    repaired.local_uri!,
+  ]);
+  expect(existingFiles.has(`file:///documents/${repaired.local_uri}`)).toBe(true);
+  // The journal itself is unchanged, attachment order included.
+  expect((await store.capture()).domain.entries[0].attachmentOrder).toEqual(orderBefore);
 });
