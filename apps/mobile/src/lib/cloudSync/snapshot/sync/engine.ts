@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import { BaseShadowManager, BaseShadowReadError } from './baseShadow';
 import { SnapshotCleanup } from './cleanup';
+import { unpublishedEntryMedia, withoutDeferredMedia } from './deferredMedia';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   ListedDeviceHead,
@@ -74,9 +75,20 @@ function statedUncompressedBytes(bytes: Uint8Array): number {
   );
 }
 
+/** Nothing to publish or apply, though attachments still wait for Wi-Fi. */
+interface WaitingForMedia {
+  upToDate: true;
+  deferredMediaCount: number;
+}
+
 interface PlannedCandidate {
   existingSnapshot?: RemoteHeadSnapshot;
+  /** What is published: the merge without the attachments waiting for Wi-Fi. */
   domain: SnapshotDomain;
+  /** The whole merge, applied locally so waiting attachments stay. */
+  appliedDomain: SnapshotDomain;
+  /** Attachments left out of `domain` until Wi-Fi. */
+  deferredMediaCount: number;
   capturedGeneration: number;
   parentSnapshotIds: string[];
   observedDeviceHeads: ObservedDeviceHead[];
@@ -171,6 +183,10 @@ export class SnapshotSyncEngine {
       decodedBytes: MAX_ANCESTOR_DECODED_BYTES,
     };
     let pending = this.stateStore.loadPending(this.vaultId, this.deviceId);
+    // Known only for a candidate planned in this pass; a resumed one recovers
+    // its waiting attachments from the local journal.
+    let appliedDomain: SnapshotDomain | undefined;
+    let deferredMediaCount = 0;
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       if (!pending) {
         if (durable.journalGeneration > durable.settledGeneration) {
@@ -178,16 +194,23 @@ export class SnapshotSyncEngine {
           await this.hooks.at?.('after-local-mutation');
         }
         const plan = await this.planCandidate(verifiedSnapshots, ancestorBudget);
-        if (!plan) {
+        if (!plan || 'upToDate' in plan) {
           await this.cleanup.run();
           this.stateStore.clearPause(this.vaultId, this.deviceId);
-          return { status: 'up-to-date', actionableChanges: 0 };
+          return {
+            status: 'up-to-date',
+            actionableChanges: 0,
+            deferredMediaCount: plan?.deferredMediaCount ?? 0,
+          };
         }
+        appliedDomain = plan.appliedDomain;
+        deferredMediaCount = plan.deferredMediaCount;
         if (plan.existingSnapshot) {
           await this.publisher.adopt(
             plan.existingSnapshot,
             plan.observedDeviceHeads,
             plan.capturedGeneration,
+            plan.appliedDomain,
           );
           const settled = this.stateStore.loadState(this.vaultId, this.deviceId);
           return {
@@ -197,6 +220,7 @@ export class SnapshotSyncEngine {
               settled.journalGeneration,
               settled.settledGeneration,
             ),
+            deferredMediaCount,
           };
         }
         pending = this.stateStore.createPending(
@@ -224,7 +248,7 @@ export class SnapshotSyncEngine {
         await this.hooks.at?.('after-candidate-persisted');
       }
 
-      if (!(await this.publisher.resume(pending))) {
+      if (!(await this.publisher.resume(pending, appliedDomain))) {
         // The candidate went stale before upload; its data is still local.
         pending = null;
         continue;
@@ -238,6 +262,7 @@ export class SnapshotSyncEngine {
           durable.journalGeneration,
           durable.settledGeneration,
         ),
+        deferredMediaCount,
       };
     }
     throw new SnapshotProviderError(
@@ -249,7 +274,7 @@ export class SnapshotSyncEngine {
   private async planCandidate(
     verifiedSnapshots: Map<string, JournalSnapshotPayload>,
     ancestorBudget: AncestorBudget,
-  ): Promise<PlannedCandidate | null> {
+  ): Promise<PlannedCandidate | WaitingForMedia | null> {
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       this.hooks.progress?.({ type: 'plan', phase: 'checking' });
       const listed = await this.provider.listHeads(this.vaultId, true);
@@ -269,10 +294,14 @@ export class SnapshotSyncEngine {
 
       const accepted = loadedBase.shadow?.acceptedDeviceHeads ?? [];
       const covered = headsCovered(remoteHeads, accepted);
+      const baseDomain = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
       if (
         loadedBase.shadow &&
         covered &&
-        durable.journalGeneration <= durable.settledGeneration
+        durable.journalGeneration <= durable.settledGeneration &&
+        // Attachments a publication left out for Wi-Fi are settled locally,
+        // yet still to publish.
+        unpublishedEntryMedia(captured.domain, baseDomain).length === 0
       ) {
         return null;
       }
@@ -325,7 +354,15 @@ export class SnapshotSyncEngine {
           remote.payload.conflicts.map((conflict) => conflict.conflictId),
         ),
       );
-      await this.synchronizeMedia(captured.domain, frontier, merged, captured.generation);
+      const deferredHashes = await this.synchronizeMedia(
+        captured.domain,
+        baseDomain,
+        frontier,
+        merged,
+        captured.generation,
+      );
+      const published = withoutDeferredMedia(merged, deferredHashes);
+      const deferredMediaCount = merged.media.length - published.media.length;
       await this.hooks.beforeHeadRecheck?.();
       const rechecked = await this.loadAndNormalizeHeads(
         await this.provider.listHeads(this.vaultId, true),
@@ -353,20 +390,34 @@ export class SnapshotSyncEngine {
         })),
         ...frontier.flatMap((remote) => remote.payload.observedDeviceHeads),
       ]);
-      const mergedContent = canonicalize(merged);
+      const publishedContent = canonicalize(published);
+      // Compare journal state, not snapshot IDs: sequence, author, parents and
+      // observations change even when all user data is identical. A matching
+      // complete snapshot is already a backup of this merge; acknowledge it
+      // locally instead of starting an endless exchange of acknowledgments.
+      const existingSnapshot = frontier.find(
+        (remote) => canonicalize(domainOf(remote.payload)) === publishedContent,
+      );
+      // Only attachments waiting for Wi-Fi differ from the settled base: there
+      // is nothing to publish or apply until they upload.
+      if (
+        deferredMediaCount > 0 &&
+        covered &&
+        existingSnapshot &&
+        existingSnapshot.snapshotId === loadedBase.shadow?.snapshotId &&
+        captured.generation <= durable.settledGeneration
+      ) {
+        return { upToDate: true, deferredMediaCount };
+      }
       return {
-        // Compare journal state, not snapshot IDs: sequence, author, parents and
-        // observations change even when all user data is identical. A matching
-        // complete snapshot is already a backup of this merge; acknowledge it
-        // locally instead of starting an endless exchange of acknowledgments.
-        existingSnapshot: frontier.find(
-          (remote) => canonicalize(domainOf(remote.payload)) === mergedContent,
-        ),
-        domain: merged,
+        existingSnapshot,
+        domain: published,
+        appliedDomain: merged,
+        deferredMediaCount,
         capturedGeneration: captured.generation,
         parentSnapshotIds: [...new Set(parentSnapshotIds)].sort(),
         observedDeviceHeads: observed,
-        mediaHashes: [...new Set(merged.media.map((asset) => asset.blobHash))].sort(),
+        mediaHashes: [...new Set(published.media.map((asset) => asset.blobHash))].sort(),
       };
     }
     throw new SnapshotProviderError(
@@ -641,17 +692,38 @@ export class SnapshotSyncEngine {
    * the runtime hydrates the files afterwards. A blob counts as present only
    * when the provider reports it, so a published snapshot never references
    * media that neither side holds.
+   *
+   * When the provider refuses uploads until Wi-Fi, new local entry
+   * attachments wait: their hashes are returned, and the caller publishes
+   * without them. Media a snapshot already references, and profile photos,
+   * still hold back the whole publication.
    */
   private async synchronizeMedia(
     local: SnapshotDomain,
+    base: SnapshotDomain | null,
     remotes: RemoteHeadSnapshot[],
     merged: SnapshotDomain,
     capturedGeneration: number,
-  ): Promise<void> {
+  ): Promise<Set<string>> {
     const localHashes = new Set(local.media.map((asset) => asset.blobHash));
     const remoteHashes = new Set(
       remotes.flatMap((remote) => remote.payload.media.map((asset) => asset.blobHash)),
     );
+    // shortcut: a new profile photo is not deferrable, since leaving it out
+    // would also change the profile; it waits for Wi-Fi with the journal as
+    // before. Defer it too if users report profile edits stuck on cellular.
+    const referencedHashes = new Set([
+      ...remoteHashes,
+      ...(base?.media ?? []).map((asset) => asset.blobHash),
+      ...merged.media
+        .filter((asset) => asset.ownerType !== 'entry')
+        .map((asset) => asset.blobHash),
+    ]);
+    const newLocalHashes = new Set(
+      unpublishedEntryMedia(local, base).map((asset) => asset.blobHash),
+    );
+    const deferrable = (blobHash: string) =>
+      newLocalHashes.has(blobHash) && !referencedHashes.has(blobHash);
     const requiredHashes = [
       ...new Set(merged.media.map((asset) => asset.blobHash)),
     ].sort();
@@ -695,12 +767,37 @@ export class SnapshotSyncEngine {
         bytesTotal: uploads.reduce((total, { source }) => total + source.byteLength, 0),
       });
     }
+    // Media that cannot wait goes first, so a refusal stops the pass before
+    // any attachment is deferred.
+    uploads.sort(
+      (left, right) =>
+        Number(deferrable(left.blobHash)) - Number(deferrable(right.blobHash)),
+    );
+    const deferred = new Set<string>();
     for (const { blobHash, source } of uploads) {
+      if (deferred.size > 0) {
+        // The policy refused an earlier upload; the remaining ones wait too.
+        deferred.add(blobHash);
+        continue;
+      }
       this.hooks.progress?.({ type: 'phase', phase: 'uploading-media' });
-      await this.provider.uploadMedia(this.vaultId, blobHash, source);
+      try {
+        await this.provider.uploadMedia(this.vaultId, blobHash, source);
+      } catch (error) {
+        if (
+          error instanceof SnapshotProviderError &&
+          error.code === 'wifi-only-media' &&
+          deferrable(blobHash)
+        ) {
+          deferred.add(blobHash);
+          continue;
+        }
+        throw error;
+      }
       this.hooks.progress?.({ type: 'item', phase: 'uploading-media' });
       await this.hooks.at?.('during-media-transfer');
     }
+    return deferred;
   }
 
   private handleExpectedFailure(error: unknown): SnapshotSyncResult {

@@ -27,6 +27,7 @@ import type {
 import { PHASE_FOR_ENGINE_ACTIVITY } from '../../runtime/activity';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import { hashPendingProductionMedia } from './mediaHashing';
+import { recordWaitingMediaUploads } from './waitingMediaUploads';
 import { nativeSha256Bytes } from './nativeSha256';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
 import { GoogleDriveSnapshotProvider, SQLiteDriveProviderStateStore } from '../drive';
@@ -357,6 +358,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
             : 'transient',
       );
     }
+
+    recordWaitingMediaUploads(this.vault.vault_id, result.deferredMediaCount);
 
     // The journal, text included, is applied by now; attachments the backup
     // holds but this device lacks wait as pending rows. Show the text before

@@ -273,10 +273,23 @@ export interface DurableSyncState {
   lastErrorClass: string | null;
 }
 
+/** New attachments left out of the backup until uploads may run on Wi-Fi. */
+interface DeferredMediaResult {
+  deferredMediaCount: number;
+}
+
 export type SnapshotSyncResult =
-  | { status: 'up-to-date'; actionableChanges: 0 }
-  | { status: 'pulled'; snapshotId: string; actionableChanges: number }
-  | { status: 'published'; snapshotId: string; actionableChanges: number }
+  | ({ status: 'up-to-date'; actionableChanges: 0 } & DeferredMediaResult)
+  | ({
+      status: 'pulled';
+      snapshotId: string;
+      actionableChanges: number;
+    } & DeferredMediaResult)
+  | ({
+      status: 'published';
+      snapshotId: string;
+      actionableChanges: number;
+    } & DeferredMediaResult)
   | { status: 'attention'; reason: SyncAttentionReason; actionableChanges: number }
   | {
       status: 'retry';

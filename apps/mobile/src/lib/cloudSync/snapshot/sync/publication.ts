@@ -3,6 +3,7 @@ import { decodeSnapshot } from '../codec';
 import { mergeSnapshotDomains } from '../merge';
 import type { ObservedDeviceHead, SnapshotDomain } from '../types';
 import { BaseShadowCommitError, BaseShadowManager } from './baseShadow';
+import { restoreDeferredMedia } from './deferredMedia';
 import { AttentionError, RetryableSyncError } from './errors';
 import {
   domainOf,
@@ -49,10 +50,15 @@ export interface SnapshotPublisherOptions {
 export class SnapshotPublisher {
   constructor(private readonly options: SnapshotPublisherOptions) {}
 
+  /**
+   * `appliedDomain` is the remote's journal plus any local attachments still
+   * waiting for Wi-Fi; it defaults to the remote's journal.
+   */
   async adopt(
     remote: RemoteHeadSnapshot,
     acceptedDeviceHeads: ObservedDeviceHead[],
     capturedGeneration: number,
+    appliedDomain: SnapshotDomain = domainOf(remote.payload),
   ): Promise<void> {
     const { deviceId, journal, hooks, vaultId } = this.options;
     hooks.activity?.('applying-remote-snapshot');
@@ -60,11 +66,9 @@ export class SnapshotPublisher {
     // A concurrent edit invalidates the plan. Re-plan on retry rather than
     // overwriting it or marking a generation that was never backed up settled.
     if (
-      !(await journal.applyMergedIfGeneration(
-        domainOf(remote.payload),
-        capturedGeneration,
-        { remoteDerived: includesOtherDevices(remote.payload, deviceId) },
-      ))
+      !(await journal.applyMergedIfGeneration(appliedDomain, capturedGeneration, {
+        remoteDerived: includesOtherDevices(remote.payload, deviceId),
+      }))
     ) {
       throw new RetryableSyncError('journal-changed-during-remote-adoption');
     }
@@ -85,8 +89,13 @@ export class SnapshotPublisher {
   /**
    * Returns false when a not-yet-uploaded candidate was planned against heads
    * that have since changed. It is discarded and the caller must re-plan.
+   * `plannedDomain` is the whole merge planned in this pass, waiting
+   * attachments included; without it they are recovered from the journal.
    */
-  async resume(initial: PendingPublication): Promise<boolean> {
+  async resume(
+    initial: PendingPublication,
+    plannedDomain?: SnapshotDomain,
+  ): Promise<boolean> {
     const { deviceId, hooks, provider, stateStore, vaultId } = this.options;
     let pending = initial;
     let decoded: ReturnType<typeof decodeSnapshot>;
@@ -187,6 +196,7 @@ export class SnapshotPublisher {
       hooks.progress?.({ type: 'phase', phase: 'uploading' });
       await this.applyPublishedDomain(
         domainOf(decoded.payload),
+        plannedDomain,
         pending.capturedGeneration,
         includesOtherDevices(decoded.payload, deviceId),
       );
@@ -262,23 +272,44 @@ export class SnapshotPublisher {
     await this.options.afterSettlement();
   }
 
-  /** Reconciles remote-derived published state with edits made after capture. */
+  /**
+   * Reconciles remote-derived published state with edits made after capture.
+   * Attachments left out of the publication for Wi-Fi stay in the journal.
+   */
   private async applyPublishedDomain(
     publishedDomain: SnapshotDomain,
+    plannedDomain: SnapshotDomain | undefined,
     capturedGeneration: number,
     remoteDerived: boolean,
   ): Promise<void> {
     const { deviceId, journal, shadowManager, stateStore, vaultId } = this.options;
+    // The base is still the one this publication was merged against.
+    let loaded: SnapshotDomain | null | undefined;
+    const loadBase = async () => {
+      if (loaded !== undefined) return loaded;
+      const checkpoint = stateStore.loadBaseCheckpoint(vaultId, deviceId);
+      const loadedBase = await shadowManager.load(checkpoint);
+      loaded = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
+      return loaded;
+    };
+    let applied = plannedDomain;
+    if (!applied) {
+      const captured = await journal.capture();
+      applied =
+        captured.generation === capturedGeneration
+          ? restoreDeferredMedia(publishedDomain, captured.domain, await loadBase())
+          : publishedDomain;
+    }
     if (
-      await journal.applyMergedIfGeneration(publishedDomain, capturedGeneration, {
+      await journal.applyMergedIfGeneration(applied, capturedGeneration, {
         remoteDerived,
       })
     )
       return;
 
-    const checkpoint = stateStore.loadBaseCheckpoint(vaultId, deviceId);
-    const loadedBase = await shadowManager.load(checkpoint);
-    const baseDomain = loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null;
+    // The merge below keeps local attachments the publication left out: the
+    // base lacks them too, so they read as local additions.
+    const baseDomain = await loadBase();
 
     for (let attempt = 0; attempt < MAX_JOURNAL_RECONCILIATION_ATTEMPTS; attempt += 1) {
       const latest = await journal.capture();

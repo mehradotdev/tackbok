@@ -785,7 +785,7 @@ export const sv = {
     'Om Google frågar om Tackbok får använda en egen mapp i din Drive, tillåt det så att säkerhetskopieringen kan ansluta.',
   'cloud.journalDeletionReceived': 'Begäran om att radera dagboken har tagits emot',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
-    'Foton och röstanteckningar laddas upp och ned bara via Wi-Fi. Anteckningar med nya foton eller röstanteckningar väntar också på Wi-Fi.',
+    'Foton och röstanteckningar laddas upp och ned bara via Wi-Fi. Resten av din dagbok säkerhetskopieras även via mobildata.',
   'cloud.keepLocalDataAndTheCloudCopy': 'Behåll lokal data och molnkopian',
   'cloud.keepLocalJournalData': 'Behåll lokala dagboksdata',
   'cloud.keepTheCloudCopyAndOtherDevices': 'Behåll molnkopian och andra enheter',

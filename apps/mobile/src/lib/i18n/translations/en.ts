@@ -844,7 +844,7 @@ export const en = {
     'If Google asks to let Tackbok use its own folder in your Drive, allow it so backup can connect.',
   'cloud.journalDeletionReceived': 'Journal deletion received',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
-    'Photos and voice notes upload and download only on Wi-Fi. Entries with new photos or voice notes also wait for Wi-Fi.',
+    'Photos and voice notes upload and download only on Wi-Fi. The rest of your journal still backs up on mobile data.',
   'cloud.keepLocalDataAndTheCloudCopy': 'Keep local data and the cloud copy',
   'cloud.keepLocalJournalData': 'Keep local journal data',
   'cloud.keepTheCloudCopyAndOtherDevices': 'Keep the cloud copy and other devices',
