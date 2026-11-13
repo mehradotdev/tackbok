@@ -31,8 +31,23 @@ export interface RuntimeSubscription {
   remove(): void;
 }
 
+/** Time the OS grants to keep running after the app goes to background. */
+export interface RuntimeBackgroundExecution {
+  /** What the OS said is left when the time was granted, if it said. */
+  readonly remainingMs: number | null;
+  end(): void;
+}
+
 export interface RuntimePlatform {
   getAppState?(): 'active' | 'background' | 'inactive';
+  /**
+   * Asks the OS for background time. `onExpire` runs if the OS ends it first.
+   * Resolves to null where the platform grants none; a pass then runs as long
+   * as the OS lets the process run.
+   */
+  beginBackgroundExecution?(
+    onExpire: () => void,
+  ): Promise<RuntimeBackgroundExecution | null>;
   addAppStateListener(
     listener: (state: 'active' | 'background' | 'inactive') => void,
   ): RuntimeSubscription;
@@ -69,7 +84,17 @@ export interface SyncRuntimeOptions {
   readinessRetryMs?: number;
   heartbeatMs?: number;
   foregroundThrottleMs?: number;
+  /** Deadline when the OS grants background time without saying how much. */
+  backgroundDeadlineMs?: number;
+  /** Kept free before the OS deadline so a cancelled pass can settle. */
+  backgroundSafetyMarginMs?: number;
   now?: () => number;
+}
+
+interface BackgroundWindow {
+  closed: boolean;
+  timer: ReturnType<typeof setTimeout> | null;
+  execution: RuntimeBackgroundExecution | null;
 }
 
 /** Runtime-only orchestration; it owns no UI and never imports Notifications. */
@@ -88,8 +113,14 @@ export class SyncRuntime {
   private starting: Promise<void> | null = null;
   private wasOnline = false;
   private lifecycle = 0;
+  /** A caller that joined the running pass and still needs one after it. */
   private rerunTrigger: CloudSyncTrigger | null = null;
+  /** The engine reported more work after the latest pass. */
+  private pendingWorkTrigger: CloudSyncTrigger | null = null;
   private lastFailureCategory: CloudSyncFailureCategory | null = null;
+  /** A local edit was committed since the latest pass started. */
+  private localEditPending = false;
+  private backgroundWindow: BackgroundWindow | null = null;
 
   constructor(private readonly options: SyncRuntimeOptions) {}
 
@@ -124,6 +155,8 @@ export class SyncRuntime {
         const becameActive = state === 'active' && !this.active;
         this.active = state === 'active';
         if (becameActive) {
+          // Foreground passes run unbounded again.
+          if (this.backgroundWindow) this.closeBackgroundWindow(this.backgroundWindow);
           this.requestForegroundPass();
           this.scheduleHeartbeat();
         }
@@ -133,6 +166,7 @@ export class SyncRuntime {
           if (this.debounceTimer) this.options.platform.clearTimer(this.debounceTimer);
           this.debounceTimer = null;
         }
+        // Edits waiting out the debounce are published now, without waiting for it.
         if (state === 'background') void this.runBoundedBackgroundPass('backgrounding');
       }),
       this.options.platform.addNetworkListener((nextOnline) => {
@@ -145,7 +179,10 @@ export class SyncRuntime {
     ];
     if (this.options.addMutationListener) {
       subscriptions.push(
-        this.options.addMutationListener(() => this.schedule('local-mutation')),
+        this.options.addMutationListener(() => {
+          this.localEditPending = true;
+          this.schedule('local-mutation');
+        }),
       );
     }
     if (this.stopped || lifecycle !== this.lifecycle) {
@@ -170,6 +207,10 @@ export class SyncRuntime {
     this.clearForegroundTimer();
     this.lastForegroundAt = -Infinity;
     this.rerunTrigger = null;
+    this.localEditPending = false;
+    // Its deadline must not cancel a later lifecycle's pass, but the OS time
+    // stays until the aborted pass settled (runBoundedBackgroundPass ends it).
+    this.detachBackgroundWindow();
     // Abort the running pass; a connection change then drains it before it
     // touches credentials (CloudConnectionLifecycle.change).
     this.passController?.abort();
@@ -182,10 +223,23 @@ export class SyncRuntime {
     this.engine = null;
   }
 
+  /**
+   * Runs, or joins, a pass under OS background time. It is cancelled before the
+   * OS deadline, and edits committed while it runs get a follow-up pass.
+   */
   async runBoundedBackgroundPass(
     trigger: Extract<CloudSyncTrigger, 'backgrounding' | 'periodic'>,
   ): Promise<RuntimePassResult | null> {
-    return this.startRun(trigger, false);
+    if (this.stopped || !this.engine || !this.wasOnline) {
+      return this.startRun(trigger, false);
+    }
+    const window = this.openBackgroundWindow();
+    try {
+      return await this.startRun(trigger, false);
+    } finally {
+      // Ends the OS background time only after the pass, even a cancelled one, settled.
+      this.closeBackgroundWindow(window);
+    }
   }
 
   async run(trigger: CloudSyncTrigger): Promise<RuntimePassResult | null> {
@@ -211,12 +265,33 @@ export class SyncRuntime {
     }
     const controller = new AbortController();
     this.passController = controller;
-    const running = this.runLoop(trigger, allowFollowup, controller.signal).finally(
-      () => {
+    const lifecycle = this.lifecycle;
+    const running: Promise<RuntimePassResult | null> = this.runLoop(
+      trigger,
+      allowFollowup,
+      controller.signal,
+    )
+      .finally(() => {
         if (this.running === running) this.running = null;
         if (this.passController === controller) this.passController = null;
-      },
-    );
+      })
+      .then((result) => {
+        // A background deadline cancelled this loop, but the app came back to
+        // the foreground meanwhile and a pass joined it. Callers waiting here,
+        // such as Sync now, get that pass's result rather than the cancellation.
+        // After stop() a joiner belongs to the restarted runtime, not this loop.
+        const joined = this.rerunTrigger;
+        if (
+          controller.signal.aborted &&
+          joined &&
+          !this.stopped &&
+          lifecycle === this.lifecycle &&
+          this.active
+        ) {
+          return this.run(joined);
+        }
+        return result;
+      });
     this.running = running;
     return running;
   }
@@ -231,9 +306,22 @@ export class SyncRuntime {
     let finalResult: RuntimePassResult | null = null;
     do {
       this.rerunTrigger = null;
+      this.pendingWorkTrigger = null;
       finalResult = await this.runOne(trigger, signal);
-      const followup = allowFollowup ? this.rerunTrigger : null;
-      if (!followup || this.stopped || lifecycle !== this.lifecycle || !this.wasOnline)
+      // A bounded background loop leaves remaining engine work (media) to later
+      // passes. In background no debounce timer runs, so an edit committed
+      // during the pass is published by a follow-up while the OS grants time.
+      const followup =
+        this.rerunTrigger ??
+        (allowFollowup ? this.pendingWorkTrigger : null) ??
+        (this.localEditPending && this.backgroundWindow ? 'local-mutation' : null);
+      if (
+        !followup ||
+        signal.aborted ||
+        this.stopped ||
+        lifecycle !== this.lifecycle ||
+        !this.wasOnline
+      )
         break;
       trigger = followup;
     } while (true);
@@ -247,6 +335,8 @@ export class SyncRuntime {
   ): Promise<RuntimePassResult | null> {
     const lifecycle = this.lifecycle;
     const startedAt = (this.options.now ?? Date.now)();
+    // Edits committed from here on may miss this pass's snapshot.
+    this.localEditPending = false;
     this.options.analytics?.started(trigger);
     try {
       const result = await this.engine!.sync(signal);
@@ -264,7 +354,7 @@ export class SyncRuntime {
         lifecycle === this.lifecycle &&
         this.engine?.hasPendingWork?.()
       ) {
-        this.rerunTrigger = trigger;
+        this.pendingWorkTrigger = trigger;
       }
       return result;
     } catch (error) {
@@ -303,6 +393,69 @@ export class SyncRuntime {
       }
       return null;
     }
+  }
+
+  private openBackgroundWindow(): BackgroundWindow {
+    if (this.backgroundWindow) return this.backgroundWindow;
+    const window: BackgroundWindow = { closed: false, timer: null, execution: null };
+    this.backgroundWindow = window;
+    const armDeadline = (delayMs: number) => {
+      if (this.backgroundWindow !== window) return;
+      window.timer = this.options.platform.setTimer(() => {
+        window.timer = null;
+        // Cancels like stop(): the pass settles its local state before it ends.
+        if (this.backgroundWindow === window) this.passController?.abort();
+      }, delayMs);
+    };
+    const begin = this.options.platform.beginBackgroundExecution;
+    if (!begin) return window;
+    // The pass starts without waiting for the OS answer.
+    begin(() => {
+      // The OS ended the time already; stop whatever is still running.
+      if (window.closed) return;
+      if (this.backgroundWindow === window) this.passController?.abort();
+      window.execution = null;
+      this.closeBackgroundWindow(window);
+    }).then(
+      (execution) => {
+        if (window.closed) {
+          execution?.end();
+          return;
+        }
+        window.execution = execution;
+        if (!execution) return;
+        armDeadline(
+          execution.remainingMs === null
+            ? (this.options.backgroundDeadlineMs ?? 25_000)
+            : Math.max(
+                0,
+                execution.remainingMs - (this.options.backgroundSafetyMarginMs ?? 5_000),
+              ),
+        );
+      },
+      () => {
+        // No OS time: the pass runs as long as the process does, as before.
+      },
+    );
+    return window;
+  }
+
+  private detachBackgroundWindow(): void {
+    const window = this.backgroundWindow;
+    if (!window) return;
+    if (window.timer) this.options.platform.clearTimer(window.timer);
+    window.timer = null;
+    this.backgroundWindow = null;
+  }
+
+  private closeBackgroundWindow(window: BackgroundWindow): void {
+    if (window.closed) return;
+    window.closed = true;
+    if (window.timer) this.options.platform.clearTimer(window.timer);
+    window.timer = null;
+    window.execution?.end();
+    window.execution = null;
+    if (this.backgroundWindow === window) this.backgroundWindow = null;
   }
 
   private async tryEnable(lifecycle = this.lifecycle): Promise<void> {

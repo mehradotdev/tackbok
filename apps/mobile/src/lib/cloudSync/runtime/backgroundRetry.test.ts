@@ -10,6 +10,12 @@ const mockReconcile = jest.fn(async () => false);
 jest.mock('./connectionSetup', () => ({
   reconcileAbandonedConnectionSetup: () => mockReconcile(),
 }));
+const mockNeedsKeychainMigration = jest.fn(async () => false);
+const mockMigrateKeychain = jest.fn(async () => {});
+jest.mock('../auth/secureTokenStore', () => ({
+  needsGoogleKeychainMigration: () => mockNeedsKeychainMigration(),
+  migrateGoogleKeychainAccessibility: () => mockMigrateKeychain(),
+}));
 jest.mock('~/db', () => ({
   cloudVault: {},
   db: {
@@ -34,6 +40,9 @@ jest.mock('drizzle-orm', () => ({
   isNotNull: jest.fn(),
 }));
 jest.mock('expo-network', () => ({}));
+jest.mock('./backgroundExecution', () => ({
+  beginBackgroundExecution: async () => null,
+}));
 jest.mock('~/lib/analytics', () => ({ track: jest.fn() }));
 jest.mock('~/lib/settings', () => ({ useSettingsStore: {} }));
 jest.mock('../storage/backfill', () => ({ isNormalizedModelReady: async () => true }));
@@ -106,4 +115,14 @@ test('a setup guard that cannot be read keeps sync blocked', async () => {
   expect(mockCreate).not.toHaveBeenCalled();
   mockReconcile.mockReset();
   mockReconcile.mockResolvedValue(false);
+});
+
+test('a keychain migration that fails while locked does not block the pass', async () => {
+  const sync = jest.fn(async () => ({ pulled: 0, pushed: 0 }));
+  mockCreate.mockResolvedValue({ sync });
+  mockNeedsKeychainMigration.mockResolvedValueOnce(true);
+  mockMigrateKeychain.mockRejectedValueOnce(new Error('errSecInteractionNotAllowed'));
+  await expect(runProductionBackgroundPass()).resolves.toBe(true);
+  expect(mockMigrateKeychain).toHaveBeenCalledTimes(1);
+  expect(sync).toHaveBeenCalledTimes(1);
 });

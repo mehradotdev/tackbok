@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 import type { GoogleTokenSet } from './types';
@@ -7,6 +8,36 @@ const CONNECTED_KEY = 'tackbok.cloud-sync.google.connected.v1';
 const ACCOUNT_EMAIL_KEY = 'tackbok.cloud-sync.google.account-email.v1';
 const CONNECTION_ID_KEY = 'tackbok.cloud-sync.google.connection-id.v1';
 const SETUP_GUARD_KEY = 'tackbok.cloud-sync.google.setup-guard.v1';
+const KEYCHAIN_MIGRATED_KEY = 'tackbok.cloud-sync.keychain-after-first-unlock.v1';
+
+// iOS runs background sync mostly while the phone is locked, so items must be
+// readable after the first unlock. THIS_DEVICE_ONLY keeps them out of iCloud
+// Keychain and device backups. Android ignores this option.
+const KEYCHAIN_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
+};
+
+// Every write in this module queues here. The keychain migration holds the
+// queue across each read and its write-back, so a token refresh outside the
+// connection barrier (such as the account label) can't be overwritten with
+// the copy the migration read before it.
+let credentialWrites: Promise<unknown> = Promise.resolve();
+
+function serializeCredentialWrite<T>(operation: () => Promise<T>): Promise<T> {
+  const write = credentialWrites.then(operation);
+  credentialWrites = write.catch(() => undefined);
+  return write;
+}
+
+function setItem(key: string, value: string): Promise<void> {
+  return serializeCredentialWrite(() =>
+    SecureStore.setItemAsync(key, value, KEYCHAIN_OPTIONS),
+  );
+}
+
+function deleteItem(key: string): Promise<void> {
+  return serializeCredentialWrite(() => SecureStore.deleteItemAsync(key));
+}
 
 function normalizeAccountEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null;
@@ -38,7 +69,7 @@ export async function readGoogleTokens(): Promise<GoogleTokenSet | null> {
   } catch {
     // Corrupt local credentials are equivalent to being signed out.
   }
-  await SecureStore.deleteItemAsync(TOKEN_KEY);
+  await deleteItem(TOKEN_KEY);
   return null;
 }
 
@@ -46,16 +77,14 @@ export async function writeGoogleTokens(tokens: GoogleTokenSet): Promise<void> {
   const { accountEmail, ...credentialTokens } = tokens;
   const normalizedEmail = normalizeAccountEmail(accountEmail);
   if (normalizedEmail) await writeGoogleAccountEmail(normalizedEmail);
-  await SecureStore.setItemAsync(TOKEN_KEY, JSON.stringify(credentialTokens), {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  });
+  await setItem(TOKEN_KEY, JSON.stringify(credentialTokens));
 }
 
 export async function clearGoogleTokens(): Promise<void> {
   await Promise.all([
-    SecureStore.deleteItemAsync(TOKEN_KEY),
-    SecureStore.deleteItemAsync(ACCOUNT_EMAIL_KEY),
-    SecureStore.deleteItemAsync(CONNECTION_ID_KEY),
+    deleteItem(TOKEN_KEY),
+    deleteItem(ACCOUNT_EMAIL_KEY),
+    deleteItem(CONNECTION_ID_KEY),
   ]);
 }
 
@@ -80,9 +109,7 @@ export async function rotateGoogleConnectionId(): Promise<string> {
     // non-native test environments functional without weakening token storage.
     value = `connection-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   }
-  await SecureStore.setItemAsync(CONNECTION_ID_KEY, value, {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  });
+  await setItem(CONNECTION_ID_KEY, value);
   return value;
 }
 
@@ -94,7 +121,7 @@ export async function clearGoogleAccessToken(): Promise<void> {
   } else {
     // Android can discard a rejected access token while remaining connected.
     // Keep the separately stored account pin for the silent replacement mint.
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await deleteItem(TOKEN_KEY);
   }
 }
 
@@ -114,13 +141,11 @@ export async function readGoogleAccountEmail(): Promise<string | null> {
 export async function writeGoogleAccountEmail(email: string): Promise<void> {
   const normalized = normalizeAccountEmail(email);
   if (!normalized) return;
-  await SecureStore.setItemAsync(ACCOUNT_EMAIL_KEY, normalized, {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  });
+  await setItem(ACCOUNT_EMAIL_KEY, normalized);
 }
 
 export async function clearGoogleAccountEmail(): Promise<void> {
-  await SecureStore.deleteItemAsync(ACCOUNT_EMAIL_KEY);
+  await deleteItem(ACCOUNT_EMAIL_KEY);
 }
 
 /**
@@ -137,13 +162,11 @@ export async function clearGoogleAccountEmail(): Promise<void> {
  * device silently re-mints a valid token from the surviving grant.
  */
 export async function markGoogleConnected(): Promise<void> {
-  await SecureStore.setItemAsync(CONNECTED_KEY, '1', {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  });
+  await setItem(CONNECTED_KEY, '1');
 }
 
 export async function clearGoogleConnectedMark(): Promise<void> {
-  await SecureStore.deleteItemAsync(CONNECTED_KEY);
+  await deleteItem(CONNECTED_KEY);
 }
 
 export async function isGoogleMarkedConnected(): Promise<boolean> {
@@ -179,11 +202,8 @@ export async function restoreGoogleCredentials(
     await clearGoogleConnectedMark();
     for (let index = 0; index < CREDENTIAL_KEYS.length; index++) {
       const value = snapshot.values[index];
-      if (value === null) await SecureStore.deleteItemAsync(CREDENTIAL_KEYS[index]);
-      else
-        await SecureStore.setItemAsync(CREDENTIAL_KEYS[index], value, {
-          keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-        });
+      if (value === null) await deleteItem(CREDENTIAL_KEYS[index]);
+      else await setItem(CREDENTIAL_KEYS[index], value);
     }
   } catch {
     // A failed secure-storage write must not leave mixed-account credentials.
@@ -221,9 +241,7 @@ function isSetupGuard(value: unknown): value is GoogleSetupGuard {
 }
 
 export async function writeGoogleSetupGuard(guard: GoogleSetupGuard): Promise<void> {
-  await SecureStore.setItemAsync(SETUP_GUARD_KEY, JSON.stringify(guard), {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  });
+  await setItem(SETUP_GUARD_KEY, JSON.stringify(guard));
 }
 
 /**
@@ -253,5 +271,35 @@ export async function clearGoogleCredentials(
 }
 
 export async function clearGoogleSetupGuard(): Promise<void> {
-  await SecureStore.deleteItemAsync(SETUP_GUARD_KEY);
+  await deleteItem(SETUP_GUARD_KEY);
+}
+
+/**
+ * True until every item written before AFTER_FIRST_UNLOCK has been rewritten.
+ * Throws while the keychain cannot be read.
+ */
+export async function needsGoogleKeychainMigration(): Promise<boolean> {
+  if (Platform.OS !== 'ios') return false;
+  return (await SecureStore.getItemAsync(KEYCHAIN_MIGRATED_KEY)) !== '1';
+}
+
+/**
+ * Rewrites each stored item with the same value under KEYCHAIN_OPTIONS. An
+ * existing item is updated in place; an item under an older alias is added
+ * under the current one before the old alias is deleted. Either way a failed
+ * write leaves the old item. A read that fails while the phone is locked throws
+ * before anything is written. The marker is written last, so an interrupted run
+ * repeats later; repeating is harmless. It holds the write queue throughout, and
+ * callers run it under the connection barrier so no Disconnect, setup or pass
+ * changes these items in between.
+ */
+export async function migrateGoogleKeychainAccessibility(): Promise<void> {
+  await serializeCredentialWrite(async () => {
+    if (!(await needsGoogleKeychainMigration())) return;
+    for (const key of [...CREDENTIAL_KEYS, SETUP_GUARD_KEY]) {
+      const value = await SecureStore.getItemAsync(key);
+      if (value !== null) await SecureStore.setItemAsync(key, value, KEYCHAIN_OPTIONS);
+    }
+    await SecureStore.setItemAsync(KEYCHAIN_MIGRATED_KEY, '1', KEYCHAIN_OPTIONS);
+  });
 }

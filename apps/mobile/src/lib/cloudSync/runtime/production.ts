@@ -4,6 +4,10 @@ import {
   CloudConnectionChangedError,
 } from './connectionLifecycle';
 import { reconcileAbandonedConnectionSetup } from './connectionSetup';
+import {
+  migrateGoogleKeychainAccessibility,
+  needsGoogleKeychainMigration,
+} from '../auth/secureTokenStore';
 import * as Network from 'expo-network';
 import { and, inArray, isNotNull } from 'drizzle-orm';
 import { cloudVault, db } from '~/db';
@@ -19,6 +23,7 @@ import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
 import { SyncProgressTracker, type SyncProgressSnapshot } from './progress';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { bumpMediaRevision } from './mediaRevision';
+import { beginBackgroundExecution } from './backgroundExecution';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { readCloudSyncFailureCategory } from '../failureClassification';
 import { SyncCancelledError } from '../snapshot/sync/errors';
@@ -70,6 +75,7 @@ export function notifyProductionCloudSyncChanged(): void {
 
 const platform: RuntimePlatform = {
   getAppState: () => (AppState.currentState === 'active' ? 'active' : 'background'),
+  beginBackgroundExecution,
   addAppStateListener(listener) {
     return AppState.addEventListener('change', (state) => {
       if (state === 'active' || state === 'background' || state === 'inactive') {
@@ -94,6 +100,21 @@ const platform: RuntimePlatform = {
   clearTimer: (timer) => clearTimeout(timer),
 };
 
+/**
+ * Makes credentials written before AFTER_FIRST_UNLOCK readable by background
+ * sync on a locked iPhone. Under the connection barrier, so no Disconnect or
+ * setup rewrites them meanwhile. A locked keychain or failed write leaves the
+ * old items in place; the next engine creation retries.
+ */
+async function migrateKeychainAccessibility(): Promise<void> {
+  try {
+    if (!(await needsGoogleKeychainMigration())) return;
+    await cloudConnectionLifecycle.change(migrateGoogleKeychainAccessibility);
+  } catch {
+    // Retried at the next engine creation.
+  }
+}
+
 async function retryBackfill(): Promise<void> {
   const settings = useSettingsStore.getState();
   await runNormalizedModelBackfill({
@@ -108,6 +129,7 @@ export async function createProductionRuntimeEngine(
   onRemoteApplied?: () => void | Promise<void>,
   { backgroundTask = false }: { backgroundTask?: boolean } = {},
 ): Promise<RuntimeSyncEngine | null> {
+  await migrateKeychainAccessibility();
   // A setup the app died in may have stored another account's credentials.
   await reconcileAbandonedConnectionSetup();
   const [configured] = await db
