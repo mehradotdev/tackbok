@@ -3882,7 +3882,11 @@ describe('text on mobile data with Wi-Fi-only media', () => {
         })
         .sync(),
     ).rejects.toBeInstanceOf(SimulatedProcessDeath);
-    expect((await a.engine().sync()).status).toBe('published');
+    // The resumed publication still reports the photo waiting for Wi-Fi.
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'published',
+      deferredMediaCount: 1,
+    });
     expect(canonicalize(a.journal.current())).toBe(canonicalize(second));
     const published = await headPayload(provider, a.deviceId);
     expect(ids(published)).toEqual(['asset-old']);
@@ -3906,7 +3910,7 @@ describe('text on mobile data with Wi-Fi-only media', () => {
     expect((await a.engine().sync()).status).toBe('published');
     const b = harness('wifi-deleter', blankDomain(), provider, a.clock);
     expect((await b.engine().sync()).status).toBe('pulled');
-    b.journal.mutate(blankDomain());
+    b.journal.mutate(withoutEntry(b.journal.current(), 'entry-photo', b.deviceId));
     expect((await b.engine().sync()).status).toBe('published');
 
     // The deletion saw only the text; the photo is an edit it never saw.
@@ -3916,10 +3920,28 @@ describe('text on mobile data with Wi-Fi-only media', () => {
       'entry-photo',
     );
     expect(ids(a.journal.current())).toEqual(['asset-new']);
+    // The other device records the same conflict once, then both settle on
+    // mobile data without publishing again.
+    expect((await b.engine().sync()).status).toBe('published');
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'pulled',
+      deferredMediaCount: 1,
+    });
+    expect(ids(a.journal.current())).toEqual(['asset-new']);
+    expect((await b.engine().sync()).status).toBe('up-to-date');
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'up-to-date',
+      deferredMediaCount: 1,
+    });
     network.onWifi = true;
     expect((await a.engine().sync()).status).toBe('published');
     expect((await b.engine().sync()).status).toBe('pulled');
     expect(ids(b.journal.current())).toEqual(['asset-new']);
+    expect(b.journal.current().entries.map((value) => value.entryId)).toEqual([
+      'entry-photo',
+    ]);
+    expect((await a.engine().sync()).status).toBe('up-to-date');
+    expect((await b.engine().sync()).status).toBe('up-to-date');
   });
 
   test('a new profile photo still waits for Wi-Fi with the journal', async () => {

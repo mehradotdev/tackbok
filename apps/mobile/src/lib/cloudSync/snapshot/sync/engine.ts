@@ -255,6 +255,9 @@ export class SnapshotSyncEngine {
       }
       this.stateStore.clearPause(this.vaultId, this.deviceId);
       durable = this.stateStore.loadState(this.vaultId, this.deviceId);
+      // A publication resumed from an earlier pass was not planned here; what
+      // it left out for Wi-Fi is what the journal holds beyond its snapshot.
+      if (!appliedDomain) deferredMediaCount = await this.countUnpublishedMedia();
       return {
         status: 'published',
         snapshotId: pending.snapshotId,
@@ -424,6 +427,16 @@ export class SnapshotSyncEngine {
       'transient',
       'Heads changed during every bounded planning attempt',
     );
+  }
+
+  private async countUnpublishedMedia(): Promise<number> {
+    const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
+    const loadedBase = await this.shadowManager.load(checkpoint);
+    const captured = await this.journal.capture();
+    return unpublishedEntryMedia(
+      captured.domain,
+      loadedBase.shadow ? domainOf(loadedBase.shadow.payload) : null,
+    ).length;
   }
 
   /**
