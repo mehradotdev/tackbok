@@ -3,11 +3,14 @@ import { LocalStorageError } from '../sync/types';
 import {
   ProductionSnapshotJournalStore,
   ProductionSnapshotMediaStore,
+  clearInspectedMediaFiles,
   verifyLocalMediaFile,
 } from './productionJournal';
 
 const mockInspectLocalMediaFile = jest.fn();
 const mockExistingUris = new Set<string>();
+// Files listed here report a size and modification time, as Expo's File does.
+const mockStats = new Map<string, { size: number; lastModified: number }>();
 let mockLive: { uri: string; bytes: number }[] = [];
 let mockRetained: { original: string; staged: string; bytes: number }[] = [];
 
@@ -20,7 +23,18 @@ jest.mock('expo-file-system', () => ({
     const uri = parts
       .map((part) => (typeof part === 'string' ? part : (part as { uri: string }).uri))
       .join('/');
-    return { uri, exists: mockExistingUris.has(uri) };
+    return {
+      uri,
+      get exists() {
+        return mockExistingUris.has(uri);
+      },
+      get size() {
+        return mockStats.get(uri)?.size;
+      },
+      get lastModified() {
+        return mockStats.get(uri)?.lastModified;
+      },
+    };
   }),
 }));
 
@@ -66,6 +80,8 @@ jest.mock('../media', () => ({
 describe('verifyLocalMediaFile', () => {
   beforeEach(() => {
     mockExistingUris.clear();
+    mockStats.clear();
+    clearInspectedMediaFiles();
     mockInspectLocalMediaFile.mockReset();
     mockLive = [];
     mockRetained = [];
@@ -126,6 +142,86 @@ describe('verifyLocalMediaFile', () => {
 
     await expect(verifyLocalMediaFile(uri, 'a'.repeat(64), 8)).resolves.toBe(true);
     await expect(verifyLocalMediaFile(uri, 'a'.repeat(64), 9)).resolves.toBe(false);
+  });
+});
+
+describe('cached media hashes', () => {
+  const hash = 'a'.repeat(64);
+  const uri = 'file:///documents/photos/cached.jpg';
+
+  beforeEach(() => {
+    mockExistingUris.clear();
+    mockStats.clear();
+    clearInspectedMediaFiles();
+    mockInspectLocalMediaFile.mockReset();
+    mockLive = [{ uri, bytes: 8 }];
+    mockRetained = [];
+    mockExistingUris.add(uri);
+    mockStats.set(uri, { size: 8, lastModified: 1_000 });
+    mockInspectLocalMediaFile.mockResolvedValue({ sha256: hash, byteSize: 8 });
+  });
+
+  test('hasVerified reads an unchanged file once across passes', async () => {
+    const store = new ProductionSnapshotMediaStore();
+    expect(await store.hasVerified(hash)).toBe(true);
+    expect(await store.hasVerified(hash)).toBe(true);
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(1);
+  });
+
+  test('a new modification time re-reads the file and detects changed bytes', async () => {
+    const store = new ProductionSnapshotMediaStore();
+    expect(await store.hasVerified(hash)).toBe(true);
+    mockStats.set(uri, { size: 8, lastModified: 2_000 });
+    mockInspectLocalMediaFile.mockResolvedValue({ sha256: 'b'.repeat(64), byteSize: 8 });
+    expect(await store.hasVerified(hash)).toBe(false);
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(false);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
+  });
+
+  test('a new size re-reads the file', async () => {
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    mockStats.set(uri, { size: 9, lastModified: 1_000 });
+    mockInspectLocalMediaFile.mockResolvedValue({ sha256: 'b'.repeat(64), byteSize: 9 });
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(false);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
+  });
+
+  test('a missing file is not verified by its cached hash', async () => {
+    const store = new ProductionSnapshotMediaStore();
+    expect(await store.hasVerified(hash)).toBe(true);
+    mockExistingUris.delete(uri);
+    expect(await store.hasVerified(hash)).toBe(false);
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(false);
+  });
+
+  test('an upload source always hashes the bytes it will stream', async () => {
+    const store = new ProductionSnapshotMediaStore();
+    expect(await store.hasVerified(hash)).toBe(true);
+    expect(await store.openVerifiedSource(hash)).toMatchObject({ contentHash: hash });
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
+    // Its fresh read refreshes the cache, so later checks see the new bytes.
+    mockInspectLocalMediaFile.mockResolvedValue({ sha256: 'b'.repeat(64), byteSize: 8 });
+    expect(await store.openVerifiedSource(hash)).toBeNull();
+    expect(await store.hasVerified(hash)).toBe(false);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(3);
+  });
+
+  test('a file that changes while it is read is not cached', async () => {
+    mockInspectLocalMediaFile.mockImplementationOnce(async () => {
+      mockStats.set(uri, { size: 8, lastModified: 2_000 });
+      return { sha256: hash, byteSize: 8 };
+    });
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
+  });
+
+  test('a file without a modification time is never cached', async () => {
+    mockStats.delete(uri);
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
   });
 });
 

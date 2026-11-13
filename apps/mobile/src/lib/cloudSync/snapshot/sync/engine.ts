@@ -666,6 +666,7 @@ export class SnapshotSyncEngine {
       const remotePresent = remotelyPresent.has(blobHash);
       // An upload source already proves local availability. Do not hash the
       // same bytes first for hasVerified and then again to open the source.
+      // hasVerified may reuse the hash of a file unchanged since its last read.
       const source = remotePresent
         ? null
         : await this.mediaStore.openVerifiedSource(blobHash);

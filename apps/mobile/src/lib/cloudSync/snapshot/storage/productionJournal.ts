@@ -63,6 +63,82 @@ function fileExists(uri: string | null): uri is string {
   }
 }
 
+interface FileStamp {
+  key: string;
+  size: number;
+  lastModified: number;
+}
+
+/** Identity and change stamp of a file, or null when either is unavailable. */
+function fileStamp(uri: string): FileStamp | null {
+  const key = canonicalFileUri(uri);
+  if (key === null) return null;
+  try {
+    const file = new File(key);
+    const { size, lastModified } = file;
+    if (!file.exists || typeof size !== 'number' || typeof lastModified !== 'number')
+      return null;
+    return { key, size, lastModified };
+  } catch {
+    return null;
+  }
+}
+
+// Hashes of local media files, valid while a file keeps the size and
+// modification time it had when hashed. Sync passes and remote applies check
+// every attachment; without this, each pass re-reads the whole library.
+// shortcut: in memory only, so the first pass after launch still hashes every
+// file once; persist it if cold-start passes become a problem.
+const inspectedFiles = new Map<string, FileStamp & { sha256: string }>();
+
+/**
+ * Hashes a local file, or returns the hash of an unchanged earlier read. Not
+ * for upload sources: those must hash the bytes they are about to stream.
+ */
+async function inspectUnchangedLocalMediaFile(
+  uri: string,
+): Promise<{ sha256: string; byteSize: number }> {
+  const before = fileStamp(uri);
+  const cached = before && inspectedFiles.get(before.key);
+  if (
+    before &&
+    cached &&
+    cached.size === before.size &&
+    cached.lastModified === before.lastModified
+  ) {
+    return { sha256: cached.sha256, byteSize: cached.size };
+  }
+  const inspected = await inspectLocalMediaFile(uri);
+  rememberInspection(before, uri, inspected);
+  return inspected;
+}
+
+/** Caches a hash only if the file did not change while it was read. */
+function rememberInspection(
+  before: FileStamp | null,
+  uri: string,
+  inspected: { sha256: string; byteSize: number },
+): void {
+  const after = fileStamp(uri);
+  if (
+    before &&
+    after &&
+    after.key === before.key &&
+    after.size === before.size &&
+    after.lastModified === before.lastModified &&
+    after.size === inspected.byteSize
+  ) {
+    inspectedFiles.set(after.key, { ...after, sha256: inspected.sha256 });
+  } else if (after) {
+    inspectedFiles.delete(after.key);
+  }
+}
+
+/** Test hook: forget every cached file hash. */
+export function clearInspectedMediaFiles(): void {
+  inspectedFiles.clear();
+}
+
 export async function verifyLocalMediaFile(
   uri: string | null,
   expectedSha256: string,
@@ -70,7 +146,7 @@ export async function verifyLocalMediaFile(
 ): Promise<boolean> {
   if (!fileExists(uri)) return false;
   try {
-    const inspected = await inspectLocalMediaFile(uri);
+    const inspected = await inspectUnchangedLocalMediaFile(uri);
     return (
       inspected.sha256 === expectedSha256 &&
       (expectedByteSize === null || inspected.byteSize === expectedByteSize)
@@ -220,28 +296,40 @@ async function discardUncommittedMediaFiles(uris: readonly string[]): Promise<vo
 
 /** File-backed media cache shared by the sync engine and normalized journal apply. */
 export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
+  /** Reuses unchanged files' cached hashes; see `inspectUnchangedLocalMediaFile`. */
   async hasVerified(blobHash: string): Promise<boolean> {
-    return (await this.openVerifiedSource(blobHash)) !== null;
+    for await (const candidate of this.verifiedCandidates(blobHash, true))
+      if (openMediaUploadSource(candidate.uri, blobHash, candidate.byteSize)) return true;
+    return false;
   }
 
+  /** Always hashes the file it returns, so an upload streams verified bytes. */
   async openVerifiedSource(blobHash: string) {
-    for await (const candidate of this.verifiedCandidates(blobHash)) {
+    for await (const candidate of this.verifiedCandidates(blobHash, false)) {
       const source = openMediaUploadSource(candidate.uri, blobHash, candidate.byteSize);
       if (source) return source;
     }
     return null;
   }
 
-  /** Any verified local copy of a blob, e.g. one held under a replaced asset ID. */
+  /**
+   * Any verified local copy of a blob, e.g. one held under a replaced asset ID.
+   * The copy re-verifies the bytes it writes, so a cached hash is enough here.
+   */
   async verifiedLocalFile(blobHash: string): Promise<File | null> {
-    for await (const candidate of this.verifiedCandidates(blobHash))
+    for await (const candidate of this.verifiedCandidates(blobHash, true))
       return fileForLocalUri(candidate.uri);
     return null;
   }
 
-  private async *verifiedCandidates(blobHash: string) {
+  private async *verifiedCandidates(blobHash: string, reuseHashes: boolean) {
     const staged = stageFile(blobHash);
-    const stagedCandidate = await this.inspectSource(staged.uri, blobHash, null);
+    const stagedCandidate = await this.inspectSource(
+      staged.uri,
+      blobHash,
+      null,
+      reuseHashes,
+    );
     if (stagedCandidate) yield stagedCandidate;
     const [live, retained] = await Promise.all([
       db
@@ -264,15 +352,32 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
         { uri: row.original, bytes: row.bytes },
       ]),
     ]) {
-      const verified = await this.inspectSource(candidate.uri, blobHash, candidate.bytes);
+      const verified = await this.inspectSource(
+        candidate.uri,
+        blobHash,
+        candidate.bytes,
+        reuseHashes,
+      );
       if (verified) yield verified;
     }
   }
 
-  private async inspectSource(uri: string | null, hash: string, bytes: number | null) {
+  private async inspectSource(
+    uri: string | null,
+    hash: string,
+    bytes: number | null,
+    reuseHashes: boolean,
+  ) {
     if (!fileExists(uri)) return null;
     try {
-      const inspected = await inspectLocalMediaFile(uri);
+      let inspected;
+      if (reuseHashes) {
+        inspected = await inspectUnchangedLocalMediaFile(uri);
+      } else {
+        const before = fileStamp(uri);
+        inspected = await inspectLocalMediaFile(uri);
+        rememberInspection(before, uri, inspected);
+      }
       if (inspected.sha256 !== hash || (bytes !== null && inspected.byteSize !== bytes))
         return null;
       return { uri, byteSize: inspected.byteSize };
@@ -932,7 +1037,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     );
     if (destination.exists) {
       try {
-        const inspected = await inspectLocalMediaFile(destination.uri);
+        const inspected = await inspectUnchangedLocalMediaFile(destination.uri);
         if (
           inspected.byteSize === asset.byteSize &&
           inspected.sha256 === asset.blobHash
