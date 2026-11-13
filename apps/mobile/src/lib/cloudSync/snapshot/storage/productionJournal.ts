@@ -108,7 +108,22 @@ async function inspectUnchangedLocalMediaFile(
   ) {
     return { sha256: cached.sha256, byteSize: cached.size };
   }
-  const inspected = await inspectLocalMediaFile(uri);
+  return inspectAndRemember(before, uri);
+}
+
+/** Hashes a file and caches the result; a failed read forgets its old hash. */
+async function inspectAndRemember(
+  before: FileStamp | null,
+  uri: string,
+): Promise<{ sha256: string; byteSize: number }> {
+  let inspected;
+  try {
+    inspected = await inspectLocalMediaFile(uri);
+  } catch (error) {
+    const key = before?.key ?? canonicalFileUri(uri);
+    if (key !== null) inspectedFiles.delete(key);
+    throw error;
+  }
   rememberInspection(before, uri, inspected);
   return inspected;
 }
@@ -155,10 +170,7 @@ async function inspectMediaFile(
   reuseHashes: boolean,
 ): Promise<{ sha256: string; byteSize: number }> {
   if (reuseHashes) return inspectUnchangedLocalMediaFile(uri);
-  const before = fileStamp(uri);
-  const inspected = await inspectLocalMediaFile(uri);
-  rememberInspection(before, uri, inspected);
-  return inspected;
+  return inspectAndRemember(fileStamp(uri), uri);
 }
 
 export async function verifyLocalMediaFile(

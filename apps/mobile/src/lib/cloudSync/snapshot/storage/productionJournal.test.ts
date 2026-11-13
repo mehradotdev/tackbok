@@ -257,6 +257,21 @@ describe('cached media hashes', () => {
     expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(3);
   });
 
+  test.each([
+    ['a fresh read', false],
+    ['a read after the stamp changed', true],
+  ])('%s that fails forgets the cached hash', async (_, reuseHashes) => {
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    if (reuseHashes) mockStats.set(uri, { size: 8, lastModified: 2_000 });
+    mockInspectLocalMediaFile.mockRejectedValueOnce(new Error('missing'));
+    await expect(verifyLocalMediaFile(uri, hash, 8, reuseHashes)).resolves.toBe(false);
+    // Recreated with different bytes but the original stamp.
+    mockStats.set(uri, { size: 8, lastModified: 1_000 });
+    mockInspectLocalMediaFile.mockResolvedValue({ sha256: 'b'.repeat(64), byteSize: 8 });
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(false);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(3);
+  });
+
   test('a file without a modification time is never cached', async () => {
     mockStats.delete(uri);
     await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
