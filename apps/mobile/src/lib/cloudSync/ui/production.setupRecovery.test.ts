@@ -182,6 +182,7 @@ jest.mock('../auth', () => ({
     getAccountLabel: async () => 'new@example.com',
   }),
 }));
+jest.mock('../snapshot/storage', () => ({ clearMediaHashes: async () => {} }));
 jest.mock('../snapshot/drive', () => ({
   SQLiteDriveProviderStateStore: jest.fn(),
   GoogleDriveSnapshotProvider: jest.fn(() => ({

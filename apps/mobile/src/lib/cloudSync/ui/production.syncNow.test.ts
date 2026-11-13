@@ -28,6 +28,7 @@ jest.mock('../auth', () => ({}));
 jest.mock('../auth/secureTokenStore', () => ({
   readGoogleSetupGuard: async () => null,
 }));
+jest.mock('../snapshot/storage', () => ({ clearMediaHashes: async () => {} }));
 jest.mock('../snapshot/drive', () => ({}));
 jest.mock('../snapshot/sync', () => ({
   SQLiteSyncStateStore: class {

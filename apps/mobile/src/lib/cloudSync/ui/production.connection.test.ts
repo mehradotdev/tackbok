@@ -113,6 +113,7 @@ jest.mock('../auth/secureTokenStore', () => ({
   writeGoogleSetupGuard: async () => {},
   clearGoogleSetupGuard: async () => {},
 }));
+jest.mock('../snapshot/storage', () => ({ clearMediaHashes: async () => {} }));
 jest.mock('../snapshot/drive', () => ({
   SQLiteDriveProviderStateStore: jest.fn(),
   GoogleDriveSnapshotProvider: jest.fn(() => ({

@@ -298,6 +298,19 @@ describe('production cloud-sync runtime', () => {
     expect(source).toContain("case 'wifi-only-media':");
   });
 
+  test('Delete all empties the saved media hashes in its wipe transaction', async () => {
+    const source = await Bun.file(
+      join(mobileRoot, 'src/lib/cloudSync/ui/production.ts'),
+    ).text();
+    const start = source.indexOf('async function wipeJournalAndLocalCloudReplica');
+    const wipe = source.slice(start, source.indexOf('\n}', start));
+    const transaction = wipe.slice(wipe.indexOf('runInCloudSyncTransaction'));
+    expect(transaction.indexOf('await clearMediaHashes(tx)')).toBeGreaterThan(0);
+    expect(transaction.indexOf('await clearMediaHashes(tx)')).toBeLessThan(
+      transaction.indexOf('});'),
+    );
+  });
+
   test('production async units of work use Expo-managed transactions', async () => {
     const databaseSource = await Bun.file(join(mobileRoot, 'src/db/index.ts')).text();
     expect(databaseSource).toContain('withExclusiveTransactionAsync');
