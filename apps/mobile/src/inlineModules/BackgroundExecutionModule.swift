@@ -15,13 +15,16 @@ class BackgroundExecutionModule: Module {
     // `granted` is false when iOS refuses the time. `remainingSeconds` is omitted
     // while iOS grants unlimited time (still in foreground).
     AsyncFunction("begin") { (name: String) -> [String: Any] in
-      var task: UIBackgroundTaskIdentifier = .invalid
-      task = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
+      // The handler needs the id that beginBackgroundTask returns, so it reads it from a box.
+      let box = BackgroundTaskBox()
+      box.task = UIApplication.shared.beginBackgroundTask(withName: name) {
         // iOS terminates the app unless the task ends before this handler returns.
-        self?.sendEvent("onExpire", ["id": task.rawValue])
-        self?.activeTasks.remove(task)
+        let task = box.task
+        self.sendEvent("onExpire", ["id": task.rawValue])
+        self.activeTasks.remove(task)
         UIApplication.shared.endBackgroundTask(task)
       }
+      let task = box.task
       guard task != .invalid else { return ["granted": false] }
       activeTasks.insert(task)
       var result: [String: Any] = ["granted": true, "id": task.rawValue]
@@ -39,4 +42,9 @@ class BackgroundExecutionModule: Module {
       UIApplication.shared.endBackgroundTask(task)
     }.runOnQueue(.main)
   }
+}
+
+/// Written and read on the main queue only.
+private final class BackgroundTaskBox: @unchecked Sendable {
+  var task: UIBackgroundTaskIdentifier = .invalid
 }
