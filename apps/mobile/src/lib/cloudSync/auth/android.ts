@@ -34,6 +34,30 @@ function nativeModule(): NativeGoogleAuthorization {
   return requireNativeModule<NativeGoogleAuthorization>('GoogleAuthorizationModule');
 }
 
+/**
+ * Play services statuses that silent authorization cannot get past, so only a
+ * reconnect helps. Numbers are CommonStatusCodes (and the matching
+ * ConnectionResult codes) from play-services-basement 18.9.0:
+ * 4 SIGN_IN_REQUIRED, 5 INVALID_ACCOUNT (the pinned account left the device),
+ * 6 RESOLUTION_REQUIRED (needs UI a background renewal cannot show).
+ * Everything else, including network errors, timeouts, Play services missing,
+ * disabled or updating, internal errors and unknown codes, is transient:
+ * a later retry can succeed, and a reconnect would not fix it.
+ */
+const TERMINAL_PLAY_SERVICES_STATUSES = new Set([4, 5, 6]);
+
+/**
+ * Current builds put the ApiException status in the code. Older builds sent
+ * every failure as E_GOOGLE_AUTH_FAILED, but ApiException's message is
+ * "<status>: <status message>", so an OTA update can still classify them.
+ */
+function playServicesStatus(code: string, message: string): number | null {
+  const match =
+    /E_GOOGLE_AUTH_API_(-?\d+)/.exec(code) ??
+    (code.includes('E_GOOGLE_AUTH_FAILED') ? /^(-?\d+): /.exec(message) : null);
+  return match ? Number(match[1]) : null;
+}
+
 function normalizeNativeError(error: unknown): CloudAuthError {
   const code =
     typeof error === 'object' && error !== null && 'code' in error
@@ -41,6 +65,8 @@ function normalizeNativeError(error: unknown): CloudAuthError {
       : '';
   if (code.includes('CANCELLED'))
     return new CloudAuthError('cancelled', 'Google sign-in was cancelled');
+  // A revoked grant surfaces here: Play services answers with a consent
+  // resolution, which the native module refuses to show during a silent call.
   if (code.includes('CONSENT_REQUIRED')) {
     return new CloudAuthError('consent-required', 'Google consent is required');
   }
@@ -53,7 +79,16 @@ function normalizeNativeError(error: unknown): CloudAuthError {
     typeof error === 'object' && error !== null && 'message' in error
       ? String((error as { message: unknown }).message)
       : '';
-  return new CloudAuthError('refresh-failed', message || 'Google authorization failed');
+  const status = playServicesStatus(code, message);
+  if (status !== null && TERMINAL_PLAY_SERVICES_STATUSES.has(status)) {
+    return new CloudAuthError('refresh-failed', message || 'Google authorization failed');
+  }
+  // Unrecognised failures retry later instead of asking for a reconnect.
+  // Nothing stored is touched, so the next pass starts from the same state.
+  return new CloudAuthError(
+    'temporarily-unavailable',
+    message || 'Google authorization is temporarily unavailable',
+  );
 }
 
 export class AndroidGoogleAuthorization implements CloudAuthorization {

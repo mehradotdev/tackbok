@@ -25,6 +25,9 @@ private const val ERROR_CONSENT_REQUIRED = "E_GOOGLE_AUTH_CONSENT_REQUIRED"
 private const val ERROR_PERMISSION_REQUIRED = "E_GOOGLE_AUTH_PERMISSION_REQUIRED"
 private const val ERROR_NO_ACTIVITY = "E_GOOGLE_AUTH_NO_ACTIVITY"
 private const val ERROR_FAILED = "E_GOOGLE_AUTH_FAILED"
+// Followed by the Play services status code. JavaScript decides which statuses
+// need a reconnect, so the code must survive the bridge.
+private const val ERROR_API_PREFIX = "E_GOOGLE_AUTH_API_"
 
 /**
  * Android authorization binding for Drive backup. It requests only Drive
@@ -134,7 +137,7 @@ class GoogleAuthorizationModule : Module() {
             val result = Identity.getAuthorizationClient(activity).getAuthorizationResultFromIntent(data)
             resolveAuthorization(result, promise, accountEmail)
           } catch (error: ApiException) {
-            promise.reject(ERROR_FAILED, error.message ?: "Google authorization failed", error)
+            rejectWithFailure(promise, error)
           }
         }
       }
@@ -223,8 +226,13 @@ class GoogleAuthorizationModule : Module() {
       }
       .addOnFailureListener { error ->
         clearPendingIf(promise)
-        promise.reject(ERROR_FAILED, error.message ?: "Google authorization failed", error)
+        rejectWithFailure(promise, error)
       }
+  }
+
+  private fun rejectWithFailure(promise: Promise, error: Exception) {
+    val code = if (error is ApiException) "$ERROR_API_PREFIX${error.statusCode}" else ERROR_FAILED
+    promise.reject(code, error.message ?: "Google authorization failed", error)
   }
 
   private fun resolveAuthorization(

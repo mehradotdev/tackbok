@@ -1,3 +1,4 @@
+import { providerErrorCodeForAuthError } from '../failureClassification';
 import { AndroidGoogleAuthorization } from './android';
 import { CloudAuthError } from './types';
 
@@ -182,11 +183,74 @@ describe('AndroidGoogleAuthorization error normalization', () => {
     });
   });
 
-  it('wraps unknown native failures as CloudAuthError', async () => {
+  it('wraps unknown native failures as a retryable CloudAuthError', async () => {
     const auth = new AndroidGoogleAuthorization();
     mockNativeAuthorize.mockRejectedValueOnce(new Error('boom'));
     const failure = await auth.authorize().catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(CloudAuthError);
-    expect((failure as CloudAuthError).code).toBe('refresh-failed');
+    expect((failure as CloudAuthError).code).toBe('temporarily-unavailable');
+    expect((failure as CloudAuthError).message).toBe('boom');
+  });
+});
+
+describe('AndroidGoogleAuthorization terminal vs transient renewal failures', () => {
+  async function renewalFailure(rejection: unknown) {
+    const auth = new AndroidGoogleAuthorization();
+    await connect(auth);
+    mockNativeAuthorize.mockRejectedValueOnce(rejection);
+    const failure = await auth.getFreshAccessToken().catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(CloudAuthError);
+    return failure as CloudAuthError;
+  }
+
+  it.each([
+    ['consent resolution (revoked grant)', { code: 'E_GOOGLE_AUTH_CONSENT_REQUIRED' }],
+    ['Drive scope missing', { code: 'E_GOOGLE_AUTH_PERMISSION_REQUIRED' }],
+    ['SIGN_IN_REQUIRED', { code: 'E_GOOGLE_AUTH_API_4', message: '4: ' }],
+    ['INVALID_ACCOUNT', { code: 'E_GOOGLE_AUTH_API_5', message: '5: ' }],
+    ['RESOLUTION_REQUIRED', { code: 'E_GOOGLE_AUTH_API_6', message: '6: ' }],
+    // Builds before the status code was forwarded: ApiException's message.
+    [
+      'older build INVALID_ACCOUNT',
+      { code: 'E_GOOGLE_AUTH_FAILED', message: '5: Account missing' },
+    ],
+  ])('%s asks for a reconnect', async (_name, rejection) => {
+    const failure = await renewalFailure(rejection);
+    expect(providerErrorCodeForAuthError(failure.code)).toBe('authorization-required');
+  });
+
+  it.each([
+    ['NETWORK_ERROR', { code: 'E_GOOGLE_AUTH_API_7', message: '7: ' }],
+    ['INTERNAL_ERROR', { code: 'E_GOOGLE_AUTH_API_8', message: '8: ' }],
+    ['DEVELOPER_ERROR', { code: 'E_GOOGLE_AUTH_API_10', message: '10: ' }],
+    ['TIMEOUT', { code: 'E_GOOGLE_AUTH_API_15', message: '15: ' }],
+    ['CANCELED', { code: 'E_GOOGLE_AUTH_API_16', message: '16: ' }],
+    ['SERVICE_VERSION_UPDATE_REQUIRED', { code: 'E_GOOGLE_AUTH_API_2' }],
+    ['SERVICE_UPDATING', { code: 'E_GOOGLE_AUTH_API_18' }],
+    ['unknown status', { code: 'E_GOOGLE_AUTH_API_99999' }],
+    ['older build network error', { code: 'E_GOOGLE_AUTH_FAILED', message: '7: ' }],
+    ['missing token', { code: 'E_GOOGLE_AUTH_FAILED', message: 'No token' }],
+    ['busy', { code: 'E_GOOGLE_AUTH_BUSY' }],
+    ['no activity', { code: 'E_GOOGLE_AUTH_NO_ACTIVITY' }],
+    ['a plain Error', new Error('binder died')],
+    ['a non-object', 'oops'],
+  ])('%s retries later without a reconnect', async (_name, rejection) => {
+    const failure = await renewalFailure(rejection);
+    expect(failure.code).toBe('temporarily-unavailable');
+    expect(providerErrorCodeForAuthError(failure.code)).toBe('transient');
+  });
+
+  it('keeps every stored credential after a transient failure', async () => {
+    const auth = new AndroidGoogleAuthorization();
+    await connect(auth);
+    const before = new Map(mockStore);
+    mockNativeAuthorize.mockRejectedValueOnce({ code: 'E_GOOGLE_AUTH_API_7' });
+    await expect(auth.getFreshAccessToken()).rejects.toMatchObject({
+      code: 'temporarily-unavailable',
+    });
+    expect(mockStore).toEqual(before);
+    mockNativeAuthorize.mockResolvedValueOnce({ accessToken: 'token-2', expiresAt: 0 });
+    await expect(auth.getFreshAccessToken()).resolves.toBe('token-2');
+    expect(mockNativeAuthorize).toHaveBeenLastCalledWith(false, 'probe@gmail.com');
   });
 });
