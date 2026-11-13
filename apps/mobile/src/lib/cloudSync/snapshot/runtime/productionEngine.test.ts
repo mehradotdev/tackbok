@@ -88,6 +88,7 @@ function harness(
   options: {
     engineSync?: () => Promise<unknown>;
     hydrate?: () => Promise<{ hydrated: number; missing: number }>;
+    requeue?: () => Promise<number>;
     loadState?: () => { journalGeneration: number; settledGeneration: number };
     hydrationBatchesPerPass?: number;
   } = {},
@@ -107,6 +108,7 @@ function harness(
     { sync: engineSync } as unknown as SnapshotSyncEngine,
     {
       hydratePendingMedia: options.hydrate ?? (async () => ({ hydrated: 0, missing: 0 })),
+      requeueMissingVerifiedMedia: options.requeue ?? (async () => 0),
     } as unknown as ProductionSnapshotJournalStore,
     {} as SnapshotProvider,
     () => {},
@@ -238,6 +240,37 @@ test('files saved before a hydration batch fails still reach screens', async () 
     await expect(app.runtime.sync()).rejects.toBeDefined();
     expect(order).toEqual(['hydrate', 'screens']);
   }
+});
+
+test('missing downloaded files are queued once per engine, before hydration', async () => {
+  const order: string[] = [];
+  const app = harness('vault-requeue', {
+    requeue: async () => {
+      order.push('requeue');
+      return 1;
+    },
+    hydrate: async () => {
+      order.push('hydrate');
+      return { hydrated: 0, missing: 0 };
+    },
+  });
+  await app.runtime.sync();
+  await app.runtime.sync();
+  expect(order).toEqual(['requeue', 'hydrate', 'hydrate']);
+});
+
+test('a failed check for missing files does not fail the pass and is retried', async () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  const requeue = jest
+    .fn<Promise<number>, []>()
+    .mockRejectedValueOnce(new Error('database is busy'))
+    .mockResolvedValue(0);
+  const app = harness('vault-requeue-failed', { requeue });
+  await expect(app.runtime.sync()).resolves.toEqual({ pulled: 0, pushed: 0 });
+  await app.runtime.sync();
+  await app.runtime.sync();
+  expect(requeue).toHaveBeenCalledTimes(2);
+  warn.mockRestore();
 });
 
 test('a stopped caller stops waiting for a joined pass without cancelling or overlapping it', async () => {

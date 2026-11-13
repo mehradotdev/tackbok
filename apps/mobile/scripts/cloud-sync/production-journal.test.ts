@@ -1259,3 +1259,50 @@ test('a restore shows entry text with its photo pending, then hydration download
     to: expect.stringContaining(photoUri),
   });
 });
+
+test('downloaded attachments whose file vanished are queued for download again', async () => {
+  sqlite.exec('DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM entries');
+  existingFiles.clear();
+  existingFiles.add('file:///documents/photos/kept.jpg');
+  const row = (assetId: string, localUri: string, downloadState: 'verified' | 'n/a') => ({
+    asset_id: assetId,
+    owner_type: 'entry' as const,
+    owner_id: 'entry',
+    kind: 'photo' as const,
+    local_uri: localUri,
+    download_state: downloadState,
+    blob_hash: fakeBlobHash,
+    byte_size: 1,
+    created_at: 1,
+    updated_at: 1,
+  });
+  db.insert(schema.mediaAssets)
+    .values([
+      row('kept', 'photos/kept.jpg', 'verified'),
+      row('vanished', 'photos/vanished.jpg', 'verified'),
+      // Created on this device: it may not be in the backup, so it is never
+      // queued for download; the upload path reports it instead.
+      row('local', 'photos/local.jpg', 'n/a'),
+      // The existence check itself fails: leave the row alone.
+      row('unreadable', '/no-scheme.jpg', 'verified'),
+    ])
+    .run();
+  const store = new ProductionSnapshotJournalStore('requeue', 'device', {} as never);
+
+  expect(await store.requeueMissingVerifiedMedia()).toBe(1);
+  const states = Object.fromEntries(
+    db
+      .select()
+      .from(schema.mediaAssets)
+      .all()
+      .map((asset) => [asset.asset_id, asset.download_state]),
+  );
+  expect(states).toEqual({
+    kept: 'verified',
+    vanished: 'pending',
+    local: 'n/a',
+    unreadable: 'verified',
+  });
+  // Nothing new to queue on a second look.
+  expect(await store.requeueMissingVerifiedMedia()).toBe(0);
+});

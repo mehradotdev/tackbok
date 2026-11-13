@@ -1,4 +1,4 @@
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 
@@ -939,6 +939,51 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     } finally {
       if (!applied) await discardUncommittedMediaFiles(created);
     }
+  }
+
+  /**
+   * Downloaded attachments whose file has gone missing, for example after a
+   * partial device restore, become pending again so hydration downloads them.
+   * Only a file confirmed absent counts: a failed check leaves the row alone,
+   * so a passing I/O error never triggers a download. This changes local
+   * state only; the journal and its generation stay the same.
+   */
+  async requeueMissingVerifiedMedia(): Promise<number> {
+    const rows = await db
+      .select({ assetId: mediaAssets.asset_id, localUri: mediaAssets.local_uri })
+      .from(mediaAssets)
+      .where(
+        and(
+          eq(mediaAssets.download_state, 'verified'),
+          isNotNull(mediaAssets.blob_hash),
+          isNotNull(mediaAssets.byte_size),
+        ),
+      );
+    let requeued = 0;
+    for (const row of rows) {
+      if (row.localUri !== null) {
+        let exists: boolean;
+        try {
+          exists = fileForLocalUri(row.localUri).exists;
+        } catch {
+          continue;
+        }
+        if (exists) continue;
+        const key = canonicalFileUri(row.localUri);
+        if (key !== null) inspectedFiles.delete(key);
+      }
+      await db
+        .update(mediaAssets)
+        .set({ download_state: 'pending' })
+        .where(
+          and(
+            eq(mediaAssets.asset_id, row.assetId),
+            eq(mediaAssets.download_state, 'verified'),
+          ),
+        );
+      requeued += 1;
+    }
+    return requeued;
   }
 
   /** Bounded post-restore hydration. Metadata/text remain usable while media waits. */

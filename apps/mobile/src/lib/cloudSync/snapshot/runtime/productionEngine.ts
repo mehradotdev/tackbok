@@ -171,6 +171,8 @@ class MediaPolicyProvider implements SnapshotProvider {
 export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
   readonly provider = { kind: 'google-drive' as const };
   private needsFollowup = false;
+  /** Missing downloaded files are looked for once per engine, normally per launch. */
+  private checkedVerifiedMedia = false;
 
   constructor(
     private readonly vault: ProductionSnapshotVault,
@@ -360,6 +362,18 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     if (result.status === 'published' || result.status === 'pulled') {
       useSettingsStore.getState().markCloudRestoreJournalRestored(this.vault.vault_id);
       await this.refreshAppliedViews();
+    }
+
+    if (!this.checkedVerifiedMedia) {
+      // shortcut: once per engine, not per pass, since it checks every
+      // downloaded file; check more often if files vanish mid-session.
+      try {
+        await this.journal.requeueMissingVerifiedMedia();
+        this.checkedVerifiedMedia = true;
+      } catch (error) {
+        // The attachments stay as they are; the next pass tries again.
+        console.warn('Cloud sync could not check downloaded media files', error);
+      }
     }
 
     let hydrated = 0;
