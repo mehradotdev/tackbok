@@ -235,7 +235,10 @@ export function getProductionCloudSyncFailureCategory() {
   return productionRuntime?.getLastFailureCategory() ?? null;
 }
 
-export async function runProductionBackgroundPass(): Promise<boolean> {
+/** A cancelled pass (deadline or connection change) settles and reports success. */
+export async function runProductionBackgroundPass(
+  signal?: AbortSignal,
+): Promise<boolean> {
   if (!(await isNormalizedModelReady())) {
     try {
       await retryBackfill();
@@ -247,6 +250,7 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
   // A connection can change while the async factory is constructing an engine.
   // Keep rejecting that engine, but give this background invocation one fresh attempt.
   for (let attempt = 0; attempt < 2; attempt++) {
+    if (signal?.aborted) return true;
     const startedAt = Date.now();
     try {
       const engine = await createProductionRuntimeEngine(undefined, {
@@ -254,7 +258,7 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
       });
       if (!engine) return true;
       track('cloud_sync_started', { trigger: 'periodic' });
-      const result = await engine.sync();
+      const result = await engine.sync(signal);
       track('cloud_sync_succeeded', {
         duration_bucket: toCloudSyncDurationBucket(Date.now() - startedAt),
         pulled_bucket: toCloudSyncCountBucket(result.pulled),
@@ -263,7 +267,7 @@ export async function runProductionBackgroundPass(): Promise<boolean> {
       return true;
     } catch (error) {
       if (error instanceof CloudConnectionChangedError && attempt === 0) continue;
-      // A connection change cancelled this pass; that is not a sync failure.
+      // A deadline or connection change cancelled this pass; not a sync failure.
       if (error instanceof SyncCancelledError) return true;
       track('cloud_sync_failed', { category: readCloudSyncFailureCategory(error) });
       return false;
