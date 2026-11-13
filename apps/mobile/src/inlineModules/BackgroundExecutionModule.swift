@@ -12,7 +12,8 @@ class BackgroundExecutionModule: Module {
 
     Events("onExpire")
 
-    // `remainingSeconds` is omitted while iOS grants unlimited time (still in foreground).
+    // `granted` is false when iOS refuses the time. `remainingSeconds` is omitted
+    // while iOS grants unlimited time (still in foreground).
     AsyncFunction("begin") { (name: String) -> [String: Any] in
       var task: UIBackgroundTaskIdentifier = .invalid
       task = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
@@ -21,9 +22,9 @@ class BackgroundExecutionModule: Module {
         self?.activeTasks.remove(task)
         UIApplication.shared.endBackgroundTask(task)
       }
-      guard task != .invalid else { return ["id": task.rawValue] }
+      guard task != .invalid else { return ["granted": false] }
       activeTasks.insert(task)
-      var result: [String: Any] = ["id": task.rawValue]
+      var result: [String: Any] = ["granted": true, "id": task.rawValue]
       let remaining = UIApplication.shared.backgroundTimeRemaining
       if remaining < Double.greatestFiniteMagnitude / 2 {
         result["remainingSeconds"] = remaining

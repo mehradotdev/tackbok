@@ -5,7 +5,11 @@ import type { RuntimeBackgroundExecution } from './SyncRuntime';
 declare class BackgroundExecutionNativeModule extends NativeModule<{
   onExpire(event: { id: number }): void;
 }> {
-  begin(name: string): Promise<{ id: number; remainingSeconds?: number }>;
+  begin(
+    name: string,
+  ): Promise<
+    { granted: true; id: number; remainingSeconds?: number } | { granted: false }
+  >;
   end(id: number): Promise<void>;
 }
 
@@ -33,6 +37,11 @@ export async function beginBackgroundExecution(
   });
   try {
     const task = await BackgroundExecutionModule.begin('tackbok-cloud-sync');
+    if (!task.granted) {
+      // iOS refused: no time and so no deadline; the pass runs as the OS allows.
+      subscription.remove();
+      return null;
+    }
     id = task.id;
     return {
       remainingMs:

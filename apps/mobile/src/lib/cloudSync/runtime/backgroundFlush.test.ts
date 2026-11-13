@@ -317,3 +317,35 @@ test('OS time granted after the app already returned to the foreground is ended 
   expect(app.passes[1]!.signal?.aborted).toBe(false);
   app.runtime.stop();
 });
+
+test('a caller of a stopped, cancelled pass is not carried into the restarted runtime', async () => {
+  const app = setup();
+  let releaseCancelled!: () => void;
+  await startedIdle(app);
+  app.sync.mockImplementationOnce(
+    (signal?: AbortSignal) =>
+      new Promise((_resolve, reject) => {
+        signal?.addEventListener('abort', () => {
+          releaseCancelled = () => reject(new SyncCancelledError());
+        });
+      }),
+  );
+  const oldManual = app.runtime.run('manual');
+  await jest.advanceTimersByTimeAsync(0);
+  app.runtime.stop();
+  const restarting = app.runtime.start();
+  await jest.advanceTimersByTimeAsync(0);
+  const passesAfterRestart = app.passes.length;
+  // Sync now on the restarted runtime joins its launch pass.
+  const newManual = app.runtime.run('manual');
+
+  releaseCancelled();
+  await expect(oldManual).resolves.toBeNull();
+  // Only the restarted runtime's own follow-up runs, once.
+  await app.finish();
+  await app.finish();
+  await restarting;
+  await expect(newManual).resolves.not.toBeNull();
+  expect(app.passes).toHaveLength(passesAfterRestart + 1);
+  app.runtime.stop();
+});

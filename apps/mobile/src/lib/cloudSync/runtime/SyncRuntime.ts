@@ -265,6 +265,7 @@ export class SyncRuntime {
     }
     const controller = new AbortController();
     this.passController = controller;
+    const lifecycle = this.lifecycle;
     const running: Promise<RuntimePassResult | null> = this.runLoop(
       trigger,
       allowFollowup,
@@ -278,8 +279,15 @@ export class SyncRuntime {
         // A background deadline cancelled this loop, but the app came back to
         // the foreground meanwhile and a pass joined it. Callers waiting here,
         // such as Sync now, get that pass's result rather than the cancellation.
+        // After stop() a joiner belongs to the restarted runtime, not this loop.
         const joined = this.rerunTrigger;
-        if (controller.signal.aborted && joined && !this.stopped && this.active) {
+        if (
+          controller.signal.aborted &&
+          joined &&
+          !this.stopped &&
+          lifecycle === this.lifecycle &&
+          this.active
+        ) {
           return this.run(joined);
         }
         return result;
