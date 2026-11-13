@@ -1,4 +1,4 @@
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 
@@ -232,6 +232,21 @@ function legacyAsset(descriptor: SnapshotMedia, uri: string): Asset {
 interface MaterializedMedia {
   uri: string;
   verified: boolean;
+}
+
+/**
+ * A row's existing path when a download can safely be written back to it: one
+ * file directly inside its kind's media folder. Writing there keeps every
+ * reference to the path, including entry lists an open editor holds, valid.
+ */
+function restorableMediaUri(
+  kind: SnapshotMedia['kind'],
+  uri: string | null,
+): string | null {
+  const directoryName = kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
+  if (!uri?.startsWith(`${directoryName}/`)) return null;
+  const name = uri.slice(directoryName.length + 1);
+  return name.length > 0 && !name.includes('/') && !name.includes('..') ? uri : null;
 }
 
 function relativeMediaUri(asset: SnapshotMedia): string {
@@ -941,6 +956,57 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     }
   }
 
+  /**
+   * Downloaded attachments whose file has gone missing, for example after a
+   * partial device restore, become pending again so hydration downloads them.
+   * Only a file confirmed absent counts: a failed check leaves the row alone,
+   * so a passing I/O error never triggers a download. This changes local
+   * state only; the journal and its generation stay the same.
+   */
+  async requeueMissingVerifiedMedia(): Promise<number> {
+    const rows = await db
+      .select({
+        assetId: mediaAssets.asset_id,
+        kind: mediaAssets.kind,
+        localUri: mediaAssets.local_uri,
+      })
+      .from(mediaAssets)
+      .where(
+        and(
+          eq(mediaAssets.download_state, 'verified'),
+          isNotNull(mediaAssets.blob_hash),
+          isNotNull(mediaAssets.byte_size),
+        ),
+      );
+    let requeued = 0;
+    for (const row of rows) {
+      // Hydration writes the file back to this same path. A path it cannot
+      // reuse, such as a legacy absolute one, is left as it is.
+      const localUri = restorableMediaUri(row.kind, row.localUri);
+      if (localUri === null) continue;
+      let exists: boolean;
+      try {
+        exists = fileForLocalUri(localUri).exists;
+      } catch {
+        continue;
+      }
+      if (exists) continue;
+      const key = canonicalFileUri(localUri);
+      if (key !== null) inspectedFiles.delete(key);
+      await db
+        .update(mediaAssets)
+        .set({ download_state: 'pending' })
+        .where(
+          and(
+            eq(mediaAssets.asset_id, row.assetId),
+            eq(mediaAssets.download_state, 'verified'),
+          ),
+        );
+      requeued += 1;
+    }
+    return requeued;
+  }
+
   /** Bounded post-restore hydration. Metadata/text remain usable while media waits. */
   async hydratePendingMedia(
     provider: SnapshotProvider,
@@ -988,8 +1054,14 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         updatedAt: row.updated_at,
       };
       // The row already exists, so the copied file needs no rollback tracking.
+      // A file goes back to the row's own path when it can, so references to
+      // that path, such as the entry's attachment list, stay valid.
       await serializeMediaFiles(async () => {
-        const materialized = await this.materializeDescriptor(descriptor, []);
+        const materialized = await this.materializeDescriptor(
+          descriptor,
+          [],
+          restorableMediaUri(row.kind, row.local_uri) ?? undefined,
+        );
         await db
           .update(mediaAssets)
           .set({
@@ -1063,8 +1135,8 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   private async materializeDescriptor(
     asset: SnapshotMedia,
     created: string[],
+    relativeUri = relativeMediaUri(asset),
   ): Promise<MaterializedMedia> {
-    const relativeUri = relativeMediaUri(asset);
     const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
     const destination = new File(
       ensureDirectory(directoryName),
