@@ -22,6 +22,7 @@ const mockStore = new Map<string, string>();
 const mockAccess = new Map<string, string | undefined>();
 let mockLocked = false;
 let mockFailingWrite: string | null = null;
+let mockReadGate: { key: string; gate: Promise<void> } | null = null;
 const mockPlatform = { OS: 'ios' };
 
 jest.mock('react-native', () => ({
@@ -32,6 +33,13 @@ jest.mock('react-native', () => ({
 jest.mock('expo-secure-store', () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'after-first-unlock-this-device-only',
   getItemAsync: async (key: string) => {
+    if (mockReadGate?.key === key) {
+      const { gate } = mockReadGate;
+      mockReadGate = null;
+      const value = mockStore.get(key);
+      await gate;
+      return value ?? null;
+    }
     if (!mockStore.has(key)) return null;
     if (mockLocked && mockAccess.get(key) !== 'after-first-unlock-this-device-only') {
       throw new Error('errSecInteractionNotAllowed');
@@ -59,6 +67,7 @@ beforeEach(() => {
   mockAccess.clear();
   mockLocked = false;
   mockFailingWrite = null;
+  mockReadGate = null;
   mockPlatform.OS = 'ios';
 });
 
@@ -261,6 +270,31 @@ describe('keychain accessibility migration', () => {
     await migrateGoogleKeychainAccessibility();
     for (const [key, value] of before) expect(mockStore.get(key)).toBe(value);
     expect(mockStore.get(MIGRATED_KEY)).toBe('1');
+  });
+
+  it('a token refresh during the migration is not overwritten with the old token', async () => {
+    seedWhenUnlocked();
+    let release!: () => void;
+    mockReadGate = {
+      key: TOKEN_KEY,
+      gate: new Promise((resolve) => (release = resolve)),
+    };
+    const migrating = migrateGoogleKeychainAccessibility();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The account label refreshes outside the connection barrier.
+    const refreshed = writeGoogleTokens({
+      accessToken: 'fresh',
+      refreshToken: 'rotated',
+      expiresAt: 2,
+    });
+    release();
+    await Promise.all([migrating, refreshed]);
+    expect(JSON.parse(mockStore.get(TOKEN_KEY)!)).toEqual({
+      accessToken: 'fresh',
+      refreshToken: 'rotated',
+      expiresAt: 2,
+    });
+    expect(mockAccess.get(TOKEN_KEY)).toBe(TOKEN_KEY_ACCESS);
   });
 
   it('does nothing on Android', async () => {

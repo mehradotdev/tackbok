@@ -208,7 +208,9 @@ export class SyncRuntime {
     this.lastForegroundAt = -Infinity;
     this.rerunTrigger = null;
     this.localEditPending = false;
-    if (this.backgroundWindow) this.closeBackgroundWindow(this.backgroundWindow);
+    // Its deadline must not cancel a later lifecycle's pass, but the OS time
+    // stays until the aborted pass settled (runBoundedBackgroundPass ends it).
+    this.detachBackgroundWindow();
     // Abort the running pass; a connection change then drains it before it
     // touches credentials (CloudConnectionLifecycle.change).
     this.passController?.abort();
@@ -263,18 +265,25 @@ export class SyncRuntime {
     }
     const controller = new AbortController();
     this.passController = controller;
-    const running = this.runLoop(trigger, allowFollowup, controller.signal).finally(
-      () => {
+    const running: Promise<RuntimePassResult | null> = this.runLoop(
+      trigger,
+      allowFollowup,
+      controller.signal,
+    )
+      .finally(() => {
         if (this.running === running) this.running = null;
         if (this.passController === controller) this.passController = null;
+      })
+      .then((result) => {
         // A background deadline cancelled this loop, but the app came back to
-        // the foreground meanwhile and a pass joined it: run that one now.
+        // the foreground meanwhile and a pass joined it. Callers waiting here,
+        // such as Sync now, get that pass's result rather than the cancellation.
         const joined = this.rerunTrigger;
         if (controller.signal.aborted && joined && !this.stopped && this.active) {
-          void this.run(joined);
+          return this.run(joined);
         }
-      },
-    );
+        return result;
+      });
     this.running = running;
     return running;
   }
@@ -383,11 +392,11 @@ export class SyncRuntime {
     const window: BackgroundWindow = { closed: false, timer: null, execution: null };
     this.backgroundWindow = window;
     const armDeadline = (delayMs: number) => {
-      if (window.closed) return;
+      if (this.backgroundWindow !== window) return;
       window.timer = this.options.platform.setTimer(() => {
         window.timer = null;
         // Cancels like stop(): the pass settles its local state before it ends.
-        if (!window.closed) this.passController?.abort();
+        if (this.backgroundWindow === window) this.passController?.abort();
       }, delayMs);
     };
     const begin = this.options.platform.beginBackgroundExecution;
@@ -396,7 +405,7 @@ export class SyncRuntime {
     begin(() => {
       // The OS ended the time already; stop whatever is still running.
       if (window.closed) return;
-      this.passController?.abort();
+      if (this.backgroundWindow === window) this.passController?.abort();
       window.execution = null;
       this.closeBackgroundWindow(window);
     }).then(
@@ -421,6 +430,14 @@ export class SyncRuntime {
       },
     );
     return window;
+  }
+
+  private detachBackgroundWindow(): void {
+    const window = this.backgroundWindow;
+    if (!window) return;
+    if (window.timer) this.options.platform.clearTimer(window.timer);
+    window.timer = null;
+    this.backgroundWindow = null;
   }
 
   private closeBackgroundWindow(window: BackgroundWindow): void {

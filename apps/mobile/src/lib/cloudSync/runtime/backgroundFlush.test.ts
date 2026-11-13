@@ -229,10 +229,15 @@ test('a foreground pass that joined a deadline-cancelled pass still runs', async
   app.state('active');
   await jest.advanceTimersByTimeAsync(0);
   expect(app.sync).toHaveBeenCalledTimes(2);
+  // Sync now while the cancelled pass is still settling.
+  const manual = app.runtime.run('manual');
 
   releaseCancelled();
   await jest.advanceTimersByTimeAsync(0);
   expect(app.sync).toHaveBeenCalledTimes(3);
+  // Sync now reports the replacement pass, not the cancellation.
+  await app.finish();
+  await expect(manual).resolves.toEqual({ pulled: 0, pushed: 1 });
   app.runtime.stop();
 });
 
@@ -249,5 +254,66 @@ test('without OS background time the pass runs unbounded, as before', async () =
   app.mutate();
   await app.finish();
   expect(app.sync).toHaveBeenCalledTimes(3);
+  app.runtime.stop();
+});
+
+test('stop() in background keeps the OS time until the cancelled pass settled', async () => {
+  const app = setup();
+  let releaseCancelled!: () => void;
+  await startedIdle(app);
+  app.sync.mockImplementationOnce(
+    (signal?: AbortSignal) =>
+      new Promise((_resolve, reject) => {
+        signal?.addEventListener('abort', () => {
+          releaseCancelled = () => reject(new SyncCancelledError());
+        });
+      }),
+  );
+  app.state('background');
+  await jest.advanceTimersByTimeAsync(0);
+  app.runtime.stop();
+  await jest.advanceTimersByTimeAsync(0);
+  expect(app.end).not.toHaveBeenCalled();
+  releaseCancelled();
+  await jest.advanceTimersByTimeAsync(0);
+  expect(app.end).toHaveBeenCalledTimes(1);
+});
+
+test('the deadline of a stopped window does not cancel a pass after restart', async () => {
+  const app = setup();
+  await startedIdle(app);
+  app.state('background');
+  await jest.advanceTimersByTimeAsync(0);
+  const stoppedPasses = app.passes.length;
+  app.runtime.stop();
+  await jest.advanceTimersByTimeAsync(0);
+  // A resume restarts the runtime (for example after a connection change).
+  app.state('active');
+  const restarting = app.runtime.start();
+  await jest.advanceTimersByTimeAsync(0);
+  expect(app.passes).toHaveLength(stoppedPasses + 1);
+  const restartedPass = app.passes.at(-1)!;
+  await jest.advanceTimersByTimeAsync(60_000);
+  expect(restartedPass.signal?.aborted).toBe(false);
+  restartedPass.finish();
+  await restarting;
+  app.runtime.stop();
+});
+
+test('OS time granted after the app already returned to the foreground is ended at once', async () => {
+  const app = setup();
+  let grant!: (execution: RuntimeBackgroundExecution) => void;
+  app.begin.mockImplementationOnce(
+    () => new Promise<RuntimeBackgroundExecution | null>((resolve) => (grant = resolve)),
+  );
+  await startedIdle(app);
+  app.state('background');
+  await jest.advanceTimersByTimeAsync(0);
+  app.state('active');
+  grant({ remainingMs: 30_000, end: app.end });
+  await jest.advanceTimersByTimeAsync(0);
+  expect(app.end).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(60_000);
+  expect(app.passes[1]!.signal?.aborted).toBe(false);
   app.runtime.stop();
 });
