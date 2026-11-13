@@ -91,6 +91,7 @@ function harness(
     requeue?: () => Promise<number>;
     loadState?: () => { journalGeneration: number; settledGeneration: number };
     hydrationBatchesPerPass?: number;
+    persistMediaHashes?: () => Promise<void>;
   } = {},
 ): Harness {
   const setPause = jest.fn();
@@ -109,6 +110,7 @@ function harness(
     {
       hydratePendingMedia: options.hydrate ?? (async () => ({ hydrated: 0, missing: 0 })),
       requeueMissingVerifiedMedia: options.requeue ?? (async () => 0),
+      persistMediaHashes: options.persistMediaHashes ?? (async () => {}),
     } as unknown as ProductionSnapshotJournalStore,
     {} as SnapshotProvider,
     () => {},
@@ -143,6 +145,18 @@ test('a completed pass records that the journal of this backup was restored', as
   });
   await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
   expect(mockMarkJournalRestored).toHaveBeenCalledWith('vault-restored');
+});
+
+test('every pass saves its media hashes, including one that fails', async () => {
+  const persistMediaHashes = jest.fn(async () => {});
+  const passed = harness('vault-hashes-saved', { persistMediaHashes });
+  await expect(passed.runtime.sync()).resolves.toBeDefined();
+  const failed = harness('vault-hashes-saved-failed', {
+    engineSync: async () => ({ status: 'retry', reason: 'transient' }),
+    persistMediaHashes,
+  });
+  await expect(failed.runtime.sync()).rejects.toBeDefined();
+  expect(persistMediaHashes).toHaveBeenCalledTimes(2);
 });
 
 test('a pass that needs attention or a retry records no restored journal', async () => {

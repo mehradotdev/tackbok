@@ -50,6 +50,7 @@ import {
   type AvailableDriveVault,
 } from '../snapshot/drive';
 import { nativeSha256Bytes } from '../snapshot/runtime/nativeSha256';
+import { clearMediaHashes, forgetMediaHashes } from '../snapshot/storage';
 import {
   deletionAttentionReason,
   SQLiteSyncStateStore,
@@ -755,7 +756,9 @@ async function wipeJournalAndLocalCloudReplica(): Promise<string[]> {
     // those rows in this same transaction closes the crash window where a
     // later reconnect could otherwise publish the device wipe to Drive.
     await clearLocalCloudReplicaInTransaction(tx);
+    await clearMediaHashes(tx);
   });
+  forgetMediaHashes();
   return deleteLocalMediaFiles();
 }
 

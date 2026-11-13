@@ -252,6 +252,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       return await this.syncPass(signal);
     } finally {
       if (this.cancellation.signal === signal) this.cancellation.signal = null;
+      // Hashes read during the pass stay valid whatever its outcome.
+      await this.journal.persistMediaHashes();
       try {
         this.onProgress({ type: 'pass', state: 'end' });
       } finally {
