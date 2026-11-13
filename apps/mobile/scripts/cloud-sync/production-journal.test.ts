@@ -1592,9 +1592,46 @@ describe('saved media hashes', () => {
     expect(await verify('photos/a.jpg')).toBe(true);
     await store().persistMediaHashes();
     await clearMediaHashes(db as never);
+    forgetMediaHashes();
     expect(savedRows()).toEqual([]);
     expect(await verify('photos/a.jpg')).toBe(true);
     expect(hashReads).toHaveLength(2);
+  });
+
+  test('a rolled-back Delete all keeps reads the table does not hold yet', async () => {
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg', { hashedAt: 1 });
+    // A newer read replaces the saved row in memory only.
+    fileStats.set(fileUri('photos/a.jpg'), { size: 1, lastModified: 2_000 });
+    expect(await verify('photos/a.jpg')).toBe(true);
+    sqlite.exec('BEGIN IMMEDIATE');
+    await clearMediaHashes(db as never);
+    sqlite.exec('ROLLBACK');
+    expect(savedRows().map((row) => row.modified_at)).toEqual([1_000]);
+    expect(await verify('photos/a.jpg')).toBe(true);
+    expect(hashReads).toHaveLength(1);
+    await store().persistMediaHashes();
+    expect(savedRows().map((row) => row.modified_at)).toEqual([2_000]);
+  });
+
+  test('a missing staging copy alone does not make a pass write', async () => {
+    addPhoto('photo', 'photos/a.jpg');
+    expect(await new ProductionSnapshotMediaStore().hasVerified(fakeBlobHash)).toBe(
+      false,
+    );
+    await store().persistMediaHashes();
+    const writes = spyOn(sqlite, 'exec');
+    try {
+      expect(await new ProductionSnapshotMediaStore().hasVerified(fakeBlobHash)).toBe(
+        false,
+      );
+      await store().persistMediaHashes();
+      // No transaction began: nothing changed since the last save.
+      expect(writes).not.toHaveBeenCalledWith('BEGIN IMMEDIATE');
+    } finally {
+      writes.mockRestore();
+    }
+    expect(hashReads).toHaveLength(1);
   });
 
   test('rows from another format version are deleted unread', async () => {

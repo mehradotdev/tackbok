@@ -50,7 +50,7 @@ import {
   type AvailableDriveVault,
 } from '../snapshot/drive';
 import { nativeSha256Bytes } from '../snapshot/runtime/nativeSha256';
-import { clearMediaHashes } from '../snapshot/storage';
+import { clearMediaHashes, forgetMediaHashes } from '../snapshot/storage';
 import {
   deletionAttentionReason,
   SQLiteSyncStateStore,
@@ -758,6 +758,7 @@ async function wipeJournalAndLocalCloudReplica(): Promise<string[]> {
     await clearLocalCloudReplicaInTransaction(tx);
     await clearMediaHashes(tx);
   });
+  forgetMediaHashes();
   return deleteLocalMediaFiles();
 }
 

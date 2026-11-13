@@ -309,6 +309,10 @@ describe('production cloud-sync runtime', () => {
     expect(transaction.indexOf('await clearMediaHashes(tx)')).toBeLessThan(
       transaction.indexOf('});'),
     );
+    // Memory is forgotten only after the wipe commits.
+    expect(transaction.indexOf('forgetMediaHashes()')).toBeGreaterThan(
+      transaction.indexOf('});'),
+    );
   });
 
   test('production async units of work use Expo-managed transactions', async () => {

@@ -99,6 +99,8 @@ const inspectedFiles = new Map<string, InspectedFile>();
 // Changes the table does not hold yet; null removes the row.
 const unsavedInspections = new Map<string, InspectedFile | null>();
 let persistedHashesLoad: Promise<void> | null = null;
+// Whether memory holds every saved row, so a path absent from both maps has none.
+let persistedHashesLoaded = false;
 let prunedPersistedHashes = false;
 
 // Bump when the hashing or the row key changes: older rows are then deleted.
@@ -142,8 +144,10 @@ function rememberHash(key: string, value: InspectedFile): void {
 }
 
 function forgetHash(key: string): void {
-  inspectedFiles.delete(key);
-  unsavedInspections.set(key, null);
+  // Only a path that may have a saved row needs a removal, so a missing
+  // staging copy probed on every check does not make each pass write.
+  if (inspectedFiles.delete(key) || unsavedInspections.has(key) || !persistedHashesLoaded)
+    unsavedInspections.set(key, null);
 }
 
 /**
@@ -171,6 +175,7 @@ function loadPersistedHashes(): Promise<void> {
           hashedAt: row.hashed_at,
         });
       }
+      persistedHashesLoaded = true;
     } catch (error) {
       console.warn('Cloud sync could not load saved media hashes', error);
     }
@@ -337,23 +342,25 @@ function localMediaFileExists(uri: string | null): uri is string {
 
 /**
  * Forgets every hash held in memory; the next lookup reads the table again.
- * Tests use it to simulate an app restart.
+ * "Delete all" calls it once its wipe has committed; tests use it to simulate
+ * an app restart.
  */
 export function forgetMediaHashes(): void {
   inspectedFiles.clear();
   unsavedInspections.clear();
   persistedHashesLoad = null;
+  persistedHashesLoaded = false;
   prunedPersistedHashes = false;
   documentPrefixValue = null;
   rehashBudget = REHASHES_PER_PASS;
 }
 
 /**
- * Empties the saved hashes in the caller's transaction, for "Delete all". If
- * the transaction rolls back, the next lookup reads the kept rows again.
+ * Empties the saved hashes in the caller's transaction, for "Delete all".
+ * Call `forgetMediaHashes` after it commits: on a rollback, memory keeps
+ * newer reads the table does not hold yet.
  */
 export async function clearMediaHashes(tx: DbTransaction): Promise<void> {
-  forgetMediaHashes();
   await tx.delete(cloudSyncMediaHashCache);
 }
 
