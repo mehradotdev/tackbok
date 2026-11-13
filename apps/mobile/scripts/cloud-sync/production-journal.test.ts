@@ -1268,14 +1268,18 @@ test('downloaded attachments whose file vanished are queued for download again',
   existingFiles.clear();
   unreadableFiles.clear();
   existingFiles.add('file:///documents/photos/kept.jpg');
-  existingFiles.add('file:///abs/photos/kept-absolute.jpg');
-  existingFiles.add('file:///abs/photos/kept-scheme.jpg');
+  existingFiles.add('file:///documents/voice_memos/kept.m4a');
   unreadableFiles.add('file:///documents/photos/unreadable.jpg');
-  const row = (assetId: string, localUri: string, downloadState: 'verified' | 'n/a') => ({
+  const row = (
+    assetId: string,
+    localUri: string,
+    downloadState: 'verified' | 'n/a',
+    kind: 'photo' | 'voice' = 'photo',
+  ) => ({
     asset_id: assetId,
     owner_type: 'entry' as const,
     owner_id: 'entry',
-    kind: 'photo' as const,
+    kind,
     local_uri: localUri,
     download_state: downloadState,
     blob_hash: fakeBlobHash,
@@ -1286,12 +1290,14 @@ test('downloaded attachments whose file vanished are queued for download again',
   db.insert(schema.mediaAssets)
     .values([
       row('kept', 'photos/kept.jpg', 'verified'),
-      row('kept-absolute', '/abs/photos/kept-absolute.jpg', 'verified'),
-      row('kept-scheme', 'file:///abs/photos/kept-scheme.jpg', 'verified'),
+      row('kept-voice', 'voice_memos/kept.m4a', 'verified', 'voice'),
       row('vanished', 'photos/vanished.jpg', 'verified'),
-      // Bare absolute paths are checked too; Android cannot open them as is.
-      row('vanished-absolute', '/abs/photos/vanished.jpg', 'verified'),
-      row('vanished-scheme', 'file:///abs/photos/vanished-scheme.jpg', 'verified'),
+      row('vanished-voice', 'voice_memos/vanished.m4a', 'verified', 'voice'),
+      // Hydration cannot write these paths back, so they are left as they are.
+      row('absolute', '/abs/photos/absolute.jpg', 'verified'),
+      row('scheme', 'file:///abs/photos/scheme.jpg', 'verified'),
+      row('wrong-folder', 'voice_memos/photo.jpg', 'verified'),
+      row('nested', 'photos/nested/photo.jpg', 'verified'),
       // Created on this device: it may not be in the backup, so it is never
       // queued for download; the upload path reports it instead.
       row('local', 'photos/local.jpg', 'n/a'),
@@ -1301,7 +1307,7 @@ test('downloaded attachments whose file vanished are queued for download again',
     .run();
   const store = new ProductionSnapshotJournalStore('requeue', 'device', {} as never);
 
-  expect(await store.requeueMissingVerifiedMedia()).toBe(3);
+  expect(await store.requeueMissingVerifiedMedia()).toBe(2);
   const states = Object.fromEntries(
     db
       .select()
@@ -1311,11 +1317,13 @@ test('downloaded attachments whose file vanished are queued for download again',
   );
   expect(states).toEqual({
     kept: 'verified',
-    'kept-absolute': 'verified',
-    'kept-scheme': 'verified',
+    'kept-voice': 'verified',
     vanished: 'pending',
-    'vanished-absolute': 'pending',
-    'vanished-scheme': 'pending',
+    'vanished-voice': 'pending',
+    absolute: 'verified',
+    scheme: 'verified',
+    'wrong-folder': 'verified',
+    nested: 'verified',
     local: 'n/a',
     unreadable: 'verified',
   });
@@ -1324,7 +1332,7 @@ test('downloaded attachments whose file vanished are queued for download again',
   unreadableFiles.clear();
 });
 
-test('a repaired attachment downloaded to a new path is visible from its entry', async () => {
+test('a repaired attachment is downloaded back to the path its entry uses', async () => {
   sqlite.exec(
     'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM entries; DELETE FROM cloud_sync_state',
   );
@@ -1393,15 +1401,17 @@ test('a repaired attachment downloaded to a new path is visible from its entry',
     .from(schema.mediaAssets)
     .where(eq(schema.mediaAssets.asset_id, 'original'))
     .all()[0];
-  expect(repaired.download_state).toBe('verified');
-  expect(repaired.local_uri).not.toBe('photos/original.jpg');
+  expect(repaired).toMatchObject({
+    download_state: 'verified',
+    local_uri: 'photos/original.jpg',
+  });
+  expect(existingFiles.has('file:///documents/photos/original.jpg')).toBe(true);
+  // The entry's list, which screens and an open editor read, is untouched.
   const [entryRow] = db.select().from(schema.entries).all();
-  // Screens read the entry's list: it points at the downloaded file, in order.
   expect(entryRow.assets!.map((asset) => asset.uri)).toEqual([
     'photos/other.jpg',
-    repaired.local_uri!,
+    'photos/original.jpg',
   ]);
-  expect(existingFiles.has(`file:///documents/${repaired.local_uri}`)).toBe(true);
   // The journal itself is unchanged, attachment order included.
   expect((await store.capture()).domain.entries[0].attachmentOrder).toEqual(orderBefore);
 });

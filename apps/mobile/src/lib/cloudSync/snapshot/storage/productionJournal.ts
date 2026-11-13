@@ -234,6 +234,21 @@ interface MaterializedMedia {
   verified: boolean;
 }
 
+/**
+ * A row's existing path when a download can safely be written back to it: one
+ * file directly inside its kind's media folder. Writing there keeps every
+ * reference to the path, including entry lists an open editor holds, valid.
+ */
+function restorableMediaUri(
+  kind: SnapshotMedia['kind'],
+  uri: string | null,
+): string | null {
+  const directoryName = kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
+  if (!uri?.startsWith(`${directoryName}/`)) return null;
+  const name = uri.slice(directoryName.length + 1);
+  return name.length > 0 && !name.includes('/') && !name.includes('..') ? uri : null;
+}
+
 function relativeMediaUri(asset: SnapshotMedia): string {
   const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
   const extension = asset.kind === 'voice' ? 'm4a' : 'jpg';
@@ -950,7 +965,11 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
    */
   async requeueMissingVerifiedMedia(): Promise<number> {
     const rows = await db
-      .select({ assetId: mediaAssets.asset_id, localUri: mediaAssets.local_uri })
+      .select({
+        assetId: mediaAssets.asset_id,
+        kind: mediaAssets.kind,
+        localUri: mediaAssets.local_uri,
+      })
       .from(mediaAssets)
       .where(
         and(
@@ -961,19 +980,19 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       );
     let requeued = 0;
     for (const row of rows) {
-      if (row.localUri !== null) {
-        // Canonical first: Android cannot open a bare absolute path.
-        const key = canonicalFileUri(row.localUri);
-        if (key === null) continue;
-        let exists: boolean;
-        try {
-          exists = new File(key).exists;
-        } catch {
-          continue;
-        }
-        if (exists) continue;
-        inspectedFiles.delete(key);
+      // Hydration writes the file back to this same path. A path it cannot
+      // reuse, such as a legacy absolute one, is left as it is.
+      const localUri = restorableMediaUri(row.kind, row.localUri);
+      if (localUri === null) continue;
+      let exists: boolean;
+      try {
+        exists = fileForLocalUri(localUri).exists;
+      } catch {
+        continue;
       }
+      if (exists) continue;
+      const key = canonicalFileUri(localUri);
+      if (key !== null) inspectedFiles.delete(key);
       await db
         .update(mediaAssets)
         .set({ download_state: 'pending' })
@@ -1035,44 +1054,26 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         updatedAt: row.updated_at,
       };
       // The row already exists, so the copied file needs no rollback tracking.
+      // A file goes back to the row's own path when it can, so references to
+      // that path, such as the entry's attachment list, stay valid.
       await serializeMediaFiles(async () => {
-        const materialized = await this.materializeDescriptor(descriptor, []);
-        await runExclusiveDbTransaction(async (tx) => {
-          await tx
-            .update(mediaAssets)
-            .set({
-              local_uri: materialized.uri,
-              download_state: 'verified',
-            })
-            .where(
-              and(
-                eq(mediaAssets.asset_id, row.asset_id),
-                eq(mediaAssets.blob_hash, descriptor.blobHash),
-              ),
-            );
-          // A re-downloaded file can land at a new path; screens read the
-          // entry's attachment list, so point it there too.
-          if (row.owner_type !== 'entry' || row.local_uri === materialized.uri) return;
-          const [entry] = await tx
-            .select({ assets: entries.assets })
-            .from(entries)
-            .where(eq(entries.note_id, row.owner_id))
-            .limit(1);
-          if (!entry?.assets) return;
-          let moved = false;
-          const assets = entry.assets.map((asset) => {
-            if (asset.assetId !== row.asset_id && asset.uri !== row.local_uri)
-              return asset;
-            moved = true;
-            return { ...asset, uri: materialized.uri };
-          });
-          if (moved) {
-            await tx
-              .update(entries)
-              .set({ assets })
-              .where(eq(entries.note_id, row.owner_id));
-          }
-        });
+        const materialized = await this.materializeDescriptor(
+          descriptor,
+          [],
+          restorableMediaUri(row.kind, row.local_uri) ?? undefined,
+        );
+        await db
+          .update(mediaAssets)
+          .set({
+            local_uri: materialized.uri,
+            download_state: 'verified',
+          })
+          .where(
+            and(
+              eq(mediaAssets.asset_id, row.asset_id),
+              eq(mediaAssets.blob_hash, descriptor.blobHash),
+            ),
+          );
       });
       const remaining = await db
         .select({ id: mediaAssets.asset_id })
@@ -1134,8 +1135,8 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   private async materializeDescriptor(
     asset: SnapshotMedia,
     created: string[],
+    relativeUri = relativeMediaUri(asset),
   ): Promise<MaterializedMedia> {
-    const relativeUri = relativeMediaUri(asset);
     const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
     const destination = new File(
       ensureDirectory(directoryName),

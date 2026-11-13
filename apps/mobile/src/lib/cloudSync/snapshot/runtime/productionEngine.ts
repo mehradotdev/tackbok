@@ -364,7 +364,12 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       await this.refreshAppliedViews();
     }
 
-    if (!this.checkedVerifiedMedia) {
+    // An OS background task has little time and starts a new engine each run,
+    // so only the app itself looks for missing files.
+    if (
+      !this.checkedVerifiedMedia &&
+      this.hydrationBatchesPerPass === Number.POSITIVE_INFINITY
+    ) {
       // shortcut: once per engine, not per pass, since it checks every
       // downloaded file; check more often if files vanish mid-session.
       try {

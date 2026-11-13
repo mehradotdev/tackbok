@@ -259,6 +259,16 @@ test('missing downloaded files are queued once per engine, before hydration', as
   expect(order).toEqual(['requeue', 'hydrate', 'hydrate']);
 });
 
+test('an OS background task does not look for missing files', async () => {
+  const requeue = jest.fn(async () => 0);
+  const app = harness('vault-requeue-background', {
+    requeue,
+    hydrationBatchesPerPass: 1,
+  });
+  await app.runtime.sync();
+  expect(requeue).not.toHaveBeenCalled();
+});
+
 test('a failed check for missing files does not fail the pass and is retried', async () => {
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   const requeue = jest
