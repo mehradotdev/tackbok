@@ -90,6 +90,21 @@ test('a pass cancelled during a connection change does not start a second attemp
   expect(mockTrack).not.toHaveBeenCalledWith('cloud_sync_failed', expect.anything());
 });
 
+test('a connection change gets one fresh engine that syncs with the same signal', async () => {
+  const controller = new AbortController();
+  const stale = jest.fn(async () => {
+    throw new CloudConnectionChangedError();
+  });
+  const fresh = jest.fn(async () => ({ pulled: 1, pushed: 2 }));
+  mockCreateEngine
+    .mockResolvedValueOnce({ sync: stale })
+    .mockResolvedValueOnce({ sync: fresh });
+
+  await expect(runProductionBackgroundPass(controller.signal)).resolves.toBe(true);
+  expect(fresh).toHaveBeenCalledWith(controller.signal);
+  expect(mockTrack).toHaveBeenCalledWith('cloud_sync_succeeded', expect.anything());
+});
+
 test('an engine built after the deadline never syncs', async () => {
   const controller = new AbortController();
   const sync = jest.fn(async (signal?: AbortSignal) => {

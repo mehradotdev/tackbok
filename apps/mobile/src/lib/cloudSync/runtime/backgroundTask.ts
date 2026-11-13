@@ -5,11 +5,13 @@ export const CLOUD_SYNC_BACKGROUND_TASK = 'tackbok-cloud-sync-v1';
 
 /**
  * How long a periodic pass may run before it is cancelled. Android stops
- * WorkManager work after 10 minutes; iOS gives a processing task a few minutes.
+ * WorkManager work after at most 10 minutes; iOS gives a processing task a few
+ * minutes, with no guarantee. This is best effort: if iOS expires the task
+ * sooner, the app is suspended mid-pass, which the next pass resumes from.
  * shortcut: expo-background-task 58.0.12 never delivers the iOS expiration event
  * to JS (its module drops the notification for lacking a "url"), and Android has
- * no such event, so this budget is the deadline that fires; shorten or drop it
- * once the library delivers expiration.
+ * no such event, so this budget is the deadline that fires; revisit once the
+ * library delivers expiration, keeping a budget as the fallback.
  */
 export const PERIODIC_PASS_BUDGET_MS = 4 * 60_000;
 
@@ -51,12 +53,11 @@ export async function runCloudSyncBackgroundTask(
 
 if (!TaskManager.isTaskDefined(CLOUD_SYNC_BACKGROUND_TASK)) {
   TaskManager.defineTask(CLOUD_SYNC_BACKGROUND_TASK, async () => {
-    try {
+    // The deadline also covers loading the sync code.
+    return runCloudSyncBackgroundTask(async (signal) => {
       const { runProductionBackgroundPass } = await import('./production');
-      return await runCloudSyncBackgroundTask(runProductionBackgroundPass);
-    } catch {
-      return BackgroundTask.BackgroundTaskResult.Failed;
-    }
+      return runProductionBackgroundPass(signal);
+    });
   });
 }
 
