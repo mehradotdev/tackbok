@@ -1587,6 +1587,22 @@ describe('saved media hashes', () => {
     }
   });
 
+  test('a file that goes missing while the table is unreadable still loses its row', async () => {
+    const warn = spyOn(console, 'warn').mockImplementation(() => {});
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg');
+    sqlite.exec('ALTER TABLE cloud_sync_media_hash_cache RENAME TO hash_cache_away');
+    try {
+      existingFiles.delete(fileUri('photos/a.jpg'));
+      expect(await verify('photos/a.jpg')).toBe(false);
+    } finally {
+      sqlite.exec('ALTER TABLE hash_cache_away RENAME TO cloud_sync_media_hash_cache');
+      warn.mockRestore();
+    }
+    await store().persistMediaHashes();
+    expect(savedRows()).toEqual([]);
+  });
+
   test('Delete all empties the table and the memory', async () => {
     addPhoto('photo', 'photos/a.jpg');
     expect(await verify('photos/a.jpg')).toBe(true);
