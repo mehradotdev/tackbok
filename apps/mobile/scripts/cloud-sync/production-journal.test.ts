@@ -1603,6 +1603,31 @@ describe('saved media hashes', () => {
     expect(savedRows()).toEqual([]);
   });
 
+  test('a failed load is retried at the end of the pass', async () => {
+    const warn = spyOn(console, 'warn').mockImplementation(() => {});
+    addPhoto('photo', 'photos/a.jpg');
+    saveRow('photos/a.jpg');
+    sqlite.exec('ALTER TABLE cloud_sync_media_hash_cache RENAME TO hash_cache_away');
+    try {
+      expect(await verify('photos/a.jpg')).toBe(true);
+    } finally {
+      sqlite.exec('ALTER TABLE hash_cache_away RENAME TO cloud_sync_media_hash_cache');
+      warn.mockRestore();
+    }
+    await store().persistMediaHashes();
+    // Loaded now: a missing staging copy no longer makes a pass write.
+    expect(await new ProductionSnapshotMediaStore().hasVerified(fakeBlobHash)).toBe(
+      false,
+    );
+    const writes = spyOn(sqlite, 'exec');
+    try {
+      await store().persistMediaHashes();
+      expect(writes).not.toHaveBeenCalledWith('BEGIN IMMEDIATE');
+    } finally {
+      writes.mockRestore();
+    }
+  });
+
   test('Delete all empties the table and the memory', async () => {
     addPhoto('photo', 'photos/a.jpg');
     expect(await verify('photos/a.jpg')).toBe(true);

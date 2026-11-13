@@ -151,8 +151,9 @@ function forgetHash(key: string): void {
 }
 
 /**
- * Reads saved hashes into memory once per process. An unreadable table only
- * means files are hashed again.
+ * Reads saved hashes into memory once per process; a failed read is retried
+ * at the end of the next pass. An unreadable table only means files are
+ * hashed again.
  */
 function loadPersistedHashes(): Promise<void> {
   persistedHashesLoad ??= (async () => {
@@ -190,6 +191,8 @@ function loadPersistedHashes(): Promise<void> {
  */
 async function persistMediaHashes(): Promise<void> {
   rehashBudget = REHASHES_PER_PASS;
+  // Retry a failed load once per pass, not on every file check.
+  if (!persistedHashesLoaded) persistedHashesLoad = null;
   await loadPersistedHashes();
   if (documentPrefix() === null) return;
   if (unsavedInspections.size === 0 && prunedPersistedHashes) return;
