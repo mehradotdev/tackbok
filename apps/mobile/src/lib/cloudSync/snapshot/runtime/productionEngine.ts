@@ -411,6 +411,15 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         if (durable.journalGeneration > durable.settledGeneration) break;
       }
     } catch (error) {
+      // A batch can save some files before it fails; show them. A cancelled
+      // pass refreshes screens on its own path.
+      if (!(error instanceof SyncCancelledError)) {
+        try {
+          await this.onRemoteApplied?.();
+        } catch {
+          // A failed screen refresh must not replace the hydration error.
+        }
+      }
       if (error instanceof SnapshotRuntimeFailure) throw error;
       throwIfCancelled(signal);
       if (

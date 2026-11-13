@@ -3,6 +3,7 @@ import type { SnapshotSyncEngine } from '../sync/engine';
 import type { ProductionSnapshotJournalStore } from '../storage';
 import type { SnapshotProvider } from '../sync/types';
 import { SyncCancelledError } from '../sync/errors';
+import { SnapshotProviderError } from '../sync/types';
 import type { JournalSnapshotPayload } from '../types';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import {
@@ -215,6 +216,28 @@ test('a background task downloads one batch per pass', async () => {
   });
   await app.runtime.sync();
   expect(hydrate).toHaveBeenCalledTimes(1);
+});
+
+test('files saved before a hydration batch fails still reach screens', async () => {
+  for (const failure of ['missing', 'provider'] as const) {
+    mockPendingMedia = [
+      { blobHash: 'blob', byteSize: 1 },
+      { blobHash: 'gone', byteSize: 1 },
+    ];
+    const order: string[] = [];
+    const app = harness(`vault-partial-${failure}`, {
+      engineSync: async () => ({ status: 'up-to-date', actionableChanges: 0 }),
+      hydrate: async () => {
+        order.push('hydrate');
+        // The first file is saved, then the second one fails.
+        if (failure === 'missing') return { hydrated: 1, missing: 1 };
+        throw new SnapshotProviderError('authorization-required', 'Signed out mid-batch');
+      },
+    });
+    app.remoteApplied.mockImplementation(() => order.push('screens'));
+    await expect(app.runtime.sync()).rejects.toBeDefined();
+    expect(order).toEqual(['hydrate', 'screens']);
+  }
 });
 
 test('a stopped caller stops waiting for a joined pass without cancelling or overlapping it', async () => {

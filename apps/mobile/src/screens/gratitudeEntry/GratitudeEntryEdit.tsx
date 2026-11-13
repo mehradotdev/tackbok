@@ -32,6 +32,7 @@ import {
   formatTimeLabel,
 } from '~/lib/i18n';
 import { filterExistingPhotos, filterUnavailableAttachments } from '~/lib/photoUtils';
+import { attachmentsToSave } from '~/lib/entryAttachments';
 import { addReceivedImage, type ReceivedImage } from '~/lib/clipboardPhoto';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import {
@@ -398,8 +399,12 @@ function GratitudeEntryEditForm({
     isSaving.current = true;
     const id = initialEntry?.note_id || randomUUID();
 
-    // Build the combined assets array (photos + voice memos)
-    const allAssets: Asset[] = [...photos, ...voiceMemos, ...unavailableAttachments];
+    // Kept attachments, including ones still downloading, keep their order.
+    const allAssets = attachmentsToSave(
+      initialEntry?.assets,
+      [...photos, ...voiceMemos],
+      unavailableAttachments,
+    );
 
     try {
       const entryToSave = {
