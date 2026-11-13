@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { AccessibilityInfo, Platform, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { FileClock } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
@@ -28,7 +29,23 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
   const router = useRouter();
   const { items, loadFailed } = useCloudConflictItems(refreshToken);
   // A failed load still shows the notice: the card there offers a retry.
-  if (!loadFailed && activeConflictItems(items).length === 0) return null;
+  const visible = loadFailed || activeConflictItems(items).length > 0;
+  const announcedRef = useRef(false);
+  const message = t('cloud.conflicts.homeNotice');
+
+  // Android reads the title through the live region; iOS has none, so announce
+  // once each time the notice appears, not on every snapshot refresh.
+  useEffect(() => {
+    if (!visible) {
+      announcedRef.current = false;
+      return;
+    }
+    if (announcedRef.current) return;
+    announcedRef.current = true;
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
+  }, [visible, message]);
+
+  if (!visible) return null;
 
   return (
     <View className="mx-4 mt-2 mb-1 gap-2 rounded-lg border border-border bg-card p-3">
@@ -38,7 +55,7 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
           {t('cloud.conflicts.title')}
         </Text>
       </View>
-      <Text className="text-sm text-foreground">{t('cloud.conflicts.homeNotice')}</Text>
+      <Text className="text-sm text-foreground">{message}</Text>
       <Button
         variant="outline"
         size="sm"

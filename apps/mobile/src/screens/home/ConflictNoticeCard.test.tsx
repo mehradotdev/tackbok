@@ -12,7 +12,18 @@ let mockSnapshot: { conflictCount: number } = { conflictCount: 0 };
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
-jest.mock('react-native', () => ({ View: 'View' }));
+const mockAnnounce = jest.fn();
+const mockPlatform = { OS: 'ios' };
+jest.mock('react-native', () => ({
+  View: 'View',
+  // Read lazily: this factory runs before the test's own constants exist.
+  get Platform() {
+    return mockPlatform;
+  },
+  AccessibilityInfo: {
+    announceForAccessibility: (message: string) => mockAnnounce(message),
+  },
+}));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('lucide-react-native', () => ({ FileClock: 'FileClock' }));
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
@@ -42,7 +53,10 @@ const archivedName: CloudConflictItem = {
 };
 
 let root: ReactTestRenderer;
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockPlatform.OS = 'ios';
+});
 afterEach(() => act(() => root?.unmount()));
 
 async function render(conflictCount: number, items: CloudConflictItem[]) {
@@ -113,4 +127,28 @@ test('reloads on a new snapshot and hides when the copies were deleted', async (
   await refreshSnapshot(1, []);
   expect(mockList).toHaveBeenCalledTimes(2);
   expect(root.toJSON()).toBeNull();
+});
+
+test('announces once on iOS, not on every snapshot refresh', async () => {
+  await render(1, [entriesItem]);
+  expect(mockAnnounce).toHaveBeenCalledTimes(1);
+  expect(mockAnnounce).toHaveBeenCalledWith(mockEn['cloud.conflicts.homeNotice']);
+  await refreshSnapshot(1, [entriesItem]);
+  expect(mockAnnounce).toHaveBeenCalledTimes(1);
+});
+
+test('announces again when a new conflict brings the notice back', async () => {
+  await render(1, [entriesItem]);
+  await refreshSnapshot(1, []);
+  await refreshSnapshot(1, [entriesItem]);
+  expect(mockAnnounce).toHaveBeenCalledTimes(2);
+});
+
+test('leaves Android to the live region and does not announce while hidden', async () => {
+  await render(1, []);
+  expect(mockAnnounce).not.toHaveBeenCalled();
+  act(() => root.unmount());
+  mockPlatform.OS = 'android';
+  await render(1, [entriesItem]);
+  expect(mockAnnounce).not.toHaveBeenCalled();
 });
