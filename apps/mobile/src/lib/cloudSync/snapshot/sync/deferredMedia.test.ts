@@ -94,6 +94,24 @@ describe('attachments waiting for Wi-Fi', () => {
     ]);
   });
 
+  it('keeps a reorder from another device when it puts a restored attachment back', () => {
+    const reorderedBase = domain(
+      [entry('e1', ['a', 'b'])],
+      [photo('a', 'e1'), photo('b', 'e1')],
+    );
+    const withNew = domain(
+      [entry('e1', ['a', 'new', 'b'])],
+      [photo('a', 'e1'), photo('b', 'e1'), photo('new', 'e1')],
+    );
+    const published = domain(
+      [entry('e1', ['b', 'a'])],
+      [photo('a', 'e1'), photo('b', 'e1')],
+    );
+    expect(
+      restoreDeferredMedia(published, withNew, reorderedBase).entries[0].attachmentOrder,
+    ).toEqual(['b', 'a', 'new']);
+  });
+
   it('never restores a published attachment the merge deleted, or one on a deleted entry', () => {
     // `old` was in the base and is gone from the publication: a real deletion.
     // e2 was deleted, so its attachment goes with it.

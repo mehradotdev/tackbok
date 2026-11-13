@@ -3721,9 +3721,13 @@ describe('verified snapshots across passes', () => {
 });
 
 describe('text on mobile data with Wi-Fi-only media', () => {
-  /** Refuses media transfers like the production policy until `onWifi` is set. */
-  function wifiOnlyMedia(provider: FakeSnapshotProvider) {
+  /**
+   * Refuses media transfers like the production policy until `onWifi` is set.
+   * Without `precheck`, only the refused upload tells the engine to wait.
+   */
+  function wifiOnlyMedia(provider: FakeSnapshotProvider, precheck = true) {
     const network = { onWifi: false, refused: 0 };
+    if (precheck) provider.mediaTransfersAllowed = async () => network.onWifi;
     const uploadMedia = provider.uploadMedia.bind(provider);
     provider.uploadMedia = async (...args) => {
       if (!network.onWifi) {
@@ -3778,17 +3782,23 @@ describe('text on mobile data with Wi-Fi-only media', () => {
     // This device keeps the photo and its place in the entry.
     expect(canonicalize(a.journal.current())).toBe(canonicalize(domain));
 
-    // Another pass on mobile data publishes nothing and still reports the wait.
+    // Another pass on mobile data publishes nothing and still reports the wait,
+    // without reading the waiting file again.
     provider.requests.length = 0;
-    network.refused = 0;
+    const opened: string[] = [];
+    const open = a.media.openVerifiedSource.bind(a.media);
+    a.media.openVerifiedSource = (blobHash) => {
+      opened.push(blobHash);
+      return open(blobHash);
+    };
     expect(await a.engine().sync()).toEqual({
       status: 'up-to-date',
       actionableChanges: 0,
       deferredMediaCount: 1,
     });
     expect(provider.requests).not.toContain('upload-snapshot');
-    // The upload was tried, so the policy reported the wait for Wi-Fi.
-    expect(network.refused).toBe(1);
+    expect(opened).toEqual([]);
+    expect(network.refused).toBe(0);
 
     // A second device reads the text and edits it.
     const b = harness('wifi-reader', blankDomain(), provider, a.clock);
@@ -3847,7 +3857,8 @@ describe('text on mobile data with Wi-Fi-only media', () => {
 
   test('a restart between publishing and applying keeps the waiting photo in place', async () => {
     const provider = new FakeSnapshotProvider();
-    const network = wifiOnlyMedia(provider);
+    // The refused upload alone defers the photo, as when Wi-Fi drops mid-pass.
+    const network = wifiOnlyMedia(provider, false);
     const older = new TextEncoder().encode('photo backed up on Wi-Fi');
     const a = harness('wifi-restart', blankDomain(), provider);
     await a.media.writeVerified(sha256Bytes(older), older);

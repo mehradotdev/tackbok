@@ -1,4 +1,4 @@
-import { mergeAttachmentOrder } from '../attachmentOrder';
+import { completeAttachmentOrder } from '../attachmentOrder';
 import type { SnapshotDomain, SnapshotEntry, SnapshotMedia } from '../types';
 
 /**
@@ -84,14 +84,23 @@ export function restoreDeferredMedia(
       const liveIds = media
         .filter((asset) => asset.ownerType === 'entry' && asset.ownerId === entry.entryId)
         .map((asset) => asset.assetId);
-      // The local order without the deferred attachments is what was
-      // published; keep the published order's changes and the local positions.
-      const attachmentOrder = mergeAttachmentOrder(
-        localOrder?.filter((id) => !restoredIds.has(id)),
-        localOrder,
-        entry.attachmentOrder,
-        liveIds,
-      );
+      // Keep the published order, which may hold another device's reorder,
+      // and put each restored attachment after the one it follows locally.
+      const order = [...(entry.attachmentOrder ?? [])];
+      const localIds = localOrder ?? [];
+      localIds.forEach((id, index) => {
+        if (!restoredIds.has(id)) return;
+        let at = 0;
+        for (let previous = index - 1; previous >= 0; previous -= 1) {
+          const position = order.indexOf(localIds[previous]);
+          if (position >= 0) {
+            at = position + 1;
+            break;
+          }
+        }
+        order.splice(at, 0, id);
+      });
+      const attachmentOrder = completeAttachmentOrder(order, liveIds);
       return { ...entry, attachmentOrder };
     }),
   };

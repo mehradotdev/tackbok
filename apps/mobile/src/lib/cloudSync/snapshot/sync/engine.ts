@@ -746,8 +746,19 @@ export class SnapshotSyncEngine {
     );
     // Open every source before the first upload, so progress knows the totals.
     const uploads: { blobHash: string; source: MediaUploadSource }[] = [];
+    // Opening a source hashes the whole file. Attachments that would only wait
+    // for Wi-Fi are not read on every pass on mobile data.
+    const waitForWifi =
+      requiredHashes.some(
+        (blobHash) => !remotelyPresent.has(blobHash) && deferrable(blobHash),
+      ) && (await this.provider.mediaTransfersAllowed?.()) === false;
+    const deferred = new Set<string>();
     for (const blobHash of requiredHashes) {
       if (remotelyPresent.has(blobHash)) continue;
+      if (waitForWifi && deferrable(blobHash)) {
+        deferred.add(blobHash);
+        continue;
+      }
       const source = await this.mediaStore.openVerifiedSource(blobHash);
       if (!source) {
         // Apply the already-validated logical journal before pausing. This
@@ -786,9 +797,9 @@ export class SnapshotSyncEngine {
       (left, right) =>
         Number(deferrable(left.blobHash)) - Number(deferrable(right.blobHash)),
     );
-    const deferred = new Set<string>();
+    const skippedUnread = deferred.size;
     for (const { blobHash, source } of uploads) {
-      if (deferred.size > 0) {
+      if (deferred.size > skippedUnread) {
         // The policy refused an earlier upload; the remaining ones wait too.
         deferred.add(blobHash);
         continue;

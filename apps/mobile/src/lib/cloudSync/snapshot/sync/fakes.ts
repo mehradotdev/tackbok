@@ -73,6 +73,8 @@ async function readSource(source: MediaUploadSource): Promise<Uint8Array> {
 
 export class FakeSnapshotProvider implements SnapshotProvider {
   readonly requests: FakeProviderOperation[] = [];
+  /** Tests set this to model a transfer policy such as Wi-Fi-only media. */
+  mediaTransfersAllowed?: () => Promise<boolean>;
   private readonly snapshots = new Map<string, StoredSnapshot>();
   private readonly heads = new Map<string, ListedDeviceHead[]>();
   private readonly media = new Map<string, Uint8Array>();

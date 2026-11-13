@@ -162,6 +162,12 @@ export interface SnapshotProvider {
   ): Promise<boolean>;
   updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
+  /**
+   * False when a transfer policy would refuse media uploads now, such as
+   * Wi-Fi-only media on mobile data. Uploads report the refusal themselves;
+   * this only spares reading files that would wait anyway.
+   */
+  mediaTransfersAllowed?(): Promise<boolean>;
   uploadMedia(
     vaultId: string,
     blobHash: string,

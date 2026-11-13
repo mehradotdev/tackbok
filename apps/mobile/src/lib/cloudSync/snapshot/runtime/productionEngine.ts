@@ -134,6 +134,13 @@ class MediaPolicyProvider implements SnapshotProvider {
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]) {
     return this.delegate.hasMediaBatch(vaultId, blobHashes);
   }
+  async mediaTransfersAllowed(): Promise<boolean> {
+    if (await this.mediaWaitsForWifi()) {
+      this.onProgress({ type: 'wait', reason: 'wifi-only-media' });
+      return false;
+    }
+    return true;
+  }
   async uploadMedia(
     vaultId: string,
     blobHash: string,
@@ -159,10 +166,14 @@ class MediaPolicyProvider implements SnapshotProvider {
     return this.delegate.deleteSnapshot(vaultId, snapshotId);
   }
 
-  private async assertMediaTransferAllowed(): Promise<void> {
-    if (!useSettingsStore.getState().cloudSyncWifiOnlyMedia) return;
+  private async mediaWaitsForWifi(): Promise<boolean> {
+    if (!useSettingsStore.getState().cloudSyncWifiOnlyMedia) return false;
     const network = await Network.getNetworkStateAsync();
-    if (network.type !== Network.NetworkStateType.WIFI) {
+    return network.type !== Network.NetworkStateType.WIFI;
+  }
+
+  private async assertMediaTransferAllowed(): Promise<void> {
+    if (await this.mediaWaitsForWifi()) {
       this.onProgress({ type: 'wait', reason: 'wifi-only-media' });
       throw new SnapshotProviderError('wifi-only-media', 'Media is waiting for Wi-Fi');
     }

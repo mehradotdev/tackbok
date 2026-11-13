@@ -601,6 +601,8 @@ export default function CloudBackupScreen() {
                 )}
                 {snapshot.status !== 'syncing' &&
                   syncProgress.idleWait === 'wifi-only-media' &&
+                  // The pending-work line already counts uploads waiting for Wi-Fi.
+                  snapshot.waitingUploadCount === 0 &&
                   pendingWork && (
                     <Text
                       className="text-sm text-foreground"
