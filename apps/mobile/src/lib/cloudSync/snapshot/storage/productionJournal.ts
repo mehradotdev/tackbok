@@ -129,9 +129,11 @@ function rememberInspection(
     after.size === inspected.byteSize
   ) {
     inspectedFiles.set(after.key, { ...after, sha256: inspected.sha256 });
-  } else if (after) {
-    inspectedFiles.delete(after.key);
+    return;
   }
+  // The file changed or disappeared while it was read: forget its old hash.
+  const key = after?.key ?? before?.key ?? canonicalFileUri(uri);
+  if (key !== null) inspectedFiles.delete(key);
 }
 
 /** A recreated file must be read again, even with an identical stamp. */

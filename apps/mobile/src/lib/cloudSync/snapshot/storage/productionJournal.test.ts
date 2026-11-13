@@ -6,13 +6,18 @@ import {
   clearInspectedMediaFiles,
   verifyLocalMediaFile,
 } from './productionJournal';
+import { sha256Text } from '../sha256';
+import type { SnapshotMedia } from '../types';
 
 const mockInspectLocalMediaFile = jest.fn();
+const mockCopyVerifiedMediaFile = jest.fn();
 const mockExistingUris = new Set<string>();
 // Files listed here report a size and modification time, as Expo's File does.
 const mockStats = new Map<string, { size: number; lastModified: number }>();
 let mockLive: { uri: string; bytes: number }[] = [];
 let mockRetained: { original: string; staged: string; bytes: number }[] = [];
+// Full media_assets rows, for reads without a where clause.
+let mockMediaRows: Record<string, unknown>[] = [];
 
 jest.mock('expo-file-system', () => ({
   Paths: { document: 'file:///documents' },
@@ -34,6 +39,9 @@ jest.mock('expo-file-system', () => ({
       get lastModified() {
         return mockStats.get(uri)?.lastModified;
       },
+      delete() {
+        mockExistingUris.delete(uri);
+      },
     };
   }),
 }));
@@ -47,9 +55,10 @@ jest.mock('~/db', () => ({
   customPrompts: {},
   db: {
     select: () => ({
-      from: (table: { kind: string }) => ({
-        where: async () => (table.kind === 'media' ? mockLive : mockRetained),
-      }),
+      from: (table: { kind: string }) =>
+        Object.assign(Promise.resolve(mockMediaRows), {
+          where: async () => (table.kind === 'media' ? mockLive : mockRetained),
+        }),
     }),
   },
   entries: {},
@@ -68,7 +77,7 @@ jest.mock('../../media/streamingHash', () => ({
 }));
 
 jest.mock('../media', () => ({
-  copyVerifiedMediaFile: jest.fn(),
+  copyVerifiedMediaFile: (...args: unknown[]) => mockCopyVerifiedMediaFile(...args),
   createMediaPartialFileSink: jest.fn(),
   openMediaUploadSource: (uri: string, contentHash: string, byteLength: number) => ({
     uri,
@@ -234,12 +243,97 @@ describe('cached media hashes', () => {
     expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
   });
 
+  test('a file that disappears while it is read forgets its cached hash', async () => {
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+    mockInspectLocalMediaFile.mockImplementationOnce(async () => {
+      mockExistingUris.delete(uri);
+      return { sha256: hash, byteSize: 8 };
+    });
+    await expect(verifyLocalMediaFile(uri, hash, 8, false)).resolves.toBe(true);
+    // Recreated with different bytes but the original stamp.
+    mockExistingUris.add(uri);
+    mockInspectLocalMediaFile.mockResolvedValue({ sha256: 'b'.repeat(64), byteSize: 8 });
+    await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(false);
+    expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(3);
+  });
+
   test('a file without a modification time is never cached', async () => {
     mockStats.delete(uri);
     await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
     await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
     expect(mockInspectLocalMediaFile).toHaveBeenCalledTimes(2);
   });
+});
+
+describe('remote apply with a staged download', () => {
+  const hash = 'a'.repeat(64);
+  const staged = `file:///documents/cloud-sync-media/${hash}.bin`;
+  const asset: SnapshotMedia = {
+    assetId: 'photo-1',
+    ownerType: 'entry',
+    ownerId: 'entry-1',
+    kind: 'photo',
+    blobHash: hash,
+    mimeType: 'image/jpeg',
+    byteSize: 8,
+    width: null,
+    height: null,
+    durationMs: null,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+  const destination = `file:///documents/photos/${sha256Text(asset.assetId)}-${hash}.jpg`;
+
+  function materialize(store: ProductionSnapshotJournalStore) {
+    return store['materializeMedia']([asset], []);
+  }
+
+  beforeEach(() => {
+    mockExistingUris.clear();
+    mockStats.clear();
+    clearInspectedMediaFiles();
+    mockInspectLocalMediaFile.mockReset();
+    mockCopyVerifiedMediaFile.mockReset();
+    mockLive = [];
+    mockRetained = [];
+    mockMediaRows = [];
+    mockExistingUris.add(staged);
+  });
+
+  test.each([
+    ['an existing row', 'file:///documents/photos/existing.jpg'],
+    ['the deterministic destination', destination],
+  ])(
+    're-reads %s instead of trusting a cached hash before dropping staging',
+    async (_, uri) => {
+      if (uri !== destination)
+        mockMediaRows = [{ asset_id: asset.assetId, blob_hash: hash, local_uri: uri }];
+      mockExistingUris.add(uri);
+      mockStats.set(uri, { size: 8, lastModified: 1_000 });
+      mockInspectLocalMediaFile.mockResolvedValue({ sha256: hash, byteSize: 8 });
+      await expect(verifyLocalMediaFile(uri, hash, 8)).resolves.toBe(true);
+      // Corrupted without a visible stamp change.
+      mockInspectLocalMediaFile.mockResolvedValue({
+        sha256: 'b'.repeat(64),
+        byteSize: 8,
+      });
+      const store = new ProductionSnapshotJournalStore(
+        'vault',
+        'device',
+        new ProductionSnapshotMediaStore(),
+      );
+
+      const result = await materialize(store);
+
+      expect(mockCopyVerifiedMediaFile).toHaveBeenCalledWith(
+        expect.objectContaining({ uri: staged }),
+        expect.objectContaining({ uri: destination }),
+        8,
+        hash,
+      );
+      expect(result.get(asset.assetId)?.verified).toBe(true);
+    },
+  );
 });
 
 describe('persisted conflict validation during capture', () => {
