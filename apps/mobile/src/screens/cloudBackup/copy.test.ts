@@ -2,9 +2,13 @@ import { en } from '~/lib/i18n/translations/en';
 import { translate } from '~/lib/i18n/translations';
 import type { TranslationFunction } from '~/lib/i18n/types';
 import {
+  ATTENTION_RECOVERY_ACTION,
+  type SyncAttentionReason,
+} from '~/lib/cloudSync/snapshot/sync/types';
+import {
+  attentionReasonMessage,
   cloudSyncFailureMessage,
   pendingWorkSummary,
-  recoveryActionLabel,
   syncNowUnavailableReason,
   syncPhaseLabel,
   syncProgressDetail,
@@ -113,19 +117,15 @@ describe('cloud backup status copy', () => {
     );
   });
 
-  test('retry-only recoveries say they retry', () => {
-    for (const action of [
-      'retry-verify-backup',
-      'repair-from-verified-backup',
-      'inspect-repair-backup',
-      'consolidate-backups',
-      'verify-backup-health',
-    ] as const) {
-      expect(recoveryActionLabel(action, t)).toBe(en['cloud.retryBackupCheck']);
+  test('attention messages are plain and distinct, without internal terms', () => {
+    const reasons = Object.keys(ATTENTION_RECOVERY_ACTION) as SyncAttentionReason[];
+    const messages = reasons.map((reason) => attentionReasonMessage(reason, t));
+    expect(new Set(messages).size).toBe(reasons.length);
+    for (const message of messages) {
+      expect(message).not.toMatch(
+        /snapshot|\bhead\b|identifier|vault|consolidat|generation|frontier|stag(e|ing)\b/i,
+      );
     }
-    expect(recoveryActionLabel('locate-retry-attachment', t)).toBe(
-      en['cloud.retryAttachment'],
-    );
   });
 });
 

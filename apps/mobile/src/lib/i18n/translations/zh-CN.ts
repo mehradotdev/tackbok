@@ -912,59 +912,69 @@ export const zhCN: Translations = {
   'cloud.countChangesSafelyQueued': '{count} 项更改已安全排队',
   'cloud.countChangesRemaining': '剩余 {count} 项更改',
   'cloud.photosAndVoiceNotesToDownloadCount': '待下载的照片和语音笔记：{number}',
-  'cloud.googleDriveAuthorizationNeedsAttention': 'Google Drive 授权需要处理。',
+  'cloud.googleDriveAuthorizationNeedsAttention':
+    'Google Drive 需要你重新登录。同步已停止，未删除任何内容。',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    '此备份属于另一个已连接的 Google 账号。',
-  'cloud.googleDrivePermissionWasNotFullyGranted': 'Google Drive 权限未完全授予。',
+    '此备份属于另一个 Google 账户。同步已停止，未删除任何内容。',
+  'cloud.googleDrivePermissionWasNotFullyGranted':
+    '塔克布克没有获得 Google Drive 的完整访问权限。同步已停止，未删除任何内容。',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    '已连接的云备份与此日记不匹配。',
-  'cloud.thisBackupWasCreatedByANewerTackbokVersion': '此备份由较新版本的塔克布克创建。',
-  'cloud.aCloudSnapshotFailedItsSafetyChecks': '一份已保存的云备份未通过安全检查。',
-  'cloud.aDeviceBackupPointsToAMissingSnapshot': '设备备份引用的一份已保存备份不存在。',
+    '已连接的备份属于另一本日记。同步已停止，未删除任何内容。',
+  'cloud.thisBackupWasCreatedByANewerTackbokVersion':
+    '此备份由较新版本的塔克布克创建。同步已停止，未删除任何内容。',
+  'cloud.aCloudSnapshotFailedItsSafetyChecks':
+    'Google Drive 中你的部分备份无法读取。同步已停止，未删除任何内容。',
+  'cloud.aDeviceBackupPointsToAMissingSnapshot':
+    '你的部分备份在 Google Drive 中缺失。同步已停止，未删除任何内容。',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    '两个不同备份声明了相同的设备版本。',
+    '你的备份中，同一台设备的更改有两个不同版本。同步已停止，未删除任何内容。',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    '独立的设备备份过多，需要合并。',
+    '有太多设备的更改等待合并。同步已停止，未删除任何内容。',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    '一个已恢复项目与现有项目的内部 ID 相同。',
+    '你日记中的两个项目无法安全合并。同步已停止，未删除任何内容。你可以在设置中导出一份副本。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    '塔克布克无法在此设备上安全地准备备份数据。',
-  'cloud.googleDriveDoesNotHaveEnoughFreeStorage': 'Google Drive 没有足够的可用空间。',
+    '塔克布克无法在此设备上保存同步数据，设备存储空间可能不足。同步已停止，未删除任何内容。',
+  'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
+    '你的 Google Drive 存储空间已满。同步已停止，未删除任何内容。',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive 拒绝访问应用备份文件夹。',
-  'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable': '备份所需的照片或语音笔记不可用。',
-  'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified': '无法验证此设备上的照片或语音笔记。',
-  'cloud.yourJournalIsNotReadyForCloudSyncYet': '你的日记尚未准备好进行云同步。',
-  'cloud.thisCloudBackupWasDeletedFromAnotherDevice': '此云备份已从另一台设备删除。',
+    'Google Drive 正在阻止塔克布克访问你的备份。同步已停止，未删除任何内容。',
+  'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
+    '找不到一张照片或一条语音笔记。同步已停止，未删除任何内容。',
+  'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
+    '无法读取此设备上的一张照片或一条语音笔记。同步已停止，未删除任何内容。',
+  'cloud.yourJournalIsNotReadyForCloudSyncYet':
+    '塔克布克无法为备份准备好你的日记。同步已停止，未删除任何内容。',
+  'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
+    '此备份已被删除。你的条目仍在此设备上。',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
-    '此日记已从另一台设备在所有位置删除。',
+    '你的日记及其备份已在所有地方删除。请清除此设备以完成操作。',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    '云端删除已停止，尚未移除所有备份数据。',
+    '备份删除未完成。部分内容可能仍在 Google Drive 中。',
   'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    '备份清理已停止，以保护仍在使用的备份。',
-  'cloud.chooseTheConnectedAccount': '选择已连接的账号',
+    '同步在清理旧备份数据时停止，以保护你当前的备份。',
   'cloud.chooseAGoogleAccountToReconnect': '选择要重新连接的 Google 账号',
-  'cloud.finishConnection': '完成连接',
-  'cloud.reconnectToTheCorrectBackup': '重新连接正确的备份',
   'cloud.updateTackbok': '更新塔克布克',
-  'cloud.retryBackupCheck': '重新检查备份',
-  'cloud.exportJournalAndRepairBackup': '导出日记并修复备份',
-  'cloud.freeDeviceStorageAndRetry': '释放设备空间并重试',
   'cloud.manageGoogleDriveStorage': '管理 Google Drive 存储空间',
-  'cloud.retryMissingMedia': '重试缺失媒体',
-  'cloud.retryAttachment': '重试附件',
-  'cloud.retryJournalPreparation': '重试日记准备',
-  'cloud.acknowledgeAndDisconnect': '确认并断开连接',
   'cloud.reviewDeletionAndEraseThisDevice': '检查删除并清除此设备',
   'cloud.resumeDeletion': '继续删除',
+  'cloud.syncAgain': '重新同步',
+  'cloud.disconnectAndSetUpAgain': '断开连接并重新设置',
+  'cloud.openSettingsToExport': '打开设置以导出',
+  'cloud.openDeviceSettings': '打开设备设置',
+  'cloud.toKeepACopyUseExportInSettings':
+    '要保留日记副本，请在“{section}”中轻点“{action}”。',
+  'cloud.backupFoundButCouldNotBeRead':
+    '塔克布克在此 Google 账户中找到了备份，但无法读取。更新塔克布克可能会有帮助。',
+  'cloud.backupFoundButCouldNotBeReadCreateNew':
+    '塔克布克在此 Google 账户中找到了备份，但无法读取。更新塔克布克可能会有帮助。你也可以为此日记创建新的备份。',
+  'cloud.someBackupsInThisAccountCouldNotBeRead':
+    '此账户中的部分备份无法读取。更新塔克布克可能会有帮助。',
   'cloud.cloudDeletionCompleted': '云删除已完成',
-  'cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd':
-    '导出或修复受影响的日记数据，然后返回并重试。',
   'cloud.cloudBackupRetryCompleted': '云备份重试已完成',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     '云同步未能完成。你的更改仍安全地保留在队列中。',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive 拒绝了备份请求。请更新塔克布克后重试。',
+    'Google Drive 未接受塔克布克的请求。更新塔克布克可能会有帮助。同步已停止，未删除任何内容。',
   'time.hours': '小时',
   'time.minutes': '分钟',
   'common.databaseUpdateFailed': '无法更新日记数据库：{message}',

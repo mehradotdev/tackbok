@@ -189,7 +189,8 @@ jest.mock('../snapshot/storage', () => ({
 jest.mock('../snapshot/drive', () => ({
   SQLiteDriveProviderStateStore: jest.fn(),
   GoogleDriveSnapshotProvider: jest.fn(() => ({
-    listAvailableVaults: async () => (mockDieAt === 'list' ? never() : mockAvailable),
+    listAvailableVaults: async () =>
+      mockDieAt === 'list' ? never() : { vaults: mockAvailable, unreadableVaultIds: [] },
     // Records the credentials the real provider would use at this moment.
     publishRevocation: async () => {
       mockRevocations.push(mockSecure.get(TOKEN_KEY));

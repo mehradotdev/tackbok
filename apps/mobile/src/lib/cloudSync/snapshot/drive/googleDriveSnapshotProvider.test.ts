@@ -1151,10 +1151,99 @@ describe('GoogleDriveSnapshotProvider', () => {
       encodeCanonicalBytes(olderHead),
     );
 
-    await expect(provider(server).listAvailableVaults()).resolves.toEqual([
-      { vaultId: newerVault, updatedAt: 20 },
-      { vaultId: olderVault, updatedAt: 10 },
-    ]);
+    await expect(provider(server).listAvailableVaults()).resolves.toEqual({
+      vaults: [
+        { vaultId: newerVault, updatedAt: 20 },
+        { vaultId: olderVault, updatedAt: 10 },
+      ],
+      unreadableVaultIds: ['vault-invalid'],
+    });
+  });
+
+  test('vault discovery reports an empty account as having no backups', async () => {
+    await expect(provider(new FakeDriveServer()).listAvailableVaults()).resolves.toEqual({
+      vaults: [],
+      unreadableVaultIds: [],
+    });
+  });
+
+  test('vault discovery tells an unreadable backup apart from no backup', async () => {
+    const server = new FakeDriveServer();
+    server.seed(
+      'vault-garbled',
+      'heads/device-garbled.json',
+      'head',
+      new TextEncoder().encode('{"format": "tackbok-device-head", '),
+    );
+    server.seed(
+      'vault-not-canonical',
+      'heads/device-spaced.json',
+      'head',
+      new TextEncoder().encode(
+        JSON.stringify({ ...head('device-spaced', 1, '5'.repeat(64)) }, null, 2),
+      ),
+    );
+
+    await expect(provider(server).listAvailableVaults()).resolves.toEqual({
+      vaults: [],
+      unreadableVaultIds: ['vault-garbled', 'vault-not-canonical'],
+    });
+  });
+
+  test('vault discovery still offers readable backups beside unreadable ones', async () => {
+    const server = new FakeDriveServer();
+    const readable: DeviceHead = {
+      ...head('device-good', 1, '6'.repeat(64)),
+      vaultId: 'vault-readable',
+      updatedAt: 30,
+    };
+    server.seed(
+      'vault-readable',
+      'heads/device-good.json',
+      'head',
+      encodeCanonicalBytes(readable),
+    );
+    // Another device's head in the same backup is damaged; one valid head is enough.
+    server.seed(
+      'vault-readable',
+      'heads/device-bad.json',
+      'head',
+      new TextEncoder().encode('not json'),
+    );
+    server.seed(
+      'vault-broken',
+      'heads/device-bad.json',
+      'head',
+      new TextEncoder().encode('not json'),
+    );
+
+    await expect(provider(server).listAvailableVaults()).resolves.toEqual({
+      vaults: [{ vaultId: 'vault-readable', updatedAt: 30 }],
+      unreadableVaultIds: ['vault-broken'],
+    });
+  });
+
+  test('vault discovery fails on a Drive outage instead of calling backups unreadable', async () => {
+    const server = new FakeDriveServer();
+    server.seed(
+      vaultId,
+      'heads/device-outage.json',
+      'head',
+      encodeCanonicalBytes(head('device-outage', 1, '7'.repeat(64))),
+    );
+    const outage = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async (url, init) =>
+        url.includes('alt=media') ? response(503) : server.fetch(url, init),
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1_800_000_000_000,
+    });
+
+    await expect(outage.listAvailableVaults()).rejects.toMatchObject({
+      code: 'transient',
+    });
   });
 
   test('initial discovery survives one eventually-consistent empty prefix listing', async () => {

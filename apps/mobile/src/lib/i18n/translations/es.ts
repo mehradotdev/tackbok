@@ -935,73 +935,71 @@ export const es = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'Fotos y notas de voz por descargar: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'La autorización Google Drive necesita atención.',
+    'Google Drive necesita que vuelvas a iniciar sesión. La sincronización se detuvo sin eliminar nada.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'Esta copia de seguridad pertenece a una cuenta de Google conectada diferente.',
+    'Esta copia de seguridad pertenece a otra cuenta de Google. La sincronización se detuvo sin eliminar nada.',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'El permiso Google Drive no se concedió por completo.',
+    'Tackbok no recibió acceso completo a Google Drive. La sincronización se detuvo sin eliminar nada.',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'La copia de seguridad en la nube conectada no coincide con este diario.',
+    'La copia de seguridad conectada pertenece a otro diario. La sincronización se detuvo sin eliminar nada.',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'Esta copia de seguridad fue creada por una versión más reciente de Tackbok.',
+    'Esta copia de seguridad se creó con una versión más reciente de Tackbok. La sincronización se detuvo sin eliminar nada.',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'Una copia de seguridad guardada en la nube no pasó los controles de seguridad.',
+    'No se pudo leer parte de tu copia de seguridad en Google Drive. La sincronización se detuvo sin eliminar nada.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'Una copia de seguridad del dispositivo se refiere a una copia de seguridad guardada que falta.',
+    'Falta parte de tu copia de seguridad en Google Drive. La sincronización se detuvo sin eliminar nada.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'Dos copias de seguridad diferentes reclaman la misma versión del dispositivo.',
+    'Tu copia de seguridad tiene dos versiones distintas de los cambios de un mismo dispositivo. La sincronización se detuvo sin eliminar nada.',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Es necesario combinar demasiadas copias de seguridad de dispositivos independientes.',
+    'Hay cambios de demasiados dispositivos esperando a combinarse. La sincronización se detuvo sin eliminar nada.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'Un artículo recuperado tiene la misma identificación interna que un artículo existente.',
+    'No se pudieron combinar con seguridad dos elementos de tu diario. La sincronización se detuvo sin eliminar nada. Puedes exportar una copia desde Ajustes.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'Tackbok no pudo preparar de forma segura la copia de seguridad de los datos en este dispositivo.',
+    'Tackbok no pudo guardar datos de sincronización en este dispositivo. Puede que tenga poco espacio. La sincronización se detuvo sin eliminar nada.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'Google Drive no tiene suficiente almacenamiento disponible.',
+    'Tu almacenamiento de Google Drive está lleno. La sincronización se detuvo sin eliminar nada.',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive denegó el acceso a la carpeta de copia de seguridad de la aplicación.',
+    'Google Drive está bloqueando el acceso de Tackbok a tu copia de seguridad. La sincronización se detuvo sin eliminar nada.',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'Una foto o nota de voz necesaria para la copia de seguridad no está disponible.',
+    'No se encontró una foto o nota de voz. La sincronización se detuvo sin eliminar nada.',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'No se pudo verificar una foto o nota de voz en este dispositivo.',
+    'No se pudo leer una foto o nota de voz de este dispositivo. La sincronización se detuvo sin eliminar nada.',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'Su diario aún no está listo para la sincronización en la nube.',
+    'Tackbok no pudo preparar tu diario para la copia de seguridad. La sincronización se detuvo sin eliminar nada.',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
-    'Esta copia de seguridad en la nube se eliminó de otro dispositivo.',
+    'Esta copia de seguridad se eliminó. Tus entradas siguen en este dispositivo.',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
-    'Este diario fue eliminado en todas partes desde otro dispositivo.',
+    'Tu diario y su copia de seguridad se eliminaron en todas partes. Borra este dispositivo para terminar.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'La eliminación de la nube se detuvo antes de que se eliminaran todos los datos de la copia de seguridad.',
+    'La eliminación de tu copia de seguridad no terminó. Puede que parte de ella siga en Google Drive.',
   'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'La limpieza de la copia de seguridad se detuvo para proteger una copia de seguridad que aún está en uso.',
-  'cloud.chooseTheConnectedAccount': 'Elija la cuenta conectada',
+    'La sincronización se detuvo al eliminar datos antiguos de la copia de seguridad, para proteger tu copia actual.',
   'cloud.chooseAGoogleAccountToReconnect':
     'Elija una cuenta de Google para volver a conectarse',
-  'cloud.finishConnection': 'Terminar la conexión',
-  'cloud.reconnectToTheCorrectBackup':
-    'Vuelva a conectarse a la copia de seguridad correcta',
   'cloud.updateTackbok': 'Actualizar Tackbok',
-  'cloud.retryBackupCheck': 'Volver a comprobar la copia de seguridad',
-  'cloud.exportJournalAndRepairBackup': 'Exportar diario y reparar copia de seguridad',
-  'cloud.freeDeviceStorageAndRetry':
-    'Libera espacio en el dispositivo y vuelve a intentarlo',
   'cloud.manageGoogleDriveStorage': 'Administrar el almacenamiento Google Drive',
-  'cloud.retryMissingMedia': 'Reintentar medios faltantes',
-  'cloud.retryAttachment': 'Reintentar archivo adjunto',
-  'cloud.retryJournalPreparation': 'Reintentar la preparación del diario',
-  'cloud.acknowledgeAndDisconnect': 'Reconocer y desconectar',
   'cloud.reviewDeletionAndEraseThisDevice':
     'Revisar la eliminación y borrar este dispositivo',
   'cloud.resumeDeletion': 'Reanudar eliminación',
+  'cloud.syncAgain': 'Sincronizar de nuevo',
+  'cloud.disconnectAndSetUpAgain': 'Desconectar y configurar de nuevo',
+  'cloud.openSettingsToExport': 'Abrir Ajustes para exportar',
+  'cloud.openDeviceSettings': 'Abrir ajustes del dispositivo',
+  'cloud.toKeepACopyUseExportInSettings':
+    'Para conservar una copia de tu diario, toca {action} en {section}.',
+  'cloud.backupFoundButCouldNotBeRead':
+    'Tackbok encontró una copia de seguridad en esta cuenta de Google, pero no pudo leerla. Actualizar Tackbok puede ayudar.',
+  'cloud.backupFoundButCouldNotBeReadCreateNew':
+    'Tackbok encontró una copia de seguridad en esta cuenta de Google, pero no pudo leerla. Actualizar Tackbok puede ayudar. También puedes crear una copia de seguridad nueva para este diario.',
+  'cloud.someBackupsInThisAccountCouldNotBeRead':
+    'No se pudieron leer algunas copias de seguridad de esta cuenta. Actualizar Tackbok puede ayudar.',
   'cloud.cloudDeletionCompleted': 'Eliminación de la nube completada',
-  'cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd':
-    'Exporte o repare los datos del diario afectados, luego regrese y vuelva a intentarlo.',
   'cloud.cloudBackupRetryCompleted':
     'Reintento de copia de seguridad en la nube completado',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'La sincronización en la nube no pudo finalizar. Sus cambios permanecen en cola de forma segura.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive rechazó una solicitud de copia de seguridad. Actualice Tackbok y vuelva a intentarlo.',
+    'Google Drive no aceptó una solicitud de Tackbok. Actualizar Tackbok puede ayudar. La sincronización se detuvo sin eliminar nada.',
   'time.hours': 'Horas',
   'time.minutes': 'Minutos',
   'common.databaseUpdateFailed':

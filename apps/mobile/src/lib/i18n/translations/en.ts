@@ -974,68 +974,68 @@ export const en = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'Photos and voice notes to download: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Google Drive authorization needs attention.',
+    'Google Drive needs you to sign in again. Sync stopped without deleting anything.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'This backup belongs to a different connected Google account.',
+    'This backup belongs to a different Google account. Sync stopped without deleting anything.',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'Google Drive permission was not fully granted.',
+    "Tackbok wasn't given full access to Google Drive. Sync stopped without deleting anything.",
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'The connected cloud backup does not match this journal.',
+    'The connected backup belongs to a different journal. Sync stopped without deleting anything.',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'This backup was created by a newer Tackbok version.',
+    'This backup was made by a newer version of Tackbok. Sync stopped without deleting anything.',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'A saved cloud backup did not pass safety checks.',
+    "Part of your backup in Google Drive couldn't be read. Sync stopped without deleting anything.",
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'A device backup refers to a saved backup that is missing.',
+    'Part of your backup is missing from Google Drive. Sync stopped without deleting anything.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'Two different backups claim the same device version.',
+    "Your backup has two different copies of one device's changes. Sync stopped without deleting anything.",
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Too many separate device backups need to be combined.',
+    'Changes from too many devices are waiting to be combined. Sync stopped without deleting anything.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'A recovered item has the same internal ID as an existing item.',
+    "Two items in your journal couldn't be combined safely. Sync stopped without deleting anything. You can export a copy from Settings.",
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'Tackbok could not safely prepare backup data on this device.',
+    "Tackbok couldn't save sync data on this device. It may be low on storage. Sync stopped without deleting anything.",
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'Google Drive does not have enough free storage.',
+    'Your Google Drive storage is full. Sync stopped without deleting anything.',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive denied access to the app backup folder.',
+    'Google Drive is blocking Tackbok from your backup. Sync stopped without deleting anything.',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'A photo or voice note needed by the backup is unavailable.',
+    "A photo or voice note couldn't be found. Sync stopped without deleting anything.",
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'A photo or voice note on this device could not be verified.',
+    "A photo or voice note on this device couldn't be read. Sync stopped without deleting anything.",
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'Your journal is not ready for cloud sync yet.',
+    "Tackbok couldn't get your journal ready to back up. Sync stopped without deleting anything.",
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
-    'This cloud backup was deleted from another device.',
+    'This backup was deleted. Your entries are still on this device.',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
-    'This journal was deleted everywhere from another device.',
+    'Your journal and its backup were deleted everywhere. Erase this device to finish.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'Cloud deletion stopped before all backup data was removed.',
+    "Deleting your backup didn't finish. Some of it may still be in Google Drive.",
   'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'Backup cleanup stopped to protect a backup still in use.',
-  'cloud.chooseTheConnectedAccount': 'Choose the connected account',
+    'Sync stopped while clearing out old backup data, to keep your current backup safe.',
   'cloud.chooseAGoogleAccountToReconnect': 'Choose a Google account to reconnect',
-  'cloud.finishConnection': 'Finish connection',
-  'cloud.reconnectToTheCorrectBackup': 'Reconnect to the correct backup',
   'cloud.updateTackbok': 'Update Tackbok',
-  'cloud.retryBackupCheck': 'Retry backup check',
-  'cloud.exportJournalAndRepairBackup': 'Export journal and repair backup',
-  'cloud.freeDeviceStorageAndRetry': 'Free device storage and retry',
   'cloud.manageGoogleDriveStorage': 'Manage Google Drive storage',
-  'cloud.retryMissingMedia': 'Retry missing media',
-  'cloud.retryAttachment': 'Retry attachment',
-  'cloud.retryJournalPreparation': 'Retry journal preparation',
-  'cloud.acknowledgeAndDisconnect': 'Acknowledge and disconnect',
   'cloud.reviewDeletionAndEraseThisDevice': 'Review deletion and erase this device',
   'cloud.resumeDeletion': 'Resume deletion',
+  'cloud.syncAgain': 'Sync again',
+  'cloud.disconnectAndSetUpAgain': 'Disconnect and set up again',
+  'cloud.openSettingsToExport': 'Open Settings to export',
+  'cloud.openDeviceSettings': 'Open device settings',
+  'cloud.toKeepACopyUseExportInSettings':
+    'To keep a copy of your journal, tap {action} under {section}.',
+  'cloud.backupFoundButCouldNotBeRead':
+    "Tackbok found a backup in this Google account but couldn't read it. Updating Tackbok may help.",
+  'cloud.backupFoundButCouldNotBeReadCreateNew':
+    "Tackbok found a backup in this Google account but couldn't read it. Updating Tackbok may help. You can also create a new backup for this journal.",
+  'cloud.someBackupsInThisAccountCouldNotBeRead':
+    "Some backups in this account couldn't be read. Updating Tackbok may help.",
   'cloud.cloudDeletionCompleted': 'Cloud deletion completed',
-  'cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd':
-    'Export or repair the affected journal data, then return and retry.',
   'cloud.cloudBackupRetryCompleted': 'Cloud backup retry completed',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'Cloud sync could not finish. Your changes remain safely queued.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive rejected a backup request. Update Tackbok and retry.',
+    "Google Drive didn't accept a request from Tackbok. Updating Tackbok may help. Sync stopped without deleting anything.",
   'time.hours': 'Hours',
   'time.minutes': 'Minutes',
   'common.databaseUpdateFailed': 'Could not update the journal database: {message}',

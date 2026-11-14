@@ -157,7 +157,11 @@ export default function CloudBackupScreen() {
       }
       if (origin === 'onboarding' && connection.availableVaults.length === 0) {
         await cancelPreparedGoogleDriveConnection();
-        toast.warning(t('cloud.noTackbokBackupFoundInThisGoogleAccount'));
+        toast.warning(
+          connection.unreadableBackupCount > 0
+            ? t('cloud.backupFoundButCouldNotBeRead')
+            : t('cloud.noTackbokBackupFoundInThisGoogleAccount'),
+        );
         handleBack();
         return;
       }
@@ -358,7 +362,12 @@ export default function CloudBackupScreen() {
     }
     if (action === 'export-repair-backup') {
       router.push('/settings');
-      toast.warning(t('cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd'));
+      toast.warning(
+        t('cloud.toKeepACopyUseExportInSettings', {
+          action: t('backup.exportAsZip'),
+          section: t('backup.backupRestore'),
+        }),
+      );
       return;
     }
     if (action === 'locate-retry-attachment') {
@@ -990,11 +999,18 @@ function ConnectionChoice({
               </View>
             </Button>
           ))}
+          {prepared.unreadableBackupCount > 0 && (
+            <Text className="text-sm text-foreground">
+              {t('cloud.someBackupsInThisAccountCouldNotBeRead')}
+            </Text>
+          )}
         </>
       ) : origin === 'settings' ? (
         <>
           <Text className="text-foreground">
-            {t('cloud.noExistingTackbokBackupWasFoundCreateOneForThis')}
+            {prepared.unreadableBackupCount > 0
+              ? t('cloud.backupFoundButCouldNotBeReadCreateNew')
+              : t('cloud.noExistingTackbokBackupWasFoundCreateOneForThis')}
           </Text>
           <Button variant="primary" size="lg" disabled={busy} onPress={onCreate}>
             <Text>{t('cloud.createCloudBackup')}</Text>

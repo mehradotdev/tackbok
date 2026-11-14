@@ -118,6 +118,8 @@ export interface PreparedCloudVault {
 export interface PreparedGoogleConnection {
   accountLabel: string;
   availableVaults: PreparedCloudVault[];
+  /** Backups found in this account that this version could not read. */
+  unreadableBackupCount: number;
   localHasData: boolean;
 }
 
@@ -321,7 +323,7 @@ async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnect
         state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
         hashBytes: nativeSha256Bytes,
       });
-      const vaults = await provider.listAvailableVaults();
+      const { vaults, unreadableVaultIds } = await provider.listAvailableVaults();
       const prepared = {
         accountLabel: await auth.getAccountLabel(),
         availableVaults: vaults
@@ -330,6 +332,9 @@ async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnect
             vaultId: vault.vaultId,
             updatedAt: vault.updatedAt || null,
           })),
+        unreadableBackupCount: unreadableVaultIds.filter(
+          (vaultId) => !vaultId.includes('probe-'),
+        ).length,
         localHasData: await localHasData(),
       };
       pendingConnection = { provider, auth, prepared, rollback };
@@ -520,7 +525,7 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
       state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
       hashBytes: nativeSha256Bytes,
     });
-    const available = await provider.listAvailableVaults();
+    const { vaults: available } = await provider.listAvailableVaults();
     const store = new SQLiteSyncStateStore(sqlite);
     const state = store.loadState(vault.vault_id, vault.device_id);
     const accountLabel = await auth.getAccountLabel();
