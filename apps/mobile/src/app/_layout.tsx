@@ -133,7 +133,9 @@ export default function Layout() {
   }, [hasHydrated, profileReady, success]);
 
   // A pending Android icon change waits for sync work, such as the backup when
-  // the app is closed, so ending the app's task can't cut it short.
+  // the app is closed, so ending the app's task doesn't lower its priority.
+  // Best effort: a pass only counts as working once it has local changes to
+  // send, so a slow first network check can still let the change apply.
   useEffect(() => {
     let release: (() => void) | null = null;
     const update = () => {

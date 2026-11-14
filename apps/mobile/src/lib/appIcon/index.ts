@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
 import Constants from 'expo-constants';
 import { create } from 'zustand';
-import { ALTERNATE_APP_ICONS, type AlternateAppIconName } from './icons';
+import { ALTERNATE_APP_ICONS, BETA_ALTERNATE_APP_ICONS, type AppIconName } from './icons';
 
 export * from './icons';
 
@@ -55,50 +55,51 @@ export function useHoldAppIconChange(held: boolean): void {
   useEffect(() => (held ? holdAppIconChange() : undefined), [held]);
 }
 
-// Beta builds ship the Blueprint artwork as their default icon (app.config.ts).
-const DEFAULT_APP_ICON_ARTWORK: AlternateAppIconName | null =
-  Constants.expoConfig?.extra?.appVariant === 'beta' ? 'Blueprint' : null;
+const IS_BETA_BUILD = Constants.expoConfig?.extra?.appVariant === 'beta';
 
-/** Picker choices: null is the default icon. An alternate that looks the same is left out. */
-export const APP_ICON_CHOICES: readonly (AlternateAppIconName | null)[] = [
-  null,
-  ...ALTERNATE_APP_ICONS.filter((name) => name !== DEFAULT_APP_ICON_ARTWORK),
+/** Alternate icons registered in this build's binary (app.config.ts). */
+const NATIVE_ICONS: readonly AppIconName[] = IS_BETA_BUILD
+  ? BETA_ALTERNATE_APP_ICONS
+  : ALTERNATE_APP_ICONS;
+
+/** The artwork of the bundled default icon: beta builds ship Blueprint. */
+const DEFAULT_ICON: AppIconName = IS_BETA_BUILD ? 'Blueprint' : 'Classic';
+
+/** Picker choices, the same in every build. */
+export const APP_ICON_CHOICES: readonly AppIconName[] = [
+  'Classic',
+  ...ALTERNATE_APP_ICONS,
 ];
 
-/** The artwork a choice shows, or null for the Classic artwork. */
-export function getAppIconArtwork(
-  name: AlternateAppIconName | null,
-): AlternateAppIconName | null {
-  return name ?? DEFAULT_APP_ICON_ARTWORK;
+/** The icon the OS reports: null is the bundled default. */
+function fromNative(name: string | null): AppIconName {
+  return NATIVE_ICONS.find((icon) => icon === name) ?? DEFAULT_ICON;
 }
 
-/** The picker choice for an icon; an alternate that looks like the default reads as the default. */
-export function toAppIconChoice(
-  name: AlternateAppIconName | null,
-): AlternateAppIconName | null {
-  return name === DEFAULT_APP_ICON_ARTWORK ? null : name;
+/** The default artwork is set as the bundled default, not as its alternate twin. */
+function toNative(name: AppIconName): AppIconName | null {
+  return name === DEFAULT_ICON ? null : name;
 }
 
 type AppIconState = {
-  /** Active alternate icon, or null for the default icon. */
-  current: AlternateAppIconName | null;
+  /** Artwork of the active icon. */
+  current: AppIconName;
   /** True while a change is in flight; further changes are ignored until it settles. */
   isChanging: boolean;
   refresh: () => Promise<void>;
   /** Resolves true when the new icon appears only after the app goes to background. */
-  setIcon: (name: AlternateAppIconName | null) => Promise<boolean>;
+  setIcon: (name: AppIconName) => Promise<boolean>;
 };
 
 // The OS owns the selection, so it is read from native instead of persisted.
 // On Android a choice waiting for the app to go to background reads as current.
 export const useAppIconStore = create<AppIconState>((set, get) => ({
-  current: null,
+  current: DEFAULT_ICON,
   isChanging: false,
   refresh: async () => {
     if (!AppIconModule) return;
     try {
-      const name = await AppIconModule.getAppIconName(ALTERNATE_APP_ICONS);
-      set({ current: ALTERNATE_APP_ICONS.find((icon) => icon === name) ?? null });
+      set({ current: fromNative(await AppIconModule.getAppIconName(NATIVE_ICONS)) });
     } catch (error) {
       console.warn('[appIcon] Failed to read app icon', error);
     }
@@ -109,7 +110,7 @@ export const useAppIconStore = create<AppIconState>((set, get) => ({
     let isPending = false;
     try {
       isPending =
-        (await AppIconModule.setAppIcon(name, ALTERNATE_APP_ICONS)) === 'pending';
+        (await AppIconModule.setAppIcon(toNative(name), NATIVE_ICONS)) === 'pending';
     } catch (error) {
       console.warn('[appIcon] Failed to change app icon', error);
     }

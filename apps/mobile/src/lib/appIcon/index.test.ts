@@ -15,8 +15,16 @@ function load({
 }: {
   native: NativeModule | null;
   appVariant?: 'beta' | 'production';
-}): AppIconModuleExports {
-  let loaded: AppIconModuleExports | undefined;
+}): AppIconModuleExports & {
+  React: typeof import('react');
+  TestRenderer: typeof import('react-test-renderer');
+} {
+  let loaded:
+    | (AppIconModuleExports & {
+        React: typeof import('react');
+        TestRenderer: typeof import('react-test-renderer');
+      })
+    | undefined;
   jest.isolateModules(() => {
     jest.doMock('react-native', () => ({ Platform: { OS: 'android' } }));
     jest.doMock('expo', () => ({ requireOptionalNativeModule: () => native }));
@@ -24,7 +32,13 @@ function load({
       __esModule: true,
       default: { expoConfig: { extra: { appVariant } } },
     }));
-    loaded = jest.requireActual<AppIconModuleExports>('./index');
+    loaded = {
+      ...jest.requireActual<AppIconModuleExports>('./index'),
+      // Hooks need the React copy the isolated module loaded.
+      React: jest.requireActual<typeof import('react')>('react'),
+      TestRenderer:
+        jest.requireActual<typeof import('react-test-renderer')>('react-test-renderer'),
+    };
   });
   return loaded!;
 }
@@ -74,7 +88,7 @@ test('no notice when the change fails', async () => {
   const { useAppIconStore } = load({ native });
 
   await expect(useAppIconStore.getState().setIcon('Rose')).resolves.toBe(false);
-  expect(useAppIconStore.getState().current).toBeNull();
+  expect(useAppIconStore.getState().current).toBe('Classic');
   warn.mockRestore();
 });
 
@@ -85,27 +99,52 @@ test('without the native module nothing changes', async () => {
   await expect(useAppIconStore.getState().setIcon('Sage')).resolves.toBe(false);
 });
 
-test('production offers Classic as the default and every alternate', () => {
-  const { APP_ICON_CHOICES, ALTERNATE_APP_ICONS, getAppIconArtwork, toAppIconChoice } =
-    load({ native: null });
+test('production offers every icon, with Classic as the bundled default', async () => {
+  const native = deferringNative(null);
+  const { APP_ICON_CHOICES, ALTERNATE_APP_ICONS, useAppIconStore } = load({ native });
+  const { refresh, setIcon } = useAppIconStore.getState();
 
-  expect(APP_ICON_CHOICES).toEqual([null, ...ALTERNATE_APP_ICONS]);
-  expect(getAppIconArtwork(null)).toBeNull();
-  expect(getAppIconArtwork('Blueprint')).toBe('Blueprint');
-  expect(toAppIconChoice('Blueprint')).toBe('Blueprint');
+  expect(APP_ICON_CHOICES).toEqual(['Classic', ...ALTERNATE_APP_ICONS]);
+  await refresh();
+  expect(useAppIconStore.getState().current).toBe('Classic');
+
+  await setIcon('Blueprint');
+  expect(native.setAppIcon).toHaveBeenLastCalledWith('Blueprint', ALTERNATE_APP_ICONS);
+  await setIcon('Classic');
+  expect(native.setAppIcon).toHaveBeenLastCalledWith(null, ALTERNATE_APP_ICONS);
+  expect(useAppIconStore.getState().current).toBe('Classic');
 });
 
-test('beta shows its Blueprint default once and treats the Blueprint alternate as the default', () => {
-  const { APP_ICON_CHOICES, ALTERNATE_APP_ICONS, getAppIconArtwork, toAppIconChoice } =
-    load({ native: null, appVariant: 'beta' });
+test('beta offers every icon, with Blueprint as the bundled default', async () => {
+  const native = deferringNative(null);
+  const { APP_ICON_CHOICES, BETA_ALTERNATE_APP_ICONS, useAppIconStore } = load({
+    native,
+    appVariant: 'beta',
+  });
+  const { refresh, setIcon } = useAppIconStore.getState();
 
-  expect(APP_ICON_CHOICES).toEqual([
-    null,
-    ...ALTERNATE_APP_ICONS.filter((name) => name !== 'Blueprint'),
-  ]);
-  expect(getAppIconArtwork(null)).toBe('Blueprint');
-  expect(toAppIconChoice('Blueprint')).toBeNull();
-  expect(toAppIconChoice('Ocean')).toBe('Ocean');
+  expect([...APP_ICON_CHOICES].sort()).toEqual([...BETA_ALTERNATE_APP_ICONS].sort());
+  // A fresh install uses the bundled default.
+  expect(useAppIconStore.getState().current).toBe('Blueprint');
+  await refresh();
+  expect(useAppIconStore.getState().current).toBe('Blueprint');
+
+  await setIcon('Classic');
+  expect(native.setAppIcon).toHaveBeenLastCalledWith('Classic', BETA_ALTERNATE_APP_ICONS);
+  expect(useAppIconStore.getState().current).toBe('Classic');
+
+  await setIcon('Blueprint');
+  expect(native.setAppIcon).toHaveBeenLastCalledWith(null, BETA_ALTERNATE_APP_ICONS);
+  expect(useAppIconStore.getState().current).toBe('Blueprint');
+});
+
+test('beta reads the Blueprint alternate as Blueprint', async () => {
+  const native = deferringNative(null);
+  native.getAppIconName.mockResolvedValue('Blueprint');
+  const { useAppIconStore } = load({ native, appVariant: 'beta' });
+
+  await useAppIconStore.getState().refresh();
+  expect(useAppIconStore.getState().current).toBe('Blueprint');
 });
 
 test('holds reach native once while any hold is active', () => {
@@ -129,4 +168,49 @@ test('holds are harmless on binaries without them', () => {
   const { holdAppIconChange } = load({ native: deferringNative(null) });
 
   expect(() => holdAppIconChange()()).not.toThrow();
+});
+
+test('a failed hold only warns', async () => {
+  const native = {
+    ...deferringNative('pending'),
+    setPendingIconHeld: jest.fn(async (_held: boolean) => {
+      throw new Error('gone');
+    }),
+  };
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  const { holdAppIconChange } = load({ native });
+
+  holdAppIconChange();
+  await Promise.resolve();
+  expect(warn).toHaveBeenCalled();
+  warn.mockRestore();
+});
+
+test('useHoldAppIconChange holds while true and releases on false and unmount', () => {
+  const native = {
+    ...deferringNative('pending'),
+    setPendingIconHeld: jest.fn(async (_held: boolean) => undefined),
+  };
+  const { useHoldAppIconChange, React, TestRenderer } = load({ native });
+  const { act, create } = TestRenderer;
+  function Holder({ held }: { held: boolean }) {
+    useHoldAppIconChange(held);
+    return null;
+  }
+
+  let renderer!: ReturnType<typeof create>;
+  act(() => {
+    renderer = create(React.createElement(Holder, { held: false }));
+  });
+  expect(native.setPendingIconHeld).not.toHaveBeenCalled();
+  act(() => renderer.update(React.createElement(Holder, { held: true })));
+  act(() => renderer.update(React.createElement(Holder, { held: false })));
+  act(() => renderer.update(React.createElement(Holder, { held: true })));
+  act(() => renderer.unmount());
+  expect(native.setPendingIconHeld.mock.calls).toEqual([
+    [true],
+    [false],
+    [true],
+    [false],
+  ]);
 });

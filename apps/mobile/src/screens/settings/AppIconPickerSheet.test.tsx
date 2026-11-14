@@ -34,7 +34,7 @@ const setIcon = jest.fn<Promise<boolean>, [string | null]>();
 
 beforeEach(() => {
   setIcon.mockReset();
-  useAppIconStore.setState({ current: null, isChanging: false, setIcon });
+  useAppIconStore.setState({ current: 'Blueprint', isChanging: false, setIcon });
 });
 
 afterEach(() => {
@@ -63,18 +63,33 @@ function radio(label: string) {
   return found[0];
 }
 
-test('beta labels its default Blueprint and offers no second Blueprint', () => {
-  const labels = render().map((node) => node.props.accessibilityLabel);
+test('beta offers every icon and selects its Blueprint default', () => {
+  const radios = render();
 
-  expect(getAppIconLabel(null)).toBe('Blueprint');
-  expect(labels.filter((label) => label === 'Blueprint')).toHaveLength(1);
-  expect(labels).not.toContain('Classic');
+  expect(radios.map((node) => node.props.accessibilityLabel)).toEqual([
+    'Classic',
+    'Sage',
+    'Midnight',
+    'Ocean',
+    'Terracotta',
+    'Rose',
+    'Plum',
+    'Blueprint',
+  ]);
+  expect(
+    radios
+      .filter((node) => node.props.accessibilityState.checked)
+      .map((node) => node.props.accessibilityLabel),
+  ).toEqual(['Blueprint']);
+  expect(getAppIconLabel('Classic')).toBe('Classic');
 });
 
-test('the Blueprint alternate shows as the selected default in beta', () => {
-  useAppIconStore.setState({ current: 'Blueprint' });
+test('the note has a live region ready before it appears', () => {
+  render();
 
-  expect(radio('Blueprint').props.accessibilityState.checked).toBe(true);
+  expect(
+    renderer!.root.findAll((node) => node.props.accessibilityLiveRegion === 'polite'),
+  ).toHaveLength(1);
 });
 
 test('a change waiting for background shows a note until a change applies at once', async () => {

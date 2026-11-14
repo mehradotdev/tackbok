@@ -12,22 +12,14 @@ import { cn } from 'tailwind-variants';
 import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
-import {
-  APP_ICON_CHOICES,
-  DEFAULT_APP_ICON_LABEL,
-  getAppIconArtwork,
-  toAppIconChoice,
-  useAppIconStore,
-  type AlternateAppIconName,
-} from '~/lib/appIcon';
+import { APP_ICON_CHOICES, useAppIconStore, type AppIconName } from '~/lib/appIcon';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 
-const DEFAULT_ICON_PREVIEW: ImageSourcePropType = require('../../../assets/images/app-icons/classic.png');
-
-const ALTERNATE_ICON_PREVIEWS: Record<AlternateAppIconName, ImageSourcePropType> = {
+const APP_ICON_PREVIEWS: Record<AppIconName, ImageSourcePropType> = {
+  Classic: require('../../../assets/images/app-icons/classic.png'),
   Sage: require('../../../assets/images/app-icons/sage.png'),
   Midnight: require('../../../assets/images/app-icons/midnight.png'),
   Ocean: require('../../../assets/images/app-icons/ocean.png'),
@@ -38,21 +30,14 @@ const ALTERNATE_ICON_PREVIEWS: Record<AlternateAppIconName, ImageSourcePropType>
 };
 
 /** Icon names are proper names, shown in English in every language like theme names. */
-export function getAppIconLabel(name: AlternateAppIconName | null): string {
-  return getAppIconArtwork(name) ?? DEFAULT_APP_ICON_LABEL;
+export function getAppIconLabel(name: AppIconName): string {
+  return name;
 }
 
-export function AppIconTile({
-  name,
-  size,
-}: {
-  name: AlternateAppIconName | null;
-  size: number;
-}) {
-  const artwork = getAppIconArtwork(name);
+export function AppIconTile({ name, size }: { name: AppIconName; size: number }) {
   return (
     <Image
-      source={artwork ? ALTERNATE_ICON_PREVIEWS[artwork] : DEFAULT_ICON_PREVIEW}
+      source={APP_ICON_PREVIEWS[name]}
       accessibilityIgnoresInvertColors
       style={{ width: size, height: size, borderRadius: size * 0.225 }}
     />
@@ -61,8 +46,7 @@ export function AppIconTile({
 
 export function AppIconPickerSheet() {
   const { t } = useTranslation();
-  const storedIcon = useAppIconStore((s) => s.current);
-  const current = toAppIconChoice(storedIcon);
+  const current = useAppIconStore((s) => s.current);
   const setIcon = useAppIconStore((s) => s.setIcon);
   const isChanging = useAppIconStore((s) => s.isChanging);
   const scrollViewRef = useRef<ScrollViewInstance>(null);
@@ -112,7 +96,7 @@ export function AppIconPickerSheet() {
               const label = getAppIconLabel(name);
               return (
                 <Button
-                  key={name ?? 'default'}
+                  key={name}
                   variant="ghost"
                   size="none"
                   disabled={isChanging}

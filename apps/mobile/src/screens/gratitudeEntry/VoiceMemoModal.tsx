@@ -16,6 +16,7 @@ import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { SHEET_NAMES } from '~/constants';
 import { audioEngine } from '~/lib/audioEngine';
 import { useTranslation } from '~/lib/i18n';
+import { useHoldAppIconChange } from '~/lib/appIcon';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -95,6 +96,8 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
   // Prevent a dismiss->cleanup race: after Save we hand `recordedUri` to the parent to persist,
   // but `onDidDismiss` still fires; we must not delete the temp file in that case.
   const didSaveRef = useRef(false);
+  // A pending Android icon change would close the sheet and lose the recording.
+  useHoldAppIconChange(phase !== 'idle');
 
   const [foregroundColor, mutedForegroundColor] = useCSSVariable([
     '--color-foreground',
