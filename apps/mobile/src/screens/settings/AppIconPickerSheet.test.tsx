@@ -10,7 +10,10 @@ jest.mock('react-native', () => ({
   ScrollView: 'ScrollView',
   View: 'View',
 }));
-jest.mock('expo', () => ({ requireOptionalNativeModule: () => null }));
+// A beta binary with deferred Android changes, so it has the Classic alternate.
+jest.mock('expo', () => ({
+  requireOptionalNativeModule: () => ({ setPendingIconHeld: async () => undefined }),
+}));
 jest.mock('expo-constants', () => ({
   __esModule: true,
   default: { expoConfig: { extra: { appVariant: 'beta' } } },

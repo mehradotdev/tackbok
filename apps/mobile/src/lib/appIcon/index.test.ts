@@ -55,6 +55,13 @@ function deferringNative(result: 'pending' | null | undefined): NativeModule {
   };
 }
 
+/** A native module from a binary with deferred Android changes and the beta Classic alternate. */
+function withHolds(native: NativeModule): NativeModule & {
+  setPendingIconHeld: jest.Mock<Promise<void>, [boolean]>;
+} {
+  return { ...native, setPendingIconHeld: jest.fn(async (_held: boolean) => undefined) };
+}
+
 afterEach(() => {
   jest.resetModules();
 });
@@ -116,7 +123,7 @@ test('production offers every icon, with Classic as the bundled default', async 
 });
 
 test('beta offers every icon, with Blueprint as the bundled default', async () => {
-  const native = deferringNative(null);
+  const native = withHolds(deferringNative(null));
   const { APP_ICON_CHOICES, BETA_ALTERNATE_APP_ICONS, useAppIconStore } = load({
     native,
     appVariant: 'beta',
@@ -145,6 +152,39 @@ test('beta reads the Blueprint alternate as Blueprint', async () => {
 
   await useAppIconStore.getState().refresh();
   expect(useAppIconStore.getState().current).toBe('Blueprint');
+});
+
+test('an older Android beta binary keeps the icons it was built with', async () => {
+  // Built before deferred changes and the Classic alternate: no setPendingIconHeld.
+  const native = deferringNative(undefined);
+  const { APP_ICON_CHOICES, ALTERNATE_APP_ICONS, useAppIconStore } = load({
+    native,
+    appVariant: 'beta',
+  });
+
+  expect(APP_ICON_CHOICES).toEqual(ALTERNATE_APP_ICONS);
+  await useAppIconStore.getState().setIcon('Plum');
+  expect(native.setAppIcon).toHaveBeenLastCalledWith('Plum', ALTERNATE_APP_ICONS);
+});
+
+test('an icon the build does not know reads as the bundled default', async () => {
+  const native = deferringNative(null);
+  native.getAppIconName.mockResolvedValue('Retired');
+  const { useAppIconStore } = load({ native, appVariant: 'beta' });
+
+  await useAppIconStore.getState().refresh();
+  expect(useAppIconStore.getState().current).toBe('Blueprint');
+});
+
+test('a rejected change keeps the current icon', async () => {
+  const native = withHolds(deferringNative(null));
+  native.setAppIcon.mockRejectedValueOnce(new Error('No such icon'));
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  const { useAppIconStore } = load({ native, appVariant: 'beta' });
+
+  await expect(useAppIconStore.getState().setIcon('Classic')).resolves.toBe(false);
+  expect(useAppIconStore.getState().current).toBe('Blueprint');
+  warn.mockRestore();
 });
 
 test('holds reach native once while any hold is active', () => {

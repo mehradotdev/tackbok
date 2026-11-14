@@ -57,26 +57,38 @@ export function useHoldAppIconChange(held: boolean): void {
 
 const IS_BETA_BUILD = Constants.expoConfig?.extra?.appVariant === 'beta';
 
+// Beta binaries registered the Classic alternate together with deferred Android
+// changes. Older Android binaries fail midway on an unknown alias and leave two
+// launcher icons, so they get the list they were built with. Older iOS beta
+// binaries only reject Classic.
+const HAS_CLASSIC_ALTERNATE =
+  IS_BETA_BUILD &&
+  (Platform.OS !== 'android' || AppIconModule?.setPendingIconHeld != null);
+
 /** Alternate icons registered in this build's binary (app.config.ts). */
-const NATIVE_ICONS: readonly AppIconName[] = IS_BETA_BUILD
+const NATIVE_ICONS: readonly AppIconName[] = HAS_CLASSIC_ALTERNATE
   ? BETA_ALTERNATE_APP_ICONS
   : ALTERNATE_APP_ICONS;
 
 /** The artwork of the bundled default icon: beta builds ship Blueprint. */
 const DEFAULT_ICON: AppIconName = IS_BETA_BUILD ? 'Blueprint' : 'Classic';
 
-/** Picker choices, the same in every build. */
-export const APP_ICON_CHOICES: readonly AppIconName[] = [
-  'Classic',
-  ...ALTERNATE_APP_ICONS,
-];
+/** Picker choices: every icon, unless an older beta binary lacks Classic. */
+export const APP_ICON_CHOICES: readonly AppIconName[] =
+  IS_BETA_BUILD && !HAS_CLASSIC_ALTERNATE
+    ? ALTERNATE_APP_ICONS
+    : ['Classic', ...ALTERNATE_APP_ICONS];
 
 /** The icon the OS reports: null is the bundled default. */
 function fromNative(name: string | null): AppIconName {
   return NATIVE_ICONS.find((icon) => icon === name) ?? DEFAULT_ICON;
 }
 
-/** The default artwork is set as the bundled default, not as its alternate twin. */
+/**
+ * The default artwork is set as the bundled default, not as its alternate twin.
+ * A beta install with the Blueprint alternate active therefore switches once more,
+ * to an icon that looks the same.
+ */
 function toNative(name: AppIconName): AppIconName | null {
   return name === DEFAULT_ICON ? null : name;
 }

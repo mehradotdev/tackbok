@@ -42,6 +42,27 @@ describe.each(['production', 'beta'])('iOS locales (%s)', (variant) => {
         });
       }
     }
+    const iconsPlugin = config.plugins?.find(
+      (plugin) =>
+        Array.isArray(plugin) && plugin[0] === './plugins/withAlternateAppIcons',
+    );
+    const icons: string[] = Array.isArray(iconsPlugin) ? iconsPlugin[1] : [];
+    // Beta's default icon is Blueprint, so it also registers the Classic artwork.
+    expect(icons).toHaveLength(variant === 'beta' ? 8 : 7);
+    expect(icons.includes('Classic')).toBe(variant === 'beta');
+    for (const name of icons) {
+      for (const file of [
+        'ios.png',
+        'android-foreground.png',
+        'android-background.png',
+      ]) {
+        expect(
+          fs.existsSync(
+            path.join(__dirname, 'assets/icons/alternate', name.toLowerCase(), file),
+          ),
+        ).toBe(true);
+      }
+    }
     expect(config.ios?.bundleIdentifier).toBe(
       variant === 'beta' ? 'dev.mehra.tackbok.beta' : 'dev.mehra.tackbok',
     );
