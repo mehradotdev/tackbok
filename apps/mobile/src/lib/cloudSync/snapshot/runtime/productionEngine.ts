@@ -1,5 +1,7 @@
 import { and, count, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
+import * as Application from 'expo-application';
 import * as Network from 'expo-network';
+import * as Updates from 'expo-updates';
 
 import {
   cloudConflicts,
@@ -618,6 +620,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     },
     Date.now,
     productionSnapshotCache,
+    `${Application.nativeBuildVersion ?? ''}/${Updates.updateId ?? 'embedded'}`,
   );
   return new ProductionSnapshotRuntimeEngine(
     options.vault,

@@ -54,7 +54,9 @@ jest.mock('drizzle-orm', () => ({
   ne: jest.fn(),
   or: jest.fn(),
 }));
+jest.mock('expo-application', () => ({}));
 jest.mock('expo-network', () => ({}));
+jest.mock('expo-updates', () => ({}));
 jest.mock('~/lib/analytics', () => ({ track: jest.fn() }));
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: {

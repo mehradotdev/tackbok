@@ -119,9 +119,14 @@ function actionableChanges(journalGeneration: number, settledGeneration: number)
   return Math.max(0, journalGeneration - settledGeneration);
 }
 
-/** What a merge depends on besides the code and the settled base. */
-function mergeInput(journalGeneration: number, listed: ListedDeviceHead[]): string {
+/** What a merge depends on besides the settled base. */
+function mergeInput(
+  codeVersion: string,
+  journalGeneration: number,
+  listed: ListedDeviceHead[],
+): string {
   return canonicalize({
+    codeVersion,
     journalGeneration,
     heads: listed.map(({ head }) => `${head.deviceId}\0${head.snapshotId}`).sort(),
   });
@@ -130,8 +135,6 @@ function mergeInput(journalGeneration: number, listed: ListedDeviceHead[]): stri
 export class SnapshotSyncEngine {
   private running = false;
   private settledPass: SettledPass | null = null;
-  /** Set once this engine has seen a merge fail; see `mayRetryFailedMerge`. */
-  private mergeFailedHere = false;
   /** The journal generation when this pass started, before it captured the journal. */
   private passGeneration = 0;
   private failedMergeInput: string | null = null;
@@ -150,6 +153,8 @@ export class SnapshotSyncEngine {
     private readonly now: () => number = Date.now,
     /** Verified snapshots kept across passes; without it, each pass downloads anew. */
     private readonly snapshotCache?: VerifiedSnapshotCache,
+    /** Identifies the running app build and update; a new one retries a failed merge. */
+    private readonly codeVersion = '',
   ) {
     this.hooks = { ...hooks, progress: isolateProgress(hooks.progress) };
     this.cleanup = new SnapshotCleanup({
@@ -314,25 +319,36 @@ export class SnapshotSyncEngine {
 
   /**
    * A merge that failed fails again on the same input, so it stays paused like
-   * any other attention reason. It runs again once per engine, which covers an
-   * app update, and whenever another device's heads or this journal change. A
-   * pass that then succeeds clears the pause as usual.
+   * any other attention reason. It runs again only when the input may differ:
+   * an app update, another device's heads, or this journal. A pass that then
+   * succeeds clears the pause as usual.
    */
   private async mayRetryFailedMerge(durable: DurableSyncState): Promise<boolean> {
     if (durable.pauseReason !== 'merge-failed') return false;
-    if (!this.mergeFailedHere || durable.pauseContext === null) return true;
-    const listed = await this.provider.listHeads(this.vaultId, true);
-    return durable.pauseContext !== mergeInput(durable.journalGeneration, listed);
+    if (durable.pauseContext === null) return true;
+    let listed: ListedDeviceHead[];
+    try {
+      listed = await this.provider.listHeads(this.vaultId, true);
+    } catch {
+      // Offline or similar: stay paused, keeping the merge error class.
+      return false;
+    }
+    return (
+      durable.pauseContext !==
+      mergeInput(this.codeVersion, durable.journalGeneration, listed)
+    );
   }
 
   /**
-   * The heads this pass merged are the provider's latest listing. The
-   * generation is from before capture, so an edit during the pass is retried.
+   * The generation is from before capture, so an edit during the pass is
+   * retried. shortcut: the heads are the provider's latest listing, normally
+   * the one this pass merged; a head found in between waits for the next
+   * change. Pass planning's own listing here if planning ever exposes it.
    */
   private async recordFailedMergeInput(): Promise<void> {
     try {
       const listed = await this.provider.listHeads(this.vaultId, false);
-      this.failedMergeInput = mergeInput(this.passGeneration, listed);
+      this.failedMergeInput = mergeInput(this.codeVersion, this.passGeneration, listed);
     } catch {
       // Without a record, the next pass merges again and records it then.
       this.failedMergeInput = null;
@@ -935,10 +951,9 @@ export class SnapshotSyncEngine {
       return { status: 'attention', reason: error.reason, actionableChanges: remaining };
     }
     if (error instanceof SnapshotMergeError) {
-      // The merge stops before anything is applied to this journal.
+      // The merge stops before this journal's entries are changed.
       const reason =
         error.code === 'derived-id-collision' ? 'derived-id-collision' : 'merge-failed';
-      if (reason === 'merge-failed') this.mergeFailedHere = true;
       this.stateStore.setPause(
         this.vaultId,
         this.deviceId,

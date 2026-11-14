@@ -137,7 +137,11 @@ interface Harness {
   journal: MemorySnapshotJournalStore;
   media: MemorySnapshotMediaStore;
   clock: Clock;
-  engine(hooks?: SnapshotSyncHooks, cache?: VerifiedSnapshotCache): SnapshotSyncEngine;
+  engine(
+    hooks?: SnapshotSyncHooks,
+    cache?: VerifiedSnapshotCache,
+    codeVersion?: string,
+  ): SnapshotSyncEngine;
 }
 
 function harness(
@@ -164,7 +168,7 @@ function harness(
     journal,
     media,
     clock,
-    engine: (hooks = {}, cache) =>
+    engine: (hooks = {}, cache, codeVersion) =>
       new SnapshotSyncEngine(
         vaultId,
         deviceId,
@@ -176,6 +180,7 @@ function harness(
         hooks,
         () => clock.value,
         cache,
+        codeVersion,
       ),
   };
 }
@@ -4603,34 +4608,84 @@ describe('merges that cannot be combined', () => {
   test('the same merge is not run again until its input or the app changes', async () => {
     const { first, second } = await incompatibleDevices();
     const counter = countMerges();
-    const engine = second.engine(counter.hooks);
+    const engine = second.engine(counter.hooks, undefined, 'build-1');
     expect((await engine.sync()).status).toBe('attention');
     expect(counter.merges).toBe(1);
-    // Nothing changed: later passes, including a retry the user could start,
-    // report the pause without merging again.
+    // Nothing changed: later passes report the pause without merging again,
+    // including from a new engine, as after a relaunch or a background task.
     expect((await engine.sync()).status).toBe('attention');
-    expect((await engine.sync()).status).toBe('attention');
-    expect(counter.merges).toBe(1);
-    expect(second.state.loadState(second.vaultId, second.deviceId).pauseContext).not.toBe(
-      null,
+    expect((await second.engine(counter.hooks, undefined, 'build-1').sync()).status).toBe(
+      'attention',
     );
+    expect(counter.merges).toBe(1);
+    expect(second.state.loadState(second.vaultId, second.deviceId)).toMatchObject({
+      pauseReason: 'merge-failed',
+      lastErrorClass: 'merge-invalid-immutable-mutation',
+    });
 
-    // A new engine, as after an app launch or update, tries once.
-    const relaunched = countMerges();
-    const next = second.engine(relaunched.hooks);
-    expect((await next.sync()).status).toBe('attention');
-    expect((await next.sync()).status).toBe('attention');
-    expect(relaunched.merges).toBe(1);
+    // An app update tries once.
+    const updated = second.engine(counter.hooks, undefined, 'build-2');
+    expect((await updated.sync()).status).toBe('attention');
+    expect((await updated.sync()).status).toBe('attention');
+    expect(counter.merges).toBe(2);
 
-    // Another device publishing tries again.
+    // Another device publishing tries once.
     first.journal.mutate(withEntry(first.journal.current(), entry('more', 'Text')));
     expect((await first.engine().sync()).status).toBe('published');
-    expect((await next.sync()).status).toBe('attention');
-    expect((await next.sync()).status).toBe('attention');
-    expect(relaunched.merges).toBe(2);
+    expect((await updated.sync()).status).toBe('attention');
+    expect((await updated.sync()).status).toBe('attention');
+    expect(counter.merges).toBe(3);
+
+    // A local edit that does not resolve it tries once.
+    second.journal.mutate(withEntry(second.journal.current(), entry('local', 'Edit')));
+    expect((await updated.sync()).status).toBe('attention');
+    expect((await updated.sync()).status).toBe('attention');
+    expect(counter.merges).toBe(4);
     expect(second.state.loadState(second.vaultId, second.deviceId).pauseReason).toBe(
       'merge-failed',
     );
+  });
+
+  test('an unreachable provider while paused keeps the pause and its error', async () => {
+    const { second } = await incompatibleDevices();
+    const counter = countMerges();
+    const engine = second.engine(counter.hooks);
+    expect((await engine.sync()).status).toBe('attention');
+    const listHeads = second.provider.listHeads.bind(second.provider);
+    second.provider.listHeads = async () => {
+      throw new SnapshotProviderError('transient', 'offline');
+    };
+    expect(await engine.sync()).toMatchObject({
+      status: 'attention',
+      reason: 'merge-failed',
+    });
+    expect(counter.merges).toBe(1);
+    expect(second.state.loadState(second.vaultId, second.deviceId).lastErrorClass).toBe(
+      'merge-invalid-immutable-mutation',
+    );
+    second.provider.listHeads = listHeads;
+  });
+
+  test('a failure whose input could not be recorded merges once more, then records it', async () => {
+    const { second } = await incompatibleDevices();
+    const counter = countMerges();
+    const listHeads = second.provider.listHeads.bind(second.provider);
+    second.provider.listHeads = async (vaultId: string, refresh?: boolean) => {
+      if (refresh === false) throw new SnapshotProviderError('transient', 'offline');
+      return listHeads(vaultId);
+    };
+    const engine = second.engine(counter.hooks);
+    expect((await engine.sync()).status).toBe('attention');
+    expect(
+      second.state.loadState(second.vaultId, second.deviceId).pauseContext,
+    ).toBeNull();
+    second.provider.listHeads = listHeads;
+    expect((await engine.sync()).status).toBe('attention');
+    expect((await engine.sync()).status).toBe('attention');
+    expect(counter.merges).toBe(2);
+    expect(
+      second.state.loadState(second.vaultId, second.deviceId).pauseContext,
+    ).not.toBeNull();
   });
 
   test('a later pass that succeeds clears the pause', async () => {

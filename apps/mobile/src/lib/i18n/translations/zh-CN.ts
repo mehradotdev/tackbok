@@ -933,7 +933,7 @@ export const zhCN: Translations = {
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     '你日记中的两个项目无法安全合并。同步已停止。你可以在设置中导出一份副本。',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
-    '塔克布克无法将另一台设备上的更改与这台设备合并。这台设备上的内容没有任何更改。同步已停止。在你的设备上更新塔克布克可能会有帮助。你可以在设置中导出一份副本。',
+    '塔克布克无法将另一台设备上的更改与此设备合并。此设备上的内容没有任何更改。同步已停止。在你的设备上更新塔克布克可能会有帮助。你可以在设置中导出一份副本。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     '塔克布克无法在此设备上保存同步数据，设备存储空间可能不足。同步已停止。',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
