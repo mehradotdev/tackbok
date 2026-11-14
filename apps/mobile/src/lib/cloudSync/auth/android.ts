@@ -1,6 +1,7 @@
 import { withExternalAuthentication } from '~/lib/externalAuthentication';
 import { requireNativeModule } from 'expo-modules-core';
 
+import { cloudConnectionLifecycle } from '../runtime/connectionLifecycle';
 import { fetchGoogleAccountLabel } from './accountLabel';
 import {
   clearGoogleAccessToken,
@@ -91,11 +92,61 @@ function normalizeNativeError(error: unknown): CloudAuthError {
   );
 }
 
+/**
+ * How long a silently minted token is reused in memory. AuthorizationResult
+ * carries no expiry (finding 0001) and Play services may hand back a cached
+ * token that is already partly used, so this stays well inside Google's
+ * one-hour lifetime. A token that dies sooner gets a 401, which invalidates it
+ * and retries once with a fresh mint.
+ */
+const TOKEN_REUSE_MS = 15 * 60 * 1000;
+
+interface MintScope {
+  accountEmail: string | null;
+  connection: number;
+  lifecycleEpoch: number;
+}
+
+interface MemoryToken {
+  accessToken: string;
+  scope: MintScope;
+  reuseUntil: number;
+}
+
+// Shared by every instance: Disconnect and Reconnect often run on a different
+// instance from the one the Drive transport holds.
+let memoryToken: MemoryToken | null = null;
+let inFlightMint: { scope: MintScope; promise: Promise<string> } | null = null;
+// Bumped by Disconnect and interactive authorization. A mint that started under
+// an older value belongs to a connection that no longer exists.
+let connection = 0;
+
+function forgetToken(): void {
+  memoryToken = null;
+  inFlightMint = null;
+}
+
+function forgetConnection(): void {
+  connection += 1;
+  forgetToken();
+}
+
+/** The current connection; false once Disconnect, Reconnect or a connection change ran. */
+function isCurrent(scope: MintScope): boolean {
+  return (
+    scope.connection === connection &&
+    scope.lifecycleEpoch === cloudConnectionLifecycle.epoch
+  );
+}
+
 export class AndroidGoogleAuthorization implements CloudAuthorization {
   async authorize(): Promise<GoogleTokenSet> {
     return withExternalAuthentication(async () => {
+      // Drop the old account's token before the chooser opens.
+      forgetConnection();
       try {
         const tokens = await nativeModule().authorize(true, null);
+        forgetConnection();
         await rotateGoogleConnectionId();
         await writeGoogleTokens(tokens);
         await markGoogleConnected();
@@ -112,32 +163,97 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
     // and Play services would happily mint for a disconnected device whose
     // grant survives (finding 0002). Never mint silently while disconnected.
     if (!(await isGoogleMarkedConnected())) {
+      forgetConnection();
       throw new CloudAuthError('not-connected', 'Google Drive is not connected');
     }
     // No stored expiry is trusted here: AuthorizationResult carries no real
-    // expiry (finding 0001), so Play services is the cache of record and every
-    // request revalidates through it. The call is local IPC, not network.
+    // expiry (finding 0001), so Play services is the cache of record. Only a
+    // token this process minted is reused, for a bounded time, and only while
+    // the pinned account and the connection are unchanged.
     const accountEmail = await readGoogleAccountEmail();
+    const reusable = memoryToken;
+    if (
+      reusable &&
+      reusable.scope.accountEmail === accountEmail &&
+      isCurrent(reusable.scope) &&
+      reusable.reuseUntil > Date.now()
+    ) {
+      return reusable.accessToken;
+    }
+    const pending = inFlightMint;
+    if (
+      pending &&
+      pending.scope.accountEmail === accountEmail &&
+      isCurrent(pending.scope)
+    ) {
+      return pending.promise;
+    }
+    const scope: MintScope = {
+      accountEmail,
+      connection,
+      lifecycleEpoch: cloudConnectionLifecycle.epoch,
+    };
+    const promise = this.mint(scope).finally(() => {
+      if (inFlightMint?.scope === scope) inFlightMint = null;
+    });
+    inFlightMint = { scope, promise };
+    return promise;
+  }
+
+  private async mint(scope: MintScope): Promise<string> {
+    // Measured from the request, never from when the answer arrived.
+    const requestedAt = Date.now();
+    let tokens: GoogleTokenSet;
     try {
-      const tokens = await nativeModule().authorize(false, accountEmail);
-      await writeGoogleTokens({
-        ...tokens,
-        accountEmail: tokens.accountEmail ?? accountEmail ?? undefined,
-      });
-      return tokens.accessToken;
+      tokens = await nativeModule().authorize(false, scope.accountEmail);
     } catch (error) {
       throw normalizeNativeError(error);
     }
+    // If Disconnect, Reconnect or an account switch ran during the mint, the
+    // token may belong to an account this device no longer uses, so it is
+    // neither stored nor handed out; a retry starts from the new state. The
+    // write checks inside the credential queue, so a Disconnect queued first
+    // wins over it.
+    try {
+      await writeGoogleTokens(
+        {
+          ...tokens,
+          accountEmail: tokens.accountEmail ?? scope.accountEmail ?? undefined,
+        },
+        () => isCurrent(scope),
+      );
+    } catch (error) {
+      throw normalizeNativeError(error);
+    }
+    if (!isCurrent(scope)) {
+      throw new CloudAuthError(
+        'temporarily-unavailable',
+        'Google Drive connection changed during authorization',
+      );
+    }
+    // A 401 recovery that ran during the mint dropped this mint: its token
+    // may be the one just rejected, so only its own callers use it.
+    if (inFlightMint?.scope === scope) {
+      memoryToken = {
+        accessToken: tokens.accessToken,
+        scope,
+        reuseUntil: requestedAt + TOKEN_REUSE_MS,
+      };
+    }
+    return tokens.accessToken;
   }
 
   async clearInvalidAccessToken(): Promise<void> {
+    const rejected = memoryToken?.accessToken;
+    forgetToken();
     const cached = await readGoogleTokens();
-    if (cached?.accessToken) {
+    for (const accessToken of new Set([rejected, cached?.accessToken])) {
+      if (!accessToken) continue;
       try {
         // Clearing only the stored copy re-reads the same dead token from the
         // Play services cache (finding 0001). Best effort: the store clear
         // below stays authoritative even if this fails.
-        await nativeModule().invalidateAccessToken(cached.accessToken);
+        await nativeModule().invalidateAccessToken(accessToken);
       } catch {
         // Ignored — a failed cache invalidation must not block recovery.
       }
@@ -146,6 +262,7 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
   }
 
   async signOut(): Promise<void> {
+    forgetConnection();
     // Clear the mark first so an interruption fails disconnected, not connected.
     await clearGoogleConnectedMark();
     await clearGoogleTokens();

@@ -6,6 +6,8 @@ import { decodeSnapshot } from '../codec';
 import { SnapshotValidationError } from '../caps';
 import { canonicalize } from '../canonical';
 import { activeFrontier, isHeadShapeValid, type RemoteHeadSnapshot } from './frontier';
+import type { VerifiedSnapshotCache } from './snapshotCache';
+import type { JournalSnapshotPayload } from '../types';
 
 const RETENTION_COUNT = 3;
 const CLEANUP_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -24,6 +26,8 @@ export interface SnapshotCleanupOptions {
   provider: SnapshotProvider;
   hooks: SnapshotSyncHooks;
   now(): number;
+  /** Verified snapshots shared with planning; a miss downloads as before. */
+  snapshotCache?: VerifiedSnapshotCache;
 }
 
 export class SnapshotCleanup {
@@ -87,6 +91,7 @@ export class SnapshotCleanup {
         MAX_CLEANUP_CANDIDATES,
       );
       if (candidates.length === 0 || heads.length === 0) return;
+      const listedIds = new Set(snapshots.map((snapshot) => snapshot.snapshotId));
 
       const validated: RemoteHeadSnapshot[] = [];
       const deviceSequences = new Map<string, string>();
@@ -105,16 +110,12 @@ export class SnapshotCleanup {
             return;
           continue;
         }
-        hooks.activity?.('reading-remote-snapshot');
-        const bytes = await provider.downloadSnapshot(vaultId, head.snapshotId);
-        if (!bytes) return;
-        const { payload } = decodeSnapshot(bytes, head.snapshotId);
-        if (
-          payload.vaultId !== vaultId ||
-          payload.authorDeviceId !== head.deviceId ||
-          payload.deviceSequence !== head.deviceSequence
-        )
-          return;
+        const matchesHead = (payload: JournalSnapshotPayload) =>
+          payload.vaultId === vaultId &&
+          payload.authorDeviceId === head.deviceId &&
+          payload.deviceSequence === head.deviceSequence;
+        const payload = await this.readSnapshot(head.snapshotId, listedIds, matchesHead);
+        if (!payload || !matchesHead(payload)) return;
         validated.push({ head, snapshotId: head.snapshotId, payload });
       }
       const frontier = activeFrontier(validated);
@@ -131,11 +132,13 @@ export class SnapshotCleanup {
       covered.set(survivor.head.deviceId, survivor.head.deviceSequence);
       for (const snapshot of candidates) {
         this.lastExaminedSnapshot = snapshot.snapshotId;
-        hooks.activity?.('reading-remote-snapshot');
-        const bytes = await provider.downloadSnapshot(vaultId, snapshot.snapshotId);
-        if (!bytes) continue;
-        const { payload } = decodeSnapshot(bytes, snapshot.snapshotId);
+        const payload = await this.readSnapshot(
+          snapshot.snapshotId,
+          listedIds,
+          (cached) => cached.vaultId === vaultId,
+        );
         if (
+          !payload ||
           payload.vaultId !== vaultId ||
           (covered.get(payload.authorDeviceId) ?? -1) <= payload.deviceSequence
         )
@@ -156,5 +159,33 @@ export class SnapshotCleanup {
         throw error;
       // Cleanup is best effort: provider failure retains excess history.
     }
+  }
+
+  /**
+   * A snapshot's payload, from the cache when it holds a copy that passes the
+   * same checks a download must pass, otherwise downloaded and decoded as
+   * before. A snapshot ID is the hash of its payload, so a cached copy decides
+   * exactly what a download would. It is used only for a snapshot the provider
+   * lists right now: a missing object downloads as null, as before.
+   */
+  private async readSnapshot(
+    snapshotId: string,
+    listedIds: ReadonlySet<string>,
+    verified: (payload: JournalSnapshotPayload) => boolean,
+  ): Promise<JournalSnapshotPayload | null> {
+    const { hooks, provider, snapshotCache, vaultId } = this.options;
+    if (snapshotCache && listedIds.has(snapshotId)) {
+      let cached: JournalSnapshotPayload | undefined;
+      try {
+        cached = snapshotCache.get(vaultId, snapshotId);
+      } catch {
+        cached = undefined;
+      }
+      if (cached && verified(cached)) return cached;
+      if (cached) snapshotCache.delete(vaultId, snapshotId);
+    }
+    hooks.activity?.('reading-remote-snapshot');
+    const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
+    return bytes ? decodeSnapshot(bytes, snapshotId).payload : null;
   }
 }

@@ -29,10 +29,15 @@ function serializeCredentialWrite<T>(operation: () => Promise<T>): Promise<T> {
   return write;
 }
 
-function setItem(key: string, value: string): Promise<void> {
-  return serializeCredentialWrite(() =>
-    SecureStore.setItemAsync(key, value, KEYCHAIN_OPTIONS),
-  );
+/**
+ * `isCurrent` is checked when the write reaches the front of the queue, so a
+ * write that a Disconnect overtook is skipped instead of landing after it.
+ */
+function setItem(key: string, value: string, isCurrent?: () => boolean): Promise<void> {
+  return serializeCredentialWrite(async () => {
+    if (isCurrent && !isCurrent()) return;
+    await SecureStore.setItemAsync(key, value, KEYCHAIN_OPTIONS);
+  });
 }
 
 function deleteItem(key: string): Promise<void> {
@@ -73,11 +78,14 @@ export async function readGoogleTokens(): Promise<GoogleTokenSet | null> {
   return null;
 }
 
-export async function writeGoogleTokens(tokens: GoogleTokenSet): Promise<void> {
+export async function writeGoogleTokens(
+  tokens: GoogleTokenSet,
+  isCurrent?: () => boolean,
+): Promise<void> {
   const { accountEmail, ...credentialTokens } = tokens;
   const normalizedEmail = normalizeAccountEmail(accountEmail);
-  if (normalizedEmail) await writeGoogleAccountEmail(normalizedEmail);
-  await setItem(TOKEN_KEY, JSON.stringify(credentialTokens));
+  if (normalizedEmail) await setItem(ACCOUNT_EMAIL_KEY, normalizedEmail, isCurrent);
+  await setItem(TOKEN_KEY, JSON.stringify(credentialTokens), isCurrent);
 }
 
 export async function clearGoogleTokens(): Promise<void> {
