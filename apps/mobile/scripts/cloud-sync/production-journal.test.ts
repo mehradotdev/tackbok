@@ -641,14 +641,18 @@ test('the profile cache shows a restored photo only once it is downloaded', asyn
   sqlite.exec(
     "INSERT INTO user_profile (profile_id, display_name, photo_asset_id, updated_at) VALUES ('self', 'Restored', 'avatar', 1)",
   );
-  await loadProfileCache();
+  expect(await loadProfileCache()).toBe(true);
   sqlite.exec("UPDATE media_assets SET download_state = 'verified'");
-  await loadProfileCache();
+  expect(await loadProfileCache()).toBe(true);
   expect(reloads.map((profile) => profile.profileImageUri)).toEqual([
     null,
     'photos/avatar.jpg',
   ]);
   expect(attempts).toBe(3);
+  // Local writes during every read: the loader gives up and says so.
+  drops = 3;
+  expect(await loadProfileCache()).toBe(false);
+  expect(attempts).toBe(6);
   sqlite.exec('DELETE FROM user_profile; DELETE FROM media_assets');
 });
 

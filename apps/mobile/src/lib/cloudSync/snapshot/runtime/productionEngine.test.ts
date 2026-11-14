@@ -67,7 +67,7 @@ jest.mock('~/lib/settings', () => ({
 jest.mock('../../auth', () => ({}));
 jest.mock('../../auth/secureTokenStore', () => ({}));
 jest.mock('../../storage/retainedMedia', () => ({ reapRetainedMedia: async () => {} }));
-const mockLoadProfileCache = jest.fn(async () => {});
+const mockLoadProfileCache = jest.fn(async () => true);
 jest.mock('../../storage/backfill', () => ({
   loadProfileCache: () => mockLoadProfileCache(),
 }));
@@ -147,7 +147,8 @@ beforeEach(() => {
   mockWrites.length = 0;
   mockPendingMedia = [];
   mockMarkJournalRestored.mockClear();
-  mockLoadProfileCache.mockClear();
+  mockLoadProfileCache.mockReset();
+  mockLoadProfileCache.mockImplementation(async () => true);
 });
 
 test('a completed pass records that the journal of this backup was restored', async () => {
@@ -231,11 +232,30 @@ test('the profile cache reloads when a journal is applied and when the profile p
   });
   mockLoadProfileCache.mockImplementation(async () => {
     order.push('profile');
+    return true;
   });
   await app.runtime.sync();
   // Once for the applied journal, once for the batch with the profile photo.
   expect(order).toEqual(['profile', 'hydrate', 'hydrate', 'profile']);
-  mockLoadProfileCache.mockReset();
+});
+
+test('a profile reload that fails or loses to local edits is retried on later passes', async () => {
+  let synced = false;
+  const app = harness('vault-profile-retry', {
+    engineSync: async () => {
+      if (synced) return { status: 'up-to-date', actionableChanges: 0 };
+      synced = true;
+      return { status: 'pulled', actionableChanges: 0 };
+    },
+  });
+  mockLoadProfileCache.mockRejectedValueOnce(new Error('read failed'));
+  await expect(app.runtime.sync()).rejects.toThrow('read failed');
+  mockLoadProfileCache.mockResolvedValueOnce(false);
+  await app.runtime.sync();
+  await app.runtime.sync();
+  await app.runtime.sync();
+  // Failed, dropped, then loaded; the last pass owes nothing.
+  expect(mockLoadProfileCache).toHaveBeenCalledTimes(3);
 });
 
 test('passes that apply nothing, and other media downloads, leave the profile cache alone', async () => {

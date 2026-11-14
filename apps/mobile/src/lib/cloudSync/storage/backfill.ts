@@ -92,14 +92,14 @@ async function hasJournalData(tx: CloudSyncTransaction): Promise<boolean> {
 /**
  * Reloads the profile cache from SQLite. A profile write made while it reads
  * wins: that read is dropped (see `applyProfileCacheReload`) and read again, so
- * the other fields still arrive.
+ * the other fields still arrive. Resolves false when every read was dropped;
+ * the sync engine then retries on its next pass.
  */
-// shortcut: three tries, then the next apply or launch catches up; reload when
-// the write finishes if longer writes ever exhaust them.
-export async function loadProfileCache(): Promise<void> {
+export async function loadProfileCache(): Promise<boolean> {
   for (let attempt = 0; attempt < 3; attempt++) {
-    if (await tryLoadProfileCache()) return;
+    if (await tryLoadProfileCache()) return true;
   }
+  return false;
 }
 
 async function tryLoadProfileCache(): Promise<boolean> {

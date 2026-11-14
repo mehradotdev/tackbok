@@ -192,6 +192,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
   private needsFollowup = false;
   /** Missing downloaded files are looked for once per engine, normally per launch. */
   private checkedVerifiedMedia = false;
+  /** A profile reload that failed or lost to local edits; later passes retry it. */
+  private profileReloadOwed = false;
 
   constructor(
     private readonly vault: ProductionSnapshotVault,
@@ -385,6 +387,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     if (result.status === 'published' || result.status === 'pulled') {
       useSettingsStore.getState().markCloudRestoreJournalRestored(this.vault.vault_id);
       await this.refreshAppliedViews();
+    } else if (this.profileReloadOwed) {
+      await this.reloadProfileCache();
     }
 
     // An OS background task has little time and starts a new engine each run,
@@ -398,7 +402,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       try {
         // Rare: the profile photo may be among them, and is hidden until it is back.
         if ((await this.journal.requeueMissingVerifiedMedia()) > 0)
-          await loadProfileCache();
+          await this.reloadProfileCache();
         this.checkedVerifiedMedia = true;
       } catch (error) {
         // The attachments stay as they are; the next pass tries again.
@@ -442,7 +446,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           );
           throw new SnapshotRuntimeFailure('corrupt');
         }
-        if (hydration.profilePhoto) await loadProfileCache();
+        if (hydration.profilePhoto) await this.reloadProfileCache();
         if (hydration.hydrated > 0) await this.onRemoteApplied?.();
         // A short batch means nothing is left. The count read above bounds
         // the loop even if a row were to stay pending.
@@ -461,7 +465,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       if (!(error instanceof SyncCancelledError)) {
         try {
           // Rare, so the profile photo is not tracked here: it may be among them.
-          await loadProfileCache();
+          await this.reloadProfileCache();
           await this.onRemoteApplied?.();
         } catch {
           // A failed screen refresh must not replace the hydration error.
@@ -564,8 +568,13 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
 
   private async refreshAppliedViews(): Promise<void> {
     // An applied journal may have changed the profile row.
-    await loadProfileCache();
+    await this.reloadProfileCache();
     await this.onRemoteApplied?.();
+  }
+
+  private async reloadProfileCache(): Promise<void> {
+    this.profileReloadOwed = true;
+    if (await loadProfileCache()) this.profileReloadOwed = false;
   }
 }
 
