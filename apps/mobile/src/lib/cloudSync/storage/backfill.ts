@@ -91,9 +91,18 @@ async function hasJournalData(tx: CloudSyncTransaction): Promise<boolean> {
 
 /**
  * Reloads the profile cache from SQLite. A profile write made while it reads
- * wins: the reload is then dropped (see `applyProfileCacheReload`).
+ * wins: that read is dropped (see `applyProfileCacheReload`) and read again, so
+ * the other fields still arrive.
  */
+// shortcut: three tries, then the next apply or launch catches up; reload when
+// the write finishes if longer writes ever exhaust them.
 export async function loadProfileCache(): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await tryLoadProfileCache()) return;
+  }
+}
+
+async function tryLoadProfileCache(): Promise<boolean> {
   const revision = getProfileCacheRevision();
   const [profile] = await db
     .select()
@@ -107,11 +116,15 @@ export async function loadProfileCache(): Promise<void> {
         .where(eq(mediaAssets.asset_id, profile.photo_asset_id))
         .limit(1)
     : [];
-  // A restored photo's row names its file before the file is downloaded. Show
-  // it only once it is there, so the download changes the cached URI and the
-  // avatar reloads (hydratePendingMedia reports it).
-  const downloading = photo?.state === 'pending' || photo?.state === 'downloading';
-  applyProfileCacheReload(revision, {
+  // A restored photo's row names its file before the file is downloaded, and a
+  // vanished file keeps its name while it waits again. Show it only when it is
+  // there, so the download changes the cached URI and the avatar reloads
+  // (hydratePendingMedia reports it).
+  const downloading =
+    photo?.state === 'pending' ||
+    photo?.state === 'downloading' ||
+    photo?.state === 'missing';
+  return applyProfileCacheReload(revision, {
     profileName: profile?.display_name ?? null,
     profileEmail: profile?.email ?? null,
     profileImageUri: downloading ? null : (photo?.uri ?? null),

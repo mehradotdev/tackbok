@@ -320,6 +320,8 @@ test('missing downloaded files are queued once per engine, before hydration', as
   await app.runtime.sync();
   await app.runtime.sync();
   expect(order).toEqual(['requeue', 'hydrate', 'hydrate']);
+  // A requeued profile photo is hidden until its file is back.
+  expect(mockLoadProfileCache).toHaveBeenCalledTimes(1);
 });
 
 test('an OS background task does not look for missing files', async () => {

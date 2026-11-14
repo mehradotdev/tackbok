@@ -104,6 +104,13 @@ describe('profile cache reloads', () => {
     expect(useSettingsStore.getState().profileName).toBe('Mine');
   });
 
+  test('a reload that read the profile before Delete All does not put it back', () => {
+    const revision = getProfileCacheRevision();
+    useSettingsStore.getState().resetToDefaults();
+    expect(applyProfileCacheReload(revision, restored)).toBe(false);
+    expect(useSettingsStore.getState().profileName).toBeNull();
+  });
+
   test('an import or conflict choice written to the cache also wins', () => {
     const revision = getProfileCacheRevision();
     hydrateProfileCache({ profileImageUri: 'photos/imported.jpg' });

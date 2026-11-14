@@ -262,6 +262,8 @@ export const useSettingsStore = create<SettingsState>()(
       resetToDefaults: () => {
         Uniwind.setTheme(DEFAULT_SETTINGS_VALUES.theme);
         applyTitleFont(DEFAULT_SETTINGS_VALUES.titleFont);
+        // Clears the profile too: a reload that read it before must not put it back.
+        profileCacheRevision++;
         set({ ...DEFAULT_SETTINGS_VALUES });
       },
       setJournalFocusAreas: (areas) => set({ journalFocusAreas: areas }),

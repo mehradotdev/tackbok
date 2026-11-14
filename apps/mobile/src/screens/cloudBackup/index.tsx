@@ -77,6 +77,7 @@ import {
   cloudSyncFailureMessage,
   pendingWorkSummary,
   recoveryActionLabel,
+  restoreStatusNote,
   statusLabel,
   syncNowUnavailableReason,
 } from './copy';
@@ -471,6 +472,7 @@ export default function CloudBackupScreen() {
                 ),
                 button: t('cloud.finishDeletion'),
               };
+  const restoreNote = restoreStatusNote(snapshot, t);
   const syncNowDisabled =
     actionRunning ||
     connectionAction !== null ||
@@ -626,20 +628,13 @@ export default function CloudBackupScreen() {
                       {t('cloud.progress.waitingForWifi')}
                     </Text>
                   )}
-                {snapshot.status === 'syncing' && snapshot.initialRestore && (
-                  <Text className="text-sm text-foreground">
-                    {t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs')}
-                  </Text>
-                )}
-                {/* `restoring` means no pass is running: say why, and keep Sync now
-                    available to start it. */}
-                {snapshot.status === 'restoring' && (
+                {restoreNote && (
                   <Text
                     className="text-sm text-foreground"
-                    accessibilityLiveRegion="polite">
-                    {snapshot.failureCategory
-                      ? cloudSyncFailureMessage(snapshot.failureCategory, t)
-                      : t('cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline')}
+                    accessibilityLiveRegion={
+                      snapshot.failureCategory ? 'polite' : undefined
+                    }>
+                    {restoreNote}
                   </Text>
                 )}
                 <Button

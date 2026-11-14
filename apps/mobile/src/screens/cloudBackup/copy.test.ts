@@ -1,69 +1,223 @@
+import { en } from '~/lib/i18n/translations/en';
 import { translate } from '~/lib/i18n/translations';
-import type { SupportedLocale, TranslationFunction } from '~/lib/i18n/types';
-import { backupLastUpdatedLabel } from './copy';
+import type { TranslationFunction } from '~/lib/i18n/types';
+import {
+  ATTENTION_RECOVERY_ACTION,
+  type SyncAttentionReason,
+} from '~/lib/cloudSync/snapshot/sync/types';
+import {
+  attentionReasonMessage,
+  cloudSyncFailureMessage,
+  pendingWorkSummary,
+  syncNowUnavailableReason,
+  syncPhaseLabel,
+  syncProgressDetail,
+  syncProgressLabel,
+  syncProgressOverall,
+  syncWaitMessage,
+} from './copy';
 
-let mock24hour = true;
 jest.mock('expo-localization', () => ({
-  getLocales: () => [{ languageTag: 'en-GB', regionCode: 'GB' }],
-  getCalendars: () => [{ uses24hourClock: mock24hour }],
-}));
-jest.mock('~/lib/kvStorage', () => ({
-  kvStorage: {
-    getItem: jest.fn(async () => null),
-    setItem: jest.fn(async () => {}),
-  },
+  getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
 
-function translator(locale: SupportedLocale): TranslationFunction {
-  return Object.assign(
-    (key: Parameters<TranslationFunction>[0], params?: Record<string, string | number>) =>
-      translate(locale, key, params),
-    { locale },
-  ) as TranslationFunction;
-}
+const t = ((key, params) => translate('en', key, params)) as TranslationFunction;
 
-const updatedAt = new Date(2026, 10, 14, 17, 5).getTime();
-
-beforeEach(() => {
-  mock24hour = true;
-});
-
-describe('the last-updated label of a backup to restore', () => {
-  test('shows the date and the time on a 24-hour phone', () => {
-    expect(
-      backupLastUpdatedLabel({ vaultId: 'a', updatedAt }, 0, translator('en'), 'en'),
-    ).toBe('Last updated 14 Nov 2026, 17:05');
+describe('cloud backup status copy', () => {
+  test('labels downloads as downloads, never as saving to Google Drive', () => {
+    expect(syncPhaseLabel('downloading', false, t)).toBe(
+      en['cloud.gettingChangesFromYourOtherDevices'],
+    );
+    expect(syncPhaseLabel('downloading', true, t)).toBe(
+      en['cloud.restoringYourJournalFromGoogleDrive'],
+    );
+    expect(syncPhaseLabel('downloading-media', false, t)).toBe(
+      en['cloud.downloadingPhotosAndVoiceNotes'],
+    );
+    expect(syncPhaseLabel('uploading', false, t)).toBe(
+      en['cloud.savingYourChangesToGoogleDrive'],
+    );
   });
 
-  test('follows a 12-hour phone', () => {
-    mock24hour = false;
+  test('keeps local changes and incoming attachments as separate counts', () => {
     expect(
-      backupLastUpdatedLabel({ vaultId: 'a', updatedAt }, 0, translator('en'), 'en'),
-    ).toMatch(/^Last updated 14 Nov 2026, 5:05\s*pm$/i);
+      pendingWorkSummary(
+        {
+          status: 'syncing',
+          queuedCount: 2,
+          pendingDownloadCount: 40,
+          waitingUploadCount: 0,
+        },
+        t,
+      ),
+    ).toBe('2 changes remaining · Photos and voice notes to download: 40');
+    expect(
+      pendingWorkSummary(
+        {
+          status: 'queued',
+          queuedCount: 0,
+          pendingDownloadCount: 3,
+          waitingUploadCount: 0,
+        },
+        t,
+      ),
+    ).toBe('Photos and voice notes to download: 3');
+    expect(
+      pendingWorkSummary(
+        {
+          status: 'queued',
+          queuedCount: 1,
+          pendingDownloadCount: 0,
+          waitingUploadCount: 0,
+        },
+        t,
+      ),
+    ).toBe('1 change saved, waiting to sync');
+    expect(
+      pendingWorkSummary(
+        {
+          status: 'synced',
+          queuedCount: 0,
+          pendingDownloadCount: 0,
+          waitingUploadCount: 0,
+        },
+        t,
+      ),
+    ).toBeNull();
   });
 
-  test('includes the time in every catalog, right-to-left ones too', () => {
-    for (const locale of ['ar', 'he', 'de', 'zh-CN'] as const) {
-      const label = backupLastUpdatedLabel(
-        { vaultId: 'a', updatedAt },
-        0,
-        translator(locale),
-        locale,
+  test('counts new attachments waiting for Wi-Fi apart from local changes', () => {
+    expect(
+      pendingWorkSummary(
+        {
+          status: 'queued',
+          queuedCount: 0,
+          pendingDownloadCount: 0,
+          waitingUploadCount: 2,
+        },
+        t,
+      ),
+    ).toBe('Photos and voice notes waiting for Wi-Fi: 2');
+  });
+
+  test('explains why Sync now is unavailable', () => {
+    expect(syncNowUnavailableReason('paused', t)).toBe(en['cloud.resumeSyncToSyncNow']);
+    expect(syncNowUnavailableReason('warning', t)).toBe(
+      en['cloud.fixTheProblemAboveToSyncNow'],
+    );
+    expect(syncNowUnavailableReason('synced', t)).toBeNull();
+  });
+
+  test('describes a local attachment problem as local, not as unreadable cloud data', () => {
+    expect(cloudSyncFailureMessage('local-media', t)).toBe(
+      en['cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead'],
+    );
+    expect(cloudSyncFailureMessage('local-media', t)).not.toBe(
+      cloudSyncFailureMessage('corrupt', t),
+    );
+  });
+
+  test('a merge that cannot be combined says so, not that the journal is unprepared', () => {
+    const message = attentionReasonMessage('merge-failed', t);
+    expect(message).toBe(en['cloud.changesFromAnotherDeviceCouldNotBeCombined']);
+    expect(message).not.toBe(attentionReasonMessage('normalized-model-not-ready', t));
+    expect(message).toContain('Sync has stopped.');
+    expect(message).toContain('export a copy');
+    expect(cloudSyncFailureMessage('merge', t)).toBe(message);
+  });
+
+  test('attention messages are plain and distinct, without internal terms', () => {
+    const reasons = Object.keys(ATTENTION_RECOVERY_ACTION) as SyncAttentionReason[];
+    const messages = reasons.map((reason) => attentionReasonMessage(reason, t));
+    expect(new Set(messages).size).toBe(reasons.length);
+    for (const message of messages) {
+      expect(message).not.toMatch(
+        /snapshot|\bhead\b|identifier|vault|consolidat|generation|frontier|stag(e|ing)\b/i,
       );
-      expect(label).not.toContain('{');
-      // Digits may be localized, so look for the minutes in any script.
-      expect(label).toMatch(/05|٠٥/);
     }
   });
+});
 
-  test('numbers a backup without an update time', () => {
+describe('detailed sync progress copy', () => {
+  test('names merging and media uploads, and reuses the phase labels otherwise', () => {
+    expect(syncProgressLabel('merging', false, t)).toBe('Combining changes…');
+    expect(syncProgressLabel('uploading-media', false, t)).toBe(
+      'Uploading photos and voice notes…',
+    );
+    expect(syncProgressLabel('downloading', true, t)).toBe(
+      en['cloud.restoringYourJournalFromGoogleDrive'],
+    );
+  });
+
+  test('shows how much of the step is done in plain words', () => {
     expect(
-      backupLastUpdatedLabel(
-        { vaultId: 'a', updatedAt: null },
-        1,
-        translator('en'),
+      syncProgressDetail({ phase: 'checking', items: { done: 2, total: 3 } }, 'en', t),
+    ).toBe('2 of 3 devices checked');
+    expect(
+      syncProgressDetail({ phase: 'checking', items: { done: 0, total: 1 } }, 'en', t),
+    ).toBe('0 of 1 device checked');
+    expect(
+      syncProgressDetail(
+        {
+          phase: 'downloading',
+          items: { done: 1, total: 3 },
+          bytes: { done: 1_200_000, total: 4_800_000 },
+        },
         'en',
+        t,
       ),
-    ).toBe('Cloud backup 2');
+    ).toBe('1.2 MB of 4.8 MB');
+    // Without every file's size, count files instead.
+    expect(
+      syncProgressDetail({ phase: 'downloading', items: { done: 1, total: 3 } }, 'en', t),
+    ).toBe('1 of 3 files downloaded');
+    expect(
+      syncProgressDetail(
+        { phase: 'uploading', bytes: { done: 640_000, total: 2_100_000 } },
+        'en',
+        t,
+      ),
+    ).toBe('640 kB of 2.1 MB');
+    expect(
+      syncProgressDetail(
+        {
+          phase: 'uploading-media',
+          items: { done: 3, total: 12 },
+          bytes: { done: 8_400_000, total: 31_000_000 },
+        },
+        'en',
+        t,
+      ),
+    ).toBe('3 of 12 (8.4 MB of 31 MB)');
+    expect(syncProgressDetail({ phase: 'merging' }, 'en', t)).toBeNull();
+    expect(syncProgressDetail({ phase: 'uploading' }, 'en', t)).toBeNull();
+  });
+
+  test('adds time left to the step only when it was estimated', () => {
+    expect(syncProgressOverall({ step: 2, totalSteps: 4 }, t)).toBe('Step 2 of 4');
+    expect(syncProgressOverall({ step: 2, totalSteps: 4, etaMs: 75_000 }, t)).toBe(
+      'Step 2 of 4 · about 1 min left',
+    );
+    expect(syncProgressOverall({ step: 4, totalSteps: 4, etaMs: 20_000 }, t)).toBe(
+      'Step 4 of 4 · less than a minute left',
+    );
+  });
+
+  test('explains each wait, counting down to a known retry', () => {
+    const now = 1_000_000;
+    expect(syncWaitMessage({ reason: 'rate-limited', until: now + 39_200 }, now, t)).toBe(
+      'Google asked us to slow down. Trying again in 40 s',
+    );
+    expect(syncWaitMessage({ reason: 'retry-backoff', until: now + 5_000 }, now, t)).toBe(
+      'Connection problem. Retrying in 5 s',
+    );
+    // A retry that is due now never reads as zero seconds.
+    expect(syncWaitMessage({ reason: 'retry-backoff', until: now - 10 }, now, t)).toBe(
+      'Connection problem. Retrying in 1 s',
+    );
+    expect(syncWaitMessage({ reason: 'offline' }, now, t)).toBe('Waiting for internet…');
+    expect(syncWaitMessage({ reason: 'wifi-only-media' }, now, t)).toBe(
+      'Waiting for Wi-Fi to sync photos and voice notes',
+    );
   });
 });

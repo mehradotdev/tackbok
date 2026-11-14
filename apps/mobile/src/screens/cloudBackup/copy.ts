@@ -211,6 +211,27 @@ export function pendingWorkSummary(
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
+/**
+ * The line under a restore's status. `restoring` means no pass is running; it
+ * is often only between passes, so it claims a pause only on evidence.
+ */
+export function restoreStatusNote(
+  snapshot: Pick<CloudSyncSnapshot, 'status' | 'initialRestore' | 'failureCategory'>,
+  t: TranslationFunction,
+): string | null {
+  if (snapshot.status === 'syncing' && snapshot.initialRestore) {
+    return t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs');
+  }
+  if (snapshot.status !== 'restoring') return null;
+  const failure = snapshot.failureCategory;
+  if (!failure) return t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs');
+  // Nothing local is queued on a phone being restored: say the restore waits.
+  if (failure === 'offline' || failure === 'transient' || failure === 'rate-limit') {
+    return t('cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline');
+  }
+  return cloudSyncFailureMessage(failure, t);
+}
+
 /** Explains a disabled Sync now button when the status line alone does not. */
 export function syncNowUnavailableReason(
   status: CloudSyncSnapshot['status'],

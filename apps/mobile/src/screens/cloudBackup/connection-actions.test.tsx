@@ -533,16 +533,17 @@ describe('a restore started from onboarding', () => {
     });
   });
 
-  test('says when no restore pass is running and keeps Sync now to start one', async () => {
+  test('between restore passes it claims neither progress nor a pause, and Sync now starts one', async () => {
     mockSnapshot.status = 'restoring';
     mockSnapshot.initialRestore = true;
     await render();
     expect(
-      showsText(mockEn['cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline']),
+      showsText(mockEn['cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs']),
     ).toBe(true);
     expect(
-      showsText(mockEn['cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs']),
+      showsText(mockEn['cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline']),
     ).toBe(false);
+    expect(showsText(mockEn['cloud.checkingGoogleDriveForChanges'])).toBe(false);
     expect(syncNowButton().props.disabled).toBe(false);
     expect(syncNowButton().props.accessibilityState).toEqual({
       disabled: false,
@@ -553,13 +554,24 @@ describe('a restore started from onboarding', () => {
     expect(mockSyncNow).toHaveBeenCalledTimes(1);
   });
 
-  test('a stopped restore names the failure instead of claiming progress', async () => {
+  test('a restore stopped offline says it is paused, not that changes are queued', async () => {
     mockSnapshot.status = 'restoring';
     mockSnapshot.initialRestore = true;
     mockSnapshot.failureCategory = 'offline';
     await render();
     expect(
-      showsText(mockEn['cloud.noInternetConnectionYourChangesRemainSafelyQueued']),
+      showsText(mockEn['cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline']),
     ).toBe(true);
+    expect(
+      showsText(mockEn['cloud.noInternetConnectionYourChangesRemainSafelyQueued']),
+    ).toBe(false);
+  });
+
+  test('a restore stopped by another failure names it', async () => {
+    mockSnapshot.status = 'restoring';
+    mockSnapshot.initialRestore = true;
+    mockSnapshot.failureCategory = 'quota';
+    await render();
+    expect(showsText(mockEn['cloud.googleDriveStorageIsFull'])).toBe(true);
   });
 });

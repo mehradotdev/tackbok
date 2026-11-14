@@ -552,7 +552,7 @@ test('only a provably fresh database starts with a pristine local profile', () =
 
 test('the legacy profile backfill keeps a pristine profile only on a fresh install', async () => {
   mock.module('../../src/lib/settings/store', () => ({
-    applyProfileCacheReload() {},
+    applyProfileCacheReload: () => true,
     getProfileCacheRevision: () => 0,
     hydrateProfileCache() {},
     markLegacyProfileMigrationComplete() {},
@@ -601,11 +601,23 @@ test('the legacy profile backfill keeps a pristine profile only on a fresh insta
 
 test('the profile cache shows a restored photo only once it is downloaded', async () => {
   const reloads: { profileImageUri: string | null }[] = [];
+  // A local profile write lands during the first read: that read is dropped
+  // and the loader reads again.
+  let drops = 1;
+  let attempts = 0;
   mock.module('../../src/lib/settings/store', () => ({
     applyProfileCacheReload: (
       _revision: number,
       profile: { profileImageUri: string | null },
-    ) => reloads.push(profile),
+    ) => {
+      attempts++;
+      if (drops > 0) {
+        drops--;
+        return false;
+      }
+      reloads.push(profile);
+      return true;
+    },
     getProfileCacheRevision: () => 0,
     hydrateProfileCache() {},
     markLegacyProfileMigrationComplete() {},
@@ -636,6 +648,7 @@ test('the profile cache shows a restored photo only once it is downloaded', asyn
     null,
     'photos/avatar.jpg',
   ]);
+  expect(attempts).toBe(3);
   sqlite.exec('DELETE FROM user_profile; DELETE FROM media_assets');
 });
 

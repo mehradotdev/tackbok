@@ -396,7 +396,9 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       // shortcut: once per engine, not per pass, since it checks every
       // downloaded file; check more often if files vanish mid-session.
       try {
-        await this.journal.requeueMissingVerifiedMedia();
+        // Rare: the profile photo may be among them, and is hidden until it is back.
+        if ((await this.journal.requeueMissingVerifiedMedia()) > 0)
+          await loadProfileCache();
         this.checkedVerifiedMedia = true;
       } catch (error) {
         // The attachments stay as they are; the next pass tries again.
