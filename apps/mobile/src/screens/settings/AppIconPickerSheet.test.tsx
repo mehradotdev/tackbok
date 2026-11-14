@@ -1,7 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { en as mockEn } from '~/lib/i18n/translations/en';
-import { toast as mockToast } from '~/components/ui/toast';
 import { useAppIconStore } from '~/lib/appIcon';
 import { AppIconPickerSheet, getAppIconLabel } from './AppIconPickerSheet';
 
@@ -26,7 +25,6 @@ jest.mock('uniwind', () => ({ useCSSVariable: () => ['#fff', '8', '#999'] }));
 jest.mock('~/components/ui/icon', () => ({ Icon: 'Icon' }));
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
 jest.mock('~/components/ui/button', () => ({ Button: 'Button' }));
-jest.mock('~/components/ui/toast', () => ({ toast: { info: jest.fn() } }));
 jest.mock('~/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: keyof typeof mockEn) => mockEn[key] }),
 }));
@@ -36,7 +34,6 @@ const setIcon = jest.fn<Promise<boolean>, [string | null]>();
 
 beforeEach(() => {
   setIcon.mockReset();
-  (mockToast.info as jest.Mock).mockReset();
   useAppIconStore.setState({ current: null, isChanging: false, setIcon });
 });
 
@@ -53,6 +50,12 @@ function render() {
     (node) =>
       (node.type as unknown) === 'Button' && node.props.accessibilityRole === 'radio',
   );
+}
+
+const NOTE = mockEn['appearance.appIconChangesAfterLeaving'];
+
+function hasNote() {
+  return renderer!.root.findAll((node) => node.props.children === NOTE).length > 0;
 }
 
 function radio(label: string) {
@@ -74,24 +77,31 @@ test('the Blueprint alternate shows as the selected default in beta', () => {
   expect(radio('Blueprint').props.accessibilityState.checked).toBe(true);
 });
 
-test('a change waiting for background shows the notice', async () => {
+test('a change waiting for background shows a note until a change applies at once', async () => {
   setIcon.mockResolvedValue(true);
 
   const ocean = radio('Ocean');
+  expect(hasNote()).toBe(false);
   await act(async () => {
     await ocean.props.onPress();
   });
 
   expect(setIcon).toHaveBeenCalledWith('Ocean');
-  expect(mockToast.info).toHaveBeenCalledWith(
-    mockEn['appearance.appIconChangesAfterLeaving'],
-    {
-      useModal: true,
-    },
+  expect(hasNote()).toBe(true);
+
+  // Choosing the icon in use cancels the pending change.
+  setIcon.mockResolvedValue(false);
+  const plum = renderer!.root.find(
+    (node) =>
+      (node.type as unknown) === 'Button' && node.props.accessibilityLabel === 'Plum',
   );
+  await act(async () => {
+    await plum.props.onPress();
+  });
+  expect(hasNote()).toBe(false);
 });
 
-test('an immediate change shows no notice', async () => {
+test('an immediate change shows no note', async () => {
   setIcon.mockResolvedValue(false);
 
   const ocean = radio('Ocean');
@@ -99,5 +109,16 @@ test('an immediate change shows no notice', async () => {
     await ocean.props.onPress();
   });
 
-  expect(mockToast.info).not.toHaveBeenCalled();
+  expect(hasNote()).toBe(false);
+});
+
+test('tapping the selected icon changes nothing', async () => {
+  useAppIconStore.setState({ current: 'Ocean' });
+
+  const ocean = radio('Ocean');
+  await act(async () => {
+    await ocean.props.onPress();
+  });
+
+  expect(setIcon).not.toHaveBeenCalled();
 });

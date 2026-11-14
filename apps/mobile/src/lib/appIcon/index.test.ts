@@ -6,6 +6,7 @@ type NativeModule = {
     Promise<'pending' | null | undefined>,
     [string | null, readonly string[]]
   >;
+  setPendingIconHeld?: jest.Mock<Promise<void>, [boolean]>;
 };
 
 function load({
@@ -105,4 +106,27 @@ test('beta shows its Blueprint default once and treats the Blueprint alternate a
   expect(getAppIconArtwork(null)).toBe('Blueprint');
   expect(toAppIconChoice('Blueprint')).toBeNull();
   expect(toAppIconChoice('Ocean')).toBe('Ocean');
+});
+
+test('holds reach native once while any hold is active', () => {
+  const native = {
+    ...deferringNative('pending'),
+    setPendingIconHeld: jest.fn(async (_held: boolean) => undefined),
+  };
+  const { holdAppIconChange } = load({ native });
+
+  const releaseEditor = holdAppIconChange();
+  const releaseSync = holdAppIconChange();
+  releaseEditor();
+  releaseEditor();
+  expect(native.setPendingIconHeld.mock.calls).toEqual([[true]]);
+
+  releaseSync();
+  expect(native.setPendingIconHeld.mock.calls).toEqual([[true], [false]]);
+});
+
+test('holds are harmless on binaries without them', () => {
+  const { holdAppIconChange } = load({ native: deferringNative(null) });
+
+  expect(() => holdAppIconChange()()).not.toThrow();
 });

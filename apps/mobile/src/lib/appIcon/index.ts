@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
 import Constants from 'expo-constants';
@@ -13,6 +14,8 @@ interface AppIconNativeModule {
    * background. iOS and Android binaries built before that resolve null.
    */
   setAppIcon(name: string | null, icons: readonly string[]): Promise<'pending' | null>;
+  /** Android binaries with deferred changes only. */
+  setPendingIconHeld?(held: boolean): Promise<void>;
 }
 
 // Optional so binaries built before the module existed keep working after an OTA.
@@ -22,6 +25,35 @@ const AppIconModule =
     : requireOptionalNativeModule<AppIconNativeModule>('AppIconModule');
 
 export const supportsAlternateIcons = AppIconModule != null;
+
+let holds = 0;
+
+/**
+ * On Android a pending icon change ends the app's task once it leaves the
+ * screen. Hold it while that would lose work; call the returned function to release.
+ */
+export function holdAppIconChange(): () => void {
+  holds++;
+  if (holds === 1) setPendingIconHeld(true);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    holds--;
+    if (holds === 0) setPendingIconHeld(false);
+  };
+}
+
+function setPendingIconHeld(held: boolean) {
+  AppIconModule?.setPendingIconHeld?.(held).catch((error: unknown) => {
+    console.warn('[appIcon] Failed to hold app icon change', error);
+  });
+}
+
+/** Holds a pending icon change while `held` is true. */
+export function useHoldAppIconChange(held: boolean): void {
+  useEffect(() => (held ? holdAppIconChange() : undefined), [held]);
+}
 
 // Beta builds ship the Blueprint artwork as their default icon (app.config.ts).
 const DEFAULT_APP_ICON_ARTWORK: AlternateAppIconName | null =

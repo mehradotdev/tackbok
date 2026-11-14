@@ -33,6 +33,7 @@ import {
 } from '~/lib/i18n';
 import { filterExistingPhotos, filterUnavailableAttachments } from '~/lib/photoUtils';
 import { attachmentsToSave } from '~/lib/entryAttachments';
+import { useHoldAppIconChange } from '~/lib/appIcon';
 import { addReceivedImage, type ReceivedImage } from '~/lib/clipboardPhoto';
 import { filterExistingVoiceMemos } from '~/lib/voiceMemoUtils';
 import {
@@ -339,6 +340,8 @@ function GratitudeEntryEditForm({
     !areArraysEqual(selectedTagIds, originalValues.tagIds) ||
     !areArraysEqual(photoUris, originalValues.photoUris) ||
     !areArraysEqual(voiceMemoUris, originalValues.voiceMemoUris);
+  // A pending Android icon change would close this screen and lose the edits.
+  useHoldAppIconChange(hasUnsavedChanges);
 
   const displayTags = useMemo(() => {
     return selectedTagIds

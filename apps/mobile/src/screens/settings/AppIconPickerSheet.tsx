@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
   Image,
   ScrollView,
@@ -24,7 +24,6 @@ import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
-import { toast } from '~/components/ui/toast';
 
 const DEFAULT_ICON_PREVIEW: ImageSourcePropType = require('../../../assets/images/app-icons/classic.png');
 
@@ -67,6 +66,8 @@ export function AppIconPickerSheet() {
   const setIcon = useAppIconStore((s) => s.setIcon);
   const isChanging = useAppIconStore((s) => s.isChanging);
   const scrollViewRef = useRef<ScrollViewInstance>(null);
+  // Android switches the icon once the app leaves the screen.
+  const [isWaitingForBackground, setIsWaitingForBackground] = useState(false);
   const [backgroundColor, themeRadiusStr, mutedFgColor] = useCSSVariable([
     '--color-background',
     '--theme-radius',
@@ -116,13 +117,7 @@ export function AppIconPickerSheet() {
                   size="none"
                   disabled={isChanging}
                   onPress={async () => {
-                    if (isActive) return;
-                    // Android switches the icon once the app leaves the screen.
-                    if (await setIcon(name)) {
-                      toast.info(t('appearance.appIconChangesAfterLeaving'), {
-                        useModal: true,
-                      });
-                    }
+                    if (!isActive) setIsWaitingForBackground(await setIcon(name));
                   }}
                   className="w-1/4 flex-col items-center gap-2 py-1"
                   role="radio"
@@ -149,6 +144,14 @@ export function AppIconPickerSheet() {
                 </Button>
               );
             })}
+          </View>
+          {/* Stays mounted so the live region announces the note when it appears. */}
+          <View accessibilityLiveRegion="polite" className="px-5 pt-4">
+            {isWaitingForBackground && (
+              <Text className="text-sm text-muted-foreground text-center">
+                {t('appearance.appIconChangesAfterLeaving')}
+              </Text>
+            )}
           </View>
         </ScrollView>
       </View>

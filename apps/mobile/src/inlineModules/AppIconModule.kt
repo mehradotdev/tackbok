@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
+import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.ModuleDefinition
 
 // Launcher entries are activity-aliases of MainActivity named MainActivity<Icon>,
@@ -22,15 +23,16 @@ private const val ALIAS_PREFIX = ".MainActivity"
 private const val DEFAULT_ICON = "Default"
 private const val PREFS = "tackbok.appIcon"
 private const val PENDING_KEY = "pending"
-// Like ProcessLifecycleOwner: a configuration change restarts an activity within this window.
-private const val BACKGROUND_DELAY_MS = 700L
+// Gives JS time to report background work (setPendingIconHeld) after the app leaves the screen.
+private const val BACKGROUND_DELAY_MS = 2000L
 
 /**
  * Switches the launcher icon by enabling one activity-alias.
  *
  * Disabling the alias the running task was launched from ends that task, even
  * with DONT_KILL_APP, so the choice is stored and applied only once no activity
- * of the app is visible. The process itself keeps running.
+ * of the app is visible and JS holds nothing (unsaved edits, a sync pass).
+ * The process itself keeps running.
  */
 class AppIconModule : Module() {
   private val context: Context
@@ -42,9 +44,10 @@ class AppIconModule : Module() {
   private val handler = Handler(Looper.getMainLooper())
   private val startedActivities = mutableSetOf<Activity>()
   private var application: Application? = null
+  private var isHeld = false
 
   private val applyIfBackground = Runnable {
-    if (startedActivities.isEmpty()) {
+    if (startedActivities.isEmpty() && !isHeld) {
       // Runs outside any JS call, so a failure must not crash the app; the next background retries.
       runCatching { applyPendingIcon() }.onFailure { Log.w("AppIconModule", "Failed to apply app icon", it) }
     }
@@ -58,10 +61,8 @@ class AppIconModule : Module() {
 
     override fun onActivityStopped(activity: Activity) {
       startedActivities.remove(activity)
-      if (startedActivities.isEmpty()) {
-        handler.removeCallbacks(applyIfBackground)
-        handler.postDelayed(applyIfBackground, BACKGROUND_DELAY_MS)
-      }
+      // A configuration change starts the new activity right away.
+      if (!activity.isChangingConfigurations) scheduleApply()
     }
 
     override fun onActivityDestroyed(activity: Activity) {
@@ -72,6 +73,12 @@ class AppIconModule : Module() {
     override fun onActivityResumed(activity: Activity) = Unit
     override fun onActivityPaused(activity: Activity) = Unit
     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+  }
+
+  private fun scheduleApply() {
+    if (startedActivities.isNotEmpty() || isHeld) return
+    handler.removeCallbacks(applyIfBackground)
+    handler.postDelayed(applyIfBackground, BACKGROUND_DELAY_MS)
   }
 
   private fun component(icon: String) = ComponentName(context, context.packageName + ALIAS_PREFIX + icon)
@@ -90,7 +97,7 @@ class AppIconModule : Module() {
   private fun isShowingOtherApp(): Boolean {
     val tasks = context.getSystemService(ActivityManager::class.java)?.appTasks ?: return false
     return tasks.any { task ->
-      runCatching { task.taskInfo.topActivity?.packageName }
+      runCatching { task.taskInfo?.topActivity?.packageName }
         .getOrNull()
         ?.let { it != context.packageName } == true
     }
@@ -121,7 +128,8 @@ class AppIconModule : Module() {
       PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
       PackageManager.DONT_KILL_APP,
     )
-    aliases.filter { it != target }.forEach {
+    // Each change makes the launcher reload, so already disabled aliases are left alone.
+    aliases.filter { it != target && isEnabled(it) }.forEach {
       pm.setComponentEnabledSetting(
         component(it),
         PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
@@ -151,6 +159,7 @@ class AppIconModule : Module() {
     OnDestroy {
       handler.post {
         handler.removeCallbacks(applyIfBackground)
+        isHeld = false
         application?.unregisterActivityLifecycleCallbacks(lifecycleCallbacks)
         application = null
         startedActivities.clear()
@@ -166,6 +175,12 @@ class AppIconModule : Module() {
         else -> pending
       }
     }
+
+    // JS holds the change while ending the task would lose work: unsaved edits or a sync pass.
+    AsyncFunction("setPendingIconHeld") { held: Boolean ->
+      isHeld = held
+      if (held) handler.removeCallbacks(applyIfBackground) else scheduleApply()
+    }.runOnQueue(Queues.MAIN)
 
     // Resolves "pending" when the change waits for the app to go to background,
     // or null when nothing changes (the icon already in use cancels a pending choice).
