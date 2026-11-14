@@ -294,6 +294,11 @@ export class SnapshotPublisher {
     };
     let applied = plannedDomain;
     if (!applied) {
+      // shortcut: a missing or damaged base restores every unpublished local
+      // attachment, so one a remote deletion dropped comes back, as in any
+      // merge without a base. Dropping them instead could delete new photos
+      // that never reached Drive; upgrade if pending publications record
+      // their deferred attachments.
       const captured = await journal.capture();
       applied =
         captured.generation === capturedGeneration

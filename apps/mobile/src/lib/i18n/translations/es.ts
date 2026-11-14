@@ -805,7 +805,7 @@ export const es = {
     'Si Google te pide permitir que Tackbok use su propia carpeta en tu Drive, permítelo para que la copia de seguridad pueda conectarse.',
   'cloud.journalDeletionReceived': 'Eliminación de diario recibida',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
-    'Las fotos y notas de voz se suben y descargan solo con Wi-Fi. El resto de tu diario se sigue respaldando con datos móviles.',
+    'Las fotos y notas de voz se suben y descargan solo con Wi-Fi. El resto de tu diario se sigue respaldando con datos móviles, salvo si una nueva foto de perfil está esperando Wi-Fi.',
   'cloud.keepLocalDataAndTheCloudCopy':
     'Mantenga los datos locales y la copia en la nube',
   'cloud.keepLocalJournalData': 'Conservar los datos del diario en el dispositivo',
