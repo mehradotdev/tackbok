@@ -1246,6 +1246,30 @@ describe('GoogleDriveSnapshotProvider', () => {
     });
   });
 
+  test('vault discovery treats a head that keeps arriving short as a connection problem', async () => {
+    const server = new FakeDriveServer();
+    const bytes = encodeCanonicalBytes(head('device-short', 1, '8'.repeat(64)));
+    server.seed(vaultId, 'heads/device-short.json', 'head', bytes);
+    let downloads = 0;
+    const dropping = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async (url, init) => {
+        if (!url.includes('alt=media')) return server.fetch(url, init);
+        downloads += 1;
+        return response(200, {}, bytes.slice(0, bytes.length - 5));
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1_800_000_000_000,
+    });
+
+    await expect(dropping.listAvailableVaults()).rejects.toMatchObject({
+      code: 'transient',
+    });
+    expect(downloads).toBe(3);
+  });
+
   test('initial discovery survives one eventually-consistent empty prefix listing', async () => {
     const server = new FakeDriveServer();
     const remote = head('device-eventual', 1, '0'.repeat(64));

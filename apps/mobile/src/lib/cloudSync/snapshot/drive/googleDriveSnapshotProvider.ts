@@ -120,6 +120,18 @@ class DownloadInterruptedError extends SnapshotProviderError {
   }
 }
 
+/**
+ * A body still shorter than its metadata after every attempt. Sync treats it
+ * as bad data, like any other `invalid-data`; vault discovery cannot tell it
+ * from a dropped connection, so it does not call the backup unreadable.
+ */
+class ShortDownloadError extends SnapshotProviderError {
+  constructor() {
+    super('invalid-data', 'Drive download ended early on every attempt');
+    this.name = 'ShortDownloadError';
+  }
+}
+
 /** Whole-download attempts when the body stalls or breaks off. */
 const DOWNLOAD_ATTEMPTS = 3;
 
@@ -326,10 +338,18 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         continue;
       let record: DriveFileRecord | null;
       try {
-        record = await this.safeMaterializeRecord(vaultId, file, 'head');
+        record = await this.materializeRecord(vaultId, file, 'head');
       } catch (error) {
+        // Possibly a dropped connection: report it as one, not as a bad backup.
+        if (error instanceof ShortDownloadError) {
+          throw new SnapshotProviderError('transient', error.message);
+        }
         // A body that is not valid JSON must not hide the account's other backups.
-        if (!(error instanceof SnapshotValidationError)) throw error;
+        const invalid =
+          error instanceof SnapshotValidationError ||
+          (error instanceof SnapshotProviderError && error.code === 'invalid-data');
+        if (!invalid) throw error;
+        this.state.removeFile(vaultId, file.id);
         record = null;
       }
       if (!record?.head || record.head.vaultId !== vaultId) {
@@ -1279,7 +1299,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     // A body that ended early is most likely a dropped connection; one that is
     // still short after every retry is treated as the bad object it may be.
     if (receivedBytes < declaredBytes) {
-      throw new DownloadInterruptedError('Drive download ended early', mismatch);
+      throw new DownloadInterruptedError(
+        'Drive download ended early',
+        new ShortDownloadError(),
+      );
     }
     if (sha256Bytes(bytes) !== file.sha256Checksum) throw mismatch;
     return bytes;

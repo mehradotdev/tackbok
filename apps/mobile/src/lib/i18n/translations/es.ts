@@ -935,39 +935,39 @@ export const es = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'Fotos y notas de voz por descargar: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Google Drive necesita que vuelvas a iniciar sesión. La sincronización se detuvo sin eliminar nada.',
+    'Google Drive necesita que vuelvas a iniciar sesión. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'Esta copia de seguridad pertenece a otra cuenta de Google. La sincronización se detuvo sin eliminar nada.',
+    'Esta copia de seguridad pertenece a otra cuenta de Google. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'Tackbok no recibió acceso completo a Google Drive. La sincronización se detuvo sin eliminar nada.',
+    'Tackbok no recibió acceso completo a Google Drive. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'La copia de seguridad conectada pertenece a otro diario. La sincronización se detuvo sin eliminar nada.',
+    'La copia de seguridad conectada pertenece a otro diario. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'Esta copia de seguridad se creó con una versión más reciente de Tackbok. La sincronización se detuvo sin eliminar nada.',
+    'Esta copia de seguridad se creó con una versión más reciente de Tackbok. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'No se pudo leer parte de tu copia de seguridad en Google Drive. La sincronización se detuvo sin eliminar nada.',
+    'No se pudo leer parte de tu copia de seguridad en Google Drive. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'Falta parte de tu copia de seguridad en Google Drive. La sincronización se detuvo sin eliminar nada.',
+    'Falta parte de tu copia de seguridad en Google Drive. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'Tu copia de seguridad tiene dos versiones distintas de los cambios de un mismo dispositivo. La sincronización se detuvo sin eliminar nada.',
+    'Tu copia de seguridad tiene dos versiones distintas de los cambios de un mismo dispositivo. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Hay cambios de demasiados dispositivos esperando a combinarse. La sincronización se detuvo sin eliminar nada.',
+    'Hay cambios de demasiados dispositivos esperando a combinarse. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'No se pudieron combinar con seguridad dos elementos de tu diario. La sincronización se detuvo sin eliminar nada. Puedes exportar una copia desde Ajustes.',
+    'No se pudieron combinar con seguridad dos elementos de tu diario. La sincronización se detuvo y no cambiará nada hasta que se resuelva. Puedes exportar una copia desde Ajustes.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'Tackbok no pudo guardar datos de sincronización en este dispositivo. Puede que tenga poco espacio. La sincronización se detuvo sin eliminar nada.',
+    'Tackbok no pudo guardar datos de sincronización en este dispositivo. Puede que tenga poco espacio. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'Tu almacenamiento de Google Drive está lleno. La sincronización se detuvo sin eliminar nada.',
+    'Tu almacenamiento de Google Drive está lleno. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive está bloqueando el acceso de Tackbok a tu copia de seguridad. La sincronización se detuvo sin eliminar nada.',
+    'Google Drive está bloqueando el acceso de Tackbok a tu copia de seguridad. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'No se encontró una foto o nota de voz. La sincronización se detuvo sin eliminar nada.',
+    'No se encontró una foto o nota de voz. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'No se pudo leer una foto o nota de voz de este dispositivo. La sincronización se detuvo sin eliminar nada.',
+    'No se pudo leer una foto o nota de voz de este dispositivo. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'Tackbok no pudo preparar tu diario para la copia de seguridad. La sincronización se detuvo sin eliminar nada.',
+    'Tackbok no pudo preparar tu diario para la copia de seguridad. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
-    'Esta copia de seguridad se eliminó. Tus entradas siguen en este dispositivo.',
+    'Esta copia de seguridad se eliminó. Las entradas que ya están en este dispositivo no se han eliminado.',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Tu diario y su copia de seguridad se eliminaron en todas partes. Borra este dispositivo para terminar.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
@@ -999,7 +999,7 @@ export const es = {
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'La sincronización en la nube no pudo finalizar. Sus cambios permanecen en cola de forma segura.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive no aceptó una solicitud de Tackbok. Actualizar Tackbok puede ayudar. La sincronización se detuvo sin eliminar nada.',
+    'Google Drive no aceptó una solicitud de Tackbok. Actualizar Tackbok puede ayudar. La sincronización se detuvo y no cambiará nada hasta que se resuelva.',
   'time.hours': 'Horas',
   'time.minutes': 'Minutos',
   'common.databaseUpdateFailed':

@@ -974,39 +974,39 @@ export const en = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'Photos and voice notes to download: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Google Drive needs you to sign in again. Sync stopped without deleting anything.',
+    "Google Drive needs you to sign in again. Sync has stopped and won't change anything until this is fixed.",
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'This backup belongs to a different Google account. Sync stopped without deleting anything.',
+    "This backup belongs to a different Google account. Sync has stopped and won't change anything until this is fixed.",
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    "Tackbok wasn't given full access to Google Drive. Sync stopped without deleting anything.",
+    "Tackbok wasn't given full access to Google Drive. Sync has stopped and won\'t change anything until this is fixed.",
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'The connected backup belongs to a different journal. Sync stopped without deleting anything.',
+    "The connected backup belongs to a different journal. Sync has stopped and won't change anything until this is fixed.",
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'This backup was made by a newer version of Tackbok. Sync stopped without deleting anything.',
+    "This backup was made by a newer version of Tackbok. Sync has stopped and won't change anything until this is fixed.",
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    "Part of your backup in Google Drive couldn't be read. Sync stopped without deleting anything.",
+    "Part of your backup in Google Drive couldn't be read. Sync has stopped and won\'t change anything until this is fixed.",
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'Part of your backup is missing from Google Drive. Sync stopped without deleting anything.',
+    "Part of your backup is missing from Google Drive. Sync has stopped and won't change anything until this is fixed.",
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    "Your backup has two different copies of one device's changes. Sync stopped without deleting anything.",
+    "Your backup has two different copies of one device's changes. Sync has stopped and won\'t change anything until this is fixed.",
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Changes from too many devices are waiting to be combined. Sync stopped without deleting anything.',
+    "Changes from too many devices are waiting to be combined. Sync has stopped and won't change anything until this is fixed.",
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    "Two items in your journal couldn't be combined safely. Sync stopped without deleting anything. You can export a copy from Settings.",
+    "Two items in your journal couldn't be combined safely. Sync has stopped and won\'t change anything until this is fixed. You can export a copy from Settings.",
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    "Tackbok couldn't save sync data on this device. It may be low on storage. Sync stopped without deleting anything.",
+    "Tackbok couldn't save sync data on this device. It may be low on storage. Sync has stopped and won\'t change anything until this is fixed.",
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'Your Google Drive storage is full. Sync stopped without deleting anything.',
+    "Your Google Drive storage is full. Sync has stopped and won't change anything until this is fixed.",
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive is blocking Tackbok from your backup. Sync stopped without deleting anything.',
+    "Google Drive is blocking Tackbok from your backup. Sync has stopped and won't change anything until this is fixed.",
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    "A photo or voice note couldn't be found. Sync stopped without deleting anything.",
+    "A photo or voice note couldn't be found. Sync has stopped and won\'t change anything until this is fixed.",
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    "A photo or voice note on this device couldn't be read. Sync stopped without deleting anything.",
+    "A photo or voice note on this device couldn't be read. Sync has stopped and won\'t change anything until this is fixed.",
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    "Tackbok couldn't get your journal ready to back up. Sync stopped without deleting anything.",
+    "Tackbok couldn't get your journal ready to back up. Sync has stopped and won\'t change anything until this is fixed.",
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
-    'This backup was deleted. Your entries are still on this device.',
+    "This backup was deleted. Entries already on this device haven't been removed.",
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Your journal and its backup were deleted everywhere. Erase this device to finish.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
@@ -1035,7 +1035,7 @@ export const en = {
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'Cloud sync could not finish. Your changes remain safely queued.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    "Google Drive didn't accept a request from Tackbok. Updating Tackbok may help. Sync stopped without deleting anything.",
+    "Google Drive didn't accept a request from Tackbok. Updating Tackbok may help. Sync has stopped and won\'t change anything until this is fixed.",
   'time.hours': 'Hours',
   'time.minutes': 'Minutes',
   'common.databaseUpdateFailed': 'Could not update the journal database: {message}',

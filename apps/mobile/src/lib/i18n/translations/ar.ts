@@ -948,39 +948,39 @@ export const ar: Translations = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'صور وملاحظات صوتية بانتظار التنزيل: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'يطلب Google Drive تسجيل الدخول مرة أخرى. توقفت المزامنة دون حذف أي شيء.',
+    'يطلب Google Drive تسجيل الدخول مرة أخرى. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'تعود هذه النسخة الاحتياطية إلى حساب Google مختلف. توقفت المزامنة دون حذف أي شيء.',
+    'تعود هذه النسخة الاحتياطية إلى حساب Google مختلف. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'لم يحصل Tackbok على إذن كامل للوصول إلى Google Drive. توقفت المزامنة دون حذف أي شيء.',
+    'لم يحصل Tackbok على إذن كامل للوصول إلى Google Drive. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'النسخة الاحتياطية المتصلة تخص دفتر يوميات آخر. توقفت المزامنة دون حذف أي شيء.',
+    'النسخة الاحتياطية المتصلة تخص دفتر يوميات آخر. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من Tackbok. توقفت المزامنة دون حذف أي شيء.',
+    'أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من Tackbok. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'تعذّرت قراءة جزء من نسختك الاحتياطية في Google Drive. توقفت المزامنة دون حذف أي شيء.',
+    'تعذّرت قراءة جزء من نسختك الاحتياطية في Google Drive. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'جزء من نسختك الاحتياطية مفقود من Google Drive. توقفت المزامنة دون حذف أي شيء.',
+    'جزء من نسختك الاحتياطية مفقود من Google Drive. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'تحتوي نسختك الاحتياطية على نسختين مختلفتين من تغييرات جهاز واحد. توقفت المزامنة دون حذف أي شيء.',
+    'تحتوي نسختك الاحتياطية على نسختين مختلفتين من تغييرات جهاز واحد. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'هناك تغييرات من أجهزة كثيرة جدًا تنتظر الدمج. توقفت المزامنة دون حذف أي شيء.',
+    'هناك تغييرات من أجهزة كثيرة جدًا تنتظر الدمج. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'تعذّر دمج عنصرين في دفتر يومياتك بأمان. توقفت المزامنة دون حذف أي شيء. يمكنك تصدير نسخة من الإعدادات.',
+    'تعذّر دمج عنصرين في دفتر يومياتك بأمان. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة. يمكنك تصدير نسخة من الإعدادات.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'تعذّر على Tackbok حفظ بيانات المزامنة على هذا الجهاز. قد تكون مساحة التخزين منخفضة. توقفت المزامنة دون حذف أي شيء.',
+    'تعذّر على Tackbok حفظ بيانات المزامنة على هذا الجهاز. قد تكون مساحة التخزين منخفضة. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'مساحة التخزين في Google Drive ممتلئة. توقفت المزامنة دون حذف أي شيء.',
+    'مساحة التخزين في Google Drive ممتلئة. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'يمنع Google Drive وصول Tackbok إلى نسختك الاحتياطية. توقفت المزامنة دون حذف أي شيء.',
+    'يمنع Google Drive وصول Tackbok إلى نسختك الاحتياطية. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'تعذّر العثور على صورة أو ملاحظة صوتية. توقفت المزامنة دون حذف أي شيء.',
+    'تعذّر العثور على صورة أو ملاحظة صوتية. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'تعذّرت قراءة صورة أو ملاحظة صوتية على هذا الجهاز. توقفت المزامنة دون حذف أي شيء.',
+    'تعذّرت قراءة صورة أو ملاحظة صوتية على هذا الجهاز. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'تعذّر على Tackbok تجهيز دفتر يومياتك للنسخ الاحتياطي. توقفت المزامنة دون حذف أي شيء.',
+    'تعذّر على Tackbok تجهيز دفتر يومياتك للنسخ الاحتياطي. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
-    'حُذفت هذه النسخة الاحتياطية. لا تزال سجلاتك على هذا الجهاز.',
+    'حُذفت هذه النسخة الاحتياطية. لم تُحذف السجلات الموجودة بالفعل على هذا الجهاز.',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'حُذف دفتر يومياتك ونسخته الاحتياطية من كل مكان. امسح هذا الجهاز لإكمال العملية.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
@@ -1009,7 +1009,7 @@ export const ar: Translations = {
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'تعذّرت مزامنة السحابة. تبقى تغييراتك محفوظة بأمان في قائمة الانتظار.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'لم يقبل Google Drive طلبًا من Tackbok. قد يساعد تحديث Tackbok. توقفت المزامنة دون حذف أي شيء.',
+    'لم يقبل Google Drive طلبًا من Tackbok. قد يساعد تحديث Tackbok. توقفت المزامنة ولن تغيّر أي شيء حتى تُحل هذه المشكلة.',
   'time.hours': 'الساعات',
   'time.minutes': 'الدقائق',
   'common.databaseUpdateFailed': 'تعذّر تحديث قاعدة بيانات دفتر اليوميات: {message}',
