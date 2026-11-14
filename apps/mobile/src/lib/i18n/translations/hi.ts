@@ -828,6 +828,10 @@ export const hi = {
   'cloud.conflicts.attachmentCount': 'अटैचमेंट: {count}',
   'cloud.conflicts.entryReturned':
     'आपने यह प्रविष्टि एक डिवाइस पर हटाई, जबकि दूसरे डिवाइस पर इसे संपादित किया जा रहा था, इसलिए संपादित संस्करण रखा गया।',
+  'cloud.conflicts.entryKept':
+    'यह प्रविष्टि एक डिवाइस पर हटाई गई, लेकिन दूसरे डिवाइस पर अब भी मौजूद थी, इसलिए इसे रखा गया।',
+  'cloud.conflicts.entriesReturned':
+    'आपकी {count} हटाई गई प्रविष्टियाँ रखी गईं, क्योंकि वे दूसरे डिवाइस पर अब भी थीं।',
   'cloud.conflicts.openEntry': 'प्रविष्टि खोलें',
   'cloud.conflicts.gotIt': 'ठीक है',
   'cloud.resetThisDeviceOnly': 'केवल इस डिवाइस को रीसेट करें',

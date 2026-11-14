@@ -173,17 +173,11 @@ test('getOtherVersionGroups follows a version copied from another version', asyn
   // A cycle cannot come from sync, but must not hang the screen.
   insertEntry('loop-a', 1, { conflict_origin_id: 'loop-b' });
   insertEntry('loop-b', 2, { conflict_origin_id: 'loop-a' });
-  const groups = ids(await getOtherVersionGroups());
-  expect(groups.slice(0, 2)).toEqual([
+  expect(ids(await getOtherVersionGroups())).toEqual([
     { original: 'origin', versions: ['copy-of-copy', 'copy'] },
     { original: null, versions: ['orphan-chain-copy-of-copy', 'orphan-chain-copy'] },
+    { original: null, versions: ['loop-b', 'loop-a'] },
   ]);
-  expect(
-    groups
-      .slice(2)
-      .flatMap((group) => group.versions)
-      .sort(),
-  ).toEqual(['loop-a', 'loop-b']);
 });
 
 test('getOtherVersionCount counts only entries kept as another version', async () => {

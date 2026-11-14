@@ -885,6 +885,10 @@ export const ar: Translations = {
   'cloud.conflicts.attachmentCount': 'المرفقات: {count}',
   'cloud.conflicts.entryReturned':
     'حُذف هذا السجل على جهاز بينما عُدِّل على جهاز آخر، لذا احتُفظ بالنسخة المعدَّلة.',
+  'cloud.conflicts.entryKept':
+    'حُذف هذا السجل على جهاز لكنه كان لا يزال موجودًا على جهاز آخر، لذا احتُفظ به.',
+  'cloud.conflicts.entriesReturned':
+    'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
   'cloud.conflicts.openEntry': 'فتح السجل',
   'cloud.conflicts.gotIt': 'حسنًا',
   'cloud.resetThisDeviceOnly': 'إعادة ضبط هذا الجهاز فقط',

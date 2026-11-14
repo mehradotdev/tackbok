@@ -32,6 +32,8 @@ interface IEntryItemProps {
   onPhotoPress: (photos: Asset[], index: number) => void;
   /** Show the entry's date too, for lists that span several days. */
   showDate?: boolean;
+  /** Pad by the safe area; off inside a container that already does. */
+  safeAreaPadding?: boolean;
   className?: string;
 }
 
@@ -41,6 +43,7 @@ export function EntryItem({
   tagMap,
   onPhotoPress,
   showDate = false,
+  safeAreaPadding = true,
   className,
 }: IEntryItemProps) {
   const { t, locale } = useTranslation();
@@ -62,7 +65,8 @@ export function EntryItem({
       onPress={onPress}
       accessibilityRole="button"
       className={cn(
-        'flex-col w-full px-safe-or-3 border-b border-border py-3 active:bg-muted',
+        'flex-col w-full border-b border-border py-3 active:bg-muted',
+        safeAreaPadding ? 'px-safe-or-3' : 'px-3',
         className,
       )}>
       <View>

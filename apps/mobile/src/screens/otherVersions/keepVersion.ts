@@ -22,3 +22,20 @@ export function entriesToDelete(
   const members = new Set(groupMembers(group).map((entry) => entry.note_id));
   return confirmedIds.filter((id) => id !== keepId && members.has(id));
 }
+
+/**
+ * Deletes the entries one at a time, stopping at the first failure. Resolves
+ * whether every entry was deleted; entries before a failure stay deleted.
+ */
+export async function deleteEach(
+  ids: readonly string[],
+  deleteOne: (id: string) => Promise<void>,
+): Promise<boolean> {
+  try {
+    for (const id of ids) await deleteOne(id);
+    return true;
+  } catch (error) {
+    console.error('Failed to delete entry', error);
+    return false;
+  }
+}

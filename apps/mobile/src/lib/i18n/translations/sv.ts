@@ -847,6 +847,10 @@ export const sv = {
   'cloud.conflicts.attachmentCount': 'Bilagor: {count}',
   'cloud.conflicts.entryReturned':
     'Du tog bort den här anteckningen på en enhet medan den redigerades på en annan, så den redigerade versionen behölls.',
+  'cloud.conflicts.entryKept':
+    'Den här anteckningen togs bort på en enhet men fanns kvar på en annan, så den behölls.',
+  'cloud.conflicts.entriesReturned':
+    '{count} anteckningar som du tog bort på en enhet behölls eftersom en annan enhet fortfarande hade dem.',
   'cloud.conflicts.openEntry': 'Öppna anteckningen',
   'cloud.conflicts.gotIt': 'OK',
   'cloud.resetThisDeviceOnly': 'Återställ endast den här enheten',

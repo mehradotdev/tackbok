@@ -20,6 +20,12 @@ type NameItem = Extract<CloudConflictItem, { kind: 'name' }>;
 type ReturnedEntryItem = Extract<CloudConflictItem, { kind: 'returnedEntry' }>;
 
 /**
+ * Returned entries listed one by one. Beyond this, e.g. after joining with
+ * many entries another device deleted, one row covers them all.
+ */
+const MAX_RETURNED_ENTRY_ROWS = 3;
+
+/**
  * Conflicts this device can act on. Each row is dismissed by its own action;
  * records with nothing to act on are not listed (see `deriveConflictItems`).
  * The list reloads whenever `refreshToken` changes (see `useCloudConflictItems`).
@@ -59,6 +65,10 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
     (item): item is NameItem => item.kind === 'name' && item.archived,
   );
   const activeItems = activeConflictItems(items);
+  const returnedItems = activeItems.filter(
+    (item): item is ReturnedEntryItem => item.kind === 'returnedEntry',
+  );
+  const collapseReturned = returnedItems.length > MAX_RETURNED_ENTRY_ROWS;
   if (!loadFailed && items.length === 0) return null;
 
   const nameMessage = (item: NameItem) =>
@@ -106,7 +116,9 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
     return (
       <View key={item.conflictIds.join(',')} className="gap-2">
         <Text className="text-sm text-foreground">
-          {t('cloud.conflicts.entryReturned')}
+          {item.edited
+            ? t('cloud.conflicts.entryReturned')
+            : t('cloud.conflicts.entryKept')}
         </Text>
         {/* One stop for screen readers: which entry this is. */}
         <View
@@ -176,7 +188,9 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
       {activeItems.map((item) => {
         const key = item.conflictIds.join(',');
         if (item.kind === 'name') return nameRow(item);
-        if (item.kind === 'returnedEntry') return returnedEntryRow(item);
+        if (item.kind === 'returnedEntry') {
+          return collapseReturned ? null : returnedEntryRow(item);
+        }
         if (item.kind === 'photo') {
           return (
             <View key={key} className="gap-2">
@@ -239,6 +253,26 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
           </View>
         );
       })}
+      {collapseReturned && (
+        <View className="gap-2">
+          <Text className="text-sm text-foreground">
+            {t('cloud.conflicts.entriesReturned', { count: returnedItems.length })}
+          </Text>
+          <Button
+            variant="ghost"
+            className="h-auto min-h-10 max-w-full self-start py-2"
+            disabled={busy}
+            onPress={() =>
+              void run(() =>
+                acknowledgeCloudConflicts(
+                  returnedItems.flatMap((item) => item.conflictIds),
+                ),
+              )
+            }>
+            <Text className="shrink text-center">{t('cloud.conflicts.gotIt')}</Text>
+          </Button>
+        </View>
+      )}
       {archivedNames.length > 0 && (
         <View className="gap-4">
           <Button

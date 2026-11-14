@@ -88,10 +88,13 @@ beforeEach(() => jest.clearAllMocks());
 afterEach(() => act(() => root?.unmount()));
 
 function render(query: Record<string, unknown>) {
+  const data = query.data;
   mockQuery.mockReturnValue({
     data: undefined,
     isLoading: false,
     isError: false,
+    // Confirming re-reads the groups; by default nothing changed meanwhile.
+    refetch: jest.fn(async () => ({ data, isError: false })),
     ...query,
   });
   act(() => {
@@ -205,16 +208,53 @@ test('cancelling deletes nothing', () => {
 });
 
 test('a version that sync moved out of the group while confirming is spared', async () => {
+  const refetch = jest.fn(async () => ({
+    data: [{ original, versions: [copy] }],
+    isError: false,
+  }));
+  render({ data: [{ original, versions: [copy, secondCopy] }], refetch });
+  act(() => keepButtons()[0].props.onPress());
+  await act(async () => confirm().props.onPress());
+  expect(refetch).toHaveBeenCalled();
+  expect(mockDelete.mock.calls).toEqual([['copy']]);
+});
+
+test('a failed re-read deletes nothing', async () => {
+  render({
+    data: [{ original, versions: [copy] }],
+    refetch: jest.fn(async () => ({ data: undefined, isError: true })),
+  });
+  act(() => keepButtons()[0].props.onPress());
+  await act(async () => confirm().props.onPress());
+  expect(mockDelete).not.toHaveBeenCalled();
+  expect(mockToastError).toHaveBeenCalledWith(mockEn['mood.failedToDeleteEntry']);
+  expect(mockAcknowledge).not.toHaveBeenCalled();
+});
+
+test('a second tap while deleting deletes nothing more', async () => {
+  render({ data: [{ original, versions: [copy] }] });
+  act(() => keepButtons()[0].props.onPress());
+  const press = confirm().props.onPress;
+  await act(async () => {
+    await Promise.all([press(), press()]);
+  });
+  expect(mockDelete.mock.calls).toEqual([['copy']]);
+  expect(mockTrack).toHaveBeenCalledTimes(1);
+});
+
+test('a failure partway stops, reports it and dismisses nothing', async () => {
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  mockDelete
+    .mockResolvedValueOnce(undefined)
+    .mockRejectedValueOnce(new Error('disk full'));
   render({ data: [{ original, versions: [copy, secondCopy] }] });
   act(() => keepButtons()[0].props.onPress());
-  mockQuery.mockReturnValue({
-    data: [{ original, versions: [copy] }],
-    isLoading: false,
-    isError: false,
-  });
-  act(() => root.update(<OtherVersionsScreen />));
   await act(async () => confirm().props.onPress());
-  expect(mockDelete.mock.calls).toEqual([['copy']]);
+  expect(mockDelete.mock.calls).toEqual([['copy'], ['second-copy']]);
+  expect(mockTrack).toHaveBeenCalledTimes(1);
+  expect(mockToastError).toHaveBeenCalledWith(mockEn['mood.failedToDeleteEntry']);
+  expect(mockAcknowledge).not.toHaveBeenCalled();
+  expect(dialog().props.open).toBe(false);
 });
 
 test('a failed delete is reported and dismisses nothing', async () => {

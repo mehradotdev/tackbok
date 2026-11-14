@@ -913,6 +913,12 @@ export const en = {
   // Conflicts card: a deleted entry is back because it was edited on another device.
   'cloud.conflicts.entryReturned':
     'You deleted this entry on one device while it was edited on another, so the edited version was kept.',
+  // Conflicts card: a deleted entry is back; the other device had not edited it.
+  'cloud.conflicts.entryKept':
+    'This entry was deleted on one device but was still on another device, so it was kept.',
+  // Conflicts card: replaces one row per entry when more than a few came back.
+  'cloud.conflicts.entriesReturned':
+    '{count} entries you deleted on one device were kept because another device still had them.',
   'cloud.conflicts.openEntry': 'Open entry',
   'cloud.conflicts.gotIt': 'Got it',
   'cloud.resetThisDeviceOnly': 'Reset this device only',

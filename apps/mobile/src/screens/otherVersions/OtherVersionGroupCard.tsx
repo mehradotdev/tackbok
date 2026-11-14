@@ -33,8 +33,8 @@ export function OtherVersionGroupCard({
   const otherCount = members.length - 1;
 
   return (
-    <View className="mx-safe-or-3 mb-4 rounded-lg border border-border bg-card overflow-hidden">
-      <View className="gap-1 px-safe-or-3 pt-3">
+    <View className="mx-3 mb-4 rounded-lg border border-border bg-card overflow-hidden">
+      <View className="gap-1 px-3 pt-3">
         <Text role="heading" className="font-body-bold text-foreground">
           {t('cloud.conflicts.versionsOf', {
             date: formatLocalizedDate(members[0].created_at, t),
@@ -54,7 +54,7 @@ export function OtherVersionGroupCard({
             key={entry.note_id}
             className={index < members.length - 1 ? 'border-b border-border' : undefined}>
             {isOriginal && (
-              <Text className="px-safe-or-3 pt-3 text-sm font-body-semibold text-muted-foreground">
+              <Text className="px-3 pt-3 text-sm font-body-semibold text-muted-foreground">
                 {t('cloud.conflicts.original')}
               </Text>
             )}
@@ -64,10 +64,12 @@ export function OtherVersionGroupCard({
               tagMap={tagMap}
               onPhotoPress={onPhotoPress}
               showDate
+              // The screen already insets for the safe area.
+              safeAreaPadding={false}
               className="border-b-0"
             />
             {(attachmentCount > 0 || canKeep) && (
-              <View className="gap-2 px-safe-or-3 pb-3">
+              <View className="gap-2 px-3 pb-3">
                 {attachmentCount > 0 && (
                   <Text className="text-sm text-muted-foreground">
                     {t('cloud.conflicts.attachmentCount', { count: attachmentCount })}

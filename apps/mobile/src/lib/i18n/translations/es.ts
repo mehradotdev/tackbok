@@ -869,6 +869,10 @@ export const es = {
   'cloud.conflicts.attachmentCount': 'Adjuntos: {count}',
   'cloud.conflicts.entryReturned':
     'Eliminaste esta entrada en un dispositivo mientras se editaba en otro, así que se conservó la versión editada.',
+  'cloud.conflicts.entryKept':
+    'Esta entrada se eliminó en un dispositivo, pero seguía en otro, así que se conservó.',
+  'cloud.conflicts.entriesReturned':
+    'Se conservaron {count} entradas que eliminaste en un dispositivo porque otro dispositivo aún las tenía.',
   'cloud.conflicts.openEntry': 'Abrir entrada',
   'cloud.conflicts.gotIt': 'Entendido',
   'cloud.resetThisDeviceOnly': 'Restablecer solo este dispositivo',

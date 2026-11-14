@@ -949,6 +949,10 @@ export const de: Translations = {
   'cloud.conflicts.attachmentCount': 'Anhänge: {count}',
   'cloud.conflicts.entryReturned':
     'Du hast diesen Eintrag auf einem Gerät gelöscht, während er auf einem anderen bearbeitet wurde. Deshalb wurde die bearbeitete Version behalten.',
+  'cloud.conflicts.entryKept':
+    'Dieser Eintrag wurde auf einem Gerät gelöscht, war aber auf einem anderen Gerät noch vorhanden. Deshalb wurde er behalten.',
+  'cloud.conflicts.entriesReturned':
+    '{count} Einträge, die du auf einem Gerät gelöscht hast, wurden behalten, weil ein anderes Gerät sie noch hatte.',
   'cloud.conflicts.openEntry': 'Eintrag öffnen',
   'cloud.conflicts.gotIt': 'Verstanden',
   'cloud.resetThisDeviceOnly': 'Nur dieses Gerät zurücksetzen',

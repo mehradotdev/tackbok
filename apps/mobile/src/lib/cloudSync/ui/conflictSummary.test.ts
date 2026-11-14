@@ -38,6 +38,7 @@ function record(overrides: Partial<CloudConflictRecord>): CloudConflictRecord {
     entityType: 'profile',
     entityId: 'profile',
     field: 'displayName',
+    hasBase: true,
     alternateValue: undefined,
     recoveredEntityIds: [],
     createdAt: JOINED_AT + 1,
@@ -65,6 +66,7 @@ describe('parseConflictRecord', () => {
       entityType: 'profile',
       entityId: 'profile',
       field: 'displayName',
+      hasBase: false,
       alternateValue: null,
       recoveredEntityIds: [],
       createdAt: 5,
@@ -219,20 +221,23 @@ describe('deriveConflictItems', () => {
       conflictId: string,
       entityType: 'entry' | 'tag',
       entityId: string,
+      hasBase = true,
     ) =>
       record({
         conflictId,
         entityType,
         entityId,
         field: 'deleteEdit',
+        hasBase,
         alternateValue: null,
       });
     expect(
       deriveConflictItems(
         [
           deleteEdit('d1', 'entry', 'returned-old'),
-          deleteEdit('d2', 'entry', 'returned-new'),
-          deleteEdit('d3', 'entry', 'returned-old'),
+          // No common earlier version: kept without proof of an edit.
+          deleteEdit('d2', 'entry', 'returned-new', false),
+          deleteEdit('d3', 'entry', 'returned-old', false),
           // Deleted on both sides, or deleted again since: not in the journal.
           deleteEdit('d4', 'entry', 'still-deleted'),
           // A tag ID that happens to match an entry ID is not an entry.
@@ -253,11 +258,13 @@ describe('deriveConflictItems', () => {
         kind: 'returnedEntry',
         conflictIds: ['d2'],
         entry: context.returnedEntries.get('returned-new'),
+        edited: false,
       },
       {
         kind: 'returnedEntry',
         conflictIds: ['d1', 'd3'],
         entry: context.returnedEntries.get('returned-old'),
+        edited: true,
       },
     ]);
   });

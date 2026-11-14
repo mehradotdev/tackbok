@@ -6,6 +6,8 @@ export interface CloudConflictRecord {
   entityType: EntityType;
   entityId: string;
   field: ConflictField;
+  /** Whether the merge had a common earlier version to compare against. */
+  hasBase: boolean;
   /** The losing value kept by the merge; `undefined` when none was kept. */
   alternateValue: string | null | undefined;
   recoveredEntityIds: string[];
@@ -43,6 +45,12 @@ export type CloudConflictItem =
       kind: 'returnedEntry';
       conflictIds: string[];
       entry: ReturnedEntrySummary;
+      /**
+       * Whether the kept side was provably edited. Without a common earlier
+       * version the merge keeps the entry even when nothing was edited, e.g. a
+       * device joining with entries another device had deleted.
+       */
+      edited: boolean;
     };
 
 /** Enough of a returned entry for the user to recognize it. */
@@ -80,6 +88,7 @@ export function parseConflictRecord(
     entityType: EntityType;
     entityId: string;
     field: ConflictField;
+    baseValueHash?: string | null;
     alternates?: { value: string | null }[];
     recoveredEntityIds?: string[];
   };
@@ -88,6 +97,7 @@ export function parseConflictRecord(
     entityType: conflict.entityType,
     entityId: conflict.entityId,
     field: conflict.field,
+    hasBase: conflict.baseValueHash != null,
     alternateValue: conflict.alternates?.[0]?.value,
     recoveredEntityIds: conflict.recoveredEntityIds ?? [],
     createdAt,
@@ -112,7 +122,7 @@ export function deriveConflictItems(
   const photos = new Map<string, { assetId: string; conflictIds: string[] }>();
   const entryConflictIds: string[] = [];
   const recoveredEntryIds = new Set<string>();
-  const returned = new Map<string, string[]>();
+  const returned = new Map<string, { conflictIds: string[]; edited: boolean }>();
 
   for (const record of records) {
     // shortcut: dismissal and this join filter are local to the device;
@@ -145,9 +155,10 @@ export function deriveConflictItems(
     if (record.entityType === 'entry' && record.field === 'deleteEdit') {
       // Both sides deleting leaves the entry deleted, so it is not in the journal.
       if (!context.returnedEntries.has(record.entityId)) continue;
-      const conflictIds = returned.get(record.entityId) ?? [];
-      conflictIds.push(record.conflictId);
-      returned.set(record.entityId, conflictIds);
+      const row = returned.get(record.entityId) ?? { conflictIds: [], edited: false };
+      row.conflictIds.push(record.conflictId);
+      row.edited ||= record.hasBase;
+      returned.set(record.entityId, row);
       continue;
     }
 
@@ -186,10 +197,11 @@ export function deriveConflictItems(
       recoveredEntryIds: [...recoveredEntryIds].sort(),
     });
   }
-  const returnedItems = [...returned].map(([entryId, conflictIds]) => ({
+  const returnedItems = [...returned].map(([entryId, { conflictIds, edited }]) => ({
     kind: 'returnedEntry' as const,
     conflictIds,
     entry: context.returnedEntries.get(entryId)!,
+    edited,
   }));
   returnedItems.sort(
     (a, b) =>

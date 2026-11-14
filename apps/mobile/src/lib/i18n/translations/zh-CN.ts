@@ -847,12 +847,16 @@ export const zhCN: Translations = {
   'cloud.conflicts.originalDeleted': '原始条目已被删除。',
   'cloud.conflicts.keepThisOne': '保留这个',
   'cloud.conflicts.keepOriginal': '保留原始版本',
-  'cloud.conflicts.keepOtherVersion': '保留这个其他版本',
+  'cloud.conflicts.keepOtherVersion': '保留此其他版本',
   'cloud.conflicts.keepThisOneTitle': '保留此版本？',
   'cloud.conflicts.keepThisOneMessage': '其他 {count} 个版本将被永久删除。',
   'cloud.conflicts.attachmentCount': '附件：{count}',
   'cloud.conflicts.entryReturned':
     '你在一台设备上删除了此条目，同时它在另一台设备上被编辑，因此保留了编辑后的版本。',
+  'cloud.conflicts.entryKept':
+    '此条目在一台设备上被删除，但另一台设备上仍有它，因此它被保留了下来。',
+  'cloud.conflicts.entriesReturned':
+    '你在一台设备上删除的 {count} 个条目被保留了，因为另一台设备上仍有它们。',
   'cloud.conflicts.openEntry': '打开条目',
   'cloud.conflicts.gotIt': '知道了',
   'cloud.resetThisDeviceOnly': '仅重置此设备',

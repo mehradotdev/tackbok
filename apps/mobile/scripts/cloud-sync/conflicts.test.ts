@@ -249,6 +249,7 @@ test('an entry kept after a delete/edit race is listed with what identifies it',
     entityType: 'entry',
     entityId: 'returned',
     field: 'deleteEdit',
+    baseValueHash: 'b'.repeat(64),
   });
   // Deleted on both sides: the entry is not in the journal.
   conflict('gone', { entityType: 'entry', entityId: 'deleted', field: 'deleteEdit' });
@@ -269,6 +270,7 @@ test('an entry kept after a delete/edit race is listed with what identifies it',
         title: 'Walk',
         preview: 'x'.repeat(200),
       },
+      edited: true,
     },
   ]);
 

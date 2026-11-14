@@ -225,17 +225,25 @@ export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
 /** Exported for tests. `rows` must be sorted newest first. */
 export function groupOtherVersions(rows: Entry[]): OtherVersionGroup[] {
   const byId = new Map(rows.map((entry) => [entry.note_id, entry]));
-  // The oldest ancestor still in the journal; the visited set guards a cycle.
+  // The oldest ancestor still in the journal. Sync cannot link versions in a
+  // loop, but if it happens every member gets the same root: the smallest ID.
   const rootOf = (entry: Entry) => {
-    const visited = new Set([entry.note_id]);
-    let root = entry;
+    const path = [entry];
     for (;;) {
+      const root = path[path.length - 1];
       const parent = root.conflict_origin_id
         ? byId.get(root.conflict_origin_id)
         : undefined;
-      if (!parent || visited.has(parent.note_id)) return root;
-      visited.add(parent.note_id);
-      root = parent;
+      if (!parent) return root;
+      const loopStart = path.indexOf(parent);
+      if (loopStart >= 0) {
+        return path
+          .slice(loopStart)
+          .reduce((smallest, member) =>
+            member.note_id < smallest.note_id ? member : smallest,
+          );
+      }
+      path.push(parent);
     }
   };
   const groups = new Map<string, OtherVersionGroup>();

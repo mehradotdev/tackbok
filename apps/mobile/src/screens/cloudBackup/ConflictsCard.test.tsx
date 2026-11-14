@@ -64,6 +64,7 @@ const returnedItem: CloudConflictItem = {
   kind: 'returnedEntry',
   conflictIds: ['d1', 'd2'],
   entry: { entryId: 'returned', createdAt: 7, title: 'Walk', preview: 'Sunny morning' },
+  edited: true,
 };
 
 let root: ReactTestRenderer;
@@ -236,4 +237,43 @@ test('"Got it" dismisses a returned entry without opening it', async () => {
   expect(mockAcknowledge).toHaveBeenCalledWith(['d1', 'd2']);
   expect(mockPush).not.toHaveBeenCalled();
   expect(root.toJSON()).toBeNull();
+});
+
+test('an entry kept without an edit on the other device is not described as edited', async () => {
+  await render([{ ...returnedItem, edited: false }]);
+  expect(content()).toContain(mockEn['cloud.conflicts.entryKept']);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.entryReturned']);
+});
+
+test('many returned entries share one row that dismisses them all', async () => {
+  const many = Array.from({ length: 4 }, (_, index) => ({
+    ...returnedItem,
+    conflictIds: [`d${index}`],
+    entry: { ...returnedItem.entry, entryId: `returned-${index}` },
+  }));
+  await render(many);
+  expect(content()).toContain(
+    '4 entries you deleted on one device were kept because another device still had them.',
+  );
+  expect(content()).not.toContain(mockEn['cloud.conflicts.entryReturned']);
+  expect(button(mockEn['cloud.conflicts.openEntry'])).toBeUndefined();
+  await act(async () => button(mockEn['cloud.conflicts.gotIt']).props.onPress());
+  expect(mockAcknowledge).toHaveBeenCalledWith(['d0', 'd1', 'd2', 'd3']);
+});
+
+test('up to three returned entries are listed one by one', async () => {
+  const three = Array.from({ length: 3 }, (_, index) => ({
+    ...returnedItem,
+    conflictIds: [`d${index}`],
+    entry: { ...returnedItem.entry, entryId: `returned-${index}` },
+  }));
+  await render(three);
+  expect(
+    root.root.findAll(
+      (node) =>
+        (node.type as unknown) === 'Button' &&
+        node.findByType('Text' as never).props.children ===
+          mockEn['cloud.conflicts.openEntry'],
+    ),
+  ).toHaveLength(3);
 });

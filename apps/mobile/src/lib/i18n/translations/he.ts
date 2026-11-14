@@ -878,6 +878,10 @@ export const he: Translations = {
   'cloud.conflicts.attachmentCount': 'קבצים מצורפים: {count}',
   'cloud.conflicts.entryReturned':
     'מחקת את הרשומה הזו במכשיר אחד בזמן שהיא נערכה במכשיר אחר, ולכן הגרסה הערוכה נשמרה.',
+  'cloud.conflicts.entryKept':
+    'הרשומה הזו נמחקה במכשיר אחד אבל עדיין הייתה קיימת במכשיר אחר, ולכן היא נשמרה.',
+  'cloud.conflicts.entriesReturned':
+    '{count} רשומות שמחקת במכשיר אחד נשמרו כי הן עדיין היו במכשיר אחר.',
   'cloud.conflicts.openEntry': 'פתיחת הרשומה',
   'cloud.conflicts.gotIt': 'הבנתי',
   'cloud.resetThisDeviceOnly': 'איפוס המכשיר הזה בלבד',

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
@@ -30,7 +30,7 @@ import {
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { OtherVersionGroupCard } from './OtherVersionGroupCard';
-import { entriesToDelete, groupMembers } from './keepVersion';
+import { deleteEach, entriesToDelete, groupMembers } from './keepVersion';
 
 /** Entries that were edited on two devices at once, with both versions kept. */
 export default function OtherVersionsScreen() {
@@ -46,6 +46,8 @@ export default function OtherVersionsScreen() {
     deleteIds: string[];
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Set synchronously, so a second tap before the re-render deletes nothing.
+  const deletingRef = useRef(false);
 
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -75,24 +77,33 @@ export default function OtherVersionsScreen() {
 
   // Deletes through the same path as deleting an entry from its own screen,
   // so the deletes sync and their media is retained the same way.
+  // shortcut: if two devices each keep a different version before syncing,
+  // both deletes win the merge and neither version is left; preventing that
+  // needs a merge rule change, so do it with the synced "keep both" badge work.
   const handleKeepConfirm = async () => {
-    if (!pendingKeep || isDeleting) return;
-    const { keepId, deleteIds } = pendingKeep;
-    const ids = entriesToDelete(groups, keepId, deleteIds);
+    if (!pendingKeep || deletingRef.current) return;
+    deletingRef.current = true;
     setIsDeleting(true);
-    try {
-      for (const id of ids) {
+    const { keepId, deleteIds } = pendingKeep;
+    // Re-read the groups: a sync may have changed them since the confirmation opened.
+    const latest = await refetch();
+    const ids = latest.isError
+      ? []
+      : entriesToDelete(latest.data ?? [], keepId, deleteIds);
+    const deleted =
+      !latest.isError &&
+      (await deleteEach(ids, async (id) => {
         await deleteEntryMutation.mutateAsync(id);
         track('entry_deleted');
-      }
-    } catch (error) {
-      console.error('Failed to delete entry', error);
+      }));
+    deletingRef.current = false;
+    setIsDeleting(false);
+    setPendingKeep(null);
+    if (!deleted) {
       toast.error(t('mood.failedToDeleteEntry'));
       return;
-    } finally {
-      setIsDeleting(false);
-      setPendingKeep(null);
     }
+    if (ids.length === 0) return;
     // The choice is made, so the conflicts about these entries are handled.
     // Best effort: the deletes already happened, and the card still offers them.
     acknowledgeEntryConflicts([keepId, ...ids]).catch((error: unknown) =>

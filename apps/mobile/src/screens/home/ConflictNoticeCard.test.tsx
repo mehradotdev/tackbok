@@ -158,6 +158,7 @@ test('an entry kept after a delete/edit race shows the notice until it is dismis
     kind: 'returnedEntry',
     conflictIds: ['d1'],
     entry: { entryId: 'returned', createdAt: 7, title: null, preview: 'Sunny' },
+    edited: true,
   };
   await render(1, [returned]);
   expect(content()).toContain(mockEn['cloud.conflicts.homeNotice']);
