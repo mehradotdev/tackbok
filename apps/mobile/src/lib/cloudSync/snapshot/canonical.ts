@@ -24,13 +24,22 @@ function assertScalarString(value: string, path: string): void {
   }
 }
 
-function encode(value: unknown, path: string, ancestors: Set<object>): string {
+function assertCanonicalNumber(value: number, path: string): void {
+  if (!Number.isSafeInteger(value) || value < 0 || Object.is(value, -0)) {
+    invalid('invalid-number', `${path} is not a non-negative safe integer`);
+  }
+}
+
+function encode(
+  value: unknown,
+  path: string,
+  ancestors: Set<object>,
+  known: ReadonlyMap<object, string> | undefined,
+): string {
   if (value === null) return 'null';
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') {
-    if (!Number.isSafeInteger(value) || value < 0 || Object.is(value, -0)) {
-      invalid('invalid-number', `${path} is not a non-negative safe integer`);
-    }
+    assertCanonicalNumber(value, path);
     return String(value);
   }
   if (typeof value === 'string') {
@@ -40,11 +49,13 @@ function encode(value: unknown, path: string, ancestors: Set<object>): string {
   if (typeof value !== 'object') {
     invalid('invalid-value', `${path} contains unsupported ${typeof value}`);
   }
+  const reused = known?.get(value);
+  if (reused !== undefined) return reused;
   if (ancestors.has(value)) invalid('cycle', `${path} contains a cycle`);
   ancestors.add(value);
   try {
     if (Array.isArray(value)) {
-      return `[${value.map((item, index) => encode(item, `${path}[${index}]`, ancestors)).join(',')}]`;
+      return `[${value.map((item, index) => encode(item, `${path}[${index}]`, ancestors, known)).join(',')}]`;
     }
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) {
@@ -53,14 +64,47 @@ function encode(value: unknown, path: string, ancestors: Set<object>): string {
     const record = value as Record<string, unknown>;
     const keys = Object.keys(record).sort();
     for (const key of keys) assertScalarString(key, `${path} key`);
-    return `{${keys.map((key) => `${JSON.stringify(key)}:${encode(record[key], `${path}.${key}`, ancestors)}`).join(',')}}`;
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${encode(record[key], `${path}.${key}`, ancestors, known)}`).join(',')}}`;
   } finally {
     ancestors.delete(value);
   }
 }
 
-export function canonicalize(value: unknown): string {
-  return encode(value, '$', new Set());
+/**
+ * `known` maps objects to their canonical form, computed earlier in the same
+ * synchronous call, so a value already encoded is not encoded again. Never keep
+ * it across an await or a mutation: a stale entry would change the bytes.
+ */
+export function canonicalize(
+  value: unknown,
+  known?: ReadonlyMap<object, string>,
+): string {
+  return encode(value, '$', new Set(), known);
+}
+
+/**
+ * Same result as `canonicalize(left) === canonicalize(right)`, including the
+ * errors it throws, without encoding primitives or one object twice.
+ */
+export function canonicalEqual(left: unknown, right: unknown): boolean {
+  if (typeof left === 'string' && typeof right === 'string') {
+    // JSON string encoding is injective, so valid strings compare as values.
+    assertScalarString(left, '$');
+    if (left !== right) assertScalarString(right, '$');
+    return left === right;
+  }
+  if (typeof left === 'number' && typeof right === 'number') {
+    // Valid numbers exclude NaN and -0, where `===` and the encoding disagree.
+    assertCanonicalNumber(left, '$');
+    assertCanonicalNumber(right, '$');
+    return left === right;
+  }
+  if (typeof left === 'boolean' && typeof right === 'boolean') return left === right;
+  if (left === right) {
+    canonicalize(left);
+    return true;
+  }
+  return canonicalize(left) === canonicalize(right);
 }
 
 export function encodeCanonicalBytes(value: unknown): Uint8Array {

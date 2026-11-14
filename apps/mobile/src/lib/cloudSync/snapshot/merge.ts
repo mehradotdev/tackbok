@@ -1,4 +1,4 @@
-import { canonicalHash, canonicalize } from './canonical';
+import { canonicalEqual, canonicalHash, canonicalize } from './canonical';
 import { SnapshotValidationError } from './caps';
 import { sha256Text } from './sha256';
 import type {
@@ -27,8 +27,7 @@ export class SnapshotMergeError extends SnapshotValidationError {
   }
 }
 
-const equal = (left: unknown, right: unknown) =>
-  canonicalize(left) === canonicalize(right);
+const equal = canonicalEqual;
 
 function keyComparator<T>(key: (value: T) => string) {
   return (left: T, right: T) => {
