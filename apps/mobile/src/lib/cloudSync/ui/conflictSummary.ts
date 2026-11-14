@@ -4,7 +4,10 @@ import type { ConflictField, EntityType } from '../snapshot/types';
 export interface CloudConflictRecord {
   conflictId: string;
   entityType: EntityType;
+  entityId: string;
   field: ConflictField;
+  /** Whether the merge had a common earlier version to compare against. */
+  hasBase: boolean;
   /** The losing value kept by the merge; `undefined` when none was kept. */
   alternateValue: string | null | undefined;
   recoveredEntityIds: string[];
@@ -36,7 +39,28 @@ export type CloudConflictItem =
       kind: 'entries';
       conflictIds: string[];
       recoveredEntryIds: string[];
+    }
+  | {
+      /** An entry deleted on one device and edited on another: the edit was kept. */
+      kind: 'returnedEntry';
+      conflictIds: string[];
+      entry: ReturnedEntrySummary;
+      /**
+       * Whether the kept side was provably edited. Without a common earlier
+       * version the merge keeps the entry even when nothing was edited, e.g. a
+       * device joining with entries another device had deleted.
+       */
+      edited: boolean;
     };
+
+/** Enough of a returned entry for the user to recognize it. */
+export interface ReturnedEntrySummary {
+  entryId: string;
+  createdAt: number;
+  title: string | null;
+  /** The start of the entry's text. */
+  preview: string | null;
+}
 
 export interface ConflictSummaryContext {
   /** When this device joined the backup. Older records are hidden. */
@@ -49,6 +73,8 @@ export interface ConflictSummaryContext {
   localPhotos: ReadonlyMap<string, { uri: string; blobHash: string | null }>;
   /** Recovered entries that still exist in the journal. */
   existingEntryIds: ReadonlySet<string>;
+  /** Entries named by delete/edit records that are in the journal, by ID. */
+  returnedEntries: ReadonlyMap<string, ReturnedEntrySummary>;
 }
 
 /** Reads the fields the card uses from a stored, already validated conflict. */
@@ -60,14 +86,18 @@ export function parseConflictRecord(
 ): CloudConflictRecord {
   const conflict = JSON.parse(conflictJson) as {
     entityType: EntityType;
+    entityId: string;
     field: ConflictField;
+    baseValueHash?: string | null;
     alternates?: { value: string | null }[];
     recoveredEntityIds?: string[];
   };
   return {
     conflictId,
     entityType: conflict.entityType,
+    entityId: conflict.entityId,
     field: conflict.field,
+    hasBase: conflict.baseValueHash != null,
     alternateValue: conflict.alternates?.[0]?.value,
     recoveredEntityIds: conflict.recoveredEntityIds ?? [],
     createdAt,
@@ -78,9 +108,10 @@ export function parseConflictRecord(
 /**
  * Turns unacknowledged conflict records into card rows. Records with nothing
  * to act on stay in storage but are not listed: media metadata
- * (`assetReference`), delete/edit races, photos whose file is not on this
- * device, photos with the same content as the current one, values that
- * already match, and fields without an action.
+ * (`assetReference`), delete/edit races that left the item deleted or that
+ * were about a tag or prompt, photos whose file is not on this device, photos
+ * with the same content as the current one, values that already match, and
+ * fields without an action.
  */
 export function deriveConflictItems(
   records: readonly CloudConflictRecord[],
@@ -91,6 +122,7 @@ export function deriveConflictItems(
   const photos = new Map<string, { assetId: string; conflictIds: string[] }>();
   const entryConflictIds: string[] = [];
   const recoveredEntryIds = new Set<string>();
+  const returned = new Map<string, { conflictIds: string[]; edited: boolean }>();
 
   for (const record of records) {
     // shortcut: dismissal and this join filter are local to the device;
@@ -117,6 +149,16 @@ export function deriveConflictItems(
       const row = photos.get(key) ?? { assetId, conflictIds: [] };
       row.conflictIds.push(record.conflictId);
       photos.set(key, row);
+      continue;
+    }
+
+    if (record.entityType === 'entry' && record.field === 'deleteEdit') {
+      // Both sides deleting leaves the entry deleted, so it is not in the journal.
+      if (!context.returnedEntries.has(record.entityId)) continue;
+      const row = returned.get(record.entityId) ?? { conflictIds: [], edited: false };
+      row.conflictIds.push(record.conflictId);
+      row.edited ||= record.hasBase;
+      returned.set(record.entityId, row);
       continue;
     }
 
@@ -155,5 +197,17 @@ export function deriveConflictItems(
       recoveredEntryIds: [...recoveredEntryIds].sort(),
     });
   }
+  const returnedItems = [...returned].map(([entryId, { conflictIds, edited }]) => ({
+    kind: 'returnedEntry' as const,
+    conflictIds,
+    entry: context.returnedEntries.get(entryId)!,
+    edited,
+  }));
+  returnedItems.sort(
+    (a, b) =>
+      b.entry.createdAt - a.entry.createdAt ||
+      a.entry.entryId.localeCompare(b.entry.entryId),
+  );
+  items.push(...returnedItems);
   return items;
 }

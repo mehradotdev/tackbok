@@ -62,7 +62,7 @@ mock.module('../../src/lib/settings', () => ({
 mock.module('../../src/lib/cloudSync/runtime/production', () => ({
   notifyProductionCloudSyncChanged() {},
 }));
-const { acknowledgeCloudConflicts, listCloudConflictItems } =
+const { acknowledgeCloudConflicts, acknowledgeEntryConflicts, listCloudConflictItems } =
   await import('../../src/lib/cloudSync/ui/conflicts');
 afterAll(() => sqlite.close());
 
@@ -71,6 +71,7 @@ function conflict(
   id: string,
   fields: {
     entityType?: string;
+    entityId?: string;
     field?: string;
     baseValueHash?: string | null;
     value?: string | null;
@@ -89,7 +90,7 @@ function conflict(
       JSON.stringify({
         conflictId: id,
         entityType: fields.entityType ?? 'profile',
-        entityId: 'profile',
+        entityId: fields.entityId ?? 'profile',
         field: fields.field ?? 'displayName',
         baseValueHash: fields.baseValueHash ?? null,
         alternates: fields.value === undefined ? [] : [{ value: fields.value }],
@@ -232,4 +233,95 @@ test('a large journal stays within the SQLite variable limit', async () => {
       .get(),
   ).toEqual({ n: 0 });
   expect(mostParams).toBeLessThan(999);
+});
+
+function entry(noteId: string, fields: Partial<schema.NewEntry> = {}) {
+  db.insert(schema.entries)
+    .values({ note_id: noteId, created_at: 1, updated_at: 1, ...fields })
+    .run();
+}
+
+test('an entry kept after a delete/edit race is listed with what identifies it', async () => {
+  upgrade();
+  entry('returned', { created_at: 7, text_title: 'Walk', text_content: 'x'.repeat(500) });
+  entry('untouched');
+  conflict('returned-1', {
+    entityType: 'entry',
+    entityId: 'returned',
+    field: 'deleteEdit',
+    baseValueHash: 'b'.repeat(64),
+  });
+  // Deleted on both sides: the entry is not in the journal.
+  conflict('gone', { entityType: 'entry', entityId: 'deleted', field: 'deleteEdit' });
+  conflict('tag', { entityType: 'tag', entityId: 'untouched', field: 'deleteEdit' });
+  conflict(
+    'dismissed',
+    { entityType: 'entry', entityId: 'untouched', field: 'deleteEdit' },
+    { acknowledged_at: 600 },
+  );
+
+  expect(await listCloudConflictItems()).toEqual([
+    {
+      kind: 'returnedEntry',
+      conflictIds: ['returned-1'],
+      entry: {
+        entryId: 'returned',
+        createdAt: 7,
+        title: 'Walk',
+        preview: 'x'.repeat(200),
+      },
+      edited: true,
+    },
+  ]);
+
+  await acknowledgeCloudConflicts(['returned-1']);
+  expect(await listCloudConflictItems()).toEqual([]);
+});
+
+test('keeping one version dismisses only the conflicts about its entries', async () => {
+  upgrade();
+  entry('origin');
+  entry('copy', { conflict_origin_id: 'origin' });
+  entry('other-copy', { conflict_origin_id: 'other-origin' });
+  conflict('about-origin', {
+    entityType: 'entry',
+    entityId: 'origin',
+    field: 'title',
+    recoveredEntityIds: ['copy'],
+  });
+  conflict('about-other', {
+    entityType: 'entry',
+    entityId: 'other-origin',
+    field: 'title',
+    recoveredEntityIds: ['other-copy'],
+  });
+  conflict('profile', { value: 'Someone' });
+  // A version sync added while the confirmation was open was not part of the choice.
+  conflict('about-new-copy', {
+    entityType: 'entry',
+    entityId: 'origin',
+    field: 'content',
+    recoveredEntityIds: ['new-copy'],
+  });
+  // Why a deleted entry came back is a separate explanation.
+  conflict('origin-returned', {
+    entityType: 'entry',
+    entityId: 'origin',
+    field: 'deleteEdit',
+  });
+
+  // The group still lists the original after "Keep this one" deleted it.
+  await acknowledgeEntryConflicts(['origin', 'copy']);
+  expect(
+    sqlite
+      .query(
+        'SELECT conflict_id FROM cloud_conflicts WHERE acknowledged_at IS NULL ORDER BY 1',
+      )
+      .all(),
+  ).toEqual([
+    { conflict_id: 'about-new-copy' },
+    { conflict_id: 'about-other' },
+    { conflict_id: 'origin-returned' },
+    { conflict_id: 'profile' },
+  ]);
 });

@@ -412,6 +412,7 @@ test('conflicts created after the first restore apply stay visible when the rest
       currentPhotoBlobHash: null,
       localPhotos: new Map(),
       existingEntryIds: new Set(merged.entries.map((entry) => entry.entryId)),
+      returnedEntries: new Map(),
     },
   );
   expect(items.map((item) => item.kind).sort()).toEqual(['entries', 'name']);

@@ -836,6 +836,24 @@ export const sv = {
   'cloud.conflicts.hideOlderNames': 'Dölj äldre versioner av namnet',
   'cloud.conflicts.olderNamesDescription':
     'Tidigare versioner av appen sparade de här namnen vid synkronisering. De flesta är inga verkliga ändringar, men du kan fortfarande använda ett av dem.',
+  'cloud.conflicts.versionsOf': 'Versioner av en anteckning från {date}',
+  'cloud.conflicts.original': 'Original',
+  'cloud.conflicts.originalDeleted': 'Den ursprungliga anteckningen har tagits bort.',
+  'cloud.conflicts.keepThisOne': 'Behåll den här',
+  'cloud.conflicts.keepOriginal': 'Behåll originalet',
+  'cloud.conflicts.keepOtherVersion': 'Behåll den här andra versionen',
+  'cloud.conflicts.keepThisOneTitle': 'Behåll den här versionen?',
+  'cloud.conflicts.keepThisOneAttachments': 'Bilagor som också tas bort: {count}',
+  'cloud.conflicts.keepThisOneMessage': '{count} andra versioner tas bort permanent.',
+  'cloud.conflicts.attachmentCount': 'Bilagor: {count}',
+  'cloud.conflicts.entryReturned':
+    'Du tog bort den här anteckningen på en enhet medan den redigerades på en annan, så den redigerade versionen behölls.',
+  'cloud.conflicts.entryKept':
+    'Den här anteckningen togs bort på en enhet men fanns kvar på en annan, så den behölls.',
+  'cloud.conflicts.entriesReturned':
+    '{count} anteckningar som du tog bort på en enhet behölls eftersom en annan enhet fortfarande hade dem.',
+  'cloud.conflicts.openEntry': 'Öppna anteckningen',
+  'cloud.conflicts.gotIt': 'OK',
   'cloud.resetThisDeviceOnly': 'Återställ endast den här enheten',
   'cloud.resetThisDeviceOnly2': 'Vill du bara återställa den här enheten?',
   'cloud.merge': 'Slå ihop',

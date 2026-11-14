@@ -937,6 +937,26 @@ export const de: Translations = {
   'cloud.conflicts.hideOlderNames': 'Ältere Namensversionen ausblenden',
   'cloud.conflicts.olderNamesDescription':
     'Frühere Versionen der App haben diese Namen beim Synchronisieren gespeichert. Die meisten sind keine echten Änderungen, aber du kannst trotzdem einen davon verwenden.',
+  'cloud.conflicts.versionsOf': 'Versionen eines Eintrags vom {date}',
+  'cloud.conflicts.original': 'Original',
+  'cloud.conflicts.originalDeleted': 'Der ursprüngliche Eintrag wurde gelöscht.',
+  'cloud.conflicts.keepThisOne': 'Diese behalten',
+  'cloud.conflicts.keepOriginal': 'Original behalten',
+  'cloud.conflicts.keepOtherVersion': 'Diese andere Version behalten',
+  'cloud.conflicts.keepThisOneTitle': 'Diese Version behalten?',
+  'cloud.conflicts.keepThisOneAttachments':
+    'Anhänge, die ebenfalls gelöscht werden: {count}',
+  'cloud.conflicts.keepThisOneMessage':
+    '{count} andere Versionen werden dauerhaft gelöscht.',
+  'cloud.conflicts.attachmentCount': 'Anhänge: {count}',
+  'cloud.conflicts.entryReturned':
+    'Du hast diesen Eintrag auf einem Gerät gelöscht, während er auf einem anderen bearbeitet wurde. Deshalb wurde die bearbeitete Version behalten.',
+  'cloud.conflicts.entryKept':
+    'Dieser Eintrag wurde auf einem Gerät gelöscht, war aber auf einem anderen Gerät noch vorhanden. Deshalb wurde er behalten.',
+  'cloud.conflicts.entriesReturned':
+    '{count} Einträge, die du auf einem Gerät gelöscht hast, wurden behalten, weil ein anderes Gerät sie noch hatte.',
+  'cloud.conflicts.openEntry': 'Eintrag öffnen',
+  'cloud.conflicts.gotIt': 'Verstanden',
   'cloud.resetThisDeviceOnly': 'Nur dieses Gerät zurücksetzen',
   'cloud.resetThisDeviceOnly2': 'Nur dieses Gerät zurücksetzen?',
   'cloud.merge': 'Zusammenführen',

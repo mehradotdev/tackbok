@@ -1,25 +1,53 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import type { Asset, Entry } from '~/types';
+import type { OtherVersionGroup } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
-import { useEntriesWithOtherVersions, useTagMapping } from '~/hooks/useGratitude';
+import { track } from '~/lib/analytics';
+import { acknowledgeEntryConflicts } from '~/lib/cloudSync/ui';
+import {
+  useDeleteEntry,
+  useOtherVersionGroups,
+  useTagMapping,
+} from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
+import { toast } from '~/components/ui/toast';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogDestructiveAction,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
-import { EntryItem } from '~/screens/dateEntries';
+import { OtherVersionGroupCard } from './OtherVersionGroupCard';
+import { deleteEach, entriesToDelete, groupMembers, keepMessage } from './keepVersion';
 
 /** Entries that were edited on two devices at once, with both versions kept. */
 export default function OtherVersionsScreen() {
   const router = useRouter();
   const { t, isRTL } = useTranslation();
   const tagMap = useTagMapping();
-  const { data, isLoading, isError, refetch } = useEntriesWithOtherVersions();
-  const entries = data ?? [];
+  const { data, isLoading, isError, refetch } = useOtherVersionGroups();
+  const groups = data ?? [];
+  const deleteEntryMutation = useDeleteEntry();
+  // The entry to keep and the entries the confirmation names for deletion.
+  const [pendingKeep, setPendingKeep] = useState<{
+    keepId: string;
+    others: Entry[];
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  // Set synchronously, so a second tap before the re-render deletes nothing.
+  const deletingRef = useRef(false);
 
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -36,6 +64,50 @@ export default function OtherVersionsScreen() {
       pathname: '/gratitudeEntry/[noteId]',
       params: { noteId: entry.note_id },
     });
+  };
+
+  const handleKeepPress = (group: OtherVersionGroup, entry: Entry) => {
+    setPendingKeep({
+      keepId: entry.note_id,
+      others: groupMembers(group).filter((member) => member.note_id !== entry.note_id),
+    });
+  };
+
+  // Deletes through the same path as deleting an entry from its own screen,
+  // so the deletes sync and their media is retained the same way.
+  // shortcut: if two devices each keep a different version before syncing,
+  // both deletes win the merge and neither version is left; preventing that
+  // needs a merge rule change, so do it with the synced "keep both" badge work.
+  const handleKeepConfirm = async () => {
+    if (!pendingKeep || deletingRef.current) return;
+    deletingRef.current = true;
+    setIsDeleting(true);
+    const { keepId, others } = pendingKeep;
+    const deleteIds = others.map((entry) => entry.note_id);
+    // Re-read the groups: a sync may have changed them since the confirmation opened.
+    const latest = await refetch();
+    const ids = latest.isError
+      ? []
+      : entriesToDelete(latest.data ?? [], keepId, deleteIds);
+    const deleted =
+      !latest.isError &&
+      (await deleteEach(ids, async (id) => {
+        await deleteEntryMutation.mutateAsync(id);
+        track('entry_deleted');
+      }));
+    deletingRef.current = false;
+    setIsDeleting(false);
+    setPendingKeep(null);
+    if (!deleted) {
+      toast.error(t('mood.failedToDeleteEntry'));
+      return;
+    }
+    if (ids.length === 0) return;
+    // The choice is made, so the conflicts about these entries are handled.
+    // Best effort: the deletes already happened, and the card still offers them.
+    acknowledgeEntryConflicts([keepId, ...ids]).catch((error: unknown) =>
+      console.error('Failed to dismiss entry conflicts', error),
+    );
   };
 
   return (
@@ -67,7 +139,7 @@ export default function OtherVersionsScreen() {
             <Text>{t('common.retry')}</Text>
           </Button>
         </View>
-      ) : entries.length === 0 ? (
+      ) : groups.length === 0 ? (
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-muted-foreground text-center">
             {t('cloud.conflicts.noOtherVersions')}
@@ -75,25 +147,53 @@ export default function OtherVersionsScreen() {
         </View>
       ) : (
         <FlatList
-          data={entries}
-          keyExtractor={(item) => item.note_id}
+          data={groups}
+          keyExtractor={(item) => groupMembers(item)[0].note_id}
           ListHeaderComponent={
-            <Text className="text-sm text-muted-foreground px-safe-or-3 py-3">
+            <Text className="text-sm text-muted-foreground px-3 py-3">
               {t('cloud.conflicts.otherVersionsDescription')}
             </Text>
           }
           renderItem={({ item }) => (
-            <EntryItem
-              entry={item}
-              onPress={() => handleEntryPress(item)}
+            <OtherVersionGroupCard
+              group={item}
               tagMap={tagMap}
+              onEntryPress={handleEntryPress}
               onPhotoPress={handlePhotoPress}
-              showDate
+              onKeep={(entry) => handleKeepPress(item, entry)}
+              disabled={isDeleting}
             />
           )}
           contentContainerClassName="pb-safe-or-4"
         />
       )}
+
+      <AlertDialog
+        open={pendingKeep !== null}
+        // The confirm button closes the dialog before its onPress runs, so the
+        // delete works from the closure and `deletingRef` guards repeat taps.
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) setPendingKeep(null);
+        }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('cloud.conflicts.keepThisOneTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingKeep ? keepMessage(t, pendingKeep.others) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting} onPress={() => setPendingKeep(null)}>
+              <Text>{t('common.cancel')}</Text>
+            </AlertDialogCancel>
+            <AlertDialogDestructiveAction
+              disabled={isDeleting}
+              onPress={() => void handleKeepConfirm()}>
+              <Text>{t('common.delete')}</Text>
+            </AlertDialogDestructiveAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ImageViewerModal
         visible={isViewerVisible}

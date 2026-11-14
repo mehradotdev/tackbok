@@ -857,6 +857,25 @@ export const es = {
   'cloud.conflicts.hideOlderNames': 'Ocultar versiones anteriores del nombre',
   'cloud.conflicts.olderNamesDescription':
     'Versiones anteriores de la app guardaron estos nombres al sincronizar. La mayoría no son cambios reales, pero aún puedes usar uno.',
+  'cloud.conflicts.versionsOf': 'Versiones de una entrada del {date}',
+  'cloud.conflicts.original': 'Original',
+  'cloud.conflicts.originalDeleted': 'La entrada original se eliminó.',
+  'cloud.conflicts.keepThisOne': 'Conservar esta',
+  'cloud.conflicts.keepOriginal': 'Conservar la original',
+  'cloud.conflicts.keepOtherVersion': 'Conservar esta otra versión',
+  'cloud.conflicts.keepThisOneTitle': '¿Conservar esta versión?',
+  'cloud.conflicts.keepThisOneAttachments': 'Adjuntos que también se eliminarán: {count}',
+  'cloud.conflicts.keepThisOneMessage':
+    'Se eliminarán permanentemente {count} otras versiones.',
+  'cloud.conflicts.attachmentCount': 'Adjuntos: {count}',
+  'cloud.conflicts.entryReturned':
+    'Eliminaste esta entrada en un dispositivo mientras se editaba en otro, así que se conservó la versión editada.',
+  'cloud.conflicts.entryKept':
+    'Esta entrada se eliminó en un dispositivo, pero seguía en otro, así que se conservó.',
+  'cloud.conflicts.entriesReturned':
+    'Se conservaron {count} entradas que eliminaste en un dispositivo porque otro dispositivo aún las tenía.',
+  'cloud.conflicts.openEntry': 'Abrir entrada',
+  'cloud.conflicts.gotIt': 'Entendido',
   'cloud.resetThisDeviceOnly': 'Restablecer solo este dispositivo',
   'cloud.resetThisDeviceOnly2': '¿Restablecer solo este dispositivo?',
   'cloud.merge': 'Unir',

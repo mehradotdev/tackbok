@@ -845,6 +845,24 @@ export const zhTW: Translations = {
   'cloud.conflicts.hideOlderNames': '隱藏較早的名稱版本',
   'cloud.conflicts.olderNamesDescription':
     '應用程式的早期版本在同步時儲存了這些名稱。大多數並非真正的變更，但你仍可使用其中一個。',
+  'cloud.conflicts.versionsOf': '同一則紀錄的各個版本（{date}）',
+  'cloud.conflicts.original': '原始版本',
+  'cloud.conflicts.originalDeleted': '原始紀錄已被刪除。',
+  'cloud.conflicts.keepThisOne': '保留這個',
+  'cloud.conflicts.keepOriginal': '保留原始版本',
+  'cloud.conflicts.keepOtherVersion': '保留此其他版本',
+  'cloud.conflicts.keepThisOneTitle': '保留此版本？',
+  'cloud.conflicts.keepThisOneAttachments': '也將被刪除的附件：{count}',
+  'cloud.conflicts.keepThisOneMessage': '其他 {count} 個版本將被永久刪除。',
+  'cloud.conflicts.attachmentCount': '附件：{count}',
+  'cloud.conflicts.entryReturned':
+    '你在一部裝置上刪除了此紀錄，同時它在另一部裝置上被編輯，因此保留了編輯後的版本。',
+  'cloud.conflicts.entryKept':
+    '此紀錄在一部裝置上被刪除，但另一部裝置上仍有它，因此它被保留了下來。',
+  'cloud.conflicts.entriesReturned':
+    '你在一部裝置上刪除的 {count} 則紀錄被保留了，因為另一部裝置上仍有它們。',
+  'cloud.conflicts.openEntry': '開啟紀錄',
+  'cloud.conflicts.gotIt': '知道了',
   'cloud.resetThisDeviceOnly': '只重設此裝置',
   'cloud.resetThisDeviceOnly2': '只重設此裝置？',
   'cloud.merge': '合併',

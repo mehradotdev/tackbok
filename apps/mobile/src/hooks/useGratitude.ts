@@ -4,7 +4,7 @@ import { type NewEntry, type Entry } from '~/types';
 import { useSettingsStore } from '~/lib/settings';
 import {
   getEntriesForDay,
-  getEntriesWithOtherVersions,
+  getOtherVersionGroups,
   getOtherVersionCount,
   getEntryCount,
   getEntryDatesForMonth,
@@ -55,12 +55,12 @@ export function useEntriesForDay(dateMs: number) {
 }
 
 /**
- * Hook for entries that sync kept two versions of
+ * Hook for entries that sync kept two versions of, grouped with their original
  */
-export function useEntriesWithOtherVersions() {
+export function useOtherVersionGroups() {
   return useQuery({
     queryKey: [QUERY_KEYS.entries, 'otherVersions'],
-    queryFn: getEntriesWithOtherVersions,
+    queryFn: getOtherVersionGroups,
   });
 }
 

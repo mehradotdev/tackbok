@@ -874,6 +874,24 @@ export const ar: Translations = {
   'cloud.conflicts.hideOlderNames': 'إخفاء النسخ الأقدم من الاسم',
   'cloud.conflicts.olderNamesDescription':
     'حفظت إصدارات سابقة من التطبيق هذه الأسماء أثناء المزامنة. معظمها ليس تغييرات حقيقية، لكن لا يزال بإمكانك استخدام أحدها.',
+  'cloud.conflicts.versionsOf': 'نسخ سجل من {date}',
+  'cloud.conflicts.original': 'النسخة الأصلية',
+  'cloud.conflicts.originalDeleted': 'حُذف السجل الأصلي.',
+  'cloud.conflicts.keepThisOne': 'الإبقاء على هذه',
+  'cloud.conflicts.keepOriginal': 'الإبقاء على النسخة الأصلية',
+  'cloud.conflicts.keepOtherVersion': 'الإبقاء على هذه النسخة الأخرى',
+  'cloud.conflicts.keepThisOneTitle': 'الإبقاء على هذه النسخة؟',
+  'cloud.conflicts.keepThisOneAttachments': 'المرفقات التي ستُحذف أيضًا: {count}',
+  'cloud.conflicts.keepThisOneMessage': 'عدد النسخ الأخرى التي ستُحذف نهائيًا: {count}.',
+  'cloud.conflicts.attachmentCount': 'المرفقات: {count}',
+  'cloud.conflicts.entryReturned':
+    'حُذف هذا السجل على جهاز بينما عُدِّل على جهاز آخر، لذا احتُفظ بالنسخة المعدَّلة.',
+  'cloud.conflicts.entryKept':
+    'حُذف هذا السجل على جهاز لكنه كان لا يزال موجودًا على جهاز آخر، لذا احتُفظ به.',
+  'cloud.conflicts.entriesReturned':
+    'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
+  'cloud.conflicts.openEntry': 'فتح السجل',
+  'cloud.conflicts.gotIt': 'حسنًا',
   'cloud.resetThisDeviceOnly': 'إعادة ضبط هذا الجهاز فقط',
   'cloud.resetThisDeviceOnly2': 'هل تريد إعادة ضبط هذا الجهاز فقط؟',
   'cloud.merge': 'دمج',

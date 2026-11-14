@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
   cloudConflicts,
   cloudVault,
@@ -23,6 +23,9 @@ import {
 } from './conflictSummary';
 
 export type { CloudConflictItem } from './conflictSummary';
+
+/** Characters of an entry's text loaded to help the user recognize it. */
+const PREVIEW_LENGTH = 200;
 
 /**
  * Lists the conflicts this device can act on. See `deriveConflictItems`.
@@ -81,6 +84,40 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
         .where(isNotNull(entries.conflict_origin_id))
     : [];
 
+  // Entries kept after a delete/edit race, matched in SQL rather than by an ID list.
+  const returnedRows = records.some(
+    (record) => record.entityType === 'entry' && record.field === 'deleteEdit',
+  )
+    ? await db
+        .select({
+          entryId: entries.note_id,
+          createdAt: entries.created_at,
+          title: entries.text_title,
+          preview: sql<
+            string | null
+          >`substr(${entries.text_content}, 1, ${PREVIEW_LENGTH})`,
+        })
+        .from(entries)
+        .where(
+          inArray(
+            entries.note_id,
+            db
+              .select({
+                id: sql<string>`json_extract(${cloudConflicts.conflict_json}, '$.entityId')`,
+              })
+              .from(cloudConflicts)
+              .where(
+                and(
+                  eq(cloudConflicts.vault_id, vault.vault_id),
+                  isNull(cloudConflicts.acknowledged_at),
+                  sql`json_extract(${cloudConflicts.conflict_json}, '$.entityType') = 'entry'`,
+                  sql`json_extract(${cloudConflicts.conflict_json}, '$.field') = 'deleteEdit'`,
+                ),
+              ),
+          ),
+        )
+    : [];
+
   return deriveConflictItems(records, {
     joinedAt: vault.created_at,
     currentName: profile?.display_name ?? null,
@@ -88,6 +125,7 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
     currentPhotoBlobHash,
     localPhotos,
     existingEntryIds: new Set(entryRows.map((row) => row.id)),
+    returnedEntries: new Map(returnedRows.map((row) => [row.entryId, row])),
   });
 }
 
@@ -111,6 +149,36 @@ export async function acknowledgeCloudConflicts(conflictIds: string[]): Promise<
     ),
   );
   notifyProductionCloudSyncChanged();
+}
+
+/**
+ * Dismisses the entry conflicts that only involve `entryIds`, after the user
+ * chose which of those versions to keep. A version sync added meanwhile keeps
+ * its conflict, and so do delete/edit explanations, which are about something else.
+ */
+export async function acknowledgeEntryConflicts(entryIds: string[]): Promise<void> {
+  const [vault] = await db.select().from(cloudVault).limit(1);
+  if (!vault || entryIds.length === 0) return;
+  const ids = new Set(entryIds);
+  const rows = await db
+    .select()
+    .from(cloudConflicts)
+    .where(
+      and(
+        eq(cloudConflicts.vault_id, vault.vault_id),
+        isNull(cloudConflicts.acknowledged_at),
+      ),
+    );
+  const conflictIds = rows
+    .map((row) => parseConflictRecord(row.conflict_id, row.conflict_json, row.created_at))
+    .filter(
+      (record) =>
+        record.entityType === 'entry' &&
+        record.field !== 'deleteEdit' &&
+        [record.entityId, ...record.recoveredEntityIds].every((id) => ids.has(id)),
+    )
+    .map((record) => record.conflictId);
+  await acknowledgeCloudConflicts(conflictIds);
 }
 
 /** "Use" saves the other name as a normal profile edit, so it syncs. */

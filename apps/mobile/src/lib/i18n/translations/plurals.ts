@@ -25,6 +25,14 @@ export const pluralMessages = {
       'An entry was edited on two devices at once. Both versions are in your journal.',
     'cloud.conflicts.entriesEdited_other':
       '{count} entries were edited on two devices at once. Both versions are in your journal.',
+    'cloud.conflicts.keepThisOneMessage_one':
+      'The other version will be permanently deleted.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'The {count} other versions will be permanently deleted.',
+    'cloud.conflicts.entriesReturned_one':
+      'An entry you deleted on one device was kept because another device still had it.',
+    'cloud.conflicts.entriesReturned_other':
+      '{count} entries you deleted on one device were kept because another device still had them.',
     'cloud.progress.devicesChecked_one': '{done} of {count} device checked',
     'cloud.progress.devicesChecked_other': '{done} of {count} devices checked',
     'cloud.progress.filesDownloaded_one': '{done} of {count} file downloaded',
@@ -70,6 +78,18 @@ export const pluralMessages = {
       '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
     'cloud.conflicts.entriesEdited_other':
       '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
+    'cloud.conflicts.keepThisOneMessage_one':
+      'La otra versión se eliminará permanentemente.',
+    'cloud.conflicts.keepThisOneMessage_many':
+      'Las otras {count} versiones se eliminarán permanentemente.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'Las otras {count} versiones se eliminarán permanentemente.',
+    'cloud.conflicts.entriesReturned_one':
+      'Se conservó una entrada que eliminaste en un dispositivo porque otro dispositivo aún la tenía.',
+    'cloud.conflicts.entriesReturned_many':
+      'Se conservaron {count} entradas que eliminaste en un dispositivo porque otro dispositivo aún las tenía.',
+    'cloud.conflicts.entriesReturned_other':
+      'Se conservaron {count} entradas que eliminaste en un dispositivo porque otro dispositivo aún las tenía.',
     'cloud.progress.devicesChecked_one': '{done} de {count} dispositivo revisado',
     'cloud.progress.devicesChecked_many': '{done} de {count} dispositivos revisados',
     'cloud.progress.devicesChecked_other': '{done} de {count} dispositivos revisados',
@@ -100,6 +120,13 @@ export const pluralMessages = {
       'एक प्रविष्टि एक ही समय पर दो डिवाइस पर संपादित की गई। दोनों संस्करण आपकी डायरी में हैं।',
     'cloud.conflicts.entriesEdited_other':
       '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। दोनों संस्करण आपकी डायरी में हैं।',
+    'cloud.conflicts.keepThisOneMessage_one': 'दूसरा संस्करण स्थायी रूप से हटा दिया जाएगा।',
+    'cloud.conflicts.keepThisOneMessage_other':
+      '{count} अन्य संस्करण स्थायी रूप से हटा दिए जाएँगे।',
+    'cloud.conflicts.entriesReturned_one':
+      'आपकी एक हटाई गई प्रविष्टि रखी गई, क्योंकि वह दूसरे डिवाइस पर अब भी थी।',
+    'cloud.conflicts.entriesReturned_other':
+      'आपकी {count} हटाई गई प्रविष्टियाँ रखी गईं, क्योंकि वे दूसरे डिवाइस पर अब भी थीं।',
     'cloud.progress.devicesChecked_one': '{count} में से {done} डिवाइस जाँचा गया',
     'cloud.progress.devicesChecked_other': '{count} में से {done} डिवाइस जाँचे गए',
     'cloud.progress.filesDownloaded_one': '{count} में से {done} फ़ाइल डाउनलोड हुई',
@@ -132,6 +159,13 @@ export const pluralMessages = {
       'En anteckning redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
     'cloud.conflicts.entriesEdited_other':
       '{count} anteckningar redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
+    'cloud.conflicts.keepThisOneMessage_one': 'Den andra versionen tas bort permanent.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'De {count} andra versionerna tas bort permanent.',
+    'cloud.conflicts.entriesReturned_one':
+      'En anteckning som du tog bort på en enhet behölls eftersom en annan enhet fortfarande hade den.',
+    'cloud.conflicts.entriesReturned_other':
+      '{count} anteckningar som du tog bort på en enhet behölls eftersom en annan enhet fortfarande hade dem.',
     'cloud.progress.devicesChecked_one': '{done} av {count} enhet kontrollerad',
     'cloud.progress.devicesChecked_other': '{done} av {count} enheter kontrollerade',
     'cloud.progress.filesDownloaded_one': '{done} av {count} fil nedladdad',
@@ -163,6 +197,14 @@ export const pluralMessages = {
       'Ein Eintrag wurde gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
     'cloud.conflicts.entriesEdited_other':
       '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
+    'cloud.conflicts.keepThisOneMessage_one':
+      'Die andere Version wird dauerhaft gelöscht.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'Die {count} anderen Versionen werden dauerhaft gelöscht.',
+    'cloud.conflicts.entriesReturned_one':
+      'Ein Eintrag, den du auf einem Gerät gelöscht hast, wurde behalten, weil ein anderes Gerät ihn noch hatte.',
+    'cloud.conflicts.entriesReturned_other':
+      '{count} Einträge, die du auf einem Gerät gelöscht hast, wurden behalten, weil ein anderes Gerät sie noch hatte.',
     'cloud.progress.devicesChecked_one': '{done} von {count} Gerät geprüft',
     'cloud.progress.devicesChecked_other': '{done} von {count} Geräten geprüft',
     'cloud.progress.filesDownloaded_one': '{done} von {count} Datei heruntergeladen',
@@ -202,6 +244,15 @@ export const pluralMessages = {
       '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
     'cloud.conflicts.entriesEdited_other':
       '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
+    'cloud.conflicts.keepThisOneMessage_one': 'הגרסה האחרת תימחק לצמיתות.',
+    'cloud.conflicts.keepThisOneMessage_two': 'שתי הגרסאות האחרות יימחקו לצמיתות.',
+    'cloud.conflicts.keepThisOneMessage_other': '{count} הגרסאות האחרות יימחקו לצמיתות.',
+    'cloud.conflicts.entriesReturned_one':
+      'רשומה שמחקת במכשיר אחד נשמרה כי היא עדיין הייתה במכשיר אחר.',
+    'cloud.conflicts.entriesReturned_two':
+      'שתי רשומות שמחקת במכשיר אחד נשמרו כי הן עדיין היו במכשיר אחר.',
+    'cloud.conflicts.entriesReturned_other':
+      '{count} רשומות שמחקת במכשיר אחד נשמרו כי הן עדיין היו במכשיר אחר.',
     'cloud.progress.devicesChecked_one': 'נבדקו {done} מתוך מכשיר אחד',
     'cloud.progress.devicesChecked_two': 'נבדקו {done} מתוך שני מכשירים',
     'cloud.progress.devicesChecked_other': 'נבדקו {done} מתוך {count} מכשירים',
@@ -282,6 +333,26 @@ export const pluralMessages = {
       'عُدِّل {count} سجلًا على جهازين في الوقت نفسه. النسختان موجودتان في دفتر يومياتك.',
     'cloud.conflicts.entriesEdited_other':
       'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
+    'cloud.conflicts.keepThisOneMessage_zero':
+      'عدد النسخ الأخرى التي ستُحذف نهائيًا: {count}.',
+    'cloud.conflicts.keepThisOneMessage_one': 'ستُحذف النسخة الأخرى نهائيًا.',
+    'cloud.conflicts.keepThisOneMessage_two': 'ستُحذف النسختان الأخريان نهائيًا.',
+    'cloud.conflicts.keepThisOneMessage_few': 'ستُحذف {count} نسخ أخرى نهائيًا.',
+    'cloud.conflicts.keepThisOneMessage_many': 'ستُحذف {count} نسخة أخرى نهائيًا.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'عدد النسخ الأخرى التي ستُحذف نهائيًا: {count}.',
+    'cloud.conflicts.entriesReturned_zero':
+      'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
+    'cloud.conflicts.entriesReturned_one':
+      'احتُفظ بسجل محذوف على جهاز لأن جهازًا آخر كان لا يزال يحتفظ به.',
+    'cloud.conflicts.entriesReturned_two':
+      'احتُفظ بسجلين محذوفين على جهاز لأن جهازًا آخر كان لا يزال يحتفظ بهما.',
+    'cloud.conflicts.entriesReturned_few':
+      'احتُفظ بـ{count} سجلات محذوفة على جهاز لأن جهازًا آخر كان لا يزال يحتفظ بها.',
+    'cloud.conflicts.entriesReturned_many':
+      'احتُفظ بـ{count} سجلًا محذوفًا على جهاز لأن جهازًا آخر كان لا يزال يحتفظ بها.',
+    'cloud.conflicts.entriesReturned_other':
+      'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
     'cloud.progress.devicesChecked_zero': 'الأجهزة التي تم فحصها: {done} من {count}',
     'cloud.progress.devicesChecked_one': 'تم فحص {done} من جهاز واحد',
     'cloud.progress.devicesChecked_two': 'تم فحص {done} من جهازين',
@@ -307,6 +378,9 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_other': '还剩 {count} 项更改',
     'cloud.conflicts.entriesEdited_other':
       '有 {count} 个条目同时在两台设备上被编辑。两个版本都在你的日记中。',
+    'cloud.conflicts.keepThisOneMessage_other': '其他 {count} 个版本将被永久删除。',
+    'cloud.conflicts.entriesReturned_other':
+      '你在一台设备上删除的 {count} 个条目被保留了，因为另一台设备上仍有它们。',
     'cloud.progress.devicesChecked_other': '已检查 {count} 台设备中的 {done} 台',
     'cloud.progress.filesDownloaded_other': '已下载 {count} 个文件中的 {done} 个',
   },
@@ -322,6 +396,9 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_other': '還剩 {count} 項變更',
     'cloud.conflicts.entriesEdited_other':
       '有 {count} 則紀錄同時在兩部裝置上被編輯。兩個版本都在你的日記中。',
+    'cloud.conflicts.keepThisOneMessage_other': '其他 {count} 個版本將被永久刪除。',
+    'cloud.conflicts.entriesReturned_other':
+      '你在一部裝置上刪除的 {count} 則紀錄被保留了，因為另一部裝置上仍有它們。',
     'cloud.progress.devicesChecked_other': '已檢查 {count} 台裝置中的 {done} 台',
     'cloud.progress.filesDownloaded_other': '已下載 {count} 個檔案中的 {done} 個',
   },

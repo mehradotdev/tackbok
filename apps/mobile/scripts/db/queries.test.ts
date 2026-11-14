@@ -33,12 +33,8 @@ const db = drizzle(sqlite, {
 });
 mock.module('../../src/db', () => ({ ...schema, db, runExclusiveDbTransaction() {} }));
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
-const {
-  getEntriesForDay,
-  getEntriesWithOtherVersions,
-  getOtherVersionCount,
-  searchEntries,
-} = await import('../../src/db/queries');
+const { getEntriesForDay, getOtherVersionGroups, getOtherVersionCount, searchEntries } =
+  await import('../../src/db/queries');
 afterAll(() => sqlite.close());
 
 function insertEntry(
@@ -128,19 +124,59 @@ test('searchEntries treats LIKE wildcards in the search text literally', async (
   ]);
 });
 
-test('getEntriesWithOtherVersions lists each original before its other versions', async () => {
+const ids = (groups: Awaited<ReturnType<typeof getOtherVersionGroups>>) =>
+  groups.map((group) => ({
+    original: group.original?.note_id ?? null,
+    versions: group.versions.map((entry) => entry.note_id),
+  }));
+
+test('getOtherVersionGroups pairs each other version with its original', async () => {
   insertEntry('plain', 50);
   insertEntry('origin-old', 10);
   insertEntry('origin-new', 20);
   insertEntry('recovered-old', 30, { conflict_origin_id: 'origin-old' });
   insertEntry('recovered-new', 40, { conflict_origin_id: 'origin-new' });
-  insertEntry('recovered-orphan', 35, { conflict_origin_id: 'deleted-origin' });
-  expect((await getEntriesWithOtherVersions()).map((entry) => entry.note_id)).toEqual([
-    'origin-new',
-    'recovered-new',
-    'recovered-orphan',
-    'origin-old',
-    'recovered-old',
+  expect(ids(await getOtherVersionGroups())).toEqual([
+    { original: 'origin-new', versions: ['recovered-new'] },
+    { original: 'origin-old', versions: ['recovered-old'] },
+  ]);
+});
+
+test('getOtherVersionGroups groups versions whose original was deleted', async () => {
+  insertEntry('orphan', 35, { conflict_origin_id: 'deleted-origin' });
+  insertEntry('orphan-sibling', 36, { conflict_origin_id: 'deleted-origin' });
+  insertEntry('other-orphan', 30, { conflict_origin_id: 'other-deleted-origin' });
+  expect(ids(await getOtherVersionGroups())).toEqual([
+    { original: null, versions: ['orphan-sibling', 'orphan'] },
+    { original: null, versions: ['other-orphan'] },
+  ]);
+});
+
+test('getOtherVersionGroups keeps several versions of one original together', async () => {
+  insertEntry('origin', 10);
+  insertEntry('copy-a', 30, { conflict_origin_id: 'origin' });
+  insertEntry('copy-b', 20, { conflict_origin_id: 'origin' });
+  expect(ids(await getOtherVersionGroups())).toEqual([
+    { original: 'origin', versions: ['copy-a', 'copy-b'] },
+  ]);
+});
+
+test('getOtherVersionGroups follows a version copied from another version', async () => {
+  insertEntry('origin', 10);
+  insertEntry('copy', 20, { conflict_origin_id: 'origin' });
+  insertEntry('copy-of-copy', 30, { conflict_origin_id: 'copy' });
+  // Its middle link deleted: the chain starts at the remaining version.
+  insertEntry('orphan-chain-copy', 5, { conflict_origin_id: 'deleted-origin' });
+  insertEntry('orphan-chain-copy-of-copy', 6, {
+    conflict_origin_id: 'orphan-chain-copy',
+  });
+  // A cycle cannot come from sync, but must not hang the screen.
+  insertEntry('loop-a', 1, { conflict_origin_id: 'loop-b' });
+  insertEntry('loop-b', 2, { conflict_origin_id: 'loop-a' });
+  expect(ids(await getOtherVersionGroups())).toEqual([
+    { original: 'origin', versions: ['copy-of-copy', 'copy'] },
+    { original: null, versions: ['orphan-chain-copy-of-copy', 'orphan-chain-copy'] },
+    { original: null, versions: ['loop-b', 'loop-a'] },
   ]);
 });
 
@@ -152,7 +188,7 @@ test('getOtherVersionCount counts only entries kept as another version', async (
   expect(await getOtherVersionCount()).toBe(2);
 });
 
-test('getEntriesWithOtherVersions binds no ID list on a large journal', async () => {
+test('getOtherVersionGroups binds no ID list on a large journal', async () => {
   const count = 33_000;
   sqlite.exec('BEGIN');
   const insert = sqlite.prepare(
@@ -164,11 +200,10 @@ test('getEntriesWithOtherVersions binds no ID list on a large journal', async ()
   }
   sqlite.exec('COMMIT');
   mostParams = 0;
-  const listed = await getEntriesWithOtherVersions();
-  expect(listed).toHaveLength(count * 2);
-  expect(listed.slice(0, 2).map((entry) => entry.note_id)).toEqual([
-    `origin-${count - 1}`,
-    `recovered-${count - 1}`,
+  const groups = await getOtherVersionGroups();
+  expect(groups).toHaveLength(count);
+  expect(ids(groups.slice(0, 1))).toEqual([
+    { original: `origin-${count - 1}`, versions: [`recovered-${count - 1}`] },
   ]);
   expect(mostParams).toBeLessThan(999);
 });

@@ -20,13 +20,25 @@ const context: ConflictSummaryContext = {
     ['photo-unhashed', { uri: 'photos/unhashed.jpg', blobHash: null }],
   ]),
   existingEntryIds: new Set(['recovered-a', 'recovered-b']),
+  returnedEntries: new Map([
+    [
+      'returned-old',
+      { entryId: 'returned-old', createdAt: 10, title: 'Walk', preview: 'Sunny' },
+    ],
+    [
+      'returned-new',
+      { entryId: 'returned-new', createdAt: 20, title: null, preview: 'Rain' },
+    ],
+  ]),
 };
 
 function record(overrides: Partial<CloudConflictRecord>): CloudConflictRecord {
   return {
     conflictId: 'c',
     entityType: 'profile',
+    entityId: 'profile',
     field: 'displayName',
+    hasBase: true,
     alternateValue: undefined,
     recoveredEntityIds: [],
     createdAt: JOINED_AT + 1,
@@ -52,7 +64,9 @@ describe('parseConflictRecord', () => {
     expect(parseConflictRecord('x', json, 5)).toEqual({
       conflictId: 'x',
       entityType: 'profile',
+      entityId: 'profile',
       field: 'displayName',
+      hasBase: false,
       alternateValue: null,
       recoveredEntityIds: [],
       createdAt: 5,
@@ -198,6 +212,59 @@ describe('deriveConflictItems', () => {
         kind: 'entries',
         conflictIds: ['e1', 'e2', 'e3'],
         recoveredEntryIds: ['recovered-a', 'recovered-b'],
+      },
+    ]);
+  });
+
+  test('lists each entry kept after a delete/edit race once, newest first', () => {
+    const deleteEdit = (
+      conflictId: string,
+      entityType: 'entry' | 'tag',
+      entityId: string,
+      hasBase = true,
+    ) =>
+      record({
+        conflictId,
+        entityType,
+        entityId,
+        field: 'deleteEdit',
+        hasBase,
+        alternateValue: null,
+      });
+    expect(
+      deriveConflictItems(
+        [
+          deleteEdit('d1', 'entry', 'returned-old'),
+          // No common earlier version: kept without proof of an edit.
+          deleteEdit('d2', 'entry', 'returned-new', false),
+          deleteEdit('d3', 'entry', 'returned-old', false),
+          // Deleted on both sides, or deleted again since: not in the journal.
+          deleteEdit('d4', 'entry', 'still-deleted'),
+          // A tag ID that happens to match an entry ID is not an entry.
+          deleteEdit('d5', 'tag', 'returned-new'),
+          record({
+            conflictId: 'e1',
+            entityType: 'entry',
+            entityId: 'origin',
+            field: 'content',
+            recoveredEntityIds: ['recovered-a'],
+          }),
+        ],
+        context,
+      ),
+    ).toEqual([
+      { kind: 'entries', conflictIds: ['e1'], recoveredEntryIds: ['recovered-a'] },
+      {
+        kind: 'returnedEntry',
+        conflictIds: ['d2'],
+        entry: context.returnedEntries.get('returned-new'),
+        edited: false,
+      },
+      {
+        kind: 'returnedEntry',
+        conflictIds: ['d1', 'd3'],
+        entry: context.returnedEntries.get('returned-old'),
+        edited: true,
       },
     ]);
   });

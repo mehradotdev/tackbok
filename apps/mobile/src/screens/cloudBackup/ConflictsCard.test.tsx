@@ -28,6 +28,7 @@ jest.mock('~/lib/photoUtils', () => ({
   getFullPhotoUri: (uri: string) => `file:///documents/${uri}`,
 }));
 jest.mock('~/lib/i18n', () => ({
+  formatLocalizedDate: (date: number) => `date:${date}`,
   useTranslation: () => ({
     t: (key: keyof typeof mockEn, params?: Record<string, unknown>) =>
       mockTranslate('en', key, params as never),
@@ -57,6 +58,13 @@ const entriesItem: CloudConflictItem = {
   kind: 'entries',
   conflictIds: ['e1', 'e2'],
   recoveredEntryIds: ['recovered-a', 'recovered-b'],
+};
+
+const returnedItem: CloudConflictItem = {
+  kind: 'returnedEntry',
+  conflictIds: ['d1', 'd2'],
+  entry: { entryId: 'returned', createdAt: 7, title: 'Walk', preview: 'Sunny morning' },
+  edited: true,
 };
 
 let root: ReactTestRenderer;
@@ -198,4 +206,74 @@ test('a long name wraps inside the card and keeps its full accessible label', as
   expect(use.props.className).toContain('h-auto');
   expect(use.props.accessibilityLabel).toBe(`Use “${other}”`);
   expect(use.findByType('Text' as never).props.className).toContain('shrink');
+});
+
+test('explains an entry kept after a delete/edit race and opens it', async () => {
+  await render([returnedItem]);
+  expect(content()).toContain(mockEn['cloud.conflicts.entryReturned']);
+  expect(content()).toContain('Sunny morning');
+  const summary = root.root.find(
+    (node) => (node.type as unknown) === 'View' && node.props.accessible === true,
+  );
+  expect(summary.props.accessibilityLabel).toBe('date:7, Walk, Sunny morning');
+  await act(async () => button(mockEn['cloud.conflicts.openEntry']).props.onPress());
+  expect(mockAcknowledge).toHaveBeenCalledWith(['d1', 'd2']);
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/gratitudeEntry/[noteId]',
+    params: { noteId: 'returned' },
+  });
+});
+
+test('"Got it" dismisses a returned entry without opening it', async () => {
+  await render([
+    { ...returnedItem, entry: { ...returnedItem.entry, title: null, preview: null } },
+  ]);
+  const summary = root.root.find(
+    (node) => (node.type as unknown) === 'View' && node.props.accessible === true,
+  );
+  expect(summary.props.accessibilityLabel).toBe('date:7');
+  mockList.mockResolvedValue([]);
+  await act(async () => button(mockEn['cloud.conflicts.gotIt']).props.onPress());
+  expect(mockAcknowledge).toHaveBeenCalledWith(['d1', 'd2']);
+  expect(mockPush).not.toHaveBeenCalled();
+  expect(root.toJSON()).toBeNull();
+});
+
+test('an entry kept without an edit on the other device is not described as edited', async () => {
+  await render([{ ...returnedItem, edited: false }]);
+  expect(content()).toContain(mockEn['cloud.conflicts.entryKept']);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.entryReturned']);
+});
+
+test('many returned entries share one row that dismisses them all', async () => {
+  const many = Array.from({ length: 4 }, (_, index) => ({
+    ...returnedItem,
+    conflictIds: [`d${index}`],
+    entry: { ...returnedItem.entry, entryId: `returned-${index}` },
+  }));
+  await render(many);
+  expect(content()).toContain(
+    '4 entries you deleted on one device were kept because another device still had them.',
+  );
+  expect(content()).not.toContain(mockEn['cloud.conflicts.entryReturned']);
+  expect(button(mockEn['cloud.conflicts.openEntry'])).toBeUndefined();
+  await act(async () => button(mockEn['cloud.conflicts.gotIt']).props.onPress());
+  expect(mockAcknowledge).toHaveBeenCalledWith(['d0', 'd1', 'd2', 'd3']);
+});
+
+test('up to three returned entries are listed one by one', async () => {
+  const three = Array.from({ length: 3 }, (_, index) => ({
+    ...returnedItem,
+    conflictIds: [`d${index}`],
+    entry: { ...returnedItem.entry, entryId: `returned-${index}` },
+  }));
+  await render(three);
+  expect(
+    root.root.findAll(
+      (node) =>
+        (node.type as unknown) === 'Button' &&
+        node.findByType('Text' as never).props.children ===
+          mockEn['cloud.conflicts.openEntry'],
+    ),
+  ).toHaveLength(3);
 });
