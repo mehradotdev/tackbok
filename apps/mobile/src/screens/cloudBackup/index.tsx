@@ -631,9 +631,7 @@ export default function CloudBackupScreen() {
                 {restoreNote && (
                   <Text
                     className="text-sm text-foreground"
-                    accessibilityLiveRegion={
-                      snapshot.failureCategory ? 'polite' : undefined
-                    }>
+                    accessibilityLiveRegion="polite">
                     {restoreNote}
                   </Text>
                 )}

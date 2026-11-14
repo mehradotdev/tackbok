@@ -1,6 +1,7 @@
 import { translate } from '~/lib/i18n/translations';
 import type { SupportedLocale, TranslationFunction } from '~/lib/i18n/types';
-import { backupLastUpdatedLabel } from './copy';
+import { en } from '~/lib/i18n/translations/en';
+import { backupLastUpdatedLabel, restoreStatusNote } from './copy';
 
 let mock24hour = true;
 jest.mock('expo-localization', () => ({
@@ -65,5 +66,36 @@ describe('the last-updated label of a backup to restore', () => {
         'en',
       ),
     ).toBe('Cloud backup 2');
+  });
+});
+
+describe('the line under a restore status', () => {
+  const t = translator('en');
+  const note = (
+    status: 'syncing' | 'restoring' | 'synced',
+    failureCategory: Parameters<typeof restoreStatusNote>[0]['failureCategory'] = null,
+    initialRestore = true,
+  ) => restoreStatusNote({ status, initialRestore, failureCategory }, t);
+  const leave = en['cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs'];
+  const paused = en['cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline'];
+
+  test('is neutral while a restore runs or waits between passes', () => {
+    expect(note('syncing')).toBe(leave);
+    expect(note('restoring')).toBe(leave);
+  });
+
+  test('says the restore is paused only after a failure that clears by itself', () => {
+    for (const failure of ['offline', 'transient', 'rate-limit'] as const) {
+      expect(note('restoring', failure)).toBe(paused);
+    }
+    expect(note('restoring', 'wifi-only-media')).toBe(
+      en['cloud.progress.waitingForWifi'],
+    );
+    expect(note('restoring', 'quota')).toBe(en['cloud.googleDriveStorageIsFull']);
+  });
+
+  test('is absent for ordinary syncs', () => {
+    expect(note('syncing', null, false)).toBeNull();
+    expect(note('synced', null, false)).toBeNull();
   });
 });

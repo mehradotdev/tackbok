@@ -229,6 +229,7 @@ export function restoreStatusNote(
   if (failure === 'offline' || failure === 'transient' || failure === 'rate-limit') {
     return t('cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline');
   }
+  if (failure === 'wifi-only-media') return t('cloud.progress.waitingForWifi');
   return cloudSyncFailureMessage(failure, t);
 }
 
