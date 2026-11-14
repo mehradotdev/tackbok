@@ -19,7 +19,14 @@ const context: ConflictSummaryContext = {
     ['photo-same-blob', { uri: 'photos/same.jpg', blobHash: 'current-hash' }],
     ['photo-unhashed', { uri: 'photos/unhashed.jpg', blobHash: null }],
   ]),
-  existingEntryIds: new Set(['recovered-a', 'recovered-b']),
+  // recovered-a and recovered-b are versions of two different entries;
+  // recovered-b2 is another version of the same entry as recovered-b.
+  openConflictGroupOf: new Map([
+    ['recovered-a', 0],
+    ['origin-a', 0],
+    ['recovered-b', 1],
+    ['recovered-b2', 1],
+  ]),
   returnedEntries: new Map([
     [
       'returned-old',
@@ -108,6 +115,7 @@ describe('deriveConflictItems', () => {
         current: 'Mehra',
         other: 'Mehra A',
         archived: false,
+        latestAt: JOINED_AT + 1,
       },
       {
         kind: 'name',
@@ -115,6 +123,7 @@ describe('deriveConflictItems', () => {
         current: 'Mehra',
         other: null,
         archived: false,
+        latestAt: JOINED_AT + 1,
       },
     ]);
   });
@@ -166,17 +175,19 @@ describe('deriveConflictItems', () => {
         conflictIds: ['p1', 'p6'],
         otherAssetId: 'photo-other',
         otherUri: 'photos/other.jpg',
+        latestAt: JOINED_AT + 1,
       },
       {
         kind: 'photo',
         conflictIds: ['p7'],
         otherAssetId: 'photo-unhashed',
         otherUri: 'photos/unhashed.jpg',
+        latestAt: JOINED_AT + 1,
       },
     ]);
   });
 
-  test('groups entry conflicts by the recovered entries that still exist', () => {
+  test('lists entry conflicts while their entry has more than one live version', () => {
     expect(
       deriveConflictItems(
         [
@@ -204,16 +215,66 @@ describe('deriveConflictItems', () => {
             field: 'content',
             recoveredEntityIds: ['recovered-deleted'],
           }),
+          // The only version left after a choice: in no open group.
+          record({
+            conflictId: 'e5',
+            entityType: 'entry',
+            field: 'content',
+            recoveredEntityIds: ['lone-survivor'],
+          }),
+          // Another version of the same entry as e3.
+          record({
+            conflictId: 'e6',
+            entityType: 'entry',
+            field: 'title',
+            recoveredEntityIds: ['recovered-b2'],
+            createdAt: JOINED_AT + 9,
+          }),
         ],
         context,
       ),
     ).toEqual([
       {
         kind: 'entries',
-        conflictIds: ['e1', 'e2', 'e3'],
-        recoveredEntryIds: ['recovered-a', 'recovered-b'],
+        conflictIds: ['e1', 'e2', 'e3', 'e6'],
+        entryCount: 2,
+        latestAt: JOINED_AT + 9,
       },
     ]);
+  });
+
+  test('an entry conflict closes once one version is left, even if its original is in a newer conflict', () => {
+    expect(
+      deriveConflictItems(
+        [
+          // The original is in an open group again, but this record's version is gone.
+          record({
+            conflictId: 'settled',
+            entityType: 'entry',
+            entityId: 'origin-a',
+            field: 'content',
+            recoveredEntityIds: ['deleted-version'],
+          }),
+        ],
+        context,
+      ),
+    ).toEqual([]);
+  });
+
+  test('acknowledged-or-not is up to the caller; entry rows follow the open groups only', () => {
+    expect(
+      deriveConflictItems(
+        [
+          record({
+            conflictId: 'e1',
+            entityType: 'entry',
+            field: 'content',
+            recoveredEntityIds: ['recovered-a'],
+          }),
+        ],
+        { ...context, openConflictGroupOf: new Map() },
+      ),
+    ).toEqual([]);
   });
 
   test('lists each entry kept after a delete/edit race once, newest first', () => {
@@ -253,18 +314,25 @@ describe('deriveConflictItems', () => {
         context,
       ),
     ).toEqual([
-      { kind: 'entries', conflictIds: ['e1'], recoveredEntryIds: ['recovered-a'] },
+      {
+        kind: 'entries',
+        conflictIds: ['e1'],
+        entryCount: 1,
+        latestAt: JOINED_AT + 1,
+      },
       {
         kind: 'returnedEntry',
         conflictIds: ['d2'],
         entry: context.returnedEntries.get('returned-new'),
         edited: false,
+        latestAt: JOINED_AT + 1,
       },
       {
         kind: 'returnedEntry',
         conflictIds: ['d1', 'd3'],
         entry: context.returnedEntries.get('returned-old'),
         edited: true,
+        latestAt: JOINED_AT + 1,
       },
     ]);
   });

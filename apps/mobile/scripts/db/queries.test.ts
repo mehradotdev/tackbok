@@ -33,7 +33,7 @@ const db = drizzle(sqlite, {
 });
 mock.module('../../src/db', () => ({ ...schema, db, runExclusiveDbTransaction() {} }));
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
-const { getEntriesForDay, getOtherVersionGroups, getOtherVersionCount, searchEntries } =
+const { getEntriesForDay, getOpenConflictGroups, getOtherVersionGroups, searchEntries } =
   await import('../../src/db/queries');
 afterAll(() => sqlite.close());
 
@@ -47,7 +47,7 @@ function insertEntry(
     .run();
 }
 
-beforeEach(() => sqlite.exec('DELETE FROM entries'));
+beforeEach(() => sqlite.exec('DELETE FROM entries; DELETE FROM cloud_tombstones'));
 
 test('getEntriesForDay covers the full local day on 23- and 25-hour DST days', async () => {
   // 2026-03-08 springs forward (23h); 2026-11-01 falls back (25h).
@@ -180,12 +180,86 @@ test('getOtherVersionGroups follows a version copied from another version', asyn
   ]);
 });
 
-test('getOtherVersionCount counts only entries kept as another version', async () => {
-  expect(await getOtherVersionCount()).toBe(0);
+const sorted = (groups: string[][]) =>
+  groups.map((members) => [...members].sort()).sort((a, b) => a[0].localeCompare(b[0]));
+const deleteEntry = (noteId: string) => {
+  sqlite.exec(`DELETE FROM entries WHERE note_id = '${noteId}'`);
+  // Sync keeps a tombstone; it is not a live version.
+  sqlite.exec(
+    `INSERT INTO cloud_tombstones (vault_id, entity_type, entity_id, deleted_by_device_id, deletion_sequence, updated_at) VALUES ('vault', 'entry', '${noteId}', 'device', 1, 1)`,
+  );
+};
+
+test('getOpenConflictGroups: an original and its version are open', async () => {
+  expect(await getOpenConflictGroups()).toEqual([]);
+  insertEntry('plain', 5);
   insertEntry('origin', 10);
-  insertEntry('recovered', 20, { conflict_origin_id: 'origin' });
-  insertEntry('recovered-orphan', 30, { conflict_origin_id: 'deleted-origin' });
-  expect(await getOtherVersionCount()).toBe(2);
+  insertEntry('copy', 20, { conflict_origin_id: 'origin' });
+  expect(sorted(await getOpenConflictGroups())).toEqual([['copy', 'origin']]);
+});
+
+test('getOpenConflictGroups: keeping either version leaves a lone survivor, which is closed', async () => {
+  insertEntry('origin', 10);
+  insertEntry('copy', 20, { conflict_origin_id: 'origin' });
+  deleteEntry('copy');
+  expect(await getOpenConflictGroups()).toEqual([]);
+  // Keeping the copy instead: it still has conflict_origin_id, but is alone.
+  insertEntry('copy', 20, { conflict_origin_id: 'origin' });
+  deleteEntry('origin');
+  expect(await getOpenConflictGroups()).toEqual([]);
+});
+
+test('getOpenConflictGroups: versions of a deleted original stay open while two are left', async () => {
+  insertEntry('orphan', 35, { conflict_origin_id: 'deleted-origin' });
+  insertEntry('orphan-sibling', 36, { conflict_origin_id: 'deleted-origin' });
+  insertEntry('lone-orphan', 30, { conflict_origin_id: 'other-deleted-origin' });
+  expect(sorted(await getOpenConflictGroups())).toEqual([['orphan', 'orphan-sibling']]);
+  deleteEntry('orphan');
+  expect(await getOpenConflictGroups()).toEqual([]);
+});
+
+test('getOpenConflictGroups: several copies stay one group until one version is left', async () => {
+  insertEntry('origin', 10);
+  insertEntry('copy-a', 30, { conflict_origin_id: 'origin' });
+  insertEntry('copy-b', 20, { conflict_origin_id: 'origin' });
+  expect(sorted(await getOpenConflictGroups())).toEqual([['copy-a', 'copy-b', 'origin']]);
+  deleteEntry('copy-a');
+  expect(sorted(await getOpenConflictGroups())).toEqual([['copy-b', 'origin']]);
+  deleteEntry('origin');
+  expect(await getOpenConflictGroups()).toEqual([]);
+});
+
+test('getOpenConflictGroups: chained copies join the oldest surviving version', async () => {
+  insertEntry('origin', 10);
+  insertEntry('copy', 20, { conflict_origin_id: 'origin' });
+  insertEntry('copy-of-copy', 30, { conflict_origin_id: 'copy' });
+  expect(sorted(await getOpenConflictGroups())).toEqual([
+    ['copy', 'copy-of-copy', 'origin'],
+  ]);
+  // The middle link deleted: the chain is broken, so origin and copy-of-copy
+  // are no longer linked, and each is alone.
+  deleteEntry('copy');
+  expect(await getOpenConflictGroups()).toEqual([]);
+});
+
+test('getOpenConflictGroups binds no ID list on a large journal', async () => {
+  const count = 33_000;
+  sqlite.exec('BEGIN');
+  const insert = sqlite.prepare(
+    'INSERT INTO entries (note_id, conflict_origin_id, created_at, updated_at) VALUES (?, ?, 1, 1)',
+  );
+  for (let index = 0; index < count; index += 1) {
+    insert.run(`origin-${index}`, null);
+    // Every other original kept only its copy.
+    insert.run(
+      `recovered-${index}`,
+      index % 2 === 0 ? `origin-${index}` : `gone-${index}`,
+    );
+  }
+  sqlite.exec('COMMIT');
+  mostParams = 0;
+  expect(await getOpenConflictGroups()).toHaveLength(count / 2);
+  expect(mostParams).toBeLessThan(999);
 });
 
 test('getOtherVersionGroups binds no ID list on a large journal', async () => {

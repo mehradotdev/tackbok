@@ -336,6 +336,7 @@ test('conflicts created after the first restore apply stay visible when the rest
   const { mergeSnapshotDomains } = await import('../../src/lib/cloudSync/snapshot/merge');
   const { deriveConflictItems, parseConflictRecord } =
     await import('../../src/lib/cloudSync/ui/conflictSummary');
+  const { openConflictGroups } = await import('../../src/lib/otherVersionGroups');
   db.insert(schema.cloudVault)
     .values({
       vault_id: 'retried',
@@ -411,7 +412,14 @@ test('conflicts created after the first restore apply stay visible when the rest
       currentPhotoAssetId: null,
       currentPhotoBlobHash: null,
       localPhotos: new Map(),
-      existingEntryIds: new Set(merged.entries.map((entry) => entry.entryId)),
+      openConflictGroupOf: new Map(
+        openConflictGroups(
+          merged.entries.map((entry) => ({
+            note_id: entry.entryId,
+            conflict_origin_id: entry.conflictOriginId,
+          })),
+        ).flatMap((members, group) => members.map((id) => [id, group] as const)),
+      ),
       returnedEntries: new Map(),
     },
   );

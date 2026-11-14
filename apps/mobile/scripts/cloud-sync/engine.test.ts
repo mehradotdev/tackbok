@@ -51,6 +51,8 @@ import {
 } from '../../src/lib/cloudSync/runtime/progress';
 import { clearAuthorizationPause } from '../../src/lib/cloudSync/ui/connectionRecovery';
 import { encodeGzip } from '../../src/lib/zip/core/gzip-codec';
+import { openConflictGroups } from '../../src/lib/otherVersionGroups';
+import { deriveConflictItems } from '../../src/lib/cloudSync/ui/conflictSummary';
 
 const databases: Database[] = [];
 const SNAPSHOT_MIGRATION = readFileSync(
@@ -4719,4 +4721,107 @@ describe('merges that cannot be combined', () => {
     expect((await first.engine().sync()).status).toBe('pulled');
     expect(contents(first.journal.current())).toEqual(contents(second.journal.current()));
   });
+});
+
+describe('open entry conflicts across devices', () => {
+  /** The conflicts card's entries row as a device computes it from its journal. */
+  function openEntryConflicts(domain: SnapshotDomain) {
+    const groups = openConflictGroups(
+      domain.entries.map((value) => ({
+        note_id: value.entryId,
+        conflict_origin_id: value.conflictOriginId,
+      })),
+    );
+    return deriveConflictItems(
+      domain.conflicts.map((conflict) => ({
+        conflictId: conflict.conflictId,
+        entityType: conflict.entityType,
+        entityId: conflict.entityId,
+        field: conflict.field,
+        hasBase: conflict.baseValueHash != null,
+        alternateValue: conflict.alternates[0]?.value,
+        recoveredEntityIds: conflict.recoveredEntityIds,
+        // Seen after joining; nothing is dismissed on either device.
+        createdAt: 2,
+        archived: false,
+      })),
+      {
+        joinedAt: 1,
+        currentName: null,
+        currentPhotoAssetId: null,
+        currentPhotoBlobHash: null,
+        localPhotos: new Map(),
+        openConflictGroupOf: new Map(
+          groups.flatMap((members, group) => members.map((id) => [id, group] as const)),
+        ),
+        returnedEntries: new Map(),
+      },
+    ).filter((item) => item.kind === 'entries');
+  }
+
+  test.each(['original', 'copy'])(
+    'keeping the %s on one device clears the other device after it syncs',
+    async (kept) => {
+      const provider = new FakeSnapshotProvider();
+      const clock = { value: 1_800_000_000_000 };
+      const initial = withEntry(blankDomain(), entry('entry-shared', 'Base'));
+      const a = harness('device-a', initial, provider, clock);
+      a.journal.mutate(initial);
+      await a.engine().sync();
+      const b = harness('device-b', initial, provider, clock);
+      await b.engine().sync();
+
+      // Both devices edit the entry before either syncs: both versions are kept.
+      a.journal.mutate(withEntry(a.journal.current(), entry('entry-shared', 'A', 2)));
+      b.journal.mutate(withEntry(b.journal.current(), entry('entry-shared', 'B', 2)));
+      await a.engine().sync();
+      await b.engine().sync();
+      await a.engine().sync();
+      const copy = b.journal
+        .current()
+        .entries.find((value) => value.conflictOriginId === 'entry-shared');
+      expect(copy).toBeDefined();
+      expect(openEntryConflicts(a.journal.current())).toMatchObject([
+        { kind: 'entries', entryCount: 1 },
+      ]);
+      expect(openEntryConflicts(b.journal.current())).toMatchObject([
+        { kind: 'entries', entryCount: 1 },
+      ]);
+
+      // "Keep this one" on A deletes the other version, then both sync.
+      const deleted = kept === 'original' ? copy!.entryId : 'entry-shared';
+      // Deleted as the app does: the tombstone names the state it deleted.
+      const current = a.journal.current();
+      const hash = sha256Bytes(
+        new TextEncoder().encode(
+          canonicalize(current.entries.find((value) => value.entryId === deleted)),
+        ),
+      );
+      const next = withoutEntry(current, deleted, 'device-a');
+      next.tombstones = next.tombstones.map((value) =>
+        value.entityId === deleted
+          ? { ...value, baseStateHash: hash, deletedStateHash: hash }
+          : value,
+      );
+      // As the production journal does, a conflict lists only live versions.
+      next.conflicts = next.conflicts.map((conflict) => ({
+        ...conflict,
+        recoveredEntityIds: conflict.recoveredEntityIds.filter((id) =>
+          next.entries.some((value) => value.entryId === id),
+        ),
+      }));
+      a.journal.mutate(next);
+      expect(openEntryConflicts(a.journal.current())).toEqual([]);
+      expect((await a.engine().sync()).status).toBe('published');
+      expect(openEntryConflicts(b.journal.current())).toHaveLength(1);
+      expect((await b.engine().sync()).status).toBe('pulled');
+
+      // B dismissed nothing, and the conflict record is still there.
+      expect(b.journal.current().conflicts.length).toBeGreaterThan(0);
+      expect(b.journal.current().entries.map((value) => value.entryId)).toEqual([
+        kept === 'original' ? 'entry-shared' : copy!.entryId,
+      ]);
+      expect(openEntryConflicts(b.journal.current())).toEqual([]);
+    },
+  );
 });
