@@ -599,6 +599,46 @@ test('the legacy profile backfill keeps a pristine profile only on a fresh insta
   );
 });
 
+test('the profile cache shows a restored photo only once it is downloaded', async () => {
+  const reloads: { profileImageUri: string | null }[] = [];
+  mock.module('../../src/lib/settings/store', () => ({
+    applyProfileCacheReload: (
+      _revision: number,
+      profile: { profileImageUri: string | null },
+    ) => reloads.push(profile),
+    getProfileCacheRevision: () => 0,
+    hydrateProfileCache() {},
+    markLegacyProfileMigrationComplete() {},
+  }));
+  const { loadProfileCache } = await import('../../src/lib/cloudSync/storage/backfill');
+  sqlite.exec('DELETE FROM user_profile; DELETE FROM media_assets');
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'avatar',
+      owner_type: 'profile',
+      owner_id: 'self',
+      kind: 'photo',
+      local_uri: 'photos/avatar.jpg',
+      download_state: 'pending',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  sqlite.exec(
+    "INSERT INTO user_profile (profile_id, display_name, photo_asset_id, updated_at) VALUES ('self', 'Restored', 'avatar', 1)",
+  );
+  await loadProfileCache();
+  sqlite.exec("UPDATE media_assets SET download_state = 'verified'");
+  await loadProfileCache();
+  expect(reloads.map((profile) => profile.profileImageUri)).toEqual([
+    null,
+    'photos/avatar.jpg',
+  ]);
+  sqlite.exec('DELETE FROM user_profile; DELETE FROM media_assets');
+});
+
 test('profile updatedAt stays 0 and the profile stays pristine until a synced field is authored', async () => {
   resetToFreshProfile();
   const { runExclusiveDbTransaction } = await import('../../src/db');

@@ -10,7 +10,6 @@ import {
   mediaAssets,
   sqlite,
   syncProviderState,
-  userProfile,
 } from '~/db';
 import { track } from '~/lib/analytics';
 import type { CloudSyncFailureCategory } from '~/lib/analytics/events';

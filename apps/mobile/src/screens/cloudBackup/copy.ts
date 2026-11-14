@@ -1,15 +1,31 @@
 import type {
   CloudSyncActionFailureCategory,
   CloudSyncSnapshot,
+  PreparedCloudVault,
   SyncProgress,
   SyncWait,
 } from '~/lib/cloudSync/ui';
+import { formatLocalizedDate, formatLocalizedTime } from '~/lib/i18n/dateFormatting';
 import { formatByteSize } from '~/lib/i18n/numberFormatting';
 import type { SupportedLocale, TranslationFunction } from '~/lib/i18n/types';
 import type {
   SyncAttentionReason,
   SyncRecoveryAction,
 } from '~/lib/cloudSync/snapshot/sync';
+
+/** When any device last updated a backup, with the time in the phone's 12/24-hour style. */
+export function backupLastUpdatedLabel(
+  vault: PreparedCloudVault,
+  index: number,
+  t: TranslationFunction,
+  locale: SupportedLocale,
+): string {
+  if (!vault.updatedAt) return t('cloud.cloudBackupNumber', { number: index + 1 });
+  return t('cloud.lastUpdatedDateTime', {
+    date: formatLocalizedDate(vault.updatedAt, t),
+    time: formatLocalizedTime(new Date(vault.updatedAt), locale),
+  });
+}
 
 export function statusLabel(
   status: CloudSyncSnapshot['status'],

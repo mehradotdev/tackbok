@@ -38,7 +38,6 @@ jest.mock('~/db', () => ({
   cloudVault: {},
   mediaAssets: { name: 'media_assets' },
   syncProviderState: {},
-  userProfile: {},
   sqlite: { getFirstSync: () => ({ value: 0 }) },
   db: {
     select: () => mockQuery('select'),

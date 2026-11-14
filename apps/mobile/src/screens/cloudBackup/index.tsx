@@ -26,8 +26,7 @@ import {
 } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { useTranslation } from '~/lib/i18n';
-import { formatLocalizedDate, formatLocalizedTime } from '~/lib/i18n/dateFormatting';
-import type { SupportedLocale, TranslationFunction } from '~/lib/i18n/types';
+import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
 import { useSettingsStore } from '~/lib/settings';
 import { CloudAuthError } from '~/lib/cloudSync/auth';
 import {
@@ -45,7 +44,6 @@ import {
   useCloudSyncProgress,
   useCloudSyncSnapshot,
   CloudSyncActionError,
-  type PreparedCloudVault,
   type PreparedGoogleConnection,
 } from '~/lib/cloudSync/ui';
 import { SnapshotProviderError } from '~/lib/cloudSync/snapshot/sync';
@@ -75,6 +73,7 @@ import { ConflictsCard } from './ConflictsCard';
 import { OtherVersionsRow } from './OtherVersionsRow';
 import {
   attentionReasonMessage,
+  backupLastUpdatedLabel,
   cloudSyncFailureMessage,
   pendingWorkSummary,
   recoveryActionLabel,
@@ -943,20 +942,6 @@ function DisclosureCard({ busy, onContinue }: { busy: boolean; onContinue: () =>
   );
 }
 
-/** When any device last updated the backup, with the time in the phone's 12/24-hour style. */
-function vaultLabel(
-  vault: PreparedCloudVault,
-  index: number,
-  t: TranslationFunction,
-  locale: SupportedLocale,
-): string {
-  if (!vault.updatedAt) return t('cloud.cloudBackupNumber', { number: index + 1 });
-  return t('cloud.lastUpdatedDateTime', {
-    date: formatLocalizedDate(vault.updatedAt, t),
-    time: formatLocalizedTime(new Date(vault.updatedAt), locale),
-  });
-}
-
 function ConnectionChoice({
   prepared,
   origin,
@@ -1005,10 +990,10 @@ function ConnectionChoice({
               onPress={() => onChoose(vault.vaultId)}
               accessibilityLabel={`${
                 prepared.localHasData ? t('cloud.merge') : t('cloud.restoreCloudBackup')
-              }. ${vaultLabel(vault, index, t, locale)}`}>
+              }. ${backupLastUpdatedLabel(vault, index, t, locale)}`}>
               <View className="flex-1 gap-0.5">
                 <Text className="font-body-bold text-foreground">
-                  {vaultLabel(vault, index, t, locale)}
+                  {backupLastUpdatedLabel(vault, index, t, locale)}
                 </Text>
                 <Text className="text-sm text-foreground">
                   {prepared.localHasData
