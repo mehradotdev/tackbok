@@ -30,9 +30,13 @@ export class SnapshotCleanup {
   private lastExaminedSnapshot: string | null = null;
   constructor(private readonly options: SnapshotCleanupOptions) {}
 
-  async run(): Promise<void> {
+  /**
+   * `listedHeads` are heads the caller listed with a refresh moments ago, so
+   * cleanup need not list them again. Each deletion still re-lists first.
+   */
+  async run(listedHeads?: ListedDeviceHead[]): Promise<void> {
     await this.reapOldShadows();
-    await this.cleanupSnapshots();
+    await this.cleanupSnapshots(listedHeads);
   }
 
   private async reapOldShadows(): Promise<void> {
@@ -47,10 +51,10 @@ export class SnapshotCleanup {
     }
   }
 
-  private async cleanupSnapshots(): Promise<void> {
+  private async cleanupSnapshots(listedHeads?: ListedDeviceHead[]): Promise<void> {
     const { hooks, provider, vaultId } = this.options;
     try {
-      const heads = await provider.listHeads(vaultId, true);
+      const heads = listedHeads ?? (await provider.listHeads(vaultId, true));
       const snapshots = await provider.listSnapshots(vaultId);
       const newest = [...snapshots]
         .sort(

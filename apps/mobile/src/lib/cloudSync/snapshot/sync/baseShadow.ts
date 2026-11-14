@@ -224,9 +224,10 @@ export class BaseShadowManager {
     };
   }
 
+  /** `bytes` is the verified file, for a later `fileMatches`. */
   async load(
     checkpoint: BaseShadowCheckpoint | null,
-  ): Promise<{ shadow: BaseShadow | null; degraded: boolean }> {
+  ): Promise<{ shadow: BaseShadow | null; degraded: boolean; bytes?: Uint8Array }> {
     if (!checkpoint) return { shadow: null, degraded: false };
     let bytes: Uint8Array;
     try {
@@ -249,7 +250,7 @@ export class BaseShadowManager {
       ) {
         invalid('Base-shadow checkpoint does not match its file');
       }
-      return { shadow: decoded.shadow, degraded: false };
+      return { shadow: decoded.shadow, degraded: false, bytes };
     } catch {
       try {
         await this.files.quarantine(checkpoint.fileName);
@@ -257,6 +258,22 @@ export class BaseShadowManager {
         // Quarantine is best effort; the SQLite checkpoint remains evidence.
       }
       return { shadow: null, degraded: true };
+    }
+  }
+
+  /**
+   * Whether the checkpoint's file still holds exactly `bytes`, which `load`
+   * verified earlier. Far cheaper than `load`, which decodes and re-validates.
+   * A missing, unreadable or changed file is false; `load` then handles it.
+   */
+  async fileMatches(
+    checkpoint: BaseShadowCheckpoint,
+    bytes: Uint8Array,
+  ): Promise<boolean> {
+    try {
+      return bytesEqual(await this.files.read(checkpoint.fileName), bytes);
+    } catch {
+      return false;
     }
   }
 
