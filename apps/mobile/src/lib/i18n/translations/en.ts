@@ -896,6 +896,25 @@ export const en = {
   'cloud.conflicts.hideOlderNames': 'Hide older name versions',
   'cloud.conflicts.olderNamesDescription':
     'Earlier versions of the app saved these names while syncing. Most are not real changes, but you can still use one.',
+  // Heading of a group on Other versions: an entry and the versions sync kept of it.
+  'cloud.conflicts.versionsOf': 'Versions of an entry from {date}',
+  'cloud.conflicts.original': 'Original',
+  'cloud.conflicts.originalDeleted': 'The original entry was deleted.',
+  // Button under one version on Other versions; deletes the other versions.
+  'cloud.conflicts.keepThisOne': 'Keep this one',
+  // Screen reader label of "Keep this one" under the original.
+  'cloud.conflicts.keepOriginal': 'Keep the original',
+  // Screen reader label of "Keep this one" under another version.
+  'cloud.conflicts.keepOtherVersion': 'Keep this other version',
+  'cloud.conflicts.keepThisOneTitle': 'Keep this version?',
+  'cloud.conflicts.keepThisOneMessage':
+    '{count} other versions will be permanently deleted.',
+  'cloud.conflicts.attachmentCount': 'Attachments: {count}',
+  // Conflicts card: a deleted entry is back because it was edited on another device.
+  'cloud.conflicts.entryReturned':
+    'You deleted this entry on one device while it was edited on another, so the edited version was kept.',
+  'cloud.conflicts.openEntry': 'Open entry',
+  'cloud.conflicts.gotIt': 'Got it',
   'cloud.resetThisDeviceOnly': 'Reset this device only',
   'cloud.resetThisDeviceOnly2': 'Reset this device only?',
   'cloud.merge': 'Merge',

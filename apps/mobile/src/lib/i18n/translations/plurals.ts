@@ -25,6 +25,10 @@ export const pluralMessages = {
       'An entry was edited on two devices at once. Both versions are in your journal.',
     'cloud.conflicts.entriesEdited_other':
       '{count} entries were edited on two devices at once. Both versions are in your journal.',
+    'cloud.conflicts.keepThisOneMessage_one':
+      'The other version will be permanently deleted.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'The {count} other versions will be permanently deleted.',
     'cloud.progress.devicesChecked_one': '{done} of {count} device checked',
     'cloud.progress.devicesChecked_other': '{done} of {count} devices checked',
     'cloud.progress.filesDownloaded_one': '{done} of {count} file downloaded',
@@ -70,6 +74,12 @@ export const pluralMessages = {
       '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
     'cloud.conflicts.entriesEdited_other':
       '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
+    'cloud.conflicts.keepThisOneMessage_one':
+      'La otra versión se eliminará permanentemente.',
+    'cloud.conflicts.keepThisOneMessage_many':
+      'Las otras {count} versiones se eliminarán permanentemente.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'Las otras {count} versiones se eliminarán permanentemente.',
     'cloud.progress.devicesChecked_one': '{done} de {count} dispositivo revisado',
     'cloud.progress.devicesChecked_many': '{done} de {count} dispositivos revisados',
     'cloud.progress.devicesChecked_other': '{done} de {count} dispositivos revisados',
@@ -100,6 +110,9 @@ export const pluralMessages = {
       'एक प्रविष्टि एक ही समय पर दो डिवाइस पर संपादित की गई। दोनों संस्करण आपकी डायरी में हैं।',
     'cloud.conflicts.entriesEdited_other':
       '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। दोनों संस्करण आपकी डायरी में हैं।',
+    'cloud.conflicts.keepThisOneMessage_one': 'दूसरा संस्करण स्थायी रूप से हटा दिया जाएगा।',
+    'cloud.conflicts.keepThisOneMessage_other':
+      '{count} अन्य संस्करण स्थायी रूप से हटा दिए जाएँगे।',
     'cloud.progress.devicesChecked_one': '{count} में से {done} डिवाइस जाँचा गया',
     'cloud.progress.devicesChecked_other': '{count} में से {done} डिवाइस जाँचे गए',
     'cloud.progress.filesDownloaded_one': '{count} में से {done} फ़ाइल डाउनलोड हुई',
@@ -132,6 +145,9 @@ export const pluralMessages = {
       'En anteckning redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
     'cloud.conflicts.entriesEdited_other':
       '{count} anteckningar redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
+    'cloud.conflicts.keepThisOneMessage_one': 'Den andra versionen tas bort permanent.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'De {count} andra versionerna tas bort permanent.',
     'cloud.progress.devicesChecked_one': '{done} av {count} enhet kontrollerad',
     'cloud.progress.devicesChecked_other': '{done} av {count} enheter kontrollerade',
     'cloud.progress.filesDownloaded_one': '{done} av {count} fil nedladdad',
@@ -163,6 +179,10 @@ export const pluralMessages = {
       'Ein Eintrag wurde gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
     'cloud.conflicts.entriesEdited_other':
       '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
+    'cloud.conflicts.keepThisOneMessage_one':
+      'Die andere Version wird dauerhaft gelöscht.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'Die {count} anderen Versionen werden dauerhaft gelöscht.',
     'cloud.progress.devicesChecked_one': '{done} von {count} Gerät geprüft',
     'cloud.progress.devicesChecked_other': '{done} von {count} Geräten geprüft',
     'cloud.progress.filesDownloaded_one': '{done} von {count} Datei heruntergeladen',
@@ -202,6 +222,9 @@ export const pluralMessages = {
       '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
     'cloud.conflicts.entriesEdited_other':
       '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
+    'cloud.conflicts.keepThisOneMessage_one': 'הגרסה האחרת תימחק לצמיתות.',
+    'cloud.conflicts.keepThisOneMessage_two': 'שתי הגרסאות האחרות יימחקו לצמיתות.',
+    'cloud.conflicts.keepThisOneMessage_other': '{count} הגרסאות האחרות יימחקו לצמיתות.',
     'cloud.progress.devicesChecked_one': 'נבדקו {done} מתוך מכשיר אחד',
     'cloud.progress.devicesChecked_two': 'נבדקו {done} מתוך שני מכשירים',
     'cloud.progress.devicesChecked_other': 'נבדקו {done} מתוך {count} מכשירים',
@@ -282,6 +305,14 @@ export const pluralMessages = {
       'عُدِّل {count} سجلًا على جهازين في الوقت نفسه. النسختان موجودتان في دفتر يومياتك.',
     'cloud.conflicts.entriesEdited_other':
       'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
+    'cloud.conflicts.keepThisOneMessage_zero':
+      'عدد النسخ الأخرى التي ستُحذف نهائيًا: {count}.',
+    'cloud.conflicts.keepThisOneMessage_one': 'ستُحذف النسخة الأخرى نهائيًا.',
+    'cloud.conflicts.keepThisOneMessage_two': 'ستُحذف النسختان الأخريان نهائيًا.',
+    'cloud.conflicts.keepThisOneMessage_few': 'ستُحذف {count} نسخ أخرى نهائيًا.',
+    'cloud.conflicts.keepThisOneMessage_many': 'ستُحذف {count} نسخة أخرى نهائيًا.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'عدد النسخ الأخرى التي ستُحذف نهائيًا: {count}.',
     'cloud.progress.devicesChecked_zero': 'الأجهزة التي تم فحصها: {done} من {count}',
     'cloud.progress.devicesChecked_one': 'تم فحص {done} من جهاز واحد',
     'cloud.progress.devicesChecked_two': 'تم فحص {done} من جهازين',
@@ -307,6 +338,7 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_other': '还剩 {count} 项更改',
     'cloud.conflicts.entriesEdited_other':
       '有 {count} 个条目同时在两台设备上被编辑。两个版本都在你的日记中。',
+    'cloud.conflicts.keepThisOneMessage_other': '其他 {count} 个版本将被永久删除。',
     'cloud.progress.devicesChecked_other': '已检查 {count} 台设备中的 {done} 台',
     'cloud.progress.filesDownloaded_other': '已下载 {count} 个文件中的 {done} 个',
   },
@@ -322,6 +354,7 @@ export const pluralMessages = {
     'cloud.countChangesRemaining_other': '還剩 {count} 項變更',
     'cloud.conflicts.entriesEdited_other':
       '有 {count} 則紀錄同時在兩部裝置上被編輯。兩個版本都在你的日記中。',
+    'cloud.conflicts.keepThisOneMessage_other': '其他 {count} 個版本將被永久刪除。',
     'cloud.progress.devicesChecked_other': '已檢查 {count} 台裝置中的 {done} 台',
     'cloud.progress.filesDownloaded_other': '已下載 {count} 個檔案中的 {done} 個',
   },

@@ -152,3 +152,15 @@ test('leaves Android to the live region and does not announce while hidden', asy
   await render(1, [entriesItem]);
   expect(mockAnnounce).not.toHaveBeenCalled();
 });
+
+test('an entry kept after a delete/edit race shows the notice until it is dismissed', async () => {
+  const returned: CloudConflictItem = {
+    kind: 'returnedEntry',
+    conflictIds: ['d1'],
+    entry: { entryId: 'returned', createdAt: 7, title: null, preview: 'Sunny' },
+  };
+  await render(1, [returned]);
+  expect(content()).toContain(mockEn['cloud.conflicts.homeNotice']);
+  await refreshSnapshot(1, []);
+  expect(root.toJSON()).toBeNull();
+});
