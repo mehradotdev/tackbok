@@ -8,6 +8,7 @@ import type { JournalSnapshotPayload } from '../types';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import {
   pendingMediaBytes,
+  productionCodeVersion,
   productionSnapshotCache,
   ProductionSnapshotRuntimeEngine,
 } from './productionEngine';
@@ -54,7 +55,9 @@ jest.mock('drizzle-orm', () => ({
   ne: jest.fn(),
   or: jest.fn(),
 }));
+jest.mock('expo-application', () => ({ nativeBuildVersion: '42' }));
 jest.mock('expo-network', () => ({}));
+jest.mock('expo-updates', () => ({ updateId: 'abc' }));
 jest.mock('~/lib/analytics', () => ({ track: jest.fn() }));
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: {
@@ -429,4 +432,8 @@ test('a connection change clears verified snapshots, even those a draining pass 
   expect(sizeDuringChange).toBe(0);
   expect(productionSnapshotCache.get('vault-before', 'before')).toBeUndefined();
   expect(productionSnapshotCache.get('vault-draining', 'late')).toBeUndefined();
+});
+
+test('a failed merge is retried after a new build or update', () => {
+  expect(productionCodeVersion()).toBe('42/abc');
 });

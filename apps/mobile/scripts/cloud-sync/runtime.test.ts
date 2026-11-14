@@ -232,7 +232,7 @@ describe('production cloud-sync runtime', () => {
       join(mobileRoot, 'src/lib/cloudSync/ui/production.ts'),
     ).text();
     const reasons = Object.keys(ATTENTION_RECOVERY_ACTION) as SyncAttentionReason[];
-    expect(reasons).toHaveLength(21);
+    expect(reasons).toHaveLength(22);
     for (const reason of reasons) {
       expect(screen).toContain(`'${reason}'`);
       expect(screen).toContain(`'${ATTENTION_RECOVERY_ACTION[reason]}'`);
@@ -242,6 +242,7 @@ describe('production cloud-sync runtime', () => {
       'cloud.cloudBackupRetryCompleted',
       'cloud.reconnectGoogleDrive',
       'cloud.syncAgain',
+      'cloud.changesFromAnotherDeviceCouldNotBeCombined',
       'cloud.photosAndVoiceMemosAreWaitingForWiFiYour',
       'cloud.photosAndVoiceNotesSyncOnlyOnWiFi',
     ] as const satisfies readonly TranslationKey[];

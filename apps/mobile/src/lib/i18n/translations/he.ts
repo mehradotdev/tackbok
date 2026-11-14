@@ -959,6 +959,8 @@ export const he: Translations = {
     'שינויים מיותר מדי מכשירים ממתינים לאיחוד. הסנכרון נעצר.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     'לא ניתן היה לאחד בבטחה שני פריטים ביומן שלך. הסנכרון נעצר. אפשר לייצא עותק מההגדרות.',
+  'cloud.changesFromAnotherDeviceCouldNotBeCombined':
+    'Tackbok לא הצליח לאחד שינויים ממכשיר אחר עם המכשיר הזה. שום דבר במכשיר הזה לא השתנה. הסנכרון נעצר. עדכון Tackbok במכשירים שלך עשוי לעזור. אפשר לייצא עותק מההגדרות.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     'Tackbok לא הצליח לשמור נתוני סנכרון במכשיר הזה. ייתכן שהאחסון כמעט מלא. הסנכרון נעצר.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':

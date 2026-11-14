@@ -935,6 +935,8 @@ export const zhTW: Translations = {
     '有太多裝置的變更等待合併。同步已停止。',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     '你日記中的兩個項目無法安全合併。同步已停止。你可以在設定中匯出一份副本。',
+  'cloud.changesFromAnotherDeviceCouldNotBeCombined':
+    '塔克布克無法將另一台裝置上的變更與此裝置合併。此裝置上的內容沒有任何變更。同步已停止。在你的裝置上更新塔克布克可能會有幫助。你可以在設定中匯出一份副本。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     '塔克布克無法在此裝置上儲存同步資料，裝置儲存空間可能不足。同步已停止。',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':

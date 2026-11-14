@@ -1038,6 +1038,8 @@ export const de: Translations = {
     'Änderungen von zu vielen Geräten warten darauf, zusammengeführt zu werden. Die Synchronisierung wurde angehalten.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     'Zwei Einträge in deinem Tagebuch konnten nicht sicher zusammengeführt werden. Die Synchronisierung wurde angehalten. Du kannst in den Einstellungen eine Kopie exportieren.',
+  'cloud.changesFromAnotherDeviceCouldNotBeCombined':
+    'Tackbok konnte Änderungen von einem anderen Gerät nicht mit diesem zusammenführen. Auf diesem Gerät wurde nichts geändert. Die Synchronisierung wurde angehalten. Ein Update von Tackbok auf deinen Geräten kann helfen. Du kannst in den Einstellungen eine Kopie exportieren.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     'Tackbok konnte keine Synchronisierungsdaten auf diesem Gerät speichern. Möglicherweise ist der Speicher fast voll. Die Synchronisierung wurde angehalten.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':

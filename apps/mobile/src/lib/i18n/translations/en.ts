@@ -993,6 +993,9 @@ export const en = {
     'Changes from too many devices are waiting to be combined. Sync has stopped.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     "Two items in your journal couldn't be combined safely. Sync has stopped. You can export a copy from Settings.",
+  // Another device's journal changes conflict in a way the merge cannot resolve.
+  'cloud.changesFromAnotherDeviceCouldNotBeCombined':
+    "Tackbok couldn't combine changes from another device with this one. Nothing on this device was changed. Sync has stopped. Updating Tackbok on your devices may help. You can export a copy from Settings.",
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     "Tackbok couldn't save sync data on this device. It may be low on storage. Sync has stopped.",
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':

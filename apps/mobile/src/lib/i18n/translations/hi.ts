@@ -910,6 +910,8 @@ export const hi = {
     'बहुत सारे डिवाइस के बदलाव जोड़े जाने का इंतज़ार कर रहे हैं। सिंक रुक गया है।',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     'आपकी डायरी के दो आइटम सुरक्षित रूप से जोड़े नहीं जा सके। सिंक रुक गया है। आप सेटिंग्स से एक कॉपी निर्यात कर सकते हैं।',
+  'cloud.changesFromAnotherDeviceCouldNotBeCombined':
+    'ताकबूक किसी दूसरे डिवाइस के बदलावों को इस डिवाइस के साथ जोड़ नहीं सका। इस डिवाइस पर कुछ भी नहीं बदला गया। सिंक रुक गया है। अपने डिवाइस पर ताकबूक अपडेट करने से मदद मिल सकती है। आप सेटिंग्स से एक कॉपी निर्यात कर सकते हैं।',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     'ताकबूक इस डिवाइस पर सिंक डेटा सहेज नहीं सका। हो सकता है स्टोरेज कम हो। सिंक रुक गया है।',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':

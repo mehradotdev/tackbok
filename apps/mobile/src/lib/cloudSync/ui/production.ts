@@ -134,6 +134,7 @@ export type CloudSyncActionFailureCategory =
   | 'wifi-only-media'
   | 'local-media'
   | 'corrupt'
+  | 'merge'
   | 'transient'
   | 'unknown';
 

@@ -1,5 +1,7 @@
 import { and, count, eq, isNotNull, isNull, ne, or } from 'drizzle-orm';
+import * as Application from 'expo-application';
 import * as Network from 'expo-network';
+import * as Updates from 'expo-updates';
 
 import {
   cloudConflicts,
@@ -78,6 +80,11 @@ const HYDRATION_BATCH = 2;
  * account or backup switch, reset, journal deletion) clears it.
  */
 export const productionSnapshotCache = new VerifiedSnapshotCache();
+
+/** The running build and update; a change retries a merge that failed. */
+export function productionCodeVersion(): string {
+  return `${Application.nativeBuildVersion ?? ''}/${Updates.updateId ?? 'embedded'}`;
+}
 cloudConnectionLifecycle.addChangeListener(() => productionSnapshotCache.clear());
 
 /** The running pass's signal, shared by one engine's provider and hooks. */
@@ -618,6 +625,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     },
     Date.now,
     productionSnapshotCache,
+    productionCodeVersion(),
   );
   return new ProductionSnapshotRuntimeEngine(
     options.vault,

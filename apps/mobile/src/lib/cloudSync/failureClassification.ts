@@ -13,6 +13,7 @@ const FAILURE_CATEGORIES: readonly CloudSyncFailureCategory[] = [
   'wifi-only-media',
   'local-media',
   'corrupt',
+  'merge',
   'transient',
   'unknown',
 ];
@@ -37,6 +38,8 @@ export function failureCategoryForAttention(
   )
     return 'auth';
   if (reason === 'provider-quota-full') return 'quota';
+  // Another device's changes could not be combined with this journal.
+  if (reason === 'merge-failed') return 'merge';
   // A photo or voice note on this device, not the cloud backup, is unreadable.
   if (reason === 'local-media-unreadable') return 'local-media';
   if (

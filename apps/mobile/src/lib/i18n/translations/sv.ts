@@ -931,6 +931,8 @@ export const sv = {
     'Ändringar från för många enheter väntar på att slås ihop. Synkroniseringen har stoppats.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     'Två objekt i din dagbok kunde inte slås ihop säkert. Synkroniseringen har stoppats. Du kan exportera en kopia från Inställningar.',
+  'cloud.changesFromAnotherDeviceCouldNotBeCombined':
+    'Tackbok kunde inte slå ihop ändringar från en annan enhet med den här. Inget på den här enheten har ändrats. Synkroniseringen har stoppats. Det kan hjälpa att uppdatera Tackbok på dina enheter. Du kan exportera en kopia från Inställningar.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     'Tackbok kunde inte spara synkroniseringsdata på den här enheten. Lagringsutrymmet kan vara nästan fullt. Synkroniseringen har stoppats.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
