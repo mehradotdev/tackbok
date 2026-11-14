@@ -17,9 +17,18 @@ jest.mock('expo-modules-core', () => ({
 
 const mockStore = new Map<string, string>();
 const mockStoreWrites: string[] = [];
+// Holds the next read of one key until `until` settles.
+let mockBlockedRead: { key: string; until: Promise<void> } | null = null;
 jest.mock('expo-secure-store', () => ({
   AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'after-first-unlock-this-device-only',
-  getItemAsync: async (key: string) => mockStore.get(key) ?? null,
+  getItemAsync: async (key: string) => {
+    const blocked = mockBlockedRead;
+    if (blocked?.key === key) {
+      mockBlockedRead = null;
+      await blocked.until;
+    }
+    return mockStore.get(key) ?? null;
+  },
   setItemAsync: async (key: string, value: string) => {
     mockStoreWrites.push(key);
     mockStore.set(key, value);
@@ -67,6 +76,7 @@ beforeEach(async () => {
   await new AndroidGoogleAuthorization().signOut();
   mockStore.clear();
   mockStoreWrites.length = 0;
+  mockBlockedRead = null;
   mockNativeAuthorize.mockReset();
   mockNativeInvalidate.mockReset();
   mockNativeSignOut.mockReset();
@@ -309,6 +319,75 @@ describe('AndroidGoogleAuthorization token reuse', () => {
     await signOut;
     expect(mockStore.has(TOKEN_KEY)).toBe(false);
     expect(tokenWrites()).toBe(0);
+  });
+
+  it('Disconnect while the connection state is being read stops the request', async () => {
+    const auth = await connected();
+    const read = deferred<void>();
+    mockBlockedRead = { key: ACCOUNT_EMAIL_KEY, until: read.promise };
+    const request = auth.getFreshAccessToken();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new AndroidGoogleAuthorization().signOut();
+    read.resolve();
+    await expect(request).rejects.toMatchObject({ code: 'temporarily-unavailable' });
+    expect(silentMints()).toBe(0);
+    expect(mockStore.has(TOKEN_KEY)).toBe(false);
+  });
+
+  it('Reconnect while the account is being read never mints for the old account', async () => {
+    const auth = await connected();
+    const read = deferred<void>();
+    mockBlockedRead = { key: ACCOUNT_EMAIL_KEY, until: read.promise };
+    const request = auth.getFreshAccessToken();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await connect(new AndroidGoogleAuthorization(), 'other@gmail.com');
+    read.resolve();
+    await expect(request).rejects.toMatchObject({ code: 'temporarily-unavailable' });
+    expect(silentMints()).toBe(0);
+    mockNativeAuthorize.mockResolvedValueOnce({
+      accessToken: 'new-account',
+      expiresAt: 0,
+    });
+    await expect(auth.getFreshAccessToken()).resolves.toBe('new-account');
+    expect(mockNativeAuthorize).toHaveBeenLastCalledWith(false, 'other@gmail.com');
+  });
+
+  it('requests wait for a 401 recovery, so the rejected token never comes back', async () => {
+    const auth = await connected();
+    mockNativeAuthorize.mockResolvedValueOnce({ accessToken: 'token-2', expiresAt: 0 });
+    await auth.getFreshAccessToken();
+    const invalidated = deferred<void>();
+    mockNativeInvalidate.mockReturnValueOnce(invalidated.promise);
+    // Until Play services drops it, a mint would hand back the rejected token.
+    let invalidatedDone = false;
+    mockNativeAuthorize.mockImplementation(async () => ({
+      accessToken: invalidatedDone ? 'token-3' : 'token-2',
+      expiresAt: 0,
+    }));
+    const recovery = auth.clearInvalidAccessToken();
+    const request = auth.getFreshAccessToken();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(silentMints()).toBe(1);
+    invalidatedDone = true;
+    invalidated.resolve();
+    await recovery;
+    await expect(request).resolves.toBe('token-3');
+    await expect(auth.getFreshAccessToken()).resolves.toBe('token-3');
+    expect(silentMints()).toBe(2);
+  });
+
+  it('a failed 401 recovery does not block later requests', async () => {
+    const auth = await connected();
+    mockNativeAuthorize.mockResolvedValueOnce({ accessToken: 'token-2', expiresAt: 0 });
+    await auth.getFreshAccessToken();
+    const unreadable = Promise.reject(new Error('keystore unavailable'));
+    unreadable.catch(() => undefined);
+    mockBlockedRead = { key: TOKEN_KEY, until: unreadable };
+    const recovery = auth.clearInvalidAccessToken();
+    const request = auth.getFreshAccessToken();
+    mockNativeAuthorize.mockResolvedValueOnce({ accessToken: 'token-3', expiresAt: 0 });
+    await expect(recovery).rejects.toThrow('keystore unavailable');
+    await expect(request).resolves.toBe('token-3');
   });
 
   it('a mint from the previous account is discarded after Reconnect', async () => {

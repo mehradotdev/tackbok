@@ -120,6 +120,16 @@ let inFlightMint: { scope: MintScope; promise: Promise<string> } | null = null;
 // Bumped by Disconnect and interactive authorization. A mint that started under
 // an older value belongs to a connection that no longer exists.
 let connection = 0;
+// A 401 recovery in progress. Requests wait for it, so none can mint the
+// rejected token from the Play services cache before it is invalidated.
+let invalidation: Promise<void> | null = null;
+
+function connectionChanged(): CloudAuthError {
+  return new CloudAuthError(
+    'temporarily-unavailable',
+    'Google Drive connection changed during authorization',
+  );
+}
 
 function forgetToken(): void {
   memoryToken = null;
@@ -158,6 +168,12 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
   }
 
   async getFreshAccessToken(): Promise<string> {
+    // Captured before any read: what the reads below return belongs to this
+    // connection only if no Disconnect or Reconnect ran while they were pending.
+    const startedUnder = {
+      connection,
+      lifecycleEpoch: cloudConnectionLifecycle.epoch,
+    };
     // The durable mark is the connection state, not token presence: the
     // 401-recovery path deletes the stored token set while still connected,
     // and Play services would happily mint for a disconnected device whose
@@ -171,6 +187,10 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
     // token this process minted is reused, for a bounded time, and only while
     // the pinned account and the connection are unchanged.
     const accountEmail = await readGoogleAccountEmail();
+    while (invalidation) await invalidation.catch(() => undefined);
+    const scope: MintScope = { ...startedUnder, accountEmail };
+    if (!isCurrent(scope)) throw connectionChanged();
+    // Nothing below awaits until the mint is registered.
     const reusable = memoryToken;
     if (
       reusable &&
@@ -188,11 +208,6 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
     ) {
       return pending.promise;
     }
-    const scope: MintScope = {
-      accountEmail,
-      connection,
-      lifecycleEpoch: cloudConnectionLifecycle.epoch,
-    };
     const promise = this.mint(scope).finally(() => {
       if (inFlightMint?.scope === scope) inFlightMint = null;
     });
@@ -225,12 +240,7 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
     } catch (error) {
       throw normalizeNativeError(error);
     }
-    if (!isCurrent(scope)) {
-      throw new CloudAuthError(
-        'temporarily-unavailable',
-        'Google Drive connection changed during authorization',
-      );
-    }
+    if (!isCurrent(scope)) throw connectionChanged();
     // A 401 recovery that ran during the mint dropped this mint: its token
     // may be the one just rejected, so only its own callers use it.
     if (inFlightMint?.scope === scope) {
@@ -246,6 +256,17 @@ export class AndroidGoogleAuthorization implements CloudAuthorization {
   async clearInvalidAccessToken(): Promise<void> {
     const rejected = memoryToken?.accessToken;
     forgetToken();
+    const previous = invalidation ?? Promise.resolve();
+    const current = previous.catch(() => undefined).then(() => this.invalidate(rejected));
+    invalidation = current;
+    try {
+      await current;
+    } finally {
+      if (invalidation === current) invalidation = null;
+    }
+  }
+
+  private async invalidate(rejected: string | undefined): Promise<void> {
     const cached = await readGoogleTokens();
     for (const accessToken of new Set([rejected, cached?.accessToken])) {
       if (!accessToken) continue;

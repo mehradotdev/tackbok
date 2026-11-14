@@ -3834,6 +3834,38 @@ describe('retention cleanup with verified snapshots', () => {
     expect(requests(provider, 'download-snapshot')).toBe(1);
   });
 
+  test('a head damaged on Drive after this device verified it is decided by the cached copy', async () => {
+    // Deliberate: a snapshot ID is the hash of its payload, so the cached copy
+    // is the genuine content. Without a cache the damaged download aborts
+    // cleanup and keeps everything; with one, cleanup deletes what the genuine
+    // head covers. Heads themselves are never deleted.
+    const damage = async (provider: FakeSnapshotProvider, vaultId: string) => {
+      const [{ head }] = provider.physicalHeads(vaultId);
+      const listed = (await provider.listSnapshots(vaultId)).find(
+        (snapshot) => snapshot.snapshotId === head.snapshotId,
+      )!;
+      provider.injectSnapshot(
+        vaultId,
+        head.snapshotId,
+        new Uint8Array([1, 2, 3]),
+        listed.createdAt,
+      );
+      return head.snapshotId;
+    };
+    const expected = await remainingWithoutCache();
+    const uncached = await retainedHistory();
+    await damage(uncached.provider, uncached.vaultId);
+    const before = uncached.provider.snapshotIds(uncached.vaultId);
+    await uncached.cleanup();
+    expect(uncached.provider.snapshotIds(uncached.vaultId)).toEqual(before);
+
+    const cached = await retainedHistory();
+    const headId = await damage(cached.provider, cached.vaultId);
+    await cached.cleanup(cached.cache);
+    expect(cached.provider.snapshotIds(cached.vaultId)).toEqual(expected);
+    expect(expected).toContain(headId);
+  });
+
   test('an up-to-date pass cleans up from the engine cache', async () => {
     const expected = await remainingWithoutCache();
     const { provider, vaultId, cache, reader } = await retainedHistory();
