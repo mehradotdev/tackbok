@@ -145,6 +145,7 @@ export class SnapshotSyncEngine {
       provider,
       hooks: this.hooks,
       now,
+      snapshotCache,
     });
     this.publisher = new SnapshotPublisher({
       vaultId,

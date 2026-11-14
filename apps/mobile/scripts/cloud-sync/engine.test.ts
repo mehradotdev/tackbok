@@ -3720,6 +3720,161 @@ describe('verified snapshots across passes', () => {
   });
 });
 
+describe('retention cleanup with verified snapshots', () => {
+  const requests = (provider: FakeSnapshotProvider, operation: string) =>
+    provider.requests.filter((op) => op === operation).length;
+
+  /**
+   * A writer publishes six snapshots and a reader pulls each one, so the
+   * reader's cache holds every snapshot cleanup reads. A month later the
+   * oldest are past the grace period and covered by the writer's head.
+   */
+  async function retainedHistory() {
+    const writer = harness('cleanup-cache-writer');
+    const reader = harness(
+      'cleanup-cache-reader',
+      blankDomain(),
+      writer.provider,
+      writer.clock,
+    );
+    const cache = new VerifiedSnapshotCache();
+    for (let index = 0; index < 6; index++) {
+      writer.clock.value++;
+      writer.journal.mutate(
+        withEntry(writer.journal.current(), entry(`entry-${index}`, 'Keep')),
+      );
+      expect((await writer.engine().sync()).status).toBe('published');
+      expect((await reader.engine({}, cache).sync()).status).toBe('pulled');
+    }
+    writer.clock.value += 31 * 24 * 60 * 60 * 1000;
+    writer.provider.requests.length = 0;
+    const cleanup = (snapshotCache?: VerifiedSnapshotCache) =>
+      new SnapshotCleanup({
+        vaultId: reader.vaultId,
+        stateStore: reader.state,
+        shadowManager: reader.shadows,
+        provider: reader.provider,
+        hooks: {},
+        now: () => reader.clock.value,
+        snapshotCache,
+      }).run();
+    return { provider: writer.provider, vaultId: writer.vaultId, cache, cleanup, reader };
+  }
+
+  async function remainingWithoutCache() {
+    const { provider, vaultId, cleanup } = await retainedHistory();
+    const before = provider.snapshotIds(vaultId);
+    await cleanup();
+    const remaining = provider.snapshotIds(vaultId);
+    // The scenario has to delete something to compare deletions.
+    expect(remaining.length).toBeLessThan(before.length);
+    return remaining;
+  }
+
+  test('a warm cache deletes the same snapshots without downloading any', async () => {
+    const expected = await remainingWithoutCache();
+    const { provider, vaultId, cache, cleanup } = await retainedHistory();
+    expect(cache.size).toBe(6);
+    await cleanup(cache);
+    expect(provider.snapshotIds(vaultId)).toEqual(expected);
+    expect(requests(provider, 'download-snapshot')).toBe(0);
+    // Each deletion still re-lists the heads first.
+    expect(requests(provider, 'list-heads')).toBe(
+      1 + requests(provider, 'delete-snapshot'),
+    );
+  });
+
+  test('a cold cache downloads and deletes the same snapshots', async () => {
+    const expected = await remainingWithoutCache();
+    const { provider, vaultId, cleanup } = await retainedHistory();
+    await cleanup(new VerifiedSnapshotCache());
+    expect(provider.snapshotIds(vaultId)).toEqual(expected);
+    expect(requests(provider, 'download-snapshot')).toBeGreaterThan(0);
+  });
+
+  test('an entry that fails the download checks is replaced by a download', async () => {
+    const expected = await remainingWithoutCache();
+    const { provider, vaultId, cache, cleanup } = await retainedHistory();
+    const [{ head }] = provider.physicalHeads(vaultId);
+    const genuine = cache.get(vaultId, head.snapshotId)!;
+    // Claims another author: a download of this head would be refused.
+    cache.set(
+      vaultId,
+      head.snapshotId,
+      { ...genuine, authorDeviceId: 'someone-else' },
+      1,
+    );
+    await cleanup(cache);
+    expect(provider.snapshotIds(vaultId)).toEqual(expected);
+    expect(requests(provider, 'download-snapshot')).toBe(1);
+    expect(cache.get(vaultId, head.snapshotId)).toBeUndefined();
+  });
+
+  test('a cache that cannot be read falls back to downloads', async () => {
+    const expected = await remainingWithoutCache();
+    const { provider, vaultId, cache, cleanup } = await retainedHistory();
+    cache.get = () => {
+      throw new Error('unreadable cache');
+    };
+    await cleanup(cache);
+    expect(provider.snapshotIds(vaultId)).toEqual(expected);
+    expect(requests(provider, 'download-snapshot')).toBeGreaterThan(0);
+  });
+
+  test('a cached head whose snapshot is gone protects everything, as a download would', async () => {
+    const { provider, vaultId, cache, cleanup } = await retainedHistory();
+    const [{ head }] = provider.physicalHeads(vaultId);
+    expect(cache.get(vaultId, head.snapshotId)).toBeDefined();
+    await provider.deleteSnapshot(vaultId, head.snapshotId);
+    const before = provider.snapshotIds(vaultId);
+    provider.requests.length = 0;
+    await cleanup(cache);
+    expect(provider.snapshotIds(vaultId)).toEqual(before);
+    expect(requests(provider, 'delete-snapshot')).toBe(0);
+    expect(requests(provider, 'download-snapshot')).toBe(1);
+  });
+
+  test('a head damaged on Drive after this device verified it is decided by the cached copy', async () => {
+    // Deliberate: a snapshot ID is the hash of its payload, so the cached copy
+    // is the genuine content. Without a cache the damaged download aborts
+    // cleanup and keeps everything; with one, cleanup deletes what the genuine
+    // head covers. Heads themselves are never deleted.
+    const damage = async (provider: FakeSnapshotProvider, vaultId: string) => {
+      const [{ head }] = provider.physicalHeads(vaultId);
+      const listed = (await provider.listSnapshots(vaultId)).find(
+        (snapshot) => snapshot.snapshotId === head.snapshotId,
+      )!;
+      provider.injectSnapshot(
+        vaultId,
+        head.snapshotId,
+        new Uint8Array([1, 2, 3]),
+        listed.createdAt,
+      );
+      return head.snapshotId;
+    };
+    const expected = await remainingWithoutCache();
+    const uncached = await retainedHistory();
+    await damage(uncached.provider, uncached.vaultId);
+    const before = uncached.provider.snapshotIds(uncached.vaultId);
+    await uncached.cleanup();
+    expect(uncached.provider.snapshotIds(uncached.vaultId)).toEqual(before);
+
+    const cached = await retainedHistory();
+    const headId = await damage(cached.provider, cached.vaultId);
+    await cached.cleanup(cached.cache);
+    expect(cached.provider.snapshotIds(cached.vaultId)).toEqual(expected);
+    expect(expected).toContain(headId);
+  });
+
+  test('an up-to-date pass cleans up from the engine cache', async () => {
+    const expected = await remainingWithoutCache();
+    const { provider, vaultId, cache, reader } = await retainedHistory();
+    expect((await reader.engine({}, cache).sync()).status).toBe('up-to-date');
+    expect(provider.snapshotIds(vaultId)).toEqual(expected);
+    expect(requests(provider, 'download-snapshot')).toBe(0);
+  });
+});
+
 describe('text on mobile data with Wi-Fi-only media', () => {
   /**
    * Refuses media transfers like the production policy until `onWifi` is set.
