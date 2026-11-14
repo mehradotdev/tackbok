@@ -5,7 +5,7 @@ import { useSettingsStore } from '~/lib/settings';
 import {
   getEntriesForDay,
   getOtherVersionGroups,
-  getOtherVersionCount,
+  getOpenConflictGroups,
   getEntryCount,
   getEntryDatesForMonth,
   searchEntries,
@@ -65,13 +65,15 @@ export function useOtherVersionGroups() {
 }
 
 /**
- * Hook for the number of entries sync kept as another version. Lives under the
- * entries key so edits, deletes and applied syncs refresh it.
+ * Hook for entry conflicts still open: groups with more than one live version,
+ * as member IDs (see `getOpenConflictGroups`). Lives under the entries key so
+ * edits, deletes and applied syncs refresh it.
  */
-export function useOtherVersionCount() {
-  return useQuery<number>({
-    queryKey: [QUERY_KEYS.entries, 'otherVersionCount'],
-    queryFn: getOtherVersionCount,
+export function useOpenConflictGroups(enabled = true) {
+  return useQuery<string[][]>({
+    queryKey: [QUERY_KEYS.entries, 'openConflictGroups'],
+    queryFn: getOpenConflictGroups,
+    enabled,
   });
 }
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
@@ -6,6 +6,7 @@ import type { Asset, Entry } from '~/types';
 import type { OtherVersionGroup } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
 import { track } from '~/lib/analytics';
+import { useSettingsStore } from '~/lib/settings';
 import { acknowledgeEntryConflicts } from '~/lib/cloudSync/ui';
 import {
   useDeleteEntry,
@@ -52,6 +53,12 @@ export default function OtherVersionsScreen() {
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  // The versions are in front of the user now, so the Home notice about these
+  // entry conflicts is no longer news on this device.
+  useEffect(() => {
+    useSettingsStore.getState().markOtherVersionsSeen(Date.now());
+  }, []);
 
   const handlePhotoPress = (photos: Asset[], index: number) => {
     setViewerPhotos(photos);
@@ -104,7 +111,8 @@ export default function OtherVersionsScreen() {
     }
     if (ids.length === 0) return;
     // The choice is made, so the conflicts about these entries are handled.
-    // Best effort: the deletes already happened, and the card still offers them.
+    // Best effort: the deletes already happened, and the entries row clears by
+    // itself once the group has one version left; this keeps Home from loading them.
     acknowledgeEntryConflicts([keepId, ...ids]).catch((error: unknown) =>
       console.error('Failed to dismiss entry conflicts', error),
     );

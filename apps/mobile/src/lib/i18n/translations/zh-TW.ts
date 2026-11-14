@@ -841,6 +841,12 @@ export const zhTW: Translations = {
     '這些紀錄同時在兩部裝置上被編輯，因此兩個版本都已保留。開啟一則紀錄即可編輯或刪除。',
   'cloud.conflicts.noOtherVersions': '沒有紀錄有其他版本。',
   'cloud.conflicts.homeNotice': '有些變更同時在兩部裝置上進行。查看保留了哪些內容。',
+  'cloud.conflicts.homeNoticeEntries':
+    '有 {count} 則紀錄同時在兩部裝置上被編輯。沒有遺失任何內容：兩個版本都在你的日記中。',
+  'cloud.conflicts.compareVersions': '比較版本',
+  'cloud.conflicts.hideNotice': '隱藏此通知',
+  'cloud.conflicts.hideNoticeHint':
+    '僅在此裝置上隱藏。如果再次有內容同時在兩部裝置上被變更，它會重新顯示。',
   'cloud.conflicts.otherVersionsRow': '保留了兩個版本的紀錄',
   'cloud.conflicts.loadFailed': '無法載入這些選項。',
   'cloud.conflicts.otherVersionsLoadFailed': '無法載入其他版本。',

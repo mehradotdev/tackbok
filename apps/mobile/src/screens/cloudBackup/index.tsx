@@ -662,6 +662,8 @@ export default function CloudBackupScreen() {
                 )}
               </View>
 
+              <ConflictsCard refreshToken={snapshot} />
+
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow
                   icon={Wifi}
@@ -727,7 +729,6 @@ export default function CloudBackupScreen() {
                 />
               </View>
 
-              <ConflictsCard refreshToken={snapshot} />
               <OtherVersionsRow />
 
               <View className="rounded-lg border border-border bg-card overflow-hidden">

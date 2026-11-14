@@ -18,9 +18,10 @@ export interface CloudConflictRecord {
 
 /**
  * An actionable row on the conflicts card. Each row lists every conflict
- * record it resolves, so one action acknowledges them all.
+ * record it resolves, so one action acknowledges them all. `latestAt` is when
+ * this device first saw the newest of those records.
  */
-export type CloudConflictItem =
+export type CloudConflictItem = (
   | {
       kind: 'name';
       conflictIds: string[];
@@ -36,9 +37,11 @@ export type CloudConflictItem =
       otherUri: string;
     }
   | {
+      /** Entry conflicts still open: the entry has more than one live version. */
       kind: 'entries';
       conflictIds: string[];
-      recoveredEntryIds: string[];
+      /** Open conflict groups these records touch: one per edited entry. */
+      entryCount: number;
     }
   | {
       /** An entry deleted on one device and edited on another: the edit was kept. */
@@ -51,7 +54,8 @@ export type CloudConflictItem =
        * device joining with entries another device had deleted.
        */
       edited: boolean;
-    };
+    }
+) & { latestAt: number };
 
 /** Enough of a returned entry for the user to recognize it. */
 export interface ReturnedEntrySummary {
@@ -71,8 +75,11 @@ export interface ConflictSummaryContext {
   currentPhotoBlobHash: string | null;
   /** Profile photos whose files exist on this device, keyed by asset ID. */
   localPhotos: ReadonlyMap<string, { uri: string; blobHash: string | null }>;
-  /** Recovered entries that still exist in the journal. */
-  existingEntryIds: ReadonlySet<string>;
+  /**
+   * The open conflict group (see `getOpenConflictGroups`) of each entry in one,
+   * by entry ID. A version left on its own is in none.
+   */
+  openConflictGroupOf: ReadonlyMap<string, number>;
   /** Entries named by delete/edit records that are in the journal, by ID. */
   returnedEntries: ReadonlyMap<string, ReturnedEntrySummary>;
 }
@@ -117,12 +124,22 @@ export function deriveConflictItems(
   records: readonly CloudConflictRecord[],
   context: ConflictSummaryContext,
 ): CloudConflictItem[] {
-  const names = new Map<string | null, { conflictIds: string[]; archived: boolean }>();
+  const names = new Map<
+    string | null,
+    { conflictIds: string[]; archived: boolean; latestAt: number }
+  >();
   // Keyed by content hash when known, so copies of one photo share a row.
-  const photos = new Map<string, { assetId: string; conflictIds: string[] }>();
+  const photos = new Map<
+    string,
+    { assetId: string; conflictIds: string[]; latestAt: number }
+  >();
   const entryConflictIds: string[] = [];
-  const recoveredEntryIds = new Set<string>();
-  const returned = new Map<string, { conflictIds: string[]; edited: boolean }>();
+  const openGroups = new Set<number>();
+  let entriesLatestAt = 0;
+  const returned = new Map<
+    string,
+    { conflictIds: string[]; edited: boolean; latestAt: number }
+  >();
 
   for (const record of records) {
     // shortcut: dismissal and this join filter are local to the device;
@@ -132,9 +149,14 @@ export function deriveConflictItems(
     if (record.entityType === 'profile' && record.field === 'displayName') {
       if (record.alternateValue === undefined) continue;
       if (record.alternateValue === context.currentName) continue;
-      const row = names.get(record.alternateValue) ?? { conflictIds: [], archived: true };
+      const row = names.get(record.alternateValue) ?? {
+        conflictIds: [],
+        archived: true,
+        latestAt: 0,
+      };
       row.conflictIds.push(record.conflictId);
       row.archived &&= record.archived;
+      row.latestAt = Math.max(row.latestAt, record.createdAt);
       names.set(record.alternateValue, row);
       continue;
     }
@@ -146,8 +168,9 @@ export function deriveConflictItems(
       if (!photo) continue;
       if (photo.blobHash && photo.blobHash === context.currentPhotoBlobHash) continue;
       const key = photo.blobHash ?? assetId;
-      const row = photos.get(key) ?? { assetId, conflictIds: [] };
+      const row = photos.get(key) ?? { assetId, conflictIds: [], latestAt: 0 };
       row.conflictIds.push(record.conflictId);
+      row.latestAt = Math.max(row.latestAt, record.createdAt);
       photos.set(key, row);
       continue;
     }
@@ -155,54 +178,70 @@ export function deriveConflictItems(
     if (record.entityType === 'entry' && record.field === 'deleteEdit') {
       // Both sides deleting leaves the entry deleted, so it is not in the journal.
       if (!context.returnedEntries.has(record.entityId)) continue;
-      const row = returned.get(record.entityId) ?? { conflictIds: [], edited: false };
+      const row = returned.get(record.entityId) ?? {
+        conflictIds: [],
+        edited: false,
+        latestAt: 0,
+      };
       row.conflictIds.push(record.conflictId);
       row.edited ||= record.hasBase;
+      row.latestAt = Math.max(row.latestAt, record.createdAt);
       returned.set(record.entityId, row);
       continue;
     }
 
     if (record.entityType === 'entry') {
-      const existing = record.recoveredEntityIds.filter((id) =>
-        context.existingEntryIds.has(id),
-      );
-      if (existing.length === 0) continue;
+      // Open while a version it kept still shares its group with another live
+      // version. Its original alone is not enough: a newer conflict may have
+      // reopened that group after this one was settled.
+      const groups = record.recoveredEntityIds.flatMap((id) => {
+        const group = context.openConflictGroupOf.get(id);
+        return group === undefined ? [] : [group];
+      });
+      if (groups.length === 0) continue;
       entryConflictIds.push(record.conflictId);
-      for (const id of existing) recoveredEntryIds.add(id);
+      for (const group of groups) openGroups.add(group);
+      entriesLatestAt = Math.max(entriesLatestAt, record.createdAt);
     }
   }
 
   const items: CloudConflictItem[] = [];
-  for (const [other, { conflictIds, archived }] of names) {
+  for (const [other, { conflictIds, archived, latestAt }] of names) {
     items.push({
       kind: 'name',
       conflictIds,
       current: context.currentName,
       other,
       archived,
+      latestAt,
     });
   }
-  for (const { assetId, conflictIds } of photos.values()) {
+  for (const { assetId, conflictIds, latestAt } of photos.values()) {
     items.push({
       kind: 'photo',
       conflictIds,
       otherAssetId: assetId,
       otherUri: context.localPhotos.get(assetId)!.uri,
+      latestAt,
     });
   }
   if (entryConflictIds.length > 0) {
     items.push({
       kind: 'entries',
       conflictIds: entryConflictIds,
-      recoveredEntryIds: [...recoveredEntryIds].sort(),
+      entryCount: openGroups.size,
+      latestAt: entriesLatestAt,
     });
   }
-  const returnedItems = [...returned].map(([entryId, { conflictIds, edited }]) => ({
-    kind: 'returnedEntry' as const,
-    conflictIds,
-    entry: context.returnedEntries.get(entryId)!,
-    edited,
-  }));
+  const returnedItems = [...returned].map(
+    ([entryId, { conflictIds, edited, latestAt }]) => ({
+      kind: 'returnedEntry' as const,
+      conflictIds,
+      entry: context.returnedEntries.get(entryId)!,
+      edited,
+      latestAt,
+    }),
+  );
   returnedItems.sort(
     (a, b) =>
       b.entry.createdAt - a.entry.createdAt ||

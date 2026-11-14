@@ -933,6 +933,12 @@ export const de: Translations = {
   'cloud.conflicts.noOtherVersions': 'Keine Einträge haben eine andere Version.',
   'cloud.conflicts.homeNotice':
     'Einige Änderungen wurden gleichzeitig auf zwei Geräten gemacht. Sieh nach, was behalten wurde.',
+  'cloud.conflicts.homeNoticeEntries':
+    '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Nichts ging verloren: Beide Versionen sind in deinem Tagebuch.',
+  'cloud.conflicts.compareVersions': 'Versionen vergleichen',
+  'cloud.conflicts.hideNotice': 'Diesen Hinweis ausblenden',
+  'cloud.conflicts.hideNoticeHint':
+    'Blendet ihn nur auf diesem Gerät aus. Er erscheint wieder, wenn erneut Änderungen gleichzeitig auf zwei Geräten gemacht werden.',
   'cloud.conflicts.otherVersionsRow': 'Einträge, die in zwei Versionen behalten wurden',
   'cloud.conflicts.loadFailed': 'Diese Auswahl konnte nicht geladen werden.',
   'cloud.conflicts.otherVersionsLoadFailed':

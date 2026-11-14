@@ -853,6 +853,12 @@ export const es = {
   'cloud.conflicts.noOtherVersions': 'Ninguna entrada tiene otra versión.',
   'cloud.conflicts.homeNotice':
     'Se hicieron algunos cambios en dos dispositivos a la vez. Mira qué se conservó.',
+  'cloud.conflicts.homeNoticeEntries':
+    '{count} entradas se editaron en dos dispositivos a la vez. No se perdió nada: ambas versiones están en tu diario.',
+  'cloud.conflicts.compareVersions': 'Comparar versiones',
+  'cloud.conflicts.hideNotice': 'Ocultar este aviso',
+  'cloud.conflicts.hideNoticeHint':
+    'Solo se oculta en este dispositivo. Volverá a aparecer si se hacen más cambios en dos dispositivos a la vez.',
   'cloud.conflicts.otherVersionsRow': 'Entradas que se conservaron en dos versiones',
   'cloud.conflicts.loadFailed': 'No se pudieron cargar estas opciones.',
   'cloud.conflicts.otherVersionsLoadFailed': 'No se pudieron cargar las otras versiones.',

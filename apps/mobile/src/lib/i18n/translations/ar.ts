@@ -870,6 +870,12 @@ export const ar: Translations = {
   'cloud.conflicts.noOtherVersions': 'لا توجد سجلات لها نسخة أخرى.',
   'cloud.conflicts.homeNotice':
     'أُجريت بعض التغييرات على جهازين في الوقت نفسه. اطّلع على ما احتُفظ به.',
+  'cloud.conflicts.homeNoticeEntries':
+    'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. لم يُفقد شيء: النسختان موجودتان في دفتر يومياتك.',
+  'cloud.conflicts.compareVersions': 'مقارنة النسخ',
+  'cloud.conflicts.hideNotice': 'إخفاء هذا الإشعار',
+  'cloud.conflicts.hideNoticeHint':
+    'يُخفى على هذا الجهاز فقط. سيظهر مرة أخرى إذا أُجريت تغييرات أخرى على جهازين في الوقت نفسه.',
   'cloud.conflicts.otherVersionsRow': 'سجلات احتُفظ بنسختين منها',
   'cloud.conflicts.loadFailed': 'تعذّر تحميل هذه الخيارات.',
   'cloud.conflicts.otherVersionsLoadFailed': 'تعذّر تحميل النسخ الأخرى.',

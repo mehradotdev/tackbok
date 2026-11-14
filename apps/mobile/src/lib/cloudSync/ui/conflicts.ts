@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import {
   cloudConflicts,
   cloudVault,
@@ -8,6 +8,7 @@ import {
   runExclusiveDbTransaction,
   userProfile,
 } from '~/db';
+import { getOpenConflictGroups } from '~/db/queries';
 import { photoFileExists } from '~/lib/photoUtils';
 import { hydrateProfileCache, useSettingsStore } from '~/lib/settings';
 import { notifyProductionCloudSyncChanged } from '../runtime/production';
@@ -76,13 +77,14 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
   const currentPhotoBlobHash =
     photoRows.find((row) => row.assetId === profile?.photo_asset_id)?.blobHash ?? null;
 
-  // Recovered entries carry the ID of the entry they were copied from.
-  const entryRows = records.some((record) => record.recoveredEntityIds.length > 0)
-    ? await db
-        .select({ id: entries.note_id })
-        .from(entries)
-        .where(isNotNull(entries.conflict_origin_id))
+  // An entry conflict is open while its group has more than one live version.
+  const openGroups = records.some((record) => record.recoveredEntityIds.length > 0)
+    ? await getOpenConflictGroups()
     : [];
+  const openConflictGroupOf = new Map<string, number>();
+  for (const [group, members] of openGroups.entries()) {
+    for (const id of members) openConflictGroupOf.set(id, group);
+  }
 
   // Entries kept after a delete/edit race, matched in SQL rather than by an ID list.
   const returnedRows = records.some(
@@ -124,7 +126,7 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
     currentPhotoAssetId: profile?.photo_asset_id ?? null,
     currentPhotoBlobHash,
     localPhotos,
-    existingEntryIds: new Set(entryRows.map((row) => row.id)),
+    openConflictGroupOf,
     returnedEntries: new Map(returnedRows.map((row) => [row.entryId, row])),
   });
 }

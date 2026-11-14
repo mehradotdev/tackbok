@@ -193,11 +193,27 @@ export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
  * versions were copied from, or `null` when it was deleted. A version copied
  * from another version joins that version's group, so each entry is listed once.
  */
-export interface OtherVersionGroup {
-  original: Entry | null;
+export interface OtherVersionGroup<T extends VersionLink = Entry> {
+  original: T | null;
   /** Newest first. */
-  versions: Entry[];
+  versions: T[];
 }
+
+/** The fields that link an entry to the versions sync kept of it. */
+type VersionLink = Pick<Entry, 'note_id' | 'conflict_origin_id'>;
+
+/** Entries that are another version, or the original another version was copied from. */
+const versionMemberFilter = () =>
+  or(
+    isNotNull(entries.conflict_origin_id),
+    inArray(
+      entries.note_id,
+      db
+        .select({ id: entries.conflict_origin_id })
+        .from(entries)
+        .where(isNotNull(entries.conflict_origin_id)),
+    ),
+  );
 
 /** Groups entries sync kept another version of, newest group first. */
 export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
@@ -206,28 +222,41 @@ export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
   const rows = await db
     .select()
     .from(entries)
-    .where(
-      or(
-        isNotNull(entries.conflict_origin_id),
-        inArray(
-          entries.note_id,
-          db
-            .select({ id: entries.conflict_origin_id })
-            .from(entries)
-            .where(isNotNull(entries.conflict_origin_id)),
-        ),
-      ),
-    )
+    .where(versionMemberFilter())
     .orderBy(desc(entries.created_at), entries.note_id);
   return groupOtherVersions(rows);
 }
 
+/**
+ * Entry conflicts still open: groups (an original and the versions copied from
+ * it, see `groupOtherVersions`) with more than one live version, as member IDs.
+ * Deleted entries are not in the table, so keeping one version on any device
+ * closes its group here once that delete has synced.
+ * Reads two columns, and only when some entry is another version: with no
+ * index on `conflict_origin_id` the filter scans the table, as the timeline does.
+ */
+export async function getOpenConflictGroups(): Promise<string[][]> {
+  const rows = await db
+    .select({ note_id: entries.note_id, conflict_origin_id: entries.conflict_origin_id })
+    .from(entries)
+    .where(versionMemberFilter());
+  return groupOtherVersions(rows)
+    .filter((group) => (group.original ? 1 : 0) + group.versions.length > 1)
+    .map((group) =>
+      [group.original, ...group.versions]
+        .filter((member) => member !== null)
+        .map((member) => member.note_id),
+    );
+}
+
 /** Exported for tests. `rows` must be sorted newest first. */
-export function groupOtherVersions(rows: Entry[]): OtherVersionGroup[] {
+export function groupOtherVersions<T extends VersionLink>(
+  rows: T[],
+): OtherVersionGroup<T>[] {
   const byId = new Map(rows.map((entry) => [entry.note_id, entry]));
   // The oldest ancestor still in the journal. Sync cannot link versions in a
   // loop, but if it happens every member gets the same root: the smallest ID.
-  const rootOf = (entry: Entry) => {
+  const rootOf = (entry: T) => {
     const path = [entry];
     for (;;) {
       const root = path[path.length - 1];
@@ -246,7 +275,7 @@ export function groupOtherVersions(rows: Entry[]): OtherVersionGroup[] {
       path.push(parent);
     }
   };
-  const groups = new Map<string, OtherVersionGroup>();
+  const groups = new Map<string, OtherVersionGroup<T>>();
   for (const entry of rows) {
     const root = rootOf(entry);
     // Versions of a deleted original still belong together. Its ID cannot be
@@ -263,15 +292,6 @@ export function groupOtherVersions(rows: Entry[]): OtherVersionGroup[] {
     if (entry !== group.original) group.versions.push(entry);
   }
   return [...groups.values()];
-}
-
-/** Number of entries that sync kept as another version of an entry. */
-export async function getOtherVersionCount(): Promise<number> {
-  const [row] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(entries)
-    .where(isNotNull(entries.conflict_origin_id));
-  return row?.count ?? 0;
 }
 
 /**

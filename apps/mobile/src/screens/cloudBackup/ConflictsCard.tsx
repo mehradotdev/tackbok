@@ -26,8 +26,10 @@ type ReturnedEntryItem = Extract<CloudConflictItem, { kind: 'returnedEntry' }>;
 const MAX_RETURNED_ENTRY_ROWS = 3;
 
 /**
- * Conflicts this device can act on. Each row is dismissed by its own action;
- * records with nothing to act on are not listed (see `deriveConflictItems`).
+ * Conflicts this device can act on. Name, photo and returned-entry rows are
+ * dismissed by their own action; the entries row stays while an entry has more
+ * than one version. Records with nothing to act on are not listed (see
+ * `deriveConflictItems`).
  * The list reloads whenever `refreshToken` changes (see `useCloudConflictItems`).
  */
 export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
@@ -168,7 +170,8 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
   };
 
   return (
-    <View className="rounded-lg border border-border bg-card p-4 gap-4">
+    // A calm accent: nothing was lost. Red on this screen means a sync error.
+    <View className="rounded-lg border border-primary/50 bg-card p-4 gap-4">
       <View className="flex-row items-center gap-2">
         <Icon as={FileClock} className="text-foreground size-5" />
         <Text role="heading" className="font-body-bold text-foreground">
@@ -230,21 +233,15 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
         return (
           <View key={key} className="gap-2">
             <Text className="text-sm text-foreground">
-              {t('cloud.conflicts.entriesEdited', {
-                count: item.recoveredEntryIds.length,
-              })}
+              {t('cloud.conflicts.entriesEdited', { count: item.entryCount })}
             </Text>
             <View className="flex-row flex-wrap gap-2">
+              {/* Only opens the versions: the row goes away once each entry
+                  has one version left, on every device after it syncs. */}
               <Button
                 variant="outline"
                 className="h-auto min-h-10 max-w-full py-2"
-                disabled={busy}
-                onPress={() =>
-                  void run(async () => {
-                    await acknowledgeCloudConflicts(item.conflictIds);
-                    router.push('/other-versions' as Href);
-                  })
-                }>
+                onPress={() => router.push('/other-versions' as Href)}>
                 <Text className="shrink text-center">
                   {t('cloud.conflicts.showThem')}
                 </Text>

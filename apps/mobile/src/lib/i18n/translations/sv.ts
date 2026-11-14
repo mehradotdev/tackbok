@@ -831,6 +831,12 @@ export const sv = {
   'cloud.conflicts.noOtherVersions': 'Inga anteckningar har en annan version.',
   'cloud.conflicts.homeNotice':
     'Några ändringar gjordes på två enheter samtidigt. Se vad som behölls.',
+  'cloud.conflicts.homeNoticeEntries':
+    '{count} anteckningar redigerades på två enheter samtidigt. Inget gick förlorat: båda versionerna finns i din dagbok.',
+  'cloud.conflicts.compareVersions': 'Jämför versioner',
+  'cloud.conflicts.hideNotice': 'Göm det här meddelandet',
+  'cloud.conflicts.hideNoticeHint':
+    'Döljs bara på den här enheten. Det visas igen om fler ändringar görs på två enheter samtidigt.',
   'cloud.conflicts.otherVersionsRow': 'Anteckningar som sparades i två versioner',
   'cloud.conflicts.loadFailed': 'Det gick inte att läsa in de här valen.',
   'cloud.conflicts.otherVersionsLoadFailed':
