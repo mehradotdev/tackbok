@@ -4107,6 +4107,57 @@ describe('deciding nothing changed before the local work', () => {
     expect(counts).toEqual({ shadowLoads: 1, captures: 1 });
   });
 
+  test('text another engine applied before pausing for missing media is kept', async () => {
+    const { device, engine, counts, reset } = await settledDevice();
+    const photo = new TextEncoder().encode('photo Drive lost');
+    const photoHash = sha256Bytes(photo);
+    const writer = harness('early-writer', blankDomain(), device.provider, device.clock);
+    expect((await writer.engine().sync()).status).toBe('pulled');
+    await writer.media.writeVerified(photoHash, photo);
+    const withPhoto = withEntry(writer.journal.current(), {
+      ...entry('entry-photo', 'Remote text'),
+      attachmentOrder: ['asset-lost'],
+    });
+    withPhoto.media = [mediaAsset('asset-lost', 'entry-photo', photo)];
+    writer.journal.mutate(withPhoto);
+    expect((await writer.engine().sync()).status).toBe('published');
+    device.provider.removeMediaForTest(device.vaultId, photoHash);
+
+    // The background task's engine applies the text, then pauses before
+    // settling a new base.
+    expect(await device.engine().sync()).toMatchObject({
+      status: 'attention',
+      reason: 'missing-media',
+    });
+    expect(contents(device.journal.current())['entry-photo']).toBe('Remote text');
+    device.state.clearPause(device.vaultId, device.deviceId);
+
+    // The long-lived engine's quiet pass no longer applies: it re-plans.
+    reset();
+    expect(await engine.sync()).toMatchObject({
+      status: 'attention',
+      reason: 'missing-media',
+    });
+    expect(counts.captures).toBeGreaterThan(0);
+    expect(contents(device.journal.current())['entry-photo']).toBe('Remote text');
+
+    // Once the blob is back, the same engine settles the remote snapshot.
+    await device.provider.uploadMedia(
+      device.vaultId,
+      photoHash,
+      (await writer.media.openVerifiedSource(photoHash))!,
+    );
+    device.state.clearPause(device.vaultId, device.deviceId);
+    expect((await engine.sync()).status).toBe('pulled');
+    expect(contents(device.journal.current())).toEqual({
+      'entry-1': 'First',
+      'entry-photo': 'Remote text',
+    });
+    expect(device.journal.current().media.map((asset) => asset.assetId)).toEqual([
+      'asset-lost',
+    ]);
+  });
+
   test.each(['missing', 'corrupt'])(
     'a %s base shadow takes the full path and repairs it',
     async (damage) => {
@@ -4198,6 +4249,50 @@ describe('deciding nothing changed before the local work', () => {
 });
 
 describe('waiting attachments never take the quiet-pass shortcut', () => {
+  test('a photo added on cellular after a quiet pass waits, then publishes on Wi-Fi', async () => {
+    const provider = new FakeSnapshotProvider();
+    const network = { onWifi: false };
+    provider.mediaTransfersAllowed = async () => network.onWifi;
+    const device = harness('early-wifi-later', blankDomain(), provider);
+    device.journal.mutate(withEntry(blankDomain(), entry('entry-photo', 'Text')));
+    const engine = device.engine();
+    expect((await engine.sync()).status).toBe('published');
+    expect((await engine.sync()).status).toBe('up-to-date');
+    let captures = 0;
+    const capture = device.journal.capture.bind(device.journal);
+    device.journal.capture = () => {
+      captures += 1;
+      return capture();
+    };
+    expect(await engine.sync()).toMatchObject({ deferredMediaCount: 0 });
+    expect(captures).toBe(0);
+
+    const photo = new TextEncoder().encode('photo added on cellular');
+    await device.media.writeVerified(sha256Bytes(photo), photo);
+    const domain = withEntry(device.journal.current(), {
+      ...entry('entry-photo', 'Text', 2),
+      attachmentOrder: ['asset-new'],
+    });
+    domain.media = [mediaAsset('asset-new', 'entry-photo', photo)];
+    device.journal.mutate(domain);
+
+    // The runtime records each pass's count as the persisted waiting count.
+    const waiting: number[] = [];
+    const pass = async () => {
+      const result = await engine.sync();
+      if ('deferredMediaCount' in result) waiting.push(result.deferredMediaCount);
+      return result.status;
+    };
+    expect(await pass()).toBe('published');
+    expect(await pass()).toBe('up-to-date');
+    expect(await pass()).toBe('up-to-date');
+    network.onWifi = true;
+    expect(await pass()).toBe('published');
+    expect(await pass()).toBe('up-to-date');
+    expect(await pass()).toBe('up-to-date');
+    expect(waiting).toEqual([1, 1, 1, 0, 0, 0]);
+  });
+
   test('a waiting photo is re-checked each pass and publishes once on Wi-Fi', async () => {
     const provider = new FakeSnapshotProvider();
     const network = { onWifi: false };
