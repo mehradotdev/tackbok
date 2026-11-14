@@ -5,6 +5,13 @@ import { en as mockEn } from '~/lib/i18n/translations/en';
 import { translate as mockTranslate } from '~/lib/i18n/translations';
 import { SyncCancelledError as MockSyncCancelledError } from '~/lib/cloudSync/snapshot/sync/errors';
 import { toast as mockToast } from '~/components/ui/toast';
+import {
+  ATTENTION_RECOVERY_ACTION,
+  type SyncAttentionReason,
+  type SyncRecoveryAction,
+} from '~/lib/cloudSync/snapshot/sync/types';
+import type { TranslationFunction } from '~/lib/i18n/types';
+import { recoveryActionLabel } from './copy';
 
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
@@ -12,13 +19,21 @@ jest.mock('expo-localization', () => ({
 jest.mock('react-native', () => ({
   AccessibilityInfo: { announceForAccessibility: jest.fn() },
   ActivityIndicator: 'ActivityIndicator',
-  Linking: {},
+  Linking: {
+    openURL: (url: string) => mockOpenURL(url),
+    openSettings: () => mockOpenSettings(),
+  },
   ScrollView: 'ScrollView',
   View: 'View',
 }));
 jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => ({}),
-  useRouter: () => ({ canGoBack: () => true, back: jest.fn(), replace: jest.fn() }),
+  useLocalSearchParams: () => mockParams,
+  useRouter: () => ({
+    canGoBack: () => true,
+    back: jest.fn(),
+    replace: jest.fn(),
+    push: (href: string) => mockPush(href),
+  }),
 }));
 jest.mock('@lodev09/react-native-true-sheet', () => ({ TrueSheet: 'TrueSheet' }));
 jest.mock('@tanstack/react-query', () => ({
@@ -69,7 +84,13 @@ const mockSnapshot = {
   attentionReason: null as string | null,
   recoveryAction: null as string | null,
 };
+let mockParams: { origin?: string } = {};
 const mockRefresh = jest.fn(async () => {});
+const mockOpenURL = jest.fn(async (_url: string) => {});
+const mockOpenSettings = jest.fn(async () => {});
+const mockPush = jest.fn((_href: string) => {});
+const mockRetry = jest.fn(async (_reason: string) => {});
+const mockRevoke = jest.fn(async (_kind: string) => {});
 const mockDisconnect = jest.fn<Promise<void>, []>();
 const mockSetPaused = jest.fn<Promise<void>, [boolean]>();
 const mockSyncNow = jest.fn<Promise<boolean>, []>();
@@ -85,8 +106,8 @@ jest.mock('~/lib/cloudSync/ui', () => ({
   prepareGoogleDriveConnection: () => mockPrepare(),
   reconnectGoogleDrive: () => mockReconnect(),
   resetThisDeviceOnly: jest.fn(),
-  retrySyncAttentionReason: jest.fn(),
-  revokeCloudVault: jest.fn(),
+  retrySyncAttentionReason: (reason: string) => mockRetry(reason),
+  revokeCloudVault: (kind: string) => mockRevoke(kind),
   setCloudSyncPaused: (paused: boolean) => mockSetPaused(paused),
   syncNow: () => mockSyncNow(),
   useCloudSyncSnapshot: () => ({ snapshot: mockSnapshot, refresh: mockRefresh }),
@@ -159,6 +180,7 @@ async function confirmDisconnect() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockParams = {};
   mockSnapshot.configured = true;
   mockSnapshot.status = 'synced';
   mockSnapshot.attentionReason = null;
@@ -333,4 +355,149 @@ test('keeps conflicts and other versions reachable after Disconnect', async () =
   mockSnapshot.status = 'off';
   await render();
   expect(reachable()).toEqual([1, 1]);
+});
+
+/** What each recovery button's handler really does, observed through its mocks. */
+function observedRecovery(): string {
+  const toastSuccess = (key: keyof typeof mockEn) =>
+    (mockToast.success as jest.Mock).mock.calls.some(
+      ([message]) => message === mockEn[key],
+    );
+  if (mockRetry.mock.calls.length > 0) return 'sync-again';
+  if (mockReconnect.mock.calls.length > 0) return 'reconnect';
+  if (mockDisconnect.mock.calls.length > 0) {
+    if (toastSuccess('cloud.chooseAGoogleAccountToReconnect')) return 'set-up-again';
+    if (toastSuccess('cloud.googleDriveDisconnectedOnThisDevice')) return 'disconnect';
+  }
+  if (mockOpenURL.mock.calls.length > 0) return `open ${mockOpenURL.mock.calls[0][0]}`;
+  if (mockOpenSettings.mock.calls.length > 0) return 'device-settings';
+  if (mockPush.mock.calls.length > 0) return `push ${mockPush.mock.calls[0][0]}`;
+  if (mockRevoke.mock.calls.length > 0) return `revoke ${mockRevoke.mock.calls[0][0]}`;
+  const dialog = root.root.findByType('AlertDialog' as never);
+  return dialog.props.open ? 'confirm-erase' : 'nothing';
+}
+
+const EXPECTED_RECOVERY: Record<SyncRecoveryAction, string> = {
+  'reconnect-google-drive': 'reconnect',
+  'choose-connected-account': 'set-up-again',
+  'finish-connection': 'set-up-again',
+  'reconnect-correct-backup': 'set-up-again',
+  'update-tackbok': 'open https://tackbok.org',
+  'retry-verify-backup': 'sync-again',
+  'repair-from-verified-backup': 'sync-again',
+  'inspect-repair-backup': 'sync-again',
+  'consolidate-backups': 'sync-again',
+  'export-repair-backup': 'push /settings',
+  'free-device-storage': 'device-settings',
+  'manage-drive-storage': 'open https://drive.google.com/drive/quota',
+  'retry-missing-media': 'sync-again',
+  'locate-retry-attachment': 'sync-again',
+  'retry-journal-preparation': 'sync-again',
+  'acknowledge-disconnect': 'disconnect',
+  'review-erase-device': 'confirm-erase',
+  'resume-deletion': 'revoke backup-deleted',
+  'verify-backup-health': 'sync-again',
+};
+
+const t = ((key, params) => mockTranslate('en', key, params)) as TranslationFunction;
+
+test.each(
+  Object.entries(ATTENTION_RECOVERY_ACTION) as [
+    SyncAttentionReason,
+    SyncRecoveryAction,
+  ][],
+)('the %s recovery button is labelled for what it does (%s)', async (reason, action) => {
+  mockSnapshot.status = 'warning';
+  mockSnapshot.attentionReason = reason;
+  mockSnapshot.recoveryAction = action;
+  await render();
+  const label = recoveryActionLabel(action, t);
+  const buttons = root.root
+    .findAllByType('Button' as never)
+    .filter((button) => button.props.accessibilityLabel === label);
+  expect(buttons).toHaveLength(1);
+  await act(async () => buttons[0].props.onPress());
+  expect(observedRecovery()).toBe(EXPECTED_RECOVERY[action]);
+});
+
+test('every recovery that runs the same handler shares one label, and no other', () => {
+  const byOutcome = new Map<string, Set<string>>();
+  for (const [action, outcome] of Object.entries(EXPECTED_RECOVERY)) {
+    const labels = byOutcome.get(outcome) ?? new Set<string>();
+    labels.add(recoveryActionLabel(action as SyncRecoveryAction, t));
+    byOutcome.set(outcome, labels);
+  }
+  const labels = [...byOutcome.values()].map((set) => [...set]);
+  expect(labels.every((set) => set.length === 1)).toBe(true);
+  expect(new Set(labels.flat()).size).toBe(labels.length);
+});
+
+describe('a backup that exists but cannot be read', () => {
+  const connection = (
+    availableVaults: { vaultId: string; updatedAt: number }[],
+    unreadable: number,
+  ) => ({
+    accountLabel: 'owner@example.com',
+    availableVaults,
+    unreadableBackupCount: unreadable,
+    localHasData: false,
+  });
+  async function connectFromSettings() {
+    mockSnapshot.configured = false;
+    mockSnapshot.status = 'off';
+    await render();
+    const connect = () =>
+      root.root
+        .findAll((node) => node.props.children === mockEn['cloud.connectGoogleDrive'])
+        .map((text) => text.parent!)
+        .find((button) => (button.type as unknown) === 'Button')!;
+    act(() => connect().props.onPress());
+    await act(async () => connect().props.onPress());
+  }
+
+  test('an empty account still says no backup was found', async () => {
+    mockPrepare.mockResolvedValueOnce(connection([], 0));
+    await connectFromSettings();
+    expect(
+      showsText(mockEn['cloud.noExistingTackbokBackupWasFoundCreateOneForThis']),
+    ).toBe(true);
+    expect(showsText(mockEn['cloud.backupFoundButCouldNotBeReadCreateNew'])).toBe(false);
+  });
+
+  test('only unreadable backups are not reported as no backup', async () => {
+    mockPrepare.mockResolvedValueOnce(connection([], 1));
+    await connectFromSettings();
+    expect(showsText(mockEn['cloud.backupFoundButCouldNotBeReadCreateNew'])).toBe(true);
+    expect(
+      showsText(mockEn['cloud.noExistingTackbokBackupWasFoundCreateOneForThis']),
+    ).toBe(false);
+    expect(showsText(mockEn['cloud.createCloudBackup'])).toBe(true);
+  });
+
+  test('readable backups are still offered beside an unreadable one', async () => {
+    mockPrepare.mockResolvedValueOnce(
+      connection([{ vaultId: 'vault-a', updatedAt: 1 }], 1),
+    );
+    await connectFromSettings();
+    expect(showsText(mockEn['cloud.someBackupsInThisAccountCouldNotBeRead'])).toBe(true);
+    expect(showsText(mockEn['cloud.restoreCloudBackup'])).toBe(true);
+  });
+
+  test('onboarding explains an unreadable backup instead of saying none exists', async () => {
+    mockParams = { origin: 'onboarding' };
+    mockSnapshot.configured = false;
+    mockSnapshot.status = 'off';
+    mockPrepare.mockResolvedValueOnce(connection([], 1));
+    await render();
+    const disclosure = root.root.findAll(
+      (node) => typeof node.props.onContinue === 'function',
+    )[0];
+    await act(async () => disclosure.props.onContinue());
+    expect(mockToast.warning).toHaveBeenCalledWith(
+      mockEn['cloud.backupFoundButCouldNotBeRead'],
+    );
+    expect(mockToast.warning).not.toHaveBeenCalledWith(
+      mockEn['cloud.noTackbokBackupFoundInThisGoogleAccount'],
+    );
+  });
 });

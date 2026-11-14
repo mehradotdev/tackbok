@@ -1019,69 +1019,69 @@ export const de: Translations = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'Fotos und Sprachnotizen zum Herunterladen: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Die Google-Drive-Autorisierung erfordert Aufmerksamkeit.',
+    'Google Drive möchte, dass du dich erneut anmeldest. Die Synchronisierung wurde angehalten.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'Diese Sicherung gehört zu einem anderen verbundenen Google-Konto.',
+    'Diese Sicherung gehört zu einem anderen Google-Konto. Die Synchronisierung wurde angehalten.',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'Die Google-Drive-Berechtigung wurde nicht vollständig erteilt.',
+    'Tackbok hat keinen vollständigen Zugriff auf Google Drive erhalten. Die Synchronisierung wurde angehalten.',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'Die verbundene Cloud-Sicherung passt nicht zu diesem Tagebuch.',
+    'Die verbundene Sicherung gehört zu einem anderen Tagebuch. Die Synchronisierung wurde angehalten.',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'Diese Sicherung wurde mit einer neueren Tackbok-Version erstellt.',
+    'Diese Sicherung wurde mit einer neueren Version von Tackbok erstellt. Die Synchronisierung wurde angehalten.',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'Eine gespeicherte Cloud-Sicherung hat die Sicherheitsprüfungen nicht bestanden.',
+    'Ein Teil deiner Sicherung in Google Drive konnte nicht gelesen werden. Die Synchronisierung wurde angehalten.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'Eine Gerätesicherung verweist auf eine gespeicherte Sicherung, die fehlt.',
+    'Ein Teil deiner Sicherung fehlt in Google Drive. Die Synchronisierung wurde angehalten.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'Zwei verschiedene Sicherungen beanspruchen dieselbe Geräteversion.',
+    'Deine Sicherung enthält zwei verschiedene Fassungen der Änderungen eines Geräts. Die Synchronisierung wurde angehalten.',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Zu viele getrennte Gerätesicherungen müssen zusammengeführt werden.',
+    'Änderungen von zu vielen Geräten warten darauf, zusammengeführt zu werden. Die Synchronisierung wurde angehalten.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'Ein wiederhergestelltes Element hat dieselbe interne ID wie ein vorhandenes Element.',
+    'Zwei Einträge in deinem Tagebuch konnten nicht sicher zusammengeführt werden. Die Synchronisierung wurde angehalten. Du kannst in den Einstellungen eine Kopie exportieren.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'Tackbok konnte die Sicherungsdaten auf diesem Gerät nicht sicher vorbereiten.',
+    'Tackbok konnte keine Synchronisierungsdaten auf diesem Gerät speichern. Möglicherweise ist der Speicher fast voll. Die Synchronisierung wurde angehalten.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'Google Drive hat nicht genügend freien Speicherplatz.',
+    'Dein Google-Drive-Speicher ist voll. Die Synchronisierung wurde angehalten.',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive hat den Zugriff auf den Sicherungsordner der App verweigert.',
+    'Google Drive verweigert Tackbok den Zugriff auf deine Sicherung. Die Synchronisierung wurde angehalten.',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'Ein für die Sicherung benötigtes Foto oder eine Sprachnotiz ist nicht verfügbar.',
+    'Ein Foto oder eine Sprachnotiz wurde nicht gefunden. Die Synchronisierung wurde angehalten.',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'Ein Foto oder eine Sprachnotiz auf diesem Gerät konnte nicht überprüft werden.',
+    'Ein Foto oder eine Sprachnotiz auf diesem Gerät konnte nicht gelesen werden. Die Synchronisierung wurde angehalten.',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'Dein Tagebuch ist noch nicht für die Cloud-Synchronisierung bereit.',
+    'Tackbok konnte dein Tagebuch nicht für die Sicherung vorbereiten. Die Synchronisierung wurde angehalten.',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
-    'Diese Cloud-Sicherung wurde von einem anderen Gerät gelöscht.',
+    'Diese Sicherung wurde gelöscht. Einträge, die schon auf diesem Gerät sind, wurden nicht entfernt.',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
-    'Dieses Tagebuch wurde von einem anderen Gerät überall gelöscht.',
+    'Dein Tagebuch und seine Sicherung wurden überall gelöscht. Lösche dieses Gerät, um den Vorgang abzuschließen.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'Das Löschen in der Cloud wurde gestoppt, bevor alle Sicherungsdaten entfernt wurden.',
+    'Das Löschen deiner Sicherung wurde nicht abgeschlossen. Ein Teil davon ist möglicherweise noch in Google Drive.',
   'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'Die Bereinigung wurde gestoppt, um eine noch verwendete Sicherung zu schützen.',
-  'cloud.chooseTheConnectedAccount': 'Verbundenes Konto auswählen',
+    'Die Synchronisierung wurde beim Entfernen alter Sicherungsdaten angehalten, um deine aktuelle Sicherung zu schützen.',
   'cloud.chooseAGoogleAccountToReconnect':
     'Google-Konto zum erneuten Verbinden auswählen',
-  'cloud.finishConnection': 'Verbindung abschließen',
-  'cloud.reconnectToTheCorrectBackup': 'Mit der richtigen Sicherung verbinden',
   'cloud.updateTackbok': 'Tackbok aktualisieren',
-  'cloud.retryBackupCheck': 'Sicherungsprüfung wiederholen',
-  'cloud.exportJournalAndRepairBackup': 'Tagebuch exportieren und Sicherung reparieren',
-  'cloud.freeDeviceStorageAndRetry': 'Gerätespeicher freigeben und erneut versuchen',
   'cloud.manageGoogleDriveStorage': 'Google-Drive-Speicher verwalten',
-  'cloud.retryMissingMedia': 'Fehlende Medien erneut versuchen',
-  'cloud.retryAttachment': 'Anhang erneut versuchen',
-  'cloud.retryJournalPreparation': 'Tagebuchvorbereitung erneut versuchen',
-  'cloud.acknowledgeAndDisconnect': 'Bestätigen und trennen',
   'cloud.reviewDeletionAndEraseThisDevice': 'Löschung prüfen und dieses Gerät löschen',
   'cloud.resumeDeletion': 'Löschung fortsetzen',
+  'cloud.syncAgain': 'Erneut synchronisieren',
+  'cloud.disconnectAndSetUpAgain': 'Trennen und neu einrichten',
+  'cloud.openSettingsToExport': 'Einstellungen zum Exportieren öffnen',
+  'cloud.openDeviceSettings': 'Geräteeinstellungen öffnen',
+  'cloud.toKeepACopyUseExportInSettings':
+    'Um eine Kopie deines Tagebuchs zu behalten, tippe unter {section} auf {action}.',
+  'cloud.backupFoundButCouldNotBeRead':
+    'Tackbok hat in diesem Google-Konto eine Sicherung gefunden, konnte sie aber nicht lesen. Ein Update von Tackbok kann helfen.',
+  'cloud.backupFoundButCouldNotBeReadCreateNew':
+    'Tackbok hat in diesem Google-Konto eine Sicherung gefunden, konnte sie aber nicht lesen. Ein Update von Tackbok kann helfen. Du kannst auch eine neue Sicherung für dieses Tagebuch erstellen.',
+  'cloud.someBackupsInThisAccountCouldNotBeRead':
+    'Einige Sicherungen in diesem Konto konnten nicht gelesen werden. Ein Update von Tackbok kann helfen.',
   'cloud.cloudDeletionCompleted': 'Cloud-Löschung abgeschlossen',
-  'cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd':
-    'Exportiere oder repariere die betroffenen Tagebuchdaten und versuche es danach erneut.',
   'cloud.cloudBackupRetryCompleted': 'Erneuter Sicherungsversuch abgeschlossen',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'Die Cloud-Synchronisierung konnte nicht abgeschlossen werden. Deine Änderungen bleiben sicher vorgemerkt.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive hat eine Sicherungsanfrage abgelehnt. Aktualisiere Tackbok und versuche es erneut.',
+    'Google Drive hat eine Anfrage von Tackbok nicht angenommen. Ein Update von Tackbok kann helfen. Die Synchronisierung wurde angehalten.',
   'time.hours': 'Stunden',
   'time.minutes': 'Minuten',
   'common.databaseUpdateFailed':

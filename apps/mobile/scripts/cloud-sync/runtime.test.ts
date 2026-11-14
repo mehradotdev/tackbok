@@ -241,7 +241,7 @@ describe('production cloud-sync runtime', () => {
       'cloud.attentionNeeded',
       'cloud.cloudBackupRetryCompleted',
       'cloud.reconnectGoogleDrive',
-      'cloud.retryBackupCheck',
+      'cloud.syncAgain',
       'cloud.photosAndVoiceMemosAreWaitingForWiFiYour',
       'cloud.photosAndVoiceNotesSyncOnlyOnWiFi',
     ] as const satisfies readonly TranslationKey[];

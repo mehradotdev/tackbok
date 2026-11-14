@@ -265,31 +265,37 @@ export function attentionReasonMessage(
   return messages[reason];
 }
 
+/** Each label says what its handler in the Cloud backup screen does. */
 export function recoveryActionLabel(
   action: SyncRecoveryAction,
   t: TranslationFunction,
 ): string {
+  // These recoveries clear the pause and run a sync pass, nothing more.
+  const syncAgain = t('cloud.syncAgain');
+  // These disconnect, then return to the Google account setup.
+  const setUpAgain = t('cloud.disconnectAndSetUpAgain');
   const labels: Record<SyncRecoveryAction, string> = {
     'reconnect-google-drive': t('cloud.reconnectGoogleDrive'),
-    'choose-connected-account': t('cloud.chooseTheConnectedAccount'),
-    'finish-connection': t('cloud.finishConnection'),
-    'reconnect-correct-backup': t('cloud.reconnectToTheCorrectBackup'),
+    'choose-connected-account': setUpAgain,
+    'finish-connection': setUpAgain,
+    'reconnect-correct-backup': setUpAgain,
     'update-tackbok': t('cloud.updateTackbok'),
-    // These recoveries all retry the sync after its safety checks.
-    'retry-verify-backup': t('cloud.retryBackupCheck'),
-    'repair-from-verified-backup': t('cloud.retryBackupCheck'),
-    'inspect-repair-backup': t('cloud.retryBackupCheck'),
-    'consolidate-backups': t('cloud.retryBackupCheck'),
-    'export-repair-backup': t('cloud.exportJournalAndRepairBackup'),
-    'free-device-storage': t('cloud.freeDeviceStorageAndRetry'),
+    'retry-verify-backup': syncAgain,
+    'repair-from-verified-backup': syncAgain,
+    'inspect-repair-backup': syncAgain,
+    'consolidate-backups': syncAgain,
+    'export-repair-backup': t('cloud.openSettingsToExport'),
+    'free-device-storage': t('cloud.openDeviceSettings'),
     'manage-drive-storage': t('cloud.manageGoogleDriveStorage'),
-    'retry-missing-media': t('cloud.retryMissingMedia'),
-    'locate-retry-attachment': t('cloud.retryAttachment'),
-    'retry-journal-preparation': t('cloud.retryJournalPreparation'),
-    'acknowledge-disconnect': t('cloud.acknowledgeAndDisconnect'),
+    'retry-missing-media': syncAgain,
+    'locate-retry-attachment': syncAgain,
+    'retry-journal-preparation': syncAgain,
+    'acknowledge-disconnect': t('cloud.disconnectProvider', {
+      provider: t('cloud.googleDrive'),
+    }),
     'review-erase-device': t('cloud.reviewDeletionAndEraseThisDevice'),
     'resume-deletion': t('cloud.resumeDeletion'),
-    'verify-backup-health': t('cloud.retryBackupCheck'),
+    'verify-backup-health': syncAgain,
   };
   return labels[action];
 }

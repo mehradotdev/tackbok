@@ -1,6 +1,6 @@
 import type { CloudAuthorization } from '../../auth/types';
 import { encodeCanonicalBytes } from '../canonical';
-import { SNAPSHOT_CAPS } from '../caps';
+import { SNAPSHOT_CAPS, SnapshotValidationError } from '../caps';
 import { sha256Bytes, sha256Text, type ByteHasher } from '../sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../strictJson';
 import type {
@@ -81,6 +81,13 @@ export interface AvailableDriveVault {
   updatedAt: number;
 }
 
+export interface DriveVaultDiscovery {
+  /** Restorable backups, most recently updated first. */
+  vaults: AvailableDriveVault[];
+  /** Backups that exist but have no head this version can read. */
+  unreadableVaultIds: string[];
+}
+
 export interface DrivePurgeResult {
   deleted: number;
   remaining: number;
@@ -110,6 +117,18 @@ class DownloadInterruptedError extends SnapshotProviderError {
   ) {
     super('transient', message);
     this.name = 'DownloadInterruptedError';
+  }
+}
+
+/**
+ * A body still shorter than its metadata after every attempt. Sync treats it
+ * as bad data, like any other `invalid-data`; vault discovery cannot tell it
+ * from a dropped connection, so it does not call the backup unreadable.
+ */
+class ShortDownloadError extends SnapshotProviderError {
+  constructor() {
+    super('invalid-data', 'Drive download ended early on every attempt');
+    this.name = 'ShortDownloadError';
   }
 }
 
@@ -298,29 +317,59 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     return [...new Set(values)].sort();
   }
 
-  /** Discovers restorable snapshot vaults without exposing Drive file IDs. */
-  async listAvailableVaults(): Promise<AvailableDriveVault[]> {
+  /**
+   * Discovers restorable snapshot vaults without exposing Drive file IDs. A
+   * vault with no valid head is reported as unreadable rather than dropped, so
+   * the user is not told the account has no backup. Transport errors still
+   * throw: only content this version rejects counts as unreadable.
+   */
+  async listAvailableVaults(): Promise<DriveVaultDiscovery> {
     const scope = '__vault-discovery__';
     const query =
       `'${APP_DATA}' in parents and trashed=false and ` +
       propertyClause(PROP_KIND, 'head');
     const files = await this.queryFiles(scope, query);
     const newest = new Map<string, number>();
+    const unreadable = new Set<string>();
     for (const file of files) {
       const vaultId = file.appProperties[PROP_VAULT];
+      // Without a usable vault ID the head cannot be tied to any backup.
       if (!vaultId || !/^[\x20-\x7e]+$/.test(vaultId) || utf8(vaultId).length > 128)
         continue;
-      const record = await this.safeMaterializeRecord(vaultId, file, 'head');
-      if (!record) continue;
-      if (!record.head || record.head.vaultId !== vaultId) continue;
+      let record: DriveFileRecord | null;
+      try {
+        record = await this.materializeRecord(vaultId, file, 'head');
+      } catch (error) {
+        // Possibly a dropped connection: report it as one, not as a bad backup.
+        if (error instanceof ShortDownloadError) {
+          throw new SnapshotProviderError('transient', error.message);
+        }
+        // A body that is not valid JSON must not hide the account's other backups.
+        const invalid =
+          error instanceof SnapshotValidationError ||
+          (error instanceof SnapshotProviderError && error.code === 'invalid-data');
+        if (!invalid) throw error;
+        this.state.removeFile(vaultId, file.id);
+        record = null;
+      }
+      if (!record?.head || record.head.vaultId !== vaultId) {
+        unreadable.add(vaultId);
+        continue;
+      }
       newest.set(vaultId, Math.max(newest.get(vaultId) ?? 0, record.head.updatedAt));
     }
-    return [...newest]
-      .map(([vaultId, updatedAt]) => ({ vaultId, updatedAt }))
-      .sort(
-        (left, right) =>
-          right.updatedAt - left.updatedAt || left.vaultId.localeCompare(right.vaultId),
-      );
+    return {
+      vaults: [...newest]
+        .map(([vaultId, updatedAt]) => ({ vaultId, updatedAt }))
+        .sort(
+          (left, right) =>
+            right.updatedAt - left.updatedAt || left.vaultId.localeCompare(right.vaultId),
+        ),
+      // One readable device head is enough to restore a backup.
+      unreadableVaultIds: [...unreadable]
+        .filter((vaultId) => !newest.has(vaultId))
+        .sort(),
+    };
   }
 
   async publishRevocation(
@@ -1250,7 +1299,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     // A body that ended early is most likely a dropped connection; one that is
     // still short after every retry is treated as the bad object it may be.
     if (receivedBytes < declaredBytes) {
-      throw new DownloadInterruptedError('Drive download ended early', mismatch);
+      throw new DownloadInterruptedError(
+        'Drive download ended early',
+        new ShortDownloadError(),
+      );
     }
     if (sha256Bytes(bytes) !== file.sha256Checksum) throw mismatch;
     return bytes;

@@ -891,68 +891,68 @@ export const hi = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'डाउनलोड होने बाकी फ़ोटो और वॉइस नोट: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Google Drive प्राधिकरण पर ध्यान देने की आवश्यकता है।',
+    'Google Drive चाहता है कि आप फिर से साइन इन करें। सिंक रुक गया है।',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'यह बैकअप किसी भिन्न कनेक्टेड Google खाते का है.',
+    'यह बैकअप किसी दूसरे Google खाते का है। सिंक रुक गया है।',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'Google Drive अनुमति पूरी तरह से प्रदान नहीं की गई थी।',
+    'ताकबूक को Google Drive की पूरी अनुमति नहीं मिली। सिंक रुक गया है।',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'कनेक्टेड क्लाउड बैकअप इस डायरी से मेल नहीं खाता।',
+    'जुड़ा हुआ बैकअप किसी दूसरी डायरी का है। सिंक रुक गया है।',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'यह बैकअप एक नए ताकबूक संस्करण द्वारा बनाया गया था।',
+    'यह बैकअप ताकबूक के नए संस्करण से बनाया गया था। सिंक रुक गया है।',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'सहेजा गया क्लाउड बैकअप सुरक्षा जांच में सफल नहीं हुआ।',
+    'Google Drive में आपके बैकअप का कुछ हिस्सा पढ़ा नहीं जा सका। सिंक रुक गया है।',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'डिवाइस बैकअप से तात्पर्य उस सहेजे गए बैकअप से है जो गायब है।',
+    'आपके बैकअप का कुछ हिस्सा Google Drive में नहीं है। सिंक रुक गया है।',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'दो अलग-अलग बैकअप एक ही डिवाइस संस्करण का दावा करते हैं।',
+    'आपके बैकअप में एक ही डिवाइस के बदलावों के दो अलग-अलग रूप हैं। सिंक रुक गया है।',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'बहुत सारे अलग-अलग डिवाइस बैकअप को संयोजित करने की आवश्यकता है।',
+    'बहुत सारे डिवाइस के बदलाव जोड़े जाने का इंतज़ार कर रहे हैं। सिंक रुक गया है।',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'बरामद वस्तु की आंतरिक आईडी मौजूदा वस्तु के समान ही है।',
+    'आपकी डायरी के दो आइटम सुरक्षित रूप से जोड़े नहीं जा सके। सिंक रुक गया है। आप सेटिंग्स से एक कॉपी निर्यात कर सकते हैं।',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'ताकबूक इस डिवाइस पर सुरक्षित रूप से बैकअप डेटा तैयार नहीं कर सका।',
+    'ताकबूक इस डिवाइस पर सिंक डेटा सहेज नहीं सका। हो सकता है स्टोरेज कम हो। सिंक रुक गया है।',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'Google Drive में पर्याप्त खाली स्टोरेज नहीं है।',
+    'आपका Google Drive स्टोरेज भर गया है। सिंक रुक गया है।',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive ने ऐप बैकअप फ़ोल्डर तक पहुंच से इनकार कर दिया।',
+    'Google Drive ताकबूक को आपके बैकअप तक पहुँचने से रोक रहा है। सिंक रुक गया है।',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'बैकअप के लिए आवश्यक फोटो या वॉइस नोट उपलब्ध नहीं है।',
+    'कोई फ़ोटो या वॉइस नोट नहीं मिला। सिंक रुक गया है।',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'इस डिवाइस पर मौजूद फ़ोटो या वॉइस नोट को सत्यापित नहीं किया जा सका.',
+    'इस डिवाइस पर कोई फ़ोटो या वॉइस नोट पढ़ा नहीं जा सका। सिंक रुक गया है।',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'आपकी डायरी अभी तक क्लाउड सिंक के लिए तैयार नहीं है।',
+    'ताकबूक आपकी डायरी को बैकअप के लिए तैयार नहीं कर सका। सिंक रुक गया है।',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
-    'यह क्लाउड बैकअप किसी अन्य डिवाइस से हटा दिया गया था।',
+    'यह बैकअप हटा दिया गया है। इस डिवाइस पर पहले से मौजूद प्रविष्टियाँ हटाई नहीं गई हैं।',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
-    'यह डायरी किसी अन्य डिवाइस से हर जगह हटा दी गई थी।',
+    'आपकी डायरी और उसका बैकअप हर जगह से हटा दिए गए हैं। पूरा करने के लिए इस डिवाइस को मिटाएं।',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'सभी बैकअप डेटा हटाए जाने से पहले क्लाउड डिलीट होना बंद हो गया।',
+    'आपका बैकअप हटाना पूरा नहीं हुआ। हो सकता है उसका कुछ हिस्सा अब भी Google Drive में हो।',
   'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'अभी भी उपयोग में आने वाले बैकअप की सुरक्षा के लिए बैकअप क्लीनअप बंद कर दिया गया है।',
-  'cloud.chooseTheConnectedAccount': 'कनेक्टेड खाता चुनें',
+    'पुराना बैकअप डेटा साफ़ करते समय सिंक रुक गया, ताकि आपका मौजूदा बैकअप सुरक्षित रहे।',
   'cloud.chooseAGoogleAccountToReconnect': 'पुनः कनेक्ट करने के लिए एक Google खाता चुनें',
-  'cloud.finishConnection': 'कनेक्शन समाप्त करें',
-  'cloud.reconnectToTheCorrectBackup': 'सही बैकअप से पुनः कनेक्ट करें',
   'cloud.updateTackbok': 'ताकबूक को अपडेट करें',
-  'cloud.retryBackupCheck': 'बैकअप जाँच फिर से करें',
-  'cloud.exportJournalAndRepairBackup': 'डायरी निर्यात करें और बैकअप की मरम्मत करें',
-  'cloud.freeDeviceStorageAndRetry': 'डिवाइस का स्टोरेज खाली करें और पुनः प्रयास करें',
   'cloud.manageGoogleDriveStorage': 'Google Drive भंडारण प्रबंधित करें',
-  'cloud.retryMissingMedia': 'गुम मीडिया पुनः प्रयास करें',
-  'cloud.retryAttachment': 'अटैचमेंट फिर से आज़माएँ',
-  'cloud.retryJournalPreparation': 'डायरी तैयारी का पुनः प्रयास करें',
-  'cloud.acknowledgeAndDisconnect': 'स्वीकार करें और डिस्कनेक्ट करें',
   'cloud.reviewDeletionAndEraseThisDevice': 'इस डिवाइस को हटाने और मिटाने की समीक्षा करें',
   'cloud.resumeDeletion': 'हटाना फिर से शुरू करें',
+  'cloud.syncAgain': 'फिर से सिंक करें',
+  'cloud.disconnectAndSetUpAgain': 'डिस्कनेक्ट करें और फिर से सेट अप करें',
+  'cloud.openSettingsToExport': 'निर्यात के लिए सेटिंग्स खोलें',
+  'cloud.openDeviceSettings': 'डिवाइस सेटिंग्स खोलें',
+  'cloud.toKeepACopyUseExportInSettings':
+    'अपनी डायरी की कॉपी रखने के लिए {section} में {action} पर टैप करें।',
+  'cloud.backupFoundButCouldNotBeRead':
+    'ताकबूक को इस Google खाते में एक बैकअप मिला, लेकिन वह उसे पढ़ नहीं सका। ताकबूक को अपडेट करने से मदद मिल सकती है।',
+  'cloud.backupFoundButCouldNotBeReadCreateNew':
+    'ताकबूक को इस Google खाते में एक बैकअप मिला, लेकिन वह उसे पढ़ नहीं सका। ताकबूक को अपडेट करने से मदद मिल सकती है। आप इस डायरी के लिए नया बैकअप भी बना सकते हैं।',
+  'cloud.someBackupsInThisAccountCouldNotBeRead':
+    'इस खाते के कुछ बैकअप पढ़े नहीं जा सके। ताकबूक को अपडेट करने से मदद मिल सकती है।',
   'cloud.cloudDeletionCompleted': 'क्लाउड डेटा हटाना पूरा हुआ',
-  'cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd':
-    'प्रभावित डायरी डेटा को निर्यात या सुधारें, फिर वापस लौटें और पुनः प्रयास करें।',
   'cloud.cloudBackupRetryCompleted': 'क्लाउड बैकअप पुनः प्रयास पूरा हुआ',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'क्लाउड सिंक समाप्त नहीं हो सका. आपके परिवर्तन सुरक्षित रूप से कतारबद्ध रहते हैं।',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive ने बैकअप अनुरोध अस्वीकार कर दिया। ताकबूक को अद्यतन करें और पुनः प्रयास करें।',
+    'Google Drive ने ताकबूक का एक अनुरोध स्वीकार नहीं किया। ताकबूक को अपडेट करने से मदद मिल सकती है। सिंक रुक गया है।',
   'time.hours': 'घंटे',
   'time.minutes': 'मिनट',
   'common.databaseUpdateFailed': 'डायरी डेटाबेस अद्यतन नहीं किया जा सका: {message}',

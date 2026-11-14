@@ -16,6 +16,7 @@ const mockRestart = jest.fn(async () => {
   mockEvents.push('restart');
 });
 let mockVaults: { vaultId: string; updatedAt: number }[] = [];
+let mockUnreadable: string[] = [];
 const mockSettings: {
   setCloudRestore: jest.Mock;
   setHasCompletedOnboarding: jest.Mock;
@@ -120,7 +121,10 @@ jest.mock('../snapshot/storage', () => ({
 jest.mock('../snapshot/drive', () => ({
   SQLiteDriveProviderStateStore: jest.fn(),
   GoogleDriveSnapshotProvider: jest.fn(() => ({
-    listAvailableVaults: async () => mockVaults,
+    listAvailableVaults: async () => ({
+      vaults: mockVaults,
+      unreadableVaultIds: mockUnreadable,
+    }),
   })),
 }));
 jest.mock('~/lib/settings', () => ({
@@ -143,6 +147,7 @@ beforeEach(async () => {
   await cancelPreparedGoogleDriveConnection();
   delete mockSettings.cloudRestore;
   mockVaults = [];
+  mockUnreadable = [];
   mockRows.length = 0;
   mockStatuses.length = 0;
   mockEvents.length = 0;
@@ -212,6 +217,22 @@ test('a cancelled sign-in keeps the current backup, its credentials and its rest
   const stops = mockStop.mock.calls.length;
   await cancelPreparedGoogleDriveConnection();
   expect(mockStop).toHaveBeenCalledTimes(stops);
+});
+
+test('setup counts unreadable backups apart from restorable ones', async () => {
+  await expect(prepareGoogleDriveConnection()).resolves.toMatchObject({
+    availableVaults: [],
+    unreadableBackupCount: 0,
+  });
+  await cancelPreparedGoogleDriveConnection();
+
+  mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
+  mockUnreadable = ['vault-b', 'probe-vault'];
+  await expect(prepareGoogleDriveConnection()).resolves.toMatchObject({
+    availableVaults: [{ vaultId: 'vault-a', updatedAt: 1 }],
+    // Leftover probe backups stay hidden, readable or not.
+    unreadableBackupCount: 1,
+  });
 });
 
 test('failed vault selection never restarts the runtime', async () => {

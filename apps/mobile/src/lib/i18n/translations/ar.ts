@@ -947,67 +947,69 @@ export const ar: Translations = {
   'cloud.countChangesRemaining': 'متبقٍ {count} تغييرات',
   'cloud.photosAndVoiceNotesToDownloadCount':
     'صور وملاحظات صوتية بانتظار التنزيل: {number}',
-  'cloud.googleDriveAuthorizationNeedsAttention': 'يحتاج تفويض Google Drive إلى تدخل.',
+  'cloud.googleDriveAuthorizationNeedsAttention':
+    'يطلب Google Drive تسجيل الدخول مرة أخرى. توقفت المزامنة.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'تنتمي هذه النسخة الاحتياطية إلى حساب Google آخر متصل.',
-  'cloud.googleDrivePermissionWasNotFullyGranted': 'لم يُمنح إذن Google Drive بالكامل.',
+    'تعود هذه النسخة الاحتياطية إلى حساب Google مختلف. توقفت المزامنة.',
+  'cloud.googleDrivePermissionWasNotFullyGranted':
+    'لم يحصل Tackbok على إذن كامل للوصول إلى Google Drive. توقفت المزامنة.',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'النسخة الاحتياطية السحابية المتصلة لا تطابق هذه اليوميات.',
+    'النسخة الاحتياطية المتصلة تخص دفتر يوميات آخر. توقفت المزامنة.',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من Tackbok.',
+    'أُنشئت هذه النسخة الاحتياطية بإصدار أحدث من Tackbok. توقفت المزامنة.',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'لم تجتز نسخة احتياطية محفوظة في السحابة فحوصات الأمان.',
+    'تعذّرت قراءة جزء من نسختك الاحتياطية في Google Drive. توقفت المزامنة.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'تشير نسخة احتياطية لجهاز إلى نسخة محفوظة مفقودة.',
+    'جزء من نسختك الاحتياطية مفقود من Google Drive. توقفت المزامنة.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'تدّعي نسختان احتياطيتان مختلفتان إصدار الجهاز نفسه.',
+    'تحتوي نسختك الاحتياطية على نسختين مختلفتين من تغييرات جهاز واحد. توقفت المزامنة.',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'هناك عدد كبير جدًا من النسخ الاحتياطية المنفصلة للأجهزة، ويجب دمجها.',
+    'هناك تغييرات من أجهزة كثيرة جدًا تنتظر الدمج. توقفت المزامنة.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'لعنصر تم استرداده المعرّف الداخلي نفسه لعنصر موجود.',
+    'تعذّر دمج عنصرين في دفتر يومياتك بأمان. توقفت المزامنة. يمكنك تصدير نسخة من الإعدادات.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'تعذّر على تاكبوك إعداد بيانات النسخة الاحتياطية بأمان على هذا الجهاز.',
+    'تعذّر على Tackbok حفظ بيانات المزامنة على هذا الجهاز. قد تكون مساحة التخزين منخفضة. توقفت المزامنة.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'لا توجد مساحة حرة كافية في Google Drive.',
+    'مساحة التخزين في Google Drive ممتلئة. توقفت المزامنة.',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'رفض Google Drive الوصول إلى مجلد النسخ الاحتياطي للتطبيق.',
+    'يمنع Google Drive وصول Tackbok إلى نسختك الاحتياطية. توقفت المزامنة.',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'توجد صورة أو ملاحظة صوتية تحتاجها النسخة الاحتياطية ولكنها غير متاحة.',
+    'تعذّر العثور على صورة أو ملاحظة صوتية. توقفت المزامنة.',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'تعذّر التحقق من صورة أو ملاحظة صوتية على هذا الجهاز.',
+    'تعذّرت قراءة صورة أو ملاحظة صوتية على هذا الجهاز. توقفت المزامنة.',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'يومياتك غير جاهزة للمزامنة السحابية بعد.',
+    'تعذّر على Tackbok تجهيز دفتر يومياتك للنسخ الاحتياطي. توقفت المزامنة.',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
-    'حُذفت هذه النسخة السحابية من جهاز آخر.',
+    'حُذفت هذه النسخة الاحتياطية. لم تُحذف السجلات الموجودة بالفعل على هذا الجهاز.',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
-    'حُذفت هذه اليوميات في كل مكان من جهاز آخر.',
+    'حُذف دفتر يومياتك ونسخته الاحتياطية من كل مكان. امسح هذا الجهاز لإكمال العملية.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'توقف الحذف من السحابة قبل إزالة جميع بيانات النسخ الاحتياطية.',
+    'لم يكتمل حذف نسختك الاحتياطية. قد يبقى جزء منها في Google Drive.',
   'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'توقف تنظيف النسخ الاحتياطية لحماية نسخة لا تزال قيد الاستخدام.',
-  'cloud.chooseTheConnectedAccount': 'اختر الحساب المتصل',
+    'توقفت المزامنة أثناء إزالة بيانات النسخ الاحتياطي القديمة لحماية نسختك الاحتياطية الحالية.',
   'cloud.chooseAGoogleAccountToReconnect': 'اختر حساب Google لإعادة الاتصال',
-  'cloud.finishConnection': 'أكمل الاتصال',
-  'cloud.reconnectToTheCorrectBackup': 'أعد الاتصال بالنسخة الصحيحة',
   'cloud.updateTackbok': 'حدّث Tackbok',
-  'cloud.retryBackupCheck': 'إعادة فحص النسخة الاحتياطية',
-  'cloud.exportJournalAndRepairBackup': 'صدّر اليوميات وأصلح النسخة',
-  'cloud.freeDeviceStorageAndRetry': 'حرر مساحة الجهاز وأعد المحاولة',
   'cloud.manageGoogleDriveStorage': 'إدارة مساحة Google Drive',
-  'cloud.retryMissingMedia': 'أعد محاولة الوسائط المفقودة',
-  'cloud.retryAttachment': 'إعادة محاولة المرفق',
-  'cloud.retryJournalPreparation': 'أعد محاولة تجهيز اليوميات',
-  'cloud.acknowledgeAndDisconnect': 'أقرّ وافصل الاتصال',
   'cloud.reviewDeletionAndEraseThisDevice': 'راجع الحذف وامسح هذا الجهاز',
   'cloud.resumeDeletion': 'استئناف الحذف',
+  'cloud.syncAgain': 'المزامنة مرة أخرى',
+  'cloud.disconnectAndSetUpAgain': 'قطع الاتصال والإعداد من جديد',
+  'cloud.openSettingsToExport': 'افتح الإعدادات للتصدير',
+  'cloud.openDeviceSettings': 'افتح إعدادات الجهاز',
+  'cloud.toKeepACopyUseExportInSettings':
+    'للاحتفاظ بنسخة من دفتر يومياتك، اضغط على {action} ضمن {section}.',
+  'cloud.backupFoundButCouldNotBeRead':
+    'عثر Tackbok على نسخة احتياطية في حساب Google هذا لكنه تعذّرت عليه قراءتها. قد يساعد تحديث Tackbok.',
+  'cloud.backupFoundButCouldNotBeReadCreateNew':
+    'عثر Tackbok على نسخة احتياطية في حساب Google هذا لكنه تعذّرت عليه قراءتها. قد يساعد تحديث Tackbok. يمكنك أيضًا إنشاء نسخة احتياطية جديدة لدفتر اليوميات هذا.',
+  'cloud.someBackupsInThisAccountCouldNotBeRead':
+    'تعذّرت قراءة بعض النسخ الاحتياطية في هذا الحساب. قد يساعد تحديث Tackbok.',
   'cloud.cloudDeletionCompleted': 'اكتمل الحذف السحابي',
-  'cloud.exportOrRepairTheAffectedJournalDataThenReturnAnd':
-    'صدّر بيانات اليوميات المتأثرة أو أصلحها، ثم عُد وأعد المحاولة.',
   'cloud.cloudBackupRetryCompleted': 'اكتملت إعادة محاولة النسخ السحابي',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'تعذّرت مزامنة السحابة. تبقى تغييراتك محفوظة بأمان في قائمة الانتظار.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'رفض Google Drive طلب نسخ احتياطي. حدّث Tackbok وأعد المحاولة.',
+    'لم يقبل Google Drive طلبًا من Tackbok. قد يساعد تحديث Tackbok. توقفت المزامنة.',
   'time.hours': 'الساعات',
   'time.minutes': 'الدقائق',
   'common.databaseUpdateFailed': 'تعذّر تحديث قاعدة بيانات دفتر اليوميات: {message}',
