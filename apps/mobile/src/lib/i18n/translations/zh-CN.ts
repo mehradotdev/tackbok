@@ -913,37 +913,37 @@ export const zhCN: Translations = {
   'cloud.countChangesRemaining': '剩余 {count} 项更改',
   'cloud.photosAndVoiceNotesToDownloadCount': '待下载的照片和语音笔记：{number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Google Drive 需要你重新登录。同步已停止，在问题解决前不会更改任何内容。',
+    'Google Drive 需要你重新登录。同步已停止。',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    '此备份属于另一个 Google 账户。同步已停止，在问题解决前不会更改任何内容。',
+    '此备份属于另一个 Google 账户。同步已停止。',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    '塔克布克没有获得 Google Drive 的完整访问权限。同步已停止，在问题解决前不会更改任何内容。',
+    '塔克布克没有获得 Google Drive 的完整访问权限。同步已停止。',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    '已连接的备份属于另一本日记。同步已停止，在问题解决前不会更改任何内容。',
+    '已连接的备份属于另一本日记。同步已停止。',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    '此备份由较新版本的塔克布克创建。同步已停止，在问题解决前不会更改任何内容。',
+    '此备份由较新版本的塔克布克创建。同步已停止。',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'Google Drive 中你的部分备份无法读取。同步已停止，在问题解决前不会更改任何内容。',
+    'Google Drive 中你的部分备份无法读取。同步已停止。',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    '你的部分备份在 Google Drive 中缺失。同步已停止，在问题解决前不会更改任何内容。',
+    '你的部分备份在 Google Drive 中缺失。同步已停止。',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    '你的备份中，同一台设备的更改有两个不同版本。同步已停止，在问题解决前不会更改任何内容。',
+    '你的备份中，同一台设备的更改有两个不同版本。同步已停止。',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    '有太多设备的更改等待合并。同步已停止，在问题解决前不会更改任何内容。',
+    '有太多设备的更改等待合并。同步已停止。',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    '你日记中的两个项目无法安全合并。同步已停止，在问题解决前不会更改任何内容。你可以在设置中导出一份副本。',
+    '你日记中的两个项目无法安全合并。同步已停止。你可以在设置中导出一份副本。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    '塔克布克无法在此设备上保存同步数据，设备存储空间可能不足。同步已停止，在问题解决前不会更改任何内容。',
+    '塔克布克无法在此设备上保存同步数据，设备存储空间可能不足。同步已停止。',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    '你的 Google Drive 存储空间已满。同步已停止，在问题解决前不会更改任何内容。',
+    '你的 Google Drive 存储空间已满。同步已停止。',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive 正在阻止塔克布克访问你的备份。同步已停止，在问题解决前不会更改任何内容。',
+    'Google Drive 正在阻止塔克布克访问你的备份。同步已停止。',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    '找不到一张照片或一条语音笔记。同步已停止，在问题解决前不会更改任何内容。',
+    '找不到一张照片或一条语音笔记。同步已停止。',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    '无法读取此设备上的一张照片或一条语音笔记。同步已停止，在问题解决前不会更改任何内容。',
+    '无法读取此设备上的一张照片或一条语音笔记。同步已停止。',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    '塔克布克无法为备份准备好你的日记。同步已停止，在问题解决前不会更改任何内容。',
+    '塔克布克无法为备份准备好你的日记。同步已停止。',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
     '此备份已被删除。此设备上已有的条目没有被移除。',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
@@ -974,7 +974,7 @@ export const zhCN: Translations = {
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     '云同步未能完成。你的更改仍安全地保留在队列中。',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive 未接受塔克布克的请求。更新塔克布克可能会有帮助。同步已停止，在问题解决前不会更改任何内容。',
+    'Google Drive 未接受塔克布克的请求。更新塔克布克可能会有帮助。同步已停止。',
   'time.hours': '小时',
   'time.minutes': '分钟',
   'common.databaseUpdateFailed': '无法更新日记数据库：{message}',

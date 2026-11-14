@@ -940,37 +940,37 @@ export const he: Translations = {
   'cloud.countChangesRemaining': 'נותרו {count} שינויים',
   'cloud.photosAndVoiceNotesToDownloadCount': 'תמונות והקלטות קוליות להורדה: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Google Drive מבקש להתחבר מחדש. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'Google Drive מבקש להתחבר מחדש. הסנכרון נעצר.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'הגיבוי הזה שייך לחשבון Google אחר. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'הגיבוי הזה שייך לחשבון Google אחר. הסנכרון נעצר.',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'Tackbok לא קיבל גישה מלאה ל-Google Drive. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'Tackbok לא קיבל גישה מלאה ל-Google Drive. הסנכרון נעצר.',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'הגיבוי המחובר שייך ליומן אחר. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'הגיבוי המחובר שייך ליומן אחר. הסנכרון נעצר.',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'הגיבוי הזה נוצר בגרסה חדשה יותר של Tackbok. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'הגיבוי הזה נוצר בגרסה חדשה יותר של Tackbok. הסנכרון נעצר.',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'לא ניתן היה לקרוא חלק מהגיבוי שלך ב-Google Drive. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'לא ניתן היה לקרוא חלק מהגיבוי שלך ב-Google Drive. הסנכרון נעצר.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'חלק מהגיבוי שלך חסר ב-Google Drive. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'חלק מהגיבוי שלך חסר ב-Google Drive. הסנכרון נעצר.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'בגיבוי שלך יש שתי גרסאות שונות של השינויים ממכשיר אחד. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'בגיבוי שלך יש שתי גרסאות שונות של השינויים ממכשיר אחד. הסנכרון נעצר.',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'שינויים מיותר מדי מכשירים ממתינים לאיחוד. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'שינויים מיותר מדי מכשירים ממתינים לאיחוד. הסנכרון נעצר.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'לא ניתן היה לאחד בבטחה שני פריטים ביומן שלך. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר. אפשר לייצא עותק מההגדרות.',
+    'לא ניתן היה לאחד בבטחה שני פריטים ביומן שלך. הסנכרון נעצר. אפשר לייצא עותק מההגדרות.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'Tackbok לא הצליח לשמור נתוני סנכרון במכשיר הזה. ייתכן שהאחסון כמעט מלא. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'Tackbok לא הצליח לשמור נתוני סנכרון במכשיר הזה. ייתכן שהאחסון כמעט מלא. הסנכרון נעצר.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'האחסון שלך ב-Google Drive מלא. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'האחסון שלך ב-Google Drive מלא. הסנכרון נעצר.',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive חוסם את הגישה של Tackbok לגיבוי שלך. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'Google Drive חוסם את הגישה של Tackbok לגיבוי שלך. הסנכרון נעצר.',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'לא נמצאו תמונה או הקלטה קולית. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'לא נמצאו תמונה או הקלטה קולית. הסנכרון נעצר.',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'לא ניתן היה לקרוא תמונה או הקלטה קולית במכשיר הזה. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'לא ניתן היה לקרוא תמונה או הקלטה קולית במכשיר הזה. הסנכרון נעצר.',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'Tackbok לא הצליח להכין את היומן שלך לגיבוי. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'Tackbok לא הצליח להכין את היומן שלך לגיבוי. הסנכרון נעצר.',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
     'הגיבוי הזה נמחק. רשומות שכבר נמצאות במכשיר הזה לא הוסרו.',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
@@ -1001,7 +1001,7 @@ export const he: Translations = {
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'סנכרון הענן לא הושלם. השינויים שלך נשארים שמורים בבטחה בתור.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive לא קיבל בקשה מ-Tackbok. עדכון Tackbok עשוי לעזור. הסנכרון נעצר ולא ישנה דבר עד שהבעיה תיפתר.',
+    'Google Drive לא קיבל בקשה מ-Tackbok. עדכון Tackbok עשוי לעזור. הסנכרון נעצר.',
   'time.hours': 'שעות',
   'time.minutes': 'דקות',
   'common.databaseUpdateFailed': 'לא ניתן לעדכן את מסד הנתונים של היומן: {message}',

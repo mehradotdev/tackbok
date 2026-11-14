@@ -891,37 +891,37 @@ export const hi = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'डाउनलोड होने बाकी फ़ोटो और वॉइस नोट: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Google Drive चाहता है कि आप फिर से साइन इन करें। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'Google Drive चाहता है कि आप फिर से साइन इन करें। सिंक रुक गया है।',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'यह बैकअप किसी दूसरे Google खाते का है। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'यह बैकअप किसी दूसरे Google खाते का है। सिंक रुक गया है।',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'ताकबूक को Google Drive की पूरी अनुमति नहीं मिली। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'ताकबूक को Google Drive की पूरी अनुमति नहीं मिली। सिंक रुक गया है।',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'जुड़ा हुआ बैकअप किसी दूसरी डायरी का है। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'जुड़ा हुआ बैकअप किसी दूसरी डायरी का है। सिंक रुक गया है।',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'यह बैकअप ताकबूक के नए संस्करण से बनाया गया था। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'यह बैकअप ताकबूक के नए संस्करण से बनाया गया था। सिंक रुक गया है।',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'Google Drive में आपके बैकअप का कुछ हिस्सा पढ़ा नहीं जा सका। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'Google Drive में आपके बैकअप का कुछ हिस्सा पढ़ा नहीं जा सका। सिंक रुक गया है।',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'आपके बैकअप का कुछ हिस्सा Google Drive में नहीं है। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'आपके बैकअप का कुछ हिस्सा Google Drive में नहीं है। सिंक रुक गया है।',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'आपके बैकअप में एक ही डिवाइस के बदलावों के दो अलग-अलग रूप हैं। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'आपके बैकअप में एक ही डिवाइस के बदलावों के दो अलग-अलग रूप हैं। सिंक रुक गया है।',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'बहुत सारे डिवाइस के बदलाव जोड़े जाने का इंतज़ार कर रहे हैं। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'बहुत सारे डिवाइस के बदलाव जोड़े जाने का इंतज़ार कर रहे हैं। सिंक रुक गया है।',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'आपकी डायरी के दो आइटम सुरक्षित रूप से जोड़े नहीं जा सके। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा। आप सेटिंग्स से एक कॉपी निर्यात कर सकते हैं।',
+    'आपकी डायरी के दो आइटम सुरक्षित रूप से जोड़े नहीं जा सके। सिंक रुक गया है। आप सेटिंग्स से एक कॉपी निर्यात कर सकते हैं।',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'ताकबूक इस डिवाइस पर सिंक डेटा सहेज नहीं सका। हो सकता है स्टोरेज कम हो। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'ताकबूक इस डिवाइस पर सिंक डेटा सहेज नहीं सका। हो सकता है स्टोरेज कम हो। सिंक रुक गया है।',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'आपका Google Drive स्टोरेज भर गया है। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'आपका Google Drive स्टोरेज भर गया है। सिंक रुक गया है।',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive ताकबूक को आपके बैकअप तक पहुँचने से रोक रहा है। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'Google Drive ताकबूक को आपके बैकअप तक पहुँचने से रोक रहा है। सिंक रुक गया है।',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'कोई फ़ोटो या वॉइस नोट नहीं मिला। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'कोई फ़ोटो या वॉइस नोट नहीं मिला। सिंक रुक गया है।',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'इस डिवाइस पर कोई फ़ोटो या वॉइस नोट पढ़ा नहीं जा सका। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'इस डिवाइस पर कोई फ़ोटो या वॉइस नोट पढ़ा नहीं जा सका। सिंक रुक गया है।',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'ताकबूक आपकी डायरी को बैकअप के लिए तैयार नहीं कर सका। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'ताकबूक आपकी डायरी को बैकअप के लिए तैयार नहीं कर सका। सिंक रुक गया है।',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
     'यह बैकअप हटा दिया गया है। इस डिवाइस पर पहले से मौजूद प्रविष्टियाँ हटाई नहीं गई हैं।',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
@@ -952,7 +952,7 @@ export const hi = {
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'क्लाउड सिंक समाप्त नहीं हो सका. आपके परिवर्तन सुरक्षित रूप से कतारबद्ध रहते हैं।',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive ने ताकबूक का एक अनुरोध स्वीकार नहीं किया। ताकबूक को अपडेट करने से मदद मिल सकती है। सिंक रुक गया है और समस्या ठीक होने तक कुछ नहीं बदलेगा।',
+    'Google Drive ने ताकबूक का एक अनुरोध स्वीकार नहीं किया। ताकबूक को अपडेट करने से मदद मिल सकती है। सिंक रुक गया है।',
   'time.hours': 'घंटे',
   'time.minutes': 'मिनट',
   'common.databaseUpdateFailed': 'डायरी डेटाबेस अद्यतन नहीं किया जा सका: {message}',

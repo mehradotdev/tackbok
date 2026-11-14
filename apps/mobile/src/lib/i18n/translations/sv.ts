@@ -912,37 +912,37 @@ export const sv = {
   'cloud.photosAndVoiceNotesToDownloadCount':
     'Foton och röstanteckningar att ladda ned: {number}',
   'cloud.googleDriveAuthorizationNeedsAttention':
-    'Google Drive behöver att du loggar in igen. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Google Drive behöver att du loggar in igen. Synkroniseringen har stoppats.',
   'cloud.thisBackupBelongsToADifferentConnectedGoogleAccount':
-    'Den här säkerhetskopian tillhör ett annat Google-konto. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Den här säkerhetskopian tillhör ett annat Google-konto. Synkroniseringen har stoppats.',
   'cloud.googleDrivePermissionWasNotFullyGranted':
-    'Tackbok fick inte full åtkomst till Google Drive. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Tackbok fick inte full åtkomst till Google Drive. Synkroniseringen har stoppats.',
   'cloud.theConnectedCloudBackupDoesNotMatchThisJournal':
-    'Den anslutna säkerhetskopian tillhör en annan dagbok. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Den anslutna säkerhetskopian tillhör en annan dagbok. Synkroniseringen har stoppats.',
   'cloud.thisBackupWasCreatedByANewerTackbokVersion':
-    'Den här säkerhetskopian skapades av en nyare version av Tackbok. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Den här säkerhetskopian skapades av en nyare version av Tackbok. Synkroniseringen har stoppats.',
   'cloud.aCloudSnapshotFailedItsSafetyChecks':
-    'En del av din säkerhetskopia i Google Drive kunde inte läsas. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'En del av din säkerhetskopia i Google Drive kunde inte läsas. Synkroniseringen har stoppats.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
-    'En del av din säkerhetskopia saknas i Google Drive. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'En del av din säkerhetskopia saknas i Google Drive. Synkroniseringen har stoppats.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'Din säkerhetskopia har två olika versioner av en enhets ändringar. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Din säkerhetskopia har två olika versioner av en enhets ändringar. Synkroniseringen har stoppats.',
   'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Ändringar från för många enheter väntar på att slås ihop. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Ändringar från för många enheter väntar på att slås ihop. Synkroniseringen har stoppats.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'Två objekt i din dagbok kunde inte slås ihop säkert. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst. Du kan exportera en kopia från Inställningar.',
+    'Två objekt i din dagbok kunde inte slås ihop säkert. Synkroniseringen har stoppats. Du kan exportera en kopia från Inställningar.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
-    'Tackbok kunde inte spara synkroniseringsdata på den här enheten. Lagringsutrymmet kan vara nästan fullt. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Tackbok kunde inte spara synkroniseringsdata på den här enheten. Lagringsutrymmet kan vara nästan fullt. Synkroniseringen har stoppats.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
-    'Ditt lagringsutrymme i Google Drive är fullt. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Ditt lagringsutrymme i Google Drive är fullt. Synkroniseringen har stoppats.',
   'cloud.googleDriveDeniedAccessToTheAppBackupFolder':
-    'Google Drive blockerar Tackbok från din säkerhetskopia. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Google Drive blockerar Tackbok från din säkerhetskopia. Synkroniseringen har stoppats.',
   'cloud.aReferencedPhotoOrVoiceMemoIsUnavailable':
-    'Ett foto eller en röstanteckning hittades inte. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Ett foto eller en röstanteckning hittades inte. Synkroniseringen har stoppats.',
   'cloud.aLocalPhotoOrVoiceMemoCouldNotBeVerified':
-    'Ett foto eller en röstanteckning på den här enheten kunde inte läsas. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Ett foto eller en röstanteckning på den här enheten kunde inte läsas. Synkroniseringen har stoppats.',
   'cloud.yourJournalIsNotReadyForCloudSyncYet':
-    'Tackbok kunde inte förbereda din dagbok för säkerhetskopiering. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Tackbok kunde inte förbereda din dagbok för säkerhetskopiering. Synkroniseringen har stoppats.',
   'cloud.thisCloudBackupWasDeletedFromAnotherDevice':
     'Den här säkerhetskopian har raderats. Anteckningar som redan finns på den här enheten har inte tagits bort.',
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
@@ -974,7 +974,7 @@ export const sv = {
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':
     'Molnsynkroniseringen kunde inte slutföras. Dina ändringar förblir säkert i kö.',
   'cloud.googleDriveRejectedABackupRequestUpdateTackbokAndRetry':
-    'Google Drive godtog inte en begäran från Tackbok. Det kan hjälpa att uppdatera Tackbok. Synkroniseringen har stoppats och ändrar ingenting förrän problemet är löst.',
+    'Google Drive godtog inte en begäran från Tackbok. Det kan hjälpa att uppdatera Tackbok. Synkroniseringen har stoppats.',
   'time.hours': 'Timmar',
   'time.minutes': 'Minuter',
   'common.databaseUpdateFailed': 'Kunde inte uppdatera dagboksdatabasen: {message}',
