@@ -4666,6 +4666,21 @@ describe('merges that cannot be combined', () => {
     second.provider.listHeads = listHeads;
   });
 
+  test('an unreadable backup while paused replaces the merge pause', async () => {
+    const { second } = await incompatibleDevices();
+    const engine = second.engine();
+    expect((await engine.sync()).status).toBe('attention');
+    const listHeads = second.provider.listHeads.bind(second.provider);
+    second.provider.listHeads = async () => {
+      throw new SnapshotProviderError('invalid-data', 'unreadable head');
+    };
+    expect(await engine.sync()).toMatchObject({
+      status: 'attention',
+      reason: 'invalid-remote-snapshot',
+    });
+    second.provider.listHeads = listHeads;
+  });
+
   test('a failure whose input could not be recorded merges once more, then records it', async () => {
     const { second } = await incompatibleDevices();
     const counter = countMerges();

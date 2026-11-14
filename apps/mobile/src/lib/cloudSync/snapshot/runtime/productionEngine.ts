@@ -80,6 +80,11 @@ const HYDRATION_BATCH = 2;
  * account or backup switch, reset, journal deletion) clears it.
  */
 export const productionSnapshotCache = new VerifiedSnapshotCache();
+
+/** The running build and update; a change retries a merge that failed. */
+export function productionCodeVersion(): string {
+  return `${Application.nativeBuildVersion ?? ''}/${Updates.updateId ?? 'embedded'}`;
+}
 cloudConnectionLifecycle.addChangeListener(() => productionSnapshotCache.clear());
 
 /** The running pass's signal, shared by one engine's provider and hooks. */
@@ -620,7 +625,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     },
     Date.now,
     productionSnapshotCache,
-    `${Application.nativeBuildVersion ?? ''}/${Updates.updateId ?? 'embedded'}`,
+    productionCodeVersion(),
   );
   return new ProductionSnapshotRuntimeEngine(
     options.vault,

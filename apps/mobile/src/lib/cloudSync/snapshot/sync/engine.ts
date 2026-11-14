@@ -153,7 +153,10 @@ export class SnapshotSyncEngine {
     private readonly now: () => number = Date.now,
     /** Verified snapshots kept across passes; without it, each pass downloads anew. */
     private readonly snapshotCache?: VerifiedSnapshotCache,
-    /** Identifies the running app build and update; a new one retries a failed merge. */
+    /**
+     * Identifies the running app build and update; a new one retries a failed
+     * merge. Constant in development builds, which have no update ID.
+     */
     private readonly codeVersion = '',
   ) {
     this.hooks = { ...hooks, progress: isolateProgress(hooks.progress) };
@@ -329,9 +332,15 @@ export class SnapshotSyncEngine {
     let listed: ListedDeviceHead[];
     try {
       listed = await this.provider.listHeads(this.vaultId, true);
-    } catch {
-      // Offline or similar: stay paused, keeping the merge error class.
-      return false;
+    } catch (error) {
+      // Offline or busy: stay paused, keeping the merge error class. Other
+      // failures, such as an unreadable backup, replace the merge pause.
+      if (
+        error instanceof SnapshotProviderError &&
+        (error.code === 'transient' || error.code === 'rate-limited')
+      )
+        return false;
+      throw error;
     }
     return (
       durable.pauseContext !==
@@ -343,7 +352,7 @@ export class SnapshotSyncEngine {
    * The generation is from before capture, so an edit during the pass is
    * retried. shortcut: the heads are the provider's latest listing, normally
    * the one this pass merged; a head found in between waits for the next
-   * change. Pass planning's own listing here if planning ever exposes it.
+   * change, as does a merge base changed only by remote retention cleanup. Pass planning's own listing here if planning ever exposes it.
    */
   private async recordFailedMergeInput(): Promise<void> {
     try {
