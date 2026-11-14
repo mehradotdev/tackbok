@@ -722,7 +722,7 @@ export const zhCN: Translations = {
   'cloud.attentionNeeded': '需要注意',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     '使用你自己的 Google Drive 备份和同步日记。日记直接从你的手机传到你的 Drive，塔克布克的开发者永远看不到它。',
-  'cloud.lastUpdatedDate': '上次更新：{date}',
+  'cloud.lastUpdatedDateTime': '上次更新：{date} {time}',
   'cloud.beforeYouConnect': '连接之前',
   'cloud.checkingGoogleDriveForChanges': '正在检查 Google Drive 中的更改…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':

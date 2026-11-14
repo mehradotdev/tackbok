@@ -1,5 +1,9 @@
 import { CloudConnectionChangedError } from './connectionLifecycle';
-import { runProductionBackgroundPass } from './production';
+import {
+  getProductionCloudSyncActivity,
+  runProductionBackgroundPass,
+  setProductionCloudSyncActivity,
+} from './production';
 import { SyncCancelledError, throwIfCancelled } from '../snapshot/sync/errors';
 
 const vault = { vault_id: 'v1', remote_root_id: 'root', provider_kind: 'google-drive' };
@@ -18,7 +22,12 @@ jest.mock('drizzle-orm', () => ({
   isNotNull: jest.fn(),
 }));
 jest.mock('~/lib/analytics', () => ({ track: jest.fn() }));
-jest.mock('~/lib/settings', () => ({ useSettingsStore: { getState: () => ({}) } }));
+let mockSettings: {
+  cloudRestore?: { vaultId: string; journalRestoredAt?: number } | null;
+} = {};
+jest.mock('~/lib/settings', () => ({
+  useSettingsStore: { getState: () => mockSettings },
+}));
 jest.mock('expo-network', () => ({}));
 jest.mock('../auth/secureTokenStore', () => ({
   needsGoogleKeychainMigration: async () => false,
@@ -118,4 +127,23 @@ test('an engine built after the deadline never syncs', async () => {
 
   await expect(runProductionBackgroundPass(controller.signal)).resolves.toBe(true);
   expect(mockTrack).not.toHaveBeenCalledWith('cloud_sync_succeeded', expect.anything());
+});
+
+test('a restore that has no journal yet shows its check; later checks stay quiet', () => {
+  // Restoring onto an empty phone: the backup download is reported as a check.
+  mockSettings = { cloudRestore: { vaultId: 'v1' } };
+  setProductionCloudSyncActivity('checking');
+  expect(getProductionCloudSyncActivity()).toBe('checking');
+  setProductionCloudSyncActivity('idle');
+
+  mockSettings = { cloudRestore: { vaultId: 'v1', journalRestoredAt: 1 } };
+  setProductionCloudSyncActivity('checking');
+  expect(getProductionCloudSyncActivity()).toBe('idle');
+  setProductionCloudSyncActivity('idle');
+
+  mockSettings = { cloudRestore: null };
+  setProductionCloudSyncActivity('checking');
+  expect(getProductionCloudSyncActivity()).toBe('idle');
+  setProductionCloudSyncActivity('idle');
+  mockSettings = {};
 });

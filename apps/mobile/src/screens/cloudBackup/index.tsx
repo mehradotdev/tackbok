@@ -73,9 +73,11 @@ import { ConflictsCard } from './ConflictsCard';
 import { OtherVersionsRow } from './OtherVersionsRow';
 import {
   attentionReasonMessage,
+  backupLastUpdatedLabel,
   cloudSyncFailureMessage,
   pendingWorkSummary,
   recoveryActionLabel,
+  restoreStatusNote,
   statusLabel,
   syncNowUnavailableReason,
 } from './copy';
@@ -470,6 +472,13 @@ export default function CloudBackupScreen() {
                 ),
                 button: t('cloud.finishDeletion'),
               };
+  const restoreNote = restoreStatusNote(snapshot, t);
+  const syncNowDisabled =
+    actionRunning ||
+    connectionAction !== null ||
+    snapshot.status === 'syncing' ||
+    snapshot.status === 'paused' ||
+    snapshot.status === 'warning';
   const showsConnection =
     snapshot.configured ||
     snapshot.status === 'paused' ||
@@ -619,25 +628,23 @@ export default function CloudBackupScreen() {
                       {t('cloud.progress.waitingForWifi')}
                     </Text>
                   )}
-                {snapshot.status === 'restoring' && (
+                {restoreNote && (
                   <Text
                     className="text-sm text-foreground"
                     accessibilityLiveRegion="polite">
-                    {t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs')}
+                    {restoreNote}
                   </Text>
                 )}
                 <Button
                   variant="primary"
                   size="lg"
-                  disabled={
-                    actionRunning ||
-                    connectionAction !== null ||
-                    snapshot.status === 'syncing' ||
-                    snapshot.status === 'paused' ||
-                    snapshot.status === 'warning'
-                  }
+                  disabled={syncNowDisabled}
                   onPress={() => void runAction(syncNow, t('cloud.syncCompleted'))}
                   accessibilityLabel={t('cloud.syncNow')}
+                  accessibilityState={{
+                    disabled: syncNowDisabled,
+                    busy: snapshot.status === 'syncing',
+                  }}
                   accessibilityHint={syncNowReason ?? undefined}>
                   {snapshot.status === 'syncing' ? (
                     <SpinningRefreshIcon className="text-primary-foreground size-5" />
@@ -943,7 +950,7 @@ function ConnectionChoice({
   onChoose: (vaultId: string) => void;
   onCreate: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   return (
     <View className="rounded-lg border border-border bg-card p-5 gap-4">
       <View className="flex-row items-center gap-3">
@@ -976,20 +983,10 @@ function ConnectionChoice({
               onPress={() => onChoose(vault.vaultId)}
               accessibilityLabel={`${
                 prepared.localHasData ? t('cloud.merge') : t('cloud.restoreCloudBackup')
-              }. ${
-                vault.updatedAt
-                  ? t('cloud.lastUpdatedDate', {
-                      date: formatLocalizedDate(vault.updatedAt, t),
-                    })
-                  : t('cloud.cloudBackupNumber', { number: index + 1 })
-              }`}>
+              }. ${backupLastUpdatedLabel(vault, index, t, locale)}`}>
               <View className="flex-1 gap-0.5">
                 <Text className="font-body-bold text-foreground">
-                  {vault.updatedAt
-                    ? t('cloud.lastUpdatedDate', {
-                        date: formatLocalizedDate(vault.updatedAt, t),
-                      })
-                    : t('cloud.cloudBackupNumber', { number: index + 1 })}
+                  {backupLastUpdatedLabel(vault, index, t, locale)}
                 </Text>
                 <Text className="text-sm text-foreground">
                   {prepared.localHasData

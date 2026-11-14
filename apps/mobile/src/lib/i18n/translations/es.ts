@@ -718,7 +718,7 @@ export const es = {
   'cloud.attentionNeeded': 'Atención necesaria',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     'Haz una copia de seguridad de tu diario y sincronízalo con tu propio Google Drive. Va directamente de tu teléfono a tu Drive. El desarrollador de Tackbok nunca lo ve.',
-  'cloud.lastUpdatedDate': 'Última actualización: {date}',
+  'cloud.lastUpdatedDateTime': 'Última actualización: {date}, {time}',
   'cloud.beforeYouConnect': 'Antes de conectarte',
   'cloud.checkingGoogleDriveForChanges': 'Comprobando si hay cambios en Google Drive…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':

@@ -30,7 +30,14 @@ import { SyncCancelledError } from '../snapshot/sync/errors';
 export type { ProductionCloudSyncActivity } from './activity';
 
 const productionCloudSyncListeners = new Set<() => void>();
-const productionCloudSyncActivity = new SyncActivity(notifyProductionCloudSyncChanged);
+// Until a restore's journal arrives, a pass's check is the restore: show it.
+const productionCloudSyncActivity = new SyncActivity(
+  notifyProductionCloudSyncChanged,
+  () => {
+    const restore = useSettingsStore.getState().cloudRestore;
+    return restore !== null && !restore.journalRestoredAt;
+  },
+);
 // Progress changes often, so it has its own listeners: reloading the database
 // snapshot on every update would be wasted work.
 const productionCloudSyncProgressListeners = new Set<() => void>();

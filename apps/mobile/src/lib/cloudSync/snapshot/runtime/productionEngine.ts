@@ -10,7 +10,6 @@ import {
   mediaAssets,
   sqlite,
   syncProviderState,
-  userProfile,
 } from '~/db';
 import { track } from '~/lib/analytics';
 import type { CloudSyncFailureCategory } from '~/lib/analytics/events';
@@ -32,6 +31,7 @@ import { hashPendingProductionMedia } from './mediaHashing';
 import { recordWaitingMediaUploads } from './waitingMediaUploads';
 import { nativeSha256Bytes } from './nativeSha256';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
+import { loadProfileCache } from '../../storage/backfill';
 import { GoogleDriveSnapshotProvider, SQLiteDriveProviderStateStore } from '../drive';
 import { BaseShadowManager } from '../sync/baseShadow';
 import { SnapshotSyncEngine } from '../sync/engine';
@@ -192,6 +192,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
   private needsFollowup = false;
   /** Missing downloaded files are looked for once per engine, normally per launch. */
   private checkedVerifiedMedia = false;
+  /** A profile reload that failed or lost to local edits; later passes retry it. */
+  private profileReloadOwed = false;
 
   constructor(
     private readonly vault: ProductionSnapshotVault,
@@ -385,6 +387,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     if (result.status === 'published' || result.status === 'pulled') {
       useSettingsStore.getState().markCloudRestoreJournalRestored(this.vault.vault_id);
       await this.refreshAppliedViews();
+    } else if (this.profileReloadOwed) {
+      await this.reloadProfileCache();
     }
 
     // An OS background task has little time and starts a new engine each run,
@@ -396,7 +400,9 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       // shortcut: once per engine, not per pass, since it checks every
       // downloaded file; check more often if files vanish mid-session.
       try {
-        await this.journal.requeueMissingVerifiedMedia();
+        // Rare: the profile photo may be among them, and is hidden until it is back.
+        if ((await this.journal.requeueMissingVerifiedMedia()) > 0)
+          await this.reloadProfileCache();
         this.checkedVerifiedMedia = true;
       } catch (error) {
         // The attachments stay as they are; the next pass tries again.
@@ -440,6 +446,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           );
           throw new SnapshotRuntimeFailure('corrupt');
         }
+        if (hydration.profilePhoto) await this.reloadProfileCache();
         if (hydration.hydrated > 0) await this.onRemoteApplied?.();
         // A short batch means nothing is left. The count read above bounds
         // the loop even if a row were to stay pending.
@@ -457,6 +464,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       // pass refreshes screens on its own path.
       if (!(error instanceof SyncCancelledError)) {
         try {
+          // Rare, so the profile photo is not tracked here: it may be among them.
+          await this.reloadProfileCache();
           await this.onRemoteApplied?.();
         } catch {
           // A failed screen refresh must not replace the hydration error.
@@ -543,7 +552,6 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         track('cloud_sync_conflict_recovered', { entity_type: parsed.entityType });
       }
     }
-    await this.refreshProfileCache();
     if (result.status === 'published' || result.status === 'pulled' || hydrated > 0)
       await this.onRemoteApplied?.();
     const [pendingMedia] = await db
@@ -558,24 +566,15 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     };
   }
 
-  private async refreshProfileCache(): Promise<void> {
-    const [profile] = await db.select().from(userProfile).limit(1);
-    const [photo] = profile?.photo_asset_id
-      ? await db
-          .select()
-          .from(mediaAssets)
-          .where(eq(mediaAssets.asset_id, profile.photo_asset_id))
-          .limit(1)
-      : [];
-    useSettingsStore.setState({
-      profileName: profile?.display_name ?? null,
-      profileImageUri: photo?.local_uri ?? null,
-    });
+  private async refreshAppliedViews(): Promise<void> {
+    // An applied journal may have changed the profile row.
+    await this.reloadProfileCache();
+    await this.onRemoteApplied?.();
   }
 
-  private async refreshAppliedViews(): Promise<void> {
-    await this.refreshProfileCache();
-    await this.onRemoteApplied?.();
+  private async reloadProfileCache(): Promise<void> {
+    this.profileReloadOwed = true;
+    if (await loadProfileCache()) this.profileReloadOwed = false;
   }
 }
 

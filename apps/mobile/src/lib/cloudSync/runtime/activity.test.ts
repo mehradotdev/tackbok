@@ -23,6 +23,22 @@ describe('sync activity visibility', () => {
     expect(activity.current).toBe('idle');
   });
 
+  test('before a restore has its journal, its checks are shown as work', () => {
+    let restoring = true;
+    const changed = jest.fn();
+    const activity = new SyncActivity(changed, () => restoring);
+    // A device with nothing local reports only checks while it downloads the backup.
+    activity.report('checking');
+    expect(activity.current).toBe('checking');
+    expect(changed).toHaveBeenCalledTimes(1);
+    activity.report('downloading');
+    activity.report('idle');
+    expect(activity.current).toBe('idle');
+    restoring = false;
+    activity.report('checking');
+    expect(activity.current).toBe('idle');
+  });
+
   test('manual sync reveals an already-running quiet check and resets when finished', () => {
     const activity = new SyncActivity(jest.fn());
     activity.report('checking');
