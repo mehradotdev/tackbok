@@ -1,8 +1,8 @@
 import { decodeGzipBounded, encodeGzip } from '~/lib/zip/core/gzip-codec';
 
-import { encodeCanonicalBytes } from '../canonical';
+import { canonicalize } from '../canonical';
 import { SNAPSHOT_CAPS } from '../caps';
-import { encodeSnapshot } from '../codec';
+import { canonicalSnapshot } from '../codec';
 import { sha256Bytes, sha256Text } from '../sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../strictJson';
 import type { JournalSnapshotPayload, ObservedDeviceHead } from '../types';
@@ -106,8 +106,9 @@ export function encodeBaseShadow(shadow: BaseShadow): {
   canonicalSha256: string;
   compressedBytes: Uint8Array;
 } {
-  const validated = validateBaseShadow(shadow);
-  const canonicalBytes = encodeCanonicalBytes(validated);
+  const canonicalBytes = new TextEncoder().encode(
+    canonicalShadow(validateEncoding(shadow)),
+  );
   if (canonicalBytes.length > SNAPSHOT_CAPS.uncompressedBytes) {
     invalid('Base shadow exceeds the uncompressed snapshot cap');
   }
@@ -123,6 +124,21 @@ export function encodeBaseShadow(shadow: BaseShadow): {
 }
 
 export function validateBaseShadow(value: unknown): BaseShadow {
+  return validateEncoding(value).shadow;
+}
+
+/** The shadow's canonical form, reusing its payload's from validation. */
+function canonicalShadow({
+  shadow,
+  payloadCanonical,
+}: ReturnType<typeof validateEncoding>): string {
+  return canonicalize(shadow, new Map([[shadow.payload, payloadCanonical]]));
+}
+
+function validateEncoding(value: unknown): {
+  shadow: BaseShadow;
+  payloadCanonical: string;
+} {
   assertClosedObject(
     value,
     ['format', 'vaultId', 'snapshotId', 'acceptedDeviceHeads', 'payload'],
@@ -134,20 +150,23 @@ export function validateBaseShadow(value: unknown): BaseShadow {
   if (typeof value.snapshotId !== 'string' || !HASH.test(value.snapshotId))
     invalid('Invalid base-shadow snapshot ID');
   const acceptedDeviceHeads = validateHeads(value.acceptedDeviceHeads);
-  const encodedPayload = encodeSnapshot(value.payload as JournalSnapshotPayload);
+  const encodedPayload = canonicalSnapshot(value.payload as JournalSnapshotPayload);
   if (encodedPayload.snapshotId !== value.snapshotId)
     invalid('Base-shadow payload hash does not match');
-  if (!bytesEqual(encodedPayload.canonicalBytes, encodeCanonicalBytes(value.payload))) {
+  if (encodedPayload.canonical !== canonicalize(value.payload)) {
     invalid('Base-shadow payload is not normalized canonical protocol state');
   }
   if (encodedPayload.payload.vaultId !== value.vaultId)
     invalid('Base-shadow vault does not match its payload');
   return {
-    format: 'tackbok-base-shadow',
-    vaultId: value.vaultId,
-    snapshotId: value.snapshotId,
-    acceptedDeviceHeads: acceptedDeviceHeads.map((head) => ({ ...head })),
-    payload: encodedPayload.payload,
+    shadow: {
+      format: 'tackbok-base-shadow',
+      vaultId: value.vaultId,
+      snapshotId: value.snapshotId,
+      acceptedDeviceHeads: acceptedDeviceHeads.map((head) => ({ ...head })),
+      payload: encodedPayload.payload,
+    },
+    payloadCanonical: encodedPayload.canonical,
   };
 }
 
@@ -160,8 +179,9 @@ export function decodeBaseShadow(compressedBytes: Uint8Array): {
     maxUncompressedBytes: SNAPSHOT_CAPS.uncompressedBytes,
   });
   const parsed = parseJsonStrict(decodeUtf8Strict(canonicalBytes));
-  const shadow = validateBaseShadow(parsed);
-  if (!bytesEqual(canonicalBytes, encodeCanonicalBytes(shadow))) {
+  const validated = validateEncoding(parsed);
+  const { shadow } = validated;
+  if (!bytesEqual(canonicalBytes, new TextEncoder().encode(canonicalShadow(validated)))) {
     invalid('Base shadow is valid JSON but not canonical JSON');
   }
   return { shadow, canonicalSha256: sha256Bytes(canonicalBytes) };

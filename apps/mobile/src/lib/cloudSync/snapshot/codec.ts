@@ -1,6 +1,6 @@
 import { decodeGzipBounded, encodeGzip, GzipCodecError } from '~/lib/zip/core/gzip-codec';
 
-import { encodeCanonicalBytes } from './canonical';
+import { canonicalize, encodeCanonicalBytes } from './canonical';
 import { SNAPSHOT_CAPS, invalid } from './caps';
 import { sha256Bytes } from './sha256';
 import { decodeUtf8Strict, parseJsonStrict } from './strictJson';
@@ -58,15 +58,24 @@ function compressDeterministic(canonicalBytes: Uint8Array): Uint8Array {
   return compressed;
 }
 
-export function encodeSnapshot(payload: JournalSnapshotPayload): EncodedSnapshot {
+/** `encodeSnapshot` without compression; `canonical` is `canonicalBytes` as text. */
+export function canonicalSnapshot(
+  payload: JournalSnapshotPayload,
+): Omit<EncodedSnapshot, 'compressedBytes'> & { canonical: string } {
   validateSnapshotShape(payload);
   const normalized = normalizeSnapshot(payload);
-  const canonicalBytes = encodeCanonicalBytes(normalized);
+  const canonical = canonicalize(normalized);
+  const canonicalBytes = new TextEncoder().encode(canonical);
   if (canonicalBytes.length > SNAPSHOT_CAPS.uncompressedBytes) {
     invalid('uncompressed-size-cap', 'Uncompressed snapshot exceeds 64 MiB');
   }
   const snapshotId = sha256Bytes(canonicalBytes);
   validateSnapshotCollections(normalized, snapshotId);
+  return { snapshotId, payload: normalized, canonical, canonicalBytes };
+}
+
+export function encodeSnapshot(payload: JournalSnapshotPayload): EncodedSnapshot {
+  const { snapshotId, payload: normalized, canonicalBytes } = canonicalSnapshot(payload);
   return {
     snapshotId,
     payload: normalized,
