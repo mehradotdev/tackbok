@@ -189,10 +189,18 @@ export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
 }
 
 /**
- * Entries that sync kept two versions of: each original (when it still exists)
- * followed by its other versions, newest first.
+ * Entries that sync kept two or more versions of. `original` is the entry the
+ * versions were copied from, or `null` when it was deleted. A version copied
+ * from another version joins that version's group, so each entry is listed once.
  */
-export async function getEntriesWithOtherVersions(): Promise<Entry[]> {
+export interface OtherVersionGroup {
+  original: Entry | null;
+  /** Newest first. */
+  versions: Entry[];
+}
+
+/** Groups entries sync kept another version of, newest group first. */
+export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
   // One statement with a subquery: binding every origin ID could exceed
   // SQLite's variable limit on a large journal.
   const rows = await db
@@ -210,25 +218,43 @@ export async function getEntriesWithOtherVersions(): Promise<Entry[]> {
         ),
       ),
     )
-    .orderBy(desc(entries.created_at));
+    .orderBy(desc(entries.created_at), entries.note_id);
+  return groupOtherVersions(rows);
+}
+
+/** Exported for tests. `rows` must be sorted newest first. */
+export function groupOtherVersions(rows: Entry[]): OtherVersionGroup[] {
   const byId = new Map(rows.map((entry) => [entry.note_id, entry]));
-  const groups = new Map<string, Entry[]>();
-  for (const entry of rows) {
-    if (!entry.conflict_origin_id) continue;
-    const group = groups.get(entry.conflict_origin_id) ?? [];
-    group.push(entry);
-    groups.set(entry.conflict_origin_id, group);
-  }
-  const result: Entry[] = [];
-  const listed = new Set<string>();
-  for (const [originId, versions] of groups) {
-    for (const entry of [byId.get(originId), ...versions]) {
-      if (!entry || listed.has(entry.note_id)) continue;
-      listed.add(entry.note_id);
-      result.push(entry);
+  // The oldest ancestor still in the journal; the visited set guards a cycle.
+  const rootOf = (entry: Entry) => {
+    const visited = new Set([entry.note_id]);
+    let root = entry;
+    for (;;) {
+      const parent = root.conflict_origin_id
+        ? byId.get(root.conflict_origin_id)
+        : undefined;
+      if (!parent || visited.has(parent.note_id)) return root;
+      visited.add(parent.note_id);
+      root = parent;
     }
+  };
+  const groups = new Map<string, OtherVersionGroup>();
+  for (const entry of rows) {
+    const root = rootOf(entry);
+    // Versions of a deleted original still belong together. Its ID cannot be
+    // another group's key: an existing origin is always among `rows`.
+    const key =
+      root.conflict_origin_id && !byId.has(root.conflict_origin_id)
+        ? root.conflict_origin_id
+        : root.note_id;
+    let group = groups.get(key);
+    if (!group) {
+      group = { original: root.conflict_origin_id ? null : root, versions: [] };
+      groups.set(key, group);
+    }
+    if (entry !== group.original) group.versions.push(entry);
   }
-  return result;
+  return [...groups.values()];
 }
 
 /** Number of entries that sync kept as another version of an entry. */
