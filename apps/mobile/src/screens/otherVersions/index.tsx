@@ -30,7 +30,7 @@ import {
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { OtherVersionGroupCard } from './OtherVersionGroupCard';
-import { deleteEach, entriesToDelete, groupMembers } from './keepVersion';
+import { deleteEach, entriesToDelete, groupMembers, keepMessage } from './keepVersion';
 
 /** Entries that were edited on two devices at once, with both versions kept. */
 export default function OtherVersionsScreen() {
@@ -43,7 +43,7 @@ export default function OtherVersionsScreen() {
   // The entry to keep and the entries the confirmation names for deletion.
   const [pendingKeep, setPendingKeep] = useState<{
     keepId: string;
-    deleteIds: string[];
+    others: Entry[];
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   // Set synchronously, so a second tap before the re-render deletes nothing.
@@ -69,9 +69,7 @@ export default function OtherVersionsScreen() {
   const handleKeepPress = (group: OtherVersionGroup, entry: Entry) => {
     setPendingKeep({
       keepId: entry.note_id,
-      deleteIds: groupMembers(group)
-        .map((member) => member.note_id)
-        .filter((id) => id !== entry.note_id),
+      others: groupMembers(group).filter((member) => member.note_id !== entry.note_id),
     });
   };
 
@@ -84,7 +82,8 @@ export default function OtherVersionsScreen() {
     if (!pendingKeep || deletingRef.current) return;
     deletingRef.current = true;
     setIsDeleting(true);
-    const { keepId, deleteIds } = pendingKeep;
+    const { keepId, others } = pendingKeep;
+    const deleteIds = others.map((entry) => entry.note_id);
     // Re-read the groups: a sync may have changed them since the confirmation opened.
     const latest = await refetch();
     const ids = latest.isError
@@ -110,8 +109,6 @@ export default function OtherVersionsScreen() {
       console.error('Failed to dismiss entry conflicts', error),
     );
   };
-
-  const pendingCount = pendingKeep?.deleteIds.length ?? 0;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
@@ -153,7 +150,7 @@ export default function OtherVersionsScreen() {
           data={groups}
           keyExtractor={(item) => groupMembers(item)[0].note_id}
           ListHeaderComponent={
-            <Text className="text-sm text-muted-foreground px-safe-or-3 py-3">
+            <Text className="text-sm text-muted-foreground px-3 py-3">
               {t('cloud.conflicts.otherVersionsDescription')}
             </Text>
           }
@@ -173,6 +170,8 @@ export default function OtherVersionsScreen() {
 
       <AlertDialog
         open={pendingKeep !== null}
+        // The confirm button closes the dialog before its onPress runs, so the
+        // delete works from the closure and `deletingRef` guards repeat taps.
         onOpenChange={(open) => {
           if (!open && !isDeleting) setPendingKeep(null);
         }}>
@@ -180,7 +179,7 @@ export default function OtherVersionsScreen() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('cloud.conflicts.keepThisOneTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('cloud.conflicts.keepThisOneMessage', { count: pendingCount })}
+              {pendingKeep ? keepMessage(t, pendingKeep.others) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

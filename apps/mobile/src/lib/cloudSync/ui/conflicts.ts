@@ -152,8 +152,9 @@ export async function acknowledgeCloudConflicts(conflictIds: string[]): Promise<
 }
 
 /**
- * Dismisses the entry conflicts about any of `entryIds`, after the user chose
- * which version of those entries to keep.
+ * Dismisses the entry conflicts that only involve `entryIds`, after the user
+ * chose which of those versions to keep. A version sync added meanwhile keeps
+ * its conflict, and so do delete/edit explanations, which are about something else.
  */
 export async function acknowledgeEntryConflicts(entryIds: string[]): Promise<void> {
   const [vault] = await db.select().from(cloudVault).limit(1);
@@ -173,7 +174,8 @@ export async function acknowledgeEntryConflicts(entryIds: string[]): Promise<voi
     .filter(
       (record) =>
         record.entityType === 'entry' &&
-        (ids.has(record.entityId) || record.recoveredEntityIds.some((id) => ids.has(id))),
+        record.field !== 'deleteEdit' &&
+        [record.entityId, ...record.recoveredEntityIds].every((id) => ids.has(id)),
     )
     .map((record) => record.conflictId);
   await acknowledgeCloudConflicts(conflictIds);

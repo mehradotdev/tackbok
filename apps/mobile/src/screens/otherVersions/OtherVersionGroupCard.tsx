@@ -6,7 +6,7 @@ import type { useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { EntryItem } from '~/screens/dateEntries';
-import { groupMembers } from './keepVersion';
+import { groupMembers, keepMessage } from './keepVersion';
 
 interface OtherVersionGroupCardProps {
   group: OtherVersionGroup;
@@ -30,7 +30,6 @@ export function OtherVersionGroupCard({
   const members = groupMembers(group);
   // A version alone has nothing to choose between.
   const canKeep = members.length > 1;
-  const otherCount = members.length - 1;
 
   return (
     <View className="mx-3 mb-4 rounded-lg border border-border bg-card overflow-hidden">
@@ -85,9 +84,10 @@ export function OtherVersionGroupCard({
                         ? t('cloud.conflicts.keepOriginal')
                         : t('cloud.conflicts.keepOtherVersion')
                     }
-                    accessibilityHint={t('cloud.conflicts.keepThisOneMessage', {
-                      count: otherCount,
-                    })}
+                    accessibilityHint={keepMessage(
+                      t,
+                      members.filter((member) => member !== entry),
+                    )}
                     disabled={disabled}
                     onPress={() => onKeep(entry)}>
                     <Text className="shrink text-center">

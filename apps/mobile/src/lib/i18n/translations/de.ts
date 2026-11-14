@@ -944,6 +944,8 @@ export const de: Translations = {
   'cloud.conflicts.keepOriginal': 'Original behalten',
   'cloud.conflicts.keepOtherVersion': 'Diese andere Version behalten',
   'cloud.conflicts.keepThisOneTitle': 'Diese Version behalten?',
+  'cloud.conflicts.keepThisOneAttachments':
+    'Anhänge, die ebenfalls gelöscht werden: {count}',
   'cloud.conflicts.keepThisOneMessage':
     '{count} andere Versionen werden dauerhaft gelöscht.',
   'cloud.conflicts.attachmentCount': 'Anhänge: {count}',

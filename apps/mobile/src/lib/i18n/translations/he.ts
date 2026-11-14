@@ -874,6 +874,7 @@ export const he: Translations = {
   'cloud.conflicts.keepOriginal': 'שמירת הגרסה המקורית',
   'cloud.conflicts.keepOtherVersion': 'שמירת הגרסה האחרת הזו',
   'cloud.conflicts.keepThisOneTitle': 'לשמור את הגרסה הזו?',
+  'cloud.conflicts.keepThisOneAttachments': 'קבצים מצורפים שיימחקו גם הם: {count}',
   'cloud.conflicts.keepThisOneMessage': '{count} גרסאות אחרות יימחקו לצמיתות.',
   'cloud.conflicts.attachmentCount': 'קבצים מצורפים: {count}',
   'cloud.conflicts.entryReturned':

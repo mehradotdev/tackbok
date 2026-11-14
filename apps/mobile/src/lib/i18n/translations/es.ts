@@ -864,6 +864,7 @@ export const es = {
   'cloud.conflicts.keepOriginal': 'Conservar la original',
   'cloud.conflicts.keepOtherVersion': 'Conservar esta otra versión',
   'cloud.conflicts.keepThisOneTitle': '¿Conservar esta versión?',
+  'cloud.conflicts.keepThisOneAttachments': 'Adjuntos que también se eliminarán: {count}',
   'cloud.conflicts.keepThisOneMessage':
     'Se eliminarán permanentemente {count} otras versiones.',
   'cloud.conflicts.attachmentCount': 'Adjuntos: {count}',

@@ -843,6 +843,7 @@ export const sv = {
   'cloud.conflicts.keepOriginal': 'Behåll originalet',
   'cloud.conflicts.keepOtherVersion': 'Behåll den här andra versionen',
   'cloud.conflicts.keepThisOneTitle': 'Behåll den här versionen?',
+  'cloud.conflicts.keepThisOneAttachments': 'Bilagor som också tas bort: {count}',
   'cloud.conflicts.keepThisOneMessage': '{count} andra versioner tas bort permanent.',
   'cloud.conflicts.attachmentCount': 'Bilagor: {count}',
   'cloud.conflicts.entryReturned':

@@ -852,6 +852,7 @@ export const zhTW: Translations = {
   'cloud.conflicts.keepOriginal': '保留原始版本',
   'cloud.conflicts.keepOtherVersion': '保留此其他版本',
   'cloud.conflicts.keepThisOneTitle': '保留此版本？',
+  'cloud.conflicts.keepThisOneAttachments': '也將被刪除的附件：{count}',
   'cloud.conflicts.keepThisOneMessage': '其他 {count} 個版本將被永久刪除。',
   'cloud.conflicts.attachmentCount': '附件：{count}',
   'cloud.conflicts.entryReturned':

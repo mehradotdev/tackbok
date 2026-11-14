@@ -1,4 +1,6 @@
 import type { OtherVersionGroup } from '~/db/queries';
+import type { TranslationFunction } from '~/lib/i18n';
+import type { Entry } from '~/types';
 
 /** Every entry in a group: the original, when it still exists, then its versions. */
 export function groupMembers(group: OtherVersionGroup) {
@@ -38,4 +40,19 @@ export async function deleteEach(
     console.error('Failed to delete entry', error);
     return false;
   }
+}
+
+/**
+ * What "Keep this one" deletes, for the confirmation and the button's hint.
+ * Attachments belong to one version only, so they are counted too.
+ */
+export function keepMessage(t: TranslationFunction, others: readonly Entry[]): string {
+  const message = t('cloud.conflicts.keepThisOneMessage', { count: others.length });
+  const attachments = others.reduce(
+    (total, entry) => total + (entry.assets?.length ?? 0),
+    0,
+  );
+  return attachments > 0
+    ? `${message} ${t('cloud.conflicts.keepThisOneAttachments', { count: attachments })}`
+    : message;
 }

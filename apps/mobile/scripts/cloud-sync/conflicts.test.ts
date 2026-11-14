@@ -296,6 +296,19 @@ test('keeping one version dismisses only the conflicts about its entries', async
     recoveredEntityIds: ['other-copy'],
   });
   conflict('profile', { value: 'Someone' });
+  // A version sync added while the confirmation was open was not part of the choice.
+  conflict('about-new-copy', {
+    entityType: 'entry',
+    entityId: 'origin',
+    field: 'content',
+    recoveredEntityIds: ['new-copy'],
+  });
+  // Why a deleted entry came back is a separate explanation.
+  conflict('origin-returned', {
+    entityType: 'entry',
+    entityId: 'origin',
+    field: 'deleteEdit',
+  });
 
   // The group still lists the original after "Keep this one" deleted it.
   await acknowledgeEntryConflicts(['origin', 'copy']);
@@ -305,5 +318,10 @@ test('keeping one version dismisses only the conflicts about its entries', async
         'SELECT conflict_id FROM cloud_conflicts WHERE acknowledged_at IS NULL ORDER BY 1',
       )
       .all(),
-  ).toEqual([{ conflict_id: 'about-other' }, { conflict_id: 'profile' }]);
+  ).toEqual([
+    { conflict_id: 'about-new-copy' },
+    { conflict_id: 'about-other' },
+    { conflict_id: 'origin-returned' },
+    { conflict_id: 'profile' },
+  ]);
 });

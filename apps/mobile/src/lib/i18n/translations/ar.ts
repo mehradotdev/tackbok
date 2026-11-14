@@ -881,6 +881,7 @@ export const ar: Translations = {
   'cloud.conflicts.keepOriginal': 'الإبقاء على النسخة الأصلية',
   'cloud.conflicts.keepOtherVersion': 'الإبقاء على هذه النسخة الأخرى',
   'cloud.conflicts.keepThisOneTitle': 'الإبقاء على هذه النسخة؟',
+  'cloud.conflicts.keepThisOneAttachments': 'المرفقات التي ستُحذف أيضًا: {count}',
   'cloud.conflicts.keepThisOneMessage': 'عدد النسخ الأخرى التي ستُحذف نهائيًا: {count}.',
   'cloud.conflicts.attachmentCount': 'المرفقات: {count}',
   'cloud.conflicts.entryReturned':

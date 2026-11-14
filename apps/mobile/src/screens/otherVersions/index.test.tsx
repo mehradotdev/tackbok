@@ -158,6 +158,19 @@ test('"Keep this one" buttons name their version and what they delete', () => {
   );
 });
 
+test('the confirmation and hint warn about attachments that go with the other version', () => {
+  const withAssets = { ...original, assets: [{}, {}, {}] as Entry['assets'] };
+  render({ data: [{ original: withAssets, versions: [copy] }] });
+  const warning =
+    'The other version will be permanently deleted. Attachments that will also be deleted: 3';
+  expect(keepButtons()[1].props.accessibilityHint).toBe(warning);
+  expect(keepButtons()[0].props.accessibilityHint).toBe(
+    'The other version will be permanently deleted.',
+  );
+  act(() => keepButtons()[1].props.onPress());
+  expect(content()).toContain(warning);
+});
+
 test('shows how many attachments a version has', () => {
   const withAssets = entry('with-assets', {
     conflict_origin_id: 'original',
