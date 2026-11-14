@@ -799,7 +799,7 @@ export const de: Translations = {
   'cloud.attentionNeeded': 'Aktion erforderlich',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     'Sichere und synchronisiere dein Tagebuch mit deinem eigenen Google Drive. Es geht direkt von deinem Handy in dein Drive. Der Entwickler von Tackbok sieht es nie.',
-  'cloud.lastUpdatedDate': 'Zuletzt aktualisiert: {date}',
+  'cloud.lastUpdatedDateTime': 'Zuletzt aktualisiert: {date}, {time}',
   'cloud.beforeYouConnect': 'Vor dem Verbinden',
   'cloud.checkingGoogleDriveForChanges': 'Google Drive wird auf Änderungen geprüft…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':

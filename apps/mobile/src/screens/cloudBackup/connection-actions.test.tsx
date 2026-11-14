@@ -48,7 +48,10 @@ jest.mock('~/lib/i18n', () => ({
       mockTranslate('en', key, params),
   }),
 }));
-jest.mock('~/lib/i18n/dateFormatting', () => ({ formatLocalizedDate: () => 'today' }));
+jest.mock('~/lib/i18n/dateFormatting', () => ({
+  formatLocalizedDate: () => 'today',
+  formatLocalizedTime: () => '09:30',
+}));
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: (select: (state: object) => unknown) =>
     select({
@@ -74,8 +77,9 @@ const mockSnapshot = {
   provider: 'google-drive',
   status: 'synced',
   accountLabel: 'owner@example.com',
-  activityPhase: null,
+  activityPhase: null as string | null,
   initialRestore: false,
+  failureCategory: null as string | null,
   queuedCount: 0,
   conflictCount: 0,
   lastSuccessAt: null,
@@ -183,6 +187,9 @@ beforeEach(() => {
   mockParams = {};
   mockSnapshot.configured = true;
   mockSnapshot.status = 'synced';
+  mockSnapshot.activityPhase = null;
+  mockSnapshot.initialRestore = false;
+  mockSnapshot.failureCategory = null;
   mockSnapshot.attentionReason = null;
   mockSnapshot.recoveryAction = null;
 });
@@ -505,5 +512,66 @@ describe('a backup that exists but cannot be read', () => {
     expect(mockToast.warning).not.toHaveBeenCalledWith(
       mockEn['cloud.noTackbokBackupFoundInThisGoogleAccount'],
     );
+  });
+});
+
+describe('a restore started from onboarding', () => {
+  test('shows its progress while it downloads the backup, with Sync now disabled', async () => {
+    // An empty phone's restore pass reports only a check until the journal arrives.
+    mockSnapshot.status = 'syncing';
+    mockSnapshot.activityPhase = 'checking';
+    mockSnapshot.initialRestore = true;
+    await render();
+    expect(showsText(mockEn['cloud.checkingGoogleDriveForChanges'])).toBe(true);
+    expect(
+      showsText(mockEn['cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs']),
+    ).toBe(true);
+    expect(syncNowButton().props.disabled).toBe(true);
+    expect(syncNowButton().props.accessibilityState).toEqual({
+      disabled: true,
+      busy: true,
+    });
+  });
+
+  test('between restore passes it claims neither progress nor a pause, and Sync now starts one', async () => {
+    mockSnapshot.status = 'restoring';
+    mockSnapshot.initialRestore = true;
+    await render();
+    expect(
+      showsText(mockEn['cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs']),
+    ).toBe(true);
+    expect(
+      showsText(mockEn['cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline']),
+    ).toBe(false);
+    expect(showsText(mockEn['cloud.checkingGoogleDriveForChanges'])).toBe(false);
+    expect(syncNowButton().props.disabled).toBe(false);
+    expect(syncNowButton().props.accessibilityState).toEqual({
+      disabled: false,
+      busy: false,
+    });
+    mockSyncNow.mockResolvedValueOnce(true);
+    await act(async () => syncNowButton().props.onPress());
+    expect(mockSyncNow).toHaveBeenCalledTimes(1);
+  });
+
+  test('a restore stopped offline says it is paused, not that changes are queued', async () => {
+    mockSnapshot.status = 'restoring';
+    mockSnapshot.initialRestore = true;
+    mockSnapshot.failureCategory = 'offline';
+    await render();
+    expect(
+      showsText(mockEn['cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline']),
+    ).toBe(true);
+    expect(
+      showsText(mockEn['cloud.noInternetConnectionYourChangesRemainSafelyQueued']),
+    ).toBe(false);
+  });
+
+  test('a restore stopped by another failure names it', async () => {
+    mockSnapshot.status = 'restoring';
+    mockSnapshot.initialRestore = true;
+    mockSnapshot.failureCategory = 'quota';
+    await render();
+    expect(showsText(mockEn['cloud.googleDriveStorageIsFull'])).toBe(true);
   });
 });

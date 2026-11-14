@@ -1224,7 +1224,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     provider: SnapshotProvider,
     limit = 2,
     onDownloaded?: () => void,
-  ): Promise<{ hydrated: number; missing: number }> {
+  ): Promise<{ hydrated: number; missing: number; profilePhoto: boolean }> {
     const pending = await db
       .select()
       .from(mediaAssets)
@@ -1232,6 +1232,8 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
       .limit(limit);
     let hydrated = 0;
     let missing = 0;
+    // The profile's photo is the only media its screens read from a cache.
+    let profilePhoto = false;
     for (const row of pending) {
       if (!row.blob_hash || row.byte_size === null) {
         missing += 1;
@@ -1299,8 +1301,9 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
         .limit(1);
       if (remaining.length === 0) this.mediaStore.deleteStaged(row.blob_hash);
       hydrated += 1;
+      if (row.owner_type === 'profile') profilePhoto = true;
     }
-    return { hydrated, missing };
+    return { hydrated, missing, profilePhoto };
   }
 
   private async materializeMedia(

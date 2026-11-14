@@ -763,7 +763,7 @@ export const en = {
   'cloud.attentionNeeded': 'Attention needed',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     "Back up and sync your journal with your own Google Drive. It goes straight from your phone to your Drive. Tackbok's developer never sees it.",
-  'cloud.lastUpdatedDate': 'Last updated {date}',
+  'cloud.lastUpdatedDateTime': 'Last updated {date}, {time}',
   'cloud.beforeYouConnect': 'Before you connect',
   'cloud.checkingGoogleDriveForChanges': 'Checking Google Drive for changes…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':

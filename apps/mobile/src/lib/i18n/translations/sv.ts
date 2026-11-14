@@ -700,7 +700,7 @@ export const sv = {
   'cloud.attentionNeeded': 'Uppmärksamhet behövs',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     'Säkerhetskopiera och synkronisera din dagbok med din egen Google Drive. Den går direkt från din telefon till din Drive. Tackboks utvecklare ser den aldrig.',
-  'cloud.lastUpdatedDate': 'Senast uppdaterad {date}',
+  'cloud.lastUpdatedDateTime': 'Senast uppdaterad {date} {time}',
   'cloud.beforeYouConnect': 'Innan du ansluter',
   'cloud.checkingGoogleDriveForChanges': 'Kontrollerar Google Drive efter ändringar…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':

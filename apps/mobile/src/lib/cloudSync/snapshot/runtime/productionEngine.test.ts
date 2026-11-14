@@ -38,7 +38,6 @@ jest.mock('~/db', () => ({
   cloudVault: {},
   mediaAssets: { name: 'media_assets' },
   syncProviderState: {},
-  userProfile: {},
   sqlite: { getFirstSync: () => ({ value: 0 }) },
   db: {
     select: () => mockQuery('select'),
@@ -68,6 +67,10 @@ jest.mock('~/lib/settings', () => ({
 jest.mock('../../auth', () => ({}));
 jest.mock('../../auth/secureTokenStore', () => ({}));
 jest.mock('../../storage/retainedMedia', () => ({ reapRetainedMedia: async () => {} }));
+const mockLoadProfileCache = jest.fn(async () => {});
+jest.mock('../../storage/backfill', () => ({
+  loadProfileCache: () => mockLoadProfileCache(),
+}));
 jest.mock('./nativeSha256', () => ({ nativeSha256Bytes: jest.fn() }));
 jest.mock('./mediaHashing', () => ({
   hashPendingProductionMedia: async () => ({ processed: 0, failed: 0, missing: 0 }),
@@ -90,7 +93,11 @@ function harness(
   vaultId: string,
   options: {
     engineSync?: () => Promise<unknown>;
-    hydrate?: () => Promise<{ hydrated: number; missing: number }>;
+    hydrate?: () => Promise<{
+      hydrated: number;
+      missing: number;
+      profilePhoto?: boolean;
+    }>;
     requeue?: () => Promise<number>;
     loadState?: () => { journalGeneration: number; settledGeneration: number };
     hydrationBatchesPerPass?: number;
@@ -140,6 +147,7 @@ beforeEach(() => {
   mockWrites.length = 0;
   mockPendingMedia = [];
   mockMarkJournalRestored.mockClear();
+  mockLoadProfileCache.mockClear();
 });
 
 test('a completed pass records that the journal of this backup was restored', async () => {
@@ -202,6 +210,44 @@ test('applied text reaches screens before pending media downloads, then every ba
     'screens',
   ]);
   mockMarkJournalRestored.mockReset();
+});
+
+test('the profile cache reloads when a journal is applied and when the profile photo downloads', async () => {
+  mockPendingMedia = Array.from({ length: 4 }, (_, index) => ({
+    blobHash: `blob-${index}`,
+    byteSize: 1,
+  }));
+  const order: string[] = [];
+  const batches = [
+    { hydrated: 2, missing: 0, profilePhoto: false },
+    { hydrated: 2, missing: 0, profilePhoto: true },
+  ];
+  const app = harness('vault-profile-photo', {
+    engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
+    hydrate: async () => {
+      order.push('hydrate');
+      return batches.shift() ?? { hydrated: 0, missing: 0, profilePhoto: false };
+    },
+  });
+  mockLoadProfileCache.mockImplementation(async () => {
+    order.push('profile');
+  });
+  await app.runtime.sync();
+  // Once for the applied journal, once for the batch with the profile photo.
+  expect(order).toEqual(['profile', 'hydrate', 'hydrate', 'profile']);
+  mockLoadProfileCache.mockReset();
+});
+
+test('passes that apply nothing, and other media downloads, leave the profile cache alone', async () => {
+  const quiet = harness('vault-profile-quiet');
+  await quiet.runtime.sync();
+  mockPendingMedia = [{ blobHash: 'blob', byteSize: 1 }];
+  const media = harness('vault-profile-other-media', {
+    hydrate: async () => ({ hydrated: 1, missing: 0, profilePhoto: false }),
+  });
+  await media.runtime.sync();
+  expect(media.remoteApplied).toHaveBeenCalled();
+  expect(mockLoadProfileCache).not.toHaveBeenCalled();
 });
 
 test('local edits stop the downloads so a follow-up pass publishes them first', async () => {
@@ -274,6 +320,8 @@ test('missing downloaded files are queued once per engine, before hydration', as
   await app.runtime.sync();
   await app.runtime.sync();
   expect(order).toEqual(['requeue', 'hydrate', 'hydrate']);
+  // A requeued profile photo is hidden until its file is back.
+  expect(mockLoadProfileCache).toHaveBeenCalledTimes(1);
 });
 
 test('an OS background task does not look for missing files', async () => {

@@ -16,13 +16,21 @@ export const PHASE_FOR_ENGINE_ACTIVITY: Record<SnapshotSyncActivity, SyncPassPha
   'applying-remote-snapshot': 'downloading',
 };
 
-/** Polling is quiet until real work starts; explicit sync always has feedback. */
+/**
+ * Polling is quiet until real work starts; explicit sync always has feedback.
+ * `checksAreWork` makes checks count as work: before a restore's journal has
+ * arrived, reading the backup is the restore itself, and a device with nothing
+ * local to prepare reports nothing else until the download is done.
+ */
 export class SyncActivity {
   private phase: ProductionCloudSyncActivity = 'idle';
   private working = false;
   private manualRequests = 0;
 
-  constructor(private readonly changed: () => void) {}
+  constructor(
+    private readonly changed: () => void,
+    private readonly checksAreWork: () => boolean = () => false,
+  ) {}
 
   get current(): ProductionCloudSyncActivity {
     if (this.manualRequests > 0) return this.phase === 'idle' ? 'checking' : this.phase;
@@ -33,7 +41,7 @@ export class SyncActivity {
     const previous = this.current;
     this.phase = phase;
     if (phase === 'idle') this.working = false;
-    else if (phase !== 'checking') this.working = true;
+    else if (phase !== 'checking' || this.checksAreWork()) this.working = true;
     // Refresh completion even for quiet checks: new errors and last-success
     // timestamps must become visible without showing an in-progress spinner.
     if (previous !== this.current || phase === 'idle') this.changed();

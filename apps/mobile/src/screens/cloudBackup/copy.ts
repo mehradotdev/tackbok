@@ -1,15 +1,31 @@
 import type {
   CloudSyncActionFailureCategory,
   CloudSyncSnapshot,
+  PreparedCloudVault,
   SyncProgress,
   SyncWait,
 } from '~/lib/cloudSync/ui';
+import { formatLocalizedDate, formatLocalizedTime } from '~/lib/i18n/dateFormatting';
 import { formatByteSize } from '~/lib/i18n/numberFormatting';
 import type { SupportedLocale, TranslationFunction } from '~/lib/i18n/types';
 import type {
   SyncAttentionReason,
   SyncRecoveryAction,
 } from '~/lib/cloudSync/snapshot/sync';
+
+/** When any device last updated a backup, with the time in the phone's 12/24-hour style. */
+export function backupLastUpdatedLabel(
+  vault: PreparedCloudVault,
+  index: number,
+  t: TranslationFunction,
+  locale: SupportedLocale,
+): string {
+  if (!vault.updatedAt) return t('cloud.cloudBackupNumber', { number: index + 1 });
+  return t('cloud.lastUpdatedDateTime', {
+    date: formatLocalizedDate(vault.updatedAt, t),
+    time: formatLocalizedTime(new Date(vault.updatedAt), locale),
+  });
+}
 
 export function statusLabel(
   status: CloudSyncSnapshot['status'],
@@ -193,6 +209,28 @@ export function pendingWorkSummary(
     );
   }
   return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+/**
+ * The line under a restore's status. `restoring` means no pass is running; it
+ * is often only between passes, so it claims a pause only on evidence.
+ */
+export function restoreStatusNote(
+  snapshot: Pick<CloudSyncSnapshot, 'status' | 'initialRestore' | 'failureCategory'>,
+  t: TranslationFunction,
+): string | null {
+  if (snapshot.status === 'syncing' && snapshot.initialRestore) {
+    return t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs');
+  }
+  if (snapshot.status !== 'restoring') return null;
+  const failure = snapshot.failureCategory;
+  if (!failure) return t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs');
+  // Nothing local is queued on a phone being restored: say the restore waits.
+  if (failure === 'offline' || failure === 'transient' || failure === 'rate-limit') {
+    return t('cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline');
+  }
+  if (failure === 'wifi-only-media') return t('cloud.progress.waitingForWifi');
+  return cloudSyncFailureMessage(failure, t);
 }
 
 /** Explains a disabled Sync now button when the status line alone does not. */

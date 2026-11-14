@@ -552,6 +552,8 @@ test('only a provably fresh database starts with a pristine local profile', () =
 
 test('the legacy profile backfill keeps a pristine profile only on a fresh install', async () => {
   mock.module('../../src/lib/settings/store', () => ({
+    applyProfileCacheReload: () => true,
+    getProfileCacheRevision: () => 0,
     hydrateProfileCache() {},
     markLegacyProfileMigrationComplete() {},
   }));
@@ -595,6 +597,59 @@ test('the legacy profile backfill keeps a pristine profile only on a fresh insta
   sqlite.exec(
     'DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets; DELETE FROM cloud_sync_migration; DELETE FROM cloud_sync_migration_items',
   );
+});
+
+test('the profile cache shows a restored photo only once it is downloaded', async () => {
+  const reloads: { profileImageUri: string | null }[] = [];
+  // A local profile write lands during the first read: that read is dropped
+  // and the loader reads again.
+  let drops = 1;
+  let attempts = 0;
+  mock.module('../../src/lib/settings/store', () => ({
+    applyProfileCacheReload: (
+      _revision: number,
+      profile: { profileImageUri: string | null },
+    ) => {
+      attempts++;
+      if (drops > 0) {
+        drops--;
+        return false;
+      }
+      reloads.push(profile);
+      return true;
+    },
+    getProfileCacheRevision: () => 0,
+    hydrateProfileCache() {},
+    markLegacyProfileMigrationComplete() {},
+  }));
+  const { loadProfileCache } = await import('../../src/lib/cloudSync/storage/backfill');
+  sqlite.exec('DELETE FROM user_profile; DELETE FROM media_assets');
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'avatar',
+      owner_type: 'profile',
+      owner_id: 'self',
+      kind: 'photo',
+      local_uri: 'photos/avatar.jpg',
+      download_state: 'pending',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  sqlite.exec(
+    "INSERT INTO user_profile (profile_id, display_name, photo_asset_id, updated_at) VALUES ('self', 'Restored', 'avatar', 1)",
+  );
+  await loadProfileCache();
+  sqlite.exec("UPDATE media_assets SET download_state = 'verified'");
+  await loadProfileCache();
+  expect(reloads.map((profile) => profile.profileImageUri)).toEqual([
+    null,
+    'photos/avatar.jpg',
+  ]);
+  expect(attempts).toBe(3);
+  sqlite.exec('DELETE FROM user_profile; DELETE FROM media_assets');
 });
 
 test('profile updatedAt stays 0 and the profile stays pristine until a synced field is authored', async () => {
@@ -1273,13 +1328,82 @@ test('a restore shows entry text with its photo pending, then hydration download
       } as never,
       2,
     ),
-  ).toEqual({ hydrated: 1, missing: 0 });
+  ).toEqual({ hydrated: 1, missing: 0, profilePhoto: false });
   expect(downloaded).toEqual([fakeBlobHash]);
   const [hydrated] = db.select().from(schema.mediaAssets).all();
   expect(hydrated).toMatchObject({ download_state: 'verified', local_uri: photoUri });
   expect(copiedMedia.at(-1)).toEqual({
     from: 'file:///staged.jpg',
     to: expect.stringContaining(photoUri),
+  });
+});
+
+test('hydration reports when it downloaded the profile photo', async () => {
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_sync_state',
+  );
+  existingFiles.clear();
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'profile-photo', device_id: 'device', updated_at: 1 })
+    .run();
+  let staged = false;
+  const store = new ProductionSnapshotJournalStore('profile-photo', 'device', {
+    stagedFile: () => (staged ? { uri: 'file:///staged.jpg' } : null),
+    verifiedLocalFile: async () => null,
+    openDownloadSink: async () => ({}),
+    deleteStaged: () => {
+      staged = false;
+    },
+  } as never);
+  const domain: SnapshotDomain = {
+    entries: [],
+    tags: [],
+    entryTags: [],
+    prompts: [],
+    media: [
+      {
+        assetId: 'avatar',
+        ownerType: 'profile',
+        ownerId: 'profile',
+        kind: 'photo',
+        blobHash: fakeBlobHash,
+        mimeType: 'image/jpeg',
+        byteSize: 1,
+        width: 1,
+        height: 1,
+        durationMs: null,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    ],
+    tombstones: [],
+    conflicts: [],
+    profile: {
+      profileId: 'profile',
+      displayName: 'Restored',
+      photoAssetId: 'avatar',
+      updatedAt: 1,
+    },
+  };
+  expect(await store.applyMergedIfGeneration(domain, 0, { remoteDerived: true })).toBe(
+    true,
+  );
+  const download = {
+    downloadMedia: async () => {
+      staged = true;
+      return true;
+    },
+  } as never;
+  expect(await store.hydratePendingMedia(download, 2)).toEqual({
+    hydrated: 1,
+    missing: 0,
+    profilePhoto: true,
+  });
+  // Nothing left: no profile photo in an empty batch.
+  expect(await store.hydratePendingMedia(download, 2)).toEqual({
+    hydrated: 0,
+    missing: 0,
+    profilePhoto: false,
   });
 });
 
@@ -1414,7 +1538,7 @@ test('a repaired attachment is downloaded back to the path its entry uses', asyn
       } as never,
       2,
     ),
-  ).toEqual({ hydrated: 1, missing: 0 });
+  ).toEqual({ hydrated: 1, missing: 0, profilePhoto: false });
 
   const repaired = db
     .select()

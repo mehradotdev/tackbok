@@ -744,7 +744,7 @@ export const ar: Translations = {
   'cloud.attentionNeeded': 'يلزم الانتباه',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     'انسخ يومياتك احتياطيًا وزامنها مع Google Drive الخاص بك. تنتقل مباشرةً من هاتفك إلى Drive الخاص بك، ولا يراها مطوّر تاكبوك أبدًا.',
-  'cloud.lastUpdatedDate': 'آخر تحديث: {date}',
+  'cloud.lastUpdatedDateTime': 'آخر تحديث: {date}، {time}',
   'cloud.beforeYouConnect': 'قبل الاتصال',
   'cloud.checkingGoogleDriveForChanges': 'جارٍ التحقق من التغييرات في Google Drive…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
