@@ -224,6 +224,8 @@ export function cloudSyncFailureMessage(
       return t('cloud.aPhotoOrVoiceNoteOnThisDeviceCouldNotBeRead');
     case 'corrupt':
       return t('cloud.thisCloudBackupContainsDataTackbokCannotRead');
+    case 'merge':
+      return t('cloud.changesFromAnotherDeviceCouldNotBeCombined');
     case 'transient':
       return t('cloud.googleDriveCouldNotBeReachedYourChangesRemainSafely');
     case 'unknown':
@@ -248,6 +250,7 @@ export function attentionReasonMessage(
     'derived-id-collision': t(
       'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier',
     ),
+    'merge-failed': t('cloud.changesFromAnotherDeviceCouldNotBeCombined'),
     'local-storage-full': t('cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice'),
     'provider-quota-full': t('cloud.googleDriveDoesNotHaveEnoughFreeStorage'),
     'provider-request-rejected': t(

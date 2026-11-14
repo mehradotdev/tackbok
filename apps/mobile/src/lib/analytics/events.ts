@@ -85,6 +85,7 @@ export type CloudSyncFailureCategory =
   | 'wifi-only-media'
   | 'local-media'
   | 'corrupt'
+  | 'merge'
   | 'transient'
   | 'unknown';
 export type CloudSyncCountBucket = '0' | '1-10' | '11-100' | '100+';

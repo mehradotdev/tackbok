@@ -14,6 +14,7 @@ import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   ListedDeviceHead,
   BaseShadowCheckpoint,
+  DurableSyncState,
   MediaUploadSource,
   SnapshotJournalStore,
   SnapshotMediaStore,
@@ -118,9 +119,20 @@ function actionableChanges(journalGeneration: number, settledGeneration: number)
   return Math.max(0, journalGeneration - settledGeneration);
 }
 
+/** What a merge depends on besides the code and the settled base. */
+function mergeInput(journalGeneration: number, listed: ListedDeviceHead[]): string {
+  return canonicalize({
+    journalGeneration,
+    heads: listed.map(({ head }) => `${head.deviceId}\0${head.snapshotId}`).sort(),
+  });
+}
+
 export class SnapshotSyncEngine {
   private running = false;
   private settledPass: SettledPass | null = null;
+  /** Set once this engine has seen a merge fail; see `mayRetryFailedMerge`. */
+  private mergeFailedHere = false;
+  private failedMergeInput: string | null = null;
   private readonly cleanup: SnapshotCleanup;
   private readonly publisher: SnapshotPublisher;
 
@@ -183,7 +195,8 @@ export class SnapshotSyncEngine {
     }
 
     let durable = this.stateStore.loadState(this.vaultId, this.deviceId);
-    if (durable.pauseReason) {
+    this.failedMergeInput = null;
+    if (durable.pauseReason && !(await this.mayRetryFailedMerge(durable))) {
       return {
         status: 'attention',
         reason: durable.pauseReason,
@@ -293,6 +306,40 @@ export class SnapshotSyncEngine {
       'transient',
       'Heads changed before every bounded candidate upload attempt',
     );
+  }
+
+  /**
+   * A merge that failed fails again on the same input, so it stays paused like
+   * any other attention reason. It runs again once per engine, which covers an
+   * app update, and whenever another device's heads or this journal change. A
+   * pass that then succeeds clears the pause as usual.
+   */
+  private async mayRetryFailedMerge(durable: DurableSyncState): Promise<boolean> {
+    if (durable.pauseReason !== 'merge-failed') return false;
+    const input = mergeInput(
+      durable.journalGeneration,
+      await this.provider.listHeads(this.vaultId, true),
+    );
+    if (!this.mergeFailedHere) {
+      this.failedMergeInput = input;
+      return true;
+    }
+    if (durable.pauseContext === null) {
+      // shortcut: the pass that failed did not record its input, so this
+      // pass's input stands in for it. A change in between waits for the next
+      // change or launch; record it in planning if that ever matters.
+      this.stateStore.setPause(
+        this.vaultId,
+        this.deviceId,
+        'merge-failed',
+        durable.lastErrorClass ?? 'merge-unknown',
+        input,
+      );
+      return false;
+    }
+    if (durable.pauseContext === input) return false;
+    this.failedMergeInput = input;
+    return true;
   }
 
   private async planCandidate(
@@ -891,15 +938,16 @@ export class SnapshotSyncEngine {
       return { status: 'attention', reason: error.reason, actionableChanges: remaining };
     }
     if (error instanceof SnapshotMergeError) {
+      // The merge stops before anything is applied to this journal.
       const reason =
-        error.code === 'derived-id-collision'
-          ? 'derived-id-collision'
-          : 'normalized-model-not-ready';
+        error.code === 'derived-id-collision' ? 'derived-id-collision' : 'merge-failed';
+      if (reason === 'merge-failed') this.mergeFailedHere = true;
       this.stateStore.setPause(
         this.vaultId,
         this.deviceId,
         reason,
         `merge-${error.code}`,
+        reason === 'merge-failed' ? this.failedMergeInput : null,
       );
       return { status: 'attention', reason, actionableChanges: remaining };
     }

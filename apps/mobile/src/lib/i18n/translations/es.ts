@@ -954,6 +954,8 @@ export const es = {
     'Hay cambios de demasiados dispositivos esperando a combinarse. La sincronización se detuvo.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     'No se pudieron combinar con seguridad dos elementos de tu diario. La sincronización se detuvo. Puedes exportar una copia desde Ajustes.',
+  'cloud.changesFromAnotherDeviceCouldNotBeCombined':
+    'Tackbok no pudo combinar los cambios de otro dispositivo con este. No se cambió nada en este dispositivo. La sincronización se detuvo. Actualizar Tackbok en tus dispositivos puede ayudar. Puedes exportar una copia desde Ajustes.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     'Tackbok no pudo guardar datos de sincronización en este dispositivo. Puede que tenga poco espacio. La sincronización se detuvo.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':

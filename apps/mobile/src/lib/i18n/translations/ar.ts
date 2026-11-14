@@ -967,6 +967,8 @@ export const ar: Translations = {
     'هناك تغييرات من أجهزة كثيرة جدًا تنتظر الدمج. توقفت المزامنة.',
   'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
     'تعذّر دمج عنصرين في دفتر يومياتك بأمان. توقفت المزامنة. يمكنك تصدير نسخة من الإعدادات.',
+  'cloud.changesFromAnotherDeviceCouldNotBeCombined':
+    'تعذّر على Tackbok دمج التغييرات من جهاز آخر مع هذا الجهاز. لم يتغيّر أي شيء على هذا الجهاز. توقفت المزامنة. قد يساعد تحديث Tackbok على أجهزتك. يمكنك تصدير نسخة من الإعدادات.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     'تعذّر على Tackbok حفظ بيانات المزامنة على هذا الجهاز. قد تكون مساحة التخزين منخفضة. توقفت المزامنة.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':

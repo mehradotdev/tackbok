@@ -15,6 +15,7 @@ export type SyncAttentionReason =
   | 'ambiguous-device-head'
   | 'frontier-too-wide'
   | 'derived-id-collision'
+  | 'merge-failed'
   | 'local-storage-full'
   | 'provider-quota-full'
   | 'provider-permission-denied'
@@ -61,6 +62,8 @@ export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecovery
     'ambiguous-device-head': 'inspect-repair-backup',
     'frontier-too-wide': 'consolidate-backups',
     'derived-id-collision': 'export-repair-backup',
+    // Running the same merge again fails again; see the engine's retry rule.
+    'merge-failed': 'export-repair-backup',
     'local-storage-full': 'free-device-storage',
     'provider-quota-full': 'manage-drive-storage',
     'provider-permission-denied': 'reconnect-google-drive',
