@@ -259,8 +259,9 @@ export const hi = {
   'appearance.firstDayOfWeek': 'सप्ताह का पहला दिन',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar': 'कैलेंडर दृश्य में सप्ताह का पहला दिन सेट करें',
   'appearance.appIcon': 'ऐप आइकन',
-  'appearance.appIconChangesAfterLeaving':
-    'आपका नया आइकन ताकबूक से बाहर निकलने के बाद दिखेगा।',
+  'appearance.changeAppIconTitle': 'ऐप आइकन बदलें?',
+  'appearance.changeAppIconMessage': 'नया आइकन लागू करने के लिए ताकबूक बंद हो जाएगा।',
+  'appearance.changeIcon': 'आइकन बदलें',
   'typography.typography': 'टाइपोग्राफी',
   'typography.titleFont': 'टाइटल फ़ॉन्ट',
   'typography.chooseAFontForTitlesAndHeadings': 'शीर्षकों और शीर्षकों के लिए एक फ़ॉन्ट चुनें',

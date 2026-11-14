@@ -295,7 +295,9 @@ export const he: Translations = {
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'הגדר את היום הראשון בשבוע בתצוגת היומן',
   'appearance.appIcon': 'סמל האפליקציה',
-  'appearance.appIconChangesAfterLeaving': 'הסמל החדש יופיע אחרי היציאה מטאקבוק.',
+  'appearance.changeAppIconTitle': 'לשנות את סמל האפליקציה?',
+  'appearance.changeAppIconMessage': 'טאקבוק ייסגר כדי להחיל את הסמל החדש.',
+  'appearance.changeIcon': 'שינוי הסמל',
 
   // Settings - Typography
   'typography.typography': 'טיפוגרפיה',

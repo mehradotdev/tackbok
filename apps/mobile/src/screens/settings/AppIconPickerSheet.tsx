@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import {
+  Alert,
   Image,
   ScrollView,
   View,
@@ -12,7 +13,12 @@ import { cn } from 'tailwind-variants';
 import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
-import { APP_ICON_CHOICES, useAppIconStore, type AppIconName } from '~/lib/appIcon';
+import {
+  APP_ICON_CHOICES,
+  appIconChangeClosesApp,
+  useAppIconStore,
+  type AppIconName,
+} from '~/lib/appIcon';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
@@ -50,14 +56,28 @@ export function AppIconPickerSheet() {
   const setIcon = useAppIconStore((s) => s.setIcon);
   const isChanging = useAppIconStore((s) => s.isChanging);
   const scrollViewRef = useRef<ScrollViewInstance>(null);
-  // Android switches the icon once the app leaves the screen.
-  const [isWaitingForBackground, setIsWaitingForBackground] = useState(false);
   const [backgroundColor, themeRadiusStr, mutedFgColor] = useCSSVariable([
     '--color-background',
     '--theme-radius',
     '--color-muted-foreground',
   ]);
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
+
+  const chooseIcon = (name: AppIconName) => {
+    if (!appIconChangeClosesApp) {
+      void setIcon(name);
+      return;
+    }
+    // A native alert, so it shows above the sheet.
+    Alert.alert(
+      t('appearance.changeAppIconTitle'),
+      t('appearance.changeAppIconMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('appearance.changeIcon'), onPress: () => void setIcon(name) },
+      ],
+    );
+  };
 
   return (
     <TrueSheet
@@ -100,8 +120,8 @@ export function AppIconPickerSheet() {
                   variant="ghost"
                   size="none"
                   disabled={isChanging}
-                  onPress={async () => {
-                    if (!isActive) setIsWaitingForBackground(await setIcon(name));
+                  onPress={() => {
+                    if (!isActive) chooseIcon(name);
                   }}
                   className="w-1/4 flex-col items-center gap-2 py-1"
                   role="radio"
@@ -128,14 +148,6 @@ export function AppIconPickerSheet() {
                 </Button>
               );
             })}
-          </View>
-          {/* Stays mounted so the live region announces the note when it appears. */}
-          <View accessibilityLiveRegion="polite" className="px-5 pt-4">
-            {isWaitingForBackground && (
-              <Text className="text-sm text-muted-foreground text-center">
-                {t('appearance.appIconChangesAfterLeaving')}
-              </Text>
-            )}
           </View>
         </ScrollView>
       </View>

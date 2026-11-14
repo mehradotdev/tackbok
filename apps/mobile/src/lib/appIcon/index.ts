@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
 import Constants from 'expo-constants';
@@ -8,14 +7,10 @@ import { ALTERNATE_APP_ICONS, BETA_ALTERNATE_APP_ICONS, type AppIconName } from 
 export * from './icons';
 
 interface AppIconNativeModule {
+  /** Android only, and only in binaries built after it was added. */
+  readonly registeredIcons?: readonly string[];
   getAppIconName(icons: readonly string[]): Promise<string | null>;
-  /**
-   * Resolves "pending" when Android applies the change once the app goes to
-   * background. iOS and Android binaries built before that resolve null.
-   */
-  setAppIcon(name: string | null, icons: readonly string[]): Promise<'pending' | null>;
-  /** Android binaries with deferred changes only. */
-  setPendingIconHeld?(held: boolean): Promise<void>;
+  setAppIcon(name: string | null, icons: readonly string[]): Promise<void>;
 }
 
 // Optional so binaries built before the module existed keep working after an OTA.
@@ -26,58 +21,36 @@ const AppIconModule =
 
 export const supportsAlternateIcons = AppIconModule != null;
 
-let holds = 0;
-
 /**
- * On Android a pending icon change ends the app's task once it leaves the
- * screen. Hold it while that would lose work; call the returned function to release.
+ * Switching icons on Android ends the app's task, so the app closes: the
+ * picker asks first. iOS shows its own alert instead.
  */
-export function holdAppIconChange(): () => void {
-  holds++;
-  if (holds === 1) setPendingIconHeld(true);
-  let released = false;
-  return () => {
-    if (released) return;
-    released = true;
-    holds--;
-    if (holds === 0) setPendingIconHeld(false);
-  };
-}
-
-function setPendingIconHeld(held: boolean) {
-  AppIconModule?.setPendingIconHeld?.(held).catch((error: unknown) => {
-    console.warn('[appIcon] Failed to hold app icon change', error);
-  });
-}
-
-/** Holds a pending icon change while `held` is true. */
-export function useHoldAppIconChange(held: boolean): void {
-  useEffect(() => (held ? holdAppIconChange() : undefined), [held]);
-}
+export const appIconChangeClosesApp = Platform.OS === 'android';
 
 const IS_BETA_BUILD = Constants.expoConfig?.extra?.appVariant === 'beta';
 
-// Beta binaries registered the Classic alternate together with deferred Android
-// changes. Older Android binaries fail midway on an unknown alias and leave two
-// launcher icons, so they get the list they were built with. Older iOS beta
-// binaries only reject Classic.
-const HAS_CLASSIC_ALTERNATE =
-  IS_BETA_BUILD &&
-  (Platform.OS !== 'android' || AppIconModule?.setPendingIconHeld != null);
-
-/** Alternate icons registered in this build's binary (app.config.ts). */
-const NATIVE_ICONS: readonly AppIconName[] = HAS_CLASSIC_ALTERNATE
+/** Alternate icons this build registers (app.config.ts). */
+const BUILD_ICONS: readonly AppIconName[] = IS_BETA_BUILD
   ? BETA_ALTERNATE_APP_ICONS
   : ALTERNATE_APP_ICONS;
+
+// Android binaries report the icons they registered. Older ones predate the beta
+// Classic alternate and fail midway on an unknown alias, leaving two launcher
+// icons, so they get the original list. Older iOS beta binaries only reject Classic.
+const NATIVE_ICONS: readonly AppIconName[] =
+  Platform.OS === 'android'
+    ? BUILD_ICONS.filter((icon) =>
+        (AppIconModule?.registeredIcons ?? ALTERNATE_APP_ICONS).includes(icon),
+      )
+    : BUILD_ICONS;
 
 /** The artwork of the bundled default icon: beta builds ship Blueprint. */
 const DEFAULT_ICON: AppIconName = IS_BETA_BUILD ? 'Blueprint' : 'Classic';
 
-/** Picker choices: every icon, unless an older beta binary lacks Classic. */
-export const APP_ICON_CHOICES: readonly AppIconName[] =
-  IS_BETA_BUILD && !HAS_CLASSIC_ALTERNATE
-    ? ALTERNATE_APP_ICONS
-    : ['Classic', ...ALTERNATE_APP_ICONS];
+/** Picker choices: every icon the binary can show. */
+export const APP_ICON_CHOICES: readonly AppIconName[] = (
+  ['Classic', ...ALTERNATE_APP_ICONS] as const
+).filter((icon) => icon === DEFAULT_ICON || NATIVE_ICONS.includes(icon));
 
 /** The icon the OS reports: null is the bundled default. */
 function fromNative(name: string | null): AppIconName {
@@ -99,12 +72,10 @@ type AppIconState = {
   /** True while a change is in flight; further changes are ignored until it settles. */
   isChanging: boolean;
   refresh: () => Promise<void>;
-  /** Resolves true when the new icon appears only after the app goes to background. */
-  setIcon: (name: AppIconName) => Promise<boolean>;
+  setIcon: (name: AppIconName) => Promise<void>;
 };
 
 // The OS owns the selection, so it is read from native instead of persisted.
-// On Android a choice waiting for the app to go to background reads as current.
 export const useAppIconStore = create<AppIconState>((set, get) => ({
   current: DEFAULT_ICON,
   isChanging: false,
@@ -117,17 +88,14 @@ export const useAppIconStore = create<AppIconState>((set, get) => ({
     }
   },
   setIcon: async (name) => {
-    if (!AppIconModule || get().isChanging) return false;
+    if (!AppIconModule || get().isChanging) return;
     set({ isChanging: true });
-    let isPending = false;
     try {
-      isPending =
-        (await AppIconModule.setAppIcon(toNative(name), NATIVE_ICONS)) === 'pending';
+      await AppIconModule.setAppIcon(toNative(name), NATIVE_ICONS);
     } catch (error) {
       console.warn('[appIcon] Failed to change app icon', error);
     }
     await get().refresh();
     set({ isChanging: false });
-    return isPending;
   },
 }));

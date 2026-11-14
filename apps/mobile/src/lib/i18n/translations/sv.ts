@@ -264,7 +264,9 @@ export const sv = {
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Ställ in den första veckodagen i kalendervyn',
   'appearance.appIcon': 'Appikon',
-  'appearance.appIconChangesAfterLeaving': 'Din nya ikon visas när du lämnar Tackbok.',
+  'appearance.changeAppIconTitle': 'Byta appikon?',
+  'appearance.changeAppIconMessage': 'Tackbok stängs för att använda den nya ikonen.',
+  'appearance.changeIcon': 'Byt ikon',
   'typography.typography': 'Typografi',
   'typography.titleFont': 'Typsnitt för titel',
   'typography.chooseAFontForTitlesAndHeadings':

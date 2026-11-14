@@ -31,12 +31,9 @@ import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
 import {
   getProductionSyncRuntime,
-  getProductionCloudSyncActivity,
   isProductionCloudSyncConfigured,
   setCloudSyncBackgroundTaskEnabled,
-  subscribeProductionCloudSync,
 } from '~/lib/cloudSync/runtime';
-import { holdAppIconChange } from '~/lib/appIcon';
 SplashScreen.preventAutoHideAsync();
 
 // Hide the native splash once the first JS screen has laid out, so the hand-off
@@ -131,28 +128,6 @@ export default function Layout() {
       cloudSyncRuntime.stop();
     };
   }, [hasHydrated, profileReady, success]);
-
-  // A pending Android icon change waits for sync work, such as the backup when
-  // the app is closed, so ending the app's task doesn't lower its priority.
-  // Best effort: a pass only counts as working once it has local changes to
-  // send, so a slow first network check can still let the change apply.
-  useEffect(() => {
-    let release: (() => void) | null = null;
-    const update = () => {
-      const isWorking = getProductionCloudSyncActivity() !== 'idle';
-      if (isWorking && !release) release = holdAppIconChange();
-      if (!isWorking && release) {
-        release();
-        release = null;
-      }
-    };
-    update();
-    const unsubscribe = subscribeProductionCloudSync(update);
-    return () => {
-      unsubscribe();
-      release?.();
-    };
-  }, []);
 
   // Sync native root background once theme is trustworthy (hydrated), or on migration error
   useEffect(() => {

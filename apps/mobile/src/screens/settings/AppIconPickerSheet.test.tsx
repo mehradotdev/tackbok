@@ -4,15 +4,30 @@ import { en as mockEn } from '~/lib/i18n/translations/en';
 import { useAppIconStore } from '~/lib/appIcon';
 import { AppIconPickerSheet, getAppIconLabel } from './AppIconPickerSheet';
 
+type AlertButton = { text: string; style?: string; onPress?: () => void };
+const mockAlert = jest.fn<void, [string, string, AlertButton[]]>();
+
 jest.mock('react-native', () => ({
+  Alert: { alert: (...args: [string, string, AlertButton[]]) => mockAlert(...args) },
   Platform: { OS: 'android' },
   Image: 'Image',
   ScrollView: 'ScrollView',
   View: 'View',
 }));
-// A beta binary with deferred Android changes, so it has the Classic alternate.
+// A beta Android binary that registered the Classic alternate.
 jest.mock('expo', () => ({
-  requireOptionalNativeModule: () => ({ setPendingIconHeld: async () => undefined }),
+  requireOptionalNativeModule: () => ({
+    registeredIcons: [
+      'Sage',
+      'Midnight',
+      'Ocean',
+      'Terracotta',
+      'Rose',
+      'Plum',
+      'Blueprint',
+      'Classic',
+    ],
+  }),
 }));
 jest.mock('expo-constants', () => ({
   __esModule: true,
@@ -33,10 +48,11 @@ jest.mock('~/lib/i18n', () => ({
 }));
 
 let renderer: ReactTestRenderer | undefined;
-const setIcon = jest.fn<Promise<boolean>, [string | null]>();
+const setIcon = jest.fn<Promise<void>, [string]>(async () => undefined);
 
 beforeEach(() => {
-  setIcon.mockReset();
+  mockAlert.mockReset();
+  setIcon.mockClear();
   useAppIconStore.setState({ current: 'Blueprint', isChanging: false, setIcon });
 });
 
@@ -55,15 +71,9 @@ function render() {
   );
 }
 
-const NOTE = mockEn['appearance.appIconChangesAfterLeaving'];
-
-function hasNote() {
-  return renderer!.root.findAll((node) => node.props.children === NOTE).length > 0;
-}
-
-function radio(label: string) {
-  const found = render().filter((node) => node.props.accessibilityLabel === label);
-  return found[0];
+function press(label: string) {
+  const radio = render().find((node) => node.props.accessibilityLabel === label)!;
+  act(() => radio.props.onPress());
 }
 
 test('beta offers every icon and selects its Blueprint default', () => {
@@ -87,56 +97,28 @@ test('beta offers every icon and selects its Blueprint default', () => {
   expect(getAppIconLabel('Classic')).toBe('Classic');
 });
 
-test('the note has a live region ready before it appears', () => {
-  render();
+test('Android asks before closing the app to change the icon', () => {
+  press('Ocean');
 
-  expect(
-    renderer!.root.findAll((node) => node.props.accessibilityLiveRegion === 'polite'),
-  ).toHaveLength(1);
-});
+  expect(setIcon).not.toHaveBeenCalled();
+  const [title, message, buttons] = mockAlert.mock.calls[0];
+  expect(title).toBe(mockEn['appearance.changeAppIconTitle']);
+  expect(message).toBe(mockEn['appearance.changeAppIconMessage']);
+  expect(buttons.map((button) => button.text)).toEqual([
+    mockEn['common.cancel'],
+    mockEn['appearance.changeIcon'],
+  ]);
 
-test('a change waiting for background shows a note until a change applies at once', async () => {
-  setIcon.mockResolvedValue(true);
-
-  const ocean = radio('Ocean');
-  expect(hasNote()).toBe(false);
-  await act(async () => {
-    await ocean.props.onPress();
-  });
-
+  // Cancel has no handler, so nothing changes.
+  expect(buttons[0].style).toBe('cancel');
+  expect(buttons[0].onPress).toBeUndefined();
+  act(() => buttons[1].onPress!());
   expect(setIcon).toHaveBeenCalledWith('Ocean');
-  expect(hasNote()).toBe(true);
-
-  // Choosing the icon in use cancels the pending change.
-  setIcon.mockResolvedValue(false);
-  const plum = renderer!.root.find(
-    (node) =>
-      (node.type as unknown) === 'Button' && node.props.accessibilityLabel === 'Plum',
-  );
-  await act(async () => {
-    await plum.props.onPress();
-  });
-  expect(hasNote()).toBe(false);
 });
 
-test('an immediate change shows no note', async () => {
-  setIcon.mockResolvedValue(false);
+test('tapping the selected icon changes nothing', () => {
+  press('Blueprint');
 
-  const ocean = radio('Ocean');
-  await act(async () => {
-    await ocean.props.onPress();
-  });
-
-  expect(hasNote()).toBe(false);
-});
-
-test('tapping the selected icon changes nothing', async () => {
-  useAppIconStore.setState({ current: 'Ocean' });
-
-  const ocean = radio('Ocean');
-  await act(async () => {
-    await ocean.props.onPress();
-  });
-
+  expect(mockAlert).not.toHaveBeenCalled();
   expect(setIcon).not.toHaveBeenCalled();
 });

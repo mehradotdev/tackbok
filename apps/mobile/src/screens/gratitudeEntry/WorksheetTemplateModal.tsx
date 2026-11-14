@@ -13,7 +13,6 @@ import { cn } from 'tailwind-variants';
 import { SHEET_NAMES } from '~/constants';
 import { useWorksheetTemplate } from '~/hooks/useWorksheetTemplate';
 import { useTranslation } from '~/lib/i18n';
-import { useHoldAppIconChange } from '~/lib/appIcon';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
@@ -44,8 +43,6 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
   const textareaRef = useRef<TextInputInstance>(null);
   const hasChanges = draftTemplate !== resolvedWorksheetTemplate;
   const canSave = draftTemplate.length > 0 && hasChanges;
-  // A pending Android icon change would close the sheet and lose the draft.
-  useHoldAppIconChange(hasChanges);
 
   useEffect(() => {
     setDraftTemplate(resolvedWorksheetTemplate);
