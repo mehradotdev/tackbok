@@ -13,6 +13,7 @@ import { unpublishedEntryMedia, withoutDeferredMedia } from './deferredMedia';
 import { SQLiteSyncStateStore } from './sqliteState';
 import type {
   ListedDeviceHead,
+  BaseShadowCheckpoint,
   MediaUploadSource,
   SnapshotJournalStore,
   SnapshotMediaStore,
@@ -75,10 +76,28 @@ function statedUncompressedBytes(bytes: Uint8Array): number {
   );
 }
 
-/** Nothing to publish or apply, though attachments still wait for Wi-Fi. */
-interface WaitingForMedia {
+/** Nothing to publish or apply, though attachments may still wait for Wi-Fi. */
+interface UpToDate {
   upToDate: true;
   deferredMediaCount: number;
+  /** Heads just listed with a refresh, which cleanup can reuse. */
+  listedHeads?: ListedDeviceHead[];
+}
+
+/**
+ * A pass that found nothing to do, and what it found that with. While the
+ * base-shadow file, both generations and the remote heads stay the same, the
+ * next pass would find the same, so it skips decoding the shadow and capturing
+ * the journal. Only a full plan records one, so the shadow was verified and no
+ * attachment was waiting for Wi-Fi. Journal changes that settle without a
+ * generation bump (remote applies) also replace the base checkpoint.
+ */
+interface SettledPass {
+  checkpoint: BaseShadowCheckpoint;
+  shadowBytes: Uint8Array;
+  acceptedDeviceHeads: ObservedDeviceHead[];
+  journalGeneration: number;
+  settledGeneration: number;
 }
 
 interface PlannedCandidate {
@@ -101,6 +120,7 @@ function actionableChanges(journalGeneration: number, settledGeneration: number)
 
 export class SnapshotSyncEngine {
   private running = false;
+  private settledPass: SettledPass | null = null;
   private readonly cleanup: SnapshotCleanup;
   private readonly publisher: SnapshotPublisher;
 
@@ -194,13 +214,13 @@ export class SnapshotSyncEngine {
           await this.hooks.at?.('after-local-mutation');
         }
         const plan = await this.planCandidate(verifiedSnapshots, ancestorBudget);
-        if (!plan || 'upToDate' in plan) {
-          await this.cleanup.run();
+        if ('upToDate' in plan) {
+          await this.cleanup.run(plan.listedHeads);
           this.stateStore.clearPause(this.vaultId, this.deviceId);
           return {
             status: 'up-to-date',
             actionableChanges: 0,
-            deferredMediaCount: plan?.deferredMediaCount ?? 0,
+            deferredMediaCount: plan.deferredMediaCount,
           };
         }
         appliedDomain = plan.appliedDomain;
@@ -277,7 +297,7 @@ export class SnapshotSyncEngine {
   private async planCandidate(
     verifiedSnapshots: Map<string, JournalSnapshotPayload>,
     ancestorBudget: AncestorBudget,
-  ): Promise<PlannedCandidate | WaitingForMedia | null> {
+  ): Promise<PlannedCandidate | UpToDate> {
     for (let attempt = 0; attempt < MAX_HEAD_RECHECKS; attempt += 1) {
       this.hooks.progress?.({ type: 'plan', phase: 'checking' });
       const listed = await this.provider.listHeads(this.vaultId, true);
@@ -286,14 +306,18 @@ export class SnapshotSyncEngine {
         verifiedSnapshots,
         true,
       );
-      const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
-      const loadedBase = await this.shadowManager.load(checkpoint);
-      const captured = await this.journal.capture();
-      const durable = this.stateStore.loadState(this.vaultId, this.deviceId);
       const frontier = activeFrontier(remoteHeads);
       if (frontier.length > 8) {
         throw new AttentionError('frontier-too-wide', 'active-parent-cap');
       }
+      const checkpoint = this.stateStore.loadBaseCheckpoint(this.vaultId, this.deviceId);
+      if (await this.unchangedSinceSettledPass(checkpoint, remoteHeads)) {
+        return { upToDate: true, deferredMediaCount: 0, listedHeads: listed };
+      }
+      this.settledPass = null;
+      const loadedBase = await this.shadowManager.load(checkpoint);
+      const captured = await this.journal.capture();
+      const durable = this.stateStore.loadState(this.vaultId, this.deviceId);
 
       const accepted = loadedBase.shadow?.acceptedDeviceHeads ?? [];
       const covered = headsCovered(remoteHeads, accepted);
@@ -306,7 +330,16 @@ export class SnapshotSyncEngine {
         // yet still to publish.
         unpublishedEntryMedia(captured.domain, baseDomain).length === 0
       ) {
-        return null;
+        if (checkpoint && loadedBase.bytes) {
+          this.settledPass = {
+            checkpoint,
+            shadowBytes: loadedBase.bytes,
+            acceptedDeviceHeads: accepted,
+            journalGeneration: durable.journalGeneration,
+            settledGeneration: durable.settledGeneration,
+          };
+        }
+        return { upToDate: true, deferredMediaCount: 0, listedHeads: listed };
       }
 
       this.hooks.progress?.({ type: 'plan', phase: 'merging' });
@@ -426,6 +459,26 @@ export class SnapshotSyncEngine {
     throw new SnapshotProviderError(
       'transient',
       'Heads changed during every bounded planning attempt',
+    );
+  }
+
+  /** Whether the last settled pass still describes local and remote state. */
+  private async unchangedSinceSettledPass(
+    checkpoint: BaseShadowCheckpoint | null,
+    remoteHeads: RemoteHeadSnapshot[],
+  ): Promise<boolean> {
+    const settled = this.settledPass;
+    if (!settled || !checkpoint) return false;
+    const durable = this.stateStore.loadState(this.vaultId, this.deviceId);
+    return (
+      checkpoint.fileName === settled.checkpoint.fileName &&
+      checkpoint.canonicalSha256 === settled.checkpoint.canonicalSha256 &&
+      checkpoint.byteCount === settled.checkpoint.byteCount &&
+      checkpoint.committedGeneration === settled.checkpoint.committedGeneration &&
+      durable.journalGeneration === settled.journalGeneration &&
+      durable.settledGeneration === settled.settledGeneration &&
+      headsCovered(remoteHeads, settled.acceptedDeviceHeads) &&
+      (await this.shadowManager.fileMatches(checkpoint, settled.shadowBytes))
     );
   }
 

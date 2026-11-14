@@ -3989,3 +3989,365 @@ describe('text on mobile data with Wi-Fi-only media', () => {
     expect(ids(await headPayload(provider, a.deviceId))).toEqual(['asset-new']);
   });
 });
+
+describe('deciding nothing changed before the local work', () => {
+  /** Counts the expensive local reads: base-shadow decodes and journal captures. */
+  function countLocalWork(device: Harness) {
+    const counts = { shadowLoads: 0, captures: 0 };
+    const load = device.shadows.load.bind(device.shadows);
+    device.shadows.load = (checkpoint) => {
+      counts.shadowLoads += 1;
+      return load(checkpoint);
+    };
+    const capture = device.journal.capture.bind(device.journal);
+    device.journal.capture = () => {
+      counts.captures += 1;
+      return capture();
+    };
+    const reset = () => {
+      counts.shadowLoads = 0;
+      counts.captures = 0;
+      device.provider.requests.length = 0;
+    };
+    return { counts, reset };
+  }
+
+  /** One long-lived engine, as the runtime keeps between heartbeats. */
+  async function settledDevice(
+    deviceId = 'early-device',
+    provider?: FakeSnapshotProvider,
+  ) {
+    const device = harness(deviceId, blankDomain(), provider);
+    device.journal.mutate(withEntry(blankDomain(), entry('entry-1', 'First')));
+    const engine = device.engine();
+    expect((await engine.sync()).status).toBe('published');
+    // The first quiet pass verifies everything once.
+    expect((await engine.sync()).status).toBe('up-to-date');
+    return { device, engine, ...countLocalWork(device) };
+  }
+
+  const listings = (provider: FakeSnapshotProvider) =>
+    provider.requests.filter((op) => op === 'list-heads').length;
+
+  test('a quiet pass neither decodes the shadow nor captures the journal', async () => {
+    const { device, engine, counts, reset } = await settledDevice();
+    for (let pass = 0; pass < 3; pass += 1) {
+      reset();
+      expect(await engine.sync()).toEqual({
+        status: 'up-to-date',
+        actionableChanges: 0,
+        deferredMediaCount: 0,
+      });
+      expect(counts).toEqual({ shadowLoads: 0, captures: 0 });
+      // Cleanup reuses the heads the plan just listed.
+      expect(listings(device.provider)).toBe(1);
+      expect(device.provider.requests).toContain('list-snapshots');
+    }
+  });
+
+  test('a fresh engine verifies everything once before taking the shortcut', async () => {
+    const { device, counts, reset } = await settledDevice();
+    const engine = device.engine();
+    reset();
+    expect((await engine.sync()).status).toBe('up-to-date');
+    expect(counts).toEqual({ shadowLoads: 1, captures: 1 });
+    reset();
+    expect((await engine.sync()).status).toBe('up-to-date');
+    expect(counts).toEqual({ shadowLoads: 0, captures: 0 });
+  });
+
+  test('a local edit takes the full path and publishes', async () => {
+    const { device, engine, counts, reset } = await settledDevice();
+    reset();
+    device.journal.mutate(
+      withEntry(device.journal.current(), entry('entry-1', 'Edited', 2)),
+    );
+    expect((await engine.sync()).status).toBe('published');
+    expect(counts.captures).toBeGreaterThan(0);
+    expect(counts.shadowLoads).toBeGreaterThan(0);
+    const head = device.provider.physicalHeads(device.vaultId)[0].head;
+    const bytes = await device.provider.downloadSnapshot(device.vaultId, head.snapshotId);
+    expect(decodeSnapshot(bytes!, head.snapshotId).payload.entries[0].content).toBe(
+      'Edited',
+    );
+  });
+
+  test('a head another device moved takes the full path and pulls', async () => {
+    const { device, engine, counts, reset } = await settledDevice();
+    const other = harness('early-other', blankDomain(), device.provider, device.clock);
+    expect((await other.engine().sync()).status).toBe('pulled');
+    other.journal.mutate(withEntry(other.journal.current(), entry('entry-2', 'Remote')));
+    expect((await other.engine().sync()).status).toBe('published');
+
+    reset();
+    expect((await engine.sync()).status).toBe('pulled');
+    expect(counts.captures).toBeGreaterThan(0);
+    expect(contents(device.journal.current())).toEqual({
+      'entry-1': 'First',
+      'entry-2': 'Remote',
+    });
+    reset();
+    expect((await engine.sync()).status).toBe('up-to-date');
+    reset();
+    expect((await engine.sync()).status).toBe('up-to-date');
+    expect(counts).toEqual({ shadowLoads: 0, captures: 0 });
+  });
+
+  test('a base another engine settled is verified again, not trusted', async () => {
+    const { device, engine, counts, reset } = await settledDevice();
+    const other = harness('early-other', blankDomain(), device.provider, device.clock);
+    expect((await other.engine().sync()).status).toBe('pulled');
+    other.journal.mutate(withEntry(other.journal.current(), entry('entry-2', 'Remote')));
+    expect((await other.engine().sync()).status).toBe('published');
+    // A second engine on the same device (the OS background task) pulls it.
+    expect((await device.engine().sync()).status).toBe('pulled');
+
+    reset();
+    expect((await engine.sync()).status).toBe('up-to-date');
+    expect(counts).toEqual({ shadowLoads: 1, captures: 1 });
+  });
+
+  test('text another engine applied before pausing for missing media is kept', async () => {
+    const { device, engine, counts, reset } = await settledDevice();
+    const photo = new TextEncoder().encode('photo Drive lost');
+    const photoHash = sha256Bytes(photo);
+    const writer = harness('early-writer', blankDomain(), device.provider, device.clock);
+    expect((await writer.engine().sync()).status).toBe('pulled');
+    await writer.media.writeVerified(photoHash, photo);
+    const withPhoto = withEntry(writer.journal.current(), {
+      ...entry('entry-photo', 'Remote text'),
+      attachmentOrder: ['asset-lost'],
+    });
+    withPhoto.media = [mediaAsset('asset-lost', 'entry-photo', photo)];
+    writer.journal.mutate(withPhoto);
+    expect((await writer.engine().sync()).status).toBe('published');
+    device.provider.removeMediaForTest(device.vaultId, photoHash);
+
+    // The background task's engine applies the text, then pauses before
+    // settling a new base.
+    expect(await device.engine().sync()).toMatchObject({
+      status: 'attention',
+      reason: 'missing-media',
+    });
+    expect(contents(device.journal.current())['entry-photo']).toBe('Remote text');
+    device.state.clearPause(device.vaultId, device.deviceId);
+
+    // The long-lived engine's quiet pass no longer applies: it re-plans.
+    reset();
+    expect(await engine.sync()).toMatchObject({
+      status: 'attention',
+      reason: 'missing-media',
+    });
+    expect(counts.captures).toBeGreaterThan(0);
+    expect(contents(device.journal.current())['entry-photo']).toBe('Remote text');
+
+    // Once the blob is back, the same engine settles the remote snapshot.
+    await device.provider.uploadMedia(
+      device.vaultId,
+      photoHash,
+      (await writer.media.openVerifiedSource(photoHash))!,
+    );
+    device.state.clearPause(device.vaultId, device.deviceId);
+    expect((await engine.sync()).status).toBe('pulled');
+    expect(contents(device.journal.current())).toEqual({
+      'entry-1': 'First',
+      'entry-photo': 'Remote text',
+    });
+    expect(device.journal.current().media.map((asset) => asset.assetId)).toEqual([
+      'asset-lost',
+    ]);
+  });
+
+  test.each(['missing', 'corrupt'])(
+    'a %s base shadow takes the full path and repairs it',
+    async (damage) => {
+      const { device, engine, counts, reset } = await settledDevice();
+      const checkpoint = device.state.loadBaseCheckpoint(
+        device.vaultId,
+        device.deviceId,
+      )!;
+      if (damage === 'missing') await device.files.delete(checkpoint.fileName);
+      else {
+        // Same length, different bytes: only a byte comparison notices.
+        const damaged = device.files.files.get(checkpoint.fileName)!.slice();
+        damaged[damaged.length - 1] ^= 0xff;
+        device.files.files.set(checkpoint.fileName, damaged);
+      }
+
+      reset();
+      const result = await engine.sync();
+      expect(['pulled', 'published', 'up-to-date']).toContain(result.status);
+      expect(counts.shadowLoads).toBeGreaterThan(0);
+      expect(counts.captures).toBeGreaterThan(0);
+      if (damage === 'corrupt') expect(device.files.quarantined).toHaveLength(1);
+      // A valid base exists again, and later quiet passes go back to the shortcut.
+      const repaired = device.state.loadBaseCheckpoint(device.vaultId, device.deviceId)!;
+      expect(
+        (await device.shadows.load(repaired)).shadow?.acceptedDeviceHeads,
+      ).toBeDefined();
+      await engine.sync();
+      reset();
+      expect((await engine.sync()).status).toBe('up-to-date');
+      expect(counts).toEqual({ shadowLoads: 0, captures: 0 });
+    },
+  );
+
+  test('an interrupted publication resumes on the same engine', async () => {
+    const device = harness('early-interrupted');
+    device.journal.mutate(withEntry(blankDomain(), entry('entry-1', 'First')));
+    let kill = false;
+    const engine = device.engine({
+      at(point) {
+        if (kill && point === 'after-head-advanced') {
+          kill = false;
+          throw new SimulatedProcessDeath(point);
+        }
+      },
+    });
+    expect((await engine.sync()).status).toBe('published');
+    expect((await engine.sync()).status).toBe('up-to-date');
+
+    device.journal.mutate(
+      withEntry(device.journal.current(), entry('entry-1', 'Edited', 2)),
+    );
+    kill = true;
+    await expect(engine.sync()).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    expect(device.state.loadPending(device.vaultId, device.deviceId)).not.toBeNull();
+    expect((await engine.sync()).status).toBe('published');
+    expect(device.state.loadPending(device.vaultId, device.deviceId)).toBeNull();
+    const state = device.state.loadState(device.vaultId, device.deviceId);
+    expect(state.settledGeneration).toBe(state.journalGeneration);
+  });
+
+  test('cleanup on a quiet pass deletes exactly what it deleted before', async () => {
+    const runs = async (reuseEngine: boolean) => {
+      const app = harness('early-retention');
+      const engine = app.engine();
+      const sync = () => (reuseEngine ? engine : app.engine()).sync();
+      for (let index = 0; index < 5; index += 1) {
+        app.clock.value += 1;
+        app.journal.mutate(
+          withEntry(app.journal.current(), entry(`entry-${index}`, `Value ${index}`)),
+        );
+        await sync();
+      }
+      expect((await sync()).status).toBe('up-to-date');
+      expect(app.provider.snapshotIds(app.vaultId)).toHaveLength(5);
+      app.clock.value += 31 * 24 * 60 * 60 * 1000;
+      app.provider.requests.length = 0;
+      expect((await sync()).status).toBe('up-to-date');
+      return {
+        remaining: app.provider.snapshotIds(app.vaultId),
+        deletions: app.provider.requests.filter((op) => op === 'delete-snapshot').length,
+      };
+    };
+    const before = await runs(false);
+    const after = await runs(true);
+    expect(before.deletions).toBe(2);
+    expect(after).toEqual(before);
+  });
+});
+
+describe('waiting attachments never take the quiet-pass shortcut', () => {
+  test('a photo added on cellular after a quiet pass waits, then publishes on Wi-Fi', async () => {
+    const provider = new FakeSnapshotProvider();
+    const network = { onWifi: false };
+    provider.mediaTransfersAllowed = async () => network.onWifi;
+    const device = harness('early-wifi-later', blankDomain(), provider);
+    device.journal.mutate(withEntry(blankDomain(), entry('entry-photo', 'Text')));
+    const engine = device.engine();
+    expect((await engine.sync()).status).toBe('published');
+    expect((await engine.sync()).status).toBe('up-to-date');
+    let captures = 0;
+    const capture = device.journal.capture.bind(device.journal);
+    device.journal.capture = () => {
+      captures += 1;
+      return capture();
+    };
+    expect(await engine.sync()).toMatchObject({ deferredMediaCount: 0 });
+    expect(captures).toBe(0);
+
+    const photo = new TextEncoder().encode('photo added on cellular');
+    await device.media.writeVerified(sha256Bytes(photo), photo);
+    const domain = withEntry(device.journal.current(), {
+      ...entry('entry-photo', 'Text', 2),
+      attachmentOrder: ['asset-new'],
+    });
+    domain.media = [mediaAsset('asset-new', 'entry-photo', photo)];
+    device.journal.mutate(domain);
+
+    // The runtime records each pass's count as the persisted waiting count.
+    const waiting: number[] = [];
+    const pass = async () => {
+      const result = await engine.sync();
+      if ('deferredMediaCount' in result) waiting.push(result.deferredMediaCount);
+      return result.status;
+    };
+    expect(await pass()).toBe('published');
+    expect(await pass()).toBe('up-to-date');
+    expect(await pass()).toBe('up-to-date');
+    network.onWifi = true;
+    expect(await pass()).toBe('published');
+    expect(await pass()).toBe('up-to-date');
+    expect(await pass()).toBe('up-to-date');
+    expect(waiting).toEqual([1, 1, 1, 0, 0, 0]);
+  });
+
+  test('a waiting photo is re-checked each pass and publishes once on Wi-Fi', async () => {
+    const provider = new FakeSnapshotProvider();
+    const network = { onWifi: false };
+    provider.mediaTransfersAllowed = async () => network.onWifi;
+    const photo = new TextEncoder().encode('photo waiting for Wi-Fi');
+    const photoHash = sha256Bytes(photo);
+    const device = harness('early-wifi', blankDomain(), provider);
+    await device.media.writeVerified(photoHash, photo);
+    const domain = withEntry(blankDomain(), {
+      ...entry('entry-photo', 'Text'),
+      attachmentOrder: ['asset-new'],
+    });
+    domain.media = [mediaAsset('asset-new', 'entry-photo', photo)];
+    device.journal.mutate(domain);
+    let captures = 0;
+    const capture = device.journal.capture.bind(device.journal);
+    device.journal.capture = () => {
+      captures += 1;
+      return capture();
+    };
+    const engine = device.engine();
+
+    expect(await engine.sync()).toMatchObject({
+      status: 'published',
+      deferredMediaCount: 1,
+    });
+    for (let pass = 0; pass < 3; pass += 1) {
+      captures = 0;
+      expect(await engine.sync()).toEqual({
+        status: 'up-to-date',
+        actionableChanges: 0,
+        deferredMediaCount: 1,
+      });
+      expect(captures).toBeGreaterThan(0);
+    }
+
+    network.onWifi = true;
+    expect(await engine.sync()).toMatchObject({
+      status: 'published',
+      deferredMediaCount: 0,
+    });
+    const head = provider.physicalHeads(device.vaultId)[0].head;
+    const bytes = await provider.downloadSnapshot(device.vaultId, head.snapshotId);
+    expect(
+      decodeSnapshot(bytes!, head.snapshotId).payload.media.map((asset) => asset.assetId),
+    ).toEqual(['asset-new']);
+    expect(await engine.sync()).toMatchObject({
+      status: 'up-to-date',
+      deferredMediaCount: 0,
+    });
+    captures = 0;
+    expect(await engine.sync()).toMatchObject({
+      status: 'up-to-date',
+      deferredMediaCount: 0,
+    });
+    expect(captures).toBe(0);
+  });
+});
