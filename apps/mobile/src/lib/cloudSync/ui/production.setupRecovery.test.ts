@@ -28,6 +28,11 @@ let mockGuardReadFails = false;
 let mockGuardDeleteFailsOnce = false;
 /** Holds the next setup-guard read, which has already read its value, until it opens. */
 let mockGuardReadGate: Promise<void> | null = null;
+/**
+ * Holds the next account-label load until it opens, then stores the token it
+ * refreshed from the credentials it read before, like the real auth layer.
+ */
+let mockLabelRefreshGate: Promise<void> | null = null;
 /** Each background engine that synced: its backup and the stored token then. */
 const mockAdmitted: { vault: unknown; token: string | undefined }[] = [];
 const mockSettings = {
@@ -179,7 +184,15 @@ jest.mock('../auth', () => ({
       if (mockDieAt === 'authorize') return never();
     },
     signOut: mockSignOut,
-    getAccountLabel: async () => 'new@example.com',
+    getAccountLabel: async () => {
+      const gate = mockLabelRefreshGate;
+      mockLabelRefreshGate = null;
+      if (gate) {
+        await gate;
+        mockSecure.set(TOKEN_KEY, 'refreshed-old-account-token');
+      }
+      return 'new@example.com';
+    },
   }),
 }));
 jest.mock('../snapshot/storage', () => ({
@@ -244,6 +257,10 @@ jest.mock('../snapshot/runtime', () => ({
 }));
 
 let production: Production;
+const cloudConnectionLifecycle = () =>
+  jest.requireActual<typeof import('../runtime/connectionLifecycle')>(
+    '../runtime/connectionLifecycle',
+  ).cloudConnectionLifecycle;
 let setup: ConnectionSetup;
 function launch() {
   jest.resetModules();
@@ -273,6 +290,7 @@ beforeEach(() => {
   mockGuardReadFails = false;
   mockGuardDeleteFailsOnce = false;
   mockGuardReadGate = null;
+  mockLabelRefreshGate = null;
   mockRevocations.length = 0;
   mockSecure.clear();
   mockSecure.set(TOKEN_KEY, 'old-account-token');
@@ -709,4 +727,48 @@ test('Disconnect works while the pass Resume started is still running', async ()
   await expect(firstPass).resolves.toBe('cancelled');
   expect(mockSecure.get(TOKEN_KEY)).toBeUndefined();
   expect(status()).toEqual(['disabled']);
+});
+
+/** Starts a status load whose account-label token refresh waits for `release`. */
+function loadWithSlowLabelRefresh() {
+  let release!: () => void;
+  mockLabelRefreshGate = new Promise<void>((resolve) => (release = resolve));
+  return { loading: production.loadCloudSyncSnapshot(), release };
+}
+
+test('a label refresh in flight cannot store a token after Disconnect', async () => {
+  const { loading, release } = loadWithSlowLabelRefresh();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const disconnecting = production.disconnectGoogleDrive();
+  // Disconnect waits for the refresh instead of being undone by it.
+  await expect(returnsPromptly(disconnecting)).resolves.toBe(false);
+  release();
+  await Promise.all([loading, disconnecting]);
+  expect(mockSecure.get(TOKEN_KEY)).toBeUndefined();
+  expect(status()).toEqual(['disabled']);
+});
+
+test('a label refresh in flight cannot replace the token Reconnect stored', async () => {
+  mockAuthorizeToken = JSON.stringify({ accessToken: 'reconnected', expiresAt: 0 });
+  mockAvailable = [{ vaultId: 'vault-old', updatedAt: 1 }];
+  const { loading, release } = loadWithSlowLabelRefresh();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const reconnecting = production.reconnectGoogleDrive();
+  await expect(returnsPromptly(reconnecting)).resolves.toBe(false);
+  release();
+  await Promise.all([loading, reconnecting]);
+  expect(mockSecure.get(TOKEN_KEY)).toBe(mockAuthorizeToken);
+});
+
+test('a status load during a connection change asks for the label again afterwards', async () => {
+  let finish!: () => void;
+  const change = cloudConnectionLifecycle().change(
+    () => new Promise<void>((resolve) => (finish = resolve)),
+  );
+  const during = await production.loadCloudSyncSnapshot();
+  expect(during.accountLabel).toBeNull();
+  finish();
+  await change;
+  const after = await production.loadCloudSyncSnapshot();
+  expect(after.accountLabel).toBe('new@example.com');
 });

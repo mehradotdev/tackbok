@@ -52,6 +52,18 @@ export class CloudConnectionLifecycle {
     }
   }
 
+  /**
+   * Runs `operation` between changes without making one: it waits for earlier
+   * changes and later ones wait for it, but the epoch stays and running passes
+   * continue. For work that must not interleave with a change and leaves the
+   * connection as it was.
+   */
+  exclusive<T>(operation: () => Promise<T>): Promise<T> {
+    const run = this.tail.catch(() => undefined).then(operation);
+    this.tail = run;
+    return run;
+  }
+
   async change<T>(operation: () => Promise<T>): Promise<T> {
     // Close admission synchronously, including while another change is queued.
     this.changes++;
