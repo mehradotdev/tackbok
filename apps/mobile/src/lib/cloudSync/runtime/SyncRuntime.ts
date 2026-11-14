@@ -88,8 +88,24 @@ export interface SyncRuntimeOptions {
   backgroundDeadlineMs?: number;
   /** Kept free before the OS deadline so a cancelled pass can settle. */
   backgroundSafetyMarginMs?: number;
+  /** First retry delay after a transient failure; each further one doubles. */
+  retryBaseMs?: number;
+  retryMaxMs?: number;
+  /** Retries after consecutive transient failures; the heartbeat takes over after. */
+  retryMaxAttempts?: number;
   now?: () => number;
+  random?: () => number;
 }
+
+/**
+ * Failures a later pass can get past on its own. Everything else needs the
+ * user (reconnect, storage, newer app, a paused safety check) or waits for an
+ * event the runtime already handles (connectivity, Wi-Fi for media).
+ */
+const RETRYABLE_FAILURES: ReadonlySet<CloudSyncFailureCategory> = new Set([
+  'transient',
+  'rate-limit',
+]);
 
 interface BackgroundWindow {
   closed: boolean;
@@ -105,6 +121,10 @@ export class SyncRuntime {
   private readinessTimer: ReturnType<typeof setTimeout> | null = null;
   private foregroundTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+  private heartbeatDueAt = Infinity;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Retries scheduled since the latest success, user action or connection change. */
+  private retryAttempts = 0;
   private active = true;
   private lastForegroundAt = -Infinity;
   private running: Promise<RuntimePassResult | null> | null = null;
@@ -157,12 +177,14 @@ export class SyncRuntime {
         if (becameActive) {
           // Foreground passes run unbounded again.
           if (this.backgroundWindow) this.closeBackgroundWindow(this.backgroundWindow);
+          this.retryAttempts = 0;
           this.requestForegroundPass();
           this.scheduleHeartbeat();
         }
         if (!this.active) {
           this.clearHeartbeat();
           this.clearForegroundTimer();
+          this.clearRetry();
           if (this.debounceTimer) this.options.platform.clearTimer(this.debounceTimer);
           this.debounceTimer = null;
         }
@@ -171,6 +193,9 @@ export class SyncRuntime {
       }),
       this.options.platform.addNetworkListener((nextOnline) => {
         this.wasOnline = nextOnline;
+        // The debounced pass below replaces any retry, and starts a fresh backoff.
+        this.clearRetry();
+        this.retryAttempts = 0;
         // Network listeners also fire for an online transport change, such as
         // cellular -> Wi-Fi. That transition must retry Wi-Fi-only media even
         // though the coarse online boolean remains true.
@@ -205,6 +230,8 @@ export class SyncRuntime {
     this.readinessTimer = null;
     this.clearHeartbeat();
     this.clearForegroundTimer();
+    this.clearRetry();
+    this.retryAttempts = 0;
     this.lastForegroundAt = -Infinity;
     this.rerunTrigger = null;
     this.localEditPending = false;
@@ -243,6 +270,7 @@ export class SyncRuntime {
   }
 
   async run(trigger: CloudSyncTrigger): Promise<RuntimePassResult | null> {
+    if (trigger === 'manual') this.retryAttempts = 0;
     return this.startRun(trigger, true);
   }
 
@@ -337,6 +365,8 @@ export class SyncRuntime {
     const startedAt = (this.options.now ?? Date.now)();
     // Edits committed from here on may miss this pass's snapshot.
     this.localEditPending = false;
+    // This pass's outcome decides the next retry.
+    this.clearRetry();
     this.options.analytics?.started(trigger);
     try {
       const result = await this.engine!.sync(signal);
@@ -348,6 +378,7 @@ export class SyncRuntime {
           pushed_bucket: toCloudSyncCountBucket(result.pushed),
         });
         this.lastFailureCategory = null;
+        this.retryAttempts = 0;
       }
       if (
         !this.stopped &&
@@ -369,6 +400,7 @@ export class SyncRuntime {
       ) {
         try {
           await this.options.waitForConnectionChange?.();
+          this.retryAttempts = 0;
           if (
             this.stopped ||
             lifecycle !== this.lifecycle ||
@@ -390,6 +422,7 @@ export class SyncRuntime {
       if (!this.stopped && lifecycle === this.lifecycle) {
         this.lastFailureCategory = readCloudSyncFailureCategory(failure);
         this.options.analytics?.failed(this.lastFailureCategory);
+        this.scheduleRetry(this.lastFailureCategory);
       }
       return null;
     }
@@ -527,20 +560,60 @@ export class SyncRuntime {
   private clearHeartbeat(): void {
     if (this.heartbeatTimer) this.options.platform.clearTimer(this.heartbeatTimer);
     this.heartbeatTimer = null;
+    this.heartbeatDueAt = Infinity;
+  }
+
+  private clearRetry(): void {
+    if (this.retryTimer) this.options.platform.clearTimer(this.retryTimer);
+    this.retryTimer = null;
+  }
+
+  /**
+   * Retries a transient failure sooner than the heartbeat, with exponential
+   * backoff and jitter, in the foreground only. A retry the heartbeat would
+   * beat is left to the heartbeat. Drive's Retry-After stays with the
+   * transport: a pass inside that window fails before it sends a request.
+   */
+  private scheduleRetry(category: CloudSyncFailureCategory): void {
+    this.clearRetry();
+    if (!RETRYABLE_FAILURES.has(category)) return;
+    if (this.stopped || !this.active || !this.engine || !this.wasOnline) return;
+    if (this.retryAttempts >= (this.options.retryMaxAttempts ?? 4)) return;
+    const ceiling = Math.min(
+      this.options.retryMaxMs ?? 120_000,
+      (this.options.retryBaseMs ?? 10_000) * 2 ** this.retryAttempts,
+    );
+    this.retryAttempts++;
+    // Equal jitter: between half the ceiling and the ceiling.
+    const delay = ceiling / 2 + ((this.options.random ?? Math.random)() * ceiling) / 2;
+    const now = (this.options.now ?? Date.now)();
+    if (this.heartbeatTimer && now + delay >= this.heartbeatDueAt) return;
+    const lifecycle = this.lifecycle;
+    this.retryTimer = this.options.platform.setTimer(() => {
+      this.retryTimer = null;
+      if (this.stopped || !this.active || lifecycle !== this.lifecycle) return;
+      // A running or debounced pass is the retry; its outcome schedules the next.
+      if (this.running || this.debounceTimer) return;
+      // Reported as 'periodic': a scheduled pass nobody asked for.
+      void this.run('periodic');
+    }, delay);
   }
 
   private scheduleHeartbeat(): void {
     if (this.stopped || !this.active || !this.engine || this.heartbeatTimer) return;
     const lifecycle = this.lifecycle;
+    const delayMs = this.options.heartbeatMs ?? 120_000;
+    this.heartbeatDueAt = (this.options.now ?? Date.now)() + delayMs;
     this.heartbeatTimer = this.options.platform.setTimer(() => {
       this.heartbeatTimer = null;
+      this.heartbeatDueAt = Infinity;
       if (this.stopped || !this.active || lifecycle !== this.lifecycle) return;
       // Do not queue redundant passes when a slow sync already owns the engine.
       const pass = this.running ?? this.run('periodic');
       void pass.finally(() => {
         if (lifecycle === this.lifecycle) this.scheduleHeartbeat();
       });
-    }, this.options.heartbeatMs ?? 120_000);
+    }, delayMs);
   }
 
   private schedule(trigger: CloudSyncTrigger): void {

@@ -289,9 +289,9 @@ export async function needsGoogleKeychainMigration(): Promise<boolean> {
  * under the current one before the old alias is deleted. Either way a failed
  * write leaves the old item. A read that fails while the phone is locked throws
  * before anything is written. The marker is written last, so an interrupted run
- * repeats later; repeating is harmless. It holds the write queue throughout, and
- * callers run it under the connection barrier so no Disconnect, setup or pass
- * changes these items in between.
+ * repeats later; repeating is harmless. It holds the write queue throughout, so
+ * a token refresh can't be overwritten, and callers run it between connection
+ * changes so no Disconnect or setup changes these items in between.
  */
 export async function migrateGoogleKeychainAccessibility(): Promise<void> {
   await serializeCredentialWrite(async () => {

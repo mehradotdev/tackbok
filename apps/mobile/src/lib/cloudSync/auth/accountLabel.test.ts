@@ -63,4 +63,21 @@ describe('fetchGoogleAccountLabel', () => {
     mockFetch.mockResolvedValueOnce(response(200, {}));
     await expect(fetchGoogleAccountLabel('token')).resolves.toBe('Google Drive');
   });
+
+  it('falls back when the request stalls, so it cannot hold the connection barrier', async () => {
+    jest.useFakeTimers();
+    try {
+      mockFetch.mockImplementationOnce(
+        (_url, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+          }),
+      );
+      const label = fetchGoogleAccountLabel('token');
+      await jest.advanceTimersByTimeAsync(10_000);
+      await expect(label).resolves.toBe('Google Drive');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

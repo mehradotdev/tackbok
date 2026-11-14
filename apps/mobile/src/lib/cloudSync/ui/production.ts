@@ -28,7 +28,10 @@ import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useSettingsStore } from '~/lib/settings';
 import { createGoogleAuthorization } from '../auth';
-import { cloudConnectionLifecycle } from '../runtime/connectionLifecycle';
+import {
+  CloudConnectionChangedError,
+  cloudConnectionLifecycle,
+} from '../runtime/connectionLifecycle';
 import {
   canResumeUnpublishedBackup,
   clearAuthorizationPause,
@@ -233,9 +236,24 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   );
   if (configured && vault && accountLabelAttemptedForVault !== vault.vault_id) {
     accountLabelAttemptedForVault = vault.vault_id;
-    accountLabelInMemory = await createGoogleAuthorization()
-      .getAccountLabel()
-      .catch(() => null);
+    // Loading the label can refresh and store tokens. As a pass, a Disconnect
+    // or Reconnect waits for that write instead of being undone by it.
+    const epoch = cloudConnectionLifecycle.epoch;
+    let label: string | null = null;
+    let changed = false;
+    try {
+      label = await cloudConnectionLifecycle.runPass(epoch, () =>
+        createGoogleAuthorization().getAccountLabel(),
+      );
+    } catch (error) {
+      changed = error instanceof CloudConnectionChangedError;
+    }
+    if (!changed && cloudConnectionLifecycle.epoch === epoch) {
+      accountLabelInMemory = label;
+    } else if (accountLabelAttemptedForVault === vault.vault_id) {
+      // A connection change decides the label; the load after it asks again.
+      accountLabelAttemptedForVault = null;
+    }
   }
   const activity = getProductionCloudSyncActivity();
   let status: CloudSyncSnapshot['status'] = 'off';

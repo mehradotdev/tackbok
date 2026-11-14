@@ -75,4 +75,48 @@ describe('cloud connection lifecycle', () => {
       true,
     );
   });
+
+  test('exclusive work keeps the epoch and running passes, and is ordered with changes', async () => {
+    const lifecycle = new CloudConnectionLifecycle();
+    const events: string[] = [];
+    const epoch = lifecycle.epoch;
+    const finish = deferred();
+    let passSignal: AbortSignal | null = null;
+    const pass = lifecycle.runPass(epoch, async (signal) => {
+      passSignal = signal;
+      await finish.promise;
+      events.push('pass');
+    });
+    const holdChange = deferred();
+    const change = lifecycle.change(async () => {
+      await holdChange.promise;
+      events.push('change');
+    });
+    // Waits for the earlier change, and a later change waits for it.
+    const exclusive = lifecycle.exclusive(async () => {
+      events.push('exclusive');
+    });
+    const later = lifecycle.change(async () => {
+      events.push('later change');
+    });
+    finish.resolve();
+    holdChange.resolve();
+    await Promise.all([pass, change, exclusive, later]);
+    expect(events).toEqual(['pass', 'change', 'exclusive', 'later change']);
+
+    // On its own it neither moves the epoch nor cancels a pass.
+    const current = lifecycle.epoch;
+    const release = deferred();
+    const running = lifecycle.runPass(current, async (signal) => {
+      passSignal = signal;
+      await release.promise;
+      return 'kept';
+    });
+    await lifecycle.exclusive(async () => {});
+    expect(lifecycle.epoch).toBe(current);
+    expect(passSignal!.aborted).toBe(false);
+    release.resolve();
+    await expect(running).resolves.toBe('kept');
+    await expect(lifecycle.runPass(current, async () => true)).resolves.toBe(true);
+  });
 });

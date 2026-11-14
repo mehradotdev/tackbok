@@ -78,6 +78,9 @@ const platform: RuntimePlatform = {
   beginBackgroundExecution,
   addAppStateListener(listener) {
     return AppState.addEventListener('change', (state) => {
+      // A process the background task launched while the phone was locked
+      // could not migrate; the phone is unlocked once the app is active.
+      if (state === 'active') void migrateKeychainAccessibility();
       if (state === 'active' || state === 'background' || state === 'inactive') {
         listener(state);
       }
@@ -100,19 +103,30 @@ const platform: RuntimePlatform = {
   clearTimer: (timer) => clearTimeout(timer),
 };
 
+let keychainMigration: Promise<void> | null = null;
+
 /**
  * Makes credentials written before AFTER_FIRST_UNLOCK readable by background
- * sync on a locked iPhone. Under the connection barrier, so no Disconnect or
- * setup rewrites them meanwhile. A locked keychain or failed write leaves the
- * old items in place; the next engine creation retries.
+ * sync on a locked iPhone. It runs between connection changes, so no
+ * Disconnect or setup rewrites the items meanwhile, but it is not a change: it
+ * writes the same values back, so running passes continue and a Retry the user
+ * started is not reported as cancelled. The token store's write queue keeps a
+ * concurrent token refresh from being overwritten. A locked keychain or failed
+ * write leaves the old items in place; the next engine creation or return to
+ * the foreground retries. Concurrent callers share one attempt.
  */
-async function migrateKeychainAccessibility(): Promise<void> {
-  try {
-    if (!(await needsGoogleKeychainMigration())) return;
-    await cloudConnectionLifecycle.change(migrateGoogleKeychainAccessibility);
-  } catch {
-    // Retried at the next engine creation.
-  }
+export function migrateKeychainAccessibility(): Promise<void> {
+  keychainMigration ??= (async () => {
+    try {
+      if (!(await needsGoogleKeychainMigration())) return;
+      await cloudConnectionLifecycle.exclusive(migrateGoogleKeychainAccessibility);
+    } catch {
+      // Retried at the next engine creation or foreground.
+    } finally {
+      keychainMigration = null;
+    }
+  })();
+  return keychainMigration;
 }
 
 async function retryBackfill(): Promise<void> {
