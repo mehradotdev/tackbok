@@ -48,7 +48,10 @@ jest.mock('~/lib/i18n', () => ({
       mockTranslate('en', key, params),
   }),
 }));
-jest.mock('~/lib/i18n/dateFormatting', () => ({ formatLocalizedDate: () => 'today' }));
+jest.mock('~/lib/i18n/dateFormatting', () => ({
+  formatLocalizedDate: () => 'today',
+  formatLocalizedTime: () => '09:30',
+}));
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: (select: (state: object) => unknown) =>
     select({

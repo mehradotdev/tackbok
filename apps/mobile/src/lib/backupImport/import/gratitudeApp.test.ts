@@ -31,6 +31,7 @@ jest.mock('~/db', () => ({
 }));
 
 jest.mock('~/lib/settings', () => ({
+  hydrateProfileCache: (state: unknown) => mockSetState(state),
   useSettingsStore: {
     getState: () => ({
       setProfileEmail: (email: string | null) => mockSetProfileEmail(email),

@@ -26,7 +26,8 @@ import {
 } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { useTranslation } from '~/lib/i18n';
-import { formatLocalizedDate } from '~/lib/i18n/dateFormatting';
+import { formatLocalizedDate, formatLocalizedTime } from '~/lib/i18n/dateFormatting';
+import type { SupportedLocale, TranslationFunction } from '~/lib/i18n/types';
 import { useSettingsStore } from '~/lib/settings';
 import { CloudAuthError } from '~/lib/cloudSync/auth';
 import {
@@ -44,6 +45,7 @@ import {
   useCloudSyncProgress,
   useCloudSyncSnapshot,
   CloudSyncActionError,
+  type PreparedCloudVault,
   type PreparedGoogleConnection,
 } from '~/lib/cloudSync/ui';
 import { SnapshotProviderError } from '~/lib/cloudSync/snapshot/sync';
@@ -470,6 +472,12 @@ export default function CloudBackupScreen() {
                 ),
                 button: t('cloud.finishDeletion'),
               };
+  const syncNowDisabled =
+    actionRunning ||
+    connectionAction !== null ||
+    snapshot.status === 'syncing' ||
+    snapshot.status === 'paused' ||
+    snapshot.status === 'warning';
   const showsConnection =
     snapshot.configured ||
     snapshot.status === 'paused' ||
@@ -619,25 +627,32 @@ export default function CloudBackupScreen() {
                       {t('cloud.progress.waitingForWifi')}
                     </Text>
                   )}
+                {snapshot.status === 'syncing' && snapshot.initialRestore && (
+                  <Text className="text-sm text-foreground">
+                    {t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs')}
+                  </Text>
+                )}
+                {/* `restoring` means no pass is running: say why, and keep Sync now
+                    available to start it. */}
                 {snapshot.status === 'restoring' && (
                   <Text
                     className="text-sm text-foreground"
                     accessibilityLiveRegion="polite">
-                    {t('cloud.youCanLeaveThisScreenSyncingResumesWhenTackbokIs')}
+                    {snapshot.failureCategory
+                      ? cloudSyncFailureMessage(snapshot.failureCategory, t)
+                      : t('cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline')}
                   </Text>
                 )}
                 <Button
                   variant="primary"
                   size="lg"
-                  disabled={
-                    actionRunning ||
-                    connectionAction !== null ||
-                    snapshot.status === 'syncing' ||
-                    snapshot.status === 'paused' ||
-                    snapshot.status === 'warning'
-                  }
+                  disabled={syncNowDisabled}
                   onPress={() => void runAction(syncNow, t('cloud.syncCompleted'))}
                   accessibilityLabel={t('cloud.syncNow')}
+                  accessibilityState={{
+                    disabled: syncNowDisabled,
+                    busy: snapshot.status === 'syncing',
+                  }}
                   accessibilityHint={syncNowReason ?? undefined}>
                   {snapshot.status === 'syncing' ? (
                     <SpinningRefreshIcon className="text-primary-foreground size-5" />
@@ -928,6 +943,20 @@ function DisclosureCard({ busy, onContinue }: { busy: boolean; onContinue: () =>
   );
 }
 
+/** When any device last updated the backup, with the time in the phone's 12/24-hour style. */
+function vaultLabel(
+  vault: PreparedCloudVault,
+  index: number,
+  t: TranslationFunction,
+  locale: SupportedLocale,
+): string {
+  if (!vault.updatedAt) return t('cloud.cloudBackupNumber', { number: index + 1 });
+  return t('cloud.lastUpdatedDateTime', {
+    date: formatLocalizedDate(vault.updatedAt, t),
+    time: formatLocalizedTime(new Date(vault.updatedAt), locale),
+  });
+}
+
 function ConnectionChoice({
   prepared,
   origin,
@@ -943,7 +972,7 @@ function ConnectionChoice({
   onChoose: (vaultId: string) => void;
   onCreate: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   return (
     <View className="rounded-lg border border-border bg-card p-5 gap-4">
       <View className="flex-row items-center gap-3">
@@ -976,20 +1005,10 @@ function ConnectionChoice({
               onPress={() => onChoose(vault.vaultId)}
               accessibilityLabel={`${
                 prepared.localHasData ? t('cloud.merge') : t('cloud.restoreCloudBackup')
-              }. ${
-                vault.updatedAt
-                  ? t('cloud.lastUpdatedDate', {
-                      date: formatLocalizedDate(vault.updatedAt, t),
-                    })
-                  : t('cloud.cloudBackupNumber', { number: index + 1 })
-              }`}>
+              }. ${vaultLabel(vault, index, t, locale)}`}>
               <View className="flex-1 gap-0.5">
                 <Text className="font-body-bold text-foreground">
-                  {vault.updatedAt
-                    ? t('cloud.lastUpdatedDate', {
-                        date: formatLocalizedDate(vault.updatedAt, t),
-                      })
-                    : t('cloud.cloudBackupNumber', { number: index + 1 })}
+                  {vaultLabel(vault, index, t, locale)}
                 </Text>
                 <Text className="text-sm text-foreground">
                   {prepared.localHasData

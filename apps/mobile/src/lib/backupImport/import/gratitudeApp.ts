@@ -1,5 +1,5 @@
 import { entries } from '~/db';
-import { useSettingsStore } from '~/lib/settings';
+import { hydrateProfileCache, useSettingsStore } from '~/lib/settings';
 import { type BackupImportSummary, type ImportMode } from '../types';
 import { type ImportProgressCallback, reportImportProgress } from '../progress';
 import {
@@ -126,7 +126,7 @@ export async function importFromGratitudeAppBackup(
           // equals the local one (a deliberately cleared backup).
           await markLocalProfileTouched(tx);
         });
-        useSettingsStore.setState({ profileName: displayName });
+        hydrateProfileCache({ profileName: displayName });
       }
       if (profile.hasEmail) {
         await settingsState.setProfileEmail(profile.email);
@@ -137,7 +137,7 @@ export async function importFromGratitudeAppBackup(
           updateProfileInTransaction(tx, { photoUri }),
         );
         profilePhotoCommitted = true;
-        useSettingsStore.setState({ profileImageUri: photoUri });
+        hydrateProfileCache({ profileImageUri: photoUri });
       }
     } catch (error) {
       // Once committed, the profile row references the imported photo, so it

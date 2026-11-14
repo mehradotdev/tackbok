@@ -740,7 +740,7 @@ export const he: Translations = {
   'cloud.attentionNeeded': 'נדרשת תשומת לב',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     'גיבוי וסנכרון היומן עם Google Drive שלך. היומן עובר ישירות מהטלפון ל-Drive שלך, והמפתח של טאקבוק אף פעם לא רואה אותו.',
-  'cloud.lastUpdatedDate': 'עודכן לאחרונה: {date}',
+  'cloud.lastUpdatedDateTime': 'עודכן לאחרונה: {date}, {time}',
   'cloud.beforeYouConnect': 'לפני ההתחברות',
   'cloud.checkingGoogleDriveForChanges': 'בדיקת שינויים ב-Google Drive…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':

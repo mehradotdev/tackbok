@@ -725,7 +725,7 @@ export const zhTW: Translations = {
   'cloud.attentionNeeded': '需要注意',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     '使用你自己的 Google Drive 備份和同步日記。日記會直接從你的手機傳到你的 Drive，塔克布克的開發者永遠看不到它。',
-  'cloud.lastUpdatedDate': '上次更新：{date}',
+  'cloud.lastUpdatedDateTime': '上次更新：{date} {time}',
   'cloud.beforeYouConnect': '連線之前',
   'cloud.checkingGoogleDriveForChanges': '正在檢查 Google Drive 中的變更…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':

@@ -179,6 +179,13 @@ const DEFAULT_SETTINGS_VALUES = {
   pendingAchievement: null,
 };
 
+/**
+ * Changes whenever a profile write starts or reaches the cache. A reload from
+ * the database applies only if none happened while it read, so it never puts
+ * back a value a concurrent local edit or import replaced.
+ */
+let profileCacheRevision = 0;
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
@@ -192,23 +199,29 @@ export const useSettingsStore = create<SettingsState>()(
       setReminderTime: (time) => set({ reminderTime: time }),
       setProfileName: async (name) => {
         const displayName = name?.trim() ? name.trim() : null;
+        profileCacheRevision++;
         await runInCloudSyncTransaction((tx) =>
           updateProfileInTransaction(tx, { displayName }),
         );
+        profileCacheRevision++;
         set({ profileName: displayName });
       },
       setProfileEmail: async (email) => {
         const normalizedEmail = email?.trim() ? email.trim() : null;
+        profileCacheRevision++;
         await runInCloudSyncTransaction((tx) =>
           updateProfileInTransaction(tx, { email: normalizedEmail }),
         );
+        profileCacheRevision++;
         set({ profileEmail: normalizedEmail });
       },
       setProfileImageUri: async (uri) => {
         const photoUri = uri?.trim() ? uri.trim() : null;
+        profileCacheRevision++;
         await runInCloudSyncTransaction((tx) =>
           updateProfileInTransaction(tx, { photoUri }),
         );
+        profileCacheRevision++;
         set({ profileImageUri: photoUri });
       },
       setTheme: (theme) => {
@@ -373,7 +386,38 @@ export function hydrateProfileCache(
     profileImageUri: string | null;
   }>,
 ): void {
+  profileCacheRevision++;
   useSettingsStore.setState(profile);
+}
+
+/** Read before loading the profile from the database; see `applyProfileCacheReload`. */
+export function getProfileCacheRevision(): number {
+  return profileCacheRevision;
+}
+
+/**
+ * Applies a profile read from the database if no profile write started or
+ * finished since `revision`, and only the fields that changed. Returns whether
+ * it applied.
+ */
+export function applyProfileCacheReload(
+  revision: number,
+  profile: {
+    profileName: string | null;
+    profileEmail: string | null;
+    profileImageUri: string | null;
+  },
+): boolean {
+  if (revision !== profileCacheRevision) return false;
+  const current = useSettingsStore.getState();
+  if (
+    current.profileName !== profile.profileName ||
+    current.profileEmail !== profile.profileEmail ||
+    current.profileImageUri !== profile.profileImageUri
+  ) {
+    useSettingsStore.setState(profile);
+  }
+  return true;
 }
 
 /** Drops the legacy persisted profile only after its SQLite row is durable. */

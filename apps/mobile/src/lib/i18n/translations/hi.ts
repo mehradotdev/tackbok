@@ -687,7 +687,7 @@ export const hi = {
   'cloud.attentionNeeded': 'ध्यान देने की जरूरत है',
   'cloud.backUpAndSyncYourJournalWithYourOwnGoogle':
     'अपनी डायरी का बैकअप लें और उसे अपने Google Drive के साथ सिंक करें। यह सीधे आपके फ़ोन से आपके Drive में जाती है। ताकबूक का डेवलपर इसे कभी नहीं देखता।',
-  'cloud.lastUpdatedDate': 'अंतिम अपडेट: {date}',
+  'cloud.lastUpdatedDateTime': 'अंतिम अपडेट: {date}, {time}',
   'cloud.beforeYouConnect': 'इससे पहले कि आप कनेक्ट करें',
   'cloud.checkingGoogleDriveForChanges': 'Google Drive में परिवर्तनों की जाँच की जा रही है…',
   'cloud.chooseABackupToMergeWithThisJournalBothSides':
