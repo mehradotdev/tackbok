@@ -150,7 +150,7 @@ test('counts the edited entries, and "Show them" only opens the other versions',
 test('uses a calm accent, not the sync-error colour', async () => {
   await render([entriesItem]);
   const card = root.root.findAll((node) => (node.type as unknown) === 'View')[0];
-  expect(card.props.className).toContain('border-primary/50');
+  expect(card.props.className).toContain('border-primary');
   expect(card.props.className).not.toContain('destructive');
 });
 

@@ -171,7 +171,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
 
   return (
     // A calm accent: nothing was lost. Red on this screen means a sync error.
-    <View className="rounded-lg border border-primary/50 bg-card p-4 gap-4">
+    <View className="rounded-lg border border-primary bg-card p-4 gap-4">
       <View className="flex-row items-center gap-2">
         <Icon as={FileClock} className="text-foreground size-5" />
         <Text role="heading" className="font-body-bold text-foreground">
