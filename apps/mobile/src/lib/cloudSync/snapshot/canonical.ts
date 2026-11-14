@@ -84,7 +84,8 @@ export function canonicalize(
 
 /**
  * Same result as `canonicalize(left) === canonicalize(right)`, including the
- * errors it throws, without encoding primitives or one object twice.
+ * errors it throws, without encoding two strings or numbers. Objects are
+ * always encoded twice: a getter could read differently the second time.
  */
 export function canonicalEqual(left: unknown, right: unknown): boolean {
   if (typeof left === 'string' && typeof right === 'string') {
@@ -100,10 +101,6 @@ export function canonicalEqual(left: unknown, right: unknown): boolean {
     return left === right;
   }
   if (typeof left === 'boolean' && typeof right === 'boolean') return left === right;
-  if (left === right) {
-    canonicalize(left);
-    return true;
-  }
   return canonicalize(left) === canonicalize(right);
 }
 

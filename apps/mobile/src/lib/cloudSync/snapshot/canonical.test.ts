@@ -105,7 +105,23 @@ describe('canonical equality', () => {
       return seed / 2 ** 31;
     };
     const pick = <T>(items: T[]) => items[Math.floor(random() * items.length)];
-    const scalars = [null, true, false, 0, 1, 7, -0, 0.5, '', 'a', 'b', 'é', '\ud800'];
+    const scalars = [
+      null,
+      true,
+      false,
+      0,
+      1,
+      7,
+      -0,
+      0.5,
+      -1,
+      2 ** 53,
+      '',
+      'a',
+      'b',
+      'é',
+      '\ud800',
+    ];
     const value = (depth: number): unknown => {
       const kind = random();
       if (depth > 2 || kind < 0.6) return pick(scalars);
@@ -134,5 +150,19 @@ describe('canonicalize with known forms', () => {
     expect(canonicalize(outer, new Map([[payload, canonicalize(payload)]]))).toBe(
       canonicalize(outer),
     );
+  });
+});
+
+describe('canonical equality with accessors', () => {
+  it('reads a getter as often as comparing canonical forms does', () => {
+    let reads = 0;
+    const value = {
+      get a() {
+        return reads++;
+      },
+    };
+    const expected = canonicalize(value) === canonicalize(value);
+    reads = 0;
+    expect(canonicalEqual(value, value)).toBe(expected);
   });
 });
