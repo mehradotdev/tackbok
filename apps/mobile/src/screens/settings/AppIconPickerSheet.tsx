@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import {
+  Alert,
   Image,
   ScrollView,
   View,
@@ -13,19 +14,18 @@ import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import {
-  ALTERNATE_APP_ICONS,
-  DEFAULT_APP_ICON_LABEL,
+  APP_ICON_CHOICES,
+  appIconChangeClosesApp,
   useAppIconStore,
-  type AlternateAppIconName,
+  type AppIconName,
 } from '~/lib/appIcon';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
 
-const DEFAULT_ICON_PREVIEW: ImageSourcePropType = require('../../../assets/images/app-icons/classic.png');
-
-const ALTERNATE_ICON_PREVIEWS: Record<AlternateAppIconName, ImageSourcePropType> = {
+const APP_ICON_PREVIEWS: Record<AppIconName, ImageSourcePropType> = {
+  Classic: require('../../../assets/images/app-icons/classic.png'),
   Sage: require('../../../assets/images/app-icons/sage.png'),
   Midnight: require('../../../assets/images/app-icons/midnight.png'),
   Ocean: require('../../../assets/images/app-icons/ocean.png'),
@@ -35,23 +35,15 @@ const ALTERNATE_ICON_PREVIEWS: Record<AlternateAppIconName, ImageSourcePropType>
   Blueprint: require('../../../assets/images/app-icons/blueprint.png'),
 };
 
-const APP_ICON_NAMES: (AlternateAppIconName | null)[] = [null, ...ALTERNATE_APP_ICONS];
-
 /** Icon names are proper names, shown in English in every language like theme names. */
-export function getAppIconLabel(name: AlternateAppIconName | null): string {
-  return name ?? DEFAULT_APP_ICON_LABEL;
+export function getAppIconLabel(name: AppIconName): string {
+  return name;
 }
 
-export function AppIconTile({
-  name,
-  size,
-}: {
-  name: AlternateAppIconName | null;
-  size: number;
-}) {
+export function AppIconTile({ name, size }: { name: AppIconName; size: number }) {
   return (
     <Image
-      source={name ? ALTERNATE_ICON_PREVIEWS[name] : DEFAULT_ICON_PREVIEW}
+      source={APP_ICON_PREVIEWS[name]}
       accessibilityIgnoresInvertColors
       style={{ width: size, height: size, borderRadius: size * 0.225 }}
     />
@@ -70,6 +62,24 @@ export function AppIconPickerSheet() {
     '--color-muted-foreground',
   ]);
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
+
+  const chooseIcon = (name: AppIconName) => {
+    if (!appIconChangeClosesApp) {
+      void setIcon(name);
+      return;
+    }
+    // A native alert, so it shows above the sheet.
+    Alert.alert(
+      t('appearance.changeAppIconTitle'),
+      t('appearance.changeAppIconMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('appearance.changeIcon'), onPress: () => void setIcon(name) },
+      ],
+      // Back and a tap outside dismiss it like Cancel.
+      { cancelable: true },
+    );
+  };
 
   return (
     <TrueSheet
@@ -103,17 +113,17 @@ export function AppIconPickerSheet() {
             className="flex-row flex-wrap px-3 gap-y-4"
             accessibilityRole="radiogroup"
             accessibilityLabel={t('appearance.appIcon')}>
-            {APP_ICON_NAMES.map((name) => {
+            {APP_ICON_CHOICES.map((name) => {
               const isActive = name === current;
               const label = getAppIconLabel(name);
               return (
                 <Button
-                  key={name ?? 'default'}
+                  key={name}
                   variant="ghost"
                   size="none"
                   disabled={isChanging}
                   onPress={() => {
-                    if (!isActive) void setIcon(name);
+                    if (!isActive) chooseIcon(name);
                   }}
                   className="w-1/4 flex-col items-center gap-2 py-1"
                   role="radio"

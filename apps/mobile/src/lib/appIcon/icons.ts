@@ -16,7 +16,11 @@ export const ALTERNATE_APP_ICONS = [
   'Blueprint',
 ] as const;
 
-export type AlternateAppIconName = (typeof ALTERNATE_APP_ICONS)[number];
+/**
+ * Beta builds use the Blueprint artwork as their default icon, so the Classic
+ * artwork is an extra alternate there (also a native identifier).
+ */
+export const BETA_ALTERNATE_APP_ICONS = [...ALTERNATE_APP_ICONS, 'Classic'] as const;
 
-/** Picker label for the bundled default icon. */
-export const DEFAULT_APP_ICON_LABEL = 'Classic';
+/** Every icon artwork; the picker offers those the binary registered. */
+export type AppIconName = (typeof BETA_ALTERNATE_APP_ICONS)[number];

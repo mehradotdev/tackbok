@@ -294,6 +294,9 @@ export const ar: Translations = {
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'حدد أول يوم في الأسبوع في عرض التقويم',
   'appearance.appIcon': 'أيقونة التطبيق',
+  'appearance.changeAppIconTitle': 'تغيير أيقونة التطبيق؟',
+  'appearance.changeAppIconMessage': 'سيُغلق تاكبوك لتطبيق الأيقونة الجديدة.',
+  'appearance.changeIcon': 'تغيير الأيقونة',
 
   // Settings - Typography
   'typography.typography': 'الخطوط',

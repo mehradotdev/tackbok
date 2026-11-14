@@ -290,6 +290,9 @@ export const zhCN: Translations = {
   'appearance.firstDayOfWeek': '一周的第一天',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar': '设置日历视图中一周的第一天',
   'appearance.appIcon': '应用图标',
+  'appearance.changeAppIconTitle': '更改应用图标？',
+  'appearance.changeAppIconMessage': '塔克布克将关闭以应用新图标。',
+  'appearance.changeIcon': '更改图标',
 
   // Settings - Typography
   'typography.typography': '排版',

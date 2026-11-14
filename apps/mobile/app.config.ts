@@ -7,7 +7,10 @@ import englishLocale from './locales/en.json';
 const { androidStore, galaxyBillingMode } = require('./config/android-store');
 const { version } = require('./package.json');
 // Expo's config loader only resolves TypeScript files by their full path.
-const { ALTERNATE_APP_ICONS }: typeof import('./src/lib/appIcon/icons') =
+const {
+  ALTERNATE_APP_ICONS,
+  BETA_ALTERNATE_APP_ICONS,
+}: typeof import('./src/lib/appIcon/icons') =
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('./src/lib/appIcon/icons.ts');
 
@@ -160,7 +163,10 @@ const config: ExpoConfig = {
     ],
     './plugins/withGoogleAuthorization',
     './plugins/withPurchaseLaunchMode',
-    ['./plugins/withAlternateAppIcons', ALTERNATE_APP_ICONS],
+    [
+      './plugins/withAlternateAppIcons',
+      IS_BETA ? BETA_ALTERNATE_APP_ICONS : ALTERNATE_APP_ICONS,
+    ],
     'expo-sharing',
     'expo-status-bar',
     [

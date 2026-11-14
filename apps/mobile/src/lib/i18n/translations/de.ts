@@ -328,6 +328,10 @@ export const de: Translations = {
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Lege den ersten Wochentag in der Kalenderansicht fest',
   'appearance.appIcon': 'App-Symbol',
+  'appearance.changeAppIconTitle': 'App-Symbol ändern?',
+  'appearance.changeAppIconMessage':
+    'Tackbok wird geschlossen, um das neue Symbol zu übernehmen.',
+  'appearance.changeIcon': 'Symbol ändern',
 
   // Settings - Typography
   'typography.typography': 'Typografie',

@@ -1,11 +1,14 @@
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
+import Constants from 'expo-constants';
 import { create } from 'zustand';
-import { ALTERNATE_APP_ICONS, type AlternateAppIconName } from './icons';
+import { ALTERNATE_APP_ICONS, BETA_ALTERNATE_APP_ICONS, type AppIconName } from './icons';
 
 export * from './icons';
 
 interface AppIconNativeModule {
+  /** Android only, and only in binaries built after it was added. */
+  readonly registeredIcons?: readonly string[];
   getAppIconName(icons: readonly string[]): Promise<string | null>;
   setAppIcon(name: string | null, icons: readonly string[]): Promise<void>;
 }
@@ -18,24 +21,68 @@ const AppIconModule =
 
 export const supportsAlternateIcons = AppIconModule != null;
 
+/**
+ * Switching icons on Android ends the app's task, so the app closes: the
+ * picker asks first. iOS shows its own alert instead.
+ */
+export const appIconChangeClosesApp = Platform.OS === 'android';
+
+const IS_BETA_BUILD = Constants.expoConfig?.extra?.appVariant === 'beta';
+
+/** Alternate icons this build registers (app.config.ts). */
+const BUILD_ICONS: readonly AppIconName[] = IS_BETA_BUILD
+  ? BETA_ALTERNATE_APP_ICONS
+  : ALTERNATE_APP_ICONS;
+
+// Android binaries report the icons they registered. Older ones predate the beta
+// Classic alternate and fail midway on an unknown alias, leaving two launcher
+// icons, so they get the original list. Older iOS beta binaries only reject Classic.
+const NATIVE_ICONS: readonly AppIconName[] =
+  Platform.OS === 'android'
+    ? BUILD_ICONS.filter((icon) =>
+        (AppIconModule?.registeredIcons ?? ALTERNATE_APP_ICONS).includes(icon),
+      )
+    : BUILD_ICONS;
+
+/** The artwork of the bundled default icon: beta builds ship Blueprint. */
+const DEFAULT_ICON: AppIconName = IS_BETA_BUILD ? 'Blueprint' : 'Classic';
+
+/** Picker choices: every icon the binary can show. */
+export const APP_ICON_CHOICES: readonly AppIconName[] = (
+  ['Classic', ...ALTERNATE_APP_ICONS] as const
+).filter((icon) => icon === DEFAULT_ICON || NATIVE_ICONS.includes(icon));
+
+/** The icon the OS reports: null is the bundled default. */
+function fromNative(name: string | null): AppIconName {
+  return NATIVE_ICONS.find((icon) => icon === name) ?? DEFAULT_ICON;
+}
+
+/**
+ * The default artwork is set as the bundled default, not as its alternate twin.
+ * A beta install with the Blueprint alternate active therefore switches once more,
+ * to an icon that looks the same.
+ */
+function toNative(name: AppIconName): AppIconName | null {
+  return name === DEFAULT_ICON ? null : name;
+}
+
 type AppIconState = {
-  /** Active alternate icon, or null for the default icon. */
-  current: AlternateAppIconName | null;
+  /** Artwork of the active icon. */
+  current: AppIconName;
   /** True while a change is in flight; further changes are ignored until it settles. */
   isChanging: boolean;
   refresh: () => Promise<void>;
-  setIcon: (name: AlternateAppIconName | null) => Promise<void>;
+  setIcon: (name: AppIconName) => Promise<void>;
 };
 
 // The OS owns the selection, so it is read from native instead of persisted.
 export const useAppIconStore = create<AppIconState>((set, get) => ({
-  current: null,
+  current: DEFAULT_ICON,
   isChanging: false,
   refresh: async () => {
     if (!AppIconModule) return;
     try {
-      const name = await AppIconModule.getAppIconName(ALTERNATE_APP_ICONS);
-      set({ current: ALTERNATE_APP_ICONS.find((icon) => icon === name) ?? null });
+      set({ current: fromNative(await AppIconModule.getAppIconName(NATIVE_ICONS)) });
     } catch (error) {
       console.warn('[appIcon] Failed to read app icon', error);
     }
@@ -44,7 +91,7 @@ export const useAppIconStore = create<AppIconState>((set, get) => ({
     if (!AppIconModule || get().isChanging) return;
     set({ isChanging: true });
     try {
-      await AppIconModule.setAppIcon(name, ALTERNATE_APP_ICONS);
+      await AppIconModule.setAppIcon(toNative(name), NATIVE_ICONS);
     } catch (error) {
       console.warn('[appIcon] Failed to change app icon', error);
     }
