@@ -290,6 +290,7 @@ export const zhTW: Translations = {
   'appearance.firstDayOfWeek': '每週的第一天',
   'appearance.setTheFirstDayOfTheWeekInTheCalendar': '設定日曆視圖中每週的第一天',
   'appearance.appIcon': '應用程式圖示',
+  'appearance.appIconChangesAfterLeaving': '離開塔克布克後，新圖示就會顯示。',
 
   // Settings - Typography
   'typography.typography': '排版',

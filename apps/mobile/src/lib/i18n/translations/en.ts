@@ -308,6 +308,8 @@ export const en = {
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Set the first day of the week in the calendar view',
   'appearance.appIcon': 'App icon',
+  'appearance.appIconChangesAfterLeaving':
+    'Your new icon will appear after you leave Tackbok.',
 
   // Settings - Typography
   'typography.typography': 'Typography',

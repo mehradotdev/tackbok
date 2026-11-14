@@ -274,6 +274,8 @@ export const es = {
   'appearance.setTheFirstDayOfTheWeekInTheCalendar':
     'Establecer el primer día de la semana en la vista de calendario',
   'appearance.appIcon': 'Icono de la app',
+  'appearance.appIconChangesAfterLeaving':
+    'Tu nuevo icono aparecerá cuando salgas de Tackbok.',
   'typography.typography': 'Tipografía',
   'typography.titleFont': 'Fuente del título',
   'typography.chooseAFontForTitlesAndHeadings':

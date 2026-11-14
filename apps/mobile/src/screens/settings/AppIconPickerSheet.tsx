@@ -13,8 +13,10 @@ import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import {
-  ALTERNATE_APP_ICONS,
+  APP_ICON_CHOICES,
   DEFAULT_APP_ICON_LABEL,
+  getAppIconArtwork,
+  toAppIconChoice,
   useAppIconStore,
   type AlternateAppIconName,
 } from '~/lib/appIcon';
@@ -22,6 +24,7 @@ import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Button } from '~/components/ui/button';
+import { toast } from '~/components/ui/toast';
 
 const DEFAULT_ICON_PREVIEW: ImageSourcePropType = require('../../../assets/images/app-icons/classic.png');
 
@@ -35,11 +38,9 @@ const ALTERNATE_ICON_PREVIEWS: Record<AlternateAppIconName, ImageSourcePropType>
   Blueprint: require('../../../assets/images/app-icons/blueprint.png'),
 };
 
-const APP_ICON_NAMES: (AlternateAppIconName | null)[] = [null, ...ALTERNATE_APP_ICONS];
-
 /** Icon names are proper names, shown in English in every language like theme names. */
 export function getAppIconLabel(name: AlternateAppIconName | null): string {
-  return name ?? DEFAULT_APP_ICON_LABEL;
+  return getAppIconArtwork(name) ?? DEFAULT_APP_ICON_LABEL;
 }
 
 export function AppIconTile({
@@ -49,9 +50,10 @@ export function AppIconTile({
   name: AlternateAppIconName | null;
   size: number;
 }) {
+  const artwork = getAppIconArtwork(name);
   return (
     <Image
-      source={name ? ALTERNATE_ICON_PREVIEWS[name] : DEFAULT_ICON_PREVIEW}
+      source={artwork ? ALTERNATE_ICON_PREVIEWS[artwork] : DEFAULT_ICON_PREVIEW}
       accessibilityIgnoresInvertColors
       style={{ width: size, height: size, borderRadius: size * 0.225 }}
     />
@@ -60,7 +62,8 @@ export function AppIconTile({
 
 export function AppIconPickerSheet() {
   const { t } = useTranslation();
-  const current = useAppIconStore((s) => s.current);
+  const storedIcon = useAppIconStore((s) => s.current);
+  const current = toAppIconChoice(storedIcon);
   const setIcon = useAppIconStore((s) => s.setIcon);
   const isChanging = useAppIconStore((s) => s.isChanging);
   const scrollViewRef = useRef<ScrollViewInstance>(null);
@@ -103,7 +106,7 @@ export function AppIconPickerSheet() {
             className="flex-row flex-wrap px-3 gap-y-4"
             accessibilityRole="radiogroup"
             accessibilityLabel={t('appearance.appIcon')}>
-            {APP_ICON_NAMES.map((name) => {
+            {APP_ICON_CHOICES.map((name) => {
               const isActive = name === current;
               const label = getAppIconLabel(name);
               return (
@@ -112,8 +115,14 @@ export function AppIconPickerSheet() {
                   variant="ghost"
                   size="none"
                   disabled={isChanging}
-                  onPress={() => {
-                    if (!isActive) void setIcon(name);
+                  onPress={async () => {
+                    if (isActive) return;
+                    // Android switches the icon once the app leaves the screen.
+                    if (await setIcon(name)) {
+                      toast.info(t('appearance.appIconChangesAfterLeaving'), {
+                        useModal: true,
+                      });
+                    }
                   }}
                   className="w-1/4 flex-col items-center gap-2 py-1"
                   role="radio"
