@@ -106,6 +106,16 @@ test.each(['android', 'ios'] as const)(
   },
 );
 
+test('Android offers only the icons the binary registered', async () => {
+  const native = fakeNative(['Sage', 'Ocean']);
+  const { APP_ICON_CHOICES, useAppIconStore } = load({ native, appVariant: 'beta' });
+
+  // The bundled default is always offered.
+  expect(APP_ICON_CHOICES).toEqual(['Sage', 'Ocean', 'Blueprint']);
+  await useAppIconStore.getState().setIcon('Ocean');
+  expect(native.setAppIcon).toHaveBeenLastCalledWith('Ocean', ['Sage', 'Ocean']);
+});
+
 test('an older Android beta binary keeps the icons it was built with', async () => {
   // Built before the Classic alternate: no registeredIcons.
   const native = fakeNative();

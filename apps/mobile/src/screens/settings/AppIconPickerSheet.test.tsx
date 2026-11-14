@@ -5,10 +5,11 @@ import { useAppIconStore } from '~/lib/appIcon';
 import { AppIconPickerSheet, getAppIconLabel } from './AppIconPickerSheet';
 
 type AlertButton = { text: string; style?: string; onPress?: () => void };
-const mockAlert = jest.fn<void, [string, string, AlertButton[]]>();
+type AlertArgs = [string, string, AlertButton[], { cancelable?: boolean }?];
+const mockAlert = jest.fn<void, AlertArgs>();
 
 jest.mock('react-native', () => ({
-  Alert: { alert: (...args: [string, string, AlertButton[]]) => mockAlert(...args) },
+  Alert: { alert: (...args: AlertArgs) => mockAlert(...args) },
   Platform: { OS: 'android' },
   Image: 'Image',
   ScrollView: 'ScrollView',
@@ -101,7 +102,9 @@ test('Android asks before closing the app to change the icon', () => {
   press('Ocean');
 
   expect(setIcon).not.toHaveBeenCalled();
-  const [title, message, buttons] = mockAlert.mock.calls[0];
+  const [title, message, buttons, options] = mockAlert.mock.calls[0];
+  // Back and a tap outside dismiss it without a change.
+  expect(options).toEqual({ cancelable: true });
   expect(title).toBe(mockEn['appearance.changeAppIconTitle']);
   expect(message).toBe(mockEn['appearance.changeAppIconMessage']);
   expect(buttons.map((button) => button.text)).toEqual([

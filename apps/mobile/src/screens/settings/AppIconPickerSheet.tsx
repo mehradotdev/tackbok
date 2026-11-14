@@ -76,6 +76,8 @@ export function AppIconPickerSheet() {
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('appearance.changeIcon'), onPress: () => void setIcon(name) },
       ],
+      // Back and a tap outside dismiss it like Cancel.
+      { cancelable: true },
     );
   };
 

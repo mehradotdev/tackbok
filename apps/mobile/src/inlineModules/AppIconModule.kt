@@ -32,24 +32,24 @@ class AppIconModule : Module() {
       else -> false
     }
 
-  /** Icon names this binary registered, including the default. */
+  /** Icon names this binary registered, including the default. MainActivity itself is not an alias. */
   private fun registeredIcons(): List<String> {
     val prefix = context.packageName + ALIAS_PREFIX
     return context.packageManager
       .getPackageInfo(context.packageName, PackageManager.GET_ACTIVITIES or PackageManager.MATCH_DISABLED_COMPONENTS)
       .activities
       .orEmpty()
-      .map { it.name }
-      .filter { it.startsWith(prefix) }
-      .map { it.removePrefix(prefix) }
+      .filter { it.targetActivity != null && it.name.startsWith(prefix) }
+      .map { it.name.removePrefix(prefix) }
   }
 
   override fun definition() = ModuleDefinition {
     Name("AppIconModule")
 
     // Alternate names only; lets JS offer just the icons this binary can switch to.
+    // Read when JS imports the module, so a failure falls back to the default icon only.
     Constant("registeredIcons") {
-      registeredIcons().filter { it != DEFAULT_ICON }
+      runCatching { registeredIcons().filter { it != DEFAULT_ICON } }.getOrDefault(emptyList())
     }
 
     // `icons` is the full list of alternate names so JS stays the source of truth.
