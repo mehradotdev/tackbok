@@ -420,6 +420,12 @@ test.each(
   expect(observedRecovery()).toBe(EXPECTED_RECOVERY[action]);
 });
 
+test('merge errors never offer a button that runs the same merge again', () => {
+  for (const reason of ['merge-failed', 'derived-id-collision'] as const) {
+    expect(EXPECTED_RECOVERY[ATTENTION_RECOVERY_ACTION[reason]]).toBe('push /settings');
+  }
+});
+
 test('every recovery that runs the same handler shares one label, and no other', () => {
   const byOutcome = new Map<string, Set<string>>();
   for (const [action, outcome] of Object.entries(EXPECTED_RECOVERY)) {

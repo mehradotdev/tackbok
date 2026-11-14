@@ -23,11 +23,14 @@ describe('cloud sync failure classification', () => {
       'invalid-remote-snapshot',
     );
     expect(failureCategoryForAttention('normalized-model-not-ready')).toBe('unknown');
+    expect(failureCategoryForAttention('merge-failed')).toBe('merge');
+    expect(failureCategoryForAttention('derived-id-collision')).toBe('corrupt');
     expect(failureCategoryForAttention('provider-request-rejected')).toBe('unknown');
   });
 
   test('uses one validated analytics category parser', () => {
     expect(readCloudSyncFailureCategory({ category: 'offline' })).toBe('offline');
+    expect(readCloudSyncFailureCategory({ category: 'merge' })).toBe('merge');
     expect(readCloudSyncFailureCategory({ category: 'unexpected' })).toBe('unknown');
     expect(readCloudSyncFailureCategory({ category: 'local-media' })).toBe('local-media');
   });

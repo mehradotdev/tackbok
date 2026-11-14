@@ -132,6 +132,8 @@ export class SnapshotSyncEngine {
   private settledPass: SettledPass | null = null;
   /** Set once this engine has seen a merge fail; see `mayRetryFailedMerge`. */
   private mergeFailedHere = false;
+  /** The journal generation when this pass started, before it captured the journal. */
+  private passGeneration = 0;
   private failedMergeInput: string | null = null;
   private readonly cleanup: SnapshotCleanup;
   private readonly publisher: SnapshotPublisher;
@@ -179,6 +181,8 @@ export class SnapshotSyncEngine {
     try {
       return await this.syncExclusive();
     } catch (error) {
+      if (error instanceof SnapshotMergeError && error.code !== 'derived-id-collision')
+        await this.recordFailedMergeInput();
       return this.handleExpectedFailure(error);
     } finally {
       this.running = false;
@@ -195,7 +199,7 @@ export class SnapshotSyncEngine {
     }
 
     let durable = this.stateStore.loadState(this.vaultId, this.deviceId);
-    this.failedMergeInput = null;
+    this.passGeneration = durable.journalGeneration;
     if (durable.pauseReason && !(await this.mayRetryFailedMerge(durable))) {
       return {
         status: 'attention',
@@ -316,30 +320,23 @@ export class SnapshotSyncEngine {
    */
   private async mayRetryFailedMerge(durable: DurableSyncState): Promise<boolean> {
     if (durable.pauseReason !== 'merge-failed') return false;
-    const input = mergeInput(
-      durable.journalGeneration,
-      await this.provider.listHeads(this.vaultId, true),
-    );
-    if (!this.mergeFailedHere) {
-      this.failedMergeInput = input;
-      return true;
+    if (!this.mergeFailedHere || durable.pauseContext === null) return true;
+    const listed = await this.provider.listHeads(this.vaultId, true);
+    return durable.pauseContext !== mergeInput(durable.journalGeneration, listed);
+  }
+
+  /**
+   * The heads this pass merged are the provider's latest listing. The
+   * generation is from before capture, so an edit during the pass is retried.
+   */
+  private async recordFailedMergeInput(): Promise<void> {
+    try {
+      const listed = await this.provider.listHeads(this.vaultId, false);
+      this.failedMergeInput = mergeInput(this.passGeneration, listed);
+    } catch {
+      // Without a record, the next pass merges again and records it then.
+      this.failedMergeInput = null;
     }
-    if (durable.pauseContext === null) {
-      // shortcut: the pass that failed did not record its input, so this
-      // pass's input stands in for it. A change in between waits for the next
-      // change or launch; record it in planning if that ever matters.
-      this.stateStore.setPause(
-        this.vaultId,
-        this.deviceId,
-        'merge-failed',
-        durable.lastErrorClass ?? 'merge-unknown',
-        input,
-      );
-      return false;
-    }
-    if (durable.pauseContext === input) return false;
-    this.failedMergeInput = input;
-    return true;
   }
 
   private async planCandidate(

@@ -9,6 +9,7 @@ import {
 } from '../../src/lib/cloudSync/snapshot/canonical';
 import { decodeSnapshot, encodeSnapshot } from '../../src/lib/cloudSync/snapshot/codec';
 import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
+import { SnapshotMergeError } from '../../src/lib/cloudSync/snapshot/merge';
 import { BaseShadowManager } from '../../src/lib/cloudSync/snapshot/sync/baseShadow';
 import { SnapshotSyncEngine } from '../../src/lib/cloudSync/snapshot/sync/engine';
 import { VerifiedSnapshotCache } from '../../src/lib/cloudSync/snapshot/sync/snapshotCache';
@@ -1477,6 +1478,7 @@ describe('durable snapshot publisher', () => {
       'journal-deleted',
       'local-media-unreadable',
       'local-storage-full',
+      'merge-failed',
       'missing-media',
       'normalized-model-not-ready',
       'provider-permission-denied',
@@ -4504,5 +4506,147 @@ describe('waiting attachments never take the quiet-pass shortcut', () => {
       deferredMediaCount: 0,
     });
     expect(captures).toBe(0);
+  });
+});
+
+describe('merges that cannot be combined', () => {
+  /** Counts merges; each pass that merges reports the merging phase once. */
+  function countMerges() {
+    const counter = {
+      merges: 0,
+      hooks: {
+        progress: (report) => {
+          if (report.type === 'plan' && report.phase === 'merging') counter.merges += 1;
+        },
+      } satisfies SnapshotSyncHooks,
+    };
+    return counter;
+  }
+
+  /** Two devices whose copies of one entry disagree on an immutable field. */
+  async function incompatibleDevices() {
+    const first = harness('merge-a', withEntry(blankDomain(), entry('shared', 'A')));
+    first.state.markDirty(first.vaultId, first.deviceId);
+    expect((await first.engine().sync()).status).toBe('published');
+    const second = harness(
+      'merge-b',
+      withEntry(blankDomain(), { ...entry('shared', 'B'), conflictOriginId: 'other' }),
+      first.provider,
+    );
+    second.state.markDirty(second.vaultId, second.deviceId);
+    return { first, second };
+  }
+
+  test.each([
+    'asset-id-collision',
+    'invalid-immutable-mutation',
+    'conflict-id-collision',
+    'missing-referenced-tag',
+  ])('%s pauses with its own reason and keeps the code', async (code) => {
+    const app = harness(`merge-${code}`, withEntry(blankDomain(), entry('kept', 'Body')));
+    app.state.markDirty(app.vaultId, app.deviceId);
+    const before = app.journal.current();
+    const result = await app
+      .engine({
+        at(point) {
+          if (point === 'after-local-mutation') throw new SnapshotMergeError(code, code);
+        },
+      })
+      .sync();
+    expect(result).toMatchObject({ status: 'attention', reason: 'merge-failed' });
+    expect(app.state.loadState(app.vaultId, app.deviceId)).toMatchObject({
+      pauseReason: 'merge-failed',
+      lastErrorClass: `merge-${code}`,
+    });
+    expect(app.journal.current()).toEqual(before);
+    expect(ATTENTION_RECOVERY_ACTION['merge-failed']).toBe('export-repair-backup');
+  });
+
+  test('a derived ID collision keeps its reason and never merges again on its own', async () => {
+    const app = harness('merge-derived', withEntry(blankDomain(), entry('kept', 'Body')));
+    app.state.markDirty(app.vaultId, app.deviceId);
+    const result = await app
+      .engine({
+        at(point) {
+          if (point === 'after-local-mutation')
+            throw new SnapshotMergeError('derived-id-collision', 'collides');
+        },
+      })
+      .sync();
+    expect(result).toMatchObject({ status: 'attention', reason: 'derived-id-collision' });
+    expect(app.state.loadState(app.vaultId, app.deviceId)).toMatchObject({
+      pauseReason: 'derived-id-collision',
+      pauseContext: null,
+      lastErrorClass: 'merge-derived-id-collision',
+    });
+    const counter = countMerges();
+    app.journal.mutate(withEntry(app.journal.current(), entry('later', 'Edit')));
+    expect((await app.engine(counter.hooks).sync()).status).toBe('attention');
+    expect(counter.merges).toBe(0);
+  });
+
+  test('a real merge failure leaves this journal as it was', async () => {
+    const { second } = await incompatibleDevices();
+    const before = second.journal.current();
+    expect(await second.engine().sync()).toMatchObject({
+      status: 'attention',
+      reason: 'merge-failed',
+    });
+    expect(second.state.loadState(second.vaultId, second.deviceId)).toMatchObject({
+      pauseReason: 'merge-failed',
+      lastErrorClass: 'merge-invalid-immutable-mutation',
+    });
+    expect(second.journal.current()).toEqual(before);
+    expect(second.journal.applyCount).toBe(0);
+  });
+
+  test('the same merge is not run again until its input or the app changes', async () => {
+    const { first, second } = await incompatibleDevices();
+    const counter = countMerges();
+    const engine = second.engine(counter.hooks);
+    expect((await engine.sync()).status).toBe('attention');
+    expect(counter.merges).toBe(1);
+    // Nothing changed: later passes, including a retry the user could start,
+    // report the pause without merging again.
+    expect((await engine.sync()).status).toBe('attention');
+    expect((await engine.sync()).status).toBe('attention');
+    expect(counter.merges).toBe(1);
+    expect(second.state.loadState(second.vaultId, second.deviceId).pauseContext).not.toBe(
+      null,
+    );
+
+    // A new engine, as after an app launch or update, tries once.
+    const relaunched = countMerges();
+    const next = second.engine(relaunched.hooks);
+    expect((await next.sync()).status).toBe('attention');
+    expect((await next.sync()).status).toBe('attention');
+    expect(relaunched.merges).toBe(1);
+
+    // Another device publishing tries again.
+    first.journal.mutate(withEntry(first.journal.current(), entry('more', 'Text')));
+    expect((await first.engine().sync()).status).toBe('published');
+    expect((await next.sync()).status).toBe('attention');
+    expect((await next.sync()).status).toBe('attention');
+    expect(relaunched.merges).toBe(2);
+    expect(second.state.loadState(second.vaultId, second.deviceId).pauseReason).toBe(
+      'merge-failed',
+    );
+  });
+
+  test('a later pass that succeeds clears the pause', async () => {
+    const { first, second } = await incompatibleDevices();
+    const engine = second.engine();
+    expect((await engine.sync()).status).toBe('attention');
+    // A local change is new input. Here it removes the disagreement.
+    second.journal.mutate(withEntry(blankDomain(), entry('own', 'Mine')));
+    const result = await engine.sync();
+    expect(['published', 'pulled']).toContain(result.status);
+    expect(second.state.loadState(second.vaultId, second.deviceId)).toMatchObject({
+      pauseReason: null,
+      pauseContext: null,
+      lastErrorClass: null,
+    });
+    expect((await first.engine().sync()).status).toBe('pulled');
+    expect(contents(first.journal.current())).toEqual(contents(second.journal.current()));
   });
 });

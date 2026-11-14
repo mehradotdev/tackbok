@@ -117,6 +117,15 @@ describe('cloud backup status copy', () => {
     );
   });
 
+  test('a merge that cannot be combined says so, not that the journal is unprepared', () => {
+    const message = attentionReasonMessage('merge-failed', t);
+    expect(message).toBe(en['cloud.changesFromAnotherDeviceCouldNotBeCombined']);
+    expect(message).not.toBe(attentionReasonMessage('normalized-model-not-ready', t));
+    expect(message).toContain('Sync has stopped.');
+    expect(message).toContain('export a copy');
+    expect(cloudSyncFailureMessage('merge', t)).toBe(message);
+  });
+
   test('attention messages are plain and distinct, without internal terms', () => {
     const reasons = Object.keys(ATTENTION_RECOVERY_ACTION) as SyncAttentionReason[];
     const messages = reasons.map((reason) => attentionReasonMessage(reason, t));
