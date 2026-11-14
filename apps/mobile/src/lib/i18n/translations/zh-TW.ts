@@ -798,7 +798,7 @@ export const zhTW: Translations = {
     '如果 Google 詢問是否允許塔克布克在你的 Drive 中使用它自己的資料夾，請選擇允許，這樣備份才能連線。',
   'cloud.journalDeletionReceived': '已收到日記刪除通知',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
-    '照片和語音筆記僅在 Wi-Fi 下上傳和下載。包含新照片或語音筆記的紀錄也會等待 Wi-Fi。',
+    '照片和語音筆記僅在 Wi-Fi 下上傳和下載。日記的其餘內容在使用行動數據時仍會備份，除非有新的個人頭像正在等待 Wi-Fi。',
   'cloud.keepLocalDataAndTheCloudCopy': '保留本機資料和雲端副本',
   'cloud.keepLocalJournalData': '保留本機日記資料',
   'cloud.keepTheCloudCopyAndOtherDevices': '保留雲端副本和其他裝置',

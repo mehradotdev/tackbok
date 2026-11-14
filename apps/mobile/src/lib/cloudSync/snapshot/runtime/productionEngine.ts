@@ -27,6 +27,7 @@ import type {
 import { PHASE_FOR_ENGINE_ACTIVITY } from '../../runtime/activity';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import { hashPendingProductionMedia } from './mediaHashing';
+import { recordWaitingMediaUploads } from './waitingMediaUploads';
 import { nativeSha256Bytes } from './nativeSha256';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
 import { GoogleDriveSnapshotProvider, SQLiteDriveProviderStateStore } from '../drive';
@@ -133,6 +134,13 @@ class MediaPolicyProvider implements SnapshotProvider {
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]) {
     return this.delegate.hasMediaBatch(vaultId, blobHashes);
   }
+  async mediaTransfersAllowed(): Promise<boolean> {
+    if (await this.mediaWaitsForWifi()) {
+      this.onProgress({ type: 'wait', reason: 'wifi-only-media' });
+      return false;
+    }
+    return true;
+  }
   async uploadMedia(
     vaultId: string,
     blobHash: string,
@@ -158,10 +166,14 @@ class MediaPolicyProvider implements SnapshotProvider {
     return this.delegate.deleteSnapshot(vaultId, snapshotId);
   }
 
-  private async assertMediaTransferAllowed(): Promise<void> {
-    if (!useSettingsStore.getState().cloudSyncWifiOnlyMedia) return;
+  private async mediaWaitsForWifi(): Promise<boolean> {
+    if (!useSettingsStore.getState().cloudSyncWifiOnlyMedia) return false;
     const network = await Network.getNetworkStateAsync();
-    if (network.type !== Network.NetworkStateType.WIFI) {
+    return network.type !== Network.NetworkStateType.WIFI;
+  }
+
+  private async assertMediaTransferAllowed(): Promise<void> {
+    if (await this.mediaWaitsForWifi()) {
       this.onProgress({ type: 'wait', reason: 'wifi-only-media' });
       throw new SnapshotProviderError('wifi-only-media', 'Media is waiting for Wi-Fi');
     }
@@ -357,6 +369,8 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
             : 'transient',
       );
     }
+
+    recordWaitingMediaUploads(this.vault.vault_id, result.deferredMediaCount);
 
     // The journal, text included, is applied by now; attachments the backup
     // holds but this device lacks wait as pending rows. Show the text before

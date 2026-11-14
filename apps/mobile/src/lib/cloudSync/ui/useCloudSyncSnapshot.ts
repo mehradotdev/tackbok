@@ -14,6 +14,7 @@ const EMPTY_SNAPSHOT: CloudSyncSnapshot = {
   initialRestore: false,
   queuedCount: 0,
   pendingDownloadCount: 0,
+  waitingUploadCount: 0,
   downloadedMediaCount: 0,
   failureCategory: null,
   conflictCount: 0,

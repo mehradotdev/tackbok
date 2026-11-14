@@ -1701,3 +1701,67 @@ describe('saved media hashes', () => {
     expect(savedRows().every((row) => row.hashed_at > old)).toBe(true);
   });
 });
+
+test('a photo left out of a publication for Wi-Fi stays on this device', async () => {
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM sync_retained_media',
+  );
+  const { restoreDeferredMedia, withoutDeferredMedia } =
+    await import('../../src/lib/cloudSync/snapshot/sync/deferredMedia');
+  existingFiles.clear();
+  existingFiles.add('file:///documents/photos/waiting.jpg');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'deferred', device_id: 'device', updated_at: 1 })
+    .run();
+  db.insert(schema.entries)
+    .values({
+      note_id: 'deferred-entry',
+      text_content: 'Text on mobile data',
+      assets: [{ type: AssetType.IMAGE, uri: 'photos/waiting.jpg' }],
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'waiting',
+      owner_type: 'entry',
+      owner_id: 'deferred-entry',
+      kind: 'photo',
+      local_uri: 'photos/waiting.jpg',
+      blob_hash: fakeBlobHash,
+      byte_size: 1,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  const store = new ProductionSnapshotJournalStore('deferred', 'device', {} as never);
+  Object.defineProperty(store, 'materializeMedia', {
+    value: async () =>
+      new Map([['waiting', { uri: 'photos/waiting.jpg', verified: true }]]),
+  });
+  const captured = await store.capture();
+  // Capture records the photo in the entry's order, so a deletion elsewhere
+  // that never saw it reads as conflicting with an edit.
+  expect(captured.domain.entries[0].attachmentOrder).toEqual(['waiting']);
+
+  const published = withoutDeferredMedia(captured.domain, new Set([fakeBlobHash]));
+  expect(published.media).toEqual([]);
+  // After a restart, the journal applied is rebuilt from the published one.
+  const applied = restoreDeferredMedia(published, captured.domain, null);
+  expect(
+    await store.applyMergedIfGeneration(applied, captured.generation, {
+      remoteDerived: false,
+    }),
+  ).toBe(true);
+
+  expect(db.select().from(schema.mediaAssets).all()).toMatchObject([
+    { asset_id: 'waiting', local_uri: 'photos/waiting.jpg', download_state: 'n/a' },
+  ]);
+  expect(db.select().from(schema.syncRetainedMedia).all()).toEqual([]);
+  expect(existingFiles.has('file:///documents/photos/waiting.jpg')).toBe(true);
+  expect((await store.capture()).domain).toEqual(captured.domain);
+  // The download-repair check never queues a photo made on this device.
+  expect(await store.requeueMissingVerifiedMedia()).toBe(0);
+  sqlite.exec('DELETE FROM entries; DELETE FROM media_assets');
+});

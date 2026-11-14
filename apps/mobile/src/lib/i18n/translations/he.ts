@@ -818,7 +818,7 @@ export const he: Translations = {
     'אם Google מבקשת לאשר לטאקבוק להשתמש בתיקייה משלה ב-Drive שלך, יש לאשר כדי שאפשר יהיה לחבר את הגיבוי.',
   'cloud.journalDeletionReceived': 'התקבלה מחיקת יומן',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
-    'תמונות והקלטות קוליות מועלות ומורדות רק ב-Wi-Fi. גם רשומות עם תמונות או הקלטות קוליות חדשות ממתינות ל-Wi-Fi.',
+    'תמונות והקלטות קוליות מועלות ומורדות רק ב-Wi-Fi. שאר היומן ממשיך להיגבות גם ברשת הסלולרית, אלא אם תמונת פרופיל חדשה ממתינה ל-Wi-Fi.',
   'cloud.keepLocalDataAndTheCloudCopy': 'שמירת הנתונים המקומיים והעותק בענן',
   'cloud.keepLocalJournalData': 'שמירת נתוני היומן המקומיים',
   'cloud.keepTheCloudCopyAndOtherDevices': 'שמירת העותק בענן והמכשירים האחרים',

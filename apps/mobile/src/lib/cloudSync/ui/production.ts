@@ -50,6 +50,7 @@ import {
   type AvailableDriveVault,
 } from '../snapshot/drive';
 import { nativeSha256Bytes } from '../snapshot/runtime/nativeSha256';
+import { waitingMediaUploadCount } from '../snapshot/runtime/waitingMediaUploads';
 import { clearMediaHashes, forgetMediaHashes } from '../snapshot/storage';
 import {
   deletionAttentionReason,
@@ -88,6 +89,8 @@ export interface CloudSyncSnapshot {
   queuedCount: number;
   /** Photos and voice notes from the backup not yet on this device. */
   pendingDownloadCount: number;
+  /** New photos and voice notes on this device waiting for Wi-Fi to back up. */
+  waitingUploadCount: number;
   /** Downloaded photos and voice notes on this device, not only this restore's. */
   downloadedMediaCount: number;
   /** Why the latest pass in this session failed, if it did. */
@@ -221,6 +224,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
     ? Math.max(0, (queued?.value ?? 0) - (queued?.settled ?? 0))
     : 0;
   const pendingDownloadCount = vault ? (pendingMedia?.value ?? 0) : 0;
+  const waitingUploadCount = vault ? waitingMediaUploadCount(vault.vault_id) : 0;
   const conflictCount = conflicts?.value ?? 0;
   const configured = Boolean(
     vault?.remote_root_id && !['disabled', 'revoked'].includes(vault.status),
@@ -246,7 +250,8 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   else if (vault?.status === 'paused') status = 'paused';
   else if (activity !== 'idle') status = 'syncing';
   else if (vault?.status === 'restoring') status = 'restoring';
-  else if (configured && queuedCount + pendingDownloadCount > 0) status = 'queued';
+  else if (configured && queuedCount + pendingDownloadCount + waitingUploadCount > 0)
+    status = 'queued';
   else if (configured) status = 'synced';
 
   return {
@@ -259,6 +264,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
     initialRestore: vault?.status === 'restoring',
     queuedCount,
     pendingDownloadCount,
+    waitingUploadCount,
     downloadedMediaCount: vault ? (downloadedMedia?.value ?? 0) : 0,
     failureCategory: getProductionCloudSyncFailureCategory(),
     conflictCount,

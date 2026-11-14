@@ -3719,3 +3719,273 @@ describe('verified snapshots across passes', () => {
     expect(cache.size).toBe(0);
   });
 });
+
+describe('text on mobile data with Wi-Fi-only media', () => {
+  /**
+   * Refuses media transfers like the production policy until `onWifi` is set.
+   * Without `precheck`, only the refused upload tells the engine to wait.
+   */
+  function wifiOnlyMedia(provider: FakeSnapshotProvider, precheck = true) {
+    const network = { onWifi: false, refused: 0 };
+    if (precheck) provider.mediaTransfersAllowed = async () => network.onWifi;
+    const uploadMedia = provider.uploadMedia.bind(provider);
+    provider.uploadMedia = async (...args) => {
+      if (!network.onWifi) {
+        network.refused += 1;
+        throw new SnapshotProviderError('wifi-only-media', 'Media is waiting for Wi-Fi');
+      }
+      return uploadMedia(...args);
+    };
+    return network;
+  }
+
+  async function headPayload(provider: FakeSnapshotProvider, deviceId: string) {
+    const head = provider
+      .physicalHeads('vault-sync-test')
+      .find((value) => value.head.deviceId === deviceId)!.head;
+    const bytes = await provider.downloadSnapshot('vault-sync-test', head.snapshotId);
+    return decodeSnapshot(bytes!, head.snapshotId).payload;
+  }
+
+  const ids = (domain: SnapshotDomain) => domain.media.map((asset) => asset.assetId);
+  const photo = new TextEncoder().encode('photo taken on mobile data');
+  const photoHash = sha256Bytes(photo);
+
+  async function deviceWithNewPhoto(provider: FakeSnapshotProvider) {
+    const device = harness('wifi-writer', blankDomain(), provider);
+    await device.media.writeVerified(photoHash, photo);
+    const domain = withEntry(blankDomain(), {
+      ...entry('entry-photo', 'Text on mobile data'),
+      attachmentOrder: ['asset-new'],
+    });
+    domain.media = [mediaAsset('asset-new', 'entry-photo', photo)];
+    device.journal.mutate(domain);
+    return { device, domain };
+  }
+
+  test('text publishes on cellular, other devices never lose the waiting photo, and Wi-Fi adds it', async () => {
+    const provider = new FakeSnapshotProvider();
+    const network = wifiOnlyMedia(provider);
+    const { device: a, domain } = await deviceWithNewPhoto(provider);
+
+    expect(await a.engine().sync()).toEqual({
+      status: 'published',
+      snapshotId: expect.any(String),
+      actionableChanges: 0,
+      deferredMediaCount: 1,
+    });
+    // The backup holds the text without the photo, which Drive lacks.
+    const textOnly = await headPayload(provider, a.deviceId);
+    expect(textOnly.entries).toEqual([entry('entry-photo', 'Text on mobile data')]);
+    expect(textOnly.media).toEqual([]);
+    expect((await provider.hasMediaBatch(a.vaultId, [photoHash])).size).toBe(0);
+    // This device keeps the photo and its place in the entry.
+    expect(canonicalize(a.journal.current())).toBe(canonicalize(domain));
+
+    // Another pass on mobile data publishes nothing and still reports the wait,
+    // without reading the waiting file again.
+    provider.requests.length = 0;
+    const opened: string[] = [];
+    const open = a.media.openVerifiedSource.bind(a.media);
+    a.media.openVerifiedSource = (blobHash) => {
+      opened.push(blobHash);
+      return open(blobHash);
+    };
+    expect(await a.engine().sync()).toEqual({
+      status: 'up-to-date',
+      actionableChanges: 0,
+      deferredMediaCount: 1,
+    });
+    expect(provider.requests).not.toContain('upload-snapshot');
+    expect(opened).toEqual([]);
+    expect(network.refused).toBe(0);
+
+    // A second device reads the text and edits it.
+    const b = harness('wifi-reader', blankDomain(), provider, a.clock);
+    expect((await b.engine().sync()).status).toBe('pulled');
+    expect(b.journal.current().entries.map((value) => value.content)).toEqual([
+      'Text on mobile data',
+    ]);
+    expect(ids(b.journal.current())).toEqual([]);
+    a.clock.value += 1000;
+    b.journal.mutate(
+      withEntry(
+        b.journal.current(),
+        entry('entry-photo', 'Edited elsewhere', a.clock.value),
+      ),
+    );
+    expect((await b.engine().sync()).status).toBe('published');
+
+    // Still on mobile data, the writer takes the edit and keeps its photo.
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'pulled',
+      deferredMediaCount: 1,
+    });
+    expect(a.journal.current().entries).toEqual([
+      {
+        ...entry('entry-photo', 'Edited elsewhere', a.clock.value),
+        attachmentOrder: ['asset-new'],
+      },
+    ]);
+    expect(ids(a.journal.current())).toEqual(['asset-new']);
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'up-to-date',
+      deferredMediaCount: 1,
+    });
+
+    // On Wi-Fi the photo uploads and the next snapshot references it.
+    network.onWifi = true;
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'published',
+      deferredMediaCount: 0,
+    });
+    expect((await provider.hasMediaBatch(a.vaultId, [photoHash])).size).toBe(1);
+    const complete = await headPayload(provider, a.deviceId);
+    expect(ids(complete)).toEqual(['asset-new']);
+    expect(complete.entries[0]).toMatchObject({
+      content: 'Edited elsewhere',
+      attachmentOrder: ['asset-new'],
+    });
+
+    expect((await b.engine().sync()).status).toBe('pulled');
+    expect(ids(b.journal.current())).toEqual(['asset-new']);
+    expect((await a.engine().sync()).status).toBe('up-to-date');
+    expect((await b.engine().sync()).status).toBe('up-to-date');
+    expect(ids(a.journal.current())).toEqual(['asset-new']);
+    expect(a.media.media.has(photoHash)).toBe(true);
+  });
+
+  test('a restart between publishing and applying keeps the waiting photo in place', async () => {
+    const provider = new FakeSnapshotProvider();
+    // The refused upload alone defers the photo, as when Wi-Fi drops mid-pass.
+    const network = wifiOnlyMedia(provider, false);
+    const older = new TextEncoder().encode('photo backed up on Wi-Fi');
+    const a = harness('wifi-restart', blankDomain(), provider);
+    await a.media.writeVerified(sha256Bytes(older), older);
+    await a.media.writeVerified(photoHash, photo);
+    network.onWifi = true;
+    const first = withEntry(blankDomain(), {
+      ...entry('entry-photo', 'One photo'),
+      attachmentOrder: ['asset-old'],
+    });
+    first.media = [mediaAsset('asset-old', 'entry-photo', older)];
+    a.journal.mutate(first);
+    expect((await a.engine().sync()).status).toBe('published');
+
+    network.onWifi = false;
+    // The new photo goes first: the restored journal must keep that order.
+    const second = withEntry(first, {
+      ...entry('entry-photo', 'Two photos', 2),
+      attachmentOrder: ['asset-new', 'asset-old'],
+    });
+    second.media = [mediaAsset('asset-new', 'entry-photo', photo), ...first.media];
+    a.journal.mutate(second);
+    let killed = false;
+    await expect(
+      a
+        .engine({
+          at(point) {
+            if (!killed && point === 'after-head-advanced') {
+              killed = true;
+              throw new SimulatedProcessDeath();
+            }
+          },
+        })
+        .sync(),
+    ).rejects.toBeInstanceOf(SimulatedProcessDeath);
+    // The resumed publication still reports the photo waiting for Wi-Fi.
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'published',
+      deferredMediaCount: 1,
+    });
+    expect(canonicalize(a.journal.current())).toBe(canonicalize(second));
+    const published = await headPayload(provider, a.deviceId);
+    expect(ids(published)).toEqual(['asset-old']);
+    expect(published.entries[0]).toMatchObject({
+      content: 'Two photos',
+      attachmentOrder: ['asset-old'],
+    });
+
+    network.onWifi = true;
+    expect((await a.engine().sync()).status).toBe('published');
+    expect((await headPayload(provider, a.deviceId)).entries[0].attachmentOrder).toEqual([
+      'asset-new',
+      'asset-old',
+    ]);
+  });
+
+  test('an entry deleted elsewhere while its photo waits is kept, photo included', async () => {
+    const provider = new FakeSnapshotProvider();
+    const network = wifiOnlyMedia(provider);
+    const { device: a } = await deviceWithNewPhoto(provider);
+    expect((await a.engine().sync()).status).toBe('published');
+    const b = harness('wifi-deleter', blankDomain(), provider, a.clock);
+    expect((await b.engine().sync()).status).toBe('pulled');
+    b.journal.mutate(withoutEntry(b.journal.current(), 'entry-photo', b.deviceId));
+    expect((await b.engine().sync()).status).toBe('published');
+
+    // The deletion saw only the text; the photo is an edit it never saw.
+    const result = await a.engine().sync();
+    expect(['pulled', 'published']).toContain(result.status);
+    expect(a.journal.current().entries.map((value) => value.entryId)).toContain(
+      'entry-photo',
+    );
+    expect(ids(a.journal.current())).toEqual(['asset-new']);
+    // The other device records the same conflict once, then both settle on
+    // mobile data without publishing again.
+    expect((await b.engine().sync()).status).toBe('published');
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'pulled',
+      deferredMediaCount: 1,
+    });
+    expect(ids(a.journal.current())).toEqual(['asset-new']);
+    expect((await b.engine().sync()).status).toBe('up-to-date');
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'up-to-date',
+      deferredMediaCount: 1,
+    });
+    network.onWifi = true;
+    expect((await a.engine().sync()).status).toBe('published');
+    expect((await b.engine().sync()).status).toBe('pulled');
+    expect(ids(b.journal.current())).toEqual(['asset-new']);
+    expect(b.journal.current().entries.map((value) => value.entryId)).toEqual([
+      'entry-photo',
+    ]);
+    expect((await a.engine().sync()).status).toBe('up-to-date');
+    expect((await b.engine().sync()).status).toBe('up-to-date');
+  });
+
+  test('a new profile photo still waits for Wi-Fi with the journal', async () => {
+    const provider = new FakeSnapshotProvider();
+    wifiOnlyMedia(provider);
+    const a = harness('wifi-profile', blankDomain(), provider);
+    await a.media.writeVerified(photoHash, photo);
+    const domain = withEntry(blankDomain(), entry('entry-text', 'Text'));
+    domain.profile = { ...domain.profile, photoAssetId: 'asset-profile', updatedAt: 2 };
+    domain.media = [
+      {
+        ...mediaAsset('asset-profile', 'profile', photo),
+        ownerType: 'profile',
+        kind: 'profile-photo',
+      },
+    ];
+    a.journal.mutate(domain);
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'retry',
+      reason: 'wifi-only-media',
+    });
+    expect(provider.requests).not.toContain('upload-snapshot');
+    expect(canonicalize(a.journal.current())).toBe(canonicalize(domain));
+  });
+
+  test('with Wi-Fi-only off, text and photo publish together as before', async () => {
+    const provider = new FakeSnapshotProvider();
+    const { device: a } = await deviceWithNewPhoto(provider);
+    expect(await a.engine().sync()).toMatchObject({
+      status: 'published',
+      deferredMediaCount: 0,
+    });
+    expect(provider.requests.filter((op) => op === 'upload-snapshot')).toHaveLength(1);
+    expect(ids(await headPayload(provider, a.deviceId))).toEqual(['asset-new']);
+  });
+});

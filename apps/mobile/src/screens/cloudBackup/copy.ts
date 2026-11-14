@@ -164,7 +164,10 @@ export function syncWaitMessage(
 
 /** Local changes and incoming attachments are different work; never add them. */
 export function pendingWorkSummary(
-  snapshot: Pick<CloudSyncSnapshot, 'status' | 'queuedCount' | 'pendingDownloadCount'>,
+  snapshot: Pick<
+    CloudSyncSnapshot,
+    'status' | 'queuedCount' | 'pendingDownloadCount' | 'waitingUploadCount'
+  >,
   t: TranslationFunction,
 ): string | null {
   const parts: string[] = [];
@@ -179,6 +182,13 @@ export function pendingWorkSummary(
     parts.push(
       t('cloud.photosAndVoiceNotesToDownloadCount', {
         number: snapshot.pendingDownloadCount,
+      }),
+    );
+  }
+  if (snapshot.waitingUploadCount > 0) {
+    parts.push(
+      t('cloud.photosAndVoiceNotesWaitingForWiFiCount', {
+        number: snapshot.waitingUploadCount,
       }),
     );
   }

@@ -795,7 +795,7 @@ export const zhCN: Translations = {
     '如果 Google 询问是否允许塔克布克在你的 Drive 中使用它自己的文件夹，请选择允许，这样备份才能连接。',
   'cloud.journalDeletionReceived': '已收到日记删除通知',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
-    '照片和语音笔记仅在 Wi-Fi 下上传和下载。包含新照片或语音笔记的条目也会等待 Wi-Fi。',
+    '照片和语音笔记仅在 Wi-Fi 下上传和下载。日记的其余内容在使用移动数据时仍会备份，除非有新的个人头像正在等待 Wi-Fi。',
   'cloud.keepLocalDataAndTheCloudCopy': '保留本地数据和云端副本',
   'cloud.keepLocalJournalData': '保留本地日记数据',
   'cloud.keepTheCloudCopyAndOtherDevices': '保留云端副本和其他设备',

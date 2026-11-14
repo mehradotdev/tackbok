@@ -884,7 +884,7 @@ export const de: Translations = {
     'Wenn Google fragt, ob Tackbok einen eigenen Ordner in deinem Drive nutzen darf, erlaube es, damit die Sicherung verbunden werden kann.',
   'cloud.journalDeletionReceived': 'Tagebuchlöschung empfangen',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
-    'Fotos und Sprachnotizen werden nur über WLAN hoch- und heruntergeladen. Einträge mit neuen Fotos oder Sprachnotizen warten ebenfalls auf WLAN.',
+    'Fotos und Sprachnotizen werden nur über WLAN hoch- und heruntergeladen. Der Rest deines Tagebuchs wird auch über mobile Daten gesichert, außer wenn ein neues Profilfoto auf WLAN wartet.',
   'cloud.keepLocalDataAndTheCloudCopy': 'Lokale Daten und Cloud-Kopie behalten',
   'cloud.keepLocalJournalData': 'Lokale Tagebuchdaten behalten',
   'cloud.keepTheCloudCopyAndOtherDevices': 'Cloud-Kopie und andere Geräte behalten',

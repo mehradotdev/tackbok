@@ -76,6 +76,12 @@ interface SettingsState {
    * card until the restore is seen to finish; the backup itself stays in SQLite.
    */
   cloudRestore: CloudRestoreMarker | null;
+  /**
+   * New photos and voice notes the latest sync pass left out of this backup
+   * until Wi-Fi. Kept across launches: once text is backed up, nothing else
+   * on this device records that they still wait.
+   */
+  cloudSyncWaitingUploads: { vaultId: string; count: number } | null;
 
   // Privacy
   analyticsEnabled: boolean;
@@ -159,6 +165,7 @@ const DEFAULT_SETTINGS_VALUES = {
   appLockDelaySeconds: 0 as AppLockDelaySeconds,
   cloudSyncWifiOnlyMedia: false,
   cloudRestore: null as CloudRestoreMarker | null,
+  cloudSyncWaitingUploads: null as { vaultId: string; count: number } | null,
   analyticsEnabled: false,
   lastUpdateCheckAt: null,
   customWorksheetTemplate: null,
@@ -341,6 +348,7 @@ export const useSettingsStore = create<SettingsState>()(
         appLockDelaySeconds: state.appLockDelaySeconds,
         cloudSyncWifiOnlyMedia: state.cloudSyncWifiOnlyMedia,
         cloudRestore: state.cloudRestore,
+        cloudSyncWaitingUploads: state.cloudSyncWaitingUploads,
         analyticsEnabled: state.analyticsEnabled,
         lastUpdateCheckAt: state.lastUpdateCheckAt,
         customWorksheetTemplate: state.customWorksheetTemplate,

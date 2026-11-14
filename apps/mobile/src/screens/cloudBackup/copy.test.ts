@@ -38,28 +38,62 @@ describe('cloud backup status copy', () => {
   test('keeps local changes and incoming attachments as separate counts', () => {
     expect(
       pendingWorkSummary(
-        { status: 'syncing', queuedCount: 2, pendingDownloadCount: 40 },
+        {
+          status: 'syncing',
+          queuedCount: 2,
+          pendingDownloadCount: 40,
+          waitingUploadCount: 0,
+        },
         t,
       ),
     ).toBe('2 changes remaining · Photos and voice notes to download: 40');
     expect(
       pendingWorkSummary(
-        { status: 'queued', queuedCount: 0, pendingDownloadCount: 3 },
+        {
+          status: 'queued',
+          queuedCount: 0,
+          pendingDownloadCount: 3,
+          waitingUploadCount: 0,
+        },
         t,
       ),
     ).toBe('Photos and voice notes to download: 3');
     expect(
       pendingWorkSummary(
-        { status: 'queued', queuedCount: 1, pendingDownloadCount: 0 },
+        {
+          status: 'queued',
+          queuedCount: 1,
+          pendingDownloadCount: 0,
+          waitingUploadCount: 0,
+        },
         t,
       ),
     ).toBe('1 change saved, waiting to sync');
     expect(
       pendingWorkSummary(
-        { status: 'synced', queuedCount: 0, pendingDownloadCount: 0 },
+        {
+          status: 'synced',
+          queuedCount: 0,
+          pendingDownloadCount: 0,
+          waitingUploadCount: 0,
+        },
         t,
       ),
     ).toBeNull();
+  });
+
+  test('counts new attachments waiting for Wi-Fi apart from local changes', () => {
+    expect(
+      pendingWorkSummary(
+        {
+          status: 'queued',
+          queuedCount: 0,
+          pendingDownloadCount: 0,
+          waitingUploadCount: 2,
+        },
+        t,
+      ),
+    ).toBe('Photos and voice notes waiting for Wi-Fi: 2');
   });
 
   test('explains why Sync now is unavailable', () => {
