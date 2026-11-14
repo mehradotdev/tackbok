@@ -12,6 +12,8 @@
     "update:production": "APP_VARIANT=production ANDROID_STORE=google GALAXY_BILLING_MODE=PRODUCTION bunx eas update --channel production --environment production --auto",
     "update:galaxy": "APP_VARIANT=production ANDROID_STORE=samsung GALAXY_BILLING_MODE=PRODUCTION bunx eas update --platform android --channel production-galaxy --environment production --auto",
     "update:galaxy-test": "APP_VARIANT=production ANDROID_STORE=samsung GALAXY_BILLING_MODE=TEST bunx eas update --platform android --channel galaxy-test --environment production --auto",
+    "build:beta:android": "bunx eas build --local --profile preview-beta --platform android --output \"$HOME/Downloads/tackbok-beta-v$npm_package_version.apk\"",
+    "build:beta:ios": "bunx eas build --local --profile preview-beta --platform ios --output \"$HOME/Downloads/tackbok-beta-v$npm_package_version.ipa\"",
     "generate:themes": "bun run src/lib/theme/generate-theme-artifacts.ts",
     "generate:themes:verify": "bun run generate:themes && bun run test:theme",
     "cloud-sync:test": "jest src/lib/cloudSync src/lib/zip/core/core-safety.test.ts src/lib/zip/core/gzip-codec.test.ts src/lib/analytics/events.test.ts src/lib/i18n/translations/translations.test.ts --runInBand --no-watchman && bun test scripts/cloud-sync",

@@ -26,6 +26,17 @@
       },
       "environment": "preview"
     },
+    "preview-beta": {
+      "extends": "preview",
+      "channel": "preview-beta",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "beta",
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",
@@ -38,20 +49,16 @@
     },
     "production-local": {
       "extends": "production",
-      "environment": "production",
       "autoIncrement": false
     },
     "production-galaxy": {
       "extends": "production",
-      "environment": "production",
       "autoIncrement": false,
       "channel": "production-galaxy",
       "android": {
         "buildType": "apk"
       },
       "env": {
-        "NODE_ENV": "production",
-        "APP_VARIANT": "production",
         "ANDROID_STORE": "samsung",
         "GALAXY_BILLING_MODE": "PRODUCTION"
       }
