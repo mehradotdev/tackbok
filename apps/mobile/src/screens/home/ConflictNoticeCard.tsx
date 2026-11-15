@@ -62,7 +62,8 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
   const toOtherVersions = notice.route === 'other-versions';
   return (
     <View className="mx-4 mt-2 mb-1 gap-2 rounded-lg border border-border bg-card p-3">
-      <View className="flex-row items-center gap-3">
+      {/* The row is 44pt tall: hitSlop never reaches past the parent row. */}
+      <View className="min-h-11 flex-row items-center gap-3">
         <View
           className="flex-1 flex-row items-center gap-3"
           accessibilityLiveRegion="polite">
