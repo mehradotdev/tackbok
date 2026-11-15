@@ -72,15 +72,25 @@ jest.mock('../../storage/backfill', () => ({
   loadProfileCache: () => mockLoadProfileCache(),
 }));
 jest.mock('./nativeSha256', () => ({ nativeSha256Bytes: jest.fn() }));
+const mockCheckOrder: string[] = [];
 jest.mock('./mediaHashing', () => ({
-  hashPendingProductionMedia: async () => ({ processed: 0, failed: 0, missing: 0 }),
+  hashPendingProductionMedia: async () => {
+    mockCheckOrder.push('hash');
+    return { processed: 0, failed: 0, missing: 0 };
+  },
 }));
 jest.mock('../drive', () => ({}));
 jest.mock('../sync/engine', () => ({}));
 jest.mock('../sync/baseShadow', () => ({}));
 jest.mock('../sync/expoBaseShadowFiles', () => ({}));
 jest.mock('../sync/sqliteState', () => ({}));
-jest.mock('../storage', () => ({}));
+const mockPruneMedia = jest.fn(async () => 0);
+jest.mock('../storage', () => ({
+  pruneMissingUnusedMedia: () => {
+    mockCheckOrder.push('prune');
+    return mockPruneMedia();
+  },
+}));
 
 interface Harness {
   runtime: ProductionSnapshotRuntimeEngine;
@@ -157,6 +167,23 @@ test('a completed pass records that the journal of this backup was restored', as
   });
   await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
   expect(mockMarkJournalRestored).toHaveBeenCalledWith('vault-restored');
+});
+
+test('unused media rows are pruned before hashing, and a failed prune does not fail the pass', async () => {
+  mockCheckOrder.length = 0;
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    await expect(harness('vault-pruned').runtime.sync()).resolves.toBeDefined();
+    expect(mockCheckOrder.slice(0, 2)).toEqual(['prune', 'hash']);
+    mockPruneMedia.mockRejectedValueOnce(new Error('locked'));
+    await expect(harness('vault-prune-failed').runtime.sync()).resolves.toBeDefined();
+    expect(warn).toHaveBeenCalledWith(
+      'Cloud sync could not remove unused media rows',
+      expect.any(Error),
+    );
+  } finally {
+    warn.mockRestore();
+  }
 });
 
 test('every pass saves its media hashes, including one that fails', async () => {

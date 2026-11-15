@@ -420,6 +420,72 @@ function parseConflict(value: string): SnapshotConflict {
   );
 }
 
+/**
+ * Deletes media rows that nothing uses and that have no file: a missing file
+ * or no file path at all. An older "Delete journal everywhere" left such
+ * profile-photo rows behind (#178). A backup with no other device to merge
+ * with would publish them, so every backup stopped on files that no longer
+ * exist.
+ *
+ * A profile photo is in use when it is the current one or an alternate in a
+ * photo conflict, the same references a merge keeps. An attachment is in use
+ * while its entry exists. A merge drops the rows this deletes, so other
+ * devices see no change. Rows in use are never touched, and neither is a row
+ * whose file check fails: if their files are missing, the backup keeps
+ * stopping.
+ */
+export async function pruneMissingUnusedMedia(): Promise<number> {
+  return runExclusiveDbTransaction(async (tx) => {
+    const rows = await tx
+      .select({
+        assetId: mediaAssets.asset_id,
+        ownerType: mediaAssets.owner_type,
+        ownerId: mediaAssets.owner_id,
+        localUri: mediaAssets.local_uri,
+      })
+      .from(mediaAssets);
+    if (rows.length === 0) return 0;
+    const liveEntries = new Set(
+      (await tx.select({ id: entries.note_id }).from(entries)).map(({ id }) => id),
+    );
+    const usedPhotos = new Set<string>();
+    const [profile] = await tx
+      .select({ photoAssetId: userProfile.photo_asset_id })
+      .from(userProfile)
+      .limit(1);
+    if (profile?.photoAssetId) usedPhotos.add(profile.photoAssetId);
+    for (const row of await tx
+      .select({ json: cloudConflicts.conflict_json })
+      .from(cloudConflicts)) {
+      const conflict = parseConflict(row.json);
+      if (conflict.field !== 'photoAssetId') continue;
+      for (const alternate of conflict.alternates)
+        if (alternate.value) usedPhotos.add(alternate.value);
+    }
+    const unused: string[] = [];
+    for (const row of rows) {
+      const used =
+        row.ownerType === 'entry'
+          ? liveEntries.has(row.ownerId)
+          : usedPhotos.has(row.assetId);
+      if (used) continue;
+      if (row.localUri) {
+        // Only a file confirmed absent counts; a failed check keeps the row.
+        try {
+          if (fileForLocalUri(row.localUri).exists) continue;
+        } catch {
+          continue;
+        }
+      }
+      unused.push(row.assetId);
+    }
+    await writeBatches(unused, (batch) =>
+      tx.delete(mediaAssets).where(inArray(mediaAssets.asset_id, batch)),
+    );
+    return unused.length;
+  });
+}
+
 function legacyAsset(descriptor: SnapshotMedia, uri: string): Asset {
   return {
     type: descriptor.kind === 'voice' ? AssetType.AUDIO : AssetType.IMAGE,
