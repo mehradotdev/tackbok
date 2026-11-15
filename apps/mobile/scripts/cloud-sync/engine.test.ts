@@ -2323,6 +2323,38 @@ describe('merging concurrent branches against their common ancestor', () => {
     }
   });
 
+  test('two devices keeping different versions before syncing keep one version', async () => {
+    const original = entry('e-original', 'Original', 10);
+    const copy = {
+      ...entry('recovered-e', 'Copy', 20),
+      conflictOriginId: original.entryId,
+    };
+    for (const order of ['a-first', 'b-first', 'concurrent'] as const) {
+      const { devices } = await converged(
+        2,
+        withEntry(withEntry(blankDomain(), original), copy),
+      );
+      const [a, b] = devices;
+      a.journal.mutate(withoutEntry(a.journal.current(), copy.entryId, a.deviceId));
+      b.journal.mutate(withoutEntry(b.journal.current(), original.entryId, b.deviceId));
+      if (order === 'concurrent') await syncConcurrently([a, b]);
+      else {
+        const [first, second] = order === 'a-first' ? [a, b] : [b, a];
+        await first.engine().sync();
+        await second.engine().sync();
+      }
+      await settle(devices);
+
+      const domain = a.journal.current();
+      expect(canonicalize(b.journal.current())).toBe(canonicalize(domain));
+      // The newer version comes back, with a "returned entry" record.
+      expect(contents(domain)).toEqual({ [copy.entryId]: 'Copy' });
+      expect(
+        domain.conflicts.map(({ entityId, field }) => ({ entityId, field })),
+      ).toEqual([{ entityId: copy.entryId, field: 'deleteEdit' }]);
+    }
+  });
+
   test('a rename concurrent with entry edits survives every round', async () => {
     const { devices } = await converged(2, {
       ...blankDomain(),

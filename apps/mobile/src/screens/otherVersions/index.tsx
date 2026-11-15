@@ -111,9 +111,8 @@ export default function OtherVersionsScreen() {
 
   // Deletes through the same path as deleting an entry from its own screen,
   // so the deletes sync and their media is retained the same way.
-  // shortcut: if two devices each keep a different version before syncing,
-  // both deletes win the merge and neither version is left; preventing that
-  // needs a merge rule change, so do it with the synced "keep both" badge work.
+  // If two devices each keep a different version before syncing, the merge
+  // brings one back (`keepOneVersion` in the snapshot merge).
   const handleKeepConfirm = async () => {
     if (!pendingKeep || deletingRef.current) return;
     deletingRef.current = true;

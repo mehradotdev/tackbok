@@ -1000,3 +1000,314 @@ describe('snapshot merge engine', () => {
     );
   });
 });
+
+describe('keeping one version when two devices keep different ones', () => {
+  const original: SnapshotEntry = {
+    entryId: 'entry-o',
+    title: 'Morning',
+    content: 'Original text',
+    mood: null,
+    createdAt: 1,
+    updatedAt: 10,
+    conflictOriginId: null,
+  };
+  const copy: SnapshotEntry = {
+    ...original,
+    entryId: 'recovered-c',
+    content: 'Copy text',
+    updatedAt: 20,
+    conflictOriginId: original.entryId,
+  };
+  const photo = {
+    assetId: 'asset-copy-photo',
+    ownerType: 'entry' as const,
+    ownerId: copy.entryId,
+    kind: 'photo' as const,
+    blobHash: 'b'.repeat(64),
+    mimeType: 'image/jpeg',
+    byteSize: 100,
+    width: 10,
+    height: 10,
+    durationMs: null,
+    createdAt: 1,
+    updatedAt: 1,
+  };
+  const tag = {
+    tagId: 'tag-x',
+    title: 'Walk',
+    createdAt: 1,
+    updatedAt: 1,
+    conflictOriginId: null,
+  };
+
+  function domainOf(entries: SnapshotEntry[]): SnapshotDomain {
+    const domain = blankDomain();
+    domain.entries = [...entries].sort((a, b) => (a.entryId < b.entryId ? -1 : 1));
+    domain.tags = [tag];
+    domain.entryTags = entries
+      .filter((entry) => entry.entryId === copy.entryId)
+      .map((entry) => ({
+        entryId: entry.entryId,
+        tagId: tag.tagId,
+        createdAt: 1,
+      }));
+    domain.media = entries.some((entry) => entry.entryId === copy.entryId) ? [photo] : [];
+    return domain;
+  }
+
+  /** `domain` after deleting `ids` on `device`, the way the journal captures it. */
+  function deleting(
+    domain: SnapshotDomain,
+    ids: string[],
+    device: string,
+  ): SnapshotDomain {
+    const next = structuredClone(domain);
+    for (const id of ids) {
+      const entry = next.entries.find((value) => value.entryId === id)!;
+      next.tombstones.push({
+        entityType: 'entry',
+        entityId: id,
+        baseStateHash: canonicalHash(entry),
+        deletedStateHash: canonicalHash(entry),
+        deletedByDeviceId: device,
+        deletionSequence: 2,
+      });
+    }
+    next.entries = next.entries.filter((value) => !ids.includes(value.entryId));
+    next.entryTags = next.entryTags.filter((value) => !ids.includes(value.entryId));
+    next.media = next.media.filter((value) => !ids.includes(value.ownerId));
+    next.tombstones.sort((a, b) => (a.entityId < b.entityId ? -1 : 1));
+    return next;
+  }
+
+  function editing(domain: SnapshotDomain, id: string, content: string): SnapshotDomain {
+    const next = structuredClone(domain);
+    next.entries = next.entries.map((value) =>
+      value.entryId === id ? { ...value, content, updatedAt: 30 } : value,
+    );
+    return next;
+  }
+
+  function mergeBothWays(
+    base: SnapshotDomain | null,
+    a: SnapshotDomain,
+    b: SnapshotDomain,
+  ): SnapshotDomain {
+    const merged = mergeSnapshotDomains(base, a, b);
+    expect(conflictSymmetricView(mergeSnapshotDomains(base, b, a))).toEqual(
+      conflictSymmetricView(merged),
+    );
+    expect(() =>
+      encodeSnapshot({
+        ...merged,
+        format: 'tackbok-snapshot',
+        vaultId: 'vault-keep-one',
+        authorDeviceId: 'device',
+        deviceSequence: 3,
+        createdAt: 3,
+        parentSnapshotIds: [],
+        observedDeviceHeads: [],
+      }),
+    ).not.toThrow();
+    return merged;
+  }
+
+  const liveIds = (domain: SnapshotDomain) =>
+    domain.entries.map((value) => value.entryId);
+  const base = domainOf([original, copy]);
+
+  it('keeps the newest version when each device kept a different one', () => {
+    const keptOriginal = deleting(base, [copy.entryId], 'device-a');
+    const keptCopy = deleting(base, [original.entryId], 'device-b');
+    const merged = mergeBothWays(base, keptOriginal, keptCopy);
+
+    expect(merged.entries).toEqual([copy]);
+    expect(merged.tombstones.map((value) => value.entityId)).toEqual([original.entryId]);
+    // The returned version keeps its photo and tag from the device that kept it.
+    expect(merged.media).toEqual([photo]);
+    expect(merged.entryTags).toEqual([
+      { entryId: copy.entryId, tagId: tag.tagId, createdAt: 1 },
+    ]);
+    // A "returned entry" record with the "still on another device" wording.
+    expect(merged.conflicts).toHaveLength(1);
+    expect(merged.conflicts[0]).toMatchObject({
+      entityType: 'entry',
+      entityId: copy.entryId,
+      field: 'deleteEdit',
+      baseValueHash: null,
+      primaryValueHash: canonicalHash(copy),
+    });
+
+    // Whichever device merges first, the other fast-forwards or re-merges to it.
+    expect(mergeSnapshotDomains(keptCopy, keptCopy, merged)).toEqual(merged);
+    expect(mergeSnapshotDomains(keptOriginal, keptOriginal, merged)).toEqual(merged);
+    expect(mergeSnapshotDomains(base, merged, keptCopy)).toEqual(merged);
+    expect(
+      conflictSymmetricView(mergeSnapshotDomains(base, merged, keptOriginal)),
+    ).toEqual(conflictSymmetricView(merged));
+  });
+
+  it('chooses the newer original, and breaks equal edit times by entry ID', () => {
+    const newer = { ...original, updatedAt: 99 };
+    const newerBase = domainOf([newer, copy]);
+    const merged = mergeBothWays(
+      newerBase,
+      deleting(newerBase, [copy.entryId], 'device-a'),
+      deleting(newerBase, [newer.entryId], 'device-b'),
+    );
+    expect(merged.entries).toEqual([newer]);
+    expect(merged.media).toEqual([]);
+    expect(merged.entryTags).toEqual([]);
+
+    const tied = { ...copy, updatedAt: original.updatedAt };
+    const tiedBase = domainOf([original, tied]);
+    const tiedMerge = mergeBothWays(
+      tiedBase,
+      deleting(tiedBase, [original.entryId], 'device-a'),
+      deleting(tiedBase, [tied.entryId], 'device-b'),
+    );
+    // 'entry-o' < 'recovered-c'.
+    expect(liveIds(tiedMerge)).toEqual([original.entryId]);
+  });
+
+  it('keeps one of three or more versions, never one both devices deleted', () => {
+    const third: SnapshotEntry = {
+      ...copy,
+      entryId: 'recovered-d',
+      content: 'Third text',
+      updatedAt: 50,
+      conflictOriginId: copy.entryId,
+    };
+    const threeBase = domainOf([original, copy, third]);
+    const merged = mergeBothWays(
+      threeBase,
+      deleting(threeBase, [copy.entryId, third.entryId], 'device-a'),
+      deleting(threeBase, [original.entryId, third.entryId], 'device-b'),
+    );
+    // The third version is the newest, but both devices deleted it.
+    expect(liveIds(merged)).toEqual([copy.entryId]);
+    expect(merged.tombstones.map((value) => value.entityId).sort()).toEqual([
+      original.entryId,
+      third.entryId,
+    ]);
+
+    // One device kept two versions: still only one comes back.
+    const keptTwo = mergeBothWays(
+      threeBase,
+      deleting(threeBase, [copy.entryId, third.entryId], 'device-a'),
+      deleting(threeBase, [original.entryId], 'device-b'),
+    );
+    expect(liveIds(keptTwo)).toEqual([third.entryId]);
+    expect(keptTwo.conflicts.map((value) => value.entityId)).toEqual([third.entryId]);
+  });
+
+  it('treats copies of a version deleted before the base as a separate group', () => {
+    // shortcut in keepOneVersion: the deleted middle keeps no lineage, so this
+    // still loses both; pinned so a lineage-carrying format can change it.
+    const middle = { ...copy, entryId: 'recovered-b' };
+    const end = { ...copy, entryId: 'recovered-c', conflictOriginId: middle.entryId };
+    const linkBase = deleting(
+      domainOf([original, middle, end]),
+      [middle.entryId],
+      'device-d',
+    );
+    const merged = mergeBothWays(
+      linkBase,
+      deleting(linkBase, [end.entryId], 'device-a'),
+      deleting(linkBase, [original.entryId], 'device-b'),
+    );
+    expect(merged.entries).toEqual([]);
+    expect(merged.conflicts).toEqual([]);
+  });
+
+  it('keeps a whole-entry delete when the other device kept nothing different', () => {
+    const deletedAll = deleting(base, [original.entryId, copy.entryId], 'device-a');
+    // The other device did nothing.
+    const untouched = mergeBothWays(base, deletedAll, base);
+    expect(untouched.entries).toEqual([]);
+    expect(untouched.conflicts).toEqual([]);
+    // The other device kept a version that this device also deleted.
+    for (const keptId of [original.entryId, copy.entryId]) {
+      const otherId = keptId === original.entryId ? copy.entryId : original.entryId;
+      const merged = mergeBothWays(
+        base,
+        deletedAll,
+        deleting(base, [otherId], 'device-b'),
+      );
+      expect(merged.entries).toEqual([]);
+      expect(merged.media).toEqual([]);
+      expect(merged.conflicts).toEqual([]);
+    }
+    // Both devices deleted everything.
+    const both = mergeBothWays(
+      base,
+      deletedAll,
+      deleting(base, [original.entryId, copy.entryId], 'device-b'),
+    );
+    expect(both.entries).toEqual([]);
+    expect(both.conflicts).toEqual([]);
+    // An ordinary entry deleted on one device stays deleted.
+    const single = domainOf([original]);
+    expect(
+      mergeBothWays(single, deleting(single, [original.entryId], 'device-a'), single)
+        .entries,
+    ).toEqual([]);
+  });
+
+  it('leaves edit-versus-delete outcomes to the existing rule', () => {
+    const keptOriginal = deleting(base, [copy.entryId], 'device-a');
+    const keptCopy = deleting(base, [original.entryId], 'device-b');
+
+    // The device that kept the original also edited it: the edit wins alone.
+    const editedOriginal = mergeBothWays(
+      base,
+      editing(keptOriginal, original.entryId, 'Edited original'),
+      keptCopy,
+    );
+    expect(editedOriginal.entries.map((value) => value.content)).toEqual([
+      'Edited original',
+    ]);
+    expect(editedOriginal.conflicts.map((value) => value.entityId)).toEqual([
+      original.entryId,
+    ]);
+
+    // The device that kept the copy edited it.
+    const editedCopy = mergeBothWays(
+      base,
+      keptOriginal,
+      editing(keptCopy, copy.entryId, 'Edited copy'),
+    );
+    expect(editedCopy.entries.map((value) => value.content)).toEqual(['Edited copy']);
+
+    // Both kept versions were edited: each edit beats its delete, as before.
+    const editedBoth = mergeBothWays(
+      base,
+      editing(keptOriginal, original.entryId, 'Edited original'),
+      editing(keptCopy, copy.entryId, 'Edited copy'),
+    );
+    expect(liveIds(editedBoth)).toEqual([original.entryId, copy.entryId]);
+
+    // One device deleted everything; the other edited a version: the edit wins.
+    const editedAfterDeleteAll = mergeBothWays(
+      base,
+      deleting(base, [original.entryId, copy.entryId], 'device-a'),
+      editing(keptCopy, copy.entryId, 'Edited copy'),
+    );
+    expect(liveIds(editedAfterDeleteAll)).toEqual([copy.entryId]);
+  });
+
+  it('adds nothing to a base-less merge, where deletes never beat live versions', () => {
+    const keptOriginal = deleting(base, [copy.entryId], 'device-a');
+    const keptCopy = deleting(base, [original.entryId], 'device-b');
+    const merged = mergeBothWays(null, keptOriginal, keptCopy);
+    expect(liveIds(merged)).toEqual([original.entryId, copy.entryId]);
+    expect(merged.conflicts.map((value) => value.entityId).sort()).toEqual([
+      original.entryId,
+      copy.entryId,
+    ]);
+    const deletedAll = deleting(base, [original.entryId, copy.entryId], 'device-a');
+    const withoutLive = mergeBothWays(null, deletedAll, deletedAll);
+    expect(withoutLive.entries).toEqual([]);
+    expect(withoutLive.conflicts).toEqual([]);
+  });
+});
