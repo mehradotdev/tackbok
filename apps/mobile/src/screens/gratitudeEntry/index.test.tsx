@@ -3,7 +3,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import GratitudeEntryScreen from './index';
 import type { Entry } from '~/types';
 
-let mockEntry: Entry | undefined;
+// `useEntry` resolves a deleted entry as null.
+let mockEntry: Entry | null;
 
 jest.mock('react-native', () => ({
   View: 'View',
@@ -48,7 +49,7 @@ test('an entry deleted elsewhere (e.g. "Keep this one") shows "not found" on ret
   mockEntry = entry;
   render();
   expect(view()).toHaveLength(1);
-  mockEntry = undefined;
+  mockEntry = null;
   rerender();
   expect(view()).toHaveLength(0);
   expect(content()).toContain('entry.entryNotFound');
@@ -58,7 +59,7 @@ test('deleting from this screen keeps the entry on screen until it goes back', (
   mockEntry = entry;
   render();
   act(() => view()[0].props.onDeleteStart());
-  mockEntry = undefined;
+  mockEntry = null;
   rerender();
   expect(view()[0].props.entry).toBe(entry);
   expect(content()).not.toContain('entry.entryNotFound');
@@ -69,7 +70,7 @@ test('after a failed delete here, a later delete elsewhere still shows "not foun
   render();
   act(() => view()[0].props.onDeleteStart());
   act(() => view()[0].props.onDeleteFailed());
-  mockEntry = undefined;
+  mockEntry = null;
   rerender();
   expect(view()).toHaveLength(0);
   expect(content()).toContain('entry.entryNotFound');

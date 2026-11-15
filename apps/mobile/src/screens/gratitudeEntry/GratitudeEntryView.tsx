@@ -32,8 +32,9 @@ interface GratitudeEntryViewProps {
   entry: Entry;
   onEdit: () => void;
   onBack: () => void;
-  /** Called just before this screen deletes the entry, and if that fails. */
+  /** Called just before this screen deletes the entry. */
   onDeleteStart: () => void;
+  /** Called when that delete fails and the entry is still there. */
   onDeleteFailed: () => void;
   onPhotoPress: (photos: Asset[], index: number) => void;
 }
