@@ -294,7 +294,11 @@ test('up to three returned entries are listed one by one', async () => {
 
 test('"Got it" and "Keep current" rows say they hide the notice on this device only', async () => {
   const note = mockEn['cloud.conflicts.hidesOnThisDeviceOnly'];
-  const count = () => content().split(note).length - 1;
+  // Visible lines only; the same words are also the buttons' hints.
+  const count = () =>
+    root.root.findAll(
+      (node) => (node.type as unknown) === 'Text' && node.props.children === note,
+    ).length;
   await render([nameItem, photoItem, returnedItem]);
   expect(count()).toBe(3);
   act(() => root.unmount());
@@ -310,7 +314,34 @@ test('the collapsed returned-entries row says it too', async () => {
     entry: { ...(returnedItem as { entry: object }).entry, entryId: `r${n}` },
   })) as CloudConflictItem[];
   await render(many);
+  const note = mockEn['cloud.conflicts.hidesOnThisDeviceOnly'];
   expect(
-    content().split(mockEn['cloud.conflicts.hidesOnThisDeviceOnly']).length - 1,
-  ).toBe(1);
+    root.root.findAll(
+      (node) => (node.type as unknown) === 'Text' && node.props.children === note,
+    ),
+  ).toHaveLength(1);
+});
+
+test('"Keep current" and "Got it" carry the device-only note as their hint', async () => {
+  const note = mockEn['cloud.conflicts.hidesOnThisDeviceOnly'];
+  await render([nameItem, photoItem, returnedItem]);
+  const hints = (label: string) =>
+    root.root
+      .findAll(
+        (node) =>
+          (node.type as unknown) === 'Button' &&
+          node.findByType('Text' as never).props.children === label,
+      )
+      .map((node) => node.props.accessibilityHint);
+  expect(hints(mockEn['cloud.conflicts.keepCurrent'])).toEqual([note, note]);
+  expect(hints(mockEn['cloud.conflicts.gotIt'])).toEqual([note]);
+});
+
+test('older names, already hidden, get no device-only note', async () => {
+  await render([
+    { ...nameItem, conflictIds: ['old'], other: 'Old name', archived: true },
+  ]);
+  await act(async () => button(mockEn['cloud.conflicts.showOlderNames']).props.onPress());
+  expect(content()).toContain('Old name');
+  expect(content()).not.toContain(mockEn['cloud.conflicts.hidesOnThisDeviceOnly']);
 });

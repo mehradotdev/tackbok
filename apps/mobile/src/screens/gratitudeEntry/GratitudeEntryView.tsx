@@ -32,6 +32,8 @@ interface GratitudeEntryViewProps {
   entry: Entry;
   onEdit: () => void;
   onBack: () => void;
+  /** Called just before this screen deletes the entry. */
+  onDeleteStart?: () => void;
   onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
@@ -39,6 +41,7 @@ export function GratitudeEntryView({
   entry,
   onEdit,
   onBack,
+  onDeleteStart,
   onPhotoPress,
 }: GratitudeEntryViewProps) {
   const { t, isRTL } = useTranslation();
@@ -77,6 +80,9 @@ export function GratitudeEntryView({
   const canShare = Boolean(title?.trim() || content?.trim());
 
   const handleDelete = async () => {
+    // Outside the try: the React Compiler skips components with an optional
+    // call inside try/catch.
+    onDeleteStart?.();
     try {
       if (entry.note_id) {
         await deleteEntryMutation.mutateAsync(entry.note_id);

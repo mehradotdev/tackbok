@@ -67,7 +67,7 @@ export const en = {
   // Banner on an entry that still has another version; the button opens Other versions.
   'entry.otherVersionBanner': 'This entry has another version.',
   'entry.compareVersions': 'Compare',
-  'entry.compareVersionsHint': 'Shows the versions of this entry.',
+  'entry.compareVersionsHint': 'Opens Other versions with this entry first.',
   // Screen reader labels of the edit and delete icons on an entry.
   'entry.editEntry': 'Edit entry',
   'entry.deleteEntryLabel': 'Delete entry',

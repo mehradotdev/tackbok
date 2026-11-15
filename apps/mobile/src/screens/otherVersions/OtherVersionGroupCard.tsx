@@ -40,9 +40,10 @@ export function OtherVersionGroupCard({
   return (
     <View
       className={cn(
-        'mx-3 mb-4 rounded-lg border bg-card overflow-hidden',
-        // A calm accent, as on the Cloud backup conflicts card.
-        highlighted ? 'border-primary' : 'border-border',
+        'mx-3 mb-4 rounded-lg bg-card overflow-hidden',
+        // A calm accent, as on the Cloud backup conflicts card; twice as thick,
+        // since primary is fainter than the usual border in some themes.
+        highlighted ? 'border-2 border-primary' : 'border border-border',
       )}>
       <View className="gap-1 px-3 pt-3">
         <Text role="heading" className="font-body-bold text-foreground">

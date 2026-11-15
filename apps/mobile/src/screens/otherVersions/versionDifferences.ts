@@ -23,10 +23,11 @@ export function versionDifferences(members: readonly VersionFields[]): Translati
   if (differs((entry) => entry.mood ?? '')) {
     differences.push('cloud.conflicts.moodDiffers');
   }
-  // The journal day, in local time, or else only the time of day.
+  // The journal day, in local time, or else the time of day to the minute, as
+  // entries show it (picking a time zeroes the seconds).
   if (differs((entry) => day(entry.created_at))) {
     differences.push('cloud.conflicts.dateDiffers');
-  } else if (differs((entry) => entry.created_at)) {
+  } else if (differs((entry) => Math.floor(entry.created_at / 60_000))) {
     differences.push('cloud.conflicts.timeDiffers');
   }
   return differences;

@@ -41,7 +41,9 @@ import { deleteEach, entriesToDelete, groupMembers, keepMessage } from './keepVe
  */
 export default function OtherVersionsScreen() {
   const router = useRouter();
-  const { focus } = useLocalSearchParams<{ focus?: string }>();
+  const params = useLocalSearchParams<{ focus?: string | string[] }>();
+  // A repeated query parameter arrives as a list; use the first.
+  const focus = Array.isArray(params.focus) ? params.focus[0] : params.focus;
   const { t, isRTL } = useTranslation();
   const tagMap = useTagMapping();
   const { data, isLoading, isError, refetch } = useOtherVersionGroups();
@@ -52,11 +54,7 @@ export default function OtherVersionsScreen() {
   // Once a choice was listed here, an empty list means every choice is made.
   const [hadGroups, setHadGroups] = useState(false);
   if (groups.length > 0 && !hadGroups) setHadGroups(true);
-  const allDone =
-    !isLoading &&
-    !isError &&
-    groups.length === 0 &&
-    (hadGroups || (data?.length ?? 0) > 0);
+  const allDone = !isLoading && !isError && groups.length === 0 && hadGroups;
   const deleteEntryMutation = useDeleteEntry();
   // The entry to keep and the entries the confirmation names for deletion.
   const [pendingKeep, setPendingKeep] = useState<{
@@ -77,12 +75,19 @@ export default function OtherVersionsScreen() {
     useSettingsStore.getState().markOtherVersionsSeen(Date.now());
   }, []);
 
-  // Screen readers stay on the button that was tapped, so say it once.
+  // Screen readers stay where the confirmation was, so say it once each time
+  // the list empties. Queued, so focus moving after the dialog does not cut it off.
   const announcedRef = useRef(false);
   useEffect(() => {
-    if (!allDone || announcedRef.current) return;
+    if (!allDone) {
+      announcedRef.current = false;
+      return;
+    }
+    if (announcedRef.current) return;
     announcedRef.current = true;
-    AccessibilityInfo.announceForAccessibility(t('cloud.conflicts.allDone'));
+    AccessibilityInfo.announceForAccessibilityWithOptions(t('cloud.conflicts.allDone'), {
+      queue: true,
+    });
   }, [allDone, t]);
 
   const handlePhotoPress = (photos: Asset[], index: number) => {

@@ -67,7 +67,7 @@ export const zhCN: Translations = {
   'entry.otherVersion': '其他版本',
   'entry.otherVersionBanner': '此条目还有另一个版本。',
   'entry.compareVersions': '比较',
-  'entry.compareVersionsHint': '显示此条目的各个版本。',
+  'entry.compareVersionsHint': '打开“其他版本”，并将此条目排在最前。',
   'entry.editEntry': '编辑条目',
   'entry.deleteEntryLabel': '删除条目',
   'entry.deleteEntry': '删除条目？',

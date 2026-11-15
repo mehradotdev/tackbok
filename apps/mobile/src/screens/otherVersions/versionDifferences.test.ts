@@ -54,3 +54,9 @@ test('with three versions, a field differs when any version differs', () => {
 test('identical versions name nothing', () => {
   expect(versionDifferences([version(), version()])).toEqual([]);
 });
+
+test('seconds alone are not a time difference: entries show minutes', () => {
+  expect(
+    versionDifferences([version(), version({ created_at: at('2026-11-15T09:00:42') })]),
+  ).toEqual([]);
+});

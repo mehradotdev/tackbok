@@ -52,7 +52,7 @@ export const sv = {
   'entry.otherVersion': 'Annan version',
   'entry.otherVersionBanner': 'Den här anteckningen har en annan version.',
   'entry.compareVersions': 'Jämför',
-  'entry.compareVersionsHint': 'Visar versionerna av den här anteckningen.',
+  'entry.compareVersionsHint': 'Öppnar ”Andra versioner” med den här anteckningen först.',
   'entry.editEntry': 'Redigera anteckning',
   'entry.deleteEntryLabel': 'Ta bort anteckning',
   'entry.deleteEntry': 'Ta bort post?',

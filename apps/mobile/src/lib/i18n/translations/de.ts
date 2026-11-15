@@ -69,7 +69,7 @@ export const de: Translations = {
   'entry.otherVersion': 'Andere Version',
   'entry.otherVersionBanner': 'Dieser Eintrag hat eine andere Version.',
   'entry.compareVersions': 'Vergleichen',
-  'entry.compareVersionsHint': 'Zeigt die Versionen dieses Eintrags.',
+  'entry.compareVersionsHint': 'Öffnet „Andere Versionen“ mit diesem Eintrag zuerst.',
   'entry.editEntry': 'Eintrag bearbeiten',
   'entry.deleteEntryLabel': 'Eintrag löschen',
   'entry.deleteEntry': 'Eintrag löschen?',

@@ -14,7 +14,7 @@ const mockTrack = jest.fn();
 const mockToastError = jest.fn();
 const mockPush = jest.fn();
 const mockAnnounce = jest.fn();
-let mockParams: { focus?: string } = {};
+let mockParams: { focus?: string | string[] } = {};
 
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
@@ -22,7 +22,8 @@ jest.mock('expo-localization', () => ({
 jest.mock('react-native', () => ({
   View: 'View',
   AccessibilityInfo: {
-    announceForAccessibility: (message: string) => mockAnnounce(message),
+    announceForAccessibilityWithOptions: (message: string, options: unknown) =>
+      mockAnnounce(message, options),
   },
   FlatList: ({
     data,
@@ -390,15 +391,19 @@ test('after the last choice it says all done, and announces it once', () => {
   act(() => root.update(<OtherVersionsScreen />));
   expect(content()).toContain(mockEn['cloud.conflicts.allDone']);
   expect(content()).not.toContain(mockEn['cloud.conflicts.noOtherVersions']);
-  expect(mockAnnounce.mock.calls).toEqual([[mockEn['cloud.conflicts.allDone']]]);
+  // Queued, so focus moving after the dialog closes does not cut it off.
+  expect(mockAnnounce.mock.calls).toEqual([
+    [mockEn['cloud.conflicts.allDone'], { queue: true }],
+  ]);
   act(() => root.update(<OtherVersionsScreen />));
   expect(mockAnnounce).toHaveBeenCalledTimes(1);
 });
 
-test('only lone versions left (e.g. kept on another device) is all done too', () => {
+test('opening with only lone versions shows the plain empty state, not all done', () => {
   render({ data: [{ original: null, versions: [copy] }] });
-  expect(content()).toContain(mockEn['cloud.conflicts.allDone']);
-  expect(mockAnnounce).toHaveBeenCalledTimes(1);
+  expect(content()).toContain(mockEn['cloud.conflicts.noOtherVersions']);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.allDone']);
+  expect(mockAnnounce).not.toHaveBeenCalled();
 });
 
 test('no versions at all keeps the plain empty state, without an announcement', () => {
@@ -406,4 +411,54 @@ test('no versions at all keeps the plain empty state, without an announcement', 
   expect(content()).toContain(mockEn['cloud.conflicts.noOtherVersions']);
   expect(content()).not.toContain(mockEn['cloud.conflicts.allDone']);
   expect(mockAnnounce).not.toHaveBeenCalled();
+});
+
+test('a repeated focus parameter uses the first entry', () => {
+  mockParams = { focus: ['copy', 'other'] };
+  render({
+    data: [
+      { original: other, versions: [otherCopy] },
+      { original, versions: [copy] },
+    ],
+  });
+  expect(cards()[0].props.group.original.note_id).toBe('original');
+  expect(cards()[0].props.highlighted).toBe(true);
+});
+
+test('the marked group has a thicker accent border than the others', () => {
+  mockParams = { focus: 'copy' };
+  render({
+    data: [
+      { original, versions: [copy] },
+      { original: other, versions: [otherCopy] },
+    ],
+  });
+  const borders = root.root
+    .findAll(
+      (node) =>
+        (node.type as unknown) === 'View' &&
+        String(node.props.className).includes('rounded-lg'),
+    )
+    .map((node) => node.props.className as string);
+  expect(borders[0]).toContain('border-2 border-primary');
+  expect(borders[1]).toContain('border border-border');
+});
+
+test('all done is announced again when a later batch is finished in the same visit', () => {
+  const show = (data: OtherVersionGroup[]) => {
+    mockQuery.mockReturnValue({
+      data,
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    });
+    act(() => root.update(<OtherVersionsScreen />));
+  };
+  render({ data: [{ original, versions: [copy] }] });
+  show([]);
+  // A sync brings another conflict while the screen is open, then it is resolved.
+  show([{ original: other, versions: [otherCopy] }]);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.allDone']);
+  show([]);
+  expect(mockAnnounce).toHaveBeenCalledTimes(2);
 });

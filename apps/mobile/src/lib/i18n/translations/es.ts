@@ -53,7 +53,7 @@ export const es = {
   'entry.otherVersion': 'Otra versión',
   'entry.otherVersionBanner': 'Esta entrada tiene otra versión.',
   'entry.compareVersions': 'Comparar',
-  'entry.compareVersionsHint': 'Muestra las versiones de esta entrada.',
+  'entry.compareVersionsHint': 'Abre «Otras versiones» con esta entrada primero.',
   'entry.editEntry': 'Editar entrada',
   'entry.deleteEntryLabel': 'Eliminar entrada',
   'entry.deleteEntry': '¿Eliminar entrada?',

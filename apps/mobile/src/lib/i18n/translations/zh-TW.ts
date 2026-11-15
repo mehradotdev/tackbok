@@ -67,7 +67,7 @@ export const zhTW: Translations = {
   'entry.otherVersion': '其他版本',
   'entry.otherVersionBanner': '此紀錄還有另一個版本。',
   'entry.compareVersions': '比較',
-  'entry.compareVersionsHint': '顯示此紀錄的各個版本。',
+  'entry.compareVersionsHint': '開啟「其他版本」，並將此紀錄排在最前面。',
   'entry.editEntry': '編輯紀錄',
   'entry.deleteEntryLabel': '刪除紀錄',
   'entry.deleteEntry': '刪除紀錄？',

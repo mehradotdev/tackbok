@@ -30,12 +30,17 @@ export default function GratitudeEntryScreen({
 
   // Deleting an entry clears its cache before the delayed back-navigation runs,
   // so keep the last loaded entry on screen instead of flashing "not found".
-  // Scoped to noteId so a reused screen never falls back to a different entry.
+  // Scoped to noteId so a reused screen never falls back to a different entry,
+  // and to a delete from this screen: an entry deleted elsewhere, e.g. by
+  // "Keep this one" on Other versions, shows "not found" when the user returns.
+  const [deletingHere, setDeletingHere] = useState(false);
   const lastEntryRef = useRef({ noteId, entry });
   if (entry) lastEntryRef.current = { noteId, entry };
   const displayEntry =
     entry ??
-    (lastEntryRef.current.noteId === noteId ? lastEntryRef.current.entry : undefined);
+    (deletingHere && lastEntryRef.current.noteId === noteId
+      ? lastEntryRef.current.entry
+      : undefined);
 
   // Image Viewer — single instance shared by both View and Edit modes
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
@@ -113,6 +118,7 @@ export default function GratitudeEntryScreen({
             entry={displayEntry}
             onEdit={() => setIsEditMode(true)}
             onBack={() => router.back()}
+            onDeleteStart={() => setDeletingHere(true)}
             onPhotoPress={handlePhotoPress}
           />
         )

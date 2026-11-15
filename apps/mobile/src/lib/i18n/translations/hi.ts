@@ -52,7 +52,7 @@ export const hi = {
   'entry.otherVersion': 'अन्य संस्करण',
   'entry.otherVersionBanner': 'इस प्रविष्टि का एक अन्य संस्करण है।',
   'entry.compareVersions': 'तुलना करें',
-  'entry.compareVersionsHint': 'इस प्रविष्टि के संस्करण दिखाता है।',
+  'entry.compareVersionsHint': '"अन्य संस्करण" खोलता है, जिसमें यह प्रविष्टि सबसे ऊपर होती है।',
   'entry.editEntry': 'प्रविष्टि संपादित करें',
   'entry.deleteEntryLabel': 'प्रविष्टि हटाएं',
   'entry.deleteEntry': 'प्रविष्टि हटाएं?',
