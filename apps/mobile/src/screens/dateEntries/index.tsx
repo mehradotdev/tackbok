@@ -34,6 +34,8 @@ interface IEntryItemProps {
   showDate?: boolean;
   /** Pad by the safe area; off inside a container that already does. */
   safeAreaPadding?: boolean;
+  /** Show the whole title and text, e.g. where versions are compared. */
+  fullText?: boolean;
   className?: string;
 }
 
@@ -44,6 +46,7 @@ export function EntryItem({
   onPhotoPress,
   showDate = false,
   safeAreaPadding = true,
+  fullText = false,
   className,
 }: IEntryItemProps) {
   const { t, locale } = useTranslation();
@@ -107,14 +110,16 @@ export function EntryItem({
         {entry.text_title && (
           <Text
             className="text-lg font-body-semibold text-foreground mb-1"
-            numberOfLines={1}>
+            numberOfLines={fullText ? undefined : 1}>
             {entry.text_title}
           </Text>
         )}
 
         {/* Content */}
         {entry.text_content && (
-          <Text className="text-base text-foreground leading-6" numberOfLines={3}>
+          <Text
+            className="text-base text-foreground leading-6"
+            numberOfLines={fullText ? undefined : 3}>
             {entry.text_content}
           </Text>
         )}

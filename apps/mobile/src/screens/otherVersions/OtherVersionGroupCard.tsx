@@ -84,6 +84,8 @@ export function OtherVersionGroupCard({
               tagMap={tagMap}
               onPhotoPress={onPhotoPress}
               showDate
+              // Versions can differ at the end of a long title or text.
+              fullText
               // The screen already insets for the safe area.
               safeAreaPadding={false}
               className="border-b-0"
