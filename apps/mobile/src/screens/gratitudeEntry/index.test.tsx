@@ -63,3 +63,14 @@ test('deleting from this screen keeps the entry on screen until it goes back', (
   expect(view()[0].props.entry).toBe(entry);
   expect(content()).not.toContain('entry.entryNotFound');
 });
+
+test('after a failed delete here, a later delete elsewhere still shows "not found"', () => {
+  mockEntry = entry;
+  render();
+  act(() => view()[0].props.onDeleteStart());
+  act(() => view()[0].props.onDeleteFailed());
+  mockEntry = undefined;
+  rerender();
+  expect(view()).toHaveLength(0);
+  expect(content()).toContain('entry.entryNotFound');
+});

@@ -119,6 +119,8 @@ export default function GratitudeEntryScreen({
             onEdit={() => setIsEditMode(true)}
             onBack={() => router.back()}
             onDeleteStart={() => setDeletingHere(true)}
+            // The entry is still here: a later delete from elsewhere shows "not found".
+            onDeleteFailed={() => setDeletingHere(false)}
             onPhotoPress={handlePhotoPress}
           />
         )

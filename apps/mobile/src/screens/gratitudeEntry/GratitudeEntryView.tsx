@@ -32,8 +32,9 @@ interface GratitudeEntryViewProps {
   entry: Entry;
   onEdit: () => void;
   onBack: () => void;
-  /** Called just before this screen deletes the entry. */
-  onDeleteStart?: () => void;
+  /** Called just before this screen deletes the entry, and if that fails. */
+  onDeleteStart: () => void;
+  onDeleteFailed: () => void;
   onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
@@ -42,6 +43,7 @@ export function GratitudeEntryView({
   onEdit,
   onBack,
   onDeleteStart,
+  onDeleteFailed,
   onPhotoPress,
 }: GratitudeEntryViewProps) {
   const { t, isRTL } = useTranslation();
@@ -80,9 +82,7 @@ export function GratitudeEntryView({
   const canShare = Boolean(title?.trim() || content?.trim());
 
   const handleDelete = async () => {
-    // Outside the try: the React Compiler skips components with an optional
-    // call inside try/catch.
-    onDeleteStart?.();
+    onDeleteStart();
     try {
       if (entry.note_id) {
         await deleteEntryMutation.mutateAsync(entry.note_id);
@@ -90,6 +90,7 @@ export function GratitudeEntryView({
       }
     } catch (error) {
       console.error('Failed to delete entry', error);
+      onDeleteFailed();
       toast.error(t('mood.failedToDeleteEntry'));
       return;
     }

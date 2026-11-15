@@ -62,7 +62,9 @@ test('deleting an entry elsewhere updates a mounted screen showing it', async ()
   await flush();
   expect(seen.at(-1)?.note_id).toBe('original');
 
-  await act(async () => remove('original'));
+  await act(async () => {
+    await remove('original');
+  });
   await flush();
   expect(seen.at(-1)).toBeNull();
   act(() => root.unmount());
