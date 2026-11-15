@@ -146,6 +146,9 @@ const config: ExpoConfig = {
       'react-native-audio-api',
       {
         iosBackgroundMode: false,
+        // Voice notes play only while the app is open, so no audio foreground
+        // service (which would need a Play foreground-service declaration).
+        androidForegroundService: false,
         iosMicrophonePermission: englishLocale.ios.NSMicrophoneUsageDescription,
         androidPermissions: [
           'android.permission.RECORD_AUDIO',

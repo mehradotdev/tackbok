@@ -7,10 +7,13 @@
  * Key guarantees:
  * - Only one voice memo can play at a time across the entire app.
  * - The AudioContext is suspended when idle to save battery.
+ * - Voice notes play only while the app is open: going to background pauses
+ *   playback, and the player shows it paused when the app returns.
  * - Raw analyser data is available for waveform components via getTimeDomainData()
  *   and getCurrentRmsAmplitude().
  */
 
+import { AppState } from 'react-native';
 import {
   AudioContext,
   AudioRecorder,
@@ -202,6 +205,26 @@ class AudioEngine {
   private playbackEndListeners = new Map<ListenerId, PlaybackEndCallback>();
   private nextListenerId = 0;
   private playbackEndTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private inBackground = AppState.currentState === 'background';
+
+  constructor() {
+    // `inactive` (iOS app switcher, Control Center, a call banner) is not
+    // background. Recording is stopped by VoiceMemoModal, which owns its UI.
+    AppState.addEventListener('change', (state) => {
+      if (state !== 'background' && state !== 'active') return;
+      this.inBackground = state === 'background';
+      if (!this.inBackground || this._playbackState === 'idle') return;
+      this.pausePlayback();
+      // Also for a note the user paused before leaving (idle already suspended).
+      this.suspendWhileBackgrounded();
+    });
+  }
+
+  /** No output stream stays open in background; resumePlayback restarts it. */
+  private suspendWhileBackgrounded(): void {
+    if (!this._isRecording) void this.audioContext?.suspend();
+  }
 
   // ====================================================================
   // Initialisation (lazy)
@@ -496,13 +519,21 @@ class AudioEngine {
       throw error;
     }
 
+    this.playStartOffset = Math.min(offset, this.currentBuffer.duration);
+
+    // The app went to background while the file loaded: never start there.
+    if (this.inBackground) {
+      this._playbackState = 'paused';
+      this.suspendWhileBackgrounded();
+      return;
+    }
+
     // Create source
     this.sourceNode = ctx.createBufferSource();
     this.sourceNode.buffer = this.currentBuffer;
     this.connectSourceToOutput(this.sourceNode);
 
     // Track timing
-    this.playStartOffset = Math.min(offset, this.currentBuffer.duration);
     this.playStartContextTime = ctx.currentTime;
 
     this.sourceNode.start(0, this.playStartOffset);
@@ -526,15 +557,39 @@ class AudioEngine {
   }
 
   async resumePlayback(): Promise<void> {
-    if (this._playbackState !== 'paused' || !this.currentBuffer) return;
+    if (this._playbackState !== 'paused' || !this.currentBuffer || this.inBackground) {
+      return;
+    }
 
     const ctx = this.ensureContext();
 
     // Ensure analyser is connected to speakers for audible playback
     this.unmuteOutput();
 
+    // A load started during the awaits below replaces this buffer.
+    const requestId = this.loadRequestId;
+    // iOS may have interrupted the session while the app was in background.
+    AudioManager.setAudioSessionOptions({
+      iosCategory: 'playback',
+      iosMode: 'default',
+      iosOptions: [],
+    });
+    await AudioManager.setAudioSessionActivity(true);
+
     if (ctx.state === 'suspended') {
       await ctx.resume();
+    }
+    // The app went to background, or playback was stopped, meanwhile.
+    if (this.inBackground) {
+      this.suspendWhileBackgrounded();
+      return;
+    }
+    if (
+      this._playbackState !== 'paused' ||
+      !this.currentBuffer ||
+      requestId !== this.loadRequestId
+    ) {
+      return;
     }
 
     this.sourceNode = ctx.createBufferSource();
