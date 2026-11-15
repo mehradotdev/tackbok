@@ -14,7 +14,7 @@ import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { PolaroidPhoto } from '~/components/PolaroidPhoto';
 import { AudioPlayer } from '~/components/AudioPlayer';
-import { OtherVersionBadge } from '~/components/OtherVersionBadge';
+import { OtherVersionBanner } from '~/components/OtherVersionBanner';
 import { PendingAttachmentsNote } from '~/components/PendingAttachmentsNote';
 import { useAvailableAttachments } from '~/hooks/useAvailableAttachments';
 import {
@@ -32,6 +32,10 @@ interface GratitudeEntryViewProps {
   entry: Entry;
   onEdit: () => void;
   onBack: () => void;
+  /** Called just before this screen deletes the entry. */
+  onDeleteStart: () => void;
+  /** Called when that delete fails and the entry is still there. */
+  onDeleteFailed: () => void;
   onPhotoPress: (photos: Asset[], index: number) => void;
 }
 
@@ -39,6 +43,8 @@ export function GratitudeEntryView({
   entry,
   onEdit,
   onBack,
+  onDeleteStart,
+  onDeleteFailed,
   onPhotoPress,
 }: GratitudeEntryViewProps) {
   const { t, isRTL } = useTranslation();
@@ -77,6 +83,7 @@ export function GratitudeEntryView({
   const canShare = Boolean(title?.trim() || content?.trim());
 
   const handleDelete = async () => {
+    onDeleteStart();
     try {
       if (entry.note_id) {
         await deleteEntryMutation.mutateAsync(entry.note_id);
@@ -84,6 +91,7 @@ export function GratitudeEntryView({
       }
     } catch (error) {
       console.error('Failed to delete entry', error);
+      onDeleteFailed();
       toast.error(t('mood.failedToDeleteEntry'));
       return;
     }
@@ -97,7 +105,11 @@ export function GratitudeEntryView({
       <View className="flex-row items-center px-4 py-2 border-b border-border">
         {/* Back button - fixed width for symmetry */}
         <View className="w-20">
-          <Button onPress={onBack} variant="ghost" size="icon">
+          <Button
+            onPress={onBack}
+            variant="ghost"
+            size="icon"
+            accessibilityLabel={t('common.back')}>
             <Icon as={!isRTL ? ArrowLeft : ArrowRight} className="text-foreground" />
           </Button>
         </View>
@@ -110,10 +122,18 @@ export function GratitudeEntryView({
 
         {/* Edit & Delete buttons - fixed width for symmetry */}
         <View className="w-20 flex-row items-center justify-end gap-1">
-          <Button onPress={onEdit} variant="ghost" size="icon">
+          <Button
+            onPress={onEdit}
+            variant="ghost"
+            size="icon"
+            accessibilityLabel={t('entry.editEntry')}>
             <Icon as={Pencil} className="text-foreground" size={20} />
           </Button>
-          <Button onPress={() => setShowDeleteConfirm(true)} variant="ghost" size="icon">
+          <Button
+            onPress={() => setShowDeleteConfirm(true)}
+            variant="ghost"
+            size="icon"
+            accessibilityLabel={t('entry.deleteEntryLabel')}>
             <Icon as={Trash2} className="text-destructive" size={20} />
           </Button>
         </View>
@@ -121,7 +141,8 @@ export function GratitudeEntryView({
 
       {/* Content */}
       <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-safe-or-20">
-        <OtherVersionBadge entry={entry} className="mb-4" />
+        {/* On the original and its copies alike, while a choice is open. */}
+        <OtherVersionBanner entryId={entry.note_id} className="mb-4" />
 
         {/* Mood label */}
         {moodOption && (

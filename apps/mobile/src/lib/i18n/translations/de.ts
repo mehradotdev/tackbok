@@ -67,6 +67,11 @@ export const de: Translations = {
 
   // Gratitude Entry
   'entry.otherVersion': 'Andere Version',
+  'entry.otherVersionBanner': 'Dieser Eintrag hat eine andere Version.',
+  'entry.compareVersions': 'Vergleichen',
+  'entry.compareVersionsHint': 'Öffnet „Andere Versionen“ mit diesem Eintrag zuerst.',
+  'entry.editEntry': 'Eintrag bearbeiten',
+  'entry.deleteEntryLabel': 'Eintrag löschen',
   'entry.deleteEntry': 'Eintrag löschen?',
   'entry.thisEntryWillBePermanentlyDeleted': 'Dieser Eintrag wird dauerhaft gelöscht.',
   'entry.entryNotFound': 'Eintrag nicht gefunden',
@@ -967,6 +972,15 @@ export const de: Translations = {
     '{count} Einträge, die du auf einem Gerät gelöscht hast, wurden behalten, weil ein anderes Gerät sie noch hatte.',
   'cloud.conflicts.openEntry': 'Eintrag öffnen',
   'cloud.conflicts.gotIt': 'Verstanden',
+  'cloud.conflicts.allDone':
+    'Alles erledigt. Jeder Eintrag hat jetzt nur noch eine Version.',
+  'cloud.conflicts.hidesOnThisDeviceOnly':
+    'Dadurch wird der Hinweis nur auf diesem Gerät ausgeblendet.',
+  'cloud.conflicts.titleDiffers': 'Titel unterscheidet sich',
+  'cloud.conflicts.textDiffers': 'Text unterscheidet sich',
+  'cloud.conflicts.moodDiffers': 'Stimmung unterscheidet sich',
+  'cloud.conflicts.dateDiffers': 'Datum unterscheidet sich',
+  'cloud.conflicts.timeDiffers': 'Uhrzeit unterscheidet sich',
   'cloud.resetThisDeviceOnly': 'Nur dieses Gerät zurücksetzen',
   'cloud.resetThisDeviceOnly2': 'Nur dieses Gerät zurücksetzen?',
   'cloud.merge': 'Zusammenführen',

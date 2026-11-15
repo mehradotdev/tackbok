@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import OtherVersionsScreen from './index';
+import { OtherVersionGroupCard } from './OtherVersionGroupCard';
 import { en as mockEn } from '~/lib/i18n/translations/en';
 import { translate as mockTranslate } from '~/lib/i18n/translations';
 import type { OtherVersionGroup } from '~/db/queries';
@@ -12,12 +13,18 @@ const mockAcknowledge = jest.fn(async (_ids: string[]) => {});
 const mockTrack = jest.fn();
 const mockToastError = jest.fn();
 const mockPush = jest.fn();
+const mockAnnounce = jest.fn();
+let mockParams: { focus?: string | string[] } = {};
 
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
 jest.mock('react-native', () => ({
   View: 'View',
+  AccessibilityInfo: {
+    announceForAccessibilityWithOptions: (message: string, options: unknown) =>
+      mockAnnounce(message, options),
+  },
   FlatList: ({
     data,
     renderItem,
@@ -30,6 +37,7 @@ jest.mock('react-native', () => ({
 }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  useLocalSearchParams: () => mockParams,
 }));
 jest.mock('lucide-react-native', () => ({
   ArrowLeft: 'ArrowLeft',
@@ -90,7 +98,10 @@ const copy = entry('copy', { conflict_origin_id: 'original' });
 const secondCopy = entry('second-copy', { conflict_origin_id: 'original' });
 
 let root: ReactTestRenderer;
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockParams = {};
+});
 afterEach(() => act(() => root?.unmount()));
 
 function render(query: Record<string, unknown>) {
@@ -187,11 +198,22 @@ test('shows how many attachments a version has', () => {
   expect(content()).not.toContain('Attachments: 0');
 });
 
-test('a version whose original was deleted is shown alone with a note', () => {
-  render({ data: [{ original: null, versions: [copy] }] });
+test('versions whose original was deleted are shown together with a note', () => {
+  render({ data: [{ original: null, versions: [copy, secondCopy] }] });
   expect(content()).toContain(mockEn['cloud.conflicts.originalDeleted']);
   expect(content()).not.toContain(`"${mockEn['cloud.conflicts.original']}"`);
-  expect(keepButtons()).toHaveLength(0);
+  expect(keepButtons()).toHaveLength(2);
+});
+
+test('a version left on its own is not listed: there is nothing to choose', () => {
+  render({
+    data: [
+      { original: null, versions: [copy] },
+      { original: entry('other'), versions: [entry('other-copy')] },
+    ],
+  });
+  const rows = root.root.findAllByType('EntryItem' as never);
+  expect(rows.map((row) => row.props.entry.note_id)).toEqual(['other', 'other-copy']);
 });
 
 test('keeping the other version deletes only the original, after confirming', async () => {
@@ -295,4 +317,148 @@ test('opening the screen clears the Home notice for the entry conflicts on it', 
   // Re-renders, e.g. a refetch, do not mark it again.
   act(() => root.update(<OtherVersionsScreen />));
   expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+});
+
+const other = entry('other', { created_at: 9 });
+const otherCopy = entry('other-copy', { conflict_origin_id: 'other' });
+const cards = () => root.root.findAllByType(OtherVersionGroupCard);
+
+test('opening at an entry puts its group first and marks it', () => {
+  mockParams = { focus: 'copy' };
+  render({
+    data: [
+      { original: other, versions: [otherCopy] },
+      { original, versions: [copy] },
+    ],
+  });
+  expect(cards().map((card) => card.props.group.original.note_id)).toEqual([
+    'original',
+    'other',
+  ]);
+  expect(cards().map((card) => card.props.highlighted)).toEqual([true, false]);
+});
+
+test('opening at the original of a group works the same way', () => {
+  mockParams = { focus: 'original' };
+  render({
+    data: [
+      { original: other, versions: [otherCopy] },
+      { original, versions: [copy] },
+    ],
+  });
+  expect(cards()[0].props.group.original.note_id).toBe('original');
+  expect(cards()[0].props.highlighted).toBe(true);
+});
+
+test('an unknown or closed entry to open at changes nothing', () => {
+  mockParams = { focus: 'gone' };
+  render({
+    data: [
+      { original: other, versions: [otherCopy] },
+      { original, versions: [copy] },
+    ],
+  });
+  expect(cards().map((card) => card.props.group.original.note_id)).toEqual([
+    'other',
+    'original',
+  ]);
+  expect(cards().map((card) => card.props.highlighted)).toEqual([false, false]);
+});
+
+test('says what differs between the versions', () => {
+  render({
+    data: [
+      {
+        original: { ...original, text_title: 'Walk', text_content: 'Sunny' },
+        versions: [{ ...copy, text_title: 'Walk', text_content: 'Rainy' }],
+      },
+    ],
+  });
+  expect(content()).toContain(mockEn['cloud.conflicts.textDiffers']);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.titleDiffers']);
+});
+
+test('after the last choice it says all done, and announces it once', () => {
+  render({ data: [{ original, versions: [copy] }] });
+  expect(content()).not.toContain(mockEn['cloud.conflicts.allDone']);
+  // The delete has applied: the query now returns no group.
+  mockQuery.mockReturnValue({
+    data: [],
+    isLoading: false,
+    isError: false,
+    refetch: jest.fn(),
+  });
+  act(() => root.update(<OtherVersionsScreen />));
+  expect(content()).toContain(mockEn['cloud.conflicts.allDone']);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.noOtherVersions']);
+  // Queued, so focus moving after the dialog closes does not cut it off.
+  expect(mockAnnounce.mock.calls).toEqual([
+    [mockEn['cloud.conflicts.allDone'], { queue: true }],
+  ]);
+  act(() => root.update(<OtherVersionsScreen />));
+  expect(mockAnnounce).toHaveBeenCalledTimes(1);
+});
+
+test('opening with only lone versions shows the plain empty state, not all done', () => {
+  render({ data: [{ original: null, versions: [copy] }] });
+  expect(content()).toContain(mockEn['cloud.conflicts.noOtherVersions']);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.allDone']);
+  expect(mockAnnounce).not.toHaveBeenCalled();
+});
+
+test('no versions at all keeps the plain empty state, without an announcement', () => {
+  render({ data: [] });
+  expect(content()).toContain(mockEn['cloud.conflicts.noOtherVersions']);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.allDone']);
+  expect(mockAnnounce).not.toHaveBeenCalled();
+});
+
+test('a repeated focus parameter uses the first entry', () => {
+  mockParams = { focus: ['copy', 'other'] };
+  render({
+    data: [
+      { original: other, versions: [otherCopy] },
+      { original, versions: [copy] },
+    ],
+  });
+  expect(cards()[0].props.group.original.note_id).toBe('original');
+  expect(cards()[0].props.highlighted).toBe(true);
+});
+
+test('the marked group has a thicker accent border than the others', () => {
+  mockParams = { focus: 'copy' };
+  render({
+    data: [
+      { original, versions: [copy] },
+      { original: other, versions: [otherCopy] },
+    ],
+  });
+  const borders = root.root
+    .findAll(
+      (node) =>
+        (node.type as unknown) === 'View' &&
+        String(node.props.className).includes('rounded-lg'),
+    )
+    .map((node) => node.props.className as string);
+  expect(borders[0]).toContain('border-2 border-primary');
+  expect(borders[1]).toContain('border border-border');
+});
+
+test('all done is announced again when a later batch is finished in the same visit', () => {
+  const show = (data: OtherVersionGroup[]) => {
+    mockQuery.mockReturnValue({
+      data,
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    });
+    act(() => root.update(<OtherVersionsScreen />));
+  };
+  render({ data: [{ original, versions: [copy] }] });
+  show([]);
+  // A sync brings another conflict while the screen is open, then it is resolved.
+  show([{ original: other, versions: [otherCopy] }]);
+  expect(content()).not.toContain(mockEn['cloud.conflicts.allDone']);
+  show([]);
+  expect(mockAnnounce).toHaveBeenCalledTimes(2);
 });

@@ -51,6 +51,11 @@ export const es = {
   'dateEntries.somethingWentWrongCreatingNewEntry':
     'Algo salió mal. Creando una nueva entrada.',
   'entry.otherVersion': 'Otra versión',
+  'entry.otherVersionBanner': 'Esta entrada tiene otra versión.',
+  'entry.compareVersions': 'Comparar',
+  'entry.compareVersionsHint': 'Abre «Otras versiones» con esta entrada primero.',
+  'entry.editEntry': 'Editar entrada',
+  'entry.deleteEntryLabel': 'Eliminar entrada',
   'entry.deleteEntry': '¿Eliminar entrada?',
   'entry.thisEntryWillBePermanentlyDeleted':
     'Esta entrada será eliminada permanentemente.',
@@ -885,6 +890,14 @@ export const es = {
     'Se conservaron {count} entradas que eliminaste en un dispositivo porque otro dispositivo aún las tenía.',
   'cloud.conflicts.openEntry': 'Abrir entrada',
   'cloud.conflicts.gotIt': 'Entendido',
+  'cloud.conflicts.allDone': 'Todo listo. Ahora cada entrada tiene una sola versión.',
+  'cloud.conflicts.hidesOnThisDeviceOnly':
+    'Esto oculta el aviso solo en este dispositivo.',
+  'cloud.conflicts.titleDiffers': 'El título es distinto',
+  'cloud.conflicts.textDiffers': 'El texto es distinto',
+  'cloud.conflicts.moodDiffers': 'El estado de ánimo es distinto',
+  'cloud.conflicts.dateDiffers': 'La fecha es distinta',
+  'cloud.conflicts.timeDiffers': 'La hora es distinta',
   'cloud.resetThisDeviceOnly': 'Restablecer solo este dispositivo',
   'cloud.resetThisDeviceOnly2': '¿Restablecer solo este dispositivo?',
   'cloud.merge': 'Unir',

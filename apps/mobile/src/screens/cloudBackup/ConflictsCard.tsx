@@ -80,6 +80,8 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
         ? t('cloud.conflicts.nameChangedNoCurrent', { other: item.other })
         : t('cloud.conflicts.nameChanged', { current: item.current, other: item.other });
 
+  const deviceOnlyHint = t('cloud.conflicts.hidesOnThisDeviceOnly');
+
   const nameRow = (item: NameItem) => {
     const useLabel =
       item.other === null
@@ -104,10 +106,13 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             variant="ghost"
             className="h-auto min-h-10 max-w-full py-2"
             disabled={busy}
+            accessibilityHint={item.archived ? undefined : deviceOnlyHint}
             onPress={() => void run(() => resolveNameConflict(item, 'keep'))}>
             <Text className="shrink text-center">{t('cloud.conflicts.keepCurrent')}</Text>
           </Button>
         </View>
+        {/* Older names are already hidden: nothing left to hide. */}
+        {!item.archived && <DeviceOnlyNote />}
       </View>
     );
   };
@@ -161,10 +166,12 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             variant="ghost"
             className="h-auto min-h-10 max-w-full py-2"
             disabled={busy}
+            accessibilityHint={deviceOnlyHint}
             onPress={() => void run(() => acknowledgeCloudConflicts(item.conflictIds))}>
             <Text className="shrink text-center">{t('cloud.conflicts.gotIt')}</Text>
           </Button>
         </View>
+        <DeviceOnlyNote />
       </View>
     );
   };
@@ -221,12 +228,14 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
                   variant="ghost"
                   className="h-auto min-h-10 max-w-full py-2"
                   disabled={busy}
+                  accessibilityHint={deviceOnlyHint}
                   onPress={() => void run(() => resolvePhotoConflict(item, 'keep'))}>
                   <Text className="shrink text-center">
                     {t('cloud.conflicts.keepCurrent')}
                   </Text>
                 </Button>
               </View>
+              <DeviceOnlyNote />
             </View>
           );
         }
@@ -259,6 +268,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             variant="ghost"
             className="h-auto min-h-10 max-w-full self-start py-2"
             disabled={busy}
+            accessibilityHint={deviceOnlyHint}
             onPress={() =>
               void run(() =>
                 acknowledgeCloudConflicts(
@@ -268,6 +278,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             }>
             <Text className="shrink text-center">{t('cloud.conflicts.gotIt')}</Text>
           </Button>
+          <DeviceOnlyNote />
         </View>
       )}
       {archivedNames.length > 0 && (
@@ -294,5 +305,20 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
         </View>
       )}
     </View>
+  );
+}
+
+/**
+ * Under "Got it" and "Keep current" (and the other choices in the same row,
+ * which also dismiss with this local mark): the mark does not sync, so another
+ * device keeps showing its own notice. The same words are those buttons'
+ * screen-reader hint, since the note is read after them.
+ */
+function DeviceOnlyNote() {
+  const { t } = useTranslation();
+  return (
+    <Text className="text-sm text-muted-foreground">
+      {t('cloud.conflicts.hidesOnThisDeviceOnly')}
+    </Text>
   );
 }

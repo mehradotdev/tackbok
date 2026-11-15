@@ -202,8 +202,10 @@ export function useDeleteEntry() {
   return useMutation({
     mutationFn: (noteId: string) => deleteEntry(noteId),
     onSuccess: (_data, noteId) => {
-      // Remove the specific entry query from cache to prevent refetch returning undefined
-      queryClient.removeQueries({ queryKey: [QUERY_KEYS.entries, 'byEntry', noteId] });
+      // Mark the entry as gone rather than removing its query: removing does not
+      // notify a mounted entry screen (e.g. one under Other versions after "Keep
+      // this one"), so it would keep showing the deleted entry.
+      queryClient.setQueryData([QUERY_KEYS.entries, 'byEntry', noteId], null);
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
       // Manually deleted sample entries must leave the sample-removal banner list.
       const { sampleEntryIds, setSampleEntryIds } = useSettingsStore.getState();

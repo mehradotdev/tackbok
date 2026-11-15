@@ -64,6 +64,13 @@ export const en = {
 
   // Gratitude Entry
   'entry.otherVersion': 'Other version',
+  // Banner on an entry that still has another version; the button opens Other versions.
+  'entry.otherVersionBanner': 'This entry has another version.',
+  'entry.compareVersions': 'Compare',
+  'entry.compareVersionsHint': 'Opens Other versions with this entry first.',
+  // Screen reader labels of the edit and delete icons on an entry.
+  'entry.editEntry': 'Edit entry',
+  'entry.deleteEntryLabel': 'Delete entry',
   'entry.deleteEntry': 'Delete entry?',
   'entry.thisEntryWillBePermanentlyDeleted': 'This entry will be permanently deleted.',
   'entry.entryNotFound': 'Entry not found',
@@ -935,6 +942,16 @@ export const en = {
     '{count} entries you deleted on one device were kept because another device still had them.',
   'cloud.conflicts.openEntry': 'Open entry',
   'cloud.conflicts.gotIt': 'Got it',
+  // Other versions after the last choice, when no entry has another version left.
+  'cloud.conflicts.allDone': 'All done. Each entry now has one version.',
+  // Conflicts card, under "Got it" and "Keep current": the dismissal does not sync.
+  'cloud.conflicts.hidesOnThisDeviceOnly': 'This hides the notice on this device only.',
+  // Other versions: what differs between the versions of one entry.
+  'cloud.conflicts.titleDiffers': 'Title differs',
+  'cloud.conflicts.textDiffers': 'Text differs',
+  'cloud.conflicts.moodDiffers': 'Mood differs',
+  'cloud.conflicts.dateDiffers': 'Date differs',
+  'cloud.conflicts.timeDiffers': 'Time differs',
   'cloud.resetThisDeviceOnly': 'Reset this device only',
   'cloud.resetThisDeviceOnly2': 'Reset this device only?',
   'cloud.merge': 'Merge',

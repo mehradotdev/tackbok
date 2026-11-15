@@ -65,6 +65,11 @@ export const ar: Translations = {
 
   // Gratitude Entry
   'entry.otherVersion': 'نسخة أخرى',
+  'entry.otherVersionBanner': 'لهذا السجل نسخة أخرى.',
+  'entry.compareVersions': 'مقارنة',
+  'entry.compareVersionsHint': 'يفتح «نسخ أخرى» مع عرض هذا السجل أولًا.',
+  'entry.editEntry': 'تعديل السجل',
+  'entry.deleteEntryLabel': 'حذف السجل',
   'entry.deleteEntry': 'حذف السجل؟',
   'entry.thisEntryWillBePermanentlyDeleted': 'سيتم حذف هذا السجل نهائيًا.',
   'entry.entryNotFound': 'لم يتم العثور على السجل',
@@ -901,6 +906,14 @@ export const ar: Translations = {
     'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
   'cloud.conflicts.openEntry': 'فتح السجل',
   'cloud.conflicts.gotIt': 'حسنًا',
+  'cloud.conflicts.allDone': 'اكتمل كل شيء. أصبح لكل سجل الآن نسخة واحدة.',
+  'cloud.conflicts.hidesOnThisDeviceOnly':
+    'يؤدي هذا إلى إخفاء الإشعار على هذا الجهاز فقط.',
+  'cloud.conflicts.titleDiffers': 'العنوان مختلف',
+  'cloud.conflicts.textDiffers': 'النص مختلف',
+  'cloud.conflicts.moodDiffers': 'المزاج مختلف',
+  'cloud.conflicts.dateDiffers': 'التاريخ مختلف',
+  'cloud.conflicts.timeDiffers': 'الوقت مختلف',
   'cloud.resetThisDeviceOnly': 'إعادة ضبط هذا الجهاز فقط',
   'cloud.resetThisDeviceOnly2': 'هل تريد إعادة ضبط هذا الجهاز فقط؟',
   'cloud.merge': 'دمج',
