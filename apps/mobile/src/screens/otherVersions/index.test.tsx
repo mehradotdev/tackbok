@@ -154,6 +154,8 @@ test('shows each other version under its original, with dates', () => {
   const rows = root.root.findAllByType('EntryItem' as never);
   expect(rows.map((row) => row.props.entry.note_id)).toEqual(['original', 'copy']);
   expect(rows.map((row) => row.props.showDate)).toEqual([true, true]);
+  // Not cut short: what differs can be at the end of the title or text.
+  expect(rows.map((row) => row.props.fullText)).toEqual([true, true]);
   expect(content()).toContain('Versions of an entry from date:5');
   expect(content()).toContain(mockEn['cloud.conflicts.original']);
   expect(content()).not.toContain(mockEn['cloud.conflicts.originalDeleted']);
