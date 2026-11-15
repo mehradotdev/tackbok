@@ -1984,8 +1984,8 @@ test('Delete journal everywhere leaves no profile photos for the next backup (#1
   expect(domain.profile.photoAssetId).toBeNull();
 });
 
-test('a backup prunes only unused profile photos whose file is confirmed gone', async () => {
-  const { pruneMissingUnusedProfilePhotos } =
+test('a backup prunes only unused media rows whose file is confirmed gone', async () => {
+  const { pruneMissingUnusedMedia } =
     await import('../../src/lib/cloudSync/snapshot/storage/productionJournal');
   const { store, photoRows } = await applyPhotoConflict('prune');
   const row = (assetId: string, ownerType: 'entry' | 'profile' = 'profile') => ({
@@ -2009,6 +2009,11 @@ test('a backup prunes only unused profile photos whose file is confirmed gone', 
       row('unused-present'),
       row('unused-unreadable'),
       row('entry-missing', 'entry'),
+      // Photos are saved with a path relative to the documents directory.
+      { ...row('unused-relative'), local_uri: 'photos/unused-relative.jpg' },
+      { ...row('used-relative', 'entry'), local_uri: 'photos/used-relative.jpg' },
+      // An attachment whose entry is gone is unused.
+      { ...row('deleted-entry-missing', 'entry'), owner_id: 'deleted-entry' },
     ])
     .run();
   // Only one unused file is still there. The current photo and the conflict
@@ -2017,15 +2022,16 @@ test('a backup prunes only unused profile photos whose file is confirmed gone', 
   existingFiles.add(`${paths.document}/photos/unused-present.jpg`);
   unreadableFiles.add(`${paths.document}/photos/unused-unreadable.jpg`);
 
-  expect(await pruneMissingUnusedProfilePhotos()).toBe(2);
+  expect(await pruneMissingUnusedMedia()).toBe(4);
   expect(photoRows()).toEqual([
     'entry-missing',
     'local-photo',
     'remote-photo',
     'unused-present',
     'unused-unreadable',
+    'used-relative',
   ]);
-  expect(await pruneMissingUnusedProfilePhotos()).toBe(0);
+  expect(await pruneMissingUnusedMedia()).toBe(0);
 
   // Media still in use keeps stopping the backup: the capture still publishes
   // it, and no verified copy of its file exists to upload.

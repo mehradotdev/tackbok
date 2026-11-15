@@ -84,11 +84,11 @@ jest.mock('../sync/engine', () => ({}));
 jest.mock('../sync/baseShadow', () => ({}));
 jest.mock('../sync/expoBaseShadowFiles', () => ({}));
 jest.mock('../sync/sqliteState', () => ({}));
-const mockPruneProfilePhotos = jest.fn(async () => 0);
+const mockPruneMedia = jest.fn(async () => 0);
 jest.mock('../storage', () => ({
-  pruneMissingUnusedProfilePhotos: () => {
+  pruneMissingUnusedMedia: () => {
     mockCheckOrder.push('prune');
-    return mockPruneProfilePhotos();
+    return mockPruneMedia();
   },
 }));
 
@@ -169,16 +169,16 @@ test('a completed pass records that the journal of this backup was restored', as
   expect(mockMarkJournalRestored).toHaveBeenCalledWith('vault-restored');
 });
 
-test('unused profile photos are pruned before hashing, and a failed prune does not fail the pass', async () => {
+test('unused media rows are pruned before hashing, and a failed prune does not fail the pass', async () => {
   mockCheckOrder.length = 0;
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   try {
     await expect(harness('vault-pruned').runtime.sync()).resolves.toBeDefined();
     expect(mockCheckOrder.slice(0, 2)).toEqual(['prune', 'hash']);
-    mockPruneProfilePhotos.mockRejectedValueOnce(new Error('locked'));
+    mockPruneMedia.mockRejectedValueOnce(new Error('locked'));
     await expect(harness('vault-prune-failed').runtime.sync()).resolves.toBeDefined();
     expect(warn).toHaveBeenCalledWith(
-      'Cloud sync could not remove unused profile photos',
+      'Cloud sync could not remove unused media rows',
       expect.any(Error),
     );
   } finally {
