@@ -893,7 +893,7 @@ export const en = {
     'Some changes were made on two devices at once. See what was kept.',
   // Home notice when only entry conflicts are open; opens Other versions.
   'cloud.conflicts.homeNoticeEntries':
-    '{count} entries were edited on two devices at once. Nothing was lost: both versions are in your journal.',
+    '{count} entries were edited on two devices at once. Nothing was lost: all versions are in your journal.',
   'cloud.conflicts.compareVersions': 'Compare versions',
   // Close button on the Home conflicts notice, and its screen-reader hint.
   'cloud.conflicts.hideNotice': 'Hide this notice',

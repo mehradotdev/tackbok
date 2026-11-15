@@ -934,7 +934,7 @@ export const de: Translations = {
   'cloud.conflicts.homeNotice':
     'Einige Änderungen wurden gleichzeitig auf zwei Geräten gemacht. Sieh nach, was behalten wurde.',
   'cloud.conflicts.homeNoticeEntries':
-    '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Nichts ging verloren: Beide Versionen sind in deinem Tagebuch.',
+    '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Nichts ging verloren: Alle Versionen sind in deinem Tagebuch.',
   'cloud.conflicts.compareVersions': 'Versionen vergleichen',
   'cloud.conflicts.hideNotice': 'Diesen Hinweis ausblenden',
   'cloud.conflicts.hideNoticeHint':

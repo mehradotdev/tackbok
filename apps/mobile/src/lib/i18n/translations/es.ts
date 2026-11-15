@@ -854,7 +854,7 @@ export const es = {
   'cloud.conflicts.homeNotice':
     'Se hicieron algunos cambios en dos dispositivos a la vez. Mira qué se conservó.',
   'cloud.conflicts.homeNoticeEntries':
-    '{count} entradas se editaron en dos dispositivos a la vez. No se perdió nada: ambas versiones están en tu diario.',
+    '{count} entradas se editaron en dos dispositivos a la vez. No se perdió nada: todas las versiones están en tu diario.',
   'cloud.conflicts.compareVersions': 'Comparar versiones',
   'cloud.conflicts.hideNotice': 'Ocultar este aviso',
   'cloud.conflicts.hideNoticeHint':

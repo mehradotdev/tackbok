@@ -832,7 +832,7 @@ export const sv = {
   'cloud.conflicts.homeNotice':
     'Några ändringar gjordes på två enheter samtidigt. Se vad som behölls.',
   'cloud.conflicts.homeNoticeEntries':
-    '{count} anteckningar redigerades på två enheter samtidigt. Inget gick förlorat: båda versionerna finns i din dagbok.',
+    '{count} anteckningar redigerades på två enheter samtidigt. Inget gick förlorat: alla versioner finns i din dagbok.',
   'cloud.conflicts.compareVersions': 'Jämför versioner',
   'cloud.conflicts.hideNotice': 'Göm det här meddelandet',
   'cloud.conflicts.hideNoticeHint':

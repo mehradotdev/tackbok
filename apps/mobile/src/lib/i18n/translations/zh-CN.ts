@@ -839,7 +839,7 @@ export const zhCN: Translations = {
   'cloud.conflicts.noOtherVersions': '没有条目有其他版本。',
   'cloud.conflicts.homeNotice': '有些更改同时在两台设备上进行。查看保留了哪些内容。',
   'cloud.conflicts.homeNoticeEntries':
-    '有 {count} 个条目同时在两台设备上被编辑。没有丢失任何内容：两个版本都在你的日记中。',
+    '有 {count} 个条目同时在两台设备上被编辑。没有丢失任何内容：所有版本都在你的日记中。',
   'cloud.conflicts.compareVersions': '比较版本',
   'cloud.conflicts.hideNotice': '隐藏此通知',
   'cloud.conflicts.hideNoticeHint':

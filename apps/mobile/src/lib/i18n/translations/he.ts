@@ -864,7 +864,7 @@ export const he: Translations = {
   'cloud.conflicts.homeNotice':
     'חלק מהשינויים נעשו בשני מכשירים בו־זמנית. אפשר לראות מה נשמר.',
   'cloud.conflicts.homeNoticeEntries':
-    '{count} רשומות נערכו בשני מכשירים בו־זמנית. שום דבר לא אבד: שתי הגרסאות נמצאות ביומן שלך.',
+    '{count} רשומות נערכו בשני מכשירים בו־זמנית. שום דבר לא אבד: כל הגרסאות נמצאות ביומן שלך.',
   'cloud.conflicts.compareVersions': 'השוואת גרסאות',
   'cloud.conflicts.hideNotice': 'הסתרת ההודעה הזו',
   'cloud.conflicts.hideNoticeHint':

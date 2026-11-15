@@ -842,7 +842,7 @@ export const zhTW: Translations = {
   'cloud.conflicts.noOtherVersions': '沒有紀錄有其他版本。',
   'cloud.conflicts.homeNotice': '有些變更同時在兩部裝置上進行。查看保留了哪些內容。',
   'cloud.conflicts.homeNoticeEntries':
-    '有 {count} 則紀錄同時在兩部裝置上被編輯。沒有遺失任何內容：兩個版本都在你的日記中。',
+    '有 {count} 則紀錄同時在兩部裝置上被編輯。沒有遺失任何內容：所有版本都在你的日記中。',
   'cloud.conflicts.compareVersions': '比較版本',
   'cloud.conflicts.hideNotice': '隱藏此通知',
   'cloud.conflicts.hideNoticeHint':

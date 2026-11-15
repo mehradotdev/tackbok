@@ -26,9 +26,9 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       '{count} entries were edited on two devices at once. Both versions are in your journal.',
     'cloud.conflicts.homeNoticeEntries_one':
-      'An entry was edited on two devices at once. Nothing was lost: both versions are in your journal.',
+      'An entry was edited on two devices at once. Nothing was lost: all versions are in your journal.',
     'cloud.conflicts.homeNoticeEntries_other':
-      '{count} entries were edited on two devices at once. Nothing was lost: both versions are in your journal.',
+      '{count} entries were edited on two devices at once. Nothing was lost: all versions are in your journal.',
     'cloud.conflicts.keepThisOneMessage_one':
       'The other version will be permanently deleted.',
     'cloud.conflicts.keepThisOneMessage_other':
@@ -83,11 +83,11 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
     'cloud.conflicts.homeNoticeEntries_one':
-      'Una entrada se editó en dos dispositivos a la vez. No se perdió nada: ambas versiones están en tu diario.',
+      'Una entrada se editó en dos dispositivos a la vez. No se perdió nada: todas las versiones están en tu diario.',
     'cloud.conflicts.homeNoticeEntries_many':
-      '{count} entradas se editaron en dos dispositivos a la vez. No se perdió nada: ambas versiones están en tu diario.',
+      '{count} entradas se editaron en dos dispositivos a la vez. No se perdió nada: todas las versiones están en tu diario.',
     'cloud.conflicts.homeNoticeEntries_other':
-      '{count} entradas se editaron en dos dispositivos a la vez. No se perdió nada: ambas versiones están en tu diario.',
+      '{count} entradas se editaron en dos dispositivos a la vez. No se perdió nada: todas las versiones están en tu diario.',
     'cloud.conflicts.keepThisOneMessage_one':
       'La otra versión se eliminará permanentemente.',
     'cloud.conflicts.keepThisOneMessage_many':
@@ -131,9 +131,9 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। दोनों संस्करण आपकी डायरी में हैं।',
     'cloud.conflicts.homeNoticeEntries_one':
-      'एक प्रविष्टि एक ही समय पर दो डिवाइस पर संपादित की गई। कुछ भी नहीं खोया: दोनों संस्करण आपकी डायरी में हैं।',
+      'एक प्रविष्टि एक ही समय पर दो डिवाइस पर संपादित की गई। कुछ भी नहीं खोया: सभी संस्करण आपकी डायरी में हैं।',
     'cloud.conflicts.homeNoticeEntries_other':
-      '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। कुछ भी नहीं खोया: दोनों संस्करण आपकी डायरी में हैं।',
+      '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। कुछ भी नहीं खोया: सभी संस्करण आपकी डायरी में हैं।',
     'cloud.conflicts.keepThisOneMessage_one': 'दूसरा संस्करण स्थायी रूप से हटा दिया जाएगा।',
     'cloud.conflicts.keepThisOneMessage_other':
       '{count} अन्य संस्करण स्थायी रूप से हटा दिए जाएँगे।',
@@ -174,9 +174,9 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       '{count} anteckningar redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
     'cloud.conflicts.homeNoticeEntries_one':
-      'En anteckning redigerades på två enheter samtidigt. Inget gick förlorat: båda versionerna finns i din dagbok.',
+      'En anteckning redigerades på två enheter samtidigt. Inget gick förlorat: alla versioner finns i din dagbok.',
     'cloud.conflicts.homeNoticeEntries_other':
-      '{count} anteckningar redigerades på två enheter samtidigt. Inget gick förlorat: båda versionerna finns i din dagbok.',
+      '{count} anteckningar redigerades på två enheter samtidigt. Inget gick förlorat: alla versioner finns i din dagbok.',
     'cloud.conflicts.keepThisOneMessage_one': 'Den andra versionen tas bort permanent.',
     'cloud.conflicts.keepThisOneMessage_other':
       'De {count} andra versionerna tas bort permanent.',
@@ -216,9 +216,9 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
     'cloud.conflicts.homeNoticeEntries_one':
-      'Ein Eintrag wurde gleichzeitig auf zwei Geräten bearbeitet. Nichts ging verloren: Beide Versionen sind in deinem Tagebuch.',
+      'Ein Eintrag wurde gleichzeitig auf zwei Geräten bearbeitet. Nichts ging verloren: Alle Versionen sind in deinem Tagebuch.',
     'cloud.conflicts.homeNoticeEntries_other':
-      '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Nichts ging verloren: Beide Versionen sind in deinem Tagebuch.',
+      '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Nichts ging verloren: Alle Versionen sind in deinem Tagebuch.',
     'cloud.conflicts.keepThisOneMessage_one':
       'Die andere Version wird dauerhaft gelöscht.',
     'cloud.conflicts.keepThisOneMessage_other':
@@ -267,11 +267,11 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
     'cloud.conflicts.homeNoticeEntries_one':
-      'רשומה אחת נערכה בשני מכשירים בו־זמנית. שום דבר לא אבד: שתי הגרסאות נמצאות ביומן שלך.',
+      'רשומה אחת נערכה בשני מכשירים בו־זמנית. שום דבר לא אבד: כל הגרסאות נמצאות ביומן שלך.',
     'cloud.conflicts.homeNoticeEntries_two':
-      '{count} רשומות נערכו בשני מכשירים בו־זמנית. שום דבר לא אבד: שתי הגרסאות נמצאות ביומן שלך.',
+      '{count} רשומות נערכו בשני מכשירים בו־זמנית. שום דבר לא אבד: כל הגרסאות נמצאות ביומן שלך.',
     'cloud.conflicts.homeNoticeEntries_other':
-      '{count} רשומות נערכו בשני מכשירים בו־זמנית. שום דבר לא אבד: שתי הגרסאות נמצאות ביומן שלך.',
+      '{count} רשומות נערכו בשני מכשירים בו־זמנית. שום דבר לא אבד: כל הגרסאות נמצאות ביומן שלך.',
     'cloud.conflicts.keepThisOneMessage_one': 'הגרסה האחרת תימחק לצמיתות.',
     'cloud.conflicts.keepThisOneMessage_two': 'שתי הגרסאות האחרות יימחקו לצמיתות.',
     'cloud.conflicts.keepThisOneMessage_other': '{count} הגרסאות האחרות יימחקו לצמיתות.',
@@ -362,17 +362,17 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
     'cloud.conflicts.homeNoticeEntries_zero':
-      'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. لم يُفقد شيء: النسختان موجودتان في دفتر يومياتك.',
+      'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. لم يُفقد شيء: كل النسخ موجودة في دفتر يومياتك.',
     'cloud.conflicts.homeNoticeEntries_one':
-      'عُدِّل سجل واحد على جهازين في الوقت نفسه. لم يُفقد شيء: النسختان موجودتان في دفتر يومياتك.',
+      'عُدِّل سجل واحد على جهازين في الوقت نفسه. لم يُفقد شيء: كل النسخ موجودة في دفتر يومياتك.',
     'cloud.conflicts.homeNoticeEntries_two':
-      'عُدِّل سجلان على جهازين في الوقت نفسه. لم يُفقد شيء: النسختان موجودتان في دفتر يومياتك.',
+      'عُدِّل سجلان على جهازين في الوقت نفسه. لم يُفقد شيء: كل النسخ موجودة في دفتر يومياتك.',
     'cloud.conflicts.homeNoticeEntries_few':
-      'عُدِّلت {count} سجلات على جهازين في الوقت نفسه. لم يُفقد شيء: النسختان موجودتان في دفتر يومياتك.',
+      'عُدِّلت {count} سجلات على جهازين في الوقت نفسه. لم يُفقد شيء: كل النسخ موجودة في دفتر يومياتك.',
     'cloud.conflicts.homeNoticeEntries_many':
-      'عُدِّل {count} سجلًا على جهازين في الوقت نفسه. لم يُفقد شيء: النسختان موجودتان في دفتر يومياتك.',
+      'عُدِّل {count} سجلًا على جهازين في الوقت نفسه. لم يُفقد شيء: كل النسخ موجودة في دفتر يومياتك.',
     'cloud.conflicts.homeNoticeEntries_other':
-      'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. لم يُفقد شيء: النسختان موجودتان في دفتر يومياتك.',
+      'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. لم يُفقد شيء: كل النسخ موجودة في دفتر يومياتك.',
     'cloud.conflicts.keepThisOneMessage_zero':
       'عدد النسخ الأخرى التي ستُحذف نهائيًا: {count}.',
     'cloud.conflicts.keepThisOneMessage_one': 'ستُحذف النسخة الأخرى نهائيًا.',
@@ -419,7 +419,7 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       '有 {count} 个条目同时在两台设备上被编辑。两个版本都在你的日记中。',
     'cloud.conflicts.homeNoticeEntries_other':
-      '有 {count} 个条目同时在两台设备上被编辑。没有丢失任何内容：两个版本都在你的日记中。',
+      '有 {count} 个条目同时在两台设备上被编辑。没有丢失任何内容：所有版本都在你的日记中。',
     'cloud.conflicts.keepThisOneMessage_other': '其他 {count} 个版本将被永久删除。',
     'cloud.conflicts.entriesReturned_other':
       '你在一台设备上删除的 {count} 个条目被保留了，因为另一台设备上仍有它们。',
@@ -439,7 +439,7 @@ export const pluralMessages = {
     'cloud.conflicts.entriesEdited_other':
       '有 {count} 則紀錄同時在兩部裝置上被編輯。兩個版本都在你的日記中。',
     'cloud.conflicts.homeNoticeEntries_other':
-      '有 {count} 則紀錄同時在兩部裝置上被編輯。沒有遺失任何內容：兩個版本都在你的日記中。',
+      '有 {count} 則紀錄同時在兩部裝置上被編輯。沒有遺失任何內容：所有版本都在你的日記中。',
     'cloud.conflicts.keepThisOneMessage_other': '其他 {count} 個版本將被永久刪除。',
     'cloud.conflicts.entriesReturned_other':
       '你在一部裝置上刪除的 {count} 則紀錄被保留了，因為另一部裝置上仍有它們。',

@@ -69,11 +69,10 @@ export function useOtherVersionGroups() {
  * as member IDs (see `getOpenConflictGroups`). Lives under the entries key so
  * edits, deletes and applied syncs refresh it.
  */
-export function useOpenConflictGroups(enabled = true) {
+export function useOpenConflictGroups() {
   return useQuery<string[][]>({
     queryKey: [QUERY_KEYS.entries, 'openConflictGroups'],
     queryFn: getOpenConflictGroups,
-    enabled,
   });
 }
 

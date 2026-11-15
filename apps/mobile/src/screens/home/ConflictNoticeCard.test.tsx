@@ -125,7 +125,7 @@ test('with only entry conflicts, counts them and opens Other versions', async ()
   await render(1, [entriesItem]);
   expect(content()).toContain(mockEn['cloud.conflicts.title']);
   expect(entriesMessage(2)).toBe(
-    '2 entries were edited on two devices at once. Nothing was lost: both versions are in your journal.',
+    '2 entries were edited on two devices at once. Nothing was lost: all versions are in your journal.',
   );
   expect(content()).toContain(entriesMessage(2));
   expect(content()).toContain(mockEn['cloud.conflicts.compareVersions']);
@@ -136,7 +136,7 @@ test('with only entry conflicts, counts them and opens Other versions', async ()
 test('uses the singular for one entry', async () => {
   await render(1, [{ ...entriesItem, entryCount: 1 }]);
   expect(content()).toContain(
-    'An entry was edited on two devices at once. Nothing was lost: both versions are in your journal.',
+    'An entry was edited on two devices at once. Nothing was lost: all versions are in your journal.',
   );
 });
 
@@ -216,6 +216,18 @@ test('shows when the conflicts cannot be loaded, so the retry is reachable', asy
   expect(mockSettings.hideConflictNotice.mock.calls[0][0]).toBeGreaterThanOrEqual(now);
   await act(async () => root.update(<ConflictNoticeCard />));
   expect(root.toJSON()).toBeNull();
+});
+
+test('after hiding, a failed load stays hidden and a later successful load with a newer conflict shows it', async () => {
+  mockSettings.conflictNoticeHiddenAt = 100;
+  mockSnapshot = { conflictCount: 1 };
+  mockList.mockRejectedValue(new Error('read failed'));
+  await act(async () => {
+    root = create(<ConflictNoticeCard />);
+  });
+  expect(root.toJSON()).toBeNull();
+  await refreshSnapshot(1, [{ ...entriesItem, latestAt: 101 }]);
+  expect(content()).toContain(entriesMessage(2));
 });
 
 test('goes away once the conflicts are handled', async () => {

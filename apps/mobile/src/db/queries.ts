@@ -16,6 +16,8 @@ import {
   openConflictGroups,
   type OtherVersionGroup,
 } from '~/lib/otherVersionGroups';
+
+export type { OtherVersionGroup } from '~/lib/otherVersionGroups';
 import { getAchievementForCreateTransition, type Achievement } from '~/lib/achievements';
 import {
   createPromptInTransaction,
@@ -206,8 +208,6 @@ const versionMemberFilter = () =>
     ),
   );
 
-export type { OtherVersionGroup } from '~/lib/otherVersionGroups';
-
 /** Groups entries sync kept another version of, newest group first. */
 export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
   // One statement with a subquery: binding every origin ID could exceed
@@ -227,6 +227,10 @@ export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
  * closes its group here once that delete has synced.
  * Reads two columns, and only when some entry is another version: with no
  * index on `conflict_origin_id` the filter scans the table, as the timeline does.
+ * shortcut: a version links only to the entry it was copied from, so deleting
+ * the middle of a chain (original -> copy -> copy of copy) from the entry
+ * screen leaves the ends unlinked and each counts as alone; follow links with a
+ * recursive query if sync or users start producing such chains.
  */
 export async function getOpenConflictGroups(): Promise<string[][]> {
   const rows = await db

@@ -871,7 +871,7 @@ export const ar: Translations = {
   'cloud.conflicts.homeNotice':
     'أُجريت بعض التغييرات على جهازين في الوقت نفسه. اطّلع على ما احتُفظ به.',
   'cloud.conflicts.homeNoticeEntries':
-    'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. لم يُفقد شيء: النسختان موجودتان في دفتر يومياتك.',
+    'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. لم يُفقد شيء: كل النسخ موجودة في دفتر يومياتك.',
   'cloud.conflicts.compareVersions': 'مقارنة النسخ',
   'cloud.conflicts.hideNotice': 'إخفاء هذا الإشعار',
   'cloud.conflicts.hideNoticeHint':

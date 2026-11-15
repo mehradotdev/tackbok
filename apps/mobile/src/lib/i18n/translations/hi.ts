@@ -814,7 +814,7 @@ export const hi = {
   'cloud.conflicts.homeNotice':
     'कुछ बदलाव एक ही समय पर दो डिवाइस पर किए गए। देखें कि क्या रखा गया।',
   'cloud.conflicts.homeNoticeEntries':
-    '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। कुछ भी नहीं खोया: दोनों संस्करण आपकी डायरी में हैं।',
+    '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। कुछ भी नहीं खोया: सभी संस्करण आपकी डायरी में हैं।',
   'cloud.conflicts.compareVersions': 'संस्करणों की तुलना करें',
   'cloud.conflicts.hideNotice': 'यह सूचना छुपाएं',
   'cloud.conflicts.hideNoticeHint':

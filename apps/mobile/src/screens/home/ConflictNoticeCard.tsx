@@ -86,7 +86,7 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
       <Button
         variant="outline"
         size="sm"
-        className="h-auto min-h-9 max-w-full self-start py-2"
+        className="h-auto min-h-10 max-w-full self-start py-2"
         onPress={() =>
           router.push((toOtherVersions ? '/other-versions' : '/cloud-backup') as Href)
         }>
