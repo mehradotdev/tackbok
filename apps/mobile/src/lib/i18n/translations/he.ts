@@ -863,6 +863,12 @@ export const he: Translations = {
   'cloud.conflicts.noOtherVersions': 'אין רשומות עם גרסה אחרת.',
   'cloud.conflicts.homeNotice':
     'חלק מהשינויים נעשו בשני מכשירים בו־זמנית. אפשר לראות מה נשמר.',
+  'cloud.conflicts.homeNoticeEntries':
+    '{count} רשומות נערכו בשני מכשירים בו־זמנית. שום דבר לא אבד: כל הגרסאות נמצאות ביומן שלך.',
+  'cloud.conflicts.compareVersions': 'השוואת גרסאות',
+  'cloud.conflicts.hideNotice': 'הסתרת ההודעה הזו',
+  'cloud.conflicts.hideNoticeHint':
+    'ההודעה תוסתר רק במכשיר הזה. היא תופיע שוב אם ייעשו שינויים נוספים בשני מכשירים בו־זמנית.',
   'cloud.conflicts.otherVersionsRow': 'רשומות שנשמרו בשתי גרסאות',
   'cloud.conflicts.loadFailed': 'לא ניתן לטעון את האפשרויות האלה.',
   'cloud.conflicts.otherVersionsLoadFailed': 'לא ניתן לטעון את הגרסאות האחרות.',

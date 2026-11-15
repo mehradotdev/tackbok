@@ -147,6 +147,7 @@ test('the upgrade archives only unreviewed no-base name conflicts and keeps them
       current: 'Mehra',
       other: null,
       archived: true,
+      latestAt: JOINED_AT + 1,
     },
     {
       kind: 'name',
@@ -154,6 +155,7 @@ test('the upgrade archives only unreviewed no-base name conflicts and keeps them
       current: 'Mehra',
       other: 'Mehra A',
       archived: true,
+      latestAt: JOINED_AT + 1,
     },
     {
       kind: 'name',
@@ -161,6 +163,7 @@ test('the upgrade archives only unreviewed no-base name conflicts and keeps them
       current: 'Mehra',
       other: 'Concurrent',
       archived: false,
+      latestAt: JOINED_AT + 1,
     },
   ]);
 });
@@ -200,6 +203,7 @@ test('a photo alternate with the same content as the current photo is not listed
       conflictIds: ['other', 'other-copy'],
       otherAssetId: 'different',
       otherUri: 'photos/different.jpg',
+      latestAt: JOINED_AT + 1,
     },
   ]);
 });
@@ -212,7 +216,10 @@ test('a large journal stays within the SQLite variable limit', async () => {
   const insert = sqlite.prepare(
     'INSERT INTO entries (note_id, conflict_origin_id, created_at, updated_at) VALUES (?, ?, 1, 1)',
   );
-  for (const [index, id] of recovered.entries()) insert.run(id, `origin-${index}`);
+  for (const [index, id] of recovered.entries()) {
+    insert.run(`origin-${index}`, null);
+    insert.run(id, `origin-${index}`);
+  }
   sqlite.exec('COMMIT');
   const conflictIds = Array.from({ length: 2_000 }, (_, index) => `entry-${index}`);
   for (const [index, id] of conflictIds.entries())
@@ -224,7 +231,7 @@ test('a large journal stays within the SQLite variable limit', async () => {
 
   const [item] = await listCloudConflictItems();
   expect(item).toMatchObject({ kind: 'entries', conflictIds: ['entry-0'] });
-  expect(item.kind === 'entries' && item.recoveredEntryIds.length).toBe(count);
+  expect(item.kind === 'entries' && item.entryCount).toBe(count);
 
   await acknowledgeCloudConflicts(conflictIds);
   expect(
@@ -271,6 +278,7 @@ test('an entry kept after a delete/edit race is listed with what identifies it',
         preview: 'x'.repeat(200),
       },
       edited: true,
+      latestAt: JOINED_AT + 1,
     },
   ]);
 
@@ -324,4 +332,69 @@ test('keeping one version dismisses only the conflicts about its entries', async
     { conflict_id: 'origin-returned' },
     { conflict_id: 'profile' },
   ]);
+});
+
+test('an entry conflict is listed while its entry has two live versions, and not after one is kept', async () => {
+  upgrade();
+  entry('origin');
+  entry('copy', { conflict_origin_id: 'origin' });
+  conflict('edit', {
+    entityType: 'entry',
+    entityId: 'origin',
+    field: 'content',
+    recoveredEntityIds: ['copy'],
+  });
+  expect(await listCloudConflictItems()).toEqual([
+    { kind: 'entries', conflictIds: ['edit'], entryCount: 1, latestAt: JOINED_AT + 1 },
+  ]);
+
+  // "Keep this one" on another device deleted the original; this device has
+  // not dismissed anything, but the copy is now alone.
+  sqlite.exec("DELETE FROM entries WHERE note_id = 'origin'");
+  expect(await listCloudConflictItems()).toEqual([]);
+  expect(
+    sqlite
+      .query('SELECT COUNT(*) AS n FROM cloud_conflicts WHERE acknowledged_at IS NULL')
+      .get(),
+  ).toEqual({ n: 1 });
+});
+
+test('versions of a deleted original stay listed while two are left', async () => {
+  upgrade();
+  entry('copy-a', { conflict_origin_id: 'deleted-origin' });
+  entry('copy-b', { conflict_origin_id: 'deleted-origin' });
+  conflict('a', {
+    entityType: 'entry',
+    entityId: 'deleted-origin',
+    field: 'content',
+    recoveredEntityIds: ['copy-a'],
+  });
+  conflict('b', {
+    entityType: 'entry',
+    entityId: 'deleted-origin',
+    field: 'title',
+    recoveredEntityIds: ['copy-b'],
+  });
+  expect(await listCloudConflictItems()).toMatchObject([
+    { kind: 'entries', conflictIds: ['a', 'b'], entryCount: 1 },
+  ]);
+  sqlite.exec("DELETE FROM entries WHERE note_id = 'copy-b'");
+  expect(await listCloudConflictItems()).toEqual([]);
+});
+
+test('a conflict dismissed by the old "Show them" stays dismissed', async () => {
+  upgrade();
+  entry('origin');
+  entry('copy', { conflict_origin_id: 'origin' });
+  conflict(
+    'seen',
+    {
+      entityType: 'entry',
+      entityId: 'origin',
+      field: 'content',
+      recoveredEntityIds: ['copy'],
+    },
+    { acknowledged_at: 600 },
+  );
+  expect(await listCloudConflictItems()).toEqual([]);
 });

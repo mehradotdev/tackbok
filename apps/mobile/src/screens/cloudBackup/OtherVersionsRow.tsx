@@ -2,18 +2,18 @@ import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { GitBranch } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
-import { useOtherVersionCount } from '~/hooks/useGratitude';
+import { useOpenConflictGroups } from '~/hooks/useGratitude';
 import { SettingsRow } from '~/components/SettingsRow';
 
 /**
- * Opens Other versions for as long as any entry is another version, whether or
- * not the conflict that made it was dismissed on the conflicts card.
+ * Opens Other versions while any entry still has more than one live version,
+ * whether or not the conflict was dismissed or its Home notice hidden.
  */
 export function OtherVersionsRow() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { data: count } = useOtherVersionCount();
-  if (!count) return null;
+  const { data: openGroups } = useOpenConflictGroups();
+  if (!openGroups?.length) return null;
 
   return (
     <View className="rounded-lg border border-border bg-card overflow-hidden">

@@ -47,17 +47,20 @@ const nameItem: Extract<CloudConflictItem, { kind: 'name' }> = {
   current: 'Mehra',
   other: 'Mehra A',
   archived: false,
+  latestAt: 1,
 };
 const photoItem: CloudConflictItem = {
   kind: 'photo',
   conflictIds: ['p1'],
   otherAssetId: 'photo-other',
   otherUri: 'photos/other.jpg',
+  latestAt: 1,
 };
 const entriesItem: CloudConflictItem = {
   kind: 'entries',
-  conflictIds: ['e1', 'e2'],
-  recoveredEntryIds: ['recovered-a', 'recovered-b'],
+  conflictIds: ['e1', 'e2', 'e3'],
+  entryCount: 2,
+  latestAt: 1,
 };
 
 const returnedItem: CloudConflictItem = {
@@ -65,6 +68,7 @@ const returnedItem: CloudConflictItem = {
   conflictIds: ['d1', 'd2'],
   entry: { entryId: 'returned', createdAt: 7, title: 'Walk', preview: 'Sunny morning' },
   edited: true,
+  latestAt: 1,
 };
 
 let root: ReactTestRenderer;
@@ -130,14 +134,24 @@ test('shows the other photo as a thumbnail with its actions', async () => {
   expect(mockResolvePhoto).toHaveBeenCalledWith(photoItem, 'use');
 });
 
-test('groups entry conflicts and "Show them" opens the other versions', async () => {
+test('counts the edited entries, and "Show them" only opens the other versions', async () => {
   await render([entriesItem]);
   expect(content()).toContain(
     '2 entries were edited on two devices at once. Both versions are in your journal.',
   );
   await act(async () => button(mockEn['cloud.conflicts.showThem']).props.onPress());
-  expect(mockAcknowledge).toHaveBeenCalledWith(['e1', 'e2']);
   expect(mockPush).toHaveBeenCalledWith('/other-versions');
+  // Nothing is dismissed before the user has chosen: the row stays.
+  expect(mockAcknowledge).not.toHaveBeenCalled();
+  expect(mockList).toHaveBeenCalledTimes(1);
+  expect(content()).toContain(mockEn['cloud.conflicts.showThem']);
+});
+
+test('uses a calm accent, not the sync-error colour', async () => {
+  await render([entriesItem]);
+  const card = root.root.findAll((node) => (node.type as unknown) === 'View')[0];
+  expect(card.props.className).toContain('border-primary');
+  expect(card.props.className).not.toContain('destructive');
 });
 
 test('reports a failed action and keeps the row', async () => {

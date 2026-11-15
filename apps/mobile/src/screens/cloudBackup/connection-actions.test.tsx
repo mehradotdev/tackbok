@@ -349,6 +349,32 @@ test('backing out of the account picker is silent, in setup and in Reconnect', a
   expect(mockToast.error).toHaveBeenCalledTimes(1);
 });
 
+test('the conflicts card sits under the status card, above the toggles; Other versions stays below them', async () => {
+  await render();
+  const order = root.root
+    .findAll((node) => {
+      const type = node.type as unknown;
+      if (type === 'ConflictsCard' || type === 'OtherVersionsRow') return true;
+      if (type === 'SettingsRow') return true;
+      return (
+        type === 'Button' && node.props.accessibilityLabel === mockEn['cloud.syncNow']
+      );
+    })
+    .map((node) => {
+      const type = node.type as unknown;
+      return type === 'ConflictsCard' || type === 'OtherVersionsRow'
+        ? type
+        : (node.props.label ?? node.props.accessibilityLabel);
+    });
+  expect(order.slice(0, 5)).toEqual([
+    mockEn['cloud.syncNow'],
+    'ConflictsCard',
+    mockEn['cloud.syncMediaOnWiFiOnly'],
+    mockEn['cloud.pauseSync'],
+    'OtherVersionsRow',
+  ]);
+});
+
 test('keeps conflicts and other versions reachable after Disconnect', async () => {
   const reachable = () => [
     root.root.findAllByType('ConflictsCard' as never).length,

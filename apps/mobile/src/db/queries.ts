@@ -11,6 +11,13 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import { addDays, startOfDay, format } from 'date-fns';
+import {
+  groupOtherVersions,
+  openConflictGroups,
+  type OtherVersionGroup,
+} from '~/lib/otherVersionGroups';
+
+export type { OtherVersionGroup } from '~/lib/otherVersionGroups';
 import { getAchievementForCreateTransition, type Achievement } from '~/lib/achievements';
 import {
   createPromptInTransaction,
@@ -188,16 +195,18 @@ export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
     .orderBy(desc(entries.created_at));
 }
 
-/**
- * Entries that sync kept two or more versions of. `original` is the entry the
- * versions were copied from, or `null` when it was deleted. A version copied
- * from another version joins that version's group, so each entry is listed once.
- */
-export interface OtherVersionGroup {
-  original: Entry | null;
-  /** Newest first. */
-  versions: Entry[];
-}
+/** Entries that are another version, or the original another version was copied from. */
+const versionMemberFilter = () =>
+  or(
+    isNotNull(entries.conflict_origin_id),
+    inArray(
+      entries.note_id,
+      db
+        .select({ id: entries.conflict_origin_id })
+        .from(entries)
+        .where(isNotNull(entries.conflict_origin_id)),
+    ),
+  );
 
 /** Groups entries sync kept another version of, newest group first. */
 export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
@@ -206,72 +215,29 @@ export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
   const rows = await db
     .select()
     .from(entries)
-    .where(
-      or(
-        isNotNull(entries.conflict_origin_id),
-        inArray(
-          entries.note_id,
-          db
-            .select({ id: entries.conflict_origin_id })
-            .from(entries)
-            .where(isNotNull(entries.conflict_origin_id)),
-        ),
-      ),
-    )
+    .where(versionMemberFilter())
     .orderBy(desc(entries.created_at), entries.note_id);
   return groupOtherVersions(rows);
 }
 
-/** Exported for tests. `rows` must be sorted newest first. */
-export function groupOtherVersions(rows: Entry[]): OtherVersionGroup[] {
-  const byId = new Map(rows.map((entry) => [entry.note_id, entry]));
-  // The oldest ancestor still in the journal. Sync cannot link versions in a
-  // loop, but if it happens every member gets the same root: the smallest ID.
-  const rootOf = (entry: Entry) => {
-    const path = [entry];
-    for (;;) {
-      const root = path[path.length - 1];
-      const parent = root.conflict_origin_id
-        ? byId.get(root.conflict_origin_id)
-        : undefined;
-      if (!parent) return root;
-      const loopStart = path.indexOf(parent);
-      if (loopStart >= 0) {
-        return path
-          .slice(loopStart)
-          .reduce((smallest, member) =>
-            member.note_id < smallest.note_id ? member : smallest,
-          );
-      }
-      path.push(parent);
-    }
-  };
-  const groups = new Map<string, OtherVersionGroup>();
-  for (const entry of rows) {
-    const root = rootOf(entry);
-    // Versions of a deleted original still belong together. Its ID cannot be
-    // another group's key: an existing origin is always among `rows`.
-    const key =
-      root.conflict_origin_id && !byId.has(root.conflict_origin_id)
-        ? root.conflict_origin_id
-        : root.note_id;
-    let group = groups.get(key);
-    if (!group) {
-      group = { original: root.conflict_origin_id ? null : root, versions: [] };
-      groups.set(key, group);
-    }
-    if (entry !== group.original) group.versions.push(entry);
-  }
-  return [...groups.values()];
-}
-
-/** Number of entries that sync kept as another version of an entry. */
-export async function getOtherVersionCount(): Promise<number> {
-  const [row] = await db
-    .select({ count: sql<number>`count(*)` })
+/**
+ * Entry conflicts still open: groups (an original and the versions copied from
+ * it, see `groupOtherVersions`) with more than one live version, as member IDs.
+ * Deleted entries are not in the table, so keeping one version on any device
+ * closes its group here once that delete has synced.
+ * Reads two columns, and only when some entry is another version: with no
+ * index on `conflict_origin_id` the filter scans the table, as the timeline does.
+ * shortcut: a version links only to the entry it was copied from, so deleting
+ * the middle of a chain (original -> copy -> copy of copy) from the entry
+ * screen leaves the ends unlinked and each counts as alone; follow links with a
+ * recursive query if sync or users start producing such chains.
+ */
+export async function getOpenConflictGroups(): Promise<string[][]> {
+  const rows = await db
+    .select({ note_id: entries.note_id, conflict_origin_id: entries.conflict_origin_id })
     .from(entries)
-    .where(isNotNull(entries.conflict_origin_id));
-  return row?.count ?? 0;
+    .where(versionMemberFilter());
+  return openConflictGroups(rows);
 }
 
 /**

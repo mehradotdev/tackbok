@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, Platform, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { FileClock } from 'lucide-react-native';
+import { FileClock, X } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
+import { useSettingsStore } from '~/lib/settings';
 import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 import {
   activeConflictItems,
@@ -11,11 +12,13 @@ import {
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
+import { conflictNotice } from './conflictNotice';
 
 /**
- * Shown above the timeline while the Cloud backup conflicts card has something
- * to show. It has no close button: it goes away once each conflict there is
- * handled, which takes one tap each.
+ * News about conflicts from sync, shown above the timeline. With only entry
+ * conflicts open it opens Other versions; otherwise Cloud backup. The close
+ * button hides it on this device until a newer conflict arrives; it does not
+ * resolve anything, so the Cloud backup card and Other versions row stay.
  */
 export function ConflictNoticeCard() {
   const { snapshot } = useCloudSyncSnapshot();
@@ -27,11 +30,20 @@ export function ConflictNoticeCard() {
 function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
   const { t } = useTranslation();
   const router = useRouter();
+  const hiddenAt = useSettingsStore((state) => state.conflictNoticeHiddenAt);
+  const otherVersionsSeenAt = useSettingsStore((state) => state.otherVersionsSeenAt);
+  const hideConflictNotice = useSettingsStore((state) => state.hideConflictNotice);
   const { items, loadFailed } = useCloudConflictItems(refreshToken);
-  // A failed load still shows the notice: the card there offers a retry.
-  const visible = loadFailed || activeConflictItems(items).length > 0;
+  const notice = conflictNotice(activeConflictItems(items), loadFailed, {
+    hiddenAt,
+    otherVersionsSeenAt,
+  });
+  const visible = notice !== null;
   const announcedRef = useRef(false);
-  const message = t('cloud.conflicts.homeNotice');
+  const message =
+    notice?.route === 'other-versions'
+      ? t('cloud.conflicts.homeNoticeEntries', { count: notice.entryCount })
+      : t('cloud.conflicts.homeNotice');
 
   // Android reads the title through the live region; iOS has none, so announce
   // once each time the notice appears, not on every snapshot refresh.
@@ -45,23 +57,45 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
     if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
   }, [visible, message]);
 
-  if (!visible) return null;
+  if (!notice) return null;
 
+  const toOtherVersions = notice.route === 'other-versions';
   return (
     <View className="mx-4 mt-2 mb-1 gap-2 rounded-lg border border-border bg-card p-3">
-      <View className="flex-row items-center gap-3" accessibilityLiveRegion="polite">
-        <Icon as={FileClock} className="text-foreground size-5" />
-        <Text className="flex-1 text-sm font-body-semibold text-foreground">
-          {t('cloud.conflicts.title')}
-        </Text>
+      {/* The row is 44pt tall: hitSlop never reaches past the parent row. */}
+      <View className="min-h-11 flex-row items-center gap-3">
+        <View
+          className="flex-1 flex-row items-center gap-3"
+          accessibilityLiveRegion="polite">
+          <Icon as={FileClock} className="text-foreground size-5" />
+          <Text className="flex-1 text-sm font-body-semibold text-foreground">
+            {t('cloud.conflicts.title')}
+          </Text>
+        </View>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 -mr-1"
+          onPress={() => hideConflictNotice(notice.newestAt ?? Date.now())}
+          accessibilityLabel={t('cloud.conflicts.hideNotice')}
+          accessibilityHint={t('cloud.conflicts.hideNoticeHint')}
+          hitSlop={8}>
+          <Icon as={X} className="text-muted-foreground size-4" />
+        </Button>
       </View>
       <Text className="text-sm text-foreground">{message}</Text>
       <Button
         variant="outline"
         size="sm"
-        className="self-start"
-        onPress={() => router.push('/cloud-backup' as Href)}>
-        <Text className="text-sm">{t('cloud.viewCloudBackup')}</Text>
+        className="h-auto min-h-10 max-w-full self-start py-2"
+        onPress={() =>
+          router.push((toOtherVersions ? '/other-versions' : '/cloud-backup') as Href)
+        }>
+        <Text className="shrink text-center text-sm">
+          {toOtherVersions
+            ? t('cloud.conflicts.compareVersions')
+            : t('cloud.viewCloudBackup')}
+        </Text>
       </Button>
     </View>
   );

@@ -39,6 +39,7 @@ jest.mock('~/db', () => ({
   mediaAssets: {},
   userProfile: {},
 }));
+jest.mock('~/db/queries', () => ({ getOpenConflictGroups: async () => [] }));
 jest.mock('~/lib/photoUtils', () => ({ photoFileExists: () => true }));
 jest.mock('~/lib/settings', () => ({
   hydrateProfileCache: (profile: unknown) => mockHydrate(profile),
@@ -84,6 +85,7 @@ describe('resolveNameConflict', () => {
     current: 'Mehra',
     other: 'Mehra A',
     archived: false,
+    latestAt: 0,
   };
 
   test('"Use" saves the other name through the profile write path, then dismisses the row', async () => {
@@ -118,6 +120,7 @@ describe('resolvePhotoConflict', () => {
     conflictIds: ['p1'],
     otherAssetId: 'photo-other',
     otherUri: 'photos/other.jpg',
+    latestAt: 0,
   };
 
   test('"Use this photo" points the profile at the existing asset, then dismisses the row', async () => {

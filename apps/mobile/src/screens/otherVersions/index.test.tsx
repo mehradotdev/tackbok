@@ -60,6 +60,12 @@ jest.mock('~/components/backdrops/ThemeBackdrop', () => ({
 }));
 jest.mock('~/screens/dateEntries', () => ({ EntryItem: 'EntryItem' }));
 jest.mock('~/lib/analytics', () => ({ track: (event: string) => mockTrack(event) }));
+const mockMarkSeen = jest.fn();
+jest.mock('~/lib/settings', () => ({
+  useSettingsStore: {
+    getState: () => ({ markOtherVersionsSeen: (at: number) => mockMarkSeen(at) }),
+  },
+}));
 jest.mock('~/lib/cloudSync/ui', () => ({
   acknowledgeEntryConflicts: (ids: string[]) => mockAcknowledge(ids),
 }));
@@ -279,4 +285,14 @@ test('a failed delete is reported and dismisses nothing', async () => {
   expect(mockToastError).toHaveBeenCalledWith(mockEn['mood.failedToDeleteEntry']);
   expect(mockAcknowledge).not.toHaveBeenCalled();
   expect(mockTrack).not.toHaveBeenCalled();
+});
+
+test('opening the screen clears the Home notice for the entry conflicts on it', () => {
+  const before = Date.now();
+  render({ data: [{ original, versions: [copy] }] });
+  expect(mockMarkSeen).toHaveBeenCalledTimes(1);
+  expect(mockMarkSeen.mock.calls[0][0]).toBeGreaterThanOrEqual(before);
+  // Re-renders, e.g. a refetch, do not mark it again.
+  act(() => root.update(<OtherVersionsScreen />));
+  expect(mockMarkSeen).toHaveBeenCalledTimes(1);
 });
