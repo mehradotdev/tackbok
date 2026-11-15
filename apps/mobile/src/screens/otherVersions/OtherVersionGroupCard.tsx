@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { cn } from 'tailwind-variants';
 import type { Asset, Entry } from '~/types';
 import type { OtherVersionGroup } from '~/db/queries';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
@@ -7,6 +8,7 @@ import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { EntryItem } from '~/screens/dateEntries';
 import { groupMembers, keepMessage } from './keepVersion';
+import { versionDifferences } from './versionDifferences';
 
 interface OtherVersionGroupCardProps {
   group: OtherVersionGroup;
@@ -15,6 +17,8 @@ interface OtherVersionGroupCardProps {
   onPhotoPress: (photos: Asset[], index: number) => void;
   onKeep: (entry: Entry) => void;
   disabled: boolean;
+  /** The group the user came to compare, e.g. from an entry's banner. */
+  highlighted?: boolean;
 }
 
 /** One entry's versions, one under the other, each with "Keep this one". */
@@ -25,14 +29,21 @@ export function OtherVersionGroupCard({
   onPhotoPress,
   onKeep,
   disabled,
+  highlighted = false,
 }: OtherVersionGroupCardProps) {
   const { t } = useTranslation();
   const members = groupMembers(group);
   // A version alone has nothing to choose between.
   const canKeep = members.length > 1;
+  const differences = versionDifferences(members);
 
   return (
-    <View className="mx-3 mb-4 rounded-lg border border-border bg-card overflow-hidden">
+    <View
+      className={cn(
+        'mx-3 mb-4 rounded-lg border bg-card overflow-hidden',
+        // A calm accent, as on the Cloud backup conflicts card.
+        highlighted ? 'border-primary' : 'border-border',
+      )}>
       <View className="gap-1 px-3 pt-3">
         <Text role="heading" className="font-body-bold text-foreground">
           {t('cloud.conflicts.versionsOf', {
@@ -43,6 +54,15 @@ export function OtherVersionGroupCard({
           <Text className="text-sm text-muted-foreground">
             {t('cloud.conflicts.originalDeleted')}
           </Text>
+        )}
+        {differences.length > 0 && (
+          <View className="flex-row flex-wrap gap-x-3 gap-y-1">
+            {differences.map((key) => (
+              <Text key={key} className="text-sm text-muted-foreground">
+                {t(key)}
+              </Text>
+            ))}
+          </View>
         )}
       </View>
       {members.map((entry, index) => {

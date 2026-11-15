@@ -75,7 +75,7 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
         <Button
           variant="ghost"
           size="icon"
-          className="size-7 -mr-1"
+          className="size-7 -me-1"
           onPress={() => hideConflictNotice(notice.newestAt ?? Date.now())}
           accessibilityLabel={t('cloud.conflicts.hideNotice')}
           accessibilityHint={t('cloud.conflicts.hideNoticeHint')}

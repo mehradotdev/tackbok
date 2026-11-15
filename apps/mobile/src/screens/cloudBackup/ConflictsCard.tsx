@@ -108,6 +108,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             <Text className="shrink text-center">{t('cloud.conflicts.keepCurrent')}</Text>
           </Button>
         </View>
+        <DeviceOnlyNote />
       </View>
     );
   };
@@ -165,6 +166,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             <Text className="shrink text-center">{t('cloud.conflicts.gotIt')}</Text>
           </Button>
         </View>
+        <DeviceOnlyNote />
       </View>
     );
   };
@@ -227,6 +229,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
                   </Text>
                 </Button>
               </View>
+              <DeviceOnlyNote />
             </View>
           );
         }
@@ -268,6 +271,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             }>
             <Text className="shrink text-center">{t('cloud.conflicts.gotIt')}</Text>
           </Button>
+          <DeviceOnlyNote />
         </View>
       )}
       {archivedNames.length > 0 && (
@@ -294,5 +298,19 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
         </View>
       )}
     </View>
+  );
+}
+
+/**
+ * Under "Got it" and "Keep current" (and the other choices in the same row):
+ * they dismiss the row with a local mark that does not sync, so another device
+ * keeps showing its own notice.
+ */
+function DeviceOnlyNote() {
+  const { t } = useTranslation();
+  return (
+    <Text className="text-sm text-muted-foreground">
+      {t('cloud.conflicts.hidesOnThisDeviceOnly')}
+    </Text>
   );
 }

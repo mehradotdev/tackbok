@@ -291,3 +291,26 @@ test('up to three returned entries are listed one by one', async () => {
     ),
   ).toHaveLength(3);
 });
+
+test('"Got it" and "Keep current" rows say they hide the notice on this device only', async () => {
+  const note = mockEn['cloud.conflicts.hidesOnThisDeviceOnly'];
+  const count = () => content().split(note).length - 1;
+  await render([nameItem, photoItem, returnedItem]);
+  expect(count()).toBe(3);
+  act(() => root.unmount());
+  // The entries row resolves from the journal on every device: no such note.
+  await render([entriesItem]);
+  expect(count()).toBe(0);
+});
+
+test('the collapsed returned-entries row says it too', async () => {
+  const many = [1, 2, 3, 4].map((n) => ({
+    ...returnedItem,
+    conflictIds: [`d${n}`],
+    entry: { ...(returnedItem as { entry: object }).entry, entryId: `r${n}` },
+  })) as CloudConflictItem[];
+  await render(many);
+  expect(
+    content().split(mockEn['cloud.conflicts.hidesOnThisDeviceOnly']).length - 1,
+  ).toBe(1);
+});

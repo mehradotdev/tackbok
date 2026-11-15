@@ -60,12 +60,17 @@ export function groupOtherVersions<T extends VersionLink>(
 }
 
 /**
- * The groups that are still an open entry conflict: more than one live
+ * Whether a group is still an open entry conflict: more than one live
  * version. A version left on its own has nothing to choose between.
  */
+export function isOpenGroup(group: OtherVersionGroup<VersionLink>): boolean {
+  return (group.original ? 1 : 0) + group.versions.length > 1;
+}
+
+/** The groups that are still an open entry conflict (see `isOpenGroup`). */
 export function openConflictGroups(rows: VersionLink[]): string[][] {
   return groupOtherVersions(rows)
-    .filter((group) => (group.original ? 1 : 0) + group.versions.length > 1)
+    .filter(isOpenGroup)
     .map((group) =>
       [group.original, ...group.versions]
         .filter((member) => member !== null)
