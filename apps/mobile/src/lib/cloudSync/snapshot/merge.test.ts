@@ -1201,6 +1201,25 @@ describe('keeping one version when two devices keep different ones', () => {
     expect(keptTwo.conflicts.map((value) => value.entityId)).toEqual([third.entryId]);
   });
 
+  it('treats copies of a version deleted before the base as a separate group', () => {
+    // shortcut in keepOneVersion: the deleted middle keeps no lineage, so this
+    // still loses both; pinned so a lineage-carrying format can change it.
+    const middle = { ...copy, entryId: 'recovered-b' };
+    const end = { ...copy, entryId: 'recovered-c', conflictOriginId: middle.entryId };
+    const linkBase = deleting(
+      domainOf([original, middle, end]),
+      [middle.entryId],
+      'device-d',
+    );
+    const merged = mergeBothWays(
+      linkBase,
+      deleting(linkBase, [end.entryId], 'device-a'),
+      deleting(linkBase, [original.entryId], 'device-b'),
+    );
+    expect(merged.entries).toEqual([]);
+    expect(merged.conflicts).toEqual([]);
+  });
+
   it('keeps a whole-entry delete when the other device kept nothing different', () => {
     const deletedAll = deleting(base, [original.entryId, copy.entryId], 'device-a');
     // The other device did nothing.

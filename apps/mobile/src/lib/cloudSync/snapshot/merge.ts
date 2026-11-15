@@ -509,13 +509,26 @@ function mergeEntityCollection<T extends MergeEntity>(
  * value, so the whole entry would disappear. When a group has no live version
  * left and *each* side kept a version the other side deleted, this brings back
  * exactly one: the newest edit, then the lowest entry ID. The choice depends
- * only on the values, so every device and merge order picks the same one.
+ * only on the values, so swapping local and remote, or either device merging
+ * first, picks the same one.
  *
  * Unchanged on purpose:
  * - One side deleted every version it had (it kept nothing): a real delete.
  * - A version deleted on both sides has no keeper and is never a candidate.
  * - An edited version already beats a delete, so its group stays live.
  * - Without a base, a delete never beats a live value, so nothing is lost.
+ * - Separate deletes of different versions from the entry screen look the same
+ *   as two "keeps", so one version comes back then too, with a notice.
+ *
+ * shortcut: with three or more devices that each delete only some versions,
+ * an earlier pairwise merge can leave the group live and change which version
+ * a later merge keeps, so the shown version can differ for one sync round
+ * before the crossing merge settles it. Exactly one is kept either way; a
+ * fully order-free rule needs the whole set of deletes at once.
+ * shortcut: a version deleted before the common base survives only as a
+ * tombstone, which has no `conflictOriginId`, so its copies form a separate
+ * group (as on Other versions). Linking them needs lineage on tombstones,
+ * a snapshot format change.
  */
 function keepOneVersion(
   base: SnapshotDomain | null,
@@ -526,7 +539,8 @@ function keepOneVersion(
 ): Map<string, Side> {
   const kept = new Map<string, Side>();
   if (entries.deletedWhileKept.size === 0) return kept;
-  // Group by lineage from every known value, so deleted links still connect.
+  // Group by lineage from every known value, so links deleted since the base
+  // still connect.
   const parent = new Map<string, string>();
   const find = (id: string): string => {
     let root = id;
@@ -569,6 +583,8 @@ function keepOneVersion(
     const index = entries.tombstones.findIndex(
       (tomb) => tomb.entityType === 'entry' && tomb.entityId === value.entryId,
     );
+    // Every candidate's tombstone was added beside it; never splice(-1).
+    if (index < 0) continue;
     const tomb = entries.tombstones[index];
     entries.tombstones.splice(index, 1);
     entries.live.push(value);
