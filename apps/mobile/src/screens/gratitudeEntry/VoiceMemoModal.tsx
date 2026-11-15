@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Linking } from 'react-native';
+import { AppState, View, Linking } from 'react-native';
 import { File } from 'expo-file-system';
 import {
   Headphones,
@@ -158,6 +158,11 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
       if (audioEngine.playbackState === 'playing') {
         setPreviewCurrentTime(audioEngine.currentTime);
         setPreviewDuration(audioEngine.duration);
+      } else if (audioEngine.playbackState === 'paused') {
+        // The engine paused it (the app went to background): show it paused.
+        setPreviewPlaying(false);
+        setPreviewCurrentTime(audioEngine.currentTime);
+        stopPlaybackPoll();
       }
     }, POLL_INTERVAL);
   }, [stopPlaybackPoll]);
@@ -208,6 +213,8 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     maxRecordingTimeoutRef.current = setTimeout(() => {
       stopRecordingHandlerRef.current?.(true);
     }, MAX_RECORDING_DURATION_MS);
+    // The app left while the recorder was starting: the listener below missed it.
+    if (AppState.currentState === 'background') stopRecordingHandlerRef.current?.(false);
     return true;
   }, [startDurationPoll, stopMaxRecordingTimer]);
 
@@ -268,6 +275,24 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     stopRecordingHandlerRef.current = handleStopRecording;
   }, [handleStopRecording]);
 
+  // ── Leaving the app ends the recording ────────────────────────────
+  // Recording is foreground-only: iOS has no background audio mode for it and
+  // Android silences the microphone for background apps. Stop and keep what
+  // was recorded, so the user returns to its preview to save or discard it.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'background') return;
+      if (audioEngine.isRecording) stopRecordingHandlerRef.current?.(false);
+      // The engine paused the preview; show it before JS may be suspended.
+      if (audioEngine.playbackState === 'paused') {
+        setPreviewPlaying(false);
+        setPreviewCurrentTime(audioEngine.currentTime);
+        stopPlaybackPoll();
+      }
+    });
+    return () => subscription.remove();
+  }, [stopPlaybackPoll]);
+
   // ── Preview Playback ───────────────────────────────────────────────
   const handlePlayPause = useCallback(async () => {
     if (!recordedUri) return;
@@ -283,15 +308,13 @@ export function VoiceMemoModal({ onVoiceMemoSaved }: IVoiceMemoModalProps) {
     const state = audioEngine.playbackState;
     if (audioEngine.currentUri === recordedUri && state === 'paused') {
       await audioEngine.resumePlayback();
-      setPreviewPlaying(true);
-      startPlaybackPoll();
-      return;
+    } else {
+      await audioEngine.loadAndPlay(recordedUri);
+      setPreviewDuration(audioEngine.duration);
     }
-
-    // Fresh play
-    await audioEngine.loadAndPlay(recordedUri);
+    // The engine starts paused if the app left while it loaded or resumed.
+    if (audioEngine.playbackState !== 'playing') return;
     setPreviewPlaying(true);
-    setPreviewDuration(audioEngine.duration);
     startPlaybackPoll();
   }, [recordedUri, previewPlaying, startPlaybackPoll, stopPlaybackPoll]);
 
