@@ -150,3 +150,12 @@ test('a resume requested while in background does not start playing', async () =
   expect(audioEngine.playbackState).toBe('paused');
   expect(mockSources).toHaveLength(1);
 });
+
+test('a note paused before the app leaves also stops its output stream', async () => {
+  await audioEngine.loadAndPlay('file:///note.m4a');
+  audioEngine.pausePlayback();
+  expect(mockContexts.at(-1)!.state).toBe('running');
+  setAppState('background');
+  expect(audioEngine.playbackState).toBe('paused');
+  expect(mockContexts.at(-1)!.state).toBe('suspended');
+});

@@ -214,8 +214,9 @@ class AudioEngine {
     AppState.addEventListener('change', (state) => {
       if (state !== 'background' && state !== 'active') return;
       this.inBackground = state === 'background';
-      if (!this.inBackground || this._playbackState !== 'playing') return;
+      if (!this.inBackground || this._playbackState === 'idle') return;
       this.pausePlayback();
+      // Also for a note the user paused before leaving (idle already suspended).
       this.suspendWhileBackgrounded();
     });
   }
@@ -565,6 +566,8 @@ class AudioEngine {
     // Ensure analyser is connected to speakers for audible playback
     this.unmuteOutput();
 
+    // A load started during the awaits below replaces this buffer.
+    const requestId = this.loadRequestId;
     // iOS may have interrupted the session while the app was in background.
     AudioManager.setAudioSessionOptions({
       iosCategory: 'playback',
@@ -581,7 +584,13 @@ class AudioEngine {
       this.suspendWhileBackgrounded();
       return;
     }
-    if (this._playbackState !== 'paused' || !this.currentBuffer) return;
+    if (
+      this._playbackState !== 'paused' ||
+      !this.currentBuffer ||
+      requestId !== this.loadRequestId
+    ) {
+      return;
+    }
 
     this.sourceNode = ctx.createBufferSource();
     this.sourceNode.buffer = this.currentBuffer;
