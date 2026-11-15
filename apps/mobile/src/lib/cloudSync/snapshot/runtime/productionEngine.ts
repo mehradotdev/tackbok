@@ -49,7 +49,11 @@ import type {
 } from '../sync/types';
 import { isolateProgress, SnapshotProviderError } from '../sync/types';
 import { SyncCancelledError, throwIfCancelled, untilCancelled } from '../sync/errors';
-import { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } from '../storage';
+import {
+  ProductionSnapshotJournalStore,
+  ProductionSnapshotMediaStore,
+  pruneMissingUnusedProfilePhotos,
+} from '../storage';
 
 interface ProductionSnapshotVault {
   vault_id: string;
@@ -287,6 +291,13 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     this.needsFollowup = false;
     this.onActivity('checking');
     this.onProgress({ type: 'plan', phase: 'checking' });
+    try {
+      // Before hashing, which would mark such a row missing and pause the backup.
+      await pruneMissingUnusedProfilePhotos();
+    } catch (error) {
+      // The rows stay; the checks below still stop on any unreadable media.
+      console.warn('Cloud sync could not remove unused profile photos', error);
+    }
     const hashing = await hashPendingProductionMedia(2);
     throwIfCancelled(signal);
     if (hashing.processed > 0) {

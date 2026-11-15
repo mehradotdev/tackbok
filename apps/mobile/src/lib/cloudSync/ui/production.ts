@@ -3,27 +3,17 @@ import { randomUUID } from 'expo-crypto';
 import { Directory, Paths } from 'expo-file-system';
 import {
   cloudVault,
-  cloudBaseShadow,
   cloudConflicts,
-  cloudDriveObjects,
-  cloudDriveState,
-  cloudDriveUploadSessions,
-  cloudPendingPublication,
-  cloudShadowReaper,
   cloudSyncState,
-  cloudTombstones,
   customPrompts,
   db,
   entries,
   mediaAssets,
   runExclusiveDbTransaction,
   sqlite,
-  syncMediaObligations,
   syncProviderState,
-  syncRetainedMedia,
   tags,
 } from '~/db';
-import { deleteAllDataInTransaction } from '~/db/queries';
 import { deleteAllPhotos } from '~/lib/photoUtils';
 import { deleteAllVoiceMemos } from '~/lib/voiceMemoUtils';
 import { useSettingsStore } from '~/lib/settings';
@@ -54,7 +44,8 @@ import {
 } from '../snapshot/drive';
 import { nativeSha256Bytes } from '../snapshot/runtime/nativeSha256';
 import { waitingMediaUploadCount } from '../snapshot/runtime/waitingMediaUploads';
-import { clearMediaHashes, forgetMediaHashes } from '../snapshot/storage';
+import { forgetMediaHashes } from '../snapshot/storage';
+import { wipeLocalJournalInTransaction } from '../storage/localWipe';
 import {
   deletionAttentionReason,
   SQLiteSyncStateStore,
@@ -73,10 +64,7 @@ import {
 } from '../runtime/production';
 import type { SyncPassPhase } from '../runtime/SyncRuntime';
 import { setCloudSyncBackgroundTaskEnabled } from '../runtime/backgroundTask';
-import {
-  runInCloudSyncTransaction,
-  type CloudSyncTransaction,
-} from '../storage/repositories';
+import { runInCloudSyncTransaction } from '../storage/repositories';
 
 export type CloudSetupOrigin = 'settings' | 'onboarding';
 
@@ -742,24 +730,6 @@ async function revokeCloudVaultImpl(
   }
 }
 
-async function clearLocalCloudReplicaInTransaction(
-  tx: CloudSyncTransaction,
-): Promise<void> {
-  await tx.delete(cloudDriveUploadSessions);
-  await tx.delete(cloudDriveObjects);
-  await tx.delete(cloudDriveState);
-  await tx.delete(cloudPendingPublication);
-  await tx.delete(cloudBaseShadow);
-  await tx.delete(cloudShadowReaper);
-  await tx.delete(cloudConflicts);
-  await tx.delete(cloudTombstones);
-  await tx.delete(cloudSyncState);
-  await tx.delete(syncMediaObligations);
-  await tx.delete(syncRetainedMedia);
-  await tx.delete(syncProviderState);
-  await tx.delete(cloudVault);
-}
-
 function deleteLocalMediaFiles(): string[] {
   const errors: string[] = [];
   for (const remove of [deleteAllPhotos, deleteAllVoiceMemos]) {
@@ -780,14 +750,7 @@ async function wipeJournalAndLocalCloudReplica(): Promise<string[]> {
     const directory = new Directory(Paths.document, directoryName);
     if (directory.exists) directory.delete();
   }
-  await runInCloudSyncTransaction(async (tx) => {
-    await deleteAllDataInTransaction(tx);
-    // The routed hard delete creates queue and retained-media rows. Clearing
-    // those rows in this same transaction closes the crash window where a
-    // later reconnect could otherwise publish the device wipe to Drive.
-    await clearLocalCloudReplicaInTransaction(tx);
-    await clearMediaHashes(tx);
-  });
+  await runInCloudSyncTransaction(wipeLocalJournalInTransaction);
   forgetMediaHashes();
   return deleteLocalMediaFiles();
 }

@@ -305,15 +305,17 @@ describe('production cloud-sync runtime', () => {
     ).text();
     const start = source.indexOf('async function wipeJournalAndLocalCloudReplica');
     const wipe = source.slice(start, source.indexOf('\n}', start));
-    const transaction = wipe.slice(wipe.indexOf('runInCloudSyncTransaction'));
-    expect(transaction.indexOf('await clearMediaHashes(tx)')).toBeGreaterThan(0);
-    expect(transaction.indexOf('await clearMediaHashes(tx)')).toBeLessThan(
-      transaction.indexOf('});'),
+    const transaction = wipe.indexOf(
+      'await runInCloudSyncTransaction(wipeLocalJournalInTransaction);',
     );
+    expect(transaction).toBeGreaterThan(0);
     // Memory is forgotten only after the wipe commits.
-    expect(transaction.indexOf('forgetMediaHashes()')).toBeGreaterThan(
-      transaction.indexOf('});'),
-    );
+    expect(wipe.indexOf('forgetMediaHashes()')).toBeGreaterThan(transaction);
+    // The transaction itself empties the table (production-journal.test.ts).
+    const localWipe = await Bun.file(
+      join(mobileRoot, 'src/lib/cloudSync/storage/localWipe.ts'),
+    ).text();
+    expect(localWipe).toContain('await clearMediaHashes(tx);');
   });
 
   test('production async units of work use Expo-managed transactions', async () => {

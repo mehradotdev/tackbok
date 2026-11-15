@@ -1902,3 +1902,144 @@ test('a photo left out of a publication for Wi-Fi stays on this device', async (
   expect(await store.requeueMissingVerifiedMedia()).toBe(0);
   sqlite.exec('DELETE FROM entries; DELETE FROM media_assets');
 });
+
+/**
+ * This device and another each set a profile photo, so the merge keeps both
+ * photos: the current one and the other as a photo-conflict alternate.
+ */
+async function applyPhotoConflict(vaultId: string) {
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_conflicts; DELETE FROM cloud_sync_state; DELETE FROM cloud_vault',
+  );
+  existingFiles.clear();
+  unreadableFiles.clear();
+  const { mergeSnapshotDomains } = await import('../../src/lib/cloudSync/snapshot/merge');
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: vaultId, device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore(vaultId, 'device', {} as never);
+  const local = (await store.capture()).domain;
+  local.profile = { ...local.profile, photoAssetId: 'local-photo', updatedAt: 10 };
+  local.media = [profilePhoto('local-photo')];
+  const remote = structuredClone(local);
+  remote.profile = { ...remote.profile, photoAssetId: 'remote-photo', updatedAt: 20 };
+  remote.media = [{ ...profilePhoto('remote-photo'), blobHash: 'b'.repeat(64) }];
+  const merged = mergeSnapshotDomains(null, local, remote, {
+    localProfilePristine: false,
+  });
+  expect(merged.conflicts.map((conflict) => conflict.field)).toEqual(['photoAssetId']);
+  const uris = new Map(
+    merged.media.map((asset) => [
+      asset.assetId,
+      { uri: `${paths.document}/photos/${asset.assetId}.jpg`, verified: true },
+    ]),
+  );
+  for (const { uri } of uris.values()) existingFiles.add(uri);
+  Object.defineProperty(store, 'materializeMedia', { value: async () => uris });
+  expect(await store.applyMergedIfGeneration(merged, 0, { remoteDerived: true })).toBe(
+    true,
+  );
+  const photoRows = () =>
+    db
+      .select({ id: schema.mediaAssets.asset_id })
+      .from(schema.mediaAssets)
+      .all()
+      .map(({ id }) => id)
+      .sort();
+  expect(photoRows()).toEqual(['local-photo', 'remote-photo']);
+  return { store, photoRows };
+}
+
+test('Delete journal everywhere leaves no profile photos for the next backup (#178)', async () => {
+  const { wipeLocalJournalInTransaction } =
+    await import('../../src/lib/cloudSync/storage/localWipe');
+  const { photoRows } = await applyPhotoConflict('before-wipe');
+  const [profile] = db.select().from(schema.userProfile).all();
+  expect(profile.photo_asset_id).not.toBeNull();
+
+  const { runExclusiveDbTransaction } = await import('../../src/db');
+  db.insert(schema.cloudSyncMediaHashCache)
+    .values({
+      path: 'photos/local-photo.jpg',
+      size: 1,
+      modified_at: 1,
+      sha256: 'a'.repeat(64),
+      hashed_at: 1,
+      format_version: 1,
+    })
+    .run();
+  await runExclusiveDbTransaction(wipeLocalJournalInTransaction);
+  expect(db.select().from(schema.cloudSyncMediaHashCache).all()).toEqual([]);
+  // The wipe then deletes every photo and voice file.
+  existingFiles.clear();
+  expect(photoRows()).toEqual([]);
+
+  // A new backup on the wiped journal publishes no media, so it needs no file.
+  db.insert(schema.cloudSyncState)
+    .values({ vault_id: 'after-wipe', device_id: 'device', updated_at: 1 })
+    .run();
+  const store = new ProductionSnapshotJournalStore('after-wipe', 'device', {} as never);
+  const { domain } = await store.capture();
+  expect(domain.media).toEqual([]);
+  expect(domain.profile.photoAssetId).toBeNull();
+});
+
+test('a backup prunes only unused profile photos whose file is confirmed gone', async () => {
+  const { pruneMissingUnusedProfilePhotos } =
+    await import('../../src/lib/cloudSync/snapshot/storage/productionJournal');
+  const { store, photoRows } = await applyPhotoConflict('prune');
+  const row = (assetId: string, ownerType: 'entry' | 'profile' = 'profile') => ({
+    asset_id: assetId,
+    owner_type: ownerType,
+    owner_id: ownerType === 'profile' ? 'self' : 'entry',
+    kind: ownerType === 'profile' ? ('profile-photo' as const) : ('photo' as const),
+    local_uri: `${paths.document}/photos/${assetId}.jpg`,
+    blob_hash: 'c'.repeat(64),
+    byte_size: 1,
+    created_at: 1,
+    updated_at: 1,
+  });
+  db.insert(schema.entries)
+    .values({ note_id: 'entry', created_at: 1, updated_at: 1 })
+    .run();
+  db.insert(schema.mediaAssets)
+    .values([
+      row('unused-missing'),
+      { ...row('unused-no-uri'), local_uri: null },
+      row('unused-present'),
+      row('unused-unreadable'),
+      row('entry-missing', 'entry'),
+    ])
+    .run();
+  // Only one unused file is still there. The current photo and the conflict
+  // alternate are gone too, but in use.
+  existingFiles.clear();
+  existingFiles.add(`${paths.document}/photos/unused-present.jpg`);
+  unreadableFiles.add(`${paths.document}/photos/unused-unreadable.jpg`);
+
+  expect(await pruneMissingUnusedProfilePhotos()).toBe(2);
+  expect(photoRows()).toEqual([
+    'entry-missing',
+    'local-photo',
+    'remote-photo',
+    'unused-present',
+    'unused-unreadable',
+  ]);
+  expect(await pruneMissingUnusedProfilePhotos()).toBe(0);
+
+  // Media still in use keeps stopping the backup: the capture still publishes
+  // it, and no verified copy of its file exists to upload.
+  const { domain } = await store.capture();
+  const [current] = db.select().from(schema.userProfile).all();
+  const published = new Map(domain.media.map((asset) => [asset.assetId, asset]));
+  for (const assetId of [current.photo_asset_id!, 'entry-missing'])
+    expect(published.has(assetId)).toBe(true);
+  const currentHash = published.get(current.photo_asset_id!)!.blobHash;
+  expect(
+    await new ProductionSnapshotMediaStore().openVerifiedSource(currentHash),
+  ).toBeNull();
+  sqlite.exec(
+    'DELETE FROM entries; DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM cloud_conflicts',
+  );
+  unreadableFiles.clear();
+});

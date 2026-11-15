@@ -420,6 +420,57 @@ function parseConflict(value: string): SnapshotConflict {
   );
 }
 
+/**
+ * Deletes profile-photo rows that nothing uses and whose file is confirmed
+ * gone, such as the rows an older "Delete journal everywhere" left behind
+ * (#178). Otherwise a backup with no other device to merge with publishes
+ * them, so every backup stops on files that no longer exist.
+ *
+ * A row is in use when it is the current profile photo or an alternate in a
+ * photo conflict, the same references a merge keeps. A merge drops the rows
+ * this deletes, so other devices see no change. Entry media and rows in use
+ * are never touched: if their files are missing, the backup keeps stopping.
+ */
+export async function pruneMissingUnusedProfilePhotos(): Promise<number> {
+  return runExclusiveDbTransaction(async (tx) => {
+    const rows = await tx
+      .select({ assetId: mediaAssets.asset_id, localUri: mediaAssets.local_uri })
+      .from(mediaAssets)
+      .where(eq(mediaAssets.owner_type, 'profile'));
+    if (rows.length === 0) return 0;
+    const used = new Set<string>();
+    const [profile] = await tx
+      .select({ photoAssetId: userProfile.photo_asset_id })
+      .from(userProfile)
+      .limit(1);
+    if (profile?.photoAssetId) used.add(profile.photoAssetId);
+    for (const row of await tx
+      .select({ json: cloudConflicts.conflict_json })
+      .from(cloudConflicts)) {
+      const conflict = parseConflict(row.json);
+      if (conflict.field !== 'photoAssetId') continue;
+      for (const alternate of conflict.alternates)
+        if (alternate.value) used.add(alternate.value);
+    }
+    const unused: string[] = [];
+    for (const row of rows) {
+      if (used.has(row.assetId)) continue;
+      if (row.localUri) {
+        // Only a file confirmed absent counts; a failed check keeps the row.
+        try {
+          if (fileForLocalUri(row.localUri).exists) continue;
+        } catch {
+          continue;
+        }
+      }
+      unused.push(row.assetId);
+    }
+    if (unused.length > 0)
+      await tx.delete(mediaAssets).where(inArray(mediaAssets.asset_id, unused));
+    return unused.length;
+  });
+}
+
 function legacyAsset(descriptor: SnapshotMedia, uri: string): Asset {
   return {
     type: descriptor.kind === 'voice' ? AssetType.AUDIO : AssetType.IMAGE,
