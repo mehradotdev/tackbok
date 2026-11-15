@@ -77,18 +77,17 @@ export default function OtherVersionsScreen() {
 
   // Screen readers stay where the confirmation was, so say it once each time
   // the list empties. Queued, so focus moving after the dialog does not cut it off.
+  // Re-armed only by a new choice, not by a failed refetch in between.
   const announcedRef = useRef(false);
+  const hasGroups = groups.length > 0;
   useEffect(() => {
-    if (!allDone) {
-      announcedRef.current = false;
-      return;
-    }
-    if (announcedRef.current) return;
+    if (hasGroups) announcedRef.current = false;
+    if (!allDone || announcedRef.current) return;
     announcedRef.current = true;
     AccessibilityInfo.announceForAccessibilityWithOptions(t('cloud.conflicts.allDone'), {
       queue: true,
     });
-  }, [allDone, t]);
+  }, [allDone, hasGroups, t]);
 
   const handlePhotoPress = (photos: Asset[], index: number) => {
     setViewerPhotos(photos);
