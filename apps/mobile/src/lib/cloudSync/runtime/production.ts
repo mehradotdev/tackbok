@@ -23,7 +23,11 @@ import { SyncActivity, type ProductionCloudSyncActivity } from './activity';
 import { SyncProgressTracker, type SyncProgressSnapshot } from './progress';
 import { addCloudSyncMutationListener } from './mutationSignal';
 import { bumpMediaRevision } from './mediaRevision';
-import { beginBackgroundExecution } from './backgroundExecution';
+import {
+  addBackgroundRunListener,
+  beginBackgroundExecution,
+  requestBackgroundRun,
+} from './backgroundExecution';
 import { createProductionSnapshotRuntimeEngine } from '../snapshot/runtime';
 import { readCloudSyncFailureCategory } from '../failureClassification';
 import { SyncCancelledError } from '../snapshot/sync/errors';
@@ -83,6 +87,8 @@ export function notifyProductionCloudSyncChanged(): void {
 const platform: RuntimePlatform = {
   getAppState: () => (AppState.currentState === 'active' ? 'active' : 'background'),
   beginBackgroundExecution,
+  requestBackgroundRun,
+  addBackgroundRunListener,
   addAppStateListener(listener) {
     return AppState.addEventListener('change', (state) => {
       // A process the background task launched while the phone was locked

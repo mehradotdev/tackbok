@@ -48,6 +48,13 @@ export interface RuntimePlatform {
   beginBackgroundExecution?(
     onExpire: () => void,
   ): Promise<RuntimeBackgroundExecution | null>;
+  /**
+   * Asks the OS to wake the app once it is online, for a backup that could not
+   * run when the app went to background offline. The wake-up arrives through
+   * `addBackgroundRunListener`. Android only.
+   */
+  requestBackgroundRun?(): void;
+  addBackgroundRunListener?(listener: () => void): RuntimeSubscription;
   addAppStateListener(
     listener: (state: 'active' | 'background' | 'inactive') => void,
   ): RuntimeSubscription;
@@ -202,6 +209,10 @@ export class SyncRuntime {
         if (nextOnline) this.schedule('connectivity-restored');
       }),
     ];
+    const backgroundRun = this.options.platform.addBackgroundRunListener?.(() => {
+      if (!this.stopped && !this.active) void this.runWokenBackgroundPass();
+    });
+    if (backgroundRun) subscriptions.push(backgroundRun);
     if (this.options.addMutationListener) {
       subscriptions.push(
         this.options.addMutationListener(() => {
@@ -257,16 +268,43 @@ export class SyncRuntime {
   async runBoundedBackgroundPass(
     trigger: Extract<CloudSyncTrigger, 'backgrounding' | 'periodic'>,
   ): Promise<RuntimePassResult | null> {
-    if (this.stopped || !this.engine || !this.wasOnline) {
-      return this.startRun(trigger, false);
-    }
-    const window = this.openBackgroundWindow();
     try {
-      return await this.startRun(trigger, false);
+      if (this.stopped || !this.engine || !this.wasOnline) {
+        return await this.startRun(trigger, false);
+      }
+      const window = this.openBackgroundWindow();
+      try {
+        return await this.startRun(trigger, false);
+      } finally {
+        // Ends the OS background time only after the pass, even a cancelled one, settled.
+        this.closeBackgroundWindow(window);
+      }
     } finally {
-      // Ends the OS background time only after the pass, even a cancelled one, settled.
-      this.closeBackgroundWindow(window);
+      // Offline in background (from the start, or the connection dropped
+      // mid-pass) with work left: ask to be woken once online.
+      if (
+        !this.stopped &&
+        !this.active &&
+        !this.wasOnline &&
+        this.engine?.hasPendingWork?.()
+      ) {
+        this.options.platform.requestBackgroundRun?.();
+      }
     }
+  }
+
+  /**
+   * The OS woke the app in background once online (requestBackgroundRun). The
+   * network listener may not have reported it yet, so read the state first.
+   */
+  private async runWokenBackgroundPass(): Promise<void> {
+    try {
+      this.wasOnline = await this.options.platform.getNetworkOnline();
+    } catch {
+      // Keep the last known state.
+    }
+    if (this.stopped || this.active) return;
+    await this.runBoundedBackgroundPass('backgrounding');
   }
 
   async run(trigger: CloudSyncTrigger): Promise<RuntimePassResult | null> {

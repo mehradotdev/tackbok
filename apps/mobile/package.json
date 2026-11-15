@@ -1,7 +1,7 @@
 {
   "name": "@tackbok/mobile",
   "version": "1.1.0",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "scripts": {
     "start": "APP_VARIANT=beta expo start",
     "android": "REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 APP_VARIANT=beta expo run:android",

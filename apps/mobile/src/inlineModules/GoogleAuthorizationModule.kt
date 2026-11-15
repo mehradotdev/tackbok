@@ -3,6 +3,7 @@ package app
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
@@ -53,30 +54,37 @@ class GoogleAuthorizationModule : Module() {
         promise.reject(ERROR_BUSY, "Another Google authorization is in progress", null)
         return@AsyncFunction
       }
+      if (!interactive) {
+        // Silent authorization shows no UI, so it also runs with no activity:
+        // Android can start a closed app headless for a background backup.
+        val context: Context? = appContext.currentActivity ?: appContext.reactContext
+        if (context == null) {
+          promise.reject(ERROR_NO_ACTIVITY, "No active activity", null)
+          return@AsyncFunction
+        }
+        startAuthorization(context, promise, accountEmail, interactive = false)
+        return@AsyncFunction
+      }
       val activity = appContext.currentActivity
       if (activity == null) {
         promise.reject(ERROR_NO_ACTIVITY, "No active activity", null)
         return@AsyncFunction
       }
-      if (interactive) {
-        // The chooser is not optional: skipping it lets an existing grant for
-        // any device account satisfy the request with no UI at all.
-        val intent =
-          AccountPicker.newChooseAccountIntent(
-            AccountPicker.AccountChooserOptions.Builder()
-              .setAllowableAccountsTypes(listOf(GOOGLE_ACCOUNT_TYPE))
-              .build(),
-          )
-        pendingPromise = promise
-        pendingAccountEmail = null
-        try {
-          activity.startActivityForResult(intent, ACCOUNT_PICKER_REQUEST_CODE)
-        } catch (error: Exception) {
-          clearPending()
-          promise.reject(ERROR_FAILED, error.message ?: "Unable to open the account chooser", error)
-        }
-      } else {
-        startAuthorization(activity, promise, accountEmail, interactive = false)
+      // The chooser is not optional: skipping it lets an existing grant for
+      // any device account satisfy the request with no UI at all.
+      val intent =
+        AccountPicker.newChooseAccountIntent(
+          AccountPicker.AccountChooserOptions.Builder()
+            .setAllowableAccountsTypes(listOf(GOOGLE_ACCOUNT_TYPE))
+            .build(),
+        )
+      pendingPromise = promise
+      pendingAccountEmail = null
+      try {
+        activity.startActivityForResult(intent, ACCOUNT_PICKER_REQUEST_CODE)
+      } catch (error: Exception) {
+        clearPending()
+        promise.reject(ERROR_FAILED, error.message ?: "Unable to open the account chooser", error)
       }
     }
 
@@ -163,8 +171,9 @@ class GoogleAuthorizationModule : Module() {
     if (pendingPromise === promise) clearPending()
   }
 
+  /** `context` is the activity for an interactive request, which may show consent UI. */
   private fun startAuthorization(
-    activity: Activity,
+    context: Context,
     promise: Promise,
     accountEmail: String?,
     interactive: Boolean,
@@ -186,7 +195,7 @@ class GoogleAuthorizationModule : Module() {
       builder.setAccount(Account(accountEmail, GOOGLE_ACCOUNT_TYPE))
     }
 
-    Identity.getAuthorizationClient(activity)
+    Identity.getAuthorizationClient(context)
       .authorize(builder.build())
       .addOnSuccessListener { result ->
         if (result.hasResolution()) {
@@ -200,7 +209,8 @@ class GoogleAuthorizationModule : Module() {
             return@addOnSuccessListener
           }
           val pendingIntent = result.pendingIntent
-          if (pendingIntent == null) {
+          val activity = context as? Activity
+          if (pendingIntent == null || activity == null) {
             clearPendingIf(promise)
             promise.reject(ERROR_FAILED, "Authorization resolution is unavailable", null)
             return@addOnSuccessListener
