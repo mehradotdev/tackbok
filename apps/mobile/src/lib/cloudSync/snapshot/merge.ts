@@ -365,10 +365,14 @@ function chooseTombstone(
   return primary;
 }
 
+type Side = 'local' | 'remote';
+
 interface CollectionMergeResult<T> {
   live: T[];
   tombstones: SnapshotTombstone[];
   recoveries: Map<string, string[]>;
+  /** Unchanged values one side kept and the other side's delete removed. */
+  deletedWhileKept: Map<string, { value: T; keptBy: Side }>;
 }
 
 function mergeEntityCollection<T extends MergeEntity>(
@@ -403,6 +407,7 @@ function mergeEntityCollection<T extends MergeEntity>(
   const live: T[] = [];
   const tombstones: SnapshotTombstone[] = [];
   const recoveries = new Map<string, string[]>();
+  const deletedWhileKept = new Map<string, { value: T; keptBy: Side }>();
   for (const entityId of ids) {
     const key = `${type}\0${entityId}`;
     const b = base.get(entityId),
@@ -447,6 +452,10 @@ function mergeEntityCollection<T extends MergeEntity>(
       const liveChanged = !b || !equal(liveValue, b);
       if (!liveChanged && b) {
         tombstones.push(deleteValue);
+        deletedWhileKept.set(entityId, {
+          value: liveValue,
+          keptBy: l ? 'local' : 'remote',
+        });
       } else {
         live.push(liveValue);
         conflicts.push(
@@ -490,7 +499,111 @@ function mergeEntityCollection<T extends MergeEntity>(
     uniqueLive.set(recordId, record);
   }
   const normalizedLive = [...uniqueLive.values()].sort(keyComparator(getId));
-  return { live: normalizedLive, tombstones, recoveries };
+  return { live: normalizedLive, tombstones, recoveries, deletedWhileKept };
+}
+
+/**
+ * Two devices can each keep a different version of an entry (an original and
+ * the copies linked by `conflictOriginId`) before syncing. Each "keep" deletes
+ * the versions the other device kept, and every delete beats an unchanged
+ * value, so the whole entry would disappear. When a group has no live version
+ * left and *each* side kept a version the other side deleted, this brings back
+ * exactly one: the newest edit, then the lowest entry ID. The choice depends
+ * only on the values, so every device and merge order picks the same one.
+ *
+ * Unchanged on purpose:
+ * - One side deleted every version it had (it kept nothing): a real delete.
+ * - A version deleted on both sides has no keeper and is never a candidate.
+ * - An edited version already beats a delete, so its group stays live.
+ * - Without a base, a delete never beats a live value, so nothing is lost.
+ */
+function keepOneVersion(
+  base: SnapshotDomain | null,
+  local: SnapshotDomain,
+  remote: SnapshotDomain,
+  entries: CollectionMergeResult<SnapshotEntry>,
+  conflicts: SnapshotConflict[],
+): Map<string, Side> {
+  const kept = new Map<string, Side>();
+  if (entries.deletedWhileKept.size === 0) return kept;
+  // Group by lineage from every known value, so deleted links still connect.
+  const parent = new Map<string, string>();
+  const find = (id: string): string => {
+    let root = id;
+    while (parent.has(root) && parent.get(root) !== root) root = parent.get(root)!;
+    parent.set(id, root);
+    return root;
+  };
+  const union = (left: string, right: string) => {
+    const a = find(left),
+      b = find(right);
+    if (a !== b) parent.set(a < b ? b : a, a < b ? a : b);
+  };
+  for (const entry of [
+    ...(base?.entries ?? []),
+    ...local.entries,
+    ...remote.entries,
+    ...entries.live,
+  ]) {
+    find(entry.entryId);
+    if (entry.conflictOriginId) union(entry.entryId, entry.conflictOriginId);
+  }
+  const liveGroups = new Set(entries.live.map((entry) => find(entry.entryId)));
+  const candidates = new Map<string, { value: SnapshotEntry; keptBy: Side }[]>();
+  for (const candidate of entries.deletedWhileKept.values()) {
+    const group = find(candidate.value.entryId);
+    if (liveGroups.has(group)) continue;
+    candidates.set(group, [...(candidates.get(group) ?? []), candidate]);
+  }
+  for (const members of candidates.values()) {
+    // Both sides must have kept something; otherwise one side deleted it all.
+    if (!members.some((member) => member.keptBy === 'local')) continue;
+    if (!members.some((member) => member.keptBy === 'remote')) continue;
+    const { value, keptBy } = members.reduce((best, member) =>
+      member.value.updatedAt > best.value.updatedAt ||
+      (member.value.updatedAt === best.value.updatedAt &&
+        member.value.entryId < best.value.entryId)
+        ? member
+        : best,
+    );
+    const index = entries.tombstones.findIndex(
+      (tomb) => tomb.entityType === 'entry' && tomb.entityId === value.entryId,
+    );
+    const tomb = entries.tombstones[index];
+    entries.tombstones.splice(index, 1);
+    entries.live.push(value);
+    kept.set(value.entryId, keptBy);
+    // The "returned entry" row explains it. A missing base hash selects its
+    // "deleted on one device but still on another" wording: nobody edited it.
+    conflicts.push(
+      makeConflict(
+        'entry',
+        value.entryId,
+        'deleteEdit',
+        null,
+        keptBy === 'local' ? value : tomb,
+        keptBy === 'remote' ? value : tomb,
+        value,
+        null,
+        [],
+        true,
+      ),
+    );
+  }
+  entries.live.sort(keyComparator((entry) => entry.entryId));
+  return kept;
+}
+
+/** A returned version keeps the attachments and tags of the side that kept it. */
+function keptSideOf(
+  kept: Map<string, Side>,
+  local: SnapshotDomain,
+  remote: SnapshotDomain,
+) {
+  return (entryId: string): SnapshotDomain | null => {
+    const side = kept.get(entryId);
+    return side === 'local' ? local : side === 'remote' ? remote : null;
+  };
 }
 
 function mergeRelationSet(
@@ -796,6 +909,8 @@ export function mergeSnapshotDomains(
     remote,
     newConflicts,
   );
+  const keptVersions = keepOneVersion(base, local, remote, entries, newConflicts);
+  const keptSide = keptSideOf(keptVersions, local, remote);
   const tags = mergeEntityCollection<SnapshotTag>(
     'tags',
     'tag',
@@ -813,6 +928,17 @@ export function mergeSnapshotDomains(
     newConflicts,
   );
   let media = mergeMedia(base, local, remote, newConflicts);
+  if (keptVersions.size > 0) {
+    const assetIds = new Set(media.map((asset) => asset.assetId));
+    for (const asset of [...local.media, ...remote.media]) {
+      if (asset.ownerType !== 'entry' || assetIds.has(asset.assetId)) continue;
+      if (keptSide(asset.ownerId)?.media.includes(asset)) {
+        media.push(asset);
+        assetIds.add(asset.assetId);
+      }
+    }
+    media.sort(keyComparator((value) => value.assetId));
+  }
   const profile = mergeProfile(
     base?.profile,
     local.profile,
@@ -826,6 +952,11 @@ export function mergeSnapshotDomains(
     local.entryTags,
     remote.entryTags,
   );
+  for (const entryId of keptVersions.keys()) {
+    entryTags.push(
+      ...keptSide(entryId)!.entryTags.filter((value) => value.entryId === entryId),
+    );
+  }
 
   // A recovery is a complete authored entry and inherits the primary's merged tags.
   for (const [primaryId, recoveredIds] of entries.recoveries) {
