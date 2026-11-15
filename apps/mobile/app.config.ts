@@ -119,6 +119,7 @@ const config: ExpoConfig = {
     'expo-asset',
     'expo-router',
     'expo-background-task',
+    './plugins/withAndroidBackgroundWork',
     'expo-system-ui',
     [
       'expo-splash-screen',
