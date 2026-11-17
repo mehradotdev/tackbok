@@ -266,7 +266,8 @@ export class V1Adapter implements SimAdapter {
         { value: kept.title, entryId: keepId },
         { value: kept.content, entryId: keepId },
       ],
-      writes: [],
+      // As in v2, choosing a version counts as an edit of it.
+      writes: [keepId],
       deletes: others,
     };
   }
@@ -409,6 +410,7 @@ export class V1Adapter implements SimAdapter {
     event: LocalEvent,
     wall: number,
   ): SnapshotDomain | null {
+    const profileTime = Math.max(1, wall, domain.profile.updatedAt + 1);
     const hasEntry = (id: string) => domain.entries.some((entry) => entry.entryId === id);
     switch (event.kind) {
       case 'createEntry':
@@ -614,9 +616,14 @@ export class V1Adapter implements SimAdapter {
         );
       }
       case 'setProfileName':
+        // repositories.ts: a profile stamp never moves backwards.
         return {
           ...domain,
-          profile: { ...domain.profile, displayName: event.value, updatedAt: wall },
+          profile: {
+            ...domain.profile,
+            displayName: event.value,
+            updatedAt: profileTime,
+          },
         };
       case 'setProfilePhoto': {
         const media = domain.media.filter((asset) => asset.ownerType !== 'profile');
@@ -624,7 +631,7 @@ export class V1Adapter implements SimAdapter {
           return {
             ...domain,
             media,
-            profile: { ...domain.profile, photoAssetId: null, updatedAt: wall },
+            profile: { ...domain.profile, photoAssetId: null, updatedAt: profileTime },
           };
         const blob = blobFor(event.assetId);
         void this.devices[device].media.writeVerified(blob.hash, blob.bytes);
@@ -647,7 +654,11 @@ export class V1Adapter implements SimAdapter {
               updatedAt: wall,
             },
           ].sort(byKey((value) => value.assetId)),
-          profile: { ...domain.profile, photoAssetId: event.assetId, updatedAt: wall },
+          profile: {
+            ...domain.profile,
+            photoAssetId: event.assetId,
+            updatedAt: profileTime,
+          },
         };
       }
       case 'keep':

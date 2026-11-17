@@ -148,11 +148,17 @@ export interface CaseResult {
   duplicateTitles: number;
   syncFailures: string[];
   finalRounds: number;
+  /** The final round never reached a pass where nothing changed. */
+  unsettled: boolean;
+  /** Tags or attachments added to a shown entry and gone without a removal that saw them. */
+  lostMemberships: string[];
 }
 
 export function caseFailed(result: CaseResult): boolean {
   return (
     !result.converged ||
+    result.unsettled ||
+    result.lostMemberships.length > 0 ||
     result.lostTexts.length > 0 ||
     result.lostEntries.length > 0 ||
     result.syncFailures.length > 0
@@ -339,6 +345,17 @@ export interface OracleState {
   entryWrites: Map<string, number[]>;
   entryDeletes: Map<string, Set<number>[]>;
   keeps: { event: number; knowledge: Set<number>; affirmed: string[] }[];
+  /** Tag or attachment added to an entry (`kind:entryId:id`). */
+  memberships: { event: number; key: string; entryId: string; id: string }[];
+  /**
+   * Removals of memberships: `entryId` null means every entry (a tag delete),
+   * `id` null every membership of the entry (an entry delete, like text).
+   */
+  membershipRemovals: {
+    knowledge: Set<number>;
+    entryId: string | null;
+    id: string | null;
+  }[];
   syncFailures: string[];
 }
 
@@ -355,6 +372,8 @@ function newOracle(config: CaseConfig): OracleState {
     entryWrites: new Map(),
     entryDeletes: new Map(),
     keeps: [],
+    memberships: [],
+    membershipRemovals: [],
     syncFailures: [],
   };
 }
@@ -404,6 +423,11 @@ function recordEntryWrite(state: OracleState, entryId: string, index: number) {
 }
 
 function recordEntryDelete(state: OracleState, device: number, entryId: string) {
+  state.membershipRemovals.push({
+    knowledge: new Set(state.knowledge[device]),
+    entryId,
+    id: null,
+  });
   state.entryDeletes.set(entryId, [
     ...(state.entryDeletes.get(entryId) ?? []),
     new Set(state.knowledge[device]),
@@ -514,12 +538,36 @@ async function runEvent(
       );
       recordWrite(state, index, 'profile', event.value);
       break;
+    case 'addTag':
+    case 'attach': {
+      const id = 'tagId' in event ? event.tagId : event.assetId;
+      state.memberships.push({
+        event: index,
+        key: `${event.kind}:${event.entryId}:${id}`,
+        entryId: event.entryId,
+        id,
+      });
+      recordEntryWrite(state, event.entryId, index);
+      break;
+    }
+    case 'removeTag':
+    case 'detach':
+      state.membershipRemovals.push({
+        knowledge: new Set(state.knowledge[device]),
+        entryId: event.entryId,
+        id: 'tagId' in event ? event.tagId : event.assetId,
+      });
+      recordEntryWrite(state, event.entryId, index);
+      break;
+    case 'deleteTag':
+      state.membershipRemovals.push({
+        knowledge: new Set(state.knowledge[device]),
+        entryId: null,
+        id: event.id,
+      });
+      break;
     case 'setMood':
     case 'setDate':
-    case 'addTag':
-    case 'removeTag':
-    case 'attach':
-    case 'detach':
       recordEntryWrite(state, event.entryId, index);
       break;
     default:
@@ -528,6 +576,8 @@ async function runEvent(
   state.knowledge[device].add(index);
 }
 
+export const MAX_FINAL_ROUNDS = 6;
+
 /** Every device syncs until nothing changes, then the oracle checks. */
 async function finalRound(
   adapter: SimAdapter,
@@ -535,7 +585,7 @@ async function finalRound(
   devices: number,
 ): Promise<number> {
   const wall = (device: number) => wallClock(state, device);
-  const maxRounds = 6;
+  const maxRounds = MAX_FINAL_ROUNDS;
   for (let round = 1; round <= maxRounds; round++) {
     let changed = false;
     state.time += 60_000;
@@ -579,6 +629,10 @@ function check(
   );
   // A kept value is replaced by an edit of it, or by a removal that saw the
   // keep; a concurrent keep of another version or delete does not.
+  // shortcut: removals match by value across entries, so a value that also
+  // lives in a copy (a v1 recovered entry) counts as removed when the copy is
+  // deleted; values are unique per write, so only copies share one. Scope
+  // removals per entry once copies carry their write lineage.
   const superseded = (write: TextWrite, kinds: readonly RemovalKind[], strict = false) =>
     state.removals.some(
       (removal) =>
@@ -601,9 +655,10 @@ function check(
     }
   }
   // A value that an edit or keep in the same entry replaced, having seen
-  // every write of it there, must not come back. (A delete undone by an
-  // unseen edit brings its values back on purpose. A keep is its own write,
-  // so an edit that had not seen the keep leaves the kept value open.)
+  // every write of it there, must not come back. A delete undone by an
+  // unseen edit brings the entry back as the join of every copy, so values
+  // the deleting device had itself replaced stay replaced. A keep is its own
+  // write, so an edit that had not seen the keep leaves the kept value open.
   const stale = new Set<string>();
   const isStale = (value: string | null, entryId: string) => {
     if (value === null) return false;
@@ -645,11 +700,30 @@ function check(
     if (unseen && visible.some((value) => !value)) lostEntries.push(entryId);
     if (!unseen && visible.some(Boolean)) undoneDeletes.push(entryId);
   }
-  const titles = (kind: 'tag' | 'prompt') =>
-    (kind === 'tag' ? views[0].tags : views[0].prompts).map((item) =>
-      adapter.normalizeTitle(kind, item.title),
+  // An added tag or attachment stays on every device that shows its entry,
+  // unless a removal that had seen the add took it off: a remove, a tag
+  // delete or a delete of the entry, as for text. A concurrent tag delete
+  // does not: the add wins.
+  const lostMemberships = new Set<string>();
+  for (const add of state.memberships) {
+    const removed = state.membershipRemovals.some(
+      (removal) =>
+        (removal.id === null || removal.id === add.id) &&
+        (removal.entryId === null || removal.entryId === add.entryId) &&
+        removal.knowledge.has(add.event),
     );
+    if (removed) continue;
+    for (const view of views) {
+      const entry = view.entries.find((value) => value.id === add.entryId);
+      if (!entry) continue;
+      const ids = add.key.startsWith('addTag') ? entry.tagIds : entry.attachmentIds;
+      if (!ids.includes(add.id)) lostMemberships.add(add.key);
+    }
+  }
   const duplicates = (values: string[]) => values.length - new Set(values).size;
+  const duplicatesIn = (view: View) =>
+    duplicates(view.tags.map((item) => adapter.normalizeTitle('tag', item.title))) +
+    duplicates(view.prompts.map((item) => adapter.normalizeTitle('prompt', item.title)));
   return {
     seed: config.seed,
     devices: config.devices,
@@ -661,9 +735,11 @@ function check(
     staleValues: [...stale].sort(),
     lostEntries: lostEntries.sort(),
     undoneDeletes: undoneDeletes.sort(),
-    duplicateTitles: duplicates(titles('tag')) + duplicates(titles('prompt')),
+    duplicateTitles: Math.max(...views.map(duplicatesIn)),
     syncFailures: state.syncFailures,
     finalRounds,
+    unsettled: finalRounds > MAX_FINAL_ROUNDS,
+    lostMemberships: [...lostMemberships].sort(),
   };
 }
 
