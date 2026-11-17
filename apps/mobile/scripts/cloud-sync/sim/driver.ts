@@ -362,7 +362,7 @@ export interface OracleState {
 function newOracle(config: CaseConfig): OracleState {
   const devices = config.devices;
   return {
-    time: 1_800_000_000_000,
+    time: T0,
     coarseClock: config.coarseClock,
     skews: Array.from({ length: devices }, () => 0),
     knowledge: Array.from({ length: devices }, () => new Set<number>()),
@@ -434,6 +434,15 @@ function recordEntryDelete(state: OracleState, device: number, entryId: string) 
   ]);
 }
 
+const T0 = 1_800_000_000_000;
+
+/** Shared time of event `index`: 1 s to 1 h after the previous one. */
+function timeAt(index: number): number {
+  let time = T0;
+  for (let i = 0; i <= index; i++) time += 1_000 + ((i * 7_919) % 3_600_000);
+  return time;
+}
+
 function wallClock(state: OracleState, device: number): number {
   const wall = Math.max(0, state.time + state.skews[device]);
   return state.coarseClock ? wall - (wall % 86_400_000) : wall;
@@ -445,7 +454,8 @@ async function runEvent(
   event: Event,
   index: number,
 ): Promise<void> {
-  state.time += 1_000 + ((index * 7_919) % 3_600_000);
+  // A pure function of the original index, so a shrunk replay keeps times.
+  state.time = timeAt(index);
   if (event.kind === 'clock') {
     state.skews[event.device] = event.skew;
     return;

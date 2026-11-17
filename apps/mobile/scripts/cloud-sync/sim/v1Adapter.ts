@@ -5,9 +5,11 @@
  * merges every published head with the base the engine finds, as on a phone.
  * Local edits change the journal the way the app's repositories do.
  *
- * Not modelled: retention cleanup and Drive-side snapshot deletion, kill
- * points, Wi-Fi-only media and the ancestor download budget, which only
- * remove merge bases (audit N1). So these numbers are a lower bound for v1.
+ * Retention cleanup runs as in the app, but a case spans days, not the
+ * 30-day window. Not modelled: kill points, Wi-Fi-only media, long offline
+ * periods and the ancestor download budget, which only remove merge bases
+ * (audit N1). A paused vault is resumed at once, where the app waits for
+ * the user. So these numbers are a lower bound for v1.
  */
 import { Database, type SQLQueryBindings } from 'bun:sqlite';
 import { readFileSync } from 'node:fs';
@@ -248,7 +250,9 @@ export class V1Adapter implements SimAdapter {
       members.includes(event.target.entryId),
     );
     if (!group) return null;
-    const keepId = group[event.index % group.length];
+    // After shrinking the group may be smaller: the target no longer applies.
+    if (event.index >= group.length) return null;
+    const keepId = group[event.index];
     const domain = this.domain(device);
     const entryOf = (id: string) => domain.entries.find((entry) => entry.entryId === id)!;
     const others = group.filter((id) => id !== keepId);
