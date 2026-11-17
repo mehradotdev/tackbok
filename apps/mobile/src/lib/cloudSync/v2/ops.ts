@@ -439,7 +439,7 @@ export function createNamed(
   // rename it back; take the next derived ID. Devices that agree on which
   // records are live pick the same one.
   let attempt = 0;
-  let id = namedId(kind, state.vaultId, clean);
+  let id = namedId(kind, clean);
   // A deleted holder is revived only if it still has this title: another
   // device may have renamed it before this device saw the delete.
   const wanted = normalizeTitle(kind, clean);
@@ -447,7 +447,7 @@ export function createNamed(
     const holder = namedMap(state, kind).get(id);
     if (!holder) break;
     if (!isLive(holder) && normalizeTitle(kind, holder.title.v) === wanted) break;
-    id = namedId(kind, state.vaultId, clean, ++attempt);
+    id = namedId(kind, clean, ++attempt);
   }
   const existing = namedMap(state, kind).get(id);
   const { state: next, s } = tick(state, writer);

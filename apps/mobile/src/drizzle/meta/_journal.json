@@ -64,6 +64,13 @@
       "when": 1794922136452,
       "tag": "0008_sync_v2_local_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794925858101,
+      "tag": "0009_sync_v2_vault_binding",
+      "breakpoints": true
     }
   ]
 }

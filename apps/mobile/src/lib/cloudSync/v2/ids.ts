@@ -24,14 +24,13 @@ export function normalizeTitle(kind: NamedKind, title: string): string {
  * up with one tag. The ID keeps the title it was created with: a rename
  * changes only the title. When a renamed tag still holds the ID a new title
  * derives, creation tries the next `attempt` (see `createNamed`).
+ *
+ * Not scoped to a vault: the app creates tags with sync off, before it knows
+ * one, and an ID that never changes keeps references (entries, exports)
+ * stable when the journal joins a vault.
  */
-export function namedId(
-  kind: NamedKind,
-  vaultId: string,
-  title: string,
-  attempt = 0,
-): string {
-  const parts: (string | number)[] = [kind, vaultId, normalizeTitle(kind, title)];
+export function namedId(kind: NamedKind, title: string, attempt = 0): string {
+  const parts: (string | number)[] = [kind, normalizeTitle(kind, title)];
   if (attempt > 0) parts.push(attempt);
   return `${kind}-${sha256Text(canonicalize(parts)).slice(0, 32)}`;
 }

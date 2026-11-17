@@ -178,7 +178,7 @@ describe('restated merge.test.ts scenarios', () => {
   test('a delete that saw every write wins over an unchanged copy and hides it everywhere', () => {
     let base = entryWith('Text');
     base = ops.createNamed(base, at('device-a'), 'tag', 'Work').state;
-    const tagId = namedId('tag', VAULT, 'Work');
+    const tagId = namedId('tag', 'Work');
     base = ops.addTag(base, at('device-a'), 'e1', tagId);
     const deleted = ops.deleteEntry(base, at('device-b'), 'e1');
     const merged = convergeInEveryOrder([base, deleted]);
@@ -196,7 +196,7 @@ describe('restated merge.test.ts scenarios', () => {
       mediaFor('p1', { type: 'entry', entryId: 'e1' }, T0),
     );
     base = ops.createNamed(base, at('device-a'), 'tag', 'Work').state;
-    base = ops.addTag(base, at('device-a'), 'e1', namedId('tag', VAULT, 'Work'));
+    base = ops.addTag(base, at('device-a'), 'e1', namedId('tag', 'Work'));
     const deleted = ops.deleteEntry(base, at('device-b'), 'e1');
     const edited = ops.setMood(base, at('device-a'), 'e1', 'SAD');
     const merged = convergeInEveryOrder([deleted, edited]);
@@ -205,7 +205,7 @@ describe('restated merge.test.ts scenarios', () => {
     expect(isReturned(entry)).toBe(true);
     expect(texts(merged, 'e1')).toEqual(['Text']);
     expect(attachmentIds(entry)).toEqual(['p1']);
-    expect(memberIds(entry.tags)).toEqual([namedId('tag', VAULT, 'Work')]);
+    expect(memberIds(entry.tags)).toEqual([namedId('tag', 'Work')]);
     // "Got it" syncs and never brings an entry back by itself.
     const acknowledged = ops.acknowledgeReturn(merged, at('device-b'), 'e1');
     const after = convergeInEveryOrder([acknowledged, merged, edited]);

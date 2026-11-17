@@ -3,7 +3,6 @@
  * provides the source-agnostic runtime that writes that model into Tackbok.
  */
 
-import { randomUUID } from 'expo-crypto';
 import { db, customPrompts, entries, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { createZipEntryLookup, type ZipEntryLookup, type ZipReader } from '~/lib/zip';
@@ -480,20 +479,14 @@ export async function upsertPortableTags(
       continue;
     }
 
-    const requestedId = portableId || randomUUID();
-    const tagId = tagMap.has(`id:${requestedId}`) ? randomUUID() : requestedId;
-    await createTagInTransaction(
-      tx,
-      cleanTitle,
-      {
-        batchId,
-        now: Number.isFinite(portableTag.updatedAt) ? portableTag.updatedAt : Date.now(),
-        createdAt: Number.isFinite(portableTag.createdAt)
-          ? portableTag.createdAt
-          : undefined,
-      },
-      tagId,
-    );
+    // The ID derives from the title (cloud sync v2), not from the archive.
+    const tagId = await createTagInTransaction(tx, cleanTitle, {
+      batchId,
+      now: Number.isFinite(portableTag.updatedAt) ? portableTag.updatedAt : Date.now(),
+      createdAt: Number.isFinite(portableTag.createdAt)
+        ? portableTag.createdAt
+        : undefined,
+    });
     tagMap.set(key, tagId);
     tagMap.set(`id:${tagId}`, tagId);
     if (portableId) tagMap.set(`id:${portableId}`, tagId);
@@ -516,7 +509,6 @@ export async function ensurePortablePromptTitles(
   const promptTitles = new Set(
     existingPrompts.map((prompt) => sanitizePromptTitle(prompt.title).toLowerCase()),
   );
-  const promptIds = new Set(existingPrompts.map((prompt) => prompt.prompt_id));
 
   for (const portablePrompt of portablePrompts) {
     const cleanTitle = sanitizePromptTitle(portablePrompt.title);
@@ -525,23 +517,15 @@ export async function ensurePortablePromptTitles(
     const key = cleanTitle.toLowerCase();
     if (promptTitles.has(key)) continue;
 
-    const requestedId = portablePrompt.promptId?.trim() || randomUUID();
-    const promptId = promptIds.has(requestedId) ? randomUUID() : requestedId;
-    await createPromptInTransaction(
-      tx,
-      cleanTitle,
-      {
-        batchId,
-        now: Number.isFinite(portablePrompt.updatedAt)
-          ? portablePrompt.updatedAt
-          : Date.now(),
-        createdAt: Number.isFinite(portablePrompt.createdAt)
-          ? portablePrompt.createdAt
-          : undefined,
-      },
-      promptId,
-    );
-    promptIds.add(promptId);
+    await createPromptInTransaction(tx, cleanTitle, {
+      batchId,
+      now: Number.isFinite(portablePrompt.updatedAt)
+        ? portablePrompt.updatedAt
+        : Date.now(),
+      createdAt: Number.isFinite(portablePrompt.createdAt)
+        ? portablePrompt.createdAt
+        : undefined,
+    });
     promptTitles.add(key);
     summary.importedPrompts++;
   }

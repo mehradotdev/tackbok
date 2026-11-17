@@ -1,7 +1,7 @@
 /**
- * Cloud sync v2 (#185, step P4): stamps every local write with this device's
- * hybrid logical clock, in the caller's transaction, even with sync off.
- * Nothing reads the stamps yet; the v2 capture (P5) will.
+ * Cloud sync v2 (#185, steps P4-P5): stamps every local write with this
+ * device's hybrid logical clock, in the caller's transaction, even with sync
+ * off. The v2 capture (`v2State.ts`) reads the stamps.
  *
  * Per record (`sync_records`): the version vector gains the write's stamp and
  * each field the write changed gets it in `stamps_json`. A write that changes
@@ -9,18 +9,21 @@
  * `entry_tags`. Attachments are stamped when first published (P6), so here
  * an attach or detach only stamps the entry's vector.
  *
+ * Items beside the shown value (`sync_field_values`) follow the model's
+ * writes: an edit replaces the shown version and equal copies of it, other
+ * open versions stay (`dropEqualVersionsInTransaction`); removing a member
+ * removes every stamp of it (`dropMemberStampsInTransaction`); the order
+ * register keeps the exact value written under its stamp
+ * (`writeOrderInTransaction`).
+ *
  * A delete keeps the record's values in `sync_deleted_records` and records a
  * tombstone (`del_json`) that saw the whole vector, as the v2 model does.
  * Removing a deleted tag from its entries is a side effect, not an edit of
  * them, so those entries get no stamp.
  *
- * shortcut: v1 sync's remote applies (`productionJournal.ts`) rewrite the
- * journal without touching this metadata, so on an install that has run v1
- * sync it can be missing, stale (stamps for replaced values), orphaned (a
- * record the apply removed) or unstamped (tag memberships). v1 is removed
- * with the v2 engine (P6); the cutover must rebuild the metadata of such an
- * install from scratch (initial stamps, as the 0008 migration does) before
- * its first v2 capture. There are no sync users yet.
+ * v1 sync's remote applies never kept this metadata, so the first v2 sync
+ * with a vault rebuilds it from the journal under a new device ID
+ * (`rebuildSyncMetadataInTransaction`).
  */
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
@@ -33,8 +36,10 @@ import {
   syncRecords,
 } from '~/db';
 import { nextHlc, withStamp } from '../v2/clock';
-import type { Stamp, VersionVector } from '../v2/types';
+import { normalKnown } from '../v2/join';
+import type { Known, Stamp, VersionVector } from '../v2/types';
 import type { CloudSyncTransaction, SyncEntityType } from './repositories';
+import { retainedValuesInTransaction } from './v2State';
 
 const SELF = 'self';
 
@@ -74,7 +79,9 @@ export async function tickInTransaction(
   // `now`, and a future one would drag this device's clock ahead for good.
   const hlc = nextHlc(ctx, Math.min(now, Date.now()));
   ctx[row.device_id] = hlc;
-  roster[row.device_id] = hlc;
+  // Last-seen times never move back (as `tick` in the model): a wall clock
+  // set back must not expire this device early.
+  roster[row.device_id] = Math.max(roster[row.device_id] ?? 0, hlc);
   await tx
     .update(syncDevice)
     .set({
@@ -84,6 +91,31 @@ export async function tickInTransaction(
     })
     .where(eq(syncDevice.id, SELF));
   return [hlc, row.device_id];
+}
+
+/**
+ * What a record holds values for after a write `s`, as `stamped` in the
+ * model: null stays null; otherwise the write joins `known`, claiming the
+ * writer's older writes only if it already held all of them (an entry
+ * brought back after compaction may lack some).
+ */
+function knownAfter(
+  knownJson: string | null | undefined,
+  before: VersionVector,
+  s: Stamp,
+  vv: VersionVector,
+): string | null {
+  if (!knownJson) return null;
+  const known = JSON.parse(knownJson) as Known;
+  const writer = s[1];
+  const complete = (known.vv[writer] ?? -1) >= (before[writer] ?? -1);
+  const next = normalKnown(
+    complete
+      ? { vv: withStamp(known.vv, s), extra: known.extra }
+      : { vv: known.vv, extra: [...known.extra, s] },
+    vv,
+  );
+  return next === null ? null : JSON.stringify(next);
 }
 
 async function recordRow(tx: CloudSyncTransaction, type: SyncEntityType, id: string) {
@@ -111,14 +143,14 @@ export async function stampWriteInTransaction(
   const row = await recordRow(tx, type, id);
   const stamps = row ? (JSON.parse(row.stamps_json) as Record<string, Stamp>) : {};
   for (const field of fields) stamps[field] = s;
-  const vv = withStamp(row ? (JSON.parse(row.vv_json) as VersionVector) : {}, s);
+  const before = row ? (JSON.parse(row.vv_json) as VersionVector) : {};
+  const vv = withStamp(before, s);
   // A local write to a deleted record (an import restoring its ID) brings it
   // back. The user did it, so no "came back" notice: acknowledge the delete.
   const del = row?.del_json ? (JSON.parse(row.del_json) as { seen: Json }) : null;
-  // `known_json` stays null: P4 holds every value it stamps (the v2 apply in
-  // P5 is the first writer of a partial `known`).
   const values = {
     vv_json: JSON.stringify(vv),
+    known_json: knownAfter(row?.known_json, before, s, vv),
     stamps_json: JSON.stringify(stamps),
     ...(del ? { del_json: JSON.stringify({ ...del, ackSeen: del.seen }) } : {}),
     updated_at: now,
@@ -145,18 +177,20 @@ export async function stampWriteInTransaction(
 
 /**
  * Records a local delete: a tombstone that saw the whole vector, and the
- * record's last values (`retained`) kept behind it.
+ * record's values in their deleted form (`sync_deleted_records`, with every
+ * open version and member stamp), read before the caller removes its rows.
  */
 export async function stampDeleteInTransaction(
   tx: CloudSyncTransaction,
-  type: SyncEntityType,
+  type: Exclude<SyncEntityType, 'profile'>,
   id: string,
-  retained: Json,
   now: number,
 ): Promise<Stamp> {
+  const retained = await retainedValuesInTransaction(tx, type, id);
   const s = await tickInTransaction(tx, now);
   const row = await recordRow(tx, type, id);
-  const vv = withStamp(row ? (JSON.parse(row.vv_json) as VersionVector) : {}, s);
+  const before = row ? (JSON.parse(row.vv_json) as VersionVector) : {};
+  const vv = withStamp(before, s);
   const prior = row?.del_json
     ? (JSON.parse(row.del_json) as {
         seen: VersionVector;
@@ -167,28 +201,100 @@ export async function stampDeleteInTransaction(
   const del = { at: s, seen: vv, ackSeen: prior?.ackSeen ?? null, ext: prior?.ext ?? {} };
   const values = {
     vv_json: JSON.stringify(vv),
+    known_json: knownAfter(row?.known_json, before, s, vv),
+    // The shown values' stamps now live with the kept values.
+    stamps_json: '{}',
     del_json: JSON.stringify(del),
     updated_at: now,
   };
   await tx
     .insert(syncRecords)
-    .values({ entity_type: type, entity_id: id, stamps_json: '{}', ...values })
+    .values({ entity_type: type, entity_id: id, ...values })
     .onConflictDoUpdate({
       target: [syncRecords.entity_type, syncRecords.entity_id],
       set: values,
     });
-  const record = JSON.stringify({
-    stamps: row ? (JSON.parse(row.stamps_json) as Json) : {},
-    values: retained,
-  });
+  // The other versions and member stamps are now part of the kept values.
   await tx
-    .insert(syncDeletedRecords)
-    .values({ entity_type: type, entity_id: id, record_json: record, deleted_at: now })
-    .onConflictDoUpdate({
-      target: [syncDeletedRecords.entity_type, syncDeletedRecords.entity_id],
-      set: { record_json: record, deleted_at: now },
-    });
+    .delete(syncFieldValues)
+    .where(and(eq(syncFieldValues.entity_type, type), eq(syncFieldValues.entity_id, id)));
+  if (retained) {
+    const record = JSON.stringify(retained);
+    await tx
+      .insert(syncDeletedRecords)
+      .values({ entity_type: type, entity_id: id, record_json: record, deleted_at: now })
+      .onConflictDoUpdate({
+        target: [syncDeletedRecords.entity_type, syncDeletedRecords.entity_id],
+        set: { record_json: record, deleted_at: now },
+      });
+  }
   return s;
+}
+
+/** An edit replaced the shown `value` of `field`: equal copies beside it go too. */
+export async function dropEqualVersionsInTransaction(
+  tx: CloudSyncTransaction,
+  type: SyncEntityType,
+  id: string,
+  field: 'title' | 'text' | 'name' | 'photo',
+  value: Json,
+): Promise<void> {
+  await tx
+    .delete(syncFieldValues)
+    .where(
+      and(
+        eq(syncFieldValues.entity_type, type),
+        eq(syncFieldValues.entity_id, id),
+        eq(syncFieldValues.field, field),
+        eq(syncFieldValues.value_json, JSON.stringify(value)),
+      ),
+    );
+}
+
+/** A tag or attachment left the entry: its other stamps go with its row. */
+export async function dropMemberStampsInTransaction(
+  tx: CloudSyncTransaction,
+  noteId: string,
+  field: 'tags' | 'attachments',
+  memberIds: readonly string[],
+): Promise<void> {
+  for (const memberId of memberIds)
+    await tx
+      .delete(syncFieldValues)
+      .where(
+        and(
+          eq(syncFieldValues.entity_type, 'entry'),
+          eq(syncFieldValues.entity_id, noteId),
+          eq(syncFieldValues.field, field),
+          eq(syncFieldValues.value_json, JSON.stringify(memberId)),
+        ),
+      );
+}
+
+/** The order register's value at a write: what the capture publishes under `s`. */
+export async function writeOrderInTransaction(
+  tx: CloudSyncTransaction,
+  noteId: string,
+  order: readonly string[],
+  s: Stamp,
+): Promise<void> {
+  await tx
+    .delete(syncFieldValues)
+    .where(
+      and(
+        eq(syncFieldValues.entity_type, 'entry'),
+        eq(syncFieldValues.entity_id, noteId),
+        eq(syncFieldValues.field, 'order'),
+      ),
+    );
+  await tx.insert(syncFieldValues).values({
+    entity_type: 'entry',
+    entity_id: noteId,
+    field: 'order',
+    stamp_hlc: s[0],
+    stamp_device: s[1],
+    value_json: JSON.stringify(order),
+  });
 }
 
 /** Stamps the given tag memberships of an entry (new adds). */

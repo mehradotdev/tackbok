@@ -87,6 +87,27 @@ export const plainMerge =
 
 export const EXT_FEATURE = 'sim-note';
 
+/** What a device holding `state` shows. */
+export function viewOfState(state: SyncState): View {
+  return {
+    entries: liveEntries(state).map((entry) => ({
+      id: entry.id,
+      titles: shownItems(entry.title).map((item) => item.v),
+      contents: shownItems(entry.text).map((item) => item.v),
+      mood: entry.mood?.v ?? null,
+      date: entry.date?.v ?? 0,
+      tagIds: memberIds(entry.tags),
+      attachmentIds: attachmentIds(entry),
+      returned: isReturned(entry),
+    })),
+    // Merged on display: one per normalised title.
+    tags: shownNamed(state, 'tag').map(({ id, title }) => ({ id, title })),
+    prompts: shownNamed(state, 'prompt').map(({ id, title }) => ({ id, title })),
+    profileNames: shownItems(state.profile.name).map((item) => item.v),
+    profilePhotos: shownItems(state.profile.photo).map((item) => item.v),
+  };
+}
+
 export class V2Adapter implements SimAdapter {
   readonly name: string;
   readonly supportsKeepBoth = true;
@@ -126,23 +147,7 @@ export class V2Adapter implements SimAdapter {
   }
 
   private viewOf(state: SyncState): View {
-    return {
-      entries: liveEntries(state).map((entry) => ({
-        id: entry.id,
-        titles: shownItems(entry.title).map((item) => item.v),
-        contents: shownItems(entry.text).map((item) => item.v),
-        mood: entry.mood?.v ?? null,
-        date: entry.date?.v ?? 0,
-        tagIds: memberIds(entry.tags),
-        attachmentIds: attachmentIds(entry),
-        returned: isReturned(entry),
-      })),
-      // Merged on display: one per normalised title.
-      tags: shownNamed(state, 'tag').map(({ id, title }) => ({ id, title })),
-      prompts: shownNamed(state, 'prompt').map(({ id, title }) => ({ id, title })),
-      profileNames: shownItems(state.profile.name).map((item) => item.v),
-      profilePhotos: shownItems(state.profile.photo).map((item) => item.v),
-    };
+    return viewOfState(state);
   }
 
   apply(device: number, event: LocalEvent, wall: number): boolean {

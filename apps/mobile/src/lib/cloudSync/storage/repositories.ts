@@ -3,6 +3,9 @@ import { randomUUID } from 'expo-crypto';
 import {
   cloudSyncMigrationItems,
   cloudSyncState,
+  syncDeletedRecords,
+  syncFieldValues,
+  syncRecords,
   cloudTombstones,
   cloudVault,
   customPrompts,
@@ -25,10 +28,15 @@ import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
 import { canonicalHash } from '../snapshot/canonical';
 import type { SnapshotEntry, SnapshotPrompt, SnapshotTag } from '../snapshot/types';
 import {
+  dropEqualVersionsInTransaction,
+  dropMemberStampsInTransaction,
   stampDeleteInTransaction,
   stampMembershipsInTransaction,
   stampWriteInTransaction,
+  writeOrderInTransaction,
 } from './syncStamps';
+import { defaultAssetOrder, shownAssetOrder } from './v2State';
+import { namedId, normalizeTitle, type NamedKind } from '../v2/ids';
 
 export const PROFILE_ROW_ID = 'self';
 export const PROFILE_ENTITY_ID = 'profile';
@@ -385,20 +393,6 @@ async function entryAssetRows(
   ).sort((a, b) => (a.asset_id < b.asset_id ? -1 : 1));
 }
 
-/** The entry's attachment order as asset IDs (a stored asset may carry only its URI). */
-function orderedAssetIds(
-  assets: Entry['assets'] | undefined,
-  rows: readonly EntryAssetRow[],
-): string[] {
-  const ids = new Set(rows.map((row) => row.asset_id));
-  const byUri = new Map(rows.map((row) => [row.local_uri, row.asset_id]));
-  return (assets ?? [])
-    .map((asset) =>
-      asset.assetId && ids.has(asset.assetId) ? asset.assetId : byUri.get(asset.uri),
-    )
-    .filter((id): id is string => id !== undefined);
-}
-
 const sameList = (left: readonly string[], right: readonly string[]) =>
   left.length === right.length && left.every((value, index) => value === right[index]);
 
@@ -467,7 +461,30 @@ export async function upsertEntryInTransaction(
   }
 }
 
-/** Sync v2: stamps the fields this write changed (all of them for a new entry). */
+/** The entry's order register value, or null when it has none. */
+async function orderRegister(
+  tx: CloudSyncTransaction,
+  noteId: string,
+): Promise<string[] | null> {
+  const [row] = await tx
+    .select({ value: syncFieldValues.value_json })
+    .from(syncFieldValues)
+    .where(
+      and(
+        eq(syncFieldValues.entity_type, 'entry'),
+        eq(syncFieldValues.entity_id, noteId),
+        eq(syncFieldValues.field, 'order'),
+      ),
+    )
+    .limit(1);
+  return row ? (JSON.parse(row.value) as string[]) : null;
+}
+
+/**
+ * Sync v2: stamps the fields this write changed (all of them for a new
+ * entry), with the items beside the shown values kept as the model's writes
+ * keep them (see `syncStamps.ts`).
+ */
 async function stampEntryWrite(
   tx: CloudSyncTransaction,
   entry: NewEntry,
@@ -494,24 +511,51 @@ async function stampEntryWrite(
   if (!sameList(tagIds, previousTags)) fields.push('tags');
   // Attachments get their own stamps when first published (P6); attaching,
   // detaching or reordering is still a write to the entry.
-  if (
-    !sameList(
-      assetIds,
-      previousAssets.map((row) => row.asset_id),
-    )
-  )
-    fields.push('attachments');
-  // Only a reorder of the attachments both sides have writes the order: an
-  // attach or detach alone does not (as `setAttachmentOrder` in the model).
-  if (previous && entry.assets !== undefined) {
-    const after = orderedAssetIds(entry.assets, assetRows);
-    const before = orderedAssetIds(previous.assets, previousAssets);
-    const shared = (list: string[], other: string[]) =>
-      list.filter((id) => other.includes(id));
-    if (!sameList(shared(after, before), shared(before, after))) fields.push('order');
+  const previousIds = previousAssets.map((row) => row.asset_id);
+  if (!sameList(assetIds, previousIds)) fields.push('attachments');
+  // The order is written when other devices would not show this one by
+  // default (the register's order, then by ID): a reorder, or attachments
+  // added in an order their IDs do not sort into.
+  let order: string[] | null = null;
+  if (entry.assets !== undefined && assetIds.length > 0) {
+    const shown = shownAssetOrder(entry.assets, assetRows);
+    const register = previous ? await orderRegister(tx, entry.note_id) : null;
+    if (!sameList(shown, defaultAssetOrder(register, shown))) {
+      fields.push('order');
+      order = shown;
+    }
   }
   const s = await stampWriteInTransaction(tx, 'entry', entry.note_id, fields, now);
   if (s) await stampMembershipsInTransaction(tx, entry.note_id, added, s);
+  if (s && order) await writeOrderInTransaction(tx, entry.note_id, order, s);
+  if (previous && fields.includes('title'))
+    await dropEqualVersionsInTransaction(
+      tx,
+      'entry',
+      entry.note_id,
+      'title',
+      previous.text_title,
+    );
+  if (previous && fields.includes('text'))
+    await dropEqualVersionsInTransaction(
+      tx,
+      'entry',
+      entry.note_id,
+      'text',
+      previous.text_content,
+    );
+  await dropMemberStampsInTransaction(
+    tx,
+    entry.note_id,
+    'tags',
+    previousTags.filter((id) => !tagIds.includes(id)),
+  );
+  await dropMemberStampsInTransaction(
+    tx,
+    entry.note_id,
+    'attachments',
+    previousIds.filter((id) => !assetIds.includes(id)),
+  );
 }
 
 export async function deleteEntryInTransaction(
@@ -530,44 +574,8 @@ export async function deleteEntryInTransaction(
     .from(mediaAssets)
     .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)));
 
-  const tagRows = await tx
-    .select({
-      tag_id: entryTags.tag_id,
-      stamp_hlc: entryTags.stamp_hlc,
-      stamp_device: entryTags.stamp_device,
-    })
-    .from(entryTags)
-    .where(eq(entryTags.note_id, noteId));
   if (context.syncStamps !== false && entry)
-    await stampDeleteInTransaction(
-      tx,
-      'entry',
-      noteId,
-      {
-        title: entry.text_title,
-        text: entry.text_content,
-        mood: entry.mood ?? null,
-        date: entry.created_at,
-        tags: tagRows.map((row) => [
-          row.tag_id,
-          row.stamp_hlc === null ? null : [row.stamp_hlc, row.stamp_device],
-        ]),
-        attachments: normalized.map((asset) => ({
-          assetId: asset.asset_id,
-          kind: asset.kind,
-          blobHash: asset.blob_hash,
-          mimeType: asset.mime_type,
-          byteSize: asset.byte_size,
-          width: asset.width,
-          height: asset.height,
-          durationMs: asset.duration_ms,
-          createdAt: asset.created_at,
-          stamp: asset.stamp_hlc === null ? null : [asset.stamp_hlc, asset.stamp_device],
-        })),
-        order: orderedAssetIds(entry.assets, normalized),
-      },
-      now,
-    );
+    await stampDeleteInTransaction(tx, 'entry', noteId, now);
   for (const asset of normalized) {
     await retainMediaRow(tx, asset, `entry:${noteId}`, now);
   }
@@ -620,17 +628,57 @@ async function assertUniqueTitle(
   }
 }
 
+/**
+ * Sync v2: the ID a new tag or prompt with this title gets (`namedId`), so
+ * two devices creating one title offline make one record. An ID still held
+ * by a record with another title (renamed away from this one, shown or
+ * deleted) is skipped for the next attempt; a deleted record with this
+ * title is brought back under its ID, as `createNamed` in the model does.
+ */
+async function namedIdInTransaction(
+  tx: CloudSyncTransaction,
+  kind: NamedKind,
+  title: string,
+): Promise<string> {
+  const wanted = normalizeTitle(kind, title);
+  const table = kind === 'tag' ? tags : customPrompts;
+  const idColumn = kind === 'tag' ? tags.tag_id : customPrompts.prompt_id;
+  for (let attempt = 0; ; attempt++) {
+    const id = namedId(kind, title, attempt);
+    const [shown] = await tx.select({ id: idColumn }).from(table).where(eq(idColumn, id));
+    const [record] = await tx
+      .select({ del: syncRecords.del_json })
+      .from(syncRecords)
+      .where(and(eq(syncRecords.entity_type, kind), eq(syncRecords.entity_id, id)));
+    if (!shown && !record) return id;
+    if (shown || !record?.del) continue;
+    const [kept] = await tx
+      .select({ json: syncDeletedRecords.record_json })
+      .from(syncDeletedRecords)
+      .where(
+        and(
+          eq(syncDeletedRecords.entity_type, kind),
+          eq(syncDeletedRecords.entity_id, id),
+        ),
+      );
+    const keptTitle = kept
+      ? (JSON.parse(kept.json) as { title?: { v?: unknown } }).title?.v
+      : undefined;
+    if (typeof keptTitle === 'string' && normalizeTitle(kind, keptTitle) === wanted)
+      return id;
+  }
+}
+
 export async function createTagInTransaction(
   tx: CloudSyncTransaction,
   title: string,
   context: MutationContext = {},
-  stableId?: string,
 ): Promise<string> {
   const cleanTitle = sanitizeTagName(title);
   if (!cleanTitle) throw new Error('Invalid tag title');
   await assertUniqueTitle(tx, 'tag', cleanTitle);
   const now = context.now ?? Date.now();
-  const tagId = stableId ?? randomUUID();
+  const tagId = await namedIdInTransaction(tx, 'tag', cleanTitle);
   await tx.insert(tags).values({
     tag_id: tagId,
     title: cleanTitle,
@@ -683,6 +731,10 @@ export async function deleteTagInTransaction(
     .from(tags)
     .where(eq(tags.tag_id, tagId))
     .limit(1);
+  // Sync v2: taking the tag off its entries below is a side effect, not an
+  // edit of them, so only the tag is stamped (before its rows go).
+  if (context.syncStamps !== false && deletedTag)
+    await stampDeleteInTransaction(tx, 'tag', tagId, now);
   const relations = await tx.select().from(entryTags).where(eq(entryTags.tag_id, tagId));
   for (const relation of relations) {
     const [entry] = await tx
@@ -700,15 +752,12 @@ export async function deleteTagInTransaction(
     await tx
       .delete(entryTags)
       .where(and(eq(entryTags.note_id, relation.note_id), eq(entryTags.tag_id, tagId)));
+    await dropMemberStampsInTransaction(tx, relation.note_id, 'tags', [tagId]);
     if (context.origin !== 'remote' && context.origin !== 'migration') {
       await enqueueMutation(tx, 'entry', relation.note_id, 'upsert', { ...context, now });
     }
   }
   await tx.delete(tags).where(eq(tags.tag_id, tagId));
-  // Sync v2: taking the tag off its entries above is a side effect, not an
-  // edit of them, so only the tag is stamped.
-  if (context.syncStamps !== false && deletedTag)
-    await stampDeleteInTransaction(tx, 'tag', tagId, { title: deletedTag.title }, now);
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     const deletedState: SnapshotTag | null = deletedTag
@@ -732,13 +781,12 @@ export async function createPromptInTransaction(
   tx: CloudSyncTransaction,
   title: string,
   context: MutationContext = {},
-  stableId?: string,
 ): Promise<string> {
   const cleanTitle = sanitizePromptTitle(title);
   if (!cleanTitle) throw new Error('Invalid prompt title');
   await assertUniqueTitle(tx, 'prompt', cleanTitle);
   const now = context.now ?? Date.now();
-  const promptId = stableId ?? randomUUID();
+  const promptId = await namedIdInTransaction(tx, 'prompt', cleanTitle);
   await tx.insert(customPrompts).values({
     prompt_id: promptId,
     title: cleanTitle,
@@ -791,15 +839,9 @@ export async function deletePromptInTransaction(
     .from(customPrompts)
     .where(eq(customPrompts.prompt_id, promptId))
     .limit(1);
-  await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
   if (context.syncStamps !== false && deletedPrompt)
-    await stampDeleteInTransaction(
-      tx,
-      'prompt',
-      promptId,
-      { title: deletedPrompt.title },
-      now,
-    );
+    await stampDeleteInTransaction(tx, 'prompt', promptId, now);
+  await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     const deletedState: SnapshotPrompt | null = deletedPrompt
@@ -968,8 +1010,25 @@ export async function updateProfileInTransaction(
   )
     profileFields.push('name');
   if (photoAssetId !== (previous?.photo_asset_id ?? null)) profileFields.push('photo');
-  if (context.syncStamps !== false)
+  if (context.syncStamps !== false) {
     await stampWriteInTransaction(tx, 'profile', PROFILE_ENTITY_ID, profileFields, now);
+    if (profileFields.includes('name'))
+      await dropEqualVersionsInTransaction(
+        tx,
+        'profile',
+        PROFILE_ENTITY_ID,
+        'name',
+        previous?.display_name ?? null,
+      );
+    if (profileFields.includes('photo'))
+      await dropEqualVersionsInTransaction(
+        tx,
+        'profile',
+        PROFILE_ENTITY_ID,
+        'photo',
+        previous?.photo_asset_id ?? null,
+      );
+  }
   await markNormalized(tx, 'profile', PROFILE_ENTITY_ID, now);
   if (syncFieldsChanged) await markLocalProfileTouched(tx);
   if (

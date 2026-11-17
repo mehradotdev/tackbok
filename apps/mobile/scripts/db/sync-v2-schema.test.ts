@@ -45,7 +45,10 @@ function dumpV1(sqlite: Database): string {
         .query<{ name: string }, []>(`PRAGMA table_info(\`${name}\`)`)
         .all()
         .map((column) => column.name)
-        .filter((column) => column !== 'stamp_hlc' && column !== 'stamp_device');
+        .filter(
+          (column) =>
+            column !== 'stamp_hlc' && column !== 'stamp_device' && column !== 'ext_json',
+        );
       const rows = sqlite
         .query(
           `SELECT ${columns.map((c) => `\`${c}\``).join(', ')} FROM \`${name}\` ORDER BY ${columns.map((_, i) => i + 1).join(', ')}`,

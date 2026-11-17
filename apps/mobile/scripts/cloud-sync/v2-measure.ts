@@ -87,7 +87,7 @@ function buildJournal(count: number, seed: number): Journal {
   const v2Tags = new Map<string, NamedRecord>();
   for (const title of tags) {
     const s = stamp();
-    const id = namedId('tag', VAULT, title);
+    const id = namedId('tag', title);
     const vv = {};
     bump(vv, s);
     v2Tags.set(id, { id, vv, del: null, title: { s, v: title }, ext: {} });
@@ -163,7 +163,7 @@ function buildJournal(count: number, seed: number): Journal {
     }
     attachments.sort((a, b) => (a.id < b.id ? -1 : 1));
     const tagMembers = tagIndexes
-      .map((i) => ({ id: namedId('tag', VAULT, tags[i]), s: born }))
+      .map((i) => ({ id: namedId('tag', tags[i]), s: born }))
       .sort((a, b) => (a.id < b.id ? -1 : 1));
     let del = null;
     if (deleted) {
