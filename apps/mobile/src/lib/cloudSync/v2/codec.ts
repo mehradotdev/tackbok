@@ -5,7 +5,8 @@
  *   snapshotId = SHA-256 of the canonical header bytes
  *   header     = format, major version, features (required / optional),
  *                kind (full | delta), since, codec, encryption, body hash and
- *                size, vault, author, sequence, time, roster, context, floor
+ *                size, vault, author, sequence, time, roster (with each
+ *                device's acknowledged context), context, floor, ext
  *   body       = gzip of the canonical body JSON (entries, tags, prompts,
  *                profile, media)
  *
@@ -18,8 +19,14 @@
  * or kind throws `SnapshotUpdateRequiredError` ("pause and ask the user to
  * update; never write or delete"). These are read before the closed shape is
  * checked, so a newer layout always asks for an update. New fields arrive only
- * under `ext` (in the header and in the body), keyed by the feature that
- * defines them; data under an unknown optional feature is ignored.
+ * under `ext`, keyed by a feature the header declares:
+ * - on every record (entry, tag, prompt, profile, tombstone, media): joined
+ *   and kept by every device, including those that do not know the feature
+ *   (see `Ext` in `types.ts`). A writer declares every feature its records
+ *   carry: as required if this build lists it in `KNOWN_REQUIRED_FEATURES`,
+ *   otherwise as optional. Vault-wide data goes on the profile record.
+ * - in the header: about this publication only; not part of the state, so a
+ *   republish does not carry it over.
  */
 import { decodeGzipBounded, encodeGzip } from '~/lib/zip/core/gzip-codec';
 
@@ -29,10 +36,13 @@ import { sha256Bytes, sha256Text } from '../snapshot/sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../snapshot/strictJson';
 import { compareStamps, covers, vectorIncluded } from './clock';
 import { NAMED_ID, splitEntryId } from './ids';
-import { referencedAssets } from './join';
+import { knows, referencedAssets } from './join';
 import type {
   EntryRecord,
+  Ext,
+  Mood,
   Item,
+  Json,
   MediaDescriptor,
   Member,
   NamedRecord,
@@ -54,6 +64,12 @@ export const V2_CAPS = Object.freeze({
   membersPerEntry: 4096,
   orderLength: 4096,
   headerBytes: 256 * 1024,
+  /**
+   * Canonical bytes of one media descriptor's `ext` (immutable). A record's
+   * `ext` has no cap of its own: two devices' items join, so a per-record cap
+   * could be exceeded by a join. It counts toward the body caps.
+   */
+  extBytes: 64 * 1024,
 });
 
 export class SnapshotUpdateRequiredError extends SnapshotValidationError {
@@ -67,7 +83,6 @@ const needsUpdate = (code: string, message: string): never => {
   throw new SnapshotUpdateRequiredError(code, message);
 };
 
-type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type StampJson = [number, number];
 type VectorJson = [number, number][];
 
@@ -85,10 +100,10 @@ export interface SnapshotHeader {
   authorDeviceId: string;
   deviceSequence: number;
   createdAt: number;
-  roster: { deviceId: string; lastSeenAt: number }[];
+  roster: { deviceId: string; lastSeenAt: number; ack: VectorJson | null }[];
   ctx: VectorJson;
   floor: VectorJson | null;
-  /** Feature-keyed extension data; none is defined in 2.0.0. */
+  /** Feature-keyed data about this publication; none is defined in 2.0.0. */
   ext: Record<string, Json>;
 }
 
@@ -96,7 +111,10 @@ export interface Publication {
   authorDeviceId: string;
   deviceSequence: number;
   createdAt: number;
-  /** Optional features this snapshot carries; unknown ones are ignored on read. */
+  /**
+   * Further optional features to declare. Features the state's `ext` uses are
+   * declared without being listed here.
+   */
   optionalFeatures?: string[];
 }
 
@@ -150,12 +168,20 @@ function membersJson(ix: Indexer, members: readonly Member[]): Json {
     .map((member) => [member.id, ix.stamp(member.s)]);
 }
 
+function extJson(ix: Indexer, ext: Ext): Json {
+  const result: Record<string, Json> = {};
+  for (const [feature, items] of Object.entries(ext))
+    result[feature] = itemsJson(ix, items);
+  return result;
+}
+
 function tombJson(ix: Indexer, del: Tombstone | null): Json {
   if (!del) return null;
   return {
     at: ix.stamp(del.at),
     seen: ix.vector(del.seen),
     ack: del.ackSeen ? ix.vector(del.ackSeen) : null,
+    ext: extJson(ix, del.ext),
   };
 }
 
@@ -163,17 +189,24 @@ function entryJson(ix: Indexer, entry: EntryRecord): Json {
   return {
     id: entry.id,
     vv: ix.vector(entry.vv),
+    known: entry.known
+      ? {
+          vv: ix.vector(entry.known.vv),
+          extra: entry.known.extra.map((s) => ix.stamp(s)),
+        }
+      : null,
     del: tombJson(ix, entry.del),
     title: itemsJson(ix, entry.title),
     text: itemsJson(ix, entry.text),
-    mood: [ix.stamp(entry.mood.s), entry.mood.v],
-    date: [ix.stamp(entry.date.s), entry.date.v],
+    mood: entry.mood ? [ix.stamp(entry.mood.s), entry.mood.v] : null,
+    date: entry.date ? [ix.stamp(entry.date.s), entry.date.v] : null,
     tags: membersJson(ix, entry.tags),
     media: membersJson(ix, entry.attachments),
     order: entry.order ? [ix.stamp(entry.order.s), [...entry.order.v]] : null,
     split: entry.split
       ? [entry.split.from, entry.split.field, ix.stamp(entry.split.s)]
       : null,
+    ext: extJson(ix, entry.ext),
   };
 }
 
@@ -183,11 +216,12 @@ function namedJson(ix: Indexer, record: NamedRecord): Json {
     vv: ix.vector(record.vv),
     del: tombJson(ix, record.del),
     title: [ix.stamp(record.title.s), record.title.v],
+    ext: extJson(ix, record.ext),
   };
 }
 
 function mediaJson(media: MediaDescriptor): Json {
-  return { ...media };
+  return { ...media } as unknown as Json;
 }
 
 function bodyJson(ix: Indexer, state: SyncState): Json {
@@ -203,10 +237,29 @@ function bodyJson(ix: Indexer, state: SyncState): Json {
       vv: ix.vector(state.profile.vv),
       name: itemsJson(ix, state.profile.name),
       photo: itemsJson(ix, state.profile.photo),
+      ext: extJson(ix, state.profile.ext),
     },
     media: byKey(state.media.values(), (media) => media.assetId).map(mediaJson),
-    ext: {},
   };
+}
+
+/** Every feature some record's `ext` uses. */
+export function extFeatures(state: SyncState): Set<string> {
+  const used = new Set<string>();
+  const add = (ext: Readonly<Record<string, unknown>>) => {
+    for (const key of Object.keys(ext)) used.add(key);
+  };
+  for (const entry of state.entries.values()) {
+    add(entry.ext);
+    if (entry.del) add(entry.del.ext);
+  }
+  for (const record of [...state.tags.values(), ...state.prompts.values()]) {
+    add(record.ext);
+    if (record.del) add(record.del.ext);
+  }
+  add(state.profile.ext);
+  for (const media of state.media.values()) add(media.ext);
+  return used;
 }
 
 function stateHeaderJson(ix: Indexer, state: SyncState) {
@@ -214,6 +267,7 @@ function stateHeaderJson(ix: Indexer, state: SyncState) {
     roster: ix.devices.map((deviceId) => ({
       deviceId,
       lastSeenAt: state.roster[deviceId],
+      ack: state.acks[deviceId] ? ix.vector(state.acks[deviceId]) : null,
     })),
     ctx: ix.vector(state.ctx),
     floor: state.floor ? ix.vector(state.floor) : null,
@@ -255,13 +309,15 @@ export function encodeEnvelope(
   const stored = encodeGzip(bodyCanonical, { level: 6 });
   if (stored.length > SNAPSHOT_CAPS.compressedBytes)
     invalid('compressed-size-cap', 'Compressed snapshot body exceeds 16 MiB');
+  const used = extFeatures(state);
+  const required = [...used].filter((f) => KNOWN_REQUIRED_FEATURES.includes(f)).sort();
+  const optional = [...new Set([...(publication.optionalFeatures ?? []), ...used])]
+    .filter((f) => !required.includes(f))
+    .sort();
   const header: SnapshotHeader = {
     format: SNAPSHOT_FORMAT,
     major: SNAPSHOT_MAJOR,
-    features: {
-      required: [],
-      optional: [...new Set(publication.optionalFeatures ?? [])].sort(),
-    },
+    features: { required, optional },
     kind: 'full',
     since: null,
     codec: 'gzip',
@@ -339,7 +395,10 @@ function nullable<T>(value: unknown, read: (value: unknown) => T): T | null {
 }
 
 class Reader {
-  constructor(readonly devices: string[]) {}
+  constructor(
+    readonly devices: string[],
+    readonly features: ReadonlySet<string> = new Set(),
+  ) {}
   device(value: unknown, path: string): string {
     const index = integer(value, path, this.devices.length - 1);
     return this.devices[index];
@@ -409,13 +468,26 @@ class Reader {
     }
     return members;
   }
+  /** Feature-keyed items; every feature must be declared in the header. */
+  ext(value: unknown, path: string): Ext {
+    if (value === null || typeof value !== 'object' || Array.isArray(value))
+      invalid('invalid-shape', `${path} must be an object`);
+    const result: Record<string, Item<Json>[]> = {};
+    for (const [feature, raw] of Object.entries(value)) {
+      if (!this.features.has(feature))
+        invalid('undeclared-extension', `${path}.${feature} has no feature`);
+      result[feature] = this.items(raw, `${path}.${feature}`, (item) => item as Json);
+    }
+    return result;
+  }
   tomb(value: unknown, path: string): Tombstone | null {
     return nullable(value, (raw) => {
-      const del = object(raw, ['at', 'seen', 'ack'], path);
+      const del = object(raw, ['at', 'seen', 'ack', 'ext'], path);
       return {
         at: this.stamp(del.at, `${path}.at`),
         seen: this.vector(del.seen, `${path}.seen`),
         ackSeen: nullable(del.ack, (ack) => this.vector(ack, `${path}.ack`)),
+        ext: this.ext(del.ext, `${path}.ext`),
       };
     });
   }
@@ -430,6 +502,7 @@ function readEntry(reader: Reader, raw: unknown, path: string): EntryRecord {
     [
       'id',
       'vv',
+      'known',
       'del',
       'title',
       'text',
@@ -439,12 +512,22 @@ function readEntry(reader: Reader, raw: unknown, path: string): EntryRecord {
       'media',
       'order',
       'split',
+      'ext',
     ],
     path,
   );
   return {
     id: id(value.id, `${path}.id`),
     vv: reader.vector(value.vv, `${path}.vv`),
+    known: nullable(value.known, (raw) => {
+      const known = object(raw, ['vv', 'extra'], `${path}.known`);
+      return {
+        vv: reader.vector(known.vv, `${path}.known.vv`),
+        extra: array(known.extra, V2_CAPS.valuesPerRegister, `${path}.known.extra`).map(
+          (stamp, i) => reader.stamp(stamp, `${path}.known.extra[${i}]`),
+        ),
+      };
+    }),
     del: reader.tomb(value.del, `${path}.del`),
     title: reader.items(
       value.title,
@@ -456,12 +539,16 @@ function readEntry(reader: Reader, raw: unknown, path: string): EntryRecord {
       `${path}.text`,
       nullableText(SNAPSHOT_CAPS.entryBodyBytes),
     ),
-    mood: reader.item(value.mood, `${path}.mood`, (mood, at) => {
-      if (mood !== null && !MOODS.has(mood as string))
-        invalid('invalid-mood', `${at} is invalid`);
-      return mood as EntryRecord['mood']['v'];
-    }),
-    date: reader.item(value.date, `${path}.date`, (date, at) => integer(date, at)),
+    mood: nullable(value.mood, (raw) =>
+      reader.item(raw, `${path}.mood`, (mood, at) => {
+        if (mood !== null && !MOODS.has(mood as string))
+          invalid('invalid-mood', `${at} is invalid`);
+        return mood as Mood | null;
+      }),
+    ),
+    date: nullable(value.date, (raw) =>
+      reader.item(raw, `${path}.date`, (date, at) => integer(date, at)),
+    ),
     tags: reader.members(value.tags, `${path}.tags`),
     attachments: reader.members(value.media, `${path}.media`),
     order: nullable(value.order, (order) =>
@@ -480,11 +567,12 @@ function readEntry(reader: Reader, raw: unknown, path: string): EntryRecord {
         s: reader.stamp(triple[2], `${path}.split[2]`),
       };
     }),
+    ext: reader.ext(value.ext, `${path}.ext`),
   };
 }
 
 function readNamed(reader: Reader, raw: unknown, path: string): NamedRecord {
-  const value = object(raw, ['id', 'vv', 'del', 'title'], path);
+  const value = object(raw, ['id', 'vv', 'del', 'title', 'ext'], path);
   return {
     id: id(value.id, `${path}.id`),
     vv: reader.vector(value.vv, `${path}.vv`),
@@ -492,10 +580,15 @@ function readNamed(reader: Reader, raw: unknown, path: string): NamedRecord {
     title: reader.item(value.title, `${path}.title`, (title, at) =>
       string(title, at, SNAPSHOT_CAPS.shortTitleBytes),
     ),
+    ext: reader.ext(value.ext, `${path}.ext`),
   };
 }
 
-function readMedia(raw: unknown, path: string): MediaDescriptor {
+function readMedia(
+  raw: unknown,
+  path: string,
+  features: ReadonlySet<string>,
+): MediaDescriptor {
   const value = object(
     raw,
     [
@@ -510,9 +603,16 @@ function readMedia(raw: unknown, path: string): MediaDescriptor {
       'height',
       'durationMs',
       'createdAt',
+      'ext',
     ],
     path,
   );
+  const ext = value.ext;
+  if (ext === null || typeof ext !== 'object' || Array.isArray(ext))
+    invalid('invalid-shape', `${path}.ext must be an object`);
+  for (const feature of Object.keys(ext))
+    if (!features.has(feature))
+      invalid('undeclared-extension', `${path}.ext.${feature} has no feature`);
   if (value.ownerType !== 'entry' && value.ownerType !== 'profile')
     invalid('invalid-media', `${path}.ownerType is invalid`);
   if (!KINDS.has(value.kind as string))
@@ -539,6 +639,7 @@ function readMedia(raw: unknown, path: string): MediaDescriptor {
       integer(d, `${path}.durationMs`, SNAPSHOT_CAPS.audioDurationMs),
     ),
     createdAt: integer(value.createdAt, `${path}.createdAt`),
+    ext: ext as Record<string, Json>,
   };
 }
 
@@ -559,7 +660,7 @@ function sortedMap<T>(
   return map;
 }
 
-/** Feature-keyed extensions: every key names a declared feature. */
+/** Header extensions: every key names a declared feature. */
 function extensions(value: unknown, features: Set<string>, path: string): void {
   if (value === null || typeof value !== 'object' || Array.isArray(value))
     invalid('invalid-shape', `${path} must be an object`);
@@ -641,6 +742,8 @@ function validateHeader(header: unknown): SnapshotHeader {
     for (let i = 1; i < list.length; i++)
       if (list[i - 1] >= list[i])
         invalid('unsorted', 'Features must be sorted and unique');
+  if ((required as string[]).some((feature) => (optional as string[]).includes(feature)))
+    invalid('invalid-feature', 'A feature is both required and optional');
   for (const feature of required as string[])
     if (!KNOWN_REQUIRED_FEATURES.includes(feature))
       needsUpdate('unsupported-feature', `Snapshot requires ${feature}`);
@@ -653,11 +756,12 @@ function validateHeader(header: unknown): SnapshotHeader {
   if (!HASH.test(bodyHash)) invalid('invalid-hash', 'Body hash is malformed');
   integer(value.bodyBytes, '$header.bodyBytes', SNAPSHOT_CAPS.uncompressedBytes);
   id(value.vaultId, '$header.vaultId');
-  const roster = array(value.roster, V2_CAPS.roster, '$header.roster').map((raw, i) => {
-    const entry = object(raw, ['deviceId', 'lastSeenAt'], `$header.roster[${i}]`);
+  const rows = array(value.roster, V2_CAPS.roster, '$header.roster').map((raw, i) => {
+    const entry = object(raw, ['deviceId', 'lastSeenAt', 'ack'], `$header.roster[${i}]`);
     integer(entry.lastSeenAt, `$header.roster[${i}].lastSeenAt`);
-    return id(entry.deviceId, `$header.roster[${i}].deviceId`);
+    return { id: id(entry.deviceId, `$header.roster[${i}].deviceId`), ack: entry.ack };
   });
+  const roster = rows.map((row) => row.id);
   for (let i = 1; i < roster.length; i++)
     if (roster[i - 1] >= roster[i])
       invalid('unsorted', 'Roster must be sorted and unique');
@@ -668,19 +772,17 @@ function validateHeader(header: unknown): SnapshotHeader {
   const reader = new Reader(roster);
   reader.vector(value.ctx, '$header.ctx');
   if (value.floor !== null) reader.vector(value.floor, '$header.floor');
+  for (const [i, row] of rows.entries())
+    if (row.ack !== null) reader.vector(row.ack, `$header.roster[${i}].ack`);
   extensions(value.ext, headerFeatures(value), '$header.ext');
   return value as unknown as SnapshotHeader;
 }
 
 function readState(header: SnapshotHeader, body: unknown): SyncState {
   const devices = header.roster.map((device) => device.deviceId);
-  const reader = new Reader(devices);
-  const value = object(
-    body,
-    ['entries', 'tags', 'prompts', 'profile', 'media', 'ext'],
-    '$body',
-  );
-  extensions(value.ext, headerFeatures(header), '$body.ext');
+  const features = headerFeatures(header);
+  const reader = new Reader(devices, features);
+  const value = object(body, ['entries', 'tags', 'prompts', 'profile', 'media'], '$body');
   const entries = array(value.entries, SNAPSHOT_CAPS.entries, '$body.entries').map(
     (raw, i) => readEntry(reader, raw, `$body.entries[${i}]`),
   );
@@ -690,7 +792,11 @@ function readState(header: SnapshotHeader, body: unknown): SyncState {
   const prompts = array(value.prompts, SNAPSHOT_CAPS.prompts, '$body.prompts').map(
     (raw, i) => readNamed(reader, raw, `$body.prompts[${i}]`),
   );
-  const rawProfile = object(value.profile, ['vv', 'name', 'photo'], '$body.profile');
+  const rawProfile = object(
+    value.profile,
+    ['vv', 'name', 'photo', 'ext'],
+    '$body.profile',
+  );
   const profile: ProfileRecord = {
     vv: reader.vector(rawProfile.vv, '$body.profile.vv'),
     name: reader.items(
@@ -701,14 +807,23 @@ function readState(header: SnapshotHeader, body: unknown): SyncState {
     photo: reader.items(rawProfile.photo, '$body.profile.photo', (photo, at) =>
       photo === null ? null : id(photo, at),
     ),
+    ext: reader.ext(rawProfile.ext, '$body.profile.ext'),
   };
   const media = array(value.media, SNAPSHOT_CAPS.media, '$body.media').map((raw, i) =>
-    readMedia(raw, `$body.media[${i}]`),
+    readMedia(raw, `$body.media[${i}]`, features),
   );
   const state: SyncState = {
     vaultId: header.vaultId,
     ctx: reader.vector(header.ctx, '$header.ctx'),
     roster: Object.fromEntries(header.roster.map((d) => [d.deviceId, d.lastSeenAt])),
+    acks: Object.fromEntries(
+      header.roster
+        .filter((d) => d.ack !== null)
+        .map((d) => [
+          d.deviceId,
+          reader.vector(d.ack, `$header.roster.${d.deviceId}.ack`),
+        ]),
+    ),
     floor: header.floor ? reader.vector(header.floor, '$header.floor') : null,
     entries: sortedMap(entries, (entry) => entry.id, '$body.entries'),
     tags: sortedMap(tags, (tag) => tag.id, '$body.tags'),
@@ -792,8 +907,20 @@ function assertCovered(vv: VersionVector, stamp: Stamp, path: string) {
     invalid('uncovered-stamp', `${path} is outside its version vector`);
 }
 
+/** Extension items: declared-looking feature names, sorted, covered, capped. */
+function validateExt(ext: Ext, vv: VersionVector, path: string) {
+  for (const [feature, items] of Object.entries(ext)) {
+    if (!FEATURE.test(feature)) invalid('invalid-feature', `${path}.${feature}`);
+    if (items.length === 0) invalid('invalid-shape', `${path}.${feature} is empty`);
+    if (items.length > V2_CAPS.valuesPerRegister)
+      invalid('collection-cap', `${path}.${feature} has too many items`);
+    assertSorted(items, `${path}.${feature}`);
+    for (const item of items) assertCovered(vv, item.s, `${path}.${feature}`);
+  }
+}
+
 function validateRecord(
-  record: { vv: VersionVector; del: Tombstone | null },
+  record: { vv: VersionVector; del: Tombstone | null; ext: Ext },
   ctx: VersionVector,
   stamps: Stamp[],
   path: string,
@@ -801,12 +928,14 @@ function validateRecord(
   if (!vectorIncluded(record.vv, ctx))
     invalid('uncovered-stamp', `${path}.vv exceeds the context`);
   for (const stamp of stamps) assertCovered(record.vv, stamp, path);
+  validateExt(record.ext, record.vv, `${path}.ext`);
   if (record.del) {
     if (!vectorIncluded(record.del.seen, record.vv))
       invalid('invalid-tombstone', `${path}.del saw writes the record lacks`);
     assertCovered(record.del.seen, record.del.at, `${path}.del.at`);
     if (record.del.ackSeen && !vectorIncluded(record.del.ackSeen, record.del.seen))
       invalid('invalid-tombstone', `${path}.del acknowledged deletes it lacks`);
+    validateExt(record.del.ext, record.del.seen, `${path}.del.ext`);
   }
 }
 
@@ -836,6 +965,12 @@ export function validateState(state: SyncState): void {
     if (!vectorIncluded(state.floor, state.ctx))
       invalid('invalid-floor', 'The compaction floor is ahead of the context');
   }
+  for (const [device, ack] of Object.entries(state.acks)) {
+    if (!(device in state.roster)) invalid('unknown-device', `$acks names ${device}`);
+    onRoster(ack, `$acks.${device}`);
+    if (!vectorIncluded(ack, state.ctx))
+      invalid('invalid-ack', `${device} acknowledged more than the context`);
+  }
   if (state.entries.size > SNAPSHOT_CAPS.entries)
     invalid('collection-cap', 'Too many entries');
   let textBytes = 0;
@@ -849,13 +984,50 @@ export function validateState(state: SyncState): void {
     const stamps = [
       ...entry.title.map((item) => item.s),
       ...entry.text.map((item) => item.s),
-      entry.mood.s,
-      entry.date.s,
+      ...(entry.mood ? [entry.mood.s] : []),
+      ...(entry.date ? [entry.date.s] : []),
       ...entry.tags.map((member) => member.s),
       ...entry.attachments.map((member) => member.s),
       ...(entry.order ? [entry.order.s] : []),
     ];
     validateRecord(entry, state.ctx, stamps, path);
+    if (entry.known) {
+      const known = entry.known;
+      onRoster(known.vv, `${path}.known`);
+      if (!vectorIncluded(known.vv, entry.vv) || vectorIncluded(entry.vv, known.vv))
+        invalid('invalid-known', `${path}.known must be inside its vector and smaller`);
+      if (known.extra.length > V2_CAPS.valuesPerRegister)
+        invalid('collection-cap', `${path}.known has too many stamps`);
+      for (const [i, stamp] of known.extra.entries()) {
+        assertCovered(entry.vv, stamp, `${path}.known.extra`);
+        if (
+          covers(known.vv, stamp) ||
+          (i > 0 && compareStamps(known.extra[i - 1], stamp) >= 0)
+        )
+          invalid(
+            'invalid-known',
+            `${path}.known.extra must be sorted, unique, outside its vector`,
+          );
+      }
+      // Values must be known: the join judges them against `known`.
+      for (const stamp of stamps)
+        if (!knows(known, stamp))
+          invalid('invalid-known', `${path} holds a value it does not know`);
+    }
+    const compacted =
+      entry.known !== null &&
+      Object.keys(entry.known.vv).length === 0 &&
+      entry.known.extra.length === 0;
+    if (compacted && (stamps.length > 0 || Object.keys(entry.ext).length > 0))
+      invalid('invalid-known', `${path} holds values it does not know`);
+    // Every write leaves a title and a text item, even a null one: only a
+    // compacted entry has none, and an empty list would remove the other
+    // side's values in a join.
+    if (
+      !compacted &&
+      (!entry.mood || !entry.date || entry.title.length === 0 || entry.text.length === 0)
+    )
+      invalid('invalid-shape', `${path} lacks a title, text, mood or date`);
     assertSorted(entry.title, `${path}.title`);
     assertSorted(entry.text, `${path}.text`);
     assertSorted(entry.tags, `${path}.tags`);
@@ -873,8 +1045,9 @@ export function validateState(state: SyncState): void {
       if (item.v !== null) string(item.v, `${path}.text`, SNAPSHOT_CAPS.entryBodyBytes);
       count(item.v);
     }
-    if (entry.mood.v !== null && !MOODS.has(entry.mood.v)) invalid('invalid-mood', path);
-    integer(entry.date.v, `${path}.date`);
+    if (entry.mood && entry.mood.v !== null && !MOODS.has(entry.mood.v))
+      invalid('invalid-mood', path);
+    if (entry.date) integer(entry.date.v, `${path}.date`);
     for (const member of entry.tags)
       if (!state.tags.has(member.id))
         invalid('dangling-reference', `${path} tag ${member.id}`);
@@ -913,7 +1086,7 @@ export function validateState(state: SyncState): void {
   const profile = state.profile;
   onRoster(profile.vv, '$profile.vv');
   validateRecord(
-    { vv: profile.vv, del: null },
+    { vv: profile.vv, del: null, ext: profile.ext },
     state.ctx,
     [...profile.name.map((item) => item.s), ...profile.photo.map((item) => item.s)],
     'profile',
@@ -943,5 +1116,10 @@ export function validateState(state: SyncState): void {
       invalid('invalid-id', `media ${key} is stored under another key`);
     if (!referenced.has(key))
       invalid('unreferenced-media', `media ${key} is not referenced`);
+    for (const feature of Object.keys(asset.ext))
+      if (!FEATURE.test(feature))
+        invalid('invalid-feature', `media ${key}.ext.${feature}`);
+    if (utf8Length(canonicalize(asset.ext as Json)) > V2_CAPS.extBytes)
+      invalid('string-cap', `media ${key}.ext is too large`);
   }
 }

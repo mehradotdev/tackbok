@@ -8,10 +8,14 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { SnapshotValidationError } from '../../src/lib/cloudSync/snapshot/caps';
+import { compact, isCompacted } from '../../src/lib/cloudSync/v2/compact';
+import type { SyncState } from '../../src/lib/cloudSync/v2/types';
 import {
   caseFailed,
   configFor,
   describeEvents,
+  replayCase,
   runCase,
   shrinkCase,
   type CaseResult,
@@ -20,7 +24,10 @@ import { seedRange } from './sim/random';
 import { V2Adapter } from './sim/v2Adapter';
 
 const v2Failed = (result: CaseResult) =>
-  caseFailed(result) || result.staleValues.length > 0 || result.undoneDeletes.length > 0;
+  caseFailed(result) ||
+  result.staleValues.length > 0 ||
+  result.undoneDeletes.length > 0 ||
+  result.incompleteEntries.length > 0;
 
 describe('v2 N-device simulation', () => {
   test.each([
@@ -29,13 +36,21 @@ describe('v2 N-device simulation', () => {
   ] as const)(
     '%s syncs: every device converges and keeps every authored value',
     async (topology, seeds) => {
-      const factory = (devices: number) => new V2Adapter(devices, topology);
       const stats = {
         cases: 0,
         events: 0,
         devices: [0, 0, 0, 0, 0, 0, 0],
         duplicateTitles: 0,
+        /** Cases ending with at least one compacted entry. */
+        compactedCases: 0,
+        compactedEntries: 0,
+        /** Cases where an unseen edit brought an entry back after compaction. */
+        revivedCases: 0,
+        /** Cases where a device refused a state whose clock was too far ahead. */
+        refusedCases: 0,
       };
+      let adapter: V2Adapter | null = null;
+      const factory = (devices: number) => (adapter = new V2Adapter(devices, topology));
       const kinds: Record<string, number> = {};
       const failures: CaseResult[] = [];
       for (const seed of seeds) {
@@ -45,6 +60,13 @@ describe('v2 N-device simulation', () => {
         stats.events += events.length;
         stats.devices[config.devices]++;
         if (result.duplicateTitles > 0) stats.duplicateTitles++;
+        const compacted = [...adapter!.states[0].entries.values()].filter(
+          isCompacted,
+        ).length;
+        stats.compactedEntries += compacted;
+        if (compacted > 0) stats.compactedCases++;
+        if (result.revived > 0) stats.revivedCases++;
+        if (adapter!.refusedPulls > 0) stats.refusedCases++;
         for (const event of events) kinds[event.kind] = (kinds[event.kind] ?? 0) + 1;
         if (!v2Failed(result)) continue;
         failures.push(result);
@@ -59,7 +81,97 @@ describe('v2 N-device simulation', () => {
       expect(failures.map((result) => result.seed)).toEqual([]);
       expect(kinds.keep ?? 0).toBeGreaterThan(seeds.length / 8);
       expect(kinds.keepBoth ?? 0).toBeGreaterThan(seeds.length / 40);
+      // Display-level merge: no two shown tags or prompts share a title.
+      expect(stats.duplicateTitles).toBe(0);
+      // The generator reaches compaction, entries brought back after it and refused clocks.
+      expect(stats.compactedCases).toBeGreaterThan(seeds.length / 10);
+      expect(stats.revivedCases).toBeGreaterThan(0);
+      expect(stats.refusedCases).toBeGreaterThan(0);
     },
     600_000,
   );
+
+  test('compaction changes nothing shown except entries brought back after it', async () => {
+    // The same events with and without compaction: every device shows the
+    // same entries, tags, prompts and profile. An entry an unseen edit brings
+    // back after compaction may show older values (compact.ts).
+    let compared = 0,
+      revivedCases = 0;
+    const mismatches: number[] = [];
+    for (const seed of seedRange(200_000, 500)) {
+      const config = configFor(seed);
+      let withCompaction: V2Adapter | null = null;
+      const { result, events } = await runCase(
+        (devices) => (withCompaction = new V2Adapter(devices)),
+        config,
+      );
+      let without: V2Adapter | null = null;
+      await replayCase(
+        (devices) =>
+          (without = new V2Adapter(devices, 'pairwise', undefined, undefined, false)),
+        config,
+        events,
+      );
+      if (result.revived > 0) revivedCases++;
+      const revived = new Set(withCompaction!.revivedEntries);
+      for (let device = 0; device < config.devices; device++) {
+        const a = withCompaction!.view(device),
+          b = without!.view(device);
+        const strip = (view: typeof a) => ({
+          ...view,
+          entries: view.entries.filter((entry) => !revived.has(entry.id)),
+        });
+        compared++;
+        // The same entries are shown, brought back or not...
+        if (
+          JSON.stringify(a.entries.map((e) => e.id)) !==
+            JSON.stringify(b.entries.map((e) => e.id)) ||
+          // ...and everything else is identical.
+          JSON.stringify(strip(a)) !== JSON.stringify(strip(b))
+        )
+          mismatches.push(seed);
+      }
+    }
+    console.log('v2 compaction comparison', JSON.stringify({ compared, revivedCases }));
+    expect([...new Set(mismatches)]).toEqual([]);
+    expect(revivedCases).toBeGreaterThan(0);
+  }, 600_000);
+
+  test('negative control: compaction whose empty copy removes values brings entries back partly', async () => {
+    // Compacting without emptying `known` lets the compacted copy remove the
+    // returning device's values: the entry comes back without its title or text.
+    const naive = (state: SyncState) => {
+      const compacted = compact(state);
+      const entries = new Map(compacted.entries);
+      for (const [id, entry] of compacted.entries) {
+        const before = state.entries.get(id)!;
+        if (isCompacted(entry) && !isCompacted(before))
+          entries.set(id, {
+            ...entry,
+            known: null,
+            mood: before.mood,
+            date: before.date,
+          });
+      }
+      return { ...compacted, entries };
+    };
+    // Caught either by the oracle (an entry shown without a title or text)
+    // or by validation, which refuses an entry with values it lacks.
+    let caught: string | null = null;
+    for (const seed of seedRange(1, 2_000)) {
+      try {
+        const { result } = await runCase(
+          (devices) =>
+            new V2Adapter(devices, 'pairwise', undefined, undefined, true, naive),
+          configFor(seed),
+        );
+        if (result.incompleteEntries.length > 0) caught = 'incomplete-entry';
+      } catch (error) {
+        if (!(error instanceof SnapshotValidationError)) throw error;
+        caught = error.code;
+      }
+      if (caught) break;
+    }
+    expect(['incomplete-entry', 'invalid-shape']).toContain(caught!);
+  }, 600_000);
 });

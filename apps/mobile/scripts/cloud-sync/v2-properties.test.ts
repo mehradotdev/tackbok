@@ -14,18 +14,23 @@ import {
   decodeEnvelope,
   encodeEnvelope,
 } from '../../src/lib/cloudSync/v2/codec';
+import { absorb, compact, isCompacted } from '../../src/lib/cloudSync/v2/compact';
 import { join, pruneMedia } from '../../src/lib/cloudSync/v2/join';
 import { markSeen } from '../../src/lib/cloudSync/v2/ops';
 import type { EntryRecord, SyncState } from '../../src/lib/cloudSync/v2/types';
 import {
+  attachmentIds,
   isLive,
   isReturned,
+  liveEntries,
   liveTags,
+  memberIds,
   shownItems,
+  shownNamed,
 } from '../../src/lib/cloudSync/v2/view';
 import { configFor, runCase, caseFailed, type CaseResult } from './sim/driver';
 import { Random, seedRange } from './sim/random';
-import { V2Adapter } from './sim/v2Adapter';
+import { V2Adapter, plainMerge } from './sim/v2Adapter';
 
 type Join = (left: SyncState, right: SyncState) => SyncState;
 
@@ -38,11 +43,10 @@ function sampleConfig(seed: number) {
   return { ...config, coarseClock: true, weights: { setMood: 40, setDate: 30 } };
 }
 
-async function samplePool(seed: number, joinStates: Join = join): Promise<SyncState[]> {
+async function samplePool(seed: number): Promise<SyncState[]> {
   const pool: SyncState[] = [];
   await runCase(
-    (devices) =>
-      new V2Adapter(devices, 'pairwise', joinStates, (state) => pool.push(state)),
+    (devices) => new V2Adapter(devices, 'pairwise', absorb, (state) => pool.push(state)),
     sampleConfig(seed),
   );
   return pool;
@@ -67,6 +71,9 @@ const PROPERTIES = [
   'absorbs',
   'encodes',
   'missing-never-deletes',
+  'compaction-hides-nothing',
+  'compaction-idempotent',
+  'compaction-keeps-liveness',
 ] as const;
 type Property = (typeof PROPERTIES)[number];
 
@@ -116,7 +123,43 @@ function checkTriple(
     if (!Bun.deepEquals(withPartial.prompts.get(id), record))
       return 'missing-never-deletes';
   }
+  // Compaction: what is shown stays the same; compacting again changes
+  // nothing; and joining a compacted copy shows the same records as joining
+  // the uncompacted one, so it never brings a deleted entry back or hides one.
+  const compacted = compact(ab);
+  counts['compaction-hides-nothing']++;
+  if (JSON.stringify(shown(compacted)) !== JSON.stringify(shown(ab)))
+    return 'compaction-hides-nothing';
+  counts['compaction-idempotent']++;
+  if (C(compact(compacted)) !== C(compacted)) return 'compaction-idempotent';
+  counts['compaction-keeps-liveness']++;
+  const plain = joinStates(ab, c),
+    early = joinStates(compacted, c);
+  for (const [id, record] of plain.entries)
+    if (isLive(record) !== isLive(early.entries.get(id)!))
+      return 'compaction-keeps-liveness';
   return null;
+}
+
+/** What a device shows, in the simulation's terms. */
+function shown(state: SyncState) {
+  return {
+    entries: liveEntries(state).map((entry) => ({
+      id: entry.id,
+      title: shownItems(entry.title).map((item) => item.v),
+      text: shownItems(entry.text).map((item) => item.v),
+      mood: entry.mood?.v,
+      date: entry.date?.v,
+      tags: memberIds(entry.tags),
+      media: attachmentIds(entry),
+      returned: isReturned(entry),
+      ext: entry.ext,
+    })),
+    tags: shownNamed(state, 'tag'),
+    prompts: shownNamed(state, 'prompt'),
+    name: shownItems(state.profile.name).map((item) => item.v),
+    photo: shownItems(state.profile.photo).map((item) => item.v),
+  };
 }
 
 /** How often the sampled joins exercise each rule (guards against weak generators). */
@@ -131,6 +174,12 @@ interface Coverage {
   bothDeleted: number;
   acknowledged: number;
   ordered: number;
+  /** A side holds a compacted entry the other side still has values for. */
+  compactedMeetsValues: number;
+  /** An entry is shown after the join although one side had compacted it. */
+  revived: number;
+  /** Both sides carry extension items on one entry. */
+  extJoined: number;
 }
 
 function cover(coverage: Coverage, a: SyncState, b: SyncState, ab: SyncState) {
@@ -158,10 +207,10 @@ function cover(coverage: Coverage, a: SyncState, b: SyncState, ab: SyncState) {
     const joined = ab.entries.get(id)!;
     if (items(joined) < Math.max(items(left), items(right))) dropped = true;
     for (const [l, r] of [
-      [left.mood.s, right.mood.s],
-      [left.date.s, right.date.s],
+      [left.mood?.s, right.mood?.s],
+      [left.date?.s, right.date?.s],
     ])
-      if (l[0] === r[0] && l[1] !== r[1]) tie = true;
+      if (l && r && l[0] === r[0] && l[1] !== r[1]) tie = true;
     if (left.del && right.del && !Bun.deepEquals(left.del, right.del)) bothDeleted = true;
   }
   if (dropped) coverage.droppedItem++;
@@ -169,6 +218,21 @@ function cover(coverage: Coverage, a: SyncState, b: SyncState, ab: SyncState) {
   if (bothDeleted) coverage.bothDeleted++;
   if (entries.some((e) => e.del?.ackSeen)) coverage.acknowledged++;
   if (entries.some((e) => e.order)) coverage.ordered++;
+  let meets = false,
+    revived = false,
+    ext = false;
+  for (const [id, left] of a.entries) {
+    const right = b.entries.get(id);
+    if (!right) continue;
+    if (isCompacted(left) !== isCompacted(right)) {
+      meets = true;
+      if (isLive(ab.entries.get(id)!)) revived = true;
+    }
+    if (Object.keys(left.ext).length > 0 && Object.keys(right.ext).length > 0) ext = true;
+  }
+  if (meets) coverage.compactedMeetsValues++;
+  if (revived) coverage.revived++;
+  if (ext) coverage.extJoined++;
 }
 
 interface Failure {
@@ -199,6 +263,9 @@ async function runProperties(
     bothDeleted: 0,
     acknowledged: 0,
     ordered: 0,
+    compactedMeetsValues: 0,
+    revived: 0,
+    extJoined: 0,
   };
   const failures: Failure[] = [];
   for (const seed of seeds) {
@@ -251,8 +318,12 @@ describe('v2 join properties', () => {
       'bothDeleted',
       'acknowledged',
       'ordered',
+      'compactedMeetsValues',
+      'extJoined',
     ] as const)
       expect(coverage[key] / coverage.joins).toBeGreaterThan(0.002);
+    // Rare by nature (a device away for 180 days with an edit): present at all.
+    expect(coverage.revived).toBeGreaterThan(0);
   }, 600_000);
 });
 
@@ -292,9 +363,9 @@ describe('the property harness catches broken joins', () => {
       for (const [id, record] of result.entries) {
         const l = left.entries.get(id),
           r = right.entries.get(id);
-        if (l && r && l.mood.s[0] === r.mood.s[0])
+        if (l?.mood && r?.mood && l.mood.s[0] === r.mood.s[0])
           entries.set(id, { ...record, mood: l.mood });
-        if (l && r && l.date.s[0] === r.date.s[0])
+        if (l?.date && r?.date && l.date.s[0] === r.date.s[0])
           entries.set(id, { ...entries.get(id)!, date: l.date });
       }
       return { ...result, entries };
@@ -366,7 +437,7 @@ describe('the property harness catches broken joins', () => {
     let caught: CaseResult | null = null;
     for (const seed of seeds) {
       const { result } = await runCase(
-        (devices) => new V2Adapter(devices, 'pairwise', unionText),
+        (devices) => new V2Adapter(devices, 'pairwise', plainMerge(unionText)),
         configFor(seed),
       );
       if (result.staleValues.length > 0 || caseFailed(result)) {

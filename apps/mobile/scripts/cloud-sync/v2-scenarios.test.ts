@@ -8,7 +8,20 @@ import { describe, expect, test } from 'bun:test';
 import { canonicalize } from '../../src/lib/cloudSync/snapshot/canonical';
 import { SnapshotValidationError } from '../../src/lib/cloudSync/snapshot/caps';
 import { sha256Bytes, sha256Text } from '../../src/lib/cloudSync/snapshot/sha256';
-import { compareStamps, nextHlc } from '../../src/lib/cloudSync/v2/clock';
+import {
+  ClockAheadError,
+  MAX_CONTEXT_AHEAD_MS,
+  ROSTER_EXPIRY_MS,
+  compareStamps,
+  nextHlc,
+} from '../../src/lib/cloudSync/v2/clock';
+import {
+  absorb,
+  activeDevices,
+  compact,
+  compactionFloor,
+  isCompacted,
+} from '../../src/lib/cloudSync/v2/compact';
 import {
   SnapshotUpdateRequiredError,
   canonicalState,
@@ -17,7 +30,7 @@ import {
   encodeEnvelope,
 } from '../../src/lib/cloudSync/v2/codec';
 import { namedId, normalizeTitle } from '../../src/lib/cloudSync/v2/ids';
-import { SyncJoinError, join } from '../../src/lib/cloudSync/v2/join';
+import { SyncJoinError, join, knows } from '../../src/lib/cloudSync/v2/join';
 import * as ops from '../../src/lib/cloudSync/v2/ops';
 import { emptyState, type SyncState } from '../../src/lib/cloudSync/v2/types';
 import {
@@ -25,9 +38,12 @@ import {
   isLive,
   isReturned,
   liveEntries,
+  livePrompts,
   liveTags,
   memberIds,
   shownItems,
+  shownNamed,
+  shownTagIds,
 } from '../../src/lib/cloudSync/v2/view';
 import { encodeGzip } from '../../src/lib/zip/core/gzip-codec';
 import { mediaFor } from './sim/v2Adapter';
@@ -114,7 +130,7 @@ describe('restated merge.test.ts scenarios', () => {
     const merged = convergeInEveryOrder([a, b]);
     expect(titles(merged, 'e1')).toEqual(['New title']);
     expect(texts(merged, 'e1')).toEqual(['New text']);
-    expect(merged.entries.get('e1')!.date.v).toBe(5);
+    expect(merged.entries.get('e1')!.date!.v).toBe(5);
   });
 
   test('concurrent text edits stay inside the entry as versions; no copy entry appears', () => {
@@ -505,12 +521,54 @@ describe('tags and prompts with title-derived IDs', () => {
     expect(() => join(base, other)).toThrow(SyncJoinError);
   });
 
-  test('known limit: a rename onto a title another device creates gives two tags', () => {
+  test('a rename onto a title another device creates gives two records, shown as one tag', () => {
     const base = ops.createNamed(emptyState(VAULT), at('device-a'), 'tag', 'Work');
-    const renamed = ops.renameNamed(base.state, at('device-a'), 'tag', base.id, 'Job');
-    const created = ops.createNamed(base.state, at('device-b'), 'tag', 'Job');
+    let renamed = ops.renameNamed(base.state, at('device-a'), 'tag', base.id, 'Job');
+    renamed = ops.createEntry(renamed, at('device-a'), {
+      id: 'e1',
+      title: null,
+      text: 'A',
+      mood: null,
+      date: T0,
+    });
+    renamed = ops.addTag(renamed, at('device-a'), 'e1', base.id);
+    const created = ops.createNamed(base.state, at('device-b'), 'tag', 'job');
     const merged = convergeInEveryOrder([renamed, created.state]);
-    expect(liveTags(merged).map((t) => t.title.v)).toEqual(['Job', 'Job']);
+    expect(
+      liveTags(merged)
+        .map((t) => t.title.v)
+        .sort(),
+    ).toEqual(['Job', 'job']);
+    // Display-level merge: one tag, shown with the title written last.
+    const shown = shownNamed(merged, 'tag');
+    expect(shown).toHaveLength(1);
+    expect(shown[0].ids).toEqual([base.id, created.id].sort());
+    expect(shown[0].title).toBe('job');
+    expect(shown[0].id).toBe(created.id);
+    expect(shownTagIds(merged.entries.get('e1')!, shown)).toEqual([created.id]);
+    // Renaming, removing or deleting the shown tag acts on every record in it.
+    const again = ops.renameShown(merged, at('device-a'), 'tag', shown[0].ids, 'Career');
+    expect(shownNamed(again, 'tag').map((t) => [t.title, t.ids.length])).toEqual([
+      ['Career', 2],
+    ]);
+    const removed = ops.removeShownTag(merged, at('device-a'), 'e1', shown[0].ids);
+    expect(removed.entries.get('e1')!.tags).toEqual([]);
+    const deleted = ops.deleteShown(merged, at('device-a'), 'tag', shown[0].ids);
+    expect(shownNamed(deleted, 'tag')).toEqual([]);
+    // A third title another live tag holds is still refused.
+    const other = ops.createNamed(merged, at('device-a'), 'tag', 'Home');
+    expect(() =>
+      ops.renameShown(other.state, at('device-a'), 'tag', shown[0].ids, 'home'),
+    ).toThrow(ops.SyncOpError);
+  });
+
+  test('prompts merge on display the same way', () => {
+    const base = ops.createNamed(emptyState(VAULT), at('device-a'), 'prompt', 'One');
+    const renamed = ops.renameNamed(base.state, at('device-a'), 'prompt', base.id, 'Two');
+    const created = ops.createNamed(base.state, at('device-b'), 'prompt', 'TWO');
+    const merged = convergeInEveryOrder([renamed, created.state]);
+    expect(livePrompts(merged)).toHaveLength(2);
+    expect(shownNamed(merged, 'prompt').map((p) => p.title)).toEqual(['TWO']);
   });
 });
 
@@ -518,31 +576,31 @@ describe('clocks', () => {
   test('a causally later edit wins even when its clock is a year behind', () => {
     const base = ops.setMood(entryWith('Text'), at('device-a', +YEAR), 'e1', 'SAD');
     const later = ops.setMood(base, at('device-b', -YEAR), 'e1', 'AWFUL');
-    expect(convergeInEveryOrder([base, later]).entries.get('e1')!.mood.v).toBe('AWFUL');
+    expect(convergeInEveryOrder([base, later]).entries.get('e1')!.mood!.v).toBe('AWFUL');
   });
 
   test('stamps keep increasing when the wall clock jumps backwards', () => {
     let state = entryWith('Text');
-    const stamps = [state.entries.get('e1')!.mood.s];
+    const stamps = [state.entries.get('e1')!.mood!.s];
     for (const offset of [0, -HOUR, -10 * YEAR, -10 * YEAR, +HOUR]) {
       state = ops.setMood(state, at('device-a', offset), 'e1', 'OKAY');
-      stamps.push(state.entries.get('e1')!.mood.s);
+      stamps.push(state.entries.get('e1')!.mood!.s);
     }
     for (let i = 1; i < stamps.length; i++)
       expect(compareStamps(stamps[i], stamps[i - 1])).toBe(1);
   });
 
-  test('a device years ahead drags the clock forward but every order still agrees', () => {
+  test('the join alone lets a device years ahead drag the clock; every order still agrees', () => {
     const base = entryWith('Text');
     const future = ops.setMood(base, at('device-f', 30 * YEAR), 'e1', 'SAD');
     const normal = ops.setMood(base, at('device-n'), 'e1', 'AWFUL');
     // Concurrent: the future stamp wins; after seeing it, a normal device writes above it.
-    expect(convergeInEveryOrder([future, normal]).entries.get('e1')!.mood.v).toBe('SAD');
+    expect(convergeInEveryOrder([future, normal]).entries.get('e1')!.mood!.v).toBe('SAD');
     const after = ops.setMood(join(future, normal), at('device-n'), 'e1', 'HAPPY');
-    expect(after.entries.get('e1')!.mood.s[0]).toBeGreaterThan(
-      future.entries.get('e1')!.mood.s[0],
+    expect(after.entries.get('e1')!.mood!.s[0]).toBeGreaterThan(
+      future.entries.get('e1')!.mood!.s[0],
     );
-    expect(convergeInEveryOrder([after, future, normal]).entries.get('e1')!.mood.v).toBe(
+    expect(convergeInEveryOrder([after, future, normal]).entries.get('e1')!.mood!.v).toBe(
       'HAPPY',
     );
   });
@@ -552,9 +610,9 @@ describe('clocks', () => {
     const hlc = nextHlc(base.ctx, 0);
     const a = ops.setMood(base, { device: 'device-a', wallMs: 0 }, 'e1', 'SAD');
     const b = ops.setMood(base, { device: 'device-b', wallMs: 0 }, 'e1', 'AWFUL');
-    expect(a.entries.get('e1')!.mood.s).toEqual([hlc, 'device-a']);
-    expect(b.entries.get('e1')!.mood.s).toEqual([hlc, 'device-b']);
-    expect(convergeInEveryOrder([a, b]).entries.get('e1')!.mood.v).toBe('AWFUL');
+    expect(a.entries.get('e1')!.mood!.s).toEqual([hlc, 'device-a']);
+    expect(b.entries.get('e1')!.mood!.s).toEqual([hlc, 'device-b']);
+    expect(convergeInEveryOrder([a, b]).entries.get('e1')!.mood!.v).toBe('AWFUL');
   });
 
   test('the HLC refuses to pass the timestamp cap any snapshot can carry', () => {
@@ -585,7 +643,7 @@ describe('why v2 differs from the design report', () => {
   };
   const stampsOf = (record: NonNullable<Literal['record']>) => [
     ...record.text.map((item) => item.s),
-    record.mood.s,
+    record.mood!.s,
   ];
   function literalJoin(a: Literal, b: Literal): Literal {
     const ctx = maxVv(a.ctx, b.ctx);
@@ -601,7 +659,7 @@ describe('why v2 differs from the design report', () => {
           ...b.record.text.filter((i) => !inA.has(key(i.s)) && !covered(a.ctx, i.s)),
         ],
         mood:
-          compareStamps(a.record.mood.s, b.record.mood.s) >= 0
+          compareStamps(a.record.mood!.s, b.record.mood!.s) >= 0
             ? a.record.mood
             : b.record.mood,
       };
@@ -839,5 +897,392 @@ describe('envelope', () => {
       'closed-shape',
     );
     expect(snapshotId).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe('clock bound (context ahead of local time)', () => {
+  const DAY = 24 * HOUR;
+  test("a state more than the bound ahead is refused; this device's clock stays put", () => {
+    const base = entryWith('Text');
+    const future = ops.setMood(base, at('device-f', 30 * YEAR), 'e1', 'SAD');
+    const honest = at('device-n');
+    expect(() => absorb(base, future, honest)).toThrow(ClockAheadError);
+    // Within the bound the clock is dragged as before and causality holds.
+    const ahead = ops.setMood(base, at('device-f', 3 * DAY), 'e1', 'SAD');
+    const taken = absorb(base, ahead, at('device-n')).state;
+    const after = ops.setMood(taken, at('device-n'), 'e1', 'HAPPY');
+    expect(after.entries.get('e1')!.mood!.v).toBe('HAPPY');
+    expect(after.entries.get('e1')!.mood!.s[0]).toBeGreaterThan(
+      ahead.entries.get('e1')!.mood!.s[0],
+    );
+    expect(MAX_CONTEXT_AHEAD_MS).toBe(7 * DAY);
+  });
+
+  test('a far-ahead roster time is refused too: it would expire every other device', () => {
+    const base = entryWith('Text');
+    const marked = ops.markSeen(base, at('device-f', 5 * YEAR));
+    expect(() => absorb(base, marked, at('device-n'))).toThrow(ClockAheadError);
+  });
+
+  test('a device whose clock is behind publishes, and receives once its clock is fixed', () => {
+    const base = entryWith('Text');
+    const behind = { device: 'device-b', wallMs: clock - YEAR };
+    // Others' stamps look a year ahead to it: refused.
+    expect(() => absorb(entryWith('Mine', 'device-b'), base, behind)).toThrow(
+      ClockAheadError,
+    );
+    // Its own writes are older than everyone's clock: accepted.
+    const edited = edit(base, { device: 'device-b', wallMs: clock - YEAR }, 'text', 'B');
+    expect(() => absorb(base, edited, at('device-a'))).not.toThrow();
+    // Fixed: it receives, and its causally later edit still wins.
+    const fixed = absorb(edited, base, at('device-b')).state;
+    expect(texts(fixed, 'e1')).toEqual(['B']);
+  });
+});
+
+describe('compaction of deleted entries', () => {
+  const devices = ['device-a', 'device-b', 'device-c'];
+  /** Every device publishes (acknowledges) the state it holds. */
+  const publishAll = (state: SyncState, offset = 0) =>
+    devices.reduce((next, device) => ops.markSeen(next, at(device, offset)), state);
+
+  /** An entry with a tag, a photo and ext, before and after device-c deletes it. */
+  function deletedEverywhere() {
+    let state = entryWith('Secret text');
+    state = ops.createNamed(state, at('device-a'), 'tag', 'Work').state;
+    const tag = [...state.tags.keys()][0];
+    state = ops.addTag(state, at('device-a'), 'e1', tag);
+    state = ops.attach(
+      state,
+      at('device-b'),
+      'e1',
+      mediaFor('p1', { type: 'entry', entryId: 'e1' }, T0),
+    );
+    const before = ops.writeExt(
+      state,
+      at('device-b'),
+      { kind: 'entry', id: 'e1' },
+      'note',
+      'x',
+      'all',
+    );
+    return { before, deleted: ops.deleteEntry(before, at('device-c'), 'e1') };
+  }
+  const LATER = ROSTER_EXPIRY_MS + 10 * 24 * HOUR;
+
+  /**
+   * device-x synced the entry before the delete, then went quiet. The others
+   * publish 190 days later, so device-x has expired, and compact.
+   */
+  function expiredAndCompacted() {
+    const { before, deleted } = deletedEverywhere();
+    const away = ops.markSeen(before, at('device-x'));
+    const state = compact(publishAll(join(deleted, away), LATER));
+    return { away, state };
+  }
+
+  test('once every active device has seen the delete, the values go; vector and tombstone stay', () => {
+    const { deleted } = deletedEverywhere();
+    // Not every device has acknowledged it yet: nothing happens.
+    const partly = ops.markSeen(ops.markSeen(deleted, at('device-a')), at('device-b'));
+    expect(compactionFloor(partly)).toBeNull();
+    expect(compact(partly)).toBe(partly);
+    const compacted = compact(publishAll(deleted));
+    const entry = compacted.entries.get('e1')!;
+    expect(isCompacted(entry)).toBe(true);
+    expect(entry).toMatchObject({
+      known: { vv: {}, extra: [] },
+      title: [],
+      text: [],
+      mood: null,
+      date: null,
+      tags: [],
+      attachments: [],
+      order: null,
+      ext: {},
+    });
+    expect(entry.vv).toEqual(deleted.entries.get('e1')!.vv);
+    expect(entry.del).toEqual(deleted.entries.get('e1')!.del);
+    expect(compacted.media.size).toBe(0);
+    expect(compacted.floor).toEqual(compactionFloor(publishAll(deleted)));
+    // The deleted text is gone from what gets uploaded.
+    const { bodyCanonical } = encodeEnvelope(compacted, {
+      authorDeviceId: 'device-a',
+      deviceSequence: 1,
+      createdAt: T0,
+    });
+    expect(new TextDecoder().decode(bodyCanonical)).not.toContain('Secret text');
+    expect(compact(compacted)).toBe(compacted);
+  });
+
+  test('a stale copy brings the values back into the hidden record; the next compaction drops them', () => {
+    const { before, deleted } = deletedEverywhere();
+    const compacted = compact(publishAll(deleted));
+    const joined = convergeInEveryOrder([compacted, before, deleted]);
+    expect(isLive(joined.entries.get('e1')!)).toBe(false);
+    expect(joined.entries.get('e1')!.text.map((item) => item.v)).toEqual(['Secret text']);
+    expect(isCompacted(joined.entries.get('e1')!)).toBe(false);
+    expect(liveEntries(joined)).toEqual(liveEntries(compacted));
+    expect(isCompacted(compact(joined).entries.get('e1')!)).toBe(true);
+  });
+
+  test('a device on the roster that never published blocks compaction until it expires', () => {
+    let state = publishAll(deletedEverywhere().deleted);
+    // device-d synced once (it is on the roster) but never acknowledged.
+    state = { ...state, roster: { ...state.roster, 'device-d': clock } };
+    expect(compactionFloor(state)).toBeNull();
+    // 190 days later everyone else has published again; device-d is expired.
+    const later = publishAll(state, LATER);
+    expect(activeDevices(later)).toEqual(devices);
+    expect(isCompacted(compact(later).entries.get('e1')!)).toBe(true);
+  });
+
+  test('a device back after expiry with an edit brings the entry back with its own values', () => {
+    const { away, state } = expiredAndCompacted();
+    expect(activeDevices(state)).not.toContain('device-x');
+    expect(isCompacted(state.entries.get('e1')!)).toBe(true);
+    // The mood edit is one the delete never saw: the entry comes back.
+    const edited = ops.setMood(away, at('device-x'), 'e1', 'AWFUL');
+    const back = absorb(state, edited, at('device-a', LATER));
+    expect(back.revived).toEqual(['e1']);
+    const entry = back.state.entries.get('e1')!;
+    expect(isLive(entry)).toBe(true);
+    expect(texts(back.state, 'e1')).toEqual(['Secret text']);
+    expect(titles(back.state, 'e1')).toEqual(['Title']);
+    expect(entry.mood!.v).toBe('AWFUL');
+    expect(memberIds(entry.tags)).toHaveLength(1);
+    expect(attachmentIds(entry)).toEqual(['p1']);
+    expect(back.state.media.has('p1')).toBe(true);
+    expect(entry.ext.note!.map((item) => item.v)).toEqual(['x']);
+    // The same from its side, and in every order with the deleted copy.
+    const mine = absorb(edited, state, at('device-x', LATER)).state;
+    expect(C(mine)).toBe(C(back.state));
+    const all = convergeInEveryOrder([state, edited, deletedEverywhere().deleted]);
+    expect(texts(all, 'e1')).toEqual(['Secret text']);
+    // Compaction leaves a shown entry alone.
+    expect(isLive(compact(publishAll(back.state, LATER)).entries.get('e1')!)).toBe(true);
+  });
+
+  test('a device back after expiry without an edit does not bring the entry back', () => {
+    const { away, state } = expiredAndCompacted();
+    const back = absorb(state, away, at('device-a', LATER));
+    expect(back.revived).toEqual([]);
+    expect(isLive(back.state.entries.get('e1')!)).toBe(false);
+    expect(isCompacted(compact(back.state).entries.get('e1')!)).toBe(true);
+  });
+
+  test('"Keep both" onto a split entry that was deleted and compacted fills it again', () => {
+    // e1 has versions X and Y; "Keep both" moves Y to a split entry, which is
+    // then deleted everywhere and compacted. A copy that still has e1 with Y
+    // open (one that lost the split's history) keeps both again.
+    const base = entryWith('Text');
+    const a = edit(base, at('device-a'), 'text', 'X');
+    const b = edit(base, at('device-b'), 'text', 'Y');
+    const both = join(a, b);
+    const stampOf = (value: string) =>
+      both.entries.get('e1')!.text.find((item) => item.v === value)!.s;
+    const split = ops.keepBoth(
+      both,
+      at('device-a'),
+      'e1',
+      'text',
+      stampOf('X'),
+      stampOf('Y'),
+    );
+    const gone = ops.deleteEntry(split.state, at('device-a'), split.newEntryId);
+    const compacted = compact(publishAll(gone));
+    expect(isCompacted(compacted.entries.get(split.newEntryId)!)).toBe(true);
+    const stale = new Map(compacted.entries);
+    stale.set('e1', both.entries.get('e1')!);
+    const again = ops.keepBoth(
+      { ...compacted, entries: stale },
+      at('device-b'),
+      'e1',
+      'text',
+      stampOf('X'),
+      stampOf('Y'),
+    );
+    expect(again.newEntryId).toBe(split.newEntryId);
+    const revived = again.state.entries.get(split.newEntryId)!;
+    expect(isLive(revived)).toBe(true);
+    expect(texts(again.state, split.newEntryId)).toEqual(['Y']);
+    expect(titles(again.state, split.newEntryId)).toEqual(['Title']);
+    expect(revived.mood!.v).toBe('HAPPY');
+    // The state is valid and publishable.
+    expect(() => C(again.state)).not.toThrow();
+  });
+
+  test("a write on an entry brought back after compaction claims only itself, not the writer's compacted writes", () => {
+    // device-a writes a newer title, then device-c deletes; device-x only ever
+    // saw the first title. Found by the 10x simulation (seed 13754).
+    const { before } = deletedEverywhere();
+    const away = ops.markSeen(before, at('device-x'));
+    const newer = edit(before, at('device-a'), 'title', 'Newer');
+    const deleted = ops.deleteEntry(newer, at('device-c'), 'e1');
+    const state = compact(publishAll(join(deleted, away), LATER));
+    const edited = ops.setMood(away, at('device-x'), 'e1', 'AWFUL');
+    const back = absorb(state, edited, at('device-a', LATER)).state;
+    expect(titles(back, 'e1')).toEqual(['Title']);
+    // device-a writes again; its compacted "Newer" stays unknown to the record.
+    const again = edit(back, at('device-a', LATER), 'text', 'Again');
+    const newerStamp = newer.entries.get('e1')!.title[0].s;
+    expect(knows(again.entries.get('e1')!.known!, newerStamp)).toBe(false);
+    // A stale full copy turns up: the entry keeps a title in every order.
+    const all = convergeInEveryOrder([again, deleted, edited]);
+    expect(titles(all, 'e1')).toEqual(['Newer']);
+    expect(texts(all, 'e1')).toEqual(['Again']);
+  });
+
+  test('a later edit on an entry brought back after compaction replaces what it was made from', () => {
+    const { away, state } = expiredAndCompacted();
+    const edited = ops.setMood(away, at('device-x'), 'e1', 'AWFUL');
+    const back = absorb(state, edited, at('device-a', LATER)).state;
+    expect(back.entries.get('e1')!.known).not.toBeNull();
+    const rewritten = edit(back, at('device-a', LATER), 'text', 'Rewritten');
+    // The old text does not come back from the returning device's copy.
+    expect(texts(convergeInEveryOrder([rewritten, edited, state]), 'e1')).toEqual([
+      'Rewritten',
+    ]);
+  });
+});
+
+describe('per-record ext', () => {
+  const note = (
+    state: SyncState,
+    device: string,
+    value: string,
+    replaces: ops.Replaces = 'all',
+  ) =>
+    ops.writeExt(state, at(device), { kind: 'entry', id: 'e1' }, 'note', value, replaces);
+  const notes = (state: SyncState) =>
+    (state.entries.get('e1')!.ext.note ?? []).map((item) => item.v);
+
+  test('joins like a multi-value register: concurrent values stay, a replaced one goes', () => {
+    const base = note(entryWith('Text'), 'device-a', 'first');
+    const a = note(base, 'device-a', 'from a');
+    const b = note(base, 'device-b', 'from b');
+    expect(notes(convergeInEveryOrder([a, b, base]))).toEqual(['from a', 'from b']);
+    const resolved = note(join(a, b), 'device-c', 'settled');
+    expect(notes(convergeInEveryOrder([resolved, a, b]))).toEqual(['settled']);
+  });
+
+  test('a device that does not know the feature keeps it through edits and joins', () => {
+    const base = note(entryWith('Text'), 'device-a', 'kept');
+    // An older device edits the text; it never touches ext.
+    const older = edit(base, at('device-old'), 'text', 'Edited');
+    const merged = convergeInEveryOrder([older, base]);
+    expect(notes(merged)).toEqual(['kept']);
+    // Tags, prompts and the profile carry ext too.
+    let state = ops.createNamed(merged, at('device-a'), 'tag', 'Work').state;
+    const tag = [...state.tags.keys()][0];
+    state = ops.writeExt(
+      state,
+      at('device-a'),
+      { kind: 'tag', id: tag },
+      'color',
+      'red',
+      'all',
+    );
+    state = ops.writeExt(
+      state,
+      at('device-a'),
+      { kind: 'profile' },
+      'theme',
+      'dark',
+      'all',
+    );
+    const encoded = encodeEnvelope(state, {
+      authorDeviceId: 'device-a',
+      deviceSequence: 1,
+      createdAt: T0,
+    });
+    // The writer declares the features its records carry, as optional.
+    expect(encoded.header.features).toEqual({
+      required: [],
+      optional: ['color', 'note', 'theme'],
+    });
+    const decoded = decodeEnvelope(encoded.bytes).state;
+    expect(C(decoded)).toBe(C(state));
+    expect(decoded.tags.get(tag)!.ext.color![0].v).toBe('red');
+  });
+
+  test('tombstone ext joins against what the delete saw', () => {
+    const base = ops.deleteEntry(entryWith('Text'), at('device-a'), 'e1');
+    const del = base.entries.get('e1')!.del!;
+    const withExt = (value: string, device: string): SyncState => {
+      const s = [del.at[0], device] as const;
+      const entry = base.entries.get('e1')!;
+      const entries = new Map(base.entries);
+      const seen = { ...del.seen, [device]: del.at[0] };
+      entries.set('e1', {
+        ...entry,
+        vv: { ...entry.vv, [device]: del.at[0] },
+        del: { ...del, seen, ext: { reason: [{ s, v: value }] } },
+      });
+      return {
+        ...base,
+        ctx: { ...base.ctx, [device]: del.at[0] },
+        roster: { ...base.roster, [device]: del.at[0] },
+        entries,
+      };
+    };
+    const merged = convergeInEveryOrder([
+      withExt('x', 'device-x'),
+      withExt('y', 'device-y'),
+      base,
+    ]);
+    expect(merged.entries.get('e1')!.del!.ext.reason!.map((item) => item.v)).toEqual([
+      'x',
+      'y',
+    ]);
+  });
+
+  test('ext the header does not declare, or an empty or uncovered item list, is refused', () => {
+    const state = note(entryWith('Text'), 'device-a', 'kept');
+    const publication = { authorDeviceId: 'device-a', deviceSequence: 1, createdAt: T0 };
+    const { bytes } = encodeEnvelope(state, publication);
+    const split = bytes.indexOf(0x0a);
+    const header = JSON.parse(new TextDecoder().decode(bytes.subarray(0, split)));
+    const body = JSON.parse(
+      new TextDecoder().decode(encodeEnvelope(state, publication).bodyCanonical),
+    );
+    const build = (h: Record<string, unknown>, b: Record<string, unknown>) => {
+      const bodyBytes = new TextEncoder().encode(canonicalize(b as never));
+      const head = new TextEncoder().encode(
+        canonicalize({
+          ...h,
+          bodyHash: sha256Bytes(bodyBytes),
+          bodyBytes: bodyBytes.length,
+        } as never),
+      );
+      const stored = encodeGzip(bodyBytes, { level: 6 });
+      const out = new Uint8Array(head.length + 1 + stored.length);
+      out.set(head);
+      out[head.length] = 0x0a;
+      out.set(stored, head.length + 1);
+      return out;
+    };
+    const code = (h: Record<string, unknown>, b: Record<string, unknown>) => {
+      try {
+        decodeEnvelope(build(h, b));
+        return 'ok';
+      } catch (error) {
+        return (error as SnapshotValidationError).code;
+      }
+    };
+    expect(code(header, body)).toBe('ok');
+    expect(code({ ...header, features: { required: [], optional: [] } }, body)).toBe(
+      'undeclared-extension',
+    );
+    const entry = body.entries[0];
+    expect(code(header, { ...body, entries: [{ ...entry, ext: { note: [] } }] })).toBe(
+      'invalid-shape',
+    );
+    expect(
+      code(header, {
+        ...body,
+        entries: [{ ...entry, ext: { note: [[[entry.vv[0][1] + 5, 0], 'late']] } }],
+      }),
+    ).toBe('uncovered-stamp');
   });
 });
