@@ -447,8 +447,11 @@ export const cloudSyncMigrationItems = sqliteTable(
 
 /**
  * This install's sync identity and clock. One row ('self'), created by the
- * 0008 migration with a random device ID. A wipe replaces the device ID and
- * resets the context: an ID is never reused once local state is lost.
+ * 0008 migration with a random device ID. A wipe must replace the device ID
+ * and reset the context (done from P4 on): an ID is never reused once local
+ * state is lost. The row is in the database, so an OS backup restores it;
+ * binding it to the install is P13. Not scoped to a vault: connecting to
+ * another vault must reset it (engine, P6).
  */
 export const syncDevice = sqliteTable('sync_device', {
   id: text('id').primaryKey().notNull(),
@@ -497,12 +500,15 @@ export const syncRecords = sqliteTable(
 /**
  * Values beside the shown one: the other open versions of a multi-value
  * field (title, text, profile name or photo), and a set member's extra
- * stamps (field 'tags' or 'attachments', value = the member ID).
+ * stamps (field 'tags' or 'attachments', value = the member ID). One write
+ * can add several members under one stamp, so the value is in the key.
  */
 export const syncFieldValues = sqliteTable(
   'sync_field_values',
   {
-    entity_type: text('entity_type').notNull(),
+    entity_type: text('entity_type', {
+      enum: ['entry', 'tag', 'prompt', 'profile'],
+    }).notNull(),
     entity_id: text('entity_id').notNull(),
     field: text('field').notNull(),
     stamp_hlc: integer('stamp_hlc').notNull(),
@@ -517,6 +523,7 @@ export const syncFieldValues = sqliteTable(
         table.field,
         table.stamp_hlc,
         table.stamp_device,
+        table.value_json,
       ],
     }),
   ],
@@ -525,14 +532,17 @@ export const syncFieldValues = sqliteTable(
 /**
  * A deleted record's values, kept behind its tombstone so an edit the
  * deleter had not seen brings it back whole (the record's row in its own
- * table is gone). Compaction clears `record_json` to a values-free record.
+ * table is gone). The vector and tombstone stay in `sync_records` only.
+ * Compaction deletes the row.
  */
 export const syncDeletedRecords = sqliteTable(
   'sync_deleted_records',
   {
-    entity_type: text('entity_type').notNull(),
+    entity_type: text('entity_type', {
+      enum: ['entry', 'tag', 'prompt', 'profile'],
+    }).notNull(),
     entity_id: text('entity_id').notNull(),
-    /** The v2 record as JSON (values, vector, tombstone). */
+    /** The record's last values and their stamps, as JSON. */
     record_json: text('record_json').notNull(),
     deleted_at: integer('deleted_at').notNull(),
   },

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9c941a89-9829-4d3f-ba90-dff81c2493e7",
+  "id": "470736b4-424b-484b-84c5-7e34c226e118",
   "prevId": "146399a9-c7c0-4a21-9e84-4a2b2c84f684",
   "tables": {
     "cloud_base_shadow": {
@@ -1449,15 +1449,16 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "sync_field_values_entity_type_entity_id_field_stamp_hlc_stamp_device_pk": {
+        "sync_field_values_entity_type_entity_id_field_stamp_hlc_stamp_device_value_json_pk": {
           "columns": [
             "entity_type",
             "entity_id",
             "field",
             "stamp_hlc",
-            "stamp_device"
+            "stamp_device",
+            "value_json"
           ],
-          "name": "sync_field_values_entity_type_entity_id_field_stamp_hlc_stamp_device_pk"
+          "name": "sync_field_values_entity_type_entity_id_field_stamp_hlc_stamp_device_value_json_pk"
         }
       },
       "uniqueConstraints": {},

@@ -24,7 +24,7 @@ CREATE TABLE `sync_field_values` (
 	`stamp_hlc` integer NOT NULL,
 	`stamp_device` text NOT NULL,
 	`value_json` text NOT NULL,
-	PRIMARY KEY(`entity_type`, `entity_id`, `field`, `stamp_hlc`, `stamp_device`)
+	PRIMARY KEY(`entity_type`, `entity_id`, `field`, `stamp_hlc`, `stamp_device`, `value_json`)
 );
 --> statement-breakpoint
 CREATE TABLE `sync_records` (
@@ -52,11 +52,11 @@ SELECT 'self',
   lower(
     hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' ||
     substr(hex(randomblob(2)), 2) || '-' ||
-    substr('89ab', 1 + (abs(random()) % 4), 1) || substr(hex(randomblob(2)), 2) || '-' ||
+    substr('89ab', 1 + (random() & 3), 1) || substr(hex(randomblob(2)), 2) || '-' ||
     hex(randomblob(6))
   ),
-  CAST(strftime('%s', 'now') AS INTEGER) * 1000,
-  CAST(strftime('%s', 'now') AS INTEGER) * 1000;
+  max(1, CAST(strftime('%s', 'now') AS INTEGER) * 1000),
+  max(1, CAST(strftime('%s', 'now') AS INTEGER) * 1000);
 --> statement-breakpoint
 -- Existing rows get an initial stamp from this device: one write that set
 -- every field. Nothing reads these until the v2 engine ships.
@@ -86,16 +86,22 @@ SELECT 'prompt', p.`prompt_id`,
   d.`created_at`
 FROM `custom_prompts` p, `sync_device` d WHERE d.`id` = 'self';
 --> statement-breakpoint
+-- Only a name or photo the profile has: an empty profile row (every install
+-- after the normalized backfill has one) must not become a written "no name"
+-- that wins over another device's name.
 INSERT INTO `sync_records` (`entity_type`, `entity_id`, `vv_json`, `stamps_json`, `updated_at`)
 SELECT 'profile', 'profile',
   json_object(d.`device_id`, d.`created_at`),
-  json_object(
-    'name', json_array(d.`created_at`, d.`device_id`),
-    'photo', json_array(d.`created_at`, d.`device_id`)
+  json_patch(
+    CASE WHEN p.`display_name` IS NOT NULL
+      THEN json_object('name', json_array(d.`created_at`, d.`device_id`)) ELSE '{}' END,
+    CASE WHEN p.`photo_asset_id` IS NOT NULL
+      THEN json_object('photo', json_array(d.`created_at`, d.`device_id`)) ELSE '{}' END
   ),
   d.`created_at`
-FROM `sync_device` d
-WHERE d.`id` = 'self' AND EXISTS (SELECT 1 FROM `user_profile`);
+FROM `user_profile` p, `sync_device` d
+WHERE d.`id` = 'self' AND p.`profile_id` = 'self'
+  AND (p.`display_name` IS NOT NULL OR p.`photo_asset_id` IS NOT NULL);
 --> statement-breakpoint
 UPDATE `entry_tags` SET
   `stamp_hlc` = (SELECT `created_at` FROM `sync_device` WHERE `id` = 'self'),

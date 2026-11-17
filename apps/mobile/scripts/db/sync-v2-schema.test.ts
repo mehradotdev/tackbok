@@ -15,18 +15,21 @@ const journal: { entries: { tag: string }[] } = JSON.parse(
 const tags = journal.entries.map((entry) => entry.tag);
 const V2 = tags.findIndex((tag) => tag.startsWith('0008_'));
 
-/** Applies migrations [from, to) the way the app does: each file in a transaction. */
+/**
+ * Applies migrations [from, to) the way drizzle's migrator does: every
+ * pending file in one transaction, each breakpoint chunk as one statement.
+ */
 function migrate(sqlite: Database, from: number, to: number) {
-  for (const tag of tags.slice(from, to)) {
-    const sql = readFileSync(
-      join(import.meta.dir, `../../src/drizzle/${tag}.sql`),
-      'utf8',
-    );
-    sqlite.transaction(() => {
+  sqlite.transaction(() => {
+    for (const tag of tags.slice(from, to)) {
+      const sql = readFileSync(
+        join(import.meta.dir, `../../src/drizzle/${tag}.sql`),
+        'utf8',
+      );
       for (const statement of sql.split('--> statement-breakpoint'))
-        if (statement.trim()) sqlite.exec(statement);
-    })();
-  }
+        sqlite.exec(statement);
+    }
+  })();
 }
 
 /** Every table's columns and rows, except the v2 additions. */
@@ -182,6 +185,43 @@ test('a large journal upgrades quickly, keeps every row and stamps every record'
   ).toBe(0);
   console.log(`0008 on ${ENTRIES} entries: ${elapsed.toFixed(0)} ms (desktop)`);
   expect(elapsed).toBeLessThan(5_000);
+});
+
+test('an empty profile gets no stamp; a profile name does, its missing photo does not', () => {
+  for (const [name, expected] of [
+    [null, null],
+    ['Sam', ['name']],
+  ] as const) {
+    const sqlite = new Database(':memory:');
+    migrate(sqlite, 0, V2);
+    sqlite
+      .query(
+        "INSERT INTO user_profile (profile_id, display_name, updated_at) VALUES ('self', ?, 1)",
+      )
+      .run(name);
+    migrate(sqlite, V2, tags.length);
+    const row = sqlite
+      .query<{ stamps_json: string }, []>(
+        "SELECT stamps_json FROM sync_records WHERE entity_type = 'profile'",
+      )
+      .get();
+    expect(row ? Object.keys(JSON.parse(row.stamps_json)) : null).toEqual(
+      expected === null ? null : [...expected],
+    );
+  }
+});
+
+test('one stamp can hold several set members (a write adding two tags)', () => {
+  const sqlite = new Database(':memory:');
+  migrate(sqlite, 0, tags.length);
+  const insert = sqlite.prepare(
+    "INSERT INTO sync_field_values (entity_type, entity_id, field, stamp_hlc, stamp_device, value_json) VALUES ('entry', 'n1', 'tags', 5, 'd', ?)",
+  );
+  insert.run('"t1"');
+  insert.run('"t2"');
+  expect(sqlite.query('SELECT count(*) AS n FROM sync_field_values').get()).toEqual({
+    n: 2,
+  });
 });
 
 test('the migration only adds: no table or column is dropped or renamed', () => {
