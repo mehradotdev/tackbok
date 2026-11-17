@@ -375,18 +375,18 @@ export async function deleteAllDataInTransaction(
   ]);
   const batchId = `local-reset-${Date.now()}`;
   for (const { id } of allEntries) {
-    await deleteEntryInTransaction(tx, id, { batchId });
+    await deleteEntryInTransaction(tx, id, { batchId, syncStamps: false });
   }
   for (const { id } of allTags) {
-    await deleteTagInTransaction(tx, id, { batchId });
+    await deleteTagInTransaction(tx, id, { batchId, syncStamps: false });
   }
   for (const { id } of allPrompts) {
-    await deletePromptInTransaction(tx, id, { batchId });
+    await deletePromptInTransaction(tx, id, { batchId, syncStamps: false });
   }
   await updateProfileInTransaction(
     tx,
     { displayName: null, email: null, photoUri: null },
-    { batchId },
+    { batchId, syncStamps: false },
   );
   // Sync v2: local state is gone, so this install takes a new device ID and
   // an empty context. "Delete journal everywhere" and the local wipe run this.

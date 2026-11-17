@@ -332,6 +332,101 @@ describe('every local write is stamped', () => {
   });
 });
 
+describe('edge cases from review', () => {
+  const photo = (n: number) => ({
+    type: AssetType.IMAGE,
+    uri: `photos/${n}.jpg`,
+    assetId: `a${n}`,
+  });
+
+  test('attaching or detaching alone does not write the attachment order', async () => {
+    await upsert(
+      { note_id: 'n1', text_content: 'A', assets: [photo(1), photo(2)], created_at: T },
+      T,
+    );
+    await upsert(
+      {
+        note_id: 'n1',
+        text_content: 'A',
+        assets: [photo(1), photo(2), photo(3)],
+        created_at: T,
+      },
+      T + 1,
+    );
+    expect(stamps('entry', 'n1').order).toBeUndefined();
+    // The same order with assets known only by their file: still no change.
+    await upsert(
+      {
+        note_id: 'n1',
+        text_content: 'A',
+        assets: [1, 2, 3].map((n) => ({ type: AssetType.IMAGE, uri: `photos/${n}.jpg` })),
+        created_at: T,
+      },
+      T + 2,
+    );
+    expect(stamps('entry', 'n1').order).toBeUndefined();
+    await upsert(
+      {
+        note_id: 'n1',
+        text_content: 'A',
+        assets: [photo(3), photo(1), photo(2)],
+        created_at: T,
+      },
+      T + 3,
+    );
+    expect(stamps('entry', 'n1').order).toBeDefined();
+  });
+
+  test('a field the caller leaves out is not a change', async () => {
+    await upsert(
+      { note_id: 'n1', text_title: 'T', text_content: 'A', mood: 'SAD', created_at: T },
+      T,
+    );
+    const before = stamps('entry', 'n1');
+    await upsert({ note_id: 'n1', text_content: 'B', created_at: T }, T + 1);
+    expect(stamps('entry', 'n1').title).toEqual(before.title);
+    expect(stamps('entry', 'n1').mood).toEqual(before.mood);
+  });
+
+  test('an archive timestamp in the future does not drag the clock', async () => {
+    const future = Date.now() + 10 * 365 * 86_400_000;
+    await upsert({ note_id: 'n1', text_content: 'A', created_at: T }, future);
+    expect(highest()).toBeLessThan(Date.now() + 1_000);
+  });
+
+  test('writing a deleted ID again (an import) brings it back, acknowledged', async () => {
+    await upsert({ note_id: 'n1', text_content: 'A', created_at: T }, T);
+    await write((tx) => repositories.deleteEntryInTransaction(tx, 'n1', { now: T + 1 }));
+    await upsert({ note_id: 'n1', text_content: 'A again', created_at: T }, T + 2);
+    const del = JSON.parse(record('entry', 'n1')!.del_json!);
+    expect(del.ackSeen).toEqual(del.seen);
+    // Live again: the new write is outside what the delete saw.
+    expect(vv('entry', 'n1')[device().device_id]).toBeGreaterThan(
+      del.seen[device().device_id],
+    );
+    expect(count('SELECT count(*) AS n FROM sync_deleted_records')).toBe(0);
+  });
+
+  test('legacy tag memberships made by normalization are stamped', async () => {
+    const tagId = await write((tx) =>
+      repositories.createTagInTransaction(tx, 'Work', { now: T }),
+    );
+    sqlite
+      .query(
+        "INSERT INTO entries (note_id, text_content, tags, created_at, updated_at) VALUES ('legacy', 'L', ?, 1, 1)",
+      )
+      .run(tagId);
+    const legacy = sqlite
+      .query("SELECT * FROM entries WHERE note_id = 'legacy'")
+      .get() as never;
+    await write((tx) =>
+      repositories.normalizeLegacyEntryInTransaction(tx, legacy, T + 1),
+    );
+    expect(count('SELECT count(*) AS n FROM entry_tags WHERE stamp_hlc IS NULL')).toBe(0);
+    expect(stamps('entry', 'legacy').tags).toBeDefined();
+  });
+});
+
 describe('transactions', () => {
   test('a write that fails leaves no stamp, no record and no clock change', async () => {
     await upsert({ note_id: 'n1', text_content: 'A', created_at: T }, T);
@@ -438,6 +533,8 @@ test('timing: stamping adds little to a save on a large journal', async () => {
   };
   const stamped = await time((i) => `Typed ${i}`);
   const unchanged = await time(() => 'Typed 299');
+  // The difference is the tick and record write only; the change detection
+  // reads run in both.
   console.log(
     `save: ${stamped.toFixed(2)} ms with a stamp, ${unchanged.toFixed(2)} ms without (desktop, Bun SQLite)`,
   );

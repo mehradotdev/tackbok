@@ -44,6 +44,11 @@ export interface MutationContext {
   createdAt?: number;
   /** Canonical snapshot entity hash captured before a local delete. */
   deletedStateHash?: string | null;
+  /**
+   * Sync v2: false when the caller resets the sync identity in the same
+   * transaction ("Delete all"), so per-record stamps would be thrown away.
+   */
+  syncStamps?: boolean;
 }
 
 export type CloudSyncTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -363,18 +368,35 @@ async function entryTagIds(tx: CloudSyncTransaction, noteId: string): Promise<st
     .sort();
 }
 
-async function entryAssetIds(
+interface EntryAssetRow {
+  asset_id: string;
+  local_uri: string | null;
+}
+
+async function entryAssetRows(
   tx: CloudSyncTransaction,
   noteId: string,
-): Promise<string[]> {
+): Promise<EntryAssetRow[]> {
   return (
     await tx
-      .select({ asset_id: mediaAssets.asset_id })
+      .select({ asset_id: mediaAssets.asset_id, local_uri: mediaAssets.local_uri })
       .from(mediaAssets)
       .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)))
-  )
-    .map((row) => row.asset_id)
-    .sort();
+  ).sort((a, b) => (a.asset_id < b.asset_id ? -1 : 1));
+}
+
+/** The entry's attachment order as asset IDs (a stored asset may carry only its URI). */
+function orderedAssetIds(
+  assets: Entry['assets'] | undefined,
+  rows: readonly EntryAssetRow[],
+): string[] {
+  const ids = new Set(rows.map((row) => row.asset_id));
+  const byUri = new Map(rows.map((row) => [row.local_uri, row.asset_id]));
+  return (assets ?? [])
+    .map((asset) =>
+      asset.assetId && ids.has(asset.assetId) ? asset.assetId : byUri.get(asset.uri),
+    )
+    .filter((id): id is string => id !== undefined);
 }
 
 const sameList = (left: readonly string[], right: readonly string[]) =>
@@ -388,6 +410,23 @@ export async function normalizeLegacyEntryInTransaction(
 ): Promise<void> {
   await replaceEntryAssets(tx, entry.note_id, entry.assets, now);
   await replaceEntryTags(tx, entry.note_id, entry.tags, now);
+  // Sync v2: memberships made from the legacy CSV are adds like any other.
+  const unstamped = (
+    await tx
+      .select({ tag_id: entryTags.tag_id, stamp_hlc: entryTags.stamp_hlc })
+      .from(entryTags)
+      .where(eq(entryTags.note_id, entry.note_id))
+  )
+    .filter((row) => row.stamp_hlc === null)
+    .map((row) => row.tag_id);
+  const s = await stampWriteInTransaction(
+    tx,
+    'entry',
+    entry.note_id,
+    unstamped.length > 0 ? ['tags'] : [],
+    now,
+  );
+  if (s) await stampMembershipsInTransaction(tx, entry.note_id, unstamped, s);
   await markNormalized(tx, 'entry', entry.note_id, now);
 }
 
@@ -403,7 +442,7 @@ export async function upsertEntryInTransaction(
     .where(eq(entries.note_id, entry.note_id))
     .limit(1);
   const previousTags = previous ? await entryTagIds(tx, entry.note_id) : [];
-  const previousAssets = previous ? await entryAssetIds(tx, entry.note_id) : [];
+  const previousAssets = previous ? await entryAssetRows(tx, entry.note_id) : [];
   await tx
     .insert(entries)
     .values({ ...entry, updated_at: now, created_at: entry.created_at ?? now })
@@ -434,34 +473,43 @@ async function stampEntryWrite(
   entry: NewEntry,
   previous: Entry | undefined,
   previousTags: string[],
-  previousAssets: string[],
+  previousAssets: EntryAssetRow[],
   now: number,
 ): Promise<void> {
   const tagIds = await entryTagIds(tx, entry.note_id);
-  const assetIds = await entryAssetIds(tx, entry.note_id);
+  const assetRows = await entryAssetRows(tx, entry.note_id);
+  const assetIds = assetRows.map((row) => row.asset_id);
   const fields: string[] = [];
+  // A field the caller left out keeps its value: not a change.
+  const changed = <T>(next: T | undefined, before: T | null) =>
+    next !== undefined && (next ?? null) !== before;
   if (!previous) fields.push('title', 'text', 'mood', 'date');
   else {
-    if ((entry.text_title ?? null) !== previous.text_title) fields.push('title');
-    if ((entry.text_content ?? null) !== previous.text_content) fields.push('text');
-    if ((entry.mood ?? null) !== previous.mood) fields.push('mood');
-    if (entry.created_at !== undefined && entry.created_at !== previous.created_at)
-      fields.push('date');
+    if (changed(entry.text_title, previous.text_title)) fields.push('title');
+    if (changed(entry.text_content, previous.text_content)) fields.push('text');
+    if (changed(entry.mood, previous.mood)) fields.push('mood');
+    if (changed(entry.created_at, previous.created_at)) fields.push('date');
   }
   const added = tagIds.filter((id) => !previousTags.includes(id));
   if (!sameList(tagIds, previousTags)) fields.push('tags');
   // Attachments get their own stamps when first published (P6); attaching,
   // detaching or reordering is still a write to the entry.
-  if (!sameList(assetIds, previousAssets)) fields.push('attachments');
-  const uris = (assets: Entry['assets'] | undefined) =>
-    (assets ?? []).map((asset) => asset.assetId ?? asset.uri);
   if (
-    previous &&
-    entry.assets !== undefined &&
-    assetIds.length > 1 &&
-    !sameList(uris(entry.assets), uris(previous.assets))
+    !sameList(
+      assetIds,
+      previousAssets.map((row) => row.asset_id),
+    )
   )
-    fields.push('order');
+    fields.push('attachments');
+  // Only a reorder of the attachments both sides have writes the order: an
+  // attach or detach alone does not (as `setAttachmentOrder` in the model).
+  if (previous && entry.assets !== undefined) {
+    const after = orderedAssetIds(entry.assets, assetRows);
+    const before = orderedAssetIds(previous.assets, previousAssets);
+    const shared = (list: string[], other: string[]) =>
+      list.filter((id) => other.includes(id));
+    if (!sameList(shared(after, before), shared(before, after))) fields.push('order');
+  }
   const s = await stampWriteInTransaction(tx, 'entry', entry.note_id, fields, now);
   if (s) await stampMembershipsInTransaction(tx, entry.note_id, added, s);
 }
@@ -490,7 +538,7 @@ export async function deleteEntryInTransaction(
     })
     .from(entryTags)
     .where(eq(entryTags.note_id, noteId));
-  if (entry)
+  if (context.syncStamps !== false && entry)
     await stampDeleteInTransaction(
       tx,
       'entry',
@@ -516,7 +564,7 @@ export async function deleteEntryInTransaction(
           createdAt: asset.created_at,
           stamp: asset.stamp_hlc === null ? null : [asset.stamp_hlc, asset.stamp_device],
         })),
-        order: (entry.assets ?? []).map((asset) => asset.assetId ?? asset.uri),
+        order: orderedAssetIds(entry.assets, normalized),
       },
       now,
     );
@@ -659,7 +707,7 @@ export async function deleteTagInTransaction(
   await tx.delete(tags).where(eq(tags.tag_id, tagId));
   // Sync v2: taking the tag off its entries above is a side effect, not an
   // edit of them, so only the tag is stamped.
-  if (deletedTag)
+  if (context.syncStamps !== false && deletedTag)
     await stampDeleteInTransaction(tx, 'tag', tagId, { title: deletedTag.title }, now);
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
@@ -744,7 +792,7 @@ export async function deletePromptInTransaction(
     .where(eq(customPrompts.prompt_id, promptId))
     .limit(1);
   await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
-  if (deletedPrompt)
+  if (context.syncStamps !== false && deletedPrompt)
     await stampDeleteInTransaction(
       tx,
       'prompt',
@@ -920,7 +968,8 @@ export async function updateProfileInTransaction(
   )
     profileFields.push('name');
   if (photoAssetId !== (previous?.photo_asset_id ?? null)) profileFields.push('photo');
-  await stampWriteInTransaction(tx, 'profile', PROFILE_ENTITY_ID, profileFields, now);
+  if (context.syncStamps !== false)
+    await stampWriteInTransaction(tx, 'profile', PROFILE_ENTITY_ID, profileFields, now);
   await markNormalized(tx, 'profile', PROFILE_ENTITY_ID, now);
   if (syncFieldsChanged) await markLocalProfileTouched(tx);
   if (

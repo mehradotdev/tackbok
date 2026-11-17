@@ -14,9 +14,13 @@
  * Removing a deleted tag from its entries is a side effect, not an edit of
  * them, so those entries get no stamp.
  *
- * shortcut: v1 sync's remote applies (`productionJournal.ts`) write without
- * stamps; v1 is removed before the v2 engine ships (P6), and the v2 capture
- * must treat a domain row without metadata as an unstamped local row.
+ * shortcut: v1 sync's remote applies (`productionJournal.ts`) rewrite the
+ * journal without touching this metadata, so on an install that has run v1
+ * sync it can be missing, stale (stamps for replaced values), orphaned (a
+ * record the apply removed) or unstamped (tag memberships). v1 is removed
+ * with the v2 engine (P6); the cutover must rebuild the metadata of such an
+ * install from scratch (initial stamps, as the 0008 migration does) before
+ * its first v2 capture. There are no sync users yet.
  */
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
@@ -28,7 +32,7 @@ import {
   syncFieldValues,
   syncRecords,
 } from '~/db';
-import { nextHlc } from '../v2/clock';
+import { nextHlc, withStamp } from '../v2/clock';
 import type { Stamp, VersionVector } from '../v2/types';
 import type { CloudSyncTransaction, SyncEntityType } from './repositories';
 
@@ -66,7 +70,9 @@ export async function tickInTransaction(
   const row = await deviceRow(tx, now);
   const ctx = JSON.parse(row.ctx_json) as Record<string, number>;
   const roster = JSON.parse(row.roster_json) as Record<string, number>;
-  const hlc = nextHlc(ctx, now);
+  // The real clock, never later: imports pass an archive's timestamps as
+  // `now`, and a future one would drag this device's clock ahead for good.
+  const hlc = nextHlc(ctx, Math.min(now, Date.now()));
   ctx[row.device_id] = hlc;
   roster[row.device_id] = hlc;
   await tx
@@ -78,10 +84,6 @@ export async function tickInTransaction(
     })
     .where(eq(syncDevice.id, SELF));
   return [hlc, row.device_id];
-}
-
-function withStamp(vv: VersionVector, [hlc, device]: Stamp): VersionVector {
-  return (vv[device] ?? -1) >= hlc ? vv : { ...vv, [device]: hlc };
 }
 
 async function recordRow(tx: CloudSyncTransaction, type: SyncEntityType, id: string) {
@@ -110,13 +112,15 @@ export async function stampWriteInTransaction(
   const stamps = row ? (JSON.parse(row.stamps_json) as Record<string, Stamp>) : {};
   for (const field of fields) stamps[field] = s;
   const vv = withStamp(row ? (JSON.parse(row.vv_json) as VersionVector) : {}, s);
-  const known = row?.known_json
-    ? JSON.stringify(withStamp(JSON.parse(row.known_json) as VersionVector, s))
-    : null;
+  // A local write to a deleted record (an import restoring its ID) brings it
+  // back. The user did it, so no "came back" notice: acknowledge the delete.
+  const del = row?.del_json ? (JSON.parse(row.del_json) as { seen: Json }) : null;
+  // `known_json` stays null: P4 holds every value it stamps (the v2 apply in
+  // P5 is the first writer of a partial `known`).
   const values = {
     vv_json: JSON.stringify(vv),
-    known_json: known,
     stamps_json: JSON.stringify(stamps),
+    ...(del ? { del_json: JSON.stringify({ ...del, ackSeen: del.seen }) } : {}),
     updated_at: now,
   };
   await tx
@@ -126,9 +130,8 @@ export async function stampWriteInTransaction(
       target: [syncRecords.entity_type, syncRecords.entity_id],
       set: values,
     });
-  // A record written again after a delete (not reachable for entries, whose
-  // IDs are never reused) is shown: its retained copy is stale.
-  if (row?.del_json)
+  // Shown again: the write supplies its values, so the retained copy goes.
+  if (del)
     await tx
       .delete(syncDeletedRecords)
       .where(
@@ -164,9 +167,6 @@ export async function stampDeleteInTransaction(
   const del = { at: s, seen: vv, ackSeen: prior?.ackSeen ?? null, ext: prior?.ext ?? {} };
   const values = {
     vv_json: JSON.stringify(vv),
-    known_json: row?.known_json
-      ? JSON.stringify(withStamp(JSON.parse(row.known_json) as VersionVector, s))
-      : null,
     del_json: JSON.stringify(del),
     updated_at: now,
   };
