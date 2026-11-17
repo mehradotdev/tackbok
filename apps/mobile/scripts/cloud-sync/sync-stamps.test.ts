@@ -252,8 +252,8 @@ describe('every local write is stamped', () => {
             .query('SELECT record_json FROM sync_deleted_records WHERE entity_id = ?')
             .get(tagId) as { record_json: string }
         ).record_json,
-      ).values,
-    ).toEqual({ title: 'Job' });
+      ).title,
+    ).toEqual({ s: renamed, v: 'Job' });
   });
 
   test('prompts and the profile', async () => {
@@ -325,10 +325,13 @@ describe('every local write is stamped', () => {
           .get('n1') as { record_json: string }
       ).record_json,
     );
-    expect(retained.values).toMatchObject({ text: 'A', title: null, date: T });
-    expect(
-      retained.values.attachments.map((a: { assetId: string }) => a.assetId),
-    ).toEqual(['a2']);
+    // The v2 form of the record (`DeletedEntryValues`). Only published
+    // attachments are in the state; these never were.
+    expect(retained.text.map((item: { v: string }) => item.v)).toEqual(['A']);
+    expect(retained.title.map((item: { v: string | null }) => item.v)).toEqual([null]);
+    expect(retained.date.v).toBe(T);
+    expect(retained.attachments).toEqual([]);
+    expect(retained.order.v).toEqual(['a2', 'a1']);
   });
 });
 
@@ -339,7 +342,7 @@ describe('edge cases from review', () => {
     assetId: `a${n}`,
   });
 
-  test('attaching or detaching alone does not write the attachment order', async () => {
+  test('attachments in the order their IDs sort into write no order register', async () => {
     await upsert(
       { note_id: 'n1', text_content: 'A', assets: [photo(1), photo(2)], created_at: T },
       T,

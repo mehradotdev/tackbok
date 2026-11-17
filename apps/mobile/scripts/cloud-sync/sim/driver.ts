@@ -128,19 +128,20 @@ export interface SimAdapter {
    * round (a device whose clock is behind receives again).
    */
   readonly v2Events?: { maxAheadMs: number };
-  view(device: number): View;
+  // Adapters backed by storage answer asynchronously.
+  view(device: number): View | Promise<View>;
   /** Applies a local event; false when the app would refuse it. */
-  apply(device: number, event: LocalEvent, wall: number): boolean;
-  keepTargets(device: number): KeepTarget[];
+  apply(device: number, event: LocalEvent, wall: number): boolean | Promise<boolean>;
+  keepTargets(device: number): KeepTarget[] | Promise<KeepTarget[]>;
   /** Applies a keep or keep-both; null when the target no longer applies. */
   keep(
     device: number,
     event: Extract<LocalEvent, { kind: 'keep' | 'keepBoth' }>,
     wall: number,
-  ): KeepEffect | null;
+  ): KeepEffect | null | Promise<KeepEffect | null>;
   sync(device: number, peer: number | null, wall: number): Promise<SyncOutcome>;
   /** Canonical bytes of the device's synced state. */
-  fingerprint(device: number): string;
+  fingerprint(device: number): string | Promise<string>;
   normalizeTitle(kind: 'tag' | 'prompt', title: string): string;
   dispose?(): void;
 }
@@ -222,19 +223,19 @@ export async function generateCase(
   const state = newOracle(config);
   for (let step = 0; step < config.steps; step++) {
     const index = events.length;
-    const event = chooseEvent(adapter, rng, config, index);
+    const event = await chooseEvent(adapter, rng, config, index);
     events.push(event);
     await runEvent(adapter, state, event, index);
   }
   return { events, state };
 }
 
-function chooseEvent(
+async function chooseEvent(
   adapter: SimAdapter,
   rng: Random,
   config: CaseConfig,
   index: number,
-): Event {
+): Promise<Event> {
   const device = rng.int(0, config.devices - 1);
   if (rng.chance(0.04)) {
     // Clock skews: minutes, hours, or years; sometimes a jump backwards.
@@ -259,9 +260,9 @@ function chooseEvent(
     if (peer >= device) peer++;
     return { kind: 'sync', device, peer, both: rng.chance(0.5) };
   }
-  const view = adapter.view(device);
+  const view = await adapter.view(device);
   const entry = view.entries.length > 0 ? rng.pick(view.entries) : null;
-  const keepTargets = adapter.keepTargets(device);
+  const keepTargets = await adapter.keepTargets(device);
   const tag = view.tags.length > 0 ? rng.pick(view.tags) : null;
   const prompt = view.prompts.length > 0 ? rng.pick(view.prompts) : null;
   const text = (prefix: string) => `${prefix}${config.seed}-${index}`;
@@ -545,11 +546,11 @@ async function runEvent(
     return;
   }
   const device = event.device;
-  const view = adapter.view(device);
+  const view = await adapter.view(device);
   const entry =
     'entryId' in event ? view.entries.find((e) => e.id === event.entryId) : undefined;
   if (event.kind === 'keep' || event.kind === 'keepBoth') {
-    const effect = adapter.keep(device, event, wall(device));
+    const effect = await adapter.keep(device, event, wall(device));
     if (!effect) return;
     recordRemoval(state, device, effect.removed, 'keep');
     for (const value of effect.affirmed) recordKept(state, index, value);
@@ -566,7 +567,7 @@ async function runEvent(
     return;
   }
   if ('entryId' in event && event.kind !== 'createEntry' && !entry) return;
-  if (!adapter.apply(device, event, wall(device))) return;
+  if (!(await adapter.apply(device, event, wall(device)))) return;
   switch (event.kind) {
     case 'createEntry':
       recordWrite(state, index, event.entryId, event.title);
@@ -687,16 +688,20 @@ async function finalRound(
   return maxRounds + 1;
 }
 
-function check(
+async function check(
   adapter: SimAdapter,
   state: OracleState,
   config: CaseConfig,
   events: number,
   finalRounds: number,
-): CaseResult {
+): Promise<CaseResult> {
   const devices = [...Array(config.devices).keys()];
-  const fingerprints = devices.map((device) => adapter.fingerprint(device));
-  const views = devices.map((device) => adapter.view(device));
+  const fingerprints: string[] = [];
+  const views: View[] = [];
+  for (const device of devices) {
+    fingerprints.push(await adapter.fingerprint(device));
+    views.push(await adapter.view(device));
+  }
   const visibleTexts = views.map(
     (view) =>
       new Set<string | null>([
@@ -845,7 +850,7 @@ export async function runCase(
   try {
     const { events, state } = await generateCase(adapter, config);
     const rounds = await finalRound(adapter, state, config.devices);
-    return { result: check(adapter, state, config, events.length, rounds), events };
+    return { result: await check(adapter, state, config, events.length, rounds), events };
   } finally {
     adapter.dispose?.();
   }
@@ -864,7 +869,7 @@ export async function replayCase(
       await runEvent(adapter, state, event, eventIndex(event, index));
     }
     const rounds = await finalRound(adapter, state, config.devices);
-    return check(adapter, state, config, events.length, rounds);
+    return await check(adapter, state, config, events.length, rounds);
   } finally {
     adapter.dispose?.();
   }
