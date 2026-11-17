@@ -1020,6 +1020,7 @@ describe('compaction of deleted entries', () => {
     const compacted = compact(publishAll(deleted));
     const joined = convergeInEveryOrder([compacted, before, deleted]);
     expect(isLive(joined.entries.get('e1')!)).toBe(false);
+    expect(joined.entries.get('e1')!.text.map((item) => item.v)).toEqual(['Secret text']);
     expect(isCompacted(joined.entries.get('e1')!)).toBe(false);
     expect(liveEntries(joined)).toEqual(liveEntries(compacted));
     expect(isCompacted(compact(joined).entries.get('e1')!)).toBe(true);
@@ -1068,6 +1069,47 @@ describe('compaction of deleted entries', () => {
     expect(back.revived).toEqual([]);
     expect(isLive(back.state.entries.get('e1')!)).toBe(false);
     expect(isCompacted(compact(back.state).entries.get('e1')!)).toBe(true);
+  });
+
+  test('"Keep both" onto a split entry that was deleted and compacted fills it again', () => {
+    // e1 has versions X and Y; "Keep both" moves Y to a split entry, which is
+    // then deleted everywhere and compacted. A copy that still has e1 with Y
+    // open (one that lost the split's history) keeps both again.
+    const base = entryWith('Text');
+    const a = edit(base, at('device-a'), 'text', 'X');
+    const b = edit(base, at('device-b'), 'text', 'Y');
+    const both = join(a, b);
+    const stampOf = (value: string) =>
+      both.entries.get('e1')!.text.find((item) => item.v === value)!.s;
+    const split = ops.keepBoth(
+      both,
+      at('device-a'),
+      'e1',
+      'text',
+      stampOf('X'),
+      stampOf('Y'),
+    );
+    const gone = ops.deleteEntry(split.state, at('device-a'), split.newEntryId);
+    const compacted = compact(publishAll(gone));
+    expect(isCompacted(compacted.entries.get(split.newEntryId)!)).toBe(true);
+    const stale = new Map(compacted.entries);
+    stale.set('e1', both.entries.get('e1')!);
+    const again = ops.keepBoth(
+      { ...compacted, entries: stale },
+      at('device-b'),
+      'e1',
+      'text',
+      stampOf('X'),
+      stampOf('Y'),
+    );
+    expect(again.newEntryId).toBe(split.newEntryId);
+    const revived = again.state.entries.get(split.newEntryId)!;
+    expect(isLive(revived)).toBe(true);
+    expect(texts(again.state, split.newEntryId)).toEqual(['Y']);
+    expect(titles(again.state, split.newEntryId)).toEqual(['Title']);
+    expect(revived.mood!.v).toBe('HAPPY');
+    // The state is valid and publishable.
+    expect(() => C(again.state)).not.toThrow();
   });
 
   test("a write on an entry brought back after compaction claims only itself, not the writer's compacted writes", () => {

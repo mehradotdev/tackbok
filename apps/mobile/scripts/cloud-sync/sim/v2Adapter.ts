@@ -14,7 +14,12 @@ import {
   assertNotAhead,
 } from '../../../src/lib/cloudSync/v2/clock';
 import { canonicalState } from '../../../src/lib/cloudSync/v2/codec';
-import { absorb, compact, type Absorbed } from '../../../src/lib/cloudSync/v2/compact';
+import {
+  absorb,
+  compact,
+  isCompacted,
+  type Absorbed,
+} from '../../../src/lib/cloudSync/v2/compact';
 import { normalizeTitle } from '../../../src/lib/cloudSync/v2/ids';
 import * as ops from '../../../src/lib/cloudSync/v2/ops';
 import {
@@ -341,6 +346,9 @@ export class V2Adapter implements SimAdapter {
       }
       const moved = shown[(event.index + 1) % shown.length];
       const result = ops.keepBoth(state, writer, entry.id, field, chosen.s, moved.s);
+      // A split entry compacted meanwhile is filled again from this entry.
+      const prior = state.entries.get(result.newEntryId);
+      if (prior && isCompacted(prior)) this.revivedEntries.push(result.newEntryId);
       this.states[device] = result.state;
       this.record?.(result.state);
       return {

@@ -64,7 +64,11 @@ export const V2_CAPS = Object.freeze({
   membersPerEntry: 4096,
   orderLength: 4096,
   headerBytes: 256 * 1024,
-  /** Canonical bytes of one record's `ext` (or one media descriptor's). */
+  /**
+   * Canonical bytes of one media descriptor's `ext` (immutable). A record's
+   * `ext` has no cap of its own: two devices' items join, so a per-record cap
+   * could be exceeded by a join. It counts toward the body caps.
+   */
   extBytes: 64 * 1024,
 });
 
@@ -738,6 +742,8 @@ function validateHeader(header: unknown): SnapshotHeader {
     for (let i = 1; i < list.length; i++)
       if (list[i - 1] >= list[i])
         invalid('unsorted', 'Features must be sorted and unique');
+  if ((required as string[]).some((feature) => (optional as string[]).includes(feature)))
+    invalid('invalid-feature', 'A feature is both required and optional');
   for (const feature of required as string[])
     if (!KNOWN_REQUIRED_FEATURES.includes(feature))
       needsUpdate('unsupported-feature', `Snapshot requires ${feature}`);
@@ -911,8 +917,6 @@ function validateExt(ext: Ext, vv: VersionVector, path: string) {
     assertSorted(items, `${path}.${feature}`);
     for (const item of items) assertCovered(vv, item.s, `${path}.${feature}`);
   }
-  if (utf8Length(canonicalize(ext as unknown as Json)) > V2_CAPS.extBytes)
-    invalid('string-cap', `${path} is too large`);
 }
 
 function validateRecord(
@@ -1016,8 +1020,14 @@ export function validateState(state: SyncState): void {
       entry.known.extra.length === 0;
     if (compacted && (stamps.length > 0 || Object.keys(entry.ext).length > 0))
       invalid('invalid-known', `${path} holds values it does not know`);
-    if (!compacted && (!entry.mood || !entry.date))
-      invalid('invalid-shape', `${path} lacks a mood or date`);
+    // Every write leaves a title and a text item, even a null one: only a
+    // compacted entry has none, and an empty list would remove the other
+    // side's values in a join.
+    if (
+      !compacted &&
+      (!entry.mood || !entry.date || entry.title.length === 0 || entry.text.length === 0)
+    )
+      invalid('invalid-shape', `${path} lacks a title, text, mood or date`);
     assertSorted(entry.title, `${path}.title`);
     assertSorted(entry.text, `${path}.text`);
     assertSorted(entry.tags, `${path}.tags`);

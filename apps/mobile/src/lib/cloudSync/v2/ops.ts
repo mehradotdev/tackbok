@@ -228,18 +228,31 @@ export function keepBoth(
     .map((item) => item.s);
   let next = editText(state, writer, entryId, field, kept.v, replaced);
   const existing = next.entries.get(newEntryId);
+  const other: TextField = field === 'title' ? 'text' : 'title';
+  const otherValue = shownItems(entry[other])[0]?.v ?? null;
   if (existing && !isLive(existing)) {
     // Made here or elsewhere, then deleted: write the moved value again so it
     // comes back rather than being lost with the original's version.
     const ticked = tick(next, writer);
+    const s = ticked.s;
+    // Compacted meanwhile, it has no values left: fill it as a new split
+    // entry would be, under the same write.
+    const empty = existing.mood === null || existing.date === null;
+    const tagIds = [...new Set(entry.tags.map((member) => member.id))];
     next = withEntry(ticked.state, {
       ...existing,
-      [field]: [...existing[field], { s: ticked.s, v: moved.v }],
-      ...stamped(existing, ticked.s),
+      [field]: [...existing[field], { s, v: moved.v }],
+      ...(empty
+        ? {
+            [other]: [...existing[other], { s, v: otherValue }],
+            mood: { s, v: entry.mood!.v },
+            date: { s, v: entry.date!.v },
+            tags: tagIds.reduce((tags, id) => addMember(tags, { id, s }), existing.tags),
+          }
+        : {}),
+      ...stamped(existing, s),
     });
   } else if (!existing) {
-    const other: TextField = field === 'title' ? 'text' : 'title';
-    const otherValue = shownItems(entry[other])[0]?.v ?? null;
     next = createEntry(next, writer, {
       id: newEntryId,
       title: field === 'title' ? moved.v : otherValue,
@@ -286,7 +299,8 @@ export function deleteEntry(
   const entry = liveEntry(state, entryId);
   const { state: next, s } = tick(state, writer);
   const record = stamped(entry, s);
-  const del = { at: s, seen: record.vv, ackSeen: null, ext: {} };
+  // An earlier delete's extension data stays: the new `seen` covers it.
+  const del = { at: s, seen: record.vv, ackSeen: null, ext: entry.del?.ext ?? {} };
   return withEntry(next, {
     ...entry,
     ...record,
@@ -491,7 +505,7 @@ export function deleteNamed(
     next = { ...next, entries };
   }
   const vv = withStamp(record.vv, s);
-  const del = { at: s, seen: vv, ackSeen: null, ext: {} };
+  const del = { at: s, seen: vv, ackSeen: null, ext: record.del?.ext ?? {} };
   return withNamed(next, kind, {
     ...record,
     vv,

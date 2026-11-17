@@ -8,6 +8,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import { SnapshotValidationError } from '../../src/lib/cloudSync/snapshot/caps';
 import { compact, isCompacted } from '../../src/lib/cloudSync/v2/compact';
 import type { SyncState } from '../../src/lib/cloudSync/v2/types';
 import {
@@ -154,18 +155,23 @@ describe('v2 N-device simulation', () => {
       }
       return { ...compacted, entries };
     };
-    let caught: CaseResult | null = null;
+    // Caught either by the oracle (an entry shown without a title or text)
+    // or by validation, which refuses an entry with values it lacks.
+    let caught: string | null = null;
     for (const seed of seedRange(1, 2_000)) {
-      const { result } = await runCase(
-        (devices) =>
-          new V2Adapter(devices, 'pairwise', undefined, undefined, true, naive),
-        configFor(seed),
-      );
-      if (v2Failed(result)) {
-        caught = result;
-        break;
+      try {
+        const { result } = await runCase(
+          (devices) =>
+            new V2Adapter(devices, 'pairwise', undefined, undefined, true, naive),
+          configFor(seed),
+        );
+        if (result.incompleteEntries.length > 0) caught = 'incomplete-entry';
+      } catch (error) {
+        if (!(error instanceof SnapshotValidationError)) throw error;
+        caught = error.code;
       }
+      if (caught) break;
     }
-    expect(caught?.incompleteEntries.length ?? 0).toBeGreaterThan(0);
+    expect(['incomplete-entry', 'invalid-shape']).toContain(caught!);
   }, 600_000);
 });

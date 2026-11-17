@@ -86,8 +86,10 @@ export class ClockAheadError extends Error {
  * - if this device's clock is behind, it still publishes (others accept
  *   older stamps) and receives again once its clock is fixed;
  * - if the other device's clock is ahead, its stamps stay ahead even after
- *   its clock is fixed, so that device must reset its sync identity (a new
- *   device ID) to publish again. That reset is engine work (P6/P8).
+ *   its clock is fixed (its context keeps them), so it is refused until
+ *   real time comes within the bound of them. A new device ID alone does not
+ *   help: recovery is a new ID, a fresh state from Drive, and this device's
+ *   shown values written again as new writes. That is engine work (P6/P8).
  */
 export function assertNotAhead(
   remote: { ctx: VersionVector; roster: Readonly<Record<string, number>> },

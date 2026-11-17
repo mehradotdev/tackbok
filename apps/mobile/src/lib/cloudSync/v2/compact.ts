@@ -36,13 +36,17 @@
  * records are shown. Joining a stale copy brings the values back into the
  * deleted record (still hidden); the next `compact` drops them again.
  *
- * Why it is safe: a state holding `acks[d]` holds everything `d` had when it
- * set it (only `d` sets it, and joins carry whole states). If every active
- * device's acknowledgement covers a deleted record's vector, each had the
- * tombstone and every write the compacting device knows of, so none can
- * edit the record unless an edit it had not seen brings it back first; such
- * an edit would already be in the compacting device's vector. Only a device
- * that expired (away for 180 days) or an old head can hold one.
+ * Why it is safe: only `d` sets `acks[d]`, to its context, so `d` had seen
+ * every write in it (it may since have compacted some values, but it saw
+ * them). If every active device's acknowledgement covers a deleted record's
+ * vector, each saw the tombstone and every write the compacting device
+ * knows of, so none can edit the record unless an edit it had not seen
+ * brings it back first; such an edit would already be in the compacting
+ * device's vector. Only a device that is not active can hold one: one away
+ * for 180 days, an old head, or a device that never published. Engine rule:
+ * a device publishes (`markSeen`) as soon as it has joined the vault, before
+ * its first local write, so the last case is only a device that has never
+ * reached Drive.
  *
  * **A device that returns after compaction.** Its unseen edit still brings
  * the entry back, with every value it has, under their original stamps: the
@@ -53,6 +57,7 @@
  * edited stay deleted.
  */
 import {
+  MAX_CONTEXT_AHEAD_MS,
   ROSTER_EXPIRY_MS,
   assertNotAhead,
   highestHlc,
@@ -67,9 +72,15 @@ import { isLive } from './view';
 /** Devices whose last-seen time is within `ROSTER_EXPIRY_MS` of the newest one. */
 export function activeDevices(state: SyncState): DeviceId[] {
   const newest = highestHlc(state.roster);
-  return Object.keys(state.roster)
-    .filter((device) => newest - state.roster[device] <= ROSTER_EXPIRY_MS)
-    .sort();
+  return (
+    Object.keys(state.roster)
+      // A clock up to the bound ahead must not expire anyone early.
+      .filter(
+        (device) =>
+          newest - state.roster[device] <= ROSTER_EXPIRY_MS + MAX_CONTEXT_AHEAD_MS,
+      )
+      .sort()
+  );
 }
 
 /** The meet of the active devices' acknowledgements, or null while one has none. */
@@ -157,14 +168,12 @@ export function absorb(local: SyncState, remote: SyncState, writer: Writer): Abs
   assertNotAhead(remote, writer.wallMs);
   const state = join(local, remote);
   const revived: string[] = [];
+  // A side compacted, or holding only part of the values since it was.
+  const touched = (entry: EntryRecord) => entry.known !== null;
   for (const [id, mine] of local.entries) {
     const theirs = remote.entries.get(id);
-    if (
-      theirs &&
-      (isCompacted(mine) || isCompacted(theirs)) &&
-      isLive(state.entries.get(id)!)
-    )
+    if (theirs && (touched(mine) || touched(theirs)) && isLive(state.entries.get(id)!))
       revived.push(id);
   }
-  return { state, revived };
+  return { state, revived: revived.sort() };
 }
