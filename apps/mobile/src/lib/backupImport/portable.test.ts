@@ -26,7 +26,9 @@ const mockWriteImportedAudio = jest.fn((_bytes: Uint8Array, _path: string): Asse
   uri: 'voice-memos/imported.m4a',
 }));
 const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
-const mockCreatePromptInTransaction = jest.fn(async (..._args: unknown[]) => undefined);
+const mockCreatePromptInTransaction = jest.fn(
+  async (..._args: unknown[]) => 'prompt-derived',
+);
 
 jest.mock('~/db', () => ({
   db: {},
@@ -38,14 +40,11 @@ jest.mock('~/db', () => ({
 jest.mock('~/lib/cloudSync/storage/repositories', () => ({
   upsertEntryInTransaction: async (tx: any, entry: unknown) =>
     tx.insert({}).values(entry).onConflictDoUpdate({}),
-  createTagInTransaction: async (
-    tx: any,
-    title: string,
-    _context: unknown,
-    stableId: string,
-  ) => {
-    await tx.insert({}).values({ tag_id: stableId, title });
-    return stableId;
+  // The repository derives the ID from the title (cloud sync v2).
+  createTagInTransaction: async (tx: any, title: string) => {
+    const tagId = `tag-${title.toLowerCase()}`;
+    await tx.insert({}).values({ tag_id: tagId, title });
+    return tagId;
   },
   createPromptInTransaction: (...args: unknown[]) =>
     mockCreatePromptInTransaction(...args),
@@ -536,14 +535,15 @@ describe('upsertPortableTags', () => {
     );
 
     expect(tagMap.get('id:portable-family')).toBe('local-family');
-    expect(tagMap.get('id:portable-collision')).not.toBe('portable-collision');
+    // The archive's ID maps to the new tag's title-derived ID.
+    expect(tagMap.get('id:portable-collision')).toBe('tag-imported distinct');
     expect(tagMap.get('imported distinct')).toBe(tagMap.get('id:portable-collision'));
     expect(summary.importedTags).toBe(1);
   });
 });
 
 describe('ensurePortablePromptTitles', () => {
-  test('generates a fresh id when a portable prompt id collides locally', async () => {
+  test('creates a prompt by title, whatever ID the archive gave it', async () => {
     const tx = {
       select: () => ({
         from: async () => [
@@ -566,10 +566,11 @@ describe('ensurePortablePromptTitles', () => {
     );
 
     expect(mockCreatePromptInTransaction).toHaveBeenCalledTimes(1);
-    const [, , context, stableId] = mockCreatePromptInTransaction.mock
-      .calls[0] as unknown[];
-    expect(stableId).not.toBe('prompt-collision');
-    expect(context).toMatchObject({ now: 22, createdAt: 11 });
+    const args = mockCreatePromptInTransaction.mock.calls[0] as unknown[];
+    // No archive ID is passed: the repository derives one from the title.
+    expect(args).toHaveLength(3);
+    expect(args[1]).toBe('Imported prompt');
+    expect(args[2]).toMatchObject({ now: 22, createdAt: 11 });
     expect(summary.importedPrompts).toBe(1);
   });
 });

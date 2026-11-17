@@ -1454,8 +1454,14 @@ async function rekeyNamedInTransaction(tx: Tx): Promise<void> {
  * than its metadata was built for. That covers the v1 → v2 cutover (v1's
  * remote applies never kept this metadata), a journal joining a new vault
  * after "Delete journal everywhere", and connecting to another vault. The
- * old ID is never reused; nothing it wrote is lost locally, since the
+ * old ID is never reused; no shown value is lost locally, since the
  * journal's values are written again under the new one.
+ *
+ * shortcut: deletes are not carried over. A delete another device has not
+ * taken in when the journal binds cannot win afterwards: that device's
+ * records get new stamps no old tombstone has seen. Harmless for the 2.0.0
+ * cutover (no sync users; test vaults are wiped); revisit if binding to a
+ * vault ever has to keep pending deletes.
  */
 export async function rebuildSyncMetadataInTransaction(
   tx: Tx,
@@ -1514,10 +1520,15 @@ export async function rebuildSyncMetadataInTransaction(
     else byEntry.set(row.owner_id, [row]);
   }
   if (byEntry.size > 0) {
-    const withMedia = await tx
-      .select({ id: entries.note_id, assets: entries.assets })
-      .from(entries)
-      .where(inArray(entries.note_id, [...byEntry.keys()]));
+    const ids = [...byEntry.keys()];
+    const withMedia: { id: string; assets: Asset[] | null }[] = [];
+    for (let offset = 0; offset < ids.length; offset += IDS_PER_BATCH)
+      withMedia.push(
+        ...(await tx
+          .select({ id: entries.note_id, assets: entries.assets })
+          .from(entries)
+          .where(inArray(entries.note_id, ids.slice(offset, offset + IDS_PER_BATCH)))),
+      );
     for (const row of withMedia) {
       const order = shownAssetOrder(row.assets, byEntry.get(row.id)!);
       if (canonicalize(order) === canonicalize(defaultAssetOrder(null, order))) continue;

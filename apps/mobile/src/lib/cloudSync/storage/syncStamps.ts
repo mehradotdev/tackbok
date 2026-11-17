@@ -79,7 +79,9 @@ export async function tickInTransaction(
   // `now`, and a future one would drag this device's clock ahead for good.
   const hlc = nextHlc(ctx, Math.min(now, Date.now()));
   ctx[row.device_id] = hlc;
-  roster[row.device_id] = hlc;
+  // Last-seen times never move back (as `tick` in the model): a wall clock
+  // set back must not expire this device early.
+  roster[row.device_id] = Math.max(roster[row.device_id] ?? 0, hlc);
   await tx
     .update(syncDevice)
     .set({
