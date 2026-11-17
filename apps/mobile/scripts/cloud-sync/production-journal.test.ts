@@ -1968,8 +1968,14 @@ test('Delete journal everywhere leaves no profile photos for the next backup (#1
       format_version: 1,
     })
     .run();
+  const deviceBefore = db.select().from(schema.syncDevice).get()!.device_id;
   await runExclusiveDbTransaction(wipeLocalJournalInTransaction);
   expect(db.select().from(schema.cloudSyncMediaHashCache).all()).toEqual([]);
+  // Sync v2: local state is gone, so the install takes a new device ID.
+  const deviceAfter = db.select().from(schema.syncDevice).get()!;
+  expect(deviceAfter.device_id).not.toBe(deviceBefore);
+  expect(deviceAfter.ctx_json).toBe('{}');
+  expect(db.select().from(schema.syncRecords).all()).toEqual([]);
   // The wipe then deletes every photo and voice file.
   existingFiles.clear();
   expect(photoRows()).toEqual([]);

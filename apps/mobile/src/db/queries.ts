@@ -32,6 +32,7 @@ import {
   upsertEntryInTransaction,
   type CloudSyncTransaction,
 } from '~/lib/cloudSync/storage/repositories';
+import { resetSyncIdentityInTransaction } from '~/lib/cloudSync/storage/syncStamps';
 import {
   db,
   entries,
@@ -387,6 +388,9 @@ export async function deleteAllDataInTransaction(
     { displayName: null, email: null, photoUri: null },
     { batchId },
   );
+  // Sync v2: local state is gone, so this install takes a new device ID and
+  // an empty context. "Delete journal everywhere" and the local wipe run this.
+  await resetSyncIdentityInTransaction(tx, Date.now());
   return { retainedMediaForSync: vaultRows.length > 0 };
 }
 
