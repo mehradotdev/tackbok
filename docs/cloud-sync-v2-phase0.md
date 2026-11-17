@@ -51,6 +51,10 @@ Consequences and invariants that become requirements for 2.0.0:
 The fallback in #185 (lineage on tombstones, synced resolution records) is not
 needed.
 
+**Follow-up (P2b, 2026-11-17).** Requirements 3, 4 and 6, and the clock bound
+from 5, are now in the model, with property tests and the simulation; see
+section 11. The other engine invariants in 5 remain P3-P6 work.
+
 ## 1. What was built
 
 | Step            | Files                                                                                                                       |
@@ -388,7 +392,7 @@ downloads. `bun scripts/cloud-sync/v2-measure.ts`. **Desktop numbers.**
 
 ## 9. What remains uncertain
 
-- **Compaction is unproven.** Deleted records, tombstones and the roster all
+- **Compaction is unproven** (done in P2b, section 11). Deleted records, tombstones and the roster all
   need it, and change 2 makes it a 2.0.0 requirement. Sketch: a deleted
   record's values can be dropped (keeping its vector and tombstone, which
   needs a "values compacted" record shape the codec does not have yet) once
@@ -400,7 +404,7 @@ downloads. `bun scripts/cloud-sync/v2-measure.ts`. **Desktop numbers.**
   version on another re-opens a conflict between the kept text and the edit.
   Nothing is lost; the user sees one more choice. Fixing it needs edit lineage
   and was not attempted.
-- **Clock skew**: a device with a clock years ahead drags every HLC forward.
+- **Clock skew** (bounded in P2b, section 11): a device with a clock years ahead drags every HLC forward.
   Correct, but "newest" then means causal order, not wall time, and a clock
   near the cap would stop writes. The engine needs a bound (requirement 5).
 - **The oracle** is string-based for text (a value that also lives in a copy

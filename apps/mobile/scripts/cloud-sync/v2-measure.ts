@@ -25,6 +25,7 @@ import {
   decodeEnvelope,
   encodeEnvelope,
 } from '../../src/lib/cloudSync/v2/codec';
+import { compact } from '../../src/lib/cloudSync/v2/compact';
 import { namedId } from '../../src/lib/cloudSync/v2/ids';
 import { join } from '../../src/lib/cloudSync/v2/join';
 import type {
@@ -89,7 +90,7 @@ function buildJournal(count: number, seed: number): Journal {
     const id = namedId('tag', VAULT, title);
     const vv = {};
     bump(vv, s);
-    v2Tags.set(id, { id, vv, del: null, title: { s, v: title } });
+    v2Tags.set(id, { id, vv, del: null, title: { s, v: title }, ext: {} });
   }
   const v1Tags = tags.map((title, i) => ({
     tagId: uuid(rng),
@@ -152,6 +153,7 @@ function buildJournal(count: number, seed: number): Journal {
         height: 4032,
         durationMs: null,
         createdAt: date,
+        ext: {},
       };
       v2Media.set(assetId, descriptor);
       if (!deleted) v1Media.push({ ...descriptor, updatedAt: date });
@@ -164,11 +166,12 @@ function buildJournal(count: number, seed: number): Journal {
     if (deleted) {
       const s = stamp();
       bump(vv, s);
-      del = { at: s, seen: { ...vv }, ackSeen: null };
+      del = { at: s, seen: { ...vv }, ackSeen: null, ext: {} };
     }
     v2Entries.set(entryId, {
       id: entryId,
       vv,
+      known: null,
       del,
       title: titleItems,
       text: textItems,
@@ -178,6 +181,7 @@ function buildJournal(count: number, seed: number): Journal {
       attachments,
       order: null,
       split: null,
+      ext: {},
     });
     if (deleted) {
       v1Tombstones.push({
@@ -224,6 +228,8 @@ function buildJournal(count: number, seed: number): Journal {
       vaultId: VAULT,
       ctx,
       roster,
+      // Every device has published everything, so compaction can run.
+      acks: Object.fromEntries(DEVICES.map((d) => [d, ctx])),
       floor: null,
       entries: v2Entries,
       tags: v2Tags,
@@ -232,6 +238,7 @@ function buildJournal(count: number, seed: number): Journal {
         vv: { [DEVICES[0]]: T0 },
         name: [{ s: [T0, DEVICES[0]], v: 'Mehra' }],
         photo: [],
+        ext: {},
       },
       media: v2Media,
     },
@@ -329,16 +336,12 @@ for (const count of sizes.length > 0 ? sizes : [1_000, 5_000, 10_000]) {
   const v1Bytes = v1Encoded.value.canonicalBytes.length;
   const v2Body = v2Encoded.value.bodyCanonical.length;
   const v2Header = v2Encoded.value.bytes.indexOf(0x0a);
-  // Without the deleted records v2 keeps (what compaction would remove).
-  const live = new Map([...journal.v2.entries].filter(([, e]) => !e.del));
-  const compacted = encodeEnvelope(
-    {
-      ...journal.v2,
-      entries: live,
-      media: new Map([...journal.v2.media].filter(([, m]) => live.has(m.ownerId))),
-    },
-    { authorDeviceId: DEVICES[0], deviceSequence: 1, createdAt: T0 },
-  );
+  // After compaction: deleted entries keep only their vector and tombstone.
+  const compacted = encodeEnvelope(compact(journal.v2), {
+    authorDeviceId: DEVICES[0],
+    deviceSequence: 1,
+    createdAt: T0,
+  });
   const textBytes = journal.v1.entries.reduce(
     (sum, e) => sum + (e.title?.length ?? 0) + (e.content?.length ?? 0),
     0,

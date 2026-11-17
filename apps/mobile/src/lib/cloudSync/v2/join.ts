@@ -15,12 +15,21 @@
  * - Tombstones join field by field (newest delete, union of what was seen,
  *   newest acknowledgement). Whether a record is shown is decided by reading,
  *   not by the join: see `isLive` in `view.ts`.
+ * - `ext` items join like multi-value items, against the record's vector
+ *   (a tombstone's against its `seen`), whether or not this build knows the
+ *   feature.
+ * - An entry's values are judged against what it holds values for (`known`,
+ *   normally its vector): a compacted copy (`known` empty) removes nothing,
+ *   so an entry an unseen edit brings back keeps every value another copy
+ *   still has (`compact.ts`).
  */
 import { canonicalize } from '../snapshot/canonical';
-import { compareStamps, covers, joinVectors, maxStamp } from './clock';
+import { compareStamps, covers, joinVectors, maxStamp, vectorIncluded } from './clock';
 import type {
   EntryRecord,
+  Ext,
   Item,
+  Json,
   LastWriter,
   MediaDescriptor,
   Member,
@@ -127,6 +136,22 @@ export function joinLastWriter<T>(
   return left.v === right.v ? left : { s: left.s, v: smaller(left.v, right.v) };
 }
 
+/** Feature by feature; a feature whose items all went is dropped. */
+export function joinExt(
+  left: Ext,
+  leftVv: VersionVector,
+  right: Ext,
+  rightVv: VersionVector,
+): Ext {
+  if (left === right) return left;
+  const result: Record<string, MultiValue<Json>> = {};
+  for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
+    const items = joinMultiValue(left[key] ?? [], leftVv, right[key] ?? [], rightVv);
+    if (items.length > 0) result[key] = items;
+  }
+  return result;
+}
+
 function joinOptional<T>(
   left: T | null,
   right: T | null,
@@ -143,24 +168,42 @@ export function joinTombstones(left: Tombstone, right: Tombstone): Tombstone {
     at: maxStamp(left.at, right.at),
     seen: joinVectors(left.seen, right.seen),
     ackSeen: joinOptional(left.ackSeen, right.ackSeen, joinVectors),
+    ext: joinExt(left.ext, left.seen, right.ext, right.seen),
   };
+}
+
+/** The writes an entry holds values for. */
+export const knownOf = (entry: EntryRecord): VersionVector => entry.known ?? entry.vv;
+
+/** `known`, or null when it is the whole vector (the canonical form). */
+export function normalKnown(
+  known: VersionVector,
+  vv: VersionVector,
+): VersionVector | null {
+  return vectorIncluded(vv, known) ? null : known;
 }
 
 function joinEntry(left: EntryRecord, right: EntryRecord): EntryRecord {
   if (left === right) return left;
-  const lv = left.vv,
-    rv = right.vv;
+  const lv = knownOf(left),
+    rv = knownOf(right);
+  const vv = joinVectors(left.vv, right.vv);
   return {
     id: left.id,
-    vv: joinVectors(lv, rv),
+    vv,
+    known:
+      left.known === null && right.known === null
+        ? null
+        : normalKnown(joinVectors(lv, rv), vv),
     del: joinOptional(left.del, right.del, joinTombstones),
     title: joinMultiValue(left.title, lv, right.title, rv),
     text: joinMultiValue(left.text, lv, right.text, rv),
-    mood: joinLastWriter(left.mood, right.mood),
-    date: joinLastWriter(left.date, right.date),
+    mood: joinOptional(left.mood, right.mood, joinLastWriter),
+    date: joinOptional(left.date, right.date, joinLastWriter),
     tags: joinMembers(left.tags, lv, right.tags, rv),
     attachments: joinMembers(left.attachments, lv, right.attachments, rv),
     order: joinOptional(left.order, right.order, joinLastWriter),
+    ext: joinExt(left.ext, lv, right.ext, rv),
     // Derived from the same keep-both write on every device that has it.
     split: joinOptional(left.split, right.split, (a, b) =>
       compareStamps(a.s, b.s) === 0 && a.from === b.from && a.field === b.field
@@ -177,6 +220,7 @@ function joinNamed(left: NamedRecord, right: NamedRecord): NamedRecord {
     vv: joinVectors(left.vv, right.vv),
     del: joinOptional(left.del, right.del, joinTombstones),
     title: joinLastWriter(left.title, right.title),
+    ext: joinExt(left.ext, left.vv, right.ext, right.vv),
   };
 }
 
@@ -186,6 +230,7 @@ function joinProfile(left: ProfileRecord, right: ProfileRecord): ProfileRecord {
     vv: joinVectors(left.vv, right.vv),
     name: joinMultiValue(left.name, left.vv, right.name, right.vv),
     photo: joinMultiValue(left.photo, left.vv, right.photo, right.vv),
+    ext: joinExt(left.ext, left.vv, right.ext, right.vv),
   };
 }
 
@@ -223,6 +268,17 @@ function joinRoster(
   return joinVectors(left, right) as Record<string, number>;
 }
 
+function joinAcks(
+  left: Readonly<Record<string, VersionVector>>,
+  right: Readonly<Record<string, VersionVector>>,
+): Record<string, VersionVector> {
+  if (left === right) return left as Record<string, VersionVector>;
+  const result: Record<string, VersionVector> = { ...left };
+  for (const [device, ack] of Object.entries(right))
+    result[device] = result[device] ? joinVectors(result[device], ack) : ack;
+  return result;
+}
+
 /** Asset IDs referenced by any record, shown or deleted (a delete can be undone). */
 export function referencedAssets(
   entries: ReadonlyMap<string, EntryRecord>,
@@ -258,6 +314,7 @@ export function join(left: SyncState, right: SyncState): SyncState {
     vaultId: left.vaultId,
     ctx: joinVectors(left.ctx, right.ctx),
     roster: joinRoster(left.roster, right.roster),
+    acks: joinAcks(left.acks, right.acks),
     floor: joinOptional(left.floor, right.floor, joinVectors),
     entries,
     tags: joinMaps(left.tags, right.tags, joinNamed),

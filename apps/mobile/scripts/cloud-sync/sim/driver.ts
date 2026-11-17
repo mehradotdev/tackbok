@@ -44,6 +44,8 @@ export interface View {
 
 export type Event =
   | { kind: 'clock'; device: number; skew: number }
+  /** Every clock moves forward by `ms` (devices that stay quiet fall off the roster). */
+  | { kind: 'leap'; device: number; ms: number }
   | { kind: 'sync'; device: number; peer: number | null; both: boolean }
   | {
       kind: 'createEntry';
@@ -69,9 +71,11 @@ export type Event =
   /** Reverse the entry's attachment order. */
   | { kind: 'reorder'; device: number; entryId: string }
   /** "Got it" on a returned entry. */
-  | { kind: 'acknowledge'; device: number; entryId: string };
+  | { kind: 'acknowledge'; device: number; entryId: string }
+  /** Writes an extension value on an entry (adapters with `supportsExt`). */
+  | { kind: 'setExt'; device: number; entryId: string; value: string };
 
-export type LocalEvent = Exclude<Event, { kind: 'clock' | 'sync' }>;
+export type LocalEvent = Exclude<Event, { kind: 'clock' | 'sync' | 'leap' }>;
 
 /** Something with several versions; `options` is how many can be kept. */
 export interface KeepTarget {
@@ -98,13 +102,32 @@ export interface KeepEffect {
   deletes: string[];
 }
 
-export type SyncOutcome = { ok: true; changed: boolean } | { ok: false; reason: string };
+export type SyncOutcome =
+  | {
+      ok: true;
+      changed: boolean;
+      /**
+       * False when the device refused what it would have received (a clock
+       * too far ahead); it may still have published. Default true.
+       */
+      pulled?: boolean;
+      /** Entries an unseen edit brought back after one side had compacted them. */
+      revived?: string[];
+    }
+  | { ok: false; reason: string };
 
 export interface SimAdapter {
   readonly name: string;
   /** `drive`: a sync merges every published head; `pairwise`: one peer. */
   readonly topology: 'drive' | 'pairwise';
   readonly supportsKeepBoth: boolean;
+  /**
+   * v2 only, so v1's generated cases and pinned baseline stay as they were:
+   * `setExt` events, `leap` events (roster expiry), positive clock skews
+   * kept within the context-ahead bound, and clocks fixed before the final
+   * round (a device whose clock is behind receives again).
+   */
+  readonly v2Events?: { maxAheadMs: number };
   view(device: number): View;
   /** Applies a local event; false when the app would refuse it. */
   apply(device: number, event: LocalEvent, wall: number): boolean;
@@ -158,6 +181,10 @@ export interface CaseResult {
   unsettled: boolean;
   /** Tags or attachments added to a shown entry and gone without a removal that saw them. */
   lostMemberships: string[];
+  /** Entries an unseen edit brought back after compaction (v2). */
+  revived: number;
+  /** Shown entries without a title or text version: brought back partly. */
+  incompleteEntries: string[];
 }
 
 export function caseFailed(result: CaseResult): boolean {
@@ -216,8 +243,15 @@ function chooseEvent(
       [3_600_000, 3],
       [365 * 86_400_000, 1],
     ] as const);
-    return { kind: 'clock', device, skew: rng.int(-30, 30) * unit };
+    let skew = rng.int(-30, 30) * unit;
+    // Ahead by more than the bound, a device's stamps are refused until it
+    // resets its sync identity (engine work); scenarios cover that case.
+    const bound = adapter.v2Events?.maxAheadMs;
+    if (bound !== undefined && skew > bound / 2) skew = -skew;
+    return { kind: 'clock', device, skew };
   }
+  if (adapter.v2Events && rng.chance(0.012))
+    return { kind: 'leap', device, ms: rng.int(120, 300) * 86_400_000 };
   if (rng.chance(config.syncChance)) {
     if (adapter.topology === 'drive')
       return { kind: 'sync', device, peer: null, both: false };
@@ -245,6 +279,7 @@ function chooseEvent(
     if (entry.attachmentIds.length > 0) choices.push(['detach', 2]);
     if (entry.attachmentIds.length > 1) choices.push(['reorder', 2]);
     if (entry.returned) choices.push(['acknowledge', 6]);
+    if (adapter.v2Events) choices.push(['setExt', 2]);
     if (tag) choices.push(['addTag', 4]);
     if (entry.tagIds.length > 0) choices.push(['removeTag', 2]);
   }
@@ -308,6 +343,8 @@ function chooseEvent(
     case 'reorder':
     case 'acknowledge':
       return { kind, device, entryId: entry!.id };
+    case 'setExt':
+      return { kind, device, entryId: entry!.id, value: text('X') };
     case 'createTag':
       return { kind, device, title: rng.pick(TAG_TITLES) };
     case 'createPrompt':
@@ -347,6 +384,10 @@ interface Removal {
 
 export interface OracleState {
   time: number;
+  /** Sum of `leap` events so far. */
+  leaped: number;
+  /** Entries brought back after compaction: may show values replaced before their delete. */
+  revived: Set<string>;
   coarseClock: boolean;
   skews: number[];
   knowledge: Set<number>[];
@@ -374,6 +415,8 @@ function newOracle(config: CaseConfig): OracleState {
   const devices = config.devices;
   return {
     time: T0,
+    leaped: 0,
+    revived: new Set(),
     coarseClock: config.coarseClock,
     skews: Array.from({ length: devices }, () => 0),
     knowledge: Array.from({ length: devices }, () => new Set<number>()),
@@ -455,7 +498,7 @@ function timeAt(index: number): number {
 }
 
 function wallClock(state: OracleState, device: number): number {
-  const wall = Math.max(0, state.time + state.skews[device]);
+  const wall = Math.max(0, state.time + state.leaped + state.skews[device]);
   return state.coarseClock ? wall - (wall % 86_400_000) : wall;
 }
 
@@ -471,6 +514,10 @@ async function runEvent(
     state.skews[event.device] = event.skew;
     return;
   }
+  if (event.kind === 'leap') {
+    state.leaped += event.ms;
+    return;
+  }
   const wall = (device: number) => wallClock(state, device);
   if (event.kind === 'sync') {
     const { device, peer } = event;
@@ -480,14 +527,18 @@ async function runEvent(
         state.syncFailures.push(`event ${index}: ${outcome.reason}`);
         return;
       }
-      union(state.knowledge[device], state.drive);
+      for (const id of outcome.revived ?? []) state.revived.add(id);
+      if (outcome.pulled !== false) union(state.knowledge[device], state.drive);
       union(state.drive, state.knowledge[device]);
       return;
     }
     const pull = async (to: number, from: number) => {
       const outcome = await adapter.sync(to, from, wall(to));
       if (!outcome.ok) state.syncFailures.push(`event ${index}: ${outcome.reason}`);
-      else union(state.knowledge[to], state.knowledge[from]);
+      else {
+        for (const id of outcome.revived ?? []) state.revived.add(id);
+        if (outcome.pulled !== false) union(state.knowledge[to], state.knowledge[from]);
+      }
     };
     await pull(device, peer!);
     if (event.both) await pull(peer!, device);
@@ -590,6 +641,7 @@ async function runEvent(
     case 'setMood':
     case 'setDate':
     case 'reorder':
+    case 'setExt':
       recordEntryWrite(state, event.entryId, index);
       break;
     default:
@@ -608,6 +660,7 @@ async function finalRound(
 ): Promise<number> {
   const wall = (device: number) => wallClock(state, device);
   const maxRounds = MAX_FINAL_ROUNDS;
+  if (adapter.v2Events) state.skews.fill(0);
   for (let round = 1; round <= maxRounds; round++) {
     let changed = false;
     state.time += 60_000;
@@ -621,10 +674,12 @@ async function finalRound(
           continue;
         }
         changed ||= outcome.changed;
+        for (const id of outcome.revived ?? []) state.revived.add(id);
+        const pulled = outcome.pulled !== false;
         if (peer === null) {
-          union(state.knowledge[device], state.drive);
+          if (pulled) union(state.knowledge[device], state.drive);
           union(state.drive, state.knowledge[device]);
-        } else union(state.knowledge[device], state.knowledge[peer]);
+        } else if (pulled) union(state.knowledge[device], state.knowledge[peer]);
       }
     }
     if (!changed) return round;
@@ -693,9 +748,14 @@ function check(
     );
   };
   for (const view of views) {
-    for (const entry of view.entries)
+    for (const entry of view.entries) {
+      // An entry brought back after compaction shows what the returning
+      // device had, which can be older than what its deleter replaced
+      // (compact.ts).
+      if (state.revived.has(entry.id)) continue;
       for (const value of [...entry.titles, ...entry.contents])
         if (isStale(value, entry.id)) stale.add(value!);
+    }
     for (const value of view.profileNames)
       if (isStale(value, 'profile')) stale.add(value!);
   }
@@ -762,6 +822,16 @@ function check(
     finalRounds,
     unsettled: finalRounds > MAX_FINAL_ROUNDS,
     lostMemberships: [...lostMemberships].sort(),
+    revived: state.revived.size,
+    incompleteEntries: [
+      ...new Set(
+        views.flatMap((view) =>
+          view.entries
+            .filter((entry) => entry.titles.length === 0 || entry.contents.length === 0)
+            .map((entry) => entry.id),
+        ),
+      ),
+    ].sort(),
   };
 }
 

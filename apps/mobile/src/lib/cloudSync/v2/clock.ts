@@ -46,15 +46,66 @@ export function highestHlc(vv: VersionVector): number {
   return highest;
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * How far ahead of this device's wall clock another state's clock may be.
+ * Further ahead, `assertNotAhead` refuses the state rather than letting one
+ * bad clock drag every HLC (and, near the cap, stop all writes). Generous on
+ * purpose: a refused state does not sync until the clocks agree, while a
+ * small drag is harmless.
+ */
+export const MAX_CONTEXT_AHEAD_MS = 7 * DAY;
+
+/** A device that has not written or published for this long leaves the active roster. */
+export const ROSTER_EXPIRY_MS = 180 * DAY;
+
+/** The highest time a state claims: its context and its roster. */
+export function highestTime(state: {
+  ctx: VersionVector;
+  roster: Readonly<Record<string, number>>;
+}): number {
+  return Math.max(highestHlc(state.ctx), highestHlc(state.roster));
+}
+
+export class ClockAheadError extends Error {
+  readonly code = 'context-ahead';
+  constructor(
+    readonly aheadMs: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ClockAheadError';
+  }
+}
+
+/**
+ * Refuses a remote state whose clock is more than `MAX_CONTEXT_AHEAD_MS`
+ * ahead of this device's wall clock. The engine skips that state (as it
+ * would an unreadable head) and tells the user a clock is wrong:
+ * - if this device's clock is behind, it still publishes (others accept
+ *   older stamps) and receives again once its clock is fixed;
+ * - if the other device's clock is ahead, its stamps stay ahead even after
+ *   its clock is fixed, so that device must reset its sync identity (a new
+ *   device ID) to publish again. That reset is engine work (P6/P8).
+ */
+export function assertNotAhead(
+  remote: { ctx: VersionVector; roster: Readonly<Record<string, number>> },
+  wallMs: number,
+): void {
+  const ahead = highestTime(remote) - wallMs;
+  if (ahead > MAX_CONTEXT_AHEAD_MS)
+    throw new ClockAheadError(
+      ahead,
+      `A device's clock is ${Math.round(ahead / DAY)} days ahead of this one`,
+    );
+}
+
 /**
  * Hybrid logical clock: the wall clock, unless this state has already seen
  * that time or later; then one more than the highest HLC seen. A write made
  * after seeing another always gets a higher HLC, whatever the wall clocks say.
- *
- * shortcut: a device whose clock is years ahead drags every HLC with it
- * (still correct, but "newest" then means causal order, not wall time), and
- * one near the timestamp cap would stop all writes. The engine must decide
- * how far ahead of local time a snapshot's context may be (Phase 0 report).
+ * `assertNotAhead` bounds how far another device can push it.
  */
 export function nextHlc(ctx: VersionVector, wallMs: number): number {
   const wall = Number.isFinite(wallMs) && wallMs > 0 ? Math.floor(wallMs) : 0;

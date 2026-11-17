@@ -9,11 +9,12 @@ import { canonicalize } from '../snapshot/canonical';
 
 import { compareStamps, nextHlc, withStamp } from './clock';
 import { namedId, normalizeTitle, splitEntryId, type NamedKind } from './ids';
-import { joinTombstones, pruneMedia } from './join';
+import { joinTombstones, normalKnown, pruneMedia } from './join';
 import type {
   DeviceId,
   EntryRecord,
   Item,
+  Json,
   MediaDescriptor,
   Member,
   Mood,
@@ -43,7 +44,8 @@ export interface Writer {
 /** Which current values a write replaces: some by stamp, or every one this device has. */
 export type Replaces = readonly Stamp[] | 'all';
 
-function tick(state: SyncState, writer: Writer): { state: SyncState; s: Stamp } {
+/** A fresh stamp from this device's clock, recorded in the context and roster. */
+export function tick(state: SyncState, writer: Writer): { state: SyncState; s: Stamp } {
   const hlc = nextHlc(state.ctx, writer.wallMs);
   const s: Stamp = [hlc, writer.device];
   const lastSeen = state.roster[writer.device];
@@ -94,6 +96,20 @@ function withEntry(state: SyncState, entry: EntryRecord): SyncState {
   return { ...state, entries };
 }
 
+/**
+ * A write's stamp, added to the entry's vector and to what it holds values
+ * for. On an entry brought back after compaction (`known` smaller than the
+ * vector) this also claims this device's older writes there; those were
+ * compacted wherever this device could have seen them.
+ */
+function stamped(entry: EntryRecord, s: Stamp): Pick<EntryRecord, 'vv' | 'known'> {
+  const vv = withStamp(entry.vv, s);
+  return {
+    vv,
+    known: entry.known === null ? null : normalKnown(withStamp(entry.known, s), vv),
+  };
+}
+
 function updateEntry(
   state: SyncState,
   writer: Writer,
@@ -105,7 +121,7 @@ function updateEntry(
   return withEntry(ticked.state, {
     ...entry,
     ...change(entry, ticked.s),
-    vv: withStamp(entry.vv, ticked.s),
+    ...stamped(entry, ticked.s),
   });
 }
 
@@ -124,6 +140,7 @@ export function createEntry(state: SyncState, writer: Writer, init: NewEntry): S
   return withEntry(next, {
     id: init.id,
     vv: { [s[1]]: s[0] },
+    known: null,
     del: null,
     title: [{ s, v: init.title }],
     text: [{ s, v: init.text }],
@@ -133,6 +150,7 @@ export function createEntry(state: SyncState, writer: Writer, init: NewEntry): S
     attachments: [],
     order: null,
     split: null,
+    ext: {},
   });
 }
 
@@ -208,7 +226,7 @@ export function keepBoth(
     next = withEntry(ticked.state, {
       ...existing,
       [field]: [...existing[field], { s: ticked.s, v: moved.v }],
-      vv: withStamp(existing.vv, ticked.s),
+      ...stamped(existing, ticked.s),
     });
   } else if (!existing) {
     const other: TextField = field === 'title' ? 'text' : 'title';
@@ -217,8 +235,9 @@ export function keepBoth(
       id: newEntryId,
       title: field === 'title' ? moved.v : otherValue,
       text: field === 'text' ? moved.v : otherValue,
-      mood: entry.mood.v,
-      date: entry.date.v,
+      // Only a compacted entry lacks them, and it is never live.
+      mood: entry.mood!.v,
+      date: entry.date!.v,
     });
     const created = next.entries.get(newEntryId)!;
     const tagIds = [...new Set(entry.tags.map((member) => member.id))];
@@ -257,11 +276,11 @@ export function deleteEntry(
 ): SyncState {
   const entry = liveEntry(state, entryId);
   const { state: next, s } = tick(state, writer);
-  const vv = withStamp(entry.vv, s);
-  const del = { at: s, seen: vv, ackSeen: null };
+  const record = stamped(entry, s);
+  const del = { at: s, seen: record.vv, ackSeen: null, ext: {} };
   return withEntry(next, {
     ...entry,
-    vv,
+    ...record,
     del: entry.del ? joinTombstones(entry.del, del) : del,
   });
 }
@@ -412,7 +431,7 @@ export function createNamed(
   // A deleted tag with this ID comes back: the new write is one its delete never saw.
   const record: NamedRecord = existing
     ? { ...existing, vv: withStamp(existing.vv, s), title: { s, v: clean } }
-    : { id, vv: { [s[1]]: s[0] }, del: null, title: { s, v: clean } };
+    : { id, vv: { [s[1]]: s[0] }, del: null, title: { s, v: clean }, ext: {} };
   return { state: withNamed(next, kind, record), id };
 }
 
@@ -463,7 +482,7 @@ export function deleteNamed(
     next = { ...next, entries };
   }
   const vv = withStamp(record.vv, s);
-  const del = { at: s, seen: vv, ackSeen: null };
+  const del = { at: s, seen: vv, ackSeen: null, ext: {} };
   return withNamed(next, kind, {
     ...record,
     vv,
@@ -539,12 +558,118 @@ export function keepProfile(
 }
 
 /**
- * Puts the device on the roster (or moves its last-seen time forward) without
- * a write. A device publishes under its own name, so it calls this first.
+ * Before publishing: puts the device on the roster, moves its last-seen time
+ * forward and records its context as its acknowledgement (`acks`), which
+ * compaction reads. Not a write: no record changes.
  */
 export function markSeen(state: SyncState, writer: Writer): SyncState {
   const hlc = nextHlc(state.ctx, writer.wallMs);
   const lastSeen = state.roster[writer.device];
-  if (lastSeen !== undefined && lastSeen >= hlc) return state;
-  return { ...state, roster: { ...state.roster, [writer.device]: hlc } };
+  return {
+    ...state,
+    roster:
+      lastSeen !== undefined && lastSeen >= hlc
+        ? state.roster
+        : { ...state.roster, [writer.device]: hlc },
+    acks: { ...state.acks, [writer.device]: state.ctx },
+  };
+}
+
+/** Whether the device's acknowledgement is behind what it holds: publish again. */
+export function needsAck(state: SyncState, device: DeviceId): boolean {
+  const ack = state.acks[device];
+  return ack === undefined || canonicalize(ack) !== canonicalize(state.ctx);
+}
+
+export type ExtTarget =
+  | { kind: 'entry'; id: string }
+  | { kind: 'tag' | 'prompt'; id: string }
+  | { kind: 'profile' };
+
+/**
+ * Writes a value under an extension feature on a record, replacing the items
+ * named by `replaces` (or all). A feature this build does not know is never
+ * written, only kept: `ext` lets a later version add an optional field.
+ */
+export function writeExt(
+  state: SyncState,
+  writer: Writer,
+  target: ExtTarget,
+  feature: string,
+  value: Json,
+  replaces: Replaces,
+): SyncState {
+  const write = <R extends { ext: EntryRecord['ext'] }>(record: R, s: Stamp): R => {
+    const items = replaceItems(record.ext[feature] ?? [], replaces, { s, v: value });
+    return { ...record, ext: { ...record.ext, [feature]: items } };
+  };
+  if (target.kind === 'entry')
+    return updateEntry(state, writer, target.id, (entry, s) => write(entry, s));
+  if (target.kind === 'profile') {
+    const { state: next, s } = tick(state, writer);
+    const profile = write(next.profile, s);
+    return { ...next, profile: { ...profile, vv: withStamp(profile.vv, s) } };
+  }
+  const record = namedMap(state, target.kind).get(target.id);
+  if (!record || !isLive(record))
+    throw new SyncOpError('missing-named', `No ${target.kind} ${target.id}`);
+  const { state: next, s } = tick(state, writer);
+  const written = write(record, s);
+  return withNamed(next, target.kind, { ...written, vv: withStamp(written.vv, s) });
+}
+
+/**
+ * Renames a shown tag or prompt: every record merged into it on display
+ * (`shownNamed` in `view.ts`) gets the new title.
+ */
+export function renameShown(
+  state: SyncState,
+  writer: Writer,
+  kind: NamedKind,
+  ids: readonly string[],
+  title: string,
+): SyncState {
+  const clean = cleanTitle(kind, title);
+  const wanted = normalizeTitle(kind, clean);
+  for (const record of namedMap(state, kind).values())
+    if (
+      !ids.includes(record.id) &&
+      isLive(record) &&
+      normalizeTitle(kind, record.title.v) === wanted
+    )
+      throw new SyncOpError('duplicate-title', `${kind} title exists`);
+  let next = state;
+  for (const id of ids) {
+    const record = namedMap(next, kind).get(id);
+    if (!record) throw new SyncOpError('missing-named', `No ${kind} ${id}`);
+    const ticked = tick(next, writer);
+    next = withNamed(ticked.state, kind, {
+      ...record,
+      vv: withStamp(record.vv, ticked.s),
+      title: { s: ticked.s, v: clean },
+    });
+  }
+  return next;
+}
+
+/** Deletes a shown tag or prompt: every record merged into it on display. */
+export function deleteShown(
+  state: SyncState,
+  writer: Writer,
+  kind: NamedKind,
+  ids: readonly string[],
+): SyncState {
+  return ids.reduce((next, id) => deleteNamed(next, writer, kind, id), state);
+}
+
+/** Removes a shown tag from an entry: every record merged into it. */
+export function removeShownTag(
+  state: SyncState,
+  writer: Writer,
+  entryId: string,
+  ids: readonly string[],
+): SyncState {
+  return updateEntry(state, writer, entryId, (entry) => ({
+    tags: entry.tags.filter((member) => !ids.includes(member.id)),
+  }));
 }

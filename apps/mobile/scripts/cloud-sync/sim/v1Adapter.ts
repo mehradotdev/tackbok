@@ -680,6 +680,7 @@ export class V1Adapter implements SimAdapter {
       }
       // v1 keeps acknowledgements on the device; nothing syncs.
       case 'acknowledge':
+      case 'setExt':
       case 'keep':
       case 'keepBoth':
         return null;
