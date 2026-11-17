@@ -156,7 +156,10 @@ function buildJournal(count: number, seed: number): Journal {
         ext: {},
       };
       v2Media.set(assetId, descriptor);
-      if (!deleted) v1Media.push({ ...descriptor, updatedAt: date });
+      if (!deleted) {
+        const { ext: _ext, ...v1Descriptor } = descriptor;
+        v1Media.push({ ...v1Descriptor, updatedAt: date });
+      }
     }
     attachments.sort((a, b) => (a.id < b.id ? -1 : 1));
     const tagMembers = tagIndexes

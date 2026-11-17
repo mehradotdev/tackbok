@@ -95,14 +95,18 @@ export function compactionFloor(state: SyncState): VersionVector | null {
 
 /** A compacted entry holds no values: `known` is empty. */
 export function isCompacted(entry: EntryRecord): boolean {
-  return entry.known !== null && Object.keys(entry.known).length === 0;
+  return (
+    entry.known !== null &&
+    Object.keys(entry.known.vv).length === 0 &&
+    entry.known.extra.length === 0
+  );
 }
 
 /** The entry with its values dropped; vector, tombstone and split stay. */
 export function scrubEntry(entry: EntryRecord): EntryRecord {
   return {
     ...entry,
-    known: {},
+    known: { vv: {}, extra: [] },
     title: [],
     text: [],
     mood: null,

@@ -36,7 +36,7 @@ import { sha256Bytes, sha256Text } from '../snapshot/sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../snapshot/strictJson';
 import { compareStamps, covers, vectorIncluded } from './clock';
 import { NAMED_ID, splitEntryId } from './ids';
-import { referencedAssets } from './join';
+import { knows, referencedAssets } from './join';
 import type {
   EntryRecord,
   Ext,
@@ -185,7 +185,12 @@ function entryJson(ix: Indexer, entry: EntryRecord): Json {
   return {
     id: entry.id,
     vv: ix.vector(entry.vv),
-    known: entry.known ? ix.vector(entry.known) : null,
+    known: entry.known
+      ? {
+          vv: ix.vector(entry.known.vv),
+          extra: entry.known.extra.map((s) => ix.stamp(s)),
+        }
+      : null,
     del: tombJson(ix, entry.del),
     title: itemsJson(ix, entry.title),
     text: itemsJson(ix, entry.text),
@@ -510,7 +515,15 @@ function readEntry(reader: Reader, raw: unknown, path: string): EntryRecord {
   return {
     id: id(value.id, `${path}.id`),
     vv: reader.vector(value.vv, `${path}.vv`),
-    known: nullable(value.known, (known) => reader.vector(known, `${path}.known`)),
+    known: nullable(value.known, (raw) => {
+      const known = object(raw, ['vv', 'extra'], `${path}.known`);
+      return {
+        vv: reader.vector(known.vv, `${path}.known.vv`),
+        extra: array(known.extra, V2_CAPS.valuesPerRegister, `${path}.known.extra`).map(
+          (stamp, i) => reader.stamp(stamp, `${path}.known.extra[${i}]`),
+        ),
+      };
+    }),
     del: reader.tomb(value.del, `${path}.del`),
     title: reader.items(
       value.title,
@@ -975,11 +988,32 @@ export function validateState(state: SyncState): void {
     ];
     validateRecord(entry, state.ctx, stamps, path);
     if (entry.known) {
-      onRoster(entry.known, `${path}.known`);
-      if (!vectorIncluded(entry.known, entry.vv) || vectorIncluded(entry.vv, entry.known))
+      const known = entry.known;
+      onRoster(known.vv, `${path}.known`);
+      if (!vectorIncluded(known.vv, entry.vv) || vectorIncluded(entry.vv, known.vv))
         invalid('invalid-known', `${path}.known must be inside its vector and smaller`);
+      if (known.extra.length > V2_CAPS.valuesPerRegister)
+        invalid('collection-cap', `${path}.known has too many stamps`);
+      for (const [i, stamp] of known.extra.entries()) {
+        assertCovered(entry.vv, stamp, `${path}.known.extra`);
+        if (
+          covers(known.vv, stamp) ||
+          (i > 0 && compareStamps(known.extra[i - 1], stamp) >= 0)
+        )
+          invalid(
+            'invalid-known',
+            `${path}.known.extra must be sorted, unique, outside its vector`,
+          );
+      }
+      // Values must be known: the join judges them against `known`.
+      for (const stamp of stamps)
+        if (!knows(known, stamp))
+          invalid('invalid-known', `${path} holds a value it does not know`);
     }
-    const compacted = entry.known !== null && Object.keys(entry.known).length === 0;
+    const compacted =
+      entry.known !== null &&
+      Object.keys(entry.known.vv).length === 0 &&
+      entry.known.extra.length === 0;
     if (compacted && (stamps.length > 0 || Object.keys(entry.ext).length > 0))
       invalid('invalid-known', `${path} holds values it does not know`);
     if (!compacted && (!entry.mood || !entry.date))

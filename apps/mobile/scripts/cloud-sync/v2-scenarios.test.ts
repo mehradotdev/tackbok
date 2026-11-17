@@ -30,7 +30,7 @@ import {
   encodeEnvelope,
 } from '../../src/lib/cloudSync/v2/codec';
 import { namedId, normalizeTitle } from '../../src/lib/cloudSync/v2/ids';
-import { SyncJoinError, join } from '../../src/lib/cloudSync/v2/join';
+import { SyncJoinError, join, knows } from '../../src/lib/cloudSync/v2/join';
 import * as ops from '../../src/lib/cloudSync/v2/ops';
 import { emptyState, type SyncState } from '../../src/lib/cloudSync/v2/types';
 import {
@@ -991,7 +991,7 @@ describe('compaction of deleted entries', () => {
     const entry = compacted.entries.get('e1')!;
     expect(isCompacted(entry)).toBe(true);
     expect(entry).toMatchObject({
-      known: {},
+      known: { vv: {}, extra: [] },
       title: [],
       text: [],
       mood: null,
@@ -1068,6 +1068,27 @@ describe('compaction of deleted entries', () => {
     expect(back.revived).toEqual([]);
     expect(isLive(back.state.entries.get('e1')!)).toBe(false);
     expect(isCompacted(compact(back.state).entries.get('e1')!)).toBe(true);
+  });
+
+  test("a write on an entry brought back after compaction claims only itself, not the writer's compacted writes", () => {
+    // device-a writes a newer title, then device-c deletes; device-x only ever
+    // saw the first title. Found by the 10x simulation (seed 13754).
+    const { before } = deletedEverywhere();
+    const away = ops.markSeen(before, at('device-x'));
+    const newer = edit(before, at('device-a'), 'title', 'Newer');
+    const deleted = ops.deleteEntry(newer, at('device-c'), 'e1');
+    const state = compact(publishAll(join(deleted, away), LATER));
+    const edited = ops.setMood(away, at('device-x'), 'e1', 'AWFUL');
+    const back = absorb(state, edited, at('device-a', LATER)).state;
+    expect(titles(back, 'e1')).toEqual(['Title']);
+    // device-a writes again; its compacted "Newer" stays unknown to the record.
+    const again = edit(back, at('device-a', LATER), 'text', 'Again');
+    const newerStamp = newer.entries.get('e1')!.title[0].s;
+    expect(knows(again.entries.get('e1')!.known!, newerStamp)).toBe(false);
+    // A stale full copy turns up: the entry keeps a title in every order.
+    const all = convergeInEveryOrder([again, deleted, edited]);
+    expect(titles(all, 'e1')).toEqual(['Newer']);
+    expect(texts(all, 'e1')).toEqual(['Again']);
   });
 
   test('a later edit on an entry brought back after compaction replaces what it was made from', () => {

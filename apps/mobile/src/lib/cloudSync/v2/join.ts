@@ -30,12 +30,14 @@ import type {
   Ext,
   Item,
   Json,
+  Known,
   LastWriter,
   MediaDescriptor,
   Member,
   MultiValue,
   NamedRecord,
   ProfileRecord,
+  Stamp,
   SyncState,
   Tombstone,
   VersionVector,
@@ -57,11 +59,27 @@ function smaller<T>(left: T, right: T): T {
   return canonicalize(left) <= canonicalize(right) ? left : right;
 }
 
+/** Whether a side has seen a write: its vector, or an entry's `known`. */
+type Seen = (stamp: Stamp) => boolean;
+const seenBy =
+  (vv: VersionVector): Seen =>
+  (stamp) =>
+    covers(vv, stamp);
+
 export function joinMultiValue<T>(
   left: MultiValue<T>,
   leftVv: VersionVector,
   right: MultiValue<T>,
   rightVv: VersionVector,
+): MultiValue<T> {
+  return joinItems(left, seenBy(leftVv), right, seenBy(rightVv));
+}
+
+function joinItems<T>(
+  left: MultiValue<T>,
+  leftSeen: Seen,
+  right: MultiValue<T>,
+  rightSeen: Seen,
 ): MultiValue<T> {
   if (left === right) return left;
   const result: Item<T>[] = [];
@@ -83,10 +101,10 @@ export function joinMultiValue<T>(
       i++;
       j++;
     } else if (order < 0) {
-      if (!covers(rightVv, left[i].s)) result.push(left[i]);
+      if (!rightSeen(left[i].s)) result.push(left[i]);
       i++;
     } else {
-      if (!covers(leftVv, right[j].s)) result.push(right[j]);
+      if (!leftSeen(right[j].s)) result.push(right[j]);
       j++;
     }
   }
@@ -98,11 +116,11 @@ function compareMembers(left: Member, right: Member): number {
   return compareStamps(left.s, right.s);
 }
 
-export function joinMembers(
+function joinMembers(
   left: readonly Member[],
-  leftVv: VersionVector,
+  leftSeen: Seen,
   right: readonly Member[],
-  rightVv: VersionVector,
+  rightSeen: Seen,
 ): readonly Member[] {
   if (left === right) return left;
   const result: Member[] = [];
@@ -116,10 +134,10 @@ export function joinMembers(
       i++;
       j++;
     } else if (order < 0) {
-      if (!covers(rightVv, left[i].s)) result.push(left[i]);
+      if (!rightSeen(left[i].s)) result.push(left[i]);
       i++;
     } else {
-      if (!covers(leftVv, right[j].s)) result.push(right[j]);
+      if (!leftSeen(right[j].s)) result.push(right[j]);
       j++;
     }
   }
@@ -137,16 +155,11 @@ export function joinLastWriter<T>(
 }
 
 /** Feature by feature; a feature whose items all went is dropped. */
-export function joinExt(
-  left: Ext,
-  leftVv: VersionVector,
-  right: Ext,
-  rightVv: VersionVector,
-): Ext {
+function joinExt(left: Ext, leftSeen: Seen, right: Ext, rightSeen: Seen): Ext {
   if (left === right) return left;
   const result: Record<string, MultiValue<Json>> = {};
   for (const key of new Set([...Object.keys(left), ...Object.keys(right)])) {
-    const items = joinMultiValue(left[key] ?? [], leftVv, right[key] ?? [], rightVv);
+    const items = joinItems(left[key] ?? [], leftSeen, right[key] ?? [], rightSeen);
     if (items.length > 0) result[key] = items;
   }
   return result;
@@ -168,25 +181,51 @@ export function joinTombstones(left: Tombstone, right: Tombstone): Tombstone {
     at: maxStamp(left.at, right.at),
     seen: joinVectors(left.seen, right.seen),
     ackSeen: joinOptional(left.ackSeen, right.ackSeen, joinVectors),
-    ext: joinExt(left.ext, left.seen, right.ext, right.seen),
+    ext: joinExt(left.ext, seenBy(left.seen), right.ext, seenBy(right.seen)),
   };
 }
 
 /** The writes an entry holds values for. */
-export const knownOf = (entry: EntryRecord): VersionVector => entry.known ?? entry.vv;
+export const knownOf = (entry: EntryRecord): Known =>
+  entry.known ?? { vv: entry.vv, extra: [] };
 
-/** `known`, or null when it is the whole vector (the canonical form). */
-export function normalKnown(
-  known: VersionVector,
-  vv: VersionVector,
-): VersionVector | null {
-  return vectorIncluded(vv, known) ? null : known;
+export function knows(known: Known, stamp: Stamp): boolean {
+  return (
+    covers(known.vv, stamp) ||
+    known.extra.some((extra) => compareStamps(extra, stamp) === 0)
+  );
+}
+
+/**
+ * The canonical form: extra stamps sorted, unique and outside the vector;
+ * null when it is everything the record's vector names.
+ */
+export function normalKnown(known: Known, vv: VersionVector): Known | null {
+  if (vectorIncluded(vv, known.vv)) return null;
+  const extra: Stamp[] = [];
+  for (const stamp of [...known.extra].sort(compareStamps))
+    if (
+      !covers(known.vv, stamp) &&
+      (extra.length === 0 || compareStamps(extra[extra.length - 1], stamp) !== 0)
+    )
+      extra.push(stamp);
+  return { vv: known.vv, extra };
+}
+
+/** The union of two sets of writes. */
+export function joinKnown(left: Known, right: Known): Known {
+  return {
+    vv: joinVectors(left.vv, right.vv),
+    extra: [...left.extra, ...right.extra],
+  };
 }
 
 function joinEntry(left: EntryRecord, right: EntryRecord): EntryRecord {
   if (left === right) return left;
-  const lv = knownOf(left),
-    rv = knownOf(right);
+  const lk = knownOf(left),
+    rk = knownOf(right);
+  const lv: Seen = (stamp) => knows(lk, stamp),
+    rv: Seen = (stamp) => knows(rk, stamp);
   const vv = joinVectors(left.vv, right.vv);
   return {
     id: left.id,
@@ -194,10 +233,10 @@ function joinEntry(left: EntryRecord, right: EntryRecord): EntryRecord {
     known:
       left.known === null && right.known === null
         ? null
-        : normalKnown(joinVectors(lv, rv), vv),
+        : normalKnown(joinKnown(lk, rk), vv),
     del: joinOptional(left.del, right.del, joinTombstones),
-    title: joinMultiValue(left.title, lv, right.title, rv),
-    text: joinMultiValue(left.text, lv, right.text, rv),
+    title: joinItems(left.title, lv, right.title, rv),
+    text: joinItems(left.text, lv, right.text, rv),
     mood: joinOptional(left.mood, right.mood, joinLastWriter),
     date: joinOptional(left.date, right.date, joinLastWriter),
     tags: joinMembers(left.tags, lv, right.tags, rv),
@@ -220,7 +259,7 @@ function joinNamed(left: NamedRecord, right: NamedRecord): NamedRecord {
     vv: joinVectors(left.vv, right.vv),
     del: joinOptional(left.del, right.del, joinTombstones),
     title: joinLastWriter(left.title, right.title),
-    ext: joinExt(left.ext, left.vv, right.ext, right.vv),
+    ext: joinExt(left.ext, seenBy(left.vv), right.ext, seenBy(right.vv)),
   };
 }
 
@@ -230,7 +269,7 @@ function joinProfile(left: ProfileRecord, right: ProfileRecord): ProfileRecord {
     vv: joinVectors(left.vv, right.vv),
     name: joinMultiValue(left.name, left.vv, right.name, right.vv),
     photo: joinMultiValue(left.photo, left.vv, right.photo, right.vv),
-    ext: joinExt(left.ext, left.vv, right.ext, right.vv),
+    ext: joinExt(left.ext, seenBy(left.vv), right.ext, seenBy(right.vv)),
   };
 }
 

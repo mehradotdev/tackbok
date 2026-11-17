@@ -99,14 +99,23 @@ function withEntry(state: SyncState, entry: EntryRecord): SyncState {
 /**
  * A write's stamp, added to the entry's vector and to what it holds values
  * for. On an entry brought back after compaction (`known` smaller than the
- * vector) this also claims this device's older writes there; those were
- * compacted wherever this device could have seen them.
+ * vector) the writer may lack values of its own older writes, so the new
+ * stamp joins `known` alone unless every older write of the writer is known.
  */
 function stamped(entry: EntryRecord, s: Stamp): Pick<EntryRecord, 'vv' | 'known'> {
   const vv = withStamp(entry.vv, s);
+  const known = entry.known;
+  if (known === null) return { vv, known: null };
+  const writer = s[1];
+  const complete = (known.vv[writer] ?? -1) >= (entry.vv[writer] ?? -1);
   return {
     vv,
-    known: entry.known === null ? null : normalKnown(withStamp(entry.known, s), vv),
+    known: normalKnown(
+      complete
+        ? { vv: withStamp(known.vv, s), extra: known.extra }
+        : { vv: known.vv, extra: [...known.extra, s] },
+      vv,
+    ),
   };
 }
 

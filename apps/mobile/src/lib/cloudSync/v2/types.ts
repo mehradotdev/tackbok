@@ -73,18 +73,29 @@ interface RecordBase {
   readonly ext: Ext;
 }
 
+/**
+ * A set of writes: every write of device d up to `vv[d]`, plus the stamps in
+ * `extra` (sorted, none inside `vv`). A write to an entry brought back after
+ * compaction is known exactly, without claiming the writer's older writes the
+ * entry no longer holds.
+ */
+export interface Known {
+  readonly vv: VersionVector;
+  readonly extra: readonly Stamp[];
+}
+
 export type TextField = 'title' | 'text';
 
 export interface EntryRecord extends RecordBase {
   readonly id: string;
   /**
    * The writes whose values this record holds, when that is less than `vv`:
-   * `{}` once compaction dropped a deleted entry's values (`compact.ts`), or
-   * what one side knew after a compacted copy met one with values. Null
+   * nothing once compaction dropped a deleted entry's values (`compact.ts`),
+   * or what one side knew after a compacted copy met one with values. Null
    * means "the same as `vv`". The join judges values (items, members, `ext`)
    * against it, so a compacted copy never removes values another copy has.
    */
-  readonly known: VersionVector | null;
+  readonly known: Known | null;
   readonly title: MultiValue<string | null>;
   readonly text: MultiValue<string | null>;
   /** Null only while compacted (no value known). */
