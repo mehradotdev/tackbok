@@ -439,6 +439,31 @@ describe('review cases', () => {
     expect(rows(a, 'SELECT asset_id FROM media_assets')).toEqual([{ asset_id: 'x' }]);
   });
 
+  test('a remote delete never gives up the only copy of an attachment not published yet', async () => {
+    await write(a, T, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e1'), { now: T }),
+    );
+    await syncFrom(b, (await capture(a)).state, T + 1);
+    // A attaches a photo; its upload waits (Wi-Fi only), but the entry's
+    // write is published, and B deletes the entry having seen it.
+    await write(a, T + 2, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e1', { assets: [photo(1)] }), {
+        now: T + 2,
+      }),
+    );
+    await syncFrom(b, (await capture(a)).state, T + 3);
+    await write(b, T + 4, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e1', { now: T + 4 }),
+    );
+    await syncFrom(a, (await capture(b)).state, T + 5);
+    expect(rows(a, 'SELECT note_id FROM entries')).toEqual([]);
+    // The row, and so the file, stay; nothing hands it to the reaper.
+    expect(rows(a, 'SELECT asset_id, stamp_hlc FROM media_assets')).toEqual([
+      { asset_id: 'asset-1', stamp_hlc: null },
+    ]);
+    expect(rows(a, 'SELECT asset_id FROM sync_retained_media')).toEqual([]);
+  });
+
   test('a deleted tag shown only for an entry goes once no entry uses it', async () => {
     const tagId = await write(a, T, (tx) =>
       repositories.createTagInTransaction(tx, 'Work'),

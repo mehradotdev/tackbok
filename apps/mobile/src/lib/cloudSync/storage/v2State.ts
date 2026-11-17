@@ -457,6 +457,12 @@ export async function captureSyncStateInTransaction(tx: Tx): Promise<CapturedSyn
   }
   for (const row of rows.entryRows)
     if (!stateEntries.has(row.note_id)) unready(`sync-metadata-missing:entry`);
+  // A shown name or photo with no stamp would read as never written.
+  if (
+    (rows.profile?.display_name != null && !profileRecord.name.length) ||
+    (rows.profile?.photo_asset_id != null && !profileRecord.photo.length)
+  )
+    unready('sync-metadata-missing:profile');
   for (const row of rows.tagRows)
     if (!stateTags.has(row.tag_id)) unready(`sync-metadata-missing:tag`);
   for (const row of rows.promptRows)
@@ -911,8 +917,12 @@ async function writeEntry(context: ApplyContext, entry: EntryRecord, existed: bo
   if (!isLive(entry)) {
     writes.records.push(recordRow('entry', id, meta, now));
     if (context.entryAssets.has(id)) writes.hidden.push(id);
+    // An attachment this device has not published yet is in no state, so no
+    // delete can have seen it, and no other device holds its file. Its row
+    // stays (unshown, like the entry): the file is never reaped while a row
+    // names it, and the photo returns if an unseen edit brings the entry back.
     for (const row of existingMedia)
-      await retainRemovedMedia(tx, row, context.vaultId, now);
+      if (row.stamp_hlc !== null) await retainRemovedMedia(tx, row, context.vaultId, now);
     if (!isCompacted(entry)) {
       const kept: DeletedEntryValues = {
         title: [...entry.title],

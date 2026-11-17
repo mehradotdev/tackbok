@@ -200,12 +200,14 @@ export async function stampDeleteInTransaction(
   const values = {
     vv_json: JSON.stringify(vv),
     known_json: knownAfter(row?.known_json, before, s, vv),
+    // The shown values' stamps now live with the kept values.
+    stamps_json: '{}',
     del_json: JSON.stringify(del),
     updated_at: now,
   };
   await tx
     .insert(syncRecords)
-    .values({ entity_type: type, entity_id: id, stamps_json: '{}', ...values })
+    .values({ entity_type: type, entity_id: id, ...values })
     .onConflictDoUpdate({
       target: [syncRecords.entity_type, syncRecords.entity_id],
       set: values,
