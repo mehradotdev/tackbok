@@ -190,8 +190,16 @@ export function keepBoth(
   const newEntryId = splitEntryId(entryId, field, move);
   const kept = entry[field].find((value) => compareStamps(value.s, keep) === 0);
   if (!kept) throw new SyncOpError('missing-version', 'The version to keep is gone');
-  // Only the two versions involved: a third open version stays open.
-  let next = editText(state, writer, entryId, field, kept.v, [keep, move]);
+  // Only the two versions involved, including equal copies of either (shown
+  // once): a third open version stays open.
+  const replaced = entry[field]
+    .filter(
+      (item) =>
+        canonicalize(item.v) === canonicalize(kept.v) ||
+        canonicalize(item.v) === canonicalize(moved.v),
+    )
+    .map((item) => item.s);
+  let next = editText(state, writer, entryId, field, kept.v, replaced);
   const existing = next.entries.get(newEntryId);
   if (existing && !isLive(existing)) {
     // Made here or elsewhere, then deleted: write the moved value again so it
