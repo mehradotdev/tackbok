@@ -93,16 +93,14 @@ change in v1 behaviour shows up as a diff.
 | Metric (cases with at least one)                         | v1, 3,000 cases | v2, 26,000 cases             |
 | -------------------------------------------------------- | --------------- | ---------------------------- |
 | Devices disagree after the final round                   | 0               | 0                            |
-| Authored text lost                                       | 43 (1.4%)       | 0                            |
-| ...of which a version a "keep" chose                     | 43              | 0                            |
+| Authored text lost                                       | 41 (1.4%)       | 0                            |
+| ...of which a version a "keep" chose                     | 41              | 0                            |
 | ...both of two concurrently kept versions lost           | 0               | 0                            |
-| Entry deleted although an edit was unseen by its deleter | 32 (1.1%)       | 0                            |
-| A replaced value shown again                             | 223 (7.4%)      | 0                            |
-| A delete undone without an unseen edit                   | 26 (0.9%)       | 0                            |
+| Entry deleted although an edit was unseen by its deleter | 12 (0.4%)       | 0                            |
+| A replaced value shown again                             | 224 (7.5%)      | 0                            |
+| A delete undone without an unseen edit                   | 27 (0.9%)       | 0                            |
 | Duplicate tag or prompt titles                           | 392 (13%)       | 364 (1.4%), all from renames |
 | Sync paused (merge or validation error)                  | 0               | 0                            |
-
-<!-- v1 row from the 10x run after the last harness fix; see section 9 -->
 
 What the shrunk v1 failures are:
 
