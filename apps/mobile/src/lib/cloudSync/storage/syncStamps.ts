@@ -40,7 +40,6 @@ import { nextHlc, withStamp } from '../v2/clock';
 import { normalKnown } from '../v2/join';
 import type { Known, Stamp, VersionVector } from '../v2/types';
 import type { CloudSyncTransaction, SyncEntityType } from './repositories';
-import { retainedValuesInTransaction } from './v2State';
 
 const SELF = 'self';
 
@@ -185,9 +184,10 @@ export async function stampDeleteInTransaction(
   tx: CloudSyncTransaction,
   type: Exclude<SyncEntityType, 'profile'>,
   id: string,
+  /** `retainedValuesInTransaction` (`v2State.ts`), read before the rows go. */
+  retained: Json | null,
   now: number,
 ): Promise<Stamp> {
-  const retained = await retainedValuesInTransaction(tx, type, id);
   const s = await tickInTransaction(tx, now);
   const row = await recordRow(tx, type, id);
   const before = row ? (JSON.parse(row.vv_json) as VersionVector) : {};
