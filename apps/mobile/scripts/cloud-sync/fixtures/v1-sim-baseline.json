@@ -6,7 +6,7 @@
     "lostKeptVersion": 5,
     "keptBothLost": 0,
     "lostEntry": 5,
-    "staleValue": 24,
+    "staleValue": 23,
     "undoneDelete": 1,
     "duplicateTitle": 35,
     "syncFailure": 0,
@@ -20,8 +20,8 @@
     "keptBothLost": [],
     "lostEntry": [4, 16, 69, 262, 287],
     "staleValue": [
-      11, 13, 16, 28, 33, 40, 69, 83, 85, 104, 115, 117, 128, 137, 187, 198, 199, 208,
-      219, 244, 251, 283, 295, 296
+      13, 16, 28, 33, 40, 69, 83, 85, 104, 115, 117, 128, 137, 187, 198, 199, 208, 219,
+      244, 251, 283, 295, 296
     ],
     "undoneDelete": [16],
     "duplicateTitle": [

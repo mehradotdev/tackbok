@@ -29,6 +29,8 @@ export interface ViewEntry {
   date: number;
   tagIds: string[];
   attachmentIds: string[];
+  /** Back after a delete and not yet acknowledged ("Got it"). */
+  returned?: boolean;
 }
 
 export interface View {
@@ -63,7 +65,11 @@ export type Event =
   | { kind: 'renameTag' | 'renamePrompt'; device: number; id: string; title: string }
   | { kind: 'deleteTag' | 'deletePrompt'; device: number; id: string }
   | { kind: 'setProfileName'; device: number; value: string }
-  | { kind: 'setProfilePhoto'; device: number; assetId: string | null };
+  | { kind: 'setProfilePhoto'; device: number; assetId: string | null }
+  /** Reverse the entry's attachment order. */
+  | { kind: 'reorder'; device: number; entryId: string }
+  /** "Got it" on a returned entry. */
+  | { kind: 'acknowledge'; device: number; entryId: string };
 
 export type LocalEvent = Exclude<Event, { kind: 'clock' | 'sync' }>;
 
@@ -237,6 +243,8 @@ function chooseEvent(
       ['attach', 3],
     );
     if (entry.attachmentIds.length > 0) choices.push(['detach', 2]);
+    if (entry.attachmentIds.length > 1) choices.push(['reorder', 2]);
+    if (entry.returned) choices.push(['acknowledge', 6]);
     if (tag) choices.push(['addTag', 4]);
     if (entry.tagIds.length > 0) choices.push(['removeTag', 2]);
   }
@@ -297,6 +305,9 @@ function chooseEvent(
         entryId: entry!.id,
         assetId: rng.pick(entry!.attachmentIds),
       };
+    case 'reorder':
+    case 'acknowledge':
+      return { kind, device, entryId: entry!.id };
     case 'createTag':
       return { kind, device, title: rng.pick(TAG_TITLES) };
     case 'createPrompt':
@@ -578,6 +589,7 @@ async function runEvent(
       break;
     case 'setMood':
     case 'setDate':
+    case 'reorder':
       recordEntryWrite(state, event.entryId, index);
       break;
     default:

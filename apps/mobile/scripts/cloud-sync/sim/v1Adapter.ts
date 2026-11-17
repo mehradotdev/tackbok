@@ -665,6 +665,21 @@ export class V1Adapter implements SimAdapter {
           },
         };
       }
+      case 'reorder': {
+        const ids = domain.media
+          .filter(
+            (asset) => asset.ownerType === 'entry' && asset.ownerId === event.entryId,
+          )
+          .map((asset) => asset.assetId)
+          .sort();
+        if (ids.length < 2) return null;
+        return this.editEntry(domain, event.entryId, wall, (entry) => ({
+          ...entry,
+          attachmentOrder: [...(entry.attachmentOrder ?? ids)].reverse(),
+        }));
+      }
+      // v1 keeps acknowledgements on the device; nothing syncs.
+      case 'acknowledge':
       case 'keep':
       case 'keepBoth':
         return null;
