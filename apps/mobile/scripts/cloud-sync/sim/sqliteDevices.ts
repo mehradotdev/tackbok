@@ -88,6 +88,12 @@ export function installSqliteDevices() {
       const sqlite = migrated();
       return { sqlite, db: drizzle(sqlite, { schema }) };
     },
+    /** A byte-for-byte copy: an OS backup restored elsewhere, or a cloned install. */
+    clone(device: SqliteDevice): SqliteDevice {
+      const sqlite = Database.deserialize(device.sqlite.serialize());
+      sqlite.exec('PRAGMA foreign_keys = OFF');
+      return { sqlite, db: drizzle(sqlite, { schema }) };
+    },
     use(device: SqliteDevice) {
       current = device;
     },

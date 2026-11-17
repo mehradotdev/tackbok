@@ -44,8 +44,14 @@ let blobs: InstanceType<typeof MemorySnapshotMediaStore>;
 let opened: Device[] = [];
 let clock = T;
 
-function device(): Device {
-  const database = devices.create();
+function device(
+  options: {
+    database?: SqliteDevice;
+    codeVersion?: string;
+    at?: (point: string) => void;
+  } = {},
+): Device {
+  const database = options.database ?? devices.create();
   const stateStore = new SQLiteSyncStateStore(new BunSyncDatabase(database.sqlite));
   const engine = new V2SyncEngine({
     vaultId: VAULT,
@@ -54,6 +60,8 @@ function device(): Device {
     provider,
     mediaStore: blobs,
     files: simMediaFiles,
+    codeVersion: options.codeVersion,
+    hooks: options.at ? { at: options.at } : undefined,
   });
   const created = { database, engine, stateStore };
   opened.push(created);
@@ -286,7 +294,16 @@ describe('versioning and safety', () => {
     const a = device();
     await addEntry(a, 'e1');
     await injectHead(head);
+    const local = () =>
+      JSON.stringify([
+        a.database.sqlite.query('SELECT * FROM sync_device').all(),
+        a.database.sqlite.query('SELECT * FROM sync_records').all(),
+        a.database.sqlite.query('SELECT * FROM tags').all(),
+      ]);
+    const before = local();
     const made = await requests(() => sync(a));
+    // Not even bound to the vault: the local journal is as it was.
+    expect(local()).toBe(before);
     expect(await sync(a)).toMatchObject({
       status: 'attention',
       reason: 'unsupported-format',
@@ -342,4 +359,108 @@ describe('versioning and safety', () => {
     expect((await sync(a)).status).toBe('published');
     expect(provider.physicalHeads(VAULT)).toHaveLength(1);
   });
+
+  test('an update-required pause clears once the app is updated', async () => {
+    const a = device({ codeVersion: '1' });
+    await injectHead({ major: 3 });
+    expect(await sync(a)).toMatchObject({
+      status: 'attention',
+      reason: 'unsupported-format',
+    });
+    expect(await sync(a)).toMatchObject({
+      status: 'attention',
+      reason: 'unsupported-format',
+    });
+    // The other device went back to a format this build reads.
+    provider.removeDeviceHeadForTest(VAULT, 'other-device');
+    expect(await sync(a)).toMatchObject({ status: 'attention' });
+    const updated = device({ database: a.database, codeVersion: '2' });
+    expect((await sync(updated)).status).toBe('published');
+  });
+});
+
+describe('identity and clocks', () => {
+  test('a copy of this device (an OS restore or a cloned phone) takes in its head and continues under a new ID', async () => {
+    const a = device();
+    await addEntry(a, 'e1', { text_content: 'Before the copy' });
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    clock += 1000;
+    await addEntry(a, 'e2', { text_content: 'Only on the original' });
+    await sync(a);
+    clock += 1000;
+    await addEntry(copy, 'e3', { text_content: 'Only on the copy' });
+    expect((await sync(copy)).status).toBe('published');
+    const ids = (target: Device) =>
+      (
+        target.database.sqlite.query('SELECT device_id FROM sync_device').get() as {
+          device_id: string;
+        }
+      ).device_id;
+    expect(ids(copy)).not.toBe(ids(a));
+    // Nothing was overwritten: two heads, and each device gets both.
+    expect(provider.physicalHeads(VAULT)).toHaveLength(2);
+    expect(texts(copy)).toEqual([
+      'e1:Before the copy',
+      'e2:Only on the original',
+      'e3:Only on the copy',
+    ]);
+    clock += 1000;
+    await sync(a);
+    expect(texts(a)).toEqual(texts(copy));
+  });
+
+  test('a device whose clock is far ahead does not stop this one publishing', async () => {
+    const a = device();
+    const b = device();
+    await sync(a);
+    clock += 30 * DAY;
+    await addEntry(b, 'ahead', { text_content: 'From the future' });
+    await sync(b);
+    clock -= 30 * DAY;
+    clock += 1000;
+    await addEntry(a, 'mine');
+    const result = await sync(a);
+    expect(result).toMatchObject({ status: 'published', refusedHeads: 1 });
+    expect(texts(a)).toEqual(['mine:Text mine']);
+    expect(a.stateStore.loadState(VAULT, 'connection').pauseReason).toBeNull();
+    // Once its clock is within the bound, the head is read.
+    clock += 31 * DAY;
+    await sync(a);
+    expect(texts(a)).toContain('ahead:From the future');
+  });
+});
+
+describe('a pass stopped part way', () => {
+  test.each([
+    'during-merge-application',
+    'after-snapshot-uploaded',
+    'after-snapshot-verified',
+    'after-head-advanced',
+  ])(
+    'stopped at %s: the next pass finishes, with no duplicate or lost head',
+    async (point) => {
+      let armed = true;
+      const a = device({
+        at: (reached) => {
+          if (armed && reached === point) {
+            armed = false;
+            throw new SnapshotProviderError('transient', `stopped at ${point}`);
+          }
+        },
+      });
+      const b = device();
+      await addEntry(a, 'e1');
+      expect((await sync(a)).status).toBe('retry');
+      expect((await sync(a)).status).not.toBe('attention');
+      clock += 1000;
+      const after = await sync(a);
+      expect(after.status).toBe('up-to-date');
+      await sync(b);
+      expect(texts(b)).toEqual(['e1:Text e1']);
+      expect(
+        provider.physicalHeads(VAULT).filter(({ head }) => head.deviceId !== undefined),
+      ).toHaveLength(2);
+    },
+  );
 });

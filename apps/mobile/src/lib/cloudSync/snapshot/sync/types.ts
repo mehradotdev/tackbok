@@ -304,6 +304,11 @@ export interface DurableSyncState {
 /** New attachments left out of the backup until uploads may run on Wi-Fi. */
 interface DeferredMediaResult {
   deferredMediaCount: number;
+  /**
+   * Sync v2: other devices' heads left unread because their clock is more
+   * than 7 days ahead of this one (read again by later passes).
+   */
+  refusedHeads?: number;
 }
 
 export type SnapshotSyncResult =

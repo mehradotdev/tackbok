@@ -482,26 +482,24 @@ export class V2StoreAdapter implements SimAdapter {
     return { ok: true, changed, pulled, revived };
   }
 
-  /** One real engine pass; a pause is resumed at once, as v1's adapter does. */
+  /** One real engine pass. A pause fails the case: nothing here should pause. */
   private async engineSync(device: number, wall: number): Promise<SyncOutcome> {
     this.hashMedia(device, wall);
     const before = canonicalState((await this.capture(device)).state);
     const result = await this.on(device, wall, () => this.engines[device].sync());
-    const stateStore = new SQLiteSyncStateStore(
-      new BunSyncDatabase(this.databases[device].sqlite),
-    );
-    if (result.status === 'attention') {
-      stateStore.clearPause(V2_VAULT, `state-${device}`);
-      if (result.reason === 'invalid-remote-snapshot') {
-        this.refusedPulls++;
-        return { ok: true, changed: false, pulled: false };
-      }
+    if (result.status === 'attention')
       return { ok: false, reason: `attention: ${result.reason}` };
-    }
     if (result.status === 'retry')
       return { ok: false, reason: `retry: ${result.reason}` };
+    // A head refused for its clock: this device has not seen what it holds.
+    const pulled = !result.refusedHeads;
+    if (!pulled) this.refusedPulls++;
     const after = canonicalState((await this.capture(device)).state);
-    return { ok: true, changed: result.status !== 'up-to-date' || before !== after };
+    return {
+      ok: true,
+      changed: result.status !== 'up-to-date' || before !== after,
+      pulled,
+    };
   }
 
   async fingerprint(device: number): Promise<string> {

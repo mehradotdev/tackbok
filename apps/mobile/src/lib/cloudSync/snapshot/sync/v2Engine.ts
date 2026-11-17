@@ -29,6 +29,7 @@
  * next one.
  */
 import { and, eq } from 'drizzle-orm';
+import { randomUUID } from 'expo-crypto';
 
 import { mediaAssets, runExclusiveDbTransaction, syncDevice, syncHeads } from '~/db';
 
@@ -81,6 +82,7 @@ const MAX_APPLY_ATTEMPTS = 4;
 /** Retention: an unreferenced snapshot older than this may be deleted. */
 const SNAPSHOT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_DELETES_PER_PASS = 10;
+const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export interface V2EngineOptions {
   vaultId: string;
@@ -131,6 +133,8 @@ function sameVector(left: VersionVector | null, right: VersionVector): boolean {
 
 export class V2SyncEngine {
   private running = false;
+  /** Retention runs after a publication, or at most this often. */
+  private lastCleanupAt = Number.NEGATIVE_INFINITY;
   private readonly hooks: SnapshotSyncHooks;
   private readonly now: () => number;
 
@@ -155,7 +159,7 @@ export class V2SyncEngine {
     return this.options.vaultId;
   }
 
-  private async pass(): Promise<SnapshotSyncResult> {
+  private async pass(rotated = false): Promise<SnapshotSyncResult> {
     const { provider, stateStore, stateKey } = this.options;
     const revocations = await provider.listRevocations(this.vaultId);
     if (revocations.includes('journal-deleted'))
@@ -163,23 +167,45 @@ export class V2SyncEngine {
     if (revocations.includes('backup-deleted'))
       throw new AttentionError('backup-deleted', 'revocation-backup-deleted');
     const durable = stateStore.loadState(this.vaultId, stateKey);
-    if (durable.pauseReason && !(await this.mayRetryJoin(durable)))
-      return { status: 'attention', reason: durable.pauseReason, actionableChanges: 0 };
+    if (durable.pauseReason && !(await this.mayRetry(durable)))
+      return {
+        status: 'attention',
+        reason: durable.pauseReason,
+        actionableChanges: Math.max(
+          0,
+          durable.journalGeneration - durable.settledGeneration,
+        ),
+      };
 
-    const deviceId = await this.bind();
     this.hooks.progress?.({ type: 'plan', phase: 'checking' });
     const listed = await provider.listHeads(this.vaultId, true);
+    // Versioning first: a head this build cannot read stops the pass before
+    // anything is written or deleted, here or on the provider.
     const heads = this.readHeads(listed);
     // Every listed head's snapshot is kept, a 1.x device's included.
     const kept = listed.map(({ head }) => String(head.snapshotId));
+    const deviceId = await this.bind();
     const records = await this.loadHeadRecords();
     const own = heads.get(deviceId);
     const ownRecord = records.get(deviceId);
-    const changed = [...heads.values()].filter(
-      (head) =>
-        head.deviceId !== deviceId &&
-        records.get(head.deviceId)?.snapshotId !== head.snapshotId,
-    );
+    // This device's head moved past anything it published: another install
+    // with its ID (an OS restore of this database, or a copy of it on a new
+    // phone). Take in what that head holds, then continue under a new ID, so
+    // the two never overwrite each other's head.
+    const foreign =
+      own !== undefined &&
+      own.snapshotId !== ownRecord?.snapshotId &&
+      own.deviceSequence >
+        Math.max(ownRecord?.deviceSequence ?? 0, durable.nextDeviceSequence - 1);
+    const changed = [...heads.values()].filter((head) => {
+      if (head.deviceId === deviceId && !foreign) return false;
+      const record = records.get(head.deviceId);
+      // An older head than the one taken in (a stale listing) adds nothing.
+      return (
+        record?.snapshotId !== head.snapshotId &&
+        (!record || head.deviceSequence >= record.deviceSequence)
+      );
+    });
     const ctx = await this.localContext();
     const unpublished = await runExclusiveDbTransaction((tx) =>
       unpublishedAttachmentsInTransaction(tx as CloudSyncTransaction),
@@ -188,13 +214,12 @@ export class V2SyncEngine {
     const mediaReady =
       unpublished.length > 0 && (await provider.mediaTransfersAllowed?.()) !== false;
     if (changed.length === 0 && !plan.needed && !mediaReady) {
-      await this.cleanup(kept);
-      stateStore.clearPause(this.vaultId, stateKey);
-      return {
+      await this.cleanup(kept, false);
+      return this.settle(durable.journalGeneration, {
         status: 'up-to-date',
         actionableChanges: 0,
         deferredMediaCount: unpublished.length,
-      };
+      });
     }
 
     if (plan.needed || mediaReady) this.hooks.activity?.('preparing-local-changes');
@@ -206,6 +231,7 @@ export class V2SyncEngine {
 
     let next: SyncState | null = null;
     let publish = false;
+    let refused: DeviceHeadV2[] = [];
     for (let attempt = 0; attempt < MAX_APPLY_ATTEMPTS && !next; attempt++) {
       this.hooks.progress?.({ type: 'plan', phase: 'merging' });
       const captured = await captureSyncState();
@@ -213,48 +239,101 @@ export class V2SyncEngine {
         throw new RetryableSyncError('device-identity-changed');
       const writer = { device: deviceId, wallMs: this.now() };
       let state = captured.state;
-      for (const remote of remotes) state = absorb(state, remote.state, writer).state;
-      publish = this.publication(state.ctx, deviceId, own, ownRecord).needed;
+      refused = [];
+      for (const remote of remotes) {
+        try {
+          state = absorb(state, remote.state, writer).state;
+        } catch (error) {
+          // A clock more than 7 days ahead of this one: that head waits
+          // (it is not recorded, so a later pass reads it again) and this
+          // device still publishes. Recovery is P8.
+          if (!(error instanceof ClockAheadError)) throw error;
+          refused.push(remote.head);
+        }
+      }
+      // After a takeover this device publishes under its new ID, next pass.
+      publish = !foreign && this.publication(state.ctx, deviceId, own, ownRecord).needed;
       if (publish) state = markSeen(state, writer);
       state = compact(state);
       this.hooks.activity?.('applying-remote-snapshot');
-      const applied = await applySyncState(captured, state, this.options.files, (tx) =>
-        this.recordTakenIn(
-          tx,
-          remotes.map((remote) => remote.head),
-        ),
+      const takenIn = remotes
+        .map((remote) => remote.head)
+        .filter((head) => !refused.includes(head) && head.deviceId !== deviceId);
+      const applied = await applySyncState(
+        captured,
+        state,
+        this.options.files,
+        async (tx) => {
+          await this.recordTakenIn(tx, takenIn);
+          if (foreign)
+            await tx
+              .update(syncDevice)
+              .set({ device_id: randomUUID(), updated_at: this.now() })
+              .where(eq(syncDevice.id, 'self'));
+        },
       );
       await this.hooks.at?.('during-merge-application');
       if (applied) next = state;
     }
     if (!next) throw new RetryableSyncError('journal-changed-during-apply');
-
-    if (!publish) {
-      await this.cleanup(kept);
-      stateStore.clearPause(this.vaultId, stateKey);
-      return remotes.length > 0
-        ? {
-            status: 'pulled',
-            snapshotId: remotes[remotes.length - 1].head.snapshotId,
-            actionableChanges: 0,
-            deferredMediaCount: deferred,
-          }
-        : { status: 'up-to-date', actionableChanges: 0, deferredMediaCount: deferred };
+    if (refused.length > 0)
+      console.warn(
+        `Cloud sync left ${refused.length} device heads with clocks too far ahead`,
+      );
+    if (foreign) {
+      if (rotated) throw new RetryableSyncError('device-identity-taken-over-twice');
+      return this.pass(true);
     }
-    const snapshotId = await this.publish(
-      next,
-      deviceId,
-      own,
-      ownRecord,
-      durable.nextDeviceSequence,
-    );
-    await this.cleanup([...kept, snapshotId]);
-    stateStore.clearPause(this.vaultId, stateKey);
-    return {
+
+    const refusedHeads = refused.length;
+    if (!publish) {
+      await this.cleanup(kept, false);
+      return this.settle(
+        durable.journalGeneration,
+        remotes.length > refusedHeads
+          ? {
+              status: 'pulled',
+              snapshotId: remotes[remotes.length - 1].head.snapshotId,
+              actionableChanges: 0,
+              deferredMediaCount: deferred,
+              refusedHeads,
+            }
+          : {
+              status: 'up-to-date',
+              actionableChanges: 0,
+              deferredMediaCount: deferred,
+              refusedHeads,
+            },
+      );
+    }
+    const snapshotId = await this.publish(next, deviceId, own, ownRecord);
+    await this.cleanup([...kept, snapshotId], true);
+    return this.settle(durable.journalGeneration, {
       status: 'published',
       snapshotId,
       actionableChanges: 0,
       deferredMediaCount: deferred,
+      refusedHeads,
+    });
+  }
+
+  /**
+   * A successful pass backed up every local write counted before it started
+   * (`journal_generation`, which the app's repositories advance). Writes made
+   * during the pass stay counted, so the runtime runs another pass, the vault
+   * shows as dirty and the media reaper keeps files their removal still needs.
+   */
+  private settle<R extends SnapshotSyncResult>(generation: number, result: R): R {
+    const { stateStore, stateKey } = this.options;
+    stateStore.markSettled(this.vaultId, stateKey, generation);
+    stateStore.clearPause(this.vaultId, stateKey);
+    const durable = stateStore.loadState(this.vaultId, stateKey);
+    return {
+      ...result,
+      actionableChanges: Math.max(
+        0,
+        durable.journalGeneration - durable.settledGeneration,
+      ),
     };
   }
 
@@ -503,13 +582,20 @@ export class V2SyncEngine {
     deviceId: string,
     own: DeviceHeadV2 | undefined,
     record: HeadRecord | undefined,
-    nextSequence: number,
   ): Promise<string> {
     const { provider, mediaStore, stateStore, stateKey } = this.options;
     const hashes = [...new Set([...state.media.values()].map((media) => media.blobHash))];
     const present = await provider.hasMediaBatch(this.vaultId, hashes);
-    for (const blobHash of hashes) {
-      if (present.has(blobHash)) continue;
+    const missing = hashes.filter((blobHash) => !present.has(blobHash));
+    // A blob the state needs (a new profile photo; attachments are deferred
+    // before they are stamped) holds back the whole publication, as in v1.
+    // Said before any upload starts.
+    if (missing.length > 0 && (await provider.mediaTransfersAllowed?.()) === false)
+      throw new SnapshotProviderError(
+        'wifi-only-media',
+        'A profile photo waits for Wi-Fi',
+      );
+    for (const blobHash of missing) {
       const source = await mediaStore.openVerifiedSource(blobHash);
       if (source && source.contentHash === blobHash) {
         await provider.uploadMedia(this.vaultId, blobHash, source);
@@ -530,13 +616,13 @@ export class V2SyncEngine {
       if (authored)
         throw new AttentionError('local-media-unreadable', 'required-media-unavailable');
     }
-    const deviceSequence = Math.max(
-      nextSequence,
-      (own?.deviceSequence ?? 0) + 1,
-      (record?.deviceSequence ?? 0) + 1,
+    // Reserved in one transaction before the upload: neither a retry nor an
+    // overlapping pass ever reuses a sequence.
+    const deviceSequence = stateStore.reserveSequence(
+      this.vaultId,
+      stateKey,
+      Math.max((own?.deviceSequence ?? 0) + 1, (record?.deviceSequence ?? 0) + 1),
     );
-    // Taken before the upload: a retry never reuses a sequence.
-    stateStore.ensureNextSequenceAtLeast(this.vaultId, stateKey, deviceSequence + 1);
     const createdAt = this.now();
     const encoded = encodeEnvelope(state, {
       authorDeviceId: deviceId,
@@ -592,21 +678,33 @@ export class V2SyncEngine {
 
   /**
    * Retention, best effort: snapshots no head points to, older than 30 days
-   * by their upload time, a few per pass. Heads only ever move to new
-   * snapshots, so an unreferenced old one is never needed again.
+   * by their upload time on the provider, a few at a time. Heads only ever
+   * move to new snapshots, so an unreferenced old one is never needed again.
+   * Runs after a publication, or once a day; the heads are listed again
+   * right before deleting, so a head missing from an earlier listing never
+   * loses its snapshot.
    */
-  private async cleanup(kept: readonly string[]) {
+  private async cleanup(kept: readonly string[], published: boolean) {
     const { provider } = this.options;
+    if (!published && this.now() - this.lastCleanupAt < CLEANUP_INTERVAL_MS) return;
+    this.lastCleanupAt = this.now();
     try {
-      const referenced = new Set(kept);
-      const old = (await provider.listSnapshots(this.vaultId))
-        .filter(
-          (snapshot) =>
-            !referenced.has(snapshot.snapshotId) &&
-            this.now() - snapshot.createdAt >= SNAPSHOT_RETENTION_MS,
-        )
-        .slice(0, MAX_DELETES_PER_PASS);
-      for (const snapshot of old) {
+      const candidates = (await provider.listSnapshots(this.vaultId)).filter(
+        (snapshot) =>
+          !kept.includes(snapshot.snapshotId) &&
+          snapshot.createdAt > 0 &&
+          this.now() - snapshot.createdAt >= SNAPSHOT_RETENTION_MS,
+      );
+      if (candidates.length === 0) return;
+      const referenced = new Set([
+        ...kept,
+        ...(await provider.listHeads(this.vaultId, true)).map(({ head }) =>
+          String(head.snapshotId),
+        ),
+      ]);
+      for (const snapshot of candidates
+        .filter((candidate) => !referenced.has(candidate.snapshotId))
+        .slice(0, MAX_DELETES_PER_PASS)) {
         await this.hooks.at?.('during-snapshot-cleanup');
         await provider.deleteSnapshot(this.vaultId, snapshot.snapshotId);
       }
@@ -616,11 +714,21 @@ export class V2SyncEngine {
     }
   }
 
-  /** What a failed join depends on: the heads and the build. */
+  /** The running build: an update-required pause is retried after an update. */
+  private buildContext(): string {
+    return `build:${this.options.codeVersion ?? ''}`;
+  }
+
+  /**
+   * What a failed join depends on: the heads (listed fresh), this journal
+   * and the build.
+   */
   private async joinInput(): Promise<string> {
-    const listed = await this.options.provider.listHeads(this.vaultId, false);
+    const { provider, stateStore, stateKey } = this.options;
+    const listed = await provider.listHeads(this.vaultId, true);
     return canonicalize({
       codeVersion: this.options.codeVersion ?? '',
+      journalGeneration: stateStore.loadState(this.vaultId, stateKey).journalGeneration,
       heads: listed
         .map(({ head }) => `${String(head.deviceId)}\0${String(head.snapshotId)}`)
         .sort(),
@@ -628,13 +736,17 @@ export class V2SyncEngine {
   }
 
   /**
-   * A join that failed fails again on the same input, so it stays paused; it
-   * runs again once another device publishes or the app is updated.
+   * Pauses that clear by themselves: a failed join runs again once its
+   * input changes (another device publishes, a local edit, an update); an
+   * update-required pause once the app is updated (the head is read again).
+   * Other pauses wait for the user.
    */
-  private async mayRetryJoin(durable: {
+  private async mayRetry(durable: {
     pauseReason: string | null;
     pauseContext: string | null;
   }) {
+    if (durable.pauseReason === 'unsupported-format')
+      return durable.pauseContext !== this.buildContext();
     if (durable.pauseReason !== 'merge-failed') return false;
     if (durable.pauseContext === null) return true;
     try {
@@ -660,9 +772,12 @@ export class V2SyncEngine {
       return { status: 'attention' as const, reason, actionableChanges: 0 };
     };
     if (error instanceof SyncCancelledError) throw error;
-    if (error instanceof AttentionError) return pause(error.reason, error.errorClass);
-    if (error instanceof ClockAheadError)
-      return pause('invalid-remote-snapshot', `clock-${error.code}`);
+    if (error instanceof AttentionError)
+      return pause(
+        error.reason,
+        error.errorClass,
+        error.reason === 'unsupported-format' ? this.buildContext() : null,
+      );
     if (error instanceof SyncJoinError) {
       let context: string | null = null;
       try {
