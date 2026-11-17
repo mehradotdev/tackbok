@@ -93,6 +93,25 @@ export interface DeviceHead {
   updatedAt: number;
 }
 
+/**
+ * Cloud sync v2 device head (#185). A new format string, so a 1.x build
+ * reads it as an unknown format and asks for an update instead of merging.
+ * `major` and `required` follow the snapshot's versioning rules: an unknown
+ * major version or required feature pauses sync and asks for an update
+ * before any snapshot is downloaded, and nothing is written or deleted.
+ */
+export interface DeviceHeadV2 {
+  format: 'tackbok-head';
+  major: number;
+  /** Required features of the snapshot it points to. */
+  required: string[];
+  vaultId: string;
+  deviceId: string;
+  deviceSequence: number;
+  snapshotId: string;
+  updatedAt: number;
+}
+
 export interface ListedDeviceHead {
   physicalId: string;
   head: DeviceHead;
@@ -163,7 +182,7 @@ export interface SnapshotProvider {
     snapshotId: string,
     expectedBytes: Uint8Array,
   ): Promise<boolean>;
-  updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void>;
+  updateDeviceHead(vaultId: string, head: DeviceHead | DeviceHeadV2): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
   /**
    * False when a transfer policy would refuse media uploads now, such as

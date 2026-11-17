@@ -4,6 +4,7 @@ import type { SQLiteSyncStateStore } from './sqliteState';
 import type {
   BaseShadowFileStore,
   DeviceHead,
+  DeviceHeadV2,
   ListedDeviceHead,
   SnapshotObject,
   SnapshotJournalStore,
@@ -203,14 +204,18 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     return Boolean(stored && bytesEqual(stored, expectedBytes));
   }
 
-  async updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void> {
+  async updateDeviceHead(
+    vaultId: string,
+    head: DeviceHead | DeviceHeadV2,
+  ): Promise<void> {
     this.before('update-head');
     const values = (this.heads.get(vaultId) ?? []).filter(
       (candidate) => candidate.head.deviceId !== head.deviceId,
     );
     values.push({
       physicalId: `physical-${++this.physicalSequence}`,
-      head: structuredClone(head),
+      // Stored as written: the engine validates what it lists.
+      head: structuredClone(head) as DeviceHead,
     });
     this.heads.set(vaultId, values);
     this.takeFault('update-head', true);

@@ -8,13 +8,14 @@
  * database that `db` and `runExclusiveDbTransaction` reach; a transaction
  * keeps the database it started on.
  */
-import { Database } from 'bun:sqlite';
+import { Database, type SQLQueryBindings } from 'bun:sqlite';
 import { mock } from 'bun:test';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import * as schema from '../../../src/db/schema';
+import type { SyncDatabase } from '../../../src/lib/cloudSync/snapshot/sync/sqliteState';
 
 const ROOT = join(import.meta.dir, '../../..');
 
@@ -108,4 +109,21 @@ export function installSqliteDevices() {
       }
     },
   };
+}
+
+/** The synchronous database API the sync state store uses, over a device's database. */
+export class BunSyncDatabase implements SyncDatabase {
+  constructor(private readonly database: Database) {}
+  execSync(source: string): void {
+    this.database.exec(source);
+  }
+  getFirstSync<T>(source: string, ...params: unknown[]): T | null {
+    return this.database.query(source).get(...(params as SQLQueryBindings[])) as T | null;
+  }
+  getAllSync<T>(source: string, ...params: unknown[]): T[] {
+    return this.database.query(source).all(...(params as SQLQueryBindings[])) as T[];
+  }
+  runSync(source: string, ...params: unknown[]): unknown {
+    return this.database.query(source).run(...(params as SQLQueryBindings[]));
+  }
 }

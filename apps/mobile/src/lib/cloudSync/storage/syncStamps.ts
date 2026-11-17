@@ -33,6 +33,7 @@ import {
   syncDeletedRecords,
   syncDevice,
   syncFieldValues,
+  syncHeads,
   syncRecords,
 } from '~/db';
 import { nextHlc, withStamp } from '../v2/clock';
@@ -324,6 +325,8 @@ export async function resetSyncIdentityInTransaction(
   await tx.delete(syncRecords);
   await tx.delete(syncDeletedRecords);
   await tx.delete(syncFieldValues);
+  // What it took in from other devices is gone too: download them again.
+  await tx.delete(syncHeads);
   await tx.delete(syncDevice);
   await tx.insert(syncDevice).values({
     id: SELF,

@@ -5,6 +5,7 @@ import { sha256Bytes, sha256Text, type ByteHasher } from '../sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../strictJson';
 import type {
   DeviceHead,
+  DeviceHeadV2,
   ListedDeviceHead,
   SnapshotObject,
   SnapshotProvider,
@@ -504,9 +505,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     );
   }
 
-  async updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void> {
+  async updateDeviceHead(
+    vaultId: string,
+    head: DeviceHead | DeviceHeadV2,
+  ): Promise<void> {
     const key = this.headKey(head.deviceId);
     const bytes = encodeCanonicalBytes(head);
+    // The cache keeps a head as listed; readers validate its format.
+    const cached = head as DeviceHead;
     const hash = sha256Bytes(bytes);
     const existing = this.state
       .listKey(vaultId, key)
@@ -525,7 +531,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       const uploaded = selectedId
         ? await this.multipartUpload(vaultId, key, 'head', bytes, 'update', selectedId)
         : await this.multipartUpload(vaultId, key, 'head', bytes, 'create');
-      this.state.upsertFile(vaultId, this.record(uploaded, 'head', head));
+      this.state.upsertFile(vaultId, this.record(uploaded, 'head', cached));
     } catch (error) {
       if (!(error instanceof SnapshotProviderError) || error.code !== 'transient')
         throw error;
@@ -537,7 +543,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         bytes.byteLength,
       );
       if (!matching) throw error;
-      this.state.upsertFile(vaultId, this.record(matching, 'head', head));
+      this.state.upsertFile(vaultId, this.record(matching, 'head', cached));
     }
   }
 

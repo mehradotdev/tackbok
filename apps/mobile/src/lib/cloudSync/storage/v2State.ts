@@ -513,7 +513,6 @@ export async function retainedValuesInTransaction(
         and(eq(syncFieldValues.entity_type, type), eq(syncFieldValues.entity_id, id)),
       ),
   ).get(key(type, id));
-  const path = `${type} ${id}`;
   if (type !== 'entry') {
     const table = type === 'tag' ? tags : customPrompts;
     const idColumn = type === 'tag' ? tags.tag_id : customPrompts.prompt_id;
