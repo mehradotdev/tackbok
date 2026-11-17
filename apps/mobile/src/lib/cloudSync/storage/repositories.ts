@@ -24,6 +24,11 @@ import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
 import { canonicalHash } from '../snapshot/canonical';
 import type { SnapshotEntry, SnapshotPrompt, SnapshotTag } from '../snapshot/types';
+import {
+  stampDeleteInTransaction,
+  stampMembershipsInTransaction,
+  stampWriteInTransaction,
+} from './syncStamps';
 
 export const PROFILE_ROW_ID = 'self';
 export const PROFILE_ENTITY_ID = 'profile';
@@ -39,6 +44,11 @@ export interface MutationContext {
   createdAt?: number;
   /** Canonical snapshot entity hash captured before a local delete. */
   deletedStateHash?: string | null;
+  /**
+   * Sync v2: false when the caller resets the sync identity in the same
+   * transaction ("Delete all"), so per-record stamps would be thrown away.
+   */
+  syncStamps?: boolean;
 }
 
 export type CloudSyncTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -313,6 +323,19 @@ async function replaceEntryTags(
   now: number,
 ): Promise<void> {
   const tagIds = parseTagIds(tagCsv);
+  // Sync v2: a membership that stays keeps the stamp of the add that made it.
+  const previous = new Map(
+    (
+      await tx
+        .select({
+          tag_id: entryTags.tag_id,
+          stamp_hlc: entryTags.stamp_hlc,
+          stamp_device: entryTags.stamp_device,
+        })
+        .from(entryTags)
+        .where(eq(entryTags.note_id, noteId))
+    ).map((row) => [row.tag_id, row]),
+  );
   await tx.delete(entryTags).where(eq(entryTags.note_id, noteId));
   if (tagIds.length === 0) return;
 
@@ -327,10 +350,57 @@ async function replaceEntryTags(
         tag_id,
         created_at: now,
         updated_at: now,
+        stamp_hlc: previous.get(tag_id)?.stamp_hlc ?? null,
+        stamp_device: previous.get(tag_id)?.stamp_device ?? null,
       })),
     );
   }
 }
+
+async function entryTagIds(tx: CloudSyncTransaction, noteId: string): Promise<string[]> {
+  return (
+    await tx
+      .select({ tag_id: entryTags.tag_id })
+      .from(entryTags)
+      .where(eq(entryTags.note_id, noteId))
+  )
+    .map((row) => row.tag_id)
+    .sort();
+}
+
+interface EntryAssetRow {
+  asset_id: string;
+  local_uri: string | null;
+}
+
+async function entryAssetRows(
+  tx: CloudSyncTransaction,
+  noteId: string,
+): Promise<EntryAssetRow[]> {
+  return (
+    await tx
+      .select({ asset_id: mediaAssets.asset_id, local_uri: mediaAssets.local_uri })
+      .from(mediaAssets)
+      .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)))
+  ).sort((a, b) => (a.asset_id < b.asset_id ? -1 : 1));
+}
+
+/** The entry's attachment order as asset IDs (a stored asset may carry only its URI). */
+function orderedAssetIds(
+  assets: Entry['assets'] | undefined,
+  rows: readonly EntryAssetRow[],
+): string[] {
+  const ids = new Set(rows.map((row) => row.asset_id));
+  const byUri = new Map(rows.map((row) => [row.local_uri, row.asset_id]));
+  return (assets ?? [])
+    .map((asset) =>
+      asset.assetId && ids.has(asset.assetId) ? asset.assetId : byUri.get(asset.uri),
+    )
+    .filter((id): id is string => id !== undefined);
+}
+
+const sameList = (left: readonly string[], right: readonly string[]) =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
 
 /** Normalizes legacy fields without changing the domain row or enqueueing sync. */
 export async function normalizeLegacyEntryInTransaction(
@@ -340,6 +410,23 @@ export async function normalizeLegacyEntryInTransaction(
 ): Promise<void> {
   await replaceEntryAssets(tx, entry.note_id, entry.assets, now);
   await replaceEntryTags(tx, entry.note_id, entry.tags, now);
+  // Sync v2: memberships made from the legacy CSV are adds like any other.
+  const unstamped = (
+    await tx
+      .select({ tag_id: entryTags.tag_id, stamp_hlc: entryTags.stamp_hlc })
+      .from(entryTags)
+      .where(eq(entryTags.note_id, entry.note_id))
+  )
+    .filter((row) => row.stamp_hlc === null)
+    .map((row) => row.tag_id);
+  const s = await stampWriteInTransaction(
+    tx,
+    'entry',
+    entry.note_id,
+    unstamped.length > 0 ? ['tags'] : [],
+    now,
+  );
+  if (s) await stampMembershipsInTransaction(tx, entry.note_id, unstamped, s);
   await markNormalized(tx, 'entry', entry.note_id, now);
 }
 
@@ -349,6 +436,13 @@ export async function upsertEntryInTransaction(
   context: MutationContext = {},
 ): Promise<void> {
   const now = context.now ?? Date.now();
+  const [previous] = await tx
+    .select()
+    .from(entries)
+    .where(eq(entries.note_id, entry.note_id))
+    .limit(1);
+  const previousTags = previous ? await entryTagIds(tx, entry.note_id) : [];
+  const previousAssets = previous ? await entryAssetRows(tx, entry.note_id) : [];
   await tx
     .insert(entries)
     .values({ ...entry, updated_at: now, created_at: entry.created_at ?? now })
@@ -366,10 +460,58 @@ export async function upsertEntryInTransaction(
     });
   await replaceEntryAssets(tx, entry.note_id, entry.assets, now);
   await replaceEntryTags(tx, entry.note_id, entry.tags, now);
+  await stampEntryWrite(tx, entry, previous, previousTags, previousAssets, now);
   await markNormalized(tx, 'entry', entry.note_id, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     await enqueueMutation(tx, 'entry', entry.note_id, 'upsert', { ...context, now });
   }
+}
+
+/** Sync v2: stamps the fields this write changed (all of them for a new entry). */
+async function stampEntryWrite(
+  tx: CloudSyncTransaction,
+  entry: NewEntry,
+  previous: Entry | undefined,
+  previousTags: string[],
+  previousAssets: EntryAssetRow[],
+  now: number,
+): Promise<void> {
+  const tagIds = await entryTagIds(tx, entry.note_id);
+  const assetRows = await entryAssetRows(tx, entry.note_id);
+  const assetIds = assetRows.map((row) => row.asset_id);
+  const fields: string[] = [];
+  // A field the caller left out keeps its value: not a change.
+  const changed = <T>(next: T | undefined, before: T | null) =>
+    next !== undefined && (next ?? null) !== before;
+  if (!previous) fields.push('title', 'text', 'mood', 'date');
+  else {
+    if (changed(entry.text_title, previous.text_title)) fields.push('title');
+    if (changed(entry.text_content, previous.text_content)) fields.push('text');
+    if (changed(entry.mood, previous.mood)) fields.push('mood');
+    if (changed(entry.created_at, previous.created_at)) fields.push('date');
+  }
+  const added = tagIds.filter((id) => !previousTags.includes(id));
+  if (!sameList(tagIds, previousTags)) fields.push('tags');
+  // Attachments get their own stamps when first published (P6); attaching,
+  // detaching or reordering is still a write to the entry.
+  if (
+    !sameList(
+      assetIds,
+      previousAssets.map((row) => row.asset_id),
+    )
+  )
+    fields.push('attachments');
+  // Only a reorder of the attachments both sides have writes the order: an
+  // attach or detach alone does not (as `setAttachmentOrder` in the model).
+  if (previous && entry.assets !== undefined) {
+    const after = orderedAssetIds(entry.assets, assetRows);
+    const before = orderedAssetIds(previous.assets, previousAssets);
+    const shared = (list: string[], other: string[]) =>
+      list.filter((id) => other.includes(id));
+    if (!sameList(shared(after, before), shared(before, after))) fields.push('order');
+  }
+  const s = await stampWriteInTransaction(tx, 'entry', entry.note_id, fields, now);
+  if (s) await stampMembershipsInTransaction(tx, entry.note_id, added, s);
 }
 
 export async function deleteEntryInTransaction(
@@ -388,6 +530,44 @@ export async function deleteEntryInTransaction(
     .from(mediaAssets)
     .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)));
 
+  const tagRows = await tx
+    .select({
+      tag_id: entryTags.tag_id,
+      stamp_hlc: entryTags.stamp_hlc,
+      stamp_device: entryTags.stamp_device,
+    })
+    .from(entryTags)
+    .where(eq(entryTags.note_id, noteId));
+  if (context.syncStamps !== false && entry)
+    await stampDeleteInTransaction(
+      tx,
+      'entry',
+      noteId,
+      {
+        title: entry.text_title,
+        text: entry.text_content,
+        mood: entry.mood ?? null,
+        date: entry.created_at,
+        tags: tagRows.map((row) => [
+          row.tag_id,
+          row.stamp_hlc === null ? null : [row.stamp_hlc, row.stamp_device],
+        ]),
+        attachments: normalized.map((asset) => ({
+          assetId: asset.asset_id,
+          kind: asset.kind,
+          blobHash: asset.blob_hash,
+          mimeType: asset.mime_type,
+          byteSize: asset.byte_size,
+          width: asset.width,
+          height: asset.height,
+          durationMs: asset.duration_ms,
+          createdAt: asset.created_at,
+          stamp: asset.stamp_hlc === null ? null : [asset.stamp_hlc, asset.stamp_device],
+        })),
+        order: orderedAssetIds(entry.assets, normalized),
+      },
+      now,
+    );
   for (const asset of normalized) {
     await retainMediaRow(tx, asset, `entry:${noteId}`, now);
   }
@@ -457,6 +637,7 @@ export async function createTagInTransaction(
     created_at: context.createdAt ?? now,
     updated_at: now,
   });
+  await stampWriteInTransaction(tx, 'tag', tagId, ['title'], now);
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     await enqueueMutation(tx, 'tag', tagId, 'upsert', { ...context, now });
@@ -474,10 +655,17 @@ export async function updateTagInTransaction(
   if (!cleanTitle) throw new Error('Invalid tag title');
   await assertUniqueTitle(tx, 'tag', cleanTitle, tagId);
   const now = context.now ?? Date.now();
+  const [previousTag] = await tx
+    .select({ title: tags.title })
+    .from(tags)
+    .where(eq(tags.tag_id, tagId))
+    .limit(1);
   await tx
     .update(tags)
     .set({ title: cleanTitle, updated_at: now })
     .where(eq(tags.tag_id, tagId));
+  if (previousTag && previousTag.title !== cleanTitle)
+    await stampWriteInTransaction(tx, 'tag', tagId, ['title'], now);
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     await enqueueMutation(tx, 'tag', tagId, 'upsert', { ...context, now });
@@ -517,6 +705,10 @@ export async function deleteTagInTransaction(
     }
   }
   await tx.delete(tags).where(eq(tags.tag_id, tagId));
+  // Sync v2: taking the tag off its entries above is a side effect, not an
+  // edit of them, so only the tag is stamped.
+  if (context.syncStamps !== false && deletedTag)
+    await stampDeleteInTransaction(tx, 'tag', tagId, { title: deletedTag.title }, now);
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     const deletedState: SnapshotTag | null = deletedTag
@@ -553,6 +745,7 @@ export async function createPromptInTransaction(
     created_at: context.createdAt ?? now,
     updated_at: now,
   });
+  await stampWriteInTransaction(tx, 'prompt', promptId, ['title'], now);
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     await enqueueMutation(tx, 'prompt', promptId, 'upsert', { ...context, now });
@@ -570,10 +763,17 @@ export async function updatePromptInTransaction(
   if (!cleanTitle) throw new Error('Invalid prompt title');
   await assertUniqueTitle(tx, 'prompt', cleanTitle, promptId);
   const now = context.now ?? Date.now();
+  const [previousPrompt] = await tx
+    .select({ title: customPrompts.title })
+    .from(customPrompts)
+    .where(eq(customPrompts.prompt_id, promptId))
+    .limit(1);
   await tx
     .update(customPrompts)
     .set({ title: cleanTitle, updated_at: now })
     .where(eq(customPrompts.prompt_id, promptId));
+  if (previousPrompt && previousPrompt.title !== cleanTitle)
+    await stampWriteInTransaction(tx, 'prompt', promptId, ['title'], now);
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     await enqueueMutation(tx, 'prompt', promptId, 'upsert', { ...context, now });
@@ -592,6 +792,14 @@ export async function deletePromptInTransaction(
     .where(eq(customPrompts.prompt_id, promptId))
     .limit(1);
   await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
+  if (context.syncStamps !== false && deletedPrompt)
+    await stampDeleteInTransaction(
+      tx,
+      'prompt',
+      promptId,
+      { title: deletedPrompt.title },
+      now,
+    );
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
     const deletedState: SnapshotPrompt | null = deletedPrompt
@@ -753,6 +961,15 @@ export async function updateProfileInTransaction(
         updated_at: profileUpdatedAt,
       },
     });
+  const profileFields: string[] = [];
+  if (
+    update.displayName !== undefined &&
+    update.displayName !== (previous?.display_name ?? null)
+  )
+    profileFields.push('name');
+  if (photoAssetId !== (previous?.photo_asset_id ?? null)) profileFields.push('photo');
+  if (context.syncStamps !== false)
+    await stampWriteInTransaction(tx, 'profile', PROFILE_ENTITY_ID, profileFields, now);
   await markNormalized(tx, 'profile', PROFILE_ENTITY_ID, now);
   if (syncFieldsChanged) await markLocalProfileTouched(tx);
   if (
