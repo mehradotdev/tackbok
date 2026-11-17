@@ -595,8 +595,9 @@ function checkVersion(header: unknown): void {
     needsUpdate('unsupported-codec', 'Unknown body codec');
   if (value.encryption !== undefined && value.encryption !== 'none')
     needsUpdate('unsupported-encryption', 'Encrypted body');
-  if (value.kind === 'delta')
-    needsUpdate('unsupported-kind', 'Delta snapshots need an update');
+  // `delta` is reserved; any other kind is also from a newer version.
+  if (typeof value.kind === 'string' && value.kind !== 'full')
+    needsUpdate('unsupported-kind', 'This snapshot kind needs an update');
 }
 
 function validateHeader(header: unknown): SnapshotHeader {
@@ -646,11 +647,7 @@ function validateHeader(header: unknown): SnapshotHeader {
   if (value.codec !== 'gzip') needsUpdate('unsupported-codec', 'Unknown body codec');
   if (value.encryption !== 'none')
     needsUpdate('unsupported-encryption', 'Encrypted body');
-  if (value.kind !== 'full') {
-    if (value.kind === 'delta')
-      needsUpdate('unsupported-kind', 'Delta snapshots need an update');
-    invalid('invalid-kind', 'Unknown snapshot kind');
-  }
+  if (value.kind !== 'full') invalid('invalid-kind', 'Snapshot kind is malformed');
   if (value.since !== null) invalid('invalid-since', 'A full snapshot has no since');
   const bodyHash = string(value.bodyHash, '$header.bodyHash', 64);
   if (!HASH.test(bodyHash)) invalid('invalid-hash', 'Body hash is malformed');

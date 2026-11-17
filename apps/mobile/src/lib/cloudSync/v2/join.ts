@@ -192,7 +192,10 @@ function joinProfile(left: ProfileRecord, right: ProfileRecord): ProfileRecord {
 /**
  * A media descriptor is immutable: two different ones under one asset ID are
  * a bug. Picking one would not be associative once pruning removes the other
- * in between, so the join refuses, as v1 does (`asset-id-collision`).
+ * in between, so the join refuses, as v1 does (`asset-id-collision`). Whether
+ * the refusal happens can still depend on join order (one descriptor may be
+ * pruned first); that is only reachable after such a bug, and the engine must
+ * keep asset IDs unique per owner (Phase 0 report, requirement 5).
  */
 function sameMedia(left: MediaDescriptor, right: MediaDescriptor): MediaDescriptor {
   if (left !== right && canonicalize(left) !== canonicalize(right))

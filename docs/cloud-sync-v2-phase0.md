@@ -44,6 +44,10 @@ Consequences and invariants that become requirements for 2.0.0:
    a removal); and a bound on how far ahead of local time a snapshot's context
    may be, so one bad clock cannot drag every HLC to the cap.
 
+6. **Per-record `ext` before the format freezes.** Today extension data can
+   only sit at the top of the header and body, so a later optional field on an
+   entry would need a new major version (section 7).
+
 The fallback in #185 (lineage on tombstones, synced resolution records) is not
 needed.
 
@@ -278,7 +282,9 @@ measured size difference below.
   version vector, which say the same.
 - _Media descriptors_ are joined as a set and kept exactly while something
   references them, including a deleted record or an open photo version. Two
-  different descriptors for one asset ID are refused (`asset-id-collision`).
+  different descriptors for one asset ID are refused (`asset-id-collision`);
+  whether that happens can depend on join order, but only after the bug that
+  reused the ID, which requirement 5 rules out.
 - _The HLC_ is capped at the snapshot timestamp cap, so a state that cannot be
   published is never written.
 - _Roster `lastSeenAt`_ is the device's HLC at its last write; `markSeen`
@@ -334,13 +340,18 @@ gzip implementation), vault, author, sequence, time, roster, context, `floor`
 (null until compaction) and `ext`. The header decodes on its own, before the
 body.
 
-Format, major version, required features, codec, encryption and `kind:
-"delta"` are read **before** the closed shape is checked, so a newer layout
+Format, major version, required features, codec, encryption and any `kind`
+other than `"full"` are read **before** the closed shape is checked, so a newer layout
 always throws `SnapshotUpdateRequiredError` ("pause and ask to update; never
 write or delete") rather than "corrupt". New fields arrive only under `ext`
 (in the header and the body), keyed by the feature that defines them; data
 under an unknown optional feature is ignored, undeclared keys are refused.
-Decoding is otherwise strict: canonical bytes for header and body, closed
+`ext` exists only at the top of the header and the body, and a 2.0 writer
+writes it empty, so an optional feature cannot yet add a field to an entry,
+and an older device republishing would drop a newer one's `ext` data. Before
+the format freezes, 2.0.0 needs per-record `ext` that devices keep and join
+even when they do not understand it, or optional record fields will need a
+major version. Decoding is otherwise strict: canonical bytes for header and body, closed
 shapes, sorted and unique collections, stamps inside their record's vector,
 vectors and `floor` inside the context, devices on the roster, references to
 existing records and media, exactly the referenced media, and the v1 size
@@ -396,7 +407,9 @@ downloads. `bun scripts/cloud-sync/v2-measure.ts`. **Desktop numbers.**
   counts as removed when the copy is deleted; only v1 recovered copies and
   "keep both" make copies) and treats what a device has merged as seen. It
   does not check mood or date beyond the entry rule, or profile photos except
-  in scenarios.
+  in scenarios. An entry delete exempts every tag and attachment its deleter
+  saw, so the tags and photos of an entry brought back by an unseen edit are
+  checked only by scenarios.
 - **Engine-level behaviour is untested for v2**: kill points, deferred media,
   stamps for attachments at first publication, the local SQLite schema and the
   context written in the same transaction as the data. Those are P3-P6.
