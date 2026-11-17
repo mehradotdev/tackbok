@@ -1,0 +1,31 @@
+{
+  "cases": 300,
+  "counts": {
+    "notConverged": 0,
+    "lostText": 5,
+    "lostKeptVersion": 5,
+    "keptBothLost": 0,
+    "lostEntry": 0,
+    "staleValue": 24,
+    "undoneDelete": 2,
+    "duplicateTitle": 35,
+    "syncFailure": 0
+  },
+  "failingSeeds": {
+    "notConverged": [],
+    "lostText": [4, 16, 69, 262, 287],
+    "lostKeptVersion": [4, 16, 69, 262, 287],
+    "keptBothLost": [],
+    "lostEntry": [],
+    "staleValue": [
+      11, 13, 16, 28, 33, 40, 69, 83, 85, 104, 115, 117, 128, 137, 187, 198, 199, 208,
+      219, 244, 251, 283, 295, 296
+    ],
+    "undoneDelete": [4, 16],
+    "duplicateTitle": [
+      2, 12, 18, 24, 69, 74, 84, 87, 94, 129, 134, 141, 151, 171, 185, 187, 196, 199, 212,
+      217, 220, 223, 225, 229, 241, 244, 245, 248, 253, 262, 274, 278, 282, 294, 296
+    ],
+    "syncFailure": []
+  }
+}
