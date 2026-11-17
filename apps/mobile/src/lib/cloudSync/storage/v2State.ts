@@ -69,6 +69,7 @@ import type {
   Tombstone,
   VersionVector,
 } from '../v2/types';
+import { SyncJoinError } from '../v2/join';
 import { attachmentIds, isLive, liveTags, memberIds, shownItems } from '../v2/view';
 import { resetSyncIdentityInTransaction, stampWriteInTransaction } from './syncStamps';
 import type { CloudSyncTransaction, SyncEntityType } from './repositories';
@@ -539,7 +540,10 @@ export async function retainedValuesInTransaction(
   const text = optional('text');
   const mood = optional('mood');
   const date = optional('date');
-  if (!title || !text || !mood || !date) unready(`sync-stamp-missing:${path}`);
+  // Metadata from before this journal was bound to a vault (v1's applies
+  // never wrote it) may lack stamps. The rebuild at binding discards kept
+  // values anyway, so a delete then keeps none rather than fail.
+  if (!title || !text || !mood || !date) return null;
   return {
     title: [
       { s: title, v: journal.text_title },
@@ -966,9 +970,38 @@ async function writeEntry(context: ApplyContext, entry: EntryRecord, existed: bo
   const unpublished = new Set<string>();
   for (const row of existingMedia) {
     const s = attachmentMembers.first.get(row.asset_id);
-    if (row.stamp_hlc === null) {
+    if (row.stamp_hlc === null && !s) {
       unpublished.add(row.asset_id);
       rowById.set(row.asset_id, { uri: row.local_uri ?? '', descriptor: null });
+      continue;
+    }
+    if (row.stamp_hlc === null && s) {
+      // Another device published an attachment this device holds unpublished
+      // under the same ID (two devices after the v1 cutover, or one import on
+      // both). The same blob: adopt that descriptor and stamp, or capture
+      // would leave the member out and the join would read it as removed.
+      // A different blob under one ID is never merged.
+      const theirs = context.state.media.get(row.asset_id)!;
+      if (
+        row.kind !== theirs.kind ||
+        row.blob_hash !== theirs.blobHash ||
+        row.byte_size !== theirs.byteSize
+      )
+        throw new SyncJoinError('asset-id-collision', `Asset ${row.asset_id} differs`);
+      await tx
+        .update(mediaAssets)
+        .set({
+          stamp_hlc: s[0],
+          stamp_device: s[1],
+          mime_type: theirs.mimeType,
+          width: theirs.width,
+          height: theirs.height,
+          duration_ms: theirs.durationMs,
+          created_at: theirs.createdAt,
+          ext_json: JSON.stringify(theirs.ext),
+        })
+        .where(eq(mediaAssets.asset_id, row.asset_id));
+      rowById.set(row.asset_id, { uri: row.local_uri ?? '', descriptor: theirs });
       continue;
     }
     if (!s) {
@@ -1323,6 +1356,11 @@ export async function applySyncState(
           const record = next.prompts.get(id)!;
           await writeNamed(context, 'prompt', record, isLive(record));
         }
+        // A deleted tag shown only while an entry used it goes once none does,
+        // even when its own record did not change.
+        for (const row of await tx.select({ id: tags.tag_id }).from(tags))
+          if (!shownAfter.has(row.id))
+            await tx.delete(tags).where(eq(tags.tag_id, row.id));
         await tx
           .update(syncDevice)
           .set({

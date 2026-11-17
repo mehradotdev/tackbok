@@ -391,6 +391,87 @@ describe('apply', () => {
   });
 });
 
+describe('review cases', () => {
+  test('an entry v1 wrote without v2 metadata can be edited and deleted before binding', async () => {
+    const fresh = devices.create();
+    try {
+      fresh.sqlite.run(
+        "INSERT INTO entries (note_id, text_content, tags, created_at, updated_at) VALUES ('e1', 'From v1', '', 5, 5)",
+      );
+      await write(fresh, T, (tx) =>
+        repositories.upsertEntryInTransaction(
+          tx,
+          entry('e1', { text_content: 'Edited' }),
+          { now: T },
+        ),
+      );
+      await write(fresh, T + 1, (tx) =>
+        repositories.deleteEntryInTransaction(tx, 'e1', { now: T + 1 }),
+      );
+      expect(rows(fresh, 'SELECT note_id FROM entries')).toEqual([]);
+    } finally {
+      fresh.sqlite.close();
+    }
+  });
+
+  test('after the cutover, an attachment both devices hold is published once and kept', async () => {
+    for (const device of [a, b]) {
+      device.sqlite.run(
+        `INSERT INTO entries (note_id, text_content, tags, assets, created_at, updated_at)
+         VALUES ('e1', 'Shared', '', '[{"type":"image","uri":"photos/x.jpg","assetId":"x"}]', 5, 5)`,
+      );
+      device.sqlite.run(
+        `INSERT INTO media_assets (asset_id, owner_type, owner_id, kind, local_uri, blob_hash, byte_size, created_at, updated_at)
+         VALUES ('x', 'entry', 'e1', 'photo', 'photos/x.jpg', ?, 10, 5, 5)`,
+        ['a'.repeat(64)],
+      );
+      await bind(device, T + 10);
+    }
+    await publish(a, T + 11);
+    await syncFrom(b, (await capture(a)).state, T + 12);
+    expect(rows(b, 'SELECT stamp_hlc FROM media_assets')).toEqual([
+      { stamp_hlc: T + 11 },
+    ]);
+    const joined = await syncFrom(a, (await capture(b)).state, T + 13);
+    expect(joined.entries.get('e1')!.attachments.map((member) => member.id)).toEqual([
+      'x',
+    ]);
+    expect(rows(a, 'SELECT asset_id FROM media_assets')).toEqual([{ asset_id: 'x' }]);
+  });
+
+  test('a deleted tag shown only for an entry goes once no entry uses it', async () => {
+    const tagId = await write(a, T, (tx) =>
+      repositories.createTagInTransaction(tx, 'Work'),
+    );
+    await write(a, T + 1, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e1', { tags: tagId }), {
+        now: T + 1,
+      }),
+    );
+    await syncFrom(b, (await capture(a)).state, T + 2);
+    // B deletes the tag while A adds it to another entry: the add keeps it shown.
+    await write(b, T + 3, (tx) =>
+      repositories.deleteTagInTransaction(tx, tagId, { now: T + 3 }),
+    );
+    await write(a, T + 4, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e2', { tags: tagId }), {
+        now: T + 4,
+      }),
+    );
+    await syncFrom(a, (await capture(b)).state, T + 5);
+    expect(rows(a, 'SELECT tag_id FROM tags')).toEqual([{ tag_id: tagId }]);
+    // A takes it off e2 and B's next change arrives: the tag row goes.
+    await write(a, T + 6, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e2'), { now: T + 6 }),
+    );
+    await write(b, T + 7, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e3'), { now: T + 7 }),
+    );
+    await syncFrom(a, (await capture(b)).state, T + 8);
+    expect(rows(a, 'SELECT tag_id FROM tags')).toEqual([]);
+  });
+});
+
 describe('rebuild', () => {
   test('binding to a vault gives a new device ID, title-derived IDs and one initial stamp', async () => {
     const before = deviceId(a);
