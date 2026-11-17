@@ -311,14 +311,17 @@ class FakeDriveServer {
 const vaultId = 'vault-drive-test';
 
 function head(deviceId: string, sequence: number, snapshotId: string): DeviceHead {
+  // A 2.x head (only those make a vault restorable), typed as the cache stores it.
   return {
-    format: 'tackbok-device-head',
+    format: 'tackbok-head',
+    major: 2,
+    required: [],
     vaultId,
     deviceId,
     deviceSequence: sequence,
     snapshotId,
     updatedAt: 1,
-  };
+  } as unknown as DeviceHead;
 }
 
 function representativePresentlyPayload(deviceId: string): JournalSnapshotPayload {

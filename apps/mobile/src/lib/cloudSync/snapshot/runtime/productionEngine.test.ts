@@ -1,17 +1,17 @@
 import type { SQLiteSyncStateStore } from '../sync/sqliteState';
-import type { SnapshotSyncEngine } from '../sync/engine';
+import type { V2SyncEngine } from '../sync/v2Engine';
 import type { ProductionSnapshotJournalStore } from '../storage';
 import type { SnapshotProvider } from '../sync/types';
 import { SyncCancelledError } from '../sync/errors';
 import { SnapshotProviderError } from '../sync/types';
-import type { JournalSnapshotPayload } from '../types';
-import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import {
   pendingMediaBytes,
   productionCodeVersion,
-  productionSnapshotCache,
   ProductionSnapshotRuntimeEngine,
 } from './productionEngine';
+
+// The runtime gets its engine injected here; the real one needs native crypto.
+jest.mock('../sync/v2Engine', () => ({ V2SyncEngine: jest.fn() }));
 
 const mockWrites: string[] = [];
 const mockMarkJournalRestored = jest.fn();
@@ -126,7 +126,7 @@ function harness(
         options.loadState ?? (() => ({ journalGeneration: 0, settledGeneration: 0 })),
       setPause,
     } as unknown as SQLiteSyncStateStore,
-    { sync: engineSync } as unknown as SnapshotSyncEngine,
+    { sync: engineSync } as unknown as V2SyncEngine,
     {
       hydratePendingMedia: options.hydrate ?? (async () => ({ hydrated: 0, missing: 0 })),
       requeueMissingVerifiedMedia: options.requeue ?? (async () => 0),
@@ -497,38 +497,6 @@ test('attachment rows that share a blob count its bytes once', () => {
   ).toBe(150);
 });
 
-test('a connection change clears verified snapshots, even those a draining pass kept', async () => {
-  const cached = (vaultId: string, snapshotId: string) => {
-    productionSnapshotCache.set(
-      vaultId,
-      snapshotId,
-      { vaultId } as unknown as JournalSnapshotPayload,
-      1,
-    );
-  };
-  cached('vault-before', 'before');
-  const release = deferred<void>();
-  const app = harness('vault-draining', {
-    engineSync: async () => {
-      await release.promise;
-      // A pass cancelled mid-download may still store what it verified.
-      cached('vault-draining', 'late');
-      return { status: 'up-to-date', actionableChanges: 0 };
-    },
-  });
-  const pass = app.runtime.sync().catch(() => undefined);
-  await tick();
-  let sizeDuringChange = -1;
-  const change = cloudConnectionLifecycle.change(async () => {
-    sizeDuringChange = productionSnapshotCache.size;
-  });
-  release.resolve();
-  await Promise.all([pass, change]);
-  expect(sizeDuringChange).toBe(0);
-  expect(productionSnapshotCache.get('vault-before', 'before')).toBeUndefined();
-  expect(productionSnapshotCache.get('vault-draining', 'late')).toBeUndefined();
-});
-
-test('a failed merge is retried after a new build or update', () => {
+test('a failed join is retried after a new build or update', () => {
   expect(productionCodeVersion()).toBe('42/abc');
 });

@@ -3,15 +3,7 @@ import * as Application from 'expo-application';
 import * as Network from 'expo-network';
 import * as Updates from 'expo-updates';
 
-import {
-  cloudConflicts,
-  cloudVault,
-  db,
-  mediaAssets,
-  sqlite,
-  syncProviderState,
-} from '~/db';
-import { track } from '~/lib/analytics';
+import { cloudVault, db, mediaAssets, sqlite, syncProviderState } from '~/db';
 import type { CloudSyncFailureCategory } from '~/lib/analytics/events';
 import { useSettingsStore } from '~/lib/settings';
 import {
@@ -33,13 +25,11 @@ import { nativeSha256Bytes } from './nativeSha256';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
 import { loadProfileCache } from '../../storage/backfill';
 import { GoogleDriveSnapshotProvider, SQLiteDriveProviderStateStore } from '../drive';
-import { BaseShadowManager } from '../sync/baseShadow';
-import { SnapshotSyncEngine } from '../sync/engine';
-import { ExpoBaseShadowFileStore } from '../sync/expoBaseShadowFiles';
 import { SQLiteSyncStateStore } from '../sync/sqliteState';
-import { VerifiedSnapshotCache } from '../sync/snapshotCache';
+import { V2SyncEngine } from '../sync/v2Engine';
 import type {
   DeviceHead,
+  DeviceHeadV2,
   ListedDeviceHead,
   SnapshotObject,
   MediaDownloadSink,
@@ -78,18 +68,10 @@ const runningVaultPasses = new Map<string, RunningVaultPass>();
 /** Pending attachments downloaded between checks for cancellation and edits. */
 const HYDRATION_BATCH = 2;
 
-/**
- * Verified snapshots shared by every engine in this process, so passes skip
- * downloading heads that have not changed. Any connection change (disconnect,
- * account or backup switch, reset, journal deletion) clears it.
- */
-export const productionSnapshotCache = new VerifiedSnapshotCache();
-
-/** The running build and update; a change retries a merge that failed. */
+/** The running build and update; a change retries a join that failed. */
 export function productionCodeVersion(): string {
   return `${Application.nativeBuildVersion ?? ''}/${Updates.updateId ?? 'embedded'}`;
 }
-cloudConnectionLifecycle.addChangeListener(() => productionSnapshotCache.clear());
 
 /** The running pass's signal, shared by one engine's provider and hooks. */
 interface PassCancellation {
@@ -139,7 +121,7 @@ class MediaPolicyProvider implements SnapshotProvider {
   verifySnapshot(vaultId: string, snapshotId: string, expectedBytes: Uint8Array) {
     return this.delegate.verifySnapshot(vaultId, snapshotId, expectedBytes);
   }
-  updateDeviceHead(vaultId: string, head: DeviceHead) {
+  updateDeviceHead(vaultId: string, head: DeviceHead | DeviceHeadV2) {
     return this.delegate.updateDeviceHead(vaultId, head);
   }
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]) {
@@ -202,7 +184,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
   constructor(
     private readonly vault: ProductionSnapshotVault,
     private readonly state: SQLiteSyncStateStore,
-    private readonly engine: SnapshotSyncEngine,
+    private readonly engine: V2SyncEngine,
     private readonly journal: ProductionSnapshotJournalStore,
     private readonly mediaProvider: SnapshotProvider,
     private readonly onActivity: (phase: SyncPassPhase | 'idle') => void,
@@ -217,15 +199,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
   hasPendingWork(): boolean {
     if (this.needsFollowup) return true;
     const durable = this.state.loadState(this.vault.vault_id, this.vault.device_id);
-    const pending = sqlite.getFirstSync<{ value: number }>(
-      `SELECT COUNT(*) AS value FROM cloud_pending_publication
-       WHERE vault_id = ? AND device_id = ?`,
-      this.vault.vault_id,
-      this.vault.device_id,
-    );
-    return (
-      durable.journalGeneration > durable.settledGeneration || (pending?.value ?? 0) > 0
-    );
+    return durable.journalGeneration > durable.settledGeneration;
   }
 
   async sync(caller?: AbortSignal): Promise<RuntimePassResult> {
@@ -348,18 +322,10 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       throw new SnapshotRuntimeFailure('local-media');
     }
 
-    const beforeConflicts = new Set(
-      (
-        await db
-          .select({ id: cloudConflicts.conflict_id })
-          .from(cloudConflicts)
-          .where(eq(cloudConflicts.vault_id, this.vault.vault_id))
-      ).map(({ id }) => id),
-    );
     this.onActivity('checking');
     try {
       const result = await this.engine.sync();
-      return await this.finishPass(result, beforeConflicts, signal);
+      return await this.finishPass(result, signal);
     } catch (error) {
       // A cancelled pass may already have committed remote journal changes or
       // hydrated media, and a later pass can find nothing left to apply. A
@@ -372,8 +338,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
   }
 
   private async finishPass(
-    result: Awaited<ReturnType<SnapshotSyncEngine['sync']>>,
-    beforeConflicts: Set<string>,
+    result: Awaited<ReturnType<V2SyncEngine['sync']>>,
     signal: AbortSignal | null,
   ): Promise<RuntimePassResult> {
     throwIfCancelled(signal);
@@ -536,33 +501,6 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
     useSettingsStore.getState().markCloudRestoreJournalRestored(this.vault.vault_id);
     await reapRetainedMedia();
 
-    const conflicts = await db
-      .select()
-      .from(cloudConflicts)
-      .where(eq(cloudConflicts.vault_id, this.vault.vault_id));
-    for (const row of conflicts) {
-      if (beforeConflicts.has(row.conflict_id)) continue;
-      let parsed: { entityType?: unknown };
-      try {
-        parsed = JSON.parse(row.conflict_json) as { entityType?: unknown };
-      } catch {
-        this.state.setPause(
-          this.vault.vault_id,
-          this.vault.device_id,
-          'cleanup-inconsistent',
-          'invalid-local-conflict-record',
-        );
-        throw new SnapshotRuntimeFailure('corrupt');
-      }
-      if (
-        parsed.entityType === 'entry' ||
-        parsed.entityType === 'tag' ||
-        parsed.entityType === 'prompt' ||
-        parsed.entityType === 'profile'
-      ) {
-        track('cloud_sync_conflict_recovered', { entity_type: parsed.entityType });
-      }
-    }
     if (result.status === 'published' || result.status === 'pulled' || hydrated > 0)
       await this.onRemoteApplied?.();
     const [pendingMedia] = await db
@@ -616,15 +554,15 @@ export async function createProductionSnapshotRuntimeEngine(options: {
     hashBytes: nativeSha256Bytes,
   });
   const provider = new MediaPolicyProvider(drive, options.onActivity, onProgress);
-  const engine = new SnapshotSyncEngine(
-    options.vault.vault_id,
-    options.vault.device_id,
-    state,
-    new BaseShadowManager(new ExpoBaseShadowFileStore()),
-    journal,
-    media,
+  const engine = new V2SyncEngine({
+    vaultId: options.vault.vault_id,
+    // The connection's pause and sequence state, which the screens read.
+    stateKey: options.vault.device_id,
+    stateStore: state,
     provider,
-    {
+    mediaStore: media,
+    files: journal.applyFiles(),
+    hooks: {
       at: () => {
         // Kill points are where a pass may stop and resume safely; a cancelled
         // pass stops at the next one (including between media transfers).
@@ -633,10 +571,8 @@ export async function createProductionSnapshotRuntimeEngine(options: {
       activity: (activity) => options.onActivity(PHASE_FOR_ENGINE_ACTIVITY[activity]),
       progress: onProgress,
     },
-    Date.now,
-    productionSnapshotCache,
-    productionCodeVersion(),
-  );
+    codeVersion: productionCodeVersion(),
+  });
   return new ProductionSnapshotRuntimeEngine(
     options.vault,
     state,

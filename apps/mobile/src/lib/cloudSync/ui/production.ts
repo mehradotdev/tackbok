@@ -1,9 +1,9 @@
-import { and, count, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import { Directory, Paths } from 'expo-file-system';
 import {
   cloudVault,
-  cloudConflicts,
+  syncHeads,
   cloudSyncState,
   customPrompts,
   db,
@@ -26,6 +26,7 @@ import {
   canResumeUnpublishedBackup,
   clearAuthorizationPause,
 } from './connectionRecovery';
+import { countSyncChoices } from './versions';
 import {
   readGoogleAccountEmail,
   readOrCreateGoogleConnectionId,
@@ -186,15 +187,7 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
             .limit(1)
         : Promise.resolve([]),
       vault
-        ? db
-            .select({ value: count() })
-            .from(cloudConflicts)
-            .where(
-              and(
-                eq(cloudConflicts.vault_id, vault.vault_id),
-                isNull(cloudConflicts.acknowledged_at),
-              ),
-            )
+        ? countSyncChoices().then((value) => [{ value }])
         : Promise.resolve([{ value: 0 }]),
       db
         .select()
@@ -540,7 +533,15 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
       previousEmail,
       currentEmail: await readGoogleAccountEmail(),
       settledGeneration: state.settledGeneration,
-      hasBase: store.loadBaseCheckpoint(vault.vault_id, vault.device_id) !== null,
+      // Whether this device ever published in this backup.
+      hasBase:
+        (
+          await db
+            .select({ id: syncHeads.device_id })
+            .from(syncHeads)
+            .where(eq(syncHeads.vault_id, vault.vault_id))
+            .limit(1)
+        ).length > 0,
       availableVaultCount: available.length,
       revoked:
         vault.revocation_kind !== null ||

@@ -75,7 +75,7 @@ jest.mock('~/db', () => ({
   sqlite: {},
   cloudVault: { status: 'status' },
   cloudSyncState: {},
-  cloudConflicts: {},
+  syncHeads: {},
   mediaAssets: {},
   syncProviderState: {},
   entries: {},
@@ -83,6 +83,8 @@ jest.mock('~/db', () => ({
   customPrompts: {},
   runExclusiveDbTransaction: (...args: unknown[]) => mockCommit(...(args as [never])),
 }));
+// Cloud sync v2's conflict count reads its own tables.
+jest.mock('./versions', () => ({ countSyncChoices: async () => 0 }));
 jest.mock('drizzle-orm', () => ({
   and: jest.fn(),
   count: jest.fn(),

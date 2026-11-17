@@ -1,21 +1,6 @@
-import {
-  desc,
-  or,
-  and,
-  gte,
-  lt,
-  eq,
-  inArray,
-  isNotNull,
-  sql,
-  type SQL,
-} from 'drizzle-orm';
+import { desc, or, and, gte, lt, eq, sql, type SQL } from 'drizzle-orm';
 import { addDays, startOfDay, format } from 'date-fns';
-import {
-  groupOtherVersions,
-  openConflictGroups,
-  type OtherVersionGroup,
-} from '~/lib/otherVersionGroups';
+import { type OtherVersionGroup } from '~/lib/otherVersionGroups';
 
 export type { OtherVersionGroup } from '~/lib/otherVersionGroups';
 import { getAchievementForCreateTransition, type Achievement } from '~/lib/achievements';
@@ -196,49 +181,20 @@ export async function getEntriesForDay(dateMs: number): Promise<Entry[]> {
     .orderBy(desc(entries.created_at));
 }
 
-/** Entries that are another version, or the original another version was copied from. */
-const versionMemberFilter = () =>
-  or(
-    isNotNull(entries.conflict_origin_id),
-    inArray(
-      entries.note_id,
-      db
-        .select({ id: entries.conflict_origin_id })
-        .from(entries)
-        .where(isNotNull(entries.conflict_origin_id)),
-    ),
-  );
-
-/** Groups entries sync kept another version of, newest group first. */
+/**
+ * Entries with other versions of their title or text, newest first: the
+ * entry, and one copy of it per other version (cloud sync v2, see
+ * `cloudSync/ui/versions.ts`).
+ */
 export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
-  // One statement with a subquery: binding every origin ID could exceed
-  // SQLite's variable limit on a large journal.
-  const rows = await db
-    .select()
-    .from(entries)
-    .where(versionMemberFilter())
-    .orderBy(desc(entries.created_at), entries.note_id);
-  return groupOtherVersions(rows);
+  const { listVersionGroups } = await import('~/lib/cloudSync/ui/versions');
+  return listVersionGroups();
 }
 
-/**
- * Entry conflicts still open: groups (an original and the versions copied from
- * it, see `groupOtherVersions`) with more than one live version, as member IDs.
- * Deleted entries are not in the table, so keeping one version on any device
- * closes its group here once that delete has synced.
- * Reads two columns, and only when some entry is another version: with no
- * index on `conflict_origin_id` the filter scans the table, as the timeline does.
- * shortcut: a version links only to the entry it was copied from, so deleting
- * the middle of a chain (original -> copy -> copy of copy) from the entry
- * screen leaves the ends unlinked and each counts as alone; follow links with a
- * recursive query if sync or users start producing such chains.
- */
+/** Entries with another version still open, one per group. */
 export async function getOpenConflictGroups(): Promise<string[][]> {
-  const rows = await db
-    .select({ note_id: entries.note_id, conflict_origin_id: entries.conflict_origin_id })
-    .from(entries)
-    .where(versionMemberFilter());
-  return openConflictGroups(rows);
+  const { listOtherVersions } = await import('~/lib/cloudSync/ui/versions');
+  return [...(await listOtherVersions()).keys()].map((id) => [id]);
 }
 
 /**

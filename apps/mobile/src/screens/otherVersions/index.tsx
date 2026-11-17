@@ -1,19 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, FlatList, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import type { Asset, Entry } from '~/types';
 import type { OtherVersionGroup } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
-import { track } from '~/lib/analytics';
 import { useSettingsStore } from '~/lib/settings';
-import { acknowledgeEntryConflicts } from '~/lib/cloudSync/ui';
+import { keepEntryVersion, parseVersionCopyId } from '~/lib/cloudSync/ui/versions';
 import { isOpenGroup } from '~/lib/otherVersionGroups';
-import {
-  useDeleteEntry,
-  useOtherVersionGroups,
-  useTagMapping,
-} from '~/hooks/useGratitude';
+import { QUERY_KEYS, useOtherVersionGroups, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
@@ -32,7 +28,7 @@ import {
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { OtherVersionGroupCard } from './OtherVersionGroupCard';
-import { deleteEach, entriesToDelete, groupMembers, keepMessage } from './keepVersion';
+import { groupMembers, keepMessage } from './keepVersion';
 
 /**
  * Entries that were edited on two devices at once, with both versions kept.
@@ -55,7 +51,7 @@ export default function OtherVersionsScreen() {
   const [hadGroups, setHadGroups] = useState(false);
   if (groups.length > 0 && !hadGroups) setHadGroups(true);
   const allDone = !isLoading && !isError && groups.length === 0 && hadGroups;
-  const deleteEntryMutation = useDeleteEntry();
+  const queryClient = useQueryClient();
   // The entry to keep and the entries the confirmation names for deletion.
   const [pendingKeep, setPendingKeep] = useState<{
     keepId: string;
@@ -96,10 +92,9 @@ export default function OtherVersionsScreen() {
   };
 
   const handleEntryPress = (entry: Entry) => {
-    router.push({
-      pathname: '/gratitudeEntry/[noteId]',
-      params: { noteId: entry.note_id },
-    });
+    // A version is shown as a copy of its entry: open the entry itself.
+    const noteId = parseVersionCopyId(entry.note_id)?.entryId ?? entry.note_id;
+    router.push({ pathname: '/gratitudeEntry/[noteId]', params: { noteId } });
   };
 
   const handleKeepPress = (group: OtherVersionGroup, entry: Entry) => {
@@ -109,41 +104,26 @@ export default function OtherVersionsScreen() {
     });
   };
 
-  // Deletes through the same path as deleting an entry from its own screen,
-  // so the deletes sync and their media is retained the same way.
-  // If two devices each keep a different version before syncing, the merge
-  // brings one back (`keepOneVersion` in the snapshot merge).
+  // One new write of the chosen value (cloud sync v2): the other versions of
+  // that field go everywhere once it syncs. Two devices keeping different
+  // versions at once leave both open, so nothing is lost.
   const handleKeepConfirm = async () => {
     if (!pendingKeep || deletingRef.current) return;
     deletingRef.current = true;
     setIsDeleting(true);
-    const { keepId, others } = pendingKeep;
-    const deleteIds = others.map((entry) => entry.note_id);
-    // Re-read the groups: a sync may have changed them since the confirmation opened.
-    const latest = await refetch();
-    const ids = latest.isError
-      ? []
-      : entriesToDelete(latest.data ?? [], keepId, deleteIds);
-    const deleted =
-      !latest.isError &&
-      (await deleteEach(ids, async (id) => {
-        await deleteEntryMutation.mutateAsync(id);
-        track('entry_deleted');
-      }));
+    let kept = true;
+    try {
+      await keepEntryVersion(pendingKeep.keepId);
+    } catch (error) {
+      console.error('Failed to keep a version', error);
+      kept = false;
+    }
+    await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+    await refetch();
     deletingRef.current = false;
     setIsDeleting(false);
     setPendingKeep(null);
-    if (!deleted) {
-      toast.error(t('mood.failedToDeleteEntry'));
-      return;
-    }
-    if (ids.length === 0) return;
-    // The choice is made, so the conflicts about these entries are handled.
-    // Best effort: the deletes already happened, and the entries row clears by
-    // itself once the group has one version left; this keeps Home from loading them.
-    acknowledgeEntryConflicts([keepId, ...ids]).catch((error: unknown) =>
-      console.error('Failed to dismiss entry conflicts', error),
-    );
+    if (!kept) toast.error(t('mood.failedToSaveEntry'));
   };
 
   return (

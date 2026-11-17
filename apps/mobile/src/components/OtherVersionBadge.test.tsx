@@ -24,27 +24,20 @@ function render(entry: { note_id: string; conflict_origin_id: string | null }) {
   });
 }
 
-test('an entry that is not another version shows nothing and loads nothing', () => {
-  mockGroups = [['original', 'copy']];
-  render({ note_id: 'original', conflict_origin_id: null });
+test('an entry without another version shows nothing', () => {
+  mockGroups = [['other']];
+  render({ note_id: 'entry', conflict_origin_id: null });
   expect(root.toJSON()).toBeNull();
-  expect(mockUseGroups).not.toHaveBeenCalled();
 });
 
-test('a version that still has another live version shows the badge', () => {
-  mockGroups = [['original', 'copy']];
-  render({ note_id: 'copy', conflict_origin_id: 'original' });
+test('an entry with another version of its title or text shows the badge', () => {
+  mockGroups = [['entry']];
+  render({ note_id: 'entry', conflict_origin_id: null });
   expect(root.root.findByType('Badge' as never)).toBeDefined();
 });
 
-test('a lone survivor shows no badge, e.g. a kept copy', () => {
-  mockGroups = [['other-original', 'other-copy']];
-  render({ note_id: 'copy', conflict_origin_id: 'original' });
-  expect(root.toJSON()).toBeNull();
-});
-
-test('shows nothing until the groups load', () => {
+test('shows nothing until the versions load', () => {
   mockGroups = undefined;
-  render({ note_id: 'copy', conflict_origin_id: 'original' });
+  render({ note_id: 'entry', conflict_origin_id: null });
   expect(root.toJSON()).toBeNull();
 });

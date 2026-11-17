@@ -45,6 +45,7 @@ import type {
   SnapshotMediaStore,
 } from '../sync/types';
 import { LocalStorageError } from '../sync/types';
+import type { ApplyMediaFiles } from '../../storage/v2State';
 
 const STAGING_DIRECTORY = 'cloud-sync-media';
 const PHOTO_DIRECTORY = 'photos';
@@ -520,7 +521,10 @@ function restorableMediaUri(
   return name.length > 0 && !name.includes('/') && !name.includes('..') ? uri : null;
 }
 
-function relativeMediaUri(asset: SnapshotMedia): string {
+/** What placing a blob's file needs from its descriptor (v1 or v2). */
+type PlacedMedia = Pick<SnapshotMedia, 'assetId' | 'kind' | 'blobHash' | 'byteSize'>;
+
+function relativeMediaUri(asset: PlacedMedia): string {
   const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
   const extension = asset.kind === 'voice' ? 'm4a' : 'jpg';
   return `${directoryName}/${sha256Text(asset.assetId)}-${asset.blobHash}.${extension}`;
@@ -1372,8 +1376,20 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     return { hydrated, missing, profilePhoto };
   }
 
+  /**
+   * Files for the v2 apply (`applySyncState`): the same copies and staged
+   * downloads a v1 apply makes, under the same lock.
+   */
+  applyFiles(): ApplyMediaFiles {
+    return {
+      materialize: (media, created) => this.materializeMedia(media, created),
+      discard: (created) => discardUncommittedMediaFiles(created),
+      serialize: (operation) => serializeMediaFiles(operation),
+    };
+  }
+
   private async materializeMedia(
-    media: readonly SnapshotMedia[],
+    media: readonly PlacedMedia[],
     created: string[],
   ): Promise<Map<string, MaterializedMedia>> {
     const existingRows = await db.select().from(mediaAssets);
@@ -1414,7 +1430,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   }
 
   private async materializeDescriptor(
-    asset: SnapshotMedia,
+    asset: PlacedMedia,
     created: string[],
     relativeUri = relativeMediaUri(asset),
   ): Promise<MaterializedMedia> {
@@ -1453,4 +1469,14 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     await copyVerifiedMediaFile(source, destination, asset.byteSize, asset.blobHash);
     return { uri: relativeUri, verified: true };
   }
+}
+
+/** Files for a v2 apply outside a sync pass (a "Keep this one" or "Got it"). */
+export function productionApplyFiles(): ApplyMediaFiles {
+  // The vault and device only matter to v1's capture and apply.
+  return new ProductionSnapshotJournalStore(
+    '',
+    '',
+    new ProductionSnapshotMediaStore(),
+  ).applyFiles();
 }
