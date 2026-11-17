@@ -83,6 +83,12 @@ export const mediaAssets = sqliteTable(
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
     pending_local_delete_at: integer('pending_local_delete_at'),
+    /**
+     * Sync v2: the stamp of the attach. Set when the attachment is first
+     * published (its blob is then on the provider), so null until P6.
+     */
+    stamp_hlc: integer('stamp_hlc'),
+    stamp_device: text('stamp_device'),
   },
   (table) => [
     index('media_assets_owner_idx').on(table.owner_type, table.owner_id),
@@ -101,6 +107,9 @@ export const entryTags = sqliteTable(
       .references(() => tags.tag_id, { onDelete: 'cascade' }),
     created_at: integer('created_at').notNull(),
     updated_at: integer('updated_at').notNull(),
+    /** Sync v2: the stamp of the add that put this tag on the entry. */
+    stamp_hlc: integer('stamp_hlc'),
+    stamp_device: text('stamp_device'),
   },
   (table) => [
     primaryKey({ columns: [table.note_id, table.tag_id] }),
@@ -425,6 +434,107 @@ export const cloudSyncMigrationItems = sqliteTable(
     entity_type: text('entity_type').notNull(),
     entity_id: text('entity_id').notNull(),
     normalized_at: integer('normalized_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.entity_type, table.entity_id] })],
+);
+
+// ============================================================================
+// Cloud sync v2 (issue #185). Local only until the v2 engine ships; nothing in
+// the app reads these yet. Device IDs and vectors use the in-memory form of
+// `src/lib/cloudSync/v2/types.ts`: a stamp is [hlc, deviceId], a version
+// vector is a JSON object {deviceId: hlc}.
+// ============================================================================
+
+/**
+ * This install's sync identity and clock. One row ('self'), created by the
+ * 0008 migration with a random device ID. A wipe replaces the device ID and
+ * resets the context: an ID is never reused once local state is lost.
+ */
+export const syncDevice = sqliteTable('sync_device', {
+  id: text('id').primaryKey().notNull(),
+  device_id: text('device_id').notNull(),
+  /** Highest HLC seen per device (the state's context). */
+  ctx_json: text('ctx_json').notNull().default('{}'),
+  /** Device -> last-seen HLC. */
+  roster_json: text('roster_json').notNull().default('{}'),
+  /** Device -> acknowledged context (`markSeen`). */
+  acks_json: text('acks_json').notNull().default('{}'),
+  /** Highest compaction floor used, or null. */
+  floor_json: text('floor_json'),
+  created_at: integer('created_at').notNull(),
+  updated_at: integer('updated_at').notNull(),
+});
+
+/**
+ * Per-record sync metadata for entries, tags, prompts and the profile. The
+ * values stay in their own tables (the shown value of each field); this row
+ * holds what the v2 join needs beside them.
+ */
+export const syncRecords = sqliteTable(
+  'sync_records',
+  {
+    entity_type: text('entity_type', {
+      enum: ['entry', 'tag', 'prompt', 'profile'],
+    }).notNull(),
+    entity_id: text('entity_id').notNull(),
+    /** Every write to the record, including replaced values. */
+    vv_json: text('vv_json').notNull(),
+    /** Writes the record holds values for, when less than `vv_json` (entries). */
+    known_json: text('known_json'),
+    /** Field -> [hlc, deviceId] of the shown value (title, text, mood, date, order, name, photo). */
+    stamps_json: text('stamps_json').notNull().default('{}'),
+    /** Tombstone: {at, seen, ackSeen, ext}, or null. Kept while the record is shown again. */
+    del_json: text('del_json'),
+    /** Feature -> stamped items, kept for features this build does not know. */
+    ext_json: text('ext_json').notNull().default('{}'),
+    /** Set on an entry made by "Keep both": {from, field, s}. */
+    split_json: text('split_json'),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.entity_type, table.entity_id] })],
+);
+
+/**
+ * Values beside the shown one: the other open versions of a multi-value
+ * field (title, text, profile name or photo), and a set member's extra
+ * stamps (field 'tags' or 'attachments', value = the member ID).
+ */
+export const syncFieldValues = sqliteTable(
+  'sync_field_values',
+  {
+    entity_type: text('entity_type').notNull(),
+    entity_id: text('entity_id').notNull(),
+    field: text('field').notNull(),
+    stamp_hlc: integer('stamp_hlc').notNull(),
+    stamp_device: text('stamp_device').notNull(),
+    value_json: text('value_json').notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.entity_type,
+        table.entity_id,
+        table.field,
+        table.stamp_hlc,
+        table.stamp_device,
+      ],
+    }),
+  ],
+);
+
+/**
+ * A deleted record's values, kept behind its tombstone so an edit the
+ * deleter had not seen brings it back whole (the record's row in its own
+ * table is gone). Compaction clears `record_json` to a values-free record.
+ */
+export const syncDeletedRecords = sqliteTable(
+  'sync_deleted_records',
+  {
+    entity_type: text('entity_type').notNull(),
+    entity_id: text('entity_id').notNull(),
+    /** The v2 record as JSON (values, vector, tombstone). */
+    record_json: text('record_json').notNull(),
+    deleted_at: integer('deleted_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.entity_type, table.entity_id] })],
 );

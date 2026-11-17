@@ -89,6 +89,8 @@ test('manual backup v1 carries every normalized stable identity additively', () 
             created_at: 5,
             updated_at: 6,
             pending_local_delete_at: null,
+            stamp_hlc: null,
+            stamp_device: null,
           },
         ],
       ],
