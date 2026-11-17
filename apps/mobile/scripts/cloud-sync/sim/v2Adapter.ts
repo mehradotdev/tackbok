@@ -346,9 +346,11 @@ export class V2Adapter implements SimAdapter {
       }
       const moved = shown[(event.index + 1) % shown.length];
       const result = ops.keepBoth(state, writer, entry.id, field, chosen.s, moved.s);
-      // A split entry compacted meanwhile is filled again from this entry.
+      // A split entry compacted meanwhile is filled again from this entry, and
+      // one made from an entry brought back after compaction copies its values.
       const prior = state.entries.get(result.newEntryId);
-      if (prior && isCompacted(prior)) this.revivedEntries.push(result.newEntryId);
+      if ((prior && isCompacted(prior)) || this.revivedEntries.includes(entry.id))
+        this.revivedEntries.push(result.newEntryId);
       this.states[device] = result.state;
       this.record?.(result.state);
       return {
