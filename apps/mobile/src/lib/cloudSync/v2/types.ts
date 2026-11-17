@@ -39,8 +39,11 @@ export interface Tombstone {
   readonly at: Stamp;
   /** What the deleters had seen of this record. */
   readonly seen: VersionVector;
-  /** "Got it" on a returned record; hides the notice while `at` is not newer. */
-  readonly ackAt: Stamp | null;
+  /**
+   * "Got it" on a returned record: the deletes it acknowledged (`seen` at the
+   * time). A later delete grows `seen`, so its return shows a notice again.
+   */
+  readonly ackSeen: VersionVector | null;
 }
 
 /**

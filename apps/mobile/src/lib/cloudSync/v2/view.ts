@@ -28,7 +28,7 @@ export function isReturned(record: {
   return (
     del !== null &&
     isLive(record) &&
-    (del.ackAt === null || compareStamps(del.at, del.ackAt) > 0)
+    (del.ackSeen === null || !vectorIncluded(del.seen, del.ackSeen))
   );
 }
 

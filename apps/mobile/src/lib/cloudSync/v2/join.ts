@@ -142,7 +142,7 @@ export function joinTombstones(left: Tombstone, right: Tombstone): Tombstone {
   return {
     at: maxStamp(left.at, right.at),
     seen: joinVectors(left.seen, right.seen),
-    ackAt: joinOptional(left.ackAt, right.ackAt, maxStamp),
+    ackSeen: joinOptional(left.ackSeen, right.ackSeen, joinVectors),
   };
 }
 
@@ -187,6 +187,17 @@ function joinProfile(left: ProfileRecord, right: ProfileRecord): ProfileRecord {
     name: joinMultiValue(left.name, left.vv, right.name, right.vv),
     photo: joinMultiValue(left.photo, left.vv, right.photo, right.vv),
   };
+}
+
+/**
+ * A media descriptor is immutable: two different ones under one asset ID are
+ * a bug. Picking one would not be associative once pruning removes the other
+ * in between, so the join refuses, as v1 does (`asset-id-collision`).
+ */
+function sameMedia(left: MediaDescriptor, right: MediaDescriptor): MediaDescriptor {
+  if (left !== right && canonicalize(left) !== canonicalize(right))
+    throw new SyncJoinError('asset-id-collision', `Asset ${left.assetId} differs`);
+  return left;
 }
 
 function joinMaps<T>(
@@ -249,6 +260,6 @@ export function join(left: SyncState, right: SyncState): SyncState {
     tags: joinMaps(left.tags, right.tags, joinNamed),
     prompts: joinMaps(left.prompts, right.prompts, joinNamed),
     profile,
-    media: pruneMedia(joinMaps(left.media, right.media, smaller), entries, profile),
+    media: pruneMedia(joinMaps(left.media, right.media, sameMedia), entries, profile),
   };
 }

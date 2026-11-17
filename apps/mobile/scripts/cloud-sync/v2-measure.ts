@@ -164,7 +164,7 @@ function buildJournal(count: number, seed: number): Journal {
     if (deleted) {
       const s = stamp();
       bump(vv, s);
-      del = { at: s, seen: { ...vv }, ackAt: null };
+      del = { at: s, seen: { ...vv }, ackSeen: null };
     }
     v2Entries.set(entryId, {
       id: entryId,

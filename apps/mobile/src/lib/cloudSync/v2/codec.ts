@@ -16,8 +16,10 @@
  *
  * Versioning: an unknown major version, required feature, codec, encryption
  * or kind throws `SnapshotUpdateRequiredError` ("pause and ask the user to
- * update; never write or delete"). Unknown optional features are ignored.
- * New optional fields can only arrive through those rules.
+ * update; never write or delete"). These are read before the closed shape is
+ * checked, so a newer layout always asks for an update. New fields arrive only
+ * under `ext` (in the header and in the body), keyed by the feature that
+ * defines them; data under an unknown optional feature is ignored.
  */
 import { decodeGzipBounded, encodeGzip } from '~/lib/zip/core/gzip-codec';
 
@@ -86,6 +88,8 @@ export interface SnapshotHeader {
   roster: { deviceId: string; lastSeenAt: number }[];
   ctx: VectorJson;
   floor: VectorJson | null;
+  /** Feature-keyed extension data; none is defined in 2.0.0. */
+  ext: Record<string, Json>;
 }
 
 export interface Publication {
@@ -151,7 +155,7 @@ function tombJson(ix: Indexer, del: Tombstone | null): Json {
   return {
     at: ix.stamp(del.at),
     seen: ix.vector(del.seen),
-    ack: del.ackAt ? ix.stamp(del.ackAt) : null,
+    ack: del.ackSeen ? ix.vector(del.ackSeen) : null,
   };
 }
 
@@ -201,6 +205,7 @@ function bodyJson(ix: Indexer, state: SyncState): Json {
       photo: itemsJson(ix, state.profile.photo),
     },
     media: byKey(state.media.values(), (media) => media.assetId).map(mediaJson),
+    ext: {},
   };
 }
 
@@ -268,6 +273,7 @@ export function encodeEnvelope(
     deviceSequence: publication.deviceSequence,
     createdAt: publication.createdAt,
     ...stateHeaderJson(ix, state),
+    ext: {},
   };
   validateHeader(header);
   const headerText = canonicalize(header);
@@ -409,7 +415,7 @@ class Reader {
       return {
         at: this.stamp(del.at, `${path}.at`),
         seen: this.vector(del.seen, `${path}.seen`),
-        ackAt: nullable(del.ack, (ack) => this.stamp(ack, `${path}.ack`)),
+        ackSeen: nullable(del.ack, (ack) => this.vector(ack, `${path}.ack`)),
       };
     });
   }
@@ -553,7 +559,48 @@ function sortedMap<T>(
   return map;
 }
 
+/** Feature-keyed extensions: every key names a declared feature. */
+function extensions(value: unknown, features: Set<string>, path: string): void {
+  if (value === null || typeof value !== 'object' || Array.isArray(value))
+    invalid('invalid-shape', `${path} must be an object`);
+  for (const key of Object.keys(value))
+    if (!features.has(key))
+      invalid('undeclared-extension', `${path}.${key} has no feature`);
+}
+
+function headerFeatures(header: unknown): Set<string> {
+  const features = (header as { features: { required: string[]; optional: string[] } })
+    .features;
+  return new Set([...features.required, ...features.optional]);
+}
+
+/** The checks a newer snapshot must fail with "update", before any shape check. */
+function checkVersion(header: unknown): void {
+  if (header === null || typeof header !== 'object' || Array.isArray(header))
+    invalid('invalid-shape', '$header must be an object');
+  const value = header as Record<string, unknown>;
+  if (value.format !== SNAPSHOT_FORMAT)
+    needsUpdate('unsupported-format', 'Unknown format');
+  if (value.major !== SNAPSHOT_MAJOR)
+    needsUpdate('unsupported-version', 'Snapshot needs a newer Tackbok');
+  const features = value.features as { required?: unknown } | null;
+  const required =
+    features && typeof features === 'object' && Array.isArray(features.required)
+      ? features.required
+      : [];
+  for (const feature of required)
+    if (typeof feature === 'string' && !KNOWN_REQUIRED_FEATURES.includes(feature))
+      needsUpdate('unsupported-feature', `Snapshot requires ${feature}`);
+  if (value.codec !== undefined && value.codec !== 'gzip')
+    needsUpdate('unsupported-codec', 'Unknown body codec');
+  if (value.encryption !== undefined && value.encryption !== 'none')
+    needsUpdate('unsupported-encryption', 'Encrypted body');
+  if (value.kind === 'delta')
+    needsUpdate('unsupported-kind', 'Delta snapshots need an update');
+}
+
 function validateHeader(header: unknown): SnapshotHeader {
+  checkVersion(header);
   const value = object(
     header,
     [
@@ -573,10 +620,11 @@ function validateHeader(header: unknown): SnapshotHeader {
       'roster',
       'ctx',
       'floor',
+      'ext',
     ],
     '$header',
   );
-  // Checked first, in this order, so a newer snapshot always asks for an update.
+  // Repeated after the shape check, which also validates the feature lists.
   if (value.format !== SNAPSHOT_FORMAT)
     needsUpdate('unsupported-format', 'Unknown format');
   if (value.major !== SNAPSHOT_MAJOR)
@@ -623,13 +671,19 @@ function validateHeader(header: unknown): SnapshotHeader {
   const reader = new Reader(roster);
   reader.vector(value.ctx, '$header.ctx');
   if (value.floor !== null) reader.vector(value.floor, '$header.floor');
+  extensions(value.ext, headerFeatures(value), '$header.ext');
   return value as unknown as SnapshotHeader;
 }
 
 function readState(header: SnapshotHeader, body: unknown): SyncState {
   const devices = header.roster.map((device) => device.deviceId);
   const reader = new Reader(devices);
-  const value = object(body, ['entries', 'tags', 'prompts', 'profile', 'media'], '$body');
+  const value = object(
+    body,
+    ['entries', 'tags', 'prompts', 'profile', 'media', 'ext'],
+    '$body',
+  );
+  extensions(value.ext, headerFeatures(header), '$body.ext');
   const entries = array(value.entries, SNAPSHOT_CAPS.entries, '$body.entries').map(
     (raw, i) => readEntry(reader, raw, `$body.entries[${i}]`),
   );
@@ -720,6 +774,22 @@ export function decodeEnvelope(
 
 // ---------------------------------------------------------------- semantics
 
+/** The join walks items and members in this order. */
+function assertSorted(items: readonly { s: Stamp; id?: string }[], path: string): void {
+  for (let i = 1; i < items.length; i++) {
+    const a = items[i - 1],
+      b = items[i];
+    const byId =
+      a.id === undefined || b.id === undefined || a.id === b.id
+        ? 0
+        : a.id < b.id
+          ? -1
+          : 1;
+    if (byId > 0 || (byId === 0 && compareStamps(a.s, b.s) >= 0))
+      invalid('unsorted', `${path} must be sorted and unique`);
+  }
+}
+
 function assertCovered(vv: VersionVector, stamp: Stamp, path: string) {
   if (!covers(vv, stamp))
     invalid('uncovered-stamp', `${path} is outside its version vector`);
@@ -738,7 +808,8 @@ function validateRecord(
     if (!vectorIncluded(record.del.seen, record.vv))
       invalid('invalid-tombstone', `${path}.del saw writes the record lacks`);
     assertCovered(record.del.seen, record.del.at, `${path}.del.at`);
-    if (record.del.ackAt) assertCovered(ctx, record.del.ackAt, `${path}.del.ack`);
+    if (record.del.ackSeen && !vectorIncluded(record.del.ackSeen, record.del.seen))
+      invalid('invalid-tombstone', `${path}.del acknowledged deletes it lacks`);
   }
 }
 
@@ -784,6 +855,10 @@ export function validateState(state: SyncState): void {
       ...(entry.order ? [entry.order.s] : []),
     ];
     validateRecord(entry, state.ctx, stamps, path);
+    assertSorted(entry.title, `${path}.title`);
+    assertSorted(entry.text, `${path}.text`);
+    assertSorted(entry.tags, `${path}.tags`);
+    assertSorted(entry.attachments, `${path}.attachments`);
     if (
       entry.title.length > V2_CAPS.valuesPerRegister ||
       entry.text.length > V2_CAPS.valuesPerRegister
@@ -842,6 +917,8 @@ export function validateState(state: SyncState): void {
     [...profile.name.map((item) => item.s), ...profile.photo.map((item) => item.s)],
     'profile',
   );
+  assertSorted(profile.name, 'profile.name');
+  assertSorted(profile.photo, 'profile.photo');
   for (const item of profile.name) {
     if (item.v !== null) string(item.v, 'profile.name', SNAPSHOT_CAPS.profileNameBytes);
     count(item.v);

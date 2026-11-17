@@ -5,6 +5,8 @@
  */
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 
+import { canonicalize } from '../snapshot/canonical';
+
 import { compareStamps, nextHlc, withStamp } from './clock';
 import { namedId, normalizeTitle, splitEntryId, type NamedKind } from './ids';
 import { joinTombstones, pruneMedia } from './join';
@@ -186,8 +188,21 @@ export function keepBoth(
   if (!moved || compareStamps(keep, move) === 0)
     throw new SyncOpError('missing-version', 'The version to move is gone');
   const newEntryId = splitEntryId(entryId, field, move);
-  let next = keepValue(state, writer, entryId, field, keep);
-  if (!next.entries.has(newEntryId)) {
+  const kept = entry[field].find((value) => compareStamps(value.s, keep) === 0);
+  if (!kept) throw new SyncOpError('missing-version', 'The version to keep is gone');
+  // Only the two versions involved: a third open version stays open.
+  let next = editText(state, writer, entryId, field, kept.v, [keep, move]);
+  const existing = next.entries.get(newEntryId);
+  if (existing && !isLive(existing)) {
+    // Made here or elsewhere, then deleted: write the moved value again so it
+    // comes back rather than being lost with the original's version.
+    const ticked = tick(next, writer);
+    next = withEntry(ticked.state, {
+      ...existing,
+      [field]: [...existing[field], { s: ticked.s, v: moved.v }],
+      vv: withStamp(existing.vv, ticked.s),
+    });
+  } else if (!existing) {
     const other: TextField = field === 'title' ? 'text' : 'title';
     const otherValue = shownItems(entry[other])[0]?.v ?? null;
     next = createEntry(next, writer, {
@@ -235,7 +250,7 @@ export function deleteEntry(
   const entry = liveEntry(state, entryId);
   const { state: next, s } = tick(state, writer);
   const vv = withStamp(entry.vv, s);
-  const del = { at: s, seen: vv, ackAt: null };
+  const del = { at: s, seen: vv, ackSeen: null };
   return withEntry(next, {
     ...entry,
     vv,
@@ -252,8 +267,9 @@ export function acknowledgeReturn(
   const entry = state.entries.get(entryId);
   if (!entry || !isReturned(entry) || !entry.del)
     throw new SyncOpError('not-returned', `Entry ${entryId} was not returned`);
-  const { state: next, s } = tick(state, writer);
-  return withEntry(next, { ...entry, del: { ...entry.del, ackAt: s } });
+  // Records who acknowledged; adds no stamp to the entry.
+  const { state: next } = tick(state, writer);
+  return withEntry(next, { ...entry, del: { ...entry.del, ackSeen: entry.del.seen } });
 }
 
 export function addTag(
@@ -372,9 +388,13 @@ export function createNamed(
   // records are live pick the same one.
   let attempt = 0;
   let id = namedId(kind, state.vaultId, clean);
+  // A deleted holder is revived only if it still has this title: another
+  // device may have renamed it before this device saw the delete.
+  const wanted = normalizeTitle(kind, clean);
   for (;;) {
     const holder = namedMap(state, kind).get(id);
-    if (!holder || !isLive(holder)) break;
+    if (!holder) break;
+    if (!isLive(holder) && normalizeTitle(kind, holder.title.v) === wanted) break;
     id = namedId(kind, state.vaultId, clean, ++attempt);
   }
   const existing = namedMap(state, kind).get(id);
@@ -433,7 +453,7 @@ export function deleteNamed(
     next = { ...next, entries };
   }
   const vv = withStamp(record.vv, s);
-  const del = { at: s, seen: vv, ackAt: null };
+  const del = { at: s, seen: vv, ackSeen: null };
   return withNamed(next, kind, {
     ...record,
     vv,
@@ -480,6 +500,9 @@ export function setProfilePhoto(
       v: descriptor?.assetId ?? null,
     }),
   };
+  const existing = descriptor ? state.media.get(descriptor.assetId) : undefined;
+  if (existing && canonicalize(existing) !== canonicalize(descriptor))
+    throw new SyncOpError('asset-exists', `Asset ${descriptor!.assetId} exists`);
   const media = new Map(ticked.media);
   if (descriptor) media.set(descriptor.assetId, descriptor);
   return { ...ticked, profile, media: pruneMedia(media, ticked.entries, profile) };

@@ -297,9 +297,8 @@ export class V2Adapter implements SimAdapter {
       this.states[device] = result.state;
       this.record?.(result.state);
       return {
-        removed: shown
-          .filter((item) => item !== chosen)
-          .map((item) => ({ value: item.v, entryId: entry.id })),
+        // The moved value leaves the original; a third version stays open.
+        removed: [{ value: moved.v, entryId: entry.id }],
         // The moved value and a copy of the shown title or text go to the new entry.
         affirmed: [
           { value: chosen.v, entryId: entry.id },

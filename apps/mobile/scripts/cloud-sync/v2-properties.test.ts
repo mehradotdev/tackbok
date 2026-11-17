@@ -87,9 +87,10 @@ function checkTriple(
   counts.associative++;
   if (C(joinStates(ab, c)) !== C(joinStates(a, joinStates(b, c)))) return 'associative';
   counts.idempotent++;
-  if (C(joinStates(a, a)) !== C(a)) return 'idempotent';
+  // A deep copy: `join` returns its argument when both sides are the same object.
+  if (C(joinStates(a, structuredClone(a))) !== C(a)) return 'idempotent';
   counts.absorbs++;
-  if (C(joinStates(ab, a)) !== C(ab)) return 'absorbs';
+  if (C(joinStates(ab, structuredClone(a))) !== C(ab)) return 'absorbs';
   counts.encodes++;
   // The publisher puts itself on the roster first.
   const published = markSeen(ab, { device: 'device-publisher', wallMs: 1 });
@@ -287,6 +288,26 @@ describe('the property harness catches broken joins', () => {
     };
     const { failures } = await runProperties(leftBias, seeds, 12, true);
     expect(failures[0]?.property).toBe('commutative');
+  }, 600_000);
+
+  test('shared versions dropped from open conflicts', async () => {
+    const dropShared: Join = (left, right) => {
+      const result = join(left, right);
+      const entries = new Map(result.entries);
+      for (const [id, record] of result.entries) {
+        const l = left.entries.get(id),
+          r = right.entries.get(id);
+        if (!l || !r || record.text.length < 2) continue;
+        const shared = (s: readonly [number, string]) =>
+          l.text.some((i) => i.s[0] === s[0] && i.s[1] === s[1]) &&
+          r.text.some((i) => i.s[0] === s[0] && i.s[1] === s[1]);
+        const text = record.text.filter((item) => !shared(item.s));
+        if (text.length > 0) entries.set(id, { ...record, text });
+      }
+      return { ...result, entries };
+    };
+    const { failures } = await runProperties(dropShared, seeds, 12, true);
+    expect(failures[0]?.property).toBeDefined();
   }, 600_000);
 
   test('tombstones not joined (the left one wins)', async () => {

@@ -1,3 +1,4 @@
+import { SNAPSHOT_CAPS } from '../snapshot/caps';
 import type { Stamp, VersionVector } from './types';
 
 /** Total order: HLC first, then device ID. Equal only for the same write. */
@@ -51,12 +52,15 @@ export function highestHlc(vv: VersionVector): number {
  * after seeing another always gets a higher HLC, whatever the wall clocks say.
  *
  * shortcut: a device whose clock is years ahead drags every HLC with it
- * (still correct, but "newest" then means causal order, not wall time); add
- * a skew warning once real fleets show it.
+ * (still correct, but "newest" then means causal order, not wall time), and
+ * one near the timestamp cap would stop all writes. The engine must decide
+ * how far ahead of local time a snapshot's context may be (Phase 0 report).
  */
 export function nextHlc(ctx: VersionVector, wallMs: number): number {
   const wall = Number.isFinite(wallMs) && wallMs > 0 ? Math.floor(wallMs) : 0;
   const next = Math.max(wall, highestHlc(ctx) + 1);
-  if (!Number.isSafeInteger(next)) throw new RangeError('HLC overflow');
+  // The codec's timestamp cap: a higher HLC could never be published.
+  if (!Number.isSafeInteger(next) || next > SNAPSHOT_CAPS.timestamp)
+    throw new RangeError('HLC overflow');
   return next;
 }

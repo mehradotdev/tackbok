@@ -17,7 +17,7 @@ import {
   encodeEnvelope,
 } from '../../src/lib/cloudSync/v2/codec';
 import { namedId, normalizeTitle } from '../../src/lib/cloudSync/v2/ids';
-import { join } from '../../src/lib/cloudSync/v2/join';
+import { SyncJoinError, join } from '../../src/lib/cloudSync/v2/join';
 import * as ops from '../../src/lib/cloudSync/v2/ops';
 import { emptyState, type SyncState } from '../../src/lib/cloudSync/v2/types';
 import {
@@ -333,6 +333,44 @@ describe('keeping versions (#182)', () => {
     expect(texts(merged, a.newEntryId)).toEqual(['Y']);
   });
 
+  test('"Keep both" leaves a third version open and revives a deleted split entry', () => {
+    const base = entryWith('Original');
+    const all = joinAll(
+      edit(base, at('device-a'), 'text', 'X'),
+      edit(base, at('device-b'), 'text', 'Y'),
+      edit(base, at('device-c'), 'text', 'Z'),
+    );
+    const stampOf = (value: string) =>
+      all.entries.get('e1')!.text.find((i) => i.v === value)!.s;
+    const first = ops.keepBoth(
+      all,
+      at('device-a'),
+      'e1',
+      'text',
+      stampOf('X'),
+      stampOf('Y'),
+    );
+    expect([...texts(first.state, 'e1')].sort()).toEqual(['X', 'Z']);
+    // Device B holds the deleted split entry but not A's change to e1 (for
+    // example a copy missing e1); it then keeps both Z and Y.
+    const deleted = ops.deleteEntry(first.state, at('device-a'), first.newEntryId);
+    const splitOnly: SyncState = {
+      ...deleted,
+      entries: new Map([[first.newEntryId, deleted.entries.get(first.newEntryId)!]]),
+      media: new Map(),
+    };
+    const again = ops.keepBoth(
+      join(all, splitOnly),
+      at('device-b'),
+      'e1',
+      'text',
+      stampOf('Z'),
+      stampOf('Y'),
+    );
+    expect(texts(again.state, first.newEntryId)).toContain('Y');
+    expect(isLive(again.state.entries.get(first.newEntryId)!)).toBe(true);
+  });
+
   test('known wart: a keep concurrent with an edit of the kept version re-opens a conflict', () => {
     const base = entryWith('Original');
     const all = join(
@@ -428,6 +466,37 @@ describe('tags and prompts with title-derived IDs', () => {
     expect(ops.createNamed(renamed, at('device-b'), 'tag', 'work').id).toBe(again.id);
   });
 
+  test('a delete and re-create elsewhere never undoes a concurrent rename', () => {
+    const work = ops.createNamed(emptyState(VAULT), at('device-a'), 'tag', 'Work');
+    const renamed = ops.renameNamed(work.state, at('device-a'), 'tag', work.id, 'Job');
+    const deleted = ops.deleteNamed(work.state, at('device-b'), 'tag', work.id);
+    const recreated = ops.createNamed(deleted, at('device-b'), 'tag', 'Work');
+    // The deleted holder still has the title, so it is revived on B...
+    expect(recreated.id).toBe(work.id);
+    // ...and a concurrent rename beats nothing: last writer wins on the title.
+    const merged = convergeInEveryOrder([renamed, recreated.state]);
+    expect(liveTags(merged).length).toBe(1);
+    // But once B has seen the rename, re-creating "Work" makes a new tag.
+    const seen = ops.deleteNamed(renamed, at('device-b'), 'tag', work.id);
+    const fresh = ops.createNamed(seen, at('device-b'), 'tag', 'Work');
+    expect(fresh.id).not.toBe(work.id);
+  });
+
+  test('a profile photo cannot reuse an asset ID with another descriptor', () => {
+    const p1 = mediaFor('p1', { type: 'profile' }, T0);
+    const base = ops.setProfilePhoto(emptyState(VAULT), at('device-a'), p1, 'all');
+    expect(() =>
+      ops.setProfilePhoto(base, at('device-a'), { ...p1, byteSize: 999 }, 'all'),
+    ).toThrow(ops.SyncOpError);
+    const other = ops.setProfilePhoto(
+      emptyState(VAULT),
+      at('device-b'),
+      { ...p1, byteSize: 999 },
+      'all',
+    );
+    expect(() => join(base, other)).toThrow(SyncJoinError);
+  });
+
   test('known limit: a rename onto a title another device creates gives two tags', () => {
     const base = ops.createNamed(emptyState(VAULT), at('device-a'), 'tag', 'Work');
     const renamed = ops.renameNamed(base.state, at('device-a'), 'tag', base.id, 'Job');
@@ -480,8 +549,10 @@ describe('clocks', () => {
     expect(convergeInEveryOrder([a, b]).entries.get('e1')!.mood.v).toBe('AWFUL');
   });
 
-  test('the HLC refuses to overflow', () => {
+  test('the HLC refuses to pass the timestamp cap any snapshot can carry', () => {
     expect(() => nextHlc({ d: Number.MAX_SAFE_INTEGER }, 0)).toThrow(RangeError);
+    expect(() => nextHlc({ d: 8_640_000_000_000_000 }, 0)).toThrow(RangeError);
+    expect(nextHlc({ d: 8_639_999_999_999_998 }, 0)).toBe(8_639_999_999_999_999);
   });
 });
 
@@ -688,6 +759,18 @@ describe('envelope', () => {
       ['update:unsupported-encryption', (h) => (h.encryption = 'xchacha20')],
       ['update:unsupported-kind', (h) => (h.kind = 'delta')],
       ['ok', (h) => (h.features = { required: [], optional: ['future-hint'] })],
+      // A newer layout (extra keys) still asks for an update, not "corrupt".
+      ['update:unsupported-version', (h) => ((h.major = 3), (h.newField = 1))],
+      // Data under an optional feature is ignored...
+      [
+        'ok',
+        (h) => (
+          (h.features = { required: [], optional: ['future-hint'] }),
+          (h.ext = { 'future-hint': { any: 'data' } })
+        ),
+      ],
+      // ...but undeclared extension data is not.
+      ['undeclared-extension', (h) => (h.ext = { 'future-hint': 1 })],
     ];
     for (const [expected, change] of cases)
       expect(codeOf(() => decodeEnvelope(rebuild(bytes, (h) => change(h))))).toBe(
