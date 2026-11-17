@@ -433,3 +433,181 @@ sortedness and `floor` validated, records shown in ID order) and the tests
 (idempotence on deep copies, a fifth negative control, generated
 acknowledgements and reordering, tag and attachment loss, unsettled rounds,
 replay at original times). The PR descriptions list what was not applied.
+
+## 11. Follow-up: finishing the model (P2b)
+
+Part of #185, 2026-11-17. Still a pure module; nothing in the app imports it.
+Requirements 3, 4 and 6 of the verdict, and the clock bound from 5, are now in
+the model. Code: `v2/compact.ts` (new), `types.ts`, `join.ts`, `ops.ts`,
+`view.ts`, `clock.ts`, `codec.ts`.
+
+### 11.1 Per-record `ext`
+
+Every entry, tag, prompt, the profile, every tombstone and every media
+descriptor has an `ext` field: feature name to a list of stamped items. Items
+join by the observed-remove rule against the record's vector (a tombstone's
+against its `seen`; an entry's against `known`, below), exactly like a
+multi-value register, so a feature can read them as a register (newest
+item), a multi-value register or a set. The join is the same lattice as for
+titles, so it stays commutative, associative and idempotent; a device that
+does not know a feature keeps and joins its items unchanged. A media
+descriptor's `ext` is immutable like the rest of it. Rules for the envelope:
+
+- every feature some record's `ext` uses is declared in the header, as
+  required if this build lists it in `KNOWN_REQUIRED_FEATURES`, otherwise as
+  optional; undeclared keys are refused, unknown required ones ask for an
+  update (as before);
+- empty item lists are not stored; item lists are sorted, inside the record's
+  vector (an entry's: inside `known`) and at most 64 items. A record's `ext`
+  has no byte cap of its own, since two devices' items join and could pass
+  it; it counts toward the body caps. A media descriptor's `ext` is capped
+  at 64 KiB;
+- vault-wide data goes on the profile record (a singleton). The body-level
+  `ext` is gone: it could not be joined, so a republish would have dropped it.
+  The header `ext` stays, for data about one publication only.
+
+Engine consequence (P3/P5): the local database must keep `ext` items it does
+not understand, and capture them exactly, or the record's vector reads their
+absence as a removal.
+
+### 11.2 Compaction of deleted entries
+
+- **Acknowledgements.** `markSeen` (before every publish) records the
+  device's context in `acks[device]`. Only that device sets it, so `d` had
+  seen every write in `acks[d]` (it may since have compacted some values).
+  The roster in the header carries each device's acknowledgement.
+- **Active roster.** A device is active while its last-seen time is within
+  180 days (plus the 7-day clock bound) of the newest last-seen time in the
+  state (not a wall clock, so devices holding the same state agree). Devices never leave the roster
+  itself, since stamps name them; an expired device that publishes again is
+  active again.
+- **Floor.** The per-device minimum of the active devices' acknowledgements;
+  none while an active device has never published. The state keeps the
+  highest floor used (`floor`, joined by maximum).
+- **Compaction.** A deleted entry whose vector is inside the floor loses its
+  values: title, text, mood, date, tags, attachments, order and `ext`; media
+  only it referenced is pruned. Its vector, tombstone and `split` stay.
+  Liveness is decided by vector and tombstone only, so compaction never
+  changes what is shown.
+- **`known`.** Each entry records which writes it holds values for (null
+  means all of its vector). A compacted entry knows nothing, and the join
+  judges values against `known`, not the vector: a compacted copy removes no
+  value another copy has. A compacted entry is then simply the bottom element
+  for values, and the join stays a lattice. `known` is exact: a vector plus
+  explicit stamps, so a write to a partly known entry claims only itself.
+- **Stale copies.** Joining an old head brings values back into the deleted
+  record (still hidden); the next `compact` drops them again. The engine
+  compacts after every `absorb`, before publishing.
+- **A device back after expiry.** If it had edited an entry that was deleted
+  and compacted meanwhile, the edit was unseen by the delete, so the entry
+  comes back, with every value the returning device has, under their
+  original stamps. Values written before the delete that it never saw are
+  gone where every copy was compacted, so the entry can come back older than
+  the version that was deleted. It loses nothing it had. Entries it had not
+  edited stay deleted.
+- **Engine rule.** A device publishes (`markSeen`) as soon as it has joined
+  the vault, before its first local write. Otherwise a device that has never
+  published counts for no floor, and an edit it makes offline behaves like
+  a returning device's.
+- **"Keep both" onto a compacted split entry** fills it again (the other
+  field's shown value, mood, date and tags) under the same write, as a new
+  split entry would be.
+- **Tags and prompts are not compacted.** Their only value is the title,
+  which the title-derived IDs need to tell a re-created title from a rename,
+  and a deleted tag stays shown while a live entry uses it. Deleted tag and
+  prompt titles therefore stay in snapshots (an owner decision to revisit).
+
+**A first design was wrong.** It restored a returning entry by writing its
+values again under new stamps. The comparison test below caught it: the new
+stamps counted as edits, so the entry then survived a later delete that had
+seen everything the user wrote. The `known` design needs no new writes. A
+second flaw, found by the 10x run (seed 13754) and independently by two
+reviewers, was a `known` that
+claimed the writer's older, compacted writes; a later join then removed a
+title another copy still had. `known` is now exact, and a scenario pins the
+case.
+
+### 11.3 Clock bound
+
+`absorb` (the engine's only way to take in another state) refuses a state
+whose context or roster time is more than 7 days ahead of the local wall
+clock (`ClockAheadError`). Within the bound the HLC is dragged as before and
+causality holds. Consequences for the engine:
+
+- a device whose clock is behind still publishes (others accept older
+  stamps) and receives again once its clock is fixed;
+- a device whose clock was ahead keeps stamps ahead even after its clock is
+  fixed (its context holds them), so it is refused until real time comes
+  within the bound. A new device ID alone does not help: recovery is a new
+  ID, a fresh state from Drive, and its shown values written again as new
+  writes (P6/P8, with a message to the user);
+- roster times are checked too: a far-ahead last-seen time would otherwise
+  expire every other device.
+
+### 11.4 Display-level merge of tags and prompts
+
+`shownNamed` in `view.ts` groups shown tags (or prompts) by normalised title.
+The shown title and the ID for new memberships are those of the record whose
+title was written last; an entry has the tag if it has any record of the
+group. `renameShown`, `deleteShown` and `removeShownTag` act on every record
+of the group. The records stay separate in the state.
+
+### 11.5 Evidence
+
+The simulation gained `leap` events (every clock jumps 120 to 300 days, so
+quiet devices expire), `setExt` events, positive clock skews kept within the
+bound (a device far ahead needs the identity reset above; scenarios cover
+it), clocks fixed before the final round, and in every sync the engine's
+steps: refuse, `absorb`, `markSeen` when the device holds something it has
+not acknowledged, `compact`, and a check that compaction changed nothing
+shown. The oracle also fails a shown entry with no title or text version.
+v1's generated cases and its pinned baseline are unchanged.
+
+| Check                                                                                                                                                                  | CI          | 10x          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------ |
+| Properties (commutative, associative, idempotent, absorbs, encodes, missing never deletes, compaction hides nothing, compaction idempotent, compaction keeps liveness) | 24,000 each | 240,000 each |
+| Pairwise simulation cases                                                                                                                                              | 2,000       | 20,000       |
+| Drive-style simulation cases                                                                                                                                           | 600         | 6,000        |
+| Same events with and without compaction                                                                                                                                | 500         | 5,000        |
+| Failures                                                                                                                                                               | 0           | 0            |
+
+Reached at 10x (cases with at least one): compacted entries 12,093 of
+20,000 pairwise and 3,708 of 6,000 Drive-style; an entry brought back after
+compaction 731 and 157; a state refused for its clock 3,199 and 887; shown
+tags or prompts with one title 0 (Phase 0: 1.6%). Property coverage: a
+compacted copy meeting one with values in 17% of joins, an entry brought back
+in 0.17%, `ext` on both sides in 27%.
+
+Validation also refuses an entry that is not compacted but has no title or
+text item, mood or date (every write leaves one; an empty list would remove
+the other side's values), values outside `known`, and a feature that is both
+required and optional.
+
+Negative controls added: a compaction whose emptied copy still removes values
+(caught by the oracle or by validation), alongside the five from Phase 0. Scenarios added (49 in all): compaction once every device has seen
+a delete, the deleted text gone from the uploaded body, a stale copy, a
+device that never published, a device back after expiry with and without an
+edit, writes on an entry brought back, `ext` joins, an older device keeping
+`ext`, tombstone `ext`, `ext` validation, the clock bound both ways, and the
+display-level merge.
+
+**Size** (`bun scripts/cloud-sync/v2-measure.ts`, desktop): at 10,000
+entries v2 is 2,166 KiB gzipped, 2,076 KiB after compaction of the 5% deleted
+entries (v1: 1,876 KiB). Join 16 ms, encode 304 ms, decode 279 ms.
+
+### 11.6 Still open
+
+- Deleted tag and prompt titles stay (above).
+- A wiped device's old ID, or one replaced after a clock problem, blocks
+  compaction until it expires (180 days). "Delete journal everywhere" could
+  retire it explicitly (P11).
+- Caps on open versions and items per register are checked per state, so a
+  join of two states each at the cap can exceed it (true since Phase 0;
+  unrealistic at 64).
+- The simulation does not inspect `ext` values; only joins, scenarios and
+  the comparison do.
+- The roster only grows (cap 1,024 devices).
+- A returning device can bring back an older version of an entry (above), and
+  a photo whose blob remote garbage collection has deleted (P12 must let it
+  re-upload from the local file).
+- A device whose clock was ahead needs the identity reset (P6/P8).
