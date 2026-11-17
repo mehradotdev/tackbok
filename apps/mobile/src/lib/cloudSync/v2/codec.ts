@@ -834,7 +834,11 @@ export function validateState(state: SyncState): void {
     }
   };
   onRoster(state.ctx, '$ctx');
-  if (state.floor) onRoster(state.floor, '$floor');
+  if (state.floor) {
+    onRoster(state.floor, '$floor');
+    if (!vectorIncluded(state.floor, state.ctx))
+      invalid('invalid-floor', 'The compaction floor is ahead of the context');
+  }
   if (state.entries.size > SNAPSHOT_CAPS.entries)
     invalid('collection-cap', 'Too many entries');
   let textBytes = 0;

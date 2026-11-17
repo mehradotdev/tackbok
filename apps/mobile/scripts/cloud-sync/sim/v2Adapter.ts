@@ -16,6 +16,7 @@ import {
 } from '../../../src/lib/cloudSync/v2/types';
 import {
   attachmentIds,
+  isReturned,
   liveEntries,
   livePrompts,
   liveTags,
@@ -99,6 +100,7 @@ export class V2Adapter implements SimAdapter {
         date: entry.date.v,
         tagIds: memberIds(entry.tags),
         attachmentIds: attachmentIds(entry),
+        returned: isReturned(entry),
       })),
       tags: liveTags(state).map((tag) => ({ id: tag.id, title: tag.title.v })),
       prompts: livePrompts(state).map((prompt) => ({
@@ -217,6 +219,14 @@ export class V2Adapter implements SimAdapter {
             : mediaFor(event.assetId, { type: 'profile' }, writer.wallMs),
           sameAsShown(state.profile.photo),
         );
+      case 'reorder': {
+        if (!entry) throw new ops.SyncOpError('missing-entry', event.entryId);
+        const ids = attachmentIds(entry);
+        if (ids.length < 2) throw new ops.SyncOpError('nothing-to-order', event.entryId);
+        return ops.setAttachmentOrder(state, writer, event.entryId, [...ids].reverse());
+      }
+      case 'acknowledge':
+        return ops.acknowledgeReturn(state, writer, event.entryId);
       case 'keep':
       case 'keepBoth':
         throw new ops.SyncOpError('use-keep', 'keep goes through keep()');

@@ -111,6 +111,11 @@ function checkTriple(
     if (!result || !Bun.deepEquals(result, record) || isLive(result) !== isLive(record))
       return 'missing-never-deletes';
   }
+  for (const [id, record] of a.prompts) {
+    if (partial.prompts.has(id)) continue;
+    if (!Bun.deepEquals(withPartial.prompts.get(id), record))
+      return 'missing-never-deletes';
+  }
   return null;
 }
 
@@ -124,6 +129,8 @@ interface Coverage {
   droppedItem: number;
   lwwTie: number;
   bothDeleted: number;
+  acknowledged: number;
+  ordered: number;
 }
 
 function cover(coverage: Coverage, a: SyncState, b: SyncState, ab: SyncState) {
@@ -160,6 +167,8 @@ function cover(coverage: Coverage, a: SyncState, b: SyncState, ab: SyncState) {
   if (dropped) coverage.droppedItem++;
   if (tie) coverage.lwwTie++;
   if (bothDeleted) coverage.bothDeleted++;
+  if (entries.some((e) => e.del?.ackSeen)) coverage.acknowledged++;
+  if (entries.some((e) => e.order)) coverage.ordered++;
 }
 
 interface Failure {
@@ -188,6 +197,8 @@ async function runProperties(
     droppedItem: 0,
     lwwTie: 0,
     bothDeleted: 0,
+    acknowledged: 0,
+    ordered: 0,
   };
   const failures: Failure[] = [];
   for (const seed of seeds) {
@@ -238,6 +249,8 @@ describe('v2 join properties', () => {
       'droppedItem',
       'lwwTie',
       'bothDeleted',
+      'acknowledged',
+      'ordered',
     ] as const)
       expect(coverage[key] / coverage.joins).toBeGreaterThan(0.002);
   }, 600_000);
