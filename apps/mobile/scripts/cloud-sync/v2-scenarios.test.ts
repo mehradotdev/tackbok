@@ -482,6 +482,14 @@ describe('tags and prompts with title-derived IDs', () => {
     expect(fresh.id).not.toBe(work.id);
   });
 
+  test('a deleted tag cannot be added to an entry until it is created again', () => {
+    const created = ops.createNamed(entryWith('Text'), at('device-a'), 'tag', 'Work');
+    const deleted = ops.deleteNamed(created.state, at('device-a'), 'tag', created.id);
+    expect(() => ops.addTag(deleted, at('device-a'), 'e1', created.id)).toThrow(
+      ops.SyncOpError,
+    );
+  });
+
   test('a profile photo cannot reuse an asset ID with another descriptor', () => {
     const p1 = mediaFor('p1', { type: 'profile' }, T0);
     const base = ops.setProfilePhoto(emptyState(VAULT), at('device-a'), p1, 'all');

@@ -23,7 +23,7 @@ import type {
   SyncState,
   TextField,
 } from './types';
-import { isLive, isReturned, shownItems } from './view';
+import { isLive, isReturned, liveTags, shownItems } from './view';
 
 export class SyncOpError extends Error {
   constructor(
@@ -278,7 +278,9 @@ export function addTag(
   entryId: string,
   tagId: string,
 ): SyncState {
-  if (!state.tags.has(tagId)) throw new SyncOpError('missing-tag', `No tag ${tagId}`);
+  // Only a tag the app shows can be added; a deleted one is re-created first.
+  if (!liveTags(state).some((tag) => tag.id === tagId))
+    throw new SyncOpError('missing-tag', `No tag ${tagId}`);
   if (liveEntry(state, entryId).tags.some((member) => member.id === tagId)) return state;
   return updateEntry(state, writer, entryId, (entry, s) => ({
     tags: addMember(entry.tags, { id: tagId, s }),

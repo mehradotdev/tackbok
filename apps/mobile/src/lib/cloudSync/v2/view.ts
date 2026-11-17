@@ -48,8 +48,12 @@ export function shownItems<T>(values: MultiValue<T>): Item<T>[] {
   return result;
 }
 
+/** In ID order: a map's insertion order depends on the join order. */
+const byId = <T extends { id: string }>(values: Iterable<T>): T[] =>
+  [...values].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
 export function liveEntries(state: SyncState): EntryRecord[] {
-  return [...state.entries.values()].filter(isLive);
+  return byId(state.entries.values()).filter(isLive);
 }
 
 /** Tags shown: live, or still on a live entry because someone added it concurrently. */
@@ -57,11 +61,11 @@ export function liveTags(state: SyncState): NamedRecord[] {
   const used = new Set<string>();
   for (const entry of liveEntries(state))
     for (const member of entry.tags) used.add(member.id);
-  return [...state.tags.values()].filter((tag) => isLive(tag) || used.has(tag.id));
+  return byId(state.tags.values()).filter((tag) => isLive(tag) || used.has(tag.id));
 }
 
 export function livePrompts(state: SyncState): NamedRecord[] {
-  return [...state.prompts.values()].filter(isLive);
+  return byId(state.prompts.values()).filter(isLive);
 }
 
 /** Distinct IDs in a set, in ID order. */
