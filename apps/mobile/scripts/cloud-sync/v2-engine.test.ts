@@ -194,6 +194,32 @@ describe('passes', () => {
     }
   });
 
+  test('an entry an unseen edit brings back after its delete was compacted is reported', async () => {
+    const a = device();
+    const b = device();
+    await addEntry(a, 'e1', { text_content: 'Old' });
+    await sync(a);
+    await sync(b);
+    clock += 1000;
+    // A's edit stays unpublished: B's delete will not have seen it.
+    await addEntry(a, 'e1', { text_content: 'Old', mood: 'HAPPY' });
+    await addEntry(b, 'e1', { text_content: 'New' });
+    await write(b, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e1', { now: clock }),
+    );
+    // A is silent for more than 180 days, so B compacts the deleted entry.
+    clock += 200 * DAY;
+    expect(await sync(b)).toMatchObject({ status: 'published', revivedEntries: [] });
+    clock += 1000;
+    // A's edit returns the entry with A's text: compaction dropped the text B
+    // had replaced it with, so the older one is shown. That is reported.
+    const back = await sync(a);
+    expect(back).toMatchObject({ status: 'published', revivedEntries: ['e1'] });
+    expect(texts(a)).toEqual(['e1:Old']);
+    await sync(b);
+    expect(texts(b)).toEqual(['e1:Old']);
+  });
+
   test('a wiped device downloads every head again', async () => {
     const a = device();
     const b = device();

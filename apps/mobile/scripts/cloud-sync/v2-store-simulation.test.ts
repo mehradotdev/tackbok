@@ -27,7 +27,8 @@ describe('v2 simulation through SQLite', () => {
   test.each([
     ['pairwise', seedRange(1, 150 * SCALE)],
     ['drive', seedRange(200_000, 60 * SCALE)],
-    ['engine', seedRange(300_000, 60 * SCALE)],
+    // 300_073: an entry back after its delete was compacted (#185 P6b).
+    ['engine', [...new Set([...seedRange(300_000, 60 * SCALE), 300_073])]],
   ] as const)(
     '%s syncs: devices converge, keep every value, and capture what they applied',
     async (topology, seeds) => {
