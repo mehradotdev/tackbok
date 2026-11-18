@@ -564,6 +564,8 @@ describe('retired device IDs (P11)', () => {
 });
 
 describe('compaction reaches Drive (P11)', () => {
+  const deleteOn = (target: Device, id: string) =>
+    write(target, (tx) => repositories.deleteEntryInTransaction(tx, id, { now: clock }));
   /** The bodies of the snapshots every listed head points to. */
   async function headBodies() {
     const bodies: string[] = [];
@@ -583,7 +585,9 @@ describe('compaction reaches Drive (P11)', () => {
       repositories.deleteEntryInTransaction(tx, 'e1', { now: clock }),
     );
     await sync(a);
-    await sync(b);
+    // B takes the delete in, but not everyone has acknowledged it yet:
+    // nothing compacts, so nothing is owed.
+    expect((await sync(b)).status).toBe('pulled');
     // A day on, B acknowledges the delete and compacts it at once.
     clock += DAY;
     expect((await sync(b)).status).toBe('published');
@@ -602,6 +606,59 @@ describe('compaction reaches Drive (P11)', () => {
     expect((await sync(b)).status).toBe('pulled');
     clock += 1000;
     for (const target of [a, b]) expect((await sync(target)).status).toBe('up-to-date');
+  });
+
+  test('a compaction publication that fails is made at a later pass', async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1', { text_content: 'Secret' });
+    for (const target of [a, b, a]) await sync(target);
+    clock += 1000;
+    await deleteOn(a, 'e1');
+    await sync(a);
+    await sync(b);
+    clock += DAY;
+    await sync(b);
+    // A compacts, but its upload fails: the next quiet pass still publishes.
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    clock += 1000;
+    expect((await sync(a)).status).toBe('retry');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    for (const body of await headBodies()) expect(body).not.toContain('Secret');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('up-to-date');
+  });
+
+  test('with a third device holding the text, every head ends clean and passes settle', async () => {
+    const [a, b, c] = [device(), device(), device()];
+    await addEntry(a, 'e1', { text_content: 'Secret' });
+    for (const target of [a, b, c, a, b, c]) await sync(target);
+    clock += 1000;
+    await deleteOn(a, 'e1');
+    await sync(a);
+    // C acknowledges before B: not compactable yet, so C's head keeps the text.
+    clock += DAY;
+    expect((await sync(c)).status).toBe('published');
+    // B acknowledges last and compacts; A and C take that in and compact too.
+    clock += 1000;
+    expect((await sync(b)).status).toBe('published');
+    for (const target of [a, c]) {
+      clock += 1000;
+      expect((await sync(target)).status).toBe('published');
+    }
+    for (const body of await headBodies()) expect(body).not.toContain('Secret');
+    // One more round takes the last heads in; then no one publishes again.
+    for (const target of [a, b, c]) {
+      clock += 1000;
+      expect((await sync(target)).status).not.toBe('published');
+    }
+    for (const target of [a, b, c]) {
+      clock += 1000;
+      expect((await sync(target)).status).toBe('up-to-date');
+    }
   });
 });
 

@@ -436,9 +436,14 @@ export class V2SyncEngine {
       // Compaction drops deleted values this device's head on the provider
       // may still hold: it publishes too, so deleted text does not linger
       // on Drive in a quiet device's head.
-      if (!publish && compact(state).entries !== state.entries) publish = true;
-      if (publish) state = markSeen(state, writer);
-      state = compact(state);
+      // The need is recorded with the apply (`oweInTransaction`): the local
+      // journal is compacted then, so a publication that fails would leave
+      // nothing to notice it by.
+      const probe = publish ? state : compact(state);
+      const owed = !publish && probe.entries !== state.entries;
+      if (owed) publish = true;
+      // After `markSeen` the floor can rise further: compact again.
+      state = publish ? compact(markSeen(state, writer)) : probe;
       this.hooks.activity?.('applying-remote-snapshot');
       takenIn = remotes
         .map((remote) => remote.head)
@@ -449,6 +454,7 @@ export class V2SyncEngine {
         this.options.files,
         async (tx) => {
           await this.recordTakenIn(tx, takenIn);
+          if (owed) await this.oweInTransaction(tx, deviceId);
           if (retiring.length > 0) await this.clearPendingRetirements(tx);
         },
       );
@@ -633,7 +639,15 @@ export class V2SyncEngine {
     own: DeviceHead | undefined,
     record: HeadRecord | undefined,
   ): { needed: boolean } {
-    if (!own || !record || own.snapshotId !== record.snapshotId || !record.ctx)
+    // No context recorded: a publication is owed (`oweInTransaction`). A
+    // pending snapshot: one stopped part way, before its head moved.
+    if (
+      !own ||
+      !record ||
+      own.snapshotId !== record.snapshotId ||
+      !record.ctx ||
+      record.pendingSnapshotId !== null
+    )
       return { needed: true };
     if ((ctx[deviceId] ?? -1) > (record.ctx[deviceId] ?? -1)) return { needed: true };
     const ackDue =
@@ -750,6 +764,20 @@ export class V2SyncEngine {
         },
       ]),
     );
+  }
+
+  /**
+   * A publication this device owes for values it compacted: its own head
+   * record forgets the context it published, so every pass publishes until
+   * one succeeds (`publish` records it again).
+   */
+  private async oweInTransaction(tx: CloudSyncTransaction, deviceId: string) {
+    await tx
+      .update(syncHeads)
+      .set({ ctx_json: null })
+      .where(
+        and(eq(syncHeads.vault_id, this.vaultId), eq(syncHeads.device_id, deviceId)),
+      );
   }
 
   /** Heads taken in, recorded in the apply's transaction. */
