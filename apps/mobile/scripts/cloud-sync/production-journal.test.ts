@@ -176,7 +176,7 @@ test('profile updatedAt stays 0 until a synced field is authored', async () => {
     runExclusiveDbTransaction((tx) => updateProfileInTransaction(tx, update, context));
   const profileUpdatedAt = () => db.select().from(schema.userProfile).get()?.updated_at;
 
-  // An empty legacy backfill, a skipped onboarding name and an email change it.
+  // An empty legacy backfill, a skipped onboarding name and an email leave it at 0.
   await write(
     { displayName: null, email: null, photoUri: null },
     { origin: 'migration', now: 10 },

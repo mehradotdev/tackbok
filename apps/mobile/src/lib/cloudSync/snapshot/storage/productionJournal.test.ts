@@ -43,12 +43,9 @@ jest.mock('expo-file-system', () => ({
   }),
 }));
 
-jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'synthetic-uuid') }));
-
 jest.mock('~/db', () => ({
   // The saved hash table is covered by the Bun integration suite.
   cloudSyncMediaHashCache: { kind: 'hash-cache' },
-  customPrompts: {},
   db: {
     delete: () => ({ where: async () => {} }),
     select: () => ({
@@ -59,12 +56,9 @@ jest.mock('~/db', () => ({
     }),
   },
   entries: {},
-  entryTags: {},
   mediaAssets: { kind: 'media' },
   runExclusiveDbTransaction: jest.fn(),
-  syncMediaObligations: {},
   syncRetainedMedia: {},
-  tags: {},
   userProfile: {},
 }));
 
