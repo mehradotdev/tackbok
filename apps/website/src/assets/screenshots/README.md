@@ -29,31 +29,47 @@ painted over with the neighbouring colour during the WebP conversion.
 
 ## Files
 
-| File                                   | Screen                                                   | Used on                      |
-| -------------------------------------- | -------------------------------------------------------- | ---------------------------- |
-| `ios/timeline-light.webp`, `-dark`     | Home timeline with the example entries                   | Home hero, README, `og.png`  |
-| `ios/editor-light.webp`, `-dark`       | Editing an entry: mood, photos, Mood/Photo/Voice/Tag bar | Home hero, README, `og.png`  |
-| `ios/entry-light.webp`, `-dark`        | Reading an entry with a mood and photos                  | —                            |
-| `ios/worksheet-light.webp`             | Journaling worksheet sheet                               | Home features                |
-| `ios/insights-light.webp`              | Insights (score, streaks, totals, calendar)              | Home features                |
-| `ios/insights-ar.webp`                 | Insights in Arabic (right-to-left)                       | —                            |
-| `ios/language-ar.webp`                 | Appearance in Arabic with the language list open         | —                            |
-| `ios/themes-light.webp`, `-dark`       | Theme picker                                             | Home "Make it yours"         |
-| `ios/app-icon-light.webp`              | App icon picker                                          | —                            |
-| `ios/prompt-title-light.webp`          | New entry with a prompt as its title                     | `/gratitude-journal-prompts` |
-| `ios/prompt-library-light.webp`        | All prompts, Family tab                                  | `/gratitude-journal-prompts` |
-| `ios/settings-backup-light.webp`       | Settings: app lock on, Backup & restore                  | —                            |
-| `ios/settings-import-light.webp`       | Settings: Backup & restore with the import rows          | `/import/*` guides           |
-| `ios/cloud-backup-light.webp`          | Cloud backup & sync, signed out                          | —                            |
-| `ios/onboarding-theme-light.webp`      | Onboarding "Make it yours" step                          | —                            |
-| `android/timeline-light.webp`, `-dark` | Home timeline on Android                                 | —                            |
+The website uses only the light captures. The dark ones feed the README's
+light/dark `<picture>`.
 
-Files marked "—" are kept for the landing page refresh (#195) and store listings.
+| File                                   | Screen                                                   | Used on                                      |
+| -------------------------------------- | -------------------------------------------------------- | -------------------------------------------- |
+| `ios/timeline-light.webp`              | Home timeline with the example entries                   | Home hero (so also `og.png`), README         |
+| `ios/timeline-dark.webp`               | Same, Dark theme                                         | README (dark mode)                           |
+| `ios/editor-light.webp`                | Editing an entry: mood, photos, Mood/Photo/Voice/Tag bar | Home hero (so also `og.png`), README         |
+| `ios/editor-dark.webp`                 | Same, Dark theme                                         | README (dark mode)                           |
+| `ios/entry-light.webp`, `-dark`        | Reading an entry with a mood and photos                  | —                                            |
+| `ios/worksheet-light.webp`             | Journaling worksheet sheet                               | Home features                                |
+| `ios/insights-light.webp`              | Insights: On this day, score, streaks, totals            | Home features                                |
+| `ios/insights-ar.webp`                 | Insights in Arabic (right-to-left)                       | —                                            |
+| `ios/language-ar.webp`                 | Appearance in Arabic with the language list open         | —                                            |
+| `ios/themes-light.webp`                | Theme picker                                             | Home "Make it yours"                         |
+| `ios/themes-dark.webp`                 | Same, Dark theme                                         | —                                            |
+| `ios/app-icon-light.webp`              | App icon picker                                          | —                                            |
+| `ios/prompt-title-light.webp`          | New entry with a prompt as its title                     | `/gratitude-journal-prompts`                 |
+| `ios/prompt-library-light.webp`        | All prompts, Family tab                                  | `/gratitude-journal-prompts`                 |
+| `ios/settings-backup-light.webp`       | Settings: app lock on, Backup & restore                  | —                                            |
+| `ios/settings-import-light.webp`       | Settings: Backup & restore with both import rows         | `/import/presently`, `/import/gratitude-app` |
+| `ios/cloud-backup-light.webp`          | Cloud backup & sync, signed out                          | —                                            |
+| `ios/onboarding-theme-light.webp`      | Onboarding "Make it yours" step                          | —                                            |
+| `android/timeline-light.webp`, `-dark` | Home timeline on Android                                 | —                                            |
+
+Files marked "—" are not used yet. They are kept for the landing page refresh
+(#195) and store listings.
+
+For the On this day card, the "Small moments" example entry was moved to the same
+day one year earlier in the entry editor, after the timeline and editor shots
+were taken. That is why those shots date it Nov 16, 2026 and Insights shows
+Nov 18, 2025.
 
 ## Regenerating
 
-- README frames: `bun run frame-screenshots` in `apps/website`.
-- Share image (`src/assets/og.png`, 1200×630): a screenshot of the home page hero
-  at a 1200×630 viewport, for example
-  `bunx --bun playwright@1.56.1 screenshot --channel chrome --viewport-size "1200,630" http://localhost:4321/ og.png`,
-  then compressed.
+- README frames: `bun run frame-screenshots` in `apps/website`. It reads the
+  `ios/` captures listed in the script and writes `assets/screenshots/` at the
+  repo root.
+- Share image (`src/assets/og.png`, 1200×630): a shot of the home page hero
+  without the sticky site header. With Playwright and the installed Chrome, open
+  the built site at a 1200×900 viewport and a device scale factor of 2, take a
+  1200×630 clip starting 70px below the top of the first `main section`, then
+  resize to 1200×630 and save as a palette PNG (sharp:
+  `png({ palette: true, quality: 90 })`).

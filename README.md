@@ -53,14 +53,14 @@ No accounts. No ads. Your journal stays on your device.
         <strong>Daily timeline</strong><br /><br />
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/timeline-dark.webp" />
-          <img src="assets/screenshots/timeline-light.webp" alt="Tackbok timeline with example entries: a welcome note with a mood, a voice note, and two photos" width="270" />
+          <img src="assets/screenshots/timeline-light.webp" alt="Tackbok timeline with example entries: a welcome note with a mood, a voice note, and two photos" width="270" height="563" />
         </picture>
       </td>
       <td align="center" width="50%">
         <strong>Photos, voice notes, moods and tags</strong><br /><br />
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/editor-dark.webp" />
-          <img src="assets/screenshots/editor-light.webp" alt="Editing an entry with a mood, two framed photos, and buttons to add a mood, photo, voice note, or tag" width="270" />
+          <img src="assets/screenshots/editor-light.webp" alt="Editing an entry with a mood, two framed photos, and buttons to add a mood, photo, voice note, or tag" width="270" height="563" />
         </picture>
       </td>
     </tr>

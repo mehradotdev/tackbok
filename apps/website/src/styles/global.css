@@ -299,7 +299,11 @@
     }
 
     /* App screenshots, framed like PhoneFrame.astro. Several images in one
-       paragraph sit side by side. */
+       paragraph sit side by side. Every image in these pages is expected to be
+       a phone screenshot.
+       shortcut: Markdown images ship at full capture size (about 40-80 KB each,
+       lazy-loaded) with no srcset; render them through <Image> with widths if
+       the guides gain many screenshots. */
     & p:has(> img) {
       @apply flex flex-wrap items-start justify-center gap-6 py-2;
     }
