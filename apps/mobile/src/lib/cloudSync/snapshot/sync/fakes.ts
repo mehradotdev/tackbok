@@ -1,14 +1,9 @@
-import { canonicalize } from '../canonical';
-import type { SnapshotDomain } from '../types';
-import type { SQLiteSyncStateStore } from './sqliteState';
 import type {
-  BaseShadowFileStore,
   DeviceHead,
-  DeviceHeadV2,
   ListedDeviceHead,
   SnapshotObject,
-  SnapshotJournalStore,
   SnapshotMediaStore,
+  StoredDeviceHead,
   SnapshotProvider,
   MediaDownloadSink,
   MediaUploadSource,
@@ -117,7 +112,7 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     this.revocations.set(vaultId, [...values]);
   }
 
-  injectPhysicalHead(head: DeviceHead, physicalId?: string): void {
+  injectPhysicalHead(head: StoredDeviceHead, physicalId?: string): void {
     const values = this.heads.get(head.vaultId) ?? [];
     values.push({
       physicalId: physicalId ?? `physical-${++this.physicalSequence}`,
@@ -204,18 +199,14 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     return Boolean(stored && bytesEqual(stored, expectedBytes));
   }
 
-  async updateDeviceHead(
-    vaultId: string,
-    head: DeviceHead | DeviceHeadV2,
-  ): Promise<void> {
+  async updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void> {
     this.before('update-head');
     const values = (this.heads.get(vaultId) ?? []).filter(
       (candidate) => candidate.head.deviceId !== head.deviceId,
     );
     values.push({
       physicalId: `physical-${++this.physicalSequence}`,
-      // Stored as written: the engine validates what it lists.
-      head: structuredClone(head) as DeviceHead,
+      head: structuredClone(head),
     });
     this.heads.set(vaultId, values);
     this.takeFault('update-head', true);
@@ -288,47 +279,6 @@ function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
   return true;
 }
 
-export class MemoryBaseShadowFileStore implements BaseShadowFileStore {
-  readonly files = new Map<string, Uint8Array>();
-  readonly fsynced = new Set<string>();
-  readonly quarantined: string[] = [];
-
-  async writeTempAndFsync(fileName: string, bytes: Uint8Array): Promise<void> {
-    this.files.set(fileName, cloneBytes(bytes));
-    this.fsynced.add(fileName);
-  }
-
-  async read(fileName: string): Promise<Uint8Array> {
-    const bytes = this.files.get(fileName);
-    if (!bytes) throw new Error('File not found');
-    return cloneBytes(bytes);
-  }
-
-  async replaceAndFsync(tempFileName: string, finalFileName: string): Promise<void> {
-    if (!this.fsynced.has(tempFileName)) throw new Error('Attempted rename before fsync');
-    const bytes = this.files.get(tempFileName);
-    if (!bytes) throw new Error('Temporary file not found');
-    this.files.set(finalFileName, bytes);
-    this.files.delete(tempFileName);
-    this.fsynced.delete(tempFileName);
-    this.fsynced.add(finalFileName);
-  }
-
-  async quarantine(fileName: string): Promise<void> {
-    const bytes = this.files.get(fileName);
-    if (!bytes) return;
-    const target = `quarantine-${this.quarantined.length}-${fileName}`;
-    this.files.set(target, bytes);
-    this.files.delete(fileName);
-    this.quarantined.push(target);
-  }
-
-  async delete(fileName: string): Promise<void> {
-    this.files.delete(fileName);
-    this.fsynced.delete(fileName);
-  }
-}
-
 export class MemorySnapshotMediaStore implements SnapshotMediaStore {
   readonly media = new Map<string, Uint8Array>();
 
@@ -366,56 +316,5 @@ export class MemorySnapshotMediaStore implements SnapshotMediaStore {
         this.media.set(blobHash, partial.slice());
       },
     };
-  }
-}
-
-export class MemorySnapshotJournalStore implements SnapshotJournalStore {
-  applyCount = 0;
-  localProfilePristine = false;
-  private domain: SnapshotDomain;
-
-  constructor(
-    initial: SnapshotDomain,
-    private readonly state: SQLiteSyncStateStore,
-    private readonly vaultId: string,
-    private readonly deviceId: string,
-  ) {
-    this.domain = structuredClone(initial);
-  }
-
-  mutate(next: SnapshotDomain): number {
-    this.domain = structuredClone(next);
-    return this.state.markDirty(this.vaultId, this.deviceId);
-  }
-
-  current(): SnapshotDomain {
-    return structuredClone(this.domain);
-  }
-
-  async capture() {
-    const generation = this.state.loadState(
-      this.vaultId,
-      this.deviceId,
-    ).journalGeneration;
-    return {
-      domain: structuredClone(this.domain),
-      generation,
-      localProfilePristine: this.localProfilePristine,
-    };
-  }
-
-  async applyMergedIfGeneration(
-    domain: SnapshotDomain,
-    expectedGeneration: number,
-    { remoteDerived }: { remoteDerived: boolean },
-  ): Promise<boolean> {
-    const current = this.state.loadState(this.vaultId, this.deviceId).journalGeneration;
-    if (current !== expectedGeneration) return false;
-    this.applyCount += 1;
-    if (remoteDerived) this.localProfilePristine = false;
-    if (canonicalize(this.domain) !== canonicalize(domain)) {
-      this.domain = structuredClone(domain);
-    }
-    return true;
   }
 }

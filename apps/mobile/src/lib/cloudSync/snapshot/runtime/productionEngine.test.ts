@@ -34,7 +34,6 @@ function mockQuery(kind: string): unknown {
   return chain;
 }
 jest.mock('~/db', () => ({
-  cloudConflicts: {},
   cloudVault: {},
   mediaAssets: { name: 'media_assets' },
   syncProviderState: {},
@@ -80,9 +79,6 @@ jest.mock('./mediaHashing', () => ({
   },
 }));
 jest.mock('../drive', () => ({}));
-jest.mock('../sync/engine', () => ({}));
-jest.mock('../sync/baseShadow', () => ({}));
-jest.mock('../sync/expoBaseShadowFiles', () => ({}));
 jest.mock('../sync/sqliteState', () => ({}));
 const mockPruneMedia = jest.fn(async () => 0);
 jest.mock('../storage', () => ({

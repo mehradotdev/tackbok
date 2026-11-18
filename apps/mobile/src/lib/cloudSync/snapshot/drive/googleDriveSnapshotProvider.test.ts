@@ -4,9 +4,10 @@ import {
   type GoogleTokenSet,
 } from '../../auth/types';
 import { encodeCanonicalBytes } from '../canonical';
-import { decodeSnapshot, encodeSnapshot } from '../codec';
+import { decodeEnvelope, encodeEnvelope } from '../../v2/codec';
+import { createEntry } from '../../v2/ops';
+import { emptyState } from '../../v2/types';
 import { sha256Bytes } from '../sha256';
-import type { JournalSnapshotPayload } from '../types';
 import type { DeviceHead } from '../sync/types';
 import {
   driveMetadataKey,
@@ -324,37 +325,26 @@ function head(deviceId: string, sequence: number, snapshotId: string): DeviceHea
   } as unknown as DeviceHead;
 }
 
-function representativePresentlyPayload(deviceId: string): JournalSnapshotPayload {
-  return {
-    format: 'tackbok-snapshot',
-    vaultId,
-    parentSnapshotIds: [],
-    observedDeviceHeads: [],
+/** A 2,000-entry journal, as after a Presently import, encoded as one snapshot. */
+function representativePresentlySnapshot(deviceId: string) {
+  let state = emptyState(vaultId);
+  for (let index = 0; index < 2_000; index++)
+    state = createEntry(
+      state,
+      { device: deviceId, wallMs: 1_000 + index },
+      {
+        id: `presently-${index.toString().padStart(6, '0')}`,
+        title: null,
+        text: `Synthetic import row ${index}`,
+        mood: null,
+        date: index + 1,
+      },
+    );
+  return encodeEnvelope(state, {
     authorDeviceId: deviceId,
     deviceSequence: 1,
     createdAt: 1,
-    entries: Array.from({ length: 2_000 }, (_, index) => ({
-      entryId: `presently-${index.toString().padStart(6, '0')}`,
-      title: null,
-      content: `Synthetic import row ${index}`,
-      mood: null,
-      createdAt: index + 1,
-      updatedAt: index + 1,
-      conflictOriginId: null,
-    })),
-    tags: [],
-    entryTags: [],
-    prompts: [],
-    profile: {
-      profileId: 'profile',
-      displayName: null,
-      photoAssetId: null,
-      updatedAt: 1,
-    },
-    media: [],
-    tombstones: [],
-    conflicts: [],
-  };
+  });
 }
 
 function provider(
@@ -467,7 +457,7 @@ describe('GoogleDriveSnapshotProvider', () => {
 
   test('one 2,000-entry snapshot publishes and fresh-restores within both request ceilings', async () => {
     const server = new FakeDriveServer();
-    const encoded = encodeSnapshot(representativePresentlyPayload('device-import'));
+    const encoded = representativePresentlySnapshot('device-import');
     const importMetrics = new MemoryDriveInstrumentation('representative-import');
     const importing = provider(
       server,
@@ -476,18 +466,9 @@ describe('GoogleDriveSnapshotProvider', () => {
     );
     await importing.listRevocations(vaultId);
     await importing.listHeads(vaultId, true);
-    await importing.uploadSnapshot(
-      vaultId,
-      encoded.snapshotId,
-      encoded.compressedBytes,
-      1,
-    );
+    await importing.uploadSnapshot(vaultId, encoded.snapshotId, encoded.bytes, 1);
     expect(
-      await importing.verifySnapshot(
-        vaultId,
-        encoded.snapshotId,
-        encoded.compressedBytes,
-      ),
+      await importing.verifySnapshot(vaultId, encoded.snapshotId, encoded.bytes),
     ).toBe(true);
     await importing.updateDeviceHead(
       vaultId,
@@ -504,7 +485,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     const heads = await restoring.listHeads(vaultId, true);
     const downloaded = await restoring.downloadSnapshot(vaultId, encoded.snapshotId);
     expect(downloaded).not.toBeNull();
-    expect(decodeSnapshot(downloaded!, encoded.snapshotId).payload.entries).toHaveLength(
+    expect(decodeEnvelope(downloaded!, encoded.snapshotId).state.entries.size).toBe(
       2_000,
     );
     await restoring.updateDeviceHead(

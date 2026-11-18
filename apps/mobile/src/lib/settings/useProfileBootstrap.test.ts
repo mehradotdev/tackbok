@@ -7,8 +7,6 @@ const mockProfile = {
   profileName: null,
   profileEmail: null,
   profileImageUri: null,
-  _hadSavedSettings: true,
-  hasCompletedOnboarding: false,
 };
 jest.mock('./store', () => ({
   useSettingsStore: { getState: () => mockProfile },
@@ -64,7 +62,6 @@ it('restores the profile on every cold mount, including when legacy settings hav
       profileName: null,
       profileEmail: null,
       profileImageUri: null,
-      priorAppUse: true,
     });
     expect(mockBackfill).toHaveBeenCalledTimes(launch + 1);
     expect(ready).toBe(false);

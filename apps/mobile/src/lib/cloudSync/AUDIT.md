@@ -1,5 +1,8 @@
 # Cloud sync audit
 
+> These audits describe the v1 sync engine. It was replaced by the v2 engine
+> (#185) and removed in P6b; code paths below refer to commit `5001cb3`.
+
 ## Deep audit — 2026-11-06
 
 ### Method

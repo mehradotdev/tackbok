@@ -1,6 +1,6 @@
 /**
- * Phase 0 (#185) measurements: snapshot size and merge/encode time, v1 versus
- * v2, for synthetic journals. Desktop Bun numbers only.
+ * Phase 0 (#185) measurements: v2 snapshot size and join/encode time for
+ * synthetic journals. Desktop Bun numbers only.
  *
  *   bun scripts/cloud-sync/v2-measure.ts [1000 5000 10000]
  *
@@ -11,14 +11,6 @@
  * writes from 1-3 devices; 1% of entries have an open two-version conflict.
  * A sync merges two devices that each changed 1% of entries.
  */
-import { encodeSnapshot } from '../../src/lib/cloudSync/snapshot/codec';
-import { mergeSnapshotDomains } from '../../src/lib/cloudSync/snapshot/merge';
-import type {
-  JournalSnapshotPayload,
-  SnapshotDomain,
-  SnapshotEntry,
-  SnapshotMedia,
-} from '../../src/lib/cloudSync/snapshot/types';
 import { sha256Text } from '../../src/lib/cloudSync/snapshot/sha256';
 import {
   canonicalState,
@@ -63,20 +55,11 @@ const uuid = (rng: Random) =>
     rng.int(0, 15).toString(16),
   );
 
-interface Journal {
-  v1: SnapshotDomain;
-  v2: SyncState;
-}
-
-function buildJournal(count: number, seed: number): Journal {
+function buildJournal(count: number, seed: number): SyncState {
   const rng = new Random(seed);
   const tags = Array.from({ length: 25 }, (_, i) => `Tag ${i}`);
   let hlc = T0;
   const stamp = (): Stamp => [(hlc += rng.int(1, 600_000)), rng.pick(DEVICES)];
-  const v1Entries: SnapshotEntry[] = [];
-  const v1Media: SnapshotMedia[] = [];
-  const v1Relations: SnapshotDomain['entryTags'] = [];
-  const v1Tombstones: SnapshotDomain['tombstones'] = [];
   const v2Entries = new Map<string, EntryRecord>();
   const v2Media = new Map<string, MediaDescriptor>();
   const ctx: Record<string, number> = {};
@@ -92,13 +75,6 @@ function buildJournal(count: number, seed: number): Journal {
     bump(vv, s);
     v2Tags.set(id, { id, vv, del: null, title: { s, v: title }, ext: {} });
   }
-  const v1Tags = tags.map((title, i) => ({
-    tagId: uuid(rng),
-    title,
-    createdAt: T0 + i,
-    updatedAt: T0 + i,
-    conflictOriginId: null,
-  }));
   for (let index = 0; index < count; index++) {
     const entryId = uuid(rng);
     const title = rng.chance(0.7) ? sentence(rng, rng.int(10, 60)) : null;
@@ -134,13 +110,11 @@ function buildJournal(count: number, seed: number): Journal {
     }
     textItems.sort((a, b) => a.s[0] - b.s[0]);
     const attachments = [];
-    const assetIds: string[] = [];
     for (let p = 0; p < photos; p++) {
       const assetId = uuid(rng);
       const s = stamp();
       bump(vv, s);
       attachments.push({ id: assetId, s });
-      assetIds.push(assetId);
       const descriptor: MediaDescriptor = {
         assetId,
         ownerType: 'entry',
@@ -156,10 +130,6 @@ function buildJournal(count: number, seed: number): Journal {
         ext: {},
       };
       v2Media.set(assetId, descriptor);
-      if (!deleted) {
-        const { ext: _ext, ...v1Descriptor } = descriptor;
-        v1Media.push({ ...v1Descriptor, updatedAt: date });
-      }
     }
     attachments.sort((a, b) => (a.id < b.id ? -1 : 1));
     const tagMembers = tagIndexes
@@ -186,75 +156,35 @@ function buildJournal(count: number, seed: number): Journal {
       split: null,
       ext: {},
     });
-    if (deleted) {
-      v1Tombstones.push({
-        entityType: 'entry',
-        entityId: entryId,
-        baseStateHash: null,
-        deletedStateHash: sha256Text(entryId),
-        deletedByDeviceId: rng.pick(DEVICES),
-        deletionSequence: index + 1,
-      });
-      continue;
-    }
-    v1Entries.push({
-      entryId,
-      title,
-      content: text,
-      mood,
-      createdAt: date,
-      updatedAt: date + 1000,
-      conflictOriginId: null,
-      ...(assetIds.length > 0 ? { attachmentOrder: [...assetIds].sort() } : {}),
-    });
-    for (const i of tagIndexes)
-      v1Relations.push({ entryId, tagId: v1Tags[i].tagId, createdAt: date });
   }
   const roster = Object.fromEntries(DEVICES.map((d) => [d, ctx[d] ?? T0]));
   return {
-    v1: {
-      entries: v1Entries,
-      tags: v1Tags,
-      entryTags: v1Relations,
-      prompts: [],
-      profile: {
-        profileId: 'profile',
-        displayName: 'Mehra',
-        photoAssetId: null,
-        updatedAt: T0,
-      },
-      media: v1Media,
-      tombstones: v1Tombstones,
-      conflicts: [],
+    vaultId: VAULT,
+    ctx,
+    roster,
+    // Every device has published everything, so compaction can run.
+    acks: Object.fromEntries(DEVICES.map((d) => [d, ctx])),
+    floor: null,
+    entries: v2Entries,
+    tags: v2Tags,
+    prompts: new Map(),
+    profile: {
+      vv: { [DEVICES[0]]: T0 },
+      name: [{ s: [T0, DEVICES[0]], v: 'Mehra' }],
+      photo: [],
+      ext: {},
     },
-    v2: {
-      vaultId: VAULT,
-      ctx,
-      roster,
-      // Every device has published everything, so compaction can run.
-      acks: Object.fromEntries(DEVICES.map((d) => [d, ctx])),
-      floor: null,
-      entries: v2Entries,
-      tags: v2Tags,
-      prompts: new Map(),
-      profile: {
-        vv: { [DEVICES[0]]: T0 },
-        name: [{ s: [T0, DEVICES[0]], v: 'Mehra' }],
-        photo: [],
-        ext: {},
-      },
-      media: v2Media,
-    },
+    media: v2Media,
   };
 }
 
 /** Two devices' copies that each changed 1% of entries since they last synced. */
-function diverge(journal: Journal, seed: number) {
+function diverge(journal: SyncState, seed: number) {
   const rng = new Random(seed);
-  const ids = [...journal.v2.entries.keys()];
+  const ids = [...journal.entries.keys()];
   const change = (device: string, offset: number) => {
-    const entries = new Map(journal.v2.entries);
-    const ctx = { ...journal.v2.ctx };
+    const entries = new Map(journal.entries);
+    const ctx = { ...journal.ctx };
     let hlc = Math.max(...Object.values(ctx)) + offset;
     for (let i = 0; i < Math.ceil(ids.length / 100); i++) {
       const id = rng.pick(ids);
@@ -268,24 +198,13 @@ function diverge(journal: Journal, seed: number) {
       });
     }
     return {
-      ...journal.v2,
+      ...journal,
       ctx,
       entries,
-      roster: { ...journal.v2.roster, [device]: hlc },
+      roster: { ...journal.roster, [device]: hlc },
     };
   };
-  const v1Change = () => {
-    const entries = journal.v1.entries.map((entry) =>
-      rng.chance(0.01)
-        ? { ...entry, mood: 'HAPPY' as const, updatedAt: entry.updatedAt + 5 }
-        : entry,
-    );
-    return { ...journal.v1, entries };
-  };
-  return {
-    v2: [change(DEVICES[1], 10), change(DEVICES[2], 20)] as const,
-    v1: [v1Change(), v1Change()] as const,
-  };
+  return [change(DEVICES[1], 10), change(DEVICES[2], 20)] as const;
 }
 
 function time<T>(run: () => T, repeat = 5): { ms: number; value: T } {
@@ -299,27 +218,13 @@ function time<T>(run: () => T, repeat = 5): { ms: number; value: T } {
 const kib = (bytes: number) => `${(bytes / 1024).toFixed(0)} KiB`;
 const ms = (value: number) => `${value.toFixed(0)} ms`;
 
-function v1Payload(domain: SnapshotDomain): JournalSnapshotPayload {
-  return {
-    format: 'tackbok-snapshot',
-    vaultId: VAULT,
-    parentSnapshotIds: [],
-    observedDeviceHeads: [],
-    authorDeviceId: DEVICES[0],
-    deviceSequence: 1,
-    createdAt: T0,
-    ...domain,
-  };
-}
-
 const sizes = process.argv.slice(2).map(Number);
 const rows: string[] = [];
 for (const count of sizes.length > 0 ? sizes : [1_000, 5_000, 10_000]) {
   const journal = buildJournal(count, count);
-  const v1Encoded = time(() => encodeSnapshot(v1Payload(journal.v1)), 3);
   const v2Encoded = time(
     () =>
-      encodeEnvelope(journal.v2, {
+      encodeEnvelope(journal, {
         authorDeviceId: DEVICES[0],
         deviceSequence: 1,
         createdAt: T0,
@@ -327,34 +232,31 @@ for (const count of sizes.length > 0 ? sizes : [1_000, 5_000, 10_000]) {
     3,
   );
   const v2Decoded = time(() => decodeEnvelope(v2Encoded.value.bytes), 3);
-  const { v1, v2 } = diverge(journal, count + 1);
   // Each device's copy comes from its own download: no shared objects.
-  const [left, right] = v2.map((state) => structuredClone(state));
-  const [base1, left1, right1] = [journal.v1, ...v1].map((domain) =>
-    structuredClone(domain),
+  const [left, right] = diverge(journal, count + 1).map((state) =>
+    structuredClone(state),
   );
-  const v1Merge = time(() => mergeSnapshotDomains(base1, left1, right1), 3);
   const v2Join = time(() => join(left, right), 3);
   const v2Canonical = time(() => canonicalState(v2Join.value), 3);
-  const v1Bytes = v1Encoded.value.canonicalBytes.length;
   const v2Body = v2Encoded.value.bodyCanonical.length;
   const v2Header = v2Encoded.value.bytes.indexOf(0x0a);
   // After compaction: deleted entries keep only their vector and tombstone.
-  const compacted = encodeEnvelope(compact(journal.v2), {
+  const compacted = encodeEnvelope(compact(journal), {
     authorDeviceId: DEVICES[0],
     deviceSequence: 1,
     createdAt: T0,
   });
-  const textBytes = journal.v1.entries.reduce(
-    (sum, e) => sum + (e.title?.length ?? 0) + (e.content?.length ?? 0),
-    0,
-  );
+  let textBytes = 0;
+  for (const entry of journal.entries.values())
+    if (!entry.del)
+      for (const item of [...entry.title, ...entry.text])
+        textBytes += item.v?.length ?? 0;
   rows.push(
-    `| ${count.toLocaleString('en')} | ${kib(textBytes)} | ${kib(v1Bytes)} | ${kib(v1Encoded.value.compressedBytes.length)} | ${kib(v2Body + v2Header)} | ${kib(v2Encoded.value.bytes.length)} | ${kib(compacted.bytes.length)} | ${ms(v1Encoded.ms)} | ${ms(v2Encoded.ms)} | ${ms(v2Decoded.ms)} | ${ms(v1Merge.ms)} | ${ms(v2Join.ms)} | ${ms(v2Canonical.ms)} |`,
+    `| ${count.toLocaleString('en')} | ${kib(textBytes)} | ${kib(v2Body + v2Header)} | ${kib(v2Encoded.value.bytes.length)} | ${kib(compacted.bytes.length)} | ${ms(v2Encoded.ms)} | ${ms(v2Decoded.ms)} | ${ms(v2Join.ms)} | ${ms(v2Canonical.ms)} |`,
   );
 }
 console.log(
-  '| Entries | Authored text | v1 raw | v1 gzip | v2 raw | v2 gzip | v2 gzip, deleted records compacted | v1 encode | v2 encode | v2 decode | v1 merge | v2 join | v2 canonical |',
+  '| Entries | Authored text | v2 raw | v2 gzip | v2 gzip, deleted records compacted | v2 encode | v2 decode | v2 join | v2 canonical |',
 );
-console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+console.log('|---|---|---|---|---|---|---|---|---|');
 for (const row of rows) console.log(row);

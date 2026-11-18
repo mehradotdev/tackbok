@@ -29,7 +29,6 @@ import { SQLiteSyncStateStore } from '../sync/sqliteState';
 import { V2SyncEngine } from '../sync/v2Engine';
 import type {
   DeviceHead,
-  DeviceHeadV2,
   ListedDeviceHead,
   SnapshotObject,
   MediaDownloadSink,
@@ -121,7 +120,7 @@ class MediaPolicyProvider implements SnapshotProvider {
   verifySnapshot(vaultId: string, snapshotId: string, expectedBytes: Uint8Array) {
     return this.delegate.verifySnapshot(vaultId, snapshotId, expectedBytes);
   }
-  updateDeviceHead(vaultId: string, head: DeviceHead | DeviceHeadV2) {
+  updateDeviceHead(vaultId: string, head: DeviceHead) {
     return this.delegate.updateDeviceHead(vaultId, head);
   }
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]) {
@@ -540,11 +539,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
   const state = new SQLiteSyncStateStore(sqlite);
   state.loadState(options.vault.vault_id, options.vault.device_id);
   const media = new ProductionSnapshotMediaStore();
-  const journal = new ProductionSnapshotJournalStore(
-    options.vault.vault_id,
-    options.vault.device_id,
-    media,
-  );
+  const journal = new ProductionSnapshotJournalStore(options.vault.vault_id, media);
   const onProgress = isolateProgress(options.onProgress);
   const drive = new GoogleDriveSnapshotProvider({
     auth: createGoogleAuthorization(),

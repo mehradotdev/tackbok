@@ -120,6 +120,7 @@ mock.module('../../src/lib/cloudSync/media/streamingHash', () => ({
 }));
 const { ProductionSnapshotJournalStore, ProductionSnapshotMediaStore } =
   await import('../../src/lib/cloudSync/snapshot/storage/productionJournal');
+const { runExclusiveDbTransaction } = await import('../../src/db');
 afterAll(() => {
   sqlite.close();
   rmSync(directory, { recursive: true, force: true });
@@ -127,9 +128,6 @@ afterAll(() => {
 
 test('a rejected apply cleanup never deletes a file another apply commits during its reads', async () => {
   existingFiles.add('file:///old.jpg');
-  db.insert(schema.cloudSyncState)
-    .values({ vault_id: 'wal', device_id: 'device', updated_at: 1 })
-    .run();
   db.insert(schema.mediaAssets)
     .values({
       asset_id: 'old-photo',
@@ -143,48 +141,61 @@ test('a rejected apply cleanup never deletes a file another apply commits during
       updated_at: 1,
     })
     .run();
-  db.insert(schema.userProfile)
-    .values({
-      profile_id: 'self',
-      display_name: 'Mehra',
-      photo_asset_id: 'old-photo',
-      updated_at: 1,
-    })
-    .run();
-  const loser = new ProductionSnapshotJournalStore(
+  const files = new ProductionSnapshotJournalStore(
     'wal',
-    'device',
     new ProductionSnapshotMediaStore(),
-  );
-  const winner = new ProductionSnapshotJournalStore(
-    'wal',
-    'device',
-    new ProductionSnapshotMediaStore(),
-  );
-  const { domain } = await loser.capture();
-  domain.profile.photoAssetId = 'new-photo';
-  domain.media[0].assetId = 'new-photo';
+  ).applyFiles();
+  const media = [
+    {
+      assetId: 'new-photo',
+      ownerType: 'profile' as const,
+      ownerId: 'profile',
+      kind: 'profile-photo' as const,
+      blobHash: fakeBlobHash,
+      mimeType: 'image/jpeg',
+      byteSize: 1,
+      width: null,
+      height: null,
+      durationMs: null,
+      createdAt: 1,
+      ext: {},
+    },
+  ];
 
-  // The loser copies a deterministic destination, then loses its generation.
+  // The loser copies a deterministic destination, then its transaction is
+  // rejected, as when the journal changed after its capture.
   const materialized = Promise.withResolvers<void>();
   const released = Promise.withResolvers<void>();
-  const materialize = Reflect.get(loser, 'materializeMedia') as (
-    ...args: unknown[]
-  ) => Promise<unknown>;
-  Object.defineProperty(loser, 'materializeMedia', {
-    value: async (...args: unknown[]) => {
-      const result = await materialize.apply(loser, args);
-      materialized.resolve();
-      await released.promise;
-      return result;
-    },
+  const rejected = files.serialize(async () => {
+    const created: string[] = [];
+    await files.materialize(media, created);
+    materialized.resolve();
+    await released.promise;
+    await files.discard(created);
+    return false;
   });
-  const rejected = loser.applyMergedIfGeneration(domain, 0, { remoteDerived: true });
   await materialized.promise;
   const destination = copiedMedia.at(-1)!;
-  sqlite.exec('UPDATE cloud_sync_state SET journal_generation = 1');
 
-  const committed = winner.applyMergedIfGeneration(domain, 1, { remoteDerived: true });
+  const committed = files.serialize(async () => {
+    const created: string[] = [];
+    const uris = await files.materialize(media, created);
+    await runExclusiveDbTransaction((tx) =>
+      tx.insert(schema.mediaAssets).values({
+        asset_id: 'new-photo',
+        owner_type: 'profile',
+        owner_id: 'self',
+        kind: 'profile-photo',
+        local_uri: uris.get('new-photo')!.uri,
+        download_state: uris.get('new-photo')!.verified ? 'verified' : 'pending',
+        blob_hash: fakeBlobHash,
+        byte_size: 1,
+        created_at: 1,
+        updated_at: 1,
+      }),
+    );
+    return true;
+  });
   pauseCleanupReads = true;
   released.resolve();
   await cleanupRead.promise;

@@ -1,6 +1,5 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import {
-  cloudPendingPublication,
   cloudSyncState,
   cloudVault,
   db,
@@ -84,19 +83,7 @@ export async function reapRetainedMedia(
         ),
       )
       .limit(1);
-    const pending = await db
-      .select({ id: cloudPendingPublication.snapshot_id })
-      .from(cloudPendingPublication)
-      .where(
-        and(
-          eq(cloudPendingPublication.vault_id, vault.id),
-          eq(cloudPendingPublication.device_id, vault.deviceId),
-        ),
-      )
-      .limit(1);
-    removalsSettled = Boolean(
-      state && state.journal <= state.settled && pending.length === 0,
-    );
+    removalsSettled = Boolean(state && state.journal <= state.settled);
   }
 
   if (removalsSettled) {

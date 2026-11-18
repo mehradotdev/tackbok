@@ -110,8 +110,7 @@ export function viewOfState(state: SyncState): View {
 
 export class V2Adapter implements SimAdapter {
   readonly name: string;
-  readonly supportsKeepBoth = true;
-  readonly v2Events = { maxAheadMs: MAX_CONTEXT_AHEAD_MS };
+  readonly maxAheadMs = MAX_CONTEXT_AHEAD_MS;
   readonly states: SyncState[];
   /** Syncs that refused a state whose clock was too far ahead. */
   refusedPulls = 0;
