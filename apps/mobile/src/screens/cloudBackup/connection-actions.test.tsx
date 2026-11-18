@@ -102,10 +102,12 @@ const mockSyncNow = jest.fn<Promise<boolean>, []>();
 const mockPrepare = jest.fn<Promise<unknown>, []>();
 const mockReconnect = jest.fn<Promise<void>, []>();
 const mockReplace = jest.fn<Promise<number>, []>(async () => 1);
+const mockNewDevice = jest.fn<Promise<void>, []>(async () => {});
 jest.mock('~/lib/cloudSync/ui', () => ({
   acknowledgeCloudConflicts: jest.fn(),
   cancelPreparedGoogleDriveConnection: jest.fn(async () => {}),
   completeGoogleDriveConnection: jest.fn(),
+  continueAsNewDevice: () => mockNewDevice(),
   deleteJournalEverywhere: jest.fn(),
   disconnectGoogleDrive: () => mockDisconnect(),
   listUnacknowledgedCloudConflicts: jest.fn(async () => []),
@@ -410,6 +412,7 @@ function observedRecovery(): string {
   if (mockOpenSettings.mock.calls.length > 0) return 'device-settings';
   if (mockPush.mock.calls.length > 0) return `push ${mockPush.mock.calls[0][0]}`;
   if (mockRevoke.mock.calls.length > 0) return `revoke ${mockRevoke.mock.calls[0][0]}`;
+  if (mockNewDevice.mock.calls.length > 0) return 'new-device';
   const dialog = root.root.findByType('AlertDialog' as never);
   return dialog.props.open ? 'confirm-erase' : 'nothing';
 }
@@ -422,7 +425,7 @@ const EXPECTED_RECOVERY: Record<SyncRecoveryAction, string> = {
   'update-tackbok': 'open https://tackbok.org',
   'retry-verify-backup': 'sync-again',
   'repair-from-verified-backup': 'sync-again',
-  'inspect-repair-backup': 'sync-again',
+  'continue-as-new-device': 'new-device',
   'export-repair-backup': 'push /settings',
   'free-device-storage': 'device-settings',
   'manage-drive-storage': 'open https://drive.google.com/drive/quota',

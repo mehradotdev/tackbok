@@ -7,6 +7,8 @@ export type SyncAttentionReason =
   | 'invalid-remote-snapshot'
   | 'head-snapshot-missing'
   | 'ambiguous-device-head'
+  /** This device's clock was far ahead; its writes need a new device ID. */
+  | 'device-clock-ahead'
   | 'merge-failed'
   | 'local-storage-full'
   | 'provider-quota-full'
@@ -27,7 +29,6 @@ export type SyncRecoveryAction =
   | 'update-tackbok'
   | 'retry-verify-backup'
   | 'repair-from-verified-backup'
-  | 'inspect-repair-backup'
   | 'export-repair-backup'
   | 'free-device-storage'
   | 'manage-drive-storage'
@@ -37,6 +38,7 @@ export type SyncRecoveryAction =
   | 'acknowledge-disconnect'
   | 'review-erase-device'
   | 'resume-deletion'
+  | 'continue-as-new-device'
   /** Not mapped from a reason: offered when the pause recorded unreadable heads. */
   | 'replace-backup';
 
@@ -50,7 +52,10 @@ export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecovery
     'unsupported-format': 'update-tackbok',
     'invalid-remote-snapshot': 'retry-verify-backup',
     'head-snapshot-missing': 'repair-from-verified-backup',
-    'ambiguous-device-head': 'inspect-repair-backup',
+    // Another install with this device's ID, or this device's clock was far
+    // ahead: both continue under a new ID (`continueAsNewDevice`).
+    'ambiguous-device-head': 'continue-as-new-device',
+    'device-clock-ahead': 'continue-as-new-device',
     // Running the same merge again fails again; see the engine's retry rule.
     'merge-failed': 'export-repair-backup',
     'local-storage-full': 'free-device-storage',
@@ -174,9 +179,10 @@ export interface SnapshotProvider {
   ): Promise<boolean>;
   updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void>;
   /**
-   * Deletes one head file, by `ListedDeviceHead.physicalId`. Only a
-   * confirmed user action calls it ("Replace this backup"), for heads this
-   * device could not read; the snapshots they point to stay for retention.
+   * Deletes one head file, by `ListedDeviceHead.physicalId`. Only user
+   * actions call it: "Replace this backup", for heads this device could not
+   * read, and "Continue as a new device" after a clock far ahead, for this
+   * install's own head. The snapshots they point to stay for retention.
    */
   deleteDeviceHead(vaultId: string, physicalId: string): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;

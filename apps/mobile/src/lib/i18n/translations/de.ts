@@ -1075,8 +1075,12 @@ export const de: Translations = {
     'Ein Teil deiner Sicherung in Google Drive konnte nicht gelesen werden. Die Synchronisierung wurde angehalten.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
     'Ein Teil deiner Sicherung fehlt in Google Drive. Die Synchronisierung wurde angehalten.',
-  'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'Deine Sicherung enthält zwei verschiedene Fassungen der Änderungen eines Geräts. Die Synchronisierung wurde angehalten.',
+  'cloud.anotherPhoneBacksUpAsThisDevice':
+    'Ein anderes Telefon sichert als dieses Gerät, zum Beispiel nachdem darauf eine Telefonsicherung wiederhergestellt wurde. Auf diesem Gerät wurde die Synchronisierung angehalten. Mach als neues Gerät weiter, um wieder zu synchronisieren. Aus deinem Tagebuch geht nichts verloren.',
+  'cloud.thisDeviceClockWasFarAhead':
+    'Datum und Uhrzeit dieses Geräts lagen weit in der Zukunft, deshalb können deine anderen Geräte seine Änderungen nicht übernehmen. Mach als neues Gerät weiter, um das zu beheben. Aus deinem Tagebuch geht nichts verloren.',
+  'cloud.continueAsNewDevice': 'Als neues Gerät weitermachen',
+  'cloud.continuedAsNewDevice': 'Dieses Gerät synchronisiert jetzt als neues Gerät.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok konnte Änderungen von einem anderen Gerät nicht mit diesem zusammenführen. Auf diesem Gerät wurde nichts geändert. Die Synchronisierung wurde angehalten. Ein Update von Tackbok auf deinen Geräten kann helfen. Du kannst in den Einstellungen eine Kopie exportieren.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

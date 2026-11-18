@@ -992,8 +992,12 @@ export const he: Translations = {
     'לא ניתן היה לקרוא חלק מהגיבוי שלך ב-Google Drive. הסנכרון נעצר.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
     'חלק מהגיבוי שלך חסר ב-Google Drive. הסנכרון נעצר.',
-  'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'בגיבוי שלך יש שתי גרסאות שונות של השינויים ממכשיר אחד. הסנכרון נעצר.',
+  'cloud.anotherPhoneBacksUpAsThisDevice':
+    'טלפון אחר מגבה בתור המכשיר הזה, למשל אחרי ששוחזר בו גיבוי של טלפון. הסנכרון נעצר במכשיר הזה. כדי לסנכרן שוב, יש להמשיך כמכשיר חדש. שום דבר מהיומן לא יאבד.',
+  'cloud.thisDeviceClockWasFarAhead':
+    'התאריך והשעה במכשיר הזה כוונו רחוק לעתיד, ולכן המכשירים האחרים שלך לא יכולים לקבל את השינויים שלו. כדי לתקן את זה, יש להמשיך כמכשיר חדש. שום דבר מהיומן לא יאבד.',
+  'cloud.continueAsNewDevice': 'המשך כמכשיר חדש',
+  'cloud.continuedAsNewDevice': 'המכשיר הזה מסתנכרן עכשיו כמכשיר חדש.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok לא הצליח לאחד שינויים ממכשיר אחר עם המכשיר הזה. שום דבר במכשיר הזה לא השתנה. הסנכרון נעצר. עדכון Tackbok במכשירים שלך עשוי לעזור. אפשר לייצא עותק מההגדרות.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

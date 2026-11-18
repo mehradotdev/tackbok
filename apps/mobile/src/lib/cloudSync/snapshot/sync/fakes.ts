@@ -72,6 +72,11 @@ export class FakeSnapshotProvider implements SnapshotProvider {
   readonly requests: FakeProviderOperation[] = [];
   /** Tests set this to model a transfer policy such as Wi-Fi-only media. */
   mediaTransfersAllowed?: () => Promise<boolean>;
+  /**
+   * The provider's own clock for upload times, as Drive's `createdTime`.
+   * Unset, an upload keeps the time its uploader gave.
+   */
+  serverClock?: () => number;
   private readonly snapshots = new Map<string, StoredSnapshot>();
   private readonly heads = new Map<string, ListedDeviceHead[]>();
   private readonly media = new Map<string, Uint8Array>();
@@ -197,7 +202,10 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     if (existing && !bytesEqual(existing.bytes, bytes)) {
       throw new Error('Immutable snapshot ID collision');
     }
-    this.snapshots.set(key, { bytes: cloneBytes(bytes), createdAt });
+    this.snapshots.set(key, {
+      bytes: cloneBytes(bytes),
+      createdAt: this.serverClock?.() ?? createdAt,
+    });
     this.takeFault('upload-snapshot', true);
   }
 

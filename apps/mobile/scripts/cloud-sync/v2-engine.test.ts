@@ -24,6 +24,8 @@ const { V2SyncEngine, ACK_INTERVAL_MS, NO_READABLE_HEAD, removeUnreadableHeads }
 const { SnapshotProviderError } =
   await import('../../src/lib/cloudSync/snapshot/sync/types');
 const { simMediaFiles } = await import('./sim/v2StoreAdapter');
+const { continueAsNewDevice } =
+  await import('../../src/lib/cloudSync/snapshot/sync/newDevice');
 const { AssetType } = await import('../../src/types');
 type Provider = InstanceType<typeof FakeSnapshotProvider>;
 type CloudSyncTransaction =
@@ -112,6 +114,32 @@ const deviceIdOf = (target: Device) =>
       device_id: string;
     }
   ).device_id;
+/** Every text an entry holds: the shown one and its other versions. */
+const allTexts = (target: Device, id: string) =>
+  [
+    ...(
+      target.database.sqlite
+        .query('SELECT text_content AS v FROM entries WHERE note_id = ?')
+        .all(id) as { v: string }[]
+    ).map((row) => row.v),
+    ...(
+      target.database.sqlite
+        .query(
+          "SELECT value_json AS v FROM sync_field_values WHERE entity_id = ? AND field = 'text'",
+        )
+        .all(id) as { v: string }[]
+    ).map((row) => JSON.parse(row.v) as string),
+  ].sort();
+const newDevice = (target: Device, reason: 'another-install' | 'clock-ahead') =>
+  devices.on(target.database, clock, () =>
+    continueAsNewDevice({
+      vaultId: VAULT,
+      reason,
+      provider,
+      files: simMediaFiles,
+      now: clock,
+    }),
+  );
 const count = (list: string[], name: string) =>
   list.filter((item) => item === name).length;
 
@@ -476,6 +504,65 @@ describe('identity and clocks', () => {
     expect(texts(a)).toContain('e1:Edited on the original');
     // The copy's edit stays on the copy, not lost, until the user resolves it.
     expect(texts(copy)).toContain('e1:Edited on the copy');
+
+    // "Continue as a new device" on the copy: both edits survive everywhere.
+    const before = deviceIdOf(copy);
+    await newDevice(copy, 'another-install');
+    expect(deviceIdOf(copy)).not.toBe(before);
+    copy.stateStore.clearPause(VAULT, 'connection');
+    clock += 1000;
+    expect((await sync(copy)).status).toBe('published');
+    clock += 1000;
+    await sync(a);
+    for (const target of [a, copy])
+      expect(allTexts(target, 'e1')).toEqual([
+        'Edited on the copy',
+        'Edited on the original',
+      ]);
+    expect(texts(copy)).toContain('e2:Text e2');
+    // The original keeps its ID and goes on; the copy is a device of its own.
+    expect(
+      provider
+        .physicalHeads(VAULT)
+        .map((head) => head.head?.deviceId)
+        .sort(),
+    ).toEqual([before, deviceIdOf(copy)].sort());
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+    expect((await sync(copy)).status).not.toBe('attention');
+  });
+
+  test('a copy that published over a newer snapshot of the original loses nothing once the original moves', async () => {
+    const a = device();
+    await addEntry(a, 'e0', { text_content: 'Shared' });
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    clock += 1000;
+    await addEntry(a, 'e0', { text_content: 'Edited on the original' });
+    await sync(a);
+    // A race: the copy lists no head under the ID and publishes its own.
+    const id = deviceIdOf(a);
+    provider.removeDeviceHeadForTest(VAULT, id);
+    clock += 1000;
+    // Later than the original's edit: its record covers that stamp of the ID.
+    await addEntry(copy, 'e0', { text_content: 'Edited on the copy' });
+    expect((await sync(copy)).status).toBe('published');
+    clock += 1000;
+    expect(await sync(a)).toMatchObject({
+      status: 'attention',
+      reason: 'ambiguous-device-head',
+    });
+    await newDevice(a, 'another-install');
+    a.stateStore.clearPause(VAULT, 'connection');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    const fresh = device();
+    await sync(fresh);
+    for (const target of [a, fresh])
+      expect(allTexts(target, 'e0')).toEqual([
+        'Edited on the copy',
+        'Edited on the original',
+      ]);
   });
 
   test("a stale listing of this device's own older head is not taken for another install", async () => {
@@ -521,6 +608,80 @@ describe('identity and clocks', () => {
     clock += 30 * DAY;
     await sync(a);
     expect(texts(a)).toContain('ahead:From the future');
+  });
+});
+
+describe('a clock that was far ahead (P8)', () => {
+  test('a clock that is now behind does not pause: the uploads show real time', async () => {
+    const a = device();
+    await addEntry(a, 'e1');
+    await sync(a);
+    clock -= 400 * DAY;
+    await addEntry(a, 'e2');
+    expect((await sync(a)).status).toBe('published');
+  });
+
+  test('a clock set back after a quiet spell does not pause either', async () => {
+    let real = clock;
+    provider.serverClock = () => real;
+    const a = device();
+    await sync(a);
+    // Ten quiet days, a write today, then the clock goes back 30 days.
+    clock += 10 * DAY;
+    real = clock;
+    await addEntry(a, 'today');
+    clock -= 30 * DAY;
+    expect(await sync(a)).toMatchObject({ status: 'published' });
+  });
+
+  test('once corrected, the device pauses, and continues as a new device that others accept', async () => {
+    // Real time, which the provider records uploads by; device clocks vary.
+    let real = clock;
+    provider.serverClock = () => real;
+    const a = device();
+    const b = device();
+    await addEntry(a, 'e1', { text_content: 'Base' });
+    await sync(a);
+    await sync(b);
+    // B's clock jumps 30 days ahead; it edits and publishes.
+    clock += 30 * DAY;
+    await addEntry(b, 'e1', { text_content: 'From the future' });
+    await addEntry(b, 'new', { text_content: 'Written while wrong' });
+    await sync(b);
+    // Its clock is corrected. A refuses its head; B now sees its own clock.
+    clock -= 30 * DAY;
+    clock += 1000;
+    real = clock;
+    expect((await sync(a)).status).toBe('up-to-date');
+    expect(a.stateStore.loadState(VAULT, 'connection').skippedHeads).toMatchObject([
+      { reason: 'clock-ahead' },
+    ]);
+    const made = await requests(() => sync(b));
+    expect(b.stateStore.loadState(VAULT, 'connection').pauseReason).toBe(
+      'device-clock-ahead',
+    );
+    for (const name of ['upload-snapshot', 'update-head', 'delete-head'])
+      expect(count(made, name)).toBe(0);
+
+    const old = deviceIdOf(b);
+    await newDevice(b, 'clock-ahead');
+    b.stateStore.clearPause(VAULT, 'connection');
+    // The head no device could take in is gone; B's journal is as it was.
+    expect(
+      provider.physicalHeads(VAULT).some((head) => head.head?.deviceId === old),
+    ).toBe(false);
+    expect(texts(b)).toEqual(['e1:From the future', 'new:Written while wrong']);
+    clock += 1000;
+    real = clock;
+    expect((await sync(b)).status).toBe('published');
+    clock += 1000;
+    real = clock;
+    const result = await sync(a);
+    expect(result.status).not.toBe('attention');
+    expect(a.stateStore.loadState(VAULT, 'connection').skippedHeads).toEqual([]);
+    // B's edit was made after it had seen A's: it still replaces the base.
+    expect(texts(a)).toEqual(['e1:From the future', 'new:Written while wrong']);
+    expect(allTexts(a, 'e1')).toEqual(['From the future']);
   });
 });
 

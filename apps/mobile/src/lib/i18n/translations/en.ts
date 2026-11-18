@@ -1044,8 +1044,12 @@ export const en = {
     "Part of your backup in Google Drive couldn't be read. Sync has stopped.",
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
     'Part of your backup is missing from Google Drive. Sync has stopped.',
-  'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    "Your backup has two different copies of one device's changes. Sync has stopped.",
+  'cloud.anotherPhoneBacksUpAsThisDevice':
+    'Another phone is backing up as this device, for example after a phone backup was restored on it. Sync has stopped on this one. Continue as a new device to sync again. Nothing in your journal is lost.',
+  'cloud.thisDeviceClockWasFarAhead':
+    "This device's date and time were set far in the future, so your other devices can't take in its changes. Continue as a new device to fix this. Nothing in your journal is lost.",
+  'cloud.continueAsNewDevice': 'Continue as a new device',
+  'cloud.continuedAsNewDevice': 'This device now syncs as a new device.',
   // Another device's journal changes conflict in a way the merge cannot resolve.
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     "Tackbok couldn't combine changes from another device with this one. Nothing on this device was changed. Sync has stopped. Updating Tackbok on your devices may help. You can export a copy from Settings.",
