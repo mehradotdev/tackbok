@@ -878,7 +878,6 @@ export const zhTW: Translations = {
   'cloud.conflicts.openEntry': '開啟紀錄',
   'cloud.conflicts.gotIt': '知道了',
   'cloud.conflicts.allDone': '全部完成。現在每則紀錄只有一個版本。',
-  'cloud.conflicts.hidesOnThisDeviceOnly': '這只會在此裝置上隱藏通知。',
   'cloud.conflicts.titleDiffers': '標題不同',
   'cloud.conflicts.textDiffers': '內文不同',
   'cloud.conflicts.moodDiffers': '心情不同',

@@ -944,8 +944,6 @@ export const en = {
   'cloud.conflicts.gotIt': 'Got it',
   // Other versions after the last choice, when no entry has another version left.
   'cloud.conflicts.allDone': 'All done. Each entry now has one version.',
-  // Conflicts card, under "Got it" and "Keep current": the dismissal does not sync.
-  'cloud.conflicts.hidesOnThisDeviceOnly': 'This hides the notice on this device only.',
   // Other versions: what differs between the versions of one entry.
   'cloud.conflicts.titleDiffers': 'Title differs',
   'cloud.conflicts.textDiffers': 'Text differs',

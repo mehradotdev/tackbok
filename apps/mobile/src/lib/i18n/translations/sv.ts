@@ -869,8 +869,6 @@ export const sv = {
   'cloud.conflicts.openEntry': 'Öppna anteckningen',
   'cloud.conflicts.gotIt': 'OK',
   'cloud.conflicts.allDone': 'Klart. Varje anteckning har nu bara en version.',
-  'cloud.conflicts.hidesOnThisDeviceOnly':
-    'Det här döljer meddelandet bara på den här enheten.',
   'cloud.conflicts.titleDiffers': 'Titeln skiljer sig',
   'cloud.conflicts.textDiffers': 'Texten skiljer sig',
   'cloud.conflicts.moodDiffers': 'Humöret skiljer sig',

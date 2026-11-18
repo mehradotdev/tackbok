@@ -907,8 +907,6 @@ export const ar: Translations = {
   'cloud.conflicts.openEntry': 'فتح السجل',
   'cloud.conflicts.gotIt': 'حسنًا',
   'cloud.conflicts.allDone': 'اكتمل كل شيء. أصبح لكل سجل الآن نسخة واحدة.',
-  'cloud.conflicts.hidesOnThisDeviceOnly':
-    'يؤدي هذا إلى إخفاء الإشعار على هذا الجهاز فقط.',
   'cloud.conflicts.titleDiffers': 'العنوان مختلف',
   'cloud.conflicts.textDiffers': 'النص مختلف',
   'cloud.conflicts.moodDiffers': 'المزاج مختلف',

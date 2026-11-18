@@ -974,8 +974,6 @@ export const de: Translations = {
   'cloud.conflicts.gotIt': 'Verstanden',
   'cloud.conflicts.allDone':
     'Alles erledigt. Jeder Eintrag hat jetzt nur noch eine Version.',
-  'cloud.conflicts.hidesOnThisDeviceOnly':
-    'Dadurch wird der Hinweis nur auf diesem Gerät ausgeblendet.',
   'cloud.conflicts.titleDiffers': 'Titel unterscheidet sich',
   'cloud.conflicts.textDiffers': 'Text unterscheidet sich',
   'cloud.conflicts.moodDiffers': 'Stimmung unterscheidet sich',

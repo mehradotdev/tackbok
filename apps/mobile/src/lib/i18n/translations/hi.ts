@@ -850,7 +850,6 @@ export const hi = {
   'cloud.conflicts.openEntry': 'प्रविष्टि खोलें',
   'cloud.conflicts.gotIt': 'ठीक है',
   'cloud.conflicts.allDone': 'सब हो गया। अब हर प्रविष्टि का एक ही संस्करण है।',
-  'cloud.conflicts.hidesOnThisDeviceOnly': 'इससे यह सूचना सिर्फ़ इस डिवाइस पर छुपती है।',
   'cloud.conflicts.titleDiffers': 'शीर्षक अलग है',
   'cloud.conflicts.textDiffers': 'टेक्स्ट अलग है',
   'cloud.conflicts.moodDiffers': 'मूड अलग है',

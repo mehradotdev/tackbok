@@ -900,7 +900,6 @@ export const he: Translations = {
   'cloud.conflicts.openEntry': 'פתיחת הרשומה',
   'cloud.conflicts.gotIt': 'הבנתי',
   'cloud.conflicts.allDone': 'הכול הושלם. לכל רשומה יש עכשיו גרסה אחת.',
-  'cloud.conflicts.hidesOnThisDeviceOnly': 'פעולה זו מסתירה את ההודעה במכשיר הזה בלבד.',
   'cloud.conflicts.titleDiffers': 'הכותרת שונה',
   'cloud.conflicts.textDiffers': 'הטקסט שונה',
   'cloud.conflicts.moodDiffers': 'מצב הרוח שונה',

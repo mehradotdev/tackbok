@@ -875,7 +875,6 @@ export const zhCN: Translations = {
   'cloud.conflicts.openEntry': '打开条目',
   'cloud.conflicts.gotIt': '知道了',
   'cloud.conflicts.allDone': '全部完成。现在每个条目只有一个版本。',
-  'cloud.conflicts.hidesOnThisDeviceOnly': '这只会在此设备上隐藏通知。',
   'cloud.conflicts.titleDiffers': '标题不同',
   'cloud.conflicts.textDiffers': '正文不同',
   'cloud.conflicts.moodDiffers': '心情不同',
