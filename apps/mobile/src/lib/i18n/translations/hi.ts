@@ -809,6 +809,8 @@ export const hi = {
   'cloud.conflicts.photoChanged': 'आपकी प्रोफ़ाइल फ़ोटो किसी दूसरे डिवाइस पर बदली गई।',
   'cloud.conflicts.otherPhoto': 'दूसरे डिवाइस की प्रोफ़ाइल फ़ोटो',
   'cloud.conflicts.usePhoto': 'यह फ़ोटो इस्तेमाल करें',
+  'cloud.conflicts.photoRemoved': 'आपकी प्रोफ़ाइल फ़ोटो दूसरे डिवाइस पर हटा दी गई।',
+  'cloud.conflicts.removePhoto': 'कोई फ़ोटो न रखें',
   'cloud.conflicts.entriesEdited':
     '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। दोनों संस्करण आपकी डायरी में हैं।',
   'cloud.conflicts.showThem': 'दिखाएँ',
@@ -842,6 +844,8 @@ export const hi = {
     'आपकी {count} हटाई गई प्रविष्टियाँ रखी गईं, क्योंकि वे दूसरे डिवाइस पर अब भी थीं।',
   'cloud.conflicts.openEntry': 'प्रविष्टि खोलें',
   'cloud.conflicts.gotIt': 'ठीक है',
+  'cloud.conflicts.versionsChanged':
+    'आपके चुनते समय संस्करण बदल गए, इसलिए कुछ भी सहेजा नहीं गया। इन्हें फिर से देखें और दोबारा चुनें।',
   'cloud.conflicts.allDone': 'सब हो गया। अब हर प्रविष्टि का एक ही संस्करण है।',
   'cloud.conflicts.titleDiffers': 'शीर्षक अलग है',
   'cloud.conflicts.textDiffers': 'टेक्स्ट अलग है',

@@ -865,6 +865,8 @@ export const ar: Translations = {
   'cloud.conflicts.photoChanged': 'تم تغيير صورة ملفك الشخصي على جهاز آخر.',
   'cloud.conflicts.otherPhoto': 'صورة الملف الشخصي من الجهاز الآخر',
   'cloud.conflicts.usePhoto': 'استخدام هذه الصورة',
+  'cloud.conflicts.photoRemoved': 'أُزيلت صورة ملفك الشخصي على جهاز آخر.',
+  'cloud.conflicts.removePhoto': 'عدم استخدام صورة',
   'cloud.conflicts.entriesEdited':
     'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
   'cloud.conflicts.showThem': 'عرضها',
@@ -898,6 +900,8 @@ export const ar: Translations = {
     'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
   'cloud.conflicts.openEntry': 'فتح السجل',
   'cloud.conflicts.gotIt': 'حسنًا',
+  'cloud.conflicts.versionsChanged':
+    'تغيّرت النسخ أثناء اختيارك، لذلك لم يُحفظ شيء. راجعها واختر مرة أخرى.',
   'cloud.conflicts.allDone': 'اكتمل كل شيء. أصبح لكل سجل الآن نسخة واحدة.',
   'cloud.conflicts.titleDiffers': 'العنوان مختلف',
   'cloud.conflicts.textDiffers': 'النص مختلف',

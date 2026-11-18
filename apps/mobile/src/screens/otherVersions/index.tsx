@@ -31,6 +31,7 @@ import {
 } from '~/components/ui/alert-dialog';
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
+import { reportVersionsChanged } from '~/screens/cloudBackup/versionsChanged';
 import { OtherVersionGroupCard } from './OtherVersionGroupCard';
 import { groupMembers, keepMessage } from './keepVersion';
 
@@ -117,7 +118,7 @@ export default function OtherVersionsScreen() {
     if (!pendingKeep || deletingRef.current) return;
     deletingRef.current = true;
     setIsDeleting(true);
-    let kept = true;
+    let outcome: 'kept' | 'changed' | 'failed' = 'kept';
     try {
       // What the user compared: if sync changed the versions meanwhile,
       // nothing is written and the refreshed list shows the new ones.
@@ -126,9 +127,10 @@ export default function OtherVersionsScreen() {
         ...pendingKeep.others,
       ]);
     } catch (error) {
-      if (!(error instanceof VersionsChangedError)) {
+      if (error instanceof VersionsChangedError) outcome = 'changed';
+      else {
         console.error('Failed to keep a version', error);
-        kept = false;
+        outcome = 'failed';
       }
     }
     await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
@@ -136,7 +138,8 @@ export default function OtherVersionsScreen() {
     deletingRef.current = false;
     setIsDeleting(false);
     setPendingKeep(null);
-    if (!kept) toast.error(t('mood.failedToSaveEntry'));
+    if (outcome === 'changed') reportVersionsChanged(t);
+    if (outcome === 'failed') toast.error(t('mood.failedToSaveEntry'));
   };
 
   return (

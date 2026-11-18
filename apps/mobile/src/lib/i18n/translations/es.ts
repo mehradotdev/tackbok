@@ -849,6 +849,8 @@ export const es = {
   'cloud.conflicts.photoChanged': 'Tu foto de perfil se cambió en otro dispositivo.',
   'cloud.conflicts.otherPhoto': 'Foto de perfil del otro dispositivo',
   'cloud.conflicts.usePhoto': 'Usar esta foto',
+  'cloud.conflicts.photoRemoved': 'Se quitó tu foto de perfil en otro dispositivo.',
+  'cloud.conflicts.removePhoto': 'No usar foto',
   'cloud.conflicts.entriesEdited':
     '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
   'cloud.conflicts.showThem': 'Mostrarlas',
@@ -883,6 +885,8 @@ export const es = {
     'Se conservaron {count} entradas que eliminaste en un dispositivo porque otro dispositivo aún las tenía.',
   'cloud.conflicts.openEntry': 'Abrir entrada',
   'cloud.conflicts.gotIt': 'Entendido',
+  'cloud.conflicts.versionsChanged':
+    'Las versiones cambiaron mientras elegías, así que no se guardó nada. Revísalas y vuelve a elegir.',
   'cloud.conflicts.allDone': 'Todo listo. Ahora cada entrada tiene una sola versión.',
   'cloud.conflicts.titleDiffers': 'El título es distinto',
   'cloud.conflicts.textDiffers': 'El texto es distinto',

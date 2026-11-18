@@ -826,6 +826,8 @@ export const sv = {
   'cloud.conflicts.photoChanged': 'Din profilbild ändrades på en annan enhet.',
   'cloud.conflicts.otherPhoto': 'Profilbild från den andra enheten',
   'cloud.conflicts.usePhoto': 'Använd den här bilden',
+  'cloud.conflicts.photoRemoved': 'Din profilbild togs bort på en annan enhet.',
+  'cloud.conflicts.removePhoto': 'Använd ingen bild',
   'cloud.conflicts.entriesEdited':
     '{count} anteckningar redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
   'cloud.conflicts.showThem': 'Visa dem',
@@ -860,6 +862,8 @@ export const sv = {
     '{count} anteckningar som du tog bort på en enhet behölls eftersom en annan enhet fortfarande hade dem.',
   'cloud.conflicts.openEntry': 'Öppna anteckningen',
   'cloud.conflicts.gotIt': 'OK',
+  'cloud.conflicts.versionsChanged':
+    'Versionerna ändrades medan du valde, så inget sparades. Titta på dem igen och välj på nytt.',
   'cloud.conflicts.allDone': 'Klart. Varje anteckning har nu bara en version.',
   'cloud.conflicts.titleDiffers': 'Titeln skiljer sig',
   'cloud.conflicts.textDiffers': 'Texten skiljer sig',

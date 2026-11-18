@@ -65,6 +65,7 @@ const nameItem: CloudConflictItem = {
   conflictIds: ['n1'],
   current: 'Mehra',
   other: 'Mehra A',
+  seen: { shown: 'Mehra', others: [{ stamp: [2, 'b'], value: 'Mehra A' }] },
   latestAt: 50,
 };
 const entriesMessage = (count: number) =>

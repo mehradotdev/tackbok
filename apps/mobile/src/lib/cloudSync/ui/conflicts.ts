@@ -16,17 +16,34 @@ import { notifyProductionCloudSyncChanged } from '../runtime/production';
 import type { Stamp } from '../v2/types';
 import {
   acknowledgeReturnedEntries,
-  keepProfileVersion,
-  keepShownProfileValue,
+  keepProfileChoice,
   listOtherVersions,
   listProfileVersions,
   listReturnedEntries,
+  type ProfileField,
 } from './versions';
+
+export { VersionsChangedError } from './versions';
 
 /** An actionable row on the conflicts card, with when this device took it in. */
 export type CloudConflictItem = (
-  | { kind: 'name'; conflictIds: string[]; current: string | null; other: string | null }
-  | { kind: 'photo'; conflictIds: string[]; otherAssetId: string; otherUri: string }
+  | {
+      kind: 'name';
+      conflictIds: string[];
+      current: string | null;
+      other: string | null;
+      /** What the card listed: "Use" and "Keep current" refuse if it changed. */
+      seen: ProfileField;
+    }
+  | {
+      kind: 'photo';
+      conflictIds: string[];
+      /** Null for "no photo": the photo was removed on another device. */
+      otherAssetId: string | null;
+      otherUri: string | null;
+      /** What the card listed: "Use" and "Keep current" refuse if it changed. */
+      seen: ProfileField;
+    }
   | {
       /** Entries with more than one version of their title or text. */
       kind: 'entries';
@@ -63,39 +80,54 @@ function parseStampId(id: string): Stamp {
 
 /** The choices this device can act on. Read errors are thrown to the caller. */
 export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
-  const [versions, profileVersions, returned, [profile]] = await Promise.all([
+  const [versions, profileVersions, returned] = await Promise.all([
     listOtherVersions(),
     listProfileVersions(),
     listReturnedEntries(),
-    db.select().from(userProfile).limit(1),
   ]);
   const items: CloudConflictItem[] = [];
-  for (const other of profileVersions.name)
+  for (const other of profileVersions.name.others)
     items.push({
       kind: 'name',
       conflictIds: [stampId('name', other.stamp)],
-      current: profile?.display_name ?? null,
+      // The value the guard checks (`seen.shown`), so both always agree.
+      current: profileVersions.name.shown,
       other: other.value,
+      seen: profileVersions.name,
       latestAt: profileVersions.receivedAt,
     });
-  for (const other of profileVersions.photo) {
-    // A photo is offered only once its file is on this device.
-    if (other.value === null) continue;
+  // Photo choices are offered only once every other photo is on this device:
+  // "Use" or "Keep current" keeps one value and drops the rest, so none may
+  // be one the user could not see. "No photo" needs no file.
+  const photos: { stamp: Stamp; assetId: string | null; uri: string | null }[] = [];
+  for (const other of profileVersions.photo.others) {
+    if (other.value === null) {
+      photos.push({ stamp: other.stamp, assetId: null, uri: null });
+      continue;
+    }
     const [row] = await db
       .select({ uri: mediaAssets.local_uri, state: mediaAssets.download_state })
       .from(mediaAssets)
       .where(eq(mediaAssets.asset_id, other.value))
       .limit(1);
-    if (!row?.uri || (row.state !== 'n/a' && row.state !== 'verified')) continue;
-    if (!photoFileExists(row.uri)) continue;
-    items.push({
-      kind: 'photo',
-      conflictIds: [stampId('photo', other.stamp)],
-      otherAssetId: other.value,
-      otherUri: row.uri,
-      latestAt: profileVersions.receivedAt,
-    });
+    if (
+      !row?.uri ||
+      (row.state !== 'n/a' && row.state !== 'verified') ||
+      !photoFileExists(row.uri)
+    )
+      break;
+    photos.push({ stamp: other.stamp, assetId: other.value, uri: row.uri });
   }
+  if (photos.length === profileVersions.photo.others.length)
+    for (const photo of photos)
+      items.push({
+        kind: 'photo',
+        conflictIds: [stampId('photo', photo.stamp)],
+        otherAssetId: photo.assetId,
+        otherUri: photo.uri,
+        seen: profileVersions.photo,
+        latestAt: profileVersions.receivedAt,
+      });
   if (versions.size > 0)
     items.push({
       kind: 'entries',
@@ -131,14 +163,20 @@ export async function acknowledgeCloudConflicts(conflictIds: string[]): Promise<
   notifyProductionCloudSyncChanged();
 }
 
-/** "Use" keeps the other name, "Keep current" the shown one; either syncs. */
+/**
+ * "Use" keeps the other name, "Keep current" the shown one; either syncs.
+ * Throws `VersionsChangedError`, writing nothing, if the names changed since
+ * the card listed them.
+ */
 export async function resolveNameConflict(
   item: Extract<CloudConflictItem, { kind: 'name' }>,
   choice: 'use' | 'keep',
 ): Promise<void> {
-  if (choice === 'use')
-    await keepProfileVersion('name', parseStampId(item.conflictIds[0]));
-  else await keepShownProfileValue('name');
+  await keepProfileChoice(
+    'name',
+    choice === 'use' ? parseStampId(item.conflictIds[0]) : null,
+    item.seen,
+  );
   const [profile] = await db.select().from(userProfile).limit(1);
   const { profileEmail, profileImageUri } = useSettingsStore.getState();
   hydrateProfileCache({
@@ -149,15 +187,16 @@ export async function resolveNameConflict(
   notifyProductionCloudSyncChanged();
 }
 
-/** "Use" keeps the other photo, "Keep current" the shown one; either syncs. */
+/** As `resolveNameConflict`, for the profile photo. */
 export async function resolvePhotoConflict(
   item: Extract<CloudConflictItem, { kind: 'photo' }>,
   choice: 'use' | 'keep',
 ): Promise<void> {
   if (choice === 'use') {
-    await keepProfileVersion('photo', parseStampId(item.conflictIds[0]));
+    await keepProfileChoice('photo', parseStampId(item.conflictIds[0]), item.seen);
+    // `otherUri` is null when the chosen version is "no photo".
     const { profileName, profileEmail } = useSettingsStore.getState();
     hydrateProfileCache({ profileName, profileEmail, profileImageUri: item.otherUri });
-  } else await keepShownProfileValue('photo');
+  } else await keepProfileChoice('photo', null, item.seen);
   notifyProductionCloudSyncChanged();
 }

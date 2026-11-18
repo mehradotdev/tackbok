@@ -887,6 +887,9 @@ export const en = {
   'cloud.conflicts.photoChanged': 'Your profile photo was changed on another device.',
   'cloud.conflicts.otherPhoto': 'Profile photo from the other device',
   'cloud.conflicts.usePhoto': 'Use this photo',
+  // Conflicts card: another device removed the profile photo; the button keeps no photo.
+  'cloud.conflicts.photoRemoved': 'Your profile photo was removed on another device.',
+  'cloud.conflicts.removePhoto': 'Use no photo',
   'cloud.conflicts.entriesEdited':
     '{count} entries were edited on two devices at once. Both versions are in your journal.',
   'cloud.conflicts.showThem': 'Show them',
@@ -931,6 +934,9 @@ export const en = {
     '{count} entries you deleted on one device were kept because another device still had them.',
   'cloud.conflicts.openEntry': 'Open entry',
   'cloud.conflicts.gotIt': 'Got it',
+  // A choice on Other versions or the conflicts card was refused: the versions changed meanwhile.
+  'cloud.conflicts.versionsChanged':
+    'The versions changed while you were choosing, so nothing was saved. Check them and choose again.',
   // Other versions after the last choice, when no entry has another version left.
   'cloud.conflicts.allDone': 'All done. Each entry now has one version.',
   // Other versions: what differs between the versions of one entry.

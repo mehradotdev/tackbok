@@ -8,6 +8,7 @@ import {
   acknowledgeCloudConflicts,
   resolveNameConflict,
   resolvePhotoConflict,
+  VersionsChangedError,
   type CloudConflictItem,
 } from '~/lib/cloudSync/ui';
 import { Button } from '~/components/ui/button';
@@ -15,6 +16,7 @@ import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
 import { useCloudConflictItems } from './useCloudConflictItems';
+import { reportVersionsChanged } from './versionsChanged';
 
 type NameItem = Extract<CloudConflictItem, { kind: 'name' }>;
 type ReturnedEntryItem = Extract<CloudConflictItem, { kind: 'returnedEntry' }>;
@@ -51,8 +53,10 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
       setBusy(true);
       try {
         await action();
-      } catch {
-        toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
+      } catch (error) {
+        // Refused, nothing written: the refreshed card shows the new versions.
+        if (error instanceof VersionsChangedError) reportVersionsChanged(t);
+        else toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
       } finally {
         await refresh();
         if (mountedRef.current) setBusy(false);
@@ -190,13 +194,17 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
           return (
             <View key={key} className="gap-2">
               <View className="flex-row items-center gap-3">
-                <Image
-                  source={{ uri: getFullPhotoUri(item.otherUri) }}
-                  className="w-12 h-12 rounded-full bg-muted"
-                  accessibilityLabel={t('cloud.conflicts.otherPhoto')}
-                />
+                {item.otherUri !== null && (
+                  <Image
+                    source={{ uri: getFullPhotoUri(item.otherUri) }}
+                    className="w-12 h-12 rounded-full bg-muted"
+                    accessibilityLabel={t('cloud.conflicts.otherPhoto')}
+                  />
+                )}
                 <Text className="flex-1 text-sm text-foreground">
-                  {t('cloud.conflicts.photoChanged')}
+                  {item.otherUri === null
+                    ? t('cloud.conflicts.photoRemoved')
+                    : t('cloud.conflicts.photoChanged')}
                 </Text>
               </View>
               <View className="flex-row flex-wrap gap-2">
@@ -206,7 +214,9 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
                   disabled={busy}
                   onPress={() => void run(() => resolvePhotoConflict(item, 'use'))}>
                   <Text className="shrink text-center">
-                    {t('cloud.conflicts.usePhoto')}
+                    {item.otherUri === null
+                      ? t('cloud.conflicts.removePhoto')
+                      : t('cloud.conflicts.usePhoto')}
                   </Text>
                 </Button>
                 <Button
