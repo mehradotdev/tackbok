@@ -29,7 +29,6 @@
  * next one.
  */
 import { and, eq } from 'drizzle-orm';
-import { randomUUID } from 'expo-crypto';
 
 import { mediaAssets, runExclusiveDbTransaction, syncDevice, syncHeads } from '~/db';
 
@@ -100,6 +99,8 @@ export interface V2EngineOptions {
 
 interface HeadRecord {
   snapshotId: string;
+  /** This device's row: the snapshot its head was about to move to. */
+  pendingSnapshotId: string | null;
   deviceSequence: number;
   ctx: VersionVector | null;
   updatedAt: number;
@@ -188,17 +189,30 @@ export class V2SyncEngine {
     const records = await this.loadHeadRecords();
     const own = heads.get(deviceId);
     const ownRecord = records.get(deviceId);
-    // This device's head moved past anything it published: another install
-    // with its ID (an OS restore of this database, or a copy of it on a new
-    // phone). Take in what that head holds, then continue under a new ID, so
-    // the two never overwrite each other's head.
-    const foreign =
+    // This device's head points to a snapshot it neither published nor was
+    // about to publish: another install has its ID (an OS restore of this
+    // database, or a copy of it on a new phone). Both have written under the
+    // same ID, so joining as they are could read one's writes as replaced by
+    // the other's. Rebuild under a new ID, as at the cutover: every value here
+    // gets a fresh write, the other install's head becomes another device's,
+    // and the next pass takes in every head with nothing read as replaced.
+    if (
       own !== undefined &&
       own.snapshotId !== ownRecord?.snapshotId &&
-      own.deviceSequence >
-        Math.max(ownRecord?.deviceSequence ?? 0, durable.nextDeviceSequence - 1);
+      own.snapshotId !== ownRecord?.pendingSnapshotId
+    ) {
+      if (rotated) throw new RetryableSyncError('device-identity-taken-over-twice');
+      await runExclusiveDbTransaction((tx) =>
+        rebuildSyncMetadataInTransaction(
+          tx as CloudSyncTransaction,
+          this.vaultId,
+          this.now(),
+        ),
+      );
+      return this.pass(true);
+    }
     const changed = [...heads.values()].filter((head) => {
-      if (head.deviceId === deviceId && !foreign) return false;
+      if (head.deviceId === deviceId) return false;
       const record = records.get(head.deviceId);
       // An older head than the one taken in (a stale listing) adds nothing.
       return (
@@ -251,26 +265,15 @@ export class V2SyncEngine {
           refused.push(remote.head);
         }
       }
-      // After a takeover this device publishes under its new ID, next pass.
-      publish = !foreign && this.publication(state.ctx, deviceId, own, ownRecord).needed;
+      publish = this.publication(state.ctx, deviceId, own, ownRecord).needed;
       if (publish) state = markSeen(state, writer);
       state = compact(state);
       this.hooks.activity?.('applying-remote-snapshot');
       const takenIn = remotes
         .map((remote) => remote.head)
-        .filter((head) => !refused.includes(head) && head.deviceId !== deviceId);
-      const applied = await applySyncState(
-        captured,
-        state,
-        this.options.files,
-        async (tx) => {
-          await this.recordTakenIn(tx, takenIn);
-          if (foreign)
-            await tx
-              .update(syncDevice)
-              .set({ device_id: randomUUID(), updated_at: this.now() })
-              .where(eq(syncDevice.id, 'self'));
-        },
+        .filter((head) => !refused.includes(head));
+      const applied = await applySyncState(captured, state, this.options.files, (tx) =>
+        this.recordTakenIn(tx, takenIn),
       );
       await this.hooks.at?.('during-merge-application');
       if (applied) next = state;
@@ -280,11 +283,6 @@ export class V2SyncEngine {
       console.warn(
         `Cloud sync left ${refused.length} device heads with clocks too far ahead`,
       );
-    if (foreign) {
-      if (rotated) throw new RetryableSyncError('device-identity-taken-over-twice');
-      return this.pass(true);
-    }
-
     const refusedHeads = refused.length;
     if (!publish) {
       await this.cleanup(kept, false);
@@ -444,6 +442,7 @@ export class V2SyncEngine {
         row.device_id,
         {
           snapshotId: row.snapshot_id,
+          pendingSnapshotId: row.pending_snapshot_id,
           deviceSequence: row.device_sequence,
           ctx: row.ctx_json === null ? null : (JSON.parse(row.ctx_json) as VersionVector),
           updatedAt: row.updated_at,
@@ -646,6 +645,25 @@ export class V2SyncEngine {
     if (!(await provider.verifySnapshot(this.vaultId, encoded.snapshotId, encoded.bytes)))
       throw new SnapshotProviderError('transient', 'Uploaded snapshot did not verify');
     await this.hooks.at?.('after-snapshot-verified');
+    // Recorded before the head moves: a pass stopped after the move then
+    // sees its own snapshot, not another install's.
+    await runExclusiveDbTransaction(async (tx) => {
+      await tx
+        .insert(syncHeads)
+        .values({
+          vault_id: this.vaultId,
+          device_id: deviceId,
+          snapshot_id: record?.snapshotId ?? '',
+          device_sequence: record?.deviceSequence ?? 0,
+          ctx_json: record?.ctx ? JSON.stringify(record.ctx) : null,
+          pending_snapshot_id: encoded.snapshotId,
+          updated_at: record?.updatedAt ?? createdAt,
+        })
+        .onConflictDoUpdate({
+          target: [syncHeads.vault_id, syncHeads.device_id],
+          set: { pending_snapshot_id: encoded.snapshotId },
+        });
+    });
     await provider.updateDeviceHead(this.vaultId, {
       format: HEAD_FORMAT,
       major: SNAPSHOT_MAJOR,
@@ -663,6 +681,7 @@ export class V2SyncEngine {
         snapshot_id: encoded.snapshotId,
         device_sequence: deviceSequence,
         ctx_json: JSON.stringify(state.ctx),
+        pending_snapshot_id: null,
         updated_at: createdAt,
       };
       await tx

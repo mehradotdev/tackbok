@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "53cf9553-6714-4279-ab82-1f7e02dcbad2",
+  "id": "f2f3a338-a3d2-4e44-bd11-8d2eadee6086",
   "prevId": "e95d377d-dd79-495d-8b04-d503bd281174",
   "tables": {
     "cloud_base_shadow": {
@@ -1512,6 +1512,13 @@
         },
         "ctx_json": {
           "name": "ctx_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pending_snapshot_id": {
+          "name": "pending_snapshot_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

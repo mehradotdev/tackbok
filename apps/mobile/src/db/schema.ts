@@ -573,6 +573,12 @@ export const syncHeads = sqliteTable(
     device_sequence: integer('device_sequence').notNull(),
     /** This device's row only: the context it published. */
     ctx_json: text('ctx_json'),
+    /**
+     * This device's row only: the snapshot its head is about to move to, so
+     * a pass stopped after the move does not take the head for another
+     * install's.
+     */
+    pending_snapshot_id: text('pending_snapshot_id'),
     updated_at: integer('updated_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],

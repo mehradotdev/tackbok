@@ -4,6 +4,7 @@ CREATE TABLE `sync_heads` (
 	`snapshot_id` text NOT NULL,
 	`device_sequence` integer NOT NULL,
 	`ctx_json` text,
+	`pending_snapshot_id` text,
 	`updated_at` integer NOT NULL,
 	PRIMARY KEY(`vault_id`, `device_id`)
 );

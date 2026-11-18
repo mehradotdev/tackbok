@@ -410,6 +410,38 @@ describe('identity and clocks', () => {
     expect(texts(a)).toEqual(texts(copy));
   });
 
+  test('a copy and the original that edit one entry and publish one sequence keep both edits', async () => {
+    const a = device();
+    await addEntry(a, 'e1', { text_content: 'Before the copy' });
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    clock += 1000;
+    await addEntry(a, 'e1', { text_content: 'Edited on the original' });
+    clock += 1;
+    await addEntry(copy, 'e1', { text_content: 'Edited on the copy' });
+    // Both publish the same next sequence; the copy's head replaces the original's.
+    await sync(a);
+    await sync(copy);
+    clock += 1000;
+    await sync(a);
+    await sync(copy);
+    await sync(a);
+    const values = (target: Device) =>
+      [
+        ...texts(target),
+        ...(
+          target.database.sqlite
+            .query("SELECT value_json FROM sync_field_values WHERE field = 'text'")
+            .all() as { value_json: string }[]
+        ).map((row) => JSON.parse(row.value_json) as string),
+      ]
+        .map((value) => value.replace(/^e1:/, ''))
+        .sort();
+    // Neither edit was read as replaced by the other: both stay, as versions.
+    expect(values(a)).toEqual(['Edited on the copy', 'Edited on the original']);
+    expect(values(copy)).toEqual(values(a));
+  });
+
   test('a device whose clock is far ahead does not stop this one publishing', async () => {
     const a = device();
     const b = device();
