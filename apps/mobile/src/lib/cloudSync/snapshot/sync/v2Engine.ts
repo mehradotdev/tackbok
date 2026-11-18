@@ -939,8 +939,10 @@ export class V2SyncEngine {
    * snapshot then falls to retention, usually in the same cleanup (it is
    * older than 30 days). The heads are listed again right before each
    * delete, so a device that comes back and publishes into the same file
-   * (Drive updates it in place) keeps its head, but for a window of one
-   * request; if it loses it there, it publishes again at its next pass. A
+   * (Drive updates it in place) keeps its head, but for a short window (one
+   * request, plus however long Drive's change listing lags); if it loses it
+   * there, its fresh snapshot stays (retention keeps it 30 days) and it
+   * publishes again at its next pass. A
    * device that comes back finds its head gone and publishes a new one;
    * what its state can bring back is the "back after 180 days" case
    * (`compact.ts`). Returns the snapshots of the heads it deleted.
