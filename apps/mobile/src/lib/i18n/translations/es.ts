@@ -871,7 +871,6 @@ export const es = {
   'cloud.conflicts.otherVersionsLoadFailed': 'No se pudieron cargar las otras versiones.',
   'cloud.conflicts.versionsOf': 'Versiones de una entrada del {date}',
   'cloud.conflicts.original': 'Original',
-  'cloud.conflicts.originalDeleted': 'La entrada original se eliminó.',
   'cloud.conflicts.keepThisOne': 'Conservar esta',
   'cloud.conflicts.keepOriginal': 'Conservar la original',
   'cloud.conflicts.keepOtherVersion': 'Conservar esta otra versión',

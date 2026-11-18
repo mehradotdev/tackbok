@@ -3,13 +3,13 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { OtherVersionBanner } from './OtherVersionBanner';
 import { en as mockEn } from '~/lib/i18n/translations/en';
 
-let mockGroups: string[][] | undefined;
+let mockGroups: string[] | undefined;
 const mockPush = jest.fn();
 
 jest.mock('react-native', () => ({ View: 'View' }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('~/hooks/useGratitude', () => ({
-  useOpenConflictGroups: () => ({ data: mockGroups }),
+  useEntriesWithOtherVersions: () => ({ data: mockGroups }),
 }));
 jest.mock('~/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: keyof typeof mockEn) => mockEn[key] }),
@@ -31,17 +31,16 @@ function render(entryId: string) {
 const content = () => JSON.stringify(root.toJSON());
 const compare = () => root.root.findByType('Button' as never);
 
-test.each(['original', 'copy'])('shows on the %s of an open group', (entryId) => {
-  mockGroups = [['original', 'copy']];
-  render(entryId);
+test('shows on an entry with another version', () => {
+  mockGroups = ['original'];
+  render('original');
   expect(content()).toContain(mockEn['entry.otherVersionBanner']);
   expect(content()).toContain(mockEn['entry.compareVersions']);
 });
 
-test('shows nothing for a version left on its own', () => {
-  // The open groups only list groups with more than one live version.
-  mockGroups = [['other-original', 'other-copy']];
-  render('copy');
+test('shows nothing for an entry without another version', () => {
+  mockGroups = ['other'];
+  render('original');
   expect(root.toJSON()).toBeNull();
 });
 
@@ -52,17 +51,17 @@ test('shows nothing until the groups load', () => {
 });
 
 test('"Compare" opens Other versions at this entry', () => {
-  mockGroups = [['original', 'copy']];
-  render('copy');
+  mockGroups = ['original'];
+  render('original');
   act(() => compare().props.onPress());
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/other-versions',
-    params: { focus: 'copy' },
+    params: { focus: 'original' },
   });
 });
 
 test('"Compare" says where it goes and grows with large text', () => {
-  mockGroups = [['original', 'copy']];
+  mockGroups = ['original'];
   render('original');
   expect(compare().props.accessibilityHint).toBe(mockEn['entry.compareVersionsHint']);
   expect(compare().props.className).toContain('h-auto');

@@ -831,7 +831,6 @@ export const hi = {
   'cloud.conflicts.otherVersionsLoadFailed': 'अन्य संस्करण लोड नहीं हो सके।',
   'cloud.conflicts.versionsOf': '{date} की एक प्रविष्टि के संस्करण',
   'cloud.conflicts.original': 'मूल',
-  'cloud.conflicts.originalDeleted': 'मूल प्रविष्टि हटा दी गई थी।',
   'cloud.conflicts.keepThisOne': 'इसे रखें',
   'cloud.conflicts.keepOriginal': 'मूल रखें',
   'cloud.conflicts.keepOtherVersion': 'यह अन्य संस्करण रखें',

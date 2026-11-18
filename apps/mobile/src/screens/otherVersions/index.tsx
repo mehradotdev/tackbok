@@ -13,7 +13,6 @@ import {
   parseVersionCopyId,
 } from '~/lib/cloudSync/ui/versions';
 import { markOtherVersionsSeen } from '~/lib/cloudSync/ui/conflicts';
-import { isOpenGroup } from '~/lib/otherVersionGroups';
 import { QUERY_KEYS, useOtherVersionGroups, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
@@ -48,8 +47,7 @@ export default function OtherVersionsScreen() {
   const { t, isRTL } = useTranslation();
   const tagMap = useTagMapping();
   const { data, isLoading, isError, refetch } = useOtherVersionGroups();
-  // A version left on its own has nothing to choose between (see `isOpenGroup`).
-  const groups = focusFirst((data ?? []).filter(isOpenGroup), focus);
+  const groups = focusFirst(data ?? [], focus);
   const focusedKey =
     focus && groups[0] && hasMember(groups[0], focus) ? groupKey(groups[0]) : null;
   // Once a choice was listed here, an empty list means every choice is made.

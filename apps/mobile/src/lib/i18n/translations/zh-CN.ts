@@ -855,7 +855,6 @@ export const zhCN: Translations = {
   'cloud.conflicts.otherVersionsLoadFailed': '无法加载其他版本。',
   'cloud.conflicts.versionsOf': '同一条目的各个版本（{date}）',
   'cloud.conflicts.original': '原始版本',
-  'cloud.conflicts.originalDeleted': '原始条目已被删除。',
   'cloud.conflicts.keepThisOne': '保留这个',
   'cloud.conflicts.keepOriginal': '保留原始版本',
   'cloud.conflicts.keepOtherVersion': '保留此其他版本',

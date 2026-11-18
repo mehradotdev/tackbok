@@ -5,7 +5,7 @@ import { useSettingsStore } from '~/lib/settings';
 import {
   getEntriesForDay,
   getOtherVersionGroups,
-  getOpenConflictGroups,
+  getEntriesWithOtherVersions,
   getEntryCount,
   getEntryDatesForMonth,
   searchEntries,
@@ -65,14 +65,13 @@ export function useOtherVersionGroups() {
 }
 
 /**
- * Hook for entry conflicts still open: groups with more than one live version,
- * as member IDs (see `getOpenConflictGroups`). Lives under the entries key so
- * edits, deletes and applied syncs refresh it.
+ * Hook for the IDs of entries with another version of their title or text.
+ * Lives under the entries key so edits, deletes and applied syncs refresh it.
  */
-export function useOpenConflictGroups() {
-  return useQuery<string[][]>({
-    queryKey: [QUERY_KEYS.entries, 'openConflictGroups'],
-    queryFn: getOpenConflictGroups,
+export function useEntriesWithOtherVersions() {
+  return useQuery<string[]>({
+    queryKey: [QUERY_KEYS.entries, 'withOtherVersions'],
+    queryFn: getEntriesWithOtherVersions,
   });
 }
 

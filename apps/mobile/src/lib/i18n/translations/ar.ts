@@ -887,7 +887,6 @@ export const ar: Translations = {
   'cloud.conflicts.otherVersionsLoadFailed': 'تعذّر تحميل النسخ الأخرى.',
   'cloud.conflicts.versionsOf': 'نسخ سجل من {date}',
   'cloud.conflicts.original': 'النسخة الأصلية',
-  'cloud.conflicts.originalDeleted': 'حُذف السجل الأصلي.',
   'cloud.conflicts.keepThisOne': 'الإبقاء على هذه',
   'cloud.conflicts.keepOriginal': 'الإبقاء على النسخة الأصلية',
   'cloud.conflicts.keepOtherVersion': 'الإبقاء على هذه النسخة الأخرى',

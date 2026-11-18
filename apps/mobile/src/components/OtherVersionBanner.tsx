@@ -3,15 +3,14 @@ import { useRouter } from 'expo-router';
 import { GitBranch } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
-import { useOpenConflictGroups } from '~/hooks/useGratitude';
+import { useEntriesWithOtherVersions } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 
 /**
- * On an entry that still has another live version (the original or a copy;
- * see `getOpenConflictGroups`), a calm note with a way to compare them. Shows
- * nothing for a version left on its own.
+ * On an entry with another version of its title or text, a calm note with a
+ * way to compare them.
  */
 export function OtherVersionBanner({
   entryId,
@@ -22,9 +21,9 @@ export function OtherVersionBanner({
 }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { data: openGroups } = useOpenConflictGroups();
-  // Hidden until loaded, so a lone version never flashes the banner.
-  if (!openGroups?.some((members) => members.includes(entryId))) return null;
+  const { data: withVersions } = useEntriesWithOtherVersions();
+  // Hidden until loaded, so it never flashes on an entry with one version.
+  if (!withVersions?.includes(entryId)) return null;
 
   return (
     <View className={cn('gap-2 rounded-lg border border-border bg-card p-3', className)}>

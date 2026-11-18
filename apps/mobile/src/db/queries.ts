@@ -1,8 +1,8 @@
 import { desc, or, and, gte, lt, eq, sql, type SQL } from 'drizzle-orm';
 import { addDays, startOfDay, format } from 'date-fns';
-import { type OtherVersionGroup } from '~/lib/otherVersionGroups';
+import type { OtherVersionGroup } from '~/lib/cloudSync/ui/versions';
 
-export type { OtherVersionGroup } from '~/lib/otherVersionGroups';
+export type { OtherVersionGroup } from '~/lib/cloudSync/ui/versions';
 import { getAchievementForCreateTransition, type Achievement } from '~/lib/achievements';
 import {
   createPromptInTransaction,
@@ -191,10 +191,10 @@ export async function getOtherVersionGroups(): Promise<OtherVersionGroup[]> {
   return listVersionGroups();
 }
 
-/** Entries with another version still open, one per group. */
-export async function getOpenConflictGroups(): Promise<string[][]> {
+/** IDs of entries with another version of their title or text. */
+export async function getEntriesWithOtherVersions(): Promise<string[]> {
   const { listOtherVersions } = await import('~/lib/cloudSync/ui/versions');
-  return [...(await listOtherVersions()).keys()].map((id) => [id]);
+  return [...(await listOtherVersions()).keys()];
 }
 
 /**

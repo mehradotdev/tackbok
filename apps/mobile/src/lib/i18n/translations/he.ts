@@ -880,7 +880,6 @@ export const he: Translations = {
   'cloud.conflicts.otherVersionsLoadFailed': 'לא ניתן לטעון את הגרסאות האחרות.',
   'cloud.conflicts.versionsOf': 'גרסאות של רשומה מ־{date}',
   'cloud.conflicts.original': 'גרסה מקורית',
-  'cloud.conflicts.originalDeleted': 'הרשומה המקורית נמחקה.',
   'cloud.conflicts.keepThisOne': 'שמירת הגרסה הזו',
   'cloud.conflicts.keepOriginal': 'שמירת הגרסה המקורית',
   'cloud.conflicts.keepOtherVersion': 'שמירת הגרסה האחרת הזו',
