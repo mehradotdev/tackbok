@@ -22,14 +22,23 @@ const {
 } = Astro.props;
 ---
 
-<div class="rounded-[2.6rem] border border-ink-soft bg-ink p-2 shadow-[0_24px_55px_color-mix(in_srgb,var(--ink)_25%,transparent)] ring-2 ring-paper-deep">
-  <Image
-    src={src}
-    alt={alt}
-    widths={[300, 540, 810]}
-    sizes={sizes}
-    loading={loading}
-    fetchpriority={priority ? 'high' : undefined}
-    class="block h-auto w-full rounded-[2.1rem]"
-  />
+<div class="relative isolate">
+  <!-- Generic side buttons (volume, then power); the body covers their inner ends. -->
+  <span
+    aria-hidden="true"
+    class="absolute top-[17%] -right-[7px] h-[14%] w-2.5 rounded-sm bg-ink-soft"></span>
+  <span
+    aria-hidden="true"
+    class="absolute top-[35%] -right-[7px] h-[8%] w-2.5 rounded-sm bg-ink-soft"></span>
+  <div class="relative rounded-[2.6rem] border border-ink-soft bg-ink p-2 shadow-[0_24px_55px_color-mix(in_srgb,var(--ink)_25%,transparent)] ring-2 ring-paper-deep">
+    <Image
+      src={src}
+      alt={alt}
+      widths={[300, 540, 810]}
+      sizes={sizes}
+      loading={loading}
+      fetchpriority={priority ? 'high' : undefined}
+      class="block h-auto w-full rounded-[2.1rem]"
+    />
+  </div>
 </div>
