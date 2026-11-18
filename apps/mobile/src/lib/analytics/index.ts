@@ -19,7 +19,10 @@ import Constants from 'expo-constants';
 import { AppState, Platform } from 'react-native';
 import { getLocales } from 'expo-localization';
 import { useSettingsStore } from '~/lib/settings';
-import { getEntryStats } from '~/db/queries';
+import { getCloudSyncState, getEntryStats } from '~/db/queries';
+import { useAppIconStore } from '~/lib/appIcon';
+import { getEffectiveSupportedLocale, useLocaleStore } from '~/lib/i18n/store';
+import { kvStorage } from '~/lib/kvStorage';
 import {
   ANALYTICS_EVENT_NAMES,
   getScreenName,
@@ -27,6 +30,7 @@ import {
   toCountBucket,
   type AnalyticsEventName,
   type AnalyticsEvents,
+  type SettingsSnapshot,
 } from './events';
 import {
   drainPreConsentBuffer,
@@ -147,7 +151,99 @@ async function enable(expectedGeneration: number): Promise<void> {
   }
 }
 
+// The settings snapshot rides on the first app_opened of each local day. The
+// day is stored only while opted in and removed on revocation.
+const SNAPSHOT_DAY_KEY = 'analytics-settings-snapshot-day';
+let snapshotDayLoad: Promise<string | null> | null = null;
+let snapshotDayLoaded = false;
+let lastSnapshotDay: string | null = null;
+
+function localDay(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** Whether today's snapshot is still unsent. Claim it with claimSnapshotDay. */
+async function isSnapshotDue(
+  today: string,
+  expectedGeneration: number,
+): Promise<boolean> {
+  if (!snapshotDayLoaded) {
+    snapshotDayLoad ??= kvStorage.getItem(SNAPSHOT_DAY_KEY).catch(() => null);
+    const stored = await snapshotDayLoad;
+    // Revoked meanwhile: forgetSnapshotDay reset this state, so leave it alone.
+    if (!hasConsent(expectedGeneration)) return false;
+    if (!snapshotDayLoaded) {
+      snapshotDayLoaded = true;
+      lastSnapshotDay = stored;
+    }
+  }
+  return lastSnapshotDay !== today;
+}
+
+/**
+ * Synchronous, and called right before capture: of visits that read a snapshot
+ * together only one sends it, and nothing is stored after a revocation.
+ */
+function claimSnapshotDay(today: string, expectedGeneration: number): boolean {
+  if (!hasConsent(expectedGeneration) || lastSnapshotDay === today) return false;
+  lastSnapshotDay = today;
+  kvStorage.setItem(SNAPSHOT_DAY_KEY, today).catch((error) => {
+    console.warn('Failed to store the analytics snapshot day:', error);
+  });
+  return true;
+}
+
+function forgetSnapshotDay(): void {
+  snapshotDayLoad = null;
+  snapshotDayLoaded = false;
+  lastSnapshotDay = null;
+  kvStorage.removeItem(SNAPSHOT_DAY_KEY).catch((error) => {
+    console.warn('Failed to remove the analytics snapshot day:', error);
+  });
+}
+
+/** Analytics starts after the settings store hydrates, which can be before this one. */
+function localeHydrated(): Promise<void> {
+  if (useLocaleStore.getState()._hasHydrated) return Promise.resolve();
+  return new Promise((resolve) => {
+    const unsubscribe = useLocaleStore.subscribe((state) => {
+      if (!state._hasHydrated) return;
+      unsubscribe();
+      resolve();
+    });
+  });
+}
+
+async function readSettingsSnapshot(): Promise<SettingsSnapshot> {
+  // The icon is owned by the OS and only read on demand.
+  const [cloudSync] = await Promise.all([
+    getCloudSyncState(),
+    useAppIconStore.getState().refresh(),
+    localeHydrated(),
+  ]);
+  const settings = useSettingsStore.getState();
+  const { localePreference } = useLocaleStore.getState();
+  return {
+    theme: settings.theme,
+    locale: getEffectiveSupportedLocale(
+      getLocales().map(({ languageTag }) => languageTag),
+      localePreference,
+    ),
+    locale_follows_device: localePreference === 'device',
+    app_icon: useAppIconStore.getState().current,
+    title_font: settings.titleFont,
+    body_font_size: settings.bodyFontSize,
+    reminder_enabled: settings.dailyReminderEnabled,
+    app_lock_enabled: settings.biometricUnlockEnabled,
+    cloud_sync: cloudSync,
+    journal_prompts_mode: settings.journalPromptsMode,
+  };
+}
+
 function revokeConsent(): void {
+  forgetSnapshotDay();
   initPendingEvents = [];
   stopPreConsentBuffering();
   client = null;
@@ -178,11 +274,24 @@ async function captureAppOpened(
   try {
     const stats = await getEntryStats();
     if (!hasConsent(expectedGeneration)) return;
+    const today = localDay(timestamp);
+    let snapshot: SettingsSnapshot | null = null;
+    if (await isSnapshotDue(today, expectedGeneration)) {
+      try {
+        snapshot = await readSettingsSnapshot();
+      } catch (error) {
+        // Unclaimed, so the next visit today tries again.
+        console.warn('Failed to read the analytics settings snapshot:', error);
+      }
+    }
+    if (!hasConsent(expectedGeneration)) return;
+    if (snapshot && !claimSnapshotDay(today, expectedGeneration)) snapshot = null;
     capture({
       event: 'app_opened',
       timestamp,
       props: {
         ...props,
+        ...snapshot,
         entry_bucket: toCountBucket(stats.entryCount),
         days_journaled_bucket: toCountBucket(stats.daysWithEntries),
         device_region: getLocales()[0]?.regionCode ?? 'unknown',

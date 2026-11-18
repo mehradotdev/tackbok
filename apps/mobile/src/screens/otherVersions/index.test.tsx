@@ -13,6 +13,10 @@ const mockPush = jest.fn();
 const mockAnnounce = jest.fn();
 let mockParams: { focus?: string | string[] } = {};
 
+const mockTrack = jest.fn();
+jest.mock('~/lib/analytics', () => ({
+  track: (...args: unknown[]) => mockTrack(...args),
+}));
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
@@ -233,8 +237,13 @@ test('keeping the other version keeps it, after confirming', async () => {
 test('keeping the original keeps what the entry shows', async () => {
   render({ data: [{ original, versions: [copy, secondCopy] }] });
   act(() => keepButtons()[0].props.onPress());
+  mockTrack.mockClear();
   await act(async () => confirm().props.onPress());
   expect(mockKeep.mock.calls.map(([id]) => id)).toEqual(['original']);
+  expect(mockTrack).toHaveBeenCalledWith('cloud_sync_conflict_resolved', {
+    kind: 'entry',
+    choice: 'keep_one',
+  });
 });
 
 test('cancelling keeps nothing', () => {

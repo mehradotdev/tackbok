@@ -32,6 +32,7 @@ import {
 import { ImageViewerModal } from '~/components/ImageViewerModal';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { reportVersionsChanged } from '~/screens/cloudBackup/versionsChanged';
+import { track } from '~/lib/analytics';
 import { OtherVersionGroupCard } from './OtherVersionGroupCard';
 import { groupMembers, keepMessage } from './keepVersion';
 
@@ -119,7 +120,10 @@ export default function OtherVersionsScreen() {
   // Runs "Keep this one" or "Keep both": one new synced write. `write` gets
   // what the user compared: if sync changed the versions meanwhile, nothing
   // is written and the refreshed list shows the new ones.
-  const runChoice = async (write: () => Promise<void>) => {
+  const runChoice = async (
+    write: () => Promise<void>,
+    choice: 'keep_one' | 'keep_both',
+  ) => {
     if (busyRef.current) return;
     busyRef.current = true;
     setIsBusy(true);
@@ -127,6 +131,7 @@ export default function OtherVersionsScreen() {
     try {
       try {
         await write();
+        track('cloud_sync_conflict_resolved', { kind: 'entry', choice });
       } catch (error) {
         if (error instanceof VersionsChangedError) outcome = 'changed';
         else {
@@ -149,7 +154,7 @@ export default function OtherVersionsScreen() {
   const handleKeepConfirm = () => {
     if (!pendingKeep) return;
     const { keepId, kept, others } = pendingKeep;
-    return runChoice(() => keepEntryVersion(keepId, [kept, ...others]));
+    return runChoice(() => keepEntryVersion(keepId, [kept, ...others]), 'keep_one');
   };
 
   // Nothing is lost, so no confirmation: the version becomes a new entry.
@@ -159,7 +164,7 @@ export default function OtherVersionsScreen() {
       const message = t('cloud.conflicts.keptBoth');
       toast.success(message);
       AccessibilityInfo.announceForAccessibilityWithOptions(message, { queue: true });
-    });
+    }, 'keep_both');
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>

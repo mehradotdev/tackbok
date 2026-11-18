@@ -8,6 +8,19 @@ type AlertButton = { text: string; style?: string; onPress?: () => void };
 type AlertArgs = [string, string, AlertButton[], { cancelable?: boolean }?];
 const mockAlert = jest.fn<void, AlertArgs>();
 
+const mockTrack = jest.fn();
+jest.mock('~/lib/analytics', () => ({
+  track: (...args: unknown[]) => mockTrack(...args),
+}));
+// Android by default; the iOS test switches it to a platform that keeps the app open.
+let mockClosesApp = true;
+jest.mock('~/lib/appIcon', () => {
+  const actual = jest.requireActual('~/lib/appIcon');
+  // A getter, defined after copying: Babel's spread helper would read it once.
+  return Object.defineProperty({ ...actual }, 'appIconChangeClosesApp', {
+    get: () => mockClosesApp,
+  });
+});
 jest.mock('react-native', () => ({
   Alert: { alert: (...args: AlertArgs) => mockAlert(...args) },
   Platform: { OS: 'android' },
@@ -54,6 +67,8 @@ const setIcon = jest.fn<Promise<void>, [string]>(async () => undefined);
 beforeEach(() => {
   mockAlert.mockReset();
   setIcon.mockClear();
+  mockTrack.mockClear();
+  mockClosesApp = true;
   useAppIconStore.setState({ current: 'Blueprint', isChanging: false, setIcon });
 });
 
@@ -115,8 +130,11 @@ test('Android asks before closing the app to change the icon', () => {
   // Cancel has no handler, so nothing changes.
   expect(buttons[0].style).toBe('cancel');
   expect(buttons[0].onPress).toBeUndefined();
+  expect(mockTrack).not.toHaveBeenCalled();
   act(() => buttons[1].onPress!());
   expect(setIcon).toHaveBeenCalledWith('Ocean');
+  // Before the change, which closes the app on Android.
+  expect(mockTrack).toHaveBeenCalledWith('app_icon_changed', { icon: 'Ocean' });
 });
 
 test('tapping the selected icon changes nothing', () => {
@@ -124,4 +142,22 @@ test('tapping the selected icon changes nothing', () => {
 
   expect(mockAlert).not.toHaveBeenCalled();
   expect(setIcon).not.toHaveBeenCalled();
+  expect(mockTrack).not.toHaveBeenCalled();
+});
+
+test('where the app stays open, only an icon change that took effect is counted', async () => {
+  mockClosesApp = false;
+  // The OS refuses: the store refreshes back to the old icon.
+  press('Ocean');
+  await act(async () => {});
+  expect(mockAlert).not.toHaveBeenCalled();
+  expect(setIcon).toHaveBeenCalledWith('Ocean');
+  expect(mockTrack).not.toHaveBeenCalled();
+
+  setIcon.mockImplementationOnce(async (name) => {
+    useAppIconStore.setState({ current: name as 'Sage' });
+  });
+  press('Sage');
+  await act(async () => {});
+  expect(mockTrack).toHaveBeenCalledWith('app_icon_changed', { icon: 'Sage' });
 });

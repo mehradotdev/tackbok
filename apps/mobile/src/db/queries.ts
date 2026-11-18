@@ -85,6 +85,18 @@ export async function getEntryStats(): Promise<{
   return { entryCount, daysWithEntries: days.size };
 }
 
+/** Whether cloud sync is set up on this device, for the analytics settings snapshot. */
+export async function getCloudSyncState(): Promise<'off' | 'on' | 'paused'> {
+  const [vault] = await db
+    .select({ status: cloudVault.status, remoteRootId: cloudVault.remote_root_id })
+    .from(cloudVault)
+    .limit(1);
+  // Matches the Cloud backup screen's "configured" test.
+  if (!vault?.remoteRootId || ['disabled', 'revoked'].includes(vault.status))
+    return 'off';
+  return vault.status === 'paused' ? 'paused' : 'on';
+}
+
 /**
  * Lightweight per-entry projection for the Insights screen. Deliberately never
  * selects `text_content` itself — char/word counts are computed inside SQLite

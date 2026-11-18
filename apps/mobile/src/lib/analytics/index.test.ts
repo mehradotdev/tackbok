@@ -15,16 +15,69 @@ let mockExtra: Record<string, string>;
 let mockPlatform = 'ios';
 const mockInstances: any[] = [];
 const mockConstructor = jest.fn();
+const mockKv = new Map<string, string>();
+let mockAppIcon = 'Classic';
+let mockCloudSync = 'off';
+let mockKvGet: ((key: string) => Promise<string | null>) | null = null;
+let mockCloudSyncRead: (() => Promise<string>) | null = null;
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: {
-    getState: () => ({ analyticsEnabled: mockEnabled }),
+    getState: () => ({
+      analyticsEnabled: mockEnabled,
+      theme: 'forest',
+      titleFont: 'lora',
+      bodyFontSize: 'large',
+      dailyReminderEnabled: true,
+      biometricUnlockEnabled: false,
+      journalPromptsMode: 'off',
+      profileName: 'Private Name',
+      reminderTime: '07:15',
+    }),
     subscribe: (callback: typeof mockSubscriber) => {
       mockSubscriber = callback;
     },
   },
 }));
-jest.mock('~/db/queries', () => ({ getEntryStats: () => mockStats }));
-jest.mock('expo-localization', () => ({ getLocales: () => [{ regionCode: 'SE' }] }));
+jest.mock('~/db/queries', () => ({
+  getEntryStats: () => mockStats,
+  getCloudSyncState: async () =>
+    mockCloudSyncRead ? mockCloudSyncRead() : mockCloudSync,
+}));
+jest.mock('~/lib/appIcon', () => ({
+  useAppIconStore: {
+    getState: () => ({ current: mockAppIcon, refresh: async () => {} }),
+  },
+}));
+let mockLocale = { localePreference: 'device', _hasHydrated: true };
+let mockLocaleListener: ((state: typeof mockLocale) => void) | null = null;
+jest.mock('~/lib/i18n/store', () => ({
+  useLocaleStore: {
+    getState: () => mockLocale,
+    subscribe: (listener: typeof mockLocaleListener) => {
+      mockLocaleListener = listener;
+      return () => {
+        mockLocaleListener = null;
+      };
+    },
+  },
+  getEffectiveSupportedLocale: (tags: string[], preference: string) =>
+    preference !== 'device' ? preference : tags[0] === 'sv-SE' ? 'sv' : 'en',
+}));
+jest.mock('~/lib/kvStorage', () => ({
+  kvStorage: {
+    getItem: async (key: string) =>
+      mockKvGet ? mockKvGet(key) : (mockKv.get(key) ?? null),
+    setItem: async (key: string, value: string) => {
+      mockKv.set(key, value);
+    },
+    removeItem: async (key: string) => {
+      mockKv.delete(key);
+    },
+  },
+}));
+jest.mock('expo-localization', () => ({
+  getLocales: () => [{ regionCode: 'SE', languageTag: 'sv-SE' }],
+}));
 jest.mock('expo-constants', () => ({
   __esModule: true,
   default: {
@@ -97,6 +150,13 @@ beforeEach(() => {
   mockStats = Promise.resolve({ entryCount: 4, daysWithEntries: 2 });
   mockExtra = { appVariant: 'production', androidStore: 'google' };
   mockPlatform = 'ios';
+  mockKv.clear();
+  mockAppIcon = 'Classic';
+  mockCloudSync = 'off';
+  mockKvGet = null;
+  mockCloudSyncRead = null;
+  mockLocale = { localePreference: 'device', _hasHydrated: true };
+  mockLocaleListener = null;
 });
 
 afterEach(() => {
@@ -383,4 +443,167 @@ test('pre-consent screen view prevents duplicate fallback screen emission on opt
   const screenEvents = events().filter(([event]) => event === '$screen');
   expect(screenEvents).toHaveLength(1);
   expect(screenEvents[0][1]).toMatchObject({ $screen_name: 'settings' });
+});
+
+const SNAPSHOT_KEYS = [
+  'theme',
+  'locale',
+  'locale_follows_device',
+  'app_icon',
+  'title_font',
+  'body_font_size',
+  'reminder_enabled',
+  'app_lock_enabled',
+  'cloud_sync',
+  'journal_prompts_mode',
+];
+
+function appOpened() {
+  return events()
+    .filter(([event]) => event === 'app_opened')
+    .map(([, props]) => props);
+}
+
+test('the first visit of the day carries the settings snapshot, later ones do not', async () => {
+  mockEnabled = true;
+  mockAppIcon = 'Ocean';
+  mockCloudSync = 'paused';
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  mockAppStateListener('background');
+  mockAppStateListener('active');
+  await settle();
+  const [first, second] = appOpened();
+  expect(first).toMatchObject({
+    reason: 'cold_start',
+    theme: 'forest',
+    locale: 'sv',
+    locale_follows_device: true,
+    app_icon: 'Ocean',
+    title_font: 'lora',
+    body_font_size: 'large',
+    reminder_enabled: true,
+    app_lock_enabled: false,
+    cloud_sync: 'paused',
+    journal_prompts_mode: 'off',
+    device_region: 'SE',
+  });
+  expect(second.reason).toBe('foreground');
+  for (const key of SNAPSHOT_KEYS) expect(second).not.toHaveProperty(key);
+  // Never personal settings, even though the store holds them.
+  expect(JSON.stringify(events())).not.toMatch(/Private Name|07:15/);
+});
+
+test('a snapshot already sent today is not sent again after a restart', async () => {
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  expect(appOpened()[0]).toHaveProperty('theme');
+  jest.resetModules();
+  mockInstances.length = 0;
+  const b = load();
+  b.initAnalytics();
+  await settle();
+  expect(appOpened()).toHaveLength(1);
+  for (const key of SNAPSHOT_KEYS) expect(appOpened()[0]).not.toHaveProperty(key);
+});
+
+test('a new local day sends the snapshot again', async () => {
+  mockKv.set('analytics-settings-snapshot-day', '2000-01-01');
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  expect(appOpened()[0]).toHaveProperty('theme', 'forest');
+});
+
+test('concurrent visits claim the day once', async () => {
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  mockAppStateListener('background');
+  mockAppStateListener('active');
+  await settle();
+  const withSnapshot = appOpened().filter((props) => 'theme' in props);
+  expect(appOpened()).toHaveLength(2);
+  expect(withSnapshot).toHaveLength(1);
+});
+
+test('revoking consent forgets the snapshot day', async () => {
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  expect(mockKv.has('analytics-settings-snapshot-day')).toBe(true);
+  consent(false);
+  await settle();
+  expect(mockKv.has('analytics-settings-snapshot-day')).toBe(false);
+  consent(true);
+  await settle();
+  const reenabled = appOpened().at(-1);
+  expect(reenabled).toMatchObject({ reason: 'consent_enabled', theme: 'forest' });
+});
+
+test('no snapshot day is stored without consent', async () => {
+  const a = load();
+  a.initAnalytics();
+  mockAppStateListener('background');
+  mockAppStateListener('active');
+  await settle();
+  expect(mockKv.size).toBe(0);
+});
+
+test('revoking while the snapshot day loads stores nothing and re-enabling still sends it', async () => {
+  const stored = deferred<string | null>();
+  mockKvGet = () => stored.promise;
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  consent(false);
+  stored.resolve(null);
+  await settle();
+  expect(mockKv.size).toBe(0);
+  expect(appOpened()).toEqual([]);
+  mockKvGet = null;
+  consent(true);
+  await settle();
+  expect(appOpened().at(-1)).toMatchObject({
+    reason: 'consent_enabled',
+    theme: 'forest',
+  });
+  expect(mockKv.get('analytics-settings-snapshot-day')).toBeDefined();
+});
+
+test('a failed settings read leaves the day unclaimed for the next visit', async () => {
+  mockCloudSyncRead = async () => {
+    throw new Error('database locked');
+  };
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  expect(appOpened()[0]).not.toHaveProperty('theme');
+  expect(mockKv.size).toBe(0);
+  mockCloudSyncRead = null;
+  mockAppStateListener('background');
+  mockAppStateListener('active');
+  await settle();
+  expect(appOpened()[1]).toMatchObject({ reason: 'foreground', theme: 'forest' });
+});
+
+test('the snapshot waits for the saved language before reporting it', async () => {
+  mockLocale = { localePreference: 'device', _hasHydrated: false };
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  expect(appOpened()).toEqual([]);
+  mockLocale = { localePreference: 'de', _hasHydrated: true };
+  mockLocaleListener!(mockLocale);
+  await settle();
+  expect(appOpened()[0]).toMatchObject({ locale: 'de', locale_follows_device: false });
+  expect(mockLocaleListener).toBeNull();
 });

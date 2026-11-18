@@ -13,6 +13,7 @@ import { cn } from 'tailwind-variants';
 import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
+import { track } from '~/lib/analytics';
 import {
   APP_ICON_CHOICES,
   appIconChangeClosesApp,
@@ -63,9 +64,28 @@ export function AppIconPickerSheet() {
   ]);
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
+  const applyIcon = async (name: AppIconName) => {
+    const state = useAppIconStore.getState();
+    if (name === state.current || state.isChanging) {
+      void setIcon(name);
+      return;
+    }
+    // Android closes the app to apply it, so the change is counted first.
+    // Elsewhere it counts only if the icon actually changed.
+    if (appIconChangeClosesApp) {
+      track('app_icon_changed', { icon: name });
+      void setIcon(name);
+      return;
+    }
+    await setIcon(name);
+    if (useAppIconStore.getState().current === name) {
+      track('app_icon_changed', { icon: name });
+    }
+  };
+
   const chooseIcon = (name: AppIconName) => {
     if (!appIconChangeClosesApp) {
-      void setIcon(name);
+      void applyIcon(name);
       return;
     }
     // A native alert, so it shows above the sheet.
@@ -74,7 +94,7 @@ export function AppIconPickerSheet() {
       t('appearance.changeAppIconMessage'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('appearance.changeIcon'), onPress: () => void setIcon(name) },
+        { text: t('appearance.changeIcon'), onPress: () => void applyIcon(name) },
       ],
       // Back and a tap outside dismiss it like Cancel.
       { cancelable: true },

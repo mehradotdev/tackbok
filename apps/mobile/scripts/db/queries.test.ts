@@ -33,7 +33,8 @@ const db = drizzle(sqlite, {
 });
 mock.module('../../src/db', () => ({ ...schema, db, runExclusiveDbTransaction() {} }));
 mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
-const { getEntriesForDay, searchEntries } = await import('../../src/db/queries');
+const { getCloudSyncState, getEntriesForDay, searchEntries } =
+  await import('../../src/db/queries');
 afterAll(() => sqlite.close());
 
 function insertEntry(
@@ -121,4 +122,31 @@ test('searchEntries treats LIKE wildcards in the search text literally', async (
     'plain',
     'percent',
   ]);
+});
+
+test('getCloudSyncState reports sync as set up only with a remote backup', async () => {
+  const state = async (vault: Partial<typeof schema.cloudVault.$inferInsert> | null) => {
+    sqlite.exec('DELETE FROM cloud_vault');
+    if (vault) {
+      db.insert(schema.cloudVault)
+        .values({
+          vault_id: 'vault',
+          provider_kind: 'google-drive',
+          device_id: 'device',
+          created_at: 1,
+          updated_at: 1,
+          ...vault,
+        })
+        .run();
+    }
+    return getCloudSyncState();
+  };
+  expect(await state(null)).toBe('off');
+  expect(await state({ status: 'enabled' })).toBe('off');
+  expect(await state({ status: 'enabled', remote_root_id: 'root' })).toBe('on');
+  expect(await state({ status: 'restoring', remote_root_id: 'root' })).toBe('on');
+  expect(await state({ status: 'paused', remote_root_id: 'root' })).toBe('paused');
+  expect(await state({ status: 'disabled', remote_root_id: 'root' })).toBe('off');
+  expect(await state({ status: 'revoked', remote_root_id: 'root' })).toBe('off');
+  sqlite.exec('DELETE FROM cloud_vault');
 });

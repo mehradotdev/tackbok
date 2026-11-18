@@ -18,6 +18,14 @@
  */
 
 import type { SupportTierId } from '~/lib/purchases/support-catalog';
+import type { AppIconName } from '~/lib/appIcon/icons';
+import type { SupportedLocale } from '~/lib/i18n/types';
+import type { JournalPromptsMode } from '~/lib/journalPrompts';
+import type { BodyFontSize, TitleFontSelection } from '~/lib/theme/typography';
+import type {
+  SyncAttentionReason,
+  SyncRecoveryAction,
+} from '~/lib/cloudSync/snapshot/sync/types';
 
 export type CharBucket = '0-50' | '51-200' | '200+';
 
@@ -42,6 +50,7 @@ export const SCREEN_ROUTE_MAP = {
   '/settings': 'settings',
   '/support': 'support',
   '/cloud-backup': 'cloud_backup',
+  '/other-versions': 'other_versions',
 } as const;
 
 export type ScreenName = (typeof SCREEN_ROUTE_MAP)[keyof typeof SCREEN_ROUTE_MAP];
@@ -90,6 +99,54 @@ export type CloudSyncFailureCategory =
   | 'unknown';
 export type CloudSyncCountBucket = '0' | '1-10' | '11-100' | '100+';
 export type CloudSyncDurationBucket = '<1s' | '1-10s' | '10-60s' | '60s+';
+export type CloudSyncState = 'off' | 'on' | 'paused';
+/**
+ * A pause reason, or the note shown without a pause when other devices'
+ * backups were skipped (unreadable, or written with a clock far ahead).
+ */
+export type CloudSyncNoticeReason =
+  | SyncAttentionReason
+  | 'other-device-unreadable'
+  | 'other-device-clock-ahead';
+export type OnboardingStep =
+  | 'welcome'
+  | 'name'
+  | 'focus-areas'
+  | 'theme'
+  | 'privacy'
+  | 'finish';
+/**
+ * What the user committed to on the Cloud backup screen's attention card, or
+ * confirmed in its dialog ('apply-mass-deletion', 'replace-backup',
+ * 'review-erase-device' count only once confirmed).
+ */
+export type CloudSyncAttentionAction = SyncRecoveryAction | 'apply-mass-deletion';
+export type CloudSyncConflictResolution =
+  | { kind: 'name' | 'photo'; choice: 'use' | 'keep' }
+  | { kind: 'returned_entry'; choice: 'open' | 'dismiss' }
+  | { kind: 'entry'; choice: 'keep_one' | 'keep_both' };
+
+/**
+ * Current app settings, sent on at most one `app_opened` per local day so
+ * popularity covers people who never change a setting. Enums and booleans
+ * only: no reminder time, names, or custom prompt or template text.
+ */
+export type SettingsSnapshot = {
+  theme: string;
+  /** The language the app is shown in. */
+  locale: SupportedLocale;
+  /** False when the user picked a language instead of following the device. */
+  locale_follows_device: boolean;
+  app_icon: AppIconName;
+  /** 'default' follows the theme's own title font. */
+  title_font: TitleFontSelection;
+  body_font_size: BodyFontSize;
+  reminder_enabled: boolean;
+  app_lock_enabled: boolean;
+  cloud_sync: CloudSyncState;
+  journal_prompts_mode: JournalPromptsMode;
+};
+
 export type SupportPurchaseFailureCategory =
   | 'offline'
   | 'configuration'
@@ -101,14 +158,17 @@ export type SupportPurchaseFailureCategory =
  * Event name → payload type. `undefined` means the event carries no payload.
  */
 export type AnalyticsEvents = {
-  /** Cold start, consent enable, or return from the background while opted in. */
+  /**
+   * Cold start, consent enable, or return from the background while opted in.
+   * The first one each local day also carries the SettingsSnapshot.
+   */
   app_opened: {
     reason: 'cold_start' | 'consent_enabled' | 'foreground';
     entry_bucket: CountBucket;
     days_journaled_bucket: CountBucket;
     /** ISO country code from device settings (not IP geolocation), e.g. 'SE'. */
     device_region: string;
-  };
+  } & Partial<SettingsSnapshot>;
   $screen: { $screen_name: ScreenName };
   entry_created: {
     has_photo: boolean;
@@ -124,7 +184,10 @@ export type AnalyticsEvents = {
   search_used: undefined;
   theme_changed: { theme: string };
   language_changed: { locale: string };
+  /** Recorded when the change is requested: Android closes the app to apply it. */
+  app_icon_changed: { icon: AppIconName };
   import_completed: { source: ImportSource; entry_bucket: CountBucket };
+  import_failed: { source: ImportSource };
   backup_exported: undefined;
   reminder_enabled: undefined;
   reminder_disabled: undefined;
@@ -136,7 +199,19 @@ export type AnalyticsEvents = {
     pushed_bucket: CloudSyncCountBucket;
   };
   cloud_sync_failed: { category: CloudSyncFailureCategory };
-  cloud_sync_repair_result: { result: 'repaired' | 'unrecoverable' | 'not-needed' };
+  /** Once per notice per visit to the Cloud backup screen. */
+  cloud_sync_attention_shown: { reason: CloudSyncNoticeReason };
+  /**
+   * Counted when chosen, whether or not it then works: failures already show as
+   * the pause staying or as cloud_sync_failed.
+   */
+  cloud_sync_attention_action: {
+    /** The notice the choice came from, as in cloud_sync_attention_shown. */
+    reason: CloudSyncNoticeReason;
+    action: CloudSyncAttentionAction;
+  };
+  /** A sync conflict choice that was saved. */
+  cloud_sync_conflict_resolved: CloudSyncConflictResolution;
   support_purchase_started: { tier: SupportTierId };
   support_purchase_completed: { tier: SupportTierId };
   support_purchase_cancelled: { tier: SupportTierId };
@@ -147,11 +222,10 @@ export type AnalyticsEvents = {
   };
   support_share_opened: undefined;
   support_rate_opened: undefined;
-  // Onboarding funnel — defined now, fired only once the onboarding flow ships
-  // (see z-onboarding-flow.md). Buffered pre-consent, sent only on opt-in.
-  onboarding_step_viewed: { step: string };
+  // Onboarding funnel. Buffered in RAM before consent, sent only on opt-in.
+  onboarding_step_viewed: { step: OnboardingStep };
   onboarding_completed: undefined;
-  onboarding_skipped: { step: string };
+  onboarding_skipped: { step: OnboardingStep };
 };
 
 export type AnalyticsEventName = keyof AnalyticsEvents;
@@ -169,7 +243,9 @@ const ANALYTICS_EVENT_CATALOG = {
   search_used: true,
   theme_changed: true,
   language_changed: true,
+  app_icon_changed: true,
   import_completed: true,
+  import_failed: true,
   backup_exported: true,
   reminder_enabled: true,
   reminder_disabled: true,
@@ -177,7 +253,9 @@ const ANALYTICS_EVENT_CATALOG = {
   cloud_sync_started: true,
   cloud_sync_succeeded: true,
   cloud_sync_failed: true,
-  cloud_sync_repair_result: true,
+  cloud_sync_attention_shown: true,
+  cloud_sync_attention_action: true,
+  cloud_sync_conflict_resolved: true,
   support_purchase_started: true,
   support_purchase_completed: true,
   support_purchase_cancelled: true,
@@ -203,7 +281,9 @@ export const CLOUD_SYNC_ANALYTICS_EVENT_NAMES = [
   'cloud_sync_started',
   'cloud_sync_succeeded',
   'cloud_sync_failed',
-  'cloud_sync_repair_result',
+  'cloud_sync_attention_shown',
+  'cloud_sync_attention_action',
+  'cloud_sync_conflict_resolved',
 ] as const satisfies readonly AnalyticsEventName[];
 
 /** Privacy-audited support events. Prices, transaction ids, and customer ids are excluded. */

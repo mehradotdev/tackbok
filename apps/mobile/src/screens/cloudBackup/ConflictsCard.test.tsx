@@ -14,6 +14,10 @@ const mockToastError = jest.fn();
 const mockToastInfo = jest.fn();
 const mockAnnounce = jest.fn();
 
+const mockTrack = jest.fn();
+jest.mock('~/lib/analytics', () => ({
+  track: (...args: unknown[]) => mockTrack(...args),
+}));
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
@@ -139,6 +143,10 @@ test('"Use" resolves the name row and the row disappears after refreshing', asyn
   await act(async () => button('Use “Mehra A”').props.onPress());
   expect(mockResolveName).toHaveBeenCalledWith(nameItem, 'use');
   expect(root.toJSON()).toBeNull();
+  expect(mockTrack).toHaveBeenCalledWith('cloud_sync_conflict_resolved', {
+    kind: 'name',
+    choice: 'use',
+  });
 });
 
 test('"Keep current" resolves the name row without changing the name', async () => {
@@ -184,6 +192,7 @@ test('uses a calm accent, not the sync-error colour', async () => {
 });
 
 test('reports a failed action and keeps the row', async () => {
+  mockTrack.mockClear();
   await render([nameItem]);
   mockResolveName.mockRejectedValueOnce(new Error('write failed'));
   await act(async () => button('Use “Mehra A”').props.onPress());
@@ -191,6 +200,8 @@ test('reports a failed action and keeps the row', async () => {
     mockEn['cloud.cloudBackupCouldNotBeUpdated'],
   );
   expect(content()).toContain('Mehra A');
+  // Only saved choices count.
+  expect(mockTrack).not.toHaveBeenCalled();
 });
 
 test('a choice refused because the names changed is announced, not reported as a failure', async () => {

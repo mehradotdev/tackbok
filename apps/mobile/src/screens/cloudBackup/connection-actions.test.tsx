@@ -13,6 +13,10 @@ import {
 import type { TranslationFunction } from '~/lib/i18n/types';
 import { recoveryActionLabel } from './copy';
 
+const mockTrack = jest.fn();
+jest.mock('~/lib/analytics', () => ({
+  track: (...args: unknown[]) => mockTrack(...args),
+}));
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
@@ -461,6 +465,14 @@ test.each(
   expect(buttons).toHaveLength(1);
   await act(async () => buttons[0].props.onPress());
   expect(observedRecovery()).toBe(EXPECTED_RECOVERY[action]);
+  // Each visit counts the notice once; a choice counts once it is committed,
+  // so actions that only open a confirmation are not counted yet.
+  const opensConfirmation =
+    action === 'replace-backup' || action === 'review-erase-device';
+  expect(mockTrack.mock.calls).toEqual([
+    ['cloud_sync_attention_shown', { reason }],
+    ...(opensConfirmation ? [] : [['cloud_sync_attention_action', { reason, action }]]),
+  ]);
 });
 
 test('merge errors never offer a button that runs the same merge again', () => {
@@ -643,9 +655,20 @@ describe("other devices' backups left out", () => {
     expect(dialog.props.open).toBe(true);
     expect(showsText(mockEn['cloud.replaceBackup.description'])).toBe(true);
     const confirm = root.root.findByType('AlertDialogDestructiveAction' as never);
+    expect(mockTrack).not.toHaveBeenCalledWith(
+      'cloud_sync_attention_action',
+      expect.anything(),
+    );
     await act(async () => confirm.props.onPress());
     expect(mockReplace).toHaveBeenCalledTimes(1);
     expect(mockToast.success).toHaveBeenCalledWith(mockEn['cloud.replaceBackup.done']);
+    expect(mockTrack.mock.calls).toEqual([
+      ['cloud_sync_attention_shown', { reason: 'other-device-unreadable' }],
+      [
+        'cloud_sync_attention_action',
+        { reason: 'other-device-unreadable', action: 'replace-backup' },
+      ],
+    ]);
   });
 
   test('a pause with nothing readable offers Replace as its recovery', async () => {
@@ -680,8 +703,38 @@ describe('a merge that would delete much of the journal', () => {
     expect(mockAnswer).not.toHaveBeenCalled();
     expect(showsText(mockEn['cloud.massDeletion.applyDescription'])).toBe(true);
     const confirm = root.root.findByType('AlertDialogDestructiveAction' as never);
+    expect(mockTrack.mock.calls).toEqual([
+      ['cloud_sync_attention_shown', { reason: 'mass-deletion' }],
+    ]);
     await act(async () => confirm.props.onPress());
     expect(mockAnswer).toHaveBeenCalledWith('apply');
     expect(mockToast.success).toHaveBeenCalledWith(mockEn['cloud.massDeletion.applied']);
+    expect(mockTrack).toHaveBeenLastCalledWith('cloud_sync_attention_action', {
+      reason: 'mass-deletion',
+      action: 'apply-mass-deletion',
+    });
+  });
+});
+
+test('a confirmed Replace keeps the notice that offered it, even if a sync pass pauses meanwhile', async () => {
+  mockSnapshot.skippedHeads = { unreadable: 1, clockAhead: 0 };
+  await render();
+  const replace = root.root
+    .findAllByType('Button' as never)
+    .find(
+      (button) =>
+        button.props.accessibilityLabel === mockEn['cloud.replaceBackup.action'],
+    );
+  act(() => replace!.props.onPress());
+  // A pass pauses for another reason while the confirmation waits.
+  mockSnapshot.status = 'warning';
+  mockSnapshot.attentionReason = 'provider-quota-full';
+  mockSnapshot.recoveryAction = 'manage-drive-storage';
+  await act(async () => root.update(<CloudBackupScreen />));
+  const confirm = root.root.findByType('AlertDialogDestructiveAction' as never);
+  await act(async () => confirm.props.onPress());
+  expect(mockTrack).toHaveBeenCalledWith('cloud_sync_attention_action', {
+    reason: 'other-device-unreadable',
+    action: 'replace-backup',
   });
 });
