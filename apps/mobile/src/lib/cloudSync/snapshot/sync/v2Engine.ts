@@ -243,6 +243,7 @@ export class V2SyncEngine {
     let next: SyncState | null = null;
     let publish = false;
     let refused: DeviceHeadV2[] = [];
+    let takenIn: DeviceHeadV2[] = [];
     for (let attempt = 0; attempt < MAX_APPLY_ATTEMPTS && !next; attempt++) {
       this.hooks.progress?.({ type: 'plan', phase: 'merging' });
       const captured = await captureSyncState();
@@ -266,7 +267,7 @@ export class V2SyncEngine {
       if (publish) state = markSeen(state, writer);
       state = compact(state);
       this.hooks.activity?.('applying-remote-snapshot');
-      const takenIn = remotes
+      takenIn = remotes
         .map((remote) => remote.head)
         .filter((head) => !refused.includes(head));
       const applied = await applySyncState(captured, state, this.options.files, (tx) =>
@@ -285,10 +286,10 @@ export class V2SyncEngine {
       await this.cleanup(kept, false);
       return this.settle(
         durable.journalGeneration,
-        remotes.length > refusedHeads
+        takenIn.length > 0
           ? {
               status: 'pulled',
-              snapshotId: remotes[remotes.length - 1].head.snapshotId,
+              snapshotId: takenIn[takenIn.length - 1].snapshotId,
               actionableChanges: 0,
               deferredMediaCount: deferred,
               refusedHeads,
