@@ -19,9 +19,10 @@
  *    (`markSeen`) when this device will publish, compacted, and applied.
  * 7. It publishes when it has writes it has not published, has never
  *    published in this vault (it publishes as soon as it joins), lost its
- *    head, or holds other devices' writes it last acknowledged more than a
+ *    head, holds other devices' writes it last acknowledged more than a
  *    day ago (acknowledgements let compaction run; publishing one on every
- *    pull would double the uploads).
+ *    pull would double the uploads), or has just compacted deleted values
+ *    (so its head stops holding them).
  *
  * Cleanup: after a publication, the heads of devices that left the active
  * roster (180 days) are pruned; after a publication or once a day,
@@ -40,7 +41,7 @@
  * is already applied locally, so a pass stopped half way publishes on the
  * next one.
  */
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 import {
   mediaAssets,
@@ -432,8 +433,17 @@ export class V2SyncEngine {
           state = local(joinAll(rewriteDates(captured.state, writer, hidden)));
       }
       publish = this.publication(state.ctx, deviceId, own, ownRecord).needed;
-      if (publish) state = markSeen(state, writer);
-      state = compact(state);
+      // Compaction drops deleted values this device's head on the provider
+      // may still hold: it publishes too, so deleted text does not linger
+      // on Drive in a quiet device's head.
+      // The need is recorded with the apply (`oweInTransaction`): the local
+      // journal is compacted then, so a publication that fails would leave
+      // nothing to notice it by.
+      const probe = publish ? state : compact(state);
+      const owed = !publish && probe.entries !== state.entries;
+      if (owed) publish = true;
+      // After `markSeen` the floor can rise further: compact again.
+      state = publish ? compact(markSeen(state, writer)) : probe;
       this.hooks.activity?.('applying-remote-snapshot');
       takenIn = remotes
         .map((remote) => remote.head)
@@ -444,6 +454,7 @@ export class V2SyncEngine {
         this.options.files,
         async (tx) => {
           await this.recordTakenIn(tx, takenIn);
+          if (owed) await this.oweInTransaction(tx, deviceId);
           if (retiring.length > 0) await this.clearPendingRetirements(tx);
         },
       );
@@ -628,7 +639,15 @@ export class V2SyncEngine {
     own: DeviceHead | undefined,
     record: HeadRecord | undefined,
   ): { needed: boolean } {
-    if (!own || !record || own.snapshotId !== record.snapshotId || !record.ctx)
+    // A pending snapshot: a publication stopped part way, before its head
+    // moved, or one owed for compacted values (`oweInTransaction`).
+    if (
+      !own ||
+      !record ||
+      own.snapshotId !== record.snapshotId ||
+      !record.ctx ||
+      record.pendingSnapshotId !== null
+    )
       return { needed: true };
     if ((ctx[deviceId] ?? -1) > (record.ctx[deviceId] ?? -1)) return { needed: true };
     const ackDue =
@@ -745,6 +764,21 @@ export class V2SyncEngine {
         },
       ]),
     );
+  }
+
+  /**
+   * A publication this device owes for values it compacted: its own head
+   * record gets a pending snapshot ('' when none, which matches no head), so
+   * every pass publishes until one succeeds (`publish` clears it). The
+   * context it published stays: the retired-ID check reads it.
+   */
+  private async oweInTransaction(tx: CloudSyncTransaction, deviceId: string) {
+    await tx
+      .update(syncHeads)
+      .set({ pending_snapshot_id: sql`coalesce(${syncHeads.pending_snapshot_id}, '')` })
+      .where(
+        and(eq(syncHeads.vault_id, this.vaultId), eq(syncHeads.device_id, deviceId)),
+      );
   }
 
   /** Heads taken in, recorded in the apply's transaction. */

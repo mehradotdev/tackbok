@@ -24,6 +24,8 @@ const { V2SyncEngine, ACK_INTERVAL_MS, NO_READABLE_HEAD, removeUnreadableHeads }
 const { SnapshotProviderError } =
   await import('../../src/lib/cloudSync/snapshot/sync/types');
 const { simMediaFiles } = await import('./sim/v2StoreAdapter');
+const { canonicalState, decodeEnvelope } =
+  await import('../../src/lib/cloudSync/v2/codec');
 const { continueAsNewDevice } =
   await import('../../src/lib/cloudSync/snapshot/sync/newDevice');
 const { AssetType } = await import('../../src/types');
@@ -558,6 +560,105 @@ describe('retired device IDs (P11)', () => {
     await sync(copy);
     await sync(a);
     for (const target of [a, copy]) expect(retiredOf(target)).not.toContain(id);
+  });
+});
+
+describe('compaction reaches Drive (P11)', () => {
+  const deleteOn = (target: Device, id: string) =>
+    write(target, (tx) => repositories.deleteEntryInTransaction(tx, id, { now: clock }));
+  /** The bodies of the snapshots every listed head points to. */
+  async function headBodies() {
+    const bodies: string[] = [];
+    for (const { head } of provider.physicalHeads(VAULT)) {
+      const bytes = await provider.downloadSnapshot(VAULT, head!.snapshotId);
+      bodies.push(canonicalState(decodeEnvelope(bytes!).state));
+    }
+    return bodies;
+  }
+
+  test('a quiet device republishes once it compacts, so no head keeps the deleted text', async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1', { text_content: 'Secret' });
+    for (const target of [a, b, a]) await sync(target);
+    clock += 1000;
+    await write(a, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e1', { now: clock }),
+    );
+    await sync(a);
+    // B takes the delete in, but not everyone has acknowledged it yet:
+    // nothing compacts, so nothing is owed.
+    expect((await sync(b)).status).toBe('pulled');
+    // A day on, B acknowledges the delete and compacts it at once.
+    clock += DAY;
+    expect((await sync(b)).status).toBe('published');
+    // A has written nothing since; taking B's acknowledgement in, it compacts
+    // too, and publishes so its own head drops the text.
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    const bodies = await headBodies();
+    expect(bodies).toHaveLength(2);
+    for (const body of bodies) {
+      expect(body).toContain('"e1"');
+      expect(body).not.toContain('Secret');
+    }
+    // B takes A's head in without publishing again; then both are quiet.
+    clock += 1000;
+    expect((await sync(b)).status).toBe('pulled');
+    clock += 1000;
+    for (const target of [a, b]) expect((await sync(target)).status).toBe('up-to-date');
+  });
+
+  test('a compaction publication that fails is made at a later pass', async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1', { text_content: 'Secret' });
+    for (const target of [a, b, a]) await sync(target);
+    clock += 1000;
+    await deleteOn(a, 'e1');
+    await sync(a);
+    await sync(b);
+    clock += DAY;
+    await sync(b);
+    // A compacts, but its upload fails: the next quiet pass still publishes.
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    clock += 1000;
+    expect((await sync(a)).status).toBe('retry');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    for (const body of await headBodies()) expect(body).not.toContain('Secret');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('up-to-date');
+  });
+
+  test('with a third device holding the text, every head ends clean and passes settle', async () => {
+    const [a, b, c] = [device(), device(), device()];
+    await addEntry(a, 'e1', { text_content: 'Secret' });
+    for (const target of [a, b, c, a, b, c]) await sync(target);
+    clock += 1000;
+    await deleteOn(a, 'e1');
+    await sync(a);
+    // C acknowledges before B: not compactable yet, so C's head keeps the text.
+    clock += DAY;
+    expect((await sync(c)).status).toBe('published');
+    // B acknowledges last and compacts; A and C take that in and compact too.
+    clock += 1000;
+    expect((await sync(b)).status).toBe('published');
+    for (const target of [a, c]) {
+      clock += 1000;
+      expect((await sync(target)).status).toBe('published');
+    }
+    for (const body of await headBodies()) expect(body).not.toContain('Secret');
+    // One more round takes the last heads in; then no one publishes again.
+    for (const target of [a, b, c]) {
+      clock += 1000;
+      expect((await sync(target)).status).not.toBe('published');
+    }
+    for (const target of [a, b, c]) {
+      clock += 1000;
+      expect((await sync(target)).status).toBe('up-to-date');
+    }
   });
 });
 

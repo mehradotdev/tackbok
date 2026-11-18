@@ -38,6 +38,17 @@
  *   revisit if the owner wants them gone (needs a title-free rule in
  *   `createNamed`).
  *
+ * **Where deleted text can still be on Drive after compaction** (#185 P11).
+ * The engine publishes as soon as a pass compacts values, retrying until it
+ * succeeds, so active devices' heads drop them. What remains:
+ * - snapshots replaced since, until 30-day retention removes them (P9's
+ *   history keeps one a day for the same window);
+ * - the head of a device that acknowledged the delete and then went quiet,
+ *   until it syncs again, expires (180 days) or is retired and its head is
+ *   pruned; a head no device could take in (unreadable, clock far ahead)
+ *   stays until the user removes it;
+ * - deleted tag and prompt titles (below), and media blobs (P12).
+ *
  * The join is unchanged in kind: a compacted entry is the bottom element for
  * values (`known` is empty, so it removes nothing) and keeps its vector and
  * tombstone, so the join stays commutative, associative and idempotent.
