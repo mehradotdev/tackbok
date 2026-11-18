@@ -1,11 +1,24 @@
 ---
-import { Clock, ExternalLink, History, Languages, Sparkles } from '@lucide/astro';
+import { Clock, ExternalLink, History, Search, Sparkles } from '@lucide/astro';
 import { getImage } from 'astro:assets';
 import tackbokEditSrc from '~/assets/screenshots/ios/editor-light.webp';
 import tackbokHomeSrc from '~/assets/screenshots/ios/timeline-light.webp';
 import worksheetSrc from '~/assets/screenshots/ios/worksheet-light.webp';
 import insightsSrc from '~/assets/screenshots/ios/insights-light.webp';
 import themesSrc from '~/assets/screenshots/ios/themes-light.webp';
+import cloudBackupSrc from '~/assets/screenshots/ios/cloud-backup-light.webp';
+import languageArSrc from '~/assets/screenshots/ios/language-ar.webp';
+import appIconPoster from '~/assets/videos/app-icon-poster.webp';
+import appIconMp4 from '~/assets/videos/app-icon.mp4';
+import appIconWebm from '~/assets/videos/app-icon.webm';
+import themesPoster from '~/assets/videos/themes-poster.webp';
+import themesMp4 from '~/assets/videos/themes.mp4';
+import themesWebm from '~/assets/videos/themes.webm';
+import voiceNoteMp4 from '~/assets/videos/voice-note.mp4';
+import voiceNoteWebm from '~/assets/videos/voice-note.webm';
+import FeatureCard, {
+  type Props as FeatureCardProps,
+} from '~/components/FeatureCard.astro';
 import PhoneFrame from '~/components/PhoneFrame.astro';
 import GithubIcon from '~/components/GithubIcon.astro';
 import SiteFooter from '~/components/SiteFooter.astro';
@@ -37,9 +50,61 @@ const features = [
   },
   {
     number: '04',
-    icon: Languages,
-    title: 'Write in your language',
-    copy: 'Tackbok speaks 9 languages, including Arabic and Hebrew with full right-to-left layouts.',
+    icon: Search,
+    title: 'Find any memory',
+    copy: 'Search your journal, or pick a day on the calendar to go straight to it.',
+  },
+];
+
+const journalCards: FeatureCardProps[] = [
+  {
+    eyebrow: 'Words, photos and your voice',
+    title: 'Say it out loud.',
+    copy: 'Record a voice note when typing feels like too much. Add photos, a mood and tags to the same entry.',
+    // The recording starts on the hero's timeline screenshot, so reusing that
+    // image as the poster costs no extra download.
+    src: tackbokHomeSrc,
+    video: { webm: voiceNoteWebm, mp4: voiceNoteMp4 },
+    alt: 'A timeline entry with a seven-second voice note and two photos',
+  },
+  {
+    eyebrow: 'A little help getting started',
+    title: 'Find your first words.',
+    copy: 'A thoughtful worksheet gives you somewhere to begin. Make the template your own, then take it one small moment at a time.',
+    src: worksheetSrc,
+    alt: 'Journaling worksheet with gratitude, affirmation, and small moments prompts, plus an option to edit the template',
+  },
+  {
+    eyebrow: 'Good moments, rediscovered',
+    title: 'Look back. Feel it again.',
+    copy: 'On this day brings back what you wrote a month or years ago, next to the little moments you’ve collected along the way.',
+    src: insightsSrc,
+    alt: 'Insights with On this day memories from one month and four years ago, a gratitude score, streaks, and totals for entries, words, photos and voice notes',
+  },
+];
+
+const everywhereCards: FeatureCardProps[] = [
+  {
+    eyebrow: 'Cloud backup & sync',
+    title: 'On every device you use.',
+    copy: 'Turn on backup and sync with your own Google Drive. It goes straight from your phone to your Drive; Tackbok’s developer never sees it.',
+    src: cloudBackupSrc,
+    alt: 'The Cloud backup & sync screen offering optional backup to your own Google Drive, with a Connect Google Drive button',
+  },
+  {
+    eyebrow: '9 languages',
+    title: 'In your language.',
+    copy: 'Arabic, Chinese, English, German, Hebrew, Hindi and more, with full right-to-left layouts for Arabic and Hebrew.',
+    src: languageArSrc,
+    alt: 'Tackbok’s Appearance settings in Arabic, laid out right to left, with the language list open',
+  },
+  {
+    eyebrow: 'App icon',
+    title: 'An icon to match.',
+    copy: 'Choose the icon on your home screen: the classic one or one of seven others.',
+    src: appIconPoster,
+    video: { webm: appIconWebm, mp4: appIconMp4 },
+    alt: 'Tackbok’s app icon picker with Classic, Sage, Midnight, Ocean, Terracotta, Rose, Plum and Blueprint icons',
   },
 ];
 
@@ -89,6 +154,7 @@ const structuredData = {
         'Optional backup and sync with your own Google Drive',
         'Import from Gratitude App and Presently',
         'Light, dark and illustrated themes',
+        'A choice of app icons',
         '9 languages, including right-to-left Arabic and Hebrew',
       ],
       author: {
@@ -231,51 +297,10 @@ const structuredData = {
           </p>
         </div>
 
-        <div class="mb-10 grid grid-cols-2 gap-6 max-sm:grid-cols-1">
-          <article class="card overflow-hidden rounded-[2rem] border border-line bg-paper shadow-xl shadow-ink/5">
-            <div class="card-body flex-none gap-3 p-7 sm:min-h-[240px] sm:p-9">
-              <p class="mb-0 grow-0 text-xs font-bold tracking-[0.14em] text-sage uppercase">
-                A little help getting started
-              </p>
-              <h3 class="card-title text-3xl leading-tight tracking-tight">
-                Find your first words.
-              </h3>
-              <p class="mb-0 grow-0 text-base leading-relaxed text-ink-soft">
-                A thoughtful worksheet gives you somewhere to begin. Make the template
-                your own, then take it one small moment at a time.
-              </p>
-            </div>
-            <figure class="mx-auto mt-2 mb-10 w-[min(234px,70%)] overflow-visible sm:w-[240px]">
-              <PhoneFrame
-                src={worksheetSrc}
-                alt="Journaling worksheet with gratitude, affirmation, and small moments prompts, plus an option to edit the template"
-                loading="lazy"
-                sizes="240px"
-              />
-            </figure>
-          </article>
-          <article class="card overflow-hidden rounded-[2rem] border border-line bg-paper shadow-xl shadow-ink/5">
-            <div class="card-body flex-none gap-3 p-7 sm:min-h-[240px] sm:p-9">
-              <p class="mb-0 grow-0 text-xs font-bold tracking-[0.14em] text-sage uppercase">
-                Good moments, rediscovered
-              </p>
-              <h3 class="card-title text-3xl leading-tight tracking-tight">
-                Look back. Feel it again.
-              </h3>
-              <p class="mb-0 grow-0 text-base leading-relaxed text-ink-soft">
-                Revisit a memory from this day in years past, and see the little moments
-                you’ve collected along the way.
-              </p>
-            </div>
-            <figure class="mx-auto mt-2 mb-10 w-[min(234px,70%)] overflow-visible sm:w-[240px]">
-              <PhoneFrame
-                src={insightsSrc}
-                alt="Insights with On this day memories from one month and four years ago, a gratitude score, streaks, and totals for entries, words, photos and voice notes"
-                loading="lazy"
-                sizes="240px"
-              />
-            </figure>
-          </article>
+        <div class="mb-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {journalCards.map((card) => (
+            <FeatureCard {...card} />
+          ))}
         </div>
 
         <div class="grid grid-cols-2 gap-px overflow-hidden rounded-[2rem] border-4 border-line shadow-[0_24px_70px_rgba(48,61,42,0.12)] max-[900px]:grid-cols-2 max-sm:grid-cols-1 max-sm:rounded-3xl">
@@ -363,12 +388,13 @@ const structuredData = {
               Made to match your mood
             </p>
             <p class="mb-0 text-sm text-ink-soft">
-              Quiet colours. Illustrated worlds. Light &amp; dark.
+              20 themes. Quiet colours, illustrated worlds, light &amp; dark.
             </p>
           </figcaption>
           <div class="mx-auto w-[min(250px,80%)]">
             <PhoneFrame
-              src={themesSrc}
+              src={themesPoster}
+              video={{ webm: themesWebm, mp4: themesMp4 }}
               alt="Tackbok’s theme picker with Light, Dark, Shiro, Shadow, Helena, and Poonam previews"
               loading="lazy"
               sizes="250px"
@@ -378,6 +404,27 @@ const structuredData = {
             A different feeling, with the same familiar journal.
           </p>
         </figure>
+      </div>
+    </section>
+
+    <!-- Everywhere Section -->
+    <section class="border-t border-line bg-paper-deep/60 py-[clamp(5rem,10vw,8.5rem)]">
+      <div class="mx-auto w-full max-w-[1240px] px-6 sm:px-8 lg:px-12">
+        <div class="mx-auto mb-[clamp(2.8rem,6vw,5rem)] max-w-[690px] text-center">
+          <h2 class="mb-5 text-[clamp(2.35rem,4.6vw,4.2rem)] leading-[1.03] font-[690] tracking-[-0.055em] [text-wrap:balance] max-sm:text-[clamp(1.85rem,7.5vw,2.5rem)]">
+            Yours, wherever you are.
+          </h2>
+          <p class="text-[1.08rem] leading-[1.7] text-ink-soft max-sm:text-[0.98rem] max-sm:leading-[1.6]">
+            Keep your journal safe across devices, read it in your own language, and give
+            it a place on your home screen that feels like you.
+          </p>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {everywhereCards.map((card) => (
+            <FeatureCard {...card} />
+          ))}
+        </div>
       </div>
     </section>
 

@@ -46,34 +46,35 @@ the device's full resolution.
 The website uses only light captures. The dark ones feed the README's light/dark
 `<picture>` and the store panels.
 
-| File                                   | Screen                                                     | Used on                                      |
-| -------------------------------------- | ---------------------------------------------------------- | -------------------------------------------- |
-| `ios/timeline-light.webp`              | Timeline: yesterday's entry, photos, 175-day milestone     | Home hero (so also `og.png`), README, stores |
-| `ios/timeline-dark.webp`               | Same, Dark theme                                           | README (dark mode), stores                   |
-| `ios/editor-light.webp`                | Editing that entry: mood, voice note, photos, tool bar     | Home hero (so also `og.png`), README         |
-| `ios/editor-dark.webp`                 | Same, Dark theme                                           | README (dark mode)                           |
-| `ios/entry-light.webp`                 | Reading that entry                                         | Stores                                       |
-| `ios/entry-dark.webp`                  | Same, Dark theme                                           | —                                            |
-| `ios/worksheet-light.webp`             | Journaling worksheet sheet                                 | Home features, stores                        |
-| `ios/insights-light.webp`              | Insights: On this day, score, streaks, totals              | Home features, stores                        |
-| `ios/insights-ar.webp`                 | Insights in Arabic (right-to-left), example entries        | —                                            |
-| `ios/language-ar.webp`                 | Appearance in Arabic with the language list open           | —                                            |
-| `ios/themes-light.webp`                | Theme picker                                               | Home "Make it yours"                         |
-| `ios/themes-dark.webp`                 | Same, Dark theme                                           | Stores                                       |
-| `ios/app-icon-light.webp`              | App icon picker                                            | —                                            |
-| `ios/prompt-title-light.webp`          | New entry with a prompt as its title                       | `/gratitude-journal-prompts`                 |
-| `ios/prompt-library-light.webp`        | All prompts, Family tab                                    | `/gratitude-journal-prompts`                 |
-| `ios/settings-backup-light.webp`       | Settings: app lock on, Backup & restore                    | —                                            |
-| `ios/settings-import-light.webp`       | Settings: Backup & restore with both import rows           | `/import/presently`, `/import/gratitude-app` |
-| `ios/import-mode-light.webp`           | Choose import mode dialog                                  | `/import/gratitude-app`                      |
-| `ios/cloud-backup-light.webp`          | Cloud backup & sync, signed out                            | —                                            |
-| `ios/onboarding-theme-light.webp`      | Onboarding "Make it yours" step                            | —                                            |
-| `ios/welcome-dark.webp`                | Older welcome screen (2026-09), Dark theme                 | Stores (logo crop only)                      |
-| `ipad/*.webp`                          | Timeline (light, dark), entry, Insights, worksheet, themes | Stores (tablet)                              |
-| `android/timeline-light.webp`, `-dark` | Timeline on Android                                        | —                                            |
+| File                                   | Screen                                                     | Used on                                                                  |
+| -------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `ios/timeline-light.webp`              | Timeline: yesterday's entry, photos, 175-day milestone     | Home hero and voice-note video poster (so also `og.png`), README, stores |
+| `ios/timeline-dark.webp`               | Same, Dark theme                                           | README (dark mode), stores                                               |
+| `ios/editor-light.webp`                | Editing that entry: mood, voice note, photos, tool bar     | Home hero (so also `og.png`), README                                     |
+| `ios/editor-dark.webp`                 | Same, Dark theme                                           | README (dark mode)                                                       |
+| `ios/entry-light.webp`                 | Reading that entry                                         | Stores                                                                   |
+| `ios/entry-dark.webp`                  | Same, Dark theme                                           | —                                                                        |
+| `ios/worksheet-light.webp`             | Journaling worksheet sheet                                 | Home features, stores                                                    |
+| `ios/insights-light.webp`              | Insights: On this day, score, streaks, totals              | Home features, stores                                                    |
+| `ios/insights-ar.webp`                 | Insights in Arabic (right-to-left), example entries        | —                                                                        |
+| `ios/language-ar.webp`                 | Appearance in Arabic with the language list open           | Home "Yours, wherever you are"                                           |
+| `ios/themes-light.webp`                | Theme picker                                               | Home structured data                                                     |
+| `ios/themes-dark.webp`                 | Same, Dark theme                                           | Stores                                                                   |
+| `ios/app-icon-light.webp`              | App icon picker                                            | —                                                                        |
+| `ios/prompt-title-light.webp`          | New entry with a prompt as its title                       | `/gratitude-journal-prompts`                                             |
+| `ios/prompt-library-light.webp`        | All prompts, Family tab                                    | `/gratitude-journal-prompts`                                             |
+| `ios/settings-backup-light.webp`       | Settings: app lock on, Backup & restore                    | —                                                                        |
+| `ios/settings-import-light.webp`       | Settings: Backup & restore with both import rows           | `/import/presently`, `/import/gratitude-app`                             |
+| `ios/import-mode-light.webp`           | Choose import mode dialog                                  | `/import/gratitude-app`                                                  |
+| `ios/cloud-backup-light.webp`          | Cloud backup & sync, signed out                            | Home "Yours, wherever you are"                                           |
+| `ios/onboarding-theme-light.webp`      | Onboarding "Make it yours" step                            | —                                                                        |
+| `ios/welcome-dark.webp`                | Older welcome screen (2026-09), Dark theme                 | Stores (logo crop only)                                                  |
+| `ipad/*.webp`                          | Timeline (light, dark), entry, Insights, worksheet, themes | Stores (tablet)                                                          |
+| `android/timeline-light.webp`, `-dark` | Timeline on Android                                        | —                                                                        |
 
-Files marked "—" are not used yet. They are kept for the landing page refresh
-(#195) and store listings.
+Files marked "—" are not used yet. They are kept for store listings and later
+pages. The home page's screen recordings live in
+[`../videos/`](../videos/README.md).
 
 ## Regenerating
 
