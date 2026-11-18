@@ -12,7 +12,11 @@ interface Props {
 // the hero, so they never compete with the hero screenshot (the Largest
 // Contentful Paint).
 const { size = 'lg', class: className } = Astro.props;
-const height = size === 'lg' ? 58 : 52;
+// Tailwind needs whole class names, so each size spells out its class.
+const { height, heightClass } =
+  size === 'lg'
+    ? { height: 58, heightClass: 'h-[58px]' }
+    : { height: 52, heightClass: 'h-[52px]' };
 ---
 
 <div class:list={['flex flex-wrap items-center gap-3', className]}>
@@ -23,7 +27,7 @@ const height = size === 'lg' ? 58 : 52;
       target="_blank"
       rel="noopener noreferrer">
       <Image
-        class:list={['w-auto rounded-lg', size === 'lg' ? 'h-[58px]' : 'h-[52px]']}
+        class:list={['w-auto rounded-lg', heightClass]}
         src={store.badge}
         height={height}
         alt={store.label}

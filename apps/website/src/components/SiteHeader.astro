@@ -12,7 +12,7 @@ const { currentPath = pagePath(Astro.url.pathname) } = Astro.props;
 const onHome = currentPath === '/';
 ---
 
-<header class="sticky top-0 z-50 border-b border-[rgba(52,75,55,0.1)] bg-[color-mix(in_srgb,var(--color-paper)_88%,transparent)] backdrop-blur-[18px]">
+<header class="sticky top-0 z-50 border-b border-[rgba(52,75,55,0.1)] bg-paper/88 backdrop-blur-[18px]">
   <a
     class="btn fixed top-3 left-3 z-[100] -translate-y-[150%] bg-ink font-bold text-white transition-transform duration-150 btn-sm focus:translate-y-0"
     href="#main-content">

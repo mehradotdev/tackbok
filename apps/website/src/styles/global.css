@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/figtree';
 @plugin 'daisyui' {
-  themes: tackbok --default;
+  themes: false;
 }
 
 /* The website's only theme: the app's paper and sage palette. daisyUI
@@ -19,7 +19,7 @@
   --color-primary: #344b37;
   --color-primary-content: #f4f1df;
   --color-secondary: #647b55;
-  --color-secondary-content: #f4f1df;
+  --color-secondary-content: #ffffff;
   --color-accent: #dce2c7;
   --color-accent-content: #344b37;
   --color-neutral: #293325;
@@ -27,7 +27,7 @@
   --color-info: #3e6e8e;
   --color-info-content: #f4f1df;
   --color-success: #4e7a45;
-  --color-success-content: #f4f1df;
+  --color-success-content: #ffffff;
   --color-warning: #c9a03f;
   --color-warning-content: #293325;
   --color-error: #a8432f;
@@ -102,7 +102,7 @@
   }
 }
 
-/* The phone halo and botanical stems rely on generated shapes. */
+/* The phone halo relies on a generated shape. */
 .phone-stage::before {
   position: absolute;
   inset: 10% 3% 6% 8%;
