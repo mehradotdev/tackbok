@@ -263,10 +263,7 @@ export class V2SyncEngine {
     const duplicates =
       listed.filter(({ head }) => head && String(head.deviceId) === deviceId).length > 1;
     if (ambiguous.has(deviceId))
-      throw new AttentionError(
-        'ambiguous-device-head',
-        SAME_SEQUENCE,
-      );
+      throw new AttentionError('ambiguous-device-head', SAME_SEQUENCE);
     // This device's own head, unreadable, counts as lost: it publishes over it.
     const skipped = unreadable.filter((head) => head.deviceId !== deviceId);
     const records = await this.loadHeadRecords();
@@ -1120,8 +1117,12 @@ export class V2SyncEngine {
     const candidates = heads.filter((head) => {
       const taken = records.get(head.deviceId);
       // Only the head taken in. An older file under that ID can hold a
-      // cloned install's other writes: once this head is gone it is the
-      // newest, gets taken in like any head, and is pruned in its turn.
+      // cloned install's other writes, so it stays: a device that never
+      // knew this ID takes it in (it is then the newest) and prunes it.
+      // shortcut: devices that took this head in keep their record and
+      // skip the older file as a stale listing, so it and its snapshot stay
+      // until such a device joins; needs a clone race plus 180-day expiry.
+      // Revisit by dropping the record with the pruned head.
       const gone =
         published && expired.has(head.deviceId) && taken?.snapshotId === head.snapshotId;
       const leftover =
