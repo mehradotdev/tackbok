@@ -152,8 +152,11 @@ export function activeDevices(state: RosterAndProfile): DeviceId[] {
  * the same phone), its last-seen time passes `upTo` and it is active again;
  * until then it is treated like a device back after 180 days.
  *
- * Entries for devices expired anyway are dropped as the record is written,
- * so it stays small.
+ * Entries for devices expired anyway (or not on the roster) are dropped as
+ * the record is written, so it stays small. An ID never on the roster is
+ * not recorded. A copy of a retired ID that has not published since it was
+ * retired pauses instead of syncing (the engine treats it as another
+ * install using this ID).
  */
 export function retireDevice(
   state: SyncState,
@@ -161,11 +164,13 @@ export function retireDevice(
   device: DeviceId,
   upTo: number,
 ): SyncState {
+  // Never seen in this vault: nothing to stop counting.
+  if (!(device in state.roster)) return state;
   const newest = highestHlc(state.roster);
   const current = retiredDevices(state);
   const value: Record<DeviceId, number> = {};
   for (const [id, at] of Object.entries(current))
-    if (!(id in state.roster) || recentlySeen(state.roster, newest, id)) value[id] = at;
+    if (id in state.roster && recentlySeen(state.roster, newest, id)) value[id] = at;
   value[device] = Math.max(value[device] ?? 0, Math.max(0, Math.floor(upTo)));
   return writeExt(state, writer, { kind: 'profile' }, RETIRED_DEVICES, value, 'all');
 }

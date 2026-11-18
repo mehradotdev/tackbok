@@ -154,6 +154,11 @@ const retiredOf = (target: Device) => {
     : [];
   return [...new Set(items.flatMap((item) => Object.keys(item.v)))].sort();
 };
+/** As the app's launch check does before any engine runs (`installBinding.ts`). */
+const bindInstall = (target: Device) =>
+  target.database.sqlite.run(
+    "UPDATE sync_device SET install_id = 'install' WHERE id = 'self'",
+  );
 const pendingOf = (target: Device) =>
   JSON.parse(
     (
@@ -451,6 +456,7 @@ describe('retired device IDs (P11)', () => {
     );
     await sync(b);
     a.database.sqlite.run('DELETE FROM entries');
+    bindInstall(a);
     await write(a, (tx) => resetSyncIdentityInTransaction(tx, clock));
     expect(pendingOf(a)).toMatchObject([{ vaultId: VAULT, deviceId: old }]);
     // A binds again under a new ID, takes the journal back from Drive and
@@ -474,6 +480,52 @@ describe('retired device IDs (P11)', () => {
         target.database.sqlite.query('SELECT entity_id FROM sync_deleted_records').all(),
       ).toEqual([]);
     }
+  });
+
+  test('an old backup of a retired ID pauses instead of syncing, then continues as a new device', async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1');
+    for (const target of [a, b, a]) await sync(target);
+    // An encrypted backup restored onto the same phone keeps the ID and the
+    // install marker; it never saw what A wrote after it.
+    const backup = devices.clone(a.database);
+    clock += 1000;
+    await addEntry(a, 'e2', { text_content: 'After the backup' });
+    await sync(a);
+    bindInstall(a);
+    a.database.sqlite.run('DELETE FROM entries');
+    await write(a, (tx) => resetSyncIdentityInTransaction(tx, clock));
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    const restored = device({ database: backup });
+    clock += 1000;
+    await addEntry(restored, 'e2', { text_content: 'Edited on the restored copy' });
+    expect(await sync(restored)).toMatchObject({
+      status: 'attention',
+      reason: 'ambiguous-device-head',
+    });
+    expect(restored.stateStore.loadState(VAULT, 'connection').lastErrorClass).toBe(
+      'device-id-retired',
+    );
+    // Its way out keeps every value on both sides.
+    await newDevice(restored, 'another-install');
+    restored.stateStore.clearPause(VAULT, 'connection');
+    clock += 1000;
+    expect((await sync(restored)).status).toBe('published');
+    clock += 1000;
+    await sync(a);
+    for (const target of [a, restored])
+      expect(allTexts(target, 'e2')).toEqual([
+        'After the backup',
+        'Edited on the restored copy',
+      ]);
+  });
+
+  test('"Delete all" on a database not bound to this install retires nothing', async () => {
+    const a = device();
+    await sync(a);
+    await write(a, (tx) => resetSyncIdentityInTransaction(tx, clock));
+    expect(pendingOf(a)).toEqual([]);
   });
 
   test('a cloned ID is not retired by the copy that continues as a new device', async () => {

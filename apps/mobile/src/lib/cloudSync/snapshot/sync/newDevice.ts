@@ -45,6 +45,7 @@ import {
   captureSyncState,
   type ApplyMediaFiles,
 } from '../../storage/v2State';
+import { MAX_CONTEXT_AHEAD_MS } from '../../v2/clock';
 import { retireDevice } from '../../v2/compact';
 import { reissueWrites } from '../../v2/reissue';
 import type { SnapshotProvider } from './types';
@@ -108,9 +109,15 @@ export async function continueAsNewDevice(options: {
       hlcs: reason === 'another-install' ? 'same' : 'after',
     });
     if (reason === 'clock-ahead') {
-      // Retired up to its highest time (ahead), which no copy of its roster passes.
+      // Retired up to any last-seen time another device could hold for it:
+      // they refuse states more than the bound ahead of their clocks. Not
+      // its highest (ahead) time, or a copy publishing at real time later
+      // would look retired for as long as the clock was wrong.
       const { ctx, roster } = captured.state;
-      const upTo = Math.max(ctx[from] ?? 0, roster[from] ?? 0);
+      const upTo = Math.min(
+        Math.max(ctx[from] ?? 0, roster[from] ?? 0),
+        Math.floor(options.now) + MAX_CONTEXT_AHEAD_MS,
+      );
       next = retireDevice(next, { device: to, wallMs: options.now }, from, upTo);
     }
     const applied = await applySyncState(captured, next, files, async (rawTx) => {

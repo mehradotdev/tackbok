@@ -1230,6 +1230,21 @@ describe('retired devices (P11)', () => {
     expect(C(decodeEnvelope(encoded.bytes).state)).toBe(C(retired));
   });
 
+  test('an ID never on the roster is not recorded, and leaves the record when it is rewritten', () => {
+    const { state, upTo } = deletedWithDeadDevice();
+    expect(retireDevice(state, at('device-b'), 'device-unknown', 5)).toBe(state);
+    const odd = ops.writeExt(
+      state,
+      at('device-b'),
+      { kind: 'profile' },
+      RETIRED_DEVICES,
+      { 'device-unknown': 5 },
+      'all',
+    );
+    const again = retireDevice(odd, at('device-a'), 'device-old', upTo);
+    expect(retiredDevices(again)).toEqual({ 'device-old': upTo });
+  });
+
   test('a retired ID that publishes again is active again', () => {
     const { state, upTo } = deletedWithDeadDevice();
     const retired = retireDevice(state, at('device-b'), 'device-old', upTo);

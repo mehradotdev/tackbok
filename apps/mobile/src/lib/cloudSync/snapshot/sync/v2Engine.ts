@@ -69,7 +69,13 @@ import {
   decodeEnvelope,
   encodeEnvelope,
 } from '../../v2/codec';
-import { absorb, activeDevices, compact, retireDevice } from '../../v2/compact';
+import {
+  absorb,
+  activeDevices,
+  compact,
+  retireDevice,
+  retiredDevices,
+} from '../../v2/compact';
 import { SyncJoinError } from '../../v2/join';
 import { markSeen, rewriteDates } from '../../v2/ops';
 import { isLive } from '../../v2/view';
@@ -390,13 +396,22 @@ export class V2SyncEngine {
         return joined;
       };
       const back = new Set<string>();
-      // This install's old IDs in this vault are retired with its own write.
+      // This install's old IDs in this vault are retired with its own write,
+      // after the join: a rebuilt journal has not seen them on the roster yet.
       const local = (base: SyncState) =>
         retiring.reduce(
           (next, old) => retireDevice(next, writer, old.deviceId, old.upTo),
           base,
         );
-      let state = joinAll(local(captured.state));
+      let state = local(joinAll(captured.state));
+      // This device's own ID was retired elsewhere and it has not published
+      // since: it is a copy of an install that left the ID (an old backup
+      // restored after "Delete all"). It may hold writes that read as
+      // replaced against ones it never saw, so it pauses before applying
+      // anything, as for another install using its ID.
+      const retiredAt = retiredDevices(state)[deviceId];
+      if (retiredAt !== undefined && (ownRecord?.ctx?.[deviceId] ?? -1) <= retiredAt)
+        throw new AttentionError('ambiguous-device-head', 'device-id-retired');
       // Mass-deletion guard: deletes from elsewhere that would hide a large
       // share of this journal wait for the user. "Keep" writes each entry
       // again here first, an edit those deletes had not seen, so it stays.
@@ -414,7 +429,7 @@ export class V2SyncEngine {
             token,
           );
         if (answer.choice === 'keep')
-          state = joinAll(local(rewriteDates(captured.state, writer, hidden)));
+          state = local(joinAll(rewriteDates(captured.state, writer, hidden)));
       }
       publish = this.publication(state.ctx, deviceId, own, ownRecord).needed;
       if (publish) state = markSeen(state, writer);

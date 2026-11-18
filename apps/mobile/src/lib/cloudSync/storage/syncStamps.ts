@@ -322,10 +322,27 @@ export interface PendingRetirement {
 /** Old IDs are rare; a long list would only hold IDs of vaults left long ago. */
 const MAX_PENDING_RETIREMENTS = 16;
 
-export function parsePendingRetirements(json: string | null | undefined) {
+const isPending = (value: unknown): value is PendingRetirement => {
+  const entry = value as Partial<PendingRetirement> | null;
+  return (
+    typeof entry === 'object' &&
+    entry !== null &&
+    typeof entry.vaultId === 'string' &&
+    entry.vaultId !== '' &&
+    typeof entry.deviceId === 'string' &&
+    entry.deviceId !== '' &&
+    Number.isSafeInteger(entry.upTo) &&
+    entry.upTo! >= 0
+  );
+};
+
+/** The stored list; malformed entries are left out. */
+export function parsePendingRetirements(
+  json: string | null | undefined,
+): PendingRetirement[] {
   try {
     const value = JSON.parse(json ?? '[]') as unknown;
-    return Array.isArray(value) ? (value as PendingRetirement[]) : [];
+    return Array.isArray(value) ? value.filter(isPending) : [];
   } catch {
     return [];
   }
@@ -339,9 +356,12 @@ export function parsePendingRetirements(json: string | null | undefined) {
  * already seen. The install stays the same, so its binding stays
  * (`installBinding.ts`).
  *
- * The old ID, if it was bound to a vault, is dead: it is kept as a pending
- * retirement, which the next pass in that vault records in the state
- * (`retireDevice`), so the old ID stops holding back compaction there.
+ * The old ID, if it was bound to a vault and to this install, is dead: it
+ * is kept as a pending retirement, which the next pass in that vault
+ * records in the state (`retireDevice`), so the old ID stops holding back
+ * compaction there. A database not yet bound to an install (`install_id`
+ * null: it may be a copy that still carries another install's ID) retires
+ * nothing; that ID expires after 180 days instead.
  */
 export async function resetSyncIdentityInTransaction(
   tx: CloudSyncTransaction,
@@ -359,7 +379,7 @@ export async function resetSyncIdentityInTransaction(
     .from(syncDevice)
     .where(eq(syncDevice.id, SELF));
   const retired = parsePendingRetirements(prior?.retired);
-  if (prior?.vaultId) {
+  if (prior?.vaultId && prior.installId) {
     const ctx = JSON.parse(prior.ctx) as Record<string, number>;
     const roster = JSON.parse(prior.roster) as Record<string, number>;
     retired.push({
