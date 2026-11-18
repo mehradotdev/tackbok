@@ -65,8 +65,22 @@ async function frame(name) {
   <rect x="${BUTTON_DEPTH + 3}" y="3" width="${bodyWidth - 6}" height="${bodyHeight - 6}" rx="${bodyRadius - 3}" ry="${bodyRadius - 3}" fill="#121315"/>
 </svg>`;
 
+  // Hole-punch selfie camera, centred in the status bar like the website frame.
+  const cameraRadius = Math.round(SCREEN_WIDTH * 0.023);
+  const cameraSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cameraRadius * 2}" height="${cameraRadius * 2}">
+  <defs><radialGradient id="lens" cx="0.35" cy="0.35" r="0.65"><stop offset="0" stop-color="#2c3138"/><stop offset="0.85" stop-color="#0b0c0e"/></radialGradient></defs>
+  <circle cx="${cameraRadius}" cy="${cameraRadius}" r="${cameraRadius - 0.5}" fill="url(#lens)" stroke="#ffffff" stroke-opacity="0.1"/>
+</svg>`;
+
   await sharp(Buffer.from(frameSvg))
-    .composite([{ input: roundedScreen, left: BUTTON_DEPTH + BEZEL, top: BEZEL }])
+    .composite([
+      { input: roundedScreen, left: BUTTON_DEPTH + BEZEL, top: BEZEL },
+      {
+        input: Buffer.from(cameraSvg),
+        left: Math.round(width / 2 - cameraRadius),
+        top: Math.round(BEZEL + screenHeight * 0.037 - cameraRadius),
+      },
+    ])
     .webp({ quality: 82, effort: 6 })
     .toFile(path.join(outputDir, `${name}.webp`));
 
