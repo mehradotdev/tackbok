@@ -50,7 +50,9 @@ describe('cloud-sync analytics allowlist', () => {
       'cloud_sync_started',
       'cloud_sync_succeeded',
       'cloud_sync_failed',
-      'cloud_sync_repair_result',
+      'cloud_sync_attention_shown',
+      'cloud_sync_attention_action',
+      'cloud_sync_conflict_resolved',
     ]);
     // The website policy covers these events in plain language rather than by
     // name. Naming them there creates a second list that drifts silently the

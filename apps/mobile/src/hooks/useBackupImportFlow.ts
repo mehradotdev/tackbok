@@ -108,6 +108,7 @@ export function useBackupImportFlow(
         await finishImport(source, summary);
       } catch (error) {
         setImportProgress(null);
+        track('import_failed', { source });
         const message = error instanceof Error ? error.message : t('backup.importFailed');
         toast.error(message);
       }

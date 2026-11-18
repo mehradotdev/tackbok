@@ -13,6 +13,7 @@ import { cn } from 'tailwind-variants';
 import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
+import { track } from '~/lib/analytics';
 import {
   APP_ICON_CHOICES,
   appIconChangeClosesApp,
@@ -63,9 +64,18 @@ export function AppIconPickerSheet() {
   ]);
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
+  const applyIcon = (name: AppIconName) => {
+    const state = useAppIconStore.getState();
+    // Tracked before the change: on Android it closes the app.
+    if (name !== state.current && !state.isChanging) {
+      track('app_icon_changed', { icon: name });
+    }
+    void setIcon(name);
+  };
+
   const chooseIcon = (name: AppIconName) => {
     if (!appIconChangeClosesApp) {
-      void setIcon(name);
+      applyIcon(name);
       return;
     }
     // A native alert, so it shows above the sheet.
@@ -74,7 +84,7 @@ export function AppIconPickerSheet() {
       t('appearance.changeAppIconMessage'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('appearance.changeIcon'), onPress: () => void setIcon(name) },
+        { text: t('appearance.changeIcon'), onPress: () => applyIcon(name) },
       ],
       // Back and a tap outside dismiss it like Cancel.
       { cancelable: true },

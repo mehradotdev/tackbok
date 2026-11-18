@@ -13,6 +13,10 @@ import {
 import type { TranslationFunction } from '~/lib/i18n/types';
 import { recoveryActionLabel } from './copy';
 
+const mockTrack = jest.fn();
+jest.mock('~/lib/analytics', () => ({
+  track: (...args: unknown[]) => mockTrack(...args),
+}));
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
@@ -643,9 +647,17 @@ describe("other devices' backups left out", () => {
     expect(dialog.props.open).toBe(true);
     expect(showsText(mockEn['cloud.replaceBackup.description'])).toBe(true);
     const confirm = root.root.findByType('AlertDialogDestructiveAction' as never);
+    expect(mockTrack).not.toHaveBeenCalledWith(
+      'cloud_sync_attention_action',
+      expect.anything(),
+    );
     await act(async () => confirm.props.onPress());
     expect(mockReplace).toHaveBeenCalledTimes(1);
     expect(mockToast.success).toHaveBeenCalledWith(mockEn['cloud.replaceBackup.done']);
+    expect(mockTrack.mock.calls).toEqual([
+      ['cloud_sync_attention_shown', { reason: 'other-device-unreadable' }],
+      ['cloud_sync_attention_action', { reason: 'none', action: 'replace-backup' }],
+    ]);
   });
 
   test('a pause with nothing readable offers Replace as its recovery', async () => {
@@ -680,8 +692,15 @@ describe('a merge that would delete much of the journal', () => {
     expect(mockAnswer).not.toHaveBeenCalled();
     expect(showsText(mockEn['cloud.massDeletion.applyDescription'])).toBe(true);
     const confirm = root.root.findByType('AlertDialogDestructiveAction' as never);
+    expect(mockTrack.mock.calls).toEqual([
+      ['cloud_sync_attention_shown', { reason: 'mass-deletion' }],
+    ]);
     await act(async () => confirm.props.onPress());
     expect(mockAnswer).toHaveBeenCalledWith('apply');
     expect(mockToast.success).toHaveBeenCalledWith(mockEn['cloud.massDeletion.applied']);
+    expect(mockTrack).toHaveBeenLastCalledWith('cloud_sync_attention_action', {
+      reason: 'mass-deletion',
+      action: 'apply-mass-deletion',
+    });
   });
 });

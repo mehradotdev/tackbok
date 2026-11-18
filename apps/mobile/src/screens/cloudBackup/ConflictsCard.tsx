@@ -15,6 +15,8 @@ import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
+import { track } from '~/lib/analytics';
+import type { CloudSyncConflictResolution } from '~/lib/analytics/events';
 import { useCloudConflictItems } from './useCloudConflictItems';
 import { reportVersionsChanged } from './versionsChanged';
 
@@ -48,11 +50,12 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
   }, []);
 
   const run = useCallback(
-    async (action: () => Promise<void>) => {
+    async (action: () => Promise<void>, resolution: CloudSyncConflictResolution) => {
       if (busy) return;
       setBusy(true);
       try {
         await action();
+        track('cloud_sync_conflict_resolved', resolution);
       } catch (error) {
         // Refused, nothing written: the refreshed card shows the new versions.
         if (error instanceof VersionsChangedError) reportVersionsChanged(t);
@@ -93,7 +96,12 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             className="h-auto min-h-10 max-w-full py-2"
             accessibilityLabel={useLabel}
             disabled={busy}
-            onPress={() => void run(() => resolveNameConflict(item, 'use'))}>
+            onPress={() =>
+              void run(() => resolveNameConflict(item, 'use'), {
+                kind: 'name',
+                choice: 'use',
+              })
+            }>
             <Text className="shrink text-center" numberOfLines={3}>
               {useLabel}
             </Text>
@@ -102,7 +110,12 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             variant="ghost"
             className="h-auto min-h-10 max-w-full py-2"
             disabled={busy}
-            onPress={() => void run(() => resolveNameConflict(item, 'keep'))}>
+            onPress={() =>
+              void run(() => resolveNameConflict(item, 'keep'), {
+                kind: 'name',
+                choice: 'keep',
+              })
+            }>
             <Text className="shrink text-center">{t('cloud.conflicts.keepCurrent')}</Text>
           </Button>
         </View>
@@ -143,13 +156,16 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             className="h-auto min-h-10 max-w-full py-2"
             disabled={busy}
             onPress={() =>
-              void run(async () => {
-                await acknowledgeCloudConflicts(item.conflictIds);
-                router.push({
-                  pathname: '/gratitudeEntry/[noteId]',
-                  params: { noteId: entry.entryId },
-                });
-              })
+              void run(
+                async () => {
+                  await acknowledgeCloudConflicts(item.conflictIds);
+                  router.push({
+                    pathname: '/gratitudeEntry/[noteId]',
+                    params: { noteId: entry.entryId },
+                  });
+                },
+                { kind: 'returned_entry', choice: 'open' },
+              )
             }>
             <Text className="shrink text-center">{t('cloud.conflicts.openEntry')}</Text>
           </Button>
@@ -157,7 +173,12 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             variant="ghost"
             className="h-auto min-h-10 max-w-full py-2"
             disabled={busy}
-            onPress={() => void run(() => acknowledgeCloudConflicts(item.conflictIds))}>
+            onPress={() =>
+              void run(() => acknowledgeCloudConflicts(item.conflictIds), {
+                kind: 'returned_entry',
+                choice: 'dismiss',
+              })
+            }>
             <Text className="shrink text-center">{t('cloud.conflicts.gotIt')}</Text>
           </Button>
         </View>
@@ -212,7 +233,12 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
                   variant="outline"
                   className="h-auto min-h-10 max-w-full py-2"
                   disabled={busy}
-                  onPress={() => void run(() => resolvePhotoConflict(item, 'use'))}>
+                  onPress={() =>
+                    void run(() => resolvePhotoConflict(item, 'use'), {
+                      kind: 'photo',
+                      choice: 'use',
+                    })
+                  }>
                   <Text className="shrink text-center">
                     {item.otherUri === null
                       ? t('cloud.conflicts.removePhoto')
@@ -223,7 +249,12 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
                   variant="ghost"
                   className="h-auto min-h-10 max-w-full py-2"
                   disabled={busy}
-                  onPress={() => void run(() => resolvePhotoConflict(item, 'keep'))}>
+                  onPress={() =>
+                    void run(() => resolvePhotoConflict(item, 'keep'), {
+                      kind: 'photo',
+                      choice: 'keep',
+                    })
+                  }>
                   <Text className="shrink text-center">
                     {t('cloud.conflicts.keepCurrent')}
                   </Text>
@@ -262,10 +293,12 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             className="h-auto min-h-10 max-w-full self-start py-2"
             disabled={busy}
             onPress={() =>
-              void run(() =>
-                acknowledgeCloudConflicts(
-                  returnedItems.flatMap((item) => item.conflictIds),
-                ),
+              void run(
+                () =>
+                  acknowledgeCloudConflicts(
+                    returnedItems.flatMap((item) => item.conflictIds),
+                  ),
+                { kind: 'returned_entry', choice: 'dismiss' },
               )
             }>
             <Text className="shrink text-center">{t('cloud.conflicts.gotIt')}</Text>
