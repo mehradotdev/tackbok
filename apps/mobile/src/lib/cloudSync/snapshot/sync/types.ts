@@ -188,7 +188,7 @@ export interface SnapshotProvider {
    * actions ("Replace this backup", for heads this device could not read;
    * "Continue as a new device" after a clock far ahead, for this install's
    * own head) and by head pruning, for devices that left the active roster
-   * after 180 days. The snapshots they point to stay for retention.
+   * after 180 days. The snapshots they point to are left to retention.
    */
   deleteDeviceHead(vaultId: string, physicalId: string): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;

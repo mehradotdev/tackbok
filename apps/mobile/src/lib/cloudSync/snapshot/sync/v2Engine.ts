@@ -23,16 +23,17 @@
  *    day ago (acknowledgements let compaction run; publishing one on every
  *    pull would double the uploads).
  *
- * Cleanup, after a publication or once a day: the heads of devices that left
- * the active roster (180 days) are pruned, then snapshots no head points to
- * go after 30 days.
+ * Cleanup: after a publication, the heads of devices that left the active
+ * roster (180 days) are pruned; after a publication or once a day,
+ * snapshots no head points to go after 30 days.
  *
  * Another device's head that cannot be read (a corrupt head file, a missing
  * or invalid snapshot, two snapshots under one sequence) or whose clock is
  * more than 7 days ahead is skipped while at least one readable head exists,
  * and listed for the user (`SkippedHead`). Nothing is deleted: removing
  * unreadable heads is a confirmed user action (`removeUnreadableHeads`).
- * With no readable head at all, the pass pauses instead.
+ * With no readable head at all (not even this device's own, or a record
+ * that it published here before), the pass pauses instead.
  *
  * The join has no base, so there is no ancestor walk, virtual base or base
  * shadow, and a publication needs no staged candidate: everything it uploads
@@ -300,8 +301,11 @@ export class V2SyncEngine {
     // Whether any head can be read: this device's own, one taken in before
     // or waiting for its clock, or (below) one read in this pass. Without
     // one, unreadable heads pause.
+    // A device that has published here before counts too: one back after
+    // 180 days finds its head pruned (`pruneExpiredHeads`) and publishes.
     let readable =
       own !== undefined ||
+      (ownRecord?.snapshotId ?? '') !== '' ||
       [...heads.values()].some(
         (head) =>
           head.deviceId !== deviceId &&
@@ -929,12 +933,17 @@ export class V2SyncEngine {
    * Head pruning (#148; #185 P11): deletes the heads of devices that left
    * the active roster (`activeDevices`: nothing written or published within
    * 180 days of the newest time in this device's state). Only a head this
-   * device took in exactly (its `sync_heads` record names that snapshot), so
-   * all it held is already in the journal this device publishes; its
-   * snapshot then falls to retention. Never this device's own head. A device
-   * that comes back finds its head gone and publishes a new one; what its
-   * state can bring back is the "back after 180 days" case (`compact.ts`).
-   * Returns the snapshots of the heads it deleted.
+   * device took in exactly (its `sync_heads` record names that snapshot),
+   * and only right after it published, so all that head held is in this
+   * device's own head on the provider. Never this device's own head. Its
+   * snapshot then falls to retention, usually in the same cleanup (it is
+   * older than 30 days). The heads are listed again right before each
+   * delete, so a device that comes back and publishes into the same file
+   * (Drive updates it in place) keeps its head, but for a window of one
+   * request; if it loses it there, it publishes again at its next pass. A
+   * device that comes back finds its head gone and publishes a new one;
+   * what its state can bring back is the "back after 180 days" case
+   * (`compact.ts`). Returns the snapshots of the heads it deleted.
    */
   private async pruneExpiredHeads(deviceId: string): Promise<string[]> {
     const { provider } = this.options;
@@ -953,17 +962,26 @@ export class V2SyncEngine {
     if (expired.size === 0) return [];
     const records = await this.loadHeadRecords();
     const pruned: string[] = [];
-    for (const { physicalId, head: raw } of await provider.listHeads(
-      this.vaultId,
-      true,
-    )) {
-      if (pruned.length >= MAX_DELETES_PER_PASS) break;
-      const head = raw ? headShape(raw as unknown as Record<string, unknown>) : null;
-      if (!head || head.vaultId !== this.vaultId || !expired.has(head.deviceId)) continue;
-      if (records.get(head.deviceId)?.snapshotId !== head.snapshotId) continue;
+    const candidates = (await provider.listHeads(this.vaultId, true)).filter(
+      ({ head: raw }) => {
+        const head = raw ? headShape(raw as unknown as Record<string, unknown>) : null;
+        return (
+          head !== null &&
+          head.vaultId === this.vaultId &&
+          expired.has(head.deviceId) &&
+          records.get(head.deviceId)?.snapshotId === head.snapshotId
+        );
+      },
+    );
+    for (const { physicalId, head } of candidates.slice(0, MAX_DELETES_PER_PASS)) {
+      // Listed again right before the delete: still the head taken in.
+      const current = (await provider.listHeads(this.vaultId, true)).find(
+        (listed) => listed.physicalId === physicalId,
+      );
+      if (!current?.head || current.head.snapshotId !== head!.snapshotId) continue;
       await this.hooks.at?.('during-snapshot-cleanup');
       await provider.deleteDeviceHead(this.vaultId, physicalId);
-      pruned.push(head.snapshotId);
+      pruned.push(String(head!.snapshotId));
     }
     return pruned;
   }
@@ -972,8 +990,8 @@ export class V2SyncEngine {
    * Retention, best effort: snapshots no head points to, older than 30 days
    * by their upload time on the provider, a few at a time. Heads only ever
    * move to new snapshots, so an unreferenced old one is never needed again.
-   * Runs after a publication, or once a day, after head pruning
-   * (`pruneExpiredHeads`); the heads are listed again
+   * Runs after a publication (after head pruning, `pruneExpiredHeads`), or
+   * once a day; the heads are listed again
    * right before deleting, so a head missing from an earlier listing never
    * loses its snapshot. While any head file cannot be read, nothing is
    * deleted: its snapshots cannot be told apart from unreferenced ones.
@@ -987,7 +1005,9 @@ export class V2SyncEngine {
     if (!published && this.now() - this.lastCleanupAt < CLEANUP_INTERVAL_MS) return;
     this.lastCleanupAt = this.now();
     try {
-      const pruned = await this.pruneExpiredHeads(deviceId);
+      // Only after a publication: what this device took in from those
+      // heads is then on the provider in its own head, not only local.
+      const pruned = published ? await this.pruneExpiredHeads(deviceId) : [];
       const kept = retained.filter((snapshotId) => !pruned.includes(snapshotId));
       const candidates = (await provider.listSnapshots(this.vaultId)).filter(
         (snapshot) =>

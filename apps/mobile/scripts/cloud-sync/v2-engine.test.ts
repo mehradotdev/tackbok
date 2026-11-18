@@ -332,6 +332,54 @@ describe('roster expiry and head pruning (P11)', () => {
     }
   });
 
+  test('a pass that only pulls prunes nothing: the device publishes first', async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1');
+    for (const target of [a, b, a]) await sync(target);
+    // 200 days on, a new device joins (its publication changes no context);
+    // its own pruning fails this once.
+    clock += 200 * DAY;
+    provider.failNext('delete-head', new SnapshotProviderError('transient', 'offline'));
+    const joining = await requests(() => sync(device()));
+    expect(count(joining, 'delete-head')).toBe(1);
+    expect(heads()).toHaveLength(3);
+    // A, relaunched (a fresh engine runs its cleanup at once), only pulls:
+    // B is expired, but A has not published since taking it in.
+    const relaunched = device({ database: a.database });
+    clock += 1000;
+    let status = '';
+    const pulling = await requests(async () => {
+      status = (await sync(relaunched)).status;
+    });
+    expect(status).toBe('pulled');
+    expect(count(pulling, 'list-snapshots')).toBe(1);
+    expect(count(pulling, 'delete-head')).toBe(0);
+    expect(heads()).toContain(deviceIdOf(b));
+    // Its next publication prunes it.
+    clock += 1000;
+    await addEntry(relaunched, 'e2');
+    expect((await sync(relaunched)).status).toBe('published');
+    expect(heads()).not.toContain(deviceIdOf(b));
+  });
+
+  test('a device back after its head was pruned publishes even if the only other head is damaged', async () => {
+    const [a, b] = [device(), device()];
+    await sync(a);
+    await addEntry(b, 'from-b');
+    await sync(b);
+    clock += 200 * DAY;
+    await addEntry(a, 'e1');
+    await sync(a);
+    expect(heads()).toEqual([deviceIdOf(a)]);
+    provider.removeDeviceHeadForTest(VAULT, deviceIdOf(a));
+    provider.injectUnreadableHead(VAULT, deviceIdOf(a), 'corrupt-file');
+    clock += 1000;
+    expect(await sync(b)).toMatchObject({
+      status: 'published',
+      skippedHeads: [{ physicalId: 'corrupt-file', reason: 'unreadable' }],
+    });
+  });
+
   test('only the head this device took in is pruned, not another file under that ID', async () => {
     const [a, b] = [device(), device()];
     await sync(a);
