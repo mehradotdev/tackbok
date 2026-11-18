@@ -1,0 +1,43 @@
+---
+import { Image } from 'astro:assets';
+import appStoreSrc from '~/assets/app-store.svg';
+import galaxyStoreSrc from '~/assets/galaxy-store.svg';
+import googlePlaySrc from '~/assets/google-play.svg';
+
+// shortcut: the home and FAQ pages still render their own copies of these badges;
+// switch them to this component in the landing page refresh (#195).
+const stores = [
+  {
+    href: 'https://play.google.com/store/apps/details?id=dev.mehra.tackbok',
+    src: googlePlaySrc,
+    label: 'Get it on Google Play',
+  },
+  {
+    href: 'https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507',
+    src: appStoreSrc,
+    label: 'Download on the App Store',
+  },
+  {
+    href: 'https://galaxystore.samsung.com/detail/dev.mehra.tackbok',
+    src: galaxyStoreSrc,
+    label: 'Available on Galaxy Store',
+  },
+];
+---
+
+<div class="flex flex-wrap items-center gap-3">
+  {stores.map((store) => (
+    <a
+      class="inline-flex h-[52px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+      href={store.href}
+      target="_blank"
+      rel="noopener noreferrer">
+      <Image
+        class="h-[52px] w-auto rounded-[8px]"
+        src={store.src}
+        height="52"
+        alt={store.label}
+      />
+    </a>
+  ))}
+</div>
