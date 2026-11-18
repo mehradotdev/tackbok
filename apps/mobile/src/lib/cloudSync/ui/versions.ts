@@ -8,6 +8,12 @@
  * as a copy of the entry with that one field changed; "Keep this one" keeps
  * that value (or the shown ones) as one new write. "Keep both", syncing the
  * Home notice's dismissal and new copy come with P7.
+ *
+ * shortcut: two limits until P7. Times for the Home notice are when this
+ * device last changed the record (`sync_records.updated_at`), so a local
+ * edit of an entry that still has versions can show the hidden notice again.
+ * Profile choices ("Use", "Keep current") have no stale-choice guard like
+ * `keepEntryVersion`'s. Record each version's arrival and guard both in P7.
  */
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
