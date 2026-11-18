@@ -238,7 +238,8 @@ interface DeferredMediaResult {
    * Entries this pass took back after a delete had been compacted on one
    * side: an edit the deleter had not seen returned them, with the values
    * the returning side had (`compact.ts`, `absorb`). Those can be older than
-   * values the deleting device had replaced before its delete.
+   * values the deleting device had replaced before its delete. Listed only
+   * by the pass that brings an entry back on this device.
    */
   revivedEntries?: string[];
 }

@@ -216,8 +216,20 @@ describe('passes', () => {
     const back = await sync(a);
     expect(back).toMatchObject({ status: 'published', revivedEntries: ['e1'] });
     expect(texts(a)).toEqual(['e1:Old']);
-    await sync(b);
-    expect(texts(b)).toEqual(['e1:Old']);
+    // B takes it back too, with A's edit: nothing A had is lost.
+    expect(await sync(b)).toMatchObject({ revivedEntries: ['e1'] });
+    for (const target of [a, b]) {
+      expect(texts(target)).toEqual(['e1:Old']);
+      expect(target.database.sqlite.query('SELECT mood FROM entries').all()).toEqual([
+        { mood: 'HAPPY' },
+      ]);
+    }
+    // Once shown on both sides, later passes do not report it again.
+    clock += 1000;
+    await addEntry(b, 'e1', { text_content: 'Later', mood: 'HAPPY' });
+    expect(await sync(b)).toMatchObject({ revivedEntries: [] });
+    expect(await sync(a)).toMatchObject({ revivedEntries: [] });
+    expect(texts(a)).toEqual(['e1:Later']);
   });
 
   test('a wiped device downloads every head again', async () => {

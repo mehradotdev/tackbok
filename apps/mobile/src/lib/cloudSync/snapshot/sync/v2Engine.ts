@@ -53,6 +53,7 @@ import {
 import { absorb, compact } from '../../v2/compact';
 import { SyncJoinError } from '../../v2/join';
 import { markSeen } from '../../v2/ops';
+import { isLive } from '../../v2/view';
 import type { SyncState, VersionVector } from '../../v2/types';
 import { SnapshotValidationError } from '../caps';
 import { canonicalize } from '../canonical';
@@ -278,7 +279,8 @@ export class V2SyncEngine {
       await this.hooks.at?.('during-merge-application');
       if (applied) {
         next = state;
-        revived = [...back].sort();
+        // A later head in this pass may have deleted it again.
+        revived = [...back].filter((id) => isLive(state.entries.get(id)!)).sort();
       }
     }
     if (!next) throw new RetryableSyncError('journal-changed-during-apply');
@@ -287,7 +289,6 @@ export class V2SyncEngine {
         `Cloud sync left ${refused.length} device heads with clocks too far ahead`,
       );
     const refusedHeads = refused.length;
-    const revivedEntries = revived;
     if (!publish) {
       await this.cleanup(kept, false);
       return this.settle(
@@ -299,14 +300,14 @@ export class V2SyncEngine {
               actionableChanges: 0,
               deferredMediaCount: deferred,
               refusedHeads,
-              revivedEntries,
+              revivedEntries: revived,
             }
           : {
               status: 'up-to-date',
               actionableChanges: 0,
               deferredMediaCount: deferred,
               refusedHeads,
-              revivedEntries,
+              revivedEntries: revived,
             },
       );
     }
@@ -318,7 +319,7 @@ export class V2SyncEngine {
       actionableChanges: 0,
       deferredMediaCount: deferred,
       refusedHeads,
-      revivedEntries,
+      revivedEntries: revived,
     });
   }
 
