@@ -8,16 +8,8 @@ import { translate as mockTranslate } from '~/lib/i18n/translations';
 const mockList = jest.fn<Promise<CloudConflictItem[]>, []>();
 const mockPush = jest.fn();
 let mockSnapshot: { conflictCount: number } = { conflictCount: 0 };
-const mockSettings = {
-  conflictNoticeHiddenAt: null as number | null,
-  otherVersionsSeenAt: null as number | null,
-  hideConflictNotice: jest.fn((at: number) => {
-    mockSettings.conflictNoticeHiddenAt = Math.max(
-      mockSettings.conflictNoticeHiddenAt ?? 0,
-      at,
-    );
-  }),
-};
+const mockHide = jest.fn(async (_items: CloudConflictItem[]) => {});
+const mockToastError = jest.fn();
 
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
@@ -45,12 +37,12 @@ jest.mock('~/lib/i18n', () => ({
       mockTranslate('en', key, params),
   }),
 }));
-jest.mock('~/lib/settings', () => ({
-  useSettingsStore: (select: (state: typeof mockSettings) => unknown) =>
-    select(mockSettings),
+jest.mock('~/components/ui/toast', () => ({
+  toast: { error: (message: string) => mockToastError(message) },
 }));
 jest.mock('~/lib/cloudSync/ui', () => ({
   listCloudConflictItems: () => mockList(),
+  hideConflictNotice: (items: CloudConflictItem[]) => mockHide(items),
   useCloudSyncSnapshot: () => ({ snapshot: mockSnapshot }),
 }));
 
@@ -58,6 +50,8 @@ const entriesItem: CloudConflictItem = {
   kind: 'entries',
   conflictIds: ['e1', 'e2'],
   entryCount: 2,
+  noticeStamps: [[100, 'b']],
+  isNew: true,
   latestAt: 100,
 };
 const nameItem: CloudConflictItem = {
@@ -65,7 +59,16 @@ const nameItem: CloudConflictItem = {
   conflictIds: ['n1'],
   current: 'Mehra',
   other: 'Mehra A',
-  seen: { shown: 'Mehra', others: [{ stamp: [2, 'b'], value: 'Mehra A' }] },
+  seen: {
+    shown: 'Mehra',
+    shownStamp: [1, 'a'],
+    others: [{ stamp: [50, 'b'], value: 'Mehra A' }],
+  },
+  noticeStamps: [
+    [1, 'a'],
+    [50, 'b'],
+  ],
+  isNew: true,
   latestAt: 50,
 };
 const entriesMessage = (count: number) =>
@@ -75,8 +78,6 @@ let root: ReactTestRenderer;
 beforeEach(() => {
   jest.clearAllMocks();
   mockPlatform.OS = 'ios';
-  mockSettings.conflictNoticeHiddenAt = null;
-  mockSettings.otherVersionsSeenAt = null;
 });
 afterEach(() => act(() => root?.unmount()));
 
@@ -145,7 +146,7 @@ test('with name, photo or returned-entry rows, opens Cloud backup', async () => 
   expect(mockPush).toHaveBeenCalledWith('/cloud-backup');
 });
 
-test('the close button is labelled, says it is this device only, and has a full-size target', async () => {
+test('the close button is labelled, says it hides it on every device, and has a full-size target', async () => {
   await render(1, [entriesItem]);
   const close = closeButton();
   expect(close.props.accessibilityHint).toBe(mockEn['cloud.conflicts.hideNoticeHint']);
@@ -154,77 +155,12 @@ test('the close button is labelled, says it is this device only, and has a full-
   expect(close.props.hitSlop).toBe(8);
 });
 
-test('the close button hides the notice until a newer conflict arrives', async () => {
-  await render(1, [entriesItem, nameItem]);
-  act(() => closeButton().props.onPress());
-  // Remembers the newest conflict it hid; nothing is dismissed or deleted.
-  expect(mockSettings.hideConflictNotice).toHaveBeenCalledWith(100);
-  expect(mockList).toHaveBeenCalledTimes(1);
-  await refreshSnapshot(1, [entriesItem, nameItem]);
-  expect(root.toJSON()).toBeNull();
-  // An older or equally old conflict stays hidden.
-  await refreshSnapshot(1, [{ ...nameItem, latestAt: 100 }]);
-  expect(root.toJSON()).toBeNull();
-  await refreshSnapshot(1, [entriesItem, { ...nameItem, latestAt: 101 }]);
-  expect(content()).toContain(mockEn['cloud.conflicts.homeNotice']);
-});
-
-test('announces again when a newer conflict brings a hidden notice back', async () => {
-  await render(1, [entriesItem]);
-  act(() => closeButton().props.onPress());
-  await refreshSnapshot(1, [entriesItem]);
-  expect(root.toJSON()).toBeNull();
-  await refreshSnapshot(1, [{ ...entriesItem, latestAt: 200 }]);
-  expect(mockAnnounce).toHaveBeenCalledTimes(2);
-});
-
-test('opening Other versions clears the notice for the entry conflicts seen there', async () => {
-  mockSettings.otherVersionsSeenAt = 150;
-  await render(1, [entriesItem]);
-  expect(root.toJSON()).toBeNull();
-  // A name conflict is not on Other versions, so it still shows the notice.
-  await refreshSnapshot(1, [entriesItem, { ...nameItem, latestAt: 120 }]);
-  expect(content()).toContain(mockEn['cloud.conflicts.homeNotice']);
-  // A newer entry conflict is news again.
-  await refreshSnapshot(1, [{ ...entriesItem, latestAt: 151 }]);
-  expect(content()).toContain(entriesMessage(2));
-});
-
 test('announces itself politely when it appears', async () => {
   await render(1, [entriesItem]);
   const live = root.root.findAll(
     (node) => node.props.accessibilityLiveRegion === 'polite',
   );
   expect(live).toHaveLength(1);
-});
-
-test('shows when the conflicts cannot be loaded, so the retry is reachable', async () => {
-  mockSnapshot = { conflictCount: 1 };
-  mockList.mockRejectedValue(new Error('read failed'));
-  await act(async () => {
-    root = create(<ConflictNoticeCard />);
-  });
-  expect(content()).toContain(mockEn['cloud.conflicts.homeNotice']);
-  act(() => actionButton().props.onPress());
-  expect(mockPush).toHaveBeenCalledWith('/cloud-backup');
-  // Hidden after a failed load: no conflict time to compare, so use now.
-  const now = Date.now();
-  act(() => closeButton().props.onPress());
-  expect(mockSettings.hideConflictNotice.mock.calls[0][0]).toBeGreaterThanOrEqual(now);
-  await act(async () => root.update(<ConflictNoticeCard />));
-  expect(root.toJSON()).toBeNull();
-});
-
-test('after hiding, a failed load stays hidden and a later successful load with a newer conflict shows it', async () => {
-  mockSettings.conflictNoticeHiddenAt = 100;
-  mockSnapshot = { conflictCount: 1 };
-  mockList.mockRejectedValue(new Error('read failed'));
-  await act(async () => {
-    root = create(<ConflictNoticeCard />);
-  });
-  expect(root.toJSON()).toBeNull();
-  await refreshSnapshot(1, [{ ...entriesItem, latestAt: 101 }]);
-  expect(content()).toContain(entriesMessage(2));
 });
 
 test('goes away once the conflicts are handled', async () => {
@@ -272,10 +208,61 @@ test('an entry kept after a delete/edit race shows the notice until it is dismis
     kind: 'returnedEntry',
     conflictIds: ['d1'],
     entry: { entryId: 'returned', createdAt: 7, title: null, preview: 'Sunny' },
+    noticeStamps: [[100, 'b']],
+    isNew: true,
     latestAt: 100,
   };
   await render(1, [returned]);
   expect(content()).toContain(mockEn['cloud.conflicts.homeNotice']);
   await refreshSnapshot(1, []);
   expect(root.toJSON()).toBeNull();
+});
+
+test('the close button records every listed choice as seen and reloads', async () => {
+  await render(1, [entriesItem, nameItem]);
+  const seen = [
+    { ...entriesItem, isNew: false },
+    { ...nameItem, isNew: false },
+  ];
+  mockList.mockResolvedValue(seen);
+  await act(async () => closeButton().props.onPress());
+  // Nothing is resolved: the choices themselves stay on Cloud backup.
+  expect(mockHide).toHaveBeenCalledWith([entriesItem, nameItem]);
+  expect(mockList).toHaveBeenCalledTimes(2);
+  expect(root.toJSON()).toBeNull();
+});
+
+test('stays hidden while every choice is seen, and comes back (announced) with a new one', async () => {
+  await render(1, [{ ...entriesItem, isNew: false }]);
+  expect(root.toJSON()).toBeNull();
+  await refreshSnapshot(1, [{ ...entriesItem, isNew: false }, nameItem]);
+  expect(content()).toContain(mockEn['cloud.conflicts.homeNotice']);
+  expect(mockAnnounce).toHaveBeenCalledTimes(1);
+});
+
+test('a failed hide is reported and the notice stays', async () => {
+  await render(1, [entriesItem]);
+  mockHide.mockRejectedValueOnce(new Error('write failed'));
+  await act(async () => closeButton().props.onPress());
+  expect(mockToastError).toHaveBeenCalledWith(
+    mockEn['cloud.cloudBackupCouldNotBeUpdated'],
+  );
+  expect(content()).toContain(entriesMessage(2));
+});
+
+test('shows when the conflicts cannot be loaded, and hides without a write', async () => {
+  mockSnapshot = { conflictCount: 1 };
+  mockList.mockRejectedValue(new Error('read failed'));
+  await act(async () => {
+    root = create(<ConflictNoticeCard />);
+  });
+  expect(content()).toContain(mockEn['cloud.conflicts.homeNotice']);
+  act(() => actionButton().props.onPress());
+  expect(mockPush).toHaveBeenCalledWith('/cloud-backup');
+  act(() => closeButton().props.onPress());
+  expect(mockHide).not.toHaveBeenCalled();
+  expect(root.toJSON()).toBeNull();
+  // A later successful load with news shows it again.
+  await refreshSnapshot(1, [entriesItem]);
+  expect(content()).toContain(entriesMessage(2));
 });

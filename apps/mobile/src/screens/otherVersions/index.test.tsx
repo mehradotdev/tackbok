@@ -68,11 +68,9 @@ jest.mock('~/components/backdrops/ThemeBackdrop', () => ({
   ThemeBackdrop: 'ThemeBackdrop',
 }));
 jest.mock('~/screens/dateEntries', () => ({ EntryItem: 'EntryItem' }));
-const mockMarkSeen = jest.fn();
-jest.mock('~/lib/settings', () => ({
-  useSettingsStore: {
-    getState: () => ({ markOtherVersionsSeen: (at: number) => mockMarkSeen(at) }),
-  },
+const mockMarkSeen = jest.fn(async () => {});
+jest.mock('~/lib/cloudSync/ui/conflicts', () => ({
+  markOtherVersionsSeen: () => mockMarkSeen(),
 }));
 const mockKeep = jest.fn(async (_id: string, _seen?: unknown) => {});
 jest.mock('~/lib/cloudSync/ui/versions', () => ({
@@ -290,10 +288,8 @@ test('a failed keep is reported', async () => {
 });
 
 test('opening the screen clears the Home notice for the entry conflicts on it', () => {
-  const before = Date.now();
   render({ data: [{ original, versions: [copy] }] });
   expect(mockMarkSeen).toHaveBeenCalledTimes(1);
-  expect(mockMarkSeen.mock.calls[0][0]).toBeGreaterThanOrEqual(before);
   // Re-renders, e.g. a refetch, do not mark it again.
   act(() => root.update(<OtherVersionsScreen />));
   expect(mockMarkSeen).toHaveBeenCalledTimes(1);

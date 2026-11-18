@@ -907,7 +907,7 @@ export const en = {
   // Close button on the Home conflicts notice, and its screen-reader hint.
   'cloud.conflicts.hideNotice': 'Hide this notice',
   'cloud.conflicts.hideNoticeHint':
-    'Hides it on this device only. It comes back if more changes are made on two devices at once.',
+    'Hides it on all your devices. It comes back if more changes are made on two devices at once.',
   // Description of the Cloud backup row that opens the Other versions screen.
   'cloud.conflicts.otherVersionsRow': 'Entries kept in two versions',
   'cloud.conflicts.loadFailed': 'These choices could not be loaded.',

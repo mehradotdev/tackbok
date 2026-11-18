@@ -103,36 +103,3 @@ describe('profile cache reloads', () => {
     expect(useSettingsStore.getState().profileImageUri).toBe('photos/imported.jpg');
   });
 });
-
-describe('Home conflicts notice', () => {
-  test('hidden and seen times only move forward, persist, and reset with Delete All', async () => {
-    const store = useSettingsStore.getState();
-    store.hideConflictNotice(200);
-    store.hideConflictNotice(100);
-    store.markOtherVersionsSeen(300);
-    store.markOtherVersionsSeen(250);
-    expect(useSettingsStore.getState().conflictNoticeHiddenAt).toBe(200);
-    expect(useSettingsStore.getState().otherVersionsSeenAt).toBe(300);
-
-    // Written to storage, and read back on the next launch.
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    const savedJson = mockSaved.get('tackbok-settings') ?? '{}';
-    expect(JSON.parse(savedJson).state).toMatchObject({
-      conflictNoticeHiddenAt: 200,
-      otherVersionsSeenAt: 300,
-    });
-    // A fresh launch: memory is empty, storage holds the saved settings.
-    useSettingsStore.setState({
-      conflictNoticeHiddenAt: null,
-      otherVersionsSeenAt: null,
-    });
-    mockSaved.set('tackbok-settings', savedJson);
-    await useSettingsStore.persist.rehydrate();
-    expect(useSettingsStore.getState().conflictNoticeHiddenAt).toBe(200);
-    expect(useSettingsStore.getState().otherVersionsSeenAt).toBe(300);
-
-    useSettingsStore.getState().resetToDefaults();
-    expect(useSettingsStore.getState().conflictNoticeHiddenAt).toBeNull();
-    expect(useSettingsStore.getState().otherVersionsSeenAt).toBeNull();
-  });
-});

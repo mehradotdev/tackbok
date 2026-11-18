@@ -6,12 +6,12 @@ import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import type { Asset, Entry } from '~/types';
 import type { OtherVersionGroup } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
-import { useSettingsStore } from '~/lib/settings';
 import {
   VersionsChangedError,
   keepEntryVersion,
   parseVersionCopyId,
 } from '~/lib/cloudSync/ui/versions';
+import { markOtherVersionsSeen } from '~/lib/cloudSync/ui/conflicts';
 import { isOpenGroup } from '~/lib/otherVersionGroups';
 import { QUERY_KEYS, useOtherVersionGroups, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
@@ -72,9 +72,11 @@ export default function OtherVersionsScreen() {
   const [isViewerVisible, setIsViewerVisible] = useState(false);
 
   // The versions are in front of the user now, so the Home notice about these
-  // entry conflicts is no longer news on this device.
+  // entry conflicts is no longer news, on any device once it syncs.
   useEffect(() => {
-    useSettingsStore.getState().markOtherVersionsSeen(Date.now());
+    markOtherVersionsSeen().catch((error: unknown) =>
+      console.warn('Could not mark the other versions as seen', error),
+    );
   }, []);
 
   // Screen readers stay where the confirmation was, so say it once each time

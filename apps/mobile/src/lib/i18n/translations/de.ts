@@ -946,7 +946,7 @@ export const de: Translations = {
   'cloud.conflicts.compareVersions': 'Versionen vergleichen',
   'cloud.conflicts.hideNotice': 'Diesen Hinweis ausblenden',
   'cloud.conflicts.hideNoticeHint':
-    'Blendet ihn nur auf diesem Gerät aus. Er erscheint wieder, wenn erneut Änderungen gleichzeitig auf zwei Geräten gemacht werden.',
+    'Blendet ihn auf all deinen Geräten aus. Er erscheint wieder, wenn erneut Änderungen gleichzeitig auf zwei Geräten gemacht werden.',
   'cloud.conflicts.otherVersionsRow': 'Einträge, die in zwei Versionen behalten wurden',
   'cloud.conflicts.loadFailed': 'Diese Auswahl konnte nicht geladen werden.',
   'cloud.conflicts.otherVersionsLoadFailed':

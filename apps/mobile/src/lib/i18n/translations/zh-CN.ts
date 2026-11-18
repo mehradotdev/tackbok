@@ -849,7 +849,7 @@ export const zhCN: Translations = {
   'cloud.conflicts.compareVersions': '比较版本',
   'cloud.conflicts.hideNotice': '隐藏此通知',
   'cloud.conflicts.hideNoticeHint':
-    '仅在此设备上隐藏。如果再次有内容同时在两台设备上被更改，它会重新显示。',
+    '在你的所有设备上隐藏。如果再次有内容同时在两台设备上被更改，它会重新显示。',
   'cloud.conflicts.otherVersionsRow': '保留了两个版本的条目',
   'cloud.conflicts.loadFailed': '无法加载这些选项。',
   'cloud.conflicts.otherVersionsLoadFailed': '无法加载其他版本。',

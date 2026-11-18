@@ -842,7 +842,7 @@ export const sv = {
   'cloud.conflicts.compareVersions': 'Jämför versioner',
   'cloud.conflicts.hideNotice': 'Göm det här meddelandet',
   'cloud.conflicts.hideNoticeHint':
-    'Döljs bara på den här enheten. Det visas igen om fler ändringar görs på två enheter samtidigt.',
+    'Döljs på alla dina enheter. Det visas igen om fler ändringar görs på två enheter samtidigt.',
   'cloud.conflicts.otherVersionsRow': 'Anteckningar som sparades i två versioner',
   'cloud.conflicts.loadFailed': 'Det gick inte att läsa in de här valen.',
   'cloud.conflicts.otherVersionsLoadFailed':

@@ -298,3 +298,66 @@ test('a profile photo removed on one device and changed on another: "no photo" c
     on(a, T + 9, () => versions.keepProfileChoice('photo', null, photo, simMediaFiles)),
   ).rejects.toBeInstanceOf(versions.VersionsChangedError);
 });
+
+test('the Home notice: seen choices sync, and only a new value from another device brings it back', async () => {
+  await write(a, T, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'Base'), { now: T }),
+  );
+  await syncFrom(b, a, T + 1);
+  await write(a, T + 2, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'A'), { now: T + 2 }),
+  );
+  await write(b, T + 3, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'B'), { now: T + 3 }),
+  );
+  await syncFrom(a, b, T + 4);
+  const noticeStamps = async (device: SqliteDevice, wall: number) =>
+    on(device, wall, async () =>
+      [...(await versions.listOtherVersions()).values()].flatMap((list) =>
+        list.flatMap((other) => [other.stamp, other.shownStamp]),
+      ),
+    );
+  const isNew = async (device: SqliteDevice, wall: number) => {
+    const stamps = await noticeStamps(device, wall);
+    return versions.isNewChoice(stamps, await on(device, wall, versions.readNoticeSeen));
+  };
+  expect(await isNew(a, T + 5)).toBe(true);
+
+  // Hidden on A: seen there, and on B once it syncs.
+  const stamps = await noticeStamps(a, T + 6);
+  await on(a, T + 6, () => versions.markConflictsSeen(stamps, stamps, simMediaFiles));
+  expect(await isNew(a, T + 7)).toBe(false);
+  await syncFrom(b, a, T + 8);
+  expect(await isNew(b, T + 9)).toBe(false);
+
+  // Seen again: nothing to write.
+  const generation = () =>
+    a.sqlite.query('SELECT ctx_json FROM sync_device').all() as unknown[];
+  const before = generation();
+  await on(a, T + 10, () => versions.markConflictsSeen(stamps, stamps, simMediaFiles));
+  expect(generation()).toEqual(before);
+
+  // A local edit of the shown version is not news on the device that made it.
+  await write(a, T + 11, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'A2'), { now: T + 11 }),
+  );
+  expect((await on(a, T + 12, versions.listOtherVersions)).get('e1')).toHaveLength(1);
+  expect(await isNew(a, T + 12)).toBe(false);
+
+  // A new version from another device is.
+  await write(b, T + 13, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'B2'), { now: T + 13 }),
+  );
+  await syncFrom(a, b, T + 14);
+  expect(await isNew(a, T + 15)).toBe(true);
+
+  // Seen stamps no longer in an open choice are dropped when it is written again.
+  const open = await noticeStamps(a, T + 16);
+  await on(a, T + 16, () => versions.markConflictsSeen(open, open, simMediaFiles));
+  const seen = await on(a, T + 17, versions.readNoticeSeen);
+  expect([...seen.seen].sort()).toEqual([...new Set(open.map(versions.stampKey))].sort());
+  // The first edits' stamps were replaced, so they are no longer kept.
+  for (const stamp of stamps)
+    if (!open.some((other) => versions.stampKey(other) === versions.stampKey(stamp)))
+      expect(seen.seen.has(versions.stampKey(stamp))).toBe(false);
+});

@@ -9,13 +9,13 @@
  * that value (or the shown ones) as one new write. "Keep both", syncing the
  * Home notice's dismissal and new copy come with P7.
  *
- * shortcut: times for the Home notice are when this device last changed the
- * record (`sync_records.updated_at`), so a local edit of an entry that still
- * has versions can show the hidden notice again. Fixed later in P7.
+ * Each choice names the stamps of the values in it (`noticeStamps`): the Home
+ * notice shows while one of them, written by another device, is not among
+ * the stamps the user has seen (`markConflictsSeen`), which sync.
  */
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
-import { db, entries, syncFieldValues, syncRecords, userProfile } from '~/db';
+import { db, entries, syncDevice, syncFieldValues, syncRecords, userProfile } from '~/db';
 import type { Entry } from '~/types';
 
 import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
@@ -25,10 +25,13 @@ import {
   captureSyncState,
   type ApplyMediaFiles,
 } from '../storage/v2State';
+import { canonicalize } from '../snapshot/canonical';
 import { compareStamps, vectorIncluded } from '../v2/clock';
 import * as ops from '../v2/ops';
 import type {
   EntryRecord,
+  Json,
+  ProfileRecord,
   Stamp,
   SyncState,
   Tombstone,
@@ -38,16 +41,15 @@ import { shownItems } from '../v2/view';
 
 type TextField = 'title' | 'text';
 
+export const stampKey = (stamp: Stamp) => `${stamp[0]}:${stamp[1]}`;
+
 /** One value beside the shown one; `stamp` names it for "Keep this one". */
 export interface OtherVersion {
   field: TextField;
   stamp: Stamp;
   value: string | null;
-  /**
-   * When this device last took in a change to the entry (local time). The
-   * Home notice compares it with local times, so not the write's stamp.
-   */
-  receivedAt: number;
+  /** The stamp of the field's shown value, which this version differs from. */
+  shownStamp: Stamp;
 }
 
 /** The ID of a shown copy of an entry with one other version in it. */
@@ -82,7 +84,7 @@ export async function listOtherVersions(): Promise<Map<string, OtherVersion[]>> 
       value: syncFieldValues.value_json,
       title: entries.text_title,
       text: entries.text_content,
-      receivedAt: syncRecords.updated_at,
+      shownStamps: syncRecords.stamps_json,
     })
     .from(syncFieldValues)
     .innerJoin(entries, eq(entries.note_id, syncFieldValues.entity_id))
@@ -113,7 +115,11 @@ export async function listOtherVersions(): Promise<Map<string, OtherVersion[]>> 
       if (compareStamps(stamp, same.stamp) > 0) same.stamp = stamp;
       continue;
     }
-    list.push({ field, stamp, value, receivedAt: row.receivedAt });
+    const shownStamp = (JSON.parse(row.shownStamps) as Partial<Record<string, Stamp>>)[
+      field
+    ];
+    if (!shownStamp) throw new Error(`Entry ${row.entryId} has no ${field} stamp`);
+    list.push({ field, stamp, value, shownStamp });
     result.set(row.entryId, list);
   }
   for (const list of result.values())
@@ -160,6 +166,8 @@ export async function listVersionGroups(): Promise<
 export interface ProfileField {
   /** The shown value. */
   shown: string | null;
+  /** Its stamp; null when never written. */
+  shownStamp: Stamp | null;
   /** Values beside the shown one, newest first. */
   others: { stamp: Stamp; value: string | null }[];
 }
@@ -168,12 +176,10 @@ export interface ProfileField {
 export async function listProfileVersions(): Promise<{
   name: ProfileField;
   photo: ProfileField;
-  /** When this device last took in a change to the profile (local time). */
-  receivedAt: number;
 }> {
   const [profile] = await db.select().from(userProfile).limit(1);
   const [record] = await db
-    .select({ updatedAt: syncRecords.updated_at })
+    .select({ stamps: syncRecords.stamps_json })
     .from(syncRecords)
     .where(
       and(eq(syncRecords.entity_type, 'profile'), eq(syncRecords.entity_id, 'profile')),
@@ -182,10 +188,14 @@ export async function listProfileVersions(): Promise<{
     .select()
     .from(syncFieldValues)
     .where(eq(syncFieldValues.entity_type, 'profile'));
+  const stamps = record
+    ? (JSON.parse(record.stamps) as Partial<Record<string, Stamp>>)
+    : {};
   const pick = (field: 'name' | 'photo', shown: string | null): ProfileField => {
     const seen = new Set<string | null>([shown]);
     return {
       shown,
+      shownStamp: stamps[field] ?? null,
       others: rows
         .filter((row) => row.field === field)
         .map((row) => ({
@@ -199,7 +209,6 @@ export async function listProfileVersions(): Promise<{
   return {
     name: pick('name', profile?.display_name ?? null),
     photo: pick('photo', profile?.photo_asset_id ?? null),
-    receivedAt: record?.updatedAt ?? 0,
   };
 }
 
@@ -210,8 +219,8 @@ export async function listReturnedEntries(): Promise<
     createdAt: number;
     title: string | null;
     text: string | null;
-    /** When this device last took in a change to it (local time). */
-    receivedAt: number;
+    /** The delete, and the writes it had not seen that brought the entry back. */
+    noticeStamps: Stamp[];
   }[]
 > {
   const rows = await db
@@ -221,7 +230,7 @@ export async function listReturnedEntries(): Promise<
       createdAt: entries.created_at,
       title: entries.text_title,
       text: entries.text_content,
-      receivedAt: syncRecords.updated_at,
+      vv: syncRecords.vv_json,
     })
     .from(syncRecords)
     .innerJoin(entries, eq(entries.note_id, syncRecords.entity_id))
@@ -238,10 +247,107 @@ export async function listReturnedEntries(): Promise<
             createdAt: row.createdAt,
             title: row.title,
             text: row.text,
-            receivedAt: row.receivedAt,
+            noticeStamps: [
+              del.at,
+              ...Object.entries(JSON.parse(row.vv) as VersionVector).flatMap(
+                ([device, hlc]): Stamp[] =>
+                  hlc > (del.seen[device] ?? -1) ? [[hlc, device]] : [],
+              ),
+            ],
           },
         ];
   });
+}
+
+/**
+ * Profile `ext` feature (vault-wide, see `ProfileRecord`): stamps of conflict
+ * values the user has seen on the Home notice or Other versions, as a list
+ * of `[hlc, device]`. Concurrent writes from two devices are read as one set.
+ */
+export const NOTICE_SEEN_FEATURE = 'conflict-notice-seen';
+
+export function seenStampsOf(state: Pick<SyncState, 'profile'>): Stamp[] {
+  return (state.profile.ext[NOTICE_SEEN_FEATURE] ?? []).flatMap((item) =>
+    Array.isArray(item.v)
+      ? item.v.filter(
+          (stamp): stamp is [number, string] =>
+            Array.isArray(stamp) &&
+            typeof stamp[0] === 'number' &&
+            typeof stamp[1] === 'string',
+        )
+      : [],
+  );
+}
+
+/**
+ * What the Home notice compares with: the stamps seen (synced), and this
+ * device's ID, since its own writes are never news here.
+ */
+export async function readNoticeSeen(): Promise<{
+  deviceId: string | null;
+  seen: Set<string>;
+}> {
+  const [device] = await db
+    .select({ id: syncDevice.device_id })
+    .from(syncDevice)
+    .where(eq(syncDevice.id, 'self'));
+  const [record] = await db
+    .select({ ext: syncRecords.ext_json })
+    .from(syncRecords)
+    .where(
+      and(eq(syncRecords.entity_type, 'profile'), eq(syncRecords.entity_id, 'profile')),
+    );
+  const ext = record ? (JSON.parse(record.ext) as ProfileRecord['ext']) : {};
+  return {
+    deviceId: device?.id ?? null,
+    seen: new Set(seenStampsOf({ profile: { ext } as ProfileRecord }).map(stampKey)),
+  };
+}
+
+/** Whether a choice is news for the Home notice: a value from another device not seen. */
+export function isNewChoice(
+  noticeStamps: readonly Stamp[],
+  { deviceId, seen }: { deviceId: string | null; seen: ReadonlySet<string> },
+): boolean {
+  return noticeStamps.some(
+    (stamp) => stamp[1] !== deviceId && !seen.has(stampKey(stamp)),
+  );
+}
+
+/**
+ * Records `stamps` as seen, on every device once it syncs. Seen stamps that
+ * are no longer in an open choice (`open`, every choice's stamps) are dropped,
+ * so the list stays small. Writes nothing when nothing changes.
+ */
+export async function markConflictsSeen(
+  stamps: readonly Stamp[],
+  open: readonly Stamp[],
+  files?: ApplyMediaFiles,
+): Promise<void> {
+  const openKeys = new Set(open.map(stampKey));
+  await writeThroughSync((state, writer) => {
+    const before = seenStampsOf(state);
+    const kept = new Map<string, Stamp>();
+    for (const stamp of [...before, ...stamps])
+      if (openKeys.has(stampKey(stamp))) kept.set(stampKey(stamp), stamp);
+    const value: Json = [...kept.values()]
+      .sort(compareStamps)
+      .map((stamp) => [stamp[0], stamp[1]]);
+    const items = state.profile.ext[NOTICE_SEEN_FEATURE] ?? [];
+    const unchanged =
+      items.length === 0
+        ? value.length === 0
+        : items.length === 1 && canonicalize(items[0].v) === canonicalize(value);
+    if (unchanged) return state;
+    return ops.writeExt(
+      state,
+      writer,
+      { kind: 'profile' },
+      NOTICE_SEEN_FEATURE,
+      value,
+      'all',
+    );
+  }, files);
 }
 
 /** How many choices the conflict screens offer: the Home notice's count. */
@@ -266,7 +372,6 @@ export async function countSyncChoices(): Promise<number> {
  */
 async function writeThroughSync(
   write: (state: SyncState, writer: ops.Writer) => SyncState,
-  target: { type: 'entry' | 'profile'; id: string },
   files?: ApplyMediaFiles,
 ): Promise<void> {
   // Loaded only when needed: the media store reads the file system.
@@ -328,29 +433,25 @@ export async function keepEntryVersion(
       other ? [`${other.field}#${other.stamp[0]}:${other.stamp[1]}`] : [],
     )
     .sort();
-  await writeThroughSync(
-    (state, writer) => {
-      const entry = state.entries.get(entryId);
-      if (
-        !entry ||
-        !original ||
-        shownItems(entry.title)[0]?.v !== original.text_title ||
-        shownItems(entry.text)[0]?.v !== original.text_content ||
-        otherStamps(entry).join() !== shownToUser.join()
-      )
-        throw new VersionsChangedError();
-      if (copy) return ops.keepValue(state, writer, entryId, copy.field, copy.stamp);
-      let next = state;
-      for (const field of ['title', 'text'] as const) {
-        const shown = shownItems(next.entries.get(entryId)![field]);
-        if (shown.length > 1)
-          next = ops.keepValue(next, writer, entryId, field, shown[0].s);
-      }
-      return next;
-    },
-    { type: 'entry', id: entryId },
-    files,
-  );
+  await writeThroughSync((state, writer) => {
+    const entry = state.entries.get(entryId);
+    if (
+      !entry ||
+      !original ||
+      shownItems(entry.title)[0]?.v !== original.text_title ||
+      shownItems(entry.text)[0]?.v !== original.text_content ||
+      otherStamps(entry).join() !== shownToUser.join()
+    )
+      throw new VersionsChangedError();
+    if (copy) return ops.keepValue(state, writer, entryId, copy.field, copy.stamp);
+    let next = state;
+    for (const field of ['title', 'text'] as const) {
+      const shown = shownItems(next.entries.get(entryId)![field]);
+      if (shown.length > 1)
+        next = ops.keepValue(next, writer, entryId, field, shown[0].s);
+    }
+    return next;
+  }, files);
 }
 
 /** "Got it" on returned entries. Syncs: every device stops showing the notice. */
@@ -369,12 +470,9 @@ export async function acknowledgeReturnedEntries(
           throw error;
         }
       }, state),
-    { type: 'entry', id: entryIds[0] ?? '' },
     files,
   );
 }
-
-const stampKey = (stamp: Stamp) => `${stamp[0]}:${stamp[1]}`;
 
 /**
  * "Use" (`chosen`, another version's stamp) or "Keep current" (`chosen`
@@ -390,20 +488,16 @@ export async function keepProfileChoice(
   files?: ApplyMediaFiles,
 ): Promise<void> {
   const seenOthers = seen.others.map((other) => stampKey(other.stamp)).sort();
-  await writeThroughSync(
-    (state, writer) => {
-      const shown = shownItems(state.profile[field]);
-      const others = shown.slice(1).map((item) => stampKey(item.s));
-      // No other version left: the choice was made elsewhere meanwhile.
-      if (
-        others.length === 0 ||
-        (shown[0]?.v ?? null) !== seen.shown ||
-        others.sort().join() !== seenOthers.join()
-      )
-        throw new VersionsChangedError();
-      return ops.keepProfile(state, writer, field, chosen ?? shown[0].s);
-    },
-    { type: 'profile', id: 'profile' },
-    files,
-  );
+  await writeThroughSync((state, writer) => {
+    const shown = shownItems(state.profile[field]);
+    const others = shown.slice(1).map((item) => stampKey(item.s));
+    // No other version left: the choice was made elsewhere meanwhile.
+    if (
+      others.length === 0 ||
+      (shown[0]?.v ?? null) !== seen.shown ||
+      others.sort().join() !== seenOthers.join()
+    )
+      throw new VersionsChangedError();
+    return ops.keepProfile(state, writer, field, chosen ?? shown[0].s);
+  }, files);
 }

@@ -106,11 +106,6 @@ interface SettingsState {
   sampleEntriesBannerDismissed: boolean;
   hasSeenHomeCoachMarks: boolean;
 
-  // Sync conflicts notice on Home (this device only)
-  /** The newest conflict time hidden with the notice's close button. */
-  conflictNoticeHiddenAt: number | null;
-  /** When Other versions was last opened: entry conflicts seen by then are news no more. */
-  otherVersionsSeenAt: number | null;
   pendingAchievement: Achievement | null;
 
   // Hydration status
@@ -146,8 +141,6 @@ interface SettingsState {
   setSampleEntryIds: (ids: string[]) => void;
   setSampleEntriesBannerDismissed: (dismissed: boolean) => void;
   setHasSeenHomeCoachMarks: (seen: boolean) => void;
-  hideConflictNotice: (newestConflictAt: number) => void;
-  markOtherVersionsSeen: (seenAt: number) => void;
   setPendingAchievement: (achievement: Achievement | null) => void;
   setHasHydrated: (hydrated: boolean) => void;
   markLegacyProfileMigrationComplete: () => void;
@@ -182,8 +175,6 @@ const DEFAULT_SETTINGS_VALUES = {
   sampleEntryIds: [] as string[],
   sampleEntriesBannerDismissed: false,
   hasSeenHomeCoachMarks: false,
-  conflictNoticeHiddenAt: null as number | null,
-  otherVersionsSeenAt: null as number | null,
   pendingAchievement: null,
 };
 
@@ -282,18 +273,6 @@ export const useSettingsStore = create<SettingsState>()(
       setSampleEntriesBannerDismissed: (dismissed) =>
         set({ sampleEntriesBannerDismissed: dismissed }),
       setHasSeenHomeCoachMarks: (seen) => set({ hasSeenHomeCoachMarks: seen }),
-      // Never moves back, so a stale tap cannot bring back an older notice.
-      hideConflictNotice: (newestConflictAt) =>
-        set((state) => ({
-          conflictNoticeHiddenAt: Math.max(
-            state.conflictNoticeHiddenAt ?? 0,
-            newestConflictAt,
-          ),
-        })),
-      markOtherVersionsSeen: (seenAt) =>
-        set((state) => ({
-          otherVersionsSeenAt: Math.max(state.otherVersionsSeenAt ?? 0, seenAt),
-        })),
       setPendingAchievement: (achievement) => set({ pendingAchievement: achievement }),
       setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
       markLegacyProfileMigrationComplete: () =>
@@ -389,8 +368,6 @@ export const useSettingsStore = create<SettingsState>()(
         sampleEntryIds: state.sampleEntryIds,
         sampleEntriesBannerDismissed: state.sampleEntriesBannerDismissed,
         hasSeenHomeCoachMarks: state.hasSeenHomeCoachMarks,
-        conflictNoticeHiddenAt: state.conflictNoticeHiddenAt,
-        otherVersionsSeenAt: state.otherVersionsSeenAt,
         pendingAchievement: state.pendingAchievement,
       }),
     },

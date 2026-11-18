@@ -852,7 +852,7 @@ export const zhTW: Translations = {
   'cloud.conflicts.compareVersions': '比較版本',
   'cloud.conflicts.hideNotice': '隱藏此通知',
   'cloud.conflicts.hideNoticeHint':
-    '僅在此裝置上隱藏。如果再次有內容同時在兩部裝置上被變更，它會重新顯示。',
+    '在你的所有裝置上隱藏。如果再次有內容同時在兩部裝置上被變更，它會重新顯示。',
   'cloud.conflicts.otherVersionsRow': '保留了兩個版本的紀錄',
   'cloud.conflicts.loadFailed': '無法載入這些選項。',
   'cloud.conflicts.otherVersionsLoadFailed': '無法載入其他版本。',
