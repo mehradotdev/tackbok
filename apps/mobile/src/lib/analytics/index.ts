@@ -204,11 +204,24 @@ function forgetSnapshotDay(): void {
   });
 }
 
+/** Analytics starts after the settings store hydrates, which can be before this one. */
+function localeHydrated(): Promise<void> {
+  if (useLocaleStore.getState()._hasHydrated) return Promise.resolve();
+  return new Promise((resolve) => {
+    const unsubscribe = useLocaleStore.subscribe((state) => {
+      if (!state._hasHydrated) return;
+      unsubscribe();
+      resolve();
+    });
+  });
+}
+
 async function readSettingsSnapshot(): Promise<SettingsSnapshot> {
   // The icon is owned by the OS and only read on demand.
   const [cloudSync] = await Promise.all([
     getCloudSyncState(),
     useAppIconStore.getState().refresh(),
+    localeHydrated(),
   ]);
   const settings = useSettingsStore.getState();
   const { localePreference } = useLocaleStore.getState();

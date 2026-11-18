@@ -48,9 +48,20 @@ jest.mock('~/lib/appIcon', () => ({
     getState: () => ({ current: mockAppIcon, refresh: async () => {} }),
   },
 }));
+let mockLocale = { localePreference: 'device', _hasHydrated: true };
+let mockLocaleListener: ((state: typeof mockLocale) => void) | null = null;
 jest.mock('~/lib/i18n/store', () => ({
-  useLocaleStore: { getState: () => ({ localePreference: 'device' }) },
-  getEffectiveSupportedLocale: (tags: string[]) => (tags[0] === 'sv-SE' ? 'sv' : 'en'),
+  useLocaleStore: {
+    getState: () => mockLocale,
+    subscribe: (listener: typeof mockLocaleListener) => {
+      mockLocaleListener = listener;
+      return () => {
+        mockLocaleListener = null;
+      };
+    },
+  },
+  getEffectiveSupportedLocale: (tags: string[], preference: string) =>
+    preference !== 'device' ? preference : tags[0] === 'sv-SE' ? 'sv' : 'en',
 }));
 jest.mock('~/lib/kvStorage', () => ({
   kvStorage: {
@@ -144,6 +155,8 @@ beforeEach(() => {
   mockCloudSync = 'off';
   mockKvGet = null;
   mockCloudSyncRead = null;
+  mockLocale = { localePreference: 'device', _hasHydrated: true };
+  mockLocaleListener = null;
 });
 
 afterEach(() => {
@@ -579,4 +592,18 @@ test('a failed settings read leaves the day unclaimed for the next visit', async
   mockAppStateListener('active');
   await settle();
   expect(appOpened()[1]).toMatchObject({ reason: 'foreground', theme: 'forest' });
+});
+
+test('the snapshot waits for the saved language before reporting it', async () => {
+  mockLocale = { localePreference: 'device', _hasHydrated: false };
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  expect(appOpened()).toEqual([]);
+  mockLocale = { localePreference: 'de', _hasHydrated: true };
+  mockLocaleListener!(mockLocale);
+  await settle();
+  expect(appOpened()[0]).toMatchObject({ locale: 'de', locale_follows_device: false });
+  expect(mockLocaleListener).toBeNull();
 });
