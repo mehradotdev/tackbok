@@ -245,8 +245,12 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
         status: vault.status,
         revocationKind: vault.revocation_kind,
         revocationAcknowledgedAt: vault.revocation_acknowledged_at,
+        // A reason this build does not know (stored by another version) is
+        // not shown: there is no copy or recovery for it.
         pauseReason:
-          (syncState?.pause_reason as SyncAttentionReason | null | undefined) ?? null,
+          syncState?.pause_reason && syncState.pause_reason in ATTENTION_RECOVERY_ACTION
+            ? (syncState.pause_reason as SyncAttentionReason)
+            : null,
       })
     : null;
   if (vault?.status === 'revoked' || attentionReason) status = 'warning';
