@@ -557,6 +557,33 @@ export const syncDeletedRecords = sqliteTable(
   (table) => [primaryKey({ columns: [table.entity_type, table.entity_id] })],
 );
 
+/**
+ * Sync v2 engine bookkeeping, per vault and device: the head snapshot this
+ * device last took in from each other device (so a pass downloads only
+ * heads that changed), and for this device the snapshot it last published
+ * with the context it held (`ctx_json`), which tells it whether it has
+ * writes it has not published yet.
+ */
+export const syncHeads = sqliteTable(
+  'sync_heads',
+  {
+    vault_id: text('vault_id').notNull(),
+    device_id: text('device_id').notNull(),
+    snapshot_id: text('snapshot_id').notNull(),
+    device_sequence: integer('device_sequence').notNull(),
+    /** This device's row only: the context it published. */
+    ctx_json: text('ctx_json'),
+    /**
+     * This device's row only: the snapshot its head is about to move to, so
+     * a pass stopped after the move does not take the head for another
+     * install's.
+     */
+    pending_snapshot_id: text('pending_snapshot_id'),
+    updated_at: integer('updated_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
+);
+
 // ============================================================================
 // Inferred Types
 // ============================================================================

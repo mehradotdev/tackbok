@@ -42,7 +42,18 @@ import type {
   SyncOutcome,
   View,
 } from './driver';
-import type { SqliteDevice, installSqliteDevices } from './sqliteDevices';
+import {
+  BunSyncDatabase,
+  type SqliteDevice,
+  type installSqliteDevices,
+} from './sqliteDevices';
+import {
+  FakeSnapshotProvider,
+  MemorySnapshotMediaStore,
+} from '../../../src/lib/cloudSync/snapshot/sync/fakes';
+import { SQLiteSyncStateStore } from '../../../src/lib/cloudSync/snapshot/sync/sqliteState';
+import { V2SyncEngine } from '../../../src/lib/cloudSync/snapshot/sync/v2Engine';
+
 import { V2Adapter, V2_VAULT, viewOfState } from './v2Adapter';
 
 type Devices = ReturnType<typeof installSqliteDevices>;
@@ -83,12 +94,19 @@ export class V2StoreAdapter implements SimAdapter {
   private readonly heads = new Map<number, SyncState>();
   refusedPulls = 0;
 
+  /** `engine`: each device runs the real v2 engine against one fake Drive. */
+  readonly topology: 'pairwise' | 'drive';
+  private readonly engines: V2SyncEngine[] = [];
+  readonly provider = new FakeSnapshotProvider();
+  private readonly blobs = new MemorySnapshotMediaStore();
+
   private constructor(
     private readonly devices: Devices,
     count: number,
-    readonly topology: 'pairwise' | 'drive',
+    readonly mode: 'pairwise' | 'drive' | 'engine',
   ) {
-    this.name = `v2-store-${topology}`;
+    this.topology = mode === 'pairwise' ? 'pairwise' : 'drive';
+    this.name = `v2-store-${mode}`;
     this.model = new V2Adapter(count, 'pairwise');
     this.databases = Array.from({ length: count }, () => devices.create());
   }
@@ -96,10 +114,10 @@ export class V2StoreAdapter implements SimAdapter {
   static async create(
     devices: Devices,
     count: number,
-    topology: 'pairwise' | 'drive' = 'pairwise',
+    mode: 'pairwise' | 'drive' | 'engine' = 'pairwise',
   ): Promise<V2StoreAdapter> {
-    const adapter = new V2StoreAdapter(devices, count, topology);
-    for (const [index, database] of adapter.databases.entries())
+    const adapter = new V2StoreAdapter(devices, count, mode);
+    for (const [index, database] of adapter.databases.entries()) {
       await devices.on(database, 1, async () => {
         await repositories.runInCloudSyncTransaction((tx) =>
           rebuildSyncMetadataInTransaction(tx, V2_VAULT, 1),
@@ -107,6 +125,18 @@ export class V2StoreAdapter implements SimAdapter {
         // A stable name, so the model's writer and this device agree.
         database.sqlite.run('UPDATE sync_device SET device_id = ?', [deviceName(index)]);
       });
+      if (mode === 'engine')
+        adapter.engines.push(
+          new V2SyncEngine({
+            vaultId: V2_VAULT,
+            stateKey: `state-${index}`,
+            stateStore: new SQLiteSyncStateStore(new BunSyncDatabase(database.sqlite)),
+            provider: adapter.provider,
+            mediaStore: adapter.blobs,
+            files: simMediaFiles,
+          }),
+        );
+    }
     return adapter;
   }
 
@@ -176,8 +206,17 @@ export class V2StoreAdapter implements SimAdapter {
     };
   }
 
-  /** The hash pass the runtime runs before a sync. */
+  /** The hash pass the runtime runs before a sync; the files are readable. */
   private hashMedia(device: number, wall: number) {
+    for (const row of this.databases[device].sqlite
+      .query<{ asset_id: string }, []>(
+        'SELECT asset_id FROM media_assets WHERE blob_hash IS NULL',
+      )
+      .all())
+      void this.blobs.writeVerified(
+        `${Buffer.from(row.asset_id).toString('hex')}${'0'.repeat(64)}`.slice(0, 64),
+        new TextEncoder().encode(`blob:${row.asset_id}`),
+      );
     this.databases[device].sqlite.run(
       `UPDATE media_assets SET blob_hash = substr(lower(hex(asset_id)) || '0000000000000000000000000000000000000000000000000000000000000000', 1, 64), byte_size = 1000,
          width = 10, height = 10, mime_type = 'image/jpeg', created_at = ?
@@ -394,6 +433,7 @@ export class V2StoreAdapter implements SimAdapter {
   }
 
   async sync(device: number, peer: number | null, wall: number): Promise<SyncOutcome> {
+    if (this.mode === 'engine') return this.engineSync(device, wall);
     await this.publishMedia(device, wall);
     // What a device reads is a published state, and publishing stamps new
     // attachments first: never an attach write without its attachment.
@@ -440,6 +480,26 @@ export class V2StoreAdapter implements SimAdapter {
       return { ok: true, changed: changed || published, pulled, revived };
     }
     return { ok: true, changed, pulled, revived };
+  }
+
+  /** One real engine pass. A pause fails the case: nothing here should pause. */
+  private async engineSync(device: number, wall: number): Promise<SyncOutcome> {
+    this.hashMedia(device, wall);
+    const before = canonicalState((await this.capture(device)).state);
+    const result = await this.on(device, wall, () => this.engines[device].sync());
+    if (result.status === 'attention')
+      return { ok: false, reason: `attention: ${result.reason}` };
+    if (result.status === 'retry')
+      return { ok: false, reason: `retry: ${result.reason}` };
+    // A head refused for its clock: this device has not seen what it holds.
+    const pulled = !result.refusedHeads;
+    if (!pulled) this.refusedPulls++;
+    const after = canonicalState((await this.capture(device)).state);
+    return {
+      ok: true,
+      changed: result.status !== 'up-to-date' || before !== after,
+      pulled,
+    };
   }
 
   async fingerprint(device: number): Promise<string> {

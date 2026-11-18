@@ -27,6 +27,7 @@ describe('v2 simulation through SQLite', () => {
   test.each([
     ['pairwise', seedRange(1, 150 * SCALE)],
     ['drive', seedRange(200_000, 60 * SCALE)],
+    ['engine', seedRange(300_000, 60 * SCALE)],
   ] as const)(
     '%s syncs: devices converge, keep every value, and capture what they applied',
     async (topology, seeds) => {

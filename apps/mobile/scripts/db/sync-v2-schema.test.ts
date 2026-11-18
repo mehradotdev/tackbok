@@ -36,7 +36,7 @@ function migrate(sqlite: Database, from: number, to: number) {
 function dumpV1(sqlite: Database): string {
   const tables = sqlite
     .query<{ name: string }, []>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('sync_device', 'sync_records', 'sync_field_values', 'sync_deleted_records', '__drizzle_migrations') ORDER BY name",
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('sync_device', 'sync_records', 'sync_field_values', 'sync_deleted_records', 'sync_heads', '__drizzle_migrations') ORDER BY name",
     )
     .all();
   return JSON.stringify(

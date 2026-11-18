@@ -35,7 +35,12 @@ import {
   stampWriteInTransaction,
   writeOrderInTransaction,
 } from './syncStamps';
-import { defaultAssetOrder, shownAssetOrder } from './v2State';
+import {
+  defaultAssetOrder,
+  retainedValuesInTransaction,
+  shownAssetOrder,
+} from './v2State';
+import type { Json } from '../v2/types';
 import { namedId, normalizeTitle, type NamedKind } from '../v2/ids';
 
 export const PROFILE_ROW_ID = 'self';
@@ -575,7 +580,13 @@ export async function deleteEntryInTransaction(
     .where(and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)));
 
   if (context.syncStamps !== false && entry)
-    await stampDeleteInTransaction(tx, 'entry', noteId, now);
+    await stampDeleteInTransaction(
+      tx,
+      'entry',
+      noteId,
+      (await retainedValuesInTransaction(tx, 'entry', noteId)) as Json | null,
+      now,
+    );
   for (const asset of normalized) {
     await retainMediaRow(tx, asset, `entry:${noteId}`, now);
   }
@@ -734,7 +745,13 @@ export async function deleteTagInTransaction(
   // Sync v2: taking the tag off its entries below is a side effect, not an
   // edit of them, so only the tag is stamped (before its rows go).
   if (context.syncStamps !== false && deletedTag)
-    await stampDeleteInTransaction(tx, 'tag', tagId, now);
+    await stampDeleteInTransaction(
+      tx,
+      'tag',
+      tagId,
+      (await retainedValuesInTransaction(tx, 'tag', tagId)) as Json | null,
+      now,
+    );
   const relations = await tx.select().from(entryTags).where(eq(entryTags.tag_id, tagId));
   for (const relation of relations) {
     const [entry] = await tx
@@ -840,7 +857,13 @@ export async function deletePromptInTransaction(
     .where(eq(customPrompts.prompt_id, promptId))
     .limit(1);
   if (context.syncStamps !== false && deletedPrompt)
-    await stampDeleteInTransaction(tx, 'prompt', promptId, now);
+    await stampDeleteInTransaction(
+      tx,
+      'prompt',
+      promptId,
+      (await retainedValuesInTransaction(tx, 'prompt', promptId)) as Json | null,
+      now,
+    );
   await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {

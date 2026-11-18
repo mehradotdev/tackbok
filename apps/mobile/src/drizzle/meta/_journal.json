@@ -71,6 +71,13 @@
       "when": 1794925858101,
       "tag": "0009_sync_v2_vault_binding",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794961724614,
+      "tag": "0010_sync_v2_heads",
+      "breakpoints": true
     }
   ]
 }

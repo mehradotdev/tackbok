@@ -142,6 +142,44 @@ export class SQLiteSyncStateStore {
     );
   }
 
+  /**
+   * Takes the next device sequence, at least `minimum`, in one transaction
+   * (sync v2): two passes can never publish under one sequence.
+   */
+  reserveSequence(vaultId: string, deviceId: string, minimum: number): number {
+    return this.transaction(() => {
+      this.ensureStateRow(vaultId, deviceId);
+      const sequence = Math.max(
+        this.loadState(vaultId, deviceId).nextDeviceSequence,
+        minimum,
+      );
+      this.database.runSync(
+        `UPDATE cloud_sync_state SET next_device_sequence = ?, updated_at = ?
+         WHERE vault_id = ? AND device_id = ?`,
+        sequence + 1,
+        this.now(),
+        vaultId,
+        deviceId,
+      );
+      return sequence;
+    });
+  }
+
+  /** Local writes up to `generation` are backed up (sync v2). Never moves back. */
+  markSettled(vaultId: string, deviceId: string, generation: number): void {
+    this.ensureStateRow(vaultId, deviceId);
+    this.database.runSync(
+      `UPDATE cloud_sync_state
+       SET settled_generation = MAX(settled_generation, MIN(?, journal_generation)),
+           updated_at = ?
+       WHERE vault_id = ? AND device_id = ?`,
+      generation,
+      this.now(),
+      vaultId,
+      deviceId,
+    );
+  }
+
   loadPending(vaultId: string, deviceId: string): PendingPublication | null {
     const row = this.database.getFirstSync<PendingRow>(
       'SELECT * FROM cloud_pending_publication WHERE vault_id = ? AND device_id = ?',
