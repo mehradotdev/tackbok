@@ -21,7 +21,7 @@ No accounts. No ads. Your journal stays on your device.
       <img src="https://img.shields.io/badge/Platform-iOS%20%7C%20Android-black.svg" alt="Platform iOS | Android" />
     </a>
     <a href="https://expo.dev" target="_blank">
-      <img src="https://img.shields.io/badge/Expo-SDK_57-000020?logo=expo" alt="Expo SDK 57" />
+      <img src="https://img.shields.io/badge/Expo-SDK_58-000020?logo=expo" alt="Expo SDK 58" />
     </a>
   </p>
 
@@ -50,12 +50,18 @@ No accounts. No ads. Your journal stays on your device.
   <table>
     <tr>
       <td align="center" width="50%">
-        <strong>Daily Timeline &amp; Streaks</strong><br /><br />
-        <img src="assets/tackbok_home_page.png" alt="Tackbok Home Screen" width="320" />
+        <strong>Daily timeline</strong><br /><br />
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/timeline-dark.webp" />
+          <img src="assets/screenshots/timeline-light.webp" alt="Tackbok timeline with example entries: a welcome note with a mood, a voice note, and two photos" width="270" />
+        </picture>
       </td>
       <td align="center" width="50%">
-        <strong>Rich Entry Editor</strong><br /><br />
-        <img src="assets/tackbok_edit_page.png" alt="Tackbok Entry Editor" width="320" />
+        <strong>Photos, voice notes, moods and tags</strong><br /><br />
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="assets/screenshots/editor-dark.webp" />
+          <img src="assets/screenshots/editor-light.webp" alt="Editing an entry with a mood, two framed photos, and buttons to add a mood, photo, voice note, or tag" width="270" />
+        </picture>
       </td>
     </tr>
   </table>
@@ -92,12 +98,12 @@ tackbok/
 ├── apps/
 │   ├── mobile/       # React Native Expo mobile app (iOS & Android)
 │   └── website/      # Astro marketing website & documentation (tackbok.org)
-├── assets/           # Repository preview screenshots and branding assets
+├── assets/           # Framed README screenshots and branding assets
 ├── LICENSE           # Apache License 2.0
 └── package.json      # Monorepo root configuration & Bun workspace scripts
 ```
 
-- **`apps/mobile`**: Built with React Native, Expo SDK 57, Expo Router, Uniwind (Tailwind CSS v4), Drizzle ORM with SQLite, and Zustand.
+- **`apps/mobile`**: Built with React Native, Expo SDK 58, Expo Router, Uniwind (Tailwind CSS v4), Drizzle ORM with SQLite, and Zustand.
 - **`apps/website`**: Built with Astro 7, Tailwind CSS v4, and daisyUI.
 
 ---

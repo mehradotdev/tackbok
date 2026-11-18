@@ -7,9 +7,19 @@ interface Props {
   alt: string;
   /** Set on the first hero screenshot, the likely Largest Contentful Paint. */
   priority?: boolean;
+  /** Screenshots below the fold load lazily. */
+  loading?: 'eager' | 'lazy';
+  /** Rendered width of the screenshot, for picking a srcset candidate. */
+  sizes?: string;
 }
 
-const { src, alt, priority = false } = Astro.props;
+const {
+  src,
+  alt,
+  priority = false,
+  loading = 'eager',
+  sizes = '(max-width: 640px) 234px, 254px',
+} = Astro.props;
 ---
 
 <div class="rounded-[2.6rem] border border-ink-soft bg-ink p-2 shadow-[0_24px_55px_color-mix(in_srgb,var(--ink)_25%,transparent)] ring-2 ring-paper-deep">
@@ -17,8 +27,8 @@ const { src, alt, priority = false } = Astro.props;
     src={src}
     alt={alt}
     widths={[300, 540, 810]}
-    sizes="(max-width: 640px) 234px, 254px"
-    loading="eager"
+    sizes={sizes}
+    loading={loading}
     fetchpriority={priority ? 'high' : undefined}
     class="block h-auto w-full rounded-[2.1rem]"
   />

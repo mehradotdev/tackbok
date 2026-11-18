@@ -45,8 +45,6 @@ These steps come from the Gratitude help centre article [How do I export my jour
 
 The Gratitude app's Google Drive backup and iCloud sync are not the same as this ZIP file. Tackbok can only read the exported ZIP.
 
-<!-- Screenshot slot (#194): the Gratitude app's export is described in text only. Add Tackbok screenshots to Step 3, not screenshots of the Gratitude app. -->
-
 ## Step 2: Get the file onto the phone with Tackbok
 
 If you use Tackbok on the same phone, the file is already there. If not, move the ZIP file across, for example by emailing it to yourself or saving it to Google Drive, iCloud Drive or Dropbox. On iPhone, save it to the **Files** app so Tackbok can find it. Photos and recordings can make the file large, so a cloud drive often works better than email.
@@ -67,7 +65,9 @@ If you use Tackbok on the same phone, the file is already there. If not, move th
 2. Under **Backup & restore**, tap **Import from Gratitude app** and pick your ZIP file.
 3. Choose **Skip existing entries (recommended)**.
 
-<!-- Screenshot slot (#194): Tackbok Settings › Backup & restore, showing "Import from Gratitude app", and the import mode choice. -->
+![Tackbok Settings, Backup and restore section, with the Import from Gratitude app row](../../assets/screenshots/ios/settings-import-light.webp)
+
+<!-- Screenshot slot: the import mode choice. It appears only after picking a Gratitude app ZIP, so it wasn't captured with the sample entries (#194). -->
 
 Keep Tackbok open until the import finishes. A summary then shows how many entries, photos and voice notes were imported, and anything that was skipped.
 

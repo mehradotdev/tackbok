@@ -41,8 +41,6 @@ The file name starts with `PresentlyBackup` and ends in `.csv`.
 
 **Already use Presently's Dropbox backup?** The backup file, `presently-backup.csv` in the **Apps › PresentlyBackups** folder of your Dropbox, has the same format. You can download it and import it instead.
 
-<!-- Screenshot slot (#194): Presently's export is described in text only. Add Tackbok screenshots to Step 3, not screenshots of Presently. -->
-
 ## Step 2: Get the file onto the phone with Tackbok
 
 - **Same Android phone:** nothing to do. The file is already on your phone.
@@ -66,7 +64,7 @@ Presently doesn't have an iPhone app, so this file is the way to bring your Pres
 2. Under **Backup & restore**, tap **Import from Presently app**, then **Import**.
 3. Pick your Presently CSV file.
 
-<!-- Screenshot slot (#194): Tackbok Settings › Backup & restore, showing "Import from Presently app". -->
+![Tackbok Settings, Backup and restore section, with Import from Presently app as the last row](../../assets/screenshots/ios/settings-import-light.webp)
 
 Keep Tackbok open until the import finishes. A summary then shows how many new entries were imported, and how many were skipped as duplicates.
 
