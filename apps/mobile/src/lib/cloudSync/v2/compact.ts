@@ -153,8 +153,10 @@ export function compact(state: SyncState): SyncState {
 export interface Absorbed {
   readonly state: SyncState;
   /**
-   * Entries shown after the join that one side had compacted: an unseen
-   * edit brought them back with the values the other side had.
+   * Entries this join brought back: one side held a deleted copy that had
+   * been compacted (or only part of the values since), and an unseen edit
+   * on the other side made the entry shown again, with that side's values.
+   * An entry already shown on both sides is not listed again.
    */
   readonly revived: readonly string[];
 }
@@ -168,11 +170,12 @@ export function absorb(local: SyncState, remote: SyncState, writer: Writer): Abs
   assertNotAhead(remote, writer.wallMs);
   const state = join(local, remote);
   const revived: string[] = [];
-  // A side compacted, or holding only part of the values since it was.
-  const touched = (entry: EntryRecord) => entry.known !== null;
+  // A deleted copy that was compacted, or holds only part of the values
+  // since an earlier return.
+  const hidden = (entry: EntryRecord) => entry.known !== null && !isLive(entry);
   for (const [id, mine] of local.entries) {
     const theirs = remote.entries.get(id);
-    if (theirs && (touched(mine) || touched(theirs)) && isLive(state.entries.get(id)!))
+    if (theirs && (hidden(mine) || hidden(theirs)) && isLive(state.entries.get(id)!))
       revived.push(id);
   }
   return { state, revived: revived.sort() };

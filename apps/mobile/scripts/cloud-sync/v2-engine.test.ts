@@ -194,6 +194,44 @@ describe('passes', () => {
     }
   });
 
+  test('an entry an unseen edit brings back after its delete was compacted is reported', async () => {
+    const a = device();
+    const b = device();
+    await addEntry(a, 'e1', { text_content: 'Old' });
+    await sync(a);
+    await sync(b);
+    clock += 1000;
+    // A's edit stays unpublished: B's delete will not have seen it.
+    await addEntry(a, 'e1', { text_content: 'Old', mood: 'HAPPY' });
+    await addEntry(b, 'e1', { text_content: 'New' });
+    await write(b, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e1', { now: clock }),
+    );
+    // A is silent for more than 180 days, so B compacts the deleted entry.
+    clock += 200 * DAY;
+    expect(await sync(b)).toMatchObject({ status: 'published', revivedEntries: [] });
+    clock += 1000;
+    // A's edit returns the entry with A's text: compaction dropped the text B
+    // had replaced it with, so the older one is shown. That is reported.
+    const back = await sync(a);
+    expect(back).toMatchObject({ status: 'published', revivedEntries: ['e1'] });
+    expect(texts(a)).toEqual(['e1:Old']);
+    // B takes it back too, with A's edit: nothing A had is lost.
+    expect(await sync(b)).toMatchObject({ revivedEntries: ['e1'] });
+    for (const target of [a, b]) {
+      expect(texts(target)).toEqual(['e1:Old']);
+      expect(target.database.sqlite.query('SELECT mood FROM entries').all()).toEqual([
+        { mood: 'HAPPY' },
+      ]);
+    }
+    // Once shown on both sides, later passes do not report it again.
+    clock += 1000;
+    await addEntry(b, 'e1', { text_content: 'Later', mood: 'HAPPY' });
+    expect(await sync(b)).toMatchObject({ revivedEntries: [] });
+    expect(await sync(a)).toMatchObject({ revivedEntries: [] });
+    expect(texts(a)).toEqual(['e1:Later']);
+  });
+
   test('a wiped device downloads every head again', async () => {
     const a = device();
     const b = device();

@@ -53,6 +53,7 @@ import {
 import { absorb, compact } from '../../v2/compact';
 import { SyncJoinError } from '../../v2/join';
 import { markSeen } from '../../v2/ops';
+import { isLive } from '../../v2/view';
 import type { SyncState, VersionVector } from '../../v2/types';
 import { SnapshotValidationError } from '../caps';
 import { canonicalize } from '../canonical';
@@ -242,6 +243,7 @@ export class V2SyncEngine {
     let publish = false;
     let refused: DeviceHead[] = [];
     let takenIn: DeviceHead[] = [];
+    let revived: string[] = [];
     for (let attempt = 0; attempt < MAX_APPLY_ATTEMPTS && !next; attempt++) {
       this.hooks.progress?.({ type: 'plan', phase: 'merging' });
       const captured = await captureSyncState();
@@ -250,9 +252,12 @@ export class V2SyncEngine {
       const writer = { device: deviceId, wallMs: this.now() };
       let state = captured.state;
       refused = [];
+      const back = new Set<string>();
       for (const remote of remotes) {
         try {
-          state = absorb(state, remote.state, writer).state;
+          const absorbed = absorb(state, remote.state, writer);
+          state = absorbed.state;
+          for (const id of absorbed.revived) back.add(id);
         } catch (error) {
           // A clock more than 7 days ahead of this one: that head waits
           // (it is not recorded, so a later pass reads it again) and this
@@ -272,7 +277,11 @@ export class V2SyncEngine {
         this.recordTakenIn(tx, takenIn),
       );
       await this.hooks.at?.('during-merge-application');
-      if (applied) next = state;
+      if (applied) {
+        next = state;
+        // A later head in this pass may have deleted it again.
+        revived = [...back].filter((id) => isLive(state.entries.get(id)!)).sort();
+      }
     }
     if (!next) throw new RetryableSyncError('journal-changed-during-apply');
     if (refused.length > 0)
@@ -291,12 +300,14 @@ export class V2SyncEngine {
               actionableChanges: 0,
               deferredMediaCount: deferred,
               refusedHeads,
+              revivedEntries: revived,
             }
           : {
               status: 'up-to-date',
               actionableChanges: 0,
               deferredMediaCount: deferred,
               refusedHeads,
+              revivedEntries: revived,
             },
       );
     }
@@ -308,6 +319,7 @@ export class V2SyncEngine {
       actionableChanges: 0,
       deferredMediaCount: deferred,
       refusedHeads,
+      revivedEntries: revived,
     });
   }
 

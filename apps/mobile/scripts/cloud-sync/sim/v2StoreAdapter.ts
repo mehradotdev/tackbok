@@ -498,6 +498,7 @@ export class V2StoreAdapter implements SimAdapter {
       ok: true,
       changed: result.status !== 'up-to-date' || before !== after,
       pulled,
+      revived: result.revivedEntries ?? [],
     };
   }
 
