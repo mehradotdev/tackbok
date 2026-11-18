@@ -3,4 +3,7 @@ compatibility_date = "2026-03-13"
 
 [assets]
 directory = "./dist"
-
+# Serve /faq from faq.html and redirect /faq/ to /faq (matches trailingSlash: 'never').
+html_handling = "drop-trailing-slash"
+# Unknown paths get dist/404.html with a 404 status instead of an empty body.
+not_found_handling = "404-page"

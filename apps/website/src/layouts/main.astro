@@ -2,6 +2,7 @@
 import '~/styles/global.css';
 import { getImage } from 'astro:assets';
 import defaultSocialImage from '~/assets/og.png';
+import { pagePath } from '~/lib/page-path';
 
 interface Props {
   title?: string;
@@ -11,13 +12,13 @@ interface Props {
 }
 
 const {
-  title = 'Tackbok — A private gratitude journal',
-  description = 'A free, open-source gratitude journal for private reflections, photos, voice memos, prompts, and gentle daily reminders.',
+  title = 'Tackbok — Free, Private & Offline Gratitude Journal App',
+  description = 'A free, open-source gratitude journal app for iOS and Android. Works offline, with no account and no ads. Add photos, voice memos, prompts and daily reminders.',
   noIndex = false,
   structuredData,
 } = Astro.props;
 
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site).href;
+const canonicalUrl = new URL(pagePath(Astro.url.pathname), Astro.site).href;
 const socialImage = await getImage({ src: defaultSocialImage, format: 'jpg' });
 const socialImageUrl = new URL(socialImage.src, Astro.site).href;
 ---
@@ -30,9 +31,11 @@ const socialImageUrl = new URL(socialImage.src, Astro.site).href;
     <!-- Primary Meta Tags -->
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonicalUrl} />
+    {!noIndex && <link rel="canonical" href={canonicalUrl} />}
     <meta name="robots" content={noIndex ? 'noindex' : 'max-image-preview:large'} />
     <meta name="theme-color" content="#e8e5cf" />
+    <!-- Safari Smart App Banner -->
+    <meta name="apple-itunes-app" content="app-id=6757330507" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -44,7 +47,7 @@ const socialImageUrl = new URL(socialImage.src, Astro.site).href;
     <meta property="og:site_name" content="Tackbok" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonicalUrl} />
+    {!noIndex && <meta property="og:url" content={canonicalUrl} />}
     <meta property="og:image" content={socialImageUrl} />
     <meta property="og:image:width" content={String(defaultSocialImage.width)} />
     <meta property="og:image:height" content={String(defaultSocialImage.height)} />
