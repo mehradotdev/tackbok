@@ -54,10 +54,67 @@ export type NewDeviceReason = 'another-install' | 'clock-ahead';
 
 const MAX_ATTEMPTS = 4;
 
+/**
+ * Deletes head files under the old ID that this install published (its
+ * `sync_heads` record names their snapshot); a copy of it elsewhere keeps
+ * its own.
+ * - **Clock far ahead:** this install's head, which no other device took in
+ *   and which would be read once real time caught up.
+ * - **Another install:** only a file no device reads: one below the old
+ *   ID's newest sequence, or one of two at that sequence (which makes the ID
+ *   unreadable everywhere and pauses both installs). The newest head stays:
+ *   it may be the other install's, if this install's record came with a
+ *   copy of its database. Clears the two files a race between copied phones
+ *   leaves under one ID (#216): once one install leaves, the other's file is
+ *   read again and that install syncs on.
+ */
+async function removeOwnHeads(
+  provider: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead'>,
+  vaultId: string,
+  from: string,
+  reason: NewDeviceReason,
+) {
+  const [own] = await runExclusiveDbTransaction((tx) =>
+    tx
+      .select({
+        snapshotId: syncHeads.snapshot_id,
+        pending: syncHeads.pending_snapshot_id,
+      })
+      .from(syncHeads)
+      .where(and(eq(syncHeads.vault_id, vaultId), eq(syncHeads.device_id, from))),
+  );
+  const mine = new Set([own?.snapshotId, own?.pending].filter(Boolean));
+  // Listed again before each delete: another install may have published
+  // into a file, or removed its own, since the last listing.
+  for (const snapshotId of mine) {
+    const listed = (await provider.listHeads(vaultId, true)).filter(
+      (candidate) =>
+        candidate.head?.deviceId === from &&
+        Number.isSafeInteger(candidate.head.deviceSequence),
+    );
+    const sequence = (candidate: (typeof listed)[number]) =>
+      Number(candidate.head!.deviceSequence);
+    const newest = Math.max(...listed.map(sequence));
+    const atNewest = listed.filter((candidate) => sequence(candidate) === newest);
+    for (const candidate of listed) {
+      if (String(candidate.head!.snapshotId) !== snapshotId) continue;
+      const unread =
+        sequence(candidate) < newest ||
+        new Set(atNewest.map((c) => c.head!.snapshotId)).size > 1;
+      if (reason === 'clock-ahead' || unread)
+        await provider.deleteDeviceHead(vaultId, candidate.physicalId);
+    }
+  }
+}
+
 export async function continueAsNewDevice(options: {
   vaultId: string;
   reason: NewDeviceReason;
-  /** Needed for `clock-ahead` only: its own published head is deleted. */
+  /**
+   * Needed for `clock-ahead`: its own published head is deleted. With
+   * `another-install`, its own files no device reads are deleted too
+   * (`removeOwnHeads`); the launch-time check runs offline without one.
+   */
   provider?: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead'>;
   files: ApplyMediaFiles;
   /** More writes committed with the move (P13: the install binding). */
@@ -72,35 +129,16 @@ export async function continueAsNewDevice(options: {
     if (captured.state.vaultId !== vaultId)
       throw new Error('Sync metadata is for another vault');
     const from = captured.deviceId;
-    let keepUpTo: number;
-    if (reason === 'another-install') {
-      // Every write under the old ID moves, not only those since this
-      // install last published: the other install may have published over
-      // that snapshot from an older copy (a race), and its head would then
-      // read this install's writes as replaced. A write both installs hold
-      // appears twice under different IDs with one value, which shows once.
-      keepUpTo = -1;
-    } else {
-      keepUpTo = Math.floor(options.now);
-      if (!provider) throw new Error('A clock-ahead recovery needs the provider');
-      if (attempt === 0) {
-        // Only the head this install published: a copy of it elsewhere
-        // (an OS restore) keeps its own.
-        const [own] = await runExclusiveDbTransaction((tx) =>
-          tx
-            .select({
-              snapshotId: syncHeads.snapshot_id,
-              pending: syncHeads.pending_snapshot_id,
-            })
-            .from(syncHeads)
-            .where(and(eq(syncHeads.vault_id, vaultId), eq(syncHeads.device_id, from))),
-        );
-        const mine = new Set([own?.snapshotId, own?.pending].filter(Boolean));
-        for (const listed of await provider.listHeads(vaultId, true))
-          if (listed.head?.deviceId === from && mine.has(String(listed.head.snapshotId)))
-            await provider.deleteDeviceHead(vaultId, listed.physicalId);
-      }
-    }
+    // Every write under the old ID moves for another install, not only those
+    // since this install last published: the other install may have
+    // published over that snapshot from an older copy (a race), and its head
+    // would then read this install's writes as replaced. A write both
+    // installs hold appears twice under different IDs with one value, which
+    // shows once. After a clock far ahead, the writes past now move.
+    const keepUpTo = reason === 'another-install' ? -1 : Math.floor(options.now);
+    if (reason === 'clock-ahead' && !provider)
+      throw new Error('A clock-ahead recovery needs the provider');
+    if (attempt === 0 && provider) await removeOwnHeads(provider, vaultId, from, reason);
     const to = options.newDeviceId?.() ?? randomUUID();
     let next = reissueWrites(captured.state, {
       from,

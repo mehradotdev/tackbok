@@ -409,37 +409,41 @@ describe('roster expiry and head pruning (P11)', () => {
     });
   });
 
-  test('only the head this device took in is pruned, not another file under that ID', async () => {
+  test('an expired ID loses only the head taken in, never another file under it', async () => {
     const [a, b] = [device(), device()];
     await sync(a);
     await addEntry(b, 'from-b');
     await sync(b);
-    // A leftover older head file under B's ID, pointing elsewhere (a race).
+    // Under B's ID: a leftover older file (a race), and a newer one whose
+    // snapshot cannot be read, so A never takes it in.
     const [bHead] = provider
       .physicalHeads(VAULT)
       .filter((listed) => listed.head?.deviceId === deviceIdOf(b));
     provider.injectPhysicalHead({
       ...bHead.head!,
       deviceSequence: 0,
-      snapshotId: 'f'.repeat(64),
+      snapshotId: 'e'.repeat(64),
     });
     clock += 200 * DAY;
     await addEntry(a, 'e1');
-    // A takes B's head in during this pass; B is expired against A's newest
-    // time, so the cleanup after A's publication prunes that head only.
     expect((await sync(a)).status).toBe('published');
-    expect(texts(a)).toEqual(['e1:Text e1', 'from-b:Text from-b']);
-    const left = provider.physicalHeads(VAULT).map((listed) => listed.head!);
-    expect(left.map((head) => head.deviceId).sort()).toEqual(
-      [deviceIdOf(a), deviceIdOf(b)].sort(),
-    );
-    expect(left.find((head) => head.deviceId === deviceIdOf(b))!.snapshotId).toBe(
-      'f'.repeat(64),
-    );
-    // B, back, takes the leftover for a stale listing and publishes.
+    provider.injectPhysicalHead({
+      ...bHead.head!,
+      deviceSequence: 9,
+      snapshotId: 'f'.repeat(64),
+    });
     clock += 1000;
-    expect((await sync(b)).status).toBe('published');
-    expect(texts(b)).toEqual(['e1:Text e1', 'from-b:Text from-b']);
+    await addEntry(a, 'e2');
+    expect((await sync(a)).status).toBe('published');
+    expect(texts(a)).toEqual(['e1:Text e1', 'e2:Text e2', 'from-b:Text from-b']);
+    const left = provider.physicalHeads(VAULT).map((listed) => listed.head!);
+    expect(left.map((head) => head.snapshotId).sort()).toEqual(
+      [
+        left.find((head) => head.deviceId === deviceIdOf(a))!.snapshotId,
+        'e'.repeat(64),
+        'f'.repeat(64),
+      ].sort(),
+    );
   });
 });
 
@@ -942,6 +946,137 @@ describe('identity and clocks', () => {
         'Edited on the copy',
         'Edited on the original',
       ]);
+  });
+
+  test('a copy behind the original deletes only its own older file, and never the newest head', async () => {
+    const a = device();
+    await addEntry(a, 'e1');
+    await sync(a);
+    const id = deviceIdOf(a);
+    const [first] = provider.physicalHeads(VAULT);
+    const copy = device({ database: devices.clone(a.database) });
+    const second = device({ database: devices.clone(a.database) });
+    // The copy's record names the original's first snapshot, which is still
+    // the only head: leaving, the copy must keep it.
+    await newDevice(copy, 'another-install');
+    expect(provider.physicalHeads(VAULT).map((head) => head.head!.snapshotId)).toEqual([
+      first.head!.snapshotId,
+    ]);
+    // A second copy, once the original has moved on and an older file of
+    // that first snapshot is still listed below it: that file goes, the
+    // original's newest stays and it syncs on.
+    clock += 1000;
+    await addEntry(a, 'e2');
+    await sync(a);
+    provider.injectPhysicalHead(first.head!);
+    const filesOf = () =>
+      provider.physicalHeads(VAULT).filter((head) => head.head?.deviceId === id);
+    expect(filesOf()).toHaveLength(2);
+    await newDevice(second, 'another-install');
+    const [left] = filesOf();
+    expect(filesOf()).toHaveLength(1);
+    expect(left.head!.snapshotId).not.toBe(first.head!.snapshotId);
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+  });
+
+  test('a copy paused for another install stays paused when other devices publish', async () => {
+    const a = device();
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    clock += 1000;
+    await addEntry(a, 'e1');
+    await sync(a);
+    expect(await sync(copy)).toMatchObject({ reason: 'ambiguous-device-head' });
+    const other = device();
+    await addEntry(other, 'e2');
+    await sync(other);
+    clock += 1000;
+    let result: unknown;
+    const made = await requests(async () => {
+      result = await sync(copy);
+    });
+    expect(result).toMatchObject({
+      status: 'attention',
+      reason: 'ambiguous-device-head',
+    });
+    // It waits for the user: not even the heads are listed again.
+    expect(count(made, 'list-heads')).toBe(0);
+  });
+
+  test('two files under one ID at one sequence: the copy that leaves deletes its own, and the original syncs on', async () => {
+    const a = device();
+    await addEntry(a, 'e1', { text_content: 'Shared' });
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    const id = deviceIdOf(a);
+    clock += 1000;
+    await addEntry(a, 'e1', { text_content: 'Edited on the original' });
+    await sync(a);
+    // A race: the copy lists no head under the ID and creates a second file
+    // at the same sequence.
+    const [original] = provider.physicalHeads(VAULT);
+    provider.removeDeviceHeadForTest(VAULT, id);
+    clock += 1000;
+    await addEntry(copy, 'e2', { text_content: 'Written on the copy' });
+    expect((await sync(copy)).status).toBe('published');
+    provider.injectPhysicalHead(original.head!);
+    const filesOf = () =>
+      provider.physicalHeads(VAULT).filter((head) => head.head?.deviceId === id);
+    expect(filesOf()).toHaveLength(2);
+    for (const target of [a, copy])
+      expect(await sync(target)).toMatchObject({ reason: 'ambiguous-device-head' });
+    // The copy continues as a new device and deletes its own file only.
+    await newDevice(copy, 'another-install');
+    copy.stateStore.clearPause(VAULT, 'connection');
+    expect(filesOf().map((head) => head.head!.snapshotId)).toEqual([
+      original.head!.snapshotId,
+    ]);
+    // The original's file is the only one again: its pause clears by itself
+    // and it goes on under its ID.
+    clock += 1000;
+    expect((await sync(copy)).status).toBe('published');
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+    clock += 1000;
+    await sync(copy);
+    for (const target of [a, copy])
+      expect(texts(target)).toEqual([
+        'e1:Edited on the original',
+        'e2:Written on the copy',
+      ]);
+  });
+
+  test('a leftover file under its own ID at a lower sequence is deleted by the install that owns the ID', async () => {
+    const a = device();
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    const id = deviceIdOf(a);
+    // The copy, not seeing the original's file, creates a second one ahead.
+    const [original] = provider.physicalHeads(VAULT);
+    provider.removeDeviceHeadForTest(VAULT, id);
+    clock += 1000;
+    await addEntry(copy, 'e1');
+    await sync(copy);
+    provider.injectPhysicalHead(original.head!);
+    // The original pauses: its ID has a newer head it did not publish.
+    expect(await sync(a)).toMatchObject({ reason: 'ambiguous-device-head' });
+    // The copy owns the ID now; its daily cleanup deletes the leftover. (On
+    // Drive a publication updates one file and leaves the other; the fake
+    // replaces both, so this pass publishes nothing.)
+    clock += DAY;
+    expect((await sync(copy)).status).toBe('up-to-date');
+    const files = provider
+      .physicalHeads(VAULT)
+      .filter((head) => head.head?.deviceId === id);
+    expect(files).toHaveLength(1);
+    expect(files[0].head!.snapshotId).not.toBe(original.head!.snapshotId);
+    // The original leaves as a new device and nothing is lost.
+    await newDevice(a, 'another-install');
+    a.stateStore.clearPause(VAULT, 'connection');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    expect(texts(a)).toEqual(['e1:Text e1']);
   });
 
   test("a stale listing of this device's own older head is not taken for another install", async () => {
