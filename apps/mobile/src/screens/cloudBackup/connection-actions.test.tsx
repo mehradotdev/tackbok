@@ -465,6 +465,14 @@ test.each(
   expect(buttons).toHaveLength(1);
   await act(async () => buttons[0].props.onPress());
   expect(observedRecovery()).toBe(EXPECTED_RECOVERY[action]);
+  // Each visit counts the notice once; a choice counts once it is committed,
+  // so actions that only open a confirmation are not counted yet.
+  const opensConfirmation =
+    action === 'replace-backup' || action === 'review-erase-device';
+  expect(mockTrack.mock.calls).toEqual([
+    ['cloud_sync_attention_shown', { reason }],
+    ...(opensConfirmation ? [] : [['cloud_sync_attention_action', { reason, action }]]),
+  ]);
 });
 
 test('merge errors never offer a button that runs the same merge again', () => {

@@ -18,6 +18,8 @@ const mockConstructor = jest.fn();
 const mockKv = new Map<string, string>();
 let mockAppIcon = 'Classic';
 let mockCloudSync = 'off';
+let mockKvGet: ((key: string) => Promise<string | null>) | null = null;
+let mockCloudSyncRead: (() => Promise<string>) | null = null;
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: {
     getState: () => ({
@@ -38,7 +40,8 @@ jest.mock('~/lib/settings', () => ({
 }));
 jest.mock('~/db/queries', () => ({
   getEntryStats: () => mockStats,
-  getCloudSyncState: async () => mockCloudSync,
+  getCloudSyncState: async () =>
+    mockCloudSyncRead ? mockCloudSyncRead() : mockCloudSync,
 }));
 jest.mock('~/lib/appIcon', () => ({
   useAppIconStore: {
@@ -51,7 +54,8 @@ jest.mock('~/lib/i18n/store', () => ({
 }));
 jest.mock('~/lib/kvStorage', () => ({
   kvStorage: {
-    getItem: async (key: string) => mockKv.get(key) ?? null,
+    getItem: async (key: string) =>
+      mockKvGet ? mockKvGet(key) : (mockKv.get(key) ?? null),
     setItem: async (key: string, value: string) => {
       mockKv.set(key, value);
     },
@@ -138,6 +142,8 @@ beforeEach(() => {
   mockKv.clear();
   mockAppIcon = 'Classic';
   mockCloudSync = 'off';
+  mockKvGet = null;
+  mockCloudSyncRead = null;
 });
 
 afterEach(() => {
@@ -534,4 +540,43 @@ test('no snapshot day is stored without consent', async () => {
   mockAppStateListener('active');
   await settle();
   expect(mockKv.size).toBe(0);
+});
+
+test('revoking while the snapshot day loads stores nothing and re-enabling still sends it', async () => {
+  const stored = deferred<string | null>();
+  mockKvGet = () => stored.promise;
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  consent(false);
+  stored.resolve(null);
+  await settle();
+  expect(mockKv.size).toBe(0);
+  expect(appOpened()).toEqual([]);
+  mockKvGet = null;
+  consent(true);
+  await settle();
+  expect(appOpened().at(-1)).toMatchObject({
+    reason: 'consent_enabled',
+    theme: 'forest',
+  });
+  expect(mockKv.get('analytics-settings-snapshot-day')).toBeDefined();
+});
+
+test('a failed settings read leaves the day unclaimed for the next visit', async () => {
+  mockCloudSyncRead = async () => {
+    throw new Error('database locked');
+  };
+  mockEnabled = true;
+  const a = load();
+  a.initAnalytics();
+  await settle();
+  expect(appOpened()[0]).not.toHaveProperty('theme');
+  expect(mockKv.size).toBe(0);
+  mockCloudSyncRead = null;
+  mockAppStateListener('background');
+  mockAppStateListener('active');
+  await settle();
+  expect(appOpened()[1]).toMatchObject({ reason: 'foreground', theme: 'forest' });
 });

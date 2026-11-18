@@ -164,17 +164,30 @@ function localDay(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-/** True once per local day; callers resolving together cannot both claim it. */
-async function claimSnapshotDay(today: string): Promise<boolean> {
+/** Whether today's snapshot is still unsent. Claim it with claimSnapshotDay. */
+async function isSnapshotDue(
+  today: string,
+  expectedGeneration: number,
+): Promise<boolean> {
   if (!snapshotDayLoaded) {
     snapshotDayLoad ??= kvStorage.getItem(SNAPSHOT_DAY_KEY).catch(() => null);
     const stored = await snapshotDayLoad;
+    // Revoked meanwhile: forgetSnapshotDay reset this state, so leave it alone.
+    if (!hasConsent(expectedGeneration)) return false;
     if (!snapshotDayLoaded) {
       snapshotDayLoaded = true;
       lastSnapshotDay = stored;
     }
   }
-  if (lastSnapshotDay === today) return false;
+  return lastSnapshotDay !== today;
+}
+
+/**
+ * Synchronous, and called right before capture: of visits that read a snapshot
+ * together only one sends it, and nothing is stored after a revocation.
+ */
+function claimSnapshotDay(today: string, expectedGeneration: number): boolean {
+  if (!hasConsent(expectedGeneration) || lastSnapshotDay === today) return false;
   lastSnapshotDay = today;
   kvStorage.setItem(SNAPSHOT_DAY_KEY, today).catch((error) => {
     console.warn('Failed to store the analytics snapshot day:', error);
@@ -248,15 +261,18 @@ async function captureAppOpened(
   try {
     const stats = await getEntryStats();
     if (!hasConsent(expectedGeneration)) return;
+    const today = localDay(timestamp);
     let snapshot: SettingsSnapshot | null = null;
-    if (await claimSnapshotDay(localDay(timestamp))) {
+    if (await isSnapshotDue(today, expectedGeneration)) {
       try {
         snapshot = await readSettingsSnapshot();
       } catch (error) {
+        // Unclaimed, so the next visit today tries again.
         console.warn('Failed to read the analytics settings snapshot:', error);
       }
     }
     if (!hasConsent(expectedGeneration)) return;
+    if (snapshot && !claimSnapshotDay(today, expectedGeneration)) snapshot = null;
     capture({
       event: 'app_opened',
       timestamp,
