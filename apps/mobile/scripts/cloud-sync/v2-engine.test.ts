@@ -409,7 +409,7 @@ describe('roster expiry and head pruning (P11)', () => {
     });
   });
 
-  test('an expired ID loses the head taken in and older files, never one not taken in', async () => {
+  test('an expired ID loses only the head taken in, never another file under it', async () => {
     const [a, b] = [device(), device()];
     await sync(a);
     await addEntry(b, 'from-b');
@@ -440,6 +440,7 @@ describe('roster expiry and head pruning (P11)', () => {
     expect(left.map((head) => head.snapshotId).sort()).toEqual(
       [
         left.find((head) => head.deviceId === deviceIdOf(a))!.snapshotId,
+        'e'.repeat(64),
         'f'.repeat(64),
       ].sort(),
     );
@@ -945,6 +946,62 @@ describe('identity and clocks', () => {
         'Edited on the copy',
         'Edited on the original',
       ]);
+  });
+
+  test('a copy behind the original deletes only its own older file, and never the newest head', async () => {
+    const a = device();
+    await addEntry(a, 'e1');
+    await sync(a);
+    const id = deviceIdOf(a);
+    const [first] = provider.physicalHeads(VAULT);
+    const copy = device({ database: devices.clone(a.database) });
+    const second = device({ database: devices.clone(a.database) });
+    // The copy's record names the original's first snapshot, which is still
+    // the only head: leaving, the copy must keep it.
+    await newDevice(copy, 'another-install');
+    expect(provider.physicalHeads(VAULT).map((head) => head.head!.snapshotId)).toEqual([
+      first.head!.snapshotId,
+    ]);
+    // A second copy, once the original has moved on and an older file of
+    // that first snapshot is still listed below it: that file goes, the
+    // original's newest stays and it syncs on.
+    clock += 1000;
+    await addEntry(a, 'e2');
+    await sync(a);
+    provider.injectPhysicalHead(first.head!);
+    const filesOf = () =>
+      provider.physicalHeads(VAULT).filter((head) => head.head?.deviceId === id);
+    expect(filesOf()).toHaveLength(2);
+    await newDevice(second, 'another-install');
+    const [left] = filesOf();
+    expect(filesOf()).toHaveLength(1);
+    expect(left.head!.snapshotId).not.toBe(first.head!.snapshotId);
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+  });
+
+  test('a copy paused for another install stays paused when other devices publish', async () => {
+    const a = device();
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    clock += 1000;
+    await addEntry(a, 'e1');
+    await sync(a);
+    expect(await sync(copy)).toMatchObject({ reason: 'ambiguous-device-head' });
+    const other = device();
+    await addEntry(other, 'e2');
+    await sync(other);
+    clock += 1000;
+    let result: unknown;
+    const made = await requests(async () => {
+      result = await sync(copy);
+    });
+    expect(result).toMatchObject({
+      status: 'attention',
+      reason: 'ambiguous-device-head',
+    });
+    // It waits for the user: not even the heads are listed again.
+    expect(count(made, 'list-heads')).toBe(0);
   });
 
   test('two files under one ID at one sequence: the copy that leaves deletes its own, and the original syncs on', async () => {

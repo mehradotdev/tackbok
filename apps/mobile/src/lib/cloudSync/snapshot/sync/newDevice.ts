@@ -84,24 +84,26 @@ async function removeOwnHeads(
       .where(and(eq(syncHeads.vault_id, vaultId), eq(syncHeads.device_id, from))),
   );
   const mine = new Set([own?.snapshotId, own?.pending].filter(Boolean));
-  const listed = (await provider.listHeads(vaultId, true)).filter(
-    (candidate) =>
-      candidate.head?.deviceId === from &&
-      Number.isSafeInteger(candidate.head.deviceSequence),
-  );
-  const sequence = (candidate: (typeof listed)[number]) =>
-    Number(candidate.head!.deviceSequence);
-  const newest = Math.max(...listed.map(sequence));
-  const atNewest = new Set(
-    listed
-      .filter((candidate) => sequence(candidate) === newest)
-      .map((c) => c.head!.snapshotId),
-  );
-  for (const candidate of listed) {
-    if (!mine.has(String(candidate.head!.snapshotId))) continue;
-    const unread = sequence(candidate) < newest || atNewest.size > 1;
-    if (reason === 'clock-ahead' || unread)
-      await provider.deleteDeviceHead(vaultId, candidate.physicalId);
+  // Listed again before each delete: another install may have published
+  // into a file, or removed its own, since the last listing.
+  for (const snapshotId of mine) {
+    const listed = (await provider.listHeads(vaultId, true)).filter(
+      (candidate) =>
+        candidate.head?.deviceId === from &&
+        Number.isSafeInteger(candidate.head.deviceSequence),
+    );
+    const sequence = (candidate: (typeof listed)[number]) =>
+      Number(candidate.head!.deviceSequence);
+    const newest = Math.max(...listed.map(sequence));
+    const atNewest = listed.filter((candidate) => sequence(candidate) === newest);
+    for (const candidate of listed) {
+      if (String(candidate.head!.snapshotId) !== snapshotId) continue;
+      const unread =
+        sequence(candidate) < newest ||
+        new Set(atNewest.map((c) => c.head!.snapshotId)).size > 1;
+      if (reason === 'clock-ahead' || unread)
+        await provider.deleteDeviceHead(vaultId, candidate.physicalId);
+    }
   }
 }
 

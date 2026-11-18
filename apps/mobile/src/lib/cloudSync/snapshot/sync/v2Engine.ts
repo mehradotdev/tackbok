@@ -123,6 +123,8 @@ const UNREADABLE_RETRY_MS = 24 * 60 * 60 * 1000;
  * the listed heads change.
  */
 export const NO_READABLE_HEAD = 'no-readable-device-head';
+/** The error class of the pause for two head files at one sequence under this ID. */
+const SAME_SEQUENCE = 'same-sequence-different-snapshot';
 
 export interface V2EngineOptions {
   vaultId: string;
@@ -263,7 +265,7 @@ export class V2SyncEngine {
     if (ambiguous.has(deviceId))
       throw new AttentionError(
         'ambiguous-device-head',
-        'same-sequence-different-snapshot',
+        SAME_SEQUENCE,
       );
     // This device's own head, unreadable, counts as lost: it publishes over it.
     const skipped = unreadable.filter((head) => head.deviceId !== deviceId);
@@ -1043,8 +1045,7 @@ export class V2SyncEngine {
    * - **Heads of devices that left the active roster** (`activeDevices`:
    *   nothing written or published within 180 days of the newest time in
    *   this device's state, or retired). Only a head this device took in
-   *   exactly (its `sync_heads` record names that snapshot; with any older
-   *   file left under that ID, which nobody reads), and only right
+   *   exactly (its `sync_heads` record names that snapshot), and only right
    *   after it published (`published`), so all that head held is in this
    *   device's own head on the provider. Its snapshot then falls to
    *   retention, usually in the same cleanup (it is older than 30 days). A
@@ -1118,13 +1119,11 @@ export class V2SyncEngine {
     const pruned: string[] = [];
     const candidates = heads.filter((head) => {
       const taken = records.get(head.deviceId);
-      // The head taken in, or a leftover file under that ID below it.
+      // Only the head taken in. An older file under that ID can hold a
+      // cloned install's other writes: once this head is gone it is the
+      // newest, gets taken in like any head, and is pruned in its turn.
       const gone =
-        published &&
-        expired.has(head.deviceId) &&
-        taken !== undefined &&
-        (taken.snapshotId === head.snapshotId ||
-          head.deviceSequence < taken.deviceSequence);
+        published && expired.has(head.deviceId) && taken?.snapshotId === head.snapshotId;
       const leftover =
         owned &&
         head.deviceId === deviceId &&
@@ -1234,11 +1233,13 @@ export class V2SyncEngine {
       return durable.pauseContext !== this.buildContext();
     // Nothing could be read: try again once the heads change (a broken
     // device published again), without waiting for "Replace". The same for
-    // another install using this ID: once the other one leaves (its file
-    // deleted, `removeOwnHeads`), this one's head is its own again.
+    // two files at one sequence under this ID: once the other install
+    // leaves (its file deleted, `removeOwnHeads`), this one's head is its
+    // own again. The other identity pauses wait for the user: no head
+    // change makes them safe by itself.
     if (
       durable.pauseReason !== 'merge-failed' &&
-      durable.pauseReason !== 'ambiguous-device-head' &&
+      durable.lastErrorClass !== SAME_SEQUENCE &&
       durable.lastErrorClass !== NO_READABLE_HEAD
     )
       return false;
@@ -1271,7 +1272,7 @@ export class V2SyncEngine {
       if (error.reason === 'unsupported-format') context = this.buildContext();
       else if (
         error.errorClass === NO_READABLE_HEAD ||
-        error.reason === 'ambiguous-device-head'
+        error.errorClass === SAME_SEQUENCE
       )
         try {
           context = await this.joinInput();
