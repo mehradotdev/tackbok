@@ -461,6 +461,8 @@ function seenEntry(state: SyncState, entryId: string, seen: readonly SeenEntry[]
   const entry = state.entries.get(entryId);
   if (
     !entry ||
+    // Deleted meanwhile: its values are kept until compaction, but it is gone.
+    !isLive(entry) ||
     !original ||
     shownItems(entry.title)[0]?.v !== original.text_title ||
     shownItems(entry.text)[0]?.v !== original.text_content ||

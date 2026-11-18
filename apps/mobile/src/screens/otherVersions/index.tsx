@@ -38,8 +38,7 @@ import { groupMembers, keepMessage } from './keepVersion';
 
 /**
  * Entries that were edited on two devices at once, with both versions kept.
- * Lists only groups with a choice to make; `focus` (an entry ID) puts that
- * entry's group first.
+ * `focus` (an entry ID) puts that entry's group first.
  */
 export default function OtherVersionsScreen() {
   const router = useRouter();
@@ -58,7 +57,7 @@ export default function OtherVersionsScreen() {
   if (groups.length > 0 && !hadGroups) setHadGroups(true);
   const allDone = !isLoading && !isError && groups.length === 0 && hadGroups;
   const queryClient = useQueryClient();
-  // The entry to keep and the entries the confirmation names for deletion.
+  // The version to keep, and the rest of its group: what the user compared.
   const [pendingKeep, setPendingKeep] = useState<{
     keepId: string;
     kept: Entry;
@@ -119,30 +118,32 @@ export default function OtherVersionsScreen() {
     });
   };
 
-  // One new write of the chosen value (cloud sync v2): the other versions of
-  // that field go everywhere once it syncs. Two devices keeping different
-  // versions at once leave both open, so nothing is lost.
-  // `write` gets what the user compared: if sync changed the versions
-  // meanwhile, nothing is written and the refreshed list shows the new ones.
+  // Runs "Keep this one" or "Keep both": one new synced write. `write` gets
+  // what the user compared: if sync changed the versions meanwhile, nothing
+  // is written and the refreshed list shows the new ones.
   const runChoice = async (write: () => Promise<void>) => {
     if (busyRef.current) return;
     busyRef.current = true;
     setIsBusy(true);
     let outcome: 'done' | 'changed' | 'failed' = 'done';
     try {
-      await write();
-    } catch (error) {
-      if (error instanceof VersionsChangedError) outcome = 'changed';
-      else {
-        console.error('Failed to keep a version', error);
-        outcome = 'failed';
+      try {
+        await write();
+      } catch (error) {
+        if (error instanceof VersionsChangedError) outcome = 'changed';
+        else {
+          console.error('Failed to keep a version', error);
+          outcome = 'failed';
+        }
       }
+      await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+      await refetch();
+    } finally {
+      // Even if the reload fails, the screen stays usable.
+      busyRef.current = false;
+      setIsBusy(false);
+      setPendingKeep(null);
     }
-    await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
-    await refetch();
-    busyRef.current = false;
-    setIsBusy(false);
-    setPendingKeep(null);
     if (outcome === 'changed') reportVersionsChanged(t);
     if (outcome === 'failed') toast.error(t('mood.failedToSaveEntry'));
   };
@@ -235,15 +236,21 @@ export default function OtherVersionsScreen() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('cloud.conflicts.keepThisOneTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingKeep ? keepMessage(t, pendingKeep.others) : null}
+              {pendingKeep ? keepMessage(t, pendingKeep.kept, pendingKeep.others) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isBusy} onPress={() => setPendingKeep(null)}>
               <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
-            <AlertDialogAction disabled={isBusy} onPress={() => void handleKeepConfirm()}>
-              <Text>{t('cloud.conflicts.keepConfirm')}</Text>
+            {/* Longer than "Delete" was: wraps at large text sizes rather than clipped. */}
+            <AlertDialogAction
+              className="h-auto min-h-10 py-2"
+              disabled={isBusy}
+              onPress={() => void handleKeepConfirm()}>
+              <Text className="shrink text-center">
+                {t('cloud.conflicts.keepConfirm')}
+              </Text>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

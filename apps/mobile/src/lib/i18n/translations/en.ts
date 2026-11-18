@@ -924,7 +924,7 @@ export const en = {
   'cloud.conflicts.keepOtherVersion': 'Keep this other version',
   'cloud.conflicts.keepThisOneTitle': 'Keep this version?',
   'cloud.conflicts.keepThisOneMessage':
-    'This version will be kept on all your devices, instead of the {count} others.',
+    'This version will be kept on all your devices, instead of the others ({count}).',
   // Confirm button of "Keep this version?" on Other versions.
   'cloud.conflicts.keepConfirm': 'Keep this version',
   // Button under another version on Other versions: it becomes a new entry; the entry keeps its shown version.

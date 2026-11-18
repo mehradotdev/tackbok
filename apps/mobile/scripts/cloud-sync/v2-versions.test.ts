@@ -481,3 +481,39 @@ test('"Keep both" writes nothing if a version arrived after the screen listed th
   ).rejects.toBeInstanceOf(versions.VersionsChangedError);
   expect(a.sqlite.query('SELECT COUNT(*) AS n FROM entries').all()).toEqual([{ n: 1 }]);
 });
+
+test('a choice on an entry deleted meanwhile is refused as changed, writing nothing', async () => {
+  await write(a, T, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'Base'), { now: T }),
+  );
+  await syncFrom(b, a, T + 1);
+  await write(a, T + 2, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'A'), { now: T + 2 }),
+  );
+  await write(b, T + 3, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'B'), { now: T + 3 }),
+  );
+  await syncFrom(a, b, T + 4);
+  const [group] = await on(a, T + 5, versions.listVersionGroups);
+  const seen = [group.original, ...group.versions];
+  // B, having seen both versions, deletes the entry; A takes it in.
+  await syncFrom(b, a, T + 6);
+  await write(b, T + 7, (tx) =>
+    repositories.deleteEntryInTransaction(tx, 'e1', { now: T + 7 }),
+  );
+  await syncFrom(a, b, T + 8);
+  expect(a.sqlite.query('SELECT COUNT(*) AS n FROM entries').all()).toEqual([{ n: 0 }]);
+  for (const choose of [
+    async () =>
+      void (await versions.keepBothVersions(
+        group.versions[0].note_id,
+        seen,
+        simMediaFiles,
+      )),
+    () => versions.keepEntryVersion(group.original.note_id, seen, simMediaFiles),
+  ])
+    await expect(on(a, T + 9, choose)).rejects.toBeInstanceOf(
+      versions.VersionsChangedError,
+    );
+  expect(a.sqlite.query('SELECT COUNT(*) AS n FROM entries').all()).toEqual([{ n: 0 }]);
+});

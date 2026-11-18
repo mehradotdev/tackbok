@@ -886,11 +886,11 @@ export const he: Translations = {
   'cloud.conflicts.keepOtherVersion': 'שמירת הגרסה האחרת הזו',
   'cloud.conflicts.keepThisOneTitle': 'לשמור את הגרסה הזו?',
   'cloud.conflicts.keepThisOneMessage':
-    'הגרסה הזו תישמר בכל המכשירים שלך במקום {count} הגרסאות האחרות.',
+    'הגרסה הזו תישמר בכל המכשירים שלך במקום {count} גרסאות אחרות.',
   'cloud.conflicts.keepConfirm': 'שמירת הגרסה הזו',
   'cloud.conflicts.keepBoth': 'שמירת שתיהן',
   'cloud.conflicts.keepBothHint':
-    'הגרסה הזו תישמר כרשומה חדשה עם אותם תאריך, מצב רוח ותגיות. הקבצים המצורפים יישארו ברשומה המקורית.',
+    'הגרסה הזו תישמר כרשומה חדשה עם אותו תאריך, אותו מצב רוח ואותן תגיות. הקבצים המצורפים יישארו ברשומה המקורית.',
   'cloud.conflicts.keptBoth': 'נשמרה כרשומה חדשה.',
   'cloud.conflicts.attachmentCount': 'קבצים מצורפים: {count}',
   'cloud.conflicts.entryReturned':

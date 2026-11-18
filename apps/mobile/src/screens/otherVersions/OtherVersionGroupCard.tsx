@@ -118,6 +118,7 @@ export function OtherVersionGroupCard({
                       }
                       accessibilityHint={keepMessage(
                         t,
+                        entry,
                         members.filter((member) => member !== entry),
                       )}
                       disabled={disabled}
@@ -129,7 +130,7 @@ export function OtherVersionGroupCard({
                     {!isOriginal && (
                       <Button
                         variant="ghost"
-                        className="h-auto min-h-10 max-w-full py-2"
+                        className="h-auto min-h-10 max-w-full self-start py-2"
                         accessibilityHint={t('cloud.conflicts.keepBothHint')}
                         disabled={disabled}
                         onPress={() => onKeepBoth(entry)}>

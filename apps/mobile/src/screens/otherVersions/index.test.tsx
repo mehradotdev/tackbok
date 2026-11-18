@@ -457,6 +457,8 @@ test('nothing is marked seen while the list loads or after a failed load', () =>
   render({ isLoading: true });
   render({ isError: true });
   expect(mockMarkSeen).not.toHaveBeenCalled();
+});
+
 test('the confirmation keeps rather than deletes', () => {
   render({ data: [{ original, versions: [copy] }] });
   act(() => keepButtons()[0].props.onPress());

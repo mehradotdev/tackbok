@@ -279,7 +279,7 @@ export const pluralMessages = {
     'cloud.conflicts.keepThisOneMessage_two':
       'הגרסה הזו תישמר בכל המכשירים שלך במקום שתי הגרסאות האחרות.',
     'cloud.conflicts.keepThisOneMessage_other':
-      'הגרסה הזו תישמר בכל המכשירים שלך במקום {count} הגרסאות האחרות.',
+      'הגרסה הזו תישמר בכל המכשירים שלך במקום {count} גרסאות אחרות.',
     'cloud.conflicts.entriesReturned_one':
       'רשומה שמחקת במכשיר אחד נערכה במכשיר אחר, ולכן הגרסה הערוכה נשמרה.',
     'cloud.conflicts.entriesReturned_two':
