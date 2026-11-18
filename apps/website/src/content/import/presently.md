@@ -13,7 +13,7 @@ sources:
     url: https://github.com/alisonthemonster/Presently
 ---
 
-Presently is a free gratitude journal for Android. It can export your entries as a CSV file, and Tackbok can read that file. This guide takes about five minutes, and your Presently journal stays where it is.
+Presently is a free gratitude journal for Android. It can export your entries as a CSV file, and Tackbok can read that file. Exporting doesn't change your Presently journal.
 
 ## What comes across
 
@@ -25,9 +25,9 @@ Presently's export has two columns: the date of each entry and its text. Tackbok
 | Entry date                                    | Imported as the entry date (Presently saves only the day, so the time is set to the start of that day) |
 | Reminders, theme, app lock and other settings | Not in the export. Set them up again in Tackbok.                                                       |
 
-Presently entries don't have photos, tags or moods, so nothing else is missing. After the import you can add photos, voice memos, moods and tags to any entry in Tackbok.
+Presently entries don't have photos, tags or moods, so nothing else is missing. After the import you can add photos, voice notes, moods and tags to any entry in Tackbok.
 
-Tackbok skips a row if its text is empty or its date can't be read. It also skips an entry when Tackbok already has an imported entry from that day with exactly the same text, so importing the same file twice won't create duplicates.
+Tackbok leaves out rows whose text is empty or whose date can't be read. It also skips an entry when Tackbok already has one from an earlier Presently import with the same day and exactly the same text, so importing the same file twice won't create duplicates.
 
 ## Step 1: Export your entries from Presently
 
@@ -68,12 +68,12 @@ Presently doesn't have an iPhone app, so this file is the way to bring your Pres
 
 <!-- Screenshot slot (#194): Tackbok Settings › Backup & restore, showing "Import from Presently app". -->
 
-Keep Tackbok open until the import finishes. A summary then shows how many entries were imported and how many were skipped.
+Keep Tackbok open until the import finishes. A summary then shows how many new entries were imported, and how many were skipped as duplicates.
 
 ## If something goes wrong
 
 - **"Invalid CSV format: missing entryDate or entryContent columns":** the file isn't a Presently export, or it was changed. If you opened it in a spreadsheet app and saved it again, export a fresh copy from Presently and import that instead.
 - **"CSV file is empty or has no data rows":** the file has no entries. Check that you picked the right file.
-- **Fewer entries than you expected:** Tackbok skips entries it already has and rows with empty text, so the summary may show some skipped entries. This is normal after a second import.
+- **Fewer entries than you expected:** entries Tackbok already has are counted under **Skipped duplicates**, which is normal after a second import. Rows with empty text or an unreadable date are left out and aren't counted.
 
 Still stuck? Email [tackbok.support@mehra.dev](mailto:tackbok.support@mehra.dev).

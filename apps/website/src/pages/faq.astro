@@ -79,7 +79,7 @@ const faqs: {
       'Export your journal from the other app, then import the file in Tackbok under Settings › Backup & restore. Presently exports a CSV file with your entry dates and text. The Gratitude app exports a ZIP file, and Tackbok brings across its entries, photos, and voice recordings. The step-by-step guides explain what comes across and what does not.',
     links: [
       { href: '/import/presently', label: 'Import from Presently' },
-      { href: '/import/gratitude-app', label: 'Import from the Gratitude app' },
+      { href: '/import/gratitude-app', label: 'Import from Gratitude app' },
     ],
   },
   {
@@ -162,7 +162,7 @@ const structuredData = {
                         <a
                           class="font-[750] text-sage-deep underline underline-offset-4 hover:text-ink"
                           href={link.href}>
-                          {link.label} →
+                          {link.label} <span aria-hidden="true">→</span>
                         </a>
                       </li>
                     ))}

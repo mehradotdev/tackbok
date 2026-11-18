@@ -286,12 +286,12 @@
     }
 
     & table {
-      @apply block w-full border-collapse overflow-x-auto text-[0.97rem];
+      @apply w-full border-collapse text-[0.97rem];
     }
 
     & th,
     & td {
-      @apply border-b border-line px-3 py-2.5 text-left align-top;
+      @apply border-b border-line px-3 py-2.5 text-left align-top break-words;
     }
 
     & th {

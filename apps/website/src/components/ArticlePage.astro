@@ -46,11 +46,15 @@ const lastCheckedIso = lastChecked.toISOString().slice(0, 10);
         <slot />
       </div>
 
-      <aside class="mt-14 border-t border-line pt-6 text-[0.92rem] text-ink-soft">
-        <h2 class="mb-3 text-base font-bold text-ink">Sources</h2>
+      <aside
+        class="mt-14 border-t border-line pt-6 text-[0.92rem] text-ink-soft"
+        aria-labelledby="sources-heading">
+        <h2 id="sources-heading" class="mb-3 text-base font-bold text-ink">
+          Sources
+        </h2>
         <p class="mb-3">
           Details about other apps come from these pages, checked on {lastCheckedLabel}.
-          Apps change, so their menus may look different. Tell us at
+          Apps change, so their menus may look different. Tell us at{' '}
           <a class="underline underline-offset-4" href="mailto:tackbok.support@mehra.dev">
             tackbok.support@mehra.dev
           </a>{' '}
@@ -65,6 +69,7 @@ const lastCheckedIso = lastChecked.toISOString().slice(0, 10);
                 rel="noopener noreferrer"
                 target="_blank">
                 {source.label}
+                <span class="sr-only">(opens in a new tab)</span>
               </a>
             </li>
           ))}
