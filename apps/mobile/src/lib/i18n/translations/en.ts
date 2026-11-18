@@ -1046,10 +1046,6 @@ export const en = {
     'Part of your backup is missing from Google Drive. Sync has stopped.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
     "Your backup has two different copies of one device's changes. Sync has stopped.",
-  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Changes from too many devices are waiting to be combined. Sync has stopped.',
-  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    "Two items in your journal couldn't be combined safely. Sync has stopped. You can export a copy from Settings.",
   // Another device's journal changes conflict in a way the merge cannot resolve.
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     "Tackbok couldn't combine changes from another device with this one. Nothing on this device was changed. Sync has stopped. Updating Tackbok on your devices may help. You can export a copy from Settings.",
@@ -1071,8 +1067,6 @@ export const en = {
     'Your journal and its backup were deleted everywhere. Erase this device to finish.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     "Deleting your backup didn't finish. Some of it may still be in Google Drive.",
-  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'Sync stopped while clearing out old backup data, to keep your current backup safe.',
   'cloud.chooseAGoogleAccountToReconnect': 'Choose a Google account to reconnect',
   'cloud.updateTackbok': 'Update Tackbok',
   'cloud.manageGoogleDriveStorage': 'Manage Google Drive storage',

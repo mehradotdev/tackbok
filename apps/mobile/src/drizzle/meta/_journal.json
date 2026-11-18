@@ -85,6 +85,13 @@
       "when": 1794966173602,
       "tag": "0011_sync_v1_removal",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1794994043520,
+      "tag": "0012_retire_v1_pause_reasons",
+      "breakpoints": true
     }
   ]
 }

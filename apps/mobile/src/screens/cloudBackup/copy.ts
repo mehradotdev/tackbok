@@ -284,10 +284,6 @@ export function attentionReasonMessage(
     'invalid-remote-snapshot': t('cloud.aCloudSnapshotFailedItsSafetyChecks'),
     'head-snapshot-missing': t('cloud.aDeviceBackupPointsToAMissingSnapshot'),
     'ambiguous-device-head': t('cloud.twoDifferentBackupsClaimTheSameDeviceVersion'),
-    'frontier-too-wide': t('cloud.tooManyIndependentDeviceBackupsNeedConsolidation'),
-    'derived-id-collision': t(
-      'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier',
-    ),
     'merge-failed': t('cloud.changesFromAnotherDeviceCouldNotBeCombined'),
     'local-storage-full': t('cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice'),
     'provider-quota-full': t('cloud.googleDriveDoesNotHaveEnoughFreeStorage'),
@@ -301,7 +297,6 @@ export function attentionReasonMessage(
     'backup-deleted': t('cloud.thisCloudBackupWasDeletedFromAnotherDevice'),
     'journal-deleted': t('cloud.thisJournalWasDeletedEverywhereFromAnotherDevice'),
     'purge-incomplete': t('cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved'),
-    'cleanup-inconsistent': t('cloud.backupCleanupWasStoppedToProtectACurrentSnapshot'),
   };
   return messages[reason];
 }
@@ -324,7 +319,6 @@ export function recoveryActionLabel(
     'retry-verify-backup': syncAgain,
     'repair-from-verified-backup': syncAgain,
     'inspect-repair-backup': syncAgain,
-    'consolidate-backups': syncAgain,
     'export-repair-backup': t('cloud.openSettingsToExport'),
     'free-device-storage': t('cloud.openDeviceSettings'),
     'manage-drive-storage': t('cloud.manageGoogleDriveStorage'),
@@ -336,7 +330,6 @@ export function recoveryActionLabel(
     }),
     'review-erase-device': t('cloud.reviewDeletionAndEraseThisDevice'),
     'resume-deletion': t('cloud.resumeDeletion'),
-    'verify-backup-health': syncAgain,
   };
   return labels[action];
 }

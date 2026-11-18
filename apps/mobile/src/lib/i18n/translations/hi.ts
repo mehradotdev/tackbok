@@ -946,10 +946,6 @@ export const hi = {
     'आपके बैकअप का कुछ हिस्सा Google Drive में नहीं है। सिंक रुक गया है।',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
     'आपके बैकअप में एक ही डिवाइस के बदलावों के दो अलग-अलग रूप हैं। सिंक रुक गया है।',
-  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'बहुत सारे डिवाइस के बदलाव जोड़े जाने का इंतज़ार कर रहे हैं। सिंक रुक गया है।',
-  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'आपकी डायरी के दो आइटम सुरक्षित रूप से जोड़े नहीं जा सके। सिंक रुक गया है। आप सेटिंग्स से एक कॉपी निर्यात कर सकते हैं।',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'ताकबूक किसी दूसरे डिवाइस के बदलावों को इस डिवाइस के साथ जोड़ नहीं सका। इस डिवाइस पर कुछ भी नहीं बदला गया। सिंक रुक गया है। अपने डिवाइस पर ताकबूक अपडेट करने से मदद मिल सकती है। आप सेटिंग्स से एक कॉपी निर्यात कर सकते हैं।',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
@@ -970,8 +966,6 @@ export const hi = {
     'आपकी डायरी और उसका बैकअप हर जगह से हटा दिए गए हैं। पूरा करने के लिए इस डिवाइस को मिटाएं।',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'आपका बैकअप हटाना पूरा नहीं हुआ। हो सकता है उसका कुछ हिस्सा अब भी Google Drive में हो।',
-  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'पुराना बैकअप डेटा साफ़ करते समय सिंक रुक गया, ताकि आपका मौजूदा बैकअप सुरक्षित रहे।',
   'cloud.chooseAGoogleAccountToReconnect': 'पुनः कनेक्ट करने के लिए एक Google खाता चुनें',
   'cloud.updateTackbok': 'ताकबूक को अपडेट करें',
   'cloud.manageGoogleDriveStorage': 'Google Drive भंडारण प्रबंधित करें',

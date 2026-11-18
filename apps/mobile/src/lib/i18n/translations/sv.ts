@@ -966,10 +966,6 @@ export const sv = {
     'En del av din säkerhetskopia saknas i Google Drive. Synkroniseringen har stoppats.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
     'Din säkerhetskopia har två olika versioner av en enhets ändringar. Synkroniseringen har stoppats.',
-  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Ändringar från för många enheter väntar på att slås ihop. Synkroniseringen har stoppats.',
-  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'Två objekt i din dagbok kunde inte slås ihop säkert. Synkroniseringen har stoppats. Du kan exportera en kopia från Inställningar.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok kunde inte slå ihop ändringar från en annan enhet med den här. Inget på den här enheten har ändrats. Synkroniseringen har stoppats. Det kan hjälpa att uppdatera Tackbok på dina enheter. Du kan exportera en kopia från Inställningar.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
@@ -990,8 +986,6 @@ export const sv = {
     'Din dagbok och dess säkerhetskopia har raderats överallt. Radera den här enheten för att slutföra.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'Borttagningen av din säkerhetskopia slutfördes inte. En del av den kan finnas kvar i Google Drive.',
-  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'Synkroniseringen stoppades när gamla säkerhetskopieringsdata rensades, för att skydda din nuvarande säkerhetskopia.',
   'cloud.chooseAGoogleAccountToReconnect': 'Välj ett Google-konto för att återansluta',
   'cloud.updateTackbok': 'Uppdatera Tackbok',
   'cloud.manageGoogleDriveStorage': 'Hantera Google Drive-lagring',

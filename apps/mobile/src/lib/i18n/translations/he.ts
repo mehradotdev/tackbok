@@ -994,10 +994,6 @@ export const he: Translations = {
     'חלק מהגיבוי שלך חסר ב-Google Drive. הסנכרון נעצר.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
     'בגיבוי שלך יש שתי גרסאות שונות של השינויים ממכשיר אחד. הסנכרון נעצר.',
-  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'שינויים מיותר מדי מכשירים ממתינים לאיחוד. הסנכרון נעצר.',
-  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'לא ניתן היה לאחד בבטחה שני פריטים ביומן שלך. הסנכרון נעצר. אפשר לייצא עותק מההגדרות.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok לא הצליח לאחד שינויים ממכשיר אחר עם המכשיר הזה. שום דבר במכשיר הזה לא השתנה. הסנכרון נעצר. עדכון Tackbok במכשירים שלך עשוי לעזור. אפשר לייצא עותק מההגדרות.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
@@ -1018,8 +1014,6 @@ export const he: Translations = {
     'היומן שלך והגיבוי שלו נמחקו בכל מקום. כדי לסיים, יש למחוק את המכשיר הזה.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'מחיקת הגיבוי שלך לא הסתיימה. ייתכן שחלק ממנו עדיין ב-Google Drive.',
-  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'הסנכרון נעצר בזמן ניקוי נתוני גיבוי ישנים, כדי להגן על הגיבוי הנוכחי שלך.',
   'cloud.chooseAGoogleAccountToReconnect': 'בחירת חשבון Google לחיבור מחדש',
   'cloud.updateTackbok': 'עדכון Tackbok',
   'cloud.manageGoogleDriveStorage': 'ניהול האחסון ב-Google Drive',

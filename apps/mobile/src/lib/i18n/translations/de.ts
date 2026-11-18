@@ -1077,10 +1077,6 @@ export const de: Translations = {
     'Ein Teil deiner Sicherung fehlt in Google Drive. Die Synchronisierung wurde angehalten.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
     'Deine Sicherung enthält zwei verschiedene Fassungen der Änderungen eines Geräts. Die Synchronisierung wurde angehalten.',
-  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Änderungen von zu vielen Geräten warten darauf, zusammengeführt zu werden. Die Synchronisierung wurde angehalten.',
-  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'Zwei Einträge in deinem Tagebuch konnten nicht sicher zusammengeführt werden. Die Synchronisierung wurde angehalten. Du kannst in den Einstellungen eine Kopie exportieren.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok konnte Änderungen von einem anderen Gerät nicht mit diesem zusammenführen. Auf diesem Gerät wurde nichts geändert. Die Synchronisierung wurde angehalten. Ein Update von Tackbok auf deinen Geräten kann helfen. Du kannst in den Einstellungen eine Kopie exportieren.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
@@ -1101,8 +1097,6 @@ export const de: Translations = {
     'Dein Tagebuch und seine Sicherung wurden überall gelöscht. Lösche dieses Gerät, um den Vorgang abzuschließen.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'Das Löschen deiner Sicherung wurde nicht abgeschlossen. Ein Teil davon ist möglicherweise noch in Google Drive.',
-  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'Die Synchronisierung wurde beim Entfernen alter Sicherungsdaten angehalten, um deine aktuelle Sicherung zu schützen.',
   'cloud.chooseAGoogleAccountToReconnect':
     'Google-Konto zum erneuten Verbinden auswählen',
   'cloud.updateTackbok': 'Tackbok aktualisieren',

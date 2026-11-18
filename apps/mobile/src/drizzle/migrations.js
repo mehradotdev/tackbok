@@ -14,6 +14,7 @@ import m0008 from './0008_sync_v2_local_schema.sql';
 import m0009 from './0009_sync_v2_vault_binding.sql';
 import m0010 from './0010_sync_v2_heads.sql';
 import m0011 from './0011_sync_v1_removal.sql';
+import m0012 from './0012_retire_v1_pause_reasons.sql';
 
 export default {
   journal,
@@ -30,5 +31,6 @@ export default {
     m0009,
     m0010,
     m0011,
+    m0012,
   },
 };
