@@ -25,12 +25,17 @@ export function ConflictNoticeCard() {
   return <ConflictNotice refreshToken={snapshot} />;
 }
 
+/**
+ * The close button on a notice shown because the choices could not be loaded:
+ * there is nothing to record as seen, so it stays hidden until the app restarts.
+ */
+let failedLoadHidden = false;
+
 function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { items, loadFailed, refresh } = useCloudConflictItems(refreshToken);
-  // A failed load has nothing to record as seen: hidden until the app restarts.
-  const [hiddenFailure, setHiddenFailure] = useState(false);
+  const [hiddenFailure, setHiddenFailure] = useState(failedLoadHidden);
   const [hiding, setHiding] = useState(false);
   const notice = loadFailed && hiddenFailure ? null : conflictNotice(items, loadFailed);
   const visible = notice !== null;
@@ -74,6 +79,7 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
           disabled={hiding}
           onPress={() => {
             if (loadFailed) {
+              failedLoadHidden = true;
               setHiddenFailure(true);
               return;
             }

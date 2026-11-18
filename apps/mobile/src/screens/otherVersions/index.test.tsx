@@ -438,3 +438,9 @@ test('all done is announced again when a later batch is finished in the same vis
   show([]);
   expect(mockAnnounce).toHaveBeenCalledTimes(2);
 });
+
+test('nothing is marked seen while the list loads or after a failed load', () => {
+  render({ isLoading: true });
+  render({ isError: true });
+  expect(mockMarkSeen).not.toHaveBeenCalled();
+});

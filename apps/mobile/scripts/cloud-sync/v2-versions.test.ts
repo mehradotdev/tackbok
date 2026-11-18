@@ -325,7 +325,7 @@ test('the Home notice: seen choices sync, and only a new value from another devi
 
   // Hidden on A: seen there, and on B once it syncs.
   const stamps = await noticeStamps(a, T + 6);
-  await on(a, T + 6, () => versions.markConflictsSeen(stamps, stamps, simMediaFiles));
+  await on(a, T + 6, () => versions.markConflictsSeen(stamps, simMediaFiles));
   expect(await isNew(a, T + 7)).toBe(false);
   await syncFrom(b, a, T + 8);
   expect(await isNew(b, T + 9)).toBe(false);
@@ -334,7 +334,7 @@ test('the Home notice: seen choices sync, and only a new value from another devi
   const generation = () =>
     a.sqlite.query('SELECT ctx_json FROM sync_device').all() as unknown[];
   const before = generation();
-  await on(a, T + 10, () => versions.markConflictsSeen(stamps, stamps, simMediaFiles));
+  await on(a, T + 10, () => versions.markConflictsSeen(stamps, simMediaFiles));
   expect(generation()).toEqual(before);
 
   // A local edit of the shown version is not news on the device that made it.
@@ -353,11 +353,41 @@ test('the Home notice: seen choices sync, and only a new value from another devi
 
   // Seen stamps no longer in an open choice are dropped when it is written again.
   const open = await noticeStamps(a, T + 16);
-  await on(a, T + 16, () => versions.markConflictsSeen(open, open, simMediaFiles));
+  await on(a, T + 16, () => versions.markConflictsSeen(open, simMediaFiles));
   const seen = await on(a, T + 17, versions.readNoticeSeen);
   expect([...seen.seen].sort()).toEqual([...new Set(open.map(versions.stampKey))].sort());
   // The first edits' stamps were replaced, so they are no longer kept.
   for (const stamp of stamps)
     if (!open.some((other) => versions.stampKey(other) === versions.stampKey(stamp)))
       expect(seen.seen.has(versions.stampKey(stamp))).toBe(false);
+});
+
+test('marking one choice seen keeps the other choices seen', async () => {
+  await write(a, T, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'Base'), { now: T }),
+  );
+  await syncFrom(b, a, T + 1);
+  for (const [device, text, name, wall] of [
+    [a, 'A', 'Sam', T + 2],
+    [b, 'B', 'Samuel', T + 3],
+  ] as const) {
+    await write(device, wall, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e1', text), { now: wall }),
+    );
+    await write(device, wall, (tx) =>
+      repositories.updateProfileInTransaction(tx, { displayName: name }, { now: wall }),
+    );
+  }
+  await syncFrom(a, b, T + 4);
+  const name = (await on(a, T + 5, versions.listProfileVersions)).name;
+  const nameStamps = [name.shownStamp!, ...name.others.map((other) => other.stamp)];
+  const entryStamps = [
+    ...(await on(a, T + 5, versions.listOtherVersions)).values(),
+  ].flatMap((list) => list.flatMap((other) => [other.stamp, other.shownStamp]));
+  await on(a, T + 6, () => versions.markConflictsSeen(nameStamps, simMediaFiles));
+  // Only the entries' stamps are passed now, as when Other versions opens.
+  await on(a, T + 7, () => versions.markConflictsSeen(entryStamps, simMediaFiles));
+  const seen = await on(a, T + 8, versions.readNoticeSeen);
+  expect(versions.isNewChoice(nameStamps, seen)).toBe(false);
+  expect(versions.isNewChoice(entryStamps, seen)).toBe(false);
 });

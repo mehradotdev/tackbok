@@ -179,8 +179,8 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
  * device once it syncs. A newer value from another device shows it again.
  */
 export async function hideConflictNotice(items: readonly CloudConflictItem[]) {
-  const stamps = items.flatMap((item) => item.noticeStamps);
-  await markConflictsSeen(stamps, stamps);
+  if (items.length === 0) return;
+  await markConflictsSeen(items.flatMap((item) => item.noticeStamps));
   notifyProductionCloudSyncChanged();
 }
 
@@ -189,10 +189,7 @@ export async function markOtherVersionsSeen(): Promise<void> {
   const items = await listCloudConflictItems();
   const entries = items.find((item) => item.kind === 'entries');
   if (!entries?.isNew) return;
-  await markConflictsSeen(
-    entries.noticeStamps,
-    items.flatMap((item) => item.noticeStamps),
-  );
+  await markConflictsSeen(entries.noticeStamps);
   notifyProductionCloudSyncChanged();
 }
 

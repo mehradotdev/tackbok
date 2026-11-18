@@ -6,12 +6,18 @@
  * card, the entry badge and banner, the Home notice) keep their layout and
  * copy and are fed from here. Each other version of a title or text is shown
  * as a copy of the entry with that one field changed; "Keep this one" keeps
- * that value (or the shown ones) as one new write. "Keep both", syncing the
- * Home notice's dismissal and new copy come with P7.
+ * that value (or the shown ones) as one new write. "Keep both" and new copy
+ * come with P7.
  *
  * Each choice names the stamps of the values in it (`noticeStamps`): the Home
  * notice shows while one of them, written by another device, is not among
- * the stamps the user has seen (`markConflictsSeen`), which sync.
+ * the stamps the user has seen (`markConflictsSeen`), which sync. This
+ * device's own writes are never news, so a local edit keeps it hidden.
+ *
+ * shortcut: an ordinary edit on another device of a value in an open choice
+ * (the shown title of an entry with versions, a returned entry) is a new
+ * stamp there, so it shows the notice again on this device. Count only the
+ * stamps that opened a choice if that proves noisy.
  */
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
@@ -37,7 +43,7 @@ import type {
   Tombstone,
   VersionVector,
 } from '../v2/types';
-import { shownItems } from '../v2/view';
+import { isLive, isReturned, shownItems } from '../v2/view';
 
 type TextField = 'title' | 'text';
 
@@ -315,21 +321,46 @@ export function isNewChoice(
 }
 
 /**
- * Records `stamps` as seen, on every device once it syncs. Seen stamps that
- * are no longer in an open choice (`open`, every choice's stamps) are dropped,
- * so the list stays small. Writes nothing when nothing changes.
+ * Every stamp of a value in an open choice, read from the state itself: a
+ * choice this device does not list (a photo still downloading) still counts.
+ */
+function openChoiceStamps(state: SyncState): Set<string> {
+  const keys = new Set<string>();
+  const addField = (items: readonly { s: Stamp; v: unknown }[]) => {
+    if (shownItems(items).length > 1)
+      for (const item of items) keys.add(stampKey(item.s));
+  };
+  for (const entry of state.entries.values()) {
+    if (isReturned(entry)) {
+      keys.add(stampKey(entry.del!.at));
+      for (const [device, hlc] of Object.entries(entry.vv))
+        if (hlc > (entry.del!.seen[device] ?? -1)) keys.add(stampKey([hlc, device]));
+    }
+    if (!isLive(entry)) continue;
+    addField(entry.title);
+    addField(entry.text);
+  }
+  addField(state.profile.name);
+  addField(state.profile.photo);
+  return keys;
+}
+
+/**
+ * Records `stamps` as seen, on every device once it syncs. Seen stamps no
+ * longer in an open choice are dropped, so the list stays small. This
+ * device's own stamps stay: they are news on the other devices. Writes
+ * nothing when nothing changes.
  */
 export async function markConflictsSeen(
   stamps: readonly Stamp[],
-  open: readonly Stamp[],
   files?: ApplyMediaFiles,
 ): Promise<void> {
-  const openKeys = new Set(open.map(stampKey));
   await writeThroughSync((state, writer) => {
+    const open = openChoiceStamps(state);
     const before = seenStampsOf(state);
     const kept = new Map<string, Stamp>();
     for (const stamp of [...before, ...stamps])
-      if (openKeys.has(stampKey(stamp))) kept.set(stampKey(stamp), stamp);
+      if (open.has(stampKey(stamp))) kept.set(stampKey(stamp), stamp);
     const value: Json = [...kept.values()]
       .sort(compareStamps)
       .map((stamp) => [stamp[0], stamp[1]]);
