@@ -576,16 +576,24 @@ export class V2SyncEngine {
   private async pendingRetirements() {
     const [device] = await runExclusiveDbTransaction((tx) =>
       tx
-        .select({ retired: syncDevice.retired_json })
+        .select({ retired: syncDevice.retired_json, installId: syncDevice.install_id })
         .from(syncDevice)
         .where(eq(syncDevice.id, 'self')),
     );
+    // Only while still bound to the install that left the ID: a copy that
+    // reset ("Delete all") before its binding check rebound it would
+    // otherwise retire the original install's live ID.
     return parsePendingRetirements(device?.retired).filter(
-      (old) => old.vaultId === this.vaultId,
+      (old) => old.vaultId === this.vaultId && old.installId === device?.installId,
     );
   }
 
-  /** Recorded in the state with the apply: the other vaults' stay pending. */
+  /**
+   * Recorded in the state with the apply: the other vaults' stay pending.
+   * One whose ID no state here has on its roster (it never published, or
+   * its head could not be read) is cleared without being recorded; that ID
+   * then only expires after 180 days, the conservative side.
+   */
   private async clearPendingRetirements(tx: CloudSyncTransaction) {
     const [device] = await tx
       .select({ retired: syncDevice.retired_json })

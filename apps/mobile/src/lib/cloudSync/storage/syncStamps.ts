@@ -317,6 +317,12 @@ export interface PendingRetirement {
   deviceId: string;
   /** Its highest HLC: retired up to this last-seen time. */
   upTo: number;
+  /**
+   * The install binding the old ID had. It is retired only while the
+   * database is still bound to it: a copied database that is rebound later
+   * (`installBinding.ts`) carried another install's ID, which stays.
+   */
+  installId: string;
 }
 
 /** Old IDs are rare; a long list would only hold IDs of vaults left long ago. */
@@ -331,6 +337,8 @@ const isPending = (value: unknown): value is PendingRetirement => {
     entry.vaultId !== '' &&
     typeof entry.deviceId === 'string' &&
     entry.deviceId !== '' &&
+    typeof entry.installId === 'string' &&
+    entry.installId !== '' &&
     Number.isSafeInteger(entry.upTo) &&
     entry.upTo! >= 0
   );
@@ -386,6 +394,7 @@ export async function resetSyncIdentityInTransaction(
       vaultId: prior.vaultId,
       deviceId: prior.deviceId,
       upTo: Math.max(ctx[prior.deviceId] ?? 0, roster[prior.deviceId] ?? 0),
+      installId: prior.installId,
     });
   }
   await tx.delete(syncRecords);

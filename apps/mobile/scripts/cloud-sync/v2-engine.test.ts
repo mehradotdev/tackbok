@@ -521,6 +521,25 @@ describe('retired device IDs (P11)', () => {
       ]);
   });
 
+  test('a copy rebound after its "Delete all" does not retire the original install\'s ID', async () => {
+    const a = device();
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    const id = deviceIdOf(a);
+    bindInstall(copy);
+    await write(copy, (tx) => resetSyncIdentityInTransaction(tx, clock));
+    expect(pendingOf(copy)).toMatchObject([{ deviceId: id, installId: 'install' }]);
+    // Its launch check finds another install's marker and rebinds it.
+    copy.database.sqlite.run(
+      "UPDATE sync_device SET install_id = 'copy' WHERE id = 'self'",
+    );
+    clock += 1000;
+    expect((await sync(copy)).status).toBe('published');
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+    for (const target of [a, copy]) expect(retiredOf(target)).not.toContain(id);
+  });
+
   test('"Delete all" on a database not bound to this install retires nothing', async () => {
     const a = device();
     await sync(a);

@@ -112,7 +112,10 @@ export async function continueAsNewDevice(options: {
       // Retired up to any last-seen time another device could hold for it:
       // they refuse states more than the bound ahead of their clocks. Not
       // its highest (ahead) time, or a copy publishing at real time later
-      // would look retired for as long as the clock was wrong.
+      // would look retired for as long as the clock was wrong. A copy made
+      // after it published writes further ahead is not covered by the
+      // retired-ID pause; the clock-ahead pause stops it until real time is
+      // within the bound of those writes.
       const { ctx, roster } = captured.state;
       const upTo = Math.min(
         Math.max(ctx[from] ?? 0, roster[from] ?? 0),
