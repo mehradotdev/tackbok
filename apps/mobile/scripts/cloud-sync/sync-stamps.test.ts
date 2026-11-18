@@ -4,7 +4,7 @@
  * Real SQLite with every migration, as in the app.
  */
 import { Database } from 'bun:sqlite';
-import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test';
+import { afterAll, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -207,10 +207,18 @@ describe('every local write is stamped', () => {
   });
 
   test('stamps keep rising when the wall clock goes backwards', async () => {
-    await upsert({ note_id: 'n1', text_content: 'A', created_at: T }, T);
-    const first = highest();
-    await upsert({ note_id: 'n1', text_content: 'B', created_at: T }, T - 3_600_000);
-    expect(highest()).toBe(first + 1);
+    // The clock reads the earlier of the write's time and Date.now(); pin the
+    // latter past both, so each write's own time is what the clock sees.
+    const clock = spyOn(Date, 'now').mockReturnValue(T + 60_000);
+    try {
+      await upsert({ note_id: 'n1', text_content: 'A', created_at: T }, T);
+      const first = highest();
+      expect(first).toBe(T);
+      await upsert({ note_id: 'n1', text_content: 'B', created_at: T }, T - 3_600_000);
+      expect(highest()).toBe(first + 1);
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   test('tags: memberships carry their add stamp; a tag delete stamps the tag, not its entries', async () => {
