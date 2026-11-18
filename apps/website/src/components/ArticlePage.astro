@@ -1,0 +1,77 @@
+---
+import SiteFooter from '~/components/SiteFooter.astro';
+import SiteHeader from '~/components/SiteHeader.astro';
+import Layout from '~/layouts/main.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  heading: string;
+  /** Short label above the H1, such as "Import guide". */
+  eyebrow: string;
+  lastChecked: Date;
+  sources: { label: string; url: string }[];
+}
+
+const { title, description, heading, eyebrow, lastChecked, sources } = Astro.props;
+
+// Dates come from YAML as UTC midnight; format in UTC so the day never shifts.
+const lastCheckedLabel = lastChecked.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+const lastCheckedIso = lastChecked.toISOString().slice(0, 10);
+---
+
+<Layout title={title} description={description}>
+  <SiteHeader />
+
+  <main id="main-content" class="bg-background px-6 py-[clamp(3rem,8vw,6rem)] sm:px-8">
+    <article class="mx-auto w-full max-w-[760px]">
+      <header class="mb-10">
+        <p class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase">
+          {eyebrow}
+        </p>
+        <h1 class="mb-5 text-[clamp(2.3rem,6vw,4rem)] leading-[1.05] font-[690] tracking-[-0.05em] text-ink">
+          {heading}
+        </h1>
+        <p class="badge badge-outline py-3 text-xs badge-neutral">
+          Last checked: <time datetime={lastCheckedIso}>{lastCheckedLabel}</time>
+        </p>
+      </header>
+
+      <div class="article-body">
+        <slot />
+      </div>
+
+      <aside class="mt-14 border-t border-line pt-6 text-[0.92rem] text-ink-soft">
+        <h2 class="mb-3 text-base font-bold text-ink">Sources</h2>
+        <p class="mb-3">
+          Details about other apps come from these pages, checked on {lastCheckedLabel}.
+          Apps change, so their menus may look different. Tell us at
+          <a class="underline underline-offset-4" href="mailto:tackbok.support@mehra.dev">
+            tackbok.support@mehra.dev
+          </a>{' '}
+          if something here is out of date.
+        </p>
+        <ul class="list-disc space-y-1.5 pl-6">
+          {sources.map((source) => (
+            <li>
+              <a
+                class="underline underline-offset-4 hover:text-ink"
+                href={source.url}
+                rel="noopener noreferrer"
+                target="_blank">
+                {source.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    </article>
+  </main>
+
+  <SiteFooter />
+</Layout>

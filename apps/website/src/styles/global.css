@@ -241,3 +241,61 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Markdown pages (import guides). The typography plugin is not installed, so
+   the rendered Markdown is styled here. */
+@layer components {
+  .article-body {
+    @apply text-[1.05rem] leading-[1.72] text-ink;
+
+    & > * + * {
+      @apply mt-5;
+    }
+
+    & h2 {
+      @apply mt-12 mb-0 text-[clamp(1.5rem,3.5vw,2rem)] leading-tight font-[690] tracking-[-0.03em];
+    }
+
+    & h3 {
+      @apply mt-8 text-[1.2rem] font-bold;
+    }
+
+    & a {
+      @apply font-semibold text-sage-deep underline underline-offset-4 hover:text-ink;
+    }
+
+    & ol,
+    & ul {
+      @apply space-y-2 pl-6;
+    }
+
+    & ol {
+      @apply list-decimal;
+    }
+
+    & ul {
+      @apply list-disc;
+    }
+
+    & li {
+      @apply pl-1;
+    }
+
+    & code {
+      @apply rounded bg-paper-deep px-1.5 py-0.5 text-[0.92em];
+    }
+
+    & table {
+      @apply block w-full border-collapse overflow-x-auto text-[0.97rem];
+    }
+
+    & th,
+    & td {
+      @apply border-b border-line px-3 py-2.5 text-left align-top;
+    }
+
+    & th {
+      @apply bg-paper-deep font-bold;
+    }
+  }
+}
