@@ -126,31 +126,36 @@ export async function ensureInstallBinding(options: {
     return decision.kind === 'bind' ? 'bind' : 'unbound-copy';
   }
   const vaultId = device.vaultId;
+  const { installId } = decision;
   await continueAsNewDevice({
     vaultId,
     reason: 'another-install',
     files: options.files,
     now: options.now,
     newDeviceId: options.newDeviceId,
-    installId: decision.installId,
-  });
-  await runExclusiveDbTransaction(async (tx) => {
-    // A copy made while the original was paused for another install using
-    // its ID brings that pause along; the new ID has answered it.
-    await tx
-      .update(cloudSyncState)
-      .set({ pause_reason: null, pause_context_json: null, updated_at: options.now })
-      .where(
-        and(
-          eq(cloudSyncState.vault_id, vaultId),
-          eq(cloudSyncState.pause_reason, 'ambiguous-device-head'),
-        ),
-      );
-    // Publish under the new ID at the next pass.
-    await tx
-      .update(cloudVault)
-      .set({ status: 'dirty', updated_at: options.now })
-      .where(and(eq(cloudVault.vault_id, vaultId), eq(cloudVault.status, 'idle')));
+    // With the move, so an interruption can't leave any of it behind.
+    alsoInTransaction: async (tx) => {
+      await tx
+        .update(syncDevice)
+        .set({ install_id: installId })
+        .where(eq(syncDevice.id, 'self'));
+      // A copy made while the original was paused for another install using
+      // its ID brings that pause along; the new ID has answered it.
+      await tx
+        .update(cloudSyncState)
+        .set({ pause_reason: null, pause_context_json: null, updated_at: options.now })
+        .where(
+          and(
+            eq(cloudSyncState.vault_id, vaultId),
+            eq(cloudSyncState.pause_reason, 'ambiguous-device-head'),
+          ),
+        );
+      // Publish under the new ID at the next pass.
+      await tx
+        .update(cloudVault)
+        .set({ status: 'dirty', updated_at: options.now })
+        .where(and(eq(cloudVault.vault_id, vaultId), eq(cloudVault.status, 'idle')));
+    },
   });
   return 'new-device';
 }

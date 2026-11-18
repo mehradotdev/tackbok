@@ -50,6 +50,14 @@ test('Android: a marker that cannot be decrypted is dropped and reads as missing
   expect(mockRead).toBeNull();
 });
 
+test('Android: a brief Keystore error is retried once and keeps the marker', async () => {
+  mockOs = 'android';
+  mockGet.mockRejectedValueOnce(new Error('System error')).mockResolvedValueOnce('m');
+  await ensure();
+  expect(mockDelete).not.toHaveBeenCalled();
+  expect(mockRead).toBe('m');
+});
+
 test('iOS: a locked keychain throws and keeps the marker for a later attempt', async () => {
   mockOs = 'ios';
   mockGet.mockRejectedValueOnce(new Error('locked')).mockResolvedValueOnce('m');

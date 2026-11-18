@@ -920,6 +920,8 @@ export async function continueAsNewDevice(): Promise<void> {
     if (!vault?.remote_root_id) throw new Error('No cloud backup is configured');
     const state = new SQLiteSyncStateStore(sqlite);
     const { pauseReason } = state.loadState(vault.vault_id, vault.device_id);
+    // The install check above may just have answered a copied pause.
+    if (pauseReason === null) return;
     if (pauseReason !== 'ambiguous-device-head' && pauseReason !== 'device-clock-ahead')
       throw new Error('Sync is not paused for a device identity problem');
     const [{ continueAsNewDevice: moveToNewDevice }, { productionApplyFiles }] =

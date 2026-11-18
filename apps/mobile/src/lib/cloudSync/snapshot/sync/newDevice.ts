@@ -50,8 +50,8 @@ export async function continueAsNewDevice(options: {
   /** Needed for `clock-ahead` only: its own published head is deleted. */
   provider?: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead'>;
   files: ApplyMediaFiles;
-  /** Binds the metadata to this install in the same transaction (P13). */
-  installId?: string;
+  /** More writes committed with the move (P13: the install binding). */
+  alsoInTransaction?: (tx: CloudSyncTransaction) => Promise<void>;
   /** The wall clock: in the clock case, the writes after it move. */
   now: number;
   newDeviceId?: () => string;
@@ -100,17 +100,12 @@ export async function continueAsNewDevice(options: {
     });
     const applied = await applySyncState(captured, next, files, async (rawTx) => {
       const tx = rawTx as CloudSyncTransaction;
-      await tx
-        .update(syncDevice)
-        .set({
-          device_id: to,
-          ...(options.installId ? { install_id: options.installId } : {}),
-        })
-        .where(eq(syncDevice.id, 'self'));
+      await tx.update(syncDevice).set({ device_id: to }).where(eq(syncDevice.id, 'self'));
       // This device never published under the new ID.
       await tx
         .delete(syncHeads)
         .where(and(eq(syncHeads.vault_id, vaultId), eq(syncHeads.device_id, from)));
+      await options.alsoInTransaction?.(tx);
     });
     if (applied) return to;
   }

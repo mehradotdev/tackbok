@@ -6,6 +6,7 @@ import { ensureInstallBinding, type InstallMarkerStore } from '../storage/instal
 import { cloudConnectionLifecycle } from './connectionLifecycle';
 
 const INSTALL_MARKER_KEY = 'tackbok.install-marker.v1';
+const ANDROID_RETRY_MS = 1000;
 
 /**
  * This install's marker (`storage/installBinding.ts`). THIS_DEVICE_ONLY keeps it out
@@ -21,10 +22,16 @@ const installMarker: InstallMarkerStore = {
       // iOS throws while the keychain is locked; that passes, so retry later.
       // Android has no such state: a marker its Keystore can no longer
       // decrypt would block sync for good. Dropping it is safe, since a
-      // missing marker only costs a new device ID.
+      // missing marker only costs a new device ID; one retry first rides
+      // out a brief Keystore error (seen after a reboot or OS update).
       if (Platform.OS !== 'android') throw error;
-      await SecureStore.deleteItemAsync(INSTALL_MARKER_KEY);
-      return null;
+      await new Promise((resolve) => setTimeout(resolve, ANDROID_RETRY_MS));
+      try {
+        return await SecureStore.getItemAsync(INSTALL_MARKER_KEY);
+      } catch {
+        await SecureStore.deleteItemAsync(INSTALL_MARKER_KEY);
+        return null;
+      }
     }
   },
   write: (value) =>
