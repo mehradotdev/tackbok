@@ -10,7 +10,8 @@
     "deploy": "wrangler deploy",
     "astro": "astro",
     "lint": "oxlint --report-unused-disable-directives && eslint .",
-    "typecheck": "astro check"
+    "typecheck": "astro check",
+    "frame-screenshots": "bun scripts/frame-screenshots.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",

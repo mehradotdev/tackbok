@@ -3,11 +3,11 @@ import { Clock, ExternalLink, History, Languages, Sparkles } from '@lucide/astro
 import { getImage, Image } from 'astro:assets';
 import galaxyStoreSrc from '~/assets/galaxy-store.svg';
 import googlePlaySrc from '~/assets/google-play.svg';
-import tackbokEditSrc from '~/assets/screenshots/memory.webp';
-import tackbokHomeSrc from '~/assets/screenshots/timeline.webp';
-import worksheetSrc from '~/assets/screenshots/worksheet.webp';
-import insightsSrc from '~/assets/screenshots/insights.webp';
-import themesSrc from '~/assets/screenshots/themes.webp';
+import tackbokEditSrc from '~/assets/screenshots/ios/editor-light.webp';
+import tackbokHomeSrc from '~/assets/screenshots/ios/timeline-light.webp';
+import worksheetSrc from '~/assets/screenshots/ios/worksheet-light.webp';
+import insightsSrc from '~/assets/screenshots/ios/insights-light.webp';
+import themesSrc from '~/assets/screenshots/ios/themes-light.webp';
 import PhoneFrame from '~/components/PhoneFrame.astro';
 import appStoreSrc from '~/assets/app-store.svg';
 import GithubIcon from '~/components/GithubIcon.astro';
@@ -203,18 +203,18 @@ const structuredData = {
 
         <div
           class="phone-stage relative isolate mx-auto h-[590px] w-full max-w-[480px] max-sm:h-[570px] max-sm:max-w-[300px]"
-          aria-label="Tackbok timeline and journal entry screenshots">
+          aria-label="Tackbok timeline and entry editor screenshots">
           <div class="absolute top-3 left-0 z-20 w-[270px] -rotate-4 rounded-[2.6rem] max-sm:left-1/2 max-sm:w-[250px] max-sm:-translate-x-1/2 max-sm:rotate-0 min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:scale-105 min-[901px]:hover:rotate-0 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]">
             <PhoneFrame
               priority
               src={tackbokHomeSrc}
-              alt="Tackbok timeline with a gratitude entry, voice recording, and photos"
+              alt="Tackbok timeline with yesterday’s entry about a supportive dad, a voice note, a selfie of two people smiling and a photo of the same two at a restaurant, and a “175 days of gratitude” milestone"
             />
           </div>
           <div class="absolute top-20 right-0 z-10 w-[245px] rotate-6 rounded-[2.6rem] max-sm:hidden min-[901px]:opacity-90 min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:z-30 min-[901px]:hover:-translate-y-12 min-[901px]:hover:rotate-0 min-[901px]:hover:opacity-100 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]">
             <PhoneFrame
               src={tackbokEditSrc}
-              alt="A journal memory with a mood, voice recording, and a framed photo"
+              alt="Editing an entry with a happy mood, a voice note, a framed selfie of two people smiling, and buttons to add a mood, photo, voice note, or tag"
             />
           </div>
         </div>
@@ -290,14 +290,12 @@ const structuredData = {
                 your own, then take it one small moment at a time.
               </p>
             </div>
-            <figure class="mx-7 mt-2 mb-8 p-5 sm:mx-9 sm:p-7">
-              <Image
+            <figure class="mx-auto mt-2 mb-10 w-[min(234px,70%)] overflow-visible sm:w-[240px]">
+              <PhoneFrame
                 src={worksheetSrc}
                 alt="Journaling worksheet with gratitude, affirmation, and small moments prompts, plus an option to edit the template"
-                widths={[400, 600, 900]}
-                sizes="(max-width: 640px) 80vw, 440px"
                 loading="lazy"
-                class="h-auto w-full rounded-2xl shadow-lg"
+                sizes="240px"
               />
             </figure>
           </article>
@@ -314,14 +312,12 @@ const structuredData = {
                 you’ve collected along the way.
               </p>
             </div>
-            <figure class="mx-7 mt-2 mb-8 p-5 sm:mx-9 sm:p-7">
-              <Image
+            <figure class="mx-auto mt-2 mb-10 w-[min(234px,70%)] overflow-visible sm:w-[240px]">
+              <PhoneFrame
                 src={insightsSrc}
-                alt="Insights showing an On this day memory from four years ago and an overview of journaling activity"
-                widths={[400, 600, 900]}
-                sizes="(max-width: 640px) 80vw, 440px"
+                alt="Insights with On this day memories from one month and four years ago, a gratitude score, streaks, and totals for entries, words, photos and voice notes"
                 loading="lazy"
-                class="h-auto w-full rounded-2xl shadow-lg"
+                sizes="240px"
               />
             </figure>
           </article>
@@ -415,14 +411,14 @@ const structuredData = {
               Quiet colours. Illustrated worlds. Light &amp; dark.
             </p>
           </figcaption>
-          <Image
-            src={themesSrc}
-            alt="Tackbok’s theme picker with Light, Dark, Shiro, Shadow, Helena, and Poonam previews"
-            widths={[480, 800, 1200]}
-            sizes="(max-width: 900px) 85vw, 520px"
-            loading="lazy"
-            class="h-auto w-full rounded-2xl border border-line shadow-lg"
-          />
+          <div class="mx-auto w-[min(250px,80%)]">
+            <PhoneFrame
+              src={themesSrc}
+              alt="Tackbok’s theme picker with Light, Dark, Shiro, Shadow, Helena, and Poonam previews"
+              loading="lazy"
+              sizes="250px"
+            />
+          </div>
           <p class="mt-5 mb-0 text-center text-sm text-ink-soft">
             A different feeling, with the same familiar journal.
           </p>

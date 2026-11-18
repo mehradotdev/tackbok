@@ -163,7 +163,7 @@ Built into Tackbok as the **Faith** focus area, for people who find meaning in f
 
 ## Using these prompts in Tackbok
 
-<!-- Screenshot slot (#194): the new entry screen with a prompt as its title, and Settings › Journaling › Journal focus areas. -->
+![A new Tackbok entry with the prompt “How has rest helped you lately?” as its title](../../assets/screenshots/ios/prompt-title-light.webp) ![All prompts in Tackbok, showing the Family prompts and tabs for My prompts, Self and Health](../../assets/screenshots/ios/prompt-library-light.webp)
 
 - **Choose your topics.** Under Settings › Journaling › Journal focus areas, pick at least two of Self, Little things, Health, Family, Friends and Faith. Tackbok starts with Self and Little things.
 - **Start with a prompt.** While writing an entry, tap **Add prompt** to use one from your topics as the title, or **New prompt** to shuffle. To have every new entry start with a prompt, choose **Built-in prompts** under Settings › Journaling › Journal prompts.
