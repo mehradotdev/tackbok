@@ -877,10 +877,6 @@ export const he: Translations = {
   'cloud.conflicts.otherVersionsRow': 'רשומות שנשמרו בשתי גרסאות',
   'cloud.conflicts.loadFailed': 'לא ניתן לטעון את האפשרויות האלה.',
   'cloud.conflicts.otherVersionsLoadFailed': 'לא ניתן לטעון את הגרסאות האחרות.',
-  'cloud.conflicts.showOlderNames': 'הצגת גרסאות קודמות של השם',
-  'cloud.conflicts.hideOlderNames': 'הסתרת גרסאות קודמות של השם',
-  'cloud.conflicts.olderNamesDescription':
-    'גרסאות קודמות של האפליקציה שמרו את השמות האלה במהלך הסנכרון. רובם אינם שינויים אמיתיים, אבל עדיין אפשר להשתמש באחד מהם.',
   'cloud.conflicts.versionsOf': 'גרסאות של רשומה מ־{date}',
   'cloud.conflicts.original': 'גרסה מקורית',
   'cloud.conflicts.originalDeleted': 'הרשומה המקורית נמחקה.',
@@ -892,8 +888,6 @@ export const he: Translations = {
   'cloud.conflicts.attachmentCount': 'קבצים מצורפים: {count}',
   'cloud.conflicts.entryReturned':
     'מחקת את הרשומה הזו במכשיר אחד בזמן שהיא נערכה במכשיר אחר, ולכן הגרסה הערוכה נשמרה.',
-  'cloud.conflicts.entryKept':
-    'הרשומה הזו נמחקה במכשיר אחד אבל עדיין הייתה קיימת במכשיר אחר, ולכן היא נשמרה.',
   'cloud.conflicts.entriesReturned':
     '{count} רשומות שמחקת במכשיר אחד נשמרו כי הן עדיין היו במכשיר אחר.',
   'cloud.conflicts.openEntry': 'פתיחת הרשומה',

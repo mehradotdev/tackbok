@@ -846,10 +846,6 @@ export const sv = {
   'cloud.conflicts.loadFailed': 'Det gick inte att läsa in de här valen.',
   'cloud.conflicts.otherVersionsLoadFailed':
     'Det gick inte att läsa in de andra versionerna.',
-  'cloud.conflicts.showOlderNames': 'Visa äldre versioner av namnet',
-  'cloud.conflicts.hideOlderNames': 'Dölj äldre versioner av namnet',
-  'cloud.conflicts.olderNamesDescription':
-    'Tidigare versioner av appen sparade de här namnen vid synkronisering. De flesta är inga verkliga ändringar, men du kan fortfarande använda ett av dem.',
   'cloud.conflicts.versionsOf': 'Versioner av en anteckning från {date}',
   'cloud.conflicts.original': 'Original',
   'cloud.conflicts.originalDeleted': 'Den ursprungliga anteckningen har tagits bort.',
@@ -861,8 +857,6 @@ export const sv = {
   'cloud.conflicts.attachmentCount': 'Bilagor: {count}',
   'cloud.conflicts.entryReturned':
     'Du tog bort den här anteckningen på en enhet medan den redigerades på en annan, så den redigerade versionen behölls.',
-  'cloud.conflicts.entryKept':
-    'Den här anteckningen togs bort på en enhet men fanns kvar på en annan, så den behölls.',
   'cloud.conflicts.entriesReturned':
     '{count} anteckningar som du tog bort på en enhet behölls eftersom en annan enhet fortfarande hade dem.',
   'cloud.conflicts.openEntry': 'Öppna anteckningen',

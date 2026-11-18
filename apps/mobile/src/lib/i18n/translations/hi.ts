@@ -827,10 +827,6 @@ export const hi = {
   'cloud.conflicts.otherVersionsRow': 'वे प्रविष्टियाँ जिनके दो संस्करण रखे गए',
   'cloud.conflicts.loadFailed': 'ये विकल्प लोड नहीं हो सके।',
   'cloud.conflicts.otherVersionsLoadFailed': 'अन्य संस्करण लोड नहीं हो सके।',
-  'cloud.conflicts.showOlderNames': 'नाम के पुराने संस्करण दिखाएँ',
-  'cloud.conflicts.hideOlderNames': 'नाम के पुराने संस्करण छिपाएँ',
-  'cloud.conflicts.olderNamesDescription':
-    'ऐप के पिछले संस्करणों ने सिंक करते समय ये नाम सहेजे थे। इनमें से ज़्यादातर असली बदलाव नहीं हैं, लेकिन आप अब भी इनमें से कोई एक इस्तेमाल कर सकते हैं।',
   'cloud.conflicts.versionsOf': '{date} की एक प्रविष्टि के संस्करण',
   'cloud.conflicts.original': 'मूल',
   'cloud.conflicts.originalDeleted': 'मूल प्रविष्टि हटा दी गई थी।',
@@ -842,8 +838,6 @@ export const hi = {
   'cloud.conflicts.attachmentCount': 'अटैचमेंट: {count}',
   'cloud.conflicts.entryReturned':
     'आपने यह प्रविष्टि एक डिवाइस पर हटाई, जबकि दूसरे डिवाइस पर इसे संपादित किया जा रहा था, इसलिए संपादित संस्करण रखा गया।',
-  'cloud.conflicts.entryKept':
-    'यह प्रविष्टि एक डिवाइस पर हटाई गई, लेकिन दूसरे डिवाइस पर अब भी मौजूद थी, इसलिए इसे रखा गया।',
   'cloud.conflicts.entriesReturned':
     'आपकी {count} हटाई गई प्रविष्टियाँ रखी गईं, क्योंकि वे दूसरे डिवाइस पर अब भी थीं।',
   'cloud.conflicts.openEntry': 'प्रविष्टि खोलें',

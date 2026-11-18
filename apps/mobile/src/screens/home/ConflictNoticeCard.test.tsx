@@ -60,15 +60,13 @@ const entriesItem: CloudConflictItem = {
   entryCount: 2,
   latestAt: 100,
 };
-const archivedName: CloudConflictItem = {
+const nameItem: CloudConflictItem = {
   kind: 'name',
   conflictIds: ['n1'],
   current: 'Mehra',
   other: 'Mehra A',
-  archived: true,
-  latestAt: 100,
+  latestAt: 50,
 };
-const nameItem: CloudConflictItem = { ...archivedName, archived: false, latestAt: 50 };
 const entriesMessage = (count: number) =>
   mockTranslate('en', 'cloud.conflicts.homeNoticeEntries', { count });
 
@@ -103,10 +101,8 @@ test('does not load or show anything without open conflicts', async () => {
 });
 
 test('stays hidden when no conflict has anything to show', async () => {
-  // Counted records can all be filtered out, e.g. ones from before joining.
+  // A counted choice can be unlisted, e.g. a photo still downloading.
   await render(1, []);
-  expect(root.toJSON()).toBeNull();
-  await refreshSnapshot(1, [archivedName]);
   expect(root.toJSON()).toBeNull();
 });
 
@@ -275,7 +271,6 @@ test('an entry kept after a delete/edit race shows the notice until it is dismis
     kind: 'returnedEntry',
     conflictIds: ['d1'],
     entry: { entryId: 'returned', createdAt: 7, title: null, preview: 'Sunny' },
-    edited: true,
     latestAt: 100,
   };
   await render(1, [returned]);

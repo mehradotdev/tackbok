@@ -55,8 +55,3 @@ export function useCloudConflictItems(refreshToken: unknown) {
 
   return { items, loadFailed, refresh };
 }
-
-/** Items shown up front; older name versions stay behind a toggle. */
-export function activeConflictItems(items: readonly CloudConflictItem[]) {
-  return items.filter((item) => item.kind !== 'name' || !item.archived);
-}

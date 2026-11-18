@@ -98,19 +98,21 @@ afterEach(() => {
 });
 
 describe('production cloud-sync runtime', () => {
-  test('the consolidated migration installs the snapshot domain', () => {
+  test('the migrations install the v2 sync tables and drop v1', () => {
     const database = migratedDatabase();
     const tables = database
       .getAllSync<{
         name: string;
       }>(`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`)
       .map(({ name }) => name);
-    expect(tables).toContain('cloud_tombstones');
-    expect(tables).toContain('cloud_conflicts');
+    expect(tables).toContain('sync_records');
+    expect(tables).toContain('sync_heads');
+    expect(tables).not.toContain('cloud_tombstones');
+    expect(tables).not.toContain('cloud_conflicts');
     const entryColumns = database
       .getAllSync<{ name: string }>('PRAGMA table_info(entries)')
       .map(({ name }) => name);
-    expect(entryColumns).toContain('conflict_origin_id');
+    expect(entryColumns).not.toContain('conflict_origin_id');
   });
 
   test('an offline edit remains durably queued across state reconstruction', () => {

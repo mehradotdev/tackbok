@@ -1,18 +1,15 @@
 import { isOpenGroup } from './otherVersionGroups';
 
-const link = (note_id: string, conflict_origin_id: string | null = null) => ({
-  note_id,
-  conflict_origin_id,
+const entry = (note_id: string) => ({ note_id });
+
+test('a group is open while it has more than one version', () => {
+  expect(isOpenGroup({ original: entry('o'), versions: [entry('c')] })).toBe(true);
+  expect(isOpenGroup({ original: null, versions: [entry('c1'), entry('c2')] })).toBe(
+    true,
+  );
 });
 
-test('a group is open while it has more than one live version', () => {
-  expect(isOpenGroup({ original: link('o'), versions: [link('c', 'o')] })).toBe(true);
-  expect(
-    isOpenGroup({ original: null, versions: [link('c1', 'o'), link('c2', 'o')] }),
-  ).toBe(true);
-});
-
-test('a version left on its own is not open, whichever one was kept', () => {
-  expect(isOpenGroup({ original: link('o'), versions: [] })).toBe(false);
-  expect(isOpenGroup({ original: null, versions: [link('c', 'o')] })).toBe(false);
+test('a version left on its own is not open', () => {
+  expect(isOpenGroup({ original: entry('o'), versions: [] })).toBe(false);
+  expect(isOpenGroup({ original: null, versions: [entry('c')] })).toBe(false);
 });

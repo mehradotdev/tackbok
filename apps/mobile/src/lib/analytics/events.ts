@@ -136,7 +136,6 @@ export type AnalyticsEvents = {
     pushed_bucket: CloudSyncCountBucket;
   };
   cloud_sync_failed: { category: CloudSyncFailureCategory };
-  cloud_sync_conflict_recovered: { entity_type: 'entry' | 'tag' | 'prompt' | 'profile' };
   cloud_sync_repair_result: { result: 'repaired' | 'unrecoverable' | 'not-needed' };
   support_purchase_started: { tier: SupportTierId };
   support_purchase_completed: { tier: SupportTierId };
@@ -178,7 +177,6 @@ const ANALYTICS_EVENT_CATALOG = {
   cloud_sync_started: true,
   cloud_sync_succeeded: true,
   cloud_sync_failed: true,
-  cloud_sync_conflict_recovered: true,
   cloud_sync_repair_result: true,
   support_purchase_started: true,
   support_purchase_completed: true,
@@ -205,7 +203,6 @@ export const CLOUD_SYNC_ANALYTICS_EVENT_NAMES = [
   'cloud_sync_started',
   'cloud_sync_succeeded',
   'cloud_sync_failed',
-  'cloud_sync_conflict_recovered',
   'cloud_sync_repair_result',
 ] as const satisfies readonly AnalyticsEventName[];
 

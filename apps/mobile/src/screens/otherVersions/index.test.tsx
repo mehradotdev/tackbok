@@ -96,10 +96,10 @@ jest.mock('~/lib/i18n', () => ({
 }));
 
 const entry = (noteId: string, fields: Partial<Entry> = {}) =>
-  ({ note_id: noteId, created_at: 1, conflict_origin_id: null, ...fields }) as Entry;
+  ({ note_id: noteId, created_at: 1, ...fields }) as Entry;
 const original = entry('original', { created_at: 5 });
-const copy = entry('copy', { conflict_origin_id: 'original' });
-const secondCopy = entry('second-copy', { conflict_origin_id: 'original' });
+const copy = entry('copy');
+const secondCopy = entry('second-copy');
 
 let root: ReactTestRenderer;
 beforeEach(() => {
@@ -192,10 +192,7 @@ test('keeping a version never claims to delete attachments: they stay with the e
 });
 
 test('shows how many attachments a version has', () => {
-  const withAssets = entry('with-assets', {
-    conflict_origin_id: 'original',
-    assets: [{}, {}] as Entry['assets'],
-  });
+  const withAssets = entry('with-assets', { assets: [{}, {}] as Entry['assets'] });
   render({ data: [{ original, versions: [withAssets] }] });
   expect(content()).toContain('Attachments: 2');
   expect(content()).not.toContain('Attachments: 0');
@@ -296,7 +293,7 @@ test('opening the screen clears the Home notice for the entry conflicts on it', 
 });
 
 const other = entry('other', { created_at: 9 });
-const otherCopy = entry('other-copy', { conflict_origin_id: 'other' });
+const otherCopy = entry('other-copy');
 const cards = () => root.root.findAllByType(OtherVersionGroupCard);
 
 test('opening at an entry puts its group first and marks it', () => {

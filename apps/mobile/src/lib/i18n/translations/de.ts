@@ -948,10 +948,6 @@ export const de: Translations = {
   'cloud.conflicts.loadFailed': 'Diese Auswahl konnte nicht geladen werden.',
   'cloud.conflicts.otherVersionsLoadFailed':
     'Die anderen Versionen konnten nicht geladen werden.',
-  'cloud.conflicts.showOlderNames': 'Ältere Namensversionen anzeigen',
-  'cloud.conflicts.hideOlderNames': 'Ältere Namensversionen ausblenden',
-  'cloud.conflicts.olderNamesDescription':
-    'Frühere Versionen der App haben diese Namen beim Synchronisieren gespeichert. Die meisten sind keine echten Änderungen, aber du kannst trotzdem einen davon verwenden.',
   'cloud.conflicts.versionsOf': 'Versionen eines Eintrags vom {date}',
   'cloud.conflicts.original': 'Original',
   'cloud.conflicts.originalDeleted': 'Der ursprüngliche Eintrag wurde gelöscht.',
@@ -964,8 +960,6 @@ export const de: Translations = {
   'cloud.conflicts.attachmentCount': 'Anhänge: {count}',
   'cloud.conflicts.entryReturned':
     'Du hast diesen Eintrag auf einem Gerät gelöscht, während er auf einem anderen bearbeitet wurde. Deshalb wurde die bearbeitete Version behalten.',
-  'cloud.conflicts.entryKept':
-    'Dieser Eintrag wurde auf einem Gerät gelöscht, war aber auf einem anderen Gerät noch vorhanden. Deshalb wurde er behalten.',
   'cloud.conflicts.entriesReturned':
     '{count} Einträge, die du auf einem Gerät gelöscht hast, wurden behalten, weil ein anderes Gerät sie noch hatte.',
   'cloud.conflicts.openEntry': 'Eintrag öffnen',

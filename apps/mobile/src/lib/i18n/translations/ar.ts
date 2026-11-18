@@ -884,10 +884,6 @@ export const ar: Translations = {
   'cloud.conflicts.otherVersionsRow': 'سجلات احتُفظ بنسختين منها',
   'cloud.conflicts.loadFailed': 'تعذّر تحميل هذه الخيارات.',
   'cloud.conflicts.otherVersionsLoadFailed': 'تعذّر تحميل النسخ الأخرى.',
-  'cloud.conflicts.showOlderNames': 'عرض النسخ الأقدم من الاسم',
-  'cloud.conflicts.hideOlderNames': 'إخفاء النسخ الأقدم من الاسم',
-  'cloud.conflicts.olderNamesDescription':
-    'حفظت إصدارات سابقة من التطبيق هذه الأسماء أثناء المزامنة. معظمها ليس تغييرات حقيقية، لكن لا يزال بإمكانك استخدام أحدها.',
   'cloud.conflicts.versionsOf': 'نسخ سجل من {date}',
   'cloud.conflicts.original': 'النسخة الأصلية',
   'cloud.conflicts.originalDeleted': 'حُذف السجل الأصلي.',
@@ -899,8 +895,6 @@ export const ar: Translations = {
   'cloud.conflicts.attachmentCount': 'المرفقات: {count}',
   'cloud.conflicts.entryReturned':
     'حُذف هذا السجل على جهاز بينما عُدِّل على جهاز آخر، لذا احتُفظ بالنسخة المعدَّلة.',
-  'cloud.conflicts.entryKept':
-    'حُذف هذا السجل على جهاز لكنه كان لا يزال موجودًا على جهاز آخر، لذا احتُفظ به.',
   'cloud.conflicts.entriesReturned':
     'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
   'cloud.conflicts.openEntry': 'فتح السجل',
