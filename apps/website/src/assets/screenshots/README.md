@@ -14,8 +14,8 @@ Keep these files unframed so they can be re-framed later.
 
 Captured on 2026-11-18 (#194) from a Release build of `main` with the production
 app identity, so the header has no "BETA" badge. Journal content is the made-up
-demo journal from `marketing/screenshots/demo-journal/`, with two photos the
-maintainer supplied for this; screens without journal
+demo journal from `marketing/screenshots/demo-journal/`, with two of the
+maintainer's own photos; screens without journal
 content use the onboarding example entries. Every file is WebP, quality 85, at
 the device's full resolution.
 

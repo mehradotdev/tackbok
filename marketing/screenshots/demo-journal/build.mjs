@@ -1,18 +1,20 @@
 // Builds a Tackbok backup ZIP full of made-up entries for store and website
-// screenshots. Restore it on a throwaway simulator or emulator (Settings >
-// Backup & restore), never on a personal device.
+// screenshots. Restore it on a throwaway simulator or emulator through the
+// welcome screen's "Already have a journal? Import it", never on a personal
+// device.
 //
-// Usage (macOS, from the repository root):
+// Usage (macOS only: it uses say, afconvert and afinfo):
 //   bun marketing/screenshots/demo-journal/build.mjs \
-//     --selfie=<photo.jpg> --restaurant=<photo.jpg> [--out=<file.zip>] [--today=YYYY-MM-DD]
+//     [--selfie=<photo.jpg>] [--restaurant=<photo.jpg>] [--out=<file.zip>] [--today=YYYY-MM-DD]
 //
-// The two photos are not in the repository. EXIF data (including location) is
-// stripped. Dates count back from --today (default: the current day), so
-// build the backup on the day you capture.
+// The photos default to the maintainer-supplied ones in photos/ (metadata
+// stripped). Every photo is re-encoded, which drops EXIF and location data.
+// Dates count back from --today (default: the current day) in this machine's
+// timezone, so build on the day you capture, in the device's timezone.
 
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
@@ -25,20 +27,35 @@ const sharp = createRequire(resolve(root, 'apps/website/package.json'))('sharp')
 
 const TOTAL_DAYS = 176; // The timeline shows "175 days of gratitude" below yesterday.
 
-const args = Object.fromEntries(
-  process.argv.slice(2).map((arg) => {
-    const [key, ...value] = arg.replace(/^--/, '').split('=');
-    return [key, value.join('=')];
-  }),
-);
-if (!args.selfie || !args.restaurant) {
+function usage(problem) {
   console.error(
-    'Usage: build.mjs --selfie=<photo> --restaurant=<photo> [--out=<zip>] [--today=YYYY-MM-DD]',
+    `${problem}\nUsage: build.mjs [--selfie=<photo>] [--restaurant=<photo>] [--out=<zip>] [--today=YYYY-MM-DD]`,
   );
   process.exit(1);
 }
-const out = resolve(args.out ?? 'tackbok-demo-backup.zip');
-const today = args.today ? new Date(`${args.today}T12:00:00`) : new Date();
+
+const args = {
+  selfie: resolve(here, 'photos/selfie.jpg'),
+  restaurant: resolve(here, 'photos/restaurant.jpg'),
+  // Outside the repository, so the ZIP can't be committed by accident.
+  out: resolve(tmpdir(), 'tackbok-demo-backup.zip'),
+};
+for (const arg of process.argv.slice(2)) {
+  const match = /^--(selfie|restaurant|out|today)=(.+)$/.exec(arg);
+  if (!match) usage(`Unknown or empty argument: ${arg}`);
+  args[match[1]] = match[2];
+}
+const out = resolve(args.out);
+
+let today = new Date();
+if (args.today) {
+  today = new Date(`${args.today}T12:00:00`);
+  // Rejects malformed dates and ones that roll over, such as 2026-02-31.
+  const roundTrip = Number.isNaN(today.getTime())
+    ? ''
+    : `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  if (roundTrip !== args.today) usage(`Invalid --today: ${args.today}`);
+}
 
 function at(daysAgo, time, yearsAgo = 0) {
   const [hours, minutes] = time.split(':').map(Number);
@@ -63,7 +80,7 @@ try {
     await mkdir(resolve(staging, folder), { recursive: true });
   }
 
-  // Photos: re-encode to drop EXIF and keep the size reasonable.
+  // Photos: re-encode to drop EXIF and location data and keep the size reasonable.
   const photoAssets = {};
   for (const name of featured.photos) {
     const path = `media/photos/demo-${name}.jpg`;
@@ -96,6 +113,9 @@ try {
       /estimated duration: ([\d.]+)/,
     )?.[1],
   );
+  if (!Number.isFinite(voiceSeconds) || voiceSeconds <= 0) {
+    throw new Error('Could not read the voice note duration from afinfo');
+  }
 
   const entries = [];
   const add = ({ createdAt, title = null, text, mood = null, assets = [] }) =>
@@ -130,8 +150,11 @@ try {
   );
   add({ ...memory, createdAt: at(0, memory.time, memory.yearsAgo) });
 
-  // Older filler: a run of consecutive days, then roughly every ten days. Skip
-  // today's date in earlier years so Insights shows only the four-year memory.
+  // Older filler: a run of consecutive days, then roughly every ten days. Day 12
+  // is left empty on purpose, so Insights shows a current streak (11) that
+  // differs from the longest one (33), as in the approved captures. Skip
+  // today's date in earlier years so the four-year memory stays the only
+  // yearly On this day card.
   const sameDay = (date) =>
     date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
   let daysAgo = featured.daysAgo + recent.length + 2;
@@ -151,11 +174,24 @@ try {
     daysAgo += daysAgo < 45 ? 1 : 9 + (index % 3);
   }
 
-  const profilePath = 'media/profile/demo-avatar.jpg';
-  await copyFile(
-    resolve(root, 'apps/mobile/assets/samples/sample-photo-1.jpg'),
-    resolve(staging, profilePath),
+  // Self-check: one entry per day, 176 days, and exactly one earlier entry on
+  // today's month and day (the four-year memory).
+  const dayKeys = entries.map((entry) => new Date(entry.createdAt).toDateString());
+  const onThisDay = entries.filter(
+    (entry) => sameDay(new Date(entry.createdAt)) && entry.createdAt < at(0, '00:00'),
   );
+  if (
+    entries.some((entry) => !Number.isFinite(entry.createdAt)) ||
+    new Set(dayKeys).size !== TOTAL_DAYS ||
+    onThisDay.length !== 1
+  ) {
+    throw new Error('Demo journal dates are inconsistent');
+  }
+
+  const profilePath = 'media/profile/demo-avatar.jpg';
+  await sharp(resolve(root, 'apps/mobile/assets/samples/sample-photo-1.jpg'))
+    .jpeg({ quality: 88 })
+    .toFile(resolve(staging, profilePath));
 
   const json = (path, value) =>
     writeFile(resolve(staging, path), JSON.stringify(value, null, 2));
@@ -176,6 +212,7 @@ try {
   await json('data/custom-prompts.json', []);
   await json('data/profile.json', { name: null, email: null, imagePath: profilePath });
 
+  await mkdir(dirname(out), { recursive: true });
   await rm(out, { force: true });
   run('zip', ['-qrX', out, '.'], { cwd: staging });
   const { size } = await stat(out);

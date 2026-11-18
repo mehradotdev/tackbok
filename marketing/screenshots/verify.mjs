@@ -74,15 +74,15 @@ try {
   }
   const inputPath = resolve(fixture, 'inputs.json');
   const original = await readFile(inputPath, 'utf8');
-  const originalPanel = await readFile(resolve(fixture, 'output/iphone/01-moments.png'));
+  // A sentinel shows whether a failing run wrote anything: a real rewrite would
+  // replace it, even with identical panel bytes.
+  const sentinelPath = resolve(fixture, 'output/iphone/01-moments.png');
+  await writeFile(sentinelPath, 'sentinel');
   const inputs = JSON.parse(original);
   inputs.tablet.revisit.file = 'ipad/missing.webp';
   await writeFile(inputPath, JSON.stringify(inputs));
-  failed(run(), /ENOENT/);
-  assert.deepEqual(
-    await readFile(resolve(fixture, 'output/iphone/01-moments.png')),
-    originalPanel,
-  );
+  failed(run(), /missing\.webp/);
+  assert.equal(await readFile(sentinelPath, 'utf8'), 'sentinel');
   inputs.phone.timeline.file = '../../../package.json';
   await writeFile(inputPath, JSON.stringify(inputs));
   failed(run('--target=iphone'), /Input escapes/);

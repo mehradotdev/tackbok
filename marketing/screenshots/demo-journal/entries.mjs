@@ -75,7 +75,7 @@ export const memory = {
   text: "I'm grateful for my new laptop. It's fast, it's quiet, and it can finally run the games I've wanted to play for years.",
 };
 
-/** Short filler for older days that never appear on screen. */
+/** Short filler for older days. Only the one-month-ago entry shows on screen, in Insights' On this day card. */
 export const filler = [
   "I'm grateful for a good night's sleep.",
   "I'm thankful for a warm shower on a cold morning.",

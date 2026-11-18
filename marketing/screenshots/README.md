@@ -3,7 +3,7 @@
 One English seven-panel design, exported at four sizes for the App Store and
 Google Play. The panels use the raw app captures in
 [`apps/website/src/assets/screenshots/`](../../apps/website/src/assets/screenshots/README.md),
-the same files the website uses. The Android exports reuse the iOS captures at
+the same folder the website uses. The Android exports reuse the iOS captures at
 Android listing sizes; check that the visible UI matches the shipping Android app.
 
 ## Render
@@ -36,8 +36,9 @@ the numbered PNGs. Exports have no alpha channel. These commands create files
 locally; they do not upload or publish anything. `output/` is ignored by Git.
 
 The tablet sets are portrait: Xcode 27 simulators can't be rotated from a script.
-The renderer still has a landscape layout, used for any preset wider than it is
-tall, if landscape tablet captures are added later.
+The renderer keeps a landscape layout for presets wider than they are tall, but
+`capture()` only accepts portrait sources today; relax its size check before
+adding landscape tablet captures.
 
 ## What belongs where
 
@@ -49,7 +50,7 @@ tall, if landscape tablet captures are added later.
 | `render.mjs`    | Composes the panels and contact sheets                               |
 | `verify.mjs`    | Checks exports and rejection of invalid inputs                       |
 | `fonts.conf`    | Uses the repository's bundled fonts                                  |
-| `demo-journal/` | Builds the made-up journal the captures show (see below)             |
+| `demo-journal/` | Builds the made-up journal the captures show, with its two photos    |
 | `.cache/fonts/` | Disposable font cache, recreated automatically and ignored by Git    |
 | `input/`        | Ignored by Git. Older checkouts kept captures of a real journal here |
 
@@ -65,18 +66,26 @@ timeline shows "175 days of gratitude" below yesterday's entry), an "On this day
 memory four years back, a text-to-speech voice note and two photos. Text lives in
 `demo-journal/entries.mjs`.
 
-The two photos were supplied by the maintainer and are not in the repository. Ask for
-them, or pass any two photos you have permission to publish:
+The two photos are the maintainer's own, committed with their permission in
+`demo-journal/photos/` with all metadata stripped. The script re-encodes every
+photo, so EXIF and location data never reach the ZIP. It runs on macOS only
+(`say`, `afconvert` and `afinfo` make the voice note):
 
 ```sh
-bun marketing/screenshots/demo-journal/build.mjs \
-  --selfie=<photo.jpg> --restaurant=<photo.jpg> --out=/tmp/tackbok-demo-backup.zip
+bun marketing/screenshots/demo-journal/build.mjs
+# Writes tackbok-demo-backup.zip to the system temp folder. Options:
+#   --out=<file.zip> --today=YYYY-MM-DD --selfie=<photo> --restaurant=<photo>
 ```
 
-Dates count back from the day you run it, so build the ZIP on the day you
-capture. Restore it on a throwaway simulator or emulator through the welcome
-screen's **Already have a journal? Import it**, never on a personal device.
-The capture steps are in the screenshots README linked above.
+Dates count back from the day you run it in this Mac's timezone, so build the ZIP
+on the day you capture. iOS simulators use the Mac's timezone; set an Android
+emulator to the same one, or "yesterday" and the milestone shift. The script
+fails if the dates don't give 176 separate days with exactly one four-year
+"On this day" memory.
+
+Restore it on a throwaway simulator or emulator through the welcome screen's
+**Already have a journal? Import it**, never on a personal device. The capture
+steps are in the screenshots README linked above.
 
 ## Update screenshots or text
 

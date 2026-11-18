@@ -27,3 +27,9 @@ yarn-error.*
 /marketing/screenshots/output/
 /marketing/screenshots/.cache/
 /marketing/screenshots/input/
+# Demo backups and raw recordings never belong in Git.
+/tackbok-demo-backup*.zip
+/marketing/**/*.zip
+/marketing/**/*.mov
+/marketing/**/*.mp4
+/marketing/**/*.m4a

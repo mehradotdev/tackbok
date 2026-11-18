@@ -1,7 +1,7 @@
 import { presets } from './presets.mjs';
 import { createRequire } from 'node:module';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { dirname, resolve, relative, isAbsolute } from 'node:path';
+import { dirname, resolve, relative, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
@@ -115,7 +115,7 @@ async function capture(key, input) {
   const base = resolve(root, 'apps/website/src/assets/screenshots');
   const path = resolve(base, entry.file);
   const rel = relative(base, path);
-  if (rel.startsWith('..') || isAbsolute(rel))
+  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel))
     throw new Error('Input escapes the screenshots directory');
   const data = await readFile(path);
   const metadata = await sharp(data).metadata();
@@ -357,9 +357,6 @@ for (const name of targets) {
           inputs[target.input]?.[panel.captures[0]]?.crop
         ) {
           box = [40, 590, 1000, height - 740];
-          imageMode = 'hero';
-        } else if (closing) {
-          box = [60, 470, 960, height - 1000];
           imageMode = 'hero';
         } else if (panel.id === '05-customization') {
           box = [60, 390, 960, height - 390];

@@ -48,8 +48,8 @@ async function frame(name) {
   const height = bodyHeight;
   const bodyRadius = SCREEN_RADIUS + BEZEL;
 
-  // A dark body with a subtle lighter edge, plus a power button on the right
-  // and two volume buttons on the left.
+  // A dark body with a subtle lighter edge, plus a volume button above a
+  // shorter power button on the right, matching the website's PhoneFrame.
   const frameSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
   <defs>
     <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
@@ -58,9 +58,8 @@ async function frame(name) {
       <stop offset="1" stop-color="#4a4e55"/>
     </linearGradient>
   </defs>
-  <rect x="0" y="${Math.round(height * 0.2)}" width="${BUTTON_DEPTH + 2}" height="${Math.round(height * 0.07)}" rx="2" fill="#3a3d42"/>
-  <rect x="0" y="${Math.round(height * 0.29)}" width="${BUTTON_DEPTH + 2}" height="${Math.round(height * 0.07)}" rx="2" fill="#3a3d42"/>
-  <rect x="${width - BUTTON_DEPTH - 2}" y="${Math.round(height * 0.24)}" width="${BUTTON_DEPTH + 2}" height="${Math.round(height * 0.11)}" rx="2" fill="#3a3d42"/>
+  <rect x="${width - BUTTON_DEPTH - 2}" y="${Math.round(height * 0.17)}" width="${BUTTON_DEPTH + 2}" height="${Math.round(height * 0.14)}" rx="2" fill="#3a3d42"/>
+  <rect x="${width - BUTTON_DEPTH - 2}" y="${Math.round(height * 0.35)}" width="${BUTTON_DEPTH + 2}" height="${Math.round(height * 0.08)}" rx="2" fill="#3a3d42"/>
   <rect x="${BUTTON_DEPTH}" y="0" width="${bodyWidth}" height="${bodyHeight}" rx="${bodyRadius}" ry="${bodyRadius}" fill="url(#edge)"/>
   <rect x="${BUTTON_DEPTH + 3}" y="3" width="${bodyWidth - 6}" height="${bodyHeight - 6}" rx="${bodyRadius - 3}" ry="${bodyRadius - 3}" fill="#121315"/>
 </svg>`;
