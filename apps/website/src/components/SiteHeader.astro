@@ -12,7 +12,7 @@ const { currentPath = pagePath(Astro.url.pathname) } = Astro.props;
 const onHome = currentPath === '/';
 ---
 
-<header class="sticky top-0 z-50 border-b border-[rgba(52,75,55,0.1)] bg-[color-mix(in_srgb,var(--paper)_88%,transparent)] backdrop-blur-[18px]">
+<header class="sticky top-0 z-50 border-b border-[rgba(52,75,55,0.1)] bg-[color-mix(in_srgb,var(--color-paper)_88%,transparent)] backdrop-blur-[18px]">
   <a
     class="btn fixed top-3 left-3 z-[100] -translate-y-[150%] bg-ink font-bold text-white transition-transform duration-150 btn-sm focus:translate-y-0"
     href="#main-content">
@@ -21,7 +21,7 @@ const onHome = currentPath === '/';
   <div class="navbar mx-auto min-h-[76px] w-full max-w-[1240px] justify-between p-0 px-6 max-sm:min-h-[66px] sm:px-8 lg:px-12">
     <div class="navbar-start w-auto">
       <a
-        class="inline-flex items-center gap-[0.7rem] text-[1.15rem] font-[760] tracking-[-0.02em] text-ink no-underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+        class="inline-flex items-center gap-[0.7rem] text-[1.15rem] font-[760] tracking-[-0.02em] text-ink no-underline focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--color-sage)_58%,white)]"
         href="/"
         aria-label="Tackbok home">
         <Logo class="size-9.5 text-ink" aria-hidden="true" />

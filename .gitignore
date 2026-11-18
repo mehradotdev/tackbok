@@ -22,11 +22,10 @@ yarn-error.*
 # python venv for apps/mobile/scripts/patch-font-metrics.py
 .fontenv/
 
-# Store screenshot renders and font cache. The old input/ folder held captures of
-# a real journal; captures now live in apps/website/src/assets/screenshots/.
+# Store screenshot renders and font cache. Captures live in
+# apps/website/src/assets/screenshots/.
 /marketing/screenshots/output/
 /marketing/screenshots/.cache/
-/marketing/screenshots/input/
 # Demo backups and raw recordings never belong in Git.
 /tackbok-demo-backup*.zip
 /marketing/**/*.zip
