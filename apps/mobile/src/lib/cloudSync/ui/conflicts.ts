@@ -16,16 +16,19 @@ import { notifyProductionCloudSyncChanged } from '../runtime/production';
 import type { Stamp } from '../v2/types';
 import {
   acknowledgeReturnedEntries,
+  isNewChoice,
   keepProfileChoice,
   listOtherVersions,
   listProfileVersions,
   listReturnedEntries,
+  markConflictsSeen,
+  readNoticeSeen,
   type ProfileField,
 } from './versions';
 
 export { VersionsChangedError } from './versions';
 
-/** An actionable row on the conflicts card, with when this device took it in. */
+/** An actionable row on the conflicts card, and whether it is news for the Home notice. */
 export type CloudConflictItem = (
   | {
       kind: 'name';
@@ -56,7 +59,14 @@ export type CloudConflictItem = (
       conflictIds: string[];
       entry: ReturnedEntrySummary;
     }
-) & { latestAt: number };
+) & {
+  /** The stamps of the values in this choice (`isNewChoice`). */
+  noticeStamps: Stamp[];
+  /** A value from another device the user has not seen: the Home notice shows. */
+  isNew: boolean;
+  /** The newest of `noticeStamps`' clocks (about the time it was written), for order. */
+  latestAt: number;
+};
 
 /** Enough of a returned entry for the user to recognize it. */
 export interface ReturnedEntrySummary {
@@ -80,11 +90,21 @@ function parseStampId(id: string): Stamp {
 
 /** The choices this device can act on. Read errors are thrown to the caller. */
 export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
-  const [versions, profileVersions, returned] = await Promise.all([
+  const [versions, profileVersions, returned, seen] = await Promise.all([
     listOtherVersions(),
     listProfileVersions(),
     listReturnedEntries(),
+    readNoticeSeen(),
   ]);
+  const notice = (noticeStamps: Stamp[]) => ({
+    noticeStamps,
+    isNew: isNewChoice(noticeStamps, seen),
+    latestAt: Math.max(0, ...noticeStamps.map((stamp) => stamp[0])),
+  });
+  const fieldStamps = (field: ProfileField) => [
+    ...(field.shownStamp ? [field.shownStamp] : []),
+    ...field.others.map((other) => other.stamp),
+  ];
   const items: CloudConflictItem[] = [];
   for (const other of profileVersions.name.others)
     items.push({
@@ -94,7 +114,7 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
       current: profileVersions.name.shown,
       other: other.value,
       seen: profileVersions.name,
-      latestAt: profileVersions.receivedAt,
+      ...notice(fieldStamps(profileVersions.name)),
     });
   // Photo choices are offered only once every other photo is on this device:
   // "Use" or "Keep current" keeps one value and drops the rest, so none may
@@ -126,16 +146,16 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
         otherAssetId: photo.assetId,
         otherUri: photo.uri,
         seen: profileVersions.photo,
-        latestAt: profileVersions.receivedAt,
+        ...notice(fieldStamps(profileVersions.photo)),
       });
   if (versions.size > 0)
     items.push({
       kind: 'entries',
       conflictIds: ['entries'],
       entryCount: versions.size,
-      latestAt: Math.max(
-        ...[...versions.values()].flatMap((list) =>
-          list.map((other) => other.receivedAt),
+      ...notice(
+        [...versions.values()].flatMap((list) =>
+          list.flatMap((other) => [other.stamp, other.shownStamp]),
         ),
       ),
     });
@@ -149,9 +169,28 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
         title: entry.title,
         preview: entry.text?.slice(0, PREVIEW_LENGTH) ?? null,
       },
-      latestAt: entry.receivedAt,
+      ...notice(entry.noticeStamps),
     });
   return items.sort((a, b) => b.latestAt - a.latestAt);
+}
+
+/**
+ * The Home notice's close button: every choice listed is seen, on every
+ * device once it syncs. A newer value from another device shows it again.
+ */
+export async function hideConflictNotice(items: readonly CloudConflictItem[]) {
+  if (items.length === 0) return;
+  await markConflictsSeen(items.flatMap((item) => item.noticeStamps));
+  notifyProductionCloudSyncChanged();
+}
+
+/** Other versions was opened: its entry choices are seen, as by `hideConflictNotice`. */
+export async function markOtherVersionsSeen(): Promise<void> {
+  const items = await listCloudConflictItems();
+  const entries = items.find((item) => item.kind === 'entries');
+  if (!entries?.isNew) return;
+  await markConflictsSeen(entries.noticeStamps);
+  notifyProductionCloudSyncChanged();
 }
 
 /** "Got it": acknowledges returned entries; synced to every device. */

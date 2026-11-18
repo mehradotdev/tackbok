@@ -881,7 +881,7 @@ export const ar: Translations = {
   'cloud.conflicts.compareVersions': 'مقارنة النسخ',
   'cloud.conflicts.hideNotice': 'إخفاء هذا الإشعار',
   'cloud.conflicts.hideNoticeHint':
-    'يُخفى على هذا الجهاز فقط. سيظهر مرة أخرى إذا أُجريت تغييرات أخرى على جهازين في الوقت نفسه.',
+    'يُخفى على جميع أجهزتك. سيظهر مرة أخرى إذا أُجريت تغييرات أخرى على جهازين في الوقت نفسه.',
   'cloud.conflicts.otherVersionsRow': 'سجلات احتُفظ بنسختين منها',
   'cloud.conflicts.loadFailed': 'تعذّر تحميل هذه الخيارات.',
   'cloud.conflicts.otherVersionsLoadFailed': 'تعذّر تحميل النسخ الأخرى.',

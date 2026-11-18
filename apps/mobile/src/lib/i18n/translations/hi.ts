@@ -825,7 +825,7 @@ export const hi = {
   'cloud.conflicts.compareVersions': 'संस्करणों की तुलना करें',
   'cloud.conflicts.hideNotice': 'यह सूचना छुपाएं',
   'cloud.conflicts.hideNoticeHint':
-    'यह सिर्फ़ इस डिवाइस पर छुपेगी। अगर फिर से एक ही समय पर दो डिवाइस पर बदलाव किए गए, तो यह दोबारा दिखेगी।',
+    'यह आपके सभी डिवाइस पर छुप जाएगी। अगर फिर से एक ही समय पर दो डिवाइस पर बदलाव किए गए, तो यह दोबारा दिखेगी।',
   'cloud.conflicts.otherVersionsRow': 'वे प्रविष्टियाँ जिनके दो संस्करण रखे गए',
   'cloud.conflicts.loadFailed': 'ये विकल्प लोड नहीं हो सके।',
   'cloud.conflicts.otherVersionsLoadFailed': 'अन्य संस्करण लोड नहीं हो सके।',

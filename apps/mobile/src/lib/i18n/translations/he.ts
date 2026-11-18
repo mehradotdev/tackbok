@@ -874,7 +874,7 @@ export const he: Translations = {
   'cloud.conflicts.compareVersions': 'השוואת גרסאות',
   'cloud.conflicts.hideNotice': 'הסתרת ההודעה הזו',
   'cloud.conflicts.hideNoticeHint':
-    'ההודעה תוסתר רק במכשיר הזה. היא תופיע שוב אם ייעשו שינויים נוספים בשני מכשירים בו־זמנית.',
+    'ההודעה תוסתר בכל המכשירים שלך. היא תופיע שוב אם ייעשו שינויים נוספים בשני מכשירים בו־זמנית.',
   'cloud.conflicts.otherVersionsRow': 'רשומות שנשמרו בשתי גרסאות',
   'cloud.conflicts.loadFailed': 'לא ניתן לטעון את האפשרויות האלה.',
   'cloud.conflicts.otherVersionsLoadFailed': 'לא ניתן לטעון את הגרסאות האחרות.',

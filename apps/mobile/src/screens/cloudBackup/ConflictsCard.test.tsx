@@ -59,7 +59,13 @@ const nameItem: Extract<CloudConflictItem, { kind: 'name' }> = {
   conflictIds: ['n1'],
   current: 'Mehra',
   other: 'Mehra A',
-  seen: { shown: 'Mehra', others: [{ stamp: [2, 'b'], value: 'Mehra A' }] },
+  seen: {
+    shown: 'Mehra',
+    shownStamp: [1, 'a'],
+    others: [{ stamp: [2, 'b'], value: 'Mehra A' }],
+  },
+  noticeStamps: [],
+  isNew: true,
   latestAt: 1,
 };
 const photoItem: CloudConflictItem = {
@@ -67,13 +73,21 @@ const photoItem: CloudConflictItem = {
   conflictIds: ['p1'],
   otherAssetId: 'photo-other',
   otherUri: 'photos/other.jpg',
-  seen: { shown: null, others: [{ stamp: [2, 'b'], value: 'photo-other' }] },
+  seen: {
+    shown: null,
+    shownStamp: null,
+    others: [{ stamp: [2, 'b'], value: 'photo-other' }],
+  },
+  noticeStamps: [],
+  isNew: true,
   latestAt: 1,
 };
 const entriesItem: CloudConflictItem = {
   kind: 'entries',
   conflictIds: ['e1', 'e2', 'e3'],
   entryCount: 2,
+  noticeStamps: [],
+  isNew: true,
   latestAt: 1,
 };
 
@@ -81,6 +95,8 @@ const returnedItem: Extract<CloudConflictItem, { kind: 'returnedEntry' }> = {
   kind: 'returnedEntry',
   conflictIds: ['d1', 'd2'],
   entry: { entryId: 'returned', createdAt: 7, title: 'Walk', preview: 'Sunny morning' },
+  noticeStamps: [],
+  isNew: true,
   latestAt: 1,
 };
 

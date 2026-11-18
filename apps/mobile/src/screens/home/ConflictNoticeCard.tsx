@@ -1,21 +1,22 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { FileClock, X } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
-import { useSettingsStore } from '~/lib/settings';
-import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
+import { hideConflictNotice, useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 import { useCloudConflictItems } from '~/screens/cloudBackup/useCloudConflictItems';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
+import { toast } from '~/components/ui/toast';
 import { conflictNotice } from './conflictNotice';
 
 /**
  * News about conflicts from sync, shown above the timeline. With only entry
  * conflicts open it opens Other versions; otherwise Cloud backup. The close
- * button hides it on this device until a newer conflict arrives; it does not
- * resolve anything, so the Cloud backup card and Other versions row stay.
+ * button hides it on every device until a newer version arrives from another
+ * device; it does not resolve anything, so the Cloud backup card and Other
+ * versions row stay.
  */
 export function ConflictNoticeCard() {
   const { snapshot } = useCloudSyncSnapshot();
@@ -24,17 +25,19 @@ export function ConflictNoticeCard() {
   return <ConflictNotice refreshToken={snapshot} />;
 }
 
+/**
+ * The close button on a notice shown because the choices could not be loaded:
+ * there is nothing to record as seen, so it stays hidden until the app restarts.
+ */
+let failedLoadHidden = false;
+
 function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const hiddenAt = useSettingsStore((state) => state.conflictNoticeHiddenAt);
-  const otherVersionsSeenAt = useSettingsStore((state) => state.otherVersionsSeenAt);
-  const hideConflictNotice = useSettingsStore((state) => state.hideConflictNotice);
-  const { items, loadFailed } = useCloudConflictItems(refreshToken);
-  const notice = conflictNotice(items, loadFailed, {
-    hiddenAt,
-    otherVersionsSeenAt,
-  });
+  const { items, loadFailed, refresh } = useCloudConflictItems(refreshToken);
+  const [hiddenFailure, setHiddenFailure] = useState(failedLoadHidden);
+  const [hiding, setHiding] = useState(false);
+  const notice = loadFailed && hiddenFailure ? null : conflictNotice(items, loadFailed);
   const visible = notice !== null;
   const announcedRef = useRef(false);
   const message =
@@ -73,7 +76,21 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
           variant="ghost"
           size="icon"
           className="size-7 -me-1"
-          onPress={() => hideConflictNotice(notice.newestAt ?? Date.now())}
+          disabled={hiding}
+          onPress={() => {
+            if (loadFailed) {
+              failedLoadHidden = true;
+              setHiddenFailure(true);
+              return;
+            }
+            setHiding(true);
+            hideConflictNotice(items)
+              .catch(() => toast.error(t('cloud.cloudBackupCouldNotBeUpdated')))
+              .finally(() => {
+                setHiding(false);
+                void refresh();
+              });
+          }}
           accessibilityLabel={t('cloud.conflicts.hideNotice')}
           accessibilityHint={t('cloud.conflicts.hideNoticeHint')}
           hitSlop={8}>

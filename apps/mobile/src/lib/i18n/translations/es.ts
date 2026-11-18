@@ -865,7 +865,7 @@ export const es = {
   'cloud.conflicts.compareVersions': 'Comparar versiones',
   'cloud.conflicts.hideNotice': 'Ocultar este aviso',
   'cloud.conflicts.hideNoticeHint':
-    'Solo se oculta en este dispositivo. Volverá a aparecer si se hacen más cambios en dos dispositivos a la vez.',
+    'Se oculta en todos tus dispositivos. Volverá a aparecer si se hacen más cambios en dos dispositivos a la vez.',
   'cloud.conflicts.otherVersionsRow': 'Entradas que se conservaron en dos versiones',
   'cloud.conflicts.loadFailed': 'No se pudieron cargar estas opciones.',
   'cloud.conflicts.otherVersionsLoadFailed': 'No se pudieron cargar las otras versiones.',
