@@ -1,8 +1,8 @@
 ---
 title: 90 Gratitude Journal Prompts for Every Day — Tackbok
-description: 90 gratitude journal prompts for mornings, evenings, small moments, family, friends, work and hard days. 54 of them are built into Tackbok, a free gratitude journal for iPhone and Android.
+description: 90 gratitude journal prompts for mornings, evenings, family, friends, work and hard days, including the 54 built into the free Tackbok app.
 heading: Gratitude journal prompts
-eyebrow: Prompts · 90 questions
+eyebrow: 90 prompts in 10 groups
 ---
 
 A blank page can make gratitude feel like homework. A good question makes it easier to start. Here are 90 prompts, grouped by time of day and by topic, so you can pick one that fits how today went.
@@ -44,7 +44,7 @@ New prompts for the start of the day, when you're setting your attention for wha
 5. What do you have now that you once hoped for?
 6. Which part of your home makes mornings a little easier?
 7. What would make today feel worthwhile, even if nothing else goes to plan?
-8. What did you do yesterday that makes today easier?
+8. What did you do yesterday that made today easier?
 9. What is one kind thing you could do for someone today?
 
 ## Evening
@@ -54,12 +54,12 @@ New prompts for the end of the day. They work well as a short wind-down before b
 1. What was the best moment of today, and who was part of it?
 2. What went better today than you expected?
 3. Who helped you today, even in a small way?
-4. What did you learn today?
+4. What did today teach you that you didn't expect?
 5. What did you get done today that you can feel good about?
 6. Which ordinary part of today would you like to remember a year from now?
-7. What made you laugh, or almost laugh, today?
+7. What conversation from today are you glad you had?
 8. What comfort is waiting for you tonight before you sleep?
-9. If today was hard, what got you through it?
+9. What are you glad you said yes, or no, to today?
 
 ## Yourself
 
@@ -123,9 +123,9 @@ New prompts for the part of life you spend working, learning or looking after a 
 
 1. Which colleague or classmate made your day easier recently?
 2. What part of your work are you quietly good at?
-3. What problem did you solve this week that you're glad about?
+3. What problem did you solve this week that you're proud of?
 4. Who taught you something you still use at work or in your studies?
-5. What tool, place or routine makes your work smoother?
+5. What tool, space or routine makes your work smoother?
 6. What feedback helped you improve, even if it was hard to hear?
 7. What are you learning right now that you'll be glad to know later?
 8. What does your work make possible for you or the people you care about?
@@ -143,7 +143,7 @@ If you're struggling and need support, please reach out to someone you trust or 
 4. What small comfort is within reach right now?
 5. What did you manage today, even if it was only getting through it?
 6. What is a kind thing you can say to yourself tonight?
-7. Which person or place feels safe to you?
+7. What helps you feel even a little calmer?
 8. What is something steady in your life that you can count on?
 9. What are you looking forward to once this hard stretch has passed?
 
@@ -167,5 +167,5 @@ Built into Tackbok as the **Faith** focus area, for people who find meaning in f
 
 - **Choose your topics.** Under Settings › Journaling › Journal focus areas, pick at least two of Self, Little things, Health, Family, Friends and Faith. Tackbok starts with Self and Little things.
 - **Start with a prompt.** While writing an entry, tap **Add prompt** to use one from your topics as the title, or **New prompt** to shuffle. To have every new entry start with a prompt, choose **Built-in prompts** under Settings › Journaling › Journal prompts.
-- **Add your own.** Save prompts of your own, such as any from the Morning, Evening, Work and study or Hard days groups above, and use them on their own or mixed with the built-in ones.
+- **Add your own.** Save any prompt you like, such as those in the Morning, Evening, Work and study or Hard days groups above. With a prompt in an entry's title, tap **Show all**, then **My prompts › Create prompt**. Under Journal prompts, choose **My prompts** to use only yours, or **All prompts** to mix them with the built-in ones.
 - **Get a daily reminder.** Turn on Settings › Notifications › Daily reminder, and each reminder shows a prompt from your topics. Tap it to start an entry with that prompt.
