@@ -266,8 +266,7 @@ export const sv = {
   'appearance.dateStyle': 'Datum stil',
   'appearance.dateIncludesDayOfTheWeek': 'Datum inkluderar veckodag',
   'appearance.firstDayOfWeek': 'Första dagen i veckan',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar':
-    'Ställ in den första veckodagen i kalendervyn',
+  'appearance.firstDayOfWeekDescription': 'Välj vilken dag dina kalenderveckor börjar på',
   'appearance.appIcon': 'Appikon',
   'appearance.changeAppIconTitle': 'Byta appikon?',
   'appearance.changeAppIconMessage': 'Tackbok stängs för att byta till den nya ikonen.',
@@ -474,8 +473,8 @@ export const sv = {
   'appInfo.termsConditions': 'Villkor',
   'appInfo.readOurTermsAndConditions': 'Läs våra villkor',
   'appInfo.analytics': 'Insamling av analysdata',
-  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    'Tackbok samlar in anonymiserad analysinformation för att hjälpa till att diagnostisera problem och övervaka trender',
+  'appInfo.analyticsDescription':
+    'Dela anonym användningsdata för att hjälpa till att hitta buggar och förbättra Tackbok',
   'appInfo.checkForUpdates': 'Sök efter uppdateringar',
   'appInfo.checkingForUpdates': 'Söker efter uppdateringar...',
   'appInfo.lastCheckedTime': 'Senast kontrollerad: {time}',

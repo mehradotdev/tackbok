@@ -312,8 +312,7 @@ export const en = {
   'appearance.dateStyle': 'Date style',
   'appearance.dateIncludesDayOfTheWeek': 'Date includes day of the week',
   'appearance.firstDayOfWeek': 'First day of week',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar':
-    'Set the first day of the week in the calendar view',
+  'appearance.firstDayOfWeekDescription': 'Choose which day your calendar weeks start on',
   'appearance.appIcon': 'App icon',
   'appearance.changeAppIconTitle': 'Change app icon?',
   'appearance.changeAppIconMessage': 'Tackbok will close to apply the new icon.',
@@ -526,8 +525,8 @@ export const en = {
   'appInfo.termsConditions': 'Terms & conditions',
   'appInfo.readOurTermsAndConditions': 'Read our terms & conditions',
   'appInfo.analytics': 'Analytics data collection',
-  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    'Tackbok is collecting anonymized analytics information to help diagnose problems and monitor trends',
+  'appInfo.analyticsDescription':
+    'Share anonymous usage data to help find bugs and improve Tackbok',
   'appInfo.checkForUpdates': 'Check for updates',
   'appInfo.checkingForUpdates': 'Checking for updates…',
   'appInfo.lastCheckedTime': 'Last checked: {time}',

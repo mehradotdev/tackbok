@@ -293,7 +293,7 @@ export const zhCN: Translations = {
   'appearance.dateStyle': '日期样式',
   'appearance.dateIncludesDayOfTheWeek': '日期包含星期几',
   'appearance.firstDayOfWeek': '一周的第一天',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar': '设置日历视图中一周的第一天',
+  'appearance.firstDayOfWeekDescription': '选择日历中每周从哪一天开始',
   'appearance.appIcon': '应用图标',
   'appearance.changeAppIconTitle': '更改应用图标？',
   'appearance.changeAppIconMessage': '塔克布克将关闭以应用新图标。',
@@ -489,8 +489,7 @@ export const zhCN: Translations = {
   'appInfo.termsConditions': '条款和条件',
   'appInfo.readOurTermsAndConditions': '阅读我们的条款和条件',
   'appInfo.analytics': '分析数据收集',
-  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    '塔克布克正在收集匿名分析信息以帮助诊断问题和监控趋势',
+  'appInfo.analyticsDescription': '分享匿名使用数据，帮助发现问题并改进塔克布克',
   'appInfo.checkForUpdates': '检查更新',
   'appInfo.checkingForUpdates': '正在检查更新…',
   'appInfo.lastCheckedTime': '上次检查：{time}',

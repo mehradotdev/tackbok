@@ -262,7 +262,7 @@ export const hi = {
   'appearance.dateStyle': 'दिनांक शैली',
   'appearance.dateIncludesDayOfTheWeek': 'दिनांक में सप्ताह का दिन शामिल है',
   'appearance.firstDayOfWeek': 'सप्ताह का पहला दिन',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar': 'कैलेंडर दृश्य में सप्ताह का पहला दिन सेट करें',
+  'appearance.firstDayOfWeekDescription': 'चुनें कि आपके कैलेंडर में सप्ताह किस दिन से शुरू हो',
   'appearance.appIcon': 'ऐप आइकन',
   'appearance.changeAppIconTitle': 'ऐप आइकन बदलें?',
   'appearance.changeAppIconMessage': 'नया आइकन लागू करने के लिए ताकबूक बंद हो जाएगा।',
@@ -463,8 +463,8 @@ export const hi = {
   'appInfo.termsConditions': 'नियम एवं शर्तें',
   'appInfo.readOurTermsAndConditions': 'हमारे नियम एवं शर्तें पढ़ें',
   'appInfo.analytics': 'विश्लेषिकी डेटा संग्रह',
-  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    'ताकबूक समस्याओं के निदान और रुझानों की निगरानी में मदद के लिए अज्ञात विश्लेषणात्मक जानकारी एकत्र कर रहा है',
+  'appInfo.analyticsDescription':
+    'बग खोजने और ताकबूक को बेहतर बनाने में मदद के लिए गुमनाम उपयोग डेटा साझा करें',
   'appInfo.checkForUpdates': 'अद्यतन के लिए जाँच',
   'appInfo.checkingForUpdates': 'अपडेट के लिए जांच कर रहा है…',
   'appInfo.lastCheckedTime': 'अंतिम बार जाँच की गई: {time}',
