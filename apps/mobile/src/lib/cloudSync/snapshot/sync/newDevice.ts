@@ -18,8 +18,10 @@
  * Both keep every value this device shows. The next pass publishes under
  * the new ID.
  *
- * The install-bound device ID (P13) is the real fix for the first case;
- * this is the user's way out until then.
+ * The install-bound device ID (P13, `installBinding.ts`) takes the first
+ * path on its own when this install's marker is missing or differs, before
+ * any pass; the pause stays for copies it cannot tell apart (a backup taken
+ * before the marker existed).
  *
  * shortcut: the old ID stays on other devices' rosters, holding back
  * compaction until it expires after 180 days (P11 retires such IDs).
@@ -45,8 +47,11 @@ const MAX_ATTEMPTS = 4;
 export async function continueAsNewDevice(options: {
   vaultId: string;
   reason: NewDeviceReason;
-  provider: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead'>;
+  /** Needed for `clock-ahead` only: its own published head is deleted. */
+  provider?: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead'>;
   files: ApplyMediaFiles;
+  /** More writes committed with the move (P13: the install binding). */
+  alsoInTransaction?: (tx: CloudSyncTransaction) => Promise<void>;
   /** The wall clock: in the clock case, the writes after it move. */
   now: number;
   newDeviceId?: () => string;
@@ -67,6 +72,7 @@ export async function continueAsNewDevice(options: {
       keepUpTo = -1;
     } else {
       keepUpTo = Math.floor(options.now);
+      if (!provider) throw new Error('A clock-ahead recovery needs the provider');
       if (attempt === 0) {
         // Only the head this install published: a copy of it elsewhere
         // (an OS restore) keeps its own.
@@ -99,6 +105,7 @@ export async function continueAsNewDevice(options: {
       await tx
         .delete(syncHeads)
         .where(and(eq(syncHeads.vault_id, vaultId), eq(syncHeads.device_id, from)));
+      await options.alsoInTransaction?.(tx);
     });
     if (applied) return to;
   }

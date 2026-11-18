@@ -21,6 +21,12 @@ jest.mock('../auth/secureTokenStore', () => ({
   needsGoogleKeychainMigration: () => mockNeedsMigration(),
   migrateGoogleKeychainAccessibility: () => mockMigrate(),
 }));
+const mockEnsureBinding = jest.fn(async () => 'bound');
+jest.mock('../storage/installBinding', () => ({
+  ensureInstallBinding: () => mockEnsureBinding(),
+}));
+jest.mock('../snapshot/storage', () => ({ productionApplyFiles: () => ({}) }));
+jest.mock('expo-secure-store', () => ({}));
 jest.mock('~/db', () => {
   const query = {
     from: () => query,
@@ -71,6 +77,17 @@ beforeEach(() => {
   mockMigrate.mockReset();
   mockMigrate.mockResolvedValue(undefined);
   mockCreate.mockClear();
+});
+
+test('no engine is created until the install binding succeeds, which runs once', async () => {
+  mockNeedsMigration.mockResolvedValue(false);
+  mockEnsureBinding.mockRejectedValueOnce(new Error('keychain locked'));
+  await expect(createProductionRuntimeEngine()).rejects.toThrow('keychain locked');
+  expect(mockCreate).not.toHaveBeenCalled();
+  await expect(createProductionRuntimeEngine()).resolves.not.toBeNull();
+  await createProductionRuntimeEngine();
+  expect(mockEnsureBinding).toHaveBeenCalledTimes(2);
+  expect(mockCreate).toHaveBeenCalledTimes(2);
 });
 
 test('a pending migration keeps the connection epoch and running passes', async () => {

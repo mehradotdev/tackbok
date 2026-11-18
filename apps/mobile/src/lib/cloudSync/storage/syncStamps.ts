@@ -315,12 +315,17 @@ export async function stampMembershipsInTransaction(
  * After local state is lost ("Delete all", "Delete journal everywhere", the
  * local wipe): forget every record's metadata and take a new device ID with
  * an empty context. An ID is never reused once its state is gone, or another
- * device could read its new writes as ones it had already seen.
+ * device could read its new writes as ones it had already seen. The install
+ * stays the same, so its binding stays (`installBinding.ts`).
  */
 export async function resetSyncIdentityInTransaction(
   tx: CloudSyncTransaction,
   now: number,
 ): Promise<void> {
+  const [prior] = await tx
+    .select({ installId: syncDevice.install_id })
+    .from(syncDevice)
+    .where(eq(syncDevice.id, SELF));
   await tx.delete(syncRecords);
   await tx.delete(syncDeletedRecords);
   await tx.delete(syncFieldValues);
@@ -330,6 +335,7 @@ export async function resetSyncIdentityInTransaction(
   await tx.insert(syncDevice).values({
     id: SELF,
     device_id: randomUUID(),
+    install_id: prior?.installId ?? null,
     ctx_json: '{}',
     roster_json: '{}',
     acks_json: '{}',

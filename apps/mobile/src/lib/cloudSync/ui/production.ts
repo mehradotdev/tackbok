@@ -68,6 +68,7 @@ import {
 } from '../runtime/production';
 import type { SyncPassPhase } from '../runtime/SyncRuntime';
 import { setCloudSyncBackgroundTaskEnabled } from '../runtime/backgroundTask';
+import { ensureInstallBoundDeviceId } from '../runtime/installBinding';
 import { runInCloudSyncTransaction } from '../storage/repositories';
 
 export type CloudSetupOrigin = 'settings' | 'onboarding';
@@ -907,6 +908,9 @@ export async function replaceUnreadableBackups(): Promise<number> {
  * (`continueAsNewDevice`). Keeps every value this device shows, then syncs.
  */
 export async function continueAsNewDevice(): Promise<void> {
+  // A copied database must take its own new ID first (P13), or this would
+  // act for the original install under the shared one.
+  await ensureInstallBoundDeviceId();
   const changing = cloudConnectionLifecycle.change(async () => {
     if (connectionSetupInProgress || pendingConnection) {
       throw new Error('Finish or cancel the Google account setup first');
@@ -916,6 +920,8 @@ export async function continueAsNewDevice(): Promise<void> {
     if (!vault?.remote_root_id) throw new Error('No cloud backup is configured');
     const state = new SQLiteSyncStateStore(sqlite);
     const { pauseReason } = state.loadState(vault.vault_id, vault.device_id);
+    // The install check above may just have answered a copied pause.
+    if (pauseReason === null) return;
     if (pauseReason !== 'ambiguous-device-head' && pauseReason !== 'device-clock-ahead')
       throw new Error('Sync is not paused for a device identity problem');
     const [{ continueAsNewDevice: moveToNewDevice }, { productionApplyFiles }] =

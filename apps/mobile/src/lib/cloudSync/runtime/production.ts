@@ -4,6 +4,7 @@ import {
   CloudConnectionChangedError,
 } from './connectionLifecycle';
 import { reconcileAbandonedConnectionSetup } from './connectionSetup';
+import { ensureInstallBoundDeviceId } from './installBinding';
 import {
   migrateGoogleKeychainAccessibility,
   needsGoogleKeychainMigration,
@@ -156,6 +157,14 @@ export async function createProductionRuntimeEngine(
   { backgroundTask = false }: { backgroundTask?: boolean } = {},
 ): Promise<RuntimeSyncEngine | null> {
   await migrateKeychainAccessibility();
+  // Before any engine exists, even with sync off: a copied database takes a
+  // new device ID here. Only a configured vault needs it to succeed now.
+  let unbound: unknown = null;
+  try {
+    await ensureInstallBoundDeviceId();
+  } catch (error) {
+    unbound = error ?? new Error('Install binding failed');
+  }
   // A setup the app died in may have stored another account's credentials.
   await reconcileAbandonedConnectionSetup();
   const [configured] = await db
@@ -170,6 +179,7 @@ export async function createProductionRuntimeEngine(
     .limit(1);
   if (!configured?.remote_root_id || configured.provider_kind !== 'google-drive')
     return null;
+  if (unbound) throw unbound;
 
   return createProductionSnapshotRuntimeEngine({
     vault: configured,

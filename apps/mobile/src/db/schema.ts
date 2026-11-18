@@ -351,7 +351,8 @@ export const cloudSyncMigrationItems = sqliteTable(
  * 0008 migration with a random device ID. A wipe must replace the device ID
  * and reset the context (done from P4 on): an ID is never reused once local
  * state is lost. The row is in the database, so an OS backup restores it;
- * binding it to the install is P13. The metadata belongs to one vault
+ * `install_id` binds it to a marker the backup leaves out
+ * (`installBinding.ts`, P13). The metadata belongs to one vault
  * (`vault_id`): binding to another, or to the first one, rebuilds it with a
  * new device ID (`rebuildSyncMetadataInTransaction`).
  */
@@ -360,6 +361,11 @@ export const syncDevice = sqliteTable('sync_device', {
   device_id: text('device_id').notNull(),
   /** The vault this metadata was built for; null until the first v2 sync. */
   vault_id: text('vault_id'),
+  /**
+   * The install marker this row belongs to (`installBinding.ts`); null until
+   * the first check after the upgrade that added it.
+   */
+  install_id: text('install_id'),
   /** Highest HLC seen per device (the state's context). */
   ctx_json: text('ctx_json').notNull().default('{}'),
   /** Device -> last-seen HLC. */

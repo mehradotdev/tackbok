@@ -8,6 +8,9 @@ import { SyncCancelledError, throwIfCancelled } from '../snapshot/sync/errors';
 
 const vault = { vault_id: 'v1', remote_root_id: 'root', provider_kind: 'google-drive' };
 
+jest.mock('./installBinding', () => ({
+  ensureInstallBoundDeviceId: async () => {},
+}));
 jest.mock('~/db', () => {
   const query = {
     from: () => query,

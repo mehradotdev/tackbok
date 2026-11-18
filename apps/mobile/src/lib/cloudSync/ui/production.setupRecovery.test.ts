@@ -138,6 +138,9 @@ jest.mock('expo-secure-store', () => ({
     mockSecure.delete(key);
   },
 }));
+jest.mock('../runtime/installBinding', () => ({
+  ensureInstallBoundDeviceId: async () => {},
+}));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
 jest.mock('expo-file-system', () => ({}));
 jest.mock('~/db', () => ({
