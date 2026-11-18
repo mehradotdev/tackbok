@@ -826,6 +826,8 @@ export const sv = {
   'cloud.conflicts.photoChanged': 'Din profilbild ändrades på en annan enhet.',
   'cloud.conflicts.otherPhoto': 'Profilbild från den andra enheten',
   'cloud.conflicts.usePhoto': 'Använd den här bilden',
+  'cloud.conflicts.photoRemoved': 'Din profilbild togs bort på en annan enhet.',
+  'cloud.conflicts.removePhoto': 'Använd ingen bild',
   'cloud.conflicts.entriesEdited':
     '{count} anteckningar redigerades på två enheter samtidigt. Båda versionerna finns i din dagbok.',
   'cloud.conflicts.showThem': 'Visa dem',

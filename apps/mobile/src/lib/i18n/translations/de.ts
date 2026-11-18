@@ -929,6 +929,9 @@ export const de: Translations = {
     'Dein Profilfoto wurde auf einem anderen Gerät geändert.',
   'cloud.conflicts.otherPhoto': 'Profilfoto vom anderen Gerät',
   'cloud.conflicts.usePhoto': 'Dieses Foto verwenden',
+  'cloud.conflicts.photoRemoved':
+    'Dein Profilfoto wurde auf einem anderen Gerät entfernt.',
+  'cloud.conflicts.removePhoto': 'Kein Foto verwenden',
   'cloud.conflicts.entriesEdited':
     '{count} Einträge wurden gleichzeitig auf zwei Geräten bearbeitet. Beide Versionen sind in deinem Tagebuch.',
   'cloud.conflicts.showThem': 'Anzeigen',
@@ -965,7 +968,7 @@ export const de: Translations = {
   'cloud.conflicts.openEntry': 'Eintrag öffnen',
   'cloud.conflicts.gotIt': 'Verstanden',
   'cloud.conflicts.versionsChanged':
-    'Die Versionen haben sich geändert, während du gewählt hast, daher wurde nichts gespeichert. Sieh sie dir noch einmal an und wähle erneut.',
+    'Die Versionen haben sich geändert, während du ausgewählt hast, daher wurde nichts gespeichert. Sieh sie dir noch einmal an und wähle erneut.',
   'cloud.conflicts.allDone':
     'Alles erledigt. Jeder Eintrag hat jetzt nur noch eine Version.',
   'cloud.conflicts.titleDiffers': 'Titel unterscheidet sich',

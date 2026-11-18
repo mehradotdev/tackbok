@@ -858,6 +858,8 @@ export const he: Translations = {
   'cloud.conflicts.photoChanged': 'תמונת הפרופיל שלך שונתה במכשיר אחר.',
   'cloud.conflicts.otherPhoto': 'תמונת פרופיל מהמכשיר האחר',
   'cloud.conflicts.usePhoto': 'שימוש בתמונה הזו',
+  'cloud.conflicts.photoRemoved': 'תמונת הפרופיל שלך הוסרה במכשיר אחר.',
+  'cloud.conflicts.removePhoto': 'ללא תמונה',
   'cloud.conflicts.entriesEdited':
     '{count} רשומות נערכו בשני מכשירים בו־זמנית. שתי הגרסאות נמצאות ביומן שלך.',
   'cloud.conflicts.showThem': 'הצגה',
@@ -892,7 +894,7 @@ export const he: Translations = {
   'cloud.conflicts.openEntry': 'פתיחת הרשומה',
   'cloud.conflicts.gotIt': 'הבנתי',
   'cloud.conflicts.versionsChanged':
-    'הגרסאות השתנו בזמן הבחירה, ולכן שום דבר לא נשמר. כדאי לבדוק אותן ולבחור שוב.',
+    'הגרסאות השתנו בזמן הבחירה, ולכן שום דבר לא נשמר. יש לבדוק אותן ולבחור שוב.',
   'cloud.conflicts.allDone': 'הכול הושלם. לכל רשומה יש עכשיו גרסה אחת.',
   'cloud.conflicts.titleDiffers': 'הכותרת שונה',
   'cloud.conflicts.textDiffers': 'הטקסט שונה',

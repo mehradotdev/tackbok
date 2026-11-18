@@ -394,12 +394,13 @@ export async function keepProfileChoice(
     (state, writer) => {
       const shown = shownItems(state.profile[field]);
       const others = shown.slice(1).map((item) => stampKey(item.s));
+      // No other version left: the choice was made elsewhere meanwhile.
       if (
+        others.length === 0 ||
         (shown[0]?.v ?? null) !== seen.shown ||
         others.sort().join() !== seenOthers.join()
       )
         throw new VersionsChangedError();
-      if (others.length === 0) return state;
       return ops.keepProfile(state, writer, field, chosen ?? shown[0].s);
     },
     { type: 'profile', id: 'profile' },

@@ -38,8 +38,9 @@ export type CloudConflictItem = (
   | {
       kind: 'photo';
       conflictIds: string[];
-      otherAssetId: string;
-      otherUri: string;
+      /** Null for "no photo": the photo was removed on another device. */
+      otherAssetId: string | null;
+      otherUri: string | null;
       /** What the card listed: "Use" and "Keep current" refuse if it changed. */
       seen: ProfileField;
     }
@@ -79,41 +80,54 @@ function parseStampId(id: string): Stamp {
 
 /** The choices this device can act on. Read errors are thrown to the caller. */
 export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
-  const [versions, profileVersions, returned, [profile]] = await Promise.all([
+  const [versions, profileVersions, returned] = await Promise.all([
     listOtherVersions(),
     listProfileVersions(),
     listReturnedEntries(),
-    db.select().from(userProfile).limit(1),
   ]);
   const items: CloudConflictItem[] = [];
   for (const other of profileVersions.name.others)
     items.push({
       kind: 'name',
       conflictIds: [stampId('name', other.stamp)],
-      current: profile?.display_name ?? null,
+      // The value the guard checks (`seen.shown`), so both always agree.
+      current: profileVersions.name.shown,
       other: other.value,
       seen: profileVersions.name,
       latestAt: profileVersions.receivedAt,
     });
+  // Photo choices are offered only once every other photo is on this device:
+  // "Use" or "Keep current" keeps one value and drops the rest, so none may
+  // be one the user could not see. "No photo" needs no file.
+  const photos: { stamp: Stamp; assetId: string | null; uri: string | null }[] = [];
   for (const other of profileVersions.photo.others) {
-    // A photo is offered only once its file is on this device.
-    if (other.value === null) continue;
+    if (other.value === null) {
+      photos.push({ stamp: other.stamp, assetId: null, uri: null });
+      continue;
+    }
     const [row] = await db
       .select({ uri: mediaAssets.local_uri, state: mediaAssets.download_state })
       .from(mediaAssets)
       .where(eq(mediaAssets.asset_id, other.value))
       .limit(1);
-    if (!row?.uri || (row.state !== 'n/a' && row.state !== 'verified')) continue;
-    if (!photoFileExists(row.uri)) continue;
-    items.push({
-      kind: 'photo',
-      conflictIds: [stampId('photo', other.stamp)],
-      otherAssetId: other.value,
-      otherUri: row.uri,
-      seen: profileVersions.photo,
-      latestAt: profileVersions.receivedAt,
-    });
+    if (
+      !row?.uri ||
+      (row.state !== 'n/a' && row.state !== 'verified') ||
+      !photoFileExists(row.uri)
+    )
+      break;
+    photos.push({ stamp: other.stamp, assetId: other.value, uri: row.uri });
   }
+  if (photos.length === profileVersions.photo.others.length)
+    for (const photo of photos)
+      items.push({
+        kind: 'photo',
+        conflictIds: [stampId('photo', photo.stamp)],
+        otherAssetId: photo.assetId,
+        otherUri: photo.uri,
+        seen: profileVersions.photo,
+        latestAt: profileVersions.receivedAt,
+      });
   if (versions.size > 0)
     items.push({
       kind: 'entries',
@@ -180,6 +194,7 @@ export async function resolvePhotoConflict(
 ): Promise<void> {
   if (choice === 'use') {
     await keepProfileChoice('photo', parseStampId(item.conflictIds[0]), item.seen);
+    // `otherUri` is null when the chosen version is "no photo".
     const { profileName, profileEmail } = useSettingsStore.getState();
     hydrateProfileCache({ profileName, profileEmail, profileImageUri: item.otherUri });
   } else await keepProfileChoice('photo', null, item.seen);

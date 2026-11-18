@@ -9,6 +9,7 @@ import { toast } from '~/components/ui/toast';
  */
 export function reportVersionsChanged(t: TranslationFunction): void {
   const message = t('cloud.conflicts.versionsChanged');
-  toast.info(message);
+  // As long as an error's: it explains why nothing was saved.
+  toast.info(message, { duration: 8000 });
   AccessibilityInfo.announceForAccessibilityWithOptions(message, { queue: true });
 }

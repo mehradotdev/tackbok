@@ -837,6 +837,8 @@ export const zhTW: Translations = {
   'cloud.conflicts.photoChanged': '你的頭像在另一部裝置上被更改。',
   'cloud.conflicts.otherPhoto': '另一部裝置上的頭像',
   'cloud.conflicts.usePhoto': '使用這張照片',
+  'cloud.conflicts.photoRemoved': '你的頭像已在另一部裝置上移除。',
+  'cloud.conflicts.removePhoto': '不使用頭像',
   'cloud.conflicts.entriesEdited':
     '有 {count} 則紀錄同時在兩部裝置上被編輯。兩個版本都在你的日記中。',
   'cloud.conflicts.showThem': '查看',
@@ -870,7 +872,7 @@ export const zhTW: Translations = {
   'cloud.conflicts.openEntry': '開啟紀錄',
   'cloud.conflicts.gotIt': '知道了',
   'cloud.conflicts.versionsChanged':
-    '在你選擇時這些版本已有變動，因此未儲存任何變更。請重新查看後再選擇。',
+    '在你選擇時這些版本已有變動，因此未儲存任何變更。請再看一遍後重新選擇。',
   'cloud.conflicts.allDone': '全部完成。現在每則紀錄只有一個版本。',
   'cloud.conflicts.titleDiffers': '標題不同',
   'cloud.conflicts.textDiffers': '內文不同',

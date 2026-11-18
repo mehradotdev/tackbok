@@ -849,6 +849,8 @@ export const es = {
   'cloud.conflicts.photoChanged': 'Tu foto de perfil se cambió en otro dispositivo.',
   'cloud.conflicts.otherPhoto': 'Foto de perfil del otro dispositivo',
   'cloud.conflicts.usePhoto': 'Usar esta foto',
+  'cloud.conflicts.photoRemoved': 'Se quitó tu foto de perfil en otro dispositivo.',
+  'cloud.conflicts.removePhoto': 'No usar foto',
   'cloud.conflicts.entriesEdited':
     '{count} entradas se editaron en dos dispositivos a la vez. Ambas versiones están en tu diario.',
   'cloud.conflicts.showThem': 'Mostrarlas',

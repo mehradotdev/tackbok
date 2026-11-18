@@ -865,6 +865,8 @@ export const ar: Translations = {
   'cloud.conflicts.photoChanged': 'تم تغيير صورة ملفك الشخصي على جهاز آخر.',
   'cloud.conflicts.otherPhoto': 'صورة الملف الشخصي من الجهاز الآخر',
   'cloud.conflicts.usePhoto': 'استخدام هذه الصورة',
+  'cloud.conflicts.photoRemoved': 'أُزيلت صورة ملفك الشخصي على جهاز آخر.',
+  'cloud.conflicts.removePhoto': 'عدم استخدام صورة',
   'cloud.conflicts.entriesEdited':
     'عدد السجلات التي عُدِّلت على جهازين في الوقت نفسه: {count}. النسختان موجودتان في دفتر يومياتك.',
   'cloud.conflicts.showThem': 'عرضها',

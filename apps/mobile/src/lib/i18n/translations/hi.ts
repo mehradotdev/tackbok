@@ -809,6 +809,8 @@ export const hi = {
   'cloud.conflicts.photoChanged': 'आपकी प्रोफ़ाइल फ़ोटो किसी दूसरे डिवाइस पर बदली गई।',
   'cloud.conflicts.otherPhoto': 'दूसरे डिवाइस की प्रोफ़ाइल फ़ोटो',
   'cloud.conflicts.usePhoto': 'यह फ़ोटो इस्तेमाल करें',
+  'cloud.conflicts.photoRemoved': 'आपकी प्रोफ़ाइल फ़ोटो दूसरे डिवाइस पर हटा दी गई।',
+  'cloud.conflicts.removePhoto': 'कोई फ़ोटो न रखें',
   'cloud.conflicts.entriesEdited':
     '{count} प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं। दोनों संस्करण आपकी डायरी में हैं।',
   'cloud.conflicts.showThem': 'दिखाएँ',

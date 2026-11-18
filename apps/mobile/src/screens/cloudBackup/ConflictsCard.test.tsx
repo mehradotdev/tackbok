@@ -311,3 +311,16 @@ test('choices sync to every device (cloud sync v2): no device-only note or hint'
   expect(hints).toEqual([]);
   expect(content()).not.toContain('this device only');
 });
+
+test('a photo removed on another device is offered as "no photo", without a thumbnail', async () => {
+  const removed = {
+    ...photoItem,
+    otherAssetId: null,
+    otherUri: null,
+  } as CloudConflictItem;
+  await render([removed]);
+  expect(root.root.findAllByType('Image' as never)).toHaveLength(0);
+  expect(content()).toContain(mockEn['cloud.conflicts.photoRemoved']);
+  await act(async () => button(mockEn['cloud.conflicts.removePhoto']).props.onPress());
+  expect(mockResolvePhoto).toHaveBeenCalledWith(removed, 'use');
+});

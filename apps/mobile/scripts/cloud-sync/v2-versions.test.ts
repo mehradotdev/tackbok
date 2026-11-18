@@ -237,3 +237,64 @@ test('"Keep this one" writes nothing if a version arrived after the screen liste
   ]);
   expect(await on(a, T + 13, versions.countSyncChoices)).toBe(0);
 });
+
+test('a profile photo removed on one device and changed on another: "no photo" can be kept', async () => {
+  const hashMedia = (device: SqliteDevice) =>
+    device.sqlite.run(
+      "UPDATE media_assets SET blob_hash = substr(lower(hex(asset_id)) || '0000000000000000000000000000000000000000000000000000000000000000', 1, 64), byte_size = 10 WHERE blob_hash IS NULL",
+    );
+  await write(a, T, (tx) =>
+    repositories.updateProfileInTransaction(
+      tx,
+      { photoUri: 'photos/me.jpg', photoAssetId: 'me' },
+      { now: T },
+    ),
+  );
+  hashMedia(a);
+  await syncFrom(b, a, T + 1);
+  await write(b, T + 2, (tx) =>
+    repositories.updateProfileInTransaction(tx, { photoUri: null }, { now: T + 2 }),
+  );
+  await write(a, T + 3, (tx) =>
+    repositories.updateProfileInTransaction(
+      tx,
+      { photoUri: 'photos/me2.jpg', photoAssetId: 'me2' },
+      { now: T + 3 },
+    ),
+  );
+  hashMedia(a);
+  await syncFrom(a, b, T + 4);
+  const photo = (await on(a, T + 5, versions.listProfileVersions)).photo;
+  expect(photo.shown).toBe('me2');
+  expect(photo.others.map((other) => other.value)).toEqual([null]);
+  const waiting = () =>
+    a.sqlite
+      .query(
+        'SELECT journal_generation - settled_generation AS waiting FROM cloud_sync_state',
+      )
+      .all();
+  const before = waiting();
+  // A choice made from an out-of-date listing writes nothing.
+  await expect(
+    on(a, T + 6, () =>
+      versions.keepProfileChoice(
+        'photo',
+        photo.others[0].stamp,
+        { ...photo, others: [] },
+        simMediaFiles,
+      ),
+    ),
+  ).rejects.toBeInstanceOf(versions.VersionsChangedError);
+  expect(waiting()).toEqual(before);
+  await on(a, T + 7, () =>
+    versions.keepProfileChoice('photo', photo.others[0].stamp, photo, simMediaFiles),
+  );
+  expect(a.sqlite.query('SELECT photo_asset_id FROM user_profile').all()).toEqual([
+    { photo_asset_id: null },
+  ]);
+  expect((await on(a, T + 8, versions.listProfileVersions)).photo.others).toEqual([]);
+  // Nothing left to choose: a late "Keep current" is refused, not a silent no-op.
+  await expect(
+    on(a, T + 9, () => versions.keepProfileChoice('photo', null, photo, simMediaFiles)),
+  ).rejects.toBeInstanceOf(versions.VersionsChangedError);
+});

@@ -834,6 +834,8 @@ export const zhCN: Translations = {
   'cloud.conflicts.photoChanged': '你的头像在另一台设备上被更改。',
   'cloud.conflicts.otherPhoto': '另一台设备上的头像',
   'cloud.conflicts.usePhoto': '使用这张照片',
+  'cloud.conflicts.photoRemoved': '你的头像已在另一台设备上移除。',
+  'cloud.conflicts.removePhoto': '不使用头像',
   'cloud.conflicts.entriesEdited':
     '有 {count} 个条目同时在两台设备上被编辑。两个版本都在你的日记中。',
   'cloud.conflicts.showThem': '查看',
@@ -867,7 +869,7 @@ export const zhCN: Translations = {
   'cloud.conflicts.openEntry': '打开条目',
   'cloud.conflicts.gotIt': '知道了',
   'cloud.conflicts.versionsChanged':
-    '在你选择时这些版本发生了变化，因此未保存任何更改。请重新查看后再选择。',
+    '在你选择时这些版本发生了变化，因此未保存任何更改。请再看一遍后重新选择。',
   'cloud.conflicts.allDone': '全部完成。现在每个条目只有一个版本。',
   'cloud.conflicts.titleDiffers': '标题不同',
   'cloud.conflicts.textDiffers': '正文不同',
