@@ -64,6 +64,9 @@ const mockDb = {
   delete: async () => {},
   insert: () => ({ values: () => ({ onConflictDoUpdate: async () => {} }) }),
 };
+jest.mock('../runtime/installBinding', () => ({
+  ensureInstallBoundDeviceId: async () => {},
+}));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
 jest.mock('expo-file-system', () => ({}));
 jest.mock('~/db', () => ({

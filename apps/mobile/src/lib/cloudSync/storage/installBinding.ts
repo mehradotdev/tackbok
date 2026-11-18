@@ -31,23 +31,26 @@
  *   way "Continue as a new device" does (`continueAsNewDevice`, #216): every
  *   write under the old ID moves, HLCs kept, and the old head is left to the
  *   install that still has it. An Android reinstall that got its database
- *   back would land here: a new ID it didn't need, which costs nothing but a
- *   roster entry.
+ *   back would land here: a new ID it didn't need. That costs one full
+ *   capture and rewrite at the next launch, and the old ID stays on rosters
+ *   (holding back compaction) until it expires.
  *
  * shortcut: a copy of a database backed up before this upgrade first ran has
  * no binding, so it reads as the upgrade and keeps the ID; the
- * "another install uses this ID" pause still catches it if both sync. So does
- * restoring an older encrypted backup onto the same iPhone (the marker comes
- * back with it). Revisit if those show up in practice.
+ * "another install uses this ID" pause still catches it if both sync.
+ * Restoring an older encrypted backup onto the same iPhone brings the marker
+ * back with the database, so the ID stays although local state went back;
+ * the same pause catches that when the phone finds its own newer head on
+ * Drive. Revisit if either shows up in practice.
  *
  * Metadata never bound to a vault keeps its ID: nothing under it leaves the
  * install, and binding to a vault rebuilds it under a new ID
  * (`rebuildSyncMetadataInTransaction`).
  */
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 
-import { cloudVault, runExclusiveDbTransaction, syncDevice } from '~/db';
+import { cloudSyncState, cloudVault, runExclusiveDbTransaction, syncDevice } from '~/db';
 
 import { continueAsNewDevice } from '../snapshot/sync/newDevice';
 import type { ApplyMediaFiles } from './v2State';
@@ -78,7 +81,11 @@ export function decideInstallBinding(
     : { kind: 'new-device', installId, writeMarker };
 }
 
-export type InstallBindingResult = InstallBindingDecision['kind'] | 'unbound-copy';
+export type InstallBindingResult =
+  | InstallBindingDecision['kind']
+  | 'unbound-copy'
+  /** No row to bind yet; check again later. */
+  | 'no-device';
 
 /**
  * Checks this database against this install's marker and acts on the
@@ -101,7 +108,7 @@ export async function ensureInstallBinding(options: {
   );
   // The 0008 migration creates the row; a missing one is created, unbound,
   // at the first write (`tickInTransaction`) and bound at the next check.
-  if (!device) return 'bound';
+  if (!device) return 'no-device';
   const decision = decideInstallBinding(
     marker,
     device.installId,
@@ -127,12 +134,23 @@ export async function ensureInstallBinding(options: {
     newDeviceId: options.newDeviceId,
     installId: decision.installId,
   });
-  // Publish under the new ID at the next pass.
-  await runExclusiveDbTransaction((tx) =>
-    tx
+  await runExclusiveDbTransaction(async (tx) => {
+    // A copy made while the original was paused for another install using
+    // its ID brings that pause along; the new ID has answered it.
+    await tx
+      .update(cloudSyncState)
+      .set({ pause_reason: null, pause_context_json: null, updated_at: options.now })
+      .where(
+        and(
+          eq(cloudSyncState.vault_id, vaultId),
+          eq(cloudSyncState.pause_reason, 'ambiguous-device-head'),
+        ),
+      );
+    // Publish under the new ID at the next pass.
+    await tx
       .update(cloudVault)
       .set({ status: 'dirty', updated_at: options.now })
-      .where(and(eq(cloudVault.vault_id, vaultId), inArray(cloudVault.status, ['idle']))),
-  );
+      .where(and(eq(cloudVault.vault_id, vaultId), eq(cloudVault.status, 'idle')));
+  });
   return 'new-device';
 }

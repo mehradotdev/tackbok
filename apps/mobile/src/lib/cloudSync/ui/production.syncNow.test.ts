@@ -11,6 +11,9 @@ const mockUpdateVault = jest.fn(async () => {});
 // A connection change, such as Pause, starting at this point.
 const changeConnection = () => mockLifecycle.change(async () => undefined);
 
+jest.mock('../runtime/installBinding', () => ({
+  ensureInstallBoundDeviceId: async () => {},
+}));
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'new-id' }));
 jest.mock('expo-file-system', () => ({}));
 jest.mock('~/db', () => ({

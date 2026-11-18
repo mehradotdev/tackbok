@@ -68,6 +68,7 @@ import {
 } from '../runtime/production';
 import type { SyncPassPhase } from '../runtime/SyncRuntime';
 import { setCloudSyncBackgroundTaskEnabled } from '../runtime/backgroundTask';
+import { ensureInstallBoundDeviceId } from '../runtime/installBinding';
 import { runInCloudSyncTransaction } from '../storage/repositories';
 
 export type CloudSetupOrigin = 'settings' | 'onboarding';
@@ -907,6 +908,9 @@ export async function replaceUnreadableBackups(): Promise<number> {
  * (`continueAsNewDevice`). Keeps every value this device shows, then syncs.
  */
 export async function continueAsNewDevice(): Promise<void> {
+  // A copied database must take its own new ID first (P13), or this would
+  // act for the original install under the shared one.
+  await ensureInstallBoundDeviceId();
   const changing = cloudConnectionLifecycle.change(async () => {
     if (connectionSetupInProgress || pendingConnection) {
       throw new Error('Finish or cancel the Google account setup first');

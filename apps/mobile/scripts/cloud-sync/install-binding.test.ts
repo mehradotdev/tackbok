@@ -239,6 +239,7 @@ describe('check', () => {
     expect(await check(copy)).toBe('bound');
     await sync(copy);
     expect(row(copy).device_id).not.toBe(id);
+    expect(row(copy).install_id).toBe(copy.marker.value!);
   });
 
   test('iPhone reinstall: a new database adopts the marker the keychain kept', async () => {
@@ -247,6 +248,7 @@ describe('check', () => {
     const reinstalled = install(devices.create(), a.marker.value);
     expect(await check(reinstalled)).toBe('bind');
     expect(row(reinstalled).install_id).toBe(a.marker.value!);
+    expect(row(reinstalled).device_id).not.toBe(row(a).device_id);
   });
 
   test('an interruption after the marker write repeats the same decision', async () => {
@@ -269,6 +271,50 @@ describe('check', () => {
     expect(row(a).device_id).not.toBe(id);
     expect(row(a).install_id).toBe(a.marker.value!);
     expect(await check(a)).toBe('bound');
+  });
+
+  test('a copy made while paused for another install comes out unpaused, its vault dirty', async () => {
+    const a = install();
+    await check(a);
+    await sync(a);
+    a.database.sqlite
+      .exec(`INSERT INTO cloud_vault (vault_id, provider_kind, remote_root_id,
+      device_id, status, created_at, updated_at) VALUES
+      ('${VAULT}', 'google-drive', 'appDataFolder', 'connection', 'idle', ${T}, ${T})`);
+    a.database.sqlite.exec(
+      `UPDATE cloud_sync_state SET pause_reason = 'ambiguous-device-head' WHERE vault_id = '${VAULT}'`,
+    );
+    const copy = install(devices.clone(a.database));
+    expect(await check(copy)).toBe('new-device');
+    expect(
+      copy.database.sqlite
+        .query('SELECT pause_reason FROM cloud_sync_state WHERE vault_id = ?')
+        .all(VAULT),
+    ).toEqual([{ pause_reason: null }]);
+    expect(copy.database.sqlite.query('SELECT status FROM cloud_vault').get()).toEqual({
+      status: 'dirty',
+    });
+  });
+
+  test('a marker write that fails leaves the database as it was', async () => {
+    const a = install();
+    await check(a);
+    await sync(a);
+    const copy = install(devices.clone(a.database));
+    const before = row(copy);
+    await expect(
+      devices.on(copy.database, clock, () =>
+        ensureInstallBinding({
+          marker: {
+            read: async () => null,
+            write: () => Promise.reject(new Error('keychain full')),
+          },
+          files: simMediaFiles,
+          now: clock,
+        }),
+      ),
+    ).rejects.toThrow('keychain full');
+    expect(row(copy)).toEqual(before);
   });
 
   test('a marker that cannot be read changes nothing', async () => {

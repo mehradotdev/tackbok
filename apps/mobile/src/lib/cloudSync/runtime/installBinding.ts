@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 import { productionApplyFiles } from '../snapshot/storage';
@@ -13,7 +14,19 @@ const INSTALL_MARKER_KEY = 'tackbok.install-marker.v1';
  * expo-secure-store plugin's backup rules leave SecureStore out instead.
  */
 const installMarker: InstallMarkerStore = {
-  read: () => SecureStore.getItemAsync(INSTALL_MARKER_KEY),
+  async read() {
+    try {
+      return await SecureStore.getItemAsync(INSTALL_MARKER_KEY);
+    } catch (error) {
+      // iOS throws while the keychain is locked; that passes, so retry later.
+      // Android has no such state: a marker its Keystore can no longer
+      // decrypt would block sync for good. Dropping it is safe, since a
+      // missing marker only costs a new device ID.
+      if (Platform.OS !== 'android') throw error;
+      await SecureStore.deleteItemAsync(INSTALL_MARKER_KEY);
+      return null;
+    }
+  },
   write: (value) =>
     SecureStore.setItemAsync(INSTALL_MARKER_KEY, value, {
       keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
@@ -34,14 +47,14 @@ export function ensureInstallBoundDeviceId(): Promise<void> {
   if (installBound) return Promise.resolve();
   installBinding ??= (async () => {
     try {
-      await cloudConnectionLifecycle.exclusive(() =>
+      const result = await cloudConnectionLifecycle.exclusive(() =>
         ensureInstallBinding({
           marker: installMarker,
           files: productionApplyFiles(),
           now: Date.now(),
         }),
       );
-      installBound = true;
+      installBound = result !== 'no-device';
     } finally {
       installBinding = null;
     }
