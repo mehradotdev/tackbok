@@ -32,7 +32,7 @@ The two biggest differences: Tackbok runs on iPhone as well as Android, and it l
 | Ads                    | None                                                      | None                                                     |
 | Account needed         | No                                                        | No                                                       |
 | Where entries are kept | On your device                                            | On your device                                           |
-| Source code            | Open source (Apache 2.0), on GitHub                       | Open source, on GitHub                                   |
+| Source code            | Open source (Apache 2.0), on GitHub                       | Source code public on GitHub                             |
 | Text entries           | Yes                                                       | Yes                                                      |
 | Photos in entries      | Up to 10 per entry                                        | Not offered                                              |
 | Voice memos            | Yes                                                       | Not offered                                              |

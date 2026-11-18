@@ -34,8 +34,8 @@ Both apps keep your entries on your device and don't need an account. The main d
 | Voice in entries              | Voice memos                                               | Voice journal entries                                                                               |
 | Moods and tags                | Yes                                                       | Not listed on their website                                                                         |
 | Writing prompts and reminders | Yes                                                       | Yes, with hundreds of prompts                                                                       |
-| Entries for past dates        | Yes                                                       | With Pro                                                                                            |
-| Affirmations                  | A daily affirmation worksheet                             | Hundreds of affirmations, your own with voice recordings and music                                  |
+| Entries for past dates        | Any date                                                  | Up to 2 days back free; older dates with Pro                                                        |
+| Affirmations                  | An affirmation line in the daily worksheet                | Hundreds of affirmations, your own with voice recordings and music                                  |
 | Vision boards                 | No                                                        | Yes (one free, more with Pro)                                                                       |
 | Automatic backup              | Your own Google Drive, with sync between devices          | Your own Google Drive or iCloud, with iCloud sync between Apple devices                             |
 | Export                        | ZIP file                                                  | ZIP file, or a PDF journal with Pro                                                                 |
@@ -50,7 +50,7 @@ Both apps keep your entries on your device and don't need an account. The main d
 
 ## Where Tackbok is different
 
-- **Everything is free.** Up to 10 photos per entry, voice memos, entries for past dates and Google Drive backup cost nothing. Support purchases are optional and unlock no features.
+- **Everything is free.** Up to 10 photos per entry, voice memos and entries for any past date cost nothing. Support purchases are optional and unlock no features.
 - **Open source.** Anyone can read Tackbok's code on [GitHub](https://github.com/mehradotdev/tackbok).
 - **Analytics only if you opt in.** Tackbok collects no usage statistics unless you turn them on, and never collects journal content.
 - **Moods and tags.** Record a mood and add tags to any entry, then filter by tag in search.
