@@ -10,7 +10,13 @@
  *   within `ROSTER_EXPIRY_MS` (180 days) of the newest one in the state.
  *   Measured against the state, not a wall clock, so every device holding
  *   the same state agrees. An expired device that publishes again is active
- *   again. Devices never leave the roster itself: stamps name them.
+ *   again. Devices never leave the roster itself: stamps and vectors name
+ *   them (the codec caps it at 1,024). What `compact` drops is an expired
+ *   device's acknowledgement: every ack is a vector over the roster, so
+ *   keeping them all would grow the header with the square of the devices a
+ *   vault ever had (past its 256 KiB cap at 115 to 160). Only the active
+ *   devices' acks are read, and a returning device sets its own again when
+ *   it publishes. The engine prunes an expired device's head from Drive.
  * - **Floor.** The meet (per-device minimum) of the active devices'
  *   acknowledgements (`acks`, set by `markSeen` before a publish). A device
  *   missing from any active acknowledgement is missing from the floor. No
@@ -70,7 +76,7 @@ import type { DeviceId, EntryRecord, SyncState, VersionVector } from './types';
 import { isLive } from './view';
 
 /** Devices whose last-seen time is within `ROSTER_EXPIRY_MS` of the newest one. */
-export function activeDevices(state: SyncState): DeviceId[] {
+export function activeDevices(state: Pick<SyncState, 'roster'>): DeviceId[] {
   const newest = highestHlc(state.roster);
   return (
     Object.keys(state.roster)
@@ -129,8 +135,23 @@ export function scrubEntry(entry: EntryRecord): EntryRecord {
   };
 }
 
-/** Drops the values of every deleted entry all active devices have seen deleted. */
-export function compact(state: SyncState): SyncState {
+/** The acknowledgements of active devices only: the same object if none is dropped. */
+function activeAcks(state: SyncState): SyncState['acks'] {
+  const active = new Set(activeDevices(state));
+  const devices = Object.keys(state.acks);
+  if (devices.every((device) => active.has(device))) return state.acks;
+  return Object.fromEntries(
+    devices.filter((device) => active.has(device)).map((d) => [d, state.acks[d]]),
+  );
+}
+
+/**
+ * Drops expired devices' acknowledgements, then the values of every deleted
+ * entry all active devices have seen deleted.
+ */
+export function compact(input: SyncState): SyncState {
+  const acks = activeAcks(input);
+  const state = acks === input.acks ? input : { ...input, acks };
   const floor = compactionFloor(state);
   if (!floor) return state;
   let entries: Map<string, EntryRecord> | null = null;

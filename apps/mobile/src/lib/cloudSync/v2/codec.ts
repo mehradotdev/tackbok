@@ -334,6 +334,9 @@ export function encodeEnvelope(
   validateHeader(header);
   const headerText = canonicalize(header);
   const headerBytes = encoder.encode(headerText);
+  // Refused here rather than published: no device could read it back.
+  if (headerBytes.length > V2_CAPS.headerBytes)
+    invalid('header-size-cap', 'Snapshot header exceeds its cap');
   const bytes = new Uint8Array(headerBytes.length + 1 + stored.length);
   bytes.set(headerBytes);
   bytes[headerBytes.length] = 0x0a;

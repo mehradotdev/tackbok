@@ -283,6 +283,137 @@ describe('passes', () => {
   });
 });
 
+describe('roster expiry and head pruning (P11)', () => {
+  const heads = () =>
+    provider
+      .physicalHeads(VAULT)
+      .map((listed) => listed.head!.deviceId)
+      .sort();
+  const deleteEntry = (target: Device, id: string) =>
+    write(target, (tx) => repositories.deleteEntryInTransaction(tx, id, { now: clock }));
+  const deletedValues = (target: Device) =>
+    target.database.sqlite.query('SELECT entity_id FROM sync_deleted_records').all();
+
+  test('a device away for 180 days loses its head; back, it brings back only what it edited', async () => {
+    const [a, b, c] = [device(), device(), device()];
+    await addEntry(a, 'kept-deleted', { text_content: 'Gone' });
+    await addEntry(a, 'edited-away', { text_content: 'Old' });
+    for (const target of [a, b, c, a]) await sync(target);
+    // B edits one entry offline, then goes quiet; A deletes both.
+    clock += 1000;
+    await addEntry(b, 'edited-away', { text_content: 'Edited on B' });
+    await deleteEntry(a, 'kept-deleted');
+    await deleteEntry(a, 'edited-away');
+    await sync(a);
+    await sync(c);
+    // 200 days on: B has expired, A and C go on.
+    clock += 200 * DAY;
+    await addEntry(c, 'later');
+    await sync(c);
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    const bId = deviceIdOf(b);
+    expect(heads()).toEqual([deviceIdOf(a), deviceIdOf(c)].sort());
+    expect(heads()).not.toContain(bId);
+    // A's own record of B's head stays; the deleted values are compacted.
+    expect(deletedValues(a)).toEqual([]);
+    // B comes back: its own head is gone, so it publishes a new one. The
+    // entry it never edited stays deleted; its unseen edit returns.
+    clock += 1000;
+    const back = await sync(b);
+    expect(back).toMatchObject({ status: 'published', revivedEntries: ['edited-away'] });
+    expect(texts(b)).toEqual(['edited-away:Edited on B', 'later:Text later']);
+    expect(heads()).toContain(bId);
+    clock += 1000;
+    expect(await sync(a)).toMatchObject({ revivedEntries: ['edited-away'] });
+    for (const target of [a, c]) {
+      await sync(target);
+      expect(texts(target)).toEqual(['edited-away:Edited on B', 'later:Text later']);
+    }
+  });
+
+  test('a pass that only pulls prunes nothing: the device publishes first', async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1');
+    for (const target of [a, b, a]) await sync(target);
+    // 200 days on, a new device joins (its publication changes no context);
+    // its own pruning fails this once.
+    clock += 200 * DAY;
+    provider.failNext('delete-head', new SnapshotProviderError('transient', 'offline'));
+    const joining = await requests(() => sync(device()));
+    expect(count(joining, 'delete-head')).toBe(1);
+    expect(heads()).toHaveLength(3);
+    // A, relaunched (a fresh engine runs its cleanup at once), only pulls:
+    // B is expired, but A has not published since taking it in.
+    const relaunched = device({ database: a.database });
+    clock += 1000;
+    let status = '';
+    const pulling = await requests(async () => {
+      status = (await sync(relaunched)).status;
+    });
+    expect(status).toBe('pulled');
+    expect(count(pulling, 'list-snapshots')).toBe(1);
+    expect(count(pulling, 'delete-head')).toBe(0);
+    expect(heads()).toContain(deviceIdOf(b));
+    // Its next publication prunes it.
+    clock += 1000;
+    await addEntry(relaunched, 'e2');
+    expect((await sync(relaunched)).status).toBe('published');
+    expect(heads()).not.toContain(deviceIdOf(b));
+  });
+
+  test('a device back after its head was pruned publishes even if the only other head is damaged', async () => {
+    const [a, b] = [device(), device()];
+    await sync(a);
+    await addEntry(b, 'from-b');
+    await sync(b);
+    clock += 200 * DAY;
+    await addEntry(a, 'e1');
+    await sync(a);
+    expect(heads()).toEqual([deviceIdOf(a)]);
+    provider.removeDeviceHeadForTest(VAULT, deviceIdOf(a));
+    provider.injectUnreadableHead(VAULT, deviceIdOf(a), 'corrupt-file');
+    clock += 1000;
+    expect(await sync(b)).toMatchObject({
+      status: 'published',
+      skippedHeads: [{ physicalId: 'corrupt-file', reason: 'unreadable' }],
+    });
+  });
+
+  test('only the head this device took in is pruned, not another file under that ID', async () => {
+    const [a, b] = [device(), device()];
+    await sync(a);
+    await addEntry(b, 'from-b');
+    await sync(b);
+    // A leftover older head file under B's ID, pointing elsewhere (a race).
+    const [bHead] = provider
+      .physicalHeads(VAULT)
+      .filter((listed) => listed.head?.deviceId === deviceIdOf(b));
+    provider.injectPhysicalHead({
+      ...bHead.head!,
+      deviceSequence: 0,
+      snapshotId: 'f'.repeat(64),
+    });
+    clock += 200 * DAY;
+    await addEntry(a, 'e1');
+    // A takes B's head in during this pass; B is expired against A's newest
+    // time, so the cleanup after A's publication prunes that head only.
+    expect((await sync(a)).status).toBe('published');
+    expect(texts(a)).toEqual(['e1:Text e1', 'from-b:Text from-b']);
+    const left = provider.physicalHeads(VAULT).map((listed) => listed.head!);
+    expect(left.map((head) => head.deviceId).sort()).toEqual(
+      [deviceIdOf(a), deviceIdOf(b)].sort(),
+    );
+    expect(left.find((head) => head.deviceId === deviceIdOf(b))!.snapshotId).toBe(
+      'f'.repeat(64),
+    );
+    // B, back, takes the leftover for a stale listing and publishes.
+    clock += 1000;
+    expect((await sync(b)).status).toBe('published');
+    expect(texts(b)).toEqual(['e1:Text e1', 'from-b:Text from-b']);
+  });
+});
+
 describe('attachments', () => {
   async function attach(target: Device) {
     await addEntry(target, 'e1', {

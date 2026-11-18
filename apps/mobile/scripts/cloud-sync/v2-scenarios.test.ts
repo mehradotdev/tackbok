@@ -1063,6 +1063,55 @@ describe('compaction of deleted entries', () => {
     expect(isLive(compact(publishAll(back.state, LATER)).entries.get('e1')!)).toBe(true);
   });
 
+  test("an expired device's acknowledgement is dropped; publishing again restores it", () => {
+    const { away, state } = expiredAndCompacted();
+    expect(Object.keys(state.acks).sort()).toEqual(devices);
+    expect(state.roster['device-x']).toBeDefined();
+    // Its own stale copy brings the old acknowledgement back (still true: it
+    // had seen all of it); while it is expired, compaction drops it again.
+    const back = absorb(state, away, at('device-a', LATER)).state;
+    expect(back.acks['device-x']).toBeDefined();
+    expect(compact(back).acks['device-x']).toBeUndefined();
+    // Publishing makes it active again, acknowledging what it now holds.
+    const published = compact(ops.markSeen(back, at('device-x', LATER)));
+    expect(activeDevices(published)).toContain('device-x');
+    expect(published.acks['device-x']).toEqual(back.ctx);
+    expect(compactionFloor(published)).not.toBeNull();
+    // Dropping it does not stop the states converging.
+    const all = convergeInEveryOrder([state, away, published]);
+    expect(C(compact(all))).toBe(C(published));
+  });
+
+  test('acknowledgements of expired devices keep the header under its cap as devices come and go', () => {
+    // 300 device IDs over the years, about 10 active at a time; without
+    // dropping expired acknowledgements the header passes 256 KiB at 115 to
+    // 160 devices, and an encode refuses it (no device could decode it).
+    const device = (i: number) =>
+      `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`;
+    const day = 24 * HOUR;
+    let state = entryWith('Text');
+    let kept = state;
+    for (let i = 0; i < 300; i++) {
+      const writer = { device: device(i), wallMs: T0 + i * 20 * day };
+      const write = (base: SyncState) =>
+        ops.markSeen(ops.setMood(base, writer, 'e1', i % 2 ? 'SAD' : 'HAPPY'), writer);
+      state = compact(write(state));
+      kept = write(kept);
+    }
+    const publication = { authorDeviceId: device(299), deviceSequence: 1, createdAt: T0 };
+    expect(Object.keys(state.acks).length).toBeLessThanOrEqual(10);
+    const encoded = encodeEnvelope(state, publication);
+    expect(encoded.bytes.indexOf(10)).toBeLessThan(100 * 1024);
+    expect(C(decodeEnvelope(encoded.bytes).state)).toBe(C(state));
+    try {
+      encodeEnvelope(kept, publication);
+      throw new Error('expected the header cap');
+    } catch (error) {
+      expect(error).toBeInstanceOf(SnapshotValidationError);
+      expect((error as SnapshotValidationError).code).toBe('header-size-cap');
+    }
+  });
+
   test('a device back after expiry without an edit does not bring the entry back', () => {
     const { away, state } = expiredAndCompacted();
     const back = absorb(state, away, at('device-a', LATER));

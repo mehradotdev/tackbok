@@ -130,7 +130,8 @@ export class V2StoreAdapter implements SimAdapter {
         // A stable name, so the model's writer and this device agree.
         database.sqlite.run('UPDATE sync_device SET device_id = ?', [deviceName(index)]);
       });
-      if (mode === 'engine')
+      if (mode === 'engine') {
+        adapter.provider.serverClock ??= () => adapter.real;
         adapter.engines.push(
           new V2SyncEngine({
             vaultId: V2_VAULT,
@@ -141,6 +142,7 @@ export class V2StoreAdapter implements SimAdapter {
             files: simMediaFiles,
           }),
         );
+      }
     }
     return adapter;
   }
@@ -151,6 +153,13 @@ export class V2StoreAdapter implements SimAdapter {
 
   dispose(): void {
     for (const database of this.databases) database.sqlite.close();
+  }
+
+  /** The shared, unskewed time: the fake Drive's own upload time. */
+  private real = 0;
+
+  realTime(ms: number): void {
+    this.real = ms;
   }
 
   /** Each device's last wall clock, for work done on its behalf. */
@@ -491,7 +500,12 @@ export class V2StoreAdapter implements SimAdapter {
     if (this.provider.physicalHeads(V2_VAULT).some((head) => head.head === null)) return;
     this.provider.injectUnreadableHead(V2_VAULT, 'dead-device');
     const snapshotId = 'e'.repeat(64);
-    this.provider.injectSnapshot(V2_VAULT, snapshotId, new Uint8Array([31, 139]), wall);
+    this.provider.injectSnapshot(
+      V2_VAULT,
+      snapshotId,
+      new Uint8Array([31, 139]),
+      this.real,
+    );
     this.provider.injectPhysicalHead({
       format: 'tackbok-head',
       vaultId: V2_VAULT,
