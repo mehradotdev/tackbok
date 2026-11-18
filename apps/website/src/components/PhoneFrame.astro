@@ -3,6 +3,8 @@ import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 
 interface Props {
+  /** The screenshot, or the poster when `video` is set. The poster stays the
+      accessible content; the video only decorates it. */
   src: ImageMetadata;
   alt: string;
   /** Set on the first hero screenshot, the likely Largest Contentful Paint. */
@@ -11,6 +13,10 @@ interface Props {
   loading?: 'eager' | 'lazy';
   /** Rendered width of the screenshot, for picking a srcset candidate. */
   sizes?: string;
+  /** A short, silent screen recording with the same aspect ratio as `src`.
+      It loads and plays only while on screen and never with reduced motion
+      (see the script below). Until it plays, the lazy poster image shows. */
+  video?: { webm: string; mp4: string };
 }
 
 const {
@@ -19,10 +25,16 @@ const {
   priority = false,
   loading = 'eager',
   sizes = '(max-width: 640px) 234px, 254px',
+  video,
 } = Astro.props;
+
+// Posters are recorded at 540px wide; never ask for a larger copy.
+const widths = [300, 540, 810].filter((width) => width <= src.width);
 ---
 
-<div class="relative isolate">
+<!-- w-full: a flex parent (daisyUI `.card figure`) would otherwise shrink the
+     frame to its content, and an unloaded lazy image measures 0×0. -->
+<div class="relative isolate w-full">
   <!-- Generic side buttons (volume, then power); the body covers their inner ends. -->
   <span
     aria-hidden="true"
@@ -34,15 +46,71 @@ const {
     <Image
       src={src}
       alt={alt}
-      widths={[300, 540, 810]}
+      widths={widths}
       sizes={sizes}
       loading={loading}
       fetchpriority={priority ? 'high' : undefined}
       class="block h-auto w-full rounded-[2.1rem]"
     />
-    <!-- Hole-punch selfie camera, centred in the status bar. -->
+    <!-- Hole-punch selfie camera, centred in the status bar. A playing screen
+         recording covers it with the simulator's own camera cut-out. -->
     <span
       aria-hidden="true"
       class="absolute top-[3.6%] left-1/2 aspect-square w-[4.6%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_35%_35%,#2c3138_0%,#0b0c0e_55%)] ring-1 ring-white/10"></span>
+    {video && (
+      <video
+        class="absolute top-2 left-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-[2.1rem] object-cover opacity-0 transition-opacity duration-300 data-playing:opacity-100"
+        aria-hidden="true"
+        tabindex="-1"
+        muted
+        loop
+        playsinline
+        disablepictureinpicture
+        preload="none"
+        data-phone-video>
+        <source src={video.webm} type="video/webm" />
+        <source src={video.mp4} type="video/mp4" />
+      </video>
+    )}
   </div>
 </div>
+
+<script>
+  // Play each recording only while it is on screen. With preload="none" and no
+  // autoplay attribute, nothing downloads until then. The video fades in over
+  // the poster image once it really plays, so visitors who prefer reduced
+  // motion, or whose browser blocks playback or the script, keep the poster.
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const videos = document.querySelectorAll<HTMLVideoElement>('video[data-phone-video]');
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const { target, isIntersecting } of entries) {
+        const video = target as HTMLVideoElement;
+        if (isIntersecting && !reducedMotion.matches) {
+          // Autoplay of a muted video can still be refused (for example in
+          // Low Power Mode); the poster then stays, which is fine.
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      }
+    },
+    { rootMargin: '200px 0px' },
+  );
+
+  for (const video of videos) {
+    video.addEventListener('playing', () => (video.dataset.playing = ''), { once: true });
+    observer.observe(video);
+  }
+
+  reducedMotion.addEventListener('change', () => {
+    for (const video of videos) {
+      if (reducedMotion.matches) video.pause();
+      else {
+        observer.unobserve(video);
+        observer.observe(video);
+      }
+    }
+  });
+</script>
