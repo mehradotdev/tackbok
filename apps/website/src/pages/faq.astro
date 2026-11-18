@@ -13,7 +13,11 @@ const GALAXY_STORE_URL = 'https://galaxystore.samsung.com/detail/dev.mehra.tackb
 const APP_STORE_URL =
   'https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507';
 
-const faqs = [
+const faqs: {
+  question: string;
+  answer: string;
+  links?: { href: string; label: string }[];
+}[] = [
   {
     question: 'What is Tackbok?',
     answer:
@@ -68,6 +72,15 @@ const faqs = [
     question: 'Can I back up or move my journal?',
     answer:
       'Yes. You can back up your journal to your own Google Drive and keep it in sync between your devices, or save a backup file yourself. You can also import entries from a Tackbok backup, Gratitude App, or Presently. Android exports can be saved to a location you choose.',
+  },
+  {
+    question: 'How do I move my journal from Presently or the Gratitude app?',
+    answer:
+      'Export your journal from the other app, then import the file in Tackbok under Settings › Backup & restore. Presently exports a CSV file with your entry dates and text. The Gratitude app exports a ZIP file, and Tackbok brings across its entries, photos, and voice recordings. The step-by-step guides explain what comes across and what does not.',
+    links: [
+      { href: '/import/presently', label: 'Import from Presently' },
+      { href: '/import/gratitude-app', label: 'Import from Gratitude app' },
+    ],
   },
   {
     question: 'What languages does Tackbok support?',
@@ -142,6 +155,19 @@ const structuredData = {
               </div>
               <div class="collapse-content pr-8 pl-6 text-[0.98rem] leading-[1.72] text-ink-soft sm:pr-10 sm:pl-7">
                 <p class="max-w-[680px] pt-1 pb-4">{faq.answer}</p>
+                {faq.links && (
+                  <ul class="flex flex-wrap gap-x-6 gap-y-2 pb-4">
+                    {faq.links.map((link) => (
+                      <li>
+                        <a
+                          class="font-[750] text-sage-deep underline underline-offset-4 hover:text-ink"
+                          href={link.href}>
+                          {link.label} <span aria-hidden="true">→</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           ))}

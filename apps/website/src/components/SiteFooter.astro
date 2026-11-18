@@ -3,6 +3,10 @@ import { ExternalLink } from '@lucide/astro';
 import Logo from '~/assets/logo.svg';
 
 const supportEmail = 'tackbok.support@mehra.dev';
+const switchingLinks = [
+  { href: '/import/presently', label: 'Import from Presently' },
+  { href: '/import/gratitude-app', label: 'Import from Gratitude app' },
+];
 ---
 
 <footer class="border-t border-line bg-paper-deep pt-[3.2rem] pb-6">
@@ -20,33 +24,48 @@ const supportEmail = 'tackbok.support@mehra.dev';
       </p>
     </div>
 
-    <nav
-      class="flex max-w-[640px] flex-wrap items-center justify-end gap-[clamp(1rem,2vw,1.8rem)] max-sm:justify-start"
-      aria-label="Footer navigation">
-      <a class="nav-link" href="/#features">
-        Features
-      </a>
-      <a class="nav-link" href="/faq">
-        FAQ
-      </a>
-      <a class="nav-link" href="/terms">
-        Terms
-      </a>
-      <a class="nav-link" href="/privacy">
-        Privacy policy
-      </a>
-      <a class="nav-link" href={`mailto:${supportEmail}`}>
-        Support
-      </a>
-      <a
-        class="inline-flex items-center gap-1 nav-link"
-        href="https://github.com/mehradotdev/tackbok"
-        target="_blank"
-        rel="noopener noreferrer">
-        <span>GitHub</span>
-        <ExternalLink class="size-3.5 opacity-70" />
-      </a>
-    </nav>
+    <div class="flex flex-col items-end gap-5 max-sm:items-start">
+      <nav
+        class="flex max-w-[640px] flex-wrap items-center justify-end gap-[clamp(1rem,2vw,1.8rem)] max-sm:justify-start"
+        aria-label="Footer navigation">
+        <a class="nav-link" href="/#features">
+          Features
+        </a>
+        <a class="nav-link" href="/faq">
+          FAQ
+        </a>
+        <a class="nav-link" href="/terms">
+          Terms
+        </a>
+        <a class="nav-link" href="/privacy">
+          Privacy policy
+        </a>
+        <a class="nav-link" href={`mailto:${supportEmail}`}>
+          Support
+        </a>
+        <a
+          class="inline-flex items-center gap-1 nav-link"
+          href="https://github.com/mehradotdev/tackbok"
+          target="_blank"
+          rel="noopener noreferrer">
+          <span>GitHub</span>
+          <ExternalLink class="size-3.5 opacity-70" />
+        </a>
+      </nav>
+
+      <nav
+        class="flex max-w-[640px] flex-wrap items-center justify-end gap-x-[clamp(1rem,2vw,1.8rem)] gap-y-2 max-sm:justify-start"
+        aria-label="Switching to Tackbok">
+        <span class="text-[0.82rem] font-extrabold tracking-[0.12em] text-sage uppercase">
+          Switching?
+        </span>
+        {switchingLinks.map((link) => (
+          <a class="nav-link" href={link.href}>
+            {link.label}
+          </a>
+        ))}
+      </nav>
+    </div>
   </div>
 
   <div class="mx-auto mt-11 flex w-full max-w-[1240px] justify-center border-t border-line px-6 pt-5 text-center text-[0.76rem] text-ink-soft sm:px-8 lg:px-12">

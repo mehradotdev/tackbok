@@ -1,0 +1,18 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection, render } from 'astro:content';
+import ArticlePage from '~/components/ArticlePage.astro';
+
+export const getStaticPaths = (async () => {
+  const guides = await getCollection('importGuides');
+  return guides.map((guide) => ({ params: { slug: guide.id }, props: { guide } }));
+}) satisfies GetStaticPaths;
+
+const { guide } = Astro.props;
+const { Content } = await render(guide);
+const { app, ...article } = guide.data;
+---
+
+<ArticlePage {...article} eyebrow={`Import guide · ${app}`}>
+  <Content />
+</ArticlePage>
