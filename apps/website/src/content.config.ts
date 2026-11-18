@@ -26,4 +26,18 @@ const comparisons = defineCollection({
   schema: articleSchema,
 });
 
-export const collections = { importGuides, comparisons };
+/** General guides that make no claims about other apps, such as the prompts page. */
+const guides = defineCollection({
+  loader: glob({ pattern: '*.md', base: './src/content/guides' }),
+  schema: z.object({
+    /** `<title>` text. */
+    title: z.string(),
+    description: z.string(),
+    /** Visible H1. */
+    heading: z.string(),
+    /** Short label above the H1. */
+    eyebrow: z.string(),
+  }),
+});
+
+export const collections = { importGuides, comparisons, guides };

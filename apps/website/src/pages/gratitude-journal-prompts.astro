@@ -1,0 +1,30 @@
+---
+import { getEntry, render } from 'astro:content';
+import ArticlePage from '~/components/ArticlePage.astro';
+import StoreBadges from '~/components/StoreBadges.astro';
+
+const guide = await getEntry('guides', 'gratitude-journal-prompts');
+if (!guide) throw new Error('Missing guide: gratitude-journal-prompts');
+const { Content } = await render(guide);
+---
+
+<ArticlePage {...guide.data}>
+  <Content />
+
+  <section
+    slot="after"
+    class="mt-14 rounded-2xl border border-line bg-paper-deep p-6 sm:p-8"
+    aria-labelledby="get-the-app-heading">
+    <h2
+      id="get-the-app-heading"
+      class="mb-3 text-[clamp(1.4rem,3.5vw,1.8rem)] leading-tight font-[690] tracking-[-0.03em] text-ink">
+      Get a prompt every day in Tackbok
+    </h2>
+    <p class="mb-6 text-ink-soft">
+      Tackbok is a free gratitude journal for iPhone and Android. It works offline, needs
+      no account and has no ads. Turn on the daily reminder and it brings you a prompt
+      from the topics you chose.
+    </p>
+    <StoreBadges />
+  </section>
+</ArticlePage>
