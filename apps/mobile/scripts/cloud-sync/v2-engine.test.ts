@@ -380,37 +380,42 @@ describe('versioning and safety', () => {
 });
 
 describe('identity and clocks', () => {
-  test('a copy of this device (an OS restore or a cloned phone) takes in its head and continues under a new ID', async () => {
+  test('a restored copy of this device pauses and asks, writing nothing, while the original goes on', async () => {
     const a = device();
-    await addEntry(a, 'e1', { text_content: 'Before the copy' });
+    await addEntry(a, 'e1', { text_content: 'Old' });
+    await addEntry(a, 'e2', { text_content: 'To delete' });
     await sync(a);
+    // An OS backup of this database, restored on another phone.
     const copy = device({ database: devices.clone(a.database) });
     clock += 1000;
-    await addEntry(a, 'e2', { text_content: 'Only on the original' });
+    await addEntry(a, 'e1', { text_content: 'New on the original' });
+    await write(a, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e2', { now: clock }),
+    );
     await sync(a);
     clock += 1000;
-    await addEntry(copy, 'e3', { text_content: 'Only on the copy' });
-    expect((await sync(copy)).status).toBe('published');
-    const ids = (target: Device) =>
-      (
-        target.database.sqlite.query('SELECT device_id FROM sync_device').get() as {
-          device_id: string;
-        }
-      ).device_id;
-    expect(ids(copy)).not.toBe(ids(a));
-    // Nothing was overwritten: two heads, and each device gets both.
-    expect(provider.physicalHeads(VAULT)).toHaveLength(2);
-    expect(texts(copy)).toEqual([
-      'e1:Before the copy',
-      'e2:Only on the original',
-      'e3:Only on the copy',
-    ]);
+    const made = await requests(() => sync(copy));
+    expect(await sync(copy)).toMatchObject({
+      status: 'attention',
+      reason: 'ambiguous-device-head',
+    });
+    for (const name of [
+      'upload-snapshot',
+      'update-head',
+      'delete-snapshot',
+      'upload-media',
+    ])
+      expect(count(made, name)).toBe(0);
+    // Nothing the original wrote or deleted is undone anywhere.
     clock += 1000;
-    await sync(a);
-    expect(texts(a)).toEqual(texts(copy));
+    expect((await sync(a)).status).not.toBe('attention');
+    expect(texts(a)).toEqual(['e1:New on the original']);
+    const fresh = device();
+    await sync(fresh);
+    expect(texts(fresh)).toEqual(['e1:New on the original']);
   });
 
-  test('a copy and the original that edit one entry and publish one sequence keep both edits', async () => {
+  test('when both installs edit, the one that syncs second pauses instead of overwriting', async () => {
     const a = device();
     await addEntry(a, 'e1', { text_content: 'Before the copy' });
     await sync(a);
@@ -419,27 +424,35 @@ describe('identity and clocks', () => {
     await addEntry(a, 'e1', { text_content: 'Edited on the original' });
     clock += 1;
     await addEntry(copy, 'e1', { text_content: 'Edited on the copy' });
-    // Both publish the same next sequence; the copy's head replaces the original's.
     await sync(a);
-    await sync(copy);
+    // The copy finds a head it never published under its ID, at a sequence
+    // it has not passed: it pauses, and its head write never happens.
+    expect(await sync(copy)).toMatchObject({
+      status: 'attention',
+      reason: 'ambiguous-device-head',
+    });
+    expect(provider.physicalHeads(VAULT)).toHaveLength(1);
     clock += 1000;
+    await addEntry(a, 'e2');
+    expect((await sync(a)).status).toBe('published');
+    expect(texts(a)).toContain('e1:Edited on the original');
+    // The copy's edit stays on the copy, not lost, until the user resolves it.
+    expect(texts(copy)).toContain('e1:Edited on the copy');
+  });
+
+  test("a stale listing of this device's own older head is not taken for another install", async () => {
+    const a = device();
+    await addEntry(a, 'e1');
     await sync(a);
-    await sync(copy);
+    const [first] = provider.physicalHeads(VAULT);
+    clock += 1000;
+    await addEntry(a, 'e2');
     await sync(a);
-    const values = (target: Device) =>
-      [
-        ...texts(target),
-        ...(
-          target.database.sqlite
-            .query("SELECT value_json FROM sync_field_values WHERE field = 'text'")
-            .all() as { value_json: string }[]
-        ).map((row) => JSON.parse(row.value_json) as string),
-      ]
-        .map((value) => value.replace(/^e1:/, ''))
-        .sort();
-    // Neither edit was read as replaced by the other: both stay, as versions.
-    expect(values(a)).toEqual(['Edited on the copy', 'Edited on the original']);
-    expect(values(copy)).toEqual(values(a));
+    provider.removeDeviceHeadForTest(VAULT, first.head.deviceId);
+    provider.injectPhysicalHead(first.head);
+    clock += 1000;
+    await addEntry(a, 'e3');
+    expect((await sync(a)).status).toBe('published');
   });
 
   test('a device whose clock is far ahead does not stop this one publishing', async () => {

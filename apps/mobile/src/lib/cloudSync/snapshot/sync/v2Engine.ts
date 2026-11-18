@@ -160,7 +160,7 @@ export class V2SyncEngine {
     return this.options.vaultId;
   }
 
-  private async pass(rotated = false): Promise<SnapshotSyncResult> {
+  private async pass(): Promise<SnapshotSyncResult> {
     const { provider, stateStore, stateKey } = this.options;
     const revocations = await provider.listRevocations(this.vaultId);
     if (revocations.includes('journal-deleted'))
@@ -190,27 +190,24 @@ export class V2SyncEngine {
     const own = heads.get(deviceId);
     const ownRecord = records.get(deviceId);
     // This device's head points to a snapshot it neither published nor was
-    // about to publish: another install has its ID (an OS restore of this
-    // database, or a copy of it on a new phone). Both have written under the
-    // same ID, so joining as they are could read one's writes as replaced by
-    // the other's. Rebuild under a new ID, as at the cutover: every value here
-    // gets a fresh write, the other install's head becomes another device's,
-    // and the next pass takes in every head with nothing read as replaced.
+    // about to publish, at a sequence it has not passed: another install has
+    // its ID (an OS restore of this database, or a copy of it on a new phone).
+    // Both may have written under the same ID, so no join can tell their
+    // writes apart: one's could read as replaced by the other's, and a
+    // rebuild under a new ID would let stale values beat newer ones. Pause
+    // and ask, writing and deleting nothing; an older head is a stale
+    // listing. shortcut: recovery (a new ID re-issuing only this install's
+    // unpublished writes) belongs with the install-bound device ID, P13.
     if (
       own !== undefined &&
       own.snapshotId !== ownRecord?.snapshotId &&
-      own.snapshotId !== ownRecord?.pendingSnapshotId
-    ) {
-      if (rotated) throw new RetryableSyncError('device-identity-taken-over-twice');
-      await runExclusiveDbTransaction((tx) =>
-        rebuildSyncMetadataInTransaction(
-          tx as CloudSyncTransaction,
-          this.vaultId,
-          this.now(),
-        ),
+      own.snapshotId !== ownRecord?.pendingSnapshotId &&
+      own.deviceSequence >= (ownRecord?.deviceSequence ?? 0)
+    )
+      throw new AttentionError(
+        'ambiguous-device-head',
+        'device-id-used-by-another-install',
       );
-      return this.pass(true);
-    }
     const changed = [...heads.values()].filter((head) => {
       if (head.deviceId === deviceId) return false;
       const record = records.get(head.deviceId);
@@ -586,17 +583,22 @@ export class V2SyncEngine {
     const hashes = [...new Set([...state.media.values()].map((media) => media.blobHash))];
     const present = await provider.hasMediaBatch(this.vaultId, hashes);
     const missing = hashes.filter((blobHash) => !present.has(blobHash));
-    // A blob the state needs (a new profile photo; attachments are deferred
-    // before they are stamped) holds back the whole publication, as in v1.
-    // Said before any upload starts.
-    if (missing.length > 0 && (await provider.mediaTransfersAllowed?.()) === false)
+    const sources = new Map<string, MediaUploadSource>();
+    for (const blobHash of missing) {
+      const source = await mediaStore.openVerifiedSource(blobHash);
+      if (source && source.contentHash === blobHash) sources.set(blobHash, source);
+    }
+    // A blob the state needs that this device can upload (a new profile
+    // photo; attachments are deferred before they are stamped) holds back
+    // the whole publication, as in v1. Said before any upload starts.
+    if (sources.size > 0 && (await provider.mediaTransfersAllowed?.()) === false)
       throw new SnapshotProviderError(
         'wifi-only-media',
         'A profile photo waits for Wi-Fi',
       );
     for (const blobHash of missing) {
-      const source = await mediaStore.openVerifiedSource(blobHash);
-      if (source && source.contentHash === blobHash) {
+      const source = sources.get(blobHash);
+      if (source) {
         await provider.uploadMedia(this.vaultId, blobHash, source);
         continue;
       }
