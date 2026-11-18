@@ -1,0 +1,76 @@
+---
+// Cookieless website analytics (#198) in a PostHog project of its own, so
+// visitors can never be linked to app users. `cookieless_mode: 'always'`
+// keeps everything in memory: no cookies, localStorage or sessionStorage,
+// and PostHog counts unique visitors with a daily rotating server-side hash.
+// PostHog strips the IP before enrichment, so there is no GeoIP (country)
+// data. The project (357218, EU) must have "Enable cookieless tracking" on
+// (Settings > Project > Web analytics), or PostHog drops the events. Never
+// call `identify`.
+//
+// The loader below is inline, and posthog-js is only requested once the page
+// has loaded and the browser is idle. A bundled Astro <script> would add a
+// module request on every page, which Lighthouse counts against Largest
+// Contentful Paint. The slim build is self-contained ESM, emitted as a hashed
+// asset; it is a third of the full build's size and leaves out the toolbar,
+// surveys and the other extensions, none of which this site uses. The deep
+// path is why `posthog-js` is pinned to an exact version.
+import posthogUrl from 'posthog-js/dist/module.slim.js?url';
+
+const posthogKey = 'phc_pXeomdzcLZDtBPsquuqQzj4Dvp9cr82F6Po9LTNAPkSb';
+---
+
+{import.meta.env.PROD && <script is:inline data-src={posthogUrl} data-key={posthogKey}>
+  // Only the live site counts: local and preview builds send nothing.
+  if (location.hostname === 'tackbok.org') {
+    const { src: posthogUrl, key: posthogKey } = document.currentScript.dataset;
+    let client;
+
+    const analytics = () => {
+      client ??= import(posthogUrl).then(({ default: posthog }) => {
+        posthog.init(posthogKey, {
+          api_host: 'https://eu.i.posthog.com',
+          cookieless_mode: 'always',
+          // Page views (with referrer and landing page), page leaves (time
+          // on page and scroll depth) and the store badge event below;
+          // nothing else is collected or loaded.
+          capture_pageview: true,
+          autocapture: false,
+          disable_session_recording: true,
+          disable_surveys: true,
+          advanced_disable_flags: true,
+          disable_external_dependency_loading: true,
+        });
+        return posthog;
+      });
+      return client;
+    };
+
+    const start = () =>
+      'requestIdleCallback' in window
+        ? requestIdleCallback(() => void analytics().catch(() => {}))
+        : setTimeout(() => void analytics().catch(() => {}), 0);
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+
+    // On phones a badge usually opens the store app and sends the browser to
+    // the background, where queued events wait, so send this one at once.
+    // `auxclick` covers middle-clicks, which open the store in a new tab.
+    const onBadgeClick = (event) => {
+      const badge =
+        event.target instanceof Element ? event.target.closest('a[data-store]') : null;
+      if (!badge || (event.type === 'auxclick' && event.button !== 1)) return;
+      analytics()
+        .then((posthog) =>
+          posthog.capture(
+            'store_badge_click',
+            { store: badge.dataset.store },
+            { send_instantly: true },
+          ),
+        )
+        .catch(() => {});
+    };
+    document.addEventListener('click', onBadgeClick);
+    document.addEventListener('auxclick', onBadgeClick);
+  }
+</script>}

@@ -5,8 +5,8 @@ import SiteHeader from '~/components/SiteHeader.astro';
 
 const title = 'Privacy Policy — Tackbok';
 const description =
-  'How Tackbok, the ad-free gratitude journal for iOS and Android, handles journal data kept on your device, optional Google Drive backups and opt-in analytics.';
-const lastUpdated = 'November 6, 2026';
+  'How Tackbok, the ad-free gratitude journal for iOS and Android, handles journal data kept on your device, optional Google Drive backups, opt-in app analytics and cookie-free website statistics.';
+const lastUpdated = 'November 19, 2026';
 const supportEmail = 'tackbok.support@mehra.dev';
 ---
 
@@ -129,15 +129,36 @@ const supportEmail = 'tackbok.support@mehra.dev';
           RevenueCat user identifier, or payment details.
         </p>
         <h2 class="border-t border-line pt-4 text-xl font-semibold tracking-tight">
+          Website Analytics (No Cookies)
+        </h2>
+        <p>
+          This website also uses <strong>PostHog</strong> in the European Union to count
+          visits, so we can see which pages people find useful. It uses{' '}
+          <strong>no cookies</strong> and stores nothing on your device, which is why
+          there is no cookie banner. We never try to find out who you are, and website
+          visits are kept separate from the app's analytics, so they can't be linked to
+          how you use the app.
+        </p>
+        <p>
+          We count which pages are visited, which site or page you came from, how long you
+          stay on a page and how far you scroll, and how often the app store buttons are
+          tapped, along with general details such as your browser, type of device, screen
+          size, language, and time zone. To tell visits apart, PostHog briefly uses your
+          IP address and browser details, which every website receives. This only works
+          within a single day, so visits on different days can't be connected. Your IP
+          address is not kept or used to look up where you are.
+        </p>
+
+        <h2 class="border-t border-line pt-4 text-xl font-semibold tracking-tight">
           Data Sharing and Disclosure
         </h2>
         <p>
           <strong>We do not sell your personal data.</strong> Any data that is transmitted
           from your device to our third-party service providers (such as PostHog or
-          RevenueCat) is used strictly to provide, maintain, and improve the app's
-          functionality (e.g., processing optional support purchases and analyzing app
-          usage). We do not share your information with any third parties for their own
-          marketing or advertising purposes.
+          RevenueCat) is used strictly to provide, maintain, and improve the app and this
+          website (e.g., processing optional support purchases and analyzing app usage and
+          website visits). We do not share your information with any third parties for
+          their own marketing or advertising purposes.
         </p>
         <p>
           Additionally, the <strong>Tackbok</strong> application is completely ad-free. We
@@ -148,12 +169,15 @@ const supportEmail = 'tackbok.support@mehra.dev';
         <h2 class="border-t border-line pt-4 text-xl font-semibold tracking-tight">
           Third-Party Services
         </h2>
-        <p>We currently use the following third-party services for our app:</p>
+        <p>
+          We currently use the following third-party services for our app and website:
+        </p>
         <ul>
           <li>
             <strong>PostHog</strong>: This service helps us collect and analyze
-            anonymized, opt-in usage data to improve our app (see the Analytics section
-            above). For more information, please view the{' '}
+            anonymized, opt-in usage data to improve our app, and cookie-free visit counts
+            for this website (see the two Analytics sections above). For more information,
+            please view the{' '}
             <a
               href="https://posthog.com/privacy"
               target="_blank"

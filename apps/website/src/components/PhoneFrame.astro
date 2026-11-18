@@ -14,11 +14,11 @@ interface Props {
   loading?: 'eager' | 'lazy';
   /** Rendered width of the screenshot, for picking a srcset candidate. */
   sizes?: string;
-  /** A short, silent, looping screen recording with the same aspect ratio as
-      `src`. It loads and plays only while on screen, never with reduced
-      motion, and has a pause button (see the script below). Until it plays,
-      the lazy poster image shows. */
-  video?: { webm: string; mp4: string };
+  /** URL of a short, silent, looping H.264 MP4 screen recording with the
+      same aspect ratio as `src`. It loads and plays only while on screen, never
+      with reduced motion, and has a pause button (see the script below). Until
+      it plays, the lazy poster image shows. */
+  video?: string;
 }
 
 const {
@@ -71,8 +71,7 @@ const widths = [300, 540, 810].filter((width) => width <= src.width);
         preload="none">
         <!-- The script copies data-src to src on first play, so no browser can
              fetch a clip early, and none is fetched with reduced motion. -->
-        <source data-src={video.webm} type="video/webm" />
-        <source data-src={video.mp4} type="video/mp4" />
+        <source data-src={video} type="video/mp4" />
       </video>
     )}
     <!-- Moving content longer than 5 seconds needs a way to stop it (WCAG

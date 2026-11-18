@@ -32,12 +32,12 @@ text on a dark header.
    `xcrun simctl io <udid> recordVideo`), with the status bar overridden to 9:41
    as for the screenshots.
 2. Trim to 5–8 seconds, start and end on the same state so the loop is seamless,
-   drop audio, scale to 540px wide at 30 fps, and encode both formats:
+   drop audio, scale to 540px wide at 30 fps, and encode an H.264 MP4. Every
+   current browser plays it, so there is no WebM copy: VP9 saved nothing (two
+   of the three clips came out larger).
 
    ```sh
    vf="trim=start=<s>:end=<e>,setpts=(PTS-STARTPTS)/<speed>,fps=30,scale=540:-2:flags=lanczos"
-   ffmpeg -i raw.mp4 -an -vf "$vf" -c:v libvpx-vp9 -b:v 0 -crf 38 -row-mt 1 \
-     -deadline good -cpu-used 1 -pix_fmt yuv420p <clip>.webm
    ffmpeg -i raw.mp4 -an -vf "$vf" -c:v libx264 -preset slow -crf 27 \
      -profile:v high -pix_fmt yuv420p -movflags +faststart <clip>.mp4
    ```
@@ -50,4 +50,4 @@ text on a dark header.
 3. Export the first frame as the poster (`ffmpeg -i <clip>.mp4 -frames:v 1`)
    and convert it to WebP with sharp, quality 80.
 
-Each file should stay well under 1 MB; the current ones are 60–285 KB.
+Each file should stay well under 1 MB; the current ones are 60–290 KB.
