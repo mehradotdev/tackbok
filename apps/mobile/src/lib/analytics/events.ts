@@ -201,9 +201,13 @@ export type AnalyticsEvents = {
   cloud_sync_failed: { category: CloudSyncFailureCategory };
   /** Once per notice per visit to the Cloud backup screen. */
   cloud_sync_attention_shown: { reason: CloudSyncNoticeReason };
+  /**
+   * Counted when chosen, whether or not it then works: failures already show as
+   * the pause staying or as cloud_sync_failed.
+   */
   cloud_sync_attention_action: {
-    /** 'none': Replace backup offered without a pause reason. */
-    reason: SyncAttentionReason | 'none';
+    /** The notice the choice came from, as in cloud_sync_attention_shown. */
+    reason: CloudSyncNoticeReason;
     action: CloudSyncAttentionAction;
   };
   /** A sync conflict choice that was saved. */

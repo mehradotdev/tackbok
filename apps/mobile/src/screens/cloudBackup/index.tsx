@@ -432,7 +432,8 @@ export default function CloudBackupScreen() {
         action === 'finish-journal-deletion'
       ) {
         track('cloud_sync_attention_action', {
-          reason: snapshot.attentionReason ?? 'none',
+          // Without a pause, Replace is offered by the unreadable-backups note.
+          reason: snapshot.attentionReason ?? 'other-device-unreadable',
           action: action === 'finish-journal-deletion' ? 'review-erase-device' : action,
         });
       }

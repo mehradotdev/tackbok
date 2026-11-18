@@ -664,7 +664,10 @@ describe("other devices' backups left out", () => {
     expect(mockToast.success).toHaveBeenCalledWith(mockEn['cloud.replaceBackup.done']);
     expect(mockTrack.mock.calls).toEqual([
       ['cloud_sync_attention_shown', { reason: 'other-device-unreadable' }],
-      ['cloud_sync_attention_action', { reason: 'none', action: 'replace-backup' }],
+      [
+        'cloud_sync_attention_action',
+        { reason: 'other-device-unreadable', action: 'replace-backup' },
+      ],
     ]);
   });
 
