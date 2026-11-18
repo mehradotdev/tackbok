@@ -4,6 +4,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 import {
   cloudConflicts,
+  syncFieldValues,
   cloudSyncMediaHashCache,
   cloudSyncState,
   cloudTombstones,
@@ -428,8 +429,8 @@ function parseConflict(value: string): SnapshotConflict {
  * with would publish them, so every backup stopped on files that no longer
  * exist.
  *
- * A profile photo is in use when it is the current one or an alternate in a
- * photo conflict, the same references a merge keeps. An attachment is in use
+ * A profile photo is in use when it is the current one or another version of
+ * it sync keeps (`sync_field_values`). An attachment is in use
  * while its entry exists. A merge drops the rows this deletes, so other
  * devices see no change. Rows in use are never touched, and neither is a row
  * whose file check fails: if their files are missing, the backup keeps
@@ -455,13 +456,19 @@ export async function pruneMissingUnusedMedia(): Promise<number> {
       .from(userProfile)
       .limit(1);
     if (profile?.photoAssetId) usedPhotos.add(profile.photoAssetId);
+    // Cloud sync v2: other versions of the profile photo, kept beside the
+    // shown one; a version still downloading has no file yet.
     for (const row of await tx
-      .select({ json: cloudConflicts.conflict_json })
-      .from(cloudConflicts)) {
-      const conflict = parseConflict(row.json);
-      if (conflict.field !== 'photoAssetId') continue;
-      for (const alternate of conflict.alternates)
-        if (alternate.value) usedPhotos.add(alternate.value);
+      .select({ value: syncFieldValues.value_json })
+      .from(syncFieldValues)
+      .where(
+        and(
+          eq(syncFieldValues.entity_type, 'profile'),
+          eq(syncFieldValues.field, 'photo'),
+        ),
+      )) {
+      const assetId = JSON.parse(row.value) as string | null;
+      if (assetId) usedPhotos.add(assetId);
     }
     const unused: string[] = [];
     for (const row of rows) {

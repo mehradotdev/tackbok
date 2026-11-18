@@ -3,6 +3,7 @@ import { randomUUID } from 'expo-crypto';
 import { Directory, Paths } from 'expo-file-system';
 import {
   cloudVault,
+  syncDevice,
   syncHeads,
   cloudSyncState,
   customPrompts,
@@ -533,12 +534,13 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
       previousEmail,
       currentEmail: await readGoogleAccountEmail(),
       settledGeneration: state.settledGeneration,
-      // Whether this device ever synced with this backup (took in or published a head).
+      // Whether this device ever published in this backup (its own head).
       hasBase:
         (
           await db
             .select({ id: syncHeads.device_id })
             .from(syncHeads)
+            .innerJoin(syncDevice, eq(syncDevice.device_id, syncHeads.device_id))
             .where(eq(syncHeads.vault_id, vault.vault_id))
             .limit(1)
         ).length > 0,

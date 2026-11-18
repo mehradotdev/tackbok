@@ -68,6 +68,7 @@ function mockSelect(fields?: Record<string, string>) {
       table = from;
       return query;
     },
+    innerJoin: () => query,
     where: (predicate: Predicate) => {
       where = predicate;
       return query;
@@ -145,6 +146,7 @@ jest.mock('~/db', () => ({
   cloudVault: mockCloudVault,
   cloudSyncState: {},
   syncHeads: {},
+  syncDevice: {},
   mediaAssets: {},
   syncProviderState: {},
   entries: {},

@@ -39,6 +39,7 @@ function mockQuery() {
   const next = () => Promise.resolve(mockRows.shift() ?? []);
   const query = {
     from: () => query,
+    innerJoin: () => query,
     where: () => query,
     limit: next,
     then: (resolve: (rows: unknown[]) => unknown, reject: (error: unknown) => unknown) =>
@@ -76,6 +77,7 @@ jest.mock('~/db', () => ({
   cloudVault: { status: 'status' },
   cloudSyncState: {},
   syncHeads: {},
+  syncDevice: {},
   mediaAssets: {},
   syncProviderState: {},
   entries: {},
