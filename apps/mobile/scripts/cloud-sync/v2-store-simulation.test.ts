@@ -53,6 +53,6 @@ describe('v2 simulation through SQLite', () => {
       );
       expect(failures.map((result) => result.seed)).toEqual([]);
     },
-    600_000,
+    600_000 * SCALE,
   );
 });

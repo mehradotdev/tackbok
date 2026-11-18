@@ -68,6 +68,7 @@ function mockSelect(fields?: Record<string, string>) {
       table = from;
       return query;
     },
+    innerJoin: () => query,
     where: (predicate: Predicate) => {
       where = predicate;
       return query;
@@ -144,7 +145,8 @@ jest.mock('~/db', () => ({
   sqlite: {},
   cloudVault: mockCloudVault,
   cloudSyncState: {},
-  cloudConflicts: {},
+  syncHeads: {},
+  syncDevice: {},
   mediaAssets: {},
   syncProviderState: {},
   entries: {},
@@ -159,6 +161,8 @@ jest.mock('~/db', () => ({
     await operation(mockDb);
   },
 }));
+// Cloud sync v2's conflict count reads its own tables.
+jest.mock('./versions', () => ({ countSyncChoices: async () => 0 }));
 jest.mock('drizzle-orm', () => ({
   and:
     (...predicates: Predicate[]) =>

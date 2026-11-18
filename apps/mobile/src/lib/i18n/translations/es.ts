@@ -878,7 +878,6 @@ export const es = {
   'cloud.conflicts.keepOriginal': 'Conservar la original',
   'cloud.conflicts.keepOtherVersion': 'Conservar esta otra versión',
   'cloud.conflicts.keepThisOneTitle': '¿Conservar esta versión?',
-  'cloud.conflicts.keepThisOneAttachments': 'Adjuntos que también se eliminarán: {count}',
   'cloud.conflicts.keepThisOneMessage':
     'Se eliminarán permanentemente {count} otras versiones.',
   'cloud.conflicts.attachmentCount': 'Adjuntos: {count}',
@@ -891,8 +890,6 @@ export const es = {
   'cloud.conflicts.openEntry': 'Abrir entrada',
   'cloud.conflicts.gotIt': 'Entendido',
   'cloud.conflicts.allDone': 'Todo listo. Ahora cada entrada tiene una sola versión.',
-  'cloud.conflicts.hidesOnThisDeviceOnly':
-    'Esto oculta el aviso solo en este dispositivo.',
   'cloud.conflicts.titleDiffers': 'El título es distinto',
   'cloud.conflicts.textDiffers': 'El texto es distinto',
   'cloud.conflicts.moodDiffers': 'El estado de ánimo es distinto',

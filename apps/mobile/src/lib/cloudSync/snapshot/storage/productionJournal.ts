@@ -4,6 +4,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 
 import {
   cloudConflicts,
+  syncFieldValues,
   cloudSyncMediaHashCache,
   cloudSyncState,
   cloudTombstones,
@@ -45,6 +46,7 @@ import type {
   SnapshotMediaStore,
 } from '../sync/types';
 import { LocalStorageError } from '../sync/types';
+import type { ApplyMediaFiles } from '../../storage/v2State';
 
 const STAGING_DIRECTORY = 'cloud-sync-media';
 const PHOTO_DIRECTORY = 'photos';
@@ -427,8 +429,8 @@ function parseConflict(value: string): SnapshotConflict {
  * with would publish them, so every backup stopped on files that no longer
  * exist.
  *
- * A profile photo is in use when it is the current one or an alternate in a
- * photo conflict, the same references a merge keeps. An attachment is in use
+ * A profile photo is in use when it is the current one or another version of
+ * it sync keeps (`sync_field_values`). An attachment is in use
  * while its entry exists. A merge drops the rows this deletes, so other
  * devices see no change. Rows in use are never touched, and neither is a row
  * whose file check fails: if their files are missing, the backup keeps
@@ -454,13 +456,19 @@ export async function pruneMissingUnusedMedia(): Promise<number> {
       .from(userProfile)
       .limit(1);
     if (profile?.photoAssetId) usedPhotos.add(profile.photoAssetId);
+    // Cloud sync v2: other versions of the profile photo, kept beside the
+    // shown one; a version still downloading has no file yet.
     for (const row of await tx
-      .select({ json: cloudConflicts.conflict_json })
-      .from(cloudConflicts)) {
-      const conflict = parseConflict(row.json);
-      if (conflict.field !== 'photoAssetId') continue;
-      for (const alternate of conflict.alternates)
-        if (alternate.value) usedPhotos.add(alternate.value);
+      .select({ value: syncFieldValues.value_json })
+      .from(syncFieldValues)
+      .where(
+        and(
+          eq(syncFieldValues.entity_type, 'profile'),
+          eq(syncFieldValues.field, 'photo'),
+        ),
+      )) {
+      const assetId = JSON.parse(row.value) as string | null;
+      if (assetId) usedPhotos.add(assetId);
     }
     const unused: string[] = [];
     for (const row of rows) {
@@ -520,7 +528,10 @@ function restorableMediaUri(
   return name.length > 0 && !name.includes('/') && !name.includes('..') ? uri : null;
 }
 
-function relativeMediaUri(asset: SnapshotMedia): string {
+/** What placing a blob's file needs from its descriptor (v1 or v2). */
+type PlacedMedia = Pick<SnapshotMedia, 'assetId' | 'kind' | 'blobHash' | 'byteSize'>;
+
+function relativeMediaUri(asset: PlacedMedia): string {
   const directoryName = asset.kind === 'voice' ? VOICE_DIRECTORY : PHOTO_DIRECTORY;
   const extension = asset.kind === 'voice' ? 'm4a' : 'jpg';
   return `${directoryName}/${sha256Text(asset.assetId)}-${asset.blobHash}.${extension}`;
@@ -1372,8 +1383,20 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     return { hydrated, missing, profilePhoto };
   }
 
+  /**
+   * Files for the v2 apply (`applySyncState`): the same copies and staged
+   * downloads a v1 apply makes, under the same lock.
+   */
+  applyFiles(): ApplyMediaFiles {
+    return {
+      materialize: (media, created) => this.materializeMedia(media, created),
+      discard: (created) => discardUncommittedMediaFiles(created),
+      serialize: (operation) => serializeMediaFiles(operation),
+    };
+  }
+
   private async materializeMedia(
-    media: readonly SnapshotMedia[],
+    media: readonly PlacedMedia[],
     created: string[],
   ): Promise<Map<string, MaterializedMedia>> {
     const existingRows = await db.select().from(mediaAssets);
@@ -1414,7 +1437,7 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
   }
 
   private async materializeDescriptor(
-    asset: SnapshotMedia,
+    asset: PlacedMedia,
     created: string[],
     relativeUri = relativeMediaUri(asset),
   ): Promise<MaterializedMedia> {
@@ -1453,4 +1476,14 @@ export class ProductionSnapshotJournalStore implements SnapshotJournalStore {
     await copyVerifiedMediaFile(source, destination, asset.byteSize, asset.blobHash);
     return { uri: relativeUri, verified: true };
   }
+}
+
+/** Files for a v2 apply outside a sync pass (a "Keep this one" or "Got it"). */
+export function productionApplyFiles(): ApplyMediaFiles {
+  // The vault and device only matter to v1's capture and apply.
+  return new ProductionSnapshotJournalStore(
+    '',
+    '',
+    new ProductionSnapshotMediaStore(),
+  ).applyFiles();
 }

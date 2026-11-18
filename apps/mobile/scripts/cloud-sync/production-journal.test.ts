@@ -2022,8 +2022,23 @@ test('a backup prunes only unused media rows whose file is confirmed gone', asyn
       { ...row('deleted-entry-missing', 'entry'), owner_id: 'deleted-entry' },
     ])
     .run();
-  // Only one unused file is still there. The current photo and the conflict
-  // alternate are gone too, but in use.
+  // Cloud sync v2 keeps the other photo as a version beside the shown one.
+  const [shown] = db.select().from(schema.userProfile).all();
+  const other = ['local-photo', 'remote-photo'].find(
+    (id) => id !== shown.photo_asset_id,
+  )!;
+  db.insert(schema.syncFieldValues)
+    .values({
+      entity_type: 'profile',
+      entity_id: 'profile',
+      field: 'photo',
+      stamp_hlc: 1,
+      stamp_device: 'device-x',
+      value_json: JSON.stringify(other),
+    })
+    .run();
+  // Only one unused file is still there. The current photo and the other
+  // version are gone too (one still downloading), but in use.
   existingFiles.clear();
   existingFiles.add(`${paths.document}/photos/unused-present.jpg`);
   unreadableFiles.add(`${paths.document}/photos/unused-unreadable.jpg`);

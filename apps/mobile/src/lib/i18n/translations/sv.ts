@@ -857,7 +857,6 @@ export const sv = {
   'cloud.conflicts.keepOriginal': 'Behåll originalet',
   'cloud.conflicts.keepOtherVersion': 'Behåll den här andra versionen',
   'cloud.conflicts.keepThisOneTitle': 'Behåll den här versionen?',
-  'cloud.conflicts.keepThisOneAttachments': 'Bilagor som också tas bort: {count}',
   'cloud.conflicts.keepThisOneMessage': '{count} andra versioner tas bort permanent.',
   'cloud.conflicts.attachmentCount': 'Bilagor: {count}',
   'cloud.conflicts.entryReturned':
@@ -869,8 +868,6 @@ export const sv = {
   'cloud.conflicts.openEntry': 'Öppna anteckningen',
   'cloud.conflicts.gotIt': 'OK',
   'cloud.conflicts.allDone': 'Klart. Varje anteckning har nu bara en version.',
-  'cloud.conflicts.hidesOnThisDeviceOnly':
-    'Det här döljer meddelandet bara på den här enheten.',
   'cloud.conflicts.titleDiffers': 'Titeln skiljer sig',
   'cloud.conflicts.textDiffers': 'Texten skiljer sig',
   'cloud.conflicts.moodDiffers': 'Humöret skiljer sig',

@@ -353,7 +353,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         this.state.removeFile(vaultId, file.id);
         record = null;
       }
-      if (!record?.head || record.head.vaultId !== vaultId) {
+      // Only a 2.x backup can be restored here: a 1.x device's head (or a
+      // newer format) makes its vault unreadable to this build.
+      const head = record?.head as { format?: unknown } | null | undefined;
+      if (
+        !record?.head ||
+        record.head.vaultId !== vaultId ||
+        head?.format !== 'tackbok-head'
+      ) {
         unreadable.add(vaultId);
         continue;
       }

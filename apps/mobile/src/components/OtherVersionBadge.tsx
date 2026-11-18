@@ -10,9 +10,8 @@ import { Text } from '~/components/ui/text';
 type BadgeEntry = Pick<Entry, 'note_id' | 'conflict_origin_id'>;
 
 /**
- * Marks an entry that sync kept as a second version after a two-device edit,
- * while it still has another live version. Once one version is kept (on any
- * device, after it syncs) the survivor shows no badge.
+ * Marks an entry whose title or text has another version from a two-device
+ * edit. Once one is kept (on any device, after it syncs) the badge goes.
  */
 export function OtherVersionBadge({
   entry,
@@ -21,8 +20,6 @@ export function OtherVersionBadge({
   entry: BadgeEntry;
   className?: string;
 }) {
-  // Only versions load the open groups, so most entries cost nothing.
-  if (!entry.conflict_origin_id) return null;
   return <OpenVersionBadge entryId={entry.note_id} className={className} />;
 }
 

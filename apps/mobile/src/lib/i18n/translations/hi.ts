@@ -838,7 +838,6 @@ export const hi = {
   'cloud.conflicts.keepOriginal': 'मूल रखें',
   'cloud.conflicts.keepOtherVersion': 'यह अन्य संस्करण रखें',
   'cloud.conflicts.keepThisOneTitle': 'यह संस्करण रखें?',
-  'cloud.conflicts.keepThisOneAttachments': 'साथ में हटाए जाने वाले अटैचमेंट: {count}',
   'cloud.conflicts.keepThisOneMessage': '{count} अन्य संस्करण स्थायी रूप से हटा दिए जाएँगे।',
   'cloud.conflicts.attachmentCount': 'अटैचमेंट: {count}',
   'cloud.conflicts.entryReturned':
@@ -850,7 +849,6 @@ export const hi = {
   'cloud.conflicts.openEntry': 'प्रविष्टि खोलें',
   'cloud.conflicts.gotIt': 'ठीक है',
   'cloud.conflicts.allDone': 'सब हो गया। अब हर प्रविष्टि का एक ही संस्करण है।',
-  'cloud.conflicts.hidesOnThisDeviceOnly': 'इससे यह सूचना सिर्फ़ इस डिवाइस पर छुपती है।',
   'cloud.conflicts.titleDiffers': 'शीर्षक अलग है',
   'cloud.conflicts.textDiffers': 'टेक्स्ट अलग है',
   'cloud.conflicts.moodDiffers': 'मूड अलग है',

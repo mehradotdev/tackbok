@@ -8,9 +8,6 @@ import type { OtherVersionGroup } from '~/db/queries';
 import type { Entry } from '~/types';
 
 const mockQuery = jest.fn();
-const mockDelete = jest.fn(async (_noteId: string) => {});
-const mockAcknowledge = jest.fn(async (_ids: string[]) => {});
-const mockTrack = jest.fn();
 const mockToastError = jest.fn();
 const mockPush = jest.fn();
 const mockAnnounce = jest.fn();
@@ -67,20 +64,27 @@ jest.mock('~/components/backdrops/ThemeBackdrop', () => ({
   ThemeBackdrop: 'ThemeBackdrop',
 }));
 jest.mock('~/screens/dateEntries', () => ({ EntryItem: 'EntryItem' }));
-jest.mock('~/lib/analytics', () => ({ track: (event: string) => mockTrack(event) }));
 const mockMarkSeen = jest.fn();
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: {
     getState: () => ({ markOtherVersionsSeen: (at: number) => mockMarkSeen(at) }),
   },
 }));
-jest.mock('~/lib/cloudSync/ui', () => ({
-  acknowledgeEntryConflicts: (ids: string[]) => mockAcknowledge(ids),
+const mockKeep = jest.fn(async (_id: string, _seen?: unknown) => {});
+jest.mock('~/lib/cloudSync/ui/versions', () => ({
+  VersionsChangedError: class VersionsChangedError extends Error {},
+  keepEntryVersion: (id: string, seen: unknown) => mockKeep(id, seen),
+  parseVersionCopyId: (id: string) =>
+    id.includes('#') ? { entryId: id.split('#')[0] } : null,
+}));
+const mockInvalidate = jest.fn(async () => {});
+jest.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ invalidateQueries: mockInvalidate }),
 }));
 jest.mock('~/hooks/useGratitude', () => ({
+  QUERY_KEYS: { entries: 'entries' },
   useOtherVersionGroups: () => mockQuery(),
   useTagMapping: () => new Map(),
-  useDeleteEntry: () => ({ mutateAsync: (noteId: string) => mockDelete(noteId) }),
 }));
 jest.mock('~/lib/i18n', () => ({
   formatLocalizedDate: (date: number) => `date:${date}`,
@@ -177,17 +181,14 @@ test('"Keep this one" buttons name their version and what they delete', () => {
   );
 });
 
-test('the confirmation and hint warn about attachments that go with the other version', () => {
+test('keeping a version never claims to delete attachments: they stay with the entry', () => {
   const withAssets = { ...original, assets: [{}, {}, {}] as Entry['assets'] };
   render({ data: [{ original: withAssets, versions: [copy] }] });
-  const warning =
-    'The other version will be permanently deleted. Attachments that will also be deleted: 3';
-  expect(keepButtons()[1].props.accessibilityHint).toBe(warning);
-  expect(keepButtons()[0].props.accessibilityHint).toBe(
-    'The other version will be permanently deleted.',
-  );
+  const message = 'The other version will be permanently deleted.';
+  expect(keepButtons()[1].props.accessibilityHint).toBe(message);
+  expect(keepButtons()[0].props.accessibilityHint).toBe(message);
   act(() => keepButtons()[1].props.onPress());
-  expect(content()).toContain(warning);
+  expect(content()).not.toContain('Attachments that will also be deleted');
 });
 
 test('shows how many attachments a version has', () => {
@@ -218,97 +219,70 @@ test('a version left on its own is not listed: there is nothing to choose', () =
   expect(rows.map((row) => row.props.entry.note_id)).toEqual(['other', 'other-copy']);
 });
 
-test('keeping the other version deletes only the original, after confirming', async () => {
+test('keeping the other version keeps it, after confirming', async () => {
   render({ data: [{ original, versions: [copy] }] });
   expect(dialog().props.open).toBe(false);
   act(() => keepButtons()[1].props.onPress());
   expect(dialog().props.open).toBe(true);
   expect(content()).toContain(mockEn['cloud.conflicts.keepThisOneTitle']);
   expect(content()).toContain('The other version will be permanently deleted.');
-  expect(mockDelete).not.toHaveBeenCalled();
+  expect(mockKeep).not.toHaveBeenCalled();
 
   await act(async () => confirm().props.onPress());
-  expect(mockDelete.mock.calls).toEqual([['original']]);
-  expect(mockTrack).toHaveBeenCalledWith('entry_deleted');
-  expect(mockAcknowledge).toHaveBeenCalledWith(['copy', 'original']);
+  expect(mockKeep.mock.calls.map(([id]) => id)).toEqual(['copy']);
+  // What the user compared goes with the choice.
+  expect(mockKeep.mock.calls[0][1]).toEqual([copy, original]);
+  expect(mockInvalidate).toHaveBeenCalled();
   expect(dialog().props.open).toBe(false);
 });
 
-test('keeping the original deletes every other version', async () => {
+test('keeping the original keeps what the entry shows', async () => {
   render({ data: [{ original, versions: [copy, secondCopy] }] });
   act(() => keepButtons()[0].props.onPress());
   await act(async () => confirm().props.onPress());
-  expect(mockDelete.mock.calls).toEqual([['copy'], ['second-copy']]);
-  expect(mockAcknowledge).toHaveBeenCalledWith(['original', 'copy', 'second-copy']);
+  expect(mockKeep.mock.calls.map(([id]) => id)).toEqual(['original']);
 });
 
-test('cancelling deletes nothing', () => {
+test('cancelling keeps nothing', () => {
   render({ data: [{ original, versions: [copy] }] });
   act(() => keepButtons()[0].props.onPress());
   act(() => root.root.findByType('AlertDialogCancel' as never).props.onPress());
   expect(dialog().props.open).toBe(false);
-  expect(mockDelete).not.toHaveBeenCalled();
+  expect(mockKeep).not.toHaveBeenCalled();
 });
 
-test('a version that sync moved out of the group while confirming is spared', async () => {
-  const refetch = jest.fn(async () => ({
-    data: [{ original, versions: [copy] }],
-    isError: false,
-  }));
-  render({ data: [{ original, versions: [copy, secondCopy] }], refetch });
-  act(() => keepButtons()[0].props.onPress());
-  await act(async () => confirm().props.onPress());
-  expect(refetch).toHaveBeenCalled();
-  expect(mockDelete.mock.calls).toEqual([['copy']]);
-});
-
-test('a failed re-read deletes nothing', async () => {
-  render({
-    data: [{ original, versions: [copy] }],
-    refetch: jest.fn(async () => ({ data: undefined, isError: true })),
-  });
-  act(() => keepButtons()[0].props.onPress());
-  await act(async () => confirm().props.onPress());
-  expect(mockDelete).not.toHaveBeenCalled();
-  expect(mockToastError).toHaveBeenCalledWith(mockEn['mood.failedToDeleteEntry']);
-  expect(mockAcknowledge).not.toHaveBeenCalled();
-});
-
-test('a second tap while deleting deletes nothing more', async () => {
+test('a second tap while keeping writes once', async () => {
   render({ data: [{ original, versions: [copy] }] });
   act(() => keepButtons()[0].props.onPress());
   const press = confirm().props.onPress;
   await act(async () => {
     await Promise.all([press(), press()]);
   });
-  expect(mockDelete.mock.calls).toEqual([['copy']]);
-  expect(mockTrack).toHaveBeenCalledTimes(1);
+  expect(mockKeep).toHaveBeenCalledTimes(1);
 });
 
-test('a failure partway stops, reports it and dismisses nothing', async () => {
-  jest.spyOn(console, 'error').mockImplementation(() => {});
-  mockDelete
-    .mockResolvedValueOnce(undefined)
-    .mockRejectedValueOnce(new Error('disk full'));
-  render({ data: [{ original, versions: [copy, secondCopy] }] });
+test('versions that changed while confirming write nothing and just refresh', async () => {
+  const { VersionsChangedError } = jest.requireMock('~/lib/cloudSync/ui/versions') as {
+    VersionsChangedError: new () => Error;
+  };
+  mockKeep.mockRejectedValueOnce(new VersionsChangedError());
+  const refetch = jest.fn(async () => ({ data: [], isError: false }));
+  render({ data: [{ original, versions: [copy] }], refetch });
   act(() => keepButtons()[0].props.onPress());
   await act(async () => confirm().props.onPress());
-  expect(mockDelete.mock.calls).toEqual([['copy'], ['second-copy']]);
-  expect(mockTrack).toHaveBeenCalledTimes(1);
-  expect(mockToastError).toHaveBeenCalledWith(mockEn['mood.failedToDeleteEntry']);
-  expect(mockAcknowledge).not.toHaveBeenCalled();
+  expect(refetch).toHaveBeenCalled();
+  expect(mockToastError).not.toHaveBeenCalled();
   expect(dialog().props.open).toBe(false);
 });
 
-test('a failed delete is reported and dismisses nothing', async () => {
-  mockDelete.mockRejectedValueOnce(new Error('database unavailable'));
+test('a failed keep is reported', async () => {
+  mockKeep.mockRejectedValueOnce(new Error('database unavailable'));
   jest.spyOn(console, 'error').mockImplementation(() => {});
   render({ data: [{ original, versions: [copy] }] });
   act(() => keepButtons()[0].props.onPress());
   await act(async () => confirm().props.onPress());
-  expect(mockToastError).toHaveBeenCalledWith(mockEn['mood.failedToDeleteEntry']);
-  expect(mockAcknowledge).not.toHaveBeenCalled();
-  expect(mockTrack).not.toHaveBeenCalled();
+  expect(mockToastError).toHaveBeenCalledWith(mockEn['mood.failedToSaveEntry']);
+  expect(dialog().props.open).toBe(false);
 });
 
 test('opening the screen clears the Home notice for the entry conflicts on it', () => {

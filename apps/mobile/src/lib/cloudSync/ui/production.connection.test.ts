@@ -39,6 +39,7 @@ function mockQuery() {
   const next = () => Promise.resolve(mockRows.shift() ?? []);
   const query = {
     from: () => query,
+    innerJoin: () => query,
     where: () => query,
     limit: next,
     then: (resolve: (rows: unknown[]) => unknown, reject: (error: unknown) => unknown) =>
@@ -75,7 +76,8 @@ jest.mock('~/db', () => ({
   sqlite: {},
   cloudVault: { status: 'status' },
   cloudSyncState: {},
-  cloudConflicts: {},
+  syncHeads: {},
+  syncDevice: {},
   mediaAssets: {},
   syncProviderState: {},
   entries: {},
@@ -83,6 +85,8 @@ jest.mock('~/db', () => ({
   customPrompts: {},
   runExclusiveDbTransaction: (...args: unknown[]) => mockCommit(...(args as [never])),
 }));
+// Cloud sync v2's conflict count reads its own tables.
+jest.mock('./versions', () => ({ countSyncChoices: async () => 0 }));
 jest.mock('drizzle-orm', () => ({
   and: jest.fn(),
   count: jest.fn(),
