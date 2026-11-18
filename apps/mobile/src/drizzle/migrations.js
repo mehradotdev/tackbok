@@ -17,6 +17,7 @@ import m0011 from './0011_sync_v1_removal.sql';
 import m0012 from './0012_retire_v1_pause_reasons.sql';
 import m0013 from './0013_sync_skipped_heads.sql';
 import m0014 from './0014_sync_install_binding.sql';
+import m0015 from './0015_sync_retired_devices.sql';
 
 export default {
   journal,
@@ -36,5 +37,6 @@ export default {
     m0012,
     m0013,
     m0014,
+    m0015,
   },
 };

@@ -16,11 +16,14 @@ import {
   nextHlc,
 } from '../../src/lib/cloudSync/v2/clock';
 import {
+  RETIRED_DEVICES,
   absorb,
   activeDevices,
   compact,
   compactionFloor,
   isCompacted,
+  retireDevice,
+  retiredDevices,
 } from '../../src/lib/cloudSync/v2/compact';
 import {
   SnapshotUpdateRequiredError,
@@ -1192,6 +1195,88 @@ describe('compaction of deleted entries', () => {
     expect(texts(convergeInEveryOrder([rewritten, edited, state]), 'e1')).toEqual([
       'Rewritten',
     ]);
+  });
+});
+
+describe('retired devices (P11)', () => {
+  const devices = ['device-a', 'device-b'];
+  const publishAll = (state: SyncState) =>
+    devices.reduce((next, device) => ops.markSeen(next, at(device)), state);
+
+  /** device-old acknowledged the entry before device-a deleted it, then was wiped. */
+  function deletedWithDeadDevice() {
+    let state = entryWith('Secret text');
+    state = ops.markSeen(state, at('device-old'));
+    const upTo = state.roster['device-old'];
+    state = publishAll(ops.deleteEntry(state, at('device-a'), 'e1'));
+    return { state, upTo };
+  }
+
+  test('a dead device holds back compaction until it is retired', () => {
+    const { state, upTo } = deletedWithDeadDevice();
+    expect(isCompacted(compact(state).entries.get('e1')!)).toBe(false);
+    const retired = compact(retireDevice(state, at('device-b'), 'device-old', upTo));
+    expect(retiredDevices(retired)).toEqual({ 'device-old': upTo });
+    expect(activeDevices(retired)).toEqual(devices);
+    expect(retired.acks['device-old']).toBeUndefined();
+    expect(isCompacted(retired.entries.get('e1')!)).toBe(true);
+    // The record survives encoding, as an optional feature.
+    const encoded = encodeEnvelope(retired, {
+      authorDeviceId: 'device-b',
+      deviceSequence: 1,
+      createdAt: T0,
+    });
+    expect(encoded.header.features.optional).toEqual([RETIRED_DEVICES]);
+    expect(C(decodeEnvelope(encoded.bytes).state)).toBe(C(retired));
+  });
+
+  test('a retired ID that publishes again is active again', () => {
+    const { state, upTo } = deletedWithDeadDevice();
+    const retired = retireDevice(state, at('device-b'), 'device-old', upTo);
+    const back = ops.markSeen(retired, at('device-old'));
+    expect(activeDevices(back)).toContain('device-old');
+  });
+
+  test('concurrent retirements join; one written later keeps both; a build without the feature keeps it', () => {
+    const { state, upTo } = deletedWithDeadDevice();
+    const gone = clock;
+    const withOther = { ...state, roster: { ...state.roster, 'device-gone': gone } };
+    const a = retireDevice(withOther, at('device-a'), 'device-old', upTo);
+    const b = retireDevice(withOther, at('device-b'), 'device-gone', gone);
+    const both = convergeInEveryOrder([a, b, withOther]);
+    expect(retiredDevices(both)).toEqual({ 'device-gone': gone, 'device-old': upTo });
+    expect(both.profile.ext[RETIRED_DEVICES]).toHaveLength(2);
+    // A later write replaces both items with one that holds both IDs.
+    const later = retireDevice(both, at('device-a'), 'device-old', upTo);
+    expect(later.profile.ext[RETIRED_DEVICES]).toHaveLength(1);
+    expect(retiredDevices(later)).toEqual(retiredDevices(both));
+    // A device that knows nothing of it edits the profile: the record stays.
+    const older = ops.setProfileName(later, at('device-x'), 'Name', 'all');
+    expect(retiredDevices(convergeInEveryOrder([older, later, both]))).toEqual(
+      retiredDevices(both),
+    );
+  });
+
+  test('a malformed record from another device is ignored, not refused', () => {
+    const { state } = deletedWithDeadDevice();
+    const odd = ops.writeExt(
+      state,
+      at('device-b'),
+      { kind: 'profile' },
+      RETIRED_DEVICES,
+      { 'device-old': 'soon', 'device-a': [1] },
+      'all',
+    );
+    expect(retiredDevices(odd)).toEqual({});
+    expect(activeDevices(odd)).toContain('device-old');
+  });
+
+  test('IDs that expired anyway leave the record when it is written again', () => {
+    const { state, upTo } = deletedWithDeadDevice();
+    const retired = retireDevice(state, at('device-b'), 'device-old', upTo);
+    const later = { ...retired, roster: { ...retired.roster, 'device-a': clock + YEAR } };
+    const again = retireDevice(later, at('device-a', YEAR), 'device-b', clock);
+    expect(Object.keys(retiredDevices(again))).toEqual(['device-b']);
   });
 });
 

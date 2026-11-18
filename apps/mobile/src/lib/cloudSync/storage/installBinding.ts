@@ -33,7 +33,8 @@
  *   install that still has it. An Android reinstall that got its database
  *   back would land here: a new ID it didn't need. That costs one full
  *   capture and rewrite at the next launch, and the old ID stays on rosters
- *   (holding back compaction) until it expires.
+ *   (holding back compaction) until it expires. It is not retired early
+ *   (`retireDevice`): the install it came from may still use it.
  *
  * shortcut: a copy of a database backed up before this upgrade first ran has
  * no binding, so it reads as the upgrade and keeps the ID; the

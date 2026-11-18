@@ -23,8 +23,16 @@
  * any pass; the pause stays for copies it cannot tell apart (a backup taken
  * before the marker existed).
  *
- * shortcut: the old ID stays on other devices' rosters, holding back
- * compaction until it expires after 180 days (P11 retires such IDs).
+ * Retiring the old ID (#185 P11, `retireDevice`):
+ * - **Clock far ahead:** the old ID is dead. Its head is gone and every
+ *   write it had is in this install's state, under the old ID or the new
+ *   one. It is retired in the same write, so it stops holding back
+ *   compaction at once (its acknowledgement was dropped with the move, so
+ *   until then nothing would compact for 180 days).
+ * - **Another install uses this ID:** not retired. The other install keeps
+ *   the ID and may still publish edits made before it saw a delete;
+ *   retiring it would let compaction drop values those edits need. It
+ *   counts until it expires (180 days without a publish).
  */
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
@@ -37,6 +45,7 @@ import {
   captureSyncState,
   type ApplyMediaFiles,
 } from '../../storage/v2State';
+import { retireDevice } from '../../v2/compact';
 import { reissueWrites } from '../../v2/reissue';
 import type { SnapshotProvider } from './types';
 
@@ -92,12 +101,18 @@ export async function continueAsNewDevice(options: {
       }
     }
     const to = options.newDeviceId?.() ?? randomUUID();
-    const next = reissueWrites(captured.state, {
+    let next = reissueWrites(captured.state, {
       from,
       to,
       keepUpTo,
       hlcs: reason === 'another-install' ? 'same' : 'after',
     });
+    if (reason === 'clock-ahead') {
+      // Retired up to its highest time (ahead), which no copy of its roster passes.
+      const { ctx, roster } = captured.state;
+      const upTo = Math.max(ctx[from] ?? 0, roster[from] ?? 0);
+      next = retireDevice(next, { device: to, wallMs: options.now }, from, upTo);
+    }
     const applied = await applySyncState(captured, next, files, async (rawTx) => {
       const tx = rawTx as CloudSyncTransaction;
       await tx.update(syncDevice).set({ device_id: to }).where(eq(syncDevice.id, 'self'));

@@ -140,6 +140,28 @@ const newDevice = (target: Device, reason: 'another-install' | 'clock-ahead') =>
       now: clock,
     }),
   );
+/** IDs the state on this device records as retired. */
+const retiredOf = (target: Device) => {
+  const row = target.database.sqlite
+    .query(
+      "SELECT ext_json FROM sync_records WHERE entity_type = 'profile' AND entity_id = 'profile'",
+    )
+    .get() as { ext_json: string } | null;
+  const items = row
+    ? ((JSON.parse(row.ext_json) as Record<string, { v: Record<string, number> }[]>)[
+        'retired-devices'
+      ] ?? [])
+    : [];
+  return [...new Set(items.flatMap((item) => Object.keys(item.v)))].sort();
+};
+const pendingOf = (target: Device) =>
+  JSON.parse(
+    (
+      target.database.sqlite
+        .query("SELECT retired_json FROM sync_device WHERE id = 'self'")
+        .get() as { retired_json: string }
+    ).retired_json,
+  ) as { vaultId: string; deviceId: string }[];
 const count = (list: string[], name: string) =>
   list.filter((item) => item === name).length;
 
@@ -411,6 +433,60 @@ describe('roster expiry and head pruning (P11)', () => {
     clock += 1000;
     expect((await sync(b)).status).toBe('published');
     expect(texts(b)).toEqual(['e1:Text e1', 'from-b:Text from-b']);
+  });
+});
+
+describe('retired device IDs (P11)', () => {
+  test('after "Delete all", the old ID is retired: compaction goes ahead and its head goes', async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1', { text_content: 'Secret' });
+    await sync(a);
+    await sync(b);
+    await sync(a);
+    const old = deviceIdOf(a);
+    // B deletes; A is wiped before it ever acknowledges that delete.
+    clock += 1000;
+    await write(b, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e1', { now: clock }),
+    );
+    await sync(b);
+    a.database.sqlite.run('DELETE FROM entries');
+    await write(a, (tx) => resetSyncIdentityInTransaction(tx, clock));
+    expect(pendingOf(a)).toMatchObject([{ vaultId: VAULT, deviceId: old }]);
+    // A binds again under a new ID, takes the journal back from Drive and
+    // retires the old ID in the same publication; then prunes its head.
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    expect(deviceIdOf(a)).not.toBe(old);
+    expect(pendingOf(a)).toEqual([]);
+    expect(retiredOf(a)).toEqual([old]);
+    expect(
+      provider.physicalHeads(VAULT).map((head) => head.head!.deviceId),
+    ).not.toContain(old);
+    // B no longer waits for the dead ID: once it takes A in, the deleted
+    // text is compacted at once instead of after 180 days.
+    clock += DAY;
+    await sync(b);
+    for (const target of [a, b]) {
+      await sync(target);
+      expect(texts(target)).toEqual([]);
+      expect(
+        target.database.sqlite.query('SELECT entity_id FROM sync_deleted_records').all(),
+      ).toEqual([]);
+    }
+  });
+
+  test('a cloned ID is not retired by the copy that continues as a new device', async () => {
+    const a = device();
+    await sync(a);
+    const copy = device({ database: devices.clone(a.database) });
+    const id = deviceIdOf(a);
+    await newDevice(copy, 'another-install');
+    copy.stateStore.clearPause(VAULT, 'connection');
+    clock += 1000;
+    await sync(copy);
+    await sync(a);
+    for (const target of [a, copy]) expect(retiredOf(target)).not.toContain(id);
   });
 });
 
@@ -813,6 +889,8 @@ describe('a clock that was far ahead (P8)', () => {
     // B's edit was made after it had seen A's: it still replaces the base.
     expect(texts(a)).toEqual(['e1:From the future', 'new:Written while wrong']);
     expect(allTexts(a, 'e1')).toEqual(['From the future']);
+    // The old ID is retired (P11): it no longer counts as active anywhere.
+    for (const target of [a, b]) expect(retiredOf(target)).toContain(old);
   });
 });
 
