@@ -42,17 +42,16 @@ adding landscape tablet captures.
 
 ## What belongs where
 
-| Path            | Purpose                                                              |
-| --------------- | -------------------------------------------------------------------- |
-| `inputs.json`   | The capture file and crop rectangle for each screenshot slot         |
-| `panels.json`   | English headlines, panel order and layout choices                    |
-| `presets.mjs`   | The four output sizes and which inputs (phone or tablet) each uses   |
-| `render.mjs`    | Composes the panels and contact sheets                               |
-| `verify.mjs`    | Checks exports and rejection of invalid inputs                       |
-| `fonts.conf`    | Uses the repository's bundled fonts                                  |
-| `demo-journal/` | Builds the made-up journal the captures show, with its two photos    |
-| `.cache/fonts/` | Disposable font cache, recreated automatically and ignored by Git    |
-| `input/`        | Ignored by Git. Older checkouts kept captures of a real journal here |
+| Path            | Purpose                                                            |
+| --------------- | ------------------------------------------------------------------ |
+| `inputs.json`   | The capture file and crop rectangle for each screenshot slot       |
+| `panels.json`   | English headlines, panel order and layout choices                  |
+| `presets.mjs`   | The four output sizes and which inputs (phone or tablet) each uses |
+| `render.mjs`    | Composes the panels and contact sheets                             |
+| `verify.mjs`    | Checks exports and rejection of invalid inputs                     |
+| `fonts.conf`    | Uses the repository's bundled fonts                                |
+| `demo-journal/` | Builds the made-up journal the captures show, with its two photos  |
+| `.cache/fonts/` | Disposable font cache, recreated automatically and ignored by Git  |
 
 `inputs.json` paths are relative to `apps/website/src/assets/screenshots/`.
 Phone light-theme and timeline slots intentionally share one image. The closing

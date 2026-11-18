@@ -1,25 +1,20 @@
 ---
 import { Clock, ExternalLink, History, Languages, Sparkles } from '@lucide/astro';
-import { getImage, Image } from 'astro:assets';
-import galaxyStoreSrc from '~/assets/galaxy-store.svg';
-import googlePlaySrc from '~/assets/google-play.svg';
+import { getImage } from 'astro:assets';
 import tackbokEditSrc from '~/assets/screenshots/ios/editor-light.webp';
 import tackbokHomeSrc from '~/assets/screenshots/ios/timeline-light.webp';
 import worksheetSrc from '~/assets/screenshots/ios/worksheet-light.webp';
 import insightsSrc from '~/assets/screenshots/ios/insights-light.webp';
 import themesSrc from '~/assets/screenshots/ios/themes-light.webp';
 import PhoneFrame from '~/components/PhoneFrame.astro';
-import appStoreSrc from '~/assets/app-store.svg';
 import GithubIcon from '~/components/GithubIcon.astro';
 import SiteFooter from '~/components/SiteFooter.astro';
 import SiteHeader from '~/components/SiteHeader.astro';
+import StoreBadges from '~/components/StoreBadges.astro';
 import Layout from '~/layouts/main.astro';
+import { storeLinks } from '~/lib/store-links';
 
 const GITHUB_URL = 'https://github.com/mehradotdev/tackbok';
-const GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=dev.mehra.tackbok';
-const GALAXY_STORE_URL = 'https://galaxystore.samsung.com/detail/dev.mehra.tackbok';
-const APP_STORE_URL =
-  'https://apps.apple.com/us/app/tackbok-gratitude-journal/id6757330507';
 
 const features = [
   {
@@ -82,7 +77,7 @@ const structuredData = {
         price: '0',
         priceCurrency: 'USD',
       },
-      downloadUrl: [GOOGLE_PLAY_URL, APP_STORE_URL, GALAXY_STORE_URL],
+      downloadUrl: storeLinks.map((store) => store.url),
       screenshot: screenshotUrls,
       featureList: [
         'Gratitude entries with photos, voice memos, moods and tags',
@@ -135,47 +130,7 @@ const structuredData = {
             memories. No account. No ads. Your journal stays on your device.
           </p>
 
-          <div class="flex flex-wrap items-center gap-[0.75rem] max-[900px]:justify-center">
-            <a
-              class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-              href={GOOGLE_PLAY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Get it on Google Play">
-              <Image
-                class="h-[58px] w-auto rounded-[8px]"
-                src={googlePlaySrc}
-                height="58"
-                alt="Get it on Google Play"
-              />
-            </a>
-            <a
-              class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-              href={APP_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Download on the App Store">
-              <Image
-                class="h-[58px] w-auto rounded-[8px]"
-                src={appStoreSrc}
-                height="58"
-                alt="Download on the App Store"
-              />
-            </a>
-            <a
-              class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-              href={GALAXY_STORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Available on Galaxy Store">
-              <Image
-                class="h-[58px] w-auto rounded-[8px]"
-                src={galaxyStoreSrc}
-                height="58"
-                alt="Available on Galaxy Store"
-              />
-            </a>
-          </div>
+          <StoreBadges class="max-[900px]:justify-center" />
 
           <div class="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.84rem] text-ink-soft max-[900px]:justify-center max-sm:text-[0.78rem]">
             <span class="inline-flex items-center gap-1.5 font-medium text-ink-soft">
@@ -262,7 +217,7 @@ const structuredData = {
     </section>
 
     <!-- Features Section -->
-    <section class="bg-[linear-gradient(rgba(52,75,55,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(52,75,55,0.035)_1px,transparent_1px),var(--cream)] bg-[length:40px_40px] py-[clamp(5rem,10vw,8.5rem)]">
+    <section class="bg-cream bg-[linear-gradient(rgba(52,75,55,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(52,75,55,0.035)_1px,transparent_1px)] bg-[length:40px_40px] py-[clamp(5rem,10vw,8.5rem)]">
       <div
         id="features"
         class="mx-auto w-full max-w-[1240px] scroll-mt-24 px-6 sm:px-8 lg:px-12">
@@ -440,7 +395,7 @@ const structuredData = {
             is my free, open-source gift back to society.”
           </blockquote>
           <a
-            class="relative z-[2] text-[0.9rem] font-bold underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            class="relative z-[2] text-[0.9rem] font-bold underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--color-sage)_58%,white)]"
             href="/privacy">
             Read the privacy policy <span aria-hidden="true">→</span>
           </a>
@@ -515,7 +470,7 @@ const structuredData = {
             version.
           </p>
           <a
-            class="inline-flex items-center gap-[0.45rem] font-[750] text-sage-deep underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
+            class="inline-flex items-center gap-[0.45rem] font-[750] text-sage-deep underline-offset-[0.35rem] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--color-sage)_58%,white)]"
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer">
@@ -546,50 +501,7 @@ const structuredData = {
         <p class="mb-8 text-[1.08rem] text-[rgba(255,255,255,0.76)] max-sm:text-[0.98rem] max-sm:leading-[1.6]">
           Get Tackbok for iOS and Android.
         </p>
-        <div class="flex flex-wrap items-center justify-center gap-[0.7rem]">
-          <a
-            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-            href={GOOGLE_PLAY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Get it on Google Play">
-            <Image
-              class="h-[58px] w-auto rounded-[8px]"
-              src={googlePlaySrc}
-              height="58"
-              alt="Get it on Google Play"
-              loading="lazy"
-            />
-          </a>
-          <a
-            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-            href={APP_STORE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Download on the App Store">
-            <Image
-              class="h-[58px] w-auto rounded-[8px]"
-              src={appStoreSrc}
-              height="58"
-              alt="Download on the App Store"
-              loading="lazy"
-            />
-          </a>
-          <a
-            class="inline-flex h-[58px] shrink-0 items-center justify-center rounded-[8px] no-underline shadow-[0_10px_24px_rgba(52,75,55,0.17)] transition duration-150 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(52,75,55,0.25)] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[color-mix(in_srgb,var(--sage)_58%,white)]"
-            href={GALAXY_STORE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Available on Galaxy Store">
-            <Image
-              class="h-[58px] w-auto rounded-[8px]"
-              src={galaxyStoreSrc}
-              height="58"
-              alt="Available on Galaxy Store"
-              loading="lazy"
-            />
-          </a>
-        </div>
+        <StoreBadges class="justify-center" />
       </div>
     </section>
   </main>
