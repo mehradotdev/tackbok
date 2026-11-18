@@ -856,7 +856,7 @@ export const es = {
   'cloud.conflicts.showThem': 'Mostrarlas',
   'cloud.conflicts.otherVersionsTitle': 'Otras versiones',
   'cloud.conflicts.otherVersionsDescription':
-    'Estas entradas se editaron en dos dispositivos a la vez, así que se conservaron ambas versiones. Abre una para editarla o eliminarla.',
+    'Estas entradas se editaron en dos dispositivos a la vez, así que se conservaron ambas versiones. Elige cuál conservar o conserva ambas como entradas separadas.',
   'cloud.conflicts.noOtherVersions': 'Ninguna entrada tiene otra versión.',
   'cloud.conflicts.homeNotice':
     'Se hicieron algunos cambios en dos dispositivos a la vez. Mira qué se conservó.',
@@ -877,12 +877,17 @@ export const es = {
   'cloud.conflicts.keepOtherVersion': 'Conservar esta otra versión',
   'cloud.conflicts.keepThisOneTitle': '¿Conservar esta versión?',
   'cloud.conflicts.keepThisOneMessage':
-    'Se eliminarán permanentemente {count} otras versiones.',
+    'Se conservará esta versión en todos tus dispositivos, en lugar de las otras {count}.',
+  'cloud.conflicts.keepConfirm': 'Conservar esta versión',
+  'cloud.conflicts.keepBoth': 'Conservar ambas',
+  'cloud.conflicts.keepBothHint':
+    'Guarda esta versión como una entrada nueva con la misma fecha, estado de ánimo y etiquetas. Los adjuntos se quedan en la entrada original.',
+  'cloud.conflicts.keptBoth': 'Se guardó como una entrada nueva.',
   'cloud.conflicts.attachmentCount': 'Adjuntos: {count}',
   'cloud.conflicts.entryReturned':
     'Eliminaste esta entrada en un dispositivo mientras se editaba en otro, así que se conservó la versión editada.',
   'cloud.conflicts.entriesReturned':
-    'Se conservaron {count} entradas que eliminaste en un dispositivo porque otro dispositivo aún las tenía.',
+    '{count} entradas que eliminaste en un dispositivo se editaron en otro, así que se conservaron las versiones editadas.',
   'cloud.conflicts.openEntry': 'Abrir entrada',
   'cloud.conflicts.gotIt': 'Entendido',
   'cloud.conflicts.versionsChanged':

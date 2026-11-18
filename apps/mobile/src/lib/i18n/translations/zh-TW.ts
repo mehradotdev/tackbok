@@ -844,7 +844,7 @@ export const zhTW: Translations = {
   'cloud.conflicts.showThem': '查看',
   'cloud.conflicts.otherVersionsTitle': '其他版本',
   'cloud.conflicts.otherVersionsDescription':
-    '這些紀錄同時在兩部裝置上被編輯，因此兩個版本都已保留。開啟一則紀錄即可編輯或刪除。',
+    '這些紀錄同時在兩部裝置上被編輯，因此兩個版本都已保留。選擇要保留的版本，或將兩者都保留為各自獨立的紀錄。',
   'cloud.conflicts.noOtherVersions': '沒有紀錄有其他版本。',
   'cloud.conflicts.homeNotice': '有些變更同時在兩部裝置上進行。查看保留了哪些內容。',
   'cloud.conflicts.homeNoticeEntries':
@@ -863,12 +863,18 @@ export const zhTW: Translations = {
   'cloud.conflicts.keepOriginal': '保留原始版本',
   'cloud.conflicts.keepOtherVersion': '保留此其他版本',
   'cloud.conflicts.keepThisOneTitle': '保留此版本？',
-  'cloud.conflicts.keepThisOneMessage': '其他 {count} 個版本將被永久刪除。',
+  'cloud.conflicts.keepThisOneMessage':
+    '此版本將在你的所有裝置上保留，取代其他 {count} 個版本。',
+  'cloud.conflicts.keepConfirm': '保留此版本',
+  'cloud.conflicts.keepBoth': '兩個都保留',
+  'cloud.conflicts.keepBothHint':
+    '將此版本另存為新紀錄，日期、心情和標籤相同。附件保留在原紀錄中。',
+  'cloud.conflicts.keptBoth': '已另存為新紀錄。',
   'cloud.conflicts.attachmentCount': '附件：{count}',
   'cloud.conflicts.entryReturned':
     '你在一部裝置上刪除了此紀錄，同時它在另一部裝置上被編輯，因此保留了編輯後的版本。',
   'cloud.conflicts.entriesReturned':
-    '你在一部裝置上刪除的 {count} 則紀錄被保留了，因為另一部裝置上仍有它們。',
+    '你在一部裝置上刪除的 {count} 則紀錄在另一部裝置上被編輯，因此保留了編輯後的版本。',
   'cloud.conflicts.openEntry': '開啟紀錄',
   'cloud.conflicts.gotIt': '知道了',
   'cloud.conflicts.versionsChanged':

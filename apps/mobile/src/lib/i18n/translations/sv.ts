@@ -833,7 +833,7 @@ export const sv = {
   'cloud.conflicts.showThem': 'Visa dem',
   'cloud.conflicts.otherVersionsTitle': 'Andra versioner',
   'cloud.conflicts.otherVersionsDescription':
-    'De här anteckningarna redigerades på två enheter samtidigt, så båda versionerna sparades. Öppna en för att redigera eller ta bort den.',
+    'De här anteckningarna redigerades på två enheter samtidigt, så båda versionerna sparades. Välj vilken du vill behålla, eller behåll båda som separata anteckningar.',
   'cloud.conflicts.noOtherVersions': 'Inga anteckningar har en annan version.',
   'cloud.conflicts.homeNotice':
     'Några ändringar gjordes på två enheter samtidigt. Se vad som behölls.',
@@ -854,12 +854,18 @@ export const sv = {
   'cloud.conflicts.keepOriginal': 'Behåll originalet',
   'cloud.conflicts.keepOtherVersion': 'Behåll den här andra versionen',
   'cloud.conflicts.keepThisOneTitle': 'Behåll den här versionen?',
-  'cloud.conflicts.keepThisOneMessage': '{count} andra versioner tas bort permanent.',
+  'cloud.conflicts.keepThisOneMessage':
+    'Den här versionen behålls på alla dina enheter i stället för de {count} andra.',
+  'cloud.conflicts.keepConfirm': 'Behåll den här versionen',
+  'cloud.conflicts.keepBoth': 'Behåll båda',
+  'cloud.conflicts.keepBothHint':
+    'Sparar den här versionen som en ny anteckning med samma datum, humör och etiketter. Bilagorna stannar i den ursprungliga anteckningen.',
+  'cloud.conflicts.keptBoth': 'Sparad som en ny anteckning.',
   'cloud.conflicts.attachmentCount': 'Bilagor: {count}',
   'cloud.conflicts.entryReturned':
     'Du tog bort den här anteckningen på en enhet medan den redigerades på en annan, så den redigerade versionen behölls.',
   'cloud.conflicts.entriesReturned':
-    '{count} anteckningar som du tog bort på en enhet behölls eftersom en annan enhet fortfarande hade dem.',
+    '{count} anteckningar som du tog bort på en enhet redigerades på en annan, så de redigerade versionerna behölls.',
   'cloud.conflicts.openEntry': 'Öppna anteckningen',
   'cloud.conflicts.gotIt': 'OK',
   'cloud.conflicts.versionsChanged':

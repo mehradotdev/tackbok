@@ -44,10 +44,12 @@ jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
 jest.mock('~/components/ui/icon', () => ({ Icon: 'Icon' }));
 jest.mock('~/components/ui/button', () => ({ Button: 'Button' }));
 const mockToastInfo = jest.fn();
+const mockToastSuccess = jest.fn();
 jest.mock('~/components/ui/toast', () => ({
   toast: {
     error: (message: string) => mockToastError(message),
     info: (message: string) => mockToastInfo(message),
+    success: (message: string) => mockToastSuccess(message),
   },
 }));
 jest.mock('~/components/ui/alert-dialog', () => ({
@@ -55,7 +57,7 @@ jest.mock('~/components/ui/alert-dialog', () => ({
   AlertDialogCancel: 'AlertDialogCancel',
   AlertDialogContent: 'AlertDialogContent',
   AlertDialogDescription: 'AlertDialogDescription',
-  AlertDialogDestructiveAction: 'AlertDialogDestructiveAction',
+  AlertDialogAction: 'AlertDialogAction',
   AlertDialogFooter: 'AlertDialogFooter',
   AlertDialogHeader: 'AlertDialogHeader',
   AlertDialogTitle: 'AlertDialogTitle',
@@ -73,9 +75,11 @@ jest.mock('~/lib/cloudSync/ui/conflicts', () => ({
   markOtherVersionsSeen: () => mockMarkSeen(),
 }));
 const mockKeep = jest.fn(async (_id: string, _seen?: unknown) => {});
+const mockKeepBoth = jest.fn(async (_id: string, _seen?: unknown) => 'split-1');
 jest.mock('~/lib/cloudSync/ui/versions', () => ({
   VersionsChangedError: class VersionsChangedError extends Error {},
   keepEntryVersion: (id: string, seen: unknown) => mockKeep(id, seen),
+  keepBothVersions: (id: string, seen: unknown) => mockKeepBoth(id, seen),
   parseVersionCopyId: (id: string) =>
     id.includes('#') ? { entryId: id.split('#')[0] } : null,
 }));
@@ -133,7 +137,14 @@ const keepButtons = () =>
         mockEn['cloud.conflicts.keepThisOne'],
   );
 const dialog = () => root.root.findByType('AlertDialog' as never);
-const confirm = () => root.root.findByType('AlertDialogDestructiveAction' as never);
+const confirm = () => root.root.findByType('AlertDialogAction' as never);
+const keepBothButtons = () =>
+  root.root.findAll(
+    (node) =>
+      (node.type as unknown) === 'Button' &&
+      node.findAllByType('Text' as never)[0]?.props.children ===
+        mockEn['cloud.conflicts.keepBoth'],
+  );
 
 test('a failed read shows an error with a retry, not the empty state', () => {
   const refetch = jest.fn();
@@ -171,7 +182,7 @@ test('shows each other version under its original, with dates', () => {
   expect(heading.props.children).toBe('Versions of an entry from date:5');
 });
 
-test('"Keep this one" buttons name their version and what they delete', () => {
+test('"Keep this one" buttons name their version and what they keep', () => {
   render({ data: [{ original, versions: [copy, secondCopy] }] });
   expect(keepButtons().map((button) => button.props.accessibilityLabel)).toEqual([
     mockEn['cloud.conflicts.keepOriginal'],
@@ -179,14 +190,15 @@ test('"Keep this one" buttons name their version and what they delete', () => {
     mockEn['cloud.conflicts.keepOtherVersion'],
   ]);
   expect(keepButtons()[0].props.accessibilityHint).toBe(
-    'The 2 other versions will be permanently deleted.',
+    'This version will be kept on all your devices, instead of the 2 others.',
   );
 });
 
 test('keeping a version never claims to delete attachments: they stay with the entry', () => {
   const withAssets = { ...original, assets: [{}, {}, {}] as Entry['assets'] };
   render({ data: [{ original: withAssets, versions: [copy] }] });
-  const message = 'The other version will be permanently deleted.';
+  const message =
+    'This version will be kept on all your devices, instead of the other one.';
   expect(keepButtons()[1].props.accessibilityHint).toBe(message);
   expect(keepButtons()[0].props.accessibilityHint).toBe(message);
   act(() => keepButtons()[1].props.onPress());
@@ -224,7 +236,9 @@ test('keeping the other version keeps it, after confirming', async () => {
   act(() => keepButtons()[1].props.onPress());
   expect(dialog().props.open).toBe(true);
   expect(content()).toContain(mockEn['cloud.conflicts.keepThisOneTitle']);
-  expect(content()).toContain('The other version will be permanently deleted.');
+  expect(content()).toContain(
+    'This version will be kept on all your devices, instead of the other one.',
+  );
   expect(mockKeep).not.toHaveBeenCalled();
 
   await act(async () => confirm().props.onPress());
@@ -443,4 +457,44 @@ test('nothing is marked seen while the list loads or after a failed load', () =>
   render({ isLoading: true });
   render({ isError: true });
   expect(mockMarkSeen).not.toHaveBeenCalled();
+});
+
+test('the confirmation keeps rather than deletes', () => {
+  render({ data: [{ original, versions: [copy] }] });
+  act(() => keepButtons()[0].props.onPress());
+  expect(content()).not.toContain(`"${mockEn['common.delete']}"`);
+  expect(confirm().findByType('Text' as never).props.children).toBe(
+    mockEn['cloud.conflicts.keepConfirm'],
+  );
+});
+
+test('"Keep both" is offered only under the other versions, and writes without a confirmation', async () => {
+  render({ data: [{ original, versions: [copy, secondCopy] }] });
+  expect(keepBothButtons()).toHaveLength(2);
+  expect(keepBothButtons()[0].props.accessibilityHint).toBe(
+    mockEn['cloud.conflicts.keepBothHint'],
+  );
+  await act(async () => keepBothButtons()[1].props.onPress());
+  expect(mockKeepBoth).toHaveBeenCalledWith('second-copy', [original, copy, secondCopy]);
+  expect(dialog().props.open).toBe(false);
+  const message = mockEn['cloud.conflicts.keptBoth'];
+  expect(mockToastSuccess).toHaveBeenCalledWith(message);
+  expect(mockAnnounce).toHaveBeenCalledWith(message, { queue: true });
+});
+
+test('"Keep both" refused because the versions changed says so', async () => {
+  const { VersionsChangedError } = jest.requireMock('~/lib/cloudSync/ui/versions') as {
+    VersionsChangedError: new () => Error;
+  };
+  mockKeepBoth.mockRejectedValueOnce(new VersionsChangedError());
+  render({ data: [{ original, versions: [copy] }] });
+  await act(async () => keepBothButtons()[0].props.onPress());
+  expect(mockToastSuccess).not.toHaveBeenCalled();
+  expect(mockToastInfo).toHaveBeenCalledWith(mockEn['cloud.conflicts.versionsChanged']);
+});
+
+test('the original card does not carry the "Other version" badge', () => {
+  render({ data: [{ original, versions: [copy] }] });
+  for (const row of root.root.findAllByType('EntryItem' as never))
+    expect(row.props.showVersionBadge).toBe(false);
 });

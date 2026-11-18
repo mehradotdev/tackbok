@@ -8,6 +8,7 @@ import type { OtherVersionGroup } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
 import {
   VersionsChangedError,
+  keepBothVersions,
   keepEntryVersion,
   parseVersionCopyId,
 } from '~/lib/cloudSync/ui/versions';
@@ -23,8 +24,8 @@ import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogAction,
   AlertDialogDescription,
-  AlertDialogDestructiveAction,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -37,8 +38,7 @@ import { groupMembers, keepMessage } from './keepVersion';
 
 /**
  * Entries that were edited on two devices at once, with both versions kept.
- * Lists only groups with a choice to make; `focus` (an entry ID) puts that
- * entry's group first.
+ * `focus` (an entry ID) puts that entry's group first.
  */
 export default function OtherVersionsScreen() {
   const router = useRouter();
@@ -57,15 +57,15 @@ export default function OtherVersionsScreen() {
   if (groups.length > 0 && !hadGroups) setHadGroups(true);
   const allDone = !isLoading && !isError && groups.length === 0 && hadGroups;
   const queryClient = useQueryClient();
-  // The entry to keep and the entries the confirmation names for deletion.
+  // The version to keep, and the rest of its group: what the user compared.
   const [pendingKeep, setPendingKeep] = useState<{
     keepId: string;
     kept: Entry;
     others: Entry[];
   } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  // Set synchronously, so a second tap before the re-render deletes nothing.
-  const deletingRef = useRef(false);
+  const [isBusy, setIsBusy] = useState(false);
+  // Set synchronously, so a second tap before the re-render writes nothing.
+  const busyRef = useRef(false);
 
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -118,36 +118,50 @@ export default function OtherVersionsScreen() {
     });
   };
 
-  // One new write of the chosen value (cloud sync v2): the other versions of
-  // that field go everywhere once it syncs. Two devices keeping different
-  // versions at once leave both open, so nothing is lost.
-  const handleKeepConfirm = async () => {
-    if (!pendingKeep || deletingRef.current) return;
-    deletingRef.current = true;
-    setIsDeleting(true);
-    let outcome: 'kept' | 'changed' | 'failed' = 'kept';
+  // Runs "Keep this one" or "Keep both": one new synced write. `write` gets
+  // what the user compared: if sync changed the versions meanwhile, nothing
+  // is written and the refreshed list shows the new ones.
+  const runChoice = async (write: () => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setIsBusy(true);
+    let outcome: 'done' | 'changed' | 'failed' = 'done';
     try {
-      // What the user compared: if sync changed the versions meanwhile,
-      // nothing is written and the refreshed list shows the new ones.
-      await keepEntryVersion(pendingKeep.keepId, [
-        pendingKeep.kept,
-        ...pendingKeep.others,
-      ]);
-    } catch (error) {
-      if (error instanceof VersionsChangedError) outcome = 'changed';
-      else {
-        console.error('Failed to keep a version', error);
-        outcome = 'failed';
+      try {
+        await write();
+      } catch (error) {
+        if (error instanceof VersionsChangedError) outcome = 'changed';
+        else {
+          console.error('Failed to keep a version', error);
+          outcome = 'failed';
+        }
       }
+      await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
+      await refetch();
+    } finally {
+      // Even if the reload fails, the screen stays usable.
+      busyRef.current = false;
+      setIsBusy(false);
+      setPendingKeep(null);
     }
-    await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
-    await refetch();
-    deletingRef.current = false;
-    setIsDeleting(false);
-    setPendingKeep(null);
     if (outcome === 'changed') reportVersionsChanged(t);
     if (outcome === 'failed') toast.error(t('mood.failedToSaveEntry'));
   };
+
+  const handleKeepConfirm = () => {
+    if (!pendingKeep) return;
+    const { keepId, kept, others } = pendingKeep;
+    return runChoice(() => keepEntryVersion(keepId, [kept, ...others]));
+  };
+
+  // Nothing is lost, so no confirmation: the version becomes a new entry.
+  const handleKeepBoth = (group: OtherVersionGroup, entry: Entry) =>
+    runChoice(async () => {
+      await keepBothVersions(entry.note_id, groupMembers(group));
+      const message = t('cloud.conflicts.keptBoth');
+      toast.success(message);
+      AccessibilityInfo.announceForAccessibilityWithOptions(message, { queue: true });
+    });
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
@@ -202,7 +216,8 @@ export default function OtherVersionsScreen() {
               onEntryPress={handleEntryPress}
               onPhotoPress={handlePhotoPress}
               onKeep={(entry) => handleKeepPress(item, entry)}
-              disabled={isDeleting}
+              onKeepBoth={(entry) => void handleKeepBoth(item, entry)}
+              disabled={isBusy}
               highlighted={groupKey(item) === focusedKey}
             />
           )}
@@ -213,26 +228,30 @@ export default function OtherVersionsScreen() {
       <AlertDialog
         open={pendingKeep !== null}
         // The confirm button closes the dialog before its onPress runs, so the
-        // delete works from the closure and `deletingRef` guards repeat taps.
+        // keep works from the closure and `busyRef` guards repeat taps.
         onOpenChange={(open) => {
-          if (!open && !isDeleting) setPendingKeep(null);
+          if (!open && !isBusy) setPendingKeep(null);
         }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t('cloud.conflicts.keepThisOneTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingKeep ? keepMessage(t, pendingKeep.others) : null}
+              {pendingKeep ? keepMessage(t, pendingKeep.kept, pendingKeep.others) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting} onPress={() => setPendingKeep(null)}>
+            <AlertDialogCancel disabled={isBusy} onPress={() => setPendingKeep(null)}>
               <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
-            <AlertDialogDestructiveAction
-              disabled={isDeleting}
+            {/* Longer than "Delete" was: wraps at large text sizes rather than clipped. */}
+            <AlertDialogAction
+              className="h-auto min-h-10 py-2"
+              disabled={isBusy}
               onPress={() => void handleKeepConfirm()}>
-              <Text>{t('common.delete')}</Text>
-            </AlertDialogDestructiveAction>
+              <Text className="shrink text-center">
+                {t('cloud.conflicts.keepConfirm')}
+              </Text>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

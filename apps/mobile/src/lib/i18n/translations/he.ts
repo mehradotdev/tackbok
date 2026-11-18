@@ -865,7 +865,7 @@ export const he: Translations = {
   'cloud.conflicts.showThem': 'הצגה',
   'cloud.conflicts.otherVersionsTitle': 'גרסאות אחרות',
   'cloud.conflicts.otherVersionsDescription':
-    'הרשומות האלה נערכו בשני מכשירים בו־זמנית, ולכן שתי הגרסאות נשמרו. אפשר לפתוח רשומה כדי לערוך או למחוק אותה.',
+    'הרשומות האלה נערכו בשני מכשירים בו־זמנית, ולכן שתי הגרסאות נשמרו. אפשר לבחור איזו גרסה לשמור, או לשמור את שתיהן כרשומות נפרדות.',
   'cloud.conflicts.noOtherVersions': 'אין רשומות עם גרסה אחרת.',
   'cloud.conflicts.homeNotice':
     'חלק מהשינויים נעשו בשני מכשירים בו־זמנית. אפשר לראות מה נשמר.',
@@ -885,12 +885,18 @@ export const he: Translations = {
   'cloud.conflicts.keepOriginal': 'שמירת הגרסה המקורית',
   'cloud.conflicts.keepOtherVersion': 'שמירת הגרסה האחרת הזו',
   'cloud.conflicts.keepThisOneTitle': 'לשמור את הגרסה הזו?',
-  'cloud.conflicts.keepThisOneMessage': '{count} גרסאות אחרות יימחקו לצמיתות.',
+  'cloud.conflicts.keepThisOneMessage':
+    'הגרסה הזו תישמר בכל המכשירים שלך במקום {count} גרסאות אחרות.',
+  'cloud.conflicts.keepConfirm': 'שמירת הגרסה הזו',
+  'cloud.conflicts.keepBoth': 'שמירת שתיהן',
+  'cloud.conflicts.keepBothHint':
+    'הגרסה הזו תישמר כרשומה חדשה עם אותו תאריך, אותו מצב רוח ואותן תגיות. הקבצים המצורפים יישארו ברשומה המקורית.',
+  'cloud.conflicts.keptBoth': 'נשמרה כרשומה חדשה.',
   'cloud.conflicts.attachmentCount': 'קבצים מצורפים: {count}',
   'cloud.conflicts.entryReturned':
     'מחקת את הרשומה הזו במכשיר אחד בזמן שהיא נערכה במכשיר אחר, ולכן הגרסה הערוכה נשמרה.',
   'cloud.conflicts.entriesReturned':
-    '{count} רשומות שמחקת במכשיר אחד נשמרו כי הן עדיין היו במכשיר אחר.',
+    '{count} רשומות שמחקת במכשיר אחד נערכו במכשיר אחר, ולכן הגרסאות הערוכות נשמרו.',
   'cloud.conflicts.openEntry': 'פתיחת הרשומה',
   'cloud.conflicts.gotIt': 'הבנתי',
   'cloud.conflicts.versionsChanged':

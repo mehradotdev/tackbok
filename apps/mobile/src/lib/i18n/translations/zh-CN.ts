@@ -841,7 +841,7 @@ export const zhCN: Translations = {
   'cloud.conflicts.showThem': '查看',
   'cloud.conflicts.otherVersionsTitle': '其他版本',
   'cloud.conflicts.otherVersionsDescription':
-    '这些条目同时在两台设备上被编辑，因此两个版本都已保留。打开一个条目即可编辑或删除。',
+    '这些条目同时在两台设备上被编辑，因此两个版本都已保留。选择要保留的版本，或将两者都保留为单独的条目。',
   'cloud.conflicts.noOtherVersions': '没有条目有其他版本。',
   'cloud.conflicts.homeNotice': '有些更改同时在两台设备上进行。查看保留了哪些内容。',
   'cloud.conflicts.homeNoticeEntries':
@@ -860,12 +860,18 @@ export const zhCN: Translations = {
   'cloud.conflicts.keepOriginal': '保留原始版本',
   'cloud.conflicts.keepOtherVersion': '保留此其他版本',
   'cloud.conflicts.keepThisOneTitle': '保留此版本？',
-  'cloud.conflicts.keepThisOneMessage': '其他 {count} 个版本将被永久删除。',
+  'cloud.conflicts.keepThisOneMessage':
+    '此版本将在你的所有设备上保留，取代其他 {count} 个版本。',
+  'cloud.conflicts.keepConfirm': '保留此版本',
+  'cloud.conflicts.keepBoth': '两个都保留',
+  'cloud.conflicts.keepBothHint':
+    '将此版本另存为新条目，日期、心情和标签相同。附件保留在原条目中。',
+  'cloud.conflicts.keptBoth': '已另存为新条目。',
   'cloud.conflicts.attachmentCount': '附件：{count}',
   'cloud.conflicts.entryReturned':
     '你在一台设备上删除了此条目，同时它在另一台设备上被编辑，因此保留了编辑后的版本。',
   'cloud.conflicts.entriesReturned':
-    '你在一台设备上删除的 {count} 个条目被保留了，因为另一台设备上仍有它们。',
+    '你在一台设备上删除的 {count} 个条目在另一台设备上被编辑，因此保留了编辑后的版本。',
   'cloud.conflicts.openEntry': '打开条目',
   'cloud.conflicts.gotIt': '知道了',
   'cloud.conflicts.versionsChanged':
