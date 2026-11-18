@@ -41,7 +41,7 @@
  * is already applied locally, so a pass stopped half way publishes on the
  * next one.
  */
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 
 import {
   mediaAssets,
@@ -639,8 +639,8 @@ export class V2SyncEngine {
     own: DeviceHead | undefined,
     record: HeadRecord | undefined,
   ): { needed: boolean } {
-    // No context recorded: a publication is owed (`oweInTransaction`). A
-    // pending snapshot: one stopped part way, before its head moved.
+    // A pending snapshot: a publication stopped part way, before its head
+    // moved, or one owed for compacted values (`oweInTransaction`).
     if (
       !own ||
       !record ||
@@ -768,13 +768,14 @@ export class V2SyncEngine {
 
   /**
    * A publication this device owes for values it compacted: its own head
-   * record forgets the context it published, so every pass publishes until
-   * one succeeds (`publish` records it again).
+   * record gets a pending snapshot ('' when none, which matches no head), so
+   * every pass publishes until one succeeds (`publish` clears it). The
+   * context it published stays: the retired-ID check reads it.
    */
   private async oweInTransaction(tx: CloudSyncTransaction, deviceId: string) {
     await tx
       .update(syncHeads)
-      .set({ ctx_json: null })
+      .set({ pending_snapshot_id: sql`coalesce(${syncHeads.pending_snapshot_id}, '')` })
       .where(
         and(eq(syncHeads.vault_id, this.vaultId), eq(syncHeads.device_id, deviceId)),
       );
