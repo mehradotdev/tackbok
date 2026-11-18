@@ -994,6 +994,16 @@ export const es = {
     'La fecha y hora de este dispositivo estaban muy adelantadas, así que tus otros dispositivos no pueden incorporar sus cambios. Continúa como un dispositivo nuevo para solucionarlo. No se pierde nada de tu diario.',
   'cloud.continueAsNewDevice': 'Continuar como un dispositivo nuevo',
   'cloud.continuedAsNewDevice': 'Este dispositivo ahora se sincroniza como uno nuevo.',
+  'cloud.massDeletion.message':
+    'Los cambios de otro dispositivo eliminarían gran parte de tu diario en este dispositivo. No se ha eliminado nada. Conserva tus entradas, o elimínalas aquí también si era lo que querías.',
+  'cloud.massDeletion.keep': 'Conservar mis entradas',
+  'cloud.massDeletion.apply': 'Eliminarlas aquí también',
+  'cloud.massDeletion.applyTitle': '¿Eliminar estas entradas aquí también?',
+  'cloud.massDeletion.applyDescription':
+    'Las entradas eliminadas en tu otro dispositivo también se eliminan en este. Tackbok no puede recuperarlas.',
+  'cloud.massDeletion.kept':
+    'Se conservaron tus entradas. También vuelven a tus otros dispositivos.',
+  'cloud.massDeletion.applied': 'Las entradas también se eliminaron aquí.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok no pudo combinar los cambios de otro dispositivo con este. No se cambió nada en este dispositivo. La sincronización se detuvo. Actualizar Tackbok en tus dispositivos puede ayudar. Puedes exportar una copia desde Ajustes.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

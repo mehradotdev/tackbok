@@ -4,6 +4,8 @@ export class AttentionError extends Error {
   constructor(
     readonly reason: SyncAttentionReason,
     readonly errorClass: string,
+    /** Stored with the pause (`pause_context_json`). */
+    readonly context: string | null = null,
   ) {
     super(errorClass);
     this.name = 'AttentionError';

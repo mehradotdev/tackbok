@@ -971,6 +971,15 @@ export const zhCN: Translations = {
     '这台设备的日期和时间曾被设到很远的未来，因此你的其他设备无法接收它的更改。以新设备的身份继续即可解决。你的日记不会丢失任何内容。',
   'cloud.continueAsNewDevice': '以新设备的身份继续',
   'cloud.continuedAsNewDevice': '这台设备现在以新设备的身份同步。',
+  'cloud.massDeletion.message':
+    '来自另一台设备的更改会删除你在这台设备上的大部分日记。目前还没有删除任何内容。你可以保留这些条目；如果确实想删除，也可以在这里一并删除。',
+  'cloud.massDeletion.keep': '保留我的条目',
+  'cloud.massDeletion.apply': '在这里也删除',
+  'cloud.massDeletion.applyTitle': '也要在这里删除这些条目吗？',
+  'cloud.massDeletion.applyDescription':
+    '在你另一台设备上删除的条目也会从这台设备上删除。Tackbok 无法恢复它们。',
+  'cloud.massDeletion.kept': '已保留你的条目。它们也会回到你的其他设备上。',
+  'cloud.massDeletion.applied': '这些条目也已在这里删除。',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     '塔克布克无法将另一台设备上的更改与此设备合并。此设备上的内容没有任何更改。同步已停止。在你的设备上更新塔克布克可能会有帮助。你可以在设置中导出一份副本。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

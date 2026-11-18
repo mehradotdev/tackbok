@@ -937,3 +937,146 @@ describe('a pass stopped part way', () => {
     },
   );
 });
+
+describe('mass-deletion guard (P10)', () => {
+  const ids = (n: number) =>
+    Array.from({ length: n }, (_, i) => `e${String(i).padStart(2, '0')}`);
+  async function twoDevices(entries: number) {
+    const a = device();
+    const b = device();
+    for (const id of ids(entries)) await addEntry(a, id);
+    await sync(a);
+    await sync(b);
+    await sync(a);
+    return { a, b };
+  }
+  async function remove(target: Device, list: string[]) {
+    clock += 1000;
+    for (const id of list)
+      await write(target, (tx) =>
+        repositories.deleteEntryInTransaction(tx, id, { now: clock }),
+      );
+  }
+
+  test('deletes from elsewhere that would hide a large share pause and change nothing', async () => {
+    const { a, b } = await twoDevices(20);
+    await remove(b, ids(12));
+    expect((await sync(b)).status).toBe('published');
+    clock += 1000;
+    const before = texts(a);
+    const made = await requests(() => sync(a));
+    expect(a.stateStore.loadState(VAULT, 'connection').pauseReason).toBe('mass-deletion');
+    expect(texts(a)).toEqual(before);
+    for (const name of ['upload-snapshot', 'update-head'])
+      expect(count(made, name)).toBe(0);
+    // Paused: later passes wait for the user.
+    clock += 1000;
+    expect((await sync(a)).status).toBe('attention');
+  });
+
+  test('ordinary deletes, and this device deleting much of its own journal, pass', async () => {
+    const { a, b } = await twoDevices(20);
+    await remove(b, ids(4));
+    await sync(b);
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+    expect(texts(a)).toHaveLength(16);
+    // Deleting here is already in this journal: nothing to ask on this device.
+    await remove(a, ids(20).slice(4, 18));
+    expect((await sync(a)).status).toBe('published');
+    expect(texts(a)).toHaveLength(2);
+  });
+
+  test('a small journal is not guarded', async () => {
+    const { a, b } = await twoDevices(9);
+    await remove(b, ids(9));
+    await sync(b);
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+    expect(texts(a)).toEqual([]);
+  });
+
+  test('"Delete them here too" applies exactly the deletes it was asked about', async () => {
+    const { a, b } = await twoDevices(20);
+    await remove(b, ids(12));
+    await sync(b);
+    clock += 1000;
+    await sync(a);
+    a.stateStore.answerMassDeletion(VAULT, 'connection', 'apply');
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+    expect(texts(a)).toHaveLength(8);
+  });
+
+  test('an answer does not cover deletes that arrived after the question', async () => {
+    const { a, b } = await twoDevices(20);
+    await remove(b, ids(12));
+    await sync(b);
+    clock += 1000;
+    await sync(a);
+    await remove(b, ids(20).slice(12, 14));
+    await sync(b);
+    a.stateStore.answerMassDeletion(VAULT, 'connection', 'apply');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('attention');
+    expect(texts(a)).toHaveLength(20);
+  });
+
+  test('an answer survives a failed pass, and answering with no pause throws', async () => {
+    const { a, b } = await twoDevices(20);
+    expect(() => a.stateStore.answerMassDeletion(VAULT, 'connection', 'apply')).toThrow();
+    await remove(b, ids(12));
+    await sync(b);
+    clock += 1000;
+    await sync(a);
+    a.stateStore.answerMassDeletion(VAULT, 'connection', 'apply');
+    provider.failNext('list-heads', new SnapshotProviderError('transient', 'offline'));
+    clock += 1000;
+    expect((await sync(a)).status).toBe('retry');
+    clock += 1000;
+    expect((await sync(a)).status).not.toBe('attention');
+    expect(texts(a)).toHaveLength(8);
+  });
+
+  test('a pending "Keep" asks again when fewer deletes remain, instead of applying them', async () => {
+    const { a, b } = await twoDevices(20);
+    await remove(b, ids(12));
+    await sync(b);
+    clock += 1000;
+    await sync(a);
+    a.stateStore.answerMassDeletion(VAULT, 'connection', 'keep');
+    // B brings back four of them before A's next pass: eight remain hidden.
+    clock += 1000;
+    for (const id of ids(4)) await addEntry(b, id, { text_content: `Back ${id}` });
+    await sync(b);
+    clock += 1000;
+    expect(await sync(a)).toMatchObject({ status: 'attention', reason: 'mass-deletion' });
+    expect(texts(a)).toHaveLength(20);
+  });
+
+  test('"Keep my entries" keeps them here and brings them back on the deleting device', async () => {
+    const { a, b } = await twoDevices(20);
+    await remove(b, ids(12));
+    await sync(b);
+    clock += 1000;
+    await sync(a);
+    a.stateStore.answerMassDeletion(VAULT, 'connection', 'keep');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    expect(texts(a)).toHaveLength(20);
+    clock += 1000;
+    await sync(b);
+    expect(texts(b)).toHaveLength(20);
+    expect(texts(b)).toEqual(texts(a));
+  });
+});
+
+test('the guard trips on 100 entries in a large journal, a quarter or not', async () => {
+  const { isMassDeletion } =
+    await import('../../src/lib/cloudSync/snapshot/sync/massDeletion');
+  expect(isMassDeletion(9, 9)).toBe(false);
+  expect(isMassDeletion(10, 40)).toBe(true);
+  expect(isMassDeletion(10, 41)).toBe(false);
+  expect(isMassDeletion(99, 1000)).toBe(false);
+  expect(isMassDeletion(100, 1000)).toBe(true);
+});

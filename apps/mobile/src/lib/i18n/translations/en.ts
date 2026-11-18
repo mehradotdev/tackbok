@@ -1050,6 +1050,16 @@ export const en = {
     "This device's date and time were set far in the future, so your other devices can't take in its changes. Continue as a new device to fix this. Nothing in your journal is lost.",
   'cloud.continueAsNewDevice': 'Continue as a new device',
   'cloud.continuedAsNewDevice': 'This device now syncs as a new device.',
+  'cloud.massDeletion.message':
+    'Changes from another device would delete a large part of your journal on this device. Nothing has been deleted. Keep your entries, or delete them here too if you meant to.',
+  'cloud.massDeletion.keep': 'Keep my entries',
+  'cloud.massDeletion.apply': 'Delete them here too',
+  'cloud.massDeletion.applyTitle': 'Delete these entries here too?',
+  'cloud.massDeletion.applyDescription':
+    "The entries deleted on your other device are deleted on this device as well. Tackbok can't bring them back.",
+  'cloud.massDeletion.kept':
+    'Your entries were kept. They come back on your other devices too.',
+  'cloud.massDeletion.applied': 'The entries were deleted here too.',
   // Another device's journal changes conflict in a way the merge cannot resolve.
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     "Tackbok couldn't combine changes from another device with this one. Nothing on this device was changed. Sync has stopped. Updating Tackbok on your devices may help. You can export a copy from Settings.",

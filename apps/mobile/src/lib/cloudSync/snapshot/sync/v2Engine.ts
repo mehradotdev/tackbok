@@ -59,12 +59,18 @@ import {
 } from '../../v2/codec';
 import { absorb, compact } from '../../v2/compact';
 import { SyncJoinError } from '../../v2/join';
-import { markSeen } from '../../v2/ops';
+import { markSeen, rewriteDates } from '../../v2/ops';
 import { isLive } from '../../v2/view';
 import type { SyncState, VersionVector } from '../../v2/types';
 import { SnapshotValidationError } from '../caps';
 import { canonicalize } from '../canonical';
 import { AttentionError, RetryableSyncError, SyncCancelledError } from './errors';
+import {
+  entriesHidden,
+  isMassDeletion,
+  massDeletionToken,
+  type MassDeletionChoice,
+} from './massDeletion';
 import type { SQLiteSyncStateStore } from './sqliteState';
 import {
   isolateProgress,
@@ -154,6 +160,22 @@ const UNREADABLE_REASONS: readonly string[] = [
   'invalid-remote-snapshot',
   'wrong-vault',
 ];
+
+/** The stored answer to a mass-deletion pause (`answerMassDeletion`), if any. */
+function readAnswer(
+  context: string | null,
+): { token: string; choice: MassDeletionChoice } | null {
+  if (!context) return null;
+  try {
+    const value = JSON.parse(context) as { massDeletion?: unknown; choice?: unknown };
+    return typeof value.massDeletion === 'string' &&
+      (value.choice === 'apply' || value.choice === 'keep')
+      ? { token: value.massDeletion, choice: value.choice }
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 function sameVector(left: VersionVector | null, right: VersionVector): boolean {
   return left !== null && canonicalize(left) === canonicalize(right);
@@ -324,27 +346,53 @@ export class V2SyncEngine {
     let refused: { head: ReadHead; aheadMs: number }[] = [];
     let takenIn: DeviceHead[] = [];
     let revived: string[] = [];
+    // The user's answer to an earlier mass-deletion pause (`massDeletion.ts`).
+    const answer = durable.pauseReason === null ? readAnswer(durable.pauseContext) : null;
     for (let attempt = 0; attempt < MAX_APPLY_ATTEMPTS && !next; attempt++) {
       this.hooks.progress?.({ type: 'plan', phase: 'merging' });
       const captured = await captureSyncState();
       if (captured.deviceId !== deviceId)
         throw new RetryableSyncError('device-identity-changed');
       const writer = { device: deviceId, wallMs: this.now() };
-      let state = captured.state;
-      refused = [];
-      const back = new Set<string>();
-      for (const remote of remotes) {
-        try {
-          const absorbed = absorb(state, remote.state, writer);
-          state = absorbed.state;
-          for (const id of absorbed.revived) back.add(id);
-        } catch (error) {
-          // A clock more than 7 days ahead of this one: that head is
-          // skipped until it may fit (`retryAt`), and this device still
-          // publishes. That device recovers with `continueAsNewDevice`.
-          if (!(error instanceof ClockAheadError)) throw error;
-          refused.push({ head: remote.head, aheadMs: error.aheadMs });
+      const joinAll = (base: SyncState) => {
+        let joined = base;
+        refused = [];
+        back.clear();
+        for (const remote of remotes) {
+          try {
+            const absorbed = absorb(joined, remote.state, writer);
+            joined = absorbed.state;
+            for (const id of absorbed.revived) back.add(id);
+          } catch (error) {
+            // A clock more than 7 days ahead of this one: that head is
+            // skipped until it may fit (`retryAt`), and this device still
+            // publishes. That device recovers with `continueAsNewDevice`.
+            if (!(error instanceof ClockAheadError)) throw error;
+            refused.push({ head: remote.head, aheadMs: error.aheadMs });
+          }
         }
+        return joined;
+      };
+      const back = new Set<string>();
+      let state = joinAll(captured.state);
+      // Mass-deletion guard: deletes from elsewhere that would hide a large
+      // share of this journal wait for the user. "Keep" writes each entry
+      // again here first, an edit those deletes had not seen, so it stays.
+      const hidden = entriesHidden(captured.state, state);
+      const shown = [...captured.state.entries.values()].filter(isLive).length;
+      // A pending "Keep" also covers fewer deletes than were asked about:
+      // any change to the set asks again rather than deleting quietly.
+      const keepPending = answer?.choice === 'keep' && hidden.length > 0;
+      if (isMassDeletion(hidden.length, shown) || keepPending) {
+        const token = massDeletionToken(hidden);
+        if (answer?.token !== token)
+          throw new AttentionError(
+            'mass-deletion',
+            `hides-${hidden.length}-of-${shown}`,
+            token,
+          );
+        if (answer.choice === 'keep')
+          state = joinAll(rewriteDates(captured.state, writer, hidden));
       }
       publish = this.publication(state.ctx, deviceId, own, ownRecord).needed;
       if (publish) state = markSeen(state, writer);
@@ -982,7 +1030,7 @@ export class V2SyncEngine {
     };
     if (error instanceof SyncCancelledError) throw error;
     if (error instanceof AttentionError) {
-      let context: string | null = null;
+      let context = error.context;
       if (error.reason === 'unsupported-format') context = this.buildContext();
       else if (error.errorClass === NO_READABLE_HEAD)
         try {

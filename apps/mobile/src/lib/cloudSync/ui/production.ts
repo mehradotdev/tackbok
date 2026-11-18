@@ -944,6 +944,37 @@ export async function continueAsNewDevice(): Promise<void> {
   await runManualSyncSince(epoch);
 }
 
+/**
+ * The answer to the mass-deletion pause (#185, P10): "keep" writes the
+ * entries again so they stay (and come back on the devices that deleted
+ * them); "apply" lets the deletes through. Then syncs.
+ */
+export async function answerMassDeletion(choice: 'apply' | 'keep'): Promise<void> {
+  const answering = cloudConnectionLifecycle.change(async () => {
+    if (connectionSetupInProgress || pendingConnection) {
+      throw new Error('Finish or cancel the Google account setup first');
+    }
+    await resolveAbandonedConnectionSetup();
+    const [vault] = await db.select().from(cloudVault).limit(1);
+    if (!vault) throw new Error('No cloud backup');
+    new SQLiteSyncStateStore(sqlite).answerMassDeletion(
+      vault.vault_id,
+      vault.device_id,
+      choice,
+    );
+    await db
+      .update(cloudVault)
+      .set({ status: 'dirty', updated_at: Date.now() })
+      .where(eq(cloudVault.vault_id, vault.vault_id));
+  });
+  const epoch = cloudConnectionLifecycle.epoch;
+  await answering;
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
+  await restartProductionSyncRuntime();
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
+  await runManualSyncSince(epoch);
+}
+
 // All connection mutations share the same barrier as production sync passes.
 // Drain before touching credentials, then rebuild from the committed state.
 // The change returns without waiting for the rebuilt runtime: its first pass can

@@ -1,3 +1,4 @@
+import type { MassDeletionChoice } from './massDeletion';
 import type { DurableSyncState, SkippedHead, SyncAttentionReason } from './types';
 
 export interface SyncDatabase {
@@ -173,6 +174,33 @@ export class SQLiteSyncStateStore {
       vaultId,
       deviceId,
     );
+  }
+
+  /**
+   * The user's answer to a mass-deletion pause (#185, P10): the pause ends,
+   * and `pause_context_json` keeps the token with the answer, where a retry
+   * error cannot overwrite it. The next pass applies it if the deletes are
+   * still exactly those it asked about (`V2SyncEngine`). Throws when there
+   * was no such pause to answer (another pass replaced it).
+   */
+  answerMassDeletion(
+    vaultId: string,
+    deviceId: string,
+    choice: MassDeletionChoice,
+  ): void {
+    this.transaction(() => {
+      const state = this.loadState(vaultId, deviceId);
+      if (state.pauseReason !== 'mass-deletion' || !state.pauseContext)
+        throw new Error('No mass-deletion pause to answer');
+      this.database.runSync(
+        `UPDATE cloud_sync_state SET pause_reason = NULL, pause_context_json = ?,
+           last_error_class = NULL, updated_at = ? WHERE vault_id = ? AND device_id = ?`,
+        JSON.stringify({ massDeletion: state.pauseContext, choice }),
+        this.now(),
+        vaultId,
+        deviceId,
+      );
+    });
   }
 
   setRetryError(vaultId: string, deviceId: string, errorClass: string): void {

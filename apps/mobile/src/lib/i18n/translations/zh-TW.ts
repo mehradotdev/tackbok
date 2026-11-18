@@ -974,6 +974,15 @@ export const zhTW: Translations = {
     '這部裝置的日期和時間曾被設到很遠的未來，因此你的其他裝置無法接收它的變更。以新裝置的身分繼續即可解決。你的日記不會遺失任何內容。',
   'cloud.continueAsNewDevice': '以新裝置的身分繼續',
   'cloud.continuedAsNewDevice': '這部裝置現在以新裝置的身分同步。',
+  'cloud.massDeletion.message':
+    '來自另一部裝置的變更會刪除你在這部裝置上的大部分日記。目前還沒有刪除任何內容。你可以保留這些紀錄；如果確實想刪除，也可以在這裡一併刪除。',
+  'cloud.massDeletion.keep': '保留我的紀錄',
+  'cloud.massDeletion.apply': '在這裡也刪除',
+  'cloud.massDeletion.applyTitle': '也要在這裡刪除這些紀錄嗎？',
+  'cloud.massDeletion.applyDescription':
+    '在你另一部裝置上刪除的紀錄也會從這部裝置上刪除。Tackbok 無法復原它們。',
+  'cloud.massDeletion.kept': '已保留你的紀錄。它們也會回到你的其他裝置上。',
+  'cloud.massDeletion.applied': '這些紀錄也已在這裡刪除。',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     '塔克布克無法將另一台裝置上的變更與此裝置合併。此裝置上的內容沒有任何變更。同步已停止。在你的裝置上更新塔克布克可能會有幫助。你可以在設定中匯出一份副本。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

@@ -970,6 +970,16 @@ export const sv = {
     'Datum och tid på den här enheten var inställda långt fram i tiden, så dina andra enheter kan inte ta emot dess ändringar. Fortsätt som en ny enhet för att åtgärda det. Inget i din dagbok går förlorat.',
   'cloud.continueAsNewDevice': 'Fortsätt som en ny enhet',
   'cloud.continuedAsNewDevice': 'Den här enheten synkroniseras nu som en ny enhet.',
+  'cloud.massDeletion.message':
+    'Ändringar från en annan enhet skulle radera en stor del av din dagbok på den här enheten. Inget har raderats. Behåll dina anteckningar, eller radera dem här också om det var meningen.',
+  'cloud.massDeletion.keep': 'Behåll mina anteckningar',
+  'cloud.massDeletion.apply': 'Radera dem här också',
+  'cloud.massDeletion.applyTitle': 'Radera de här anteckningarna här också?',
+  'cloud.massDeletion.applyDescription':
+    'Anteckningarna som raderades på din andra enhet raderas på den här enheten också. Tackbok kan inte ta tillbaka dem.',
+  'cloud.massDeletion.kept':
+    'Dina anteckningar behölls. De kommer tillbaka på dina andra enheter också.',
+  'cloud.massDeletion.applied': 'Anteckningarna raderades här också.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok kunde inte slå ihop ändringar från en annan enhet med den här. Inget på den här enheten har ändrats. Synkroniseringen har stoppats. Det kan hjälpa att uppdatera Tackbok på dina enheter. Du kan exportera en kopia från Inställningar.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
