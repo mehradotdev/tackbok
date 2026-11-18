@@ -14,8 +14,11 @@ import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 import { db, entries, syncFieldValues, syncRecords, userProfile } from '~/db';
 import type { Entry } from '~/types';
 
-import { productionApplyFiles } from '../snapshot/storage';
-import { applySyncState, captureSyncState } from '../storage/v2State';
+import {
+  applySyncState,
+  captureSyncState,
+  type ApplyMediaFiles,
+} from '../storage/v2State';
 import { compareStamps, vectorIncluded } from '../v2/clock';
 import * as ops from '../v2/ops';
 import type { Stamp, SyncState, Tombstone, VersionVector } from '../v2/types';
@@ -210,12 +213,16 @@ export async function countSyncChoices(): Promise<number> {
  */
 async function writeThroughSync(
   write: (state: SyncState, writer: ops.Writer) => SyncState,
+  files?: ApplyMediaFiles,
 ): Promise<void> {
+  // Loaded only when needed: the media store reads the file system.
+  const applyFiles =
+    files ?? (await import('../snapshot/storage')).productionApplyFiles();
   for (let attempt = 0; attempt < 3; attempt++) {
     const captured = await captureSyncState();
     const next = write(captured.state, { device: captured.deviceId, wallMs: Date.now() });
     if (next === captured.state) return;
-    if (await applySyncState(captured, next, productionApplyFiles())) return;
+    if (await applySyncState(captured, next, applyFiles)) return;
   }
   throw new Error('The journal kept changing; try again');
 }
@@ -224,7 +231,10 @@ async function writeThroughSync(
  * "Keep this one" on Other versions: `id` is an entry (keep what it shows) or
  * a copy (keep that other version of its field). One new write per field.
  */
-export async function keepEntryVersion(id: string): Promise<void> {
+export async function keepEntryVersion(
+  id: string,
+  files?: ApplyMediaFiles,
+): Promise<void> {
   const copy = parseVersionCopyId(id);
   await writeThroughSync((state, writer) => {
     if (copy) {
@@ -240,23 +250,26 @@ export async function keepEntryVersion(id: string): Promise<void> {
       if (shown.length > 1) next = ops.keepValue(next, writer, id, field, shown[0].s);
     }
     return next;
-  });
+  }, files);
 }
 
 /** "Got it" on returned entries. Syncs: every device stops showing the notice. */
 export async function acknowledgeReturnedEntries(
   entryIds: readonly string[],
+  files?: ApplyMediaFiles,
 ): Promise<void> {
-  await writeThroughSync((state, writer) =>
-    entryIds.reduce((next, id) => {
-      try {
-        return ops.acknowledgeReturn(next, writer, id);
-      } catch (error) {
-        // Acknowledged elsewhere meanwhile, or no longer back.
-        if (error instanceof ops.SyncOpError) return next;
-        throw error;
-      }
-    }, state),
+  await writeThroughSync(
+    (state, writer) =>
+      entryIds.reduce((next, id) => {
+        try {
+          return ops.acknowledgeReturn(next, writer, id);
+        } catch (error) {
+          // Acknowledged elsewhere meanwhile, or no longer back.
+          if (error instanceof ops.SyncOpError) return next;
+          throw error;
+        }
+      }, state),
+    files,
   );
 }
 
@@ -264,11 +277,14 @@ export async function acknowledgeReturnedEntries(
 export async function keepProfileVersion(
   field: 'name' | 'photo',
   stamp: Stamp,
+  files?: ApplyMediaFiles,
 ): Promise<void> {
-  await writeThroughSync((state, writer) =>
-    state.profile[field].some((item) => compareStamps(item.s, stamp) === 0)
-      ? ops.keepProfile(state, writer, field, stamp)
-      : state,
+  await writeThroughSync(
+    (state, writer) =>
+      state.profile[field].some((item) => compareStamps(item.s, stamp) === 0)
+        ? ops.keepProfile(state, writer, field, stamp)
+        : state,
+    files,
   );
 }
 

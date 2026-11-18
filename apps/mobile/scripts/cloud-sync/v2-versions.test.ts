@@ -3,15 +3,12 @@
  * SQLite: other versions, returned entries and profile versions, and the
  * "Keep this one" and "Got it" writes, which sync like any other write.
  */
-import { afterEach, beforeEach, expect, mock, test } from 'bun:test';
+import { afterEach, beforeEach, expect, test } from 'bun:test';
 
 import { installSqliteDevices, type SqliteDevice } from './sim/sqliteDevices';
 
 const devices = installSqliteDevices();
 const { simMediaFiles } = await import('./sim/v2StoreAdapter');
-mock.module('../../src/lib/cloudSync/snapshot/storage', () => ({
-  productionApplyFiles: () => simMediaFiles,
-}));
 const repositories = await import('../../src/lib/cloudSync/storage/repositories');
 const store = await import('../../src/lib/cloudSync/storage/v2State');
 const versions = await import('../../src/lib/cloudSync/ui/versions');
@@ -85,7 +82,9 @@ test('two edits of one entry show as versions; "Keep this one" resolves them on 
   expect(await on(a, T + 5, versions.countSyncChoices)).toBe(1);
 
   // Keep A's version: one new write, which B takes in.
-  await on(a, T + 6, () => versions.keepEntryVersion(groups[0].versions[0].note_id));
+  await on(a, T + 6, () =>
+    versions.keepEntryVersion(groups[0].versions[0].note_id, simMediaFiles),
+  );
   expect(await on(a, T + 7, versions.countSyncChoices)).toBe(0);
   await syncFrom(b, a, T + 8);
   expect(b.sqlite.query('SELECT text_content FROM entries').all()).toEqual([
@@ -108,7 +107,7 @@ test('an entry back after a delete is listed until "Got it", which syncs', async
   await syncFrom(a, b, T + 4);
   const returned = await on(a, T + 5, versions.listReturnedEntries);
   expect(returned.map((item) => item.entryId)).toEqual(['e1']);
-  await on(a, T + 6, () => versions.acknowledgeReturnedEntries(['e1']));
+  await on(a, T + 6, () => versions.acknowledgeReturnedEntries(['e1'], simMediaFiles));
   expect(await on(a, T + 7, versions.listReturnedEntries)).toEqual([]);
   await syncFrom(b, a, T + 8);
   expect(b.sqlite.query('SELECT text_content FROM entries').all()).toEqual([
@@ -131,7 +130,9 @@ test('a profile name changed on two devices offers the other one', async () => {
   await syncFrom(a, b, T + 2);
   const profile = await on(a, T + 3, versions.listProfileVersions);
   expect(profile.name.map((item) => item.value)).toEqual(['Sam']);
-  await on(a, T + 4, () => versions.keepProfileVersion('name', profile.name[0].stamp));
+  await on(a, T + 4, () =>
+    versions.keepProfileVersion('name', profile.name[0].stamp, simMediaFiles),
+  );
   expect(a.sqlite.query('SELECT display_name FROM user_profile').all()).toEqual([
     { display_name: 'Sam' },
   ]);
