@@ -72,7 +72,7 @@ const faqs = [
   {
     question: 'What languages does Tackbok support?',
     answer:
-      'Tackbok currently supports English, German, Arabic, Hebrew, Simplified Chinese, and Traditional Chinese. Arabic and Hebrew layouts include right-to-left support. Hindi and other languages are coming soon.',
+      'Tackbok supports 9 languages: English, Arabic, Simplified Chinese, Traditional Chinese, German, Hebrew, Hindi, Spanish, and Swedish. Arabic and Hebrew layouts include right-to-left support.',
   },
   {
     question: 'How do reminders work?',
@@ -85,18 +85,29 @@ const faqs = [
       'Yes. Tackbok is licensed under the Apache License 2.0 and developed in public on GitHub. You can inspect the code, report issues, and contribute improvements.',
   },
 ];
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(({ question, answer }) => ({
+    '@type': 'Question',
+    name: question,
+    acceptedAnswer: { '@type': 'Answer', text: answer },
+  })),
+};
 ---
 
 <Layout
-  title="Frequently asked questions — Tackbok"
-  description="Answers about Tackbok’s availability, privacy, offline storage, app lock, backups, languages, reminders, and open-source development.">
+  title="Tackbok Gratitude Journal FAQ — Free, Private & Offline"
+  description="Answers about Tackbok, the free gratitude journal app for iOS and Android: offline storage, no ads, privacy, app lock, backups, languages and reminders."
+  structuredData={structuredData}>
   <SiteHeader currentPath="/faq" />
 
   <main id="main-content" class="bg-background">
     <section class="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_20%,rgba(140,159,111,0.28),transparent_23rem),radial-gradient(circle_at_5%_95%,rgba(227,205,151,0.26),transparent_22rem),var(--paper)] py-[clamp(5rem,10vw,8rem)]">
       <div class="mx-auto w-full max-w-[820px] px-6 text-center sm:px-8">
         <h1 class="mx-auto mb-5 text-[clamp(3rem,7vw,5.7rem)] leading-[1.03] font-[690] tracking-[-0.055em]">
-          Frequently asked questions.
+          Tackbok gratitude journal FAQ
         </h1>
         <p class="mx-auto max-w-[660px] text-[1.08rem] leading-[1.7] text-ink-soft">
           The short version: Tackbok is a free, private, account-free gratitude journal.

@@ -8,6 +8,9 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://tackbok.org',
   output: 'static',
+  // URLs have no trailing slash (/faq); wrangler.toml redirects /faq/ to /faq.
+  trailingSlash: 'never',
+  build: { format: 'file' },
   integrations: [sitemap()],
   vite: {
     plugins: [tailwindcss()],

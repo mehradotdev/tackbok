@@ -1,13 +1,14 @@
 ---
 import { ExternalLink } from '@lucide/astro';
 import Logo from '~/assets/logo.svg';
+import { pagePath } from '~/lib/page-path';
 import GithubIcon from './GithubIcon.astro';
 
 interface Props {
   currentPath?: string;
 }
 
-const { currentPath = Astro.url.pathname } = Astro.props;
+const { currentPath = pagePath(Astro.url.pathname) } = Astro.props;
 const onHome = currentPath === '/';
 ---
 

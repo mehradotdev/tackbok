@@ -1,6 +1,6 @@
 ---
 import { Clock, ExternalLink, History, Languages, Sparkles } from '@lucide/astro';
-import { Image } from 'astro:assets';
+import { getImage, Image } from 'astro:assets';
 import galaxyStoreSrc from '~/assets/galaxy-store.svg';
 import googlePlaySrc from '~/assets/google-play.svg';
 import tackbokEditSrc from '~/assets/screenshots/memory.webp';
@@ -44,12 +44,19 @@ const features = [
     number: '04',
     icon: Languages,
     title: 'Write in your language',
-    copy: 'Tackbok currently supports 5+ languages with full RTL support. More languages are coming soon.',
+    copy: 'Tackbok speaks 9 languages, including Arabic and Hebrew with full right-to-left layouts.',
   },
 ];
 
 const description =
-  'A free, open-source gratitude journal for private reflections, photos, voice memos, prompts, and gentle daily reminders.';
+  'A free, open-source gratitude journal app for iOS and Android. Works offline, with no account and no ads. Add photos, voice memos, prompts and daily reminders.';
+
+const screenshotUrls = await Promise.all(
+  [tackbokHomeSrc, tackbokEditSrc, insightsSrc, themesSrc].map(async (src) => {
+    const image = await getImage({ src, width: Math.min(src.width, 1080) });
+    return new URL(image.src, Astro.site).href;
+  }),
+);
 
 // WebSite belongs on the home page only; Google reads it to pick the site name
 // shown in search results.
@@ -76,6 +83,24 @@ const structuredData = {
         priceCurrency: 'USD',
       },
       downloadUrl: [GOOGLE_PLAY_URL, APP_STORE_URL, GALAXY_STORE_URL],
+      screenshot: screenshotUrls,
+      featureList: [
+        'Gratitude entries with photos, voice memos, moods and tags',
+        'Guided prompts and a journaling worksheet',
+        'Optional daily reminders',
+        'On this day memories and insights',
+        'Works offline with no account',
+        'App lock with Face ID, Touch ID or biometrics',
+        'Optional backup and sync with your own Google Drive',
+        'Import from Gratitude App and Presently',
+        'Light, dark and illustrated themes',
+        '9 languages with right-to-left support',
+      ],
+      author: {
+        '@type': 'Organization',
+        name: 'Mehra Dot Dev',
+        url: 'https://mehra.dev',
+      },
       sameAs: [GITHUB_URL],
     },
   ],
@@ -96,6 +121,9 @@ const structuredData = {
         aria-hidden="true"></div>
       <div class="mx-auto grid w-full max-w-[1240px] grid-cols-[minmax(0,1.22fr)_minmax(260px,0.78fr)] items-center gap-[clamp(1.5rem,3vw,4rem)] px-6 max-[900px]:grid-cols-1 sm:px-8 lg:px-12">
         <div class="relative z-[2] max-[900px]:mx-auto max-[900px]:max-w-[760px] max-[900px]:text-center">
+          <p class="mb-4 text-[0.76rem] font-extrabold tracking-[0.16em] text-sage uppercase">
+            The private, open-source gratitude journal
+          </p>
           <h1 class="mb-[1.4rem] max-w-[760px] text-[clamp(3.4rem,4.2vw+1.4rem,6.1rem)] leading-[0.96] font-[720] tracking-[-0.065em] [text-wrap:balance] max-sm:text-[clamp(2.2rem,8.5vw,3.2rem)] max-sm:leading-[1.02]">
             <span class="inline-block">A quieter place</span>
             <span class="inline-block">
@@ -178,6 +206,7 @@ const structuredData = {
           aria-label="Tackbok timeline and journal entry screenshots">
           <div class="absolute top-3 left-0 z-20 w-[270px] -rotate-4 rounded-[2.6rem] max-sm:left-1/2 max-sm:w-[250px] max-sm:-translate-x-1/2 max-sm:rotate-0 min-[901px]:transition-all min-[901px]:duration-500 min-[901px]:ease-out min-[901px]:hover:scale-105 min-[901px]:hover:rotate-0 min-[901px]:hover:shadow-[0_42px_90px_rgba(46,58,40,0.24)]">
             <PhoneFrame
+              priority
               src={tackbokHomeSrc}
               alt="Tackbok timeline with a gratitude entry, voice recording, and photos"
             />
