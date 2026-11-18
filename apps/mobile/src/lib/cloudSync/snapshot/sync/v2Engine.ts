@@ -19,9 +19,10 @@
  *    (`markSeen`) when this device will publish, compacted, and applied.
  * 7. It publishes when it has writes it has not published, has never
  *    published in this vault (it publishes as soon as it joins), lost its
- *    head, or holds other devices' writes it last acknowledged more than a
+ *    head, holds other devices' writes it last acknowledged more than a
  *    day ago (acknowledgements let compaction run; publishing one on every
- *    pull would double the uploads).
+ *    pull would double the uploads), or has just compacted deleted values
+ *    (so its head stops holding them).
  *
  * Cleanup: after a publication, the heads of devices that left the active
  * roster (180 days) are pruned; after a publication or once a day,
@@ -432,6 +433,10 @@ export class V2SyncEngine {
           state = local(joinAll(rewriteDates(captured.state, writer, hidden)));
       }
       publish = this.publication(state.ctx, deviceId, own, ownRecord).needed;
+      // Compaction drops deleted values this device's head on the provider
+      // may still hold: it publishes too, so deleted text does not linger
+      // on Drive in a quiet device's head.
+      if (!publish && compact(state).entries !== state.entries) publish = true;
       if (publish) state = markSeen(state, writer);
       state = compact(state);
       this.hooks.activity?.('applying-remote-snapshot');

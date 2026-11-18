@@ -24,6 +24,8 @@ const { V2SyncEngine, ACK_INTERVAL_MS, NO_READABLE_HEAD, removeUnreadableHeads }
 const { SnapshotProviderError } =
   await import('../../src/lib/cloudSync/snapshot/sync/types');
 const { simMediaFiles } = await import('./sim/v2StoreAdapter');
+const { canonicalState, decodeEnvelope } =
+  await import('../../src/lib/cloudSync/v2/codec');
 const { continueAsNewDevice } =
   await import('../../src/lib/cloudSync/snapshot/sync/newDevice');
 const { AssetType } = await import('../../src/types');
@@ -558,6 +560,48 @@ describe('retired device IDs (P11)', () => {
     await sync(copy);
     await sync(a);
     for (const target of [a, copy]) expect(retiredOf(target)).not.toContain(id);
+  });
+});
+
+describe('compaction reaches Drive (P11)', () => {
+  /** The bodies of the snapshots every listed head points to. */
+  async function headBodies() {
+    const bodies: string[] = [];
+    for (const { head } of provider.physicalHeads(VAULT)) {
+      const bytes = await provider.downloadSnapshot(VAULT, head!.snapshotId);
+      bodies.push(canonicalState(decodeEnvelope(bytes!).state));
+    }
+    return bodies;
+  }
+
+  test('a quiet device republishes once it compacts, so no head keeps the deleted text', async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1', { text_content: 'Secret' });
+    for (const target of [a, b, a]) await sync(target);
+    clock += 1000;
+    await write(a, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e1', { now: clock }),
+    );
+    await sync(a);
+    await sync(b);
+    // A day on, B acknowledges the delete and compacts it at once.
+    clock += DAY;
+    expect((await sync(b)).status).toBe('published');
+    // A has written nothing since; taking B's acknowledgement in, it compacts
+    // too, and publishes so its own head drops the text.
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    const bodies = await headBodies();
+    expect(bodies).toHaveLength(2);
+    for (const body of bodies) {
+      expect(body).toContain('"e1"');
+      expect(body).not.toContain('Secret');
+    }
+    // B takes A's head in without publishing again; then both are quiet.
+    clock += 1000;
+    expect((await sync(b)).status).toBe('pulled');
+    clock += 1000;
+    for (const target of [a, b]) expect((await sync(target)).status).toBe('up-to-date');
   });
 });
 
