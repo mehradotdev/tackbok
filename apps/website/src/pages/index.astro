@@ -10,12 +10,9 @@ import cloudBackupSrc from '~/assets/screenshots/ios/cloud-backup-light.webp';
 import languageArSrc from '~/assets/screenshots/ios/language-ar.webp';
 import appIconPoster from '~/assets/videos/app-icon-poster.webp';
 import appIconMp4 from '~/assets/videos/app-icon.mp4';
-import appIconWebm from '~/assets/videos/app-icon.webm';
 import themesPoster from '~/assets/videos/themes-poster.webp';
 import themesMp4 from '~/assets/videos/themes.mp4';
-import themesWebm from '~/assets/videos/themes.webm';
 import voiceNoteMp4 from '~/assets/videos/voice-note.mp4';
-import voiceNoteWebm from '~/assets/videos/voice-note.webm';
 import FeatureCard, {
   type Props as FeatureCardProps,
 } from '~/components/FeatureCard.astro';
@@ -64,7 +61,7 @@ const journalCards: FeatureCardProps[] = [
     // The recording starts on the hero's timeline screenshot, so reusing that
     // image as the poster costs no extra download.
     src: tackbokHomeSrc,
-    video: { webm: voiceNoteWebm, mp4: voiceNoteMp4 },
+    video: voiceNoteMp4,
     alt: 'A timeline entry with a seven-second voice note and two photos',
   },
   {
@@ -103,7 +100,7 @@ const everywhereCards: FeatureCardProps[] = [
     title: 'An icon to match.',
     copy: 'Choose the icon on your home screen: the classic one or one of seven others.',
     src: appIconPoster,
-    video: { webm: appIconWebm, mp4: appIconMp4 },
+    video: appIconMp4,
     alt: 'Tackbok’s app icon picker with Classic, Sage, Midnight, Ocean, Terracotta, Rose, Plum and Blueprint icons',
   },
 ];
@@ -394,7 +391,7 @@ const structuredData = {
           <div class="mx-auto w-[min(250px,80%)]">
             <PhoneFrame
               src={themesPoster}
-              video={{ webm: themesWebm, mp4: themesMp4 }}
+              video={themesMp4}
               alt="Tackbok’s theme picker with Light, Dark, Shiro, Shadow, Helena, and Poonam previews"
               loading="lazy"
               sizes="250px"

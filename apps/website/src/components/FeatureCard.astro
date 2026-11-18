@@ -9,7 +9,7 @@ export interface Props {
   /** Screenshot, or the poster of `video`. */
   src: ImageMetadata;
   alt: string;
-  video?: { webm: string; mp4: string };
+  video?: string;
 }
 
 const { eyebrow, title, copy, src, alt, video } = Astro.props;
