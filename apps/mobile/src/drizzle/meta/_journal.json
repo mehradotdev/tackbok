@@ -99,6 +99,13 @@
       "when": 1794994319204,
       "tag": "0013_sync_skipped_heads",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1795017131149,
+      "tag": "0014_sync_install_binding",
+      "breakpoints": true
     }
   ]
 }

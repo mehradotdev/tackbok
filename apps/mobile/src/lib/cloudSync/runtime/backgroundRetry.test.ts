@@ -3,6 +3,9 @@ import { CloudConnectionChangedError } from './connectionLifecycle';
 import { track } from '~/lib/analytics';
 
 const mockCreate = jest.fn();
+jest.mock('./installBinding', () => ({
+  ensureInstallBoundDeviceId: async () => {},
+}));
 jest.mock('../snapshot/runtime', () => ({
   createProductionSnapshotRuntimeEngine: (...args: unknown[]) => mockCreate(...args),
 }));

@@ -18,8 +18,10 @@
  * Both keep every value this device shows. The next pass publishes under
  * the new ID.
  *
- * The install-bound device ID (P13) is the real fix for the first case;
- * this is the user's way out until then.
+ * The install-bound device ID (P13, `installBinding.ts`) takes the first
+ * path on its own when this install's marker is missing or differs, before
+ * any pass; the pause stays for copies it cannot tell apart (a backup taken
+ * before the marker existed).
  *
  * shortcut: the old ID stays on other devices' rosters, holding back
  * compaction until it expires after 180 days (P11 retires such IDs).
@@ -45,8 +47,11 @@ const MAX_ATTEMPTS = 4;
 export async function continueAsNewDevice(options: {
   vaultId: string;
   reason: NewDeviceReason;
-  provider: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead'>;
+  /** Needed for `clock-ahead` only: its own published head is deleted. */
+  provider?: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead'>;
   files: ApplyMediaFiles;
+  /** Binds the metadata to this install in the same transaction (P13). */
+  installId?: string;
   /** The wall clock: in the clock case, the writes after it move. */
   now: number;
   newDeviceId?: () => string;
@@ -67,6 +72,7 @@ export async function continueAsNewDevice(options: {
       keepUpTo = -1;
     } else {
       keepUpTo = Math.floor(options.now);
+      if (!provider) throw new Error('A clock-ahead recovery needs the provider');
       if (attempt === 0) {
         // Only the head this install published: a copy of it elsewhere
         // (an OS restore) keeps its own.
@@ -94,7 +100,13 @@ export async function continueAsNewDevice(options: {
     });
     const applied = await applySyncState(captured, next, files, async (rawTx) => {
       const tx = rawTx as CloudSyncTransaction;
-      await tx.update(syncDevice).set({ device_id: to }).where(eq(syncDevice.id, 'self'));
+      await tx
+        .update(syncDevice)
+        .set({
+          device_id: to,
+          ...(options.installId ? { install_id: options.installId } : {}),
+        })
+        .where(eq(syncDevice.id, 'self'));
       // This device never published under the new ID.
       await tx
         .delete(syncHeads)
