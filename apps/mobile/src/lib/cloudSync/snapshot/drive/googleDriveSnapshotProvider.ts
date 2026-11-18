@@ -826,7 +826,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           'Drive upload checksum does not match',
         );
       }
-      this.state.upsertFile(vaultId, { ...record, createdAt });
+      // Drive's own upload time when it sent one: retention and the
+      // own-clock check (#185, P8) must not trust this device's clock.
+      this.state.upsertFile(vaultId, {
+        ...record,
+        createdAt: record.createdAt ?? createdAt,
+      });
     } catch (error) {
       if (
         uploaded &&
@@ -931,7 +936,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           'Drive upload checksum does not match',
         );
       }
-      this.state.upsertFile(vaultId, { ...record, createdAt });
+      // Drive's own upload time when it sent one: retention and the
+      // own-clock check (#185, P8) must not trust this device's clock.
+      this.state.upsertFile(vaultId, {
+        ...record,
+        createdAt: record.createdAt ?? createdAt,
+      });
     } catch (error) {
       if (
         uploaded &&

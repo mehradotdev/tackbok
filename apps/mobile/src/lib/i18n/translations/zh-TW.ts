@@ -968,8 +968,12 @@ export const zhTW: Translations = {
     'Google Drive 中你的部分備份無法讀取。同步已停止。',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
     '你的部分備份在 Google Drive 中遺失。同步已停止。',
-  'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    '你的備份中，同一台裝置的變更有兩個不同版本。同步已停止。',
+  'cloud.anotherPhoneBacksUpAsThisDevice':
+    '另一部手機正以這部裝置的身分進行備份，例如在它上面還原了手機備份之後。這部裝置上的同步已停止。以新裝置的身分繼續即可重新同步。你的日記不會遺失任何內容。',
+  'cloud.thisDeviceClockWasFarAhead':
+    '這部裝置的日期和時間曾被設到很遠的未來，因此你的其他裝置無法接收它的變更。以新裝置的身分繼續即可解決。你的日記不會遺失任何內容。',
+  'cloud.continueAsNewDevice': '以新裝置的身分繼續',
+  'cloud.continuedAsNewDevice': '這部裝置現在以新裝置的身分同步。',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     '塔克布克無法將另一台裝置上的變更與此裝置合併。此裝置上的內容沒有任何變更。同步已停止。在你的裝置上更新塔克布克可能會有幫助。你可以在設定中匯出一份副本。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

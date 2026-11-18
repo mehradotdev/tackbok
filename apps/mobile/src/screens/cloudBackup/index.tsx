@@ -32,6 +32,7 @@ import { CloudAuthError } from '~/lib/cloudSync/auth';
 import {
   cancelPreparedGoogleDriveConnection,
   completeGoogleDriveConnection,
+  continueAsNewDevice,
   deleteJournalEverywhere,
   disconnectGoogleDrive,
   prepareGoogleDriveConnection,
@@ -359,6 +360,10 @@ export default function CloudBackupScreen() {
     }
     if (action === 'replace-backup') {
       setDestructiveAction('replace-backup');
+      return;
+    }
+    if (action === 'continue-as-new-device') {
+      await runAction(continueAsNewDevice, t('cloud.continuedAsNewDevice'));
       return;
     }
     if (action === 'resume-deletion') {

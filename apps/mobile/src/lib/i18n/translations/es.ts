@@ -988,8 +988,12 @@ export const es = {
     'No se pudo leer parte de tu copia de seguridad en Google Drive. La sincronización se detuvo.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
     'Falta parte de tu copia de seguridad en Google Drive. La sincronización se detuvo.',
-  'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'Tu copia de seguridad tiene dos versiones distintas de los cambios de un mismo dispositivo. La sincronización se detuvo.',
+  'cloud.anotherPhoneBacksUpAsThisDevice':
+    'Otro teléfono está haciendo copias de seguridad como este dispositivo, por ejemplo, después de restaurar en él una copia de seguridad del teléfono. La sincronización se detuvo en este dispositivo. Continúa como un dispositivo nuevo para volver a sincronizar. No se pierde nada de tu diario.',
+  'cloud.thisDeviceClockWasFarAhead':
+    'La fecha y hora de este dispositivo estaban muy adelantadas, así que tus otros dispositivos no pueden incorporar sus cambios. Continúa como un dispositivo nuevo para solucionarlo. No se pierde nada de tu diario.',
+  'cloud.continueAsNewDevice': 'Continuar como un dispositivo nuevo',
+  'cloud.continuedAsNewDevice': 'Este dispositivo ahora se sincroniza como uno nuevo.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok no pudo combinar los cambios de otro dispositivo con este. No se cambió nada en este dispositivo. La sincronización se detuvo. Actualizar Tackbok en tus dispositivos puede ayudar. Puedes exportar una copia desde Ajustes.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

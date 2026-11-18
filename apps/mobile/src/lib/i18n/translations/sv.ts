@@ -964,8 +964,12 @@ export const sv = {
     'En del av din säkerhetskopia i Google Drive kunde inte läsas. Synkroniseringen har stoppats.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
     'En del av din säkerhetskopia saknas i Google Drive. Synkroniseringen har stoppats.',
-  'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'Din säkerhetskopia har två olika versioner av en enhets ändringar. Synkroniseringen har stoppats.',
+  'cloud.anotherPhoneBacksUpAsThisDevice':
+    'En annan telefon säkerhetskopierar som den här enheten, till exempel efter att en telefonsäkerhetskopia återställts på den. Synkroniseringen har stoppats på den här. Fortsätt som en ny enhet för att synkronisera igen. Inget i din dagbok går förlorat.',
+  'cloud.thisDeviceClockWasFarAhead':
+    'Datum och tid på den här enheten var inställda långt fram i tiden, så dina andra enheter kan inte ta emot dess ändringar. Fortsätt som en ny enhet för att åtgärda det. Inget i din dagbok går förlorat.',
+  'cloud.continueAsNewDevice': 'Fortsätt som en ny enhet',
+  'cloud.continuedAsNewDevice': 'Den här enheten synkroniseras nu som en ny enhet.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok kunde inte slå ihop ändringar från en annan enhet med den här. Inget på den här enheten har ändrats. Synkroniseringen har stoppats. Det kan hjälpa att uppdatera Tackbok på dina enheter. Du kan exportera en kopia från Inställningar.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

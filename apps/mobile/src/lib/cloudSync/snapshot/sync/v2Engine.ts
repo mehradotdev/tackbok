@@ -232,8 +232,8 @@ export class V2SyncEngine {
     // writes apart: one's could read as replaced by the other's, and a
     // rebuild under a new ID would let stale values beat newer ones. Pause
     // and ask, writing and deleting nothing; an older head is a stale
-    // listing. shortcut: recovery (a new ID re-issuing only this install's
-    // unpublished writes) belongs with the install-bound device ID, P13.
+    // listing. The way out is `continueAsNewDevice`; the install-bound
+    // device ID (P13) is the real fix.
     if (
       own !== undefined &&
       own.snapshotId !== ownRecord?.snapshotId &&
@@ -244,6 +244,9 @@ export class V2SyncEngine {
         'ambiguous-device-head',
         'device-id-used-by-another-install',
       );
+    // After the check above: a copy of a device whose clock was ahead must
+    // be told apart first, since the clock's way out deletes this ID's head.
+    await this.assertOwnClockSane(deviceId);
     const changed: ReadHead[] = [];
     for (const head of heads.values()) {
       if (head.deviceId === deviceId) continue;
@@ -441,6 +444,41 @@ export class V2SyncEngine {
       if (device?.vault_id === this.vaultId) return device.device_id;
       return rebuildSyncMetadataInTransaction(tx, this.vaultId, this.now());
     });
+  }
+
+  /**
+   * This device's clock was far ahead and has since been corrected: its
+   * state holds HLCs every other device refuses, so its snapshots would be
+   * skipped everywhere until real time caught up. It pauses and offers to
+   * continue as a new device (`continueAsNewDevice`). While its clock is
+   * still ahead this cannot be seen here; other devices list it instead.
+   *
+   * A clock that is now behind looks the same from here, so the state must
+   * also be ahead of the newest upload time the provider recorded (its own
+   * clock, not the uploader's). With nothing uploaded yet the pass goes on;
+   * if it publishes a snapshot others refuse, the next pass pauses.
+   */
+  private async assertOwnClockSane(deviceId: string) {
+    const [device] = await runExclusiveDbTransaction((tx) =>
+      tx
+        .select({ ctx: syncDevice.ctx_json, roster: syncDevice.roster_json })
+        .from(syncDevice)
+        .where(eq(syncDevice.id, 'self')),
+    );
+    if (!device) return;
+    // Only this device's own writes: moving them to a new ID is the way out,
+    // and it cannot help with another device's.
+    const ctx = JSON.parse(device.ctx) as VersionVector;
+    const roster = JSON.parse(device.roster) as VersionVector;
+    const highest = Math.max(ctx[deviceId] ?? -1, roster[deviceId] ?? -1);
+    if (highest - this.now() <= MAX_CONTEXT_AHEAD_MS) return;
+    const uploads = await this.options.provider.listSnapshots(this.vaultId);
+    if (uploads.length === 0) return;
+    const newest = Math.max(...uploads.map((upload) => upload.createdAt));
+    // Behind the provider's own time: this clock is behind now, not ahead before.
+    if (this.now() < newest) return;
+    if (highest - newest > MAX_CONTEXT_AHEAD_MS)
+      throw new AttentionError('device-clock-ahead', 'local-context-ahead');
   }
 
   private async localContext(): Promise<VersionVector> {

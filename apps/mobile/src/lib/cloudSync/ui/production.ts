@@ -901,6 +901,49 @@ export async function replaceUnreadableBackups(): Promise<number> {
   return removed;
 }
 
+/**
+ * "Continue as a new device": the way out of the pauses for another install
+ * using this device's ID and for this device's clock having been far ahead
+ * (`continueAsNewDevice`). Keeps every value this device shows, then syncs.
+ */
+export async function continueAsNewDevice(): Promise<void> {
+  const changing = cloudConnectionLifecycle.change(async () => {
+    if (connectionSetupInProgress || pendingConnection) {
+      throw new Error('Finish or cancel the Google account setup first');
+    }
+    await resolveAbandonedConnectionSetup();
+    const [vault] = await db.select().from(cloudVault).limit(1);
+    if (!vault?.remote_root_id) throw new Error('No cloud backup is configured');
+    const state = new SQLiteSyncStateStore(sqlite);
+    const { pauseReason } = state.loadState(vault.vault_id, vault.device_id);
+    if (pauseReason !== 'ambiguous-device-head' && pauseReason !== 'device-clock-ahead')
+      throw new Error('Sync is not paused for a device identity problem');
+    const [{ continueAsNewDevice: moveToNewDevice }, { productionApplyFiles }] =
+      await Promise.all([
+        import('../snapshot/sync/newDevice'),
+        import('../snapshot/storage'),
+      ]);
+    await moveToNewDevice({
+      vaultId: vault.vault_id,
+      reason: pauseReason === 'ambiguous-device-head' ? 'another-install' : 'clock-ahead',
+      provider: await configuredDriveProvider(),
+      files: productionApplyFiles(),
+      now: Date.now(),
+    });
+    state.clearPause(vault.vault_id, vault.device_id);
+    await db
+      .update(cloudVault)
+      .set({ status: 'dirty', updated_at: Date.now() })
+      .where(eq(cloudVault.vault_id, vault.vault_id));
+  });
+  const epoch = cloudConnectionLifecycle.epoch;
+  await changing;
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
+  await restartProductionSyncRuntime();
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
+  await runManualSyncSince(epoch);
+}
+
 // All connection mutations share the same barrier as production sync passes.
 // Drain before touching credentials, then rebuild from the committed state.
 // The change returns without waiting for the rebuilt runtime: its first pass can

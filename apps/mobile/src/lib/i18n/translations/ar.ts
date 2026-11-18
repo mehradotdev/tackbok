@@ -1000,8 +1000,12 @@ export const ar: Translations = {
     'تعذّرت قراءة جزء من نسختك الاحتياطية في Google Drive. توقفت المزامنة.',
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
     'جزء من نسختك الاحتياطية مفقود من Google Drive. توقفت المزامنة.',
-  'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
-    'تحتوي نسختك الاحتياطية على نسختين مختلفتين من تغييرات جهاز واحد. توقفت المزامنة.',
+  'cloud.anotherPhoneBacksUpAsThisDevice':
+    'هاتف آخر ينسخ احتياطيًا باسم هذا الجهاز، مثلًا بعد استعادة نسخة احتياطية للهاتف عليه. توقفت المزامنة على هذا الجهاز. تابع كجهاز جديد لتعود المزامنة. لن يضيع شيء من دفتر يومياتك.',
+  'cloud.thisDeviceClockWasFarAhead':
+    'كان التاريخ والوقت في هذا الجهاز مضبوطين على وقت بعيد في المستقبل، لذلك لا تستطيع أجهزتك الأخرى استقبال تغييراته. تابع كجهاز جديد لإصلاح ذلك. لن يضيع شيء من دفتر يومياتك.',
+  'cloud.continueAsNewDevice': 'المتابعة كجهاز جديد',
+  'cloud.continuedAsNewDevice': 'تتم مزامنة هذا الجهاز الآن كجهاز جديد.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'تعذّر على Tackbok دمج التغييرات من جهاز آخر مع هذا الجهاز. لم يتغيّر أي شيء على هذا الجهاز. توقفت المزامنة. قد يساعد تحديث Tackbok على أجهزتك. يمكنك تصدير نسخة من الإعدادات.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
