@@ -64,18 +64,28 @@ export function AppIconPickerSheet() {
   ]);
   const sheetRadius = String(themeRadiusStr) === '0' ? 0 : DEFAULT_THEME_SHEET_RADIUS;
 
-  const applyIcon = (name: AppIconName) => {
+  const applyIcon = async (name: AppIconName) => {
     const state = useAppIconStore.getState();
-    // Tracked before the change: on Android it closes the app.
-    if (name !== state.current && !state.isChanging) {
+    if (name === state.current || state.isChanging) {
+      void setIcon(name);
+      return;
+    }
+    // Android closes the app to apply it, so the change is counted first.
+    // Elsewhere it counts only if the icon actually changed.
+    if (appIconChangeClosesApp) {
+      track('app_icon_changed', { icon: name });
+      void setIcon(name);
+      return;
+    }
+    await setIcon(name);
+    if (useAppIconStore.getState().current === name) {
       track('app_icon_changed', { icon: name });
     }
-    void setIcon(name);
   };
 
   const chooseIcon = (name: AppIconName) => {
     if (!appIconChangeClosesApp) {
-      applyIcon(name);
+      void applyIcon(name);
       return;
     }
     // A native alert, so it shows above the sheet.
@@ -84,7 +94,7 @@ export function AppIconPickerSheet() {
       t('appearance.changeAppIconMessage'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('appearance.changeIcon'), onPress: () => applyIcon(name) },
+        { text: t('appearance.changeIcon'), onPress: () => void applyIcon(name) },
       ],
       // Back and a tap outside dismiss it like Cancel.
       { cancelable: true },

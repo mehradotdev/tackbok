@@ -135,6 +135,9 @@ export default function CloudBackupScreen() {
   const [deletingJournalEverywhere, setDeletingJournalEverywhere] = useState(false);
   // Analytics: each notice counts once per visit, not on every refresh.
   const trackedNoticesRef = useRef(new Set<CloudSyncNoticeReason>());
+  // The notice that opened the confirmation: a sync pass may change the
+  // snapshot while the dialog waits.
+  const dialogNoticeRef = useRef<CloudSyncNoticeReason | null>(null);
   const providerName = t('cloud.googleDrive');
   const disconnectLabel = t('cloud.disconnectProvider', {
     provider: providerName,
@@ -365,10 +368,12 @@ export default function CloudBackupScreen() {
       return;
     }
     if (action === 'review-erase-device') {
+      dialogNoticeRef.current = reason;
       setDestructiveAction('finish-journal-deletion');
       return;
     }
     if (action === 'replace-backup') {
+      dialogNoticeRef.current = reason;
       setDestructiveAction('replace-backup');
       return;
     }
@@ -425,15 +430,17 @@ export default function CloudBackupScreen() {
   const handleDestructiveAction = useCallback(
     async (action: DestructiveAction | null) => {
       setDestructiveAction(null);
+      const notice = dialogNoticeRef.current;
+      dialogNoticeRef.current = null;
       if (!action) return;
       if (
-        action === 'apply-mass-deletion' ||
-        action === 'replace-backup' ||
-        action === 'finish-journal-deletion'
+        notice &&
+        (action === 'apply-mass-deletion' ||
+          action === 'replace-backup' ||
+          action === 'finish-journal-deletion')
       ) {
         track('cloud_sync_attention_action', {
-          // Without a pause, Replace is offered by the unreadable-backups note.
-          reason: snapshot.attentionReason ?? 'other-device-unreadable',
+          reason: notice,
           action: action === 'finish-journal-deletion' ? 'review-erase-device' : action,
         });
       }
@@ -492,7 +499,6 @@ export default function CloudBackupScreen() {
       refresh,
       runAction,
       runConnectionAction,
-      snapshot.attentionReason,
       t,
     ],
   );
@@ -722,7 +728,10 @@ export default function CloudBackupScreen() {
                         accessibilityState={{
                           disabled: actionRunning || connectionAction !== null,
                         }}
-                        onPress={() => setDestructiveAction('apply-mass-deletion')}
+                        onPress={() => {
+                          dialogNoticeRef.current = 'mass-deletion';
+                          setDestructiveAction('apply-mass-deletion');
+                        }}
                         accessibilityLabel={t('cloud.massDeletion.apply')}>
                         <Text className="shrink text-center">
                           {t('cloud.massDeletion.apply')}
@@ -755,7 +764,10 @@ export default function CloudBackupScreen() {
                           accessibilityState={{
                             disabled: actionRunning || connectionAction !== null,
                           }}
-                          onPress={() => setDestructiveAction('replace-backup')}
+                          onPress={() => {
+                            dialogNoticeRef.current = 'other-device-unreadable';
+                            setDestructiveAction('replace-backup');
+                          }}
                           accessibilityLabel={t('cloud.replaceBackup.action')}>
                           <Text className="shrink text-center">
                             {t('cloud.replaceBackup.action')}
@@ -1021,7 +1033,10 @@ export default function CloudBackupScreen() {
       <AlertDialog
         open={destructiveAction !== null}
         onOpenChange={(open) => {
-          if (!open) setDestructiveAction(null);
+          if (!open) {
+            dialogNoticeRef.current = null;
+            setDestructiveAction(null);
+          }
         }}>
         <AlertDialogContent>
           <AlertDialogHeader>

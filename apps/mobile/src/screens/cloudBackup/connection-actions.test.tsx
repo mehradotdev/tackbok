@@ -715,3 +715,26 @@ describe('a merge that would delete much of the journal', () => {
     });
   });
 });
+
+test('a confirmed Replace keeps the notice that offered it, even if a sync pass pauses meanwhile', async () => {
+  mockSnapshot.skippedHeads = { unreadable: 1, clockAhead: 0 };
+  await render();
+  const replace = root.root
+    .findAllByType('Button' as never)
+    .find(
+      (button) =>
+        button.props.accessibilityLabel === mockEn['cloud.replaceBackup.action'],
+    );
+  act(() => replace!.props.onPress());
+  // A pass pauses for another reason while the confirmation waits.
+  mockSnapshot.status = 'warning';
+  mockSnapshot.attentionReason = 'provider-quota-full';
+  mockSnapshot.recoveryAction = 'manage-drive-storage';
+  await act(async () => root.update(<CloudBackupScreen />));
+  const confirm = root.root.findByType('AlertDialogDestructiveAction' as never);
+  await act(async () => confirm.props.onPress());
+  expect(mockTrack).toHaveBeenCalledWith('cloud_sync_attention_action', {
+    reason: 'other-device-unreadable',
+    action: 'replace-backup',
+  });
+});

@@ -12,6 +12,15 @@ const mockTrack = jest.fn();
 jest.mock('~/lib/analytics', () => ({
   track: (...args: unknown[]) => mockTrack(...args),
 }));
+// Android by default; the iOS test switches it to a platform that keeps the app open.
+let mockClosesApp = true;
+jest.mock('~/lib/appIcon', () => {
+  const actual = jest.requireActual('~/lib/appIcon');
+  // A getter, defined after copying: Babel's spread helper would read it once.
+  return Object.defineProperty({ ...actual }, 'appIconChangeClosesApp', {
+    get: () => mockClosesApp,
+  });
+});
 jest.mock('react-native', () => ({
   Alert: { alert: (...args: AlertArgs) => mockAlert(...args) },
   Platform: { OS: 'android' },
@@ -59,6 +68,7 @@ beforeEach(() => {
   mockAlert.mockReset();
   setIcon.mockClear();
   mockTrack.mockClear();
+  mockClosesApp = true;
   useAppIconStore.setState({ current: 'Blueprint', isChanging: false, setIcon });
 });
 
@@ -133,4 +143,21 @@ test('tapping the selected icon changes nothing', () => {
   expect(mockAlert).not.toHaveBeenCalled();
   expect(setIcon).not.toHaveBeenCalled();
   expect(mockTrack).not.toHaveBeenCalled();
+});
+
+test('where the app stays open, only an icon change that took effect is counted', async () => {
+  mockClosesApp = false;
+  // The OS refuses: the store refreshes back to the old icon.
+  press('Ocean');
+  await act(async () => {});
+  expect(mockAlert).not.toHaveBeenCalled();
+  expect(setIcon).toHaveBeenCalledWith('Ocean');
+  expect(mockTrack).not.toHaveBeenCalled();
+
+  setIcon.mockImplementationOnce(async (name) => {
+    useAppIconStore.setState({ current: name as 'Sage' });
+  });
+  press('Sage');
+  await act(async () => {});
+  expect(mockTrack).toHaveBeenCalledWith('app_icon_changed', { icon: 'Sage' });
 });
