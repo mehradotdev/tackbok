@@ -138,6 +138,11 @@ export interface SimAdapter {
     wall: number,
   ): KeepEffect | null | Promise<KeepEffect | null>;
   sync(device: number, peer: number | null, wall: number): Promise<SyncOutcome>;
+  /**
+   * The shared time before a sync, unskewed: what a provider records as its
+   * own upload time (Drive's `createdTime`). The P8 clock check reads it.
+   */
+  realTime?(ms: number): void;
   /** Canonical bytes of the device's synced state. */
   fingerprint(device: number): string | Promise<string>;
   normalizeTitle(kind: 'tag' | 'prompt', title: string): string;
@@ -518,6 +523,7 @@ async function runEvent(
   const wall = (device: number) => wallClock(state, device);
   if (event.kind === 'sync') {
     const { device, peer } = event;
+    adapter.realTime?.(state.time + state.leaped);
     if (adapter.topology === 'drive') {
       const outcome = await adapter.sync(device, null, wall(device));
       if (!outcome.ok) {
@@ -661,6 +667,7 @@ async function finalRound(
   for (let round = 1; round <= maxRounds; round++) {
     let changed = false;
     state.time += 60_000;
+    adapter.realTime?.(state.time + state.leaped);
     for (let device = 0; device < devices; device++) {
       const peers = adapter.topology === 'drive' ? [null] : [...Array(devices).keys()];
       for (const peer of peers) {
