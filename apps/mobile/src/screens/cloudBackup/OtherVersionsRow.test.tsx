@@ -5,7 +5,7 @@ import { en as mockEn } from '~/lib/i18n/translations/en';
 import { translate as mockTranslate } from '~/lib/i18n/translations';
 
 const mockPush = jest.fn();
-let mockGroups: { data: string[][] | undefined } = { data: undefined };
+let mockGroups: { data: string[] | undefined } = { data: undefined };
 
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
@@ -14,7 +14,9 @@ jest.mock('react-native', () => ({ View: 'View' }));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('lucide-react-native', () => ({ GitBranch: 'GitBranch' }));
 jest.mock('~/components/SettingsRow', () => ({ SettingsRow: 'SettingsRow' }));
-jest.mock('~/hooks/useGratitude', () => ({ useOpenConflictGroups: () => mockGroups }));
+jest.mock('~/hooks/useGratitude', () => ({
+  useEntriesWithOtherVersions: () => mockGroups,
+}));
 jest.mock('~/lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: keyof typeof mockEn) => mockTranslate('en', key),
@@ -25,22 +27,22 @@ let root: ReactTestRenderer;
 beforeEach(() => jest.clearAllMocks());
 afterEach(() => act(() => root?.unmount()));
 
-function render(groups: string[][] | undefined) {
+function render(groups: string[] | undefined) {
   mockGroups = { data: groups };
   act(() => {
     root = create(<OtherVersionsRow />);
   });
 }
 
-test('is hidden while the groups load and when no entry has more than one version', () => {
+test('is hidden while loading and when no entry has another version', () => {
   render(undefined);
   expect(root.toJSON()).toBeNull();
   render([]);
   expect(root.toJSON()).toBeNull();
 });
 
-test('opens Other versions while any entry has more than one version', () => {
-  render([['original', 'copy']]);
+test('opens Other versions while any entry has another version', () => {
+  render(['original']);
   const row = root.root.findByType('SettingsRow' as never);
   expect(row.props.label).toBe(mockEn['cloud.conflicts.otherVersionsTitle']);
   expect(row.props.accessibilityLabel).toBe(mockEn['cloud.conflicts.otherVersionsTitle']);
@@ -49,10 +51,9 @@ test('opens Other versions while any entry has more than one version', () => {
   expect(mockPush).toHaveBeenCalledWith('/other-versions');
 });
 
-test('goes away once each entry has one version left, e.g. a kept copy', () => {
-  render([['original', 'copy']]);
+test('goes away once each entry has one version left', () => {
+  render(['original']);
   expect(root.toJSON()).not.toBeNull();
-  // The copy may still be marked as another version; alone, it is no conflict.
   mockGroups = { data: [] };
   act(() => root.update(<OtherVersionsRow />));
   expect(root.toJSON()).toBeNull();

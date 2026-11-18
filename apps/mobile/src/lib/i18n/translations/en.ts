@@ -915,7 +915,6 @@ export const en = {
   // Heading of a group on Other versions: an entry and the versions sync kept of it.
   'cloud.conflicts.versionsOf': 'Versions of an entry from {date}',
   'cloud.conflicts.original': 'Original',
-  'cloud.conflicts.originalDeleted': 'The original entry was deleted.',
   // Button under one version on Other versions; keeps it instead of the other versions.
   'cloud.conflicts.keepThisOne': 'Keep this one',
   // Screen reader label of "Keep this one" under the original.

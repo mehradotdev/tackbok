@@ -3,9 +3,9 @@ import type { TranslationFunction } from '~/lib/i18n';
 import type { Entry } from '~/types';
 import { parseVersionCopyId } from '~/lib/cloudSync/ui/versions';
 
-/** Every entry in a group: the original, when it still exists, then its versions. */
+/** Every entry in a group: the entry, then its other versions. */
 export function groupMembers(group: OtherVersionGroup) {
-  return group.original ? [group.original, ...group.versions] : group.versions;
+  return [group.original, ...group.versions];
 }
 
 /**

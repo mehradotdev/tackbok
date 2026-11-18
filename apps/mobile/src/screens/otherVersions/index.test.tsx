@@ -175,7 +175,6 @@ test('shows each other version under its original, with dates', () => {
   expect(rows.map((row) => row.props.fullText)).toEqual([true, true]);
   expect(content()).toContain('Versions of an entry from date:5');
   expect(content()).toContain(mockEn['cloud.conflicts.original']);
-  expect(content()).not.toContain(mockEn['cloud.conflicts.originalDeleted']);
   const heading = root.root.find(
     (node) => (node.type as unknown) === 'Text' && node.props.role === 'heading',
   );
@@ -210,24 +209,6 @@ test('shows how many attachments a version has', () => {
   render({ data: [{ original, versions: [withAssets] }] });
   expect(content()).toContain('Attachments: 2');
   expect(content()).not.toContain('Attachments: 0');
-});
-
-test('versions whose original was deleted are shown together with a note', () => {
-  render({ data: [{ original: null, versions: [copy, secondCopy] }] });
-  expect(content()).toContain(mockEn['cloud.conflicts.originalDeleted']);
-  expect(content()).not.toContain(`"${mockEn['cloud.conflicts.original']}"`);
-  expect(keepButtons()).toHaveLength(2);
-});
-
-test('a version left on its own is not listed: there is nothing to choose', () => {
-  render({
-    data: [
-      { original: null, versions: [copy] },
-      { original: entry('other'), versions: [entry('other-copy')] },
-    ],
-  });
-  const rows = root.root.findAllByType('EntryItem' as never);
-  expect(rows.map((row) => row.props.entry.note_id)).toEqual(['other', 'other-copy']);
 });
 
 test('keeping the other version keeps it, after confirming', async () => {
@@ -387,13 +368,6 @@ test('after the last choice it says all done, and announces it once', () => {
   ]);
   act(() => root.update(<OtherVersionsScreen />));
   expect(mockAnnounce).toHaveBeenCalledTimes(1);
-});
-
-test('opening with only lone versions shows the plain empty state, not all done', () => {
-  render({ data: [{ original: null, versions: [copy] }] });
-  expect(content()).toContain(mockEn['cloud.conflicts.noOtherVersions']);
-  expect(content()).not.toContain(mockEn['cloud.conflicts.allDone']);
-  expect(mockAnnounce).not.toHaveBeenCalled();
 });
 
 test('no versions at all keeps the plain empty state, without an announcement', () => {

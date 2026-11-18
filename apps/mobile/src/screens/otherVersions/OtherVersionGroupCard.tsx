@@ -39,8 +39,6 @@ export function OtherVersionGroupCard({
 }: OtherVersionGroupCardProps) {
   const { t } = useTranslation();
   const members = groupMembers(group);
-  // A version alone has nothing to choose between.
-  const canKeep = members.length > 1;
   const differences = versionDifferences(members);
 
   return (
@@ -57,11 +55,6 @@ export function OtherVersionGroupCard({
             date: formatLocalizedDate(members[0].created_at, t),
           })}
         </Text>
-        {!group.original && (
-          <Text className="text-sm text-muted-foreground">
-            {t('cloud.conflicts.originalDeleted')}
-          </Text>
-        )}
         {differences.length > 0 && (
           <View className="flex-row flex-wrap gap-x-3 gap-y-1">
             {differences.map((key) => (
@@ -98,51 +91,47 @@ export function OtherVersionGroupCard({
               showVersionBadge={false}
               className="border-b-0"
             />
-            {(attachmentCount > 0 || canKeep) && (
-              <View className="gap-2 px-3 pb-3">
-                {attachmentCount > 0 && (
-                  <Text className="text-sm text-muted-foreground">
-                    {t('cloud.conflicts.attachmentCount', { count: attachmentCount })}
+            <View className="gap-2 px-3 pb-3">
+              {attachmentCount > 0 && (
+                <Text className="text-sm text-muted-foreground">
+                  {t('cloud.conflicts.attachmentCount', { count: attachmentCount })}
+                </Text>
+              )}
+              <View className="flex-row flex-wrap gap-2">
+                {/* Several lines at large text sizes rather than clipped. */}
+                <Button
+                  variant="outline"
+                  className="h-auto min-h-10 max-w-full self-start py-2"
+                  accessibilityLabel={
+                    isOriginal
+                      ? t('cloud.conflicts.keepOriginal')
+                      : t('cloud.conflicts.keepOtherVersion')
+                  }
+                  accessibilityHint={keepMessage(
+                    t,
+                    entry,
+                    members.filter((member) => member !== entry),
+                  )}
+                  disabled={disabled}
+                  onPress={() => onKeep(entry)}>
+                  <Text className="shrink text-center">
+                    {t('cloud.conflicts.keepThisOne')}
                   </Text>
-                )}
-                {canKeep && (
-                  <View className="flex-row flex-wrap gap-2">
-                    {/* Several lines at large text sizes rather than clipped. */}
-                    <Button
-                      variant="outline"
-                      className="h-auto min-h-10 max-w-full self-start py-2"
-                      accessibilityLabel={
-                        isOriginal
-                          ? t('cloud.conflicts.keepOriginal')
-                          : t('cloud.conflicts.keepOtherVersion')
-                      }
-                      accessibilityHint={keepMessage(
-                        t,
-                        entry,
-                        members.filter((member) => member !== entry),
-                      )}
-                      disabled={disabled}
-                      onPress={() => onKeep(entry)}>
-                      <Text className="shrink text-center">
-                        {t('cloud.conflicts.keepThisOne')}
-                      </Text>
-                    </Button>
-                    {!isOriginal && (
-                      <Button
-                        variant="ghost"
-                        className="h-auto min-h-10 max-w-full self-start py-2"
-                        accessibilityHint={t('cloud.conflicts.keepBothHint')}
-                        disabled={disabled}
-                        onPress={() => onKeepBoth(entry)}>
-                        <Text className="shrink text-center">
-                          {t('cloud.conflicts.keepBoth')}
-                        </Text>
-                      </Button>
-                    )}
-                  </View>
+                </Button>
+                {!isOriginal && (
+                  <Button
+                    variant="ghost"
+                    className="h-auto min-h-10 max-w-full self-start py-2"
+                    accessibilityHint={t('cloud.conflicts.keepBothHint')}
+                    disabled={disabled}
+                    onPress={() => onKeepBoth(entry)}>
+                    <Text className="shrink text-center">
+                      {t('cloud.conflicts.keepBoth')}
+                    </Text>
+                  </Button>
                 )}
               </View>
-            )}
+            </View>
           </View>
         );
       })}

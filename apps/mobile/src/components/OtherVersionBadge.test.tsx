@@ -2,11 +2,11 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { OtherVersionBadge } from './OtherVersionBadge';
 
-let mockGroups: string[][] | undefined;
+let mockGroups: string[] | undefined;
 const mockUseGroups = jest.fn(() => ({ data: mockGroups }));
 
 jest.mock('~/hooks/useGratitude', () => ({
-  useOpenConflictGroups: () => mockUseGroups(),
+  useEntriesWithOtherVersions: () => mockUseGroups(),
 }));
 jest.mock('~/lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('lucide-react-native', () => ({ GitBranch: 'GitBranch' }));
@@ -25,13 +25,13 @@ function render(entry: { note_id: string }) {
 }
 
 test('an entry without another version shows nothing', () => {
-  mockGroups = [['other']];
+  mockGroups = ['other'];
   render({ note_id: 'entry' });
   expect(root.toJSON()).toBeNull();
 });
 
 test('an entry with another version of its title or text shows the badge', () => {
-  mockGroups = [['entry']];
+  mockGroups = ['entry'];
   render({ note_id: 'entry' });
   expect(root.root.findByType('Badge' as never)).toBeDefined();
 });

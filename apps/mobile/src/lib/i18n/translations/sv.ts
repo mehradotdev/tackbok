@@ -849,7 +849,6 @@ export const sv = {
     'Det gick inte att läsa in de andra versionerna.',
   'cloud.conflicts.versionsOf': 'Versioner av en anteckning från {date}',
   'cloud.conflicts.original': 'Original',
-  'cloud.conflicts.originalDeleted': 'Den ursprungliga anteckningen har tagits bort.',
   'cloud.conflicts.keepThisOne': 'Behåll den här',
   'cloud.conflicts.keepOriginal': 'Behåll originalet',
   'cloud.conflicts.keepOtherVersion': 'Behåll den här andra versionen',

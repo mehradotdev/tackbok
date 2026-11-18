@@ -953,7 +953,6 @@ export const de: Translations = {
     'Die anderen Versionen konnten nicht geladen werden.',
   'cloud.conflicts.versionsOf': 'Versionen eines Eintrags vom {date}',
   'cloud.conflicts.original': 'Original',
-  'cloud.conflicts.originalDeleted': 'Der ursprüngliche Eintrag wurde gelöscht.',
   'cloud.conflicts.keepThisOne': 'Diese behalten',
   'cloud.conflicts.keepOriginal': 'Original behalten',
   'cloud.conflicts.keepOtherVersion': 'Diese andere Version behalten',

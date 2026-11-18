@@ -2,12 +2,10 @@
  * Cloud sync v2 (#185): what the conflict screens show and do, read from the
  * versions kept inside each record (`storage/v2State.ts`).
  *
- * shortcut: an interim for P7. The v1 screens (Other versions, the conflicts
- * card, the entry badge and banner, the Home notice) keep their layout and
- * copy and are fed from here. Each other version of a title or text is shown
- * as a copy of the entry with that one field changed; "Keep this one" keeps
- * that value (or the shown ones) as one new write. "Keep both" and new copy
- * come with P7.
+ * Each other version of a title or text is shown on Other versions as a copy
+ * of the entry with that one field changed (`versionCopyId`). "Keep this one"
+ * keeps that value (or the shown ones) as one new write; "Keep both" moves it
+ * to a new entry.
  *
  * Each choice names the stamps of the values in it (`noticeStamps`): the Home
  * notice shows while one of them, written by another device, is not among
@@ -133,13 +131,15 @@ export async function listOtherVersions(): Promise<Map<string, OtherVersion[]>> 
   return result;
 }
 
-/**
- * Entries with other versions, each as the entry (`original`) and one copy
- * per other version (`versions`, newest first), newest entry first.
- */
-export async function listVersionGroups(): Promise<
-  { original: Entry; versions: Entry[] }[]
-> {
+/** An entry with other versions: the entry, and one copy per other version. */
+export interface OtherVersionGroup {
+  original: Entry;
+  /** Newest first; never empty. */
+  versions: Entry[];
+}
+
+/** Entries with other versions, newest entry first. */
+export async function listVersionGroups(): Promise<OtherVersionGroup[]> {
   const versions = await listOtherVersions();
   if (versions.size === 0) return [];
   const ids = [...versions.keys()];

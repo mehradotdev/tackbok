@@ -858,7 +858,6 @@ export const zhTW: Translations = {
   'cloud.conflicts.otherVersionsLoadFailed': '無法載入其他版本。',
   'cloud.conflicts.versionsOf': '同一則紀錄的各個版本（{date}）',
   'cloud.conflicts.original': '原始版本',
-  'cloud.conflicts.originalDeleted': '原始紀錄已被刪除。',
   'cloud.conflicts.keepThisOne': '保留這個',
   'cloud.conflicts.keepOriginal': '保留原始版本',
   'cloud.conflicts.keepOtherVersion': '保留此其他版本',
