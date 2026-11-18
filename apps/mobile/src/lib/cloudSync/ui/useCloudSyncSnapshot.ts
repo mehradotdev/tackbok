@@ -23,6 +23,7 @@ const EMPTY_SNAPSHOT: CloudSyncSnapshot = {
   revocationKind: null,
   attentionReason: null,
   recoveryAction: null,
+  skippedHeads: { unreadable: 0, clockAhead: 0 },
   restoreProofAtLoad: null,
 };
 

@@ -23,6 +23,13 @@
  *    day ago (acknowledgements let compaction run; publishing one on every
  *    pull would double the uploads).
  *
+ * Another device's head that cannot be read (a corrupt head file, a missing
+ * or invalid snapshot, two snapshots under one sequence) or whose clock is
+ * more than 7 days ahead is skipped while at least one readable head exists,
+ * and listed for the user (`SkippedHead`). Nothing is deleted: removing
+ * unreadable heads is a confirmed user action (`removeUnreadableHeads`).
+ * With no readable head at all, the pass pauses instead.
+ *
  * The join has no base, so there is no ancestor walk, virtual base or base
  * shadow, and a publication needs no staged candidate: everything it uploads
  * is already applied locally, so a pass stopped half way publishes on the
@@ -42,7 +49,7 @@ import {
   unpublishedAttachmentsInTransaction,
   type ApplyMediaFiles,
 } from '../../storage/v2State';
-import { ClockAheadError } from '../../v2/clock';
+import { ClockAheadError, MAX_CONTEXT_AHEAD_MS } from '../../v2/clock';
 import {
   KNOWN_REQUIRED_FEATURES,
   SNAPSHOT_MAJOR,
@@ -66,6 +73,7 @@ import {
   type DeviceHead,
   type ListedDeviceHead,
   type MediaUploadSource,
+  type SkippedHead,
   type SnapshotMediaStore,
   type SnapshotProvider,
   type SnapshotSyncHooks,
@@ -81,6 +89,14 @@ const MAX_APPLY_ATTEMPTS = 4;
 const SNAPSHOT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_DELETES_PER_PASS = 10;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+/** A snapshot that could not be read is downloaded again after this long. */
+const UNREADABLE_RETRY_MS = 24 * 60 * 60 * 1000;
+/**
+ * The error class of the pause for "no head can be read": the only pause
+ * "Replace this backup" is offered for, and one that retries by itself once
+ * the listed heads change.
+ */
+export const NO_READABLE_HEAD = 'no-readable-device-head';
 
 export interface V2EngineOptions {
   vaultId: string;
@@ -126,6 +142,18 @@ function headShape(value: Record<string, unknown>): DeviceHead | null {
     return null;
   return value as unknown as DeviceHead;
 }
+
+/** A readable head and the file it came from. */
+interface ReadHead extends DeviceHead {
+  physicalId: string;
+}
+
+/** Why a downloaded head could not be read; any other error stops the pass. */
+const UNREADABLE_REASONS: readonly string[] = [
+  'head-snapshot-missing',
+  'invalid-remote-snapshot',
+  'wrong-vault',
+];
 
 function sameVector(left: VersionVector | null, right: VersionVector): boolean {
   return left !== null && canonicalize(left) === canonicalize(right);
@@ -181,10 +209,19 @@ export class V2SyncEngine {
     const listed = await provider.listHeads(this.vaultId, true);
     // Versioning first: a head this build cannot read stops the pass before
     // anything is written or deleted, here or on the provider.
-    const heads = this.readHeads(listed);
+    const { heads, unreadable, ambiguous } = this.readHeads(listed);
     // Every listed head's snapshot is kept.
-    const kept = listed.map(({ head }) => String(head.snapshotId));
+    const kept = listed.flatMap(({ head }) =>
+      head && isString(head.snapshotId) ? [head.snapshotId] : [],
+    );
     const deviceId = await this.bind();
+    if (ambiguous.has(deviceId))
+      throw new AttentionError(
+        'ambiguous-device-head',
+        'same-sequence-different-snapshot',
+      );
+    // This device's own head, unreadable, counts as lost: it publishes over it.
+    const skipped = unreadable.filter((head) => head.deviceId !== deviceId);
     const records = await this.loadHeadRecords();
     const own = heads.get(deviceId);
     const ownRecord = records.get(deviceId);
@@ -207,15 +244,44 @@ export class V2SyncEngine {
         'ambiguous-device-head',
         'device-id-used-by-another-install',
       );
-    const changed = [...heads.values()].filter((head) => {
-      if (head.deviceId === deviceId) return false;
+    const changed: ReadHead[] = [];
+    for (const head of heads.values()) {
+      if (head.deviceId === deviceId) continue;
       const record = records.get(head.deviceId);
       // An older head than the one taken in (a stale listing) adds nothing.
-      return (
-        record?.snapshotId !== head.snapshotId &&
-        (!record || head.deviceSequence >= record.deviceSequence)
+      if (
+        record?.snapshotId === head.snapshotId ||
+        (record && head.deviceSequence < record.deviceSequence)
+      )
+        continue;
+      // Skipped before: not downloaded again until its head moves or its
+      // time to retry comes (a day for an unreadable snapshot, which may
+      // have been a listing lag; for a clock far ahead, when it may fit).
+      const prior = durable.skippedHeads.find(
+        (candidate) =>
+          candidate.deviceId === head.deviceId &&
+          candidate.snapshotId === head.snapshotId,
       );
-    });
+      if (prior?.retryAt !== undefined && prior.retryAt > this.now()) {
+        skipped.push({ ...prior, physicalId: head.physicalId });
+        continue;
+      }
+      changed.push(head);
+    }
+    // Whether any head can be read: this device's own, one taken in before
+    // or waiting for its clock, or (below) one read in this pass. Without
+    // one, unreadable heads pause.
+    let readable =
+      own !== undefined ||
+      [...heads.values()].some(
+        (head) =>
+          head.deviceId !== deviceId &&
+          !changed.includes(head) &&
+          !skipped.some(
+            (entry) => entry.deviceId === head.deviceId && entry.reason === 'unreadable',
+          ),
+      );
+    this.requireReadable(readable || changed.length > 0, skipped, null);
     const ctx = await this.localContext();
     const unpublished = await runExclusiveDbTransaction((tx) =>
       unpublishedAttachmentsInTransaction(tx as CloudSyncTransaction),
@@ -225,10 +291,11 @@ export class V2SyncEngine {
       unpublished.length > 0 && (await provider.mediaTransfersAllowed?.()) !== false;
     if (changed.length === 0 && !plan.needed && !mediaReady) {
       await this.cleanup(kept, false);
-      return this.settle(durable.journalGeneration, {
+      return this.settle(durable.journalGeneration, skipped, {
         status: 'up-to-date',
         actionableChanges: 0,
         deferredMediaCount: unpublished.length,
+        skippedHeads: skipped,
       });
     }
 
@@ -237,11 +304,21 @@ export class V2SyncEngine {
     const deferred = mediaReady
       ? await this.publishAttachments(unpublished)
       : unpublished.length;
-    const remotes = await this.download(changed);
+    const { remotes, failed } = await this.download(changed);
+    for (const { head } of failed)
+      skipped.push({
+        physicalId: head.physicalId,
+        deviceId: head.deviceId,
+        snapshotId: head.snapshotId,
+        reason: 'unreadable',
+        retryAt: this.now() + UNREADABLE_RETRY_MS,
+      });
+    readable ||= remotes.length > 0;
+    this.requireReadable(readable, skipped, failed[0]?.error ?? null);
 
     let next: SyncState | null = null;
     let publish = false;
-    let refused: DeviceHead[] = [];
+    let refused: { head: ReadHead; aheadMs: number }[] = [];
     let takenIn: DeviceHead[] = [];
     let revived: string[] = [];
     for (let attempt = 0; attempt < MAX_APPLY_ATTEMPTS && !next; attempt++) {
@@ -259,11 +336,11 @@ export class V2SyncEngine {
           state = absorbed.state;
           for (const id of absorbed.revived) back.add(id);
         } catch (error) {
-          // A clock more than 7 days ahead of this one: that head waits
-          // (it is not recorded, so a later pass reads it again) and this
-          // device still publishes. Recovery is P8.
+          // A clock more than 7 days ahead of this one: that head is
+          // skipped until it may fit (`retryAt`), and this device still
+          // publishes. That device recovers with `continueAsNewDevice`.
           if (!(error instanceof ClockAheadError)) throw error;
-          refused.push(remote.head);
+          refused.push({ head: remote.head, aheadMs: error.aheadMs });
         }
       }
       publish = this.publication(state.ctx, deviceId, own, ownRecord).needed;
@@ -272,7 +349,7 @@ export class V2SyncEngine {
       this.hooks.activity?.('applying-remote-snapshot');
       takenIn = remotes
         .map((remote) => remote.head)
-        .filter((head) => !refused.includes(head));
+        .filter((head) => !refused.some((entry) => entry.head === head));
       const applied = await applySyncState(captured, state, this.options.files, (tx) =>
         this.recordTakenIn(tx, takenIn),
       );
@@ -284,41 +361,46 @@ export class V2SyncEngine {
       }
     }
     if (!next) throw new RetryableSyncError('journal-changed-during-apply');
-    if (refused.length > 0)
-      console.warn(
-        `Cloud sync left ${refused.length} device heads with clocks too far ahead`,
-      );
-    const refusedHeads = refused.length;
+    for (const { head, aheadMs } of refused)
+      skipped.push({
+        physicalId: head.physicalId,
+        deviceId: head.deviceId,
+        snapshotId: head.snapshotId,
+        reason: 'clock-ahead',
+        retryAt: this.now() + aheadMs - MAX_CONTEXT_AHEAD_MS,
+      });
+    const skippedHeads = skipped;
     if (!publish) {
       await this.cleanup(kept, false);
       return this.settle(
         durable.journalGeneration,
+        skipped,
         takenIn.length > 0
           ? {
               status: 'pulled',
               snapshotId: takenIn[takenIn.length - 1].snapshotId,
               actionableChanges: 0,
               deferredMediaCount: deferred,
-              refusedHeads,
+              skippedHeads,
               revivedEntries: revived,
             }
           : {
               status: 'up-to-date',
               actionableChanges: 0,
               deferredMediaCount: deferred,
-              refusedHeads,
+              skippedHeads,
               revivedEntries: revived,
             },
       );
     }
     const snapshotId = await this.publish(next, deviceId, own, ownRecord);
     await this.cleanup([...kept, snapshotId], true);
-    return this.settle(durable.journalGeneration, {
+    return this.settle(durable.journalGeneration, skipped, {
       status: 'published',
       snapshotId,
       actionableChanges: 0,
       deferredMediaCount: deferred,
-      refusedHeads,
+      skippedHeads,
       revivedEntries: revived,
     });
   }
@@ -329,9 +411,14 @@ export class V2SyncEngine {
    * during the pass stay counted, so the runtime runs another pass, the vault
    * shows as dirty and the media reaper keeps files their removal still needs.
    */
-  private settle<R extends SnapshotSyncResult>(generation: number, result: R): R {
+  private settle<R extends SnapshotSyncResult>(
+    generation: number,
+    skipped: readonly SkippedHead[],
+    result: R,
+  ): R {
     const { stateStore, stateKey } = this.options;
     stateStore.markSettled(this.vaultId, stateKey, generation);
+    stateStore.setSkippedHeads(this.vaultId, stateKey, skipped);
     stateStore.clearPause(this.vaultId, stateKey);
     const durable = stateStore.loadState(this.vaultId, stateKey);
     return {
@@ -385,57 +472,96 @@ export class V2SyncEngine {
   }
 
   /**
-   * The newest valid head per device. Versioning comes first: a head this
-   * build cannot read pauses sync, whatever else it holds.
+   * The newest readable head per device. Versioning comes first: a head
+   * this build cannot read because it is newer pauses sync, whatever else
+   * it holds. A head that is merely damaged (unreadable, the wrong shape or
+   * vault, two snapshots under one sequence) is returned in `unreadable`,
+   * or, for two snapshots, in `ambiguous` too.
    */
-  private readHeads(listed: readonly ListedDeviceHead[]): Map<string, DeviceHead> {
-    const byDevice = new Map<string, DeviceHead[]>();
-    for (const { head: raw } of listed) {
+  private readHeads(listed: readonly ListedDeviceHead[]): {
+    heads: Map<string, ReadHead>;
+    unreadable: SkippedHead[];
+    ambiguous: Set<string>;
+  } {
+    const unreadable: SkippedHead[] = [];
+    const byDevice = new Map<string, ReadHead[]>();
+    for (const { physicalId, head: raw, keyDeviceId } of listed) {
       const value = raw as unknown;
-      if (typeof value !== 'object' || value === null)
-        throw new AttentionError('invalid-remote-snapshot', 'invalid-device-head-shape');
-      const record = value as Record<string, unknown>;
-      if (record.format !== HEAD_FORMAT)
-        throw new AttentionError('unsupported-format', 'unsupported-device-head-format');
-      if (isCount(record.major) && record.major !== SNAPSHOT_MAJOR)
-        throw new AttentionError('unsupported-format', 'remote-format-version');
-      if (
-        Array.isArray(record.required) &&
-        record.required.some(
-          (feature) => !KNOWN_REQUIRED_FEATURES.includes(String(feature)),
+      const record =
+        typeof value === 'object' && value !== null && !Array.isArray(value)
+          ? (value as Record<string, unknown>)
+          : null;
+      if (record) {
+        if (record.format !== HEAD_FORMAT)
+          throw new AttentionError(
+            'unsupported-format',
+            'unsupported-device-head-format',
+          );
+        if (isCount(record.major) && record.major !== SNAPSHOT_MAJOR)
+          throw new AttentionError('unsupported-format', 'remote-format-version');
+        if (
+          Array.isArray(record.required) &&
+          record.required.some(
+            (feature) => !KNOWN_REQUIRED_FEATURES.includes(String(feature)),
+          )
         )
-      )
-        throw new AttentionError('unsupported-format', 'remote-required-feature');
-      const head = headShape(record);
-      if (!head)
-        throw new AttentionError('invalid-remote-snapshot', 'invalid-device-head-shape');
-      if (head.vaultId !== this.vaultId)
-        throw new AttentionError('wrong-vault', 'device-head-vault-mismatch');
+          throw new AttentionError('unsupported-format', 'remote-required-feature');
+      }
+      const head = record ? headShape(record) : null;
+      if (!head || head.vaultId !== this.vaultId) {
+        unreadable.push({
+          physicalId,
+          deviceId: isString(record?.deviceId) ? record.deviceId : (keyDeviceId ?? null),
+          snapshotId: isString(record?.snapshotId) ? record.snapshotId : null,
+          reason: 'unreadable',
+        });
+        continue;
+      }
+      const read = { ...head, physicalId };
       const list = byDevice.get(head.deviceId);
-      if (list) list.push(head);
-      else byDevice.set(head.deviceId, [head]);
+      if (list) list.push(read);
+      else byDevice.set(head.deviceId, [read]);
     }
-    const heads = new Map<string, DeviceHead>();
+    const heads = new Map<string, ReadHead>();
+    const ambiguous = new Set<string>();
     for (const [deviceId, list] of byDevice) {
       const sequence = Math.max(...list.map((head) => head.deviceSequence));
-      const newest = new Set(
-        list
-          .filter((head) => head.deviceSequence === sequence)
-          .map((head) => head.snapshotId),
-      );
+      const newest = list.filter((head) => head.deviceSequence === sequence);
       // Each publication takes a new sequence first, so two snapshots under
       // one sequence are not this build's doing.
-      if (newest.size > 1)
-        throw new AttentionError(
-          'ambiguous-device-head',
-          'same-sequence-different-snapshot',
-        );
-      heads.set(
-        deviceId,
-        list.find((head) => head.deviceSequence === sequence)!,
-      );
+      if (new Set(newest.map((head) => head.snapshotId)).size > 1) {
+        ambiguous.add(deviceId);
+        for (const head of newest)
+          unreadable.push({
+            physicalId: head.physicalId,
+            deviceId,
+            snapshotId: head.snapshotId,
+            reason: 'unreadable',
+          });
+        continue;
+      }
+      heads.set(deviceId, newest[0]);
     }
-    return heads;
+    return { heads, unreadable, ambiguous };
+  }
+
+  /**
+   * Skipping unreadable heads needs a readable one to go on with. Without
+   * one the pass pauses, after recording what it skipped so the user can
+   * remove those heads ("Replace this backup").
+   */
+  private requireReadable(
+    readable: boolean,
+    skipped: readonly SkippedHead[],
+    error: AttentionError | null,
+  ) {
+    if (readable || !skipped.some((head) => head.reason === 'unreadable')) return;
+    const { stateStore, stateKey } = this.options;
+    stateStore.setSkippedHeads(this.vaultId, stateKey, skipped);
+    throw new AttentionError(
+      error?.reason ?? 'invalid-remote-snapshot',
+      NO_READABLE_HEAD,
+    );
   }
 
   private async loadHeadRecords(): Promise<Map<string, HeadRecord>> {
@@ -534,8 +660,12 @@ export class V2SyncEngine {
     return pending.length - ready.size;
   }
 
-  /** Downloads and checks the snapshots of heads that changed. */
-  private async download(heads: readonly DeviceHead[]) {
+  /**
+   * Downloads and checks the snapshots of heads that changed. A snapshot
+   * that is missing or fails its checks is returned in `failed`; one this
+   * build is too old to read stops the pass.
+   */
+  private async download(heads: readonly ReadHead[]) {
     const { provider } = this.options;
     if (heads.length > 0)
       this.hooks.progress?.({
@@ -543,36 +673,36 @@ export class V2SyncEngine {
         phase: 'downloading',
         items: { done: 0, total: heads.length },
       });
-    const result: { head: DeviceHead; state: SyncState }[] = [];
+    const remotes: { head: ReadHead; state: SyncState }[] = [];
+    const failed: { head: ReadHead; error: AttentionError }[] = [];
     for (const head of [...heads].sort((a, b) => (a.deviceId < b.deviceId ? -1 : 1))) {
-      this.hooks.activity?.('reading-remote-snapshot');
-      const bytes = await provider.downloadSnapshot(this.vaultId, head.snapshotId);
-      this.hooks.progress?.({ type: 'item', phase: 'downloading' });
-      await this.hooks.at?.('during-remote-snapshot-download');
-      if (!bytes)
-        throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
-      let decoded: ReturnType<typeof decodeEnvelope>;
       try {
-        decoded = decodeEnvelope(bytes, head.snapshotId);
+        remotes.push({ head, state: await this.downloadOne(provider, head) });
       } catch (error) {
-        if (error instanceof SnapshotUpdateRequiredError)
-          throw new AttentionError('unsupported-format', `remote-${error.code}`);
-        const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
-        throw new AttentionError(
-          'invalid-remote-snapshot',
-          `snapshot-validation-${code}`,
-        );
+        const unreadable =
+          error instanceof AttentionError
+            ? UNREADABLE_REASONS.includes(error.reason)
+              ? error
+              : null
+            : error instanceof SnapshotProviderError && error.code === 'invalid-data'
+              ? new AttentionError('invalid-remote-snapshot', 'provider-invalid-data')
+              : null;
+        if (!unreadable) throw error;
+        failed.push({ head, error: unreadable });
       }
-      if (decoded.header.vaultId !== this.vaultId)
-        throw new AttentionError('wrong-vault', 'snapshot-vault-mismatch');
-      if (
-        decoded.header.authorDeviceId !== head.deviceId ||
-        decoded.header.deviceSequence !== head.deviceSequence
-      )
-        throw new AttentionError('invalid-remote-snapshot', 'head-envelope-mismatch');
-      result.push({ head, state: decoded.state });
     }
-    return result;
+    return { remotes, failed };
+  }
+
+  private async downloadOne(
+    provider: SnapshotProvider,
+    head: ReadHead,
+  ): Promise<SyncState> {
+    this.hooks.activity?.('reading-remote-snapshot');
+    const bytes = await provider.downloadSnapshot(this.vaultId, head.snapshotId);
+    this.hooks.progress?.({ type: 'item', phase: 'downloading' });
+    await this.hooks.at?.('during-remote-snapshot-download');
+    return checkSnapshot(this.vaultId, head, bytes);
   }
 
   /**
@@ -711,7 +841,8 @@ export class V2SyncEngine {
    * move to new snapshots, so an unreferenced old one is never needed again.
    * Runs after a publication, or once a day; the heads are listed again
    * right before deleting, so a head missing from an earlier listing never
-   * loses its snapshot.
+   * loses its snapshot. While any head file cannot be read, nothing is
+   * deleted: its snapshots cannot be told apart from unreferenced ones.
    */
   private async cleanup(kept: readonly string[], published: boolean) {
     const { provider } = this.options;
@@ -725,11 +856,11 @@ export class V2SyncEngine {
           this.now() - snapshot.createdAt >= SNAPSHOT_RETENTION_MS,
       );
       if (candidates.length === 0) return;
+      const listed = await provider.listHeads(this.vaultId, true);
+      if (listed.some(({ head }) => head === null)) return;
       const referenced = new Set([
         ...kept,
-        ...(await provider.listHeads(this.vaultId, true)).map(({ head }) =>
-          String(head.snapshotId),
-        ),
+        ...listed.map(({ head }) => String(head!.snapshotId)),
       ]);
       for (const snapshot of candidates
         .filter((candidate) => !referenced.has(candidate.snapshotId))
@@ -759,7 +890,11 @@ export class V2SyncEngine {
       codeVersion: this.options.codeVersion ?? '',
       journalGeneration: stateStore.loadState(this.vaultId, stateKey).journalGeneration,
       heads: listed
-        .map(({ head }) => `${String(head.deviceId)}\0${String(head.snapshotId)}`)
+        .map(({ physicalId, head }) =>
+          head
+            ? `${String(head.deviceId)}\0${String(head.snapshotId)}`
+            : `unreadable\0${physicalId}`,
+        )
         .sort(),
     });
   }
@@ -773,10 +908,17 @@ export class V2SyncEngine {
   private async mayRetry(durable: {
     pauseReason: string | null;
     pauseContext: string | null;
+    lastErrorClass: string | null;
   }) {
     if (durable.pauseReason === 'unsupported-format')
       return durable.pauseContext !== this.buildContext();
-    if (durable.pauseReason !== 'merge-failed') return false;
+    // Nothing could be read: try again once the heads change (a broken
+    // device published again), without waiting for "Replace".
+    if (
+      durable.pauseReason !== 'merge-failed' &&
+      durable.lastErrorClass !== NO_READABLE_HEAD
+    )
+      return false;
     if (durable.pauseContext === null) return true;
     try {
       return durable.pauseContext !== (await this.joinInput());
@@ -801,12 +943,17 @@ export class V2SyncEngine {
       return { status: 'attention' as const, reason, actionableChanges: 0 };
     };
     if (error instanceof SyncCancelledError) throw error;
-    if (error instanceof AttentionError)
-      return pause(
-        error.reason,
-        error.errorClass,
-        error.reason === 'unsupported-format' ? this.buildContext() : null,
-      );
+    if (error instanceof AttentionError) {
+      let context: string | null = null;
+      if (error.reason === 'unsupported-format') context = this.buildContext();
+      else if (error.errorClass === NO_READABLE_HEAD)
+        try {
+          context = await this.joinInput();
+        } catch {
+          // Without a record the next pass checks the heads again.
+        }
+      return pause(error.reason, error.errorClass, context);
+    }
     if (error instanceof SyncJoinError) {
       let context: string | null = null;
       try {
@@ -849,4 +996,77 @@ export class V2SyncEngine {
     }
     throw error;
   }
+}
+
+/** Checks a head's downloaded snapshot; throws an `AttentionError` if it is unusable. */
+function checkSnapshot(
+  vaultId: string,
+  head: DeviceHead,
+  bytes: Uint8Array | null,
+): SyncState {
+  if (!bytes) throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
+  let decoded: ReturnType<typeof decodeEnvelope>;
+  try {
+    decoded = decodeEnvelope(bytes, head.snapshotId);
+  } catch (error) {
+    if (error instanceof SnapshotUpdateRequiredError)
+      throw new AttentionError('unsupported-format', `remote-${error.code}`);
+    const code = error instanceof SnapshotValidationError ? error.code : 'unknown';
+    throw new AttentionError('invalid-remote-snapshot', `snapshot-validation-${code}`);
+  }
+  if (decoded.header.vaultId !== vaultId)
+    throw new AttentionError('wrong-vault', 'snapshot-vault-mismatch');
+  if (
+    decoded.header.authorDeviceId !== head.deviceId ||
+    decoded.header.deviceSequence !== head.deviceSequence
+  )
+    throw new AttentionError('invalid-remote-snapshot', 'head-envelope-mismatch');
+  return decoded.state;
+}
+
+/**
+ * "Replace this backup with this device's journal" (#185, P8), after the
+ * user confirms: deletes the head files of other devices that the last pass
+ * could not read, if each is still the one it skipped (a device that has
+ * since published a new head keeps it). Their snapshots stay until
+ * retention removes them. The next pass publishes this device's journal,
+ * joined with every readable head as usual. Returns how many were deleted.
+ */
+export async function removeUnreadableHeads(
+  provider: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead' | 'downloadSnapshot'>,
+  vaultId: string,
+  skipped: readonly SkippedHead[],
+): Promise<number> {
+  let removed = 0;
+  for (const target of skipped.filter((head) => head.reason === 'unreadable')) {
+    // Listed again right before each delete, so the window in which that
+    // device could publish over this file is one request.
+    const current = (await provider.listHeads(vaultId, true)).find(
+      (head) => head.physicalId === target.physicalId,
+    );
+    if (!current) continue;
+    const head = current.head as Partial<DeviceHead> | null;
+    const snapshotId = head && isString(head.snapshotId) ? head.snapshotId : null;
+    if (snapshotId !== target.snapshotId) continue;
+    // A head that reads well now (its snapshot was only late, or a download
+    // failed) is kept.
+    if (head && headShape(head as Record<string, unknown>)) {
+      try {
+        checkSnapshot(
+          vaultId,
+          head as DeviceHead,
+          await provider.downloadSnapshot(vaultId, head.snapshotId!),
+        );
+        continue;
+      } catch (error) {
+        const unreadable =
+          (error instanceof AttentionError && error.reason !== 'unsupported-format') ||
+          (error instanceof SnapshotProviderError && error.code === 'invalid-data');
+        if (!unreadable) throw error;
+      }
+    }
+    await provider.deleteDeviceHead(vaultId, target.physicalId);
+    removed += 1;
+  }
+  return removed;
 }

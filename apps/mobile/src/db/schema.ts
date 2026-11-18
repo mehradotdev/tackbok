@@ -222,6 +222,8 @@ export const cloudSyncState = sqliteTable(
     pause_reason: text('pause_reason'),
     pause_context_json: text('pause_context_json'),
     last_error_class: text('last_error_class'),
+    /** Other devices' heads the last pass skipped (`SkippedHead[]`), or null. */
+    skipped_heads_json: text('skipped_heads_json'),
     updated_at: integer('updated_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],

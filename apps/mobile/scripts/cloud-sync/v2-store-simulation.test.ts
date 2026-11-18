@@ -29,10 +29,17 @@ describe('v2 simulation through SQLite', () => {
     ['drive', seedRange(200_000, 60 * SCALE)],
     // 300_073: an entry back after its delete was compacted (#185 P6b).
     ['engine', [...new Set([...seedRange(300_000, 60 * SCALE), 300_073])]],
+    // A dead device's unreadable heads in the vault (#185 P8): skipped, never a pause.
+    ['engine-damaged', seedRange(400_000, 30 * SCALE)],
   ] as const)(
     '%s syncs: devices converge, keep every value, and capture what they applied',
-    async (topology, seeds) => {
-      const factory = (count: number) => V2StoreAdapter.create(devices, count, topology);
+    async (name, seeds) => {
+      const topology = name === 'engine-damaged' ? 'engine' : name;
+      const factory = async (count: number) => {
+        const adapter = await V2StoreAdapter.create(devices, count, topology);
+        adapter.damagedHeads = name === 'engine-damaged';
+        return adapter;
+      };
       const failures: CaseResult[] = [];
       let events = 0;
       for (const seed of seeds) {
@@ -44,12 +51,12 @@ describe('v2 simulation through SQLite', () => {
         if (failures.length === 1) {
           const small = await shrinkCase(factory, config, run.events, failed, 150);
           console.error(
-            `v2 store ${topology} failure, seed ${seed}:\n${describeEvents(small.events)}\n${JSON.stringify(small.result)}`,
+            `v2 store ${name} failure, seed ${seed}:\n${describeEvents(small.events)}\n${JSON.stringify(small.result)}`,
           );
         }
       }
       console.log(
-        `v2 store ${topology} simulation`,
+        `v2 store ${name} simulation`,
         JSON.stringify({ cases: seeds.length, events, failures: failures.length }),
       );
       expect(failures.map((result) => result.seed)).toEqual([]);

@@ -1067,6 +1067,16 @@ export const en = {
     'Your journal and its backup were deleted everywhere. Erase this device to finish.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     "Deleting your backup didn't finish. Some of it may still be in Google Drive.",
+  'cloud.skippedHeads.unreadable':
+    "Tackbok can't read the backup of one or more of your devices, so changes from them aren't included. Sync goes on with your other devices.",
+  'cloud.skippedHeads.clockAhead':
+    'Changes from one or more of your devices are waiting because their date and time are set far in the future. On those devices, set the date and time automatically, then open Tackbok on them.',
+  'cloud.replaceBackup.action': "Replace this backup with this device's journal",
+  'cloud.replaceBackup.title': 'Replace this backup?',
+  'cloud.replaceBackup.confirm': 'Replace backup',
+  'cloud.replaceBackup.description':
+    "The device backups Tackbok can't read are removed from Google Drive, and this device's journal is backed up in their place. Backups from your other devices that can be read are kept and combined as usual. Anything that was only in the unreadable backups can't be recovered.",
+  'cloud.replaceBackup.done': 'The unreadable backups were removed.',
   'cloud.chooseAGoogleAccountToReconnect': 'Choose a Google account to reconnect',
   'cloud.updateTackbok': 'Update Tackbok',
   'cloud.manageGoogleDriveStorage': 'Manage Google Drive storage',

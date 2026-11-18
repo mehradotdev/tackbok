@@ -986,6 +986,16 @@ export const sv = {
     'Din dagbok och dess säkerhetskopia har raderats överallt. Radera den här enheten för att slutföra.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'Borttagningen av din säkerhetskopia slutfördes inte. En del av den kan finnas kvar i Google Drive.',
+  'cloud.skippedHeads.unreadable':
+    'Tackbok kan inte läsa säkerhetskopian från en eller flera av dina enheter, så ändringar därifrån tas inte med. Synkroniseringen fortsätter med dina andra enheter.',
+  'cloud.skippedHeads.clockAhead':
+    'Ändringar från en eller flera av dina enheter väntar eftersom datum och tid där är inställda långt fram i tiden. Ställ in datum och tid automatiskt på de enheterna och öppna sedan Tackbok där.',
+  'cloud.replaceBackup.action': 'Ersätt säkerhetskopian med den här enhetens dagbok',
+  'cloud.replaceBackup.title': 'Ersätta säkerhetskopian?',
+  'cloud.replaceBackup.confirm': 'Ersätt säkerhetskopian',
+  'cloud.replaceBackup.description':
+    'Enhetssäkerhetskopiorna som Tackbok inte kan läsa tas bort från Google Drive, och den här enhetens dagbok säkerhetskopieras i stället. Läsbara säkerhetskopior från dina andra enheter behålls och slås ihop som vanligt. Det som bara fanns i de oläsbara säkerhetskopiorna går inte att återställa.',
+  'cloud.replaceBackup.done': 'De oläsbara säkerhetskopiorna togs bort.',
   'cloud.chooseAGoogleAccountToReconnect': 'Välj ett Google-konto för att återansluta',
   'cloud.updateTackbok': 'Uppdatera Tackbok',
   'cloud.manageGoogleDriveStorage': 'Hantera Google Drive-lagring',

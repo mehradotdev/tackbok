@@ -98,6 +98,12 @@ export class V2StoreAdapter implements SimAdapter {
   private readonly engines: V2SyncEngine[] = [];
   readonly provider = new FakeSnapshotProvider();
   private readonly blobs = new MemorySnapshotMediaStore();
+  /**
+   * Engine mode with a dead device's damaged heads in the vault (#185, P8):
+   * an unreadable head file and a head whose snapshot is corrupt, added as
+   * soon as the vault has a readable head. Every pass must skip them.
+   */
+  damagedHeads = false;
 
   private constructor(
     private readonly devices: Devices,
@@ -481,17 +487,35 @@ export class V2StoreAdapter implements SimAdapter {
     return { ok: true, changed, pulled, revived };
   }
 
+  private damageVault(wall: number) {
+    if (this.provider.physicalHeads(V2_VAULT).some((head) => head.head === null)) return;
+    this.provider.injectUnreadableHead(V2_VAULT, 'dead-device');
+    const snapshotId = 'e'.repeat(64);
+    this.provider.injectSnapshot(V2_VAULT, snapshotId, new Uint8Array([31, 139]), wall);
+    this.provider.injectPhysicalHead({
+      format: 'tackbok-head',
+      vaultId: V2_VAULT,
+      deviceId: 'dead-device-2',
+      deviceSequence: 1,
+      snapshotId,
+      updatedAt: wall,
+      ...{ major: 2, required: [] },
+    });
+  }
+
   /** One real engine pass. A pause fails the case: nothing here should pause. */
   private async engineSync(device: number, wall: number): Promise<SyncOutcome> {
     this.hashMedia(device, wall);
     const before = canonicalState((await this.capture(device)).state);
     const result = await this.on(device, wall, () => this.engines[device].sync());
+    if (this.damagedHeads && result.status === 'published') this.damageVault(wall);
     if (result.status === 'attention')
       return { ok: false, reason: `attention: ${result.reason}` };
     if (result.status === 'retry')
       return { ok: false, reason: `retry: ${result.reason}` };
-    // A head refused for its clock: this device has not seen what it holds.
-    const pulled = !result.refusedHeads;
+    // A head skipped for its clock: this device has not seen what it holds.
+    // The damaged heads hold nothing the model knows of.
+    const pulled = !result.skippedHeads?.some((head) => head.reason === 'clock-ahead');
     if (!pulled) this.refusedPulls++;
     const after = canonicalState((await this.capture(device)).state);
     return {

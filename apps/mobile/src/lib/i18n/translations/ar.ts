@@ -1022,6 +1022,16 @@ export const ar: Translations = {
     'حُذف دفتر يومياتك ونسخته الاحتياطية من كل مكان. امسح هذا الجهاز لإكمال العملية.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'لم يكتمل حذف نسختك الاحتياطية. قد يبقى جزء منها في Google Drive.',
+  'cloud.skippedHeads.unreadable':
+    'لا يستطيع Tackbok قراءة النسخة الاحتياطية لجهاز واحد أو أكثر من أجهزتك، لذلك لم تُضمَّن التغييرات القادمة منها. تستمر المزامنة مع أجهزتك الأخرى.',
+  'cloud.skippedHeads.clockAhead':
+    'التغييرات القادمة من جهاز واحد أو أكثر من أجهزتك بانتظار المزامنة لأن التاريخ والوقت فيها مضبوطان على وقت بعيد في المستقبل. اضبط التاريخ والوقت تلقائيًا على تلك الأجهزة، ثم افتح Tackbok عليها.',
+  'cloud.replaceBackup.action': 'استبدال هذه النسخة الاحتياطية بدفتر يوميات هذا الجهاز',
+  'cloud.replaceBackup.title': 'استبدال هذه النسخة الاحتياطية؟',
+  'cloud.replaceBackup.confirm': 'استبدال النسخة الاحتياطية',
+  'cloud.replaceBackup.description':
+    'تُحذف من Google Drive النسخ الاحتياطية للأجهزة التي لا يستطيع Tackbok قراءتها، ويُنسخ دفتر يوميات هذا الجهاز احتياطيًا مكانها. تبقى النسخ الاحتياطية المقروءة من أجهزتك الأخرى وتُدمج كالمعتاد. ما كان موجودًا في النسخ غير المقروءة وحدها لا يمكن استعادته.',
+  'cloud.replaceBackup.done': 'حُذفت النسخ الاحتياطية غير المقروءة.',
   'cloud.chooseAGoogleAccountToReconnect': 'اختر حساب Google لإعادة الاتصال',
   'cloud.updateTackbok': 'حدّث Tackbok',
   'cloud.manageGoogleDriveStorage': 'إدارة مساحة Google Drive',

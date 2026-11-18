@@ -36,7 +36,9 @@ export type SyncRecoveryAction =
   | 'retry-journal-preparation'
   | 'acknowledge-disconnect'
   | 'review-erase-device'
-  | 'resume-deletion';
+  | 'resume-deletion'
+  /** Not mapped from a reason: offered when the pause recorded unreadable heads. */
+  | 'replace-backup';
 
 /** Stable action IDs used to select localized recovery copy. */
 export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecoveryAction> =
@@ -96,7 +98,13 @@ export interface StoredDeviceHead {
 
 export interface ListedDeviceHead {
   physicalId: string;
-  head: StoredDeviceHead;
+  /**
+   * Null when the file cannot be read as a head at all (not UTF-8, not
+   * canonical JSON). The engine skips it while a readable head exists.
+   */
+  head: StoredDeviceHead | null;
+  /** The device ID in the head's file name, for a head that cannot be read. */
+  keyDeviceId?: string;
   /** Compressed size of the head's snapshot when the provider already knows it. */
   snapshotBytes?: number;
 }
@@ -165,6 +173,12 @@ export interface SnapshotProvider {
     expectedBytes: Uint8Array,
   ): Promise<boolean>;
   updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void>;
+  /**
+   * Deletes one head file, by `ListedDeviceHead.physicalId`. Only a
+   * confirmed user action calls it ("Replace this backup"), for heads this
+   * device could not read; the snapshots they point to stay for retention.
+   */
+  deleteDeviceHead(vaultId: string, physicalId: string): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
   /**
    * False when a transfer policy would refuse media uploads now, such as
@@ -216,16 +230,14 @@ export interface DurableSyncState {
   pauseReason: SyncAttentionReason | null;
   pauseContext: string | null;
   lastErrorClass: string | null;
+  skippedHeads: SkippedHead[];
 }
 
 /** New attachments left out of the backup until uploads may run on Wi-Fi. */
 interface DeferredMediaResult {
   deferredMediaCount: number;
-  /**
-   * Other devices' heads left unread because their clock is more
-   * than 7 days ahead of this one (read again by later passes).
-   */
-  refusedHeads?: number;
+  /** Other devices' heads this pass skipped; see `SkippedHead`. */
+  skippedHeads?: SkippedHead[];
   /**
    * Entries this pass took back after a delete had been compacted on one
    * side: an edit the deleter had not seen returned them, with the values
@@ -234,6 +246,23 @@ interface DeferredMediaResult {
    * by the pass that brings an entry back on this device.
    */
   revivedEntries?: string[];
+}
+
+/**
+ * Another device's head the engine leaves out while at least one readable
+ * head exists (#185, P8). Nothing is deleted: the user can remove unreadable
+ * ones ("Replace this backup"), and a clock that is far ahead is read again
+ * once real time is within the bound of it.
+ */
+export interface SkippedHead {
+  physicalId: string;
+  /** From the head, or its file name; null when neither can be read. */
+  deviceId: string | null;
+  /** The snapshot it points to, when the head itself could be read. */
+  snapshotId: string | null;
+  reason: 'unreadable' | 'clock-ahead';
+  /** Clock ahead: the earliest time it can be read; until then it is not downloaded. */
+  retryAt?: number;
 }
 
 export type SnapshotSyncResult =

@@ -17,6 +17,7 @@ export type FakeProviderOperation =
   | 'upload-snapshot'
   | 'verify-snapshot'
   | 'update-head'
+  | 'delete-head'
   | 'has-media'
   | 'upload-media'
   | 'download-media'
@@ -139,9 +140,20 @@ export class FakeSnapshotProvider implements SnapshotProvider {
 
   removeDeviceHeadForTest(vaultId: string, deviceId: string): void {
     const remaining = (this.heads.get(vaultId) ?? []).filter(
-      (candidate) => candidate.head.deviceId !== deviceId,
+      (candidate) => candidate.head?.deviceId !== deviceId,
     );
     this.heads.set(vaultId, remaining);
+  }
+
+  /** A head file that cannot be read at all, as Drive lists a corrupt one. */
+  injectUnreadableHead(vaultId: string, keyDeviceId: string, physicalId?: string): void {
+    const values = this.heads.get(vaultId) ?? [];
+    values.push({
+      physicalId: physicalId ?? `physical-${++this.physicalSequence}`,
+      head: null,
+      keyDeviceId,
+    });
+    this.heads.set(vaultId, values);
   }
 
   snapshotIds(vaultId: string): string[] {
@@ -202,7 +214,8 @@ export class FakeSnapshotProvider implements SnapshotProvider {
   async updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void> {
     this.before('update-head');
     const values = (this.heads.get(vaultId) ?? []).filter(
-      (candidate) => candidate.head.deviceId !== head.deviceId,
+      (candidate) =>
+        (candidate.head?.deviceId ?? candidate.keyDeviceId) !== head.deviceId,
     );
     values.push({
       physicalId: `physical-${++this.physicalSequence}`,
@@ -210,6 +223,17 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     });
     this.heads.set(vaultId, values);
     this.takeFault('update-head', true);
+  }
+
+  async deleteDeviceHead(vaultId: string, physicalId: string): Promise<void> {
+    this.before('delete-head');
+    this.heads.set(
+      vaultId,
+      (this.heads.get(vaultId) ?? []).filter(
+        (candidate) => candidate.physicalId !== physicalId,
+      ),
+    );
+    this.takeFault('delete-head', true);
   }
 
   async hasMediaBatch(

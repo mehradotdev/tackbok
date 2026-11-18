@@ -19,7 +19,7 @@ const { FakeSnapshotProvider, MemorySnapshotMediaStore } =
   await import('../../src/lib/cloudSync/snapshot/sync/fakes');
 const { SQLiteSyncStateStore } =
   await import('../../src/lib/cloudSync/snapshot/sync/sqliteState');
-const { V2SyncEngine, ACK_INTERVAL_MS } =
+const { V2SyncEngine, ACK_INTERVAL_MS, NO_READABLE_HEAD, removeUnreadableHeads } =
   await import('../../src/lib/cloudSync/snapshot/sync/v2Engine');
 const { SnapshotProviderError } =
   await import('../../src/lib/cloudSync/snapshot/sync/types');
@@ -104,6 +104,14 @@ async function requests(operation: () => Promise<unknown>): Promise<string[]> {
   await operation();
   return provider.requests.slice(before);
 }
+const deviceIdOf = (target: Device) =>
+  (
+    target.database.sqlite
+      .query("SELECT device_id FROM sync_device WHERE id = 'self'")
+      .get() as {
+      device_id: string;
+    }
+  ).device_id;
 const count = (list: string[], name: string) =>
   list.filter((item) => item === name).length;
 
@@ -359,7 +367,7 @@ describe('versioning and safety', () => {
   test('old snapshots no head points to are deleted after 30 days', async () => {
     const a = device();
     await sync(a);
-    const first = provider.physicalHeads(VAULT)[0].head.snapshotId;
+    const first = provider.physicalHeads(VAULT)[0].head!.snapshotId;
     clock += 1000;
     await addEntry(a, 'e1');
     await sync(a);
@@ -478,8 +486,8 @@ describe('identity and clocks', () => {
     clock += 1000;
     await addEntry(a, 'e2');
     await sync(a);
-    provider.removeDeviceHeadForTest(VAULT, first.head.deviceId);
-    provider.injectPhysicalHead(first.head);
+    provider.removeDeviceHeadForTest(VAULT, first.head!.deviceId);
+    provider.injectPhysicalHead(first.head!);
     clock += 1000;
     await addEntry(a, 'e3');
     expect((await sync(a)).status).toBe('published');
@@ -496,13 +504,242 @@ describe('identity and clocks', () => {
     clock += 1000;
     await addEntry(a, 'mine');
     const result = await sync(a);
-    expect(result).toMatchObject({ status: 'published', refusedHeads: 1 });
+    expect(result).toMatchObject({
+      status: 'published',
+      skippedHeads: [{ reason: 'clock-ahead', deviceId: deviceIdOf(b) }],
+    });
     expect(texts(a)).toEqual(['mine:Text mine']);
-    expect(a.stateStore.loadState(VAULT, 'connection').pauseReason).toBeNull();
+    const durable = a.stateStore.loadState(VAULT, 'connection');
+    expect(durable.pauseReason).toBeNull();
+    expect(durable.skippedHeads).toHaveLength(1);
+    // Not downloaded again before it can fit, and still listed.
+    clock += DAY;
+    const made = await requests(() => sync(a));
+    expect(count(made, 'download-snapshot')).toBe(0);
+    expect(a.stateStore.loadState(VAULT, 'connection').skippedHeads).toHaveLength(1);
     // Once its clock is within the bound, the head is read.
-    clock += 31 * DAY;
+    clock += 30 * DAY;
     await sync(a);
     expect(texts(a)).toContain('ahead:From the future');
+  });
+});
+
+describe("other devices' bad heads (P8)", () => {
+  const skippedOf = (target: Device) =>
+    target.stateStore.loadState(VAULT, 'connection').skippedHeads;
+  /** A second device's journal, published, so the vault has a readable head. */
+  async function published(id: string) {
+    const other = device();
+    await addEntry(other, id);
+    await sync(other);
+    return other;
+  }
+
+  test('a head file that cannot be read is skipped while another head can be read', async () => {
+    await published('from-b');
+    provider.injectUnreadableHead(VAULT, 'dead-device', 'corrupt-file');
+    const a = device();
+    await addEntry(a, 'mine');
+    const result = await sync(a);
+    expect(result).toMatchObject({
+      status: 'published',
+      skippedHeads: [
+        {
+          physicalId: 'corrupt-file',
+          deviceId: 'dead-device',
+          snapshotId: null,
+          reason: 'unreadable',
+        },
+      ],
+    });
+    expect(texts(a)).toEqual(['from-b:Text from-b', 'mine:Text mine']);
+    expect(skippedOf(a)).toHaveLength(1);
+    // Never deleted automatically.
+    expect(provider.physicalHeads(VAULT).some((head) => head.head === null)).toBe(true);
+  });
+
+  test.each([
+    ['is missing', (_id: string) => {}],
+    [
+      'is corrupt',
+      (id: string) => provider.injectSnapshot(VAULT, id, new Uint8Array([1, 2, 3]), T),
+    ],
+  ])(
+    'a head whose snapshot %s is skipped, and not downloaded again until it moves',
+    async (_name, damage) => {
+      await published('from-b');
+      const snapshotId = 'e'.repeat(64);
+      damage(snapshotId);
+      provider.injectPhysicalHead({
+        format: 'tackbok-head',
+        major: 2,
+        required: [],
+        vaultId: VAULT,
+        deviceId: 'broken-device',
+        deviceSequence: 3,
+        snapshotId,
+        updatedAt: T,
+      } as never);
+      const a = device();
+      await addEntry(a, 'mine');
+      expect(await sync(a)).toMatchObject({
+        status: 'published',
+        skippedHeads: [{ deviceId: 'broken-device', snapshotId, reason: 'unreadable' }],
+      });
+      expect(texts(a)).toContain('from-b:Text from-b');
+      clock += 1000;
+      const made = await requests(() => sync(a));
+      expect(count(made, 'download-snapshot')).toBe(0);
+      expect(skippedOf(a)).toHaveLength(1);
+      // A day later it is read again (a missing snapshot may only be late).
+      clock += DAY;
+      const later = await requests(() => sync(a));
+      expect(count(later, 'download-snapshot')).toBe(1);
+      expect(skippedOf(a)).toHaveLength(1);
+    },
+  );
+
+  test('a snapshot that arrives late is taken in, and Replace keeps its head', async () => {
+    await published('from-b');
+    const late = device();
+    await addEntry(late, 'late-entry');
+    await sync(late);
+    const [lateHead] = provider
+      .physicalHeads(VAULT)
+      .filter((head) => head.head?.deviceId === deviceIdOf(late));
+    const bytes = await provider.downloadSnapshot(VAULT, lateHead.head!.snapshotId);
+    await provider.deleteSnapshot(VAULT, lateHead.head!.snapshotId);
+    const a = device();
+    await sync(a);
+    const skipped = skippedOf(a);
+    expect(skipped).toMatchObject([{ deviceId: deviceIdOf(late), reason: 'unreadable' }]);
+    // The snapshot shows up (a listing lag); Replace must not delete the head.
+    provider.injectSnapshot(VAULT, lateHead.head!.snapshotId, bytes!, clock);
+    expect(await removeUnreadableHeads(provider, VAULT, skipped)).toBe(0);
+    clock += DAY + 1000;
+    await sync(a);
+    expect(texts(a)).toContain('late-entry:Text late-entry');
+    expect(skippedOf(a)).toEqual([]);
+  });
+
+  test('retention deletes nothing while a head file cannot be read', async () => {
+    const a = device();
+    await sync(a);
+    const first = provider.physicalHeads(VAULT)[0].head!.snapshotId;
+    clock += 1000;
+    await addEntry(a, 'e1');
+    await sync(a);
+    provider.injectUnreadableHead(VAULT, 'dead-device');
+    clock += 31 * DAY;
+    await addEntry(a, 'e2');
+    await sync(a);
+    expect(provider.snapshotIds(VAULT)).toContain(first);
+  });
+
+  test('two snapshots under one sequence from another device skip that device', async () => {
+    const b = await published('from-b');
+    const [listed] = provider.physicalHeads(VAULT);
+    await published('from-c');
+    provider.injectPhysicalHead({ ...listed.head!, snapshotId: 'd'.repeat(64) });
+    const a = device();
+    const result = await sync(a);
+    expect(result.status).toBe('published');
+    expect(skippedOf(a).map((head) => head.deviceId)).toEqual([
+      deviceIdOf(b),
+      deviceIdOf(b),
+    ]);
+  });
+
+  test("this device's own unreadable head is published over", async () => {
+    const a = device();
+    await addEntry(a, 'mine');
+    await sync(a);
+    const own = deviceIdOf(a);
+    provider.removeDeviceHeadForTest(VAULT, own);
+    provider.injectUnreadableHead(VAULT, own);
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    expect(skippedOf(a)).toEqual([]);
+    expect(provider.physicalHeads(VAULT).map((head) => head.head?.deviceId)).toEqual([
+      own,
+    ]);
+  });
+
+  test('with no readable head the pass pauses; Replace removes the unreadable ones and publishes', async () => {
+    provider.injectUnreadableHead(VAULT, 'dead-device', 'corrupt-file');
+    const a = device();
+    await addEntry(a, 'mine');
+    const made = await requests(() => sync(a));
+    const durable = a.stateStore.loadState(VAULT, 'connection');
+    expect(durable.pauseReason).toBe('invalid-remote-snapshot');
+    expect(durable.lastErrorClass).toBe(NO_READABLE_HEAD);
+    expect(durable.skippedHeads.map((head) => head.physicalId)).toEqual(['corrupt-file']);
+    for (const name of ['upload-snapshot', 'update-head', 'delete-head'])
+      expect(count(made, name)).toBe(0);
+    // The confirmed action, as the Cloud backup screen runs it.
+    expect(await removeUnreadableHeads(provider, VAULT, durable.skippedHeads)).toBe(1);
+    a.stateStore.setSkippedHeads(VAULT, 'connection', []);
+    a.stateStore.clearPause(VAULT, 'connection');
+    expect((await sync(a)).status).toBe('published');
+    expect(provider.physicalHeads(VAULT).map((head) => head.head?.deviceId)).toEqual([
+      deviceIdOf(a),
+    ]);
+    const fresh = device();
+    await sync(fresh);
+    expect(texts(fresh)).toEqual(['mine:Text mine']);
+  });
+
+  test('with no readable head the pause clears by itself once a readable head appears', async () => {
+    const b = await published('from-b');
+    const [listed] = provider.physicalHeads(VAULT);
+    // B's head is briefly missing from the listing; only a damaged one is there.
+    provider.removeDeviceHeadForTest(VAULT, deviceIdOf(b));
+    provider.injectUnreadableHead(VAULT, 'dead-device');
+    const a = device();
+    await addEntry(a, 'mine');
+    await sync(a);
+    expect(a.stateStore.loadState(VAULT, 'connection').pauseReason).toBe(
+      'invalid-remote-snapshot',
+    );
+    clock += 1000;
+    expect((await sync(a)).status).toBe('attention');
+    provider.injectPhysicalHead(listed.head!);
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    expect(texts(a)).toContain('from-b:Text from-b');
+  });
+
+  test('Replace keeps a head that has changed since it was skipped', async () => {
+    const snapshotId = 'e'.repeat(64);
+    provider.injectPhysicalHead({
+      format: 'tackbok-head',
+      major: 2,
+      required: [],
+      vaultId: VAULT,
+      deviceId: 'broken-device',
+      deviceSequence: 3,
+      snapshotId,
+      updatedAt: T,
+    } as never);
+    const a = device();
+    await sync(a);
+    const skipped = a.stateStore.loadState(VAULT, 'connection').skippedHeads;
+    expect(skipped).toHaveLength(1);
+    // The device published again under the same file before the user chose.
+    const [broken] = provider
+      .physicalHeads(VAULT)
+      .filter((head) => head.head?.deviceId === 'broken-device');
+    provider.removeDeviceHeadForTest(VAULT, 'broken-device');
+    provider.injectPhysicalHead(
+      { ...broken.head!, deviceSequence: 4, snapshotId: 'c'.repeat(64) },
+      broken.physicalId,
+    );
+    expect(await removeUnreadableHeads(provider, VAULT, skipped)).toBe(0);
+    expect(
+      provider
+        .physicalHeads(VAULT)
+        .some((head) => head.head?.deviceId === 'broken-device'),
+    ).toBe(true);
   });
 });
 
@@ -534,7 +771,7 @@ describe('a pass stopped part way', () => {
       await sync(b);
       expect(texts(b)).toEqual(['e1:Text e1']);
       expect(
-        provider.physicalHeads(VAULT).filter(({ head }) => head.deviceId !== undefined),
+        provider.physicalHeads(VAULT).filter(({ head }) => head?.deviceId !== undefined),
       ).toHaveLength(2);
     },
   );

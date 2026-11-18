@@ -1,4 +1,4 @@
-import type { DurableSyncState, SyncAttentionReason } from './types';
+import type { DurableSyncState, SkippedHead, SyncAttentionReason } from './types';
 
 export interface SyncDatabase {
   execSync(source: string): void;
@@ -16,6 +16,17 @@ interface StateRow {
   pause_reason: SyncAttentionReason | null;
   pause_context_json: string | null;
   last_error_class: string | null;
+  skipped_heads_json: string | null;
+}
+
+export function parseSkippedHeads(json: string | null): SkippedHead[] {
+  if (!json) return [];
+  try {
+    const value: unknown = JSON.parse(json);
+    return Array.isArray(value) ? (value as SkippedHead[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 export class SQLiteSyncStateStore {
@@ -66,6 +77,7 @@ export class SQLiteSyncStateStore {
       pauseReason: row.pause_reason,
       pauseContext: row.pause_context_json,
       lastErrorClass: row.last_error_class,
+      skippedHeads: parseSkippedHeads(row.skipped_heads_json),
     };
   }
 
@@ -140,6 +152,23 @@ export class SQLiteSyncStateStore {
       reason,
       context,
       errorClass,
+      this.now(),
+      vaultId,
+      deviceId,
+    );
+  }
+
+  /** Other devices' heads the latest pass skipped; an empty list clears it. */
+  setSkippedHeads(
+    vaultId: string,
+    deviceId: string,
+    heads: readonly SkippedHead[],
+  ): void {
+    this.ensureStateRow(vaultId, deviceId);
+    this.database.runSync(
+      `UPDATE cloud_sync_state SET skipped_heads_json = ?, updated_at = ?
+       WHERE vault_id = ? AND device_id = ?`,
+      heads.length > 0 ? JSON.stringify(heads) : null,
       this.now(),
       vaultId,
       deviceId,
