@@ -21,4 +21,9 @@ const importGuides = defineCollection({
   schema: articleSchema,
 });
 
-export const collections = { importGuides };
+const comparisons = defineCollection({
+  loader: glob({ pattern: '*.md', base: './src/content/compare' }),
+  schema: articleSchema,
+});
+
+export const collections = { importGuides, comparisons };

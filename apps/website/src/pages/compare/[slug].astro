@@ -1,0 +1,21 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getCollection, render } from 'astro:content';
+import ArticlePage from '~/components/ArticlePage.astro';
+
+export const getStaticPaths = (async () => {
+  const comparisons = await getCollection('comparisons');
+  return comparisons.map((comparison) => ({
+    params: { slug: comparison.id },
+    props: { comparison },
+  }));
+}) satisfies GetStaticPaths;
+
+const { comparison } = Astro.props;
+const { Content } = await render(comparison);
+const { app, ...article } = comparison.data;
+---
+
+<ArticlePage {...article} eyebrow={`Comparison · Tackbok and ${app}`}>
+  <Content />
+</ArticlePage>
