@@ -374,6 +374,12 @@ export const syncDevice = sqliteTable('sync_device', {
   acks_json: text('acks_json').notNull().default('{}'),
   /** Highest compaction floor used, or null. */
   floor_json: text('floor_json'),
+  /**
+   * Old device IDs of this install waiting to be retired in their vault
+   * (`PendingRetirement[]`, `syncStamps.ts`): kept across a reset, written
+   * into the state at the next pass in that vault.
+   */
+  retired_json: text('retired_json').notNull().default('[]'),
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });

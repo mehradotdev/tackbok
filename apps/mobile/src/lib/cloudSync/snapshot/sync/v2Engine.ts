@@ -42,10 +42,17 @@
  */
 import { and, eq } from 'drizzle-orm';
 
-import { mediaAssets, runExclusiveDbTransaction, syncDevice, syncHeads } from '~/db';
+import {
+  mediaAssets,
+  runExclusiveDbTransaction,
+  syncDevice,
+  syncHeads,
+  syncRecords,
+} from '~/db';
 
 import { attentionReasonForProviderError } from '../../failureClassification';
 import type { CloudSyncTransaction } from '../../storage/repositories';
+import { parsePendingRetirements } from '../../storage/syncStamps';
 import {
   applySyncState,
   captureSyncState,
@@ -62,11 +69,17 @@ import {
   decodeEnvelope,
   encodeEnvelope,
 } from '../../v2/codec';
-import { absorb, activeDevices, compact } from '../../v2/compact';
+import {
+  absorb,
+  activeDevices,
+  compact,
+  retireDevice,
+  retiredDevices,
+} from '../../v2/compact';
 import { SyncJoinError } from '../../v2/join';
 import { markSeen, rewriteDates } from '../../v2/ops';
 import { isLive } from '../../v2/view';
-import type { SyncState, VersionVector } from '../../v2/types';
+import type { Ext, SyncState, VersionVector } from '../../v2/types';
 import { SnapshotValidationError } from '../caps';
 import { canonicalize } from '../canonical';
 import { AttentionError, RetryableSyncError, SyncCancelledError } from './errors';
@@ -316,13 +329,14 @@ export class V2SyncEngine {
       );
     this.requireReadable(readable || changed.length > 0, skipped, null);
     const ctx = await this.localContext();
+    const retiring = await this.pendingRetirements();
     const unpublished = await runExclusiveDbTransaction((tx) =>
       unpublishedAttachmentsInTransaction(tx as CloudSyncTransaction),
     );
     const plan = this.publication(ctx, deviceId, own, ownRecord);
     const mediaReady =
       unpublished.length > 0 && (await provider.mediaTransfersAllowed?.()) !== false;
-    if (changed.length === 0 && !plan.needed && !mediaReady) {
+    if (changed.length === 0 && !plan.needed && !mediaReady && retiring.length === 0) {
       await this.cleanup(deviceId, kept, false);
       return this.settle(durable.journalGeneration, skipped, {
         status: 'up-to-date',
@@ -382,7 +396,22 @@ export class V2SyncEngine {
         return joined;
       };
       const back = new Set<string>();
-      let state = joinAll(captured.state);
+      // This install's old IDs in this vault are retired with its own write,
+      // after the join: a rebuilt journal has not seen them on the roster yet.
+      const local = (base: SyncState) =>
+        retiring.reduce(
+          (next, old) => retireDevice(next, writer, old.deviceId, old.upTo),
+          base,
+        );
+      let state = local(joinAll(captured.state));
+      // This device's own ID was retired elsewhere and it has not published
+      // since: it is a copy of an install that left the ID (an old backup
+      // restored after "Delete all"). It may hold writes that read as
+      // replaced against ones it never saw, so it pauses before applying
+      // anything, as for another install using its ID.
+      const retiredAt = retiredDevices(state)[deviceId];
+      if (retiredAt !== undefined && (ownRecord?.ctx?.[deviceId] ?? -1) <= retiredAt)
+        throw new AttentionError('ambiguous-device-head', 'device-id-retired');
       // Mass-deletion guard: deletes from elsewhere that would hide a large
       // share of this journal wait for the user. "Keep" writes each entry
       // again here first, an edit those deletes had not seen, so it stays.
@@ -400,7 +429,7 @@ export class V2SyncEngine {
             token,
           );
         if (answer.choice === 'keep')
-          state = joinAll(rewriteDates(captured.state, writer, hidden));
+          state = local(joinAll(rewriteDates(captured.state, writer, hidden)));
       }
       publish = this.publication(state.ctx, deviceId, own, ownRecord).needed;
       if (publish) state = markSeen(state, writer);
@@ -409,8 +438,14 @@ export class V2SyncEngine {
       takenIn = remotes
         .map((remote) => remote.head)
         .filter((head) => !refused.some((entry) => entry.head === head));
-      const applied = await applySyncState(captured, state, this.options.files, (tx) =>
-        this.recordTakenIn(tx, takenIn),
+      const applied = await applySyncState(
+        captured,
+        state,
+        this.options.files,
+        async (tx) => {
+          await this.recordTakenIn(tx, takenIn);
+          if (retiring.length > 0) await this.clearPendingRetirements(tx);
+        },
       );
       await this.hooks.at?.('during-merge-application');
       if (applied) {
@@ -535,6 +570,42 @@ export class V2SyncEngine {
     if (this.now() < newest) return;
     if (highest - newest > MAX_CONTEXT_AHEAD_MS)
       throw new AttentionError('device-clock-ahead', 'local-context-ahead');
+  }
+
+  /** This install's old IDs in this vault, waiting to be retired (`resetSyncIdentityInTransaction`). */
+  private async pendingRetirements() {
+    const [device] = await runExclusiveDbTransaction((tx) =>
+      tx
+        .select({ retired: syncDevice.retired_json, installId: syncDevice.install_id })
+        .from(syncDevice)
+        .where(eq(syncDevice.id, 'self')),
+    );
+    // Only while still bound to the install that left the ID: a copy that
+    // reset ("Delete all") before its binding check rebound it would
+    // otherwise retire the original install's live ID.
+    return parsePendingRetirements(device?.retired).filter(
+      (old) => old.vaultId === this.vaultId && old.installId === device?.installId,
+    );
+  }
+
+  /**
+   * Recorded in the state with the apply: the other vaults' stay pending.
+   * One whose ID no state here has on its roster (it never published, or
+   * its head could not be read) is cleared without being recorded; that ID
+   * then only expires after 180 days, the conservative side.
+   */
+  private async clearPendingRetirements(tx: CloudSyncTransaction) {
+    const [device] = await tx
+      .select({ retired: syncDevice.retired_json })
+      .from(syncDevice)
+      .where(eq(syncDevice.id, 'self'));
+    const left = parsePendingRetirements(device?.retired).filter(
+      (old) => old.vaultId !== this.vaultId,
+    );
+    await tx
+      .update(syncDevice)
+      .set({ retired_json: JSON.stringify(left) })
+      .where(eq(syncDevice.id, 'self'));
   }
 
   private async localContext(): Promise<VersionVector> {
@@ -949,15 +1020,27 @@ export class V2SyncEngine {
    */
   private async pruneExpiredHeads(deviceId: string): Promise<string[]> {
     const { provider } = this.options;
-    const [device] = await runExclusiveDbTransaction((tx) =>
-      tx
-        .select({ roster: syncDevice.roster_json })
-        .from(syncDevice)
-        .where(eq(syncDevice.id, 'self')),
+    const [[device], [profile]] = await runExclusiveDbTransaction((tx) =>
+      Promise.all([
+        tx
+          .select({ roster: syncDevice.roster_json })
+          .from(syncDevice)
+          .where(eq(syncDevice.id, 'self')),
+        tx
+          .select({ ext: syncRecords.ext_json })
+          .from(syncRecords)
+          .where(
+            and(
+              eq(syncRecords.entity_type, 'profile'),
+              eq(syncRecords.entity_id, 'profile'),
+            ),
+          ),
+      ]),
     );
     if (!device) return [];
     const roster = JSON.parse(device.roster) as Record<string, number>;
-    const active = new Set(activeDevices({ roster }));
+    const ext = profile ? (JSON.parse(profile.ext) as Ext) : {};
+    const active = new Set(activeDevices({ roster, profile: { ext } }));
     const expired = new Set(
       Object.keys(roster).filter((id) => id !== deviceId && !active.has(id)),
     );

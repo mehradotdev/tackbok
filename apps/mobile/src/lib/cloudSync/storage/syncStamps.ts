@@ -311,21 +311,92 @@ export async function stampMembershipsInTransaction(
       .where(and(eq(entryTags.note_id, noteId), eq(entryTags.tag_id, tagId)));
 }
 
+/** An old device ID of this install, waiting to be retired in its vault. */
+export interface PendingRetirement {
+  vaultId: string;
+  deviceId: string;
+  /** Its highest HLC: retired up to this last-seen time. */
+  upTo: number;
+  /**
+   * The install binding the old ID had. It is retired only while the
+   * database is still bound to it: a copied database that is rebound later
+   * (`installBinding.ts`) carried another install's ID, which stays.
+   */
+  installId: string;
+}
+
+/** Old IDs are rare; a long list would only hold IDs of vaults left long ago. */
+const MAX_PENDING_RETIREMENTS = 16;
+
+const isPending = (value: unknown): value is PendingRetirement => {
+  const entry = value as Partial<PendingRetirement> | null;
+  return (
+    typeof entry === 'object' &&
+    entry !== null &&
+    typeof entry.vaultId === 'string' &&
+    entry.vaultId !== '' &&
+    typeof entry.deviceId === 'string' &&
+    entry.deviceId !== '' &&
+    typeof entry.installId === 'string' &&
+    entry.installId !== '' &&
+    Number.isSafeInteger(entry.upTo) &&
+    entry.upTo! >= 0
+  );
+};
+
+/** The stored list; malformed entries are left out. */
+export function parsePendingRetirements(
+  json: string | null | undefined,
+): PendingRetirement[] {
+  try {
+    const value = JSON.parse(json ?? '[]') as unknown;
+    return Array.isArray(value) ? value.filter(isPending) : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * After local state is lost ("Delete all", "Delete journal everywhere", the
- * local wipe): forget every record's metadata and take a new device ID with
- * an empty context. An ID is never reused once its state is gone, or another
- * device could read its new writes as ones it had already seen. The install
- * stays the same, so its binding stays (`installBinding.ts`).
+ * local wipe, a new vault binding): forget every record's metadata and take
+ * a new device ID with an empty context. An ID is never reused once its
+ * state is gone, or another device could read its new writes as ones it had
+ * already seen. The install stays the same, so its binding stays
+ * (`installBinding.ts`).
+ *
+ * The old ID, if it was bound to a vault and to this install, is dead: it
+ * is kept as a pending retirement, which the next pass in that vault
+ * records in the state (`retireDevice`), so the old ID stops holding back
+ * compaction there. A database not yet bound to an install (`install_id`
+ * null: it may be a copy that still carries another install's ID) retires
+ * nothing; that ID expires after 180 days instead.
  */
 export async function resetSyncIdentityInTransaction(
   tx: CloudSyncTransaction,
   now: number,
 ): Promise<void> {
   const [prior] = await tx
-    .select({ installId: syncDevice.install_id })
+    .select({
+      installId: syncDevice.install_id,
+      deviceId: syncDevice.device_id,
+      vaultId: syncDevice.vault_id,
+      ctx: syncDevice.ctx_json,
+      roster: syncDevice.roster_json,
+      retired: syncDevice.retired_json,
+    })
     .from(syncDevice)
     .where(eq(syncDevice.id, SELF));
+  const retired = parsePendingRetirements(prior?.retired);
+  if (prior?.vaultId && prior.installId) {
+    const ctx = JSON.parse(prior.ctx) as Record<string, number>;
+    const roster = JSON.parse(prior.roster) as Record<string, number>;
+    retired.push({
+      vaultId: prior.vaultId,
+      deviceId: prior.deviceId,
+      upTo: Math.max(ctx[prior.deviceId] ?? 0, roster[prior.deviceId] ?? 0),
+      installId: prior.installId,
+    });
+  }
   await tx.delete(syncRecords);
   await tx.delete(syncDeletedRecords);
   await tx.delete(syncFieldValues);
@@ -340,6 +411,7 @@ export async function resetSyncIdentityInTransaction(
     roster_json: '{}',
     acks_json: '{}',
     floor_json: null,
+    retired_json: JSON.stringify(retired.slice(-MAX_PENDING_RETIREMENTS)),
     created_at: now,
     updated_at: now,
   });

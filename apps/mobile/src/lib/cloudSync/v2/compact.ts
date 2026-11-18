@@ -17,6 +17,9 @@
  *   vault ever had (past its 256 KiB cap at 115 to 160). Only the active
  *   devices' acks are read, and a returning device sets its own again when
  *   it publishes. The engine prunes an expired device's head from Drive.
+ * - **Retired devices.** A device that knows one of its old IDs is dead
+ *   records it (`retireDevice`, under `RETIRED_DEVICES` on the profile), so
+ *   that ID stops counting as active without waiting 180 days.
  * - **Floor.** The meet (per-device minimum) of the active devices'
  *   acknowledgements (`acks`, set by `markSeen` before a publish). A device
  *   missing from any active acknowledgement is missing from the floor. No
@@ -71,22 +74,105 @@ import {
   vectorIncluded,
 } from './clock';
 import { join, pruneMedia } from './join';
-import type { Writer } from './ops';
-import type { DeviceId, EntryRecord, SyncState, VersionVector } from './types';
+import { writeExt, type Writer } from './ops';
+import type {
+  DeviceId,
+  EntryRecord,
+  ProfileRecord,
+  SyncState,
+  VersionVector,
+} from './types';
 import { isLive } from './view';
 
-/** Devices whose last-seen time is within `ROSTER_EXPIRY_MS` of the newest one. */
-export function activeDevices(state: Pick<SyncState, 'roster'>): DeviceId[] {
+/**
+ * Optional feature on the profile record (vault-wide data): device IDs that
+ * a device knows are dead, each with the last-seen time it was retired at.
+ * One item's value is `{ [deviceId]: lastSeenUpTo }`; concurrent items are
+ * read together. Builds that do not know the feature keep and join it, and
+ * only stop compaction from going ahead as early.
+ */
+export const RETIRED_DEVICES = 'retired-devices';
+
+type RosterAndProfile = Pick<SyncState, 'roster'> & {
+  readonly profile: Pick<ProfileRecord, 'ext'>;
+};
+
+/**
+ * Device -> the last-seen time up to which it is retired, from every item
+ * of `RETIRED_DEVICES`. Another device wrote them, so a malformed value is
+ * ignored rather than refused.
+ */
+export function retiredDevices(state: {
+  readonly profile: Pick<ProfileRecord, 'ext'>;
+}): Record<DeviceId, number> {
+  const result: Record<DeviceId, number> = {};
+  for (const item of state.profile.ext[RETIRED_DEVICES] ?? []) {
+    const value = item.v;
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) continue;
+    for (const [device, upTo] of Object.entries(value))
+      if (typeof upTo === 'number' && Number.isSafeInteger(upTo) && upTo >= 0)
+        result[device] = Math.max(result[device] ?? upTo, upTo);
+  }
+  return result;
+}
+
+/** Whether the device wrote or published within `ROSTER_EXPIRY_MS` of the newest one. */
+function recentlySeen(roster: SyncState['roster'], newest: number, device: DeviceId) {
+  // A clock up to the bound ahead must not expire anyone early.
+  return newest - roster[device] <= ROSTER_EXPIRY_MS + MAX_CONTEXT_AHEAD_MS;
+}
+
+/**
+ * Devices whose last-seen time is within `ROSTER_EXPIRY_MS` of the newest
+ * one and that are not retired: a retired device is active again only once
+ * it is seen after the time it was retired at.
+ */
+export function activeDevices(state: RosterAndProfile): DeviceId[] {
   const newest = highestHlc(state.roster);
-  return (
-    Object.keys(state.roster)
-      // A clock up to the bound ahead must not expire anyone early.
-      .filter(
-        (device) =>
-          newest - state.roster[device] <= ROSTER_EXPIRY_MS + MAX_CONTEXT_AHEAD_MS,
-      )
-      .sort()
-  );
+  const retired = retiredDevices(state);
+  return Object.keys(state.roster)
+    .filter(
+      (device) =>
+        recentlySeen(state.roster, newest, device) &&
+        !(retired[device] !== undefined && state.roster[device] <= retired[device]),
+    )
+    .sort();
+}
+
+/**
+ * Records that `device`, as of last-seen time `upTo`, will never write or
+ * publish again: its local state is gone ("Delete all", a new vault binding)
+ * or every write it had moved to another ID (`continueAsNewDevice` after a
+ * clock far ahead). Its acknowledgement then stops holding back compaction
+ * at once, instead of after 180 days, and its head is pruned. Never for an
+ * ID another install may still use (a cloned or restored copy): retiring a
+ * device that can still publish edits it made before seeing a delete would
+ * let compaction drop values those edits need, which only the 180-day rule
+ * accepts. If a retired ID does publish again (an old backup restored onto
+ * the same phone), its last-seen time passes `upTo` and it is active again;
+ * until then it is treated like a device back after 180 days.
+ *
+ * Entries for devices expired anyway (or not on the roster) are dropped as
+ * the record is written, so it stays small. An ID never on the roster is
+ * not recorded. A copy of a retired ID that has not published since it was
+ * retired pauses instead of syncing (the engine treats it as another
+ * install using this ID).
+ */
+export function retireDevice(
+  state: SyncState,
+  writer: Writer,
+  device: DeviceId,
+  upTo: number,
+): SyncState {
+  // Never seen in this vault: nothing to stop counting.
+  if (!(device in state.roster)) return state;
+  const newest = highestHlc(state.roster);
+  const current = retiredDevices(state);
+  const value: Record<DeviceId, number> = {};
+  for (const [id, at] of Object.entries(current))
+    if (id in state.roster && recentlySeen(state.roster, newest, id)) value[id] = at;
+  value[device] = Math.max(value[device] ?? 0, Math.max(0, Math.floor(upTo)));
+  return writeExt(state, writer, { kind: 'profile' }, RETIRED_DEVICES, value, 'all');
 }
 
 /** The meet of the active devices' acknowledgements, or null while one has none. */
