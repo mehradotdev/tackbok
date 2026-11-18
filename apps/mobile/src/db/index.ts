@@ -21,9 +21,9 @@ sqlite.execSync('PRAGMA busy_timeout = 2000');
 sqlite.execSync('PRAGMA journal_mode = WAL');
 
 // On Apple platforms, SQLite's fullfsync pragmas make FULL synchronous commits
-// and WAL checkpoints use F_FULLFSYNC instead of ordinary fsync. This covers
-// the durable publisher/checkpoint transaction; AtomicFileModule covers
-// the app-private base-shadow file before its SQLite checkpoint is committed.
+// and WAL checkpoints use F_FULLFSYNC instead of ordinary fsync, so a sync
+// apply and the records it writes in the same transaction survive power loss;
+// AtomicFileModule does the same for downloaded media files.
 // Do not apply these Apple-specific pragmas to Android, whose fsync primitive
 // and storage stack have different semantics.
 if (Platform.OS === 'ios') {

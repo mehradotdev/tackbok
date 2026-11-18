@@ -1,13 +1,8 @@
 import {
-  cloudBaseShadow,
-  cloudConflicts,
   cloudDriveObjects,
   cloudDriveState,
   cloudDriveUploadSessions,
-  cloudPendingPublication,
-  cloudShadowReaper,
   cloudSyncState,
-  cloudTombstones,
   cloudVault,
   mediaAssets,
   syncMediaObligations,
@@ -36,11 +31,6 @@ export async function wipeLocalJournalInTransaction(
   await tx.delete(cloudDriveUploadSessions);
   await tx.delete(cloudDriveObjects);
   await tx.delete(cloudDriveState);
-  await tx.delete(cloudPendingPublication);
-  await tx.delete(cloudBaseShadow);
-  await tx.delete(cloudShadowReaper);
-  await tx.delete(cloudConflicts);
-  await tx.delete(cloudTombstones);
   await tx.delete(cloudSyncState);
   await tx.delete(syncMediaObligations);
   await tx.delete(syncRetainedMedia);

@@ -1,13 +1,11 @@
 /**
- * Cloud sync v2 data model (issue #185, Phase 0). Pure data: not wired into
- * storage, the engine or the UI.
+ * Cloud sync v2 data model (issue #185).
  *
  * In memory, stamps and version vectors name devices by ID. The codec maps
  * IDs to indexes into the snapshot's roster, so stamps stay small on Drive.
  */
-import type { AssetKind, Mood } from '../snapshot/types';
-
-export type { AssetKind, Mood };
+export type Mood = 'AMAZING' | 'HAPPY' | 'OKAY' | 'SAD' | 'AWFUL';
+export type AssetKind = 'photo' | 'voice' | 'profile-photo';
 
 export type DeviceId = string;
 

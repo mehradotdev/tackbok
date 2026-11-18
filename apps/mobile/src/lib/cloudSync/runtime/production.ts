@@ -148,7 +148,6 @@ async function retryBackfill(): Promise<void> {
     profileName: settings.profileName,
     profileEmail: settings.profileEmail,
     profileImageUri: settings.profileImageUri,
-    priorAppUse: settings._hadSavedSettings || settings.hasCompletedOnboarding,
   });
 }
 

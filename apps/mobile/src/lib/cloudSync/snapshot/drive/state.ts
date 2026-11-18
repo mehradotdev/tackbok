@@ -1,4 +1,4 @@
-import type { DeviceHead } from '../sync/types';
+import type { StoredDeviceHead } from '../sync/types';
 import type { SyncDatabase } from '../sync/sqliteState';
 
 export type DriveObjectKind = 'snapshot' | 'head' | 'media' | 'revocation';
@@ -10,7 +10,7 @@ export interface DriveFileRecord {
   contentSha256: string;
   byteCount: number;
   createdAt: number | null;
-  head: DeviceHead | null;
+  head: StoredDeviceHead | null;
 }
 
 export interface DriveDiscoveryState {
@@ -454,10 +454,10 @@ export class SQLiteDriveProviderStateStore implements DriveProviderStateStore {
   }
 
   private fileFromRow(row: FileRow): DriveFileRecord {
-    let head: DeviceHead | null = null;
+    let head: StoredDeviceHead | null = null;
     if (row.head_json) {
       try {
-        head = JSON.parse(row.head_json) as DeviceHead;
+        head = JSON.parse(row.head_json) as StoredDeviceHead;
       } catch {
         head = null;
       }

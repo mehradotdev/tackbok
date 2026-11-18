@@ -6,14 +6,12 @@ import {
   syncDeletedRecords,
   syncFieldValues,
   syncRecords,
-  cloudTombstones,
   cloudVault,
   customPrompts,
   db,
   entries,
   entryTags,
   mediaAssets,
-  profilePristineMarker,
   runExclusiveDbTransaction,
   syncMediaObligations,
   syncRetainedMedia,
@@ -25,8 +23,6 @@ import {
 import { AssetType, type Asset } from '~/types';
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
 import { notifyCloudSyncMutationCommitted } from '../runtime/mutationSignal';
-import { canonicalHash } from '../snapshot/canonical';
-import type { SnapshotEntry, SnapshotPrompt, SnapshotTag } from '../snapshot/types';
 import {
   dropEqualVersionsInTransaction,
   dropMemberStampsInTransaction,
@@ -55,8 +51,6 @@ export interface MutationContext {
   batchId?: string | null;
   now?: number;
   createdAt?: number;
-  /** Canonical snapshot entity hash captured before a local delete. */
-  deletedStateHash?: string | null;
   /**
    * Sync v2: false when the caller resets the sync identity in the same
    * transaction ("Delete all"), so per-record stamps would be thrown away.
@@ -101,17 +95,14 @@ async function markNormalized(
 }
 
 /**
- * Advances the snapshot journal generation for an active cloud vault.
- * Offline/local-only journals need no queue row: their complete normalized
- * state is captured when a cloud vault is later connected.
+ * Advances the snapshot journal generation for an active cloud vault and
+ * marks it dirty. Offline/local-only journals need nothing: their stamps are
+ * captured when a cloud vault is later connected.
  */
 export async function enqueueMutation(
   tx: CloudSyncTransaction,
-  entityType: SyncEntityType,
-  entityId: string,
-  action: 'upsert' | 'delete',
   context: MutationContext = {},
-): Promise<{ changeId: string; generation: number }> {
+): Promise<void> {
   const now = context.now ?? Date.now();
 
   const [syncVault] = await tx
@@ -148,66 +139,14 @@ export async function enqueueMutation(
           eq(cloudSyncState.device_id, syncVault.deviceId),
         ),
       );
-    const [state] = await tx
-      .select({ generation: cloudSyncState.journal_generation })
-      .from(cloudSyncState)
-      .where(
-        and(
-          eq(cloudSyncState.vault_id, syncVault.vaultId),
-          eq(cloudSyncState.device_id, syncVault.deviceId),
-        ),
-      )
-      .limit(1);
-    if (!state) throw new Error('Failed to advance snapshot journal generation');
 
-    if (action === 'delete') {
-      await tx
-        .insert(cloudTombstones)
-        .values({
-          vault_id: syncVault.vaultId,
-          entity_type: entityType,
-          entity_id: entityId,
-          base_state_hash: null,
-          deleted_state_hash: context.deletedStateHash ?? null,
-          deleted_by_device_id: syncVault.deviceId,
-          deletion_sequence: state.generation,
-          updated_at: now,
-        })
-        .onConflictDoUpdate({
-          target: [
-            cloudTombstones.vault_id,
-            cloudTombstones.entity_type,
-            cloudTombstones.entity_id,
-          ],
-          set: {
-            base_state_hash: null,
-            deleted_state_hash: context.deletedStateHash ?? null,
-            deleted_by_device_id: syncVault.deviceId,
-            deletion_sequence: state.generation,
-            updated_at: now,
-          },
-        });
-    } else {
-      await tx
-        .delete(cloudTombstones)
-        .where(
-          and(
-            eq(cloudTombstones.vault_id, syncVault.vaultId),
-            eq(cloudTombstones.entity_type, entityType),
-            eq(cloudTombstones.entity_id, entityId),
-          ),
-        );
-    }
     if (syncVault.status !== 'paused' && syncVault.status !== 'restoring') {
       await tx
         .update(cloudVault)
         .set({ status: 'dirty', updated_at: now })
         .where(eq(cloudVault.vault_id, syncVault.vaultId));
     }
-    return { changeId: randomUUID(), generation: state.generation };
   }
-
-  return { changeId: randomUUID(), generation: 0 };
 }
 
 async function retainMediaRow(
@@ -462,7 +401,7 @@ export async function upsertEntryInTransaction(
   await stampEntryWrite(tx, entry, previous, previousTags, previousAssets, now);
   await markNormalized(tx, 'entry', entry.note_id, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    await enqueueMutation(tx, 'entry', entry.note_id, 'upsert', { ...context, now });
+    await enqueueMutation(tx, { ...context, now });
   }
 }
 
@@ -599,22 +538,7 @@ export async function deleteEntryInTransaction(
   await tx.delete(entries).where(eq(entries.note_id, noteId));
   await markNormalized(tx, 'entry', noteId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotEntry | null = entry
-      ? {
-          entryId: entry.note_id,
-          title: entry.text_title,
-          content: entry.text_content,
-          mood: entry.mood ?? null,
-          createdAt: entry.created_at,
-          updatedAt: entry.updated_at,
-          conflictOriginId: entry.conflict_origin_id,
-        }
-      : null;
-    await enqueueMutation(tx, 'entry', noteId, 'delete', {
-      ...context,
-      now,
-      deletedStateHash: deletedState ? canonicalHash(deletedState) : null,
-    });
+    await enqueueMutation(tx, { ...context, now });
   }
   return entry;
 }
@@ -699,7 +623,7 @@ export async function createTagInTransaction(
   await stampWriteInTransaction(tx, 'tag', tagId, ['title'], now);
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    await enqueueMutation(tx, 'tag', tagId, 'upsert', { ...context, now });
+    await enqueueMutation(tx, { ...context, now });
   }
   return tagId;
 }
@@ -727,7 +651,7 @@ export async function updateTagInTransaction(
     await stampWriteInTransaction(tx, 'tag', tagId, ['title'], now);
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    await enqueueMutation(tx, 'tag', tagId, 'upsert', { ...context, now });
+    await enqueueMutation(tx, { ...context, now });
   }
 }
 
@@ -771,26 +695,13 @@ export async function deleteTagInTransaction(
       .where(and(eq(entryTags.note_id, relation.note_id), eq(entryTags.tag_id, tagId)));
     await dropMemberStampsInTransaction(tx, relation.note_id, 'tags', [tagId]);
     if (context.origin !== 'remote' && context.origin !== 'migration') {
-      await enqueueMutation(tx, 'entry', relation.note_id, 'upsert', { ...context, now });
+      await enqueueMutation(tx, { ...context, now });
     }
   }
   await tx.delete(tags).where(eq(tags.tag_id, tagId));
   await markNormalized(tx, 'tag', tagId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotTag | null = deletedTag
-      ? {
-          tagId: deletedTag.tag_id,
-          title: deletedTag.title,
-          createdAt: deletedTag.created_at,
-          updatedAt: deletedTag.updated_at,
-          conflictOriginId: deletedTag.conflict_origin_id,
-        }
-      : null;
-    await enqueueMutation(tx, 'tag', tagId, 'delete', {
-      ...context,
-      now,
-      deletedStateHash: deletedState ? canonicalHash(deletedState) : null,
-    });
+    await enqueueMutation(tx, { ...context, now });
   }
 }
 
@@ -813,7 +724,7 @@ export async function createPromptInTransaction(
   await stampWriteInTransaction(tx, 'prompt', promptId, ['title'], now);
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    await enqueueMutation(tx, 'prompt', promptId, 'upsert', { ...context, now });
+    await enqueueMutation(tx, { ...context, now });
   }
   return promptId;
 }
@@ -841,7 +752,7 @@ export async function updatePromptInTransaction(
     await stampWriteInTransaction(tx, 'prompt', promptId, ['title'], now);
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    await enqueueMutation(tx, 'prompt', promptId, 'upsert', { ...context, now });
+    await enqueueMutation(tx, { ...context, now });
   }
 }
 
@@ -867,41 +778,8 @@ export async function deletePromptInTransaction(
   await tx.delete(customPrompts).where(eq(customPrompts.prompt_id, promptId));
   await markNormalized(tx, 'prompt', promptId, now);
   if (context.origin !== 'remote' && context.origin !== 'migration') {
-    const deletedState: SnapshotPrompt | null = deletedPrompt
-      ? {
-          promptId: deletedPrompt.prompt_id,
-          title: deletedPrompt.title,
-          createdAt: deletedPrompt.created_at,
-          updatedAt: deletedPrompt.updated_at,
-          conflictOriginId: deletedPrompt.conflict_origin_id,
-        }
-      : null;
-    await enqueueMutation(tx, 'prompt', promptId, 'delete', {
-      ...context,
-      now,
-      deletedStateHash: deletedState ? canonicalHash(deletedState) : null,
-    });
+    await enqueueMutation(tx, { ...context, now });
   }
-}
-
-/**
- * Whether this device's profile was provably never authored, imported,
- * backfilled, or received from the cloud. This is local provenance, not
- * derived from synced data: identical snapshot values can also be a
- * deliberate clear made elsewhere.
- */
-export async function isLocalProfilePristine(tx: CloudSyncTransaction): Promise<boolean> {
-  const [marker] = await tx
-    .select()
-    .from(profilePristineMarker)
-    .where(eq(profilePristineMarker.profile_id, PROFILE_ROW_ID))
-    .limit(1);
-  return marker !== undefined;
-}
-
-/** Records that this device's profile now has authored or received content. */
-export async function markLocalProfileTouched(tx: CloudSyncTransaction): Promise<void> {
-  await tx.delete(profilePristineMarker);
 }
 
 export interface ProfileUpdate {
@@ -1053,13 +931,12 @@ export async function updateProfileInTransaction(
       );
   }
   await markNormalized(tx, 'profile', PROFILE_ENTITY_ID, now);
-  if (syncFieldsChanged) await markLocalProfileTouched(tx);
   if (
     syncFieldsChanged &&
     context.origin !== 'remote' &&
     context.origin !== 'migration'
   ) {
-    await enqueueMutation(tx, 'profile', PROFILE_ENTITY_ID, 'upsert', {
+    await enqueueMutation(tx, {
       ...context,
       now,
     });

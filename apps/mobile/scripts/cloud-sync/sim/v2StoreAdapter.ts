@@ -85,8 +85,7 @@ interface EntryRow {
 
 export class V2StoreAdapter implements SimAdapter {
   readonly name: string;
-  readonly supportsKeepBoth = true;
-  readonly v2Events = { maxAheadMs: MAX_CONTEXT_AHEAD_MS };
+  readonly maxAheadMs = MAX_CONTEXT_AHEAD_MS;
   /** The model, for the app's writes that go through the apply. */
   private readonly model: V2Adapter;
   private readonly databases: SqliteDevice[];

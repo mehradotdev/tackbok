@@ -21,9 +21,8 @@
  * Removing a deleted tag from its entries is a side effect, not an edit of
  * them, so those entries get no stamp.
  *
- * v1 sync's remote applies never kept this metadata, so the first v2 sync
- * with a vault rebuilds it from the journal under a new device ID
- * (`rebuildSyncMetadataInTransaction`).
+ * The first sync with a vault rebuilds it from the journal under a new device
+ * ID (`rebuildSyncMetadataInTransaction`).
  */
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';

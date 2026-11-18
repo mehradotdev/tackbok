@@ -10,7 +10,6 @@ const mockTransaction = jest.fn(
 const mockUpdateProfileInTransaction = jest.fn(
   async (_tx?: unknown, _profile?: unknown) => undefined,
 );
-const mockMarkLocalProfileTouched = jest.fn(async (_tx?: unknown) => undefined);
 const mockSetProfileEmail = jest.fn(async (_email: string | null) => undefined);
 const mockSetState = jest.fn((_state: unknown) => undefined);
 const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
@@ -52,7 +51,6 @@ jest.mock('~/lib/cloudSync/storage/repositories', () => ({
   ...jest.requireActual('~/lib/cloudSync/storage/repositories'),
   updateProfileInTransaction: (txArg: unknown, profile: unknown) =>
     mockUpdateProfileInTransaction(txArg, profile),
-  markLocalProfileTouched: (txArg: unknown) => mockMarkLocalProfileTouched(txArg),
 }));
 
 jest.mock('../archiveUtils', () => ({
@@ -164,7 +162,7 @@ describe('importFromGratitudeAppBackup profile name', () => {
     mockProfile.imagePath = null;
   });
 
-  it('ends pristine status in the same transaction as an explicit empty name', async () => {
+  it('writes an explicit empty name in its own transaction', async () => {
     mockProfile.name = '  ';
     const order: string[] = [];
     // The first transaction imports entries; the second writes the profile.
@@ -179,9 +177,6 @@ describe('importFromGratitudeAppBackup profile name', () => {
     mockUpdateProfileInTransaction.mockImplementationOnce(async () => {
       order.push('write');
     });
-    mockMarkLocalProfileTouched.mockImplementationOnce(async () => {
-      order.push('touch');
-    });
 
     const summary = await importFromGratitudeAppBackup('backup.zip', 'overwrite');
 
@@ -189,8 +184,7 @@ describe('importFromGratitudeAppBackup profile name', () => {
     expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(tx, {
       displayName: null,
     });
-    expect(mockMarkLocalProfileTouched).toHaveBeenCalledWith(tx);
-    expect(order).toEqual(['begin', 'write', 'touch', 'commit']);
+    expect(order).toEqual(['begin', 'write', 'commit']);
     expect(mockSetState).toHaveBeenCalledWith({ profileName: null });
   });
 
@@ -200,6 +194,5 @@ describe('importFromGratitudeAppBackup profile name', () => {
     await importFromGratitudeAppBackup('backup.zip', 'overwrite');
 
     expect(mockUpdateProfileInTransaction).not.toHaveBeenCalled();
-    expect(mockMarkLocalProfileTouched).not.toHaveBeenCalled();
   });
 });

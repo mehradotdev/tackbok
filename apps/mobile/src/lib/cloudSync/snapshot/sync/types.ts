@@ -1,9 +1,3 @@
-import type {
-  JournalSnapshotPayload,
-  ObservedDeviceHead,
-  SnapshotDomain,
-} from '../types';
-
 export type SyncAttentionReason =
   | 'authorization-required'
   | 'account-mismatch'
@@ -77,30 +71,13 @@ export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecovery
     'cleanup-inconsistent': 'verify-backup-health',
   };
 
-export type PendingPublicationStage =
-  | 'candidate-persisted'
-  | 'snapshot-uploaded'
-  | 'snapshot-verified'
-  | 'head-advanced'
-  | 'domain-applied';
-
-export interface DeviceHead {
-  format: 'tackbok-device-head';
-  vaultId: string;
-  deviceId: string;
-  deviceSequence: number;
-  snapshotId: string;
-  updatedAt: number;
-}
-
 /**
- * Cloud sync v2 device head (#185). A new format string, so a 1.x build
- * reads it as an unknown format and asks for an update instead of merging.
- * `major` and `required` follow the snapshot's versioning rules: an unknown
- * major version or required feature pauses sync and asks for an update
- * before any snapshot is downloaded, and nothing is written or deleted.
+ * A device head (#185). `major` and `required` follow the snapshot's
+ * versioning rules: an unknown major version or required feature pauses sync
+ * and asks for an update before any snapshot is downloaded, and nothing is
+ * written or deleted.
  */
-export interface DeviceHeadV2 {
+export interface DeviceHead {
   format: 'tackbok-head';
   major: number;
   /** Required features of the snapshot it points to. */
@@ -112,9 +89,22 @@ export interface DeviceHeadV2 {
   updatedAt: number;
 }
 
+/**
+ * A head as stored on the provider: canonical JSON whose format and shape
+ * the engine has not checked yet (`V2SyncEngine.readHeads`).
+ */
+export interface StoredDeviceHead {
+  format: string;
+  vaultId: string;
+  deviceId: string;
+  deviceSequence: number;
+  snapshotId: string;
+  updatedAt: number;
+}
+
 export interface ListedDeviceHead {
   physicalId: string;
-  head: DeviceHead;
+  head: StoredDeviceHead;
   /** Compressed size of the head's snapshot when the provider already knows it. */
   snapshotBytes?: number;
 }
@@ -182,7 +172,7 @@ export interface SnapshotProvider {
     snapshotId: string,
     expectedBytes: Uint8Array,
   ): Promise<boolean>;
-  updateDeviceHead(vaultId: string, head: DeviceHead | DeviceHeadV2): Promise<void>;
+  updateDeviceHead(vaultId: string, head: DeviceHead): Promise<void>;
   hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
   /**
    * False when a transfer policy would refuse media uploads now, such as
@@ -219,75 +209,10 @@ export interface MediaDownloadSink {
   verifyAndPromote(expectedByteLength: number, expectedSha256: string): Promise<void>;
 }
 
-export interface CapturedJournal {
-  domain: SnapshotDomain;
-  generation: number;
-  /**
-   * Local provenance, never synced: this device's profile was never authored,
-   * imported, backfilled, or received from the cloud.
-   */
-  localProfilePristine: boolean;
-}
-
-/**
- * The production adapter binds this interface to transaction-scoped
- * normalized-domain repositories; tests use an in-memory implementation.
- */
-export interface SnapshotJournalStore {
-  capture(): Promise<CapturedJournal>;
-  /**
-   * Called with the conflict IDs the remote heads hold before the plan's
-   * journal apply, so a store can tell conflicts imported with a restore
-   * from conflicts this device's merge creates.
-   */
-  rememberRemoteConflicts?(conflictIds: readonly string[]): Promise<void>;
-  /**
-   * `remoteDerived` is false only when the domain holds nothing but this
-   * device's own data, such as a solo publication. Only remote-derived
-   * applies end local profile provenance.
-   */
-  applyMergedIfGeneration(
-    domain: SnapshotDomain,
-    expectedGeneration: number,
-    options: { remoteDerived: boolean },
-  ): Promise<boolean>;
-}
-
 export interface SnapshotMediaStore {
   hasVerified(blobHash: string): Promise<boolean>;
   openVerifiedSource(blobHash: string): Promise<MediaUploadSource | null>;
   openDownloadSink(blobHash: string): Promise<MediaDownloadSink>;
-}
-
-export interface BaseShadowFileStore {
-  writeTempAndFsync(fileName: string, bytes: Uint8Array): Promise<void>;
-  read(fileName: string): Promise<Uint8Array>;
-  replaceAndFsync(tempFileName: string, finalFileName: string): Promise<void>;
-  quarantine(fileName: string): Promise<void>;
-  delete(fileName: string): Promise<void>;
-}
-
-export interface BaseShadowCheckpoint {
-  vaultId: string;
-  deviceId: string;
-  snapshotId: string;
-  fileName: string;
-  canonicalSha256: string;
-  byteCount: number;
-  committedGeneration: number;
-}
-
-export interface PendingPublication {
-  vaultId: string;
-  deviceId: string;
-  snapshotId: string;
-  deviceSequence: number;
-  capturedGeneration: number;
-  compressedBytes: Uint8Array;
-  mediaHashes: string[];
-  stage: PendingPublicationStage;
-  createdAt: number;
-  updatedAt: number;
 }
 
 export interface DurableSyncState {
@@ -305,7 +230,7 @@ export interface DurableSyncState {
 interface DeferredMediaResult {
   deferredMediaCount: number;
   /**
-   * Sync v2: other devices' heads left unread because their clock is more
+   * Other devices' heads left unread because their clock is more
    * than 7 days ahead of this one (read again by later passes).
    */
   refusedHeads?: number;
@@ -330,28 +255,15 @@ export type SnapshotSyncResult =
       actionableChanges: number;
     };
 
-export interface BaseShadow {
-  format: 'tackbok-base-shadow';
-  vaultId: string;
-  snapshotId: string;
-  acceptedDeviceHeads: ObservedDeviceHead[];
-  payload: JournalSnapshotPayload;
-}
-
 export type SnapshotKillPoint =
   | 'after-local-mutation'
   | 'during-media-inspection'
   | 'during-media-transfer'
-  | 'after-candidate-persisted'
   | 'after-snapshot-uploaded'
   | 'after-snapshot-verified'
   | 'after-head-advanced'
   | 'during-remote-snapshot-download'
   | 'during-merge-application'
-  | 'after-base-shadow-temp-fsynced'
-  | 'after-base-shadow-readback'
-  | 'after-base-shadow-renamed'
-  | 'after-base-checkpoint-settled'
   | 'during-snapshot-cleanup';
 
 /**
@@ -431,5 +343,4 @@ export interface SnapshotSyncHooks {
   at?(point: SnapshotKillPoint): void | Promise<void>;
   activity?(activity: SnapshotSyncActivity): void;
   progress?(report: SyncProgressReport): void;
-  beforeHeadRecheck?(): void | Promise<void>;
 }

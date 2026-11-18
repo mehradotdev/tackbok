@@ -4,7 +4,7 @@
  * 1. Revocations ("Delete journal everywhere", "Delete backup") stop it.
  * 2. The local metadata is bound to this vault; the first pass with a vault
  *    (or with another one) rebuilds it under a new device ID
- *    (`rebuildSyncMetadataInTransaction`). That is the v1 -> v2 cutover.
+ *    (`rebuildSyncMetadataInTransaction`).
  * 3. Heads are listed and checked. A head of an unknown major version or
  *    with an unknown required feature pauses sync and asks for an update,
  *    before anything is downloaded, written or deleted.
@@ -62,7 +62,7 @@ import {
   isolateProgress,
   LocalStorageError,
   SnapshotProviderError,
-  type DeviceHeadV2,
+  type DeviceHead,
   type ListedDeviceHead,
   type MediaUploadSource,
   type SnapshotMediaStore,
@@ -72,8 +72,6 @@ import {
 } from './types';
 
 export const HEAD_FORMAT = 'tackbok-head';
-/** v1's head format: a 1.x device's head, which this build neither reads nor deletes. */
-const V1_HEAD_FORMAT = 'tackbok-device-head';
 /** How long other devices' writes may wait for this device's acknowledgement. */
 export const ACK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Local writes during a pass make the apply refuse; it captures and joins again. */
@@ -112,7 +110,7 @@ const isCount = (value: unknown): value is number =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 
 /** The head if it has the v2 shape; versioning is checked first by the caller. */
-function headShape(value: Record<string, unknown>): DeviceHeadV2 | null {
+function headShape(value: Record<string, unknown>): DeviceHead | null {
   const required = value.required;
   if (
     !isCount(value.major) ||
@@ -125,7 +123,7 @@ function headShape(value: Record<string, unknown>): DeviceHeadV2 | null {
     !isCount(value.updatedAt)
   )
     return null;
-  return value as unknown as DeviceHeadV2;
+  return value as unknown as DeviceHead;
 }
 
 function sameVector(left: VersionVector | null, right: VersionVector): boolean {
@@ -183,7 +181,7 @@ export class V2SyncEngine {
     // Versioning first: a head this build cannot read stops the pass before
     // anything is written or deleted, here or on the provider.
     const heads = this.readHeads(listed);
-    // Every listed head's snapshot is kept, a 1.x device's included.
+    // Every listed head's snapshot is kept.
     const kept = listed.map(({ head }) => String(head.snapshotId));
     const deviceId = await this.bind();
     const records = await this.loadHeadRecords();
@@ -242,8 +240,8 @@ export class V2SyncEngine {
 
     let next: SyncState | null = null;
     let publish = false;
-    let refused: DeviceHeadV2[] = [];
-    let takenIn: DeviceHeadV2[] = [];
+    let refused: DeviceHead[] = [];
+    let takenIn: DeviceHead[] = [];
     for (let attempt = 0; attempt < MAX_APPLY_ATTEMPTS && !next; attempt++) {
       this.hooks.progress?.({ type: 'plan', phase: 'merging' });
       const captured = await captureSyncState();
@@ -363,7 +361,7 @@ export class V2SyncEngine {
   private publication(
     ctx: VersionVector,
     deviceId: string,
-    own: DeviceHeadV2 | undefined,
+    own: DeviceHead | undefined,
     record: HeadRecord | undefined,
   ): { needed: boolean } {
     if (!own || !record || own.snapshotId !== record.snapshotId || !record.ctx)
@@ -378,16 +376,13 @@ export class V2SyncEngine {
    * The newest valid head per device. Versioning comes first: a head this
    * build cannot read pauses sync, whatever else it holds.
    */
-  private readHeads(listed: readonly ListedDeviceHead[]): Map<string, DeviceHeadV2> {
-    const byDevice = new Map<string, DeviceHeadV2[]>();
+  private readHeads(listed: readonly ListedDeviceHead[]): Map<string, DeviceHead> {
+    const byDevice = new Map<string, DeviceHead[]>();
     for (const { head: raw } of listed) {
       const value = raw as unknown;
       if (typeof value !== 'object' || value === null)
         throw new AttentionError('invalid-remote-snapshot', 'invalid-device-head-shape');
       const record = value as Record<string, unknown>;
-      // A 1.x device's head: its snapshot is not readable here. It is left
-      // alone; that device asks its user to update once it sees ours.
-      if (record.format === V1_HEAD_FORMAT) continue;
       if (record.format !== HEAD_FORMAT)
         throw new AttentionError('unsupported-format', 'unsupported-device-head-format');
       if (isCount(record.major) && record.major !== SNAPSHOT_MAJOR)
@@ -408,7 +403,7 @@ export class V2SyncEngine {
       if (list) list.push(head);
       else byDevice.set(head.deviceId, [head]);
     }
-    const heads = new Map<string, DeviceHeadV2>();
+    const heads = new Map<string, DeviceHead>();
     for (const [deviceId, list] of byDevice) {
       const sequence = Math.max(...list.map((head) => head.deviceSequence));
       const newest = new Set(
@@ -450,7 +445,7 @@ export class V2SyncEngine {
   }
 
   /** Heads taken in, recorded in the apply's transaction. */
-  private async recordTakenIn(tx: CloudSyncTransaction, heads: readonly DeviceHeadV2[]) {
+  private async recordTakenIn(tx: CloudSyncTransaction, heads: readonly DeviceHead[]) {
     for (const head of heads) {
       const values = {
         snapshot_id: head.snapshotId,
@@ -528,7 +523,7 @@ export class V2SyncEngine {
   }
 
   /** Downloads and checks the snapshots of heads that changed. */
-  private async download(heads: readonly DeviceHeadV2[]) {
+  private async download(heads: readonly DeviceHead[]) {
     const { provider } = this.options;
     if (heads.length > 0)
       this.hooks.progress?.({
@@ -536,7 +531,7 @@ export class V2SyncEngine {
         phase: 'downloading',
         items: { done: 0, total: heads.length },
       });
-    const result: { head: DeviceHeadV2; state: SyncState }[] = [];
+    const result: { head: DeviceHead; state: SyncState }[] = [];
     for (const head of [...heads].sort((a, b) => (a.deviceId < b.deviceId ? -1 : 1))) {
       this.hooks.activity?.('reading-remote-snapshot');
       const bytes = await provider.downloadSnapshot(this.vaultId, head.snapshotId);
@@ -577,7 +572,7 @@ export class V2SyncEngine {
   private async publish(
     state: SyncState,
     deviceId: string,
-    own: DeviceHeadV2 | undefined,
+    own: DeviceHead | undefined,
     record: HeadRecord | undefined,
   ): Promise<string> {
     const { provider, mediaStore, stateStore, stateKey } = this.options;
@@ -591,7 +586,7 @@ export class V2SyncEngine {
     }
     // A blob the state needs that this device can upload (a new profile
     // photo; attachments are deferred before they are stamped) holds back
-    // the whole publication, as in v1. Said before any upload starts.
+    // the whole publication. Said before any upload starts.
     if (sources.size > 0 && (await provider.mediaTransfersAllowed?.()) === false)
       throw new SnapshotProviderError(
         'wifi-only-media',

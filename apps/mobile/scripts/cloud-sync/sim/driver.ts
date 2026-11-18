@@ -120,14 +120,12 @@ export interface SimAdapter {
   readonly name: string;
   /** `drive`: a sync merges every published head; `pairwise`: one peer. */
   readonly topology: 'drive' | 'pairwise';
-  readonly supportsKeepBoth: boolean;
   /**
-   * v2 only, so v1's generated cases and pinned baseline stay as they were:
-   * `setExt` events, `leap` events (roster expiry), positive clock skews
-   * kept within the context-ahead bound, and clocks fixed before the final
-   * round (a device whose clock is behind receives again).
+   * How far ahead of local time a snapshot's context may be. Positive clock
+   * skews stay within it; clocks are fixed before the final round (a device
+   * whose clock is behind receives again).
    */
-  readonly v2Events?: { maxAheadMs: number };
+  readonly maxAheadMs: number;
   // Adapters backed by storage answer asynchronously.
   view(device: number): View | Promise<View>;
   /** Applies a local event; false when the app would refuse it. */
@@ -247,11 +245,10 @@ async function chooseEvent(
     let skew = rng.int(-30, 30) * unit;
     // Ahead by more than the bound, a device's stamps are refused until it
     // resets its sync identity (engine work); scenarios cover that case.
-    const bound = adapter.v2Events?.maxAheadMs;
-    if (bound !== undefined && skew > bound / 2) skew = -skew;
+    if (skew > adapter.maxAheadMs / 2) skew = -skew;
     return { kind: 'clock', device, skew };
   }
-  if (adapter.v2Events && rng.chance(0.012))
+  if (rng.chance(0.012))
     return { kind: 'leap', device, ms: rng.int(120, 300) * 86_400_000 };
   if (rng.chance(config.syncChance)) {
     if (adapter.topology === 'drive')
@@ -280,13 +277,12 @@ async function chooseEvent(
     if (entry.attachmentIds.length > 0) choices.push(['detach', 2]);
     if (entry.attachmentIds.length > 1) choices.push(['reorder', 2]);
     if (entry.returned) choices.push(['acknowledge', 6]);
-    if (adapter.v2Events) choices.push(['setExt', 2]);
+    choices.push(['setExt', 2]);
     if (tag) choices.push(['addTag', 4]);
     if (entry.tagIds.length > 0) choices.push(['removeTag', 2]);
   }
   if (keepTargets.length > 0) {
-    choices.push(['keep', 10]);
-    if (adapter.supportsKeepBoth) choices.push(['keepBoth', 3]);
+    choices.push(['keep', 10], ['keepBoth', 3]);
   }
   choices.push(['createTag', 3], ['createPrompt', 1.5], ['setProfileName', 2]);
   choices.push(['setProfilePhoto', 1]);
@@ -661,7 +657,7 @@ async function finalRound(
 ): Promise<number> {
   const wall = (device: number) => wallClock(state, device);
   const maxRounds = MAX_FINAL_ROUNDS;
-  if (adapter.v2Events) state.skews.fill(0);
+  state.skews.fill(0);
   for (let round = 1; round <= maxRounds; round++) {
     let changed = false;
     state.time += 60_000;
@@ -712,7 +708,7 @@ async function check(
   // A kept value is replaced by an edit of it, or by a removal that saw the
   // keep; a concurrent keep of another version or delete does not.
   // shortcut: removals match by value across entries, so a value that also
-  // lives in a copy (a v1 recovered entry) counts as removed when the copy is
+  // lives in a copy ("Keep both") counts as removed when the copy is
   // deleted; values are unique per write, so only copies share one. Scope
   // removals per entry once copies carry their write lineage.
   const superseded = (write: TextWrite, kinds: readonly RemovalKind[], strict = false) =>

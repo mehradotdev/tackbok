@@ -15,7 +15,6 @@ export function useProfileBootstrap(databaseReady: boolean, settingsReady: boole
       profileName: settings.profileName,
       profileEmail: settings.profileEmail,
       profileImageUri: settings.profileImageUri,
-      priorAppUse: settings._hadSavedSettings || settings.hasCompletedOnboarding,
     })
       .catch(() => console.warn('Profile initialization failed'))
       .finally(() => {

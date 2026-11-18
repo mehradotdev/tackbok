@@ -318,14 +318,6 @@ describe('versioning and safety', () => {
       expect(count(made, name)).toBe(0);
   });
 
-  test("a 1.x device's head is left alone, its snapshot kept", async () => {
-    const a = device();
-    provider.injectSnapshot(VAULT, 'e'.repeat(64), new Uint8Array([1]), T - 90 * DAY);
-    await injectHead({ format: 'tackbok-device-head', snapshotId: 'e'.repeat(64) });
-    expect((await sync(a)).status).toBe('published');
-    expect(provider.snapshotIds(VAULT)).toContain('e'.repeat(64));
-  });
-
   test('old snapshots no head points to are deleted after 30 days', async () => {
     const a = device();
     await sync(a);

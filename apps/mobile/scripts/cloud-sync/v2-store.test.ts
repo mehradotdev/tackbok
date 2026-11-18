@@ -371,6 +371,54 @@ describe('apply', () => {
     ]);
   });
 
+  test('a refused apply discards the files it copied, all under the media lock', async () => {
+    await write(b, T, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e1', { assets: [photo(1)] }), {
+        now: T,
+      }),
+    );
+    await publish(b, T + 1);
+    const captured = await capture(a);
+    const joined = absorb(captured.state, (await capture(b)).state, {
+      device: captured.deviceId,
+      wallMs: T + 2,
+    }).state;
+    await write(a, T + 3, (tx) =>
+      repositories.upsertEntryInTransaction(tx, entry('e2'), { now: T + 3 }),
+    );
+    const calls: string[] = [];
+    let locked = false;
+    const files = {
+      async materialize(media: readonly { assetId: string }[], created: string[]) {
+        calls.push(`materialize:${locked}`);
+        created.push(...media.map((asset) => `photos/${asset.assetId}.jpg`));
+        return new Map(
+          media.map((asset) => [
+            asset.assetId,
+            { uri: `photos/${asset.assetId}.jpg`, verified: true },
+          ]),
+        );
+      },
+      async discard(created: readonly string[]) {
+        calls.push(`discard:${locked}:${created.join(',')}`);
+      },
+      async serialize<R>(operation: () => Promise<R>) {
+        locked = true;
+        try {
+          return await operation();
+        } finally {
+          locked = false;
+        }
+      },
+    };
+    const result = await devices.on(a, T + 4, () =>
+      store.applySyncState(captured, joined, files),
+    );
+    expect(result).toBeNull();
+    expect(calls).toEqual(['materialize:true', 'discard:true:photos/asset-1.jpg']);
+    expect(rows(a, 'SELECT asset_id FROM media_assets')).toEqual([]);
+  });
+
   test('a compacted entry keeps only its vector and tombstone', async () => {
     await write(a, T, (tx) =>
       repositories.upsertEntryInTransaction(tx, entry('e1'), { now: T }),

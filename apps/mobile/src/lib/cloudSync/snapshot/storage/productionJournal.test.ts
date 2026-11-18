@@ -1,5 +1,3 @@
-import { cloudConflicts, cloudSyncState, runExclusiveDbTransaction } from '~/db';
-import { LocalStorageError } from '../sync/types';
 import {
   ProductionSnapshotJournalStore,
   ProductionSnapshotMediaStore,
@@ -7,7 +5,6 @@ import {
   verifyLocalMediaFile,
 } from './productionJournal';
 import { sha256Text } from '../sha256';
-import type { SnapshotMedia } from '../types';
 
 const mockInspectLocalMediaFile = jest.fn();
 const mockCopyVerifiedMediaFile = jest.fn();
@@ -46,15 +43,9 @@ jest.mock('expo-file-system', () => ({
   }),
 }));
 
-jest.mock('expo-crypto', () => ({ randomUUID: jest.fn(() => 'synthetic-uuid') }));
-
 jest.mock('~/db', () => ({
-  cloudConflicts: {},
   // The saved hash table is covered by the Bun integration suite.
   cloudSyncMediaHashCache: { kind: 'hash-cache' },
-  cloudSyncState: {},
-  cloudTombstones: {},
-  customPrompts: {},
   db: {
     delete: () => ({ where: async () => {} }),
     select: () => ({
@@ -65,13 +56,9 @@ jest.mock('~/db', () => ({
     }),
   },
   entries: {},
-  entryTags: {},
   mediaAssets: { kind: 'media' },
-  profilePristineMarker: {},
   runExclusiveDbTransaction: jest.fn(),
-  syncMediaObligations: {},
   syncRetainedMedia: {},
-  tags: {},
   userProfile: {},
 }));
 
@@ -283,14 +270,14 @@ describe('cached media hashes', () => {
   });
 });
 
-describe('remote apply with a staged download', () => {
+describe('an apply with a staged download', () => {
   const hash = 'a'.repeat(64);
   const staged = `file:///documents/cloud-sync-media/${hash}.bin`;
-  const asset: SnapshotMedia = {
+  const asset = {
     assetId: 'photo-1',
-    ownerType: 'entry',
+    ownerType: 'entry' as const,
     ownerId: 'entry-1',
-    kind: 'photo',
+    kind: 'photo' as const,
     blobHash: hash,
     mimeType: 'image/jpeg',
     byteSize: 8,
@@ -298,12 +285,12 @@ describe('remote apply with a staged download', () => {
     height: null,
     durationMs: null,
     createdAt: 1,
-    updatedAt: 1,
+    ext: {},
   };
   const destination = `file:///documents/photos/${sha256Text(asset.assetId)}-${hash}.jpg`;
 
   function materialize(store: ProductionSnapshotJournalStore) {
-    return store['materializeMedia']([asset], []);
+    return store.applyFiles().materialize([asset], []);
   }
 
   beforeEach(() => {
@@ -337,7 +324,6 @@ describe('remote apply with a staged download', () => {
       });
       const store = new ProductionSnapshotJournalStore(
         'vault',
-        'device',
         new ProductionSnapshotMediaStore(),
       );
 
@@ -352,101 +338,4 @@ describe('remote apply with a staged download', () => {
       expect(result.get(asset.assetId)?.verified).toBe(true);
     },
   );
-});
-
-describe('persisted conflict validation during capture', () => {
-  const valid = {
-    conflictId: 'a'.repeat(64),
-    entityType: 'entry',
-    entityId: 'entry',
-    field: 'createdAt',
-    baseValueHash: null,
-    localValueHash: 'b'.repeat(64),
-    remoteValueHash: 'c'.repeat(64),
-    primaryValueHash: 'b'.repeat(64),
-    alternates: [],
-    recoveredEntityIds: [],
-  };
-  const store = new ProductionSnapshotJournalStore(
-    'vault',
-    'device',
-    new ProductionSnapshotMediaStore(),
-  );
-
-  function captureWith(value: string) {
-    jest.mocked(runExclusiveDbTransaction).mockImplementation(async (operation) => {
-      const tx = {
-        select: () => ({
-          from: (table: unknown) => {
-            const rows =
-              table === cloudSyncState
-                ? [{ journal_generation: 1 }]
-                : table === cloudConflicts
-                  ? [{ conflict_json: value }]
-                  : [];
-            const query = Object.assign(Promise.resolve(rows), {
-              where: () => query,
-              limit: () => query,
-            });
-            return query;
-          },
-        }),
-      };
-      return operation(tx as never);
-    });
-    return store.capture();
-  }
-
-  test.each([
-    '{',
-    'null',
-    '[]',
-    '{"conflictId":"x"}',
-    ...Object.keys(valid).map((key) =>
-      JSON.stringify(
-        Object.fromEntries(Object.entries(valid).filter(([field]) => field !== key)),
-      ),
-    ),
-    ...[
-      { entityType: 'unknown' },
-      { field: 'unknown' },
-      { entityId: '' },
-      { baseValueHash: 'bad' },
-      { localValueHash: 1 },
-      { remoteValueHash: {} },
-      { primaryValueHash: 'bad' },
-      { recoveredEntityIds: null },
-      { recoveredEntityIds: [1] },
-      { alternates: {} },
-      { alternates: [null] },
-      { alternates: [{ valueHash: 'a'.repeat(64) }] },
-      { alternates: [{ valueHash: 'bad', value: null }] },
-      { alternates: [{ valueHash: 'a'.repeat(64), value: 1 }] },
-    ].map((patch) => JSON.stringify({ ...valid, ...patch })),
-  ])(
-    'classifies malformed persisted data as a preparation failure: %s',
-    async (value) => {
-      await expect(captureWith(value)).rejects.toBeInstanceOf(LocalStorageError);
-      await expect(captureWith(value)).rejects.toMatchObject({
-        reason: 'normalized-model-not-ready',
-        message: 'invalid-local-conflict-record',
-      });
-    },
-  );
-
-  test('accepts a complete valid conflict', async () => {
-    const conflict = {
-      ...valid,
-      alternates: [{ valueHash: 'c'.repeat(64), value: null }],
-    };
-    expect((await captureWith(JSON.stringify(conflict))).domain.conflicts).toEqual([
-      conflict,
-    ]);
-  });
-
-  test('does not relabel unrelated database errors as corrupt metadata', async () => {
-    const error = new TypeError('transaction setup failed');
-    jest.mocked(runExclusiveDbTransaction).mockRejectedValueOnce(error);
-    await expect(store.capture()).rejects.toBe(error);
-  });
 });

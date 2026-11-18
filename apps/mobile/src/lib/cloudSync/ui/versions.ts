@@ -270,7 +270,7 @@ async function writeThroughSync(
     // A local change like an edit: counted as waiting to sync (the vault
     // shows as dirty) in the same transaction, and a sync is scheduled.
     const applied = await applySyncState(captured, next, applyFiles, (tx) =>
-      enqueueMutation(tx, target.type, target.id, 'upsert').then(() => undefined),
+      enqueueMutation(tx),
     );
     if (applied) {
       notifyCloudSyncMutationCommitted();
