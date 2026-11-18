@@ -70,9 +70,10 @@ jest.mock('~/lib/settings', () => ({
     getState: () => ({ markOtherVersionsSeen: (at: number) => mockMarkSeen(at) }),
   },
 }));
-const mockKeep = jest.fn(async (_id: string) => {});
+const mockKeep = jest.fn(async (_id: string, _seen?: unknown) => {});
 jest.mock('~/lib/cloudSync/ui/versions', () => ({
-  keepEntryVersion: (id: string) => mockKeep(id),
+  VersionsChangedError: class VersionsChangedError extends Error {},
+  keepEntryVersion: (id: string, seen: unknown) => mockKeep(id, seen),
   parseVersionCopyId: (id: string) =>
     id.includes('#') ? { entryId: id.split('#')[0] } : null,
 }));
@@ -180,17 +181,14 @@ test('"Keep this one" buttons name their version and what they delete', () => {
   );
 });
 
-test('the confirmation and hint warn about attachments that go with the other version', () => {
+test('keeping a version never claims to delete attachments: they stay with the entry', () => {
   const withAssets = { ...original, assets: [{}, {}, {}] as Entry['assets'] };
   render({ data: [{ original: withAssets, versions: [copy] }] });
-  const warning =
-    'The other version will be permanently deleted. Attachments that will also be deleted: 3';
-  expect(keepButtons()[1].props.accessibilityHint).toBe(warning);
-  expect(keepButtons()[0].props.accessibilityHint).toBe(
-    'The other version will be permanently deleted.',
-  );
+  const message = 'The other version will be permanently deleted.';
+  expect(keepButtons()[1].props.accessibilityHint).toBe(message);
+  expect(keepButtons()[0].props.accessibilityHint).toBe(message);
   act(() => keepButtons()[1].props.onPress());
-  expect(content()).toContain(warning);
+  expect(content()).not.toContain('Attachments that will also be deleted');
 });
 
 test('shows how many attachments a version has', () => {
@@ -231,7 +229,9 @@ test('keeping the other version keeps it, after confirming', async () => {
   expect(mockKeep).not.toHaveBeenCalled();
 
   await act(async () => confirm().props.onPress());
-  expect(mockKeep.mock.calls).toEqual([['copy']]);
+  expect(mockKeep.mock.calls.map(([id]) => id)).toEqual(['copy']);
+  // What the user compared goes with the choice.
+  expect(mockKeep.mock.calls[0][1]).toEqual([copy, original]);
   expect(mockInvalidate).toHaveBeenCalled();
   expect(dialog().props.open).toBe(false);
 });
@@ -240,7 +240,7 @@ test('keeping the original keeps what the entry shows', async () => {
   render({ data: [{ original, versions: [copy, secondCopy] }] });
   act(() => keepButtons()[0].props.onPress());
   await act(async () => confirm().props.onPress());
-  expect(mockKeep.mock.calls).toEqual([['original']]);
+  expect(mockKeep.mock.calls.map(([id]) => id)).toEqual(['original']);
 });
 
 test('cancelling keeps nothing', () => {
@@ -259,6 +259,20 @@ test('a second tap while keeping writes once', async () => {
     await Promise.all([press(), press()]);
   });
   expect(mockKeep).toHaveBeenCalledTimes(1);
+});
+
+test('versions that changed while confirming write nothing and just refresh', async () => {
+  const { VersionsChangedError } = jest.requireMock('~/lib/cloudSync/ui/versions') as {
+    VersionsChangedError: new () => Error;
+  };
+  mockKeep.mockRejectedValueOnce(new VersionsChangedError());
+  const refetch = jest.fn(async () => ({ data: [], isError: false }));
+  render({ data: [{ original, versions: [copy] }], refetch });
+  act(() => keepButtons()[0].props.onPress());
+  await act(async () => confirm().props.onPress());
+  expect(refetch).toHaveBeenCalled();
+  expect(mockToastError).not.toHaveBeenCalled();
+  expect(dialog().props.open).toBe(false);
 });
 
 test('a failed keep is reported', async () => {

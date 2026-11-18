@@ -925,9 +925,6 @@ export const en = {
   // Screen reader label of "Keep this one" under another version.
   'cloud.conflicts.keepOtherVersion': 'Keep this other version',
   'cloud.conflicts.keepThisOneTitle': 'Keep this version?',
-  // Follows the keep confirmation when the deleted versions have attachments.
-  'cloud.conflicts.keepThisOneAttachments':
-    'Attachments that will also be deleted: {count}',
   'cloud.conflicts.keepThisOneMessage':
     '{count} other versions will be permanently deleted.',
   'cloud.conflicts.attachmentCount': 'Attachments: {count}',

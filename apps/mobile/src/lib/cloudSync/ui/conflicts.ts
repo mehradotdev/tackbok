@@ -54,7 +54,7 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
       current: profile?.display_name ?? null,
       other: other.value,
       archived: false,
-      latestAt: other.stamp[0],
+      latestAt: profileVersions.receivedAt,
     });
   for (const other of profileVersions.photo) {
     // A photo is offered only once its file is on this device.
@@ -71,7 +71,7 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
       conflictIds: [stampId('photo', other.stamp)],
       otherAssetId: other.value,
       otherUri: row.uri,
-      latestAt: other.stamp[0],
+      latestAt: profileVersions.receivedAt,
     });
   }
   if (versions.size > 0)
@@ -80,7 +80,9 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
       conflictIds: ['entries'],
       entryCount: versions.size,
       latestAt: Math.max(
-        ...[...versions.values()].flatMap((list) => list.map((other) => other.stamp[0])),
+        ...[...versions.values()].flatMap((list) =>
+          list.map((other) => other.receivedAt),
+        ),
       ),
     });
   for (const entry of returned)
@@ -95,7 +97,7 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
       },
       // v2 brings an entry back only for an edit its deleter had not seen.
       edited: true,
-      latestAt: entry.at,
+      latestAt: entry.receivedAt,
     });
   return items.sort((a, b) => b.latestAt - a.latestAt);
 }

@@ -7,7 +7,11 @@ import type { Asset, Entry } from '~/types';
 import type { OtherVersionGroup } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
-import { keepEntryVersion, parseVersionCopyId } from '~/lib/cloudSync/ui/versions';
+import {
+  VersionsChangedError,
+  keepEntryVersion,
+  parseVersionCopyId,
+} from '~/lib/cloudSync/ui/versions';
 import { isOpenGroup } from '~/lib/otherVersionGroups';
 import { QUERY_KEYS, useOtherVersionGroups, useTagMapping } from '~/hooks/useGratitude';
 import { Button } from '~/components/ui/button';
@@ -55,6 +59,7 @@ export default function OtherVersionsScreen() {
   // The entry to keep and the entries the confirmation names for deletion.
   const [pendingKeep, setPendingKeep] = useState<{
     keepId: string;
+    kept: Entry;
     others: Entry[];
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -100,6 +105,7 @@ export default function OtherVersionsScreen() {
   const handleKeepPress = (group: OtherVersionGroup, entry: Entry) => {
     setPendingKeep({
       keepId: entry.note_id,
+      kept: entry,
       others: groupMembers(group).filter((member) => member.note_id !== entry.note_id),
     });
   };
@@ -113,10 +119,17 @@ export default function OtherVersionsScreen() {
     setIsDeleting(true);
     let kept = true;
     try {
-      await keepEntryVersion(pendingKeep.keepId);
+      // What the user compared: if sync changed the versions meanwhile,
+      // nothing is written and the refreshed list shows the new ones.
+      await keepEntryVersion(pendingKeep.keepId, [
+        pendingKeep.kept,
+        ...pendingKeep.others,
+      ]);
     } catch (error) {
-      console.error('Failed to keep a version', error);
-      kept = false;
+      if (!(error instanceof VersionsChangedError)) {
+        console.error('Failed to keep a version', error);
+        kept = false;
+      }
     }
     await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
     await refetch();

@@ -533,7 +533,7 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
       previousEmail,
       currentEmail: await readGoogleAccountEmail(),
       settledGeneration: state.settledGeneration,
-      // Whether this device ever published in this backup.
+      // Whether this device ever synced with this backup (took in or published a head).
       hasBase:
         (
           await db
