@@ -910,10 +910,6 @@ export const en = {
   'cloud.conflicts.otherVersionsRow': 'Entries kept in two versions',
   'cloud.conflicts.loadFailed': 'These choices could not be loaded.',
   'cloud.conflicts.otherVersionsLoadFailed': 'The other versions could not be loaded.',
-  'cloud.conflicts.showOlderNames': 'Show older name versions',
-  'cloud.conflicts.hideOlderNames': 'Hide older name versions',
-  'cloud.conflicts.olderNamesDescription':
-    'Earlier versions of the app saved these names while syncing. Most are not real changes, but you can still use one.',
   // Heading of a group on Other versions: an entry and the versions sync kept of it.
   'cloud.conflicts.versionsOf': 'Versions of an entry from {date}',
   'cloud.conflicts.original': 'Original',
@@ -931,9 +927,6 @@ export const en = {
   // Conflicts card: a deleted entry is back because it was edited on another device.
   'cloud.conflicts.entryReturned':
     'You deleted this entry on one device while it was edited on another, so the edited version was kept.',
-  // Conflicts card: a deleted entry is back; the other device had not edited it.
-  'cloud.conflicts.entryKept':
-    'This entry was deleted on one device but was still on another device, so it was kept.',
   // Conflicts card: replaces one row per entry when more than a few came back.
   'cloud.conflicts.entriesReturned':
     '{count} entries you deleted on one device were kept because another device still had them.',

@@ -46,7 +46,7 @@ function insertEntry(
     .run();
 }
 
-beforeEach(() => sqlite.exec('DELETE FROM entries; DELETE FROM cloud_tombstones'));
+beforeEach(() => sqlite.exec('DELETE FROM entries'));
 
 test('getEntriesForDay covers the full local day on 23- and 25-hour DST days', async () => {
   // 2026-03-08 springs forward (23h); 2026-11-01 falls back (25h).

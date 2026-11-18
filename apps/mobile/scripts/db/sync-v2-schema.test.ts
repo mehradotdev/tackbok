@@ -14,6 +14,8 @@ const journal: { entries: { tag: string }[] } = JSON.parse(
 );
 const tags = journal.entries.map((entry) => entry.tag);
 const V2 = tags.findIndex((tag) => tag.startsWith('0008_'));
+/** 0011 drops the v1 tables and columns (sync-v1-removal.test.ts). */
+const V1_REMOVAL = tags.findIndex((tag) => tag.startsWith('0011_'));
 
 /**
  * Applies migrations [from, to) the way drizzle's migrator does: every
@@ -101,7 +103,7 @@ test('a journal from the earliest schema keeps every row and gets initial stamps
   `);
   migrate(sqlite, 1, V2);
   const before = dumpV1(sqlite);
-  migrate(sqlite, V2, tags.length);
+  migrate(sqlite, V2, V1_REMOVAL);
   expect(dumpV1(sqlite)).toBe(before);
   const { device_id: id, created_at: hlc, ctx_json, roster_json } = device(sqlite);
   expect(JSON.parse(ctx_json)).toEqual({ [id]: hlc });
@@ -160,7 +162,7 @@ test('a large journal upgrades quickly, keeps every row and stamps every record'
   })();
   const before = dumpV1(sqlite);
   const started = performance.now();
-  migrate(sqlite, V2, tags.length);
+  migrate(sqlite, V2, V1_REMOVAL);
   const elapsed = performance.now() - started;
   expect(dumpV1(sqlite)).toBe(before);
   const count = (sql: string) => (sqlite.query(sql).get() as { n: number }).n;

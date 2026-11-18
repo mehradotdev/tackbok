@@ -50,7 +50,6 @@ describe('cloud-sync analytics allowlist', () => {
       'cloud_sync_started',
       'cloud_sync_succeeded',
       'cloud_sync_failed',
-      'cloud_sync_conflict_recovered',
       'cloud_sync_repair_result',
     ]);
     // The website policy covers these events in plain language rather than by

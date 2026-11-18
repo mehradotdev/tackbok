@@ -855,10 +855,6 @@ export const zhTW: Translations = {
   'cloud.conflicts.otherVersionsRow': '保留了兩個版本的紀錄',
   'cloud.conflicts.loadFailed': '無法載入這些選項。',
   'cloud.conflicts.otherVersionsLoadFailed': '無法載入其他版本。',
-  'cloud.conflicts.showOlderNames': '顯示較早的名稱版本',
-  'cloud.conflicts.hideOlderNames': '隱藏較早的名稱版本',
-  'cloud.conflicts.olderNamesDescription':
-    '應用程式的早期版本在同步時儲存了這些名稱。大多數並非真正的變更，但你仍可使用其中一個。',
   'cloud.conflicts.versionsOf': '同一則紀錄的各個版本（{date}）',
   'cloud.conflicts.original': '原始版本',
   'cloud.conflicts.originalDeleted': '原始紀錄已被刪除。',
@@ -870,8 +866,6 @@ export const zhTW: Translations = {
   'cloud.conflicts.attachmentCount': '附件：{count}',
   'cloud.conflicts.entryReturned':
     '你在一部裝置上刪除了此紀錄，同時它在另一部裝置上被編輯，因此保留了編輯後的版本。',
-  'cloud.conflicts.entryKept':
-    '此紀錄在一部裝置上被刪除，但另一部裝置上仍有它，因此它被保留了下來。',
   'cloud.conflicts.entriesReturned':
     '你在一部裝置上刪除的 {count} 則紀錄被保留了，因為另一部裝置上仍有它們。',
   'cloud.conflicts.openEntry': '開啟紀錄',

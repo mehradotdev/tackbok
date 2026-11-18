@@ -5,10 +5,7 @@ import { FileClock, X } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
-import {
-  activeConflictItems,
-  useCloudConflictItems,
-} from '~/screens/cloudBackup/useCloudConflictItems';
+import { useCloudConflictItems } from '~/screens/cloudBackup/useCloudConflictItems';
 import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
@@ -34,7 +31,7 @@ function ConflictNotice({ refreshToken }: { refreshToken: unknown }) {
   const otherVersionsSeenAt = useSettingsStore((state) => state.otherVersionsSeenAt);
   const hideConflictNotice = useSettingsStore((state) => state.hideConflictNotice);
   const { items, loadFailed } = useCloudConflictItems(refreshToken);
-  const notice = conflictNotice(activeConflictItems(items), loadFailed, {
+  const notice = conflictNotice(items, loadFailed, {
     hiddenAt,
     otherVersionsSeenAt,
   });

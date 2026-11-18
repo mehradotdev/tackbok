@@ -14,7 +14,7 @@ import { Button } from '~/components/ui/button';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
-import { activeConflictItems, useCloudConflictItems } from './useCloudConflictItems';
+import { useCloudConflictItems } from './useCloudConflictItems';
 
 type NameItem = Extract<CloudConflictItem, { kind: 'name' }>;
 type ReturnedEntryItem = Extract<CloudConflictItem, { kind: 'returnedEntry' }>;
@@ -28,15 +28,13 @@ const MAX_RETURNED_ENTRY_ROWS = 3;
 /**
  * Conflicts this device can act on. Name, photo and returned-entry rows are
  * dismissed by their own action; the entries row stays while an entry has more
- * than one version. Records with nothing to act on are not listed (see
- * `deriveConflictItems`).
+ * than one version.
  * The list reloads whenever `refreshToken` changes (see `useCloudConflictItems`).
  */
 export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
   const { t } = useTranslation();
   const router = useRouter();
   const { items, loadFailed, refresh } = useCloudConflictItems(refreshToken);
-  const [showArchived, setShowArchived] = useState(false);
   const [busy, setBusy] = useState(false);
   const mountedRef = useRef(true);
 
@@ -63,11 +61,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
     [busy, refresh, t],
   );
 
-  const archivedNames = items.filter(
-    (item): item is NameItem => item.kind === 'name' && item.archived,
-  );
-  const activeItems = activeConflictItems(items);
-  const returnedItems = activeItems.filter(
+  const returnedItems = items.filter(
     (item): item is ReturnedEntryItem => item.kind === 'returnedEntry',
   );
   const collapseReturned = returnedItems.length > MAX_RETURNED_ENTRY_ROWS;
@@ -118,9 +112,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
     return (
       <View key={item.conflictIds.join(',')} className="gap-2">
         <Text className="text-sm text-foreground">
-          {item.edited
-            ? t('cloud.conflicts.entryReturned')
-            : t('cloud.conflicts.entryKept')}
+          {t('cloud.conflicts.entryReturned')}
         </Text>
         {/* One stop for screen readers: which entry this is. */}
         <View
@@ -188,7 +180,7 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
           </Button>
         </View>
       )}
-      {activeItems.map((item) => {
+      {items.map((item) => {
         const key = item.conflictIds.join(',');
         if (item.kind === 'name') return nameRow(item);
         if (item.kind === 'returnedEntry') {
@@ -268,29 +260,6 @@ export function ConflictsCard({ refreshToken }: { refreshToken: unknown }) {
             }>
             <Text className="shrink text-center">{t('cloud.conflicts.gotIt')}</Text>
           </Button>
-        </View>
-      )}
-      {archivedNames.length > 0 && (
-        <View className="gap-4">
-          <Button
-            variant="ghost"
-            className="h-auto min-h-10 max-w-full self-start py-2"
-            aria-expanded={showArchived}
-            onPress={() => setShowArchived((shown) => !shown)}>
-            <Text className="shrink text-center">
-              {showArchived
-                ? t('cloud.conflicts.hideOlderNames')
-                : t('cloud.conflicts.showOlderNames')}
-            </Text>
-          </Button>
-          {showArchived && (
-            <>
-              <Text className="text-sm text-muted-foreground">
-                {t('cloud.conflicts.olderNamesDescription')}
-              </Text>
-              {archivedNames.map(nameRow)}
-            </>
-          )}
         </View>
       )}
     </View>

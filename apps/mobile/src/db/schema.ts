@@ -5,7 +5,6 @@ import {
   index,
   uniqueIndex,
   primaryKey,
-  blob,
 } from 'drizzle-orm/sqlite-core';
 import type { Asset, Mood } from '~/types';
 
@@ -27,7 +26,6 @@ export const entries = sqliteTable(
     text_title: text('text_title'),
     text_content: text('text_content'),
     mood: text('mood').$type<Mood>(),
-    conflict_origin_id: text('conflict_origin_id'),
     assets: text('assets', { mode: 'json' }).$type<Asset[]>(),
     tags: text('tags').notNull().default(''),
     created_at: integer('created_at').notNull(),
@@ -43,7 +41,6 @@ export const entries = sqliteTable(
 export const tags = sqliteTable('tags', {
   tag_id: text('tag_id').primaryKey().notNull(),
   title: text('title').notNull(),
-  conflict_origin_id: text('conflict_origin_id'),
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });
@@ -55,7 +52,6 @@ export const tags = sqliteTable('tags', {
 export const customPrompts = sqliteTable('custom_prompts', {
   prompt_id: text('prompt_id').primaryKey().notNull(),
   title: text('title').notNull(),
-  conflict_origin_id: text('conflict_origin_id'),
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at').notNull(),
 });
@@ -132,16 +128,6 @@ export const userProfile = sqliteTable('user_profile', {
   updated_at: integer('updated_at').notNull(),
 });
 
-/**
- * Local-only, never synced. The row exists only while this device's profile
- * has provably never been authored, imported, backfilled, or received from the
- * cloud. Any such write deletes it, and an absent row means "touched", so
- * existing installs and wiped tables stay conservative.
- */
-export const profilePristineMarker = sqliteTable('profile_pristine_marker', {
-  profile_id: text('profile_id').primaryKey().notNull(),
-});
-
 /** Local provider/vault configuration. Credentials and account labels are absent. */
 export const cloudVault = sqliteTable('cloud_vault', {
   vault_id: text('vault_id').primaryKey().notNull(),
@@ -157,13 +143,6 @@ export const cloudVault = sqliteTable('cloud_vault', {
   }),
   revocation_id: text('revocation_id'),
   revocation_acknowledged_at: integer('revocation_acknowledged_at'),
-  /**
-   * Local only. Conflict IDs the remote backup already held while this device
-   * was restoring, recorded before the first journal apply (JSON array).
-   */
-  restore_conflict_ids_json: text('restore_conflict_ids_json'),
-  /** Local only. Set by the first journal apply; later conflicts are new. */
-  conflicts_imported_at: integer('conflicts_imported_at'),
 });
 
 export const syncRetainedMedia = sqliteTable(
@@ -246,91 +225,6 @@ export const cloudSyncState = sqliteTable(
     updated_at: integer('updated_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
-);
-
-/** One coalesced immutable candidate, advanced monotonically after each step. */
-export const cloudPendingPublication = sqliteTable(
-  'cloud_pending_publication',
-  {
-    vault_id: text('vault_id').notNull(),
-    device_id: text('device_id').notNull(),
-    snapshot_id: text('snapshot_id').notNull(),
-    device_sequence: integer('device_sequence').notNull(),
-    captured_generation: integer('captured_generation').notNull(),
-    compressed_bytes: blob('compressed_bytes', { mode: 'buffer' }).notNull(),
-    media_hashes_json: text('media_hashes_json').notNull().default('[]'),
-    stage: text('stage', {
-      enum: [
-        'candidate-persisted',
-        'snapshot-uploaded',
-        'snapshot-verified',
-        'head-advanced',
-        'domain-applied',
-      ],
-    }).notNull(),
-    created_at: integer('created_at').notNull(),
-    updated_at: integer('updated_at').notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
-);
-
-/** SQLite half of the atomically paired base-shadow checkpoint. */
-export const cloudBaseShadow = sqliteTable(
-  'cloud_base_shadow',
-  {
-    vault_id: text('vault_id').notNull(),
-    device_id: text('device_id').notNull(),
-    snapshot_id: text('snapshot_id').notNull(),
-    file_name: text('file_name').notNull(),
-    canonical_sha256: text('canonical_sha256').notNull(),
-    byte_count: integer('byte_count').notNull(),
-    committed_generation: integer('committed_generation').notNull(),
-    updated_at: integer('updated_at').notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
-);
-
-/** Old shadow files are deleted only after their replacement checkpoint commits. */
-export const cloudShadowReaper = sqliteTable('cloud_shadow_reaper', {
-  file_name: text('file_name').primaryKey().notNull(),
-  queued_at: integer('queued_at').notNull(),
-});
-
-/** Snapshot deletion intent retained independently from the live domain. */
-export const cloudTombstones = sqliteTable(
-  'cloud_tombstones',
-  {
-    vault_id: text('vault_id').notNull(),
-    entity_type: text('entity_type', {
-      enum: ['entry', 'tag', 'prompt', 'profile'],
-    }).notNull(),
-    entity_id: text('entity_id').notNull(),
-    base_state_hash: text('base_state_hash'),
-    deleted_state_hash: text('deleted_state_hash'),
-    deleted_by_device_id: text('deleted_by_device_id').notNull(),
-    deletion_sequence: integer('deletion_sequence').notNull(),
-    updated_at: integer('updated_at').notNull(),
-  },
-  (table) => [
-    primaryKey({
-      columns: [table.vault_id, table.entity_type, table.entity_id],
-    }),
-  ],
-);
-
-/** Exact snapshot conflict envelopes plus local review state. */
-export const cloudConflicts = sqliteTable(
-  'cloud_conflicts',
-  {
-    vault_id: text('vault_id').notNull(),
-    conflict_id: text('conflict_id').notNull(),
-    conflict_json: text('conflict_json').notNull(),
-    acknowledged_at: integer('acknowledged_at'),
-    created_at: integer('created_at').notNull(),
-    /** Local only. Moved off the conflicts card by the one-time 0005 upgrade. */
-    archived_at: integer('archived_at'),
-  },
-  (table) => [primaryKey({ columns: [table.vault_id, table.conflict_id] })],
 );
 
 /**

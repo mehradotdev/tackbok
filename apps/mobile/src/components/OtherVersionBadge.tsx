@@ -7,7 +7,7 @@ import { Badge } from '~/components/ui/badge';
 import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 
-type BadgeEntry = Pick<Entry, 'note_id' | 'conflict_origin_id'>;
+type BadgeEntry = Pick<Entry, 'note_id'>;
 
 /**
  * Marks an entry whose title or text has another version from a two-device

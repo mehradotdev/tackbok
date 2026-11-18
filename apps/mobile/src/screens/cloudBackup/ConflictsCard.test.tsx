@@ -46,7 +46,6 @@ const nameItem: Extract<CloudConflictItem, { kind: 'name' }> = {
   conflictIds: ['n1'],
   current: 'Mehra',
   other: 'Mehra A',
-  archived: false,
   latestAt: 1,
 };
 const photoItem: CloudConflictItem = {
@@ -63,11 +62,10 @@ const entriesItem: CloudConflictItem = {
   latestAt: 1,
 };
 
-const returnedItem: CloudConflictItem = {
+const returnedItem: Extract<CloudConflictItem, { kind: 'returnedEntry' }> = {
   kind: 'returnedEntry',
   conflictIds: ['d1', 'd2'],
   entry: { entryId: 'returned', createdAt: 7, title: 'Walk', preview: 'Sunny morning' },
-  edited: true,
   latestAt: 1,
 };
 
@@ -198,20 +196,6 @@ test('a failed read shows an error with a retry instead of hiding the card', asy
   expect(content()).toContain('Mehra A');
 });
 
-test('names archived by the upgrade stay reachable behind "Show older name versions"', async () => {
-  await render([
-    { ...nameItem, conflictIds: ['old'], other: 'Old name', archived: true },
-  ]);
-  expect(content()).not.toContain('Old name');
-  await act(async () => button(mockEn['cloud.conflicts.showOlderNames']).props.onPress());
-  expect(content()).toContain(mockEn['cloud.conflicts.olderNamesDescription']);
-  await act(async () => button('Use “Old name”').props.onPress());
-  expect(mockResolveName).toHaveBeenCalledWith(
-    expect.objectContaining({ conflictIds: ['old'] }),
-    'use',
-  );
-});
-
 test('a long name wraps inside the card and keeps its full accessible label', async () => {
   const other = 'A'.repeat(300);
   await render([{ ...nameItem, other }]);
@@ -251,12 +235,6 @@ test('"Got it" dismisses a returned entry without opening it', async () => {
   expect(mockAcknowledge).toHaveBeenCalledWith(['d1', 'd2']);
   expect(mockPush).not.toHaveBeenCalled();
   expect(root.toJSON()).toBeNull();
-});
-
-test('an entry kept without an edit on the other device is not described as edited', async () => {
-  await render([{ ...returnedItem, edited: false }]);
-  expect(content()).toContain(mockEn['cloud.conflicts.entryKept']);
-  expect(content()).not.toContain(mockEn['cloud.conflicts.entryReturned']);
 });
 
 test('many returned entries share one row that dismisses them all', async () => {

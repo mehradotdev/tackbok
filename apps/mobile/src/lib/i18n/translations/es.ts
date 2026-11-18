@@ -867,10 +867,6 @@ export const es = {
   'cloud.conflicts.otherVersionsRow': 'Entradas que se conservaron en dos versiones',
   'cloud.conflicts.loadFailed': 'No se pudieron cargar estas opciones.',
   'cloud.conflicts.otherVersionsLoadFailed': 'No se pudieron cargar las otras versiones.',
-  'cloud.conflicts.showOlderNames': 'Mostrar versiones anteriores del nombre',
-  'cloud.conflicts.hideOlderNames': 'Ocultar versiones anteriores del nombre',
-  'cloud.conflicts.olderNamesDescription':
-    'Versiones anteriores de la app guardaron estos nombres al sincronizar. La mayoría no son cambios reales, pero aún puedes usar uno.',
   'cloud.conflicts.versionsOf': 'Versiones de una entrada del {date}',
   'cloud.conflicts.original': 'Original',
   'cloud.conflicts.originalDeleted': 'La entrada original se eliminó.',
@@ -883,8 +879,6 @@ export const es = {
   'cloud.conflicts.attachmentCount': 'Adjuntos: {count}',
   'cloud.conflicts.entryReturned':
     'Eliminaste esta entrada en un dispositivo mientras se editaba en otro, así que se conservó la versión editada.',
-  'cloud.conflicts.entryKept':
-    'Esta entrada se eliminó en un dispositivo, pero seguía en otro, así que se conservó.',
   'cloud.conflicts.entriesReturned':
     'Se conservaron {count} entradas que eliminaste en un dispositivo porque otro dispositivo aún las tenía.',
   'cloud.conflicts.openEntry': 'Abrir entrada',

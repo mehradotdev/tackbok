@@ -1,7 +1,6 @@
 /**
  * The conflicts card and Home notice, fed from cloud sync v2's versions
- * (`versions.ts`). Item shapes are those of v1's card (`conflictSummary.ts`);
- * `conflictIds` name what an action resolves:
+ * (`versions.ts`). `conflictIds` name what an action resolves:
  * - `name:<hlc>:<device>` / `photo:<hlc>:<device>`: another version of the
  *   profile name or photo;
  * - `returned:<entryId>`: an entry back after a delete;
@@ -15,7 +14,6 @@ import { photoFileExists } from '~/lib/photoUtils';
 import { hydrateProfileCache, useSettingsStore } from '~/lib/settings';
 import { notifyProductionCloudSyncChanged } from '../runtime/production';
 import type { Stamp } from '../v2/types';
-import type { CloudConflictItem } from './conflictSummary';
 import {
   acknowledgeReturnedEntries,
   keepProfileVersion,
@@ -25,7 +23,32 @@ import {
   listReturnedEntries,
 } from './versions';
 
-export type { CloudConflictItem } from './conflictSummary';
+/** An actionable row on the conflicts card, with when this device took it in. */
+export type CloudConflictItem = (
+  | { kind: 'name'; conflictIds: string[]; current: string | null; other: string | null }
+  | { kind: 'photo'; conflictIds: string[]; otherAssetId: string; otherUri: string }
+  | {
+      /** Entries with more than one version of their title or text. */
+      kind: 'entries';
+      conflictIds: string[];
+      entryCount: number;
+    }
+  | {
+      /** An entry deleted on one device and edited on another: the edit was kept. */
+      kind: 'returnedEntry';
+      conflictIds: string[];
+      entry: ReturnedEntrySummary;
+    }
+) & { latestAt: number };
+
+/** Enough of a returned entry for the user to recognize it. */
+export interface ReturnedEntrySummary {
+  entryId: string;
+  createdAt: number;
+  title: string | null;
+  /** The start of the entry's text. */
+  preview: string | null;
+}
 
 /** Characters of an entry's text shown to help the user recognize it. */
 const PREVIEW_LENGTH = 200;
@@ -53,7 +76,6 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
       conflictIds: [stampId('name', other.stamp)],
       current: profile?.display_name ?? null,
       other: other.value,
-      archived: false,
       latestAt: profileVersions.receivedAt,
     });
   for (const other of profileVersions.photo) {
@@ -95,8 +117,6 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
         title: entry.title,
         preview: entry.text?.slice(0, PREVIEW_LENGTH) ?? null,
       },
-      // v2 brings an entry back only for an edit its deleter had not seen.
-      edited: true,
       latestAt: entry.receivedAt,
     });
   return items.sort((a, b) => b.latestAt - a.latestAt);
@@ -110,9 +130,6 @@ export async function acknowledgeCloudConflicts(conflictIds: string[]): Promise<
   if (entryIds.length > 0) await acknowledgeReturnedEntries(entryIds);
   notifyProductionCloudSyncChanged();
 }
-
-/** Entry versions are resolved by "Keep this one" itself: nothing else to record. */
-export async function acknowledgeEntryConflicts(_entryIds: string[]): Promise<void> {}
 
 /** "Use" keeps the other name, "Keep current" the shown one; either syncs. */
 export async function resolveNameConflict(
