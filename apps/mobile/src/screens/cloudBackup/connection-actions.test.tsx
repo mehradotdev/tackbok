@@ -103,11 +103,13 @@ const mockPrepare = jest.fn<Promise<unknown>, []>();
 const mockReconnect = jest.fn<Promise<void>, []>();
 const mockReplace = jest.fn<Promise<number>, []>(async () => 1);
 const mockNewDevice = jest.fn<Promise<void>, []>(async () => {});
+const mockAnswer = jest.fn(async (_choice: string) => {});
 jest.mock('~/lib/cloudSync/ui', () => ({
   acknowledgeCloudConflicts: jest.fn(),
   cancelPreparedGoogleDriveConnection: jest.fn(async () => {}),
   completeGoogleDriveConnection: jest.fn(),
   continueAsNewDevice: () => mockNewDevice(),
+  answerMassDeletion: (choice: string) => mockAnswer(choice),
   deleteJournalEverywhere: jest.fn(),
   disconnectGoogleDrive: () => mockDisconnect(),
   listUnacknowledgedCloudConflicts: jest.fn(async () => []),
@@ -413,6 +415,7 @@ function observedRecovery(): string {
   if (mockPush.mock.calls.length > 0) return `push ${mockPush.mock.calls[0][0]}`;
   if (mockRevoke.mock.calls.length > 0) return `revoke ${mockRevoke.mock.calls[0][0]}`;
   if (mockNewDevice.mock.calls.length > 0) return 'new-device';
+  if (mockAnswer.mock.calls.length > 0) return `answer ${mockAnswer.mock.calls[0][0]}`;
   const dialog = root.root.findByType('AlertDialog' as never);
   return dialog.props.open ? 'confirm-erase' : 'nothing';
 }
@@ -426,6 +429,7 @@ const EXPECTED_RECOVERY: Record<SyncRecoveryAction, string> = {
   'retry-verify-backup': 'sync-again',
   'repair-from-verified-backup': 'sync-again',
   'continue-as-new-device': 'new-device',
+  'keep-entries': 'answer keep',
   'export-repair-backup': 'push /settings',
   'free-device-storage': 'device-settings',
   'manage-drive-storage': 'open https://drive.google.com/drive/quota',
@@ -656,5 +660,28 @@ describe("other devices' backups left out", () => {
     await act(async () => replaceButtons()[0].props.onPress());
     expect(root.root.findByType('AlertDialog' as never).props.open).toBe(true);
     expect(mockRetry).not.toHaveBeenCalled();
+  });
+});
+
+describe('a merge that would delete much of the journal', () => {
+  test('offers keeping, and deleting here too only after a confirmation', async () => {
+    mockSnapshot.status = 'warning';
+    mockSnapshot.attentionReason = 'mass-deletion';
+    mockSnapshot.recoveryAction = 'keep-entries';
+    await render();
+    expect(showsText(mockEn['cloud.massDeletion.message'])).toBe(true);
+    const apply = root.root
+      .findAllByType('Button' as never)
+      .find(
+        (button) =>
+          button.props.accessibilityLabel === mockEn['cloud.massDeletion.apply'],
+      );
+    act(() => apply!.props.onPress());
+    expect(mockAnswer).not.toHaveBeenCalled();
+    expect(showsText(mockEn['cloud.massDeletion.applyDescription'])).toBe(true);
+    const confirm = root.root.findByType('AlertDialogDestructiveAction' as never);
+    await act(async () => confirm.props.onPress());
+    expect(mockAnswer).toHaveBeenCalledWith('apply');
+    expect(mockToast.success).toHaveBeenCalledWith(mockEn['cloud.massDeletion.applied']);
   });
 });

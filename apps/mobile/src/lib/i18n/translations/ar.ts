@@ -1006,6 +1006,15 @@ export const ar: Translations = {
     'كان التاريخ والوقت في هذا الجهاز مضبوطين على وقت بعيد في المستقبل، لذلك لا تستطيع أجهزتك الأخرى استقبال تغييراته. تابع كجهاز جديد لإصلاح ذلك. لن يضيع شيء من دفتر يومياتك.',
   'cloud.continueAsNewDevice': 'المتابعة كجهاز جديد',
   'cloud.continuedAsNewDevice': 'تتم مزامنة هذا الجهاز الآن كجهاز جديد.',
+  'cloud.massDeletion.message':
+    'التغييرات القادمة من جهاز آخر ستحذف جزءًا كبيرًا من دفتر يومياتك على هذا الجهاز. لم يُحذف شيء بعد. احتفظ بسجلاتك، أو احذفها هنا أيضًا إن كان ذلك مقصودًا.',
+  'cloud.massDeletion.keep': 'الاحتفاظ بسجلاتي',
+  'cloud.massDeletion.apply': 'حذفها هنا أيضًا',
+  'cloud.massDeletion.applyTitle': 'حذف هذه السجلات هنا أيضًا؟',
+  'cloud.massDeletion.applyDescription':
+    'السجلات المحذوفة على جهازك الآخر ستُحذف من هذا الجهاز أيضًا. لا يستطيع Tackbok استعادتها.',
+  'cloud.massDeletion.kept': 'تم الاحتفاظ بسجلاتك. وستعود إلى أجهزتك الأخرى أيضًا.',
+  'cloud.massDeletion.applied': 'حُذفت السجلات هنا أيضًا.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'تعذّر على Tackbok دمج التغييرات من جهاز آخر مع هذا الجهاز. لم يتغيّر أي شيء على هذا الجهاز. توقفت المزامنة. قد يساعد تحديث Tackbok على أجهزتك. يمكنك تصدير نسخة من الإعدادات.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

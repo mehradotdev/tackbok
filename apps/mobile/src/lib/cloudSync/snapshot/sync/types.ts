@@ -9,6 +9,8 @@ export type SyncAttentionReason =
   | 'ambiguous-device-head'
   /** This device's clock was far ahead; its writes need a new device ID. */
   | 'device-clock-ahead'
+  /** Deletes from elsewhere would hide a large share of the journal (P10). */
+  | 'mass-deletion'
   | 'merge-failed'
   | 'local-storage-full'
   | 'provider-quota-full'
@@ -39,6 +41,8 @@ export type SyncRecoveryAction =
   | 'review-erase-device'
   | 'resume-deletion'
   | 'continue-as-new-device'
+  /** "Keep my entries"; the card also offers deleting them here too. */
+  | 'keep-entries'
   /** Not mapped from a reason: offered when the pause recorded unreadable heads. */
   | 'replace-backup';
 
@@ -56,6 +60,7 @@ export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecovery
     // ahead: both continue under a new ID (`continueAsNewDevice`).
     'ambiguous-device-head': 'continue-as-new-device',
     'device-clock-ahead': 'continue-as-new-device',
+    'mass-deletion': 'keep-entries',
     // Running the same merge again fails again; see the engine's retry rule.
     'merge-failed': 'export-repair-backup',
     'local-storage-full': 'free-device-storage',

@@ -31,6 +31,7 @@ import { useSettingsStore } from '~/lib/settings';
 import { CloudAuthError } from '~/lib/cloudSync/auth';
 import {
   cancelPreparedGoogleDriveConnection,
+  answerMassDeletion,
   completeGoogleDriveConnection,
   continueAsNewDevice,
   deleteJournalEverywhere,
@@ -90,6 +91,7 @@ type DestructiveAction =
   | 'disconnect'
   | 'finish-journal-deletion'
   | 'replace-backup'
+  | 'apply-mass-deletion'
   | DataAction;
 type ConnectionAction = 'disconnect' | 'pause' | 'resume';
 
@@ -362,6 +364,10 @@ export default function CloudBackupScreen() {
       setDestructiveAction('replace-backup');
       return;
     }
+    if (action === 'keep-entries') {
+      await runAction(() => answerMassDeletion('keep'), t('cloud.massDeletion.kept'));
+      return;
+    }
     if (action === 'continue-as-new-device') {
       await runAction(continueAsNewDevice, t('cloud.continuedAsNewDevice'));
       return;
@@ -418,6 +424,13 @@ export default function CloudBackupScreen() {
           disconnectGoogleDrive,
           t('cloud.disconnectedYourJournalStaysOnThisPhone'),
           t('cloud.couldNotDisconnectTryAgain'),
+        );
+        return;
+      }
+      if (action === 'apply-mass-deletion') {
+        await runAction(
+          () => answerMassDeletion('apply'),
+          t('cloud.massDeletion.applied'),
         );
         return;
       }
@@ -492,27 +505,33 @@ export default function CloudBackupScreen() {
               description: t('cloud.theCloudCopyAndThisDevicesJournalWillBePermanently'),
               button: t('cloud.deleteJournalEverywhere'),
             }
-          : destructiveAction === 'replace-backup'
+          : destructiveAction === 'apply-mass-deletion'
             ? {
-                title: t('cloud.replaceBackup.title'),
-                description: t('cloud.replaceBackup.description'),
-                button: t('cloud.replaceBackup.confirm'),
+                title: t('cloud.massDeletion.applyTitle'),
+                description: t('cloud.massDeletion.applyDescription'),
+                button: t('cloud.massDeletion.apply'),
               }
-            : destructiveAction === 'reset-device'
+            : destructiveAction === 'replace-backup'
               ? {
-                  title: t('cloud.resetThisDeviceOnly2'),
-                  description: t(
-                    'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe',
-                  ),
-                  button: t('cloud.resetThisDeviceOnly'),
+                  title: t('cloud.replaceBackup.title'),
+                  description: t('cloud.replaceBackup.description'),
+                  button: t('cloud.replaceBackup.confirm'),
                 }
-              : {
-                  title: t('cloud.finishDeletingThisJournal'),
-                  description: t(
-                    'cloud.cloudDeletionIsAlreadyRecordedEraseTheRemainingJournalData',
-                  ),
-                  button: t('cloud.finishDeletion'),
-                };
+              : destructiveAction === 'reset-device'
+                ? {
+                    title: t('cloud.resetThisDeviceOnly2'),
+                    description: t(
+                      'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe',
+                    ),
+                    button: t('cloud.resetThisDeviceOnly'),
+                  }
+                : {
+                    title: t('cloud.finishDeletingThisJournal'),
+                    description: t(
+                      'cloud.cloudDeletionIsAlreadyRecordedEraseTheRemainingJournalData',
+                    ),
+                    button: t('cloud.finishDeletion'),
+                  };
   const restoreNote = restoreStatusNote(snapshot, t);
   const syncNowDisabled =
     actionRunning ||
@@ -653,6 +672,21 @@ export default function CloudBackupScreen() {
                         {recoveryActionLabel(snapshot.recoveryAction, t)}
                       </Text>
                     </Button>
+                    {snapshot.attentionReason === 'mass-deletion' && (
+                      <Button
+                        variant="ghost"
+                        className="h-auto min-h-10 max-w-full py-2"
+                        disabled={actionRunning || connectionAction !== null}
+                        accessibilityState={{
+                          disabled: actionRunning || connectionAction !== null,
+                        }}
+                        onPress={() => setDestructiveAction('apply-mass-deletion')}
+                        accessibilityLabel={t('cloud.massDeletion.apply')}>
+                        <Text className="shrink text-center">
+                          {t('cloud.massDeletion.apply')}
+                        </Text>
+                      </Button>
+                    )}
                   </View>
                 )}
                 {!snapshot.attentionReason &&

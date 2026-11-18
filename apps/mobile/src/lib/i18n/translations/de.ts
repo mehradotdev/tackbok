@@ -1081,6 +1081,16 @@ export const de: Translations = {
     'Datum und Uhrzeit dieses Geräts lagen weit in der Zukunft, deshalb können deine anderen Geräte seine Änderungen nicht übernehmen. Mach als neues Gerät weiter, um das zu beheben. Aus deinem Tagebuch geht nichts verloren.',
   'cloud.continueAsNewDevice': 'Als neues Gerät weitermachen',
   'cloud.continuedAsNewDevice': 'Dieses Gerät synchronisiert jetzt als neues Gerät.',
+  'cloud.massDeletion.message':
+    'Änderungen von einem anderen Gerät würden einen großen Teil deines Tagebuchs auf diesem Gerät löschen. Noch wurde nichts gelöscht. Behalte deine Einträge oder lösche sie auch hier, wenn das so gewollt war.',
+  'cloud.massDeletion.keep': 'Meine Einträge behalten',
+  'cloud.massDeletion.apply': 'Auch hier löschen',
+  'cloud.massDeletion.applyTitle': 'Diese Einträge auch hier löschen?',
+  'cloud.massDeletion.applyDescription':
+    'Die auf deinem anderen Gerät gelöschten Einträge werden auch auf diesem Gerät gelöscht. Tackbok kann sie nicht wiederherstellen.',
+  'cloud.massDeletion.kept':
+    'Deine Einträge wurden behalten. Sie kommen auch auf deine anderen Geräte zurück.',
+  'cloud.massDeletion.applied': 'Die Einträge wurden auch hier gelöscht.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok konnte Änderungen von einem anderen Gerät nicht mit diesem zusammenführen. Auf diesem Gerät wurde nichts geändert. Die Synchronisierung wurde angehalten. Ein Update von Tackbok auf deinen Geräten kann helfen. Du kannst in den Einstellungen eine Kopie exportieren.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

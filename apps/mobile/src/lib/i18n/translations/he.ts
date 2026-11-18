@@ -998,6 +998,15 @@ export const he: Translations = {
     'התאריך והשעה במכשיר הזה כוונו רחוק לעתיד, ולכן המכשירים האחרים שלך לא יכולים לקבל את השינויים שלו. כדי לתקן את זה, יש להמשיך כמכשיר חדש. שום דבר מהיומן לא יאבד.',
   'cloud.continueAsNewDevice': 'המשך כמכשיר חדש',
   'cloud.continuedAsNewDevice': 'המכשיר הזה מסתנכרן עכשיו כמכשיר חדש.',
+  'cloud.massDeletion.message':
+    'שינויים ממכשיר אחר היו מוחקים חלק גדול מהיומן שלך במכשיר הזה. עדיין לא נמחק דבר. אפשר לשמור את הרשומות, או למחוק אותן גם כאן אם זו הייתה הכוונה.',
+  'cloud.massDeletion.keep': 'שמירת הרשומות שלי',
+  'cloud.massDeletion.apply': 'מחיקה גם כאן',
+  'cloud.massDeletion.applyTitle': 'למחוק את הרשומות האלה גם כאן?',
+  'cloud.massDeletion.applyDescription':
+    'הרשומות שנמחקו במכשיר האחר שלך יימחקו גם במכשיר הזה. Tackbok לא יוכל לשחזר אותן.',
+  'cloud.massDeletion.kept': 'הרשומות שלך נשמרו. הן יחזרו גם למכשירים האחרים שלך.',
+  'cloud.massDeletion.applied': 'הרשומות נמחקו גם כאן.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok לא הצליח לאחד שינויים ממכשיר אחר עם המכשיר הזה. שום דבר במכשיר הזה לא השתנה. הסנכרון נעצר. עדכון Tackbok במכשירים שלך עשוי לעזור. אפשר לייצא עותק מההגדרות.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':

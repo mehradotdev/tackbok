@@ -282,6 +282,30 @@ export function setMood(
   return updateEntry(state, writer, entryId, (_entry, s) => ({ mood: { s, v: mood } }));
 }
 
+/**
+ * Writes the date of each live entry in `ids` again, as one write: an edit
+ * no earlier delete has seen, so those entries stay ("Keep my entries").
+ */
+export function rewriteDates(
+  state: SyncState,
+  writer: Writer,
+  ids: readonly string[],
+): SyncState {
+  if (ids.length === 0) return state;
+  const ticked = tick(state, writer);
+  const entries = new Map(ticked.state.entries);
+  for (const id of ids) {
+    const entry = liveEntry(ticked.state, id);
+    // Without a date (damaged data) the write's stamp alone keeps it.
+    entries.set(id, {
+      ...entry,
+      ...(entry.date ? { date: { s: ticked.s, v: entry.date.v } } : {}),
+      ...stamped(entry, ticked.s),
+    });
+  }
+  return { ...ticked.state, entries };
+}
+
 export function setDate(
   state: SyncState,
   writer: Writer,
