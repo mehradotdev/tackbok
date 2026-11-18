@@ -91,7 +91,9 @@ const widths = [300, 540, 810].filter((width) => width <= src.width);
           // Autoplay of a muted video can still be refused (for example in
           // Low Power Mode); the poster then stays, which is fine.
           video.play().catch(() => {});
-        } else {
+        } else if (!video.paused) {
+          // Only pause what plays: pause() on a video that never loaded would
+          // start its resource selection and could fetch it.
           video.pause();
         }
       }
@@ -100,14 +102,17 @@ const widths = [300, 540, 810].filter((width) => width <= src.width);
   );
 
   for (const video of videos) {
-    video.addEventListener('playing', () => (video.dataset.playing = ''), { once: true });
+    video.addEventListener('playing', () => (video.dataset.playing = ''));
     observer.observe(video);
   }
 
   reducedMotion.addEventListener('change', () => {
     for (const video of videos) {
-      if (reducedMotion.matches) video.pause();
-      else {
+      if (reducedMotion.matches) {
+        if (!video.paused) video.pause();
+        // Fade back to the poster, which the alt text describes.
+        delete video.dataset.playing;
+      } else {
         observer.unobserve(video);
         observer.observe(video);
       }

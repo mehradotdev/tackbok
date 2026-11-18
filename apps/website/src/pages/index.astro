@@ -298,15 +298,8 @@ const structuredData = {
         </div>
 
         <div class="mb-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {journalCards.map((card, index) => (
-            <FeatureCard
-              {...card}
-              class={
-                index === journalCards.length - 1
-                  ? 'md:col-span-2 lg:col-span-1'
-                  : undefined
-              }
-            />
+          {journalCards.map((card) => (
+            <FeatureCard {...card} />
           ))}
         </div>
 
@@ -428,15 +421,8 @@ const structuredData = {
         </div>
 
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {everywhereCards.map((card, index) => (
-            <FeatureCard
-              {...card}
-              class={
-                index === everywhereCards.length - 1
-                  ? 'md:col-span-2 lg:col-span-1'
-                  : undefined
-              }
-            />
+          {everywhereCards.map((card) => (
+            <FeatureCard {...card} />
           ))}
         </div>
       </div>
