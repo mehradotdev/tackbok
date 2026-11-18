@@ -87,6 +87,7 @@ const mockSnapshot = {
   revocationKind: null,
   attentionReason: null as string | null,
   recoveryAction: null as string | null,
+  skippedHeads: { unreadable: 0, clockAhead: 0 },
 };
 let mockParams: { origin?: string } = {};
 const mockRefresh = jest.fn(async () => {});
@@ -100,6 +101,7 @@ const mockSetPaused = jest.fn<Promise<void>, [boolean]>();
 const mockSyncNow = jest.fn<Promise<boolean>, []>();
 const mockPrepare = jest.fn<Promise<unknown>, []>();
 const mockReconnect = jest.fn<Promise<void>, []>();
+const mockReplace = jest.fn<Promise<number>, []>(async () => 1);
 jest.mock('~/lib/cloudSync/ui', () => ({
   acknowledgeCloudConflicts: jest.fn(),
   cancelPreparedGoogleDriveConnection: jest.fn(async () => {}),
@@ -109,6 +111,7 @@ jest.mock('~/lib/cloudSync/ui', () => ({
   listUnacknowledgedCloudConflicts: jest.fn(async () => []),
   prepareGoogleDriveConnection: () => mockPrepare(),
   reconnectGoogleDrive: () => mockReconnect(),
+  replaceUnreadableBackups: () => mockReplace(),
   resetThisDeviceOnly: jest.fn(),
   retrySyncAttentionReason: (reason: string) => mockRetry(reason),
   revokeCloudVault: (kind: string) => mockRevoke(kind),
@@ -192,6 +195,7 @@ beforeEach(() => {
   mockSnapshot.failureCategory = null;
   mockSnapshot.attentionReason = null;
   mockSnapshot.recoveryAction = null;
+  mockSnapshot.skippedHeads = { unreadable: 0, clockAhead: 0 };
 });
 const showsText = (text: string) =>
   root.root.findAll((node) => node.props.children === text).length > 0;
@@ -428,6 +432,7 @@ const EXPECTED_RECOVERY: Record<SyncRecoveryAction, string> = {
   'acknowledge-disconnect': 'disconnect',
   'review-erase-device': 'confirm-erase',
   'resume-deletion': 'revoke backup-deleted',
+  'replace-backup': 'confirm-replace',
 };
 
 const t = ((key, params) => mockTranslate('en', key, params)) as TranslationFunction;
@@ -597,5 +602,56 @@ describe('a restore started from onboarding', () => {
     mockSnapshot.failureCategory = 'quota';
     await render();
     expect(showsText(mockEn['cloud.googleDriveStorageIsFull'])).toBe(true);
+  });
+});
+
+describe("other devices' backups left out", () => {
+  const replaceButtons = () =>
+    root.root
+      .findAllByType('Button' as never)
+      .filter(
+        (button) =>
+          button.props.accessibilityLabel === mockEn['cloud.replaceBackup.action'],
+      );
+
+  test('says which were left out, and offers Replace only for unreadable ones', async () => {
+    mockSnapshot.skippedHeads = { unreadable: 0, clockAhead: 1 };
+    await render();
+    expect(showsText(mockEn['cloud.skippedHeads.clockAhead'])).toBe(true);
+    expect(showsText(mockEn['cloud.skippedHeads.unreadable'])).toBe(false);
+    expect(replaceButtons()).toHaveLength(0);
+    act(() => root.unmount());
+    mockSnapshot.skippedHeads = { unreadable: 2, clockAhead: 0 };
+    await render();
+    expect(showsText(mockEn['cloud.skippedHeads.unreadable'])).toBe(true);
+    expect(replaceButtons()).toHaveLength(1);
+  });
+
+  test('Replace asks first, and only the confirmation replaces', async () => {
+    mockSnapshot.skippedHeads = { unreadable: 1, clockAhead: 0 };
+    await render();
+    act(() => replaceButtons()[0].props.onPress());
+    expect(mockReplace).not.toHaveBeenCalled();
+    const dialog = root.root.findByType('AlertDialog' as never);
+    expect(dialog.props.open).toBe(true);
+    expect(showsText(mockEn['cloud.replaceBackup.description'])).toBe(true);
+    const confirm = root.root.findByType('AlertDialogDestructiveAction' as never);
+    await act(async () => confirm.props.onPress());
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(mockToast.success).toHaveBeenCalledWith(mockEn['cloud.replaceBackup.done']);
+  });
+
+  test('a pause with nothing readable offers Replace as its recovery', async () => {
+    mockSnapshot.status = 'warning';
+    mockSnapshot.attentionReason = 'invalid-remote-snapshot';
+    mockSnapshot.recoveryAction = 'replace-backup';
+    mockSnapshot.skippedHeads = { unreadable: 1, clockAhead: 0 };
+    await render();
+    // The pause explains it; the notice is not shown twice.
+    expect(showsText(mockEn['cloud.skippedHeads.unreadable'])).toBe(false);
+    expect(replaceButtons()).toHaveLength(1);
+    await act(async () => replaceButtons()[0].props.onPress());
+    expect(root.root.findByType('AlertDialog' as never).props.open).toBe(true);
+    expect(mockRetry).not.toHaveBeenCalled();
   });
 });

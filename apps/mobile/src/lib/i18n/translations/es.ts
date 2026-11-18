@@ -1010,6 +1010,16 @@ export const es = {
     'Tu diario y su copia de seguridad se eliminaron en todas partes. Borra este dispositivo para terminar.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'La eliminación de tu copia de seguridad no terminó. Puede que parte de ella siga en Google Drive.',
+  'cloud.skippedHeads.unreadable':
+    'Tackbok no puede leer la copia de seguridad de uno o más de tus dispositivos, así que sus cambios no se incluyen. La sincronización sigue con tus otros dispositivos.',
+  'cloud.skippedHeads.clockAhead':
+    'Los cambios de uno o más de tus dispositivos están en espera porque su fecha y hora están muy adelantadas. En esos dispositivos, configura la fecha y hora automáticas y luego abre Tackbok en ellos.',
+  'cloud.replaceBackup.action': 'Reemplazar esta copia por el diario de este dispositivo',
+  'cloud.replaceBackup.title': '¿Reemplazar esta copia de seguridad?',
+  'cloud.replaceBackup.confirm': 'Reemplazar copia',
+  'cloud.replaceBackup.description':
+    'Las copias de dispositivos que Tackbok no puede leer se eliminan de Google Drive, y en su lugar se guarda el diario de este dispositivo. Las copias legibles de tus otros dispositivos se conservan y se combinan como siempre. Lo que solo estaba en las copias ilegibles no se puede recuperar.',
+  'cloud.replaceBackup.done': 'Se eliminaron las copias ilegibles.',
   'cloud.chooseAGoogleAccountToReconnect':
     'Elija una cuenta de Google para volver a conectarse',
   'cloud.updateTackbok': 'Actualizar Tackbok',

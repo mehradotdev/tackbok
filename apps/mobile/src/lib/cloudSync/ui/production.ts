@@ -56,6 +56,8 @@ import {
   type SyncRecoveryAction,
 } from '../snapshot/sync';
 import { SyncCancelledError } from '../snapshot/sync/errors';
+import { NO_READABLE_HEAD, removeUnreadableHeads } from '../snapshot/sync/v2Engine';
+import { parseSkippedHeads } from '../snapshot/sync/sqliteState';
 import {
   getProductionCloudSyncActivity,
   getProductionCloudSyncFailureCategory,
@@ -94,6 +96,11 @@ export interface CloudSyncSnapshot {
   revocationKind: 'journal-deleted' | 'backup-deleted' | null;
   attentionReason: SyncAttentionReason | null;
   recoveryAction: SyncRecoveryAction | null;
+  /**
+   * Other devices' backups the latest pass left out: ones it could not read,
+   * and ones from a clock set far ahead (read once real time catches up).
+   */
+  skippedHeads: { unreadable: number; clockAhead: number };
   /**
    * The restore marker's journal proof when this snapshot started reading.
    * Every count was read after it, so counts that match a proof include the
@@ -214,6 +221,11 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
   const pendingDownloadCount = vault ? (pendingMedia?.value ?? 0) : 0;
   const waitingUploadCount = vault ? waitingMediaUploadCount(vault.vault_id) : 0;
   const conflictCount = conflicts?.value ?? 0;
+  const skipped = parseSkippedHeads(syncState?.skipped_heads_json ?? null);
+  const skippedHeads = {
+    unreadable: skipped.filter((head) => head.reason === 'unreadable').length,
+    clockAhead: skipped.filter((head) => head.reason === 'clock-ahead').length,
+  };
   const configured = Boolean(
     vault?.remote_root_id && !['disabled', 'revoked'].includes(vault.status),
   );
@@ -279,7 +291,14 @@ export async function loadCloudSyncSnapshot(): Promise<CloudSyncSnapshot> {
     lastVerifiedAt: providerState?.last_verify_at ?? null,
     revocationKind: vault?.revocation_kind ?? null,
     attentionReason,
-    recoveryAction: attentionReason ? ATTENTION_RECOVERY_ACTION[attentionReason] : null,
+    // "Replace" ends only the pause for "no head could be read", which
+    // records the heads it skipped in the same pass.
+    recoveryAction: attentionReason
+      ? syncState?.last_error_class === NO_READABLE_HEAD && skippedHeads.unreadable > 0
+        ? 'replace-backup'
+        : ATTENTION_RECOVERY_ACTION[attentionReason]
+      : null,
+    skippedHeads,
     restoreProofAtLoad,
   };
 }
@@ -650,6 +669,16 @@ async function runManualSyncSince(epoch: number): Promise<boolean> {
   throw new CloudSyncActionError('unknown');
 }
 
+/** The Drive provider for the configured backup and account. */
+async function configuredDriveProvider(): Promise<GoogleDriveSnapshotProvider> {
+  const connectionId = await readOrCreateGoogleConnectionId();
+  return new GoogleDriveSnapshotProvider({
+    auth: createGoogleAuthorization(),
+    state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
+    hashBytes: nativeSha256Bytes,
+  });
+}
+
 async function revokeCloudVaultImpl(
   kind: 'backup-deleted' | 'journal-deleted',
 ): Promise<void> {
@@ -681,12 +710,7 @@ async function revokeCloudVaultImpl(
       .where(eq(cloudVault.vault_id, vault.vault_id));
     await setCloudSyncBackgroundTaskEnabled(false);
     notifyProductionCloudSyncChanged();
-    const connectionId = await readOrCreateGoogleConnectionId();
-    const provider = new GoogleDriveSnapshotProvider({
-      auth: createGoogleAuthorization(),
-      state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
-      hashBytes: nativeSha256Bytes,
-    });
+    const provider = await configuredDriveProvider();
     await provider.publishRevocation(vault.vault_id, kind);
     const purge = await provider.purgeRevokedVault(vault.vault_id);
     if (purge.remaining !== 0) throw new Error('Cloud backup purge is incomplete');
@@ -837,6 +861,44 @@ export async function retrySyncAttentionReason(
   await restartProductionSyncRuntime();
   if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
   await runManualSyncSince(epoch);
+}
+
+/**
+ * "Replace this backup with this device's journal", after the user confirms:
+ * removes the other devices' backups the latest pass could not read
+ * (`removeUnreadableHeads`), then syncs, which backs up this device's journal
+ * joined with every backup that can be read.
+ */
+export async function replaceUnreadableBackups(): Promise<number> {
+  let removed = 0;
+  const replacing = cloudConnectionLifecycle.change(async () => {
+    if (connectionSetupInProgress || pendingConnection) {
+      throw new Error('Finish or cancel the Google account setup first');
+    }
+    await resolveAbandonedConnectionSetup();
+    const [vault] = await db.select().from(cloudVault).limit(1);
+    if (!vault?.remote_root_id) throw new Error('No cloud backup is configured');
+    const state = new SQLiteSyncStateStore(sqlite);
+    const { skippedHeads } = state.loadState(vault.vault_id, vault.device_id);
+    removed = await removeUnreadableHeads(
+      await configuredDriveProvider(),
+      vault.vault_id,
+      skippedHeads,
+    );
+    state.setSkippedHeads(vault.vault_id, vault.device_id, []);
+    state.clearPause(vault.vault_id, vault.device_id);
+    await db
+      .update(cloudVault)
+      .set({ status: 'dirty', updated_at: Date.now() })
+      .where(eq(cloudVault.vault_id, vault.vault_id));
+  });
+  const epoch = cloudConnectionLifecycle.epoch;
+  await replacing;
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
+  await restartProductionSyncRuntime();
+  if (cloudConnectionLifecycle.epoch !== epoch) throw new SyncCancelledError();
+  await runManualSyncSince(epoch);
+  return removed;
 }
 
 // All connection mutations share the same barrier as production sync passes.

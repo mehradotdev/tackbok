@@ -136,7 +136,7 @@ test('a journal from the earliest schema keeps every other row', () => {
     VALUES ('p1', 'One good thing', 'p0', 1, 1);
   `);
   const before = dumpKept(sqlite);
-  migrate(sqlite, REMOVAL, tags.length);
+  migrate(sqlite, REMOVAL, REMOVAL + 1);
   expectRemoved(sqlite);
   expect(dumpKept(sqlite)).toBe(before);
 });
@@ -151,7 +151,7 @@ test('with foreign keys on, entries keeps its tags and dependent rows', () => {
   `);
   sqlite.exec('PRAGMA foreign_keys = ON');
   const before = dumpKept(sqlite);
-  migrate(sqlite, REMOVAL, tags.length);
+  migrate(sqlite, REMOVAL, REMOVAL + 1);
   expectRemoved(sqlite);
   expect(dumpKept(sqlite)).toBe(before);
 });
@@ -198,7 +198,7 @@ test('a large journal upgrades quickly and keeps every other row', () => {
   })();
   const before = dumpKept(sqlite);
   const started = performance.now();
-  migrate(sqlite, REMOVAL, tags.length);
+  migrate(sqlite, REMOVAL, REMOVAL + 1);
   const elapsed = performance.now() - started;
   expectRemoved(sqlite);
   expect(dumpKept(sqlite)).toBe(before);

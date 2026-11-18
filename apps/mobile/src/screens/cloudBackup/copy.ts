@@ -330,6 +330,7 @@ export function recoveryActionLabel(
     }),
     'review-erase-device': t('cloud.reviewDeletionAndEraseThisDevice'),
     'resume-deletion': t('cloud.resumeDeletion'),
+    'replace-backup': t('cloud.replaceBackup.action'),
   };
   return labels[action];
 }

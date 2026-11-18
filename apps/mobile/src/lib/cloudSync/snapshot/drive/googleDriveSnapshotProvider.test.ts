@@ -562,9 +562,9 @@ describe('GoogleDriveSnapshotProvider', () => {
     const observer = provider(server);
     const listed = await observer.listHeads(vaultId, true);
     expect(
-      listed.filter((value) => value.head.deviceId === 'device-duplicate'),
+      listed.filter((value) => value.head?.deviceId === 'device-duplicate'),
     ).toHaveLength(2);
-    expect(listed.some((value) => value.head.deviceId === 'device-second')).toBe(true);
+    expect(listed.some((value) => value.head?.deviceId === 'device-second')).toBe(true);
   });
 
   test('discovery rejects an inconsistent logical head instead of hiding its branch', async () => {
@@ -588,6 +588,34 @@ describe('GoogleDriveSnapshotProvider', () => {
     await expect(provider(server).listHeads(vaultId, true)).rejects.toMatchObject({
       code: 'invalid-data',
     });
+  });
+
+  test('a head whose body cannot be read is listed without one, and can be deleted', async () => {
+    const server = new FakeDriveServer();
+    const valid = head('device-valid', 1, 'c'.repeat(64));
+    server.seed(
+      vaultId,
+      `heads/${valid.deviceId}.json`,
+      'head',
+      encodeCanonicalBytes(valid),
+    );
+    const garbled = server.seed(
+      vaultId,
+      'heads/device-garbled.json',
+      'head',
+      new TextEncoder().encode('{"format": "tackbok-head", '),
+    );
+    const app = provider(server);
+    const listed = await app.listHeads(vaultId, true);
+    expect(listed).toHaveLength(2);
+    expect(listed.find((value) => value.head === null)).toEqual({
+      physicalId: garbled.id,
+      head: null,
+      keyDeviceId: 'device-garbled',
+    });
+    await app.deleteDeviceHead(vaultId, garbled.id);
+    const after = await provider(server).listHeads(vaultId, true);
+    expect(after.map((value) => value.head?.deviceId)).toEqual(['device-valid']);
   });
 
   test('rejects oversized snapshots from metadata before downloading the body', async () => {

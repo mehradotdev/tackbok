@@ -1,5 +1,6 @@
 import type { CloudAuthorization } from '../../auth/types';
 import { encodeCanonicalBytes } from '../canonical';
+import { SNAPSHOT_MAJOR } from '../../v2/codec';
 import { SNAPSHOT_CAPS, SnapshotValidationError } from '../caps';
 import { sha256Bytes, sha256Text, type ByteHasher } from '../sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../strictJson';
@@ -444,10 +445,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
     return this.state.listKind(vaultId, 'head').map((record) => {
       if (!record.head) {
-        throw new SnapshotProviderError(
-          'invalid-data',
-          'Cached Drive head has no validated envelope',
-        );
+        const keyDeviceId = /^heads\/(.+)\.json$/.exec(record.logicalKey)?.[1];
+        return {
+          physicalId: record.fileId,
+          head: null,
+          ...(keyDeviceId ? { keyDeviceId } : {}),
+        };
       }
       const snapshot = this.state
         .listKey(vaultId, this.snapshotKey(record.head.snapshotId))
@@ -647,6 +650,21 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     );
   }
 
+  async deleteDeviceHead(vaultId: string, physicalId: string): Promise<void> {
+    const record = this.state
+      .listKind(vaultId, 'head')
+      .find((candidate) => candidate.fileId === physicalId);
+    if (!record) return;
+    await this.request(
+      vaultId,
+      'delete',
+      `${API}/files/${encodeURIComponent(physicalId)}`,
+      { method: 'DELETE' },
+      { idempotent: true, accepted: [404] },
+    );
+    this.state.removeFile(vaultId, physicalId);
+  }
+
   async deleteSnapshot(vaultId: string, snapshotId: string): Promise<void> {
     const key = this.snapshotKey(snapshotId);
     const candidates = await this.filesForKey(vaultId, key, 'snapshot');
@@ -682,6 +700,17 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const bytes = await this.downloadFile(vaultId, file);
     const parsed = parseJsonStrict(decodeUtf8Strict(bytes));
     if (!bytesEqual(bytes, encodeCanonicalBytes(parsed))) {
+      // A later format may encode heads differently: one that names another
+      // format or major version goes to the engine, which pauses for an
+      // update. Only a head of this format is damaged when not canonical.
+      const value = parsed as { format?: unknown; major?: unknown } | null;
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value) &&
+        (value.format !== 'tackbok-head' || value.major !== SNAPSHOT_MAJOR)
+      )
+        return this.record(file, kind, parsed as StoredDeviceHead);
       throw new SnapshotProviderError('invalid-data', 'Drive head is not canonical JSON');
     }
     return this.record(file, kind, parsed as StoredDeviceHead);
@@ -696,11 +725,18 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     try {
       return await this.materializeRecord(vaultId, file, kind);
     } catch (error) {
-      if (!(error instanceof SnapshotProviderError) || error.code !== 'invalid-data')
-        throw error;
+      if (error instanceof ShortDownloadError)
+        throw new SnapshotProviderError('transient', error.message);
+      const invalid =
+        error instanceof SnapshotValidationError ||
+        (error instanceof SnapshotProviderError && error.code === 'invalid-data');
+      if (!invalid) throw error;
       this.state.removeFile(vaultId, file.id);
-      if (rejectInvalid) throw error;
-      return null;
+      if (!rejectInvalid) return null;
+      // A head whose body cannot be read (#185, P8) is listed without one,
+      // so the engine can skip it while a readable head exists. One whose
+      // Drive metadata is inconsistent cannot even be named: that still stops.
+      return this.record(file, kind, null);
     }
   }
 

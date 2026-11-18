@@ -987,6 +987,16 @@ export const zhCN: Translations = {
     '你的日记及其备份已在所有地方删除。请清除此设备以完成操作。',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     '备份删除未完成。部分内容可能仍在 Google Drive 中。',
+  'cloud.skippedHeads.unreadable':
+    'Tackbok 无法读取你的一台或多台设备的备份，因此其中的更改未被纳入。同步会继续与你的其他设备进行。',
+  'cloud.skippedHeads.clockAhead':
+    '来自你的一台或多台设备的更改正在等待，因为这些设备的日期和时间被设到了很远的未来。请在这些设备上开启自动设置日期和时间，然后在这些设备上打开 Tackbok。',
+  'cloud.replaceBackup.action': '用此设备的日记替换此备份',
+  'cloud.replaceBackup.title': '要替换此备份吗？',
+  'cloud.replaceBackup.confirm': '替换备份',
+  'cloud.replaceBackup.description':
+    'Tackbok 无法读取的设备备份将从 Google Drive 中删除，并改为备份此设备的日记。你其他设备中可以读取的备份会保留，并照常合并。只存在于无法读取的备份中的内容将无法恢复。',
+  'cloud.replaceBackup.done': '已删除无法读取的备份。',
   'cloud.chooseAGoogleAccountToReconnect': '选择要重新连接的 Google 账号',
   'cloud.updateTackbok': '更新塔克布克',
   'cloud.manageGoogleDriveStorage': '管理 Google Drive 存储空间',

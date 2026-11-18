@@ -109,6 +109,9 @@ class MediaPolicyProvider implements SnapshotProvider {
   downloadSnapshot(vaultId: string, snapshotId: string) {
     return this.delegate.downloadSnapshot(vaultId, snapshotId);
   }
+  deleteDeviceHead(vaultId: string, physicalId: string) {
+    return this.delegate.deleteDeviceHead(vaultId, physicalId);
+  }
   uploadSnapshot(
     vaultId: string,
     snapshotId: string,

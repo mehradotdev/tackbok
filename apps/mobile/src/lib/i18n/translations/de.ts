@@ -1097,6 +1097,16 @@ export const de: Translations = {
     'Dein Tagebuch und seine Sicherung wurden überall gelöscht. Lösche dieses Gerät, um den Vorgang abzuschließen.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'Das Löschen deiner Sicherung wurde nicht abgeschlossen. Ein Teil davon ist möglicherweise noch in Google Drive.',
+  'cloud.skippedHeads.unreadable':
+    'Tackbok kann die Sicherung eines oder mehrerer deiner Geräte nicht lesen, daher fehlen deren Änderungen. Die Synchronisierung läuft mit deinen anderen Geräten weiter.',
+  'cloud.skippedHeads.clockAhead':
+    'Änderungen von einem oder mehreren deiner Geräte warten, weil dort Datum und Uhrzeit weit in der Zukunft liegen. Stelle Datum und Uhrzeit auf diesen Geräten auf automatisch und öffne dort dann Tackbok.',
+  'cloud.replaceBackup.action': 'Sicherung durch das Tagebuch dieses Geräts ersetzen',
+  'cloud.replaceBackup.title': 'Sicherung ersetzen?',
+  'cloud.replaceBackup.confirm': 'Sicherung ersetzen',
+  'cloud.replaceBackup.description':
+    'Die Gerätesicherungen, die Tackbok nicht lesen kann, werden aus Google Drive entfernt, und stattdessen wird das Tagebuch dieses Geräts gesichert. Lesbare Sicherungen deiner anderen Geräte bleiben erhalten und werden wie gewohnt zusammengeführt. Was nur in den unlesbaren Sicherungen war, lässt sich nicht wiederherstellen.',
+  'cloud.replaceBackup.done': 'Die unlesbaren Sicherungen wurden entfernt.',
   'cloud.chooseAGoogleAccountToReconnect':
     'Google-Konto zum erneuten Verbinden auswählen',
   'cloud.updateTackbok': 'Tackbok aktualisieren',

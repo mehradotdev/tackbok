@@ -1014,6 +1014,16 @@ export const he: Translations = {
     'היומן שלך והגיבוי שלו נמחקו בכל מקום. כדי לסיים, יש למחוק את המכשיר הזה.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'מחיקת הגיבוי שלך לא הסתיימה. ייתכן שחלק ממנו עדיין ב-Google Drive.',
+  'cloud.skippedHeads.unreadable':
+    'Tackbok לא יכול לקרוא את הגיבוי של מכשיר אחד או יותר שלך, ולכן השינויים מהם לא נכללים. הסנכרון ממשיך עם שאר המכשירים שלך.',
+  'cloud.skippedHeads.clockAhead':
+    'שינויים ממכשיר אחד או יותר שלך ממתינים, כי התאריך והשעה בהם מכוונים רחוק לעתיד. יש להגדיר בהם תאריך ושעה אוטומטיים, ואז לפתוח בהם את Tackbok.',
+  'cloud.replaceBackup.action': 'החלפת הגיבוי הזה ביומן של המכשיר הזה',
+  'cloud.replaceBackup.title': 'להחליף את הגיבוי?',
+  'cloud.replaceBackup.confirm': 'החלפת הגיבוי',
+  'cloud.replaceBackup.description':
+    'גיבויי המכשירים ש־Tackbok לא יכול לקרוא יוסרו מ־Google Drive, והיומן של המכשיר הזה יגובה במקומם. גיבויים קריאים של המכשירים האחרים שלך יישמרו וימוזגו כרגיל. מה שהיה רק בגיבויים שאינם קריאים לא ניתן לשחזור.',
+  'cloud.replaceBackup.done': 'הגיבויים שאינם קריאים הוסרו.',
   'cloud.chooseAGoogleAccountToReconnect': 'בחירת חשבון Google לחיבור מחדש',
   'cloud.updateTackbok': 'עדכון Tackbok',
   'cloud.manageGoogleDriveStorage': 'ניהול האחסון ב-Google Drive',

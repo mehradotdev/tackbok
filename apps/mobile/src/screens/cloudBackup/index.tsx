@@ -36,6 +36,7 @@ import {
   disconnectGoogleDrive,
   prepareGoogleDriveConnection,
   reconnectGoogleDrive,
+  replaceUnreadableBackups,
   resetThisDeviceOnly,
   retrySyncAttentionReason,
   revokeCloudVault,
@@ -84,7 +85,11 @@ import {
 
 type SetupStage = 'overview' | 'disclosure' | 'authorizing' | 'choose' | 'working';
 type DataAction = 'delete-backup' | 'delete-journal' | 'reset-device';
-type DestructiveAction = 'disconnect' | 'finish-journal-deletion' | DataAction;
+type DestructiveAction =
+  | 'disconnect'
+  | 'finish-journal-deletion'
+  | 'replace-backup'
+  | DataAction;
 type ConnectionAction = 'disconnect' | 'pause' | 'resume';
 
 const isAuthorizationCancelled = (error: unknown) =>
@@ -227,7 +232,8 @@ export default function CloudBackupScreen() {
   );
 
   const runAction = useCallback(
-    async (action: () => Promise<unknown>, success: string) => {
+    // `success` may depend on what the action did.
+    async (action: () => Promise<unknown>, success: string | (() => string)) => {
       if (actionRunningRef.current || connectionActionRef.current) return;
       actionRunningRef.current = true;
       setActionRunning(true);
@@ -235,7 +241,7 @@ export default function CloudBackupScreen() {
         const result = await action();
         if (result === false) throw new Error('action did not complete');
         await refresh();
-        toast.success(success);
+        toast.success(typeof success === 'function' ? success() : success);
       } catch (error) {
         // Pause or Disconnect stopped this pass and reports its own outcome.
         if (error instanceof SyncCancelledError) return;
@@ -351,6 +357,10 @@ export default function CloudBackupScreen() {
       setDestructiveAction('finish-journal-deletion');
       return;
     }
+    if (action === 'replace-backup') {
+      setDestructiveAction('replace-backup');
+      return;
+    }
     if (action === 'resume-deletion') {
       if (snapshot.revocationKind === 'journal-deleted') {
         await completeJournalDeletion();
@@ -406,6 +416,19 @@ export default function CloudBackupScreen() {
         );
         return;
       }
+      if (action === 'replace-backup') {
+        let removed = 0;
+        await runAction(
+          async () => {
+            removed = await replaceUnreadableBackups();
+          },
+          () =>
+            removed > 0
+              ? t('cloud.replaceBackup.done')
+              : t('cloud.cloudBackupRetryCompleted'),
+        );
+        return;
+      }
       try {
         if (action === 'delete-backup') {
           await revokeCloudVault('backup-deleted');
@@ -426,7 +449,14 @@ export default function CloudBackupScreen() {
         toast.error(t('cloud.cloudBackupCouldNotBeUpdated'));
       }
     },
-    [clearLocalPresentation, completeJournalDeletion, refresh, runConnectionAction, t],
+    [
+      clearLocalPresentation,
+      completeJournalDeletion,
+      refresh,
+      runAction,
+      runConnectionAction,
+      t,
+    ],
   );
 
   const handleChooseDataAction = useCallback(async (action: DataAction) => {
@@ -457,21 +487,27 @@ export default function CloudBackupScreen() {
               description: t('cloud.theCloudCopyAndThisDevicesJournalWillBePermanently'),
               button: t('cloud.deleteJournalEverywhere'),
             }
-          : destructiveAction === 'reset-device'
+          : destructiveAction === 'replace-backup'
             ? {
-                title: t('cloud.resetThisDeviceOnly2'),
-                description: t(
-                  'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe',
-                ),
-                button: t('cloud.resetThisDeviceOnly'),
+                title: t('cloud.replaceBackup.title'),
+                description: t('cloud.replaceBackup.description'),
+                button: t('cloud.replaceBackup.confirm'),
               }
-            : {
-                title: t('cloud.finishDeletingThisJournal'),
-                description: t(
-                  'cloud.cloudDeletionIsAlreadyRecordedEraseTheRemainingJournalData',
-                ),
-                button: t('cloud.finishDeletion'),
-              };
+            : destructiveAction === 'reset-device'
+              ? {
+                  title: t('cloud.resetThisDeviceOnly2'),
+                  description: t(
+                    'cloud.thisDeviceDisconnectsFirstThenDeletesItsLocalJournalThe',
+                  ),
+                  button: t('cloud.resetThisDeviceOnly'),
+                }
+              : {
+                  title: t('cloud.finishDeletingThisJournal'),
+                  description: t(
+                    'cloud.cloudDeletionIsAlreadyRecordedEraseTheRemainingJournalData',
+                  ),
+                  button: t('cloud.finishDeletion'),
+                };
   const restoreNote = restoreStatusNote(snapshot, t);
   const syncNowDisabled =
     actionRunning ||
@@ -591,8 +627,10 @@ export default function CloudBackupScreen() {
                     <Text className="text-sm text-foreground">
                       {attentionReasonMessage(snapshot.attentionReason, t)}
                     </Text>
+                    {/* Some recovery labels are long: let the button wrap. */}
                     <Button
                       variant="outline"
+                      className="h-auto min-h-10 max-w-full py-2"
                       disabled={actionRunning || connectionAction !== null}
                       accessibilityState={{
                         busy: actionRunning,
@@ -606,10 +644,45 @@ export default function CloudBackupScreen() {
                       {actionRunning && (
                         <SpinningRefreshIcon className="text-foreground size-5" />
                       )}
-                      <Text>{recoveryActionLabel(snapshot.recoveryAction, t)}</Text>
+                      <Text className="shrink text-center">
+                        {recoveryActionLabel(snapshot.recoveryAction, t)}
+                      </Text>
                     </Button>
                   </View>
                 )}
+                {!snapshot.attentionReason &&
+                  (snapshot.skippedHeads.unreadable > 0 ||
+                    snapshot.skippedHeads.clockAhead > 0) && (
+                    <View
+                      className="gap-3 rounded-xl border border-border bg-muted p-3"
+                      accessibilityLiveRegion="polite">
+                      {snapshot.skippedHeads.unreadable > 0 && (
+                        <Text className="text-sm text-foreground">
+                          {t('cloud.skippedHeads.unreadable')}
+                        </Text>
+                      )}
+                      {snapshot.skippedHeads.clockAhead > 0 && (
+                        <Text className="text-sm text-foreground">
+                          {t('cloud.skippedHeads.clockAhead')}
+                        </Text>
+                      )}
+                      {snapshot.skippedHeads.unreadable > 0 && (
+                        <Button
+                          variant="outline"
+                          className="h-auto min-h-10 max-w-full py-2"
+                          disabled={actionRunning || connectionAction !== null}
+                          accessibilityState={{
+                            disabled: actionRunning || connectionAction !== null,
+                          }}
+                          onPress={() => setDestructiveAction('replace-backup')}
+                          accessibilityLabel={t('cloud.replaceBackup.action')}>
+                          <Text className="shrink text-center">
+                            {t('cloud.replaceBackup.action')}
+                          </Text>
+                        </Button>
+                      )}
+                    </View>
+                  )}
                 {snapshot.status === 'syncing' && snapshot.activityPhase && (
                   <SyncStatusLine
                     phase={snapshot.activityPhase}

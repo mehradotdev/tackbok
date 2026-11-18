@@ -87,6 +87,7 @@ const restoring: CloudSyncSnapshot = {
   revocationKind: null,
   attentionReason: null,
   recoveryAction: null,
+  skippedHeads: { unreadable: 0, clockAhead: 0 },
   // Saw the journal proof in `journalRestored` before reading its counts.
   restoreProofAtLoad: 2,
 };

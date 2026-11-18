@@ -966,6 +966,16 @@ export const hi = {
     'आपकी डायरी और उसका बैकअप हर जगह से हटा दिए गए हैं। पूरा करने के लिए इस डिवाइस को मिटाएं।',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'आपका बैकअप हटाना पूरा नहीं हुआ। हो सकता है उसका कुछ हिस्सा अब भी Google Drive में हो।',
+  'cloud.skippedHeads.unreadable':
+    'Tackbok आपके एक या अधिक डिवाइस का बैकअप नहीं पढ़ पा रहा है, इसलिए उनके बदलाव शामिल नहीं हैं। आपके दूसरे डिवाइस के साथ सिंक जारी है।',
+  'cloud.skippedHeads.clockAhead':
+    'आपके एक या अधिक डिवाइस के बदलाव इंतज़ार कर रहे हैं, क्योंकि उन पर तारीख और समय बहुत आगे के भविष्य पर सेट है। उन डिवाइस पर तारीख और समय को अपने-आप सेट होने दें, फिर वहाँ Tackbok खोलें।',
+  'cloud.replaceBackup.action': 'इस बैकअप को इस डिवाइस की डायरी से बदलें',
+  'cloud.replaceBackup.title': 'यह बैकअप बदलें?',
+  'cloud.replaceBackup.confirm': 'बैकअप बदलें',
+  'cloud.replaceBackup.description':
+    'जिन डिवाइस बैकअप को Tackbok नहीं पढ़ पा रहा है, वे Google Drive से हटा दिए जाएँगे और उनकी जगह इस डिवाइस की डायरी का बैकअप लिया जाएगा। आपके दूसरे डिवाइस के पढ़े जा सकने वाले बैकअप बने रहेंगे और हमेशा की तरह जोड़े जाएँगे। जो कुछ सिर्फ़ न पढ़े जा सकने वाले बैकअप में था, उसे वापस नहीं लाया जा सकता।',
+  'cloud.replaceBackup.done': 'न पढ़े जा सकने वाले बैकअप हटा दिए गए।',
   'cloud.chooseAGoogleAccountToReconnect': 'पुनः कनेक्ट करने के लिए एक Google खाता चुनें',
   'cloud.updateTackbok': 'ताकबूक को अपडेट करें',
   'cloud.manageGoogleDriveStorage': 'Google Drive भंडारण प्रबंधित करें',

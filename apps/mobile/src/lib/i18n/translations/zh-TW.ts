@@ -990,6 +990,16 @@ export const zhTW: Translations = {
     '你的日記及其備份已在所有地方刪除。請清除此裝置以完成操作。',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     '備份刪除未完成。部分內容可能仍在 Google Drive 中。',
+  'cloud.skippedHeads.unreadable':
+    'Tackbok 無法讀取你的一部或多部裝置的備份，因此其中的變更未被納入。同步會繼續與你的其他裝置進行。',
+  'cloud.skippedHeads.clockAhead':
+    '來自你的一部或多部裝置的變更正在等待，因為這些裝置的日期和時間被設到很遠的未來。請在這些裝置上開啟自動設定日期和時間，然後在這些裝置上開啟 Tackbok。',
+  'cloud.replaceBackup.action': '用此裝置的日記取代此備份',
+  'cloud.replaceBackup.title': '要取代此備份嗎？',
+  'cloud.replaceBackup.confirm': '取代備份',
+  'cloud.replaceBackup.description':
+    'Tackbok 無法讀取的裝置備份將從 Google Drive 中刪除，並改為備份此裝置的日記。你其他裝置中可以讀取的備份會保留，並照常合併。只存在於無法讀取的備份中的內容將無法復原。',
+  'cloud.replaceBackup.done': '已刪除無法讀取的備份。',
   'cloud.chooseAGoogleAccountToReconnect': '選擇要重新連接的 Google 帳戶',
   'cloud.updateTackbok': '更新塔克布克',
   'cloud.manageGoogleDriveStorage': '管理 Google Drive 儲存空間',
