@@ -1,5 +1,6 @@
 ---
 import '~/styles/global.css';
+import Analytics from '~/components/Analytics.astro';
 import { getImage } from 'astro:assets';
 import defaultSocialImage from '~/assets/og.png';
 import { pagePath } from '~/lib/page-path';
@@ -67,5 +68,6 @@ const socialImageUrl = new URL(socialImage.src, Astro.site).href;
   </head>
   <body>
     <slot />
+    <Analytics />
   </body>
 </html>

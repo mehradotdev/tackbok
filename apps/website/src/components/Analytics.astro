@@ -1,0 +1,59 @@
+---
+// Cookieless website analytics (#198) in a PostHog project of its own, so
+// visitors can never be linked to app users. `cookieless_mode: 'always'`
+// keeps everything in memory: no cookies, localStorage or sessionStorage,
+// and PostHog counts unique visitors with a daily rotating server-side hash.
+// The project must have cookieless tracking enabled, or PostHog drops the
+// events. Never call `identify`.
+//
+// The loader below is inline, and posthog-js (its self-contained ESM build,
+// emitted as a hashed asset) is only requested once the page has loaded and
+// the browser is idle. A bundled Astro <script> would add a module request on
+// every page, which Lighthouse counts against Largest Contentful Paint.
+import posthogUrl from 'posthog-js/dist/module.mjs?url';
+
+const posthogKey = 'phc_REPLACE_WITH_WEBSITE_PROJECT_KEY';
+---
+
+{import.meta.env.PROD && <script is:inline data-src={posthogUrl} data-key={posthogKey}>
+  const { src: posthogUrl, key: posthogKey } = document.currentScript.dataset;
+  let client;
+
+  function analytics() {
+    client ??= import(posthogUrl).then(({ default: posthog }) => {
+      posthog.init(posthogKey, {
+        api_host: 'https://eu.i.posthog.com',
+        cookieless_mode: 'always',
+        // Page views (with referrer and landing page) and the store badge
+        // event below; nothing else is collected or loaded.
+        capture_pageview: true,
+        autocapture: false,
+        disable_session_recording: true,
+        disable_surveys: true,
+        advanced_disable_flags: true,
+        disable_external_dependency_loading: true,
+      });
+      return posthog;
+    });
+    return client;
+  }
+
+  const start = () =>
+    'requestIdleCallback' in window
+      ? requestIdleCallback(() => void analytics().catch(() => {}))
+      : setTimeout(() => void analytics().catch(() => {}), 0);
+  if (document.readyState === 'complete') start();
+  else window.addEventListener('load', start, { once: true });
+
+  // Store badges open in a new tab, so this page stays open to send it.
+  document.addEventListener('click', (event) => {
+    const badge =
+      event.target instanceof Element ? event.target.closest('a[data-store]') : null;
+    if (!badge) return;
+    analytics()
+      .then((posthog) =>
+        posthog.capture('store_badge_click', { store: badge.dataset.store }),
+      )
+      .catch(() => {});
+  });
+</script>}
