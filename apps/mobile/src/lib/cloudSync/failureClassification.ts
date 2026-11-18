@@ -45,7 +45,6 @@ export function failureCategoryForAttention(
   if (
     reason === 'invalid-remote-snapshot' ||
     reason === 'unsupported-format' ||
-    reason === 'derived-id-collision' ||
     reason === 'ambiguous-device-head'
   )
     return 'corrupt';

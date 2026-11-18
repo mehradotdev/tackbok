@@ -1002,10 +1002,6 @@ export const ar: Translations = {
     'جزء من نسختك الاحتياطية مفقود من Google Drive. توقفت المزامنة.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
     'تحتوي نسختك الاحتياطية على نسختين مختلفتين من تغييرات جهاز واحد. توقفت المزامنة.',
-  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'هناك تغييرات من أجهزة كثيرة جدًا تنتظر الدمج. توقفت المزامنة.',
-  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'تعذّر دمج عنصرين في دفتر يومياتك بأمان. توقفت المزامنة. يمكنك تصدير نسخة من الإعدادات.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'تعذّر على Tackbok دمج التغييرات من جهاز آخر مع هذا الجهاز. لم يتغيّر أي شيء على هذا الجهاز. توقفت المزامنة. قد يساعد تحديث Tackbok على أجهزتك. يمكنك تصدير نسخة من الإعدادات.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
@@ -1026,8 +1022,6 @@ export const ar: Translations = {
     'حُذف دفتر يومياتك ونسخته الاحتياطية من كل مكان. امسح هذا الجهاز لإكمال العملية.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'لم يكتمل حذف نسختك الاحتياطية. قد يبقى جزء منها في Google Drive.',
-  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'توقفت المزامنة أثناء إزالة بيانات النسخ الاحتياطي القديمة لحماية نسختك الاحتياطية الحالية.',
   'cloud.chooseAGoogleAccountToReconnect': 'اختر حساب Google لإعادة الاتصال',
   'cloud.updateTackbok': 'حدّث Tackbok',
   'cloud.manageGoogleDriveStorage': 'إدارة مساحة Google Drive',

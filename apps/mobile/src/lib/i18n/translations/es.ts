@@ -990,10 +990,6 @@ export const es = {
     'Falta parte de tu copia de seguridad en Google Drive. La sincronización se detuvo.',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
     'Tu copia de seguridad tiene dos versiones distintas de los cambios de un mismo dispositivo. La sincronización se detuvo.',
-  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    'Hay cambios de demasiados dispositivos esperando a combinarse. La sincronización se detuvo.',
-  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    'No se pudieron combinar con seguridad dos elementos de tu diario. La sincronización se detuvo. Puedes exportar una copia desde Ajustes.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     'Tackbok no pudo combinar los cambios de otro dispositivo con este. No se cambió nada en este dispositivo. La sincronización se detuvo. Actualizar Tackbok en tus dispositivos puede ayudar. Puedes exportar una copia desde Ajustes.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
@@ -1014,8 +1010,6 @@ export const es = {
     'Tu diario y su copia de seguridad se eliminaron en todas partes. Borra este dispositivo para terminar.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     'La eliminación de tu copia de seguridad no terminó. Puede que parte de ella siga en Google Drive.',
-  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    'La sincronización se detuvo al eliminar datos antiguos de la copia de seguridad, para proteger tu copia actual.',
   'cloud.chooseAGoogleAccountToReconnect':
     'Elija una cuenta de Google para volver a conectarse',
   'cloud.updateTackbok': 'Actualizar Tackbok',

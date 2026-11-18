@@ -7,8 +7,6 @@ export type SyncAttentionReason =
   | 'invalid-remote-snapshot'
   | 'head-snapshot-missing'
   | 'ambiguous-device-head'
-  | 'frontier-too-wide'
-  | 'derived-id-collision'
   | 'merge-failed'
   | 'local-storage-full'
   | 'provider-quota-full'
@@ -19,8 +17,7 @@ export type SyncAttentionReason =
   | 'normalized-model-not-ready'
   | 'backup-deleted'
   | 'journal-deleted'
-  | 'purge-incomplete'
-  | 'cleanup-inconsistent';
+  | 'purge-incomplete';
 
 export type SyncRecoveryAction =
   | 'reconnect-google-drive'
@@ -31,7 +28,6 @@ export type SyncRecoveryAction =
   | 'retry-verify-backup'
   | 'repair-from-verified-backup'
   | 'inspect-repair-backup'
-  | 'consolidate-backups'
   | 'export-repair-backup'
   | 'free-device-storage'
   | 'manage-drive-storage'
@@ -40,8 +36,7 @@ export type SyncRecoveryAction =
   | 'retry-journal-preparation'
   | 'acknowledge-disconnect'
   | 'review-erase-device'
-  | 'resume-deletion'
-  | 'verify-backup-health';
+  | 'resume-deletion';
 
 /** Stable action IDs used to select localized recovery copy. */
 export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecoveryAction> =
@@ -54,8 +49,6 @@ export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecovery
     'invalid-remote-snapshot': 'retry-verify-backup',
     'head-snapshot-missing': 'repair-from-verified-backup',
     'ambiguous-device-head': 'inspect-repair-backup',
-    'frontier-too-wide': 'consolidate-backups',
-    'derived-id-collision': 'export-repair-backup',
     // Running the same merge again fails again; see the engine's retry rule.
     'merge-failed': 'export-repair-backup',
     'local-storage-full': 'free-device-storage',
@@ -68,7 +61,6 @@ export const ATTENTION_RECOVERY_ACTION: Record<SyncAttentionReason, SyncRecovery
     'backup-deleted': 'acknowledge-disconnect',
     'journal-deleted': 'review-erase-device',
     'purge-incomplete': 'resume-deletion',
-    'cleanup-inconsistent': 'verify-backup-health',
   };
 
 /**

@@ -24,7 +24,7 @@ describe('cloud sync failure classification', () => {
     );
     expect(failureCategoryForAttention('normalized-model-not-ready')).toBe('unknown');
     expect(failureCategoryForAttention('merge-failed')).toBe('merge');
-    expect(failureCategoryForAttention('derived-id-collision')).toBe('corrupt');
+    expect(failureCategoryForAttention('ambiguous-device-head')).toBe('corrupt');
     expect(failureCategoryForAttention('provider-request-rejected')).toBe('unknown');
   });
 

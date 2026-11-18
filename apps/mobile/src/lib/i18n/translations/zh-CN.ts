@@ -967,10 +967,6 @@ export const zhCN: Translations = {
     '你的部分备份在 Google Drive 中缺失。同步已停止。',
   'cloud.twoDifferentBackupsClaimTheSameDeviceVersion':
     '你的备份中，同一台设备的更改有两个不同版本。同步已停止。',
-  'cloud.tooManyIndependentDeviceBackupsNeedConsolidation':
-    '有太多设备的更改等待合并。同步已停止。',
-  'cloud.aRecoveredItemConflictsWithAnExistingStableIdentifier':
-    '你日记中的两个项目无法安全合并。同步已停止。你可以在设置中导出一份副本。',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
     '塔克布克无法将另一台设备上的更改与此设备合并。此设备上的内容没有任何更改。同步已停止。在你的设备上更新塔克布克可能会有帮助。你可以在设置中导出一份副本。',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
@@ -991,8 +987,6 @@ export const zhCN: Translations = {
     '你的日记及其备份已在所有地方删除。请清除此设备以完成操作。',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
     '备份删除未完成。部分内容可能仍在 Google Drive 中。',
-  'cloud.backupCleanupWasStoppedToProtectACurrentSnapshot':
-    '同步在清理旧备份数据时停止，以保护你当前的备份。',
   'cloud.chooseAGoogleAccountToReconnect': '选择要重新连接的 Google 账号',
   'cloud.updateTackbok': '更新塔克布克',
   'cloud.manageGoogleDriveStorage': '管理 Google Drive 存储空间',

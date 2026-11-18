@@ -419,7 +419,6 @@ const EXPECTED_RECOVERY: Record<SyncRecoveryAction, string> = {
   'retry-verify-backup': 'sync-again',
   'repair-from-verified-backup': 'sync-again',
   'inspect-repair-backup': 'sync-again',
-  'consolidate-backups': 'sync-again',
   'export-repair-backup': 'push /settings',
   'free-device-storage': 'device-settings',
   'manage-drive-storage': 'open https://drive.google.com/drive/quota',
@@ -429,7 +428,6 @@ const EXPECTED_RECOVERY: Record<SyncRecoveryAction, string> = {
   'acknowledge-disconnect': 'disconnect',
   'review-erase-device': 'confirm-erase',
   'resume-deletion': 'revoke backup-deleted',
-  'verify-backup-health': 'sync-again',
 };
 
 const t = ((key, params) => mockTranslate('en', key, params)) as TranslationFunction;
@@ -454,9 +452,9 @@ test.each(
 });
 
 test('merge errors never offer a button that runs the same merge again', () => {
-  for (const reason of ['merge-failed', 'derived-id-collision'] as const) {
-    expect(EXPECTED_RECOVERY[ATTENTION_RECOVERY_ACTION[reason]]).toBe('push /settings');
-  }
+  expect(EXPECTED_RECOVERY[ATTENTION_RECOVERY_ACTION['merge-failed']]).toBe(
+    'push /settings',
+  );
 });
 
 test('every recovery that runs the same handler shares one label, and no other', () => {
