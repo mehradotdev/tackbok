@@ -67,8 +67,6 @@ If you use Tackbok on the same phone, the file is already there. If not, move th
 
 ![Tackbok Settings, Backup and restore section, with the Import from Gratitude app row](../../assets/screenshots/ios/settings-import-light.webp)
 
-<!-- Screenshot slot: the import mode choice. It appears only after picking a Gratitude app ZIP, so it wasn't captured with the sample entries (#194). -->
-
 Keep Tackbok open until the import finishes. A summary then shows how many entries, photos and voice notes were imported, and anything that was skipped.
 
 ### Which import mode to pick
@@ -79,6 +77,8 @@ Tackbok recognises entries from any earlier export of the same Gratitude journal
 - **Overwrite matching entries:** entries Tackbok already has from an earlier import are replaced with the version in the file. Use this only to bring in edits you made in the Gratitude app. **Anything you added to those entries in Tackbok, such as moods, tags or extra photos, is removed.**
 
 For entries that aren't in Tackbok yet, it also skips any that match an existing entry's date, time and text exactly.
+
+![The Choose import mode dialog, with Skip existing entries (recommended) and Overwrite matching entries](../../assets/screenshots/ios/import-mode-light.webp)
 
 ## If something goes wrong
 

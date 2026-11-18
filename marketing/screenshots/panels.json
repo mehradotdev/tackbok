@@ -1,0 +1,53 @@
+[
+  {
+    "id": "01-moments",
+    "layout": "hero",
+    "theme": "paper",
+    "title": "Your everyday\ngratitude journal",
+    "captures": ["timeline"]
+  },
+  {
+    "id": "02-memories",
+    "layout": "detail",
+    "theme": "rose",
+    "title": "Keep the photo.\nSave the voice.",
+    "captures": ["memory"]
+  },
+  {
+    "id": "03-prompts",
+    "layout": "hero",
+    "theme": "paper",
+    "title": "A little help\ngetting started.",
+    "captures": ["worksheet"]
+  },
+  {
+    "id": "04-appearance",
+    "layout": "pair",
+    "theme": "ink",
+    "title": "Your journal.\nYour style.",
+    "captures": ["themeLight", "themeDark"]
+  },
+  {
+    "id": "05-customization",
+    "layout": "hero",
+    "theme": "ink",
+    "title": "Go beyond\nthe default.",
+    "captures": ["customization"]
+  },
+  {
+    "id": "06-revisit",
+    "layout": "detail",
+    "theme": "rose",
+    "title": "Rediscover your\ngood moments.",
+    "captures": ["revisit"]
+  },
+  {
+    "id": "07-yours",
+    "layout": "quiet",
+    "theme": "paper",
+    "title": "No ads.\nJust your journal.",
+    "captures": ["logo"],
+    "cardTitle": "Tackbok",
+    "cardTagline": "Free. Offline. Yours."
+  }
+]

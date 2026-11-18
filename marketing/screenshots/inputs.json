@@ -1,0 +1,141 @@
+{
+  "phone": {
+    "timeline": {
+      "file": "ios/timeline-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 170,
+        "width": 1206,
+        "height": 2452
+      }
+    },
+    "memory": {
+      "file": "ios/entry-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 170,
+        "width": 1206,
+        "height": 2452
+      }
+    },
+    "worksheet": {
+      "file": "ios/worksheet-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 1200,
+        "width": 1206,
+        "height": 1422
+      }
+    },
+    "themeLight": {
+      "file": "ios/timeline-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 170,
+        "width": 1206,
+        "height": 2452
+      }
+    },
+    "themeDark": {
+      "file": "ios/timeline-dark.webp",
+      "crop": {
+        "left": 0,
+        "top": 170,
+        "width": 1206,
+        "height": 2452
+      }
+    },
+    "revisit": {
+      "file": "ios/insights-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 170,
+        "width": 1206,
+        "height": 2452
+      }
+    },
+    "customization": {
+      "file": "ios/themes-dark.webp",
+      "crop": {
+        "left": 0,
+        "top": 170,
+        "width": 1206,
+        "height": 2452
+      }
+    }
+  },
+  "tablet": {
+    "timeline": {
+      "file": "ipad/timeline-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 60,
+        "width": 1640,
+        "height": 2250
+      }
+    },
+    "memory": {
+      "file": "ipad/entry-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 60,
+        "width": 1640,
+        "height": 2250
+      }
+    },
+    "worksheet": {
+      "file": "ipad/worksheet-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 1440,
+        "width": 1640,
+        "height": 870
+      }
+    },
+    "themeLight": {
+      "file": "ipad/timeline-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 60,
+        "width": 1640,
+        "height": 2250
+      }
+    },
+    "themeDark": {
+      "file": "ipad/timeline-dark.webp",
+      "crop": {
+        "left": 0,
+        "top": 60,
+        "width": 1640,
+        "height": 2250
+      }
+    },
+    "revisit": {
+      "file": "ipad/insights-light.webp",
+      "crop": {
+        "left": 0,
+        "top": 60,
+        "width": 1640,
+        "height": 2250
+      }
+    },
+    "customization": {
+      "file": "ipad/themes-dark.webp",
+      "crop": {
+        "left": 0,
+        "top": 650,
+        "width": 1640,
+        "height": 1660
+      }
+    }
+  },
+  "logo": {
+    "file": "ios/welcome-dark.webp",
+    "crop": {
+      "left": 430,
+      "top": 410,
+      "width": 350,
+      "height": 240
+    }
+  }
+}
