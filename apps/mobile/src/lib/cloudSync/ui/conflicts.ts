@@ -16,17 +16,33 @@ import { notifyProductionCloudSyncChanged } from '../runtime/production';
 import type { Stamp } from '../v2/types';
 import {
   acknowledgeReturnedEntries,
-  keepProfileVersion,
-  keepShownProfileValue,
+  keepProfileChoice,
   listOtherVersions,
   listProfileVersions,
   listReturnedEntries,
+  type ProfileField,
 } from './versions';
+
+export { VersionsChangedError } from './versions';
 
 /** An actionable row on the conflicts card, with when this device took it in. */
 export type CloudConflictItem = (
-  | { kind: 'name'; conflictIds: string[]; current: string | null; other: string | null }
-  | { kind: 'photo'; conflictIds: string[]; otherAssetId: string; otherUri: string }
+  | {
+      kind: 'name';
+      conflictIds: string[];
+      current: string | null;
+      other: string | null;
+      /** What the card listed: "Use" and "Keep current" refuse if it changed. */
+      seen: ProfileField;
+    }
+  | {
+      kind: 'photo';
+      conflictIds: string[];
+      otherAssetId: string;
+      otherUri: string;
+      /** What the card listed: "Use" and "Keep current" refuse if it changed. */
+      seen: ProfileField;
+    }
   | {
       /** Entries with more than one version of their title or text. */
       kind: 'entries';
@@ -70,15 +86,16 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
     db.select().from(userProfile).limit(1),
   ]);
   const items: CloudConflictItem[] = [];
-  for (const other of profileVersions.name)
+  for (const other of profileVersions.name.others)
     items.push({
       kind: 'name',
       conflictIds: [stampId('name', other.stamp)],
       current: profile?.display_name ?? null,
       other: other.value,
+      seen: profileVersions.name,
       latestAt: profileVersions.receivedAt,
     });
-  for (const other of profileVersions.photo) {
+  for (const other of profileVersions.photo.others) {
     // A photo is offered only once its file is on this device.
     if (other.value === null) continue;
     const [row] = await db
@@ -93,6 +110,7 @@ export async function listCloudConflictItems(): Promise<CloudConflictItem[]> {
       conflictIds: [stampId('photo', other.stamp)],
       otherAssetId: other.value,
       otherUri: row.uri,
+      seen: profileVersions.photo,
       latestAt: profileVersions.receivedAt,
     });
   }
@@ -131,14 +149,20 @@ export async function acknowledgeCloudConflicts(conflictIds: string[]): Promise<
   notifyProductionCloudSyncChanged();
 }
 
-/** "Use" keeps the other name, "Keep current" the shown one; either syncs. */
+/**
+ * "Use" keeps the other name, "Keep current" the shown one; either syncs.
+ * Throws `VersionsChangedError`, writing nothing, if the names changed since
+ * the card listed them.
+ */
 export async function resolveNameConflict(
   item: Extract<CloudConflictItem, { kind: 'name' }>,
   choice: 'use' | 'keep',
 ): Promise<void> {
-  if (choice === 'use')
-    await keepProfileVersion('name', parseStampId(item.conflictIds[0]));
-  else await keepShownProfileValue('name');
+  await keepProfileChoice(
+    'name',
+    choice === 'use' ? parseStampId(item.conflictIds[0]) : null,
+    item.seen,
+  );
   const [profile] = await db.select().from(userProfile).limit(1);
   const { profileEmail, profileImageUri } = useSettingsStore.getState();
   hydrateProfileCache({
@@ -149,15 +173,15 @@ export async function resolveNameConflict(
   notifyProductionCloudSyncChanged();
 }
 
-/** "Use" keeps the other photo, "Keep current" the shown one; either syncs. */
+/** As `resolveNameConflict`, for the profile photo. */
 export async function resolvePhotoConflict(
   item: Extract<CloudConflictItem, { kind: 'photo' }>,
   choice: 'use' | 'keep',
 ): Promise<void> {
   if (choice === 'use') {
-    await keepProfileVersion('photo', parseStampId(item.conflictIds[0]));
+    await keepProfileChoice('photo', parseStampId(item.conflictIds[0]), item.seen);
     const { profileName, profileEmail } = useSettingsStore.getState();
     hydrateProfileCache({ profileName, profileEmail, profileImageUri: item.otherUri });
-  } else await keepShownProfileValue('photo');
+  } else await keepProfileChoice('photo', null, item.seen);
   notifyProductionCloudSyncChanged();
 }

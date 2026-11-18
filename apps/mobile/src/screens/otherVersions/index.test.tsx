@@ -43,8 +43,12 @@ jest.mock('lucide-react-native', () => ({
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
 jest.mock('~/components/ui/icon', () => ({ Icon: 'Icon' }));
 jest.mock('~/components/ui/button', () => ({ Button: 'Button' }));
+const mockToastInfo = jest.fn();
 jest.mock('~/components/ui/toast', () => ({
-  toast: { error: (message: string) => mockToastError(message) },
+  toast: {
+    error: (message: string) => mockToastError(message),
+    info: (message: string) => mockToastInfo(message),
+  },
 }));
 jest.mock('~/components/ui/alert-dialog', () => ({
   AlertDialog: 'AlertDialog',
@@ -258,7 +262,7 @@ test('a second tap while keeping writes once', async () => {
   expect(mockKeep).toHaveBeenCalledTimes(1);
 });
 
-test('versions that changed while confirming write nothing and just refresh', async () => {
+test('versions that changed while confirming write nothing, refresh and say so', async () => {
   const { VersionsChangedError } = jest.requireMock('~/lib/cloudSync/ui/versions') as {
     VersionsChangedError: new () => Error;
   };
@@ -269,6 +273,9 @@ test('versions that changed while confirming write nothing and just refresh', as
   await act(async () => confirm().props.onPress());
   expect(refetch).toHaveBeenCalled();
   expect(mockToastError).not.toHaveBeenCalled();
+  const message = mockEn['cloud.conflicts.versionsChanged'];
+  expect(mockToastInfo).toHaveBeenCalledWith(message);
+  expect(mockAnnounce).toHaveBeenCalledWith(message, { queue: true });
   expect(dialog().props.open).toBe(false);
 });
 

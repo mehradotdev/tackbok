@@ -144,14 +144,57 @@ test('a profile name changed on two devices offers the other one', async () => {
   );
   await syncFrom(a, b, T + 2);
   const profile = await on(a, T + 3, versions.listProfileVersions);
-  expect(profile.name.map((item) => item.value)).toEqual(['Sam']);
+  expect(profile.name.shown).toBe('Samuel');
+  expect(profile.name.others.map((item) => item.value)).toEqual(['Sam']);
   await on(a, T + 4, () =>
-    versions.keepProfileVersion('name', profile.name[0].stamp, simMediaFiles),
+    versions.keepProfileChoice(
+      'name',
+      profile.name.others[0].stamp,
+      profile.name,
+      simMediaFiles,
+    ),
   );
   expect(a.sqlite.query('SELECT display_name FROM user_profile').all()).toEqual([
     { display_name: 'Sam' },
   ]);
-  expect((await on(a, T + 5, versions.listProfileVersions)).name).toEqual([]);
+  expect((await on(a, T + 5, versions.listProfileVersions)).name.others).toEqual([]);
+});
+
+test('"Use" and "Keep current" write nothing if a name arrived after the card listed them', async () => {
+  const c = devices.create();
+  await write(c, T, (tx) => store.rebuildSyncMetadataInTransaction(tx, 'vault', T));
+  for (const [device, name, wall] of [
+    [a, 'Sam', T],
+    [b, 'Samuel', T + 1],
+  ] as const)
+    await write(device, wall, (tx) =>
+      repositories.updateProfileInTransaction(tx, { displayName: name }, { now: wall }),
+    );
+  await syncFrom(a, b, T + 2);
+  const listed = (await on(a, T + 3, versions.listProfileVersions)).name;
+  // While the choice is open, a third device's name arrives.
+  await write(c, T + 4, (tx) =>
+    repositories.updateProfileInTransaction(tx, { displayName: 'S.' }, { now: T + 4 }),
+  );
+  await syncFrom(a, c, T + 5);
+  for (const chosen of [listed.others[0].stamp, null])
+    await expect(
+      on(a, T + 6, () =>
+        versions.keepProfileChoice('name', chosen, listed, simMediaFiles),
+      ),
+    ).rejects.toBeInstanceOf(versions.VersionsChangedError);
+  const after = (await on(a, T + 7, versions.listProfileVersions)).name;
+  expect([after.shown, ...after.others.map((item) => item.value)].sort()).toEqual([
+    'S.',
+    'Sam',
+    'Samuel',
+  ]);
+  // Choosing from the refreshed list works.
+  await on(a, T + 8, () =>
+    versions.keepProfileChoice('name', null, after, simMediaFiles),
+  );
+  expect((await on(a, T + 9, versions.listProfileVersions)).name.others).toEqual([]);
+  c.sqlite.close();
 });
 
 test('"Keep this one" writes nothing if a version arrived after the screen listed them', async () => {

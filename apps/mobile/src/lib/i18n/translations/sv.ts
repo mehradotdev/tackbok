@@ -860,6 +860,8 @@ export const sv = {
     '{count} anteckningar som du tog bort på en enhet behölls eftersom en annan enhet fortfarande hade dem.',
   'cloud.conflicts.openEntry': 'Öppna anteckningen',
   'cloud.conflicts.gotIt': 'OK',
+  'cloud.conflicts.versionsChanged':
+    'Versionerna ändrades medan du valde, så inget sparades. Titta på dem igen och välj på nytt.',
   'cloud.conflicts.allDone': 'Klart. Varje anteckning har nu bara en version.',
   'cloud.conflicts.titleDiffers': 'Titeln skiljer sig',
   'cloud.conflicts.textDiffers': 'Texten skiljer sig',

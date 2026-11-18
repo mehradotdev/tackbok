@@ -842,6 +842,8 @@ export const hi = {
     'आपकी {count} हटाई गई प्रविष्टियाँ रखी गईं, क्योंकि वे दूसरे डिवाइस पर अब भी थीं।',
   'cloud.conflicts.openEntry': 'प्रविष्टि खोलें',
   'cloud.conflicts.gotIt': 'ठीक है',
+  'cloud.conflicts.versionsChanged':
+    'आपके चुनते समय संस्करण बदल गए, इसलिए कुछ भी सहेजा नहीं गया। इन्हें फिर से देखें और दोबारा चुनें।',
   'cloud.conflicts.allDone': 'सब हो गया। अब हर प्रविष्टि का एक ही संस्करण है।',
   'cloud.conflicts.titleDiffers': 'शीर्षक अलग है',
   'cloud.conflicts.textDiffers': 'टेक्स्ट अलग है',

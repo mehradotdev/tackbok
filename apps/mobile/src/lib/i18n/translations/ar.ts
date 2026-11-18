@@ -898,6 +898,8 @@ export const ar: Translations = {
     'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
   'cloud.conflicts.openEntry': 'فتح السجل',
   'cloud.conflicts.gotIt': 'حسنًا',
+  'cloud.conflicts.versionsChanged':
+    'تغيّرت النسخ أثناء اختيارك، لذلك لم يُحفظ شيء. راجعها واختر مرة أخرى.',
   'cloud.conflicts.allDone': 'اكتمل كل شيء. أصبح لكل سجل الآن نسخة واحدة.',
   'cloud.conflicts.titleDiffers': 'العنوان مختلف',
   'cloud.conflicts.textDiffers': 'النص مختلف',

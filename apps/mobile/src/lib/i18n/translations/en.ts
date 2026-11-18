@@ -931,6 +931,9 @@ export const en = {
     '{count} entries you deleted on one device were kept because another device still had them.',
   'cloud.conflicts.openEntry': 'Open entry',
   'cloud.conflicts.gotIt': 'Got it',
+  // A choice on Other versions or the conflicts card was refused: the versions changed meanwhile.
+  'cloud.conflicts.versionsChanged':
+    'The versions changed while you were choosing, so nothing was saved. Check them and choose again.',
   // Other versions after the last choice, when no entry has another version left.
   'cloud.conflicts.allDone': 'All done. Each entry now has one version.',
   // Other versions: what differs between the versions of one entry.

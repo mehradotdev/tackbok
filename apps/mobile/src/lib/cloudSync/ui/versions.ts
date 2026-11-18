@@ -9,11 +9,9 @@
  * that value (or the shown ones) as one new write. "Keep both", syncing the
  * Home notice's dismissal and new copy come with P7.
  *
- * shortcut: two limits until P7. Times for the Home notice are when this
- * device last changed the record (`sync_records.updated_at`), so a local
- * edit of an entry that still has versions can show the hidden notice again.
- * Profile choices ("Use", "Keep current") have no stale-choice guard like
- * `keepEntryVersion`'s. Record each version's arrival and guard both in P7.
+ * shortcut: times for the Home notice are when this device last changed the
+ * record (`sync_records.updated_at`), so a local edit of an entry that still
+ * has versions can show the hidden notice again. Fixed later in P7.
  */
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
@@ -158,10 +156,18 @@ export async function listVersionGroups(): Promise<
     }));
 }
 
-/** Profile name or photo values beside the shown one, newest first. */
+/** A profile name or photo as the conflicts card shows it. */
+export interface ProfileField {
+  /** The shown value. */
+  shown: string | null;
+  /** Values beside the shown one, newest first. */
+  others: { stamp: Stamp; value: string | null }[];
+}
+
+/** Profile name and photo, with the values beside the shown ones. */
 export async function listProfileVersions(): Promise<{
-  name: { stamp: Stamp; value: string | null }[];
-  photo: { stamp: Stamp; value: string | null }[];
+  name: ProfileField;
+  photo: ProfileField;
   /** When this device last took in a change to the profile (local time). */
   receivedAt: number;
 }> {
@@ -176,16 +182,19 @@ export async function listProfileVersions(): Promise<{
     .select()
     .from(syncFieldValues)
     .where(eq(syncFieldValues.entity_type, 'profile'));
-  const pick = (field: 'name' | 'photo', shown: string | null) => {
+  const pick = (field: 'name' | 'photo', shown: string | null): ProfileField => {
     const seen = new Set<string | null>([shown]);
-    return rows
-      .filter((row) => row.field === field)
-      .map((row) => ({
-        stamp: [row.stamp_hlc, row.stamp_device] as Stamp,
-        value: JSON.parse(row.value_json) as string | null,
-      }))
-      .sort((a, b) => compareStamps(b.stamp, a.stamp))
-      .filter((item) => !seen.has(item.value) && Boolean(seen.add(item.value)));
+    return {
+      shown,
+      others: rows
+        .filter((row) => row.field === field)
+        .map((row) => ({
+          stamp: [row.stamp_hlc, row.stamp_device] as Stamp,
+          value: JSON.parse(row.value_json) as string | null,
+        }))
+        .sort((a, b) => compareStamps(b.stamp, a.stamp))
+        .filter((item) => !seen.has(item.value) && Boolean(seen.add(item.value))),
+    };
   };
   return {
     name: pick('name', profile?.display_name ?? null),
@@ -244,8 +253,8 @@ export async function countSyncChoices(): Promise<number> {
   ]);
   return (
     versions.size +
-    (profile.name.length > 0 ? 1 : 0) +
-    (profile.photo.length > 0 ? 1 : 0) +
+    (profile.name.others.length > 0 ? 1 : 0) +
+    (profile.photo.others.length > 0 ? 1 : 0) +
     returned.length
   );
 }
@@ -365,29 +374,35 @@ export async function acknowledgeReturnedEntries(
   );
 }
 
-/** Use or keep a profile name or photo version: one write of the chosen value. */
-export async function keepProfileVersion(
+const stampKey = (stamp: Stamp) => `${stamp[0]}:${stamp[1]}`;
+
+/**
+ * "Use" (`chosen`, another version's stamp) or "Keep current" (`chosen`
+ * null) for the profile name or photo: one write of that value. `seen` is
+ * what the conflicts card listed. If the shown value changed, or a version
+ * arrived or went, nothing is written and `VersionsChangedError` is thrown,
+ * as for entries.
+ */
+export async function keepProfileChoice(
   field: 'name' | 'photo',
-  stamp: Stamp,
+  chosen: Stamp | null,
+  seen: ProfileField,
   files?: ApplyMediaFiles,
 ): Promise<void> {
-  await writeThroughSync(
-    (state, writer) =>
-      state.profile[field].some((item) => compareStamps(item.s, stamp) === 0)
-        ? ops.keepProfile(state, writer, field, stamp)
-        : state,
-    { type: 'profile', id: 'profile' },
-    files,
-  );
-}
-
-/** "Keep current": the shown value, so the others go. */
-export async function keepShownProfileValue(field: 'name' | 'photo'): Promise<void> {
+  const seenOthers = seen.others.map((other) => stampKey(other.stamp)).sort();
   await writeThroughSync(
     (state, writer) => {
       const shown = shownItems(state.profile[field]);
-      return shown.length > 1 ? ops.keepProfile(state, writer, field, shown[0].s) : state;
+      const others = shown.slice(1).map((item) => stampKey(item.s));
+      if (
+        (shown[0]?.v ?? null) !== seen.shown ||
+        others.sort().join() !== seenOthers.join()
+      )
+        throw new VersionsChangedError();
+      if (others.length === 0) return state;
+      return ops.keepProfile(state, writer, field, chosen ?? shown[0].s);
     },
     { type: 'profile', id: 'profile' },
+    files,
   );
 }

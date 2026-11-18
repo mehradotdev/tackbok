@@ -11,18 +11,30 @@ const mockResolvePhoto = jest.fn(async (..._args: unknown[]) => {});
 const mockAcknowledge = jest.fn(async (..._args: unknown[]) => {});
 const mockPush = jest.fn();
 const mockToastError = jest.fn();
+const mockToastInfo = jest.fn();
+const mockAnnounce = jest.fn();
 
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US', regionCode: 'US' }],
 }));
-jest.mock('react-native', () => ({ View: 'View', Image: 'Image' }));
+jest.mock('react-native', () => ({
+  View: 'View',
+  Image: 'Image',
+  AccessibilityInfo: {
+    announceForAccessibilityWithOptions: (message: string, options: unknown) =>
+      mockAnnounce(message, options),
+  },
+}));
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('lucide-react-native', () => ({ FileClock: 'FileClock' }));
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
 jest.mock('~/components/ui/icon', () => ({ Icon: 'Icon' }));
 jest.mock('~/components/ui/button', () => ({ Button: 'Button' }));
 jest.mock('~/components/ui/toast', () => ({
-  toast: { error: (message: string) => mockToastError(message) },
+  toast: {
+    error: (message: string) => mockToastError(message),
+    info: (message: string) => mockToastInfo(message),
+  },
 }));
 jest.mock('~/lib/photoUtils', () => ({
   getFullPhotoUri: (uri: string) => `file:///documents/${uri}`,
@@ -39,6 +51,7 @@ jest.mock('~/lib/cloudSync/ui', () => ({
   resolveNameConflict: (...args: unknown[]) => mockResolveName(...args),
   resolvePhotoConflict: (...args: unknown[]) => mockResolvePhoto(...args),
   acknowledgeCloudConflicts: (...args: unknown[]) => mockAcknowledge(...args),
+  VersionsChangedError: class VersionsChangedError extends Error {},
 }));
 
 const nameItem: Extract<CloudConflictItem, { kind: 'name' }> = {
@@ -46,6 +59,7 @@ const nameItem: Extract<CloudConflictItem, { kind: 'name' }> = {
   conflictIds: ['n1'],
   current: 'Mehra',
   other: 'Mehra A',
+  seen: { shown: 'Mehra', others: [{ stamp: [2, 'b'], value: 'Mehra A' }] },
   latestAt: 1,
 };
 const photoItem: CloudConflictItem = {
@@ -53,6 +67,7 @@ const photoItem: CloudConflictItem = {
   conflictIds: ['p1'],
   otherAssetId: 'photo-other',
   otherUri: 'photos/other.jpg',
+  seen: { shown: null, others: [{ stamp: [2, 'b'], value: 'photo-other' }] },
   latestAt: 1,
 };
 const entriesItem: CloudConflictItem = {
@@ -160,6 +175,23 @@ test('reports a failed action and keeps the row', async () => {
     mockEn['cloud.cloudBackupCouldNotBeUpdated'],
   );
   expect(content()).toContain('Mehra A');
+});
+
+test('a choice refused because the names changed is announced, not reported as a failure', async () => {
+  await render([nameItem]);
+  const { VersionsChangedError } = jest.requireMock('~/lib/cloudSync/ui') as {
+    VersionsChangedError: new () => Error;
+  };
+  mockResolveName.mockRejectedValueOnce(new VersionsChangedError());
+  const fresh = { ...nameItem, other: 'Mehra B' };
+  mockList.mockResolvedValue([fresh]);
+  await act(async () => button(mockEn['cloud.conflicts.keepCurrent']).props.onPress());
+  const message = mockEn['cloud.conflicts.versionsChanged'];
+  expect(mockToastError).not.toHaveBeenCalled();
+  expect(mockToastInfo).toHaveBeenCalledWith(message);
+  expect(mockAnnounce).toHaveBeenCalledWith(message, { queue: true });
+  // The refreshed card shows what changed.
+  expect(content()).toContain('Mehra B');
 });
 
 test('reloads when the sync snapshot changes, even if the conflict count does not', async () => {

@@ -891,6 +891,8 @@ export const he: Translations = {
     '{count} רשומות שמחקת במכשיר אחד נשמרו כי הן עדיין היו במכשיר אחר.',
   'cloud.conflicts.openEntry': 'פתיחת הרשומה',
   'cloud.conflicts.gotIt': 'הבנתי',
+  'cloud.conflicts.versionsChanged':
+    'הגרסאות השתנו בזמן הבחירה, ולכן שום דבר לא נשמר. כדאי לבדוק אותן ולבחור שוב.',
   'cloud.conflicts.allDone': 'הכול הושלם. לכל רשומה יש עכשיו גרסה אחת.',
   'cloud.conflicts.titleDiffers': 'הכותרת שונה',
   'cloud.conflicts.textDiffers': 'הטקסט שונה',

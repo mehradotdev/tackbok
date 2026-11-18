@@ -964,6 +964,8 @@ export const de: Translations = {
     '{count} Einträge, die du auf einem Gerät gelöscht hast, wurden behalten, weil ein anderes Gerät sie noch hatte.',
   'cloud.conflicts.openEntry': 'Eintrag öffnen',
   'cloud.conflicts.gotIt': 'Verstanden',
+  'cloud.conflicts.versionsChanged':
+    'Die Versionen haben sich geändert, während du gewählt hast, daher wurde nichts gespeichert. Sieh sie dir noch einmal an und wähle erneut.',
   'cloud.conflicts.allDone':
     'Alles erledigt. Jeder Eintrag hat jetzt nur noch eine Version.',
   'cloud.conflicts.titleDiffers': 'Titel unterscheidet sich',

@@ -866,6 +866,8 @@ export const zhCN: Translations = {
     '你在一台设备上删除的 {count} 个条目被保留了，因为另一台设备上仍有它们。',
   'cloud.conflicts.openEntry': '打开条目',
   'cloud.conflicts.gotIt': '知道了',
+  'cloud.conflicts.versionsChanged':
+    '在你选择时这些版本发生了变化，因此未保存任何更改。请重新查看后再选择。',
   'cloud.conflicts.allDone': '全部完成。现在每个条目只有一个版本。',
   'cloud.conflicts.titleDiffers': '标题不同',
   'cloud.conflicts.textDiffers': '正文不同',

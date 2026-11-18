@@ -869,6 +869,8 @@ export const zhTW: Translations = {
     '你在一部裝置上刪除的 {count} 則紀錄被保留了，因為另一部裝置上仍有它們。',
   'cloud.conflicts.openEntry': '開啟紀錄',
   'cloud.conflicts.gotIt': '知道了',
+  'cloud.conflicts.versionsChanged':
+    '在你選擇時這些版本已有變動，因此未儲存任何變更。請重新查看後再選擇。',
   'cloud.conflicts.allDone': '全部完成。現在每則紀錄只有一個版本。',
   'cloud.conflicts.titleDiffers': '標題不同',
   'cloud.conflicts.textDiffers': '內文不同',
