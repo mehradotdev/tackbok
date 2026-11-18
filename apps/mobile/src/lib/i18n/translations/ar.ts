@@ -296,8 +296,7 @@ export const ar: Translations = {
   'appearance.dateStyle': 'نمط التاريخ',
   'appearance.dateIncludesDayOfTheWeek': 'التاريخ يتضمن يوم الأسبوع',
   'appearance.firstDayOfWeek': 'أول يوم في الأسبوع',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar':
-    'حدد أول يوم في الأسبوع في عرض التقويم',
+  'appearance.firstDayOfWeekDescription': 'اختر اليوم الذي تبدأ به أسابيع التقويم',
   'appearance.appIcon': 'أيقونة التطبيق',
   'appearance.changeAppIconTitle': 'تغيير أيقونة التطبيق؟',
   'appearance.changeAppIconMessage': 'سيُغلق تاكبوك لتطبيق الأيقونة الجديدة.',
@@ -506,8 +505,8 @@ export const ar: Translations = {
   'appInfo.termsConditions': 'الشروط والأحكام',
   'appInfo.readOurTermsAndConditions': 'اقرأ الشروط والأحكام',
   'appInfo.analytics': 'جمع بيانات التحليلات',
-  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    'يقوم تاكبوك بجمع معلومات تحليلية مجهولة للمساعدة في تشخيص المشاكل ومراقبة الاتجاهات',
+  'appInfo.analyticsDescription':
+    'شارك بيانات استخدام مجهولة الهوية للمساعدة في اكتشاف الأخطاء وتحسين تاكبوك',
   'appInfo.checkForUpdates': 'التحقق من التحديثات',
   'appInfo.checkingForUpdates': 'جارٍ التحقق من التحديثات…',
   'appInfo.lastCheckedTime': 'آخر تحقق: {time}',

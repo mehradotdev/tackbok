@@ -88,7 +88,7 @@ export function TimelineSection() {
         />
         <SettingsRow
           label={t('appearance.firstDayOfWeek')}
-          description={t('appearance.setTheFirstDayOfTheWeekInTheCalendar')}
+          description={t('appearance.firstDayOfWeekDescription')}
           icon={CalendarDays}
           onPress={() => setShowFirstDayModal(true)}
           showChevron

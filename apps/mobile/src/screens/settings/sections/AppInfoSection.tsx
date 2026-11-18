@@ -163,7 +163,7 @@ export function AppInfoSection() {
       />
       <SettingsRow
         label={t('appInfo.analytics')}
-        description={t('appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems')}
+        description={t('appInfo.analyticsDescription')}
         icon={BarChart3}
         onPress={() => setAnalyticsEnabled(!analyticsEnabled)}
         rightElement={

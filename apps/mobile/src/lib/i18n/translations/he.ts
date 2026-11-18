@@ -297,8 +297,7 @@ export const he: Translations = {
   'appearance.dateStyle': 'סגנון תאריך',
   'appearance.dateIncludesDayOfTheWeek': 'התאריך כולל את יום השבוע',
   'appearance.firstDayOfWeek': 'היום הראשון בשבוע',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar':
-    'הגדר את היום הראשון בשבוע בתצוגת היומן',
+  'appearance.firstDayOfWeekDescription': 'בחרו באיזה יום מתחילים השבועות בלוח השנה',
   'appearance.appIcon': 'סמל האפליקציה',
   'appearance.changeAppIconTitle': 'לשנות את סמל האפליקציה?',
   'appearance.changeAppIconMessage': 'טאקבוק ייסגר כדי להחיל את הסמל החדש.',
@@ -503,8 +502,8 @@ export const he: Translations = {
   'appInfo.termsConditions': 'תנאים והגבלות',
   'appInfo.readOurTermsAndConditions': 'קרא את התנאים וההגבלות שלנו',
   'appInfo.analytics': 'איסוף נתוני ניתוח',
-  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    'טאקבוק אוסף מידע אנליטי אנונימי כדי לעזור באבחון בעיות ומעקב אחר מגמות',
+  'appInfo.analyticsDescription':
+    'שיתוף נתוני שימוש אנונימיים כדי לעזור למצוא באגים ולשפר את טאקבוק',
   'appInfo.checkForUpdates': 'בדיקת עדכונים',
   'appInfo.checkingForUpdates': 'בודק עדכונים…',
   'appInfo.lastCheckedTime': 'בדיקה אחרונה: {time}',

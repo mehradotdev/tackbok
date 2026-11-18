@@ -293,7 +293,7 @@ export const zhTW: Translations = {
   'appearance.dateStyle': '日期樣式',
   'appearance.dateIncludesDayOfTheWeek': '日期包含星期',
   'appearance.firstDayOfWeek': '每週的第一天',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar': '設定日曆視圖中每週的第一天',
+  'appearance.firstDayOfWeekDescription': '選擇日曆中每週從哪一天開始',
   'appearance.appIcon': '應用程式圖示',
   'appearance.changeAppIconTitle': '變更應用程式圖示？',
   'appearance.changeAppIconMessage': '塔克布克將關閉以套用新圖示。',
@@ -491,8 +491,7 @@ export const zhTW: Translations = {
   'appInfo.termsConditions': '條款與條件',
   'appInfo.readOurTermsAndConditions': '閱讀我們的條款與條件',
   'appInfo.analytics': '分析資料收集',
-  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    '塔克布克收集匿名分析資訊以協助診斷問題並監控趨勢',
+  'appInfo.analyticsDescription': '分享匿名使用資料，協助發現問題並改進塔克布克',
   'appInfo.checkForUpdates': '檢查更新',
   'appInfo.checkingForUpdates': '正在檢查更新…',
   'appInfo.lastCheckedTime': '上次檢查：{time}',

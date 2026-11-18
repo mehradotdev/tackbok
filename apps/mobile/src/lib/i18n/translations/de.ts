@@ -330,8 +330,8 @@ export const de: Translations = {
   'appearance.dateStyle': 'Datumsformat',
   'appearance.dateIncludesDayOfTheWeek': 'Datum enthält den Wochentag',
   'appearance.firstDayOfWeek': 'Erster Wochentag',
-  'appearance.setTheFirstDayOfTheWeekInTheCalendar':
-    'Lege den ersten Wochentag in der Kalenderansicht fest',
+  'appearance.firstDayOfWeekDescription':
+    'Wähle, an welchem Tag deine Kalenderwochen beginnen',
   'appearance.appIcon': 'App-Symbol',
   'appearance.changeAppIconTitle': 'App-Symbol ändern?',
   'appearance.changeAppIconMessage':
@@ -554,8 +554,8 @@ export const de: Translations = {
   'appInfo.termsConditions': 'Allgemeine Geschäftsbedingungen',
   'appInfo.readOurTermsAndConditions': 'Unsere allgemeinen Geschäftsbedingungen lesen',
   'appInfo.analytics': 'Erfassung von Analysedaten',
-  'appInfo.collectingAnonymizedAnalyticsToHelpDiagnoseProblems':
-    'Tackbok erfasst anonymisierte Analysedaten, um Probleme zu erkennen und Trends zu beobachten',
+  'appInfo.analyticsDescription':
+    'Anonyme Nutzungsdaten teilen, damit wir Fehler finden und Tackbok verbessern können',
   'appInfo.checkForUpdates': 'Nach Updates suchen',
   'appInfo.checkingForUpdates': 'Updates werden gesucht …',
   'appInfo.lastCheckedTime': 'Zuletzt geprüft: {time}',
