@@ -16,18 +16,24 @@ interface OtherVersionGroupCardProps {
   onEntryPress: (entry: Entry) => void;
   onPhotoPress: (photos: Asset[], index: number) => void;
   onKeep: (entry: Entry) => void;
+  /** "Keep both" under another version: it becomes a new entry. */
+  onKeepBoth: (entry: Entry) => void;
   disabled: boolean;
   /** The group the user came to compare, e.g. from an entry's banner. */
   highlighted?: boolean;
 }
 
-/** One entry's versions, one under the other, each with "Keep this one". */
+/**
+ * One entry's versions, one under the other, each with "Keep this one";
+ * the other versions also offer "Keep both".
+ */
 export function OtherVersionGroupCard({
   group,
   tagMap,
   onEntryPress,
   onPhotoPress,
   onKeep,
+  onKeepBoth,
   disabled,
   highlighted = false,
 }: OtherVersionGroupCardProps) {
@@ -88,6 +94,8 @@ export function OtherVersionGroupCard({
               fullText
               // The screen already insets for the safe area.
               safeAreaPadding={false}
+              // The whole card is about other versions.
+              showVersionBadge={false}
               className="border-b-0"
             />
             {(attachmentCount > 0 || canKeep) && (
@@ -98,25 +106,39 @@ export function OtherVersionGroupCard({
                   </Text>
                 )}
                 {canKeep && (
-                  // Several lines at large text sizes rather than clipped.
-                  <Button
-                    variant="outline"
-                    className="h-auto min-h-10 max-w-full self-start py-2"
-                    accessibilityLabel={
-                      isOriginal
-                        ? t('cloud.conflicts.keepOriginal')
-                        : t('cloud.conflicts.keepOtherVersion')
-                    }
-                    accessibilityHint={keepMessage(
-                      t,
-                      members.filter((member) => member !== entry),
+                  <View className="flex-row flex-wrap gap-2">
+                    {/* Several lines at large text sizes rather than clipped. */}
+                    <Button
+                      variant="outline"
+                      className="h-auto min-h-10 max-w-full self-start py-2"
+                      accessibilityLabel={
+                        isOriginal
+                          ? t('cloud.conflicts.keepOriginal')
+                          : t('cloud.conflicts.keepOtherVersion')
+                      }
+                      accessibilityHint={keepMessage(
+                        t,
+                        members.filter((member) => member !== entry),
+                      )}
+                      disabled={disabled}
+                      onPress={() => onKeep(entry)}>
+                      <Text className="shrink text-center">
+                        {t('cloud.conflicts.keepThisOne')}
+                      </Text>
+                    </Button>
+                    {!isOriginal && (
+                      <Button
+                        variant="ghost"
+                        className="h-auto min-h-10 max-w-full py-2"
+                        accessibilityHint={t('cloud.conflicts.keepBothHint')}
+                        disabled={disabled}
+                        onPress={() => onKeepBoth(entry)}>
+                        <Text className="shrink text-center">
+                          {t('cloud.conflicts.keepBoth')}
+                        </Text>
+                      </Button>
                     )}
-                    disabled={disabled}
-                    onPress={() => onKeep(entry)}>
-                    <Text className="shrink text-center">
-                      {t('cloud.conflicts.keepThisOne')}
-                    </Text>
-                  </Button>
+                  </View>
                 )}
               </View>
             )}

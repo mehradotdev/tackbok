@@ -872,7 +872,7 @@ export const ar: Translations = {
   'cloud.conflicts.showThem': 'عرضها',
   'cloud.conflicts.otherVersionsTitle': 'نسخ أخرى',
   'cloud.conflicts.otherVersionsDescription':
-    'عُدِّلت هذه السجلات على جهازين في الوقت نفسه، لذا احتُفظ بالنسختين. افتح أحدها لتعديله أو حذفه.',
+    'عُدِّلت هذه السجلات على جهازين في الوقت نفسه، لذا احتُفظ بالنسختين. اختر النسخة التي تريد الإبقاء عليها، أو أبقِ على الاثنتين كسجلين منفصلين.',
   'cloud.conflicts.noOtherVersions': 'لا توجد سجلات لها نسخة أخرى.',
   'cloud.conflicts.homeNotice':
     'أُجريت بعض التغييرات على جهازين في الوقت نفسه. اطّلع على ما احتُفظ به.',
@@ -892,12 +892,18 @@ export const ar: Translations = {
   'cloud.conflicts.keepOriginal': 'الإبقاء على النسخة الأصلية',
   'cloud.conflicts.keepOtherVersion': 'الإبقاء على هذه النسخة الأخرى',
   'cloud.conflicts.keepThisOneTitle': 'الإبقاء على هذه النسخة؟',
-  'cloud.conflicts.keepThisOneMessage': 'عدد النسخ الأخرى التي ستُحذف نهائيًا: {count}.',
+  'cloud.conflicts.keepThisOneMessage':
+    'ستُحفظ هذه النسخة على جميع أجهزتك بدلًا من النسخ الأخرى ({count}).',
+  'cloud.conflicts.keepConfirm': 'الإبقاء على هذه النسخة',
+  'cloud.conflicts.keepBoth': 'الإبقاء على الاثنتين',
+  'cloud.conflicts.keepBothHint':
+    'تُحفظ هذه النسخة كسجل جديد بالتاريخ والمزاج والوسوم نفسها. تبقى المرفقات في السجل الأصلي.',
+  'cloud.conflicts.keptBoth': 'حُفظت كسجل جديد.',
   'cloud.conflicts.attachmentCount': 'المرفقات: {count}',
   'cloud.conflicts.entryReturned':
     'حُذف هذا السجل على جهاز بينما عُدِّل على جهاز آخر، لذا احتُفظ بالنسخة المعدَّلة.',
   'cloud.conflicts.entriesReturned':
-    'عدد السجلات المحذوفة على جهاز التي احتُفظ بها لأن جهازًا آخر كان لا يزال يحتفظ بها: {count}.',
+    'عدد السجلات المحذوفة على جهاز التي عُدِّلت على جهاز آخر فاحتُفظ بنسخها المعدَّلة: {count}.',
   'cloud.conflicts.openEntry': 'فتح السجل',
   'cloud.conflicts.gotIt': 'حسنًا',
   'cloud.conflicts.versionsChanged':

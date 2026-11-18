@@ -391,3 +391,93 @@ test('marking one choice seen keeps the other choices seen', async () => {
   expect(versions.isNewChoice(nameStamps, seen)).toBe(false);
   expect(versions.isNewChoice(entryStamps, seen)).toBe(false);
 });
+
+test('"Keep both" on two devices at once makes one new entry, and resolves the versions', async () => {
+  await write(a, T, (tx) =>
+    repositories.upsertEntryInTransaction(
+      tx,
+      { ...entry('e1', 'Base'), mood: 'HAPPY', text_title: 'Walk' },
+      { now: T },
+    ),
+  );
+  await syncFrom(b, a, T + 1);
+  await write(a, T + 2, (tx) =>
+    repositories.upsertEntryInTransaction(
+      tx,
+      { ...entry('e1', 'A'), mood: 'HAPPY', text_title: 'Walk' },
+      { now: T + 2 },
+    ),
+  );
+  await write(b, T + 3, (tx) =>
+    repositories.upsertEntryInTransaction(
+      tx,
+      { ...entry('e1', 'B'), mood: 'HAPPY', text_title: 'Walk' },
+      { now: T + 3 },
+    ),
+  );
+  await syncFrom(a, b, T + 4);
+  await syncFrom(b, a, T + 5);
+  // Both devices list B shown and A as the other version; both keep both.
+  const made: string[] = [];
+  for (const [device, wall] of [
+    [a, T + 6],
+    [b, T + 7],
+  ] as const) {
+    const [group] = await on(device, wall, versions.listVersionGroups);
+    expect(group.original.text_content).toBe('B');
+    made.push(
+      await on(device, wall, () =>
+        versions.keepBothVersions(
+          group.versions[0].note_id,
+          [group.original, ...group.versions],
+          simMediaFiles,
+        ),
+      ),
+    );
+  }
+  expect(made[0]).toBe(made[1]);
+  await syncFrom(a, b, T + 8);
+  await syncFrom(b, a, T + 9);
+  for (const device of [a, b]) {
+    expect(
+      device.sqlite
+        .query(
+          'SELECT note_id, text_title, text_content, mood FROM entries ORDER BY text_content',
+        )
+        .all(),
+    ).toEqual([
+      { note_id: made[0], text_title: 'Walk', text_content: 'A', mood: 'HAPPY' },
+      { note_id: 'e1', text_title: 'Walk', text_content: 'B', mood: 'HAPPY' },
+    ]);
+    expect(await on(device, T + 10, versions.countSyncChoices)).toBe(0);
+  }
+});
+
+test('"Keep both" writes nothing if a version arrived after the screen listed them', async () => {
+  await write(a, T, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'Base'), { now: T }),
+  );
+  await syncFrom(b, a, T + 1);
+  await write(a, T + 2, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'A'), { now: T + 2 }),
+  );
+  await write(b, T + 3, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'B'), { now: T + 3 }),
+  );
+  await syncFrom(a, b, T + 4);
+  const [group] = await on(a, T + 5, versions.listVersionGroups);
+  await write(b, T + 6, (tx) =>
+    repositories.upsertEntryInTransaction(tx, entry('e1', 'C'), { now: T + 6 }),
+  );
+  await syncFrom(a, b, T + 7);
+  await expect(
+    on(a, T + 8, () =>
+      versions.keepBothVersions(
+        group.versions[0].note_id,
+        [group.original, ...group.versions],
+        simMediaFiles,
+      ),
+    ),
+  ).rejects.toBeInstanceOf(versions.VersionsChangedError);
+  expect(a.sqlite.query('SELECT COUNT(*) AS n FROM entries').all()).toEqual([{ n: 1 }]);
+});

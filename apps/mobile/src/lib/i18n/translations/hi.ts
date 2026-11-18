@@ -816,7 +816,7 @@ export const hi = {
   'cloud.conflicts.showThem': 'दिखाएँ',
   'cloud.conflicts.otherVersionsTitle': 'अन्य संस्करण',
   'cloud.conflicts.otherVersionsDescription':
-    'ये प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं, इसलिए दोनों संस्करण रखे गए। किसी एक को संपादित करने या हटाने के लिए उसे खोलें।',
+    'ये प्रविष्टियाँ एक ही समय पर दो डिवाइस पर संपादित की गईं, इसलिए दोनों संस्करण रखे गए। जिसे रखना है उसे चुनें, या दोनों को अलग-अलग प्रविष्टियों के रूप में रखें।',
   'cloud.conflicts.noOtherVersions': 'किसी प्रविष्टि का कोई अन्य संस्करण नहीं है।',
   'cloud.conflicts.homeNotice':
     'कुछ बदलाव एक ही समय पर दो डिवाइस पर किए गए। देखें कि क्या रखा गया।',
@@ -836,12 +836,18 @@ export const hi = {
   'cloud.conflicts.keepOriginal': 'मूल रखें',
   'cloud.conflicts.keepOtherVersion': 'यह अन्य संस्करण रखें',
   'cloud.conflicts.keepThisOneTitle': 'यह संस्करण रखें?',
-  'cloud.conflicts.keepThisOneMessage': '{count} अन्य संस्करण स्थायी रूप से हटा दिए जाएँगे।',
+  'cloud.conflicts.keepThisOneMessage':
+    'अन्य {count} संस्करणों की जगह यह संस्करण आपके सभी डिवाइस पर रखा जाएगा।',
+  'cloud.conflicts.keepConfirm': 'यह संस्करण रखें',
+  'cloud.conflicts.keepBoth': 'दोनों रखें',
+  'cloud.conflicts.keepBothHint':
+    'यह संस्करण उसी तारीख, मूड और टैग के साथ एक नई प्रविष्टि के रूप में सहेजा जाता है। अटैचमेंट मूल प्रविष्टि में ही रहते हैं।',
+  'cloud.conflicts.keptBoth': 'नई प्रविष्टि के रूप में सहेजा गया।',
   'cloud.conflicts.attachmentCount': 'अटैचमेंट: {count}',
   'cloud.conflicts.entryReturned':
     'आपने यह प्रविष्टि एक डिवाइस पर हटाई, जबकि दूसरे डिवाइस पर इसे संपादित किया जा रहा था, इसलिए संपादित संस्करण रखा गया।',
   'cloud.conflicts.entriesReturned':
-    'आपकी {count} हटाई गई प्रविष्टियाँ रखी गईं, क्योंकि वे दूसरे डिवाइस पर अब भी थीं।',
+    'आपने एक डिवाइस पर जो {count} प्रविष्टियाँ हटाईं, उन्हें दूसरे डिवाइस पर संपादित किया गया, इसलिए संपादित संस्करण रखे गए।',
   'cloud.conflicts.openEntry': 'प्रविष्टि खोलें',
   'cloud.conflicts.gotIt': 'ठीक है',
   'cloud.conflicts.versionsChanged':

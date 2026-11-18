@@ -8,6 +8,7 @@ import type { OtherVersionGroup } from '~/db/queries';
 import { useTranslation } from '~/lib/i18n';
 import {
   VersionsChangedError,
+  keepBothVersions,
   keepEntryVersion,
   parseVersionCopyId,
 } from '~/lib/cloudSync/ui/versions';
@@ -23,8 +24,8 @@ import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogAction,
   AlertDialogDescription,
-  AlertDialogDestructiveAction,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -63,9 +64,9 @@ export default function OtherVersionsScreen() {
     kept: Entry;
     others: Entry[];
   } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  // Set synchronously, so a second tap before the re-render deletes nothing.
-  const deletingRef = useRef(false);
+  const [isBusy, setIsBusy] = useState(false);
+  // Set synchronously, so a second tap before the re-render writes nothing.
+  const busyRef = useRef(false);
 
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -121,18 +122,15 @@ export default function OtherVersionsScreen() {
   // One new write of the chosen value (cloud sync v2): the other versions of
   // that field go everywhere once it syncs. Two devices keeping different
   // versions at once leave both open, so nothing is lost.
-  const handleKeepConfirm = async () => {
-    if (!pendingKeep || deletingRef.current) return;
-    deletingRef.current = true;
-    setIsDeleting(true);
-    let outcome: 'kept' | 'changed' | 'failed' = 'kept';
+  // `write` gets what the user compared: if sync changed the versions
+  // meanwhile, nothing is written and the refreshed list shows the new ones.
+  const runChoice = async (write: () => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setIsBusy(true);
+    let outcome: 'done' | 'changed' | 'failed' = 'done';
     try {
-      // What the user compared: if sync changed the versions meanwhile,
-      // nothing is written and the refreshed list shows the new ones.
-      await keepEntryVersion(pendingKeep.keepId, [
-        pendingKeep.kept,
-        ...pendingKeep.others,
-      ]);
+      await write();
     } catch (error) {
       if (error instanceof VersionsChangedError) outcome = 'changed';
       else {
@@ -142,12 +140,27 @@ export default function OtherVersionsScreen() {
     }
     await queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.entries] });
     await refetch();
-    deletingRef.current = false;
-    setIsDeleting(false);
+    busyRef.current = false;
+    setIsBusy(false);
     setPendingKeep(null);
     if (outcome === 'changed') reportVersionsChanged(t);
     if (outcome === 'failed') toast.error(t('mood.failedToSaveEntry'));
   };
+
+  const handleKeepConfirm = () => {
+    if (!pendingKeep) return;
+    const { keepId, kept, others } = pendingKeep;
+    return runChoice(() => keepEntryVersion(keepId, [kept, ...others]));
+  };
+
+  // Nothing is lost, so no confirmation: the version becomes a new entry.
+  const handleKeepBoth = (group: OtherVersionGroup, entry: Entry) =>
+    runChoice(async () => {
+      await keepBothVersions(entry.note_id, groupMembers(group));
+      const message = t('cloud.conflicts.keptBoth');
+      toast.success(message);
+      AccessibilityInfo.announceForAccessibilityWithOptions(message, { queue: true });
+    });
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
@@ -202,7 +215,8 @@ export default function OtherVersionsScreen() {
               onEntryPress={handleEntryPress}
               onPhotoPress={handlePhotoPress}
               onKeep={(entry) => handleKeepPress(item, entry)}
-              disabled={isDeleting}
+              onKeepBoth={(entry) => void handleKeepBoth(item, entry)}
+              disabled={isBusy}
               highlighted={groupKey(item) === focusedKey}
             />
           )}
@@ -213,9 +227,9 @@ export default function OtherVersionsScreen() {
       <AlertDialog
         open={pendingKeep !== null}
         // The confirm button closes the dialog before its onPress runs, so the
-        // delete works from the closure and `deletingRef` guards repeat taps.
+        // keep works from the closure and `busyRef` guards repeat taps.
         onOpenChange={(open) => {
-          if (!open && !isDeleting) setPendingKeep(null);
+          if (!open && !isBusy) setPendingKeep(null);
         }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -225,14 +239,12 @@ export default function OtherVersionsScreen() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting} onPress={() => setPendingKeep(null)}>
+            <AlertDialogCancel disabled={isBusy} onPress={() => setPendingKeep(null)}>
               <Text>{t('common.cancel')}</Text>
             </AlertDialogCancel>
-            <AlertDialogDestructiveAction
-              disabled={isDeleting}
-              onPress={() => void handleKeepConfirm()}>
-              <Text>{t('common.delete')}</Text>
-            </AlertDialogDestructiveAction>
+            <AlertDialogAction disabled={isBusy} onPress={() => void handleKeepConfirm()}>
+              <Text>{t('cloud.conflicts.keepConfirm')}</Text>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

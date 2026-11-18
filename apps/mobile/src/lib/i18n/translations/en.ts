@@ -895,7 +895,7 @@ export const en = {
   'cloud.conflicts.showThem': 'Show them',
   'cloud.conflicts.otherVersionsTitle': 'Other versions',
   'cloud.conflicts.otherVersionsDescription':
-    'These entries were edited on two devices at once, so both versions were kept. Open one to edit or delete it.',
+    'These entries were edited on two devices at once, so both versions were kept. Choose the one to keep, or keep both as separate entries.',
   'cloud.conflicts.noOtherVersions': 'No entries have another version.',
   // Home notice while name, photo or returned-entry choices are open; opens Cloud backup.
   'cloud.conflicts.homeNotice':
@@ -916,7 +916,7 @@ export const en = {
   'cloud.conflicts.versionsOf': 'Versions of an entry from {date}',
   'cloud.conflicts.original': 'Original',
   'cloud.conflicts.originalDeleted': 'The original entry was deleted.',
-  // Button under one version on Other versions; deletes the other versions.
+  // Button under one version on Other versions; keeps it instead of the other versions.
   'cloud.conflicts.keepThisOne': 'Keep this one',
   // Screen reader label of "Keep this one" under the original.
   'cloud.conflicts.keepOriginal': 'Keep the original',
@@ -924,14 +924,23 @@ export const en = {
   'cloud.conflicts.keepOtherVersion': 'Keep this other version',
   'cloud.conflicts.keepThisOneTitle': 'Keep this version?',
   'cloud.conflicts.keepThisOneMessage':
-    '{count} other versions will be permanently deleted.',
+    'This version will be kept on all your devices, instead of the {count} others.',
+  // Confirm button of "Keep this version?" on Other versions.
+  'cloud.conflicts.keepConfirm': 'Keep this version',
+  // Button under another version on Other versions: it becomes a new entry; the entry keeps its shown version.
+  'cloud.conflicts.keepBoth': 'Keep both',
+  // Screen reader hint of "Keep both".
+  'cloud.conflicts.keepBothHint':
+    'Saves this version as a new entry with the same date, mood and tags. Attachments stay on the original entry.',
+  // Shown and announced after "Keep both".
+  'cloud.conflicts.keptBoth': 'Saved as a new entry.',
   'cloud.conflicts.attachmentCount': 'Attachments: {count}',
   // Conflicts card: a deleted entry is back because it was edited on another device.
   'cloud.conflicts.entryReturned':
     'You deleted this entry on one device while it was edited on another, so the edited version was kept.',
   // Conflicts card: replaces one row per entry when more than a few came back.
   'cloud.conflicts.entriesReturned':
-    '{count} entries you deleted on one device were kept because another device still had them.',
+    '{count} entries you deleted on one device were edited on another, so the edited versions were kept.',
   'cloud.conflicts.openEntry': 'Open entry',
   'cloud.conflicts.gotIt': 'Got it',
   // A choice on Other versions or the conflicts card was refused: the versions changed meanwhile.

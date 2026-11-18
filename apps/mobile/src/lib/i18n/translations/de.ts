@@ -937,7 +937,7 @@ export const de: Translations = {
   'cloud.conflicts.showThem': 'Anzeigen',
   'cloud.conflicts.otherVersionsTitle': 'Andere Versionen',
   'cloud.conflicts.otherVersionsDescription':
-    'Diese Einträge wurden gleichzeitig auf zwei Geräten bearbeitet, deshalb wurden beide Versionen behalten. Öffne einen Eintrag, um ihn zu bearbeiten oder zu löschen.',
+    'Diese Einträge wurden gleichzeitig auf zwei Geräten bearbeitet, deshalb wurden beide Versionen behalten. Wähle die Version, die du behalten möchtest, oder behalte beide als getrennte Einträge.',
   'cloud.conflicts.noOtherVersions': 'Keine Einträge haben eine andere Version.',
   'cloud.conflicts.homeNotice':
     'Einige Änderungen wurden gleichzeitig auf zwei Geräten gemacht. Sieh nach, was behalten wurde.',
@@ -959,12 +959,17 @@ export const de: Translations = {
   'cloud.conflicts.keepOtherVersion': 'Diese andere Version behalten',
   'cloud.conflicts.keepThisOneTitle': 'Diese Version behalten?',
   'cloud.conflicts.keepThisOneMessage':
-    '{count} andere Versionen werden dauerhaft gelöscht.',
+    'Diese Version wird auf all deinen Geräten behalten, statt der {count} anderen.',
+  'cloud.conflicts.keepConfirm': 'Diese Version behalten',
+  'cloud.conflicts.keepBoth': 'Beide behalten',
+  'cloud.conflicts.keepBothHint':
+    'Speichert diese Version als neuen Eintrag mit demselben Datum, derselben Stimmung und denselben Tags. Anhänge bleiben beim ursprünglichen Eintrag.',
+  'cloud.conflicts.keptBoth': 'Als neuer Eintrag gespeichert.',
   'cloud.conflicts.attachmentCount': 'Anhänge: {count}',
   'cloud.conflicts.entryReturned':
     'Du hast diesen Eintrag auf einem Gerät gelöscht, während er auf einem anderen bearbeitet wurde. Deshalb wurde die bearbeitete Version behalten.',
   'cloud.conflicts.entriesReturned':
-    '{count} Einträge, die du auf einem Gerät gelöscht hast, wurden behalten, weil ein anderes Gerät sie noch hatte.',
+    '{count} Einträge, die du auf einem Gerät gelöscht hast, wurden auf einem anderen bearbeitet. Deshalb wurden die bearbeiteten Versionen behalten.',
   'cloud.conflicts.openEntry': 'Eintrag öffnen',
   'cloud.conflicts.gotIt': 'Verstanden',
   'cloud.conflicts.versionsChanged':

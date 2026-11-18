@@ -36,6 +36,8 @@ interface IEntryItemProps {
   safeAreaPadding?: boolean;
   /** Show the whole title and text, e.g. where versions are compared. */
   fullText?: boolean;
+  /** The "Other version" badge; off where versions are compared. */
+  showVersionBadge?: boolean;
   className?: string;
 }
 
@@ -47,6 +49,7 @@ export function EntryItem({
   showDate = false,
   safeAreaPadding = true,
   fullText = false,
+  showVersionBadge = true,
   className,
 }: IEntryItemProps) {
   const { t, locale } = useTranslation();
@@ -104,7 +107,7 @@ export function EntryItem({
             </View>
           )}
         </View>
-        <OtherVersionBadge entry={entry} className="mb-2" />
+        {showVersionBadge && <OtherVersionBadge entry={entry} className="mb-2" />}
 
         {/* Title */}
         {entry.text_title && (

@@ -442,21 +442,15 @@ function otherStamps(entry: EntryRecord) {
   return result.sort();
 }
 
+type SeenEntry = Pick<Entry, 'note_id' | 'text_title' | 'text_content'>;
+
 /**
- * "Keep this one" on Other versions: `id` is an entry (keep what it shows) or
- * a copy (keep that other version of its field). One new write per field.
- * `seen` is what the screen showed: the entry as shown, and its copies. If
- * the shown title or text changed, or a version arrived or went, nothing is
- * written and `VersionsChangedError` is thrown, so a value the user never
- * saw is never dropped.
+ * The entry a choice on Other versions acts on, if it still is what the
+ * screen showed (`seen`: the entry as shown, and its copies). If the shown
+ * title or text changed, or a version arrived or went, throws
+ * `VersionsChangedError`, so a value the user never saw is never dropped.
  */
-export async function keepEntryVersion(
-  id: string,
-  seen: readonly Pick<Entry, 'note_id' | 'text_title' | 'text_content'>[],
-  files?: ApplyMediaFiles,
-): Promise<void> {
-  const copy = parseVersionCopyId(id);
-  const entryId = copy?.entryId ?? id;
+function seenEntry(state: SyncState, entryId: string, seen: readonly SeenEntry[]) {
   const original = seen.find((member) => member.note_id === entryId);
   const shownToUser = seen
     .map((member) => parseVersionCopyId(member.note_id))
@@ -464,16 +458,32 @@ export async function keepEntryVersion(
       other ? [`${other.field}#${other.stamp[0]}:${other.stamp[1]}`] : [],
     )
     .sort();
+  const entry = state.entries.get(entryId);
+  if (
+    !entry ||
+    !original ||
+    shownItems(entry.title)[0]?.v !== original.text_title ||
+    shownItems(entry.text)[0]?.v !== original.text_content ||
+    otherStamps(entry).join() !== shownToUser.join()
+  )
+    throw new VersionsChangedError();
+  return entry;
+}
+
+/**
+ * "Keep this one" on Other versions: `id` is an entry (keep what it shows) or
+ * a copy (keep that other version of its field). One new write per field.
+ * Refuses as `seenEntry` does.
+ */
+export async function keepEntryVersion(
+  id: string,
+  seen: readonly SeenEntry[],
+  files?: ApplyMediaFiles,
+): Promise<void> {
+  const copy = parseVersionCopyId(id);
+  const entryId = copy?.entryId ?? id;
   await writeThroughSync((state, writer) => {
-    const entry = state.entries.get(entryId);
-    if (
-      !entry ||
-      !original ||
-      shownItems(entry.title)[0]?.v !== original.text_title ||
-      shownItems(entry.text)[0]?.v !== original.text_content ||
-      otherStamps(entry).join() !== shownToUser.join()
-    )
-      throw new VersionsChangedError();
+    seenEntry(state, entryId, seen);
     if (copy) return ops.keepValue(state, writer, entryId, copy.field, copy.stamp);
     let next = state;
     for (const field of ['title', 'text'] as const) {
@@ -483,6 +493,37 @@ export async function keepEntryVersion(
     }
     return next;
   }, files);
+}
+
+/**
+ * "Keep both" on a copy (`copyId`): the entry keeps its shown value of that
+ * field, and the copy's value becomes a new entry with the same date, mood
+ * and tags (`ops.keepBoth`). Its ID comes from the moved version, so two
+ * devices doing this at once make one entry. Other open versions stay.
+ * Refuses as `seenEntry` does. Returns the new entry's ID.
+ */
+export async function keepBothVersions(
+  copyId: string,
+  seen: readonly SeenEntry[],
+  files?: ApplyMediaFiles,
+): Promise<string> {
+  const copy = parseVersionCopyId(copyId);
+  if (!copy) throw new Error('"Keep both" needs another version');
+  let newEntryId = '';
+  await writeThroughSync((state, writer) => {
+    const entry = seenEntry(state, copy.entryId, seen);
+    const result = ops.keepBoth(
+      state,
+      writer,
+      copy.entryId,
+      copy.field,
+      shownItems(entry[copy.field])[0].s,
+      copy.stamp,
+    );
+    newEntryId = result.newEntryId;
+    return result.state;
+  }, files);
+  return newEntryId;
 }
 
 /** "Got it" on returned entries. Syncs: every device stops showing the notice. */

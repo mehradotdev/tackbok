@@ -293,7 +293,7 @@ test('many returned entries share one row that dismisses them all', async () => 
   }));
   await render(many);
   expect(content()).toContain(
-    '4 entries you deleted on one device were kept because another device still had them.',
+    '4 entries you deleted on one device were edited on another, so the edited versions were kept.',
   );
   expect(content()).not.toContain(mockEn['cloud.conflicts.entryReturned']);
   expect(button(mockEn['cloud.conflicts.openEntry'])).toBeUndefined();
