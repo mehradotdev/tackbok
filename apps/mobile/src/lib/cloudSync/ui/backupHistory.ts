@@ -80,11 +80,11 @@ export interface BackupHistoryArchive {
 async function mediaFile(
   provider: SnapshotProvider,
   vaultId: string,
-  store: ProductionSnapshotMediaStore,
+  localFile: (blobHash: string) => Promise<File | null>,
   downloads: Directory,
   blobHash: string,
 ): Promise<File | null> {
-  const local = await store.verifiedLocalFile(blobHash);
+  const local = await localFile(blobHash);
   if (local) return local;
   const sink = createMediaPartialFileSink(downloads, blobHash);
   // Bytes that fail their check are downloaded once more from zero; only
@@ -117,9 +117,14 @@ export async function buildBackupHistoryArchive(
    * (Attachments are handled by the import itself, `replaceEntryAssets`.)
    */
   purpose: 'export' | 'restore' = 'export',
+  /** Tests only: the provider and the local media lookup. */
+  deps: {
+    provider?: SnapshotProvider;
+    localFile?: (blobHash: string) => Promise<File | null>;
+  } = {},
 ): Promise<BackupHistoryArchive> {
   const vaultId = await configuredVault();
-  const provider = await configuredDriveProvider();
+  const provider = deps.provider ?? (await configuredDriveProvider());
   const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
   if (!bytes) throw new BackupHistoryError('backup-gone');
   let state;
@@ -143,12 +148,20 @@ export async function buildBackupHistoryArchive(
   const downloads = new Directory(Paths.cache, 'backup-history-media');
   const zip = createExpoZipWriter(file);
   const store = new ProductionSnapshotMediaStore();
+  const localFile =
+    deps.localFile ?? ((blobHash: string) => store.verifiedLocalFile(blobHash));
   const written = new Set<string>();
   let missingMedia = 0;
   try {
     downloads.create({ intermediates: true, idempotent: true });
     for (const media of portable.media) {
-      const source = await mediaFile(provider, vaultId, store, downloads, media.blobHash);
+      const source = await mediaFile(
+        provider,
+        vaultId,
+        localFile,
+        downloads,
+        media.blobHash,
+      );
       if (!source) continue;
       await zip.addFile(media.path, source);
       written.add(media.path);

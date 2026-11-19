@@ -107,6 +107,11 @@ If the build still fails while creating symlinks or writing native build files, 
 
 Run both the Jest and Bun cloud-sync integration suites with `bun run test`.
 
+Bun's module mocks are process-wide, so a suite that must mock modules other
+suites use for real (such as the production media store) lives in
+`scripts/cloud-sync-e2e/` and runs as a separate `bun test` (see
+`test:integration`).
+
 Run the mobile Jest suite with Bun:
 
 ```sh

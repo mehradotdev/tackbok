@@ -451,6 +451,33 @@ export async function buildGratitudeAppPortablePayload(
 /**
  * Inserts portable tags that do not already exist and returns a title-to-tag-id map.
  */
+/**
+ * The tags a history restore brings back (#185 P9): only those the entries
+ * it writes use (every entry when overwriting, the missing ones when
+ * skipping). Tag IDs come from titles, so a tag deleted since the backup
+ * would otherwise come back on every device.
+ */
+export function tagsForHistoryRestore(
+  portableEntries: readonly PortableEntry[],
+  portableTags: readonly PortableTag[],
+  existingNoteIds: ReadonlySet<string>,
+  mode: ImportMode,
+): PortableTag[] {
+  const ids = new Set<string>();
+  const titles = new Set<string>();
+  for (const entry of portableEntries) {
+    if (mode === 'skip' && existingNoteIds.has(entry.noteId)) continue;
+    for (const id of entry.tagIds ?? []) ids.add(id);
+    for (const title of entry.tagTitles ?? [])
+      titles.add(sanitizeTagName(title).toLowerCase());
+  }
+  return portableTags.filter(
+    (tag) =>
+      (tag.tagId !== undefined && ids.has(tag.tagId)) ||
+      titles.has(sanitizeTagName(tag.title).toLowerCase()),
+  );
+}
+
 export async function upsertPortableTags(
   tx: BackupArchiveTransaction,
   portableTags: PortableTag[],

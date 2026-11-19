@@ -24,6 +24,7 @@ import {
 import {
   ensurePortablePromptTitles,
   importPortableEntries,
+  tagsForHistoryRestore,
   upsertPortableTags,
 } from '../portable';
 import {
@@ -119,13 +120,6 @@ export async function importFromTackbokBackup(
       });
 
       await runInCloudSyncTransaction(async (tx) => {
-        const tagMap = await upsertPortableTags(tx, portableTags, summary, batchId);
-        await ensurePortablePromptTitles(tx, portablePrompts, summary, batchId);
-        reportImportProgress(onProgress, 'tackbok', 'taxonomy', 1, {
-          ...totals,
-          ...createSummaryCounterMetrics(summary),
-        });
-
         // TODO: If imports ever get slow on large journals, profile this query first.
         // A chunked lookup by incoming portable note IDs may scale better than
         // materializing every existing note_id up front.
@@ -133,6 +127,24 @@ export async function importFromTackbokBackup(
           .select({ note_id: entries.note_id })
           .from(entries);
         const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
+
+        // A history restore brings back only the tags its entries use, and no
+        // custom prompts: ones deleted since the backup stay deleted.
+        const history = profile === 'fill-empty';
+        const tagMap = await upsertPortableTags(
+          tx,
+          history
+            ? tagsForHistoryRestore(portableEntries, portableTags, existingNoteIds, mode)
+            : portableTags,
+          summary,
+          batchId,
+        );
+        if (!history)
+          await ensurePortablePromptTitles(tx, portablePrompts, summary, batchId);
+        reportImportProgress(onProgress, 'tackbok', 'taxonomy', 1, {
+          ...totals,
+          ...createSummaryCounterMetrics(summary),
+        });
 
         await importPortableEntries(
           tx,
@@ -146,7 +158,7 @@ export async function importFromTackbokBackup(
           'tackbok',
           onProgress,
           batchId,
-          { history: profile === 'fill-empty' },
+          { history },
         );
         // Skipping existing data (or `fill-empty`) also keeps the current
         // profile; only empty fields are filled from the backup.

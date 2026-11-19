@@ -4,7 +4,12 @@
  * the shared fake provider. A restore brings back what the backup had and
  * never deletes; the other devices take it in by the ordinary sync.
  */
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
+import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { expoFiles } from './sim/expoFiles';
 
 import {
   BunSyncDatabase,
@@ -13,12 +18,10 @@ import {
 } from './sim/sqliteDevices';
 
 const devices = installSqliteDevices();
-// The import reads media through these; this suite restores no media files.
-mock.module('expo-file-system', () => ({
-  File: class {},
-  Directory: class {},
-  Paths: {},
-}));
+// Real files under a temp directory: the archive and imported media.
+const FILES = mkdtempSync(join(tmpdir(), 'tackbok-backup-history-'));
+afterAll(() => rmSync(FILES, { recursive: true, force: true }));
+mock.module('expo-file-system', () => expoFiles(FILES));
 mock.module('../../src/lib/photoUtils', () => ({ deletePhotoFile: () => {} }));
 mock.module('../../src/lib/voiceMemoUtils', () => ({ deleteVoiceMemoFile: () => {} }));
 
@@ -36,6 +39,7 @@ const { importPortableEntries, upsertPortableTags } =
   await import('../../src/lib/backupImport/portable');
 const { createBackupImportSummary } = await import('../../src/lib/backupImport/summary');
 const { entries } = await import('../../src/db/schema');
+
 const { AssetType } = await import('../../src/types');
 
 const VAULT = 'vault-history';
