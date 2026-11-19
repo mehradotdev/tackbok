@@ -47,6 +47,12 @@ export async function importFromTackbokBackup(
   uri: string,
   mode: ImportMode,
   onProgress?: ImportProgressCallback,
+  /**
+   * `fill-empty`: the profile only fills empty fields, whatever `mode`
+   * (restoring a cloud backup from history, #185 P9: an older backup must not
+   * clear a name or photo set since).
+   */
+  profile: 'by-mode' | 'fill-empty' = 'by-mode',
 ): Promise<BackupImportSummary> {
   if (!isZipFile(uri)) {
     throw new Error('Tackbok restore requires a ZIP backup');
@@ -141,10 +147,10 @@ export async function importFromTackbokBackup(
           onProgress,
           batchId,
         );
-        // Skipping existing data also keeps the current profile; only empty
-        // fields are filled from the backup.
+        // Skipping existing data (or `fill-empty`) also keeps the current
+        // profile; only empty fields are filled from the backup.
         const [currentProfile] =
-          mode === 'skip'
+          mode === 'skip' || profile === 'fill-empty'
             ? await tx
                 .select()
                 .from(userProfile)

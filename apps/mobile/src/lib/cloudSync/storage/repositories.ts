@@ -196,6 +196,17 @@ async function replaceEntryAssets(
   const unused = new Map(existing.map((asset) => [asset.local_uri, asset]));
   const existingById = new Map(existing.map((asset) => [asset.asset_id, asset]));
   const desiredIds: string[] = [];
+  // An entry sync already knows may have published attachments that have no
+  // row here any more (the entry was deleted, or the attachment removed):
+  // their descriptors are immutable, and other devices still hold them. A
+  // requested ID with no row is then taken as new (#185 P9, restoring a
+  // backup). An entry sync does not know yet (an import before this device
+  // joins a backup) keeps its IDs, so the vault's copies match them.
+  const [syncKnown] = await tx
+    .select({ id: syncRecords.entity_id })
+    .from(syncRecords)
+    .where(and(eq(syncRecords.entity_type, 'entry'), eq(syncRecords.entity_id, noteId)))
+    .limit(1);
 
   for (const asset of assets ?? []) {
     const requestedId = asset.assetId ?? randomUUID();
@@ -210,7 +221,10 @@ async function replaceEntryAssets(
     const prior = unused.get(asset.uri) ?? existingById.get(requestedId);
     if (prior) unused.delete(prior.local_uri);
     const assetId =
-      prior?.asset_id ?? (requestedIdBelongsElsewhere ? randomUUID() : requestedId);
+      prior?.asset_id ??
+      (requestedIdBelongsElsewhere || (!requestedAsset && syncKnown && asset.assetId)
+        ? randomUUID()
+        : requestedId);
     desiredIds.push(assetId);
     await tx
       .insert(mediaAssets)

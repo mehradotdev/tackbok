@@ -10,7 +10,7 @@ const mockToastInfo = jest.fn();
 const mockToastSuccess = jest.fn();
 const mockDismissTo = jest.fn();
 const mockExport = jest.fn(async (_id: string, _day: string) => ({ missingMedia: 0 }));
-const mockBuild = jest.fn(async (_id: string) => ({
+const mockBuild = jest.fn(async (_id: string, _purpose?: string) => ({
   file: { uri: 'file:///cache/archive.zip' },
   fileName: 'archive.zip',
   missingMedia: 0,
@@ -18,7 +18,7 @@ const mockBuild = jest.fn(async (_id: string) => ({
 const mockDiscard = jest.fn();
 const mockSelectArchive = jest.fn();
 const mockClearPending = jest.fn();
-const mockRunPending = jest.fn();
+const mockRunPending = jest.fn(async (_mode: string) => {});
 let mockPending: { source: 'tackbok'; uri: string } | null = null;
 
 jest.mock('expo-localization', () => ({
@@ -105,7 +105,7 @@ jest.mock('~/lib/cloudSync/ui/backupHistory', () => ({
   },
   listBackupHistory: jest.fn(),
   exportBackupFromHistory: (id: string, day: string) => mockExport(id, day),
-  buildBackupHistoryArchive: (id: string) => mockBuild(id),
+  buildBackupHistoryArchive: (id: string, purpose: string) => mockBuild(id, purpose),
   discardBackupHistoryArchive: (uri: string) => mockDiscard(uri),
 }));
 jest.mock('~/lib/i18n/dateFormatting', () => ({
@@ -204,7 +204,7 @@ test('a confirmed restore hands the archive to the import, whose mode choice fol
   act(() => buttons(mockEn['cloud.history.restore'])[0].props.onPress());
   act(() => root.root.findByType('AlertDialogAction' as never).props.onPress());
   await flush();
-  expect(mockBuild).toHaveBeenCalledWith('b'.repeat(64));
+  expect(mockBuild).toHaveBeenCalledWith('b'.repeat(64), 'restore');
   expect(mockSelectArchive).toHaveBeenCalledWith('file:///cache/archive.zip');
 });
 
@@ -229,4 +229,17 @@ test('a backup that is gone says so and reloads the list', async () => {
   expect(mockToastError).toHaveBeenCalledWith(mockEn['cloud.history.gone']);
   expect(refetch).toHaveBeenCalled();
   expect(mockSelectArchive).not.toHaveBeenCalled();
+});
+
+test('the archive is deleted once the import has run, whatever its outcome', async () => {
+  render({ data: items });
+  act(() => buttons(mockEn['cloud.history.restore'])[0].props.onPress());
+  act(() => root.root.findByType('AlertDialogAction' as never).props.onPress());
+  await flush();
+  mockRunPending.mockRejectedValueOnce(new Error('import failed'));
+  await act(async () => {
+    root.root.findByType('SettingsImportModeModal' as never).props.onSelectMode('skip');
+  });
+  expect(mockRunPending).toHaveBeenCalledWith('skip');
+  expect(mockDiscard).toHaveBeenCalledWith('file:///cache/archive.zip');
 });

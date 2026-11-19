@@ -1026,7 +1026,7 @@ export const zhCN: Translations = {
     '此备份中的部分照片或语音笔记已不再保存于任何地方，因此未包含在内。',
   'cloud.history.restoreTitle': '要恢复 {date} 的备份吗？',
   'cloud.history.restoreDescription':
-    '此备份中的条目会回来，包括之后删除的条目。不会删除任何内容：你之后写的条目会保留。接下来，你可以选择两边都有的条目如何处理。如果想保留日记当前的副本，请先在“设置”中导出。',
+    '此备份中的条目会回来，包括之后删除的条目，你之后写的条目也会保留。接下来，你可以选择两边都有的条目如何处理：保持现状，或用备份中的版本替换（包括照片和标签）。只有在你的个人资料名称和照片为空时才会填入。如果想保留日记当前的副本，请先在“设置”中导出。',
   'cloud.history.restoreConfirm': '继续',
   'cloud.history.gone': '此备份已不在 Google Drive 上。请选择其他备份。',
   'cloud.history.unreadable': '无法读取此备份。请选择其他备份。',

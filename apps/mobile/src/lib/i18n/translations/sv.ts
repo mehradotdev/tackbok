@@ -1027,7 +1027,7 @@ export const sv = {
     'Vissa foton eller röstanteckningar från säkerhetskopian finns inte längre sparade någonstans och utelämnades.',
   'cloud.history.restoreTitle': 'Återställa säkerhetskopian från {date}?',
   'cloud.history.restoreDescription':
-    'Anteckningar från säkerhetskopian kommer tillbaka, även sådana som raderats sedan dess. Inget raderas: anteckningar du skrivit senare finns kvar. Sedan väljer du vad som händer med anteckningar som finns i båda. Exportera först dagboken i Inställningar om du vill behålla en kopia av den som den är nu.',
+    'Anteckningar från säkerhetskopian kommer tillbaka, även sådana som raderats sedan dess, och anteckningar du skrivit senare finns kvar. Sedan väljer du vad som händer med anteckningar som finns i båda: behåll dem som de är, eller ersätt dem med säkerhetskopians version, inklusive foton och etiketter. Ditt profilnamn och din profilbild fylls bara i om de är tomma. Exportera först dagboken i Inställningar om du vill behålla en kopia av den som den är nu.',
   'cloud.history.restoreConfirm': 'Fortsätt',
   'cloud.history.gone':
     'Säkerhetskopian finns inte längre på Google Drive. Välj en annan.',

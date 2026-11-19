@@ -1108,7 +1108,7 @@ export const en = {
     'Some photos or voice notes from this backup are no longer stored anywhere, so they were left out.',
   'cloud.history.restoreTitle': 'Restore the backup from {date}?',
   'cloud.history.restoreDescription':
-    'Entries from this backup come back, including ones deleted since. Nothing is deleted: entries you wrote later stay. Next, you choose what happens to entries that are in both. To keep a copy of your journal as it is now, export it first in Settings.',
+    "Entries from this backup come back, including ones deleted since, and entries you wrote later stay. Next, you choose what happens to entries that are in both: keep them as they are, or replace them with the backup's version, photos and tags included. Your profile name and photo are only filled in if they're empty. To keep a copy of your journal as it is now, export it first in Settings.",
   'cloud.history.restoreConfirm': 'Continue',
   'cloud.history.gone': 'This backup is no longer on Google Drive. Choose another one.',
   'cloud.history.unreadable': "This backup can't be read. Choose another one.",

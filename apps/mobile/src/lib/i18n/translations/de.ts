@@ -1139,7 +1139,7 @@ export const de: Translations = {
     'Einige Fotos oder Sprachnotizen aus dieser Sicherung sind nirgends mehr gespeichert und wurden weggelassen.',
   'cloud.history.restoreTitle': 'Sicherung vom {date} wiederherstellen?',
   'cloud.history.restoreDescription':
-    'Einträge aus dieser Sicherung kommen zurück, auch solche, die seitdem gelöscht wurden. Nichts wird gelöscht: Einträge, die du später geschrieben hast, bleiben. Danach wählst du, was mit Einträgen geschieht, die in beiden vorkommen. Wenn du eine Kopie deines Tagebuchs im jetzigen Zustand behalten möchtest, exportiere es zuerst in den Einstellungen.',
+    'Einträge aus dieser Sicherung kommen zurück, auch solche, die seitdem gelöscht wurden, und Einträge, die du später geschrieben hast, bleiben. Danach wählst du, was mit Einträgen geschieht, die in beiden vorkommen: so lassen, wie sie sind, oder durch die Version aus der Sicherung ersetzen, einschließlich Fotos und Tags. Dein Profilname und dein Profilbild werden nur ergänzt, wenn sie leer sind. Wenn du eine Kopie deines Tagebuchs im jetzigen Zustand behalten möchtest, exportiere es zuerst in den Einstellungen.',
   'cloud.history.restoreConfirm': 'Weiter',
   'cloud.history.gone':
     'Diese Sicherung ist nicht mehr auf Google Drive. Wähle eine andere.',

@@ -1051,7 +1051,7 @@ export const es = {
     'Algunas fotos o notas de voz de esta copia ya no están guardadas en ningún sitio, así que se omitieron.',
   'cloud.history.restoreTitle': '¿Restaurar la copia de seguridad del {date}?',
   'cloud.history.restoreDescription':
-    'Las entradas de esta copia vuelven, incluidas las que se eliminaron después. No se elimina nada: las entradas que escribiste más tarde se mantienen. Después eliges qué pasa con las entradas que están en ambas. Para conservar una copia de tu diario tal como está ahora, expórtalo antes en Ajustes.',
+    'Las entradas de esta copia vuelven, incluidas las que se eliminaron después, y las entradas que escribiste más tarde se mantienen. Después eliges qué pasa con las entradas que están en ambas: dejarlas como están o reemplazarlas por la versión de la copia, con sus fotos y etiquetas. Tu nombre y tu foto de perfil solo se completan si están vacíos. Para conservar una copia de tu diario tal como está ahora, expórtalo antes en Ajustes.',
   'cloud.history.restoreConfirm': 'Continuar',
   'cloud.history.gone': 'Esta copia de seguridad ya no está en Google Drive. Elige otra.',
   'cloud.history.unreadable': 'No se puede leer esta copia de seguridad. Elige otra.',

@@ -1029,7 +1029,7 @@ export const zhTW: Translations = {
     '此備份中的部分照片或語音筆記已不再儲存於任何地方，因此未包含在內。',
   'cloud.history.restoreTitle': '要還原 {date} 的備份嗎？',
   'cloud.history.restoreDescription':
-    '此備份中的紀錄會回來，包括之後刪除的紀錄。不會刪除任何內容：你之後寫的紀錄會保留。接下來，你可以選擇兩邊都有的紀錄如何處理。如果想保留日記目前的副本，請先在「設定」中匯出。',
+    '此備份中的紀錄會回來，包括之後刪除的紀錄，你之後寫的紀錄也會保留。接下來，你可以選擇兩邊都有的紀錄如何處理：保持現狀，或用備份中的版本取代（包括照片和標籤）。只有在你的個人資料名稱和照片為空時才會填入。如果想保留日記目前的副本，請先在「設定」中匯出。',
   'cloud.history.restoreConfirm': '繼續',
   'cloud.history.gone': '此備份已不在 Google Drive 上。請選擇其他備份。',
   'cloud.history.unreadable': '無法讀取此備份。請選擇其他備份。',

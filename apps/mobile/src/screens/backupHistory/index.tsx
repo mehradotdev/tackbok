@@ -72,7 +72,15 @@ export default function BackupHistoryScreen() {
     if (archiveRef.current) discardBackupHistoryArchive(archiveRef.current);
     archiveRef.current = null;
   }, []);
-  useEffect(() => discardArchive, [discardArchive]);
+  // An archive built after the screen closed is deleted as soon as it exists.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      discardArchive();
+    };
+  }, [discardArchive]);
 
   const handleImportDone = useCallback(() => {
     discardArchive();
@@ -139,8 +147,12 @@ export default function BackupHistoryScreen() {
     setPendingRestore(null);
     if (!item) return;
     void run(item, 'restore', async () => {
-      const archive = await buildBackupHistoryArchive(item.snapshotId);
+      const archive = await buildBackupHistoryArchive(item.snapshotId, 'restore');
       discardArchive();
+      if (!mountedRef.current) {
+        discardBackupHistoryArchive(archive.file.uri);
+        return;
+      }
       archiveRef.current = archive.file.uri;
       if (archive.missingMedia > 0) toast.info(t('cloud.history.missingMedia'));
       // The import's mode choice follows: keep entries in both, or take the backup's.
@@ -297,7 +309,14 @@ export default function BackupHistoryScreen() {
           clearPendingImport();
           discardArchive();
         }}
-        onSelectMode={runPendingImport}
+        onSelectMode={(mode) =>
+          // The import has read the archive once it returns, done or failed.
+          void runPendingImport(mode)
+            .catch((error: unknown) =>
+              console.warn('Backup history restore failed', error),
+            )
+            .finally(discardArchive)
+        }
       />
       <SettingsImportProgressModal
         visible={importProgress !== null}

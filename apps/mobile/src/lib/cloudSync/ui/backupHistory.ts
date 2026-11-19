@@ -104,6 +104,13 @@ async function mediaFile(
  */
 export async function buildBackupHistoryArchive(
   snapshotId: string,
+  /**
+   * `restore`: the profile photo is named without its asset ID, so the
+   * import gives it a new one. The backup's ID may belong to a photo
+   * replaced since, whose immutable descriptor other devices still hold.
+   * (Attachments are handled by the import itself, `replaceEntryAssets`.)
+   */
+  purpose: 'export' | 'restore' = 'export',
 ): Promise<BackupHistoryArchive> {
   const vaultId = await configuredVault();
   const provider = await configuredDriveProvider();
@@ -139,6 +146,8 @@ export async function buildBackupHistoryArchive(
       if (!source) continue;
       await zip.addFile(media.path, source);
       written.add(media.path);
+      // A download is in the archive now: free its space before the next.
+      if (source.uri.startsWith(downloads.uri) && source.exists) source.delete();
     }
     let photos = 0;
     let voiceMemos = 0;
@@ -151,6 +160,7 @@ export async function buildBackupHistoryArchive(
       return { ...entry, assets };
     });
     const profile = { ...portable.profile };
+    if (purpose === 'restore') profile.photoAssetId = null;
     if (profile.imagePath && !written.has(profile.imagePath)) {
       missingMedia++;
       profile.imagePath = null;

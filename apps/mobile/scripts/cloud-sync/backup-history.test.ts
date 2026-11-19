@@ -218,6 +218,57 @@ describe('backup history (P9)', () => {
     expect(texts(a)).toEqual(['e1:Original one', 'e2:Original two', 'e3:Written later']);
   });
 
+  test('restoring a deleted entry with a photo gives the photo a new ID, and both devices sync', async () => {
+    const [a, b] = [device(), device()];
+    const hash = 'c'.repeat(64);
+    const photo = { type: AssetType.IMAGE, uri: 'photos/p.jpg', assetId: 'p-1' };
+    await addEntry(a, 'e1', { assets: [photo] });
+    a.database.sqlite.run(
+      "UPDATE media_assets SET blob_hash = ?, byte_size = 3 WHERE asset_id = 'p-1'",
+      [hash],
+    );
+    await blobs.writeVerified(hash, new Uint8Array([1, 2, 3]));
+    for (const target of [a, b, a]) await sync(target);
+    // Deleted on A; B still holds the photo's descriptor behind the delete.
+    clock += 1000;
+    await write(a, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e1', { now: clock }),
+    );
+    await sync(a);
+    await sync(b);
+    // The import writes it again with the archive's asset ID, as a restore does.
+    clock += 1000;
+    await addEntry(a, 'e1', {
+      assets: [{ ...photo, uri: 'photos/restored.jpg', blobHash: hash, byteSize: 3 }],
+    });
+    const ids = (target: Device) =>
+      (
+        target.database.sqlite
+          .query("SELECT asset_id FROM media_assets WHERE owner_id = 'e1'")
+          .all() as { asset_id: string }[]
+      ).map((row) => row.asset_id);
+    expect(ids(a)).toHaveLength(1);
+    expect(ids(a)[0]).not.toBe('p-1');
+    for (const target of [a, b, a, b])
+      expect(['published', 'pulled', 'up-to-date']).toContain(
+        (await sync(target)).status,
+      );
+    expect(ids(b)).toEqual(ids(a));
+    expect(texts(b)).toEqual(['e1:Text e1']);
+  });
+
+  test('an entry sync does not know yet keeps the asset IDs it is imported with', async () => {
+    const a = device();
+    await addEntry(a, 'fresh', {
+      assets: [{ type: AssetType.IMAGE, uri: 'photos/f.jpg', assetId: 'kept-id' }],
+    });
+    expect(
+      a.database.sqlite
+        .query("SELECT asset_id FROM media_assets WHERE owner_id = 'fresh'")
+        .all(),
+    ).toEqual([{ asset_id: 'kept-id' }]);
+  });
+
   test("an attachment's photo and voice note are listed with their files", async () => {
     const a = device();
     await addEntry(a, 'e1', {
