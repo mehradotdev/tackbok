@@ -575,12 +575,17 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           if (file.kind === 'media') this.state.removeFile(vaultId, file.fileId);
     const found = new Set<string>();
     const unknown: string[] = [];
+    // One read of the cached media, not one per blob: a publication asks about
+    // every attachment, and a query each held the JS thread for over a second
+    // with 1,600 of them (#185 P14).
+    const cachedHashes = new Map<string, Set<string>>();
+    for (const file of this.state.listKind(vaultId, 'media')) {
+      const hashes = cachedHashes.get(file.logicalKey) ?? new Set<string>();
+      hashes.add(file.contentSha256);
+      cachedHashes.set(file.logicalKey, hashes);
+    }
     for (const hash of unique) {
-      const key = this.mediaKey(hash);
-      const cached = this.state
-        .listKey(vaultId, key)
-        .some((file) => file.kind === 'media' && file.contentSha256 === hash);
-      if (cached) found.add(hash);
+      if (cachedHashes.get(this.mediaKey(hash))?.has(hash)) found.add(hash);
       else unknown.push(hash);
     }
     for (let offset = 0; offset < unknown.length; offset += MEDIA_QUERY_GROUP) {
