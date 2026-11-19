@@ -1732,6 +1732,73 @@ describe('remote media garbage collection (P12)', () => {
     provider.staleMedia.clear();
   });
 
+  test('a collected blob whose file cannot be read for a while pauses instead of being published as present', async () => {
+    const [a, c] = [device(), device()];
+    for (const target of [a, c, a]) await sync(target);
+    clock += 1000;
+    await attachPhoto(c, 'e1');
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await sync(c)).status).toBe('retry');
+    expect(await days(120, [a])).not.toBeNull();
+    provider.staleMedia.add(PHOTO);
+    // C's file cannot be read this pass (say, a locked phone).
+    const bytes = blobs.media.get(PHOTO)!;
+    blobs.media.delete(PHOTO);
+    clock += 1000;
+    expect(await sync(c)).toMatchObject({
+      status: 'attention',
+      reason: 'local-media-unreadable',
+    });
+    await expectNothingDangling();
+    // Readable again: the next pass uploads it and publishes.
+    blobs.media.set(PHOTO, bytes);
+    c.stateStore.clearPause(VAULT, 'connection');
+    clock += 1000;
+    expect((await sync(c)).status).toBe('published');
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    await expectNothingDangling();
+  });
+
+  test("a head of this device's own that a stale listing still shows is not trusted after 150 days", async () => {
+    const [a, c] = [device(), device()];
+    for (const target of [a, c, a]) await sync(target);
+    clock += 1000;
+    await attachPhoto(c, 'e1');
+    await sync(c);
+    const [stale] = provider
+      .physicalHeads(VAULT)
+      .filter(({ head }) => head?.deviceId === deviceIdOf(c));
+    // An edit of C's that A will never see before deleting the entry.
+    clock += 1000;
+    await addEntry(c, 'e1', {
+      text_content: 'Edited on C',
+      assets: [{ type: AssetType.IMAGE, uri: 'photos/e1.jpg', assetId: 'p-e1' }],
+    });
+    // A deletes the entry; C goes quiet. After 180 days A prunes C's head,
+    // compacts the delete and collects the photo. (Expiry counts from the
+    // newest write A holds, so A writes again.)
+    clock += 1000;
+    await sync(a);
+    await deleteOn(a, 'e1');
+    await sync(a);
+    expect(await days(200, [a])).toBeNull();
+    await addEntry(a, 'keep-a-busy');
+    expect(await days(100, [a])).not.toBeNull();
+    // C's provider cache missed all of it: its old head and the blob.
+    provider.injectPhysicalHead(stale.head!, stale.physicalId);
+    provider.staleMedia.add(PHOTO);
+    clock += 1000;
+    // C is back after 180 days: its unseen state brings the entry back, and
+    // its publication uploads the photo again rather than trusting the head.
+    expect(await sync(c)).toMatchObject({ status: 'published', revivedEntries: ['e1'] });
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    await expectNothingDangling();
+    provider.staleMedia.clear();
+  });
+
   test('"Keep my entries" brings entries back with their photos', async () => {
     const [a, b] = [device(), device()];
     const ids = Array.from({ length: 12 }, (_, i) => `e${String(i).padStart(2, '0')}`);

@@ -43,7 +43,7 @@
  * is already applied locally, so a pass stopped half way publishes on the
  * next one.
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import {
   mediaAssets,
@@ -119,6 +119,12 @@ const MAX_DELETES_PER_PASS = 10;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Media garbage collection that could not finish runs again after this long. */
 const MEDIA_GC_RETRY_MS = 60 * 60 * 1000;
+/**
+ * How long this device's own listed head is taken as proof that the blobs
+ * it refers to were never collected (`newlyReferenced`). Well inside the
+ * 180 days after which a quiet device's head may be pruned.
+ */
+const OWN_HEAD_TRUSTED_MS = 150 * 24 * 60 * 60 * 1000;
 /** A snapshot that could not be read is downloaded again after this long. */
 const UNREADABLE_RETRY_MS = 24 * 60 * 60 * 1000;
 /**
@@ -944,18 +950,24 @@ export class V2SyncEngine {
   ): Promise<string> {
     const { provider, mediaStore, stateStore, stateKey } = this.options;
     const hashes = [...new Set([...state.media.values()].map((media) => media.blobHash))];
-    const present = await provider.hasMediaBatch(this.vaultId, hashes);
-    // Blobs this snapshot newly refers to, that this device could upload,
-    // are asked of the provider itself, not its cache: a missed or late
-    // change can leave the cache listing a blob another device's media
-    // garbage collection deleted (an upload whose snapshot never made it,
-    // an entry back after 180 days). Blobs its own listed head already
-    // refers to cannot have been collected.
-    const recheck = await this.newlyReferenced(hashes, own, record);
-    if (recheck.length > 0) {
-      const fresh = await provider.hasMediaBatch(this.vaultId, recheck, true);
-      for (const blobHash of recheck) if (!fresh.has(blobHash)) present.delete(blobHash);
-    }
+    // Blobs this snapshot newly refers to, that this device holds, are asked
+    // of the provider itself, not its cache: a missed or late change can
+    // leave the cache listing a blob another device's media garbage
+    // collection deleted (an upload whose snapshot never made it, an entry
+    // back after 180 days). Blobs its own listed head already refers to
+    // cannot have been collected.
+    const recheck = new Set(await this.newlyReferenced(hashes, own, record));
+    const present = await provider.hasMediaBatch(
+      this.vaultId,
+      hashes.filter((blobHash) => !recheck.has(blobHash)),
+    );
+    if (recheck.size > 0)
+      for (const blobHash of await provider.hasMediaBatch(
+        this.vaultId,
+        [...recheck],
+        true,
+      ))
+        present.add(blobHash);
     const missing = hashes.filter((blobHash) => !present.has(blobHash));
     const sources = new Map<string, MediaUploadSource>();
     for (const blobHash of missing) {
@@ -1073,27 +1085,44 @@ export class V2SyncEngine {
   }
 
   /**
-   * Of `hashes`, those this device's listed head does not refer to (all of
-   * them when its head is not listed where it left it, or its blobs were
-   * not recorded) and whose files this device holds.
+   * Of `hashes`, those this device's head does not refer to and whose files
+   * this device authored or downloaded (its media rows say so; a file it
+   * cannot read now is still included, so an authored one pauses as
+   * unreadable rather than being published as present). The head counts
+   * only while it is listed where this device left it and was published
+   * within `OWN_HEAD_TRUSTED_MS`: a head pruned meanwhile can still be
+   * listed by a cache that missed the change.
    */
   private async newlyReferenced(
     hashes: readonly string[],
     own: DeviceHead | undefined,
     record: HeadRecord | undefined,
   ): Promise<string[]> {
-    const listed =
-      own !== undefined && record !== undefined && own.snapshotId === record.snapshotId;
-    const before = listed
+    const trusted =
+      own !== undefined &&
+      record !== undefined &&
+      own.snapshotId === record.snapshotId &&
+      this.now() - record.updatedAt < OWN_HEAD_TRUSTED_MS;
+    const before = trusted
       ? await recordedSnapshotMedia(this.vaultId, record.snapshotId)
       : null;
-    const result: string[] = [];
-    for (const blobHash of hashes) {
-      if (before?.has(blobHash)) continue;
-      const source = await this.options.mediaStore.openVerifiedSource(blobHash);
-      if (source && source.contentHash === blobHash) result.push(blobHash);
+    const candidates = hashes.filter((blobHash) => !before?.has(blobHash));
+    const held = new Set<string>();
+    for (let offset = 0; offset < candidates.length; offset += 500) {
+      const rows = await runExclusiveDbTransaction((tx) =>
+        tx
+          .select({ blobHash: mediaAssets.blob_hash })
+          .from(mediaAssets)
+          .where(
+            and(
+              inArray(mediaAssets.blob_hash, candidates.slice(offset, offset + 500)),
+              inArray(mediaAssets.download_state, ['n/a', 'verified']),
+            ),
+          ),
+      );
+      for (const row of rows) if (row.blobHash) held.add(row.blobHash);
     }
-    return result;
+    return candidates.filter((blobHash) => held.has(blobHash));
   }
 
   /**
