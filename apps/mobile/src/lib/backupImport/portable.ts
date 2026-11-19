@@ -3,7 +3,7 @@
  * provides the source-agnostic runtime that writes that model into Tackbok.
  */
 
-import { db, customPrompts, entries, tags } from '~/db';
+import { db, customPrompts, entries, mediaAssets, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { createZipEntryLookup, type ZipEntryLookup, type ZipReader } from '~/lib/zip';
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
@@ -45,7 +45,7 @@ import {
   writeImportedPhoto,
 } from './archiveUtils';
 import { createSummaryCounterMetrics, recordImportWarning } from './summary';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
   createPromptInTransaction,
   createTagInTransaction,
@@ -650,11 +650,39 @@ export async function importPortableEntries(
       }
     }
 
+    // A history restore keeps an attachment's ID only while this journal
+    // still has it: one removed since may have a published descriptor
+    // other devices still hold, which a new row under its ID would contradict.
+    let entryToImport = portableEntry;
+    if (options.history) {
+      const ids = portableEntry.assets.flatMap((asset) =>
+        asset.assetId ? [asset.assetId] : [],
+      );
+      const known = new Set(
+        ids.length === 0
+          ? []
+          : (
+              await tx
+                .select({ id: mediaAssets.asset_id })
+                .from(mediaAssets)
+                .where(inArray(mediaAssets.asset_id, ids))
+            ).map((row) => row.id),
+      );
+      entryToImport = {
+        ...portableEntry,
+        assets: portableEntry.assets.map((asset) =>
+          asset.assetId && !known.has(asset.assetId)
+            ? { ...asset, assetId: undefined }
+            : asset,
+        ),
+      };
+    }
+
     const {
       assets,
       createdFiles: entryCreatedFiles,
       hadFailures,
-    } = await materializePortableEntryAssets(portableEntry, zip, summary, source);
+    } = await materializePortableEntryAssets(entryToImport, zip, summary, source);
 
     if (
       hadFailures &&

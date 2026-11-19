@@ -196,16 +196,20 @@ async function replaceEntryAssets(
   const unused = new Map(existing.map((asset) => [asset.local_uri, asset]));
   const existingById = new Map(existing.map((asset) => [asset.asset_id, asset]));
   const desiredIds: string[] = [];
-  // An entry sync already knows may have published attachments that have no
-  // row here any more (the entry was deleted, or the attachment removed):
-  // their descriptors are immutable, and other devices still hold them. A
-  // requested ID with no row is then taken as new (#185 P9, restoring a
-  // backup). An entry sync does not know yet (an import before this device
-  // joins a backup) keeps its IDs, so the vault's copies match them.
-  const [syncKnown] = await tx
-    .select({ id: syncRecords.entity_id })
-    .from(syncRecords)
-    .where(and(eq(syncRecords.entity_type, 'entry'), eq(syncRecords.entity_id, noteId)))
+  // An entry written again after its delete (an import or a restore, #185
+  // P9): its attachments' descriptors are immutable and other devices still
+  // hold them behind the tombstone, so a requested ID with no row here is
+  // taken as new. Other requested IDs are kept, so a copy imported before
+  // this device joins a backup matches the vault's.
+  const [deletedBefore] = await tx
+    .select({ id: syncDeletedRecords.entity_id })
+    .from(syncDeletedRecords)
+    .where(
+      and(
+        eq(syncDeletedRecords.entity_type, 'entry'),
+        eq(syncDeletedRecords.entity_id, noteId),
+      ),
+    )
     .limit(1);
 
   for (const asset of assets ?? []) {
@@ -222,7 +226,7 @@ async function replaceEntryAssets(
     if (prior) unused.delete(prior.local_uri);
     const assetId =
       prior?.asset_id ??
-      (requestedIdBelongsElsewhere || (!requestedAsset && syncKnown && asset.assetId)
+      (requestedIdBelongsElsewhere || (!requestedAsset && deletedBefore && asset.assetId)
         ? randomUUID()
         : requestedId);
     desiredIds.push(assetId);
