@@ -389,6 +389,47 @@ describe('backup history (P9)', () => {
     ).toEqual([{ asset_id: 'renamed', local_uri: 'photos/renamed.jpg' }]);
   });
 
+  test('two photos with the same bytes: one keeps its row by ID, the other by bytes', async () => {
+    const a = device();
+    const hash = 'c'.repeat(64);
+    const photo = (id: string) => ({
+      type: AssetType.IMAGE,
+      uri: `photos/${id}.jpg`,
+      assetId: id,
+    });
+    const setHash = () =>
+      a.database.sqlite.run(
+        "UPDATE media_assets SET blob_hash = ?, byte_size = 3 WHERE owner_id = 'e1'",
+        [hash],
+      );
+    await addEntry(a, 'e1', {
+      text_content: 'Before',
+      assets: [photo('kept'), photo('old')],
+    });
+    setHash();
+    await blobs.writeVerified(hash, new Uint8Array([1, 2, 3]));
+    expect((await sync(a)).status).toBe('published');
+    const backup = headSnapshot(a);
+    clock += 1000;
+    await addEntry(a, 'e1', {
+      text_content: 'Edited',
+      assets: [photo('kept'), photo('renamed')],
+    });
+    setHash();
+    await restore(a, backup, 'overwrite');
+    expect(texts(a)).toEqual(['e1:Before']);
+    expect(
+      a.database.sqlite
+        .query(
+          "SELECT asset_id, local_uri FROM media_assets WHERE owner_id = 'e1' ORDER BY asset_id",
+        )
+        .all(),
+    ).toEqual([
+      { asset_id: 'kept', local_uri: 'photos/kept.jpg' },
+      { asset_id: 'renamed', local_uri: 'photos/renamed.jpg' },
+    ]);
+  });
+
   test("an attachment's photo and voice note are listed with their files", async () => {
     const a = device();
     await addEntry(a, 'e1', {

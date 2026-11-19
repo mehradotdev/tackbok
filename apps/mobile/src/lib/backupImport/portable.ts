@@ -726,9 +726,12 @@ export async function importPortableEntries(
       });
       portableEntry.assets.forEach((asset, index) => {
         if (matches.has(index) || (asset.assetId && byId.has(asset.assetId))) return;
+        // Not a row another backup attachment names by ID: that one keeps its ID.
         const row = current.find(
           (candidate) =>
-            !taken.has(candidate.asset_id) && keepable(candidate, asset.blobHash),
+            !taken.has(candidate.asset_id) &&
+            !byId.has(candidate.asset_id) &&
+            keepable(candidate, asset.blobHash),
         );
         if (row) {
           matches.set(index, row);
