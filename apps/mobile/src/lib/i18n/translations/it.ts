@@ -777,6 +777,7 @@ export const it = {
     'Ripristino in pausa. Riprende quando Tackbok è aperto e online.',
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'Puoi continuare a usare Tackbok durante il ripristino.',
+  'cloud.restoreMayTakeAMoment': 'Potrebbe volerci qualche istante.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     'Il diario è pronto. Foto e memo vocali su questo dispositivo: {downloaded} di {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
