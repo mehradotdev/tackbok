@@ -20,7 +20,11 @@ import {
   openMediaUploadSource,
 } from '../media';
 import { inspectLocalMediaFile } from '../../media/streamingHash';
-import type { SnapshotProvider, SnapshotMediaStore } from '../sync/types';
+import {
+  MediaIntegrityError,
+  type SnapshotProvider,
+  type SnapshotMediaStore,
+} from '../sync/types';
 import type { ApplyMediaFiles } from '../../storage/v2State';
 import type { MediaDescriptor } from '../../v2/types';
 
@@ -776,11 +780,23 @@ export class ProductionSnapshotJournalStore {
         missing += 1;
         continue;
       }
-      const downloaded = await provider.downloadMedia(
-        this.vaultId,
-        row.blob_hash,
-        await this.mediaStore.openDownloadSink(row.blob_hash),
-      );
+      let downloaded: boolean;
+      try {
+        downloaded = await provider.downloadMedia(
+          this.vaultId,
+          row.blob_hash,
+          await this.mediaStore.openDownloadSink(row.blob_hash),
+        );
+      } catch (error) {
+        if (!(error instanceof MediaIntegrityError)) throw error;
+        // The file is there but its bytes are wrong: that still pauses.
+        await db
+          .update(mediaAssets)
+          .set({ download_state: 'missing' })
+          .where(eq(mediaAssets.asset_id, row.asset_id));
+        missing += 1;
+        continue;
+      }
       if (!downloaded) {
         await db
           .update(mediaAssets)

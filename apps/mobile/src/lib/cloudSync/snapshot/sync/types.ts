@@ -203,6 +203,10 @@ export interface SnapshotProvider {
     blobHash: string,
     source: MediaUploadSource,
   ): Promise<void>;
+  /**
+   * False when the provider has no such blob. Bytes that fail their size or
+   * hash check throw `MediaIntegrityError`.
+   */
   downloadMedia(
     vaultId: string,
     blobHash: string,

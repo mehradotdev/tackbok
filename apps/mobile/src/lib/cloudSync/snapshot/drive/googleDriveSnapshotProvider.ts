@@ -15,11 +15,7 @@ import type {
   SyncProgressListener,
   SyncProgressReport,
 } from '../sync/types';
-import {
-  isolateProgress,
-  MediaIntegrityError,
-  SnapshotProviderError,
-} from '../sync/types';
+import { isolateProgress, SnapshotProviderError } from '../sync/types';
 import { SyncCancelledError, untilCancelled } from '../sync/errors';
 import { DriveDiscovery } from './discovery';
 import type { DriveInstrumentationSink, DriveMethodClass } from './instrumentation';
@@ -616,14 +612,11 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         'Drive media metadata does not match its key',
       );
     }
-    try {
-      // A retry resumes from what the sink already holds.
-      await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
-      return true;
-    } catch (error) {
-      if (error instanceof MediaIntegrityError) return false;
-      throw error;
-    }
+    // A retry resumes from what the sink already holds. Bytes that fail the
+    // size or hash check throw `MediaIntegrityError`: the file is there but
+    // wrong, which is not the same as gone.
+    await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
+    return true;
   }
 
   async listSnapshots(vaultId: string): Promise<SnapshotObject[]> {

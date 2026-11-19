@@ -606,6 +606,21 @@ test('a file the backup no longer has is unavailable, not missing, and is looked
   );
   await store.requeueUnavailableMedia();
   expect(states()).toEqual({ gone: 'pending', 'lost-local': 'missing' });
+  // A file that is there but whose bytes fail their check still counts as missing.
+  const { MediaIntegrityError } =
+    await import('../../src/lib/cloudSync/snapshot/sync/types');
+  const corrupt = {
+    downloadMedia: async () => {
+      throw new MediaIntegrityError('downloaded-media-hash-mismatch');
+    },
+  } as never;
+  expect(await store.hydratePendingMedia(corrupt, 2)).toEqual({
+    hydrated: 0,
+    missing: 1,
+    unavailable: 0,
+    profilePhoto: false,
+  });
+  expect(states()).toEqual({ gone: 'missing', 'lost-local': 'missing' });
 });
 
 test('downloaded attachments whose file vanished are queued for download again', async () => {
