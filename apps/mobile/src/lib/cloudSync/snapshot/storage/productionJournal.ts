@@ -740,12 +740,27 @@ export class ProductionSnapshotJournalStore {
     return persistMediaHashes();
   }
 
-  /** Bounded post-restore hydration. Metadata/text remain usable while media waits. */
+  /**
+   * Bounded post-restore hydration. Metadata/text remain usable while media waits.
+   *
+   * `missing` counts rows that cannot be downloaded at all (no hash or size).
+   * `unavailable` counts files the backup no longer has: they become
+   * `missing`, and the attachment shows without its file, but sync carries
+   * on (#185 P12). Remote media garbage collection removes files no backup
+   * refers to, so a device back after 180 days can refer to one that is
+   * gone; that must not pause the vault. `requeueUnavailableMedia` tries
+   * them again, in case the device that has the file uploads it again.
+   */
   async hydratePendingMedia(
     provider: SnapshotProvider,
     limit = 2,
     onDownloaded?: () => void,
-  ): Promise<{ hydrated: number; missing: number; profilePhoto: boolean }> {
+  ): Promise<{
+    hydrated: number;
+    missing: number;
+    unavailable: number;
+    profilePhoto: boolean;
+  }> {
     const pending = await db
       .select()
       .from(mediaAssets)
@@ -753,6 +768,7 @@ export class ProductionSnapshotJournalStore {
       .limit(limit);
     let hydrated = 0;
     let missing = 0;
+    let unavailable = 0;
     // The profile's photo is the only media its screens read from a cache.
     let profilePhoto = false;
     for (const row of pending) {
@@ -770,7 +786,7 @@ export class ProductionSnapshotJournalStore {
           .update(mediaAssets)
           .set({ download_state: 'missing' })
           .where(eq(mediaAssets.asset_id, row.asset_id));
-        missing += 1;
+        unavailable += 1;
         continue;
       }
       onDownloaded?.();
@@ -816,7 +832,26 @@ export class ProductionSnapshotJournalStore {
       hydrated += 1;
       if (row.owner_type === 'profile') profilePhoto = true;
     }
-    return { hydrated, missing, profilePhoto };
+    return { hydrated, missing, unavailable, profilePhoto };
+  }
+
+  /**
+   * Files the backup did not have at an earlier download (`unavailable`
+   * above) become pending again, so hydration looks for them once more.
+   * Only rows with a hash and size: one without is a local file that went
+   * missing, which pauses instead.
+   */
+  async requeueUnavailableMedia(): Promise<void> {
+    await db
+      .update(mediaAssets)
+      .set({ download_state: 'pending' })
+      .where(
+        and(
+          eq(mediaAssets.download_state, 'missing'),
+          isNotNull(mediaAssets.blob_hash),
+          isNotNull(mediaAssets.byte_size),
+        ),
+      );
   }
 
   /**

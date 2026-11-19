@@ -518,7 +518,7 @@ test('hydration downloads a pending photo to the path its entry uses', async () 
       } as never,
       2,
     ),
-  ).toEqual({ hydrated: 1, missing: 0, profilePhoto: false });
+  ).toEqual({ hydrated: 1, missing: 0, unavailable: 0, profilePhoto: false });
   expect(downloaded).toEqual([fakeBlobHash]);
   const [hydrated] = db.select().from(schema.mediaAssets).all();
   expect(hydrated).toMatchObject({ download_state: 'verified', local_uri: photoUri });
@@ -546,14 +546,66 @@ test('hydration reports when it downloaded the profile photo', async () => {
   expect(await store.hydratePendingMedia(download, 2)).toEqual({
     hydrated: 1,
     missing: 0,
+    unavailable: 0,
     profilePhoto: true,
   });
   // Nothing left: no profile photo in an empty batch.
   expect(await store.hydratePendingMedia(download, 2)).toEqual({
     hydrated: 0,
     missing: 0,
+    unavailable: 0,
     profilePhoto: false,
   });
+});
+
+test('a file the backup no longer has is unavailable, not missing, and is looked for again', async () => {
+  sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
+  existingFiles.clear();
+  insertPendingMedia([
+    { assetId: 'gone', ownerType: 'entry', uri: `photos/gone-${fakeBlobHash}.jpg` },
+  ]);
+  // A row without a hash cannot be downloaded at all: that still counts as missing.
+  db.insert(schema.mediaAssets)
+    .values({
+      asset_id: 'unhashed',
+      owner_type: 'entry',
+      owner_id: 'entry',
+      kind: 'photo',
+      local_uri: 'photos/unhashed.jpg',
+      download_state: 'pending',
+      mime_type: 'image/jpeg',
+      blob_hash: null,
+      byte_size: null,
+      created_at: 1,
+      updated_at: 1,
+    })
+    .run();
+  const { store } = stagingMediaStore();
+  const absent = { downloadMedia: async () => false } as never;
+  expect(await store.hydratePendingMedia(absent, 2)).toEqual({
+    hydrated: 0,
+    missing: 1,
+    unavailable: 1,
+    profilePhoto: false,
+  });
+  const states = () =>
+    Object.fromEntries(
+      db
+        .select()
+        .from(schema.mediaAssets)
+        .all()
+        .map((row) => [row.asset_id, row.download_state]),
+    );
+  expect(states()).toEqual({ gone: 'missing', unhashed: 'pending' });
+  // Not looked for again within the pass.
+  sqlite.exec("DELETE FROM media_assets WHERE asset_id = 'unhashed'");
+  expect(await store.hydratePendingMedia(absent, 2)).toMatchObject({ unavailable: 0 });
+  // A local file that went missing (no hash) stays missing; this one is pending again.
+  sqlite.exec(
+    "INSERT INTO media_assets (asset_id, owner_type, owner_id, kind, local_uri, download_state, created_at, updated_at) VALUES ('lost-local', 'entry', 'entry', 'photo', 'photos/lost.jpg', 'missing', 1, 1)",
+  );
+  await store.requeueUnavailableMedia();
+  expect(states()).toEqual({ gone: 'pending', 'lost-local': 'missing' });
 });
 
 test('downloaded attachments whose file vanished are queued for download again', async () => {
@@ -685,7 +737,7 @@ test('a repaired attachment is downloaded back to the path its entry uses', asyn
       } as never,
       2,
     ),
-  ).toEqual({ hydrated: 1, missing: 0, profilePhoto: false });
+  ).toEqual({ hydrated: 1, missing: 0, unavailable: 0, profilePhoto: false });
 
   const repaired = db
     .select()

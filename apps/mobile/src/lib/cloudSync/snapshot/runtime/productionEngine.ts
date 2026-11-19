@@ -381,6 +381,9 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         // Rare: the profile photo may be among them, and is hidden until it is back.
         if ((await this.journal.requeueMissingVerifiedMedia()) > 0)
           await this.reloadProfileCache();
+        // Files the backup lacked last time: another device may have
+        // uploaded them again since (`hydratePendingMedia`).
+        await this.journal.requeueUnavailableMedia();
         this.checkedVerifiedMedia = true;
       } catch (error) {
         // The attachments stay as they are; the next pass tries again.
@@ -415,12 +418,18 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         hydrated += hydration.hydrated;
         // Local completion may finish after cancellation; record nothing from it.
         throwIfCancelled(signal);
+        // Files the backup no longer has (`unavailable`) do not pause:
+        // their attachments show without them until a later retry.
+        if (hydration.unavailable > 0)
+          console.warn(
+            `Cloud sync: ${hydration.unavailable} attachment file(s) are not in the backup`,
+          );
         if (hydration.missing > 0) {
           this.state.setPause(
             this.vault.vault_id,
             this.vault.device_id,
             'missing-media',
-            'remote-media-disappeared-during-hydration',
+            'pending-media-without-hash',
           );
           throw new SnapshotRuntimeFailure('corrupt');
         }
