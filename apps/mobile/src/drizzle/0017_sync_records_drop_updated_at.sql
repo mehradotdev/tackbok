@@ -1,0 +1,1 @@
+ALTER TABLE `sync_records` DROP COLUMN `updated_at`;

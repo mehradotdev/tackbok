@@ -19,6 +19,7 @@ import m0013 from './0013_sync_skipped_heads.sql';
 import m0014 from './0014_sync_install_binding.sql';
 import m0015 from './0015_sync_retired_devices.sql';
 import m0016 from './0016_sync_media_gc.sql';
+import m0017 from './0017_sync_records_drop_updated_at.sql';
 
 export default {
   journal,
@@ -40,5 +41,6 @@ export default {
     m0014,
     m0015,
     m0016,
+    m0017,
   },
 };

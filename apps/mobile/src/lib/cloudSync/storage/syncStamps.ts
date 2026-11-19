@@ -154,7 +154,6 @@ export async function stampWriteInTransaction(
     known_json: knownAfter(row?.known_json, before, s, vv),
     stamps_json: JSON.stringify(stamps),
     ...(del ? { del_json: JSON.stringify({ ...del, ackSeen: del.seen }) } : {}),
-    updated_at: now,
   };
   await tx
     .insert(syncRecords)
@@ -207,7 +206,6 @@ export async function stampDeleteInTransaction(
     // The shown values' stamps now live with the kept values.
     stamps_json: '{}',
     del_json: JSON.stringify(del),
-    updated_at: now,
   };
   await tx
     .insert(syncRecords)

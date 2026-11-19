@@ -120,6 +120,13 @@
       "when": 1795046789210,
       "tag": "0016_sync_media_gc",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1795106614274,
+      "tag": "0017_sync_records_drop_updated_at",
+      "breakpoints": true
     }
   ]
 }
