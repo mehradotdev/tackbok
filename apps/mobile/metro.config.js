@@ -1,3 +1,5 @@
+const fs = require('node:fs');
+const path = require('node:path');
 const { getDefaultConfig } = require('expo/metro-config');
 const { withUniwindConfig } = require('uniwind/metro');
 const { CUSTOM_THEME_IDS } = require('./src/lib/theme/registry.cjs');
@@ -16,6 +18,34 @@ const config = getDefaultConfig(projectRoot);
 
 // Add SQL source extension for Drizzle
 config.resolver.sourceExts.push('sql');
+
+// The dev setup for screenshots and QA (#219) ships only in beta bundles. Any
+// other variant, including production builds and OTA updates, gets the no-op
+// module, decided when the bundle is built (app.config.ts reads the same variable).
+// Compare real paths so a symlinked checkout cannot slip past the swap.
+const DEV_SETUP_MODULE = fs.realpathSync(
+  path.join(projectRoot, 'src/lib/devSetup/index.ts'),
+);
+const DEV_SETUP_DISABLED = path.join(projectRoot, 'src/lib/devSetup/disabled.ts');
+function isDevSetupModule(filePath) {
+  // Cheap check first: Metro resolves thousands of modules.
+  if (!filePath.endsWith(path.join('devSetup', 'index.ts'))) return false;
+  try {
+    return fs.realpathSync(filePath) === DEV_SETUP_MODULE;
+  } catch {
+    return false;
+  }
+}
+if (process.env.APP_VARIANT !== 'beta') {
+  const upstreamResolveRequest = config.resolver.resolveRequest;
+  config.resolver.resolveRequest = (context, moduleName, platform) => {
+    const resolve = upstreamResolveRequest ?? context.resolveRequest;
+    const resolution = resolve(context, moduleName, platform);
+    return resolution.type === 'sourceFile' && isDevSetupModule(resolution.filePath)
+      ? { type: 'sourceFile', filePath: DEV_SETUP_DISABLED }
+      : resolution;
+  };
+}
 
 // Apply uniwind modifications before exporting
 const uniwindConfig = withUniwindConfig(config, {

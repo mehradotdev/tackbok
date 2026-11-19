@@ -24,6 +24,11 @@ import {
 
 // A JS runtime is one cold start; route remounts and foregrounding must not replay.
 let launchGreetingClaimed = false;
+
+/** Dev setup (#219): this launch shows the plain title, for screenshots. */
+export function skipLaunchGreeting() {
+  launchGreetingClaimed = true;
+}
 const PREVIOUS_KEY = 'home.previous-greeting';
 const DURATION = 4270;
 type GreetingMessage = { label: string };

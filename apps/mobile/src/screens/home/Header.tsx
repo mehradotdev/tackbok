@@ -29,6 +29,12 @@ import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 
 // Brand marker for the beta app variant; intentionally untranslated.
 const IS_BETA_BUILD = Constants.expoConfig?.extra?.appVariant === 'beta';
+let betaBadgeHidden = false;
+
+/** Dev setup (#219): hides the badge for this launch, for screenshots. */
+export function hideBetaBadge() {
+  betaBadgeHidden = true;
+}
 
 interface IHeaderProps {
   isSearchMode?: boolean;
@@ -174,7 +180,7 @@ export const Header: React.FC<IHeaderProps> = ({
                 className="shrink text-primary-foreground font-heading">
                 {t('common.tackbok')}
               </Text>
-              {IS_BETA_BUILD && (
+              {IS_BETA_BUILD && !betaBadgeHidden && (
                 <Text
                   maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
                   className="shrink-0 ms-0.5 mt-1 text-xs leading-4 tracking-wider text-primary-foreground font-body-semibold">
