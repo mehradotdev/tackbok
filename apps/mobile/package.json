@@ -129,6 +129,7 @@
     "globalSetup": "<rootDir>/jest.global-setup.js",
     "testPathIgnorePatterns": [
       "<rootDir>/scripts/cloud-sync/",
+      "<rootDir>/scripts/cloud-sync-e2e/",
       "<rootDir>/scripts/db/"
     ],
     "transformIgnorePatterns": [
