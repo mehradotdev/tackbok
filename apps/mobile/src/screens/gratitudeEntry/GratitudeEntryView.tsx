@@ -3,7 +3,7 @@ import { View, ScrollView } from 'react-native';
 import { ArrowLeft, ArrowRight, Pencil, Share2, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
+import { MOOD_EMOJI_MAX_FONT_SCALE, MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
 import type { Entry, Asset } from '~/types';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { track } from '~/lib/analytics';
@@ -147,9 +147,13 @@ export function GratitudeEntryView({
         {/* Mood label */}
         {moodOption && (
           <View className="flex-row items-center gap-2 mb-4">
-            <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-lg border border-border">
-              <Text className="text-2xl">{moodOption.emoji}</Text>
-              <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
+            <View className="relative shrink flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-lg border border-border">
+              <Text
+                className="text-2xl"
+                maxFontSizeMultiplier={MOOD_EMOJI_MAX_FONT_SCALE}>
+                {moodOption.emoji}
+              </Text>
+              <Text className="shrink text-sm tracking-wide font-body-medium text-primary-foreground">
                 {t(moodOption.feelingKey)}
               </Text>
             </View>

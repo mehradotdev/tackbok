@@ -42,6 +42,9 @@ export const MOOD_OPTIONS = [
   },
 ] as const;
 
+/** Mood chip emoji are decorative; capping them leaves room for the label at large text sizes. */
+export const MOOD_EMOJI_MAX_FONT_SCALE = 1.5;
+
 /** Global names for TrueSheet to allow invocation from anywhere */
 export const SHEET_NAMES = {
   MOOD: 'mood-sheet',

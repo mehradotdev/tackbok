@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { format, startOfDay } from 'date-fns';
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
-import { MOOD_OPTIONS } from '~/constants';
+import { MOOD_EMOJI_MAX_FONT_SCALE, MOOD_OPTIONS } from '~/constants';
 import { type Entry, type Asset } from '~/types';
 import { combineDateWithCurrentTime } from '~/lib/utils';
 import { getFullPhotoUri } from '~/lib/photoUtils';
@@ -99,9 +99,11 @@ export function EntryItem({
 
           {/* Mood Badge - New Style from GratitudeEntryEdit */}
           {moodOption && (
-            <View className="relative flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-full border border-border">
-              <Text className="text-xl">{moodOption.emoji}</Text>
-              <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
+            <View className="relative max-w-full flex-row items-center px-3 py-0.5 gap-1.5 bg-primary/50 rounded-full border border-border">
+              <Text className="text-xl" maxFontSizeMultiplier={MOOD_EMOJI_MAX_FONT_SCALE}>
+                {moodOption.emoji}
+              </Text>
+              <Text className="shrink text-sm tracking-wide font-body-medium text-primary-foreground">
                 {t(moodOption.feelingKey)}
               </Text>
             </View>
