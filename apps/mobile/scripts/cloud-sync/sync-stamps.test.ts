@@ -100,7 +100,9 @@ mock.module('../../src/lib/settings', () => ({
 }));
 mock.module('../../src/lib/entryDeletion', () => ({ async deleteEntry() {} }));
 mock.module('expo-document-picker', () => ({ getDocumentAsync: async () => null }));
-mock.module('react-native', () => ({ Platform: { OS: 'ios' } }));
+// Matches `sim/sqliteDevices.ts`: mocks are process-wide, and the first one
+// fixes the module's export names for every later file.
+mock.module('react-native', () => ({ Platform: { OS: 'ios' }, Image: {} }));
 mock.module('../../src/lib/cloudSync/runtime/mutationSignal', () => ({
   notifyCloudSyncMutationCommitted() {},
 }));

@@ -19,7 +19,6 @@ mock.module('expo-file-system', () => ({
   Directory: class {},
   Paths: {},
 }));
-mock.module('react-native', () => ({ Platform: { OS: 'ios' }, Image: {} }));
 mock.module('../../src/lib/photoUtils', () => ({ deletePhotoFile: () => {} }));
 mock.module('../../src/lib/voiceMemoUtils', () => ({ deleteVoiceMemoFile: () => {} }));
 
