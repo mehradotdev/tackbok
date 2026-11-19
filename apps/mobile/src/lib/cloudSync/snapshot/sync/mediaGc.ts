@@ -58,7 +58,7 @@ import {
   syncSnapshotMedia,
 } from '~/db';
 
-import { decodeEnvelope } from '../../v2/codec';
+import { type CodecWork, decodeEnvelopeAsync, jsCodecWork } from '../../v2/codec';
 import type { SyncState } from '../../v2/types';
 import {
   SnapshotProviderError,
@@ -270,6 +270,7 @@ export async function collectMedia(options: {
   provider: SnapshotProvider;
   now: number;
   hooks?: SnapshotSyncHooks;
+  codecWork?: CodecWork;
 }): Promise<MediaGcOutcome> {
   const { vaultId, provider, hooks } = options;
   const { now } = options;
@@ -322,7 +323,11 @@ export async function collectMedia(options: {
         : { status: 'blocked', reason: 'snapshot-missing' };
     let state: SyncState;
     try {
-      const decoded = decodeEnvelope(bytes, snapshotId);
+      const decoded = await decodeEnvelopeAsync(
+        bytes,
+        snapshotId,
+        options.codecWork ?? jsCodecWork,
+      );
       if (decoded.header.vaultId !== vaultId)
         return { status: 'blocked', reason: 'snapshot-other-vault' };
       state = decoded.state;

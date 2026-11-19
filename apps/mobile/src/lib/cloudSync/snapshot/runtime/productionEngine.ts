@@ -21,7 +21,7 @@ import { PHASE_FOR_ENGINE_ACTIVITY } from '../../runtime/activity';
 import { cloudConnectionLifecycle } from '../../runtime/connectionLifecycle';
 import { hashPendingProductionMedia } from './mediaHashing';
 import { recordWaitingMediaUploads } from './waitingMediaUploads';
-import { nativeSha256Bytes } from './nativeSha256';
+import { nativeCodecWork, nativeSha256Bytes } from './nativeSha256';
 import { reapRetainedMedia } from '../../storage/retainedMedia';
 import { loadProfileCache } from '../../storage/backfill';
 import { GoogleDriveSnapshotProvider, SQLiteDriveProviderStateStore } from '../drive';
@@ -588,6 +588,7 @@ export async function createProductionSnapshotRuntimeEngine(options: {
       progress: onProgress,
     },
     codeVersion: productionCodeVersion(),
+    codecWork: nativeCodecWork,
   });
   return new ProductionSnapshotRuntimeEngine(
     options.vault,

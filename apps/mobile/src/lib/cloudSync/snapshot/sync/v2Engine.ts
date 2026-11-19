@@ -70,8 +70,10 @@ import {
   KNOWN_REQUIRED_FEATURES,
   SNAPSHOT_MAJOR,
   SnapshotUpdateRequiredError,
-  decodeEnvelope,
-  encodeEnvelope,
+  type CodecWork,
+  decodeEnvelopeAsync,
+  encodeEnvelopeAsync,
+  jsCodecWork,
 } from '../../v2/codec';
 import {
   absorb,
@@ -164,6 +166,11 @@ export interface V2EngineOptions {
   now?: () => number;
   /** Identifies the running build; a new one retries a failed join. */
   codeVersion?: string;
+  /**
+   * How snapshots are hashed and paced (`CodecWork`); the app hashes
+   * natively. Defaults to pure JS.
+   */
+  codecWork?: CodecWork;
 }
 
 interface HeadRecord {
@@ -263,6 +270,10 @@ export class V2SyncEngine {
 
   private get vaultId() {
     return this.options.vaultId;
+  }
+
+  private get codecWork() {
+    return this.options.codecWork ?? jsCodecWork;
   }
 
   private async pass(): Promise<SnapshotSyncResult> {
@@ -983,7 +994,7 @@ export class V2SyncEngine {
     const bytes = await provider.downloadSnapshot(this.vaultId, head.snapshotId);
     this.hooks.progress?.({ type: 'item', phase: 'downloading' });
     await this.hooks.at?.('during-remote-snapshot-download');
-    const state = checkSnapshot(this.vaultId, head, bytes);
+    const state = await checkSnapshot(this.vaultId, head, bytes, this.codecWork);
     await this.recordMedia(head.snapshotId, state);
     return state;
   }
@@ -1072,11 +1083,11 @@ export class V2SyncEngine {
       Math.max((own?.deviceSequence ?? 0) + 1, (record?.deviceSequence ?? 0) + 1),
     );
     const createdAt = this.now();
-    const encoded = encodeEnvelope(state, {
-      authorDeviceId: deviceId,
-      deviceSequence,
-      createdAt,
-    });
+    const encoded = await encodeEnvelopeAsync(
+      state,
+      { authorDeviceId: deviceId, deviceSequence, createdAt },
+      this.codecWork,
+    );
     await this.recordMedia(encoded.snapshotId, state);
     this.hooks.activity?.('publishing-local-snapshot');
     this.hooks.progress?.({
@@ -1344,6 +1355,7 @@ export class V2SyncEngine {
           // move with this device's clock (#185 "clock skew in retention").
           now: providerNow,
           hooks: this.hooks,
+          codecWork: this.codecWork,
         });
         // Snapshots left to read, or something new appeared: soon, not every pass.
         if (outcome.status === 'incomplete')
@@ -1518,15 +1530,16 @@ export class V2SyncEngine {
 }
 
 /** Checks a head's downloaded snapshot; throws an `AttentionError` if it is unusable. */
-function checkSnapshot(
+async function checkSnapshot(
   vaultId: string,
   head: DeviceHead,
   bytes: Uint8Array | null,
-): SyncState {
+  work: CodecWork,
+): Promise<SyncState> {
   if (!bytes) throw new AttentionError('head-snapshot-missing', 'head-target-not-found');
-  let decoded: ReturnType<typeof decodeEnvelope>;
+  let decoded: Awaited<ReturnType<typeof decodeEnvelopeAsync>>;
   try {
-    decoded = decodeEnvelope(bytes, head.snapshotId);
+    decoded = await decodeEnvelopeAsync(bytes, head.snapshotId, work);
   } catch (error) {
     if (error instanceof SnapshotUpdateRequiredError)
       throw new AttentionError('unsupported-format', `remote-${error.code}`);
@@ -1555,6 +1568,7 @@ export async function removeUnreadableHeads(
   provider: Pick<SnapshotProvider, 'listHeads' | 'deleteDeviceHead' | 'downloadSnapshot'>,
   vaultId: string,
   skipped: readonly SkippedHead[],
+  work: CodecWork = jsCodecWork,
 ): Promise<number> {
   let removed = 0;
   for (const target of skipped.filter((head) => head.reason === 'unreadable')) {
@@ -1571,10 +1585,11 @@ export async function removeUnreadableHeads(
     // failed) is kept.
     if (head && headShape(head as Record<string, unknown>)) {
       try {
-        checkSnapshot(
+        await checkSnapshot(
           vaultId,
           head as DeviceHead,
           await provider.downloadSnapshot(vaultId, head.snapshotId!),
+          work,
         );
         continue;
       } catch (error) {

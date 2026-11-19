@@ -517,7 +517,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       'snapshot',
     );
     if (candidates.length === 0) return false;
-    const hash = sha256Bytes(expectedBytes);
+    const hash = await this.hashBytes(expectedBytes);
     return candidates.every(
       (candidate) =>
         candidate.contentSha256 === hash &&
@@ -932,7 +932,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     bytes: Uint8Array,
     createdAt: number,
   ): Promise<void> {
-    const hash = sha256Bytes(bytes);
+    // Snapshots run to megabytes: hashed off the JS thread in the app.
+    const hash = await this.hashBytes(bytes);
     const cached = this.state.listKey(vaultId, key).filter((file) => file.kind === kind);
     if (cached.length > 0) {
       if (
@@ -952,8 +953,17 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     try {
       uploaded =
         bytes.byteLength <= MULTIPART_MAX_BYTES
-          ? await this.multipartUpload(vaultId, key, kind, bytes, 'create')
-          : await this.resumableUpload(vaultId, key, kind, bytes);
+          ? await this.multipartUpload(
+              vaultId,
+              key,
+              kind,
+              bytes,
+              'create',
+              undefined,
+              {},
+              hash,
+            )
+          : await this.resumableUpload(vaultId, key, kind, bytes, hash);
       const record = this.record(uploaded, kind, null);
       if (record.contentSha256 !== hash || record.byteCount !== bytes.byteLength) {
         throw new SnapshotProviderError(
@@ -1210,6 +1220,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     key: string,
     kind: 'snapshot' | 'media',
     bytes: Uint8Array,
+    contentHash: string,
   ): Promise<DriveFile> {
     return this.resumableUploadFromSource(
       vaultId,
@@ -1217,7 +1228,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       kind,
       {
         byteLength: bytes.byteLength,
-        contentHash: sha256Bytes(bytes),
+        contentHash,
         read: async (offset, length) => bytes.slice(offset, offset + length),
       },
       CHUNK_SIZE,
@@ -1496,7 +1507,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         new ShortDownloadError(),
       );
     }
-    if (sha256Bytes(bytes) !== file.sha256Checksum) throw mismatch;
+    if ((await this.hashBytes(bytes)) !== file.sha256Checksum) throw mismatch;
     return bytes;
   }
 

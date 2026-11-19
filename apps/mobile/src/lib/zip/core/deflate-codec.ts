@@ -306,11 +306,25 @@ export function deflateRaw(
   return new Uint8Array(buffer.buffer, 0, offset);
 }
 
+/**
+ * One piece of a raw DEFLATE stream, for compressing a large input a piece at
+ * a time with a pause between pieces (`encodeGzipInPieces`). Back-references
+ * do not cross pieces. A piece that is not `last` ends with an empty stored
+ * block (a sync flush), so it ends on a byte boundary and the next piece's
+ * bytes follow it directly; only the `last` piece sets the final-block bit.
+ */
+export function deflateRawPiece(data: Uint8Array, last: boolean, level = 6): Uint8Array {
+  const buffer = new Uint8Array(60 + Math.floor(data.length * 1.1));
+  const offset = deflateRawBlock(data, buffer, 0, level, last);
+  return new Uint8Array(buffer.buffer, 0, offset);
+}
+
 function deflateRawBlock(
   data: Uint8Array,
   out: Uint8Array,
   offset: number,
   level: number,
+  last = true,
 ): number {
   const options = [
     [0, 0, 0, 0, 0],
@@ -332,12 +346,12 @@ function deflateRawBlock(
 
   if (level === 0) {
     if (data.length === 0) {
-      putBitsExact(out, bitPosition, 1);
+      putBitsExact(out, bitPosition, last ? 1 : 0);
       return writeStoredBlock(data, 0, 0, out, bitPosition + 8) >>> 3;
     }
     while (index < data.length) {
       const length = Math.min(0xffff, data.length - index);
-      putBitsExact(out, bitPosition, index + length === data.length ? 1 : 0);
+      putBitsExact(out, bitPosition, last && index + length === data.length ? 1 : 0);
       bitPosition = writeStoredBlock(data, index, length, out, bitPosition + 8);
       index += length;
     }
@@ -379,7 +393,7 @@ function deflateRawBlock(
         }
 
         bitPosition = writeDeflateBlock(
-          index === data.length - 1 || covered === data.length ? 1 : 0,
+          last && (index === data.length - 1 || covered === data.length) ? 1 : 0,
           literals,
           literalIndex,
           extraBits,
@@ -437,7 +451,7 @@ function deflateRawBlock(
     }
 
     bitPosition = writeDeflateBlock(
-      1,
+      last ? 1 : 0,
       literals,
       literalIndex,
       extraBits,
@@ -447,6 +461,13 @@ function deflateRawBlock(
       out,
       bitPosition,
     );
+  }
+
+  if (!last) {
+    // Sync flush: an empty, non-final stored block (3 header bits, padding to
+    // the byte boundary, then LEN 0 and NLEN 0xFFFF).
+    bitPosition = writeStoredBlock(data, 0, 0, out, (bitPosition + 3 + 7) & ~7);
+    return bitPosition >>> 3;
   }
 
   while ((bitPosition & 7) !== 0) {

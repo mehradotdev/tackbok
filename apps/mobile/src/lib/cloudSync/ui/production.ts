@@ -44,7 +44,7 @@ import {
   SQLiteDriveProviderStateStore,
   type AvailableDriveVault,
 } from '../snapshot/drive';
-import { nativeSha256Bytes } from '../snapshot/runtime/nativeSha256';
+import { nativeCodecWork, nativeSha256Bytes } from '../snapshot/runtime/nativeSha256';
 import { waitingMediaUploadCount } from '../snapshot/runtime/waitingMediaUploads';
 import { forgetMediaHashes } from '../snapshot/storage';
 import { wipeLocalJournalInTransaction } from '../storage/localWipe';
@@ -885,6 +885,7 @@ export async function replaceUnreadableBackups(): Promise<number> {
       await configuredDriveProvider(),
       vault.vault_id,
       skippedHeads,
+      nativeCodecWork,
     );
     state.setSkippedHeads(vault.vault_id, vault.device_id, []);
     state.clearPause(vault.vault_id, vault.device_id);

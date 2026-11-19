@@ -77,6 +77,13 @@ mock.module('../../src/lib/cloudSync/ui/production', () => ({
   },
 }));
 mock.module('expo-document-picker', () => ({ getDocumentAsync: async () => null }));
+// The native digest becomes pure JS here: same hashes, no expo-crypto.
+mock.module('../../src/lib/cloudSync/snapshot/runtime/nativeSha256', () => ({
+  nativeCodecWork: {
+    hashBytes: async (bytes: Uint8Array) => sha256Bytes(bytes),
+    pause: async () => {},
+  },
+}));
 mock.module('../../src/lib/backupExport/utils', () => ({
   cleanupDeferredBackupZipFiles: () => {},
   generateTimestamp: () => 'now',

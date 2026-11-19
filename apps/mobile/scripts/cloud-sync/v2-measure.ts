@@ -55,7 +55,7 @@ const uuid = (rng: Random) =>
     rng.int(0, 15).toString(16),
   );
 
-function buildJournal(count: number, seed: number): SyncState {
+export function buildJournal(count: number, seed: number): SyncState {
   const rng = new Random(seed);
   const tags = Array.from({ length: 25 }, (_, i) => `Tag ${i}`);
   let hlc = T0;
@@ -218,45 +218,48 @@ function time<T>(run: () => T, repeat = 5): { ms: number; value: T } {
 const kib = (bytes: number) => `${(bytes / 1024).toFixed(0)} KiB`;
 const ms = (value: number) => `${value.toFixed(0)} ms`;
 
-const sizes = process.argv.slice(2).map(Number);
-const rows: string[] = [];
-for (const count of sizes.length > 0 ? sizes : [1_000, 5_000, 10_000]) {
-  const journal = buildJournal(count, count);
-  const v2Encoded = time(
-    () =>
-      encodeEnvelope(journal, {
-        authorDeviceId: DEVICES[0],
-        deviceSequence: 1,
-        createdAt: T0,
-      }),
-    3,
+// Run as a script only, so tests can import `buildJournal`.
+if (import.meta.main) {
+  const sizes = process.argv.slice(2).map(Number);
+  const rows: string[] = [];
+  for (const count of sizes.length > 0 ? sizes : [1_000, 5_000, 10_000]) {
+    const journal = buildJournal(count, count);
+    const v2Encoded = time(
+      () =>
+        encodeEnvelope(journal, {
+          authorDeviceId: DEVICES[0],
+          deviceSequence: 1,
+          createdAt: T0,
+        }),
+      3,
+    );
+    const v2Decoded = time(() => decodeEnvelope(v2Encoded.value.bytes), 3);
+    // Each device's copy comes from its own download: no shared objects.
+    const [left, right] = diverge(journal, count + 1).map((state) =>
+      structuredClone(state),
+    );
+    const v2Join = time(() => join(left, right), 3);
+    const v2Canonical = time(() => canonicalState(v2Join.value), 3);
+    const v2Body = v2Encoded.value.bodyCanonical.length;
+    const v2Header = v2Encoded.value.bytes.indexOf(0x0a);
+    // After compaction: deleted entries keep only their vector and tombstone.
+    const compacted = encodeEnvelope(compact(journal), {
+      authorDeviceId: DEVICES[0],
+      deviceSequence: 1,
+      createdAt: T0,
+    });
+    let textBytes = 0;
+    for (const entry of journal.entries.values())
+      if (!entry.del)
+        for (const item of [...entry.title, ...entry.text])
+          textBytes += item.v?.length ?? 0;
+    rows.push(
+      `| ${count.toLocaleString('en')} | ${kib(textBytes)} | ${kib(v2Body + v2Header)} | ${kib(v2Encoded.value.bytes.length)} | ${kib(compacted.bytes.length)} | ${ms(v2Encoded.ms)} | ${ms(v2Decoded.ms)} | ${ms(v2Join.ms)} | ${ms(v2Canonical.ms)} |`,
+    );
+  }
+  console.log(
+    '| Entries | Authored text | v2 raw | v2 gzip | v2 gzip, deleted records compacted | v2 encode | v2 decode | v2 join | v2 canonical |',
   );
-  const v2Decoded = time(() => decodeEnvelope(v2Encoded.value.bytes), 3);
-  // Each device's copy comes from its own download: no shared objects.
-  const [left, right] = diverge(journal, count + 1).map((state) =>
-    structuredClone(state),
-  );
-  const v2Join = time(() => join(left, right), 3);
-  const v2Canonical = time(() => canonicalState(v2Join.value), 3);
-  const v2Body = v2Encoded.value.bodyCanonical.length;
-  const v2Header = v2Encoded.value.bytes.indexOf(0x0a);
-  // After compaction: deleted entries keep only their vector and tombstone.
-  const compacted = encodeEnvelope(compact(journal), {
-    authorDeviceId: DEVICES[0],
-    deviceSequence: 1,
-    createdAt: T0,
-  });
-  let textBytes = 0;
-  for (const entry of journal.entries.values())
-    if (!entry.del)
-      for (const item of [...entry.title, ...entry.text])
-        textBytes += item.v?.length ?? 0;
-  rows.push(
-    `| ${count.toLocaleString('en')} | ${kib(textBytes)} | ${kib(v2Body + v2Header)} | ${kib(v2Encoded.value.bytes.length)} | ${kib(compacted.bytes.length)} | ${ms(v2Encoded.ms)} | ${ms(v2Decoded.ms)} | ${ms(v2Join.ms)} | ${ms(v2Canonical.ms)} |`,
-  );
+  console.log('|---|---|---|---|---|---|---|---|---|');
+  for (const row of rows) console.log(row);
 }
-console.log(
-  '| Entries | Authored text | v2 raw | v2 gzip | v2 gzip, deleted records compacted | v2 encode | v2 decode | v2 join | v2 canonical |',
-);
-console.log('|---|---|---|---|---|---|---|---|---|');
-for (const row of rows) console.log(row);
