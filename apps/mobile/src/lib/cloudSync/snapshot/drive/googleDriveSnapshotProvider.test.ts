@@ -397,7 +397,12 @@ describe('GoogleDriveSnapshotProvider', () => {
   test("the provider clock is Drive's Date header, advanced by the monotonic clock only", async () => {
     let deviceNow = Date.parse('2030-01-01T00:00:00Z');
     let monotonic = 1_000;
-    const dates = ['Tue, 01 Mar 2033 12:00:00 GMT', 'not a date'];
+    const dates = [
+      'Tue, 01 Mar 2033 12:00:00 GMT',
+      'not a date',
+      undefined,
+      'Tue, 01 Mar 2033 13:00:00 GMT',
+    ];
     const transport = new DriveTransport({
       auth: new FakeAuth(),
       state: new MemoryDriveProviderStateStore(),
@@ -428,6 +433,9 @@ describe('GoogleDriveSnapshotProvider', () => {
     await request();
     await request();
     expect(transport.serverTime()).toBe(Date.parse('2033-03-01T12:00:05Z'));
+    // A later valid header anchors the clock again.
+    await request();
+    expect(transport.serverTime()).toBe(Date.parse('2033-03-01T13:00:00Z'));
   });
 
   test.each([

@@ -7,7 +7,8 @@
  * - **one snapshot per day for 30 days**: the newest of each UTC day of its
  *   upload, so every device picks the same one. These are the backups the
  *   user can restore or export (`backupHistory`);
- * - every snapshot of the current day, which is not over yet.
+ * - every snapshot from the last 24 hours, which includes the current day's:
+ *   its device may still be moving its head to it.
  *
  * Any other snapshot goes once it is 30 days old. A younger one goes earlier
  * ("thinned") only when a newer snapshot that stays refers to every media
@@ -26,6 +27,11 @@ import type { SnapshotObject } from './types';
 export const DAY_MS = 24 * 60 * 60 * 1000;
 /** How long a snapshot no head points to is kept. */
 export const SNAPSHOT_RETENTION_MS = 30 * DAY_MS;
+/**
+ * Every snapshot this young stays: its device may not have moved its head
+ * to it yet (a publication is upload, then head), across midnight too.
+ */
+export const RECENT_MS = DAY_MS;
 
 const dayOf = (time: number) => Math.floor(time / DAY_MS);
 
@@ -74,7 +80,6 @@ export function snapshotsToDelete(options: {
   const { referenced, blobs, now } = options;
   const known = options.snapshots.filter((snapshot) => snapshot.createdAt > 0);
   const daily = new Set(backupHistory(known, now).map((snapshot) => snapshot.snapshotId));
-  const today = dayOf(now);
   const deleted: string[] = [];
   // Blobs that snapshots newer than the one at hand, and staying, refer to.
   // Any snapshot that stays may cover older ones: it goes only once 30 days
@@ -86,7 +91,7 @@ export function snapshotsToDelete(options: {
       referenced.has(snapshotId) ||
       (now - createdAt < SNAPSHOT_RETENTION_MS &&
         (daily.has(snapshotId) ||
-          dayOf(createdAt) >= today ||
+          now - createdAt < RECENT_MS ||
           !own ||
           !own.every((blob) => covered.has(blob))));
     if (!stays) deleted.push(snapshotId);

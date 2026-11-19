@@ -93,6 +93,16 @@ describe('snapshotsToDelete', () => {
     expect(plan(snapshots, now)).toEqual(['d0-early', 'd0-mid']);
   });
 
+  it('keeps a snapshot from just before midnight, whose head may not point to it yet', () => {
+    const now = DAY0 + DAY_MS + 5_000;
+    const snapshots = [
+      snap('late', DAY0 + DAY_MS - 20_000),
+      snap('newest-of-day', DAY0 + DAY_MS - 10_000),
+    ];
+    expect(plan(snapshots, now)).toEqual([]);
+    expect(plan(snapshots, DAY0 + 2 * DAY_MS)).toEqual(['late']);
+  });
+
   it('keeps one snapshot for each of 30 days, missing days included', () => {
     const snapshots: SnapshotObject[] = [];
     for (let day = 0; day < 40; day++) {
@@ -100,7 +110,7 @@ describe('snapshotsToDelete', () => {
       for (let hour = 1; hour <= 3; hour++)
         snapshots.push(snap(`d${day}-h${hour}`, DAY0 + day * DAY_MS + hour * HOUR));
     }
-    const now = DAY0 + 40 * DAY_MS;
+    const now = DAY0 + 40 * DAY_MS + 4 * HOUR;
     const deleted = new Set(plan(snapshots, now));
     const left = snapshots.filter((snapshot) => !deleted.has(snapshot.snapshotId));
     expect(left.map((snapshot) => snapshot.snapshotId)).toEqual(
@@ -113,7 +123,7 @@ describe('snapshotsToDelete', () => {
   });
 
   it('thins a snapshot only when a newer one that stays refers to all its media', () => {
-    const now = DAY0 + 2 * DAY_MS;
+    const now = DAY0 + 2 * DAY_MS + 3 * HOUR;
     const snapshots = [
       snap('photo-added', DAY0 + HOUR),
       snap('photo-removed', DAY0 + 2 * HOUR),
@@ -149,8 +159,8 @@ describe('snapshotsToDelete', () => {
     ).toEqual(['older']);
   });
 
-  it('a head or a snapshot of the current day covers older ones', () => {
-    const now = DAY0 + DAY_MS + 2 * HOUR;
+  it('a head or a recent snapshot covers older ones', () => {
+    const now = DAY0 + DAY_MS + 5 * HOUR;
     const snapshots = [
       snap('a', DAY0 + HOUR),
       snap('head', DAY0 + 2 * HOUR),
