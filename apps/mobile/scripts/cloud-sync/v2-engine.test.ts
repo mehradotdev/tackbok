@@ -1799,6 +1799,18 @@ describe('remote media garbage collection (P12)', () => {
     provider.staleMedia.clear();
   });
 
+  test('a blob this pass uploaded is not looked up again before the snapshot', async () => {
+    const a = device();
+    await sync(a);
+    clock += 1000;
+    await attachPhoto(a, 'e1');
+    // One look before the upload, one cached look in publish: no fresh one,
+    // which a search lagging the new upload would answer with a duplicate.
+    const made = await requests(() => sync(a));
+    expect(count(made, 'upload-media')).toBe(1);
+    expect(count(made, 'has-media')).toBe(2);
+  });
+
   test('"Keep my entries" brings entries back with their photos', async () => {
     const [a, b] = [device(), device()];
     const ids = Array.from({ length: 12 }, (_, i) => `e${String(i).padStart(2, '0')}`);

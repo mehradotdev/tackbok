@@ -215,6 +215,11 @@ function sameVector(left: VersionVector | null, right: VersionVector): boolean {
 
 export class V2SyncEngine {
   private running = false;
+  /**
+   * Blobs this pass uploaded itself: there, so `publish` need not ask again
+   * (a search that has not indexed them yet would upload a second copy).
+   */
+  private uploadedThisPass = new Set<string>();
   /** Retention runs after a publication, or at most this often. */
   private lastCleanupAt = Number.NEGATIVE_INFINITY;
   /** Media garbage collection runs from this time on (`collectMedia`). */
@@ -230,6 +235,7 @@ export class V2SyncEngine {
   async sync(): Promise<SnapshotSyncResult> {
     if (this.running) throw new Error('A snapshot sync pass is already running');
     this.running = true;
+    this.uploadedThisPass = new Set();
     try {
       return await this.pass();
     } catch (error) {
@@ -854,6 +860,7 @@ export class V2SyncEngine {
     for (const { blobHash, source } of uploads) {
       try {
         await provider.uploadMedia(this.vaultId, blobHash, source);
+        this.uploadedThisPass.add(blobHash);
       } catch (error) {
         // The policy refused: the rest wait for Wi-Fi too.
         if (error instanceof SnapshotProviderError && error.code === 'wifi-only-media')
@@ -1106,7 +1113,9 @@ export class V2SyncEngine {
     const before = trusted
       ? await recordedSnapshotMedia(this.vaultId, record.snapshotId)
       : null;
-    const candidates = hashes.filter((blobHash) => !before?.has(blobHash));
+    const candidates = hashes.filter(
+      (blobHash) => !before?.has(blobHash) && !this.uploadedThisPass.has(blobHash),
+    );
     const held = new Set<string>();
     for (let offset = 0; offset < candidates.length; offset += 500) {
       const rows = await runExclusiveDbTransaction((tx) =>
