@@ -78,11 +78,11 @@ export const it = {
   'entry.chooseFromLibrary': 'Scegli dalla libreria',
   'entry.pasteFromClipboard': 'Incolla dagli appunti',
   'entry.clipboardHasNoImage': 'Negli appunti non c’è un’immagine',
-  'entry.clipboardImageInvalid': 'Impossibile aggiungere l’immagine degli appunti',
+  'entry.clipboardImageInvalid': 'Impossibile aggiungere l’immagine dagli appunti',
   'entry.receivedImageInvalid': 'Impossibile aggiungere questa immagine',
-  'entry.receivedImageTooLarge': 'Questa immagine è troppo grande da aggiungere',
-  'entry.maximumCountPhotosPerEntry': 'Massimo {count} foto per nota',
-  'entry.maximumCountVoiceMemosPerEntry': 'Massimo {count} memo vocali per nota',
+  'entry.receivedImageTooLarge': 'Questa immagine è troppo grande',
+  'entry.maximumCountPhotosPerEntry': 'Fino a {count} foto per nota',
+  'entry.maximumCountVoiceMemosPerEntry': 'Fino a {count} memo vocali per nota',
   'entry.cameraAccessRequired': 'Serve l’accesso alla fotocamera',
   'entry.photoLibraryAccessRequired': 'Serve l’accesso alle foto',
   'entry.pleaseEnableCameraAccessInYourDeviceSettingsToTake':
@@ -133,23 +133,23 @@ export const it = {
   'entry.noPromptsYet': 'Ancora nessuno spunto',
   'entry.createYourFirstPrompt': 'Crea il tuo primo spunto',
 
-  prompt_faith_1: 'Qual è il tuo primo ricordo della presenza di Dio?',
+  prompt_faith_1: 'Qual è il tuo primo ricordo in cui hai sentito la presenza di Dio?',
   prompt_faith_2: 'Dove hai visto la grazia nella tua vita di recente?',
   prompt_faith_3: 'Quale preghiera ti è stata d’aiuto in un momento difficile?',
   prompt_faith_4:
     'In che modo la tua fede ha cambiato il tuo modo di vedere le difficoltà?',
   prompt_faith_5: 'Quale pratica o abitudine spirituale ti dà più pace?',
   prompt_faith_6:
-    'Scrivi di una volta in cui hai sentito chiaramente la guida di un potere più grande.',
+    'Scrivi di una volta in cui hai sentito chiaramente la guida di una forza superiore.',
   prompt_faith_7:
     'Quale insegnamento o citazione in particolare ispira la tua vita di ogni giorno?',
   prompt_faith_8:
-    'Come trovi un legame spirituale nel mezzo di una settimana piena di impegni?',
+    'Come trovi un legame spirituale nel pieno di una settimana impegnativa?',
   prompt_faith_9:
     'Ripensa a un momento in cui la tua fede ti ha dato conforto nell’incertezza.',
 
   prompt_self_1: 'Di cosa avresti bisogno di più nella tua vita?',
-  prompt_self_2: 'Qual è una cosa difficile che hai fatto comunque?',
+  prompt_self_2: 'Racconta una cosa difficile che hai fatto lo stesso.',
   prompt_self_3: 'Cosa diresti oggi alla versione più giovane di te?',
   prompt_self_4: 'Quale tuo traguardo recente non hai festeggiato abbastanza?',
   prompt_self_5: 'Scrivi tre cose che ami del tuo carattere.',
@@ -162,7 +162,7 @@ export const it = {
   prompt_health_1: 'Per quale parte del tuo corpo sei più riconoscente oggi?',
   prompt_health_2: 'In che modo il riposo ti ha fatto bene ultimamente?',
   prompt_health_3: 'Quale abitudine sana mantieni con orgoglio?',
-  prompt_health_4: 'Qual è un pasto nutriente che ti fa sempre stare bene?',
+  prompt_health_4: 'Quale pasto nutriente ti fa sempre stare bene?',
   prompt_health_5:
     'Descrivi un’attività fisica che ti dà gioia invece di sembrarti un dovere.',
   prompt_health_6:
@@ -174,22 +174,23 @@ export const it = {
     'Quale piccolo cambiamento puoi fare per migliorare la qualità del tuo sonno?',
 
   prompt_friends_1: 'Quale amico o amica ti ha reso la vita più leggera di recente?',
-  prompt_friends_2: 'Quale ricordo con un amico ti fa ancora sorridere?',
+  prompt_friends_2: 'Quale ricordo con un amico o un’amica ti fa ancora sorridere?',
   prompt_friends_3: 'Chi vorresti incoraggiare questa settimana?',
   prompt_friends_4: 'Quale qualità apprezzi di più nelle tue amicizie più strette?',
   prompt_friends_5:
     'Scrivi di un amico o un’amica che ti ha fatto vedere le cose da un altro punto di vista.',
   prompt_friends_6:
     'Come preferisci mostrare il tuo affetto e la tua riconoscenza ai tuoi amici?',
-  prompt_friends_7: 'Con quale amico o amica non parli da un po’, e cosa gli diresti?',
+  prompt_friends_7:
+    'Con quale amico o amica non parli da un po’? Cosa vorresti dire a questa persona?',
   prompt_friends_8:
-    'Descrivi un’avventura divertente o inaspettata che hai vissuto con un amico.',
+    'Descrivi un’avventura divertente o inaspettata che hai vissuto con un amico o un’amica.',
   prompt_friends_9: 'Quale lezione hai imparato da una delle tue amicizie?',
 
   prompt_family_1: 'Per quale tradizione di famiglia sei riconoscente?',
   prompt_family_2: 'Chi nella tua famiglia ti ha insegnato qualcosa di duraturo?',
   prompt_family_3: 'Quale piccolo momento in famiglia vuoi ricordare?',
-  prompt_family_4: 'Quale storia della tua famiglia trovi fonte di ispirazione?',
+  prompt_family_4: 'Quale storia della tua famiglia trovi d’ispirazione?',
   prompt_family_5:
     'Com’è cambiato nel tempo il tuo rapporto con un membro della tua famiglia?',
   prompt_family_6:
@@ -208,11 +209,11 @@ export const it = {
   prompt_littleThings_6: 'Scrivi di un piacere semplice che aspetti ogni giorno.',
   prompt_littleThings_7: 'Qual è stato il momento migliore della tua mattina oggi?',
   prompt_littleThings_8:
-    'Descrivi un breve incontro con uno sconosciuto che ti ha dato gioia.',
-  prompt_littleThings_9: 'Quale oggetto economico porta molto valore nella tua vita?',
+    'Descrivi un breve incontro con una persona sconosciuta che ti ha dato gioia.',
+  prompt_littleThings_9: 'Quale oggetto che costa poco ti migliora davvero la vita?',
 
   'worksheet.whatIAmGratefulForToday': 'Oggi sono riconoscente per…',
-  'worksheet.myAffirmationForToday': 'La mia affermazione di oggi…',
+  'worksheet.myAffirmationForToday': 'La mia affermazione positiva di oggi…',
   'worksheet.oneLittleThingThatMadeMeSmileRecently':
     'Una piccola cosa che mi ha fatto sorridere di recente…',
 
@@ -285,7 +286,7 @@ export const it = {
   'appearance.theme': 'Tema',
   'appearance.selectATheme': 'Scegli un tema',
   'appearance.countThemesAndColorSchemes': '{count} temi e combinazioni di colori',
-  'appearance.timelineEntryLength': 'Lunghezza delle note nella cronologia',
+  'appearance.timelineEntryLength': 'Lunghezza note in cronologia',
   'appearance.numberOfLinesShownInTheTimeline':
     'Numero di righe mostrate nella cronologia. Tocca una nota per leggerla tutta.',
   'appearance.timelineAndCalendar': 'Cronologia e calendario',
@@ -328,10 +329,10 @@ export const it = {
   'journaling.journalPrompts': 'Spunti di scrittura',
   'journaling.chooseWhichPromptsToShowWhenStartingANewJournal':
     'Scegli quali spunti mostrare quando inizi una nuova nota.',
-  'journaling.off': 'Disattivati',
+  'journaling.off': 'Disattivato',
   'journaling.allPrompts': 'Tutti gli spunti',
   'journaling.myPrompts': 'I miei spunti',
-  'journaling.builtInPrompts': 'Spunti inclusi',
+  'journaling.builtInPrompts': 'Spunti predefiniti',
   'journaling.focusareaSelfDesc':
     'Rifletti su hobby, interessi, esperienze e sulla vita in generale.',
   'journaling.focusareaLittlethingsDesc':
@@ -419,7 +420,7 @@ export const it = {
   'backup.promptsAdded': 'Spunti aggiunti',
   'backup.photosRestored': 'Foto ripristinate',
   'backup.voiceMemosRestored': 'Memo vocali ripristinati',
-  'backup.mediaSkipped': 'Contenuti multimediali saltati',
+  'backup.mediaSkipped': 'File multimediali saltati',
   'backup.tackbokBackupRestored': 'Backup di Tackbok ripristinato',
   'backup.gratitudeImportComplete': 'Importazione da Gratitude completata',
   'backup.presentlyImportComplete': 'Importazione da Presently completata',
@@ -437,7 +438,7 @@ export const it = {
   'backup.importedFromTackbokBackup': 'Importato dal backup di Tackbok',
   'backup.importedFromGratitudeBackup': 'Importato dal backup di Gratitude',
   'backup.importedFromPresentlyExport': 'Importato dall’esportazione di Presently',
-  'backup.newEntries': 'Note nuove',
+  'backup.newEntries': 'Nuove note',
   'backup.updatedEntries': 'Note aggiornate',
   'backup.skippedDuplicates': 'Duplicati saltati',
   'backup.import': 'Importa',
@@ -455,7 +456,7 @@ export const it = {
     'Tackbok è gratuito e lo resterà. Se ha portato un po’ più di gratitudine nelle tue giornate, puoi sostenerlo, ma non c’è niente da sbloccare. L’app è uguale per tutti.',
   'appInfo.keepingTackbokRunningCurrentlyCostsAboutUs3325Per':
     'Al momento mantenere attivo Tackbok costa circa 33,25 US$ al mese, prima di tasse, commissioni e costi per l’uso in eccesso. Se pensi che ne valga la pena, anche un piccolo contributo aiuta a mantenerlo gratuito per tutti.',
-  'appInfo.waysToSupport': 'Come sostenerlo',
+  'appInfo.waysToSupport': 'Come contribuire',
   'appInfo.free': 'Gratis',
   'appInfo.smallThanks': 'Un piccolo grazie',
   'appInfo.helpsMeFinishWork10MinutesEarlier':
@@ -468,7 +469,7 @@ export const it = {
     'Aiuta a testare e pubblicare gli aggiornamenti di Tackbok',
   'appInfo.deepestThanks': 'Un grazie immenso',
   'appInfo.helpsCoverOneMonthOfTackboksRunningCostsAndOngoing':
-    'Aiuta a coprire un mese di costi di Tackbok e il suo sviluppo',
+    'Aiuta a coprire un mese di costi di gestione e lo sviluppo di Tackbok',
   'appInfo.unavailable': 'Non disponibile',
   'appInfo.supportOptionsCouldNotBeLoadedPleaseTryAgain':
     'Impossibile caricare le opzioni di sostegno. Riprova.',
@@ -481,7 +482,7 @@ export const it = {
   'appInfo.yourSupportHelpsKeepTackbokFreeAndIndependentItGenuinely':
     'Il tuo sostegno aiuta Tackbok a restare gratuito e indipendente. Significa davvero molto.',
   'appInfo.thankYouForSupportingTackbokItGenuinelyMeansALot':
-    'Grazie per sostenere Tackbok. Significa davvero molto.',
+    'Grazie per aver sostenuto Tackbok. Significa davvero molto.',
   'appInfo.yourPaymentIsPendingTheStoreWillFinishItWhen':
     'Il pagamento è in sospeso. Lo store lo completerà dopo l’approvazione o il pagamento.',
   'appInfo.whereYourSupportHelps': 'A cosa serve il tuo sostegno',
@@ -631,7 +632,7 @@ export const it = {
     'Con il tuo permesso, Tackbok registra informazioni di utilizzo limitate e anonime. Possono includere le schermate visitate, le funzioni usate e la riuscita delle operazioni facoltative. Non includono mai il contenuto del diario o ciò che scrivi.',
   'onboarding.auditTheAnalyticsCodeOnGithub':
     'Controlla il codice delle statistiche su GitHub',
-  'onboarding.neverCollected': 'Mai raccolto',
+  'onboarding.neverCollected': 'Cosa non raccogliamo mai',
   'onboarding.yourJournalTextTitlesPhotosVoiceMemosTagsNameEmail':
     'Testo del diario, titoli, foto, memo vocali, tag, nome, email o qualsiasi cosa tu scriva. Niente pubblicità, nessuna vendita di dati, nessun tracciamento di terze parti.',
   'onboarding.youreAllSetName': 'Tutto pronto, {name}!',
@@ -657,11 +658,11 @@ export const it = {
     'Tieni premuto e trascina per spostare questi pulsanti lungo il bordo.',
   'onboarding.tapAnEntryToViewOrEditIt': 'Tocca una nota per vederla o modificarla.',
   'onboarding.findMemoriesByTextOrTag': 'Trova i ricordi per testo o tag.',
-  'onboarding.replayOnboarding': 'Rivedi la configurazione iniziale',
-  'onboarding.runTheWelcomeSetupAgain': 'Ripeti la configurazione di benvenuto',
-  'onboarding.replayOnboarding2': 'Rivedere la configurazione iniziale?',
+  'onboarding.replayOnboarding': 'Rivedi l’introduzione',
+  'onboarding.runTheWelcomeSetupAgain': 'Ripeti l’introduzione di benvenuto',
+  'onboarding.replayOnboarding2': 'Rivedere l’introduzione?',
   'onboarding.theWelcomeSetupWillStartAgainYourJournalEntriesAnd':
-    'La configurazione di benvenuto ripartirà. Le note del diario e le impostazioni restano.',
+    'L’introduzione di benvenuto ripartirà. Le note del diario e le impostazioni restano.',
   'onboarding.replay': 'Rivedi',
 
   sample_tag_family: 'Famiglia',
@@ -741,7 +742,7 @@ export const it = {
   'sharing.themeThemeSelected': 'Tema {theme}, selezionato',
   'sharing.dayOneComplete': 'Primo giorno completato!',
   'sharing.aBeautifulBeginningKeepNoticingTheGood':
-    'Un bellissimo inizio. Continua a notare il bello.',
+    'Un bellissimo inizio. Continua a cogliere il bello.',
   'sharing.countDaysOfGratitude': '{count} giorni di gratitudine!',
   'sharing.congratulationsOnMakingGratitudePartOfYourJourney':
     'Complimenti per aver reso la gratitudine parte del tuo percorso.',
@@ -787,7 +788,7 @@ export const it = {
   'cloud.cloudSyncChangesSafelyQueued': 'Sincronizzazione: modifiche salvate in coda',
   'cloud.cloudSyncPaused': 'Sincronizzazione: in pausa',
   'cloud.cloudSyncSyncing': 'Sincronizzazione: in corso',
-  'cloud.cloudSyncUpToDate': 'Sincronizzazione: aggiornata',
+  'cloud.cloudSyncUpToDate': 'Sincronizzazione: tutto aggiornato',
   'cloud.connectGoogleDrive': 'Collega Google Drive',
   'cloud.connecting': 'Collegamento…',
   'cloud.createCloudBackup': 'Crea backup su cloud',
@@ -838,10 +839,10 @@ export const it = {
   'cloud.journalDeletionReceived': 'Eliminazione del diario ricevuta',
   'cloud.photosAndVoiceNotesSyncOnlyOnWiFi':
     'Foto e memo vocali vengono caricati e scaricati solo con il Wi-Fi. Il resto del diario continua a essere salvato anche con i dati mobili, a meno che una nuova foto profilo non sia in attesa del Wi-Fi.',
-  'cloud.keepLocalDataAndTheCloudCopy': 'Mantieni i dati locali e la copia su cloud',
-  'cloud.keepLocalJournalData': 'Mantieni i dati del diario in locale',
+  'cloud.keepLocalDataAndTheCloudCopy': 'Tieni i dati locali e la copia su cloud',
+  'cloud.keepLocalJournalData': 'Tieni i dati del diario in locale',
   'cloud.keepTheCloudCopyAndOtherDevices':
-    'Mantieni la copia su cloud e gli altri dispositivi',
+    'Tieni la copia su cloud e gli altri dispositivi',
   'cloud.lastSuccessfulSyncDate': 'Ultima sincronizzazione riuscita: {date}',
   'cloud.localDataAndTheCloudBackupWillBothRemainOther':
     'Restano sia i dati locali sia il backup su cloud. Gli altri dispositivi restano collegati.',
@@ -858,7 +859,7 @@ export const it = {
   'cloud.restoringYourJournalFromGoogleDrive': 'Ripristino del diario da Google Drive…',
   'cloud.profile': 'Profilo',
   'cloud.reconnectGoogleDrive': 'Ricollega Google Drive',
-  'cloud.conflicts.title': 'Modificato su due dispositivi',
+  'cloud.conflicts.title': 'Modifiche su due dispositivi',
   'cloud.conflicts.nameChanged':
     'Il tuo nome è stato modificato su due dispositivi. Attuale: “{current}”. Altra versione: “{other}”.',
   'cloud.conflicts.nameChangedNoCurrent':
@@ -866,15 +867,15 @@ export const it = {
   'cloud.conflicts.nameRemoved':
     'Il tuo nome è stato modificato su due dispositivi. Attuale: “{current}”. Altra versione: nessun nome.',
   'cloud.conflicts.useName': 'Usa “{name}”',
-  'cloud.conflicts.removeName': 'Non usare un nome',
-  'cloud.conflicts.keepCurrent': 'Mantieni l’attuale',
+  'cloud.conflicts.removeName': 'Lascia senza nome',
+  'cloud.conflicts.keepCurrent': 'Tieni l’attuale',
   'cloud.conflicts.photoChanged':
     'La tua foto profilo è stata cambiata su un altro dispositivo.',
   'cloud.conflicts.otherPhoto': 'Foto profilo dall’altro dispositivo',
   'cloud.conflicts.usePhoto': 'Usa questa foto',
   'cloud.conflicts.photoRemoved':
     'La tua foto profilo è stata rimossa su un altro dispositivo.',
-  'cloud.conflicts.removePhoto': 'Non usare una foto',
+  'cloud.conflicts.removePhoto': 'Lascia senza foto',
   'cloud.conflicts.entriesEdited':
     '{count} note sono state modificate su due dispositivi contemporaneamente. Entrambe le versioni sono nel tuo diario.',
   'cloud.conflicts.showThem': 'Mostrale',
@@ -910,7 +911,7 @@ export const it = {
   'cloud.conflicts.entryReturned':
     'Hai eliminato questa nota su un dispositivo mentre veniva modificata su un altro, quindi è stata mantenuta la versione modificata.',
   'cloud.conflicts.entriesReturned':
-    '{count} note che avevi eliminato su un dispositivo sono state modificate su un altro, quindi sono state mantenute le versioni modificate.',
+    '{count} note che avevi eliminate su un dispositivo sono state modificate su un altro, quindi sono state mantenute le versioni modificate.',
   'cloud.conflicts.openEntry': 'Apri la nota',
   'cloud.conflicts.gotIt': 'Ho capito',
   'cloud.conflicts.versionsChanged':
@@ -920,7 +921,7 @@ export const it = {
   'cloud.conflicts.textDiffers': 'Testo diverso',
   'cloud.conflicts.moodDiffers': 'Umore diverso',
   'cloud.conflicts.dateDiffers': 'Data diversa',
-  'cloud.conflicts.timeDiffers': 'Ora diversa',
+  'cloud.conflicts.timeDiffers': 'Orario diverso',
   'cloud.resetThisDeviceOnly': 'Reimposta solo questo dispositivo',
   'cloud.resetThisDeviceOnly2': 'Reimpostare solo questo dispositivo?',
   'cloud.merge': 'Unisci',
@@ -945,7 +946,7 @@ export const it = {
   'cloud.syncPaused': 'Sincronizzazione in pausa',
   'cloud.syncResumed': 'Sincronizzazione ripresa',
   'cloud.syncIsFasterWithTackbokOpen':
-    'È più veloce con Tackbok aperto. Se esci, riprenderà da dove si era interrotto.',
+    'La sincronizzazione è più veloce con Tackbok aperto. Se esci, riprende da dove si era fermata.',
   'cloud.progress.combiningChanges': 'Unione delle modifiche…',
   'cloud.progress.checkingDownload': 'Verifica del download…',
   'cloud.progress.confirmingUpload': 'Conferma del caricamento…',
@@ -966,7 +967,7 @@ export const it = {
   'cloud.progress.waitingForInternet': 'In attesa di Internet…',
   'cloud.progress.waitingForWifi':
     'In attesa del Wi-Fi per sincronizzare foto e memo vocali',
-  'cloud.syncMediaOnWiFiOnly': 'Sincronizza foto e audio solo con il Wi-Fi',
+  'cloud.syncMediaOnWiFiOnly': 'Foto e memo vocali solo con Wi-Fi',
   'cloud.syncing': 'Sincronizzazione…',
   'cloud.theCloudCopyAndThisDevicesJournalWillBePermanently':
     'La copia su cloud e il diario di questo dispositivo verranno eliminati definitivamente. Gli altri dispositivi elimineranno il proprio diario locale alla sincronizzazione.',
@@ -1013,7 +1014,7 @@ export const it = {
   'cloud.aDeviceBackupPointsToAMissingSnapshot':
     'Una parte del backup manca da Google Drive. La sincronizzazione si è interrotta.',
   'cloud.anotherPhoneBacksUpAsThisDevice':
-    'Un altro telefono sta facendo il backup come se fosse questo dispositivo, ad esempio dopo il ripristino di un backup del telefono. La sincronizzazione si è interrotta su questo. Continua come nuovo dispositivo per sincronizzare di nuovo. Nel tuo diario non si perde nulla.',
+    'Un altro telefono sta facendo il backup come se fosse questo dispositivo, ad esempio dopo il ripristino di un backup del telefono. La sincronizzazione si è interrotta su questo telefono. Continua come nuovo dispositivo per sincronizzare di nuovo. Nel tuo diario non si perde nulla.',
   'cloud.thisDeviceClockWasFarAhead':
     'La data e l’ora di questo dispositivo erano impostate molto avanti nel futuro, quindi gli altri dispositivi non possono accettarne le modifiche. Continua come nuovo dispositivo per risolvere. Nel tuo diario non si perde nulla.',
   'cloud.continueAsNewDevice': 'Continua come nuovo dispositivo',
@@ -1029,7 +1030,7 @@ export const it = {
     'Le tue note sono state mantenute. Torneranno anche sugli altri dispositivi.',
   'cloud.massDeletion.applied': 'Le note sono state eliminate anche qui.',
   'cloud.changesFromAnotherDeviceCouldNotBeCombined':
-    'Tackbok non è riuscito a unire le modifiche di un altro dispositivo con questo. Su questo dispositivo non è cambiato nulla. La sincronizzazione si è interrotta. Aggiornare Tackbok sui tuoi dispositivi potrebbe aiutare. Puoi esportarne una copia dalle Impostazioni.',
+    'Tackbok non è riuscito a unire le modifiche di un altro dispositivo con questo. Su questo dispositivo non è cambiato nulla. La sincronizzazione si è interrotta. Aggiornare Tackbok sui tuoi dispositivi potrebbe aiutare. Puoi esportare una copia del diario dalle Impostazioni.',
   'cloud.tackbokCouldNotSafelyStageBackupDataOnThisDevice':
     'Tackbok non è riuscito a salvare i dati di sincronizzazione su questo dispositivo. Lo spazio potrebbe essere quasi esaurito. La sincronizzazione si è interrotta.',
   'cloud.googleDriveDoesNotHaveEnoughFreeStorage':
@@ -1062,8 +1063,7 @@ export const it = {
   'cloud.chooseAGoogleAccountToReconnect': 'Scegli un account Google da ricollegare',
   'cloud.updateTackbok': 'Aggiorna Tackbok',
   'cloud.manageGoogleDriveStorage': 'Gestisci lo spazio di Google Drive',
-  'cloud.reviewDeletionAndEraseThisDevice':
-    'Controlla l’eliminazione e cancella questo dispositivo',
+  'cloud.reviewDeletionAndEraseThisDevice': 'Rivedi e cancella questo dispositivo',
   'cloud.resumeDeletion': 'Riprendi l’eliminazione',
   'cloud.syncAgain': 'Sincronizza di nuovo',
   'cloud.disconnectAndSetUpAgain': 'Scollega e configura di nuovo',
