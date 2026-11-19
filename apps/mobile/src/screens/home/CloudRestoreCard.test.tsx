@@ -112,7 +112,7 @@ afterEach(() => act(() => root?.unmount()));
 test('shows the journal restore with a link to Cloud backup, never asking to stay in the app', () => {
   render();
   expect(content()).toContain(mockEn['cloud.restoringYourJournalFromGoogleDrive']);
-  expect(content()).toContain(mockEn['cloud.youCanKeepUsingTackbokWhileItRestores']);
+  expect(content()).toContain(mockEn['cloud.restoreMayTakeAMoment']);
   expect(content()).not.toMatch(/don.t (leave|exit)/i);
   act(() => root.root.findByType('Button' as never).props.onPress());
   expect(mockPush).toHaveBeenCalledWith('/cloud-backup');

@@ -718,6 +718,7 @@ export const hi = {
     'पुनर्स्थापन रुका हुआ है। ताकबूक खुला और ऑनलाइन होने पर यह जारी रहेगा।',
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'पुनर्स्थापन के दौरान आप ताकबूक का उपयोग जारी रख सकते हैं।',
+  'cloud.restoreMayTakeAMoment': 'इसमें थोड़ा समय लग सकता है।',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     'आपकी डायरी तैयार है। इस डिवाइस पर फ़ोटो और वॉइस नोट: {total} में से {downloaded}।',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':

@@ -832,6 +832,7 @@ export const de: Translations = {
     'Wiederherstellung pausiert. Sie geht weiter, wenn Tackbok geöffnet und online ist.',
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'Du kannst Tackbok während der Wiederherstellung weiter nutzen.',
+  'cloud.restoreMayTakeAMoment': 'Das kann einen Moment dauern.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     'Dein Tagebuch ist bereit. Fotos und Sprachnotizen auf diesem Gerät: {downloaded} von {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':

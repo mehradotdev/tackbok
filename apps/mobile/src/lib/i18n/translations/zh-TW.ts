@@ -752,6 +752,7 @@ export const zhTW: Translations = {
   'cloud.restorePausedItContinuesWhenTackbokIsOpenAndOnline':
     '還原已暫停。塔克布克開啟並連上網路時會繼續。',
   'cloud.youCanKeepUsingTackbokWhileItRestores': '還原期間你可以繼續使用塔克布克。',
+  'cloud.restoreMayTakeAMoment': '這可能需要一點時間。',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     '你的日記已就緒。此裝置上的照片和語音筆記：{downloaded} / {total}。',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount': '等待 Wi-Fi 的照片和語音筆記：{number}',

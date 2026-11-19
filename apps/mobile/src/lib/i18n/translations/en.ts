@@ -795,6 +795,9 @@ export const en = {
     'Restore paused. It continues when Tackbok is open and online.',
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'You can keep using Tackbok while it restores.',
+  // While a cloud restore reads and saves the journal; a large one can keep
+  // the app busy for a while, so it doesn't promise the app stays usable.
+  'cloud.restoreMayTakeAMoment': 'This may take a moment.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     'Your journal is ready. Photos and voice notes on this device: {downloaded} of {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
