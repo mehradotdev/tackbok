@@ -243,15 +243,23 @@ export default function OtherVersionsScreen() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBusy} onPress={() => setPendingKeep(null)}>
-              <Text>{t('common.cancel')}</Text>
+            {/* Both grow with their labels and stay the same height. The dialog
+                buttons pass their className to the label too (undone by min-h-0,
+                py-0, border-0), and the action takes the outline's border width,
+                transparent. Longer than "Delete" was: wraps rather than clips. */}
+            <AlertDialogCancel
+              className="h-auto min-h-10 py-1.5"
+              disabled={isBusy}
+              onPress={() => setPendingKeep(null)}>
+              <Text className="min-h-0 shrink py-0 text-center">
+                {t('common.cancel')}
+              </Text>
             </AlertDialogCancel>
-            {/* Longer than "Delete" was: wraps at large text sizes rather than clipped. */}
             <AlertDialogAction
-              className="h-auto min-h-10 py-2"
+              className="h-auto min-h-10 border-[length:var(--theme-border-width)] py-1.5"
               disabled={isBusy}
               onPress={() => void handleKeepConfirm()}>
-              <Text className="shrink text-center">
+              <Text className="min-h-0 shrink border-0 py-0 text-center">
                 {t('cloud.conflicts.keepConfirm')}
               </Text>
             </AlertDialogAction>

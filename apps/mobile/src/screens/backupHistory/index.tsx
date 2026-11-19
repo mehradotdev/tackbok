@@ -295,15 +295,23 @@ export default function BackupHistoryScreen() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onPress={() => setPendingRestore(null)}>
-              <Text>{t('common.cancel')}</Text>
+            {/* Both grow with their labels and stay the same height. The dialog
+                buttons pass their className to the label too (undone by min-h-0,
+                py-0, border-0), and Continue takes the outline's border width,
+                transparent. */}
+            <AlertDialogCancel
+              className="h-auto min-h-10 py-1.5"
+              onPress={() => setPendingRestore(null)}>
+              <Text className="min-h-0 shrink py-0 text-center">
+                {t('common.cancel')}
+              </Text>
             </AlertDialogCancel>
             <AlertDialogAction
-              className="h-auto min-h-10 py-2"
+              className="h-auto min-h-10 border-[length:var(--theme-border-width)] py-1.5"
               // An export still running would make Continue do nothing.
               disabled={busy !== null}
               onPress={handleRestoreConfirm}>
-              <Text className="shrink text-center">
+              <Text className="min-h-0 shrink border-0 py-0 text-center">
                 {t('cloud.history.restoreConfirm')}
               </Text>
             </AlertDialogAction>
