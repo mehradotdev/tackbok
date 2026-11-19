@@ -1288,9 +1288,16 @@ export class V2SyncEngine {
       // Scheduled by the provider's clock as well: this device's may jump,
       // and one set back would hold cleanup off for as long.
       const providerNow = this.options.provider.providerTime();
-      const at = providerNow ?? this.now();
-      if (published || at - this.lastCleanupAt >= CLEANUP_INTERVAL_MS) {
-        this.lastCleanupAt = at;
+      // Without the provider's clock, retention only prunes heads, and the
+      // schedule is left alone: a time from this device's clock would
+      // throw it off once the provider's is known.
+      if (providerNow === null)
+        console.warn('Cloud sync cleanup has no provider time; history is kept');
+      if (
+        published ||
+        (providerNow !== null && providerNow - this.lastCleanupAt >= CLEANUP_INTERVAL_MS)
+      ) {
+        if (providerNow !== null) this.lastCleanupAt = providerNow;
         await this.retainSnapshots(deviceId, retained, published, duplicates);
       }
       if (collect && providerNow !== null && providerNow >= this.nextMediaGcAt) {

@@ -60,7 +60,12 @@ import {
 
 import { decodeEnvelope } from '../../v2/codec';
 import type { SyncState } from '../../v2/types';
-import type { ListedDeviceHead, SnapshotProvider, SnapshotSyncHooks } from './types';
+import {
+  SnapshotProviderError,
+  type ListedDeviceHead,
+  type SnapshotProvider,
+  type SnapshotSyncHooks,
+} from './types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** How long a blob must have been unreferenced, by complete checks. */
@@ -293,8 +298,28 @@ export async function collectMedia(options: {
     readBytes += byteCount;
     // Where a cancelled or out-of-time pass stops; what was read is kept.
     await hooks?.at?.('during-snapshot-cleanup');
-    const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
-    if (!bytes) return { status: 'blocked', reason: 'snapshot-missing' };
+    // Retention on another device may thin a snapshot after it was listed:
+    // one that is no longer listed is checked again soon, not tomorrow.
+    const gone = async () =>
+      !(await provider.listSnapshots(vaultId)).some(
+        (listed) => listed.snapshotId === snapshotId,
+      );
+    let bytes: Uint8Array | null;
+    try {
+      bytes = await provider.downloadSnapshot(vaultId, snapshotId);
+    } catch (error) {
+      if (
+        error instanceof SnapshotProviderError &&
+        error.code === 'transient' &&
+        (await gone())
+      )
+        return { status: 'incomplete', deleted: [] };
+      throw error;
+    }
+    if (!bytes)
+      return (await gone())
+        ? { status: 'incomplete', deleted: [] }
+        : { status: 'blocked', reason: 'snapshot-missing' };
     let state: SyncState;
     try {
       const decoded = decodeEnvelope(bytes, snapshotId);

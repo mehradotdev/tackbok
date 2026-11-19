@@ -29,10 +29,14 @@ export const SNAPSHOT_RETENTION_MS = 30 * DAY_MS;
 
 const dayOf = (time: number) => Math.floor(time / DAY_MS);
 
-/** Upload order: time, then ID, so every device sees the same order. */
+/**
+ * Upload order: time, then ID by code unit (not a locale's collation), so
+ * every device sees the same order.
+ */
 function byUpload(left: SnapshotObject, right: SnapshotObject): number {
   return (
-    left.createdAt - right.createdAt || left.snapshotId.localeCompare(right.snapshotId)
+    left.createdAt - right.createdAt ||
+    (left.snapshotId < right.snapshotId ? -1 : left.snapshotId > right.snapshotId ? 1 : 0)
   );
 }
 

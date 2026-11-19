@@ -24,7 +24,7 @@ import {
   type DriveFileRecord,
   type DriveObjectKind,
 } from './state';
-import { DriveTransport } from './transport';
+import { DriveTransport, parseHttpDate } from './transport';
 import { SyncCancelledError } from '../sync/errors';
 
 class FakeAuth implements CloudAuthorization {
@@ -394,13 +394,15 @@ function provider(
 }
 
 describe('GoogleDriveSnapshotProvider', () => {
-  test("the provider clock is Drive's Date header, kept across later responses without one", async () => {
+  test("the provider clock is Drive's Date header, advanced by the monotonic clock only", async () => {
     let deviceNow = Date.parse('2030-01-01T00:00:00Z');
+    let monotonic = 1_000;
     const dates = ['Tue, 01 Mar 2033 12:00:00 GMT', 'not a date'];
     const transport = new DriveTransport({
       auth: new FakeAuth(),
       state: new MemoryDriveProviderStateStore(),
       now: () => deviceNow,
+      monotonicNow: () => monotonic,
       random: () => 0,
       sleep: async () => {},
       fetch: async () => {
@@ -419,11 +421,23 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(transport.serverTime()).toBeNull();
     await request();
     expect(transport.serverTime()).toBe(Date.parse('2033-03-01T12:00:00Z'));
-    // Time passes on this device; an unreadable or missing header keeps the offset.
-    deviceNow += 5_000;
+    // Five seconds pass while this device's wall clock jumps 60 days ahead;
+    // an unreadable or missing header keeps the last sample.
+    monotonic += 5_000;
+    deviceNow += 60 * 24 * 60 * 60 * 1000;
     await request();
     await request();
     expect(transport.serverTime()).toBe(Date.parse('2033-03-01T12:00:05Z'));
+  });
+
+  test.each([
+    ['Tue, 01 Mar 2033 12:00:00 GMT', Date.UTC(2033, 2, 1, 12, 0, 0)],
+    ['Sun, 06 Nov 1994 08:49:37 GMT', Date.UTC(1994, 10, 6, 8, 49, 37)],
+    ['2033-03-01T12:00:00Z', null],
+    ['Tue, 01 Foo 2033 12:00:00 GMT', null],
+    [null, null],
+  ])('parses the HTTP date %p', (value, expected) => {
+    expect(parseHttpDate(value)).toBe(expected);
   });
 
   test('a 403 Retry-After survives a cancelled error body and blocks the next request', async () => {

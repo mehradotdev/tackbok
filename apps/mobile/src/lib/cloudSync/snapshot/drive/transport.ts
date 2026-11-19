@@ -149,6 +149,36 @@ class RequestGuard {
   }
 }
 
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/**
+ * An HTTP date as Drive sends it (`Tue, 01 Mar 2033 12:00:00 GMT`), parsed
+ * by hand: `Date.parse` support for this format varies between engines.
+ */
+export function parseHttpDate(value: string | null): number | null {
+  const match =
+    /^[A-Za-z]{3}, (\d{2}) ([A-Za-z]{3}) (\d{4}) (\d{2}):(\d{2}):(\d{2}) GMT$/.exec(
+      value?.trim() ?? '',
+    );
+  const month = match ? MONTHS.indexOf(match[2]) : -1;
+  if (!match || month < 0) return null;
+  const time = Date.UTC(+match[3], month, +match[1], +match[4], +match[5], +match[6]);
+  return Number.isFinite(time) ? time : null;
+}
+
 function parseRetryAfter(value: string | null, now: number): number | null {
   if (!value) return null;
   const seconds = Number(value);
@@ -258,6 +288,8 @@ export interface DriveTransportOptions {
   sleep: (milliseconds: number) => Promise<void>;
   random: () => number;
   now: () => number;
+  /** A clock that only moves forward (`performance.now` unless a test sets one). */
+  monotonicNow?: () => number;
   /** The running pass's cancellation signal, read at the start of each request. */
   signal?: () => AbortSignal | null | undefined;
   /** Display only: reports retry waits so they never look like a stall. */
@@ -266,25 +298,35 @@ export interface DriveTransportOptions {
 
 export class DriveTransport {
   private readonly fetcher: DriveFetchLike;
-  /** Drive's clock minus this device's, at the latest response with a `Date` header. */
-  private serverOffset: number | null = null;
+  /**
+   * Drive's time at the latest response with a `Date` header, and the
+   * monotonic clock then: wall-clock jumps after it change nothing.
+   */
+  private serverSample: { date: number; at: number } | null = null;
 
   constructor(private readonly options: DriveTransportOptions) {
     this.fetcher = options.fetch ?? defaultDriveFetch;
   }
 
   /**
-   * Drive's own time now, from the latest response's `Date` header (whole
-   * seconds, so up to a second behind), or null before any response had one.
+   * Drive's own time now: the latest response's `Date` header (whole
+   * seconds, so up to a second behind), advanced by the monotonic clock.
+   * Null before any response had one.
    */
   serverTime(): number | null {
-    return this.serverOffset === null ? null : this.options.now() + this.serverOffset;
+    const sample = this.serverSample;
+    return sample === null
+      ? null
+      : sample.date + Math.max(0, this.monotonic() - sample.at);
+  }
+
+  private monotonic(): number {
+    return this.options.monotonicNow?.() ?? performance.now();
   }
 
   private observeDate(response: DriveResponseLike): void {
-    const value = response.headers.get('date');
-    const date = value ? Date.parse(value) : Number.NaN;
-    if (Number.isFinite(date)) this.serverOffset = date - this.options.now();
+    const date = parseHttpDate(response.headers.get('date'));
+    if (date !== null) this.serverSample = { date, at: this.monotonic() };
   }
 
   async request(

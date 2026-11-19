@@ -958,6 +958,27 @@ describe('backup history and retention (P9)', () => {
     expect(provider.snapshotIds(VAULT)).not.toContain(oldSnapshot);
   });
 
+  test('without a provider clock nothing is deleted, and cleanup runs once it is known', async () => {
+    const a = device();
+    await sync(a);
+    const first = headSnapshot(a);
+    clock += 1000;
+    await addEntry(a, 'e1');
+    await sync(a);
+    const time = provider.providerTime.bind(provider);
+    provider.providerTime = () => null;
+    clock += 31 * DAY;
+    await addEntry(a, 'e2');
+    await sync(a);
+    expect(provider.snapshotIds(VAULT)).toContain(first);
+    // A pass that publishes nothing still cleans up at once: the missing
+    // clock did not count as a cleanup.
+    provider.providerTime = time;
+    clock += 1000;
+    await sync(a);
+    expect(provider.snapshotIds(VAULT)).not.toContain(first);
+  });
+
   test('an expired head goes with its snapshot in one cleanup', async () => {
     const [a, b] = [device(), device()];
     for (const target of [a, b, a]) await sync(target);
@@ -2249,6 +2270,31 @@ describe('remote media garbage collection (P12)', () => {
         .query("SELECT COUNT(*) AS n FROM sync_snapshot_media WHERE blobs_json = '[]'")
         .get(),
     ).toEqual({ n: 10 });
+  });
+
+  test('a snapshot thinned while the check reads it makes the check incomplete, not blocked', async () => {
+    const { collectMedia } =
+      await import('../../src/lib/cloudSync/snapshot/sync/mediaGc');
+    const a = device();
+    await attachPhoto(a, 'e1');
+    await sync(a);
+    clock += 1000;
+    await deleteOn(a, 'e1');
+    await sync(a);
+    clock += 40 * DAY;
+    // A snapshot this device never read, which another device thins as
+    // this check lists it.
+    const extra = 'e'.repeat(64);
+    provider.injectSnapshot(VAULT, extra, new Uint8Array([1]), clock - DAY);
+    const download = provider.downloadSnapshot.bind(provider);
+    provider.downloadSnapshot = async (vaultId, snapshotId) => {
+      if (snapshotId === extra) await provider.deleteSnapshot(vaultId, extra);
+      return download(vaultId, snapshotId);
+    };
+    const outcome = await devices.on(a.database, clock, () =>
+      collectMedia({ vaultId: VAULT, provider, now: clock }),
+    );
+    expect(outcome).toEqual({ status: 'incomplete', deleted: [] });
   });
 
   test('a snapshot that appears before a delete stops it', async () => {
