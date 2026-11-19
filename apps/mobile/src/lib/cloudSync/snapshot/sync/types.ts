@@ -268,6 +268,12 @@ export interface MediaDownloadSink {
 export interface SnapshotMediaStore {
   hasVerified(blobHash: string): Promise<boolean>;
   openVerifiedSource(blobHash: string): Promise<MediaUploadSource | null>;
+  /**
+   * Of `blobHashes`, those this device may have a copy of: every blob
+   * `openVerifiedSource` could open is included, and maybe a few more.
+   * Without it, every blob counts as held.
+   */
+  mightHold?(blobHashes: readonly string[]): Promise<Set<string>>;
   openDownloadSink(blobHash: string): Promise<MediaDownloadSink>;
 }
 
