@@ -667,6 +667,10 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     }
   }
 
+  providerTime(): number | null {
+    return this.transport.serverTime();
+  }
+
   async listSnapshots(vaultId: string): Promise<SnapshotObject[]> {
     if (!this.state.loadDiscovery(vaultId).inventoryComplete) {
       await this.discovery.refresh(vaultId);

@@ -29,6 +29,7 @@ const { canonicalState, decodeEnvelope } =
 const { continueAsNewDevice } =
   await import('../../src/lib/cloudSync/snapshot/sync/newDevice');
 const { AssetType } = await import('../../src/types');
+const { backupHistory } = await import('../../src/lib/cloudSync/snapshot/sync/retention');
 type Provider = InstanceType<typeof FakeSnapshotProvider>;
 type CloudSyncTransaction =
   import('../../src/lib/cloudSync/storage/repositories').CloudSyncTransaction;
@@ -116,6 +117,12 @@ const deviceIdOf = (target: Device) =>
       device_id: string;
     }
   ).device_id;
+/** The snapshot this device's head points to. */
+const headSnapshot = (target: Device) =>
+  provider
+    .physicalHeads(VAULT)
+    .find((listedHead) => listedHead.head?.deviceId === deviceIdOf(target))!.head!
+    .snapshotId;
 /** Every text an entry holds: the shown one and its other versions. */
 const allTexts = (target: Device, id: string) =>
   [
@@ -825,6 +832,174 @@ describe('versioning and safety', () => {
     expect(await sync(a)).toMatchObject({ status: 'attention' });
     const updated = device({ database: a.database, codeVersion: '2' });
     expect((await sync(updated)).status).toBe('published');
+  });
+});
+
+describe('backup history and retention (P9)', () => {
+  const listed = async () => provider.listSnapshots(VAULT);
+
+  test('a device clock far ahead deletes no history early', async () => {
+    let real = clock;
+    provider.serverClock = () => real;
+    const a = device();
+    await sync(a);
+    clock += 1000;
+    real += 1000;
+    await addEntry(a, 'e1');
+    await sync(a);
+    const before = provider.snapshotIds(VAULT);
+    // 60 days ahead by this device's clock; an hour later by Drive's.
+    clock += 60 * DAY;
+    real += 60 * 60 * 1000;
+    await addEntry(a, 'e2');
+    expect((await sync(a)).status).toBe('published');
+    for (const snapshotId of before)
+      expect(provider.snapshotIds(VAULT)).toContain(snapshotId);
+  });
+
+  test('a device clock behind does not keep history for ever', async () => {
+    let real = clock;
+    provider.serverClock = () => real;
+    const a = device();
+    await sync(a);
+    const first = headSnapshot(a);
+    clock += 1000;
+    real += 1000;
+    await addEntry(a, 'e1');
+    await sync(a);
+    const second = headSnapshot(a);
+    // Drive's clock moves 31 days on; this device's barely moves.
+    clock += 2000;
+    real += 31 * DAY;
+    await addEntry(a, 'e2');
+    expect((await sync(a)).status).toBe('published');
+    // The first goes; the head this pass started from, at the next cleanup.
+    expect(provider.snapshotIds(VAULT)).not.toContain(first);
+    expect(provider.snapshotIds(VAULT)).toContain(second);
+    clock += 1000;
+    real += 1000;
+    await addEntry(a, 'e3');
+    await sync(a);
+    expect(provider.snapshotIds(VAULT)).not.toContain(second);
+  });
+
+  test('one snapshot a day stays for 30 days, days with none included', async () => {
+    const [a, b] = [device(), device()];
+    // Days of the test are UTC days, as the history's are.
+    const midnight = Math.ceil(T / DAY) * DAY;
+    for (let day = 0; day < 40; day++) {
+      // Two quiet days a week.
+      if (day % 7 < 5)
+        for (const [hour, target] of [
+          [2, a],
+          [9, b],
+          [17, a],
+        ] as const) {
+          clock = midnight + day * DAY + hour * 60 * 60 * 1000;
+          await addEntry(target, `d${day}-h${hour}`);
+          await sync(target);
+          await sync(target === a ? b : a);
+        }
+    }
+    // Two quiet days: each device cleans up once a day, and a head a pass
+    // started from stays until the next cleanup.
+    for (let day = 0; day < 2; day++) {
+      clock += DAY;
+      for (const target of [a, b]) await sync(target);
+    }
+    const now = clock;
+    const snapshots = await listed();
+    const heads = new Set([headSnapshot(a), headSnapshot(b)]);
+    const history = backupHistory(snapshots, now).map((snapshot) => snapshot.snapshotId);
+    // Nothing but the heads and one a day.
+    expect(snapshots.map((snapshot) => snapshot.snapshotId).sort()).toEqual(
+      [...new Set([...heads, ...history])].sort(),
+    );
+    // Every day of the last 30 that had a snapshot has one.
+    const days = new Set(
+      snapshots
+        .filter((snapshot) => now - snapshot.createdAt < 30 * DAY)
+        .map((snapshot) => Math.floor(snapshot.createdAt / DAY)),
+    );
+    let busyDays = 0;
+    for (let day = 0; day < 40; day++) {
+      const start = midnight + day * DAY;
+      if (day % 7 < 5 && now - (start + 17 * 60 * 60 * 1000) < 30 * DAY) {
+        busyDays++;
+        expect(days.has(Math.floor((start + 17 * 60 * 60 * 1000) / DAY))).toBe(true);
+      }
+    }
+    // The quiet days at the end have acknowledgements of their own.
+    expect(busyDays).toBe(20);
+    expect(history.length).toBeGreaterThanOrEqual(busyDays);
+  });
+
+  test("a pruned head's snapshot is history like any other: kept as its day's newest, else thinned", async () => {
+    const [a, b] = [device(), device()];
+    await addEntry(a, 'e1');
+    for (const target of [a, b, a]) await sync(target);
+    const old = deviceIdOf(a);
+    const oldSnapshot = headSnapshot(a);
+    // A is wiped; its next pass retires the old ID and prunes that head.
+    clock += 1000;
+    a.database.sqlite.run('DELETE FROM entries');
+    bindInstall(a);
+    await write(a, (tx) => resetSyncIdentityInTransaction(tx, clock));
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    expect(
+      provider.physicalHeads(VAULT).map((head) => head.head!.deviceId),
+    ).not.toContain(old);
+    // Same day: kept. A day on, A's newer snapshot of that day covers it.
+    expect(provider.snapshotIds(VAULT)).toContain(oldSnapshot);
+    clock += DAY;
+    await addEntry(a, 'e2');
+    await sync(a);
+    expect(provider.snapshotIds(VAULT)).not.toContain(oldSnapshot);
+  });
+
+  test('an expired head goes with its snapshot in one cleanup', async () => {
+    const [a, b] = [device(), device()];
+    for (const target of [a, b, a]) await sync(target);
+    const gone = headSnapshot(b);
+    clock += 200 * DAY;
+    await addEntry(a, 'later');
+    expect((await sync(a)).status).toBe('published');
+    expect(provider.physicalHeads(VAULT)).toHaveLength(1);
+    expect(provider.snapshotIds(VAULT)).not.toContain(gone);
+  });
+
+  test('a head that moves while it is read is read again, not reported unreadable', async () => {
+    const [a, b] = [device(), device()];
+    for (const target of [a, b, a]) await sync(target);
+    clock += 1000;
+    await addEntry(a, 'e1');
+    await sync(a);
+    const stale = provider.physicalHeads(VAULT);
+    clock += 1000;
+    await addEntry(a, 'e2');
+    await sync(a);
+    const moved = headSnapshot(a);
+    const old = stale.find((head) => head.head!.deviceId === deviceIdOf(a))!.head!
+      .snapshotId;
+    // B lists A's head just before A moved it, and the old snapshot is
+    // thinned before B downloads it.
+    await provider.deleteSnapshot(VAULT, old);
+    const current = provider.listHeads.bind(provider);
+    let first = true;
+    provider.listHeads = async (vaultId) => {
+      const heads = await current(vaultId);
+      if (!first) return heads;
+      first = false;
+      return heads.map((listedHead) =>
+        listedHead.head?.snapshotId === moved
+          ? { ...listedHead, head: { ...listedHead.head, snapshotId: old } }
+          : listedHead,
+      );
+    };
+    expect(await sync(b)).toMatchObject({ status: 'retry' });
+    expect(await sync(b)).toMatchObject({ status: 'pulled', skippedHeads: [] });
+    expect(texts(b)).toEqual(['e1:Text e1', 'e2:Text e2']);
   });
 });
 
@@ -1964,31 +2139,75 @@ describe('remote media garbage collection (P12)', () => {
     }
   });
 
-  test('a clock that jumps far ahead restarts the count instead of shortening it', async () => {
+  test.each([
+    ['jumps far ahead', 100 * DAY],
+    ['is set far back', -100 * DAY],
+  ])(
+    'a device clock that %s neither shortens the 30 days nor stops collection',
+    async (_name, jump) => {
+      const a = device();
+      await sync(a);
+      let real = clock;
+      provider.serverClock = () => real;
+      await attachPhoto(a, 'e1');
+      await sync(a);
+      clock += 1000;
+      real += 1000;
+      await deleteOn(a, 'e1');
+      await sync(a);
+      const deletedAt = real;
+      // Retention and collection count by Drive's clock (#185 P9), so a jump
+      // of this device's clock after ten days changes nothing.
+      let gone: number | null = null;
+      for (let day = 1; day <= 90 && gone === null; day++) {
+        clock += DAY + (day === 10 ? jump : 0);
+        real += DAY;
+        await sync(a);
+        await expectNothingDangling();
+        if (!provider.mediaHashes(VAULT).includes(PHOTO)) gone = real - deletedAt;
+      }
+      // The snapshots that held it stay 30 days, then 30 days unreferenced.
+      expect(gone).not.toBeNull();
+      expect(gone!).toBeGreaterThanOrEqual(60 * DAY);
+      expect(gone!).toBeLessThan(65 * DAY);
+    },
+  );
+
+  test('a snapshot that alone refers to a photo is not thinned: it stays 30 days', async () => {
     const a = device();
     await sync(a);
-    let real = clock;
-    provider.serverClock = () => real;
+    // UTC midnight, so the day's snapshots are one history day.
+    clock = Math.ceil(clock / DAY) * DAY + 60 * 60 * 1000;
     await attachPhoto(a, 'e1');
     await sync(a);
+    const withPhoto = headSnapshot(a);
     clock += 1000;
     await deleteOn(a, 'e1');
     await sync(a);
-    // The device's clock jumps 100 days ahead; real time moves a day at a
-    // time. Retention takes the jump at its word (#185 "clock skew in
-    // retention"), but the 30 days unreferenced start again at the jump.
-    for (let day = 0; day < 10; day++) {
+    // A single device compacts the delete at once: later snapshots no
+    // longer refer to the photo.
+    clock += 1000;
+    await addEntry(a, 'e2');
+    await sync(a);
+    const plain = headSnapshot(a);
+    clock += 1000;
+    await addEntry(a, 'e3');
+    await sync(a);
+    const dayEnd = headSnapshot(a);
+    for (let day = 1; day <= 29; day++) {
       clock += DAY;
-      real += DAY;
+      await addEntry(a, `d${day}`);
       await sync(a);
+      // Thinned: covered by the day's last snapshot. Kept: the photo.
+      expect(provider.snapshotIds(VAULT)).not.toContain(plain);
+      expect(provider.snapshotIds(VAULT)).toContain(dayEnd);
+      expect(provider.snapshotIds(VAULT)).toContain(withPhoto);
+      expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
     }
-    clock += 100 * DAY;
-    for (let day = 0; day < 25; day++) {
-      clock += DAY;
-      real += DAY;
-      await sync(a);
-    }
-    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    clock += DAY;
+    await addEntry(a, 'd30');
+    await sync(a);
+    expect(provider.snapshotIds(VAULT)).not.toContain(withPhoto);
   });
 
   test('a check reads at most 10 snapshots per pass, and a damaged cache row is read again', async () => {

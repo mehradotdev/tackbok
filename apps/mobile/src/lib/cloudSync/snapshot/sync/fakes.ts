@@ -200,6 +200,11 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     if (stored) stored.createdAt = createdAt;
   }
 
+  /** `serverClock`, or unset the caller's clock, as uploads do. */
+  providerTime(): number | null {
+    return this.serverClock?.() ?? Date.now();
+  }
+
   async listRevocations(vaultId: string) {
     this.before('list-revocations');
     return [...(this.revocations.get(vaultId) ?? [])];

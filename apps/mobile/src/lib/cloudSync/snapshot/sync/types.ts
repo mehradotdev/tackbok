@@ -177,6 +177,12 @@ export class MediaIntegrityError extends Error {
 }
 
 export interface SnapshotProvider {
+  /**
+   * The provider's own clock now (Drive: the `Date` header of its latest
+   * response), or null before any response. Retention and media garbage
+   * collection count time by it, never by this device's clock (#185 P9).
+   */
+  providerTime(): number | null;
   listRevocations(vaultId: string): Promise<('backup-deleted' | 'journal-deleted')[]>;
   /** `refresh=false` is a cleanup-time read of the durable provider cache. */
   listHeads(vaultId: string, refresh?: boolean): Promise<ListedDeviceHead[]>;

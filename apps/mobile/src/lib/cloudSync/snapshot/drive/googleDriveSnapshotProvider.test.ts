@@ -394,6 +394,38 @@ function provider(
 }
 
 describe('GoogleDriveSnapshotProvider', () => {
+  test("the provider clock is Drive's Date header, kept across later responses without one", async () => {
+    let deviceNow = Date.parse('2030-01-01T00:00:00Z');
+    const dates = ['Tue, 01 Mar 2033 12:00:00 GMT', 'not a date'];
+    const transport = new DriveTransport({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      now: () => deviceNow,
+      random: () => 0,
+      sleep: async () => {},
+      fetch: async () => {
+        const date = dates.shift();
+        return response(200, {}, undefined, date ? { Date: date } : {});
+      },
+    });
+    const request = () =>
+      transport.request(
+        vaultId,
+        'list',
+        'https://example.test',
+        {},
+        { idempotent: true },
+      );
+    expect(transport.serverTime()).toBeNull();
+    await request();
+    expect(transport.serverTime()).toBe(Date.parse('2033-03-01T12:00:00Z'));
+    // Time passes on this device; an unreadable or missing header keeps the offset.
+    deviceNow += 5_000;
+    await request();
+    await request();
+    expect(transport.serverTime()).toBe(Date.parse('2033-03-01T12:00:05Z'));
+  });
+
   test('a 403 Retry-After survives a cancelled error body and blocks the next request', async () => {
     const state = new MemoryDriveProviderStateStore();
     let controller = new AbortController();

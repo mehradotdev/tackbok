@@ -266,9 +266,25 @@ export interface DriveTransportOptions {
 
 export class DriveTransport {
   private readonly fetcher: DriveFetchLike;
+  /** Drive's clock minus this device's, at the latest response with a `Date` header. */
+  private serverOffset: number | null = null;
 
   constructor(private readonly options: DriveTransportOptions) {
     this.fetcher = options.fetch ?? defaultDriveFetch;
+  }
+
+  /**
+   * Drive's own time now, from the latest response's `Date` header (whole
+   * seconds, so up to a second behind), or null before any response had one.
+   */
+  serverTime(): number | null {
+    return this.serverOffset === null ? null : this.options.now() + this.serverOffset;
+  }
+
+  private observeDate(response: DriveResponseLike): void {
+    const value = response.headers.get('date');
+    const date = value ? Date.parse(value) : Number.NaN;
+    if (Number.isFinite(date)) this.serverOffset = date - this.options.now();
   }
 
   async request(
@@ -338,6 +354,7 @@ export class DriveTransport {
         }
         throw error;
       }
+      this.observeDate(response);
       if (response.ok || accepted.includes(response.status)) {
         this.recordAttempt(methodClass, null, started, init.body, response, attempt > 0);
         return response;

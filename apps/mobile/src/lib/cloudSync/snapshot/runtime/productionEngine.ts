@@ -100,6 +100,9 @@ class MediaPolicyProvider implements SnapshotProvider {
     private readonly onProgress: (report: SyncProgressReport) => void = () => {},
   ) {}
 
+  providerTime() {
+    return this.delegate.providerTime();
+  }
   listRevocations(vaultId: string) {
     return this.delegate.listRevocations(vaultId);
   }
