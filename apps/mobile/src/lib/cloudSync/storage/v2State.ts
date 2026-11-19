@@ -764,13 +764,7 @@ async function clearRecordRows(tx: Tx, type: SyncEntityType, id: string) {
     );
 }
 
-async function putRecord(
-  tx: Tx,
-  type: SyncEntityType,
-  id: string,
-  meta: RecordMeta,
-  now: number,
-) {
+async function putRecord(tx: Tx, type: SyncEntityType, id: string, meta: RecordMeta) {
   const values = {
     vv_json: JSON.stringify(meta.vv),
     known_json: meta.known === null ? null : JSON.stringify(meta.known),
@@ -778,7 +772,6 @@ async function putRecord(
     del_json: meta.del === null ? null : JSON.stringify(meta.del),
     ext_json: JSON.stringify(meta.ext),
     split_json: meta.split === null ? null : JSON.stringify(meta.split),
-    updated_at: now,
   };
   await tx
     .insert(syncRecords)
@@ -847,7 +840,6 @@ function recordRow(
   type: SyncEntityType,
   id: string,
   meta: RecordMeta,
-  now: number,
 ): typeof syncRecords.$inferInsert {
   return {
     entity_type: type,
@@ -858,7 +850,6 @@ function recordRow(
     del_json: meta.del === null ? null : JSON.stringify(meta.del),
     ext_json: JSON.stringify(meta.ext),
     split_json: meta.split === null ? null : JSON.stringify(meta.split),
-    updated_at: now,
   };
 }
 
@@ -914,7 +905,7 @@ async function writeEntry(context: ApplyContext, entry: EntryRecord, existed: bo
     split: entry.split,
   };
   if (!isLive(entry)) {
-    writes.records.push(recordRow('entry', id, meta, now));
+    writes.records.push(recordRow('entry', id, meta));
     if (context.entryAssets.has(id)) writes.hidden.push(id);
     // An attachment this device has not published yet is in no state, so no
     // delete can have seen it, and no other device holds its file. Its row
@@ -956,7 +947,7 @@ async function writeEntry(context: ApplyContext, entry: EntryRecord, existed: bo
     date: entry.date.s,
     ...(entry.order ? { order: entry.order.s } : {}),
   };
-  writes.records.push(recordRow('entry', id, meta, now));
+  writes.records.push(recordRow('entry', id, meta));
   const tagMembers = splitMembers(entry.tags);
   const attachmentMembers = splitMembers(entry.attachments);
   writes.fieldValues.push(
@@ -1118,7 +1109,6 @@ async function flushEntryWrites(tx: Tx, writes: Writes) {
           del_json: sql`excluded.del_json`,
           ext_json: sql`excluded.ext_json`,
           split_json: sql`excluded.split_json`,
-          updated_at: sql`excluded.updated_at`,
         },
       }),
   );
@@ -1141,20 +1131,14 @@ async function writeNamed(
 ) {
   const { tx, now } = context;
   await clearRecordRows(tx, kind, record.id);
-  await putRecord(
-    tx,
-    kind,
-    record.id,
-    {
-      vv: record.vv,
-      known: null,
-      stamps: { title: record.title.s },
-      del: record.del,
-      ext: record.ext,
-      split: null,
-    },
-    now,
-  );
+  await putRecord(tx, kind, record.id, {
+    vv: record.vv,
+    known: null,
+    stamps: { title: record.title.s },
+    del: record.del,
+    ext: record.ext,
+    split: null,
+  });
   if (!isLive(record)) {
     const kept: DeletedNamedValues = { title: record.title };
     await tx.insert(syncDeletedRecords).values({
@@ -1204,23 +1188,17 @@ async function writeProfile(
   await clearRecordRows(tx, 'profile', PROFILE);
   const name = splitShown(profile.name);
   const photo = splitShown(profile.photo);
-  await putRecord(
-    tx,
-    'profile',
-    PROFILE,
-    {
-      vv: profile.vv,
-      known: null,
-      stamps: {
-        ...(name.shown ? { name: name.shown.s } : {}),
-        ...(photo.shown ? { photo: photo.shown.s } : {}),
-      },
-      del: null,
-      ext: profile.ext,
-      split: null,
+  await putRecord(tx, 'profile', PROFILE, {
+    vv: profile.vv,
+    known: null,
+    stamps: {
+      ...(name.shown ? { name: name.shown.s } : {}),
+      ...(photo.shown ? { photo: photo.shown.s } : {}),
     },
-    now,
-  );
+    del: null,
+    ext: profile.ext,
+    split: null,
+  });
   await writeBatches(
     [
       ...name.rest.map((item) =>
@@ -1475,12 +1453,12 @@ export async function rebuildSyncMetadataInTransaction(
   const vv = JSON.stringify({ [deviceId]: hlc });
   const all = (fields: string[]) =>
     JSON.stringify(Object.fromEntries(fields.map((field) => [field, [hlc, deviceId]])));
-  await tx.run(sql`INSERT INTO sync_records (entity_type, entity_id, vv_json, stamps_json, updated_at)
-    SELECT 'entry', note_id, ${vv}, ${all(['title', 'text', 'mood', 'date'])}, ${now} FROM entries`);
-  await tx.run(sql`INSERT INTO sync_records (entity_type, entity_id, vv_json, stamps_json, updated_at)
-    SELECT 'tag', tag_id, ${vv}, ${all(['title'])}, ${now} FROM tags`);
-  await tx.run(sql`INSERT INTO sync_records (entity_type, entity_id, vv_json, stamps_json, updated_at)
-    SELECT 'prompt', prompt_id, ${vv}, ${all(['title'])}, ${now} FROM custom_prompts`);
+  await tx.run(sql`INSERT INTO sync_records (entity_type, entity_id, vv_json, stamps_json)
+    SELECT 'entry', note_id, ${vv}, ${all(['title', 'text', 'mood', 'date'])} FROM entries`);
+  await tx.run(sql`INSERT INTO sync_records (entity_type, entity_id, vv_json, stamps_json)
+    SELECT 'tag', tag_id, ${vv}, ${all(['title'])} FROM tags`);
+  await tx.run(sql`INSERT INTO sync_records (entity_type, entity_id, vv_json, stamps_json)
+    SELECT 'prompt', prompt_id, ${vv}, ${all(['title'])} FROM custom_prompts`);
   await tx.update(entryTags).set({ stamp_hlc: hlc, stamp_device: deviceId });
   // Every attachment is published again, under this vault's stamps.
   await tx
@@ -1501,7 +1479,6 @@ export async function rebuildSyncMetadataInTransaction(
       entity_id: PROFILE,
       vv_json: vv,
       stamps_json: all(profileFields),
-      updated_at: now,
     });
   // An attachment order other devices would not show by default is written.
   const media = await tx

@@ -408,7 +408,6 @@ export const syncRecords = sqliteTable(
     ext_json: text('ext_json').notNull().default('{}'),
     /** Set on an entry made by "Keep both": {from, field, s}. */
     split_json: text('split_json'),
-    updated_at: integer('updated_at').notNull(),
   },
   (table) => [primaryKey({ columns: [table.entity_type, table.entity_id] })],
 );
