@@ -39,8 +39,8 @@ test('0017 drops sync_records.updated_at and keeps every row', () => {
   migrate(sqlite, 0, DROP);
   expect(columns(sqlite)).toContain('updated_at');
   const insert = sqlite.prepare(
-    `INSERT INTO sync_records (entity_type, entity_id, vv_json, stamps_json, del_json, ext_json, updated_at)
-     VALUES (?, ?, ?, ?, ?, '{}', 1)`,
+    `INSERT INTO sync_records (entity_type, entity_id, vv_json, known_json, stamps_json, del_json, ext_json, split_json, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, '{"f":[]}', ?, 1)`,
   );
   sqlite.transaction(() => {
     for (let i = 0; i < 1000; i++)
@@ -48,10 +48,12 @@ test('0017 drops sync_records.updated_at and keeps every row', () => {
         'entry',
         `e${i}`,
         `{"d":${i}}`,
+        i % 7 === 0 ? `{"vv":{"d":${i}},"extra":[]}` : null,
         '{}',
         i % 10 === 0 ? '{"at":[1,"d"]}' : null,
+        i % 13 === 0 ? `{"from":"e0","field":"text","s":[${i},"d"]}` : null,
       );
-    insert.run('profile', 'profile', '{"d":1}', '{"name":[1,"d"]}', null);
+    insert.run('profile', 'profile', '{"d":1}', null, '{"name":[1,"d"]}', null, null);
   })();
   const kept =
     'SELECT entity_type, entity_id, vv_json, known_json, stamps_json, del_json, ext_json, split_json FROM sync_records ORDER BY 1, 2';
