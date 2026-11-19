@@ -52,7 +52,7 @@ export function SampleEntriesBanner() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-7 -ml-1"
+          className="size-7 -ms-1"
           onPress={() => setDismissed(true)}
           accessibilityLabel={t('onboarding.hideThisBanner')}
           hitSlop={8}>

@@ -46,8 +46,8 @@ export const MOOD_OPTIONS = [
 export const MOOD_EMOJI_MAX_FONT_SCALE = 1.5;
 
 /**
- * Fixed-height bars (app bar, entry headers, action dock) behave like native navigation
- * and tab bars: their text grows only a little with the system text size. Pair the cap
+ * Bar chrome (app bar, entry headers, action dock) behaves like native navigation and
+ * tab bars: its text grows only a little with the system text size. Pair the cap
  * with the iOS large content viewer on controls so the full-size label stays reachable.
  */
 export const BAR_MAX_FONT_SCALE = 1.3;

@@ -18,6 +18,7 @@ import { useNavigation, usePreventRemove } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { Clock, FilePenLine, Plus, Shuffle, X } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { cn } from 'tailwind-variants';
 import {
   BAR_MAX_FONT_SCALE,
   MODAL_CLOSE_DELAY,
@@ -545,17 +546,22 @@ function GratitudeEntryEditForm({
         {/* Header */}
         <View className="relative flex-row items-center justify-between px-4 py-3 border-b border-border">
           {/* Cancel button */}
-          <View className="z-10" onLayout={handleCancelLayout}>
+          {/* Above the default size each button is capped at 30% of the bar and its label
+              shrinks, so long translations still leave room for the centred date. */}
+          <View
+            className={cn('z-10', shrinkBarTextToFit && 'max-w-[30%]')}
+            onLayout={handleCancelLayout}>
             <Button
               onPress={handlePressCancel}
               variant="link"
-              className="p-0"
+              className="p-0 max-w-full"
               accessibilityShowsLargeContentViewer
               accessibilityLargeContentTitle={t('common.cancel')}>
               <Text
                 numberOfLines={1}
+                adjustsFontSizeToFit={shrinkBarTextToFit}
                 maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
-                className="text-lg text-foreground/70">
+                className="shrink text-lg text-foreground/70">
                 {t('common.cancel')}
               </Text>
             </Button>
@@ -574,14 +580,21 @@ function GratitudeEntryEditForm({
           />
 
           {/* Save button */}
-          <View className="z-10" onLayout={handleSaveLayout}>
+          <View
+            className={cn('z-10', shrinkBarTextToFit && 'max-w-[30%]')}
+            onLayout={handleSaveLayout}>
             <Button
               onPress={handleSave}
               disabled={!canSave}
               variant="default"
+              className="max-w-full"
               accessibilityShowsLargeContentViewer
               accessibilityLargeContentTitle={t('common.save')}>
-              <Text numberOfLines={1} maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit={shrinkBarTextToFit}
+                maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
+                className="shrink">
                 {t('common.save')}
               </Text>
             </Button>
