@@ -35,7 +35,7 @@
  *   stayed paused on the mass-deletion question that long and then keeps
  *   its entries, can bring back entries whose blobs were collected. When it
  *   publishes, it uploads every blob it still has (`V2SyncEngine.publish`
- *   asks the provider itself about blobs its head did not refer to, so a
+ *   asks the provider itself about blobs it holds that its head did not refer to, so a
  *   stale provider cache cannot hide the delete); one it never downloaded
  *   stays unavailable, and other devices show the attachment without its
  *   file rather than pausing (`hydratePendingMedia`). An upload whose
