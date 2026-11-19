@@ -878,7 +878,7 @@ describe('saved media hashes', () => {
     const row = (
       assetId: string,
       blob: string,
-      state: 'n/a' | 'verified' | 'pending' | 'missing',
+      state: 'n/a' | 'verified' | 'pending' | 'downloading' | 'missing',
       path: string | null,
     ) =>
       db
@@ -918,10 +918,14 @@ describe('saved media hashes', () => {
         updated_at: 1,
       })
       .run();
-    const asked = ['1', '2', '3', '4', '5', '6', '7', '8'].map(hash);
+    // A staged file with no row at all, and a row still downloading.
+    existingFiles.add(fileUri(`cloud-sync-media/${hash('9')}.bin`));
+    row('downloading', hash('a'), 'downloading', 'file:///var/legacy/a.jpg');
+    existingFiles.add('file:///var/legacy/a.jpg');
+    const asked = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'a'].map(hash);
     expect(
       [...(await new ProductionSnapshotMediaStore().mightHold(asked))].sort(),
-    ).toEqual(['1', '2', '4', '5', '7'].map(hash));
+    ).toEqual(['1', '2', '4', '5', '7', '9', 'a'].map(hash));
   });
 
   test('upload sources and a missing file ignore saved rows; the missing one loses its row', async () => {

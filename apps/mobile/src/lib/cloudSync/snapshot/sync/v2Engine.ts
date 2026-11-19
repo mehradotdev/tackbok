@@ -1028,9 +1028,10 @@ export class V2SyncEngine {
     // Only blobs this device may hold can need uploading or be found
     // unreadable; asking the provider about the others changes nothing. A
     // device restoring a journal holds none of them yet, and asking about all
-    // 1,600 of a large journal took 12 minutes, one request each (#185 P14).
+    // 1,590 of a large journal took about 10 minutes, a request each (#185
+    // P14). If the local check fails, every blob counts, as before.
     const held = mediaStore.mightHold
-      ? await mediaStore.mightHold(referenced)
+      ? await mediaStore.mightHold(referenced).catch(() => new Set(referenced))
       : new Set(referenced);
     const hashes = referenced.filter((blobHash) => held.has(blobHash));
     // Blobs this snapshot newly refers to, that this device holds, are asked
