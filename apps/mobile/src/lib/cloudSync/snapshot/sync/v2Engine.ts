@@ -27,8 +27,9 @@
  * Cleanup: after a publication, the heads of devices that left the active
  * roster (180 days) are pruned; after a publication or once a day, leftover
  * head files under this device's own ID go, then snapshots no head points
- * to after 30 days. At most once a day, in a pass that skipped no head,
- * media blobs nothing has referred to for 30 days go (`mediaGc.ts`).
+ * to, keeping one a day for 30 days (`retention.ts`). At most once a day, in
+ * a pass that skipped no head, media blobs nothing has referred to for 30
+ * days go (`mediaGc.ts`). Both count time by the provider's clock.
  *
  * Another device's head that cannot be read (a corrupt head file, a missing
  * or invalid snapshot, two snapshots under one sequence) or whose clock is
@@ -92,7 +93,13 @@ import {
   massDeletionToken,
   type MassDeletionChoice,
 } from './massDeletion';
-import { collectMedia, recordSnapshotMedia, recordedSnapshotMedia } from './mediaGc';
+import {
+  collectMedia,
+  loadSnapshotMedia,
+  recordSnapshotMedia,
+  recordedSnapshotMedia,
+} from './mediaGc';
+import { snapshotsToDelete } from './retention';
 import type { SQLiteSyncStateStore } from './sqliteState';
 import {
   isolateProgress,
@@ -113,8 +120,6 @@ export const HEAD_FORMAT = 'tackbok-head';
 export const ACK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Local writes during a pass make the apply refuse; it captures and joins again. */
 const MAX_APPLY_ATTEMPTS = 4;
-/** Retention: an unreferenced snapshot older than this may be deleted. */
-const SNAPSHOT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_DELETES_PER_PASS = 10;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Media garbage collection that could not finish runs again after this long. */
@@ -127,6 +132,8 @@ const MEDIA_GC_RETRY_MS = 60 * 60 * 1000;
 const OWN_HEAD_TRUSTED_MS = 150 * 24 * 60 * 60 * 1000;
 /** A snapshot that could not be read is downloaded again after this long. */
 const UNREADABLE_RETRY_MS = 24 * 60 * 60 * 1000;
+/** A head whose snapshot was missing is read again after this long. */
+const MISSING_RETRY_MS = 60 * 60 * 1000;
 /**
  * The error class of the pause for "no head can be read": the only pause
  * "Replace this backup" is offered for, and one that retries by itself once
@@ -222,7 +229,7 @@ export class V2SyncEngine {
   private uploadedThisPass = new Set<string>();
   /** Retention runs after a publication, or at most this often. */
   private lastCleanupAt = Number.NEGATIVE_INFINITY;
-  /** Media garbage collection runs from this time on (`collectMedia`). */
+  /** Media garbage collection runs from this provider time on (`collectMedia`). */
   private nextMediaGcAt = Number.NEGATIVE_INFINITY;
   private readonly hooks: SnapshotSyncHooks;
   private readonly now: () => number;
@@ -374,13 +381,19 @@ export class V2SyncEngine {
       ? await this.publishAttachments(unpublished)
       : unpublished.length;
     const { remotes, failed } = await this.download(changed);
-    for (const { head } of failed)
+    for (const { head, error } of failed)
       skipped.push({
         physicalId: head.physicalId,
         deviceId: head.deviceId,
         snapshotId: head.snapshotId,
         reason: 'unreadable',
-        retryAt: this.now() + UNREADABLE_RETRY_MS,
+        // A missing snapshot is often a listing behind another device's
+        // retention (#185 P9): read again soon.
+        retryAt:
+          this.now() +
+          (error.reason === 'head-snapshot-missing'
+            ? MISSING_RETRY_MS
+            : UNREADABLE_RETRY_MS),
       });
     readable ||= remotes.length > 0;
     this.requireReadable(readable, skipped, failed[0]?.error ?? null);
@@ -915,10 +928,25 @@ export class V2SyncEngine {
               ? new AttentionError('invalid-remote-snapshot', 'provider-invalid-data')
               : null;
         if (!unreadable) throw error;
+        if (unreadable.reason === 'head-snapshot-missing' && (await this.moved(head)))
+          throw new RetryableSyncError('head-moved-during-pass');
         failed.push({ head, error: unreadable });
       }
     }
     return { remotes, failed };
+  }
+
+  /**
+   * Whether a head's file now points elsewhere or is gone: its old snapshot
+   * may then have been deleted by retention (another device thins a day's
+   * other snapshots once their heads move). The pass is retried with the
+   * new listing rather than the head reported as unreadable.
+   */
+  private async moved(head: ReadHead): Promise<boolean> {
+    const current = (await this.options.provider.listHeads(this.vaultId, true)).find(
+      (listed) => listed.physicalId === head.physicalId,
+    );
+    return current?.head?.snapshotId !== head.snapshotId;
   }
 
   private async downloadOne(
@@ -1157,8 +1185,8 @@ export class V2SyncEngine {
    * each delete, so a device that publishes into the same file meanwhile
    * (Drive updates it in place) keeps its head, but for a short window (one
    * request, plus however long Drive's change listing lags); if it loses it
-   * there, its fresh snapshot stays (retention keeps it 30 days) and it
-   * publishes again at its next pass.
+   * there, its fresh snapshot stays (retention keeps every snapshot of the
+   * current day) and it publishes again at its next pass.
    * Returns the snapshots of the deleted heads.
    */
   private async pruneHeads(
@@ -1243,11 +1271,12 @@ export class V2SyncEngine {
   }
 
   /**
-   * Retention, best effort: snapshots no head points to, older than 30 days
-   * by their upload time on the provider, a few at a time. Heads only ever
-   * move to new snapshots, so an unreferenced old one is never needed again.
-   * Runs after a publication or once a day, after head pruning
-   * (`pruneHeads`); the heads are listed again
+   * Retention, best effort (`retention.ts`): snapshots no head points to go
+   * once 30 days old, by the provider's clock, keeping one a day for the
+   * backup history; a few at a time. Heads only ever move to new snapshots,
+   * so an unreferenced one is needed again only to restore it. Runs after a
+   * publication or once a day, after head pruning (`pruneHeads`), whose
+   * snapshots it then treats as any other; the heads are listed again
    * right before deleting, so a head missing from an earlier listing never
    * loses its snapshot. While any head file cannot be read, nothing is
    * deleted: its snapshots cannot be told apart from unreferenced ones.
@@ -1264,22 +1293,35 @@ export class V2SyncEngine {
     collect: boolean,
   ) {
     try {
-      if (published || this.now() - this.lastCleanupAt >= CLEANUP_INTERVAL_MS) {
-        this.lastCleanupAt = this.now();
+      // Scheduled by the provider's clock as well: this device's may jump,
+      // and one set back would hold cleanup off for as long.
+      const providerNow = this.options.provider.providerTime();
+      // Without the provider's clock, retention only prunes heads, and the
+      // schedule is left alone: a time from this device's clock would
+      // throw it off once the provider's is known.
+      if (providerNow === null)
+        console.warn('Cloud sync cleanup has no provider time; history is kept');
+      if (
+        published ||
+        (providerNow !== null && providerNow - this.lastCleanupAt >= CLEANUP_INTERVAL_MS)
+      ) {
+        if (providerNow !== null) this.lastCleanupAt = providerNow;
         await this.retainSnapshots(deviceId, retained, published, duplicates);
       }
-      if (collect && this.now() >= this.nextMediaGcAt) {
+      if (collect && providerNow !== null && providerNow >= this.nextMediaGcAt) {
         // Provider trouble below waits a day too.
-        this.nextMediaGcAt = this.now() + CLEANUP_INTERVAL_MS;
+        this.nextMediaGcAt = providerNow + CLEANUP_INTERVAL_MS;
         const outcome = await collectMedia({
           vaultId: this.vaultId,
           provider: this.options.provider,
-          now: this.now(),
+          // The provider's clock, as retention's: the 30-day counts must not
+          // move with this device's clock (#185 "clock skew in retention").
+          now: providerNow,
           hooks: this.hooks,
         });
         // Snapshots left to read, or something new appeared: soon, not every pass.
         if (outcome.status === 'incomplete')
-          this.nextMediaGcAt = this.now() + MEDIA_GC_RETRY_MS;
+          this.nextMediaGcAt = providerNow + MEDIA_GC_RETRY_MS;
       }
     } catch (error) {
       if (!(error instanceof SnapshotProviderError)) throw error;
@@ -1296,24 +1338,22 @@ export class V2SyncEngine {
     const { provider } = this.options;
     const pruned = await this.pruneHeads(deviceId, published, duplicates);
     const kept = retained.filter((snapshotId) => !pruned.includes(snapshotId));
-    const candidates = (await provider.listSnapshots(this.vaultId)).filter(
-      (snapshot) =>
-        !kept.includes(snapshot.snapshotId) &&
-        snapshot.createdAt > 0 &&
-        this.now() - snapshot.createdAt >= SNAPSHOT_RETENTION_MS,
-    );
-    if (candidates.length === 0) return;
+    const now = provider.providerTime();
+    if (now === null) return;
+    const snapshots = await provider.listSnapshots(this.vaultId);
+    const blobs = await loadSnapshotMedia(this.vaultId);
+    const plan = (referenced: ReadonlySet<string>) =>
+      snapshotsToDelete({ snapshots, referenced, blobs, now });
+    if (plan(new Set(kept)).length === 0) return;
     const listed = await provider.listHeads(this.vaultId, true);
     if (listed.some(({ head }) => head === null)) return;
     const referenced = new Set([
       ...kept,
       ...listed.map(({ head }) => String(head!.snapshotId)),
     ]);
-    for (const snapshot of candidates
-      .filter((candidate) => !referenced.has(candidate.snapshotId))
-      .slice(0, MAX_DELETES_PER_PASS)) {
+    for (const snapshotId of plan(referenced).slice(0, MAX_DELETES_PER_PASS)) {
       await this.hooks.at?.('during-snapshot-cleanup');
-      await provider.deleteSnapshot(this.vaultId, snapshot.snapshotId);
+      await provider.deleteSnapshot(this.vaultId, snapshotId);
     }
   }
 

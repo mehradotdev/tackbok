@@ -14,23 +14,21 @@
  *    rows, attachments not published yet included).
  * 3. **It has been unreferenced for 30 days**, by this device's complete
  *    checks (`sync_media_gc`): one at least 30 days ago and every one since,
- *    never more than 14 days apart. Retention keeps a snapshot for 30 days
- *    after its upload, so one that refers to the blob cannot appear and go
- *    between two checks unseen.
+ *    never more than 14 days apart. Retention keeps a blob a snapshot refers
+ *    to referred to by a listed snapshot for 30 days after that snapshot's
+ *    upload (`retention.ts`: a snapshot thinned from the daily history
+ *    earlier is one whose blobs a newer snapshot that stays refers to), so
+ *    a reference cannot appear and go between two checks unseen.
  * 4. **It was uploaded more than 30 days ago** (provider time), which covers
  *    uploads whose snapshot is still on its way.
  * 5. Right before each delete, the heads and snapshots are listed again and
  *    nothing new may have appeared, and the provider looks the blob up again
  *    and keeps it if any copy is newer (`deleteMedia`).
  *
- * Times come from the device clock. A clock that jumps forward by more
- * than 14 days, or back at all, restarts every count (3), so a jump cannot
- * make a blob look unreferenced for long; it can only make an upload look
- * old (4) or older than the cutoff `deleteMedia` checks, which the 30-day
- * count then covers. shortcut: smaller forward
- * jumps shorten the count by the jump, as they shorten snapshot retention;
- * upgrade both with a provider clock (Drive's `Date` header, #185 "clock
- * skew in retention").
+ * Times come from the provider's clock (`SnapshotProvider.providerTime`,
+ * Drive's `Date` header), as retention's do, so this device's clock cannot
+ * shorten a count (#185 "clock skew in retention"). A count still restarts
+ * if the times it is given jump forward by more than 14 days or back at all.
  *
  * What it cannot prevent, and how that recovers:
  * - **A device back after 180 days** (`compact.ts`), including one that
@@ -62,7 +60,12 @@ import {
 
 import { decodeEnvelope } from '../../v2/codec';
 import type { SyncState } from '../../v2/types';
-import type { ListedDeviceHead, SnapshotProvider, SnapshotSyncHooks } from './types';
+import {
+  SnapshotProviderError,
+  type ListedDeviceHead,
+  type SnapshotProvider,
+  type SnapshotSyncHooks,
+} from './types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** How long a blob must have been unreferenced, by complete checks. */
@@ -226,7 +229,7 @@ function parseBlobs(json: string): string[] | null {
     : null;
 }
 
-async function loadSnapshotMedia(vaultId: string): Promise<Map<string, string[]>> {
+export async function loadSnapshotMedia(vaultId: string): Promise<Map<string, string[]>> {
   const rows = await runExclusiveDbTransaction((tx) =>
     tx.select().from(syncSnapshotMedia).where(eq(syncSnapshotMedia.vault_id, vaultId)),
   );
@@ -295,8 +298,28 @@ export async function collectMedia(options: {
     readBytes += byteCount;
     // Where a cancelled or out-of-time pass stops; what was read is kept.
     await hooks?.at?.('during-snapshot-cleanup');
-    const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
-    if (!bytes) return { status: 'blocked', reason: 'snapshot-missing' };
+    // Retention on another device may thin a snapshot after it was listed:
+    // one that is no longer listed is checked again soon, not tomorrow.
+    const gone = async () =>
+      !(await provider.listSnapshots(vaultId)).some(
+        (listed) => listed.snapshotId === snapshotId,
+      );
+    let bytes: Uint8Array | null;
+    try {
+      bytes = await provider.downloadSnapshot(vaultId, snapshotId);
+    } catch (error) {
+      if (
+        error instanceof SnapshotProviderError &&
+        error.code === 'transient' &&
+        (await gone())
+      )
+        return { status: 'incomplete', deleted: [] };
+      throw error;
+    }
+    if (!bytes)
+      return (await gone())
+        ? { status: 'incomplete', deleted: [] }
+        : { status: 'blocked', reason: 'snapshot-missing' };
     let state: SyncState;
     try {
       const decoded = decodeEnvelope(bytes, snapshotId);

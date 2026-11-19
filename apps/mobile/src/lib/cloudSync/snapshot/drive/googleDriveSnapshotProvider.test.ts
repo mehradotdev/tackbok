@@ -24,7 +24,7 @@ import {
   type DriveFileRecord,
   type DriveObjectKind,
 } from './state';
-import { DriveTransport } from './transport';
+import { DriveTransport, parseHttpDate } from './transport';
 import { SyncCancelledError } from '../sync/errors';
 
 class FakeAuth implements CloudAuthorization {
@@ -394,6 +394,60 @@ function provider(
 }
 
 describe('GoogleDriveSnapshotProvider', () => {
+  test("the provider clock is Drive's Date header, advanced by the monotonic clock only", async () => {
+    let deviceNow = Date.parse('2030-01-01T00:00:00Z');
+    let monotonic = 1_000;
+    const dates = [
+      'Tue, 01 Mar 2033 12:00:00 GMT',
+      'not a date',
+      undefined,
+      'Tue, 01 Mar 2033 13:00:00 GMT',
+    ];
+    const transport = new DriveTransport({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      now: () => deviceNow,
+      monotonicNow: () => monotonic,
+      random: () => 0,
+      sleep: async () => {},
+      fetch: async () => {
+        const date = dates.shift();
+        return response(200, {}, undefined, date ? { Date: date } : {});
+      },
+    });
+    const request = () =>
+      transport.request(
+        vaultId,
+        'list',
+        'https://example.test',
+        {},
+        { idempotent: true },
+      );
+    expect(transport.serverTime()).toBeNull();
+    await request();
+    expect(transport.serverTime()).toBe(Date.parse('2033-03-01T12:00:00Z'));
+    // Five seconds pass while this device's wall clock jumps 60 days ahead;
+    // an unreadable or missing header keeps the last sample.
+    monotonic += 5_000;
+    deviceNow += 60 * 24 * 60 * 60 * 1000;
+    await request();
+    await request();
+    expect(transport.serverTime()).toBe(Date.parse('2033-03-01T12:00:05Z'));
+    // A later valid header anchors the clock again.
+    await request();
+    expect(transport.serverTime()).toBe(Date.parse('2033-03-01T13:00:00Z'));
+  });
+
+  test.each([
+    ['Tue, 01 Mar 2033 12:00:00 GMT', Date.UTC(2033, 2, 1, 12, 0, 0)],
+    ['Sun, 06 Nov 1994 08:49:37 GMT', Date.UTC(1994, 10, 6, 8, 49, 37)],
+    ['2033-03-01T12:00:00Z', null],
+    ['Tue, 01 Foo 2033 12:00:00 GMT', null],
+    [null, null],
+  ])('parses the HTTP date %p', (value, expected) => {
+    expect(parseHttpDate(value)).toBe(expected);
+  });
+
   test('a 403 Retry-After survives a cancelled error body and blocks the next request', async () => {
     const state = new MemoryDriveProviderStateStore();
     let controller = new AbortController();
@@ -1428,6 +1482,22 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
     // Already gone: nothing to delete.
     expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(false);
+  });
+
+  test('a snapshot another device deleted reads as missing through a stale cache', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('thinned-elsewhere');
+    const snapshotId = sha256Bytes(bytes);
+    server.seed(vaultId, `snapshots/${snapshotId}.json.gz`, 'snapshot', bytes);
+    const here = provider(server);
+    await here.listHeads(vaultId, true);
+    expect((await here.listSnapshots(vaultId)).map((s) => s.snapshotId)).toEqual([
+      snapshotId,
+    ]);
+    // Another device's retention thins it before this cache hears.
+    await provider(server).deleteSnapshot(vaultId, snapshotId);
+    await expect(here.downloadSnapshot(vaultId, snapshotId)).resolves.toBeNull();
+    expect(await here.listSnapshots(vaultId)).toEqual([]);
   });
 
   test('a blob another device collected is gone here too, cached or not', async () => {
