@@ -380,6 +380,11 @@ function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
 
 export class MemorySnapshotMediaStore implements SnapshotMediaStore {
   readonly media = new Map<string, Uint8Array>();
+  /**
+   * Unset, every blob counts as held (the store is shared by the simulated
+   * devices, so it cannot say which one holds a blob); tests set it.
+   */
+  mightHold?: SnapshotMediaStore['mightHold'];
 
   async hasVerified(blobHash: string): Promise<boolean> {
     return this.media.has(blobHash);

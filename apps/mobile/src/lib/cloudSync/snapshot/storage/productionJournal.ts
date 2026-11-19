@@ -32,6 +32,9 @@ const STAGING_DIRECTORY = 'cloud-sync-media';
 const PHOTO_DIRECTORY = 'photos';
 const VOICE_DIRECTORY = 'voice_memos';
 
+/** Blob hashes per `IN (...)` query, under SQLite's variable limit. */
+const IDS_PER_QUERY = 500;
+
 function fileForLocalUri(uri: string): File {
   return uri.startsWith('file:') || uri.startsWith('/')
     ? new File(uri)
@@ -585,6 +588,52 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
     for await (const candidate of this.verifiedCandidates(blobHash, true))
       if (openMediaUploadSource(candidate.uri, blobHash, candidate.byteSize)) return true;
     return false;
+  }
+
+  /**
+   * Blobs with a local copy `openVerifiedSource` may open: a media row that
+   * holds its file ('n/a' or 'verified'), a retained copy, or a file at a row's
+   * path or in staging. No hashing: a superset, which `openVerifiedSource`
+   * narrows. A row still waiting for its download has no file, so a device
+   * restoring a journal holds almost none of its blobs.
+   */
+  async mightHold(blobHashes: readonly string[]): Promise<Set<string>> {
+    const held = new Set<string>();
+    const unsure = new Map<string, string[]>();
+    for (let offset = 0; offset < blobHashes.length; offset += IDS_PER_QUERY) {
+      const batch = blobHashes.slice(offset, offset + IDS_PER_QUERY);
+      const [rows, retained] = await Promise.all([
+        db
+          .select({
+            blobHash: mediaAssets.blob_hash,
+            state: mediaAssets.download_state,
+            uri: mediaAssets.local_uri,
+          })
+          .from(mediaAssets)
+          .where(inArray(mediaAssets.blob_hash, batch)),
+        db
+          .select({ blobHash: syncRetainedMedia.blob_hash })
+          .from(syncRetainedMedia)
+          .where(inArray(syncRetainedMedia.blob_hash, batch)),
+      ]);
+      for (const row of retained) if (row.blobHash) held.add(row.blobHash);
+      for (const row of rows) {
+        if (!row.blobHash) continue;
+        if (row.state === 'n/a' || row.state === 'verified') held.add(row.blobHash);
+        else if (row.uri)
+          unsure.set(row.blobHash, [...(unsure.get(row.blobHash) ?? []), row.uri]);
+        else if (!unsure.has(row.blobHash)) unsure.set(row.blobHash, []);
+      }
+    }
+    let checked = 0;
+    for (const [blobHash, uris] of unsure) {
+      if (held.has(blobHash)) continue;
+      if (fileExists(stageFile(blobHash).uri) || uris.some((uri) => fileExists(uri)))
+        held.add(blobHash);
+      // A few file checks at a time, so a large restore does not hold the app.
+      if (++checked % 200 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    return held;
   }
 
   /** Always hashes the file it returns, so an upload streams verified bytes. */

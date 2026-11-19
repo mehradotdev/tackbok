@@ -873,6 +873,57 @@ describe('saved media hashes', () => {
     );
   });
 
+  test('mightHold: blobs with a local copy, not ones still waiting for their download', async () => {
+    const hash = (c: string) => c.repeat(64);
+    const row = (
+      assetId: string,
+      blob: string,
+      state: 'n/a' | 'verified' | 'pending' | 'missing',
+      path: string | null,
+    ) =>
+      db
+        .insert(schema.mediaAssets)
+        .values({
+          asset_id: assetId,
+          owner_type: 'entry',
+          owner_id: 'entry',
+          kind: 'photo',
+          local_uri: path,
+          download_state: state,
+          blob_hash: blob,
+          byte_size: 1,
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    row('authored', hash('1'), 'n/a', 'photos/1.jpg');
+    row('downloaded', hash('2'), 'verified', 'photos/2.jpg');
+    row('waiting', hash('3'), 'pending', 'photos/3.jpg');
+    row('staged', hash('4'), 'pending', 'photos/4.jpg');
+    existingFiles.add(fileUri(`cloud-sync-media/${hash('4')}.bin`));
+    row('file-there', hash('5'), 'missing', 'photos/5.jpg');
+    existingFiles.add(fileUri('photos/5.jpg'));
+    row('no-path', hash('6'), 'pending', null);
+    db.insert(schema.syncRetainedMedia)
+      .values({
+        ledger_id: 'retained',
+        asset_id: 'removed',
+        original_owner_type: 'entry',
+        original_owner_id: 'entry',
+        original_uri: 'photos/7.jpg',
+        kind: 'photo',
+        blob_hash: hash('7'),
+        state: 'staged',
+        created_at: 1,
+        updated_at: 1,
+      })
+      .run();
+    const asked = ['1', '2', '3', '4', '5', '6', '7', '8'].map(hash);
+    expect(
+      [...(await new ProductionSnapshotMediaStore().mightHold(asked))].sort(),
+    ).toEqual(['1', '2', '4', '5', '7'].map(hash));
+  });
+
   test('upload sources and a missing file ignore saved rows; the missing one loses its row', async () => {
     addPhoto('photo', 'photos/a.jpg');
     saveRow('photos/a.jpg');
