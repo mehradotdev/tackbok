@@ -3,8 +3,14 @@ import { View, ScrollView } from 'react-native';
 import { ArrowLeft, ArrowRight, Pencil, Share2, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MOOD_EMOJI_MAX_FONT_SCALE, MOOD_OPTIONS, MODAL_CLOSE_DELAY } from '~/constants';
+import {
+  BAR_MAX_FONT_SCALE,
+  MOOD_EMOJI_MAX_FONT_SCALE,
+  MOOD_OPTIONS,
+  MODAL_CLOSE_DELAY,
+} from '~/constants';
 import type { Entry, Asset } from '~/types';
+import { useBarTextShrinkToFit } from '~/hooks/useBarTextShrinkToFit';
 import { useTranslation, formatLocalizedDate, formatTimeLabel } from '~/lib/i18n';
 import { track } from '~/lib/analytics';
 import { useTagMapping, useDeleteEntry } from '~/hooks/useGratitude';
@@ -48,6 +54,7 @@ export function GratitudeEntryView({
   onPhotoPress,
 }: GratitudeEntryViewProps) {
   const { t, isRTL } = useTranslation();
+  const shrinkBarTextToFit = useBarTextShrinkToFit();
   const router = useRouter();
 
   const insets = useSafeAreaInsets();
@@ -115,9 +122,26 @@ export function GratitudeEntryView({
         </View>
 
         {/* Date/Time display - centered absolutely via flex in parent or just flex-1 here */}
-        <View className="flex-1 flex-col items-center">
-          <Text className="font-body-bold text-lg text-foreground">{dateLabel}</Text>
-          <Text className="text-sm text-muted-foreground">{timeLabel}</Text>
+        {/* A fixed-height bar: capped text that shrinks to fit instead of breaking mid-word.
+            Screen readers still get the full labels. */}
+        <View
+          className="flex-1 flex-col items-center"
+          accessibilityShowsLargeContentViewer
+          accessibilityLargeContentTitle={`${dateLabel}, ${timeLabel}`}>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit={shrinkBarTextToFit}
+            maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
+            className="font-body-bold text-lg text-foreground">
+            {dateLabel}
+          </Text>
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit={shrinkBarTextToFit}
+            maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
+            className="text-sm text-muted-foreground">
+            {timeLabel}
+          </Text>
         </View>
 
         {/* Edit & Delete buttons - fixed width for symmetry */}

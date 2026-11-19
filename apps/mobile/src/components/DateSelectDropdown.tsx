@@ -3,6 +3,8 @@ import { View, ViewProps, Keyboard } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 import { startOfDay, subDays } from 'date-fns';
 import { cn } from 'tailwind-variants';
+import { BAR_MAX_FONT_SCALE } from '~/constants';
+import { useBarTextShrinkToFit } from '~/hooks/useBarTextShrinkToFit';
 import { useTranslation, formatLocalizedDate } from '~/lib/i18n';
 import { Icon } from '~/components/ui/icon';
 import {
@@ -45,6 +47,7 @@ export function DateSelectDropdown({
   ...props
 }: IDateSelectDropdownProps & ViewProps) {
   const { t } = useTranslation();
+  const shrinkBarTextToFit = useBarTextShrinkToFit();
   const [showDatepicker, setShowDatepicker] = useState(false);
 
   const today = startOfDay(new Date());
@@ -106,7 +109,10 @@ export function DateSelectDropdown({
       {/* Manually set value to empty to disable highlighting of selected option */}
       <Select value={{ value: '', label: '' }} onValueChange={handleValueChange}>
         <SelectTrigger
-          className="bg-transparent border-0 shadow-none h-auto py-0 active:bg-accent"
+          className="bg-transparent border-0 shadow-none h-auto py-0 max-w-full active:bg-accent"
+          // A header title: capped text, so show the full date in the iOS large content viewer.
+          accessibilityShowsLargeContentViewer
+          accessibilityLargeContentTitle={`${dateLabel}, ${timeLabel}`}
           triggerIcon={
             // Simple circular button with chevron
             <View className="bg-muted-foreground rounded-full p-0.5">
@@ -115,9 +121,21 @@ export function DateSelectDropdown({
           }
           size="flex">
           {/* Date/Time display */}
-          <View className="flex-col items-center">
-            <Text className="font-body-bold text-lg text-foreground">{dateLabel}</Text>
-            <Text className="text-sm text-foreground/80">{timeLabel}</Text>
+          <View className="shrink flex-col items-center">
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit={shrinkBarTextToFit}
+              maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
+              className="font-body-bold text-lg text-foreground">
+              {dateLabel}
+            </Text>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit={shrinkBarTextToFit}
+              maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
+              className="text-sm text-foreground/80">
+              {timeLabel}
+            </Text>
           </View>
         </SelectTrigger>
         <SelectContent>

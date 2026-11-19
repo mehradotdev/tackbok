@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Keyboard } from 'react-native';
 import { Smile, ImagePlus, Mic, Tag } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
+import { BAR_MAX_FONT_SCALE } from '~/constants';
+import { useBarTextShrinkToFit } from '~/hooks/useBarTextShrinkToFit';
 import { useTranslation } from '~/lib/i18n';
 import { Text } from '~/components/ui/text';
 import { Icon } from '~/components/ui/icon';
@@ -40,16 +42,27 @@ function DockButton({
   disabled,
   showLabel = true,
 }: IDockButtonProps) {
+  const shrinkBarTextToFit = useBarTextShrinkToFit();
   return (
     <Button
       variant="ghost"
       onPress={onPress}
       disabled={disabled}
       accessibilityLabel={label}
+      // The dock is a tab-bar-like control: labels are capped, so long-pressing at
+      // accessibility text sizes shows the label in the iOS large content viewer.
+      accessibilityShowsLargeContentViewer
+      accessibilityLargeContentTitle={label}
       className={cn('flex-1 flex-col h-auto', showLabel ? 'pt-1 pb-1' : 'py-1.5')}>
       <Icon as={icon} className="text-foreground/70" size={22} />
       {showLabel && (
-        <Text className="text-sm font-body-medium text-foreground/70 mt-1">{label}</Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit={shrinkBarTextToFit}
+          maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
+          className="text-sm font-body-medium text-foreground/70 mt-1">
+          {label}
+        </Text>
       )}
     </Button>
   );

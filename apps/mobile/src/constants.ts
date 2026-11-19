@@ -45,6 +45,13 @@ export const MOOD_OPTIONS = [
 /** Mood chip emoji are decorative; capping them leaves room for the label at large text sizes. */
 export const MOOD_EMOJI_MAX_FONT_SCALE = 1.5;
 
+/**
+ * Fixed-height bars (app bar, entry headers, action dock) behave like native navigation
+ * and tab bars: their text grows only a little with the system text size. Pair the cap
+ * with the iOS large content viewer on controls so the full-size label stays reachable.
+ */
+export const BAR_MAX_FONT_SCALE = 1.3;
+
 /** Global names for TrueSheet to allow invocation from anywhere */
 export const SHEET_NAMES = {
   MOOD: 'mood-sheet',
