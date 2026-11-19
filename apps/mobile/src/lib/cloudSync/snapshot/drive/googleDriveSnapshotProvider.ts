@@ -465,16 +465,29 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     snapshotId: string,
   ): Promise<Uint8Array | null> {
     const key = this.snapshotKey(snapshotId);
-    const candidates = await this.filesForKey(vaultId, key, 'snapshot');
-    if (candidates.length === 0) return null;
-    this.assertImmutableCandidates(candidates);
-    if (candidates[0].byteCount > SNAPSHOT_CAPS.compressedBytes) {
-      throw new SnapshotProviderError(
-        'invalid-data',
-        'Snapshot exceeds the compressed-byte cap',
-      );
+    for (let attempt = 0; ; attempt++) {
+      const candidates = await this.filesForKey(vaultId, key, 'snapshot');
+      if (candidates.length === 0) return null;
+      this.assertImmutableCandidates(candidates);
+      if (candidates[0].byteCount > SNAPSHOT_CAPS.compressedBytes) {
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Snapshot exceeds the compressed-byte cap',
+        );
+      }
+      try {
+        return await this.downloadVerified(vaultId, candidates[0]);
+      } catch (error) {
+        // A cached file another device's retention deleted (#185 P9): forget
+        // it and look the key up on Drive once more, so a deleted snapshot
+        // reads as missing rather than as a connection problem.
+        const gone =
+          error instanceof DriveRequestError &&
+          (error.status === 404 || error.status === 410);
+        if (!gone || attempt > 0) throw error;
+        for (const cached of candidates) this.state.removeFile(vaultId, cached.fileId);
+      }
     }
-    return this.downloadVerified(vaultId, candidates[0]);
   }
 
   async uploadSnapshot(

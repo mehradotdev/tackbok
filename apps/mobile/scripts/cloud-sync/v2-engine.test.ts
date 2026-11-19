@@ -1489,7 +1489,8 @@ describe("other devices' bad heads (P8)", () => {
     // The snapshot shows up (a listing lag); Replace must not delete the head.
     provider.injectSnapshot(VAULT, lateHead.head!.snapshotId, bytes!, clock);
     expect(await removeUnreadableHeads(provider, VAULT, skipped)).toBe(0);
-    clock += DAY + 1000;
+    // A missing snapshot is read again after an hour, not a day.
+    clock += 60 * 60 * 1000 + 1000;
     await sync(a);
     expect(texts(a)).toContain('late-entry:Text late-entry');
     expect(skippedOf(a)).toEqual([]);

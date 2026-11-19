@@ -132,6 +132,8 @@ const MEDIA_GC_RETRY_MS = 60 * 60 * 1000;
 const OWN_HEAD_TRUSTED_MS = 150 * 24 * 60 * 60 * 1000;
 /** A snapshot that could not be read is downloaded again after this long. */
 const UNREADABLE_RETRY_MS = 24 * 60 * 60 * 1000;
+/** A head whose snapshot was missing is read again after this long. */
+const MISSING_RETRY_MS = 60 * 60 * 1000;
 /**
  * The error class of the pause for "no head can be read": the only pause
  * "Replace this backup" is offered for, and one that retries by itself once
@@ -379,13 +381,19 @@ export class V2SyncEngine {
       ? await this.publishAttachments(unpublished)
       : unpublished.length;
     const { remotes, failed } = await this.download(changed);
-    for (const { head } of failed)
+    for (const { head, error } of failed)
       skipped.push({
         physicalId: head.physicalId,
         deviceId: head.deviceId,
         snapshotId: head.snapshotId,
         reason: 'unreadable',
-        retryAt: this.now() + UNREADABLE_RETRY_MS,
+        // A missing snapshot is often a listing behind another device's
+        // retention (#185 P9): read again soon.
+        retryAt:
+          this.now() +
+          (error.reason === 'head-snapshot-missing'
+            ? MISSING_RETRY_MS
+            : UNREADABLE_RETRY_MS),
       });
     readable ||= remotes.length > 0;
     this.requireReadable(readable, skipped, failed[0]?.error ?? null);

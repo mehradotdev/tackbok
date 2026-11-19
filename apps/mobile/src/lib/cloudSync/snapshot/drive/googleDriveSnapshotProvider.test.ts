@@ -1476,6 +1476,22 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(false);
   });
 
+  test('a snapshot another device deleted reads as missing through a stale cache', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('thinned-elsewhere');
+    const snapshotId = sha256Bytes(bytes);
+    server.seed(vaultId, `snapshots/${snapshotId}.json.gz`, 'snapshot', bytes);
+    const here = provider(server);
+    await here.listHeads(vaultId, true);
+    expect((await here.listSnapshots(vaultId)).map((s) => s.snapshotId)).toEqual([
+      snapshotId,
+    ]);
+    // Another device's retention thins it before this cache hears.
+    await provider(server).deleteSnapshot(vaultId, snapshotId);
+    await expect(here.downloadSnapshot(vaultId, snapshotId)).resolves.toBeNull();
+    expect(await here.listSnapshots(vaultId)).toEqual([]);
+  });
+
   test('a blob another device collected is gone here too, cached or not', async () => {
     const server = new FakeDriveServer();
     const bytes = new TextEncoder().encode('gc-collected-elsewhere');
