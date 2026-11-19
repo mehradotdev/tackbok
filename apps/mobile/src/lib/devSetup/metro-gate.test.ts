@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 // The dev setup must never reach production bundles (#219). Metro decides this at
@@ -48,12 +49,7 @@ test('beta bundles keep the dev setup', () => {
 
 test('the no-op module exports the same names as the real one', () => {
   const source = (file: string) =>
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    [
-      ...require('node:fs')
-        .readFileSync(file, 'utf8')
-        .matchAll(/^export (?:function|const) (\w+)/gm),
-    ]
+    [...fs.readFileSync(file, 'utf8').matchAll(/^export (?:function|const) (\w+)/gm)]
       .map((match) => match[1])
       .sort();
   expect(source(disabledModule)).toEqual(source(realModule));

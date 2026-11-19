@@ -152,12 +152,13 @@ export default function Layout() {
   }, [hasHydrated]);
 
   // Reminder resync needs persisted settings (enabled/time) and the locale
-  // (notification text is baked at schedule time) before it can run.
+  // (notification text is baked at schedule time) before it can run, and the
+  // beta dev setup, which can change both.
   useEffect(() => {
-    if (hasHydrated && localeHasHydrated) {
+    if (hasHydrated && localeHasHydrated && devSetupReady) {
       initReminders();
     }
-  }, [hasHydrated, localeHasHydrated]);
+  }, [devSetupReady, hasHydrated, localeHasHydrated]);
 
   // Analytics starts only after hydration so the persisted consent flag
   // (analyticsEnabled) is trustworthy; it stays fully inert when disabled.

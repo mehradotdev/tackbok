@@ -28,7 +28,9 @@ describe('parseDevSetup', () => {
   });
 
   test('accepts the default title font, the device locale and blank pairs', () => {
-    expect(parseDevSetup(' titleFont=default, ,locale=device,coachMarks=on,')).toEqual({
+    expect(
+      parseDevSetup(' titleFont=default, ,locale = device,coachMarks=on,run=1747,'),
+    ).toEqual({
       setup: { titleFont: 'default', locale: 'device', coachMarks: true },
       errors: [],
     });
@@ -37,10 +39,11 @@ describe('parseDevSetup', () => {
   test('reports unknown keys and values instead of guessing', () => {
     const { setup, errors } = parseDevSetup(
       'theme=nope,fontSize=huge,titleFont=comic,locale=fr,onboarding=skip,greeting=no,' +
-        'restore=../secret.zip,restore=notes.txt,screen=insights,reset=0,colour=red',
+        'restore=../secret.zip,restore=notes.txt,screen=insights,screen=/,reset=0,' +
+        'run=a b,coachMarks=constructor,colour=red',
     );
     expect(setup).toEqual({});
-    expect(errors).toHaveLength(11);
+    expect(errors).toHaveLength(14);
     expect(errors.at(-1)).toBe('unknown setting "colour"');
   });
 });

@@ -42,8 +42,8 @@ export function parseDevSetup(raw: string): { setup: DevSetup; errors: string[] 
     const trimmed = pair.trim();
     if (!trimmed) continue;
     const separator = trimmed.indexOf('=');
-    const key = separator === -1 ? trimmed : trimmed.slice(0, separator);
-    const value = separator === -1 ? '' : trimmed.slice(separator + 1);
+    const key = (separator === -1 ? trimmed : trimmed.slice(0, separator)).trim();
+    const value = separator === -1 ? '' : trimmed.slice(separator + 1).trim();
     const invalid = () => errors.push(`${key}: unsupported value "${value}"`);
     switch (key) {
       case 'reset':
@@ -85,11 +85,15 @@ export function parseDevSetup(raw: string): { setup: DevSetup; errors: string[] 
       case 'coachMarks':
       case 'greeting':
       case 'betaBadge':
-        if (value in ON_OFF) setup[key] = ON_OFF[value];
+        if (value === 'on' || value === 'off') setup[key] = ON_OFF[value];
         else invalid();
         break;
+      case 'run':
+        // Any token: a new one makes the same settings apply again.
+        if (!/^[\w.-]+$/.test(value)) invalid();
+        break;
       case 'screen':
-        if (/^\/[\w/-]*$/.test(value)) setup.screen = value;
+        if (/^(\/[\w-]+)+$/.test(value)) setup.screen = value;
         else invalid();
         break;
       default:
