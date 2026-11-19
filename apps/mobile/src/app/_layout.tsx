@@ -29,6 +29,8 @@ import { Text } from '~/components/ui/text';
 import { Toaster } from '~/components/ui/toast';
 import { APP_FONT_ASSETS } from '~/lib/theme/fonts';
 import { AchievementDialogHost } from '~/components/achievement-dialog-host';
+// A no-op module outside beta bundles; see metro.config.js.
+import { DevSetupNavigation, useDevSetup } from '~/lib/devSetup';
 import {
   getProductionSyncRuntime,
   isProductionCloudSyncConfigured,
@@ -96,6 +98,7 @@ export default function Layout() {
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
   const localeHasHydrated = useLocaleStore((s) => s._hasHydrated);
   const profileReady = useProfileBootstrap(success, hasHydrated);
+  const devSetupReady = useDevSetup(profileReady && localeHasHydrated);
   const themeConfig = getThemeConfig(theme);
   const statusBarStyle = themeConfig.variant === 'dark' ? 'light' : 'dark';
 
@@ -109,10 +112,14 @@ export default function Layout() {
 
   const isBootstrapLoading =
     !error &&
-    (!success || !profileReady || !localeHasHydrated || (!fontsLoaded && !fontsError));
+    (!success ||
+      !profileReady ||
+      !localeHasHydrated ||
+      !devSetupReady ||
+      (!fontsLoaded && !fontsError));
 
   useEffect(() => {
-    if (!success || !hasHydrated || !profileReady) return;
+    if (!success || !hasHydrated || !profileReady || !devSetupReady) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -128,7 +135,7 @@ export default function Layout() {
       cancelled = true;
       cloudSyncRuntime.stop();
     };
-  }, [hasHydrated, profileReady, success]);
+  }, [devSetupReady, hasHydrated, profileReady, success]);
 
   // Sync native root background once theme is trustworthy (hydrated), or on migration error
   useEffect(() => {
@@ -271,6 +278,7 @@ export default function Layout() {
                 />
               </Stack>
               <ReminderNavigationObserver />
+              <DevSetupNavigation />
               <ScreenViewObserver />
               <AchievementDialogHost />
             </AppLockGate>
