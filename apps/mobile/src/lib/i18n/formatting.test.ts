@@ -76,7 +76,7 @@ it('formats iOS dates, numbers, and messages when Intl omits the numbering syste
 
 it('defaults to English when no device language or saved preference is supported', () => {
   expect(getEffectiveSupportedLocale('fr-FR', 'device')).toBe('en');
-  expect(getEffectiveSupportedLocale(['it-IT', 'fr-FR'], 'device')).toBe('en');
+  expect(getEffectiveSupportedLocale(['pt-BR', 'fr-FR'], 'device')).toBe('en');
   expect(getEffectiveSupportedLocale(null, 'device')).toBe('en');
   expect(getEffectiveSupportedLocale('de-DE', 'unsupported' as LocalePreference)).toBe(
     'en',
@@ -92,6 +92,8 @@ it.each([
   ['he-IL', 'he'],
   ['es-MX', 'es'],
   ['hi-IN', 'hi'],
+  ['it-IT', 'it'],
+  ['it-CH', 'it'],
   ['sv-SE', 'sv'],
 ])('matches %s to %s', (device, expected) =>
   expect(getEffectiveLocale(device)).toBe(expected),

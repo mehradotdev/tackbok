@@ -16,7 +16,18 @@ const {
 
 const IS_BETA = process.env.APP_VARIANT === 'beta';
 // app.config.test.ts keeps native declarations aligned with ALL_SUPPORTED_LOCALES.
-const nativeLocales = ['en', 'es', 'ar', 'he', 'de', 'hi', 'sv', 'zh-Hans', 'zh-Hant'];
+const nativeLocales = [
+  'en',
+  'es',
+  'ar',
+  'he',
+  'de',
+  'it',
+  'hi',
+  'sv',
+  'zh-Hans',
+  'zh-Hant',
+];
 // Expo uses these keys verbatim as <locale>.lproj folder names.
 const locales = Object.fromEntries(
   nativeLocales.map((locale) => {

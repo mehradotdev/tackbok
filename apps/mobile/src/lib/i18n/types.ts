@@ -17,7 +17,7 @@ export const SUPPORTED_LANG_CODES = [
   // 'pl',
   // 'ru',
   // 'pt',
-  // 'it',
+  'it',
   'hi',
   // 'ko',
   // 'ja',

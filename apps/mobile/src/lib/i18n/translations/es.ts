@@ -434,7 +434,7 @@ export const es = {
   'appInfo.tackbokIsFreeToUseAndThatsNotChangingIf':
     'Tackbok es de uso gratuito y eso no cambiará. Si te ha aportado un poco más de gratitud a tu día, puedes apoyarlo, aunque no hay nada que desbloquear. Todos obtienen la misma aplicación.',
   'appInfo.keepingTackbokRunningCurrentlyCostsAboutUs3325Per':
-    'Mantener Tackbok en funcionamiento cuesta actualmente alrededor de 33,25 dólares estadounidenses al mes, antes de impuestos, tarifas y excedentes de uso. Si considera que vale la pena, incluso una pequeña contribución ayudará a que sea gratuito para todos.',
+    'Mantener Tackbok en funcionamiento cuesta actualmente alrededor de 33,25 dólares estadounidenses al mes, antes de impuestos, tarifas y excedentes de uso. Si crees que vale la pena, incluso una pequeña contribución ayuda a que siga siendo gratuito para todos.',
   'appInfo.waysToSupport': 'Formas de apoyar',
   'appInfo.free': 'Gratis',
   'appInfo.smallThanks': 'Pequeñas gracias',

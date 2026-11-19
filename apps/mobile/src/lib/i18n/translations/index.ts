@@ -23,7 +23,7 @@ import { es } from './es';
 // import { pl } from './pl';
 // import { ru } from './ru';
 // import { pt } from './pt';
-// import { it } from './it';
+import { it } from './it';
 import { hi } from './hi';
 // import { ko } from './ko';
 // import { ja } from './ja';
@@ -53,7 +53,7 @@ export const translations: Record<SupportedLocale, Translations> = {
   // pl,
   // ru,
   // pt,
-  // it,
+  it,
   hi,
   // ko,
   // ja,
@@ -96,7 +96,7 @@ export const languages: LanguageInfo[] = [
   { code: 'de', displayName: 'German', nativeName: 'Deutsch', isRTL: false },
   { code: 'he', displayName: 'Hebrew', nativeName: 'עברית', isRTL: true },
   { code: 'hi', displayName: 'Hindi', nativeName: 'हिन्दी', isRTL: false },
-  // { code: 'it', displayName: 'Italian', nativeName: 'Italiano', isRTL: false },
+  { code: 'it', displayName: 'Italian', nativeName: 'Italiano', isRTL: false },
   // { code: 'ja', displayName: 'Japanese', nativeName: '日本語', isRTL: false },
   // { code: 'kn', displayName: 'Kannada', nativeName: 'ಕನ್ನಡ', isRTL: false },
   // { code: 'ko', displayName: 'Korean', nativeName: '한국어', isRTL: false },
