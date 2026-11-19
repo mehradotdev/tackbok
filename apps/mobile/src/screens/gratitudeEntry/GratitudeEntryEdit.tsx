@@ -4,6 +4,7 @@ import {
   Keyboard,
   ActivityIndicator,
   Pressable,
+  type LayoutChangeEvent,
   type TextInputInstance,
 } from 'react-native';
 import {
@@ -17,7 +18,9 @@ import { useNavigation, usePreventRemove } from 'expo-router';
 import { useCSSVariable } from 'uniwind';
 import { Clock, FilePenLine, Plus, Shuffle, X } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { cn } from 'tailwind-variants';
 import {
+  BAR_MAX_FONT_SCALE,
   MODAL_CLOSE_DELAY,
   MOOD_EMOJI_MAX_FONT_SCALE,
   MOOD_OPTIONS,
@@ -42,6 +45,7 @@ import {
   useUpsertEntry,
   useTagMapping,
 } from '~/hooks/useGratitude';
+import { useBarTextShrinkToFit } from '~/hooks/useBarTextShrinkToFit';
 import { usePhotoSession } from '~/hooks/usePhotoSession';
 import { useVoiceMemoSession } from '~/hooks/useVoiceMemoSession';
 import { useWorksheetTemplate } from '~/hooks/useWorksheetTemplate';
@@ -74,6 +78,7 @@ import {
 import { DateSelectDropdown } from '~/components/DateSelectDropdown';
 import { TimePickerModal } from '~/components/TimePickerModal';
 import { FloatingActionDock } from './FloatingActionDock';
+import { getCenteredTitleInset } from './header-layout';
 import { MoodModal } from './MoodModal';
 import { PromptLibraryModal } from './PromptLibraryModal';
 import { TagsModal } from './TagsModal';
@@ -373,6 +378,27 @@ function GratitudeEntryEditForm({
     }
   }, [hasUnsavedChanges, onCancel]);
 
+  // Header button frames, used to keep the centred date clear of Cancel and Save.
+  const [cancelFrame, setCancelFrame] = useState({ x: 0, width: 0 });
+  const [saveFrame, setSaveFrame] = useState({ x: 0, width: 0 });
+  const handleCancelLayout = (event: LayoutChangeEvent) => {
+    const { x, width } = event.nativeEvent.layout;
+    // Skip re-rendering the whole form when the frame is unchanged.
+    setCancelFrame((prev) =>
+      prev.x === x && prev.width === width ? prev : { x, width },
+    );
+  };
+  const handleSaveLayout = (event: LayoutChangeEvent) => {
+    const { x, width } = event.nativeEvent.layout;
+    setSaveFrame((prev) => (prev.x === x && prev.width === width ? prev : { x, width }));
+  };
+  // Only above the default text size, where the date shrinks to fit: at the default size
+  // the full-width layout is kept exactly as it was.
+  const shrinkBarTextToFit = useBarTextShrinkToFit();
+  const headerSideInset = shrinkBarTextToFit
+    ? getCenteredTitleInset(cancelFrame, saveFrame)
+    : 0;
+
   /**
    * Handle Navigation & Back Actions.
    * Blocks screen removal to handle Unsaved Changes or Edit Mode cancellation.
@@ -520,15 +546,32 @@ function GratitudeEntryEditForm({
         {/* Header */}
         <View className="relative flex-row items-center justify-between px-4 py-3 border-b border-border">
           {/* Cancel button */}
-          <View className="z-10">
-            <Button onPress={handlePressCancel} variant="link" className="p-0">
-              <Text className="text-lg text-foreground/70">{t('common.cancel')}</Text>
+          {/* Above the default size each button is capped at 30% of the bar and its label
+              shrinks, so long translations still leave room for the centred date. */}
+          <View
+            className={cn('z-10', shrinkBarTextToFit && 'max-w-[30%]')}
+            onLayout={handleCancelLayout}>
+            <Button
+              onPress={handlePressCancel}
+              variant="link"
+              className="p-0 max-w-full"
+              accessibilityShowsLargeContentViewer
+              accessibilityLargeContentTitle={t('common.cancel')}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit={shrinkBarTextToFit}
+                maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
+                className="shrink text-lg text-foreground/70">
+                {t('common.cancel')}
+              </Text>
             </Button>
           </View>
 
-          {/* Center Date/Time - Absolutely positioned */}
+          {/* Center Date/Time - absolutely positioned so it stays centred on the screen.
+              Equal side insets as wide as the wider button keep it clear of both. */}
           <DateSelectDropdown
-            className="flex-none absolute inset-0 items-center justify-center z-0"
+            className="flex-none absolute inset-y-0 items-center justify-center z-0"
+            style={{ left: headerSideInset, right: headerSideInset }}
             pointerEvents="box-none"
             timestamp={timestamp}
             onDateChange={setTimestamp}
@@ -537,9 +580,23 @@ function GratitudeEntryEditForm({
           />
 
           {/* Save button */}
-          <View className="z-10">
-            <Button onPress={handleSave} disabled={!canSave} variant="default">
-              <Text>{t('common.save')}</Text>
+          <View
+            className={cn('z-10', shrinkBarTextToFit && 'max-w-[30%]')}
+            onLayout={handleSaveLayout}>
+            <Button
+              onPress={handleSave}
+              disabled={!canSave}
+              variant="default"
+              className="max-w-full"
+              accessibilityShowsLargeContentViewer
+              accessibilityLargeContentTitle={t('common.save')}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit={shrinkBarTextToFit}
+                maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
+                className="shrink">
+                {t('common.save')}
+              </Text>
             </Button>
           </View>
         </View>
