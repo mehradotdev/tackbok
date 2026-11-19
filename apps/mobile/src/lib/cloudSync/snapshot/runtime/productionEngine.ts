@@ -160,6 +160,12 @@ class MediaPolicyProvider implements SnapshotProvider {
   deleteSnapshot(vaultId: string, snapshotId: string) {
     return this.delegate.deleteSnapshot(vaultId, snapshotId);
   }
+  listMedia(vaultId: string) {
+    return this.delegate.listMedia(vaultId);
+  }
+  deleteMedia(vaultId: string, blobHash: string, uploadedBy: number) {
+    return this.delegate.deleteMedia(vaultId, blobHash, uploadedBy);
+  }
 
   private async mediaWaitsForWifi(): Promise<boolean> {
     if (!useSettingsStore.getState().cloudSyncWifiOnlyMedia) return false;

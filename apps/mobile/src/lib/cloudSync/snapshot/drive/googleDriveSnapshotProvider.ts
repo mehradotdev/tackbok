@@ -8,6 +8,7 @@ import type {
   DeviceHead,
   StoredDeviceHead,
   ListedDeviceHead,
+  MediaObject,
   SnapshotObject,
   SnapshotProvider,
   MediaDownloadSink,
@@ -670,6 +671,81 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         { idempotent: true, accepted: [404] },
       );
       this.state.removeFile(vaultId, candidate.fileId);
+    }
+  }
+
+  /**
+   * Every media blob of the vault, from a fresh query (media is not in the
+   * discovery inventory). A file whose metadata does not match its key is
+   * left out; so is its key if no file under it is consistent.
+   */
+  async listMedia(vaultId: string): Promise<MediaObject[]> {
+    const files = await this.queryFiles(
+      vaultId,
+      this.vaultQuery(
+        vaultId,
+        `name contains 'media/' and ${propertyClause(PROP_KIND, 'media')}`,
+      ),
+    );
+    const byHash = new Map<string, number | null>();
+    for (const file of files) {
+      const record = this.mediaRecord(file);
+      if (!record) continue;
+      const prior = byHash.get(record.contentSha256);
+      byHash.set(
+        record.contentSha256,
+        prior === null || record.createdAt === null
+          ? null
+          : Math.max(prior ?? Number.NEGATIVE_INFINITY, record.createdAt),
+      );
+    }
+    return [...byHash]
+      .map(([blobHash, createdAt]) => ({ blobHash, createdAt }))
+      .sort((left, right) => left.blobHash.localeCompare(right.blobHash));
+  }
+
+  async deleteMedia(
+    vaultId: string,
+    blobHash: string,
+    uploadedBy: number,
+  ): Promise<boolean> {
+    const key = this.mediaKey(blobHash);
+    // Fresh, not the cache: a device may have uploaded it again meanwhile.
+    const files = await this.queryExactKey(vaultId, key, 'media');
+    const records = files.map((file) => this.mediaRecord(file));
+    if (
+      records.length === 0 ||
+      records.some(
+        (record) =>
+          record === null ||
+          record.logicalKey !== key ||
+          record.createdAt === null ||
+          record.createdAt > uploadedBy,
+      )
+    )
+      return false;
+    for (const record of records) {
+      await this.request(
+        vaultId,
+        'delete',
+        `${API}/files/${encodeURIComponent(record!.fileId)}`,
+        { method: 'DELETE' },
+        { idempotent: true, accepted: [404] },
+      );
+      this.state.removeFile(vaultId, record!.fileId);
+    }
+    return true;
+  }
+
+  /** A media file whose metadata matches its key and hash, or null. */
+  private mediaRecord(file: DriveFile): DriveFileRecord | null {
+    try {
+      const record = this.record(file, 'media', null);
+      return record.logicalKey === this.mediaKey(record.contentSha256) ? record : null;
+    } catch (error) {
+      if (error instanceof SnapshotProviderError && error.code === 'invalid-data')
+        return null;
+      throw error;
     }
   }
 

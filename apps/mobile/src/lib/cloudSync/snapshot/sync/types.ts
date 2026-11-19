@@ -125,6 +125,16 @@ export interface SnapshotObject {
   byteCount: number;
 }
 
+/** A media blob on the provider (`listMedia`). */
+export interface MediaObject {
+  blobHash: string;
+  /**
+   * The provider's own upload time (Drive's `createdTime`), the newest when
+   * one key has several files; null when any of them has none.
+   */
+  createdAt: number | null;
+}
+
 export type SnapshotProviderErrorCode =
   | 'authorization-required'
   | 'quota-full'
@@ -214,6 +224,15 @@ export interface SnapshotProvider {
   ): Promise<boolean>;
   listSnapshots(vaultId: string): Promise<SnapshotObject[]>;
   deleteSnapshot(vaultId: string, snapshotId: string): Promise<void>;
+  /** Every media blob of the vault, read fresh from the provider. */
+  listMedia(vaultId: string): Promise<MediaObject[]>;
+  /**
+   * Remote media garbage collection (`mediaGc.ts`). Looks the blob up again
+   * on the provider and deletes its files only if every one was uploaded at
+   * or before `uploadedBy` (provider time): a newer upload means a device
+   * needs it again. Returns whether anything was deleted.
+   */
+  deleteMedia(vaultId: string, blobHash: string, uploadedBy: number): Promise<boolean>;
 }
 
 /** Random-access, bounded media source. No call may return more than `length` bytes. */

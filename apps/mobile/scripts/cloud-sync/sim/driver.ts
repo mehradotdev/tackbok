@@ -158,6 +158,11 @@ export interface CaseConfig {
   coarseClock: boolean;
   /** Extra weight for some edits, to focus a run on one rule. */
   weights?: Partial<Record<LocalEvent['kind'], number>>;
+  /**
+   * Extra time per event, so a case spans weeks or months: media garbage
+   * collection (#185 P12) needs 30-day windows.
+   */
+  msPerEvent?: number;
 }
 
 export interface CaseResult {
@@ -386,6 +391,8 @@ interface Removal {
 
 export interface OracleState {
   time: number;
+  /** `CaseConfig.msPerEvent`. */
+  msPerEvent: number;
   /** Sum of `leap` events so far. */
   leaped: number;
   /** Entries brought back after compaction: may show values replaced before their delete. */
@@ -417,6 +424,7 @@ function newOracle(config: CaseConfig): OracleState {
   const devices = config.devices;
   return {
     time: T0,
+    msPerEvent: config.msPerEvent ?? 0,
     leaped: 0,
     revived: new Set(),
     coarseClock: config.coarseClock,
@@ -511,7 +519,7 @@ async function runEvent(
   index: number,
 ): Promise<void> {
   // A pure function of the original index, so a shrunk replay keeps times.
-  state.time = timeAt(index);
+  state.time = timeAt(index) + index * state.msPerEvent;
   if (event.kind === 'clock') {
     state.skews[event.device] = event.skew;
     return;

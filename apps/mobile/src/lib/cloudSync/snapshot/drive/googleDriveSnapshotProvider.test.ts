@@ -1358,6 +1358,45 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(metrics.report()).toMatchObject({ attempts: 2, byMethod: { list: 2 } });
   });
 
+  test('media listing reads Drive afresh and gives each blob its newest upload time', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-listed');
+    const hash = sha256Bytes(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    const first = server.seed(vaultId, key, 'media', bytes);
+    const second = server.seed(vaultId, key, 'media', bytes);
+    second.createdTime = '2026-09-01T00:00:00.000Z';
+    // A file whose name does not match its hash is never listed.
+    server.seed(vaultId, `media/00/${'0'.repeat(64)}`, 'media', bytes);
+    server.seed('other-vault', key, 'media', bytes);
+    const app = provider(server, new MemoryDriveProviderStateStore());
+    expect(await app.listMedia(vaultId)).toEqual([
+      { blobHash: hash, createdAt: Date.parse('2026-09-01T00:00:00.000Z') },
+    ]);
+    expect(first.createdTime).toBe('2026-08-15T00:00:00.000Z');
+  });
+
+  test('media deletion looks the blob up again and keeps it if any copy is newer', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-deleted');
+    const hash = sha256Bytes(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    const old = server.seed(vaultId, key, 'media', bytes);
+    const app = provider(server, new MemoryDriveProviderStateStore());
+    const cutoff = Date.parse('2026-08-20T00:00:00.000Z');
+    // Uploaded again after the cutoff: a device needs it, so nothing goes.
+    const again = server.seed(vaultId, key, 'media', bytes);
+    again.createdTime = '2026-08-21T00:00:00.000Z';
+    expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(false);
+    expect(server.files.has(old.id)).toBe(true);
+    server.files.delete(again.id);
+    expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(true);
+    expect(server.files.has(old.id)).toBe(false);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    // Already gone: nothing to delete.
+    expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(false);
+  });
+
   test('snapshot deletion is permanent and repeated deletion is idempotent', async () => {
     const server = new FakeDriveServer();
     const state = new MemoryDriveProviderStateStore();
