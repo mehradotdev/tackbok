@@ -191,6 +191,70 @@ export const pluralMessages = {
     'cloud.progress.filesDownloaded_one': '{done} av {count} fil nedladdad',
     'cloud.progress.filesDownloaded_other': '{done} av {count} filer nedladdade',
   },
+  it: {
+    'appearance.countThemesAndColorSchemes_one': '{count} tema e combinazione di colori',
+    'appearance.countThemesAndColorSchemes_many':
+      '{count} di temi e combinazioni di colori',
+    'appearance.countThemesAndColorSchemes_other':
+      '{count} temi e combinazioni di colori',
+    'entry.maximumCountPhotosPerEntry_one': 'Fino a {count} foto per nota',
+    'entry.maximumCountPhotosPerEntry_many': 'Fino a {count} di foto per nota',
+    'entry.maximumCountPhotosPerEntry_other': 'Fino a {count} foto per nota',
+    'entry.maximumCountVoiceMemosPerEntry_one': 'Fino a {count} memo vocale per nota',
+    'entry.maximumCountVoiceMemosPerEntry_many': 'Fino a {count} di memo vocali per nota',
+    'entry.maximumCountVoiceMemosPerEntry_other': 'Fino a {count} memo vocali per nota',
+    'insights.countYearsAgoToday_one': '{count} anno fa oggi',
+    'insights.countYearsAgoToday_many': '{count} di anni fa oggi',
+    'insights.countYearsAgoToday_other': '{count} anni fa oggi',
+    'milestone.daysOfGratitude_one': '{count} giorno di gratitudine',
+    'milestone.daysOfGratitude_many': '{count} di giorni di gratitudine',
+    'milestone.daysOfGratitude_other': '{count} giorni di gratitudine',
+    'sharing.countDaysOfGratitude_one': '{count} giorno di gratitudine!',
+    'sharing.countDaysOfGratitude_many': '{count} di giorni di gratitudine!',
+    'sharing.countDaysOfGratitude_other': '{count} giorni di gratitudine!',
+    'sharing.openCountDayAchievement_one': 'Vedi il traguardo: {count} giorno',
+    'sharing.openCountDayAchievement_many': 'Vedi il traguardo: {count} di giorni',
+    'sharing.openCountDayAchievement_other': 'Vedi il traguardo: {count} giorni',
+    'cloud.countChangesSafelyQueued_one':
+      '{count} modifica salvata, in attesa di sincronizzazione',
+    'cloud.countChangesSafelyQueued_many':
+      '{count} di modifiche salvate, in attesa di sincronizzazione',
+    'cloud.countChangesSafelyQueued_other':
+      '{count} modifiche salvate, in attesa di sincronizzazione',
+    'cloud.countChangesRemaining_one': '{count} modifica rimanente',
+    'cloud.countChangesRemaining_many': '{count} di modifiche rimanenti',
+    'cloud.countChangesRemaining_other': '{count} modifiche rimanenti',
+    'cloud.conflicts.entriesEdited_one':
+      'Una nota è stata modificata su due dispositivi contemporaneamente. Entrambe le versioni sono nel tuo diario.',
+    'cloud.conflicts.entriesEdited_many':
+      '{count} di note sono state modificate su due dispositivi contemporaneamente. Entrambe le versioni sono nel tuo diario.',
+    'cloud.conflicts.entriesEdited_other':
+      '{count} note sono state modificate su due dispositivi contemporaneamente. Entrambe le versioni sono nel tuo diario.',
+    'cloud.conflicts.homeNoticeEntries_one':
+      'Una nota è stata modificata su due dispositivi contemporaneamente. Non si è perso nulla: tutte le versioni sono nel tuo diario.',
+    'cloud.conflicts.homeNoticeEntries_many':
+      '{count} di note sono state modificate su due dispositivi contemporaneamente. Non si è perso nulla: tutte le versioni sono nel tuo diario.',
+    'cloud.conflicts.homeNoticeEntries_other':
+      '{count} note sono state modificate su due dispositivi contemporaneamente. Non si è perso nulla: tutte le versioni sono nel tuo diario.',
+    'cloud.conflicts.keepThisOneMessage_one':
+      'Questa versione verrà mantenuta su tutti i tuoi dispositivi al posto dell’altra.',
+    'cloud.conflicts.keepThisOneMessage_many':
+      'Questa versione verrà mantenuta su tutti i tuoi dispositivi al posto delle altre {count}.',
+    'cloud.conflicts.keepThisOneMessage_other':
+      'Questa versione verrà mantenuta su tutti i tuoi dispositivi al posto delle altre {count}.',
+    'cloud.conflicts.entriesReturned_one':
+      'Una nota che avevi eliminato su un dispositivo è stata modificata su un altro, quindi è stata mantenuta la versione modificata.',
+    'cloud.conflicts.entriesReturned_many':
+      '{count} di note che avevi eliminato su un dispositivo sono state modificate su un altro, quindi sono state mantenute le versioni modificate.',
+    'cloud.conflicts.entriesReturned_other':
+      '{count} note che avevi eliminato su un dispositivo sono state modificate su un altro, quindi sono state mantenute le versioni modificate.',
+    'cloud.progress.devicesChecked_one': 'Dispositivi controllati: {done} di {count}',
+    'cloud.progress.devicesChecked_many': 'Dispositivi controllati: {done} di {count}',
+    'cloud.progress.devicesChecked_other': 'Dispositivi controllati: {done} di {count}',
+    'cloud.progress.filesDownloaded_one': 'File scaricati: {done} di {count}',
+    'cloud.progress.filesDownloaded_many': 'File scaricati: {done} di {count}',
+    'cloud.progress.filesDownloaded_other': 'File scaricati: {done} di {count}',
+  },
   de: {
     'appearance.countThemesAndColorSchemes_one': '{count} Design und Farbschema',
     'appearance.countThemesAndColorSchemes_other': '{count} Designs und Farbschemata',
