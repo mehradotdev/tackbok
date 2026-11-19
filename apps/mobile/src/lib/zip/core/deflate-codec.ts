@@ -314,6 +314,11 @@ export function deflateRaw(
  * bytes follow it directly; only the `last` piece sets the final-block bit.
  */
 export function deflateRawPiece(data: Uint8Array, last: boolean, level = 6): Uint8Array {
+  // Match chains left by earlier calls are only ever byte-checked, so they
+  // cannot change the output; cleared anyway, so a piece depends on its own
+  // input alone (another deflate may run while `encodeGzipInPieces` pauses).
+  state.starts.fill(0);
+  state.previous.fill(0);
   const buffer = new Uint8Array(60 + Math.floor(data.length * 1.1));
   const offset = deflateRawBlock(data, buffer, 0, level, last);
   return new Uint8Array(buffer.buffer, 0, offset);

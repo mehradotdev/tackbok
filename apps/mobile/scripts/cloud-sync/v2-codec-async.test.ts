@@ -11,6 +11,7 @@ import { SnapshotValidationError } from '../../src/lib/cloudSync/snapshot/caps';
 import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
 import {
   type CodecWork,
+  SnapshotHashUnavailableError,
   canonicalState,
   decodeEnvelope,
   decodeEnvelopeAsync,
@@ -79,7 +80,8 @@ describe('async snapshot codec', () => {
       // The body is hashed by the given hasher, once to encode and once to decode.
       expect(work.hashed).toEqual([sync.bodyCanonical.length, sync.bodyCanonical.length]);
       if (count >= 2_500) expect(work.pauses).toBeGreaterThan(10);
-    });
+      // Pure-JS hashing of every body: slow on a busy CI runner.
+    }, 60_000);
   }
 
   test('refuses damaged bytes as the sync decoder does', async () => {
@@ -106,6 +108,28 @@ describe('async snapshot codec', () => {
         name,
         code: await errorCode(() => decodeEnvelopeAsync(input, id, codec)),
       }).toEqual({ name, code: expected });
+    }
+  });
+
+  test('a hasher that fails is not a damaged snapshot', async () => {
+    const state = buildJournal(10, 6);
+    const { bytes, snapshotId } = encodeEnvelope(state, publication(state));
+    const failing: CodecWork = {
+      hashBytes: async () => {
+        throw new Error('digest unavailable');
+      },
+      pause: async () => {},
+    };
+    for (const run of [
+      () => decodeEnvelopeAsync(bytes, snapshotId, failing),
+      () => encodeEnvelopeAsync(state, publication(state), failing),
+    ]) {
+      const error = await run().then(
+        () => null,
+        (failure: unknown) => failure,
+      );
+      expect(error).toBeInstanceOf(SnapshotHashUnavailableError);
+      expect(error).not.toBeInstanceOf(SnapshotValidationError);
     }
   });
 

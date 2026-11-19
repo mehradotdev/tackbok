@@ -356,9 +356,10 @@ export function encodeEnvelope(
 }
 
 /**
- * How the async codec does its heavy work: `hashBytes` may hash off the JS
- * thread (the app passes the native digest), and `pause` lets the app
- * respond between pieces of work.
+ * How the async codec does its heavy work: `hashBytes` may hash natively
+ * (the app passes the expo-crypto digest, much faster than SHA-256 in JS),
+ * and `pause` lets the app respond between pieces of work. The state being
+ * encoded must not change while the work pauses; no caller changes it.
  */
 export interface CodecWork {
   hashBytes: ByteHasher;
@@ -370,6 +371,25 @@ export const jsCodecWork: CodecWork = {
   hashBytes: async (bytes) => sha256Bytes(bytes),
   pause: () => new Promise((resolve) => setTimeout(resolve, 0)),
 };
+
+/**
+ * `CodecWork.hashBytes` failed: the snapshot is not known to be bad. Callers
+ * must not treat it as unreadable data (nothing is skipped or deleted for it).
+ */
+export class SnapshotHashUnavailableError extends Error {
+  constructor(readonly cause: unknown) {
+    super('Snapshot body could not be hashed');
+    this.name = 'SnapshotHashUnavailableError';
+  }
+}
+
+async function hashWith(work: CodecWork, bytes: Uint8Array): Promise<string> {
+  try {
+    return await work.hashBytes(bytes);
+  } catch (error) {
+    throw new SnapshotHashUnavailableError(error);
+  }
+}
 
 /**
  * `encodeEnvelope` for the app: the same header, snapshot ID and body, but
@@ -396,7 +416,7 @@ export async function encodeEnvelopeAsync(
     level: 6,
     pause: work.pause,
   });
-  const bodyHash = await work.hashBytes(bodyCanonical);
+  const bodyHash = await hashWith(work, bodyCanonical);
   return sealEnvelope(state, publication, ix, bodyCanonical, stored, bodyHash);
 }
 
@@ -1015,7 +1035,7 @@ export async function decodeEnvelopeAsync(
   });
   if (body.length !== header.bodyBytes)
     invalid('body-size-mismatch', 'Body size differs');
-  if ((await work.hashBytes(body)) !== header.bodyHash)
+  if ((await hashWith(work, body)) !== header.bodyHash)
     invalid('hash-mismatch', 'Snapshot body does not match its hash');
   const text = decodeUtf8Strict(body);
   await work.pause();

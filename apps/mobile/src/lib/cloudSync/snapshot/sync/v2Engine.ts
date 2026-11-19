@@ -71,6 +71,7 @@ import {
   SNAPSHOT_MAJOR,
   SnapshotUpdateRequiredError,
   type CodecWork,
+  SnapshotHashUnavailableError,
   decodeEnvelopeAsync,
   encodeEnvelopeAsync,
   jsCodecWork,
@@ -1541,6 +1542,8 @@ async function checkSnapshot(
   try {
     decoded = await decodeEnvelopeAsync(bytes, head.snapshotId, work);
   } catch (error) {
+    // Not a fault of the snapshot: the pass fails and is tried again.
+    if (error instanceof SnapshotHashUnavailableError) throw error;
     if (error instanceof SnapshotUpdateRequiredError)
       throw new AttentionError('unsupported-format', `remote-${error.code}`);
     const code = error instanceof SnapshotValidationError ? error.code : 'unknown';

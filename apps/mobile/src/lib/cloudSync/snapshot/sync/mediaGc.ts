@@ -58,7 +58,12 @@ import {
   syncSnapshotMedia,
 } from '~/db';
 
-import { type CodecWork, decodeEnvelopeAsync, jsCodecWork } from '../../v2/codec';
+import {
+  type CodecWork,
+  SnapshotHashUnavailableError,
+  decodeEnvelopeAsync,
+  jsCodecWork,
+} from '../../v2/codec';
 import type { SyncState } from '../../v2/types';
 import {
   SnapshotProviderError,
@@ -331,7 +336,10 @@ export async function collectMedia(options: {
       if (decoded.header.vaultId !== vaultId)
         return { status: 'blocked', reason: 'snapshot-other-vault' };
       state = decoded.state;
-    } catch {
+    } catch (error) {
+      // Not the snapshot's fault: read it again at the next check.
+      if (error instanceof SnapshotHashUnavailableError)
+        return { status: 'incomplete', deleted: [] };
       // Damaged, or from a newer build: what it refers to is unknown.
       return { status: 'blocked', reason: 'snapshot-unreadable' };
     }

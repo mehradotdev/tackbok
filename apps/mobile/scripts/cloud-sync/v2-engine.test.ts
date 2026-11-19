@@ -1620,6 +1620,21 @@ describe("other devices' bad heads (P8)", () => {
     expect(skipped).toMatchObject([{ deviceId: deviceIdOf(late), reason: 'unreadable' }]);
     // The snapshot shows up (a listing lag); Replace must not delete the head.
     provider.injectSnapshot(VAULT, lateHead.head!.snapshotId, bytes!, clock);
+    // Nor when it cannot hash the snapshot to check it: that is not bad data.
+    const failing = {
+      hashBytes: async () => {
+        throw new Error('digest unavailable');
+      },
+      pause: async () => {},
+    };
+    await expect(
+      removeUnreadableHeads(provider, VAULT, skipped, failing),
+    ).rejects.toThrow('could not be hashed');
+    expect(
+      provider
+        .physicalHeads(VAULT)
+        .some((head) => head.head?.deviceId === deviceIdOf(late)),
+    ).toBe(true);
     expect(await removeUnreadableHeads(provider, VAULT, skipped)).toBe(0);
     // A missing snapshot is read again after an hour, not a day.
     clock += 60 * 60 * 1000 + 1000;

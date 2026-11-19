@@ -568,24 +568,25 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     fresh = false,
   ): Promise<Set<string>> {
     const unique = [...new Set(blobHashes)].sort();
-    // Fresh: forget what the cache says, so an upload cannot trust it either.
-    if (fresh)
-      for (const hash of unique)
-        for (const file of this.state.listKey(vaultId, this.mediaKey(hash)))
-          if (file.kind === 'media') this.state.removeFile(vaultId, file.fileId);
     const found = new Set<string>();
+    if (unique.length === 0) return found;
     const unknown: string[] = [];
     // One read of the cached media, not one per blob: a publication asks about
     // every attachment, and a query each held the JS thread for over a second
     // with 1,600 of them (#185 P14).
-    const cachedHashes = new Map<string, Set<string>>();
+    const cached = new Map<string, DriveFileRecord[]>();
     for (const file of this.state.listKind(vaultId, 'media')) {
-      const hashes = cachedHashes.get(file.logicalKey) ?? new Set<string>();
-      hashes.add(file.contentSha256);
-      cachedHashes.set(file.logicalKey, hashes);
+      const files = cached.get(file.logicalKey);
+      if (files) files.push(file);
+      else cached.set(file.logicalKey, [file]);
     }
     for (const hash of unique) {
-      if (cachedHashes.get(this.mediaKey(hash))?.has(hash)) found.add(hash);
+      const files = cached.get(this.mediaKey(hash)) ?? [];
+      // Fresh: forget what the cache says, so an upload cannot trust it either.
+      if (fresh) {
+        for (const file of files) this.state.removeFile(vaultId, file.fileId);
+        unknown.push(hash);
+      } else if (files.some((file) => file.contentSha256 === hash)) found.add(hash);
       else unknown.push(hash);
     }
     for (let offset = 0; offset < unknown.length; offset += MEDIA_QUERY_GROUP) {
@@ -937,7 +938,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     bytes: Uint8Array,
     createdAt: number,
   ): Promise<void> {
-    // Snapshots run to megabytes: hashed off the JS thread in the app.
+    // Snapshots run to megabytes: hashed natively in the app (`hashBytes`).
     const hash = await this.hashBytes(bytes);
     const cached = this.state.listKey(vaultId, key).filter((file) => file.kind === kind);
     if (cached.length > 0) {
