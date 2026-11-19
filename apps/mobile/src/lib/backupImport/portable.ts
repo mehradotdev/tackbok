@@ -653,36 +653,63 @@ export async function importPortableEntries(
     // A history restore keeps an attachment's ID only while this journal
     // still has it: one removed since may have a published descriptor
     // other devices still hold, which a new row under its ID would contradict.
+    // One it still has with the same bytes keeps its file: no second copy.
     let entryToImport = portableEntry;
+    const reused = new Map<number, Asset>();
     if (options.history) {
       const ids = portableEntry.assets.flatMap((asset) =>
         asset.assetId ? [asset.assetId] : [],
       );
-      const known = new Set(
+      const rows =
         ids.length === 0
           ? []
-          : (
-              await tx
-                .select({ id: mediaAssets.asset_id })
-                .from(mediaAssets)
-                .where(inArray(mediaAssets.asset_id, ids))
-            ).map((row) => row.id),
-      );
-      entryToImport = {
-        ...portableEntry,
-        assets: portableEntry.assets.map((asset) =>
-          asset.assetId && !known.has(asset.assetId)
-            ? { ...asset, assetId: undefined }
-            : asset,
-        ),
-      };
+          : await tx.select().from(mediaAssets).where(inArray(mediaAssets.asset_id, ids));
+      const byId = new Map(rows.map((row) => [row.asset_id, row]));
+      const remaining: PortableEntry['assets'] = [];
+      portableEntry.assets.forEach((asset, index) => {
+        const row = asset.assetId ? byId.get(asset.assetId) : undefined;
+        if (
+          row?.local_uri &&
+          row.owner_type === 'entry' &&
+          row.owner_id === noteId &&
+          row.blob_hash &&
+          row.blob_hash === asset.blobHash
+        ) {
+          reused.set(index, {
+            type: row.kind === 'voice' ? AssetType.AUDIO : AssetType.IMAGE,
+            uri: row.local_uri,
+            assetId: row.asset_id,
+            blobHash: row.blob_hash,
+            mimeType: row.mime_type ?? undefined,
+            byteSize: row.byte_size ?? undefined,
+            width: row.width ?? undefined,
+            height: row.height ?? undefined,
+            durationMs: row.duration_ms ?? undefined,
+          });
+          return;
+        }
+        remaining.push(row ? asset : { ...asset, assetId: undefined });
+      });
+      entryToImport = { ...portableEntry, assets: remaining };
     }
 
     const {
-      assets,
+      assets: materialized,
       createdFiles: entryCreatedFiles,
       hadFailures,
     } = await materializePortableEntryAssets(entryToImport, zip, summary, source);
+    // In the backup's order: kept files where they were, new ones in the
+    // other places (one that failed to restore leaves its place out).
+    const assets: Asset[] = [];
+    if (!options.history) assets.push(...materialized);
+    else {
+      let next = 0;
+      portableEntry.assets.forEach((_asset, index) => {
+        const kept = reused.get(index);
+        if (kept) assets.push(kept);
+        else if (next < materialized.length) assets.push(materialized[next++]);
+      });
+    }
 
     if (
       hadFailures &&

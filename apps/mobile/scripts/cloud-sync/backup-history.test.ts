@@ -328,6 +328,29 @@ describe('backup history (P9)', () => {
     ).toEqual(['photos/new.jpg', 'photos/old.jpg']);
   });
 
+  test('an overwrite keeps the file of a photo this journal still has, without a second copy', async () => {
+    const a = device();
+    const photo = { type: AssetType.IMAGE, uri: 'photos/kept.jpg', assetId: 'kept' };
+    await addEntry(a, 'e1', { text_content: 'Before', assets: [photo] });
+    a.database.sqlite.run(
+      "UPDATE media_assets SET blob_hash = ?, byte_size = 3 WHERE asset_id = 'kept'",
+      ['c'.repeat(64)],
+    );
+    await blobs.writeVerified('c'.repeat(64), new Uint8Array([1, 2, 3]));
+    expect((await sync(a)).status).toBe('published');
+    const backup = headSnapshot(a);
+    clock += 1000;
+    await addEntry(a, 'e1', { text_content: 'Edited', assets: [photo] });
+    // The archive here holds no files: only a kept photo can stay.
+    await restore(a, backup, 'overwrite');
+    expect(texts(a)).toEqual(['e1:Before']);
+    expect(
+      a.database.sqlite
+        .query("SELECT asset_id, local_uri FROM media_assets WHERE owner_id = 'e1'")
+        .all(),
+    ).toEqual([{ asset_id: 'kept', local_uri: 'photos/kept.jpg' }]);
+  });
+
   test("an attachment's photo and voice note are listed with their files", async () => {
     const a = device();
     await addEntry(a, 'e1', {

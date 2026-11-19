@@ -87,11 +87,16 @@ async function mediaFile(
   const local = await store.verifiedLocalFile(blobHash);
   if (local) return local;
   const sink = createMediaPartialFileSink(downloads, blobHash);
-  try {
-    if (!(await provider.downloadMedia(vaultId, blobHash, sink))) return null;
-  } catch (error) {
-    if (error instanceof MediaIntegrityError) return null;
-    throw error;
+  // Bytes that fail their check are downloaded once more from zero; only
+  // then is the file counted as missing.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      if (!(await provider.downloadMedia(vaultId, blobHash, sink))) return null;
+      break;
+    } catch (error) {
+      if (!(error instanceof MediaIntegrityError)) throw error;
+      if (attempt > 0) return null;
+    }
   }
   const file = new File(downloads, `${blobHash}.bin`);
   return file.exists ? file : null;
@@ -211,7 +216,7 @@ export async function exportBackupFromHistory(
   try {
     const named = new File(Paths.cache, fileName);
     if (named.exists) named.delete();
-    archive.file.move(named);
+    await archive.file.move(named);
     shared = named;
     cleanup = await saveOrShareZipFile(shared, fileName);
   } finally {
