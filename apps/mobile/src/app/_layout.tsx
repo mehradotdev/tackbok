@@ -97,6 +97,7 @@ export default function Layout() {
   const localeHasHydrated = useLocaleStore((s) => s._hasHydrated);
   const profileReady = useProfileBootstrap(success, hasHydrated);
   const themeConfig = getThemeConfig(theme);
+  const statusBarStyle = themeConfig.variant === 'dark' ? 'light' : 'dark';
 
   const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
 
@@ -165,6 +166,7 @@ export default function Layout() {
       <View
         className="flex-1 items-center justify-center bg-background p-4"
         onLayout={hideSplash}>
+        <AppStatusBar style={statusBarStyle} />
         <Text className="text-destructive text-center">
           {t('common.databaseUpdateFailed', { message: error.message })}
         </Text>
@@ -201,6 +203,11 @@ export default function Layout() {
                   headerTintColor: primaryForeground as string,
                   headerStyle: { backgroundColor: primaryColor as string },
                   headerTitleStyle: { fontWeight: 'bold' },
+                  // iOS native-stack screens default to 'auto', which follows the system
+                  // appearance and overrides <AppStatusBar>. Android keeps AppStatusBar as the
+                  // only writer (see its native workaround).
+                  statusBarStyle:
+                    process.env.EXPO_OS === 'ios' ? statusBarStyle : undefined,
                 }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -267,7 +274,7 @@ export default function Layout() {
               <ScreenViewObserver />
               <AchievementDialogHost />
             </AppLockGate>
-            <AppStatusBar style={themeConfig.variant === 'dark' ? 'light' : 'dark'} />
+            <AppStatusBar style={statusBarStyle} />
             <Toaster />
             <PortalHost />
           </KeyboardProvider>
