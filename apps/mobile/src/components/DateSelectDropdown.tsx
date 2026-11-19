@@ -123,14 +123,14 @@ export function DateSelectDropdown({
           {/* Date/Time display */}
           <View className="shrink flex-col items-center">
             <Text
-              numberOfLines={1}
+              numberOfLines={shrinkBarTextToFit ? 1 : undefined}
               adjustsFontSizeToFit={shrinkBarTextToFit}
               maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
               className="font-body-bold text-lg text-foreground">
               {dateLabel}
             </Text>
             <Text
-              numberOfLines={1}
+              numberOfLines={shrinkBarTextToFit ? 1 : undefined}
               adjustsFontSizeToFit={shrinkBarTextToFit}
               maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
               className="text-sm text-foreground/80">

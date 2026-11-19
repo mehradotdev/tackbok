@@ -57,7 +57,7 @@ function DockButton({
       <Icon as={icon} className="text-foreground/70" size={22} />
       {showLabel && (
         <Text
-          numberOfLines={1}
+          numberOfLines={shrinkBarTextToFit ? 1 : undefined}
           adjustsFontSizeToFit={shrinkBarTextToFit}
           maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
           className="text-sm font-body-medium text-foreground/70 mt-1">

@@ -45,10 +45,10 @@ export function SampleEntriesBanner() {
 
   return (
     // The button wraps under the message when both no longer fit on one line (large text).
-    // shortcut: min-w-48 is the narrowest the message gets before the button wraps; revisit
+    // shortcut: min-w-40 is the narrowest the message gets before the button wraps; revisit
     // if the banner gains more controls.
     <View className="mx-4 mt-2 mb-1 flex-row flex-wrap items-center justify-between gap-x-2 gap-y-1 bg-card border border-border rounded-lg px-3 py-2">
-      <View className="flex-row items-center flex-1 min-w-48 gap-2">
+      <View className="flex-row items-center flex-1 min-w-40 gap-2">
         <Button
           variant="ghost"
           size="icon"
@@ -66,10 +66,10 @@ export function SampleEntriesBanner() {
       <Button
         variant="secondary"
         size="sm"
-        className="h-auto min-h-9 py-1"
+        className="h-auto min-h-9 max-w-full py-1"
         onPress={() => void handleRemoveAll()}
         disabled={isRemoving}>
-        <Text className="text-sm">{t('onboarding.removeAll')}</Text>
+        <Text className="shrink text-sm">{t('onboarding.removeAll')}</Text>
       </Button>
     </View>
   );

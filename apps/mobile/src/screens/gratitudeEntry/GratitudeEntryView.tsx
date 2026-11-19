@@ -74,6 +74,7 @@ export function GratitudeEntryView({
   // Format for display
   const dateLabel = formatLocalizedDate(timestamp, t, { relative: true });
   const timeLabel = formatTimeLabel(timestamp, t);
+  const headerDateLabel = `${dateLabel}, ${timeLabel}`;
 
   // Mood label
   const moodOption = mood ? MOOD_OPTIONS.find((o) => o.value === mood) : null;
@@ -123,20 +124,24 @@ export function GratitudeEntryView({
 
         {/* Date/Time display - centered absolutely via flex in parent or just flex-1 here */}
         {/* A fixed-height bar: capped text that shrinks to fit instead of breaking mid-word.
-            Screen readers still get the full labels. */}
+            One accessible header element reads the full date and time, and keeps this view in
+            the native tree (a layout-only view is flattened) so the large content viewer works. */}
         <View
           className="flex-1 flex-col items-center"
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel={headerDateLabel}
           accessibilityShowsLargeContentViewer
-          accessibilityLargeContentTitle={`${dateLabel}, ${timeLabel}`}>
+          accessibilityLargeContentTitle={headerDateLabel}>
           <Text
-            numberOfLines={1}
+            numberOfLines={shrinkBarTextToFit ? 1 : undefined}
             adjustsFontSizeToFit={shrinkBarTextToFit}
             maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
             className="font-body-bold text-lg text-foreground">
             {dateLabel}
           </Text>
           <Text
-            numberOfLines={1}
+            numberOfLines={shrinkBarTextToFit ? 1 : undefined}
             adjustsFontSizeToFit={shrinkBarTextToFit}
             maxFontSizeMultiplier={BAR_MAX_FONT_SCALE}
             className="text-sm text-muted-foreground">

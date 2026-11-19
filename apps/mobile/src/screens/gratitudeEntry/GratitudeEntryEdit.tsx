@@ -382,11 +382,14 @@ function GratitudeEntryEditForm({
   const [saveFrame, setSaveFrame] = useState({ x: 0, width: 0 });
   const handleCancelLayout = (event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
-    setCancelFrame({ x, width });
+    // Skip re-rendering the whole form when the frame is unchanged.
+    setCancelFrame((prev) =>
+      prev.x === x && prev.width === width ? prev : { x, width },
+    );
   };
   const handleSaveLayout = (event: LayoutChangeEvent) => {
     const { x, width } = event.nativeEvent.layout;
-    setSaveFrame({ x, width });
+    setSaveFrame((prev) => (prev.x === x && prev.width === width ? prev : { x, width }));
   };
   // Only above the default text size, where the date shrinks to fit: at the default size
   // the full-width layout is kept exactly as it was.
