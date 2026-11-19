@@ -1,4 +1,5 @@
 import { CryptoDigestAlgorithm, digest } from 'expo-crypto';
+import { type CodecWork, jsCodecWork } from '../../v2/codec';
 import { hexDigestHasher } from '../sha256';
 
 /**
@@ -9,3 +10,9 @@ export const nativeSha256Bytes = hexDigestHasher((bytes) =>
   // Upload and download buffers are never backed by a SharedArrayBuffer.
   digest(CryptoDigestAlgorithm.SHA256, bytes as Uint8Array<ArrayBuffer>),
 );
+
+/** Snapshot encode and decode in the app: hashed natively, paced as in JS. */
+export const nativeCodecWork: CodecWork = {
+  hashBytes: nativeSha256Bytes,
+  pause: jsCodecWork.pause,
+};

@@ -1,7 +1,12 @@
 import { gunzipSync, gzipSync } from 'node:zlib';
 
 import { computeCrc32 } from './crc32';
-import { decodeGzipBounded, encodeGzip, GzipCodecError } from './gzip-codec';
+import {
+  decodeGzipBounded,
+  encodeGzip,
+  encodeGzipInPieces,
+  GzipCodecError,
+} from './gzip-codec';
 
 const LIMITS = {
   maxCompressedBytes: 1024 * 1024,
@@ -144,5 +149,63 @@ describe('in-house gzip codec', () => {
         }),
       'uncompressed-size-cap',
     );
+  });
+});
+
+describe('encodeGzipInPieces', () => {
+  const text = new TextEncoder().encode(
+    Array.from({ length: 4000 }, (_, i) => `grateful for the morning walk ${i};`).join(
+      '',
+    ),
+  );
+  const noise = new Uint8Array(70_001);
+  for (let i = 0; i < noise.length; i++) noise[i] = (i * 2654435761) >>> 24;
+  const inputs = [new Uint8Array(0), new Uint8Array([7]), text, noise];
+
+  it('writes one gzip member that zlib and decodeGzipBounded read back', async () => {
+    for (const level of [0, 1, 6, 9])
+      for (const pieceBytes of [1, 1000, 65_536])
+        for (const input of inputs) {
+          if (pieceBytes === 1 && input.length > 2000) continue;
+          const pauses: number[] = [];
+          const gz = await encodeGzipInPieces(input, {
+            level,
+            pieceBytes,
+            pause: async () => {
+              pauses.push(1);
+            },
+          });
+          expect(Buffer.from(gunzipSync(gz)).equals(Buffer.from(input))).toBe(true);
+          expect(
+            Buffer.from(
+              decodeGzipBounded(gz, {
+                maxCompressedBytes: 10 * 1024 * 1024,
+                maxUncompressedBytes: 10 * 1024 * 1024,
+              }),
+            ).equals(Buffer.from(input)),
+          ).toBe(true);
+          // A pause between pieces, none after the last.
+          expect(pauses.length).toBe(
+            Math.max(0, Math.ceil(input.length / pieceBytes) - 1),
+          );
+        }
+  });
+
+  it('writes the same bytes as encodeGzip when the input fits in one piece', async () => {
+    const pause = async () => {};
+    for (const input of inputs)
+      expect(
+        Buffer.from(await encodeGzipInPieces(input, { pause })).equals(
+          Buffer.from(encodeGzip(input)),
+        ),
+      ).toBe(true);
+  });
+
+  it('is deterministic and close to the one-piece size', async () => {
+    const pause = async () => {};
+    const first = await encodeGzipInPieces(text, { pieceBytes: 16_384, pause });
+    const second = await encodeGzipInPieces(text, { pieceBytes: 16_384, pause });
+    expect(Buffer.from(first).equals(Buffer.from(second))).toBe(true);
+    expect(first.length).toBeLessThan(encodeGzip(text).length * 1.1);
   });
 });

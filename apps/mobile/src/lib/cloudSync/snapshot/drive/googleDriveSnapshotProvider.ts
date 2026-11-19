@@ -517,7 +517,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       'snapshot',
     );
     if (candidates.length === 0) return false;
-    const hash = sha256Bytes(expectedBytes);
+    const hash = await this.hashBytes(expectedBytes);
     return candidates.every(
       (candidate) =>
         candidate.contentSha256 === hash &&
@@ -568,19 +568,25 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     fresh = false,
   ): Promise<Set<string>> {
     const unique = [...new Set(blobHashes)].sort();
-    // Fresh: forget what the cache says, so an upload cannot trust it either.
-    if (fresh)
-      for (const hash of unique)
-        for (const file of this.state.listKey(vaultId, this.mediaKey(hash)))
-          if (file.kind === 'media') this.state.removeFile(vaultId, file.fileId);
     const found = new Set<string>();
+    if (unique.length === 0) return found;
     const unknown: string[] = [];
+    // One read of the cached media, not one per blob: a publication asks about
+    // every attachment, and a query each held the JS thread for over a second
+    // with 1,600 of them (#185 P14).
+    const cached = new Map<string, DriveFileRecord[]>();
+    for (const file of this.state.listKind(vaultId, 'media')) {
+      const files = cached.get(file.logicalKey);
+      if (files) files.push(file);
+      else cached.set(file.logicalKey, [file]);
+    }
     for (const hash of unique) {
-      const key = this.mediaKey(hash);
-      const cached = this.state
-        .listKey(vaultId, key)
-        .some((file) => file.kind === 'media' && file.contentSha256 === hash);
-      if (cached) found.add(hash);
+      const files = cached.get(this.mediaKey(hash)) ?? [];
+      // Fresh: forget what the cache says, so an upload cannot trust it either.
+      if (fresh) {
+        for (const file of files) this.state.removeFile(vaultId, file.fileId);
+        unknown.push(hash);
+      } else if (files.some((file) => file.contentSha256 === hash)) found.add(hash);
       else unknown.push(hash);
     }
     for (let offset = 0; offset < unknown.length; offset += MEDIA_QUERY_GROUP) {
@@ -932,7 +938,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     bytes: Uint8Array,
     createdAt: number,
   ): Promise<void> {
-    const hash = sha256Bytes(bytes);
+    // Snapshots run to megabytes: hashed natively in the app (`hashBytes`).
+    const hash = await this.hashBytes(bytes);
     const cached = this.state.listKey(vaultId, key).filter((file) => file.kind === kind);
     if (cached.length > 0) {
       if (
@@ -952,8 +959,17 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     try {
       uploaded =
         bytes.byteLength <= MULTIPART_MAX_BYTES
-          ? await this.multipartUpload(vaultId, key, kind, bytes, 'create')
-          : await this.resumableUpload(vaultId, key, kind, bytes);
+          ? await this.multipartUpload(
+              vaultId,
+              key,
+              kind,
+              bytes,
+              'create',
+              undefined,
+              {},
+              hash,
+            )
+          : await this.resumableUpload(vaultId, key, kind, bytes, hash);
       const record = this.record(uploaded, kind, null);
       if (record.contentSha256 !== hash || record.byteCount !== bytes.byteLength) {
         throw new SnapshotProviderError(
@@ -1210,6 +1226,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     key: string,
     kind: 'snapshot' | 'media',
     bytes: Uint8Array,
+    contentHash: string,
   ): Promise<DriveFile> {
     return this.resumableUploadFromSource(
       vaultId,
@@ -1217,7 +1234,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       kind,
       {
         byteLength: bytes.byteLength,
-        contentHash: sha256Bytes(bytes),
+        contentHash,
         read: async (offset, length) => bytes.slice(offset, offset + length),
       },
       CHUNK_SIZE,
@@ -1496,7 +1513,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         new ShortDownloadError(),
       );
     }
-    if (sha256Bytes(bytes) !== file.sha256Checksum) throw mismatch;
+    if ((await this.hashBytes(bytes)) !== file.sha256Checksum) throw mismatch;
     return bytes;
   }
 

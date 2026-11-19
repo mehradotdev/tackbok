@@ -1,6 +1,6 @@
 import { readUint, writeUint } from './byte-io';
-import { computeCrc32 } from './crc32';
-import { deflateRaw, inflateRawBounded } from './deflate-codec';
+import { computeCrc32, updateCrc32 } from './crc32';
+import { deflateRaw, deflateRawPiece, inflateRawBounded } from './deflate-codec';
 
 const GZIP_ID1 = 0x1f;
 const GZIP_ID2 = 0x8b;
@@ -131,6 +131,57 @@ export function encodeGzip(
   const trailerOffset = FIXED_HEADER_BYTES + deflated.length;
   writeUint(result, trailerOffset, computeCrc32(bytes, 0, bytes.length));
   writeUint(result, trailerOffset + 4, bytes.length >>> 0);
+  return result;
+}
+
+/** Default input bytes per piece for `encodeGzipInPieces`. */
+export const GZIP_PIECE_BYTES = 256 * 1024;
+
+/**
+ * `encodeGzip` for large inputs on the JS thread: compresses `pieceBytes` of
+ * input at a time and awaits `pause` between pieces, so the app keeps
+ * responding. Still one RFC 1952 member (pieces are joined by sync flushes),
+ * readable by `decodeGzipBounded` or any inflater. The output is
+ * deterministic for the same input, level and piece size, though it differs
+ * slightly from `encodeGzip`'s (no back-references across pieces).
+ */
+export async function encodeGzipInPieces(
+  bytes: Uint8Array,
+  options: { level?: number; pieceBytes?: number; pause: () => Promise<void> },
+): Promise<Uint8Array> {
+  const level = options.level ?? 6;
+  const pieceBytes = options.pieceBytes ?? GZIP_PIECE_BYTES;
+  if (!Number.isInteger(level) || level < 0 || level > 9) {
+    throw new Error('gzip compression level must be an integer from 0 through 9');
+  }
+  if (!Number.isSafeInteger(pieceBytes) || pieceBytes < 1) {
+    throw new Error('gzip piece size must be a positive integer');
+  }
+  const pieces: Uint8Array[] = [];
+  let crc = 0xffffffff;
+  let total = 0;
+  let offset = 0;
+  do {
+    const end = Math.min(bytes.length, offset + pieceBytes);
+    const input = bytes.subarray(offset, end);
+    const piece = deflateRawPiece(input, end === bytes.length, level);
+    // `deflateRawPiece` returns a view of a larger scratch buffer: keep a copy.
+    pieces.push(piece.slice());
+    crc = updateCrc32(crc, bytes, offset, end - offset);
+    total += piece.length;
+    offset = end;
+    if (offset < bytes.length) await options.pause();
+  } while (offset < bytes.length);
+
+  const result = new Uint8Array(FIXED_HEADER_BYTES + total + TRAILER_BYTES);
+  result.set([GZIP_ID1, GZIP_ID2, DEFLATE_METHOD, 0, 0, 0, 0, 0, 0, 255]);
+  let position = FIXED_HEADER_BYTES;
+  for (const piece of pieces) {
+    result.set(piece, position);
+    position += piece.length;
+  }
+  writeUint(result, position, (crc ^ 0xffffffff) >>> 0);
+  writeUint(result, position + 4, bytes.length >>> 0);
   return result;
 }
 

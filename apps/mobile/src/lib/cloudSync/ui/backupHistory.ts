@@ -30,7 +30,8 @@ import { createMediaPartialFileSink } from '../snapshot/media';
 import { ProductionSnapshotMediaStore } from '../snapshot/storage';
 import { backupHistory } from '../snapshot/sync/retention';
 import { MediaIntegrityError, type SnapshotProvider } from '../snapshot/sync/types';
-import { decodeEnvelope } from '../v2/codec';
+import { nativeCodecWork } from '../snapshot/runtime/nativeSha256';
+import { decodeEnvelopeAsync } from '../v2/codec';
 import { configuredDriveProvider } from './production';
 
 export interface BackupHistoryItem {
@@ -129,7 +130,7 @@ export async function buildBackupHistoryArchive(
   if (!bytes) throw new BackupHistoryError('backup-gone');
   let state;
   try {
-    const decoded = decodeEnvelope(bytes, snapshotId);
+    const decoded = await decodeEnvelopeAsync(bytes, snapshotId, nativeCodecWork);
     if (decoded.header.vaultId !== vaultId) throw new Error('other vault');
     state = decoded.state;
   } catch {

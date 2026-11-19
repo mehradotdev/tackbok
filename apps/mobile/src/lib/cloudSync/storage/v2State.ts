@@ -666,6 +666,9 @@ function changedIds<T>(
   const ids: string[] = [];
   for (const [id, record] of after) {
     const old = before.get(id);
+    // The same object is unchanged: the join and the model's writes keep the
+    // records they do not touch, which spares canonicalising a whole journal.
+    if (old === record) continue;
     if (
       !old ||
       canonicalize(old as unknown as Json) !== canonicalize(record as unknown as Json)

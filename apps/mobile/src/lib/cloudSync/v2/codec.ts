@@ -28,11 +28,15 @@
  * - in the header: about this publication only; not part of the state, so a
  *   republish does not carry it over.
  */
-import { decodeGzipBounded, encodeGzip } from '~/lib/zip/core/gzip-codec';
+import {
+  decodeGzipBounded,
+  encodeGzip,
+  encodeGzipInPieces,
+} from '~/lib/zip/core/gzip-codec';
 
 import { canonicalize } from '../snapshot/canonical';
 import { SNAPSHOT_CAPS, SnapshotValidationError, invalid } from '../snapshot/caps';
-import { sha256Bytes, sha256Text } from '../snapshot/sha256';
+import { type ByteHasher, sha256Bytes, sha256Text } from '../snapshot/sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../snapshot/strictJson';
 import { compareStamps, covers, vectorIncluded } from './clock';
 import { NAMED_ID, splitEntryId } from './ids';
@@ -236,6 +240,13 @@ function bodyJson(ix: Indexer, state: SyncState): Json {
     entries: byKey(state.entries.values(), (entry) => entry.id).map((entry) =>
       entryJson(ix, entry),
     ),
+    ...bodyRestJson(ix, state),
+  };
+}
+
+/** The body after its entries; built after them, so devices index alike. */
+function bodyRestJson(ix: Indexer, state: SyncState) {
+  return {
     tags: byKey(state.tags.values(), (tag) => tag.id).map((tag) => namedJson(ix, tag)),
     prompts: byKey(state.prompts.values(), (prompt) => prompt.id).map((prompt) =>
       namedJson(ix, prompt),
@@ -248,6 +259,27 @@ function bodyJson(ix: Indexer, state: SyncState): Json {
     },
     media: byKey(state.media.values(), (media) => media.assetId).map(mediaJson),
   };
+}
+
+/** Entries canonicalised between pauses in `encodeEnvelopeAsync`. */
+const ENTRIES_PER_PAUSE = 500;
+
+/**
+ * `canonicalize(bodyJson(ix, state))`, entry by entry with a pause every
+ * `ENTRIES_PER_PAUSE`: the same text, since "entries" sorts first.
+ */
+async function bodyCanonicalInPieces(
+  ix: Indexer,
+  state: SyncState,
+  pause: () => Promise<void>,
+): Promise<string> {
+  const entries: string[] = [];
+  for (const entry of byKey(state.entries.values(), (entry) => entry.id)) {
+    entries.push(canonicalize(entryJson(ix, entry)));
+    if (entries.length % ENTRIES_PER_PAUSE === 0) await pause();
+  }
+  const rest = canonicalize(bodyRestJson(ix, state) as Json);
+  return `{"entries":[${entries.join(',')}],${rest.slice(1)}`;
 }
 
 /** Every feature some record's `ext` uses. */
@@ -311,9 +343,102 @@ export function encodeEnvelope(
   const ix = new Indexer(rosterOf(state));
   ix.of(publication.authorDeviceId);
   const bodyCanonical = encoder.encode(canonicalize(bodyJson(ix, state)));
+  assertBodySize(bodyCanonical);
+  const stored = encodeGzip(bodyCanonical, { level: 6 });
+  return sealEnvelope(
+    state,
+    publication,
+    ix,
+    bodyCanonical,
+    stored,
+    sha256Bytes(bodyCanonical),
+  );
+}
+
+/**
+ * How the async codec does its heavy work: `hashBytes` may hash natively
+ * (the app passes the expo-crypto digest, much faster than SHA-256 in JS),
+ * and `pause` lets the app respond between pieces of work. The state being
+ * encoded must not change while the work pauses; no caller changes it.
+ */
+export interface CodecWork {
+  hashBytes: ByteHasher;
+  pause: () => Promise<void>;
+}
+
+/** Pure JS hashing; a pause is one turn of the event loop. */
+export const jsCodecWork: CodecWork = {
+  hashBytes: async (bytes) => sha256Bytes(bytes),
+  pause: () => new Promise((resolve) => setTimeout(resolve, 0)),
+};
+
+/**
+ * `CodecWork.hashBytes` failed: the snapshot is not known to be bad. Callers
+ * must not treat it as unreadable data (nothing is skipped or deleted for it).
+ */
+export class SnapshotHashUnavailableError extends Error {
+  constructor(readonly cause: unknown) {
+    super('Snapshot body could not be hashed');
+    this.name = 'SnapshotHashUnavailableError';
+  }
+}
+
+async function hashWith(work: CodecWork, bytes: Uint8Array): Promise<string> {
+  try {
+    return await work.hashBytes(bytes);
+  } catch (error) {
+    throw new SnapshotHashUnavailableError(error);
+  }
+}
+
+/**
+ * `encodeEnvelope` for the app: the same header, snapshot ID and body, but
+ * canonicalised and compressed in pieces with pauses between them, and the
+ * body hashed by `work.hashBytes`. A 10,000-entry journal otherwise held the
+ * JS thread for about 9 s in one piece (#185 P14). The compressed bytes
+ * differ slightly from `encodeEnvelope`'s (`encodeGzipInPieces`); nothing
+ * depends on them but their own checksum.
+ */
+export async function encodeEnvelopeAsync(
+  state: SyncState,
+  publication: Publication,
+  work: CodecWork,
+): Promise<EncodedEnvelope> {
+  validateState(state);
+  const ix = new Indexer(rosterOf(state));
+  ix.of(publication.authorDeviceId);
+  const bodyCanonical = encoder.encode(
+    await bodyCanonicalInPieces(ix, state, work.pause),
+  );
+  assertBodySize(bodyCanonical);
+  await work.pause();
+  let stored = await encodeGzipInPieces(bodyCanonical, {
+    level: 6,
+    pause: work.pause,
+  });
+  // Pieces compress a little worse (no back-references across them). A body
+  // that only fits under the cap in one piece is compressed that way, held
+  // for one long step, rather than refused.
+  if (stored.length > SNAPSHOT_CAPS.compressedBytes)
+    stored = encodeGzip(bodyCanonical, { level: 6 });
+  const bodyHash = await hashWith(work, bodyCanonical);
+  return sealEnvelope(state, publication, ix, bodyCanonical, stored, bodyHash);
+}
+
+function assertBodySize(bodyCanonical: Uint8Array) {
   if (bodyCanonical.length > SNAPSHOT_CAPS.uncompressedBytes)
     invalid('uncompressed-size-cap', 'Snapshot body exceeds 64 MiB');
-  const stored = encodeGzip(bodyCanonical, { level: 6 });
+}
+
+/** The header around an encoded body, and the envelope's bytes. */
+function sealEnvelope(
+  state: SyncState,
+  publication: Publication,
+  ix: Indexer,
+  bodyCanonical: Uint8Array,
+  stored: Uint8Array,
+  bodyHash: string,
+): EncodedEnvelope {
   if (stored.length > SNAPSHOT_CAPS.compressedBytes)
     invalid('compressed-size-cap', 'Compressed snapshot body exceeds 16 MiB');
   const used = extFeatures(state);
@@ -329,7 +454,7 @@ export function encodeEnvelope(
     since: null,
     codec: 'gzip',
     encryption: 'none',
-    bodyHash: sha256Bytes(bodyCanonical),
+    bodyHash,
     bodyBytes: bodyCanonical.length,
     vaultId: state.vaultId,
     authorDeviceId: publication.authorDeviceId,
@@ -891,6 +1016,39 @@ export function decodeEnvelope(
   const parsed = parseJsonStrict(decodeUtf8Strict(body));
   if (!equalBytes(encoder.encode(canonicalize(parsed)), body))
     invalid('non-canonical-bytes', 'Snapshot body is not canonical JSON');
+  return { snapshotId, header, state: readState(header, parsed) };
+}
+
+/**
+ * `decodeEnvelope` for the app, with the same checks and result: the body
+ * is hashed by `work.hashBytes`, and the work pauses between steps. A
+ * 10,000-entry snapshot otherwise held the JS thread for about 8.5 s in one
+ * piece (#185 P14).
+ */
+export async function decodeEnvelopeAsync(
+  bytes: Uint8Array,
+  expectedSnapshotId: string | undefined,
+  work: CodecWork,
+): Promise<{ snapshotId: string; header: SnapshotHeader; state: SyncState }> {
+  const { snapshotId, header } = decodeHeader(bytes);
+  if (expectedSnapshotId !== undefined && snapshotId !== expectedSnapshotId)
+    invalid('hash-mismatch', 'Snapshot ID does not match its header');
+  const stored = splitEnvelope(bytes).body;
+  const body = decodeGzipBounded(stored, {
+    maxCompressedBytes: SNAPSHOT_CAPS.compressedBytes,
+    maxUncompressedBytes: Math.min(header.bodyBytes, SNAPSHOT_CAPS.uncompressedBytes),
+  });
+  if (body.length !== header.bodyBytes)
+    invalid('body-size-mismatch', 'Body size differs');
+  if ((await hashWith(work, body)) !== header.bodyHash)
+    invalid('hash-mismatch', 'Snapshot body does not match its hash');
+  const text = decodeUtf8Strict(body);
+  await work.pause();
+  const parsed = parseJsonStrict(text);
+  await work.pause();
+  if (!equalBytes(encoder.encode(canonicalize(parsed)), body))
+    invalid('non-canonical-bytes', 'Snapshot body is not canonical JSON');
+  await work.pause();
   return { snapshotId, header, state: readState(header, parsed) };
 }
 
