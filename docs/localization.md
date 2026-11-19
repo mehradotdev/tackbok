@@ -49,7 +49,7 @@ ask the developer which variant to prioritize. Keep Simplified and Traditional
 Chinese distinct; a script conversion alone is not a translation review.
 
 Use recognizable transliterations of Tackbok where appropriate in other scripts.
-Keep “Tackbok” in Latin-script languages, including German, French, and Spanish.
+Keep “Tackbok” in Latin-script languages, including German, French, Italian, and Spanish.
 Do not translate it literally or invent a new product name. Keep Google Drive,
 GitHub, and other third-party names recognizable.
 

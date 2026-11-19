@@ -248,10 +248,10 @@ export const pluralMessages = {
       '{count} di note che avevi eliminate su un dispositivo sono state modificate su un altro, quindi sono state mantenute le versioni modificate.',
     'cloud.conflicts.entriesReturned_other':
       '{count} note che avevi eliminate su un dispositivo sono state modificate su un altro, quindi sono state mantenute le versioni modificate.',
-    'cloud.progress.devicesChecked_one': 'Dispositivi controllati: {done} di {count}',
+    'cloud.progress.devicesChecked_one': 'Dispositivo controllato: {done} di {count}',
     'cloud.progress.devicesChecked_many': 'Dispositivi controllati: {done} di {count}',
     'cloud.progress.devicesChecked_other': 'Dispositivi controllati: {done} di {count}',
-    'cloud.progress.filesDownloaded_one': 'File scaricati: {done} di {count}',
+    'cloud.progress.filesDownloaded_one': 'File scaricato: {done} di {count}',
     'cloud.progress.filesDownloaded_many': 'File scaricati: {done} di {count}',
     'cloud.progress.filesDownloaded_other': 'File scaricati: {done} di {count}',
   },

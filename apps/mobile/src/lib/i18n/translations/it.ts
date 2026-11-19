@@ -274,7 +274,7 @@ export const it = {
     'Le notifiche del promemoria giornaliero sono attive',
   'notifications.dailyReminderNotificationsAreOff':
     'Le notifiche del promemoria giornaliero sono disattivate',
-  'notifications.adjustReminderTime': 'Cambia l’orario del promemoria',
+  'notifications.adjustReminderTime': 'Orario del promemoria',
   'notifications.changeYourDailyReminderTime':
     'Cambia l’orario del promemoria giornaliero',
   'notifications.failedToUpdateReminder': 'Impossibile aggiornare il promemoria',
@@ -308,7 +308,7 @@ export const it = {
   'typography.chooseAFontForTitlesAndHeadings':
     'Scegli un font per titoli e intestazioni',
   'typography.default': 'Predefinito',
-  'typography.themeDefault': 'Predefinito del tema',
+  'typography.themeDefault': 'Come il tema',
   'typography.fontSize': 'Dimensione del testo',
   'typography.adjustTheSizeOfBodyText': 'Regola la dimensione del testo',
   'typography.small': 'Piccolo',
@@ -958,8 +958,8 @@ export const it = {
     '{done} di {total} ({doneAmount} di {totalAmount})',
   'cloud.progress.stepOfTotal': 'Passaggio {step} di {total}',
   'cloud.progress.stepOfTotalWithTimeLeft': 'Passaggio {step} di {total} · {timeLeft}',
-  'cloud.progress.aboutMinutesLeft': 'circa {minutes} min rimanenti',
-  'cloud.progress.lessThanAMinuteLeft': 'meno di un minuto rimanente',
+  'cloud.progress.aboutMinutesLeft': 'ancora circa {minutes} min',
+  'cloud.progress.lessThanAMinuteLeft': 'ancora meno di un minuto',
   'cloud.progress.rateLimitedRetryingInSeconds':
     'Google ci ha chiesto di rallentare. Nuovo tentativo tra {seconds} s',
   'cloud.progress.connectionProblemRetryingInSeconds':
