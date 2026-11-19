@@ -4,7 +4,11 @@ import {
   readZipEntryText,
 } from './reader/memory-reader';
 import { parseLocalFileHeader } from './core/zip-parser';
-import { createZipWriter, type ZipOutputSink } from './writer/sequential-writer';
+import {
+  createZipWriter,
+  DEFLATE_PIECE_BYTES,
+  type ZipOutputSink,
+} from './writer/sequential-writer';
 import { readUint, readUint64, readUshort } from './core';
 import {
   ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
@@ -76,6 +80,27 @@ describe('createZipWriter', () => {
 
     expect(readZipEntryText(archive, 'manifest.json')).toBe('{"ok":true}');
     expect(readZipEntryBytes(archive, 'media/photo.jpg')).toEqual(largeAsset);
+  });
+
+  test('compresses a large entry in pieces that read back as one entry', async () => {
+    const { sink, getBytes } = createMemorySink();
+    const writer = createZipWriter(sink);
+    // Repetitive text with some variety, a little over three pieces long.
+    let text = '';
+    for (let index = 0; text.length < DEFLATE_PIECE_BYTES * 3 + 1234; index++)
+      text += `{"entry":${index},"text":"grateful ${index % 97} morning"},`;
+    const timers = jest.spyOn(global, 'setTimeout');
+
+    await writer.addText('data/entries.json', text);
+    await writer.close();
+
+    // One pause between each of the four pieces.
+    expect(timers.mock.calls.filter(([, delay]) => delay === 0)).toHaveLength(3);
+    timers.mockRestore();
+    const bytes = getBytes();
+    expect(parseLocalFileHeader(bytes, 0).compressionMethod).toBe(8);
+    expect(bytes.length).toBeLessThan(text.length / 4);
+    expect(readZipEntryText(parseZipArchive(bytes), 'data/entries.json')).toBe(text);
   });
 
   test('stores already-compressed addBytes entries without deflate', async () => {
