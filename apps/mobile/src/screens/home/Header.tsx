@@ -179,7 +179,7 @@ export const Header: React.FC<IHeaderProps> = ({
               {IS_BETA_BUILD && (
                 <Text
                   maxFontSizeMultiplier={HEADER_TITLE_MAX_FONT_SCALE}
-                  className="shrink-0 ml-0.5 mt-1 text-xs leading-4 tracking-wider text-primary-foreground font-body-semibold">
+                  className="shrink-0 ms-0.5 mt-1 text-xs leading-4 tracking-wider text-primary-foreground font-body-semibold">
                   BETA
                 </Text>
               )}
