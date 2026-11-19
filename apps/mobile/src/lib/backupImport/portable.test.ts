@@ -5,6 +5,7 @@ import {
   ensurePortablePromptTitles,
   importPortableEntries,
   upsertPortableTags,
+  tagsForHistoryRestore,
 } from './portable';
 import { createBackupImportSummary } from './summary';
 
@@ -572,5 +573,52 @@ describe('ensurePortablePromptTitles', () => {
     expect(args[1]).toBe('Imported prompt');
     expect(args[2]).toMatchObject({ now: 22, createdAt: 11 });
     expect(summary.importedPrompts).toBe(1);
+  });
+});
+
+describe('tagsForHistoryRestore', () => {
+  const entry = (noteId: string, tagIds: string[], tagTitles: string[]) => ({
+    noteId,
+    textTitle: null,
+    textContent: 'Text',
+    mood: null,
+    tagIds,
+    tagTitles,
+    createdAt: 1,
+    updatedAt: 1,
+    assets: [],
+  });
+  const tag = (tagId: string, title: string) => ({
+    tagId,
+    title,
+    createdAt: 1,
+    updatedAt: 1,
+  });
+  const tags = [
+    tag('t-family', 'Family'),
+    tag('t-work', 'Work'),
+    tag('t-spare', 'Spare'),
+  ];
+  const entries = [
+    entry('kept', ['t-family'], ['Family']),
+    entry('back', ['t-work'], ['work ']),
+  ];
+
+  it('keeps only the tags of entries the restore writes', () => {
+    const existing = new Set(['kept']);
+    expect(
+      tagsForHistoryRestore(entries, tags, existing, 'skip').map((t) => t.tagId),
+    ).toEqual(['t-work']);
+    expect(
+      tagsForHistoryRestore(entries, tags, existing, 'overwrite').map((t) => t.tagId),
+    ).toEqual(['t-family', 't-work']);
+  });
+
+  it('matches a tag by its title when the entry carries no ID for it', () => {
+    expect(
+      tagsForHistoryRestore([entry('e', [], ['FAMILY'])], tags, new Set(), 'skip').map(
+        (t) => t.tagId,
+      ),
+    ).toEqual(['t-family']);
   });
 });

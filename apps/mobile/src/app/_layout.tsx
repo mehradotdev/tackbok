@@ -277,6 +277,10 @@ export default function Layout() {
                   name="other-versions"
                   options={{ title: 'Other Versions', headerShown: false }}
                 />
+                <Stack.Screen
+                  name="backup-history"
+                  options={{ title: 'Backup History', headerShown: false }}
+                />
               </Stack>
               <ReminderNavigationObserver />
               <DevSetupNavigation />

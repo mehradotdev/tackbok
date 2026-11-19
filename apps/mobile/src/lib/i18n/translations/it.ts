@@ -1060,6 +1060,29 @@ export const it = {
   'cloud.replaceBackup.description':
     'I backup dei dispositivi che Tackbok non riesce a leggere vengono rimossi da Google Drive e al loro posto viene salvato il diario di questo dispositivo. I backup leggibili degli altri dispositivi vengono mantenuti e uniti come al solito. Ciò che si trovava solo nei backup illeggibili non potrà essere recuperato.',
   'cloud.replaceBackup.done': 'I backup illeggibili sono stati rimossi.',
+  'cloud.history.title': 'Cronologia dei backup',
+  'cloud.history.row': "Esporta o ripristina il diario com'era in un giorno precedente",
+  'cloud.history.description':
+    "Google Drive conserva un backup per ciascuno degli ultimi 30 giorni. Esportane uno come file ZIP, o ripristinalo per riavere le note com'erano quel giorno.",
+  'cloud.history.empty': 'Ancora nessun backup precedente.',
+  'cloud.history.loadFailed':
+    'Impossibile caricare la cronologia dei backup. Controlla la connessione e riprova.',
+  'cloud.history.savedAt': 'Salvato alle {time}',
+  'cloud.history.export': 'Esporta',
+  'cloud.history.restore': 'Ripristina',
+  'cloud.history.exportLabel': 'Esporta il backup del {date}',
+  'cloud.history.restoreLabel': 'Ripristina il backup del {date}',
+  'cloud.history.exported': 'Backup esportato',
+  'cloud.history.missingMedia':
+    'Alcune foto o memo vocali di questo backup non sono più salvati da nessuna parte, quindi sono stati esclusi.',
+  'cloud.history.restoreTitle': 'Ripristinare il backup del {date}?',
+  'cloud.history.restoreDescription':
+    "Le note di questo backup tornano, comprese quelle eliminate in seguito, e le note che hai scritto dopo restano. Poi scegli cosa succede alle note presenti in entrambi: lasciarle come sono o sostituirle con la versione del backup, foto e tag compresi. Il nome e la foto del profilo vengono compilati solo se sono vuoti. Per conservare una copia del diario com'è adesso, esportalo prima in Impostazioni.",
+  'cloud.history.restoreConfirm': 'Continua',
+  'cloud.history.gone': 'Questo backup non è più su Google Drive. Scegline un altro.',
+  'cloud.history.unreadable': 'Impossibile leggere questo backup. Scegline un altro.',
+  'cloud.history.failed':
+    'Impossibile preparare questo backup. Controlla la connessione e riprova.',
   'cloud.chooseAGoogleAccountToReconnect': 'Scegli un account Google da ricollegare',
   'cloud.updateTackbok': 'Aggiorna Tackbok',
   'cloud.manageGoogleDriveStorage': 'Gestisci lo spazio di Google Drive',

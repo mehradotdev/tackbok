@@ -24,6 +24,8 @@ import { toast } from '~/components/ui/toast';
 export type PendingImportSelection = {
   source: 'tackbok' | 'gratitudeApp';
   uri: string;
+  /** A cloud backup from history: the profile only fills empty fields. */
+  fromHistory?: boolean;
 };
 
 function createImportProgressForSource<TSource extends BackupImportSource>(
@@ -137,6 +139,11 @@ export function useBackupImportFlow(
     [t],
   );
 
+  /** A Tackbok ZIP the app built itself (backup history); the mode modal follows. */
+  const selectTackbokArchive = useCallback((uri: string) => {
+    setPendingImportSelection({ source: 'tackbok', uri, fromHistory: true });
+  }, []);
+
   /** Run the pending zip import with the mode the user picked in the mode modal. */
   const runPendingImport = useCallback(
     async (mode: ImportMode) => {
@@ -145,12 +152,17 @@ export function useBackupImportFlow(
 
       const source = selection.source;
       setPendingImportSelection(null);
-      const runImport =
-        source === 'tackbok' ? importFromTackbokBackup : importFromGratitudeAppBackup;
-
       await runImportFlow(
         source,
-        (onProgress) => runImport(selection.uri, mode, onProgress),
+        (onProgress) =>
+          source === 'tackbok'
+            ? importFromTackbokBackup(
+                selection.uri,
+                mode,
+                onProgress,
+                selection.fromHistory ? 'fill-empty' : 'by-mode',
+              )
+            : importFromGratitudeAppBackup(selection.uri, mode, onProgress),
         createImportProgressForSource(source, 'reading', 0.05),
       );
     },
@@ -190,6 +202,7 @@ export function useBackupImportFlow(
     importSummary,
     pendingImportSelection,
     selectImportFile,
+    selectTackbokArchive,
     runPendingImport,
     startPresentlyImport,
     clearPendingImport,

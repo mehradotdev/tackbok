@@ -24,6 +24,7 @@ import {
 import {
   ensurePortablePromptTitles,
   importPortableEntries,
+  tagsForHistoryRestore,
   upsertPortableTags,
 } from '../portable';
 import {
@@ -47,6 +48,12 @@ export async function importFromTackbokBackup(
   uri: string,
   mode: ImportMode,
   onProgress?: ImportProgressCallback,
+  /**
+   * `fill-empty`: restoring a cloud backup from history (#185 P9). The
+   * profile only fills empty fields, whatever `mode` (an older backup must
+   * not clear a name or photo set since); see also `importPortableEntries`.
+   */
+  profile: 'by-mode' | 'fill-empty' = 'by-mode',
 ): Promise<BackupImportSummary> {
   if (!isZipFile(uri)) {
     throw new Error('Tackbok restore requires a ZIP backup');
@@ -113,13 +120,6 @@ export async function importFromTackbokBackup(
       });
 
       await runInCloudSyncTransaction(async (tx) => {
-        const tagMap = await upsertPortableTags(tx, portableTags, summary, batchId);
-        await ensurePortablePromptTitles(tx, portablePrompts, summary, batchId);
-        reportImportProgress(onProgress, 'tackbok', 'taxonomy', 1, {
-          ...totals,
-          ...createSummaryCounterMetrics(summary),
-        });
-
         // TODO: If imports ever get slow on large journals, profile this query first.
         // A chunked lookup by incoming portable note IDs may scale better than
         // materializing every existing note_id up front.
@@ -127,6 +127,24 @@ export async function importFromTackbokBackup(
           .select({ note_id: entries.note_id })
           .from(entries);
         const existingNoteIds = new Set(existingEntries.map((entry) => entry.note_id));
+
+        // A history restore brings back only the tags its entries use, and no
+        // custom prompts: ones deleted since the backup stay deleted.
+        const history = profile === 'fill-empty';
+        const tagMap = await upsertPortableTags(
+          tx,
+          history
+            ? tagsForHistoryRestore(portableEntries, portableTags, existingNoteIds, mode)
+            : portableTags,
+          summary,
+          batchId,
+        );
+        if (!history)
+          await ensurePortablePromptTitles(tx, portablePrompts, summary, batchId);
+        reportImportProgress(onProgress, 'tackbok', 'taxonomy', 1, {
+          ...totals,
+          ...createSummaryCounterMetrics(summary),
+        });
 
         await importPortableEntries(
           tx,
@@ -140,11 +158,12 @@ export async function importFromTackbokBackup(
           'tackbok',
           onProgress,
           batchId,
+          { history },
         );
-        // Skipping existing data also keeps the current profile; only empty
-        // fields are filled from the backup.
+        // Skipping existing data (or `fill-empty`) also keeps the current
+        // profile; only empty fields are filled from the backup.
         const [currentProfile] =
-          mode === 'skip'
+          mode === 'skip' || profile === 'fill-empty'
             ? await tx
                 .select()
                 .from(userProfile)

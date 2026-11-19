@@ -134,6 +134,12 @@ export interface PortableEntry {
   createdAt: number;
   updatedAt: number;
   assets: PortableAsset[];
+  /**
+   * Some attachments are missing from the archive because their files are
+   * gone everywhere (a cloud backup from history, #185 P9): `assets` is not
+   * the whole list, so an overwrite keeps the entry's current attachments.
+   */
+  mediaIncomplete?: boolean;
 }
 
 export interface PortableProfile {

@@ -196,6 +196,21 @@ async function replaceEntryAssets(
   const unused = new Map(existing.map((asset) => [asset.local_uri, asset]));
   const existingById = new Map(existing.map((asset) => [asset.asset_id, asset]));
   const desiredIds: string[] = [];
+  // An entry written again after its delete (an import or a restore, #185
+  // P9): its attachments' descriptors are immutable and other devices still
+  // hold them behind the tombstone, so a requested ID with no row here is
+  // taken as new. Other requested IDs are kept, so a copy imported before
+  // this device joins a backup matches the vault's.
+  const [deletedBefore] = await tx
+    .select({ id: syncDeletedRecords.entity_id })
+    .from(syncDeletedRecords)
+    .where(
+      and(
+        eq(syncDeletedRecords.entity_type, 'entry'),
+        eq(syncDeletedRecords.entity_id, noteId),
+      ),
+    )
+    .limit(1);
 
   for (const asset of assets ?? []) {
     const requestedId = asset.assetId ?? randomUUID();
@@ -210,7 +225,10 @@ async function replaceEntryAssets(
     const prior = unused.get(asset.uri) ?? existingById.get(requestedId);
     if (prior) unused.delete(prior.local_uri);
     const assetId =
-      prior?.asset_id ?? (requestedIdBelongsElsewhere ? randomUUID() : requestedId);
+      prior?.asset_id ??
+      (requestedIdBelongsElsewhere || (!requestedAsset && deletedBefore && asset.assetId)
+        ? randomUUID()
+        : requestedId);
     desiredIds.push(assetId);
     await tx
       .insert(mediaAssets)

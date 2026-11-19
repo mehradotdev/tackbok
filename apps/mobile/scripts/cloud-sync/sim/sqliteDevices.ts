@@ -75,7 +75,8 @@ export function installSqliteDevices() {
     },
   }));
   mock.module('expo-crypto', () => ({ randomUUID: () => crypto.randomUUID() }));
-  mock.module('react-native', () => ({ Platform: { OS: 'ios' } }));
+  // `Image`: the backup import's helpers (backup-history.test.ts) import it.
+  mock.module('react-native', () => ({ Platform: { OS: 'ios' }, Image: {} }));
   mock.module('../../../src/lib/cloudSync/runtime/mutationSignal', () => ({
     notifyCloudSyncMutationCommitted() {},
   }));

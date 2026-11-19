@@ -1034,6 +1034,29 @@ export const es = {
   'cloud.replaceBackup.description':
     'Las copias de dispositivos que Tackbok no puede leer se eliminan de Google Drive, y en su lugar se guarda el diario de este dispositivo. Las copias legibles de tus otros dispositivos se conservan y se combinan como siempre. Lo que solo estaba en las copias ilegibles no se puede recuperar.',
   'cloud.replaceBackup.done': 'Se eliminaron las copias ilegibles.',
+  'cloud.history.title': 'Historial de copias de seguridad',
+  'cloud.history.row': 'Exporta o restaura tu diario tal como estaba un día anterior',
+  'cloud.history.description':
+    'Google Drive guarda una copia de seguridad de cada uno de los últimos 30 días. Exporta una como archivo ZIP o restáurala para recuperar las entradas tal como estaban ese día.',
+  'cloud.history.empty': 'Aún no hay copias de seguridad anteriores.',
+  'cloud.history.loadFailed':
+    'No se pudo cargar el historial. Revisa tu conexión e inténtalo de nuevo.',
+  'cloud.history.savedAt': 'Guardada a las {time}',
+  'cloud.history.export': 'Exportar',
+  'cloud.history.restore': 'Restaurar',
+  'cloud.history.exportLabel': 'Exportar la copia de seguridad del {date}',
+  'cloud.history.restoreLabel': 'Restaurar la copia de seguridad del {date}',
+  'cloud.history.exported': 'Copia de seguridad exportada',
+  'cloud.history.missingMedia':
+    'Algunas fotos o notas de voz de esta copia ya no están guardadas en ningún sitio, así que se omitieron.',
+  'cloud.history.restoreTitle': '¿Restaurar la copia de seguridad del {date}?',
+  'cloud.history.restoreDescription':
+    'Las entradas de esta copia vuelven, incluidas las que se eliminaron después, y las entradas que escribiste más tarde se mantienen. Después eliges qué pasa con las entradas que están en ambas: dejarlas como están o reemplazarlas por la versión de la copia, con sus fotos y etiquetas. Tu nombre y tu foto de perfil solo se completan si están vacíos. Para conservar una copia de tu diario tal como está ahora, expórtalo antes en Ajustes.',
+  'cloud.history.restoreConfirm': 'Continuar',
+  'cloud.history.gone': 'Esta copia de seguridad ya no está en Google Drive. Elige otra.',
+  'cloud.history.unreadable': 'No se puede leer esta copia de seguridad. Elige otra.',
+  'cloud.history.failed':
+    'No se pudo preparar esta copia de seguridad. Revisa tu conexión e inténtalo de nuevo.',
   'cloud.chooseAGoogleAccountToReconnect':
     'Elija una cuenta de Google para volver a conectarse',
   'cloud.updateTackbok': 'Actualizar Tackbok',

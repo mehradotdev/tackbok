@@ -1091,6 +1091,29 @@ export const en = {
   'cloud.replaceBackup.description':
     "The device backups Tackbok can't read are removed from Google Drive, and this device's journal is backed up in their place. Backups from your other devices that can be read are kept and combined as usual. Anything that was only in the unreadable backups can't be recovered.",
   'cloud.replaceBackup.done': 'The unreadable backups were removed.',
+  'cloud.history.title': 'Backup history',
+  'cloud.history.row': 'Export or restore your journal as it was on an earlier day',
+  'cloud.history.description':
+    'Google Drive keeps one backup for each of the last 30 days. Export one as a ZIP file, or restore it to bring back entries as they were that day.',
+  'cloud.history.empty': 'No earlier backups yet.',
+  'cloud.history.loadFailed':
+    "Couldn't load your backup history. Check your connection and try again.",
+  'cloud.history.savedAt': 'Saved at {time}',
+  'cloud.history.export': 'Export',
+  'cloud.history.restore': 'Restore',
+  'cloud.history.exportLabel': 'Export the backup from {date}',
+  'cloud.history.restoreLabel': 'Restore the backup from {date}',
+  'cloud.history.exported': 'Backup exported',
+  'cloud.history.missingMedia':
+    'Some photos or voice notes from this backup are no longer stored anywhere, so they were left out.',
+  'cloud.history.restoreTitle': 'Restore the backup from {date}?',
+  'cloud.history.restoreDescription':
+    "Entries from this backup come back, including ones deleted since, and entries you wrote later stay. Next, you choose what happens to entries that are in both: keep them as they are, or replace them with the backup's version, photos and tags included. Your profile name and photo are only filled in if they're empty. To keep a copy of your journal as it is now, export it first in Settings.",
+  'cloud.history.restoreConfirm': 'Continue',
+  'cloud.history.gone': 'This backup is no longer on Google Drive. Choose another one.',
+  'cloud.history.unreadable': "This backup can't be read. Choose another one.",
+  'cloud.history.failed':
+    "Couldn't prepare this backup. Check your connection and try again.",
   'cloud.chooseAGoogleAccountToReconnect': 'Choose a Google account to reconnect',
   'cloud.updateTackbok': 'Update Tackbok',
   'cloud.manageGoogleDriveStorage': 'Manage Google Drive storage',

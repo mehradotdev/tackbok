@@ -3,7 +3,7 @@
  * provides the source-agnostic runtime that writes that model into Tackbok.
  */
 
-import { db, customPrompts, entries, tags } from '~/db';
+import { db, customPrompts, entries, mediaAssets, tags } from '~/db';
 import { AssetType, type Asset } from '~/types';
 import { createZipEntryLookup, type ZipEntryLookup, type ZipReader } from '~/lib/zip';
 import { sanitizePromptTitle, sanitizeTagName } from '~/lib/utils';
@@ -45,7 +45,7 @@ import {
   writeImportedPhoto,
 } from './archiveUtils';
 import { createSummaryCounterMetrics, recordImportWarning } from './summary';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
   createPromptInTransaction,
   createTagInTransaction,
@@ -451,6 +451,35 @@ export async function buildGratitudeAppPortablePayload(
 /**
  * Inserts portable tags that do not already exist and returns a title-to-tag-id map.
  */
+/**
+ * The tags a history restore brings back (#185 P9): only those the entries
+ * it writes use (every entry when overwriting, the missing ones when
+ * skipping). Tag IDs come from titles, so a tag deleted since the backup
+ * would otherwise come back on every device.
+ */
+export function tagsForHistoryRestore(
+  portableEntries: readonly PortableEntry[],
+  portableTags: readonly PortableTag[],
+  existingNoteIds: ReadonlySet<string>,
+  mode: ImportMode,
+): PortableTag[] {
+  const ids = new Set<string>();
+  const titles = new Set<string>();
+  for (const entry of portableEntries) {
+    // As `importPortableEntries` reads it.
+    const noteId = entry.noteId?.trim();
+    if (!noteId || (mode === 'skip' && existingNoteIds.has(noteId))) continue;
+    for (const id of entry.tagIds ?? []) ids.add(id);
+    for (const title of entry.tagTitles ?? [])
+      titles.add(sanitizeTagName(title).toLowerCase());
+  }
+  return portableTags.filter(
+    (tag) =>
+      (tag.tagId !== undefined && ids.has(tag.tagId)) ||
+      titles.has(sanitizeTagName(tag.title).toLowerCase()),
+  );
+}
+
 export async function upsertPortableTags(
   tx: BackupArchiveTransaction,
   portableTags: PortableTag[],
@@ -548,6 +577,14 @@ export async function importPortableEntries(
   source: BackupImportSource,
   onProgress?: ImportProgressCallback,
   batchId?: string,
+  /**
+   * `history`: restoring a cloud backup from history (#185 P9). Note IDs
+   * are this journal's own, so the cross-source duplicate check is off (it
+   * could skip a deleted entry whose "Keep both" twin has its date and
+   * text), and an entry whose media is incomplete keeps its current
+   * attachments on overwrite.
+   */
+  options: { history?: boolean } = {},
 ): Promise<void> {
   let processedEntries = 0;
   const totalEntries = portableEntries.length;
@@ -625,7 +662,7 @@ export async function importPortableEntries(
     // path. If portable imports become slow on larger datasets, preload
     // existing created_at/text_content pairs for the imported timestamps so
     // duplicate detection does not rely on repeated point lookups.
-    if (!hasExisting && hasPortableCreatedAt && textContent) {
+    if (!options.history && !hasExisting && hasPortableCreatedAt && textContent) {
       const duplicateByTimestampAndContent = await tx
         .select({ note_id: entries.note_id })
         .from(entries)
@@ -642,11 +679,105 @@ export async function importPortableEntries(
       }
     }
 
+    // A history restore keeps an attachment's ID only while this journal
+    // still has it: one removed since may have a published descriptor
+    // other devices still hold, which a new row under its ID would contradict.
+    // One this entry still has with the same bytes keeps its file and ID: no
+    // second copy. That includes one whose backup ID is gone here because an
+    // earlier restore gave it a new one (skip, then overwrite).
+    let entryToImport = portableEntry;
+    const reused = new Map<number, Asset>();
+    if (options.history) {
+      const ids = portableEntry.assets.flatMap((asset) =>
+        asset.assetId ? [asset.assetId] : [],
+      );
+      const rows =
+        ids.length === 0
+          ? []
+          : await tx.select().from(mediaAssets).where(inArray(mediaAssets.asset_id, ids));
+      const byId = new Map(rows.map((row) => [row.asset_id, row]));
+      const current = hasExisting
+        ? await tx
+            .select()
+            .from(mediaAssets)
+            .where(
+              and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)),
+            )
+        : [];
+      const keepable = (
+        row: typeof mediaAssets.$inferSelect | undefined,
+        blobHash: string | undefined,
+      ) =>
+        !!row?.local_uri &&
+        row.owner_type === 'entry' &&
+        row.owner_id === noteId &&
+        !!row.blob_hash &&
+        row.blob_hash === blobHash;
+      // By ID first, then, for a backup ID this journal no longer has, by
+      // bytes among this entry's attachments not matched yet.
+      const matches = new Map<number, typeof mediaAssets.$inferSelect>();
+      const taken = new Set<string>();
+      portableEntry.assets.forEach((asset, index) => {
+        const row = asset.assetId ? byId.get(asset.assetId) : undefined;
+        if (row && keepable(row, asset.blobHash)) {
+          matches.set(index, row);
+          taken.add(row.asset_id);
+        }
+      });
+      portableEntry.assets.forEach((asset, index) => {
+        if (matches.has(index) || (asset.assetId && byId.has(asset.assetId))) return;
+        // Not a row another backup attachment names by ID: that one keeps its ID.
+        const row = current.find(
+          (candidate) =>
+            !taken.has(candidate.asset_id) &&
+            !byId.has(candidate.asset_id) &&
+            keepable(candidate, asset.blobHash),
+        );
+        if (row) {
+          matches.set(index, row);
+          taken.add(row.asset_id);
+        }
+      });
+      const remaining: PortableEntry['assets'] = [];
+      portableEntry.assets.forEach((asset, index) => {
+        const row = asset.assetId ? byId.get(asset.assetId) : undefined;
+        const match = matches.get(index);
+        if (match?.local_uri && match.blob_hash) {
+          reused.set(index, {
+            type: match.kind === 'voice' ? AssetType.AUDIO : AssetType.IMAGE,
+            uri: match.local_uri,
+            assetId: match.asset_id,
+            blobHash: match.blob_hash,
+            mimeType: match.mime_type ?? undefined,
+            byteSize: match.byte_size ?? undefined,
+            width: match.width ?? undefined,
+            height: match.height ?? undefined,
+            durationMs: match.duration_ms ?? undefined,
+          });
+          return;
+        }
+        remaining.push(row ? asset : { ...asset, assetId: undefined });
+      });
+      entryToImport = { ...portableEntry, assets: remaining };
+    }
+
     const {
-      assets,
+      assets: materialized,
       createdFiles: entryCreatedFiles,
       hadFailures,
-    } = await materializePortableEntryAssets(portableEntry, zip, summary, source);
+    } = await materializePortableEntryAssets(entryToImport, zip, summary, source);
+    // In the backup's order: kept files where they were, new ones in the
+    // other places (one that failed to restore leaves its place out).
+    const assets: Asset[] = [];
+    if (!options.history) assets.push(...materialized);
+    else {
+      let next = 0;
+      portableEntry.assets.forEach((_asset, index) => {
+        const kept = reused.get(index);
+        if (kept) assets.push(kept);
+        else if (next < materialized.length) assets.push(materialized[next++]);
+      });
+    }
 
     if (
       hadFailures &&
@@ -667,6 +798,19 @@ export async function importPortableEntries(
       processedEntries++;
       reportEntryProgress();
       continue;
+    }
+
+    // Attachments the archive could not carry: keep the current ones beside
+    // the restored ones instead of removing them.
+    if (options.history && hasExisting && portableEntry.mediaIncomplete) {
+      const [current] = await tx
+        .select({ assets: entries.assets })
+        .from(entries)
+        .where(eq(entries.note_id, noteId))
+        .limit(1);
+      const restored = new Set(assets.map((asset) => asset.blobHash).filter(Boolean));
+      for (const asset of current?.assets ?? [])
+        if (!asset.blobHash || !restored.has(asset.blobHash)) assets.push(asset);
     }
 
     try {
