@@ -3,7 +3,7 @@ import { X } from 'lucide-react-native';
 import { useCSSVariable } from 'uniwind';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { cn } from 'tailwind-variants';
-import { MOOD_OPTIONS, SHEET_NAMES } from '~/constants';
+import { MOOD_EMOJI_MAX_FONT_SCALE, MOOD_OPTIONS, SHEET_NAMES } from '~/constants';
 import { type Mood } from '~/types';
 import { useTranslation } from '~/lib/i18n';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
@@ -56,7 +56,7 @@ export function MoodModal({ value, onChange }: IMoodModalProps) {
       backgroundStyle={{ backgroundColor: backgroundColor as string }}>
       <View className="pb-4 pt-2">
         <View className="flex-row items-center justify-between px-4 py-4">
-          <Text className="text-foreground text-lg font-body-semibold leading-tight">
+          <Text className="shrink text-foreground text-lg font-body-semibold leading-tight">
             {t('mood.howAreYouFeeling')}
           </Text>
           <Button
@@ -69,7 +69,8 @@ export function MoodModal({ value, onChange }: IMoodModalProps) {
           </Button>
         </View>
         <View className="px-4 pb-0">
-          <View className="flex-row justify-around py-2">
+          {/* Wraps at large text sizes so every mood stays reachable. */}
+          <View className="flex-row flex-wrap justify-around py-2">
             {MOOD_OPTIONS.map((option) => {
               const isSelected = value === option.value;
 
@@ -82,7 +83,9 @@ export function MoodModal({ value, onChange }: IMoodModalProps) {
                     'items-center justify-center py-2 px-1 flex-col gap-1 min-w-14 h-auto',
                     isSelected && 'bg-primary/20',
                   )}>
-                  <Text className={cn('text-3xl', isSelected && 'scale-125')}>
+                  <Text
+                    className={cn('text-3xl', isSelected && 'scale-125')}
+                    maxFontSizeMultiplier={MOOD_EMOJI_MAX_FONT_SCALE}>
                     {option.emoji}
                   </Text>
                   <Text
