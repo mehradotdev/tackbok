@@ -19,8 +19,13 @@ const { FakeSnapshotProvider, MemorySnapshotMediaStore } =
   await import('../../src/lib/cloudSync/snapshot/sync/fakes');
 const { SQLiteSyncStateStore } =
   await import('../../src/lib/cloudSync/snapshot/sync/sqliteState');
-const { V2SyncEngine, ACK_INTERVAL_MS, NO_READABLE_HEAD, removeUnreadableHeads } =
-  await import('../../src/lib/cloudSync/snapshot/sync/v2Engine');
+const {
+  V2SyncEngine,
+  ACK_INTERVAL_MS,
+  MEDIA_UPLOAD_CONCURRENCY,
+  NO_READABLE_HEAD,
+  removeUnreadableHeads,
+} = await import('../../src/lib/cloudSync/snapshot/sync/v2Engine');
 const { SnapshotProviderError } =
   await import('../../src/lib/cloudSync/snapshot/sync/types');
 const { simMediaFiles } = await import('./sim/v2StoreAdapter');
@@ -697,6 +702,91 @@ describe('attachments', () => {
     expect(
       b.database.sqlite.query('SELECT asset_id, download_state FROM media_assets').all(),
     ).toEqual([{ asset_id: 'photo-1', download_state: 'pending' }]);
+  });
+
+  /** One entry with `count` photos, each with its own blob. */
+  async function attachMany(target: Device, count: number) {
+    await addEntry(target, 'e1', {
+      assets: Array.from({ length: count }, (_, i) => ({
+        type: AssetType.IMAGE,
+        uri: `photos/p${i}.jpg`,
+        assetId: `photo-${i}`,
+      })),
+    });
+    const hashes: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const hash = i.toString(16).padStart(64, 'd');
+      target.database.sqlite.run(
+        'UPDATE media_assets SET blob_hash = ?, byte_size = 3 WHERE asset_id = ?',
+        [hash, `photo-${i}`],
+      );
+      await blobs.writeVerified(hash, new Uint8Array([1, 2, i]));
+      hashes.push(hash);
+    }
+    return hashes;
+  }
+
+  /** Holds every upload until the test lets it go, counting those in flight. */
+  function gateUploads() {
+    const upload = provider.uploadMedia.bind(provider);
+    const gate = { inFlight: 0, most: 0, started: 0, release: [] as (() => void)[] };
+    provider.uploadMedia = async (...args) => {
+      gate.started += 1;
+      gate.inFlight += 1;
+      gate.most = Math.max(gate.most, gate.inFlight);
+      await new Promise<void>((resolve) => gate.release.push(resolve));
+      try {
+        return await upload(...args);
+      } finally {
+        gate.inFlight -= 1;
+      }
+    };
+    return gate;
+  }
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  test('attachments upload a few at a time, then all are published', async () => {
+    const a = device();
+    const hashes = await attachMany(a, 7);
+    const gate = gateUploads();
+    const pass = sync(a);
+    while (gate.started < 7 || gate.release.length > 0) {
+      await settle();
+      expect(gate.inFlight).toBeLessThanOrEqual(MEDIA_UPLOAD_CONCURRENCY);
+      gate.release.shift()?.();
+    }
+    expect(await pass).toMatchObject({ status: 'published', deferredMediaCount: 0 });
+    expect(gate.most).toBe(MEDIA_UPLOAD_CONCURRENCY);
+    expect((await provider.hasMediaBatch(VAULT, hashes)).size).toBe(7);
+  });
+
+  test('a failed upload starts no more; those in flight finish first', async () => {
+    const a = device();
+    await attachMany(a, 7);
+    const gate = gateUploads();
+    const upload = provider.uploadMedia.bind(provider);
+    let calls = 0;
+    provider.uploadMedia = async (...args) => {
+      calls += 1;
+      if (calls === 2) throw new SnapshotProviderError('transient', 'offline');
+      return upload(...args);
+    };
+    const pass = sync(a);
+    while (gate.inFlight > 0 || gate.release.length > 0 || gate.started === 0) {
+      await settle();
+      gate.release.shift()?.();
+    }
+    const result = await pass;
+    expect(result.status).not.toBe('published');
+    // The first and third were in flight when the second failed.
+    expect(calls).toBe(3);
+    expect(gate.started).toBe(2);
+    // Nothing is stamped: the attachments are still unpublished.
+    expect(
+      a.database.sqlite
+        .query('SELECT count(*) AS n FROM media_assets WHERE stamp_hlc IS NOT NULL')
+        .get(),
+    ).toEqual({ n: 0 });
   });
 
   test('Wi-Fi-only media waits; the entry is published without it', async () => {
