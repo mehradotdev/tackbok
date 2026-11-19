@@ -243,3 +243,10 @@ test('the archive is deleted once the import has run, whatever its outcome', asy
   expect(mockRunPending).toHaveBeenCalledWith('skip');
   expect(mockDiscard).toHaveBeenCalledWith('file:///cache/archive.zip');
 });
+
+test('a cancelled share sheet is not reported as a connection problem', async () => {
+  mockExport.mockRejectedValueOnce(new Error('Export cancelled or failed: dismissed'));
+  render({ data: items });
+  await act(async () => buttons(mockEn['cloud.history.export'])[0].props.onPress());
+  expect(mockToastError).toHaveBeenCalledWith(mockEn['backup.exportFailed']);
+});
