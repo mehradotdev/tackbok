@@ -102,9 +102,11 @@ function harness(
     hydrate?: () => Promise<{
       hydrated: number;
       missing: number;
+      unavailable?: number;
       profilePhoto?: boolean;
     }>;
     requeue?: () => Promise<number>;
+    requeueUnavailable?: () => Promise<void>;
     loadState?: () => { journalGeneration: number; settledGeneration: number };
     hydrationBatchesPerPass?: number;
     persistMediaHashes?: () => Promise<void>;
@@ -126,6 +128,7 @@ function harness(
     {
       hydratePendingMedia: options.hydrate ?? (async () => ({ hydrated: 0, missing: 0 })),
       requeueMissingVerifiedMedia: options.requeue ?? (async () => 0),
+      requeueUnavailableMedia: options.requeueUnavailable ?? (async () => {}),
       persistMediaHashes: options.persistMediaHashes ?? (async () => {}),
     } as unknown as ProductionSnapshotJournalStore,
     {} as SnapshotProvider,
@@ -365,6 +368,29 @@ test('missing downloaded files are queued once per engine, before hydration', as
   expect(order).toEqual(['requeue', 'hydrate', 'hydrate']);
   // A requeued profile photo is hidden until its file is back.
   expect(mockLoadProfileCache).toHaveBeenCalledTimes(1);
+});
+
+test('files the backup no longer has do not pause, and are looked for again once per engine', async () => {
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  try {
+    mockPendingMedia = [{ blobHash: 'gone', byteSize: 1 }];
+    const order: string[] = [];
+    const app = harness('vault-unavailable', {
+      requeueUnavailable: async () => {
+        order.push('requeue');
+      },
+      hydrate: async () => {
+        order.push('hydrate');
+        return { hydrated: 0, missing: 0, unavailable: 1 };
+      },
+    });
+    await expect(app.runtime.sync()).resolves.toEqual({ pulled: 0, pushed: 0 });
+    await expect(app.runtime.sync()).resolves.toEqual({ pulled: 0, pushed: 0 });
+    expect(order).toEqual(['requeue', 'hydrate', 'hydrate']);
+    expect(app.setPause).not.toHaveBeenCalled();
+  } finally {
+    warn.mockRestore();
+  }
 });
 
 test('an OS background task does not look for missing files', async () => {
