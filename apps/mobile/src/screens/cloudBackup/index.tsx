@@ -904,8 +904,10 @@ export default function CloudBackupScreen() {
                   label={t('cloud.history.title')}
                   description={t('cloud.history.row')}
                   onPress={() => router.push('/backup-history' as Href)}
+                  disabled={connectionAction !== null}
                   accessibilityLabel={t('cloud.history.title')}
                   accessibilityHint={t('cloud.history.row')}
+                  accessibilityState={{ disabled: connectionAction !== null }}
                   className="rounded-none px-4"
                   showChevron
                   isLast
