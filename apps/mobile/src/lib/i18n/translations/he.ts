@@ -1037,6 +1037,28 @@ export const he: Translations = {
   'cloud.replaceBackup.description':
     'גיבויי המכשירים ש־Tackbok לא יכול לקרוא יוסרו מ־Google Drive, והיומן של המכשיר הזה יגובה במקומם. גיבויים קריאים של המכשירים האחרים שלך יישמרו וימוזגו כרגיל. מה שהיה רק בגיבויים שאינם קריאים לא ניתן לשחזור.',
   'cloud.replaceBackup.done': 'הגיבויים שאינם קריאים הוסרו.',
+  'cloud.history.title': 'היסטוריית גיבויים',
+  'cloud.history.row': 'ייצוא או שחזור של היומן כפי שהיה ביום קודם',
+  'cloud.history.description':
+    'Google Drive שומר גיבוי אחד לכל אחד מ־30 הימים האחרונים. אפשר לייצא גיבוי כקובץ ZIP, או לשחזר אותו כדי להחזיר רשומות כפי שהיו באותו יום.',
+  'cloud.history.empty': 'עדיין אין גיבויים קודמים.',
+  'cloud.history.loadFailed':
+    'לא ניתן לטעון את היסטוריית הגיבויים. כדאי לבדוק את החיבור ולנסות שוב.',
+  'cloud.history.savedAt': 'נשמר בשעה {time}',
+  'cloud.history.export': 'ייצוא',
+  'cloud.history.restore': 'שחזור',
+  'cloud.history.exportLabel': 'ייצוא הגיבוי מ־{date}',
+  'cloud.history.restoreLabel': 'שחזור הגיבוי מ־{date}',
+  'cloud.history.exported': 'הגיבוי יוצא',
+  'cloud.history.missingMedia':
+    'חלק מהתמונות או מההקלטות הקוליות בגיבוי הזה כבר לא שמורות בשום מקום, ולכן הן לא נכללו.',
+  'cloud.history.restoreTitle': 'לשחזר את הגיבוי מ־{date}?',
+  'cloud.history.restoreDescription':
+    'הרשומות מהגיבוי הזה יחזרו, כולל רשומות שנמחקו מאז. שום דבר לא נמחק: רשומות שנכתבו מאוחר יותר נשארות. לאחר מכן בוחרים מה יקרה לרשומות שנמצאות בשניהם. כדי לשמור עותק של היומן כפי שהוא עכשיו, כדאי לייצא אותו קודם בהגדרות.',
+  'cloud.history.restoreConfirm': 'המשך',
+  'cloud.history.gone': 'הגיבוי הזה כבר לא נמצא ב־Google Drive. יש לבחור גיבוי אחר.',
+  'cloud.history.unreadable': 'לא ניתן לקרוא את הגיבוי הזה. יש לבחור גיבוי אחר.',
+  'cloud.history.failed': 'לא ניתן להכין את הגיבוי הזה. כדאי לבדוק את החיבור ולנסות שוב.',
   'cloud.chooseAGoogleAccountToReconnect': 'בחירת חשבון Google לחיבור מחדש',
   'cloud.updateTackbok': 'עדכון Tackbok',
   'cloud.manageGoogleDriveStorage': 'ניהול האחסון ב-Google Drive',

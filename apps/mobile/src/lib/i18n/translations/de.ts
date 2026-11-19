@@ -1121,6 +1121,32 @@ export const de: Translations = {
   'cloud.replaceBackup.description':
     'Die Gerätesicherungen, die Tackbok nicht lesen kann, werden aus Google Drive entfernt, und stattdessen wird das Tagebuch dieses Geräts gesichert. Lesbare Sicherungen deiner anderen Geräte bleiben erhalten und werden wie gewohnt zusammengeführt. Was nur in den unlesbaren Sicherungen war, lässt sich nicht wiederherstellen.',
   'cloud.replaceBackup.done': 'Die unlesbaren Sicherungen wurden entfernt.',
+  'cloud.history.title': 'Sicherungsverlauf',
+  'cloud.history.row':
+    'Dein Tagebuch so exportieren oder wiederherstellen, wie es an einem früheren Tag war',
+  'cloud.history.description':
+    'Google Drive bewahrt für jeden der letzten 30 Tage eine Sicherung auf. Exportiere eine als ZIP-Datei oder stelle sie wieder her, um Einträge so zurückzuholen, wie sie an diesem Tag waren.',
+  'cloud.history.empty': 'Noch keine früheren Sicherungen.',
+  'cloud.history.loadFailed':
+    'Der Sicherungsverlauf konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.',
+  'cloud.history.savedAt': 'Gespeichert um {time}',
+  'cloud.history.export': 'Exportieren',
+  'cloud.history.restore': 'Wiederherstellen',
+  'cloud.history.exportLabel': 'Sicherung vom {date} exportieren',
+  'cloud.history.restoreLabel': 'Sicherung vom {date} wiederherstellen',
+  'cloud.history.exported': 'Sicherung exportiert',
+  'cloud.history.missingMedia':
+    'Einige Fotos oder Sprachnotizen aus dieser Sicherung sind nirgends mehr gespeichert und wurden weggelassen.',
+  'cloud.history.restoreTitle': 'Sicherung vom {date} wiederherstellen?',
+  'cloud.history.restoreDescription':
+    'Einträge aus dieser Sicherung kommen zurück, auch solche, die seitdem gelöscht wurden. Nichts wird gelöscht: Einträge, die du später geschrieben hast, bleiben. Danach wählst du, was mit Einträgen geschieht, die in beiden vorkommen. Wenn du eine Kopie deines Tagebuchs im jetzigen Zustand behalten möchtest, exportiere es zuerst in den Einstellungen.',
+  'cloud.history.restoreConfirm': 'Weiter',
+  'cloud.history.gone':
+    'Diese Sicherung ist nicht mehr auf Google Drive. Wähle eine andere.',
+  'cloud.history.unreadable':
+    'Diese Sicherung kann nicht gelesen werden. Wähle eine andere.',
+  'cloud.history.failed':
+    'Die Sicherung konnte nicht vorbereitet werden. Prüfe deine Verbindung und versuche es erneut.',
   'cloud.chooseAGoogleAccountToReconnect':
     'Google-Konto zum erneuten Verbinden auswählen',
   'cloud.updateTackbok': 'Tackbok aktualisieren',

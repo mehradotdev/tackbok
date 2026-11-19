@@ -1010,6 +1010,27 @@ export const zhCN: Translations = {
   'cloud.replaceBackup.description':
     'Tackbok 无法读取的设备备份将从 Google Drive 中删除，并改为备份此设备的日记。你其他设备中可以读取的备份会保留，并照常合并。只存在于无法读取的备份中的内容将无法恢复。',
   'cloud.replaceBackup.done': '已删除无法读取的备份。',
+  'cloud.history.title': '备份历史',
+  'cloud.history.row': '导出或恢复日记在之前某一天的样子',
+  'cloud.history.description':
+    'Google Drive 会为最近 30 天中的每一天保留一份备份。你可以将其导出为 ZIP 文件，或恢复它，让条目回到那一天的样子。',
+  'cloud.history.empty': '还没有之前的备份。',
+  'cloud.history.loadFailed': '无法加载备份历史。请检查网络连接后重试。',
+  'cloud.history.savedAt': '保存于 {time}',
+  'cloud.history.export': '导出',
+  'cloud.history.restore': '恢复',
+  'cloud.history.exportLabel': '导出 {date} 的备份',
+  'cloud.history.restoreLabel': '恢复 {date} 的备份',
+  'cloud.history.exported': '备份已导出',
+  'cloud.history.missingMedia':
+    '此备份中的部分照片或语音笔记已不再保存于任何地方，因此未包含在内。',
+  'cloud.history.restoreTitle': '要恢复 {date} 的备份吗？',
+  'cloud.history.restoreDescription':
+    '此备份中的条目会回来，包括之后删除的条目。不会删除任何内容：你之后写的条目会保留。接下来，你可以选择两边都有的条目如何处理。如果想保留日记当前的副本，请先在“设置”中导出。',
+  'cloud.history.restoreConfirm': '继续',
+  'cloud.history.gone': '此备份已不在 Google Drive 上。请选择其他备份。',
+  'cloud.history.unreadable': '无法读取此备份。请选择其他备份。',
+  'cloud.history.failed': '无法准备此备份。请检查网络连接后重试。',
   'cloud.chooseAGoogleAccountToReconnect': '选择要重新连接的 Google 账号',
   'cloud.updateTackbok': '更新塔克布克',
   'cloud.manageGoogleDriveStorage': '管理 Google Drive 存储空间',

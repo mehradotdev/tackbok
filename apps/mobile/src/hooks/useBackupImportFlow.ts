@@ -137,6 +137,11 @@ export function useBackupImportFlow(
     [t],
   );
 
+  /** A Tackbok ZIP the app built itself (backup history); the mode modal follows. */
+  const selectTackbokArchive = useCallback((uri: string) => {
+    setPendingImportSelection({ source: 'tackbok', uri });
+  }, []);
+
   /** Run the pending zip import with the mode the user picked in the mode modal. */
   const runPendingImport = useCallback(
     async (mode: ImportMode) => {
@@ -190,6 +195,7 @@ export function useBackupImportFlow(
     importSummary,
     pendingImportSelection,
     selectImportFile,
+    selectTackbokArchive,
     runPendingImport,
     startPresentlyImport,
     clearPendingImport,

@@ -671,7 +671,7 @@ async function runManualSyncSince(epoch: number): Promise<boolean> {
 }
 
 /** The Drive provider for the configured backup and account. */
-async function configuredDriveProvider(): Promise<GoogleDriveSnapshotProvider> {
+export async function configuredDriveProvider(): Promise<GoogleDriveSnapshotProvider> {
   const connectionId = await readOrCreateGoogleConnectionId();
   return new GoogleDriveSnapshotProvider({
     auth: createGoogleAuthorization(),

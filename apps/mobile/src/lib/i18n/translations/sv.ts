@@ -1010,6 +1010,30 @@ export const sv = {
   'cloud.replaceBackup.description':
     'Enhetssäkerhetskopiorna som Tackbok inte kan läsa tas bort från Google Drive, och den här enhetens dagbok säkerhetskopieras i stället. Läsbara säkerhetskopior från dina andra enheter behålls och slås ihop som vanligt. Det som bara fanns i de oläsbara säkerhetskopiorna går inte att återställa.',
   'cloud.replaceBackup.done': 'De oläsbara säkerhetskopiorna togs bort.',
+  'cloud.history.title': 'Säkerhetskopieringshistorik',
+  'cloud.history.row': 'Exportera eller återställ din dagbok som den var en tidigare dag',
+  'cloud.history.description':
+    'Google Drive sparar en säkerhetskopia för var och en av de senaste 30 dagarna. Exportera en som ZIP-fil, eller återställ den för att få tillbaka anteckningar som de var den dagen.',
+  'cloud.history.empty': 'Inga tidigare säkerhetskopior än.',
+  'cloud.history.loadFailed':
+    'Det gick inte att läsa in historiken. Kontrollera anslutningen och försök igen.',
+  'cloud.history.savedAt': 'Sparad kl. {time}',
+  'cloud.history.export': 'Exportera',
+  'cloud.history.restore': 'Återställ',
+  'cloud.history.exportLabel': 'Exportera säkerhetskopian från {date}',
+  'cloud.history.restoreLabel': 'Återställ säkerhetskopian från {date}',
+  'cloud.history.exported': 'Säkerhetskopian exporterades',
+  'cloud.history.missingMedia':
+    'Vissa foton eller röstanteckningar från säkerhetskopian finns inte längre sparade någonstans och utelämnades.',
+  'cloud.history.restoreTitle': 'Återställa säkerhetskopian från {date}?',
+  'cloud.history.restoreDescription':
+    'Anteckningar från säkerhetskopian kommer tillbaka, även sådana som raderats sedan dess. Inget raderas: anteckningar du skrivit senare finns kvar. Sedan väljer du vad som händer med anteckningar som finns i båda. Exportera först dagboken i Inställningar om du vill behålla en kopia av den som den är nu.',
+  'cloud.history.restoreConfirm': 'Fortsätt',
+  'cloud.history.gone':
+    'Säkerhetskopian finns inte längre på Google Drive. Välj en annan.',
+  'cloud.history.unreadable': 'Säkerhetskopian kan inte läsas. Välj en annan.',
+  'cloud.history.failed':
+    'Det gick inte att förbereda säkerhetskopian. Kontrollera anslutningen och försök igen.',
   'cloud.chooseAGoogleAccountToReconnect': 'Välj ett Google-konto för att återansluta',
   'cloud.updateTackbok': 'Uppdatera Tackbok',
   'cloud.manageGoogleDriveStorage': 'Hantera Google Drive-lagring',

@@ -1013,6 +1013,27 @@ export const zhTW: Translations = {
   'cloud.replaceBackup.description':
     'Tackbok 無法讀取的裝置備份將從 Google Drive 中刪除，並改為備份此裝置的日記。你其他裝置中可以讀取的備份會保留，並照常合併。只存在於無法讀取的備份中的內容將無法復原。',
   'cloud.replaceBackup.done': '已刪除無法讀取的備份。',
+  'cloud.history.title': '備份歷史',
+  'cloud.history.row': '匯出或還原日記在之前某一天的樣子',
+  'cloud.history.description':
+    'Google Drive 會為最近 30 天中的每一天保留一份備份。你可以將其匯出為 ZIP 檔案，或還原它，讓紀錄回到那一天的樣子。',
+  'cloud.history.empty': '還沒有之前的備份。',
+  'cloud.history.loadFailed': '無法載入備份歷史。請檢查網路連線後再試一次。',
+  'cloud.history.savedAt': '儲存於 {time}',
+  'cloud.history.export': '匯出',
+  'cloud.history.restore': '還原',
+  'cloud.history.exportLabel': '匯出 {date} 的備份',
+  'cloud.history.restoreLabel': '還原 {date} 的備份',
+  'cloud.history.exported': '備份已匯出',
+  'cloud.history.missingMedia':
+    '此備份中的部分照片或語音筆記已不再儲存於任何地方，因此未包含在內。',
+  'cloud.history.restoreTitle': '要還原 {date} 的備份嗎？',
+  'cloud.history.restoreDescription':
+    '此備份中的紀錄會回來，包括之後刪除的紀錄。不會刪除任何內容：你之後寫的紀錄會保留。接下來，你可以選擇兩邊都有的紀錄如何處理。如果想保留日記目前的副本，請先在「設定」中匯出。',
+  'cloud.history.restoreConfirm': '繼續',
+  'cloud.history.gone': '此備份已不在 Google Drive 上。請選擇其他備份。',
+  'cloud.history.unreadable': '無法讀取此備份。請選擇其他備份。',
+  'cloud.history.failed': '無法準備此備份。請檢查網路連線後再試一次。',
   'cloud.chooseAGoogleAccountToReconnect': '選擇要重新連接的 Google 帳戶',
   'cloud.updateTackbok': '更新塔克布克',
   'cloud.manageGoogleDriveStorage': '管理 Google Drive 儲存空間',

@@ -1045,6 +1045,29 @@ export const ar: Translations = {
   'cloud.replaceBackup.description':
     'تُحذف من Google Drive النسخ الاحتياطية للأجهزة التي لا يستطيع Tackbok قراءتها، ويُنسخ دفتر يوميات هذا الجهاز احتياطيًا مكانها. تبقى النسخ الاحتياطية المقروءة من أجهزتك الأخرى وتُدمج كالمعتاد. ما كان موجودًا في النسخ غير المقروءة وحدها لا يمكن استعادته.',
   'cloud.replaceBackup.done': 'حُذفت النسخ الاحتياطية غير المقروءة.',
+  'cloud.history.title': 'سجل النسخ الاحتياطية',
+  'cloud.history.row': 'صدِّر دفتر يومياتك أو استعِده كما كان في يوم سابق',
+  'cloud.history.description':
+    'يحتفظ Google Drive بنسخة احتياطية واحدة لكل يوم من آخر 30 يومًا. صدِّر إحداها كملف ZIP، أو استعِدها لإرجاع السجلات كما كانت في ذلك اليوم.',
+  'cloud.history.empty': 'لا توجد نسخ احتياطية سابقة بعد.',
+  'cloud.history.loadFailed':
+    'تعذّر تحميل سجل النسخ الاحتياطية. تحقّق من اتصالك وحاول مرة أخرى.',
+  'cloud.history.savedAt': 'حُفظت في {time}',
+  'cloud.history.export': 'تصدير',
+  'cloud.history.restore': 'استعادة',
+  'cloud.history.exportLabel': 'تصدير النسخة الاحتياطية من {date}',
+  'cloud.history.restoreLabel': 'استعادة النسخة الاحتياطية من {date}',
+  'cloud.history.exported': 'صُدِّرت النسخة الاحتياطية',
+  'cloud.history.missingMedia':
+    'بعض الصور أو الملاحظات الصوتية من هذه النسخة لم تعد محفوظة في أي مكان، لذا لم تُضمَّن.',
+  'cloud.history.restoreTitle': 'استعادة النسخة الاحتياطية من {date}؟',
+  'cloud.history.restoreDescription':
+    'تعود السجلات الموجودة في هذه النسخة، بما فيها التي حُذفت بعد ذلك. لا يُحذف شيء: تبقى السجلات التي كتبتها لاحقًا. بعد ذلك تختار ما يحدث للسجلات الموجودة في كلتيهما. للاحتفاظ بنسخة من دفتر يومياتك كما هو الآن، صدِّره أولًا من الإعدادات.',
+  'cloud.history.restoreConfirm': 'متابعة',
+  'cloud.history.gone': 'لم تعد هذه النسخة الاحتياطية على Google Drive. اختر نسخة أخرى.',
+  'cloud.history.unreadable': 'تتعذّر قراءة هذه النسخة الاحتياطية. اختر نسخة أخرى.',
+  'cloud.history.failed':
+    'تعذّر تجهيز هذه النسخة الاحتياطية. تحقّق من اتصالك وحاول مرة أخرى.',
   'cloud.chooseAGoogleAccountToReconnect': 'اختر حساب Google لإعادة الاتصال',
   'cloud.updateTackbok': 'حدّث Tackbok',
   'cloud.manageGoogleDriveStorage': 'إدارة مساحة Google Drive',

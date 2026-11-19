@@ -6,7 +6,7 @@ import {
   ScrollView,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Cloud,
   CloudOff,
+  History,
   RefreshCw,
   ShieldCheck,
   Smartphone,
@@ -896,6 +897,20 @@ export default function CloudBackupScreen() {
               </View>
 
               <OtherVersionsRow />
+
+              <View className="rounded-lg border border-border bg-card overflow-hidden">
+                <SettingsRow
+                  icon={History}
+                  label={t('cloud.history.title')}
+                  description={t('cloud.history.row')}
+                  onPress={() => router.push('/backup-history' as Href)}
+                  accessibilityLabel={t('cloud.history.title')}
+                  accessibilityHint={t('cloud.history.row')}
+                  className="rounded-none px-4"
+                  showChevron
+                  isLast
+                />
+              </View>
 
               <View className="rounded-lg border border-border bg-card overflow-hidden">
                 <SettingsRow
