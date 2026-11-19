@@ -67,6 +67,13 @@ const runningVaultPasses = new Map<string, RunningVaultPass>();
 /** Pending attachments downloaded between checks for cancellation and edits. */
 const HYDRATION_BATCH = 2;
 
+/**
+ * Pending attachments looked up on the provider together before their
+ * downloads: one grouped search instead of one per file (#246). The provider
+ * groups name searches by 50.
+ */
+const HYDRATION_LOOKUP_GROUP = 50;
+
 /** The running build and update; a change retries a join that failed. */
 export function productionCodeVersion(): string {
   return `${Application.nativeBuildVersion ?? ''}/${Updates.updateId ?? 'embedded'}`;
@@ -418,7 +425,12 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           bytesTotal: pendingMediaBytes(waiting),
         });
       }
+      // Blobs already looked up, found or not, so a missing one isn't asked
+      // about again in this pass.
+      const looked = new Set<string>();
       for (let batch = 1; ; batch += 1) {
+        await this.lookUpPendingMedia(looked);
+        throwIfCancelled(signal);
         const hydration = await this.journal.hydratePendingMedia(
           this.mediaProvider,
           HYDRATION_BATCH,
@@ -533,6 +545,21 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       pulled: result.status === 'published' || result.status === 'pulled' ? 1 : 0,
       pushed: result.status === 'published' ? 1 : 0,
     };
+  }
+
+  /**
+   * Looks up the next pending attachments' files on the provider in one
+   * grouped request, so each download finds its file in the provider's cache
+   * (#246). A restoring device skips these lookups when it publishes, since
+   * it holds none of the files; without this, every download would search for
+   * its file on its own first.
+   */
+  private async lookUpPendingMedia(looked: Set<string>): Promise<void> {
+    const pending = await this.journal.pendingMediaHashes(HYDRATION_LOOKUP_GROUP);
+    if (pending.slice(0, HYDRATION_BATCH).every((hash) => looked.has(hash))) return;
+    const fresh = pending.filter((hash) => !looked.has(hash));
+    await this.mediaProvider.hasMediaBatch(this.vault.vault_id, fresh);
+    for (const hash of fresh) looked.add(hash);
   }
 
   private async refreshAppliedViews(): Promise<void> {

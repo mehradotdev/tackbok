@@ -800,6 +800,22 @@ export class ProductionSnapshotJournalStore {
   }
 
   /**
+   * The blob hashes of the next pending attachments, in the order
+   * `hydratePendingMedia` downloads them, without repeats.
+   */
+  async pendingMediaHashes(limit: number): Promise<string[]> {
+    const rows = await db
+      .select({ blobHash: mediaAssets.blob_hash })
+      .from(mediaAssets)
+      .where(
+        and(eq(mediaAssets.download_state, 'pending'), isNotNull(mediaAssets.blob_hash)),
+      )
+      .orderBy(mediaAssets.asset_id)
+      .limit(limit);
+    return [...new Set(rows.flatMap((row) => (row.blobHash ? [row.blobHash] : [])))];
+  }
+
+  /**
    * Bounded post-restore hydration. Metadata/text remain usable while media waits.
    *
    * `missing` counts rows that cannot be downloaded at all (no hash or size).
@@ -824,6 +840,7 @@ export class ProductionSnapshotJournalStore {
       .select()
       .from(mediaAssets)
       .where(eq(mediaAssets.download_state, 'pending'))
+      .orderBy(mediaAssets.asset_id)
       .limit(limit);
     let hydrated = 0;
     let missing = 0;

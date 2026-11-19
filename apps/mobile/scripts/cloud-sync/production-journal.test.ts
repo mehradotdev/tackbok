@@ -692,6 +692,38 @@ test('downloaded attachments whose file vanished are queued for download again',
   unreadableFiles.clear();
 });
 
+test('pending media hashes come in download order, once each, after the files waiting first', async () => {
+  sqlite.exec('DELETE FROM media_assets');
+  const row = (assetId: string, blob: string | null, state: 'pending' | 'verified') => ({
+    asset_id: assetId,
+    owner_type: 'entry' as const,
+    owner_id: 'entry',
+    kind: 'photo' as const,
+    local_uri: `photos/${assetId}.jpg`,
+    download_state: state,
+    blob_hash: blob,
+    byte_size: 1,
+    created_at: 1,
+    updated_at: 1,
+  });
+  db.insert(schema.mediaAssets)
+    .values([
+      row('d', 'd'.repeat(64), 'pending'),
+      row('a', 'a'.repeat(64), 'pending'),
+      // Another attachment with the same file.
+      row('b', 'a'.repeat(64), 'pending'),
+      row('c', 'c'.repeat(64), 'verified'),
+      row('e', null, 'pending'),
+      row('f', 'f'.repeat(64), 'pending'),
+    ])
+    .run();
+  const store = new ProductionSnapshotJournalStore('lookups', {} as never);
+  expect(await store.pendingMediaHashes(50)).toEqual(
+    ['a', 'd', 'f'].map((c) => c.repeat(64)),
+  );
+  expect(await store.pendingMediaHashes(2)).toEqual(['a'.repeat(64)]);
+});
+
 test('a repaired attachment is downloaded back to the path its entry uses', async () => {
   sqlite.exec(
     'DELETE FROM media_assets; DELETE FROM user_profile; DELETE FROM entries; DELETE FROM cloud_sync_state',
