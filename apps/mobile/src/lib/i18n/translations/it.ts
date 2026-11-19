@@ -365,6 +365,8 @@ export const it = {
   'backup.backupRestore': 'Backup e ripristino',
   'backup.googleDriveBackup': 'Backup su Google Drive',
   'backup.exportAsZip': 'Esporta come ZIP',
+  'backup.movingPhonesAndroid':
+    'Passi a un nuovo telefono? Prima attiva il backup sul cloud o esporta un file ZIP. Android non trasferisce il tuo diario da solo.',
   'backup.allOfYourDataInAFormatThatYouCan':
     'Tutti i tuoi dati in un formato che potrai ripristinare nell’app in seguito',
   'backup.importAsZip': 'Importa da ZIP',

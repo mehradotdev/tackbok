@@ -342,6 +342,8 @@ export const es = {
   'backup.backupRestore': 'Copia de seguridad y restauración',
   'backup.googleDriveBackup': 'Copia de seguridad Google Drive',
   'backup.exportAsZip': 'Exportar como ZIP',
+  'backup.movingPhonesAndroid':
+    '¿Vas a cambiar de teléfono? Activa antes la copia de seguridad en la nube o exporta un ZIP. Android no traslada tu diario por sí solo.',
   'backup.allOfYourDataInAFormatThatYouCan':
     'Todos tus datos en un formato que puedes restaurar en la aplicación más tarde',
   'backup.importAsZip': 'Importar desde ZIP',

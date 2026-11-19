@@ -323,6 +323,8 @@ export const hi = {
   'backup.backupRestore': 'बैकअप और पुनर्स्थापना',
   'backup.googleDriveBackup': 'Google Drive बैकअप',
   'backup.exportAsZip': 'ज़िप के रूप में निर्यात करें',
+  'backup.movingPhonesAndroid':
+    'नए फ़ोन पर जा रहे हैं? पहले क्लाउड बैकअप चालू करें या ज़िप फ़ाइल निर्यात करें। Android आपकी डायरी अपने-आप नहीं ले जाता।',
   'backup.allOfYourDataInAFormatThatYouCan':
     'आपका सारा डेटा एक प्रारूप में जिसे आप बाद में ऐप में पुनर्स्थापित कर सकते हैं',
   'backup.importAsZip': 'ज़िप से आयात करें',

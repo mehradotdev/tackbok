@@ -356,6 +356,8 @@ export const zhCN: Translations = {
   'backup.backupRestore': '备份与恢复',
   'backup.googleDriveBackup': 'Google Drive 备份',
   'backup.exportAsZip': '导出为 ZIP',
+  'backup.movingPhonesAndroid':
+    '要换新手机？请先开启云备份或导出 ZIP 文件。Android 不会自动迁移你的日记。',
   'backup.allOfYourDataInAFormatThatYouCan':
     '以你稍后可在应用中恢复的格式备份你的所有数据',
   'backup.importAsZip': '从 ZIP 导入',
