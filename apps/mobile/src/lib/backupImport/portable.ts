@@ -682,7 +682,9 @@ export async function importPortableEntries(
     // A history restore keeps an attachment's ID only while this journal
     // still has it: one removed since may have a published descriptor
     // other devices still hold, which a new row under its ID would contradict.
-    // One it still has with the same bytes keeps its file: no second copy.
+    // One this entry still has with the same bytes keeps its file and ID: no
+    // second copy. That includes one whose backup ID is gone here because an
+    // earlier restore gave it a new one (skip, then overwrite).
     let entryToImport = portableEntry;
     const reused = new Map<number, Asset>();
     if (options.history) {
@@ -694,26 +696,60 @@ export async function importPortableEntries(
           ? []
           : await tx.select().from(mediaAssets).where(inArray(mediaAssets.asset_id, ids));
       const byId = new Map(rows.map((row) => [row.asset_id, row]));
+      const current = hasExisting
+        ? await tx
+            .select()
+            .from(mediaAssets)
+            .where(
+              and(eq(mediaAssets.owner_type, 'entry'), eq(mediaAssets.owner_id, noteId)),
+            )
+        : [];
+      const keepable = (
+        row: typeof mediaAssets.$inferSelect | undefined,
+        blobHash: string | undefined,
+      ) =>
+        !!row?.local_uri &&
+        row.owner_type === 'entry' &&
+        row.owner_id === noteId &&
+        !!row.blob_hash &&
+        row.blob_hash === blobHash;
+      // By ID first, then, for a backup ID this journal no longer has, by
+      // bytes among this entry's attachments not matched yet.
+      const matches = new Map<number, typeof mediaAssets.$inferSelect>();
+      const taken = new Set<string>();
+      portableEntry.assets.forEach((asset, index) => {
+        const row = asset.assetId ? byId.get(asset.assetId) : undefined;
+        if (row && keepable(row, asset.blobHash)) {
+          matches.set(index, row);
+          taken.add(row.asset_id);
+        }
+      });
+      portableEntry.assets.forEach((asset, index) => {
+        if (matches.has(index) || (asset.assetId && byId.has(asset.assetId))) return;
+        const row = current.find(
+          (candidate) =>
+            !taken.has(candidate.asset_id) && keepable(candidate, asset.blobHash),
+        );
+        if (row) {
+          matches.set(index, row);
+          taken.add(row.asset_id);
+        }
+      });
       const remaining: PortableEntry['assets'] = [];
       portableEntry.assets.forEach((asset, index) => {
         const row = asset.assetId ? byId.get(asset.assetId) : undefined;
-        if (
-          row?.local_uri &&
-          row.owner_type === 'entry' &&
-          row.owner_id === noteId &&
-          row.blob_hash &&
-          row.blob_hash === asset.blobHash
-        ) {
+        const match = matches.get(index);
+        if (match?.local_uri && match.blob_hash) {
           reused.set(index, {
-            type: row.kind === 'voice' ? AssetType.AUDIO : AssetType.IMAGE,
-            uri: row.local_uri,
-            assetId: row.asset_id,
-            blobHash: row.blob_hash,
-            mimeType: row.mime_type ?? undefined,
-            byteSize: row.byte_size ?? undefined,
-            width: row.width ?? undefined,
-            height: row.height ?? undefined,
-            durationMs: row.duration_ms ?? undefined,
+            type: match.kind === 'voice' ? AssetType.AUDIO : AssetType.IMAGE,
+            uri: match.local_uri,
+            assetId: match.asset_id,
+            blobHash: match.blob_hash,
+            mimeType: match.mime_type ?? undefined,
+            byteSize: match.byte_size ?? undefined,
+            width: match.width ?? undefined,
+            height: match.height ?? undefined,
+            durationMs: match.duration_ms ?? undefined,
           });
           return;
         }

@@ -355,6 +355,40 @@ describe('backup history (P9)', () => {
     ).toEqual([{ asset_id: 'kept', local_uri: 'photos/kept.jpg' }]);
   });
 
+  test('an overwrite keeps a photo with the same bytes whose ID an earlier restore changed', async () => {
+    const a = device();
+    const hash = 'c'.repeat(64);
+    const photo = { type: AssetType.IMAGE, uri: 'photos/kept.jpg', assetId: 'kept' };
+    await addEntry(a, 'e1', { text_content: 'Before', assets: [photo] });
+    a.database.sqlite.run(
+      "UPDATE media_assets SET blob_hash = ?, byte_size = 3 WHERE asset_id = 'kept'",
+      [hash],
+    );
+    await blobs.writeVerified(hash, new Uint8Array([1, 2, 3]));
+    expect((await sync(a)).status).toBe('published');
+    const backup = headSnapshot(a);
+    // As after a skip restore of the deleted entry: same bytes, a new ID and file.
+    clock += 1000;
+    const renamed = {
+      type: AssetType.IMAGE,
+      uri: 'photos/renamed.jpg',
+      assetId: 'renamed',
+    };
+    await addEntry(a, 'e1', { text_content: 'Edited', assets: [renamed] });
+    a.database.sqlite.run(
+      "UPDATE media_assets SET blob_hash = ?, byte_size = 3 WHERE asset_id = 'renamed'",
+      [hash],
+    );
+    // The archive here holds no files: only a kept photo can stay.
+    await restore(a, backup, 'overwrite');
+    expect(texts(a)).toEqual(['e1:Before']);
+    expect(
+      a.database.sqlite
+        .query("SELECT asset_id, local_uri FROM media_assets WHERE owner_id = 'e1'")
+        .all(),
+    ).toEqual([{ asset_id: 'renamed', local_uri: 'photos/renamed.jpg' }]);
+  });
+
   test("an attachment's photo and voice note are listed with their files", async () => {
     const a = device();
     await addEntry(a, 'e1', {
