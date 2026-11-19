@@ -53,6 +53,39 @@ function toStoredTokens(
   };
 }
 
+/**
+ * The refresh in progress, shared by every instance: attachments upload a few
+ * at a time, and each request asks for a token. One refresh serves them all.
+ */
+let refreshing: Promise<string> | null = null;
+
+async function refreshAccessToken(refreshToken: string): Promise<string> {
+  const config = getGoogleOAuthConfig();
+  try {
+    const response = await refreshAsync(
+      { clientId: config.iosClientId, refreshToken },
+      DISCOVERY,
+    );
+    const tokens = toStoredTokens(response, refreshToken);
+    await writeGoogleTokens(tokens);
+    return tokens.accessToken;
+  } catch (error) {
+    if (isTerminalGoogleRefreshError(error)) {
+      await clearGoogleTokens();
+      throw new CloudAuthError(
+        'refresh-failed',
+        'Google authorization expired; reconnect required',
+      );
+    }
+    // Network/server failures keep the refresh token so an offline interval
+    // never forces the owner through interactive consent again.
+    throw new CloudAuthError(
+      'temporarily-unavailable',
+      'Google authorization could not be refreshed; retry when online',
+    );
+  }
+}
+
 export class IosGoogleAuthorization implements CloudAuthorization {
   async authorize(): Promise<GoogleTokenSet> {
     return withExternalAuthentication(async () => {
@@ -107,30 +140,10 @@ export class IosGoogleAuthorization implements CloudAuthorization {
     if (!current.refreshToken) {
       throw new CloudAuthError('consent-required', 'Google Drive must be reconnected');
     }
-    const config = getGoogleOAuthConfig();
-    try {
-      const response = await refreshAsync(
-        { clientId: config.iosClientId, refreshToken: current.refreshToken },
-        DISCOVERY,
-      );
-      const tokens = toStoredTokens(response, current.refreshToken);
-      await writeGoogleTokens(tokens);
-      return tokens.accessToken;
-    } catch (error) {
-      if (isTerminalGoogleRefreshError(error)) {
-        await clearGoogleTokens();
-        throw new CloudAuthError(
-          'refresh-failed',
-          'Google authorization expired; reconnect required',
-        );
-      }
-      // Network/server failures keep the refresh token so an offline interval
-      // never forces the owner through interactive consent again.
-      throw new CloudAuthError(
-        'temporarily-unavailable',
-        'Google authorization could not be refreshed; retry when online',
-      );
-    }
+    refreshing ??= refreshAccessToken(current.refreshToken).finally(() => {
+      refreshing = null;
+    });
+    return refreshing;
   }
 
   clearInvalidAccessToken(): Promise<void> {
@@ -138,6 +151,8 @@ export class IosGoogleAuthorization implements CloudAuthorization {
   }
 
   async signOut(): Promise<void> {
+    // A later request must not take a token from the old connection's refresh.
+    refreshing = null;
     await clearGoogleTokens();
     try {
       await WebBrowser.dismissAuthSession();

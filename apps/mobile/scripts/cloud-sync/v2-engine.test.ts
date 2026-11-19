@@ -772,13 +772,20 @@ describe('attachments', () => {
       return upload(...args);
     };
     const pass = sync(a);
-    while (gate.inFlight > 0 || gate.release.length > 0 || gate.started === 0) {
+    let settled = false;
+    void pass.finally(() => {
+      settled = true;
+    });
+    while (gate.started < 2) await settle();
+    // The first and third were in flight when the second failed: the pass
+    // waits for both.
+    for (let held = 2; held > 0; held--) {
       await settle();
-      gate.release.shift()?.();
+      expect(settled).toBe(false);
+      gate.release.shift()!();
     }
     const result = await pass;
     expect(result.status).not.toBe('published');
-    // The first and third were in flight when the second failed.
     expect(calls).toBe(3);
     expect(gate.started).toBe(2);
     // Nothing is stamped: the attachments are still unpublished.
@@ -787,6 +794,31 @@ describe('attachments', () => {
         .query('SELECT count(*) AS n FROM media_assets WHERE stamp_hlc IS NOT NULL')
         .get(),
     ).toEqual({ n: 0 });
+  });
+
+  test('a Wi-Fi-only refusal mid-way keeps what was uploaded and defers the rest', async () => {
+    const a = device();
+    await attachMany(a, 7);
+    const gate = gateUploads();
+    const upload = provider.uploadMedia.bind(provider);
+    let calls = 0;
+    provider.uploadMedia = async (...args) => {
+      calls += 1;
+      if (calls === 2) throw new SnapshotProviderError('wifi-only-media', 'cellular');
+      return upload(...args);
+    };
+    const pass = sync(a);
+    while (gate.started < 2) await settle();
+    gate.release.shift()!();
+    gate.release.shift()!();
+    // The two in flight finish and are published; the other five wait.
+    expect(await pass).toMatchObject({ status: 'published', deferredMediaCount: 5 });
+    expect(calls).toBe(3);
+    expect(
+      a.database.sqlite
+        .query('SELECT count(*) AS n FROM media_assets WHERE stamp_hlc IS NOT NULL')
+        .get(),
+    ).toEqual({ n: 2 });
   });
 
   test('Wi-Fi-only media waits; the entry is published without it', async () => {

@@ -124,8 +124,10 @@ const MAX_DELETES_PER_PASS = 10;
 /**
  * Attachment uploads in flight at once. Drive takes 2-3 s to create even a
  * small file, so one at a time a journal with 1,500 photos took over an hour
- * to back up the first time (#185 P14). Three stays under Drive's sustained
- * write rate of about three a second, since a create is not retried.
+ * to back up the first time (#185 P14). Three in flight at that latency make
+ * about one create a second, well under Drive's sustained limit of about
+ * three writes a second per user; a create is not retried, so staying under
+ * it matters.
  */
 export const MEDIA_UPLOAD_CONCURRENCY = 3;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
