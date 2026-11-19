@@ -23,9 +23,10 @@ import { Icon } from '~/components/ui/icon';
 import { TimelineDotAnimated } from './TimelineDot';
 
 // The date pill is a section marker, not content. Uncapped, the largest iOS text sizes wrap
-// it onto two lines that fill a third of the screen. A 2x cap keeps the date on one line and
-// still well above its default size. Android's maximum font scale is 2, so only iOS changes.
-// Entry text below it scales fully.
+// it onto two lines that fill a third of the screen. A 2x cap keeps short dates on one line
+// and long ones (weekday shown, longer locales) much shorter, while staying well above the
+// default size. Android's maximum font scale is 2, so only iOS changes. Entry text below
+// it scales fully.
 const TIMELINE_DATE_MAX_FONT_SCALE = 2;
 
 // ============================================================================
@@ -302,6 +303,11 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
           variant="outline"
           size="flex"
           onPress={onToggleExpand}
+          // The date text is capped, so long-pressing at accessibility sizes shows it full size.
+          accessibilityShowsLargeContentViewer
+          accessibilityLargeContentTitle={
+            hasEntries ? `${formattedDate} (${dayGroup.entries.length})` : formattedDate
+          }
           containerClassName={cn('self-start mb-2', 'mt-2')}
           className="bg-muted active:bg-muted py-0.5 pl-3 pr-2 rounded-full border-2 border-transparent shadow-none">
           <Text
