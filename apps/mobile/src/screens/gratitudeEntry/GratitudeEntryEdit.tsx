@@ -19,6 +19,7 @@ import { Clock, FilePenLine, Plus, Shuffle, X } from 'lucide-react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import {
   MODAL_CLOSE_DELAY,
+  MOOD_EMOJI_MAX_FONT_SCALE,
   MOOD_OPTIONS,
   MAX_PHOTOS_PER_ENTRY,
   MAX_VOICE_MEMOS_PER_ENTRY,
@@ -557,9 +558,13 @@ function GratitudeEntryEditForm({
                 variant="ghost"
                 size="none"
                 onPress={() => TrueSheet.present(SHEET_NAMES.MOOD)}
-                className="relative flex-row items-center px-3 py-0.5 gap-1.5 mr-2 bg-primary/50 active:bg-primary/60 transition-colors rounded-lg border border-border">
-                <Text className="text-2xl">{moodOption.emoji}</Text>
-                <Text className="text-sm tracking-wide font-body-medium text-primary-foreground">
+                className="relative max-w-full flex-row items-center px-3 py-0.5 gap-1.5 mr-2 bg-primary/50 active:bg-primary/60 transition-colors rounded-lg border border-border">
+                <Text
+                  className="text-2xl"
+                  maxFontSizeMultiplier={MOOD_EMOJI_MAX_FONT_SCALE}>
+                  {moodOption.emoji}
+                </Text>
+                <Text className="shrink text-sm tracking-wide font-body-medium text-primary-foreground">
                   {t(moodOption.feelingKey)}
                 </Text>
                 {/* Clear mood button */}
@@ -585,7 +590,7 @@ function GratitudeEntryEditForm({
                 Keyboard.dismiss();
                 setIsTimePickerVisible(true);
               }}
-              className="flex-row items-center px-3 h-9 gap-2">
+              className="flex-row items-center px-3 min-h-9 h-auto py-1 gap-2">
               <Icon as={Clock} className="text-muted-foreground size-5" />
               <Text className="text-sm font-body-medium text-foreground">
                 {formattedTime}

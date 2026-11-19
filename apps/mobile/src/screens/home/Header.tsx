@@ -28,6 +28,9 @@ import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 
 // Brand marker for the beta app variant; intentionally untranslated.
 const IS_BETA_BUILD = Constants.expoConfig?.extra?.appVariant === 'beta';
+// The app bar keeps a fixed height, like a native navigation bar, so the brand title
+// grows only a little with the system text size instead of overflowing the bar.
+const HEADER_TITLE_MAX_FONT_SCALE = 1.3;
 
 interface IHeaderProps {
   isSearchMode?: boolean;
@@ -169,11 +172,14 @@ export const Header: React.FC<IHeaderProps> = ({
                 variant="h2"
                 numberOfLines={1}
                 adjustsFontSizeToFit
+                maxFontSizeMultiplier={HEADER_TITLE_MAX_FONT_SCALE}
                 className="shrink text-primary-foreground font-heading">
                 {t('common.tackbok')}
               </Text>
               {IS_BETA_BUILD && (
-                <Text className="ml-0.5 mt-1 text-xs leading-4 tracking-wider text-primary-foreground font-body-semibold">
+                <Text
+                  maxFontSizeMultiplier={HEADER_TITLE_MAX_FONT_SCALE}
+                  className="shrink-0 ms-0.5 mt-1 text-xs leading-4 tracking-wider text-primary-foreground font-body-semibold">
                   BETA
                 </Text>
               )}
