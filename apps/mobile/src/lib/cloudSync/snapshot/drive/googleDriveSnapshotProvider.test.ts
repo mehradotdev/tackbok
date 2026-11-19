@@ -125,10 +125,18 @@ class FakeDriveServer {
   failAfterNextCreate = false;
   hideNextFileLists = 0;
   hideNextChangeLists = 0;
+  /** Deleted files that file searches still return, as a lagging Drive index does. */
+  readonly staleSearch = new Map<string, StoredDriveFile>();
   rejectChangeCursors = 0;
   private nextId = 0;
   private sequence = 0;
-  private readonly changes: { sequence: number; fileId: string; removed: boolean }[] = [];
+  private readonly changes: {
+    sequence: number;
+    fileId: string;
+    removed: boolean;
+    /** The file as this change left it. */
+    file?: StoredDriveFile;
+  }[] = [];
 
   readonly fetch: DriveFetchLike = async (url, init = {}) => {
     const method = String(init.method ?? 'GET');
@@ -159,7 +167,7 @@ class FakeDriveServer {
           fileId: change.fileId,
           file: change.removed
             ? undefined
-            : this.publicFile(this.files.get(change.fileId)!),
+            : this.publicFile(change.file ?? this.files.get(change.fileId)!),
         }));
       return response(200, { changes, newStartPageToken: String(this.sequence) });
     }
@@ -170,7 +178,7 @@ class FakeDriveServer {
         return response(200, { files: [] });
       }
       return response(200, {
-        files: [...this.files.values()]
+        files: [...this.files.values(), ...this.staleSearch.values()]
           .filter((file) => this.matches(file, query))
           .map((file) => this.publicFile(file)),
       });
@@ -205,6 +213,15 @@ class FakeDriveServer {
       if (metadata.parents !== undefined) return response(403);
       const stored = this.store(metadata, bytes, id);
       return response(200, this.publicFile(stored));
+    }
+    if (
+      fileMatch &&
+      method === 'GET' &&
+      !parsed.searchParams.has('alt') &&
+      !parsed.searchParams.has('uploadType')
+    ) {
+      const stored = this.files.get(decodeURIComponent(fileMatch[1]));
+      return stored ? response(200, this.publicFile(stored)) : response(404);
     }
     if (fileMatch && method === 'DELETE') {
       const id = decodeURIComponent(fileMatch[1]);
@@ -281,7 +298,19 @@ class FakeDriveServer {
 
   private recordChange(fileId: string, removed: boolean): void {
     this.sequence += 1;
-    this.changes.push({ sequence: this.sequence, fileId, removed });
+    const file = this.files.get(fileId);
+    this.changes.push({
+      sequence: this.sequence,
+      fileId,
+      removed,
+      ...(removed || !file ? {} : { file: structuredClone(file) }),
+    });
+  }
+
+  /** Marks a file trashed (or restores it), as the Drive UI or another app would. */
+  trash(fileId: string, trashed = true): void {
+    this.files.get(fileId)!.trashed = trashed;
+    this.recordChange(fileId, false);
   }
 
   private publicFile(file: StoredDriveFile) {
@@ -1355,7 +1384,192 @@ describe('GoogleDriveSnapshotProvider', () => {
     const metrics = new MemoryDriveInstrumentation('grouped-media-existence');
     const app = provider(server, new MemoryDriveProviderStateStore(), metrics);
     expect(await app.hasMediaBatch(vaultId, hashes)).toEqual(new Set(hashes));
-    expect(metrics.report()).toMatchObject({ attempts: 2, byMethod: { list: 2 } });
+    // Two grouped searches, plus one check by ID per blob found (a search
+    // can lag a delete, #185 P12); once cached, none of it is repeated.
+    expect(metrics.report()).toMatchObject({ attempts: 53, byMethod: { list: 53 } });
+    expect(await app.hasMediaBatch(vaultId, hashes)).toEqual(new Set(hashes));
+    expect(metrics.report()).toMatchObject({ attempts: 53 });
+  });
+
+  test('media listing reads Drive afresh and gives each blob its newest upload time', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-listed');
+    const hash = sha256Bytes(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    const first = server.seed(vaultId, key, 'media', bytes);
+    const second = server.seed(vaultId, key, 'media', bytes);
+    second.createdTime = '2026-09-01T00:00:00.000Z';
+    // A file whose name does not match its hash is never listed.
+    server.seed(vaultId, `media/00/${'0'.repeat(64)}`, 'media', bytes);
+    server.seed('other-vault', key, 'media', bytes);
+    const app = provider(server, new MemoryDriveProviderStateStore());
+    expect(await app.listMedia(vaultId)).toEqual([
+      { blobHash: hash, createdAt: Date.parse('2026-09-01T00:00:00.000Z') },
+    ]);
+    expect(first.createdTime).toBe('2026-08-15T00:00:00.000Z');
+  });
+
+  test('media deletion looks the blob up again and keeps it if any copy is newer', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-deleted');
+    const hash = sha256Bytes(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    const old = server.seed(vaultId, key, 'media', bytes);
+    const app = provider(server, new MemoryDriveProviderStateStore());
+    const cutoff = Date.parse('2026-08-20T00:00:00.000Z');
+    // Uploaded again after the cutoff: a device needs it, so nothing goes.
+    const again = server.seed(vaultId, key, 'media', bytes);
+    again.createdTime = '2026-08-21T00:00:00.000Z';
+    expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(false);
+    expect(server.files.has(old.id)).toBe(true);
+    server.files.delete(again.id);
+    expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(true);
+    expect(server.files.has(old.id)).toBe(false);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    // Already gone: nothing to delete.
+    expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(false);
+  });
+
+  test('a blob another device collected is gone here too, cached or not', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-collected-elsewhere');
+    const hash = sha256Bytes(bytes);
+    server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
+    const here = provider(server);
+    // This device has it cached, then another device collects it.
+    await here.listHeads(vaultId, true);
+    expect(await here.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    expect(await provider(server).deleteMedia(vaultId, hash, Date.now())).toBe(true);
+    // A download through the stale cache finds it gone: unavailable, not an error.
+    const sink = {
+      bytes: new Uint8Array(0),
+      byteLength: async () => 0,
+      appendAndSync: async () => {},
+      reset: async () => {},
+      verifyAndPromote: async () => {},
+    };
+    await expect(here.downloadMedia(vaultId, hash, sink)).resolves.toBe(false);
+    expect(await here.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    // The change feed tells a cache that never downloaded it.
+    const other = provider(server);
+    server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
+    await other.listHeads(vaultId, true);
+    expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    expect(await provider(server).deleteMedia(vaultId, hash, Date.now())).toBe(true);
+    await other.listHeads(vaultId, true);
+    expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    // A search that still shows a deleted file (Drive's index lagging the
+    // delete) is checked by ID: nothing is cached as present, and an upload
+    // is made again.
+    const lagging = provider(server);
+    const ghost = server.seed(
+      vaultId,
+      `media/${hash.slice(0, 2)}/${hash}`,
+      'media',
+      bytes,
+    );
+    server.files.delete(ghost.id);
+    server.staleSearch.set(ghost.id, ghost);
+    await lagging.listHeads(vaultId, true);
+    expect(await lagging.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    await lagging.uploadMedia(vaultId, hash, {
+      byteLength: bytes.byteLength,
+      contentHash: hash,
+      read: async (offset, length) => bytes.slice(offset, offset + length),
+    });
+    expect(
+      [...server.files.values()].filter((file) => file.sha256Checksum === hash),
+    ).toHaveLength(1);
+    expect(await lagging.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+  });
+
+  test('a fresh presence check ignores and forgets a stale cached row', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-fresh');
+    const hash = sha256Bytes(bytes);
+    const stored = server.seed(
+      vaultId,
+      `media/${hash.slice(0, 2)}/${hash}`,
+      'media',
+      bytes,
+    );
+    const app = provider(server);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    // Deleted without this device's feed hearing of it.
+    server.files.delete(stored.id);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    expect(await app.hasMediaBatch(vaultId, [hash], true)).toEqual(new Set());
+    await app.uploadMedia(vaultId, hash, {
+      byteLength: bytes.byteLength,
+      contentHash: hash,
+      read: async (offset, length) => bytes.slice(offset, offset + length),
+    });
+    expect(
+      [...server.files.values()].filter((file) => file.sha256Checksum === hash),
+    ).toHaveLength(1);
+  });
+
+  test('the change feed never leaves a removed or trashed media file cached', async () => {
+    const server = new FakeDriveServer();
+    const app = provider(server);
+    await app.listHeads(vaultId, true);
+    const bytes = new TextEncoder().encode('gc-feed-page');
+    const hash = sha256Bytes(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    // Created and removed within one change page.
+    const created = server.seed(vaultId, key, 'media', bytes);
+    server.files.delete(created.id);
+    (
+      server as unknown as { recordChange(id: string, removed: boolean): void }
+    ).recordChange(created.id, true);
+    await app.listHeads(vaultId, true);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    // Trashed: gone for this app too.
+    const other = provider(server);
+    const kept = server.seed(vaultId, key, 'media', bytes);
+    await other.listHeads(vaultId, true);
+    expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    server.trash(kept.id);
+    await other.listHeads(vaultId, true);
+    expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+  });
+
+  test('a snapshot trashed and restored within one change page stays listed', async () => {
+    const server = new FakeDriveServer();
+    const app = provider(server);
+    await app.listHeads(vaultId, true);
+    const snapshotId = '3'.repeat(64);
+    const stored = server.seed(
+      vaultId,
+      `snapshots/${snapshotId}.json.gz`,
+      'snapshot',
+      new Uint8Array([1, 2, 3]),
+    );
+    server.trash(stored.id);
+    server.trash(stored.id, false);
+    await app.listHeads(vaultId, true);
+    expect((await app.listSnapshots(vaultId)).map((s) => s.snapshotId)).toEqual([
+      snapshotId,
+    ]);
+  });
+
+  test('a download finds every cached copy of a collected blob gone at once', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-two-copies');
+    const hash = sha256Bytes(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    server.seed(vaultId, key, 'media', bytes);
+    server.seed(vaultId, key, 'media', bytes);
+    const here = provider(server);
+    expect(await here.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    expect(await provider(server).deleteMedia(vaultId, hash, Date.now())).toBe(true);
+    const sink = {
+      byteLength: async () => 0,
+      appendAndSync: async () => {},
+      reset: async () => {},
+      verifyAndPromote: async () => {},
+    };
+    await expect(here.downloadMedia(vaultId, hash, sink)).resolves.toBe(false);
   });
 
   test('snapshot deletion is permanent and repeated deletion is idempotent', async () => {

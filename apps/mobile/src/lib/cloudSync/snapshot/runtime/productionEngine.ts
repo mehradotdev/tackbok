@@ -126,8 +126,8 @@ class MediaPolicyProvider implements SnapshotProvider {
   updateDeviceHead(vaultId: string, head: DeviceHead) {
     return this.delegate.updateDeviceHead(vaultId, head);
   }
-  hasMediaBatch(vaultId: string, blobHashes: readonly string[]) {
-    return this.delegate.hasMediaBatch(vaultId, blobHashes);
+  hasMediaBatch(vaultId: string, blobHashes: readonly string[], fresh?: boolean) {
+    return this.delegate.hasMediaBatch(vaultId, blobHashes, fresh);
   }
   async mediaTransfersAllowed(): Promise<boolean> {
     if (await this.mediaWaitsForWifi()) {
@@ -159,6 +159,12 @@ class MediaPolicyProvider implements SnapshotProvider {
   }
   deleteSnapshot(vaultId: string, snapshotId: string) {
     return this.delegate.deleteSnapshot(vaultId, snapshotId);
+  }
+  listMedia(vaultId: string) {
+    return this.delegate.listMedia(vaultId);
+  }
+  deleteMedia(vaultId: string, blobHash: string, uploadedBy: number) {
+    return this.delegate.deleteMedia(vaultId, blobHash, uploadedBy);
   }
 
   private async mediaWaitsForWifi(): Promise<boolean> {

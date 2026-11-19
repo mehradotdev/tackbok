@@ -8,6 +8,7 @@ import type {
   DeviceHead,
   StoredDeviceHead,
   ListedDeviceHead,
+  MediaObject,
   SnapshotObject,
   SnapshotProvider,
   MediaDownloadSink,
@@ -551,8 +552,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   async hasMediaBatch(
     vaultId: string,
     blobHashes: readonly string[],
+    fresh = false,
   ): Promise<Set<string>> {
     const unique = [...new Set(blobHashes)].sort();
+    // Fresh: forget what the cache says, so an upload cannot trust it either.
+    if (fresh)
+      for (const hash of unique)
+        for (const file of this.state.listKey(vaultId, this.mediaKey(hash)))
+          if (file.kind === 'media') this.state.removeFile(vaultId, file.fileId);
     const found = new Set<string>();
     const unknown: string[] = [];
     for (const hash of unique) {
@@ -574,11 +581,32 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       for (const file of files) {
         const record = this.record(file, 'media', null);
         if (record.logicalKey !== this.mediaKey(record.contentSha256)) continue;
+        if (!(await this.mediaFileExists(vaultId, record.fileId))) continue;
         this.state.upsertFile(vaultId, record);
         found.add(record.contentSha256);
       }
     }
     return found;
+  }
+
+  /**
+   * Whether a media file a search returned still exists, asked by its ID.
+   * Search can lag a delete (remote media garbage collection, #185 P12),
+   * and the change feed reports each removal only once: a stale result
+   * cached as present would keep that blob from being uploaded again. One
+   * request per blob, the first time this device looks for it.
+   */
+  private async mediaFileExists(vaultId: string, fileId: string): Promise<boolean> {
+    const response = await this.request(
+      vaultId,
+      'list',
+      `${API}/files/${encodeURIComponent(fileId)}?fields=id,trashed`,
+      {},
+      { idempotent: true, accepted: [404] },
+    );
+    if (response.status === 404) return false;
+    const body = (await response.json()) as { trashed?: unknown };
+    return body.trashed !== true;
   }
 
   async uploadMedia(
@@ -602,21 +630,41 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     blobHash: string,
     sink: MediaDownloadSink,
   ): Promise<boolean> {
-    const candidates = await this.filesForKey(vaultId, this.mediaKey(blobHash), 'media');
-    if (candidates.length === 0) return false;
-    this.assertImmutableCandidates(candidates);
-    const file = candidates[0];
-    if (file.contentSha256 !== blobHash || file.byteCount > SNAPSHOT_CAPS.mediaByteSize) {
-      throw new SnapshotProviderError(
-        'invalid-data',
-        'Drive media metadata does not match its key',
+    for (let attempt = 0; ; attempt += 1) {
+      const candidates = await this.filesForKey(
+        vaultId,
+        this.mediaKey(blobHash),
+        'media',
       );
+      if (candidates.length === 0) return false;
+      this.assertImmutableCandidates(candidates);
+      const file = candidates[0];
+      if (
+        file.contentSha256 !== blobHash ||
+        file.byteCount > SNAPSHOT_CAPS.mediaByteSize
+      ) {
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Drive media metadata does not match its key',
+        );
+      }
+      try {
+        // A retry resumes from what the sink already holds. Bytes that fail
+        // the size or hash check throw `MediaIntegrityError`: the file is
+        // there but wrong, which is not the same as gone.
+        await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
+        return true;
+      } catch (error) {
+        // A cached file that is gone (media garbage collection, #185 P12):
+        // forget it and look the blob up on Drive once more.
+        const gone =
+          error instanceof DriveRequestError &&
+          (error.status === 404 || error.status === 410);
+        if (!gone || attempt > 0) throw error;
+        // Every cached copy: all of them may have been collected.
+        for (const cached of candidates) this.state.removeFile(vaultId, cached.fileId);
+      }
     }
-    // A retry resumes from what the sink already holds. Bytes that fail the
-    // size or hash check throw `MediaIntegrityError`: the file is there but
-    // wrong, which is not the same as gone.
-    await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
-    return true;
   }
 
   async listSnapshots(vaultId: string): Promise<SnapshotObject[]> {
@@ -670,6 +718,81 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         { idempotent: true, accepted: [404] },
       );
       this.state.removeFile(vaultId, candidate.fileId);
+    }
+  }
+
+  /**
+   * Every media blob of the vault, from a fresh query (media is not in the
+   * discovery inventory). A file whose metadata does not match its key is
+   * left out; so is its key if no file under it is consistent.
+   */
+  async listMedia(vaultId: string): Promise<MediaObject[]> {
+    const files = await this.queryFiles(
+      vaultId,
+      this.vaultQuery(
+        vaultId,
+        `name contains 'media/' and ${propertyClause(PROP_KIND, 'media')}`,
+      ),
+    );
+    const byHash = new Map<string, number | null>();
+    for (const file of files) {
+      const record = this.mediaRecord(file);
+      if (!record) continue;
+      const prior = byHash.get(record.contentSha256);
+      byHash.set(
+        record.contentSha256,
+        prior === null || record.createdAt === null
+          ? null
+          : Math.max(prior ?? Number.NEGATIVE_INFINITY, record.createdAt),
+      );
+    }
+    return [...byHash]
+      .map(([blobHash, createdAt]) => ({ blobHash, createdAt }))
+      .sort((left, right) => left.blobHash.localeCompare(right.blobHash));
+  }
+
+  async deleteMedia(
+    vaultId: string,
+    blobHash: string,
+    uploadedBy: number,
+  ): Promise<boolean> {
+    const key = this.mediaKey(blobHash);
+    // Fresh, not the cache: a device may have uploaded it again meanwhile.
+    const files = await this.queryExactKey(vaultId, key, 'media');
+    const records = files.map((file) => this.mediaRecord(file));
+    if (
+      records.length === 0 ||
+      records.some(
+        (record) =>
+          record === null ||
+          record.logicalKey !== key ||
+          record.createdAt === null ||
+          record.createdAt > uploadedBy,
+      )
+    )
+      return false;
+    for (const record of records) {
+      await this.request(
+        vaultId,
+        'delete',
+        `${API}/files/${encodeURIComponent(record!.fileId)}`,
+        { method: 'DELETE' },
+        { idempotent: true, accepted: [404] },
+      );
+      this.state.removeFile(vaultId, record!.fileId);
+    }
+    return true;
+  }
+
+  /** A media file whose metadata matches its key and hash, or null. */
+  private mediaRecord(file: DriveFile): DriveFileRecord | null {
+    try {
+      const record = this.record(file, 'media', null);
+      return record.logicalKey === this.mediaKey(record.contentSha256) ? record : null;
+    } catch (error) {
+      if (error instanceof SnapshotProviderError && error.code === 'invalid-data')
+        return null;
+      throw error;
     }
   }
 
@@ -750,6 +873,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         kind === 'head',
       );
       if (!record) continue;
+      if (kind === 'media' && !(await this.mediaFileExists(vaultId, record.fileId)))
+        continue;
       this.state.upsertFile(vaultId, record);
       records.push(record);
     }
@@ -1003,11 +1128,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   ): Promise<DriveFile | null> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const files = await this.queryExactKey(vaultId, key, kind);
-      const match = files.find(
+      for (const match of files.filter(
         (file) =>
           file.sha256Checksum === expectedHash && parseByteCount(file) === expectedBytes,
-      );
-      if (match) return match;
+      ))
+        // A media file a lagging search still shows after its delete is not
+        // this write (`mediaFileExists`).
+        if (kind !== 'media' || (await this.mediaFileExists(vaultId, match.id)))
+          return match;
       if (attempt < 2) await this.sleep(250 * (attempt + 1));
     }
     return null;

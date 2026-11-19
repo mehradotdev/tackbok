@@ -72,14 +72,23 @@ export class DriveDiscovery {
         };
         const files: DriveFileRecord[] = [];
         const removed: string[] = [];
+        /** Each file's last change in this page. */
+        const last = new Map<string, 'file' | 'removed'>();
         for (const change of body.changes ?? []) {
           if (change.removed && typeof change.fileId === 'string') {
             removed.push(change.fileId);
+            last.set(change.fileId, 'removed');
             continue;
           }
           if (!change.file) continue;
           const file = this.options.parseFile(change.file);
           if (!file || file.appProperties.tb_vault !== vaultId) continue;
+          // A trashed file is as good as gone: listing queries leave it out.
+          if (file.trashed === true) {
+            removed.push(file.id);
+            last.set(file.id, 'removed');
+            continue;
+          }
           const kind = this.options.kindOf(file.appProperties.tb_kind);
           if (!kind) continue;
           const record = await this.options.materialize(
@@ -88,7 +97,10 @@ export class DriveDiscovery {
             kind,
             kind === 'head',
           );
-          if (record) files.push(record);
+          if (record) {
+            files.push(record);
+            last.set(record.fileId, 'file');
+          }
         }
         const next =
           typeof body.nextPageToken === 'string'
@@ -96,7 +108,16 @@ export class DriveDiscovery {
             : typeof body.newStartPageToken === 'string'
               ? body.newStartPageToken
               : cursor;
-        this.options.state.applyChangePage(vaultId, files, removed, next);
+        // A file's last change in the page decides: one created then
+        // removed (or trashed) stays removed, one trashed then restored
+        // stays. The store applies removals before upserts.
+        const kept = files.filter((file) => last.get(file.fileId) === 'file');
+        this.options.state.applyChangePage(
+          vaultId,
+          kept,
+          removed.filter((fileId) => last.get(fileId) === 'removed'),
+          next,
+        );
         if (typeof body.nextPageToken !== 'string') return;
         cursor = body.nextPageToken;
       }

@@ -3,7 +3,10 @@ import { Database, type SQLQueryBindings } from 'bun:sqlite';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { SQLiteDriveProviderStateStore } from '../../src/lib/cloudSync/snapshot/drive/state';
+import {
+  MemoryDriveProviderStateStore,
+  SQLiteDriveProviderStateStore,
+} from '../../src/lib/cloudSync/snapshot/drive/state';
 import type { SyncDatabase } from '../../src/lib/cloudSync/snapshot/sync/sqliteState';
 
 const databases: Database[] = [];
@@ -159,4 +162,30 @@ describe('durable Drive adapter state', () => {
     expect(state.listKind('vault-a', 'snapshot')).toHaveLength(1);
     expect(state.loadDiscovery('vault-a').cursor).toBe('cursor-2');
   });
+});
+
+test('a rebuilt inventory forgets cached media, so a blob deleted meanwhile is looked up again (#185 P12)', () => {
+  const media = (fileId: string) => ({
+    fileId,
+    logicalKey: `media/cc/${'c'.repeat(64)}`,
+    kind: 'media' as const,
+    contentSha256: 'c'.repeat(64),
+    byteCount: 3,
+    createdAt: 1,
+    head: null,
+  });
+  for (const store of [
+    new SQLiteDriveProviderStateStore(database(), 'connection-a', () => 100),
+    new MemoryDriveProviderStateStore(),
+  ]) {
+    store.upsertFile('vault-a', media('blob-1'));
+    store.upsertFile('vault-b', media('blob-2'));
+    store.replaceInitialInventory('vault-a', [], 'cursor-1');
+    expect(store.listKind('vault-a', 'media')).toEqual([]);
+    store.upsertFile('vault-a', media('blob-1'));
+    store.resetDiscovery('vault-a');
+    expect(store.listKind('vault-a', 'media')).toEqual([]);
+    // Other vaults keep theirs.
+    expect(store.listKind('vault-b', 'media')).toHaveLength(1);
+  }
 });

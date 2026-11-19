@@ -1,6 +1,7 @@
 import type {
   DeviceHead,
   ListedDeviceHead,
+  MediaObject,
   SnapshotObject,
   SnapshotMediaStore,
   StoredDeviceHead,
@@ -22,7 +23,9 @@ export type FakeProviderOperation =
   | 'upload-media'
   | 'download-media'
   | 'list-snapshots'
-  | 'delete-snapshot';
+  | 'delete-snapshot'
+  | 'list-media'
+  | 'delete-media';
 
 interface Fault {
   operation: FakeProviderOperation;
@@ -30,7 +33,7 @@ interface Fault {
   afterMutation: boolean;
 }
 
-interface StoredSnapshot {
+interface StoredObject {
   bytes: Uint8Array;
   createdAt: number;
 }
@@ -77,9 +80,15 @@ export class FakeSnapshotProvider implements SnapshotProvider {
    * Unset, an upload keeps the time its uploader gave.
    */
   serverClock?: () => number;
-  private readonly snapshots = new Map<string, StoredSnapshot>();
+  /**
+   * Blobs a device's provider cache still lists after their delete (a missed
+   * or late change): reported present and not uploaded again, except to a
+   * `fresh` check, which clears them.
+   */
+  readonly staleMedia = new Set<string>();
+  private readonly snapshots = new Map<string, StoredObject>();
   private readonly heads = new Map<string, ListedDeviceHead[]>();
-  private readonly media = new Map<string, Uint8Array>();
+  private readonly media = new Map<string, StoredObject>();
   private readonly revocations = new Map<
     string,
     ('backup-deleted' | 'journal-deleted')[]
@@ -172,6 +181,25 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     this.media.delete(this.key(vaultId, blobHash));
   }
 
+  /** A snapshot's bytes, without counting a request. */
+  snapshotBytesForTest(vaultId: string, snapshotId: string): Uint8Array | null {
+    return this.snapshots.get(this.key(vaultId, snapshotId))?.bytes.slice() ?? null;
+  }
+
+  /** The vault's media blobs, sorted. */
+  mediaHashes(vaultId: string): string[] {
+    return [...this.media.keys()]
+      .filter((key) => key.startsWith(`${vaultId}\0`))
+      .map((key) => key.slice(vaultId.length + 1))
+      .sort();
+  }
+
+  /** Sets a blob's upload time, as if it had been uploaded then. */
+  setMediaCreatedAtForTest(vaultId: string, blobHash: string, createdAt: number): void {
+    const stored = this.media.get(this.key(vaultId, blobHash));
+    if (stored) stored.createdAt = createdAt;
+  }
+
   async listRevocations(vaultId: string) {
     this.before('list-revocations');
     return [...(this.revocations.get(vaultId) ?? [])];
@@ -247,10 +275,15 @@ export class FakeSnapshotProvider implements SnapshotProvider {
   async hasMediaBatch(
     vaultId: string,
     blobHashes: readonly string[],
+    fresh = false,
   ): Promise<Set<string>> {
     this.before('has-media');
+    if (fresh) for (const blobHash of blobHashes) this.staleMedia.delete(blobHash);
     return new Set(
-      blobHashes.filter((blobHash) => this.media.has(this.key(vaultId, blobHash))),
+      blobHashes.filter(
+        (blobHash) =>
+          this.media.has(this.key(vaultId, blobHash)) || this.staleMedia.has(blobHash),
+      ),
     );
   }
 
@@ -260,7 +293,15 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     source: MediaUploadSource,
   ): Promise<void> {
     this.before('upload-media');
-    this.media.set(this.key(vaultId, blobHash), await readSource(source));
+    // A stale cache entry makes the provider think it is already there.
+    if (this.staleMedia.has(blobHash)) return;
+    const bytes = await readSource(source);
+    // As on Drive, an existing blob is kept with its upload time.
+    if (!this.media.has(this.key(vaultId, blobHash)))
+      this.media.set(this.key(vaultId, blobHash), {
+        bytes,
+        createdAt: this.serverClock?.() ?? Date.now(),
+      });
     this.takeFault('upload-media', true);
   }
 
@@ -270,7 +311,7 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     sink: MediaDownloadSink,
   ): Promise<boolean> {
     this.before('download-media');
-    const bytes = this.media.get(this.key(vaultId, blobHash));
+    const bytes = this.media.get(this.key(vaultId, blobHash))?.bytes;
     if (!bytes) return false;
     const offset = await sink.byteLength();
     if (offset > bytes.byteLength) await sink.reset();
@@ -300,6 +341,27 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     this.before('delete-snapshot');
     this.snapshots.delete(this.key(vaultId, snapshotId));
     this.takeFault('delete-snapshot', true);
+  }
+
+  async listMedia(vaultId: string): Promise<MediaObject[]> {
+    this.before('list-media');
+    return this.mediaHashes(vaultId).map((blobHash) => ({
+      blobHash,
+      createdAt: this.media.get(this.key(vaultId, blobHash))!.createdAt,
+    }));
+  }
+
+  async deleteMedia(
+    vaultId: string,
+    blobHash: string,
+    uploadedBy: number,
+  ): Promise<boolean> {
+    this.before('delete-media');
+    const stored = this.media.get(this.key(vaultId, blobHash));
+    if (!stored || stored.createdAt > uploadedBy) return false;
+    this.media.delete(this.key(vaultId, blobHash));
+    this.takeFault('delete-media', true);
+    return true;
   }
 }
 

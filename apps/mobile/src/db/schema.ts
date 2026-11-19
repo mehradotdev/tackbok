@@ -492,6 +492,40 @@ export const syncHeads = sqliteTable(
   (table) => [primaryKey({ columns: [table.vault_id, table.device_id] })],
 );
 
+/**
+ * Remote media garbage collection (#185 P12, `mediaGc.ts`): the media blob
+ * hashes each snapshot on the provider refers to. Snapshot IDs are content
+ * hashes, so a row never goes stale; rows of snapshots no longer listed are
+ * dropped.
+ */
+export const syncSnapshotMedia = sqliteTable(
+  'sync_snapshot_media',
+  {
+    vault_id: text('vault_id').notNull(),
+    snapshot_id: text('snapshot_id').notNull(),
+    /** Sorted blob hashes (JSON array). */
+    blobs_json: text('blobs_json').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.vault_id, table.snapshot_id] })],
+);
+
+/**
+ * Remote media garbage collection (#185 P12, `mediaGc.ts`): media blobs on
+ * the provider that no snapshot referred to at this device's last complete
+ * check, and since when, without a gap between checks long enough for a
+ * snapshot to come and go unseen.
+ */
+export const syncMediaGc = sqliteTable(
+  'sync_media_gc',
+  {
+    vault_id: text('vault_id').notNull(),
+    blob_hash: text('blob_hash').notNull(),
+    unreferenced_since: integer('unreferenced_since').notNull(),
+    checked_at: integer('checked_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.vault_id, table.blob_hash] })],
+);
+
 // ============================================================================
 // Inferred Types
 // ============================================================================

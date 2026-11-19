@@ -27,7 +27,8 @@
  * Cleanup: after a publication, the heads of devices that left the active
  * roster (180 days) are pruned; after a publication or once a day, leftover
  * head files under this device's own ID go, then snapshots no head points
- * to after 30 days.
+ * to after 30 days. At most once a day, in a pass that skipped no head,
+ * media blobs nothing has referred to for 30 days go (`mediaGc.ts`).
  *
  * Another device's head that cannot be read (a corrupt head file, a missing
  * or invalid snapshot, two snapshots under one sequence) or whose clock is
@@ -42,7 +43,7 @@
  * is already applied locally, so a pass stopped half way publishes on the
  * next one.
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import {
   mediaAssets,
@@ -91,6 +92,7 @@ import {
   massDeletionToken,
   type MassDeletionChoice,
 } from './massDeletion';
+import { collectMedia, recordSnapshotMedia, recordedSnapshotMedia } from './mediaGc';
 import type { SQLiteSyncStateStore } from './sqliteState';
 import {
   isolateProgress,
@@ -115,6 +117,14 @@ const MAX_APPLY_ATTEMPTS = 4;
 const SNAPSHOT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_DELETES_PER_PASS = 10;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+/** Media garbage collection that could not finish runs again after this long. */
+const MEDIA_GC_RETRY_MS = 60 * 60 * 1000;
+/**
+ * How long this device's own listed head is taken as proof that the blobs
+ * it refers to were never collected (`newlyReferenced`). Well inside the
+ * 180 days after which a quiet device's head may be pruned.
+ */
+const OWN_HEAD_TRUSTED_MS = 150 * 24 * 60 * 60 * 1000;
 /** A snapshot that could not be read is downloaded again after this long. */
 const UNREADABLE_RETRY_MS = 24 * 60 * 60 * 1000;
 /**
@@ -205,8 +215,15 @@ function sameVector(left: VersionVector | null, right: VersionVector): boolean {
 
 export class V2SyncEngine {
   private running = false;
+  /**
+   * Blobs this pass uploaded itself: there, so `publish` need not ask again
+   * (a search that has not indexed them yet would upload a second copy).
+   */
+  private uploadedThisPass = new Set<string>();
   /** Retention runs after a publication, or at most this often. */
   private lastCleanupAt = Number.NEGATIVE_INFINITY;
+  /** Media garbage collection runs from this time on (`collectMedia`). */
+  private nextMediaGcAt = Number.NEGATIVE_INFINITY;
   private readonly hooks: SnapshotSyncHooks;
   private readonly now: () => number;
 
@@ -218,6 +235,7 @@ export class V2SyncEngine {
   async sync(): Promise<SnapshotSyncResult> {
     if (this.running) throw new Error('A snapshot sync pass is already running');
     this.running = true;
+    this.uploadedThisPass = new Set();
     try {
       return await this.pass();
     } catch (error) {
@@ -341,7 +359,7 @@ export class V2SyncEngine {
     const mediaReady =
       unpublished.length > 0 && (await provider.mediaTransfersAllowed?.()) !== false;
     if (changed.length === 0 && !plan.needed && !mediaReady && retiring.length === 0) {
-      await this.cleanup(deviceId, kept, false, duplicates);
+      await this.cleanup(deviceId, kept, false, duplicates, skipped.length === 0);
       return this.settle(durable.journalGeneration, skipped, {
         status: 'up-to-date',
         actionableChanges: 0,
@@ -479,7 +497,7 @@ export class V2SyncEngine {
       });
     const skippedHeads = skipped;
     if (!publish) {
-      await this.cleanup(deviceId, kept, false, duplicates);
+      await this.cleanup(deviceId, kept, false, duplicates, skipped.length === 0);
       return this.settle(
         durable.journalGeneration,
         skipped,
@@ -502,7 +520,13 @@ export class V2SyncEngine {
       );
     }
     const snapshotId = await this.publish(next, deviceId, own, ownRecord);
-    await this.cleanup(deviceId, [...kept, snapshotId], true, duplicates);
+    await this.cleanup(
+      deviceId,
+      [...kept, snapshotId],
+      true,
+      duplicates,
+      skipped.length === 0,
+    );
     return this.settle(durable.journalGeneration, skipped, {
       status: 'published',
       snapshotId,
@@ -836,6 +860,7 @@ export class V2SyncEngine {
     for (const { blobHash, source } of uploads) {
       try {
         await provider.uploadMedia(this.vaultId, blobHash, source);
+        this.uploadedThisPass.add(blobHash);
       } catch (error) {
         // The policy refused: the rest wait for Wi-Fi too.
         if (error instanceof SnapshotProviderError && error.code === 'wifi-only-media')
@@ -904,7 +929,18 @@ export class V2SyncEngine {
     const bytes = await provider.downloadSnapshot(this.vaultId, head.snapshotId);
     this.hooks.progress?.({ type: 'item', phase: 'downloading' });
     await this.hooks.at?.('during-remote-snapshot-download');
-    return checkSnapshot(this.vaultId, head, bytes);
+    const state = checkSnapshot(this.vaultId, head, bytes);
+    await this.recordMedia(head.snapshotId, state);
+    return state;
+  }
+
+  /** Best effort: media garbage collection downloads a snapshot it lacks. */
+  private async recordMedia(snapshotId: string, state: SyncState) {
+    try {
+      await recordSnapshotMedia(this.vaultId, snapshotId, state);
+    } catch (error) {
+      console.warn('Cloud sync could not record the media a snapshot uses', error);
+    }
   }
 
   /**
@@ -921,7 +957,24 @@ export class V2SyncEngine {
   ): Promise<string> {
     const { provider, mediaStore, stateStore, stateKey } = this.options;
     const hashes = [...new Set([...state.media.values()].map((media) => media.blobHash))];
-    const present = await provider.hasMediaBatch(this.vaultId, hashes);
+    // Blobs this snapshot newly refers to, that this device holds, are asked
+    // of the provider itself, not its cache: a missed or late change can
+    // leave the cache listing a blob another device's media garbage
+    // collection deleted (an upload whose snapshot never made it, an entry
+    // back after 180 days). Blobs its own listed head already refers to
+    // cannot have been collected.
+    const recheck = new Set(await this.newlyReferenced(hashes, own, record));
+    const present = await provider.hasMediaBatch(
+      this.vaultId,
+      hashes.filter((blobHash) => !recheck.has(blobHash)),
+    );
+    if (recheck.size > 0)
+      for (const blobHash of await provider.hasMediaBatch(
+        this.vaultId,
+        [...recheck],
+        true,
+      ))
+        present.add(blobHash);
     const missing = hashes.filter((blobHash) => !present.has(blobHash));
     const sources = new Map<string, MediaUploadSource>();
     for (const blobHash of missing) {
@@ -970,6 +1023,7 @@ export class V2SyncEngine {
       deviceSequence,
       createdAt,
     });
+    await this.recordMedia(encoded.snapshotId, state);
     this.hooks.activity?.('publishing-local-snapshot');
     this.hooks.progress?.({
       type: 'plan',
@@ -1035,6 +1089,49 @@ export class V2SyncEngine {
         });
     });
     return encoded.snapshotId;
+  }
+
+  /**
+   * Of `hashes`, those this device's head does not refer to and whose files
+   * this device authored or downloaded (its media rows say so; a file it
+   * cannot read now is still included, so an authored one pauses as
+   * unreadable rather than being published as present). The head counts
+   * only while it is listed where this device left it and was published
+   * within `OWN_HEAD_TRUSTED_MS`: a head pruned meanwhile can still be
+   * listed by a cache that missed the change.
+   */
+  private async newlyReferenced(
+    hashes: readonly string[],
+    own: DeviceHead | undefined,
+    record: HeadRecord | undefined,
+  ): Promise<string[]> {
+    const trusted =
+      own !== undefined &&
+      record !== undefined &&
+      own.snapshotId === record.snapshotId &&
+      this.now() - record.updatedAt < OWN_HEAD_TRUSTED_MS;
+    const before = trusted
+      ? await recordedSnapshotMedia(this.vaultId, record.snapshotId)
+      : null;
+    const candidates = hashes.filter(
+      (blobHash) => !before?.has(blobHash) && !this.uploadedThisPass.has(blobHash),
+    );
+    const held = new Set<string>();
+    for (let offset = 0; offset < candidates.length; offset += 500) {
+      const rows = await runExclusiveDbTransaction((tx) =>
+        tx
+          .select({ blobHash: mediaAssets.blob_hash })
+          .from(mediaAssets)
+          .where(
+            and(
+              inArray(mediaAssets.blob_hash, candidates.slice(offset, offset + 500)),
+              inArray(mediaAssets.download_state, ['n/a', 'verified']),
+            ),
+          ),
+      );
+      for (const row of rows) if (row.blobHash) held.add(row.blobHash);
+    }
+    return candidates.filter((blobHash) => held.has(blobHash));
   }
 
   /**
@@ -1154,41 +1251,69 @@ export class V2SyncEngine {
    * right before deleting, so a head missing from an earlier listing never
    * loses its snapshot. While any head file cannot be read, nothing is
    * deleted: its snapshots cannot be told apart from unreferenced ones.
+   *
+   * Then media garbage collection (`collectMedia`), when this pass skipped
+   * no head (`collect`): at most once a day, or an hour later while it has
+   * snapshots left to read.
    */
   private async cleanup(
     deviceId: string,
     retained: readonly string[],
     published: boolean,
     duplicates: boolean,
+    collect: boolean,
   ) {
-    const { provider } = this.options;
-    if (!published && this.now() - this.lastCleanupAt < CLEANUP_INTERVAL_MS) return;
-    this.lastCleanupAt = this.now();
     try {
-      const pruned = await this.pruneHeads(deviceId, published, duplicates);
-      const kept = retained.filter((snapshotId) => !pruned.includes(snapshotId));
-      const candidates = (await provider.listSnapshots(this.vaultId)).filter(
-        (snapshot) =>
-          !kept.includes(snapshot.snapshotId) &&
-          snapshot.createdAt > 0 &&
-          this.now() - snapshot.createdAt >= SNAPSHOT_RETENTION_MS,
-      );
-      if (candidates.length === 0) return;
-      const listed = await provider.listHeads(this.vaultId, true);
-      if (listed.some(({ head }) => head === null)) return;
-      const referenced = new Set([
-        ...kept,
-        ...listed.map(({ head }) => String(head!.snapshotId)),
-      ]);
-      for (const snapshot of candidates
-        .filter((candidate) => !referenced.has(candidate.snapshotId))
-        .slice(0, MAX_DELETES_PER_PASS)) {
-        await this.hooks.at?.('during-snapshot-cleanup');
-        await provider.deleteSnapshot(this.vaultId, snapshot.snapshotId);
+      if (published || this.now() - this.lastCleanupAt >= CLEANUP_INTERVAL_MS) {
+        this.lastCleanupAt = this.now();
+        await this.retainSnapshots(deviceId, retained, published, duplicates);
+      }
+      if (collect && this.now() >= this.nextMediaGcAt) {
+        // Provider trouble below waits a day too.
+        this.nextMediaGcAt = this.now() + CLEANUP_INTERVAL_MS;
+        const outcome = await collectMedia({
+          vaultId: this.vaultId,
+          provider: this.options.provider,
+          now: this.now(),
+          hooks: this.hooks,
+        });
+        // Snapshots left to read, or something new appeared: soon, not every pass.
+        if (outcome.status === 'incomplete')
+          this.nextMediaGcAt = this.now() + MEDIA_GC_RETRY_MS;
       }
     } catch (error) {
       if (!(error instanceof SnapshotProviderError)) throw error;
       // Provider trouble only keeps more history.
+    }
+  }
+
+  private async retainSnapshots(
+    deviceId: string,
+    retained: readonly string[],
+    published: boolean,
+    duplicates: boolean,
+  ) {
+    const { provider } = this.options;
+    const pruned = await this.pruneHeads(deviceId, published, duplicates);
+    const kept = retained.filter((snapshotId) => !pruned.includes(snapshotId));
+    const candidates = (await provider.listSnapshots(this.vaultId)).filter(
+      (snapshot) =>
+        !kept.includes(snapshot.snapshotId) &&
+        snapshot.createdAt > 0 &&
+        this.now() - snapshot.createdAt >= SNAPSHOT_RETENTION_MS,
+    );
+    if (candidates.length === 0) return;
+    const listed = await provider.listHeads(this.vaultId, true);
+    if (listed.some(({ head }) => head === null)) return;
+    const referenced = new Set([
+      ...kept,
+      ...listed.map(({ head }) => String(head!.snapshotId)),
+    ]);
+    for (const snapshot of candidates
+      .filter((candidate) => !referenced.has(candidate.snapshotId))
+      .slice(0, MAX_DELETES_PER_PASS)) {
+      await this.hooks.at?.('during-snapshot-cleanup');
+      await provider.deleteSnapshot(this.vaultId, snapshot.snapshotId);
     }
   }
 

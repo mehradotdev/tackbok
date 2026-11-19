@@ -33,7 +33,9 @@ import {
   syncDevice,
   syncFieldValues,
   syncHeads,
+  syncMediaGc,
   syncRecords,
+  syncSnapshotMedia,
 } from '~/db';
 import { nextHlc, withStamp } from '../v2/clock';
 import { normalKnown } from '../v2/join';
@@ -402,6 +404,9 @@ export async function resetSyncIdentityInTransaction(
   await tx.delete(syncFieldValues);
   // What it took in from other devices is gone too: download them again.
   await tx.delete(syncHeads);
+  // Media garbage collection starts its 30 days again (`mediaGc.ts`).
+  await tx.delete(syncMediaGc);
+  await tx.delete(syncSnapshotMedia);
   await tx.delete(syncDevice);
   await tx.insert(syncDevice).values({
     id: SELF,

@@ -1596,3 +1596,470 @@ test('the guard trips on 100 entries in a large journal, a quarter or not', asyn
   expect(isMassDeletion(99, 1000)).toBe(false);
   expect(isMassDeletion(100, 1000)).toBe(true);
 });
+
+describe('remote media garbage collection (P12)', () => {
+  const PHOTO = 'c'.repeat(64);
+  async function attachPhoto(target: Device, entryId: string, hash = PHOTO) {
+    await addEntry(target, entryId, {
+      assets: [
+        { type: AssetType.IMAGE, uri: `photos/${entryId}.jpg`, assetId: `p-${entryId}` },
+      ],
+    });
+    target.database.sqlite.run(
+      'UPDATE media_assets SET blob_hash = ?, byte_size = 3 WHERE asset_id = ?',
+      [hash, `p-${entryId}`],
+    );
+    await blobs.writeVerified(hash, new Uint8Array([1, 2, 3]));
+  }
+  const deleteOn = (target: Device, id: string) =>
+    write(target, (tx) => repositories.deleteEntryInTransaction(tx, id, { now: clock }));
+  /** Blobs some readable snapshot on the provider refers to. */
+  async function referencedOnDrive() {
+    const used = new Set<string>();
+    for (const snapshotId of provider.snapshotIds(VAULT)) {
+      const bytes = await provider.downloadSnapshot(VAULT, snapshotId);
+      let state;
+      try {
+        state = decodeEnvelope(bytes!).state;
+      } catch {
+        continue; // A damaged snapshot a test put there.
+      }
+      for (const media of state.media.values()) used.add(media.blobHash);
+    }
+    return used;
+  }
+  /** Every blob a snapshot on the provider refers to is there. */
+  async function expectNothingDangling() {
+    const present = new Set(provider.mediaHashes(VAULT));
+    for (const blobHash of await referencedOnDrive())
+      expect(present.has(blobHash)).toBe(true);
+  }
+  /** `n` days, each device syncing once a day; returns the day the photo went. */
+  async function days(n: number, targets: Device[], hash = PHOTO) {
+    for (let day = 1; day <= n; day++) {
+      clock += DAY;
+      for (const target of targets) await sync(target);
+      await expectNothingDangling();
+      if (!provider.mediaHashes(VAULT).includes(hash)) return day;
+    }
+    return null;
+  }
+
+  test("a deleted entry's photo goes only once nothing has referred to it for 30 days", async () => {
+    const [a, b] = [device(), device()];
+    await attachPhoto(a, 'e1');
+    for (const target of [a, b, a]) await sync(target);
+    clock += 1000;
+    await deleteOn(a, 'e1');
+    await sync(a);
+    await sync(b);
+    // Both acknowledge the delete within a day and compact it.
+    const compactedAt = clock;
+    const gone = await days(120, [a, b]);
+    expect(gone).not.toBeNull();
+    // The snapshots that held it stay 30 days after their upload; after the
+    // last one goes, 30 more days unreferenced.
+    expect(clock - compactedAt).toBeGreaterThanOrEqual(60 * DAY);
+    expect(clock - compactedAt).toBeLessThan(65 * DAY);
+    expect(provider.mediaHashes(VAULT)).toEqual([]);
+    // The same photo attached again later is uploaded again.
+    clock += 1000;
+    await attachPhoto(b, 'e2');
+    await sync(b);
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+  });
+
+  test('a photo some head still refers to is never collected', async () => {
+    const [a, b] = [device(), device()];
+    await attachPhoto(a, 'e1');
+    for (const target of [a, b, a]) await sync(target);
+    expect(await days(150, [a, b])).toBeNull();
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+  });
+
+  test('an upload that never reached a backup is collected, and its device uploads it again on return', async () => {
+    const [a, c] = [device(), device()];
+    for (const target of [a, c, a]) await sync(target);
+    // C uploads and stamps the photo, but its snapshot never makes it.
+    clock += 1000;
+    await attachPhoto(c, 'e1');
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await sync(c)).status).toBe('retry');
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    // C stays away; A collects the orphan after 30 days' grace plus 30 unreferenced.
+    const gone = await days(120, [a]);
+    expect(gone).toBeGreaterThanOrEqual(60);
+    expect(gone).toBeLessThan(63);
+    // C comes back: its publication uploads the photo again, and A gets it.
+    clock += 1000;
+    expect((await sync(c)).status).toBe('published');
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    await expectNothingDangling();
+    clock += 1000;
+    await sync(a);
+    expect(
+      a.database.sqlite.query('SELECT asset_id, download_state FROM media_assets').all(),
+    ).toEqual([{ asset_id: 'p-e1', download_state: 'pending' }]);
+  });
+
+  test('a device whose provider cache missed the collection still uploads the blob again', async () => {
+    const [a, c] = [device(), device()];
+    for (const target of [a, c, a]) await sync(target);
+    clock += 1000;
+    await attachPhoto(c, 'e1');
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await sync(c)).status).toBe('retry');
+    expect(await days(120, [a])).not.toBeNull();
+    // C's cache did not hear of the delete: a cached look says it is there.
+    provider.staleMedia.add(PHOTO);
+    clock += 1000;
+    expect((await sync(c)).status).toBe('published');
+    expect(provider.staleMedia.has(PHOTO)).toBe(false);
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    await expectNothingDangling();
+    // Blobs its listed head already refers to are not asked again.
+    clock += 1000;
+    await addEntry(c, 'e2');
+    provider.staleMedia.add('d'.repeat(64));
+    const made = await requests(() => sync(c));
+    expect(count(made, 'has-media')).toBe(1);
+    provider.staleMedia.clear();
+  });
+
+  test('a collected blob whose file cannot be read for a while pauses instead of being published as present', async () => {
+    const [a, c] = [device(), device()];
+    for (const target of [a, c, a]) await sync(target);
+    clock += 1000;
+    await attachPhoto(c, 'e1');
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await sync(c)).status).toBe('retry');
+    expect(await days(120, [a])).not.toBeNull();
+    provider.staleMedia.add(PHOTO);
+    // C's file cannot be read this pass (say, a locked phone).
+    const bytes = blobs.media.get(PHOTO)!;
+    blobs.media.delete(PHOTO);
+    clock += 1000;
+    expect(await sync(c)).toMatchObject({
+      status: 'attention',
+      reason: 'local-media-unreadable',
+    });
+    await expectNothingDangling();
+    // Readable again: the next pass uploads it and publishes.
+    blobs.media.set(PHOTO, bytes);
+    c.stateStore.clearPause(VAULT, 'connection');
+    clock += 1000;
+    expect((await sync(c)).status).toBe('published');
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    await expectNothingDangling();
+  });
+
+  test("a head of this device's own that a stale listing still shows is not trusted after 150 days", async () => {
+    const [a, c] = [device(), device()];
+    for (const target of [a, c, a]) await sync(target);
+    clock += 1000;
+    await attachPhoto(c, 'e1');
+    await sync(c);
+    const [stale] = provider
+      .physicalHeads(VAULT)
+      .filter(({ head }) => head?.deviceId === deviceIdOf(c));
+    // An edit of C's that A will never see before deleting the entry.
+    clock += 1000;
+    await addEntry(c, 'e1', {
+      text_content: 'Edited on C',
+      assets: [{ type: AssetType.IMAGE, uri: 'photos/e1.jpg', assetId: 'p-e1' }],
+    });
+    // A deletes the entry; C goes quiet. After 180 days A prunes C's head,
+    // compacts the delete and collects the photo. (Expiry counts from the
+    // newest write A holds, so A writes again.)
+    clock += 1000;
+    await sync(a);
+    await deleteOn(a, 'e1');
+    await sync(a);
+    expect(await days(200, [a])).toBeNull();
+    await addEntry(a, 'keep-a-busy');
+    expect(await days(100, [a])).not.toBeNull();
+    // C's provider cache missed all of it: its old head and the blob.
+    provider.injectPhysicalHead(stale.head!, stale.physicalId);
+    provider.staleMedia.add(PHOTO);
+    clock += 1000;
+    // C is back after 180 days: its unseen state brings the entry back, and
+    // its publication uploads the photo again rather than trusting the head.
+    expect(await sync(c)).toMatchObject({ status: 'published', revivedEntries: ['e1'] });
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    await expectNothingDangling();
+    provider.staleMedia.clear();
+  });
+
+  test('a blob this pass uploaded is not looked up again before the snapshot', async () => {
+    const a = device();
+    await sync(a);
+    clock += 1000;
+    await attachPhoto(a, 'e1');
+    // One look before the upload, one cached look in publish: no fresh one,
+    // which a search lagging the new upload would answer with a duplicate.
+    const made = await requests(() => sync(a));
+    expect(count(made, 'upload-media')).toBe(1);
+    expect(count(made, 'has-media')).toBe(2);
+  });
+
+  test('"Keep my entries" brings entries back with their photos', async () => {
+    const [a, b] = [device(), device()];
+    const ids = Array.from({ length: 12 }, (_, i) => `e${String(i).padStart(2, '0')}`);
+    for (const [index, id] of ids.entries())
+      await attachPhoto(a, id, index.toString(16).padStart(64, 'a'));
+    for (const target of [a, b, a]) await sync(target);
+    clock += 1000;
+    for (const id of ids) await deleteOn(b, id);
+    await sync(b);
+    // A pauses for the mass deletion and stays paused for 90 days while B
+    // syncs every day: A never acknowledged the deletes, so nothing compacts.
+    for (let day = 0; day < 90; day++) {
+      clock += DAY;
+      expect((await sync(a)).status).toBe('attention');
+      await sync(b);
+      await expectNothingDangling();
+    }
+    expect(provider.mediaHashes(VAULT)).toHaveLength(12);
+    a.stateStore.answerMassDeletion(VAULT, 'connection', 'keep');
+    clock += 1000;
+    expect((await sync(a)).status).toBe('published');
+    clock += 1000;
+    await sync(b);
+    expect(texts(b)).toHaveLength(12);
+    expect(
+      b.database.sqlite.query('SELECT COUNT(*) AS n FROM media_assets').get(),
+    ).toEqual({ n: 12 });
+    expect(await days(60, [a, b], '0'.padStart(64, 'a'))).toBeNull();
+    expect(provider.mediaHashes(VAULT)).toHaveLength(12);
+  });
+
+  test('"Keep my entries" on a device that only pulled them keeps their photos', async () => {
+    const [a, b] = [device(), device()];
+    // B joins first, so its own head never refers to A's photos.
+    await sync(b);
+    const ids = Array.from({ length: 12 }, (_, i) => `e${String(i).padStart(2, '0')}`);
+    clock += 1000;
+    for (const [index, id] of ids.entries())
+      await attachPhoto(a, id, index.toString(16).padStart(64, 'b'));
+    await sync(a);
+    clock += 1000;
+    expect((await sync(b)).status).toBe('pulled');
+    // B has not downloaded them (`pending`), and has not published since.
+    expect(
+      b.database.sqlite
+        .query("SELECT COUNT(*) AS n FROM media_assets WHERE download_state = 'pending'")
+        .get(),
+    ).toEqual({ n: 12 });
+    clock += 1000;
+    for (const id of ids) await deleteOn(a, id);
+    await sync(a);
+    for (let day = 0; day < 90; day++) {
+      clock += DAY;
+      expect((await sync(b)).status).toBe('attention');
+      await sync(a);
+      await expectNothingDangling();
+    }
+    // B never acknowledged the deletes, so nothing compacted: A's head
+    // still refers to every photo.
+    expect(provider.mediaHashes(VAULT)).toHaveLength(12);
+    b.stateStore.answerMassDeletion(VAULT, 'connection', 'keep');
+    clock += 1000;
+    expect((await sync(b)).status).toBe('published');
+    clock += 1000;
+    await sync(a);
+    expect(texts(a)).toHaveLength(12);
+    expect(provider.mediaHashes(VAULT)).toHaveLength(12);
+  });
+
+  test('a gap of more than 14 days between checks restarts the count', async () => {
+    const a = device();
+    await sync(a);
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    // Old before the first check, so only the count holds it back.
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock - 100 * DAY);
+    expect(await days(20, [a])).toBeNull();
+    clock += 20 * DAY;
+    expect(await days(29, [a])).toBeNull();
+    expect(await days(3, [a])).not.toBeNull();
+  });
+
+  test("the collecting device's own unpublished attachment keeps its blob", async () => {
+    const a = device();
+    await sync(a);
+    // The same file was uploaded long ago and nothing refers to it any more.
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock - 100 * DAY);
+    // A attaches it again on mobile data with Wi-Fi-only media: not published.
+    provider.mediaTransfersAllowed = async () => false;
+    clock += 1000;
+    await attachPhoto(a, 'e1');
+    expect(await days(60, [a])).toBeNull();
+  });
+
+  test('a head whose snapshot is not listed yet blocks the check', async () => {
+    const { collectMedia } =
+      await import('../../src/lib/cloudSync/snapshot/sync/mediaGc');
+    const a = device();
+    await sync(a);
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock - 100 * DAY);
+    provider.injectPhysicalHead({
+      format: 'tackbok-head',
+      vaultId: VAULT,
+      deviceId: 'other-device',
+      deviceSequence: 1,
+      snapshotId: 'f'.repeat(64),
+      updatedAt: clock,
+      ...{ major: 2, required: [] },
+    });
+    expect(
+      await devices.on(a.database, clock, () =>
+        collectMedia({ vaultId: VAULT, provider, now: clock }),
+      ),
+    ).toEqual({ status: 'blocked', reason: 'head-snapshot-not-listed' });
+  });
+
+  test('nothing is collected while a head or a snapshot cannot be read', async () => {
+    for (const damage of ['head', 'snapshot'] as const) {
+      provider = new FakeSnapshotProvider();
+      clock = T;
+      const a = device();
+      await attachPhoto(a, 'e1');
+      await sync(a);
+      clock += 1000;
+      await deleteOn(a, 'e1');
+      await sync(a);
+      if (damage === 'head') provider.injectUnreadableHead(VAULT, 'dead-device');
+      // An old snapshot no head points to, which retention has not removed yet.
+      else
+        provider.injectSnapshot(VAULT, 'e'.repeat(64), new Uint8Array([31, 139]), clock);
+      const gone = await days(100, [a]);
+      if (damage === 'head') expect(gone).toBeNull();
+      else {
+        // Retention removes the damaged snapshot after 30 days; then the
+        // 30-day count starts.
+        expect(gone).toBeGreaterThanOrEqual(60);
+      }
+    }
+  });
+
+  test('a clock that jumps far ahead restarts the count instead of shortening it', async () => {
+    const a = device();
+    await sync(a);
+    let real = clock;
+    provider.serverClock = () => real;
+    await attachPhoto(a, 'e1');
+    await sync(a);
+    clock += 1000;
+    await deleteOn(a, 'e1');
+    await sync(a);
+    // The device's clock jumps 100 days ahead; real time moves a day at a
+    // time. Retention takes the jump at its word (#185 "clock skew in
+    // retention"), but the 30 days unreferenced start again at the jump.
+    for (let day = 0; day < 10; day++) {
+      clock += DAY;
+      real += DAY;
+      await sync(a);
+    }
+    clock += 100 * DAY;
+    for (let day = 0; day < 25; day++) {
+      clock += DAY;
+      real += DAY;
+      await sync(a);
+    }
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+  });
+
+  test('a check reads at most 10 snapshots per pass, and a damaged cache row is read again', async () => {
+    const { collectMedia } =
+      await import('../../src/lib/cloudSync/snapshot/sync/mediaGc');
+    const a = device();
+    for (let index = 0; index < 12; index++) {
+      clock += 1000;
+      await addEntry(a, `e${index}`);
+      await sync(a);
+    }
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock - 31 * DAY);
+    a.database.sqlite.run('DELETE FROM sync_snapshot_media');
+    const check = () =>
+      requests(async () => {
+        outcome = await devices.on(a.database, clock, () =>
+          collectMedia({ vaultId: VAULT, provider, now: clock }),
+        );
+      });
+    let outcome: unknown;
+    expect(count(await check(), 'download-snapshot')).toBe(10);
+    expect(outcome).toEqual({ status: 'incomplete', deleted: [] });
+    expect(count(await check(), 'download-snapshot')).toBe(2);
+    expect(outcome).toEqual({ status: 'checked', deleted: [] });
+    a.database.sqlite.run("UPDATE sync_snapshot_media SET blobs_json = 'not json'");
+    expect(count(await check(), 'download-snapshot')).toBe(10);
+    // Valid JSON that is not a list of blob hashes is damaged too.
+    a.database.sqlite.run(
+      "UPDATE sync_snapshot_media SET blobs_json = CASE WHEN rowid % 2 = 0 THEN 'null' ELSE '{}' END",
+    );
+    expect(count(await check(), 'download-snapshot')).toBe(10);
+    expect(
+      a.database.sqlite
+        .query("SELECT COUNT(*) AS n FROM sync_snapshot_media WHERE blobs_json = '[]'")
+        .get(),
+    ).toEqual({ n: 10 });
+  });
+
+  test('a snapshot that appears before a delete stops it', async () => {
+    const { collectMedia } =
+      await import('../../src/lib/cloudSync/snapshot/sync/mediaGc');
+    const a = device();
+    await sync(a);
+    // An upload no snapshot ever referred to, collected after 60 days.
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock);
+    // Old enough at day 30; 30 days unreferenced by day 60.
+    expect(await days(59, [a])).toBeNull();
+    // A provider that lists one more snapshot once the check has read them.
+    let lists = 0;
+    const late = Object.create(provider) as Provider;
+    late.listSnapshots = async (vaultId: string) => {
+      const listed = await provider.listSnapshots(vaultId);
+      return ++lists > 1
+        ? [...listed, { snapshotId: 'f'.repeat(64), createdAt: clock, byteCount: 1 }]
+        : listed;
+    };
+    clock += 2 * DAY;
+    const outcome = await devices.on(a.database, clock, () =>
+      collectMedia({ vaultId: VAULT, provider: late, now: clock }),
+    );
+    expect(outcome).toEqual({ status: 'incomplete', deleted: [] });
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+  });
+});

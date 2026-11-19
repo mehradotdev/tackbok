@@ -125,6 +125,16 @@ export interface SnapshotObject {
   byteCount: number;
 }
 
+/** A media blob on the provider (`listMedia`). */
+export interface MediaObject {
+  blobHash: string;
+  /**
+   * The provider's own upload time (Drive's `createdTime`), the newest when
+   * one key has several files; null when any of them has none.
+   */
+  createdAt: number | null;
+}
+
 export type SnapshotProviderErrorCode =
   | 'authorization-required'
   | 'quota-full'
@@ -191,7 +201,16 @@ export interface SnapshotProvider {
    * after 180 days. The snapshots they point to are left to retention.
    */
   deleteDeviceHead(vaultId: string, physicalId: string): Promise<void>;
-  hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
+  /**
+   * Which of these blobs the provider has. `fresh` asks the provider itself
+   * rather than a local cache, which a missed or late change can leave
+   * claiming a deleted blob exists (remote media garbage collection).
+   */
+  hasMediaBatch(
+    vaultId: string,
+    blobHashes: readonly string[],
+    fresh?: boolean,
+  ): Promise<Set<string>>;
   /**
    * False when a transfer policy would refuse media uploads now, such as
    * Wi-Fi-only media on mobile data. Uploads report the refusal themselves;
@@ -214,6 +233,15 @@ export interface SnapshotProvider {
   ): Promise<boolean>;
   listSnapshots(vaultId: string): Promise<SnapshotObject[]>;
   deleteSnapshot(vaultId: string, snapshotId: string): Promise<void>;
+  /** Every media blob of the vault, read fresh from the provider. */
+  listMedia(vaultId: string): Promise<MediaObject[]>;
+  /**
+   * Remote media garbage collection (`mediaGc.ts`). Looks the blob up again
+   * on the provider and deletes its files only if every one was uploaded at
+   * or before `uploadedBy` (provider time): a newer upload means a device
+   * needs it again. Returns whether anything was deleted.
+   */
+  deleteMedia(vaultId: string, blobHash: string, uploadedBy: number): Promise<boolean>;
 }
 
 /** Random-access, bounded media source. No call may return more than `length` bytes. */

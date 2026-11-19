@@ -28,7 +28,7 @@ import {
   MAX_CONTEXT_AHEAD_MS,
   assertNotAhead,
 } from '../../../src/lib/cloudSync/v2/clock';
-import { canonicalState } from '../../../src/lib/cloudSync/v2/codec';
+import { canonicalState, decodeEnvelope } from '../../../src/lib/cloudSync/v2/codec';
 import { absorb, compact } from '../../../src/lib/cloudSync/v2/compact';
 import { normalizeTitle } from '../../../src/lib/cloudSync/v2/ids';
 import * as ops from '../../../src/lib/cloudSync/v2/ops';
@@ -104,6 +104,10 @@ export class V2StoreAdapter implements SimAdapter {
    * soon as the vault has a readable head. Every pass must skip them.
    */
   damagedHeads = false;
+  /** Engine mode: media blobs the engine deleted (#185 P12). */
+  collectedBlobs = 0;
+  /** Blobs each snapshot on the fake Drive refers to; snapshots never change. */
+  private readonly snapshotBlobs = new Map<string, string[]>();
 
   private constructor(
     private readonly devices: Devices,
@@ -521,7 +525,16 @@ export class V2StoreAdapter implements SimAdapter {
   private async engineSync(device: number, wall: number): Promise<SyncOutcome> {
     this.hashMedia(device, wall);
     const before = canonicalState((await this.capture(device)).state);
+    const blobsBefore = this.provider.mediaHashes(V2_VAULT);
     const result = await this.on(device, wall, () => this.engines[device].sync());
+    const blobsAfter = new Set(this.provider.mediaHashes(V2_VAULT));
+    this.collectedBlobs += blobsBefore.filter((hash) => !blobsAfter.has(hash)).length;
+    // Media garbage collection must never delete a blob a snapshot on
+    // Drive still refers to (#185 P12).
+    for (const snapshotId of this.provider.snapshotIds(V2_VAULT))
+      for (const hash of this.blobsOf(snapshotId))
+        if (!blobsAfter.has(hash))
+          return { ok: false, reason: `snapshot refers to a missing blob ${hash}` };
     if (this.damagedHeads && result.status === 'published') this.damageVault(wall);
     if (result.status === 'attention')
       return { ok: false, reason: `attention: ${result.reason}` };
@@ -538,6 +551,22 @@ export class V2StoreAdapter implements SimAdapter {
       pulled,
       revived: result.revivedEntries ?? [],
     };
+  }
+
+  /** The blobs a snapshot refers to; none for the damaged one a test put there. */
+  private blobsOf(snapshotId: string): string[] {
+    let blobs = this.snapshotBlobs.get(snapshotId);
+    if (blobs) return blobs;
+    blobs = [];
+    const bytes = this.provider.snapshotBytesForTest(V2_VAULT, snapshotId);
+    try {
+      for (const media of decodeEnvelope(bytes!).state.media.values())
+        blobs.push(media.blobHash);
+    } catch {
+      // `damageVault`'s snapshot.
+    }
+    this.snapshotBlobs.set(snapshotId, blobs);
+    return blobs;
   }
 
   async fingerprint(device: number): Promise<string> {

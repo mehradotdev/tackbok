@@ -30,6 +30,13 @@ export interface DriveUploadSession {
 
 export interface DriveProviderStateStore {
   loadDiscovery(vaultId: string): DriveDiscoveryState;
+  /**
+   * Like `resetDiscovery`, drops the vault's cached heads, snapshots and
+   * media (not revocations). Media matters since remote media garbage
+   * collection (#185 P12): changes missed while the cursor was stale can
+   * include a blob's deletion, and a cached row would then keep it from
+   * being uploaded again. Media is looked up again when next needed.
+   */
   replaceInitialInventory(
     vaultId: string,
     files: readonly DriveFileRecord[],
@@ -91,7 +98,7 @@ export class MemoryDriveProviderStateStore implements DriveProviderStateStore {
     for (const [key, value] of this.files) {
       if (
         key.startsWith(`${vaultId}\0`) &&
-        (value.kind === 'head' || value.kind === 'snapshot')
+        value.kind !== 'revocation' // heads, snapshots and media
       ) {
         this.files.delete(key);
       }
@@ -123,7 +130,7 @@ export class MemoryDriveProviderStateStore implements DriveProviderStateStore {
     for (const [key, value] of this.files) {
       if (
         key.startsWith(`${vaultId}\0`) &&
-        (value.kind === 'head' || value.kind === 'snapshot')
+        value.kind !== 'revocation' // heads, snapshots and media
       ) {
         this.files.delete(key);
       }
@@ -245,7 +252,7 @@ export class SQLiteDriveProviderStateStore implements DriveProviderStateStore {
       this.database.runSync(
         `DELETE FROM cloud_drive_objects
          WHERE connection_id = ? AND vault_id = ?
-           AND object_kind IN ('head', 'snapshot')`,
+           AND object_kind IN ('head', 'snapshot', 'media')`,
         this.connectionId,
         vaultId,
       );
@@ -272,7 +279,7 @@ export class SQLiteDriveProviderStateStore implements DriveProviderStateStore {
       this.database.runSync(
         `DELETE FROM cloud_drive_objects
          WHERE connection_id = ? AND vault_id = ?
-           AND object_kind IN ('head', 'snapshot')`,
+           AND object_kind IN ('head', 'snapshot', 'media')`,
         this.connectionId,
         vaultId,
       );
