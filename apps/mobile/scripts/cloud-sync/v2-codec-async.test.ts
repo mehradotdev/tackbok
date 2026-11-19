@@ -73,12 +73,18 @@ describe('async snapshot codec', () => {
       ).toBe(true);
       const decoded = decodeEnvelope(async.bytes, sync.snapshotId);
       expect(canonicalState(decoded.state)).toBe(canonicalState(state));
+      const roundTrip = await decodeEnvelopeAsync(async.bytes, sync.snapshotId, codec);
+      expect(canonicalState(roundTrip.state)).toBe(canonicalState(state));
       const decodedAsync = await decodeEnvelopeAsync(sync.bytes, sync.snapshotId, codec);
       expect(canonicalState(decodedAsync.state)).toBe(canonicalState(state));
       expect(decodedAsync.header).toEqual(sync.header);
 
-      // The body is hashed by the given hasher, once to encode and once to decode.
-      expect(work.hashed).toEqual([sync.bodyCanonical.length, sync.bodyCanonical.length]);
+      // The body is hashed by the given hasher: once to encode, once per decode.
+      expect(work.hashed).toEqual([
+        sync.bodyCanonical.length,
+        sync.bodyCanonical.length,
+        sync.bodyCanonical.length,
+      ]);
       if (count >= 2_500) expect(work.pauses).toBeGreaterThan(10);
       // Pure-JS hashing of every body: slow on a busy CI runner.
     }, 60_000);

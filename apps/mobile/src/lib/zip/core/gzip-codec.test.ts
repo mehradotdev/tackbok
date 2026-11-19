@@ -191,6 +191,16 @@ describe('encodeGzipInPieces', () => {
         }
   });
 
+  it('writes the same bytes as encodeGzip when the input fits in one piece', async () => {
+    const pause = async () => {};
+    for (const input of inputs)
+      expect(
+        Buffer.from(await encodeGzipInPieces(input, { pause })).equals(
+          Buffer.from(encodeGzip(input)),
+        ),
+      ).toBe(true);
+  });
+
   it('is deterministic and close to the one-piece size', async () => {
     const pause = async () => {};
     const first = await encodeGzipInPieces(text, { pieceBytes: 16_384, pause });

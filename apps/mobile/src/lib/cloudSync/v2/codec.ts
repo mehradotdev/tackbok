@@ -412,10 +412,15 @@ export async function encodeEnvelopeAsync(
   );
   assertBodySize(bodyCanonical);
   await work.pause();
-  const stored = await encodeGzipInPieces(bodyCanonical, {
+  let stored = await encodeGzipInPieces(bodyCanonical, {
     level: 6,
     pause: work.pause,
   });
+  // Pieces compress a little worse (no back-references across them). A body
+  // that only fits under the cap in one piece is compressed that way, held
+  // for one long step, rather than refused.
+  if (stored.length > SNAPSHOT_CAPS.compressedBytes)
+    stored = encodeGzip(bodyCanonical, { level: 6 });
   const bodyHash = await hashWith(work, bodyCanonical);
   return sealEnvelope(state, publication, ix, bodyCanonical, stored, bodyHash);
 }

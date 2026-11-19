@@ -1575,8 +1575,8 @@ export async function removeUnreadableHeads(
 ): Promise<number> {
   let removed = 0;
   for (const target of skipped.filter((head) => head.reason === 'unreadable')) {
-    // Listed again right before each delete, so the window in which that
-    // device could publish over this file is one request.
+    // Listed again before each delete, so the window in which that device
+    // could publish over this file is the download and check of its snapshot.
     const current = (await provider.listHeads(vaultId, true)).find(
       (head) => head.physicalId === target.physicalId,
     );
