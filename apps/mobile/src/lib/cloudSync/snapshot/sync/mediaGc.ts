@@ -26,7 +26,8 @@
  * Times come from the device clock. A clock that jumps forward by more
  * than 14 days, or back at all, restarts every count (3), so a jump cannot
  * make a blob look unreferenced for long; it can only make an upload look
- * old (4), which the 30-day count then covers. shortcut: smaller forward
+ * old (4) or older than the cutoff `deleteMedia` checks, which the 30-day
+ * count then covers. shortcut: smaller forward
  * jumps shorten the count by the jump, as they shorten snapshot retention;
  * upgrade both with a provider clock (Drive's `Date` header, #185 "clock
  * skew in retention").
@@ -39,8 +40,12 @@
  *   rather than pausing (`hydratePendingMedia`).
  * - **A blob attached again in the seconds between the last listing and the
  *   delete** (the same file, so the same hash, attached by another device
- *   while it was being collected). That device's next publication uploads
- *   it again, since the change feed tells its provider the blob is gone.
+ *   while it was being collected). Its snapshot then refers to a missing
+ *   blob until that device publishes again (its next write, or a daily
+ *   acknowledgement of another device's writes): `publish` finds the blob
+ *   gone, since the change feed (or, after a stale cursor, a rebuilt
+ *   inventory) tells its provider, and uploads it again. Until then other
+ *   devices show the attachment without its file.
  */
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
@@ -66,8 +71,12 @@ export const MEDIA_UPLOAD_GRACE_MS = 30 * DAY_MS;
  * refers to it is listed at one check or another.
  */
 export const MEDIA_MAX_CHECK_GAP_MS = 14 * DAY_MS;
-/** Snapshots downloaded per check; the rest wait for the next pass. */
+/**
+ * Snapshots downloaded per check, by count and compressed bytes (at least
+ * one); the rest wait for the next pass.
+ */
 const MAX_SNAPSHOT_READS = 10;
+const MAX_SNAPSHOT_READ_BYTES = 8 * 1024 * 1024;
 const MAX_MEDIA_DELETES = 10;
 const INSERT_BATCH = 100;
 
@@ -101,7 +110,11 @@ export async function recordSnapshotMedia(
         snapshot_id: snapshotId,
         blobs_json: JSON.stringify(snapshotBlobs(state)),
       })
-      .onConflictDoNothing(),
+      // Snapshot IDs are content hashes: a row only changes if it was damaged.
+      .onConflictDoUpdate({
+        target: [syncSnapshotMedia.vault_id, syncSnapshotMedia.snapshot_id],
+        set: { blobs_json: JSON.stringify(snapshotBlobs(state)) },
+      }),
   );
 }
 
@@ -195,9 +208,15 @@ async function loadSnapshotMedia(vaultId: string): Promise<Map<string, string[]>
   const rows = await runExclusiveDbTransaction((tx) =>
     tx.select().from(syncSnapshotMedia).where(eq(syncSnapshotMedia.vault_id, vaultId)),
   );
-  return new Map(
-    rows.map((row) => [row.snapshot_id, JSON.parse(row.blobs_json) as string[]]),
-  );
+  const blobs = new Map<string, string[]>();
+  for (const row of rows) {
+    try {
+      blobs.set(row.snapshot_id, JSON.parse(row.blobs_json) as string[]);
+    } catch {
+      // A damaged row: that snapshot is downloaded and read again.
+    }
+  }
+  return blobs;
 }
 
 /**
@@ -225,7 +244,16 @@ export async function collectMedia(options: {
 
   const blobs = await loadSnapshotMedia(vaultId);
   const unread = snapshots.filter((snapshot) => !blobs.has(snapshot.snapshotId));
-  for (const { snapshotId } of unread.slice(0, MAX_SNAPSHOT_READS)) {
+  let reads = 0;
+  let readBytes = 0;
+  for (const { snapshotId, byteCount } of unread) {
+    if (
+      reads > 0 &&
+      (reads >= MAX_SNAPSHOT_READS || readBytes + byteCount > MAX_SNAPSHOT_READ_BYTES)
+    )
+      return { status: 'incomplete', deleted: [] };
+    reads += 1;
+    readBytes += byteCount;
     const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
     if (!bytes) return { status: 'blocked', reason: 'snapshot-missing' };
     let state: SyncState;
@@ -241,7 +269,6 @@ export async function collectMedia(options: {
     await recordSnapshotMedia(vaultId, snapshotId, state);
     blobs.set(snapshotId, snapshotBlobs(state));
   }
-  if (unread.length > MAX_SNAPSHOT_READS) return { status: 'incomplete', deleted: [] };
 
   const referenced = await localBlobs();
   for (const { snapshotId } of snapshots)

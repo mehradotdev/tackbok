@@ -1736,6 +1736,104 @@ describe('remote media garbage collection (P12)', () => {
     expect(provider.mediaHashes(VAULT)).toHaveLength(12);
   });
 
+  test('"Keep my entries" on a device that only pulled them keeps their photos', async () => {
+    const [a, b] = [device(), device()];
+    // B joins first, so its own head never refers to A's photos.
+    await sync(b);
+    const ids = Array.from({ length: 12 }, (_, i) => `e${String(i).padStart(2, '0')}`);
+    clock += 1000;
+    for (const [index, id] of ids.entries())
+      await attachPhoto(a, id, index.toString(16).padStart(64, 'b'));
+    await sync(a);
+    clock += 1000;
+    expect((await sync(b)).status).toBe('pulled');
+    // B has not downloaded them (`pending`), and has not published since.
+    expect(
+      b.database.sqlite
+        .query("SELECT COUNT(*) AS n FROM media_assets WHERE download_state = 'pending'")
+        .get(),
+    ).toEqual({ n: 12 });
+    clock += 1000;
+    for (const id of ids) await deleteOn(a, id);
+    await sync(a);
+    for (let day = 0; day < 90; day++) {
+      clock += DAY;
+      expect((await sync(b)).status).toBe('attention');
+      await sync(a);
+      await expectNothingDangling();
+    }
+    // B never acknowledged the deletes, so nothing compacted: A's head
+    // still refers to every photo.
+    expect(provider.mediaHashes(VAULT)).toHaveLength(12);
+    b.stateStore.answerMassDeletion(VAULT, 'connection', 'keep');
+    clock += 1000;
+    expect((await sync(b)).status).toBe('published');
+    clock += 1000;
+    await sync(a);
+    expect(texts(a)).toHaveLength(12);
+    expect(provider.mediaHashes(VAULT)).toHaveLength(12);
+  });
+
+  test('a gap of more than 14 days between checks restarts the count', async () => {
+    const a = device();
+    await sync(a);
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    // Old before the first check, so only the count holds it back.
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock - 100 * DAY);
+    expect(await days(20, [a])).toBeNull();
+    clock += 20 * DAY;
+    expect(await days(29, [a])).toBeNull();
+    expect(await days(3, [a])).not.toBeNull();
+  });
+
+  test("the collecting device's own unpublished attachment keeps its blob", async () => {
+    const a = device();
+    await sync(a);
+    // The same file was uploaded long ago and nothing refers to it any more.
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock - 100 * DAY);
+    // A attaches it again on mobile data with Wi-Fi-only media: not published.
+    provider.mediaTransfersAllowed = async () => false;
+    clock += 1000;
+    await attachPhoto(a, 'e1');
+    expect(await days(60, [a])).toBeNull();
+  });
+
+  test('a head whose snapshot is not listed yet blocks the check', async () => {
+    const { collectMedia } =
+      await import('../../src/lib/cloudSync/snapshot/sync/mediaGc');
+    const a = device();
+    await sync(a);
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock - 100 * DAY);
+    provider.injectPhysicalHead({
+      format: 'tackbok-head',
+      vaultId: VAULT,
+      deviceId: 'other-device',
+      deviceSequence: 1,
+      snapshotId: 'f'.repeat(64),
+      updatedAt: clock,
+      ...{ major: 2, required: [] },
+    });
+    expect(
+      await devices.on(a.database, clock, () =>
+        collectMedia({ vaultId: VAULT, provider, now: clock }),
+      ),
+    ).toEqual({ status: 'blocked', reason: 'head-snapshot-not-listed' });
+  });
+
   test('nothing is collected while a head or a snapshot cannot be read', async () => {
     for (const damage of ['head', 'snapshot'] as const) {
       provider = new FakeSnapshotProvider();
@@ -1785,6 +1883,42 @@ describe('remote media garbage collection (P12)', () => {
       await sync(a);
     }
     expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+  });
+
+  test('a check reads at most 10 snapshots per pass, and a damaged cache row is read again', async () => {
+    const { collectMedia } =
+      await import('../../src/lib/cloudSync/snapshot/sync/mediaGc');
+    const a = device();
+    for (let index = 0; index < 12; index++) {
+      clock += 1000;
+      await addEntry(a, `e${index}`);
+      await sync(a);
+    }
+    await provider.uploadMedia(VAULT, PHOTO, {
+      byteLength: 3,
+      contentHash: PHOTO,
+      read: async () => new Uint8Array([1, 2, 3]),
+    });
+    provider.setMediaCreatedAtForTest(VAULT, PHOTO, clock - 31 * DAY);
+    a.database.sqlite.run('DELETE FROM sync_snapshot_media');
+    const check = () =>
+      requests(async () => {
+        outcome = await devices.on(a.database, clock, () =>
+          collectMedia({ vaultId: VAULT, provider, now: clock }),
+        );
+      });
+    let outcome: unknown;
+    expect(count(await check(), 'download-snapshot')).toBe(10);
+    expect(outcome).toEqual({ status: 'incomplete', deleted: [] });
+    expect(count(await check(), 'download-snapshot')).toBe(2);
+    expect(outcome).toEqual({ status: 'checked', deleted: [] });
+    a.database.sqlite.run("UPDATE sync_snapshot_media SET blobs_json = 'not json'");
+    expect(count(await check(), 'download-snapshot')).toBe(10);
+    expect(
+      a.database.sqlite
+        .query("SELECT COUNT(*) AS n FROM sync_snapshot_media WHERE blobs_json = '[]'")
+        .get(),
+    ).toEqual({ n: 10 });
   });
 
   test('a snapshot that appears before a delete stops it', async () => {

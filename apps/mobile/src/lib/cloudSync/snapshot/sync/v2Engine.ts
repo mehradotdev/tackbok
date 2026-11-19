@@ -117,6 +117,8 @@ const MAX_APPLY_ATTEMPTS = 4;
 const SNAPSHOT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_DELETES_PER_PASS = 10;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+/** Media garbage collection that could not finish runs again after this long. */
+const MEDIA_GC_RETRY_MS = 60 * 60 * 1000;
 /** A snapshot that could not be read is downloaded again after this long. */
 const UNREADABLE_RETRY_MS = 24 * 60 * 60 * 1000;
 /**
@@ -1178,8 +1180,8 @@ export class V2SyncEngine {
    * deleted: its snapshots cannot be told apart from unreferenced ones.
    *
    * Then media garbage collection (`collectMedia`), when this pass skipped
-   * no head (`collect`): at most once a day, or again at the next pass
-   * while it has snapshots left to read.
+   * no head (`collect`): at most once a day, or an hour later while it has
+   * snapshots left to read.
    */
   private async cleanup(
     deviceId: string,
@@ -1202,7 +1204,9 @@ export class V2SyncEngine {
           now: this.now(),
           hooks: this.hooks,
         });
-        if (outcome.status === 'incomplete') this.nextMediaGcAt = this.now();
+        // Snapshots left to read, or something new appeared: soon, not every pass.
+        if (outcome.status === 'incomplete')
+          this.nextMediaGcAt = this.now() + MEDIA_GC_RETRY_MS;
       }
     } catch (error) {
       if (!(error instanceof SnapshotProviderError)) throw error;
