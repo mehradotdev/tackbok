@@ -575,11 +575,32 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       for (const file of files) {
         const record = this.record(file, 'media', null);
         if (record.logicalKey !== this.mediaKey(record.contentSha256)) continue;
+        if (!(await this.mediaFileExists(vaultId, record.fileId))) continue;
         this.state.upsertFile(vaultId, record);
         found.add(record.contentSha256);
       }
     }
     return found;
+  }
+
+  /**
+   * Whether a media file a search returned still exists, asked by its ID.
+   * Search can lag a delete (remote media garbage collection, #185 P12),
+   * and the change feed reports each removal only once: a stale result
+   * cached as present would keep that blob from being uploaded again. One
+   * request per blob, the first time this device looks for it.
+   */
+  private async mediaFileExists(vaultId: string, fileId: string): Promise<boolean> {
+    const response = await this.request(
+      vaultId,
+      'list',
+      `${API}/files/${encodeURIComponent(fileId)}?fields=id,trashed`,
+      {},
+      { idempotent: true, accepted: [404] },
+    );
+    if (response.status === 404) return false;
+    const body = (await response.json()) as { trashed?: unknown };
+    return body.trashed !== true;
   }
 
   async uploadMedia(
@@ -634,7 +655,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           error instanceof DriveRequestError &&
           (error.status === 404 || error.status === 410);
         if (!gone || attempt > 0) throw error;
-        this.state.removeFile(vaultId, file.fileId);
+        // Every cached copy: all of them may have been collected.
+        for (const cached of candidates) this.state.removeFile(vaultId, cached.fileId);
       }
     }
   }
@@ -845,6 +867,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         kind === 'head',
       );
       if (!record) continue;
+      if (kind === 'media' && !(await this.mediaFileExists(vaultId, record.fileId)))
+        continue;
       this.state.upsertFile(vaultId, record);
       records.push(record);
     }
@@ -1098,11 +1122,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   ): Promise<DriveFile | null> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const files = await this.queryExactKey(vaultId, key, kind);
-      const match = files.find(
+      for (const match of files.filter(
         (file) =>
           file.sha256Checksum === expectedHash && parseByteCount(file) === expectedBytes,
-      );
-      if (match) return match;
+      ))
+        // A media file a lagging search still shows after its delete is not
+        // this write (`mediaFileExists`).
+        if (kind !== 'media' || (await this.mediaFileExists(vaultId, match.id)))
+          return match;
       if (attempt < 2) await this.sleep(250 * (attempt + 1));
     }
     return null;

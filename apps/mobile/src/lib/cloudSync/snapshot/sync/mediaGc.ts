@@ -87,7 +87,11 @@ export type MediaGcOutcome =
   | { status: 'blocked'; reason: string }
   | { status: 'checked'; deleted: string[] };
 
-/** The blob hashes a snapshot's state refers to, sorted. */
+/**
+ * The blob hashes a snapshot's state refers to, sorted. `state.media` is the
+ * only place a state refers to blobs; a later feature that adds others must
+ * be a required one (`KNOWN_REQUIRED_FEATURES` in `v2/codec.ts`).
+ */
 export function snapshotBlobs(state: SyncState): string[] {
   return [...new Set([...state.media.values()].map((media) => media.blobHash))].sort();
 }
@@ -210,11 +214,19 @@ async function loadSnapshotMedia(vaultId: string): Promise<Map<string, string[]>
   );
   const blobs = new Map<string, string[]>();
   for (const row of rows) {
+    let value: unknown;
     try {
-      blobs.set(row.snapshot_id, JSON.parse(row.blobs_json) as string[]);
+      value = JSON.parse(row.blobs_json);
     } catch {
-      // A damaged row: that snapshot is downloaded and read again.
+      continue;
     }
+    // Anything but a list of blob hashes is a damaged row: that snapshot is
+    // downloaded and read again.
+    if (
+      Array.isArray(value) &&
+      value.every((hash) => typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash))
+    )
+      blobs.set(row.snapshot_id, value as string[]);
   }
   return blobs;
 }

@@ -1914,6 +1914,11 @@ describe('remote media garbage collection (P12)', () => {
     expect(outcome).toEqual({ status: 'checked', deleted: [] });
     a.database.sqlite.run("UPDATE sync_snapshot_media SET blobs_json = 'not json'");
     expect(count(await check(), 'download-snapshot')).toBe(10);
+    // Valid JSON that is not a list of blob hashes is damaged too.
+    a.database.sqlite.run(
+      "UPDATE sync_snapshot_media SET blobs_json = CASE WHEN rowid % 2 = 0 THEN 'null' ELSE '{}' END",
+    );
+    expect(count(await check(), 'download-snapshot')).toBe(10);
     expect(
       a.database.sqlite
         .query("SELECT COUNT(*) AS n FROM sync_snapshot_media WHERE blobs_json = '[]'")

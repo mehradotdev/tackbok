@@ -55,7 +55,14 @@ import type {
 
 export const SNAPSHOT_FORMAT = 'tackbok-snapshot';
 export const SNAPSHOT_MAJOR = 2;
-/** Features this build understands. Empty in 2.0.0. */
+/**
+ * Features this build understands. Empty in 2.0.0.
+ *
+ * A feature that adds media blob references anywhere but `state.media`
+ * (a thumbnail in `ext`, say) must be required, not optional: a build that
+ * ignores it would not see those references, and its remote media garbage
+ * collection (`snapshot/sync/mediaGc.ts`) could delete what they refer to.
+ */
 export const KNOWN_REQUIRED_FEATURES: readonly string[] = [];
 
 export const V2_CAPS = Object.freeze({

@@ -125,6 +125,8 @@ class FakeDriveServer {
   failAfterNextCreate = false;
   hideNextFileLists = 0;
   hideNextChangeLists = 0;
+  /** Deleted files that file searches still return, as a lagging Drive index does. */
+  readonly staleSearch = new Map<string, StoredDriveFile>();
   rejectChangeCursors = 0;
   private nextId = 0;
   private sequence = 0;
@@ -170,7 +172,7 @@ class FakeDriveServer {
         return response(200, { files: [] });
       }
       return response(200, {
-        files: [...this.files.values()]
+        files: [...this.files.values(), ...this.staleSearch.values()]
           .filter((file) => this.matches(file, query))
           .map((file) => this.publicFile(file)),
       });
@@ -205,6 +207,15 @@ class FakeDriveServer {
       if (metadata.parents !== undefined) return response(403);
       const stored = this.store(metadata, bytes, id);
       return response(200, this.publicFile(stored));
+    }
+    if (
+      fileMatch &&
+      method === 'GET' &&
+      !parsed.searchParams.has('alt') &&
+      !parsed.searchParams.has('uploadType')
+    ) {
+      const stored = this.files.get(decodeURIComponent(fileMatch[1]));
+      return stored ? response(200, this.publicFile(stored)) : response(404);
     }
     if (fileMatch && method === 'DELETE') {
       const id = decodeURIComponent(fileMatch[1]);
@@ -1355,7 +1366,11 @@ describe('GoogleDriveSnapshotProvider', () => {
     const metrics = new MemoryDriveInstrumentation('grouped-media-existence');
     const app = provider(server, new MemoryDriveProviderStateStore(), metrics);
     expect(await app.hasMediaBatch(vaultId, hashes)).toEqual(new Set(hashes));
-    expect(metrics.report()).toMatchObject({ attempts: 2, byMethod: { list: 2 } });
+    // Two grouped searches, plus one check by ID per blob found (a search
+    // can lag a delete, #185 P12); once cached, none of it is repeated.
+    expect(metrics.report()).toMatchObject({ attempts: 53, byMethod: { list: 53 } });
+    expect(await app.hasMediaBatch(vaultId, hashes)).toEqual(new Set(hashes));
+    expect(metrics.report()).toMatchObject({ attempts: 53 });
   });
 
   test('media listing reads Drive afresh and gives each blob its newest upload time', async () => {
@@ -1425,6 +1440,48 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(await provider(server).deleteMedia(vaultId, hash, Date.now())).toBe(true);
     await other.listHeads(vaultId, true);
     expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    // A search that still shows a deleted file (Drive's index lagging the
+    // delete) is checked by ID: nothing is cached as present, and an upload
+    // is made again.
+    const lagging = provider(server);
+    const ghost = server.seed(
+      vaultId,
+      `media/${hash.slice(0, 2)}/${hash}`,
+      'media',
+      bytes,
+    );
+    server.files.delete(ghost.id);
+    server.staleSearch.set(ghost.id, ghost);
+    await lagging.listHeads(vaultId, true);
+    expect(await lagging.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    await lagging.uploadMedia(vaultId, hash, {
+      byteLength: bytes.byteLength,
+      contentHash: hash,
+      read: async (offset, length) => bytes.slice(offset, offset + length),
+    });
+    expect(
+      [...server.files.values()].filter((file) => file.sha256Checksum === hash),
+    ).toHaveLength(1);
+    expect(await lagging.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+  });
+
+  test('a download finds every cached copy of a collected blob gone at once', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-two-copies');
+    const hash = sha256Bytes(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    server.seed(vaultId, key, 'media', bytes);
+    server.seed(vaultId, key, 'media', bytes);
+    const here = provider(server);
+    expect(await here.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    expect(await provider(server).deleteMedia(vaultId, hash, Date.now())).toBe(true);
+    const sink = {
+      byteLength: async () => 0,
+      appendAndSync: async () => {},
+      reset: async () => {},
+      verifyAndPromote: async () => {},
+    };
+    await expect(here.downloadMedia(vaultId, hash, sink)).resolves.toBe(false);
   });
 
   test('snapshot deletion is permanent and repeated deletion is idempotent', async () => {
