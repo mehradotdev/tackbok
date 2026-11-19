@@ -466,7 +466,9 @@ export function tagsForHistoryRestore(
   const ids = new Set<string>();
   const titles = new Set<string>();
   for (const entry of portableEntries) {
-    if (mode === 'skip' && existingNoteIds.has(entry.noteId)) continue;
+    // As `importPortableEntries` reads it.
+    const noteId = entry.noteId?.trim();
+    if (!noteId || (mode === 'skip' && existingNoteIds.has(noteId))) continue;
     for (const id of entry.tagIds ?? []) ids.add(id);
     for (const title of entry.tagTitles ?? [])
       titles.add(sanitizeTagName(title).toLowerCase());

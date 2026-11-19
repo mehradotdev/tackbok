@@ -8,11 +8,21 @@
  * module mocks are process-wide.
  */
 import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { expoFiles } from '../cloud-sync/sim/expoFiles';
+import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
 
 import {
   BunSyncDatabase,
@@ -40,8 +50,26 @@ mock.module('../../src/lib/cloudSync/snapshot/storage', () => ({
     }
   },
 }));
+// The download sink, on disk: appends, then checks size and hash and
+// promotes to `<hash>.bin`, as the native-backed one does.
 mock.module('../../src/lib/cloudSync/snapshot/media', () => ({
-  createMediaPartialFileSink: () => ({}),
+  createMediaPartialFileSink: (directory: { uri: string }, blobHash: string) => {
+    const dir = directory.uri.replace('file://', '');
+    mkdirSync(dir, { recursive: true });
+    const partial = join(dir, `${blobHash}.partial`);
+    return {
+      byteLength: async () =>
+        existsSync(partial) ? readFileSync(partial).byteLength : 0,
+      appendAndSync: async (bytes: Uint8Array) => appendFileSync(partial, bytes),
+      reset: async () => rmSync(partial, { force: true }),
+      verifyAndPromote: async (length: number, hash: string) => {
+        const bytes = new Uint8Array(readFileSync(partial));
+        if (bytes.byteLength !== length || sha256Bytes(bytes) !== hash)
+          throw new Error('downloaded media does not match');
+        renameSync(partial, join(dir, `${blobHash}.bin`));
+      },
+    };
+  },
 }));
 mock.module('../../src/lib/cloudSync/ui/production', () => ({
   configuredDriveProvider: async () => {
@@ -67,7 +95,6 @@ const { buildBackupHistoryArchive } =
 const { importFromTackbokBackup } =
   await import('../../src/lib/backupImport/import/tackbok');
 const { File: ExpoFile } = await import('expo-file-system');
-const { sha256Bytes } = await import('../../src/lib/cloudSync/snapshot/sha256');
 
 const { AssetType } = await import('../../src/types');
 
@@ -170,6 +197,7 @@ describe('end to end: an archive built from a backup, read back by the import', 
       [VAULT, T, T],
     );
     const tag = await write(a, (tx) => repositories.createTagInTransaction(tx, 'Family'));
+    const work = await write(a, (tx) => repositories.createTagInTransaction(tx, 'Work'));
     const spare = await write(a, (tx) =>
       repositories.createTagInTransaction(tx, 'Spare'),
     );
@@ -186,27 +214,30 @@ describe('end to end: an archive built from a backup, read back by the import', 
       [PHOTO],
     );
     await blobs.writeVerified(PHOTO, PHOTO_BYTES);
-    await addEntry(a, 'e2', { text_content: 'Original two' });
+    await addEntry(a, 'e2', { text_content: 'Original two', tags: work });
     for (const target of [a, b, a]) await sync(target);
     const backup = headSnapshot(a);
-    // Since the backup: e1 deleted, e2 rewritten, e3 written, the spare tag
-    // and the prompt deleted.
+    // Since the backup: e1 and its tag deleted, e2 rewritten and its tag
+    // deleted, e3 written, the spare tag and the prompt deleted.
     clock += 1000;
     await write(a, async (tx) => {
       await repositories.deleteEntryInTransaction(tx, 'e1', { now: clock });
-      await repositories.deleteTagInTransaction(tx, spare, { now: clock });
+      for (const id of [tag, work, spare])
+        await repositories.deleteTagInTransaction(tx, id, { now: clock });
       await repositories.deletePromptInTransaction(tx, prompt, { now: clock });
     });
     await addEntry(a, 'e2', { text_content: 'Garbled' });
     await addEntry(a, 'e3', { text_content: 'Written later' });
     for (const target of [a, b]) await sync(target);
-    return { a, b, backup, tag };
+    return { a, b, backup, tag, work };
   }
 
   async function restoreThroughArchive(
     target: Device,
     backup: string,
     mode: 'skip' | 'overwrite',
+    /** No copy on this device: the photo is downloaded from the provider. */
+    fromDrive = false,
   ) {
     // This device's verified copy of the photo, as the media store finds it.
     const local = join(FILES, `local-${PHOTO}`);
@@ -215,7 +246,7 @@ describe('end to end: an archive built from a backup, read back by the import', 
       const archive = await buildBackupHistoryArchive(backup, 'restore', {
         provider,
         localFile: async (blobHash) =>
-          blobHash === PHOTO ? (new ExpoFile(local) as never) : null,
+          !fromDrive && blobHash === PHOTO ? (new ExpoFile(local) as never) : null,
       });
       try {
         const summary = await importFromTackbokBackup(
@@ -234,7 +265,7 @@ describe('end to end: an archive built from a backup, read back by the import', 
   test.each(['skip', 'overwrite'] as const)(
     '%s: the journal matches, with no deleted tag or prompt back',
     async (mode) => {
-      const { a, b, backup, tag } = await journalWithHistory();
+      const { a, b, backup, tag, work } = await journalWithHistory();
       clock += 1000;
       const { archive, summary } = await restoreThroughArchive(a, backup, mode);
       expect(archive.missingMedia).toBe(0);
@@ -254,9 +285,15 @@ describe('end to end: an archive built from a backup, read back by the import', 
       );
       expect(photo.blob_hash).toBe(PHOTO);
       expect(photo.asset_id).not.toBe('p-1');
-      // Deleted since the backup, and not used by a restored entry: still gone.
-      expect(ids(a, 'SELECT title FROM tags ORDER BY title')).toEqual([
-        { title: 'Family' },
+      // A tag deleted since the backup comes back with an entry the restore
+      // writes that uses it; one only skipped entries or no entry use stays gone.
+      expect(ids(a, 'SELECT title FROM tags ORDER BY title')).toEqual(
+        mode === 'skip'
+          ? [{ title: 'Family' }]
+          : [{ title: 'Family' }, { title: 'Work' }],
+      );
+      expect(ids(a, "SELECT tags FROM entries WHERE note_id = 'e2'")).toEqual([
+        { tags: mode === 'skip' ? '' : work },
       ]);
       expect(ids(a, 'SELECT title FROM custom_prompts')).toEqual([]);
       // Both devices sync on and agree.
@@ -268,6 +305,19 @@ describe('end to end: an archive built from a backup, read back by the import', 
       expect(ids(b, 'SELECT title FROM custom_prompts')).toEqual([]);
     },
   );
+
+  test('a photo this device lacks is downloaded from the provider into the archive', async () => {
+    const { a, backup } = await journalWithHistory();
+    clock += 1000;
+    const { archive, summary } = await restoreThroughArchive(a, backup, 'skip', true);
+    expect(archive.missingMedia).toBe(0);
+    expect(summary.failedAssets).toBe(0);
+    expect(ids(a, "SELECT blob_hash FROM media_assets WHERE owner_id = 'e1'")).toEqual([
+      { blob_hash: PHOTO },
+    ]);
+    // The download went once it was in the archive.
+    expect(existsSync(join(FILES, 'cache', 'backup-history-media'))).toBe(false);
+  });
 
   test('a photo gone everywhere is counted and left out; the entry still comes back', async () => {
     const { a, backup } = await journalWithHistory();
