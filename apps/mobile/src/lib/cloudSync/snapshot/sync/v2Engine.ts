@@ -121,6 +121,15 @@ export const ACK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Local writes during a pass make the apply refuse; it captures and joins again. */
 const MAX_APPLY_ATTEMPTS = 4;
 const MAX_DELETES_PER_PASS = 10;
+/**
+ * Attachment uploads in flight at once. Drive takes 2-3 s to create even a
+ * small file, so one at a time a journal with 1,500 photos took over an hour
+ * to back up the first time (#185 P14). Three in flight at that latency make
+ * about one create a second, well under Drive's sustained limit of about
+ * three writes a second per user; a create is not retried, so staying under
+ * it matters.
+ */
+export const MEDIA_UPLOAD_CONCURRENCY = 3;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Media garbage collection that could not finish runs again after this long. */
 const MEDIA_GC_RETRY_MS = 60 * 60 * 1000;
@@ -870,20 +879,37 @@ export class V2SyncEngine {
         items: { done: 0, total: uploads.length },
         bytesTotal: uploads.reduce((total, { source }) => total + source.byteLength, 0),
       });
-    for (const { blobHash, source } of uploads) {
-      try {
-        await provider.uploadMedia(this.vaultId, blobHash, source);
-        this.uploadedThisPass.add(blobHash);
-      } catch (error) {
-        // The policy refused: the rest wait for Wi-Fi too.
-        if (error instanceof SnapshotProviderError && error.code === 'wifi-only-media')
-          break;
-        throw error;
+    // A few at a time (`MEDIA_UPLOAD_CONCURRENCY`). After a failure no new
+    // upload starts; the ones in flight finish, then the first error is thrown.
+    let next = 0;
+    let stopped = false;
+    let failure: { error: unknown } | null = null;
+    const uploadNext = async () => {
+      while (!stopped && next < uploads.length) {
+        const { blobHash, source } = uploads[next++];
+        try {
+          await provider.uploadMedia(this.vaultId, blobHash, source);
+          this.uploadedThisPass.add(blobHash);
+          present.add(blobHash);
+          this.hooks.progress?.({ type: 'item', phase: 'uploading-media' });
+          await this.hooks.at?.('during-media-transfer');
+        } catch (error) {
+          stopped = true;
+          // The policy refused: the rest wait for Wi-Fi too.
+          if (
+            !(error instanceof SnapshotProviderError && error.code === 'wifi-only-media')
+          )
+            failure ??= { error };
+        }
       }
-      present.add(blobHash);
-      this.hooks.progress?.({ type: 'item', phase: 'uploading-media' });
-      await this.hooks.at?.('during-media-transfer');
-    }
+    };
+    await Promise.all(
+      Array.from(
+        { length: Math.min(MEDIA_UPLOAD_CONCURRENCY, uploads.length) },
+        uploadNext,
+      ),
+    );
+    if (failure) throw (failure as { error: unknown }).error;
     const ready = new Set(
       pending
         .filter((asset) => asset.blobHash && present.has(asset.blobHash))

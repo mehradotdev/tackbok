@@ -162,4 +162,35 @@ describe('IosGoogleAuthorization account label persistence', () => {
       refreshToken: 'durable-refresh-token',
     });
   });
+
+  it('shares one refresh between requests that ask at the same time', async () => {
+    await writeGoogleTokens({
+      accessToken: 'expired-token',
+      expiresAt: 0,
+      refreshToken: 'durable-refresh-token',
+    });
+    let finish!: (value: { accessToken: string; expiresIn: number }) => void;
+    mockRefreshAsync.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+
+    const auth = new IosGoogleAuthorization();
+    const tokens = Promise.all([
+      auth.getFreshAccessToken(),
+      auth.getFreshAccessToken(),
+      new IosGoogleAuthorization().getFreshAccessToken(),
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    finish({ accessToken: 'fresh-token', expiresIn: 3600 });
+
+    await expect(tokens).resolves.toEqual(['fresh-token', 'fresh-token', 'fresh-token']);
+    expect(mockRefreshAsync).toHaveBeenCalledTimes(1);
+    // Once it is done, a later expiry refreshes again.
+    await writeGoogleTokens({
+      accessToken: 'fresh-token',
+      expiresAt: 0,
+      refreshToken: 'durable-refresh-token',
+    });
+    mockRefreshAsync.mockResolvedValue({ accessToken: 'next-token', expiresIn: 3600 });
+    await expect(auth.getFreshAccessToken()).resolves.toBe('next-token');
+    expect(mockRefreshAsync).toHaveBeenCalledTimes(2);
+  });
 });
