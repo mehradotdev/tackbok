@@ -134,7 +134,7 @@ class FakeDriveServer {
     sequence: number;
     fileId: string;
     removed: boolean;
-    /** The file as created or updated, for a change read after its delete. */
+    /** The file as this change left it. */
     file?: StoredDriveFile;
   }[] = [];
 
@@ -167,7 +167,7 @@ class FakeDriveServer {
           fileId: change.fileId,
           file: change.removed
             ? undefined
-            : this.publicFile(this.files.get(change.fileId) ?? change.file!),
+            : this.publicFile(change.file ?? this.files.get(change.fileId)!),
         }));
       return response(200, { changes, newStartPageToken: String(this.sequence) });
     }
@@ -307,9 +307,9 @@ class FakeDriveServer {
     });
   }
 
-  /** Marks a file trashed, as the Drive UI or another app would. */
-  trash(fileId: string): void {
-    this.files.get(fileId)!.trashed = true;
+  /** Marks a file trashed (or restores it), as the Drive UI or another app would. */
+  trash(fileId: string, trashed = true): void {
+    this.files.get(fileId)!.trashed = trashed;
     this.recordChange(fileId, false);
   }
 
@@ -1532,6 +1532,25 @@ describe('GoogleDriveSnapshotProvider', () => {
     server.trash(kept.id);
     await other.listHeads(vaultId, true);
     expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+  });
+
+  test('a snapshot trashed and restored within one change page stays listed', async () => {
+    const server = new FakeDriveServer();
+    const app = provider(server);
+    await app.listHeads(vaultId, true);
+    const snapshotId = '3'.repeat(64);
+    const stored = server.seed(
+      vaultId,
+      `snapshots/${snapshotId}.json.gz`,
+      'snapshot',
+      new Uint8Array([1, 2, 3]),
+    );
+    server.trash(stored.id);
+    server.trash(stored.id, false);
+    await app.listHeads(vaultId, true);
+    expect((await app.listSnapshots(vaultId)).map((s) => s.snapshotId)).toEqual([
+      snapshotId,
+    ]);
   });
 
   test('a download finds every cached copy of a collected blob gone at once', async () => {
