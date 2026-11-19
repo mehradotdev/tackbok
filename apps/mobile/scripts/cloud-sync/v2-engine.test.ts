@@ -744,6 +744,13 @@ describe('attachments', () => {
     return gate;
   }
   const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+  /** Waits until `ready`, failing rather than hanging if the pass never gets there. */
+  async function until(ready: () => boolean) {
+    for (let tick = 0; !ready(); tick++) {
+      if (tick > 200) throw new Error('the uploads never started');
+      await settle();
+    }
+  }
 
   test('attachments upload a few at a time, then all are published', async () => {
     const a = device();
@@ -762,7 +769,7 @@ describe('attachments', () => {
 
   test('a failed upload starts no more; those in flight finish first', async () => {
     const a = device();
-    await attachMany(a, 7);
+    const hashes = await attachMany(a, 7);
     const gate = gateUploads();
     const upload = provider.uploadMedia.bind(provider);
     let calls = 0;
@@ -776,7 +783,7 @@ describe('attachments', () => {
     void pass.finally(() => {
       settled = true;
     });
-    while (gate.started < 2) await settle();
+    await until(() => gate.started === 2);
     // The first and third were in flight when the second failed: the pass
     // waits for both.
     for (let held = 2; held > 0; held--) {
@@ -788,6 +795,9 @@ describe('attachments', () => {
     expect(result.status).not.toBe('published');
     expect(calls).toBe(3);
     expect(gate.started).toBe(2);
+    // The two in flight reached the provider; the failed one did not.
+    expect((await provider.hasMediaBatch(VAULT, [hashes[0], hashes[2]])).size).toBe(2);
+    expect((await provider.hasMediaBatch(VAULT, [hashes[1]])).size).toBe(0);
     // Nothing is stamped: the attachments are still unpublished.
     expect(
       a.database.sqlite
@@ -808,7 +818,7 @@ describe('attachments', () => {
       return upload(...args);
     };
     const pass = sync(a);
-    while (gate.started < 2) await settle();
+    await until(() => gate.started === 2);
     gate.release.shift()!();
     gate.release.shift()!();
     // The two in flight finish and are published; the other five wait.
