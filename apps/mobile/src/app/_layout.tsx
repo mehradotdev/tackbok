@@ -166,6 +166,7 @@ export default function Layout() {
       <View
         className="flex-1 items-center justify-center bg-background p-4"
         onLayout={hideSplash}>
+        <AppStatusBar style={statusBarStyle} />
         <Text className="text-destructive text-center">
           {t('common.databaseUpdateFailed', { message: error.message })}
         </Text>
