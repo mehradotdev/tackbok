@@ -603,21 +603,40 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     blobHash: string,
     sink: MediaDownloadSink,
   ): Promise<boolean> {
-    const candidates = await this.filesForKey(vaultId, this.mediaKey(blobHash), 'media');
-    if (candidates.length === 0) return false;
-    this.assertImmutableCandidates(candidates);
-    const file = candidates[0];
-    if (file.contentSha256 !== blobHash || file.byteCount > SNAPSHOT_CAPS.mediaByteSize) {
-      throw new SnapshotProviderError(
-        'invalid-data',
-        'Drive media metadata does not match its key',
+    for (let attempt = 0; ; attempt += 1) {
+      const candidates = await this.filesForKey(
+        vaultId,
+        this.mediaKey(blobHash),
+        'media',
       );
+      if (candidates.length === 0) return false;
+      this.assertImmutableCandidates(candidates);
+      const file = candidates[0];
+      if (
+        file.contentSha256 !== blobHash ||
+        file.byteCount > SNAPSHOT_CAPS.mediaByteSize
+      ) {
+        throw new SnapshotProviderError(
+          'invalid-data',
+          'Drive media metadata does not match its key',
+        );
+      }
+      try {
+        // A retry resumes from what the sink already holds. Bytes that fail
+        // the size or hash check throw `MediaIntegrityError`: the file is
+        // there but wrong, which is not the same as gone.
+        await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
+        return true;
+      } catch (error) {
+        // A cached file that is gone (media garbage collection, #185 P12):
+        // forget it and look the blob up on Drive once more.
+        const gone =
+          error instanceof DriveRequestError &&
+          (error.status === 404 || error.status === 410);
+        if (!gone || attempt > 0) throw error;
+        this.state.removeFile(vaultId, file.fileId);
+      }
     }
-    // A retry resumes from what the sink already holds. Bytes that fail the
-    // size or hash check throw `MediaIntegrityError`: the file is there but
-    // wrong, which is not the same as gone.
-    await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
-    return true;
   }
 
   async listSnapshots(vaultId: string): Promise<SnapshotObject[]> {

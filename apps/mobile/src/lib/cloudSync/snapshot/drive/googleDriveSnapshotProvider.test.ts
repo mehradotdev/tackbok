@@ -1397,6 +1397,36 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(await app.deleteMedia(vaultId, hash, cutoff)).toBe(false);
   });
 
+  test('a blob another device collected is gone here too, cached or not', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-collected-elsewhere');
+    const hash = sha256Bytes(bytes);
+    server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
+    const here = provider(server);
+    // This device has it cached, then another device collects it.
+    await here.listHeads(vaultId, true);
+    expect(await here.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    expect(await provider(server).deleteMedia(vaultId, hash, Date.now())).toBe(true);
+    // A download through the stale cache finds it gone: unavailable, not an error.
+    const sink = {
+      bytes: new Uint8Array(0),
+      byteLength: async () => 0,
+      appendAndSync: async () => {},
+      reset: async () => {},
+      verifyAndPromote: async () => {},
+    };
+    await expect(here.downloadMedia(vaultId, hash, sink)).resolves.toBe(false);
+    expect(await here.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    // The change feed tells a cache that never downloaded it.
+    const other = provider(server);
+    server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
+    await other.listHeads(vaultId, true);
+    expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    expect(await provider(server).deleteMedia(vaultId, hash, Date.now())).toBe(true);
+    await other.listHeads(vaultId, true);
+    expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+  });
+
   test('snapshot deletion is permanent and repeated deletion is idempotent', async () => {
     const server = new FakeDriveServer();
     const state = new MemoryDriveProviderStateStore();

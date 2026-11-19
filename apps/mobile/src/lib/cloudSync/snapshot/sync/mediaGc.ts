@@ -254,6 +254,8 @@ export async function collectMedia(options: {
       return { status: 'incomplete', deleted: [] };
     reads += 1;
     readBytes += byteCount;
+    // Where a cancelled or out-of-time pass stops; what was read is kept.
+    await hooks?.at?.('during-snapshot-cleanup');
     const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
     if (!bytes) return { status: 'blocked', reason: 'snapshot-missing' };
     let state: SyncState;
