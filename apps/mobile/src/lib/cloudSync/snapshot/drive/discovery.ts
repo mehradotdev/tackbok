@@ -80,6 +80,11 @@ export class DriveDiscovery {
           if (!change.file) continue;
           const file = this.options.parseFile(change.file);
           if (!file || file.appProperties.tb_vault !== vaultId) continue;
+          // A trashed file is as good as gone: listing queries leave it out.
+          if (file.trashed === true) {
+            removed.push(file.id);
+            continue;
+          }
           const kind = this.options.kindOf(file.appProperties.tb_kind);
           if (!kind) continue;
           const record = await this.options.materialize(
@@ -96,7 +101,15 @@ export class DriveDiscovery {
             : typeof body.newStartPageToken === 'string'
               ? body.newStartPageToken
               : cursor;
-        this.options.state.applyChangePage(vaultId, files, removed, next);
+        // A file created and removed within one page stays removed: the
+        // store applies removals first, and Drive never reuses a file ID.
+        const gone = new Set(removed);
+        this.options.state.applyChangePage(
+          vaultId,
+          files.filter((file) => !gone.has(file.fileId)),
+          removed,
+          next,
+        );
         if (typeof body.nextPageToken !== 'string') return;
         cursor = body.nextPageToken;
       }

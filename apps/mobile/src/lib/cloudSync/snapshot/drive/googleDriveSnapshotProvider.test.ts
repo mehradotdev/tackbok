@@ -130,7 +130,13 @@ class FakeDriveServer {
   rejectChangeCursors = 0;
   private nextId = 0;
   private sequence = 0;
-  private readonly changes: { sequence: number; fileId: string; removed: boolean }[] = [];
+  private readonly changes: {
+    sequence: number;
+    fileId: string;
+    removed: boolean;
+    /** The file as created or updated, for a change read after its delete. */
+    file?: StoredDriveFile;
+  }[] = [];
 
   readonly fetch: DriveFetchLike = async (url, init = {}) => {
     const method = String(init.method ?? 'GET');
@@ -161,7 +167,7 @@ class FakeDriveServer {
           fileId: change.fileId,
           file: change.removed
             ? undefined
-            : this.publicFile(this.files.get(change.fileId)!),
+            : this.publicFile(this.files.get(change.fileId) ?? change.file!),
         }));
       return response(200, { changes, newStartPageToken: String(this.sequence) });
     }
@@ -292,7 +298,19 @@ class FakeDriveServer {
 
   private recordChange(fileId: string, removed: boolean): void {
     this.sequence += 1;
-    this.changes.push({ sequence: this.sequence, fileId, removed });
+    const file = this.files.get(fileId);
+    this.changes.push({
+      sequence: this.sequence,
+      fileId,
+      removed,
+      ...(removed || !file ? {} : { file: structuredClone(file) }),
+    });
+  }
+
+  /** Marks a file trashed, as the Drive UI or another app would. */
+  trash(fileId: string): void {
+    this.files.get(fileId)!.trashed = true;
+    this.recordChange(fileId, false);
   }
 
   private publicFile(file: StoredDriveFile) {
@@ -1463,6 +1481,57 @@ describe('GoogleDriveSnapshotProvider', () => {
       [...server.files.values()].filter((file) => file.sha256Checksum === hash),
     ).toHaveLength(1);
     expect(await lagging.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+  });
+
+  test('a fresh presence check ignores and forgets a stale cached row', async () => {
+    const server = new FakeDriveServer();
+    const bytes = new TextEncoder().encode('gc-fresh');
+    const hash = sha256Bytes(bytes);
+    const stored = server.seed(
+      vaultId,
+      `media/${hash.slice(0, 2)}/${hash}`,
+      'media',
+      bytes,
+    );
+    const app = provider(server);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    // Deleted without this device's feed hearing of it.
+    server.files.delete(stored.id);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    expect(await app.hasMediaBatch(vaultId, [hash], true)).toEqual(new Set());
+    await app.uploadMedia(vaultId, hash, {
+      byteLength: bytes.byteLength,
+      contentHash: hash,
+      read: async (offset, length) => bytes.slice(offset, offset + length),
+    });
+    expect(
+      [...server.files.values()].filter((file) => file.sha256Checksum === hash),
+    ).toHaveLength(1);
+  });
+
+  test('the change feed never leaves a removed or trashed media file cached', async () => {
+    const server = new FakeDriveServer();
+    const app = provider(server);
+    await app.listHeads(vaultId, true);
+    const bytes = new TextEncoder().encode('gc-feed-page');
+    const hash = sha256Bytes(bytes);
+    const key = `media/${hash.slice(0, 2)}/${hash}`;
+    // Created and removed within one change page.
+    const created = server.seed(vaultId, key, 'media', bytes);
+    server.files.delete(created.id);
+    (
+      server as unknown as { recordChange(id: string, removed: boolean): void }
+    ).recordChange(created.id, true);
+    await app.listHeads(vaultId, true);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    // Trashed: gone for this app too.
+    const other = provider(server);
+    const kept = server.seed(vaultId, key, 'media', bytes);
+    await other.listHeads(vaultId, true);
+    expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set([hash]));
+    server.trash(kept.id);
+    await other.listHeads(vaultId, true);
+    expect(await other.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
   });
 
   test('a download finds every cached copy of a collected blob gone at once', async () => {

@@ -80,6 +80,12 @@ export class FakeSnapshotProvider implements SnapshotProvider {
    * Unset, an upload keeps the time its uploader gave.
    */
   serverClock?: () => number;
+  /**
+   * Blobs a device's provider cache still lists after their delete (a missed
+   * or late change): reported present and not uploaded again, except to a
+   * `fresh` check, which clears them.
+   */
+  readonly staleMedia = new Set<string>();
   private readonly snapshots = new Map<string, StoredObject>();
   private readonly heads = new Map<string, ListedDeviceHead[]>();
   private readonly media = new Map<string, StoredObject>();
@@ -269,10 +275,15 @@ export class FakeSnapshotProvider implements SnapshotProvider {
   async hasMediaBatch(
     vaultId: string,
     blobHashes: readonly string[],
+    fresh = false,
   ): Promise<Set<string>> {
     this.before('has-media');
+    if (fresh) for (const blobHash of blobHashes) this.staleMedia.delete(blobHash);
     return new Set(
-      blobHashes.filter((blobHash) => this.media.has(this.key(vaultId, blobHash))),
+      blobHashes.filter(
+        (blobHash) =>
+          this.media.has(this.key(vaultId, blobHash)) || this.staleMedia.has(blobHash),
+      ),
     );
   }
 
@@ -282,6 +293,8 @@ export class FakeSnapshotProvider implements SnapshotProvider {
     source: MediaUploadSource,
   ): Promise<void> {
     this.before('upload-media');
+    // A stale cache entry makes the provider think it is already there.
+    if (this.staleMedia.has(blobHash)) return;
     const bytes = await readSource(source);
     // As on Drive, an existing blob is kept with its upload time.
     if (!this.media.has(this.key(vaultId, blobHash)))

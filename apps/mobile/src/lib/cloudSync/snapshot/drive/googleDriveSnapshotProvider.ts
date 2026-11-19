@@ -552,8 +552,14 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   async hasMediaBatch(
     vaultId: string,
     blobHashes: readonly string[],
+    fresh = false,
   ): Promise<Set<string>> {
     const unique = [...new Set(blobHashes)].sort();
+    // Fresh: forget what the cache says, so an upload cannot trust it either.
+    if (fresh)
+      for (const hash of unique)
+        for (const file of this.state.listKey(vaultId, this.mediaKey(hash)))
+          if (file.kind === 'media') this.state.removeFile(vaultId, file.fileId);
     const found = new Set<string>();
     const unknown: string[] = [];
     for (const hash of unique) {

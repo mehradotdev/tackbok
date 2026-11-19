@@ -92,7 +92,7 @@ import {
   massDeletionToken,
   type MassDeletionChoice,
 } from './massDeletion';
-import { collectMedia, recordSnapshotMedia } from './mediaGc';
+import { collectMedia, recordSnapshotMedia, recordedSnapshotMedia } from './mediaGc';
 import type { SQLiteSyncStateStore } from './sqliteState';
 import {
   isolateProgress,
@@ -945,6 +945,17 @@ export class V2SyncEngine {
     const { provider, mediaStore, stateStore, stateKey } = this.options;
     const hashes = [...new Set([...state.media.values()].map((media) => media.blobHash))];
     const present = await provider.hasMediaBatch(this.vaultId, hashes);
+    // Blobs this snapshot newly refers to, that this device could upload,
+    // are asked of the provider itself, not its cache: a missed or late
+    // change can leave the cache listing a blob another device's media
+    // garbage collection deleted (an upload whose snapshot never made it,
+    // an entry back after 180 days). Blobs its own listed head already
+    // refers to cannot have been collected.
+    const recheck = await this.newlyReferenced(hashes, own, record);
+    if (recheck.length > 0) {
+      const fresh = await provider.hasMediaBatch(this.vaultId, recheck, true);
+      for (const blobHash of recheck) if (!fresh.has(blobHash)) present.delete(blobHash);
+    }
     const missing = hashes.filter((blobHash) => !present.has(blobHash));
     const sources = new Map<string, MediaUploadSource>();
     for (const blobHash of missing) {
@@ -1059,6 +1070,30 @@ export class V2SyncEngine {
         });
     });
     return encoded.snapshotId;
+  }
+
+  /**
+   * Of `hashes`, those this device's listed head does not refer to (all of
+   * them when its head is not listed where it left it, or its blobs were
+   * not recorded) and whose files this device holds.
+   */
+  private async newlyReferenced(
+    hashes: readonly string[],
+    own: DeviceHead | undefined,
+    record: HeadRecord | undefined,
+  ): Promise<string[]> {
+    const listed =
+      own !== undefined && record !== undefined && own.snapshotId === record.snapshotId;
+    const before = listed
+      ? await recordedSnapshotMedia(this.vaultId, record.snapshotId)
+      : null;
+    const result: string[] = [];
+    for (const blobHash of hashes) {
+      if (before?.has(blobHash)) continue;
+      const source = await this.options.mediaStore.openVerifiedSource(blobHash);
+      if (source && source.contentHash === blobHash) result.push(blobHash);
+    }
+    return result;
   }
 
   /**

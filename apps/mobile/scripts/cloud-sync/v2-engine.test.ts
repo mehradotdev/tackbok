@@ -1705,6 +1705,33 @@ describe('remote media garbage collection (P12)', () => {
     ).toEqual([{ asset_id: 'p-e1', download_state: 'pending' }]);
   });
 
+  test('a device whose provider cache missed the collection still uploads the blob again', async () => {
+    const [a, c] = [device(), device()];
+    for (const target of [a, c, a]) await sync(target);
+    clock += 1000;
+    await attachPhoto(c, 'e1');
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await sync(c)).status).toBe('retry');
+    expect(await days(120, [a])).not.toBeNull();
+    // C's cache did not hear of the delete: a cached look says it is there.
+    provider.staleMedia.add(PHOTO);
+    clock += 1000;
+    expect((await sync(c)).status).toBe('published');
+    expect(provider.staleMedia.has(PHOTO)).toBe(false);
+    expect(provider.mediaHashes(VAULT)).toEqual([PHOTO]);
+    await expectNothingDangling();
+    // Blobs its listed head already refers to are not asked again.
+    clock += 1000;
+    await addEntry(c, 'e2');
+    provider.staleMedia.add('d'.repeat(64));
+    const made = await requests(() => sync(c));
+    expect(count(made, 'has-media')).toBe(1);
+    provider.staleMedia.clear();
+  });
+
   test('"Keep my entries" brings entries back with their photos', async () => {
     const [a, b] = [device(), device()];
     const ids = Array.from({ length: 12 }, (_, i) => `e${String(i).padStart(2, '0')}`);

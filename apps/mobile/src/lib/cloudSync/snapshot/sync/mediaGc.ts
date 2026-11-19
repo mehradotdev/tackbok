@@ -33,19 +33,23 @@
  * skew in retention").
  *
  * What it cannot prevent, and how that recovers:
- * - **A device back after 180 days** (`compact.ts`) can bring back entries
- *   whose blobs were collected. When it publishes, it uploads every blob
- *   it still has (`V2SyncEngine.publish`); one it never downloaded stays
- *   unavailable, and other devices show the attachment without its file
- *   rather than pausing (`hydratePendingMedia`).
+ * - **A device back after 180 days** (`compact.ts`), including one that
+ *   stayed paused on the mass-deletion question that long and then keeps
+ *   its entries, can bring back entries whose blobs were collected. When it
+ *   publishes, it uploads every blob it still has (`V2SyncEngine.publish`
+ *   asks the provider itself about blobs its head did not refer to, so a
+ *   stale provider cache cannot hide the delete); one it never downloaded
+ *   stays unavailable, and other devices show the attachment without its
+ *   file rather than pausing (`hydratePendingMedia`). An upload whose
+ *   snapshot never made it recovers the same way.
  * - **A blob attached again in the seconds between the last listing and the
  *   delete** (the same file, so the same hash, attached by another device
  *   while it was being collected). Its snapshot then refers to a missing
  *   blob until that device publishes again (its next write, or a daily
- *   acknowledgement of another device's writes): `publish` finds the blob
- *   gone, since the change feed (or, after a stale cursor, a rebuilt
- *   inventory) tells its provider, and uploads it again. Until then other
- *   devices show the attachment without its file.
+ *   acknowledgement of another device's writes) and finds the blob gone:
+ *   the change feed (or, after a stale cursor, a rebuilt inventory) tells
+ *   its provider. Until then other devices show the attachment without its
+ *   file.
  */
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
@@ -208,27 +212,50 @@ function advance(
   });
 }
 
+/** A cached blob list, or null when the row is damaged (read the snapshot again). */
+function parseBlobs(json: string): string[] | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  return Array.isArray(value) &&
+    value.every((hash) => typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash))
+    ? (value as string[])
+    : null;
+}
+
 async function loadSnapshotMedia(vaultId: string): Promise<Map<string, string[]>> {
   const rows = await runExclusiveDbTransaction((tx) =>
     tx.select().from(syncSnapshotMedia).where(eq(syncSnapshotMedia.vault_id, vaultId)),
   );
   const blobs = new Map<string, string[]>();
   for (const row of rows) {
-    let value: unknown;
-    try {
-      value = JSON.parse(row.blobs_json);
-    } catch {
-      continue;
-    }
-    // Anything but a list of blob hashes is a damaged row: that snapshot is
-    // downloaded and read again.
-    if (
-      Array.isArray(value) &&
-      value.every((hash) => typeof hash === 'string' && /^[0-9a-f]{64}$/.test(hash))
-    )
-      blobs.set(row.snapshot_id, value as string[]);
+    const parsed = parseBlobs(row.blobs_json);
+    if (parsed) blobs.set(row.snapshot_id, parsed);
   }
   return blobs;
+}
+
+/** The blobs one snapshot refers to, if recorded (`recordSnapshotMedia`). */
+export async function recordedSnapshotMedia(
+  vaultId: string,
+  snapshotId: string,
+): Promise<Set<string> | null> {
+  const [row] = await runExclusiveDbTransaction((tx) =>
+    tx
+      .select({ blobs: syncSnapshotMedia.blobs_json })
+      .from(syncSnapshotMedia)
+      .where(
+        and(
+          eq(syncSnapshotMedia.vault_id, vaultId),
+          eq(syncSnapshotMedia.snapshot_id, snapshotId),
+        ),
+      ),
+  );
+  const parsed = row ? parseBlobs(row.blobs) : null;
+  return parsed ? new Set(parsed) : null;
 }
 
 /**

@@ -201,7 +201,16 @@ export interface SnapshotProvider {
    * after 180 days. The snapshots they point to are left to retention.
    */
   deleteDeviceHead(vaultId: string, physicalId: string): Promise<void>;
-  hasMediaBatch(vaultId: string, blobHashes: readonly string[]): Promise<Set<string>>;
+  /**
+   * Which of these blobs the provider has. `fresh` asks the provider itself
+   * rather than a local cache, which a missed or late change can leave
+   * claiming a deleted blob exists (remote media garbage collection).
+   */
+  hasMediaBatch(
+    vaultId: string,
+    blobHashes: readonly string[],
+    fresh?: boolean,
+  ): Promise<Set<string>>;
   /**
    * False when a transfer policy would refuse media uploads now, such as
    * Wi-Fi-only media on mobile data. Uploads report the refusal themselves;
