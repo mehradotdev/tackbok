@@ -48,9 +48,9 @@ export async function importFromTackbokBackup(
   mode: ImportMode,
   onProgress?: ImportProgressCallback,
   /**
-   * `fill-empty`: the profile only fills empty fields, whatever `mode`
-   * (restoring a cloud backup from history, #185 P9: an older backup must not
-   * clear a name or photo set since).
+   * `fill-empty`: restoring a cloud backup from history (#185 P9). The
+   * profile only fills empty fields, whatever `mode` (an older backup must
+   * not clear a name or photo set since); see also `importPortableEntries`.
    */
   profile: 'by-mode' | 'fill-empty' = 'by-mode',
 ): Promise<BackupImportSummary> {
@@ -146,6 +146,7 @@ export async function importFromTackbokBackup(
           'tackbok',
           onProgress,
           batchId,
+          { history: profile === 'fill-empty' },
         );
         // Skipping existing data (or `fill-empty`) also keeps the current
         // profile; only empty fields are filled from the backup.

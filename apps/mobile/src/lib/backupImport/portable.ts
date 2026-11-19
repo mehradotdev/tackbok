@@ -548,6 +548,14 @@ export async function importPortableEntries(
   source: BackupImportSource,
   onProgress?: ImportProgressCallback,
   batchId?: string,
+  /**
+   * `history`: restoring a cloud backup from history (#185 P9). Note IDs
+   * are this journal's own, so the cross-source duplicate check is off (it
+   * could skip a deleted entry whose "Keep both" twin has its date and
+   * text), and an entry whose media is incomplete keeps its current
+   * attachments on overwrite.
+   */
+  options: { history?: boolean } = {},
 ): Promise<void> {
   let processedEntries = 0;
   const totalEntries = portableEntries.length;
@@ -625,7 +633,7 @@ export async function importPortableEntries(
     // path. If portable imports become slow on larger datasets, preload
     // existing created_at/text_content pairs for the imported timestamps so
     // duplicate detection does not rely on repeated point lookups.
-    if (!hasExisting && hasPortableCreatedAt && textContent) {
+    if (!options.history && !hasExisting && hasPortableCreatedAt && textContent) {
       const duplicateByTimestampAndContent = await tx
         .select({ note_id: entries.note_id })
         .from(entries)
@@ -667,6 +675,19 @@ export async function importPortableEntries(
       processedEntries++;
       reportEntryProgress();
       continue;
+    }
+
+    // Attachments the archive could not carry: keep the current ones beside
+    // the restored ones instead of removing them.
+    if (options.history && hasExisting && portableEntry.mediaIncomplete) {
+      const [current] = await tx
+        .select({ assets: entries.assets })
+        .from(entries)
+        .where(eq(entries.note_id, noteId))
+        .limit(1);
+      const restored = new Set(assets.map((asset) => asset.blobHash).filter(Boolean));
+      for (const asset of current?.assets ?? [])
+        if (!asset.blobHash || !restored.has(asset.blobHash)) assets.push(asset);
     }
 
     try {

@@ -22,6 +22,7 @@ import {
 import { snapshotToPortable } from '~/lib/backupExport/snapshotPortable';
 import {
   cleanupDeferredBackupZipFiles,
+  generateTimestamp,
   saveOrShareZipFile,
 } from '~/lib/backupExport/utils';
 import { AssetType } from '~/types';
@@ -157,7 +158,9 @@ export async function buildBackupHistoryArchive(
       for (const asset of assets)
         if (asset.type === AssetType.AUDIO) voiceMemos++;
         else photos++;
-      return { ...entry, assets };
+      return assets.length < entry.assets.length
+        ? { ...entry, assets, mediaIncomplete: true }
+        : { ...entry, assets };
     });
     const profile = { ...portable.profile };
     if (purpose === 'restore') profile.photoAssetId = null;
@@ -200,8 +203,9 @@ export async function exportBackupFromHistory(
 ): Promise<{ missingMedia: number }> {
   cleanupDeferredBackupZipFiles();
   const archive = await buildBackupHistoryArchive(snapshotId);
-  // The saved file is named for the day the backup is from.
-  const fileName = `TackbokBackup_${takenAt}.zip`;
+  // Named for the day the backup is from, and unique: an earlier share of
+  // the same day may still be read from the cache (`saveOrShareZipFile`).
+  const fileName = `TackbokBackup_${takenAt}_${generateTimestamp()}.zip`;
   let cleanup: 'delete-immediately' | 'defer-cleanup' = 'delete-immediately';
   let shared = archive.file;
   try {

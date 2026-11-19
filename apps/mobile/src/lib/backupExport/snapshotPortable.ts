@@ -50,16 +50,18 @@ const EXTENSIONS: Record<string, string> = {
   'audio/x-wav': 'wav',
 };
 
-/** One file per asset ID, named by it: asset IDs are unique in a state. */
-function archivePath(media: MediaDescriptor): string {
+/**
+ * A file per asset, numbered: asset IDs are unique in a state, but may hold
+ * characters an archive path should not.
+ */
+function archivePath(media: MediaDescriptor, index: number): string {
   const voice = media.kind === 'voice';
   const extension =
     (media.mimeType && EXTENSIONS[media.mimeType.toLowerCase()]) ??
     (voice ? 'm4a' : 'jpg');
   const directory =
     media.kind === 'profile-photo' ? 'profile' : voice ? 'voice-memos' : 'photos';
-  const name = media.assetId.replace(/[^A-Za-z0-9_-]/g, '_');
-  return `media/${directory}/${name}.${extension}`;
+  return `media/${directory}/${index + 1}.${extension}`;
 }
 
 /**
@@ -75,7 +77,7 @@ export function snapshotToPortable(
   const media = new Map<string, SnapshotMediaFile>();
   const fileFor = (descriptor: MediaDescriptor) => {
     const file = {
-      path: archivePath(descriptor),
+      path: archivePath(descriptor, media.size),
       blobHash: descriptor.blobHash,
       byteSize: descriptor.byteSize,
     };

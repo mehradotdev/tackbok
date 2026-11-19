@@ -112,9 +112,22 @@ const headSnapshot = (target: Device) => {
 };
 
 /** As `importFromTackbokBackup` does with the archive's entries and tags. */
-async function restore(target: Device, snapshotId: string, mode: 'skip' | 'overwrite') {
+async function restore(
+  target: Device,
+  snapshotId: string,
+  mode: 'skip' | 'overwrite',
+  options: {
+    history?: boolean;
+    /** As the archive builder does when media is gone everywhere. */
+    dropMedia?: boolean;
+  } = { history: true },
+) {
   const bytes = provider.snapshotBytesForTest(VAULT, snapshotId)!;
   const portable = snapshotToPortable(decodeEnvelope(bytes, snapshotId).state, null);
+  if (options.dropMedia)
+    portable.entries = portable.entries.map((entry) =>
+      entry.assets.length ? { ...entry, assets: [], mediaIncomplete: true } : entry,
+    );
   const summary = createBackupImportSummary();
   await write(target, async (tx) => {
     const tagMap = await upsertPortableTags(tx, portable.tags, summary, 'batch');
@@ -135,6 +148,7 @@ async function restore(target: Device, snapshotId: string, mode: 'skip' | 'overw
       'tackbok',
       undefined,
       'batch',
+      { history: options.history },
     );
   });
   return { portable, summary };
@@ -269,6 +283,51 @@ describe('backup history (P9)', () => {
     ).toEqual([{ asset_id: 'kept-id' }]);
   });
 
+  test('a deleted entry comes back though another entry has its date and text', async () => {
+    const a = device();
+    await addEntry(a, 'e1', { text_content: 'Same text' });
+    await sync(a);
+    const backup = headSnapshot(a);
+    // A "Keep both" copy with the same date and text; then the original goes.
+    clock += 1000;
+    await addEntry(a, 'twin', { text_content: 'Same text', text_title: 'Copy' });
+    await write(a, (tx) =>
+      repositories.deleteEntryInTransaction(tx, 'e1', { now: clock }),
+    );
+    // An ordinary import would take it for a duplicate from another app.
+    await restore(a, backup, 'skip', { history: false });
+    expect(texts(a)).toEqual(['twin:Same text']);
+    await restore(a, backup, 'skip');
+    expect(texts(a)).toEqual(['e1:Same text', 'twin:Same text']);
+  });
+
+  test("an overwrite whose backup media is gone keeps the entry's current attachments", async () => {
+    const a = device();
+    const old = { type: AssetType.IMAGE, uri: 'photos/old.jpg', assetId: 'old' };
+    await addEntry(a, 'e1', { text_content: 'Before', assets: [old] });
+    a.database.sqlite.run(
+      "UPDATE media_assets SET blob_hash = ?, byte_size = 3 WHERE asset_id = 'old'",
+      ['c'.repeat(64)],
+    );
+    await blobs.writeVerified('c'.repeat(64), new Uint8Array([1, 2, 3]));
+    expect((await sync(a)).status).toBe('published');
+    const backup = headSnapshot(a);
+    clock += 1000;
+    const added = { type: AssetType.IMAGE, uri: 'photos/new.jpg', assetId: 'new' };
+    await addEntry(a, 'e1', { text_content: 'Edited', assets: [old, added] });
+    await restore(a, backup, 'overwrite', { history: true, dropMedia: true });
+    expect(texts(a)).toEqual(['e1:Before']);
+    expect(
+      (
+        a.database.sqlite
+          .query(
+            "SELECT local_uri FROM media_assets WHERE owner_id = 'e1' ORDER BY local_uri",
+          )
+          .all() as { local_uri: string }[]
+      ).map((row) => row.local_uri),
+    ).toEqual(['photos/new.jpg', 'photos/old.jpg']);
+  });
+
   test("an attachment's photo and voice note are listed with their files", async () => {
     const a = device();
     await addEntry(a, 'e1', {
@@ -293,8 +352,8 @@ describe('backup history (P9)', () => {
     ).state;
     const { entries: portableEntries, media } = snapshotToPortable(state, null);
     expect(portableEntries[0].assets).toMatchObject([
-      { type: AssetType.IMAGE, assetId: 'p-1', path: 'media/photos/p-1.png' },
-      { type: AssetType.AUDIO, assetId: 'v-1', path: 'media/voice-memos/v-1.m4a' },
+      { type: AssetType.IMAGE, assetId: 'p-1', path: 'media/photos/1.png' },
+      { type: AssetType.AUDIO, assetId: 'v-1', path: 'media/voice-memos/2.m4a' },
     ]);
     expect(media.map((file) => file.blobHash).sort()).toEqual([
       'c'.repeat(64),

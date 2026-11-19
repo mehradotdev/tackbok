@@ -72,13 +72,15 @@ export default function BackupHistoryScreen() {
     if (archiveRef.current) discardBackupHistoryArchive(archiveRef.current);
     archiveRef.current = null;
   }, []);
-  // An archive built after the screen closed is deleted as soon as it exists.
+  // An archive built after the screen closed is deleted as soon as it exists;
+  // one an import is reading goes when the import ends, not on unmount.
   const mountedRef = useRef(true);
+  const importingRef = useRef(false);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      discardArchive();
+      if (!importingRef.current) discardArchive();
     };
   }, [discardArchive]);
 
@@ -294,6 +296,8 @@ export default function BackupHistoryScreen() {
             </AlertDialogCancel>
             <AlertDialogAction
               className="h-auto min-h-10 py-2"
+              // An export still running would make Continue do nothing.
+              disabled={busy !== null}
               onPress={handleRestoreConfirm}>
               <Text className="shrink text-center">
                 {t('cloud.history.restoreConfirm')}
@@ -309,14 +313,18 @@ export default function BackupHistoryScreen() {
           clearPendingImport();
           discardArchive();
         }}
-        onSelectMode={(mode) =>
+        onSelectMode={(mode) => {
           // The import has read the archive once it returns, done or failed.
+          importingRef.current = true;
           void runPendingImport(mode)
             .catch((error: unknown) =>
               console.warn('Backup history restore failed', error),
             )
-            .finally(discardArchive)
-        }
+            .finally(() => {
+              importingRef.current = false;
+              discardArchive();
+            });
+        }}
       />
       <SettingsImportProgressModal
         visible={importProgress !== null}
