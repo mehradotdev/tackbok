@@ -74,6 +74,13 @@ const HYDRATION_BATCH = 2;
  */
 const HYDRATION_LOOKUP_GROUP = 50;
 
+/**
+ * Least time between screen refreshes while attachments download. A refresh
+ * re-reads what the open screens show: with a 10,000-entry journal that held
+ * a low-end Android phone for ~0.6 s after every two files (#185 P15).
+ */
+const HYDRATION_REFRESH_MS = 10_000;
+
 /** The running build and update; a change retries a join that failed. */
 export function productionCodeVersion(): string {
   return `${Application.nativeBuildVersion ?? ''}/${Updates.updateId ?? 'embedded'}`;
@@ -428,6 +435,10 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       // Blobs already looked up, found or not, so a missing one isn't asked
       // about again in this pass.
       const looked = new Set<string>();
+      // The first files show at once; later ones at most every few seconds,
+      // and the rest when the downloads stop.
+      let refreshedAt = Number.NEGATIVE_INFINITY;
+      let refreshOwed = false;
       for (let batch = 1; ; batch += 1) {
         await this.lookUpPendingMedia(looked);
         throwIfCancelled(signal);
@@ -455,7 +466,12 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           throw new SnapshotRuntimeFailure('corrupt');
         }
         if (hydration.profilePhoto) await this.reloadProfileCache();
-        if (hydration.hydrated > 0) await this.onRemoteApplied?.();
+        if (hydration.hydrated > 0) refreshOwed = true;
+        if (refreshOwed && Date.now() - refreshedAt >= HYDRATION_REFRESH_MS) {
+          refreshOwed = false;
+          refreshedAt = Date.now();
+          await this.onRemoteApplied?.();
+        }
         // A short batch means nothing is left. The count read above bounds
         // the loop even if a row were to stay pending.
         if (
@@ -467,6 +483,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         const durable = this.state.loadState(this.vault.vault_id, this.vault.device_id);
         if (durable.journalGeneration > durable.settledGeneration) break;
       }
+      if (refreshOwed) await this.onRemoteApplied?.();
     } catch (error) {
       // A batch can save some files before it fails; show them. A cancelled
       // pass refreshes screens on its own path.

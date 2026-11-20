@@ -110,6 +110,8 @@ function harness(
     loadState?: () => { journalGeneration: number; settledGeneration: number };
     hydrationBatchesPerPass?: number;
     persistMediaHashes?: () => Promise<void>;
+    pendingMediaHashes?: (limit: number) => Promise<string[]>;
+    hasMediaBatch?: (vaultId: string, hashes: readonly string[]) => Promise<Set<string>>;
   } = {},
 ): Harness {
   const setPause = jest.fn();
@@ -130,8 +132,9 @@ function harness(
       requeueMissingVerifiedMedia: options.requeue ?? (async () => 0),
       requeueUnavailableMedia: options.requeueUnavailable ?? (async () => {}),
       persistMediaHashes: options.persistMediaHashes ?? (async () => {}),
+      pendingMediaHashes: options.pendingMediaHashes ?? (async () => []),
     } as unknown as ProductionSnapshotJournalStore,
-    {} as SnapshotProvider,
+    { hasMediaBatch: options.hasMediaBatch } as unknown as SnapshotProvider,
     () => {},
     remoteApplied,
     undefined,
@@ -208,7 +211,7 @@ test('a pass that needs attention or a retry records no restored journal', async
   expect(mockMarkJournalRestored).not.toHaveBeenCalled();
 });
 
-test('applied text reaches screens before pending media downloads, then every batch downloads', async () => {
+test('applied text reaches screens before pending media downloads; downloads refresh screens at most every few seconds', async () => {
   mockPendingMedia = Array.from({ length: 5 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
@@ -227,16 +230,45 @@ test('applied text reaches screens before pending media downloads, then every ba
   await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
   expect(order.slice(0, 3)).toEqual(['journal-restored', 'screens', 'hydrate']);
   expect(order.filter((value) => value === 'hydrate')).toHaveLength(3);
-  // Each batch shows its photos as soon as they arrive.
-  expect(order.slice(2, 8)).toEqual([
+  // The first files show at once, the rest when the downloads stop: these
+  // batches all finish within the refresh interval.
+  expect(order.slice(2, 7)).toEqual([
     'hydrate',
     'screens',
     'hydrate',
-    'screens',
     'hydrate',
     'screens',
   ]);
   mockMarkJournalRestored.mockReset();
+});
+
+test('pending files are looked up together, once each, before their downloads', async () => {
+  mockPendingMedia = Array.from({ length: 5 }, (_, index) => ({
+    blobHash: `blob-${index}`,
+    byteSize: 1,
+  }));
+  let pending = ['a', 'b', 'c', 'd', 'e'];
+  const order: string[] = [];
+  const asked: string[][] = [];
+  const app = harness('vault-lookups', {
+    engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
+    pendingMediaHashes: async (limit) => pending.slice(0, limit),
+    hasMediaBatch: async (_vault, hashes) => {
+      order.push('lookup');
+      asked.push([...hashes]);
+      return new Set(hashes);
+    },
+    hydrate: async () => {
+      order.push('hydrate');
+      const done = pending.slice(0, 2);
+      pending = pending.slice(2);
+      return { hydrated: done.length, missing: 0 };
+    },
+  });
+  await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
+  // One grouped lookup covers every batch; nothing is asked twice.
+  expect(order).toEqual(['lookup', 'hydrate', 'hydrate', 'hydrate']);
+  expect(asked).toEqual([['a', 'b', 'c', 'd', 'e']]);
 });
 
 test('the profile cache reloads when a journal is applied and when the profile photo downloads', async () => {
