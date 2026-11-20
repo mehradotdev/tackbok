@@ -110,8 +110,7 @@ function harness(
     loadState?: () => { journalGeneration: number; settledGeneration: number };
     hydrationBatchesPerPass?: number;
     persistMediaHashes?: () => Promise<void>;
-    pendingMediaHashes?: (limit: number) => Promise<string[]>;
-    hasMediaBatch?: (vaultId: string, hashes: readonly string[]) => Promise<Set<string>>;
+    prepareMediaDownloads?: (vaultId: string) => Promise<void>;
   } = {},
 ): Harness {
   const setPause = jest.fn();
@@ -128,13 +127,17 @@ function harness(
     } as unknown as SQLiteSyncStateStore,
     { sync: engineSync } as unknown as V2SyncEngine,
     {
-      hydratePendingMedia: options.hydrate ?? (async () => ({ hydrated: 0, missing: 0 })),
+      hydratePendingMedia: async () => ({
+        unavailable: 0,
+        ...(await (options.hydrate ?? (async () => ({ hydrated: 0, missing: 0 })))()),
+      }),
       requeueMissingVerifiedMedia: options.requeue ?? (async () => 0),
       requeueUnavailableMedia: options.requeueUnavailable ?? (async () => {}),
       persistMediaHashes: options.persistMediaHashes ?? (async () => {}),
-      pendingMediaHashes: options.pendingMediaHashes ?? (async () => []),
     } as unknown as ProductionSnapshotJournalStore,
-    { hasMediaBatch: options.hasMediaBatch } as unknown as SnapshotProvider,
+    {
+      prepareMediaDownloads: options.prepareMediaDownloads,
+    } as unknown as SnapshotProvider,
     () => {},
     remoteApplied,
     undefined,
@@ -212,12 +215,12 @@ test('a pass that needs attention or a retry records no restored journal', async
 });
 
 test('applied text reaches screens before pending media downloads; downloads refresh screens at most every few seconds', async () => {
-  mockPendingMedia = Array.from({ length: 5 }, (_, index) => ({
+  mockPendingMedia = Array.from({ length: 25 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
   }));
   const order: string[] = [];
-  const batches = [2, 2, 1];
+  const batches = [12, 12, 1];
   const app = harness('vault-text-first', {
     engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
     hydrate: async () => {
@@ -242,44 +245,41 @@ test('applied text reaches screens before pending media downloads; downloads ref
   mockMarkJournalRestored.mockReset();
 });
 
-test('pending files are looked up together, once each, before their downloads', async () => {
-  mockPendingMedia = Array.from({ length: 5 }, (_, index) => ({
-    blobHash: `blob-${index}`,
-    byteSize: 1,
-  }));
-  let pending = ['a', 'b', 'c', 'd', 'e'];
-  const order: string[] = [];
-  const asked: string[][] = [];
-  const app = harness('vault-lookups', {
-    engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
-    pendingMediaHashes: async (limit) => pending.slice(0, limit),
-    hasMediaBatch: async (_vault, hashes) => {
-      order.push('lookup');
-      asked.push([...hashes]);
-      return new Set(hashes);
-    },
-    hydrate: async () => {
-      order.push('hydrate');
-      const done = pending.slice(0, 2);
-      pending = pending.slice(2);
-      return { hydrated: done.length, missing: 0 };
-    },
-  });
-  await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
-  // One grouped lookup covers every batch; nothing is asked twice.
-  expect(order).toEqual(['lookup', 'hydrate', 'hydrate', 'hydrate']);
-  expect(asked).toEqual([['a', 'b', 'c', 'd', 'e']]);
+test('many pending files are listed once before their downloads, a few are not', async () => {
+  for (const [count, listings] of [
+    [25, 1],
+    [5, 0],
+  ] as const) {
+    mockPendingMedia = Array.from({ length: count }, (_, index) => ({
+      blobHash: `blob-${index}`,
+      byteSize: 1,
+    }));
+    const order: string[] = [];
+    const app = harness(`vault-listing-${count}`, {
+      engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
+      prepareMediaDownloads: async () => {
+        order.push('listing');
+      },
+      hydrate: async () => {
+        order.push('hydrate');
+        return { hydrated: 0, missing: 0 };
+      },
+    });
+    await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
+    expect(order.filter((step) => step === 'listing')).toHaveLength(listings);
+    expect(order.at(-1)).toBe('hydrate');
+  }
 });
 
 test('the profile cache reloads when a journal is applied and when the profile photo downloads', async () => {
-  mockPendingMedia = Array.from({ length: 4 }, (_, index) => ({
+  mockPendingMedia = Array.from({ length: 24 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
   }));
   const order: string[] = [];
   const batches = [
-    { hydrated: 2, missing: 0, profilePhoto: false },
-    { hydrated: 2, missing: 0, profilePhoto: true },
+    { hydrated: 12, missing: 0, profilePhoto: false },
+    { hydrated: 12, missing: 0, profilePhoto: true },
   ];
   const app = harness('vault-profile-photo', {
     engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),

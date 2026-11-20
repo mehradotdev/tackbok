@@ -800,22 +800,6 @@ export class ProductionSnapshotJournalStore {
   }
 
   /**
-   * The blob hashes of the next pending attachments, in the order
-   * `hydratePendingMedia` downloads them, without repeats.
-   */
-  async pendingMediaHashes(limit: number): Promise<string[]> {
-    const rows = await db
-      .select({ blobHash: mediaAssets.blob_hash })
-      .from(mediaAssets)
-      .where(
-        and(eq(mediaAssets.download_state, 'pending'), isNotNull(mediaAssets.blob_hash)),
-      )
-      .orderBy(mediaAssets.asset_id)
-      .limit(limit);
-    return [...new Set(rows.flatMap((row) => (row.blobHash ? [row.blobHash] : [])))];
-  }
-
-  /**
    * Bounded post-restore hydration. Metadata/text remain usable while media waits.
    *
    * `missing` counts rows that cannot be downloaded at all (no hash or size).
@@ -830,6 +814,7 @@ export class ProductionSnapshotJournalStore {
     provider: SnapshotProvider,
     limit = 2,
     onDownloaded?: () => void,
+    concurrency = 1,
   ): Promise<{
     hydrated: number;
     missing: number;
@@ -847,10 +832,10 @@ export class ProductionSnapshotJournalStore {
     let unavailable = 0;
     // The profile's photo is the only media its screens read from a cache.
     let profilePhoto = false;
-    for (const row of pending) {
+    const hydrateRow = async (row: (typeof pending)[number]): Promise<void> => {
       if (!row.blob_hash || row.byte_size === null) {
         missing += 1;
-        continue;
+        return;
       }
       let downloaded: boolean;
       try {
@@ -867,7 +852,7 @@ export class ProductionSnapshotJournalStore {
           .set({ download_state: 'missing' })
           .where(eq(mediaAssets.asset_id, row.asset_id));
         missing += 1;
-        continue;
+        return;
       }
       if (!downloaded) {
         await db
@@ -875,7 +860,7 @@ export class ProductionSnapshotJournalStore {
           .set({ download_state: 'missing' })
           .where(eq(mediaAssets.asset_id, row.asset_id));
         unavailable += 1;
-        continue;
+        return;
       }
       onDownloaded?.();
       const descriptor: PlacedMedia = {
@@ -919,7 +904,33 @@ export class ProductionSnapshotJournalStore {
       if (remaining.length === 0) this.mediaStore.deleteStaged(row.blob_hash);
       hydrated += 1;
       if (row.owner_type === 'profile') profilePhoto = true;
+    };
+    // Up to `concurrency` downloads at once. Rows that share a blob share its
+    // staged download, so they run one after another.
+    const byBlob = new Map<string, (typeof pending)[number][]>();
+    for (const row of pending) {
+      const key = row.blob_hash ?? `row:${row.asset_id}`;
+      const rows = byBlob.get(key);
+      if (rows) rows.push(row);
+      else byBlob.set(key, [row]);
     }
+    const queue = [...byBlob.values()];
+    const failures: unknown[] = [];
+    const worker = async () => {
+      for (let rows = queue.shift(); rows; rows = queue.shift()) {
+        try {
+          for (const row of rows) await hydrateRow(row);
+        } catch (error) {
+          // The others finish first, so no write lands after this returns.
+          failures.push(error);
+          queue.length = 0;
+        }
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.max(1, Math.min(concurrency, queue.length)) }, worker),
+    );
+    if (failures.length > 0) throw failures[0];
     return { hydrated, missing, unavailable, profilePhoto };
   }
 

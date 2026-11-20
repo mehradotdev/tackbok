@@ -253,6 +253,14 @@ function parseCreatedAt(file: DriveFile): number | null {
 
 export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   private readonly state: DriveProviderStateStore;
+  /**
+   * Media files from the last `prepareMediaDownloads`, by vault and blob. Not
+   * the provider cache: search can lag a delete (remote media garbage
+   * collection, #185 P12), so a listed file is trusted only by a download,
+   * whose own request fails if the file is gone. It joins the cache only once
+   * a download proves it exists.
+   */
+  private readonly listedMedia = new Map<string, Map<string, DriveFileRecord[]>>();
   private readonly transport: DriveTransport;
   private readonly discovery: DriveDiscovery;
   private readonly sleep: (milliseconds: number) => Promise<void>;
@@ -644,17 +652,41 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     await this.putImmutableMedia(vaultId, this.mediaKey(blobHash), source, this.now());
   }
 
+  async prepareMediaDownloads(vaultId: string): Promise<void> {
+    const files = await this.queryFiles(
+      vaultId,
+      this.vaultQuery(
+        vaultId,
+        `name contains 'media/' and ${propertyClause(PROP_KIND, 'media')}`,
+      ),
+    );
+    const byHash = new Map<string, DriveFileRecord[]>();
+    for (const file of files) {
+      const record = this.mediaRecord(file);
+      if (!record) continue;
+      const records = byHash.get(record.contentSha256);
+      if (records) records.push(record);
+      else byHash.set(record.contentSha256, [record]);
+    }
+    for (const records of byHash.values())
+      records.sort((left, right) => left.fileId.localeCompare(right.fileId));
+    this.listedMedia.set(vaultId, byHash);
+  }
+
   async downloadMedia(
     vaultId: string,
     blobHash: string,
     sink: MediaDownloadSink,
   ): Promise<boolean> {
+    const key = this.mediaKey(blobHash);
     for (let attempt = 0; ; attempt += 1) {
-      const candidates = await this.filesForKey(
-        vaultId,
-        this.mediaKey(blobHash),
-        'media',
-      );
+      // The cache first, then the listing, then a lookup of its own.
+      const listed =
+        attempt === 0 &&
+        !this.state.listKey(vaultId, key).some((file) => file.kind === 'media')
+          ? this.listedMedia.get(vaultId)?.get(blobHash)
+          : undefined;
+      const candidates = listed ?? (await this.filesForKey(vaultId, key, 'media'));
       if (candidates.length === 0) return false;
       this.assertImmutableCandidates(candidates);
       const file = candidates[0];
@@ -672,16 +704,20 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         // the size or hash check throw `MediaIntegrityError`: the file is
         // there but wrong, which is not the same as gone.
         await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
+        // Downloaded, so it exists: a listed file may join the cache now.
+        if (listed) this.state.upsertFile(vaultId, file);
         return true;
       } catch (error) {
-        // A cached file that is gone (media garbage collection, #185 P12):
-        // forget it and look the blob up on Drive once more.
+        // A cached or listed file that is gone (media garbage collection,
+        // #185 P12): forget it and look the blob up on Drive once more.
         const gone =
           error instanceof DriveRequestError &&
           (error.status === 404 || error.status === 410);
         if (!gone || attempt > 0) throw error;
-        // Every cached copy: all of them may have been collected.
-        for (const cached of candidates) this.state.removeFile(vaultId, cached.fileId);
+        // Every copy: all of them may have been collected.
+        if (listed) this.listedMedia.get(vaultId)?.delete(blobHash);
+        else
+          for (const cached of candidates) this.state.removeFile(vaultId, cached.fileId);
       }
     }
   }

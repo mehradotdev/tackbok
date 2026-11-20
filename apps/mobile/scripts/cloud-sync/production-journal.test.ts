@@ -530,6 +530,52 @@ test('hydration downloads a pending photo to the path its entry uses', async () 
   expect(staging.staged).toBe(false);
 });
 
+test('hydration downloads several files at once, but one blob only once at a time', async () => {
+  sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
+  existingFiles.clear();
+  const hashes = ['1', '2', '3', '4', '5', '1'].map((c) => c.repeat(64));
+  db.insert(schema.mediaAssets)
+    .values(
+      hashes.map((hash, index) => ({
+        asset_id: `asset-${index}`,
+        owner_type: 'entry' as const,
+        owner_id: 'entry',
+        kind: 'photo' as const,
+        local_uri: `photos/${index}.jpg`,
+        download_state: 'pending' as const,
+        blob_hash: hash,
+        byte_size: 1,
+        created_at: 1,
+        updated_at: 1,
+      })),
+    )
+    .run();
+  const { store } = stagingMediaStore();
+  let inFlight = 0;
+  let most = 0;
+  const active = new Set<string>();
+  const download = {
+    downloadMedia: async (_vaultId: string, blobHash: string) => {
+      // Rows that share a blob share its staged download.
+      expect(active.has(blobHash)).toBe(false);
+      active.add(blobHash);
+      most = Math.max(most, ++inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      active.delete(blobHash);
+      // Not on the provider: no file work, only the row's state.
+      return false;
+    },
+  } as never;
+  expect(await store.hydratePendingMedia(download, 10, undefined, 3)).toEqual({
+    hydrated: 0,
+    missing: 0,
+    unavailable: 6,
+    profilePhoto: false,
+  });
+  expect(most).toBe(3);
+});
+
 test('hydration reports when it downloaded the profile photo', async () => {
   sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
   existingFiles.clear();
@@ -690,38 +736,6 @@ test('downloaded attachments whose file vanished are queued for download again',
   // Nothing new to queue on a second look.
   expect(await store.requeueMissingVerifiedMedia()).toBe(0);
   unreadableFiles.clear();
-});
-
-test('pending media hashes come in download order, once each, after the files waiting first', async () => {
-  sqlite.exec('DELETE FROM media_assets');
-  const row = (assetId: string, blob: string | null, state: 'pending' | 'verified') => ({
-    asset_id: assetId,
-    owner_type: 'entry' as const,
-    owner_id: 'entry',
-    kind: 'photo' as const,
-    local_uri: `photos/${assetId}.jpg`,
-    download_state: state,
-    blob_hash: blob,
-    byte_size: 1,
-    created_at: 1,
-    updated_at: 1,
-  });
-  db.insert(schema.mediaAssets)
-    .values([
-      row('d', 'd'.repeat(64), 'pending'),
-      row('a', 'a'.repeat(64), 'pending'),
-      // Another attachment with the same file.
-      row('b', 'a'.repeat(64), 'pending'),
-      row('c', 'c'.repeat(64), 'verified'),
-      row('e', null, 'pending'),
-      row('f', 'f'.repeat(64), 'pending'),
-    ])
-    .run();
-  const store = new ProductionSnapshotJournalStore('lookups', {} as never);
-  expect(await store.pendingMediaHashes(50)).toEqual(
-    ['a', 'd', 'f'].map((c) => c.repeat(64)),
-  );
-  expect(await store.pendingMediaHashes(2)).toEqual(['a'.repeat(64)]);
 });
 
 test('a repaired attachment is downloaded back to the path its entry uses', async () => {

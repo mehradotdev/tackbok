@@ -229,6 +229,12 @@ export interface SnapshotProvider {
     source: MediaUploadSource,
   ): Promise<void>;
   /**
+   * Before many downloads: lists the vault's media files once, so each
+   * download needs only its own request (#246). The listing serves downloads
+   * only; a download that fails because the file is gone looks it up again.
+   */
+  prepareMediaDownloads?(vaultId: string): Promise<void>;
+  /**
    * False when the provider has no such blob. Bytes that fail their size or
    * hash check throw `MediaIntegrityError`.
    */

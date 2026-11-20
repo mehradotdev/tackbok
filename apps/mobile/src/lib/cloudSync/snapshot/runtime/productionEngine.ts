@@ -65,14 +65,17 @@ interface RunningVaultPass {
 const runningVaultPasses = new Map<string, RunningVaultPass>();
 
 /** Pending attachments downloaded between checks for cancellation and edits. */
-const HYDRATION_BATCH = 2;
+const HYDRATION_BATCH = 12;
 
 /**
- * Pending attachments looked up on the provider together before their
- * downloads: one grouped search instead of one per file (#246). The provider
- * groups name searches by 50.
+ * Attachments downloading at once. Each download waits mostly on Drive's
+ * response time: one at a time, 1,594 files took ~55 min on a low-end
+ * Android phone (#185 P15).
  */
-const HYDRATION_LOOKUP_GROUP = 50;
+const HYDRATION_CONCURRENCY = 6;
+
+/** Pending attachments from which one listing beats a lookup per file. */
+const HYDRATION_LISTING_MIN = 20;
 
 /**
  * Least time between screen refreshes while attachments download. A refresh
@@ -161,6 +164,10 @@ class MediaPolicyProvider implements SnapshotProvider {
     await this.assertMediaTransferAllowed();
     this.onTransfer('uploading');
     await this.delegate.uploadMedia(vaultId, blobHash, source);
+  }
+  async prepareMediaDownloads(vaultId: string): Promise<void> {
+    await this.assertMediaTransferAllowed();
+    await this.delegate.prepareMediaDownloads(vaultId);
   }
   async downloadMedia(
     vaultId: string,
@@ -432,20 +439,18 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           bytesTotal: pendingMediaBytes(waiting),
         });
       }
-      // Blobs already looked up, found or not, so a missing one isn't asked
-      // about again in this pass.
-      const looked = new Set<string>();
+      if (waiting.length >= HYDRATION_LISTING_MIN)
+        await this.mediaProvider.prepareMediaDownloads?.(this.vault.vault_id);
       // The first files show at once; later ones at most every few seconds,
       // and the rest when the downloads stop.
       let refreshedAt = Number.NEGATIVE_INFINITY;
       let refreshOwed = false;
       for (let batch = 1; ; batch += 1) {
-        await this.lookUpPendingMedia(looked);
-        throwIfCancelled(signal);
         const hydration = await this.journal.hydratePendingMedia(
           this.mediaProvider,
           HYDRATION_BATCH,
           () => this.onProgress({ type: 'item', phase: 'downloading-media' }),
+          HYDRATION_CONCURRENCY,
         );
         hydrated += hydration.hydrated;
         // Local completion may finish after cancellation; record nothing from it.
@@ -475,7 +480,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         // A short batch means nothing is left. The count read above bounds
         // the loop even if a row were to stay pending.
         if (
-          hydration.hydrated < HYDRATION_BATCH ||
+          hydration.hydrated + hydration.unavailable < HYDRATION_BATCH ||
           hydrated >= waiting.length ||
           batch >= this.hydrationBatchesPerPass
         )
@@ -562,21 +567,6 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
       pulled: result.status === 'published' || result.status === 'pulled' ? 1 : 0,
       pushed: result.status === 'published' ? 1 : 0,
     };
-  }
-
-  /**
-   * Looks up the next pending attachments' files on the provider in one
-   * grouped request, so each download finds its file in the provider's cache
-   * (#246). A restoring device skips these lookups when it publishes, since
-   * it holds none of the files; without this, every download would search for
-   * its file on its own first.
-   */
-  private async lookUpPendingMedia(looked: Set<string>): Promise<void> {
-    const pending = await this.journal.pendingMediaHashes(HYDRATION_LOOKUP_GROUP);
-    if (pending.slice(0, HYDRATION_BATCH).every((hash) => looked.has(hash))) return;
-    const fresh = pending.filter((hash) => !looked.has(hash));
-    await this.mediaProvider.hasMediaBatch(this.vault.vault_id, fresh);
-    for (const hash of fresh) looked.add(hash);
   }
 
   private async refreshAppliedViews(): Promise<void> {
