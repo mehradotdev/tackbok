@@ -362,6 +362,8 @@ export const he: Translations = {
   'backup.backupRestore': 'גיבוי ושחזור',
   'backup.googleDriveBackup': 'גיבוי ל-Google Drive',
   'backup.exportAsZip': 'ייצוא לקובץ ZIP',
+  'backup.movingPhonesAndroid':
+    'עוברים לטלפון חדש? קודם צריך להפעיל גיבוי בענן או לייצא קובץ ZIP. Android לא מעביר את היומן באופן אוטומטי.',
   'backup.allOfYourDataInAFormatThatYouCan':
     'כל הנתונים שלך בפורמט שניתן לשחזר באפליקציה מאוחר יותר',
   'backup.importAsZip': 'ייבוא מקובץ ZIP',
