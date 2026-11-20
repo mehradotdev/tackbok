@@ -65,14 +65,17 @@ interface RunningVaultPass {
 const runningVaultPasses = new Map<string, RunningVaultPass>();
 
 /** Pending attachments downloaded between checks for cancellation and edits. */
-const HYDRATION_BATCH = 12;
+const HYDRATION_BATCH = 24;
 
 /**
  * Attachments downloading at once. Each download waits mostly on Drive's
- * response time: one at a time, 1,594 files took ~55 min on a low-end
- * Android phone (#185 P15).
+ * response time (~1.8 s a file on a low-end Android phone): one at a time,
+ * 1,594 files took ~55 min there; 6 at once ~10 min, 12 ~8 min (#185 P15).
+ * shortcut: Android's default HTTP client (OkHttp) runs at most 5 requests
+ * per host at once, probably why 12 gained less than 6 did there; more would
+ * need a native client change.
  */
-const HYDRATION_CONCURRENCY = 6;
+const HYDRATION_CONCURRENCY = 12;
 
 /** Pending attachments from which one listing beats a lookup per file. */
 const HYDRATION_LISTING_MIN = 20;

@@ -215,12 +215,12 @@ test('a pass that needs attention or a retry records no restored journal', async
 });
 
 test('applied text reaches screens before pending media downloads; downloads refresh screens at most every few seconds', async () => {
-  mockPendingMedia = Array.from({ length: 25 }, (_, index) => ({
+  mockPendingMedia = Array.from({ length: 49 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
   }));
   const order: string[] = [];
-  const batches = [12, 12, 1];
+  const batches = [24, 24, 1];
   const app = harness('vault-text-first', {
     engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
     hydrate: async () => {
@@ -272,14 +272,14 @@ test('many pending files are listed once before their downloads, a few are not',
 });
 
 test('the profile cache reloads when a journal is applied and when the profile photo downloads', async () => {
-  mockPendingMedia = Array.from({ length: 24 }, (_, index) => ({
+  mockPendingMedia = Array.from({ length: 48 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
   }));
   const order: string[] = [];
   const batches = [
-    { hydrated: 12, missing: 0, profilePhoto: false },
-    { hydrated: 12, missing: 0, profilePhoto: true },
+    { hydrated: 24, missing: 0, profilePhoto: false },
+    { hydrated: 24, missing: 0, profilePhoto: true },
   ];
   const app = harness('vault-profile-photo', {
     engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
