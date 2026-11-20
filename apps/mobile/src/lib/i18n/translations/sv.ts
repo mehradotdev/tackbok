@@ -731,6 +731,7 @@ export const sv = {
     'Återställningen är pausad. Den fortsätter när Tackbok är öppet och online.',
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'Du kan fortsätta använda Tackbok medan den återställs.',
+  'cloud.restoreMayTakeAMoment': 'Det här kan ta en stund.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     'Din dagbok är klar. Foton och röstanteckningar på den här enheten: {downloaded} av {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
