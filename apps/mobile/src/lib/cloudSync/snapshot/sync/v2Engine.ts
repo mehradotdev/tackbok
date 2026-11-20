@@ -161,7 +161,7 @@ export interface V2EngineOptions {
   stateKey: string;
   stateStore: SQLiteSyncStateStore;
   provider: SnapshotProvider;
-  mediaStore: Pick<SnapshotMediaStore, 'openVerifiedSource'>;
+  mediaStore: Pick<SnapshotMediaStore, 'openVerifiedSource' | 'mightHold'>;
   files: ApplyMediaFiles;
   hooks?: SnapshotSyncHooks;
   now?: () => number;
@@ -1022,7 +1022,18 @@ export class V2SyncEngine {
     record: HeadRecord | undefined,
   ): Promise<string> {
     const { provider, mediaStore, stateStore, stateKey } = this.options;
-    const hashes = [...new Set([...state.media.values()].map((media) => media.blobHash))];
+    const referenced = [
+      ...new Set([...state.media.values()].map((media) => media.blobHash)),
+    ];
+    // Only blobs this device may hold can need uploading or be found
+    // unreadable; asking the provider about the others changes nothing. A
+    // device restoring a journal holds none of them yet, and asking about all
+    // 1,590 of a large journal took about 10 minutes, a request each (#185
+    // P14). If the local check fails, every blob counts, as before.
+    const held = mediaStore.mightHold
+      ? await mediaStore.mightHold(referenced).catch(() => new Set(referenced))
+      : new Set(referenced);
+    const hashes = referenced.filter((blobHash) => held.has(blobHash));
     // Blobs this snapshot newly refers to, that this device holds, are asked
     // of the provider itself, not its cache: a missed or late change can
     // leave the cache listing a blob another device's media garbage
@@ -1030,10 +1041,11 @@ export class V2SyncEngine {
     // back after 180 days). Blobs its own listed head already refers to
     // cannot have been collected.
     const recheck = new Set(await this.newlyReferenced(hashes, own, record));
-    const present = await provider.hasMediaBatch(
-      this.vaultId,
-      hashes.filter((blobHash) => !recheck.has(blobHash)),
-    );
+    const cachedLook = hashes.filter((blobHash) => !recheck.has(blobHash));
+    const present =
+      cachedLook.length > 0
+        ? await provider.hasMediaBatch(this.vaultId, cachedLook)
+        : new Set<string>();
     if (recheck.size > 0)
       for (const blobHash of await provider.hasMediaBatch(
         this.vaultId,
