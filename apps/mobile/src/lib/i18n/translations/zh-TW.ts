@@ -356,6 +356,8 @@ export const zhTW: Translations = {
   'backup.backupRestore': '備份與還原',
   'backup.googleDriveBackup': 'Google Drive 備份',
   'backup.exportAsZip': '匯出為 ZIP',
+  'backup.movingPhonesAndroid':
+    '要換新手機嗎？請先開啟雲端備份並等待完成，或匯出 ZIP 檔案。Android 不會自動轉移你的日記。',
   'backup.allOfYourDataInAFormatThatYouCan':
     '以你稍後可在應用程式中還原的格式備份你的所有資料',
   'backup.importAsZip': '從 ZIP 匯入',

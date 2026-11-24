@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Platform } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Cloud, FileOutput, FileInput } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
@@ -70,7 +71,10 @@ export function BackupRestoreSection() {
 
   return (
     <>
-      <SettingsSection title={t('backup.backupRestore')}>
+      <SettingsSection
+        title={t('backup.backupRestore')}
+        // Android's own phone-to-phone transfer leaves the journal behind (#185).
+        footer={Platform.OS === 'android' ? t('backup.movingPhonesAndroid') : undefined}>
         <SettingsRow
           label={t('cloud.cloudBackupSync')}
           description={
