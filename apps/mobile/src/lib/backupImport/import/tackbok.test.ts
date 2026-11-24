@@ -321,20 +321,22 @@ describe('importFromTackbokBackup', () => {
   });
 
   test.each([
-    ['over the import cap is skipped without being read', 1, 0],
-    ['at the import cap is imported', 0, 1],
-  ])('a profile photo %s', async (_name, over, reads) => {
+    ['over the import cap is skipped without being read', 1, 1, 0],
+    ['over the cap only when unpacked is skipped', 0, 1, 0],
+    ['over the cap only as stored is skipped', 1, 0, 0],
+    ['at the import cap is imported', 0, 0, 1],
+  ])('a profile photo %s', async (_name, storedOver, unpackedOver, reads) => {
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     const { readSafeZipBytes, MAX_IMPORT_ASSET_BYTES } =
       jest.requireActual<typeof import('../archiveUtils')>('../archiveUtils');
-    const size = BigInt(MAX_IMPORT_ASSET_BYTES + over);
+    const over = reads ? 0 : 1;
     const readEntryBytes = jest.fn(async (_path: string) => new Uint8Array([1, 2, 3]));
     mockLoadZipFromUri.mockResolvedValue({
       close: jest.fn(async () => undefined),
       getEntryInfo: (path: string) => ({
         path,
-        compressedSize: size,
-        uncompressedSize: size,
+        compressedSize: BigInt(MAX_IMPORT_ASSET_BYTES + storedOver),
+        uncompressedSize: BigInt(MAX_IMPORT_ASSET_BYTES + unpackedOver),
         compressionMethod: 0,
         isEncrypted: false,
       }),
