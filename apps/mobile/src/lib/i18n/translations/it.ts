@@ -392,6 +392,8 @@ export const it = {
     'Verranno importate le note da un file CSV dell’app Presently. Le note duplicate verranno saltate.',
   'backup.backupExportedSuccessfully': 'Backup esportato',
   'backup.exportFailed': 'Esportazione non riuscita',
+  'backup.preparingBackup': 'Preparazione del backup…',
+  'backup.nothingToExport': 'Non c’è ancora niente da esportare.',
   'backup.importFailed': 'Importazione non riuscita',
   'backup.restoringTackbokBackup': 'Ripristino del backup di Tackbok',
   'backup.loadPresentlyExport': 'Carica l’esportazione di Presently',

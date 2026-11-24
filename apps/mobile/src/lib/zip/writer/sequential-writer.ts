@@ -2,6 +2,7 @@ import { computeCrc32, updateCrc32 } from '../core/crc32';
 import { shouldStoreWithoutCompression } from '../compression-policy';
 import {
   deflateRaw,
+  deflateRawPiece,
   ZIP_COMPRESSION_METHOD_DEFLATE,
   ZIP_COMPRESSION_METHOD_STORE,
   sizeUTF8,
@@ -28,6 +29,50 @@ import {
 import { ensureTextEncoder } from '../shared/text-codec';
 
 const ZIP_DATA_DESCRIPTOR_SIGNATURE = 0x08074b50;
+
+/**
+ * Entries larger than this are compressed a piece at a time, letting the app
+ * respond between pieces: a 10,000-entry `entries.json` (about 9 MB) held the
+ * JS thread for 8.6 s in one piece on a low-end Android phone (#246).
+ */
+export const DEFLATE_PIECE_BYTES = 256 * 1024;
+
+const pauseForApp = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+/**
+ * Raw DEFLATE and CRC-32 of `bytes`. Small inputs compress in one call, as
+ * before; larger ones in pieces joined by sync flushes (`deflateRawPiece`),
+ * which any inflater reads as one stream.
+ */
+async function deflateWithCrc(
+  bytes: Uint8Array,
+): Promise<{ compressed: Uint8Array; crc: number }> {
+  if (bytes.length <= DEFLATE_PIECE_BYTES) {
+    return { compressed: deflateRaw(bytes), crc: computeCrc32(bytes, 0, bytes.length) };
+  }
+  const pieces: Uint8Array[] = [];
+  let checksum = 0xffffffff;
+  let total = 0;
+  for (let offset = 0; offset < bytes.length; offset += DEFLATE_PIECE_BYTES) {
+    if (offset > 0) await pauseForApp();
+    const end = Math.min(bytes.length, offset + DEFLATE_PIECE_BYTES);
+    // `deflateRawPiece` returns a view of a larger buffer: keep only the piece.
+    const piece = deflateRawPiece(
+      bytes.subarray(offset, end),
+      end === bytes.length,
+    ).slice();
+    checksum = updateCrc32(checksum, bytes, offset, end - offset);
+    pieces.push(piece);
+    total += piece.length;
+  }
+  const compressed = new Uint8Array(total);
+  let position = 0;
+  for (const piece of pieces) {
+    compressed.set(piece, position);
+    position += piece.length;
+  }
+  return { compressed, crc: (checksum ^ 0xffffffff) >>> 0 };
+}
 const ZIP_DATA_DESCRIPTOR_FLAG = 0x0008;
 
 interface StreamingZipEntryMeta {
@@ -429,11 +474,10 @@ class SequentialZipWriterImpl implements ZipWriter {
     return this.enqueueOperation(async () => {
       this.assertOpen();
 
-      // TODO: If serialized compression ever shows up in profiling, move
-      // deflateRaw()/CRC preprocessing outside the queue while keeping sink
-      // writes and shared offset/entry mutation serialized.
       const shouldCompress = !shouldStoreWithoutCompression(path) && !noCompress;
-      const file = shouldCompress ? deflateRaw(bytes) : bytes;
+      const { compressed: file, crc } = shouldCompress
+        ? await deflateWithCrc(bytes)
+        : { compressed: bytes, crc: computeCrc32(bytes, 0, bytes.length) };
       const timestamp = Date.now();
       const entry = createEntryMeta(
         path,
@@ -441,7 +485,7 @@ class SequentialZipWriterImpl implements ZipWriter {
         BigInt(file.length),
         BigInt(bytes.length),
         shouldCompress ? ZIP_COMPRESSION_METHOD_DEFLATE : ZIP_COMPRESSION_METHOD_STORE,
-        computeCrc32(bytes, 0, bytes.length),
+        crc,
         timestamp,
         false,
       );

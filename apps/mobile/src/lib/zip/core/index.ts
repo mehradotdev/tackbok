@@ -8,7 +8,12 @@
 // points while preserving higher-level callers from deep-importing internals.
 export { parseZipArchiveBytes } from './archive-bytes-reader';
 export { encodeZipArchiveBytes } from './archive-bytes-writer';
-export { deflateRaw, inflateRaw, inflateRawBounded } from './deflate-codec';
+export {
+  deflateRaw,
+  deflateRawPiece,
+  inflateRaw,
+  inflateRawBounded,
+} from './deflate-codec';
 export type { BoundedInflateResult } from './deflate-codec';
 export { decodeGzipBounded, encodeGzip, GzipCodecError } from './gzip-codec';
 export type {

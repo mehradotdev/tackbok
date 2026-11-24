@@ -165,7 +165,7 @@ export async function encodeGzipInPieces(
     const end = Math.min(bytes.length, offset + pieceBytes);
     const input = bytes.subarray(offset, end);
     const piece = deflateRawPiece(input, end === bytes.length, level);
-    // `deflateRawPiece` returns a view of a larger scratch buffer: keep a copy.
+    // `deflateRawPiece` returns a view of a larger buffer: keep only the piece.
     pieces.push(piece.slice());
     crc = updateCrc32(crc, bytes, offset, end - offset);
     total += piece.length;

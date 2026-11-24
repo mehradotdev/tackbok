@@ -412,6 +412,8 @@ export const en = {
     'This will import entries from a Presently app CSV file. Duplicate entries will be skipped.',
   'backup.backupExportedSuccessfully': 'Backup exported successfully',
   'backup.exportFailed': 'Export failed',
+  'backup.preparingBackup': 'Preparing your backup…',
+  'backup.nothingToExport': 'There’s nothing to export yet.',
   'backup.importFailed': 'Import failed',
   'backup.restoringTackbokBackup': 'Restoring Tackbok backup',
   'backup.loadPresentlyExport': 'Load Presently export',

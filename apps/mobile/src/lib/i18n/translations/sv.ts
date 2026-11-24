@@ -357,6 +357,8 @@ export const sv = {
     'Detta kommer att importera poster från en Presently app CSV-fil. Dubbletter kommer att hoppas över.',
   'backup.backupExportedSuccessfully': 'Säkerhetskopieringen har exporterats',
   'backup.exportFailed': 'Exporten misslyckades',
+  'backup.preparingBackup': 'Förbereder säkerhetskopian…',
+  'backup.nothingToExport': 'Det finns inget att exportera än.',
   'backup.importFailed': 'Importen misslyckades',
   'backup.restoringTackbokBackup': 'Återställer Tackbok-säkerhetskopia',
   'backup.loadPresentlyExport': 'Ladda Presently-export',
