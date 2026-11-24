@@ -32,6 +32,9 @@ const STAGING_DIRECTORY = 'cloud-sync-media';
 const PHOTO_DIRECTORY = 'photos';
 const VOICE_DIRECTORY = 'voice_memos';
 
+/** Blob hashes per `IN (...)` query, under SQLite's variable limit. */
+const IDS_PER_QUERY = 500;
+
 function fileForLocalUri(uri: string): File {
   return uri.startsWith('file:') || uri.startsWith('/')
     ? new File(uri)
@@ -587,6 +590,58 @@ export class ProductionSnapshotMediaStore implements SnapshotMediaStore {
     return false;
   }
 
+  /**
+   * Blobs with a local copy `openVerifiedSource` may open: a media row that
+   * stands for a local file ('n/a', authored here, even when its file is
+   * gone; or 'verified'), a retained copy, or a file at another row's path or
+   * in staging. No hashing: a superset, which `openVerifiedSource` narrows. A
+   * row still waiting for its download has no file, so a device restoring a
+   * journal holds almost none of its blobs.
+   */
+  async mightHold(blobHashes: readonly string[]): Promise<Set<string>> {
+    const held = new Set<string>();
+    const paths = new Map<string, string[]>();
+    for (let offset = 0; offset < blobHashes.length; offset += IDS_PER_QUERY) {
+      const batch = blobHashes.slice(offset, offset + IDS_PER_QUERY);
+      const [rows, retained] = await Promise.all([
+        db
+          .select({
+            blobHash: mediaAssets.blob_hash,
+            state: mediaAssets.download_state,
+            uri: mediaAssets.local_uri,
+          })
+          .from(mediaAssets)
+          .where(inArray(mediaAssets.blob_hash, batch)),
+        db
+          .select({ blobHash: syncRetainedMedia.blob_hash })
+          .from(syncRetainedMedia)
+          .where(inArray(syncRetainedMedia.blob_hash, batch)),
+      ]);
+      for (const row of retained) if (row.blobHash) held.add(row.blobHash);
+      for (const row of rows) {
+        if (!row.blobHash) continue;
+        if (row.state === 'n/a' || row.state === 'verified') held.add(row.blobHash);
+        else if (row.uri) {
+          const list = paths.get(row.blobHash);
+          if (list) list.push(row.uri);
+          else paths.set(row.blobHash, [row.uri]);
+        }
+      }
+    }
+    // Staging is checked for every other blob, row or not, as
+    // `openVerifiedSource` does. Read only: the folder is not created here.
+    let checked = 0;
+    for (const blobHash of new Set(blobHashes)) {
+      if (held.has(blobHash)) continue;
+      const staged = `${STAGING_DIRECTORY}/${blobHash}.bin`;
+      if (fileExists(staged) || (paths.get(blobHash) ?? []).some(fileExists))
+        held.add(blobHash);
+      // A few file checks at a time, so a large restore does not hold the app.
+      if (++checked % 200 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    return held;
+  }
+
   /** Always hashes the file it returns, so an upload streams verified bytes. */
   async openVerifiedSource(blobHash: string) {
     for await (const candidate of this.verifiedCandidates(blobHash, false)) {
@@ -759,6 +814,7 @@ export class ProductionSnapshotJournalStore {
     provider: SnapshotProvider,
     limit = 2,
     onDownloaded?: () => void,
+    concurrency = 1,
   ): Promise<{
     hydrated: number;
     missing: number;
@@ -769,24 +825,29 @@ export class ProductionSnapshotJournalStore {
       .select()
       .from(mediaAssets)
       .where(eq(mediaAssets.download_state, 'pending'))
+      .orderBy(mediaAssets.asset_id)
       .limit(limit);
     let hydrated = 0;
     let missing = 0;
     let unavailable = 0;
     // The profile's photo is the only media its screens read from a cache.
     let profilePhoto = false;
-    for (const row of pending) {
+    const hydrateRow = async (row: (typeof pending)[number]): Promise<void> => {
       if (!row.blob_hash || row.byte_size === null) {
         missing += 1;
-        continue;
+        return;
       }
       let downloaded: boolean;
       try {
-        downloaded = await provider.downloadMedia(
-          this.vaultId,
-          row.blob_hash,
-          await this.mediaStore.openDownloadSink(row.blob_hash),
-        );
+        // An earlier row with the same blob leaves its verified download
+        // staged until every row that needs it has its copy.
+        downloaded =
+          this.mediaStore.stagedFile(row.blob_hash) !== null ||
+          (await provider.downloadMedia(
+            this.vaultId,
+            row.blob_hash,
+            await this.mediaStore.openDownloadSink(row.blob_hash),
+          ));
       } catch (error) {
         if (!(error instanceof MediaIntegrityError)) throw error;
         // The file is there but its bytes are wrong: that still pauses.
@@ -795,7 +856,7 @@ export class ProductionSnapshotJournalStore {
           .set({ download_state: 'missing' })
           .where(eq(mediaAssets.asset_id, row.asset_id));
         missing += 1;
-        continue;
+        return;
       }
       if (!downloaded) {
         await db
@@ -803,7 +864,7 @@ export class ProductionSnapshotJournalStore {
           .set({ download_state: 'missing' })
           .where(eq(mediaAssets.asset_id, row.asset_id));
         unavailable += 1;
-        continue;
+        return;
       }
       onDownloaded?.();
       const descriptor: PlacedMedia = {
@@ -847,7 +908,33 @@ export class ProductionSnapshotJournalStore {
       if (remaining.length === 0) this.mediaStore.deleteStaged(row.blob_hash);
       hydrated += 1;
       if (row.owner_type === 'profile') profilePhoto = true;
+    };
+    // Up to `concurrency` downloads at once. Rows that share a blob share its
+    // staged download, so they run one after another.
+    const byBlob = new Map<string, (typeof pending)[number][]>();
+    for (const row of pending) {
+      const key = row.blob_hash ?? `row:${row.asset_id}`;
+      const rows = byBlob.get(key);
+      if (rows) rows.push(row);
+      else byBlob.set(key, [row]);
     }
+    const queue = [...byBlob.values()];
+    const failures: unknown[] = [];
+    const worker = async () => {
+      for (let rows = queue.shift(); rows; rows = queue.shift()) {
+        try {
+          for (const row of rows) await hydrateRow(row);
+        } catch (error) {
+          // The others finish first, so no write lands after this returns.
+          failures.push(error);
+          queue.length = 0;
+        }
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.max(1, Math.min(concurrency, queue.length)) }, worker),
+    );
+    if (failures.length > 0) throw failures[0];
     return { hydrated, missing, unavailable, profilePhoto };
   }
 

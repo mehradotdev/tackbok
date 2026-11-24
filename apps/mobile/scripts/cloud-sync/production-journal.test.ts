@@ -530,6 +530,129 @@ test('hydration downloads a pending photo to the path its entry uses', async () 
   expect(staging.staged).toBe(false);
 });
 
+test('hydration downloads several files at once, but one blob only once at a time', async () => {
+  sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
+  existingFiles.clear();
+  const hashes = ['1', '2', '3', '4', '5', '1'].map((c) => c.repeat(64));
+  db.insert(schema.mediaAssets)
+    .values(
+      hashes.map((hash, index) => ({
+        asset_id: `asset-${index}`,
+        owner_type: 'entry' as const,
+        owner_id: 'entry',
+        kind: 'photo' as const,
+        local_uri: `photos/${index}.jpg`,
+        download_state: 'pending' as const,
+        blob_hash: hash,
+        byte_size: 1,
+        created_at: 1,
+        updated_at: 1,
+      })),
+    )
+    .run();
+  const { store } = stagingMediaStore();
+  let inFlight = 0;
+  let most = 0;
+  const active = new Set<string>();
+  const download = {
+    downloadMedia: async (_vaultId: string, blobHash: string) => {
+      // Rows that share a blob share its staged download.
+      expect(active.has(blobHash)).toBe(false);
+      active.add(blobHash);
+      most = Math.max(most, ++inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      active.delete(blobHash);
+      // Not on the provider: no file work, only the row's state.
+      return false;
+    },
+  } as never;
+  expect(await store.hydratePendingMedia(download, 10, undefined, 3)).toEqual({
+    hydrated: 0,
+    missing: 0,
+    unavailable: 6,
+    profilePhoto: false,
+  });
+  expect(most).toBe(3);
+});
+
+test('rows that share a blob download it once', async () => {
+  sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
+  existingFiles.clear();
+  insertPendingMedia([
+    { assetId: 'first', ownerType: 'entry', uri: `photos/first-${fakeBlobHash}.jpg` },
+    { assetId: 'second', ownerType: 'entry', uri: `photos/second-${fakeBlobHash}.jpg` },
+  ]);
+  const { store, staging } = stagingMediaStore();
+  let downloads = 0;
+  const download = {
+    downloadMedia: async () => {
+      downloads += 1;
+      staging.staged = true;
+      return true;
+    },
+  } as never;
+  expect(await store.hydratePendingMedia(download, 10, undefined, 4)).toMatchObject({
+    hydrated: 2,
+  });
+  expect(downloads).toBe(1);
+  expect(
+    db
+      .select()
+      .from(schema.mediaAssets)
+      .all()
+      .map((row) => row.download_state),
+  ).toEqual(['verified', 'verified']);
+  expect(staging.staged).toBe(false);
+});
+
+test('a failed download reports only after the others finish', async () => {
+  sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
+  existingFiles.clear();
+  db.insert(schema.mediaAssets)
+    .values(
+      ['1', '2', '3'].map((c, index) => ({
+        asset_id: `asset-${index}`,
+        owner_type: 'entry' as const,
+        owner_id: 'entry',
+        kind: 'photo' as const,
+        local_uri: `photos/${index}.jpg`,
+        download_state: 'pending' as const,
+        blob_hash: c.repeat(64),
+        byte_size: 1,
+        created_at: 1,
+        updated_at: 1,
+      })),
+    )
+    .run();
+  const { store } = stagingMediaStore();
+  let settledAfterFailure = 0;
+  let failed = false;
+  const download = {
+    downloadMedia: async (_vaultId: string, blobHash: string) => {
+      if (blobHash === '1'.repeat(64)) {
+        failed = true;
+        throw new Error('connection lost');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      if (failed) settledAfterFailure += 1;
+      return false;
+    },
+  } as never;
+  await expect(store.hydratePendingMedia(download, 10, undefined, 3)).rejects.toThrow(
+    'connection lost',
+  );
+  // The others were already running; they finished and wrote before the
+  // error came back, and nothing is left to write after it.
+  expect(settledAfterFailure).toBe(2);
+  const states = db
+    .select()
+    .from(schema.mediaAssets)
+    .all()
+    .map((row) => row.download_state);
+  expect(states.sort()).toEqual(['missing', 'missing', 'pending']);
+});
+
 test('hydration reports when it downloaded the profile photo', async () => {
   sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
   existingFiles.clear();
@@ -871,6 +994,61 @@ describe('saved media hashes', () => {
     expect(savedRows().map((row) => row.modified_at)).toEqual(
       stamp.size === 1 ? [2_000] : [],
     );
+  });
+
+  test('mightHold: blobs with a local copy, not ones still waiting for their download', async () => {
+    const hash = (c: string) => c.repeat(64);
+    const row = (
+      assetId: string,
+      blob: string,
+      state: 'n/a' | 'verified' | 'pending' | 'downloading' | 'missing',
+      path: string | null,
+    ) =>
+      db
+        .insert(schema.mediaAssets)
+        .values({
+          asset_id: assetId,
+          owner_type: 'entry',
+          owner_id: 'entry',
+          kind: 'photo',
+          local_uri: path,
+          download_state: state,
+          blob_hash: blob,
+          byte_size: 1,
+          created_at: 1,
+          updated_at: 1,
+        })
+        .run();
+    row('authored', hash('1'), 'n/a', 'photos/1.jpg');
+    row('downloaded', hash('2'), 'verified', 'photos/2.jpg');
+    row('waiting', hash('3'), 'pending', 'photos/3.jpg');
+    row('staged', hash('4'), 'pending', 'photos/4.jpg');
+    existingFiles.add(fileUri(`cloud-sync-media/${hash('4')}.bin`));
+    row('file-there', hash('5'), 'missing', 'photos/5.jpg');
+    existingFiles.add(fileUri('photos/5.jpg'));
+    row('no-path', hash('6'), 'pending', null);
+    db.insert(schema.syncRetainedMedia)
+      .values({
+        ledger_id: 'retained',
+        asset_id: 'removed',
+        original_owner_type: 'entry',
+        original_owner_id: 'entry',
+        original_uri: 'photos/7.jpg',
+        kind: 'photo',
+        blob_hash: hash('7'),
+        state: 'staged',
+        created_at: 1,
+        updated_at: 1,
+      })
+      .run();
+    // A staged file with no row at all, and a row still downloading.
+    existingFiles.add(fileUri(`cloud-sync-media/${hash('9')}.bin`));
+    row('downloading', hash('a'), 'downloading', 'file:///var/legacy/a.jpg');
+    existingFiles.add('file:///var/legacy/a.jpg');
+    const asked = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'a'].map(hash);
+    expect(
+      [...(await new ProductionSnapshotMediaStore().mightHold(asked))].sort(),
+    ).toEqual(['1', '2', '4', '5', '7', '9', 'a'].map(hash));
   });
 
   test('upload sources and a missing file ignore saved rows; the missing one loses its row', async () => {

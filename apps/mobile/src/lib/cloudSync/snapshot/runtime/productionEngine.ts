@@ -65,7 +65,27 @@ interface RunningVaultPass {
 const runningVaultPasses = new Map<string, RunningVaultPass>();
 
 /** Pending attachments downloaded between checks for cancellation and edits. */
-const HYDRATION_BATCH = 2;
+const HYDRATION_BATCH = 24;
+
+/**
+ * Attachments downloading at once. Each download waits mostly on Drive's
+ * response time (~1.8 s a file on a low-end Android phone): one at a time,
+ * 1,594 files took ~55 min there; 6 at once ~10 min, 12 ~8 min (#185 P15).
+ * shortcut: Android's default HTTP client (OkHttp) runs at most 5 requests
+ * per host at once, probably why 12 gained less than 6 did there; more would
+ * need a native client change.
+ */
+const HYDRATION_CONCURRENCY = 12;
+
+/** Pending attachments from which one listing beats a lookup per file. */
+const HYDRATION_LISTING_MIN = 20;
+
+/**
+ * Least time between screen refreshes while attachments download. A refresh
+ * re-reads what the open screens show: with a 10,000-entry journal that held
+ * a low-end Android phone for ~0.6 s after every two files (#185 P15).
+ */
+const HYDRATION_REFRESH_MS = 10_000;
 
 /** The running build and update; a change retries a join that failed. */
 export function productionCodeVersion(): string {
@@ -147,6 +167,10 @@ class MediaPolicyProvider implements SnapshotProvider {
     await this.assertMediaTransferAllowed();
     this.onTransfer('uploading');
     await this.delegate.uploadMedia(vaultId, blobHash, source);
+  }
+  async prepareMediaDownloads(vaultId: string): Promise<void> {
+    await this.assertMediaTransferAllowed();
+    await this.delegate.prepareMediaDownloads(vaultId);
   }
   async downloadMedia(
     vaultId: string,
@@ -418,11 +442,29 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           bytesTotal: pendingMediaBytes(waiting),
         });
       }
+      if (waiting.length >= HYDRATION_LISTING_MIN) {
+        try {
+          await this.mediaProvider.prepareMediaDownloads?.(this.vault.vault_id);
+        } catch (error) {
+          // Without a listing, each download looks its file up itself.
+          if (!(error instanceof SnapshotProviderError) || error.code !== 'transient')
+            throw error;
+          console.warn(
+            'Cloud sync could not list media files; looking each one up',
+            error,
+          );
+        }
+      }
+      // The first files show at once; later ones at most every few seconds,
+      // and the rest when the downloads stop.
+      let refreshedAt = Number.NEGATIVE_INFINITY;
+      let refreshOwed = false;
       for (let batch = 1; ; batch += 1) {
         const hydration = await this.journal.hydratePendingMedia(
           this.mediaProvider,
           HYDRATION_BATCH,
           () => this.onProgress({ type: 'item', phase: 'downloading-media' }),
+          HYDRATION_CONCURRENCY,
         );
         hydrated += hydration.hydrated;
         // Local completion may finish after cancellation; record nothing from it.
@@ -443,11 +485,16 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           throw new SnapshotRuntimeFailure('corrupt');
         }
         if (hydration.profilePhoto) await this.reloadProfileCache();
-        if (hydration.hydrated > 0) await this.onRemoteApplied?.();
+        if (hydration.hydrated > 0) refreshOwed = true;
+        if (refreshOwed && Date.now() - refreshedAt >= HYDRATION_REFRESH_MS) {
+          refreshOwed = false;
+          refreshedAt = Date.now();
+          await this.onRemoteApplied?.();
+        }
         // A short batch means nothing is left. The count read above bounds
         // the loop even if a row were to stay pending.
         if (
-          hydration.hydrated < HYDRATION_BATCH ||
+          hydration.hydrated + hydration.unavailable < HYDRATION_BATCH ||
           hydrated >= waiting.length ||
           batch >= this.hydrationBatchesPerPass
         )
@@ -455,6 +502,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         const durable = this.state.loadState(this.vault.vault_id, this.vault.device_id);
         if (durable.journalGeneration > durable.settledGeneration) break;
       }
+      // Anything still to show is refreshed when the pass completes below.
     } catch (error) {
       // A batch can save some files before it fails; show them. A cancelled
       // pass refreshes screens on its own path.

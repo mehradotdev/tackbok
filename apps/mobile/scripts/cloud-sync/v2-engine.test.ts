@@ -831,6 +831,23 @@ describe('attachments', () => {
     ).toEqual({ n: 2 });
   });
 
+  test('a device that holds none of the blobs asks the provider about none', async () => {
+    const a = device();
+    await attach(a);
+    await sync(a);
+    // B restores the journal: its attachments wait for their downloads.
+    const b = device();
+    const mightHold = blobs.mightHold;
+    blobs.mightHold = async () => new Set();
+    try {
+      const made = await requests(() => sync(b));
+      expect(count(made, 'has-media')).toBe(0);
+      expect(count(made, 'upload-snapshot')).toBe(1);
+    } finally {
+      blobs.mightHold = mightHold;
+    }
+  });
+
   test('Wi-Fi-only media waits; the entry is published without it', async () => {
     const a = device();
     await attach(a);

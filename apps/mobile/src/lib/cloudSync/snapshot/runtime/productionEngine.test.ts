@@ -110,6 +110,7 @@ function harness(
     loadState?: () => { journalGeneration: number; settledGeneration: number };
     hydrationBatchesPerPass?: number;
     persistMediaHashes?: () => Promise<void>;
+    prepareMediaDownloads?: (vaultId: string) => Promise<void>;
   } = {},
 ): Harness {
   const setPause = jest.fn();
@@ -126,12 +127,17 @@ function harness(
     } as unknown as SQLiteSyncStateStore,
     { sync: engineSync } as unknown as V2SyncEngine,
     {
-      hydratePendingMedia: options.hydrate ?? (async () => ({ hydrated: 0, missing: 0 })),
+      hydratePendingMedia: async () => ({
+        unavailable: 0,
+        ...(await (options.hydrate ?? (async () => ({ hydrated: 0, missing: 0 })))()),
+      }),
       requeueMissingVerifiedMedia: options.requeue ?? (async () => 0),
       requeueUnavailableMedia: options.requeueUnavailable ?? (async () => {}),
       persistMediaHashes: options.persistMediaHashes ?? (async () => {}),
     } as unknown as ProductionSnapshotJournalStore,
-    {} as SnapshotProvider,
+    {
+      prepareMediaDownloads: options.prepareMediaDownloads,
+    } as unknown as SnapshotProvider,
     () => {},
     remoteApplied,
     undefined,
@@ -208,13 +214,13 @@ test('a pass that needs attention or a retry records no restored journal', async
   expect(mockMarkJournalRestored).not.toHaveBeenCalled();
 });
 
-test('applied text reaches screens before pending media downloads, then every batch downloads', async () => {
-  mockPendingMedia = Array.from({ length: 5 }, (_, index) => ({
+test('applied text reaches screens before pending media downloads; downloads refresh screens at most every few seconds', async () => {
+  mockPendingMedia = Array.from({ length: 49 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
   }));
   const order: string[] = [];
-  const batches = [2, 2, 1];
+  const batches = [24, 24, 1];
   const app = harness('vault-text-first', {
     engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
     hydrate: async () => {
@@ -227,27 +233,54 @@ test('applied text reaches screens before pending media downloads, then every ba
   await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
   expect(order.slice(0, 3)).toEqual(['journal-restored', 'screens', 'hydrate']);
   expect(order.filter((value) => value === 'hydrate')).toHaveLength(3);
-  // Each batch shows its photos as soon as they arrive.
-  expect(order.slice(2, 8)).toEqual([
+  // The first files show at once, the rest once when the pass completes:
+  // these batches all finish within the refresh interval.
+  expect(order.slice(2)).toEqual([
     'hydrate',
     'screens',
     'hydrate',
-    'screens',
     'hydrate',
+    'journal-restored',
     'screens',
   ]);
   mockMarkJournalRestored.mockReset();
 });
 
+test('many pending files are listed once before their downloads, a few are not', async () => {
+  for (const [count, listings] of [
+    [20, 1],
+    [19, 0],
+  ] as const) {
+    mockPendingMedia = Array.from({ length: count }, (_, index) => ({
+      blobHash: `blob-${index}`,
+      byteSize: 1,
+    }));
+    const order: string[] = [];
+    const app = harness(`vault-listing-${count}`, {
+      engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
+      prepareMediaDownloads: async () => {
+        order.push('listing');
+      },
+      hydrate: async () => {
+        order.push('hydrate');
+        return { hydrated: 0, missing: 0 };
+      },
+    });
+    await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
+    expect(order.filter((step) => step === 'listing')).toHaveLength(listings);
+    expect(order.at(-1)).toBe('hydrate');
+  }
+});
+
 test('the profile cache reloads when a journal is applied and when the profile photo downloads', async () => {
-  mockPendingMedia = Array.from({ length: 4 }, (_, index) => ({
+  mockPendingMedia = Array.from({ length: 48 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
   }));
   const order: string[] = [];
   const batches = [
-    { hydrated: 2, missing: 0, profilePhoto: false },
-    { hydrated: 2, missing: 0, profilePhoto: true },
+    { hydrated: 24, missing: 0, profilePhoto: false },
+    { hydrated: 24, missing: 0, profilePhoto: true },
   ];
   const app = harness('vault-profile-photo', {
     engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
@@ -296,12 +329,32 @@ test('passes that apply nothing, and other media downloads, leave the profile ca
   expect(mockLoadProfileCache).not.toHaveBeenCalled();
 });
 
-test('local edits stop the downloads so a follow-up pass publishes them first', async () => {
-  mockPendingMedia = Array.from({ length: 6 }, (_, index) => ({
+test('when the listing fails for a moment, each download looks its file up itself', async () => {
+  mockPendingMedia = Array.from({ length: 30 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
   }));
-  const hydrate = jest.fn(async () => ({ hydrated: 2, missing: 0 }));
+  const hydrate = jest.fn(async () => ({ hydrated: 0, missing: 0 }));
+  const app = harness('vault-listing-fails', {
+    engineSync: async () => ({ status: 'pulled', actionableChanges: 0 }),
+    prepareMediaDownloads: async () => {
+      throw new SnapshotProviderError('transient', 'list failed');
+    },
+    hydrate,
+  });
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  await expect(app.runtime.sync()).resolves.toEqual({ pulled: 1, pushed: 0 });
+  warn.mockRestore();
+  expect(hydrate).toHaveBeenCalledTimes(1);
+});
+
+test('local edits stop the downloads so a follow-up pass publishes them first', async () => {
+  mockPendingMedia = Array.from({ length: 72 }, (_, index) => ({
+    blobHash: `blob-${index}`,
+    byteSize: 1,
+  }));
+  // Full batches, so only the rule under test stops the downloads.
+  const hydrate = jest.fn(async () => ({ hydrated: 24, missing: 0 }));
   let edited = false;
   const app = harness('vault-edit-during-hydration', {
     hydrate: async () => {
@@ -316,11 +369,12 @@ test('local edits stop the downloads so a follow-up pass publishes them first', 
 });
 
 test('a background task downloads one batch per pass', async () => {
-  mockPendingMedia = Array.from({ length: 6 }, (_, index) => ({
+  mockPendingMedia = Array.from({ length: 72 }, (_, index) => ({
     blobHash: `blob-${index}`,
     byteSize: 1,
   }));
-  const hydrate = jest.fn(async () => ({ hydrated: 2, missing: 0 }));
+  // Full batches, so only the rule under test stops the downloads.
+  const hydrate = jest.fn(async () => ({ hydrated: 24, missing: 0 }));
   const app = harness('vault-background-hydration', {
     hydrate,
     hydrationBatchesPerPass: 1,

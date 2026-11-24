@@ -229,6 +229,12 @@ export interface SnapshotProvider {
     source: MediaUploadSource,
   ): Promise<void>;
   /**
+   * Before many downloads: lists the vault's media files once, so each
+   * download needs only its own request (#246). The listing serves downloads
+   * only; a download that fails because the file is gone looks it up again.
+   */
+  prepareMediaDownloads?(vaultId: string): Promise<void>;
+  /**
    * False when the provider has no such blob. Bytes that fail their size or
    * hash check throw `MediaIntegrityError`.
    */
@@ -268,6 +274,12 @@ export interface MediaDownloadSink {
 export interface SnapshotMediaStore {
   hasVerified(blobHash: string): Promise<boolean>;
   openVerifiedSource(blobHash: string): Promise<MediaUploadSource | null>;
+  /**
+   * Of `blobHashes`, those this device may have a copy of: every blob
+   * `openVerifiedSource` could open is included, and maybe a few more.
+   * Without it, every blob counts as held.
+   */
+  mightHold?(blobHashes: readonly string[]): Promise<Set<string>>;
   openDownloadSink(blobHash: string): Promise<MediaDownloadSink>;
 }
 

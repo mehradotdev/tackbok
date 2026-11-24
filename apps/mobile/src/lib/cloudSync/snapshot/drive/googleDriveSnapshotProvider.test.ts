@@ -1500,6 +1500,75 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect(await here.listSnapshots(vaultId)).toEqual([]);
   });
 
+  test('listed downloads need one request each, and only a download proves a listed file exists', async () => {
+    const server = new FakeDriveServer();
+    const blobs = ['listed-a', 'listed-b', 'listed-ghost'].map((text) => {
+      const bytes = new TextEncoder().encode(text);
+      const hash = sha256Bytes(bytes);
+      return {
+        bytes,
+        hash,
+        file: server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes),
+      };
+    });
+    // Collected, but Drive's search still shows it (#185 P12).
+    const ghost = blobs[2];
+    server.files.delete(ghost.file.id);
+    server.staleSearch.set(ghost.file.id, ghost.file);
+    const metrics = new MemoryDriveInstrumentation('listed-downloads');
+    const app = provider(server, new MemoryDriveProviderStateStore(), metrics);
+    const sink = () => {
+      const state = { bytes: new Uint8Array(0) };
+      return {
+        byteLength: async () => state.bytes.byteLength,
+        appendAndSync: async (chunk: Uint8Array) => {
+          const next = new Uint8Array(state.bytes.byteLength + chunk.byteLength);
+          next.set(state.bytes);
+          next.set(chunk, state.bytes.byteLength);
+          state.bytes = next;
+        },
+        reset: async () => {
+          state.bytes = new Uint8Array(0);
+        },
+        verifyAndPromote: async () => {},
+      };
+    };
+
+    await app.prepareMediaDownloads(vaultId);
+    const listing = metrics.report().attempts;
+    expect(listing).toBe(1);
+    // The listing is not the cache: an upload decision can't trust it, so
+    // even a cached-first check asks Drive (and finds the ghost gone).
+    expect(await app.hasMediaBatch(vaultId, [ghost.hash])).toEqual(new Set());
+    expect(metrics.report().attempts).toBeGreaterThan(listing);
+    const beforeDownloads = metrics.report().attempts;
+    for (const { hash } of blobs.slice(0, 2))
+      await expect(app.downloadMedia(vaultId, hash, sink())).resolves.toBe(true);
+    // One request per listed file: no search, no check by ID.
+    expect(metrics.report().attempts - beforeDownloads).toBe(2);
+    // Downloaded, so now cached: asking again costs nothing.
+    const afterDownloads = metrics.report().attempts;
+    expect(
+      await app.hasMediaBatch(
+        vaultId,
+        blobs.slice(0, 2).map((blob) => blob.hash),
+      ),
+    ).toEqual(new Set(blobs.slice(0, 2).map((blob) => blob.hash)));
+    expect(metrics.report().attempts).toBe(afterDownloads);
+    // The ghost's download fails, it is looked up again, and it reads as gone.
+    await expect(app.downloadMedia(vaultId, ghost.hash, sink())).resolves.toBe(false);
+    expect(await app.hasMediaBatch(vaultId, [ghost.hash])).toEqual(new Set());
+
+    // Complete bytes left from an earlier pass need no request, so they
+    // prove nothing about Drive: the listed (collected) file stays uncached.
+    const fresh = provider(server, new MemoryDriveProviderStateStore());
+    await fresh.prepareMediaDownloads(vaultId);
+    const leftover = sink();
+    await leftover.appendAndSync(new TextEncoder().encode('listed-ghost'));
+    await expect(fresh.downloadMedia(vaultId, ghost.hash, leftover)).resolves.toBe(true);
+    expect(await fresh.hasMediaBatch(vaultId, [ghost.hash])).toEqual(new Set());
+  });
+
   test('a blob another device collected is gone here too, cached or not', async () => {
     const server = new FakeDriveServer();
     const bytes = new TextEncoder().encode('gc-collected-elsewhere');
