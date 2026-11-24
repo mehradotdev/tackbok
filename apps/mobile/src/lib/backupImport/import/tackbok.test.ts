@@ -320,6 +320,44 @@ describe('importFromTackbokBackup', () => {
     warnSpy.mockRestore();
   });
 
+  test.each([
+    ['over the import cap is skipped without being read', 1, 0],
+    ['at the import cap is imported', 0, 1],
+  ])('a profile photo %s', async (_name, over, reads) => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    const { readSafeZipBytes, MAX_IMPORT_ASSET_BYTES } =
+      jest.requireActual<typeof import('../archiveUtils')>('../archiveUtils');
+    const size = BigInt(MAX_IMPORT_ASSET_BYTES + over);
+    const readEntryBytes = jest.fn(async (_path: string) => new Uint8Array([1, 2, 3]));
+    mockLoadZipFromUri.mockResolvedValue({
+      close: jest.fn(async () => undefined),
+      getEntryInfo: (path: string) => ({
+        path,
+        compressedSize: size,
+        uncompressedSize: size,
+        compressionMethod: 0,
+        isEncrypted: false,
+      }),
+      readEntryBytes,
+    } as never);
+    mockReadSafeZipBytes.mockImplementation(readSafeZipBytes as never);
+    mockWriteImportedPhoto.mockReset();
+    mockWriteImportedPhoto.mockResolvedValue({ uri: 'photos/imported.jpg' });
+
+    const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
+
+    expect(readEntryBytes).toHaveBeenCalledTimes(reads);
+    expect(summary.failedProfileAssets).toBe(over);
+    // The entries import either way.
+    expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ photoUri: over ? null : 'photos/imported.jpg' }),
+      expect.anything(),
+    );
+    warnSpy.mockRestore();
+  });
+
   test('trims the imported display name', async () => {
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     mockReadSafeZipJson.mockReset();

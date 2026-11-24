@@ -153,13 +153,40 @@ export async function readSafeZipJson<T>(zip: ZipReader, path: string): Promise<
 }
 
 /**
+ * The largest file an import copies, per file (a backup may hold any number).
+ * The import reads each file whole into memory and hashes it on the JS
+ * thread, so a much larger one can freeze the app or run a phone out of
+ * memory. 100 MB is about 3× the largest file the app makes itself: a
+ * 30-minute voice note, about 29 MB. A larger file is skipped and reported
+ * as not restored; files already in the journal or a cloud backup are not
+ * affected (#251).
+ * shortcut: whole-file reads; stream and hash natively to raise or drop the cap.
+ */
+export const MAX_IMPORT_ASSET_BYTES = 100 * 1000 * 1000;
+
+/** A ZIP entry over `MAX_IMPORT_ASSET_BYTES`, refused before it is read. */
+export class ImportAssetTooLargeError extends Error {
+  constructor(readonly path: string) {
+    super(`File is larger than ${MAX_IMPORT_ASSET_BYTES / 1000 / 1000} MB`);
+    this.name = 'ImportAssetTooLargeError';
+  }
+}
+
+/**
  * Reads raw bytes from a ZIP entry after verifying the archive path is safe.
+ * Throws `ImportAssetTooLargeError`, without reading, for an entry over
+ * `MAX_IMPORT_ASSET_BYTES` (its stored or its unpacked size).
  */
 export async function readSafeZipBytes(
   zip: ZipReader,
   path: string,
 ): Promise<Uint8Array> {
-  return zip.readEntryBytes(assertSafeArchivePath(path));
+  const safePath = assertSafeArchivePath(path);
+  const info = zip.getEntryInfo(safePath);
+  const cap = BigInt(MAX_IMPORT_ASSET_BYTES);
+  if (info && (info.uncompressedSize > cap || info.compressedSize > cap))
+    throw new ImportAssetTooLargeError(safePath);
+  return zip.readEntryBytes(safePath);
 }
 
 /**

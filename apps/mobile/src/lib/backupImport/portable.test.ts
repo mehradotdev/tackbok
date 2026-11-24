@@ -393,6 +393,97 @@ describe('importPortableEntries', () => {
     expect(createdFiles).toEqual([]);
   });
 
+  test('skips a file over the import cap without reading it, and imports the rest', async () => {
+    warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    const { readSafeZipBytes, MAX_IMPORT_ASSET_BYTES } =
+      jest.requireActual<typeof import('./archiveUtils')>('./archiveUtils');
+    mockReadSafeZipBytes.mockImplementation(readSafeZipBytes);
+    mockWriteImportedPhoto.mockResolvedValue({
+      type: AssetType.IMAGE,
+      uri: 'photos/small.jpg',
+      width: 1,
+      height: 1,
+    });
+    mockWriteImportedAudio.mockReturnValue({
+      type: AssetType.AUDIO,
+      uri: 'voice-memos/long.m4a',
+    });
+    const zip = mockCreateFakeStreamingZipArchive({
+      'media/photos/huge.jpg': new Uint8Array([1]),
+      'media/photos/small.jpg': new Uint8Array([2]),
+      'media/voice/long.m4a': new Uint8Array([3]),
+    });
+    // The sizes the ZIP declares: one file just over the cap, one at it.
+    const declared: Record<string, number> = {
+      'media/photos/huge.jpg': MAX_IMPORT_ASSET_BYTES + 1,
+      'media/voice/long.m4a': MAX_IMPORT_ASSET_BYTES,
+    };
+    const getEntryInfo = zip.getEntryInfo.bind(zip);
+    zip.getEntryInfo = (path) => {
+      const info = getEntryInfo(path);
+      return info && declared[path] !== undefined
+        ? {
+            ...info,
+            uncompressedSize: BigInt(declared[path]),
+            compressedSize: BigInt(declared[path]),
+          }
+        : info;
+    };
+    const readEntryBytes = jest.spyOn(zip, 'readEntryBytes');
+    const { tx, values } = createTransactionMock();
+    const summary = createBackupImportSummary();
+
+    await importPortableEntries(
+      tx as never,
+      [
+        {
+          noteId: 'entry-big',
+          textTitle: 'Title',
+          textContent: 'Body',
+          mood: null,
+          tagTitles: [],
+          createdAt: 1,
+          updatedAt: 2,
+          assets: [
+            { type: AssetType.IMAGE, path: 'media/photos/huge.jpg' },
+            { type: AssetType.IMAGE, path: 'media/photos/small.jpg' },
+            { type: AssetType.AUDIO, path: 'media/voice/long.m4a' },
+          ],
+        },
+      ],
+      new Set(),
+      new Map(),
+      summary,
+      'overwrite',
+      zip,
+      [],
+      'tackbok',
+    );
+
+    // The large file is never read into memory.
+    expect(readEntryBytes.mock.calls.map(([path]) => path)).toEqual([
+      'media/photos/small.jpg',
+      'media/voice/long.m4a',
+    ]);
+    expect(summary.importedEntries).toBe(1);
+    expect(summary.importedPhotos).toBe(1);
+    expect(summary.importedAudio).toBe(1);
+    expect(summary.failedAssets).toBe(1);
+    expect(summary.failedEntries).toBe(0);
+    expect(summary.warnings[0]).toMatchObject({
+      kind: 'entry-asset',
+      noteId: 'entry-big',
+      assetPath: 'media/photos/huge.jpg',
+    });
+    const written = (values.mock.calls as unknown[][])[0][0] as {
+      assets: { uri: string }[];
+    };
+    expect(written.assets.map((asset) => asset.uri)).toEqual([
+      'photos/small.jpg',
+      'voice-memos/long.m4a',
+    ]);
+  });
+
   test('marks asset-only entries as failed when every media asset fails', async () => {
     warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     const { tx, insert } = createTransactionMock();
