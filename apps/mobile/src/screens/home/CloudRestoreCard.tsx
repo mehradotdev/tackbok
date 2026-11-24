@@ -22,7 +22,8 @@ import { toast } from '~/components/ui/toast';
 
 /**
  * Shown above the timeline while a restore from Google Drive runs, so people
- * can keep journaling instead of waiting on the setup screen.
+ * can follow it from Home instead of waiting on the setup screen. Once the
+ * journal is in, they can keep journaling while files download.
  */
 export function CloudRestoreCard() {
   const { t } = useTranslation();

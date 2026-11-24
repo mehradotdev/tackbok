@@ -113,6 +113,8 @@ test('shows the journal restore with a link to Cloud backup, never asking to sta
   render();
   expect(content()).toContain(mockEn['cloud.restoringYourJournalFromGoogleDrive']);
   expect(content()).toContain(mockEn['cloud.restoreMayTakeAMoment']);
+  // Reading and saving a large journal can keep the app busy: no promise.
+  expect(content()).not.toContain(mockEn['cloud.youCanKeepUsingTackbokWhileItRestores']);
   expect(content()).not.toMatch(/don.t (leave|exit)/i);
   act(() => root.root.findByType('Button' as never).props.onPress());
   expect(mockPush).toHaveBeenCalledWith('/cloud-backup');
@@ -131,6 +133,8 @@ test('counts downloaded attachments once the journal is ready', () => {
   expect(content()).toContain(
     'Your journal is ready. Photos and voice notes on this device: 37 of 300.',
   );
+  // Downloads leave the app responsive, so the promise holds here.
+  expect(content()).toContain(mockEn['cloud.youCanKeepUsingTackbokWhileItRestores']);
 });
 
 test('says when attachments wait for Wi-Fi or the restore is paused offline', () => {
