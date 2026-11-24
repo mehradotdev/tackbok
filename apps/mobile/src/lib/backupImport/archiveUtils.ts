@@ -159,7 +159,8 @@ export async function readSafeZipJson<T>(zip: ZipReader, path: string): Promise<
  * memory. 100 MB is about 3× the largest file the app makes itself: a
  * 30-minute voice note, about 29 MB. A larger file is skipped and reported
  * as not restored; files already in the journal or a cloud backup are not
- * affected (#251).
+ * affected (#251). Both the stored and the unpacked size are capped, so a
+ * compressed file briefly holds at most about twice this.
  * shortcut: whole-file reads; stream and hash natively to raise or drop the cap.
  */
 export const MAX_IMPORT_ASSET_BYTES = 100 * 1000 * 1000;
