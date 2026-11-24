@@ -576,6 +576,83 @@ test('hydration downloads several files at once, but one blob only once at a tim
   expect(most).toBe(3);
 });
 
+test('rows that share a blob download it once', async () => {
+  sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
+  existingFiles.clear();
+  insertPendingMedia([
+    { assetId: 'first', ownerType: 'entry', uri: `photos/first-${fakeBlobHash}.jpg` },
+    { assetId: 'second', ownerType: 'entry', uri: `photos/second-${fakeBlobHash}.jpg` },
+  ]);
+  const { store, staging } = stagingMediaStore();
+  let downloads = 0;
+  const download = {
+    downloadMedia: async () => {
+      downloads += 1;
+      staging.staged = true;
+      return true;
+    },
+  } as never;
+  expect(await store.hydratePendingMedia(download, 10, undefined, 4)).toMatchObject({
+    hydrated: 2,
+  });
+  expect(downloads).toBe(1);
+  expect(
+    db
+      .select()
+      .from(schema.mediaAssets)
+      .all()
+      .map((row) => row.download_state),
+  ).toEqual(['verified', 'verified']);
+  expect(staging.staged).toBe(false);
+});
+
+test('a failed download reports only after the others finish', async () => {
+  sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
+  existingFiles.clear();
+  db.insert(schema.mediaAssets)
+    .values(
+      ['1', '2', '3'].map((c, index) => ({
+        asset_id: `asset-${index}`,
+        owner_type: 'entry' as const,
+        owner_id: 'entry',
+        kind: 'photo' as const,
+        local_uri: `photos/${index}.jpg`,
+        download_state: 'pending' as const,
+        blob_hash: c.repeat(64),
+        byte_size: 1,
+        created_at: 1,
+        updated_at: 1,
+      })),
+    )
+    .run();
+  const { store } = stagingMediaStore();
+  let settledAfterFailure = 0;
+  let failed = false;
+  const download = {
+    downloadMedia: async (_vaultId: string, blobHash: string) => {
+      if (blobHash === '1'.repeat(64)) {
+        failed = true;
+        throw new Error('connection lost');
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      if (failed) settledAfterFailure += 1;
+      return false;
+    },
+  } as never;
+  await expect(store.hydratePendingMedia(download, 10, undefined, 3)).rejects.toThrow(
+    'connection lost',
+  );
+  // The others were already running; they finished and wrote before the
+  // error came back, and nothing is left to write after it.
+  expect(settledAfterFailure).toBe(2);
+  const states = db
+    .select()
+    .from(schema.mediaAssets)
+    .all()
+    .map((row) => row.download_state);
+  expect(states.sort()).toEqual(['missing', 'missing', 'pending']);
+});
+
 test('hydration reports when it downloaded the profile photo', async () => {
   sqlite.exec('DELETE FROM entries; DELETE FROM entry_tags; DELETE FROM media_assets');
   existingFiles.clear();

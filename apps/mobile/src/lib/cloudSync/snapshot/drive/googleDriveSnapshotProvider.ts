@@ -703,9 +703,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         // A retry resumes from what the sink already holds. Bytes that fail
         // the size or hash check throw `MediaIntegrityError`: the file is
         // there but wrong, which is not the same as gone.
-        await this.retryInterrupted(() => this.downloadMediaToSink(vaultId, file, sink));
-        // Downloaded, so it exists: a listed file may join the cache now.
-        if (listed) this.state.upsertFile(vaultId, file);
+        const requested = await this.retryInterrupted(() =>
+          this.downloadMediaToSink(vaultId, file, sink),
+        );
+        // Drive just served it, so it exists: a listed file may join the
+        // cache now. Bytes from an earlier partial prove nothing about Drive.
+        if (listed && requested) this.state.upsertFile(vaultId, file);
         return true;
       } catch (error) {
         // A cached or listed file that is gone (media garbage collection,
@@ -1553,11 +1556,12 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     return bytes;
   }
 
+  /** Whether Drive was asked: a complete earlier partial needs no request. */
   private async downloadMediaToSink(
     vaultId: string,
     file: DriveFileRecord,
     sink: MediaDownloadSink,
-  ): Promise<void> {
+  ): Promise<boolean> {
     let offset = await sink.byteLength();
     if (offset > file.byteCount) {
       await sink.reset();
@@ -1566,7 +1570,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     if (offset === file.byteCount) {
       await sink.verifyAndPromote(file.byteCount, file.contentSha256);
       this.reportBytes(file.logicalKey, file.byteCount);
-      return;
+      return false;
     }
     this.reportBytes(file.logicalKey, offset);
     const response = await this.request(
@@ -1631,6 +1635,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       );
     }
     await sink.verifyAndPromote(file.byteCount, file.contentSha256);
+    return true;
   }
 
   private reportBytes(key: string, done: number): void {

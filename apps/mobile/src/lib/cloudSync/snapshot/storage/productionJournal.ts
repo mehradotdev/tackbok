@@ -839,11 +839,15 @@ export class ProductionSnapshotJournalStore {
       }
       let downloaded: boolean;
       try {
-        downloaded = await provider.downloadMedia(
-          this.vaultId,
-          row.blob_hash,
-          await this.mediaStore.openDownloadSink(row.blob_hash),
-        );
+        // An earlier row with the same blob leaves its verified download
+        // staged until every row that needs it has its copy.
+        downloaded =
+          this.mediaStore.stagedFile(row.blob_hash) !== null ||
+          (await provider.downloadMedia(
+            this.vaultId,
+            row.blob_hash,
+            await this.mediaStore.openDownloadSink(row.blob_hash),
+          ));
       } catch (error) {
         if (!(error instanceof MediaIntegrityError)) throw error;
         // The file is there but its bytes are wrong: that still pauses.

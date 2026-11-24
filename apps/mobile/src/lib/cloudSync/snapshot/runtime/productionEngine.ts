@@ -442,8 +442,19 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
           bytesTotal: pendingMediaBytes(waiting),
         });
       }
-      if (waiting.length >= HYDRATION_LISTING_MIN)
-        await this.mediaProvider.prepareMediaDownloads?.(this.vault.vault_id);
+      if (waiting.length >= HYDRATION_LISTING_MIN) {
+        try {
+          await this.mediaProvider.prepareMediaDownloads?.(this.vault.vault_id);
+        } catch (error) {
+          // Without a listing, each download looks its file up itself.
+          if (!(error instanceof SnapshotProviderError) || error.code !== 'transient')
+            throw error;
+          console.warn(
+            'Cloud sync could not list media files; looking each one up',
+            error,
+          );
+        }
+      }
       // The first files show at once; later ones at most every few seconds,
       // and the rest when the downloads stop.
       let refreshedAt = Number.NEGATIVE_INFINITY;
@@ -491,7 +502,7 @@ export class ProductionSnapshotRuntimeEngine implements RuntimeSyncEngine {
         const durable = this.state.loadState(this.vault.vault_id, this.vault.device_id);
         if (durable.journalGeneration > durable.settledGeneration) break;
       }
-      if (refreshOwed) await this.onRemoteApplied?.();
+      // Anything still to show is refreshed when the pass completes below.
     } catch (error) {
       // A batch can save some files before it fails; show them. A cancelled
       // pass refreshes screens on its own path.
