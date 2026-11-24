@@ -35,7 +35,7 @@ import {
   getRelativeAssetFile,
   saveOrShareZipFile,
 } from './utils';
-import { stringifyArrayInPieces } from './jsonInPieces';
+import { FILES_PER_PAUSE, pauseForApp, stringifyArrayInPieces } from './jsonInPieces';
 
 export async function exportToBackupZip(): Promise<void> {
   const [allEntries, allTags, allPrompts, allMedia, allEntryTags, profileRows] =
@@ -124,6 +124,9 @@ export async function exportToBackupZip(): Promise<void> {
     // Opportunistically remove older shared backups that were kept around to avoid the iOS share race.
     cleanupDeferredBackupZipFiles();
 
+    // Local files are added without waiting on anything real, so 1,590 of them
+    // held a low-end Android phone for ~4 s in one go (#185 P15).
+    let added = 0;
     for (const entry of portableEntries) {
       const exportedAssets: PortableEntry['assets'] = [];
 
@@ -139,6 +142,7 @@ export async function exportToBackupZip(): Promise<void> {
 
         try {
           await zip.addFile(asset.path, sourceFile);
+          if (++added % FILES_PER_PAUSE === 0) await pauseForApp();
           exportedAssets.push(asset);
 
           if (asset.path.startsWith(`${BACKUP_MEDIA_PREFIX}/photos/`)) {

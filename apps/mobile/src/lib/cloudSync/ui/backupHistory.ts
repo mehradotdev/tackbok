@@ -7,7 +7,11 @@
  * the backup's ("overwrite"). The import writes them as this device's edits,
  * so they reach every device by the ordinary sync.
  */
-import { stringifyArrayInPieces } from '~/lib/backupExport/jsonInPieces';
+import {
+  FILES_PER_PAUSE,
+  pauseForApp,
+  stringifyArrayInPieces,
+} from '~/lib/backupExport/jsonInPieces';
 import { Directory, File, Paths } from 'expo-file-system';
 import { and, eq } from 'drizzle-orm';
 import { cloudSyncState, cloudVault, db, userProfile } from '~/db';
@@ -213,6 +217,7 @@ export async function buildBackupHistoryArchive(
       if (!source) continue;
       await zip.addFile(media.path, source);
       written.add(media.path);
+      if (written.size % FILES_PER_PAUSE === 0) await pauseForApp();
       // A download is in the archive now: free its space before the next.
       if (source.uri.startsWith(downloads.uri) && source.exists) source.delete();
     }

@@ -1,7 +1,11 @@
 /** Items stringified between pauses. */
 const ITEMS_PER_PIECE = 250;
 
-const pauseForApp = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+/** Lets the app respond between pieces of a long export step. */
+export const pauseForApp = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+/** Files added to an export's ZIP between pauses. */
+export const FILES_PER_PAUSE = 50;
 
 /**
  * `JSON.stringify(items, null, 2)`, a few hundred items at a time with a pause
