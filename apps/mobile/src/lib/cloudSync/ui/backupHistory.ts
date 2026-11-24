@@ -8,7 +8,8 @@
  * so they reach every device by the ordinary sync.
  */
 import { Directory, File, Paths } from 'expo-file-system';
-import { cloudVault, db, userProfile } from '~/db';
+import { and, eq } from 'drizzle-orm';
+import { cloudSyncState, cloudVault, db, userProfile } from '~/db';
 import { useSettingsStore } from '~/lib/settings';
 import { createExpoZipWriter } from '~/lib/zip';
 import {
@@ -31,7 +32,11 @@ import { ProductionSnapshotMediaStore } from '../snapshot/storage';
 import { backupHistory } from '../snapshot/sync/retention';
 import { MediaIntegrityError, type SnapshotProvider } from '../snapshot/sync/types';
 import { nativeCodecWork } from '../snapshot/runtime/nativeSha256';
-import { decodeEnvelopeAsync } from '../v2/codec';
+import {
+  SnapshotUpdateRequiredError,
+  decodeEnvelopeAsync,
+  headUpdateReason,
+} from '../v2/codec';
 import { configuredDriveProvider } from './production';
 
 export interface BackupHistoryItem {
@@ -42,7 +47,9 @@ export interface BackupHistoryItem {
 
 /** Why an earlier backup could not be read. */
 export class BackupHistoryError extends Error {
-  constructor(readonly reason: 'not-configured' | 'backup-gone' | 'unreadable') {
+  constructor(
+    readonly reason: 'not-configured' | 'backup-gone' | 'unreadable' | 'update-required',
+  ) {
     super(`Backup history: ${reason}`);
     this.name = 'BackupHistoryError';
   }
@@ -52,6 +59,41 @@ async function configuredVault(): Promise<string> {
   const [vault] = await db.select().from(cloudVault).limit(1);
   if (!vault?.remote_root_id) throw new BackupHistoryError('not-configured');
   return vault.vault_id;
+}
+
+/**
+ * Refuses a vault a newer Tackbok has written to (#251): sync is paused for
+ * an update, or a head carries a newer major version or a required feature
+ * this build lacks. Such a version may keep data, such as photos, where this
+ * one cannot see it, so even an older backup would come back incomplete,
+ * with its photos counted as gone.
+ */
+async function assertReadableByThisVersion(
+  provider: SnapshotProvider,
+  vaultId: string,
+): Promise<void> {
+  const [vault] = await db
+    .select({ deviceId: cloudVault.device_id })
+    .from(cloudVault)
+    .where(eq(cloudVault.vault_id, vaultId))
+    .limit(1);
+  const [state] = vault
+    ? await db
+        .select({ pauseReason: cloudSyncState.pause_reason })
+        .from(cloudSyncState)
+        .where(
+          and(
+            eq(cloudSyncState.vault_id, vaultId),
+            eq(cloudSyncState.device_id, vault.deviceId),
+          ),
+        )
+        .limit(1)
+    : [];
+  if (state?.pauseReason === 'unsupported-format')
+    throw new BackupHistoryError('update-required');
+  const heads = await provider.listHeads(vaultId, true);
+  if (heads.some(({ head }) => headUpdateReason(head) !== null))
+    throw new BackupHistoryError('update-required');
 }
 
 /** One backup a day for the last 30 days, newest first. */
@@ -126,6 +168,8 @@ export async function buildBackupHistoryArchive(
 ): Promise<BackupHistoryArchive> {
   const vaultId = await configuredVault();
   const provider = deps.provider ?? (await configuredDriveProvider());
+  // Before anything is downloaded: nothing is exported or restored partly.
+  await assertReadableByThisVersion(provider, vaultId);
   const bytes = await provider.downloadSnapshot(vaultId, snapshotId);
   if (!bytes) throw new BackupHistoryError('backup-gone');
   let state;
@@ -133,7 +177,9 @@ export async function buildBackupHistoryArchive(
     const decoded = await decodeEnvelopeAsync(bytes, snapshotId, nativeCodecWork);
     if (decoded.header.vaultId !== vaultId) throw new Error('other vault');
     state = decoded.state;
-  } catch {
+  } catch (error) {
+    if (error instanceof SnapshotUpdateRequiredError)
+      throw new BackupHistoryError('update-required');
     throw new BackupHistoryError('unreadable');
   }
   const [profileRow] = await db

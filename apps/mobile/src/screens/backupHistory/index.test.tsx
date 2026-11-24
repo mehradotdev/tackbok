@@ -231,6 +231,27 @@ test('a backup that is gone says so and reloads the list', async () => {
   expect(mockSelectArchive).not.toHaveBeenCalled();
 });
 
+test('a backup that needs a newer Tackbok asks for the update, for export and restore', async () => {
+  const { BackupHistoryError } = jest.requireMock('~/lib/cloudSync/ui/backupHistory');
+  mockExport.mockRejectedValueOnce(new BackupHistoryError('update-required'));
+  mockBuild.mockRejectedValueOnce(new BackupHistoryError('update-required'));
+  render({ data: items });
+  await act(async () => buttons(mockEn['cloud.history.export'])[0].props.onPress());
+  act(() => buttons(mockEn['cloud.history.restore'])[0].props.onPress());
+  act(() => root.root.findByType('AlertDialogAction' as never).props.onPress());
+  await flush();
+  expect(mockToastError).toHaveBeenCalledTimes(2);
+  expect(mockToastError).toHaveBeenNthCalledWith(
+    1,
+    mockEn['cloud.updateToUseThisBackup'],
+  );
+  expect(mockToastError).toHaveBeenNthCalledWith(
+    2,
+    mockEn['cloud.updateToUseThisBackup'],
+  );
+  expect(mockSelectArchive).not.toHaveBeenCalled();
+});
+
 test('the archive is deleted once the import has run, whatever its outcome', async () => {
   render({ data: items });
   act(() => buttons(mockEn['cloud.history.restore'])[0].props.onPress());

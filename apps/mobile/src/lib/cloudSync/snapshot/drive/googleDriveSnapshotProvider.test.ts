@@ -1251,6 +1251,7 @@ describe('GoogleDriveSnapshotProvider', () => {
         { vaultId: newerVault, updatedAt: 20 },
         { vaultId: olderVault, updatedAt: 10 },
       ],
+      updateRequiredVaults: [],
       unreadableVaultIds: ['vault-invalid'],
     });
   });
@@ -1258,6 +1259,7 @@ describe('GoogleDriveSnapshotProvider', () => {
   test('vault discovery reports an empty account as having no backups', async () => {
     await expect(provider(new FakeDriveServer()).listAvailableVaults()).resolves.toEqual({
       vaults: [],
+      updateRequiredVaults: [],
       unreadableVaultIds: [],
     });
   });
@@ -1281,6 +1283,7 @@ describe('GoogleDriveSnapshotProvider', () => {
 
     await expect(provider(server).listAvailableVaults()).resolves.toEqual({
       vaults: [],
+      updateRequiredVaults: [],
       unreadableVaultIds: ['vault-garbled', 'vault-not-canonical'],
     });
   });
@@ -1314,7 +1317,47 @@ describe('GoogleDriveSnapshotProvider', () => {
 
     await expect(provider(server).listAvailableVaults()).resolves.toEqual({
       vaults: [{ vaultId: 'vault-readable', updatedAt: 30 }],
+      updateRequiredVaults: [],
       unreadableVaultIds: ['vault-broken'],
+    });
+  });
+
+  test('vault discovery marks a backup with a newer head as needing an update', async () => {
+    const server = new FakeDriveServer();
+    const seedHead = (vault: string, device: string, fields: Record<string, unknown>) =>
+      server.seed(
+        vault,
+        `heads/${device}.json`,
+        'head',
+        encodeCanonicalBytes({
+          ...head(device, 1, '8'.repeat(64)),
+          vaultId: vault,
+          ...fields,
+        }),
+      );
+    seedHead('vault-readable', 'device-a', { updatedAt: 40 });
+    // One device of this backup writes a feature this build lacks; its other,
+    // readable head does not make it restorable: sync would pause on the first.
+    seedHead('vault-packs', 'device-b', { updatedAt: 50 });
+    seedHead('vault-packs', 'device-c', { updatedAt: 60, required: ['media-packs'] });
+    seedHead('vault-major', 'device-d', { updatedAt: 70, major: 3 });
+    seedHead('vault-format', 'device-f', { updatedAt: 80, format: 'tackbok-head-v9' });
+    // A stray head naming another vault doesn't hide this readable one.
+    seedHead('vault-readable', 'device-g', {
+      vaultId: 'vault-elsewhere',
+      required: ['media-packs'],
+    });
+    // A head of another format (1.x) stays unreadable, as before.
+    seedHead('vault-old', 'device-e', { format: 'tackbok-device-head' });
+
+    await expect(provider(server).listAvailableVaults()).resolves.toEqual({
+      vaults: [{ vaultId: 'vault-readable', updatedAt: 40 }],
+      updateRequiredVaults: [
+        { vaultId: 'vault-format', updatedAt: 80 },
+        { vaultId: 'vault-major', updatedAt: 70 },
+        { vaultId: 'vault-packs', updatedAt: 60 },
+      ],
+      unreadableVaultIds: ['vault-old'],
     });
   });
 
@@ -2634,6 +2677,46 @@ describe('GoogleDriveSnapshotProvider', () => {
     expect([...server.files.values()].map((file) => file.appProperties.tb_kind)).toEqual([
       'revocation',
     ]);
+  });
+
+  test("a later build's pack file (#251) is ignored by everything but the purge", async () => {
+    const server = new FakeDriveServer();
+    const app = provider(server);
+    const bytes = new TextEncoder().encode('synthetic-pack');
+    const hash = sha256Bytes(bytes);
+    // Named like a blob too, so only its kind keeps it apart.
+    const pack = server.seed(vaultId, `packs/${hash}`, 'pack' as DriveObjectKind, bytes);
+    const loose = server.seed(
+      vaultId,
+      `media/${hash.slice(0, 2)}/${hash}`,
+      'pack' as DriveObjectKind,
+      bytes,
+    );
+    const sink = {
+      byteLength: async () => 0,
+      appendAndSync: async () => {
+        throw new Error('nothing should be downloaded');
+      },
+      reset: async () => {},
+      verifyAndPromote: async () => {},
+    };
+
+    expect(await app.listMedia(vaultId)).toEqual([]);
+    await app.prepareMediaDownloads(vaultId);
+    expect(await app.hasMediaBatch(vaultId, [hash])).toEqual(new Set());
+    expect(await app.hasMediaBatch(vaultId, [hash], true)).toEqual(new Set());
+    expect(await app.downloadMedia(vaultId, hash, sink)).toBe(false);
+    expect(await app.deleteMedia(vaultId, hash, Date.parse('2100-01-01'))).toBe(false);
+    expect(await app.listSnapshots(vaultId)).toEqual([]);
+    expect(await app.listHeads(vaultId, true)).toEqual([]);
+    expect(server.files.has(pack.id) && server.files.has(loose.id)).toBe(true);
+
+    await app.publishRevocation(vaultId, 'backup-deleted');
+    await expect(app.purgeRevokedVault(vaultId)).resolves.toEqual({
+      deleted: 2,
+      remaining: 0,
+    });
+    expect(server.files.has(pack.id) || server.files.has(loose.id)).toBe(false);
   });
 
   test('request reports reject credentials and provider identifiers', () => {

@@ -1088,6 +1088,7 @@ export const ar: Translations = {
     'عثر Tackbok على نسخة احتياطية في حساب Google هذا لكنه تعذّرت عليه قراءتها. قد يساعد تحديث Tackbok. يمكنك أيضًا إنشاء نسخة احتياطية جديدة لدفتر اليوميات هذا.',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     'تعذّرت قراءة بعض النسخ الاحتياطية في هذا الحساب. قد يساعد تحديث Tackbok.',
+  'cloud.updateToUseThisBackup': 'حدّث Tackbok لاستخدام هذه النسخة الاحتياطية.',
   'cloud.cloudDeletionCompleted': 'اكتمل الحذف السحابي',
   'cloud.cloudBackupRetryCompleted': 'اكتملت إعادة محاولة النسخ السحابي',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

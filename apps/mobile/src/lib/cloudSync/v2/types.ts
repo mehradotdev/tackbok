@@ -125,7 +125,11 @@ export interface ProfileRecord {
   readonly photo: MultiValue<string | null>;
 }
 
-/** Immutable once published; identified by `assetId`. */
+/**
+ * Immutable once published; identified by `assetId`. The bytes are named by
+ * `blobHash` alone: never put a storage location (a Drive file, a pack and
+ * offset) here or in `ext`. Storage can move (#251); a descriptor cannot.
+ */
 export interface MediaDescriptor {
   readonly assetId: string;
   readonly ownerType: 'entry' | 'profile';

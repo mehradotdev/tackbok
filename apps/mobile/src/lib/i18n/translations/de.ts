@@ -1168,6 +1168,7 @@ export const de: Translations = {
     'Tackbok hat in diesem Google-Konto eine Sicherung gefunden, konnte sie aber nicht lesen. Ein Update von Tackbok kann helfen. Du kannst auch eine neue Sicherung für dieses Tagebuch erstellen.',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     'Einige Sicherungen in diesem Konto konnten nicht gelesen werden. Ein Update von Tackbok kann helfen.',
+  'cloud.updateToUseThisBackup': 'Aktualisiere Tackbok, um diese Sicherung zu verwenden.',
   'cloud.cloudDeletionCompleted': 'Cloud-Löschung abgeschlossen',
   'cloud.cloudBackupRetryCompleted': 'Erneuter Sicherungsversuch abgeschlossen',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

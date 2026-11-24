@@ -1055,6 +1055,8 @@ export const sv = {
     'Tackbok hittade en säkerhetskopia i det här Google-kontot men kunde inte läsa den. Det kan hjälpa att uppdatera Tackbok. Du kan också skapa en ny säkerhetskopia för den här dagboken.',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     'Vissa säkerhetskopior i det här kontot kunde inte läsas. Det kan hjälpa att uppdatera Tackbok.',
+  'cloud.updateToUseThisBackup':
+    'Uppdatera Tackbok för att använda den här säkerhetskopian.',
   'cloud.cloudDeletionCompleted': 'Molnradering slutförd',
   'cloud.cloudBackupRetryCompleted': 'Molnsäkerhetskopiering har slutförts igen',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

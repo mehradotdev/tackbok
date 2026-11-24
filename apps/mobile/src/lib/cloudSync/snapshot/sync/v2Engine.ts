@@ -67,8 +67,9 @@ import {
 } from '../../storage/v2State';
 import { ClockAheadError, MAX_CONTEXT_AHEAD_MS } from '../../v2/clock';
 import {
-  KNOWN_REQUIRED_FEATURES,
+  HEAD_FORMAT,
   SNAPSHOT_MAJOR,
+  headUpdateReason,
   SnapshotUpdateRequiredError,
   type CodecWork,
   SnapshotHashUnavailableError,
@@ -118,7 +119,6 @@ import {
   type SnapshotSyncResult,
 } from './types';
 
-export const HEAD_FORMAT = 'tackbok-head';
 /** How long other devices' writes may wait for this device's acknowledgement. */
 export const ACK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Local writes during a pass make the apply refuse; it captures and joins again. */
@@ -736,22 +736,8 @@ export class V2SyncEngine {
         typeof value === 'object' && value !== null && !Array.isArray(value)
           ? (value as Record<string, unknown>)
           : null;
-      if (record) {
-        if (record.format !== HEAD_FORMAT)
-          throw new AttentionError(
-            'unsupported-format',
-            'unsupported-device-head-format',
-          );
-        if (isCount(record.major) && record.major !== SNAPSHOT_MAJOR)
-          throw new AttentionError('unsupported-format', 'remote-format-version');
-        if (
-          Array.isArray(record.required) &&
-          record.required.some(
-            (feature) => !KNOWN_REQUIRED_FEATURES.includes(String(feature)),
-          )
-        )
-          throw new AttentionError('unsupported-format', 'remote-required-feature');
-      }
+      const newer = headUpdateReason(record);
+      if (newer) throw new AttentionError('unsupported-format', newer);
       const head = record ? headShape(record) : null;
       if (!head || head.vaultId !== this.vaultId) {
         unreadable.push({

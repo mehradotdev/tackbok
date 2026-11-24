@@ -14,6 +14,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -23,6 +24,7 @@ import { join } from 'node:path';
 
 import { expoFiles } from '../cloud-sync/sim/expoFiles';
 import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
+import { canonicalize } from '../../src/lib/cloudSync/snapshot/canonical';
 
 import {
   BunSyncDatabase,
@@ -97,7 +99,7 @@ const { SQLiteSyncStateStore } =
   await import('../../src/lib/cloudSync/snapshot/sync/sqliteState');
 const { V2SyncEngine } = await import('../../src/lib/cloudSync/snapshot/sync/v2Engine');
 const { simMediaFiles } = await import('../cloud-sync/sim/v2StoreAdapter');
-const { buildBackupHistoryArchive } =
+const { BackupHistoryError, buildBackupHistoryArchive } =
   await import('../../src/lib/cloudSync/ui/backupHistory');
 const { importFromTackbokBackup } =
   await import('../../src/lib/backupImport/import/tackbok');
@@ -345,5 +347,117 @@ describe('end to end: an archive built from a backup, read back by the import', 
     expect(archive.missingMedia).toBe(1);
     expect(texts(a)).toContain('e1:With a photo');
     expect(ids(a, "SELECT asset_id FROM media_assets WHERE owner_id = 'e1'")).toEqual([]);
+  });
+
+  describe('a backup a newer Tackbok has written to (#251)', () => {
+    /** Another device's head, as a build with a feature this one lacks writes it. */
+    const newerHead = (fields: Record<string, unknown>) =>
+      provider.injectPhysicalHead({
+        format: 'tackbok-head',
+        major: 2,
+        required: [],
+        vaultId: VAULT,
+        deviceId: 'newer-device',
+        deviceSequence: 1,
+        snapshotId: 'f'.repeat(64),
+        updatedAt: clock,
+        ...fields,
+      } as never);
+    const archives = () =>
+      existsSync(join(FILES, 'cache'))
+        ? readdirSync(join(FILES, 'cache')).filter((name) => name.endsWith('.zip'))
+        : [];
+
+    test.each([
+      ['export', 'a required feature', { required: ['media-packs'] }],
+      ['restore', 'a required feature', { required: ['media-packs'] }],
+      ['restore', 'a newer major version', { major: 3 }],
+    ] as const)(
+      '%s of an older backup is refused, with %s on a head, before anything is downloaded',
+      async (purpose, _name, fields) => {
+        const { a, backup } = await journalWithHistory();
+        newerHead(fields);
+        clock += 1000;
+        const before = texts(a);
+        const made = provider.requests.length;
+        const refused = await devices.on(a.database, clock, () =>
+          buildBackupHistoryArchive(backup, purpose, {
+            provider,
+            localFile: async () => null,
+          }).then(
+            () => null,
+            (error: unknown) => error,
+          ),
+        );
+        expect(refused).toBeInstanceOf(BackupHistoryError);
+        expect((refused as InstanceType<typeof BackupHistoryError>).reason).toBe(
+          'update-required',
+        );
+        const requested = provider.requests.slice(made);
+        expect(requested).not.toContain('download-snapshot');
+        expect(requested).not.toContain('download-media');
+        // No archive, so nothing for the import to read: the journal is untouched.
+        expect(archives()).toEqual([]);
+        expect(texts(a)).toEqual(before);
+      },
+    );
+
+    test('a pause for an update refuses it too, before anything is downloaded', async () => {
+      const { a, backup } = await journalWithHistory();
+      // Keyed by the vault row's device ID ('unused' in this fixture), as
+      // production reads the pause.
+      a.database.sqlite.run(
+        `INSERT INTO cloud_sync_state (vault_id, device_id, pause_reason, updated_at)
+           VALUES (?, 'unused', 'unsupported-format', ?)
+         ON CONFLICT (vault_id, device_id) DO UPDATE SET pause_reason = excluded.pause_reason`,
+        [VAULT, T],
+      );
+      const made = provider.requests.length;
+      await expect(
+        devices.on(a.database, clock, () =>
+          buildBackupHistoryArchive(backup, 'export', {
+            provider,
+            localFile: async () => null,
+          }),
+        ),
+      ).rejects.toMatchObject({ reason: 'update-required' });
+      expect(provider.requests.slice(made)).not.toContain('download-snapshot');
+    });
+
+    test('a chosen snapshot that itself requires a newer Tackbok is refused before any media', async () => {
+      const { a, backup } = await journalWithHistory();
+      // The same backup, as a build with a required feature would label it.
+      const bytes = provider.snapshotBytesForTest(VAULT, backup)!;
+      const split = bytes.indexOf(0x0a);
+      const header = JSON.parse(new TextDecoder().decode(bytes.subarray(0, split)));
+      header.features = { required: ['media-packs'], optional: [] };
+      const newHeader = new TextEncoder().encode(canonicalize(header));
+      const newer = new Uint8Array(newHeader.length + bytes.length - split);
+      newer.set(newHeader);
+      newer.set(bytes.subarray(split), newHeader.length);
+      const newerId = sha256Bytes(newHeader);
+      provider.injectSnapshot(VAULT, newerId, newer, clock);
+      const made = provider.requests.length;
+      await expect(
+        devices.on(a.database, clock, () =>
+          buildBackupHistoryArchive(newerId, 'restore', {
+            provider,
+            localFile: async () => null,
+          }),
+        ),
+      ).rejects.toMatchObject({ reason: 'update-required' });
+      expect(provider.requests.slice(made)).not.toContain('download-media');
+      expect(archives()).toEqual([]);
+    });
+
+    test('a readable head from another device changes nothing', async () => {
+      const { a, backup } = await journalWithHistory();
+      newerHead({ required: [] });
+      clock += 1000;
+      const { archive, summary } = await restoreThroughArchive(a, backup, 'skip');
+      expect(archive.missingMedia).toBe(0);
+      expect(summary.failedAssets).toBe(0);
+      expect(texts(a)).toContain('e1:With a photo');
+    });
   });
 });

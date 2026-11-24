@@ -17,6 +17,7 @@ const mockRestart = jest.fn(async () => {
 });
 let mockVaults: { vaultId: string; updatedAt: number }[] = [];
 let mockUnreadable: string[] = [];
+let mockUpdateRequired: { vaultId: string; updatedAt: number }[] = [];
 const mockSettings: {
   setCloudRestore: jest.Mock;
   setHasCompletedOnboarding: jest.Mock;
@@ -130,6 +131,7 @@ jest.mock('../snapshot/drive', () => ({
   GoogleDriveSnapshotProvider: jest.fn(() => ({
     listAvailableVaults: async () => ({
       vaults: mockVaults,
+      updateRequiredVaults: mockUpdateRequired,
       unreadableVaultIds: mockUnreadable,
     }),
   })),
@@ -155,6 +157,7 @@ beforeEach(async () => {
   delete mockSettings.cloudRestore;
   mockVaults = [];
   mockUnreadable = [];
+  mockUpdateRequired = [];
   mockRows.length = 0;
   mockStatuses.length = 0;
   mockEvents.length = 0;
@@ -240,6 +243,28 @@ test('setup counts unreadable backups apart from restorable ones', async () => {
     // Leftover probe backups stay hidden, readable or not.
     unreadableBackupCount: 1,
   });
+});
+
+test('a backup that needs a newer Tackbok is listed apart and cannot be chosen', async () => {
+  mockVaults = [{ vaultId: 'vault-a', updatedAt: 1 }];
+  mockUpdateRequired = [
+    { vaultId: 'vault-newer', updatedAt: 2 },
+    { vaultId: 'probe-newer', updatedAt: 3 },
+  ];
+  const connection = await prepareGoogleDriveConnection();
+  expect(connection).toMatchObject({
+    availableVaults: [{ vaultId: 'vault-a', updatedAt: 1 }],
+    updateRequiredVaults: [{ vaultId: 'vault-newer', updatedAt: 2 }],
+    unreadableBackupCount: 0,
+  });
+  await expect(
+    completeGoogleDriveConnection({
+      origin: 'settings',
+      connection,
+      vaultId: 'vault-newer',
+    }),
+  ).rejects.toThrow('Choose a cloud backup');
+  expect(mockRestart).not.toHaveBeenCalled();
 });
 
 test('failed vault selection never restarts the runtime', async () => {
