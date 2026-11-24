@@ -13,6 +13,10 @@ const mockUpdateProfileInTransaction = jest.fn(
 const mockSetProfileEmail = jest.fn(async (_email: string | null) => undefined);
 const mockSetState = jest.fn((_state: unknown) => undefined);
 const mockCleanupImportedFiles = jest.fn((_relativeUris: string[]): void => {});
+const mockZip = { close: async () => undefined };
+const mockReadSafeZipBytes = jest.fn(
+  async (_zip: unknown, _path: string): Promise<Uint8Array> => new Uint8Array(),
+);
 const mockProfile = {
   name: 'Mehra' as string | null,
   hasEmail: false,
@@ -53,12 +57,16 @@ jest.mock('~/lib/cloudSync/storage/repositories', () => ({
     mockUpdateProfileInTransaction(txArg, profile),
 }));
 
+// Native-backed modules the real `readSafeZipBytes` module loads.
+jest.mock('~/lib/photoUtils', () => ({ deletePhotoFile: () => {} }));
+jest.mock('~/lib/voiceMemoUtils', () => ({ deleteVoiceMemoFile: () => {} }));
+
 jest.mock('../archiveUtils', () => ({
   cleanupImportedFiles: (relativeUris: string[]) =>
     mockCleanupImportedFiles(relativeUris),
   isZipFile: () => true,
-  loadZipFromUri: async () => ({ close: async () => undefined }),
-  readSafeZipBytes: async () => new Uint8Array(),
+  loadZipFromUri: async () => mockZip,
+  readSafeZipBytes: (zip: unknown, path: string) => mockReadSafeZipBytes(zip, path),
   writeImportedPhoto: async () => ({ uri: 'photos/imported.jpg' }),
 }));
 
@@ -84,6 +92,44 @@ describe('importFromGratitudeAppBackup profile photo', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it('skips a profile photo over the import cap without reading it', async () => {
+    const { readSafeZipBytes, MAX_IMPORT_ASSET_BYTES } =
+      jest.requireActual<typeof import('../archiveUtils')>('../archiveUtils');
+    const size = BigInt(MAX_IMPORT_ASSET_BYTES + 1);
+    const readEntryBytes = jest.fn(async () => new Uint8Array([1]));
+    mockReadSafeZipBytes.mockImplementationOnce((_zip, path) =>
+      readSafeZipBytes(
+        {
+          getEntryInfo: () => ({
+            path,
+            compressedSize: size,
+            uncompressedSize: size,
+            compressionMethod: 0,
+            isEncrypted: false,
+          }),
+          readEntryBytes,
+        } as never,
+        path,
+      ),
+    );
+
+    const summary = await importFromGratitudeAppBackup('backup.zip', 'skip');
+
+    expect(readEntryBytes).not.toHaveBeenCalled();
+    expect(summary.failedProfileAssets).toBe(1);
+    expect(summary.warnings).toEqual([
+      expect.objectContaining({ kind: 'profile-asset', assetPath: 'profile.jpg' }),
+    ]);
+    // The name still imports; no photo is written.
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(tx, {
+      displayName: 'Mehra',
+    });
+    expect(mockUpdateProfileInTransaction).not.toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ photoUri: expect.anything() }),
+    );
   });
 
   it('keeps the committed profile photo when the cache refresh fails', async () => {

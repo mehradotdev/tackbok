@@ -320,6 +320,46 @@ describe('importFromTackbokBackup', () => {
     warnSpy.mockRestore();
   });
 
+  test.each([
+    ['over the import cap is skipped without being read', 1, 1, 0],
+    ['over the cap only when unpacked is skipped', 0, 1, 0],
+    ['over the cap only as stored is skipped', 1, 0, 0],
+    ['at the import cap is imported', 0, 0, 1],
+  ])('a profile photo %s', async (_name, storedOver, unpackedOver, reads) => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    const { readSafeZipBytes, MAX_IMPORT_ASSET_BYTES } =
+      jest.requireActual<typeof import('../archiveUtils')>('../archiveUtils');
+    const over = reads ? 0 : 1;
+    const readEntryBytes = jest.fn(async (_path: string) => new Uint8Array([1, 2, 3]));
+    mockLoadZipFromUri.mockResolvedValue({
+      close: jest.fn(async () => undefined),
+      getEntryInfo: (path: string) => ({
+        path,
+        compressedSize: BigInt(MAX_IMPORT_ASSET_BYTES + storedOver),
+        uncompressedSize: BigInt(MAX_IMPORT_ASSET_BYTES + unpackedOver),
+        compressionMethod: 0,
+        isEncrypted: false,
+      }),
+      readEntryBytes,
+    } as never);
+    mockReadSafeZipBytes.mockImplementation(readSafeZipBytes as never);
+    mockWriteImportedPhoto.mockReset();
+    mockWriteImportedPhoto.mockResolvedValue({ uri: 'photos/imported.jpg' });
+
+    const summary = await importFromTackbokBackup('backup.zip', 'overwrite');
+
+    expect(readEntryBytes).toHaveBeenCalledTimes(reads);
+    expect(summary.failedProfileAssets).toBe(over);
+    // The entries import either way.
+    expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
+    expect(mockUpdateProfileInTransaction).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({ photoUri: over ? null : 'photos/imported.jpg' }),
+      expect.anything(),
+    );
+    warnSpy.mockRestore();
+  });
+
   test('trims the imported display name', async () => {
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     mockReadSafeZipJson.mockReset();
