@@ -386,7 +386,7 @@ export const en = {
   // Android only, under Settings › Backup & restore: Android's own phone-to-phone
   // transfer does not include the journal.
   'backup.movingPhonesAndroid':
-    'Moving to a new phone? Turn on cloud backup or export a ZIP first. Android doesn’t move your journal on its own.',
+    'Moving to a new phone? Turn on cloud backup and let it finish, or export a ZIP first. Android doesn’t move your journal on its own.',
   'backup.allOfYourDataInAFormatThatYouCan':
     'All of your data in a format that you can restore in the app later',
   'backup.importAsZip': 'Import from ZIP',

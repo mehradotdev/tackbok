@@ -405,7 +405,7 @@ export const de: Translations = {
   'backup.googleDriveBackup': 'Google-Drive-Sicherung',
   'backup.exportAsZip': 'Als ZIP exportieren',
   'backup.movingPhonesAndroid':
-    'Neues Handy? Schalte vorher die Cloud-Sicherung ein oder exportiere eine ZIP-Datei. Android überträgt dein Tagebuch nicht von selbst.',
+    'Neues Handy? Schalte vorher die Cloud-Sicherung ein und warte, bis sie fertig ist, oder exportiere eine ZIP-Datei. Android überträgt dein Tagebuch nicht von selbst.',
   'backup.allOfYourDataInAFormatThatYouCan':
     'Alle deine Daten in einem Format, das du später in der App wiederherstellen kannst',
   'backup.importAsZip': 'Aus ZIP importieren',

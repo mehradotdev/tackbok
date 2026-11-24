@@ -362,7 +362,7 @@ export const ar: Translations = {
   'backup.googleDriveBackup': 'نسخ احتياطي على Google Drive',
   'backup.exportAsZip': 'تصدير بصيغة ZIP',
   'backup.movingPhonesAndroid':
-    'هل ستنتقل إلى هاتف جديد؟ فعّل النسخ الاحتياطي السحابي أو صدّر ملف ZIP أولًا. لا ينقل Android دفتر اليوميات تلقائيًا.',
+    'هل ستنتقل إلى هاتف جديد؟ فعّل النسخ الاحتياطي السحابي أولًا وانتظر حتى يكتمل، أو صدّر ملف ZIP. لا ينقل نظام Android دفتر اليوميات تلقائيًا.',
   'backup.allOfYourDataInAFormatThatYouCan':
     'جميع بياناتك بتنسيق يمكنك استعادته في التطبيق لاحقاً',
   'backup.importAsZip': 'استيراد من ملف ZIP',

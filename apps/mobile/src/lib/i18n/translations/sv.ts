@@ -330,7 +330,7 @@ export const sv = {
   'backup.googleDriveBackup': 'Google Drive-säkerhetskopia',
   'backup.exportAsZip': 'Exportera som ZIP',
   'backup.movingPhonesAndroid':
-    'Byter du telefon? Slå på molnsäkerhetskopiering eller exportera en ZIP-fil först. Android flyttar inte din dagbok av sig själv.',
+    'Byter du telefon? Slå först på molnsäkerhetskopiering och vänta tills den är klar, eller exportera en ZIP-fil. Android flyttar inte din dagbok av sig själv.',
   'backup.allOfYourDataInAFormatThatYouCan':
     'All din data i ett format som du kan återställa i appen senare',
   'backup.importAsZip': 'Importera från ZIP',
