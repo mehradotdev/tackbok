@@ -186,6 +186,9 @@ export function isTrustedDriveResumableUri(uri: string): boolean {
   }
 }
 
+/** The head format of a 1.x device: a backup this build can't read, ever. */
+const LEGACY_HEAD_FORMAT = 'tackbok-device-head';
+
 /**
  * A file whose `tb_kind` is not one of these (such as a later build's
  * `pack`, #251) is ignored: never listed, read or deleted, except by
@@ -371,13 +374,22 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         this.state.removeFile(vaultId, file.id);
         record = null;
       }
-      // Only a 2.x backup can be restored here: a 1.x device's head (or a
-      // newer format) makes its vault unreadable to this build. A 2.x head
-      // with a newer major version or an unknown required feature needs an update.
-      const head = record?.head as { format?: unknown } | null | undefined;
-      if (head?.format === HEAD_FORMAT && headUpdateReason(head)) {
+      // Only a 2.x backup can be restored here: a 1.x device's head makes its
+      // vault unreadable to this build. Any other head sync would pause on (a
+      // newer format or major version, or an unknown required feature) means
+      // the vault needs an update, as one such head pauses the whole vault.
+      const head = record?.head as
+        | { format?: unknown; vaultId?: unknown; updatedAt?: unknown }
+        | null
+        | undefined;
+      if (
+        head &&
+        head.format !== LEGACY_HEAD_FORMAT &&
+        (head.vaultId === undefined || head.vaultId === vaultId) &&
+        headUpdateReason(head)
+      ) {
         updateRequired.add(vaultId);
-        const { updatedAt } = head as { updatedAt?: unknown };
+        const { updatedAt } = head;
         if (typeof updatedAt === 'number' && Number.isSafeInteger(updatedAt))
           newest.set(vaultId, Math.max(newest.get(vaultId) ?? 0, updatedAt));
         continue;

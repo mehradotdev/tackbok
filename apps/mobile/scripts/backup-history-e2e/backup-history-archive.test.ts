@@ -403,6 +403,8 @@ describe('end to end: an archive built from a backup, read back by the import', 
 
     test('a pause for an update refuses it too, before anything is downloaded', async () => {
       const { a, backup } = await journalWithHistory();
+      // Keyed by the vault row's device ID ('unused' in this fixture), as
+      // production reads the pause.
       a.database.sqlite.run(
         `INSERT INTO cloud_sync_state (vault_id, device_id, pause_reason, updated_at)
            VALUES (?, 'unused', 'unsupported-format', ?)

@@ -1152,6 +1152,7 @@ function ConnectionChoice({
       <View
         key={vault.vaultId}
         accessible
+        accessibilityRole="text"
         accessibilityLabel={`${label}. ${t('cloud.updateToUseThisBackup')}`}
         className="w-full rounded-md border border-border px-4 py-3 gap-0.5">
         <Text className="font-body-bold text-foreground">{label}</Text>

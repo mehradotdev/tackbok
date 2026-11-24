@@ -1341,12 +1341,19 @@ describe('GoogleDriveSnapshotProvider', () => {
     seedHead('vault-packs', 'device-b', { updatedAt: 50 });
     seedHead('vault-packs', 'device-c', { updatedAt: 60, required: ['media-packs'] });
     seedHead('vault-major', 'device-d', { updatedAt: 70, major: 3 });
+    seedHead('vault-format', 'device-f', { updatedAt: 80, format: 'tackbok-head-v9' });
+    // A stray head naming another vault doesn't hide this readable one.
+    seedHead('vault-readable', 'device-g', {
+      vaultId: 'vault-elsewhere',
+      required: ['media-packs'],
+    });
     // A head of another format (1.x) stays unreadable, as before.
     seedHead('vault-old', 'device-e', { format: 'tackbok-device-head' });
 
     await expect(provider(server).listAvailableVaults()).resolves.toEqual({
       vaults: [{ vaultId: 'vault-readable', updatedAt: 40 }],
       updateRequiredVaults: [
+        { vaultId: 'vault-format', updatedAt: 80 },
         { vaultId: 'vault-major', updatedAt: 70 },
         { vaultId: 'vault-packs', updatedAt: 60 },
       ],
