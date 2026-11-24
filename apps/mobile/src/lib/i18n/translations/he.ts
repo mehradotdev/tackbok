@@ -389,6 +389,7 @@ export const he: Translations = {
     'פעולה זו תייבא רשומות מקובץ CSV של אפליקציית Presently. רשומות כפולות לא יובאו.',
   'backup.backupExportedSuccessfully': 'הגיבוי יוצא בהצלחה',
   'backup.exportFailed': 'הייצוא נכשל',
+  'backup.preparingBackup': 'מכין את הגיבוי…',
   'backup.importFailed': 'הייבוא נכשל',
   'backup.restoringTackbokBackup': 'משחזר גיבוי של טאקבוק',
   'backup.loadPresentlyExport': 'טוען ייצוא של Presently',

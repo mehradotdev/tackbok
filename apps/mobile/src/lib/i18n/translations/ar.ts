@@ -388,6 +388,7 @@ export const ar: Translations = {
     'سيتم استيراد السجلات من ملف CSV لتطبيق Presently. سيتم تخطي السجلات المكررة.',
   'backup.backupExportedSuccessfully': 'تم تصدير النسخة الاحتياطية بنجاح',
   'backup.exportFailed': 'فشل التصدير',
+  'backup.preparingBackup': 'جارٍ تجهيز النسخة الاحتياطية…',
   'backup.importFailed': 'فشل الاستيراد',
   'backup.restoringTackbokBackup': 'جاري استعادة النسخة الاحتياطية لتاكبوك',
   'backup.loadPresentlyExport': 'تحميل تصدير Presently',

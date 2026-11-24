@@ -433,6 +433,7 @@ export const de: Translations = {
     'Dadurch werden Einträge aus einer CSV-Datei der Presently App importiert. Doppelte Einträge werden übersprungen.',
   'backup.backupExportedSuccessfully': 'Sicherung erfolgreich exportiert',
   'backup.exportFailed': 'Export fehlgeschlagen',
+  'backup.preparingBackup': 'Sicherung wird vorbereitet…',
   'backup.importFailed': 'Import fehlgeschlagen',
   'backup.restoringTackbokBackup': 'Tackbok-Sicherung wird wiederhergestellt',
   'backup.loadPresentlyExport': 'Presently-Export laden',

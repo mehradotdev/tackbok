@@ -35,6 +35,7 @@ import {
   getRelativeAssetFile,
   saveOrShareZipFile,
 } from './utils';
+import { stringifyArrayInPieces } from './jsonInPieces';
 
 export async function exportToBackupZip(): Promise<void> {
   const [allEntries, allTags, allPrompts, allMedia, allEntryTags, profileRows] =
@@ -192,7 +193,7 @@ export async function exportToBackupZip(): Promise<void> {
     };
 
     await zip.addText(BACKUP_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
-    await zip.addText(BACKUP_ENTRIES_PATH, JSON.stringify(exportedEntries, null, 2));
+    await zip.addText(BACKUP_ENTRIES_PATH, await stringifyArrayInPieces(exportedEntries));
     await zip.addText(BACKUP_TAGS_PATH, JSON.stringify(portableTags, null, 2));
     await zip.addText(BACKUP_PROMPTS_PATH, JSON.stringify(portablePrompts, null, 2));
     await zip.addText(BACKUP_PROFILE_PATH, JSON.stringify(profile, null, 2));

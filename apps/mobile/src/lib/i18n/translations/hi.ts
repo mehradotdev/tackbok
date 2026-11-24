@@ -349,6 +349,7 @@ export const hi = {
     'यह Presently ऐप CSV फ़ाइल से प्रविष्टियाँ आयात करेगा। डुप्लिकेट प्रविष्टियाँ छोड़ दी जाएंगी।',
   'backup.backupExportedSuccessfully': 'बैकअप सफलतापूर्वक निर्यात किया गया',
   'backup.exportFailed': 'निर्यात विफल',
+  'backup.preparingBackup': 'आपका बैकअप तैयार हो रहा है…',
   'backup.importFailed': 'आयात विफल',
   'backup.restoringTackbokBackup': 'ताकबूक बैकअप पुनर्स्थापित किया जा रहा है',
   'backup.loadPresentlyExport': 'Presently निर्यात लोड करें',

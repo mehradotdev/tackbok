@@ -381,6 +381,7 @@ export const zhTW: Translations = {
     '這將從 Presently 應用程式的 CSV 檔案匯入紀錄。重複的紀錄將被略過。',
   'backup.backupExportedSuccessfully': '備份匯出成功',
   'backup.exportFailed': '匯出失敗',
+  'backup.preparingBackup': '正在準備備份…',
   'backup.importFailed': '匯入失敗',
   'backup.restoringTackbokBackup': '正在還原塔克布克備份',
   'backup.loadPresentlyExport': '載入 Presently 匯出資料',

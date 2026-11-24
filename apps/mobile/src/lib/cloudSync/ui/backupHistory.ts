@@ -7,6 +7,7 @@
  * the backup's ("overwrite"). The import writes them as this device's edits,
  * so they reach every device by the ordinary sync.
  */
+import { stringifyArrayInPieces } from '~/lib/backupExport/jsonInPieces';
 import { Directory, File, Paths } from 'expo-file-system';
 import { and, eq } from 'drizzle-orm';
 import { cloudSyncState, cloudVault, db, userProfile } from '~/db';
@@ -246,7 +247,7 @@ export async function buildBackupHistoryArchive(
       },
     };
     await zip.addText(BACKUP_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
-    await zip.addText(BACKUP_ENTRIES_PATH, JSON.stringify(entries, null, 2));
+    await zip.addText(BACKUP_ENTRIES_PATH, await stringifyArrayInPieces(entries));
     await zip.addText(BACKUP_TAGS_PATH, JSON.stringify(portable.tags, null, 2));
     await zip.addText(BACKUP_PROMPTS_PATH, JSON.stringify(portable.prompts, null, 2));
     await zip.addText(BACKUP_PROFILE_PATH, JSON.stringify(profile, null, 2));

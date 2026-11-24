@@ -55,12 +55,15 @@ export function BackupRestoreSection() {
 
   const handleExportBackup = useCallback(async () => {
     try {
-      await exportToBackupZip();
+      // A large journal takes a while to pack; the spinner shows it's working.
+      await toast.promise(exportToBackupZip(), {
+        loading: t('backup.preparingBackup'),
+        success: t('backup.backupExportedSuccessfully'),
+        error: t('backup.exportFailed'),
+      });
       track('backup_exported');
-      toast.success(t('backup.backupExportedSuccessfully'));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('backup.exportFailed');
-      toast.error(message);
+    } catch {
+      // The toast already says the export failed.
     }
   }, [t]);
 

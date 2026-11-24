@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   View,
   Modal,
@@ -27,7 +28,8 @@ import * as ToastPrimitive from '~/components/primitives/toast';
 // Types
 // ---------------------------------------------------------------------------
 
-type ToastType = 'default' | 'success' | 'error' | 'info' | 'warning';
+// `loading` shows a native spinner, which keeps turning while JS is busy.
+type ToastType = 'default' | 'success' | 'error' | 'info' | 'warning' | 'loading';
 type ToastPosition =
   | 'top-left'
   | 'top-center'
@@ -58,7 +60,10 @@ type ToastData = {
 };
 
 // Map type to icon
-const TOAST_ICONS: Record<ToastType, { icon: LucideIcon; className: string }> = {
+const TOAST_ICONS: Record<
+  Exclude<ToastType, 'loading'>,
+  { icon: LucideIcon; className: string }
+> = {
   success: { icon: Check, className: 'text-green-500 size-5 stroke-[1.5px]' },
   error: { icon: AlertTriangle, className: 'text-destructive size-5 stroke-[1.5px]' },
   warning: { icon: AlertTriangle, className: 'text-amber-500 size-5 stroke-[1.5px]' },
@@ -190,7 +195,7 @@ toast.promise = <T,>(
   const id = useToastStore.getState().add({
     title: messages.loading,
     ...opts,
-    type: 'default',
+    type: 'loading',
     duration: Infinity,
   });
 
@@ -330,10 +335,14 @@ export function Toaster({
             )}>
             <View className="flex-1 flex-row items-center gap-3">
               <View>
-                <Icon
-                  as={TOAST_ICONS[t.type].icon}
-                  className={TOAST_ICONS[t.type].className}
-                />
+                {t.type === 'loading' ? (
+                  <ActivityIndicator size="small" colorClassName="accent-primary" />
+                ) : (
+                  <Icon
+                    as={TOAST_ICONS[t.type].icon}
+                    className={TOAST_ICONS[t.type].className}
+                  />
+                )}
               </View>
 
               <View className="flex-1 gap-1">
