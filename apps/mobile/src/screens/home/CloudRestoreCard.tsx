@@ -22,7 +22,8 @@ import { toast } from '~/components/ui/toast';
 
 /**
  * Shown above the timeline while a restore from Google Drive runs, so people
- * can keep journaling instead of waiting on the setup screen.
+ * can follow it from Home instead of waiting on the setup screen. Once the
+ * journal is in, they can keep journaling while files download.
  */
 export function CloudRestoreCard() {
   const { t } = useTranslation();
@@ -100,7 +101,12 @@ function restoreCardCopy(
   const keepUsing = t('cloud.youCanKeepUsingTackbokWhileItRestores');
   switch (milestone.stage) {
     case 'journal':
-      return { title: t('cloud.restoringYourJournalFromGoogleDrive'), detail: keepUsing };
+      // Reading and saving a large journal can keep a slower phone busy for
+      // several seconds at a time (#185 P15), so no promise to keep using it.
+      return {
+        title: t('cloud.restoringYourJournalFromGoogleDrive'),
+        detail: t('cloud.restoreMayTakeAMoment'),
+      };
     case 'media':
       return {
         title: t('cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress', {

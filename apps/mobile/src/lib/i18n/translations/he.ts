@@ -768,6 +768,7 @@ export const he: Translations = {
     'השחזור הושהה. הוא ימשיך כש-Tackbok פתוח ומחובר לאינטרנט.',
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'אפשר להמשיך להשתמש ב-Tackbok בזמן השחזור.',
+  'cloud.restoreMayTakeAMoment': 'זה עשוי לקחת כמה רגעים.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     'היומן שלך מוכן. תמונות והקלטות קוליות במכשיר הזה: {downloaded} מתוך {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':

@@ -751,6 +751,7 @@ export const es = {
     'Restauración en pausa. Continuará cuando Tackbok esté abierto y con conexión.',
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'Puedes seguir usando Tackbok mientras se restaura.',
+  'cloud.restoreMayTakeAMoment': 'Esto puede tardar un momento.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     'Tu diario está listo. Fotos y notas de voz en este dispositivo: {downloaded} de {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':

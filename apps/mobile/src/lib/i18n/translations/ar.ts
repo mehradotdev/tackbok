@@ -773,6 +773,7 @@ export const ar: Translations = {
     'الاستعادة متوقفة مؤقتًا. ستُستأنف عندما يكون Tackbok مفتوحًا ومتصلًا بالإنترنت.',
   'cloud.youCanKeepUsingTackbokWhileItRestores':
     'يمكنك مواصلة استخدام Tackbok أثناء الاستعادة.',
+  'cloud.restoreMayTakeAMoment': 'قد يستغرق هذا بعض الوقت.',
   'cloud.yourJournalIsReadyDownloadingPhotosAndVoiceNotesProgress':
     'دفتر اليوميات جاهز. الصور والملاحظات الصوتية على هذا الجهاز: {downloaded} من {total}.',
   'cloud.photosAndVoiceNotesWaitingForWiFiCount':
