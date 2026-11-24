@@ -450,7 +450,7 @@ describe('end to end: an archive built from a backup, read back by the import', 
       expect(archives()).toEqual([]);
     });
 
-    test('a readable head beside it changes nothing: an optional feature is not required', async () => {
+    test('a readable head from another device changes nothing', async () => {
       const { a, backup } = await journalWithHistory();
       newerHead({ required: [] });
       clock += 1000;
