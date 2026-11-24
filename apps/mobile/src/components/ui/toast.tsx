@@ -187,17 +187,9 @@ toast.warning = (
   opts?: Partial<Omit<ToastData, 'id' | 'title' | 'type'>>,
 ) => useToastStore.getState().add({ title, type: 'warning', ...opts });
 
-/** A spinner toast that stays until `toast.finish` or `toast.dismiss`. */
+/** A spinner toast that stays until `toast.dismiss`. */
 toast.loading = (title: string) =>
   useToastStore.getState().add({ title, type: 'loading', duration: Infinity });
-
-/** Turns a `toast.loading` into its outcome. */
-toast.finish = (id: string, type: 'success' | 'error', title: string) =>
-  useToastStore.getState().update(id, {
-    title,
-    type,
-    duration: type === 'error' ? 8000 : useToastStore.getState().config.duration,
-  });
 
 toast.promise = <T,>(
   promise: Promise<T>,

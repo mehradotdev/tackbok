@@ -64,22 +64,20 @@ export function BackupRestoreSection() {
     if (exportingRef.current) return;
     exportingRef.current = true;
     // A large journal takes a while to pack; the spinner shows it's working.
+    // The spinner ends when the save dialog or share sheet opens.
     const toastId = toast.loading(t('backup.preparingBackup'));
     try {
-      await exportToBackupZip();
+      await exportToBackupZip({ onPacked: () => toast.dismiss(toastId) });
       track('backup_exported');
-      toast.finish(toastId, 'success', t('backup.backupExportedSuccessfully'));
+      toast.success(t('backup.backupExportedSuccessfully'));
     } catch (error) {
+      toast.dismiss(toastId);
       // Closing Android's save dialog is a choice, not a failure.
       if (
-        isAndroidSaveCancelled(error) ||
-        (error instanceof Error && isAndroidSaveCancelled(error.cause))
+        !isAndroidSaveCancelled(error) &&
+        !(error instanceof Error && isAndroidSaveCancelled(error.cause))
       ) {
-        toast.dismiss(toastId);
-      } else {
-        toast.finish(
-          toastId,
-          'error',
+        toast.error(
           error instanceof NothingToExportError
             ? t('backup.nothingToExport')
             : t('backup.exportFailed'),

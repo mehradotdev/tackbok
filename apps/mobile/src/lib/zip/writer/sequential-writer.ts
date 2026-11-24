@@ -56,7 +56,7 @@ async function deflateWithCrc(
   for (let offset = 0; offset < bytes.length; offset += DEFLATE_PIECE_BYTES) {
     if (offset > 0) await pauseForApp();
     const end = Math.min(bytes.length, offset + DEFLATE_PIECE_BYTES);
-    // `deflateRawPiece` returns a view of a shared scratch buffer: keep a copy.
+    // `deflateRawPiece` returns a view of a larger buffer: keep only the piece.
     const piece = deflateRawPiece(
       bytes.subarray(offset, end),
       end === bytes.length,

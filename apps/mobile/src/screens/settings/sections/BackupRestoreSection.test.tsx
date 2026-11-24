@@ -5,7 +5,8 @@ import { BackupRestoreSection } from './BackupRestoreSection';
 
 const mockToast = {
   loading: jest.fn(() => 'toast-1'),
-  finish: jest.fn(),
+  success: jest.fn(),
+  error: jest.fn(),
   dismiss: jest.fn(),
 };
 jest.mock('~/components/ui/toast', () => ({
@@ -18,9 +19,10 @@ jest.mock('~/lib/analytics', () => ({
   track: (...args: unknown[]) => mockTrack(...args),
 }));
 
-let mockExport: () => Promise<void> = async () => {};
+type ExportOptions = { onPacked?: () => void };
+let mockExport: (options: ExportOptions) => Promise<void> = async () => {};
 jest.mock('~/lib/backupExport', () => ({
-  exportToBackupZip: () => mockExport(),
+  exportToBackupZip: (options: ExportOptions) => mockExport(options),
   NothingToExportError: class NothingToExportError extends Error {},
   isAndroidSaveCancelled: (error: unknown) =>
     typeof error === 'object' &&
@@ -35,9 +37,7 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('lucide-react-native', () => new Proxy({}, { get: () => 'LucideIcon' }));
 jest.mock('~/lib/i18n', () => ({
-  useTranslation: () => ({
-    t: (key: keyof typeof mockEn) => mockEn[key],
-  }),
+  useTranslation: () => ({ t: (key: keyof typeof mockEn) => mockEn[key] }),
 }));
 jest.mock('~/lib/cloudSync/ui', () => ({
   useCloudSyncSnapshot: () => ({ snapshot: { configured: false } }),
@@ -97,13 +97,17 @@ beforeEach(() => {
 });
 afterEach(() => act(() => renderer.unmount()));
 
-test('an export shows a spinner, then its outcome', async () => {
-  mockExport = async () => {};
+test('an export shows a spinner until the save dialog opens, then its outcome', async () => {
+  const order: string[] = [];
+  mockToast.dismiss.mockImplementation(() => order.push('spinner gone'));
+  mockExport = async ({ onPacked }) => {
+    onPacked?.();
+    order.push('save dialog');
+  };
   await act(async () => exportRow().props.onPress());
   expect(mockToast.loading).toHaveBeenCalledWith(mockEn['backup.preparingBackup']);
-  expect(mockToast.finish).toHaveBeenCalledWith(
-    'toast-1',
-    'success',
+  expect(order).toEqual(['spinner gone', 'save dialog']);
+  expect(mockToast.success).toHaveBeenCalledWith(
     mockEn['backup.backupExportedSuccessfully'],
   );
   expect(mockTrack).toHaveBeenCalledWith('backup_exported');
@@ -117,32 +121,24 @@ test('closing the save dialog only removes the spinner', async () => {
   };
   await act(async () => exportRow().props.onPress());
   expect(mockToast.dismiss).toHaveBeenCalledWith('toast-1');
-  expect(mockToast.finish).not.toHaveBeenCalled();
+  expect(mockToast.error).not.toHaveBeenCalled();
   expect(mockTrack).not.toHaveBeenCalled();
 });
 
 test('an empty journal and a real failure each say so', async () => {
+  const { NothingToExportError } = jest.requireMock('~/lib/backupExport') as {
+    NothingToExportError: new () => Error;
+  };
   mockExport = async () => {
-    const { NothingToExportError } = jest.requireMock('~/lib/backupExport') as {
-      NothingToExportError: new () => Error;
-    };
     throw new NothingToExportError();
   };
   await act(async () => exportRow().props.onPress());
-  expect(mockToast.finish).toHaveBeenLastCalledWith(
-    'toast-1',
-    'error',
-    mockEn['backup.nothingToExport'],
-  );
+  expect(mockToast.error).toHaveBeenLastCalledWith(mockEn['backup.nothingToExport']);
   mockExport = async () => {
     throw new Error('disk full');
   };
   await act(async () => exportRow().props.onPress());
-  expect(mockToast.finish).toHaveBeenLastCalledWith(
-    'toast-1',
-    'error',
-    mockEn['backup.exportFailed'],
-  );
+  expect(mockToast.error).toHaveBeenLastCalledWith(mockEn['backup.exportFailed']);
 });
 
 test('a second tap during an export starts nothing', async () => {
@@ -158,5 +154,5 @@ test('a second tap during an export starts nothing', async () => {
     finish();
     await first;
   });
-  expect(mockToast.finish).toHaveBeenCalledTimes(1);
+  expect(mockToast.success).toHaveBeenCalledTimes(1);
 });

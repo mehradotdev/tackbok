@@ -10,6 +10,7 @@ import {
   type ZipOutputSink,
 } from './writer/sequential-writer';
 import { readUint, readUint64, readUshort } from './core';
+import { computeCrc32 } from './core/crc32';
 import {
   ZIP64_END_OF_CENTRAL_DIRECTORY_LOCATOR_SIGNATURE,
   ZIP64_END_OF_CENTRAL_DIRECTORY_SIGNATURE,
@@ -100,6 +101,10 @@ describe('createZipWriter', () => {
     const bytes = getBytes();
     expect(parseLocalFileHeader(bytes, 0).compressionMethod).toBe(8);
     expect(bytes.length).toBeLessThan(text.length / 4);
+    // One CRC over the whole entry, as other unzip tools check (the app's
+    // own readers don't).
+    const crc = computeCrc32(new TextEncoder().encode(text), 0, text.length);
+    expect(readUint(bytes, 14)).toBe(crc);
     expect(readZipEntryText(parseZipArchive(bytes), 'data/entries.json')).toBe(text);
   });
 

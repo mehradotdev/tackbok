@@ -45,7 +45,13 @@ export class NothingToExportError extends Error {
   }
 }
 
-export async function exportToBackupZip(): Promise<void> {
+/**
+ * `onPacked` runs once the ZIP is built, just before the save dialog or share
+ * sheet opens, so a "preparing" message can end while the user chooses.
+ */
+export async function exportToBackupZip(
+  options: { onPacked?: () => void } = {},
+): Promise<void> {
   const [allEntries, allTags, allPrompts, allMedia, allEntryTags, profileRows] =
     await runExclusiveDbTransaction(async (tx) =>
       Promise.all([
@@ -211,6 +217,7 @@ export async function exportToBackupZip(): Promise<void> {
     await zip.addText(BACKUP_PROFILE_PATH, JSON.stringify(profile, null, 2));
 
     await zip.close();
+    options.onPacked?.();
     cleanupStrategy = await saveOrShareZipFile(tempZipFile, fileName);
   } catch (error) {
     await zip.abort();
