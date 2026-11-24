@@ -397,7 +397,7 @@ describe('importPortableEntries', () => {
     warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     const { readSafeZipBytes, MAX_IMPORT_ASSET_BYTES } =
       jest.requireActual<typeof import('./archiveUtils')>('./archiveUtils');
-    mockReadSafeZipBytes.mockImplementation(readSafeZipBytes);
+    mockReadSafeZipBytes.mockImplementation(readSafeZipBytes as never);
     mockWriteImportedPhoto.mockResolvedValue({
       type: AssetType.IMAGE,
       uri: 'photos/small.jpg',
