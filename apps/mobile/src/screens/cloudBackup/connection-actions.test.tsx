@@ -497,9 +497,11 @@ describe('a backup that exists but cannot be read', () => {
   const connection = (
     availableVaults: { vaultId: string; updatedAt: number }[],
     unreadable: number,
+    updateRequiredVaults: { vaultId: string; updatedAt: number }[] = [],
   ) => ({
     accountLabel: 'owner@example.com',
     availableVaults,
+    updateRequiredVaults,
     unreadableBackupCount: unreadable,
     localHasData: false,
   });
@@ -560,6 +562,85 @@ describe('a backup that exists but cannot be read', () => {
     expect(mockToast.warning).not.toHaveBeenCalledWith(
       mockEn['cloud.noTackbokBackupFoundInThisGoogleAccount'],
     );
+  });
+});
+
+describe('a backup that needs a newer Tackbok', () => {
+  const NEWER = [{ vaultId: 'vault-newer', updatedAt: 2 }];
+  const connection = (
+    availableVaults: { vaultId: string; updatedAt: number }[],
+    updateRequiredVaults: { vaultId: string; updatedAt: number }[],
+  ) => ({
+    accountLabel: 'owner@example.com',
+    availableVaults,
+    updateRequiredVaults,
+    unreadableBackupCount: 0,
+    localHasData: false,
+  });
+  async function connectFromSettings() {
+    mockSnapshot.configured = false;
+    mockSnapshot.status = 'off';
+    await render();
+    const connect = () =>
+      root.root
+        .findAll((node) => node.props.children === mockEn['cloud.connectGoogleDrive'])
+        .map((text) => text.parent!)
+        .find((button) => (button.type as unknown) === 'Button')!;
+    act(() => connect().props.onPress());
+    await act(async () => connect().props.onPress());
+  }
+  const updateRows = () =>
+    root.root.findAll(
+      (node) =>
+        typeof node.props.accessibilityLabel === 'string' &&
+        node.props.accessibilityLabel.endsWith(mockEn['cloud.updateToUseThisBackup']),
+    );
+  const restoreButtons = () =>
+    root.root
+      .findAllByType('Button' as never)
+      .filter((button) =>
+        String(button.props.accessibilityLabel).startsWith(
+          mockEn['cloud.restoreCloudBackup'],
+        ),
+      );
+
+  test('is shown as needing an update, beside a backup that can be restored', async () => {
+    mockPrepare.mockResolvedValueOnce(
+      connection([{ vaultId: 'vault-a', updatedAt: 1 }], NEWER),
+    );
+    await connectFromSettings();
+    expect(showsText(mockEn['cloud.updateToUseThisBackup'])).toBe(true);
+    // Only the readable backup can be chosen.
+    expect(restoreButtons()).toHaveLength(1);
+    const [row] = updateRows();
+    expect(row).toBeDefined();
+    expect(row.props.onPress).toBeUndefined();
+    expect(row.type as unknown).not.toBe('Button');
+  });
+
+  test('alone in settings, it is shown and a new backup can still be created', async () => {
+    mockPrepare.mockResolvedValueOnce(connection([], NEWER));
+    await connectFromSettings();
+    expect(updateRows().length).toBeGreaterThan(0);
+    expect(restoreButtons()).toHaveLength(0);
+    expect(showsText(mockEn['cloud.backupFoundButCouldNotBeReadCreateNew'])).toBe(true);
+    expect(
+      showsText(mockEn['cloud.noExistingTackbokBackupWasFoundCreateOneForThis']),
+    ).toBe(false);
+    expect(showsText(mockEn['cloud.createCloudBackup'])).toBe(true);
+  });
+
+  test('alone in onboarding, it asks for the update', async () => {
+    mockParams = { origin: 'onboarding' };
+    mockSnapshot.configured = false;
+    mockSnapshot.status = 'off';
+    mockPrepare.mockResolvedValueOnce(connection([], NEWER));
+    await render();
+    const disclosure = root.root.findAll(
+      (node) => typeof node.props.onContinue === 'function',
+    )[0];
+    await act(async () => disclosure.props.onContinue());
+    expect(mockToast.warning).toHaveBeenCalledWith(mockEn['cloud.updateToUseThisBackup']);
   });
 });
 

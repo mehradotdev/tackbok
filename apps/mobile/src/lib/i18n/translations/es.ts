@@ -1079,6 +1079,7 @@ export const es = {
     'Tackbok encontró una copia de seguridad en esta cuenta de Google, pero no pudo leerla. Actualizar Tackbok puede ayudar. También puedes crear una copia de seguridad nueva para este diario.',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     'No se pudieron leer algunas copias de seguridad de esta cuenta. Actualizar Tackbok puede ayudar.',
+  'cloud.updateToUseThisBackup': 'Actualiza Tackbok para usar esta copia de seguridad.',
   'cloud.cloudDeletionCompleted': 'Eliminación de la nube completada',
   'cloud.cloudBackupRetryCompleted':
     'Reintento de copia de seguridad en la nube completado',

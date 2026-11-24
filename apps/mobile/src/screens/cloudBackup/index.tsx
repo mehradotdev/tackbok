@@ -176,9 +176,11 @@ export default function CloudBackupScreen() {
       if (origin === 'onboarding' && connection.availableVaults.length === 0) {
         await cancelPreparedGoogleDriveConnection();
         toast.warning(
-          connection.unreadableBackupCount > 0
-            ? t('cloud.backupFoundButCouldNotBeRead')
-            : t('cloud.noTackbokBackupFoundInThisGoogleAccount'),
+          connection.updateRequiredVaults.length > 0
+            ? t('cloud.updateToUseThisBackup')
+            : connection.unreadableBackupCount > 0
+              ? t('cloud.backupFoundButCouldNotBeRead')
+              : t('cloud.noTackbokBackupFoundInThisGoogleAccount'),
         );
         handleBack();
         return;
@@ -1138,6 +1140,27 @@ function ConnectionChoice({
   onCreate: () => void;
 }) {
   const { t, locale } = useTranslation();
+  // Listed so the user knows the backup is there, but never offered (#251).
+  const updateRequired = prepared.updateRequiredVaults.map((vault, index) => {
+    const label = backupLastUpdatedLabel(
+      vault,
+      prepared.availableVaults.length + index,
+      t,
+      locale,
+    );
+    return (
+      <View
+        key={vault.vaultId}
+        accessible
+        accessibilityLabel={`${label}. ${t('cloud.updateToUseThisBackup')}`}
+        className="w-full rounded-md border border-border px-4 py-3 gap-0.5">
+        <Text className="font-body-bold text-foreground">{label}</Text>
+        <Text className="text-sm text-foreground">
+          {t('cloud.updateToUseThisBackup')}
+        </Text>
+      </View>
+    );
+  });
   return (
     <View className="rounded-lg border border-border bg-card p-5 gap-4">
       <View className="flex-row items-center gap-3">
@@ -1183,6 +1206,7 @@ function ConnectionChoice({
               </View>
             </Button>
           ))}
+          {updateRequired}
           {prepared.unreadableBackupCount > 0 && (
             <Text className="text-sm text-foreground">
               {t('cloud.someBackupsInThisAccountCouldNotBeRead')}
@@ -1191,8 +1215,9 @@ function ConnectionChoice({
         </>
       ) : origin === 'settings' ? (
         <>
+          {updateRequired}
           <Text className="text-foreground">
-            {prepared.unreadableBackupCount > 0
+            {prepared.unreadableBackupCount > 0 || updateRequired.length > 0
               ? t('cloud.backupFoundButCouldNotBeReadCreateNew')
               : t('cloud.noExistingTackbokBackupWasFoundCreateOneForThis')}
           </Text>

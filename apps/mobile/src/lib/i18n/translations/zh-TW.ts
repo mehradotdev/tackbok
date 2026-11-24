@@ -1054,6 +1054,7 @@ export const zhTW: Translations = {
     '塔克布克在此 Google 帳戶中找到了備份，但無法讀取。更新塔克布克可能會有幫助。你也可以為此日記建立新的備份。',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     '此帳戶中的部分備份無法讀取。更新塔克布克可能會有幫助。',
+  'cloud.updateToUseThisBackup': '請更新塔克布克以使用此備份。',
   'cloud.cloudDeletionCompleted': '雲端刪除已完成',
   'cloud.cloudBackupRetryCompleted': '雲端備份重試已完成',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

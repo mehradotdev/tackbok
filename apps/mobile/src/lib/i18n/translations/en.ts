@@ -1138,6 +1138,8 @@ export const en = {
     "Tackbok found a backup in this Google account but couldn't read it. Updating Tackbok may help. You can also create a new backup for this journal.",
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     "Some backups in this account couldn't be read. Updating Tackbok may help.",
+  /** Restore picker and Backup history: a backup a newer Tackbok made that this version can't use. */
+  'cloud.updateToUseThisBackup': 'Update Tackbok to use this backup.',
   'cloud.cloudDeletionCompleted': 'Cloud deletion completed',
   'cloud.cloudBackupRetryCompleted': 'Cloud backup retry completed',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

@@ -41,6 +41,7 @@ function failureMessage(t: TranslationFunction, error: unknown): string {
   if (error instanceof BackupHistoryError) {
     if (error.reason === 'backup-gone') return t('cloud.history.gone');
     if (error.reason === 'unreadable') return t('cloud.history.unreadable');
+    if (error.reason === 'update-required') return t('cloud.updateToUseThisBackup');
   }
   // The save or share sheet was cancelled or failed (`saveOrShareZipFile`):
   // the backup itself was fine, so not a connection problem.

@@ -119,6 +119,11 @@ export interface PreparedCloudVault {
 export interface PreparedGoogleConnection {
   accountLabel: string;
   availableVaults: PreparedCloudVault[];
+  /**
+   * Backups a newer Tackbok made that this version can't use: shown, but
+   * not offered for restore or merge (#251).
+   */
+  updateRequiredVaults: PreparedCloudVault[];
   /** Backups found in this account that this version could not read. */
   unreadableBackupCount: number;
   localHasData: boolean;
@@ -348,15 +353,19 @@ async function prepareGoogleDriveConnectionImpl(): Promise<PreparedGoogleConnect
         state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
         hashBytes: nativeSha256Bytes,
       });
-      const { vaults, unreadableVaultIds } = await provider.listAvailableVaults();
-      const prepared = {
-        accountLabel: await auth.getAccountLabel(),
-        availableVaults: vaults
+      const { vaults, updateRequiredVaults, unreadableVaultIds } =
+        await provider.listAvailableVaults();
+      const prepare = (list: AvailableDriveVault[]): PreparedCloudVault[] =>
+        list
           .filter((vault) => !vault.vaultId.includes('probe-'))
-          .map((vault: AvailableDriveVault) => ({
+          .map((vault) => ({
             vaultId: vault.vaultId,
             updatedAt: vault.updatedAt || null,
-          })),
+          }));
+      const prepared = {
+        accountLabel: await auth.getAccountLabel(),
+        availableVaults: prepare(vaults),
+        updateRequiredVaults: prepare(updateRequiredVaults),
         unreadableBackupCount: unreadableVaultIds.filter(
           (vaultId) => !vaultId.includes('probe-'),
         ).length,
@@ -445,7 +454,9 @@ async function completeGoogleDriveConnectionImpl(options: {
     if (options.origin === 'onboarding') {
       throw new Error('No Tackbok backup found in this Google account');
     }
-    if (pending.prepared.availableVaults.length === 1) {
+    // Only when none was named: a named backup that isn't offered (one
+    // that needs a newer Tackbok, say) is never swapped for another.
+    if (!options.vaultId && pending.prepared.availableVaults.length === 1) {
       selected = pending.prepared.availableVaults[0];
     }
   }
@@ -550,7 +561,10 @@ async function reconnectGoogleDriveImpl(): Promise<void> {
       state: new SQLiteDriveProviderStateStore(sqlite, connectionId),
       hashBytes: nativeSha256Bytes,
     });
-    const { vaults: available } = await provider.listAvailableVaults();
+    const discovery = await provider.listAvailableVaults();
+    // A backup that now needs an update is still this one: sync then asks
+    // for the update.
+    const available = [...discovery.vaults, ...discovery.updateRequiredVaults];
     const store = new SQLiteSyncStateStore(sqlite);
     const state = store.loadState(vault.vault_id, vault.device_id);
     const accountLabel = await auth.getAccountLabel();

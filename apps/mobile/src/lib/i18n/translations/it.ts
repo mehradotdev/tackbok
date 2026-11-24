@@ -1103,6 +1103,7 @@ export const it = {
     'Tackbok ha trovato un backup in questo account Google, ma non è riuscito a leggerlo. Aggiornare Tackbok potrebbe aiutare. Puoi anche creare un nuovo backup per questo diario.',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     'Impossibile leggere alcuni backup in questo account. Aggiornare Tackbok potrebbe aiutare.',
+  'cloud.updateToUseThisBackup': 'Aggiorna Tackbok per usare questo backup.',
   'cloud.cloudDeletionCompleted': 'Eliminazione sul cloud completata',
   'cloud.cloudBackupRetryCompleted': 'Nuovo tentativo di backup su cloud completato',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

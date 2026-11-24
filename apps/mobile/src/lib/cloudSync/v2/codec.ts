@@ -66,8 +66,44 @@ export const SNAPSHOT_MAJOR = 2;
  * (a thumbnail in `ext`, say) must be required, not optional: a build that
  * ignores it would not see those references, and its remote media garbage
  * collection (`snapshot/sync/mediaGc.ts`) could delete what they refer to.
+ *
+ * Planned: `media-packs` (#251), for blobs stored in pack files on Drive.
  */
 export const KNOWN_REQUIRED_FEATURES: readonly string[] = [];
+
+/** The `format` of a device head file (`DeviceHead`). */
+export const HEAD_FORMAT = 'tackbok-head';
+
+/**
+ * Why a device head (raw, as downloaded) needs a newer Tackbok, or null.
+ * The sync engine pauses on any such head before it reads or writes
+ * anything; Backup history and the restore picker refuse its vault, since
+ * a backup in it may keep data (such as photos) where this build cannot see it.
+ */
+export function headUpdateReason(
+  value: unknown,
+):
+  | 'unsupported-device-head-format'
+  | 'remote-format-version'
+  | 'remote-required-feature'
+  | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (record.format !== HEAD_FORMAT) return 'unsupported-device-head-format';
+  if (
+    typeof record.major === 'number' &&
+    Number.isSafeInteger(record.major) &&
+    record.major >= 0 &&
+    record.major !== SNAPSHOT_MAJOR
+  )
+    return 'remote-format-version';
+  if (
+    Array.isArray(record.required) &&
+    record.required.some((feature) => !KNOWN_REQUIRED_FEATURES.includes(String(feature)))
+  )
+    return 'remote-required-feature';
+  return null;
+}
 
 export const V2_CAPS = Object.freeze({
   roster: 1024,

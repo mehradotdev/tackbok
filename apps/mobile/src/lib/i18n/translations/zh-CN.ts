@@ -1051,6 +1051,7 @@ export const zhCN: Translations = {
     '塔克布克在此 Google 账户中找到了备份，但无法读取。更新塔克布克可能会有帮助。你也可以为此日记创建新的备份。',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     '此账户中的部分备份无法读取。更新塔克布克可能会有帮助。',
+  'cloud.updateToUseThisBackup': '请更新塔克布克以使用此备份。',
   'cloud.cloudDeletionCompleted': '云删除已完成',
   'cloud.cloudBackupRetryCompleted': '云备份重试已完成',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

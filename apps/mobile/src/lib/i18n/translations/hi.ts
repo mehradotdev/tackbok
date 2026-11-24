@@ -1031,6 +1031,7 @@ export const hi = {
     'ताकबूक को इस Google खाते में एक बैकअप मिला, लेकिन वह उसे पढ़ नहीं सका। ताकबूक को अपडेट करने से मदद मिल सकती है। आप इस डायरी के लिए नया बैकअप भी बना सकते हैं।',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     'इस खाते के कुछ बैकअप पढ़े नहीं जा सके। ताकबूक को अपडेट करने से मदद मिल सकती है।',
+  'cloud.updateToUseThisBackup': 'इस बैकअप का उपयोग करने के लिए ताकबूक को अपडेट करें।',
   'cloud.cloudDeletionCompleted': 'क्लाउड डेटा हटाना पूरा हुआ',
   'cloud.cloudBackupRetryCompleted': 'क्लाउड बैकअप पुनः प्रयास पूरा हुआ',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

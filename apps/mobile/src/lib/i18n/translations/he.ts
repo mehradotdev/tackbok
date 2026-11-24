@@ -1079,6 +1079,7 @@ export const he: Translations = {
     'Tackbok מצא גיבוי בחשבון Google הזה אבל לא הצליח לקרוא אותו. עדכון Tackbok עשוי לעזור. אפשר גם ליצור גיבוי חדש ליומן הזה.',
   'cloud.someBackupsInThisAccountCouldNotBeRead':
     'לא ניתן היה לקרוא חלק מהגיבויים בחשבון הזה. עדכון Tackbok עשוי לעזור.',
+  'cloud.updateToUseThisBackup': 'יש לעדכן את Tackbok כדי להשתמש בגיבוי הזה.',
   'cloud.cloudDeletionCompleted': 'המחיקה מהענן הושלמה',
   'cloud.cloudBackupRetryCompleted': 'הניסיון החוזר של גיבוי הענן הושלם',
   'cloud.cloudSyncCouldNotFinishYourChangesRemainSafelyQueued':

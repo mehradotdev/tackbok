@@ -1,6 +1,6 @@
 import type { CloudAuthorization } from '../../auth/types';
 import { encodeCanonicalBytes } from '../canonical';
-import { SNAPSHOT_MAJOR } from '../../v2/codec';
+import { HEAD_FORMAT, SNAPSHOT_MAJOR, headUpdateReason } from '../../v2/codec';
 import { SNAPSHOT_CAPS, SnapshotValidationError } from '../caps';
 import { sha256Bytes, sha256Text, type ByteHasher } from '../sha256';
 import { decodeUtf8Strict, parseJsonStrict } from '../strictJson';
@@ -83,6 +83,12 @@ export interface AvailableDriveVault {
 export interface DriveVaultDiscovery {
   /** Restorable backups, most recently updated first. */
   vaults: AvailableDriveVault[];
+  /**
+   * Backups a newer Tackbok wrote with something this version can't read
+   * (a newer major version or required feature on any head), most recently
+   * updated first. Sync would pause on them before restoring anything.
+   */
+  updateRequiredVaults: AvailableDriveVault[];
   /** Backups that exist but have no head this version can read. */
   unreadableVaultIds: string[];
 }
@@ -180,6 +186,11 @@ export function isTrustedDriveResumableUri(uri: string): boolean {
   }
 }
 
+/**
+ * A file whose `tb_kind` is not one of these (such as a later build's
+ * `pack`, #251) is ignored: never listed, read or deleted, except by
+ * `purgeRevokedVault`, which deletes every file of the vault.
+ */
 function objectKind(value: unknown): DriveObjectKind | null {
   return value === 'snapshot' ||
     value === 'head' ||
@@ -338,6 +349,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     const files = await this.queryFiles(scope, query);
     const newest = new Map<string, number>();
     const unreadable = new Set<string>();
+    const updateRequired = new Set<string>();
     for (const file of files) {
       const vaultId = file.appProperties[PROP_VAULT];
       // Without a usable vault ID the head cannot be tied to any backup.
@@ -360,28 +372,42 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         record = null;
       }
       // Only a 2.x backup can be restored here: a 1.x device's head (or a
-      // newer format) makes its vault unreadable to this build.
+      // newer format) makes its vault unreadable to this build. A 2.x head
+      // with a newer major version or an unknown required feature needs an update.
       const head = record?.head as { format?: unknown } | null | undefined;
+      if (head?.format === HEAD_FORMAT && headUpdateReason(head)) {
+        updateRequired.add(vaultId);
+        const { updatedAt } = head as { updatedAt?: unknown };
+        if (typeof updatedAt === 'number' && Number.isSafeInteger(updatedAt))
+          newest.set(vaultId, Math.max(newest.get(vaultId) ?? 0, updatedAt));
+        continue;
+      }
       if (
         !record?.head ||
         record.head.vaultId !== vaultId ||
-        head?.format !== 'tackbok-head'
+        head?.format !== HEAD_FORMAT
       ) {
         unreadable.add(vaultId);
         continue;
       }
       newest.set(vaultId, Math.max(newest.get(vaultId) ?? 0, record.head.updatedAt));
     }
-    return {
-      vaults: [...newest]
-        .map(([vaultId, updatedAt]) => ({ vaultId, updatedAt }))
+    const sorted = (vaultIds: string[]) =>
+      vaultIds
+        .map((vaultId) => ({ vaultId, updatedAt: newest.get(vaultId) ?? 0 }))
         .sort(
           (left, right) =>
             right.updatedAt - left.updatedAt || left.vaultId.localeCompare(right.vaultId),
-        ),
+        );
+    return {
+      vaults: sorted(
+        [...newest.keys()].filter((vaultId) => !updateRequired.has(vaultId)),
+      ),
+      // One newer head is enough: sync pauses on it whatever the others hold.
+      updateRequiredVaults: sorted([...updateRequired]),
       // One readable device head is enough to restore a backup.
       unreadableVaultIds: [...unreadable]
-        .filter((vaultId) => !newest.has(vaultId))
+        .filter((vaultId) => !newest.has(vaultId) && !updateRequired.has(vaultId))
         .sort(),
     };
   }
@@ -1737,6 +1763,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     return `heads/${deviceId}.json`;
   }
 
+  /** Loose blobs only. `packs/` is reserved for a later build's pack files (#251). */
   private mediaKey(blobHash: string): string {
     return `media/${blobHash.slice(0, 2)}/${blobHash}`;
   }
