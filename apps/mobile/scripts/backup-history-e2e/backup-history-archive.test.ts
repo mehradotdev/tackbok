@@ -24,6 +24,7 @@ import { join } from 'node:path';
 
 import { expoFiles } from '../cloud-sync/sim/expoFiles';
 import { sha256Bytes } from '../../src/lib/cloudSync/snapshot/sha256';
+import { canonicalize } from '../../src/lib/cloudSync/snapshot/canonical';
 
 import {
   BunSyncDatabase,
@@ -421,6 +422,32 @@ describe('end to end: an archive built from a backup, read back by the import', 
         ),
       ).rejects.toMatchObject({ reason: 'update-required' });
       expect(provider.requests.slice(made)).not.toContain('download-snapshot');
+    });
+
+    test('a chosen snapshot that itself requires a newer Tackbok is refused before any media', async () => {
+      const { a, backup } = await journalWithHistory();
+      // The same backup, as a build with a required feature would label it.
+      const bytes = provider.snapshotBytesForTest(VAULT, backup)!;
+      const split = bytes.indexOf(0x0a);
+      const header = JSON.parse(new TextDecoder().decode(bytes.subarray(0, split)));
+      header.features = { required: ['media-packs'], optional: [] };
+      const newHeader = new TextEncoder().encode(canonicalize(header));
+      const newer = new Uint8Array(newHeader.length + bytes.length - split);
+      newer.set(newHeader);
+      newer.set(bytes.subarray(split), newHeader.length);
+      const newerId = sha256Bytes(newHeader);
+      provider.injectSnapshot(VAULT, newerId, newer, clock);
+      const made = provider.requests.length;
+      await expect(
+        devices.on(a.database, clock, () =>
+          buildBackupHistoryArchive(newerId, 'restore', {
+            provider,
+            localFile: async () => null,
+          }),
+        ),
+      ).rejects.toMatchObject({ reason: 'update-required' });
+      expect(provider.requests.slice(made)).not.toContain('download-media');
+      expect(archives()).toEqual([]);
     });
 
     test('a readable head beside it changes nothing: an optional feature is not required', async () => {
