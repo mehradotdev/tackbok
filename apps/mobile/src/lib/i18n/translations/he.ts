@@ -390,6 +390,7 @@ export const he: Translations = {
   'backup.backupExportedSuccessfully': 'הגיבוי יוצא בהצלחה',
   'backup.exportFailed': 'הייצוא נכשל',
   'backup.preparingBackup': 'מכין את הגיבוי…',
+  'backup.nothingToExport': 'אין עדיין מה לייצא.',
   'backup.importFailed': 'הייבוא נכשל',
   'backup.restoringTackbokBackup': 'משחזר גיבוי של טאקבוק',
   'backup.loadPresentlyExport': 'טוען ייצוא של Presently',

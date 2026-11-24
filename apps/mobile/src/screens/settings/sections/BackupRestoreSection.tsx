@@ -1,11 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Cloud, FileOutput, FileInput } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { useCloudSyncSnapshot } from '~/lib/cloudSync/ui';
 import { useBackupImportFlow } from '~/hooks/useBackupImportFlow';
-import { exportToBackupZip } from '~/lib/backupExport';
+import {
+  exportToBackupZip,
+  isAndroidSaveCancelled,
+  NothingToExportError,
+} from '~/lib/backupExport';
 import { track } from '~/lib/analytics';
 import { Text } from '~/components/ui/text';
 import { toast } from '~/components/ui/toast';
@@ -53,17 +57,36 @@ export function BackupRestoreSection() {
     closeImportSummary,
   } = useBackupImportFlow(handleImportDone);
 
+  // The app keeps responding while an export packs, so a second tap must not
+  // start a second export.
+  const exportingRef = useRef(false);
   const handleExportBackup = useCallback(async () => {
+    if (exportingRef.current) return;
+    exportingRef.current = true;
+    // A large journal takes a while to pack; the spinner shows it's working.
+    const toastId = toast.loading(t('backup.preparingBackup'));
     try {
-      // A large journal takes a while to pack; the spinner shows it's working.
-      await toast.promise(exportToBackupZip(), {
-        loading: t('backup.preparingBackup'),
-        success: t('backup.backupExportedSuccessfully'),
-        error: t('backup.exportFailed'),
-      });
+      await exportToBackupZip();
       track('backup_exported');
-    } catch {
-      // The toast already says the export failed.
+      toast.finish(toastId, 'success', t('backup.backupExportedSuccessfully'));
+    } catch (error) {
+      // Closing Android's save dialog is a choice, not a failure.
+      if (
+        isAndroidSaveCancelled(error) ||
+        (error instanceof Error && isAndroidSaveCancelled(error.cause))
+      ) {
+        toast.dismiss(toastId);
+      } else {
+        toast.finish(
+          toastId,
+          'error',
+          error instanceof NothingToExportError
+            ? t('backup.nothingToExport')
+            : t('backup.exportFailed'),
+        );
+      }
+    } finally {
+      exportingRef.current = false;
     }
   }, [t]);
 

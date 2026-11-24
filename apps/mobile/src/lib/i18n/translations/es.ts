@@ -371,6 +371,7 @@ export const es = {
   'backup.backupExportedSuccessfully': 'Copia de seguridad exportada correctamente',
   'backup.exportFailed': 'Exportación fallida',
   'backup.preparingBackup': 'Preparando la copia de seguridad…',
+  'backup.nothingToExport': 'Todavía no hay nada que exportar.',
   'backup.importFailed': 'Importación fallida',
   'backup.restoringTackbokBackup': 'Restaurando la copia de seguridad de Tackbok',
   'backup.loadPresentlyExport': 'Cargar exportación de Presently',

@@ -434,6 +434,7 @@ export const de: Translations = {
   'backup.backupExportedSuccessfully': 'Sicherung erfolgreich exportiert',
   'backup.exportFailed': 'Export fehlgeschlagen',
   'backup.preparingBackup': 'Sicherung wird vorbereitet…',
+  'backup.nothingToExport': 'Es gibt noch nichts zu exportieren.',
   'backup.importFailed': 'Import fehlgeschlagen',
   'backup.restoringTackbokBackup': 'Tackbok-Sicherung wird wiederhergestellt',
   'backup.loadPresentlyExport': 'Presently-Export laden',

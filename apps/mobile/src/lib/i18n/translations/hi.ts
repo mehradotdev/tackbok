@@ -350,6 +350,7 @@ export const hi = {
   'backup.backupExportedSuccessfully': 'बैकअप सफलतापूर्वक निर्यात किया गया',
   'backup.exportFailed': 'निर्यात विफल',
   'backup.preparingBackup': 'आपका बैकअप तैयार हो रहा है…',
+  'backup.nothingToExport': 'अभी निर्यात करने के लिए कुछ नहीं है।',
   'backup.importFailed': 'आयात विफल',
   'backup.restoringTackbokBackup': 'ताकबूक बैकअप पुनर्स्थापित किया जा रहा है',
   'backup.loadPresentlyExport': 'Presently निर्यात लोड करें',

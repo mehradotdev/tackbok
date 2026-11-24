@@ -37,6 +37,14 @@ import {
 } from './utils';
 import { FILES_PER_PAUSE, pauseForApp, stringifyArrayInPieces } from './jsonInPieces';
 
+/** The journal, tags, prompts and profile are all empty. */
+export class NothingToExportError extends Error {
+  constructor() {
+    super('No backup data to export');
+    this.name = 'NothingToExportError';
+  }
+}
+
 export async function exportToBackupZip(): Promise<void> {
   const [allEntries, allTags, allPrompts, allMedia, allEntryTags, profileRows] =
     await runExclusiveDbTransaction(async (tx) =>
@@ -78,7 +86,7 @@ export async function exportToBackupZip(): Promise<void> {
     !profileEmail &&
     !profileImageUri
   ) {
-    throw new Error('No backup data to export');
+    throw new NothingToExportError();
   }
 
   const tagMap = new Map(allTags.map((tag) => [tag.tag_id, tag.title]));

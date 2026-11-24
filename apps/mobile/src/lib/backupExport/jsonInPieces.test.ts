@@ -14,7 +14,10 @@ test('matches JSON.stringify with two-space indent, in pieces', async () => {
   expect(timers.mock.calls.filter(([, delay]) => delay === 0)).toHaveLength(2);
   timers.mockRestore();
   expect(await stringifyArrayInPieces([])).toBe(JSON.stringify([], null, 2));
-  expect(await stringifyArrayInPieces([1, 'two', [3]])).toBe(
-    JSON.stringify([1, 'two', [3]], null, 2),
-  );
+  // Arrays, dates and toJSON inside items, as JSON.stringify handles them.
+  const mixed = [
+    [1, 'two'],
+    { at: new Date(0), own: { toJSON: () => 'x' }, gone: undefined },
+  ];
+  expect(await stringifyArrayInPieces(mixed)).toBe(JSON.stringify(mixed, null, 2));
 });

@@ -12,7 +12,10 @@ export const FILES_PER_PAUSE = 50;
  * between, so the app keeps responding. In one piece, a 10,000-entry backup's
  * `entries.json` held a low-end Android phone for 3.7 s (#185 P15).
  */
-export async function stringifyArrayInPieces(items: readonly unknown[]): Promise<string> {
+export async function stringifyArrayInPieces(
+  // Objects always stringify to text, as `JSON.stringify` needs here.
+  items: readonly object[],
+): Promise<string> {
   if (items.length === 0) return '[]';
   const parts: string[] = [];
   for (let start = 0; start < items.length; start += ITEMS_PER_PIECE) {
