@@ -148,13 +148,16 @@ export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asse
 /**
  * The most JSON data (such as `entries.json`) an import reads: per file, and
  * in total across the files one import reads at once. They are read, decoded
- * and parsed whole, so a crafted or broken backup with huge ones could run
- * the phone out of memory. A 10,000-entry Tackbok export's `entries.json` is
- * about 9 MB, so 50 MB fits over 50,000 entries, more than a century of
- * daily writing. Both the stored and the unpacked sizes are capped; more
- * stops the import with `ImportDataTooLargeError`.
+ * and parsed whole, so a crafted or broken backup with gigabytes of them
+ * could run the phone out of memory. The cap must never strand a backup the
+ * app wrote itself: exports pretty-print about 0.9 KB per entry (a
+ * 10,000-entry `entries.json` is about 9 MB), so a journal at cloud sync's
+ * limits (100,000 entries, 48 MiB of text) writes about 140 MB. 200 MB
+ * leaves room above that. Both the stored and the unpacked sizes are
+ * capped; more stops the import with `ImportDataTooLargeError`.
+ * shortcut: whole-file JSON reads; stream-parse to lower or drop the cap.
  */
-export const MAX_IMPORT_JSON_BYTES = 50 * 1000 * 1000;
+export const MAX_IMPORT_JSON_BYTES = 200 * 1000 * 1000;
 
 /** A backup data file over `MAX_IMPORT_JSON_BYTES`, refused before it is read. */
 export class ImportDataTooLargeError extends Error {
