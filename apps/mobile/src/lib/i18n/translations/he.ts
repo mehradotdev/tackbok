@@ -398,6 +398,7 @@ export const he: Translations = {
   'backup.preparingBackup': 'מכין את הגיבוי…',
   'backup.nothingToExport': 'אין עדיין מה לייצא.',
   'backup.importFailed': 'הייבוא נכשל',
+  'backup.importDataTooLarge': 'הגיבוי הזה גדול מדי לייבוא.',
   'backup.restoringTackbokBackup': 'משחזר גיבוי של טאקבוק',
   'backup.loadPresentlyExport': 'טוען ייצוא של Presently',
   'backup.importJournalEntries': 'מייבא רשומות יומן',

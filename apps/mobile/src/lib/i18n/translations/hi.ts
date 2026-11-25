@@ -358,6 +358,7 @@ export const hi = {
   'backup.preparingBackup': 'आपका बैकअप तैयार हो रहा है…',
   'backup.nothingToExport': 'अभी निर्यात करने के लिए कुछ नहीं है।',
   'backup.importFailed': 'आयात विफल',
+  'backup.importDataTooLarge': 'यह बैकअप आयात करने के लिए बहुत बड़ा है।',
   'backup.restoringTackbokBackup': 'ताकबूक बैकअप पुनर्स्थापित किया जा रहा है',
   'backup.loadPresentlyExport': 'Presently निर्यात लोड करें',
   'backup.importJournalEntries': 'डायरी प्रविष्टियाँ आयात करें',

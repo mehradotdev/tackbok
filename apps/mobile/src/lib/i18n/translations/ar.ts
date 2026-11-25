@@ -397,6 +397,7 @@ export const ar: Translations = {
   'backup.preparingBackup': 'جارٍ تجهيز النسخة الاحتياطية…',
   'backup.nothingToExport': 'لا يوجد شيء لتصديره بعد.',
   'backup.importFailed': 'فشل الاستيراد',
+  'backup.importDataTooLarge': 'هذه النسخة الاحتياطية كبيرة جدًا بحيث لا يمكن استيرادها.',
   'backup.restoringTackbokBackup': 'جاري استعادة النسخة الاحتياطية لتاكبوك',
   'backup.loadPresentlyExport': 'تحميل تصدير Presently',
   'backup.importJournalEntries': 'استيراد سجلات اليوميات',

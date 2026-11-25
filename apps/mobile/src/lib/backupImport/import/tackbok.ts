@@ -32,6 +32,7 @@ import {
   isZipFile,
   loadZipFromUri,
   readSafeZipBytes,
+  assertZipJsonBudget,
   readSafeZipJson,
   writeImportedPhoto,
 } from '../archiveUtils';
@@ -73,6 +74,12 @@ export async function importFromTackbokBackup(
       throw new Error('This Tackbok backup version is not supported');
     }
 
+    assertZipJsonBudget(zip, [
+      BACKUP_ENTRIES_PATH,
+      BACKUP_TAGS_PATH,
+      BACKUP_PROMPTS_PATH,
+      BACKUP_PROFILE_PATH,
+    ]);
     const [portableEntries, portableTags, portablePrompts, portableProfile] =
       await Promise.all([
         readSafeZipJson<PortableEntry[]>(zip, BACKUP_ENTRIES_PATH),

@@ -442,6 +442,7 @@ export const de: Translations = {
   'backup.preparingBackup': 'Sicherung wird vorbereitet…',
   'backup.nothingToExport': 'Es gibt noch nichts zu exportieren.',
   'backup.importFailed': 'Import fehlgeschlagen',
+  'backup.importDataTooLarge': 'Diese Sicherung ist zu groß zum Importieren.',
   'backup.restoringTackbokBackup': 'Tackbok-Sicherung wird wiederhergestellt',
   'backup.loadPresentlyExport': 'Presently-Export laden',
   'backup.importJournalEntries': 'Tagebucheinträge importieren',

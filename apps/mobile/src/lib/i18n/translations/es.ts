@@ -379,6 +379,8 @@ export const es = {
   'backup.preparingBackup': 'Preparando la copia de seguridad…',
   'backup.nothingToExport': 'Todavía no hay nada que exportar.',
   'backup.importFailed': 'Importación fallida',
+  'backup.importDataTooLarge':
+    'Esta copia de seguridad es demasiado grande para importarla.',
   'backup.restoringTackbokBackup': 'Restaurando la copia de seguridad de Tackbok',
   'backup.loadPresentlyExport': 'Cargar exportación de Presently',
   'backup.importJournalEntries': 'Importar entradas del diario',

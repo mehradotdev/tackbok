@@ -4,6 +4,7 @@ export { importFromTackbokBackup } from './import/tackbok';
 export { importFromGratitudeAppBackup } from './import/gratitudeApp';
 export { importFromPresentlyCSV, pickPresentlyImportFile } from './import/presently';
 export { pickZipImportFile } from './import/helpers';
+export { ImportDataTooLargeError } from './archiveUtils';
 export { PRESENTLY_IMPORT_PHASE_ORDER } from './types';
 export type {
   BackupImportPhase,

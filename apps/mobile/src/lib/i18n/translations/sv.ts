@@ -366,6 +366,7 @@ export const sv = {
   'backup.preparingBackup': 'Förbereder säkerhetskopian…',
   'backup.nothingToExport': 'Det finns inget att exportera än.',
   'backup.importFailed': 'Importen misslyckades',
+  'backup.importDataTooLarge': 'Den här säkerhetskopian är för stor för att importeras.',
   'backup.restoringTackbokBackup': 'Återställer Tackbok-säkerhetskopia',
   'backup.loadPresentlyExport': 'Ladda Presently-export',
   'backup.importJournalEntries': 'Importera dagboksanteckningar',
