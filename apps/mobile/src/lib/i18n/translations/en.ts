@@ -17,6 +17,11 @@ export const en = {
   'greeting.happyFriday': 'Happy Friday',
   'greeting.happySaturday': 'Happy Saturday',
   'greeting.withName': '{greeting}, {name}',
+  // Replaces the time-of-day greeting on these local dates (lib/seasonal/events.ts)
+  'greeting.christmasEve': 'Happy Christmas Eve',
+  'greeting.merryChristmas': 'Merry Christmas',
+  'greeting.newYearsEve': "Happy New Year's Eve",
+  'greeting.happyNewYear': 'Happy New Year',
 
   // Common
   'common.tackbok': 'Tackbok',
@@ -314,6 +319,9 @@ export const en = {
   'appearance.firstDayOfWeek': 'First day of week',
   'appearance.firstDayOfWeekDescription': 'Choose which day your calendar weeks start on',
   'appearance.appIcon': 'App icon',
+  // Settings switch for seasonal greetings, decorations and theme/icon suggestions
+  'appearance.festiveTouches': 'Festive touches',
+  'appearance.festiveTouchesDescription': 'Holiday greetings and suggestions',
   'appearance.changeAppIconTitle': 'Change app icon?',
   'appearance.changeAppIconMessage': 'Tackbok will close to apply the new icon.',
   'appearance.changeIcon': 'Change icon',

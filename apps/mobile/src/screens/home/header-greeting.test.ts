@@ -9,10 +9,17 @@ jest.mock('expo-sqlite/kv-store', () => ({
   getItemSync: () => null,
   setItemSync: jest.fn(),
 }));
+// Off by default so the older tests don't depend on the date CI runs on.
+let mockFestive = false;
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
+jest.mock('./FestiveEffect', () => ({ FestiveEffect: 'FestiveEffect' }));
 jest.mock('~/lib/settings', () => ({
   useSettingsStore: (selector: (state: unknown) => unknown) =>
-    selector({ _hasHydrated: true, profileName: 'Maya' }),
+    selector({
+      _hasHydrated: true,
+      profileName: 'Maya',
+      festiveTouchesEnabled: mockFestive,
+    }),
 }));
 jest.mock('~/lib/i18n', () => ({
   useTranslation: () => ({ isReady: true, isRTL: mockRTL, t: mockTranslate }),
@@ -52,6 +59,7 @@ beforeEach(() => {
   mockFocused = true;
   mockReduced = false;
   mockRTL = false;
+  mockFestive = false;
 });
 
 it.each(['טוב שחזרת, Maya Rose!', 'مرحبًا بعودتك، Maya Rose!'])(
@@ -239,4 +247,68 @@ it('clears the measurement fallback when unmounted', () => {
   expect(cleared).toHaveBeenCalledWith(fallback);
   scheduled.mockRestore();
   cleared.mockRestore();
+});
+
+describe('festive greetings', () => {
+  beforeEach(() => {
+    mockFestive = true;
+  });
+  const secondMessage = (date: Date) => {
+    jest.setSystemTime(date);
+    const hook = mountGreeting();
+    hook.layout();
+    hook.tick(0);
+    const label = hook.current.messages?.[1].label;
+    const effect = hook.current.effect;
+    hook.unmount();
+    return { label, effect };
+  };
+
+  it('replaces the greeting on a special day and plays its decoration', () => {
+    expect(secondMessage(new Date(2026, 11, 25, 9))).toEqual({
+      label: 'Merry Christmas! 🎁',
+      effect: 'snow',
+    });
+  });
+
+  it('uses seasonal emojis on other days of the season', () => {
+    const { label, effect } = secondMessage(new Date(2026, 11, 10, 12));
+    const { SEASONAL_EVENTS } = require('~/lib/seasonal/events');
+    expect(SEASONAL_EVENTS[0].emojis).toContain(label?.split(' ').at(-1));
+    expect(effect).toBeNull();
+  });
+
+  it('turns everything off with Festive touches', () => {
+    mockFestive = false;
+    const { label, effect } = secondMessage(new Date(2026, 11, 25, 9));
+    expect(label).not.toContain('Christmas');
+    expect(effect).toBeNull();
+  });
+
+  it('shows the decoration only when motion is allowed', () => {
+    const React = require('react');
+    const { act, create } = require('react-test-renderer');
+    const { HeaderGreeting } = require('./header-greeting');
+    const props = {
+      messages: [{ label: 'a' }, { label: 'Merry Christmas! 🎁' }],
+      onMessageReady: jest.fn(),
+      step: 1,
+      effect: 'snow',
+      progress: { value: 0 },
+    };
+    let root: ReturnType<typeof create>;
+    act(() => {
+      root = create(
+        React.createElement(HeaderGreeting, { ...props, reducedMotion: false }),
+      );
+    });
+    expect(root!.root.findAllByType('FestiveEffect')).toHaveLength(1);
+    act(() =>
+      root!.update(
+        React.createElement(HeaderGreeting, { ...props, reducedMotion: true }),
+      ),
+    );
+    expect(root!.root.findAllByType('FestiveEffect')).toHaveLength(0);
+    act(() => root!.unmount());
+  });
 });
