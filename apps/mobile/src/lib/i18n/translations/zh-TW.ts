@@ -19,6 +19,10 @@ export const zhTW: Translations = {
   'greeting.happyFriday': '週五愉快',
   'greeting.happySaturday': '週六愉快',
   'greeting.withName': '{name}，{greeting}',
+  'greeting.christmasEve': '平安夜快樂',
+  'greeting.merryChristmas': '聖誕快樂',
+  'greeting.newYearsEve': '跨年夜快樂',
+  'greeting.happyNewYear': '新年快樂',
 
   // Common
   'common.tackbok': '塔克布克',
@@ -295,6 +299,8 @@ export const zhTW: Translations = {
   'appearance.firstDayOfWeek': '每週的第一天',
   'appearance.firstDayOfWeekDescription': '選擇日曆中每週從哪一天開始',
   'appearance.appIcon': '應用程式圖示',
+  'appearance.festiveTouches': '節日點綴',
+  'appearance.festiveTouchesDescription': '節日問候與建議',
   'appearance.changeAppIconTitle': '變更應用程式圖示？',
   'appearance.changeAppIconMessage': '塔克布克將關閉以套用新圖示。',
   'appearance.changeIcon': '變更圖示',

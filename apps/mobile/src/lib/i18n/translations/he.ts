@@ -19,6 +19,10 @@ export const he: Translations = {
   'greeting.happyFriday': 'יום שישי נעים',
   'greeting.happySaturday': 'שבת נעימה',
   'greeting.withName': '{greeting}, {name}',
+  'greeting.christmasEve': 'ערב חג מולד שמח',
+  'greeting.merryChristmas': 'חג מולד שמח',
+  'greeting.newYearsEve': 'סילבסטר שמח',
+  'greeting.happyNewYear': 'שנה אזרחית טובה',
 
   // Common
   'common.tackbok': 'טאקבוק',
@@ -299,6 +303,8 @@ export const he: Translations = {
   'appearance.firstDayOfWeek': 'היום הראשון בשבוע',
   'appearance.firstDayOfWeekDescription': 'בחרו באיזה יום מתחילים השבועות בלוח השנה',
   'appearance.appIcon': 'סמל האפליקציה',
+  'appearance.festiveTouches': 'נגיעות חגיגיות',
+  'appearance.festiveTouchesDescription': 'ברכות והצעות לחגים',
   'appearance.changeAppIconTitle': 'לשנות את סמל האפליקציה?',
   'appearance.changeAppIconMessage': 'טאקבוק ייסגר כדי להחיל את הסמל החדש.',
   'appearance.changeIcon': 'שינוי הסמל',

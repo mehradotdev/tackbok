@@ -14,6 +14,10 @@ export const it = {
   'greeting.happyFriday': 'Buon venerdì',
   'greeting.happySaturday': 'Buon sabato',
   'greeting.withName': '{greeting}, {name}',
+  'greeting.christmasEve': 'Buona vigilia di Natale',
+  'greeting.merryChristmas': 'Buon Natale',
+  'greeting.newYearsEve': 'Buon San Silvestro',
+  'greeting.happyNewYear': 'Buon anno',
 
   'common.tackbok': 'Tackbok',
   'common.cancel': 'Annulla',
@@ -299,6 +303,8 @@ export const it = {
   'appearance.firstDayOfWeekDescription':
     'Scegli il giorno da cui iniziano le settimane del calendario',
   'appearance.appIcon': 'Icona dell’app',
+  'appearance.festiveTouches': 'Tocchi festivi',
+  'appearance.festiveTouchesDescription': 'Auguri e suggerimenti per le feste',
   'appearance.changeAppIconTitle': 'Cambiare l’icona dell’app?',
   'appearance.changeAppIconMessage': 'Tackbok si chiuderà per applicare la nuova icona.',
   'appearance.changeIcon': 'Cambia icona',

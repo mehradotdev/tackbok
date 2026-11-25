@@ -19,6 +19,10 @@ export const de: Translations = {
   'greeting.happyFriday': 'Schönen Freitag',
   'greeting.happySaturday': 'Schönen Samstag',
   'greeting.withName': '{greeting}, {name}',
+  'greeting.christmasEve': 'Schönen Heiligabend',
+  'greeting.merryChristmas': 'Frohe Weihnachten',
+  'greeting.newYearsEve': 'Guten Rutsch',
+  'greeting.happyNewYear': 'Frohes neues Jahr',
 
   // Common
   'common.tackbok': 'Tackbok',
@@ -333,6 +337,8 @@ export const de: Translations = {
   'appearance.firstDayOfWeekDescription':
     'Wähle, an welchem Tag deine Kalenderwochen beginnen',
   'appearance.appIcon': 'App-Symbol',
+  'appearance.festiveTouches': 'Festliche Akzente',
+  'appearance.festiveTouchesDescription': 'Feiertagsgrüße und Vorschläge',
   'appearance.changeAppIconTitle': 'App-Symbol ändern?',
   'appearance.changeAppIconMessage':
     'Tackbok wird geschlossen, um das neue Symbol zu übernehmen.',

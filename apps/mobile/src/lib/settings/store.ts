@@ -60,6 +60,8 @@ interface SettingsState {
   dateIncludesDayOfWeek: boolean;
   firstDayOfWeek: FirstDayOfWeek;
   showTimelineBorders: boolean;
+  /** Seasonal greetings, decorations and theme/icon suggestions (lib/seasonal). */
+  festiveTouchesEnabled: boolean;
 
   // Typography
   titleFont: TitleFontSelection;
@@ -122,6 +124,7 @@ interface SettingsState {
   setDateIncludesDayOfWeek: (enabled: boolean) => void;
   setFirstDayOfWeek: (day: FirstDayOfWeek) => void;
   setShowTimelineBorders: (enabled: boolean) => void;
+  setFestiveTouchesEnabled: (enabled: boolean) => void;
   setTitleFont: (fontId: TitleFontSelection) => void;
   setBodyFontSize: (size: BodyFontSize) => void;
   setBiometricUnlockEnabled: (enabled: boolean) => void;
@@ -158,6 +161,7 @@ const DEFAULT_SETTINGS_VALUES = {
   dateIncludesDayOfWeek: false,
   firstDayOfWeek: FirstDay.MONDAY,
   showTimelineBorders: false,
+  festiveTouchesEnabled: true,
   titleFont: DEFAULT_TITLE_FONT_SELECTION,
   bodyFontSize: DEFAULT_BODY_FONT_SIZE,
   biometricUnlockEnabled: false,
@@ -235,6 +239,7 @@ export const useSettingsStore = create<SettingsState>()(
       setDateIncludesDayOfWeek: (enabled) => set({ dateIncludesDayOfWeek: enabled }),
       setFirstDayOfWeek: (day) => set({ firstDayOfWeek: day }),
       setShowTimelineBorders: (enabled) => set({ showTimelineBorders: enabled }),
+      setFestiveTouchesEnabled: (enabled) => set({ festiveTouchesEnabled: enabled }),
       setTitleFont: (fontId) => {
         const safeFontId = normalizeTitleFontSelection(fontId);
         applyTitleFont(safeFontId);
@@ -351,6 +356,7 @@ export const useSettingsStore = create<SettingsState>()(
         dateIncludesDayOfWeek: state.dateIncludesDayOfWeek,
         firstDayOfWeek: state.firstDayOfWeek,
         showTimelineBorders: state.showTimelineBorders,
+        festiveTouchesEnabled: state.festiveTouchesEnabled,
         titleFont: state.titleFont,
         bodyFontSize: state.bodyFontSize,
         biometricUnlockEnabled: state.biometricUnlockEnabled,

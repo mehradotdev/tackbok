@@ -16,8 +16,13 @@ export const GREETING_EMOJIS = [
 
 const NIGHT_EMOJIS = ['😪', '😴'] as const;
 
-export function chooseGreetingEmoji(greeting: TranslationKey, random = Math.random) {
-  const emojis = greeting === 'greeting.goodNight' ? NIGHT_EMOJIS : GREETING_EMOJIS;
+export function chooseGreetingEmoji(
+  greeting: TranslationKey,
+  random = Math.random,
+  /** A seasonal event's emojis replace the everyday set, but not the sleepy ones. */
+  daytime: readonly string[] = GREETING_EMOJIS,
+) {
+  const emojis = greeting === 'greeting.goodNight' ? NIGHT_EMOJIS : daytime;
   return emojis[Math.floor(random() * emojis.length)];
 }
 

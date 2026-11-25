@@ -19,6 +19,10 @@ export const ar: Translations = {
   'greeting.happyFriday': 'جمعة سعيدة',
   'greeting.happySaturday': 'سبت سعيد',
   'greeting.withName': '{greeting}، {name}',
+  'greeting.christmasEve': 'ليلة ميلاد سعيدة',
+  'greeting.merryChristmas': 'عيد ميلاد مجيد',
+  'greeting.newYearsEve': 'ليلة رأس سنة سعيدة',
+  'greeting.happyNewYear': 'سنة جديدة سعيدة',
 
   // Common
   'common.tackbok': 'تاكبوك',
@@ -298,6 +302,8 @@ export const ar: Translations = {
   'appearance.firstDayOfWeek': 'أول يوم في الأسبوع',
   'appearance.firstDayOfWeekDescription': 'اختر اليوم الذي تبدأ به أسابيع التقويم',
   'appearance.appIcon': 'أيقونة التطبيق',
+  'appearance.festiveTouches': 'لمسات احتفالية',
+  'appearance.festiveTouchesDescription': 'تهانٍ واقتراحات في الأعياد',
   'appearance.changeAppIconTitle': 'تغيير أيقونة التطبيق؟',
   'appearance.changeAppIconMessage': 'سيُغلق تاكبوك لتطبيق الأيقونة الجديدة.',
   'appearance.changeIcon': 'تغيير الأيقونة',

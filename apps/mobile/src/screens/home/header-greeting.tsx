@@ -16,6 +16,12 @@ import { Text } from '~/components/ui/text';
 import { useSettingsStore } from '~/lib/settings';
 import { useTranslation } from '~/lib/i18n';
 import {
+  activeSeasonalEvent,
+  seasonalDay,
+  type SeasonalEffect,
+} from '~/lib/seasonal/events';
+import { FestiveEffect } from './FestiveEffect';
+import {
   chooseGreeting,
   chooseGreetingEmoji,
   greetingUnits,
@@ -37,6 +43,7 @@ export function useHeaderGreeting(isSearchMode: boolean) {
   const { t, isReady } = useTranslation();
   const hydrated = useSettingsStore((s) => s._hasHydrated);
   const name = useSettingsStore((s) => s.profileName);
+  const festive = useSettingsStore((s) => s.festiveTouchesEnabled);
   const focused = useIsFocused();
   const [laidOut, setLaidOut] = useState(false);
   const [appState, setAppState] = useState(AppState.currentState);
@@ -47,6 +54,7 @@ export function useHeaderGreeting(isSearchMode: boolean) {
   const reducedMotion = useReducedMotion();
   const [pending, setPending] = useState(() => !launchGreetingClaimed);
   const [messages, setMessages] = useState<GreetingMessage[] | null>(null);
+  const [effect, setEffect] = useState<SeasonalEffect | null>(null);
   const [step, setStep] = useState(0);
   const [measured, setMeasured] = useState(0);
   const onMessageReady = useCallback((index: number) => {
@@ -75,7 +83,12 @@ export function useHeaderGreeting(isSearchMode: boolean) {
       } catch {
         /* Greeting works without storage. */
       }
-      const key = chooseGreeting(new Date(), previous);
+      const now = new Date();
+      // Special days replace the time-of-day greeting; the rest of the season
+      // only swaps in its emojis. Both follow the "Festive touches" setting.
+      const special = festive ? seasonalDay(now) : null;
+      const season = festive ? activeSeasonalEvent(now) : null;
+      const key = special?.greeting ?? chooseGreeting(now, previous);
       try {
         Storage.setItemSync(PREVIOUS_KEY, key);
       } catch {
@@ -86,13 +99,16 @@ export function useHeaderGreeting(isSearchMode: boolean) {
       const first = cleanName
         ? t('greeting.withName', { greeting: t('greeting.welcomeBack'), name: cleanName })
         : t('greeting.welcomeBack');
-      const second = `${t(key)}! ${chooseGreetingEmoji(key)}`;
+      const emoji =
+        special?.emoji ?? chooseGreetingEmoji(key, Math.random, season?.emojis);
+      const second = `${t(key)}! ${emoji}`;
       setStep(0);
+      setEffect(special?.effect ?? null);
       setMessages([{ label: first + '!' }, { label: second }]);
       setPending(false);
     }, 0);
     return () => clearTimeout(start);
-  }, [appState, focused, hydrated, isReady, isSearchMode, laidOut, name, t]);
+  }, [appState, festive, focused, hydrated, isReady, isSearchMode, laidOut, name, t]);
 
   useEffect(() => {
     if (!messages) return;
@@ -142,6 +158,7 @@ export function useHeaderGreeting(isSearchMode: boolean) {
     onMessageReady,
     greeting: messages?.[step] ?? null,
     step,
+    effect,
     active: pending || !!messages,
     progress,
     reducedMotion,
@@ -212,6 +229,7 @@ export function HeaderGreeting({
   messages,
   onMessageReady,
   step,
+  effect,
   progress,
   reducedMotion,
 }: ReturnType<typeof useHeaderGreeting>) {
@@ -219,6 +237,7 @@ export function HeaderGreeting({
   if (!messages) return null;
   return (
     <>
+      {effect && !reducedMotion && <FestiveEffect kind={effect} progress={progress} />}
       {messages.map((message, messageIndex) => (
         <View
           key={messageIndex}
