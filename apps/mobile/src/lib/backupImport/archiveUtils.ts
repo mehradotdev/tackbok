@@ -146,12 +146,13 @@ export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asse
 }
 
 /**
- * The largest JSON data file (such as `entries.json`) an import reads. It is
- * read, decoded and parsed whole, so a crafted or broken backup with a huge
- * one could run the phone out of memory. A 10,000-entry Tackbok export's
- * `entries.json` is about 9 MB, so 50 MB fits over 50,000 entries, more than
- * a century of daily writing. Both the stored and the unpacked size are
- * capped; a larger file stops the import with `ImportDataTooLargeError`.
+ * The most JSON data (such as `entries.json`) an import reads: per file, and
+ * in total across the files one import reads at once. They are read, decoded
+ * and parsed whole, so a crafted or broken backup with huge ones could run
+ * the phone out of memory. A 10,000-entry Tackbok export's `entries.json` is
+ * about 9 MB, so 50 MB fits over 50,000 entries, more than a century of
+ * daily writing. Both the stored and the unpacked sizes are capped; more
+ * stops the import with `ImportDataTooLargeError`.
  */
 export const MAX_IMPORT_JSON_BYTES = 50 * 1000 * 1000;
 
@@ -170,6 +171,23 @@ function isEntryOver(zip: ZipReader, path: string, limit: number): boolean {
   const info = zip.getEntryInfo(path);
   const cap = BigInt(limit);
   return !!info && (info.uncompressedSize > cap || info.compressedSize > cap);
+}
+
+/**
+ * Throws `ImportDataTooLargeError` if the JSON files an import is about to
+ * read together are over `MAX_IMPORT_JSON_BYTES` in total (stored or
+ * unpacked). Missing files count as empty; reading them reports them.
+ */
+export function assertZipJsonBudget(zip: ZipReader, paths: readonly string[]): void {
+  let stored = 0n;
+  let unpacked = 0n;
+  for (const path of paths) {
+    const info = zip.getEntryInfo(assertSafeArchivePath(path));
+    stored += info?.compressedSize ?? 0n;
+    unpacked += info?.uncompressedSize ?? 0n;
+  }
+  const cap = BigInt(MAX_IMPORT_JSON_BYTES);
+  if (stored > cap || unpacked > cap) throw new ImportDataTooLargeError(paths.join(', '));
 }
 
 /**

@@ -28,6 +28,7 @@ const mockLoadZipFromUri = jest.fn(
 const mockReadSafeZipJson = jest.fn(
   async (_zip: unknown, _path: string): Promise<unknown> => undefined,
 );
+const mockAssertZipJsonBudget = jest.fn((_zip: unknown, _paths: readonly string[]) => {});
 const mockReadSafeZipBytes = jest.fn(
   async (_zip: unknown, _path: string) => new Uint8Array(),
 );
@@ -172,6 +173,8 @@ jest.mock('../archiveUtils', () => ({
   loadZipFromUri: (uri: string) => mockLoadZipFromUri(uri),
   readSafeZipBytes: (zip: unknown, path: string) => mockReadSafeZipBytes(zip, path),
   readSafeZipJson: (zip: unknown, path: string) => mockReadSafeZipJson(zip, path),
+  assertZipJsonBudget: (zip: unknown, paths: readonly string[]) =>
+    mockAssertZipJsonBudget(zip, paths),
   buildTagIdToNameMap: async () => new Map(),
   resolveTagIdsToTitles: (_tagIds: string, _tagMap: Map<string, string>) => [],
   getRelativeAssetFile: (_relativeUri: string) => null,
@@ -258,6 +261,7 @@ describe('importFromTackbokBackup', () => {
     mockIsZipFile.mockReset();
     mockLoadZipFromUri.mockReset();
     mockReadSafeZipJson.mockReset();
+    mockAssertZipJsonBudget.mockReset();
     mockReadSafeZipBytes.mockReset();
     mockWriteImportedPhoto.mockReset();
     mockCleanupImportedFiles.mockReset();
@@ -361,52 +365,69 @@ describe('importFromTackbokBackup', () => {
   });
 
   test.each([
-    ['over the cap is refused without being read', 1, 1],
-    ['over the cap only when unpacked is refused', 0, 1],
-    ['over the cap only as stored is refused', 1, 0],
-    ['at the cap is imported', 0, 0],
-  ])('a backup whose entries.json is %s', async (_name, storedOver, unpackedOver) => {
-    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
-    const { readSafeZipJson, MAX_IMPORT_JSON_BYTES, ImportDataTooLargeError } =
-      jest.requireActual<typeof import('../archiveUtils')>('../archiveUtils');
-    const refused = storedOver + unpackedOver > 0;
-    const json: Record<string, unknown> = {
-      'manifest.json': { format: 'tackbok-backup', backupVersion: 1 },
-      'data/profile.json': { name: null, email: null, imagePath: null },
-    };
-    const readEntryJson = jest.fn(async (path: string) => json[path] ?? []);
-    const close = jest.fn(async () => undefined);
-    mockLoadZipFromUri.mockResolvedValue({
-      close,
-      getEntryInfo: (path: string) => {
-        const big = path === 'data/entries.json';
-        return {
-          path,
-          compressedSize: BigInt(big ? MAX_IMPORT_JSON_BYTES + storedOver : 100),
-          uncompressedSize: BigInt(big ? MAX_IMPORT_JSON_BYTES + unpackedOver : 100),
-          compressionMethod: 8,
-          isEncrypted: false,
-        };
-      },
-      readEntryJson,
-    } as never);
-    mockReadSafeZipJson.mockReset();
-    mockReadSafeZipJson.mockImplementation(readSafeZipJson as never);
+    ['over the cap is refused without being read', 1, 1, 0],
+    ['over the cap only when unpacked is refused', 0, 1, 0],
+    ['over the cap only as stored is refused', 1, 0, 0],
+    ['under the cap, with the other files over it in total, is refused', 0, 0, 1],
+    ['at the cap is imported', 0, 0, 0],
+  ])(
+    'a backup whose entries.json is %s',
+    async (_name, storedOver, unpackedOver, othersOver) => {
+      const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+      const {
+        assertZipJsonBudget,
+        readSafeZipJson,
+        MAX_IMPORT_JSON_BYTES,
+        ImportDataTooLargeError,
+      } = jest.requireActual<typeof import('../archiveUtils')>('../archiveUtils');
+      const refused = storedOver + unpackedOver + othersOver > 0;
+      const json: Record<string, unknown> = {
+        'manifest.json': { format: 'tackbok-backup', backupVersion: 1 },
+        'data/profile.json': { name: null, email: null, imagePath: null },
+      };
+      // entries.json plus three 100-byte side files make exactly the cap.
+      const entriesSize = MAX_IMPORT_JSON_BYTES - 300;
+      const readEntryJson = jest.fn(async (path: string) => json[path] ?? []);
+      const close = jest.fn(async () => undefined);
+      mockLoadZipFromUri.mockResolvedValue({
+        close,
+        getEntryInfo: (path: string) => {
+          const size = (over: number) =>
+            BigInt(
+              path === 'data/entries.json'
+                ? (over ? MAX_IMPORT_JSON_BYTES : entriesSize) + over
+                : 100 + othersOver,
+            );
+          return {
+            path,
+            compressedSize: size(storedOver),
+            uncompressedSize: size(unpackedOver),
+            compressionMethod: 8,
+            isEncrypted: false,
+          };
+        },
+        readEntryJson,
+      } as never);
+      // Drop the default queued answers so the real reader runs.
+      mockReadSafeZipJson.mockReset();
+      mockReadSafeZipJson.mockImplementation(readSafeZipJson as never);
+      mockAssertZipJsonBudget.mockImplementation(assertZipJsonBudget as never);
 
-    const outcome = importFromTackbokBackup('backup.zip', 'overwrite');
+      const outcome = importFromTackbokBackup('backup.zip', 'overwrite');
 
-    if (refused) {
-      await expect(outcome).rejects.toBeInstanceOf(ImportDataTooLargeError);
-      expect(readEntryJson).not.toHaveBeenCalledWith('data/entries.json');
-      expect(mockImportPortableEntries).not.toHaveBeenCalled();
-    } else {
-      await outcome;
-      expect(readEntryJson).toHaveBeenCalledWith('data/entries.json');
-      expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
-    }
-    expect(close).toHaveBeenCalled();
-    warnSpy.mockRestore();
-  });
+      if (refused) {
+        await expect(outcome).rejects.toBeInstanceOf(ImportDataTooLargeError);
+        expect(readEntryJson).not.toHaveBeenCalledWith('data/entries.json');
+        expect(mockImportPortableEntries).not.toHaveBeenCalled();
+      } else {
+        await outcome;
+        expect(readEntryJson).toHaveBeenCalledWith('data/entries.json');
+        expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
+      }
+      expect(close).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    },
+  );
 
   test('trims the imported display name', async () => {
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
