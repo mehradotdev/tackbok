@@ -268,9 +268,9 @@
     }
 
     /* ═══════════════════════════════════════════
-       WECKNER — Forest dusk/brass lamplight
+       BEA — Forest dusk/brass lamplight
        ═══════════════════════════════════════════ */
-    @variant weckner {
+    @variant bea {
       --color-background: #16211a;
       --color-foreground: #d7e3d2;
       --color-card: #1d2a21;
@@ -363,6 +363,74 @@
       --theme-border-width: 1px;
       --theme-shadow: 0 6px 16px 0 rgba(10, 24, 45, 0.16);
       --font-heading: 'SpaceMono_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       DENISE — Blue mountains in drifting morning mist
+       ═══════════════════════════════════════════ */
+    @variant denise {
+      --color-background: #e6edf3;
+      --color-foreground: #1d2f42;
+      --color-card: #f1f5f8;
+      --color-card-foreground: #1d2f42;
+      --color-popover: #f6f8fb;
+      --color-popover-foreground: #1d2f42;
+      --color-primary: #46637f;
+      --color-primary-foreground: #f5f8fb;
+      --color-secondary: #d6e0ea;
+      --color-secondary-foreground: #1d2f42;
+      --color-muted: #d6e0ea;
+      --color-muted-foreground: #4a5d71;
+      --color-accent: #c6d4e1;
+      --color-accent-foreground: #1d2f42;
+      --color-destructive: #a8443a;
+      --color-destructive-foreground: #ffffff;
+      --color-border: #b8c7d6;
+      --color-input: #d1dce7;
+      --color-ring: #5a7a99;
+      --color-active-overlay: rgba(29, 47, 66, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(29, 47, 66, 0.1);
+      --font-heading: 'Cinzel_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       GIUSEPPE — A balanced stone tower by a lake at dusk
+       ═══════════════════════════════════════════ */
+    @variant giuseppe {
+      --color-background: #10262a;
+      --color-foreground: #e6eee9;
+      --color-card: #173236;
+      --color-card-foreground: #e6eee9;
+      --color-popover: #1c3a3e;
+      --color-popover-foreground: #e6eee9;
+      --color-primary: #d39a5a;
+      --color-primary-foreground: #1c140c;
+      --color-secondary: #21403f;
+      --color-secondary-foreground: #e6eee9;
+      --color-muted: #1b3638;
+      --color-muted-foreground: #a3bcb8;
+      --color-accent: #3e5f5c;
+      --color-accent-foreground: #eef3ef;
+      --color-destructive: #ef9a8e;
+      --color-destructive-foreground: #2a1512;
+      --color-border: #2c4c4d;
+      --color-input: #1c3a3e;
+      --color-ring: #e0a866;
+      --color-active-overlay: rgba(230, 238, 233, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --font-heading: 'Lora_700Bold';
       --font-body: 'Inter_400Regular';
       --font-body-medium: 'Inter_500Medium';
       --font-body-semibold: 'Inter_600SemiBold';

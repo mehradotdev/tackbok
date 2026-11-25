@@ -4,6 +4,7 @@ import { getThemeConfig } from '~/lib/theme/themes';
 import type { BackdropId } from '~/lib/theme/registry';
 import { CaminoDayBackdrop, CaminoNightBackdrop } from './CaminoBackdrop';
 import { BotanicalBackdrop } from './BotanicalBackdrop';
+import { DeniseBackdrop, GiuseppeBackdrop } from './FriendBackdrops';
 import { HelenaBackdrop, PoonamBackdrop } from './SkyBackdrop';
 import { ShiroBackdrop, ShadowBackdrop } from './PetBackdrop';
 
@@ -33,6 +34,8 @@ export const BACKDROPS: Record<BackdropId, ComponentType<BackdropProps>> = {
   shadow: ShadowBackdrop,
   camino: CaminoDayBackdrop,
   'camino-night': CaminoNightBackdrop,
+  denise: DeniseBackdrop,
+  giuseppe: GiuseppeBackdrop,
 };
 
 /**

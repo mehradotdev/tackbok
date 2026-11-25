@@ -237,12 +237,7 @@ function ProfileNameField({ name, onSave }: ProfileNameFieldProps) {
           onPress={commitEdit}
           hitSlop={6}
           className="p-1.5 rounded-full bg-primary/10">
-          <Icon
-            as={Check}
-            className="text-primary-foreground"
-            size={16}
-            strokeWidth={2.5}
-          />
+          <Icon as={Check} className="text-foreground" size={16} strokeWidth={2.5} />
         </Button>
       </View>
     );
@@ -323,16 +318,9 @@ function TriggerAvatar({
       <AvatarImage source={displayUri ? { uri: displayUri } : undefined} />
       <AvatarFallback className="bg-background/60">
         {initials ? (
-          <Text className="text-sm font-body-bold text-primary-foreground">
-            {initials}
-          </Text>
+          <Text className="text-sm font-body-bold text-foreground">{initials}</Text>
         ) : (
-          <Icon
-            as={User}
-            className="text-primary-foreground/70"
-            size={14}
-            strokeWidth={2}
-          />
+          <Icon as={User} className="text-foreground/70" size={14} strokeWidth={2} />
         )}
       </AvatarFallback>
     </Avatar>

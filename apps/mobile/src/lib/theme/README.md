@@ -170,6 +170,29 @@ renderer also checks body-text contrast against every background pixel (at least
 measure GPU
 performance or battery use.
 
+### Denise and Giuseppe
+
+`FriendBackdrops.tsx` renders two shader scenes: Denise's misty blue ridges
+(light, Cinzel) and Giuseppe's cairn by a lake at dusk (dark, Lora). The detailed
+layers (`DENISE_SCENE`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`) are expensive, so each
+is drawn once into a texture with `useTexture`. Giuseppe's cairn texture covers
+only its corner. Only a cheap overlay animates per frame: Denise's fog wisps and
+Giuseppe's additive bokeh. Motion stops when the screen loses focus or the app
+goes to the background, and previews and Reduce Motion show still scenes.
+The theme background colour is painted first, so a failed shader degrades to a
+plain theme.
+
+Journal text sits directly on the art. Denise's scene lifts any pixel darker
+than 4.5:1 against `--color-foreground` toward the mist. Giuseppe has no such
+lift (the owner kept it as is): its lit cairn reaches about 2:1 and the sun glow
+on the lake about 3:1.
+
+Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
+all five shaders and render both scenes at phone, landscape and picker sizes in
+`/tmp/friend-previews`. It exits 1 if body text over Denise drops below 4.5:1;
+Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (a few
+minutes); it says nothing about GPU cost.
+
 ## How `src/global.css` Is Managed
 
 `src/global.css` has two ownership zones:

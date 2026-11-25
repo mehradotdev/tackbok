@@ -103,7 +103,7 @@ export function WorksheetTemplateModal({ onApplyTemplate }: WorksheetTemplateMod
             setIsEditing(true);
             setTimeout(() => textareaRef.current?.focus(), 100);
           }}>
-          <Icon as={FilePenLine} className="text-primary-foreground size-5" />
+          <Icon as={FilePenLine} className="text-foreground size-5" />
           <Text>{t('journaling.editWorksheetTemplate')}</Text>
         </Button>
 

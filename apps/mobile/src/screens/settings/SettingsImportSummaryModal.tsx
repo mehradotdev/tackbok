@@ -87,7 +87,7 @@ export function SettingsImportSummaryModal({
         showCloseButton={false}>
         <DialogHeader className="mb-5 items-start gap-3 text-left sm:text-left">
           <View className="size-12 items-center justify-center rounded-full bg-primary/15">
-            <Icon as={Check} className="size-5 text-primary-foreground" strokeWidth={5} />
+            <Icon as={Check} className="size-5 text-foreground" strokeWidth={5} />
           </View>
           <View className="gap-1">
             <DialogTitle className="text-xl font-heading text-foreground">
