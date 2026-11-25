@@ -2751,6 +2751,7 @@ describe('GoogleDriveSnapshotProvider', () => {
     }
     const gate = { inFlight: 0, most: 0, lagging: true };
     let created: StoredDriveFile | null = null;
+    let survivor: string | null = null;
     const app = new GoogleDriveSnapshotProvider({
       auth: new FakeAuth(),
       state: new MemoryDriveProviderStateStore(),
@@ -2764,6 +2765,11 @@ describe('GoogleDriveSnapshotProvider', () => {
         gate.most = Math.max(gate.most, gate.inFlight);
         try {
           await new Promise((resolve) => setTimeout(resolve, 1));
+          // One delete answers success but the file survives: still counted.
+          if (deleting && !survivor) {
+            survivor = id;
+            return new Response(null, { status: 204 });
+          }
           const result = await server.fetch(url, init);
           // Drive's search still lists most deleted files for a while.
           if (file && gate.lagging) server.staleSearch.set(file.id, file);
@@ -2788,14 +2794,15 @@ describe('GoogleDriveSnapshotProvider', () => {
       now: () => 1_800_000_000_000,
     });
     await app.publishRevocation(vaultId, 'journal-deleted');
-    // Only the late upload remains: the lagging search results were checked by ID.
+    // The late upload and the survivor remain: the lagging search results were
+    // checked by ID.
     await expect(app.purgeRevokedVault(vaultId)).resolves.toEqual({
       deleted: 20,
-      remaining: 1,
+      remaining: 2,
     });
     expect(gate.most).toBeGreaterThan(1);
     expect(gate.most).toBeLessThanOrEqual(6);
-    // "Resume deletion" finishes: the late file goes, and the files the search
+    // "Resume deletion" finishes: the late file and the survivor go, and the files the search
     // still lists are deleted again (Drive answers 404) without counting.
     gate.lagging = false;
     await expect(app.purgeRevokedVault(vaultId)).resolves.toEqual({
