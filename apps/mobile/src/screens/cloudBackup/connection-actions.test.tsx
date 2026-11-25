@@ -35,7 +35,8 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({
     canGoBack: () => true,
     back: jest.fn(),
-    replace: jest.fn(),
+    replace: (href: string) => mockRouterReplace(href),
+    dismissTo: (href: string) => mockDismissTo(href),
     push: (href: string) => mockPush(href),
   }),
 }));
@@ -98,6 +99,8 @@ const mockRefresh = jest.fn(async () => {});
 const mockOpenURL = jest.fn(async (_url: string) => {});
 const mockOpenSettings = jest.fn(async () => {});
 const mockPush = jest.fn((_href: string) => {});
+const mockRouterReplace = jest.fn((_href: string) => {});
+const mockDismissTo = jest.fn((_href: string) => {});
 const mockRetry = jest.fn(async (_reason: string) => {});
 const mockRevoke = jest.fn(async (_kind: string) => {});
 const mockDisconnect = jest.fn<Promise<void>, []>();
@@ -645,6 +648,30 @@ describe('a backup that needs a newer Tackbok', () => {
 });
 
 describe('a restore started from onboarding', () => {
+  test('once connected, it continues to the analytics choice, leaving Welcome behind', async () => {
+    mockParams = { origin: 'onboarding' };
+    mockSnapshot.configured = false;
+    mockSnapshot.status = 'off';
+    mockPrepare.mockResolvedValueOnce({
+      accountLabel: 'owner@example.com',
+      availableVaults: [{ vaultId: 'vault-a', updatedAt: 1 }],
+      updateRequiredVaults: [],
+      unreadableBackupCount: 0,
+      localHasData: false,
+    });
+    await render();
+    const disclosure = root.root.findAll(
+      (node) => typeof node.props.onContinue === 'function',
+    )[0];
+    await act(async () => disclosure.props.onContinue());
+    const chooser = root.root.findAll(
+      (node) => typeof node.props.onChoose === 'function',
+    )[0];
+    await act(async () => chooser.props.onChoose('vault-a'));
+    expect(mockDismissTo.mock.calls).toEqual([['/onboarding/welcome']]);
+    expect(mockRouterReplace.mock.calls).toEqual([['/onboarding/privacy']]);
+  });
+
   test('shows its progress while it downloads the backup, with Sync now disabled', async () => {
     // An empty phone's restore pass reports only a check until the journal arrives.
     mockSnapshot.status = 'syncing';

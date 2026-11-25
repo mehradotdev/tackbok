@@ -228,7 +228,11 @@ export default function CloudBackupScreen() {
         if (!mountedRef.current) return;
         toast.success(t('cloud.cloudBackupConnected'));
         if (origin === 'onboarding') {
-          router.replace('/');
+          // Onboarding is already complete (set with the commit), but the
+          // analytics choice and the reminder still matter. Leave this screen
+          // and Welcome behind so Back can't return to either.
+          router.dismissTo('/onboarding/welcome');
+          router.replace('/onboarding/privacy');
         } else {
           // Local state is enough to leave setup. Replacing the route here
           // could replace Home if the user backed out while setup was running.

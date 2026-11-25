@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useNavigationState } from 'expo-router/react-navigation';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import { useTranslation } from '~/lib/i18n';
@@ -36,6 +37,8 @@ export function OnboardingScaffold({
   backdrop?: ReactNode;
 }) {
   const router = useRouter();
+  // After a Drive restore the flow resumes on Privacy with nothing behind it.
+  const hasPreviousStep = useNavigationState((state) => state.index > 0);
   const { t, isRTL } = useTranslation();
   const BackIcon = isRTL ? ArrowRight : ArrowLeft;
 
@@ -48,7 +51,7 @@ export function OnboardingScaffold({
           centred while letting a long Skip label (e.g. German) use the width. */}
       <View className="flex-row items-center px-4 pt-1 min-h-12">
         <View className="flex-1 basis-0 items-start">
-          {step !== undefined && (
+          {step !== undefined && hasPreviousStep && (
             <Button
               variant="ghost"
               size="icon"
