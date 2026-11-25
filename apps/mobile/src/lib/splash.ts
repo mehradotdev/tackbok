@@ -34,7 +34,7 @@ export function isLaunchFromLink(
   initialUrl: string | null,
   notificationData: Record<string, unknown> | null | undefined,
 ): boolean {
-  if (initialUrl != null && !initialUrl.includes('expo-development-client')) return true;
+  if (initialUrl && !initialUrl.includes('expo-development-client')) return true;
   const url = notificationData?.url;
   return typeof url === 'string' && url.startsWith('/');
 }

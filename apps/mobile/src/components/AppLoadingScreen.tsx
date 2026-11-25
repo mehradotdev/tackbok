@@ -29,8 +29,10 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = fals
   const theme = useSettingsStore((s) => s.theme);
   const themeConfig = getThemeConfig(theme);
   const [foregroundColor] = useCSSVariable(['--color-foreground']);
-  const statusBarStyle = themeConfig.variant === 'dark' ? 'light' : 'dark';
   const splashActive = useSplashActive((s) => s.active);
+  // Light icons while the black launch splash is on top.
+  const statusBarStyle =
+    splashActive || themeConfig.variant === 'dark' ? 'light' : 'dark';
 
   const content = (
     <SafeAreaView
@@ -45,7 +47,10 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = fals
         </View>
         <View
           className="absolute inset-x-0 items-center"
-          style={{ top: '50%', marginTop: LOADING_LOGO_SIZE / 2 + LOGO_TO_SPINNER_GAP }}>
+          style={{
+            top: '50%',
+            marginTop: LOADING_LOGO_SIZE / 2 + LOGO_TO_SPINNER_GAP,
+          }}>
           <ActivityIndicator size="large" color={foregroundColor as string} />
         </View>
       </View>

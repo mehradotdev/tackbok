@@ -17,6 +17,7 @@ import Animated, {
   Easing,
   interpolate,
   interpolateColor,
+  ReduceMotion,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -73,12 +74,14 @@ const foldEasing = Easing.inOut(Easing.cubic);
 const zoomEasing = Easing.inOut(Easing.cubic);
 
 interface SplashAnimationProps {
-  /** `null` while launch checks run: hold the native splash frame. */
-  mode: Exclude<SplashMode, 'none'> | null;
+  mode: Exclude<SplashMode, 'none'>;
   /** The frame matches the native splash; safe to hide it now. */
   onReady: () => void;
   onFinish: () => void;
-  /** Seasonal hook: Skia nodes drawn on the book in logo units (e.g. a hat). */
+  /**
+   * Seasonal hook: Skia nodes drawn on the book in logo units (e.g. a hat).
+   * shortcut: no caller yet, kept for the planned festive splash (2.0.0 festive work).
+   */
   decoration?: ReactNode;
 }
 
@@ -97,7 +100,7 @@ export function SplashAnimation({
   const [themeBackground] = useCSSVariable(['--color-background']);
   const endColor = (themeBackground as string | undefined) ?? NATIVE_SPLASH_BACKGROUND;
   const time = useSharedValue(0);
-  const timeline = SPLASH_TIMELINES[mode ?? 'fade'];
+  const timeline = SPLASH_TIMELINES[mode];
 
   // Let the first frame draw before the native splash goes away.
   useEffect(() => {
@@ -117,16 +120,21 @@ export function SplashAnimation({
   }, [drawn, onReady]);
 
   useEffect(() => {
-    if (!drawn || !mode) return;
+    if (!drawn) return;
     const { duration } = SPLASH_TIMELINES[mode];
-    time.value = withTiming(duration, { duration, easing: Easing.linear }, (finished) => {
-      if (finished) scheduleOnRN(onFinish);
-    });
+    // The mode already honours Reduce Motion; Never keeps its fade a fade, not a cut.
+    time.value = withTiming(
+      duration,
+      { duration, easing: Easing.linear, reduceMotion: ReduceMotion.Never },
+      (finished) => {
+        if (finished) scheduleOnRN(onFinish);
+      },
+    );
   }, [drawn, mode, onFinish, time]);
 
   const width = size?.width ?? 0;
   const height = size?.height ?? 0;
-  const maxZoom = (3.5 * Math.max(width, height)) / NATIVE_SPLASH_LOGO_SIZE;
+  const maxZoom = size ? (3.5 * Math.max(width, height)) / NATIVE_SPLASH_LOGO_SIZE : 1;
 
   const zoom = useDerivedValue(() => {
     const range = timeline.zoom;
@@ -207,7 +215,6 @@ export function SplashAnimation({
 
   return (
     <Animated.View
-      pointerEvents="none"
       style={[
         StyleSheet.absoluteFill,
         { backgroundColor: NATIVE_SPLASH_BACKGROUND },

@@ -37,6 +37,7 @@ import {
   endSplash,
   getSplashMode,
   isLaunchFromLink,
+  useSplashActive,
   type SplashMode,
 } from '~/lib/splash';
 // A no-op module outside beta bundles; see metro.config.js.
@@ -59,15 +60,17 @@ function hideSplash() {
 }
 
 // A launch from a deep link or a reminder tap goes straight to its screen.
-// Started at bundle load so the answer is usually ready by hydration.
+// Started at bundle load so the answer is usually ready by hydration. If it is
+// slow, the animation starts anyway and stops as soon as a link turns up.
 const LAUNCH_CHECK_TIMEOUT_MS = 300;
-const openedFromLinkPromise: Promise<boolean> = Promise.race([
-  Promise.all([
-    Linking.getInitialURL().catch(() => null),
-    Notifications.getLastNotificationResponseAsync().catch(() => null),
-  ]).then(([url, response]) =>
-    isLaunchFromLink(url, response?.notification.request.content.data),
-  ),
+const openedFromLinkPromise: Promise<boolean> = Promise.all([
+  Linking.getInitialURL().catch(() => null),
+  Notifications.getLastNotificationResponseAsync().catch(() => null),
+]).then(([url, response]) =>
+  isLaunchFromLink(url, response?.notification.request.content.data),
+);
+const quickLaunchCheck: Promise<boolean> = Promise.race([
+  openedFromLinkPromise,
   new Promise<boolean>((resolve) =>
     setTimeout(() => resolve(false), LAUNCH_CHECK_TIMEOUT_MS),
   ),
@@ -131,16 +134,17 @@ export default function Layout() {
   const [fontsLoaded, fontsError] = useFonts(APP_FONT_ASSETS);
   const reduceMotion = useReducedMotion();
   // undefined: not decided yet; null: the launch animation is done or skipped.
+  // A remount after it has finished (e.g. Fast Refresh) does not replay it.
   const [splashMode, setSplashMode] = useState<
     Exclude<SplashMode, 'none'> | null | undefined
-  >(undefined);
+  >(() => (useSplashActive.getState().active ? undefined : null));
   const appLockEnabled = useSettingsStore((s) => s.biometricUnlockEnabled);
 
   useEffect(() => {
     if (!hasHydrated || splashMode !== undefined) return;
     let cancelled = false;
     // With app lock on there is nothing to wait for: the lock skips the animation.
-    const launchCheck = appLockEnabled ? Promise.resolve(false) : openedFromLinkPromise;
+    const launchCheck = appLockEnabled ? Promise.resolve(false) : quickLaunchCheck;
     void launchCheck.then((openedFromLink) => {
       if (cancelled) return;
       const mode = getSplashMode({
@@ -154,13 +158,31 @@ export default function Layout() {
       cancelled = true;
     };
   }, [appLockEnabled, hasHydrated, reduceMotion, splashMode]);
+  // A link that answers after the quick check still cuts the animation short.
+  useEffect(() => {
+    let mounted = true;
+    void openedFromLinkPromise.then((openedFromLink) => {
+      if (mounted && openedFromLink) setSplashMode(null);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const finishSplash = useCallback(() => setSplashMode(null), []);
   const splashActive = hasHydrated && splashMode !== null && !error;
   useEffect(() => {
-    if (splashMode === null || error) endSplash();
-  }, [error, splashMode]);
+    if (splashMode !== null && !error) return;
+    endSplash();
+    if (!hasHydrated) return;
+    // The content may have laid out while the animation owned the hand-off, and
+    // a later onLayout prop change fires no event; hide here so it never sticks.
+    const frame = requestAnimationFrame(hideSplash);
+    return () => cancelAnimationFrame(frame);
+  }, [error, hasHydrated, splashMode]);
   // While the launch animation is on screen it decides when the native splash goes.
   const onContentLayout = splashActive ? undefined : hideSplash;
+  // Light icons over the black splash, whatever the theme.
+  const barStyle = splashActive ? 'light' : statusBarStyle;
 
   const [primaryColor, primaryForeground, backgroundColor] = useCSSVariable([
     '--color-primary',
@@ -256,17 +278,14 @@ export default function Layout() {
       ) : (
         <AppContent
           onLayout={onContentLayout}
-          statusBarStyle={statusBarStyle}
+          statusBarStyle={barStyle}
           primaryColor={primaryColor as string}
           primaryForeground={primaryForeground as string}
         />
       )}
-      {splashActive ? (
-        <SplashAnimation
-          mode={splashMode ?? null}
-          onReady={hideSplash}
-          onFinish={finishSplash}
-        />
+      {/* Until the mode is decided the native splash itself holds the frame. */}
+      {splashActive && splashMode ? (
+        <SplashAnimation mode={splashMode} onReady={hideSplash} onFinish={finishSplash} />
       ) : null}
     </View>
   );

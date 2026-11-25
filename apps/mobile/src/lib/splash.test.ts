@@ -39,6 +39,7 @@ describe('launch from a link', () => {
 
   test('a plain launch, the dev client URL or unusable reminder data does not', () => {
     expect(isLaunchFromLink(null, null)).toBe(false);
+    expect(isLaunchFromLink('', null)).toBe(false);
     expect(
       isLaunchFromLink(
         'tackbok-beta://expo-development-client/?url=http%3A%2F%2Flocalhost',
