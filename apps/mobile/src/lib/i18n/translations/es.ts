@@ -626,6 +626,8 @@ export const es = {
   'onboarding.youreAllSet': '¡Ya estás listo!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Dos últimas cosas que puedes activar. Ambos son opcionales.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Tu nuevo icono aparecerá cuando salgas de Tackbok.',
   'onboarding.finish.oneOptionalThing':
     'Una última cosa que puedes activar. Es opcional.',
   'onboarding.addExampleEntries': 'Agregar entradas de ejemplo',

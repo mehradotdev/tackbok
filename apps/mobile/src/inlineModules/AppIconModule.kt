@@ -1,8 +1,14 @@
 package app
 
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.app.Activity
+import android.app.Application
+import android.os.Bundle
+import android.os.PowerManager
+import android.util.Log
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -16,9 +22,32 @@ private const val DEFAULT_ICON = "Default"
  * Switches the launcher icon by enabling one activity-alias.
  *
  * Disabling the alias the running task was launched from ends that task (the
- * process keeps running), so JS asks before switching.
+ * process keeps running), so JS asks before switching, or queues the switch
+ * until the user leaves the app.
  */
 class AppIconModule : Module() {
+  /** An icon to switch to once the user leaves the app: name (null is the default) and the alternates. */
+  @Volatile private var iconOnLeave: Pair<String?, List<String>>? = null
+  private var application: Application? = null
+
+  // Stop, not pause: a deep link or notification tap while open, or a dialog
+  // over the app, only pauses it.
+  private val lifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
+    override fun onActivityStopped(activity: Activity) {
+      val (name, icons) = iconOnLeave ?: return
+      if (activity.isChangingConfigurations || !userLeftApp()) return
+      iconOnLeave = null
+      runCatching { switchIcon(name, icons) }.onFailure { Log.w("AppIconModule", "Failed to switch the app icon", it) }
+    }
+
+    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+    override fun onActivityStarted(activity: Activity) = Unit
+    override fun onActivityResumed(activity: Activity) = Unit
+    override fun onActivityPaused(activity: Activity) = Unit
+    override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+    override fun onActivityDestroyed(activity: Activity) = Unit
+  }
+
   private val context: Context
     get() = appContext.reactContext ?: throw CodedException("ERR_NO_CONTEXT", "React context is unavailable", null)
 
@@ -43,6 +72,40 @@ class AppIconModule : Module() {
       .map { it.name.removePrefix(prefix) }
   }
 
+  private fun switchIcon(name: String?, icons: List<String>) {
+    val target = name ?: DEFAULT_ICON
+    val registered = registeredIcons()
+    require(target in registered && (target == DEFAULT_ICON || target in icons)) { "Unknown app icon: $name" }
+    val pm = context.packageManager
+    // Enable the target before disabling the others so a launcher entry always exists.
+    pm.setComponentEnabledSetting(
+      component(target),
+      PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+      PackageManager.DONT_KILL_APP,
+    )
+    // Each change makes the launcher reload, so already disabled aliases are left alone.
+    registered.filter { it != target && isEnabled(it) }.forEach {
+      pm.setComponentEnabledSetting(
+        component(it),
+        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+        PackageManager.DONT_KILL_APP,
+      )
+    }
+  }
+
+  /**
+   * True when the stop means the user left the app (Home, Recents, another
+   * app): the screen is on and nothing else opened over it in its own task
+   * (a picker or sign-in sheet).
+   */
+  private fun userLeftApp(): Boolean {
+    val power = context.getSystemService(PowerManager::class.java)
+    if (power?.isInteractive != true) return false
+    val activities = context.getSystemService(ActivityManager::class.java)
+    val top = activities?.appTasks?.firstOrNull()?.taskInfo?.topActivity ?: return false
+    return top.packageName == context.packageName
+  }
+
   override fun definition() = ModuleDefinition {
     Name("AppIconModule")
 
@@ -58,24 +121,29 @@ class AppIconModule : Module() {
     }
 
     AsyncFunction("setAppIcon") { name: String?, icons: List<String> ->
+      iconOnLeave = null
+      switchIcon(name, icons)
+    }
+
+    // Switching ends the task, so onboarding queues the switch until the user leaves.
+    AsyncFunction("setAppIconOnLeave") { name: String?, icons: List<String> ->
       val target = name ?: DEFAULT_ICON
-      val registered = registeredIcons()
-      require(target in registered && (target == DEFAULT_ICON || target in icons)) { "Unknown app icon: $name" }
-      val pm = context.packageManager
-      // Enable the target before disabling the others so a launcher entry always exists.
-      pm.setComponentEnabledSetting(
-        component(target),
-        PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-        PackageManager.DONT_KILL_APP,
-      )
-      // Each change makes the launcher reload, so already disabled aliases are left alone.
-      registered.filter { it != target && isEnabled(it) }.forEach {
-        pm.setComponentEnabledSetting(
-          component(it),
-          PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-          PackageManager.DONT_KILL_APP,
-        )
-      }
+      require(target in registeredIcons() && (target == DEFAULT_ICON || target in icons)) { "Unknown app icon: $name" }
+      iconOnLeave = name to icons
+    }
+
+    AsyncFunction("cancelAppIconOnLeave") {
+      iconOnLeave = null
+    }
+
+    OnCreate {
+      application = appContext.reactContext?.applicationContext as? Application
+      application?.registerActivityLifecycleCallbacks(lifecycleCallbacks)
+    }
+
+    OnDestroy {
+      application?.unregisterActivityLifecycleCallbacks(lifecycleCallbacks)
+      application = null
     }
   }
 }

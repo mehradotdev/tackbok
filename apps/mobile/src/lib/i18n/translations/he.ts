@@ -643,6 +643,7 @@ export const he: Translations = {
   'onboarding.youreAllSet': 'הכול מוכן!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'שני דברים אחרונים שאפשר להפעיל — שניהם אופציונליים.',
+  'onboarding.appIconAppearsAfterLeaving': 'הסמל החדש יופיע אחרי שתצאו מ-Tackbok.',
   'onboarding.finish.oneOptionalThing': 'דבר אחרון שאפשר להפעיל — הוא אופציונלי.',
   'onboarding.addExampleEntries': 'הוספת רשומות לדוגמה',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':

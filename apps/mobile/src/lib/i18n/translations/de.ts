@@ -697,6 +697,8 @@ export const de: Translations = {
   'onboarding.youreAllSet': 'Alles ist bereit!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Du kannst noch zwei Dinge aktivieren – beide sind optional.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Dein neues Symbol erscheint, nachdem du Tackbok verlassen hast.',
   'onboarding.finish.oneOptionalThing':
     'Eine letzte Sache kannst du noch aktivieren – sie ist optional.',
   'onboarding.addExampleEntries': 'Beispieleinträge hinzufügen',

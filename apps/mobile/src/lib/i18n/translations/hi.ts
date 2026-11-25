@@ -599,6 +599,8 @@ export const hi = {
   'onboarding.youreAllSet': 'तुम सब सेट हो!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'दो आखिरी चीजें जिन्हें आप चालू कर सकते हैं। दोनों वैकल्पिक हैं.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Tackbok से बाहर जाने के बाद आपका नया आइकन दिखेगा।',
   'onboarding.finish.oneOptionalThing': 'एक आखिरी चीज़ जिसे आप चालू कर सकते हैं। यह वैकल्पिक है।',
   'onboarding.addExampleEntries': 'उदाहरण प्रविष्टियाँ जोड़ें',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':

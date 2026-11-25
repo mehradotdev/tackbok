@@ -19,6 +19,7 @@ import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { db } from '~/db';
 import migrations from '~/drizzle/migrations';
 import { useSettingsStore } from '~/lib/settings';
+import { useAppIconStore } from '~/lib/appIcon';
 import { useProfileBootstrap } from '~/lib/settings/useProfileBootstrap';
 import { useTranslation, useLocaleStore } from '~/lib/i18n';
 import { initReminders, useReminderTapObserver } from '~/lib/reminders';
@@ -108,6 +109,19 @@ const cloudSyncRuntime = getProductionSyncRuntime({
 // mounted router (covers both cold-start and warm notification taps).
 function ReminderNavigationObserver() {
   useReminderTapObserver();
+  return null;
+}
+
+// Android: an icon picked during onboarding switches only after onboarding,
+// once the user next leaves the app, so onboarding never closes it.
+function PendingAppIconObserver() {
+  const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
+  const pending = useAppIconStore((s) => s.pending);
+  useEffect(() => {
+    if (hasCompletedOnboarding && pending) {
+      void useAppIconStore.getState().applyPendingOnLeave();
+    }
+  }, [hasCompletedOnboarding, pending]);
   return null;
 }
 
@@ -401,6 +415,7 @@ function AppContent({
                 />
               </Stack>
               <ReminderNavigationObserver />
+              <PendingAppIconObserver />
               <DevSetupNavigation />
               <ScreenViewObserver />
               <AchievementDialogHost />
