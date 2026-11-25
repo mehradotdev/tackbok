@@ -950,6 +950,8 @@ export const ar: Translations = {
   'cloud.progress.combiningChanges': 'جارٍ دمج التغييرات…',
   'cloud.progress.checkingDownload': 'جارٍ التحقق من التنزيل…',
   'cloud.progress.confirmingUpload': 'جارٍ تأكيد الرفع…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'جارٍ التحقق من الصور والملاحظات الصوتية المرفوعة…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'جارٍ رفع الصور والملاحظات الصوتية…',
   'cloud.progress.devicesChecked': 'الأجهزة التي تم فحصها: {done} من {count}',
   'cloud.progress.filesDownloaded': 'الملفات التي تم تنزيلها: {done} من {count}',

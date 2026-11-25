@@ -144,6 +144,9 @@ describe('detailed sync progress copy', () => {
     expect(syncProgressLabel('uploading-media', false, t)).toBe(
       'Uploading photos and voice notes…',
     );
+    expect(syncProgressLabel('checking-media', false, t)).toBe(
+      'Checking uploaded photos and voice notes…',
+    );
     expect(syncProgressLabel('downloading', true, t)).toBe(
       en['cloud.restoringYourJournalFromGoogleDrive'],
     );
@@ -156,6 +159,13 @@ describe('detailed sync progress copy', () => {
     expect(
       syncProgressDetail({ phase: 'checking', items: { done: 0, total: 1 } }, 'en', t),
     ).toBe('0 of 1 device checked');
+    expect(
+      syncProgressDetail(
+        { phase: 'checking-media', items: { done: 400, total: 812 } },
+        'en',
+        t,
+      ),
+    ).toBe('400 of 812');
     expect(
       syncProgressDetail(
         {

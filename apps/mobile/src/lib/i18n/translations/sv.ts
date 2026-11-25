@@ -912,6 +912,8 @@ export const sv = {
   'cloud.progress.combiningChanges': 'Ändringarna slås ihop…',
   'cloud.progress.checkingDownload': 'Kontrollerar nedladdningen…',
   'cloud.progress.confirmingUpload': 'Bekräftar uppladdningen…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'Kontrollerar uppladdade foton och röstanteckningar…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Laddar upp foton och röstanteckningar…',
   'cloud.progress.devicesChecked': '{done} av {count} enheter kontrollerade',
   'cloud.progress.filesDownloaded': '{done} av {count} filer nedladdade',

@@ -1022,6 +1022,8 @@ export const de: Translations = {
   'cloud.progress.combiningChanges': 'Änderungen werden zusammengeführt…',
   'cloud.progress.checkingDownload': 'Download wird geprüft…',
   'cloud.progress.confirmingUpload': 'Upload wird bestätigt…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'Hochgeladene Fotos und Sprachnotizen werden geprüft…',
   'cloud.progress.uploadingPhotosAndVoiceNotes':
     'Fotos und Sprachnotizen werden hochgeladen…',
   'cloud.progress.devicesChecked': '{done} von {count} Geräten geprüft',

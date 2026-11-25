@@ -996,6 +996,8 @@ export const en = {
   'cloud.progress.combiningChanges': 'Combining changes…',
   'cloud.progress.checkingDownload': 'Checking the download…',
   'cloud.progress.confirmingUpload': 'Confirming the upload…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'Checking uploaded photos and voice notes…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Uploading photos and voice notes…',
   'cloud.progress.devicesChecked': '{done} of {count} devices checked',
   'cloud.progress.filesDownloaded': '{done} of {count} files downloaded',

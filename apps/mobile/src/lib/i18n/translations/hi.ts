@@ -894,6 +894,8 @@ export const hi = {
   'cloud.progress.combiningChanges': 'परिवर्तन मिलाए जा रहे हैं…',
   'cloud.progress.checkingDownload': 'डाउनलोड जाँचा जा रहा है…',
   'cloud.progress.confirmingUpload': 'अपलोड की पुष्टि हो रही है…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'अपलोड किए गए फ़ोटो और वॉइस नोट जाँचे जा रहे हैं…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'फ़ोटो और वॉइस नोट अपलोड हो रहे हैं…',
   'cloud.progress.devicesChecked': '{count} में से {done} डिवाइस जाँचे गए',
   'cloud.progress.filesDownloaded': '{count} में से {done} फ़ाइलें डाउनलोड हुईं',

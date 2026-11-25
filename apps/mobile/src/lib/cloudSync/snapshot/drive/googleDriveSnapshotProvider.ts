@@ -18,6 +18,7 @@ import type {
 } from '../sync/types';
 import { isolateProgress, SnapshotProviderError } from '../sync/types';
 import { SyncCancelledError, untilCancelled } from '../sync/errors';
+import { forEachLimited } from '../sync/limited';
 import { DriveDiscovery } from './discovery';
 import type { DriveInstrumentationSink, DriveMethodClass } from './instrumentation';
 import type { DriveFileRecord, DriveObjectKind, DriveProviderStateStore } from './state';
@@ -42,6 +43,12 @@ const PROP_REVOCATION = 'tb_revocation';
 const FILE_FIELDS = 'id,name,size,createdTime,sha256Checksum,appProperties,trashed';
 const PAGE_SIZE = 1_000;
 const MEDIA_QUERY_GROUP = 50;
+/**
+ * Media existence requests in flight at once (`hasMediaBatch`): reads, so
+ * apart from the upload limit. Android's HTTP client runs at most five
+ * requests per host anyway.
+ */
+const MEDIA_EXISTS_CONCURRENCY = 6;
 const CHUNK_SIZE = 256 * 1024;
 const MEDIA_CHUNK_SIZE = 8 * 1024 * 1024;
 const MULTIPART_MAX_BYTES = 4 * 1024 * 1024;
@@ -612,6 +619,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     vaultId: string,
     blobHashes: readonly string[],
     fresh = false,
+    answered?: () => void,
   ): Promise<Set<string>> {
     const unique = [...new Set(blobHashes)].sort();
     const found = new Set<string>();
@@ -632,12 +640,19 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       if (fresh) {
         for (const file of files) this.state.removeFile(vaultId, file.fileId);
         unknown.push(hash);
-      } else if (files.some((file) => file.contentSha256 === hash)) found.add(hash);
-      else unknown.push(hash);
+      } else if (files.some((file) => file.contentSha256 === hash)) {
+        found.add(hash);
+        answered?.();
+      } else unknown.push(hash);
     }
-    for (let offset = 0; offset < unknown.length; offset += MEDIA_QUERY_GROUP) {
-      const group = unknown.slice(offset, offset + MEDIA_QUERY_GROUP);
-      if (group.length === 0) continue;
+    // Searched in groups, then each hit is checked by ID; both a few at a
+    // time (`MEDIA_EXISTS_CONCURRENCY`). One after another, the checks after
+    // an interrupted first backup took 9 minutes for 800 blobs (#246).
+    const groups: string[][] = [];
+    for (let offset = 0; offset < unknown.length; offset += MEDIA_QUERY_GROUP)
+      groups.push(unknown.slice(offset, offset + MEDIA_QUERY_GROUP));
+    const hits = new Map<string, DriveFileRecord[]>();
+    await forEachLimited(groups, MEDIA_EXISTS_CONCURRENCY, async (group) => {
       const names = group.map((hash) => `name = '${this.mediaKey(hash)}'`).join(' or ');
       const files = await this.queryFiles(
         vaultId,
@@ -646,11 +661,21 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
       for (const file of files) {
         const record = this.record(file, 'media', null);
         if (record.logicalKey !== this.mediaKey(record.contentSha256)) continue;
+        const records = hits.get(record.contentSha256);
+        if (records) records.push(record);
+        else hits.set(record.contentSha256, [record]);
+      }
+      for (const hash of group) if (!hits.has(hash)) answered?.();
+    });
+    // A hit is cached only after its own check: search can lag a delete.
+    await forEachLimited([...hits], MEDIA_EXISTS_CONCURRENCY, async ([hash, records]) => {
+      for (const record of records) {
         if (!(await this.mediaFileExists(vaultId, record.fileId))) continue;
         this.state.upsertFile(vaultId, record);
-        found.add(record.contentSha256);
+        found.add(hash);
       }
-    }
+      answered?.();
+    });
     return found;
   }
 

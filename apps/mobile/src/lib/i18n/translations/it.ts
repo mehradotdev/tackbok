@@ -961,6 +961,8 @@ export const it = {
   'cloud.progress.combiningChanges': 'Unione delle modifiche…',
   'cloud.progress.checkingDownload': 'Verifica del download…',
   'cloud.progress.confirmingUpload': 'Conferma del caricamento…',
+  'cloud.progress.checkingPhotosAndVoiceNotes':
+    'Verifica di foto e memo vocali caricati…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'Caricamento di foto e memo vocali…',
   'cloud.progress.devicesChecked': 'Dispositivi controllati: {done} di {count}',
   'cloud.progress.filesDownloaded': 'File scaricati: {done} di {count}',

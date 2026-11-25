@@ -918,6 +918,7 @@ export const zhCN: Translations = {
   'cloud.progress.combiningChanges': '正在合并更改…',
   'cloud.progress.checkingDownload': '正在检查下载内容…',
   'cloud.progress.confirmingUpload': '正在确认上传…',
+  'cloud.progress.checkingPhotosAndVoiceNotes': '正在检查已上传的照片和语音笔记…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': '正在上传照片和语音笔记…',
   'cloud.progress.devicesChecked': '已检查 {count} 台设备中的 {done} 台',
   'cloud.progress.filesDownloaded': '已下载 {count} 个文件中的 {done} 个',
