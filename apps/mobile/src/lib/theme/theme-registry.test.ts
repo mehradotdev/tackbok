@@ -101,7 +101,7 @@ function extractUniwindThemeIds(content: string): string[] {
 }
 
 describe('Theme Registry', () => {
-  test.each(['helena', 'poonam', 'shiro', 'shadow'])(
+  test.each(['helena', 'poonam', 'shiro', 'shadow', 'denise', 'giuseppe'])(
     '%s provides readable text on its solid surfaces',
     (id) => {
       const theme = THEME_DEFINITIONS.find((candidate) => candidate.id === id)!;
@@ -187,9 +187,11 @@ describe('Theme Registry', () => {
       'helena',
       'poonam',
       'clemens',
-      'weckner',
+      'bea',
       'camino',
       'camino-night',
+      'denise',
+      'giuseppe',
       'bubblegum',
       'hecker',
       'peach',

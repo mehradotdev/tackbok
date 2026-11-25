@@ -7,7 +7,7 @@ export const SHARE_THEME_IDS = [
   'lavender',
   'bubblegum',
   'clemens',
-  'weckner',
+  'bea',
   'hecker',
   'peach',
   'ember',

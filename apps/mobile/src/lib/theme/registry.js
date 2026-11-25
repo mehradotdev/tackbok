@@ -99,8 +99,8 @@ export const THEMES = [
     "defaultTitleFontId": "baskervville"
   },
   {
-    "id": "weckner",
-    "name": "Weckner",
+    "id": "bea",
+    "name": "Bea",
     "description": "Forest dusk/brass lamplight",
     "variant": "dark",
     "enableTimelineBorders": false,
@@ -124,6 +124,24 @@ export const THEMES = [
     "enableTimelineBorders": false,
     "backdropId": "camino-night",
     "defaultTitleFontId": "spacemono"
+  },
+  {
+    "id": "denise",
+    "name": "Denise",
+    "description": "Blue mountains in drifting morning mist",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "denise",
+    "defaultTitleFontId": "cinzel"
+  },
+  {
+    "id": "giuseppe",
+    "name": "Giuseppe",
+    "description": "A balanced stone tower by a lake at dusk",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "giuseppe",
+    "defaultTitleFontId": "lora"
   },
   {
     "id": "bubblegum",

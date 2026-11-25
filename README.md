@@ -82,7 +82,7 @@ No accounts. No ads. Your journal stays on your device.
 - **🔒 Local-First & Private**: Entries are stored locally on your device in SQLite, with optional Google Drive backup. Anonymous usage analytics are optional and disabled by default; journal content is never collected for analytics. Optional biometric lock (Face ID / Fingerprint) keeps reflections private.
 - **📸 Words, Photos & Voice**: Write freely, then enrich your entries with pictures, clear voice memos, moods, and tags.
 - **🧭 Thoughtful Prompts**: Choose focus areas and gentle prompts whenever the blank page feels intimidating.
-- **🎨 10+ Curated Themes**: Thoughtfully tailored light and dark palettes (Lavender, Bubblegum, Weckner, Clemens, Dark, Warm, etc.) with customizable typography.
+- **🎨 10+ Curated Themes**: Thoughtfully tailored light and dark palettes (Lavender, Bubblegum, Bea, Clemens, Dark, Warm, etc.) with customizable typography.
 - **⏰ Gentle Reminders**: Build a consistent daily rhythm with customizable notifications.
 - **📦 Bring Your History**: Full export/backup and restore, plus one-click import from **Presently**, **Gratitude App**, and Tackbok backups.
 - **🌍 Multilingual & RTL**: Built-in support for English, Swedish, Hindi, and right-to-left (RTL) scripts, with more languages continuously added.
