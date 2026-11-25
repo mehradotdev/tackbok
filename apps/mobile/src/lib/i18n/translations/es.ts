@@ -1028,7 +1028,7 @@ export const es = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Tu diario y su copia de seguridad se eliminaron en todas partes. Borra este dispositivo para terminar.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'La eliminación de tu copia de seguridad no terminó. Puede que parte de ella siga en Google Drive.',
+    'La eliminación de tu copia de seguridad no terminó. Puede que parte de ella siga en Google Drive. Toca «Reanudar eliminación» para volver a intentarlo. Si sigue deteniéndose, desconecta Tackbok en tus otros dispositivos y, en Google Drive en la web, abre Configuración › Administrar aplicaciones › Tackbok › Opciones y elimina los datos ocultos de la aplicación.',
   'cloud.skippedHeads.unreadable':
     'Tackbok no puede leer la copia de seguridad de uno o más de tus dispositivos, así que sus cambios no se incluyen. La sincronización sigue con tus otros dispositivos.',
   'cloud.skippedHeads.clockAhead':
