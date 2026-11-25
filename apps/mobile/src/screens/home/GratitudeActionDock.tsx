@@ -261,7 +261,7 @@ function MeasuredGratitudeActionDock({
                 disabled={!isExpanded}
                 onPress={onAddEntry}>
                 <View className="size-10 items-center justify-center rounded-full">
-                  <Icon as={Plus} className="text-primary-foreground" />
+                  <Icon as={Plus} className="text-foreground" />
                 </View>
               </DockActionButton>
 
@@ -270,7 +270,7 @@ function MeasuredGratitudeActionDock({
                 disabled={!isExpanded}
                 onPress={onPickDate}>
                 <View className="size-10 items-center justify-center rounded-full">
-                  <Icon as={Calendar} className="text-primary-foreground" />
+                  <Icon as={Calendar} className="text-foreground" />
                 </View>
               </DockActionButton>
               {showPet && (
