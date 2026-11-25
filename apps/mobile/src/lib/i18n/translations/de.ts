@@ -45,6 +45,7 @@ export const de: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': 'Einträge durchsuchen …',
+  'search.search': 'Suchen',
   'search.startTypingToSearchYourGratitudeLogs':
     'Tippe etwas ein, um deine Einträge zu durchsuchen',
   'search.searchFailed': 'Suche fehlgeschlagen',

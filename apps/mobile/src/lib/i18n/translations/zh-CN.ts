@@ -45,6 +45,7 @@ export const zhCN: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': '搜索条目…',
+  'search.search': '搜索',
   'search.startTypingToSearchYourGratitudeLogs': '输入文字以搜索条目',
   'search.searchFailed': '搜索失败',
   'search.noResults': '无结果',

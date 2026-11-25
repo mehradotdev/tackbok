@@ -62,6 +62,8 @@ export default function OnboardingNameScreen() {
         <Input
           className="mt-8"
           placeholder={t('onboarding.yourNameOptional')}
+          // The placeholder goes quiet once a name is typed; the label stays.
+          accessibilityLabel={t('onboarding.yourNameOptional')}
           value={name}
           onChangeText={setName}
           autoComplete="name"

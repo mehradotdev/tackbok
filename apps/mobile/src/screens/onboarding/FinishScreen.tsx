@@ -202,39 +202,41 @@ export default function OnboardingFinishScreen() {
             </Button>
           )}
 
-          {/* Daily reminder opt-in */}
-          <Button
-            variant="ghost"
-            size="none"
-            onPress={() => void handleReminderToggle()}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: dailyReminderEnabled }}
-            className="flex-col items-stretch bg-card rounded-lg border border-border p-4">
-            <View className="flex-row items-start justify-between">
-              <Icon as={Bell} className="text-foreground size-6" />
-              <View pointerEvents="none">
-                <Switch checked={dailyReminderEnabled} />
+          {/* Daily reminder opt-in. The time button sits beside the switch, not
+              inside it, so screen readers can reach it. */}
+          <View className="bg-card rounded-lg border border-border">
+            <Button
+              variant="ghost"
+              size="none"
+              onPress={() => void handleReminderToggle()}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: dailyReminderEnabled }}
+              className="flex-col items-stretch rounded-lg p-4">
+              <View className="flex-row items-start justify-between">
+                <Icon as={Bell} className="text-foreground size-6" />
+                <View pointerEvents="none">
+                  <Switch checked={dailyReminderEnabled} />
+                </View>
               </View>
-            </View>
-            <Text className="text-base font-body-semibold text-foreground mt-2">
-              {t('onboarding.remindMeDaily')}
-            </Text>
-            <Text className="text-sm text-muted-foreground mt-0.5">
-              {t('onboarding.aGentleNudgeToWriteNeverYourJournalContent')}
-            </Text>
-
+              <Text className="text-base font-body-semibold text-foreground mt-2">
+                {t('onboarding.remindMeDaily')}
+              </Text>
+              <Text className="text-sm text-muted-foreground mt-0.5">
+                {t('onboarding.aGentleNudgeToWriteNeverYourJournalContent')}
+              </Text>
+            </Button>
             {dailyReminderEnabled && (
               <Button
                 variant="secondary"
                 size="sm"
                 onPress={() => setShowTimePickerModal(true)}
-                className="self-start mt-3">
+                className="self-start mx-4 mb-4 -mt-1">
                 <Text className="text-sm">
                   {t('onboarding.remindMeAtTime', { time: formatTime(reminderTime) })}
                 </Text>
               </Button>
             )}
-          </Button>
+          </View>
         </View>
       </View>
     </OnboardingScaffold>

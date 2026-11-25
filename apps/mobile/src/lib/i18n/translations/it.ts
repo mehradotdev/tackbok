@@ -38,6 +38,7 @@ export const it = {
   'common.retry': 'Riprova',
 
   'search.searchGratitudeLogs': 'Cerca nelle note…',
+  'search.search': 'Cerca',
   'search.startTypingToSearchYourGratitudeLogs': 'Scrivi per cercare nelle tue note',
   'search.searchFailed': 'Ricerca non riuscita',
   'search.noResults': 'Nessun risultato',

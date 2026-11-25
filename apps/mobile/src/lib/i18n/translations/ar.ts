@@ -45,6 +45,7 @@ export const ar: Translations = {
 
   // Header & Search
   'search.searchGratitudeLogs': 'البحث في السجلات…',
+  'search.search': 'بحث',
   'search.startTypingToSearchYourGratitudeLogs': 'اكتب للبحث في سجلاتك',
   'search.searchFailed': 'فشل البحث',
   'search.noResults': 'لا توجد نتائج',
