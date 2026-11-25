@@ -7,6 +7,8 @@ export const BUBBLE_GAP = 14;
 const EDGE_MARGIN = 12;
 const MAX_BUBBLE_WIDTH = 260;
 const ARROW_SIZE = 12;
+/** Below this much room on either side, use the fixed fallback instead. */
+export const MIN_BUBBLE_HEIGHT = 96;
 
 export interface CoachMarkPlacement {
   /** The highlighted hole, in overlay coordinates. */
@@ -17,6 +19,8 @@ export interface CoachMarkPlacement {
   above: boolean;
   bubbleTop?: number;
   bubbleBottom?: number;
+  /** The room on the bubble's side; taller content scrolls. */
+  bubbleMaxHeight: number;
   /** Pointer position from the bubble's left edge. */
   arrowLeft: number;
   /** The target sits in the right half (the dock in LTR, the left in RTL). */
@@ -24,10 +28,10 @@ export interface CoachMarkPlacement {
 }
 
 /**
- * Places a coach-mark bubble next to a target. Targets in the lower half get
- * the bubble above them, others below; it stays inside the overlay with a
- * pointer aimed at the target's centre. Returns null when the target is not
- * on screen, so the caller falls back to a fixed position.
+ * Places a coach-mark bubble next to a target, on whichever side has more
+ * room, capped to that room and kept inside the overlay, with a pointer aimed
+ * at the target's centre. Returns null when the target is not on screen or
+ * leaves no room for a bubble, so the caller falls back to a fixed position.
  */
 export function placeCoachMark(
   target: TargetRect,
@@ -54,7 +58,11 @@ export function placeCoachMark(
     Math.max(centreX - bubbleLeft - ARROW_SIZE / 2, ARROW_SIZE),
     bubbleWidth - 2 * ARROW_SIZE,
   );
-  const above = centreY > overlay.height / 2;
+  const roomAbove = hole.y - BUBBLE_GAP - EDGE_MARGIN;
+  const roomBelow = overlay.height - (hole.y + hole.height) - BUBBLE_GAP - EDGE_MARGIN;
+  const above = roomAbove > roomBelow;
+  const bubbleMaxHeight = Math.max(roomAbove, roomBelow);
+  if (bubbleMaxHeight < MIN_BUBBLE_HEIGHT) return null;
   const onRightHalf = centreX > overlay.width / 2;
   return above
     ? {
@@ -63,6 +71,7 @@ export function placeCoachMark(
         bubbleLeft,
         above,
         bubbleBottom: overlay.height - hole.y + BUBBLE_GAP,
+        bubbleMaxHeight,
         arrowLeft,
         onRightHalf,
       }
@@ -72,6 +81,7 @@ export function placeCoachMark(
         bubbleLeft,
         above,
         bubbleTop: hole.y + hole.height + BUBBLE_GAP,
+        bubbleMaxHeight,
         arrowLeft,
         onRightHalf,
       };

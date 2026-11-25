@@ -25,6 +25,7 @@ jest.mock('expo-localization', () => ({
 jest.mock('react-native', () => ({
   View: 'View',
   Pressable: 'Pressable',
+  ScrollView: 'ScrollView',
   AccessibilityInfo: { isScreenReaderEnabled: async () => mockScreenReader },
   BackHandler: {
     addEventListener: (_event: string, handler: () => boolean) => {
@@ -36,6 +37,11 @@ jest.mock('react-native', () => ({
       };
     },
   },
+}));
+jest.mock('expo-router', () => ({
+  // Home stays focused in these tests.
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
 jest.mock('react-native-reanimated', () => ({
   __esModule: true,
@@ -79,6 +85,12 @@ jest.mock('./coachMarkTargets', () => ({
 const SCREEN = { x: 0, y: 0, width: 400, height: 800 };
 const DOCK = { x: 340, y: 600, width: 52, height: 150 };
 const SEARCH = { x: 16, y: 60, width: 40, height: 40 };
+
+// Measure straight away instead of on the next frame.
+global.requestAnimationFrame = (callback: FrameRequestCallback) => {
+  callback(0);
+  return 0;
+};
 
 let root: ReactTestRenderer;
 async function render() {
@@ -197,4 +209,20 @@ test('the dock tip loops a press and drag, or holds still under Reduce Motion', 
     0,
   );
   expect(json()).toContain('ArrowUpDown');
+});
+
+test('the ring follows its control when it moves', async () => {
+  await render();
+  const ringTop = () =>
+    root.root.find(
+      (node) =>
+        typeof node.props.className === 'string' &&
+        node.props.className.includes('border-white') &&
+        !node.props.className.includes('rounded-full'),
+    ).props.style.top;
+  expect(ringTop()).toBe(DOCK.y - 6);
+
+  mockTargets = { ...mockTargets, dock: { ...DOCK, y: 400 } };
+  await act(() => new Promise((resolve) => setTimeout(resolve, 450)));
+  expect(ringTop()).toBe(400 - 6);
 });

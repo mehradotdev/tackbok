@@ -1,5 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Pressable, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  BackHandler,
+  Pressable,
+  ScrollView,
+  View,
+} from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -37,6 +44,8 @@ type CoachMark = {
 type ViewHandle = React.ComponentRef<typeof View>;
 
 const DIM = 'bg-black/60';
+/** How often a showing tip re-checks where its control is. */
+const REMEASURE_MS = 400;
 
 /**
  * One-time walkthrough on the first Home render after onboarding. Each step
@@ -84,15 +93,19 @@ export function HomeCoachMarks() {
     // hasEntries don't restart it.
   }, [shouldStart, hasEntries, setHasSeenHomeCoachMarks]);
 
+  // Back closes the tips, but only while Home is on screen: a screen pushed
+  // over Home mid-tour (a reminder tap) keeps its own back.
   const isActive = tour !== null;
-  useEffect(() => {
-    if (!isActive) return;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      setTour(null);
-      return true;
-    });
-    return () => subscription.remove();
-  }, [isActive]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!isActive) return;
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        setTour(null);
+        return true;
+      });
+      return () => subscription.remove();
+    }, [isActive]),
+  );
 
   const marks: CoachMark[] = tour
     ? [
@@ -129,24 +142,30 @@ export function HomeCoachMarks() {
   const mark = marks[stepIndex];
   const targetKey = mark?.target;
 
-  // Measured on each step and again whenever the overlay's layout changes
-  // (rotation, split view).
-  const measure = () => {
-    if (!targetKey) return;
-    const step = stepIndex;
-    void measurePlacement(targetKey, overlayRef.current).then((value) =>
-      setPlacement({ step, value }),
-    );
-  };
-
+  // Measured a frame after each step starts, then re-checked while it shows,
+  // so the ring follows a control that is still sliding in, moves, resizes,
+  // or is replaced (another day becomes the newest), and survives rotation.
   useEffect(() => {
     if (!targetKey) return;
     let cancelled = false;
-    void measurePlacement(targetKey, overlayRef.current).then((value) => {
-      if (!cancelled) setPlacement({ step: stepIndex, value });
-    });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let last = '';
+    const measure = () => {
+      void measurePlacement(targetKey, overlayRef.current).then((value) => {
+        if (cancelled) return;
+        const key = JSON.stringify(value);
+        if (key !== last) {
+          last = key;
+          setPlacement({ step: stepIndex, value });
+        }
+        timer = setTimeout(measure, REMEASURE_MS);
+      });
+    };
+    const frame = requestAnimationFrame(measure);
     return () => {
       cancelled = true;
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
     };
   }, [stepIndex, targetKey]);
 
@@ -166,7 +185,11 @@ export function HomeCoachMarks() {
 
   const bubbleContent = (
     <>
-      <Text className="text-base text-foreground">{mark.text}</Text>
+      {/* Large text can outgrow the room beside the control; the tip scrolls
+          and the buttons stay visible. */}
+      <ScrollView className="shrink" style={{ flexGrow: 0 }}>
+        <Text className="text-base text-foreground">{mark.text}</Text>
+      </ScrollView>
       <View className="flex-row items-center justify-between mt-2 gap-3">
         <Text className="shrink text-xs text-muted-foreground">
           {t('onboarding.stepCurrentOfTotal', {
@@ -193,7 +216,6 @@ export function HomeCoachMarks() {
     <Pressable
       className="absolute inset-0 z-50"
       onPress={handleAdvance}
-      onLayout={measure}
       accessibilityViewIsModal
       accessibilityLabel={mark.text}>
       {/* Measured coordinates are physical, so this layer lays out LTR even
@@ -228,6 +250,7 @@ export function HomeCoachMarks() {
               className={cn('absolute', bubbleClassName)}
               style={{
                 width: place.bubbleWidth,
+                maxHeight: place.bubbleMaxHeight,
                 left: place.bubbleLeft,
                 top: place.bubbleTop,
                 bottom: place.bubbleBottom,
@@ -272,6 +295,8 @@ async function measurePlacement(
 function HoleDim({ hole }: { hole: TargetRect }) {
   const top = Math.max(hole.y, 0);
   const left = Math.max(hole.x, 0);
+  // Only the part of the hole below the top edge, so the strips don't overlap.
+  const height = hole.y + hole.height - top;
   return (
     <View pointerEvents="none" className="absolute inset-0">
       <View className={cn('absolute inset-x-0 top-0', DIM)} style={{ height: top }} />
@@ -279,13 +304,10 @@ function HoleDim({ hole }: { hole: TargetRect }) {
         className={cn('absolute inset-x-0 bottom-0', DIM)}
         style={{ top: hole.y + hole.height }}
       />
-      <View
-        className={cn('absolute left-0', DIM)}
-        style={{ top, height: hole.height, width: left }}
-      />
+      <View className={cn('absolute left-0', DIM)} style={{ top, height, width: left }} />
       <View
         className={cn('absolute right-0', DIM)}
-        style={{ top, height: hole.height, left: hole.x + hole.width }}
+        style={{ top, height, left: hole.x + hole.width }}
       />
       <View
         className="absolute rounded-2xl border-2 border-white"

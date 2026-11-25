@@ -1,4 +1,9 @@
-import { BUBBLE_GAP, HOLE_PADDING, placeCoachMark } from './coachMarkLayout';
+import {
+  BUBBLE_GAP,
+  HOLE_PADDING,
+  MIN_BUBBLE_HEIGHT,
+  placeCoachMark,
+} from './coachMarkLayout';
 
 const OVERLAY = { x: 0, y: 0, width: 400, height: 800 };
 
@@ -49,4 +54,22 @@ test('measurements are taken relative to the overlay', () => {
 test('a target off screen has no placement', () => {
   expect(placeCoachMark({ x: 100, y: 900, width: 40, height: 40 }, OVERLAY)).toBeNull();
   expect(placeCoachMark({ x: -200, y: 100, width: 40, height: 40 }, OVERLAY)).toBeNull();
+});
+
+test('the bubble goes on the side with more room, capped to that room', () => {
+  // A tall target (an expanded day at large text) with little room above it.
+  const above = placeCoachMark({ x: 20, y: 150, width: 300, height: 520 }, OVERLAY)!;
+  expect(above.above).toBe(true);
+  expect(above.bubbleMaxHeight).toBe(150 - HOLE_PADDING - BUBBLE_GAP - 12);
+
+  const below = placeCoachMark({ x: 20, y: 120, width: 300, height: 500 }, OVERLAY)!;
+  expect(below.above).toBe(false);
+  expect(below.bubbleMaxHeight).toBe(800 - (620 + HOLE_PADDING) - BUBBLE_GAP - 12);
+});
+
+test('a target that leaves no room for a bubble uses the fallback', () => {
+  const room = (height: number) =>
+    placeCoachMark({ x: 20, y: 60, width: 300, height }, OVERLAY);
+  expect(room(500)).not.toBeNull();
+  expect(room(800 - 60 - 2 * (MIN_BUBBLE_HEIGHT / 2))).toBeNull();
 });
