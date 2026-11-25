@@ -1028,6 +1028,101 @@ describe('GoogleDriveSnapshotProvider', () => {
     }
   });
 
+  describe('the upload stall floor, shared by parallel uploads (#264)', () => {
+    /** A body the 64 KB/s floor carries in exactly 100 s. */
+    const BODY_BYTES = 64 * 100_000;
+
+    async function withUploads(
+      run: (start: () => () => string, answer: (count: number) => void) => Promise<void>,
+    ) {
+      jest.useFakeTimers();
+      try {
+        const answers: ((value: DriveResponseLike) => void)[] = [];
+        const transport = new DriveTransport({
+          auth: new FakeAuth(),
+          state: new MemoryDriveProviderStateStore(),
+          // Never answers on its own, like an upload on a slow or dead link.
+          fetch: () => new Promise<DriveResponseLike>((resolve) => answers.push(resolve)),
+          sleep: async () => {},
+          random: () => 0,
+          now: () => Date.now(),
+          monotonicNow: () => Date.now(),
+        });
+        const start = () => {
+          let outcome = 'pending';
+          transport
+            .request(
+              vaultId,
+              'create',
+              'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+              { method: 'POST', body: new Uint8Array(BODY_BYTES) },
+              { idempotent: false },
+            )
+            .then(
+              () => (outcome = 'uploaded'),
+              (error: Error) => (outcome = error.message),
+            );
+          return () => outcome;
+        };
+        const answer = (count: number) => {
+          for (const resolve of answers.splice(0, count)) resolve(response(200));
+        };
+        await run(start, answer);
+      } finally {
+        jest.useRealTimers();
+      }
+    }
+    const timedOut = 'Google Drive request timed out';
+
+    test('a lone upload keeps the 60 s grace plus its body at the floor rate', () =>
+      withUploads(async (start) => {
+        const upload = start();
+        await jest.advanceTimersByTimeAsync(159_999);
+        expect(upload()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(1);
+        expect(upload()).toBe(timedOut);
+      }));
+
+    test('six uploads are judged on their combined rate, and a dead link still aborts them', () =>
+      withUploads(async (start) => {
+        const uploads = Array.from({ length: 6 }, start);
+        // Each would have timed out here under a per-request floor.
+        await jest.advanceTimersByTimeAsync(400_000);
+        expect(uploads.map((upload) => upload())).toEqual(Array(6).fill('pending'));
+        await jest.advanceTimersByTimeAsync(259_000);
+        expect(uploads.map((upload) => upload())).toEqual(Array(6).fill('pending'));
+        // 60 s grace plus all six bodies at the floor rate.
+        await jest.advanceTimersByTimeAsync(2_000);
+        expect(uploads.map((upload) => upload())).toEqual(Array(6).fill(timedOut));
+      }));
+
+    test('an upload left alone gets the whole floor again', () =>
+      withUploads(async (start, answer) => {
+        const [last, ...others] = Array.from({ length: 6 }, start).reverse();
+        await jest.advanceTimersByTimeAsync(30_000);
+        answer(5);
+        await jest.advanceTimersByTimeAsync(0);
+        expect(others.map((upload) => upload())).toEqual(Array(5).fill('uploaded'));
+        await jest.advanceTimersByTimeAsync(129_000);
+        expect(last()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(2_000);
+        expect(last()).toBe(timedOut);
+      }));
+
+    test('uploads that join later stretch an upload already in flight', () =>
+      withUploads(async (start) => {
+        const first = start();
+        // 60 s grace, then half its body's floor time alone.
+        await jest.advanceTimersByTimeAsync(110_000);
+        Array.from({ length: 5 }, start);
+        // The other half now runs at a sixth of the floor: 300 s more.
+        await jest.advanceTimersByTimeAsync(299_000);
+        expect(first()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(2_000);
+        expect(first()).toBe(timedOut);
+      }));
+  });
+
   test('a token refresh that fails after cancellation records no provider failure', async () => {
     const controller = new AbortController();
     let fetches = 0;
