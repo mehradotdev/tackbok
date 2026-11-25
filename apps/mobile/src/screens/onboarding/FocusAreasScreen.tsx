@@ -16,6 +16,7 @@ import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
+import { useNavigateOnce } from './useNavigateOnce';
 
 /** Onboarding-only rule; the Settings sheet keeps its own minimum. */
 const ONBOARDING_MIN_FOCUS_AREAS = 3;
@@ -29,6 +30,7 @@ export default function OnboardingFocusAreasScreen() {
   );
 
   useOnboardingStepView('focus-areas');
+  const navigateOnce = useNavigateOnce();
 
   const canContinue = selectedAreas.length >= ONBOARDING_MIN_FOCUS_AREAS;
 
@@ -43,14 +45,17 @@ export default function OnboardingFocusAreasScreen() {
 
   const handleContinue = () => {
     if (!canContinue) return;
-    setJournalFocusAreas(selectedAreas);
-    router.push('/onboarding/privacy');
+    navigateOnce(() => {
+      setJournalFocusAreas(selectedAreas);
+      router.push('/onboarding/privacy');
+    });
   };
 
-  const handleSkip = () => {
-    track('onboarding_skipped', { step: 'focus-areas' });
-    router.push('/onboarding/privacy');
-  };
+  const handleSkip = () =>
+    navigateOnce(() => {
+      track('onboarding_skipped', { step: 'focus-areas' });
+      router.push('/onboarding/privacy');
+    });
 
   return (
     <OnboardingScaffold

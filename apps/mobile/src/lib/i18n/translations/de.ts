@@ -648,7 +648,9 @@ export const de: Translations = {
   'onboarding.next': 'Weiter',
   'onboarding.stepCurrentOfTotal': 'Schritt {current} von {total}',
   'onboarding.getStarted': 'Loslegen',
-  'onboarding.alreadyHaveAJournalImportIt': 'Du hast bereits ein Tagebuch? Importiere es',
+  'onboarding.alreadyHaveAJournalImportIt':
+    'Du hast bereits ein Tagebuch? Wiederherstellen oder importieren',
+  'onboarding.welcome.version': 'Version {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'Ein privater Ort für deine Dankbarkeit. Kostenlos, offline und ganz für dich.',
   'onboarding.importYourJournal': 'Dein Tagebuch importieren',
@@ -695,6 +697,8 @@ export const de: Translations = {
   'onboarding.youreAllSet': 'Alles ist bereit!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Du kannst noch zwei Dinge aktivieren – beide sind optional.',
+  'onboarding.finish.oneOptionalThing':
+    'Eine letzte Sache kannst du noch aktivieren – sie ist optional.',
   'onboarding.addExampleEntries': 'Beispieleinträge hinzufügen',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'Einige Beispieleinträge zeigen, wie Fotos, Sprachnotizen, Stimmungen und Tags funktionieren. Du kannst sie jederzeit mit einem Tippen entfernen.',

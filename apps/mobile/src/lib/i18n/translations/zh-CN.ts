@@ -581,7 +581,8 @@ export const zhCN: Translations = {
   'onboarding.next': '下一步',
   'onboarding.stepCurrentOfTotal': '第 {current} 步，共 {total} 步',
   'onboarding.getStarted': '开始使用',
-  'onboarding.alreadyHaveAJournalImportIt': '已经有日记了？导入它',
+  'onboarding.alreadyHaveAJournalImportIt': '已经有日记了？恢复或导入',
+  'onboarding.welcome.version': '版本 {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     '一个属于你的感恩空间 — 免费、离线、完全归你。',
   'onboarding.importYourJournal': '导入你的日记',
@@ -627,6 +628,7 @@ export const zhCN: Translations = {
   'onboarding.youreAllSet': '一切就绪！',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     '最后还有两项可以开启 — 都是可选的。',
+  'onboarding.finish.oneOptionalThing': '最后还有一项可以开启 — 是可选的。',
   'onboarding.addExampleEntries': '添加示例日记',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     '几条示例日记会展示照片、语音笔记、心情和标签的用法。随时可以一键移除。',

@@ -598,7 +598,8 @@ export const ar: Translations = {
   'onboarding.next': 'التالي',
   'onboarding.stepCurrentOfTotal': 'الخطوة {current} من {total}',
   'onboarding.getStarted': 'ابدأ الآن',
-  'onboarding.alreadyHaveAJournalImportIt': 'هل لديك يوميّات بالفعل؟ استوردها',
+  'onboarding.alreadyHaveAJournalImportIt': 'هل لديك يوميّات بالفعل؟ استعِدها أو استوردها',
+  'onboarding.welcome.version': 'الإصدار {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'مكان خاص لامتنانك — مجاني، ويعمل دون إنترنت، وملكك وحدك.',
   'onboarding.importYourJournal': 'استيراد يوميّاتك',
@@ -645,6 +646,7 @@ export const ar: Translations = {
   'onboarding.youreAllSet': 'كل شيء جاهز!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'أمران أخيران يمكنك تفعيلهما — كلاهما اختياري.',
+  'onboarding.finish.oneOptionalThing': 'أمر أخير يمكنك تفعيله — وهو اختياري.',
   'onboarding.addExampleEntries': 'إضافة مدخلات تجريبية',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'بضع مدخلات تجريبية تُظهر كيفية عمل الصور والمذكّرات الصوتية والحالات المزاجية والوسوم. يمكنك إزالتها في أي وقت بضغطة واحدة.',

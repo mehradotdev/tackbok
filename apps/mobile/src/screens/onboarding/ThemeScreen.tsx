@@ -26,6 +26,7 @@ import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { ThemePickerSheet } from '~/screens/settings/ThemePickerSheet';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
+import { useNavigateOnce } from './useNavigateOnce';
 
 /**
  * Curated subset shown as swatches (distinct hues).
@@ -171,10 +172,12 @@ export default function OnboardingThemeScreen() {
     track('theme_changed', { theme: theme.id });
   };
 
-  const handleSkip = () => {
-    track('onboarding_skipped', { step: 'theme' });
-    router.push('/onboarding/focus-areas');
-  };
+  const navigateOnce = useNavigateOnce();
+  const handleSkip = () =>
+    navigateOnce(() => {
+      track('onboarding_skipped', { step: 'theme' });
+      router.push('/onboarding/focus-areas');
+    });
 
   return (
     <OnboardingScaffold
@@ -186,7 +189,7 @@ export default function OnboardingThemeScreen() {
         <Button
           variant="primary"
           size="lg"
-          onPress={() => router.push('/onboarding/focus-areas')}>
+          onPress={() => navigateOnce(() => router.push('/onboarding/focus-areas'))}>
           <Text className="text-lg">{t('onboarding.continue')}</Text>
         </Button>
       }>

@@ -14,6 +14,7 @@ import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
+import { useNavigateOnce } from './useNavigateOnce';
 
 function AnalyticsDetailsSheet() {
   const { t } = useTranslation();
@@ -83,20 +84,23 @@ export default function OnboardingPrivacyScreen() {
   const setAnalyticsEnabled = useSettingsStore((s) => s.setAnalyticsEnabled);
 
   useOnboardingStepView('privacy');
+  const navigateOnce = useNavigateOnce();
 
-  const handleAccept = () => {
-    setAnalyticsEnabled(true);
-    // Replays the buffered onboarding funnel into the SDK (original timestamps).
-    void commitPreConsentBuffer();
-    router.push('/onboarding/finish');
-  };
+  const handleAccept = () =>
+    navigateOnce(() => {
+      setAnalyticsEnabled(true);
+      // Replays the buffered onboarding funnel into the SDK (original timestamps).
+      void commitPreConsentBuffer();
+      router.push('/onboarding/finish');
+    });
 
-  const handleDecline = () => {
-    setAnalyticsEnabled(false);
-    // Decline clears the RAM buffer immediately — nothing ever leaves the device.
-    stopPreConsentBuffering();
-    router.push('/onboarding/finish');
-  };
+  const handleDecline = () =>
+    navigateOnce(() => {
+      setAnalyticsEnabled(false);
+      // Decline clears the RAM buffer immediately — nothing ever leaves the device.
+      stopPreConsentBuffering();
+      router.push('/onboarding/finish');
+    });
 
   const bullets = [
     {
