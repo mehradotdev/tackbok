@@ -943,6 +943,7 @@ export const he: Translations = {
   'cloud.progress.combiningChanges': 'שילוב השינויים…',
   'cloud.progress.checkingDownload': 'בדיקת ההורדה…',
   'cloud.progress.confirmingUpload': 'אישור ההעלאה…',
+  'cloud.progress.checkingPhotosAndVoiceNotes': 'בדיקת התמונות וההקלטות הקוליות שהועלו…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': 'העלאת תמונות והקלטות קוליות…',
   'cloud.progress.devicesChecked': 'נבדקו {done} מתוך {count} מכשירים',
   'cloud.progress.filesDownloaded': 'הורדו {done} מתוך {count} קבצים',

@@ -211,11 +211,14 @@ export interface SnapshotProvider {
    * Which of these blobs the provider has. `fresh` asks the provider itself
    * rather than a local cache, which a missed or late change can leave
    * claiming a deleted blob exists (remote media garbage collection).
+   * `answered` is called once per distinct blob as its answer is known, for
+   * progress.
    */
   hasMediaBatch(
     vaultId: string,
     blobHashes: readonly string[],
     fresh?: boolean,
+    answered?: () => void,
   ): Promise<Set<string>>;
   /**
    * False when a transfer policy would refuse media uploads now, such as
@@ -374,6 +377,7 @@ export type SyncProgressPhase =
   | 'downloading'
   | 'merging'
   | 'uploading'
+  | 'checking-media'
   | 'uploading-media'
   | 'downloading-media';
 

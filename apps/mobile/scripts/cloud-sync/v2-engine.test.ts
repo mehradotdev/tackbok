@@ -36,6 +36,10 @@ const { continueAsNewDevice } =
 const { AssetType } = await import('../../src/types');
 const { backupHistory } = await import('../../src/lib/cloudSync/snapshot/sync/retention');
 type Provider = InstanceType<typeof FakeSnapshotProvider>;
+type SyncProgressListener =
+  import('../../src/lib/cloudSync/snapshot/sync/types').SyncProgressListener;
+type SyncProgressReport =
+  import('../../src/lib/cloudSync/snapshot/sync/types').SyncProgressReport;
 type CloudSyncTransaction =
   import('../../src/lib/cloudSync/storage/repositories').CloudSyncTransaction;
 
@@ -59,6 +63,7 @@ function device(
     database?: SqliteDevice;
     codeVersion?: string;
     at?: (point: string) => void;
+    progress?: SyncProgressListener;
   } = {},
 ): Device {
   const database = options.database ?? devices.create();
@@ -71,7 +76,10 @@ function device(
     mediaStore: blobs,
     files: simMediaFiles,
     codeVersion: options.codeVersion,
-    hooks: options.at ? { at: options.at } : undefined,
+    hooks:
+      options.at || options.progress
+        ? { at: options.at, progress: options.progress }
+        : undefined,
   });
   const created = { database, engine, stateStore };
   opened.push(created);
@@ -783,21 +791,37 @@ describe('attachments', () => {
     void pass.finally(() => {
       settled = true;
     });
-    await until(() => gate.started === 2);
-    // The first and third were in flight when the second failed: the pass
-    // waits for both.
-    for (let held = 2; held > 0; held--) {
+    // The others in the first round were in flight when the second failed:
+    // the pass waits for all of them, and starts no more.
+    const inFlight = MEDIA_UPLOAD_CONCURRENCY - 1;
+    await until(() => gate.started === inFlight);
+    for (let held = inFlight; held > 0; held--) {
       await settle();
       expect(settled).toBe(false);
       gate.release.shift()!();
     }
     const result = await pass;
     expect(result.status).not.toBe('published');
-    expect(calls).toBe(3);
-    expect(gate.started).toBe(2);
-    // The two in flight reached the provider; the failed one did not.
-    expect((await provider.hasMediaBatch(VAULT, [hashes[0], hashes[2]])).size).toBe(2);
-    expect((await provider.hasMediaBatch(VAULT, [hashes[1]])).size).toBe(0);
+    expect(calls).toBe(MEDIA_UPLOAD_CONCURRENCY);
+    expect(gate.started).toBe(inFlight);
+    // Those in flight reached the provider; the failed one and the rest did not.
+    const firstRound = hashes.slice(0, MEDIA_UPLOAD_CONCURRENCY);
+    expect(
+      (
+        await provider.hasMediaBatch(
+          VAULT,
+          firstRound.filter((_, i) => i !== 1),
+        )
+      ).size,
+    ).toBe(inFlight);
+    expect(
+      (
+        await provider.hasMediaBatch(VAULT, [
+          hashes[1],
+          ...hashes.slice(firstRound.length),
+        ])
+      ).size,
+    ).toBe(0);
     // Nothing is stamped: the attachments are still unpublished.
     expect(
       a.database.sqlite
@@ -818,17 +842,89 @@ describe('attachments', () => {
       return upload(...args);
     };
     const pass = sync(a);
-    await until(() => gate.started === 2);
-    gate.release.shift()!();
-    gate.release.shift()!();
-    // The two in flight finish and are published; the other five wait.
-    expect(await pass).toMatchObject({ status: 'published', deferredMediaCount: 5 });
-    expect(calls).toBe(3);
+    const inFlight = MEDIA_UPLOAD_CONCURRENCY - 1;
+    await until(() => gate.started === inFlight);
+    while (gate.release.length > 0) gate.release.shift()!();
+    // Those in flight finish and are published; the rest wait.
+    expect(await pass).toMatchObject({
+      status: 'published',
+      deferredMediaCount: 7 - inFlight,
+    });
+    expect(calls).toBe(MEDIA_UPLOAD_CONCURRENCY);
     expect(
       a.database.sqlite
         .query('SELECT count(*) AS n FROM media_assets WHERE stamp_hlc IS NOT NULL')
         .get(),
-    ).toEqual({ n: 2 });
+    ).toEqual({ n: inFlight });
+  });
+
+  test('after an interrupted first backup, re-checks show progress and lost blobs upload a few at a time', async () => {
+    const reports: SyncProgressReport[] = [];
+    const a = device({ progress: (report) => reports.push(report) });
+    const hashes = await attachMany(a, 8);
+    // Every photo is uploaded and stamped, but the snapshot never makes it.
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await sync(a)).status).toBe('retry');
+    expect(provider.mediaHashes(VAULT)).toEqual([...hashes].sort());
+    // Meanwhile the backup lost all but one (say, deleted outside the app).
+    for (const hash of hashes.slice(1)) provider.removeMediaForTest(VAULT, hash);
+    reports.length = 0;
+    const gate = gateUploads();
+    const pass = sync(a);
+    while (gate.started < 7 || gate.release.length > 0) {
+      await settle();
+      expect(gate.inFlight).toBeLessThanOrEqual(MEDIA_UPLOAD_CONCURRENCY);
+      gate.release.shift()?.();
+    }
+    expect(await pass).toMatchObject({ status: 'published' });
+    expect(gate.most).toBe(MEDIA_UPLOAD_CONCURRENCY);
+    expect(provider.mediaHashes(VAULT)).toEqual([...hashes].sort());
+    const progress = (phase: string) =>
+      reports.filter((report) => 'phase' in report && report.phase === phase);
+    expect(progress('checking-media')).toEqual([
+      { type: 'plan', phase: 'checking-media', items: { done: 0, total: 8 } },
+      ...Array.from({ length: 8 }, () => ({
+        type: 'item' as const,
+        phase: 'checking-media' as const,
+      })),
+    ]);
+    expect(progress('uploading-media')).toEqual([
+      {
+        type: 'plan',
+        phase: 'uploading-media',
+        items: { done: 0, total: 7 },
+        bytesTotal: 21,
+      },
+      ...Array.from({ length: 7 }, () => ({
+        type: 'item' as const,
+        phase: 'uploading-media' as const,
+      })),
+    ]);
+  });
+
+  test('a Wi-Fi-only refusal among the uploads before a snapshot holds back the snapshot', async () => {
+    const a = device();
+    const hashes = await attachMany(a, 4);
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await sync(a)).status).toBe('retry');
+    for (const hash of hashes) provider.removeMediaForTest(VAULT, hash);
+    // The phone moves to mobile data after the publication's own check.
+    const upload = provider.uploadMedia.bind(provider);
+    let calls = 0;
+    provider.uploadMedia = async (...args) => {
+      calls += 1;
+      if (calls === 2) throw new SnapshotProviderError('wifi-only-media', 'cellular');
+      return upload(...args);
+    };
+    expect((await sync(a)).status).not.toBe('published');
+    expect(provider.snapshotIds(VAULT)).toEqual([]);
+    expect(provider.physicalHeads(VAULT)).toEqual([]);
   });
 
   test('a device that holds none of the blobs asks the provider about none', async () => {
