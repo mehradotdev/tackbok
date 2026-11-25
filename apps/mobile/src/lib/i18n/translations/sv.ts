@@ -1004,7 +1004,7 @@ export const sv = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Din dagbok och dess säkerhetskopia har raderats överallt. Radera den här enheten för att slutföra.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'Borttagningen av din säkerhetskopia slutfördes inte. En del av den kan finnas kvar i Google Drive. Tryck på ”Återuppta borttagningen” för att försöka igen. Om det fortsätter att stanna, koppla från Tackbok på dina andra enheter och öppna sedan Google Drive på webben: Inställningar › Hantera appar › Tackbok › Alternativ, och ta bort dolda appdata.',
+    'Borttagningen av din säkerhetskopia slutfördes inte. En del av den kan finnas kvar i Google Drive. Tryck på ”Återuppta borttagningen” för att försöka igen. Om den fortsätter att avbrytas, koppla bort Google Drive i Tackbok på alla dina enheter och öppna sedan Google Drive på webben: Inställningar › Hantera appar › Tackbok › Alternativ, och ta bort dolda appdata.',
   'cloud.skippedHeads.unreadable':
     'Tackbok kan inte läsa säkerhetskopian från en eller flera av dina enheter, så ändringar därifrån tas inte med. Synkroniseringen fortsätter med dina andra enheter.',
   'cloud.skippedHeads.clockAhead':

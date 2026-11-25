@@ -1007,7 +1007,7 @@ export const zhTW: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     '你的日記及其備份已在所有地方刪除。請清除此裝置以完成操作。',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    '備份刪除未完成。部分內容可能仍在 Google Drive 中。輕觸「繼續刪除」重試。如果仍然中斷，請先在你的其他裝置上中斷 Tackbok 的連結，然後在網頁版 Google Drive 中開啟「設定 › 管理應用程式 › Tackbok › 選項」，刪除隱藏的應用程式資料。',
+    '備份刪除未完成。部分內容可能仍在 Google Drive 中。點選「繼續刪除」重試。如果仍然中斷，請先在你的所有裝置上中斷 Tackbok 的 Google Drive 連線，然後在網頁版 Google Drive 中開啟「設定 › 管理應用程式 › Tackbok › 選項」，刪除隱藏的應用程式資料。',
   'cloud.skippedHeads.unreadable':
     'Tackbok 無法讀取你的一部或多部裝置的備份，因此其中的變更未被納入。同步會繼續與你的其他裝置進行。',
   'cloud.skippedHeads.clockAhead':

@@ -1031,7 +1031,7 @@ export const he: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'היומן שלך והגיבוי שלו נמחקו בכל מקום. כדי לסיים, יש למחוק את המכשיר הזה.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'מחיקת הגיבוי שלך לא הסתיימה. ייתכן שחלק ממנו עדיין ב-Google Drive. אפשר להקיש על „המשך המחיקה” כדי לנסות שוב. אם היא נעצרת שוב, נתק את Tackbok במכשירים האחרים שלך, ואז ב-Google Drive באינטרנט פתח את ההגדרות › ניהול אפליקציות › Tackbok › אפשרויות ומחק את נתוני האפליקציה המוסתרים.',
+    'מחיקת הגיבוי שלך לא הסתיימה. ייתכן שחלק ממנו עדיין ב-Google Drive. כדי לנסות שוב, יש ללחוץ על „המשך המחיקה”. אם היא נעצרת שוב, יש לנתק את Google Drive ב-Tackbok בכל המכשירים, ואז ב-Google Drive באינטרנט לפתוח את ההגדרות › ניהול אפליקציות › Tackbok › אפשרויות ולמחוק את נתוני האפליקציה המוסתרים.',
   'cloud.skippedHeads.unreadable':
     'Tackbok לא יכול לקרוא את הגיבוי של מכשיר אחד או יותר שלך, ולכן השינויים מהם לא נכללים. הסנכרון ממשיך עם שאר המכשירים שלך.',
   'cloud.skippedHeads.clockAhead':

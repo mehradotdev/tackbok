@@ -1089,7 +1089,7 @@ export const en = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Your journal and its backup were deleted everywhere. Erase this device to finish.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    "Deleting your backup didn't finish. Some of it may still be in Google Drive. Tap Resume deletion to try again. If it keeps stopping, disconnect Tackbok on your other devices, then in Google Drive on the web open Settings › Manage apps › Tackbok › Options › Delete hidden app data.",
+    "Deleting your backup didn't finish. Some of it may still be in Google Drive. Tap “Resume deletion” to try again. If it keeps stopping, disconnect Google Drive in Tackbok on all your devices, then in Google Drive on the web open Settings › Manage apps › Tackbok › Options › Delete hidden app data.",
   'cloud.skippedHeads.unreadable':
     "Tackbok can't read the backup of one or more of your devices, so changes from them aren't included. Sync goes on with your other devices.",
   'cloud.skippedHeads.clockAhead':
