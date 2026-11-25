@@ -1004,7 +1004,7 @@ export const zhCN: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     '你的日记及其备份已在所有地方删除。请清除此设备以完成操作。',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    '备份删除未完成。部分内容可能仍在 Google Drive 中。',
+    '备份删除未完成。部分内容可能仍在 Google Drive 中。点击“继续删除”重试。如果删除仍然中断，请先在你的所有设备上断开 Tackbok 与 Google Drive 的连接，然后在网页版 Google Drive 中打开“设置 › 管理应用 › Tackbok › 选项”，删除隐藏的应用数据。',
   'cloud.skippedHeads.unreadable':
     'Tackbok 无法读取你的一台或多台设备的备份，因此其中的更改未被纳入。同步会继续与你的其他设备进行。',
   'cloud.skippedHeads.clockAhead':

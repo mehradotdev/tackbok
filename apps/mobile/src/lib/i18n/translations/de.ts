@@ -1115,7 +1115,7 @@ export const de: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Dein Tagebuch und seine Sicherung wurden überall gelöscht. Lösche dieses Gerät, um den Vorgang abzuschließen.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'Das Löschen deiner Sicherung wurde nicht abgeschlossen. Ein Teil davon ist möglicherweise noch in Google Drive.',
+    'Das Löschen deiner Sicherung wurde nicht abgeschlossen. Ein Teil davon ist möglicherweise noch in Google Drive. Tippe auf „Löschung fortsetzen“, um es erneut zu versuchen. Bricht es immer wieder ab, trenne Google Drive in Tackbok auf all deinen Geräten. Öffne dann Google Drive im Web, gehe zu Einstellungen › Apps verwalten › Tackbok › Optionen und lösche die verborgenen App-Daten.',
   'cloud.skippedHeads.unreadable':
     'Tackbok kann die Sicherung eines oder mehrerer deiner Geräte nicht lesen, daher fehlen deren Änderungen. Die Synchronisierung läuft mit deinen anderen Geräten weiter.',
   'cloud.skippedHeads.clockAhead':
