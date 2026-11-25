@@ -273,7 +273,7 @@ export const sv = {
   'appearance.firstDayOfWeekDescription': 'Välj vilken dag dina kalenderveckor börjar på',
   'appearance.appIcon': 'Appikon',
   'appearance.festiveTouches': 'Festliga detaljer',
-  'appearance.festiveTouchesDescription': 'Hälsningar och förslag under helgerna',
+  'appearance.festiveTouchesDescription': 'Hälsningar och förslag under högtiderna',
   'appearance.changeAppIconTitle': 'Byta appikon?',
   'appearance.changeAppIconMessage': 'Tackbok stängs för att byta till den nya ikonen.',
   'appearance.changeIcon': 'Byt ikon',

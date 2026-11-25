@@ -303,7 +303,7 @@ export const it = {
   'appearance.firstDayOfWeekDescription':
     'Scegli il giorno da cui iniziano le settimane del calendario',
   'appearance.appIcon': 'Icona dell’app',
-  'appearance.festiveTouches': 'Tocchi festivi',
+  'appearance.festiveTouches': 'Dettagli festivi',
   'appearance.festiveTouchesDescription': 'Auguri e suggerimenti per le feste',
   'appearance.changeAppIconTitle': 'Cambiare l’icona dell’app?',
   'appearance.changeAppIconMessage': 'Tackbok si chiuderà per applicare la nuova icona.',

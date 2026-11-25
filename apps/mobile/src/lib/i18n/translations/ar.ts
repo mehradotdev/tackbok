@@ -19,9 +19,9 @@ export const ar: Translations = {
   'greeting.happyFriday': 'جمعة سعيدة',
   'greeting.happySaturday': 'سبت سعيد',
   'greeting.withName': '{greeting}، {name}',
-  'greeting.christmasEve': 'ليلة ميلاد سعيدة',
+  'greeting.christmasEve': 'ليلة عيد الميلاد سعيدة',
   'greeting.merryChristmas': 'عيد ميلاد مجيد',
-  'greeting.newYearsEve': 'ليلة رأس سنة سعيدة',
+  'greeting.newYearsEve': 'ليلة رأس السنة سعيدة',
   'greeting.happyNewYear': 'سنة جديدة سعيدة',
 
   // Common

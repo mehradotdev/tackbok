@@ -22,7 +22,12 @@ export function chooseGreetingEmoji(
   /** A seasonal event's emojis replace the everyday set, but not the sleepy ones. */
   daytime: readonly string[] = GREETING_EMOJIS,
 ) {
-  const emojis = greeting === 'greeting.goodNight' ? NIGHT_EMOJIS : daytime;
+  const emojis =
+    greeting === 'greeting.goodNight'
+      ? NIGHT_EMOJIS
+      : daytime.length > 0
+        ? daytime
+        : GREETING_EMOJIS;
   return emojis[Math.floor(random() * emojis.length)];
 }
 

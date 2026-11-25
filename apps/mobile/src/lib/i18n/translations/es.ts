@@ -16,7 +16,7 @@ export const es = {
   'greeting.withName': '{greeting}, {name}',
   'greeting.christmasEve': 'Feliz Nochebuena',
   'greeting.merryChristmas': 'Feliz Navidad',
-  'greeting.newYearsEve': 'Feliz Nochevieja',
+  'greeting.newYearsEve': 'Feliz fin de año',
   'greeting.happyNewYear': 'Feliz Año Nuevo',
   'common.tackbok': 'Tackbok',
   'common.cancel': 'Cancelar',

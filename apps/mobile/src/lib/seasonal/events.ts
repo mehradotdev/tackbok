@@ -54,7 +54,7 @@ export const SEASONAL_EVENTS: readonly SeasonalEvent[] = [
       {
         date: [12, 31],
         greeting: 'greeting.newYearsEve',
-        emoji: '🥂',
+        emoji: '✨',
         effect: 'sparkle',
       },
       {
@@ -97,6 +97,8 @@ export function seasonalDay(
 /**
  * Identifies one occurrence of an event, e.g. `winter-holidays-2026` for both
  * 20 Dec 2026 and 3 Jan 2027, so "once per season" survives the year change.
+ * Only meaningful for a date inside the event's window (check
+ * `activeSeasonalEvent` first); outside it the key names a neighbouring season.
  */
 export function seasonKey(event: SeasonalEvent, date: Date) {
   const month = date.getMonth() + 1;

@@ -19,7 +19,7 @@ export const he: Translations = {
   'greeting.happyFriday': 'יום שישי נעים',
   'greeting.happySaturday': 'שבת נעימה',
   'greeting.withName': '{greeting}, {name}',
-  'greeting.christmasEve': 'ערב חג מולד שמח',
+  'greeting.christmasEve': 'ערב חג המולד שמח',
   'greeting.merryChristmas': 'חג מולד שמח',
   'greeting.newYearsEve': 'סילבסטר שמח',
   'greeting.happyNewYear': 'שנה אזרחית טובה',

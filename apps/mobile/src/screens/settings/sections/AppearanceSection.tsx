@@ -65,6 +65,7 @@ export function AppearanceSection() {
           <View
             pointerEvents="none"
             accessible={false}
+            accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants">
             <Switch checked={festiveTouches} />
           </View>

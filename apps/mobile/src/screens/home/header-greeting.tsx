@@ -118,6 +118,7 @@ export function useHeaderGreeting(isSearchMode: boolean) {
       // zero here can hide them for a frame on the UI thread (Android flicker).
       progress.value = DURATION;
       setMessages(null);
+      setEffect(null);
       setPending(false);
     };
     if (!focused || isSearchMode || (appState && appState !== 'active')) {
