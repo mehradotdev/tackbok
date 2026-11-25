@@ -1098,6 +1098,12 @@ describe('GoogleDriveSnapshotProvider', () => {
         // 60 s grace plus all six bodies at the floor rate.
         await jest.advanceTimersByTimeAsync(2_000);
         expect(uploads.map((upload) => upload())).toEqual(Array(6).fill(timedOut));
+        // Timed-out uploads left the floor: a new one has it all again.
+        const next = start();
+        await jest.advanceTimersByTimeAsync(159_999);
+        expect(next()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(1);
+        expect(next()).toBe(timedOut);
       }));
 
     test('an upload left alone gets the whole floor again', () =>
