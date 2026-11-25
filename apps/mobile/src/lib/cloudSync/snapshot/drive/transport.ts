@@ -110,7 +110,9 @@ class UploadFloor {
       remaining: () => {
         const grace = REQUEST_TIMEOUT_MS - (this.now() - started);
         if (grace > 0) return grace;
-        creditedAtGraceEnd ??= this.advance();
+        // A late first check (JS paused, timer delayed) still counts the time
+        // since the grace ended, as shared by the uploads in flight now.
+        creditedAtGraceEnd ??= this.advance() + grace / this.inFlight;
         return Math.min(
           REQUEST_TIMEOUT_MS,
           Math.ceil((due - (this.advance() - creditedAtGraceEnd)) * this.inFlight),

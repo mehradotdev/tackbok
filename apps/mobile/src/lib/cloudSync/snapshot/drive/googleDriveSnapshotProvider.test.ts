@@ -1032,10 +1032,14 @@ describe('GoogleDriveSnapshotProvider', () => {
     /** A body the 64 KB/s floor carries in exactly 100 s. */
     const BODY_BYTES = 64 * 100_000;
 
+    /** Moves the monotonic clock without firing timers, like a paused JS thread. */
+    let pausedMs = 0;
+
     async function withUploads(
       run: (start: () => () => string, answer: (count: number) => void) => Promise<void>,
     ) {
       jest.useFakeTimers();
+      pausedMs = 0;
       try {
         const answers: ((value: DriveResponseLike) => void)[] = [];
         const transport = new DriveTransport({
@@ -1046,7 +1050,7 @@ describe('GoogleDriveSnapshotProvider', () => {
           sleep: async () => {},
           random: () => 0,
           now: () => Date.now(),
-          monotonicNow: () => Date.now(),
+          monotonicNow: () => Date.now() + pausedMs,
         });
         const start = () => {
           let outcome = 'pending';
@@ -1122,6 +1126,16 @@ describe('GoogleDriveSnapshotProvider', () => {
         expect(last()).toBe('pending');
         await jest.advanceTimersByTimeAsync(62_000);
         expect(last()).toBe('Google Drive request timed out');
+      }));
+
+    test('a check delayed past the grace still counts the time since it ended', () =>
+      withUploads(async (start) => {
+        const upload = start();
+        await jest.advanceTimersByTimeAsync(30_000);
+        // The grace timer fires 200 s late: the body's 100 s are long gone.
+        pausedMs = 200_000;
+        await jest.advanceTimersByTimeAsync(30_000);
+        expect(upload()).toBe(timedOut);
       }));
 
     test('uploads that join later stretch an upload already in flight', () =>
