@@ -184,7 +184,14 @@ plain theme.
 
 Journal text sits directly on the art. Denise's scene lifts any pixel darker
 than 4.5:1 against `--color-foreground` toward the mist. Giuseppe has no such
-lift: only the small lit cairn falls below that ratio, which the owner accepted.
+lift (the owner kept it as is): its lit cairn reaches about 2:1 and the sun glow
+on the lake about 3:1.
+
+Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
+all five shaders and render both scenes at phone, landscape and picker sizes in
+`/tmp/friend-previews`. It exits 1 if body text over Denise drops below 4.5:1;
+Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (a few
+minutes); it says nothing about GPU cost.
 
 ## How `src/global.css` Is Managed
 

@@ -127,9 +127,12 @@ function useShaderTexture(
   );
   const element = (
     <Group transform={[{ scale: density }, { translateX: -x }, { translateY: -y }]}>
-      <Rect x={x} y={y} width={width} height={height}>
-        {effect && <Shader source={effect} uniforms={uniforms} />}
-      </Rect>
+      {/* A failed shader draws nothing (a bare Rect would paint black over the scene). */}
+      {effect && (
+        <Rect x={x} y={y} width={width} height={height}>
+          <Shader source={effect} uniforms={uniforms} />
+        </Rect>
+      )}
     </Group>
   );
   return useTexture(element, pixels, [
