@@ -171,9 +171,10 @@ export default function OnboardingFinishScreen() {
             : t('onboarding.youreAllSet')}
         </Text>
         <Text className="text-base text-muted-foreground mt-2 mb-6">
-          {dbIsEmpty
-            ? t('onboarding.twoLastThingsYouCanTurnOnBothAreOptional')
-            : t('onboarding.finish.oneOptionalThing')}
+          {/* Until the journal check settles, assume the usual first-run case. */}
+          {dbIsEmpty === false
+            ? t('onboarding.finish.oneOptionalThing')
+            : t('onboarding.twoLastThingsYouCanTurnOnBothAreOptional')}
         </Text>
 
         <View className="gap-3">

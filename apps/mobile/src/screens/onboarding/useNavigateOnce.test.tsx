@@ -61,4 +61,25 @@ test('a slow action still blocks a second tap while it runs', async () => {
   });
   expect(slow).toHaveBeenCalledTimes(1);
   await act(async () => finish());
+  // It navigated, so the step stays blocked until it regains focus.
+  await act(async () => navigateOnce(slow));
+  expect(slow).toHaveBeenCalledTimes(1);
+});
+
+test('an action that throws or rejects frees the buttons', async () => {
+  const error = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  const throwing = jest.fn(() => {
+    throw new Error('no route');
+  });
+  expect(() => navigateOnce(throwing)).toThrow('no route');
+  expect(() => navigateOnce(throwing)).toThrow('no route');
+  expect(throwing).toHaveBeenCalledTimes(2);
+
+  const rejecting = jest.fn(async () => {
+    throw new Error('save failed');
+  });
+  await act(async () => navigateOnce(rejecting));
+  await act(async () => navigateOnce(rejecting));
+  expect(rejecting).toHaveBeenCalledTimes(2);
+  error.mockRestore();
 });
