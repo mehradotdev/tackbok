@@ -277,9 +277,11 @@ export default function OnboardingWelcomeScreen() {
               {t('onboarding.alreadyHaveAJournalImportIt')}
             </Text>
           </Button>
-          <Text className="text-xs text-muted-foreground text-center">
-            {t('onboarding.welcome.version', { version: APP_VERSION })}
-          </Text>
+          {APP_VERSION !== '' && (
+            <Text className="text-xs text-muted-foreground text-center">
+              {t('onboarding.welcome.version', { version: APP_VERSION })}
+            </Text>
+          )}
         </View>
       }>
       {/* Logo + value prop */}
