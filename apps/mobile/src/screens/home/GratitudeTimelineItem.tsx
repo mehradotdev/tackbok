@@ -21,6 +21,7 @@ import { AudioPlayer } from '~/components/AudioPlayer';
 import { OtherVersionBadge } from '~/components/OtherVersionBadge';
 import { Icon } from '~/components/ui/icon';
 import { TimelineDotAnimated } from './TimelineDot';
+import { useCoachMarkTarget } from './coachMarkTargets';
 
 // The date pill is a section marker, not content. Uncapped, the largest iOS text sizes wrap
 // it onto two lines that fill a third of the screen. A 2x cap keeps short dates on one line
@@ -39,6 +40,8 @@ interface ITimelineItemProps {
   onToggleExpand: () => void;
   onPlaceholderPress?: () => void;
   isExpanded?: boolean;
+  /** This day's entries are what the Home tour's entry tip points at. */
+  isCoachMarkTarget?: boolean;
 }
 
 interface IEntryRowProps {
@@ -240,6 +243,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   onToggleExpand,
   onPlaceholderPress,
   isExpanded: isExpandedProp,
+  isCoachMarkTarget = false,
 }) => {
   const { t, isRTL } = useTranslation();
   const timelineEntryLength = useSettingsStore((state) => state.timelineEntryLength);
@@ -247,6 +251,7 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
   const dateIncludesDayOfWeek = useSettingsStore((state) => state.dateIncludesDayOfWeek);
   const tagMap = useTagMapping();
   const animatedButtonRef = useRef<AnimatedButtonHandle>(null);
+  const coachMarkTargetRef = useCoachMarkTarget('entry', isCoachMarkTarget);
 
   // Image Viewer State — single instance shared by both collapsed strip and expanded rows
   const [viewerPhotos, setViewerPhotos] = useState<Asset[]>([]);
@@ -340,62 +345,66 @@ export const TimelineItem: React.FC<ITimelineItemProps> = ({
           </Button>
         )}
 
-        {/* Entries List (when expanded) */}
-        {isExpanded && hasEntries && (
-          <View className="w-full p-0 m-0 flex-1">
-            {dayGroup.entries.map((entry, index) => (
-              <ExpandedEntryRow
-                key={entry.note_id}
-                entry={entry}
-                onPress={() => onEntryPress(entry)}
-                isRTL={isRTL}
-                isFirst={index === 0}
-                isLast={index === dayGroup.entries.length - 1}
-                timelineEntryLength={timelineEntryLength}
-                tagMap={tagMap}
-                onPhotoPress={handlePhotoPress}
-              />
-            ))}
-          </View>
-        )}
-
-        {/* Entries List Collapsed View (when not expanded and has entries) */}
-        {!isExpanded && hasEntries && (
-          <Pressable
-            onPress={() => animatedButtonRef.current?.simulatePress()}
-            className="w-full rounded-lg active:bg-active-overlay">
-            {previewText ? (
-              <Text
-                className="text-base px-4 pb-2 text-foreground"
-                numberOfLines={timelineEntryLength}>
-                {previewText}
-              </Text>
-            ) : null}
-
-            {/* Collapsed photos — all photos from all entries for this day */}
-            {allPhotos.length > 0 && (
-              // h-18 needed to limit height of FlatList
-              <View className="h-18 pr-4">
-                <FlatList
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  data={allPhotos}
-                  keyExtractor={(item, idx) => `${item.uri}-${idx}`}
-                  contentContainerClassName="gap-2 pb-2 pl-4"
-                  onStartShouldSetResponder={() => true}
-                  renderItem={({ item: photo, index }) => (
-                    <Pressable onPress={() => handlePhotoPress(allPhotos, index)}>
-                      <Image
-                        source={{ uri: getFullPhotoUri(photo.uri) }}
-                        className="w-16 h-16 rounded-lg"
-                        resizeMode="cover"
-                      />
-                    </Pressable>
-                  )}
-                />
+        {hasEntries && (
+          <View ref={coachMarkTargetRef} collapsable={false} className="w-full">
+            {/* Entries List (when expanded) */}
+            {isExpanded && (
+              <View className="w-full p-0 m-0 flex-1">
+                {dayGroup.entries.map((entry, index) => (
+                  <ExpandedEntryRow
+                    key={entry.note_id}
+                    entry={entry}
+                    onPress={() => onEntryPress(entry)}
+                    isRTL={isRTL}
+                    isFirst={index === 0}
+                    isLast={index === dayGroup.entries.length - 1}
+                    timelineEntryLength={timelineEntryLength}
+                    tagMap={tagMap}
+                    onPhotoPress={handlePhotoPress}
+                  />
+                ))}
               </View>
             )}
-          </Pressable>
+
+            {/* Entries List Collapsed View (when not expanded and has entries) */}
+            {!isExpanded && (
+              <Pressable
+                onPress={() => animatedButtonRef.current?.simulatePress()}
+                className="w-full rounded-lg active:bg-active-overlay">
+                {previewText ? (
+                  <Text
+                    className="text-base px-4 pb-2 text-foreground"
+                    numberOfLines={timelineEntryLength}>
+                    {previewText}
+                  </Text>
+                ) : null}
+
+                {/* Collapsed photos — all photos from all entries for this day */}
+                {allPhotos.length > 0 && (
+                  // h-18 needed to limit height of FlatList
+                  <View className="h-18 pr-4">
+                    <FlatList
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      data={allPhotos}
+                      keyExtractor={(item, idx) => `${item.uri}-${idx}`}
+                      contentContainerClassName="gap-2 pb-2 pl-4"
+                      onStartShouldSetResponder={() => true}
+                      renderItem={({ item: photo, index }) => (
+                        <Pressable onPress={() => handlePhotoPress(allPhotos, index)}>
+                          <Image
+                            source={{ uri: getFullPhotoUri(photo.uri) }}
+                            className="w-16 h-16 rounded-lg"
+                            resizeMode="cover"
+                          />
+                        </Pressable>
+                      )}
+                    />
+                  </View>
+                )}
+              </Pressable>
+            )}
+          </View>
         )}
 
         <ImageViewerModal
