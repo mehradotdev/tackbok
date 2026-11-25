@@ -2742,6 +2742,71 @@ describe('GoogleDriveSnapshotProvider', () => {
     ]);
   });
 
+  test('a purge deletes a few at a time and is not failed by a search that lags its deletes', async () => {
+    const server = new FakeDriveServer();
+    for (let i = 0; i < 20; i++) {
+      const bytes = new TextEncoder().encode(`purge-${i}`);
+      const hash = sha256Bytes(bytes);
+      server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
+    }
+    const gate = { inFlight: 0, most: 0, lagging: true };
+    let created: StoredDriveFile | null = null;
+    const app = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async (url, init = {}) => {
+        const deleting = String(init.method) === 'DELETE';
+        const id = deleting
+          ? decodeURIComponent(new URL(url).pathname.split('/').pop()!)
+          : '';
+        const file = deleting ? server.files.get(id) : undefined;
+        gate.inFlight += 1;
+        gate.most = Math.max(gate.most, gate.inFlight);
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          const result = await server.fetch(url, init);
+          // Drive's search still lists most deleted files for a while.
+          if (file && gate.lagging) server.staleSearch.set(file.id, file);
+          // Another device uploads during the purge.
+          if (deleting && !created) {
+            const bytes = new TextEncoder().encode('purge-late');
+            const hash = sha256Bytes(bytes);
+            created = server.seed(
+              vaultId,
+              `media/${hash.slice(0, 2)}/${hash}`,
+              'media',
+              bytes,
+            );
+          }
+          return result;
+        } finally {
+          gate.inFlight -= 1;
+        }
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1_800_000_000_000,
+    });
+    await app.publishRevocation(vaultId, 'journal-deleted');
+    // Only the late upload remains: the lagging search results were checked by ID.
+    await expect(app.purgeRevokedVault(vaultId)).resolves.toEqual({
+      deleted: 20,
+      remaining: 1,
+    });
+    expect(gate.most).toBeGreaterThan(1);
+    expect(gate.most).toBeLessThanOrEqual(6);
+    // "Resume deletion" finishes: the late file goes, and the files the search
+    // still lists are deleted again (Drive answers 404) without counting.
+    gate.lagging = false;
+    await expect(app.purgeRevokedVault(vaultId)).resolves.toEqual({
+      deleted: 21,
+      remaining: 0,
+    });
+    expect([...server.files.values()].map((file) => file.appProperties.tb_kind)).toEqual([
+      'revocation',
+    ]);
+  });
+
   test("a later build's pack file (#251) is ignored by everything but the purge", async () => {
     const server = new FakeDriveServer();
     const app = provider(server);
