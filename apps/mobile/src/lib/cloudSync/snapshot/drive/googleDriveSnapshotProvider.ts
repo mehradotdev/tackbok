@@ -51,9 +51,11 @@ const MEDIA_QUERY_GROUP = 50;
 const MEDIA_EXISTS_CONCURRENCY = 6;
 /**
  * Deletes in flight at once when a vault is purged ("Delete journal
- * everywhere"). Deletes are writes; like uploads, six stay near the older
- * guidance of about three writes a second at Drive's ~1.8 s per delete, and
- * a rate-limited delete is retried (it is idempotent).
+ * everywhere"). Deletes are writes: at Drive's ~1.5–1.8 s per delete, six
+ * make 3.3–4 a second, a little over the older guidance of about three
+ * (Android's HTTP client runs at most five per host, about 3 a second). A
+ * rate-limited delete is retried (it is idempotent), and an unfinished purge
+ * offers "Resume deletion".
  */
 const PURGE_CONCURRENCY = 6;
 const CHUNK_SIZE = 256 * 1024;
