@@ -10,6 +10,7 @@ uniform float3 ridge;
 uniform float3 near;
 uniform float3 fogCol;
 uniform float3 sun;
+uniform float3 ink;   // theme foreground: body text drawn over the scene
 `;
 
 const HELPERS = `
@@ -81,6 +82,10 @@ float firs(int k, float2 xy, float scale) {
 `;
 
 export const DENISE_SCENE = `${UNIFORMS}${HELPERS}
+float lumOf(float3 c) {
+  float3 l = mix(c / 12.92, pow((max(c, 0.0) + 0.055) / 1.055, float3(2.4)), step(0.04045, c));
+  return dot(l, float3(0.2126, 0.7152, 0.0722));
+}
 half4 main(float2 xy) {
   float scale = min(size.x / 390.0, size.y / 700.0);
   float2 uv = xy / size;
@@ -94,9 +99,8 @@ half4 main(float2 xy) {
 
   // High thin cloud wisps.
   float wisp = fbm(float2(uv.x * 2.0, uv.y * 9.0));
-  col = mix(col, fogCol, 0.25 * smoothstep(0.5, 0.8, wisp) * smoothstep(0.45, 0.15, uv.y));
+  col = mix(col, fogCol, 0.25 * smoothstep(0.5, 0.8, wisp) * (1.0 - smoothstep(0.15, 0.45, uv.y)));
 
-  float drift = 0.0;
   for (int k = 0; k < 5; k++) {
     float fk = float(k);
     float depth = fk / 4.0;
@@ -110,17 +114,29 @@ half4 main(float2 xy) {
     tone = mix(tone, mix(tone, sun, 0.25), (1.0 - below) * (1.0 - depth) * smoothstep(0.2, 1.0, uv.x));
     col = mix(col, tone, land);
 
-    // Valley fog pooling below this ridge, drifting sideways.
+    // Valley fog pooling below this ridge (DENISE_MIST adds the drifting wisps).
     float valley = size.y * (0.53 + fk * 0.085);
     float fy = (xy.y - valley) / (60.0 * scale);
     float band = smoothstep(-1.6, 0.4, fy) * (1.0 - smoothstep(0.8, 2.6, fy));
-    float2 fp = float2(xy.x / (260.0 * scale) + drift * (1.0 + fk * 0.4) + fk * 3.7, xy.y / (55.0 * scale));
-    float wisps = fbm(fp + float2(0.0, -drift * 0.3)) * 0.7 + noise(fp * 0.5) * 0.3;
+    float2 fp = float2(xy.x / (260.0 * scale) + fk * 3.7, xy.y / (55.0 * scale));
+    float wisps = fbm(fp) * 0.7 + noise(fp * 0.5) * 0.3;
     float dens = band * smoothstep(0.25, 0.7, wisps) * (0.9 - depth * 0.25);
     col = mix(col, fogCol, dens);
   }
   // Ground haze at the very bottom so cards read cleanly.
-  col = mix(col, fogCol, 0.55 * smoothstep(0.8, 1.0, uv.y) * (0.75 + 0.25 * fbm(float2(uv.x * 3.0 + drift, uv.y * 6.0))));
+  col = mix(col, fogCol, 0.55 * smoothstep(0.8, 1.0, uv.y) * (0.75 + 0.25 * fbm(float2(uv.x * 3.0, uv.y * 6.0))));
+  // Readability floor: journal text sits straight on the scene, so lift any
+  // pixel darker than 4.5:1 against the text toward the mist (the owner chose
+  // this over a uniform wash; lighter pixels are untouched).
+  float floorLum = (lumOf(ink) + 0.05) * 4.6 - 0.05;
+  if (lumOf(col) < floorLum) {
+    float lo = 0.0, hi = 1.0;
+    for (int s = 0; s < 10; s++) {
+      float m = 0.5 * (lo + hi);
+      if (lumOf(mix(col, fogCol, m)) < floorLum) lo = m; else hi = m;
+    }
+    col = mix(col, fogCol, hi);
+  }
   col += (hash2(xy) - 0.5) * 0.01;
   return half4(half3(col), 1.0);
 }
@@ -148,6 +164,7 @@ half4 main(float2 xy) {
     float valley = size.y * (0.53 + fk * 0.085);
     float fy = (xy.y - valley) / (45.0 * scale);
     float band = smoothstep(-1.4, 0.2, fy) * (1.0 - smoothstep(0.4, 1.8, fy));
+    if (band <= 0.0) continue;   // outside this valley: skip the noise
     float2 p = float2(xy.x / (190.0 * scale) + time * (0.018 + fk * 0.006) + fk * 5.3,
                       xy.y / (40.0 * scale));
     float n = noise(p) * 0.6 + noise(p * 2.1 + 3.7) * 0.28 + noise(p * 4.3 + 9.1) * 0.12;

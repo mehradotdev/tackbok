@@ -170,6 +170,22 @@ renderer also checks body-text contrast against every background pixel (at least
 measure GPU
 performance or battery use.
 
+### Denise and Giuseppe
+
+`FriendBackdrops.tsx` renders two shader scenes: Denise's misty blue ridges
+(light, Cinzel) and Giuseppe's cairn by a lake at dusk (dark, Lora). The detailed
+layers (`DENISE_SCENE`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`) are expensive, so each
+is drawn once into a texture with `useTexture`. Giuseppe's cairn texture covers
+only its corner. Only a cheap overlay animates per frame: Denise's fog wisps and
+Giuseppe's additive bokeh. Motion stops when the screen loses focus or the app
+goes to the background, and previews and Reduce Motion show still scenes.
+The theme background colour is painted first, so a failed shader degrades to a
+plain theme.
+
+Journal text sits directly on the art. Denise's scene lifts any pixel darker
+than 4.5:1 against `--color-foreground` toward the mist. Giuseppe has no such
+lift: only the small lit cairn falls below that ratio, which the owner accepted.
+
 ## How `src/global.css` Is Managed
 
 `src/global.css` has two ownership zones:

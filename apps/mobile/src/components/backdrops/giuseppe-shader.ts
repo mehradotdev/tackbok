@@ -40,10 +40,14 @@ half4 main(float2 xy) {
   float water = smoothstep(horizon - 0.005, horizon + 0.015, uv.y);
   float3 lake = mix(mix(deep, haze, 0.4), deep * 0.7, clamp((uv.y - horizon) / 0.42, 0.0, 1.0));
   float sunX = 0.3;
-  float glow = exp(-pow((uv.x - sunX) * 3.4, 2.0)) * (1.0 - clamp((uv.y - horizon) * 2.0, 0.0, 1.0));
+  // Squares are written out: pow() is undefined for a negative base on some GPUs.
+  float gx = (uv.x - sunX) * 3.4;
+  float glow = exp(-gx * gx) * (1.0 - clamp((uv.y - horizon) * 2.0, 0.0, 1.0));
   lake += warm * glow * 0.2;
   col = mix(col, lake, water);
-  col += warm * 0.14 * exp(-pow((uv.x - sunX) * 2.4, 2.0)) * exp(-pow((uv.y - horizon) * 8.0, 2.0));
+  float hx = (uv.x - sunX) * 2.4;
+  float hy = (uv.y - horizon) * 8.0;
+  col += warm * 0.14 * exp(-hx * hx) * exp(-hy * hy);
   col += (hash(xy) - 0.5) * 0.012;   // grain against banding
   return half4(half3(col), 1.0);
 }
@@ -69,14 +73,18 @@ half4 main(float2 xy) {
     float2 bc = float2(h.x * size.x + sin(time * 0.07 + fi) * 6.0 * scale, (horizon + 0.03 + h.y * 0.36) * size.y);
     float br = (8.0 + 26.0 * hash(float2(fi, 3.1))) * scale * (0.6 + 0.8 * (bc.y / size.y - horizon));
     float d = length(xy - bc) / br;
-    float disc = 1.0 - smoothstep(0.86, 1.0, d);
-    float rim = smoothstep(0.7, 0.95, d) * disc;
-    float flicker = 0.55 + 0.45 * sin(time * (0.4 + hash(float2(fi, 9.0)) * 0.7) + fi * 2.1);
-    float near = exp(-pow((bc.x / size.x - sunX) * 2.4, 2.0));
-    float3 tint = mix(haze, warm, 0.35 + 0.65 * near);
-    add += tint * (disc * 0.055 + rim * 0.045) * flicker * (0.4 + near);
+    if (d < 1.0) {   // most pixels miss most discs; skip the rest of the work
+      float disc = 1.0 - smoothstep(0.86, 1.0, d);
+      float rim = smoothstep(0.7, 0.95, d) * disc;
+      float flicker = 0.55 + 0.45 * sin(time * (0.4 + hash(float2(fi, 9.0)) * 0.7) + fi * 2.1);
+      float nx = (bc.x / size.x - sunX) * 2.4;
+      float near = exp(-nx * nx);
+      float3 tint = mix(haze, warm, 0.35 + 0.65 * near);
+      add += tint * (disc * 0.055 + rim * 0.045) * flicker * (0.4 + near);
+    }
   }
-  return half4(half3(add), 0.0);
+  // Drawn with "plus" over the opaque lake, so alpha stays 1 and the light just adds.
+  return half4(half3(add), 1.0);
 }
 `;
 

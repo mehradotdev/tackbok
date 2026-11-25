@@ -18,6 +18,7 @@ import {
   useReducedMotion,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
@@ -35,10 +36,13 @@ const rgb = (color: string) => Array.from(Skia.Color(color)).slice(0, 3);
 /** Seconds of drift before the motion eases back; slow enough to feel ambient. */
 const CYCLE = 60;
 
-/** Measured, accessibility-hidden full-bleed host shared by the scenes. */
-function useMeasuredHost() {
-  const [size, setSize] = useState({ width: 0, height: 0 });
-  const host = (children: ReactNode) => (
+type Size = { width: number; height: number };
+type Region = Size & { x: number; y: number };
+
+/** Measured, accessibility-hidden full-bleed host; renders the scene once sized. */
+function MeasuredHost({ children }: { children: (size: Size) => ReactNode }) {
+  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
+  return (
     <View
       pointerEvents="none"
       accessible={false}
@@ -52,10 +56,9 @@ function useMeasuredHost() {
             : { width: layout.width, height: layout.height },
         )
       }>
-      {size.width > 0 && size.height > 0 && children}
+      {size.width > 0 && size.height > 0 && children(size)}
     </View>
   );
-  return { ...size, host };
 }
 
 /** Seconds of ambient motion, easing back and forth; frozen for previews,
@@ -73,10 +76,19 @@ function useAmbientTime(preview: boolean) {
       }
       const start = () => {
         stop();
-        phase.value = withRepeat(
-          withTiming(1, { duration: CYCLE * 1000, easing: Easing.inOut(Easing.sin) }),
-          -1,
-          true,
+        // Resume from the paused point: finish this leg, then swing 1 → 0 → 1.
+        // (Repeating from the paused value would only swing between it and 1.)
+        const from = phase.value;
+        phase.value = withSequence(
+          withTiming(1, {
+            duration: (1 - from) * CYCLE * 1000,
+            easing: Easing.out(Easing.sin),
+          }),
+          withRepeat(
+            withTiming(0, { duration: CYCLE * 1000, easing: Easing.inOut(Easing.sin) }),
+            -1,
+            true,
+          ),
         );
       };
       if (AppState.currentState === 'active') start();
@@ -93,77 +105,110 @@ function useAmbientTime(preview: boolean) {
   return useDerivedValue(() => phase.value * CYCLE);
 }
 
-/** Renders a detailed shader once into a texture at device resolution. */
+/**
+ * Renders a detailed shader once into a texture at `density` pixels per point.
+ * The shader always sees full-screen point coordinates; `region` limits the
+ * texture to the part of the screen the art covers.
+ */
 function useShaderTexture(
   effect: SkRuntimeEffect | null,
   uniforms: Record<string, number | number[]>,
-  width: number,
-  height: number,
+  region: Region,
   density: number,
 ) {
+  const { x, y, width, height } = region;
+  // useTexture redraws whenever the size object changes identity, so keep it stable.
+  const pixels = useMemo(
+    () => ({
+      width: Math.max(1, Math.round(width * density)),
+      height: Math.max(1, Math.round(height * density)),
+    }),
+    [width, height, density],
+  );
   const element = (
-    <Group transform={[{ scale: density }]}>
-      <Rect x={0} y={0} width={width} height={height}>
+    <Group transform={[{ scale: density }, { translateX: -x }, { translateY: -y }]}>
+      <Rect x={x} y={y} width={width} height={height}>
         {effect && <Shader source={effect} uniforms={uniforms} />}
       </Rect>
     </Group>
   );
-  return useTexture(
-    element,
-    {
-      width: Math.max(1, Math.round(width * density)),
-      height: Math.max(1, Math.round(height * density)),
-    },
-    [effect, JSON.stringify(uniforms), width, height, density],
-  );
+  return useTexture(element, pixels, [
+    effect,
+    JSON.stringify(uniforms),
+    x,
+    y,
+    width,
+    height,
+    density,
+  ]);
 }
 
 export function DeniseBackdrop({ preview = false }: { preview?: boolean }) {
-  const { width, height, host } = useMeasuredHost();
-  const background = useCSSVariable('--color-background') as string;
+  return (
+    <MeasuredHost>{(size) => <DeniseScene {...size} preview={preview} />}</MeasuredHost>
+  );
+}
+
+function DeniseScene({ width, height, preview }: Size & { preview: boolean }) {
+  const [background, foreground] = useCSSVariable([
+    '--color-background',
+    '--color-foreground',
+  ]);
   const time = useAmbientTime(preview);
+  const sky = typeof background === 'string' ? background : DENISE_PALETTE.fog;
+  const ink = typeof foreground === 'string' ? foreground : DENISE_PALETTE.near;
   const scene = useMemo(
     () => ({
-      size: [Math.max(1, width), Math.max(1, height)],
-      sky: rgb(background),
+      size: [width, height],
+      sky: rgb(sky),
       ridge: rgb(DENISE_PALETTE.ridge),
       near: rgb(DENISE_PALETTE.near),
       fogCol: rgb(DENISE_PALETTE.fog),
       sun: rgb(DENISE_PALETTE.sun),
+      ink: rgb(ink),
     }),
-    [width, height, background],
+    [width, height, sky, ink],
   );
-  const texture = useShaderTexture(deniseScene, scene, width, height, PixelRatio.get());
+  const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
+  const texture = useShaderTexture(deniseScene, scene, full, PixelRatio.get());
   const mist = useDerivedValue(() => ({
     size: scene.size,
     time: time.value,
     fogCol: scene.fogCol,
   }));
 
-  return host(
+  return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* The theme colour shows until the texture is ready, or if the shader fails. */}
+      <Rect x={0} y={0} width={width} height={height} color={sky} />
       <Image image={texture} x={0} y={0} width={width} height={height} fit="fill" />
       {deniseMist && (
         <Rect x={0} y={height * 0.45} width={width} height={height * 0.55}>
           <Shader source={deniseMist} uniforms={mist} />
         </Rect>
       )}
-    </Canvas>,
+    </Canvas>
   );
 }
 
 export function GiuseppeBackdrop({ preview = false }: { preview?: boolean }) {
-  const { width, height, host } = useMeasuredHost();
-  const background = useCSSVariable('--color-background') as string;
+  return (
+    <MeasuredHost>{(size) => <GiuseppeScene {...size} preview={preview} />}</MeasuredHost>
+  );
+}
+
+function GiuseppeScene({ width, height, preview }: Size & { preview: boolean }) {
+  const background = useCSSVariable('--color-background');
   const time = useAmbientTime(preview);
+  const deep = typeof background === 'string' ? background : '#10262a';
   const colors = useMemo(
     () => ({
-      size: [Math.max(1, width), Math.max(1, height)],
-      deep: rgb(background),
+      size: [width, height],
+      deep: rgb(deep),
       haze: rgb(GIUSEPPE_PALETTE.haze),
       warm: rgb(GIUSEPPE_PALETTE.warm),
     }),
-    [width, height, background],
+    [width, height, deep],
   );
   const stones = useMemo(
     () => ({
@@ -173,9 +218,18 @@ export function GiuseppeBackdrop({ preview = false }: { preview?: boolean }) {
     }),
     [colors],
   );
+  const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
+  // The cairn stands in the bottom-right corner (see stoneShape in the shader:
+  // the boulder reaches 0.70 × width − 150 pt, the top stone 250 pt up); bake only that.
+  const corner = useMemo(() => {
+    const scale = Math.min(width / 390, height / 700);
+    const x = Math.max(0, Math.floor(width * 0.7 - 175 * scale));
+    const y = Math.max(0, Math.floor(height - 260 * scale));
+    return { x, y, width: width - x, height: height - y };
+  }, [width, height]);
   // The lake is all soft focus, so one pixel per point is enough.
-  const lake = useShaderTexture(giuseppeLake, colors, width, height, 1);
-  const cairn = useShaderTexture(giuseppeCairn, stones, width, height, PixelRatio.get());
+  const lake = useShaderTexture(giuseppeLake, colors, full, 1);
+  const cairn = useShaderTexture(giuseppeCairn, stones, corner, PixelRatio.get());
   const bokeh = useDerivedValue(() => ({
     size: colors.size,
     time: time.value,
@@ -183,8 +237,10 @@ export function GiuseppeBackdrop({ preview = false }: { preview?: boolean }) {
     warm: colors.warm,
   }));
 
-  return host(
+  return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* The theme colour shows until the textures are ready, or if a shader fails. */}
+      <Rect x={0} y={0} width={width} height={height} color={deep} />
       <Image image={lake} x={0} y={0} width={width} height={height} fit="fill" />
       {giuseppeBokeh && (
         <Rect
@@ -196,7 +252,7 @@ export function GiuseppeBackdrop({ preview = false }: { preview?: boolean }) {
           <Shader source={giuseppeBokeh} uniforms={bokeh} />
         </Rect>
       )}
-      <Image image={cairn} x={0} y={0} width={width} height={height} fit="fill" />
-    </Canvas>,
+      <Image image={cairn} {...corner} fit="fill" />
+    </Canvas>
   );
 }
