@@ -1109,6 +1109,21 @@ describe('GoogleDriveSnapshotProvider', () => {
         expect(last()).toBe(timedOut);
       }));
 
+    test('a dead upload left alone after the grace aborts within a minute of its share', () =>
+      withUploads(async (start, answer) => {
+        const [last, ...others] = Array.from({ length: 6 }, start).reverse();
+        // Grace, then 60 s of sixths: 10 s of its 100 s credited.
+        await jest.advanceTimersByTimeAsync(120_000);
+        answer(5);
+        await jest.advanceTimersByTimeAsync(0);
+        expect(others.map((upload) => upload())).toEqual(Array(5).fill('uploaded'));
+        // The other 90 s now run at the full floor: due at 210 s, not 660 s.
+        await jest.advanceTimersByTimeAsync(89_000);
+        expect(last()).toBe('pending');
+        await jest.advanceTimersByTimeAsync(62_000);
+        expect(last()).toBe('Google Drive request timed out');
+      }));
+
     test('uploads that join later stretch an upload already in flight', () =>
       withUploads(async (start) => {
         const first = start();

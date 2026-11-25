@@ -94,8 +94,10 @@ class UploadFloor {
 
   /**
    * Starts one upload. `remaining` is the real time left before it counts as
-   * stalled if the number in flight stays as it is; `finish` must be called
-   * once its response headers arrive or it fails.
+   * stalled if the number in flight stays as it is, capped at
+   * `REQUEST_TIMEOUT_MS` so uploads finishing elsewhere (more credit) are seen
+   * within a minute; `finish` must be called once its response headers arrive
+   * or it fails.
    */
   start(bodyBytes: number): { remaining: () => number; finish: () => void } {
     this.advance();
@@ -109,7 +111,10 @@ class UploadFloor {
         const grace = REQUEST_TIMEOUT_MS - (this.now() - started);
         if (grace > 0) return grace;
         creditedAtGraceEnd ??= this.advance();
-        return Math.ceil((due - (this.advance() - creditedAtGraceEnd)) * this.inFlight);
+        return Math.min(
+          REQUEST_TIMEOUT_MS,
+          Math.ceil((due - (this.advance() - creditedAtGraceEnd)) * this.inFlight),
+        );
       },
       finish: () => {
         if (finished) return;
