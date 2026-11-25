@@ -389,6 +389,7 @@ export const zhCN: Translations = {
   'backup.preparingBackup': '正在准备备份…',
   'backup.nothingToExport': '还没有可导出的内容。',
   'backup.importFailed': '导入失败',
+  'backup.importDataTooLarge': '此备份太大，无法导入。',
   'backup.restoringTackbokBackup': '正在恢复塔克布克备份',
   'backup.loadPresentlyExport': '加载 Presently 导出数据',
   'backup.importJournalEntries': '导入日记条目',

@@ -401,6 +401,7 @@ export const it = {
   'backup.preparingBackup': 'Preparazione del backup…',
   'backup.nothingToExport': 'Non c’è ancora niente da esportare.',
   'backup.importFailed': 'Importazione non riuscita',
+  'backup.importDataTooLarge': 'Questo backup è troppo grande per essere importato.',
   'backup.restoringTackbokBackup': 'Ripristino del backup di Tackbok',
   'backup.loadPresentlyExport': 'Carica l’esportazione di Presently',
   'backup.importJournalEntries': 'Importa le note del diario',

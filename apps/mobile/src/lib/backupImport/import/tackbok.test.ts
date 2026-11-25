@@ -360,6 +360,54 @@ describe('importFromTackbokBackup', () => {
     warnSpy.mockRestore();
   });
 
+  test.each([
+    ['over the cap is refused without being read', 1, 1],
+    ['over the cap only when unpacked is refused', 0, 1],
+    ['over the cap only as stored is refused', 1, 0],
+    ['at the cap is imported', 0, 0],
+  ])('a backup whose entries.json is %s', async (_name, storedOver, unpackedOver) => {
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    const { readSafeZipJson, MAX_IMPORT_JSON_BYTES, ImportDataTooLargeError } =
+      jest.requireActual<typeof import('../archiveUtils')>('../archiveUtils');
+    const refused = storedOver + unpackedOver > 0;
+    const json: Record<string, unknown> = {
+      'manifest.json': { format: 'tackbok-backup', backupVersion: 1 },
+      'data/profile.json': { name: null, email: null, imagePath: null },
+    };
+    const readEntryJson = jest.fn(async (path: string) => json[path] ?? []);
+    const close = jest.fn(async () => undefined);
+    mockLoadZipFromUri.mockResolvedValue({
+      close,
+      getEntryInfo: (path: string) => {
+        const big = path === 'data/entries.json';
+        return {
+          path,
+          compressedSize: BigInt(big ? MAX_IMPORT_JSON_BYTES + storedOver : 100),
+          uncompressedSize: BigInt(big ? MAX_IMPORT_JSON_BYTES + unpackedOver : 100),
+          compressionMethod: 8,
+          isEncrypted: false,
+        };
+      },
+      readEntryJson,
+    } as never);
+    mockReadSafeZipJson.mockReset();
+    mockReadSafeZipJson.mockImplementation(readSafeZipJson as never);
+
+    const outcome = importFromTackbokBackup('backup.zip', 'overwrite');
+
+    if (refused) {
+      await expect(outcome).rejects.toBeInstanceOf(ImportDataTooLargeError);
+      expect(readEntryJson).not.toHaveBeenCalledWith('data/entries.json');
+      expect(mockImportPortableEntries).not.toHaveBeenCalled();
+    } else {
+      await outcome;
+      expect(readEntryJson).toHaveBeenCalledWith('data/entries.json');
+      expect(mockImportPortableEntries).toHaveBeenCalledTimes(1);
+    }
+    expect(close).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
   test('trims the imported display name', async () => {
     const warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     mockReadSafeZipJson.mockReset();

@@ -390,6 +390,7 @@ export const zhTW: Translations = {
   'backup.preparingBackup': '正在準備備份…',
   'backup.nothingToExport': '還沒有可匯出的內容。',
   'backup.importFailed': '匯入失敗',
+  'backup.importDataTooLarge': '此備份太大，無法匯入。',
   'backup.restoringTackbokBackup': '正在還原塔克布克備份',
   'backup.loadPresentlyExport': '載入 Presently 匯出資料',
   'backup.importJournalEntries': '匯入日記紀錄',

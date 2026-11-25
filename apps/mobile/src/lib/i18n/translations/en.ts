@@ -423,6 +423,8 @@ export const en = {
   'backup.preparingBackup': 'Preparing your backup…',
   'backup.nothingToExport': 'There’s nothing to export yet.',
   'backup.importFailed': 'Import failed',
+  // A backup ZIP's journal data file is over the import size limit.
+  'backup.importDataTooLarge': 'This backup is too large to import.',
   'backup.restoringTackbokBackup': 'Restoring Tackbok backup',
   'backup.loadPresentlyExport': 'Load Presently export',
   'backup.importJournalEntries': 'Import journal entries',

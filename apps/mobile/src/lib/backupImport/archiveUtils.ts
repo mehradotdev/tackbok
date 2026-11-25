@@ -146,10 +146,42 @@ export function writeImportedAudio(bytes: Uint8Array, archivePath: string): Asse
 }
 
 /**
+ * The largest JSON data file (such as `entries.json`) an import reads. It is
+ * read, decoded and parsed whole, so a crafted or broken backup with a huge
+ * one could run the phone out of memory. A 10,000-entry Tackbok export's
+ * `entries.json` is about 9 MB, so 50 MB fits over 50,000 entries, more than
+ * a century of daily writing. Both the stored and the unpacked size are
+ * capped; a larger file stops the import with `ImportDataTooLargeError`.
+ */
+export const MAX_IMPORT_JSON_BYTES = 50 * 1000 * 1000;
+
+/** A backup data file over `MAX_IMPORT_JSON_BYTES`, refused before it is read. */
+export class ImportDataTooLargeError extends Error {
+  constructor(readonly path: string) {
+    super(
+      `Backup data file is larger than ${MAX_IMPORT_JSON_BYTES / 1000 / 1000} MB: ${path}`,
+    );
+    this.name = 'ImportDataTooLargeError';
+  }
+}
+
+/** Whether a ZIP entry's stored or unpacked size is over `limit`. */
+function isEntryOver(zip: ZipReader, path: string, limit: number): boolean {
+  const info = zip.getEntryInfo(path);
+  const cap = BigInt(limit);
+  return !!info && (info.uncompressedSize > cap || info.compressedSize > cap);
+}
+
+/**
  * Reads JSON from a ZIP entry after verifying the archive path is safe.
+ * Throws `ImportDataTooLargeError`, without reading, for an entry over
+ * `MAX_IMPORT_JSON_BYTES` (its stored or its unpacked size).
  */
 export async function readSafeZipJson<T>(zip: ZipReader, path: string): Promise<T> {
-  return zip.readEntryJson<T>(assertSafeArchivePath(path));
+  const safePath = assertSafeArchivePath(path);
+  if (isEntryOver(zip, safePath, MAX_IMPORT_JSON_BYTES))
+    throw new ImportDataTooLargeError(safePath);
+  return zip.readEntryJson<T>(safePath);
 }
 
 /**
@@ -183,9 +215,7 @@ export async function readSafeZipBytes(
   path: string,
 ): Promise<Uint8Array> {
   const safePath = assertSafeArchivePath(path);
-  const info = zip.getEntryInfo(safePath);
-  const cap = BigInt(MAX_IMPORT_ASSET_BYTES);
-  if (info && (info.uncompressedSize > cap || info.compressedSize > cap))
+  if (isEntryOver(zip, safePath, MAX_IMPORT_ASSET_BYTES))
     throw new ImportAssetTooLargeError(safePath);
   return zip.readEntryBytes(safePath);
 }
