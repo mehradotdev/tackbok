@@ -130,7 +130,10 @@ beforeEach(() => {
   mockBackHandler = null;
   mockReduceMotion = false;
 });
-afterEach(() => act(() => root?.unmount()));
+afterEach(() => {
+  act(() => root?.unmount());
+  jest.useRealTimers();
+});
 
 test('the tour counts as seen once shown, so an unfinished tour never returns', async () => {
   await render();
@@ -187,7 +190,7 @@ test('the entry tip appears only when there are entries', async () => {
 
   act(() => root.unmount());
   mockSettings.hasSeenHomeCoachMarks = false;
-  mockEntries = new Map([['2026-11-26', []]]);
+  mockEntries = new Map([['2026-11-26', [{ note_id: 'n1' }]]]);
   await render();
   expect(json()).toContain('Step 1 of 4');
 });
@@ -212,6 +215,7 @@ test('the dock tip loops a press and drag, or holds still under Reduce Motion', 
 });
 
 test('the ring follows its control when it moves', async () => {
+  jest.useFakeTimers();
   await render();
   const ringTop = () =>
     root.root.find(
@@ -223,6 +227,21 @@ test('the ring follows its control when it moves', async () => {
   expect(ringTop()).toBe(DOCK.y - 6);
 
   mockTargets = { ...mockTargets, dock: { ...DOCK, y: 400 } };
-  await act(() => new Promise((resolve) => setTimeout(resolve, 450)));
+  await act(async () => {
+    jest.advanceTimersByTime(400);
+  });
   expect(ringTop()).toBe(400 - 6);
+});
+
+test('a control that appears late is picked up', async () => {
+  jest.useFakeTimers();
+  mockTargets = {};
+  await render();
+  expect(bubble().props.className).toContain('bottom-32 right-4');
+
+  mockTargets = { dock: DOCK };
+  await act(async () => {
+    jest.advanceTimersByTime(400);
+  });
+  expect(bubble().props.style).toMatchObject({ bottom: expect.any(Number) });
 });

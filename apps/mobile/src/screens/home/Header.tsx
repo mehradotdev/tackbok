@@ -66,7 +66,9 @@ export const Header: React.FC<IHeaderProps> = ({
   const { t, isRTL } = useTranslation();
   const { snapshot } = useCloudSyncSnapshot();
   const { data: allTags } = useTags();
-  const searchTargetRef = useCoachMarkTarget('search', !isSearchMode);
+  // Only once the launch greeting has brought the controls in; until then the
+  // tip uses its fixed spot and finds the button when it appears.
+  const searchTargetRef = useCoachMarkTarget('search', !isSearchMode && !motion.active);
   const safeTags = allTags || [];
   const showTagFilter = isSearchMode && safeTags.length > 0;
   const syncIsActive = snapshot.status === 'syncing' || snapshot.status === 'restoring';

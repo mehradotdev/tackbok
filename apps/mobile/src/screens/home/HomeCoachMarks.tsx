@@ -267,7 +267,8 @@ export function HomeCoachMarks() {
         // Written for LTR; React Native's RTL left/right swap mirrors these
         // automatically under forceRTL, matching the mirrored targets.
         <View
-          className={cn('absolute max-w-65', bubbleClassName, mark.fallbackClassName)}>
+          className={cn('absolute max-w-65', bubbleClassName, mark.fallbackClassName)}
+          style={{ maxHeight: '60%' }}>
           {bubbleContent}
         </View>
       )}
