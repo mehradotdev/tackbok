@@ -81,9 +81,20 @@ export const NATIVE_SPLASH_LOGO_COLOR = '#E9DFC5';
  * True until the launch animation finishes or is skipped. Native modals draw
  * above the overlay, so screens hold their loading modal back while it runs.
  */
-export const useSplashActive = create<{ active: boolean }>(() => ({
+export const useSplashActive = create<{ active: boolean; revealed: boolean }>(() => ({
   active: true,
+  revealed: false,
 }));
+
+/** The launch frame is still black: status bar icons should be light. */
+export function useSplashIsDark() {
+  return useSplashActive((s) => s.active && !s.revealed);
+}
+
+/** The animation has reached the theme background. */
+export function revealSplash() {
+  useSplashActive.setState({ revealed: true });
+}
 
 export function endSplash() {
   useSplashActive.setState({ active: false });

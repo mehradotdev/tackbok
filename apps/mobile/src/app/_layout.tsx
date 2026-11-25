@@ -38,6 +38,7 @@ import {
   getSplashMode,
   isLaunchFromLink,
   useSplashActive,
+  useSplashIsDark,
   type SplashMode,
 } from '~/lib/splash';
 // A no-op module outside beta bundles; see metro.config.js.
@@ -182,7 +183,9 @@ export default function Layout() {
   // While the launch animation is on screen it decides when the native splash goes.
   const onContentLayout = splashActive ? undefined : hideSplash;
   // Light icons over the black splash, whatever the theme.
-  const barStyle = splashActive ? 'light' : statusBarStyle;
+  const barStyle = useSplashIsDark() ? 'light' : statusBarStyle;
+  // Screen readers stay on the overlay, not the app hidden under it.
+  const contentA11y = splashActive ? HIDDEN_FROM_A11Y : undefined;
 
   const [primaryColor, primaryForeground, backgroundColor] = useCSSVariable([
     '--color-primary',
@@ -272,12 +275,13 @@ export default function Layout() {
   return (
     <View className="flex-1">
       {isBootstrapLoading ? (
-        <View className="flex-1" onLayout={onContentLayout}>
+        <View className="flex-1" onLayout={onContentLayout} {...contentA11y}>
           <AppLoadingScreen />
         </View>
       ) : (
         <AppContent
           onLayout={onContentLayout}
+          a11yProps={contentA11y}
           statusBarStyle={barStyle}
           primaryColor={primaryColor as string}
           primaryForeground={primaryForeground as string}
@@ -291,19 +295,26 @@ export default function Layout() {
   );
 }
 
+const HIDDEN_FROM_A11Y = {
+  accessibilityElementsHidden: true,
+  importantForAccessibility: 'no-hide-descendants',
+} as const;
+
 function AppContent({
   onLayout,
+  a11yProps,
   statusBarStyle,
   primaryColor,
   primaryForeground,
 }: {
   onLayout: (() => void) | undefined;
+  a11yProps: typeof HIDDEN_FROM_A11Y | undefined;
   statusBarStyle: 'light' | 'dark';
   primaryColor: string;
   primaryForeground: string;
 }) {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayout}>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayout} {...a11yProps}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaListener
           onChange={({ insets }) => {

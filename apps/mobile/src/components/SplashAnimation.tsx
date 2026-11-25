@@ -18,6 +18,7 @@ import Animated, {
   interpolate,
   interpolateColor,
   ReduceMotion,
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -30,6 +31,7 @@ import {
   NATIVE_SPLASH_BACKGROUND,
   NATIVE_SPLASH_LOGO_COLOR,
   NATIVE_SPLASH_LOGO_SIZE,
+  revealSplash,
   SPLASH_TIMELINES,
   type SplashMode,
 } from '~/lib/splash';
@@ -134,7 +136,10 @@ export function SplashAnimation({
 
   const width = size?.width ?? 0;
   const height = size?.height ?? 0;
-  const maxZoom = size ? (3.5 * Math.max(width, height)) / NATIVE_SPLASH_LOGO_SIZE : 1;
+  const maxZoom =
+    width > 0 && height > 0
+      ? (3.5 * Math.max(width, height)) / NATIVE_SPLASH_LOGO_SIZE
+      : 1;
 
   const zoom = useDerivedValue(() => {
     const range = timeline.zoom;
@@ -188,6 +193,13 @@ export function SplashAnimation({
   const coverOpacity = useDerivedValue(() => (angle.value <= Math.PI / 2 ? 0 : 1));
   const turnShade = useDerivedValue(() => 0.45 * Math.sin(angle.value));
 
+  // Once the background is the theme's, the status bar can follow the theme.
+  useAnimatedReaction(
+    () => zoom.value >= 0.8,
+    (revealed, previous) => {
+      if (revealed && !previous) scheduleOnRN(revealSplash);
+    },
+  );
   const background = useDerivedValue(() =>
     interpolateColor(zoom.value, [0.15, 0.8], [NATIVE_SPLASH_BACKGROUND, endColor]),
   );
@@ -215,6 +227,7 @@ export function SplashAnimation({
 
   return (
     <Animated.View
+      accessibilityViewIsModal
       style={[
         StyleSheet.absoluteFill,
         { backgroundColor: NATIVE_SPLASH_BACKGROUND },

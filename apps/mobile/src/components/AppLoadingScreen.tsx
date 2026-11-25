@@ -6,7 +6,7 @@ import { useSettingsStore } from '~/lib/settings';
 import { getThemeConfig } from '~/lib/theme/themes';
 import { TackbokLogo } from '~/components/TackbokLogo';
 import { SafeAreaView } from '~/components/ui/safe-area-view';
-import { useSplashActive } from '~/lib/splash';
+import { useSplashActive, useSplashIsDark } from '~/lib/splash';
 
 /** Square logo — matches default in `TackbokLogo`; used for vertical centering math. */
 const LOADING_LOGO_SIZE = 108;
@@ -31,8 +31,9 @@ export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = fals
   const [foregroundColor] = useCSSVariable(['--color-foreground']);
   const splashActive = useSplashActive((s) => s.active);
   // Light icons while the black launch splash is on top.
+  const splashIsDark = useSplashIsDark();
   const statusBarStyle =
-    splashActive || themeConfig.variant === 'dark' ? 'light' : 'dark';
+    splashIsDark || themeConfig.variant === 'dark' ? 'light' : 'dark';
 
   const content = (
     <SafeAreaView
