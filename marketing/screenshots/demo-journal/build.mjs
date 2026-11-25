@@ -1,6 +1,6 @@
 // Builds a Tackbok backup ZIP full of made-up entries for store and website
 // screenshots. Restore it on a throwaway simulator or emulator through the
-// welcome screen's "Already have a journal? Import it", never on a personal
+// welcome screen's "Already have a journal? Restore or import it", never on a personal
 // device.
 //
 // Usage (macOS only: it uses say, afconvert and afinfo):
