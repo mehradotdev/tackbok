@@ -1,5 +1,5 @@
 import type { TranslationKey } from '~/lib/i18n';
-import { useCallback, useRef, type ComponentType } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { View } from 'react-native';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -9,6 +9,7 @@ import { useCSSVariable } from 'uniwind';
 import { SHEET_NAMES } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
+import { hasAnyEntries } from '~/db/queries';
 import { DEFAULT_THEME_SHEET_RADIUS } from '~/lib/theme/themes';
 import { BODY_FONT_SIZES, type BodyFontSize } from '~/lib/theme/typography';
 import {
@@ -157,6 +158,8 @@ export default function OnboardingWelcomeScreen() {
     useCallback(() => {
       if (!reopenImportSheet.current) return;
       reopenImportSheet.current = false;
+      // A Drive restore that went through is on its way past this screen.
+      if (useSettingsStore.getState().hasCompletedOnboarding) return;
       void TrueSheet.present(SHEET_NAMES.ONBOARDING_IMPORT);
     }, []),
   );
@@ -166,9 +169,14 @@ export default function OnboardingWelcomeScreen() {
   const handleImportDone = useCallback(
     (source: BackupImportSource) => {
       if (source === 'tackbok') {
-        // A Tackbok backup also restores profile settings — re-asking for
-        // name/theme/focus areas would overwrite what was just restored.
-        router.push('/onboarding/privacy');
+        // A Tackbok backup restores the profile (name, email, photo) but not
+        // the theme or focus areas, so only the name step is skipped, and only
+        // when the backup brought a name.
+        router.push(
+          useSettingsStore.getState().profileName
+            ? '/onboarding/theme'
+            : '/onboarding/name',
+        );
       } else {
         // Presently / Gratitude App bring entries only; continue the full flow.
         router.push('/onboarding/name');
@@ -187,6 +195,27 @@ export default function OnboardingWelcomeScreen() {
     clearPendingImport,
     closeImportSummary,
   } = useBackupImportFlow(handleImportDone);
+
+  // Skip or overwrite only matters for entries and a profile already here
+  // (Skip keeps the current profile). On a first run both are empty, so
+  // import straight away; a replay with either still asks.
+  const [askModeFor, setAskModeFor] = useState<PendingImportSelection | null>(null);
+  useEffect(() => {
+    if (!pendingImportSelection) return;
+    let cancelled = false;
+    const { profileName, profileEmail, profileImageUri } = useSettingsStore.getState();
+    const hasProfile = Boolean(profileName || profileEmail || profileImageUri);
+    hasAnyEntries()
+      .catch(() => true)
+      .then((hasEntries) => {
+        if (cancelled) return;
+        if (hasEntries || hasProfile) setAskModeFor(pendingImportSelection);
+        else void runPendingImport('skip');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingImportSelection, runPendingImport]);
 
   const handleSelectImportSource = useCallback(
     async (source: BackupImportSource | 'google-drive') => {
@@ -210,7 +239,7 @@ export default function OnboardingWelcomeScreen() {
           <ImportSourceSheet onSelectSource={handleSelectImportSource} />
 
           <SettingsImportModeModal
-            visible={pendingImportSelection !== null}
+            visible={askModeFor !== null && askModeFor === pendingImportSelection}
             onClose={clearPendingImport}
             onSelectMode={runPendingImport}
           />
