@@ -49,6 +49,15 @@ const MEDIA_QUERY_GROUP = 50;
  * requests per host anyway.
  */
 const MEDIA_EXISTS_CONCURRENCY = 6;
+/**
+ * Deletes in flight at once when a vault is purged ("Delete journal
+ * everywhere"). Deletes are writes: at Drive's ~1.5–1.8 s per delete, six
+ * make 3.3–4 a second, a little over the older guidance of about three
+ * (Android's HTTP client runs at most five per host, about 3 a second). A
+ * rate-limited delete is retried (it is idempotent), and an unfinished purge
+ * offers "Resume deletion".
+ */
+const PURGE_CONCURRENCY = 6;
 const CHUNK_SIZE = 256 * 1024;
 const MEDIA_CHUNK_SIZE = 8 * 1024 * 1024;
 const MULTIPART_MAX_BYTES = 4 * 1024 * 1024;
@@ -466,12 +475,21 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     this.state.upsertFile(vaultId, this.record(uploaded, 'revocation', null));
   }
 
-  /** Permanently purges a vault while preserving its revocation marker. */
+  /**
+   * Permanently purges a vault while preserving its revocation marker.
+   * Deletes run a few at a time (`PURGE_CONCURRENCY`): one after another,
+   * a vault of 1,650 files took about 40 minutes (#246). Drive's search can
+   * still list a file for a while after its delete, so a listed file this
+   * purge deleted counts as remaining only if a request by its ID still
+   * finds it; otherwise "Resume deletion" never finished either.
+   */
   async purgeRevokedVault(vaultId: string): Promise<DrivePurgeResult> {
-    const files = await this.queryFiles(vaultId, this.vaultQuery(vaultId));
-    let deleted = 0;
-    for (const file of files) {
-      if (file.appProperties[PROP_KIND] === 'revocation') continue;
+    const purgeable = async () =>
+      (await this.queryFiles(vaultId, this.vaultQuery(vaultId))).filter(
+        (file) => file.appProperties[PROP_KIND] !== 'revocation',
+      );
+    const deletedIds = new Set<string>();
+    await forEachLimited(await purgeable(), PURGE_CONCURRENCY, async (file) => {
       await this.request(
         vaultId,
         'delete',
@@ -480,12 +498,20 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         { idempotent: true, accepted: [404] },
       );
       this.state.removeFile(vaultId, file.id);
-      deleted += 1;
+      deletedIds.add(file.id);
+    });
+    let remaining = 0;
+    const lagging: string[] = [];
+    for (const file of await purgeable()) {
+      // A file that appeared after the listing (another device's upload)
+      // remains; "Resume deletion" deletes it.
+      if (deletedIds.has(file.id)) lagging.push(file.id);
+      else remaining += 1;
     }
-    const remaining = (await this.queryFiles(vaultId, this.vaultQuery(vaultId))).filter(
-      (file) => file.appProperties[PROP_KIND] !== 'revocation',
-    ).length;
-    return { deleted, remaining };
+    await forEachLimited(lagging, PURGE_CONCURRENCY, async (fileId) => {
+      if (await this.fileExists(vaultId, fileId)) remaining += 1;
+    });
+    return { deleted: deletedIds.size, remaining };
   }
 
   async listHeads(vaultId: string, refresh = true): Promise<ListedDeviceHead[]> {
@@ -670,7 +696,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
     // A hit is cached only after its own check: search can lag a delete.
     await forEachLimited([...hits], MEDIA_EXISTS_CONCURRENCY, async ([hash, records]) => {
       for (const record of records) {
-        if (!(await this.mediaFileExists(vaultId, record.fileId))) continue;
+        if (!(await this.fileExists(vaultId, record.fileId))) continue;
         this.state.upsertFile(vaultId, record);
         found.add(hash);
       }
@@ -680,13 +706,13 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
   }
 
   /**
-   * Whether a media file a search returned still exists, asked by its ID.
-   * Search can lag a delete (remote media garbage collection, #185 P12),
-   * and the change feed reports each removal only once: a stale result
+   * Whether a file a search returned still exists, asked by its ID. Search
+   * can lag a delete (remote media garbage collection, #185 P12; a purge),
+   * and the change feed reports each removal only once: a stale media result
    * cached as present would keep that blob from being uploaded again. One
    * request per blob, the first time this device looks for it.
    */
-  private async mediaFileExists(vaultId: string, fileId: string): Promise<boolean> {
+  private async fileExists(vaultId: string, fileId: string): Promise<boolean> {
     const response = await this.request(
       vaultId,
       'list',
@@ -998,8 +1024,7 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
         kind === 'head',
       );
       if (!record) continue;
-      if (kind === 'media' && !(await this.mediaFileExists(vaultId, record.fileId)))
-        continue;
+      if (kind === 'media' && !(await this.fileExists(vaultId, record.fileId))) continue;
       this.state.upsertFile(vaultId, record);
       records.push(record);
     }
@@ -1268,9 +1293,8 @@ export class GoogleDriveSnapshotProvider implements SnapshotProvider {
           file.sha256Checksum === expectedHash && parseByteCount(file) === expectedBytes,
       ))
         // A media file a lagging search still shows after its delete is not
-        // this write (`mediaFileExists`).
-        if (kind !== 'media' || (await this.mediaFileExists(vaultId, match.id)))
-          return match;
+        // this write (`fileExists`).
+        if (kind !== 'media' || (await this.fileExists(vaultId, match.id))) return match;
       if (attempt < 2) await this.sleep(250 * (attempt + 1));
     }
     return null;
