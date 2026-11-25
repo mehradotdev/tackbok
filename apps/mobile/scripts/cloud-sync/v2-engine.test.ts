@@ -905,6 +905,28 @@ describe('attachments', () => {
     ]);
   });
 
+  test('a Wi-Fi-only refusal among the uploads before a snapshot holds back the snapshot', async () => {
+    const a = device();
+    const hashes = await attachMany(a, 4);
+    provider.failNext(
+      'upload-snapshot',
+      new SnapshotProviderError('transient', 'offline'),
+    );
+    expect((await sync(a)).status).toBe('retry');
+    for (const hash of hashes) provider.removeMediaForTest(VAULT, hash);
+    // The phone moves to mobile data after the publication's own check.
+    const upload = provider.uploadMedia.bind(provider);
+    let calls = 0;
+    provider.uploadMedia = async (...args) => {
+      calls += 1;
+      if (calls === 2) throw new SnapshotProviderError('wifi-only-media', 'cellular');
+      return upload(...args);
+    };
+    expect((await sync(a)).status).not.toBe('published');
+    expect(provider.snapshotIds(VAULT)).toEqual([]);
+    expect(provider.physicalHeads(VAULT)).toEqual([]);
+  });
+
   test('a device that holds none of the blobs asks the provider about none', async () => {
     const a = device();
     await attach(a);
