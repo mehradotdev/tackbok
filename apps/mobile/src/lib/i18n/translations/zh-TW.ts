@@ -921,6 +921,7 @@ export const zhTW: Translations = {
   'cloud.progress.combiningChanges': '正在合併變更…',
   'cloud.progress.checkingDownload': '正在檢查下載內容…',
   'cloud.progress.confirmingUpload': '正在確認上傳…',
+  'cloud.progress.checkingPhotosAndVoiceNotes': '正在檢查已上傳的照片和語音筆記…',
   'cloud.progress.uploadingPhotosAndVoiceNotes': '正在上傳照片和語音筆記…',
   'cloud.progress.devicesChecked': '已檢查 {count} 台裝置中的 {done} 台',
   'cloud.progress.filesDownloaded': '已下載 {count} 個檔案中的 {done} 個',

@@ -1691,6 +1691,69 @@ describe('GoogleDriveSnapshotProvider', () => {
     ).toHaveLength(1);
   });
 
+  test('existence checks run a few at a time; a stale hit is still not cached', async () => {
+    const server = new FakeDriveServer();
+    // 60 blobs on Drive (two search groups), plus one deleted file a lagging
+    // search still returns.
+    const stored = Array.from({ length: 60 }, (_, i) => {
+      const bytes = new TextEncoder().encode(`parallel-${i}`);
+      const hash = sha256Bytes(bytes);
+      server.seed(vaultId, `media/${hash.slice(0, 2)}/${hash}`, 'media', bytes);
+      return hash;
+    });
+    const ghostBytes = new TextEncoder().encode('parallel-ghost');
+    const ghostHash = sha256Bytes(ghostBytes);
+    const ghost = server.seed(
+      vaultId,
+      `media/${ghostHash.slice(0, 2)}/${ghostHash}`,
+      'media',
+      ghostBytes,
+    );
+    server.files.delete(ghost.id);
+    server.staleSearch.set(ghost.id, ghost);
+    const absent = 'f'.repeat(64);
+    const gate = { inFlight: 0, most: 0 };
+    const app = new GoogleDriveSnapshotProvider({
+      auth: new FakeAuth(),
+      state: new MemoryDriveProviderStateStore(),
+      fetch: async (url, init) => {
+        gate.inFlight += 1;
+        gate.most = Math.max(gate.most, gate.inFlight);
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          return await server.fetch(url, init);
+        } finally {
+          gate.inFlight -= 1;
+        }
+      },
+      sleep: async () => {},
+      random: () => 0,
+      now: () => 1_800_000_000_000,
+    });
+    await app.listHeads(vaultId, true);
+    // As after an interrupted first backup: every blob is asked fresh.
+    let answered = 0;
+    const found = await app.hasMediaBatch(
+      vaultId,
+      [...stored, ghostHash, absent, stored[0]],
+      true,
+      () => (answered += 1),
+    );
+    expect(found).toEqual(new Set(stored));
+    expect(answered).toBe(62);
+    expect(gate.most).toBeGreaterThan(1);
+    expect(gate.most).toBeLessThanOrEqual(6);
+    // Each hit was checked by ID: the ghost was not cached as present, so a
+    // cached look still asks Drive and an upload is made again.
+    const searches = server.calls.length;
+    expect(await app.hasMediaBatch(vaultId, [ghostHash])).toEqual(new Set());
+    expect(server.calls.length).toBeGreaterThan(searches);
+    // The real ones were cached: a cached look asks Drive nothing.
+    const before = server.calls.length;
+    expect(await app.hasMediaBatch(vaultId, stored)).toEqual(new Set(stored));
+    expect(server.calls.length).toBe(before);
+  });
+
   test('the change feed never leaves a removed or trashed media file cached', async () => {
     const server = new FakeDriveServer();
     const app = provider(server);

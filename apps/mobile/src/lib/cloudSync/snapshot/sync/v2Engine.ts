@@ -103,6 +103,7 @@ import {
   recordSnapshotMedia,
   recordedSnapshotMedia,
 } from './mediaGc';
+import { forEachLimited } from './limited';
 import { snapshotsToDelete } from './retention';
 import type { SQLiteSyncStateStore } from './sqliteState';
 import {
@@ -127,12 +128,13 @@ const MAX_DELETES_PER_PASS = 10;
 /**
  * Attachment uploads in flight at once. Drive takes 2-3 s to create even a
  * small file, so one at a time a journal with 1,500 photos took over an hour
- * to back up the first time (#185 P14). Three in flight at that latency make
- * about one create a second, well under Drive's sustained limit of about
- * three writes a second per user; a create is not retried, so staying under
- * it matters.
+ * to back up the first time (#185 P14), and three at a time 25 min (P15).
+ * Six at that latency make about two creates a second, under the older
+ * guidance of about three writes a second per user (Drive's current limits
+ * page states none; #251); a create is not retried, so staying under it
+ * matters. Android's HTTP client runs at most five requests per host anyway.
  */
-export const MEDIA_UPLOAD_CONCURRENCY = 3;
+export const MEDIA_UPLOAD_CONCURRENCY = 6;
 const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 /** Media garbage collection that could not finish runs again after this long. */
 const MEDIA_GC_RETRY_MS = 60 * 60 * 1000;
@@ -870,44 +872,10 @@ export class V2SyncEngine {
       uploads.push({ blobHash, source });
       await this.hooks.at?.('during-media-inspection');
     }
-    if (uploads.length > 0)
-      this.hooks.progress?.({
-        type: 'plan',
-        phase: 'uploading-media',
-        items: { done: 0, total: uploads.length },
-        bytesTotal: uploads.reduce((total, { source }) => total + source.byteLength, 0),
-      });
-    // A few at a time (`MEDIA_UPLOAD_CONCURRENCY`). After a failure no new
-    // upload starts; the ones in flight finish, then the first error is thrown.
-    let next = 0;
-    let stopped = false;
-    let failure: { error: unknown } | null = null;
-    const uploadNext = async () => {
-      while (!stopped && next < uploads.length) {
-        const { blobHash, source } = uploads[next++];
-        try {
-          await provider.uploadMedia(this.vaultId, blobHash, source);
-          this.uploadedThisPass.add(blobHash);
-          present.add(blobHash);
-          this.hooks.progress?.({ type: 'item', phase: 'uploading-media' });
-          await this.hooks.at?.('during-media-transfer');
-        } catch (error) {
-          stopped = true;
-          // The policy refused: the rest wait for Wi-Fi too.
-          if (
-            !(error instanceof SnapshotProviderError && error.code === 'wifi-only-media')
-          )
-            failure ??= { error };
-        }
-      }
-    };
-    await Promise.all(
-      Array.from(
-        { length: Math.min(MEDIA_UPLOAD_CONCURRENCY, uploads.length) },
-        uploadNext,
-      ),
-    );
-    if (failure) throw (failure as { error: unknown }).error;
+    await this.uploadMedia(uploads, true, async (blobHash) => {
+      present.add(blobHash);
+      await this.hooks.at?.('during-media-transfer');
+    });
     const ready = new Set(
       pending
         .filter((asset) => asset.blobHash && present.has(asset.blobHash))
@@ -922,6 +890,47 @@ export class V2SyncEngine {
         ),
       );
     return pending.length - ready.size;
+  }
+
+  /**
+   * Uploads blobs a few at a time (`MEDIA_UPLOAD_CONCURRENCY`), with
+   * progress. After a failure no new upload starts; the ones in flight
+   * finish, then the first error is thrown. With `mayDefer`, a Wi-Fi-only
+   * refusal stops the rest without failing: they wait for Wi-Fi too.
+   */
+  private async uploadMedia(
+    uploads: readonly { blobHash: string; source: MediaUploadSource }[],
+    mayDefer: boolean,
+    uploaded?: (blobHash: string) => Promise<void>,
+  ) {
+    if (uploads.length === 0) return;
+    const { provider } = this.options;
+    this.hooks.progress?.({
+      type: 'plan',
+      phase: 'uploading-media',
+      items: { done: 0, total: uploads.length },
+      bytesTotal: uploads.reduce((total, { source }) => total + source.byteLength, 0),
+    });
+    await forEachLimited(
+      uploads,
+      MEDIA_UPLOAD_CONCURRENCY,
+      async ({ blobHash, source }) => {
+        try {
+          await provider.uploadMedia(this.vaultId, blobHash, source);
+        } catch (error) {
+          if (
+            mayDefer &&
+            error instanceof SnapshotProviderError &&
+            error.code === 'wifi-only-media'
+          )
+            return 'stop';
+          throw error;
+        }
+        this.uploadedThisPass.add(blobHash);
+        this.hooks.progress?.({ type: 'item', phase: 'uploading-media' });
+        await uploaded?.(blobHash);
+      },
+    );
   }
 
   /**
@@ -1032,33 +1041,41 @@ export class V2SyncEngine {
       cachedLook.length > 0
         ? await provider.hasMediaBatch(this.vaultId, cachedLook)
         : new Set<string>();
-    if (recheck.size > 0)
+    if (recheck.size > 0) {
+      // After an interrupted first backup this is every blob uploaded
+      // before the stop, a request each (#246): shown, not just "Combining".
+      this.hooks.progress?.({
+        type: 'plan',
+        phase: 'checking-media',
+        items: { done: 0, total: recheck.size },
+      });
       for (const blobHash of await provider.hasMediaBatch(
         this.vaultId,
         [...recheck],
         true,
+        () => this.hooks.progress?.({ type: 'item', phase: 'checking-media' }),
       ))
         present.add(blobHash);
+    }
     const missing = hashes.filter((blobHash) => !present.has(blobHash));
-    const sources = new Map<string, MediaUploadSource>();
+    const uploads: { blobHash: string; source: MediaUploadSource }[] = [];
+    const unreadable: string[] = [];
     for (const blobHash of missing) {
       const source = await mediaStore.openVerifiedSource(blobHash);
-      if (source && source.contentHash === blobHash) sources.set(blobHash, source);
+      if (source && source.contentHash === blobHash) uploads.push({ blobHash, source });
+      else unreadable.push(blobHash);
     }
     // A blob the state needs that this device can upload (a new profile
     // photo; attachments are deferred before they are stamped) holds back
     // the whole publication. Said before any upload starts.
-    if (sources.size > 0 && (await provider.mediaTransfersAllowed?.()) === false)
+    if (uploads.length > 0 && (await provider.mediaTransfersAllowed?.()) === false)
       throw new SnapshotProviderError(
         'wifi-only-media',
         'A profile photo waits for Wi-Fi',
       );
-    for (const blobHash of missing) {
-      const source = sources.get(blobHash);
-      if (source) {
-        await provider.uploadMedia(this.vaultId, blobHash, source);
-        continue;
-      }
+    // One this device authored and can no longer read pauses sync, before
+    // any upload starts.
+    for (const blobHash of unreadable) {
       const [authored] = await runExclusiveDbTransaction((tx) =>
         tx
           .select({ id: mediaAssets.asset_id })
@@ -1074,6 +1091,9 @@ export class V2SyncEngine {
       if (authored)
         throw new AttentionError('local-media-unreadable', 'required-media-unavailable');
     }
+    // Usually a profile photo; every attachment after the vault was deleted
+    // outside the app (#246), so these go a few at a time too.
+    await this.uploadMedia(uploads, false);
     // Reserved in one transaction before the upload: neither a retry nor an
     // overlapping pass ever reuses a sequence.
     const deviceSequence = stateStore.reserveSequence(
