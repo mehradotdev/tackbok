@@ -1053,7 +1053,7 @@ export const it = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'Il diario e il suo backup sono stati eliminati ovunque. Cancella questo dispositivo per completare.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'L’eliminazione del backup non è stata completata. Una parte potrebbe essere ancora su Google Drive. Tocca “Riprendi l’eliminazione” per riprovare. Se continua a fermarsi, scollega Google Drive in Tackbok su tutti i tuoi dispositivi, poi su Google Drive dal web apri Impostazioni › Gestisci app › Tackbok › Opzioni ed elimina i dati nascosti dell’app.',
+    'L’eliminazione del backup non è stata completata. Una parte potrebbe essere ancora su Google Drive. Tocca “Riprendi l’eliminazione” per riprovare. Se si interrompe di nuovo, scollega Google Drive in Tackbok su tutti i tuoi dispositivi, poi apri Google Drive dal web e vai su Impostazioni › Gestisci app › Tackbok › Opzioni ed elimina i dati nascosti dell’app.',
   'cloud.skippedHeads.unreadable':
     'Tackbok non riesce a leggere il backup di uno o più dei tuoi dispositivi, quindi le loro modifiche non sono incluse. La sincronizzazione continua con gli altri dispositivi.',
   'cloud.skippedHeads.clockAhead':

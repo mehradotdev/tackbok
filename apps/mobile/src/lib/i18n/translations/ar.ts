@@ -1039,7 +1039,7 @@ export const ar: Translations = {
   'cloud.thisJournalWasDeletedEverywhereFromAnotherDevice':
     'حُذف دفتر يومياتك ونسخته الاحتياطية من كل مكان. امسح هذا الجهاز لإكمال العملية.',
   'cloud.cloudDeletionStoppedBeforeEveryBackupObjectWasRemoved':
-    'لم يكتمل حذف نسختك الاحتياطية. قد يبقى جزء منها في Google Drive. اضغط على «استئناف الحذف» للمحاولة مجددًا. إذا استمر التوقف، اقطع الاتصال بـ Google Drive في Tackbok على جميع أجهزتك، ثم افتح إعدادات Google Drive على الويب، واختر إدارة التطبيقات › Tackbok › الخيارات، واحذف بيانات التطبيق المخفية.',
+    'لم يكتمل حذف نسختك الاحتياطية. قد يبقى جزء منها في Google Drive. اضغط على «استئناف الحذف» للمحاولة مجددًا. إذا توقف مرة أخرى، اقطع الاتصال بـ Google Drive في Tackbok على جميع أجهزتك، ثم افتح إعدادات Google Drive على الويب، واختر إدارة التطبيقات › Tackbok › الخيارات، واحذف بيانات التطبيق المخفية.',
   'cloud.skippedHeads.unreadable':
     'لا يستطيع Tackbok قراءة النسخة الاحتياطية لجهاز واحد أو أكثر من أجهزتك، لذلك لم تُضمَّن التغييرات القادمة منها. تستمر المزامنة مع أجهزتك الأخرى.',
   'cloud.skippedHeads.clockAhead':
