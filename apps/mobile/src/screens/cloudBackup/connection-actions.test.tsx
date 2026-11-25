@@ -670,6 +670,11 @@ describe('a restore started from onboarding', () => {
     await act(async () => chooser.props.onChoose('vault-a'));
     expect(mockDismissTo.mock.calls).toEqual([['/onboarding/welcome']]);
     expect(mockRouterReplace.mock.calls).toEqual([['/onboarding/privacy']]);
+    // Reversed, the replace would stack a second onboarding route that the
+    // dismiss then pops back off, landing on Welcome.
+    expect(mockDismissTo.mock.invocationCallOrder[0]).toBeLessThan(
+      mockRouterReplace.mock.invocationCallOrder[0],
+    );
   });
 
   test('shows its progress while it downloads the backup, with Sync now disabled', async () => {

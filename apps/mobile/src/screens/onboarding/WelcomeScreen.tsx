@@ -170,8 +170,13 @@ export default function OnboardingWelcomeScreen() {
     (source: BackupImportSource) => {
       if (source === 'tackbok') {
         // A Tackbok backup restores the profile (name, email, photo) but not
-        // the theme or focus areas, so only the name step is skipped.
-        router.push('/onboarding/theme');
+        // the theme or focus areas, so only the name step is skipped, and only
+        // when the backup brought a name.
+        router.push(
+          useSettingsStore.getState().profileName
+            ? '/onboarding/theme'
+            : '/onboarding/name',
+        );
       } else {
         // Presently / Gratitude App bring entries only; continue the full flow.
         router.push('/onboarding/name');
@@ -191,17 +196,20 @@ export default function OnboardingWelcomeScreen() {
     closeImportSummary,
   } = useBackupImportFlow(handleImportDone);
 
-  // Skip or overwrite only matters for entries already here. On a first run
-  // the journal is empty, so import straight away; a replay still asks.
+  // Skip or overwrite only matters for entries and a profile already here
+  // (Skip keeps the current profile). On a first run both are empty, so
+  // import straight away; a replay with either still asks.
   const [askModeFor, setAskModeFor] = useState<PendingImportSelection | null>(null);
   useEffect(() => {
     if (!pendingImportSelection) return;
     let cancelled = false;
+    const { profileName, profileEmail, profileImageUri } = useSettingsStore.getState();
+    const hasProfile = Boolean(profileName || profileEmail || profileImageUri);
     hasAnyEntries()
       .catch(() => true)
       .then((hasEntries) => {
         if (cancelled) return;
-        if (hasEntries) setAskModeFor(pendingImportSelection);
+        if (hasEntries || hasProfile) setAskModeFor(pendingImportSelection);
         else void runPendingImport('skip');
       });
     return () => {

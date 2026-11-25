@@ -7,22 +7,39 @@ const mockRunPending = jest.fn(async (_mode: string) => {});
 const mockHasAnyEntries = jest.fn<Promise<boolean>, []>();
 let mockPending: { source: 'tackbok' | 'gratitudeApp'; uri: string } | null = null;
 let mockOnImportDone: (source: string) => void = () => {};
+let mockFocusEffect: () => void = () => {};
+const mockPresent = jest.fn();
+const mockSettings = {
+  bodyFontSize: 'default',
+  setBodyFontSize: () => {},
+  hasCompletedOnboarding: false,
+  profileName: null as string | null,
+  profileEmail: null as string | null,
+  profileImageUri: null as string | null,
+};
 
 jest.mock('react-native', () => ({ View: 'View' }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: (href: string) => mockPush(href) }),
-  useFocusEffect: jest.fn(),
+  useFocusEffect: (effect: () => void) => {
+    mockFocusEffect = effect;
+  },
 }));
-jest.mock('@lodev09/react-native-true-sheet', () => ({ TrueSheet: 'TrueSheet' }));
+jest.mock('@lodev09/react-native-true-sheet', () => {
+  const TrueSheet = () => null;
+  TrueSheet.present = (name: string) => mockPresent(name);
+  TrueSheet.dismiss = async () => {};
+  return { TrueSheet };
+});
 jest.mock('lucide-react-native', () => new Proxy({}, { get: () => 'LucideIcon' }));
 jest.mock('uniwind', () => ({ useCSSVariable: () => ['#fff', '8', '#999'] }));
 jest.mock('~/lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key, isRTL: false }),
 }));
 jest.mock('~/lib/settings', () => {
-  const state = { bodyFontSize: 'default', setBodyFontSize: () => {} };
-  const useSettingsStore = (select: (s: typeof state) => unknown) => select(state);
-  useSettingsStore.getState = () => state;
+  const useSettingsStore = (select: (s: typeof mockSettings) => unknown) =>
+    select(mockSettings);
+  useSettingsStore.getState = () => mockSettings;
   return { useSettingsStore };
 });
 jest.mock('~/db/queries', () => ({ hasAnyEntries: () => mockHasAnyEntries() }));
@@ -81,6 +98,12 @@ let root: ReactTestRenderer;
 beforeEach(() => {
   jest.clearAllMocks();
   mockPending = null;
+  Object.assign(mockSettings, {
+    hasCompletedOnboarding: false,
+    profileName: null,
+    profileEmail: null,
+    profileImageUri: null,
+  });
 });
 afterEach(() => act(() => root?.unmount()));
 
@@ -106,6 +129,14 @@ test('a replay with entries still asks how to handle them', async () => {
   expect(modeModal().props.visible).toBe(true);
 });
 
+test('an empty journal with a saved profile still asks: Skip would keep that profile', async () => {
+  mockHasAnyEntries.mockResolvedValue(false);
+  mockSettings.profileName = 'Sam';
+  await renderWithPendingZip();
+  expect(mockRunPending).not.toHaveBeenCalled();
+  expect(modeModal().props.visible).toBe(true);
+});
+
 test('when the journal cannot be checked, it asks rather than guessing', async () => {
   mockHasAnyEntries.mockRejectedValue(new Error('db'));
   await renderWithPendingZip();
@@ -113,12 +144,42 @@ test('when the journal cannot be checked, it asks rather than guessing', async (
   expect(modeModal().props.visible).toBe(true);
 });
 
-test('after a Tackbok backup import the flow continues on Theme, not Privacy', async () => {
+test('after a Tackbok backup import the flow continues on Theme, or Name without one', async () => {
   await act(async () => {
     root = create(<WelcomeScreen />);
   });
+  mockSettings.profileName = 'Sam';
   act(() => mockOnImportDone('tackbok'));
   expect(mockPush).toHaveBeenLastCalledWith('/onboarding/theme');
+  mockSettings.profileName = null;
+  act(() => mockOnImportDone('tackbok'));
+  expect(mockPush).toHaveBeenLastCalledWith('/onboarding/name');
   act(() => mockOnImportDone('presently'));
   expect(mockPush).toHaveBeenLastCalledWith('/onboarding/name');
+});
+
+describe('returning from Google Drive setup', () => {
+  async function leaveForDrive() {
+    await act(async () => {
+      root = create(<WelcomeScreen />);
+    });
+    const sheet = root.root.find(
+      (node) => typeof node.props.onSelectSource === 'function',
+    );
+    await act(async () => sheet.props.onSelectSource('google-drive'));
+    expect(mockPush).toHaveBeenCalledWith('/cloud-backup?origin=onboarding');
+  }
+
+  test('reopens the import sheet when the user backed out', async () => {
+    await leaveForDrive();
+    act(() => mockFocusEffect());
+    expect(mockPresent).toHaveBeenCalledTimes(1);
+  });
+
+  test('stays closed once a restore has completed onboarding', async () => {
+    await leaveForDrive();
+    mockSettings.hasCompletedOnboarding = true;
+    act(() => mockFocusEffect());
+    expect(mockPresent).not.toHaveBeenCalled();
+  });
 });
