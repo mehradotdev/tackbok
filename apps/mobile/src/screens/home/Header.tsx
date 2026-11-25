@@ -1,5 +1,6 @@
 import React from 'react';
 import { HeaderGreeting, HeaderMotion, useHeaderGreeting } from './header-greeting';
+import { useCoachMarkTarget } from './coachMarkTargets';
 import { View, ScrollView } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import Constants from 'expo-constants';
@@ -65,6 +66,9 @@ export const Header: React.FC<IHeaderProps> = ({
   const { t, isRTL } = useTranslation();
   const { snapshot } = useCloudSyncSnapshot();
   const { data: allTags } = useTags();
+  // Only once the launch greeting has brought the controls in; until then the
+  // tip uses its fixed spot and finds the button when it appears.
+  const searchTargetRef = useCoachMarkTarget('search', !isSearchMode && !motion.active);
   const safeTags = allTags || [];
   const showTagFilter = isSearchMode && safeTags.length > 0;
   const syncIsActive = snapshot.status === 'syncing' || snapshot.status === 'restoring';
@@ -165,9 +169,11 @@ export const Header: React.FC<IHeaderProps> = ({
         className="relative flex-row w-full items-center justify-between px-safe-or-4 py-2">
         <HeaderMotion {...motion} index={0}>
           {/* Search Button */}
-          <Button className="p-1" onPress={onSearchPress} variant="ghost">
-            <Icon as={Search} className="text-primary-foreground" />
-          </Button>
+          <View ref={searchTargetRef} collapsable={false}>
+            <Button className="p-1" onPress={onSearchPress} variant="ghost">
+              <Icon as={Search} className="text-primary-foreground" />
+            </Button>
+          </View>
         </HeaderMotion>
         <View pointerEvents="none" className="absolute left-0 right-0 items-center">
           <HeaderMotion {...motion} index={1} className="items-center w-full">

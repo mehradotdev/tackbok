@@ -153,6 +153,11 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     return result;
   }, [finalDayGroups, totalContentDays]);
 
+  // The Home tour's entry tip points at the newest day with entries.
+  const coachMarkDateMs = finalDayGroups.find(
+    (group) => group.entries.length > 0,
+  )?.dateMs;
+
   const toggleDayExpanded = (dateMs: number) => {
     setExpandedDays((prev) => {
       const next = new Set(prev);
@@ -195,7 +200,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
         data={finalList}
         getItemType={(item) => (isMilestoneItem(item) ? 'milestone' : 'dayGroup')}
         estimatedItemSize={180}
-        extraData={[expandedDays, tagMap]}
+        extraData={[expandedDays, tagMap, coachMarkDateMs]}
         keyExtractor={(item) =>
           isMilestoneItem(item)
             ? `milestone-${item.milestoneDays}`
@@ -213,6 +218,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
               onToggleExpand={() => toggleDayExpanded(item.dateMs)}
               onPlaceholderPress={() => onAddEntry?.(item.dateMs)}
               isExpanded={expandedDays.has(item.dateMs)}
+              isCoachMarkTarget={item.dateMs === coachMarkDateMs}
             />
           ) : null
         }
