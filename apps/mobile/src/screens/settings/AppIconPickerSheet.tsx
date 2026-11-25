@@ -55,6 +55,8 @@ export function AppIconTile({ name, size }: { name: AppIconName; size: number })
 export function AppIconPickerSheet() {
   const { t } = useTranslation();
   const current = useAppIconStore((s) => s.current);
+  // Android: an icon picked in onboarding shows as chosen until it switches.
+  const selected = useAppIconStore((s) => s.pending ?? s.current);
   const setIcon = useAppIconStore((s) => s.setIcon);
   const isChanging = useAppIconStore((s) => s.isChanging);
   const scrollViewRef = useRef<ScrollViewInstance>(null);
@@ -85,7 +87,8 @@ export function AppIconPickerSheet() {
   };
 
   const chooseIcon = (name: AppIconName) => {
-    if (!appIconChangeClosesApp) {
+    // Keeping the icon in use only drops the onboarding choice; nothing closes.
+    if (!appIconChangeClosesApp || name === current) {
       void applyIcon(name);
       return;
     }
@@ -135,7 +138,7 @@ export function AppIconPickerSheet() {
             accessibilityRole="radiogroup"
             accessibilityLabel={t('appearance.appIcon')}>
             {APP_ICON_CHOICES.map((name) => {
-              const isActive = name === current;
+              const isActive = name === selected;
               const label = getAppIconLabel(name);
               return (
                 <Button

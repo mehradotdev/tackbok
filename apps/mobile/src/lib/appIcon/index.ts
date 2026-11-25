@@ -103,8 +103,12 @@ type AppIconState = {
   setIcon: (name: AppIconName) => Promise<void>;
   /** Onboarding's choice: right away on iOS, after leaving the app on Android. */
   chooseInOnboarding: (name: AppIconName) => Promise<void>;
-  /** Android: switch to the pending icon once the user next leaves the app. */
-  applyPendingOnLeave: () => Promise<void>;
+  /**
+   * Android: once onboarding is done, switch to the pending icon when the user
+   * next leaves the app. While onboarding runs (also when replayed or after a
+   * reset), nothing may switch, so any queued switch is cancelled.
+   */
+  syncPendingOnLeave: (onboardingDone: boolean) => Promise<void>;
 };
 
 async function cancelIconOnLeave() {
@@ -154,7 +158,13 @@ export const useAppIconStore = create<AppIconState>((set, get) => ({
     // Drop any choice handed over earlier (a replayed onboarding).
     await cancelIconOnLeave();
   },
-  applyPendingOnLeave: async () => {
+  syncPendingOnLeave: async (onboardingDone) => {
+    if (!onboardingDone) {
+      await cancelIconOnLeave();
+      return;
+    }
+    // Drops a choice that already switched (the app reopened after the switch).
+    await get().refresh();
     const { pending } = get();
     if (!pending || !AppIconModule?.setAppIconOnLeave) return;
     try {

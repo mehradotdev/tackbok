@@ -9,6 +9,7 @@ import android.app.Application
 import android.os.Bundle
 import android.os.PowerManager
 import android.util.Log
+import java.util.concurrent.atomic.AtomicReference
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -27,17 +28,23 @@ private const val DEFAULT_ICON = "Default"
  */
 class AppIconModule : Module() {
   /** An icon to switch to once the user leaves the app: name (null is the default) and the alternates. */
-  @Volatile private var iconOnLeave: Pair<String?, List<String>>? = null
+  private val iconOnLeave = AtomicReference<Pair<String?, List<String>>?>(null)
   private var application: Application? = null
 
   // Stop, not pause: a deep link or notification tap while open, or a dialog
   // over the app, only pauses it.
   private val lifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
     override fun onActivityStopped(activity: Activity) {
-      val (name, icons) = iconOnLeave ?: return
-      if (activity.isChangingConfigurations || !userLeftApp()) return
-      iconOnLeave = null
-      runCatching { switchIcon(name, icons) }.onFailure { Log.w("AppIconModule", "Failed to switch the app icon", it) }
+      val queued = iconOnLeave.get() ?: return
+      if (activity.isChangingConfigurations || !userLeftApp(activity)) return
+      // Skip if JS replaced or cancelled the choice meanwhile; it stays queued.
+      if (!iconOnLeave.compareAndSet(queued, null)) return
+      val (name, icons) = queued
+      runCatching { switchIcon(name, icons) }.onFailure {
+        Log.w("AppIconModule", "Failed to switch the app icon", it)
+        // Try again on the next leave unless JS queued something else.
+        iconOnLeave.compareAndSet(null, queued)
+      }
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
@@ -72,6 +79,8 @@ class AppIconModule : Module() {
       .map { it.name.removePrefix(prefix) }
   }
 
+  // Settings and a queued switch run on different threads; one at a time keeps one alias enabled.
+  @Synchronized
   private fun switchIcon(name: String?, icons: List<String>) {
     val target = name ?: DEFAULT_ICON
     val registered = registeredIcons()
@@ -98,12 +107,21 @@ class AppIconModule : Module() {
    * app): the screen is on and nothing else opened over it in its own task
    * (a picker or sign-in sheet).
    */
-  private fun userLeftApp(): Boolean {
-    val power = context.getSystemService(PowerManager::class.java)
+  private fun userLeftApp(activity: Activity): Boolean {
+    // The activity, not the React context, which may already be gone.
+    val power = activity.getSystemService(PowerManager::class.java)
     if (power?.isInteractive != true) return false
-    val activities = context.getSystemService(ActivityManager::class.java)
+    val activities = activity.getSystemService(ActivityManager::class.java)
     val top = activities?.appTasks?.firstOrNull()?.taskInfo?.topActivity ?: return false
-    return top.packageName == context.packageName
+    return top.packageName == activity.packageName
+  }
+
+  /** Listens for stops; done when a switch is queued too, in case the context was missing at create. */
+  @Synchronized
+  private fun registerLifecycleCallbacks() {
+    if (application != null) return
+    application = appContext.reactContext?.applicationContext as? Application
+    application?.registerActivityLifecycleCallbacks(lifecycleCallbacks)
   }
 
   override fun definition() = ModuleDefinition {
@@ -121,7 +139,7 @@ class AppIconModule : Module() {
     }
 
     AsyncFunction("setAppIcon") { name: String?, icons: List<String> ->
-      iconOnLeave = null
+      iconOnLeave.set(null)
       switchIcon(name, icons)
     }
 
@@ -129,21 +147,23 @@ class AppIconModule : Module() {
     AsyncFunction("setAppIconOnLeave") { name: String?, icons: List<String> ->
       val target = name ?: DEFAULT_ICON
       require(target in registeredIcons() && (target == DEFAULT_ICON || target in icons)) { "Unknown app icon: $name" }
-      iconOnLeave = name to icons
+      registerLifecycleCallbacks()
+      iconOnLeave.set(name to icons)
     }
 
     AsyncFunction("cancelAppIconOnLeave") {
-      iconOnLeave = null
+      iconOnLeave.set(null)
     }
 
     OnCreate {
-      application = appContext.reactContext?.applicationContext as? Application
-      application?.registerActivityLifecycleCallbacks(lifecycleCallbacks)
+      registerLifecycleCallbacks()
     }
 
     OnDestroy {
-      application?.unregisterActivityLifecycleCallbacks(lifecycleCallbacks)
-      application = null
+      synchronized(this@AppIconModule) {
+        application?.unregisterActivityLifecycleCallbacks(lifecycleCallbacks)
+        application = null
+      }
     }
   }
 }

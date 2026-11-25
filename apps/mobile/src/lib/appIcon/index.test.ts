@@ -231,9 +231,27 @@ test('Android keeps the onboarding choice until it is handed over, never switchi
   expect(native.setAppIcon).not.toHaveBeenCalled();
   expect(native.setAppIconOnLeave).not.toHaveBeenCalled();
 
-  await store().applyPendingOnLeave();
+  await store().syncPendingOnLeave(false);
+  expect(native.setAppIconOnLeave).not.toHaveBeenCalled();
+
+  await store().syncPendingOnLeave(true);
   expect(native.setAppIconOnLeave).toHaveBeenLastCalledWith('Rose', expect.any(Array));
   expect(native.setAppIcon).not.toHaveBeenCalled();
+});
+
+test('a replayed or reset onboarding cancels a switch still waiting', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+  const store = () => useAppIconStore.getState();
+
+  await store().chooseInOnboarding('Plum');
+  await store().syncPendingOnLeave(true);
+  native.cancelAppIconOnLeave.mockClear();
+
+  await store().syncPendingOnLeave(false);
+  expect(native.cancelAppIconOnLeave).toHaveBeenCalledTimes(1);
+  // The choice is kept, so finishing onboarding again queues it again.
+  expect(store().pending).toBe('Plum');
 });
 
 test('Android clears the waiting choice once the icon has switched', async () => {

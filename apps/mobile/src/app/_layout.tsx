@@ -113,14 +113,13 @@ function ReminderNavigationObserver() {
 }
 
 // Android: an icon picked during onboarding switches only after onboarding,
-// once the user next leaves the app, so onboarding never closes it.
+// once the user next leaves the app, so onboarding never closes it. A replay
+// or reset of onboarding cancels a switch still waiting from an earlier run.
 function PendingAppIconObserver() {
   const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
   const pending = useAppIconStore((s) => s.pending);
   useEffect(() => {
-    if (hasCompletedOnboarding && pending) {
-      void useAppIconStore.getState().applyPendingOnLeave();
-    }
+    void useAppIconStore.getState().syncPendingOnLeave(hasCompletedOnboarding);
   }, [hasCompletedOnboarding, pending]);
   return null;
 }
