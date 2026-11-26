@@ -22,7 +22,7 @@ export interface AppLoadingScreenProps {
 
 /**
  * Shown while fonts load and DB migrations run (after the native splash has dismissed),
- * or while the gratitude timeline query is still loading.
+ * or while Insights loads its first data.
  * Matches header chrome (`bg-primary`) and logo treatment used on milestones (`--color-foreground`).
  */
 export const AppLoadingScreen: React.FC<AppLoadingScreenProps> = ({ modal = false }) => {
