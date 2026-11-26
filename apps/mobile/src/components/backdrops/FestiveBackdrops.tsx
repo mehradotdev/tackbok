@@ -110,6 +110,11 @@ function useForwardTime(preview: boolean) {
   return time;
 }
 
+const coveredNow = () =>
+  useSplashActive.getState().active ||
+  (useSettingsStore.getState().biometricUnlockEnabled &&
+    useAppLockStore.getState().isLocked !== false);
+
 /**
  * Seconds into the special-day celebration on the home screen, or -1. It plays
  * once per opening of the app on 24, 25 and 31 Dec and 1 Jan, after the launch
@@ -120,6 +125,8 @@ function useCelebration(enabled: boolean, seconds: number) {
   const festive = useSettingsStore((s) => s.festiveTouchesEnabled);
   const reducedMotion = useReducedMotion();
   // Wait until the launch animation and any app-lock cover are out of the way.
+  // `covered` re-runs the effect when they go; `coveredNow()` catches a lock that
+  // engages in the same AppState change, before this component re-renders.
   const splashing = useSplashActive((s) => s.active);
   const lockEnabled = useSettingsStore((s) => s.biometricUnlockEnabled);
   const isLocked = useAppLockStore((s) => s.isLocked);
@@ -132,6 +139,7 @@ function useCelebration(enabled: boolean, seconds: number) {
         if (
           !active ||
           covered ||
+          coveredNow() ||
           !enabled ||
           !festive ||
           reducedMotion ||
@@ -273,11 +281,12 @@ function VelvetScene({ width, height, preview, celebrate }: SceneProps) {
   );
   const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
   const texture = useShaderTexture(velvetScene, scene, full, PixelRatio.get());
-  // The garlands hang between 17% and 34% of the height, plus their sag and glow.
+  // The garlands hang from 17% to 34% of the height. The lowest sags 50 pt
+  // (scaled), its bulbs hang 2.5 pt below the wire, and their glow reaches 12 pt.
   const band = useMemo(() => {
     const scale = Math.min(width / 390, height / 700);
     const y = Math.max(0, Math.floor(height * 0.17 - 14 * scale));
-    return { y, height: Math.min(height, Math.ceil(height * 0.34 + 54 * scale)) - y };
+    return { y, height: Math.min(height, Math.ceil(height * 0.34 + 68 * scale)) - y };
   }, [width, height]);
   const mantel = useMemo(() => velvetClockRegion(width, height), [width, height]);
   const time = useForwardTime(preview);

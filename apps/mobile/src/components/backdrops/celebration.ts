@@ -6,10 +6,14 @@ import { seasonalDay } from '~/lib/seasonal/events';
 // an entry, or pulling down Control Centre, is not a new opening.
 let opening = 1;
 let claimed = 0;
-let lastState: string | null | undefined = AppState.currentState;
+// iOS may pass through 'inactive' on the way back (Face ID, a system alert).
+let backgrounded = false;
 AppState.addEventListener('change', (next) => {
-  if (next === 'active' && lastState === 'background') opening += 1;
-  lastState = next;
+  if (next === 'background') backgrounded = true;
+  else if (next === 'active' && backgrounded) {
+    backgrounded = false;
+    opening += 1;
+  }
 });
 
 /**

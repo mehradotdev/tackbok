@@ -51,6 +51,15 @@ describe('claimCelebration', () => {
     expect(claim(christmas)).toBe(true);
   });
 
+  test('returning through an inactive state (Face ID, a system alert) is a new opening', () => {
+    const { claim, appState } = load();
+    expect(claim(christmas)).toBe(true);
+    appState('background');
+    appState('inactive');
+    appState('active');
+    expect(claim(christmas)).toBe(true);
+  });
+
   test('a brief inactive state (Control Centre, a system alert) is not', () => {
     const { claim, appState } = load();
     expect(claim(christmas)).toBe(true);

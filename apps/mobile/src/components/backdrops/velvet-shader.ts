@@ -25,7 +25,7 @@ float3 lightCol(float h) {
 
 float segDist(float2 p, float2 a, float2 b) {
   float2 pa = p - a, ba = b - a;
-  return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0));
+  return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0));
 }
 
 // Garland k: a string sagging in uneven swags across the top, as y(x) in points.
@@ -103,7 +103,7 @@ half4 main(float2 xy) {
   float3 col = wine * (0.35 + 0.95 * diff) * (0.55 + 0.45 * valley) * pile;
   col += rose * sheen * 0.42 * pile * (0.6 + 0.4 * valley);
   // Soft light from the garlands above, falling off downwards.
-  col += glow * 0.06 * smoothstep(0.55, 0.12, uv.y);
+  col += glow * 0.06 * (1.0 - smoothstep(0.12, 0.55, uv.y));
   float2 vig = (uv - float2(0.5, 0.45)) * float2(1.1, 0.9);
   col *= 1.0 - 0.35 * dot(vig, vig);
 
@@ -215,14 +215,14 @@ half4 main(float2 xy) {
   float2 cp = (xy - dialCentre(scale)) / R;
   float rr = length(cp);
   if (rr < 1.02) {
-    float ang = atan(cp.x, -cp.y);   // 0 at twelve o'clock, clockwise
+    float ang = atan(cp.x, 1e-6 - cp.y); // 0 at twelve o'clock, clockwise; never atan(0, 0)
     float3 face = mix(float3(0.11, 0.045, 0.06), float3(0.06, 0.025, 0.035), rr);
     float a60 = abs(fract(ang / 6.2832 * 60.0 + 0.5) - 0.5) * (6.2832 / 60.0) * rr * R / scale;
     float a12 = abs(fract(ang / 6.2832 * 12.0 + 0.5) - 0.5) * (6.2832 / 12.0) * rr * R / scale;
     float ticks = (1.0 - smoothstep(0.3, 0.7, a60)) * step(0.78, rr) * step(rr, 0.85);
     float bars = (1.0 - smoothstep(1.0, 1.6, a12)) * step(0.64, rr) * step(rr, 0.85);
     face = mix(face, gold * 1.05, max(ticks * 0.8, bars));
-    face += float3(0.06) * smoothstep(0.25, 0.0, abs(cp.x + cp.y + 0.6)) * step(rr, 0.88);   // glass glare
+    face += float3(0.06) * (1.0 - smoothstep(0.0, 0.25, abs(cp.x + cp.y + 0.6))) * step(rr, 0.88);   // glass glare
     float rl = 0.55 + 0.45 * dot(normalize(cp + 0.0001), normalize(float2(-0.6, -0.8)));
     face = mix(face, gold * (0.45 + 0.75 * rl) * (0.85 + 0.15 * cos(ang * 40.0)), smoothstep(0.87, 0.9, rr));
     col = mix(col, face, 1.0 - smoothstep(1.0, 1.02, rr));
@@ -274,7 +274,7 @@ half4 main(float2 xy) {
     float rod = (1.0 - smoothstep(0.6 * scale, 1.2 * scale, abs(pr.x))) * step(0.0, pr.y) * step(pr.y, 52.0 * scale);
     float bob = 1.0 - smoothstep(8.0 * scale, 9.0 * scale, length(pr - float2(0.0, 56.0 * scale)));
     c = mix(c, gold * 0.9, max(rod, bob));
-    c += float3(0.1) * bob * smoothstep(0.0, -8.0 * scale, pr.x);
+    c += float3(0.1) * bob * (1.0 - smoothstep(-8.0 * scale, 0.0, pr.x));
     return half4(half3(c), 1.0);
   }
 
@@ -311,8 +311,10 @@ half4 main(float2 xy) {
   for (int i = 0; i < 2; i++) {
     float2 q = fluteFrame(i, xy, scale);
     if (q.y > BOWL_TOP + 14.0 && q.y < BOWL_BOTTOM && abs(q.x) < bowlHalfWidth(q.y) - 1.0) {
-      float2 bc = float2(q.x, q.y + time * 9.0);
-      float on = step(0.86, hash2(floor(bc / 2.6) + float(i) * 7.0));
+      // The rise wraps after 64 cells, and their hashes repeat with it.
+      float2 bc = float2(q.x, q.y + mod(time * 9.0, 2.6 * 64.0));
+      float2 id = floor(bc / 2.6);
+      float on = step(0.86, hash2(float2(id.x, mod(id.y, 64.0)) + float(i) * 7.0));
       float a = on * (1.0 - smoothstep(0.12, 0.3, length(fract(bc / 2.6) - 0.5))) * 0.5;
       return half4(half3(1.0, 0.95, 0.8) * a, a);
     }

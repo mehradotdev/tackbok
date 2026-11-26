@@ -94,7 +94,7 @@ float2 firs(int k, float2 xy, float scale) {
           m = cov;
           // Snow rests on the upper edge of each tier.
           float edge = 1.0 - smoothstep(0.0, 2.2 * scale, hw - dx);
-          s = max(smoothstep(0.35, 0.05, tier) * 0.7, edge * smoothstep(0.2, 0.6, tier) * 0.6)
+          s = max((1.0 - smoothstep(0.05, 0.35, tier)) * 0.7, edge * smoothstep(0.2, 0.6, tier) * 0.6)
               * (0.55 + 0.45 * hash2(float2(c, floor(t * 4.0))));
         }
       }
@@ -140,7 +140,7 @@ half4 main(float2 xy) {
   col = mix(col, float3(0.92, 0.94, 0.95) - crater, disc);
   // Thin clouds across the moon.
   float cl = fbm(float2(uv.x * 3.0, uv.y * 14.0));
-  col = mix(col, mix(sky, snow, 0.35), 0.35 * smoothstep(0.55, 0.85, cl) * smoothstep(0.42, 0.18, uv.y));
+  col = mix(col, mix(sky, snow, 0.35), 0.35 * smoothstep(0.55, 0.85, cl) * (1.0 - smoothstep(0.18, 0.42, uv.y)));
 
   // Hills with snowy firs, far to near.
   for (int k = 0; k < 3; k++) {
@@ -180,7 +180,7 @@ half4 main(float2 xy) {
     float3 tcol = pine * (0.85 + 0.35 * (fbm(xy / (3.0 * scale)) - 0.5)) * (1.0 + 0.35 * side);
     tcol *= 0.9 + 0.2 * noise(xy / (1.2 * scale));
     // Snow sits on the outer branch tips, thickest near the top of each tier.
-    float cap = smoothstep(0.55, 0.95, tt) * smoothstep(0.6, 0.1, tier)
+    float cap = smoothstep(0.55, 0.95, tt) * (1.0 - smoothstep(0.1, 0.6, tier))
               * smoothstep(0.35, 0.65, noise(xy / (2.5 * scale)));
     tcol = mix(tcol, snow * (0.75 + 0.2 * side), cap * 0.9);
     col = mix(col, tcol, tc);
@@ -193,7 +193,7 @@ half4 main(float2 xy) {
   }
   // Five-pointed star on top.
   float2 sp = (xy - float2(treeX(scale), treeBase(scale) - (TREE_H + 3.0) * scale)) / scale;
-  float ang = atan(sp.y, sp.x) + 1.5708;
+  float ang = atan(sp.y, sp.x + 1e-6) + 1.5708; // atan(0, 0) is undefined
   float rr = length(sp);
   float arm = 6.2832 / 5.0;
   float a = abs(mod(ang, arm) - arm * 0.5) / (arm * 0.5);   // 0 at a point, 1 between
@@ -213,7 +213,7 @@ uniform float3 berry;
 ${SHARED}
 float segDist(float2 p, float2 a, float2 b) {
   float2 pa = p - a, ba = b - a;
-  return length(pa - ba * clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0));
+  return length(pa - ba * clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0));
 }
 float3 fireworkCol(float h) {
   if (h < 0.2) return float3(1.00, 0.35, 0.35);
@@ -238,7 +238,7 @@ half4 main(float2 xy) {
     float d = length(xy - spos) / scale;
     float tw = 0.55 + 0.45 * sin(time * (1.0 + 2.0 * hash2(sc + 3.0)) + sh * 40.0);
     add += snow * (1.0 - smoothstep(0.3, 1.3, d)) * tw * (0.4 + 0.6 * hash2(sc + 9.0))
-         * smoothstep(0.62, 0.3, xy.y / size.y) * sky;
+         * (1.0 - smoothstep(0.3, 0.62, xy.y / size.y)) * sky;
   }
 
   // Tree lights blink.
@@ -315,14 +315,18 @@ half4 main(float2 xy) {
   // Falling snow at three depths, swaying a little.
   for (int k = 0; k < 3; k++) {
     float fk = float(k);
-    float cell = (34.0 - fk * 9.0) * scale;
+    float rows = 34.0 - fk * 9.0;
+    float cell = rows * scale;
+    // The fall wraps after 256 rows, and the rows' hashes repeat with it, so
+    // the wrap is seamless and sin() in the hash keeps small, precise inputs.
     float2 p = xy;
-    p.y -= time * (14.0 + fk * 12.0) * scale;
-    p.x += sin(time * 0.31 + fk * 2.0 + p.y / (60.0 * scale)) * 8.0 * scale;
+    p.y -= mod(time * (14.0 + fk * 12.0), rows * 256.0) * scale;
+    p.x += sin(time * 0.31 + fk * 2.0 + xy.y / (60.0 * scale)) * 8.0 * scale;
     float2 c = floor(p / cell);
-    if (hash2(c + fk * 17.0) < 0.22 + fk * 0.08) {
-      float2 fp = (c + 0.15 + 0.7 * float2(hash2(c + 3.1 + fk), hash2(c + 8.7 + fk))) * cell;
-      float r = (0.7 + fk * 0.7 + hash2(c + 5.5) * 0.6) * scale;
+    float2 id = float2(c.x, mod(c.y, 256.0));
+    if (hash2(id + fk * 17.0) < 0.22 + fk * 0.08) {
+      float2 fp = (c + 0.15 + 0.7 * float2(hash2(id + 3.1 + fk), hash2(id + 8.7 + fk))) * cell;
+      float r = (0.7 + fk * 0.7 + hash2(id + 5.5) * 0.6) * scale;
       float a = (1.0 - smoothstep(r * 0.3, r, length(p - fp))) * (0.3 + fk * 0.2);
       alpha = alpha + a * (1.0 - alpha);
     }
