@@ -583,7 +583,8 @@ export const zhTW: Translations = {
   'onboarding.next': '下一步',
   'onboarding.stepCurrentOfTotal': '第 {current} 步，共 {total} 步',
   'onboarding.getStarted': '開始使用',
-  'onboarding.alreadyHaveAJournalImportIt': '已經有日記了？匯入它',
+  'onboarding.alreadyHaveAJournalImportIt': '已經有日記了？還原或匯入',
+  'onboarding.welcome.version': '版本 {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     '一個屬於你的感恩空間 — 免費、離線、完全屬於你。',
   'onboarding.importYourJournal': '匯入你的日記',
@@ -630,6 +631,7 @@ export const zhTW: Translations = {
   'onboarding.youreAllSet': '一切就緒！',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     '最後還有兩項可以開啟 — 都是選用的。',
+  'onboarding.finish.oneOptionalThing': '最後還有一項可以開啟 — 是選用的。',
   'onboarding.addExampleEntries': '加入範例日記',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     '幾則範例日記會展示照片、語音筆記、心情和標籤的用法。隨時可以一鍵移除。',

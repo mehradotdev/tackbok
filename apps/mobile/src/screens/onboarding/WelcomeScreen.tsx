@@ -1,6 +1,8 @@
 import type { TranslationKey } from '~/lib/i18n';
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { View } from 'react-native';
+import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Cloud, FileInput, ShieldCheck, X } from 'lucide-react-native';
@@ -31,6 +33,10 @@ import { SettingsImportProgressModal } from '~/screens/settings/SettingsImportPr
 import { SettingsImportSummaryModal } from '~/screens/settings/SettingsImportSummaryModal';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
+import { useNavigateOnce } from './useNavigateOnce';
+
+const APP_VERSION =
+  Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '';
 
 /** Labels shown under each font-size tile (mirrors Settings → Typography). */
 const SIZE_LABELS: Record<BodyFontSize, TranslationKey> = {
@@ -153,6 +159,7 @@ export default function OnboardingWelcomeScreen() {
   const bodyFontSize = useSettingsStore((s) => s.bodyFontSize);
   const setBodyFontSize = useSettingsStore((s) => s.setBodyFontSize);
   const reopenImportSheet = useRef(false);
+  const navigateOnce = useNavigateOnce();
 
   useFocusEffect(
     useCallback(() => {
@@ -260,7 +267,7 @@ export default function OnboardingWelcomeScreen() {
           <Button
             variant="primary"
             size="lg"
-            onPress={() => router.push('/onboarding/name')}>
+            onPress={() => navigateOnce(() => router.push('/onboarding/name'))}>
             <Text className="text-lg">{t('onboarding.getStarted')}</Text>
           </Button>
           <Button
@@ -270,6 +277,11 @@ export default function OnboardingWelcomeScreen() {
               {t('onboarding.alreadyHaveAJournalImportIt')}
             </Text>
           </Button>
+          {APP_VERSION !== '' && (
+            <Text className="text-xs text-muted-foreground text-center">
+              {t('onboarding.welcome.version', { version: APP_VERSION })}
+            </Text>
+          )}
         </View>
       }>
       {/* Logo + value prop */}

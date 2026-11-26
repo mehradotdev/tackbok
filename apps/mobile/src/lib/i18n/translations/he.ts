@@ -595,7 +595,8 @@ export const he: Translations = {
   'onboarding.next': 'הבא',
   'onboarding.stepCurrentOfTotal': 'שלב {current} מתוך {total}',
   'onboarding.getStarted': 'בואו נתחיל',
-  'onboarding.alreadyHaveAJournalImportIt': 'כבר יש לך יומן? אפשר לייבא אותו',
+  'onboarding.alreadyHaveAJournalImportIt': 'כבר יש לך יומן? אפשר לשחזר או לייבא אותו',
+  'onboarding.welcome.version': 'גרסה {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'מקום פרטי להכרת התודה שלך — חינמי, לא מקוון, ושלך בלבד.',
   'onboarding.importYourJournal': 'ייבוא היומן שלך',
@@ -642,6 +643,7 @@ export const he: Translations = {
   'onboarding.youreAllSet': 'הכול מוכן!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'שני דברים אחרונים שאפשר להפעיל — שניהם אופציונליים.',
+  'onboarding.finish.oneOptionalThing': 'דבר אחרון שאפשר להפעיל — הוא אופציונלי.',
   'onboarding.addExampleEntries': 'הוספת רשומות לדוגמה',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'כמה רשומות לדוגמה מציגות את השימוש בתמונות, הקלטות קוליות, מצבי רוח ותגיות. אפשר להסיר אותן בכל רגע בלחיצה אחת.',

@@ -559,7 +559,9 @@ export const sv = {
   'onboarding.next': 'Nästa',
   'onboarding.stepCurrentOfTotal': 'Steg {current} av {total}',
   'onboarding.getStarted': 'Kom igång',
-  'onboarding.alreadyHaveAJournalImportIt': 'Har du redan en dagbok? Importera den',
+  'onboarding.alreadyHaveAJournalImportIt':
+    'Har du redan en dagbok? Återställ eller importera den',
+  'onboarding.welcome.version': 'Version {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'En privat plats för din tacksamhet. Gratis, offline, din.',
   'onboarding.importYourJournal': 'Importera din dagbok',
@@ -606,6 +608,7 @@ export const sv = {
   'onboarding.youreAllSet': 'Du är klar!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Två sista saker du kan slå på. Båda är valfria.',
+  'onboarding.finish.oneOptionalThing': 'En sista sak du kan slå på. Den är valfri.',
   'onboarding.addExampleEntries': 'Lägg till exempelposter',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'Några exempelanteckningar visar hur foton, röstanteckningar, sinnesstämningar och etiketter fungerar. Ta bort dem när som helst med ett tryck.',

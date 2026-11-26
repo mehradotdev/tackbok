@@ -623,7 +623,9 @@ export const en = {
   'onboarding.next': 'Next',
   'onboarding.stepCurrentOfTotal': 'Step {current} of {total}',
   'onboarding.getStarted': 'Get started',
-  'onboarding.alreadyHaveAJournalImportIt': 'Already have a journal? Import it',
+  'onboarding.alreadyHaveAJournalImportIt':
+    'Already have a journal? Restore or import it',
+  'onboarding.welcome.version': 'Version {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'A private place for your gratitude. Free, offline, yours.',
   'onboarding.importYourJournal': 'Import your journal',
@@ -671,6 +673,7 @@ export const en = {
   'onboarding.youreAllSet': 'You’re all set!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Two last things you can turn on. Both are optional.',
+  'onboarding.finish.oneOptionalThing': 'One last thing you can turn on. It’s optional.',
   'onboarding.addExampleEntries': 'Add example entries',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'A few sample entries show how photos, voice notes, moods and tags work. Remove them anytime with one tap.',

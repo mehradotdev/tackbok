@@ -549,7 +549,9 @@ export const hi = {
   'onboarding.next': 'अगला',
   'onboarding.stepCurrentOfTotal': '{total} का चरण {current}',
   'onboarding.getStarted': 'शुरू हो जाओ',
-  'onboarding.alreadyHaveAJournalImportIt': 'क्या आपके पास पहले से डायरी है? इसे आयात करें',
+  'onboarding.alreadyHaveAJournalImportIt':
+    'क्या आपके पास पहले से डायरी है? इसे पुनर्स्थापित या आयात करें',
+  'onboarding.welcome.version': 'संस्करण {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'आपकी कृतज्ञता के लिए एक निजी स्थान. मुफ़्त, ऑफ़लाइन, आपका।',
   'onboarding.importYourJournal': 'अपनी डायरी आयात करें',
@@ -597,6 +599,7 @@ export const hi = {
   'onboarding.youreAllSet': 'तुम सब सेट हो!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'दो आखिरी चीजें जिन्हें आप चालू कर सकते हैं। दोनों वैकल्पिक हैं.',
+  'onboarding.finish.oneOptionalThing': 'एक आखिरी चीज़ जिसे आप चालू कर सकते हैं। यह वैकल्पिक है।',
   'onboarding.addExampleEntries': 'उदाहरण प्रविष्टियाँ जोड़ें',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'कुछ नमूना प्रविष्टियाँ दिखाती हैं कि फ़ोटो, वॉयस नोट्स, मूड और टैग कैसे काम करते हैं। उन्हें किसी भी समय एक टैप से हटा दें।',

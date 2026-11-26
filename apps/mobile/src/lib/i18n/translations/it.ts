@@ -601,7 +601,8 @@ export const it = {
   'onboarding.next': 'Avanti',
   'onboarding.stepCurrentOfTotal': 'Passaggio {current} di {total}',
   'onboarding.getStarted': 'Inizia',
-  'onboarding.alreadyHaveAJournalImportIt': 'Hai già un diario? Importalo',
+  'onboarding.alreadyHaveAJournalImportIt': 'Hai già un diario? Ripristinalo o importalo',
+  'onboarding.welcome.version': 'Versione {version}',
   'onboarding.aPrivatePlaceForYourGratitudeFreeOfflineYours':
     'Uno spazio privato per la tua gratitudine. Gratuito, offline, tuo.',
   'onboarding.importYourJournal': 'Importa il tuo diario',
@@ -650,6 +651,8 @@ export const it = {
   'onboarding.youreAllSet': 'Tutto pronto!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Ultime due cose che puoi attivare. Sono entrambe facoltative.',
+  'onboarding.finish.oneOptionalThing':
+    'Un’ultima cosa che puoi attivare. È facoltativa.',
   'onboarding.addExampleEntries': 'Aggiungi note di esempio',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
     'Alcune note di esempio mostrano come funzionano foto, memo vocali, umore e tag. Puoi rimuoverle quando vuoi con un tocco.',

@@ -34,7 +34,11 @@ jest.mock('@lodev09/react-native-true-sheet', () => {
 jest.mock('lucide-react-native', () => new Proxy({}, { get: () => 'LucideIcon' }));
 jest.mock('uniwind', () => ({ useCSSVariable: () => ['#fff', '8', '#999'] }));
 jest.mock('~/lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key, isRTL: false }),
+  useTranslation: () => ({
+    t: (key: string, params?: Record<string, string>) =>
+      params ? `${key} ${JSON.stringify(params)}` : key,
+    isRTL: false,
+  }),
 }));
 jest.mock('~/lib/settings', () => {
   const useSettingsStore = (select: (s: typeof mockSettings) => unknown) =>
@@ -81,18 +85,26 @@ jest.mock('~/screens/settings/SettingsImportSummaryModal', () => ({
 jest.mock('./OnboardingScaffold', () => ({
   OnboardingScaffold: ({
     overlays,
+    footer,
     children,
   }: {
     overlays: React.ReactNode;
+    footer: React.ReactNode;
     children: React.ReactNode;
   }) => (
     <>
       {overlays}
       {children}
+      {footer}
     </>
   ),
 }));
 jest.mock('./useOnboardingStepView', () => ({ useOnboardingStepView: jest.fn() }));
+jest.mock('./useNavigateOnce', () => ({
+  useNavigateOnce: () => (action: () => unknown) => action(),
+}));
+jest.mock('expo-application', () => ({ nativeApplicationVersion: '2.0.0' }));
+jest.mock('expo-constants', () => ({ expoConfig: { version: '1.9.0' } }));
 
 let root: ReactTestRenderer;
 beforeEach(() => {
@@ -182,4 +194,14 @@ describe('returning from Google Drive setup', () => {
     act(() => mockFocusEffect());
     expect(mockPresent).not.toHaveBeenCalled();
   });
+});
+
+test('shows the app version under the import link', async () => {
+  await act(async () => {
+    root = create(<WelcomeScreen />);
+  });
+  const version = root.root.findAll(
+    (node) => node.props.children === 'onboarding.welcome.version {"version":"2.0.0"}',
+  );
+  expect(version).toHaveLength(1);
 });

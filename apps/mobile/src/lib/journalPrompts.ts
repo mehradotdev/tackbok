@@ -66,6 +66,7 @@ export interface BuiltInJournalPrompt {
 export const DEFAULT_JOURNAL_FOCUS_AREAS: BuiltInJournalPromptCategoryId[] = [
   'self',
   'littleThings',
+  'family',
 ];
 
 // Narrowed built-in categories list so consumers do not have to repeatedly exclude

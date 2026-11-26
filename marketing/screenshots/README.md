@@ -83,7 +83,7 @@ fails if the dates don't give 176 separate days with exactly one four-year
 "On this day" memory.
 
 Restore it on a throwaway simulator or emulator through the welcome screen's
-**Already have a journal? Import it**, never on a personal device. The capture
+**Already have a journal? Restore or import it**, never on a personal device. The capture
 steps are in the screenshots README linked above.
 
 ## Update screenshots or text
