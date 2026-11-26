@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, type LayoutChangeEvent } from 'react-native';
 import {
   Canvas,
   Fill,
@@ -227,8 +227,19 @@ export function SplashAnimation({
   const bookOpacity = useDerivedValue(() =>
     interpolate(zoom.value, [0.65, 1], [1, 0], 'clamp'),
   );
+  // Android fades each layer on its own rather than as one image, so the plain
+  // splash frame under the canvas would show through as it fades. From the fade
+  // on, the layers under the canvas take the canvas's own end colour. (The
+  // Reduce Motion fade has no zoom: its canvas matches the plain frame.)
+  const pastZoom = useDerivedValue(
+    () => timeline.zoom !== undefined && time.value > timeline.fadeOut[0],
+  );
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(time.value, timeline.fadeOut, [1, 0], 'clamp'),
+    backgroundColor: pastZoom.value ? endColor : NATIVE_SPLASH_BACKGROUND,
+  }));
+  const plainFrameStyle = useAnimatedStyle(() => ({
+    opacity: pastZoom.value ? 0 : 1,
   }));
 
   const logo = useMemo(
@@ -253,18 +264,14 @@ export function SplashAnimation({
     <Animated.View
       accessibilityViewIsModal
       pointerEvents={passThrough ? 'none' : 'auto'}
-      style={[
-        StyleSheet.absoluteFill,
-        { backgroundColor: NATIVE_SPLASH_BACKGROUND },
-        overlayStyle,
-      ]}
+      style={[StyleSheet.absoluteFill, overlayStyle]}
       onLayout={onLayout}>
       {/* The native splash frame as a plain view, drawn with the first layout.
           Skia can paint a few frames later (on Android it draws on its own
           thread), so this keeps the hand-off seamless until it does. */}
-      <View style={[StyleSheet.absoluteFill, styles.center]}>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.center, plainFrameStyle]}>
         <TackbokLogo size={NATIVE_SPLASH_LOGO_SIZE} color={NATIVE_SPLASH_LOGO_COLOR} />
-      </View>
+      </Animated.View>
       {size ? (
         <Canvas style={StyleSheet.absoluteFill}>
           <Fill color={background} />
