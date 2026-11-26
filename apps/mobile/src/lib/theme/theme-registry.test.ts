@@ -119,34 +119,40 @@ function contrastRatio(first: number[], second: number[]) {
 }
 
 describe('Theme Registry', () => {
-  test.each(['helena', 'poonam', 'shiro', 'shadow', 'denise', 'giuseppe'])(
-    '%s provides readable text on its solid surfaces',
-    (id) => {
-      const theme = THEME_DEFINITIONS.find((candidate) => candidate.id === id)!;
-      const variables = resolveThemeVariables(theme);
-      for (const surface of [
-        'background',
-        'card',
-        'popover',
-        'primary',
-        'secondary',
-        'muted',
-        'accent',
-        'destructive',
-      ]) {
-        const foreground =
-          surface === 'background' ? 'foreground' : `${surface}-foreground`;
-        const contrast = contrastRatio(
-          hexChannels(variables[`--color-${surface}`]),
-          hexChannels(variables[`--color-${foreground}`]),
-        );
-        expect({ surface, readable: contrast >= 4.5 }).toEqual({
-          surface,
-          readable: true,
-        });
-      }
-    },
-  );
+  test.each([
+    'helena',
+    'poonam',
+    'shiro',
+    'shadow',
+    'denise',
+    'giuseppe',
+    'pine-night',
+    'velvet',
+  ])('%s provides readable text on its solid surfaces', (id) => {
+    const theme = THEME_DEFINITIONS.find((candidate) => candidate.id === id)!;
+    const variables = resolveThemeVariables(theme);
+    for (const surface of [
+      'background',
+      'card',
+      'popover',
+      'primary',
+      'secondary',
+      'muted',
+      'accent',
+      'destructive',
+    ]) {
+      const foreground =
+        surface === 'background' ? 'foreground' : `${surface}-foreground`;
+      const contrast = contrastRatio(
+        hexChannels(variables[`--color-${surface}`]),
+        hexChannels(variables[`--color-${foreground}`]),
+      );
+      expect({ surface, readable: contrast >= 4.5 }).toEqual({
+        surface,
+        readable: true,
+      });
+    }
+  });
 
   // Selected moods, mood badges and chips use text-foreground on bg-primary/20–50.
   test.each(THEME_DEFINITIONS.map((theme) => theme.id))(
@@ -222,6 +228,8 @@ describe('Theme Registry', () => {
       'camino-night',
       'denise',
       'giuseppe',
+      'pine-night',
+      'velvet',
       'bubblegum',
       'hecker',
       'peach',

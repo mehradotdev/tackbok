@@ -189,7 +189,7 @@ export const GratitudeTimeline: React.FC<IGratitudeTimelineProps> = ({
     <View
       className="flex-1 bg-background w-full"
       onLayout={(event) => setViewportHeight(event.nativeEvent.layout.height)}>
-      <ThemeBackdrop />
+      <ThemeBackdrop celebrate />
       <LegendList
         recycleItems={true}
         data={finalList}
