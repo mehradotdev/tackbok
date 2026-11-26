@@ -33,6 +33,7 @@ import {
   NATIVE_SPLASH_LOGO_SIZE,
   revealSplash,
   SPLASH_TIMELINES,
+  useSplashActive,
   type SplashMode,
 } from '~/lib/splash';
 
@@ -77,8 +78,13 @@ const zoomEasing = Easing.inOut(Easing.cubic);
 
 interface SplashAnimationProps {
   mode: Exclude<SplashMode, 'none'>;
-  /** The frame matches the native splash; safe to hide it now. */
-  onReady: () => void;
+  /**
+   * The overlay covers the screen with the native splash frame (drawn by the
+   * plain logo view below the canvas); safe to hide the native splash now.
+   */
+  onCover: () => void;
+  /** The canvas has drawn its first frame and the animation is starting. */
+  onStart: () => void;
   onFinish: () => void;
   /**
    * Seasonal hook: Skia nodes drawn on the book in logo units (e.g. a hat).
@@ -93,7 +99,8 @@ interface SplashAnimationProps {
  */
 export function SplashAnimation({
   mode,
-  onReady,
+  onCover,
+  onStart,
   onFinish,
   decoration,
 }: SplashAnimationProps) {
@@ -103,8 +110,11 @@ export function SplashAnimation({
   const endColor = (themeBackground as string | undefined) ?? NATIVE_SPLASH_BACKGROUND;
   const time = useSharedValue(0);
   const timeline = SPLASH_TIMELINES[mode];
+  // Once the background is the theme's, taps reach the app underneath.
+  const revealed = useSplashActive((s) => s.revealed);
 
-  // Let the first frame draw before the native splash goes away.
+  // Give the canvas two frames to draw before the animation moves, so it never
+  // starts mid-way. Until then the plain logo view shows the same frame.
   useEffect(() => {
     if (!size || drawn) return;
     let second = 0;
@@ -118,8 +128,8 @@ export function SplashAnimation({
   }, [size, drawn]);
 
   useEffect(() => {
-    if (drawn) onReady();
-  }, [drawn, onReady]);
+    if (drawn) onStart();
+  }, [drawn, onStart]);
 
   useEffect(() => {
     if (!drawn) return;
@@ -219,6 +229,9 @@ export function SplashAnimation({
   );
 
   const onLayout = (event: LayoutChangeEvent) => {
+    // Laid out means on screen together with the plain logo view, which matches
+    // the native splash exactly, so the native splash can go right away.
+    onCover();
     const { width: w, height: h } = event.nativeEvent.layout;
     setSize((current) =>
       current?.width === w && current.height === h ? current : { width: w, height: h },
@@ -228,6 +241,7 @@ export function SplashAnimation({
   return (
     <Animated.View
       accessibilityViewIsModal
+      pointerEvents={revealed ? 'none' : 'auto'}
       style={[
         StyleSheet.absoluteFill,
         { backgroundColor: NATIVE_SPLASH_BACKGROUND },

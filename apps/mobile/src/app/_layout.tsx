@@ -183,7 +183,12 @@ export default function Layout() {
     };
   }, []);
   const finishSplash = useCallback(() => setSplashMode(null), []);
+  // The app mounts under the launch animation only once its first frame is up,
+  // so mounting it does not hold back that frame (slow on Android).
+  const [splashStarted, setSplashStarted] = useState(false);
+  const startSplash = useCallback(() => setSplashStarted(true), []);
   const splashActive = hasHydrated && splashMode !== null && !error;
+  const holdContent = splashActive && !splashStarted;
   useEffect(() => {
     if (splashMode !== null && !error) return;
     endSplash();
@@ -287,7 +292,11 @@ export default function Layout() {
   // finishes underneath it.
   return (
     <View className="flex-1">
-      {isBootstrapLoading ? (
+      {holdContent ? (
+        <View className="flex-1" {...contentA11y}>
+          <AppStatusBar style={barStyle} />
+        </View>
+      ) : isBootstrapLoading ? (
         <View className="flex-1" onLayout={onContentLayout} {...contentA11y}>
           <AppLoadingScreen />
         </View>
@@ -302,7 +311,12 @@ export default function Layout() {
       )}
       {/* Until the mode is decided the native splash itself holds the frame. */}
       {splashActive && splashMode ? (
-        <SplashAnimation mode={splashMode} onReady={hideSplash} onFinish={finishSplash} />
+        <SplashAnimation
+          mode={splashMode}
+          onCover={hideSplash}
+          onStart={startSplash}
+          onFinish={finishSplash}
+        />
       ) : null}
     </View>
   );
