@@ -288,6 +288,15 @@ export const es = {
   'appearance.changeAppIconTitle': '¿Cambiar el icono de la app?',
   'appearance.changeAppIconMessage': 'Tackbok se cerrará para aplicar el nuevo icono.',
   'appearance.changeIcon': 'Cambiar icono',
+  'festive.promptTitle': '¿Con ánimo festivo?',
+  'festive.promptMessage': 'Tackbok tiene un icono y un tema festivos para la temporada.',
+  'festive.takeALook': 'Echar un vistazo',
+  'festive.notNow': 'Ahora no',
+  'festive.switchBackTitle': '¿Volver a tu estilo de siempre?',
+  'festive.switchBackMessage':
+    'Vuelve al tema y al icono que tenías antes de las fiestas.',
+  'festive.switchBack': 'Volver',
+  'festive.keepIt': 'Mantener',
   'typography.typography': 'Tipografía',
   'typography.titleFont': 'Fuente del título',
   'typography.chooseAFontForTitlesAndHeadings':

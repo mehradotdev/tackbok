@@ -1,4 +1,6 @@
+import type { AppIconName } from '~/lib/appIcon/icons';
 import type { TranslationKey } from '~/lib/i18n/types';
+import type { ThemeId } from '~/lib/theme/registry';
 
 /** A calendar day in local device time: [month 1–12, day of month]. */
 export type MonthDay = readonly [month: number, day: number];
@@ -13,6 +15,20 @@ export interface SeasonalDay {
   effect: SeasonalEffect;
 }
 
+/**
+ * The festive look an event suggests once per season ("Feeling festive?"). The
+ * app never switches by itself; a switch-back is offered later only to people
+ * who took a look and are still on the festive theme or icon.
+ */
+export interface SeasonalSuggestion {
+  themes: readonly ThemeId[];
+  icon: AppIconName;
+  /** Last day the suggestion can appear, inside the event's window. */
+  until: MonthDay;
+  /** First day the switch-back can appear; it stays on offer after the window. */
+  switchBackFrom: MonthDay;
+}
+
 export interface SeasonalEvent {
   /** Stable id; with the season's start year it keys once-per-season memory. */
   id: string;
@@ -23,6 +39,7 @@ export interface SeasonalEvent {
   emojis: readonly string[];
   /** Days that get their own greeting and decoration. */
   days: readonly SeasonalDay[];
+  suggestion?: SeasonalSuggestion;
 }
 
 /**
@@ -64,12 +81,18 @@ export const SEASONAL_EVENTS: readonly SeasonalEvent[] = [
         effect: 'sparkle',
       },
     ],
+    suggestion: {
+      themes: ['pine-night', 'velvet'],
+      icon: 'Christmas',
+      until: [12, 26],
+      switchBackFrom: [1, 2],
+    },
   },
 ];
 
 const ordinal = ([month, day]: MonthDay) => month * 100 + day;
 
-function inWindow(date: Date, start: MonthDay, end: MonthDay) {
+export function inWindow(date: Date, start: MonthDay, end: MonthDay) {
   const today = ordinal([date.getMonth() + 1, date.getDate()]);
   const from = ordinal(start);
   const to = ordinal(end);

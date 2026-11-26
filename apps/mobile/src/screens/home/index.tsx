@@ -16,6 +16,7 @@ import { SearchResults } from './SearchResults';
 import { GratitudeTimeline } from './GratitudeTimeline';
 import { GratitudeActionDock } from './GratitudeActionDock';
 import { HomeCoachMarks } from './HomeCoachMarks';
+import { FestivePrompt } from './FestivePrompt';
 import { PetInteractionProvider } from '~/components/backdrops/PetInteraction';
 
 export default function HomeScreen() {
@@ -177,6 +178,7 @@ export default function HomeScreen() {
       )}
 
       {!isSearchMode && <HomeCoachMarks />}
+      <FestivePrompt />
     </SafeAreaView>
   );
 }

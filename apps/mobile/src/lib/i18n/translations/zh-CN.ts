@@ -304,6 +304,14 @@ export const zhCN: Translations = {
   'appearance.changeAppIconTitle': '更改应用图标？',
   'appearance.changeAppIconMessage': '塔克布克将关闭以应用新图标。',
   'appearance.changeIcon': '更改图标',
+  'festive.promptTitle': '想要节日气氛吗？',
+  'festive.promptMessage': '塔克布克为这个节日季准备了节日图标和主题。',
+  'festive.takeALook': '看一看',
+  'festive.notNow': '暂不',
+  'festive.switchBackTitle': '恢复平常的外观？',
+  'festive.switchBackMessage': '切换回节日前使用的主题和图标。',
+  'festive.switchBack': '切换回去',
+  'festive.keepIt': '保留',
 
   // Settings - Typography
   'typography.typography': '排版',
