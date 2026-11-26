@@ -67,6 +67,8 @@ jest.mock('~/screens/settings/AppIconPickerSheet', () => ({
   AppIconTile: 'AppIconTile',
 }));
 jest.mock('~/components/ui/text', () => ({ Text: 'Text' }));
+let mockTipsShowing = false;
+jest.mock('./HomeCoachMarks', () => ({ homeTipsShowing: () => mockTipsShowing }));
 jest.mock('~/components/ui/alert-dialog', () => ({
   AlertDialog: 'AlertDialog',
   AlertDialogAction: 'AlertDialogAction',
@@ -91,6 +93,32 @@ function leave() {
   act(() => blur?.());
 }
 const dialog = () => tree.root.findByType('AlertDialog' as never);
+/** Like the dialog primitive: a button closes the dialog, then runs its handler. */
+async function press(type: 'AlertDialogAction' | 'AlertDialogCancel') {
+  const onPress = tree.root.findByType(type as never).props.onPress;
+  await act(async () => {
+    dialog().props.onOpenChange(false);
+    onPress();
+  });
+}
+const lastSeason: FestiveSwitch = {
+  season: 'winter-holidays-2026',
+  theme: 'ocean',
+  icon: 'Sage',
+  offerFrom: new Date(2027, 0, 2).getTime(),
+};
+async function inJanuaryOnPineNight() {
+  jest.setSystemTime(new Date(2027, 0, 3, 12));
+  Object.assign(mockSettings, {
+    festivePromptSeason: 'winter-holidays-2026',
+    festiveSwitch: lastSeason,
+    theme: 'pine-night',
+  });
+  mockIcon.current = 'Christmas';
+  await focus();
+  leave();
+  await focus();
+}
 const text = () =>
   tree.root.findAllByType('Text' as never).map((node) => node.props.children);
 
@@ -103,6 +131,7 @@ beforeEach(async () => {
     pendingAchievement: null,
   });
   mockIcon.current = 'Sage';
+  mockTipsShowing = false;
   mockCalls.length = 0;
   mockPush.mockClear();
   await act(async () => {
@@ -134,11 +163,28 @@ it('stays back while an achievement is waiting', async () => {
   expect(mockSettings.festivePromptSeason).toBeNull();
 });
 
+it('stays back while the Home tips are showing', async () => {
+  mockTipsShowing = true;
+  await focus();
+  leave();
+  await focus();
+  expect(dialog().props.open).toBe(false);
+});
+
+it('closes when another screen opens over Home', async () => {
+  await focus();
+  leave();
+  await focus();
+  expect(dialog().props.open).toBe(true);
+  leave();
+  expect(dialog().props.open).toBe(false);
+});
+
 it('"Take a look" remembers the usual look and opens Appearance', async () => {
   await focus();
   leave();
   await focus();
-  act(() => tree.root.findByType('AlertDialogAction' as never).props.onPress());
+  await press('AlertDialogAction');
   expect(mockSettings.festiveSwitch).toMatchObject({
     season: 'winter-holidays-2026',
     theme: 'ocean',
@@ -149,26 +195,35 @@ it('"Take a look" remembers the usual look and opens Appearance', async () => {
 });
 
 it('switches back in January, saving the theme before the icon closes the app', async () => {
-  jest.setSystemTime(new Date(2027, 0, 3, 12));
+  await inJanuaryOnPineNight();
+  expect(dialog().props.open).toBe(true);
+  expect(text()).toEqual(['festive.keepIt', 'festive.switchBack']);
+  await press('AlertDialogAction');
+  expect(mockCalls).toEqual(['theme:ocean', 'flush', 'icon:Sage']);
+  expect(mockSettings.festiveSwitch).toBeNull();
+});
+
+it('"Keep it" forgets the usual look; closing the dialog keeps the offer', async () => {
+  await inJanuaryOnPineNight();
+  await act(async () => dialog().props.onOpenChange(false));
+  expect(mockSettings.festiveSwitch).toBe(lastSeason);
+  leave();
+  await focus();
+  await press('AlertDialogCancel');
+  expect(mockSettings.festiveSwitch).toBeNull();
+  expect(mockCalls).toEqual([]);
+});
+
+it("drops last season's look and suggests this season's", async () => {
+  jest.setSystemTime(new Date(2027, 11, 5, 12));
   Object.assign(mockSettings, {
     festivePromptSeason: 'winter-holidays-2026',
-    festiveSwitch: {
-      season: 'winter-holidays-2026',
-      theme: 'ocean',
-      icon: 'Sage',
-      offerFrom: new Date(2027, 0, 2).getTime(),
-    },
-    theme: 'pine-night',
+    festiveSwitch: lastSeason,
   });
-  mockIcon.current = 'Christmas';
   await focus();
   leave();
   await focus();
-  expect(dialog().props.open).toBe(true);
-  expect(text()).toEqual(['festive.keepIt', 'festive.switchBack']);
-  await act(async () => {
-    tree.root.findByType('AlertDialogAction' as never).props.onPress();
-  });
-  expect(mockCalls).toEqual(['theme:ocean', 'flush', 'icon:Sage']);
   expect(mockSettings.festiveSwitch).toBeNull();
+  expect(mockSettings.festivePromptSeason).toBe('winter-holidays-2027');
+  expect(text()).toEqual(['festive.notNow', 'festive.takeALook']);
 });

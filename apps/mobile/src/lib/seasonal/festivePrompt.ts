@@ -39,7 +39,7 @@ export type FestivePrompt =
       theme: string | null;
       icon: AppIconName | null;
     }
-  /** The saved switch is spent: the festive look is gone, so forget it. */
+  /** The saved look is spent (the festive look is gone) or from an earlier season. */
   | { kind: 'forget' };
 
 const ordinal = ([month, day]: MonthDay) => month * 100 + day;
@@ -57,9 +57,14 @@ export function festivePromptFor(
 
   const saved = look.festiveSwitch;
   if (saved) {
+    // A later season has begun: last season's look is no longer the one to offer.
+    const current = activeSeasonalEvent(now, events);
+    if (current?.suggestion && seasonKey(current, now) !== saved.season) {
+      return { kind: 'forget' };
+    }
     if (now.getTime() < saved.offerFrom) return null;
     // Season keys are `<event id>-<start year>`.
-    const eventId = saved.season.replace(/-\d+$/, '');
+    const eventId = saved.season.slice(0, saved.season.lastIndexOf('-'));
     const suggestion = events.find((event) => event.id === eventId)?.suggestion;
     const theme =
       suggestion && isFestiveTheme(suggestion, look.theme) && look.theme !== saved.theme

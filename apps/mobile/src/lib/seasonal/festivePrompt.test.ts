@@ -95,6 +95,12 @@ describe('festivePromptFor: the switch-back', () => {
     });
   });
 
+  it('forgets it once the next season begins', () => {
+    const still = festive({ icon: 'Christmas' });
+    expect(festivePromptFor(day(2027, 11, 30), still)?.kind).toBe('switchBack');
+    expect(festivePromptFor(day(2027, 12, 1), still)).toEqual({ kind: 'forget' });
+  });
+
   it('stays quiet while "Festive touches" is off', () => {
     const off = festive({ icon: 'Christmas', festiveTouchesEnabled: false });
     expect(festivePromptFor(day(2027, 1, 4), off)).toBeNull();

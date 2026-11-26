@@ -13,6 +13,7 @@ import {
 import { flushSettings, useSettingsStore } from '~/lib/settings';
 import { useSplashActive } from '~/lib/splash';
 import { AppIconTile } from '~/screens/settings/AppIconPickerSheet';
+import { homeTipsShowing } from './HomeCoachMarks';
 import { Text } from '~/components/ui/text';
 import {
   AlertDialog,
@@ -39,6 +40,8 @@ function somethingElseFirst() {
     (settings.biometricUnlockEnabled && useAppLockStore.getState().isLocked !== false) ||
     !settings.hasCompletedOnboarding ||
     !settings.hasSeenHomeCoachMarks ||
+    // Marked seen as soon as the tips start, so also check they're gone.
+    homeTipsShowing() ||
     settings.pendingAchievement !== null ||
     useAchievementDialogStore.getState().manualAchievement !== null
   );
@@ -70,18 +73,21 @@ export function FestivePrompt() {
         await useAppIconStore.getState().refresh();
         if (cancelled || somethingElseFirst()) return;
         const settings = useSettingsStore.getState();
-        const next = festivePromptFor(new Date(), {
+        const now = new Date();
+        const look = {
           festiveTouchesEnabled: settings.festiveTouchesEnabled,
           festivePromptSeason: settings.festivePromptSeason,
           festiveSwitch: settings.festiveSwitch,
           theme: settings.theme,
           icon: useAppIconStore.getState().current,
-        });
-        if (!next) return;
-        if (next.kind === 'forget') {
+        };
+        let next = festivePromptFor(now, look);
+        if (next?.kind === 'forget') {
           settings.setFestiveSwitch(null);
-          return;
+          // This season's suggestion may be due instead.
+          next = festivePromptFor(now, { ...look, festiveSwitch: null });
         }
+        if (!next || next.kind === 'forget') return;
         // Counted as shown straight away, so closing the app doesn't bring it back.
         if (next.kind === 'suggest') settings.setFestivePromptSeason(next.season);
         setPrompt(next);
@@ -89,6 +95,8 @@ export function FestivePrompt() {
       return () => {
         cancelled = true;
         clearTimeout(timer);
+        // Something opened over Home (a reminder tap): don't leave the dialog on top.
+        setPrompt(null);
       };
     }, []),
   );
@@ -120,7 +128,7 @@ export function FestivePrompt() {
     }
   };
 
-  /** "Not now", "Keep it", or closing the dialog. */
+  /** "Not now", or "Keep it", which forgets the remembered look. */
   const decline = () => {
     if (prompt?.kind === 'switchBack') useSettingsStore.getState().setFestiveSwitch(null);
     setPrompt(null);
@@ -134,13 +142,19 @@ export function FestivePrompt() {
   return (
     <AlertDialog
       open={prompt !== null}
+      // The buttons close the dialog before their own handlers run, and a tap
+      // outside or Back just closes it: an unanswered switch-back comes back on
+      // the next return to Home.
       onOpenChange={(open) => {
-        if (!open) decline();
+        if (!open) setPrompt(null);
       }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           {tile ? (
-            <View className="items-center pb-2">
+            <View
+              className="items-center pb-2"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants">
               <AppIconTile name={tile} size={72} />
             </View>
           ) : null}
