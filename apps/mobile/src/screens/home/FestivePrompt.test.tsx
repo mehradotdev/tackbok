@@ -203,6 +203,36 @@ it('switches back in January, saving the theme before the icon closes the app', 
   expect(mockSettings.festiveSwitch).toBeNull();
 });
 
+it('restores only the theme when the icon is no longer festive', async () => {
+  mockIcon.current = 'Sage';
+  jest.setSystemTime(new Date(2027, 0, 3, 12));
+  Object.assign(mockSettings, {
+    festivePromptSeason: 'winter-holidays-2026',
+    festiveSwitch: lastSeason,
+    theme: 'velvet',
+  });
+  await focus();
+  leave();
+  await focus();
+  const description = tree.root.findByType('AlertDialogDescription' as never);
+  expect(description.props.children).toEqual(['festive.switchBackMessage', '']);
+  await press('AlertDialogAction');
+  expect(mockCalls).toEqual(['theme:ocean']);
+});
+
+it('skips a check that fires late, as the app reopens', async () => {
+  await focus();
+  leave();
+  await act(async () => {
+    blur = mockFocusEffect?.();
+    // Timers paused in the background: the clock moves on, the timer fires later.
+    jest.setSystemTime(Date.now() + 60_000);
+    jest.advanceTimersByTime(800);
+  });
+  expect(dialog().props.open).toBe(false);
+  expect(mockSettings.festivePromptSeason).toBeNull();
+});
+
 it('"Keep it" forgets the usual look; closing the dialog keeps the offer', async () => {
   await inJanuaryOnPineNight();
   await act(async () => dialog().props.onOpenChange(false));

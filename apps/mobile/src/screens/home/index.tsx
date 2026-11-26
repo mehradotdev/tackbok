@@ -178,7 +178,7 @@ export default function HomeScreen() {
       )}
 
       {!isSearchMode && <HomeCoachMarks />}
-      <FestivePrompt />
+      {!isSearchMode && <FestivePrompt />}
     </SafeAreaView>
   );
 }

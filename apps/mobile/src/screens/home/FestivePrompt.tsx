@@ -28,6 +28,9 @@ import {
 
 /** Lets the screen transition and any post-save achievement settle first. */
 const SETTLE_MS = 800;
+/** Android pauses JS timers in the background; a check that fires this late is
+ *  running as the app reopens, which is not a moment to ask. */
+const LATE_MS = SETTLE_MS + 2000;
 
 type Shown = Exclude<Prompt, { kind: 'forget' }>;
 
@@ -68,10 +71,11 @@ export function FestivePrompt() {
         };
       }
       let cancelled = false;
+      const focusedAt = Date.now();
       const timer = setTimeout(async () => {
         // The OS owns the icon; read it before comparing or remembering it.
         await useAppIconStore.getState().refresh();
-        if (cancelled || somethingElseFirst()) return;
+        if (cancelled || Date.now() - focusedAt > LATE_MS || somethingElseFirst()) return;
         const settings = useSettingsStore.getState();
         const now = new Date();
         const look = {
