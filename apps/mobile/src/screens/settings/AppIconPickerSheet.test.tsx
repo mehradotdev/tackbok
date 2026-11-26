@@ -39,6 +39,7 @@ jest.mock('expo', () => ({
       'Rose',
       'Plum',
       'Blueprint',
+      'Christmas',
       'Classic',
     ],
   }),
@@ -104,6 +105,7 @@ test('beta offers every icon and selects its Blueprint default', () => {
     'Rose',
     'Plum',
     'Blueprint',
+    'Christmas',
   ]);
   expect(
     radios

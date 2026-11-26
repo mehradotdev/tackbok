@@ -14,6 +14,7 @@ export const ALTERNATE_APP_ICONS = [
   'Rose',
   'Plum',
   'Blueprint',
+  'Christmas',
 ] as const;
 
 /**

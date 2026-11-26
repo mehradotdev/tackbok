@@ -49,31 +49,49 @@ test('only Android asks before changing, because the app closes there', () => {
   expect(load({ native: fakeNative(), os: 'ios' }).appIconChangeClosesApp).toBe(false);
 });
 
+// The alternates of the first icon picker, before Christmas.
+const ORIGINAL_ICONS = [
+  'Sage',
+  'Midnight',
+  'Ocean',
+  'Terracotta',
+  'Rose',
+  'Plum',
+  'Blueprint',
+];
+
 test.each([
   [
     'a current Android binary',
-    ['Sage', 'Midnight', 'Ocean', 'Terracotta', 'Rose', 'Plum', 'Blueprint'],
+    [...ORIGINAL_ICONS, 'Christmas'],
+    [...ORIGINAL_ICONS, 'Christmas'],
   ],
-  ['an older Android binary', undefined],
+  // Built before registeredIcons existed: only the original icons, never later ones.
+  ['an older Android binary', undefined, ORIGINAL_ICONS],
 ])(
-  'production on %s offers every icon, with Classic as the bundled default',
-  async (_case, registeredIcons) => {
+  'production on %s offers the icons it has, with Classic as the bundled default',
+  async (_case, registeredIcons, icons) => {
     const native = fakeNative(registeredIcons);
-    const { APP_ICON_CHOICES, ALTERNATE_APP_ICONS, useAppIconStore } = load({ native });
+    const { APP_ICON_CHOICES, useAppIconStore } = load({ native });
     const { refresh, setIcon } = useAppIconStore.getState();
 
-    expect(APP_ICON_CHOICES).toEqual(['Classic', ...ALTERNATE_APP_ICONS]);
+    expect(APP_ICON_CHOICES).toEqual(['Classic', ...icons]);
     await refresh();
     expect(useAppIconStore.getState().current).toBe('Classic');
 
     await setIcon('Blueprint');
-    expect(native.setAppIcon).toHaveBeenLastCalledWith('Blueprint', ALTERNATE_APP_ICONS);
+    expect(native.setAppIcon).toHaveBeenLastCalledWith('Blueprint', icons);
     expect(useAppIconStore.getState().current).toBe('Blueprint');
     await setIcon('Classic');
-    expect(native.setAppIcon).toHaveBeenLastCalledWith(null, ALTERNATE_APP_ICONS);
+    expect(native.setAppIcon).toHaveBeenLastCalledWith(null, icons);
     expect(useAppIconStore.getState().current).toBe('Classic');
   },
 );
+
+test('production iOS offers the Christmas icon', () => {
+  const { APP_ICON_CHOICES } = load({ native: fakeNative(), os: 'ios' });
+  expect(APP_ICON_CHOICES).toContain('Christmas');
+});
 
 test.each(['android', 'ios'] as const)(
   'a beta binary on %s offers every icon, with Blueprint as the bundled default',
@@ -119,14 +137,14 @@ test('Android offers only the icons the binary registered', async () => {
 test('an older Android beta binary keeps the icons it was built with', async () => {
   // Built before the Classic alternate: no registeredIcons.
   const native = fakeNative();
-  const { APP_ICON_CHOICES, ALTERNATE_APP_ICONS, useAppIconStore } = load({
+  const { APP_ICON_CHOICES, useAppIconStore } = load({
     native,
     appVariant: 'beta',
   });
 
-  expect(APP_ICON_CHOICES).toEqual(ALTERNATE_APP_ICONS);
+  expect(APP_ICON_CHOICES).toEqual(ORIGINAL_ICONS);
   await useAppIconStore.getState().setIcon('Plum');
-  expect(native.setAppIcon).toHaveBeenLastCalledWith('Plum', ALTERNATE_APP_ICONS);
+  expect(native.setAppIcon).toHaveBeenLastCalledWith('Plum', ORIGINAL_ICONS);
 });
 
 test.each(['Blueprint', 'Retired'])(
