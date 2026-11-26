@@ -2,6 +2,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { TriangleAlert } from 'lucide-react-native';
 import { useTranslation } from '~/lib/i18n';
 import { type BackupImportProgress } from '~/lib/backupImport';
+import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { Dialog, DialogContent } from '~/components/ui/dialog';
 
@@ -103,8 +104,12 @@ export function SettingsImportProgressModal({
             </View>
           ) : null}
 
-          <View className="flex-row items-start gap-2 rounded-xl bg-warning/10 px-3 py-2.5">
-            <TriangleAlert size={16} className="mt-0.5 text-warning" />
+          <View className="flex-row items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2.5">
+            <Icon
+              as={TriangleAlert}
+              strokeWidth={2}
+              className="mt-0.5 size-4 text-destructive"
+            />
             <Text className="flex-1 text-xs leading-4.5 text-muted-foreground">
               {t('backup.pleaseDoNotCloseOrMinimizeTheAppWhileThe')}
             </Text>
