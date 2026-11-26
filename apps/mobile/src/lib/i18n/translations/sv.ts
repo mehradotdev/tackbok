@@ -278,6 +278,15 @@ export const sv = {
   'appearance.changeAppIconTitle': 'Byta appikon?',
   'appearance.changeAppIconMessage': 'Tackbok stängs för att byta till den nya ikonen.',
   'appearance.changeIcon': 'Byt ikon',
+  'festive.promptTitle': 'Känner du dig festlig?',
+  'festive.promptMessage': 'Tackbok har en högtidsikon och ett högtidstema för säsongen.',
+  'festive.takeALook': 'Ta en titt',
+  'festive.notNow': 'Inte nu',
+  'festive.switchBackTitle': 'Tillbaka till ditt vanliga utseende?',
+  'festive.switchBackMessage':
+    'Byt tillbaka till temat och ikonen du hade före högtiderna.',
+  'festive.switchBack': 'Byt tillbaka',
+  'festive.keepIt': 'Behåll',
   'typography.typography': 'Typografi',
   'typography.titleFont': 'Typsnitt för titel',
   'typography.chooseAFontForTitlesAndHeadings':

@@ -47,6 +47,10 @@ const DIM = 'bg-black/60';
 /** How often a showing tip re-checks where its control is. */
 const REMEASURE_MS = 400;
 
+let tipsShowing = false;
+/** Whether the Home tips are on screen, so other Home prompts can wait. */
+export const homeTipsShowing = () => tipsShowing;
+
 /**
  * One-time walkthrough on the first Home render after onboarding. Each step
  * measures its control (see `useCoachMarkTarget`), dims everything around it
@@ -96,6 +100,12 @@ export function HomeCoachMarks() {
   // Back closes the tips, but only while Home is on screen: a screen pushed
   // over Home mid-tour (a reminder tap) keeps its own back.
   const isActive = tour !== null;
+  useEffect(() => {
+    tipsShowing = isActive;
+    return () => {
+      tipsShowing = false;
+    };
+  }, [isActive]);
   useFocusEffect(
     useCallback(() => {
       if (!isActive) return;

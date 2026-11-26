@@ -344,6 +344,16 @@ export const de: Translations = {
   'appearance.changeAppIconMessage':
     'Tackbok wird geschlossen, um das neue Symbol zu übernehmen.',
   'appearance.changeIcon': 'Symbol ändern',
+  'festive.promptTitle': 'Lust auf Festtagsstimmung?',
+  'festive.promptMessage':
+    'Tackbok hat für die Feiertage ein festliches Symbol und Design.',
+  'festive.takeALook': 'Ansehen',
+  'festive.notNow': 'Nicht jetzt',
+  'festive.switchBackTitle': 'Zurück zum gewohnten Aussehen?',
+  'festive.switchBackMessage':
+    'Wechsle zurück zum Design und Symbol, die du vor den Feiertagen hattest.',
+  'festive.switchBack': 'Zurückwechseln',
+  'festive.keepIt': 'Behalten',
 
   // Settings - Typography
   'typography.typography': 'Typografie',

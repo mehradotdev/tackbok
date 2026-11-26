@@ -305,6 +305,14 @@ export const zhTW: Translations = {
   'appearance.changeAppIconTitle': '變更應用程式圖示？',
   'appearance.changeAppIconMessage': '塔克布克將關閉以套用新圖示。',
   'appearance.changeIcon': '變更圖示',
+  'festive.promptTitle': '想要節日氣氛嗎？',
+  'festive.promptMessage': '塔克布克為這個節日季準備了節日圖示和主題。',
+  'festive.takeALook': '看一看',
+  'festive.notNow': '暫不',
+  'festive.switchBackTitle': '恢復平常的外觀？',
+  'festive.switchBackMessage': '切換回節日前使用的主題和圖示。',
+  'festive.switchBack': '切換回去',
+  'festive.keepIt': '保留',
 
   // Settings - Typography
   'typography.typography': '排版',

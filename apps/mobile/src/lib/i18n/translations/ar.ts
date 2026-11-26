@@ -308,6 +308,14 @@ export const ar: Translations = {
   'appearance.changeAppIconTitle': 'تغيير أيقونة التطبيق؟',
   'appearance.changeAppIconMessage': 'سيُغلق تاكبوك لتطبيق الأيقونة الجديدة.',
   'appearance.changeIcon': 'تغيير الأيقونة',
+  'festive.promptTitle': 'أجواء احتفالية؟',
+  'festive.promptMessage': 'لدى تاكبوك أيقونة وسمة احتفاليتان لموسم الأعياد.',
+  'festive.takeALook': 'إلقاء نظرة',
+  'festive.notNow': 'ليس الآن',
+  'festive.switchBackTitle': 'العودة إلى مظهرك المعتاد؟',
+  'festive.switchBackMessage': 'ارجع إلى السمة والأيقونة اللتين كانتا لديك قبل الأعياد.',
+  'festive.switchBack': 'العودة',
+  'festive.keepIt': 'الإبقاء عليه',
 
   // Settings - Typography
   'typography.typography': 'الخطوط',

@@ -326,6 +326,19 @@ export const en = {
   'appearance.changeAppIconTitle': 'Change app icon?',
   'appearance.changeAppIconMessage': 'Tackbok will close to apply the new icon.',
   'appearance.changeIcon': 'Change icon',
+  // "Feeling festive?" asks once per season (1–26 Dec) whether to look at the
+  // holiday theme and icon; "Take a look" opens Appearance settings.
+  'festive.promptTitle': 'Feeling festive?',
+  'festive.promptMessage': 'Tackbok has a holiday icon and theme for the season.',
+  'festive.takeALook': 'Take a look',
+  'festive.notNow': 'Not now',
+  // From 2 Jan, offered only to people who switched after "Take a look": restores
+  // the theme and icon they had before.
+  'festive.switchBackTitle': 'Back to your usual look?',
+  'festive.switchBackMessage':
+    'Switch back to the theme and icon you had before the holidays.',
+  'festive.switchBack': 'Switch back',
+  'festive.keepIt': 'Keep it',
 
   // Settings - Typography
   'typography.typography': 'Typography',

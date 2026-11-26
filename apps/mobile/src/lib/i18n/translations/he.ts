@@ -309,6 +309,14 @@ export const he: Translations = {
   'appearance.changeAppIconTitle': 'לשנות את סמל האפליקציה?',
   'appearance.changeAppIconMessage': 'טאקבוק ייסגר כדי להחיל את הסמל החדש.',
   'appearance.changeIcon': 'שינוי הסמל',
+  'festive.promptTitle': 'בא לך אווירת חג?',
+  'festive.promptMessage': 'לטאקבוק יש סמל וערכת נושא חגיגיים לעונה.',
+  'festive.takeALook': 'להציץ',
+  'festive.notNow': 'לא עכשיו',
+  'festive.switchBackTitle': 'לחזור למראה הרגיל?',
+  'festive.switchBackMessage': 'חזרה לערכת הנושא ולסמל שהיו לפני החגים.',
+  'festive.switchBack': 'לחזור',
+  'festive.keepIt': 'להשאיר',
 
   // Settings - Typography
   'typography.typography': 'טיפוגרפיה',
