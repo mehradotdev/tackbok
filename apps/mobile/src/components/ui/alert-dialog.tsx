@@ -1,5 +1,12 @@
 import * as React from 'react';
-import { View, type ViewProps } from 'react-native';
+import {
+  ScrollView,
+  useWindowDimensions,
+  View,
+  type ScrollViewProps,
+  type ViewProps,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Timer } from 'lucide-react-native';
 import { cn } from 'tailwind-variants';
 import * as AlertDialogPrimitive from '~/components/primitives/alert-dialog';
@@ -24,11 +31,19 @@ function AlertDialogOverlay({
   children?: React.ReactNode;
 }) {
   const { dismissible = true, onOpenChange } = AlertDialogPrimitive.useRootContext();
+  const insets = useSafeAreaInsets();
+  // Keep a tall dialog clear of the notch and home indicator. The padding is
+  // symmetric so a dialog that fits stays centred exactly where it was.
+  const frameInsets = {
+    paddingVertical: Math.max(insets.top, insets.bottom, 8),
+    paddingHorizontal: Math.max(insets.left, insets.right, 8),
+  };
 
   return (
     <DialogOverlayFrame
       androidOverlayStrategy={androidOverlayStrategy}
       animatedContainerClassName="z-50"
+      contentContainerStyle={frameInsets}
       onRequestClose={() => {
         if (dismissible) {
           onOpenChange(false);
@@ -62,7 +77,7 @@ function AlertDialogContent({
       <AlertDialogOverlay androidOverlayStrategy={androidOverlayStrategy}>
         <AlertDialogPrimitive.Content
           className={cn(
-            'bg-background border-border z-50 flex flex-col gap-4 rounded-xl border-theme p-6 shadow-theme sm:max-w-lg',
+            'bg-background border-border z-50 flex max-h-full flex-col gap-4 rounded-xl border-theme p-6 shadow-theme sm:max-w-lg',
             className,
           )}
           {...props}
@@ -72,10 +87,19 @@ function AlertDialogContent({
   );
 }
 
-function AlertDialogHeader({ className, ...props }: ViewProps) {
+/**
+ * Scrolls when the title and description are taller than the space left by
+ * the footer (large accessibility text sizes), so the buttons stay reachable.
+ */
+function AlertDialogHeader({ className, ...props }: ScrollViewProps) {
   return (
     <TextClassContext.Provider value="text-center sm:text-left">
-      <View className={cn('flex flex-col gap-2', className)} {...props} />
+      <ScrollView
+        className="shrink grow-0"
+        contentContainerClassName={cn('flex flex-col gap-2', className)}
+        alwaysBounceVertical={false}
+        {...props}
+      />
     </TextClassContext.Provider>
   );
 }
@@ -113,14 +137,29 @@ function AlertDialogDescription({
   );
 }
 
+/**
+ * Above the default text size, lets footer buttons grow and wrap their labels
+ * instead of clipping them at the fixed button height. Gated on fontScale so
+ * the default size renders exactly as before. Kept apart from the caller's
+ * className, which also styles the label through TextClassContext.
+ */
+function useLargeTextButtonClasses() {
+  const { fontScale } = useWindowDimensions();
+  return fontScale > 1
+    ? { button: 'h-auto min-h-10 py-2', text: 'shrink text-center' }
+    : { button: undefined, text: undefined };
+}
+
 function AlertDialogAction({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
+  const largeText = useLargeTextButtonClasses();
   return (
-    <TextClassContext.Provider value={buttonTextVariants({ className })}>
+    <TextClassContext.Provider
+      value={cn(buttonTextVariants({ className }), largeText.text)}>
       <AlertDialogPrimitive.Action
-        className={cn(buttonVariants(), className)}
+        className={cn(buttonVariants(), largeText.button, className)}
         {...props}
       />
     </TextClassContext.Provider>
@@ -165,25 +204,28 @@ function AlertDialogDestructiveAction({
   }, [delaySeconds]);
 
   const isDelayed = delaySeconds != null && delaySeconds > 0 && countdown > 0;
+  const largeText = useLargeTextButtonClasses();
 
   return (
-    <TextClassContext.Provider value={buttonTextVariants({ variant: 'destructive' })}>
+    <TextClassContext.Provider
+      value={cn(buttonTextVariants({ variant: 'destructive' }), largeText.text)}>
       <AlertDialogPrimitive.Action
         className={cn(
           buttonVariants({ variant: 'destructive' }),
+          largeText.button,
           (disabled || isDelayed) && 'opacity-50',
           className,
         )}
         disabled={disabled || isDelayed}
         {...props}>
         {delaySeconds != null ? (
-          <View className="flex-row items-center justify-center gap-0.5">
+          <View className="shrink flex-row items-center justify-center gap-0.5">
             {children}
             {isDelayed && (
               <>
-                <Text>(</Text>
+                <Text className="shrink-0">(</Text>
                 <Icon as={Timer} size={14} className="text-destructive-foreground" />
-                <Text>{countdown})</Text>
+                <Text className="shrink-0">{countdown})</Text>
               </>
             )}
           </View>
@@ -199,11 +241,16 @@ function AlertDialogCancel({
   className,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
+  const largeText = useLargeTextButtonClasses();
   return (
     <TextClassContext.Provider
-      value={buttonTextVariants({ className, variant: 'outline' })}>
+      value={cn(buttonTextVariants({ className, variant: 'outline' }), largeText.text)}>
       <AlertDialogPrimitive.Cancel
-        className={cn(buttonVariants({ variant: 'outline' }), className)}
+        className={cn(
+          buttonVariants({ variant: 'outline' }),
+          largeText.button,
+          className,
+        )}
         {...props}
       />
     </TextClassContext.Provider>
