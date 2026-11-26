@@ -51,9 +51,9 @@ import {
 } from '~/lib/cloudSync/runtime';
 SplashScreen.preventAutoHideAsync();
 
-// Hide the native splash once the first JS screen (or the launch animation,
-// which starts on the same frame) has laid out, so the hand-off never shows a
-// bare window background.
+// Hide the native splash once the first JS screen (or the launch overlay, whose
+// plain logo matches the native splash until the animation starts) has laid
+// out, so the hand-off never shows a bare window background.
 let splashHidden = false;
 function hideSplash() {
   if (splashHidden) return;
