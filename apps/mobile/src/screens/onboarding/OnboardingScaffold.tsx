@@ -73,7 +73,8 @@ export function OnboardingScaffold({
             accessibilityLabel={t('onboarding.stepCurrentOfTotal', {
               current: step,
               total: ONBOARDING_STEP_COUNT,
-            })}>
+            })}
+            accessibilityValue={{ min: 1, max: ONBOARDING_STEP_COUNT, now: step }}>
             {Array.from({ length: ONBOARDING_STEP_COUNT }, (_, index) => (
               <View
                 key={index}

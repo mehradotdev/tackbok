@@ -189,7 +189,11 @@ export default function OnboardingFinishScreen() {
               className="flex-col items-stretch bg-card rounded-lg border border-border p-4">
               <View className="flex-row items-start justify-between">
                 <Icon as={Sparkles} className="text-foreground size-6" />
-                <View pointerEvents="none">
+                <View
+                  pointerEvents="none"
+                  // The card itself is the switch; hide this one from screen readers.
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants">
                   <Switch checked={addSampleEntries} />
                 </View>
               </View>
@@ -204,17 +208,22 @@ export default function OnboardingFinishScreen() {
 
           {/* Daily reminder opt-in. The time button sits beside the switch, not
               inside it, so screen readers can reach it. */}
-          <View className="bg-card rounded-lg border border-border">
+          <View className="bg-card rounded-lg border border-border overflow-hidden">
             <Button
               variant="ghost"
               size="none"
               onPress={() => void handleReminderToggle()}
               accessibilityRole="switch"
               accessibilityState={{ checked: dailyReminderEnabled }}
-              className="flex-col items-stretch rounded-lg p-4">
+              // The card's border stays put, so its content doesn't shrink on press.
+              className="flex-col items-stretch p-4 active:scale-100 active:translate-y-0">
               <View className="flex-row items-start justify-between">
                 <Icon as={Bell} className="text-foreground size-6" />
-                <View pointerEvents="none">
+                <View
+                  pointerEvents="none"
+                  // The card itself is the switch; hide this one from screen readers.
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants">
                   <Switch checked={dailyReminderEnabled} />
                 </View>
               </View>
@@ -230,6 +239,7 @@ export default function OnboardingFinishScreen() {
                 variant="secondary"
                 size="sm"
                 onPress={() => setShowTimePickerModal(true)}
+                hitSlop={8}
                 className="self-start mx-4 mb-4 -mt-1">
                 <Text className="text-sm">
                   {t('onboarding.remindMeAtTime', { time: formatTime(reminderTime) })}
