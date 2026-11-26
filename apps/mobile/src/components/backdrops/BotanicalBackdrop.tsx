@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import {
   Canvas,
   Circle,
@@ -10,18 +10,10 @@ import {
   Rect,
   vec,
 } from 'react-native-skia';
-import { useFocusEffect } from 'expo-router';
-import {
-  Easing,
-  cancelAnimation,
-  useDerivedValue,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { useDerivedValue } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
+import { easeInOutQuad, pingPong } from './loop-phase';
+import { useForwardTime } from './scene-kit';
 
 const SKYLIGHT_OPACITY = 0.12;
 const DAPPLE_OPACITY = 0.12;
@@ -31,8 +23,8 @@ const FERN_OPACITY = 0.34;
 const CLUSTER_OPACITY = 0.46;
 const HANGING_OPACITY = 0.42;
 const BERRY_OPACITY = 0.6;
-const DRIFT_DURATION_MS = 36000;
-const SWAY_DURATION_MS = 4500;
+const DRIFT_HALF_PERIOD_S = 36;
+const SWAY_PERIOD_S = 9;
 
 /** Filled lens-shaped leaf growing from (px, py) toward `angle`. */
 function leaf(px: number, py: number, angle: number, length: number): string {
@@ -106,65 +98,21 @@ function buildFrond(
  */
 export function BotanicalBackdrop({ preview = false }: { preview?: boolean }) {
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
-  const reducedMotion = useReducedMotion();
-
   const [primary, ring, accent] = useCSSVariable([
     '--color-primary',
     '--color-ring',
     '--color-accent',
   ]) as [string | undefined, string | undefined, string | undefined];
 
-  // 0 → 1 → 0 phases driving the dapple drift and the hanging-sprig sway;
-  // they run only while the screen is focused.
-  const drift = useSharedValue(0);
-  const sway = useSharedValue(0.5);
-  useFocusEffect(
-    useCallback(() => {
-      const stop = () => {
-        cancelAnimation(drift);
-        cancelAnimation(sway);
-      };
-      if (preview || reducedMotion) {
-        stop();
-        drift.value = 0;
-        sway.value = 0.5;
-        return stop;
-      }
-      const start = () => {
-        stop();
-        drift.value = withRepeat(
-          withTiming(1, {
-            duration: DRIFT_DURATION_MS,
-            easing: Easing.inOut(Easing.quad),
-          }),
-          -1,
-          true,
-        );
-        sway.value = withSequence(
-          withTiming(1, {
-            duration: SWAY_DURATION_MS / 2,
-            easing: Easing.out(Easing.sin),
-          }),
-          withRepeat(
-            withTiming(0, {
-              duration: SWAY_DURATION_MS,
-              easing: Easing.inOut(Easing.sin),
-            }),
-            -1,
-            true,
-          ),
-        );
-      };
-      if (AppState.currentState === 'active') start();
-      const subscription = AppState.addEventListener('change', (state) => {
-        if (state === 'active') start();
-        else stop();
-      });
-      return () => {
-        subscription.remove();
-        stop();
-      };
-    }, [preview, reducedMotion, drift, sway]),
+  // 0 → 1 → 0 phases driving the dapple drift and the hanging-sprig sway
+  // (sway rests at 0.5); they run only while the screen is focused and stay
+  // still for previews and Reduce Motion.
+  const time = useForwardTime(preview);
+  const drift = useDerivedValue(() =>
+    easeInOutQuad(pingPong(time.value, DRIFT_HALF_PERIOD_S)),
+  );
+  const sway = useDerivedValue(
+    () => 0.5 + 0.5 * Math.sin((2 * Math.PI * time.value) / SWAY_PERIOD_S),
   );
 
   const dapple1 = useDerivedValue(() =>
