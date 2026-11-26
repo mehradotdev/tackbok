@@ -667,7 +667,7 @@ export function SettingsBottomSheet() {
               <Text>{t('profile.removePhoto')}</Text>
             </AlertDialogDestructiveAction>
             <AlertDialogAction onPress={handlePickNewPhoto}>
-              <Icon as={ImagePlus} className="text-primary-foreground" size={16} />
+              <Icon as={ImagePlus} className="text-background" size={16} />
               <Text>{t('profile.updatePhoto')}</Text>
             </AlertDialogAction>
           </AlertDialogFooter>

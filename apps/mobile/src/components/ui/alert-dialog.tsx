@@ -34,9 +34,15 @@ function AlertDialogOverlay({
   const insets = useSafeAreaInsets();
   // Keep a tall dialog clear of the notch and home indicator. The padding is
   // symmetric so a dialog that fits stays centred exactly where it was.
+  // Per-side values, because per-side padding (which `p-2` may compile to)
+  // outranks paddingVertical/paddingHorizontal in Yoga.
+  const vertical = Math.max(insets.top, insets.bottom, 8);
+  const horizontal = Math.max(insets.left, insets.right, 8);
   const frameInsets = {
-    paddingVertical: Math.max(insets.top, insets.bottom, 8),
-    paddingHorizontal: Math.max(insets.left, insets.right, 8),
+    paddingTop: vertical,
+    paddingBottom: vertical,
+    paddingLeft: horizontal,
+    paddingRight: horizontal,
   };
 
   return (
@@ -146,8 +152,13 @@ function AlertDialogDescription({
 function useLargeTextButtonClasses() {
   const { fontScale } = useWindowDimensions();
   return fontScale > 1
-    ? { button: 'h-auto min-h-10 py-2', text: 'shrink text-center' }
-    : { button: undefined, text: undefined };
+    ? {
+        button: 'h-auto min-h-10 shrink py-2',
+        text: 'shrink text-center',
+        group: 'shrink',
+        fixed: 'shrink-0',
+      }
+    : { button: undefined, text: undefined, group: undefined, fixed: undefined };
 }
 
 function AlertDialogAction({
@@ -219,13 +230,17 @@ function AlertDialogDestructiveAction({
         disabled={disabled || isDelayed}
         {...props}>
         {delaySeconds != null ? (
-          <View className="shrink flex-row items-center justify-center gap-0.5">
+          <View
+            className={cn(
+              'flex-row items-center justify-center gap-0.5',
+              largeText.group,
+            )}>
             {children}
             {isDelayed && (
               <>
-                <Text className="shrink-0">(</Text>
+                <Text className={largeText.fixed}>(</Text>
                 <Icon as={Timer} size={14} className="text-destructive-foreground" />
-                <Text className="shrink-0">{countdown})</Text>
+                <Text className={largeText.fixed}>{countdown})</Text>
               </>
             )}
           </View>
