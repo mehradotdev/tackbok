@@ -105,11 +105,14 @@ export function SettingsImportProgressModal({
           ) : null}
 
           <View className="flex-row items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2.5">
-            <Icon
-              as={TriangleAlert}
-              strokeWidth={2}
-              className="mt-0.5 size-4 text-destructive"
-            />
+            {/* Icon only maps size and colour from className, so the margin sits on a View. */}
+            <View className="mt-0.5">
+              <Icon
+                as={TriangleAlert}
+                strokeWidth={2}
+                className="size-4 text-destructive"
+              />
+            </View>
             <Text className="flex-1 text-xs leading-4.5 text-muted-foreground">
               {t('backup.pleaseDoNotCloseOrMinimizeTheAppWhileThe')}
             </Text>
