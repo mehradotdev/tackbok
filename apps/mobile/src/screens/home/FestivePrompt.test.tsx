@@ -200,7 +200,13 @@ it('switches back in January, saving the theme before the icon closes the app', 
   expect(text()).toEqual(['festive.keepIt', 'festive.switchBack']);
   await press('AlertDialogAction');
   expect(mockCalls).toEqual(['theme:ocean', 'flush', 'icon:Sage']);
+  // Forgotten on the next return, once the festive look is really gone.
+  expect(mockSettings.festiveSwitch).toBe(lastSeason);
+  mockIcon.current = 'Sage';
+  leave();
+  await focus();
   expect(mockSettings.festiveSwitch).toBeNull();
+  expect(dialog().props.open).toBe(false);
 });
 
 it('restores only the theme when the icon is no longer festive', async () => {

@@ -283,7 +283,7 @@ export const sv = {
   'festive.notNow': 'Inte nu',
   'festive.switchBackTitle': 'Tillbaka till ditt vanliga utseende?',
   'festive.switchBackMessage':
-    'Byt tillbaka till temat och ikonen du hade före helgerna.',
+    'Byt tillbaka till temat och ikonen du hade före högtiderna.',
   'festive.switchBack': 'Byt tillbaka',
   'festive.keepIt': 'Behåll',
   'typography.typography': 'Typografi',

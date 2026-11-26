@@ -122,8 +122,9 @@ export function FestivePrompt() {
     if (prompt?.kind !== 'switchBack') return;
     const { theme, icon } = prompt;
     setPrompt(null);
+    // The saved look stays until the festive look is really gone: the next return
+    // to Home forgets it, or offers again if the icon change failed.
     const settings = useSettingsStore.getState();
-    settings.setFestiveSwitch(null);
     if (theme) settings.setTheme(theme);
     if (icon) {
       // Android closes the app to change the icon: save the theme first.
