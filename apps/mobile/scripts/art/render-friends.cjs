@@ -1,6 +1,6 @@
-// Render the Denise and Giuseppe shader scenes at phone/landscape/picker sizes
-// and check body-text contrast against every background pixel. Denise must stay
-// at or above 4.5:1; Giuseppe (lit cairn and sun glow, about 2:1 and 3:1) is
+// Render the Denise, Giuseppe and Kristen shader scenes at phone/iPad/landscape/
+// picker sizes and check body-text contrast against every background pixel.
+// Denise and Kristen must stay at or above 4.5:1; Giuseppe (lit cairn and sun glow, about 2:1 and 3:1) is
 // reported only, because the owner kept it as is (2026-11-26).
 const fs = require('fs'),
   path = require('path'),
@@ -36,10 +36,14 @@ for (const ext of ['.ts', '.tsx'])
   const shaders = {
     ...require(backdrops + 'denise-shader.ts'),
     ...require(backdrops + 'giuseppe-shader.ts'),
+    ...require(backdrops + 'kristen-shader.ts'),
   };
-  const { THEME_DEFINITIONS, DENISE_PALETTE, GIUSEPPE_PALETTE } = require(
-    root + '/apps/mobile/src/lib/theme/theme-tokens.ts',
-  );
+  const {
+    THEME_DEFINITIONS,
+    DENISE_PALETTE,
+    GIUSEPPE_PALETTE,
+    KRISTEN_PALETTE,
+  } = require(root + '/apps/mobile/src/lib/theme/theme-tokens.ts');
   const fx = {};
   for (const name of [
     'DENISE_SCENE',
@@ -47,6 +51,8 @@ for (const ext of ['.ts', '.tsx'])
     'GIUSEPPE_LAKE',
     'GIUSEPPE_BOKEH',
     'GIUSEPPE_CAIRN',
+    'KRISTEN_SCENE',
+    'KRISTEN_MIST',
   ]) {
     fx[name] = Skia.RuntimeEffect.Make(shaders[name]);
     if (!fx[name]) throw Error(name + ' failed to compile');
@@ -69,12 +75,14 @@ for (const ext of ['.ts', '.tsx'])
 
   for (const [size, width, height] of [
     ['phone', 390, 790],
+    ['ipad', 820, 1180],
     ['landscape', 1180, 720],
     ['picker', 160, 210],
   ]) {
     for (const time of [0, 30]) {
       const d = tokens('denise');
       const g = tokens('giuseppe');
+      const k = tokens('kristen');
       const scenes = [
         {
           name: 'denise',
@@ -153,6 +161,40 @@ for (const ext of ['.ts', '.tsx'])
               0,
               width,
               height,
+            ),
+          ],
+        },
+        {
+          name: 'kristen',
+          foreground: k['--color-foreground'],
+          minimum: 4.5,
+          tree: [
+            layer(
+              fx.KRISTEN_SCENE,
+              {
+                size: [width, height],
+                sky: rgb(k['--color-background']),
+                skyTop: rgb(KRISTEN_PALETTE.skyTop),
+                granite: rgb(KRISTEN_PALETTE.granite),
+                shade: rgb(KRISTEN_PALETTE.shade),
+                streak: rgb(KRISTEN_PALETTE.streak),
+                pine: rgb(KRISTEN_PALETTE.pine),
+                haze: rgb(KRISTEN_PALETTE.haze),
+                sun: rgb(KRISTEN_PALETTE.sun),
+                ink: rgb(k['--color-foreground']),
+              },
+              0,
+              0,
+              width,
+              height,
+            ),
+            layer(
+              fx.KRISTEN_MIST,
+              { size: [width, height], time, haze: rgb(KRISTEN_PALETTE.haze) },
+              0,
+              height * 0.62,
+              width,
+              height * 0.38,
             ),
           ],
         },

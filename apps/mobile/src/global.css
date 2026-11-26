@@ -438,6 +438,40 @@
     }
 
     /* ═══════════════════════════════════════════
+       KRISTEN — A granite dome above a misty pine valley
+       ═══════════════════════════════════════════ */
+    @variant kristen {
+      --color-background: #ece6dc;
+      --color-foreground: #2a2f35;
+      --color-card: #f4f0ea;
+      --color-card-foreground: #2a2f35;
+      --color-popover: #f8f5f0;
+      --color-popover-foreground: #2a2f35;
+      --color-primary: #3f5e4c;
+      --color-primary-foreground: #f4f1ea;
+      --color-secondary: #e0d9cd;
+      --color-secondary-foreground: #2a2f35;
+      --color-muted: #e0d9cd;
+      --color-muted-foreground: #5b5852;
+      --color-accent: #d3cbbd;
+      --color-accent-foreground: #2a2f35;
+      --color-destructive: #a8443a;
+      --color-destructive-foreground: #ffffff;
+      --color-border: #cbc2b4;
+      --color-input: #ddd6ca;
+      --color-ring: #5d7a68;
+      --color-active-overlay: rgba(42, 47, 53, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 6px 16px 0 rgba(42, 47, 53, 0.1);
+      --font-heading: 'Figtree_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
        PINE-NIGHT — Snow falling on a moonlit pine valley
        ═══════════════════════════════════════════ */
     @variant pine-night {

@@ -144,6 +144,15 @@ export const THEMES = [
     "defaultTitleFontId": "lora"
   },
   {
+    "id": "kristen",
+    "name": "Kristen",
+    "description": "A granite dome above a misty pine valley",
+    "variant": "light",
+    "enableTimelineBorders": false,
+    "backdropId": "kristen",
+    "defaultTitleFontId": "figtree"
+  },
+  {
     "id": "pine-night",
     "name": "Pine Night",
     "description": "Snow falling on a moonlit pine valley",

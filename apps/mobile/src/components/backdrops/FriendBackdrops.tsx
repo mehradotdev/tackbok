@@ -13,9 +13,14 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
-import { DENISE_PALETTE, GIUSEPPE_PALETTE } from '~/lib/theme/theme-tokens';
+import {
+  DENISE_PALETTE,
+  GIUSEPPE_PALETTE,
+  KRISTEN_PALETTE,
+} from '~/lib/theme/theme-tokens';
 import { DENISE_MIST, DENISE_SCENE } from './denise-shader';
 import { GIUSEPPE_BOKEH, GIUSEPPE_CAIRN, GIUSEPPE_LAKE } from './giuseppe-shader';
+import { KRISTEN_MIST, KRISTEN_SCENE } from './kristen-shader';
 import { MeasuredHost, rgb, useShaderTexture, type Size } from './scene-kit';
 
 const deniseScene = Skia.RuntimeEffect.Make(DENISE_SCENE);
@@ -23,6 +28,8 @@ const deniseMist = Skia.RuntimeEffect.Make(DENISE_MIST);
 const giuseppeLake = Skia.RuntimeEffect.Make(GIUSEPPE_LAKE);
 const giuseppeCairn = Skia.RuntimeEffect.Make(GIUSEPPE_CAIRN);
 const giuseppeBokeh = Skia.RuntimeEffect.Make(GIUSEPPE_BOKEH);
+const kristenScene = Skia.RuntimeEffect.Make(KRISTEN_SCENE);
+const kristenMist = Skia.RuntimeEffect.Make(KRISTEN_MIST);
 
 /** Seconds of drift before the motion eases back; slow enough to feel ambient. */
 const CYCLE = 60;
@@ -181,6 +188,58 @@ function GiuseppeScene({ width, height, preview }: Size & { preview: boolean }) 
         </Rect>
       )}
       <Image image={cairn} {...corner} fit="fill" />
+    </Canvas>
+  );
+}
+
+export function KristenBackdrop({ preview = false }: { preview?: boolean }) {
+  return (
+    <MeasuredHost>{(size) => <KristenScene {...size} preview={preview} />}</MeasuredHost>
+  );
+}
+
+function KristenScene({ width, height, preview }: Size & { preview: boolean }) {
+  const [background, foreground] = useCSSVariable([
+    '--color-background',
+    '--color-foreground',
+  ]);
+  const time = useAmbientTime(preview);
+  const sky = typeof background === 'string' ? background : KRISTEN_PALETTE.haze;
+  const ink = typeof foreground === 'string' ? foreground : KRISTEN_PALETTE.pine;
+  const scene = useMemo(
+    () => ({
+      size: [width, height],
+      sky: rgb(sky),
+      skyTop: rgb(KRISTEN_PALETTE.skyTop),
+      granite: rgb(KRISTEN_PALETTE.granite),
+      shade: rgb(KRISTEN_PALETTE.shade),
+      streak: rgb(KRISTEN_PALETTE.streak),
+      pine: rgb(KRISTEN_PALETTE.pine),
+      haze: rgb(KRISTEN_PALETTE.haze),
+      sun: rgb(KRISTEN_PALETTE.sun),
+      ink: rgb(ink),
+    }),
+    [width, height, sky, ink],
+  );
+  const full = useMemo(() => ({ x: 0, y: 0, width, height }), [width, height]);
+  const texture = useShaderTexture(kristenScene, scene, full, PixelRatio.get());
+  const mist = useDerivedValue(() => ({
+    size: scene.size,
+    time: time.value,
+    haze: scene.haze,
+  }));
+
+  return (
+    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* The theme colour shows until the texture is ready, or if the shader fails. */}
+      <Rect x={0} y={0} width={width} height={height} color={sky} />
+      <Image image={texture} x={0} y={0} width={width} height={height} fit="fill" />
+      {kristenMist && (
+        // The mist bands centre on 0.73 and 0.84 of the height (see KRISTEN_MIST).
+        <Rect x={0} y={height * 0.62} width={width} height={height * 0.38}>
+          <Shader source={kristenMist} uniforms={mist} />
+        </Rect>
+      )}
     </Canvas>
   );
 }

@@ -521,6 +521,41 @@ export const THEME_DEFINITIONS = [
     },
   },
   {
+    id: 'kristen',
+    name: 'Kristen',
+    description: 'A granite dome above a misty pine valley',
+    variant: 'light',
+    enableTimelineBorders: false,
+    backdropId: 'kristen',
+    defaultTitleFontId: 'figtree',
+    bodyFontPackId: 'inter',
+    tokens: {
+      '--color-background': '#ece6dc',
+      '--color-foreground': '#2a2f35',
+      '--color-card': '#f4f0ea',
+      '--color-card-foreground': '#2a2f35',
+      '--color-popover': '#f8f5f0',
+      '--color-popover-foreground': '#2a2f35',
+      '--color-primary': '#3f5e4c',
+      '--color-primary-foreground': '#f4f1ea',
+      '--color-secondary': '#e0d9cd',
+      '--color-secondary-foreground': '#2a2f35',
+      '--color-muted': '#e0d9cd',
+      '--color-muted-foreground': '#5b5852',
+      '--color-accent': '#d3cbbd',
+      '--color-accent-foreground': '#2a2f35',
+      '--color-destructive': '#a8443a',
+      '--color-destructive-foreground': '#ffffff',
+      '--color-border': '#cbc2b4',
+      '--color-input': '#ddd6ca',
+      '--color-ring': '#5d7a68',
+      '--color-active-overlay': 'rgba(42, 47, 53, 0.1)',
+      '--theme-radius': '12px',
+      '--theme-border-width': '1px',
+      '--theme-shadow': '0 6px 16px 0 rgba(42, 47, 53, 0.1)',
+    },
+  },
+  {
     id: 'pine-night',
     name: 'Pine Night',
     description: 'Snow falling on a moonlit pine valley',
@@ -1007,6 +1042,16 @@ export const GIUSEPPE_PALETTE = {
   warm: '#e3a35c',
   stoneA: '#ba8a54',
   stoneB: '#8c8c87',
+} as const;
+
+export const KRISTEN_PALETTE = {
+  skyTop: '#bfd2e2',
+  granite: '#efe7da',
+  shade: '#8a93a1',
+  streak: '#6d675e',
+  pine: '#2e4a3c',
+  haze: '#e6e2da',
+  sun: '#ffdcae',
 } as const;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
