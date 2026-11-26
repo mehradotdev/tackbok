@@ -33,8 +33,16 @@ jest.mock('react-native', () => ({
   View: 'View',
   ScrollView: 'ScrollView',
   Platform: { OS: 'ios' },
-  AppState: { currentState: 'active' },
+  AppState: {
+    currentState: 'active',
+    addEventListener: (_: string, listener: (state: string) => void) => {
+      mockAppStateListeners.add(listener);
+      return { remove: () => mockAppStateListeners.delete(listener) };
+    },
+  },
 }));
+const mockAppStateListeners = new Set<(state: string) => void>();
+let mockPresentFails = false;
 /** Open as the native sheet sees it; dismiss() reports back like a swipe down. */
 let mockSheetOpen = false;
 jest.mock('@lodev09/react-native-true-sheet', () => {
@@ -49,6 +57,7 @@ jest.mock('@lodev09/react-native-true-sheet', () => {
   ) {
     useImperativeHandle(ref, () => ({
       present: async () => {
+        if (mockPresentFails) throw new Error('could not present');
         mockSheetOpen = true;
       },
       dismiss: async () => {
@@ -168,6 +177,8 @@ beforeEach(async () => {
   mockIcon.current = 'Sage';
   mockTipsShowing = false;
   mockSheetOpen = false;
+  mockPresentFails = false;
+  mockSettings.biometricUnlockEnabled = false;
   mockCalls.length = 0;
   mockPush.mockClear();
   await act(async () => {
@@ -304,4 +315,30 @@ it("drops last season's look and suggests this season's", async () => {
   expect(mockSettings.festiveSwitch).toBeNull();
   expect(mockSettings.festivePromptSeason).toBe('winter-holidays-2027');
   expect(labels()).toEqual(['festive.takeALook', 'festive.notNow']);
+});
+
+it('closes as the app leaves the foreground when the app lock is on', async () => {
+  // Unlocked, so the prompt may show.
+  mockSettings.biometricUnlockEnabled = true;
+  await focus();
+  leave();
+  await focus();
+  expect(isOpen()).toBe(true);
+  await act(async () => {
+    for (const listener of mockAppStateListeners) listener('inactive');
+  });
+  expect(isOpen()).toBe(false);
+});
+
+it('can show again after a present that failed', async () => {
+  mockPresentFails = true;
+  await focus();
+  leave();
+  await focus();
+  expect(isOpen()).toBe(false);
+  mockPresentFails = false;
+  mockSettings.festivePromptSeason = null;
+  leave();
+  await focus();
+  expect(isOpen()).toBe(true);
 });

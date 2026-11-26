@@ -75,10 +75,10 @@ export function FestivePrompt() {
 
   /** Closes the sheet. A present still pending is cancelled without
    *  `onDidDismiss`, so the prompt is cleared here too. */
-  const close = async () => {
+  const close = async (animated = true) => {
     if (!open.current) return;
     open.current = false;
-    await sheet.current?.dismiss().catch(() => {});
+    await sheet.current?.dismiss(animated).catch(() => {});
     setPrompt(null);
   };
   // Home's first focus is the app opening; later ones are returns from elsewhere.
@@ -130,7 +130,22 @@ export function FestivePrompt() {
   useEffect(() => {
     if (!prompt || open.current) return;
     open.current = true;
-    sheet.current?.present().catch(() => {});
+    sheet.current?.present().catch(() => {
+      open.current = false;
+      setPrompt(null);
+    });
+  }, [prompt]);
+
+  // The app lock's cover is a native modal, which can't present over a sheet:
+  // close the sheet as the app leaves the foreground so the cover can show.
+  useEffect(() => {
+    if (!prompt) return;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' && useSettingsStore.getState().biometricUnlockEnabled) {
+        void close(false);
+      }
+    });
+    return () => subscription.remove();
   }, [prompt]);
 
   const takeALook = async () => {
@@ -177,7 +192,7 @@ export function FestivePrompt() {
     prompt?.kind === 'switchBack' && prompt.icon && appIconChangeClosesApp;
 
   const buttons = prompt ? (
-    <View className="bg-background w-full gap-2 px-6 pb-2 pt-5">
+    <View className="bg-background w-full max-w-lg gap-2 self-center px-6 pb-2 pt-5">
       {/* Labels can wrap at large text sizes. */}
       <Button
         variant="primary"
@@ -224,7 +239,8 @@ export function FestivePrompt() {
       maxContentWidth={Platform.OS === 'android' ? 480 : undefined}>
       <ScrollView ref={scrollRef} className="bg-background">
         {prompt ? (
-          <View className="items-center px-6 pt-9">
+          // A readable width on iPad, where the sheet spans the page.
+          <View className="w-full max-w-lg items-center self-center px-6 pt-9">
             {tile ? (
               <View
                 className="pb-4"
@@ -233,7 +249,7 @@ export function FestivePrompt() {
                 <AppIconTile name={tile} size={84} />
               </View>
             ) : null}
-            <Text variant="h3" role="heading" className="text-center text-foreground">
+            <Text variant="h3" className="text-center text-foreground">
               {suggest ? t('festive.promptTitle') : t('festive.switchBackTitle')}
             </Text>
             <Text className="mt-2 text-center text-base text-muted-foreground">
