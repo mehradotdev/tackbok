@@ -628,6 +628,7 @@ export const zhCN: Translations = {
   'onboarding.youreAllSet': '一切就绪！',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     '最后还有两项可以开启 — 都是可选的。',
+  'onboarding.appIconAppearsAfterLeaving': '离开 Tackbok 后，新图标就会出现。',
   'onboarding.finish.oneOptionalThing': '最后还有一项可以开启 — 是可选的。',
   'onboarding.addExampleEntries': '添加示例日记',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':

@@ -646,6 +646,7 @@ export const ar: Translations = {
   'onboarding.youreAllSet': 'كل شيء جاهز!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'أمران أخيران يمكنك تفعيلهما — كلاهما اختياري.',
+  'onboarding.appIconAppearsAfterLeaving': 'سيظهر رمزك الجديد بعد أن تغادر Tackbok.',
   'onboarding.finish.oneOptionalThing': 'أمر أخير يمكنك تفعيله — وهو اختياري.',
   'onboarding.addExampleEntries': 'إضافة مدخلات تجريبية',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':

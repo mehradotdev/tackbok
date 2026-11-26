@@ -673,6 +673,8 @@ export const en = {
   'onboarding.youreAllSet': 'You’re all set!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Two last things you can turn on. Both are optional.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Your new icon appears after you leave Tackbok.',
   'onboarding.finish.oneOptionalThing': 'One last thing you can turn on. It’s optional.',
   'onboarding.addExampleEntries': 'Add example entries',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':

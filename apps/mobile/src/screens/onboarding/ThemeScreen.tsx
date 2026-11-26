@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { useEffect } from 'react';
+import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import * as Haptics from 'expo-haptics';
@@ -9,6 +10,12 @@ import { SHEET_NAMES, MOOD_EMOJI } from '~/constants';
 import { useTranslation } from '~/lib/i18n';
 import { useSettingsStore } from '~/lib/settings';
 import { track } from '~/lib/analytics';
+import {
+  APP_ICON_CHOICES,
+  canChooseIconInOnboarding,
+  useAppIconStore,
+  type AppIconName,
+} from '~/lib/appIcon';
 import { getThemeConfig, type ThemeConfig, type ThemeId } from '~/lib/theme/themes';
 import {
   DEFAULT_TITLE_FONT_SELECTION,
@@ -24,6 +31,7 @@ import { Icon } from '~/components/ui/icon';
 import { Text } from '~/components/ui/text';
 import { ThemeBackdrop } from '~/components/backdrops/ThemeBackdrop';
 import { ThemePickerSheet } from '~/screens/settings/ThemePickerSheet';
+import { AppIconTile, getAppIconLabel } from '~/screens/settings/AppIconPickerSheet';
 import { OnboardingScaffold } from './OnboardingScaffold';
 import { useOnboardingStepView } from './useOnboardingStepView';
 import { useNavigateOnce } from './useNavigateOnce';
@@ -151,6 +159,83 @@ function ThemePreviewCard() {
   );
 }
 
+/**
+ * App icon choices. iOS switches right away; Android waits until the user
+ * leaves the app after onboarding, because switching there ends the app.
+ */
+function AppIconRow() {
+  const { t } = useTranslation();
+  const current = useAppIconStore((s) => s.current);
+  const pending = useAppIconStore((s) => s.pending);
+  const isChanging = useAppIconStore((s) => s.isChanging);
+  const refresh = useAppIconStore((s) => s.refresh);
+  const selected = pending ?? current;
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const choose = async (name: AppIconName) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const store = useAppIconStore.getState();
+    await store.chooseInOnboarding(name);
+    const after = useAppIconStore.getState();
+    if ((after.pending ?? after.current) === name) {
+      track('app_icon_changed', { icon: name });
+    }
+  };
+
+  return (
+    <View>
+      <Text className="text-base font-body-medium text-foreground mt-4 mb-2">
+        {t('appearance.appIcon')}
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="-mx-1"
+        accessibilityRole="radiogroup"
+        accessibilityLabel={t('appearance.appIcon')}>
+        {APP_ICON_CHOICES.map((name) => {
+          const isActive = name === selected;
+          const label = getAppIconLabel(name);
+          return (
+            <Button
+              key={name}
+              variant="ghost"
+              size="none"
+              disabled={isChanging}
+              onPress={() => {
+                if (!isActive) void choose(name);
+              }}
+              className="flex-col items-center gap-1 px-1"
+              role="radio"
+              accessibilityRole="radio"
+              accessibilityLabel={label}
+              accessibilityState={{ checked: isActive, disabled: isChanging }}>
+              <View
+                className={cn(
+                  'rounded-[16px] border-2 p-0.5',
+                  isActive ? 'border-ring' : 'border-transparent',
+                )}>
+                <AppIconTile name={name} size={48} />
+              </View>
+              <Text className="text-[10px] text-muted-foreground" numberOfLines={1}>
+                {label}
+              </Text>
+            </Button>
+          );
+        })}
+      </ScrollView>
+      {pending && (
+        <Text className="text-xs text-muted-foreground mt-1">
+          {t('onboarding.appIconAppearsAfterLeaving')}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 export default function OnboardingThemeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -250,6 +335,8 @@ export default function OnboardingThemeScreen() {
             />
           ))}
         </View>
+
+        {canChooseIconInOnboarding && <AppIconRow />}
       </View>
     </OnboardingScaffold>
   );

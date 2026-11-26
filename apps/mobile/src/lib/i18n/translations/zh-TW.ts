@@ -631,6 +631,7 @@ export const zhTW: Translations = {
   'onboarding.youreAllSet': '一切就緒！',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     '最後還有兩項可以開啟 — 都是選用的。',
+  'onboarding.appIconAppearsAfterLeaving': '離開 Tackbok 後，新圖示就會出現。',
   'onboarding.finish.oneOptionalThing': '最後還有一項可以開啟 — 是選用的。',
   'onboarding.addExampleEntries': '加入範例日記',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':

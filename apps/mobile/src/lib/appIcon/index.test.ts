@@ -4,6 +4,8 @@ type NativeModule = {
   registeredIcons?: readonly string[];
   getAppIconName: jest.Mock<Promise<string | null>, [readonly string[]]>;
   setAppIcon: jest.Mock<Promise<void>, [string | null, readonly string[]]>;
+  setAppIconOnLeave?: jest.Mock<Promise<void>, [string | null, readonly string[]]>;
+  cancelAppIconOnLeave?: jest.Mock<Promise<void>, []>;
 };
 
 function load({
@@ -177,4 +179,97 @@ test('without the native module nothing changes', async () => {
   expect(supportsAlternateIcons).toBe(false);
   await useAppIconStore.getState().setIcon('Sage');
   expect(useAppIconStore.getState().current).toBe('Classic');
+});
+
+/** A newer Android binary that can switch once the user leaves the app. */
+function fakeNativeWithLeave(): Required<NativeModule> {
+  return {
+    ...fakeNative(),
+    registeredIcons: [
+      'Sage',
+      'Midnight',
+      'Ocean',
+      'Terracotta',
+      'Rose',
+      'Plum',
+      'Blueprint',
+    ],
+    setAppIconOnLeave: jest.fn(
+      async (_name: string | null, _icons: readonly string[]) => {},
+    ),
+    cancelAppIconOnLeave: jest.fn(async () => {}),
+  };
+}
+
+test('onboarding offers icons on iOS and on Android binaries that can wait', () => {
+  expect(load({ native: fakeNative(), os: 'ios' }).canChooseIconInOnboarding).toBe(true);
+  expect(load({ native: fakeNative() }).canChooseIconInOnboarding).toBe(false);
+  expect(load({ native: fakeNativeWithLeave() }).canChooseIconInOnboarding).toBe(true);
+  expect(load({ native: null, os: 'ios' }).canChooseIconInOnboarding).toBe(false);
+});
+
+test('iOS switches the onboarding choice straight away', async () => {
+  const native = fakeNative();
+  const { useAppIconStore } = load({ native, os: 'ios' });
+
+  await useAppIconStore.getState().chooseInOnboarding('Ocean');
+  expect(native.setAppIcon).toHaveBeenLastCalledWith('Ocean', expect.any(Array));
+  expect(useAppIconStore.getState()).toMatchObject({ current: 'Ocean', pending: null });
+});
+
+test('Android keeps the onboarding choice until it is handed over, never switching', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+  const store = () => useAppIconStore.getState();
+
+  await store().chooseInOnboarding('Plum');
+  expect(store()).toMatchObject({ current: 'Classic', pending: 'Plum' });
+  // Picking the current icon again drops the choice.
+  await store().chooseInOnboarding('Classic');
+  expect(store().pending).toBeNull();
+  await store().chooseInOnboarding('Rose');
+  expect(native.setAppIcon).not.toHaveBeenCalled();
+  expect(native.setAppIconOnLeave).not.toHaveBeenCalled();
+
+  await store().syncPendingOnLeave(false);
+  expect(native.setAppIconOnLeave).not.toHaveBeenCalled();
+
+  await store().syncPendingOnLeave(true);
+  expect(native.setAppIconOnLeave).toHaveBeenLastCalledWith('Rose', expect.any(Array));
+  expect(native.setAppIcon).not.toHaveBeenCalled();
+});
+
+test('a replayed or reset onboarding cancels a switch still waiting', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+  const store = () => useAppIconStore.getState();
+
+  await store().chooseInOnboarding('Plum');
+  await store().syncPendingOnLeave(true);
+  native.cancelAppIconOnLeave.mockClear();
+
+  await store().syncPendingOnLeave(false);
+  expect(native.cancelAppIconOnLeave).toHaveBeenCalledTimes(1);
+  // The choice is kept, so finishing onboarding again queues it again.
+  expect(store().pending).toBe('Plum');
+});
+
+test('Android clears the waiting choice once the icon has switched', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+
+  await useAppIconStore.getState().chooseInOnboarding('Sage');
+  native.getAppIconName.mockResolvedValue('Sage');
+  await useAppIconStore.getState().refresh();
+  expect(useAppIconStore.getState()).toMatchObject({ current: 'Sage', pending: null });
+});
+
+test('a later change in Settings replaces the waiting choice', async () => {
+  const native = fakeNativeWithLeave();
+  const { useAppIconStore } = load({ native });
+
+  await useAppIconStore.getState().chooseInOnboarding('Sage');
+  await useAppIconStore.getState().setIcon('Ocean');
+  expect(native.cancelAppIconOnLeave).toHaveBeenCalled();
+  expect(useAppIconStore.getState()).toMatchObject({ current: 'Ocean', pending: null });
 });

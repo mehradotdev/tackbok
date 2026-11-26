@@ -16,7 +16,7 @@ import { AppIconTile, getAppIconLabel } from '../AppIconPickerSheet';
 
 export function AppearanceSection() {
   const { t } = useTranslation();
-  const currentAppIcon = useAppIconStore((s) => s.current);
+  const currentAppIcon = useAppIconStore((s) => s.pending ?? s.current);
   const refreshAppIcon = useAppIconStore((s) => s.refresh);
   const festiveTouches = useSettingsStore((s) => s.festiveTouchesEnabled);
   const setFestiveTouches = useSettingsStore((s) => s.setFestiveTouchesEnabled);

@@ -608,6 +608,8 @@ export const sv = {
   'onboarding.youreAllSet': 'Du är klar!',
   'onboarding.twoLastThingsYouCanTurnOnBothAreOptional':
     'Två sista saker du kan slå på. Båda är valfria.',
+  'onboarding.appIconAppearsAfterLeaving':
+    'Din nya ikon visas när du har lämnat Tackbok.',
   'onboarding.finish.oneOptionalThing': 'En sista sak du kan slå på. Den är valfri.',
   'onboarding.addExampleEntries': 'Lägg till exempelposter',
   'onboarding.aFewSampleEntriesShowHowPhotosVoiceMemosMoods':
