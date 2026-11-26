@@ -666,10 +666,10 @@ export function SettingsBottomSheet() {
               <Icon as={Trash2} className="text-destructive-foreground" size={16} />
               <Text>{t('profile.removePhoto')}</Text>
             </AlertDialogDestructiveAction>
-            <Button onPress={handlePickNewPhoto}>
-              <Icon as={ImagePlus} className="text-primary-foreground" size={16} />
+            <AlertDialogAction onPress={handlePickNewPhoto}>
+              <Icon as={ImagePlus} className="text-background" size={16} />
               <Text>{t('profile.updatePhoto')}</Text>
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Modal, Platform, View } from 'react-native';
+import { Modal, Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 import { cn } from 'tailwind-variants';
@@ -12,6 +12,7 @@ interface DialogOverlayFrameProps {
   animatedContainerClassName?: string;
   children?: React.ReactNode;
   contentContainerClassName?: string;
+  contentContainerStyle?: StyleProp<ViewStyle>;
   onRequestClose: () => void;
   overlay: React.ReactNode;
 }
@@ -68,6 +69,7 @@ export function DialogOverlayFrame({
   animatedContainerClassName,
   children,
   contentContainerClassName,
+  contentContainerStyle,
   onRequestClose,
   overlay,
 }: DialogOverlayFrameProps) {
@@ -89,7 +91,8 @@ export function DialogOverlayFrame({
             className={cn(
               'absolute bottom-0 left-0 right-0 top-0 z-50 items-center justify-center p-2',
               contentContainerClassName,
-            )}>
+            )}
+            style={contentContainerStyle}>
             {/* Keep content outside the overlay pressable so nested scroll views can win touch gestures. */}
             {children}
           </View>
