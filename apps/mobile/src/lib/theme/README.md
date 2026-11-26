@@ -174,25 +174,32 @@ performance or battery use.
 
 `FriendBackdrops.tsx` renders three shader scenes: Denise's misty blue ridges
 (light, Cinzel), Giuseppe's cairn by a lake at dusk (dark, Lora) and Kristen's
-granite dome above a misty pine valley (light, Figtree). The detailed layers
-(`DENISE_SCENE`, `GIUSEPPE_LAKE`, `GIUSEPPE_CAIRN`, `KRISTEN_SCENE`) are expensive, so each
-is drawn once into a texture with `useTexture`. Giuseppe's cairn texture covers
-only its corner. Only a cheap overlay animates per frame: Denise's fog wisps,
-Giuseppe's additive bokeh and Kristen's valley mist. Motion stops when the screen loses focus or the app
-goes to the background, and previews and Reduce Motion show still scenes.
-The theme background colour is painted first, so a failed shader degrades to a
-plain theme.
+sheer granite wall, in the spirit of El Capitan, above a misty pine valley
+(light, Figtree). The detailed layers (`DENISE_SCENE`, `GIUSEPPE_LAKE`,
+`GIUSEPPE_CAIRN`, `KRISTEN_SCENE`) are expensive, so each is drawn once into a
+texture with `useTexture`. Giuseppe's cairn texture covers only its corner.
+Only cheap overlays animate per frame: Denise's fog wisps, Giuseppe's additive
+bokeh, Kristen's valley mist, and Kristen's hiker (waves for about five
+seconds, rests for four) and hawk (one slow loop every 36 s). The hiker and
+hawk share the wall's geometry with the scene through `GEOMETRY` in
+`kristen-shader.ts`, and `kristenLifeBand` keeps their overlay to a strip
+above the rim. Motion runs on `useForwardTime` from `scene-kit.tsx` and stops
+when the screen loses focus or the app goes to the background; previews and
+Reduce Motion show still scenes. The theme background colour is painted first,
+so a failed shader degrades to a plain theme.
 
 Journal text sits directly on the art. Denise's and Kristen's scenes lift any
 pixel darker than 4.5:1 against `--color-foreground` toward the mist, which is
-why Kristen's pines are pale and hazy. Giuseppe has no such
+why Kristen's pines are pale and hazy. `KRISTEN_CONTRAST` in `theme-tokens.ts`
+tunes Kristen: `bold` deepens shading, streaks and pines, and `floor` is the
+contrast kept for body text (1 turns the lift off). Giuseppe has no such
 lift (the owner kept it as is): its lit cairn reaches about 2:1 and the sun glow
 on the lake about 3:1.
 
 Run `node scripts/art/render-friends.cjs` from the mobile directory to compile
-all seven shaders and render the three scenes at phone, iPad, landscape and
+all the shaders and render the three scenes at phone, iPad, landscape and
 picker sizes in `/tmp/friend-previews`. It exits 1 if body text over Denise or
-Kristen drops below 4.5:1;
+Kristen drops below 4.5:1 (or below a lower Kristen `floor`);
 Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (a few
 minutes); it says nothing about GPU cost.
 

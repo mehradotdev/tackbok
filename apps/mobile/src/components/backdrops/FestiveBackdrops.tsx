@@ -1,17 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
-import { AppState, PixelRatio, StyleSheet } from 'react-native';
+import { PixelRatio, StyleSheet } from 'react-native';
 import { Canvas, Image, Rect, Shader, Skia } from 'react-native-skia';
-import { useFocusEffect } from 'expo-router';
 import {
   cancelAnimation,
   Easing,
   useDerivedValue,
-  useFrameCallback,
   useReducedMotion,
   useSharedValue,
   withSequence,
   withTiming,
-  type FrameInfo,
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
 import { useAppLockStore } from '~/lib/appLock';
@@ -26,7 +23,14 @@ import {
   PINE_SCENE,
   PINE_SNOW,
 } from './pine-night-shader';
-import { MeasuredHost, rgb, useShaderTexture, type Size } from './scene-kit';
+import {
+  MeasuredHost,
+  rgb,
+  useForwardTime,
+  useShaderTexture,
+  useWhileFocused,
+  type Size,
+} from './scene-kit';
 import {
   VELVET_CLOCK,
   VELVET_CONFETTI,
@@ -44,71 +48,7 @@ const velvetLights = Skia.RuntimeEffect.Make(VELVET_LIGHTS);
 const velvetClock = Skia.RuntimeEffect.Make(VELVET_CLOCK);
 const velvetConfetti = Skia.RuntimeEffect.Make(VELVET_CONFETTI);
 
-/** Forward time wraps after six hours on screen, long before float precision blurs motion. */
-const WRAP_SECONDS = 6 * 60 * 60;
-
 type SceneProps = Size & { preview: boolean; celebrate: boolean };
-
-/**
- * While the screen is focused, runs `onChange(active)` now and whenever the app
- * enters or leaves the foreground; the cleanup it returns runs before the next
- * call and when the screen loses focus.
- */
-function useWhileFocused(onChange: (active: boolean) => (() => void) | void) {
-  useFocusEffect(
-    useCallback(() => {
-      let cleanup: (() => void) | void;
-      const update = (state: string | null | undefined) => {
-        cleanup?.();
-        cleanup = onChange(state === 'active');
-      };
-      update(AppState.currentState);
-      const subscription = AppState.addEventListener('change', update);
-      return () => {
-        subscription.remove();
-        cleanup?.();
-      };
-    }, [onChange]),
-  );
-}
-
-/**
- * Seconds of forward motion (falling snow, rising bubbles) while the scene is on
- * screen; frozen for previews, Reduce Motion, unfocused screens and the background.
- */
-function useForwardTime(preview: boolean) {
-  const reducedMotion = useReducedMotion();
-  const time = useSharedValue(0);
-  const running = useSharedValue(false);
-  const frame = useFrameCallback(
-    useCallback(
-      ({ timeSincePreviousFrame }: FrameInfo) => {
-        'worklet';
-        if (running.value)
-          time.value =
-            (time.value + Math.min(timeSincePreviousFrame ?? 0, 50) / 1000) %
-            WRAP_SECONDS;
-      },
-      [running, time],
-    ),
-    false,
-  );
-  useWhileFocused(
-    useCallback(
-      (active: boolean) => {
-        if (!active || preview || reducedMotion) return;
-        running.value = true;
-        frame.setActive(true);
-        return () => {
-          running.value = false;
-          frame.setActive(false);
-        };
-      },
-      [preview, reducedMotion, running, frame],
-    ),
-  );
-  return time;
-}
 
 const coveredNow = () =>
   useSplashActive.getState().active ||

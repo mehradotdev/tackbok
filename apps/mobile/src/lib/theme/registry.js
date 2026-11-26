@@ -146,7 +146,7 @@ export const THEMES = [
   {
     "id": "kristen",
     "name": "Kristen",
-    "description": "A granite dome above a misty pine valley",
+    "description": "A granite wall above a misty pine valley",
     "variant": "light",
     "enableTimelineBorders": false,
     "backdropId": "kristen",

@@ -1,7 +1,8 @@
 // Render the Denise, Giuseppe and Kristen shader scenes at phone/iPad/landscape/
 // picker sizes and check body-text contrast against every background pixel.
-// Denise and Kristen must stay at or above 4.5:1; Giuseppe (lit cairn and sun glow, about 2:1 and 3:1) is
-// reported only, because the owner kept it as is (2026-11-26).
+// Denise must stay at or above 4.5:1 and Kristen at its KRISTEN_CONTRAST floor;
+// Giuseppe (lit cairn and sun glow, about 2:1 and 3:1) is reported only,
+// because the owner kept it as is (2026-11-26).
 const fs = require('fs'),
   path = require('path'),
   Module = require('module');
@@ -43,6 +44,7 @@ for (const ext of ['.ts', '.tsx'])
     DENISE_PALETTE,
     GIUSEPPE_PALETTE,
     KRISTEN_PALETTE,
+    KRISTEN_CONTRAST,
   } = require(root + '/apps/mobile/src/lib/theme/theme-tokens.ts');
   const fx = {};
   for (const name of [
@@ -53,6 +55,7 @@ for (const ext of ['.ts', '.tsx'])
     'GIUSEPPE_CAIRN',
     'KRISTEN_SCENE',
     'KRISTEN_MIST',
+    'KRISTEN_LIFE',
   ]) {
     fx[name] = Skia.RuntimeEffect.Make(shaders[name]);
     if (!fx[name]) throw Error(name + ' failed to compile');
@@ -167,7 +170,9 @@ for (const ext of ['.ts', '.tsx'])
         {
           name: 'kristen',
           foreground: k['--color-foreground'],
-          minimum: 4.5,
+          // The scene keeps KRISTEN_CONTRAST.floor (4.6 targets 4.5:1); 1 turns it off.
+          minimum:
+            KRISTEN_CONTRAST.floor > 1 ? Math.min(4.5, KRISTEN_CONTRAST.floor - 0.1) : 0,
           tree: [
             layer(
               fx.KRISTEN_SCENE,
@@ -182,6 +187,8 @@ for (const ext of ['.ts', '.tsx'])
                 haze: rgb(KRISTEN_PALETTE.haze),
                 sun: rgb(KRISTEN_PALETTE.sun),
                 ink: rgb(k['--color-foreground']),
+                bold: KRISTEN_CONTRAST.bold,
+                floorRatio: KRISTEN_CONTRAST.floor,
               },
               0,
               0,
@@ -195,6 +202,17 @@ for (const ext of ['.ts', '.tsx'])
               height * 0.62,
               width,
               height * 0.38,
+            ),
+            layer(
+              fx.KRISTEN_LIFE,
+              {
+                size: [width, height],
+                time,
+                ink: rgb(k['--color-foreground']),
+                haze: rgb(KRISTEN_PALETTE.haze),
+                floorRatio: KRISTEN_CONTRAST.floor,
+              },
+              ...Object.values(shaders.kristenLifeBand(width, height)),
             ),
           ],
         },

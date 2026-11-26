@@ -523,7 +523,7 @@ export const THEME_DEFINITIONS = [
   {
     id: 'kristen',
     name: 'Kristen',
-    description: 'A granite dome above a misty pine valley',
+    description: 'A granite wall above a misty pine valley',
     variant: 'light',
     enableTimelineBorders: false,
     backdropId: 'kristen',
@@ -1053,6 +1053,10 @@ export const KRISTEN_PALETTE = {
   haze: '#e6e2da',
   sun: '#ffdcae',
 } as const;
+
+/** How hard Kristen's scene is drawn: `bold` deepens shading, streaks and pines
+ * (0 soft .. about 2); `floor` is the body-text contrast it keeps (1 = none). */
+export const KRISTEN_CONTRAST = { bold: 1, floor: 4.6 } as const;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
 export const PINE_NIGHT_PALETTE = {
