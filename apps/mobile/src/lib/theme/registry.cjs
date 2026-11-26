@@ -144,6 +144,24 @@ const THEMES = [
     "defaultTitleFontId": "lora"
   },
   {
+    "id": "pine-night",
+    "name": "Pine Night",
+    "description": "Snow falling on a moonlit pine valley",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "pine-night",
+    "defaultTitleFontId": "baskervville"
+  },
+  {
+    "id": "velvet",
+    "name": "Velvet",
+    "description": "Velvet drapes, fairy lights and a mantel clock",
+    "variant": "dark",
+    "enableTimelineBorders": false,
+    "backdropId": "velvet",
+    "defaultTitleFontId": "cinzel"
+  },
+  {
     "id": "bubblegum",
     "name": "Bubblegum",
     "description": "Neo-Brutalism Pop",

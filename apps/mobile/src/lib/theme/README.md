@@ -193,6 +193,32 @@ all five shaders and render both scenes at phone, landscape and picker sizes in
 Giuseppe's lowest contrast is only reported. The headless renderer is CPU-only and slow (a few
 minutes); it says nothing about GPU cost.
 
+### Pine Night and Velvet (festive)
+
+`FestiveBackdrops.tsx` renders two dark festive scenes that anyone can pick:
+Pine Night (a decorated tree in a moonlit snowy valley) and Velvet (velvet drapes,
+garlands of coloured lights, and a mantel clock with champagne flutes). Their
+subjects sit on the right, partly under the home screen's action dock, because the
+dock collapses on scroll and journal text sits on the left. Like the friend scenes,
+the detailed layer is drawn once into a texture (`scene-kit.tsx`); per frame only
+cheap overlays run: Pine Night's twinkling stars, tree lights and falling snow,
+and Velvet's blinking bulbs and clock. Velvet's clock shows the real local time
+(no second hand under Reduce Motion or in previews).
+
+On 24, 25 and 31 Dec and 1 Jan, the home screen plays a celebration once per
+opening of the app (a cold start or a return from the background, not a return
+from an entry): about 7 s of fireworks in Pine Night and 11 s of confetti in
+Velvet. It is skipped under Reduce Motion or when "Festive touches" is off.
+`celebration.ts` decides when.
+
+Pine Night lifts snow that would drop below 4.5:1 against `--color-foreground`,
+except the moon. Velvet keeps dark drapes and a dark dial; small bright details
+(bulbs, flutes, the moon, tree lights) stay under 4.5:1 by design. Run
+`node scripts/art/render-festive.cjs` from the mobile directory to compile all
+seven shaders and render both scenes, still and mid-celebration, at phone, iPad,
+landscape and picker sizes in `/tmp/festive-previews`. It reports the lowest
+contrast and the share of pixels under 4.5:1 (about 2–3%, up to 4% mid-confetti). It takes about 8 minutes.
+
 ## How `src/global.css` Is Managed
 
 `src/global.css` has two ownership zones:

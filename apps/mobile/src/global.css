@@ -438,6 +438,74 @@
     }
 
     /* ═══════════════════════════════════════════
+       PINE-NIGHT — Snow falling on a moonlit pine valley
+       ═══════════════════════════════════════════ */
+    @variant pine-night {
+      --color-background: #0c1b22;
+      --color-foreground: #e8efe9;
+      --color-card: #132830;
+      --color-card-foreground: #e8efe9;
+      --color-popover: #183039;
+      --color-popover-foreground: #e8efe9;
+      --color-primary: #b23a48;
+      --color-primary-foreground: #fbf1ee;
+      --color-secondary: #1c3540;
+      --color-secondary-foreground: #e8efe9;
+      --color-muted: #16303a;
+      --color-muted-foreground: #a9bec4;
+      --color-accent: #2b4a52;
+      --color-accent-foreground: #eef4f1;
+      --color-destructive: #f0a09a;
+      --color-destructive-foreground: #2a1214;
+      --color-border: #2a4650;
+      --color-input: #183039;
+      --color-ring: #e0707c;
+      --color-active-overlay: rgba(232, 239, 233, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.4);
+      --font-heading: 'Baskervville_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
+       VELVET — Velvet drapes, fairy lights and a mantel clock
+       ═══════════════════════════════════════════ */
+    @variant velvet {
+      --color-background: #2c0d17;
+      --color-foreground: #f3e6d8;
+      --color-card: #3a1521;
+      --color-card-foreground: #f3e6d8;
+      --color-popover: #431a27;
+      --color-popover-foreground: #f3e6d8;
+      --color-primary: #d4a64a;
+      --color-primary-foreground: #2a1408;
+      --color-secondary: #45192a;
+      --color-secondary-foreground: #f3e6d8;
+      --color-muted: #3a1521;
+      --color-muted-foreground: #cdb0b3;
+      --color-accent: #5a2436;
+      --color-accent-foreground: #f8ece0;
+      --color-destructive: #f2a093;
+      --color-destructive-foreground: #2a0f0c;
+      --color-border: #5a2a38;
+      --color-input: #431a27;
+      --color-ring: #e0b860;
+      --color-active-overlay: rgba(243, 230, 216, 0.1);
+      --theme-radius: 12px;
+      --theme-border-width: 1px;
+      --theme-shadow: 0 10px 15px 0 rgba(0, 0, 0, 0.45);
+      --font-heading: 'Cinzel_700Bold';
+      --font-body: 'Inter_400Regular';
+      --font-body-medium: 'Inter_500Medium';
+      --font-body-semibold: 'Inter_600SemiBold';
+      --font-body-bold: 'Inter_700Bold';
+    }
+
+    /* ═══════════════════════════════════════════
        BUBBLEGUM — Neo-Brutalism Pop
        ═══════════════════════════════════════════ */
     @variant bubblegum {
