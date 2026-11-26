@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import {
   Canvas,
@@ -33,7 +33,6 @@ import {
   NATIVE_SPLASH_LOGO_SIZE,
   revealSplash,
   SPLASH_TIMELINES,
-  useSplashActive,
   type SplashMode,
 } from '~/lib/splash';
 
@@ -110,8 +109,14 @@ export function SplashAnimation({
   const endColor = (themeBackground as string | undefined) ?? NATIVE_SPLASH_BACKGROUND;
   const time = useSharedValue(0);
   const timeline = SPLASH_TIMELINES[mode];
-  // Once the background is the theme's, taps reach the app underneath.
-  const revealed = useSplashActive((s) => s.revealed);
+  // Taps reach the app once the overlay starts fading, so a tap never lands
+  // on a control the user cannot see yet.
+  const [passThrough, setPassThrough] = useState(false);
+  const startFade = useCallback(() => {
+    setPassThrough(true);
+    // The fade mode has no zoom, so the app's own status bar comes back here.
+    revealSplash();
+  }, []);
 
   // Give the canvas two frames to draw before the animation moves, so it never
   // starts mid-way. Until then the plain logo view shows the same frame.
@@ -206,8 +211,14 @@ export function SplashAnimation({
   // Once the background is the theme's, the status bar can follow the theme.
   useAnimatedReaction(
     () => zoom.value >= 0.8,
-    (revealed, previous) => {
-      if (revealed && !previous) scheduleOnRN(revealSplash);
+    (isRevealed, previous) => {
+      if (isRevealed && !previous) scheduleOnRN(revealSplash);
+    },
+  );
+  useAnimatedReaction(
+    () => time.value > timeline.fadeOut[0],
+    (fading, previous) => {
+      if (fading && !previous) scheduleOnRN(startFade);
     },
   );
   const background = useDerivedValue(() =>
@@ -241,7 +252,7 @@ export function SplashAnimation({
   return (
     <Animated.View
       accessibilityViewIsModal
-      pointerEvents={revealed ? 'none' : 'auto'}
+      pointerEvents={passThrough ? 'none' : 'auto'}
       style={[
         StyleSheet.absoluteFill,
         { backgroundColor: NATIVE_SPLASH_BACKGROUND },
