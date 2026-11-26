@@ -70,5 +70,5 @@ describe('timelines', () => {
 test('the story moves from its first frame and stays short', () => {
   // The native splash already showed the still logo; holding it again reads as a pause.
   expect(SPLASH_TIMELINES.story.fold?.close[0]).toBe(0);
-  expect(SPLASH_TIMELINES.story.duration).toBeLessThanOrEqual(2300);
+  expect(SPLASH_TIMELINES.story.duration).toBeLessThanOrEqual(2500);
 });

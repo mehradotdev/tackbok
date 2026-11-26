@@ -73,9 +73,7 @@ const COVER_HEART_POSITION = [
 ];
 
 const foldEasing = Easing.inOut(Easing.cubic);
-// Sine peaks at about 1.6x the average speed (cubic: 3x), so the heart's growth
-// stays easy to follow.
-const zoomEasing = Easing.inOut(Easing.sin);
+const zoomEasing = Easing.inOut(Easing.cubic);
 
 interface SplashAnimationProps {
   mode: Exclude<SplashMode, 'none'>;
