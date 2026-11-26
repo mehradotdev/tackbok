@@ -217,7 +217,7 @@ except the moon. Velvet keeps dark drapes and a dark dial; small bright details
 `node scripts/art/render-festive.cjs` from the mobile directory to compile all
 seven shaders and render both scenes, still and mid-celebration, at phone, iPad,
 landscape and picker sizes in `/tmp/festive-previews`. It reports the lowest
-contrast and the share of pixels under 4.5:1 (about 2–3%). It takes about 8 minutes.
+contrast and the share of pixels under 4.5:1 (about 2–3%, up to 4% mid-confetti). It takes about 8 minutes.
 
 ## How `src/global.css` Is Managed
 

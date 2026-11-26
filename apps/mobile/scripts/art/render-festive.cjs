@@ -146,7 +146,7 @@ for (const ext of ['.ts', '.tsx'])
               fx.VELVET_CONFETTI,
               {
                 size: [width, height],
-                party: party < 0 ? -1 : party * 3,
+                party,
                 gold: rgb(VELVET_PALETTE.gold),
               },
               full,
