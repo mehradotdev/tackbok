@@ -6,7 +6,8 @@
  * through the valley and KRISTEN_LIFE draws a hiker waving from the summit and
  * a hawk soaring over the valley.
  *
- * `bold` (0 soft .. about 2) deepens the shading, streaks and pines;
+ * `bold` (0 soft .. about 2) deepens the wall's shading and streaks and
+ * `forestBold` the pines;
  * `floorRatio` is the body-text contrast the scene keeps (1 turns it off).
  */
 const GEOMETRY = `
@@ -22,7 +23,7 @@ float kScale() { return min(size.x / 390.0, size.y / 700.0); }
 float wallBaseY() { return size.y * 0.80; }
 float wallH() { return 380.0 * kScale(); }
 float wallTop() { return wallBaseY() - wallH(); }
-float prowX() { return size.x - 215.0 * kScale(); }
+float prowX() { return size.x - 178.0 * kScale(); }
 // The prow: leans back toward the top, with a gentle bulge at mid-height.
 float leftEdge(float y) {
   float s = kScale();
@@ -36,7 +37,7 @@ float crestY(float x) {
   float u = (x - prowX()) / (200.0 * s);
   return wallTop() - 14.0 * s * smoothstep(0.0, 1.0, u) + (noise1(x / (14.0 * s)) - 0.5) * 3.0 * s;
 }
-float hikerX() { return prowX() + 100.0 * kScale(); }
+float hikerX() { return prowX() + 78.0 * kScale(); }
 `;
 
 export const KRISTEN_SCENE = `
@@ -50,7 +51,8 @@ uniform float3 pine;     // pine green
 uniform float3 haze;     // valley haze
 uniform float3 sun;      // warm morning light
 uniform float3 ink;      // theme foreground: body text drawn over the scene
-uniform float bold;
+uniform float bold;        // how hard the wall is drawn
+uniform float forestBold;  // how hard the pines are drawn
 uniform float floorRatio;
 ${GEOMETRY}
 float hash2(float2 p) { return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453); }
@@ -110,7 +112,7 @@ float rimPines(float2 xy, float s) {
   for (int j = -2; j <= 2; j++) {
     float c = cell + float(j);
     float cx = (c + 0.2 + 0.6 * hash(c * 5.3)) * cw;
-    if (cx > prowX() + 128.0 * s && hash(c * 2.9 + 4.0) < 0.62) {
+    if (cx > prowX() + 104.0 * s && hash(c * 2.9 + 4.0) < 0.62) {
       float ht = (6.0 + 9.0 * hash(c * 7.7)) * s;
       float top = crestY(cx) - ht + 1.5 * s;
       float t = (xy.y - top) / ht;
@@ -153,11 +155,12 @@ half4 main(float2 xy) {
   if (inside > 0.0) {
     float t = clamp((xy.y - wallTop()) / wallH(), 0.0, 1.0);
     float2 rp = xy / (16.0 * s);
-    // The prow splits the sunlit side face (left) from the broad front face.
-    float px = le + (34.0 + 12.0 * t) * s + (noise1(xy.y / (7.0 * s)) - 0.5) * 3.0 * s;
-    float side = 1.0 - smoothstep(px - 1.0, px + 1.0, xy.x);
+    // The prow is rounded: across its first stretch the rock turns from the low
+    // sun on the left to face us, so the light falls off gradually, not in a band.
+    float px = le + (44.0 + 10.0 * t) * s;
+    float side = 1.0 - smoothstep(le, px, xy.x + (noise1(xy.y / (9.0 * s)) - 0.5) * 8.0 * s);
     float across = clamp((xy.x - px) / max(size.x - px, 1.0), 0.0, 1.0);
-    float3 n = normalize(mix(float3(0.1 + 0.55 * across, 0.0, 1.0), float3(-0.85, 0.0, 0.5), side));
+    float3 n = normalize(mix(float3(0.1 + 0.55 * across, 0.0, 1.0), float3(-0.6, 0.0, 0.8), side));
     // The rounded summit: the surface turns up toward the sky near the rim.
     float below = max(xy.y - rim, 0.0);
     n = normalize(n + float3(0.0, 1.3 * (1.0 - smoothstep(0.0, 42.0 * s, below)), 0.0));
@@ -169,7 +172,7 @@ half4 main(float2 xy) {
 
     float depthShade = min((1.0 - key) * (0.35 + 0.45 * bold), 1.0);
     float3 rock = mix(granite, shade, depthShade);
-    rock += (sun - 0.85) * 0.32 * key * key;                       // warm morning light
+    rock += (sun - 0.85) * 0.14 * key * key;                       // a hint of warm morning light
     rock = mix(rock, rock * float3(0.93, 0.96, 1.03), (1.0 - key) * fill * 0.5);  // cool sky fill
     float tone = fbm(rp * 0.3 + 3.0);
     rock *= mix(float3(0.97, 0.98, 1.0), float3(1.03, 1.0, 0.95), tone);
@@ -188,7 +191,7 @@ half4 main(float2 xy) {
     // tapering and fading unevenly downward.
     float sx = xy.x / (11.0 * s) + (noise1(xy.y / (55.0 * s) + 2.0) - 0.5) * 0.45;
     float sid = floor(sx);
-    float sOn = step(0.5, hash(sid * 1.3 + 5.0)) * smoothstep(0.0, 0.2, across) * (1.0 - side);
+    float sOn = step(0.5, hash(sid * 1.3 + 5.0)) * (1.0 - 0.6 * side);
     float sStart = step(0.5, hash(sid * 8.3)) * hash(sid * 2.7) * 0.3;
     float along = (t - sStart) / (0.35 + 0.6 * hash(sid * 4.1));
     float sWidth = mix(0.44, 0.1, clamp(along, 0.0, 1.0)) * (0.6 + 0.5 * hash(sid * 3.3));
@@ -204,8 +207,7 @@ half4 main(float2 xy) {
     float speck = step(0.55, noise(xy / (1.3 * s)));
     rock = mix(rock, mix(shade, streak, 0.25 + 0.2 * speck), dio * (0.16 + 0.24 * bold) * (1.0 - side));
 
-    // The prow's edge catches the light; a thin highlight along the rim.
-    rock += 0.05 * (1.0 - smoothstep(0.0, 2.5 * s, abs(xy.x - px))) * (1.0 - t);
+    // A thin highlight along the rim.
     rock += 0.06 * (1.0 - smoothstep(0.0, 2.0 * s, below));
     // Aerial perspective: the foot of the wall sinks into the haze.
     rock = mix(rock, haze, max(0.10 - 0.06 * bold, 0.0) + 0.5 * smoothstep(0.6, 1.0, t));
@@ -213,7 +215,7 @@ half4 main(float2 xy) {
   }
   // Summit pines against the sky.
   float rp2 = rimPines(xy, s);
-  col = mix(col, mix(haze, pine, 0.42 + 0.25 * bold), rp2);
+  col = mix(col, mix(haze, pine, 0.42 + 0.25 * forestBold), rp2);
 
   // Valley mist at the wall's foot.
   float hy = (xy.y - size.y * 0.74) / (60.0 * s);
@@ -228,7 +230,7 @@ half4 main(float2 xy) {
   float midTop = ridgeY(xy.x, midBase, midAmp, midFreq, 5.0);
   float2 midP = pines(xy, midBase, midAmp, midFreq, 5.0, 6.0 * s, 22.0 * s);
   float midM = max(smoothstep(midTop - 0.7, midTop + 0.7, xy.y), midP.x);
-  float3 midCol = mix(haze, pine, 0.36 + 0.24 * bold);
+  float3 midCol = mix(haze, pine, 0.36 + 0.24 * forestBold);
   midCol *= 0.98 + 0.12 * fbm(float2(xy.x / (5.0 * s), xy.y / (8.0 * s)));
   midCol = mix(midCol, midCol * float3(1.06, 1.07, 1.03), midP.y * midP.x);
   midCol = mix(midCol, haze, 0.35 * smoothstep(0.0, 60.0 * s, xy.y - midTop));
@@ -239,7 +241,7 @@ half4 main(float2 xy) {
   float nearTop = ridgeY(xy.x, nearBase, nAmp, nFreq, 9.0);
   float2 nearP = pines(xy, nearBase, nAmp, nFreq, 9.0, 10.0 * s, 62.0 * s);
   float nearM = max(smoothstep(nearTop - 0.7, nearTop + 0.7, xy.y), nearP.x);
-  float3 nearCol = mix(haze, pine, 0.5 + 0.28 * bold);
+  float3 nearCol = mix(haze, pine, 0.5 + 0.28 * forestBold);
   nearCol *= 0.97 + 0.12 * fbm(float2(xy.x / (4.0 * s), xy.y / (6.0 * s)));
   nearCol = mix(nearCol, nearCol * float3(1.08, 1.09, 1.04), nearP.y * nearP.x);
   nearCol = mix(nearCol, nearCol * float3(0.9, 0.92, 0.95), (1.0 - nearP.y) * nearP.x * 0.6);

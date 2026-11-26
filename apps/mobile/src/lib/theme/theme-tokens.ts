@@ -1054,9 +1054,10 @@ export const KRISTEN_PALETTE = {
   sun: '#ffdcae',
 } as const;
 
-/** How hard Kristen's scene is drawn: `bold` deepens shading, streaks and pines
- * (0 soft .. about 2); `floor` is the body-text contrast it keeps (1 = none). */
-export const KRISTEN_CONTRAST = { bold: 1, floor: 4.6 } as const;
+/** How hard Kristen's scene is drawn: `wall` deepens the granite's shading and
+ * streaks and `forest` the pines (0 soft .. about 2); `floor` is the body-text
+ * contrast the scene keeps (1 = none). */
+export const KRISTEN_CONTRAST = { wall: 0.3, forest: 1, floor: 4.6 } as const;
 
 /** Backdrop art colors for the festive scenes; the sky uses the theme background. */
 export const PINE_NIGHT_PALETTE = {

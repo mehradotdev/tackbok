@@ -191,8 +191,8 @@ so a failed shader degrades to a plain theme.
 Journal text sits directly on the art. Denise's and Kristen's scenes lift any
 pixel darker than 4.5:1 against `--color-foreground` toward the mist, which is
 why Kristen's pines are pale and hazy. `KRISTEN_CONTRAST` in `theme-tokens.ts`
-tunes Kristen: `bold` deepens shading, streaks and pines, and `floor` is the
-contrast kept for body text (1 turns the lift off). Giuseppe has no such
+tunes Kristen: `wall` deepens the granite's shading and streaks, `forest` the
+pines, and `floor` is the contrast kept for body text (1 turns the lift off). Giuseppe has no such
 lift (the owner kept it as is): its lit cairn reaches about 2:1 and the sun glow
 on the lake about 3:1.
 
