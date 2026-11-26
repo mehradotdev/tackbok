@@ -36,11 +36,21 @@ const BUILD_ICONS: readonly AppIconName[] = IS_BETA_BUILD
 
 // Android binaries report the icons they registered. Older ones predate the beta
 // Classic alternate and fail midway on an unknown alias, leaving two launcher
-// icons, so they get the original list. Older iOS beta binaries only reject Classic.
+// icons, so they get the original list (frozen: later icons such as Christmas
+// are not in them). Older iOS binaries just reject an icon they lack.
+const ORIGINAL_ANDROID_ICONS: readonly AppIconName[] = [
+  'Sage',
+  'Midnight',
+  'Ocean',
+  'Terracotta',
+  'Rose',
+  'Plum',
+  'Blueprint',
+];
 const NATIVE_ICONS: readonly AppIconName[] =
   Platform.OS === 'android'
     ? BUILD_ICONS.filter((icon) =>
-        (AppIconModule?.registeredIcons ?? ALTERNATE_APP_ICONS).includes(icon),
+        (AppIconModule?.registeredIcons ?? ORIGINAL_ANDROID_ICONS).includes(icon),
       )
     : BUILD_ICONS;
 

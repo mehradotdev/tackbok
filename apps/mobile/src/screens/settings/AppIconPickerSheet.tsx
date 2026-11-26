@@ -34,6 +34,7 @@ const APP_ICON_PREVIEWS: Record<AppIconName, ImageSourcePropType> = {
   Rose: require('../../../assets/images/app-icons/rose.png'),
   Plum: require('../../../assets/images/app-icons/plum.png'),
   Blueprint: require('../../../assets/images/app-icons/blueprint.png'),
+  Christmas: require('../../../assets/images/app-icons/christmas.png'),
 };
 
 /** Icon names are proper names, shown in English in every language like theme names. */
